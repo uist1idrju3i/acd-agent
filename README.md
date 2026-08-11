@@ -64,6 +64,7 @@ AIは要件を聞き、設計と製造データを提案し、決定論的な検
 流れは、**語る（要件を伝える）→ AIが設計し自動検証する → 作って試す（製造・実機テスト）
 → フィードバックが知識として蓄積される**です。ブレッドボードの気軽さで基板と筐体を回し、
 知識の蓄積によって量産品質へ到達することを目指します。
+
 ## なぜACDか
 
 既存のEDA/MCADは、設計者が複数のGUIとファイルを手で同期する前提です。コード駆動設計、
@@ -75,6 +76,7 @@ ACDが埋めるギャップは、(a)対話を検証可能な要件へ変換す�
 ファームウェアについてはOpenHands本来のソフトウェア開発能力を活用し、基板・筐体・FWを
 同じ設計グラフで一貫して設計・検証するワンストップの流れへつなぎます。
 詳しい比較は [`docs/prior-art.md`](docs/prior-art.md) を参照してください。
+
 ## 設計原則
 
 - AIは候補を提案し、決定論的ツールが判定します。パーサー、制約ソルバー、DRC、
@@ -94,6 +96,7 @@ ACDが埋めるギャップは、(a)対話を検証可能な要件へ変換す�
 - Q7/N7を分析器として使い、知識を事実と測定から蓄積します。
 - staleなEvidenceを下流へ流さず、外部ツールの版・入力・出力・不確実性を記録します。
 - 承認された修正と却下された提案、fabからの指摘、試作の失敗をすべて構造化して記録します。
+
 ## 設計フロー
 
 ```mermaid
@@ -145,14 +148,19 @@ flowchart LR
 ```
 
 6ステップの入力、出力、ゲート、筐体側の詳細は [`docs/design-flow.md`](docs/design-flow.md) にまとめます。
+
 ## アーキテクチャ
 
 設計グラフを正とし、回路図、KiCadプロジェクト、Gerber、BOM、STEP/3MF、
-ファームウェアパッケージ、監査文書、Q7/N7図表を投影として扱います。OpenHands SDKを
-実行基盤として利用し、ACDは設計グラフ、決定論的ゲート、Evidenceの失効、承認IDと
-不可逆操作の束縛を担います。
+ファームウェアパッケージ、監査文書、Q7/N7図表を投影として扱います。
+レイヤは `schema ← core ← adapters ← agent tools ← OpenHands Conversation` とし、
+KiCad、FreeCAD/code-CAD、slicer、sourcingを交換可能なadapterとして扱います。
+OpenHands SDKはConversation、型付きTool、EventLog、workspace、MCP、delegate、
+metrics、retryを提供する実行基盤です。設計グラフ、決定論的ゲート、Evidenceの失効、
+承認IDと不可逆操作の束縛はACDが実装します。
 詳細は [`docs/architecture.md`](docs/architecture.md) と
 [`docs/openhands-integration.md`](docs/openhands-integration.md) を参照してください。
+
 ## ACDではないもの
 
 - チャットパネルを付けた回路図エディタではありません。対話と設計グラフがインターフェースです。
