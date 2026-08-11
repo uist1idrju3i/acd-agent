@@ -57,6 +57,11 @@ adapter境界は [`architecture.md`](architecture.md)、工程ごとのゲート
 外部プロセス化はライセンス義務を消さない。binary同梱、改変、再配布、ネットワーク提供の
 可否は別に判断する。
 
+MCP server経由での呼び出しも外部プロセス方式の一形態として扱う。SDKのMCP clientから
+動的schemaを受け取っても、adapterによる設計意味論の検証、ツール版の固定、Evidenceの
+生成はACD側で行う。MCP serverを利用してもライセンス義務は消えない。adapterの分割粒度は
+[`architecture.md`](architecture.md)を正とする。
+
 ## 電気レーンの選定
 
 ### 部品ライブラリと配布境界

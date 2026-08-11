@@ -62,6 +62,10 @@ flowchart TB
 合格しても、次の段階へは進めない。
 各工程の出口では必要な投影を生成してAIレビューを行い、`RV2`でループの収束を確認する。
 出口に限らず、工程内も影響分析に応じて投影生成・AIチェック・是正・再投影のPDCAを随時回す。
+電気・機械・FWの3レーンの分業は、OpenHands SDKの`AgentDefinition`、`delegate`、`workflow`
+で実行する。`RV1`のレビュアは生成側とは別のagent定義・別コンテキストに固定し、詳細な
+SDK活用方針とレビュー独立性は[`openhands-integration.md`](openhands-integration.md)および
+[`projection-review.md`](projection-review.md)を参照する。
 詳細な投影セット、レビュー独立性、`ReviewFinding`、`RV1`／`RV2`は
 [`projection-review.md`](projection-review.md)を正とする。
 
