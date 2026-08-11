@@ -1,7 +1,7 @@
 # 実装ツール選定
 
 > ステータス: Draft  
-> 対象: Phase 0〜3を主とする実装ツールの採否、調査日 2026-08-11 UTC
+> 対象: Phase 0〜4を主とする実装ツールの採否、調査日 2026-08-11 UTC
 
 本書は、ACD実装で呼び出す外部ツールの採否と、その設計根拠・代替案・未決事項を正とする。
 各ツールの機能・ライセンス・版の調査事実は [`prior-art.md`](prior-art.md)、ツール契約と
@@ -38,7 +38,7 @@ adapter境界は [`architecture.md`](architecture.md)、工程ごとのゲート
 
 | 区分 | 意味 |
 |---|---|
-| 一次採用 | Phase 0〜3の実装で既定として呼ぶ |
+| 一次採用 | Phase 0〜4の実装で既定として呼ぶ |
 | 二次保持 | adapterの代替実装として設計に残すが、既定にはしない |
 | 継続調査 | 一次情報またはライセンスが未確認で、採否を保留する |
 | 不採用 | 上記の失格条件または用途不一致で候補から外す |
@@ -57,6 +57,27 @@ adapter境界は [`architecture.md`](architecture.md)、工程ごとのゲート
 可否は別に判断する。
 
 ## 電気レーンの選定
+
+### 部品ライブラリと配布境界
+
+KiCad公式ライブラリ（symbols、footprints、packages3D）を一次採用する。ライブラリは
+ユーザー環境のKiCadインストールを参照し、本リポジトリへvendorしない。fixtureへ固定するのは
+参照名、バージョン、hashのみとする。
+
+KiCad公式ライブラリのライセンスはCC-BY-SA 4.0であるが、公式の例外条項により、ライブラリを
+使って作った設計と生成ファイル（KiCadプロジェクト、Gerber、BOM、STEP）へコピーレフトは
+波及せず、帰属表示も要求されないと読む。ただし、これはライセンス条文の読み取りであり法的
+助言ではない。ライブラリ自体または改変版を再配布する場合は例外の範囲外となるため、再確認する。
+一次情報は [KiCad Libraries License](https://www.kicad.org/libraries/license/) である。
+
+幾何形状の出所は解決済みとする。一方、MPN単位の定格・ピン機能・価格・在庫は別問題であり、
+初期は出所付きの人手キュレーション小カタログ（20〜40点）から始める。商用sourcing APIは
+Phase 8まで既定経路にしない。未知部品のfootprint自動生成と、出所記録の粒度を確定していない
+データの採用は初期スコープ外とする。初期カタログの在庫・実装可否は次回のGolden Designで
+一次確認する。最初期の採用条件は、JLCPCBの実装部品ライブラリ（Basic／Extended）に在庫が
+ある部品に限定する。将来は、支給部品（consigned）およびJLCPCBのGlobal Parts Sourcing経由で
+調達される部品も「部品支給なし」として許容範囲へ含める。個別部品の在庫・実装可否そのものは
+次回のGolden Designで一次確認する。
 
 ### 回路の意図記述とnetlist生成
 
@@ -87,7 +108,7 @@ ACDへlibrary結合せず外部プロセスとして呼ぶことで境界を分�
 
 `librepcb-cli`を二次保持にする理由は、公式docsがERC/DRCとoutput jobのCI実行を明記して
 おり、ECAD engineをadapterで差し替えられることを設計上示せる点にある。X server依存と
-LICENSE本文未取得のため、Phase 0〜3の既定にはしない。
+LICENSE本文未取得のため、Phase 0〜4の既定にはしない。
 
 したがって、ECAD adapterは`kicad-cli`固有の引数をcoreへ露出させず、「ERC実行」「DRC実行」
 「製造データ出力」「STEP出力」という能力単位のインターフェースにする。
@@ -101,7 +122,7 @@ LICENSE本文未取得のため、Phase 0〜3の既定にはしない。
 | [kiutils](https://github.com/mvnmgrx/kiutils) | GPL-3.0-only | 不採用 | Python importがGPL結合になる。parserを外部プロセス化する利点が小さい |
 | [kicad_parse_gen](https://crates.io/crates/kicad_parse_gen) | MIT OR Apache-2.0（7.0.2、2018-01-29） | 不採用 | permissiveだが2018年で、KiCad 10形式の網羅を確認できない |
 | `kicadfiles`（PyPI） | metadataにlicenseなし、本文取得できず | 継続調査 | ライセンスと形式網羅が未確認 |
-| KiCad IPC API／[kicad-python](https://docs.kicad.org/kicad-python-main/) | KiCad配布物と同体系 | 不採用（Phase 0〜3） | KiCad 10のIPCはGUI起動中のPCB editorが対象で、回路図ファイルのAPIは公開されていない。ヘッドレスIPC serverは公式docsでKiCad 11の追加とされる |
+| KiCad IPC API／[kicad-python](https://docs.kicad.org/kicad-python-main/) | KiCad配布物と同体系 | 不採用（Phase 0〜4） | KiCad 10のIPCはGUI起動中のPCB editorが対象で、回路図ファイルのAPIは公開されていない。ヘッドレスIPC serverは公式docsでKiCad 11の追加とされる |
 
 ACDのpatchは正規グラフ側で表現し、KiCadファイルは投影である。したがって必要なのは
 「投影の生成」と「投影の再読込確認」であり、外部の高機能KiCad patcherへの依存は最小にする。
@@ -159,7 +180,7 @@ netlistとmodelの生成、収束判定、測定値の抽出はACD側で行い�
 
 ### SI／RF、EM
 
-`scikit-rf`（BSD想定、本文未取得）と`openEMS`（GPL想定、外部プロセス）は、Phase 4以降の
+`scikit-rf`（BSD想定、本文未取得）と`openEMS`（GPL想定、外部プロセス）は、Phase 5以降の
 対象として継続調査に置く。初期ターゲットの1〜4層基板では既定のゲートにしない。
 
 ## 機械レーンの選定
@@ -173,7 +194,7 @@ netlistとmodelの生成、収束判定、測定値の抽出はACD側で行い�
 | [CadQuery](https://github.com/CadQuery/cadquery) | Apache-2.0 | 二次保持 | 同一kernel上の代替API |
 | [trimesh](https://github.com/mikedh/trimesh) | MIT（5.0.0、2026-08-01） | 一次採用（import） | mesh healing、watertight判定、体積・bboxなどの事前検査 |
 | [manifold](https://github.com/elalish/manifold) | Apache-2.0（v3.5.2、2026-06-27） | 二次保持 | 堅牢なmesh booleanが必要になった場合の候補。BREPの代替ではない |
-| [FreeCAD](https://github.com/FreeCAD/FreeCAD) | LGPL-2.1中心、混在 | 不採用（Phase 0〜3） | 同一kernelへPythonから直接到達できるため、GUIアプリを介する必要がない |
+| [FreeCAD](https://github.com/FreeCAD/FreeCAD) | LGPL-2.1中心、混在 | 不採用（Phase 0〜4） | 同一kernelへPythonから直接到達できるため、GUIアプリを介する必要がない |
 | [OpenSCAD](https://openscad.org/) | GPL想定 | 不採用 | mesh CSGで公差・BREP診断に向かず、GPL境界を追加する利点がない |
 | [OpenJSCAD](https://github.com/jscad/OpenJSCAD.org) | MIT | 不採用 | Node.js依存を追加し、BREP kernelを持たない |
 | [libfive](https://github.com/libfive/libfive) | core／bindingsはMPL-2.0、Studio等はGPL系 | 不採用 | 単一ライセンスとして扱えず、BREP前提の診断に合わない |
@@ -191,7 +212,7 @@ JSONの設計参照および二次保持とし、ACDのゲートは自前のdiag
 |---|---|---|
 | `kicad-cli pcb export step` | 一次採用 | 公式CLIでboard→STEPを実行でき、`--board-only`、`--no-components`、`--include-tracks`、`--user-origin`等で出力範囲を固定できる。使用した3D modelとオプションを入力Evidenceに含める |
 | [KiCad StepUp](https://github.com/easyw/kicadStepUpMod) | 不採用 | LICENSE本文が未確認で、FreeCAD workbench前提のため境界が複雑 |
-| IDF 2.0/3.0、prostep ivip IDX、STEP AP242 | 継続調査 | 交換契約としてPhase 5以降に評価する |
+| IDF 2.0/3.0、prostep ivip IDX、STEP AP242 | 継続調査 | 交換契約としてPhase 4以降に評価する |
 
 STEP出力の成功は嵌合の合格ではない。干渉・クリアランス・肉厚はkernel側で再計算する。
 
@@ -208,10 +229,10 @@ ACDが選ぶのは、ピン割当整合とログ取得のための外部ツー�
 
 | 用途 | 候補 | ライセンス | 判定 |
 |---|---|---|---|
-| 仮想実機 | [Renode](https://github.com/renode/renode) | MIT（v1.16.1、2026-02-16） | 一次候補（Phase 9） |
+| 仮想実機 | [Renode](https://github.com/renode/renode) | MIT（v1.16.1、2026-02-16） | 一次候補（Phase 2） |
 | 仮想実機 | QEMU | GPL-2.0-or-later | 二次保持（外部プロセス） |
 | 仮想実機 | [wokwi-cli](https://github.com/wokwi/wokwi-cli) | MIT（v0.26.1、2026-02-23） | 二次保持 |
-| 実機書き込み・ログ | [probe-rs](https://github.com/probe-rs/probe-rs) | MIT OR Apache-2.0（release pageは0.32.0） | 一次候補（Phase 9） |
+| 実機書き込み・ログ | [probe-rs](https://github.com/probe-rs/probe-rs) | MIT OR Apache-2.0（release pageは0.32.0） | 一次候補（Phase 2） |
 | 実機書き込み・ログ | [pyOCD](https://github.com/pyocd/pyOCD) | Apache-2.0（PyPI 0.45.1、2026-07-21） | 二次保持 |
 
 wokwi-cliはMITだがtokenと外部サービスが必要であり、既定の検証経路には置かない。
@@ -222,14 +243,21 @@ probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではな�
 
 | 用途 | 候補 | 判定 | 根拠 |
 |---|---|---|---|
-| 部品価格・在庫・lifecycle | Nexar/Octopart、Digi-Key、Mouser | 一次候補（Phase 7） | 公式APIで出所・取得時点・通貨・地域を記録できる。契約と資格情報が前提 |
-| 部品データ | LCSCの非公式endpoint、`jlcparts`のmirror | 不採用（既定にしない） | 公式APIではなく、規約・rate limit・安定性が未確認。snapshotを固定した参考情報にとどめる |
+| 部品価格・在庫・lifecycle | Nexar/Octopart、Digi-Key、Mouser | 一次候補（Phase 8） | 公式APIで出所・取得時点・通貨・地域を記録できる。契約と資格情報が前提 |
+| 部品データ | 非公式endpoint、`jlcparts`のmirror | 不採用（既定にしない） | 公式APIではなく、規約・rate limit・安定性が未確認。snapshotを固定した参考情報にとどめる |
 | KiCadライブラリ生成 | [easyeda2kicad](https://github.com/uPesy/easyeda2kicad.py) | 不採用 | AGPL-3.0 |
 | PCB見積・発注 | JLCPCB API、PCBWay partner API | 一次候補（Phase 10） | 見積と発注を分離し、総発注額と最終ゲートを前提にする |
 | 筐体見積・発注 | JLC3DP、Slant3D、Xometry partner API | 継続調査（Phase 10〜11） | 権限範囲が契約依存 |
 
-認証不要でpermissiveな部品データAPIは一次確認できなかった。よって部品Evidenceは、
-契約済みAPIまたは利用者が投入したデータシート・型番を出所として扱う。
+部品Evidenceは、人手カタログまたは利用者が投入したデータシート・型番を出所として扱う。
+
+## 配布形態と結合境界
+
+当面は配布せず、作者専用として運用する。公開時はACDのライブラリと利用者が自分でKiCad等を
+導入する形態とし、KiCad、freerouting、slicer等の外部ツールをACD配布物へ同梱しない。
+Dockerイメージは作者の環境再現やCI用に作成してよいが、公開registryへpushしない。
+環境プローブは外部ツールの検出・バージョン記録を行い、非対応または版不明ならfail-closedで
+停止する。CIとローカルのツールバージョン一致をEvidenceとして検証する。
 
 ## 環境前提と運用上の注意
 
@@ -244,12 +272,10 @@ probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではな�
 ## 未決事項
 
 - OCCTのLGPL＋例外が、OCP wheel経由のimport結合でどう適用されるか。
-- GPL/AGPL binary（`kicad-cli`、freerouting、slicer）の同梱・配布方針と、
-  本リポジトリのLICENSE（BSD 3-Clause）との整合。
 - LibrePCB、Horizon EDA、pcb-rnd、gerbv、`kicadfiles`、lcapy、Zoo/KCLのLICENSE本文と現行版。
 - freeroutingの代替となるpermissive autorouter、およびPCB placement最適化OSSの再調査。
 - KiCad 11のヘッドレスIPC serverが提供された場合の、`kicad-cli`とIPCの責務分担。
-- 部品データのpermissiveな一次入手経路。
+- 公式ライブラリのライセンス例外を実際の公開形態へ適用する際の最終的な法務確認。
 - `sexpdata`ベースのKiCadスキーマ層が対応するKiCadファイル形式版の範囲。
 
 ## 検証状況の注記
