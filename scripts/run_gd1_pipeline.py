@@ -236,8 +236,16 @@ def run_pipeline(
         ],
         "content_hash": zip_content_hash(zip_path),
         "tools": {"kicad-cli": kicad.version(), "measurement_parser": "sexpdata+gerbonara"},
-        "gates": {"drc": "pass", "dfm": "pass"},
-        "pcb_class": intent.pcba_class_target,
+        "gates": {
+            "drc": (
+                "pass"
+                if drc.error_count == 0 and not drc.unconnected_items
+                else "fail"
+            ),
+            "dfm": str(dfm_report["status"]),
+        },
+        "pcb_class": "standard",
+        "pcb_class_basis": "profile:combinations; standard PCB process without advanced options",
         "pcba_class": intent.pcba_class_target,
         "unknowns": {
             "price": "unknown",
@@ -254,7 +262,7 @@ def run_pipeline(
     print("[10/10] manufacturing package written")
 
     hashes: dict[str, str] = {}
-    for path in [
+    hash_paths = [
         project.schematic,
         project.board,
         project.bom,
@@ -267,15 +275,13 @@ def run_pipeline(
         dfm_path,
         package_path,
         zip_path,
-    ]:
-        hashes[path.name] = (
+        *gerber_paths,
+        *drill_paths,
+    ]
+    for path in hash_paths:
+        hashes[str(path.relative_to(out_dir))] = (
             zip_content_hash(path) if path.suffix == ".zip" else normalized_hash(path)
         )
-    for path in [*gerber_paths, *drill_paths]:
-        hashes[f"gerbers/{path.name}"] = normalized_hash(path)
-    for path in [pos_path, bom_path, cpl_path, dfm_path, package_path]:
-        hashes[str(path.relative_to(out_dir))] = normalized_hash(path)
-    hashes[str(zip_path.relative_to(out_dir))] = zip_content_hash(zip_path)
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
     print(f"[10/10] hash manifest: {manifest_path}")

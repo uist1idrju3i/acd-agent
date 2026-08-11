@@ -164,7 +164,7 @@ def test_overlay_grows_oval_axes(tmp_path: Path) -> None:
             ["drill", "oval", "0.6", "1.6"],
         ],
     ]
-    updated, _ = apply_overlay(raw, source, overlay, overlay_hash)
+    updated, _ = apply_overlay(raw, source, overlay, overlay_hash, PROFILE)
     assert updated[2][5] == ["size", "1.1", "2.1"]
 
 
@@ -214,4 +214,4 @@ def test_overlay_rejects_unknown_op(tmp_path: Path) -> None:
         ],
     ]
     with pytest.raises(LibraryPinError):
-        apply_overlay(raw, source, overlay, overlay_hash)
+        apply_overlay(raw, source, overlay, overlay_hash, PROFILE)

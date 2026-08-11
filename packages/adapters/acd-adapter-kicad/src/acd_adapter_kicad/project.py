@@ -103,8 +103,8 @@ def write_project(
     lane: ElectricalLane,
     fixture_dir: Path,
     out_dir: Path,
+    profile: FabProfile,
     name: str = "gd1",
-    profile: FabProfile | None = None,
 ) -> ProjectFiles:
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -125,7 +125,7 @@ def write_project(
     power_sha = "sha256:" + hashlib.sha256(power_lib.read_bytes()).hexdigest()
     pwr_flag_symbol = symbol_library.load(PWR_FLAG_LIB_ID, power_lib, power_sha)
     schematic_content = generate_schematic(lane, symbol_library, fixture_dir, pwr_flag_symbol)
-    board_projection = generate_board(lane, FootprintLibrary(), fixture_dir)
+    board_projection = generate_board(lane, FootprintLibrary(), fixture_dir, profile)
 
     schematic = out_dir / f"{name}.kicad_sch"
     board = out_dir / f"{name}.kicad_pcb"
@@ -134,23 +134,22 @@ def write_project(
 
     schematic.write_text(schematic_content)
     board.write_text(board_projection.content)
-    if profile is not None:
-        minimums = (
-            ("min_track_width", lane.board.min_track_mm, "min_track_width"),
-            ("min_via_diameter", lane.board.via_diameter_mm, "min_via_diameter"),
-            ("min_via_hole", lane.board.via_drill_mm, "min_via_hole"),
-            ("min_clearance", lane.board.min_clearance_mm, "min_spacing"),
-        )
-        for key, declared, capability_key in minimums:
-            capability = float(profile.data["capabilities"][capability_key]["value"])
-            if declared < capability:
-                raise ValueError(
-                    f"graph declaration {key}={declared} is below fab capability "
-                    f"{capability} (capability_violation)"
-                )
+    minimums = (
+        ("min_track_width", lane.board.min_track_mm, "min_track_width"),
+        ("min_via_diameter", lane.board.via_diameter_mm, "min_via_diameter"),
+        ("min_via_hole", lane.board.via_drill_mm, "min_via_hole"),
+        ("min_clearance", lane.board.min_clearance_mm, "min_spacing"),
+    )
+    for key, declared, capability_key in minimums:
+        capability = float(profile.data["capabilities"][capability_key]["value"])
+        if declared < capability:
+            raise ValueError(
+                f"graph declaration {key}={declared} is below fab capability "
+                f"{capability} (capability_violation)"
+            )
     settings = _project_settings(project.name, lane.board, profile)
     project.write_text(json.dumps(settings, sort_keys=True) + "\n")
-    custom_rules = _custom_rules(profile) if profile is not None else ""
+    custom_rules = _custom_rules(profile)
     dru_path = out_dir / f"{name}.kicad_dru"
     if custom_rules:
         dru_path.write_text(custom_rules)

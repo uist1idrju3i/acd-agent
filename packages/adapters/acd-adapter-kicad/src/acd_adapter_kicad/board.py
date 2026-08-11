@@ -28,6 +28,7 @@ from acd_core.board_model import (
     KeepoutRect,
 )
 from acd_core.electrical import ElectricalLane
+from acd_core.fab import FabProfile
 from acd_core.sexpr import Quoted, SExpr, Sym, dumps
 
 PCB_VERSION = "20241229"
@@ -235,6 +236,7 @@ def generate_board(
     lane: ElectricalLane,
     footprint_library: FootprintLibrary,
     fixture_dir: Path,
+    profile: FabProfile,
 ) -> BoardProjection:
     board = lane.board
     footprints: dict[str, FootprintShape] = {}
@@ -258,6 +260,7 @@ def generate_board(
                 path,
                 fixture_dir / comp.overlay_file,
                 comp.overlay_sha256 or "",
+                profile,
             )
             applied = footprint_library.shape_from_raw(comp.library.footprint, raw)
             footprints[comp.refdes] = applied

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import cast
 
 from acd_adapter_kicad.library import LibraryPinError, verify_pinned_file
+from acd_core.fab import FabProfile
 from acd_core.sexpr import SExpr, dumps, find_all
 
 
@@ -27,6 +28,7 @@ def apply_overlay(
     source_path: Path,
     overlay_path: Path,
     expected_overlay_hash: str,
+    profile: FabProfile,
 ) -> tuple[list[SExpr], dict[str, str]]:
     if _hash_bytes(overlay_path.read_bytes()) != expected_overlay_hash:
         raise LibraryPinError(f"overlay hash mismatch: {overlay_path}")
@@ -41,10 +43,13 @@ def apply_overlay(
     if not target.get("footprint"):
         raise LibraryPinError("overlay target footprint is missing")
     evidence = cast(dict[str, object], data.get("evidence", {}))
+    rule_id = evidence.get("rule_id")
+    profile_rule_ids = {item["rule_id"] for item in profile.data["preferences"]}
     if (
         not isinstance(data.get("overlay_id"), str)
         or not isinstance(data.get("reason"), str)
-        or evidence.get("rule_id") != "pth-annular-ring-prefer-025"
+        or not isinstance(rule_id, str)
+        or rule_id not in profile_rule_ids
         or not all(
             isinstance(evidence.get(key), str) for key in ("fab_profile", "url", "fetched_at")
         )
