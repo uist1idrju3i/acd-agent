@@ -18,6 +18,8 @@
 設計変更はpatchとして表現し、影響するnode、再実行するgate、無効になるEvidenceを
 導出する。回路図、KiCad project、Gerber、BOM、STEP/3MF、図面、FW package、
 監査文書、Q7/N7図表はすべて派生投影であり、正規データを置き換えない。
+グラフはテキストとしてシリアライズ可能なJSON形式にし、差分比較、レビュー、gitでの
+保存を容易にする。この方針はZener、atopile、tscircuitから得られる教訓である。
 
 ## レイヤ境界
 
@@ -43,6 +45,16 @@ OpenHands Conversation（計画、実行、delegate、memory、MCP）
 Evidence、時刻を保持する。再読込できない、対象revisionが違う、またはtool version
 が不明な投影はstaleである。
 
+## 監査文書の投影
+
+設計グラフから、要求トレーサビリティマトリクス、設計履歴・レビュー記録、
+ECO相当の変更記録、検証・試験報告、出所付きBOM、リスク／FMEA風ビュー、
+PPAP／PSW相当の量産引き渡し証拠パッケージを生成する。これらは対象revisionと
+Evidenceから再生成できる派生投影である。
+
+形式はISO 9001の設計記録や医療機器DHFの形式に整合する方向性を持つが、これらの
+投影によって認証・法規制適合や顧客承認を自動的に主張しない。
+
 ## ツール契約
 
 すべてのtoolは型付きinput/output、schema version、idempotency key、side-effect
@@ -60,6 +72,17 @@ OpenHands SDKのEventLog、snapshot、resume、forkは実行履歴の土台と�
 ただし、外部CAD/EDAの副作用、外部状態、idempotency、監査署名までSDKは保証しない。
 ACD固有の追記専用ログ、side-effect journal、artifact hash、再現モード、
 チェックポイント仕様は後続PRで`runtime.md`として定義する。
+
+## AIオーケストレーション
+
+計画エージェントは各段階をステップへ分解し、型付きツールを呼び出す。対象には
+部品検索、データシート抽出、ネットリスト構築、配置、ルーター、DRC、シミュレーター、
+DFMチェッカー、CADカーネル、slicerが含まれる。AIの出力はすべて決定論的検証を通し、
+ツール版、入力、出力、測定条件、Evidenceを記録する。
+
+承認ゲートを有効化した場合は、対象revision、入力hash、ゲート結果、予算、承認状態を
+記録し、承認対象と異なる副作用を合格根拠にしない。承認ゲートの有無にかかわらず、
+設計グラフと決定論的ゲートが正規の判定面である。
 
 ## OpenHandsとの境界
 

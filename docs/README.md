@@ -7,18 +7,22 @@
 
 1. [`../README.md`](../README.md): ビジョン、原則、全体フロー。
 2. [`design-flow.md`](design-flow.md): 基板と筐体の6ステップ。
-3. [`architecture.md`](architecture.md): 設計グラフ、投影、レイヤ境界。
-4. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲と自前実装。
-5. [`roadmap.md`](roadmap.md): フェーズ境界とゴールデンタスク。
-6. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
-7. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-8. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
+3. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
+4. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
+5. [`architecture.md`](architecture.md): 設計グラフ、投影、レイヤ境界。
+6. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲と自前実装。
+7. [`roadmap.md`](roadmap.md): フェーズ境界とゴールデンタスク。
+8. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+9. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
+10. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
 
 ## 文書一覧
 
 | 文書 | 目的 | ステータス |
 |---|---|---|
 | `design-flow.md` | 電気レーンと機械レーンの入力・出力・ゲート | Draft |
+| `knowledge-base.md` | 知識の構造化、スコープ、実測、還流 | Draft |
+| `future-outlook.md` | ローカル製造、プリンテッドエレクトロニクス、将来展望 | Draft |
 | `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
 | `openhands-integration.md` | SDK v1.41.0との統合判断 | Draft |
 | `qc-tools.md` | Q7/N7を使う品質・計画分析 | Draft |
