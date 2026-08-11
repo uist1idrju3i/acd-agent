@@ -46,7 +46,7 @@
 | 5 | 外部ツールの保存バイト列を設計状態の権威にしない。非決定な出力は正規化規則を契約に書き、規則外の差異は停止条件とする | 外部ツールの決定論性を説明で仮定する（timestamp、再保存時のセグメント構成差など） |
 | 6 | 契約は単一の機械可読正本（gate matrix、error taxonomy、event payload schema、tool envelope）から導く | runnerと文書でgate番号・状態を二重管理する。用途の異なるhashを同一semanticsで共有する |
 | 7 | 安全条件・保護対象は書き換わる部分木で判断する | pathの完全一致だけで許可・却下を決める |
-| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する | 予算次元を`unknown`のまま次フェーズへ渡す |
+| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。token／money／LLM latencyはSDK `Metrics`／`MetricsSnapshot`、外部process回数・外部tool wall-clockはACD tool envelopeを出所とし、`AgentDefinition`の`max_budget_per_run`／`max_iteration_per_run`を上限へ使う | 予算次元を`unknown`のまま次フェーズへ渡す |
 
 ## マイルストーン
 
@@ -66,17 +66,19 @@
 | [Phase 2 FW連携と実機LED](golden-design-1.md) | FWパッケージ投影、OpenHandsによるFW実装、ピン割当整合ゲート<br/>仮想実機（Renode一次候補、QEMU／wokwi-cliは二次保持）<br/>実機書き込みとログ取得（probe-rs一次候補、pyOCDは二次保持） | 筐体、自動発注、独自コンパイラ・独自シミュレータの開発<br/>仮想試験を実測の代替にすること | 同一設計グラフから基板・FWパッケージを生成し、FWのビルドとピン割当整合ゲートを通す。ピン割当を故意にずらすと不合格になる。仮想実機のログは仮想検証Evidence、実機のログは実測Evidenceとして、条件・版付きで分類して設計グラフへ記録できる。実機へ書き込んだFWでLEDが点灯することを追加の到達条件とする |
 | Phase 3 機械レーン最小縦切り | 外形・部品高さ・connector位置からbuild123dで筐体を生成→干渉/clearance/肉厚→STEP/3MF | レーン統合、知識ベース、自然言語入力、自動発注 | 単一コマンドでfixtureから筐体を生成し、CAD kernelの妥当性・干渉・clearance・肉厚チェックを通過する。出力を再読込でき、同一入力の再実行で成果物hashが一致する。干渉・肉厚不足・CAD kernel不在を注入すると停止する（negative test） |
 | Phase 4 レーン統合と共通ゲート | 同一fixtureから基板＋筐体を再生成し、ECAD↔MCAD交換（`kicad-cli pcb export step`）と高さ・keepoutの受け渡しを通す。tool envelopeを`kicad-cli`／freerouting／CAD kernelの主要経路へ適用 | 片レーンだけの合格で次段へ進むこと、協調修復、知識ベース、自動発注、汎用router自作 | 基板＋筐体を同一fixtureから再生成し、ECAD↔MCAD交換、高さ・keepout、干渉・clearance・肉厚の共通ゲートに合格する。片レーンだけを合格させたfixtureを注入すると停止する（negative test） |
-| Phase 5 検証ゲートと根拠 | 多段検証、Evidence失効の伝播、実機テスト項目の自動生成、投影レビューPDCAの実装 | 協調修復の自動化、長期知識loop、高精度SI・熱解析 | 上流変更でstale化するEvidenceを検出して下流を不合格にでき、根拠付きテスト計画を生成できる。投影レビューPDCAを実装し、未処分の重大`ReviewFinding`があると`RV2`が不合格になるnegative testを通す。テスト項目は上流の設計根拠・チューニング注記から導出し、placeholderの存在をcoverage合格にしない |
-| Phase 6 電気↔機械協調修復 | 相互制約の反復解決、優先度・根拠・調停の記録 | 自由な要件変更、未知影響の自動無視 | 配線不能、部品高さ超過、開口不足のfixtureを両レーンで修復できる。注入caseに加えて未注入caseで一般化を測り、保護対象は祖先pathの丸ごと置換も却下する。修復の合否は修復器と独立な検証で判定する |
+| Phase 5 検証ゲートと根拠 | 多段検証、Evidence失効の伝播、実機テスト項目の自動生成、投影レビューPDCAの実装。機械可読投影と視覚投影を分類し、`ImageContent`／`inspect_image_with_vision`によるvisionレビューを修復ループへ接続する | 協調修復の自動化、長期知識loop、高精度SI・熱解析 | 上流変更でstale化するEvidenceを検出して下流を不合格にでき、根拠付きテスト計画を生成できる。投影レビューPDCAを実装し、視覚投影の画像hash・renderer・vision profile／model・解像度を記録し、未処分の重大`ReviewFinding`があると`RV2`が不合格になるnegative testを通す。テスト項目は上流の設計根拠・チューニング注記から導出し、placeholderの存在をcoverage合格にしない |
+| Phase 6 電気↔機械協調修復 | 相互制約の反復解決、優先度・根拠・調停の記録。trade studyと代替案を`Conversation.fork(from_event_id=...)`の子conversationへ対応付ける | 自由な要件変更、未知影響の自動無視 | 配線不能、部品高さ超過、開口不足のfixtureを両レーンで修復できる。採用枝だけをcanonicalへpatchし、非採用枝をEvidence付きtrade studyとして残す。注入caseに加えて未注入caseで一般化を測り、保護対象は祖先pathの丸ごと置換も却下する。修復の合否は修復器と独立な検証で判定する |
 | Phase 7 知識ループ | fab DFM、造形不良、実測を構造化し次設計へ適用 | 未検証のLLM学習、設計データの無断共有 | 同一スコープの不良が再発しない候補ルールをEvidence付きで登録できる。適用は実際にツール入力へ届いていることをnegative testで示す（ルールやライブラリ修正を壊すと検証が不合格になる）。`applicability: unknown`の知識は適用対象にせず合格に到達させない。入力の少なくとも1件は実fab指摘または実測とし、fixtureのみでは完了としない |
-| Phase 8 要件対話とsourcing | 自然言語→構造化要件、sourcing API、データシート抽出、部品ライブラリの設計経路への接続 | 自動発注、契約判断の自動化 | 部品候補と筐体材料候補を出所・取得時点付きで比較し、未確認事項を質問できる。価格・在庫の期限切れは停止条件として働く。token／moneyの実測値と`unknown`境界を記録する |
-| Phase 9 長時間ラン運用 | OpenHands SDKのcheckpoint／resume、`StuckDetector`、condenserを土台とし、task ledger、side-effect journal、予算、watchdog、golden task回帰と対応付ける | 無制限retry、根拠なしの自動復旧 | 強制終了後に同じrevisionから再開して完走し、成果物hash・gate結果・event列・台帳が一致する。同一入力の外部副作用を重複させない |
-| Phase 10 自働発注 | 見積dry-run、基板＋部品＋実装＋送料＋税＋筐体の**総発注額**、発注前最終ゲート、API ordering | 予算超過、価格stale、契約不明の発注 | 副作用のない見積dry-runで総発注額と最終ゲート結果を再現でき、実発注は予算内かつ最終ゲート合格のときだけ実行される。予算超過・stale価格・ゲート未実行を注入すると発注に到達しない |
+| Phase 8 要件対話とsourcing | 自然言語→構造化要件、sourcing API、データシート抽出、部品ライブラリの設計経路への接続。API経路を一次、`browser_use`を二次経路とし、期限付きEvidenceへ記録する | 自動発注、契約判断の自動化、browser経路からの発注 | 部品候補と筐体材料候補を出所・取得時点付きで比較し、未確認事項を質問できる。価格・在庫の期限切れは停止条件として働く。browser取得値はURL・取得時刻・screenshot hash付きで期限管理し、token／moneyの実測値と`unknown`境界を記録する |
+| Phase 9 長時間ラン運用 | OpenHands SDKのcheckpoint／resume、`StuckDetector`、condenser、agent-server `WebhookSpec`を土台とし、task ledger、side-effect journal、予算、watchdog、golden task回帰と対応付ける | 無制限retry、根拠なしの自動復旧、EventLog replayに代わるwebhook正本 | 強制終了後に同じrevisionから再開して完走し、成果物hash・gate結果・event列・台帳が一致する。同一入力の外部副作用を重複させない。webhookの重複・欠落を許容してもEventLog replayから正しく再構成できる |
+| Phase 10 自働発注 | 見積dry-run、基板＋部品＋実装＋送料＋税＋筐体の**総発注額**、発注前最終ゲート、API ordering | 予算超過、価格stale、契約不明の発注、browser経路の発注 | 副作用のない見積dry-runで総発注額と最終ゲート結果を再現でき、実発注は予算内かつ最終ゲート合格のときだけ実行される。予算超過・stale価格・ゲート未実行を注入すると発注に到達しない |
 | Phase 11 ローカル製造 | 3Dプリンタ、卓上CNC、材料・機械profile、ローカル版と外注版 | 量産能力の無根拠な保証 | 同じgraphからローカル試作版と外注版を生成し、機械条件・測定Evidenceを比較できる |
 
 Phase 0のevent契約は、独自のevent log payload schemaを別ストアとして自作するのではなく、
-ACDドメインイベント型を定義し、SDK `EventLog`へ載せる方法を確定する。Phase 5のPDCAと
-Phase 6の協調修復ではSDKの反復機構を修復ループの実行に利用する。Phase 9のtask ledgerは
+ACDドメインイベント型を定義し、SDK `EventLog`へ載せる方法を確定する。投影レビュー契約には
+機械可読投影と視覚投影、画像hash・renderer・vision profile／model・解像度の記録、
+`ImageContent`／`inspect_image_with_vision`の観察経路を含める。Phase 5のPDCAとPhase 6の
+協調修復ではSDKの反復機構を修復ループの実行に利用する。Phase 9のtask ledgerは
 EventLogへ追記したACDイベントから射影するread modelとして実装し、SDKのtask状態を正にしない。
 
 フェーズ境界の変更は本表を更新し、既存のゴールデンタスクを再実行する。
@@ -140,3 +142,4 @@ Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを�
 - Phase 7の「実fab指摘または実測を1件以上」を満たす入手経路（実発注時期に依存）。
 - Phase 10の見積dry-runを提供しない発注APIがある場合の代替検証手段。
 - golden taskの実行頻度と、CIで回す範囲・ローカル限定にする範囲の切り分け。
+- agent-server webhookの配信保証（重複・欠落時の再送、at-least-once等）の一次確認。

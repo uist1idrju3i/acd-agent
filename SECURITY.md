@@ -56,6 +56,8 @@ GitHubの[Security Advisories](https://github.com/uist1idrju3i/acd-agent/securit
 - Skill／plugin source、inline command、marketplace取得経路に起因する任意コード実行
 - MCP serverの動的schema変更やreconnectを悪用した検証回避
 - remote workspaceおよびagent-serverを経由した権限・分離の回避
+- 視覚投影やscreenshot内の指示をプロンプトとして実行させる画像経由のプロンプトインジェクション
+- browser経由で取得した外部入力を期限・URL・screenshot hashなしに設計根拠や発注条件へ使うこと
 - 依存関係の取得・固定に関する欠陥（lockfileの回避、submoduleの参照先変更、
   ビルド時の未検証ダウンロードなど）
 
@@ -79,6 +81,10 @@ Issue、PR、fixture、ログ、コミットに含めないでください。例
 成功や一時的な設定ミスとみなさず、ACDの処理を`unknown`として停止します。設計データを
 脆弱性報告、見積、外部レビューへ提出する場合は、識別子・秘密情報・不要な製造情報を匿名化し、
 提出先、目的、保管期間、削除方法を記録します。
+
+fab APIやprovider tokenはSDKの`SecretRegistry`／`SecretSource`へ登録し、ACDは参照名だけを
+保持します。SDKのsecret注入とmaskingを利用しても、secretをgraph、Evidence、log、commit、
+profileへ保存しない不変条件は維持します。
 
 投入されたECADファイル、ライブラリ、netlist、CADモデル、アーカイブ、外部ツール出力は
 信頼できないデータです。パス解決、展開、外部プロセス呼び出し、生成物保存はサニタイズ境界と

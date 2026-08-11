@@ -24,9 +24,17 @@
 | AgentProfile | SDKが提供するmodel、LLM設定、MCP参照等のprofile。秘密情報を含まない参照で管理するが、ACDの正ではない |
 | condenser | SDKが提供する会話contextの圧縮機構。Evidenceやゲート結果を置き換えず、ACDの判定正ではない |
 | critic | SDKが提供する反復改善用の評価機構。ACDゲート結果を伝達できるが、scoreも合否の正ではない |
+| ImageContent | SDKが画像URLをLLM入力へ渡す型。ACDでは視覚投影のレビュー入力に使うが、合否の正ではない |
+| inspect_image_with_vision | SDK builtinの画像レビューtool。vision profileへ画像と質問を渡すが、応答はAIレビューであり合否権限を持たない |
+| vision profile | 視覚入力を扱う別LLM profile。model、画像hash、renderer、解像度とともにEvidenceへ記録する |
+| renderer | 視覚投影を生成した描画器の種別。描画結果のメタデータであり、決定論的ゲートの判定器ではない |
 | EventLog | SDKが提供する型付き追記イベントの保存・分岐・復元機構。ACDはdomain payloadと合否の正を所有する |
 | MCP server | 外部ツールadapterをプロセス・ライセンス境界の外側で提供する接続先。SDKは接続機構を提供するが、ACDが意味検証とEvidenceを所有する |
 | DeclaredResources | SDK toolが並行実行時の共有resource keyを宣言する機構。ACDが必要なtoolを包んで排他キーを定義し、合否の正にはしない |
+| WebhookSpec | agent-serverがイベントをbufferして外部URLへPOSTする仕様。配信保証は未確認のため、ACDはEventLog replayを正とする |
+| SecretSource | SDKがsecretを解決・注入する参照元。ACDはfab API等のsecret本体ではなく参照名だけを保持する |
+| SessionStart | SDKのセッション開始hook。ACDはimport、版プローブ、解決SHA、設定hashの検証点として使う |
+| browser_use | SDKが提供するbrowser操作toolset。Phase 8の二次sourcingに使うが、Phase 10の発注経路には使わない |
 | workspace | SDKが提供するagentの実行環境。ファイルや外部ツールを置けるが、ACDの設計グラフや合否の正ではない |
 | stale | 対象revision、入力、ツール版などが現行条件と一致せず、下流の合格根拠にできない状態 |
 | ゲート | 候補や成果物を次の工程へ進めるかを決定論的に判定する境界 |

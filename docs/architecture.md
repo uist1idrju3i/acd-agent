@@ -44,6 +44,12 @@ Q7/N7図表はすべて派生投影であり、正規データを置き換えな
 原点・単位・軸、stackup・基板厚、メタデータ、安定identifierとrefdesを含む。
 定義とインスタンスは分離し、共有情報と固有情報の波及範囲をimpact analysisへ渡す。
 
+実行側の代替案探索は`Conversation.fork(from_event_id=...)`へ対応付ける。trade studyや
+Phase 6の協調修復では、基準eventから子conversationを作り、各枝を独立した作業revision
+として比較する。採用枝だけをcanonical graphへpatchし、非採用枝は対象revision、入力・
+出力hash、比較理由を含むEvidence付きtrade study記録として残す。投影を意味的にマージ
+せず、採用枝のgraphから投影を再生成する不変条件は維持する。
+
 ## レイヤ境界
 
 ```text
@@ -109,6 +115,11 @@ staleである。
 入力hash、ツール版、ライブラリcommit、profileのいずれかが変われば投影とレビューをstale
 とし、staleなレビューを出口ゲートの根拠にしない。詳細なPDCA、RV1／RV2、処分契約は
 [`projection-review.md`](projection-review.md)に定める。
+
+レビュー投影は機械可読投影と視覚投影に分ける。視覚投影のメタデータには画像hash、
+renderer種別、vision profile／model、解像度を含め、レビュー結果と`ReviewFinding`へ
+束ねる。視覚投影は観察入力であり、描画に依存しない決定論的ゲートの入力や合否根拠には
+しない。
 
 ゾーン塗りつぶし等の派生状態は、外形・ルール・接続の変更後に再計算してから検証する。
 再計算前の結果はstaleとして扱う。図面、3D形状、ブラウザ閲覧形式などのレビュー用投影は
@@ -251,6 +262,12 @@ ACD task ledgerは独立ストアを持たず、EventLogへ追記したACDイベ
 として実装する。再開はイベントのreplayで得る。耐久性の正はGit commitとACDの記録に置く。
 `RemoteConversation`のサーバ側保持期間は未確認であり、耐久性の根拠にしない。
 
+agent-serverの`WebhookSpec`をledgerとside-effect journalの低遅延取り込み経路として使う。
+イベントはbuffer、flush timer、リクエストサイズ上限を持つPOSTで送られるため、ACD側で
+pollingを自作しない。ただし
+配信保証は未確認であるため、正はEventLogのreplayに置く。webhook取り込みは重複・欠落を
+前提にidempotentとし、欠落を検出できない状態を合格扱いにしない。
+
 ## 未決事項
 
 - 設計グラフのシリアライズ形式とschema migration方式。
@@ -260,4 +277,5 @@ ACD task ledgerは独立ストアを持たず、EventLogへ追記したACDイベ
 - Evidenceの署名、改ざん検知、保持期間。
 - Gerber、STEP、3MF等のバイナリ成果物をGit LFSと別artifact storeのどちらで保管するか。
 - workspace側の永続化について、保持期間、署名、改ざん検知をどの層で担保するか。
+- agent-server webhookの配信保証（重複・欠落時の再送、at-least-once等）をどの層で確認するか。
 - 製造APIの資格情報、地域、契約、価格snapshotの扱い。
