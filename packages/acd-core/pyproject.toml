@@ -1,7 +1,7 @@
 [project]
 name = "acd-core"
 version = "0.0.1"
-description = "Design-graph revision, patch, and impact/stale derivation"
+description = "Design-graph revision, patch, CAD normalization, and impact/stale derivation"
 requires-python = ">=3.12"
 dependencies = [
     "acd-schema",

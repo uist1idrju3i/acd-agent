@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import io
 import os
 import stat
+import zipfile
 from pathlib import Path
 
 import pytest
 
+from acd_core.cad_normalize import CadNormalizationError, normalize_3mf, normalize_step
 from acd_tools import probe_all, probe_executable
-from acd_tools.probe import normalize_3mf, normalize_step
 
 
 def make_stub(directory: Path, name: str, script: str) -> None:
@@ -70,9 +72,6 @@ def test_step_normalization_removes_only_file_name_timestamp() -> None:
 
 
 def test_3mf_normalization_removes_uuid_and_zip_timestamp() -> None:
-    import io
-    import zipfile
-
     def make(uuid: str, date_time: tuple[int, int, int, int, int, int]) -> bytes:
         output = io.BytesIO()
         with zipfile.ZipFile(output, "w") as archive:
@@ -87,3 +86,16 @@ def test_3mf_normalization_removes_uuid_and_zip_timestamp() -> None:
     second = make("22222222-2222-2222-2222-222222222222", (2026, 8, 11, 12, 0, 2))
     assert first != second
     assert normalize_3mf(first) == normalize_3mf(second)
+
+
+def test_step_normalization_fails_closed_without_measured_pattern() -> None:
+    with pytest.raises(CadNormalizationError):
+        normalize_step(b"FILE_NAME('Other CAD','2026-08-11T12:00:00');")
+
+
+def test_3mf_normalization_fails_closed_without_model_entry() -> None:
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w") as archive:
+        archive.writestr("not-a-model.txt", b"unexpected")
+    with pytest.raises(CadNormalizationError):
+        normalize_3mf(output.getvalue())

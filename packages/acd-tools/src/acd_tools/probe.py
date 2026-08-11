@@ -10,19 +10,18 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import importlib.metadata
-import io
 import re
 import shutil
 import subprocess
 import tempfile
 import time
-import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from pydantic import Field
 
+from acd_core.cad_normalize import normalize_3mf, normalize_step
 from acd_schema import AcdModel
 from acd_schema.common import NonEmptyStr
 
@@ -144,7 +143,7 @@ def probe_cad_kernel() -> ToolProbeResult:
         return ToolProbeResult(
             tool_name="cad-kernel",
             present=True,
-            version=versions.get("build123d", versions.get("cadquery-ocp", "unknown")),
+            version="unknown",
             path=None,
             detail=f"CAD export probe failed: {type(exc).__name__}: {exc}",
         )
@@ -162,58 +161,13 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def normalize_step(data: bytes) -> bytes:
-    text = data.decode("utf-8")
-    text = re.sub(
-        r"(FILE_NAME\('Open CASCADE Shape Model',')[^']+(')",
-        r"\g<1>1970-01-01T00:00:00\g<2>",
-        text,
-    )
-    return text.encode("utf-8")
-
-
-def normalize_3mf(data: bytes) -> bytes:
-    output = io.BytesIO()
-    with zipfile.ZipFile(io.BytesIO(data)) as source, zipfile.ZipFile(
-        output, "w", compression=zipfile.ZIP_DEFLATED
-    ) as target:
-        for entry in source.infolist():
-            content = source.read(entry.filename)
-            if entry.filename == "3D/3dmodel.model":
-                content = re.sub(
-                    rb' p:UUID="[0-9a-fA-F-]+"',
-                    b' p:UUID="00000000-0000-0000-0000-000000000000"',
-                    content,
-                )
-            info = zipfile.ZipInfo(entry.filename, date_time=(1980, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = entry.external_attr
-            target.writestr(info, content)
-    return output.getvalue()
-
-
 def _export_3mf(shape: Any, path: Path) -> None:
-    import ctypes
     import importlib
 
-    lib3mf: Any = importlib.import_module("lib3mf")
-
-    vertices, triangles = shape.tessellate(0.01)
-    wrapper = lib3mf.get_wrapper()
-    model = wrapper.CreateModel()
-    mesh = model.AddMeshObject()
-
-    def position(vertex: Any) -> Any:
-        coordinates = (ctypes.c_float * 3)(vertex.X, vertex.Y, vertex.Z)
-        return lib3mf.Position(coordinates)
-
-    def triangle(indices: tuple[int, int, int]) -> Any:
-        return lib3mf.Triangle((ctypes.c_uint32 * 3)(*indices))
-
-    mesh.SetGeometry([position(vertex) for vertex in vertices], [triangle(t) for t in triangles])
-    mesh.SetName("box")
-    model.AddBuildItem(mesh, wrapper.GetIdentityTransform())
-    model.QueryWriter("3mf").WriteToFile(str(path))
+    build123d: Any = importlib.import_module("build123d")
+    mesher = build123d.Mesher()
+    mesher.add_shape(shape, linear_deflection=0.01, angular_deflection=0.1, part_number="box")
+    mesher.write(path)
 
 
 def _probe_cad_exports() -> list[CadFormatProbe]:
