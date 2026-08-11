@@ -18,13 +18,15 @@
 8. [`roadmap.md`](roadmap.md): マイルストーン、フェーズ境界、ゴールデンタスク。
 9. [`golden-design-1.md`](golden-design-1.md): 第1マイルストーンの具体設計とfixture入力。
 10. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
-11. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
-12. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-13. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
-14. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
-15. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
-16. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
-17. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
+11. [`implementation-plan.md`](implementation-plan.md): リポジトリ構成、パッケージ・Skill・agent分割、CI。
+12. [`phase0-plan.md`](phase0-plan.md): Phase 0の作業単位・順序・撤退条件。
+13. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
+14. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
+15. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+16. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
+17. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
+18. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
+19. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
 
 ## 文書一覧
 
@@ -41,6 +43,8 @@
 | `future-outlook.md` | ローカル製造、プリンテッドエレクトロニクス、将来展望 | Draft |
 | `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
 | `openhands-integration.md` | SDK v1.41.0との統合判断 | Draft |
+| `implementation-plan.md` | 実装の構成正本（リポジトリ・パッケージ・Skill・agent・CI） | Draft |
+| `phase0-plan.md` | Phase 0の作業単位・順序・撤退条件 | Draft |
 | `qc-tools.md` | Q7/N7を使う品質・計画分析 | Draft |
 | `tool-selection.md` | 実装で使う外部ツールの採否と設計根拠 | Draft |
 | `reliability-practices.md` | JAXA公開資料を根拠にした信頼性方針 | Draft |

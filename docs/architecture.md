@@ -95,7 +95,9 @@ commit、profileは別モジュールへ分ける。モジュール境界と再�
 SDKはSkill／plugin（作業資材）、`AgentDefinition`（役割）、tool（副作用）、workspace
 （実行環境）という分割単位を持つ。ACDのモジュール境界はこれらへ写像できるようにするが、
 SDKの配布単位に合わせてACDの契約境界を歪めない。詳細な活用方針は
-[`openhands-integration.md`](openhands-integration.md)を参照する。
+[`openhands-integration.md`](openhands-integration.md)を参照する。本節の原則を
+具体的なリポジトリ構成・パッケージ名へ落とした構成正本は
+[`implementation-plan.md`](implementation-plan.md)を参照する。
 
 次の状態は粒度が不適切なアンチパターンである。
 
