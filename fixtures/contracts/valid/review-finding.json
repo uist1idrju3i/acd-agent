@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "finding_id": "rf-0001",
+  "review_view": "RV1",
+  "severity": "high",
+  "target_revision": "r3",
+  "projection": {
+    "projection_kind": "machine_readable",
+    "content_hash": "sha256:abababababababababababababababababababababababababababababababab",
+    "generated_at": "2026-08-11T00:00:00+00:00",
+    "source_revision": "r3"
+  },
+  "description": "LED current-limit resistor value not derived from requirement",
+  "disposition": "fixed",
+  "disposition_reason": "resistor value now derived from req.blink drive current",
+  "disposed_at": "2026-08-11T01:00:00+00:00"
+}

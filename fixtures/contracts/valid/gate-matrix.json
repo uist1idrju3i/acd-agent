@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "target_revision": "r3",
+  "gates": [
+    {
+      "gate_id": "gate-erc",
+      "kind": "erc",
+      "status": "pass",
+      "evidence_refs": ["ev-erc-r3-0001"]
+    },
+    {
+      "gate_id": "gate-pin-net",
+      "kind": "pin_net_consistency",
+      "status": "pass",
+      "evidence_refs": ["ev-pin-net-r3-0001"]
+    },
+    {
+      "gate_id": "gate-fw-build",
+      "kind": "fw_build",
+      "status": "fail",
+      "evidence_refs": ["ev-fw-build-r3-0001"],
+      "waiver": {
+        "waiver_id": "wv-0001",
+        "reason": "toolchain pin pending; build verified manually on r3",
+        "target_revision": "r3",
+        "expires_at": "2026-09-01T00:00:00+00:00"
+      }
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acd.example/schemas/event-payload.schema.json",
+  "title": "ACD event payload",
+  "description": "Minimal ACD event payloads carried on the OpenHands SDK EventLog. Unknown kinds are rejected (fail-closed), never skipped or kept opaque.",
+  "type": "object",
+  "required": ["schema_version", "kind", "target_revision"],
+  "properties": {
+    "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
+    "kind": {
+      "type": "string",
+      "enum": ["gate_result", "approval", "commit_side_effect_receipt"]
+    },
+    "target_revision": {"$ref": "common.schema.json#/$defs/revision"}
+  },
+  "oneOf": [
+    {"$ref": "#/$defs/gateResult"},
+    {"$ref": "#/$defs/approval"},
+    {"$ref": "#/$defs/commitSideEffectReceipt"}
+  ],
+  "$defs": {
+    "gateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "kind", "target_revision", "gate_id", "status", "evidence_refs"],
+      "properties": {
+        "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
+        "kind": {"const": "gate_result"},
+        "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
+        "gate_id": {"type": "string", "minLength": 1},
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail", "stale", "not_run", "unknown"]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "kind", "target_revision", "approval_id", "subject", "approved"],
+      "properties": {
+        "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
+        "kind": {"const": "approval"},
+        "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
+        "approval_id": {"type": "string", "minLength": 1},
+        "subject": {"type": "string", "minLength": 1},
+        "approved": {"type": "boolean"}
+      }
+    },
+    "commitSideEffectReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "kind", "target_revision", "receipt_ref", "idempotency_key"],
+      "properties": {
+        "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
+        "kind": {"const": "commit_side_effect_receipt"},
+        "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
+        "receipt_ref": {"type": "string", "minLength": 1},
+        "idempotency_key": {"$ref": "common.schema.json#/$defs/idempotencyKey"}
+      }
+    }
+  }
+}

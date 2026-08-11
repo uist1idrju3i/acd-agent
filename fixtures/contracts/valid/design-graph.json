@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1",
+  "graph_id": "golden-led-board",
+  "revision": "r3",
+  "nodes": [
+    {
+      "id": "req.blink",
+      "kind": "requirement",
+      "attrs": {"text": "LED blinks at 1 Hz"},
+      "depends_on": []
+    },
+    {
+      "id": "net.led_drive",
+      "kind": "electrical.net",
+      "attrs": {},
+      "depends_on": ["req.blink"]
+    },
+    {
+      "id": "comp.mcu",
+      "kind": "electrical.component",
+      "attrs": {"mpn": "STM32C011F4", "dnp": false},
+      "depends_on": []
+    },
+    {
+      "id": "pin.mcu_pa4",
+      "kind": "electrical.pin",
+      "attrs": {"component": "comp.mcu", "pad": "PA4"},
+      "depends_on": ["comp.mcu", "net.led_drive"]
+    },
+    {
+      "id": "fw.blinker",
+      "kind": "firmware.module",
+      "attrs": {"language": "c"},
+      "depends_on": ["req.blink"]
+    },
+    {
+      "id": "fw.pin_pa4",
+      "kind": "firmware.pin_assignment",
+      "attrs": {"pin": "PA4", "function": "gpio_out"},
+      "depends_on": ["fw.blinker", "pin.mcu_pa4"]
+    },
+    {
+      "id": "sb.max_voltage",
+      "kind": "safety.boundary",
+      "attrs": {"max_voltage_v": 5.0},
+      "depends_on": ["net.led_drive"]
+    }
+  ]
+}

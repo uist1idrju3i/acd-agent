@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acd.example/schemas/fw-package.schema.json",
+  "title": "ACD firmware package",
+  "description": "Firmware projection package derived from the design graph, with pin/net consistency inputs and build provenance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_id",
+    "target_revision",
+    "modules",
+    "pin_assignments",
+    "build"
+  ],
+  "properties": {
+    "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
+    "package_id": {"type": "string", "minLength": 1},
+    "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
+    "modules": {
+      "type": "array",
+      "items": {"$ref": "common.schema.json#/$defs/nodeId"},
+      "uniqueItems": true
+    },
+    "pin_assignments": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/pinAssignment"}
+    },
+    "build": {"$ref": "#/$defs/buildInfo"}
+  },
+  "$defs": {
+    "pinAssignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pin", "net", "function"],
+      "properties": {
+        "pin": {"type": "string", "minLength": 1},
+        "net": {"$ref": "common.schema.json#/$defs/nodeId"},
+        "function": {"type": "string", "minLength": 1}
+      }
+    },
+    "buildInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["toolchain_version", "source_hash", "artifact_hash"],
+      "properties": {
+        "toolchain_version": {"$ref": "common.schema.json#/$defs/versionOrUnknown"},
+        "source_hash": {"$ref": "common.schema.json#/$defs/hashOrUnknown"},
+        "artifact_hash": {"$ref": "common.schema.json#/$defs/hashOrUnknown"}
+      }
+    }
+  }
+}

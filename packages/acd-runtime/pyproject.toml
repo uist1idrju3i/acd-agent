@@ -1,0 +1,18 @@
+[project]
+name = "acd-runtime"
+version = "0.0.1"
+description = "SessionStart validation hook and executor skeleton on the OpenHands SDK"
+requires-python = ">=3.12"
+dependencies = [
+    "acd-schema",
+    "acd-core",
+    "acd-events",
+    "openhands-sdk",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/acd_runtime"]
