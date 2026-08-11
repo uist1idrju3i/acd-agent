@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from acd_tools import probe_all, probe_executable
+from acd_tools.probe import normalize_3mf, normalize_step
 
 
 def make_stub(directory: Path, name: str, script: str) -> None:
@@ -59,3 +60,30 @@ def test_probe_all_reports_every_tool() -> None:
     assert set(versions) == {"kicad-cli", "freerouting", "cad-kernel"}
     for result in report.results:
         assert result.is_known == (result.present and result.version != "unknown")
+
+
+def test_step_normalization_removes_only_file_name_timestamp() -> None:
+    first = b"FILE_NAME('Open CASCADE Shape Model','2026-08-11T12:00:00',('Author'));"
+    second = b"FILE_NAME('Open CASCADE Shape Model','2026-08-11T12:00:01',('Author'));"
+    assert first != second
+    assert normalize_step(first) == normalize_step(second)
+
+
+def test_3mf_normalization_removes_uuid_and_zip_timestamp() -> None:
+    import io
+    import zipfile
+
+    def make(uuid: str, date_time: tuple[int, int, int, int, int, int]) -> bytes:
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            info = zipfile.ZipInfo("3D/3dmodel.model", date_time=date_time)
+            archive.writestr(
+                info,
+                f'<object p:UUID="{uuid}"/>'.encode(),
+            )
+        return output.getvalue()
+
+    first = make("11111111-1111-1111-1111-111111111111", (2026, 8, 11, 12, 0, 0))
+    second = make("22222222-2222-2222-2222-222222222222", (2026, 8, 11, 12, 0, 2))
+    assert first != second
+    assert normalize_3mf(first) == normalize_3mf(second)

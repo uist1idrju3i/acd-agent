@@ -33,6 +33,8 @@ dev = [
     "acd-adapter-kicad",
     "acd-adapter-freerouting",
     "acd-adapter-espidf",
+    "build123d==0.11.1",
+    "cadquery-ocp==7.9.3.1.1",
     "pytest>=8.3",
     "ruff>=0.9",
     "pyright>=1.1.390",
