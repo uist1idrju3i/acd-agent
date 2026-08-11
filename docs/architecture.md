@@ -20,7 +20,8 @@
   Tolerance、AssemblyStep、ThermalPath。
 - 製造: FabProfile、MachineProfile、Process、Cost、LeadTime、Quantity。
 - 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）。
-- 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption。
+- 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption、
+  `ReviewFinding`。
   `Assumption`は確度、確定予定アクション、覆った場合の影響先を持つ。
 - 安全: `SafetyBoundaryResult`は`SB1`（工程`S1`で実行する予備判定）と
   `SB2`（工程`E1`で実行する確定判定）を区別し、判定根拠、危険区分、状態
@@ -66,6 +67,11 @@ schema検証済みのActionへ変換する。
 投影は対象revisionから再生成でき、生成時のtool version、input/output hash、Evidence、
 時刻を保持する。再読込できない、対象revisionが違う、またはtool versionが不明な投影は
 staleである。
+
+レビュー用投影には、別コンテキストのAIレビューと`ReviewFinding`を結び付ける。対象revision、
+入力hash、ツール版、ライブラリcommit、profileのいずれかが変われば投影とレビューをstale
+とし、staleなレビューを出口ゲートの根拠にしない。詳細なPDCA、RV1／RV2、処分契約は
+[`projection-review.md`](projection-review.md)に定める。
 
 ゾーン塗りつぶし等の派生状態は、外形・ルール・接続の変更後に再計算してから検証する。
 再計算前の結果はstaleとして扱う。図面、3D形状、ブラウザ閲覧形式などのレビュー用投影は

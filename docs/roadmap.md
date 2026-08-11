@@ -60,12 +60,12 @@
 
 | フェーズ | 内容 | やらないこと | 完了条件（ゴールデンタスク） |
 |---|---|---|---|
-| Phase 0 契約とツール能力確認 | Phase 1〜2に必要な電気・機械・Evidenceの設計グラフschema、tool envelope（型付き入出力・idempotency key・副作用分類）、機械可読gate matrix、error taxonomy、event log payload schema、SDK統合骨組み、文書検証契約を最小限確定する。FWパッケージschemaは後付けによるEvidence一斉失効を避けるため、このフェーズで確定する。`kicad-cli`、freerouting、CAD kernelの能力プローブ（版検出、不在検出、非決定性の実測と正規化規則の確定）を行い、環境プローブを第一級成果物とする。加えて派生状態再計算、原点・単位・軸固定、ライブラリ参照解決、variant／DNP、面付け、内部接続ピン、ルール重大度・除外、機械可読レポート、形式版更新、設定隔離、描画依存、plugin／backend互換、シミュレーションpin／node対応、ロック検出とハンドル解放を確認する。部品カタログとライブラリ出所方針も確定する | 自然言語対話、汎用最適化、自動発注、Phase 1〜4の投影一貫生成、Phase 1〜2で不要なschemaの作り込み | 手書きの最小グラフがPhase 1〜2に必要なschema検証を通り、patchから影響node・再実行gate・失効Evidenceを導出できる。外部ツールと上記能力プローブの版・不在・非決定性をEvidenceとして記録できる。部品カタログとライブラリ出所方針を参照名・版・hash付きで記録できる。文書のリンク、アンカー、Mermaid、コードフェンス、見出し、用語集整合を機械検証できる。schema違反・版不明・非決定を注入すると停止する（negative test） |
+| Phase 0 契約とツール能力確認 | Phase 1〜2に必要な電気・機械・Evidenceの設計グラフschema、tool envelope（型付き入出力・idempotency key・副作用分類）、機械可読gate matrix、error taxonomy、event log payload schema、SDK統合骨組み、文書検証契約を最小限確定する。FWパッケージschemaは後付けによるEvidence一斉失効を避けるため、このフェーズで確定する。投影レビュー契約（`ReviewFinding` schema、レビュー観点チェックリスト、処分状態、`RV1`／`RV2`の定義）も最小限確定する。`kicad-cli`、freerouting、CAD kernelの能力プローブ（版検出、不在検出、非決定性の実測と正規化規則の確定）を行い、環境プローブを第一級成果物とする。加えて派生状態再計算、原点・単位・軸固定、ライブラリ参照解決、variant／DNP、面付け、内部接続ピン、ルール重大度・除外、機械可読レポート、形式版更新、設定隔離、描画依存、plugin／backend互換、シミュレーションpin／node対応、ロック検出とハンドル解放を確認する。部品カタログとライブラリ出所方針も確定する | 自然言語対話、汎用最適化、自動発注、Phase 1〜4の投影一貫生成、Phase 1〜2で不要なschemaの作り込み | 手書きの最小グラフがPhase 1〜2に必要なschema検証を通り、patchから影響node・再実行gate・失効Evidenceを導出できる。外部ツールと上記能力プローブの版・不在・非決定性をEvidenceとして記録できる。部品カタログとライブラリ出所方針を参照名・版・hash付きで記録できる。文書のリンク、アンカー、Mermaid、コードフェンス、見出し、用語集整合を機械検証できる。schema違反・版不明・非決定を注入すると停止する（negative test） |
 | [Phase 1 電気レーン最小縦切り](golden-design-1.md) | fixture要件→固定部品→netlist/BOM→決定論的配置→外部router（freerouting DSN/SES）→`kicad-cli` ERC/DRC→Gerber/drill | 筐体、知識ベース、FW実装、自然言語入力、自動発注、汎用router自作 | 単一コマンドでfixtureからGerber/drillまで到達し、`kicad-cli`と独立parser（sexpdata系＋gerbonara）の二重で再読込できる。同一入力の再実行で成果物hashが一致し、外部processの副作用が重複しない。配線不能・ERC違反・router不在を注入すると停止する（negative test） |
 | [Phase 2 FW連携と実機LED](golden-design-1.md) | FWパッケージ投影、OpenHandsによるFW実装、ピン割当整合ゲート<br/>仮想実機（Renode一次候補、QEMU／wokwi-cliは二次保持）<br/>実機書き込みとログ取得（probe-rs一次候補、pyOCDは二次保持） | 筐体、自動発注、独自コンパイラ・独自シミュレータの開発<br/>仮想試験を実測の代替にすること | 同一設計グラフから基板・FWパッケージを生成し、FWのビルドとピン割当整合ゲートを通す。ピン割当を故意にずらすと不合格になる。仮想実機のログは仮想検証Evidence、実機のログは実測Evidenceとして、条件・版付きで分類して設計グラフへ記録できる。実機へ書き込んだFWでLEDが点灯することを追加の到達条件とする |
 | Phase 3 機械レーン最小縦切り | 外形・部品高さ・connector位置からbuild123dで筐体を生成→干渉/clearance/肉厚→STEP/3MF | レーン統合、知識ベース、自然言語入力、自動発注 | 単一コマンドでfixtureから筐体を生成し、CAD kernelの妥当性・干渉・clearance・肉厚チェックを通過する。出力を再読込でき、同一入力の再実行で成果物hashが一致する。干渉・肉厚不足・CAD kernel不在を注入すると停止する（negative test） |
 | Phase 4 レーン統合と共通ゲート | 同一fixtureから基板＋筐体を再生成し、ECAD↔MCAD交換（`kicad-cli pcb export step`）と高さ・keepoutの受け渡しを通す。tool envelopeを`kicad-cli`／freerouting／CAD kernelの主要経路へ適用 | 片レーンだけの合格で次段へ進むこと、協調修復、知識ベース、自動発注、汎用router自作 | 基板＋筐体を同一fixtureから再生成し、ECAD↔MCAD交換、高さ・keepout、干渉・clearance・肉厚の共通ゲートに合格する。片レーンだけを合格させたfixtureを注入すると停止する（negative test） |
-| Phase 5 検証ゲートと根拠 | 多段検証、Evidence失効の伝播、実機テスト項目の自動生成 | 協調修復の自動化、長期知識loop、高精度SI・熱解析 | 上流変更でstale化するEvidenceを検出して下流を不合格にでき、根拠付きテスト計画を生成できる。テスト項目は上流の設計根拠・チューニング注記から導出し、placeholderの存在をcoverage合格にしない |
+| Phase 5 検証ゲートと根拠 | 多段検証、Evidence失効の伝播、実機テスト項目の自動生成、投影レビューPDCAの実装 | 協調修復の自動化、長期知識loop、高精度SI・熱解析 | 上流変更でstale化するEvidenceを検出して下流を不合格にでき、根拠付きテスト計画を生成できる。投影レビューPDCAを実装し、未処分の重大`ReviewFinding`があると`RV2`が不合格になるnegative testを通す。テスト項目は上流の設計根拠・チューニング注記から導出し、placeholderの存在をcoverage合格にしない |
 | Phase 6 電気↔機械協調修復 | 相互制約の反復解決、優先度・根拠・調停の記録 | 自由な要件変更、未知影響の自動無視 | 配線不能、部品高さ超過、開口不足のfixtureを両レーンで修復できる。注入caseに加えて未注入caseで一般化を測り、保護対象は祖先pathの丸ごと置換も却下する。修復の合否は修復器と独立な検証で判定する |
 | Phase 7 知識ループ | fab DFM、造形不良、実測を構造化し次設計へ適用 | 未検証のLLM学習、設計データの無断共有 | 同一スコープの不良が再発しない候補ルールをEvidence付きで登録できる。適用は実際にツール入力へ届いていることをnegative testで示す（ルールやライブラリ修正を壊すと検証が不合格になる）。`applicability: unknown`の知識は適用対象にせず合格に到達させない。入力の少なくとも1件は実fab指摘または実測とし、fixtureのみでは完了としない |
 | Phase 8 要件対話とsourcing | 自然言語→構造化要件、sourcing API、データシート抽出、部品ライブラリの設計経路への接続 | 自動発注、契約判断の自動化 | 部品候補と筐体材料候補を出所・取得時点付きで比較し、未確認事項を質問できる。価格・在庫の期限切れは停止条件として働く。token／moneyの実測値と`unknown`境界を記録する |
@@ -106,6 +106,8 @@ Phase 1とPhase 2は電気成果物を共有するため、Phase 1のfixtureをP
 FWパッケージschemaはPhase 0の契約に含め、投影と整合ゲートをPhase 2で実装する。
 schemaを後から追加すると、Phase 1以降のEvidenceが一斉に失効するためである。Phase 10は
 Phase 8の価格出所とPhase 9の副作用journalの両方を前提にする。
+Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを定め、工程別の作り込みや
+全投影の実装は後段へ送る。最短経路を遅延させない。
 
 ## 実機Evidence待ちの扱い
 

@@ -27,7 +27,7 @@ VibeBBは設計や検証が軽いという意味ではなく、重い検証を�
 - [想定ユーザー](#想定ユーザー)
 - [設計プロファイル](#設計プロファイル)
 - [成功の計測対象](#成功の計測対象)
-- [VibeBB — Vibe BreadBoarding](#vibebb--vibe-breadboarding)
+- [VibeBB — Vibe BreadBoarding](#vibebb-vibe-breadboarding)
 - [なぜACDか](#なぜacdか)
 - [設計原則](#設計原則)
 - [設計フロー](#設計フロー)
@@ -140,6 +140,8 @@ OpenHands連携でも同じコンセプトが上手く動くのではないか�
 - 設計根拠（Design Rationale）を必ず残します。判断理由、比較した代替案、前提条件、既知の
   懸念を設計グラフに紐づけます。
 - 差分の影響を分析し、必要なゲートと試験を再実行します。
+- 各工程の出口と工程内の随時で投影を生成し、別コンテキストのAIがレビューします。ただし
+  AIレビューは合否権限を持たず、合否は決定論的ゲートが処分状態と鮮度から判定します。
 - 監査文書、Q7/N7図表、BOM、製造データもグラフから投影します。
 - ファームウェアも投影と検証の対象とし、ビルド、静的解析、単体テスト、仮想実機シナリオ、
   実機ログの期待値照合を決定論的Evidenceとして判定します。
@@ -148,7 +150,7 @@ OpenHands連携でも同じコンセプトが上手く動くのではないか�
   未知の影響や異常は合格扱いせず、不可逆操作には予算・最終ゲート・承認状態を適用します。
 - ERC/DRCなどの自動ゲートは記述された整合を判定するものであり、ライブラリ記述の誤りや
   設計意図そのものを保証しません。ライブラリ照合と意図の根拠を別のEvidenceとして扱います。
-- Q7/N7を分析器として使い、知識を事実と測定から蓄積します。
+- Q7/N7を分析器として使い、AIの作業手法としても活用し、知識を事実と測定から蓄積します。
 - staleなEvidenceを下流へ流さず、外部ツールの版・入力・出力・不確実性を記録します。
 - 承認された修正と却下された提案、fabからの指摘、試作の失敗をすべて構造化して記録します。
 - 安全境界の禁止領域は初期ターゲットに含めません。AC電源、高電圧・大電流、レーザー、
@@ -244,6 +246,7 @@ metrics、retryを提供する実行基盤です。設計グラフ、決定論�
 | [`AGENTS.md`](AGENTS.md) | エージェント向け作業契約 | Draft |
 | [`docs/README.md`](docs/README.md) | 文書索引と読む順序 | Draft |
 | [`docs/design-flow.md`](docs/design-flow.md) | 基板・筐体・FWの工程フロー | Draft |
+| [`docs/projection-review.md`](docs/projection-review.md) | 投影レビューとPDCAループ | Draft |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | 知識の構造化と還流 | Draft |
 | [`docs/future-outlook.md`](docs/future-outlook.md) | ローカル製造と将来展望 | Draft |
 | [`docs/architecture.md`](docs/architecture.md) | 設計グラフとレイヤ | Draft |
