@@ -21,8 +21,9 @@
 - 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）。
 - 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption。
   `Assumption`は確度、確定予定アクション、覆った場合の影響先を持つ。
-- 安全: `SafetyBoundaryResult`はS1の予備判定とE1の確定判定を区別し、判定根拠、
-  危険区分、状態（`pass`／`fail`／`unknown`）を保持する。E1のグラフ述語判定をゲートの正とし、
+- 安全: `SafetyBoundaryResult`は`SB1`（工程`S1`で実行する予備判定）と
+  `SB2`（工程`E1`で実行する確定判定）を区別し、判定根拠、危険区分、状態
+  （`pass`／`fail`／`unknown`）を保持する。`SB2`のグラフ述語判定をゲートの正とし、
   `unknown`はfail-closedで停止する。
 - ライブラリ: `LibraryOverlay`は公式ライブラリを変更せず、対象ライブラリ・footprint、
   差分、理由、出所Evidenceをプロジェクトローカルに保持する。
