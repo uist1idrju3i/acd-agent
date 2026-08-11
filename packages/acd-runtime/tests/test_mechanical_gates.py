@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -80,6 +81,23 @@ def test_mechanical_gates_reject_thin_wall(tmp_path: Path) -> None:
         run_mechanical_gates(
             step_path=projection.step_path,
             lane=broken,
+            kernel_probe=KnownProbe(),
+        )
+
+
+def test_mechanical_gates_reject_local_thin_wall(tmp_path: Path) -> None:
+    lane, projection = _projection(tmp_path)
+    build123d = importlib.import_module("build123d")
+    imported = build123d.import_step(projection.step_path)
+    shell = max(imported.solids(), key=lambda solid: solid.volume)
+    local_cutter = build123d.Pos(17.25, 0, 5) * build123d.Box(1.5, 8, 4)
+    thin_shell = shell - local_cutter
+    thin_step = tmp_path / "local-thin.step"
+    build123d.export_step(thin_shell, thin_step)
+    with pytest.raises(MechanicalGateError, match="wall_thickness"):
+        run_mechanical_gates(
+            step_path=thin_step,
+            lane=lane,
             kernel_probe=KnownProbe(),
         )
 

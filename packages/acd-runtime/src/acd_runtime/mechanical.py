@@ -39,38 +39,31 @@ def _body_shape(
     )
 
 
-def _measured_wall_thickness(
-    shape: Any, lane: MechanicalLane, outer_width: float, outer_depth: float, height: float
-) -> float:
-    enclosure = lane.enclosure
-    standoff_volume = (
-        len(lane.outline.mount_holes)
-        * math.pi
-        * enclosure.standoff_radius_mm**2
-        * enclosure.standoff_height_mm
-    )
-    opening_volume = sum(
-        (opening.width_mm + 2 * opening.margin_mm)
-        * (opening.height_mm + 2 * opening.margin_mm)
-        * enclosure.wall_thickness_mm
-        for opening in lane.connector_openings
-    )
-    shell_volume = shape.volume - standoff_volume + opening_volume
-
-    def volume_for_wall(wall: float) -> float:
-        return outer_width * outer_depth * height - (
-            outer_width - 2 * wall
-        ) * (outer_depth - 2 * wall) * (height - wall)
-
-    low = 0.001
-    high = min(outer_width, outer_depth, height) / 2 - 0.001
-    for _ in range(60):
-        middle = (low + high) / 2
-        if volume_for_wall(middle) < shell_volume:
-            low = middle
-        else:
-            high = middle
-    return (low + high) / 2
+def _measured_wall_thickness(shape: Any, tolerance_mm: float) -> float:
+    """Measure the closest opposing planar faces of the reloaded shell."""
+    faces = [
+        face
+        for face in shape.faces()
+        if str(face.geom_type).endswith("PLANE")
+    ]
+    distances: list[float] = []
+    for index, face in enumerate(faces):
+        normal = face.normal_at(face.center())
+        for other in faces[index + 1 :]:
+            other_normal = other.normal_at(other.center())
+            dot = (
+                normal.X * other_normal.X
+                + normal.Y * other_normal.Y
+                + normal.Z * other_normal.Z
+            )
+            if dot >= -0.99:
+                continue
+            distance = face.distance_to(other)
+            if distance > tolerance_mm:
+                distances.append(distance)
+    if not distances:
+        raise MechanicalGateError("reloaded STEP has no measurable opposing wall faces")
+    return min(distances)
 
 
 def run_mechanical_gates(
@@ -95,18 +88,12 @@ def run_mechanical_gates(
     if shell.volume <= 0:
         raise MechanicalGateError("reloaded STEP shell has no positive volume")
 
-    bbox = shell.bounding_box()
-    outer_width = bbox.max.X - bbox.min.X
-    outer_depth = bbox.max.Y - bbox.min.Y
-    height = bbox.max.Z - bbox.min.Z
     enclosure = lane.enclosure
-    inner_min_x = bbox.min.X + enclosure.wall_thickness_mm
-    inner_max_x = bbox.max.X - enclosure.wall_thickness_mm
-    inner_min_y = bbox.min.Y + enclosure.wall_thickness_mm
-    inner_max_y = bbox.max.Y - enclosure.wall_thickness_mm
     interference = True
     clearance = True
     for body in lane.component_bodies:
+        if body.body_type == "none":
+            continue
         body_shape = _body_shape(
             body,
             enclosure.wall_thickness_mm + enclosure.internal_clearance_mm,
@@ -114,21 +101,24 @@ def run_mechanical_gates(
             lane.outline.depth_mm,
         )
         intersection = shell & body_shape
-        if intersection is not None and intersection.volume > enclosure.tolerance_mm:
+        if (
+            intersection is not None
+            and intersection.volume > enclosure.interference_tolerance_mm3
+        ):
             interference = False
-        body_box = body_shape.bounding_box()
-        distances = (
-            body_box.min.X - inner_min_x,
-            inner_max_x - body_box.max.X,
-            body_box.min.Y - inner_min_y,
-            inner_max_y - body_box.max.Y,
-            body_box.min.Z - enclosure.wall_thickness_mm,
-            height - enclosure.wall_thickness_mm - body_box.max.Z,
-        )
-        if min(distances) < enclosure.internal_clearance_mm - enclosure.tolerance_mm:
+        standoff_area = math.pi * enclosure.standoff_radius_mm**2
+        wall_faces = [
+            face
+            for face in shell.faces()
+            if face.area > standoff_area and str(face.geom_type).endswith("PLANE")
+        ]
+        if not wall_faces:
+            raise MechanicalGateError("reloaded STEP has no measurable inner wall faces")
+        measured_clearance = min(body_shape.distance_to(face) for face in wall_faces)
+        if measured_clearance < enclosure.internal_clearance_mm - enclosure.tolerance_mm:
             clearance = False
 
-    measured_wall = _measured_wall_thickness(shell, lane, outer_width, outer_depth, height)
+    measured_wall = _measured_wall_thickness(shell, enclosure.tolerance_mm)
     wall_thickness = measured_wall + enclosure.tolerance_mm >= enclosure.min_wall_thickness_mm
     report = MechanicalGateReport(
         kernel_valid=True,

@@ -21,9 +21,10 @@ def _graph() -> DesignGraph:
 def test_mechanical_lane_extracts_declared_sources_and_geometry() -> None:
     lane = extract_mechanical_lane(_graph())
     assert (lane.outline.width_mm, lane.outline.depth_mm) == (30.0, 25.0)
-    assert len(lane.component_bodies) == 3
+    assert len(lane.component_bodies) == 30
     assert lane.component_bodies[0].dimensions_source.startswith("Espressif")
     assert lane.connector_openings[0].dimensions_source.startswith("KiCad")
+    assert sum(body.body_type == "none" for body in lane.component_bodies) == 11
 
 
 def test_mechanical_lane_rejects_missing_attribute() -> None:
@@ -49,4 +50,15 @@ def test_mechanical_lane_rejects_outline_board_mismatch() -> None:
         for node in graph.nodes
     ]
     with pytest.raises(GraphExtractionError, match="does not match"):
+        extract_mechanical_lane(graph.model_copy(update={"nodes": nodes}))
+
+
+def test_mechanical_lane_rejects_missing_component_body() -> None:
+    graph = _graph()
+    nodes = [
+        node
+        for node in graph.nodes
+        if node.id != "mechanical.component_body.30"
+    ]
+    with pytest.raises(GraphExtractionError, match=r"missing mechanical\.component_body"):
         extract_mechanical_lane(graph.model_copy(update={"nodes": nodes}))

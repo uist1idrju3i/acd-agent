@@ -40,6 +40,7 @@ class ComponentBodyView:
     width_mm: float
     depth_mm: float
     height_mm: float
+    body_type: str
     mounting_side: str
     rotation_deg: float
     position_source: str
@@ -76,6 +77,7 @@ class EnclosureView:
     material: str
     unit: str
     tolerance_mm: float
+    interference_tolerance_mm3: float
     tolerance_source: str
     tolerance_source_ref: str
 
@@ -181,6 +183,20 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                 raise GraphExtractionError(
                     f"node {node.id!r} must depend on exactly one electrical component"
                 )
+            body_type = _str_attr(node, "body_type")
+            height_mm = _float_attr(node, "height_mm")
+            if body_type not in {"solid", "none"}:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: body_type must be 'solid' or 'none'"
+                )
+            if body_type == "none" and height_mm != 0:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: body_type=none requires height_mm=0"
+                )
+            if body_type == "solid" and height_mm <= 0:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: solid body requires positive height_mm"
+                )
             bodies.append(
                 ComponentBodyView(
                     node_id=node.id,
@@ -189,7 +205,8 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     y_mm=_float_attr(node, "y_mm"),
                     width_mm=_float_attr(node, "width_mm"),
                     depth_mm=_float_attr(node, "depth_mm"),
-                    height_mm=_float_attr(node, "height_mm"),
+                    height_mm=height_mm,
+                    body_type=body_type,
                     mounting_side=_str_attr(node, "mounting_side"),
                     rotation_deg=_float_attr(node, "rotation_deg"),
                     position_source=_str_attr(node, "position_source"),
@@ -233,6 +250,9 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     material=_str_attr(node, "material"),
                     unit=_str_attr(node, "unit"),
                     tolerance_mm=_float_attr(node, "tolerance_mm"),
+                    interference_tolerance_mm3=_float_attr(
+                        node, "interference_tolerance_mm3"
+                    ),
                     tolerance_source=_str_attr(node, "tolerance_source"),
                     tolerance_source_ref=_str_attr(node, "tolerance_source_ref"),
                 )
@@ -245,6 +265,13 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
     if len(enclosures) != 1:
         raise GraphExtractionError(
             f"expected exactly one mechanical.enclosure node, got {len(enclosures)}"
+        )
+    body_component_ids = {body.component_id for body in bodies}
+    missing_body_components = sorted(components - body_component_ids)
+    if missing_body_components:
+        raise GraphExtractionError(
+            "missing mechanical.component_body nodes for electrical components: "
+            + ", ".join(missing_body_components)
         )
     return MechanicalLane(
         outline=outlines[0],
