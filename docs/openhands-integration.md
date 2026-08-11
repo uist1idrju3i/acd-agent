@@ -55,6 +55,20 @@ MCP toolの入力をPydantic Actionへ変換し、timeout、再接続、secret�
 利用する。MCP serverが返す成功文字列を合格Evidenceとはせず、生成artifactを再読込し、
 決定論的gateを別途実行する。
 
+## ファームウェア開発とOpenHands
+
+OpenHands SDKのソフトウェア開発能力（bash、ファイル編集、テスト実行、MCP client、
+delegate）は、FWレーンの実装にそのまま利用できる。ACD側が用意するのは、設計グラフ
+から投影する型付きFWパッケージ、ピン・ネット整合ゲート、ビルド・テスト・ログの
+Evidence記録である。FW側の決定がピン割当やペリフェラル設定を変える場合は、S2へ
+戻す双方向契約として扱う。
+
+実機への書き込み、RTT等のログ取得、Blinkの実行を外部ツールまたはMCPサーバとして
+OpenHandsから呼び出す構成は候補である。候補例として`FreeOCD/freeocd-vscode-extension`
+（CMSIS-DAP、RTT、MCPサーバ）と`OpenBlink/openblink-vscode-extension`（mruby/c、
+BLEによるBuild & Blink、MCPサーバ）がある。ただし、接続方法、提供ツール、ライセンスは
+本リポジトリで一次情報による接続検証をしておらず、候補・要検証である。
+
 ## SDKが保証しないこと
 
 - 外部副作用を含む決定論的replay。
@@ -62,6 +76,7 @@ MCP toolの入力をPydantic Actionへ変換し、timeout、再接続、secret�
 - 承認IDと不可逆操作の暗号学的または因果的な束縛。
 - KiCad、FreeCAD、SPICE、slicerの設計意味論や製造妥当性。
 - 外部サービスの価格、在庫、発注状態の永続的な正確性。
+- FWの機能的正しさ、書き込み・実機ログの再現性、ターゲット固有の意味論。
 
 したがって、OpenHandsは実行基盤であって、ACDのcanonical graph、gate、Evidence、
 approval、side-effect journalを代替しない。
