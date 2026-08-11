@@ -51,7 +51,7 @@
 
 | フェーズ | 内容 | やらないこと | 完了条件（ゴールデンタスク） |
 |---|---|---|---|
-| Phase 0 契約とツール能力確認 | Phase 1に必要な電気・Evidenceの設計グラフschema、tool envelope（型付き入出力・idempotency key・副作用分類）、機械可読gate matrix、error taxonomy、event log payload schema、SDK統合骨組みを最小限確定する。FWパッケージschemaは後付けによるEvidence一斉失効を避けるため、このフェーズで確定する。`kicad-cli`とfreeroutingの能力プローブ（版検出、不在検出、非決定性の実測と正規化規則の確定）を行う | 自然言語対話、汎用最適化、自動発注、Phase 1〜3の投影一貫生成、Phase 1で不要なschemaの作り込み | 手書きの最小グラフがPhase 1に必要なschema検証を通り、patchから影響node・再実行gate・失効Evidenceを導出できる。`kicad-cli`とfreeroutingの版・不在・非決定性をプローブしEvidenceとして記録できる。schema違反・版不明・非決定を注入すると停止する（negative test） |
+| Phase 0 契約とツール能力確認 | Phase 1〜2に必要な電気・機械・Evidenceの設計グラフschema、tool envelope（型付き入出力・idempotency key・副作用分類）、機械可読gate matrix、error taxonomy、event log payload schema、SDK統合骨組みを最小限確定する。FWパッケージschemaは後付けによるEvidence一斉失効を避けるため、このフェーズで確定する。`kicad-cli`、freerouting、CAD kernelの能力プローブ（版検出、不在検出、非決定性の実測と正規化規則の確定）を行う | 自然言語対話、汎用最適化、自動発注、Phase 1〜3の投影一貫生成、Phase 1〜2で不要なschemaの作り込み | 手書きの最小グラフがPhase 1〜2に必要なschema検証を通り、patchから影響node・再実行gate・失効Evidenceを導出できる。`kicad-cli`、freerouting、CAD kernelの版・不在・非決定性をプローブしEvidenceとして記録できる。schema違反・版不明・非決定を注入すると停止する（negative test） |
 | Phase 1 電気レーン最小縦切り | fixture要件→固定部品→netlist/BOM→決定論的配置→外部router（freerouting DSN/SES）→`kicad-cli` ERC/DRC→Gerber/drill | 筐体、知識ベース、FW実装、自然言語入力、自動発注、汎用router自作 | 単一コマンドでfixtureからGerber/drillまで到達し、`kicad-cli`と独立parser（sexpdata系＋gerbonara）の二重で再読込できる。同一入力の再実行で成果物hashが一致し、外部processの副作用が重複しない。配線不能・ERC違反・router不在を注入すると停止する（negative test） |
 | Phase 2 機械レーン最小縦切り | 外形・部品高さ・connector位置からbuild123dで筐体を生成→干渉/clearance/肉厚→STEP/3MF | 電気レーン、レーン統合、知識ベース、FW実装、自然言語入力、自動発注 | 単一コマンドでfixtureから筐体を生成し、CAD kernelの妥当性・干渉・clearance・肉厚チェックを通過する。出力を再読込でき、同一入力の再実行で成果物hashが一致する。干渉・肉厚不足・CAD kernel不在を注入すると停止する（negative test） |
 | Phase 3 レーン統合と共通ゲート | 同一fixtureから基板＋筐体を再生成し、ECAD↔MCAD交換（`kicad-cli pcb export step`）と高さ・keepoutの受け渡しを通す。tool envelopeを`kicad-cli`／freerouting／CAD kernelの主要経路へ適用 | 片レーンだけの合格で次段へ進むこと、協調修復、知識ベース、FW実装、自動発注、汎用router自作 | 基板＋筐体を同一fixtureから再生成し、ECAD↔MCAD交換、高さ・keepout、干渉・clearance・肉厚の共通ゲートに合格する。片レーンだけを合格させたfixtureを注入すると停止する（negative test） |
@@ -119,8 +119,8 @@ Phase 0の契約に含め、投影と整合ゲートの実装だけをPhase 9で
 
 ## 未決事項
 
-- Phase 9のFW範囲。FWパッケージschemaはPhase 0に含めるが、投影の一部（ピン割当表のみ）を
-  Phase 9で先行生成するかは未決。
+- FWパッケージ投影の先行範囲。schemaはPhase 0で確定するが、投影の一部（ピン割当表のみ）を
+  Phase 1〜3で先行生成するかは未決。
 - Phase 6の「実fab指摘または実測を1件以上」を満たす入手経路（実発注時期に依存）。
 - Phase 10の見積dry-runを提供しない発注APIがある場合の代替検証手段。
 - golden taskの実行頻度と、CIで回す範囲・ローカル限定にする範囲の切り分け。
