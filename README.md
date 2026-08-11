@@ -249,6 +249,7 @@ metrics、retryを提供する実行基盤です。設計グラフ、決定論�
 | [`docs/prior-art.md`](docs/prior-art.md) | 先行事例台帳 | Draft |
 | [`docs/roadmap.md`](docs/roadmap.md) | 本リポジトリのフェーズ | Draft |
 | [`docs/glossary.md`](docs/glossary.md) | 用語と工程IDの定義 | Draft |
+| [`docs/golden-design-1.md`](docs/golden-design-1.md) | Golden Design #1の具体設計とfixture入力 | Draft |
 
 ## ライセンス
 

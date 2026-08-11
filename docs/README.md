@@ -16,10 +16,11 @@
 6. [`architecture.md`](architecture.md): 設計グラフ、投影、レイヤ境界。
 7. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
 8. [`roadmap.md`](roadmap.md): マイルストーン、フェーズ境界、ゴールデンタスク。
-9. [`tool-selection.md`](tool-selection.md): 実装で使う外部ツールの採否と設計根拠。
-10. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
-11. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-12. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
+9. [`golden-design-1.md`](golden-design-1.md): 第1マイルストーンの具体設計とfixture入力。
+10. [`tool-selection.md`](tool-selection.md): 実装で使う外部ツールの採否と設計根拠。
+11. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+12. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
+13. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
 
 ## 文書一覧
 
@@ -36,6 +37,7 @@
 | `reliability-practices.md` | JAXA公開資料を根拠にした信頼性方針 | Draft |
 | `prior-art.md` | 公開先行事例、API、ライセンス | Draft |
 | `roadmap.md` | ACD固有のPhase 0〜11 | Draft |
+| `golden-design-1.md` | 第1マイルストーンの具体設計とfixture入力 | Draft |
 
 `runtime.md`、`schemas/`、ADRは後続の実装・設計決定で追加する。未作成の文書へ
 リンクを張らず、必要な場合は本文で「後続作業」と言及する。
