@@ -15,7 +15,7 @@ FIXTURE = Path(__file__).resolve().parents[3] / "fixtures" / "golden-design-1" /
 
 
 def _graph() -> DesignGraph:
-    return DesignGraph.model_validate(json.loads(FIXTURE.read_text()))
+    return DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
 
 
 def test_mechanical_lane_extracts_declared_sources_and_geometry() -> None:

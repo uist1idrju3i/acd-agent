@@ -41,7 +41,9 @@ from acd_schema.fw_package import BuildInfo
 
 
 def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str, str]:
-    graph = DesignGraph.model_validate(json.loads((fixture_dir / "graph.json").read_text()))
+    graph = DesignGraph.model_validate(
+        json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+    )
     revision = graph.revision
     fw_lane = extract_firmware_lane(graph)
     electrical = extract_electrical_lane(graph)

@@ -34,7 +34,7 @@ FIXTURE = Path(__file__).resolve().parents[4] / "fixtures" / "golden-design-1" /
 
 @pytest.fixture(scope="module")
 def graph() -> DesignGraph:
-    return DesignGraph.model_validate(json.loads(FIXTURE.read_text()))
+    return DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
 
 
 @pytest.fixture(scope="module")
@@ -72,7 +72,7 @@ def test_lane_extraction_matches_golden_design(fw_lane: FirmwareLane) -> None:
 
 
 def test_lane_extraction_fails_closed_on_duplicate_gpio() -> None:
-    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text()))
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
     nodes = [
         node.model_copy(update={"attrs": {**node.attrs, "gpio": 7}})
         if node.id == "fw.pin.boot"
@@ -89,7 +89,7 @@ def test_pins_header_is_deterministic(fw_lane: FirmwareLane, tmp_path: Path) -> 
     second = write_firmware_project(fw_lane, "r1", tmp_path / "b")
     assert first.pins_header.read_bytes() == second.pins_header.read_bytes()
     assert first.main_source.read_bytes() == second.main_source.read_bytes()
-    header = first.pins_header.read_text()
+    header = first.pins_header.read_text(encoding="utf-8")
     assert "#define ACD_PIN_LED 7" in header
     assert "#define ACD_SHT40_I2C_ADDRESS 0x44" in header
     assert 'ACD_TARGET_REVISION "r1"' in header

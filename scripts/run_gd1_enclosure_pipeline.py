@@ -18,7 +18,9 @@ from acd_tools.probe import probe_cad_kernel
 
 def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     graph_path = fixture_dir / "graph.json"
-    graph = DesignGraph.model_validate(json.loads(graph_path.read_text()))
+    graph = DesignGraph.model_validate(
+        json.loads(graph_path.read_text(encoding="utf-8"))
+    )
     lane = extract_mechanical_lane(graph)
     print("[1/4] mechanical lane extracted")
 
