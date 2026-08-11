@@ -91,6 +91,10 @@ AIの説明文そのものは合格根拠にしない。決定論的に判定で
 該当ゲートへ寄せる。チェックリストが全部greenでも設計を直接見たことの代わりにはならず、
 AIレビューと決定論的ゲートは相互補完である。
 
+多観点レビューは`WorkflowTool`のmap/reduceで並列化できる。reduceが束ねる対象は各観点の
+`ReviewFinding`集合であり、投影そのものではない。workflow scriptはLLMが書くPythonで
+あるため、その実行結果やworkflowの成功状態を合否根拠にせず、投影の意味的mergeも行わない。
+
 ### Act
 
 各`ReviewFinding`は、`fixed`（設計グラフへのpatchと再検証）、`waived`（期限・根拠・

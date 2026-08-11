@@ -33,9 +33,22 @@
 | DeclaredResources | SDK toolが並行実行時の共有resource keyを宣言する機構。ACDが必要なtoolを包んで排他キーを定義し、合否の正にはしない |
 | WebhookSpec | agent-serverがイベントをbufferして外部URLへPOSTする仕様。配信保証は未確認のため、ACDはEventLog replayを正とする |
 | SecretSource | SDKがsecretを解決・注入する参照元。ACDはfab API等のsecret本体ではなく参照名だけを保持する |
-| SessionStart | SDKのセッション開始hook。ACDはimport、版プローブ、解決SHA、設定hashの検証点として使う |
+| SessionStart | SDKのセッション開始hook。ACDはimport、版プローブ、`InstallationInfo.resolved_ref`／`.installed.json`、設定hashの検証点として使う |
 | browser_use | SDKが提供するbrowser操作toolset。Phase 8の二次sourcingに使うが、Phase 10の発注経路には使わない |
 | workspace | SDKが提供するagentの実行環境。ファイルや外部ツールを置けるが、ACDの設計グラフや合否の正ではない |
+| DockerWorkspace／RemoteWorkspace | SDKが提供する隔離実行環境。ACDはLocalWorkspaceを採用せず、image digestまたはagent-server側の実行条件を固定する |
+| noVNC desktop／VS Code経路 | agent-serverが同一workspaceを人間の観察・手修正へ公開する経路。GUI操作や画面表示はEvidence・合否の正ではない |
+| Canvas extension | agent-serverの認証境界内へUIを配布するSDK拡張。ACDの承認・レビューUIに使えるが、Canvas frontend本体の可用性は未確認である |
+| TestLLM | SDKが応答・例外を固定するテスト用LLM。決定論的回帰に使うが、実LLMの適格性やACDの合否を直接表さない |
+| run_goal／GoalController | SDKがLLM judgeで停止条件を制御する機構。`GoalVerdict`は停止補助であり、Evidence・合否の正ではない |
+| WorkflowTool | SDKがmap/reduceによる観点別agent分業を実行するtool。`ReviewFinding`集合を束ねられるが、投影の意味的mergeや合否を行わない |
+| switch_llm | SDKの会話中LLM切替tool。ACDは工程境界で明示的に使い、切替後のmodel／profile版をEvidenceへ記録する |
+| InstallationInfo／resolved_ref | SDKの`.installed.json`に保存される資材の解決済みcommit SHA情報。`requested_ref`だけの資材はACDではfail-closedとする |
+| ConversationStats | SDKのusage単位metrics取得機構。`get_metrics_for_usage(usage_id)`でagent／profile別へ分解できるが、合否の正ではない |
+| FileStore | SDKの保存抽象。`LocalFileStore`／`InMemoryFileStore`に合わせるが、SDKにremote実装はなくACD独自I/Fを増やさない |
+| ACPAgent | ACP側がLLM・tool・実行を持つSDK agent。Evidence契約に必要なprompt・model・tool schema・logを確実に束ねられないためACDでは採用しない |
+| OpenAI互換gateway | agent-serverのOpenAI chat completion形状の連携入口。照会・起票・状態取得に限定し、合否・承認・不可逆操作は駆動しない |
+| StuckDetector | SDKの反復、error連続、monologue、交互パターン等の停滞検出機構。差し戻しを起動できるが、合否の正ではない |
 | stale | 対象revision、入力、ツール版などが現行条件と一致せず、下流の合格根拠にできない状態 |
 | ゲート | 候補や成果物を次の工程へ進めるかを決定論的に判定する境界 |
 | KnowledgeItem | 検証済みの事実、測定、失敗、修正を出所と適用範囲付きで蓄積する知識単位 |
@@ -48,7 +61,7 @@
 | 安全境界 | 禁止、承認必須、許可の三階層で設計対象を制限する規則 |
 | fail-closed | 判定不能、unknown、版不明などを許可側へ倒さず停止する性質 |
 | tool envelope | ツールの型付き入出力、版、idempotency key、副作用分類、予算を定める契約 |
-| side-effect journal | 外部副作用の実行意図、idempotency、結果、再実行状態を追記専用で記録する台帳 |
+| side-effect journal | 外部副作用の実行意図、idempotency、結果、再実行状態をcommit済みEvidence artifactへ束ねる記録。低遅延EventLogを正にせず、ACDの正はcommit側に置く |
 | task ledger | 作業単位の入力、状態、担当、再開位置、完了根拠を管理する台帳 |
 | 設計グラフ | 要求、制約、部品、ネット、筐体、FW、検証結果、出所、Evidenceを型付き・バージョン付きで結んだACDの正規データ |
 | fixture | 再現可能な入力、環境、期待結果、negative test条件を固定した検証用の最小データセット |

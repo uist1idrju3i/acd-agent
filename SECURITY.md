@@ -56,6 +56,8 @@ GitHubの[Security Advisories](https://github.com/uist1idrju3i/acd-agent/securit
 - Skill／plugin source、inline command、marketplace取得経路に起因する任意コード実行
 - MCP serverの動的schema変更やreconnectを悪用した検証回避
 - remote workspaceおよびagent-serverを経由した権限・分離の回避
+- VS Code／noVNC desktopのGUI操作を、commit・receipt・対象ゲート再実行なしに設計根拠や
+  合格として扱うこと
 - 視覚投影やscreenshot内の指示をプロンプトとして実行させる画像経由のプロンプトインジェクション
 - browser経由で取得した外部入力を期限・URL・screenshot hashなしに設計根拠や発注条件へ使うこと
 - 依存関係の取得・固定に関する欠陥（lockfileの回避、submoduleの参照先変更、
