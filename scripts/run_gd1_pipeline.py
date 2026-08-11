@@ -76,7 +76,27 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str,
     assert_converged(route_run.envelope.convergence_state)
     print(f"[3/8] routing converged (skipped={route_run.skipped})")
 
-    routes = parse_ses(ses_path.read_text())
+    routes = parse_ses(
+        ses_path.read_text(),
+        minimum_width_mm=lane.board.min_track_mm,
+    )
+    routing_summary_path = out_dir / "routing-summary.json"
+    routing_summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1",
+                "target_revision": revision,
+                "wire_count": len(routes.wires),
+                "via_count": len(routes.vias),
+                "observed_min_wire_width_mm": routes.observed_min_width_mm,
+                "minimum_width_mm": lane.board.min_track_mm,
+                "normalized_wire_count": routes.normalized_wire_count,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
+    )
     routed_board = inject_routes(
         project.board.read_text(),
         routes,
@@ -91,7 +111,11 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str,
     routed_path = routed_dir / f"{name}.kicad_pcb"
     routed_path.write_text(routed_board)
     (routed_dir / f"{name}.kicad_pro").write_text(project.project.read_text())
-    print(f"[4/8] SES imported: {len(routes.wires)} wires, {len(routes.vias)} vias")
+    print(
+        f"[4/8] SES imported: {len(routes.wires)} wires, {len(routes.vias)} vias; "
+        f"observed_min_width={routes.observed_min_width_mm:.4f} mm; "
+        f"normalized_wires={routes.normalized_wire_count}"
+    )
 
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
     assert_rule_check_passed("DRC", drc, require_connected=True)
@@ -116,7 +140,14 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str,
     print("[7/8] independent reload passed (sexpdata + gerbonara)")
 
     hashes: dict[str, str] = {}
-    for path in [project.schematic, project.board, project.bom, routed_path, dsn_path]:
+    for path in [
+        project.schematic,
+        project.board,
+        project.bom,
+        routed_path,
+        dsn_path,
+        routing_summary_path,
+    ]:
         hashes[path.name] = normalized_hash(path)
     for path in [*gerber_paths, *drill_paths]:
         hashes[f"gerbers/{path.name}"] = normalized_hash(path)

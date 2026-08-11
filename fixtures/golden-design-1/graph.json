@@ -974,7 +974,7 @@
       "attrs": {
         "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
         "footprint_file": "/usr/share/kicad/footprints/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
-        "footprint_sha256": "sha256:8baa7a751db21e6ee93e037d73d5d48b3d449d731edff1d085272ae34ab1bf93",
+        "footprint_sha256": "sha256:c562a7f9713a8b754c4d2305a2ea15453469a1c8c48a9b17973383e8993fc750",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "extended",
@@ -984,7 +984,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:USB_C_Receptacle_USB2.0_16P",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TYPE-C-31-M-12"
@@ -1192,13 +1192,13 @@
         "component": "comp.j1",
         "net": "net.gnd",
         "no_connect": false,
-        "pad": "S1"
+        "pad": "SH"
       },
       "depends_on": [
         "comp.j1",
         "net.gnd"
       ],
-      "id": "pin.j1.s1",
+      "id": "pin.j1.sh",
       "kind": "electrical.pin"
     },
     {
@@ -1233,7 +1233,7 @@
       "attrs": {
         "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
         "footprint_file": "/usr/share/kicad/footprints/Package_TO_SOT_SMD.pretty/SOT-223-3_TabPin2.kicad_mod",
-        "footprint_sha256": "sha256:8732e6fb9d63576e4ecfcdb953443fe6f34b5afabc87ef136cdd40fe7cf03434",
+        "footprint_sha256": "sha256:8ae5f03e2c16377abed15e51af6864e23a934e1457b97fb7ea930e17fa99f11d",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1243,7 +1243,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Regulator_Linear:AMS1117-3.3",
         "symbol_file": "/usr/share/kicad/symbols/Regulator_Linear.kicad_sym",
-        "symbol_sha256": "sha256:0668d6043b5213767a7f45ff376b06c1cb1edec1309cc6ce51e7a0e0cbecf3fc",
+        "symbol_sha256": "sha256:adb996ece7ebe6ec491f077c6de413a7732b1247be290797cc723a0c15596c70",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "AMS1117-3.3"
@@ -1298,7 +1298,7 @@
       "attrs": {
         "footprint": "Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
         "footprint_file": "/usr/share/kicad/footprints/Sensor_Humidity.pretty/Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad.kicad_mod",
-        "footprint_sha256": "sha256:e242ffa52cc8bb477de27f05ff72b410ec30b3d8bcd80196427893dda08f52ca",
+        "footprint_sha256": "sha256:294e2bc1e42d07f0460758b00ba2b6b974a4e25e906e7b28056551220d53301f",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "extended",
@@ -1308,7 +1308,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Sensor_Humidity:SHT4x",
         "symbol_file": "/usr/share/kicad/symbols/Sensor_Humidity.kicad_sym",
-        "symbol_sha256": "sha256:4cf7f10a0ae751eaa0c8feb06ca53c78ac5bf36305235bb4a8407f6541fea247",
+        "symbol_sha256": "sha256:2247c817a7c8f2071d0f8bdc1c940360a5fe8fad19764d5ec328e88640387606",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "SHT40-AD1B-R3"
@@ -1377,7 +1377,7 @@
       "attrs": {
         "footprint": "LED_SMD:LED_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:813026fb584d47b87fb701e748b473ab50c923fd4d6e92a286e39362887a37c8",
+        "footprint_sha256": "sha256:7931ed1efba34cb13c8d74a60eb1dca4b0be57d950c38e08c3e7f007db500a1c",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1387,7 +1387,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:LED",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "KT-0603R"
@@ -1428,7 +1428,7 @@
       "attrs": {
         "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
         "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
-        "footprint_sha256": "sha256:e924db76251140edb4428611ec8ce37050e929f0fc18c00c965ea6eebcb24a55",
+        "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1438,7 +1438,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Switch:SW_Push",
         "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
-        "symbol_sha256": "sha256:a93607f7bb68bce50996f458d7be86e1e187ac661877548a5119f8b890748fef",
+        "symbol_sha256": "sha256:b1c7bbbbea22dcf723430c11f6a841620108b3449bd8e5339fa6ebe083f91e63",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "RESET"
@@ -1479,7 +1479,7 @@
       "attrs": {
         "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
         "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
-        "footprint_sha256": "sha256:e924db76251140edb4428611ec8ce37050e929f0fc18c00c965ea6eebcb24a55",
+        "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1489,7 +1489,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Switch:SW_Push",
         "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
-        "symbol_sha256": "sha256:a93607f7bb68bce50996f458d7be86e1e187ac661877548a5119f8b890748fef",
+        "symbol_sha256": "sha256:b1c7bbbbea22dcf723430c11f6a841620108b3449bd8e5339fa6ebe083f91e63",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "BOOT"
@@ -1530,7 +1530,7 @@
       "attrs": {
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1540,7 +1540,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:R",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "5.1k"
@@ -1581,7 +1581,7 @@
       "attrs": {
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1591,7 +1591,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:R",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "5.1k"
@@ -1632,7 +1632,7 @@
       "attrs": {
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1642,7 +1642,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:R",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "10k"
@@ -1683,7 +1683,7 @@
       "attrs": {
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1693,7 +1693,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:R",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "4.7k"
@@ -1734,7 +1734,7 @@
       "attrs": {
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1744,7 +1744,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:R",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "4.7k"
@@ -1785,7 +1785,7 @@
       "attrs": {
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -1795,7 +1795,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:R",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "1k"
@@ -1836,7 +1836,7 @@
       "attrs": {
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "extended",
@@ -1846,7 +1846,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:C",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "10uF"
@@ -1887,7 +1887,7 @@
       "attrs": {
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "extended",
@@ -1897,7 +1897,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:C",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "100nF"
@@ -1938,7 +1938,7 @@
       "attrs": {
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "extended",
@@ -1948,7 +1948,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:C",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "10uF"
@@ -1989,7 +1989,7 @@
       "attrs": {
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "extended",
@@ -1999,7 +1999,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:C",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "100nF"
@@ -2040,7 +2040,7 @@
       "attrs": {
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "extended",
@@ -2050,7 +2050,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:C",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "100nF"
@@ -2091,7 +2091,7 @@
       "attrs": {
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
-        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "basic",
@@ -2101,7 +2101,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Device:C",
         "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "1uF"
@@ -2142,7 +2142,7 @@
       "attrs": {
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
-        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2152,7 +2152,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:TestPoint",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TP_3V3"
@@ -2179,7 +2179,7 @@
       "attrs": {
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
-        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2189,7 +2189,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:TestPoint",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TP_GND"
@@ -2216,7 +2216,7 @@
       "attrs": {
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
-        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2226,7 +2226,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:TestPoint",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TP_SDA"
@@ -2253,7 +2253,7 @@
       "attrs": {
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
-        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2263,7 +2263,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:TestPoint",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TP_SCL"
@@ -2290,7 +2290,7 @@
       "attrs": {
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
-        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2300,7 +2300,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:TestPoint",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TP_IO7"
@@ -2327,7 +2327,7 @@
       "attrs": {
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
-        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2337,7 +2337,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:TestPoint",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TP_TX"
@@ -2364,7 +2364,7 @@
       "attrs": {
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
-        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2374,7 +2374,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:TestPoint",
         "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
-        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "TP_RX"
@@ -2401,7 +2401,7 @@
       "attrs": {
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
-        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2411,7 +2411,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Mechanical:MountingHole",
         "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
-        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "M2"
@@ -2424,7 +2424,7 @@
       "attrs": {
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
-        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2434,7 +2434,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Mechanical:MountingHole",
         "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
-        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "M2"
@@ -2447,7 +2447,7 @@
       "attrs": {
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
-        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2457,7 +2457,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Mechanical:MountingHole",
         "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
-        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "M2"
@@ -2470,7 +2470,7 @@
       "attrs": {
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
-        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
         "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "footprint_source_ref": "10.0.5",
         "jlcpcb_class": "none",
@@ -2480,7 +2480,7 @@
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Mechanical:MountingHole",
         "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
-        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
         "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
         "symbol_source_ref": "10.0.5",
         "value": "M2"
