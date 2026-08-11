@@ -122,6 +122,7 @@ _KEYWORDS = frozenset(
         "dnp",
         "edge",
         "full",
+        "global",
         "not_allowed",
         "allowed",
     }

@@ -87,6 +87,8 @@ class RoutedVia:
 class RoutedDesign:
     wires: tuple[RoutedWire, ...]
     vias: tuple[RoutedVia, ...]
+    observed_min_width_mm: float | None = None
+    normalized_wire_count: int = 0
 
 
 @dataclass(frozen=True)

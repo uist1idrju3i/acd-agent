@@ -40,7 +40,14 @@ def _resolution_divisor(routes: list[SExpr]) -> float:
     raise SesImportError(f"unsupported session resolution unit {unit!r} (fail-closed)")
 
 
-def parse_ses(text: str) -> RoutedDesign:
+def parse_ses(text: str, *, minimum_width_mm: float | None = None) -> RoutedDesign:
+    """Parse a router session and enforce the board's minimum trace width.
+
+    FreeRouting may emit short neck-down segments narrower than the DSN class
+    width near component pads.  The routed board must not contain those
+    segments when the design graph specifies a larger minimum, so normalize
+    them to the graph value before KiCad DRC evaluates the projection.
+    """
     root = parse_one(text)
     if not isinstance(root, list) or not root or root[0] != "session":
         raise SesImportError("not a session file (fail-closed)")
@@ -54,6 +61,8 @@ def parse_ses(text: str) -> RoutedDesign:
 
     wires: list[RoutedWire] = []
     vias: list[RoutedVia] = []
+    observed_widths: list[float] = []
+    normalized_wire_count = 0
     for net in find_all(network_out, "net"):
         if len(net) < 2:
             raise SesImportError("net entry missing name (fail-closed)")
@@ -64,6 +73,12 @@ def parse_ses(text: str) -> RoutedDesign:
                 raise SesImportError(f"net {net_name!r}: wire without path (fail-closed)")
             layer = _as_str(path[1])
             width_mm = _as_float(path[2]) / divisor
+            observed_widths.append(width_mm)
+            if minimum_width_mm is not None:
+                normalized_width_mm = max(width_mm, minimum_width_mm)
+                if normalized_width_mm != width_mm:
+                    normalized_wire_count += 1
+                width_mm = normalized_width_mm
             coords = [_as_float(item) for item in path[3:] if isinstance(item, str)]
             if len(coords) < 4 or len(coords) % 2 != 0:
                 raise SesImportError(f"net {net_name!r}: malformed wire path (fail-closed)")
@@ -84,4 +99,9 @@ def parse_ses(text: str) -> RoutedDesign:
             )
     if not wires:
         raise SesImportError("session contains no routed wires (fail-closed)")
-    return RoutedDesign(wires=tuple(wires), vias=tuple(vias))
+    return RoutedDesign(
+        wires=tuple(wires),
+        vias=tuple(vias),
+        observed_min_width_mm=min(observed_widths),
+        normalized_wire_count=normalized_wire_count,
+    )
