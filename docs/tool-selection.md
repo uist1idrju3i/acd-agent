@@ -48,6 +48,12 @@ adapter境界は [`architecture.md`](architecture.md)、工程ごとのゲート
 
 ライセンス境界（[`prior-art.md`](prior-art.md) 20章）を実装形態へ落とすと、次の3方式になる。
 
+ACDの提供形態もこの判断に合わせ、coreはnative `ToolDefinition`として登録するPython
+package、外部ツールadapterはMCP server、pluginはSkill・agent定義・hooks・MCP設定・
+commandの資材配布とする。permissiveなライブラリでACDの意味論と同一プロセスに置く価値が
+あるものはimport結合でcoreへ束ねる。GPL/AGPL等のrestrictiveなコンポーネント、または
+プロセス・ライセンス境界を保つべきツールはMCP serverまたは外部プロセスへ分離する。
+
 | 方式 | 対象 | 実装上の意味 |
 |---|---|---|
 | import結合 | permissiveのみ | ACDのPython依存として宣言し、同一プロセスで呼ぶ |

@@ -74,6 +74,11 @@
 | Phase 10 自働発注 | 見積dry-run、基板＋部品＋実装＋送料＋税＋筐体の**総発注額**、発注前最終ゲート、API ordering | 予算超過、価格stale、契約不明の発注 | 副作用のない見積dry-runで総発注額と最終ゲート結果を再現でき、実発注は予算内かつ最終ゲート合格のときだけ実行される。予算超過・stale価格・ゲート未実行を注入すると発注に到達しない |
 | Phase 11 ローカル製造 | 3Dプリンタ、卓上CNC、材料・機械profile、ローカル版と外注版 | 量産能力の無根拠な保証 | 同じgraphからローカル試作版と外注版を生成し、機械条件・測定Evidenceを比較できる |
 
+Phase 0のevent契約は、独自のevent log payload schemaを別ストアとして自作するのではなく、
+ACDドメインイベント型を定義し、SDK `EventLog`へ載せる方法を確定する。Phase 5のPDCAと
+Phase 6の協調修復ではSDKの反復機構を修復ループの実行に利用する。Phase 9のtask ledgerは
+EventLogへ追記したACDイベントから射影するread modelとして実装し、SDKのtask状態を正にしない。
+
 フェーズ境界の変更は本表を更新し、既存のゴールデンタスクを再実行する。
 
 ECADの能力プローブと投影契約の詳細は[`ecad-domain-notes.md`](ecad-domain-notes.md)を参照する。

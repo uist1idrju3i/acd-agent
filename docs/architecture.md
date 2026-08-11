@@ -134,9 +134,15 @@ staleである。
 
 ## ツール契約
 
-すべてのtoolは、型付きinput/output、schema version、idempotency key、side-effect
-classificationを持つ。副作用はread、可逆、不可逆に分類する。ECAD adapterはツール版、
-形式版、隔離した設定ディレクトリ、言語、単位、解決済みライブラリ参照を実行条件として固定する。
+SDKのPydantic `Action`／`Observation`、JSON Schema、tool call ID、Action↔Observationの
+紐付け、`ToolAnnotations`、`DeclaredResources`をtool契約の土台とする。ACDはこれらの
+派生型として契約を定義する。`readOnlyHint`、`destructiveHint`、`idempotentHint`は
+宣言（hint）であって強制ではない。
+
+ACDはidempotency key、重複副作用防止、side-effect classの強制、ツール版、入力・出力・
+artifact hash、実行条件、gate・承認binding、予算、`unknown`の意味論を追加する。副作用は
+read、可逆、不可逆に分類する。ECAD adapterは形式版、隔離した設定ディレクトリ、言語、
+単位、解決済みライブラリ参照も実行条件として固定する。
 
 - readは再実行可能である。
 - 可逆操作はrollbackまたは新revisionで戻せる。
@@ -149,10 +155,22 @@ hash、収束状態を含める。外部プロセスのstdoutだけをEvidence�
 
 ## イベントログとチェックポイント
 
-OpenHands SDKのEventLog、snapshot、resume、forkは実行履歴の土台として利用できる。
-ただし、外部CAD/EDAの副作用、外部状態、idempotency、監査署名までSDKは保証しない。
-ACD固有の追記専用ログ、side-effect journal、artifact hash、再現モード、
-チェックポイント仕様は後続PRで`runtime.md`として定義する。
+SDKの`EventLog`を汎用の実行履歴層として利用し、その上にACDドメインpayload層を置く。
+SDKは`events/event-{idx:05d}-{event_id}.json`への追記保存、ファイルロック、event ID重複拒否、
+parent ID検証、Pydantic型付きevent union（`extra="forbid"`、`frozen=True`）、parent-child
+event treeと`path_to_root()`、branch navigation、`fork(from_event_id=...)`、
+conversation stateの永続化、異常終了後の未完了tool call検出を提供する。
+
+ACDが定義するのはその上に載せるドメインイベントpayloadである。payloadには対象revision、
+projection ID、入力hash、出力hash、ツール版、形式版、gate結果、stale状態、承認binding、
+side-effect receiptを含める。ACDはSDKの汎用保存機構を再実装せず、Evidenceと合否の意味論を
+所有する。
+
+ACD独自の`Event`サブクラスは`DiscriminatedUnionMixin`のsubclass走査で解決されるため、
+EventLogを読む前にACD packageがimport済みでなければならない。未知の`kind`は`ValueError`
+となり、読み飛ばしやopaque保持はできない。このfail-closed挙動は望ましいため、例外を
+握り潰さない。pluginを導入しただけではACDのEvent型は登録されず、起動時importを運用契約
+とする。
 
 ## AIオーケストレーション
 
@@ -171,6 +189,12 @@ ACD固有の追記専用ログ、side-effect journal、artifact hash、再現モ
 
 AIの出力はすべて決定論的検証を通し、ツール版、入力、出力、測定条件、Evidenceを記録する。
 
+決定論的ゲートの結果は`CriticResult`へ写像できるが、SDKの反復機構は修復ループの実行
+機構に限って利用する。`CriticBase`は`EXPERIMENTAL`で、`AgentBase.critic`は単数である。
+複数ゲートはACD側で合成し、ゲート合格／不合格をscore 1.0／0.0へ写像する。確率的score、
+criticの例外時にSDKが評価なしとして扱うこと、反復終了は合否根拠にせず、詳細は
+[`openhands-integration.md`](openhands-integration.md)に従う。
+
 承認ゲートを有効化した場合は、対象revision、入力hash、ゲート結果、予算、承認状態を
 記録し、承認対象と異なる副作用を合格根拠にしない。承認ゲートの有無にかかわらず、
 設計グラフと決定論的ゲートが正規の判定面である。
@@ -183,7 +207,15 @@ Conversationは計画と実行を進めるが、設計の正や合否を決め�
 
 ## 成果物とworkspaceの所在境界
 
-ACDはファイルシステムを所有しない構成を採り得る。生成ファイルの実体をOpenHandsの
+ACDはファイルシステムを所有しない構成を採り得る。SDKのGit APIは読み取り中心であり、
+`git_changes`、`git_diff`、`get_git_commits`、`get_commit_changes`、HEAD SHA取得などを
+提供するが、typedなcommit／push／branch作成／merge APIはない。`GitHelper`にあるのは
+`checkout`と`reset_hard`である。commit／pushはworkspaceのコマンド実行として行う。
+ACDのtyped wrapperは対象revision、commit SHA、artifact hash、ツール版、実行条件を含む
+commit receiptを生成し、Evidenceへ束ねる。shellの終了コードだけをcommit成立の根拠にせず、
+commit SHAを再取得して確認する。
+
+SDKにartifact store、manifest、content-addressed registryはない。生成ファイルの実体をOpenHandsの
 `RemoteWorkspace`系workspaceに置き、ACDはworkspaceの`execute_command`、`file_upload`、
 `file_download`、`git_changes`、`git_diff`をHTTP越しに利用する。リポジトリのcloneと
 GitHub／GitLab／Bitbucketのprovider連携もworkspace側の契約として扱う。ACDが常時保持するのは
@@ -208,6 +240,16 @@ Gerber、STEP、3MF等のバイナリ成果物はgit本体を肥大化させる�
 storeを利用する。ただし採用する保管方式、workspace側永続化の保持期間、署名・改ざん検知の
 扱いは未決であり、これらが確定するまで該当Evidenceを完全な永続保管の証拠として扱わない。
 OpenHandsはこの構成でも実行基盤であり、設計グラフと合否判定の正はACDが所有する。
+
+## task ledgerの実装方針
+
+SDKの`task`ツールのTask状態はインメモリ辞書であり、`close()`時に破棄されるため、
+再起動後の復元保証がない。`task_tracker`も全体置換型のmutableなリストを`TASKS.md`へ
+保存するだけである。したがって、どちらもACD task ledgerの正にはしない。
+
+ACD task ledgerは独立ストアを持たず、EventLogへ追記したACDイベントからの射影（read model）
+として実装する。再開はイベントのreplayで得る。耐久性の正はGit commitとACDの記録に置く。
+`RemoteConversation`のサーバ側保持期間は未確認であり、耐久性の根拠にしない。
 
 ## 未決事項
 

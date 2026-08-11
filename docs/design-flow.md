@@ -69,6 +69,17 @@ SDK活用方針とレビュー独立性は[`openhands-integration.md`](openhands
 詳細な投影セット、レビュー独立性、`ReviewFinding`、`RV1`／`RV2`は
 [`projection-review.md`](projection-review.md)を正とする。
 
+### 工程の機械可読な定義
+
+各工程・判定段階は、`AgentDefinition` + Skill + gateの三点セットとして機械可読に
+定義する。`AgentDefinition`は役割、利用tool、permission mode、budget、iteration limitを、
+Skillは手順、レビュー観点、作業資材を、gateは決定論的な出口条件を表す。工程の追加・変更は
+この定義の追加・変更であり、工程IDごとの実装分岐を増やさない。
+
+この三点セットは[`architecture.md`](architecture.md)のモジュール分割粒度に合わせ、
+既存の`S1`、`E1`、`E2`、`M1`、`M2`、`S2`〜`S4`の工程ID体系（[`glossary.md`](glossary.md)）
+へ対応付ける。SDKのagent定義やSkillは合否の正ではなく、gateが工程出口を決定する。
+
 ## S1 要件対話
 
 - **入力:** 自然言語の目的、電源、信号、性能、数量、目標コスト。機械要件として
