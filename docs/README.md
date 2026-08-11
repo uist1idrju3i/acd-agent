@@ -20,6 +20,9 @@
 10. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
 11. [`implementation-plan.md`](implementation-plan.md): リポジトリ構成、パッケージ・Skill・agent分割、CI。
 12. [`phase0-plan.md`](phase0-plan.md): Phase 0の作業単位・順序・撤退条件。
+    実施後の振り返りは[`phase0-retrospective.md`](phase0-retrospective.md)、
+    [`phase1-retrospective.md`](phase1-retrospective.md)、
+    [`phase2-retrospective.md`](phase2-retrospective.md)を参照する。
 13. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
 14. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
 15. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
@@ -45,6 +48,10 @@
 | `openhands-integration.md` | SDK v1.41.0との統合判断 | Draft |
 | `implementation-plan.md` | 実装の構成正本（リポジトリ・パッケージ・Skill・agent・CI） | Draft |
 | `phase0-plan.md` | Phase 0の作業単位・順序・撤退条件 | Draft |
+| `phase0-retrospective.md` | Phase 0実施結果・逸脱・教訓の記録 | Draft |
+| `phase1-plan.md` | Phase 1の作業単位・順序・撤退条件 | Draft |
+| `phase1-retrospective.md` | Phase 1実施結果・逸脱・教訓の記録 | Draft |
+| `phase2-retrospective.md` | Phase 2実施結果・逸脱・教訓の記録 | Draft |
 | `qc-tools.md` | Q7/N7を使う品質・計画分析 | Draft |
 | `tool-selection.md` | 実装で使う外部ツールの採否と設計根拠 | Draft |
 | `reliability-practices.md` | JAXA公開資料を根拠にした信頼性方針 | Draft |

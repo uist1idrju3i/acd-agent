@@ -253,12 +253,16 @@ ACDが選ぶのは、ピン割当整合とログ取得のための外部ツー�
 
 | 用途 | 候補 | ライセンス | 判定 |
 |---|---|---|---|
-| 仮想実機 | [Renode](https://github.com/renode/renode) | MIT（v1.16.1、2026-02-16） | 一次候補（Phase 2） |
-| 仮想実機 | QEMU | GPL-2.0-or-later | 二次保持（外部プロセス） |
+| 仮想実機 | QEMU（Espressif fork） | GPL-2.0-or-later | 一次採用（Phase 2実測。外部プロセス、ESP-IDF toolsで版pin） |
+| 仮想実機 | [Renode](https://github.com/renode/renode) | MIT（v1.16.1、2026-02-16） | 不採用（実測プローブでESP32-C3モデル不在。ESP対応が入った版で再評価） |
 | 仮想実機 | [wokwi-cli](https://github.com/wokwi/wokwi-cli) | MIT（v0.26.1、2026-02-23） | 二次保持 |
-| 実機書き込み・ログ | [probe-rs](https://github.com/probe-rs/probe-rs) | MIT OR Apache-2.0（release pageは0.32.0） | 一次候補（Phase 2） |
+| 実機書き込み・ログ | [probe-rs](https://github.com/probe-rs/probe-rs) | MIT OR Apache-2.0（v0.32.0導入済み） | 一次候補（Phase 2。物理probe未接続のため実測は未実施） |
 | 実機書き込み・ログ | [pyOCD](https://github.com/pyocd/pyOCD) | Apache-2.0（PyPI 0.45.1、2026-07-21） | 二次保持 |
 
+Renodeは一次候補だったが、Phase 2の能力プローブでv1.16.1にESP32-C3のCPU／
+プラットフォーム定義が存在しないことを実測し、二次保持だったQEMU（Espressif fork、
+ESP-IDF tools同梱の`qemu-system-riscv32`）を一次採用へ入れ替えた（実測記録は
+[`tool-capability-probes.md`](tool-capability-probes.md)）。
 wokwi-cliはMITだがtokenと外部サービスが必要であり、既定の検証経路には置かない。
 probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではない。仮想実機のログを
 実測Evidenceとして扱わない原則は[`AGENTS.md`](../AGENTS.md)のとおりとする。
