@@ -18,7 +18,7 @@
 | package | 責務 | ACDでの使い方 |
 |---|---|---|
 | `openhands-sdk` | Agent、Conversation、Event、Tool、LLM、MCP、security、settings | 計画・型付きtool・会話・実行制御 |
-| `openhands-tools` | terminal、browser、file/editor、delegate | 必要な汎用toolとサブエージェント |
+| `openhands-tools` | terminal、browser、file editor（apply_patch／planning_file_editor）、glob／grep、task／task_tracker、workflow、delegate、preset | 必要な汎用tool、preset agent、サブエージェント |
 | `openhands-workspace` | Docker、Apptainer、cloud、remote workspace | CAD/EDA workerの隔離実行 |
 | `openhands-agent-server` | FastAPI REST/WebSocket、会話、workspace、MCP | CLI以外のAPI入口、長時間会話の管理 |
 
@@ -85,6 +85,8 @@ SHAで固定する。ただしCanvasのフロントエンド本体がSDK reposit
 | workflow分業 | `WorkflowTool`／`WorkflowExecutor`、`task`、`task_tracker`、`delegate`、`manager` | 電気・機械・FWレーンのtask ledger、graph merge、成果物契約、決定論的状態 |
 | ledger取り込み | agent-server `WebhookSpec`（buffer／flush timer／POST） | task状態の低遅延取り込み。正はEventLog replayとcommit済みartifact |
 | secrets | `SecretRegistry`、`StaticSecret`／`LookupSecret`、`conversation.update_secrets()` | `SecretSource`参照名、at rest secret-freeなgraph／Evidence／profile |
+| LLM可用性 | `LLMRegistry`（usage ID別インスタンスと独立metrics）、`FallbackStrategy`（transient error時のprofile fallback） | fallback発生の記録、実体model版のEvidence束ね、レビュー中fallbackの`unknown`扱い |
+| 作業メモリ | 二層persistent memory（`MEMORY.md` loader、user／project tier） | `KnowledgeItem`の正、配布内容のhash記録。memoryはプロンプト資材であり合否根拠にしない |
 | sourcing | `browser_use` toolset（navigate、click、type、get_state、get_content、screenshot、tabs） | API一次・browser二次の期限付きEvidence、Phase 10での利用禁止 |
 | 起動契約 | `SessionStart` hook、`HookDecision` | ACD import、外部tool版、解決SHA／MCP設定hashの検証と失敗時deny |
 | 可観測性 | `observability/laminar.py` | 任意の計測、Evidenceと判定面の分離 |
@@ -146,6 +148,12 @@ Skillの記述、pluginの定義、triggerの発火はプロンプト資材ま�
 `condenser`を役割ごとに明示する。定義のlevelは`project`、`user`、`builtin`、`plugin`、
 `programmatic`から選び、設計の再現に必要なものはproject側で版管理する。
 
+SDKのpresetは`default_tools()`、`get_default_agent()`、`get_planning_agent()`等のtool束・agent構成と、
+builtinサブエージェント（`general-purpose`、`code-explorer`、`bash-runner`、`web-researcher`）を提供する。
+FWレーンの実装・調査タスクやリポジトリ探索にはこれらを再利用し、同等のサブエージェントを自作しない。
+ACDの工程agent（生成・レビュー・視覚レビュー）は役割境界と権限が異なるため、presetの流用ではなく
+project levelの`AgentDefinition`として別途版管理する。
+
 レビュー側はtoolsと`permission_mode`を絞り、設計グラフへ書き込めない構成にする。
 ただしSDKのagent定義だけを信頼境界とはせず、共通executorとACDの権限検査でも書込みを
 拒否する。レビューagentは自分または生成agentの成果物を修正して合格根拠にせず、
@@ -203,6 +211,24 @@ error連続、agentのmonologue、交互パターンなどの閾値を検出し�
 エスカレーションを起動する。いずれもLLMまたは宣言的な補助機構であり、judgeの判定や
 停滞検出結果は`RV2`の判定面ではない。
 
+### LLM可用性とmodel実体の記録
+
+`LLMRegistry`はusage ID別にLLMインスタンスを管理し、metricsをインスタンス間で共有させない。
+生成、機械可読レビュー、視覚レビューのprofile分離と`get_metrics_for_usage(usage_id)`による
+コスト分解の実装基盤として使う。
+
+`FallbackStrategy`は、接続断、rate limit、timeout、5xx等のtransient errorでretryが尽きた場合に、
+`LLMProfileStore`のprofile列を順に試すper-callのfallback機構である。可用性のために採用できるが、
+fallbackが起きると実際に応答したmodelが指名profileと異なるため、`log_completions` callbackで
+実体model・prompt内容hashを必ず記録し、fallback先は同等能力のprofileに限定する。レビュー実行中に
+fallbackで実体modelが変わった場合、そのレビュー結果のmodel版は`unknown`として扱い、`RV2`の
+鮮度判定で停止させる。
+
+`RouterLLM`（`MultimodalRouter`等）は、画像の有無やtoken量に応じてmodelを暗黙に選択する。
+呼び出しごとにmodel実体が変わり、レビューのmodel／profile版固定と両立しないため採用しない。
+vision対応modelへの切替は次項の`switch_llm`と別profileの明示指定で行う。LLMのtoken streaming
+callbackはUI表示のみに使い、判定・記録の経路にしない。
+
 `switch_llm`は工程境界でACDが明示的に呼び出す。生成、機械可読レビュー、視覚レビューの
 profileを切り替えられるが、同一レビュー途中のAI起点の切替は禁止する。切替後の実体を
 model／profile版としてEvidenceと`ReviewFinding`へ記録し、レビュー途中で版が不定になる
@@ -219,6 +245,13 @@ model／profile版としてEvidenceと`ReviewFinding`へ記録し、レビュー
 なmodel、prompt、tool構成の固定に使う。profile storeとresolverで解決した参照、版、解決
 条件を`ReviewFinding`が持つモデル・プロンプト版と対応付ける。secretそのものをprofile、
 Evidence、設計グラフへ複製しない。
+
+SDKの二層persistent memory（`~/.openhands/memory/`と`<workspace>/.openhands/memory/`の
+`MEMORY.md`）は、初回`run()`時に文字数上限付きでプロンプトへ読み込まれる作業メモリである。
+位置づけはSkillと同じプロンプト資材であり、`KnowledgeItem`の正・Evidence・合否根拠にはならない。
+project tierの`MEMORY.md`へ「現時点の標準」の要約を`KnowledgeItem`から投影・配布することは
+できるが、その場合も内容hashと生成元revisionを記録し、memoryの記述から設計判断の正へ
+逆流させない。
 
 fab APIやprovider tokenはSDKの`SecretSource`として`SecretRegistry`へ登録し、ACDは
 参照名だけを保持する。`StaticSecret`／`LookupSecret`、`conversation.update_secrets()`
@@ -242,6 +275,8 @@ envelopeで実測し、両者を混同しない。実行上限とretryは
 agent-serverの`WebhookSpec`はtask ledgerと実行状態の低遅延取り込み経路に限る。webhookは
 task状態・実行状態の正でも、副作用journal・ドメイン記録の正でもない。
 buffer、flush timer、リクエストサイズ上限付きのPOSTを利用し、ACD側でpollingを自作しない。
+agent-serverの`/sockets` WebSocket購読も同じ位置づけの低遅延取り込み経路として使えるが、
+接続断・欠落を前提とし、正はwebhookと同様にEventLog replayへ置く。
 配信保証は未確認なので、task状態・実行状態の取り込みの正はEventLog replayに置く。副作用
 journalとドメイン記録の正はcommit済みEvidence artifactに置き、webhookは重複・欠落を前提に
 idempotentに処理する。
@@ -317,6 +352,11 @@ artifact hash、Evidence、idempotencyであり、これらはACDが担う。
 MCP serverが返す成功文字列を合格Evidenceとはせず、生成artifactを再読込し、
 決定論的gateを別途実行する。
 
+agent-serverはMCP OAuth資格情報をsettingsの暗号化・redaction経路へ保存する
+token store（`mcp_oauth_store.py`）を持つ。OAuth認証が必要なsourcing系MCP serverでは
+この経路を一次候補とし、tokenをACD側のgraph、Evidence、profileへ複製しない。動作条件は
+Phase 8で一次確認する。
+
 ### sourcingとbrowser経路
 
 Phase 8のsourcingはAPI経路を一次とし、型付きAPIがない場合だけSDKの`browser_use`
@@ -338,6 +378,15 @@ OpenHandsから呼び出す構成は候補である。候補例として`FreeOCD
 （CMSIS-DAP、RTT、MCPサーバ）と`OpenBlink/openblink-vscode-extension`（mruby/c、
 BLEによるBuild & Blink、MCPサーバ）がある。ただし、接続方法、提供ツール、ライセンスは
 本リポジトリで一次情報による接続検証をしておらず、候補・要検証である。
+
+## 採用しない・継続調査のSDK機能
+
+- `RouterLLM`／`MultimodalRouter`: 暗黙のmodel選択がmodel版固定と両立しないため採用しない（前述）。
+- `ACPAgent`: Evidence契約を満たせないため採用しない（前述）。
+- `TomConsultTool`／`SleeptimeComputeTool`（tom_consult）: 外部Tom agent（tom-swe package）へ
+  会話履歴を渡してユーザー意図・好みの理解を得るtoolである。S1要件対話の意図理解の補助候補と
+  するが、外部package依存と会話履歴の外部送信範囲が未検証であり、継続調査とする。採用する場合も
+  応答は観察データであり、要求の正は設計グラフの`Requirement`とユーザー確認に置く。
 
 ## SDKが保証しないこと
 

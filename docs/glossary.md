@@ -43,6 +43,11 @@
 | run_goal／GoalController | SDKがLLM judgeで停止条件を制御する機構。`GoalVerdict`は停止補助であり、Evidence・合否の正ではない |
 | WorkflowTool | SDKがmap/reduceによる観点別agent分業を実行するtool。`ReviewFinding`集合を束ねられるが、投影の意味的mergeや合否を行わない |
 | switch_llm | SDKの会話中LLM切替tool。ACDは工程境界で明示的に使い、切替後のmodel／profile版をEvidenceへ記録する |
+| LLMRegistry | SDKがusage ID別にLLMインスタンスと独立metricsを管理する機構。profile分離とコスト分解に使うが、合否の正ではない |
+| FallbackStrategy | SDKがtransient error時に代替LLM profileを順に試すper-call fallback機構。fallback発生時は実体modelを記録し、レビュー中の版不定は`unknown`とする |
+| RouterLLM | SDKが複数LLMを暗黙に選択するLLM。model版固定と両立しないためACDでは採用しない |
+| persistent memory（MEMORY.md） | SDKがuser／project tierの`MEMORY.md`をプロンプトへ読み込む作業メモリ。プロンプト資材であり、`KnowledgeItem`の正や合否根拠ではない |
+| preset／builtinサブエージェント | SDKが提供するtool束・agent構成と汎用サブエージェント（code-explorer等）。汎用作業へ再利用し、ACD工程agentは別途project levelで定義する |
 | InstallationInfo／resolved_ref | SDKの`.installed.json`に保存される資材の解決済みcommit SHA情報。`requested_ref`だけの資材はACDではfail-closedとする |
 | ConversationStats | SDKのusage単位metrics取得機構。`get_metrics_for_usage(usage_id)`でagent／profile別へ分解できるが、合否の正ではない |
 | FileStore | SDKの保存抽象。`LocalFileStore`／`InMemoryFileStore`に合わせるが、SDKにremote実装はなくACD独自I/Fを増やさない |
