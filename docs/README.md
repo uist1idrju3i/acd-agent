@@ -22,7 +22,7 @@
 12. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
 13. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
 14. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
-15. [`future-outlook.md`](future-outlook.md): ローカル製造、プリンテッドエレクトロニクス、将来展望。
+15. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
 16. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
 17. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
 

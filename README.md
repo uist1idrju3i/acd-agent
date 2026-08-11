@@ -27,7 +27,7 @@ VibeBBは設計や検証が軽いという意味ではなく、重い検証を�
 - [想定ユーザー](#想定ユーザー)
 - [設計プロファイル](#設計プロファイル)
 - [成功の計測対象](#成功の計測対象)
-- [VibeBB — Vibe BreadBoarding](#vibebb-vibe-breadboarding)
+- [VibeBB — Vibe BreadBoarding](#vibebb--vibe-breadboarding)
 - [なぜACDか](#なぜacdか)
 - [設計原則](#設計原則)
 - [設計フロー](#設計フロー)
