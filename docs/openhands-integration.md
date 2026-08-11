@@ -43,8 +43,11 @@ Evidenceである。
 | 実行履歴 | SDK `EventLog`の追記・lock・型付きevent・branch／resume／fork・conversation state永続化 | ACDドメインevent payload、外部副作用journal、署名、idempotency、外部状態snapshot。SDK event logとACD payloadの二層構造とする |
 | 長時間実行 | condenser、memory、interrupt、max iteration、budget | ACD task ledger、checkpoint方針、予算の製造・機械統合 |
 | 分業 | delegate/spawn、子Conversation、権限継承 | 電気・機械レーンのgraph merge、成果物契約、失敗因果 |
-| LLM運用 | token/cost metrics、cache、retry | ACD retry budget、同一input hash、外部副作用の再実行防止 |
+| LLM運用 | `Metrics`／`MetricsSnapshot`、token/cost、latency、cache、retry | ACD retry budget、同一input hash、外部副作用の再実行防止。外部process回数・外部tool時間はtool envelopeで実測 |
+| 予算上限 | `AgentDefinition.max_budget_per_run`／`max_iteration_per_run`、SDK `Metrics` | token／money／LLM latencyはSDK `Metrics`、外部process回数・外部tool wall-clockはACD tool envelope |
 | 外部tool | MCP client、動的Pydantic schema、timeout、再接続 | adapterの意味検証、tool version固定、Evidence生成 |
+| 視覚レビュー | `ImageContent`、`inspect_image_with_vision`、画像inline化 | 視覚投影の分類、画像hash、renderer、vision profile／model、解像度のEvidence binding |
+| 実行分岐 | `Conversation.fork(from_event_id=...)`（local／remote） | trade studyの比較、採用枝のcanonical patch、非採用枝のEvidence |
 | 作業資材の配布 | `Skill`、`KeywordTrigger`／`PathTrigger`／`TaskTrigger`、skill repositoryのpin、`PluginManifest`、marketplace | 工程契約、レビュー観点、Q7/N7手法、ECAD操作手順の内容と版、Evidenceへの記録 |
 | サブエージェント定義 | `AgentDefinition`、`AgentDefinitionLevel`、model/tools/skills/hooks/MCP/予算・反復上限、`permission_mode` | 生成・レビューagentの役割境界、別profile、設計グラフへの書込み制約、`RV1`／`RV2`の判定 |
 | hook | `PreToolUse`、`PostToolUse`、`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`、`HookDecision` | 不可逆操作の防護、side-effect journal、決定論的gate、共通executor |
@@ -54,6 +57,10 @@ Evidenceである。
 | セキュリティ防護 | analyzer、`ConfirmationPolicy`、risk、ensemble、defense-in-depth、policy rails、shell AST/parser。LLM analyzerはLLM由来riskの伝達層 | 不可逆操作の多層防護、裁量枠、`SB1`／`SB2`、fail-closedな共通executor、独立した決定論的検査 |
 | agent profile | `AgentProfile`、profile store、resolver、`llm_profile_ref`／`mcp_server_refs` | model・prompt・tool構成の版管理、`ReviewFinding`との対応付け、秘密情報を含まない参照 |
 | workflow分業 | `WorkflowTool`／`WorkflowExecutor`、`task`、`task_tracker`、`delegate`、`manager` | 電気・機械・FWレーンのtask ledger、graph merge、成果物契約、決定論的状態 |
+| ledger取り込み | agent-server `WebhookSpec`（buffer／flush timer／POST） | EventLog replayを正とするidempotentな重複・欠落処理 |
+| secrets | `SecretRegistry`、`StaticSecret`／`LookupSecret`、`conversation.update_secrets()` | `SecretSource`参照名、at rest secret-freeなgraph／Evidence／profile |
+| sourcing | `browser_use` toolset（navigate、click、type、get_state、get_content、screenshot、tabs） | API一次・browser二次の期限付きEvidence、Phase 10での利用禁止 |
+| 起動契約 | `SessionStart` hook、`HookDecision` | ACD import、外部tool版、解決SHA／MCP設定hashの検証と失敗時deny |
 | 可観測性 | `observability/laminar.py` | 任意の計測、Evidenceと判定面の分離 |
 
 ACDのtoolは`ToolDefinition`として登録し、Pydantic Action/Observationで入力と結果を
@@ -115,6 +122,18 @@ Skillの記述、pluginの定義、triggerの発火はプロンプト資材ま�
 拒否する。レビューagentは自分または生成agentの成果物を修正して合格根拠にせず、
 `ReviewFinding`を生成する。`RV2`の判定はその処分状態を決定論的ゲートが行う。
 
+### 視覚レビュー投影
+
+レビュー投影は、表・netlist要約・マトリクス等の機械可読投影と、図・3Dビュー・
+レイアウトビュー等の視覚投影に分ける。視覚投影はSDKの`ImageContent`へ画像を
+`data:` URLとして渡すか、builtin tool `inspect_image_with_vision`で画像と質問を
+vision対応の別LLM profileへ渡す。HTTP(S)画像はSDKのbase64インライン化とSSRF
+block-listを通す。
+
+画像hash、renderer種別、vision profile／model、解像度、取得時刻をEvidenceと
+`ReviewFinding`へ記録する。visionの応答はAIレビューの観察であり、合否権限を持たない。
+既定ゲートは描画非依存のままとし、視覚投影をゲートの合格根拠にしない。
+
 ### hooksによる前段防護
 
 `PreToolUse`は発注や実機書込みなど不可逆操作の前段確認に、`PostToolUse`は副作用journalと
@@ -122,6 +141,12 @@ Skillの記述、pluginの定義、triggerの発火はプロンプト資材ま�
 セッション境界や停止時の記録・後処理に利用する。`HookDecision`の`allow`／`deny`は
 多層防御の一層であり、hookが`allow`したことも`deny`されなかったことも合格根拠にしない。
 最終的な裁量枠、承認、Evidence、合否はACDの決定論的ゲートと共通executorが担う。
+
+`SessionStart` hookを起動時契約の強制点として使い、ACD packageのimport、外部ツール版
+プローブ、Skill／pluginの解決済みSHAとMCP設定hashの記録を実行する。未登録のACD Event、
+版不明、解決SHA不明、設定hash不一致などは`HookDecision`でdenyし、セッションを
+fail-closedで開始しない。plugin導入だけではEvent型登録にならないため、このhookを
+運用契約の検証点とする。
 
 ### critic、目標判定、停滞検出
 
@@ -157,6 +182,29 @@ judgeの判定や停滞検出結果は`RV2`の判定面ではない。
 なmodel、prompt、tool構成の固定に使う。profile storeとresolverで解決した参照、版、解決
 条件を`ReviewFinding`が持つモデル・プロンプト版と対応付ける。secretそのものをprofile、
 Evidence、設計グラフへ複製しない。
+
+fab APIやprovider tokenはSDKの`SecretSource`として`SecretRegistry`へ登録し、ACDは
+参照名だけを保持する。`StaticSecret`／`LookupSecret`、`conversation.update_secrets()`
+の注入・masking・lookup back-offを利用し、graph、Evidence、log、commit、profileへ
+secretを保存しない。`AgentProfile`の`llm_profile_ref`／`mcp_server_refs`と組み合わせ、
+at rest secret-freeを維持する。
+
+### 予算と外部計測
+
+token、money、LLM latencyはSDKの`Metrics`／`MetricsSnapshot`、per-callの
+`TokenUsage`／`ResponseLatency`、`accumulated_cost`を出所とする。外部process回数と
+外部toolのwall-clockはACD tool envelopeで実測し、両者を混同しない。実行上限は
+`AgentDefinition.max_budget_per_run`／`max_iteration_per_run`へ委譲し、実測値と
+`unknown`境界をEvidenceへ記録する。
+
+### task ledgerと実行分岐
+
+agent-serverの`WebhookSpec`をledgerとside-effect journalの低遅延取り込みに使う。
+buffer、flush timer、リクエストサイズ上限付きのPOSTを利用し、ACD側でpollingを自作しない。
+配信保証は未確認なので正はEventLog replayに置き、webhookは重複・欠落を前提に
+idempotentに処理する。
+trade studyやPhase 6の協調修復では`Conversation.fork(from_event_id=...)`で子conversation
+を作る。採用枝だけをcanonicalへpatchし、非採用枝はEvidence付き記録として残す。
 
 ### securityと分業
 
@@ -213,6 +261,14 @@ artifact hash、Evidence、idempotencyであり、これらはACDが担う。
 MCP serverが返す成功文字列を合格Evidenceとはせず、生成artifactを再読込し、
 決定論的gateを別途実行する。
 
+### sourcingとbrowser経路
+
+Phase 8のsourcingはAPI経路を一次とし、型付きAPIがない場合だけSDKの`browser_use`
+toolset（navigate、click、type、get_state、get_content、screenshot、tabs）を二次経路
+として使う。browser取得値はURL、取得時刻、screenshot hash、対象revision、期限を持つ
+Evidenceとして記録し、DOM取得の非決定性を`unknown`境界に含める。browser経路はPhase 10
+の発注実行には使わず、期限切れまたはscreenshot hash不一致の値を合格根拠にしない。
+
 ## ファームウェア開発とOpenHands
 
 OpenHands SDKのソフトウェア開発能力（bash、ファイル編集、テスト実行、MCP client、
@@ -231,7 +287,10 @@ BLEによるBuild & Blink、MCPサーバ）がある。ただし、接続方法�
 
 - typedなgit commit／push／branch作成／mergeのAPI。
 - Skill／pluginのsourceの安全性。Skillはshellを実行できるため、信頼済みsourceに限定する。
-- prompt内容やmodel実体の版をEvidenceへ自動的に束ねること。
+- prompt内容やmodel実体の版をEvidenceへ自動的に束ねること。実プロンプトと応答は
+  `LLM.log_completions`／`log_completions_folder`または
+  `telemetry.set_log_completions_callback()`で取得できるため、ACDはcallbackで内容hashを
+  算出しEvidence／`ReviewFinding`へ束ねる。
 - 外部定義Eventを、ACD packageのimportなしで読み戻すこと。
 - 外部副作用を含む決定論的replay。
 - LocalWorkspaceでのホスト権限・ファイル・ネットワークの完全分離。

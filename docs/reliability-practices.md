@@ -558,11 +558,18 @@ ACDへの反映：ACDにおける「設備」はツール、「作業者」は�
 - (3)は特に示唆的です。ACDのgolden taskは「変更時に走らせる」設計になりがちですが、**変更がなくても定期的に再測定しないと適格性は減衰する**という視点が要ります。
 `AgentProfile`は`llm_profile_ref`／`mcp_server_refs`を参照で持ち、at restでsecret-freeにできる。
 解決したmodel・prompt・tool構成の版をEvidenceへ残し、`ReviewFinding`のモデル・プロンプト版と対応付ける。
-SDKはprompt version ID、prompt content hash、解決済みsystem prompt hash、Skill内容hashを
-Evidenceへ自動的に束ねない。ACDは解決済みmodel名、provider、profile revision、system prompt・
-tool schema・有効なSkill内容を含むprompt内容hash、Skill／pluginの解決済みSHA、MCP設定hash、
-response ID、推論設定、`ReviewFinding`との対応付けを自ら計算・記録する。routerを使う場合は
-モデル選択が非決定的になり得ることもEvidenceへ記録し、`RandomRouter`は採用しない。
+SDKはこれらをEvidenceへ自動的に束縛しないが、`LLM.log_completions`／
+`log_completions_folder`と`telemetry.set_log_completions_callback()`で実プロンプトと応答を
+取得できる。ACDはcallbackを利用して、解決済みmodel名、provider、profile revision、
+system prompt・tool schema・有効なSkill内容を含むprompt内容hash、Skill／pluginの解決済みSHA、
+MCP設定hash、response ID、推論設定、`ReviewFinding`との対応付けを算出し、Evidenceへ束ねる。
+routerを使う場合はモデル選択が非決定的になり得ることもEvidenceへ記録し、`RandomRouter`は
+採用しない。
+
+予算の出所も固定する。token、money、LLM latencyはSDKの`Metrics`／`MetricsSnapshot`、
+per-callの`TokenUsage`／`ResponseLatency`、`accumulated_cost`から記録する。外部process
+回数と外部tool wall-clockはACD tool envelopeで実測し、`AgentDefinition`の
+`max_budget_per_run`／`max_iteration_per_run`を上限としてEvidenceへ束ねる。
 
 JMR-005A 4.11.10は、製造用治工具を検査の手段として用いる場合に使用前と適切な間隔で精度を確認すること、そして**ソフトウェアが検査の手段として用いられる場合、製造用治工具と同様に適切さをあらかじめ確認しなければならない**ことを定めます。**［汎用］** ACDへの反映：検証スクリプトとゲート実装そのものが検証対象です。既知NGを確実に落とし既知OKを通すかを確認するmeta-testを持ち、ゲート実装の変更時に再確認する。ACDのgolden taskはこの位置づけを明示できます。
 
