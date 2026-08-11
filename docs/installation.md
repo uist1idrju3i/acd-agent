@@ -24,6 +24,10 @@ SDKの利用範囲とACD側の実装境界は[`openhands-integration.md`](openha
 - OpenHands **Agent Canvas**（ブラウザUI＋agent server backendを起動する自己ホスト構成）。
 - **acd-agent** のローカル開発環境（`uv`によるworkspace同期と決定論的な検証コマンド）。
 
+本書はインストールと動作確認の手順書であり、JLCPCBへの発注手順書ではない。
+発注に必要な成果物、未実装の変換・ゲート、利用者が別途確認すべき事項は
+[JLCPCBへの発注に向けて](#8-jlcpcbへの発注に向けて)に記載する。
+
 本書では扱わない経路は次のとおりで、いずれも本リポジトリでは未検証である。
 
 - OpenHands CLI（`uv tool install openhands`、`openhands serve`）。公式ドキュメントでは
@@ -54,7 +58,7 @@ flowchart LR
 ```
 
 ポート構成と各コンポーネントの版は、本VMで`agent-canvas --info`と`GET /server_info`から実測した
-値である（[8. 実測サマリ](#8-実測サマリ)を参照）。会話、設定、secret、LLM profile、MCP、
+値である（[実測サマリ](#9-実測サマリ)を参照）。会話、設定、secret、LLM profile、MCP、
 plugin、automationは選択中のbackendに保存され、backendを切り替えるとこれらも切り替わる。
 
 ## 3. 前提ツール
@@ -720,7 +724,63 @@ Evidenceのtarget_revisionとinput/output hashを報告してください。
 各例とも、エージェントの説明を合格根拠にしてはならない。設計グラフ生成・変更のLLM入口、
 pluginの実インストール、実機FW検証は未実装または未確認であり、実装済みとして報告してはならない。
 
-## 8. 実測サマリ
+## 8. JLCPCBへの発注に向けて
+
+### 8.1 現状の成果物
+
+Golden Design #1の電気レーンは、次のPCB製造データを決定論的に生成し、独立reloadまで
+検証する。
+
+- Gerber `8`ファイル
+- drill `1`ファイル
+- `out/gd1/gd1.bom.csv`
+- `out/gd1/hashes.json`
+- ERC／DRC／FreeRouting／Gerber／drillの各envelope
+- `routing-summary.json`などの正規化・測定記録
+
+`gd1.bom.csv`には`refdes,qty,value,mpn,lcsc,footprint,jlcpcb_class`の列があり、
+LCSC部品番号と`jlcpcb_class`（`basic`／`extended`）を含む。
+
+GD1の基板仕様はJLCPCBでの製造を前提に選定されており、FR-4、板厚`1.6 mm`、外層`1 oz`である。
+部品は、JLCPCB実装部品ライブラリのBasicまたはExtendedに在庫があり、部品支給なしで
+JLCPCBAへ依頼できることを採用条件としている（`GD1-REQ-017`）。在庫数と単価は
+`2026-08-11 UTC`時点の一次確認値であり、実装費は`unknown`である。
+
+### 8.2 発注に不足しているもの
+
+現状の成果物だけでは、PCBまたはPCBAの発注可否をACDが判定できない。次の不足がある。
+
+- **CPL（実装座標）**: ACDの`kicad-cli`経路はERC、DRC、netlist、Gerber、drillのみで、
+  `kicad-cli pcb export pos`相当の実装座標出力がない。PCBA依頼には利用者がCPLを別途用意する必要がある。
+- **JLCPCB投入形式のBOM**: 現在のBOMはACD内部列構成であり、JLCPCBのPCBA投入形式へ変換されていない。
+- **在庫・価格・納期**: 2026-08-11時点の一次確認値は発注時点の保証ではない。ACDの規約では
+  期限切れの見積・在庫・価格は`unknown`として停止条件になるため、発注時点で再確認が必要である。
+- **DFM照合**: DFM照合は未実装である。
+- **総発注額**: 基板、部品、実装、送料、税、筐体を含む総発注額の計算は未実装である。
+- **発注前最終ゲートとAPI ordering**: 発注前最終ゲートおよびAPI orderingは未実装であり、
+  roadmapのPhase 5・7・10側の対象である。Phase 1〜4では自動発注を行わない。
+- **実機Evidence**: FWの`real_device_led_measurement`は`unavailable`であり、QEMU仮想Evidenceは
+  実機測定の代替にならない。
+- **レーン統合**: Phase 4で扱うECAD↔MCAD交換や、高さ・keepoutの共通ゲートにはまだ到達していない。
+
+したがって、現在の電気レーン合格が示すのは「製造データが決定論的に生成され、再読込と
+ERC／DRC等の既存ゲートを通過した」ことである。「発注してよい」という判定ではない。
+
+### 8.3 手作業で発注する場合の注意
+
+以下はACDが保証する発注手順ではなく、利用者の責任で手作業発注を検討する場合の確認事項である。
+
+- fab側が指定する形式でGerberとdrillをzip提出する。
+- BOMをJLCPCBの投入形式へ利用者が変換し、CPLを利用者が別途用意する。
+- 提出前にfab側のDFMレビュー結果を人が確認する。
+- `hashes.json`で提出物と検証済み成果物の同一性を確認する。
+- 対象revisionと、各Evidenceの`target_revision`が一致していることを確認する。
+- 価格、在庫、納期を発注時点で再取得する。
+
+ACDのEvidenceは、発注可否、価格、在庫、納期、fab側DFM合格を判定しない。
+不明な値や期限切れの値を合格根拠にしてはならない。
+
+## 9. 実測サマリ
 
 測定日は2026-08-11、測定環境はUbuntu 22.04.5 LTS（Ubuntu 24.04では未測定）である。
 
@@ -743,7 +803,7 @@ acd-agentが参照するSDK（v1.41.0）と、Agent Canvasが既定で起動す�
 版が異なる。両者を同一環境で組み合わせる場合の互換性は未確認であり、必要なら
 `OH_AGENT_SERVER_VERSION`で明示的に固定してから検証する。
 
-## 9. 未確認事項
+## 10. 未確認事項
 
 - Ubuntu 24.04上での全手順（Node.js導入、Agent Canvas起動、acd-agentの同期と検証）。
 - Ubuntu 24.04上での外部ツールのインストール実行と動作確認。
@@ -755,8 +815,12 @@ acd-agentが参照するSDK（v1.41.0）と、Agent Canvasが既定で起動す�
 - `uv` 0.8.13未満での長期運用（本VMは0.7.9で`uv sync`が成功したが、SDKは0.8.13以上を要求する）。
 - 実機probe-rsによるFW書き込み、実機LED、実機シリアル、SHT40測定。
 - rootless Dockerの長期運用、cgroup制約の解消、UIDマッピングを含むproduction運用。
+- CPL（実装座標）生成。
+- JLCPCB投入形式のBOM変換。
+- DFM照合、総発注額、発注前最終ゲート、API ordering。
+- JLCPCBへの実発注経験と、fab側DFMレビュー結果との照合。
 
-## 10. 参照
+## 11. 参照
 
 - [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
 - [`tool-selection.md`](tool-selection.md): 外部ツールの採否と設計根拠。
