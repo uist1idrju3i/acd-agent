@@ -62,6 +62,43 @@ OpenHands Conversation（計画、実行、delegate、memory、MCP）
 typed contractで入出力を返す。agent toolはLLMの自由文を受けても直接ファイルを編集せず、
 schema検証済みのActionへ変換する。
 
+## モジュール分割の粒度
+
+パッケージ分割は既存のレイヤ境界（schema、core、adapters、agent tools）を単位とし、
+依存は一方向とする。電気・機械・FWの3レーンは工程の軸であってモジュール分割の軸ではない。
+3レーンは共通のgraph coreを共有し、レーン固有の事情はadapterとgate policyへ置く。
+
+原則として、1 adapterは1つの外部ツールかつ1つの形式版系列に対応させる。複数ツールを
+1つのadapterへ束ねず、ツールを差し替えてもcoreを変更しない構造を維持する。1 schema
+ファイルは1契約とし、設計グラフ、tool envelope、gate matrix、error taxonomy、event
+payload、`ReviewFinding`はそれぞれ独立した機械可読正本を持つ。文書はこれらの正本から導く。
+
+1 agent toolは1つの副作用クラスに対応させる。readと不可逆操作を同じtoolへ混ぜず、
+idempotency keyの単位はtool呼び出し1回とする。coreは外部ツール固有の型、ファイル形式、
+座標系変換を持たず、adapterはACDの設計意味論と合否判定を持たない。
+
+生成と判定は別モジュールにする。判定モジュールは生成モジュールへ依存しない。これは
+[`projection-review.md`](projection-review.md)のレビュー独立性と
+[`reliability-practices.md`](reliability-practices.md)の「生成と判定の分離、独立性」を
+コード構造へ落としたものである。
+
+分割の判定基準は「版とstale境界」である。独立に版が動くツール版、形式版、ライブラリ
+commit、profileは別モジュールへ分ける。モジュール境界と再検証単位（stale伝播の単位）を
+一致させ、schema変更で無関係なEvidenceが一斉失効しないようにする。
+
+SDKはSkill／plugin（作業資材）、`AgentDefinition`（役割）、tool（副作用）、workspace
+（実行環境）という分割単位を持つ。ACDのモジュール境界はこれらへ写像できるようにするが、
+SDKの配布単位に合わせてACDの契約境界を歪めない。詳細な活用方針は
+[`openhands-integration.md`](openhands-integration.md)を参照する。
+
+次の状態は粒度が不適切なアンチパターンである。
+
+- adapterがゲート判定を持つ。
+- coreが特定ECADの型を参照する。
+- 1つのschema変更が無関係な契約を巻き込む。
+- 1つのtoolがreadと不可逆操作を兼ねる。
+- レーンごとにgraph coreが分裂する。
+
 ## 投影
 
 投影は対象revisionから再生成でき、生成時のtool version、input/output hash、Evidence、

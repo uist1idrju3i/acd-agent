@@ -35,6 +35,10 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 - 投影を正へ逆流させず、投影は意味的にマージせず、対象revisionから再生成する。
 - ワークツリー操作と外部ツール実行は排他にし、プロセス終了とファイルハンドル解放を確認してから切り替える。
 - AIは提案し、決定論的ゲートが判定する。
+- 実行、資材配布、分業、反復、防護はOpenHands SDKの既存機能を優先して使い、同等機能を
+  ACDで自作しない。ただし設計グラフ、投影、Evidence、決定論的ゲート、合否の正はACDに残し、
+  SDKのcritic、judge、hook、LLM security analyzer等を合格根拠にしない。詳細は
+  [`docs/openhands-integration.md`](docs/openhands-integration.md)を参照する。
 - 工程の出口と工程内の随時で投影を生成し、別コンテキストのAIがレビューする。AIレビューは
   合否権限を持たず、未処分の重大`ReviewFinding`は合格扱いにしない。
 - staleな投影・レビューは合格根拠にせず、`unknown`はfail-closedで停止する。
@@ -67,6 +71,7 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 各フェーズの「内容」「やらないこと」「完了条件」は [`docs/roadmap.md`](docs/roadmap.md)
 だけを参照する。ここでフェーズを二重管理しない。ロードマップにない機能を先行して
 実装する場合は、先に設計決定として記録する。
+モジュール分割の粒度は [`docs/architecture.md`](docs/architecture.md)を正とし、ここで二重管理しない。
 
 ## 決定論と記録
 

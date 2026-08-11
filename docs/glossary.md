@@ -17,6 +17,13 @@
 | 投影レビューPDCA | 影響分析で対象と観点を選ぶPlan、投影を生成するDo、AIが所見を作るCheck、処分して再投影するActのループ |
 | 処分（disposition） | `ReviewFinding`を`fixed`、`waived`、`assumption`、`rejected`のいずれかへ扱うこと。理由と追跡状態を残す |
 | Evidence | ツール版、入力・出力hash、条件、結果、対象revisionを含む検証の根拠 |
+| Skill | SDKが提供するfrontmatter付きMarkdownの作業資材。工程手順や観点を配布するが、ACDの正や合否根拠ではない |
+| plugin | SDKが提供するskills、hooks、MCP設定、agent定義、commandをまとめた配布単位。ACDの契約正ではない |
+| AgentDefinition | SDKが提供するサブエージェントの役割定義。model、tools、skills、権限等を指定するが、ACDの判定正ではない |
+| hook | SDKが提供するtool・prompt・session境界のイベント処理。防護や記録に使うが、ACDの合否根拠ではない |
+| AgentProfile | SDKが提供するmodel、LLM設定、MCP参照等のprofile。秘密情報を含まない参照で管理するが、ACDの正ではない |
+| condenser | SDKが提供する会話contextの圧縮機構。Evidenceやゲート結果を置き換えず、ACDの判定正ではない |
+| workspace | SDKが提供するagentの実行環境。ファイルや外部ツールを置けるが、ACDの設計グラフや合否の正ではない |
 | stale | 対象revision、入力、ツール版などが現行条件と一致せず、下流の合格根拠にできない状態 |
 | ゲート | 候補や成果物を次の工程へ進めるかを決定論的に判定する境界 |
 | KnowledgeItem | 検証済みの事実、測定、失敗、修正を出所と適用範囲付きで蓄積する知識単位 |

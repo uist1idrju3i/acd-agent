@@ -7,6 +7,11 @@
 工程ごとの入力・出力は [`design-flow.md`](design-flow.md)、正規データモデルは
 [`architecture.md`](architecture.md)を参照します。
 
+KnowledgeItemは、SDKの`Skill`またはpluginとして配布する投影として扱うことができます。
+ただし正は`KnowledgeItem`であり、Skillやpluginの記述ではありません。skills repositoryと
+pluginはpinし、解決した版をEvidenceへ記録します。`applicability: unknown`のKnowledgeItemは
+Skillとして配布せず、適用範囲を確認してから利用します。
+
 知識の取得は副産物ではなく、第一級のサブシステムです。段階ごとに、たとえば次の
 情報を保存します。
 
