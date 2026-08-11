@@ -12,6 +12,13 @@ KnowledgeItemは、SDKの`Skill`またはpluginとして配布する投影とし
 pluginはpinし、解決した版をEvidenceへ記録します。`applicability: unknown`のKnowledgeItemは
 Skillとして配布せず、適用範囲を確認してから利用します。
 
+Git refからSkillを取得するときは`fetch_skill_with_resolution()`を使い、解決済みcommit
+SHAを受け取ってEvidenceへ記録します。Skillのtriggerは`KeywordTrigger`、`TaskTrigger`、
+`PathTrigger`だけであり、それぞれkeyword、task text、path globを表現します。部品属性、
+対象revision、gate状態、fab profile、ツール版互換といったACD固有の適用条件はtriggerで
+表現できません。そのためtriggerが発火したことを適用可否の最終判定にはしません。ACDの
+決定論的ゲートでscope、revision、版、Evidenceを確認してから適用します。
+
 知識の取得は副産物ではなく、第一級のサブシステムです。段階ごとに、たとえば次の
 情報を保存します。
 

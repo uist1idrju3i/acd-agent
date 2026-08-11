@@ -53,6 +53,9 @@ GitHubの[Security Advisories](https://github.com/uist1idrju3i/acd-agent/securit
 - 安全境界（AC電源、高電圧・大電流、レーザー、医療・車載用途、無線送信の直接設計、
   Li-ion/LiPo充電回路など、AIに任せない領域）の回避につながる欠陥
 - 外部ツール出力やモデル出力がコードとして実行される経路
+- Skill／plugin source、inline command、marketplace取得経路に起因する任意コード実行
+- MCP serverの動的schema変更やreconnectを悪用した検証回避
+- remote workspaceおよびagent-serverを経由した権限・分離の回避
 - 依存関係の取得・固定に関する欠陥（lockfileの回避、submoduleの参照先変更、
   ビルド時の未検証ダウンロードなど）
 
