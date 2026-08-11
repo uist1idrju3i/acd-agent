@@ -25,6 +25,8 @@ jobs:
         run: uv run pytest
       - name: Verify docs
         run: uv run python scripts/verify_docs.py
+      - name: Golden mechanical task
+        run: uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
       - name: Probe external tools (informational)
         run: uv run python scripts/probe_tools.py
       - name: Whitespace check

@@ -40,7 +40,8 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     print(
         "[3/4] mechanical gates passed: "
         f"volume={gate_report.measured_volume_mm3:.3f} mm3, "
-        f"minimum wall={gate_report.measured_min_wall_mm:.3f} mm"
+        f"minimum wall={gate_report.measured_min_wall_mm:.3f} mm, "
+        f"minimum clearance={gate_report.measured_min_clearance_mm:.3f} mm"
     )
 
     evidence = Evidence(
@@ -63,8 +64,20 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
             ),
             EvidenceClaim(
                 subject_node="mechanical.enclosure.gd1",
-                property="internal_clearance_mm",
+                property="maximum_interference_volume_mm3",
+                value=gate_report.measured_max_interference_volume_mm3,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="mechanical.enclosure.gd1",
+                property="internal_clearance_passed",
                 value=gate_report.clearance,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="mechanical.enclosure.gd1",
+                property="measured_min_clearance_mm",
+                value=gate_report.measured_min_clearance_mm,
                 verified=True,
             ),
             EvidenceClaim(
@@ -86,6 +99,10 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         "evidence": str(evidence_path),
         "measured_volume_mm3": gate_report.measured_volume_mm3,
         "measured_min_wall_mm": gate_report.measured_min_wall_mm,
+        "measured_min_clearance_mm": gate_report.measured_min_clearance_mm,
+        "measured_max_interference_volume_mm3": (
+            gate_report.measured_max_interference_volume_mm3
+        ),
     }
     print(f"[4/4] mechanical evidence recorded: {evidence_path}")
     return summary

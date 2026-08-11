@@ -13,6 +13,15 @@ build123d/OCPで筐体を生成する。生成したSTEP/3MFを再読込可能�
 CAD kernel妥当性、干渉、clearance、肉厚を機械的に検証する。同一入力の再実行で、
 実測し確定した正規化後成果物hashが一致することを確認する。
 
+CIでは外部CLIに依存せず、build123d/OCPのin-process処理による
+`scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`をgolden taskとして実行する。
+`out/`は生成物であり、リポジトリへ追跡しない。
+
+Phase 3の実装には次の近似・限界がある。connector開口は`front`面だけを扱い、蓋は平板
+形状である。部品占有体は実部品の複雑な形状ではなく、機械レーン宣言寸法から構成した
+直方体近似である。これらを一般化した面対応、立体的な蓋勘合、ECADからの実形状交換は
+Phase 3では実装せず、必要な検証範囲と限界をEvidenceへ残す。
+
 やらないこと: レーン統合、知識ベース、自然言語入力、自動発注、Phase 4以降の
 ECAD↔MCAD交換、汎用routerや独自CAD kernelの実装。
 

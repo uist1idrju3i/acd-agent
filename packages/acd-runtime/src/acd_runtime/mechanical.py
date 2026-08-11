@@ -23,6 +23,8 @@ class MechanicalGateReport:
     wall_thickness: bool
     measured_volume_mm3: float
     measured_min_wall_mm: float
+    measured_min_clearance_mm: float
+    measured_max_interference_volume_mm3: float
 
 
 def _body_shape(
@@ -91,6 +93,8 @@ def run_mechanical_gates(
     enclosure = lane.enclosure
     interference = True
     clearance = True
+    measured_min_clearance = float("inf")
+    measured_max_interference_volume = 0.0
     for body in lane.component_bodies:
         if body.body_type == "none":
             continue
@@ -101,9 +105,13 @@ def run_mechanical_gates(
             lane.outline.depth_mm,
         )
         intersection = shell & body_shape
+        intersection_volume = 0.0 if intersection is None else float(intersection.volume)
+        measured_max_interference_volume = max(
+            measured_max_interference_volume, intersection_volume
+        )
         if (
             intersection is not None
-            and intersection.volume > enclosure.interference_tolerance_mm3
+            and intersection_volume > enclosure.interference_tolerance_mm3
         ):
             interference = False
         standoff_area = math.pi * enclosure.standoff_radius_mm**2
@@ -115,10 +123,13 @@ def run_mechanical_gates(
         if not wall_faces:
             raise MechanicalGateError("reloaded STEP has no measurable inner wall faces")
         measured_clearance = min(body_shape.distance_to(face) for face in wall_faces)
+        measured_min_clearance = min(measured_min_clearance, measured_clearance)
         if measured_clearance < enclosure.internal_clearance_mm - enclosure.tolerance_mm:
             clearance = False
 
     measured_wall = _measured_wall_thickness(shell, enclosure.tolerance_mm)
+    if measured_min_clearance == float("inf"):
+        raise MechanicalGateError("no solid component body has measurable clearance")
     wall_thickness = measured_wall + enclosure.tolerance_mm >= enclosure.min_wall_thickness_mm
     report = MechanicalGateReport(
         kernel_valid=True,
@@ -127,6 +138,8 @@ def run_mechanical_gates(
         wall_thickness=wall_thickness,
         measured_volume_mm3=float(shell.volume),
         measured_min_wall_mm=measured_wall,
+        measured_min_clearance_mm=measured_min_clearance,
+        measured_max_interference_volume_mm3=measured_max_interference_volume,
     )
     failures = [
         name
