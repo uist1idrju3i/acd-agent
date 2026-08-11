@@ -117,10 +117,16 @@ Conversationは計画と実行を進めるが、設計の正や合否を決め�
 ## 未決事項
 
 - 設計グラフのシリアライズ形式とschema migration方式。
-- KiCad最低対応版とIPC/APIの固定範囲。
-- build123d、CadQuery、FreeCAD、OCCT/OCPのcode-CAD engine選定。
-- STEP/IDF/IDXの採用範囲。
-- 外部プロセスとimportのライセンス整合。
-- 本リポジトリのLICENSE（BSD 3-Clause）と採用ツール群のライセンス整合の再検討。
+- KiCad最低対応版とIPC/APIの固定範囲は、
+  [`tool-selection.md`](tool-selection.md)を参照。KiCad 10の`kicad-cli`を最低対応版とし、
+  IPCはPCB editorの範囲に限定する。
+- code-CAD engineの選定は[`tool-selection.md`](tool-selection.md)を参照。
+  build123dを一次採用とし、依存kernelの構成は法務確認を要する。
+- STEPの採用と出力経路は[`tool-selection.md`](tool-selection.md)を参照。
+  IDF/IDXの採用範囲は未決である。
+- 外部プロセスとimportのライセンス整合の方針は
+  [`tool-selection.md`](tool-selection.md)を参照。個別の法務確認は未決である。
+- 本リポジトリのLICENSE（BSD 3-Clause）と採用ツール群のライセンス整合の再検討は、
+  [`tool-selection.md`](tool-selection.md)を参照。最終的な法務確認は未決である。
 - Evidenceの署名、改ざん検知、保持期間。
 - 製造APIの資格情報、地域、契約、価格snapshotの扱い。
