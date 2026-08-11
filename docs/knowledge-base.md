@@ -21,6 +21,10 @@ Skillのtriggerは`KeywordTrigger`、`TaskTrigger`、
 表現できません。そのためtriggerが発火したことを適用可否の最終判定にはしません。ACDの
 決定論的ゲートでscope、revision、版、Evidenceを確認してから適用します。
 
+SDKの二層persistent memory（`MEMORY.md`）はSkillと同じ配布投影として扱えます。
+project tierの`MEMORY.md`へ「現時点の標準」の要約をKnowledgeItemから投影する場合も、
+内容hashと生成元revisionを記録し、memoryの記述をKnowledgeItemや設計判断の正にしません。
+
 知識の取得は副産物ではなく、第一級のサブシステムです。段階ごとに、たとえば次の
 情報を保存します。
 

@@ -221,7 +221,8 @@ pluginはSkill・agent定義・hooks・MCP設定・commandの資材配布とし�
 [`docs/openhands-integration.md`](docs/openhands-integration.md)を参照してください。
 OpenHands SDKはConversation、型付きTool、EventLog、workspace、MCP、delegate、metrics、
 retryに加えて、skills／plugin、subagent（`AgentDefinition`）、hooks、critic、`/goal`、
-condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow／taskを
+condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow／task、
+`LLMRegistry`／`FallbackStrategy`、persistent memory、preset agentを
 提供する実行基盤です。これらの既存機能を優先してフル活用し、設計グラフ、決定論的ゲート、
 Evidenceの失効、承認IDと不可逆操作の束縛はACDが実装します。
 詳細は [`docs/architecture.md`](docs/architecture.md) と
