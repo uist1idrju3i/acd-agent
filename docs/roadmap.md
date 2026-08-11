@@ -16,6 +16,9 @@
 - 常に出荷可能な成果物を保ち、未検証の成果物を次フェーズへ渡さない。
 - 契約（schema、gate、error、event）は機械可読な正本を一つ置き、文書はそこから導く。
 - フェーズを実機測定の待ちで止めない。実測Evidenceは「実機Evidence待ち」として別管理する。
+- 一次候補ツールの能力プローブ（版、対象デバイス対応、不在検出）はフェーズ着手時の
+  最初の作業単位に置き、不採用判定と二次候補への入れ替えを早期に確定する
+  （Phase 2でRenode→QEMU入れ替えを早期確定できた実績に基づく）。
 
 ## 完了条件の書式
 
@@ -64,7 +67,7 @@
 |---|---|---|---|
 | Phase 0 契約とツール能力確認 | Phase 1〜2に必要な電気・機械・Evidenceの設計グラフschema、tool envelope（型付き入出力・idempotency key・副作用分類）、機械可読gate matrix、error taxonomy、最小ACD event（gate結果・承認・commit側副作用receipt参照）、SDK統合骨組み、文書検証契約を最小限確定する。SDK統合骨組みでは、採用するSDK機能の範囲と、Phase 0で骨組みだけ作る機能および後段へ送る機能を最小限確定する。FWパッケージschemaは後付けによるEvidence一斉失効を避けるため、このフェーズで確定する。投影レビュー契約（`ReviewFinding` schema、レビュー観点チェックリスト、処分状態、`RV1`／`RV2`の定義、`TestLLM`による決定論的回帰と実LLM golden taskの適格性再測定の分離）も最小限確定する。`kicad-cli`、freerouting、CAD kernelの能力プローブ（版検出、不在検出、非決定性の実測と正規化規則の確定）を行い、環境プローブを第一級成果物とする。加えて派生状態再計算、原点・単位・軸固定、ライブラリ参照解決、variant／DNP、面付け、内部接続ピン、ルール重大度・除外、機械可読レポート、形式版更新、設定隔離、描画依存、plugin／backend互換、シミュレーションpin／node対応、ロック検出とハンドル解放を確認する。部品カタログとライブラリ出所方針も確定する | 自然言語対話、汎用最適化、自動発注、Phase 1〜4の投影一貫生成、Phase 1〜2で不要なschemaの作り込み、SDK機能の全面実装 | 手書きの最小グラフがPhase 1〜2に必要なschema検証を通り、patchから影響node・再実行gate・失効Evidenceを導出できる。外部ツールと上記能力プローブの版・不在・非決定性をEvidenceとして記録できる。部品カタログとライブラリ出所方針を参照名・版・hash付きで記録できる。文書のリンク、アンカー、Mermaid、コードフェンス、見出し、用語集整合を機械検証できる。schema違反・版不明・非決定を注入すると停止する（negative test） |
 | [Phase 1 電気レーン最小縦切り](golden-design-1.md) | fixture要件→固定部品→netlist/BOM→決定論的配置→外部router（freerouting DSN/SES）→`kicad-cli` ERC/DRC→Gerber/drill | 筐体、知識ベース、FW実装、自然言語入力、自動発注、汎用router自作 | 単一コマンドでfixtureからGerber/drillまで到達し、`kicad-cli`と独立parser（sexpdata系＋gerbonara）の二重で再読込できる。同一入力の再実行で成果物hashが一致し、外部processの副作用が重複しない。配線不能・ERC違反・router不在を注入すると停止する（negative test） |
-| [Phase 2 FW連携と実機LED](golden-design-1.md) | FWパッケージ投影、OpenHandsによるFW実装、ピン割当整合ゲート<br/>仮想実機（Renode一次候補、QEMU／wokwi-cliは二次保持）<br/>実機書き込みとログ取得（probe-rs一次候補、pyOCDは二次保持） | 筐体、自動発注、独自コンパイラ・独自シミュレータの開発<br/>仮想試験を実測の代替にすること | 同一設計グラフから基板・FWパッケージを生成し、FWのビルドとピン割当整合ゲートを通す。ピン割当を故意にずらすと不合格になる。仮想実機のログは仮想検証Evidence、実機のログは実測Evidenceとして、条件・版付きで分類して設計グラフへ記録できる。実機へ書き込んだFWでLEDが点灯することを追加の到達条件とする |
+| [Phase 2 FW連携と実機LED](golden-design-1.md) | FWパッケージ投影、OpenHandsによるFW実装、ピン割当整合ゲート<br/>仮想実機（QEMUを一次採用。Renodeは実測でESP32-C3非対応のため不採用、wokwi-cliは二次保持。[`tool-selection.md`](tool-selection.md)）<br/>実機書き込みとログ取得（probe-rs一次候補、pyOCDは二次保持） | 筐体、自動発注、独自コンパイラ・独自シミュレータの開発<br/>仮想試験を実測の代替にすること | 同一設計グラフから基板・FWパッケージを生成し、FWのビルドとピン割当整合ゲートを通す。ピン割当を故意にずらすと不合格になる。仮想実機のログは仮想検証Evidence、実機のログは実測Evidenceとして、条件・版付きで分類して設計グラフへ記録できる。実機へ書き込んだFWでLEDが点灯することを追加の到達条件とする |
 | Phase 3 機械レーン最小縦切り | 外形・部品高さ・connector位置からbuild123dで筐体を生成→干渉/clearance/肉厚→STEP/3MF | レーン統合、知識ベース、自然言語入力、自動発注 | 単一コマンドでfixtureから筐体を生成し、CAD kernelの妥当性・干渉・clearance・肉厚チェックを通過する。出力を再読込でき、同一入力の再実行で成果物hashが一致する。干渉・肉厚不足・CAD kernel不在を注入すると停止する（negative test） |
 | Phase 4 レーン統合と共通ゲート | 同一fixtureから基板＋筐体を再生成し、ECAD↔MCAD交換（`kicad-cli pcb export step`）と高さ・keepoutの受け渡しを通す。tool envelopeを`kicad-cli`／freerouting／CAD kernelの主要経路へ適用 | 片レーンだけの合格で次段へ進むこと、協調修復、知識ベース、自動発注、汎用router自作 | 基板＋筐体を同一fixtureから再生成し、ECAD↔MCAD交換、高さ・keepout、干渉・clearance・肉厚の共通ゲートに合格する。片レーンだけを合格させたfixtureを注入すると停止する（negative test） |
 | Phase 5 検証ゲートと根拠 | 多段検証、Evidence失効の伝播、実機テスト項目の自動生成、投影レビューPDCAの実装。機械可読投影と視覚投影を分類し、`ImageContent`／`inspect_image_with_vision`によるvisionレビューを修復ループへ接続する。観点別レビューは`WorkflowTool` map/reduceで並列化する | 協調修復の自動化、長期知識loop、高精度SI・熱解析 | 上流変更でstale化するEvidenceを検出して下流を不合格にでき、根拠付きテスト計画を生成できる。投影レビューPDCAを実装し、視覚投影の画像hash・renderer・vision profile／model・解像度を記録し、未処分の重大`ReviewFinding`があると`RV2`が不合格になるnegative testを通す。reduceはReviewFinding集合だけを束ね、workflow scriptの実行結果を合否根拠にしない |
@@ -128,6 +131,9 @@ Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを�
 「実機Evidence待ち」として対象revisionごとに管理し、フェーズを無期限にblockしない。
 仮想検証Evidence（仮想実機・シミュレーション結果）は実測Evidenceの代替にはしない。
 実機ログだけを実測Evidenceとして扱い、仮想実機のログは仮想検証Evidenceとして分類する。
+Phase 2の追加到達条件（実機へ書き込んだFWでのLED点灯）は本方式の最初の適用例であり、
+デバッグprobe不在環境では「実機Evidence待ち」として対象revision付きで管理する
+（[`phase2-retrospective.md`](phase2-retrospective.md)）。
 
 ## 撤退・見直し条件
 
@@ -144,5 +150,8 @@ Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを�
 
 - Phase 7の「実fab指摘または実測を1件以上」を満たす入手経路（実発注時期に依存）。
 - Phase 10の見積dry-runを提供しない発注APIがある場合の代替検証手段。
-- golden taskの実行頻度と、CIで回す範囲・ローカル限定にする範囲の切り分け。
+- golden taskの実行頻度と、CIで回す範囲・ローカル限定にする範囲の切り分け
+  （特にESP-IDFビルドを含むFWパイプラインのCI実行はツールチェーンのキャッシュ戦略が必要）。
+- Phase 2残余の実機Evidence（probe-rs書き込み、実機LED、実機シリアルログ、SHT40実測）の
+  取得時期（実機・デバッグprobeが使える環境の確保に依存）。
 - agent-server webhookの配信保証（重複・欠落時の再送、at-least-once等）の一次確認。
