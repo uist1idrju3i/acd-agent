@@ -14,8 +14,15 @@
 | kicad-cli | 在 | `10.0.5` | ppa:kicad/kicad-10.0-releases、`/usr/bin/kicad-cli`（GitLab tag最新の10.0.5と一致） |
 | freerouting | 在 | `2.3.0` | jar（OpenJDK 25）、GitHub releases最新のv2.3.0、`--version`は版バナー出力後にexit 1（プローブは許容） |
 | CAD kernel（build123d/OCP） | 不在 | `unknown` | Python distribution未インストール（Phase 3で導入） |
+| ESP-IDF | 在 | `v6.0.2` | GitHub releases最新のv6.0.2、`/home/ubuntu/tools/esp-idf`、`idf.py`はIDF専用Python環境（`IDF_PYTHON_ENV_PATH`）経由で起動 |
+| qemu-system-riscv32（Espressif fork） | 在 | `9.2.2 (esp_develop_9.2.2_20250817)` | ESP-IDF tools同梱、`-M esp32c3`対応。仮想実機の実行系として採用（下記Renode注記参照） |
+| Renode | 在（ESP32-C3非対応） | `1.16.1` | portable版を実測プローブ。同梱CPU/プラットフォーム定義にESP系が0件のためESP32-C3の仮想実機として使用不可。仮想実行はroadmapの二次候補QEMUで実施 |
+| probe-rs | 在（実機プローブ不在） | `0.32.0` | `/usr/local/bin/probe-rs`。`probe-rs list`はデバッグプローブ0件（本VMは`/sys/bus/usb/devices/`不在）。実機書き込み・実機LED/ログEvidenceは`unavailable`のまま |
 
 CAD kernelが`unknown`である間、CAD kernelを要求するゲートは合格しない。
+Renodeは一次候補だったが、実測でESP32-C3モデル不在を確認したため、Phase 2の
+仮想実機はQEMU（Espressif fork）を採用した。仮想実行のEvidenceは仮想検証として
+明示分類し、実機測定Evidenceの代替にしない。
 freeroutingの「版バナー出力＋非ゼロexit」は実測した仕様として
 `probe_freerouting()`に正規化規則を記録した。
 
