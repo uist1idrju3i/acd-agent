@@ -11,7 +11,12 @@
 |---|---|
 | fab profile | 製造者の能力下限・上限、推奨値、コスト・納期・品質への影響を、出所と確認日時付きで版管理する宣言データ |
 | process allowance | 追加費用、納期増、または品質リスクを伴う工法を、要件nodeへの根拠参照付きで設計側が許容する宣言 |
-| DFM finding分類 | `capability_violation`、`cost_or_lead_time_adder`、`quality_risk`の3分類 |
+| DFM finding分類 | `capability_violation`、`cost_or_lead_time_adder`、`quality_risk`、`unused_allowance`の分類 |
+| `fab.order_intent` | 対象fab、基板条件、数量、実装面、色、表面処理、PCB／PCBA class targetなど、製造投影の要求を表す設計グラフnode |
+| `fab.process_allowance` | 追加工程やコスト・納期・品質影響を、対象ruleと要件根拠付きで明示する設計グラフnode。capability violationには適用できない |
+| DFM report | 独立測定した製造性判定、findings、未実装検査、測定値を対象revisionとfab profileへ結び付けた投影 |
+| fab package | Gerber/drill zip、JLCPCB形式BOM/CPL、DFM report、profile・overlay provenance、member content hashをまとめた製造投影 |
+| デカップリング配置段 | 配置アルゴリズム第3段。設計グラフの`decoupling_target`から対象ICを決め、電源pinまでの距離を目的にコンデンサを配置する段 |
 | 自働 | 人間が異常を検知して止めるのではなく、異常を検知して自ら止まるToyota由来の自働化を指す。ACDでは安全境界、ゲート、fail-closedに適用する |
 | 自動 | 人間の操作を介さず処理を実行する一般的なautomationを指す。自動検証は、判定結果が不合格またはunknownなら停止する自働の性質を必ず併記する |
 | 投影 | 正規設計グラフから再生成される派生成果物であり、正規データを置き換えない |

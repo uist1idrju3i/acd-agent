@@ -35,6 +35,10 @@
 起こす。Phase 0は[`phase0-plan.md`](phase0-plan.md)である。本書ではフェーズ境界だけを
 管理し、作業単位を二重管理しない。
 
+Phase 0〜2に先行実装した製造データ、DFM、発注意図、process allowanceの契約範囲は
+[`ADR-0005-jlcpcb-pcba-preparation-contract.md`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を参照する。フェーズ境界と完了条件は本書を正とし、
+ADRの記述をここで重複管理しない。
+
 ## フェーズ横断の検証要件
 
 以下は全フェーズの完了条件に共通して要求する。フェーズ固有の完了条件が満たされても、
