@@ -11,12 +11,13 @@
 
 | ツール | 検出 | 版 | 備考 |
 | --- | --- | --- | --- |
-| kicad-cli | 不在 | `unknown` | PATH上に実行ファイルなし |
-| freerouting | 不在 | `unknown` | PATH上に実行ファイルなし |
-| CAD kernel（build123d/OCP） | 不在 | `unknown` | Python distribution未インストール |
+| kicad-cli | 在 | `10.0.5` | ppa:kicad/kicad-10.0-releases、`/usr/bin/kicad-cli`（GitLab tag最新の10.0.5と一致） |
+| freerouting | 在 | `2.3.0` | jar（OpenJDK 25）、GitHub releases最新のv2.3.0、`--version`は版バナー出力後にexit 1（プローブは許容） |
+| CAD kernel（build123d/OCP） | 不在 | `unknown` | Python distribution未インストール（Phase 3で導入） |
 
-上記が`unknown`である間、これらのツールを要求するゲートは合格しない。
-版が確認できた環境で再測定し、本表を更新する。
+CAD kernelが`unknown`である間、CAD kernelを要求するゲートは合格しない。
+freeroutingの「版バナー出力＋非ゼロexit」は実測した仕様として
+`probe_freerouting()`に正規化規則を記録した。
 
 ## 正規化規則（版が確認でき次第、実測で確定する）
 
