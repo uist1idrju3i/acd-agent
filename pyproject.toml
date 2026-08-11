@@ -20,6 +20,7 @@ acd-tools = { workspace = true }
 acd-runtime = { workspace = true }
 acd-adapter-kicad = { workspace = true }
 acd-adapter-freerouting = { workspace = true }
+acd-adapter-espidf = { workspace = true }
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
 
 [dependency-groups]
@@ -31,6 +32,7 @@ dev = [
     "acd-runtime",
     "acd-adapter-kicad",
     "acd-adapter-freerouting",
+    "acd-adapter-espidf",
     "pytest>=8.3",
     "ruff>=0.9",
     "pyright>=1.1.390",
@@ -59,6 +61,7 @@ executionEnvironments = [
     { root = "packages/acd-runtime/src" },
     { root = "packages/adapters/acd-adapter-kicad/src" },
     { root = "packages/adapters/acd-adapter-freerouting/src" },
+    { root = "packages/adapters/acd-adapter-espidf/src" },
     { root = "." },
 ]
 
