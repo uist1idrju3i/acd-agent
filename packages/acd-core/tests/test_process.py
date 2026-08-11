@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from acd_core.process import ExternalToolError, run_tool
+from acd_core.process import ExternalToolError, run_in_process, run_tool
 
 
 def _copy_command(src: Path, dst: Path) -> list[str]:
@@ -102,3 +102,38 @@ def test_run_tool_fails_closed_on_missing_output(tmp_path: Path) -> None:
             target_revision="r1",
             measurement_conditions="test",
         )
+
+
+def test_run_in_process_records_and_skips_normalized_outputs(tmp_path: Path) -> None:
+    source = tmp_path / "input.txt"
+    source.write_text("payload")
+    output = tmp_path / "output.txt"
+    envelope = tmp_path / "envelope.json"
+    calls = 0
+
+    def runner() -> None:
+        nonlocal calls
+        calls += 1
+        output.write_bytes(b"timestamp: changing")
+
+    def execute():
+        return run_in_process(
+            tool_name="in-process",
+            tool_version="1.0",
+            format_version="txt",
+            input_paths=[source],
+            output_paths=[output],
+            envelope_path=envelope,
+            target_revision="r1",
+            measurement_conditions="test",
+            runner=runner,
+            config=b"config",
+            output_normalizer=lambda path: path.read_bytes().replace(b"changing", b"fixed"),
+        )
+
+    first = execute()
+    second = execute()
+    assert not first.skipped
+    assert second.skipped
+    assert calls == 1
+    assert first.envelope == second.envelope

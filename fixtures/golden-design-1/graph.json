@@ -2549,6 +2549,143 @@
     },
     {
       "attrs": {
+        "corner_radius_mm": 1.0,
+        "depth_mm": 25.0,
+        "mount_hole_1_diameter_mm": 2.2,
+        "mount_hole_1_x_mm": 1.5,
+        "mount_hole_1_y_mm": 1.5,
+        "mount_hole_2_diameter_mm": 2.2,
+        "mount_hole_2_x_mm": 28.5,
+        "mount_hole_2_y_mm": 1.5,
+        "mount_hole_3_diameter_mm": 2.2,
+        "mount_hole_3_x_mm": 1.5,
+        "mount_hole_3_y_mm": 23.5,
+        "mount_hole_4_diameter_mm": 2.2,
+        "mount_hole_4_x_mm": 28.5,
+        "mount_hole_4_y_mm": 23.5,
+        "mount_hole_count": 4,
+        "origin": "board_upper_left",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "thickness_mm": 1.6,
+        "unit": "mm",
+        "width_mm": 30.0,
+        "y_axis": "down"
+      },
+      "depends_on": [
+        "board.gd1"
+      ],
+      "id": "mechanical.outline.gd1",
+      "kind": "mechanical.outline"
+    },
+    {
+      "attrs": {
+        "depth_mm": 16.6,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "Espressif ESP32-C3-MINI-1 datasheet",
+        "dimensions_source_ref": "https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf",
+        "height_mm": 2.4,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 13.2,
+        "x_mm": 15,
+        "y_mm": 13
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "mechanical.component_body.1",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "depth_mm": 7,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad official footprint library",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/blob/master/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
+        "height_mm": 3.2,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 9,
+        "x_mm": 15,
+        "y_mm": 5.0
+      },
+      "depends_on": [
+        "comp.j1"
+      ],
+      "id": "mechanical.component_body.2",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "depth_mm": 3.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "AMS1117 SOT-223 datasheet",
+        "dimensions_source_ref": "https://www.advanced-monolithic.com/pdf/ds1117.pdf",
+        "height_mm": 1.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 6.5,
+        "x_mm": 7,
+        "y_mm": 20
+      },
+      "depends_on": [
+        "comp.u2"
+      ],
+      "id": "mechanical.component_body.3",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "center_x_mm": 15.0,
+        "center_y_mm": 5.0,
+        "connector": "comp.j1",
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad official footprint library",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/blob/master/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
+        "face": "front",
+        "height_mm": 5.0,
+        "margin_mm": 0.5,
+        "width_mm": 8.0
+      },
+      "depends_on": [
+        "comp.j1"
+      ],
+      "id": "mechanical.connector_opening.j1",
+      "kind": "mechanical.connector_opening"
+    },
+    {
+      "attrs": {
+        "internal_clearance_mm": 1.0,
+        "lid_fit_gap_mm": 0.2,
+        "material": "PETG",
+        "min_wall_thickness_mm": 1.2,
+        "standoff_height_mm": 4.0,
+        "standoff_radius_mm": 2.0,
+        "tolerance_mm": 0.05,
+        "tolerance_source": "golden-design-1 mechanical gate declaration",
+        "tolerance_source_ref": "docs/golden-design-1.md",
+        "unit": "mm",
+        "wall_thickness_mm": 2.0
+      },
+      "depends_on": [
+        "mechanical.outline.gd1",
+        "mechanical.component_body.1",
+        "mechanical.component_body.2",
+        "mechanical.component_body.3",
+        "mechanical.connector_opening.j1"
+      ],
+      "id": "mechanical.enclosure.gd1",
+      "kind": "mechanical.enclosure"
+    },
+    {
+      "attrs": {
         "gpio": 9,
         "net": "net.boot"
       },

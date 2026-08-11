@@ -12,6 +12,7 @@ import hashlib
 import json
 import platform
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -48,6 +49,20 @@ class ToolRun:
     stdout: str
     stderr: str
     skipped: bool
+
+
+def _hash_paths_with(
+    paths: list[Path], normalizer: Callable[[Path], bytes] | None
+) -> str:
+    if normalizer is None:
+        return sha256_paths(paths)
+    digest = hashlib.sha256()
+    for path in sorted(paths):
+        digest.update(path.name.encode())
+        digest.update(b"\x00")
+        digest.update(normalizer(path))
+        digest.update(b"\x00")
+    return "sha256:" + digest.hexdigest()
 
 
 def _load_previous(envelope_path: Path) -> ToolEnvelope | None:
@@ -130,3 +145,61 @@ def run_tool(
     envelope_path.parent.mkdir(parents=True, exist_ok=True)
     envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
     return ToolRun(envelope=envelope, stdout=result.stdout, stderr=result.stderr, skipped=False)
+
+
+def run_in_process(
+    *,
+    tool_name: str,
+    tool_version: str,
+    format_version: str,
+    input_paths: list[Path],
+    output_paths: list[Path],
+    envelope_path: Path,
+    target_revision: str,
+    measurement_conditions: str,
+    runner: Callable[[], None],
+    config: bytes,
+    output_normalizer: Callable[[Path], bytes] | None = None,
+) -> ToolRun:
+    """Run an in-process projection once per matching inputs, config, and outputs."""
+    for path in input_paths:
+        if not path.is_file():
+            raise ExternalToolError(f"{tool_name}: input file missing: {path}")
+    input_hash = sha256_paths(input_paths)
+    config_hash = sha256_bytes(config)
+    previous = _load_previous(envelope_path)
+    if (
+        previous is not None
+        and previous.tool_name == tool_name
+        and previous.tool_version == tool_version
+        and previous.input_hash == input_hash
+        and previous.config_hash == config_hash
+        and all(path.is_file() for path in output_paths)
+        and previous.output_hash == _hash_paths_with(output_paths, output_normalizer)
+    ):
+        return ToolRun(envelope=previous, stdout="", stderr="", skipped=True)
+
+    started_at = datetime.now(UTC)
+    runner()
+    finished_at = datetime.now(UTC)
+    for path in output_paths:
+        if not path.is_file():
+            raise ExternalToolError(f"{tool_name}: expected output missing: {path}")
+    envelope = ToolEnvelope(
+        tool_name=tool_name,
+        tool_version=tool_version,
+        format_version=format_version,
+        config_hash=config_hash,
+        input_hash=input_hash,
+        output_hash=_hash_paths_with(output_paths, output_normalizer),
+        execution_env=execution_env(),
+        measurement_conditions=measurement_conditions,
+        convergence_state="converged",
+        target_revision=target_revision,
+        started_at=started_at,
+        finished_at=finished_at,
+        exit_code=0,
+    )
+    envelope_path.parent.mkdir(parents=True, exist_ok=True)
+    envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
+    return ToolRun(envelope=envelope, stdout="", stderr="", skipped=False)

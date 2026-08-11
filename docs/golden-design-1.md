@@ -286,6 +286,23 @@ M2取付穴と将来の筐体の嵌合公差は、外形の±0.2 mm（regular）
 Evidenceへ記録する。検証器が異常を検出できない場合や、入力の比較対象が`unknown`の
 場合は、`pass`ではなく停止とする。
 
+### 8.1 機械レーン宣言
+
+Phase 3では、基板外形を30 mm × 25 mm、板厚1.6 mm、取付穴4箇所として機械レーンへ
+宣言する。部品のXY位置・回転は機械レーンnodeの出所付き属性で保持し、Phase 1の
+placementやKiCad実行時状態を読み出して補完しない。
+
+今回、出所を確認できた部品だけを占有体として宣言する。
+
+| 部品 | 宣言寸法（mm） | 高さ（mm） | 出所 |
+|---|---:|---:|---|
+| ESP32-C3-MINI-1 | 13.2 × 16.6 | 2.4 | [Espressif datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf) |
+| USB-C receptacle | 9.0 × 7.0 | 3.2 | [KiCad footprint](https://github.com/KiCad/kicad-footprints/blob/master/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod) |
+| AMS1117 SOT-223 | 6.5 × 3.5 | 1.8 | [AMS1117 datasheet](https://www.advanced-monolithic.com/pdf/ds1117.pdf) |
+
+0603受動部品、タクトスイッチ、SHT40等は今回の機械占有体へ含めない。寸法・高さの
+確認根拠をこのfixtureで確定していないためであり、既定値で補完しない。
+
 ## 9. FWの範囲とEvidence
 
 ### 9.1 FW範囲

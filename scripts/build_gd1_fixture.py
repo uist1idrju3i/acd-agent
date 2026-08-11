@@ -368,6 +368,105 @@ BOARD_ATTRS: dict[str, AttrValue] = {
     "fab_capability_checked_at": "2026-08-11T00:00:00Z",
 }
 
+MECHANICAL_OUTLINE_ATTRS: dict[str, AttrValue] = {
+    "width_mm": 30.0,
+    "depth_mm": 25.0,
+    "thickness_mm": 1.6,
+    "corner_radius_mm": 1.0,
+    "unit": "mm",
+    "origin": "board_upper_left",
+    "y_axis": "down",
+    "mount_hole_count": 4,
+    "mount_hole_1_x_mm": 1.5,
+    "mount_hole_1_y_mm": 1.5,
+    "mount_hole_1_diameter_mm": 2.2,
+    "mount_hole_2_x_mm": 28.5,
+    "mount_hole_2_y_mm": 1.5,
+    "mount_hole_2_diameter_mm": 2.2,
+    "mount_hole_3_x_mm": 1.5,
+    "mount_hole_3_y_mm": 23.5,
+    "mount_hole_3_diameter_mm": 2.2,
+    "mount_hole_4_x_mm": 28.5,
+    "mount_hole_4_y_mm": 23.5,
+    "mount_hole_4_diameter_mm": 2.2,
+    "position_source": "golden-design-1 mechanical declaration",
+    "position_source_ref": "docs/golden-design-1.md",
+}
+
+MECHANICAL_COMPONENT_BODIES: tuple[tuple[str, dict[str, AttrValue]], ...] = (
+    (
+        "comp.u1",
+        {
+            "x_mm": 15.0,
+            "y_mm": 13.0,
+            "width_mm": 13.2,
+            "depth_mm": 16.6,
+            "height_mm": 2.4,
+            "mounting_side": "top",
+            "rotation_deg": 0.0,
+            "position_source": "golden-design-1 mechanical declaration",
+            "position_source_ref": "docs/golden-design-1.md",
+            "dimensions_source": "Espressif ESP32-C3-MINI-1 datasheet",
+            "dimensions_source_ref": (
+                "https://www.espressif.com/sites/default/files/documentation/"
+                "esp32-c3-mini-1_datasheet_en.pdf"
+            ),
+            "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        },
+    ),
+    (
+        "comp.j1",
+        {
+            "x_mm": 15.0,
+            "y_mm": 5.0,
+            "width_mm": 9.0,
+            "depth_mm": 7.0,
+            "height_mm": 3.2,
+            "mounting_side": "top",
+            "rotation_deg": 0.0,
+            "position_source": "golden-design-1 mechanical declaration",
+            "position_source_ref": "docs/golden-design-1.md",
+            "dimensions_source": "KiCad official footprint library",
+            "dimensions_source_ref": (
+                "https://github.com/KiCad/kicad-footprints/blob/master/"
+                "Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod"
+            ),
+            "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        },
+    ),
+    (
+        "comp.u2",
+        {
+            "x_mm": 7.0,
+            "y_mm": 20.0,
+            "width_mm": 6.5,
+            "depth_mm": 3.5,
+            "height_mm": 1.8,
+            "mounting_side": "top",
+            "rotation_deg": 0.0,
+            "position_source": "golden-design-1 mechanical declaration",
+            "position_source_ref": "docs/golden-design-1.md",
+            "dimensions_source": "AMS1117 SOT-223 datasheet",
+            "dimensions_source_ref": "https://www.advanced-monolithic.com/pdf/ds1117.pdf",
+            "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        },
+    ),
+)
+
+MECHANICAL_ENCLOSURE_ATTRS: dict[str, AttrValue] = {
+    "wall_thickness_mm": 2.0,
+    "min_wall_thickness_mm": 1.2,
+    "internal_clearance_mm": 1.0,
+    "lid_fit_gap_mm": 0.2,
+    "standoff_height_mm": 4.0,
+    "standoff_radius_mm": 2.0,
+    "material": "PETG",
+    "unit": "mm",
+    "tolerance_mm": 0.05,
+    "tolerance_source": "golden-design-1 mechanical gate declaration",
+    "tolerance_source_ref": "docs/golden-design-1.md",
+}
+
 
 def lib_attrs(lib: LibraryRef) -> dict[str, AttrValue]:
     def file_hash(rel_or_abs: str) -> str:
@@ -432,6 +531,59 @@ def build_graph() -> DesignGraph:
             kind="electrical.board",
             attrs=dict(BOARD_ATTRS),
             depends_on=sorted(board_deps),
+        )
+    )
+    nodes.append(
+        GraphNode(
+            id="mechanical.outline.gd1",
+            kind="mechanical.outline",
+            attrs=dict(MECHANICAL_OUTLINE_ATTRS),
+            depends_on=["board.gd1"],
+        )
+    )
+    for index, (component_id, attrs) in enumerate(MECHANICAL_COMPONENT_BODIES, start=1):
+        nodes.append(
+            GraphNode(
+                id=f"mechanical.component_body.{index}",
+                kind="mechanical.component_body",
+                attrs=dict(attrs),
+                depends_on=[component_id],
+            )
+        )
+    nodes.append(
+        GraphNode(
+            id="mechanical.connector_opening.j1",
+            kind="mechanical.connector_opening",
+            attrs={
+                "connector": "comp.j1",
+                "face": "front",
+                "center_x_mm": 15.0,
+                "center_y_mm": 5.0,
+                "width_mm": 8.0,
+                "height_mm": 5.0,
+                "margin_mm": 0.5,
+                "dimensions_source": "KiCad official footprint library",
+                "dimensions_source_ref": (
+                    "https://github.com/KiCad/kicad-footprints/blob/master/"
+                    "Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod"
+                ),
+                "dimensions_checked_at": "2026-08-11T00:00:00Z",
+            },
+            depends_on=["comp.j1"],
+        )
+    )
+    nodes.append(
+        GraphNode(
+            id="mechanical.enclosure.gd1",
+            kind="mechanical.enclosure",
+            attrs=dict(MECHANICAL_ENCLOSURE_ATTRS),
+            depends_on=[
+                "mechanical.outline.gd1",
+                "mechanical.component_body.1",
+                "mechanical.component_body.2",
+                "mechanical.component_body.3",
+                "mechanical.connector_opening.j1",
+            ],
         )
     )
     for fw_id, (net_id, gpio) in sorted(FW_PIN_ASSIGNMENTS.items()):
