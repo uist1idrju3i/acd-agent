@@ -13,17 +13,18 @@
 3. [`architecture.md`](architecture.md): 設計グラフ、投影、レイヤ境界。
 4. [`ecad-domain-notes.md`](ecad-domain-notes.md): ECAD領域知識と投影契約。
 5. [`design-flow.md`](design-flow.md): 基板・筐体・FWの工程と第三レーン。
-6. [`tool-selection.md`](tool-selection.md): 実装で使う外部ツールの採否と設計根拠。
-7. [`roadmap.md`](roadmap.md): マイルストーン、フェーズ境界、ゴールデンタスク。
-8. [`golden-design-1.md`](golden-design-1.md): 第1マイルストーンの具体設計とfixture入力。
-9. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
-10. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
-11. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-12. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
-13. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
-14. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
-15. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
-16. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
+6. [`projection-review.md`](projection-review.md): 投影レビューとPDCAループ。
+7. [`tool-selection.md`](tool-selection.md): 実装で使う外部ツールの採否と設計根拠。
+8. [`roadmap.md`](roadmap.md): マイルストーン、フェーズ境界、ゴールデンタスク。
+9. [`golden-design-1.md`](golden-design-1.md): 第1マイルストーンの具体設計とfixture入力。
+10. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
+11. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
+12. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
+13. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+14. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
+15. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
+16. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
+17. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
 
 ## 文書一覧
 
@@ -35,6 +36,7 @@
 | `README.md` | docs配下の文書索引と読む順序 | Draft |
 | `glossary.md` | 用語と工程IDの定義 | Draft |
 | `design-flow.md` | 電気・機械・FWレーンの入力・出力・ゲート | Draft |
+| `projection-review.md` | 投影レビューとPDCAループ | Draft |
 | `knowledge-base.md` | 知識の構造化、スコープ、実測、還流 | Draft |
 | `future-outlook.md` | ローカル製造、プリンテッドエレクトロニクス、将来展望 | Draft |
 | `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
