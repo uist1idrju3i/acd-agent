@@ -18,8 +18,8 @@
   `Part.certification`を安全境界の判定入力として持つ。
 - 機械: BoardEnvelope、ComponentEnvelope、Enclosure、Opening、Fastener、Material、
   Tolerance、AssemblyStep、ThermalPath。
-- 製造: FabProfile、MachineProfile、Process、Cost、LeadTime、Quantity、DFMReport、
-  FabPackage。
+- 製造: FabProfile、ExportFormat、AssemblyClass、MachineProfile、Process、Cost、LeadTime、
+  Quantity、DFMReport、FabPackage。
 - 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）、`fab.order_intent`、
   `fab.process_allowance`。
 - 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption、
@@ -31,6 +31,12 @@
   `unknown`はfail-closedで停止する。
 - ライブラリ: `LibraryOverlay`は公式ライブラリを変更せず、対象ライブラリ・footprint、
   差分、理由、出所Evidenceをプロジェクトローカルに保持する。
+
+製造データ経路は、fab非依存のcore判定、fab profileの宣言データ、出力形式adapterを分離する。
+coreは生成物を独立測定し、capabilities（絶対能力）とpreferences（品質・コスト・納期の
+ドライバ）を区別して判定する。fab profileは能力値、rule ID、assembly class、export format、
+出所・取得時刻・hashを宣言し、adapterはその宣言に従ってBOM/CPL等の形式へ投影する。
+特定fabの名称、列名、座標・回転規約、工程区分をcoreの判定ロジックへ埋め込まない。
 
 グラフのnodeとedgeは、revision、schema version、出所、入力hash、状態を持つ。
 設計変更はpatchとして表現し、影響するnode、再実行するgate、無効になるEvidenceを導出する。

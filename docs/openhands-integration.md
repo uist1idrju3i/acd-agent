@@ -87,7 +87,7 @@ SHAで固定する。ただしCanvasのフロントエンド本体がSDK reposit
 | secrets | `SecretRegistry`、`StaticSecret`／`LookupSecret`、`conversation.update_secrets()` | `SecretSource`参照名、at rest secret-freeなgraph／Evidence／profile |
 | LLM可用性 | `LLMRegistry`（usage ID別インスタンスと独立metrics）、`FallbackStrategy`（transient error時のprofile fallback） | fallback発生の記録、実体model版のEvidence束ね、レビュー中fallbackの`unknown`扱い |
 | 作業メモリ | 二層persistent memory（`MEMORY.md` loader、user／project tier） | `KnowledgeItem`の正、配布内容のhash記録。memoryはプロンプト資材であり合否根拠にしない |
-| sourcing | `browser_use` toolset（navigate、click、type、get_state、get_content、screenshot、tabs） | API一次・browser二次の期限付きEvidence、Phase 10での利用禁止 |
+| sourcing | `browser_use` toolset（navigate、click、type、get_state、get_content、screenshot、tabs） | API一次・browser二次の期限付きEvidence、Phase 11での利用禁止 |
 | 起動契約 | `SessionStart` hook、`HookDecision` | ACD import、外部tool版、解決SHA／MCP設定hashの検証と失敗時deny |
 | 可観測性 | `observability/laminar.py` | 任意の計測、Evidenceと判定面の分離 |
 
@@ -355,14 +355,14 @@ MCP serverが返す成功文字列を合格Evidenceとはせず、生成artifact
 agent-serverはMCP OAuth資格情報をsettingsの暗号化・redaction経路へ保存する
 token store（`mcp_oauth_store.py`）を持つ。OAuth認証が必要なsourcing系MCP serverでは
 この経路を一次候補とし、tokenをACD側のgraph、Evidence、profileへ複製しない。動作条件は
-Phase 8で一次確認する。
+Phase 9で一次確認する。
 
 ### sourcingとbrowser経路
 
-Phase 8のsourcingはAPI経路を一次とし、型付きAPIがない場合だけSDKの`browser_use`
+Phase 9のsourcingはAPI経路を一次とし、型付きAPIがない場合だけSDKの`browser_use`
 toolset（navigate、click、type、get_state、get_content、screenshot、tabs）を二次経路
 として使う。browser取得値はURL、取得時刻、screenshot hash、対象revision、期限を持つ
-Evidenceとして記録し、DOM取得の非決定性を`unknown`境界に含める。browser経路はPhase 10
+Evidenceとして記録し、DOM取得の非決定性を`unknown`境界に含める。browser経路はPhase 11
 の発注実行には使わず、期限切れまたはscreenshot hash不一致の値を合格根拠にしない。
 
 ## ファームウェア開発とOpenHands

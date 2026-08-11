@@ -1,9 +1,9 @@
 # ACDロードマップ
 
 > ステータス: Draft  
-> 対象: ACD固有のPhase 0〜11、初期ターゲット（1〜4層基板＋小規模筐体）
+> 対象: ACD固有のPhase 0〜12、初期ターゲット（1〜4層基板＋小規模筐体）
 
-本書は、ACD固有Phase 0〜11の内容、やらないこと、完了条件を正とする。工程の詳細は
+本書は、ACD固有Phase 0〜12の内容、やらないこと、完了条件を正とする。工程の詳細は
 [`design-flow.md`](design-flow.md)、SDK統合の境界は [`openhands-integration.md`](openhands-integration.md)、
 外部ツールの採否は [`tool-selection.md`](tool-selection.md)を参照する。
 
@@ -38,6 +38,7 @@
 Phase 0〜2に先行実装した製造データ、DFM、発注意図、process allowanceの契約範囲は
 [`ADR-0005-jlcpcb-pcba-preparation-contract.md`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を参照する。フェーズ境界と完了条件は本書を正とし、
 ADRの記述をここで重複管理しない。
+先行実装を複数fabへ一般化する作業は、新しいPhase 8「製造データ契約とマルチfab対応」で扱う。
 
 ## フェーズ横断の検証要件
 
@@ -63,7 +64,7 @@ ADRの記述をここで重複管理しない。
 
 1. **基板＋FWで実機のLEDが光る:** Phase 0〜2。要件から基板、FW、書き込み、実機LED点灯までを通す。
 2. **基板と筐体が一体で動く:** Phase 3〜5。筐体、レーン統合、検証根拠を加えて実機の収まりと動作を確認する。
-3. **学習して発注・製造できる:** Phase 6〜11。知識、要件対話、長時間運用、自働発注、ローカル製造へ広げる。
+3. **学習して発注・製造できる:** Phase 6〜12。知識、要件対話、製造データ契約、長時間運用、自働発注、ローカル製造へ広げる。
 
 ## フェーズ
 
@@ -77,17 +78,18 @@ ADRの記述をここで重複管理しない。
 | Phase 5 検証ゲートと根拠 | 多段検証、Evidence失効の伝播、実機テスト項目の自動生成、投影レビューPDCAの実装。機械可読投影と視覚投影を分類し、`ImageContent`／`inspect_image_with_vision`によるvisionレビューを修復ループへ接続する。観点別レビューは`WorkflowTool` map/reduceで並列化する | 協調修復の自動化、長期知識loop、高精度SI・熱解析 | 上流変更でstale化するEvidenceを検出して下流を不合格にでき、根拠付きテスト計画を生成できる。投影レビューPDCAを実装し、視覚投影の画像hash・renderer・vision profile／model・解像度を記録し、未処分の重大`ReviewFinding`があると`RV2`が不合格になるnegative testを通す。reduceはReviewFinding集合だけを束ね、workflow scriptの実行結果を合否根拠にしない |
 | Phase 6 電気↔機械協調修復 | 相互制約の反復解決、優先度・根拠・調停の記録。trade studyと代替案を`Conversation.fork(from_event_id=...)`の子conversationへ対応付け、停止条件は`run_goal`／`GoalController`へ委譲する | 自由な要件変更、未知影響の自動無視 | 配線不能、部品高さ超過、開口不足のfixtureを両レーンで修復できる。採用枝だけをcanonicalへpatchし、非採用枝をEvidence付きtrade studyとして残す。`GoalVerdict`やLLM judgeはEvidence・合否根拠にせず、修復の合否は修復器と独立な検証で判定する |
 | Phase 7 知識ループ | fab DFM、造形不良、実測を構造化し次設計へ適用 | 未検証のLLM学習、設計データの無断共有 | 同一スコープの不良が再発しない候補ルールをEvidence付きで登録できる。適用は実際にツール入力へ届いていることをnegative testで示す（ルールやライブラリ修正を壊すと検証が不合格になる）。`applicability: unknown`の知識は適用対象にせず合格に到達させない。入力の少なくとも1件は実fab指摘または実測とし、fixtureのみでは完了としない |
-| Phase 8 要件対話とsourcing | 自然言語→構造化要件、sourcing API、データシート抽出、部品ライブラリの設計経路への接続。API経路を一次、`browser_use`を二次経路とし、期限付きEvidenceへ記録する | 自動発注、契約判断の自動化、browser経路からの発注 | 部品候補と筐体材料候補を出所・取得時点付きで比較し、未確認事項を質問できる。価格・在庫の期限切れは停止条件として働く。browser取得値はURL・取得時刻・screenshot hash付きで期限管理し、token／moneyの実測値と`unknown`境界を記録する |
-| Phase 9 長時間ラン運用 | OpenHands SDKのcheckpoint／resume、`StuckDetector`、condenser、agent-server `WebhookSpec`を土台とし、commit済みEvidence artifactを正とするtask ledger・side-effect journal、予算、watchdog、`TestLLM`回帰と対応付ける | 独自retry・予算会計、根拠なしの自動復旧、EventLog replayに代わるwebhook正本 | 強制終了後に同じrevisionから再開して完走し、成果物hash・gate結果・最小event列・台帳が一致する。同一入力の外部副作用を重複させない。webhookの重複・欠落を許容してもEventLog replayとcommit済みartifactから正しく再構成できる |
-| Phase 10 自働発注 | 見積dry-run、基板＋部品＋実装＋送料＋税＋筐体の**総発注額**、発注前最終ゲート、API ordering | 予算超過、価格stale、契約不明の発注、browser経路の発注 | 副作用のない見積dry-runで総発注額と最終ゲート結果を再現でき、実発注は予算内かつ最終ゲート合格のときだけ実行される。予算超過・stale価格・ゲート未実行を注入すると発注に到達しない |
-| Phase 11 ローカル製造 | 3Dプリンタ、卓上CNC、材料・機械profile、ローカル版と外注版 | 量産能力の無根拠な保証 | 同じgraphからローカル試作版と外注版を生成し、機械条件・測定Evidenceを比較できる |
+| Phase 8 製造データ契約とマルチfab対応 | fab profileの一般化（capabilities／preferences／assembly class／export formatを宣言データ側へ寄せ、実装からfab固有名詞を排除）、2社目以降のfab profile追加、BOM/CPLの列定義・座標系・回転規約・単位のexport format宣言化、`checks_not_implemented`に残る独立測定の実装、同一設計グラフから複数fab向け製造データを生成してQuality→Cost→Deliveryで比較する | 実発注（Phase 11）、価格・在庫・納期の取得（Phase 9）、fab固有GUIプラグイン出力をそのまま合否根拠にすること、未確認のfab能力値をprofileへ書くこと | 同一fixtureから2社以上のfab profileで製造データを生成できる。あるfab profileの能力値だけを厳しくすると当該fabのみ不合格になるnegative testを通す。rule_id・列名・class名がprofile由来であることを検査できる。`checks_not_implemented`が空、または残余ごとに理由・対象revisionを持つ。profileのhash・出所・取得時刻を製造パッケージへ記録する |
+| Phase 9 要件対話とsourcing | 自然言語→構造化要件、sourcing API、データシート抽出、部品ライブラリの設計経路への接続。API経路を一次、`browser_use`を二次経路とし、期限付きEvidenceへ記録する | 自動発注、契約判断の自動化、browser経路からの発注 | 部品候補と筐体材料候補を出所・取得時点付きで比較し、未確認事項を質問できる。価格・在庫の期限切れは停止条件として働く。browser取得値はURL・取得時刻・screenshot hash付きで期限管理し、token／moneyの実測値と`unknown`境界を記録する |
+| Phase 10 長時間ラン運用 | OpenHands SDKのcheckpoint／resume、`StuckDetector`、condenser、agent-server `WebhookSpec`を土台とし、commit済みEvidence artifactを正とするtask ledger・side-effect journal、予算、watchdog、`TestLLM`回帰と対応付ける | 独自retry・予算会計、根拠なしの自動復旧、EventLog replayに代わるwebhook正本 | 強制終了後に同じrevisionから再開して完走し、成果物hash・gate結果・最小event列・台帳が一致する。同一入力の外部副作用を重複させない。webhookの重複・欠落を許容してもEventLog replayとcommit済みartifactから正しく再構成できる |
+| Phase 11 自働発注 | 見積dry-run、基板＋部品＋実装＋送料＋税＋筐体の**総発注額**、発注前最終ゲート、API ordering | 予算超過、価格stale、契約不明の発注、browser経路の発注 | 副作用のない見積dry-runで総発注額と最終ゲート結果を再現でき、実発注は予算内かつ最終ゲート合格のときだけ実行される。予算超過・stale価格・ゲート未実行を注入すると発注に到達しない |
+| Phase 12 ローカル製造 | 3Dプリンタ、卓上CNC、材料・機械profile、ローカル版と外注版 | 量産能力の無根拠な保証 | 同じgraphからローカル試作版と外注版を生成し、機械条件・測定Evidenceを比較できる |
 
 Phase 0のevent契約は、独自のevent log payload schemaを別ストアとして自作するのではなく、
 gate結果・承認・commit側副作用receipt参照に絞った最小ACDドメインイベント型を定義し、
 SDK `EventLog`へ載せる方法を確定する。投影レビュー契約には
 機械可読投影と視覚投影、画像hash・renderer・vision profile／model・解像度の記録、
 `ImageContent`／`inspect_image_with_vision`の観察経路を含める。Phase 5のPDCAとPhase 6の
-協調修復ではSDKの反復機構を修復ループの実行に利用する。Phase 9のtask ledgerは
+協調修復ではSDKの反復機構を修復ループの実行に利用する。Phase 10のtask ledgerは
 最小ACDイベントとcommit済みEvidence artifactから射影するread modelとして実装し、SDKのtask状態を
 正にしない。副作用journalはcommit側へ寄せ、低遅延より可搬性とrevision結合を優先する。
 
@@ -113,17 +115,23 @@ flowchart LR
     P4 --> P5["Phase 5 検証ゲートと根拠"]
     P5 --> P6["Phase 6 電気↔機械協調修復"]
     P6 --> P7["Phase 7 知識ループ"]
-    P5 --> P8["Phase 8 要件対話とsourcing"]
-    P4 --> P9["Phase 9 長時間ラン運用"]
-    P7 --> P10["Phase 10 自働発注"]
+    P4 --> P8["Phase 8 製造データ契約とマルチfab対応"]
+    P7 --> P8
+    P5 --> P9["Phase 9 要件対話とsourcing"]
+    P8 --> P9
+    P4 --> P10["Phase 10 長時間ラン運用"]
     P8 --> P10
-    P6 --> P11["Phase 11 ローカル製造"]
+    P7 --> P11["Phase 11 自働発注"]
+    P9 --> P11
+    P10 --> P11
+    P6 --> P12["Phase 12 ローカル製造"]
+    P8 --> P12
 ```
 
 Phase 1とPhase 2は電気成果物を共有するため、Phase 1のfixtureをPhase 2で再読込する。
 FWパッケージschemaはPhase 0の契約に含め、投影と整合ゲートをPhase 2で実装する。
-schemaを後から追加すると、Phase 1以降のEvidenceが一斉に失効するためである。Phase 10は
-Phase 8の価格出所とPhase 9の副作用journalの両方を前提にする。
+schemaを後から追加すると、Phase 1以降のEvidenceが一斉に失効するためである。Phase 11は
+Phase 9の価格出所、Phase 10の副作用journal、Phase 8の製造データ契約のすべてを前提にする。
 Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを定め、工程別の作り込みや
 全投影の実装は後段へ送る。最短経路を遅延させない。
 
@@ -153,7 +161,7 @@ Phase 2の追加到達条件（実機へ書き込んだFWでのLED点灯）は�
 ## 未決事項
 
 - Phase 7の「実fab指摘または実測を1件以上」を満たす入手経路（実発注時期に依存）。
-- Phase 10の見積dry-runを提供しない発注APIがある場合の代替検証手段。
+- Phase 11の見積dry-runを提供しない発注APIがある場合の代替検証手段。
 - golden taskの実行頻度と、CIで回す範囲・ローカル限定にする範囲の切り分け
   （特にESP-IDFビルドを含むFWパイプラインのCI実行はツールチェーンのキャッシュ戦略が必要）。
 - Phase 2残余の実機Evidence（probe-rs書き込み、実機LED、実機シリアルログ、SHT40実測）の

@@ -27,12 +27,13 @@
 14. [`phase3-plan.md`](phase3-plan.md): Phase 3の作業単位・順序・撤退条件。
     実施後の振り返りは[`phase3-retrospective.md`](phase3-retrospective.md)を参照する。
 15. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
-16. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-17. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
-18. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
-19. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
-20. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
-21. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
+16. [`fab-data-preparation-retrospective.md`](fab-data-preparation-retrospective.md): JLCPCB製造データ先行実装の振り返り。
+17. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
+18. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+19. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
+20. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
+21. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
+22. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
 
 ## 文書一覧
 
@@ -47,6 +48,7 @@
 | `design-flow.md` | 電気・機械・FWレーンの入力・出力・ゲート | Draft |
 | `projection-review.md` | 投影レビューとPDCAループ | Draft |
 | `knowledge-base.md` | 知識の構造化、スコープ、実測、還流 | Draft |
+| `fab-data-preparation-retrospective.md` | JLCPCB製造データ先行実装の事実、失敗、一般化対象 | Draft |
 | `future-outlook.md` | ローカル製造、プリンテッドエレクトロニクス、将来展望 | Draft |
 | `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
 | `openhands-integration.md` | SDK v1.41.0との統合判断 | Draft |
@@ -71,6 +73,7 @@
 | `adr/ADR-0002-json-schema-canonical.md` | JSON Schemaを契約の正本とする | Accepted |
 | `adr/ADR-0003-sdk-feature-adoption.md` | Phase 0でのSDK機能の採否 | Accepted |
 | `adr/ADR-0004-parts-catalog-provenance.md` | 部品カタログとライブラリ出所方針 | Accepted |
+| `adr/ADR-0005-jlcpcb-pcba-preparation-contract.md` | JLCPCB PCBA準備契約 | Accepted |
 
 `runtime.md`は後続の実装・設計決定で追加する。機械可読契約の正本は`schemas/`、
 設計決定は`docs/adr/`にある。未作成の文書へリンクを張らず、必要な場合は本文で

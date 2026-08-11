@@ -17,6 +17,8 @@
 | DFM report | 独立測定した製造性判定、findings、未実装検査、測定値を対象revisionとfab profileへ結び付けた投影 |
 | fab package | Gerber/drill zip、JLCPCB形式BOM/CPL、DFM report、profile・overlay provenance、member content hashをまとめた製造投影 |
 | デカップリング配置段 | 配置アルゴリズム第3段。設計グラフの`decoupling_target`から対象ICを決め、電源pinまでの距離を目的にコンデンサを配置する段 |
+| export format | fab profileが宣言する製造出力の形式契約。BOM/CPLの列名・列順、単位、原点、座標系、面、回転基準、命名を含む |
+| assembly class | fab profileが定義するPCBA工程区分。class ID、板条件、数量、色、表面処理、実装面、組立条件の組み合わせを表す |
 | 自働 | 人間が異常を検知して止めるのではなく、異常を検知して自ら止まるToyota由来の自働化を指す。ACDでは安全境界、ゲート、fail-closedに適用する |
 | 自動 | 人間の操作を介さず処理を実行する一般的なautomationを指す。自動検証は、判定結果が不合格またはunknownなら停止する自働の性質を必ず併記する |
 | 投影 | 正規設計グラフから再生成される派生成果物であり、正規データを置き換えない |
@@ -42,7 +44,7 @@
 | WebhookSpec | agent-serverがイベントをbufferして外部URLへPOSTする仕様。配信保証は未確認のため、ACDはEventLog replayを正とする |
 | SecretSource | SDKがsecretを解決・注入する参照元。ACDはfab API等のsecret本体ではなく参照名だけを保持する |
 | SessionStart | SDKのセッション開始hook。ACDはimport、版プローブ、`InstallationInfo.resolved_ref`／`.installed.json`、設定hashの検証点として使う |
-| browser_use | SDKが提供するbrowser操作toolset。Phase 8の二次sourcingに使うが、Phase 10の発注経路には使わない |
+| browser_use | SDKが提供するbrowser操作toolset。Phase 9の二次sourcingに使うが、Phase 11の発注経路には使わない |
 | workspace | SDKが提供するagentの実行環境。ファイルや外部ツールを置けるが、ACDの設計グラフや合否の正ではない |
 | DockerWorkspace／RemoteWorkspace | SDKが提供する隔離実行環境。ACDはLocalWorkspaceを採用せず、image digestまたはagent-server側の実行条件を固定する |
 | noVNC desktop／VS Code経路 | agent-serverが同一workspaceを人間の観察・手修正へ公開する経路。GUI操作や画面表示はEvidence・合否の正ではない |
