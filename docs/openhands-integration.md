@@ -27,7 +27,9 @@
 - `DockerWorkspace`: workerと依存ツールをimageへ固定し、CI・再現性を優先する。
 - `APIRemoteWorkspace`＋agent-server: 長時間実行、遠隔worker、API入口に使う。
 
-ACDの入口はCLIとagent-server APIであり、ブラウザUIは作らない。
+ユーザーとの対話インタフェースはOpenHands（CLIやagent-serverを含むクライアント）が
+担う。ACDが提供するのは、OpenHandsへ登録するツール群、設計グラフ、決定論的ゲート、
+Evidenceである。
 
 ## SDK機能とACD自前実装
 
