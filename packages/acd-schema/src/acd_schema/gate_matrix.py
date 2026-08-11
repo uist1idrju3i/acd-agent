@@ -18,6 +18,7 @@ from acd_schema.common import (
 GateKind = Literal[
     "erc",
     "drc",
+    "dfm",
     "fw_build",
     "fw_static_analysis",
     "fw_unit_test",

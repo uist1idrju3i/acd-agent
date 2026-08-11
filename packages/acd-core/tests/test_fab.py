@@ -55,6 +55,28 @@ def test_profile_schema_and_provenance() -> None:
     json.dumps(profile.data)
 
 
+def test_profile_loader_accepts_explicit_schema_path() -> None:
+    profile = load_fab_profile(PROFILE, ROOT / "schemas/fab-profile.schema.json")
+    assert profile.profile_id == "jlcpcb-fr4-2l-1oz"
+
+
+def test_economic_combinations_are_complete() -> None:
+    profile = load_fab_profile(PROFILE)
+    combinations = profile.data["assembly_classes"]["economic"]["combinations"]
+    assert len(combinations) == 11
+    assert profile.data["assembly_classes"]["standard"]["build_time_days"] == {"min": 4}
+    assert profile.data["assembly_classes"]["standard"]["thickness_mm"] == [
+        0.4,
+        0.6,
+        0.8,
+        1.0,
+        1.2,
+        1.6,
+        2.0,
+    ]
+    assert "preferred_track_width" not in profile.data["capabilities"]
+
+
 @pytest.mark.parametrize(
     "attrs",
     [{"pcba_class_target": "invalid"}, {"quantity_pcs": "5"}, {"surface_finish": ""}],

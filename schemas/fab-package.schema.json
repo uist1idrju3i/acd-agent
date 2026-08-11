@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acd.example/schemas/fab-package.schema.json",
+  "title": "ACD manufacturing package manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "target_revision", "fab_profile", "files", "overlays", "tools", "gates", "pcb_class", "pcba_class", "unknowns"],
+  "properties": {
+    "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
+    "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
+    "fab_profile": {"type": "object", "additionalProperties": false, "required": ["profile_id", "source_url", "fetched_at", "hash"], "properties": {"profile_id": {"type": "string", "minLength": 1}, "source_url": {"type": "string", "format": "uri"}, "fetched_at": {"$ref": "common.schema.json#/$defs/timestamp"}, "hash": {"$ref": "common.schema.json#/$defs/sha256"}}},
+    "files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "normalized_hash"], "properties": {"path": {"type": "string", "minLength": 1}, "normalized_hash": {"$ref": "common.schema.json#/$defs/sha256"}}}},
+    "overlays": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["refdes", "overlay_file", "overlay_sha256", "source_hash", "before_hash", "after_hash"], "properties": {"refdes": {"type": "string"}, "overlay_file": {"type": "string"}, "overlay_sha256": {"type": "string"}, "source_hash": {"type": "string"}, "before_hash": {"type": "string"}, "after_hash": {"type": "string"}}}},
+    "tools": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+    "gates": {"type": "object", "additionalProperties": false, "required": ["drc", "dfm"], "properties": {"drc": {"enum": ["pass", "fail", "unknown"]}, "dfm": {"enum": ["pass", "fail", "unknown"]}}},
+    "pcb_class": {"enum": ["economic", "standard"]},
+    "pcba_class": {"enum": ["economic", "standard"]},
+    "unknowns": {"type": "object", "additionalProperties": false, "required": ["price", "inventory", "lead_time", "total_order_amount", "fab_dfm_review"], "properties": {"price": {"const": "unknown"}, "inventory": {"const": "unknown"}, "lead_time": {"const": "unknown"}, "total_order_amount": {"const": "unknown"}, "fab_dfm_review": {"const": "unknown"}}}
+  }
+}

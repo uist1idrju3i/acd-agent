@@ -12,7 +12,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from acd_schema.design_graph import AttrValue, DesignGraph, GraphNode
 
@@ -81,6 +81,8 @@ class ComponentSpec(TypedDict):
     lib: LibraryRef
     # pad number -> net id (None means explicit no-connect)
     pads: dict[str, str | None]
+    overlay_file: NotRequired[str]
+    overlay_sha256: NotRequired[str]
 
 
 NETS: dict[str, dict[str, AttrValue]] = {
@@ -231,6 +233,10 @@ def components() -> list[ComponentSpec]:
                 "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
             ),
             "pads": usb_c_pads(),
+            "overlay_file": "overlays/j1-usb-c-annular-ring.json",
+            "overlay_sha256": (
+                "sha256:cc31887bec186674a704e9d1060c3b1a40ab074f2eb9d277973d41311523fb53"
+            ),
         },
         {
             "refdes": "U2",
@@ -408,6 +414,7 @@ MECHANICAL_OUTLINE_ATTRS: dict[str, AttrValue] = {
     "position_source": "golden-design-1 mechanical declaration",
     "position_source_ref": "docs/golden-design-1.md",
 }
+
 
 def _body(
     component_id: str,
@@ -602,12 +609,9 @@ def mechanical_nodes() -> list[GraphNode]:
                 "width_mm": 8.0,
                 "height_mm": 5.0,
                 "margin_mm": 0.5,
-                "dimensions_source": (
-                    "KiCad official footprint library, package version 10.0.5"
-                ),
+                "dimensions_source": ("KiCad official footprint library, package version 10.0.5"),
                 "dimensions_source_ref": (
-                    "https://github.com/KiCad/kicad-footprints/tree/10.0.5/"
-                    "Connector_USB.pretty"
+                    "https://github.com/KiCad/kicad-footprints/tree/10.0.5/Connector_USB.pretty"
                 ),
                 "dimensions_checked_at": "2026-08-11T00:00:00Z",
             },
@@ -666,6 +670,11 @@ def build_graph() -> DesignGraph:
             "stock_checked_at": "2026-08-11T00:00:00Z",
         }
         attrs.update(lib_attrs(spec["lib"]))
+        overlay_file = spec.get("overlay_file")
+        overlay_sha256 = spec.get("overlay_sha256")
+        if overlay_file is not None and overlay_sha256 is not None:
+            attrs["overlay_file"] = overlay_file
+            attrs["overlay_sha256"] = overlay_sha256
         nodes.append(GraphNode(id=comp_id, kind="electrical.component", attrs=attrs))
         for pad, net in sorted(spec["pads"].items(), key=lambda kv: (len(kv[0]), kv[0])):
             pin_attrs: dict[str, AttrValue] = {

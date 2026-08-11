@@ -982,6 +982,8 @@
         "jlcpcb_class": "extended",
         "lcsc": "C165948",
         "mpn": "TYPE-C-31-M-12",
+        "overlay_file": "overlays/j1-usb-c-annular-ring.json",
+        "overlay_sha256": "sha256:cc31887bec186674a704e9d1060c3b1a40ab074f2eb9d277973d41311523fb53",
         "refdes": "J1",
         "stock_checked_at": "2026-08-11T00:00:00Z",
         "symbol": "Connector:USB_C_Receptacle_USB2.0_16P",

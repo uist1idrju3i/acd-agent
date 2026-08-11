@@ -135,7 +135,15 @@ def load_fab_profile(path: Path, schema_path: Path | None = None) -> FabProfile:
     """Load and validate a tracked fab profile, including provenance invariants."""
     profile = json.loads(path.read_text(encoding="utf-8"))
     if schema_path is None:
-        schema_path = Path(__file__).resolve().parents[4] / "schemas" / "fab-profile.schema.json"
+        for parent in (path.resolve(), *path.resolve().parents):
+            candidate = parent / "schemas" / "fab-profile.schema.json"
+            if candidate.is_file():
+                schema_path = candidate
+                break
+        if schema_path is None:
+            raise ValueError(
+                "fab profile schema path must be supplied when repository root is unavailable"
+            )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     common_path = schema_path.with_name("common.schema.json")
     common = json.loads(common_path.read_text(encoding="utf-8"))

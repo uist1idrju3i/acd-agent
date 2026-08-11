@@ -260,7 +260,9 @@ class FootprintLibrary:
 
     def load(self, library_ref: str, path: Path, expected_sha256: str) -> FootprintShape:
         verify_pinned_file(path, expected_sha256)
-        root = self.raw(path)
+        return self.shape_from_raw(library_ref, self.raw(path))
+
+    def shape_from_raw(self, library_ref: str, root: list[SExpr]) -> FootprintShape:
         pads: list[PadShape] = []
         for pad in find_all(root, "pad"):
             number = _as_str(pad[1])
@@ -269,7 +271,7 @@ class FootprintLibrary:
             at = find_one(pad, "at")
             size = find_one(pad, "size")
             if at is None or size is None:
-                raise LibraryPinError(f"pad missing at/size in {path}")
+                raise LibraryPinError("pad missing at/size")
             drill_node = find_one(pad, "drill")
             drill: float | None = None
             if drill_node is not None:

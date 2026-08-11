@@ -39,6 +39,8 @@ class ComponentView:
     jlcpcb_class: str
     assembly: str
     library: LibraryPin
+    overlay_file: str | None = None
+    overlay_sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -159,6 +161,16 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
     boards: list[BoardView] = []
     for node in graph.nodes:
         if node.kind == "electrical.component":
+            overlay_file = node.attrs.get("overlay_file")
+            overlay_sha256 = node.attrs.get("overlay_sha256")
+            if overlay_file is not None and not isinstance(overlay_file, str):
+                raise GraphExtractionError(f"node {node.id!r}: overlay_file must be a string")
+            if overlay_sha256 is not None and not isinstance(overlay_sha256, str):
+                raise GraphExtractionError(f"node {node.id!r}: overlay_sha256 must be a string")
+            if (overlay_file is None) != (overlay_sha256 is None):
+                raise GraphExtractionError(
+                    f"node {node.id!r}: overlay_file and overlay_sha256 must be paired"
+                )
             components.append(
                 ComponentView(
                     node_id=node.id,
@@ -169,6 +181,8 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     jlcpcb_class=_str_attr(node, "jlcpcb_class"),
                     assembly=_str_attr(node, "assembly"),
                     library=_library_pin(node),
+                    overlay_file=overlay_file,
+                    overlay_sha256=overlay_sha256,
                 )
             )
             if components[-1].assembly not in {"fitted", "not_fitted"}:

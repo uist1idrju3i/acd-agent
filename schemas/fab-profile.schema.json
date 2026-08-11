@@ -88,6 +88,8 @@
         "assembly_sides": {"type": "array", "items": {"enum": ["top", "bottom", "both"]}, "minItems": 1, "uniqueItems": true},
         "layers": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 1},
         "thickness_mm": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0}, "minItems": 1},
+        "thickness_policy": {"enum": ["listed_options", "unrestricted"]},
+        "thickness_note": {"type": "string"},
         "board_size_mm": {"type": "object", "required": ["min", "max"], "additionalProperties": false, "properties": {"min": {"$ref": "#/$defs/range2"}, "max": {"$ref": "#/$defs/range2"}}},
         "panel_size_mm": {"type": "object", "required": ["min", "max"], "additionalProperties": false, "properties": {"min": {"$ref": "#/$defs/range2"}, "max": {"$ref": "#/$defs/range2"}}},
         "quantity_pcs": {"$ref": "#/$defs/range1"},
@@ -101,7 +103,7 @@
       }
     },
     "range1": {
-      "type": "object", "additionalProperties": false, "required": ["min", "max"],
+      "type": "object", "additionalProperties": false, "required": ["min"],
       "properties": {"min": {"type": "number"}, "max": {"type": "number"}}
     },
     "range2": {

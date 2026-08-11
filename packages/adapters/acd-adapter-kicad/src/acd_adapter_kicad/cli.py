@@ -197,6 +197,35 @@ class KicadCli:
         )
         return run, expected
 
+    def export_pos(self, board: Path, out_path: Path, target_revision: str) -> ToolRun:
+        command = [
+            self.executable,
+            "pcb",
+            "export",
+            "pos",
+            "--format",
+            "csv",
+            "--units",
+            "mm",
+            "--side",
+            "both",
+            "--exclude-dnp",
+            "-o",
+            str(out_path),
+            str(board),
+        ]
+        return run_tool(
+            tool_name="kicad-cli",
+            tool_version=self.version(),
+            format_version="KiCad position CSV",
+            command=command,
+            input_paths=[board],
+            output_paths=[out_path],
+            envelope_path=out_path.with_suffix(out_path.suffix + ".envelope.json"),
+            target_revision=target_revision,
+            measurement_conditions="csv; mm; both sides; exclude DNP; shared board origin",
+        )
+
 
 _GERBER_FILES = {
     "F.Cu": ("F_Cu", "gtl"),

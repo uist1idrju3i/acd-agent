@@ -8,11 +8,12 @@ sorted by name, numbered from 1.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from acd_adapter_kicad.emit import det_uuid, fmt, requote
 from acd_adapter_kicad.library import FootprintLibrary
+from acd_adapter_kicad.overlay import apply_overlay
 from acd_adapter_kicad.placement import (
     ANTENNA_MODULE_Y_MM,
     Placement,
@@ -43,6 +44,7 @@ class BoardProjection:
     placements: tuple[Placement, ...]
     keepouts: tuple[KeepoutRect, ...]
     model: BoardModel
+    overlays: tuple[dict[str, str], ...] = ()
 
 
 def _setup(lane: ElectricalLane) -> list[SExpr]:
@@ -237,14 +239,40 @@ def generate_board(
     board = lane.board
     footprints: dict[str, FootprintShape] = {}
     raw_footprints: dict[str, list[SExpr]] = {}
+    overlay_records: list[dict[str, str]] = []
     for comp in lane.components:
         path = Path(comp.library.footprint_file)
         if not path.is_absolute():
             path = fixture_dir / path
-        footprints[comp.refdes] = footprint_library.load(
-            comp.library.footprint, path, comp.library.footprint_sha256
-        )
-        raw_footprints[comp.refdes] = footprint_library.raw(path)
+        if comp.overlay_file is None:
+            footprints[comp.refdes] = footprint_library.load(
+                comp.library.footprint, path, comp.library.footprint_sha256
+            )
+            raw_footprints[comp.refdes] = footprint_library.raw(path)
+        else:
+            from acd_adapter_kicad.library import verify_pinned_file
+
+            verify_pinned_file(path, comp.library.footprint_sha256)
+            raw, hashes = apply_overlay(
+                footprint_library.raw(path),
+                path,
+                fixture_dir / comp.overlay_file,
+                comp.overlay_sha256 or "",
+            )
+            original = footprint_library.load(
+                comp.library.footprint, path, comp.library.footprint_sha256
+            )
+            applied = footprint_library.shape_from_raw(comp.library.footprint, raw)
+            footprints[comp.refdes] = replace(applied, routing_pads=original.pads)
+            raw_footprints[comp.refdes] = raw
+            overlay_records.append(
+                {
+                    "refdes": comp.refdes,
+                    "overlay_file": comp.overlay_file,
+                    "overlay_sha256": comp.overlay_sha256 or "",
+                    **hashes,
+                }
+            )
 
     keepouts: tuple[KeepoutRect, ...] = ()
     if board.antenna_keepout:
@@ -342,4 +370,5 @@ def generate_board(
         placements=placements,
         keepouts=keepouts,
         model=model,
+        overlays=tuple(overlay_records),
     )
