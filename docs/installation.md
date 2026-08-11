@@ -351,7 +351,85 @@ uv run python scripts/probe_tools.py
 一覧と正規化規則は[`tool-capability-probes.md`](tool-capability-probes.md)にある。
 CAD kernelが`unknown`の間、CAD kernelを要求するゲートは合格しない。
 
-### 5.6 Agent Canvasからacd-agentを使う
+### 5.6 外部ツールのインストール
+
+外部ツールはACD配布物へ同梱せず、必要な工程の実行環境へ個別に導入する。以下のコマンド列は
+本リポジトリのDevin blueprintで使ったものと同じである。Ubuntu 24.04（noble）向けの
+KiCad PPAと`openjdk-25-jre-headless`の入手可能性は2026-08-11に確認したが、Ubuntu 24.04上での
+インストール実行とツール動作は未実測である。実測値はすべてUbuntu 22.04.5 LTSの本VMにおける
+ものである。
+
+#### KiCad 10（`kicad-cli`）
+
+```bash
+sudo add-apt-repository -y ppa:kicad/kicad-10.0-releases
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends kicad kicad-symbols kicad-footprints
+```
+
+本VMでは`kicad-cli 10.0.5`を検出した。PPAはUbuntu 24.04（noble）向けバイナリの公開を確認済み
+だが、noble上での導入と動作は未確認である。
+
+#### FreeRouting 2.3.0（OpenJDK 25）
+
+```bash
+sudo apt-get install -y openjdk-25-jre-headless
+mkdir -p ~/tools
+curl -fsSL -o ~/tools/freerouting.jar https://github.com/freerouting/freerouting/releases/download/v2.3.0/freerouting-2.3.0.jar
+printf '#!/bin/sh\nexec /usr/lib/jvm/java-25-openjdk-amd64/bin/java -jar %s/tools/freerouting.jar "$@"\n' "$HOME" | sudo tee /usr/local/bin/freerouting >/dev/null
+sudo chmod +x /usr/local/bin/freerouting
+```
+
+本VMでは`freerouting 2.3.0`を検出したが、`--version`は版文字列を出力した後に非ゼロ終了した。
+`/usr/lib/jvm/java-25-openjdk-amd64`のパスはJVMパッケージ版に依存するため、実際のパスを確認するか
+`update-alternatives`で調整する。
+
+#### Espressif KiCadライブラリ
+
+```bash
+git clone https://github.com/espressif/kicad-libraries ~/tools/kicad-libraries
+git -C ~/tools/kicad-libraries checkout dd76561812ab300351234ba6e0ec1295641796f0
+```
+
+ライブラリはcommit `dd76561812ab300351234ba6e0ec1295641796f0`に固定する。
+
+#### ESP-IDF v6.0.2（ESP32-C3 + QEMU）とCMake
+
+```bash
+sudo apt-get install -y --no-install-recommends cmake
+git clone --branch v6.0.2 --depth 1 --recursive https://github.com/espressif/esp-idf ~/tools/esp-idf
+~/tools/esp-idf/install.sh esp32c3
+python3 ~/tools/esp-idf/tools/idf_tools.py install qemu-riscv32
+```
+
+ESP-IDFは`export.sh`をsourceして使う環境である。本VMではESP-IDF `v6.0.2`を検出し、
+`idf.py`は`IDF_PYTHON_ENV_PATH`経由で起動した。
+
+#### probe-rs 0.32.0
+
+```bash
+curl -fsSL -o /tmp/probe-rs.tar.xz https://github.com/probe-rs/probe-rs/releases/download/v0.32.0/probe-rs-tools-x86_64-unknown-linux-gnu.tar.xz
+tar -xJf /tmp/probe-rs.tar.xz -C ~/tools
+sudo ln -sf ~/tools/probe-rs-tools-x86_64-unknown-linux-gnu/probe-rs /usr/local/bin/probe-rs
+```
+
+本VMでは`probe-rs 0.32.0`を検出したが、実機デバッグプローブは接続されていなかった。
+probe-rsとESP-IDFは実機・FW工程で必要になるもので、全ゲートに必須ではない。採否根拠は
+[`tool-selection.md`](tool-selection.md)を参照する。
+
+#### CAD kernel
+
+build123d／cadquery-ocp（OCP）は個別にインストールせず、5.3の`uv sync`で導入する。
+
+インストール後は次で検出結果を確認する。
+
+```bash
+uv run python scripts/probe_tools.py
+```
+
+不在または版不明は`unknown`として記録し、合格根拠にしない（fail-closed）。
+
+### 5.7 Agent Canvasからacd-agentを使う
 
 確認できた事実と未確認事項を分けて記す。
 
@@ -408,6 +486,7 @@ acd-agentが参照するSDK（v1.41.0）と、Agent Canvasが既定で起動す�
 
 - Ubuntu 24.04上での全手順（Node.js導入、Agent Canvas起動、acd-agentの同期と検証）。
 - Ubuntu 24.04のNode.js 22系導入手順（NodeSource／nvm）。
+- Ubuntu 24.04上での外部ツールのインストール実行と動作確認。
 - Dockerサンドボックス構成でのAgent Canvas起動と、acd-agentのworkspaceマウント。
 - `plugins/acd`のAgent Canvasへの導入と`SessionStart` hookの成立。
 - agent server起動時のprotobuf／pyasn1 egg警告の影響。
