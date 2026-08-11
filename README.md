@@ -38,7 +38,7 @@ VibeBBは、Vibe Codingになぞらえた「Vibe BreadBoarding」です。Andrej
 [2025年2月の投稿](https://x.com/karpathy/status/1886192184808149383)で示した
 「完全にバイブスに身を委ね、コードの存在すら忘れる（fully give in to the vibes,
 embrace exponentials, and forget that the code even exists）」という発想と、
-「see stuff, say stuff, run stuff」の対話的なループを、基板と筐体の試作へ持ち込みます。
+「see stuff, say stuff, run stuff」の対話的なループを、基板・筐体・FWの試作と検証へ持ち込みます。
 [Collins英語辞典の2025年Word of the Year](https://blog.collinsdictionary.com/language-lovers/collins-word-of-the-year-2025-ai-meets-authenticity-as-society-shifts/)
 が示すように、自然言語で目的を伝え、結果を見て、次の指示を返す開発体験は広がっています。
 
@@ -62,8 +62,8 @@ AIは要件を聞き、設計と製造データを提案し、決定論的な検
 利用できることを、このループの前提に置きます。
 
 流れは、**語る（要件を伝える）→ AIが設計し自動検証する → 作って試す（製造・実機テスト）
-→ フィードバックが知識として蓄積される**です。ブレッドボードの気軽さで基板と筐体を回し、
-知識の蓄積によって量産品質へ到達することを目指します。
+→ フィードバックが知識として蓄積される**です。ブレッドボードの気軽さで基板・筐体を回し、
+FWを実機で検証しながら、知識の蓄積によって量産品質へ到達することを目指します。
 
 ## なぜACDか
 
@@ -172,9 +172,10 @@ metrics、retryを提供する実行基盤です。設計グラフ、決定論�
 
 ## ロードマップ
 
-Phase 0 契約、Phase 1 最小一貫ループ、Phase 2 検証ゲート、Phase 3 協調修復、
-Phase 4 知識ループ、Phase 5 要件対話とsourcing、Phase 6 長時間運用、
-Phase 7 FW連携、Phase 8 自働発注、Phase 9 ローカル製造。
+Phase 0 契約、Phase 1 最小一貫ループ、Phase 2 検証ゲートと根拠、
+Phase 3 電気↔機械協調修復、Phase 4 知識ループ、Phase 5 要件対話とsourcing、
+Phase 6 長時間ラン運用、Phase 7 FW連携と仮想実機、Phase 8 自働発注、
+Phase 9 ローカル製造。
 内容と完了条件は [`docs/roadmap.md`](docs/roadmap.md) を正とします。
 
 ## ドキュメント
@@ -183,7 +184,7 @@ Phase 7 FW連携、Phase 8 自働発注、Phase 9 ローカル製造。
 |---|---|---|
 | [`AGENTS.md`](AGENTS.md) | エージェント向け作業契約 | Draft |
 | [`docs/README.md`](docs/README.md) | 文書索引と読む順序 | Draft |
-| [`docs/design-flow.md`](docs/design-flow.md) | 基板・筐体の6ステップ | Draft |
+| [`docs/design-flow.md`](docs/design-flow.md) | 基板・筐体・FWの6ステップ | Draft |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | 知識の構造化と還流 | Draft |
 | [`docs/future-outlook.md`](docs/future-outlook.md) | ローカル製造と将来展望 | Draft |
 | [`docs/architecture.md`](docs/architecture.md) | 設計グラフとレイヤ | Draft |
