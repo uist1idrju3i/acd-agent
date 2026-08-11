@@ -111,7 +111,10 @@ ACDが埋めるギャップは、(a)対話を検証可能な要件へ変換す�
 またいで工場フィードバックと試作結果から学習することです。
 ファームウェアについてはOpenHands本来のソフトウェア開発能力を活用し、基板・筐体・FWを
 同じ設計グラフで一貫して設計・検証するワンストップの流れへつなぎます。
-詳しい比較は [`docs/prior-art.md`](docs/prior-art.md) を参照してください。
+先行事例は、コード駆動設計、AI支援EDA、ヘッドレス検証、製造APIが個別に進展している一方、
+要求・電気・筐体・製造・実測を一つの型付き設計グラフとEvidenceで結ぶ公開実装は確認できません。
+ACDは既存ツールを借り、決定論的ゲートと実機フィードバックを統合する点に差別化候補を置きます。
+詳しい調査台帳は [`docs/prior-art.md`](docs/prior-art.md) を参照してください。
 
 ### `uist1idrju3i/ACD`との関係
 
@@ -122,6 +125,10 @@ OpenHands連携でも同じコンセプトが上手く動くのではないか�
 本リポジトリの権威は本リポジトリ内の文書に限ります。
 
 ## 設計原則
+
+原則が衝突する場合の優先順位は、第一に安全境界とfail-closed、第二に型付き設計グラフと
+決定論的ゲート、第三に重い検証を人間へ見せず実機まで到達させることです。第一は危険な設計・
+副作用を止めるため、第二は判断の正と根拠を一つに保つため、第三はVibeBBの体験価値を守るためです。
 
 - AIは候補を提案し、決定論的ツールが判定します。パーサー、制約ソルバー、DRC、
   シミュレーション、fabルールが検証し、未検証の銅箔配線は生成しません。
@@ -151,12 +158,12 @@ OpenHands連携でも同じコンセプトが上手く動くのではないか�
 flowchart LR
     S1["S1 要件対話<br/>電気・機械・製造"]
     subgraph ELEC["電気レーン"]
-        E2["S2 部品選定と回路設計<br/>電気・部品・回路"]
-        E3["S3 アートワーク<br/>電気・配置・配線"]
+        E1["E1 部品選定と回路設計<br/>電気・部品・回路"]
+        E2["E2 アートワーク<br/>電気・配置・配線"]
     end
     subgraph MECH["機械レーン"]
-        M2["M2 筐体コンセプト<br/>機械・外形・締結"]
-        M3["M3 筐体詳細<br/>機械・干渉・公差"]
+        M1["M1 筐体コンセプト<br/>機械・外形・締結"]
+        M2["M2 筐体詳細<br/>機械・干渉・公差"]
     end
     subgraph FWLANE["FWレーン"]
         FW["ファームウェア<br/>Vibe Coding"]
@@ -165,37 +172,37 @@ flowchart LR
         LIB["部品ライブラリ"]
         KB["ナレッジベース"]
     end
-    S1 --> E2
-    S1 --> M2
-    E2 --> E3
-    M2 --> M3
-    E3 --> G["共通ゲート<br/>ERC/DRC・干渉・製造性"]
-    M3 --> G
-    G --> S4["S4 製造出力<br/>基板・筐体・FW"]
-    S4 --> S5["S5 製造・加工フィードバック<br/>DFM・造形・寸法"]
-    S5 --> S6["S6 試作立ち上げ<br/>測定・組立・実機"]
-    S6 --> DONE["完成／量産"]
-    S4 -->|FWパッケージ| FW
-    FW --> S6
+    S1 --> E1
+    S1 --> M1
+    E1 --> E2
+    M1 --> M2
+    E2 --> G["共通ゲート<br/>ERC/DRC・干渉・製造性"]
+    M2 --> G
+    G --> S2["S2 製造出力<br/>基板・筐体・FW"]
+    S2 --> S3["S3 製造・加工フィードバック<br/>DFM・造形・寸法"]
+    S3 --> S4["S4 試作立ち上げ<br/>測定・組立・実機"]
+    S4 --> DONE["完成／量産"]
+    S2 -->|FWパッケージ| FW
+    FW --> S4
+    LIB -.-> E1
     LIB -.-> E2
-    LIB -.-> E3
     G -.-> HR["任意の人間レビュー"]
     HR -.-> G
-    E2 -.->|要件の矛盾| S1
-    E3 -.->|配線不能| E2
-    M3 -.->|筐体要件の実現不能| S1
-    S5 -.->|DFM指摘| E3
-    S5 -.->|部品入手性| E2
-    S5 -.->|フットプリント修正| LIB
-    FW -.->|ピン割当変更| E2
-    S6 -.->|要件見直し| S1
+    E1 -.->|要件の矛盾| S1
+    E2 -.->|配線不能| E1
+    M2 -.->|筐体要件の実現不能| S1
+    S3 -.->|DFM指摘| E2
+    S3 -.->|部品入手性| E1
+    S3 -.->|フットプリント修正| LIB
+    FW -.->|ピン割当変更| E1
+    S4 -.->|要件見直し| S1
     S1 -.-> KB
-    S5 -.-> KB
-    S6 -.-> KB
-    KB -.->|検証済み知識| E2
+    S3 -.-> KB
+    S4 -.-> KB
+    KB -.->|検証済み知識| E1
 ```
 
-6ステップの入力、出力、ゲート、筐体側の詳細は [`docs/design-flow.md`](docs/design-flow.md) にまとめます。
+工程IDごとの入力、出力、ゲート、筐体側の詳細は [`docs/design-flow.md`](docs/design-flow.md) にまとめます。
 
 ## アーキテクチャ
 
@@ -222,11 +229,9 @@ metrics、retryを提供する実行基盤です。設計グラフ、決定論�
 
 ## ロードマップ
 
-Phase 0 契約とツール能力確認、Phase 1 電気レーン最小縦切り、Phase 2 機械レーン最小縦切り、
-Phase 3 レーン統合と共通ゲート、Phase 4 検証ゲートと根拠、Phase 5 電気↔機械協調修復、
-Phase 6 知識ループ、Phase 7 要件対話とsourcing、Phase 8 長時間ラン運用、
-Phase 9 FW連携と仮想実機、Phase 10 自働発注、Phase 11 ローカル製造。
-内容と完了条件は [`docs/roadmap.md`](docs/roadmap.md) を正とします。
+最初のマイルストーンは「基板＋FWで実機のLEDが光ること」です。次に筐体との統合、
+知識・発注・ローカル製造へ広げます。Phaseの内容と完了条件は
+[`docs/roadmap.md`](docs/roadmap.md) を正とします。
 
 ## ドキュメント
 
@@ -234,7 +239,7 @@ Phase 9 FW連携と仮想実機、Phase 10 自働発注、Phase 11 ローカル�
 |---|---|---|
 | [`AGENTS.md`](AGENTS.md) | エージェント向け作業契約 | Draft |
 | [`docs/README.md`](docs/README.md) | 文書索引と読む順序 | Draft |
-| [`docs/design-flow.md`](docs/design-flow.md) | 基板・筐体・FWの6ステップ | Draft |
+| [`docs/design-flow.md`](docs/design-flow.md) | 基板・筐体・FWの工程フロー | Draft |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | 知識の構造化と還流 | Draft |
 | [`docs/future-outlook.md`](docs/future-outlook.md) | ローカル製造と将来展望 | Draft |
 | [`docs/architecture.md`](docs/architecture.md) | 設計グラフとレイヤ | Draft |
@@ -243,6 +248,7 @@ Phase 9 FW連携と仮想実機、Phase 10 自働発注、Phase 11 ローカル�
 | [`docs/reliability-practices.md`](docs/reliability-practices.md) | 信頼性・安全性 | Draft |
 | [`docs/prior-art.md`](docs/prior-art.md) | 先行事例台帳 | Draft |
 | [`docs/roadmap.md`](docs/roadmap.md) | 本リポジトリのフェーズ | Draft |
+| [`docs/glossary.md`](docs/glossary.md) | 用語と工程IDの定義 | Draft |
 
 ## ライセンス
 

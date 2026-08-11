@@ -21,8 +21,8 @@
 - 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）。
 - 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption。
   `Assumption`は確度、確定予定アクション、覆った場合の影響先を持つ。
-- 安全: `SafetyBoundaryResult`はS1の予備判定とS2の確定判定を区別し、判定根拠、
-  危険区分、状態（`pass`／`fail`／`unknown`）を保持する。S2のグラフ述語判定をゲートの正とし、
+- 安全: `SafetyBoundaryResult`はS1の予備判定とE1の確定判定を区別し、判定根拠、
+  危険区分、状態（`pass`／`fail`／`unknown`）を保持する。E1のグラフ述語判定をゲートの正とし、
   `unknown`はfail-closedで停止する。
 - ライブラリ: `LibraryOverlay`は公式ライブラリを変更せず、対象ライブラリ・footprint、
   差分、理由、出所Evidenceをプロジェクトローカルに保持する。
@@ -127,14 +127,8 @@ Conversationは計画と実行を進めるが、設計の正や合否を決め�
 ## 未決事項
 
 - 設計グラフのシリアライズ形式とschema migration方式。
-- KiCad最低対応版とIPC/APIの固定範囲は、
-  [`tool-selection.md`](tool-selection.md)を参照。KiCad 10の`kicad-cli`を最低対応版とし、
-  IPCはPCB editorの範囲に限定する。
-- code-CAD engineの選定は[`tool-selection.md`](tool-selection.md)を参照。
-  build123dを一次採用とし、依存kernelの構成は法務確認を要する。
 - STEPの採用と出力経路は[`tool-selection.md`](tool-selection.md)を参照。
   IDF/IDXの採用範囲は未決である。
-- 個別ツールのライセンス整合と最終的な法務確認は、[`tool-selection.md`](tool-selection.md)の
-  「配布形態と結合境界」および「未決事項」に従う。
+- GPL/AGPLツールを外部プロセス境界で利用する際の最終的な法務確認。
 - Evidenceの署名、改ざん検知、保持期間。
 - 製造APIの資格情報、地域、契約、価格snapshotの扱い。

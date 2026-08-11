@@ -62,7 +62,7 @@ MCP toolの入力をPydantic Actionへ変換し、timeout、再接続、secret�
 OpenHands SDKのソフトウェア開発能力（bash、ファイル編集、テスト実行、MCP client、
 delegate）は、FWレーンの実装にそのまま利用できる。ACD側が用意するのは、設計グラフ
 から投影する型付きFWパッケージ、ピン・ネット整合ゲート、ビルド・テスト・ログの
-Evidence記録である。FW側の決定がピン割当やペリフェラル設定を変える場合は、S2へ
+Evidence記録である。FW側の決定がピン割当やペリフェラル設定を変える場合は、E1へ
 戻す双方向契約として扱う。
 
 実機への書き込み、RTT等のログ取得、Blinkの実行を外部ツールまたはMCPサーバとして
