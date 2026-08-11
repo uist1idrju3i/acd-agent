@@ -24,6 +24,7 @@
     [`phase1-retrospective.md`](phase1-retrospective.md)、
     [`phase2-retrospective.md`](phase2-retrospective.md)を参照する。
 13. [`phase3-plan.md`](phase3-plan.md): Phase 3の作業単位・順序・撤退条件。
+    実施後の振り返りは[`phase3-retrospective.md`](phase3-retrospective.md)を参照する。
 14. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
 15. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
 16. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
@@ -54,6 +55,7 @@
 | `phase1-retrospective.md` | Phase 1実施結果・逸脱・教訓の記録 | Draft |
 | `phase2-retrospective.md` | Phase 2実施結果・逸脱・教訓の記録 | Draft |
 | `phase3-plan.md` | Phase 3の作業単位・順序・撤退条件 | Draft |
+| `phase3-retrospective.md` | Phase 3実施結果・逸脱・教訓の記録 | Draft |
 | `qc-tools.md` | Q7/N7を使う品質・計画分析 | Draft |
 | `tool-selection.md` | 実装で使う外部ツールの採否と設計根拠 | Draft |
 | `reliability-practices.md` | JAXA公開資料を根拠にした信頼性方針 | Draft |
