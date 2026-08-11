@@ -1,7 +1,7 @@
 # 実装ツール選定
 
 > ステータス: Draft  
-> 対象: Phase 0〜1を主とする実装ツールの採否、調査日 2026-08-11 UTC
+> 対象: Phase 0〜3を主とする実装ツールの採否、調査日 2026-08-11 UTC
 
 本書は、ACD実装で呼び出す外部ツールの採否と、その設計根拠・代替案・未決事項を正とする。
 各ツールの機能・ライセンス・版の調査事実は [`prior-art.md`](prior-art.md)、ツール契約と
@@ -38,7 +38,7 @@ adapter境界は [`architecture.md`](architecture.md)、工程ごとのゲート
 
 | 区分 | 意味 |
 |---|---|
-| 一次採用 | Phase 0〜1の実装で既定として呼ぶ |
+| 一次採用 | Phase 0〜3の実装で既定として呼ぶ |
 | 二次保持 | adapterの代替実装として設計に残すが、既定にはしない |
 | 継続調査 | 一次情報またはライセンスが未確認で、採否を保留する |
 | 不採用 | 上記の失格条件または用途不一致で候補から外す |
@@ -87,7 +87,7 @@ ACDへlibrary結合せず外部プロセスとして呼ぶことで境界を分�
 
 `librepcb-cli`を二次保持にする理由は、公式docsがERC/DRCとoutput jobのCI実行を明記して
 おり、ECAD engineをadapterで差し替えられることを設計上示せる点にある。X server依存と
-LICENSE本文未取得のため、Phase 0〜1の既定にはしない。
+LICENSE本文未取得のため、Phase 0〜3の既定にはしない。
 
 したがって、ECAD adapterは`kicad-cli`固有の引数をcoreへ露出させず、「ERC実行」「DRC実行」
 「製造データ出力」「STEP出力」という能力単位のインターフェースにする。
@@ -101,7 +101,7 @@ LICENSE本文未取得のため、Phase 0〜1の既定にはしない。
 | [kiutils](https://github.com/mvnmgrx/kiutils) | GPL-3.0-only | 不採用 | Python importがGPL結合になる。parserを外部プロセス化する利点が小さい |
 | [kicad_parse_gen](https://crates.io/crates/kicad_parse_gen) | MIT OR Apache-2.0（7.0.2、2018-01-29） | 不採用 | permissiveだが2018年で、KiCad 10形式の網羅を確認できない |
 | `kicadfiles`（PyPI） | metadataにlicenseなし、本文取得できず | 継続調査 | ライセンスと形式網羅が未確認 |
-| KiCad IPC API／[kicad-python](https://docs.kicad.org/kicad-python-main/) | KiCad配布物と同体系 | 不採用（Phase 0〜1） | KiCad 10のIPCはGUI起動中のPCB editorが対象で、回路図ファイルのAPIは公開されていない。ヘッドレスIPC serverは公式docsでKiCad 11の追加とされる |
+| KiCad IPC API／[kicad-python](https://docs.kicad.org/kicad-python-main/) | KiCad配布物と同体系 | 不採用（Phase 0〜3） | KiCad 10のIPCはGUI起動中のPCB editorが対象で、回路図ファイルのAPIは公開されていない。ヘッドレスIPC serverは公式docsでKiCad 11の追加とされる |
 
 ACDのpatchは正規グラフ側で表現し、KiCadファイルは投影である。したがって必要なのは
 「投影の生成」と「投影の再読込確認」であり、外部の高機能KiCad patcherへの依存は最小にする。
@@ -159,7 +159,7 @@ netlistとmodelの生成、収束判定、測定値の抽出はACD側で行い�
 
 ### SI／RF、EM
 
-`scikit-rf`（BSD想定、本文未取得）と`openEMS`（GPL想定、外部プロセス）は、Phase 2以降の
+`scikit-rf`（BSD想定、本文未取得）と`openEMS`（GPL想定、外部プロセス）は、Phase 4以降の
 対象として継続調査に置く。初期ターゲットの1〜4層基板では既定のゲートにしない。
 
 ## 機械レーンの選定
@@ -173,7 +173,7 @@ netlistとmodelの生成、収束判定、測定値の抽出はACD側で行い�
 | [CadQuery](https://github.com/CadQuery/cadquery) | Apache-2.0 | 二次保持 | 同一kernel上の代替API |
 | [trimesh](https://github.com/mikedh/trimesh) | MIT（5.0.0、2026-08-01） | 一次採用（import） | mesh healing、watertight判定、体積・bboxなどの事前検査 |
 | [manifold](https://github.com/elalish/manifold) | Apache-2.0（v3.5.2、2026-06-27） | 二次保持 | 堅牢なmesh booleanが必要になった場合の候補。BREPの代替ではない |
-| [FreeCAD](https://github.com/FreeCAD/FreeCAD) | LGPL-2.1中心、混在 | 不採用（Phase 0〜1） | 同一kernelへPythonから直接到達できるため、GUIアプリを介する必要がない |
+| [FreeCAD](https://github.com/FreeCAD/FreeCAD) | LGPL-2.1中心、混在 | 不採用（Phase 0〜3） | 同一kernelへPythonから直接到達できるため、GUIアプリを介する必要がない |
 | [OpenSCAD](https://openscad.org/) | GPL想定 | 不採用 | mesh CSGで公差・BREP診断に向かず、GPL境界を追加する利点がない |
 | [OpenJSCAD](https://github.com/jscad/OpenJSCAD.org) | MIT | 不採用 | Node.js依存を追加し、BREP kernelを持たない |
 | [libfive](https://github.com/libfive/libfive) | core／bindingsはMPL-2.0、Studio等はGPL系 | 不採用 | 単一ライセンスとして扱えず、BREP前提の診断に合わない |
@@ -191,14 +191,14 @@ JSONの設計参照および二次保持とし、ACDのゲートは自前のdiag
 |---|---|---|
 | `kicad-cli pcb export step` | 一次採用 | 公式CLIでboard→STEPを実行でき、`--board-only`、`--no-components`、`--include-tracks`、`--user-origin`等で出力範囲を固定できる。使用した3D modelとオプションを入力Evidenceに含める |
 | [KiCad StepUp](https://github.com/easyw/kicadStepUpMod) | 不採用 | LICENSE本文が未確認で、FreeCAD workbench前提のため境界が複雑 |
-| IDF 2.0/3.0、prostep ivip IDX、STEP AP242 | 継続調査 | 交換契約としてPhase 3以降に評価する |
+| IDF 2.0/3.0、prostep ivip IDX、STEP AP242 | 継続調査 | 交換契約としてPhase 5以降に評価する |
 
 STEP出力の成功は嵌合の合格ではない。干渉・クリアランス・肉厚はkernel側で再計算する。
 
 ### 造形可能性（slicer）
 
 PrusaSlicer、CuraEngine、OrcaSlicerはいずれもAGPL（Orcaは本文未取得）である。よって
-ACD配布物へ同梱せず、ユーザー環境前提の外部プロセスとし、Phase 9まで既定ゲートにしない。
+ACD配布物へ同梱せず、ユーザー環境前提の外部プロセスとし、Phase 11まで既定ゲートにしない。
 採用時はslicer名、版、profile、入力hashをEvidenceに固定する。
 
 ## FWレーンの選定
@@ -208,10 +208,10 @@ ACDが選ぶのは、ピン割当整合とログ取得のための外部ツー�
 
 | 用途 | 候補 | ライセンス | 判定 |
 |---|---|---|---|
-| 仮想実機 | [Renode](https://github.com/renode/renode) | MIT（v1.16.1、2026-02-16） | 一次候補（Phase 7） |
+| 仮想実機 | [Renode](https://github.com/renode/renode) | MIT（v1.16.1、2026-02-16） | 一次候補（Phase 9） |
 | 仮想実機 | QEMU | GPL-2.0-or-later | 二次保持（外部プロセス） |
 | 仮想実機 | [wokwi-cli](https://github.com/wokwi/wokwi-cli) | MIT（v0.26.1、2026-02-23） | 二次保持 |
-| 実機書き込み・ログ | [probe-rs](https://github.com/probe-rs/probe-rs) | MIT OR Apache-2.0（release pageは0.32.0） | 一次候補（Phase 7） |
+| 実機書き込み・ログ | [probe-rs](https://github.com/probe-rs/probe-rs) | MIT OR Apache-2.0（release pageは0.32.0） | 一次候補（Phase 9） |
 | 実機書き込み・ログ | [pyOCD](https://github.com/pyocd/pyOCD) | Apache-2.0（PyPI 0.45.1、2026-07-21） | 二次保持 |
 
 wokwi-cliはMITだがtokenと外部サービスが必要であり、既定の検証経路には置かない。
@@ -222,11 +222,11 @@ probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではな�
 
 | 用途 | 候補 | 判定 | 根拠 |
 |---|---|---|---|
-| 部品価格・在庫・lifecycle | Nexar/Octopart、Digi-Key、Mouser | 一次候補（Phase 5） | 公式APIで出所・取得時点・通貨・地域を記録できる。契約と資格情報が前提 |
+| 部品価格・在庫・lifecycle | Nexar/Octopart、Digi-Key、Mouser | 一次候補（Phase 7） | 公式APIで出所・取得時点・通貨・地域を記録できる。契約と資格情報が前提 |
 | 部品データ | LCSCの非公式endpoint、`jlcparts`のmirror | 不採用（既定にしない） | 公式APIではなく、規約・rate limit・安定性が未確認。snapshotを固定した参考情報にとどめる |
 | KiCadライブラリ生成 | [easyeda2kicad](https://github.com/uPesy/easyeda2kicad.py) | 不採用 | AGPL-3.0 |
-| PCB見積・発注 | JLCPCB API、PCBWay partner API | 一次候補（Phase 8） | 見積と発注を分離し、総発注額と最終ゲートを前提にする |
-| 筐体見積・発注 | JLC3DP、Slant3D、Xometry partner API | 継続調査（Phase 8〜9） | 権限範囲が契約依存 |
+| PCB見積・発注 | JLCPCB API、PCBWay partner API | 一次候補（Phase 10） | 見積と発注を分離し、総発注額と最終ゲートを前提にする |
+| 筐体見積・発注 | JLC3DP、Slant3D、Xometry partner API | 継続調査（Phase 10〜11） | 権限範囲が契約依存 |
 
 認証不要でpermissiveな部品データAPIは一次確認できなかった。よって部品Evidenceは、
 契約済みAPIまたは利用者が投入したデータシート・型番を出所として扱う。
