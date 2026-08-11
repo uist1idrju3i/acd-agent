@@ -556,13 +556,18 @@ ACDへの反映：ACDにおける「設備」はツール、「作業者」は�
 - ツール適格性：ツール版＋実行環境の組で適格性を記録し、環境変更・版変更・期限切れで失効させる。
 - エージェント適格性：**モデル版＋プロンプト版＋タスク種別**の組で、golden taskによる客観的な合格記録を持つ。失効条件は、(1)そのタスク種別で失敗を出した、(2)タスク定義が変わった、(3)一定期間そのタスク種別を実行していない。
 - (3)は特に示唆的です。ACDのgolden taskは「変更時に走らせる」設計になりがちですが、**変更がなくても定期的に再測定しないと適格性は減衰する**という視点が要ります。
+決定論的な回帰テストはSDKの`TestLLM`で応答・例外を固定して実行し、unknown、stale、
+再読込失敗、壊れた視覚レビュー応答、予算・context超過をfail-closedで検証する。実LLMの
+golden taskは別経路として、モデル・prompt・タスク種別の適格性を定期的に再測定する。
 `AgentProfile`は`llm_profile_ref`／`mcp_server_refs`を参照で持ち、at restでsecret-freeにできる。
 解決したmodel・prompt・tool構成の版をEvidenceへ残し、`ReviewFinding`のモデル・プロンプト版と対応付ける。
 SDKはこれらをEvidenceへ自動的に束縛しないが、`LLM.log_completions`／
 `log_completions_folder`と`telemetry.set_log_completions_callback()`で実プロンプトと応答を
 取得できる。ACDはcallbackを利用して、解決済みmodel名、provider、profile revision、
-system prompt・tool schema・有効なSkill内容を含むprompt内容hash、Skill／pluginの解決済みSHA、
+system prompt・tool schema・有効なSkill内容を含むprompt内容hash、SDKの
+`InstallationInfo.resolved_ref`／`.installed.json`から得たSkill／pluginの解決済みSHA、
 MCP設定hash、response ID、推論設定、`ReviewFinding`との対応付けを算出し、Evidenceへ束ねる。
+`requested_ref`だけで`resolved_ref`がない資材は適格性不明として採用しない。
 routerを使う場合はモデル選択が非決定的になり得ることもEvidenceへ記録し、`RandomRouter`は
 採用しない。
 

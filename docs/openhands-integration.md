@@ -19,19 +19,42 @@
 |---|---|---|
 | `openhands-sdk` | Agent、Conversation、Event、Tool、LLM、MCP、security、settings | 計画・型付きtool・会話・実行制御 |
 | `openhands-tools` | terminal、browser、file/editor、delegate | 必要な汎用toolとサブエージェント |
-| `openhands-workspace` | Local、Docker、Apptainer、cloud、remote workspace | CAD/EDA workerの隔離実行 |
+| `openhands-workspace` | Docker、Apptainer、cloud、remote workspace | CAD/EDA workerの隔離実行 |
 | `openhands-agent-server` | FastAPI REST/WebSocket、会話、workspace、MCP | CLI以外のAPI入口、長時間会話の管理 |
 
 ## 実行モード
 
-- `LocalWorkspace`: 開発と軽量なローカル検証。ホスト分離は自動保証されないため、
-  外部CAD/EDAや製造CLIは専用環境と権限で実行する。
-- `DockerWorkspace`: workerと依存ツールをimageへ固定し、CI・再現性を優先する。
-- `APIRemoteWorkspace`＋agent-server: 長時間実行、遠隔worker、API入口に使う。
+実行基盤は`DockerWorkspace`または`RemoteWorkspace`（agent-server）に限定する。
+Docker workerは外部CAD/EDA、製造CLI、依存ライブラリをimage digestへ固定し、RemoteWorkspaceは
+agent-serverの長時間実行、会話ごとのworktree、API入口を利用する。`LocalWorkspace`による
+Dockerなしの手元単体実行は採用しない。これにより、VS Code、noVNC、Canvas、OpenAI互換
+gateway、Webhook、conversation leaseを条件分岐なしにagent-server前提で扱い、外部ツール版の
+固定をimage digestでも担保する。LocalWorkspaceでのホスト権限・ファイル・ネットワークの
+完全分離をSDKに期待する契約も対象外とする。
 
 ユーザーとの対話インタフェースはOpenHands（CLIやagent-serverを含むクライアント）が
 担う。ACDが提供するのは、OpenHandsへ登録するツール群、設計グラフ、決定論的ゲート、
 Evidenceである。
+
+### 人間の観察・手修正経路
+
+agent-serverのVS Code経路（`enable_vscode`、`GET /vscode/url`）とnoVNC desktop経路
+（`enable_vnc`、`GET /desktop/url`）を、AIが生成した候補を人間が観察・手修正する経路として
+使う。GUI操作自体はEvidenceにならず、操作ログが取得できない状態は`unknown`である。
+desktopまたはVS Codeを開けた事実は、時刻、conversation ID、対象revisionだけを記録し、
+合格根拠にはしない。
+
+人間の手修正はworktreeの変更として現れるため、commit、commit receipt、対象ゲートの再実行を
+経て初めて下流の根拠になる。手修正後にゲートを再実行していない状態はfail-closedとする。
+この経路はK1のAI視覚投影レビューを置き換えず、人間の観察・手修正と別コンテキストの
+`ImageContent`／`inspect_image_with_vision`レビューを併用する。
+
+### Canvas extension
+
+ReviewFinding一覧、Q7/N7図表、投影ビュー、承認画面はCanvas extensionとしてagent-serverの
+認証境界内へ配布し、ACD独自Webアプリの配信・認証・版管理を増やさない。extensionは解決済み
+SHAで固定する。ただしCanvasのフロントエンド本体がSDK repository外である点は未確認であり、
+載せる先の可用性を確認するまで採用可否は未確定とする。
 
 ## SDK機能とACD自前実装
 
@@ -40,24 +63,27 @@ Evidenceである。
 | 型付きtool | `ToolDefinition`、Pydantic Action/Observation、annotations | 設計グラフschema、artifact contract、CAD/EDA意味論 |
 | 決定論的gate | tool hooks、typed result、`readOnly`/`destructive`/`idempotent` annotations、`CriticBase`／`IterativeRefinementConfig`（反復実行機構） | gate policyの版、input/design hash、stale判定、fail-closed、合否の正 |
 | 承認 | `ConfirmationPolicy`、`SecurityRisk`、confirmation state | approval IDの一回性、失効、ActionEventとの束縛、不可逆executor |
-| 実行履歴 | SDK `EventLog`の追記・lock・型付きevent・branch／resume／fork・conversation state永続化 | ACDドメインevent payload、外部副作用journal、署名、idempotency、外部状態snapshot。SDK event logとACD payloadの二層構造とする |
+| 実行履歴 | SDK `EventLog`の追記・lock・型付きevent・branch／resume／fork・conversation state永続化 | 最小限のACD event（gate結果、承認、副作用receiptへの参照）、Evidence artifact、署名、idempotency。ドメイン記録と副作用journalの正はcommit側へ置く |
 | 長時間実行 | condenser、memory、interrupt、max iteration、budget | ACD task ledger、checkpoint方針、予算の製造・機械統合 |
 | 分業 | delegate/spawn、子Conversation、権限継承 | 電気・機械レーンのgraph merge、成果物契約、失敗因果 |
-| LLM運用 | `Metrics`／`MetricsSnapshot`、token/cost、latency、cache、retry | ACD retry budget、同一input hash、外部副作用の再実行防止。外部process回数・外部tool時間はtool envelopeで実測 |
-| 予算上限 | `AgentDefinition.max_budget_per_run`／`max_iteration_per_run`、SDK `Metrics` | token／money／LLM latencyはSDK `Metrics`、外部process回数・外部tool wall-clockはACD tool envelope |
+| LLM運用 | `Metrics`／`MetricsSnapshot`、`ConversationStats`、token/cost、latency、cache、retry | 外部process回数・外部tool時間の実測と不可逆操作のidempotency。SDKのretry・予算会計へ委譲 |
+| 予算上限 | `AgentDefinition.max_budget_per_run`／`max_iteration_per_run`、SDK `Metrics`、`get_metrics_for_usage(usage_id)` | token／money／LLM latencyのagent／profile別Evidence束ね。外部process回数・外部tool wall-clockはACD tool envelope |
 | 外部tool | MCP client、動的Pydantic schema、timeout、再接続 | adapterの意味検証、tool version固定、Evidence生成 |
 | 視覚レビュー | `ImageContent`、`inspect_image_with_vision`、画像inline化 | 視覚投影の分類、画像hash、renderer、vision profile／model、解像度のEvidence binding |
 | 実行分岐 | `Conversation.fork(from_event_id=...)`（local／remote） | trade studyの比較、採用枝のcanonical patch、非採用枝のEvidence |
 | 作業資材の配布 | `Skill`、`KeywordTrigger`／`PathTrigger`／`TaskTrigger`、skill repositoryのpin、`PluginManifest`、marketplace | 工程契約、レビュー観点、Q7/N7手法、ECAD操作手順の内容と版、Evidenceへの記録 |
 | サブエージェント定義 | `AgentDefinition`、`AgentDefinitionLevel`、model/tools/skills/hooks/MCP/予算・反復上限、`permission_mode` | 生成・レビューagentの役割境界、別profile、設計グラフへの書込み制約、`RV1`／`RV2`の判定 |
-| hook | `PreToolUse`、`PostToolUse`、`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`、`HookDecision` | 不可逆操作の防護、side-effect journal、決定論的gate、共通executor |
+| hook | `PreToolUse`、`PostToolUse`、`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`、`HookDecision` | 不可逆操作の防護、commit側receipt参照、決定論的gate、共通executor |
 | 反復改善 | `CriticBase`、`CriticResult`、`IterativeRefinementConfig`、`Conversation.run()`の自動retry | PDCAの`ReviewFinding`、処分状態、ラウンド上限、`RV2`の合否 |
-| 目標・停滞検出 | `/goal`、`GoalController`、judge、`GoalVerdict`、`StuckDetector` | 収束判定、差し戻し、エスカレーション、決定論的な完了条件 |
+| 目標・停滞検出 | `/goal`、`GoalController`、judge、`GoalVerdict`、`StuckDetector` | 停止・差し戻し・エスカレーション。決定論的な完了条件 |
+| 多観点レビュー | `WorkflowTool`／`WorkflowExecutor`のmap/reduce、`max_concurrency` | `ReviewFinding`集合の束ね、レビュー観点の分業。投影の意味的mergeはACDが禁止 |
+| 人間UI | agent-server VS Code／noVNC、Canvas extension | 観察・手修正・承認待ちの表示。GUIやUI状態は合否の正ではない |
+| 外部連携 | agent-server OpenAI互換gateway | 照会・起票・状態取得。合否・承認・不可逆操作はACD経路でのみ実行 |
 | 会話圧縮 | `LLMSummarizingCondenser`、`PipelineCondenser`、`NoOpCondenser` | Evidence、hash、ゲート結果、対象revisionの永続記録 |
 | セキュリティ防護 | analyzer、`ConfirmationPolicy`、risk、ensemble、defense-in-depth、policy rails、shell AST/parser。LLM analyzerはLLM由来riskの伝達層 | 不可逆操作の多層防護、裁量枠、`SB1`／`SB2`、fail-closedな共通executor、独立した決定論的検査 |
 | agent profile | `AgentProfile`、profile store、resolver、`llm_profile_ref`／`mcp_server_refs` | model・prompt・tool構成の版管理、`ReviewFinding`との対応付け、秘密情報を含まない参照 |
 | workflow分業 | `WorkflowTool`／`WorkflowExecutor`、`task`、`task_tracker`、`delegate`、`manager` | 電気・機械・FWレーンのtask ledger、graph merge、成果物契約、決定論的状態 |
-| ledger取り込み | agent-server `WebhookSpec`（buffer／flush timer／POST） | EventLog replayを正とするidempotentな重複・欠落処理 |
+| ledger取り込み | agent-server `WebhookSpec`（buffer／flush timer／POST） | task状態の低遅延取り込み。正はEventLog replayとcommit済みartifact |
 | secrets | `SecretRegistry`、`StaticSecret`／`LookupSecret`、`conversation.update_secrets()` | `SecretSource`参照名、at rest secret-freeなgraph／Evidence／profile |
 | sourcing | `browser_use` toolset（navigate、click、type、get_state、get_content、screenshot、tabs） | API一次・browser二次の期限付きEvidence、Phase 10での利用禁止 |
 | 起動契約 | `SessionStart` hook、`HookDecision` | ACD import、外部tool版、解決SHA／MCP設定hashの検証と失敗時deny |
@@ -86,9 +112,11 @@ importや任意の`ToolDefinition`登録経路はない。`entry_command`も実�
 entry pointではなく、`/<plugin-name>:<entry_command>`というslash command名を返す
 ためのmanifest値である。
 
-Git由来のpluginは`Plugin.fetch()`で取得し、`ResolvedPluginSource.resolved_ref`へ
-解決済みcommit SHAを保持できる。pluginのsource、解決済みSHA、内容hashをACDの
-Evidenceへ記録し、Skill／hook／MCP設定の実行条件を固定する。
+Git由来のplugin、Skill、Canvas extensionの解決済みcommit SHAは、SDKの
+`InstallationInfo.resolved_ref`とインストール先の`.installed.json`だけを出所とする。
+`requested_ref`しかなく`resolved_ref`が無い資材はfail-closedとし、ACDはそのメタデータを
+読み取ってsource、resolved SHA、内容hashをEvidenceへ束ねる。Skill／hook／MCP設定の実行
+条件を固定するため、別の推測値やmanifest記載値をresolved SHAの代わりに使わない。
 
 ## SDK機能の活用方針
 
@@ -103,7 +131,8 @@ SDKの機能は実行、配布、反復、分業、防護の基盤として利�
 Markdownの`Skill`として配布し、`KeywordTrigger`、`PathTrigger`、`TaskTrigger`で必要な
 工程へ載せる。複数のskill、hooks、MCP設定、agent定義、commandをまとめて配布する場合は
 `PluginManifest`を用い、marketplaceからGitHubまたはGitのURLでpluginを取得する。
-skills repositoryとpluginの参照はpinし、解決した版をEvidenceへ記録する。
+skills repositoryとpluginの参照はpinし、SDKの`InstallationInfo.resolved_ref`／
+`.installed.json`から解決済み版を取得してEvidenceへ記録する。
 
 Skillの記述、pluginの定義、triggerの発火はプロンプト資材または実行制御であり、設計グラフ
 の正でもEvidenceそのものでもなく、合否根拠にもならない。内容の版、対象revision、
@@ -143,10 +172,12 @@ block-listを通す。
 最終的な裁量枠、承認、Evidence、合否はACDの決定論的ゲートと共通executorが担う。
 
 `SessionStart` hookを起動時契約の強制点として使い、ACD packageのimport、外部ツール版
-プローブ、Skill／pluginの解決済みSHAとMCP設定hashの記録を実行する。未登録のACD Event、
-版不明、解決SHA不明、設定hash不一致などは`HookDecision`でdenyし、セッションを
-fail-closedで開始しない。plugin導入だけではEvent型登録にならないため、このhookを
-運用契約の検証点とする。
+プローブ、Skill／plugin／Canvas extensionの`InstallationInfo.resolved_ref`と
+`.installed.json`、MCP設定hashの記録を実行する。ACD独自Eventは最小限のgate結果、承認、
+副作用receiptへの参照だけを扱うため、その型登録を必要とする経路に限定してimportを強制する。
+未登録、版不明、`requested_ref`しかなく`resolved_ref`が無い、設定hash不一致などは
+`HookDecision`でdenyし、セッションをfail-closedで開始しない。plugin導入だけではEvent型
+登録にならないため、このhookを運用契約の検証点とする。
 
 ### critic、目標判定、停滞検出
 
@@ -166,10 +197,16 @@ critic結果はEvidenceでも合否の正でもない。合否の正はACDゲー
 とどまり、`RV2`の合格根拠にはならない。
 
 `/goal`の`GoalController`と別LLMのjudge（`judge_goal`／`GoalVerdict`）は、PDCAが目標へ
-収束したかを確認し、上限まで再プロンプトする機構として使う。`StuckDetector`は反復する
-action-observation／action-error cycle、agentの独白、context window errorを検出し、
-差し戻しまたはエスカレーションを起動する。いずれもLLMまたは宣言的な補助機構であり、
-judgeの判定や停滞検出結果は`RV2`の判定面ではない。
+収束したかを確認し、停止条件として上限まで再プロンプトする機構として使う。`GoalVerdict`
+はEvidenceにせず、合否はゲートで判定する。`StuckDetector`はaction／observationの反復、
+error連続、agentのmonologue、交互パターンなどの閾値を検出し、差し戻しまたは
+エスカレーションを起動する。いずれもLLMまたは宣言的な補助機構であり、judgeの判定や
+停滞検出結果は`RV2`の判定面ではない。
+
+`switch_llm`は工程境界でACDが明示的に呼び出す。生成、機械可読レビュー、視覚レビューの
+profileを切り替えられるが、同一レビュー途中のAI起点の切替は禁止する。切替後の実体を
+model／profile版としてEvidenceと`ReviewFinding`へ記録し、レビュー途中で版が不定になる
+状態は`unknown`として扱う。
 
 ### condenserとprofile
 
@@ -192,19 +229,29 @@ at rest secret-freeを維持する。
 ### 予算と外部計測
 
 token、money、LLM latencyはSDKの`Metrics`／`MetricsSnapshot`、per-callの
-`TokenUsage`／`ResponseLatency`、`accumulated_cost`を出所とする。外部process回数と
-外部toolのwall-clockはACD tool envelopeで実測し、両者を混同しない。実行上限は
-`AgentDefinition.max_budget_per_run`／`max_iteration_per_run`へ委譲し、実測値と
-`unknown`境界をEvidenceへ記録する。
+`TokenUsage`／`ResponseLatency`、`accumulated_cost`を出所とする。`ConversationStats`の
+`get_metrics_for_usage(usage_id)`でagent／profile単位へ分解し、生成者、レビュア、視覚レビュー
+のコストを分離してEvidenceへ束ねる。外部process回数と外部toolのwall-clockはACD tool
+envelopeで実測し、両者を混同しない。実行上限とretryは
+`AgentDefinition.max_budget_per_run`／`max_iteration_per_run`、SDKのMetrics／LLM retryへ
+委譲し、実測値と`unknown`境界をEvidenceへ記録する。ACDが持つのは外部tool実測と
+不可逆操作のidempotencyだけであり、独自のretry・予算会計は持たない。
 
 ### task ledgerと実行分岐
 
-agent-serverの`WebhookSpec`をledgerとside-effect journalの低遅延取り込みに使う。
+agent-serverの`WebhookSpec`をtask ledgerと実行状態の低遅延取り込みに使う。副作用journalは
+低遅延のEventLogやwebhookではなく、commit側のEvidence artifactを正とする。
 buffer、flush timer、リクエストサイズ上限付きのPOSTを利用し、ACD側でpollingを自作しない。
 配信保証は未確認なので正はEventLog replayに置き、webhookは重複・欠落を前提に
 idempotentに処理する。
 trade studyやPhase 6の協調修復では`Conversation.fork(from_event_id=...)`で子conversation
 を作る。採用枝だけをcanonicalへpatchし、非採用枝はEvidence付き記録として残す。
+低遅延journalの利便性を諦め、commit側へ寄せることで可搬性とrevision結合を優先する。
+
+agent-serverのOpenAI互換gatewayは、PLM、ERP、チャットツール、社内ポータルからの照会、
+起票、状態取得に限定して使う。gatewayから合否、承認、発注や実機書込みなどの不可逆操作を
+駆動せず、ACD共通executorのtyped契約と決定論的ゲートを必ず経由する。gatewayの認証や
+session key相当だけでは、監査に必要な承認ID・期限・対象actionの意味を満たさないためである。
 
 ### securityと分業
 
@@ -222,11 +269,19 @@ ACDの決定論的ゲートへ戻す。
 confirmation policyは`ConfirmRisky(threshold=HIGH, confirm_unknown=True)`を既定とする。
 `NeverConfirm`は不可逆操作を含む構成で採用しない。承認IDの生成・期限・失効・一回性・
 対象Actionとの束縛・重複副作用防止はSDKにないため、ACD共通executorの責務である。
+確認待ち状態と承認画面はSDKの`ConfirmationPolicy`とCanvas extensionへ寄せ、ACDは承認ID、
+対象action、入力hash、期限、失効、一回性という承認オブジェクトの意味だけを持つ。
 
 `WorkflowTool`／`WorkflowExecutor`、`task`、`task_tracker`、`delegate`を電気・機械・FW
-レーンの分業と反復実行へ使う。SDK側のtask状態、delegateの完了報告、workflowの成功状態は
+レーンの分業と反復実行へ使う。`map/reduce`のreduceが束ねるのは`ReviewFinding`の集合であり、
+投影そのものではない。SDK側のtask状態、delegateの完了報告、workflowの成功状態は
 ACDのtask ledgerの正ではない。ACDは対象revision、成果物hash、依存関係、失敗因果、ゲート
 結果をledgerへ記録し、各レーンの成果物を意味的にmergeせず対象revisionから再生成する。
+workflow scriptはLLMが書くPythonであるため、その実行結果を合否根拠にしない。
+
+`ACPAgent`は採用しない。ACP側がLLM、tool、実行を保持するため、実prompt内容hash、model実体版、
+tool schema、`log_completions`をACD側で確実に取得できず、`ReviewFinding`とEvidenceの契約を
+満たせないためである。
 
 `observability/laminar.py`は任意の計測として導入できるが、導入する場合も、計測値を
 Evidenceや合否判定へ自動昇格させない。可観測性は実行の理解を助けるものであり、判定面ではない。
@@ -293,13 +348,18 @@ BLEによるBuild & Blink、MCPサーバ）がある。ただし、接続方法�
   算出しEvidence／`ReviewFinding`へ束ねる。
 - 外部定義Eventを、ACD packageのimportなしで読み戻すこと。
 - 外部副作用を含む決定論的replay。
-- LocalWorkspaceでのホスト権限・ファイル・ネットワークの完全分離。
+- LocalWorkspaceでのホスト権限・ファイル・ネットワークの完全分離。LocalWorkspace自体を
+  実行基盤の対象外としたため、これはSDKの不足を補う契約ではなくACDが採用しない経路の整理である。
+- SDKの`FileStore`（`LocalFileStore`／`InMemoryFileStore`）に対応しないremote FileStore実装。
+  ACD側で保存が必要な場合も独自I/Fを作らずSDK抽象へ合わせる。
 - 承認IDと不可逆操作の暗号学的または因果的な束縛。
 - KiCad、FreeCAD、SPICE、slicerの設計意味論や製造妥当性。
 - 外部サービスの価格、在庫、発注状態の永続的な正確性。
 - FWの機能的正しさ、書き込み・実機ログの再現性、ターゲット固有の意味論。
 - critic、`/goal` judge、LLM security analyzer、hookは確率的または宣言的な機構であり、
   決定論的ゲートとEvidenceを代替しない。
+- `ACPAgent`経由でEvidence契約に必要なprompt、model、tool schema、log_completionsを
+  自動的に取得すること。
 
 したがって、OpenHandsは実行基盤であって、ACDのcanonical graph、gate、Evidence、
 approval、side-effect journalを代替しない。

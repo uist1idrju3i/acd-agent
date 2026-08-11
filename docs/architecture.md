@@ -172,16 +172,18 @@ parent ID検証、Pydantic型付きevent union（`extra="forbid"`、`frozen=True
 event treeと`path_to_root()`、branch navigation、`fork(from_event_id=...)`、
 conversation stateの永続化、異常終了後の未完了tool call検出を提供する。
 
-ACDが定義するのはその上に載せるドメインイベントpayloadである。payloadには対象revision、
-projection ID、入力hash、出力hash、ツール版、形式版、gate結果、stale状態、承認binding、
-side-effect receiptを含める。ACDはSDKの汎用保存機構を再実装せず、Evidenceと合否の意味論を
-所有する。
+ACDが定義するのはその上に載せる最小限のドメインイベントpayloadである。payloadはgate結果、
+承認、commit側の副作用receiptへの参照を中心とし、ドメイン記録の正はcommit済みEvidence
+artifactへ置く。対象revision、projection ID、入力hash、出力hash、ツール版、形式版、
+stale状態などの詳細はcommit済みEvidence artifactへ束ねる。ACDはSDKの汎用保存機構を
+再実装せず、Evidenceと合否の意味論を所有する。
 
-ACD独自の`Event`サブクラスは`DiscriminatedUnionMixin`のsubclass走査で解決されるため、
-EventLogを読む前にACD packageがimport済みでなければならない。未知の`kind`は`ValueError`
-となり、読み飛ばしやopaque保持はできない。このfail-closed挙動は望ましいため、例外を
-握り潰さない。pluginを導入しただけではACDのEvent型は登録されず、起動時importを運用契約
-とする。
+最小限のACD独自`Event`サブクラスも`DiscriminatedUnionMixin`のsubclass走査で解決される
+ため、EventLogを読む前にACD packageがimport済みでなければならない。未知の`kind`は
+`ValueError`となり、読み飛ばしやopaque保持はできない。このfail-closed挙動は望ましいため、
+例外を握り潰さない。pluginを導入しただけではACDのEvent型は登録されず、起動時importを
+gate結果・承認・副作用receipt参照を読む経路の運用契約とする。低遅延の実行journalを諦め、
+commit側へ寄せることで可搬性とrevision結合を優先する。
 
 ## AIオーケストレーション
 
@@ -212,25 +214,36 @@ criticの例外時にSDKが評価なしとして扱うこと、反復終了は�
 
 ## OpenHandsとの境界
 
-OpenHandsはConversation、Tool、workspace、MCP、delegate、metrics、retryを提供する。
+OpenHandsはConversation、Tool、DockerWorkspace／RemoteWorkspace、MCP、delegate、metrics、retryを
+提供する。ACDはLocalWorkspaceを実行基盤として採用せず、agent-serverを前提にVS Code、noVNC、
+Canvas、Webhook、OpenAI互換gatewayを利用する。Docker image digestとRemoteWorkspaceの対象
+revisionを実行条件へ束ね、外部ツール版の固定と可搬性を優先する。
 設計グラフと決定論的ゲートはOpenHandsのEventLogへ埋め込まず、ACDのcoreとadapterが所有する。
 Conversationは計画と実行を進めるが、設計の正や合否を決めない。
+
+agent-serverのVS Code／noVNC経路は、人間がAI候補を観察・手修正するための実行基盤境界で
+ある。GUIを開いた事実やGUI操作自体は合否根拠にならず、手修正はcommit、commit receipt、
+対象ゲート再実行を経て初めて下流の根拠になる。K1の視覚AIレビューとは別経路として併用する。
 
 ## 成果物とworkspaceの所在境界
 
 ACDはファイルシステムを所有しない構成を採り得る。SDKのGit APIは読み取り中心であり、
 `git_changes`、`git_diff`、`get_git_commits`、`get_commit_changes`、HEAD SHA取得などを
 提供するが、typedなcommit／push／branch作成／merge APIはない。`GitHelper`にあるのは
-`checkout`と`reset_hard`である。commit／pushはworkspaceのコマンド実行として行う。
-ACDのtyped wrapperは対象revision、commit SHA、artifact hash、ツール版、実行条件を含む
-commit receiptを生成し、Evidenceへ束ねる。shellの終了コードだけをcommit成立の根拠にせず、
-commit SHAを再取得して確認する。
+`checkout`と`reset_hard`である。commit／pushはSDKの
+`openhands-sdk/openhands/sdk/git/utils.py`にある`run_git_command`（shell injection回避、
+URL資格情報のredact、timeout付き）を介してworkspaceで行う。ACDのtyped wrapperは対象revision、
+commit SHA、artifact hash、ツール版、実行条件を含むcommit receiptを生成し、Evidenceへ束ねる。
+終了コードだけをcommit成立の根拠にせず、commit SHAを再取得して確認する。
 
 SDKにartifact store、manifest、content-addressed registryはない。生成ファイルの実体をOpenHandsの
 `RemoteWorkspace`系workspaceに置き、ACDはworkspaceの`execute_command`、`file_upload`、
 `file_download`、`git_changes`、`git_diff`をHTTP越しに利用する。リポジトリのcloneと
 GitHub／GitLab／Bitbucketのprovider連携もworkspace側の契約として扱う。ACDが常時保持するのは
 設計グラフのrevision識別子、artifactのhash、Evidenceのメタデータであり、ファイル実体ではない。
+保存抽象が必要になった場合はSDKの`FileStore`（`LocalFileStore`／`InMemoryFileStore`）へ合わせ、
+ACD独自I/Fを増やさない。SDKにはremote FileStore実装がないため、RemoteWorkspace側の保存経路
+は未確定として扱う。
 この構成のSDKとの責務分担は[`openhands-integration.md`](openhands-integration.md)にも従う。
 
 workspaceのファイルシステムは揮発する前提で扱う。したがって、gitへcommitしpushされた
@@ -258,11 +271,13 @@ SDKの`task`ツールのTask状態はインメモリ辞書であり、`close()`�
 再起動後の復元保証がない。`task_tracker`も全体置換型のmutableなリストを`TASKS.md`へ
 保存するだけである。したがって、どちらもACD task ledgerの正にはしない。
 
-ACD task ledgerは独立ストアを持たず、EventLogへ追記したACDイベントからの射影（read model）
-として実装する。再開はイベントのreplayで得る。耐久性の正はGit commitとACDの記録に置く。
-`RemoteConversation`のサーバ側保持期間は未確認であり、耐久性の根拠にしない。
+ACD task ledgerは独立ストアを持たず、最小限のACDイベントとcommit済みEvidence artifactから
+射影（read model）として実装する。再開はEventLogとcommitのreplayで得る。副作用journalは
+commit側へ置き、耐久性と可搬性の正をGit commitとACDの記録に置く。`RemoteConversation`の
+サーバ側保持期間は未確認であり、耐久性の根拠にしない。
 
-agent-serverの`WebhookSpec`をledgerとside-effect journalの低遅延取り込み経路として使う。
+agent-serverの`WebhookSpec`をtask ledgerと実行状態の低遅延取り込み経路として使う。副作用
+journalの正はcommit側のEvidence artifactに置く。
 イベントはbuffer、flush timer、リクエストサイズ上限を持つPOSTで送られるため、ACD側で
 pollingを自作しない。ただし配信保証は未確認であるため、正はEventLogのreplayに置き、
 webhook取り込みは重複・欠落を前提にidempotentとし、欠落を検出できない状態を合格扱いに

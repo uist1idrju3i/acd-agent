@@ -60,6 +60,9 @@ flowchart TB
 工程ごとに任意で有効化できる。AIは電気レーンと機械レーンの候補を作るが、設計グラフ、
 ゲート、Evidence、予算、製造プロファイルが共通の判定面である。片方のレーンだけが
 合格しても、次の段階へは進めない。
+VS Code／noVNCの同一workspaceを人間が観察・手修正に使えるが、GUI操作自体はEvidenceに
+ならず`unknown`である。手修正はcommit、commit receipt、対象ゲート再実行を経て初めて
+下流の根拠になり、画面を開けたこと自体は合格根拠にならない。
 各工程の出口では必要な投影を生成してAIレビューを行い、`RV2`でループの収束を確認する。
 出口に限らず、工程内も影響分析に応じて投影生成・AIチェック・是正・再投影のPDCAを随時回す。
 電気・機械・FWの3レーンの分業は、OpenHands SDKの`AgentDefinition`、`delegate`、`workflow`
