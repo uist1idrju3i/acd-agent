@@ -216,6 +216,9 @@ flowchart LR
 ファームウェアパッケージ、監査文書、Q7/N7図表を投影として扱います。
 レイヤは `schema ← core ← adapters ← agent tools ← OpenHands Conversation` とし、
 KiCad、FreeCAD/code-CAD、slicer、sourcingを交換可能なadapterとして扱います。
+ACD coreはnative `ToolDefinition`として登録するPython package、外部adapterはMCP server、
+pluginはSkill・agent定義・hooks・MCP設定・commandの資材配布とします。詳細は
+[`docs/openhands-integration.md`](docs/openhands-integration.md)を参照してください。
 OpenHands SDKはConversation、型付きTool、EventLog、workspace、MCP、delegate、metrics、
 retryに加えて、skills／plugin、subagent（`AgentDefinition`）、hooks、critic、`/goal`、
 condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow／taskを
