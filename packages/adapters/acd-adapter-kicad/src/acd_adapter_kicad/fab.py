@@ -6,7 +6,6 @@ import csv
 import hashlib
 import io
 import math
-import re
 import zipfile
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -41,12 +40,20 @@ class PadMeasurement:
     size_y_mm: float
     drill_mm: float | None
     net: str | None
+    drill_x_mm: float | None = None
+    drill_y_mm: float | None = None
 
     @property
     def annular_ring_mm(self) -> float | None:
         if self.drill_mm is None:
             return None
-        return min(self.size_x_mm, self.size_y_mm) / 2.0 - self.drill_mm / 2.0
+        drill_x = self.drill_x_mm if self.drill_x_mm is not None else self.drill_mm
+        drill_y = self.drill_y_mm if self.drill_y_mm is not None else self.drill_mm
+        assert drill_x is not None and drill_y is not None
+        return min(
+            (self.size_x_mm - drill_x) / 2.0,
+            (self.size_y_mm - drill_y) / 2.0,
+        )
 
 
 @dataclass(frozen=True)
@@ -134,7 +141,16 @@ def _rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     )
 
 
-def _parse_pad(fp_ref: str, fp_at: tuple[float, float, float], node: object) -> PadMeasurement:
+def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
+    return _rotate(x, y, -angle)
+
+
+def _parse_pad(
+    fp_ref: str,
+    fp_at: tuple[float, float, float],
+    node: object,
+    net_names: Mapping[str, str],
+) -> PadMeasurement:
     values = _items(node)
     if len(values) < 5:
         raise FabOutputError("malformed KiCad pad")
@@ -146,15 +162,25 @@ def _parse_pad(fp_ref: str, fp_at: tuple[float, float, float], node: object) -> 
     x_off, y_off = _rotate(local_x, local_y, fp_at[2])
     drill = _one(node, "drill")
     drill_mm = None
+    drill_x_mm = None
+    drill_y_mm = None
     if drill is not None and len(drill) > 1:
         drill_values = [
             _number(item) for item in drill[1:] if not isinstance(item, (list, sexpdata.Symbol))
         ]
         if drill_values:
-            drill_mm = min(drill_values)
+            drill_x_mm = drill_values[0]
+            drill_y_mm = drill_values[1] if len(drill_values) > 1 else drill_values[0]
+            drill_mm = min(drill_x_mm, drill_y_mm)
     kind = "through-hole" if "thru_hole" in {str(item) for item in values} else "smd"
     if "np_thru_hole" in {str(item) for item in values}:
         kind = "npth"
+    net_node = _one(node, "net")
+    net_value = (
+        net_names.get(str(net_node[1]), str(net_node[1]))
+        if net_node is not None and len(net_node) > 1
+        else None
+    )
     return PadMeasurement(
         refdes=fp_ref,
         kind=kind,
@@ -164,7 +190,9 @@ def _parse_pad(fp_ref: str, fp_at: tuple[float, float, float], node: object) -> 
         size_x_mm=_number(size[1]),
         size_y_mm=_number(size[2]),
         drill_mm=drill_mm,
-        net=None,
+        net=net_value,
+        drill_x_mm=drill_x_mm,
+        drill_y_mm=drill_y_mm,
     )
 
 
@@ -184,6 +212,13 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
     outline_points: list[tuple[float, float]] = []
     silk_heights: list[float] = []
     silk_widths: list[float] = []
+    net_names = {
+        str(items[1]): str(items[2])
+        for child in _items(root)[1:]
+        if _tag(child) == "net"
+        for items in [_items(child)]
+        if len(items) > 2
+    }
     for node in _items(root)[1:]:
         tag = _tag(node)
         if tag == "footprint":
@@ -193,9 +228,26 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
             fp_at = _at(node)
             layer_node = _one(node, "layer")
             layer = str(layer_node[1]) if layer_node and len(layer_node) > 1 else "unknown"
-            pads = tuple(_parse_pad(refdes, fp_at, pad) for pad in _direct(node, "pad"))
+            pads = tuple(
+                _parse_pad(refdes, fp_at, pad, net_names) for pad in _direct(node, "pad")
+            )
+            for text in _direct(node, "fp_text") + _direct(node, "property"):
+                layer = _one(text, "layer")
+                effects = _one(text, "effects")
+                font = _one(effects, "font") if effects else None
+                size = _one(font, "size") if font else None
+                thickness = _one(font, "thickness") if font else None
+                if (
+                    layer and len(layer) > 1 and str(layer[1]).endswith("SilkS")
+                    and size and len(size) > 2
+                ):
+                    silk_heights.append(_number(size[2]))
+                    if thickness and len(thickness) > 1:
+                        silk_widths.append(_number(thickness[1]))
             footprints.append(
-                FootprintMeasurement(refdes, fp_at[0], fp_at[1], fp_at[2], layer, pads)
+                FootprintMeasurement(
+                    refdes, fp_at[0], fp_at[1], fp_at[2], str(layer), pads
+                )
             )
         elif tag == "via":
             at = _one(node, "at")
@@ -221,12 +273,6 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
             layer = _one(node, "layer")
             if layer is None or len(layer) < 2 or str(layer[1]) != "Edge.Cuts":
                 continue
-            start = _one(node, "start")
-            end = _one(node, "end")
-            if start and end and len(start) > 2 and len(end) > 2:
-                outline_points.extend(
-                    [(_number(start[1]), _number(start[2])), (_number(end[1]), _number(end[2]))]
-                )
             start = _one(node, "start")
             end = _one(node, "end")
             if start and end:
@@ -271,12 +317,13 @@ def read_drill_measurement(path: Path) -> tuple[tuple[float, ...], int]:
         objects = cast("list[object]", drill.objects)  # pyright: ignore[reportUnknownMemberType]
     except Exception as exc:  # pragma: no cover
         raise FabOutputError(f"{path.name}: gerbonara parse failed: {exc}") from exc
-    tools = tuple(
-        sorted(
-            {float(match.group(1)) for match in re.finditer(r"T\d+C([0-9.]+)", path.read_text())}
-        )
-    )
-    return tools, len(objects)
+    tools: set[float] = set()
+    for obj in objects:
+        aperture = getattr(obj, "aperture", None)
+        diameter = getattr(aperture, "diameter", None)
+        if diameter is not None:
+            tools.add(float(cast(float, diameter)))
+    return tuple(sorted(tools)), len(objects)
 
 
 def _cap(profile: FabProfile, key: str) -> float:
@@ -284,6 +331,41 @@ def _cap(profile: FabProfile, key: str) -> float:
     if value is None:
         raise FabOutputError(f"profile capability {key!r} is missing")
     return float(value["value"])
+
+
+def _cap_pair(profile: FabProfile, key: str) -> tuple[float, float]:
+    value = profile.data["capabilities"].get(key)
+    if value is None or not isinstance(value["value"], list) or len(value["value"]) != 2:
+        raise FabOutputError(f"profile capability {key!r} must be a pair")
+    return float(value["value"][0]), float(value["value"][1])
+
+
+def _pref(profile: FabProfile, rule_id: str) -> tuple[float, str, str]:
+    for item in profile.data["preferences"]:
+        if item["rule_id"] == rule_id:
+            threshold = item.get("threshold")
+            if not isinstance(threshold, dict):
+                raise FabOutputError(f"profile preference {rule_id!r} threshold is missing")
+            raw_threshold = cast(dict[str, object], threshold)
+            value = raw_threshold.get("value")
+            unit = raw_threshold.get("unit")
+            comparison = raw_threshold.get("comparison")
+            if (
+                not isinstance(value, (float, int))
+                or not isinstance(unit, str)
+                or not isinstance(comparison, str)
+            ):
+                raise FabOutputError(f"profile preference {rule_id!r} threshold is malformed")
+            return (float(value), unit, comparison)
+    raise FabOutputError(f"profile preference {rule_id!r} is missing")
+
+
+def _below(value: float, threshold: tuple[float, str, str]) -> bool:
+    return value < threshold[0]
+
+
+def _equal(value: float, threshold: tuple[float, str, str]) -> bool:
+    return math.isclose(value, threshold[0], rel_tol=0.0, abs_tol=1e-9)
 
 
 def _allowance_map(
@@ -303,6 +385,8 @@ def _finding(
     locations: Sequence[Mapping[str, object]],
     allowance: ProcessAllowanceView | None,
 ) -> dict[str, object]:
+    is_capability = classification == "capability_violation"
+    effective_allowance = None if is_capability else allowance
     return {
         "rule_id": rule_id,
         "classification": classification,
@@ -311,13 +395,13 @@ def _finding(
         "unit": unit,
         "locations": [dict(location) for location in locations],
         "allowance": None
-        if allowance is None
+        if effective_allowance is None
         else {
-            "node_id": allowance.node_id,
-            "reason": allowance.reason,
-            "requirement": allowance.requirement,
+            "node_id": effective_allowance.node_id,
+            "reason": effective_allowance.reason,
+            "requirement": effective_allowance.requirement,
         },
-        "status": "allowed" if allowance is not None else "fail",
+        "status": "allowed" if effective_allowance is not None else "fail",
     }
 
 
@@ -330,6 +414,19 @@ def run_dfm(
     intent: FabOrderIntentView | None = None,
 ) -> dict[str, object]:
     allowed = _allowance_map(allowances, profile)
+    thresholds = {
+        rule: _pref(profile, rule)
+        for rule in (
+            "via-hole-prefer-020",
+            "via-hole-015-cost",
+            "via-hole-small-diameter-cost",
+            "via-diameter-margin-quality",
+            "pth-hole-prefer-050",
+            "pth-annular-ring-prefer-025",
+            "track-width-quality-margin",
+            "optimal-layer-balance",
+        )
+    }
     findings: list[dict[str, object]] = []
 
     def add(
@@ -373,25 +470,41 @@ def run_dfm(
                 "mm",
                 loc,
             )
-        if via.hole_mm == 0.15:
-            add("via-hole-015-cost", "cost_or_lead_time_adder", via.hole_mm, 0.20, "mm", loc)
-        if via.hole_mm <= 0.25 and via.diameter_mm < 0.45:
+        if _equal(via.hole_mm, thresholds["via-hole-015-cost"]):
+            add(
+                "via-hole-015-cost",
+                "cost_or_lead_time_adder",
+                via.hole_mm,
+                thresholds["via-hole-015-cost"][0],
+                "mm",
+                loc,
+            )
+        if via.hole_mm <= _cap(profile, "min_via_diameter") and _below(
+            via.diameter_mm, thresholds["via-hole-small-diameter-cost"]
+        ):
             add(
                 "via-hole-small-diameter-cost",
                 "cost_or_lead_time_adder",
                 via.diameter_mm,
-                0.45,
+                thresholds["via-hole-small-diameter-cost"][0],
                 "mm",
                 loc,
             )
-        if via.hole_mm < 0.20:
-            add("via-hole-prefer-020", "cost_or_lead_time_adder", via.hole_mm, 0.20, "mm", loc)
-        if via.diameter_mm - via.hole_mm < 0.15:
+        if _below(via.hole_mm, thresholds["via-hole-prefer-020"]):
+            add(
+                "via-hole-prefer-020",
+                "cost_or_lead_time_adder",
+                via.hole_mm,
+                thresholds["via-hole-prefer-020"][0],
+                "mm",
+                loc,
+            )
+        if _below(via.diameter_mm - via.hole_mm, thresholds["via-diameter-margin-quality"]):
             add(
                 "via-diameter-margin-quality",
                 "quality_risk",
                 via.diameter_mm - via.hole_mm,
-                0.15,
+                thresholds["via-diameter-margin-quality"][0],
                 "mm",
                 loc,
             )
@@ -421,27 +534,35 @@ def run_dfm(
                     "pth-annular-ring-capability",
                     "capability_violation",
                     pad.annular_ring_mm,
-                    0.18,
+                    _cap(profile, "min_pth_annular_ring_2l_1oz"),
                     "mm",
                     loc,
                 )
-            if pad.annular_ring_mm < 0.25:
+            if _below(pad.annular_ring_mm, thresholds["pth-annular-ring-prefer-025"]):
                 add(
                     "pth-annular-ring-prefer-025",
                     "quality_risk",
                     pad.annular_ring_mm,
-                    0.25,
+                    thresholds["pth-annular-ring-prefer-025"][0],
                     "mm",
                     loc,
                 )
-            if pad.drill_mm is not None and pad.drill_mm < 0.50:
-                add("pth-hole-prefer-050", "quality_risk", pad.drill_mm, 0.50, "mm", loc)
-        if pad.kind == "smd" and (pad.size_x_mm < 0.25 or pad.size_y_mm < 0.25):
+            if pad.drill_mm is not None and _below(pad.drill_mm, thresholds["pth-hole-prefer-050"]):
+                add(
+                    "pth-hole-prefer-050",
+                    "quality_risk",
+                    pad.drill_mm,
+                    thresholds["pth-hole-prefer-050"][0],
+                    "mm",
+                    loc,
+                )
+        smd_min = _cap_pair(profile, "min_smd_pad")
+        if pad.kind == "smd" and (pad.size_x_mm < smd_min[0] or pad.size_y_mm < smd_min[1]):
             add(
                 "smd-pad-capability",
                 "capability_violation",
                 [pad.size_x_mm, pad.size_y_mm],
-                [0.25, 0.25],
+                list(smd_min),
                 "mm",
                 loc,
             )
@@ -449,10 +570,15 @@ def run_dfm(
         for pad in measurement.pads:
             if pad.kind != "smd":
                 continue
-            if (
-                abs(via.x_mm - pad.x_mm) <= pad.size_x_mm / 2
-                and abs(via.y_mm - pad.y_mm) <= pad.size_y_mm / 2
-            ):
+            local_x, local_y = _inverse_rotate(
+                via.x_mm - pad.x_mm, via.y_mm - pad.y_mm, pad.rotation_deg
+            )
+            # DRC owns unrelated-net copper clearance; DFM only checks a drill
+            # circle intersecting a soldered SMD pad, which requires filled plating.
+            radius = via.hole_mm / 2
+            nearest_x = min(max(local_x, -pad.size_x_mm / 2), pad.size_x_mm / 2)
+            nearest_y = min(max(local_y, -pad.size_y_mm / 2), pad.size_y_mm / 2)
+            if math.hypot(local_x - nearest_x, local_y - nearest_y) <= radius:
                 add(
                     "via-in-pad-process",
                     "cost_or_lead_time_adder",
@@ -467,16 +593,16 @@ def run_dfm(
                 "track-width-capability",
                 "capability_violation",
                 measurement.min_track_width_mm,
-                0.10,
+                _cap(profile, "min_track_width"),
                 "mm",
                 [],
             )
-        if measurement.min_track_width_mm < 0.15:
+        if _below(measurement.min_track_width_mm, thresholds["track-width-quality-margin"]):
             add(
                 "track-width-quality-margin",
                 "quality_risk",
                 measurement.min_track_width_mm,
-                0.15,
+                thresholds["track-width-quality-margin"][0],
                 "mm",
                 [],
             )
@@ -487,7 +613,7 @@ def run_dfm(
             "silk-height-capability",
             "capability_violation",
             measurement.silk_min_height_mm,
-            1.0,
+            _cap(profile, "min_silk_height"),
             "mm",
             [],
         )
@@ -498,37 +624,56 @@ def run_dfm(
             "silk-width-capability",
             "capability_violation",
             measurement.silk_min_width_mm,
-            0.15,
+            _cap(profile, "min_silk_width"),
             "mm",
             [],
         )
     if lane is not None and intent is not None:
         economic = profile.data["assembly_classes"]["economic"]
-        in_economic = intent.pcba_class_target != "economic" or (
+        combination = any(
+            lane.board.layers == item["layers"]
+            and lane.board.thickness_mm == item["thickness_mm"]
+            and intent.soldermask_color in item["colors"]
+            and intent.surface_finish in item["surface_finishes"]
+            and item["quantity_pcs"][0] <= intent.quantity_pcs <= item["quantity_pcs"][1]
+            and intent.assembly_sides in economic["assembly_sides"]
+            for item in economic["combinations"]
+        )
+        in_economic = intent.pcba_class_target == "economic" and (
             intent.assembly_sides == "top"
-            and lane.board.layers in economic["layers"]
-            and lane.board.thickness_mm in economic["thickness_mm"]
+            and combination
             and economic["board_size_mm"]["min"][0]
             <= lane.board.width_mm
             <= economic["board_size_mm"]["max"][0]
             and economic["board_size_mm"]["min"][1]
             <= lane.board.height_mm
             <= economic["board_size_mm"]["max"][1]
-            and economic["quantity_pcs"]["min"]
-            <= intent.quantity_pcs
-            <= economic["quantity_pcs"]["max"]
         )
-        if not in_economic:
+        if intent.pcba_class_target == "standard" or not in_economic:
             add(
                 "economic-pcba-envelope",
                 "cost_or_lead_time_adder",
-                {"layers": lane.board.layers, "thickness_mm": lane.board.thickness_mm},
-                "economic combination",
+                {
+                    "layers": lane.board.layers,
+                    "thickness_mm": lane.board.thickness_mm,
+                    "soldermask_color": intent.soldermask_color,
+                    "surface_finish": intent.surface_finish,
+                    "assembly_sides": intent.assembly_sides,
+                    "pcba_class_target": intent.pcba_class_target,
+                },
+                "economic combination; standard requires edge rails/fiducials and build >= 4 days",
                 "combination",
                 [],
             )
-        if lane.board.layers >= 7:
-            add("optimal-layer-balance", "quality_risk", lane.board.layers, 6, "layers", [])
+        if lane.board.layers > thresholds["optimal-layer-balance"][0]:
+            add(
+                "optimal-layer-balance",
+                "quality_risk",
+                lane.board.layers,
+                thresholds["optimal-layer-balance"][0],
+                "layers",
+                [],
+            )
     checks = [
         {
             "rule_id": "pth-to-track-prefer-035",
@@ -617,7 +762,7 @@ def run_dfm(
         findings.append(
             _finding(
                 "unused_allowance",
-                "capability_violation",
+                "unused_allowance",
                 rule_id,
                 "finding required",
                 "rule_id",
@@ -745,7 +890,14 @@ def deterministic_zip(output: Path, members: Iterable[Path], root: Path) -> None
                 raise FabOutputError(f"zip member verification failed: {name}")
 
 
-def normalized_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    digest.update(path.read_bytes())
-    return "sha256:" + digest.hexdigest()
+def zip_content_hash(path: Path) -> str:
+    entries: list[str] = []
+    with zipfile.ZipFile(path) as archive:
+        for name in sorted(archive.namelist()):
+            data = b"\n".join(
+                line
+                for line in archive.read(name).splitlines()
+                if not line.lstrip().startswith((b"G04", b";"))
+            ) + b"\n"
+            entries.append(f"{name}:sha256:{hashlib.sha256(data).hexdigest()}")
+    return "sha256:" + hashlib.sha256("\n".join(entries).encode()).hexdigest()

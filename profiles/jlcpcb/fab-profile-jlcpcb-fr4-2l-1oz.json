@@ -44,18 +44,18 @@
     "min_nonplated_slot_width": {"value": 1.0, "unit": "mm", "source_index": 0, "basis": "primary", "note": ""}
   },
   "preferences": [
-    {"rule_id": "via-hole-prefer-020", "description": "via holeは0.20mm以上を優先", "impact": "cost", "source_index": 0, "basis": "primary", "note": "Preferred Min. Via hole size"},
-    {"rule_id": "via-hole-015-cost", "description": "via hole 0.15mmは径を問わず追加費用", "impact": "cost", "source_index": 0, "basis": "primary", "note": "発注時にvia size optionが必要"},
-    {"rule_id": "via-hole-small-diameter-cost", "description": "via hole 0.20/0.25mmでvia径0.45mm未満は追加費用", "impact": "cost", "source_index": 0, "basis": "primary", "note": ""},
-    {"rule_id": "via-diameter-margin-quality", "description": "via diameterはvia holeより0.15mm以上大きくする", "impact": "quality", "source_index": 0, "basis": "primary", "note": "品質余裕を持つ推奨"},
-    {"rule_id": "pth-hole-prefer-050", "description": "PTH穴径0.50mm以上を推奨", "impact": "quality", "source_index": 0, "basis": "primary", "note": "マスク／半田の穴詰まり回避"},
-    {"rule_id": "pth-annular-ring-prefer-025", "description": "2層1ozのPTH annular ringは0.25mm以上を推奨", "impact": "quality", "source_index": 0, "basis": "primary", "note": ""},
+    {"rule_id": "via-hole-prefer-020", "description": "via holeは0.20mm以上を優先", "impact": "cost", "source_index": 0, "basis": "primary", "note": "Preferred Min. Via hole size", "threshold": {"value": 0.2, "unit": "mm", "comparison": "lt"}},
+    {"rule_id": "via-hole-015-cost", "description": "via hole 0.15mmは径を問わず追加費用", "impact": "cost", "source_index": 0, "basis": "primary", "note": "発注時にvia size optionが必要", "threshold": {"value": 0.15, "unit": "mm", "comparison": "eq"}},
+    {"rule_id": "via-hole-small-diameter-cost", "description": "via hole 0.20/0.25mmでvia径0.45mm未満は追加費用", "impact": "cost", "source_index": 0, "basis": "primary", "note": "", "threshold": {"value": 0.45, "unit": "mm", "comparison": "lt"}},
+    {"rule_id": "via-diameter-margin-quality", "description": "via diameterはvia holeより0.15mm以上大きくする", "impact": "quality", "source_index": 0, "basis": "primary", "note": "品質余裕を持つ推奨", "threshold": {"value": 0.15, "unit": "mm", "comparison": "lt"}},
+    {"rule_id": "pth-hole-prefer-050", "description": "PTH穴径0.50mm以上を推奨", "impact": "quality", "source_index": 0, "basis": "primary", "note": "マスク／半田の穴詰まり回避", "threshold": {"value": 0.5, "unit": "mm", "comparison": "lt"}},
+    {"rule_id": "pth-annular-ring-prefer-025", "description": "2層1ozのPTH annular ringは0.25mm以上を推奨", "impact": "quality", "source_index": 0, "basis": "primary", "note": "", "threshold": {"value": 0.25, "unit": "mm", "comparison": "lt"}},
     {"rule_id": "via-in-pad-process", "description": "via-in-padはfilled and plated-overの追加工程", "impact": ["cost", "lead_time", "quality"], "source_index": 0, "basis": "primary", "note": "2層では既定でない"},
     {"rule_id": "pth-to-track-prefer-035", "description": "PTH to trackは0.35mm以上を推奨", "impact": "quality", "source_index": 0, "basis": "primary", "note": ""},
     {"rule_id": "advanced-process-review", "description": "blind/buried via、HDI、厚銅、狭公差インピーダンスはDFMレビュー対象", "impact": ["cost", "lead_time"], "source_index": 0, "basis": "primary", "note": "費用と製造日数が増える可能性"},
-    {"rule_id": "track-width-quality-margin", "description": "最小トラック幅は0.15mm以上を推奨", "impact": "quality", "source_index": 0, "basis": "inference", "note": "0.10mmの±20%幅公差から品質余裕を推論"},
+    {"rule_id": "track-width-quality-margin", "description": "最小トラック幅は0.15mm以上を推奨", "impact": "quality", "source_index": 0, "basis": "inference", "note": "0.10mmの±20%幅公差から品質余裕を推論", "threshold": {"value": 0.15, "unit": "mm", "comparison": "lt"}},
     {"rule_id": "economic-pcba-envelope", "description": "Economic PCBA包絡内を優先し、外れる場合はStandardへ", "impact": ["cost", "lead_time"], "source_index": 1, "basis": "primary", "note": "Economicはbuild 1-3日、外れるとStandardは4日以上かつedge rails/fiducials必要"},
-    {"rule_id": "optimal-layer-balance", "description": "層数1-6をコスト・納期・信頼性のバランスとして優先", "impact": ["cost", "lead_time", "quality"], "source_index": 0, "basis": "primary", "note": ""}
+    {"rule_id": "optimal-layer-balance", "description": "層数1-6をコスト・納期・信頼性のバランスとして優先", "impact": ["cost", "lead_time", "quality"], "source_index": 0, "basis": "primary", "note": "", "threshold": {"value": 6, "unit": "layers", "comparison": "gt"}}
   ],
   "unsupported": ["blind/buried via", "rectangular holes or slots without corner radius"],
   "assembly_classes": {

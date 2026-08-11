@@ -77,7 +77,17 @@
         },
         "source_index": {"type": "integer", "minimum": 0},
         "basis": {"enum": ["primary", "inference"]},
-        "note": {"type": "string"}
+        "note": {"type": "string"},
+        "threshold": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "unit", "comparison"],
+          "properties": {
+            "value": {"type": ["number", "array"]},
+            "unit": {"type": "string", "minLength": 1},
+            "comparison": {"enum": ["eq", "lt", "lte", "gt", "gte"]}
+          }
+        }
       }
     },
     "assemblyClass": {

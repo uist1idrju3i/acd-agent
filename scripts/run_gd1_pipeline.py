@@ -32,11 +32,11 @@ from acd_adapter_kicad.fab import (
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
-    normalized_sha256,
     parse_pos_csv,
     parse_routed_board,
     read_drill_measurement,
     run_dfm,
+    zip_content_hash,
 )
 from acd_adapter_kicad.gates import assert_converged, assert_rule_check_passed
 from acd_adapter_kicad.project import write_project
@@ -206,7 +206,7 @@ def run_pipeline(
     package_members = [*gerber_paths, *drill_paths]
     zip_path = fab_dir / f"{name}-gerbers.zip"
     deterministic_zip(zip_path, package_members, gerber_dir)
-    profile_hash = normalized_sha256(fab_profile_path)
+    profile_hash = normalized_hash(fab_profile_path)
     manifest = {
         "schema_version": "0.1",
         "target_revision": revision,
@@ -220,8 +220,8 @@ def run_pipeline(
         "files": [
             {
                 "path": str(path.relative_to(out_dir)),
-                "normalized_hash": (
-                    normalized_sha256(path) if path.suffix == ".zip" else normalized_hash(path)
+                "content_hash": (
+                    zip_content_hash(path) if path.suffix == ".zip" else normalized_hash(path)
                 ),
             }
             for path in [
@@ -234,6 +234,7 @@ def run_pipeline(
                 dfm_path,
             ]
         ],
+        "content_hash": zip_content_hash(zip_path),
         "tools": {"kicad-cli": kicad.version(), "measurement_parser": "sexpdata+gerbonara"},
         "gates": {"drc": "pass", "dfm": "pass"},
         "pcb_class": intent.pcba_class_target,
@@ -268,13 +269,13 @@ def run_pipeline(
         zip_path,
     ]:
         hashes[path.name] = (
-            normalized_sha256(path) if path.suffix == ".zip" else normalized_hash(path)
+            zip_content_hash(path) if path.suffix == ".zip" else normalized_hash(path)
         )
     for path in [*gerber_paths, *drill_paths]:
         hashes[f"gerbers/{path.name}"] = normalized_hash(path)
     for path in [pos_path, bom_path, cpl_path, dfm_path, package_path]:
         hashes[str(path.relative_to(out_dir))] = normalized_hash(path)
-    hashes[str(zip_path.relative_to(out_dir))] = normalized_sha256(zip_path)
+    hashes[str(zip_path.relative_to(out_dir))] = zip_content_hash(zip_path)
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
     print(f"[10/10] hash manifest: {manifest_path}")

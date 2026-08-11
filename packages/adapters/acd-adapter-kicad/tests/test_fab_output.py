@@ -1,6 +1,7 @@
 import hashlib
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -61,6 +62,39 @@ def test_via_in_smd_pad_requires_allowance() -> None:
     report = run_dfm(board, PROFILE, "r1", ())
     assert report["status"] == "fail"
     assert any(item["rule_id"] == "via-in-pad-process" for item in report["findings"])  # type: ignore[index]
+
+
+def test_via_copper_edge_touch_without_drill_overlap_is_not_via_in_pad() -> None:
+    pad = PadMeasurement("TP1", "smd", 27.55, 12.55, 0.0, 1.5, 1.5, None, "+3V3")
+    via = ViaMeasurement(26.5219, 11.791, 0.6, 0.3, ("F.Cu", "B.Cu"))
+    board = BoardMeasurement(
+        (FootprintMeasurement("TP1", 27.55, 12.55, 0.0, "F.Cu", (pad,)),),
+        (via,),
+        None,
+        None,
+        None,
+        None,
+        (),
+        0,
+    )
+    report = run_dfm(board, PROFILE, "r1", ())
+    assert not any(item["rule_id"] == "via-in-pad-process" for item in report["findings"])  # type: ignore[index]
+
+
+def test_capability_violation_cannot_be_allowed() -> None:
+    via = ViaMeasurement(1.0, 2.0, 0.2, 0.1, ("F.Cu", "B.Cu"))
+    report = run_dfm(_measurement(via), PROFILE, "r1", ())
+    findings = cast(list[dict[str, object]], report["findings"])
+    capability = next(item for item in findings if item["rule_id"] == "via-hole-capability")
+    assert capability["status"] == "fail"
+    assert capability["allowance"] is None
+
+
+def test_oval_annular_ring_uses_each_axis() -> None:
+    pad = PadMeasurement(
+        "J1", "through-hole", 0.0, 0.0, 0.0, 1.1, 2.2, 0.6, None, 0.6, 1.7
+    )
+    assert pad.annular_ring_mm == pytest.approx(0.25)
 
 
 def test_cpl_requires_exact_fitted_set() -> None:
