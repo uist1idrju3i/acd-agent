@@ -34,7 +34,11 @@ class ToolProbeResult(AcdModel):
 
 
 def _run_version_command(
-    executable: str, args: list[str], version_pattern: str
+    executable: str,
+    args: list[str],
+    version_pattern: str,
+    *,
+    allow_nonzero_exit: bool = False,
 ) -> tuple[str, str]:
     try:
         completed = subprocess.run(
@@ -47,13 +51,19 @@ def _run_version_command(
         return "unknown", f"version command failed: {exc}"
     output = (completed.stdout + completed.stderr).strip()
     match = re.search(version_pattern, output)
-    if completed.returncode != 0 or match is None:
+    exit_ok = completed.returncode == 0 or allow_nonzero_exit
+    if not exit_ok or match is None:
         return "unknown", f"unparsable version output (exit={completed.returncode})"
-    return match.group(1), "version detected"
+    return match.group(1), f"version detected (exit={completed.returncode})"
 
 
 def probe_executable(
-    tool_name: str, executable: str, args: list[str], version_pattern: str
+    tool_name: str,
+    executable: str,
+    args: list[str],
+    version_pattern: str,
+    *,
+    allow_nonzero_exit: bool = False,
 ) -> ToolProbeResult:
     path = shutil.which(executable)
     if path is None:
@@ -64,7 +74,9 @@ def probe_executable(
             path=None,
             detail="executable not found on PATH",
         )
-    version, detail = _run_version_command(path, args, version_pattern)
+    version, detail = _run_version_command(
+        path, args, version_pattern, allow_nonzero_exit=allow_nonzero_exit
+    )
     return ToolProbeResult(
         tool_name=tool_name, present=True, version=version, path=path, detail=detail
     )
@@ -75,8 +87,15 @@ def probe_kicad_cli() -> ToolProbeResult:
 
 
 def probe_freerouting() -> ToolProbeResult:
+    # freerouting v2 prints its version banner but exits nonzero when invoked
+    # without an input/output pair, so a nonzero exit is tolerated here as long
+    # as the banner is parsable.
     return probe_executable(
-        "freerouting", "freerouting", ["--version"], r"([0-9]+\.[0-9]+\.?[0-9]*)"
+        "freerouting",
+        "freerouting",
+        ["--version"],
+        r"Freerouting v([0-9]+\.[0-9]+\.?[0-9]*)",
+        allow_nonzero_exit=True,
     )
 
 
