@@ -3,6 +3,10 @@
 > ステータス: Draft  
 > 対象: JAXA公開技術文書の汎用・条件付き・宇宙機特有の区分（調査日 2026-08-02）
 
+本書は、JAXA公開技術文書から抽出した信頼性・安全性プラクティスと、ACDでの適用区分を
+正とします。工程のゲートとEvidenceは [`design-flow.md`](design-flow.md)、分析手法は
+[`qc-tools.md`](qc-tools.md)を参照します。
+
 ## 目的と権威範囲
 
 本書は、JAXA安全・信頼性推進部が公開する共通技術文書（[https://sma.jaxa.jp/techdoc.html](https://sma.jaxa.jp/techdoc.html)、2026-08-02時点で115件）を全文通読し、ACDへ転用できる設計・検証・是正・プロセスのプラクティスを整理したものです。

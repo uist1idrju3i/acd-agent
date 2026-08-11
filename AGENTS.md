@@ -3,6 +3,10 @@
 > ステータス: Draft  
 > 対象バージョン: OpenHands Software Agent SDK v1.41.0、Python 3.12+
 
+本書は、エージェントが本リポジトリで設計・検証・文書化を行う際の作業契約を正とする。
+製品のビジョンは [`README.md`](README.md)、仕様・調査・運用方針は [`docs/README.md`](docs/README.md)
+から参照する。
+
 ## 目的と規範用語
 
 ACDは、OpenHands Software Agent SDKを実行基盤として、基板と筐体を同時に

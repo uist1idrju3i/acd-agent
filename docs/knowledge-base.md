@@ -3,6 +3,10 @@
 > ステータス: Draft
 > 対象: ACDのS1〜S6知識ループ、基板・筐体・製造フィードバック
 
+本書は、KnowledgeItemの構造、適用スコープ、実測Evidence、設計ゲートへの還流を正とします。
+工程ごとの入力・出力は [`design-flow.md`](design-flow.md)、正規データモデルは
+[`architecture.md`](architecture.md)を参照します。
+
 知識の取得は副産物ではなく、第一級のサブシステムです。段階ごとに、たとえば次の
 情報を保存します。
 

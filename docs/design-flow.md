@@ -3,6 +3,10 @@
 > ステータス: Draft  
 > 対象: Phase 0〜1の基板・筐体一貫ループ、OpenHands SDK v1.41.0
 
+本書は、基板・筐体・FWの各レーンにおける工程、ゲート、還流経路を正とする。
+設計グラフの構造は [`architecture.md`](architecture.md)、知識の還流は
+[`knowledge-base.md`](knowledge-base.md)、実装フェーズは [`roadmap.md`](roadmap.md)を参照する。
+
 ## 全体像
 
 ```mermaid
@@ -10,7 +14,7 @@ flowchart TB
     S1["S1 要件対話<br/>電気要件＋機械要件"] --> E2["S2 電気<br/>部品・回路"]
     S1 --> M2["M2 機械<br/>筐体コンセプト"]
     E2 --> E3["S3 電気<br/>配置・配線"]
-    M2 --> M3["S3 機械<br/>筐体詳細"]
+    M2 --> M3["M3 機械<br/>筐体詳細"]
     E3 --> G["共通ゲート<br/>電気・機械・製造"]
     M3 --> G
     G --> S4["S4 製造出力"]

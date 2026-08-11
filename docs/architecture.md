@@ -3,6 +3,10 @@
 > ステータス: Draft  
 > 対象: ACDコンセプト段階、OpenHands SDK v1.41.0
 
+本書は、設計グラフ、レイヤ境界、投影、ツール契約のアーキテクチャを正とする。
+工程の入力・出力・還流は [`design-flow.md`](design-flow.md)、SDKの責務境界は
+[`openhands-integration.md`](openhands-integration.md)を参照する。
+
 ## 正規データモデル
 
 正規データモデルは、型付き・バージョン付き設計グラフである。少なくとも次の
