@@ -272,16 +272,16 @@ SDKの`task`ツールのTask状態はインメモリ辞書であり、`close()`�
 保存するだけである。したがって、どちらもACD task ledgerの正にはしない。
 
 ACD task ledgerは独立ストアを持たず、最小限のACDイベントとcommit済みEvidence artifactから
-射影（read model）として実装する。再開はEventLogとcommitのreplayで得る。副作用journalは
-commit側へ置き、耐久性と可搬性の正をGit commitとACDの記録に置く。`RemoteConversation`の
-サーバ側保持期間は未確認であり、耐久性の根拠にしない。
+射影（read model）として実装する。task状態・実行状態の取り込みの正はEventLog replayである。
+副作用journalとドメイン記録の正はcommit済みEvidence artifactであり、耐久性と可搬性をそこへ
+束ねる。`RemoteConversation`のサーバ側保持期間は未確認であり、耐久性の根拠にしない。
 
-agent-serverの`WebhookSpec`をtask ledgerと実行状態の低遅延取り込み経路として使う。副作用
-journalの正はcommit側のEvidence artifactに置く。
+agent-serverの`WebhookSpec`はtask ledgerと実行状態の低遅延取り込み経路に限る。webhookは
+task状態・実行状態の正でも、副作用journal・ドメイン記録の正でもない。
 イベントはbuffer、flush timer、リクエストサイズ上限を持つPOSTで送られるため、ACD側で
-pollingを自作しない。ただし配信保証は未確認であるため、正はEventLogのreplayに置き、
-webhook取り込みは重複・欠落を前提にidempotentとし、欠落を検出できない状態を合格扱いに
-しない。
+pollingを自作しない。ただし配信保証は未確認であるため、task状態・実行状態の取り込みの正は
+EventLog replayに置く。副作用journalとドメイン記録の正はcommit済みEvidence artifactに置き、
+webhook取り込みは重複・欠落を前提にidempotentとし、欠落を検出できない状態を合格扱いにしない。
 
 ## 未決事項
 

@@ -14,7 +14,8 @@ Skillとして配布せず、適用範囲を確認してから利用します。
 
 Git refからSkillを取得するときは`fetch_skill_with_resolution()`を使い、SDKの
 `InstallationInfo.resolved_ref`／`.installed.json`と一致する解決済みcommit SHAを受け取って
-Evidenceへ記録します。`requested_ref`だけで`resolved_ref`がないSkillは採用しません。Skillのtriggerは`KeywordTrigger`、`TaskTrigger`、
+Evidenceへ記録します。`requested_ref`だけで`resolved_ref`がないSkillは採用しません。
+Skillのtriggerは`KeywordTrigger`、`TaskTrigger`、
 `PathTrigger`だけであり、それぞれkeyword、task text、path globを表現します。部品属性、
 対象revision、gate状態、fab profile、ツール版互換といったACD固有の適用条件はtriggerで
 表現できません。そのためtriggerが発火したことを適用可否の最終判定にはしません。ACDの

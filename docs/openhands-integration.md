@@ -239,10 +239,11 @@ envelopeで実測し、両者を混同しない。実行上限とretryは
 
 ### task ledgerと実行分岐
 
-agent-serverの`WebhookSpec`をtask ledgerと実行状態の低遅延取り込みに使う。副作用journalは
-低遅延のEventLogやwebhookではなく、commit側のEvidence artifactを正とする。
+agent-serverの`WebhookSpec`はtask ledgerと実行状態の低遅延取り込み経路に限る。webhookは
+task状態・実行状態の正でも、副作用journal・ドメイン記録の正でもない。
 buffer、flush timer、リクエストサイズ上限付きのPOSTを利用し、ACD側でpollingを自作しない。
-配信保証は未確認なので正はEventLog replayに置き、webhookは重複・欠落を前提に
+配信保証は未確認なので、task状態・実行状態の取り込みの正はEventLog replayに置く。副作用
+journalとドメイン記録の正はcommit済みEvidence artifactに置き、webhookは重複・欠落を前提に
 idempotentに処理する。
 trade studyやPhase 6の協調修復では`Conversation.fork(from_event_id=...)`で子conversation
 を作る。採用枝だけをcanonicalへpatchし、非採用枝はEvidence付き記録として残す。
