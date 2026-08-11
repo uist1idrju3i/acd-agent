@@ -15,9 +15,10 @@
 5. [`architecture.md`](architecture.md): 設計グラフ、投影、レイヤ境界。
 6. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
 7. [`roadmap.md`](roadmap.md): フェーズ境界とゴールデンタスク。
-8. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
-9. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-10. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
+8. [`tool-selection.md`](tool-selection.md): 実装で使う外部ツールの採否と設計根拠。
+9. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+10. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
+11. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
 
 ## 文書一覧
 
@@ -29,6 +30,7 @@
 | `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
 | `openhands-integration.md` | SDK v1.41.0との統合判断 | Draft |
 | `qc-tools.md` | Q7/N7を使う品質・計画分析 | Draft |
+| `tool-selection.md` | 実装で使う外部ツールの採否と設計根拠 | Draft |
 | `reliability-practices.md` | JAXA公開資料を根拠にした信頼性方針 | Draft |
 | `prior-art.md` | 公開先行事例、API、ライセンス | Draft |
 | `roadmap.md` | ACD固有のPhase 0〜9 | Draft |
