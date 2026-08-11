@@ -1954,6 +1954,7 @@
     {
       "attrs": {
         "assembly": "fitted",
+        "decoupling_target": "U2",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -2006,6 +2007,7 @@
     {
       "attrs": {
         "assembly": "fitted",
+        "decoupling_target": "U1",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -2058,6 +2060,7 @@
     {
       "attrs": {
         "assembly": "fitted",
+        "decoupling_target": "U3",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",

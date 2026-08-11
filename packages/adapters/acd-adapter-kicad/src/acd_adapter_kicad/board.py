@@ -290,7 +290,13 @@ def generate_board(
         for net in sorted(lane.nets, key=lambda n: n.name)
     )
     placements = compute_placements(
-        board, lane.components, footprints, keepout_rects, net_refdes
+        board,
+        lane.components,
+        footprints,
+        keepout_rects,
+        net_refdes,
+        lane.pins,
+        lane.nets,
     )
     placement_by_refdes = {p.refdes: p for p in placements}
 

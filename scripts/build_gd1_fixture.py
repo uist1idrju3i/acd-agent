@@ -83,6 +83,7 @@ class ComponentSpec(TypedDict):
     pads: dict[str, str | None]
     overlay_file: NotRequired[str]
     overlay_sha256: NotRequired[str]
+    decoupling_target: NotRequired[str]
 
 
 NETS: dict[str, dict[str, AttrValue]] = {
@@ -173,9 +174,15 @@ def components() -> list[ComponentSpec]:
         }
 
     def capacitor(
-        refdes: str, value: str, mpn: str, lcsc: str, cls: str, pads: dict[str, str | None]
+        refdes: str,
+        value: str,
+        mpn: str,
+        lcsc: str,
+        cls: str,
+        pads: dict[str, str | None],
+        decoupling_target: str | None = None,
     ) -> ComponentSpec:
-        return {
+        spec: ComponentSpec = {
             "refdes": refdes,
             "value": value,
             "mpn": mpn,
@@ -185,6 +192,9 @@ def components() -> list[ComponentSpec]:
             "lib": c_lib,
             "pads": pads,
         }
+        if decoupling_target is not None:
+            spec["decoupling_target"] = decoupling_target
+        return spec
 
     def testpoint(refdes: str, net: str, label: str) -> ComponentSpec:
         return {
@@ -311,13 +321,31 @@ def components() -> list[ComponentSpec]:
             two_pad("net.vbus_5v", "net.gnd"),
         ),
         capacitor(
-            "C3", "10uF", "CL10A106MQ8NNNC", "C1691", "extended", two_pad("net.p3v3", "net.gnd")
+            "C3",
+            "10uF",
+            "CL10A106MQ8NNNC",
+            "C1691",
+            "extended",
+            two_pad("net.p3v3", "net.gnd"),
+            "U2",
         ),
         capacitor(
-            "C4", "100nF", "CL10B104KB8NNNC", "C1591", "extended", two_pad("net.p3v3", "net.gnd")
+            "C4",
+            "100nF",
+            "CL10B104KB8NNNC",
+            "C1591",
+            "extended",
+            two_pad("net.p3v3", "net.gnd"),
+            "U1",
         ),
         capacitor(
-            "C5", "100nF", "CL10B104KB8NNNC", "C1591", "extended", two_pad("net.p3v3", "net.gnd")
+            "C5",
+            "100nF",
+            "CL10B104KB8NNNC",
+            "C1591",
+            "extended",
+            two_pad("net.p3v3", "net.gnd"),
+            "U3",
         ),
         capacitor("C6", "1uF", "CL10A105KB8NNNC", "C15849", "basic", two_pad("net.en", "net.gnd")),
         testpoint("TP1", "net.p3v3", "TP_3V3"),
@@ -675,6 +703,9 @@ def build_graph() -> DesignGraph:
         if overlay_file is not None and overlay_sha256 is not None:
             attrs["overlay_file"] = overlay_file
             attrs["overlay_sha256"] = overlay_sha256
+        decoupling_target = spec.get("decoupling_target")
+        if decoupling_target is not None:
+            attrs["decoupling_target"] = decoupling_target
         nodes.append(GraphNode(id=comp_id, kind="electrical.component", attrs=attrs))
         for pad, net in sorted(spec["pads"].items(), key=lambda kv: (len(kv[0]), kv[0])):
             pin_attrs: dict[str, AttrValue] = {
