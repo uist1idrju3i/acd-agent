@@ -77,6 +77,7 @@ class ComponentSpec(TypedDict):
     mpn: str
     lcsc: str
     jlcpcb_class: str
+    assembly: str
     lib: LibraryRef
     # pad number -> net id (None means explicit no-connect)
     pads: dict[str, str | None]
@@ -164,6 +165,7 @@ def components() -> list[ComponentSpec]:
             "mpn": mpn,
             "lcsc": lcsc,
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": r_lib,
             "pads": pads,
         }
@@ -177,6 +179,7 @@ def components() -> list[ComponentSpec]:
             "mpn": mpn,
             "lcsc": lcsc,
             "jlcpcb_class": cls,
+            "assembly": "fitted",
             "lib": c_lib,
             "pads": pads,
         }
@@ -188,6 +191,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "",
             "lcsc": "",
             "jlcpcb_class": "none",
+            "assembly": "not_fitted",
             "lib": tp_lib,
             "pads": {"1": net},
         }
@@ -199,6 +203,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "",
             "lcsc": "",
             "jlcpcb_class": "none",
+            "assembly": "not_fitted",
             "lib": hole_lib,
             "pads": {},
         }
@@ -210,6 +215,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "ESP32-C3-MINI-1-N4",
             "lcsc": "C2838502",
             "jlcpcb_class": "extended",
+            "assembly": "fitted",
             "lib": espressif_lib("Espressif:ESP32-C3-MINI-1", "Espressif:ESP32-C3-MINI-1"),
             "pads": esp32_pads(),
         },
@@ -219,6 +225,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "TYPE-C-31-M-12",
             "lcsc": "C165948",
             "jlcpcb_class": "extended",
+            "assembly": "fitted",
             "lib": kicad_lib(
                 "Connector:USB_C_Receptacle_USB2.0_16P",
                 "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
@@ -231,6 +238,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "AMS1117-3.3",
             "lcsc": "C6186",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": kicad_lib(
                 "Regulator_Linear:AMS1117-3.3", "Package_TO_SOT_SMD:SOT-223-3_TabPin2"
             ),
@@ -242,6 +250,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "SHT40-AD1B-R3",
             "lcsc": "C2848306",
             "jlcpcb_class": "extended",
+            "assembly": "fitted",
             "lib": kicad_lib(
                 "Sensor_Humidity:SHT4x",
                 "Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
@@ -254,6 +263,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "KT-0603R",
             "lcsc": "C2286",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": kicad_lib("Device:LED", "LED_SMD:LED_0603_1608Metric"),
             "pads": {"1": "net.gnd", "2": "net.led_a"},
         },
@@ -263,6 +273,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "TS-1088-AR02016",
             "lcsc": "C720477",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": sw_lib,
             "pads": two_pad("net.en", "net.gnd"),
         },
@@ -272,6 +283,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "TS-1088-AR02016",
             "lcsc": "C720477",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": sw_lib,
             "pads": two_pad("net.boot", "net.gnd"),
         },
@@ -367,6 +379,10 @@ BOARD_ATTRS: dict[str, AttrValue] = {
     "fab_capability_source": "https://jlcpcb.com/capabilities/pcb-capabilities",
     "fab_capability_checked_at": "2026-08-11T00:00:00Z",
 }
+
+FAB_PROFILE_ID = "jlcpcb-fr4-2l-1oz"
+FAB_PROFILE_SOURCE = "https://jlcpcb.com/capabilities/pcb-assembly-capabilities"
+FAB_PROFILE_FETCHED_AT = "2026-08-11T00:00:00Z"
 
 MECHANICAL_OUTLINE_ATTRS: dict[str, AttrValue] = {
     "width_mm": 30.0,
@@ -646,6 +662,7 @@ def build_graph() -> DesignGraph:
             "mpn": spec["mpn"],
             "lcsc": spec["lcsc"],
             "jlcpcb_class": spec["jlcpcb_class"],
+            "assembly": spec["assembly"],
             "stock_checked_at": "2026-08-11T00:00:00Z",
         }
         attrs.update(lib_attrs(spec["lib"]))
@@ -672,6 +689,24 @@ def build_graph() -> DesignGraph:
             kind="electrical.board",
             attrs=dict(BOARD_ATTRS),
             depends_on=sorted(board_deps),
+        )
+    )
+    nodes.append(
+        GraphNode(
+            id="fab.order_intent.gd1",
+            kind="fab.order_intent",
+            attrs={
+                "fab_profile": FAB_PROFILE_ID,
+                "profile_source": FAB_PROFILE_SOURCE,
+                "profile_fetched_at": FAB_PROFILE_FETCHED_AT,
+                "pcba_class_target": "economic",
+                "quantity_pcs": 5,
+                "delivery_format": "single",
+                "soldermask_color": "green",
+                "surface_finish": "HASL",
+                "assembly_sides": "top",
+            },
+            depends_on=["board.gd1", "req.gd1-req-013"],
         )
     )
     nodes.extend(mechanical_nodes())

@@ -228,6 +228,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Espressif:ESP32-C3-MINI-1",
         "footprint_file": "libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod",
         "footprint_sha256": "sha256:f1899b54ab6c007d50e76334f3fb8f340a827bc1d26f1ba24003333c214a7626",
@@ -972,6 +973,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
         "footprint_file": "/usr/share/kicad/footprints/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
         "footprint_sha256": "sha256:c562a7f9713a8b754c4d2305a2ea15453469a1c8c48a9b17973383e8993fc750",
@@ -1231,6 +1233,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
         "footprint_file": "/usr/share/kicad/footprints/Package_TO_SOT_SMD.pretty/SOT-223-3_TabPin2.kicad_mod",
         "footprint_sha256": "sha256:8ae5f03e2c16377abed15e51af6864e23a934e1457b97fb7ea930e17fa99f11d",
@@ -1296,6 +1299,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
         "footprint_file": "/usr/share/kicad/footprints/Sensor_Humidity.pretty/Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad.kicad_mod",
         "footprint_sha256": "sha256:294e2bc1e42d07f0460758b00ba2b6b974a4e25e906e7b28056551220d53301f",
@@ -1375,6 +1379,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "LED_SMD:LED_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:7931ed1efba34cb13c8d74a60eb1dca4b0be57d950c38e08c3e7f007db500a1c",
@@ -1426,6 +1431,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
         "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
         "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
@@ -1477,6 +1483,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
         "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
         "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
@@ -1528,6 +1535,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
@@ -1579,6 +1587,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
@@ -1630,6 +1639,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
@@ -1681,6 +1691,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
@@ -1732,6 +1743,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
@@ -1783,6 +1795,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Resistor_SMD:R_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
@@ -1834,6 +1847,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -1885,6 +1899,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -1936,6 +1951,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -1987,6 +2003,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -2038,6 +2055,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -2089,6 +2107,7 @@
     },
     {
       "attrs": {
+        "assembly": "fitted",
         "footprint": "Capacitor_SMD:C_0603_1608Metric",
         "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
         "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
@@ -2140,6 +2159,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
         "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
@@ -2177,6 +2197,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
         "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
@@ -2214,6 +2235,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
         "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
@@ -2251,6 +2273,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
         "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
@@ -2288,6 +2311,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
         "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
@@ -2325,6 +2349,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
         "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
@@ -2362,6 +2387,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
         "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
         "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
@@ -2399,6 +2425,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
         "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
@@ -2422,6 +2449,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
         "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
@@ -2445,6 +2473,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
         "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
@@ -2468,6 +2497,7 @@
     },
     {
       "attrs": {
+        "assembly": "not_fitted",
         "footprint": "MountingHole:MountingHole_2.2mm_M2",
         "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
         "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
@@ -2546,6 +2576,25 @@
       ],
       "id": "board.gd1",
       "kind": "electrical.board"
+    },
+    {
+      "attrs": {
+        "assembly_sides": "top",
+        "delivery_format": "single",
+        "fab_profile": "jlcpcb-fr4-2l-1oz",
+        "pcba_class_target": "economic",
+        "profile_fetched_at": "2026-08-11T00:00:00Z",
+        "profile_source": "https://jlcpcb.com/capabilities/pcb-assembly-capabilities",
+        "quantity_pcs": 5,
+        "soldermask_color": "green",
+        "surface_finish": "HASL"
+      },
+      "depends_on": [
+        "board.gd1",
+        "req.gd1-req-013"
+      ],
+      "id": "fab.order_intent.gd1",
+      "kind": "fab.order_intent"
     },
     {
       "attrs": {

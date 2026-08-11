@@ -37,6 +37,7 @@ class ComponentView:
     mpn: str
     lcsc: str
     jlcpcb_class: str
+    assembly: str
     library: LibraryPin
 
 
@@ -166,9 +167,12 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     mpn=_str_attr(node, "mpn"),
                     lcsc=_str_attr(node, "lcsc"),
                     jlcpcb_class=_str_attr(node, "jlcpcb_class"),
+                    assembly=_str_attr(node, "assembly"),
                     library=_library_pin(node),
                 )
             )
+            if components[-1].assembly not in {"fitted", "not_fitted"}:
+                raise GraphExtractionError(f"node {node.id!r}: invalid assembly")
         elif node.kind == "electrical.net":
             voltage = node.attrs.get("voltage_nominal_v")
             nets.append(

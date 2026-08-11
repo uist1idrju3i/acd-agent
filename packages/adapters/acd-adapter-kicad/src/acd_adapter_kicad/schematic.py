@@ -261,6 +261,7 @@ def generate_schematic(
             mpn="",
             lcsc="",
             jlcpcb_class="none",
+            assembly="not_fitted",
             library=_EMPTY_LIBRARY,
         )
         placed_flag = PlacedSymbol(component=flag_comp, symbol=pwr_flag_symbol, x_mm=x, y_mm=y)

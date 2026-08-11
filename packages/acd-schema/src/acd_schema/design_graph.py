@@ -21,6 +21,8 @@ NodeKind = Literal[
     "electrical.component",
     "electrical.pin",
     "electrical.board",
+    "fab.order_intent",
+    "fab.process_allowance",
     "mechanical.outline",
     "mechanical.component_body",
     "mechanical.connector_opening",
@@ -31,7 +33,7 @@ NodeKind = Literal[
     "evidence.anchor",
 ]
 
-AttrValue = str | float | int | bool | None
+AttrValue = str | float | int | bool | list[str] | None
 
 
 class GraphNode(AcdModel):

@@ -36,6 +36,7 @@ def _component(refdes: str) -> ComponentView:
         mpn="X",
         lcsc="C1",
         jlcpcb_class="basic",
+        assembly="fitted",
         library=LibraryPin(
             symbol="Device:R",
             symbol_file="s",

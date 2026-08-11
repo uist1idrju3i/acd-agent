@@ -30,6 +30,8 @@
             "electrical.component",
             "electrical.pin",
             "electrical.board",
+            "fab.order_intent",
+            "fab.process_allowance",
             "mechanical.outline",
             "mechanical.component_body",
             "mechanical.connector_opening",
@@ -43,7 +45,8 @@
         "attrs": {
           "type": "object",
           "additionalProperties": {
-            "type": ["string", "number", "boolean", "null"]
+            "type": ["string", "number", "boolean", "null", "array"],
+            "items": {"type": ["string", "number", "boolean", "null"]}
           }
         },
         "depends_on": {
