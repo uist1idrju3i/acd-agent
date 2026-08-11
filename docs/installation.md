@@ -1,11 +1,15 @@
 # インストール手順（OpenHands Agent Canvas と acd-agent）
 
 > ステータス: Draft
+>
 > 対象OS: Ubuntu 24.04 LTS
+>
 > 対象版: OpenHands Agent Canvas 1.12.0（同梱既定 agent-server 1.40.1 / automation 1.6.0）、
 > acd-agent（`vendor/software-agent-sdk` = OpenHands Software Agent SDK v1.41.0）
+>
 > 一次情報の確認日: 2026-08-11（公式ドキュメント`https://docs.openhands.dev/`および
 > `OpenHands/OpenHands`リポジトリのREADME）
+>
 > 実測環境: Ubuntu 22.04.5 LTS（本リポジトリの開発VM）。Ubuntu 24.04固有の動作は未確認である。
 
 本書は、ACDをローカルで動かすための導入手順を1文書にまとめる。前半はユーザーの操作入口である
@@ -79,7 +83,8 @@ lsb_release -a
 
 ### Ubuntu 24.04での導入
 
-Ubuntu 24.04の`apt`が提供するNode.jsは18系であり、Agent Canvasの要求（22.12以上）を満たさない。
+Ubuntu 24.04（noble）の`apt`が提供する`nodejs`は18.19.1であり、Agent Canvasの要求
+（22.12以上）を満たさない。
 NodeSourceのセットアップスクリプトまたは`nvm`でNode.js 22系を導入する。次のコマンドは公式
 ドキュメントの前提（Node.js 22.12以上）に合わせた例であり、Ubuntu 24.04上では未実測である。
 本VMにはNode.js 22.23.2が既に入っていたため、導入手順そのものは検証していない。
@@ -307,7 +312,9 @@ uv run python -V
 ```
 
 本VMでの実測では、`uv sync`は約4.5秒（キャッシュ済み、208パッケージ解決、51パッケージ導入）で
-完了し、`uv run python -V`は`Python 3.12.8`だった。CAD kernel（build123d／cadquery-ocp、OCP）
+完了し、`uv run python -V`は`Python 3.12.8`だった。この所要時間は`uv`のキャッシュがある状態の
+値であり、キャッシュが無い初回はCAD kernel（build123d／cadquery-ocp、OCP）の取得で所要時間と
+ディスク使用量が大きくなる。Phase 3の測定値は[`phase3-plan.md`](phase3-plan.md)にある。
 
 ### 5.4 検証コマンド
 
