@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Sync workspace
+        run: uv sync
+      - name: Lint (ruff)
+        run: uv run ruff check
+      - name: Type check (pyright)
+        run: uv run pyright
+      - name: Tests (pytest)
+        run: uv run pytest
+      - name: Verify docs
+        run: uv run python scripts/verify_docs.py
+      - name: Probe external tools (informational)
+        run: uv run python scripts/probe_tools.py
+      - name: Whitespace check
+        run: git diff --check

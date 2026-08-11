@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1",
+  "package_id": "fwpkg-blink-r3",
+  "target_revision": "r3",
+  "modules": ["fw.blinker"],
+  "pin_assignments": [
+    {
+      "pin": "PA4",
+      "net": "net.led_drive",
+      "function": "gpio_out"
+    }
+  ],
+  "build": {
+    "toolchain_version": "arm-none-eabi-gcc 13.2",
+    "source_hash": "sha256:abababababababababababababababababababababababababababababababab",
+    "artifact_hash": "sha256:abababababababababababababababababababababababababababababababab"
+  }
+}

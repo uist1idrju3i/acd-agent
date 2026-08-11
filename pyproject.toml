@@ -1,0 +1,60 @@
+[project]
+name = "acd-agent"
+version = "0.0.1"
+description = "ACD workspace root (AI-first CAD on OpenHands Software Agent SDK)"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+acd-schema = { workspace = true }
+acd-core = { workspace = true }
+acd-events = { workspace = true }
+acd-tools = { workspace = true }
+acd-runtime = { workspace = true }
+openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
+
+[dependency-groups]
+dev = [
+    "acd-schema",
+    "acd-core",
+    "acd-events",
+    "acd-tools",
+    "acd-runtime",
+    "pytest>=8.3",
+    "ruff>=0.9",
+    "pyright>=1.1.390",
+    "jsonschema>=4.23",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["packages/*/src"]
+extend-exclude = ["vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+include = ["packages", "scripts", "fixtures"]
+exclude = ["**/__pycache__", "vendor", "**/.venv"]
+executionEnvironments = [
+    { root = "packages/acd-schema/src" },
+    { root = "packages/acd-core/src" },
+    { root = "packages/acd-events/src" },
+    { root = "packages/acd-tools/src" },
+    { root = "packages/acd-runtime/src" },
+    { root = "." },
+]
+
+[tool.pytest.ini_options]
+testpaths = ["packages"]
+addopts = "-q"

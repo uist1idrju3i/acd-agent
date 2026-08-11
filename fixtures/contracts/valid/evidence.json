@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "ev-erc-r3-0001",
+  "target_revision": "r3",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "kicad-cli",
+    "tool_version": "9.0.4",
+    "format_version": "20240101",
+    "config_hash": "sha256:abababababababababababababababababababababababababababababababab",
+    "input_hash": "sha256:abababababababababababababababababababababababababababababababab",
+    "output_hash": "sha256:abababababababababababababababababababababababababababababababab",
+    "execution_env": "linux-x86_64; container=none",
+    "measurement_conditions": "single run; isolated config dir",
+    "convergence_state": "not_applicable",
+    "target_revision": "r3",
+    "started_at": "2026-08-11T00:00:00+00:00",
+    "finished_at": "2026-08-11T00:00:05+00:00",
+    "exit_code": 0,
+    "idempotency_key": "erc-r3-0001",
+    "uncertainty": "none observed"
+  },
+  "claims": [
+    {
+      "subject_node": "net.led_drive",
+      "property": "erc.violations",
+      "value": 0,
+      "verified": true
+    }
+  ],
+  "created_at": "2026-08-11T00:00:06+00:00"
+}

@@ -22,8 +22,8 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 
 - `README.md`は製品ビジョンの正とする。
 - `docs/`は仕様・調査・運用方針の正とする。
-- `docs/adr/`は設計決定の正とする。現時点では未作成である。
-- 将来の`schemas/`は機械可読契約の正とする。
+- `docs/adr/`は設計決定の正とする。
+- `schemas/`は機械可読契約の正とする。
 - README、docs、Issue、PR、コミットメッセージは日本語とする。
 - 本リポジトリでは上記の日本語規約を採用し、一般設定にある英語の推奨より優先する。
 - ソースコードのコメントと識別子は英語とする。
@@ -146,14 +146,13 @@ EDA、配置配線、製造、機械生成のアルゴリズムについて、AC
 
 ## 検証契約
 
-現時点はドキュメントのみであり、Phase 0の成果物として、CIへ組み込める機械的な文書検証契約を
-定める。検証は全Markdownの相対リンクとGitHub互換アンカー（記号除去、空白のハイフン化、
-重複slugの連番）、Mermaid構文、コードフェンス、見出し階層、用語集との整合、
-`git diff --check`を対象とする。検証スクリプトはローカルと将来のCIで同じ入力を使い、
+検証は`uv sync`、`uv run ruff check`、`uv run pyright`、`uv run pytest`、
+`uv run python scripts/verify_docs.py`、`git diff --check`を使い、ローカルとCI
+（`.github/workflows/ci.yml`）で同じコマンド・同じ入力を使う。文書検証は全Markdownの
+相対リンクとGitHub互換アンカー（記号除去、空白のハイフン化、重複slugの連番）、
+Mermaid構文、コードフェンス、見出し階層、用語集との整合を対象とする。
 未確認やunknownを合格扱いしない。決定論的なAI回帰はSDKの`TestLLM`で応答・例外を固定し、
-実LLMのgolden taskは適格性の定期再測定として分離する。コードが入った後は
-`uv sync`、`uv run pytest`、`uv run ruff check`、`uv run pyright`を使う想定だが、
-現時点ではPython実装、テスト、ruff/pyright設定はまだ存在しない。
+実LLMのgolden taskは適格性の定期再測定として分離する。
 
 ## ハンドオフ前のセルフレビュー
 

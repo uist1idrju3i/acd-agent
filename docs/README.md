@@ -52,6 +52,13 @@
 | `roadmap.md` | ACD固有のPhase 0〜11 | Draft |
 | `golden-design-1.md` | 第1マイルストーンの具体設計とfixture入力 | Draft |
 | `ecad-domain-notes.md` | ECAD領域知識と投影契約 | Draft |
+| `review-checklist.md` | RV1/RV2レビュー観点とdisposition運用 | Draft |
+| `tool-capability-probes.md` | 外部ツール能力プローブの測定結果と候補 | Draft |
+| `adr/ADR-0001-monorepo-structure.md` | uv workspaceによるmonorepo構成 | Accepted |
+| `adr/ADR-0002-json-schema-canonical.md` | JSON Schemaを契約の正本とする | Accepted |
+| `adr/ADR-0003-sdk-feature-adoption.md` | Phase 0でのSDK機能の採否 | Accepted |
+| `adr/ADR-0004-parts-catalog-provenance.md` | 部品カタログとライブラリ出所方針 | Accepted |
 
-`runtime.md`、`schemas/`、ADRは後続の実装・設計決定で追加する。未作成の文書へ
-リンクを張らず、必要な場合は本文で「後続作業」と言及する。
+`runtime.md`は後続の実装・設計決定で追加する。機械可読契約の正本は`schemas/`、
+設計決定は`docs/adr/`にある。未作成の文書へリンクを張らず、必要な場合は本文で
+「後続作業」と言及する。
