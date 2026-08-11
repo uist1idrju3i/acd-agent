@@ -60,6 +60,22 @@ project tierの`MEMORY.md`へ「現時点の標準」の要約をKnowledgeItem�
 footprint・差分・出所EvidenceとともにKnowledgeItemへ接続する。次の設計では、その知識を
 同じスコープの候補へ提案し、採用した差分を新しい`LibraryOverlay`として固定する。
 
+## 製造データから得た再利用知識
+
+- **capabilitiesとpreferencesを分ける。** capabilitiesはfabの絶対的な製造能力であり、
+  超過は合格にできない。preferencesは推奨値や工程選択に伴うコスト・納期・品質のドライバであり、
+  `cost_or_lead_time_adder`や`quality_risk`として比較する。
+- **process allowanceには要求nodeの根拠を持たせる。** 追加工程を許容する場合も、対象ruleと
+  `Requirement`等の要求参照がなければ採用しない。capability violationにはallowanceを適用しない。
+- **判定は生成物の独立測定から導く。** generatorの到達状態や自己申告を合格根拠にせず、
+  Gerber、drill、BOM、CPLを独立parserと測定器で再読込する。
+- **未測定は合格ではない。** `checks_not_implemented`に残る条件は`unknown`として停止側へ
+  集約し、測定実装または対象revisionを含む理由がない限り通過させない。
+- **overlay geometryは一元化する。** LibraryOverlay後のgeometryをDSN、routing、最終board、
+  DRC、DFMで共有し、投影ごとに適用前後が分裂しないようにする。
+- **外部ツール出力は正規化してhashする。** timestamp等の非決定な保存内容を除去する正規化規則を
+  固定し、zipの生バイトではなくメンバhashからcontent hashを導出する。
+
 ## ゲートへの還流
 
 KnowledgeItemは、単なる検索用メモではありません。S3のDFM所見、造形・加工結果、

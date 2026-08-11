@@ -173,13 +173,17 @@ Skillは手順、レビュー観点、作業資材を、gateは決定論的な�
 
 ## S2 製造出力
 
-- **入力:** 共通ゲート合格の設計revision、製造プロファイル、部品・材料Evidence。
+- **入力:** 共通ゲート合格の設計revision、fab profile、部品・材料Evidence。
 - **出力:** Gerber X2、ドリル、IPC-2581、BOM、PnP、stackup、基板FWパッケージ、
   筐体STEP/3MF/STL、必要ならG-code、機械部品リスト。
-- **自動検証ゲート:** 出力を再読込し、hash、形式、座標、数量、総発注額、納期、製造能力を確認する。
+- **自動検証ゲート:** profileが宣言するexport formatで出力し、独立parserで再読込してhash、
+  形式、座標、数量、製造能力、`checks_not_implemented`を確認する。DFM reportは生成器と
+  独立した測定から作り、未測定項目を合格扱いにしない。Qualityを先に満たし、その後に
+  Cost、Deliveryの比較軸を評価する。価格・納期・総発注額は発注前最終ゲートで別途確認する。
   発注前最終ゲートでは、金額・納期・月間発注回数・fab指定・地域の多次元裁量枠をすべて検査し、
   いずれかが枠外または`unknown`なら発注しない。
-- **出力契約:** 単位、精度、原点、面、回転基準、命名をfab profileで固定する。variant依存・
+- **出力契約:** 単位、精度、原点、面、回転基準、命名、BOM/CPL列定義をfab profileの
+  export formatで固定する。variant依存・
   非依存のartifactを分け、面付け後はDRCと独立再読込を実行する。
 - **知識フック:** 出力形式の癖、profile差異、見積結果を保存する。
 - **筐体側:** 3D print/CNC向けの材料・工具・support・加工範囲をartifactに固定する。

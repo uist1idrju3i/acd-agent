@@ -70,7 +70,7 @@ acd-agent/
 | `gate_run` | read | 決定論的ゲート実行とEvidence生成 |
 | `evidence_query` | read | Evidence・stale状態の照会 |
 | `commit_receipt` | 可逆 | commit実行とcommit receipt生成 |
-| `order_execute` | 不可逆 | 発注実行（Phase 10。裁量枠・最終ゲート・承認確認付き） |
+| `order_execute` | 不可逆 | 発注実行（Phase 11。裁量枠・最終ゲート・承認確認付き） |
 
 全toolは共通executorを経由し、tool envelope（版、入力・出力hash、実行条件、idempotency
 key、`unknown`意味論）を強制する。readと不可逆操作を同一toolへ混ぜない。

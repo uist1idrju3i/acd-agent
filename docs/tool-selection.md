@@ -84,7 +84,7 @@ KiCad公式ライブラリのライセンスはCC-BY-SA 4.0であるが、公式
 
 幾何形状の出所は解決済みとする。一方、MPN単位の定格・ピン機能・価格・在庫は別問題であり、
 初期は出所付きの人手キュレーション小カタログ（20〜40点）から始める。商用sourcing APIは
-Phase 8まで既定経路にしない。未知部品のfootprint自動生成と、出所記録の粒度を確定していない
+Phase 9まで既定経路にしない。未知部品のfootprint自動生成と、出所記録の粒度を確定していない
 データの採用は初期スコープ外とする。初期カタログの在庫・実装可否は次回のGolden Designで
 一次確認する。最初期の採用条件は、JLCPCBの実装部品ライブラリ（Basic／Extended）に在庫が
 ある部品に限定する。将来は、支給部品（consigned）およびJLCPCBのGlobal Parts Sourcing経由で
@@ -243,7 +243,7 @@ STEP出力の成功は嵌合の合格ではない。干渉・クリアランス�
 ### 造形可能性（slicer）
 
 PrusaSlicer、CuraEngine、OrcaSlicerはいずれもAGPL（Orcaは本文未取得）である。よって
-ACD配布物へ同梱せず、ユーザー環境前提の外部プロセスとし、Phase 11まで既定ゲートにしない。
+ACD配布物へ同梱せず、ユーザー環境前提の外部プロセスとし、Phase 12まで既定ゲートにしない。
 採用時はslicer名、版、profile、入力hashをEvidenceに固定する。
 
 ## FWレーンの選定
@@ -271,11 +271,12 @@ probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではな�
 
 | 用途 | 候補 | 判定 | 根拠 |
 |---|---|---|---|
-| 部品価格・在庫・lifecycle | Nexar/Octopart、Digi-Key、Mouser | 一次候補（Phase 8） | 公式APIで出所・取得時点・通貨・地域を記録できる。契約と資格情報が前提 |
+| 部品価格・在庫・lifecycle | Nexar/Octopart、Digi-Key、Mouser | 一次候補（Phase 9） | 公式APIで出所・取得時点・通貨・地域を記録できる。契約と資格情報が前提 |
 | 部品データ | 非公式endpoint、`jlcparts`のmirror | 不採用（既定にしない） | 公式APIではなく、規約・rate limit・安定性が未確認。snapshotを固定した参考情報にとどめる |
 | KiCadライブラリ生成 | [easyeda2kicad](https://github.com/uPesy/easyeda2kicad.py) | 不採用 | AGPL-3.0 |
-| PCB見積・発注 | JLCPCB API、PCBWay partner API | 一次候補（Phase 10） | 見積と発注を分離し、総発注額と最終ゲートを前提にする |
-| 筐体見積・発注 | JLC3DP、Slant3D、Xometry partner API | 継続調査（Phase 10〜11） | 権限範囲が契約依存 |
+| PCB見積・発注 | JLCPCB API、PCBWay partner API | 一次候補（Phase 11） | 見積と発注を分離し、総発注額と最終ゲートを前提にする |
+| 筐体見積・発注 | JLC3DP、Slant3D、Xometry partner API | 継続調査（Phase 11〜12） | 権限範囲が契約依存 |
+| JLCPCB KiCad plugin | JLCPCB公式性・ライセンス・版固定・ヘッドレス実行可否を確認してから任意adapterとして評価 | 二次保持 | 既定は決定論的な自前生成。plugin出力も独立parser、DFM、hash、ToolEnvelope、revision検証を通し、GUI専用・非決定論的な出力をそのまま合否根拠にしない |
 
 部品Evidenceは、人手カタログまたは利用者が投入したデータシート・型番を出所として扱う。
 
