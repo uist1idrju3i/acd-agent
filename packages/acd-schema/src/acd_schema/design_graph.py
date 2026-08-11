@@ -20,6 +20,7 @@ NodeKind = Literal[
     "electrical.net",
     "electrical.component",
     "electrical.pin",
+    "electrical.board",
     "firmware.module",
     "firmware.pin_assignment",
     "safety.boundary",

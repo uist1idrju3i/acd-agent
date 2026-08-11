@@ -1,0 +1,2656 @@
+{
+  "graph_id": "golden-design-1",
+  "nodes": [
+    {
+      "attrs": {
+        "text": "作者自身が試作し、USB-Cから給電して実機の赤色LEDを1 Hzで点滅させる"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-001",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "電源はUSB-C VBUS 5 Vのみとし、バッテリ、充電回路、USB PDネゴシエーションを持たない"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-004",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "最大ネット電圧は5 V、最大電流は500 mA未満とする"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-005",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "USB-Cは電力シンク専用とし、CC1/CC2にそれぞれ5.1 kΩのプルダウンを置く"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-006",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "3.3 VはAMS1117-3.3で生成し、入力・出力に10 µFと100 nFを置く"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-007",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "MCUはESP32-C3-MINI-1-N4とし、IO18/IO19の内蔵USBを使用する"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-008",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "LEDはIO7に1 kΩを直列接続し、IO2、IO8、IO9をLEDへ割り当てない"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-010",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "I2CはIO4=SDA、IO5=SCL、アドレス0x44のSHT40とし、各線に4.7 kΩを置く"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-011",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "基板は2層FR-4、板厚1.6 mm、HASL、片面実装、外形およそ30 × 25 mmとする"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-013",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "M2取付穴を4箇所設け、第2マイルストーンの筐体と共用する"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-014",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "アンテナを基板端からはみ出させ、アンテナ直下・周囲に銅箔、GND、部品、シルクを置かない"
+      },
+      "depends_on": [],
+      "id": "req.gd1-req-015",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "current_max_a": 0.5,
+        "name": "VBUS_5V",
+        "voltage_nominal_v": 5.0
+      },
+      "depends_on": [],
+      "id": "net.vbus_5v",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "CC1",
+        "voltage_nominal_v": 5.0
+      },
+      "depends_on": [],
+      "id": "net.cc1",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "CC2",
+        "voltage_nominal_v": 5.0
+      },
+      "depends_on": [],
+      "id": "net.cc2",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "GND",
+        "voltage_nominal_v": 0.0
+      },
+      "depends_on": [],
+      "id": "net.gnd",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "current_max_a": 0.5,
+        "name": "+3V3",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.p3v3",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "USB_D-",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.usb_dn",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "USB_D+",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.usb_dp",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "EN",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.en",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "BOOT",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.boot",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "LED",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.led",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "LED_A",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.led_a",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "I2C_SDA",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.i2c_sda",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "I2C_SCL",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.i2c_scl",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "UART_TX",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.uart_tx",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "name": "UART_RX",
+        "voltage_nominal_v": 3.3
+      },
+      "depends_on": [],
+      "id": "net.uart_rx",
+      "kind": "electrical.net"
+    },
+    {
+      "attrs": {
+        "footprint": "Espressif:ESP32-C3-MINI-1",
+        "footprint_file": "libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod",
+        "footprint_sha256": "sha256:f1899b54ab6c007d50e76334f3fb8f340a827bc1d26f1ba24003333c214a7626",
+        "footprint_source": "https://github.com/espressif/kicad-libraries",
+        "footprint_source_ref": "dd76561812ab300351234ba6e0ec1295641796f0",
+        "jlcpcb_class": "extended",
+        "lcsc": "C2838502",
+        "mpn": "ESP32-C3-MINI-1-N4",
+        "refdes": "U1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Espressif:ESP32-C3-MINI-1",
+        "symbol_file": "libraries/Espressif.kicad_sym",
+        "symbol_sha256": "sha256:bca977294f75d84261181e0b443f5ee9292412d5ed56c3292079685376883a2b",
+        "symbol_source": "https://github.com/espressif/kicad-libraries",
+        "symbol_source_ref": "dd76561812ab300351234ba6e0ec1295641796f0",
+        "value": "ESP32-C3-MINI-1-N4"
+      },
+      "depends_on": [],
+      "id": "comp.u1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "3"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.p3v3"
+      ],
+      "id": "pin.u1.3",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "4"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.4",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "5"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.5",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "6"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.6",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "7"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.7",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.en",
+        "no_connect": false,
+        "pad": "8"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.en"
+      ],
+      "id": "pin.u1.8",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "9"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.9",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "10"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.10",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "11"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.11",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "12"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.12",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "13"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.13",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "14"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.14",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "15"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.15",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "16"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.16",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "17"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.17",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.i2c_sda",
+        "no_connect": false,
+        "pad": "18"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.i2c_sda"
+      ],
+      "id": "pin.u1.18",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.i2c_scl",
+        "no_connect": false,
+        "pad": "19"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.i2c_scl"
+      ],
+      "id": "pin.u1.19",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "20"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.20",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.led",
+        "no_connect": false,
+        "pad": "21"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.led"
+      ],
+      "id": "pin.u1.21",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "22"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.22",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.boot",
+        "no_connect": false,
+        "pad": "23"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.boot"
+      ],
+      "id": "pin.u1.23",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "24"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.24",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "25"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.25",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.usb_dn",
+        "no_connect": false,
+        "pad": "26"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.usb_dn"
+      ],
+      "id": "pin.u1.26",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.usb_dp",
+        "no_connect": false,
+        "pad": "27"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.usb_dp"
+      ],
+      "id": "pin.u1.27",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "28"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.28",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "29"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.29",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.uart_rx",
+        "no_connect": false,
+        "pad": "30"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.uart_rx"
+      ],
+      "id": "pin.u1.30",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.uart_tx",
+        "no_connect": false,
+        "pad": "31"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.uart_tx"
+      ],
+      "id": "pin.u1.31",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "32"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.32",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "33"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.33",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "34"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.34",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": null,
+        "no_connect": true,
+        "pad": "35"
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "pin.u1.35",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "36"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.36",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "37"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.37",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "38"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.38",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "39"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.39",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "40"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.40",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "41"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.41",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "42"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.42",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "43"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.43",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "44"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.44",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "45"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.45",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "46"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.46",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "47"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.47",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "48"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.48",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "49"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.49",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "50"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.50",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "51"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.51",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "52"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.52",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "53"
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ],
+      "id": "pin.u1.53",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+        "footprint_file": "/usr/share/kicad/footprints/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
+        "footprint_sha256": "sha256:8baa7a751db21e6ee93e037d73d5d48b3d449d731edff1d085272ae34ab1bf93",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "extended",
+        "lcsc": "C165948",
+        "mpn": "TYPE-C-31-M-12",
+        "refdes": "J1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:USB_C_Receptacle_USB2.0_16P",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TYPE-C-31-M-12"
+      },
+      "depends_on": [],
+      "id": "comp.j1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "A1"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.gnd"
+      ],
+      "id": "pin.j1.a1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.vbus_5v",
+        "no_connect": false,
+        "pad": "A4"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.vbus_5v"
+      ],
+      "id": "pin.j1.a4",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.cc1",
+        "no_connect": false,
+        "pad": "A5"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.cc1"
+      ],
+      "id": "pin.j1.a5",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.usb_dp",
+        "no_connect": false,
+        "pad": "A6"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.usb_dp"
+      ],
+      "id": "pin.j1.a6",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.usb_dn",
+        "no_connect": false,
+        "pad": "A7"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.usb_dn"
+      ],
+      "id": "pin.j1.a7",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": null,
+        "no_connect": true,
+        "pad": "A8"
+      },
+      "depends_on": [
+        "comp.j1"
+      ],
+      "id": "pin.j1.a8",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.vbus_5v",
+        "no_connect": false,
+        "pad": "A9"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.vbus_5v"
+      ],
+      "id": "pin.j1.a9",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "B1"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.gnd"
+      ],
+      "id": "pin.j1.b1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.vbus_5v",
+        "no_connect": false,
+        "pad": "B4"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.vbus_5v"
+      ],
+      "id": "pin.j1.b4",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.cc2",
+        "no_connect": false,
+        "pad": "B5"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.cc2"
+      ],
+      "id": "pin.j1.b5",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.usb_dp",
+        "no_connect": false,
+        "pad": "B6"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.usb_dp"
+      ],
+      "id": "pin.j1.b6",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.usb_dn",
+        "no_connect": false,
+        "pad": "B7"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.usb_dn"
+      ],
+      "id": "pin.j1.b7",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": null,
+        "no_connect": true,
+        "pad": "B8"
+      },
+      "depends_on": [
+        "comp.j1"
+      ],
+      "id": "pin.j1.b8",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.vbus_5v",
+        "no_connect": false,
+        "pad": "B9"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.vbus_5v"
+      ],
+      "id": "pin.j1.b9",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "S1"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.gnd"
+      ],
+      "id": "pin.j1.s1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "A12"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.gnd"
+      ],
+      "id": "pin.j1.a12",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.j1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "B12"
+      },
+      "depends_on": [
+        "comp.j1",
+        "net.gnd"
+      ],
+      "id": "pin.j1.b12",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+        "footprint_file": "/usr/share/kicad/footprints/Package_TO_SOT_SMD.pretty/SOT-223-3_TabPin2.kicad_mod",
+        "footprint_sha256": "sha256:8732e6fb9d63576e4ecfcdb953443fe6f34b5afabc87ef136cdd40fe7cf03434",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C6186",
+        "mpn": "AMS1117-3.3",
+        "refdes": "U2",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Regulator_Linear:AMS1117-3.3",
+        "symbol_file": "/usr/share/kicad/symbols/Regulator_Linear.kicad_sym",
+        "symbol_sha256": "sha256:0668d6043b5213767a7f45ff376b06c1cb1edec1309cc6ce51e7a0e0cbecf3fc",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "AMS1117-3.3"
+      },
+      "depends_on": [],
+      "id": "comp.u2",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.u2",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.u2",
+        "net.gnd"
+      ],
+      "id": "pin.u2.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u2",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.u2",
+        "net.p3v3"
+      ],
+      "id": "pin.u2.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u2",
+        "net": "net.vbus_5v",
+        "no_connect": false,
+        "pad": "3"
+      },
+      "depends_on": [
+        "comp.u2",
+        "net.vbus_5v"
+      ],
+      "id": "pin.u2.3",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
+        "footprint_file": "/usr/share/kicad/footprints/Sensor_Humidity.pretty/Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad.kicad_mod",
+        "footprint_sha256": "sha256:e242ffa52cc8bb477de27f05ff72b410ec30b3d8bcd80196427893dda08f52ca",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "extended",
+        "lcsc": "C2848306",
+        "mpn": "SHT40-AD1B-R3",
+        "refdes": "U3",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Sensor_Humidity:SHT4x",
+        "symbol_file": "/usr/share/kicad/symbols/Sensor_Humidity.kicad_sym",
+        "symbol_sha256": "sha256:4cf7f10a0ae751eaa0c8feb06ca53c78ac5bf36305235bb4a8407f6541fea247",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "SHT40-AD1B-R3"
+      },
+      "depends_on": [],
+      "id": "comp.u3",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.u3",
+        "net": "net.i2c_sda",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.u3",
+        "net.i2c_sda"
+      ],
+      "id": "pin.u3.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u3",
+        "net": "net.i2c_scl",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.u3",
+        "net.i2c_scl"
+      ],
+      "id": "pin.u3.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u3",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "3"
+      },
+      "depends_on": [
+        "comp.u3",
+        "net.p3v3"
+      ],
+      "id": "pin.u3.3",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.u3",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "4"
+      },
+      "depends_on": [
+        "comp.u3",
+        "net.gnd"
+      ],
+      "id": "pin.u3.4",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "LED_SMD:LED_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:813026fb584d47b87fb701e748b473ab50c923fd4d6e92a286e39362887a37c8",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C2286",
+        "mpn": "KT-0603R",
+        "refdes": "D1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:LED",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "KT-0603R"
+      },
+      "depends_on": [],
+      "id": "comp.d1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.d1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.d1",
+        "net.gnd"
+      ],
+      "id": "pin.d1.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.d1",
+        "net": "net.led_a",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.d1",
+        "net.led_a"
+      ],
+      "id": "pin.d1.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
+        "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
+        "footprint_sha256": "sha256:e924db76251140edb4428611ec8ce37050e929f0fc18c00c965ea6eebcb24a55",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C720477",
+        "mpn": "TS-1088-AR02016",
+        "refdes": "SW1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Switch:SW_Push",
+        "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
+        "symbol_sha256": "sha256:a93607f7bb68bce50996f458d7be86e1e187ac661877548a5119f8b890748fef",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "RESET"
+      },
+      "depends_on": [],
+      "id": "comp.sw1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.sw1",
+        "net": "net.en",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.sw1",
+        "net.en"
+      ],
+      "id": "pin.sw1.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.sw1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.sw1",
+        "net.gnd"
+      ],
+      "id": "pin.sw1.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
+        "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
+        "footprint_sha256": "sha256:e924db76251140edb4428611ec8ce37050e929f0fc18c00c965ea6eebcb24a55",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C720477",
+        "mpn": "TS-1088-AR02016",
+        "refdes": "SW2",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Switch:SW_Push",
+        "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
+        "symbol_sha256": "sha256:a93607f7bb68bce50996f458d7be86e1e187ac661877548a5119f8b890748fef",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "BOOT"
+      },
+      "depends_on": [],
+      "id": "comp.sw2",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.sw2",
+        "net": "net.boot",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.sw2",
+        "net.boot"
+      ],
+      "id": "pin.sw2.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.sw2",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.sw2",
+        "net.gnd"
+      ],
+      "id": "pin.sw2.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C23186",
+        "mpn": "0603WAF5101T5E",
+        "refdes": "R1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "5.1k"
+      },
+      "depends_on": [],
+      "id": "comp.r1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.r1",
+        "net": "net.cc1",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.r1",
+        "net.cc1"
+      ],
+      "id": "pin.r1.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.r1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.r1",
+        "net.gnd"
+      ],
+      "id": "pin.r1.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C23186",
+        "mpn": "0603WAF5101T5E",
+        "refdes": "R2",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "5.1k"
+      },
+      "depends_on": [],
+      "id": "comp.r2",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.r2",
+        "net": "net.cc2",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.r2",
+        "net.cc2"
+      ],
+      "id": "pin.r2.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.r2",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.r2",
+        "net.gnd"
+      ],
+      "id": "pin.r2.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C25804",
+        "mpn": "0603WAF1002T5E",
+        "refdes": "R3",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "10k"
+      },
+      "depends_on": [],
+      "id": "comp.r3",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.r3",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.r3",
+        "net.p3v3"
+      ],
+      "id": "pin.r3.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.r3",
+        "net": "net.en",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.r3",
+        "net.en"
+      ],
+      "id": "pin.r3.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C23162",
+        "mpn": "0603WAF4701T5E",
+        "refdes": "R4",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "4.7k"
+      },
+      "depends_on": [],
+      "id": "comp.r4",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.r4",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.r4",
+        "net.p3v3"
+      ],
+      "id": "pin.r4.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.r4",
+        "net": "net.i2c_sda",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.r4",
+        "net.i2c_sda"
+      ],
+      "id": "pin.r4.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C23162",
+        "mpn": "0603WAF4701T5E",
+        "refdes": "R5",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "4.7k"
+      },
+      "depends_on": [],
+      "id": "comp.r5",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.r5",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.r5",
+        "net.p3v3"
+      ],
+      "id": "pin.r5.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.r5",
+        "net": "net.i2c_scl",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.r5",
+        "net.i2c_scl"
+      ],
+      "id": "pin.r5.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:32e6f926b4be772aeabae6060210133fbf78854a3fe12ca7011b4916ed49f134",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C21190",
+        "mpn": "0603WAF1001T5E",
+        "refdes": "R6",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "1k"
+      },
+      "depends_on": [],
+      "id": "comp.r6",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.r6",
+        "net": "net.led",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.r6",
+        "net.led"
+      ],
+      "id": "pin.r6.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.r6",
+        "net": "net.led_a",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.r6",
+        "net.led_a"
+      ],
+      "id": "pin.r6.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "extended",
+        "lcsc": "C1691",
+        "mpn": "CL10A106MQ8NNNC",
+        "refdes": "C1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "10uF"
+      },
+      "depends_on": [],
+      "id": "comp.c1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.c1",
+        "net": "net.vbus_5v",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.c1",
+        "net.vbus_5v"
+      ],
+      "id": "pin.c1.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.c1",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.c1",
+        "net.gnd"
+      ],
+      "id": "pin.c1.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "extended",
+        "lcsc": "C1591",
+        "mpn": "CL10B104KB8NNNC",
+        "refdes": "C2",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "100nF"
+      },
+      "depends_on": [],
+      "id": "comp.c2",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.c2",
+        "net": "net.vbus_5v",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.c2",
+        "net.vbus_5v"
+      ],
+      "id": "pin.c2.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.c2",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.c2",
+        "net.gnd"
+      ],
+      "id": "pin.c2.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "extended",
+        "lcsc": "C1691",
+        "mpn": "CL10A106MQ8NNNC",
+        "refdes": "C3",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "10uF"
+      },
+      "depends_on": [],
+      "id": "comp.c3",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.c3",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.c3",
+        "net.p3v3"
+      ],
+      "id": "pin.c3.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.c3",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.c3",
+        "net.gnd"
+      ],
+      "id": "pin.c3.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "extended",
+        "lcsc": "C1591",
+        "mpn": "CL10B104KB8NNNC",
+        "refdes": "C4",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "100nF"
+      },
+      "depends_on": [],
+      "id": "comp.c4",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.c4",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.c4",
+        "net.p3v3"
+      ],
+      "id": "pin.c4.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.c4",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.c4",
+        "net.gnd"
+      ],
+      "id": "pin.c4.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "extended",
+        "lcsc": "C1591",
+        "mpn": "CL10B104KB8NNNC",
+        "refdes": "C5",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "100nF"
+      },
+      "depends_on": [],
+      "id": "comp.c5",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.c5",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.c5",
+        "net.p3v3"
+      ],
+      "id": "pin.c5.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.c5",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.c5",
+        "net.gnd"
+      ],
+      "id": "pin.c5.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:86a101f1dbc512aa9a73532f4b837db141edd5bded65094b0d13dca3fc3f6c68",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "basic",
+        "lcsc": "C15849",
+        "mpn": "CL10A105KB8NNNC",
+        "refdes": "C6",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:bf466eecad72ed640dd9a279bce4741c1fcf3d0eecfb07e933c945f7a64744ae",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "1uF"
+      },
+      "depends_on": [],
+      "id": "comp.c6",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.c6",
+        "net": "net.en",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.c6",
+        "net.en"
+      ],
+      "id": "pin.c6.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "component": "comp.c6",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "2"
+      },
+      "depends_on": [
+        "comp.c6",
+        "net.gnd"
+      ],
+      "id": "pin.c6.2",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "TP1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TP_3V3"
+      },
+      "depends_on": [],
+      "id": "comp.tp1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.tp1",
+        "net": "net.p3v3",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.tp1",
+        "net.p3v3"
+      ],
+      "id": "pin.tp1.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "TP2",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TP_GND"
+      },
+      "depends_on": [],
+      "id": "comp.tp2",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.tp2",
+        "net": "net.gnd",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.tp2",
+        "net.gnd"
+      ],
+      "id": "pin.tp2.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "TP3",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TP_SDA"
+      },
+      "depends_on": [],
+      "id": "comp.tp3",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.tp3",
+        "net": "net.i2c_sda",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.tp3",
+        "net.i2c_sda"
+      ],
+      "id": "pin.tp3.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "TP4",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TP_SCL"
+      },
+      "depends_on": [],
+      "id": "comp.tp4",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.tp4",
+        "net": "net.i2c_scl",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.tp4",
+        "net.i2c_scl"
+      ],
+      "id": "pin.tp4.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "TP5",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TP_IO7"
+      },
+      "depends_on": [],
+      "id": "comp.tp5",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.tp5",
+        "net": "net.led",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.tp5",
+        "net.led"
+      ],
+      "id": "pin.tp5.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "TP6",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TP_TX"
+      },
+      "depends_on": [],
+      "id": "comp.tp6",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.tp6",
+        "net": "net.uart_tx",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.tp6",
+        "net.uart_tx"
+      ],
+      "id": "pin.tp6.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:b863253216b04db5519fae21af9390e330c8fc62dee105cab1cf015166eeb2fd",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "TP7",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:5c46ee679a6d5ef5d67115ce3f3217636385de49f316db649f44376861de31c9",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "TP_RX"
+      },
+      "depends_on": [],
+      "id": "comp.tp7",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "component": "comp.tp7",
+        "net": "net.uart_rx",
+        "no_connect": false,
+        "pad": "1"
+      },
+      "depends_on": [
+        "comp.tp7",
+        "net.uart_rx"
+      ],
+      "id": "pin.tp7.1",
+      "kind": "electrical.pin"
+    },
+    {
+      "attrs": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "H1",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "M2"
+      },
+      "depends_on": [],
+      "id": "comp.h1",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "H2",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "M2"
+      },
+      "depends_on": [],
+      "id": "comp.h2",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "H3",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "M2"
+      },
+      "depends_on": [],
+      "id": "comp.h3",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:3ac1576b6ab02080ac7c2c716030f13550ab602a7a0f61ae0c461ead5263ecc7",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "jlcpcb_class": "none",
+        "lcsc": "",
+        "mpn": "",
+        "refdes": "H4",
+        "stock_checked_at": "2026-08-11T00:00:00Z",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:dc5bd2c19609509a454dd6d581af350c308e9774ad740658c95716622d99acce",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "value": "M2"
+      },
+      "depends_on": [],
+      "id": "comp.h4",
+      "kind": "electrical.component"
+    },
+    {
+      "attrs": {
+        "antenna_keepout": true,
+        "assembly_side": "top",
+        "copper_oz": 1,
+        "edge_copper_clearance_mm": 0.3,
+        "fab_capability_checked_at": "2026-08-11T00:00:00Z",
+        "fab_capability_source": "https://jlcpcb.com/capabilities/pcb-capabilities",
+        "finish": "HASL",
+        "height_mm": 25.0,
+        "layers": 2,
+        "material": "FR-4",
+        "min_clearance_mm": 0.15,
+        "min_track_mm": 0.15,
+        "mounting_hole_m2_count": 4,
+        "origin": "board_upper_left",
+        "thickness_mm": 1.6,
+        "unit": "mm",
+        "via_diameter_mm": 0.6,
+        "via_drill_mm": 0.3,
+        "width_mm": 30.0,
+        "y_axis": "down"
+      },
+      "depends_on": [
+        "comp.c1",
+        "comp.c2",
+        "comp.c3",
+        "comp.c4",
+        "comp.c5",
+        "comp.c6",
+        "comp.d1",
+        "comp.h1",
+        "comp.h2",
+        "comp.h3",
+        "comp.h4",
+        "comp.j1",
+        "comp.r1",
+        "comp.r2",
+        "comp.r3",
+        "comp.r4",
+        "comp.r5",
+        "comp.r6",
+        "comp.sw1",
+        "comp.sw2",
+        "comp.tp1",
+        "comp.tp2",
+        "comp.tp3",
+        "comp.tp4",
+        "comp.tp5",
+        "comp.tp6",
+        "comp.tp7",
+        "comp.u1",
+        "comp.u2",
+        "comp.u3"
+      ],
+      "id": "board.gd1",
+      "kind": "electrical.board"
+    },
+    {
+      "attrs": {
+        "gpio": 9,
+        "net": "net.boot"
+      },
+      "depends_on": [
+        "net.boot"
+      ],
+      "id": "fw.pin.boot",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "gpio": 5,
+        "net": "net.i2c_scl"
+      },
+      "depends_on": [
+        "net.i2c_scl"
+      ],
+      "id": "fw.pin.i2c_scl",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "gpio": 4,
+        "net": "net.i2c_sda"
+      },
+      "depends_on": [
+        "net.i2c_sda"
+      ],
+      "id": "fw.pin.i2c_sda",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "gpio": 7,
+        "net": "net.led"
+      },
+      "depends_on": [
+        "net.led"
+      ],
+      "id": "fw.pin.led",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "gpio": 20,
+        "net": "net.uart_rx"
+      },
+      "depends_on": [
+        "net.uart_rx"
+      ],
+      "id": "fw.pin.uart_rx",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "gpio": 21,
+        "net": "net.uart_tx"
+      },
+      "depends_on": [
+        "net.uart_tx"
+      ],
+      "id": "fw.pin.uart_tx",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "gpio": 18,
+        "net": "net.usb_dn"
+      },
+      "depends_on": [
+        "net.usb_dn"
+      ],
+      "id": "fw.pin.usb_dn",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "gpio": 19,
+        "net": "net.usb_dp"
+      },
+      "depends_on": [
+        "net.usb_dp"
+      ],
+      "id": "fw.pin.usb_dp",
+      "kind": "firmware.pin_assignment"
+    },
+    {
+      "attrs": {
+        "battery": false,
+        "charger": false,
+        "intended_use": "author_prototype",
+        "max_current_a": 0.5,
+        "max_net_voltage_v": 5.0,
+        "module_certified": "unknown",
+        "motor_actuator_laser": false,
+        "profile": "hobby"
+      },
+      "depends_on": [],
+      "id": "sb.gd1",
+      "kind": "safety.boundary"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

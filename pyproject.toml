@@ -9,7 +9,8 @@ dependencies = []
 package = false
 
 [tool.uv.workspace]
-members = ["packages/*"]
+members = ["packages/*", "packages/adapters/*"]
+exclude = ["packages/adapters"]
 
 [tool.uv.sources]
 acd-schema = { workspace = true }
@@ -17,6 +18,8 @@ acd-core = { workspace = true }
 acd-events = { workspace = true }
 acd-tools = { workspace = true }
 acd-runtime = { workspace = true }
+acd-adapter-kicad = { workspace = true }
+acd-adapter-freerouting = { workspace = true }
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
 
 [dependency-groups]
@@ -26,6 +29,8 @@ dev = [
     "acd-events",
     "acd-tools",
     "acd-runtime",
+    "acd-adapter-kicad",
+    "acd-adapter-freerouting",
     "pytest>=8.3",
     "ruff>=0.9",
     "pyright>=1.1.390",
@@ -35,7 +40,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/*/src"]
+src = ["packages/*/src", "packages/adapters/*/src"]
 extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
@@ -52,6 +57,8 @@ executionEnvironments = [
     { root = "packages/acd-events/src" },
     { root = "packages/acd-tools/src" },
     { root = "packages/acd-runtime/src" },
+    { root = "packages/adapters/acd-adapter-kicad/src" },
+    { root = "packages/adapters/acd-adapter-freerouting/src" },
     { root = "." },
 ]
 
