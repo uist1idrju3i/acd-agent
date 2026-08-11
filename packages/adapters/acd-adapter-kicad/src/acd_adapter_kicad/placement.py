@@ -218,7 +218,7 @@ def compute_placements(
             for comp in generic
             if comp.refdes not in active_refs and comp.refdes not in decoupling
         ),
-        key=lambda c: c.refdes,
+        key=lambda c: (-bbox_area(c), c.refdes),
     )
 
     for comp in (*active, *decoupling_components, *remaining):
