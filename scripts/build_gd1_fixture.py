@@ -140,7 +140,7 @@ def usb_c_pads() -> dict[str, str | None]:
         "B7": "net.usb_dn",
         "A8": None,
         "B8": None,
-        "S1": "net.gnd",
+        "SH": "net.gnd",
     }
 
 

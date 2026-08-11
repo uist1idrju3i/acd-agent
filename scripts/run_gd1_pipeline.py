@@ -76,7 +76,10 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str,
     assert_converged(route_run.envelope.convergence_state)
     print(f"[3/8] routing converged (skipped={route_run.skipped})")
 
-    routes = parse_ses(ses_path.read_text())
+    routes = parse_ses(
+        ses_path.read_text(),
+        minimum_width_mm=lane.board.min_track_mm,
+    )
     routed_board = inject_routes(
         project.board.read_text(),
         routes,

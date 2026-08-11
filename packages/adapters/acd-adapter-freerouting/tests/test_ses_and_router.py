@@ -38,6 +38,11 @@ def test_parse_ses_converts_um_to_mm_y_flip() -> None:
     assert routed.vias[0].y_mm == pytest.approx(2.5)
 
 
+def test_parse_ses_normalizes_narrow_neck_downs() -> None:
+    routed = parse_ses(_SES.replace("1500", "1124"), minimum_width_mm=0.15)
+    assert routed.wires[0].width_mm == pytest.approx(0.15)
+
+
 def test_parse_ses_rejects_non_session() -> None:
     with pytest.raises(SesImportError):
         parse_ses("(pcb foo)")
