@@ -144,6 +144,34 @@ OpenHandsはConversation、Tool、workspace、MCP、delegate、metrics、retry�
 設計グラフと決定論的ゲートはOpenHandsのEventLogへ埋め込まず、ACDのcoreとadapterが所有する。
 Conversationは計画と実行を進めるが、設計の正や合否を決めない。
 
+## 成果物とworkspaceの所在境界
+
+ACDはファイルシステムを所有しない構成を採り得る。生成ファイルの実体をOpenHandsの
+`RemoteWorkspace`系workspaceに置き、ACDはworkspaceの`execute_command`、`file_upload`、
+`file_download`、`git_changes`、`git_diff`をHTTP越しに利用する。リポジトリのcloneと
+GitHub／GitLab／Bitbucketのprovider連携もworkspace側の契約として扱う。ACDが常時保持するのは
+設計グラフのrevision識別子、artifactのhash、Evidenceのメタデータであり、ファイル実体ではない。
+この構成のSDKとの責務分担は[`openhands-integration.md`](openhands-integration.md)にも従う。
+
+workspaceのファイルシステムは揮発する前提で扱う。したがって、gitへcommitしpushされた
+revisionだけをEvidenceおよび投影の所在とし、未commitの作業ツリー状態をゲート根拠にしない。
+正規性は作業ツリーではなくcommit SHAに束ねる。決定論的ゲートは対象revisionのcommitから
+投影を再取得して判定し、投影を正へ逆流させず、staleな成果物や`unknown`を合格扱いしない。
+これは「対象revisionから投影を再生成する」という既存の不変条件を、ストレージ側にも適用する
+規律である。
+
+artifact hashはworkspace内で生成し、ツール版、形式版、ライブラリcommit、設定その他の
+実行条件とともにtool envelopeへ載せる。ACDはhashの値とメタデータだけを保持して照合し、
+workspaceから取得した値との不一致を検出できなければならない。workspace側に置く外部ツール
+（KiCad CLI等）はworkspace imageへ版を固定し、実行環境と版をEvidenceへ記録する。ツールの
+所在をworkspaceへ移しても、既存のツール契約（版・入力hash・出力hash・実行条件の記録）は
+緩めない。
+
+Gerber、STEP、3MF等のバイナリ成果物はgit本体を肥大化させるため、Git LFSまたは別artifact
+storeを利用する。ただし採用する保管方式、workspace側永続化の保持期間、署名・改ざん検知の
+扱いは未決であり、これらが確定するまで該当Evidenceを完全な永続保管の証拠として扱わない。
+OpenHandsはこの構成でも実行基盤であり、設計グラフと合否判定の正はACDが所有する。
+
 ## 未決事項
 
 - 設計グラフのシリアライズ形式とschema migration方式。
@@ -151,4 +179,6 @@ Conversationは計画と実行を進めるが、設計の正や合否を決め�
   IDF/IDXの採用範囲は未決である。
 - GPL/AGPLツールを外部プロセス境界で利用する際の最終的な法務確認。
 - Evidenceの署名、改ざん検知、保持期間。
+- Gerber、STEP、3MF等のバイナリ成果物をGit LFSと別artifact storeのどちらで保管するか。
+- workspace側の永続化について、保持期間、署名、改ざん検知をどの層で担保するか。
 - 製造APIの資格情報、地域、契約、価格snapshotの扱い。
