@@ -45,6 +45,13 @@ freeroutingの「版バナー出力＋非ゼロexit」は実測した仕様と�
   `2c1c8cde9d8ece9acc1fb32d2e17359318fdf3d5545304746293481e229d8168` /
   `fe398ca65ddf779dea49fcd2430f1699ad84b660d6ba599e8c5b4d05f436503e`、
   正規化後は両方`14715d034c23713b611be563f72363f2204f28069151f6d3a2241cb0fce5db2f`となった。
+- FreeRouting `2.3.0`のGD1実測では、DSNのclass widthを`0.15 mm`に指定しても、
+  SESの224 wire中22本の短いsegmentが`0.1124 mm`で出力された。SES取込時に、
+  設計グラフの`min_track_mm`（GD1では`0.15 mm`）未満のwire widthを`min_track_mm`
+  へ正規化し、正規化後の224 wires／32 viasをKiCad DRCで再判定する。
+  この実測ではDRC errorは`0`、unconnectedは`0`だった。観測した最小wire widthと
+  正規化本数は`routing-summary.json`および`hashes.json`に記録し、規則外の差異は
+  正規化せず停止条件として扱う。
 
 ### 非決定性の生の差分抜粋
 
