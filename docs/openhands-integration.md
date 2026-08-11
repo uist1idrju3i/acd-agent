@@ -5,12 +5,10 @@
 > submodule commit: `ca46719d5e9a0b0af79f7de2da37067a5b94563c`（2026-08-06）  
 > ライセンス: MIT、Python 3.12+
 
-本書は、OpenHands SDKが担う実行基盤と、ACDが担う設計グラフ・ゲート・Evidenceの
+本書は、`vendor/software-agent-sdk`のソースと公式ドキュメントを一次情報として調査した
+結果の要約であり、OpenHands SDKが担う実行基盤とACDが担う設計グラフ・ゲート・Evidenceの
 境界を正とする。工程のFW契約は [`design-flow.md`](design-flow.md)、実装フェーズは
-[`roadmap.md`](roadmap.md)を参照する。
-
-本書は、`vendor/software-agent-sdk`のソースと公式ドキュメントを一次情報として
-調査した結果の要約である。代表的な根拠は、`openhands-sdk/openhands/sdk/agent/`、
+[`roadmap.md`](roadmap.md)を参照する。代表的な根拠は、`openhands-sdk/openhands/sdk/agent/`、
 `openhands-sdk/openhands/sdk/conversation/`、`openhands-sdk/openhands/sdk/event/`、
 `openhands-sdk/openhands/sdk/tool/`、`openhands-sdk/openhands/sdk/security/`、
 `openhands-workspace/openhands/workspace/`のリポジトリ相対パスにある。
