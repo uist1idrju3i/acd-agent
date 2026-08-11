@@ -201,8 +201,8 @@ token、money、LLM latencyはSDKの`Metrics`／`MetricsSnapshot`、per-callの
 
 agent-serverの`WebhookSpec`をledgerとside-effect journalの低遅延取り込みに使う。
 buffer、flush timer、リクエストサイズ上限付きのPOSTを利用し、ACD側でpollingを自作しない。
-配信保証は未確認なので
-正はEventLog replayに置き、webhookは重複・欠落を前提にidempotentに処理する。
+配信保証は未確認なので正はEventLog replayに置き、webhookは重複・欠落を前提に
+idempotentに処理する。
 trade studyやPhase 6の協調修復では`Conversation.fork(from_event_id=...)`で子conversation
 を作る。採用枝だけをcanonicalへpatchし、非採用枝はEvidence付き記録として残す。
 

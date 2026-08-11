@@ -264,9 +264,9 @@ ACD task ledgerは独立ストアを持たず、EventLogへ追記したACDイベ
 
 agent-serverの`WebhookSpec`をledgerとside-effect journalの低遅延取り込み経路として使う。
 イベントはbuffer、flush timer、リクエストサイズ上限を持つPOSTで送られるため、ACD側で
-pollingを自作しない。ただし
-配信保証は未確認であるため、正はEventLogのreplayに置く。webhook取り込みは重複・欠落を
-前提にidempotentとし、欠落を検出できない状態を合格扱いにしない。
+pollingを自作しない。ただし配信保証は未確認であるため、正はEventLogのreplayに置き、
+webhook取り込みは重複・欠落を前提にidempotentとし、欠落を検出できない状態を合格扱いに
+しない。
 
 ## 未決事項
 
