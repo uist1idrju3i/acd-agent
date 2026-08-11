@@ -38,9 +38,9 @@ Evidenceである。
 | ACD要件 | SDKで使うもの | ACDが自前実装するもの |
 |---|---|---|
 | 型付きtool | `ToolDefinition`、Pydantic Action/Observation、annotations | 設計グラフschema、artifact contract、CAD/EDA意味論 |
-| 決定論的gate | tool hooks、typed result、`readOnly`/`destructive`/`idempotent` annotations | gate policyの版、input/design hash、stale判定、fail-closed |
+| 決定論的gate | tool hooks、typed result、`readOnly`/`destructive`/`idempotent` annotations、`CriticBase`／`IterativeRefinementConfig`（反復実行機構） | gate policyの版、input/design hash、stale判定、fail-closed、合否の正 |
 | 承認 | `ConfirmationPolicy`、`SecurityRisk`、confirmation state | approval IDの一回性、失効、ActionEventとの束縛、不可逆executor |
-| 実行履歴 | EventLog、snapshot、resume、fork | 外部副作用journal、署名、idempotency、外部状態snapshot |
+| 実行履歴 | SDK `EventLog`の追記・lock・型付きevent・branch／resume／fork・conversation state永続化 | ACDドメインevent payload、外部副作用journal、署名、idempotency、外部状態snapshot。SDK event logとACD payloadの二層構造とする |
 | 長時間実行 | condenser、memory、interrupt、max iteration、budget | ACD task ledger、checkpoint方針、予算の製造・機械統合 |
 | 分業 | delegate/spawn、子Conversation、権限継承 | 電気・機械レーンのgraph merge、成果物契約、失敗因果 |
 | LLM運用 | token/cost metrics、cache、retry | ACD retry budget、同一input hash、外部副作用の再実行防止 |
@@ -51,7 +51,7 @@ Evidenceである。
 | 反復改善 | `CriticBase`、`CriticResult`、`IterativeRefinementConfig`、`Conversation.run()`の自動retry | PDCAの`ReviewFinding`、処分状態、ラウンド上限、`RV2`の合否 |
 | 目標・停滞検出 | `/goal`、`GoalController`、judge、`GoalVerdict`、`StuckDetector` | 収束判定、差し戻し、エスカレーション、決定論的な完了条件 |
 | 会話圧縮 | `LLMSummarizingCondenser`、`PipelineCondenser`、`NoOpCondenser` | Evidence、hash、ゲート結果、対象revisionの永続記録 |
-| セキュリティ防護 | analyzer、`ConfirmationPolicy`、risk、ensemble、defense-in-depth、policy rails、shell AST/parser | 不可逆操作の多層防護、裁量枠、`SB1`／`SB2`、fail-closedな共通executor |
+| セキュリティ防護 | analyzer、`ConfirmationPolicy`、risk、ensemble、defense-in-depth、policy rails、shell AST/parser。LLM analyzerはLLM由来riskの伝達層 | 不可逆操作の多層防護、裁量枠、`SB1`／`SB2`、fail-closedな共通executor、独立した決定論的検査 |
 | agent profile | `AgentProfile`、profile store、resolver、`llm_profile_ref`／`mcp_server_refs` | model・prompt・tool構成の版管理、`ReviewFinding`との対応付け、秘密情報を含まない参照 |
 | workflow分業 | `WorkflowTool`／`WorkflowExecutor`、`task`、`task_tracker`、`delegate`、`manager` | 電気・機械・FWレーンのtask ledger、graph merge、成果物契約、決定論的状態 |
 | 可観測性 | `observability/laminar.py` | 任意の計測、Evidenceと判定面の分離 |
@@ -59,6 +59,29 @@ Evidenceである。
 ACDのtoolは`ToolDefinition`として登録し、Pydantic Action/Observationで入力と結果を
 型付けする。annotationsはread-only、destructive、idempotentの宣言に使うが、
 宣言だけで安全性は成立しない。共通executorが実際の副作用を分類・検査する。
+
+## ACDの提供形態
+
+ACDは、OpenHandsとの結合を次の三層に分けて提供する。
+
+- **core:** 設計グラフ、決定論的ゲート、共通executorを含むPythonパッケージ。
+  permissiveな依存はimport結合し、ACDの`ToolDefinition`としてOpenHandsへ登録する。
+- **外部ツール:** KiCad、FreeCAD、slicer、simulation等のadapter。プロセス境界と
+  ライセンス境界を兼ねるMCP serverとして提供する。
+- **plugin:** Skill、`AgentDefinition`、hooks、MCP設定、commandの配布単位。
+  pluginはPython packageをimportせず、`ToolDefinition`も登録しない。ACD本体の
+  配布経路ではなく、OpenHandsへ作業資材と設定を配布する経路である。
+
+SDKのplugin loader（`openhands/sdk/plugin/plugin.py`）が読み込むのは、
+`.plugin/plugin.json`または`.claude-plugin/plugin.json`、`skills/`、`commands/`、
+`agents/`、`hooks/hooks.json`、`.mcp.json`等のファイル資材である。Python packageの
+importや任意の`ToolDefinition`登録経路はない。`entry_command`も実行可能なPython
+entry pointではなく、`/<plugin-name>:<entry_command>`というslash command名を返す
+ためのmanifest値である。
+
+Git由来のpluginは`Plugin.fetch()`で取得し、`ResolvedPluginSource.resolved_ref`へ
+解決済みcommit SHAを保持できる。pluginのsource、解決済みSHA、内容hashをACDの
+Evidenceへ記録し、Skill／hook／MCP設定の実行条件を固定する。
 
 ## SDK機能の活用方針
 
@@ -102,10 +125,20 @@ Skillの記述、pluginの定義、triggerの発火はプロンプト資材ま�
 
 ### critic、目標判定、停滞検出
 
-`CriticBase`、`CriticResult`、`IterativeRefinementConfig`の`success_threshold`と
-`max_iterations`を、投影レビューPDCAのラウンド上限と自動retryの実行機構として利用する。
-`agent_finished`、`empty_patch`、`pass_critic`、API basedのcritic結果は改善のシグナルで
-あって、`ReviewFinding`の代替ではない。criticのスコアや閾値超過を`RV2`の合格根拠にしない。
+ACDの決定論的ゲートをACD側で実行し、その結果を`CriticResult`へ写像してSDKの反復機構
+だけを利用する。ゲート合格は`score=1.0`、不合格または例外は`score=0.0`とし、
+確率的scoreを閾値判定へ使わない。`CriticResult`は`score`（0.0〜1.0）、`message`、
+`metadata`を持つ。
+
+`CriticBase`はソース上`EXPERIMENTAL`である。`AgentBase.critic`は単数であり、複数critic
+を登録できないため、複数ゲートはACD側で合成する。`evaluate()`へ渡るのは会話イベントで
+あり、現行経路の`git_patch`は常に`None`である。対象revisionはACD側で解決する。
+criticの例外はSDK側で捕捉され、評価が無かった扱いになるため、ACDはゲート例外を自前で
+捕捉して`score=0.0`へ写像し、fail-closedを保つ。
+
+critic結果はEvidenceでも合否の正でもない。合否の正はACDゲートそのものである。
+`agent_finished`、`empty_patch`、`pass_critic`、API basedのcritic結果も改善シグナルに
+とどまり、`RV2`の合格根拠にはならない。
 
 `/goal`の`GoalController`と別LLMのjudge（`judge_goal`／`GoalVerdict`）は、PDCAが目標へ
 収束したかを確認し、上限まで再プロンプトする機構として使う。`StuckDetector`は反復する
@@ -128,9 +161,19 @@ Evidence、設計グラフへ複製しない。
 ### securityと分業
 
 analyzer、`ConfirmationPolicy`、risk、ensemble、defense-in-depthのpattern／policy rails、
-shell AST／parserを、外部コマンドと不可逆操作の多層防護へ使う。LLMベースのrisk判定は
-確率的であるため、`SB1`／`SB2`、発注裁量枠、実機書込みの最終判定を代替しない。防護の
-どの層でも不明、矛盾、解析不能はfail-closedとし、ACDの決定論的ゲートへ戻す。
+shell AST／parserを、外部コマンドと不可逆操作の多層防護へ使う。SDKの
+`LLMSecurityAnalyzer.security_risk()`は`ActionEvent`に付いているLLM由来のrisk値を
+そのまま返すだけで、独立した検証を行わない。したがってLLM analyzerは補助であり、
+`SB1`／`SB2`、発注裁量枠、実機書込みの最終判定を代替しない。
+
+ACDの`SB1`／`SB2`述語は`SecurityAnalyzerBase`の実装として追加し、
+`EnsembleSecurityAnalyzer`へ組み込む。ensembleはriskの最大値を採り、unknownを伝播し、
+analyzer例外をHIGH扱いにできる。防護のどの層でも不明、矛盾、解析不能はfail-closedとし、
+ACDの決定論的ゲートへ戻す。
+
+confirmation policyは`ConfirmRisky(threshold=HIGH, confirm_unknown=True)`を既定とする。
+`NeverConfirm`は不可逆操作を含む構成で採用しない。承認IDの生成・期限・失効・一回性・
+対象Actionとの束縛・重複副作用防止はSDKにないため、ACD共通executorの責務である。
 
 `WorkflowTool`／`WorkflowExecutor`、`task`、`task_tracker`、`delegate`を電気・機械・FW
 レーンの分業と反復実行へ使う。SDK側のtask状態、delegateの完了報告、workflowの成功状態は
@@ -144,11 +187,30 @@ CAD/EDA外部プロセスがファイルを保持している間は、worktree�
 排他にする。adapterはプロセス終了とファイルハンドル解放を確認し、隔離した設定ディレクトリ
 で実行する。切替・復元後は対象revisionから投影を再生成し、再読込とゲートを再実行する。
 
+### ワークツリーとリソース排他
+
+`DeclaredResources(keys=..., declared=...)`と`ResourceLockManager`／
+`ParallelToolExecutor`によるresource lockを、ワークツリー操作と外部ツール実行の
+排他の一次機構として使う。ACDが関係toolを自前で包み、共通キー（例：worktreeパス）
+を宣言する。既定のterminal toolは`terminal:session`を使い、MCP toolはresource宣言が
+なく`tool:<name>`へフォールバックするため、ACDのworktreeキーを共有しない。
+
+ロックは`ParallelToolExecutor`インスタンス単位であり、conversation、executor、プロセスを
+またぐグローバル排他ではない。プロセス終了とファイルハンドル解放の確認はACD側の責務として
+残る。agent-serverの`conversation_service.py`の`_create_conversation_worktree()`は、
+会話ごとに`git fetch origin`、`git worktree add -b`、`git worktree remove --force`、
+`git worktree prune`、`git branch -D`を内部実行する。1 conversation = 1 worktreeを
+作業revisionの隔離単位に利用できるが、これはagent-server内部処理であり公開typed APIではない。
+
 ## MCP接続
 
-SDKのMCP統合は、外部CAD/EDA、sourcing、simulationを動的schemaで接続する候補である。
-MCP toolの入力をPydantic Actionへ変換し、timeout、再接続、secret展開、出力maskingを
-利用する。MCP serverが返す成功文字列を合格Evidenceとはせず、生成artifactを再読込し、
+外部ツールadapter（KiCad、FreeCAD、slicer、simulation等）はMCP serverとして提供し、
+プロセス境界とライセンス境界を兼ねる。SDKのMCP統合が提供するのは、接続、
+`list_tools()`による動的discovery、runtime JSON SchemaからのPydantic Action生成、
+`MCP_TOOL_TIMEOUT_SECONDS = 300`、reconnect、error observation、secret展開、maskingである。
+SDKが提供しないのはserver版の固定、tool semantic version、runtime schema変更の承認、
+artifact hash、Evidence、idempotencyであり、これらはACDが担う。
+MCP serverが返す成功文字列を合格Evidenceとはせず、生成artifactを再読込し、
 決定論的gateを別途実行する。
 
 ## ファームウェア開発とOpenHands
@@ -167,6 +229,10 @@ BLEによるBuild & Blink、MCPサーバ）がある。ただし、接続方法�
 
 ## SDKが保証しないこと
 
+- typedなgit commit／push／branch作成／mergeのAPI。
+- Skill／pluginのsourceの安全性。Skillはshellを実行できるため、信頼済みsourceに限定する。
+- prompt内容やmodel実体の版をEvidenceへ自動的に束ねること。
+- 外部定義Eventを、ACD packageのimportなしで読み戻すこと。
 - 外部副作用を含む決定論的replay。
 - LocalWorkspaceでのホスト権限・ファイル・ネットワークの完全分離。
 - 承認IDと不可逆操作の暗号学的または因果的な束縛。
