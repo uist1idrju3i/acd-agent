@@ -728,40 +728,64 @@ pluginの実インストール、実機FW検証は未実装または未確認で
 
 ### 8.1 現状の成果物
 
-Golden Design #1の電気レーンは、次のPCB製造データを決定論的に生成し、独立reloadまで
-検証する。
+Golden Design #1の電気レーンは、`out/gd1/fab/`へ次の製造投影を生成し、
+`sexpdata`と`gerbonara`による独立reload、ERC／DRC／DFMゲートまで実行する。
 
-- Gerber `8`ファイル
-- drill `1`ファイル
-- `out/gd1/gd1.bom.csv`
+- `gd1-gerbers.zip`（Gerber 8ファイルとdrill 1ファイル）
+- `gd1-bom-jlcpcb.csv`（JLCPCB形式BOM）
+- `gd1-cpl-jlcpcb.csv`（JLCPCB形式CPL）
+- `gd1.pos.csv`（元のposition CSV）
+- `dfm-report.json`
+- `fab-package.json`
 - `out/gd1/hashes.json`
-- ERC／DRC／FreeRouting／Gerber／drillの各envelope
-- `routing-summary.json`などの正規化・測定記録
+- `gd1.pos.csv.envelope.json`などの測定・envelope記録
 
-`gd1.bom.csv`には`refdes,qty,value,mpn,lcsc,footprint,jlcpcb_class`の列があり、
-LCSC部品番号と`jlcpcb_class`（`basic`／`extended`）を含む。
+`fab-package.json`が参照するfab profileは次のとおりである。
 
-GD1の基板仕様はJLCPCBでの製造を前提に選定されており、FR-4、板厚`1.6 mm`、外層`1 oz`である。
-部品は、JLCPCB実装部品ライブラリのBasicまたはExtendedに在庫があり、部品支給なしで
-JLCPCBAへ依頼できることを採用条件としている（`GD1-REQ-017`）。在庫数と単価は
-`2026-08-11 UTC`時点の一次確認値であり、実装費は`unknown`である。
+| 項目 | 値 |
+|---|---|
+| profile ID | `jlcpcb-fr4-2l-1oz` |
+| 出所 | <https://jlcpcb.com/capabilities/pcb-capabilities> |
+| 取得時刻 | `2026-08-11T00:00:00Z` |
+| profile hash | `sha256:3343a49618b9c63d0ef2d84d700c6643f43df547d2b8f5fafc00a07c590026e3` |
+
+GD1の最新実行では、DFM findings `0`、process allowance `0`、DRC errors `0`、
+unconnected `0`である。DFM測定値にはvia `30`個、drill object `40`個、
+pad `132`個、外形`30.0 × 25.0 mm`、最小track幅`0.15 mm`、
+silk最小文字高`1.0 mm`、最小stroke幅`0.15 mm`を含む。
 
 ### 8.2 発注に不足しているもの
 
-現状の成果物だけでは、PCBまたはPCBAの発注可否をACDが判定できない。次の不足がある。
+現状の成果物だけでは、PCBまたはPCBAの発注可否をACDが判定できない。CPL、JLCPCB形式BOM、
+独立DFM照合は実装済みだが、次の不足がある。
 
-- **CPL（実装座標）**: ACDの`kicad-cli`経路はERC、DRC、netlist、Gerber、drillのみで、
-  `kicad-cli pcb export pos`相当の実装座標出力がない。PCBA依頼には利用者がCPLを別途用意する必要がある。
-- **JLCPCB投入形式のBOM**: 現在のBOMはACD内部列構成であり、JLCPCBのPCBA投入形式へ変換されていない。
-- **在庫・価格・納期**: 2026-08-11時点の一次確認値は発注時点の保証ではない。ACDの規約では
-  期限切れの見積・在庫・価格は`unknown`として停止条件になるため、発注時点で再確認が必要である。
-- **DFM照合**: DFM照合は未実装である。
+- **実価格・在庫・納期の発注時点取得**: fab profileの能力値と、過去の部品情報は発注時点の
+  価格・在庫・納期を保証しない。発注時点で再取得できない場合は`unknown`として停止する。
 - **総発注額**: 基板、部品、実装、送料、税、筐体を含む総発注額の計算は未実装である。
 - **発注前最終ゲートとAPI ordering**: 発注前最終ゲートおよびAPI orderingは未実装であり、
   roadmapのPhase 5・7・10側の対象である。Phase 1〜4では自動発注を行わない。
+- **fab側DFMレビュー結果**: ACDの独立DFM reportはfab側レビュー結果を代替しない。
 - **実機Evidence**: FWの`real_device_led_measurement`は`unavailable`であり、QEMU仮想Evidenceは
   実機測定の代替にならない。
-- **レーン統合**: Phase 4で扱うECAD↔MCAD交換や、高さ・keepoutの共通ゲートにはまだ到達していない。
+
+`dfm-report.json`の`checks_not_implemented`には、DFMで未検査であり合格扱いにしない項目が
+13件残っている。
+
+```text
+pth-to-track-prefer-035
+via_hole_to_hole
+routed_edge_copper_clearance
+pad_to_silk
+min_via_diameter
+min_plated_slot_width
+min_nonplated_slot_width
+slot_length_width_ratio
+soldermask_bridge
+pad_to_track_clearance
+min_package
+min_ic_pitch
+min_bga_pitch
+```
 
 したがって、現在の電気レーン合格が示すのは「製造データが決定論的に生成され、再読込と
 ERC／DRC等の既存ゲートを通過した」ことである。「発注してよい」という判定ではない。
@@ -770,10 +794,12 @@ ERC／DRC等の既存ゲートを通過した」ことである。「発注し�
 
 以下はACDが保証する発注手順ではなく、利用者の責任で手作業発注を検討する場合の確認事項である。
 
-- fab側が指定する形式でGerberとdrillをzip提出する。
-- BOMをJLCPCBの投入形式へ利用者が変換し、CPLを利用者が別途用意する。
-- 提出前にfab側のDFMレビュー結果を人が確認する。
-- `hashes.json`で提出物と検証済み成果物の同一性を確認する。
+- `out/gd1/fab/gd1-gerbers.zip`をGerber入力としてアップロードする。
+- `out/gd1/fab/gd1-bom-jlcpcb.csv`をJLCPCBのBOM入力欄へアップロードする。
+- `out/gd1/fab/gd1-cpl-jlcpcb.csv`をJLCPCBのCPL／位置ファイル入力欄へアップロードする。
+- アップロード後に表示されるfab側DFMレビュー結果を人が確認する。ACDの`dfm-report.json`は
+  fab側レビュー結果ではない。
+- `fab-package.json`のmember `content_hash`と`out/gd1/hashes.json`で提出物との同一性を確認する。
 - 対象revisionと、各Evidenceの`target_revision`が一致していることを確認する。
 - 価格、在庫、納期を発注時点で再取得する。
 
@@ -815,9 +841,7 @@ acd-agentが参照するSDK（v1.41.0）と、Agent Canvasが既定で起動す�
 - `uv` 0.8.13未満での長期運用（本VMは0.7.9で`uv sync`が成功したが、SDKは0.8.13以上を要求する）。
 - 実機probe-rsによるFW書き込み、実機LED、実機シリアル、SHT40測定。
 - rootless Dockerの長期運用、cgroup制約の解消、UIDマッピングを含むproduction運用。
-- CPL（実装座標）生成。
-- JLCPCB投入形式のBOM変換。
-- DFM照合、総発注額、発注前最終ゲート、API ordering。
+- 総発注額、発注前最終ゲート、API ordering。
 - JLCPCBへの実発注経験と、fab側DFMレビュー結果との照合。
 
 ## 11. 参照

@@ -109,6 +109,7 @@ def test_removed_node_widens_impact_to_whole_graph() -> None:
     assert gates_to_rerun(graph, affected) == {
         "erc",
         "drc",
+        "dfm",
         "fw_build",
         "fw_static_analysis",
         "fw_unit_test",

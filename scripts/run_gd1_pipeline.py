@@ -20,11 +20,24 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import cast
 
 from acd_adapter_freerouting.dsn import export_dsn
 from acd_adapter_freerouting.router import FreeroutingRunner
 from acd_adapter_freerouting.ses import parse_ses
 from acd_adapter_kicad.cli import KicadCli
+from acd_adapter_kicad.fab import (
+    BoardMeasurement,
+    cross_validate_cpl,
+    deterministic_zip,
+    jlcpcb_bom_csv,
+    jlcpcb_cpl_csv,
+    parse_pos_csv,
+    parse_routed_board,
+    read_drill_measurement,
+    run_dfm,
+    zip_content_hash,
+)
 from acd_adapter_kicad.gates import assert_converged, assert_rule_check_passed
 from acd_adapter_kicad.project import write_project
 from acd_adapter_kicad.reload import (
@@ -36,6 +49,7 @@ from acd_adapter_kicad.reload import (
 )
 from acd_adapter_kicad.routing import inject_routes
 from acd_core.electrical import extract_electrical_lane
+from acd_core.fab import extract_fab_intent, load_fab_profile
 from acd_schema.design_graph import DesignGraph
 
 GERBER_LAYERS = [
@@ -50,22 +64,34 @@ GERBER_LAYERS = [
 ]
 
 
-def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str, str]:
+def run_pipeline(
+    fixture_dir: Path,
+    out_dir: Path,
+    max_passes: int,
+    fab_profile_path: Path,
+) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
     revision = graph.revision
     lane = extract_electrical_lane(graph)
+    intent, allowances = extract_fab_intent(graph)
+    profile = load_fab_profile(fab_profile_path)
+    if intent.fab_profile != profile.profile_id:
+        raise ValueError(
+            f"graph fab profile {intent.fab_profile!r} differs from loaded profile "
+            f"{profile.profile_id!r}"
+        )
 
-    project = write_project(lane, fixture_dir, out_dir)
+    project = write_project(lane, fixture_dir, out_dir, profile=profile)
     name = project.name
     kicad = KicadCli()
 
-    print(f"[1/8] project written: {project.root}")
+    print(f"[1/10] project written: {project.root}")
 
     erc = kicad.erc(project.schematic, out_dir / f"{name}.erc.json", revision)
     assert_rule_check_passed("ERC", erc, require_connected=False)
-    print("[2/8] ERC gate passed (0 errors)")
+    print("[2/10] ERC gate passed (0 errors)")
 
     dsn_path = out_dir / f"{name}.dsn"
     dsn_path.write_text(export_dsn(project.board_projection.model, name))
@@ -74,7 +100,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str,
     ses_path = out_dir / f"{name}.ses"
     route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
     assert_converged(route_run.envelope.convergence_state)
-    print(f"[3/8] routing converged (skipped={route_run.skipped})")
+    print(f"[3/10] routing converged (skipped={route_run.skipped})")
 
     routes = parse_ses(
         ses_path.read_text(),
@@ -111,22 +137,28 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str,
     routed_path = routed_dir / f"{name}.kicad_pcb"
     routed_path.write_text(routed_board)
     (routed_dir / f"{name}.kicad_pro").write_text(project.project.read_text())
+    dru_path = out_dir / f"{name}.kicad_dru"
+    if dru_path.is_file():
+        (routed_dir / f"{name}.kicad_dru").write_text(
+            dru_path.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
     print(
-        f"[4/8] SES imported: {len(routes.wires)} wires, {len(routes.vias)} vias; "
+        f"[4/10] SES imported: {len(routes.wires)} wires, {len(routes.vias)} vias; "
         f"observed_min_width={routes.observed_min_width_mm:.4f} mm; "
         f"normalized_wires={routes.normalized_wire_count}"
     )
 
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
     assert_rule_check_passed("DRC", drc, require_connected=True)
-    print("[5/8] DRC gate passed (0 errors, 0 unconnected)")
+    print("[5/10] DRC gate passed (0 errors, 0 unconnected)")
 
     gerber_dir = out_dir / "gerbers"
     _gerber_run, gerber_paths = kicad.export_gerbers(
         routed_path, gerber_dir, GERBER_LAYERS, revision
     )
     _drill_run, drill_paths = kicad.export_drill(routed_path, gerber_dir, revision)
-    print(f"[6/8] fabrication outputs: {len(gerber_paths)} gerbers, {len(drill_paths)} drill")
+    print(f"[6/10] fabrication outputs: {len(gerber_paths)} gerbers, {len(drill_paths)} drill")
 
     expected_nets = set(project.board_projection.net_numbers)
     expected_refdes = {c.refdes for c in lane.components}
@@ -137,23 +169,122 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str,
         verify_gerber(path, min_objects=0 if layer == "B.SilkS" else 1)
     for path in drill_paths:
         verify_drill(path)
-    print("[7/8] independent reload passed (sexpdata + gerbonara)")
+    print("[7/10] independent reload passed (sexpdata + gerbonara)")
+
+    fab_dir = out_dir / "fab"
+    fab_dir.mkdir(parents=True, exist_ok=True)
+    pos_path = fab_dir / f"{name}.pos.csv"
+    kicad.export_pos(routed_path, pos_path, revision)
+    pos_rows = parse_pos_csv(pos_path)
+    fitted = {component.refdes for component in lane.components if component.assembly == "fitted"}
+    cpl_path = fab_dir / f"{name}-cpl-jlcpcb.csv"
+    cpl_path.write_text(jlcpcb_cpl_csv(pos_rows, fitted), encoding="utf-8")
+    measurement = parse_routed_board(routed_path)
+    drill_tools, drill_count = read_drill_measurement(drill_paths[0])
+    measurement = BoardMeasurement(
+        measurement.footprints,
+        measurement.vias,
+        measurement.min_track_width_mm,
+        measurement.silk_min_height_mm,
+        measurement.silk_min_width_mm,
+        measurement.outline_bbox_mm,
+        drill_tools,
+        drill_count,
+    )
+    cross_validate_cpl(cpl_path, pos_rows, measurement, fitted)
+    bom_path = fab_dir / f"{name}-bom-jlcpcb.csv"
+    bom_path.write_text(jlcpcb_bom_csv(lane), encoding="utf-8")
+    print(f"[8/10] CPL/BOM generated and cross-validated ({len(pos_rows)} position rows)")
+
+    dfm_report = run_dfm(measurement, profile, revision, allowances, lane, intent)
+    dfm_path = fab_dir / "dfm-report.json"
+    dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    if dfm_report["status"] != "pass":
+        raise ValueError(f"DFM gate failed: {dfm_path}")
+    print(f"[9/10] DFM gate passed ({len(cast(list[object], dfm_report['findings']))} findings)")
+
+    package_members = [*gerber_paths, *drill_paths]
+    zip_path = fab_dir / f"{name}-gerbers.zip"
+    deterministic_zip(zip_path, package_members, gerber_dir)
+    profile_hash = normalized_hash(fab_profile_path)
+    manifest = {
+        "schema_version": "0.1",
+        "target_revision": revision,
+        "fab_profile": {
+            "profile_id": profile.profile_id,
+            "source_url": profile.data["sources"][0]["url"],
+            "fetched_at": profile.data["sources"][0]["fetched_at"],
+            "hash": profile_hash,
+        },
+        "overlays": list(project.board_projection.overlays),
+        "files": [
+            {
+                "path": str(path.relative_to(out_dir)),
+                "content_hash": (
+                    zip_content_hash(path) if path.suffix == ".zip" else normalized_hash(path)
+                ),
+            }
+            for path in [
+                *gerber_paths,
+                *drill_paths,
+                zip_path,
+                bom_path,
+                cpl_path,
+                pos_path,
+                dfm_path,
+            ]
+        ],
+        "content_hash": zip_content_hash(zip_path),
+        "tools": {"kicad-cli": kicad.version(), "measurement_parser": "sexpdata+gerbonara"},
+        "gates": {
+            "drc": (
+                "pass"
+                if drc.error_count == 0 and not drc.unconnected_items
+                else "fail"
+            ),
+            "dfm": str(dfm_report["status"]),
+        },
+        "pcb_class": "standard",
+        "pcb_class_basis": "profile:combinations; standard PCB process without advanced options",
+        "pcba_class": intent.pcba_class_target,
+        "unknowns": {
+            "price": "unknown",
+            "inventory": "unknown",
+            "lead_time": "unknown",
+            "total_order_amount": "unknown",
+            "fab_dfm_review": "unknown",
+        },
+    }
+    package_path = fab_dir / "fab-package.json"
+    package_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    )
+    print("[10/10] manufacturing package written")
 
     hashes: dict[str, str] = {}
-    for path in [
+    hash_paths = [
         project.schematic,
         project.board,
         project.bom,
         routed_path,
         dsn_path,
         routing_summary_path,
-    ]:
-        hashes[path.name] = normalized_hash(path)
-    for path in [*gerber_paths, *drill_paths]:
-        hashes[f"gerbers/{path.name}"] = normalized_hash(path)
+        pos_path,
+        bom_path,
+        cpl_path,
+        dfm_path,
+        package_path,
+        zip_path,
+        *gerber_paths,
+        *drill_paths,
+    ]
+    for path in hash_paths:
+        hashes[str(path.relative_to(out_dir))] = (
+            zip_content_hash(path) if path.suffix == ".zip" else normalized_hash(path)
+        )
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
-    print(f"[8/8] hash manifest: {manifest_path}")
+    print(f"[10/10] hash manifest: {manifest_path}")
     return hashes
 
 
@@ -167,9 +298,15 @@ def main() -> int:
     )
     parser.add_argument("--out", type=Path, default=Path("out/gd1"), help="output directory")
     parser.add_argument("--max-passes", type=int, default=99999, help="router pass budget")
+    parser.add_argument(
+        "--fab-profile",
+        type=Path,
+        default=Path("profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"),
+        help="versioned fab profile",
+    )
     args = parser.parse_args()
     try:
-        run_pipeline(args.fixture, args.out, args.max_passes)
+        run_pipeline(args.fixture, args.out, args.max_passes, args.fab_profile)
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1

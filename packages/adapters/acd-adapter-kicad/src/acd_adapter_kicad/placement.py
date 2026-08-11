@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from acd_core.board_model import FootprintShape
-from acd_core.electrical import BoardView, ComponentView
+from acd_core.electrical import BoardView, ComponentView, NetView, PinView
 
 
 class PlacementError(ValueError):
@@ -113,6 +113,8 @@ def compute_placements(
     footprints: dict[str, FootprintShape],
     keepouts: tuple[Rect, ...],
     net_refdes: tuple[tuple[str, ...], ...] = (),
+    pins: tuple[PinView, ...] = (),
+    nets: tuple[NetView, ...] = (),
 ) -> tuple[Placement, ...]:
     placements: list[Placement] = []
     occupied: list[Rect] = list(keepouts)
@@ -158,20 +160,91 @@ def compute_placements(
             neighbours.setdefault(ref, set()).update(r for r in refs if r != ref)
 
     generic = [c for c in ordered if _classify(c) == "generic"]
-    generic.sort(key=lambda c: (-bbox_area(c), c.refdes))
     placed_at: dict[str, tuple[float, float]] = {p.refdes: (p.x_mm, p.y_mm) for p in placements}
+    by_refdes = {comp.refdes: comp for comp in components}
+    net_names = {net.node_id: net.name for net in nets}
+    pins_by_component: dict[str, tuple[PinView, ...]] = {
+        comp.node_id: tuple(pin for pin in pins if pin.component_id == comp.node_id)
+        for comp in components
+    }
+    decoupling: dict[str, tuple[str, str, str]] = {}
     for comp in generic:
+        target_ref = comp.decoupling_target
+        if target_ref is None:
+            continue
+        target = by_refdes.get(target_ref)
+        if target is None:
+            raise PlacementError(f"decoupling target not found: {comp.refdes}->{target_ref}")
+        cap_pins = pins_by_component[comp.node_id]
+        target_pins = pins_by_component[target.node_id]
+        power_cap = [
+            pin
+            for pin in cap_pins
+            if pin.net_id is not None
+            and net_names.get(pin.net_id) != "GND"
+            and any(
+                target_pin.net_id == pin.net_id
+                for target_pin in target_pins
+                if target_pin.pad != pin.pad
+            )
+        ]
+        ground_cap = [
+            pin for pin in cap_pins if pin.net_id is not None and net_names.get(pin.net_id) == "GND"
+        ]
+        shared_target = [
+            pin for pin in target_pins if power_cap and pin.net_id == power_cap[0].net_id
+        ]
+        if len(power_cap) != 1 or len(ground_cap) != 1 or len(shared_target) != 1:
+            raise PlacementError(f"ambiguous decoupling declaration: {comp.refdes}")
+        decoupling[comp.refdes] = (target_ref, shared_target[0].pad, power_cap[0].pad)
+
+    active_refs = {
+        comp.refdes
+        for comp in generic
+        if comp.refdes in {target for target, _, _ in decoupling.values()}
+        or comp.library.footprint.startswith(("Espressif:", "Package_TO_SOT", "Sensor_"))
+    }
+    active = sorted(
+        (comp for comp in generic if comp.refdes in active_refs),
+        key=lambda c: (-bbox_area(c), c.refdes),
+    )
+    decoupling_components = sorted(
+        (comp for comp in generic if comp.refdes in decoupling),
+        key=lambda c: c.refdes,
+    )
+    remaining = sorted(
+        (
+            comp
+            for comp in generic
+            if comp.refdes not in active_refs and comp.refdes not in decoupling
+        ),
+        key=lambda c: (-bbox_area(c), c.refdes),
+    )
+
+    for comp in (*active, *decoupling_components, *remaining):
         footprint = footprints[comp.refdes]
         anchors = tuple(
             placed_at[ref] for ref in sorted(neighbours.get(comp.refdes, ())) if ref in placed_at
         )
         spot = None
-        for spacing in _SPACING_STEPS_MM:
-            spot = _best_fit(board, footprint, occupied, spacing, anchors)
+        spacing_steps = (0.0,) if comp.refdes in decoupling else _SPACING_STEPS_MM
+        for spacing in spacing_steps:
+            target = None
+            if comp.refdes in decoupling:
+                target_ref, target_pad, cap_pad = decoupling[comp.refdes]
+                target = (
+                    placed_at[target_ref],
+                    footprints[target_ref],
+                    target_pad,
+                    cap_pad,
+                )
+            spot = _best_fit(board, footprint, occupied, spacing, anchors, target)
             if spot is not None:
                 break
         if spot is None:
-            raise PlacementError(f"no placement found for {comp.refdes} (fail-closed)")
+            raise PlacementError(
+                f"no placement found for {comp.refdes} (fail-closed); placed={placed_at}"
+            )
         x, y, rot = spot
         placements.append(Placement(comp.refdes, x, y, rot))
         occupied.append(_placed_rect(footprint, x, y, rot))
@@ -186,6 +259,7 @@ def _best_fit(
     occupied: list[Rect],
     spacing: float,
     anchors: tuple[tuple[float, float], ...],
+    target: tuple[tuple[float, float], FootprintShape, str, str] | None = None,
 ) -> tuple[float, float, float] | None:
     """Deterministic candidate scan; among all fitting spots pick the one that
     minimises the summed distance to connected, already-placed components so
@@ -206,7 +280,18 @@ def _best_fit(
                     x + x1 - spacing, y + y1 - spacing, x + x2 + spacing, y + y2 + spacing
                 )
                 if not any(candidate.overlaps(rect) for rect in occupied):
-                    cost = sum(abs(x - ax) + abs(y - ay) for ax, ay in anchors)
+                    if target is None:
+                        cost = sum(abs(x - ax) + abs(y - ay) for ax, ay in anchors)
+                    else:
+                        target_at, target_footprint, target_pad, cap_pad = target
+                        candidate_point = _pad_position(footprint, (x, y), rotation, cap_pad)
+                        cost = min(
+                            abs(candidate_point[0] - target_point[0])
+                            + abs(candidate_point[1] - target_point[1])
+                            for target_point in _pad_positions(
+                                target_footprint, target_at, 0.0, target_pad
+                            )
+                        )
                     # Small centre bias fights fragmentation and keeps parts
                     # away from corners where mounting holes block escapes.
                     cost += _COMPACTNESS_WEIGHT * (
@@ -220,3 +305,47 @@ def _best_fit(
     if best is None:
         return None
     return round(best[1], 4), round(best[2], 4), (0.0, 90.0)[int(best[3])]
+
+
+def _pad_position(
+    footprint: FootprintShape,
+    placement: tuple[float, float],
+    rotation: float,
+    pad_number: str,
+) -> tuple[float, float]:
+    pads = [pad for pad in footprint.pads if pad.number == pad_number]
+    if len(pads) != 1:
+        raise PlacementError(f"pad target is not unique: {footprint.library_ref}-{pad_number}")
+    pad = pads[0]
+    x, y = pad.x_mm, pad.y_mm
+    rot = rotation % 360.0
+    if rot == 90.0:
+        x, y = -y, x
+    elif rot == 180.0:
+        x, y = -x, -y
+    elif rot == 270.0:
+        x, y = y, -x
+    elif rot != 0.0:
+        raise PlacementError(f"unsupported rotation {rotation} (fail-closed)")
+    return placement[0] + x, placement[1] + y
+
+
+def _pad_positions(
+    footprint: FootprintShape,
+    placement: tuple[float, float],
+    rotation: float,
+    pad_number: str,
+) -> tuple[tuple[float, float], ...]:
+    return tuple(
+        _pad_position(
+            FootprintShape(
+                library_ref=footprint.library_ref,
+                pads=(pad,),
+            ),
+            placement,
+            rotation,
+            pad_number,
+        )
+        for pad in footprint.pads
+        if pad.number == pad_number
+    )

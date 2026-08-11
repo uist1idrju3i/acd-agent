@@ -17,6 +17,7 @@ from acd_adapter_kicad.library import FootprintLibrary, SymbolLibrary
 from acd_adapter_kicad.schematic import PWR_FLAG_LIB_ID, generate_schematic
 from acd_core.bom import bom_csv
 from acd_core.electrical import BoardView, ElectricalLane
+from acd_core.fab import FabProfile
 
 
 @dataclass(frozen=True)
@@ -35,9 +36,7 @@ def _lib_table(kind: str, entries: dict[str, Path]) -> str:
     lines = [f"({kind}_lib_table", "  (version 7)"]
     for name in sorted(entries):
         uri = entries[name]
-        lines.append(
-            f'  (lib (name "{name}")(type "KiCad")(uri "{uri}")(options "")(descr ""))'
-        )
+        lines.append(f'  (lib (name "{name}")(type "KiCad")(uri "{uri}")(options "")(descr ""))')
     lines.append(")")
     return "\n".join(lines) + "\n"
 
@@ -49,21 +48,39 @@ def _resolve(path_text: str, fixture_dir: Path) -> Path:
     return path.resolve()
 
 
-def _project_settings(filename: str, board: BoardView) -> dict[str, object]:
+def _project_settings(
+    filename: str, board: BoardView, profile: FabProfile | None = None
+) -> dict[str, object]:
     """Project file carrying the graph's board constraints so DRC judges
     against the design graph, not KiCad defaults."""
+    profile_min_track = (
+        float(profile.data["capabilities"]["min_track_width"]["value"]) if profile else 0.0
+    )
+    profile_min_via_diameter = (
+        float(profile.data["capabilities"]["min_via_diameter"]["value"]) if profile else 0.0
+    )
+    profile_min_via_drill = (
+        float(profile.data["capabilities"]["min_via_hole"]["value"]) if profile else 0.0
+    )
+    effective_track = max(board.min_track_mm, profile_min_track)
+    effective_via_diameter = max(board.via_diameter_mm, profile_min_via_diameter)
+    effective_via_drill = max(board.via_drill_mm, profile_min_via_drill)
+    profile_min_clearance = (
+        float(profile.data["capabilities"]["min_spacing"]["value"]) if profile else 0.0
+    )
+    effective_clearance = max(board.min_clearance_mm, profile_min_clearance)
     return {
         "meta": {"filename": filename, "version": 3},
         "board": {
             "design_settings": {
                 "rules": {
-                    "min_clearance": board.min_clearance_mm,
+                    "min_clearance": effective_clearance,
                     "min_copper_edge_clearance": board.edge_copper_clearance_mm,
-                    "min_track_width": board.min_track_mm,
-                    "min_via_diameter": board.via_diameter_mm,
-                    "min_through_hole_diameter": board.via_drill_mm,
-                    "min_hole_clearance": board.min_clearance_mm,
-                    "min_hole_to_hole": board.min_clearance_mm,
+                    "min_track_width": effective_track,
+                    "min_via_diameter": effective_via_diameter,
+                    "min_through_hole_diameter": effective_via_drill,
+                    "min_hole_clearance": effective_clearance,
+                    "min_hole_to_hole": effective_clearance,
                 },
             },
         },
@@ -71,10 +88,10 @@ def _project_settings(filename: str, board: BoardView) -> dict[str, object]:
             "classes": [
                 {
                     "name": "Default",
-                    "clearance": board.min_clearance_mm,
-                    "track_width": board.min_track_mm,
-                    "via_diameter": board.via_diameter_mm,
-                    "via_drill": board.via_drill_mm,
+                    "clearance": effective_clearance,
+                    "track_width": effective_track,
+                    "via_diameter": effective_via_diameter,
+                    "via_drill": effective_via_drill,
                 }
             ],
             "meta": {"version": 4},
@@ -86,6 +103,7 @@ def write_project(
     lane: ElectricalLane,
     fixture_dir: Path,
     out_dir: Path,
+    profile: FabProfile,
     name: str = "gd1",
 ) -> ProjectFiles:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -107,7 +125,7 @@ def write_project(
     power_sha = "sha256:" + hashlib.sha256(power_lib.read_bytes()).hexdigest()
     pwr_flag_symbol = symbol_library.load(PWR_FLAG_LIB_ID, power_lib, power_sha)
     schematic_content = generate_schematic(lane, symbol_library, fixture_dir, pwr_flag_symbol)
-    board_projection = generate_board(lane, FootprintLibrary(), fixture_dir)
+    board_projection = generate_board(lane, FootprintLibrary(), fixture_dir, profile)
 
     schematic = out_dir / f"{name}.kicad_sch"
     board = out_dir / f"{name}.kicad_pcb"
@@ -116,8 +134,27 @@ def write_project(
 
     schematic.write_text(schematic_content)
     board.write_text(board_projection.content)
-    settings = _project_settings(project.name, lane.board)
+    minimums = (
+        ("min_track_width", lane.board.min_track_mm, "min_track_width"),
+        ("min_via_diameter", lane.board.via_diameter_mm, "min_via_diameter"),
+        ("min_via_hole", lane.board.via_drill_mm, "min_via_hole"),
+        ("min_clearance", lane.board.min_clearance_mm, "min_spacing"),
+    )
+    for key, declared, capability_key in minimums:
+        capability = float(profile.data["capabilities"][capability_key]["value"])
+        if declared < capability:
+            raise ValueError(
+                f"graph declaration {key}={declared} is below fab capability "
+                f"{capability} (capability_violation)"
+            )
+    settings = _project_settings(project.name, lane.board, profile)
     project.write_text(json.dumps(settings, sort_keys=True) + "\n")
+    custom_rules = _custom_rules(profile)
+    dru_path = out_dir / f"{name}.kicad_dru"
+    if custom_rules:
+        dru_path.write_text(custom_rules)
+    elif dru_path.exists():
+        dru_path.unlink()
     (out_dir / "sym-lib-table").write_text(_lib_table("sym", symbol_libs))
     (out_dir / "fp-lib-table").write_text(_lib_table("fp", footprint_libs))
     bom.write_text(bom_csv(lane))
@@ -131,4 +168,23 @@ def write_project(
         bom=bom,
         schematic_content=schematic_content,
         board_projection=board_projection,
+    )
+
+
+def _custom_rules(profile: FabProfile) -> str:
+    """Return KiCad custom rules for constraints supported by the project format."""
+    capabilities = profile.data["capabilities"]
+    return "\n".join(
+        [
+            '(rule "jlcpcb-via-hole-size"',
+            "  (condition \"A.Type == 'Via'\")",
+            f"  (constraint hole_size (min {capabilities['min_via_hole']['value']}mm))",
+            ")",
+            '(rule "jlcpcb-pth-annular-ring"',
+            "  (condition \"A.Type == 'Pad' && A.Pad_Type == 'Through-hole'\")",
+            "  (constraint annular_width "
+            f"(min {capabilities['min_pth_annular_ring_2l_1oz']['value']}mm))",
+            ")",
+            "",
+        ]
     )

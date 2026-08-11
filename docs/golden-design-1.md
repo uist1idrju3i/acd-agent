@@ -278,6 +278,37 @@ M2取付穴と将来の筐体の嵌合公差は、外形の±0.2 mm（regular）
 | `GD1-NEG-003` | CC1またはCC2の5.1 kΩを削除する | USB CCゲートが`fail` |
 | `GD1-NEG-004` | I2C SDAまたはSCLの4.7 kΩを削除する | I2C pull-upゲートが`fail` |
 | `GD1-NEG-005` | FWのIO7、IO4、IO5、IO9、IO18、IO19、IO20、IO21のいずれかをグラフと異なる値へ変更する | ピン・FW整合ゲートが`fail` |
+
+## 9. 製造投影と配置
+
+J1にはLibraryOverlayを適用する。公式footprintを直接改変せず、
+`overlays/j1-usb-c-annular-ring.json`としてプロジェクトローカルに保持し、
+JLCPCBのPTHアニュラリング推奨値を根拠にSH padを`0.20 mm`から`0.25 mm`へ拡大する。
+overlayの適用後geometryは、DSN export、routing、最終board、DRC、DFMで共通に使用する。
+
+配置は次の4段を固定順序で実行する。
+
+1. 固定anchor（アンテナmodule、USB receptacle、取付穴）
+2. 能動部品（U1、U2、U3）
+3. 能動部品の電源pinへ接続するデカップリングコンデンサ
+4. 残りの部品をcourtyard面積の降順、同面積はrefdes順
+
+第3段のデカップリング対象は設計グラフの`decoupling_target`宣言から導出し、
+対象ICの電源padまでの距離を目的関数にする。推測による分類や配置不能時の制約緩和は行わない。
+
+GD1最新実行で生成される製造データは、`out/gd1/fab/`の次のファイルである。
+
+- `gd1-gerbers.zip`
+- `gd1-bom-jlcpcb.csv`
+- `gd1-cpl-jlcpcb.csv`
+- `gd1.pos.csv`
+- `dfm-report.json`
+- `fab-package.json`
+
+生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `30`個、drill object `40`個、
+pad `132`個、route wire `207`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
+silk最小stroke幅`0.15 mm`である。出所は`out/gd1/fab/dfm-report.json`、
+`out/gd1/routing-summary.json`、`out/gd1/fab/fab-package.json`である。
 | `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
 | `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | stale判定が`unknown`で停止 |
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |

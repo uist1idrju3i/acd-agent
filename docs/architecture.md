@@ -18,8 +18,10 @@
   `Part.certification`を安全境界の判定入力として持つ。
 - 機械: BoardEnvelope、ComponentEnvelope、Enclosure、Opening、Fastener、Material、
   Tolerance、AssemblyStep、ThermalPath。
-- 製造: FabProfile、MachineProfile、Process、Cost、LeadTime、Quantity。
-- 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）。
+- 製造: FabProfile、MachineProfile、Process、Cost、LeadTime、Quantity、DFMReport、
+  FabPackage。
+- 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）、`fab.order_intent`、
+  `fab.process_allowance`。
 - 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption、
   `ReviewFinding`。
   `Assumption`は確度、確定予定アクション、覆った場合の影響先を持つ。

@@ -12,7 +12,7 @@ import hashlib
 import json
 import sys
 from pathlib import Path
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from acd_schema.design_graph import AttrValue, DesignGraph, GraphNode
 
@@ -77,9 +77,13 @@ class ComponentSpec(TypedDict):
     mpn: str
     lcsc: str
     jlcpcb_class: str
+    assembly: str
     lib: LibraryRef
     # pad number -> net id (None means explicit no-connect)
     pads: dict[str, str | None]
+    overlay_file: NotRequired[str]
+    overlay_sha256: NotRequired[str]
+    decoupling_target: NotRequired[str]
 
 
 NETS: dict[str, dict[str, AttrValue]] = {
@@ -164,22 +168,33 @@ def components() -> list[ComponentSpec]:
             "mpn": mpn,
             "lcsc": lcsc,
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": r_lib,
             "pads": pads,
         }
 
     def capacitor(
-        refdes: str, value: str, mpn: str, lcsc: str, cls: str, pads: dict[str, str | None]
+        refdes: str,
+        value: str,
+        mpn: str,
+        lcsc: str,
+        cls: str,
+        pads: dict[str, str | None],
+        decoupling_target: str | None = None,
     ) -> ComponentSpec:
-        return {
+        spec: ComponentSpec = {
             "refdes": refdes,
             "value": value,
             "mpn": mpn,
             "lcsc": lcsc,
             "jlcpcb_class": cls,
+            "assembly": "fitted",
             "lib": c_lib,
             "pads": pads,
         }
+        if decoupling_target is not None:
+            spec["decoupling_target"] = decoupling_target
+        return spec
 
     def testpoint(refdes: str, net: str, label: str) -> ComponentSpec:
         return {
@@ -188,6 +203,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "",
             "lcsc": "",
             "jlcpcb_class": "none",
+            "assembly": "not_fitted",
             "lib": tp_lib,
             "pads": {"1": net},
         }
@@ -199,6 +215,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "",
             "lcsc": "",
             "jlcpcb_class": "none",
+            "assembly": "not_fitted",
             "lib": hole_lib,
             "pads": {},
         }
@@ -210,6 +227,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "ESP32-C3-MINI-1-N4",
             "lcsc": "C2838502",
             "jlcpcb_class": "extended",
+            "assembly": "fitted",
             "lib": espressif_lib("Espressif:ESP32-C3-MINI-1", "Espressif:ESP32-C3-MINI-1"),
             "pads": esp32_pads(),
         },
@@ -219,11 +237,16 @@ def components() -> list[ComponentSpec]:
             "mpn": "TYPE-C-31-M-12",
             "lcsc": "C165948",
             "jlcpcb_class": "extended",
+            "assembly": "fitted",
             "lib": kicad_lib(
                 "Connector:USB_C_Receptacle_USB2.0_16P",
                 "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
             ),
             "pads": usb_c_pads(),
+            "overlay_file": "overlays/j1-usb-c-annular-ring.json",
+            "overlay_sha256": (
+                "sha256:cc31887bec186674a704e9d1060c3b1a40ab074f2eb9d277973d41311523fb53"
+            ),
         },
         {
             "refdes": "U2",
@@ -231,6 +254,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "AMS1117-3.3",
             "lcsc": "C6186",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": kicad_lib(
                 "Regulator_Linear:AMS1117-3.3", "Package_TO_SOT_SMD:SOT-223-3_TabPin2"
             ),
@@ -242,6 +266,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "SHT40-AD1B-R3",
             "lcsc": "C2848306",
             "jlcpcb_class": "extended",
+            "assembly": "fitted",
             "lib": kicad_lib(
                 "Sensor_Humidity:SHT4x",
                 "Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
@@ -254,6 +279,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "KT-0603R",
             "lcsc": "C2286",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": kicad_lib("Device:LED", "LED_SMD:LED_0603_1608Metric"),
             "pads": {"1": "net.gnd", "2": "net.led_a"},
         },
@@ -263,6 +289,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "TS-1088-AR02016",
             "lcsc": "C720477",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": sw_lib,
             "pads": two_pad("net.en", "net.gnd"),
         },
@@ -272,6 +299,7 @@ def components() -> list[ComponentSpec]:
             "mpn": "TS-1088-AR02016",
             "lcsc": "C720477",
             "jlcpcb_class": "basic",
+            "assembly": "fitted",
             "lib": sw_lib,
             "pads": two_pad("net.boot", "net.gnd"),
         },
@@ -293,13 +321,31 @@ def components() -> list[ComponentSpec]:
             two_pad("net.vbus_5v", "net.gnd"),
         ),
         capacitor(
-            "C3", "10uF", "CL10A106MQ8NNNC", "C1691", "extended", two_pad("net.p3v3", "net.gnd")
+            "C3",
+            "10uF",
+            "CL10A106MQ8NNNC",
+            "C1691",
+            "extended",
+            two_pad("net.p3v3", "net.gnd"),
+            "U2",
         ),
         capacitor(
-            "C4", "100nF", "CL10B104KB8NNNC", "C1591", "extended", two_pad("net.p3v3", "net.gnd")
+            "C4",
+            "100nF",
+            "CL10B104KB8NNNC",
+            "C1591",
+            "extended",
+            two_pad("net.p3v3", "net.gnd"),
+            "U1",
         ),
         capacitor(
-            "C5", "100nF", "CL10B104KB8NNNC", "C1591", "extended", two_pad("net.p3v3", "net.gnd")
+            "C5",
+            "100nF",
+            "CL10B104KB8NNNC",
+            "C1591",
+            "extended",
+            two_pad("net.p3v3", "net.gnd"),
+            "U3",
         ),
         capacitor("C6", "1uF", "CL10A105KB8NNNC", "C15849", "basic", two_pad("net.en", "net.gnd")),
         testpoint("TP1", "net.p3v3", "TP_3V3"),
@@ -368,6 +414,10 @@ BOARD_ATTRS: dict[str, AttrValue] = {
     "fab_capability_checked_at": "2026-08-11T00:00:00Z",
 }
 
+FAB_PROFILE_ID = "jlcpcb-fr4-2l-1oz"
+FAB_PROFILE_SOURCE = "https://jlcpcb.com/capabilities/pcb-assembly-capabilities"
+FAB_PROFILE_FETCHED_AT = "2026-08-11T00:00:00Z"
+
 MECHANICAL_OUTLINE_ATTRS: dict[str, AttrValue] = {
     "width_mm": 30.0,
     "depth_mm": 25.0,
@@ -392,6 +442,7 @@ MECHANICAL_OUTLINE_ATTRS: dict[str, AttrValue] = {
     "position_source": "golden-design-1 mechanical declaration",
     "position_source_ref": "docs/golden-design-1.md",
 }
+
 
 def _body(
     component_id: str,
@@ -586,12 +637,9 @@ def mechanical_nodes() -> list[GraphNode]:
                 "width_mm": 8.0,
                 "height_mm": 5.0,
                 "margin_mm": 0.5,
-                "dimensions_source": (
-                    "KiCad official footprint library, package version 10.0.5"
-                ),
+                "dimensions_source": ("KiCad official footprint library, package version 10.0.5"),
                 "dimensions_source_ref": (
-                    "https://github.com/KiCad/kicad-footprints/tree/10.0.5/"
-                    "Connector_USB.pretty"
+                    "https://github.com/KiCad/kicad-footprints/tree/10.0.5/Connector_USB.pretty"
                 ),
                 "dimensions_checked_at": "2026-08-11T00:00:00Z",
             },
@@ -646,9 +694,18 @@ def build_graph() -> DesignGraph:
             "mpn": spec["mpn"],
             "lcsc": spec["lcsc"],
             "jlcpcb_class": spec["jlcpcb_class"],
+            "assembly": spec["assembly"],
             "stock_checked_at": "2026-08-11T00:00:00Z",
         }
         attrs.update(lib_attrs(spec["lib"]))
+        overlay_file = spec.get("overlay_file")
+        overlay_sha256 = spec.get("overlay_sha256")
+        if overlay_file is not None and overlay_sha256 is not None:
+            attrs["overlay_file"] = overlay_file
+            attrs["overlay_sha256"] = overlay_sha256
+        decoupling_target = spec.get("decoupling_target")
+        if decoupling_target is not None:
+            attrs["decoupling_target"] = decoupling_target
         nodes.append(GraphNode(id=comp_id, kind="electrical.component", attrs=attrs))
         for pad, net in sorted(spec["pads"].items(), key=lambda kv: (len(kv[0]), kv[0])):
             pin_attrs: dict[str, AttrValue] = {
@@ -672,6 +729,24 @@ def build_graph() -> DesignGraph:
             kind="electrical.board",
             attrs=dict(BOARD_ATTRS),
             depends_on=sorted(board_deps),
+        )
+    )
+    nodes.append(
+        GraphNode(
+            id="fab.order_intent.gd1",
+            kind="fab.order_intent",
+            attrs={
+                "fab_profile": FAB_PROFILE_ID,
+                "profile_source": FAB_PROFILE_SOURCE,
+                "profile_fetched_at": FAB_PROFILE_FETCHED_AT,
+                "pcba_class_target": "economic",
+                "quantity_pcs": 5,
+                "delivery_format": "single",
+                "soldermask_color": "green",
+                "surface_finish": "HASL",
+                "assembly_sides": "top",
+            },
+            depends_on=["board.gd1", "req.gd1-req-013"],
         )
     )
     nodes.extend(mechanical_nodes())

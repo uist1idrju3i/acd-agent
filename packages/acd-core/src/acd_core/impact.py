@@ -22,6 +22,9 @@ GATES_BY_NODE_KIND: dict[str, tuple[GateKind, ...]] = {
     ),
     "electrical.net": ("erc", "drc", "pin_net_consistency", "safety_boundary"),
     "electrical.component": ("erc", "drc", "pin_net_consistency"),
+    "electrical.board": ("drc", "review_disposition"),
+    "fab.order_intent": ("drc", "dfm", "review_disposition"),
+    "fab.process_allowance": ("drc", "dfm", "review_disposition"),
     "electrical.pin": ("erc", "drc", "pin_net_consistency"),
     "firmware.module": ("fw_build", "fw_static_analysis", "fw_unit_test"),
     "firmware.pin_assignment": (
