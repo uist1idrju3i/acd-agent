@@ -5,7 +5,8 @@
 
 本書は、設計グラフ、レイヤ境界、投影、ツール契約のアーキテクチャを正とする。
 工程の入力・出力・還流は [`design-flow.md`](design-flow.md)、SDKの責務境界は
-[`openhands-integration.md`](openhands-integration.md)を参照する。
+[`openhands-integration.md`](openhands-integration.md)、ECADの詳細契約は
+[`ecad-domain-notes.md`](ecad-domain-notes.md)を参照する。
 
 ## 正規データモデル
 
@@ -36,6 +37,12 @@ Q7/N7図表はすべて派生投影であり、正規データを置き換えな
 シリアライズ可能なJSON形式にし、差分比較、レビュー、gitでの保存を容易にする。
 この方針はZener、atopile、tscircuitから得られる教訓である。
 
+投影は意味的にマージしない。分岐、調停、リビジョン復元は設計グラフ上で行い、過去の
+生成物を現行Evidenceとして再利用せず、対象revisionから投影を再生成して再検証する。
+投影へ写す属性は、ピン電気種別、内部接続ピン、netclass／ルール、variant／DNP、
+原点・単位・軸、stackup・基板厚、メタデータ、安定identifierとrefdesを含む。
+定義とインスタンスは分離し、共有情報と固有情報の波及範囲をimpact analysisへ渡す。
+
 ## レイヤ境界
 
 ```text
@@ -60,6 +67,11 @@ schema検証済みのActionへ変換する。
 時刻を保持する。再読込できない、対象revisionが違う、またはtool versionが不明な投影は
 staleである。
 
+ゾーン塗りつぶし等の派生状態は、外形・ルール・接続の変更後に再計算してから検証する。
+再計算前の結果はstaleとして扱う。図面、3D形状、ブラウザ閲覧形式などのレビュー用投影は
+正ではなく、観察の入力に限る。投影側の編集や期待hash不一致は出所不明の派生物として検出し、
+設計グラフから再生成する。
+
 ## 監査文書の投影
 
 設計グラフから、次の監査文書を生成する。
@@ -80,7 +92,8 @@ staleである。
 ## ツール契約
 
 すべてのtoolは、型付きinput/output、schema version、idempotency key、side-effect
-classificationを持つ。副作用はread、可逆、不可逆に分類する。
+classificationを持つ。副作用はread、可逆、不可逆に分類する。ECAD adapterはツール版、
+形式版、隔離した設定ディレクトリ、言語、単位、解決済みライブラリ参照を実行条件として固定する。
 
 - readは再実行可能である。
 - 可逆操作はrollbackまたは新revisionで戻せる。

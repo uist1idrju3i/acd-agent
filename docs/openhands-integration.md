@@ -50,6 +50,10 @@ ACDのtoolは`ToolDefinition`として登録し、Pydantic Action/Observationで
 型付けする。annotationsはread-only、destructive、idempotentの宣言に使うが、
 宣言だけで安全性は成立しない。共通executorが実際の副作用を分類・検査する。
 
+CAD/EDA外部プロセスがファイルを保持している間は、worktreeの切替・復元と外部ツール実行を
+排他にする。adapterはプロセス終了とファイルハンドル解放を確認し、隔離した設定ディレクトリ
+で実行する。切替・復元後は対象revisionから投影を再生成し、再読込とゲートを再実行する。
+
 ## MCP接続
 
 SDKのMCP統合は、外部CAD/EDA、sourcing、simulationを動的schemaで接続する候補である。
