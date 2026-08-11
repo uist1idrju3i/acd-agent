@@ -7,7 +7,7 @@
 設計ゲートとEvidenceの扱いは [`design-flow.md`](design-flow.md)および
 [`reliability-practices.md`](reliability-practices.md)を参照します。
 
-Phase 0〜4ではQ7/N7図表を生成しません。Phase 5以降で、設計グラフとイベントログが
+Phase 0〜6ではQ7/N7図表を生成しません。Phase 7以降で、設計グラフとイベントログが
 構造化され、分析結果を投影として再生成できる状態になってから生成します。
 
 ## 目的と権威範囲
