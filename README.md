@@ -172,10 +172,10 @@ metrics、retryを提供する実行基盤です。設計グラフ、決定論�
 
 ## ロードマップ
 
-Phase 0 契約、Phase 1 最小一貫ループ、Phase 2 検証ゲートと根拠、
-Phase 3 電気↔機械協調修復、Phase 4 知識ループ、Phase 5 要件対話とsourcing、
-Phase 6 長時間ラン運用、Phase 7 FW連携と仮想実機、Phase 8 自働発注、
-Phase 9 ローカル製造。
+Phase 0 契約とツール能力確認、Phase 1 電気レーン最小縦切り、Phase 2 機械レーン最小縦切り、
+Phase 3 レーン統合と共通ゲート、Phase 4 検証ゲートと根拠、Phase 5 電気↔機械協調修復、
+Phase 6 知識ループ、Phase 7 要件対話とsourcing、Phase 8 長時間ラン運用、
+Phase 9 FW連携と仮想実機、Phase 10 自働発注、Phase 11 ローカル製造。
 内容と完了条件は [`docs/roadmap.md`](docs/roadmap.md) を正とします。
 
 ## ドキュメント

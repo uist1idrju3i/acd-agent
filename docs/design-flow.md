@@ -1,7 +1,7 @@
 # 設計フロー
 
 > ステータス: Draft  
-> 対象: Phase 0〜1の基板・筐体一貫ループ、OpenHands SDK v1.41.0
+> 対象: Phase 1〜3の基板・筐体・レーン統合フロー、OpenHands SDK v1.41.0
 
 本書は、基板・筐体・FWの各レーンにおける工程、ゲート、還流経路を正とする。
 設計グラフの構造は [`architecture.md`](architecture.md)、知識の還流は

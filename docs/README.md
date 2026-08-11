@@ -33,7 +33,7 @@
 | `tool-selection.md` | 実装で使う外部ツールの採否と設計根拠 | Draft |
 | `reliability-practices.md` | JAXA公開資料を根拠にした信頼性方針 | Draft |
 | `prior-art.md` | 公開先行事例、API、ライセンス | Draft |
-| `roadmap.md` | ACD固有のPhase 0〜9 | Draft |
+| `roadmap.md` | ACD固有のPhase 0〜11 | Draft |
 
 `runtime.md`、`schemas/`、ADRは後続の実装・設計決定で追加する。未作成の文書へ
 リンクを張らず、必要な場合は本文で「後続作業」と言及する。
