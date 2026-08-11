@@ -74,8 +74,10 @@ KiCad公式ライブラリのライセンスはCC-BY-SA 4.0であるが、公式
 初期は出所付きの人手キュレーション小カタログ（20〜40点）から始める。商用sourcing APIは
 Phase 7まで既定経路にしない。未知部品のfootprint自動生成と、出所記録の粒度を確定していない
 データの採用は初期スコープ外とする。初期カタログの在庫・実装可否は次回のGolden Designで
-一次確認する。初期カタログへの採用条件は、部品支給なしでJLCPCBに実装まで依頼できることとする。
-Basic／Extended在庫やGlobal Parts Sourcing経由の扱いは未確定であり、ここでは定めない。
+一次確認する。最初期の採用条件は、JLCPCBの実装部品ライブラリ（Basic／Extended）に在庫が
+ある部品に限定する。将来は、支給部品（consigned）およびJLCPCBのGlobal Parts Sourcing経由で
+調達される部品も「部品支給なし」として許容範囲へ含める。個別部品の在庫・実装可否そのものは
+次回のGolden Designで一次確認する。
 
 ### 回路の意図記述とnetlist生成
 
