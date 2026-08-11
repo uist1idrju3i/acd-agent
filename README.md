@@ -107,8 +107,8 @@ flowchart LR
         E3["S3 アートワーク<br/>電気・配置・配線"]
     end
     subgraph MECH["機械レーン"]
-        M2["M2 機械<br/>筐体コンセプト"]
-        M3["M3 機械<br/>筐体詳細"]
+        M2["M2 筐体コンセプト<br/>機械・外形・締結"]
+        M3["M3 筐体詳細<br/>機械・干渉・公差"]
     end
     subgraph FWLANE["FWレーン"]
         FW["ファームウェア<br/>Vibe Coding"]
