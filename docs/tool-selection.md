@@ -58,6 +58,25 @@ adapter境界は [`architecture.md`](architecture.md)、工程ごとのゲート
 
 ## 電気レーンの選定
 
+### 部品ライブラリと配布境界
+
+KiCad公式ライブラリ（symbols、footprints、packages3D）を一次採用する。ライブラリは
+ユーザー環境のKiCadインストールを参照し、本リポジトリへvendorしない。fixtureへ固定するのは
+参照名、バージョン、hashのみとする。
+
+KiCad公式ライブラリのライセンスはCC-BY-SA 4.0であるが、公式の例外条項により、ライブラリを
+使って作った設計と生成ファイル（KiCadプロジェクト、Gerber、BOM、STEP）へコピーレフトは
+波及せず、帰属表示も要求されないと読む。ただし、これはライセンス条文の読み取りであり法的
+助言ではない。ライブラリ自体または改変版を再配布する場合は例外の範囲外となるため、再確認する。
+一次情報は [KiCad Libraries License](https://www.kicad.org/libraries/license/) である。
+
+幾何形状の出所は解決済みとする。一方、MPN単位の定格・ピン機能・価格・在庫は別問題であり、
+初期は出所付きの人手キュレーション小カタログ（20〜40点）から始める。商用sourcing APIは
+Phase 7まで既定経路にしない。未知部品のfootprint自動生成と、出所記録の粒度を確定していない
+データの採用は初期スコープ外とする。初期カタログの在庫・実装可否は次回のGolden Designで
+一次確認する。初期カタログへの採用条件は、部品支給なしでJLCPCBに実装まで依頼できることとする。
+Basic／Extended在庫やGlobal Parts Sourcing経由の扱いは未確定であり、ここでは定めない。
+
 ### 回路の意図記述とnetlist生成
 
 | 候補 | ライセンス | 判定 | 根拠 |
@@ -223,13 +242,20 @@ probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではな�
 | 用途 | 候補 | 判定 | 根拠 |
 |---|---|---|---|
 | 部品価格・在庫・lifecycle | Nexar/Octopart、Digi-Key、Mouser | 一次候補（Phase 7） | 公式APIで出所・取得時点・通貨・地域を記録できる。契約と資格情報が前提 |
-| 部品データ | LCSCの非公式endpoint、`jlcparts`のmirror | 不採用（既定にしない） | 公式APIではなく、規約・rate limit・安定性が未確認。snapshotを固定した参考情報にとどめる |
+| 部品データ | 非公式endpoint、`jlcparts`のmirror | 不採用（既定にしない） | 公式APIではなく、規約・rate limit・安定性が未確認。snapshotを固定した参考情報にとどめる |
 | KiCadライブラリ生成 | [easyeda2kicad](https://github.com/uPesy/easyeda2kicad.py) | 不採用 | AGPL-3.0 |
 | PCB見積・発注 | JLCPCB API、PCBWay partner API | 一次候補（Phase 10） | 見積と発注を分離し、総発注額と最終ゲートを前提にする |
 | 筐体見積・発注 | JLC3DP、Slant3D、Xometry partner API | 継続調査（Phase 10〜11） | 権限範囲が契約依存 |
 
-認証不要でpermissiveな部品データAPIは一次確認できなかった。よって部品Evidenceは、
-契約済みAPIまたは利用者が投入したデータシート・型番を出所として扱う。
+部品Evidenceは、人手カタログまたは利用者が投入したデータシート・型番を出所として扱う。
+
+## 配布形態と結合境界
+
+当面は配布せず、作者専用として運用する。公開時はACDのライブラリと利用者が自分でKiCad等を
+導入する形態とし、KiCad、freerouting、slicer等の外部ツールをACD配布物へ同梱しない。
+Dockerイメージは作者の環境再現やCI用に作成してよいが、公開registryへpushしない。
+環境プローブは外部ツールの検出・バージョン記録を行い、非対応または版不明ならfail-closedで
+停止する。CIとローカルのツールバージョン一致をEvidenceとして検証する。
 
 ## 環境前提と運用上の注意
 
@@ -244,12 +270,10 @@ probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではな�
 ## 未決事項
 
 - OCCTのLGPL＋例外が、OCP wheel経由のimport結合でどう適用されるか。
-- GPL/AGPL binary（`kicad-cli`、freerouting、slicer）の同梱・配布方針と、
-  本リポジトリのLICENSE（BSD 3-Clause）との整合。
 - LibrePCB、Horizon EDA、pcb-rnd、gerbv、`kicadfiles`、lcapy、Zoo/KCLのLICENSE本文と現行版。
 - freeroutingの代替となるpermissive autorouter、およびPCB placement最適化OSSの再調査。
 - KiCad 11のヘッドレスIPC serverが提供された場合の、`kicad-cli`とIPCの責務分担。
-- 部品データのpermissiveな一次入手経路。
+- 公式ライブラリのライセンス例外を実際の公開形態へ適用する際の最終的な法務確認。
 - `sexpdata`ベースのKiCadスキーマ層が対応するKiCadファイル形式版の範囲。
 
 ## 検証状況の注記

@@ -7,6 +7,10 @@
 正とします。工程のゲートとEvidenceは [`design-flow.md`](design-flow.md)、分析手法は
 [`qc-tools.md`](qc-tools.md)を参照します。
 
+本書の要求は設計プロファイルに応じて拘束力を持つ。既定の`hobby`では最小限の安全・整合
+ゲートのみを有効にし、`small-production`以上では本書の要求をリスクに応じて段階的に有効化
+する。適用・除外・代替根拠・残余リスクはテーラリング記録に残す。
+
 ## 目的と権威範囲
 
 本書は、JAXA安全・信頼性推進部が公開する共通技術文書（[https://sma.jaxa.jp/techdoc.html](https://sma.jaxa.jp/techdoc.html)、2026-08-02時点で115件）を全文通読し、ACDへ転用できる設計・検証・是正・プロセスのプラクティスを整理したものです。

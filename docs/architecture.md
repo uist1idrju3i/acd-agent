@@ -13,10 +13,19 @@
 ドメインを持つ。
 
 - 電気: Requirement、FunctionalBlock、Part、Pin、Net、Footprint、Stackup、Layout。
+  `Requirement.intended_use`、`Net.voltage_nominal`、`Net.current_max`、`Part.hazard_class`、
+  `Part.certification`を安全境界の判定入力として持つ。
 - 機械: BoardEnvelope、ComponentEnvelope、Enclosure、Opening、Fastener、Material、
   Tolerance、AssemblyStep、ThermalPath。
 - 製造: FabProfile、MachineProfile、Process、Cost、LeadTime、Quantity。
-- 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval。
+- 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）。
+- 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption。
+  `Assumption`は確度、確定予定アクション、覆った場合の影響先を持つ。
+- 安全: `SafetyBoundaryResult`はS1の予備判定とS2の確定判定を区別し、判定根拠、
+  危険区分、状態（`pass`／`fail`／`unknown`）を保持する。S2のグラフ述語判定をゲートの正とし、
+  `unknown`はfail-closedで停止する。
+- ライブラリ: `LibraryOverlay`は公式ライブラリを変更せず、対象ライブラリ・footprint、
+  差分、理由、出所Evidenceをプロジェクトローカルに保持する。
 
 グラフのnodeとedgeは、revision、schema version、出所、入力hash、状態を持つ。
 設計変更はpatchとして表現し、影響するnode、再実行するgate、無効になるEvidenceを導出する。
@@ -74,7 +83,8 @@ classificationを持つ。副作用はread、可逆、不可逆に分類する�
 
 - readは再実行可能である。
 - 可逆操作はrollbackまたは新revisionで戻せる。
-- 不可逆操作は、予算・最終ゲート・承認状態を共通executorが確認する。
+- 不可逆操作は、金額・納期・月間発注回数・fab指定・地域の裁量枠、最終ゲート、
+  承認状態を共通executorが確認する。
 
 tool結果には、success/fail/unknown、diagnostics、warnings、Evidence、artifact
 hash、収束状態を含める。外部プロセスのstdoutだけをEvidenceにせず、構造化結果と
@@ -124,9 +134,7 @@ Conversationは計画と実行を進めるが、設計の正や合否を決め�
   build123dを一次採用とし、依存kernelの構成は法務確認を要する。
 - STEPの採用と出力経路は[`tool-selection.md`](tool-selection.md)を参照。
   IDF/IDXの採用範囲は未決である。
-- 外部プロセスとimportのライセンス整合の方針は
-  [`tool-selection.md`](tool-selection.md)を参照。個別の法務確認は未決である。
-- 本リポジトリのLICENSE（BSD 3-Clause）と採用ツール群のライセンス整合の再検討は、
-  [`tool-selection.md`](tool-selection.md)を参照。最終的な法務確認は未決である。
+- 個別ツールのライセンス整合と最終的な法務確認は、[`tool-selection.md`](tool-selection.md)の
+  「配布形態と結合境界」および「未決事項」に従う。
 - Evidenceの署名、改ざん検知、保持期間。
 - 製造APIの資格情報、地域、契約、価格snapshotの扱い。
