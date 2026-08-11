@@ -87,7 +87,7 @@ def _pin_ids(footprint: FootprintShape) -> list[tuple[PadShape, str]]:
     SOT-223 tab sharing pin 2) get ``@<n>`` suffixes like KiCad's exporter."""
     seen: dict[str, int] = {}
     result: list[tuple[PadShape, str]] = []
-    for pad in footprint.routing_pads or footprint.pads:
+    for pad in footprint.pads:
         if not pad.number or not (pad.on_front or pad.on_back):
             continue
         count = seen.get(pad.number, 0)
@@ -154,7 +154,7 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
     padstacks: dict[str, PadShape] = {}
     for placement in board.placements:
         images.setdefault(_image_name(placement.footprint), placement.footprint)
-        for pad in placement.footprint.routing_pads or placement.footprint.pads:
+        for pad in placement.footprint.pads:
             if pad.number and (pad.on_front or pad.on_back):
                 padstacks.setdefault(_padstack_name(pad), pad)
 
@@ -182,8 +182,7 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
 
     lines.append("  (placement")
     for placement in sorted(board.placements, key=lambda p: p.refdes):
-        routing_pads = placement.footprint.routing_pads or placement.footprint.pads
-        if not any(p.number for p in routing_pads):
+        if not any(p.number for p in placement.footprint.pads):
             continue
         side = "front" if placement.side == "front" else "back"
         rotation = round(placement.rotation_deg % 360.0, 4)

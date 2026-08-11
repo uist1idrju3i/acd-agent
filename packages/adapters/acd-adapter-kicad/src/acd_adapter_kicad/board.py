@@ -8,7 +8,7 @@ sorted by name, numbered from 1.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 
 from acd_adapter_kicad.emit import det_uuid, fmt, requote
@@ -259,11 +259,8 @@ def generate_board(
                 fixture_dir / comp.overlay_file,
                 comp.overlay_sha256 or "",
             )
-            original = footprint_library.load(
-                comp.library.footprint, path, comp.library.footprint_sha256
-            )
             applied = footprint_library.shape_from_raw(comp.library.footprint, raw)
-            footprints[comp.refdes] = replace(applied, routing_pads=original.pads)
+            footprints[comp.refdes] = applied
             raw_footprints[comp.refdes] = raw
             overlay_records.append(
                 {
