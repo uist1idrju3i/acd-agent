@@ -54,7 +54,7 @@ flowchart LR
 ```
 
 ポート構成と各コンポーネントの版は、本VMで`agent-canvas --info`と`GET /server_info`から実測した
-値である（[6. 実測サマリ](#6-実測サマリ)を参照）。会話、設定、secret、LLM profile、MCP、
+値である（[8. 実測サマリ](#8-実測サマリ)を参照）。会話、設定、secret、LLM profile、MCP、
 plugin、automationは選択中のbackendに保存され、backendを切り替えるとこれらも切り替わる。
 
 ## 3. 前提ツール
@@ -83,29 +83,22 @@ lsb_release -a
 
 ### Ubuntu 24.04での導入
 
-Ubuntu 24.04（noble）の`apt`が提供する`nodejs`は18.19.1であり、Agent Canvasの要求
-（22.12以上）を満たさない。
-NodeSourceのセットアップスクリプトまたは`nvm`でNode.js 22系を導入する。次のコマンドは公式
-ドキュメントの前提（Node.js 22.12以上）に合わせた例であり、Ubuntu 24.04上では未実測である。
-本VMにはNode.js 22.23.2が既に入っていたため、導入手順そのものは検証していない。
+OpenHands公式のUbuntu 22.04／24.04向けVMガイドは、Node.js 22系と`uv`の導入に
+次の手順を示している。本VMはNode.js 22.23.2が既に導入済みだったため、このVMで
+Ubuntu 24.04としての実行までは検証していない。
 
 ```bash
-# NodeSourceを使う場合（外部スクリプトを実行するため内容を確認してから使う）
-curl -fsSL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource_setup.sh
-less /tmp/nodesource_setup.sh
-sudo -E bash /tmp/nodesource_setup.sh
+sudo apt-get install -y ca-certificates curl gnupg git
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
-node --version
-```
-
-`uv`は公式のインストールスクリプトで導入する。
-
-```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
+source "$HOME/.local/bin/env"
+sudo npm install -g @openhands/agent-canvas
+node --version
 uv --version
 ```
 
-`uv`または`uvx`が無いとAgent Canvasのbackendは起動しない。backendは
+`uv`または`uvx`が無いとAgent Canvasのbackendは起動しない。backendは公式構成で
 `uv tool uvx --from openhands-agent-server==<version>`としてagent serverを起動するため、
 `uv`はACDの依存ではなくAgent Canvasの実行前提でもある。
 
@@ -267,7 +260,41 @@ npm uninstall -g @openhands/agent-canvas
 
 設定と会話履歴は`~/.openhands`に残るため、パッケージやイメージの更新では失われない。
 
-### 4.9 つまずきやすい点
+### 4.9 常駐運用
+
+OpenHands公式VMガイドが案内している常駐手段は`tmux`である。公式ガイドには
+systemdやrootless DockerをAgent Canvasの常駐手段として使う記述はない。
+
+```bash
+tmux new-session -d -s agent-canvas 'agent-canvas'
+tmux attach -t agent-canvas
+```
+
+公開モードで起動する場合は`--public`を付け、`LOCAL_BACKEND_API_KEY`を設定する。
+APIキーはログやリポジトリへ書かず、秘密情報として管理する。
+
+```bash
+export LOCAL_BACKEND_API_KEY='設定した値'
+tmux new-session -d -s agent-canvas 'agent-canvas --public'
+```
+
+本VMでは、次のlinger設定が成功した。
+
+```bash
+sudo loginctl enable-linger ubuntu
+export XDG_RUNTIME_DIR=/run/user/1000
+export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+systemctl --user status
+systemd-run --user --wait --collect /usr/bin/true
+```
+
+この結果はuser managerと一時user unitが動くことの確認であり、実際のAgent Canvas用
+unit定義と長期運用は未検証である。rootless Dockerは主経路にしない。公式VMガイドに
+記述がなく、本VMでの実測もAgent Canvasイメージの起動と`/server_info` HTTP 200までである。
+その実測ではcgroup制御の制約と、コンテナrootがホストの`ubuntu`へ対応するUIDマッピングを
+確認したため、参考情報に留める。
+
+### 4.10 つまずきやすい点
 
 - `agent-canvas: command not found`: npmグローバル`bin`が`PATH`に無い。
 - `uv`／`uvx`が無い: backendが起動しない。`uv`を先に導入する。
@@ -367,8 +394,19 @@ sudo apt-get update
 sudo apt-get install -y --no-install-recommends kicad kicad-symbols kicad-footprints
 ```
 
-本VMでは`kicad-cli 10.0.5`を検出した。PPAはUbuntu 24.04（noble）向けバイナリの公開を確認済み
-だが、noble上での導入と動作は未確認である。
+`kicad-symbols`と`kicad-footprints`は必須である。KiCad本体だけの環境では、
+fixture再生成が`/usr/share/kicad/symbols/Connector.kicad_sym`などの不足で停止し、
+電気レーンも`/usr/share/kicad/symbols/power.kicad_sym`の不足でfail-closed停止した。
+本VMではPPAから次を導入し、いずれも`10.0.5~ubuntu22.04.1`だった。
+
+```text
+kicad-symbols
+kicad-footprints
+```
+
+導入後は`/usr/share/kicad/symbols`と`/usr/share/kicad/footprints`が存在し、
+fixtureが参照するファイルが揃った。本VMでは`kicad-cli 10.0.5`を検出した。
+PPAはUbuntu 24.04（noble）向けバイナリの公開を確認済みだが、noble上での導入と動作は未確認である。
 
 #### FreeRouting 2.3.0（OpenJDK 25）
 
@@ -431,37 +469,255 @@ uv run python scripts/probe_tools.py
 
 ### 5.7 Agent Canvasからacd-agentを使う
 
-確認できた事実と未確認事項を分けて記す。
+現状の実装範囲を先に明記する。自然言語要件から設計グラフを生成・変更し、そのまま
+工程を実行するLLM入口は未実装である。
 
-確認できたこと。
+- `scripts/build_gd1_fixture.py`は、Pythonソース内の固定定義からGD1 graphを決定論的に生成する。
+- `packages/acd-core/src/acd_core/patch.py`の`GraphPatch`は型付きpatch適用であり、自然言語を
+  patchへ変換するCLI入口はない。
+- `acd_runtime.review`のLLM呼び出しは`ReviewFinding`の提案だけで、設計グラフの生成・変更や
+  gateの合否権限は持たない。
+- `plugins/acd`には`acd-contracts` Skillと`SessionStart` hookがある。
+  `plugins/acd/agents/`には具体的なagent定義はまだない。
 
-- 本リポジトリは`plugins/acd`にOpenHands plugin資材を持つ。`.plugin/plugin.json`（`name: acd`、
-  version 0.0.1、BSD-3-Clause）、`hooks/hooks.json`（`SessionStart`で
-  `python -m acd_runtime.session_start_hook`を実行）、`skills/acd-contracts/SKILL.md`、
-  `agents/README.md`である（[`openhands-integration.md`](openhands-integration.md)）。
-- 起動中のAgent Canvas backendには、plugin管理のREST API（plugin一覧、install、installed、
-  marketplace、refresh、会話へのload）が存在する。Agent Canvas配布物のフロントエンド実装には、
-  ローカルbackend向けのPlugins管理機能（カタログ、install、enable／disable等）が含まれる。
-- pluginのソース指定形式として、`github:owner/repo`、Git URL、ローカルパスが説明されており、
-  Git refとモノレポ内サブディレクトリの指定にも対応する記述がある。
+`acd-startup.json`はリポジトリに存在しない。存在しない場合の既定値は
+`required_tools`が空、`mcp_config_hash`が`None`である。workspaceを指定してhookを直接実行した
+実測では次の結果になった。
 
-未確認のこと。
+```json
+{"decision": "allow"}
+```
 
-- `plugins/acd`をAgent Canvasへ実際にインストールする操作は行っていない。導入後の
-  `SessionStart` hookが、agent server側の実行環境でACDのPython packageを解決できるかは
-  未確認である。hookは`python -m acd_runtime.session_start_hook`を呼ぶため、
-  agent serverのPython環境とacd-agentのworkspace（`uv`管理の`.venv`）の関係を先に決める必要が
-  ある。
-- Agent Canvasのmarketplaceに`acd` pluginが掲載され、UIから導入できるかは未確認である。
-- acd-agent側からAgent Canvasへ登録する具体的な手順は未確認である。未確認のまま合格根拠に
-  しない、というfail-closedの扱いを本項にも適用する。
+一方、`required_tools`または`mcp_config_hash`を`acd-startup.json`へ書くと、現行CLI hookには
+実際のtool version／MCP hashが渡されないため、値を検証できずdenyになる。これはfail-closedの
+実装である。
 
-暫定の使い方としては、Agent Canvasのworkspaceにacd-agentのチェックアウトを開き、
-[5.4 検証コマンド](#54-検証コマンド)のコマンドをエージェントから実行する構成が最小である。
-決定論的ゲートの合否、Evidence、承認はACD側の契約で判定し、Agent CanvasのUI状態やエージェントの
-説明を合格根拠にしない。
+未確認事項は次のとおりである。
 
-## 6. 実測サマリ
+- `plugins/acd`のAgent Canvasへの実インストール。
+- plugin導入後にagent-server側のPython環境から`acd_runtime`をimportできるか。
+- Agent Canvas marketplaceへの掲載とUIからの導入。
+- agent-server環境とworkspaceの`uv`環境を接続した実運用。
+
+したがって、現状で成立する最小経路は、Agent Canvasのworkspaceにacd-agent checkoutを開き、
+下記の決定論的スクリプトを通常のterminal toolから明示的に実行する方法である。UIやLLMの説明、
+Skillの存在はgateの合格根拠ではない。
+
+## 6. 動作確認（Golden Design #1）
+
+以下は本VM（Ubuntu 22.04.5 LTS）での実測である。Ubuntu 24.04での実行結果ではない。
+各レーンは独立して実行できるが、合格根拠は標準出力ではなくreport、Evidence、
+envelope、hash manifestの実値で確認する。
+
+### 6.1 機械レーン
+
+必要な外部ツールはbuild123d `0.11.1`とcadquery-ocp `7.9.3.1.1`である。
+
+```bash
+uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
+```
+
+実測結果:
+
+- 成功、終了コード`0`
+- 所要時間`8.2秒`
+- `volume=4567.862 mm3`
+- `minimum wall=2.000 mm`
+- `minimum clearance=1.000 mm`
+- mechanical evidenceの`convergence_state`は`converged`
+
+主要生成物:
+
+| ファイル | サイズ |
+| --- | ---: |
+| `enclosure.step` | 74,682 bytes |
+| `enclosure.3mf` | 26,253 bytes |
+| `envelope-cad.json` | 791 bytes |
+| `evidence-mechanical.json` | 1,952 bytes |
+| `summary.json` | 461 bytes |
+
+合格根拠として次を確認する。
+
+- `summary.json`: volume、minimum wall、minimum clearance、interference volume
+- `evidence-mechanical.json`: `target_revision`、`status=valid`、tool version、
+  `convergence_state=converged`、`exit_code=0`、正規化出力hash
+- `envelope-cad.json`: CAD投影のtool version、input/output hash、測定条件
+
+`summary.json`の正規化出力hashは
+`sha256:30023b5c7110ef1028266877e6752d3cf7a9088b133d0bd0b403a8bd46b203c6`である。
+このレーンには独立した`hashes.json`はない。
+
+### 6.2 電気レーン
+
+必要な外部ツールはKiCad `10.0.5`（`kicad-cli`、`kicad-symbols`、
+`kicad-footprints`）とFreeRouting `2.3.0`である。KiCadのシンボル・フットプリント
+ライブラリがない環境ではfixture再生成とproject projectionがfail-closed停止する。
+
+```bash
+uv run python scripts/run_gd1_pipeline.py --out out/gd1
+```
+
+`#26`をmainへ取り込んだ後の実測:
+
+- 成功、終了コード`0`
+- 所要時間`17.8秒`
+- ERC: `0 errors`
+- FreeRouting: `converged`
+- SES: `224 wires`、`32 vias`
+- SES取込時の正規化: `22本`、正規化前の観測最小wire幅`0.1124 mm`
+- DRC: `0 errors`、`0 unconnected`、warning `37`
+- Gerber `8`ファイル、drill `1`ファイル
+- 独立reload成功
+
+主要生成物:
+
+| ファイル | サイズ |
+| --- | ---: |
+| `gd1.kicad_sch` | 130,881 bytes |
+| `gd1.kicad_pcb` | 106,555 bytes |
+| `gd1.dsn` | 12,555 bytes |
+| `gd1.ses` | 33,542 bytes |
+| `gd1.erc.json` | 997 bytes |
+| `gd1.drc.json` | 21,654 bytes |
+| `routed/gd1.kicad_pcb` | 160,236 bytes |
+| `hashes.json` | 1,303 bytes |
+| `routing-summary.json` | 216 bytes |
+
+合格根拠として次を確認する。
+
+- `gd1.erc.json`: error数`0`
+- `gd1.erc.json.envelope.json`: KiCad version、input/output/config hash、`exit_code=0`
+- `gd1.ses.envelope.json`: FreeRouting version、`convergence_state=converged`、
+  `exit_code=0`
+- `routing-summary.json`: `wire_count=224`、`via_count=32`、
+  `normalized_wire_count=22`、`observed_min_wire_width_mm=0.1124`
+- `gd1.drc.json`: error数`0`、`unconnected_items`数`0`
+- `gd1.drc.json.envelope.json`: tool version、hash、測定条件
+- `hashes.json`: schematic、board、BOM、routed board、DSN、routing summary、
+  Gerber、drillのhash
+
+KiCad CLIのDRC envelopeはviolationがwarningを含むため`exit_code=5`になる場合がある。
+ACDはこの終了コードだけで合否を決めず、reportのerror数とunconnected数で判定する。
+今回も`exit_code=5`だったが、error `0`、unconnected `0`としてgateを通過した。
+また、Gerber/drillの独立reload時にgerbonaraのG90 `SyntaxWarning`が出力されたが、
+独立reloadは成功した。警告を成功根拠にはしていない。
+
+### 6.3 FWレーン
+
+ESP-IDF `v6.0.2`、ESP-IDF専用Python環境、ESP32-C3 toolchain、QEMU
+`9.2.2 (esp_develop_9.2.2_20250817)`が必要である。`export.sh`はスクリプトが
+自動sourceしないため、呼び出し側でsourceする必要がある。
+
+```bash
+source ~/tools/esp-idf/export.sh
+uv run python scripts/run_gd1_fw_pipeline.py --out out/gd1-fw
+```
+
+`export.sh`なしでは次でfail-closed停止する。
+
+```text
+IDF_PATH not set or idf.py missing (fail-closed)
+```
+
+source後の実測結果:
+
+- 成功、終了コード`0`
+- 所要時間`68秒`
+- 6段階すべて成功
+- ESP-IDF build passed（`v6.0.2`）
+- pin-assignment consistency gate passed
+- QEMU virtual run gate passed
+- 出力ディレクトリは`203M`
+
+主要生成物:
+
+| ファイル | サイズ |
+| --- | ---: |
+| `fw-package.json` | 1,244 bytes |
+| `flash.bin` | 4,194,304 bytes |
+| `qemu-serial.log` | 4,499 bytes |
+| `evidence-virtual-run.json` | 1,394 bytes |
+| `summary.json` | 289 bytes |
+| `envelope-build.json` | 758 bytes |
+| `envelope-merge.json` | 747 bytes |
+| `envelope-qemu.json` | 861 bytes |
+| `build/merged-binary.bin` | 233,808 bytes |
+
+合格根拠として次を確認する。
+
+- `qemu-serial.log`: `LED gpio=7 state=1`と`LED gpio=7 state=0`の状態遷移
+- `fw-package.json`: `target_revision`、ESP-IDF version、`source_hash`、
+  `artifact_hash`
+- `evidence-virtual-run.json`: `virtual_led_blink_observed=true`
+- `envelope-build.json`、`envelope-merge.json`、`envelope-qemu.json`: tool version、
+  input/output hash、target revision、測定条件
+
+`envelope-qemu.json`の`exit_code=124`は15秒の許容timeoutによる終了であり、ログ照合gateが
+成功したためパイプラインは成功した。これはQEMU仮想Evidenceであり、実機測定の代替ではない。
+実機Evidenceには次が記録され、未取得のままである。
+
+```json
+{"property": "real_device_led_measurement", "value": "unavailable", "verified": false}
+```
+
+## 7. Agent Canvasから使う（VibeBB／VibeCoding）
+
+### 7.1 現状の実装境界
+
+自然言語から設計グラフを自動生成・変更する入口はまだない。従って、以下のプロンプトは
+既存の決定論的スクリプトをAgent Canvasのterminal toolから実行させる使い方である。
+未実装のLLM設計生成を実装済みとして扱ってはならない。
+
+### 7.2 例1: 基板のVibeBB
+
+```text
+workspaceのacd-agentでGolden Design #1の電気レーンを実行してください。
+最初に次を実行します。
+
+uv run python scripts/run_gd1_pipeline.py --out out/gd1
+
+ERCのerror数、FreeRoutingのconvergence_state、SESのwire/via数、
+DRCのerror数とunconnected数、out/gd1/hashes.json、
+各*.envelope.json（tool version、input/output/config hash、exit_code、
+target_revision、convergence_state、measurement_conditions）の値を表で報告してください。
+
+合格主張はreportとEvidenceの実値だけを根拠にし、unknown、UI表示、
+あなた自身の説明を根拠にしないでください。失敗またはunknownになった場合は、
+停止したstageとログの該当行を報告して停止してください。
+```
+
+### 7.3 例2: FWのVibeCoding
+
+```text
+workspaceのacd-agentでFWレーンを動作確認してください。
+最初にsource ~/tools/esp-idf/export.shを実行し、次を実行します。
+
+uv run python scripts/run_gd1_fw_pipeline.py --out out/gd1-fw
+
+pin-assignment consistency gate、QEMUシリアルログのLED gpio/state遷移、
+fw-package.jsonのsource_hashとartifact_hash、各FW envelopeの実値を報告してください。
+実機Evidenceのunavailableは未検証として扱い、仮想Evidenceを実機の代替にしないでください。
+承認なしにprobe-rsで実機へ書き込まず、発注も行わないでください。
+```
+
+### 7.4 例3: 設計変更ループ
+
+```text
+次の設計変更を検討してください。
+LEDのGPIO番号、または筐体の最小肉厚を変更する場合、まず変更内容と対象revisionを
+表にしてください。現状は自然言語から自動でgraphを変更する入口がないため、
+scripts/build_gd1_fixture.pyの固定定義を編集するか、ACDの型付きGraphPatchを使ってください。
+
+変更後はfixtureを再生成し、変更対象レーンを再実行してください。
+fixtureと各出力のhashes.json（またはsummary.json）の差分、各gateの再判定結果、
+Evidenceのtarget_revisionとinput/output hashを報告してください。
+失敗、stale、unknownがあれば停止し、原因とログ該当行を報告してください。
+```
+
+各例とも、エージェントの説明を合格根拠にしてはならない。設計グラフ生成・変更のLLM入口、
+pluginの実インストール、実機FW検証は未実装または未確認であり、実装済みとして報告してはならない。
+
+## 8. 実測サマリ
 
 測定日は2026-08-11、測定環境はUbuntu 22.04.5 LTS（Ubuntu 24.04では未測定）である。
 
@@ -475,25 +731,29 @@ uv run python scripts/probe_tools.py
 | Node.js／npm | `v22.23.2`／`10.9.8` |
 | uv | `0.7.9`（SDKが推奨する0.8.13以上ではない） |
 | acd-agentのSDK submodule | `ca46719d5e9a0b0af79f7de2da37067a5b94563c`（v1.41.0） |
-| acd-agentのlint／型検査／テスト／文書検証 | すべて成功（ruff 0.16.2、pyright 1.1.411、pytest 9.1.1で117 passed、Markdown 35ファイル） |
-| 外部ツール | kicad-cli `10.0.5`、freerouting `2.3.0`、build123d `0.11.1`／cadquery-ocp `7.9.3.1.1` |
+| acd-agentのlint／型検査／テスト／文書検証 | すべて成功（ruff 0.16.2、pyright 1.1.411、pytest 9.1.1で118 passed、Markdown 35ファイル） |
+| KiCad | `kicad-cli 10.0.5`、`kicad-symbols 10.0.5~ubuntu22.04.1`、`kicad-footprints 10.0.5~ubuntu22.04.1` |
+| 外部ツール | freerouting `2.3.0`、build123d `0.11.1`／cadquery-ocp `7.9.3.1.1`、ESP-IDF `v6.0.2`、QEMU `9.2.2` |
+| GD1動作確認 | 機械・電気・FWの各レーンが本VMで成功（FWは実機Evidence未取得） |
 
 acd-agentが参照するSDK（v1.41.0）と、Agent Canvasが既定で起動するagent server同梱SDK（1.40.1）は
 版が異なる。両者を同一環境で組み合わせる場合の互換性は未確認であり、必要なら
 `OH_AGENT_SERVER_VERSION`で明示的に固定してから検証する。
 
-## 7. 未確認事項
+## 9. 未確認事項
 
 - Ubuntu 24.04上での全手順（Node.js導入、Agent Canvas起動、acd-agentの同期と検証）。
-- Ubuntu 24.04のNode.js 22系導入手順（NodeSource／nvm）。
 - Ubuntu 24.04上での外部ツールのインストール実行と動作確認。
-- Dockerサンドボックス構成でのAgent Canvas起動と、acd-agentのworkspaceマウント。
+- Agent Canvas用systemd unitの定義と長期運用。
 - `plugins/acd`のAgent Canvasへの導入と`SessionStart` hookの成立。
+- agent-server側Python環境でのACD package import成立。
 - agent server起動時のprotobuf／pyasn1 egg警告の影響。
 - Agent Canvas同梱SDK 1.40.1とacd-agent側SDK v1.41.0の組み合わせ。
 - `uv` 0.8.13未満での長期運用（本VMは0.7.9で`uv sync`が成功したが、SDKは0.8.13以上を要求する）。
+- 実機probe-rsによるFW書き込み、実機LED、実機シリアル、SHT40測定。
+- rootless Dockerの長期運用、cgroup制約の解消、UIDマッピングを含むproduction運用。
 
-## 8. 参照
+## 10. 参照
 
 - [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
 - [`tool-selection.md`](tool-selection.md): 外部ツールの採否と設計根拠。
@@ -506,5 +766,6 @@ acd-agentが参照するSDK（v1.41.0）と、Agent Canvasが既定で起動す�
   `https://docs.openhands.dev/openhands/usage/agent-canvas/backend-setup/local`、
   `https://docs.openhands.dev/openhands/usage/agent-canvas/backend-setup/docker`、
   `https://docs.openhands.dev/openhands/usage/agent-canvas/plugins`、
+  `https://docs.openhands.dev/openhands/usage/agent-canvas/backend-setup/vm`、
   `https://docs.openhands.dev/openhands/usage/agent-canvas/troubleshooting`、
   `https://docs.openhands.dev/sdk/getting-started`（いずれも2026-08-11確認）。
