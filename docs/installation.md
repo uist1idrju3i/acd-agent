@@ -351,8 +351,8 @@ uv run python -V
 | --- | --- | --- |
 | `uv run ruff check` | lint | 成功（約0.1秒、ruff 0.16.2） |
 | `uv run pyright` | 型検査 | 成功（約4.3秒、pyright 1.1.411、0 errors） |
-| `uv run pytest` | テスト | 成功（約40秒、pytest 9.1.1、117 passed） |
-| `uv run python scripts/verify_docs.py` | 文書検証 | 成功（Markdown 35ファイル） |
+| `uv run pytest` | テスト | 成功（約29秒、pytest 9.1.1、118 passed） |
+| `uv run python scripts/verify_docs.py` | 文書検証 | 成功（Markdown 36ファイル） |
 | `git diff --check` | 空白エラー検査 | 差分なしの状態で確認 |
 
 ```bash
@@ -664,9 +664,12 @@ source後の実測結果:
 
 ### 7.1 現状の実装境界
 
-自然言語から設計グラフを自動生成・変更する入口はまだない。従って、以下のプロンプトは
-既存の決定論的スクリプトをAgent Canvasのterminal toolから実行させる使い方である。
-未実装のLLM設計生成を実装済みとして扱ってはならない。
+実装境界は[5.7](#57-agent-canvasからacd-agentを使う)のとおりで、自然言語から設計グラフを
+自動生成・変更する入口はまだない。従って、以下のプロンプトは既存の決定論的スクリプトを
+Agent Canvasのterminal toolから実行させる使い方であり、LLMの役割は投影の読み取りと
+`ReviewFinding`の提案に留まる。未実装のLLM設計生成を実装済みとして扱ってはならない。
+プロンプトを送る前に、[4.5](#45-初回セットアップ)のLLM設定（provider、model、APIキー）と、
+workspaceとしてacd-agentのチェックアウトを開いていることを確認する。
 
 ### 7.2 例1: 基板のVibeBB
 
@@ -731,7 +734,7 @@ pluginの実インストール、実機FW検証は未実装または未確認で
 | Node.js／npm | `v22.23.2`／`10.9.8` |
 | uv | `0.7.9`（SDKが推奨する0.8.13以上ではない） |
 | acd-agentのSDK submodule | `ca46719d5e9a0b0af79f7de2da37067a5b94563c`（v1.41.0） |
-| acd-agentのlint／型検査／テスト／文書検証 | すべて成功（ruff 0.16.2、pyright 1.1.411、pytest 9.1.1で118 passed、Markdown 35ファイル） |
+| acd-agentのlint／型検査／テスト／文書検証 | すべて成功（ruff 0.16.2、pyright 1.1.411、pytest 9.1.1で118 passed、Markdown 36ファイル） |
 | KiCad | `kicad-cli 10.0.5`、`kicad-symbols 10.0.5~ubuntu22.04.1`、`kicad-footprints 10.0.5~ubuntu22.04.1` |
 | 外部ツール | freerouting `2.3.0`、build123d `0.11.1`／cadquery-ocp `7.9.3.1.1`、ESP-IDF `v6.0.2`、QEMU `9.2.2` |
 | GD1動作確認 | 機械・電気・FWの各レーンが本VMで成功（FWは実機Evidence未取得） |
