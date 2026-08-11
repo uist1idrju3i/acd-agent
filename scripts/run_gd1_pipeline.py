@@ -51,7 +51,9 @@ GERBER_LAYERS = [
 
 
 def run_pipeline(fixture_dir: Path, out_dir: Path, max_passes: int) -> dict[str, str]:
-    graph = DesignGraph.model_validate(json.loads((fixture_dir / "graph.json").read_text()))
+    graph = DesignGraph.model_validate(
+        json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+    )
     revision = graph.revision
     lane = extract_electrical_lane(graph)
 

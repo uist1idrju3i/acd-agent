@@ -113,3 +113,89 @@ def test_design_graph_rejects_dangling_dependency() -> None:
     broken: list[Json] = [*nodes, orphan]
     with pytest.raises(ValidationError, match="unknown node"):
         DesignGraph.model_validate({**data, "nodes": broken})
+
+
+def test_mechanical_node_kinds_roundtrip_between_schema_and_model(
+    registry: Registry[Schema],
+) -> None:
+    data = load_fixture("valid", "design-graph.json")
+    base_nodes: list[Json] = [
+        {
+            "id": "board.gd1",
+            "kind": "electrical.board",
+            "attrs": {"width_mm": 80.0, "height_mm": 50.0, "unit": "mm"},
+        },
+    ]
+    mechanical_nodes: list[Json] = [
+        {
+            "id": "mechanical.outline.1",
+            "kind": "mechanical.outline",
+            "attrs": {
+                "width_mm": 80.0,
+                "depth_mm": 50.0,
+                "thickness_mm": 1.6,
+                "corner_radius_mm": 2.0,
+                "unit": "mm",
+                "origin": "board_upper_left",
+                "y_axis": "down",
+                "mount_hole_positions": "10,10;70,10;10,40;70,40",
+            },
+            "depends_on": ["board.gd1"],
+        },
+        {
+            "id": "mechanical.component_body.1",
+            "kind": "mechanical.component_body",
+            "attrs": {
+                "component": "component.u1",
+                "height_mm": 3.2,
+                "body_width_mm": 10.0,
+                "body_depth_mm": 8.0,
+                "mounting_face": "top",
+                "rotation_deg": 0.0,
+                "unit": "mm",
+            },
+            "depends_on": ["comp.mcu"],
+        },
+        {
+            "id": "mechanical.connector_opening.1",
+            "kind": "mechanical.connector_opening",
+            "attrs": {
+                "connector": "comp.mcu",
+                "face": "front",
+                "center_x_mm": 40.0,
+                "center_z_mm": 5.0,
+                "width_mm": 12.0,
+                "height_mm": 6.0,
+                "margin_mm": 0.5,
+                "unit": "mm",
+            },
+            "depends_on": ["comp.mcu"],
+        },
+        {
+            "id": "mechanical.enclosure.1",
+            "kind": "mechanical.enclosure",
+            "attrs": {
+                "wall_thickness_mm": 2.0,
+                "internal_clearance_mm": 1.0,
+                "lid_fit_gap_mm": 0.2,
+                "standoff_height_mm": 5.0,
+                "material": "PETG",
+                "unit": "mm",
+            },
+            "depends_on": [
+                "mechanical.outline.1",
+                "mechanical.component_body.1",
+                "mechanical.connector_opening.1",
+            ],
+        },
+    ]
+    nodes = data["nodes"]
+    assert isinstance(nodes, list)
+    all_nodes: list[Json] = [*nodes, *base_nodes, *mechanical_nodes]
+    candidate: dict[str, Json] = {**data, "nodes": all_nodes}
+    validator = _validator("design-graph.schema.json", registry)
+    validator.validate(candidate)
+    model = DesignGraph.model_validate(candidate)
+    dumped = model.model_dump(mode="json", exclude_none=True)
+    validator.validate(dumped)
+    assert DesignGraph.model_validate(dumped) == model

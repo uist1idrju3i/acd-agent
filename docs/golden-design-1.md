@@ -286,6 +286,29 @@ M2取付穴と将来の筐体の嵌合公差は、外形の±0.2 mm（regular）
 Evidenceへ記録する。検証器が異常を検出できない場合や、入力の比較対象が`unknown`の
 場合は、`pass`ではなく停止とする。
 
+### 8.1 機械レーン宣言
+
+Phase 3では、基板外形を30 mm × 25 mm、板厚1.6 mm、取付穴4箇所として機械レーンへ
+宣言する。部品のXY位置・回転は機械レーンnodeの出所付き属性で保持し、Phase 1の
+placementやKiCad実行時状態を読み出して補完しない。
+
+今回、基板上の全電気部品を機械レーンへ対応付ける。実体を持たないテストポイントと
+取付穴は`body_type=none`、高さ0 mm、bodyなしの根拠付き属性で明示する。
+
+| 部品 | 宣言寸法（mm） | 高さ（mm） | 出所 |
+|---|---:|---:|---|
+| ESP32-C3-MINI-1 | 13.2 × 16.6 | 2.4 | [Espressif datasheet](https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf) |
+| USB-C receptacle | 9.0 × 7.0 | 3.2 | [KiCad 10.0.5 footprint](https://github.com/KiCad/kicad-footprints/tree/10.0.5/Connector_USB.pretty) |
+| AMS1117 SOT-223 | 6.5 × 3.5 | 1.8 | [AMS1117 datasheet](https://www.advanced-monolithic.com/pdf/ds1117.pdf) |
+| SHT40 DFN-4 | 1.5 × 1.5 | 0.5 | [Sensirion SHT4x datasheet](https://sensirion.com/resource/datasheet/sht4x) |
+| 0603 LED | 1.6 × 0.8 | 0.55 | [LCSC KT-0603R datasheet](https://www.lcsc.com/datasheet/lcsc_datasheet_C2286.pdf) |
+| TS-1088 tactile switch ×2 | 6.0 × 6.0 | 4.3 | [TS-1088 datasheet](https://www.lcsc.com/datasheet/lcsc_datasheet_C720477.pdf) |
+| 0603 resistor/capacitor | 1.6 × 0.8 | 0.8 | [LCSC 0603 component datasheet](https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf) |
+| TestPoint ×7 | 1.5 × 1.5 | 0.0 (`body_type=none`) | [KiCad 10.0.5 TestPoint footprint](https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty) |
+| MountingHole ×4 | 2.2 × 2.2 | 0.0 (`body_type=none`) | [KiCad 10.0.5 MountingHole footprint](https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty) |
+
+全componentに対応するbody nodeが無い場合、機械レーン抽出は`unknown`として停止する。
+
 ## 9. FWの範囲とEvidence
 
 ### 9.1 FW範囲

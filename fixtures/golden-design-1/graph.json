@@ -2549,6 +2549,767 @@
     },
     {
       "attrs": {
+        "corner_radius_mm": 1.0,
+        "depth_mm": 25.0,
+        "mount_hole_1_diameter_mm": 2.2,
+        "mount_hole_1_x_mm": 1.5,
+        "mount_hole_1_y_mm": 1.5,
+        "mount_hole_2_diameter_mm": 2.2,
+        "mount_hole_2_x_mm": 28.5,
+        "mount_hole_2_y_mm": 1.5,
+        "mount_hole_3_diameter_mm": 2.2,
+        "mount_hole_3_x_mm": 1.5,
+        "mount_hole_3_y_mm": 23.5,
+        "mount_hole_4_diameter_mm": 2.2,
+        "mount_hole_4_x_mm": 28.5,
+        "mount_hole_4_y_mm": 23.5,
+        "mount_hole_count": 4,
+        "origin": "board_upper_left",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "thickness_mm": 1.6,
+        "unit": "mm",
+        "width_mm": 30.0,
+        "y_axis": "down"
+      },
+      "depends_on": [
+        "board.gd1"
+      ],
+      "id": "mechanical.outline.gd1",
+      "kind": "mechanical.outline"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 16.6,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "Espressif ESP32-C3-MINI-1 datasheet",
+        "dimensions_source_ref": "https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf",
+        "height_mm": 2.4,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 13.2,
+        "x_mm": 15.0,
+        "y_mm": 13.0
+      },
+      "depends_on": [
+        "comp.u1"
+      ],
+      "id": "mechanical.component_body.1",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 7.0,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad official footprint library, package version 10.0.5",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/Connector_USB.pretty",
+        "height_mm": 3.2,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 9.0,
+        "x_mm": 15.0,
+        "y_mm": 5.0
+      },
+      "depends_on": [
+        "comp.j1"
+      ],
+      "id": "mechanical.component_body.2",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 3.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "Advanced Monolithic AMS1117 datasheet",
+        "dimensions_source_ref": "https://www.advanced-monolithic.com/pdf/ds1117.pdf",
+        "height_mm": 1.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 6.5,
+        "x_mm": 10.0,
+        "y_mm": 18.0
+      },
+      "depends_on": [
+        "comp.u2"
+      ],
+      "id": "mechanical.component_body.3",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "Sensirion SHT4x datasheet",
+        "dimensions_source_ref": "https://sensirion.com/resource/datasheet/sht4x",
+        "height_mm": 0.5,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 24.0,
+        "y_mm": 8.0
+      },
+      "depends_on": [
+        "comp.u3"
+      ],
+      "id": "mechanical.component_body.4",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC KT-0603R LED datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C2286.pdf",
+        "height_mm": 0.55,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 5.0,
+        "y_mm": 20.0
+      },
+      "depends_on": [
+        "comp.d1"
+      ],
+      "id": "mechanical.component_body.5",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 6.0,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "TS-1088 tactile switch datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C720477.pdf",
+        "height_mm": 4.3,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 6.0,
+        "x_mm": 7.0,
+        "y_mm": 5.0
+      },
+      "depends_on": [
+        "comp.sw1"
+      ],
+      "id": "mechanical.component_body.6",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 6.0,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "TS-1088 tactile switch datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C720477.pdf",
+        "height_mm": 4.3,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 6.0,
+        "x_mm": 23.0,
+        "y_mm": 5.0
+      },
+      "depends_on": [
+        "comp.sw2"
+      ],
+      "id": "mechanical.component_body.7",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 12.0,
+        "y_mm": 8.0
+      },
+      "depends_on": [
+        "comp.r1"
+      ],
+      "id": "mechanical.component_body.8",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 8.0,
+        "y_mm": 11.0
+      },
+      "depends_on": [
+        "comp.r2"
+      ],
+      "id": "mechanical.component_body.9",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 12.0,
+        "y_mm": 11.0
+      },
+      "depends_on": [
+        "comp.r3"
+      ],
+      "id": "mechanical.component_body.10",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 8.0,
+        "y_mm": 14.0
+      },
+      "depends_on": [
+        "comp.r4"
+      ],
+      "id": "mechanical.component_body.11",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 12.0,
+        "y_mm": 14.0
+      },
+      "depends_on": [
+        "comp.r5"
+      ],
+      "id": "mechanical.component_body.12",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 8.0,
+        "y_mm": 17.0
+      },
+      "depends_on": [
+        "comp.r6"
+      ],
+      "id": "mechanical.component_body.13",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 12.0,
+        "y_mm": 8.0
+      },
+      "depends_on": [
+        "comp.c1"
+      ],
+      "id": "mechanical.component_body.14",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 8.0,
+        "y_mm": 11.0
+      },
+      "depends_on": [
+        "comp.c2"
+      ],
+      "id": "mechanical.component_body.15",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 12.0,
+        "y_mm": 11.0
+      },
+      "depends_on": [
+        "comp.c3"
+      ],
+      "id": "mechanical.component_body.16",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 8.0,
+        "y_mm": 14.0
+      },
+      "depends_on": [
+        "comp.c4"
+      ],
+      "id": "mechanical.component_body.17",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 12.0,
+        "y_mm": 14.0
+      },
+      "depends_on": [
+        "comp.c5"
+      ],
+      "id": "mechanical.component_body.18",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "solid",
+        "depth_mm": 0.8,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "height_mm": 0.8,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "x_mm": 8.0,
+        "y_mm": 17.0
+      },
+      "depends_on": [
+        "comp.c6"
+      ],
+      "id": "mechanical.component_body.19",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad TestPoint_Pad_D1.5mm has no declared component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 10.0,
+        "y_mm": 23.0
+      },
+      "depends_on": [
+        "comp.tp1"
+      ],
+      "id": "mechanical.component_body.20",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad TestPoint_Pad_D1.5mm has no declared component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 18.0,
+        "y_mm": 23.0
+      },
+      "depends_on": [
+        "comp.tp2"
+      ],
+      "id": "mechanical.component_body.21",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad TestPoint_Pad_D1.5mm has no declared component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 26.0,
+        "y_mm": 23.0
+      },
+      "depends_on": [
+        "comp.tp3"
+      ],
+      "id": "mechanical.component_body.22",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad TestPoint_Pad_D1.5mm has no declared component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 2.0,
+        "y_mm": 23.0
+      },
+      "depends_on": [
+        "comp.tp4"
+      ],
+      "id": "mechanical.component_body.23",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad TestPoint_Pad_D1.5mm has no declared component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 10.0,
+        "y_mm": 23.0
+      },
+      "depends_on": [
+        "comp.tp5"
+      ],
+      "id": "mechanical.component_body.24",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad TestPoint_Pad_D1.5mm has no declared component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 18.0,
+        "y_mm": 23.0
+      },
+      "depends_on": [
+        "comp.tp6"
+      ],
+      "id": "mechanical.component_body.25",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 1.5,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad TestPoint_Pad_D1.5mm has no declared component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 1.5,
+        "x_mm": 26.0,
+        "y_mm": 23.0
+      },
+      "depends_on": [
+        "comp.tp7"
+      ],
+      "id": "mechanical.component_body.26",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 2.2,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad MountingHole_2.2mm_M2 has no component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 2.2,
+        "x_mm": 1.5,
+        "y_mm": 1.5
+      },
+      "depends_on": [
+        "comp.h1"
+      ],
+      "id": "mechanical.component_body.27",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 2.2,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad MountingHole_2.2mm_M2 has no component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 2.2,
+        "x_mm": 28.5,
+        "y_mm": 1.5
+      },
+      "depends_on": [
+        "comp.h2"
+      ],
+      "id": "mechanical.component_body.28",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 2.2,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad MountingHole_2.2mm_M2 has no component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 2.2,
+        "x_mm": 1.5,
+        "y_mm": 23.5
+      },
+      "depends_on": [
+        "comp.h3"
+      ],
+      "id": "mechanical.component_body.29",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "body_type": "none",
+        "depth_mm": 2.2,
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad MountingHole_2.2mm_M2 has no component body",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty",
+        "height_mm": 0.0,
+        "mounting_side": "top",
+        "position_source": "golden-design-1 mechanical declaration",
+        "position_source_ref": "docs/golden-design-1.md",
+        "rotation_deg": 0.0,
+        "width_mm": 2.2,
+        "x_mm": 28.5,
+        "y_mm": 23.5
+      },
+      "depends_on": [
+        "comp.h4"
+      ],
+      "id": "mechanical.component_body.30",
+      "kind": "mechanical.component_body"
+    },
+    {
+      "attrs": {
+        "center_x_mm": 15.0,
+        "center_y_mm": 5.0,
+        "connector": "comp.j1",
+        "dimensions_checked_at": "2026-08-11T00:00:00Z",
+        "dimensions_source": "KiCad official footprint library, package version 10.0.5",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.5/Connector_USB.pretty",
+        "face": "front",
+        "height_mm": 5.0,
+        "margin_mm": 0.5,
+        "width_mm": 8.0
+      },
+      "depends_on": [
+        "comp.j1"
+      ],
+      "id": "mechanical.connector_opening.j1",
+      "kind": "mechanical.connector_opening"
+    },
+    {
+      "attrs": {
+        "interference_tolerance_mm3": 0.01,
+        "internal_clearance_mm": 1.0,
+        "lid_fit_gap_mm": 0.2,
+        "material": "PETG",
+        "min_wall_thickness_mm": 1.2,
+        "standoff_height_mm": 4.0,
+        "standoff_radius_mm": 2.0,
+        "tolerance_mm": 0.05,
+        "tolerance_source": "golden-design-1 mechanical gate declaration",
+        "tolerance_source_ref": "docs/golden-design-1.md",
+        "unit": "mm",
+        "wall_thickness_mm": 2.0
+      },
+      "depends_on": [
+        "mechanical.component_body.1",
+        "mechanical.component_body.2",
+        "mechanical.component_body.3",
+        "mechanical.component_body.4",
+        "mechanical.component_body.5",
+        "mechanical.component_body.6",
+        "mechanical.component_body.7",
+        "mechanical.component_body.8",
+        "mechanical.component_body.9",
+        "mechanical.component_body.10",
+        "mechanical.component_body.11",
+        "mechanical.component_body.12",
+        "mechanical.component_body.13",
+        "mechanical.component_body.14",
+        "mechanical.component_body.15",
+        "mechanical.component_body.16",
+        "mechanical.component_body.17",
+        "mechanical.component_body.18",
+        "mechanical.component_body.19",
+        "mechanical.component_body.20",
+        "mechanical.component_body.21",
+        "mechanical.component_body.22",
+        "mechanical.component_body.23",
+        "mechanical.component_body.24",
+        "mechanical.component_body.25",
+        "mechanical.component_body.26",
+        "mechanical.component_body.27",
+        "mechanical.component_body.28",
+        "mechanical.component_body.29",
+        "mechanical.component_body.30",
+        "mechanical.connector_opening.j1"
+      ],
+      "id": "mechanical.enclosure.gd1",
+      "kind": "mechanical.enclosure"
+    },
+    {
+      "attrs": {
         "gpio": 9,
         "net": "net.boot"
       },

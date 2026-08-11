@@ -1,5 +1,6 @@
 """Design-graph revision, patch, and impact/stale derivation."""
 
+from acd_core.cad_normalize import CadNormalizationError, normalize_3mf, normalize_step
 from acd_core.impact import (
     GATES_BY_NODE_KIND,
     affected_node_ids,
@@ -20,6 +21,7 @@ from acd_core.revision import next_revision, revision_number
 __all__ = [
     "GATES_BY_NODE_KIND",
     "AddNode",
+    "CadNormalizationError",
     "GraphPatch",
     "PatchOp",
     "RemoveNode",
@@ -29,6 +31,8 @@ __all__ = [
     "apply_patch",
     "gates_to_rerun",
     "next_revision",
+    "normalize_3mf",
+    "normalize_step",
     "revision_number",
     "stale_evidence_ids",
 ]
