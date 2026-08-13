@@ -73,6 +73,7 @@ class FootprintMeasurement:
     rotation_deg: float
     layer: str
     pads: tuple[PadMeasurement, ...]
+    courtyard_bbox_mm: tuple[float, float, float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,7 @@ class BoardMeasurement:
     outline_bbox_mm: tuple[float, float, float, float] | None
     drill_tool_diameters_mm: tuple[float, ...]
     drill_object_count: int
+    edge_clearance_mm: float = 0.3
 
     @property
     def pads(self) -> tuple[PadMeasurement, ...]:
@@ -143,6 +145,37 @@ def _rotate(x: float, y: float, angle: float) -> tuple[float, float]:
 
 def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     return _rotate(x, y, -angle)
+
+
+def _footprint_bbox(
+    node: object, fp_at: tuple[float, float, float]
+) -> tuple[float, float, float, float] | None:
+    points: list[tuple[float, float]] = []
+    for tag in ("fp_line", "fp_rect", "fp_circle", "fp_arc", "fp_poly"):
+        for item in _direct(node, tag):
+            layer = _one(item, "layer")
+            if layer is None or not str(layer[1]).endswith("CrtYd"):
+                continue
+            for point_tag in ("start", "mid", "end", "center"):
+                point = _one(item, point_tag)
+                if point is not None and len(point) > 2:
+                    points.append((_number(point[1]), _number(point[2])))
+            pts_node = _one(item, "pts")
+            if pts_node is not None:
+                for xy in pts_node[1:]:
+                    if isinstance(xy, list):
+                        values = cast(list[object], xy)
+                        if len(values) <= 2:
+                            continue
+                        points.append((_number(values[1]), _number(values[2])))
+    if not points:
+        return None
+    transformed = [
+        (fp_at[0] + _rotate(x, y, fp_at[2])[0], fp_at[1] + _rotate(x, y, fp_at[2])[1])
+        for x, y in points
+    ]
+    xs, ys = zip(*transformed, strict=True)
+    return min(xs), min(ys), max(xs), max(ys)
 
 
 def _parse_pad(
@@ -246,7 +279,8 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
                         silk_widths.append(_number(thickness[1]))
             footprints.append(
                 FootprintMeasurement(
-                    refdes, fp_at[0], fp_at[1], fp_at[2], str(layer), pads
+                    refdes, fp_at[0], fp_at[1], fp_at[2], str(layer), pads,
+                    _footprint_bbox(node, fp_at),
                 )
             )
         elif tag == "via":
@@ -412,6 +446,7 @@ def run_dfm(
     allowances: tuple[ProcessAllowanceView, ...],
     lane: ElectricalLane | None = None,
     intent: FabOrderIntentView | None = None,
+    edge_overhang_declarations: Mapping[str, float] | None = None,
 ) -> dict[str, object]:
     allowed = _allowance_map(allowances, profile)
     thresholds = {
@@ -528,6 +563,28 @@ def run_dfm(
                 "mm",
                 loc,
             )
+        pad_half_x = pad.size_x_mm / 2.0
+        pad_half_y = pad.size_y_mm / 2.0
+        if (
+            pad.x_mm - pad_half_x < measurement.edge_clearance_mm - 1e-6
+            or pad.y_mm - pad_half_y < measurement.edge_clearance_mm - 1e-6
+            or pad.x_mm + pad_half_x
+            > (measurement.outline_bbox_mm or (0, 0, 0, 0))[2]
+            - measurement.edge_clearance_mm
+            + 1e-6
+            or pad.y_mm + pad_half_y
+            > (measurement.outline_bbox_mm or (0, 0, 0, 0))[3]
+            - measurement.edge_clearance_mm
+            + 1e-6
+        ):
+            add(
+                "pad-to-board-edge-clearance",
+                "capability_violation",
+                {"refdes": pad.refdes, "x_mm": pad.x_mm, "y_mm": pad.y_mm},
+                measurement.edge_clearance_mm,
+                "mm",
+                loc,
+            )
         if pad.kind == "through-hole" and pad.annular_ring_mm is not None:
             if pad.annular_ring_mm < _cap(profile, "min_pth_annular_ring_2l_1oz"):
                 add(
@@ -566,6 +623,24 @@ def run_dfm(
                 "mm",
                 loc,
             )
+    declarations = edge_overhang_declarations or {}
+    for fp in measurement.footprints:
+        bbox = fp.courtyard_bbox_mm
+        if bbox is None or measurement.outline_bbox_mm is None:
+            continue
+        ox1, oy1, ox2, oy2 = measurement.outline_bbox_mm
+        overhang = max(ox1 - bbox[0], oy1 - bbox[1], bbox[2] - ox2, bbox[3] - oy2, 0.0)
+        if overhang > 1e-9:
+            declared_allowed = declarations.get(fp.refdes)
+            if declared_allowed is None or overhang > declared_allowed + 1e-6:
+                add(
+                    "undeclared-board-edge-overhang",
+                    "capability_violation",
+                    overhang,
+                    declared_allowed if declared_allowed is not None else "declaration required",
+                    "mm",
+                    [{"refdes": fp.refdes, "x_mm": fp.x_mm, "y_mm": fp.y_mm}],
+                )
     for via in measurement.vias:
         for pad in measurement.pads:
             if pad.kind != "smd":
@@ -693,6 +768,20 @@ def run_dfm(
             "as semantically equivalent; independent edge geometry is not implemented.",
         },
         {
+            "rule_id": "courtyard_board_edge_overhang",
+            "reason": (
+                "Independent courtyard geometry is checked against the measured board outline; "
+                "declared antenna overhangs are the only permitted exception."
+            ),
+        },
+        {
+            "rule_id": "connector_mating_face_edge_alignment",
+            "reason": (
+                "Connector mating-face alignment requires a footprint semantic marker not emitted "
+                "by the independent board parser."
+            ),
+        },
+        {
             "rule_id": "pad_to_silk",
             "reason": "Silkscreen clearance is not independently measured; DRC is not "
             "treated as an equivalent DFM measurement.",
@@ -797,6 +886,12 @@ def run_dfm(
             "outline_bbox_mm": measurement.outline_bbox_mm,
             "drill_tool_diameters_mm": measurement.drill_tool_diameters_mm,
             "drill_object_count": measurement.drill_object_count,
+        },
+        "unknowns": {
+            "cpl_rotation_basis_fab_lcsc": (
+                "unknown: KiCad rotation was emitted without independent fab/LCSC "
+                "component-orientation preview comparison"
+            )
         },
     }
 

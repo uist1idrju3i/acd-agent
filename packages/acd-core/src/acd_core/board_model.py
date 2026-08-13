@@ -35,6 +35,8 @@ class FootprintShape:
     library_ref: str  # e.g. "Espressif:ESP32-C3-MINI-1"
     pads: tuple[PadShape, ...]
     courtyard_bbox_mm: tuple[float, float, float, float] | None = None
+    body_bbox_mm: tuple[float, float, float, float] | None = None
+    keepout_bboxes_mm: tuple[tuple[float, float, float, float], ...] = ()
 
 
 @dataclass(frozen=True)

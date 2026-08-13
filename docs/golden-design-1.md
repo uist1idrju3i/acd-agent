@@ -290,6 +290,14 @@ overlayの適用後geometryは、DSN export、routing、最終board、DRC、DFM�
 
 1. 固定anchor（アンテナmodule、USB receptacle、取付穴）
 2. 能動部品（U1、U2、U3）
+
+配置ゲートでは、USBコネクタの本体外形とパッド重心から嵌合側の板端アンカーを導出し、
+RFモジュールではfootprint内の単一アンテナkeepoutから板端アンカーを導出する。
+独立DFMゲートのcheck IDは`pad-to-board-edge-clearance`、
+`undeclared-board-edge-overhang`、`courtyard_board_edge_overhang`であり、
+これらは発注能力違反（`capability_violation`）として扱う。CPLの回転基準（fab／LCSC
+側の部品基準向き）との照合は未実施であり、KiCad回転角をそのまま出力しているため、
+発注先プレビューで人手確認が必要である。
 3. 能動部品の電源pinへ接続するデカップリングコンデンサ
 4. 残りの部品をcourtyard面積の降順、同面積はrefdes順
 

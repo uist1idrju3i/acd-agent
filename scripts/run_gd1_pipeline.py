@@ -204,7 +204,20 @@ def run_pipeline(
         f"({len(pos_rows)} position rows, {len(bom_rows)} BOM rows)"
     )
 
-    dfm_report = run_dfm(measurement, profile, revision, allowances, lane, intent)
+    edge_overhang_declarations = {
+        str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
+        for node in graph.nodes
+        if node.kind == "mechanical.board_edge_overhang"
+    }
+    dfm_report = run_dfm(
+        measurement,
+        profile,
+        revision,
+        allowances,
+        lane,
+        intent,
+        edge_overhang_declarations,
+    )
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     if dfm_report["status"] != "pass":
@@ -261,6 +274,10 @@ def run_pipeline(
             "lead_time": "unknown",
             "total_order_amount": "unknown",
             "fab_dfm_review": "unknown",
+            "cpl_rotation_basis_fab_lcsc": (
+                "unknown: KiCad rotation was emitted without independent fab/LCSC "
+                "component-orientation preview comparison"
+            ),
         },
     }
     package_path = fab_dir / "fab-package.json"

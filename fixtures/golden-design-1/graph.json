@@ -3464,6 +3464,34 @@
       "depends_on": [],
       "id": "sb.gd1",
       "kind": "safety.boundary"
+    },
+    {
+      "attrs": {
+        "component_refdes": "J1",
+        "overhang_mm": 0.5,
+        "requirement_id": "req.gd1-req-013",
+        "edge": "bottom"
+      },
+      "depends_on": [
+        "comp.j1",
+        "req.gd1-req-013"
+      ],
+      "id": "mechanical.board_edge_overhang.j1",
+      "kind": "mechanical.board_edge_overhang"
+    },
+    {
+      "attrs": {
+        "component_refdes": "U1",
+        "overhang_mm": 5.6,
+        "requirement_id": "req.gd1-req-015",
+        "edge": "top"
+      },
+      "depends_on": [
+        "comp.u1",
+        "req.gd1-req-015"
+      ],
+      "id": "mechanical.board_edge_overhang.u1",
+      "kind": "mechanical.board_edge_overhang"
     }
   ],
   "revision": "r1",

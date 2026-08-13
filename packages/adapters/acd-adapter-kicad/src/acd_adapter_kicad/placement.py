@@ -51,11 +51,8 @@ _GRID_MM = 0.25
 _SPACING_STEPS_MM = (0.45, 0.15, 0.0)
 _COMPACTNESS_WEIGHT = 0.05
 
-# Anchored placements for the golden design profile: the antenna module hangs
-# over the top edge, the USB receptacle sits on the bottom edge.
-ANTENNA_MODULE_Y_MM = 6.4
-USB_CONNECTOR_Y_MM = 22.0
 MOUNTING_HOLE_INSET_MM = 3.0
+_EDGE_TOLERANCE_MM = 1e-6
 
 
 def _pad_bbox(footprint: FootprintShape, margin: float) -> tuple[float, float, float, float]:
@@ -96,6 +93,26 @@ def _placed_rect(footprint: FootprintShape, x: float, y: float, rotation: float)
     return Rect(x + x1, y + y1, x + x2, y + y2)
 
 
+def _edge_anchor_y(
+    board: BoardView, footprint: FootprintShape, *, kind: str
+) -> float:
+    if kind == "usb_connector":
+        body = footprint.body_bbox_mm
+        if body is None:
+            raise PlacementError("USB connector body geometry missing (fail-closed)")
+        pad_y = sum(pad.y_mm for pad in footprint.pads) / len(footprint.pads)
+        edge = body[3] if body[3] >= pad_y else body[1]
+        return board.height_mm - edge if edge >= pad_y else -edge
+    if kind == "rf_module":
+        if len(footprint.keepout_bboxes_mm) != 1:
+            raise PlacementError("RF antenna keepout is not unique (fail-closed)")
+        keepout = footprint.keepout_bboxes_mm[0]
+        pad_y = max(pad.y_mm for pad in footprint.pads)
+        inner = keepout[3] if keepout[3] < pad_y else keepout[1]
+        return -inner
+    raise PlacementError(f"unsupported edge anchor kind {kind!r}")
+
+
 def _classify(comp: ComponentView) -> str:
     library_ref = comp.library.footprint
     if library_ref.startswith("Espressif:"):
@@ -134,16 +151,25 @@ def compute_placements(
     for comp in ordered:
         kind = _classify(comp)
         footprint = footprints[comp.refdes]
-        if kind == "rf_module":
-            x, y, rot = center_x, ANTENNA_MODULE_Y_MM, 0.0
-        elif kind == "usb_connector":
-            x, y, rot = center_x, USB_CONNECTOR_Y_MM, 0.0
+        if kind == "rf_module" or kind == "usb_connector":
+            x, y, rot = center_x, _edge_anchor_y(board, footprint, kind=kind), 0.0
         elif kind == "mounting_hole":
             x, y = hole_positions[holes.index(comp)]
             rot = 0.0
         else:
             continue
         placements.append(Placement(comp.refdes, x, y, rot))
+        placed_pad = _placed_rect(
+            FootprintShape(footprint.library_ref, footprint.pads), x, y, rot
+        )
+        edge_clearance = board.edge_copper_clearance_mm
+        if (
+            placed_pad.x1 < edge_clearance - _EDGE_TOLERANCE_MM
+            or placed_pad.y1 < edge_clearance - _EDGE_TOLERANCE_MM
+            or placed_pad.x2 > board.width_mm - edge_clearance + _EDGE_TOLERANCE_MM
+            or placed_pad.y2 > board.height_mm - edge_clearance + _EDGE_TOLERANCE_MM
+        ):
+            raise PlacementError(f"{comp.refdes}: pad edge clearance violated")
         occupied.append(_placed_rect(footprint, x, y, rot))
 
     def bbox_area(comp: ComponentView) -> float:

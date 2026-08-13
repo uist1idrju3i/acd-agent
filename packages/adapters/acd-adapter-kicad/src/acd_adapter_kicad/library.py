@@ -244,6 +244,38 @@ def _courtyard_bbox(root: list[SExpr]) -> tuple[float, float, float, float] | No
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def _layer_bbox(
+    root: list[SExpr], layers: frozenset[str]
+) -> tuple[float, float, float, float] | None:
+    xs: list[float] = []
+    ys: list[float] = []
+    for tag in ("fp_line", "fp_rect", "fp_circle", "fp_arc", "fp_poly"):
+        for item in find_all(root, tag):
+            layer = find_one(item, "layer")
+            if layer is None or _as_str(layer[1]) not in layers:
+                continue
+            for x, y in _graphic_points(item):
+                xs.append(x)
+                ys.append(y)
+    return (min(xs), min(ys), max(xs), max(ys)) if xs else None
+
+
+def _keepout_bboxes(root: list[SExpr]) -> tuple[tuple[float, float, float, float], ...]:
+    bboxes: list[tuple[float, float, float, float]] = []
+    for zone in find_all(root, "zone"):
+        if find_one(zone, "keepout") is None:
+            continue
+        polygon = find_one(zone, "polygon")
+        if polygon is None:
+            continue
+        points = _graphic_points(polygon)
+        if not points:
+            continue
+        xs, ys = zip(*points, strict=True)
+        bboxes.append((min(xs), min(ys), max(xs), max(ys)))
+    return tuple(bboxes)
+
+
 class FootprintLibrary:
     """Loads and caches pinned footprint files."""
 
@@ -301,4 +333,6 @@ class FootprintLibrary:
             library_ref=library_ref,
             pads=tuple(pads),
             courtyard_bbox_mm=_courtyard_bbox(root),
+            body_bbox_mm=_layer_bbox(root, frozenset({"F.Fab", "B.Fab"})),
+            keepout_bboxes_mm=_keepout_bboxes(root),
         )
