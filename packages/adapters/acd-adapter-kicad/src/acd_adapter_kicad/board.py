@@ -162,11 +162,11 @@ def _copper_zone(
         [Sym("name"), Quoted(f"{zone.net}_plane")],
         [Sym("hatch"), Sym("edge"), "0.5"],
         [Sym("connect_pads"), [Sym("clearance"), fmt(board.min_clearance_mm)]],
-        [Sym("min_thickness"), "0.25"],
+        [Sym("min_thickness"), fmt(board.min_track_mm)],
         [
             Sym("fill"),
             [Sym("thermal_gap"), fmt(board.min_clearance_mm)],
-            [Sym("thermal_bridge_width"), fmt(board.min_clearance_mm)],
+            [Sym("thermal_bridge_width"), fmt(board.min_track_mm)],
         ],
         [Sym("polygon"), pts],
     ]
@@ -183,12 +183,13 @@ def stitch_via_pitch(board: BoardView) -> float | None:
         if any(value is not None for value in values):
             raise ValueError("incomplete stitch-via basis declaration (fail-closed)")
         return None
-    assert (
-        board.stitch_via_max_frequency_hz is not None
-        and board.stitch_via_dielectric_constant is not None
-        and board.stitch_via_wavelength_fraction is not None
-        and board.stitch_via_basis_source is not None
-    )
+    if (
+        board.stitch_via_max_frequency_hz is None
+        or board.stitch_via_dielectric_constant is None
+        or board.stitch_via_wavelength_fraction is None
+        or board.stitch_via_basis_source is None
+    ):
+        raise ValueError("incomplete stitch-via basis declaration (fail-closed)")
     if (
         board.stitch_via_max_frequency_hz <= 0
         or board.stitch_via_dielectric_constant <= 0

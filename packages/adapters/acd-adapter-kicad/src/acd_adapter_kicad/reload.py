@@ -74,14 +74,6 @@ def verify_board(path: Path, expected_nets: set[str], expected_refdes: set[str])
             collect_pad_nets(node)
             for child in items[1:]:
                 fields = _children(child)
-                if _symbol_name(child) == "pad":
-                    for pad_child in fields[1:]:
-                        pad_fields = _children(pad_child)
-                        if (
-                            _symbol_name(pad_child) == "net"
-                            and len(pad_fields) >= 3
-                        ):
-                            nets.add(str(pad_fields[2]))
                 if (
                     _symbol_name(child) == "property"
                     and len(fields) >= 3

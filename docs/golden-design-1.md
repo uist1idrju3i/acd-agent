@@ -352,6 +352,10 @@ GD1のGNDプレーンはグラフの`GND`ネットをF.Cu/B.Cuへ投影し、板
 板端clearance違反位置は決定論的に除外し、塗り後F.Cu/B.Cu Gerberの銅面積、連結成分、
 最小島面積、全stitch viaの銅被覆を独立測定する。
 
+ステッチviaは板内をgrid状に埋めるのではなく、決定論的な外周リングへ配置する。これは
+GND planeの外周を低インピーダンスで拘束しつつ、内部を既存の信号wire、pad、viaおよび
+アンテナkeepoutとの衝突回避に使う設計判断であり、グラフのcost/process宣言にも記録する。
+
 生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `24`個、drill object `34`個、
 pad `132`個、route wire `188`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
 silk最小stroke幅`0.15 mm`である。J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、

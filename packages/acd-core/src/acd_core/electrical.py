@@ -236,10 +236,6 @@ def _optional_string_list(node: GraphNode, key: str) -> list[str]:
     return value
 
 
-def _optional_float(node: GraphNode, key: str) -> float | None:
-    return _optional_number(node, key)
-
-
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
     components: list[ComponentView] = []
     nets: list[NetView] = []
@@ -388,16 +384,16 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ground_plane_layers=tuple(
                         _optional_string_list(node, "ground_plane_layers")
                     ),
-                    ground_plane_min_island_area_mm2=_optional_float(
+                    ground_plane_min_island_area_mm2=_optional_number(
                         node, "ground_plane_min_island_area_mm2"
                     ),
-                    stitch_via_max_frequency_hz=_optional_float(
+                    stitch_via_max_frequency_hz=_optional_number(
                         node, "stitch_via_max_frequency_hz"
                     ),
-                    stitch_via_dielectric_constant=_optional_float(
+                    stitch_via_dielectric_constant=_optional_number(
                         node, "stitch_via_dielectric_constant"
                     ),
-                    stitch_via_wavelength_fraction=_optional_float(
+                    stitch_via_wavelength_fraction=_optional_number(
                         node, "stitch_via_wavelength_fraction"
                     ),
                     stitch_via_basis_source=_optional_str(node, "stitch_via_basis_source"),

@@ -806,18 +806,26 @@ def verify_ground_plane_gerbers(
         raise FabOutputError(f"unsupported copper object {type(obj).__name__} (fail-closed)")
 
     all_boxes: list[tuple[float, float, float, float]] = []
-    region_records: list[tuple[Path, float, tuple[float, float, float, float]]] = []
+    region_records: list[
+        tuple[Path, float, tuple[tuple[float, float], ...], tuple[float, float, float, float]]
+    ] = []
     for path in (front_path, back_path):
         for obj in read(path):
-            if not getattr(obj, "polarity_dark", True):
+            if isinstance(obj, (Flash, Region, Line)) and not obj.polarity_dark:
                 continue
             box = bbox(obj)
             if box is None:
                 continue
             all_boxes.append(box)
             if isinstance(obj, Region):
-                board_box = (box[0], -box[3], box[2], -box[1])
                 points = cast("Sequence[tuple[float, float]]", obj.outline)  # pyright: ignore[reportUnknownMemberType]
+                board_points = tuple((x, -y) for x, y in points)
+                board_box = (
+                    min(x for x, _ in board_points),
+                    min(y for _, y in board_points),
+                    max(x for x, _ in board_points),
+                    max(y for _, y in board_points),
+                )
                 area = abs(
                     sum(
                         x1 * y2 - x2 * y1
@@ -826,30 +834,90 @@ def verify_ground_plane_gerbers(
                         )
                     )
                 ) / 2
-                region_records.append((path, area, board_box))
+                region_records.append((path, area, board_points, board_box))
     if not all_boxes or not region_records:
         raise FabOutputError("filled copper regions are absent (fail-closed)")
     inset = model.edge_clearance_mm
-    for _, _, (x1, y1, x2, y2) in region_records:
+    for _, _, _, (x1, y1, x2, y2) in region_records:
         if x1 < inset or y1 < inset or x2 > model.width_mm - inset or y2 > model.height_mm - inset:
             raise FabOutputError("copper violates board edge clearance (fail-closed)")
     declared = min(zone.min_island_area_mm2 for zone in model.copper_zones)
-    plane_area_threshold = model.width_mm * model.height_mm * 0.01
-    plane_records = [
-        record for record in region_records if record[1] >= plane_area_threshold
-    ]
-    if not plane_records or min(record[1] for record in plane_records) < declared:
+    if min(record[1] for record in region_records) < declared:
         raise FabOutputError("copper island is below declared minimum area (fail-closed)")
-    region_boxes = [record[2] for record in plane_records]
+
+    def point_in_polygon(
+        point: tuple[float, float], polygon: Sequence[tuple[float, float]]
+    ) -> bool:
+        inside = False
+        for first, second in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
+            if (first[1] > point[1]) != (second[1] > point[1]):
+                x_intersection = (second[0] - first[0]) * (point[1] - first[1]) / (
+                    second[1] - first[1]
+                ) + first[0]
+                if point[0] < x_intersection:
+                    inside = not inside
+        return inside
+
+    def rect_intersects_polygon(
+        polygon: Sequence[tuple[float, float]], rect: tuple[float, float, float, float]
+    ) -> bool:
+        x1, y1, x2, y2 = rect
+        return any(x1 <= x <= x2 and y1 <= y <= y2 for x, y in polygon) or any(
+            point_in_polygon(corner, polygon)
+            for corner in ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
+        )
+
+    if not model.keepouts:
+        raise FabOutputError("antenna keepout declaration is absent (fail-closed)")
+    for _, _, polygon, _ in region_records:
+        for keepout in model.keepouts:
+            if rect_intersects_polygon(
+                polygon, (keepout.x1_mm, keepout.y1_mm, keepout.x2_mm, keepout.y2_mm)
+            ):
+                raise FabOutputError("copper inside antenna keepout (fail-closed)")
+
     for x, y in stitch_vias:
-        if not any(x1 <= x <= x2 and y1 <= y <= y2 for x1, y1, x2, y2 in region_boxes):
+        if not any(point_in_polygon((x, y), record[2]) for record in region_records):
             raise FabOutputError(f"stitch via at ({x}, {y}) lacks copper coverage (fail-closed)")
+
+    parent = list(range(len(region_records)))
+
+    def find(index: int) -> int:
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    def union(first: int, second: int) -> None:
+        left, right = find(first), find(second)
+        if left != right:
+            parent[right] = left
+
+    for first, (_, _, _, first_box) in enumerate(region_records):
+        for second in range(first):
+            _, _, _, second_box = region_records[second]
+            if not (
+                first_box[2] < second_box[0]
+                or second_box[2] < first_box[0]
+                or first_box[3] < second_box[1]
+                or second_box[3] < first_box[1]
+            ):
+                union(first, second)
+    for x, y in stitch_vias:
+        covered = [
+            index
+            for index, record in enumerate(region_records)
+            if point_in_polygon((x, y), record[2])
+        ]
+        for index in covered[1:]:
+            union(covered[0], index)
+    components = len({find(index) for index in range(len(region_records))})
     return {
-        "front_regions": sum(record[0] == front_path for record in plane_records),
-        "back_regions": sum(record[0] == back_path for record in plane_records),
-        "copper_area_mm2": sum(record[1] for record in plane_records),
-        "connected_components": 1,
-        "min_island_area_mm2": min(record[1] for record in plane_records),
+        "front_regions": sum(record[0] == front_path for record in region_records),
+        "back_regions": sum(record[0] == back_path for record in region_records),
+        "copper_area_mm2": sum(record[1] for record in region_records),
+        "connected_components": components,
+        "min_island_area_mm2": min(record[1] for record in region_records),
         "stitch_via_coverage": len(stitch_vias),
     }
 

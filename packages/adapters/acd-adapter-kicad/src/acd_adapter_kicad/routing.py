@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 
 from acd_adapter_kicad.emit import det_uuid, fmt
+from acd_adapter_kicad.placement import rotate_point
 from acd_core.board_model import BoardModel, RoutedDesign, RoutedWire
 
 _LAYERS = frozenset({"F.Cu", "B.Cu"})
@@ -77,7 +78,7 @@ def inject_stitch_vias(
     radius = via_diameter_mm / 2.0
     clearance = model.min_clearance_mm
     candidates: list[tuple[float, float]] = []
-    x = inset + radius
+    x = inset + radius + pitch_mm
     while x <= model.width_mm - inset - radius + 1e-9:
         candidates.extend(((x, inset + radius), (x, model.height_mm - inset - radius)))
         x += pitch_mm
@@ -107,14 +108,15 @@ def inject_stitch_vias(
             ):
                 return True
         for placement in model.placements:
-            angle = math.radians(placement.rotation_deg)
             for x1, y1, x2, y2 in placement.footprint.keepout_bboxes_mm:
-                if x1 <= point[0] <= x2 and y1 <= point[1] <= y2:
-                    return True
                 corners = [
-                    (
-                        placement.x_mm + x * math.cos(angle) - y * math.sin(angle),
-                        placement.y_mm + x * math.sin(angle) + y * math.cos(angle),
+                    tuple(
+                        placement_value + offset
+                        for placement_value, offset in zip(
+                            (placement.x_mm, placement.y_mm),
+                            rotate_point(x, y, placement.rotation_deg),
+                            strict=True,
+                        )
                     )
                     for x, y in ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
                 ]
@@ -122,8 +124,9 @@ def inject_stitch_vias(
                 if min(xs) <= point[0] <= max(xs) and min(ys) <= point[1] <= max(ys):
                     return True
             for pad in placement.footprint.pads:
-                px = placement.x_mm + pad.x_mm * math.cos(angle) - pad.y_mm * math.sin(angle)
-                py = placement.y_mm + pad.x_mm * math.sin(angle) + pad.y_mm * math.cos(angle)
+                px, py = rotate_point(pad.x_mm, pad.y_mm, placement.rotation_deg)
+                px += placement.x_mm
+                py += placement.y_mm
                 if math.hypot(point[0] - px, point[1] - py) <= (
                     max(pad.size_x_mm, pad.size_y_mm) / 2.0 + radius + clearance
                 ):
