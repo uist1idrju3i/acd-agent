@@ -40,7 +40,9 @@ acd-agent/
 ├── scripts/                # golden task実行、文書検証、能力プローブ
 ├── docs/
 │   └── adr/                # 設計決定記録（Phase 0で開始）
-└── vendor/software-agent-sdk/
+└── vendor/
+    ├── openhands/
+    └── software-agent-sdk/
 ```
 
 - `schemas/`は契約ごとに1ファイルとする: `design-graph`、`tool-envelope`、`gate-matrix`、
