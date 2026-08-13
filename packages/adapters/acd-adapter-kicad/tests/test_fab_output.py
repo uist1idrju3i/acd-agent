@@ -98,6 +98,22 @@ def _golden_component(refdes: str, symbol_dir: Path) -> ComponentView:
     )
 
 
+def _actual_golden_component(refdes: str) -> ComponentView:
+    graph = DesignGraph.model_validate(
+        json.loads(
+            (ROOT / "fixtures/golden-design-1/graph.json").read_text(encoding="utf-8")
+        )
+    )
+    lane = extract_electrical_lane(graph)
+    component = next(component for component in lane.components if component.refdes == refdes)
+    path = Path(component.library.symbol_file)
+    if not path.is_absolute():
+        path = ROOT / "fixtures/golden-design-1" / path
+    if not path.is_file():
+        pytest.skip(f"pinned KiCad library not present in this environment: {path}")
+    return component
+
+
 def _bom_component(
     refdes: str,
     value: str,
@@ -324,6 +340,14 @@ def test_geometry_exception_rejects_symmetric_geometry() -> None:
 def test_cpl_pin_functions_match_pinned_kicad_symbols(refdes: str, tmp_path: Path) -> None:
     note = verify_cpl_pin_function_declaration(
         _golden_component(refdes, tmp_path), ROOT / "fixtures/golden-design-1"
+    )
+    assert "symbol-verified" in note
+
+
+@pytest.mark.parametrize("refdes", ["D1", "U2", "J1"])
+def test_cpl_pin_functions_match_actual_pinned_kicad_symbols(refdes: str) -> None:
+    note = verify_cpl_pin_function_declaration(
+        _actual_golden_component(refdes), ROOT / "fixtures/golden-design-1"
     )
     assert "symbol-verified" in note
 
