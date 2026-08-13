@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -31,13 +32,13 @@ from acd_adapter_kicad.cli import KicadCli
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
     CplBasisError,
+    FabOutputError,
     apply_cpl_contract,
     cross_validate_bom,
     cross_validate_cpl,
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
-    measure_stitch_via_coverage,
     parse_pos_csv,
     parse_routed_board,
     read_drill_measurement,
@@ -154,24 +155,46 @@ def run_pipeline(
         raise RuntimeError("missing stitch-via refill iteration declaration (fail-closed)")
     iteration_dir = out_dir / ".stitch-iterations"
     iteration_dir.mkdir(parents=True, exist_ok=True)
+    dru_source = out_dir / f"{name}.kicad_dru"
     initial_candidate_count = len(stitch_vias)
     pruned_vias: list[tuple[float, float]] = []
     converged_iteration: int | None = None
     for iteration in range(1, max_iterations + 1):
         iteration_board = iteration_dir / f"{name}-{iteration}.kicad_pcb"
         iteration_board.write_text(routed_board)
+        (iteration_dir / f"{name}-{iteration}.kicad_pro").write_text(
+            project.project.read_text()
+        )
+        if dru_source.is_file():
+            (iteration_dir / f"{name}-{iteration}.kicad_dru").write_text(
+                dru_source.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
         kicad.refill_zones(iteration_board, revision)
         iteration_gerbers = iteration_dir / f"gerbers-{iteration}"
         _, iteration_paths = kicad.export_gerbers(
             iteration_board, iteration_gerbers, ["F.Cu", "B.Cu"], revision
         )
-        covered = measure_stitch_via_coverage(
-            iteration_paths[0], iteration_paths[1], stitch_vias
-        )
-        if covered == stitch_vias:
+        try:
+            verify_ground_plane_gerbers(
+                iteration_paths[0],
+                iteration_paths[1],
+                project.board_projection.model,
+                stitch_vias,
+                routes,
+            )
             converged_iteration = iteration
             break
-        pruned_vias.extend(point for point in stitch_vias if point not in covered)
+        except FabOutputError as exc:
+            match = re.search(
+                r"stitch via at \(([-0-9.eE]+), ([-0-9.eE]+)\) lacks copper coverage",
+                str(exc),
+            )
+            if match is None:
+                raise
+            uncovered = (float(match.group(1)), float(match.group(2)))
+            pruned_vias.append(uncovered)
+            covered = tuple(point for point in stitch_vias if point != uncovered)
         routed_board, stitch_vias = inject_stitch_vias(
             base_routed_board,
             project.board_projection.model,
@@ -199,10 +222,9 @@ def run_pipeline(
     routed_path = routed_dir / f"{name}.kicad_pcb"
     routed_path.write_text(routed_board)
     (routed_dir / f"{name}.kicad_pro").write_text(project.project.read_text())
-    dru_path = out_dir / f"{name}.kicad_dru"
-    if dru_path.is_file():
+    if dru_source.is_file():
         (routed_dir / f"{name}.kicad_dru").write_text(
-            dru_path.read_text(encoding="utf-8"),
+            dru_source.read_text(encoding="utf-8"),
             encoding="utf-8",
         )
     print(

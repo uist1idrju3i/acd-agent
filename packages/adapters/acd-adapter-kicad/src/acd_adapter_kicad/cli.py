@@ -124,7 +124,10 @@ class KicadCli:
             output_paths=[board],
             envelope_path=board.with_suffix(board.suffix + ".refill.envelope.json"),
             target_revision=target_revision,
-            measurement_conditions="zone refill; save-board; project-local library tables",
+            measurement_conditions=(
+                "zone refill; save-board; sibling project file and project-local "
+                "library tables"
+            ),
         )
 
     def export_netlist(self, schematic: Path, out_path: Path, target_revision: str) -> ToolRun:
