@@ -79,7 +79,7 @@ def _pad_bbox(footprint: FootprintShape, margin: float) -> tuple[float, float, f
     return min(xs) - margin, min(ys) - margin, max(xs) + margin, max(ys) + margin
 
 
-def _placed_rect(footprint: FootprintShape, x: float, y: float, rotation: float) -> Rect:
+def placed_rect(footprint: FootprintShape, x: float, y: float, rotation: float) -> Rect:
     x1, y1, x2, y2 = _pad_bbox(footprint, _MARGIN_MM)
     rot = rotation % 360
     if rot == 90.0:
@@ -159,7 +159,7 @@ def compute_placements(
         else:
             continue
         placements.append(Placement(comp.refdes, x, y, rot))
-        placed_pad = _placed_rect(
+        placed_pad = placed_rect(
             FootprintShape(footprint.library_ref, footprint.pads), x, y, rot
         )
         edge_clearance = board.edge_copper_clearance_mm
@@ -170,7 +170,7 @@ def compute_placements(
             or placed_pad.y2 > board.height_mm - edge_clearance + _EDGE_TOLERANCE_MM
         ):
             raise PlacementError(f"{comp.refdes}: pad edge clearance violated")
-        occupied.append(_placed_rect(footprint, x, y, rot))
+        occupied.append(placed_rect(footprint, x, y, rot))
 
     def bbox_area(comp: ComponentView) -> float:
         x1, y1, x2, y2 = _pad_bbox(footprints[comp.refdes], _MARGIN_MM)
@@ -273,7 +273,7 @@ def compute_placements(
             )
         x, y, rot = spot
         placements.append(Placement(comp.refdes, x, y, rot))
-        occupied.append(_placed_rect(footprint, x, y, rot))
+        occupied.append(placed_rect(footprint, x, y, rot))
         placed_at[comp.refdes] = (x, y)
 
     return tuple(sorted(placements, key=lambda p: p.refdes))
@@ -310,7 +310,7 @@ def _best_fit(
                         cost = sum(abs(x - ax) + abs(y - ay) for ax, ay in anchors)
                     else:
                         target_at, target_footprint, target_pad, cap_pad = target
-                        candidate_point = _pad_position(footprint, (x, y), rotation, cap_pad)
+                        candidate_point = pad_position(footprint, (x, y), rotation, cap_pad)
                         cost = min(
                             abs(candidate_point[0] - target_point[0])
                             + abs(candidate_point[1] - target_point[1])
@@ -333,7 +333,7 @@ def _best_fit(
     return round(best[1], 4), round(best[2], 4), (0.0, 90.0)[int(best[3])]
 
 
-def _pad_position(
+def pad_position(
     footprint: FootprintShape,
     placement: tuple[float, float],
     rotation: float,
@@ -363,7 +363,7 @@ def _pad_positions(
     pad_number: str,
 ) -> tuple[tuple[float, float], ...]:
     return tuple(
-        _pad_position(
+        pad_position(
             FootprintShape(
                 library_ref=footprint.library_ref,
                 pads=(pad,),
@@ -375,7 +375,3 @@ def _pad_positions(
         for pad in footprint.pads
         if pad.number == pad_number
     )
-
-
-pad_position = _pad_position
-placed_rect = _placed_rect

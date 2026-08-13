@@ -304,7 +304,7 @@ RFモジュールではfootprint内の単一アンテナkeepoutから板端ア�
 第3段のデカップリング対象は設計グラフの`decoupling_target`宣言から導出し、
 対象ICの電源padまでの距離を目的関数にする。推測による分類や配置不能時の制約緩和は行わない。
 
-GD1最新実行で生成される製造データは、`out/gd1-fix5/fab/`の次のファイルである。
+GD1最新実行で生成される製造データは、`out/gd1-fix6/fab/`の次のファイルである。
 
 - `gd1-gerbers.zip`
 - `gd1-bom-jlcpcb.csv`
@@ -324,8 +324,8 @@ pad `132`個、route wire `188`本、最小track幅`0.15 mm`、silk最小文字�
 silk最小stroke幅`0.15 mm`である。J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
 ともに回転`0°`である。U1の板端はみ出し宣言は本体外形基準で`5.4 mm`である。DSNの
 `(via_at_smd off)`とSMD pad周囲の`via_keepout`により、
-SMD pad上viaを構造的に禁止している。出所は`out/gd1-fix5/fab/dfm-report.json`、
-`out/gd1-fix5/routing-summary.json`、`out/gd1-fix5/fab/fab-package.json`である。
+SMD pad上viaを構造的に禁止している。出所は`out/gd1-fix6/fab/dfm-report.json`、
+`out/gd1-fix6/routing-summary.json`、`out/gd1-fix6/fab/fab-package.json`である。
 | `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
 | `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | stale判定が`unknown`で停止 |
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |

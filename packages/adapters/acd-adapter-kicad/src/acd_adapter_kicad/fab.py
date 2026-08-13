@@ -10,10 +10,16 @@ import zipfile
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import sexpdata  # pyright: ignore[reportMissingTypeStubs]
+from gerbonara.apertures import (  # pyright: ignore[reportMissingTypeStubs]
+    CircleAperture,
+    ObroundAperture,
+    RectangleAperture,
+)
 from gerbonara.excellon import ExcellonFile  # pyright: ignore[reportMissingTypeStubs]
+from gerbonara.graphic_objects import Flash, Line, Region  # pyright: ignore[reportMissingTypeStubs]
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
 from acd_core.bom import refdes_key
@@ -136,7 +142,7 @@ def _property(node: object, name: str) -> str | None:
     return None
 
 
-def _rotate(x: float, y: float, angle: float) -> tuple[float, float]:
+def rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     radians = math.radians(angle)
     return (
         x * math.cos(radians) + y * math.sin(radians),
@@ -145,10 +151,7 @@ def _rotate(x: float, y: float, angle: float) -> tuple[float, float]:
 
 
 def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
-    return _rotate(x, y, -angle)
-
-
-rotate_kicad = _rotate
+    return rotate(x, y, -angle)
 
 
 def _footprint_bbox(
@@ -175,7 +178,7 @@ def _footprint_bbox(
     if not points:
         return None
     transformed = [
-        (fp_at[0] + _rotate(x, y, fp_at[2])[0], fp_at[1] + _rotate(x, y, fp_at[2])[1])
+        (fp_at[0] + rotate(x, y, fp_at[2])[0], fp_at[1] + rotate(x, y, fp_at[2])[1])
         for x, y in points
     ]
     xs, ys = zip(*transformed, strict=True)
@@ -195,7 +198,7 @@ def verify_smd_pad_centers_in_gerber(
 ) -> None:
     try:
         layer = GerberFile.open(gerber_path)  # pyright: ignore[reportUnknownMemberType]
-        objects = cast("list[object]", layer.objects)  # pyright: ignore[reportUnknownMemberType]
+        objects = cast("list[Flash | Region | Line]", layer.objects)  # pyright: ignore[reportUnknownMemberType]
     except Exception as exc:
         raise FabOutputError(
             f"{gerber_path.name}: Gerber pad coverage parse failed: {exc}"
@@ -203,28 +206,40 @@ def verify_smd_pad_centers_in_gerber(
 
     def covered(x: float, y: float) -> bool:
         for obj in objects:
-            if not getattr(obj, "polarity_dark", True):
+            if not obj.polarity_dark:
                 continue
-            kind = type(obj).__name__
-            if kind == "Flash":
-                typed_obj = cast(Any, obj)
-                aperture = getattr(obj, "aperture", None)
-                width = float(getattr(aperture, "w", getattr(aperture, "diameter", 0.0)))
-                height = float(getattr(aperture, "h", width))
-                obj_x = float(typed_obj.x)
-                obj_y = float(typed_obj.y)
+            if isinstance(obj, Flash):
+                if not isinstance(
+                    obj.aperture,
+                    (CircleAperture, ObroundAperture, RectangleAperture),
+                ):
+                    raise FabOutputError(
+                        f"{gerber_path.name}: unsupported Flash aperture "
+                        f"{type(obj.aperture).__name__}; SMD pad coverage is unknown"
+                    )
+                if isinstance(obj.aperture, CircleAperture):
+                    width = height = float(obj.aperture.diameter)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                else:
+                    width = float(obj.aperture.w)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                    height = float(obj.aperture.h)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                obj_x = float(obj.x)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                obj_y = float(obj.y)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
                 if abs(x - obj_x) <= width / 2 and abs(y - obj_y) <= height / 2:
                     return True
-            elif kind == "Region":
-                outline = cast("list[tuple[float, float]]", cast(Any, obj).outline)
+            elif isinstance(obj, Region):
+                outline = cast("list[tuple[float, float]]", obj.outline)  # pyright: ignore[reportUnknownMemberType]
                 if _point_in_polygon(x, y, outline):
                     return True
-            elif kind == "Line":
-                typed_obj = cast(Any, obj)
-                x1 = float(typed_obj.x1)
-                y1 = float(typed_obj.y1)
-                x2 = float(typed_obj.x2)
-                y2 = float(typed_obj.y2)
+            else:
+                if not isinstance(obj.aperture, CircleAperture):
+                    raise FabOutputError(
+                        f"{gerber_path.name}: unsupported Line aperture "
+                        f"{type(obj.aperture).__name__}; SMD pad coverage is unknown"
+                    )
+                x1 = float(obj.x1)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                y1 = float(obj.y1)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                x2 = float(obj.x2)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                y2 = float(obj.y2)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
                 dx, dy = x2 - x1, y2 - y1
                 length_sq = dx * dx + dy * dy
                 t = (
@@ -236,8 +251,7 @@ def verify_smd_pad_centers_in_gerber(
                     )
                 )
                 nearest_x, nearest_y = x1 + t * dx, y1 + t * dy
-                aperture = getattr(obj, "aperture", None)
-                radius = float(getattr(aperture, "diameter", 0.0)) / 2
+                radius = float(obj.aperture.diameter) / 2  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
                 if math.hypot(x - nearest_x, y - nearest_y) <= radius:
                     return True
         return False
@@ -245,7 +259,11 @@ def verify_smd_pad_centers_in_gerber(
     missing = [
         pad.refdes
         for pad in measurement.pads
-        if pad.kind == "smd" and not covered(pad.x_mm, -pad.y_mm)
+        if pad.kind == "smd"
+        and not covered(
+            pad.x_mm,
+            -pad.y_mm,  # KiCad Y increases downward; Gerber Y increases upward.
+        )
     ]
     if missing:
         raise FabOutputError(
@@ -267,7 +285,7 @@ def _parse_pad(
     if pad_at is None or size is None or len(pad_at) < 3 or len(size) < 3:
         raise FabOutputError(f"{fp_ref}: pad missing at/size")
     local_x, local_y = _number(pad_at[1]), _number(pad_at[2])
-    x_off, y_off = _rotate(local_x, local_y, fp_at[2])
+    x_off, y_off = rotate(local_x, local_y, fp_at[2])
     drill = _one(node, "drill")
     drill_mm = None
     drill_x_mm = None
