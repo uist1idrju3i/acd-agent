@@ -8,6 +8,7 @@ only trusted after kicad-cli DRC reruns on the result.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 
 from acd_adapter_kicad.emit import det_uuid, fmt
 from acd_adapter_kicad.placement import rotate_point
@@ -67,6 +68,7 @@ def inject_stitch_vias(
     pitch_mm: float | None,
     via_diameter_mm: float,
     via_drill_mm: float,
+    allowed_points: Sequence[tuple[float, float]] | None = None,
 ) -> tuple[str, tuple[tuple[float, float], ...]]:
     """Add deterministic GND stitching vias outside occupied geometry."""
     if pitch_mm is None or model.stitch_via_net is None:
@@ -197,6 +199,9 @@ def inject_stitch_vias(
             continue
         selected_points.append(point)
     selected = tuple(selected_points)
+    if allowed_points is not None:
+        allowed = set(allowed_points)
+        selected = tuple(point for point in selected if point in allowed)
     lines = [
         f'  (via (at {fmt(x)} {fmt(y)}) (size {fmt(via_diameter_mm)}) '
         f'(drill {fmt(via_drill_mm)}) (layers "F.Cu" "B.Cu") '

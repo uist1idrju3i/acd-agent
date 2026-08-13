@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import cast
@@ -36,6 +37,7 @@ from acd_adapter_kicad.fab import (
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
+    measure_stitch_via_coverage,
     parse_pos_csv,
     parse_routed_board,
     read_drill_measurement,
@@ -137,8 +139,9 @@ def run_pipeline(
         lane.board.via_diameter_mm,
         lane.board.via_drill_mm,
     )
+    base_routed_board = routed_board
     routed_board, stitch_vias = inject_stitch_vias(
-        routed_board,
+        base_routed_board,
         project.board_projection.model,
         routes,
         project.board_projection.net_numbers,
@@ -146,6 +149,49 @@ def run_pipeline(
         lane.board.via_diameter_mm,
         lane.board.via_drill_mm,
     )
+    max_iterations = project.board_projection.model.stitch_via_refill_max_iterations
+    if max_iterations is None or max_iterations <= 0:
+        raise RuntimeError("missing stitch-via refill iteration declaration (fail-closed)")
+    iteration_dir = out_dir / ".stitch-iterations"
+    iteration_dir.mkdir(parents=True, exist_ok=True)
+    initial_candidate_count = len(stitch_vias)
+    pruned_vias: list[tuple[float, float]] = []
+    converged_iteration: int | None = None
+    for iteration in range(1, max_iterations + 1):
+        iteration_board = iteration_dir / f"{name}-{iteration}.kicad_pcb"
+        iteration_board.write_text(routed_board)
+        kicad.refill_zones(iteration_board, revision)
+        iteration_gerbers = iteration_dir / f"gerbers-{iteration}"
+        _, iteration_paths = kicad.export_gerbers(
+            iteration_board, iteration_gerbers, ["F.Cu", "B.Cu"], revision
+        )
+        covered = measure_stitch_via_coverage(
+            iteration_paths[0], iteration_paths[1], stitch_vias
+        )
+        if covered == stitch_vias:
+            converged_iteration = iteration
+            break
+        pruned_vias.extend(point for point in stitch_vias if point not in covered)
+        routed_board, stitch_vias = inject_stitch_vias(
+            base_routed_board,
+            project.board_projection.model,
+            routes,
+            project.board_projection.net_numbers,
+            project.board_projection.stitch_via_pitch_mm,
+            lane.board.via_diameter_mm,
+            lane.board.via_drill_mm,
+            allowed_points=covered,
+        )
+    shutil.rmtree(iteration_dir)
+    if converged_iteration is None:
+        raise RuntimeError("stitch-via refill pruning did not converge (fail-closed)")
+    pruning_evidence = {
+        "iterations": converged_iteration,
+        "initial_candidate_count": initial_candidate_count,
+        "pruned_count": len(pruned_vias),
+        "pruned_vias": pruned_vias,
+        "final_vias": stitch_vias,
+    }
     # kicad-cli reads DRC constraints from the sibling .kicad_pro, so the
     # routed board lives in its own directory with a copy of the project file.
     routed_dir = out_dir / "routed"
@@ -328,6 +374,7 @@ def run_pipeline(
     )
     dfm_report["ground_plane"] = {
         **plane_measurement,
+        "stitch_via_pruning": pruning_evidence,
         "stitch_via_count": len(stitch_vias),
         "drill_count": drill_count,
         "cost_note": lane.board.stitch_via_cost_note,
@@ -375,7 +422,8 @@ def run_pipeline(
         "tools": {"kicad-cli": kicad.version(), "measurement_parser": "sexpdata+gerbonara"},
         "filled_board_hash": filled_board_hash,
         "ground_plane": {
-            **plane_measurement,
+        **plane_measurement,
+        "stitch_via_pruning": pruning_evidence,
             "stitch_via_count": len(stitch_vias),
             "drill_count": drill_count,
             "cost_note": lane.board.stitch_via_cost_note,

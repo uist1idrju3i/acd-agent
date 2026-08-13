@@ -50,6 +50,58 @@ class GerberRegionRecord:
     bbox_mm: tuple[float, float, float, float]
 
 
+def measure_stitch_via_coverage(
+    front_path: Path,
+    back_path: Path,
+    stitch_vias: Sequence[tuple[float, float]],
+) -> tuple[tuple[float, float], ...]:
+    """Measure via coverage against all parsed Gerber region interiors."""
+
+    def regions(path: Path) -> tuple[tuple[tuple[float, float], ...], ...]:
+        text = path.read_text(encoding="ascii")
+        scale = 1e-6
+        function: str | None = None
+        active = False
+        points: list[tuple[float, float]] = []
+        result: list[tuple[tuple[float, float], ...]] = []
+        for command in text.split("*"):
+            command = command.strip()
+            match = re.search(r"G04 #@! TA\.AperFunction,([^*]+)", command)
+            if match:
+                function = match.group(1).strip()
+            elif "G04 #@! TD.AperFunction" in command:
+                function = None
+            elif command == "G36":
+                active = function == "Conductor"
+                points = []
+            elif command == "G37":
+                if active and len(points) >= 3:
+                    result.append(tuple(points))
+                active = False
+            elif active:
+                match = re.fullmatch(r"(?:G01)?X(-?\d+)Y(-?\d+)D0[12]", command)
+                if match:
+                    points.append(
+                        (int(match.group(1)) * scale, -int(match.group(2)) * scale)
+                    )
+        return tuple(result)
+
+    polygons = (*regions(front_path), *regions(back_path))
+
+    def inside(point: tuple[float, float], polygon: Sequence[tuple[float, float]]) -> bool:
+        result = False
+        for first, second in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
+            if (first[1] > point[1]) != (second[1] > point[1]):
+                crossing = (second[0] - first[0]) * (point[1] - first[1]) / (
+                    second[1] - first[1]
+                ) + first[0]
+                if point[0] < crossing:
+                    result = not result
+        return result
+
+    return tuple(point for point in stitch_vias if any(inside(point, poly) for poly in polygons))
+
+
 class CplBasisError(FabOutputError):
     """Raised when CPL basis or provenance is unknown."""
 

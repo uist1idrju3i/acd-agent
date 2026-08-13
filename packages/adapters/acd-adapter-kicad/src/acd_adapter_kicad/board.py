@@ -464,6 +464,7 @@ def generate_board(
         copper_zones=copper_zones,
         stitch_via_pitch_mm=stitch_pitch,
         stitch_via_net=board.ground_plane_net,
+        stitch_via_refill_max_iterations=board.stitch_via_refill_max_iterations,
     )
     return BoardProjection(
         content=dumps(doc) + "\n",

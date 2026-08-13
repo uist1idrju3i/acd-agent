@@ -112,6 +112,7 @@ class BoardView:
     stitch_via_wavelength_fraction: float | None = None
     stitch_via_basis_source: str | None = None
     stitch_via_cost_note: str | None = None
+    stitch_via_refill_max_iterations: int | None = None
 
 
 @dataclass(frozen=True)
@@ -398,6 +399,13 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ),
                     stitch_via_basis_source=_optional_str(node, "stitch_via_basis_source"),
                     stitch_via_cost_note=_optional_str(node, "stitch_via_cost_note"),
+                    stitch_via_refill_max_iterations=(
+                        int(value)
+                        if (value := _optional_number(
+                            node, "stitch_via_refill_max_iterations"
+                        )) is not None
+                        else None
+                    ),
                 )
             )
     if len(boards) != 1:

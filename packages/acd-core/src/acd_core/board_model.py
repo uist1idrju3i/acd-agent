@@ -120,6 +120,7 @@ class BoardModel:
     copper_zones: tuple[CopperZone, ...] = field(default_factory=tuple)
     stitch_via_pitch_mm: float | None = None
     stitch_via_net: str | None = None
+    stitch_via_refill_max_iterations: int | None = None
 
     def placement_by_refdes(self, refdes: str) -> ComponentPlacement:
         for placement in self.placements:
