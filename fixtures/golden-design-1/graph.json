@@ -2866,7 +2866,18 @@
         "via_diameter_mm": 0.6,
         "via_drill_mm": 0.3,
         "width_mm": 30.0,
-        "y_axis": "down"
+        "y_axis": "down",
+        "ground_plane_net": "GND",
+        "ground_plane_layers": [
+          "F.Cu",
+          "B.Cu"
+        ],
+        "ground_plane_min_island_area_mm2": 1.0,
+        "stitch_via_max_frequency_hz": 2400000000.0,
+        "stitch_via_dielectric_constant": 4.3,
+        "stitch_via_wavelength_fraction": 0.05,
+        "stitch_via_basis_source": "IPC-2221A and RF transmission-line wavelength guidance; guided wavelength c/(f*sqrt(er)), via pitch limited to wavelength fraction",
+        "stitch_via_cost_note": "Adopted 1/20 guided-wavelength pitch; through-via count and drill count are recorded against the fab profile via cost drivers and reviewed as added process burden."
       },
       "depends_on": [
         "comp.c1",

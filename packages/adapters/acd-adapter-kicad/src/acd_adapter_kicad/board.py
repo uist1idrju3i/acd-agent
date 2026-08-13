@@ -23,10 +23,11 @@ from acd_core.board_model import (
     BoardModel,
     BoardNet,
     ComponentPlacement,
+    CopperZone,
     FootprintShape,
     KeepoutRect,
 )
-from acd_core.electrical import ElectricalLane
+from acd_core.electrical import BoardView, ElectricalLane
 from acd_core.fab import FabProfile
 from acd_core.sexpr import Quoted, SExpr, Sym, dumps
 
@@ -44,6 +45,7 @@ class BoardProjection:
     placements: tuple[Placement, ...]
     keepouts: tuple[KeepoutRect, ...]
     model: BoardModel
+    stitch_via_pitch_mm: float | None = None
     overlays: tuple[dict[str, str], ...] = ()
 
 
@@ -134,6 +136,74 @@ def _keepout_zone(keepout: KeepoutRect, index: int) -> list[SExpr]:
             pts,
         ],
     ]
+
+
+def _copper_zone(
+    zone: CopperZone,
+    board: BoardView,
+    net_number: int,
+    index: int,
+) -> list[SExpr]:
+    inset = zone.inset_mm
+    pts: list[SExpr] = [Sym("pts")]
+    for x, y in (
+        (inset, inset),
+        (board.width_mm - inset, inset),
+        (board.width_mm - inset, board.height_mm - inset),
+        (inset, board.height_mm - inset),
+    ):
+        pts.append([Sym("xy"), fmt(x), fmt(y)])
+    return [
+        Sym("zone"),
+        [Sym("net"), str(net_number)],
+        [Sym("net_name"), Quoted(zone.net)],
+        [Sym("layers"), *[Quoted(layer) for layer in zone.layers]],
+        [Sym("uuid"), Quoted(det_uuid("copper-zone", str(index), zone.net))],
+        [Sym("name"), Quoted(f"{zone.net}_plane")],
+        [Sym("hatch"), Sym("edge"), "0.5"],
+        [Sym("connect_pads"), [Sym("clearance"), fmt(board.min_clearance_mm)]],
+        [Sym("min_thickness"), "0.25"],
+        [
+            Sym("fill"),
+            [Sym("thermal_gap"), fmt(board.min_clearance_mm)],
+            [Sym("thermal_bridge_width"), fmt(board.min_clearance_mm)],
+        ],
+        [Sym("polygon"), pts],
+    ]
+
+
+def stitch_via_pitch(board: BoardView) -> float | None:
+    values = (
+        board.stitch_via_max_frequency_hz,
+        board.stitch_via_dielectric_constant,
+        board.stitch_via_wavelength_fraction,
+        board.stitch_via_basis_source,
+    )
+    if any(value is None for value in values):
+        if any(value is not None for value in values):
+            raise ValueError("incomplete stitch-via basis declaration (fail-closed)")
+        return None
+    assert (
+        board.stitch_via_max_frequency_hz is not None
+        and board.stitch_via_dielectric_constant is not None
+        and board.stitch_via_wavelength_fraction is not None
+        and board.stitch_via_basis_source is not None
+    )
+    if (
+        board.stitch_via_max_frequency_hz <= 0
+        or board.stitch_via_dielectric_constant <= 0
+        or not 0 < board.stitch_via_wavelength_fraction <= 1
+    ):
+        raise ValueError("invalid stitch-via basis declaration (fail-closed)")
+    speed_of_light_mm_s = 299_792_458_000.0
+    return (
+        speed_of_light_mm_s
+        / (
+            board.stitch_via_max_frequency_hz
+            * board.stitch_via_dielectric_constant**0.5
+        )
+        * board.stitch_via_wavelength_fraction
+    )
 
 
 def _to_fab_layer(item: list[SExpr]) -> list[SExpr]:
@@ -306,6 +376,25 @@ def generate_board(
     for index, net in enumerate(sorted(lane.nets, key=lambda n: n.name)):
         net_numbers[net.node_id] = index + 1
     net_names = {net.node_id: net.name for net in lane.nets}
+    stitch_pitch = stitch_via_pitch(board)
+    copper_zones: tuple[CopperZone, ...] = ()
+    if board.ground_plane_net is not None:
+        if not board.ground_plane_layers or board.ground_plane_min_island_area_mm2 is None:
+            raise ValueError("incomplete ground-plane declaration (fail-closed)")
+        ground_net_id = next(
+            (net_id for net_id, name in net_names.items() if name == board.ground_plane_net),
+            None,
+        )
+        if ground_net_id is None:
+            raise ValueError("ground-plane net is not declared (fail-closed)")
+        copper_zones = (
+            CopperZone(
+                net=board.ground_plane_net,
+                layers=board.ground_plane_layers,
+                inset_mm=board.edge_copper_clearance_mm,
+                min_island_area_mm2=board.ground_plane_min_island_area_mm2,
+            ),
+        )
 
     doc: list[SExpr] = [
         Sym("kicad_pcb"),
@@ -343,6 +432,9 @@ def generate_board(
     doc.extend(_edge_lines(board.width_mm, board.height_mm))
     for index, keepout in enumerate(keepouts):
         doc.append(_keepout_zone(keepout, index))
+    for index, zone in enumerate(copper_zones):
+        zone_net_id = next(net_id for net_id, name in net_names.items() if name == zone.net)
+        doc.append(_copper_zone(zone, board, net_numbers[zone_net_id], index))
 
     model = BoardModel(
         width_mm=board.width_mm,
@@ -368,6 +460,9 @@ def generate_board(
             for net in sorted(lane.nets, key=lambda n: n.name)
         ),
         keepouts=keepouts,
+        copper_zones=copper_zones,
+        stitch_via_pitch_mm=stitch_pitch,
+        stitch_via_net=board.ground_plane_net,
     )
     return BoardProjection(
         content=dumps(doc) + "\n",
@@ -376,4 +471,5 @@ def generate_board(
         keepouts=keepouts,
         model=model,
         overlays=tuple(overlay_records),
+        stitch_via_pitch_mm=stitch_pitch,
     )

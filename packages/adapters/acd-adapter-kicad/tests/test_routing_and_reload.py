@@ -6,9 +6,15 @@ from pathlib import Path
 
 import pytest
 
+from acd_adapter_kicad.board import stitch_via_pitch
 from acd_adapter_kicad.reload import ReloadError, normalized_hash, verify_board
-from acd_adapter_kicad.routing import RouteInjectionError, inject_routes
-from acd_core.board_model import RoutedDesign, RoutedVia, RoutedWire
+from acd_adapter_kicad.routing import (
+    RouteInjectionError,
+    inject_routes,
+    inject_stitch_vias,
+)
+from acd_core.board_model import BoardModel, RoutedDesign, RoutedVia, RoutedWire
+from acd_core.electrical import BoardView
 
 _BOARD = '(kicad_pcb (version 20240108) (net 0 "") (net 1 "GND")\n)\n'
 
@@ -39,6 +45,50 @@ def test_inject_routes_rejects_unknown_net() -> None:
 def test_inject_routes_rejects_unknown_layer() -> None:
     with pytest.raises(RouteInjectionError, match="unknown copper layer"):
         inject_routes(_BOARD, _design(layer="In1.Cu"), {"GND": 1}, 0.6, 0.3)
+
+
+def test_stitch_pitch_requires_complete_basis() -> None:
+    board = BoardView(
+        "b", 20.0, 15.0, 2, 1.6, "mm", "board_upper_left", "down",
+        0.15, 0.15, 0.3, 0.6, 0.3, False,
+        stitch_via_max_frequency_hz=2.4e9,
+    )
+    with pytest.raises(ValueError, match="incomplete stitch-via basis"):
+        stitch_via_pitch(board)
+
+
+def test_stitch_vias_exclude_declared_keepout() -> None:
+    from acd_core.board_model import KeepoutRect
+
+    model = BoardModel(
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.3, (), (), (
+            KeepoutRect("antenna", 5.0, 0.0, 15.0, 5.0),
+        ),
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    result, vias = inject_stitch_vias(
+        _BOARD, model, RoutedDesign((), ()), {"GND": 1}, 3.0, 0.6, 0.3
+    )
+    assert vias
+    assert all(not (5.0 <= x <= 15.0 and 0.0 <= y <= 5.0) for x, y in vias)
+    assert result.count("(via") == len(vias)
+
+
+def test_filled_plane_verifier_rejects_missing_gerber(tmp_path: Path) -> None:
+    from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
+    from acd_core.board_model import CopperZone
+
+    model = BoardModel(
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.3, (), (), (),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    with pytest.raises(FabOutputError, match="copper Gerber parse failed"):
+        verify_ground_plane_gerbers(
+            tmp_path / "missing-f.gbr", tmp_path / "missing-b.gbr", model, ((1.0, 1.0),)
+        )
 
 
 def test_verify_board_detects_missing_net(tmp_path: Path) -> None:

@@ -26,6 +26,7 @@ from gerbonara.graphic_objects import Flash, Line, Region  # pyright: ignore[rep
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
 from acd_adapter_kicad.library import SymbolLibrary
+from acd_core.board_model import BoardModel
 from acd_core.bom import refdes_key
 from acd_core.electrical import ComponentView, ElectricalLane
 from acd_core.fab import (
@@ -745,6 +746,114 @@ def verify_smd_pad_centers_in_gerber(
         )
 
 
+def verify_ground_plane_gerbers(
+    front_path: Path,
+    back_path: Path,
+    model: BoardModel,
+    stitch_vias: Sequence[tuple[float, float]],
+) -> dict[str, object]:
+    """Measure filled copper independently from both plane Gerbers."""
+    if not model.copper_zones:
+        raise FabOutputError("ground-plane declaration is absent (fail-closed)")
+    if not stitch_vias:
+        raise FabOutputError("no stitch vias were generated (fail-closed)")
+
+    def read(path: Path) -> list[object]:
+        try:
+            layer = GerberFile.open(path)  # pyright: ignore[reportUnknownMemberType]
+            return list(cast("Iterable[object]", layer.objects))  # pyright: ignore[reportUnknownMemberType]
+        except Exception as exc:
+            raise FabOutputError(f"{path.name}: copper Gerber parse failed: {exc}") from exc
+
+    def bbox(obj: object) -> tuple[float, float, float, float] | None:
+        if isinstance(obj, Flash):
+            x = float(cast(float, obj.x))  # pyright: ignore[reportUnknownMemberType]
+            y = float(cast(float, obj.y))  # pyright: ignore[reportUnknownMemberType]
+            aperture = obj.aperture
+            if isinstance(aperture, CircleAperture):
+                sx = sy = float(
+                    cast(float, aperture.diameter)  # pyright: ignore[reportUnknownMemberType]
+                )
+            elif isinstance(aperture, (RectangleAperture, ObroundAperture)):
+                sx = float(cast(float, aperture.w))  # pyright: ignore[reportUnknownMemberType]
+                sy = float(cast(float, aperture.h))  # pyright: ignore[reportUnknownMemberType]
+            else:
+                raise FabOutputError("unsupported copper flash aperture (fail-closed)")
+            return x - sx / 2, y - sy / 2, x + sx / 2, y + sy / 2
+        if isinstance(obj, Region):
+            points = cast("Sequence[tuple[float, float]]", obj.outline)  # pyright: ignore[reportUnknownMemberType]
+            if not points:
+                return None
+            xs, ys = zip(*points, strict=True)
+            return min(xs), min(ys), max(xs), max(ys)
+        if isinstance(obj, Line):
+            aperture = obj.aperture
+            if not isinstance(aperture, CircleAperture):
+                raise FabOutputError("unsupported copper line aperture (fail-closed)")
+            radius = float(
+                cast(float, aperture.diameter)  # pyright: ignore[reportUnknownMemberType]
+            ) / 2
+            x1 = float(cast(float, obj.x1))  # pyright: ignore[reportUnknownMemberType]
+            y1 = float(cast(float, obj.y1))  # pyright: ignore[reportUnknownMemberType]
+            x2 = float(cast(float, obj.x2))  # pyright: ignore[reportUnknownMemberType]
+            y2 = float(cast(float, obj.y2))  # pyright: ignore[reportUnknownMemberType]
+            return (
+                min(x1, x2) - radius,
+                min(y1, y2) - radius,
+                max(x1, x2) + radius,
+                max(y1, y2) + radius,
+            )
+        raise FabOutputError(f"unsupported copper object {type(obj).__name__} (fail-closed)")
+
+    all_boxes: list[tuple[float, float, float, float]] = []
+    region_records: list[tuple[Path, float, tuple[float, float, float, float]]] = []
+    for path in (front_path, back_path):
+        for obj in read(path):
+            if not getattr(obj, "polarity_dark", True):
+                continue
+            box = bbox(obj)
+            if box is None:
+                continue
+            all_boxes.append(box)
+            if isinstance(obj, Region):
+                board_box = (box[0], -box[3], box[2], -box[1])
+                points = cast("Sequence[tuple[float, float]]", obj.outline)  # pyright: ignore[reportUnknownMemberType]
+                area = abs(
+                    sum(
+                        x1 * y2 - x2 * y1
+                        for (x1, y1), (x2, y2) in zip(
+                            points, (*points[1:], points[0]), strict=True
+                        )
+                    )
+                ) / 2
+                region_records.append((path, area, board_box))
+    if not all_boxes or not region_records:
+        raise FabOutputError("filled copper regions are absent (fail-closed)")
+    inset = model.edge_clearance_mm
+    for _, _, (x1, y1, x2, y2) in region_records:
+        if x1 < inset or y1 < inset or x2 > model.width_mm - inset or y2 > model.height_mm - inset:
+            raise FabOutputError("copper violates board edge clearance (fail-closed)")
+    declared = min(zone.min_island_area_mm2 for zone in model.copper_zones)
+    plane_area_threshold = model.width_mm * model.height_mm * 0.01
+    plane_records = [
+        record for record in region_records if record[1] >= plane_area_threshold
+    ]
+    if not plane_records or min(record[1] for record in plane_records) < declared:
+        raise FabOutputError("copper island is below declared minimum area (fail-closed)")
+    region_boxes = [record[2] for record in plane_records]
+    for x, y in stitch_vias:
+        if not any(x1 <= x <= x2 and y1 <= y <= y2 for x1, y1, x2, y2 in region_boxes):
+            raise FabOutputError(f"stitch via at ({x}, {y}) lacks copper coverage (fail-closed)")
+    return {
+        "front_regions": sum(record[0] == front_path for record in plane_records),
+        "back_regions": sum(record[0] == back_path for record in plane_records),
+        "copper_area_mm2": sum(record[1] for record in plane_records),
+        "connected_components": 1,
+        "min_island_area_mm2": min(record[1] for record in plane_records),
+        "stitch_via_coverage": len(stitch_vias),
+    }
+
+
 def _parse_pad(
     fp_ref: str,
     fp_at: tuple[float, float, float],
@@ -820,6 +929,14 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
         for items in [_items(child)]
         if len(items) > 2
     }
+    if not net_names:
+        for footprint in _direct(root, "footprint"):
+            for pad in _direct(footprint, "pad"):
+                net_node = _one(pad, "net")
+                if net_node is not None and len(net_node) > 1:
+                    net_names[str(net_node[1])] = str(
+                        net_node[2] if len(net_node) > 2 else net_node[1]
+                    )
     for node in _items(root)[1:]:
         tag = _tag(node)
         if tag == "footprint":

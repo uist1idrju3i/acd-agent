@@ -104,6 +104,14 @@ class BoardView:
     via_diameter_mm: float
     edge_copper_clearance_mm: float
     antenna_keepout: bool
+    ground_plane_net: str | None = None
+    ground_plane_layers: tuple[str, ...] = ()
+    ground_plane_min_island_area_mm2: float | None = None
+    stitch_via_max_frequency_hz: float | None = None
+    stitch_via_dielectric_constant: float | None = None
+    stitch_via_wavelength_fraction: float | None = None
+    stitch_via_basis_source: str | None = None
+    stitch_via_cost_note: str | None = None
 
 
 @dataclass(frozen=True)
@@ -226,6 +234,10 @@ def _optional_string_list(node: GraphNode, key: str) -> list[str]:
     if not isinstance(value, list):
         raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string list")
     return value
+
+
+def _optional_float(node: GraphNode, key: str) -> float | None:
+    return _optional_number(node, key)
 
 
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
@@ -372,6 +384,24 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     via_diameter_mm=_float_attr(node, "via_diameter_mm"),
                     edge_copper_clearance_mm=_float_attr(node, "edge_copper_clearance_mm"),
                     antenna_keepout=_bool_attr(node, "antenna_keepout"),
+                    ground_plane_net=_optional_str(node, "ground_plane_net"),
+                    ground_plane_layers=tuple(
+                        _optional_string_list(node, "ground_plane_layers")
+                    ),
+                    ground_plane_min_island_area_mm2=_optional_float(
+                        node, "ground_plane_min_island_area_mm2"
+                    ),
+                    stitch_via_max_frequency_hz=_optional_float(
+                        node, "stitch_via_max_frequency_hz"
+                    ),
+                    stitch_via_dielectric_constant=_optional_float(
+                        node, "stitch_via_dielectric_constant"
+                    ),
+                    stitch_via_wavelength_fraction=_optional_float(
+                        node, "stitch_via_wavelength_fraction"
+                    ),
+                    stitch_via_basis_source=_optional_str(node, "stitch_via_basis_source"),
+                    stitch_via_cost_note=_optional_str(node, "stitch_via_cost_note"),
                 )
             )
     if len(boards) != 1:

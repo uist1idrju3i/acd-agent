@@ -7,8 +7,10 @@ only trusted after kicad-cli DRC reruns on the result.
 
 from __future__ import annotations
 
+import math
+
 from acd_adapter_kicad.emit import det_uuid, fmt
-from acd_core.board_model import RoutedDesign, RoutedWire
+from acd_core.board_model import BoardModel, RoutedDesign, RoutedWire
 
 _LAYERS = frozenset({"F.Cu", "B.Cu"})
 
@@ -54,6 +56,101 @@ def inject_routes(
         )
     stripped = board_content.rstrip()
     return stripped[:-1].rstrip() + "\n" + "\n".join(lines) + "\n)\n"
+
+
+def inject_stitch_vias(
+    board_content: str,
+    model: BoardModel,
+    routes: RoutedDesign,
+    net_numbers: dict[str, int],
+    pitch_mm: float | None,
+    via_diameter_mm: float,
+    via_drill_mm: float,
+) -> tuple[str, tuple[tuple[float, float], ...]]:
+    """Add deterministic GND stitching vias outside occupied geometry."""
+    if pitch_mm is None or model.stitch_via_net is None:
+        return board_content, ()
+    net_number = net_numbers.get(model.stitch_via_net)
+    if net_number is None:
+        raise RouteInjectionError("stitch-via net is unknown (fail-closed)")
+    inset = model.edge_clearance_mm
+    radius = via_diameter_mm / 2.0
+    clearance = model.min_clearance_mm
+    candidates: list[tuple[float, float]] = []
+    x = inset + radius
+    while x <= model.width_mm - inset - radius + 1e-9:
+        candidates.extend(((x, inset + radius), (x, model.height_mm - inset - radius)))
+        x += pitch_mm
+    y = inset + radius + pitch_mm
+    while y <= model.height_mm - inset - radius - pitch_mm + 1e-9:
+        candidates.extend(((inset + radius, y), (model.width_mm - inset - radius, y)))
+        y += pitch_mm
+
+    def distance_to_segment(
+        point: tuple[float, float],
+        start: tuple[float, float],
+        end: tuple[float, float],
+    ) -> float:
+        dx, dy = end[0] - start[0], end[1] - start[1]
+        length_sq = dx * dx + dy * dy
+        t = 0.0 if length_sq == 0 else max(
+            0.0,
+            min(1.0, ((point[0] - start[0]) * dx + (point[1] - start[1]) * dy) / length_sq),
+        )
+        return math.hypot(point[0] - (start[0] + t * dx), point[1] - (start[1] + t * dy))
+
+    def occupied(point: tuple[float, float]) -> bool:
+        for keepout in model.keepouts:
+            if (
+                keepout.x1_mm <= point[0] <= keepout.x2_mm
+                and keepout.y1_mm <= point[1] <= keepout.y2_mm
+            ):
+                return True
+        for placement in model.placements:
+            angle = math.radians(placement.rotation_deg)
+            for x1, y1, x2, y2 in placement.footprint.keepout_bboxes_mm:
+                if x1 <= point[0] <= x2 and y1 <= point[1] <= y2:
+                    return True
+                corners = [
+                    (
+                        placement.x_mm + x * math.cos(angle) - y * math.sin(angle),
+                        placement.y_mm + x * math.sin(angle) + y * math.cos(angle),
+                    )
+                    for x, y in ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
+                ]
+                xs, ys = zip(*corners, strict=True)
+                if min(xs) <= point[0] <= max(xs) and min(ys) <= point[1] <= max(ys):
+                    return True
+            for pad in placement.footprint.pads:
+                px = placement.x_mm + pad.x_mm * math.cos(angle) - pad.y_mm * math.sin(angle)
+                py = placement.y_mm + pad.x_mm * math.sin(angle) + pad.y_mm * math.cos(angle)
+                if math.hypot(point[0] - px, point[1] - py) <= (
+                    max(pad.size_x_mm, pad.size_y_mm) / 2.0 + radius + clearance
+                ):
+                    return True
+        for wire in routes.wires:
+            for start, end in zip(wire.points, wire.points[1:], strict=False):
+                if (
+                    distance_to_segment(point, start, end)
+                    <= radius + wire.width_mm / 2.0 + clearance
+                ):
+                    return True
+        for via in routes.vias:
+            if math.hypot(point[0] - via.x_mm, point[1] - via.y_mm) <= radius + clearance:
+                return True
+        return False
+
+    selected = tuple(point for point in candidates if not occupied(point))
+    lines = [
+        f'  (via (at {fmt(x)} {fmt(y)}) (size {fmt(via_diameter_mm)}) '
+        f'(drill {fmt(via_drill_mm)}) (layers "F.Cu" "B.Cu") '
+        f'(net {net_number}) (uuid "{det_uuid("stitch-via", fmt(x), fmt(y))}"))'
+        for x, y in selected
+    ]
+    stripped = board_content.rstrip()
+    if not lines:
+        raise RouteInjectionError("no safe stitch-via locations remain (fail-closed)")
+    return stripped[:-1].rstrip() + "\n" + "\n".join(lines) + "\n)\n", selected
 
 
 def _wire_key(wire: RoutedWire) -> tuple[str, str, tuple[tuple[float, float], ...]]:

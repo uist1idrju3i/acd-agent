@@ -54,6 +54,15 @@ def verify_board(path: Path, expected_nets: set[str], expected_refdes: set[str])
     nets: set[str] = set()
     refdes: set[str] = set()
     segments = 0
+    def collect_pad_nets(node: object) -> None:
+        name = _symbol_name(node)
+        items = _children(node)
+        if name == "net" and len(items) >= 2:
+            nets.add(str(items[2] if len(items) >= 3 else items[1]))
+        for child in items[1:]:
+            if isinstance(child, list):
+                collect_pad_nets(cast(object, child))
+
     for node in root[1:]:
         name = _symbol_name(node)
         items = _children(node)
@@ -62,8 +71,17 @@ def verify_board(path: Path, expected_nets: set[str], expected_refdes: set[str])
         elif name == "segment":
             segments += 1
         elif name == "footprint":
+            collect_pad_nets(node)
             for child in items[1:]:
                 fields = _children(child)
+                if _symbol_name(child) == "pad":
+                    for pad_child in fields[1:]:
+                        pad_fields = _children(pad_child)
+                        if (
+                            _symbol_name(pad_child) == "net"
+                            and len(pad_fields) >= 3
+                        ):
+                            nets.add(str(pad_fields[2]))
                 if (
                     _symbol_name(child) == "property"
                     and len(fields) >= 3

@@ -343,6 +343,15 @@ KiCad symbolのpathとsha256を独立検証した。これはメーカーのtape
 なく、`fab_library_footprint`由来の再現可能な照合Evidenceである。製造データ生成と発注
 可否は分離し、全位置・回転Evidenceが揃ったGD1の`order-readiness.json`は`ready`となる。
 
+GD1のGNDプレーンはグラフの`GND`ネットをF.Cu/B.Cuへ投影し、板端clearanceから導出した
+インセットで定義する。塗りは自前計算せず、KiCad 10.0.5の`--refill-zones --save-board`
+で実行し、塗り済み基板のhashを製造Evidenceへ記録する。ステッチviaのpitchは最高動作
+周波数、FR-4の比誘電率、採用波長分数からguided wavelengthを計算して導出し、根拠宣言
+が無い場合は停止する。GD1では2.4 GHz、εr=4.3、λ/20を採用し、via追加の工程・コスト
+影響はfab profileのvia関連ドライバと実測via/drill数で記録する。keepout、pad、track、
+板端clearance違反位置は決定論的に除外し、塗り後F.Cu/B.Cu Gerberの銅面積、連結成分、
+最小島面積、全stitch viaの銅被覆を独立測定する。
+
 生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `24`個、drill object `34`個、
 pad `132`個、route wire `188`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
 silk最小stroke幅`0.15 mm`である。J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、

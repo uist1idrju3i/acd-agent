@@ -40,6 +40,7 @@ from acd_adapter_kicad.fab import (
     parse_routed_board,
     read_drill_measurement,
     run_dfm,
+    verify_ground_plane_gerbers,
     verify_lcsc_rotation_evidence,
     verify_smd_pad_centers_in_gerber,
     zip_content_hash,
@@ -53,7 +54,7 @@ from acd_adapter_kicad.reload import (
     verify_gerber,
     verify_schematic,
 )
-from acd_adapter_kicad.routing import inject_routes
+from acd_adapter_kicad.routing import inject_routes, inject_stitch_vias
 from acd_core.electrical import extract_electrical_lane
 from acd_core.fab import extract_fab_intent, load_fab_profile
 from acd_schema.design_graph import DesignGraph
@@ -136,6 +137,15 @@ def run_pipeline(
         lane.board.via_diameter_mm,
         lane.board.via_drill_mm,
     )
+    routed_board, stitch_vias = inject_stitch_vias(
+        routed_board,
+        project.board_projection.model,
+        routes,
+        project.board_projection.net_numbers,
+        project.board_projection.stitch_via_pitch_mm,
+        lane.board.via_diameter_mm,
+        lane.board.via_drill_mm,
+    )
     # kicad-cli reads DRC constraints from the sibling .kicad_pro, so the
     # routed board lives in its own directory with a copy of the project file.
     routed_dir = out_dir / "routed"
@@ -155,6 +165,8 @@ def run_pipeline(
         f"normalized_wires={routes.normalized_wire_count}"
     )
 
+    kicad.refill_zones(routed_path, revision)
+    filled_board_hash = normalized_hash(routed_path)
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
     assert_rule_check_passed("DRC", drc, require_connected=True)
     print("[5/10] DRC gate passed (0 errors, 0 unconnected)")
@@ -198,6 +210,12 @@ def run_pipeline(
     )
     verify_smd_pad_centers_in_gerber(
         gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement
+    )
+    plane_measurement = verify_ground_plane_gerbers(
+        gerber_paths[GERBER_LAYERS.index("F.Cu")],
+        gerber_paths[GERBER_LAYERS.index("B.Cu")],
+        project.board_projection.model,
+        stitch_vias,
     )
     edge_overhang_declarations = {
         str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
@@ -307,6 +325,12 @@ def run_pipeline(
             if isinstance(value, list)
         },
     )
+    dfm_report["ground_plane"] = {
+        **plane_measurement,
+        "stitch_via_count": len(stitch_vias),
+        "drill_count": drill_count,
+        "cost_note": lane.board.stitch_via_cost_note,
+    }
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     print(
@@ -348,6 +372,13 @@ def run_pipeline(
         ],
         "content_hash": zip_content_hash(zip_path),
         "tools": {"kicad-cli": kicad.version(), "measurement_parser": "sexpdata+gerbonara"},
+        "filled_board_hash": filled_board_hash,
+        "ground_plane": {
+            **plane_measurement,
+            "stitch_via_count": len(stitch_vias),
+            "drill_count": drill_count,
+            "cost_note": lane.board.stitch_via_cost_note,
+        },
         "gates": {
             "drc": (
                 "pass"

@@ -105,6 +105,28 @@ class KicadCli:
             ["pcb", "drc"], board, report_path, target_revision, "unconnected_items"
         )
 
+    def refill_zones(self, board: Path, target_revision: str) -> ToolRun:
+        """Refill zones in place before any manufacturing projection."""
+        command = [
+            self.executable,
+            "pcb",
+            "drc",
+            "--refill-zones",
+            "--save-board",
+            str(board),
+        ]
+        return run_tool(
+            tool_name="kicad-cli",
+            tool_version=self.version(),
+            format_version=self.version(),
+            command=command,
+            input_paths=[board],
+            output_paths=[board],
+            envelope_path=board.with_suffix(board.suffix + ".refill.envelope.json"),
+            target_revision=target_revision,
+            measurement_conditions="zone refill; save-board; project-local library tables",
+        )
+
     def export_netlist(self, schematic: Path, out_path: Path, target_revision: str) -> ToolRun:
         command = [
             self.executable,
