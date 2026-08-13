@@ -314,6 +314,24 @@
           "51=GND",
           "52=GND",
           "53=GND"
+        ],
+        "cpl_rotation_pin_aliases": [
+          "GPIO2/ADC1_CH2=IO2",
+          "GPIO3/ADC1_CH3=IO3",
+          "EN/CHIP_PU=EN",
+          "GPIO0/ADC1_CH0/XTAL_32K_P=IO0",
+          "GPIO1/ADC1_CH1/XTAL_32K_N=IO1",
+          "GPIO10=IO10",
+          "GPIO4/ADC1_CH4=IO4",
+          "GPIO5/ADC2_CH0=IO5",
+          "GPIO6=IO6",
+          "GPIO7=IO7",
+          "GPIO8=IO8",
+          "GPIO9=IO9",
+          "GPIO18/USB_D-=IO18",
+          "GPIO19/USB_D+=IO19",
+          "GPIO20/U0RXD=RXD0",
+          "GPIO21/U0TXD=TXD0"
         ]
       },
       "depends_on": [],
@@ -1102,7 +1120,21 @@
         ],
         "cpl_rotation_geometry_exception": true,
         "cpl_rotation_geometry_exception_reason": "USB Type-Cレセプタクルは嵌合口の向きが機構的に決まり、パッド配置がy方向に非対称なため回転が幾何的に一意である。CC1/CC2およびVBUS/GNDは仕様上対称で、CC両側5.1kとD+/D-のA/B短絡を含む本設計の電気的機能に左右反転相当の命名差が影響しない。",
-        "cpl_rotation_geometry_exception_source": "実測: LCSC SMD y=-2.474 mm、shield y=-1.706/+2.474 mm、KiCad SMD y=-4.045 mm、shield y=-3.13/+1.05 mm、shield間隔4.18 mm一致。出所: USB Type-C仕様、KiCad USB_C_Receptacle_HRO_TYPE-C-31-M-12、LCSC C165948 Evidence。"
+        "cpl_rotation_geometry_exception_source": "実測: LCSC SMD y=-2.474 mm、shield y=-1.706/+2.474 mm、KiCad SMD y=-4.045 mm、shield y=-3.13/+1.05 mm、shield間隔4.18 mm一致。出所: USB Type-C仕様、KiCad USB_C_Receptacle_HRO_TYPE-C-31-M-12、LCSC C165948 Evidence。",
+        "cpl_rotation_pin_aliases": [
+          "DP1=D+",
+          "DP2=D+",
+          "DN1=D-",
+          "DN2=D-"
+        ],
+        "cpl_rotation_unverified_pads": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "cpl_rotation_unverified_pad_reason": "USB-C shield padsはKiCad symbolのSHピンに直接対応せず、極性判定に影響しない機械シールドである。",
+        "cpl_rotation_unverified_pad_source": "KiCad USB_C_Receptacle_HRO_TYPE-C-31-M-12、LCSC C165948 Evidence、USB Type-C仕様のシールド端子定義"
       },
       "depends_on": [],
       "id": "comp.j1",
@@ -1462,7 +1494,12 @@
           "3=VDD",
           "4=VSS",
           "5=EP"
-        ]
+        ],
+        "cpl_rotation_unverified_pads": [
+          "5"
+        ],
+        "cpl_rotation_unverified_pad_reason": "U3のEP（露出パッド）はKiCad symbolに対応する番号付きピンがなく、温度・機械的接地用で極性判定に影響しない。",
+        "cpl_rotation_unverified_pad_source": "KiCad SHT40-AD1B-R3 footprint/symbol、LCSC C2848306 Evidence、Sensirion SHT40 datasheetの露出パッド定義"
       },
       "depends_on": [],
       "id": "comp.u3",

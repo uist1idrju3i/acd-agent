@@ -25,6 +25,7 @@ from gerbonara.excellon import ExcellonFile  # pyright: ignore[reportMissingType
 from gerbonara.graphic_objects import Flash, Line, Region  # pyright: ignore[reportMissingTypeStubs]
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
+from acd_adapter_kicad.library import SymbolLibrary
 from acd_core.bom import refdes_key
 from acd_core.electrical import ComponentView, ElectricalLane
 from acd_core.fab import (
@@ -522,6 +523,7 @@ def derive_lcsc_rotation_offset(
 
 def verify_lcsc_rotation_evidence(
     evidence_dir: Path,
+    fixture_dir: Path,
     board: BoardMeasurement,
     lane: ElectricalLane,
     fitted: set[str],
@@ -549,6 +551,9 @@ def verify_lcsc_rotation_evidence(
         if footprint is None:
             raise FabOutputError(f"{component.refdes}: board footprint missing for LCSC Evidence")
         try:
+            symbol_note = verify_cpl_pin_function_declaration(
+                component, fixture_dir
+            )
             geometry_exception = component.cpl_rotation_geometry_exception
             if geometry_exception and (
                 not component.cpl_rotation_geometry_exception_reason
@@ -573,8 +578,54 @@ def verify_lcsc_rotation_evidence(
             notes[component.refdes] = f"unknown; {exc}"
             continue
         offsets[component.refdes] = offset
-        notes[component.refdes] = note
+        notes[component.refdes] = f"{symbol_note}; {note}"
     return offsets, notes, unknowns
+
+
+def verify_cpl_pin_function_declaration(
+    component: ComponentView,
+    fixture_dir: Path,
+) -> str:
+    """Verify graph CPL pin functions against the pinned KiCad symbol."""
+    if not component.cpl_rotation_pin_functions:
+        return "no pin-function declaration"
+    symbol_path = Path(component.library.symbol_file)
+    if not symbol_path.is_absolute():
+        symbol_path = fixture_dir / symbol_path
+    parsed = SymbolLibrary().load(
+        component.library.symbol,
+        symbol_path,
+        component.library.symbol_sha256,
+    )
+    symbol_pins = {
+        pin.number: _normalize_pin_function(pin.name, component.cpl_rotation_pin_aliases)
+        for pin in parsed.pins
+    }
+    unverified = set(component.cpl_rotation_unverified_pads)
+    for number, declared in component.cpl_rotation_pin_functions.items():
+        if number not in symbol_pins:
+            if (
+                number not in unverified
+                or not component.cpl_rotation_unverified_pad_reason
+                or not component.cpl_rotation_unverified_pad_source
+            ):
+                raise FabOutputError(
+                    f"{component.refdes}: CPL pin {number} is absent from symbol "
+                    "without sourced unverified-pad declaration"
+                )
+            continue
+        expected = _normalize_pin_function(declared, component.cpl_rotation_pin_aliases)
+        if expected != symbol_pins[number]:
+            raise FabOutputError(
+                f"{component.refdes}: CPL pin function mismatch for {number}: "
+                f"declared={declared!r} symbol={symbol_pins[number]!r}"
+            )
+    if unverified:
+        return (
+            f"symbol-verified; unverified_pads={sorted(unverified)}; "
+            f"reason={component.cpl_rotation_unverified_pad_reason}"
+        )
+    return "symbol-verified; all declared CPL pins matched"
 
 
 def _footprint_bbox(

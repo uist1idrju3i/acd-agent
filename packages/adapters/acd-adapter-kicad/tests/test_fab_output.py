@@ -25,12 +25,20 @@ from acd_adapter_kicad.fab import (
     load_lcsc_pin_geometries,
     rotate,
     run_dfm,
+    verify_cpl_pin_function_declaration,
 )
 from acd_adapter_kicad.library import LibraryPinError
 from acd_adapter_kicad.overlay import apply_overlay
-from acd_core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
+from acd_core.electrical import (
+    BoardView,
+    ComponentView,
+    ElectricalLane,
+    LibraryPin,
+    extract_electrical_lane,
+)
 from acd_core.fab import FabProfile, ProcessAllowanceView, load_fab_profile
 from acd_core.sexpr import SExpr
+from acd_schema import DesignGraph
 
 ROOT = Path(__file__).parents[4]
 PROFILE = load_fab_profile(ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json")
@@ -54,6 +62,16 @@ def _bom_lane(*components: ComponentView) -> ElectricalLane:
         False,
     )
     return ElectricalLane(tuple(components), (), (), library)
+
+
+def _golden_component(refdes: str) -> ComponentView:
+    graph = DesignGraph.model_validate(
+        json.loads(
+            (ROOT / "fixtures/golden-design-1/graph.json").read_text(encoding="utf-8")
+        )
+    )
+    lane = extract_electrical_lane(graph)
+    return next(component for component in lane.components if component.refdes == refdes)
 
 
 def _bom_component(
@@ -275,6 +293,26 @@ def test_geometry_exception_rejects_symmetric_geometry() -> None:
             polarized=False,
             tolerance_mm=0.01,
             scale=0.254,
+        )
+
+
+@pytest.mark.parametrize("refdes", ["D1", "U2", "J1"])
+def test_cpl_pin_functions_match_pinned_kicad_symbols(refdes: str) -> None:
+    note = verify_cpl_pin_function_declaration(
+        _golden_component(refdes), ROOT / "fixtures/golden-design-1"
+    )
+    assert "symbol-verified" in note
+
+
+def test_cpl_pin_function_declaration_mismatch_fails_closed() -> None:
+    component = _golden_component("D1")
+    with pytest.raises(FabOutputError, match="CPL pin function mismatch"):
+        verify_cpl_pin_function_declaration(
+            replace(
+                component,
+                cpl_rotation_pin_functions={"1": "A", "2": "K"},
+            ),
+            ROOT / "fixtures/golden-design-1",
         )
 
 

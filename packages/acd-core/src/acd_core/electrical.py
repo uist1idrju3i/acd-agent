@@ -61,6 +61,9 @@ class ComponentView:
     cpl_rotation_geometry_exception: bool = False
     cpl_rotation_geometry_exception_reason: str | None = None
     cpl_rotation_geometry_exception_source: str | None = None
+    cpl_rotation_unverified_pads: tuple[str, ...] = ()
+    cpl_rotation_unverified_pad_reason: str | None = None
+    cpl_rotation_unverified_pad_source: str | None = None
     cpl_rotation_pin_functions: dict[str, str] = field(
         default_factory=lambda: dict[str, str]()
     )
@@ -216,6 +219,15 @@ def _optional_string_map(node: GraphNode, key: str) -> dict[str, str]:
     return result
 
 
+def _optional_string_list(node: GraphNode, key: str) -> list[str]:
+    value = node.attrs.get(key)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string list")
+    return value
+
+
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
     components: list[ComponentView] = []
     nets: list[NetView] = []
@@ -289,6 +301,15 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ),
                     cpl_rotation_geometry_exception_source=_optional_str(
                         node, "cpl_rotation_geometry_exception_source"
+                    ),
+                    cpl_rotation_unverified_pads=tuple(
+                        _optional_string_list(node, "cpl_rotation_unverified_pads")
+                    ),
+                    cpl_rotation_unverified_pad_reason=_optional_str(
+                        node, "cpl_rotation_unverified_pad_reason"
+                    ),
+                    cpl_rotation_unverified_pad_source=_optional_str(
+                        node, "cpl_rotation_unverified_pad_source"
                     ),
                     cpl_rotation_pin_functions=_optional_string_map(
                         node, "cpl_rotation_pin_functions"

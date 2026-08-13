@@ -208,7 +208,7 @@ def run_pipeline(
     lcsc_evidence_dir = Path(__file__).resolve().parents[1] / "evidence/gd1-cpl-orientation"
     verified_rotation_offsets, rotation_evidence_notes, rotation_unknowns = (
         verify_lcsc_rotation_evidence(
-        lcsc_evidence_dir, measurement, lane, fitted
+        lcsc_evidence_dir, fixture_dir, measurement, lane, fitted
         )
     )
     try:

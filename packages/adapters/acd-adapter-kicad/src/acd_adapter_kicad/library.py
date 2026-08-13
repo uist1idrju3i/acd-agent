@@ -159,7 +159,7 @@ class SymbolLibrary:
 
     def _root(self, path: Path) -> SExpr:
         if path not in self._roots:
-            self._roots[path] = parse_one(path.read_text())
+            self._roots[path] = parse_one(path.read_text(encoding="utf-8"))
         return self._roots[path]
 
     def load(self, lib_id: str, path: Path, expected_sha256: str) -> ParsedSymbol:
