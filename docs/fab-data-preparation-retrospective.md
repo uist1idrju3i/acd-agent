@@ -46,6 +46,13 @@ capability violationにはallowanceを適用しない。
 7. SW1とSW2は同じLCSC・MPN・footprintだったが、graph投影のvalue（`RESET`／`BOOT`）が異なるため
    発注用BOMで分割された。export format側の同一性キーをfab部品番号へ分離し、`SW1,SW2`を1行へ
    まとめ、value不一致時はMPNをCommentへ使い、生成後のBOMをグラフと再照合するようにした。
+8. GD1では配置アンカーをfootprint幾何とグラフ宣言から導出せず、`J1`と`U1`の位置を
+   マジックナンバーで固定していた。そのため板端との関係を誰も検証できず、DRC 0・DFM 0でも
+   誤配置が通った。生成物の3Dレンダを人が目視するのは最初に異常へ気付ける安価な手段であり、
+   今回もユーザの目視指摘が起点になった。今後はアンカーを幾何と宣言から導出し、意図した
+   板端はみ出しを宣言して独立実測と照合する。
+9. 発注用exportの行識別キーはgraph投影の同一性キーと分ける。fab部品番号によるBOM統合と
+   value差異の扱いを混同せず、生成後のDesignator集合を独立照合する。
 
 ## 残るリスクとunknown
 

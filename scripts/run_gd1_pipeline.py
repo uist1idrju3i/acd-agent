@@ -216,7 +216,8 @@ def run_pipeline(
         allowances,
         lane,
         intent,
-        edge_overhang_declarations,
+        edge_clearance_mm=lane.board.edge_copper_clearance_mm,
+        edge_overhang_declarations=edge_overhang_declarations,
     )
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")

@@ -657,22 +657,11 @@ def mechanical_nodes() -> list[GraphNode]:
     nodes.extend(
         [
             GraphNode(
-                id="mechanical.board_edge_overhang.j1",
-                kind="mechanical.board_edge_overhang",
-                attrs={
-                    "component_refdes": "J1",
-                    "overhang_mm": 0.5,
-                    "requirement_id": "req.gd1-req-013",
-                    "edge": "bottom",
-                },
-                depends_on=["comp.j1", "req.gd1-req-013"],
-            ),
-            GraphNode(
                 id="mechanical.board_edge_overhang.u1",
                 kind="mechanical.board_edge_overhang",
                 attrs={
                     "component_refdes": "U1",
-                    "overhang_mm": 5.6,
+                    "overhang_mm": 5.4,
                     "requirement_id": "req.gd1-req-015",
                     "edge": "top",
                 },

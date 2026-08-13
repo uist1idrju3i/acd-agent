@@ -86,7 +86,7 @@ def _measurement(via: ViaMeasurement) -> BoardMeasurement:
 
 def test_small_via_requires_allowance() -> None:
     via = ViaMeasurement(1.0, 2.0, 0.4, 0.2, ("F.Cu", "B.Cu"))
-    report = run_dfm(_measurement(via), PROFILE, "r1", ())
+    report = run_dfm(_measurement(via), PROFILE, "r1", (), edge_clearance_mm=0.3)
     assert report["status"] == "fail"
     assert any(
         item["rule_id"] == "via-hole-small-diameter-cost"
@@ -99,7 +99,7 @@ def test_small_via_requires_allowance() -> None:
         "req",
         ("cost",),
     )
-    report = run_dfm(_measurement(via), PROFILE, "r1", (allowance,))
+    report = run_dfm(_measurement(via), PROFILE, "r1", (allowance,), edge_clearance_mm=0.3)
     assert report["status"] == "pass"
 
 
@@ -115,7 +115,7 @@ def test_via_in_smd_pad_requires_allowance() -> None:
         (),
         0,
     )
-    report = run_dfm(board, PROFILE, "r1", ())
+    report = run_dfm(board, PROFILE, "r1", (), edge_clearance_mm=0.3)
     assert report["status"] == "fail"
     assert any(item["rule_id"] == "via-in-pad-process" for item in report["findings"])  # type: ignore[index]
 
@@ -133,13 +133,13 @@ def test_via_copper_edge_touch_without_drill_overlap_is_not_via_in_pad() -> None
         (),
         0,
     )
-    report = run_dfm(board, PROFILE, "r1", ())
+    report = run_dfm(board, PROFILE, "r1", (), edge_clearance_mm=0.3)
     assert not any(item["rule_id"] == "via-in-pad-process" for item in report["findings"])  # type: ignore[index]
 
 
 def test_capability_violation_cannot_be_allowed() -> None:
     via = ViaMeasurement(1.0, 2.0, 0.2, 0.1, ("F.Cu", "B.Cu"))
-    report = run_dfm(_measurement(via), PROFILE, "r1", ())
+    report = run_dfm(_measurement(via), PROFILE, "r1", (), edge_clearance_mm=0.3)
     findings = cast(list[dict[str, object]], report["findings"])
     capability = next(item for item in findings if item["rule_id"] == "via-hole-capability")
     assert capability["status"] == "fail"

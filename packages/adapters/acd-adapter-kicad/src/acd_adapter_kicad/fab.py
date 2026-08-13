@@ -74,6 +74,7 @@ class FootprintMeasurement:
     layer: str
     pads: tuple[PadMeasurement, ...]
     courtyard_bbox_mm: tuple[float, float, float, float] | None = None
+    body_bbox_mm: tuple[float, float, float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -86,7 +87,6 @@ class BoardMeasurement:
     outline_bbox_mm: tuple[float, float, float, float] | None
     drill_tool_diameters_mm: tuple[float, ...]
     drill_object_count: int
-    edge_clearance_mm: float = 0.3
 
     @property
     def pads(self) -> tuple[PadMeasurement, ...]:
@@ -148,13 +148,13 @@ def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
 
 
 def _footprint_bbox(
-    node: object, fp_at: tuple[float, float, float]
+    node: object, fp_at: tuple[float, float, float], layer_suffix: str
 ) -> tuple[float, float, float, float] | None:
     points: list[tuple[float, float]] = []
     for tag in ("fp_line", "fp_rect", "fp_circle", "fp_arc", "fp_poly"):
         for item in _direct(node, tag):
             layer = _one(item, "layer")
-            if layer is None or not str(layer[1]).endswith("CrtYd"):
+            if layer is None or not str(layer[1]).endswith(layer_suffix):
                 continue
             for point_tag in ("start", "mid", "end", "center"):
                 point = _one(item, point_tag)
@@ -280,7 +280,8 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
             footprints.append(
                 FootprintMeasurement(
                     refdes, fp_at[0], fp_at[1], fp_at[2], str(layer), pads,
-                    _footprint_bbox(node, fp_at),
+                    _footprint_bbox(node, fp_at, "CrtYd"),
+                    _footprint_bbox(node, fp_at, "Fab"),
                 )
             )
         elif tag == "via":
@@ -446,8 +447,13 @@ def run_dfm(
     allowances: tuple[ProcessAllowanceView, ...],
     lane: ElectricalLane | None = None,
     intent: FabOrderIntentView | None = None,
+    edge_clearance_mm: float | None = None,
     edge_overhang_declarations: Mapping[str, float] | None = None,
 ) -> dict[str, object]:
+    if edge_clearance_mm is None:
+        raise FabOutputError(
+            "board edge copper clearance is required from the electrical graph"
+        )
     allowed = _allowance_map(allowances, profile)
     thresholds = {
         rule: _pref(profile, rule)
@@ -565,23 +571,24 @@ def run_dfm(
             )
         pad_half_x = pad.size_x_mm / 2.0
         pad_half_y = pad.size_y_mm / 2.0
-        if (
-            pad.x_mm - pad_half_x < measurement.edge_clearance_mm - 1e-6
-            or pad.y_mm - pad_half_y < measurement.edge_clearance_mm - 1e-6
+        outline = measurement.outline_bbox_mm
+        if outline is not None and (
+            pad.x_mm - pad_half_x < edge_clearance_mm - 1e-6
+            or pad.y_mm - pad_half_y < edge_clearance_mm - 1e-6
             or pad.x_mm + pad_half_x
-            > (measurement.outline_bbox_mm or (0, 0, 0, 0))[2]
-            - measurement.edge_clearance_mm
+            > outline[2]
+            - edge_clearance_mm
             + 1e-6
             or pad.y_mm + pad_half_y
-            > (measurement.outline_bbox_mm or (0, 0, 0, 0))[3]
-            - measurement.edge_clearance_mm
+            > outline[3]
+            - edge_clearance_mm
             + 1e-6
         ):
             add(
                 "pad-to-board-edge-clearance",
                 "capability_violation",
                 {"refdes": pad.refdes, "x_mm": pad.x_mm, "y_mm": pad.y_mm},
-                measurement.edge_clearance_mm,
+                edge_clearance_mm,
                 "mm",
                 loc,
             )
@@ -623,10 +630,22 @@ def run_dfm(
                 "mm",
                 loc,
             )
+    if measurement.outline_bbox_mm is None and measurement.pads:
+        add(
+            "board-outline-geometry-missing",
+            "capability_violation",
+            None,
+            "board outline required",
+            "geometry",
+            [],
+        )
+    missing_body_refdes: list[str] = []
     declarations = edge_overhang_declarations or {}
     for fp in measurement.footprints:
-        bbox = fp.courtyard_bbox_mm
+        bbox = fp.body_bbox_mm
         if bbox is None or measurement.outline_bbox_mm is None:
+            if bbox is None:
+                missing_body_refdes.append(fp.refdes)
             continue
         ox1, oy1, ox2, oy2 = measurement.outline_bbox_mm
         overhang = max(ox1 - bbox[0], oy1 - bbox[1], bbox[2] - ox2, bbox[3] - oy2, 0.0)
@@ -751,6 +770,16 @@ def run_dfm(
             )
     checks = [
         {
+            "rule_id": "component_body_geometry",
+            "reason": (
+                "F.Fab body geometry is unavailable for "
+                + ", ".join(missing_body_refdes)
+                + "; physical overhang was not independently measured for these references."
+            ),
+        }
+        if missing_body_refdes
+        else None,
+        {
             "rule_id": "pth-to-track-prefer-035",
             "reason": (
                 "DFM v1 does not yet independently measure pad-to-track distances; "
@@ -766,13 +795,6 @@ def run_dfm(
             "rule_id": "routed_edge_copper_clearance",
             "reason": "The KiCad custom-rule edge-clearance constraint was not accepted "
             "as semantically equivalent; independent edge geometry is not implemented.",
-        },
-        {
-            "rule_id": "courtyard_board_edge_overhang",
-            "reason": (
-                "Independent courtyard geometry is checked against the measured board outline; "
-                "declared antenna overhangs are the only permitted exception."
-            ),
         },
         {
             "rule_id": "connector_mating_face_edge_alignment",
@@ -826,6 +848,7 @@ def run_dfm(
             "reason": "Graph component data does not include BGA pitch.",
         },
     ]
+    checks = [item for item in checks if item is not None]
     if measurement.silk_min_height_mm is None:
         checks.append(
             {

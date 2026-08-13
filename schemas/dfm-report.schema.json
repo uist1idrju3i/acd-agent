@@ -4,7 +4,7 @@
   "title": "ACD DFM report",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "target_revision", "profile_id", "status", "findings", "checks_not_implemented", "measurements"],
+  "required": ["schema_version", "target_revision", "profile_id", "status", "findings", "checks_not_implemented", "measurements", "unknowns"],
   "properties": {
     "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
     "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
@@ -12,7 +12,15 @@
     "status": {"enum": ["pass", "fail", "unknown"]},
     "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
     "checks_not_implemented": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["rule_id", "reason"], "properties": {"rule_id": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}}}},
-    "measurements": {"type": "object", "additionalProperties": true}
+    "measurements": {"type": "object", "additionalProperties": true},
+    "unknowns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpl_rotation_basis_fab_lcsc"],
+      "properties": {
+        "cpl_rotation_basis_fab_lcsc": {"type": "string", "minLength": 1}
+      }
+    }
   },
   "$defs": {
     "finding": {
