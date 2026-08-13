@@ -41,6 +41,14 @@ class FabOutputError(ValueError):
     """Raised when manufacturing output cannot be proven correct."""
 
 
+@dataclass(frozen=True)
+class GerberRegionRecord:
+    function: str
+    points_mm: tuple[tuple[float, float], ...]
+    area_mm2: float
+    bbox_mm: tuple[float, float, float, float]
+
+
 class CplBasisError(FabOutputError):
     """Raised when CPL basis or provenance is unknown."""
 
@@ -758,6 +766,137 @@ def verify_ground_plane_gerbers(
     if not stitch_vias:
         raise FabOutputError("no stitch vias were generated (fail-closed)")
 
+    def read_regions(path: Path) -> tuple[GerberRegionRecord, ...]:
+        try:
+            text = path.read_text(encoding="ascii")
+        except Exception as exc:
+            raise FabOutputError(f"{path.name}: copper Gerber parse failed: {exc}") from exc
+        fs_match = re.search(r"%FSLAX(\d)(\d)Y(\d)(\d)\*%", text)
+        mo_match = re.search(r"%MO(MM|IN)\*%", text)
+        if fs_match is None or mo_match is None:
+            raise FabOutputError(f"{path.name}: missing Gerber format or units (fail-closed)")
+        if (fs_match.group(1), fs_match.group(2), fs_match.group(3), fs_match.group(4)) != (
+            "4",
+            "6",
+            "4",
+            "6",
+        ):
+            raise FabOutputError(f"{path.name}: unsupported Gerber coordinate format (fail-closed)")
+        if mo_match.group(1) != "MM":
+            raise FabOutputError(f"{path.name}: unsupported Gerber units (fail-closed)")
+        scale = 10.0 ** -int(fs_match.group(2))
+        current_function: str | None = None
+        interpolation = "G01"
+        in_region = False
+        region_points: list[tuple[float, float]] = []
+        regions: list[GerberRegionRecord] = []
+        for command in text.split("*"):
+            command = command.strip()
+            if not command:
+                continue
+            function_match = re.search(r"G04 #@! TA\.AperFunction,([^*]+)", command)
+            if function_match is not None:
+                current_function = function_match.group(1).strip()
+                continue
+            if "G04 #@! TD.AperFunction" in command:
+                current_function = None
+                continue
+            if command == "G36":
+                if in_region or current_function is None:
+                    raise FabOutputError(
+                        f"{path.name}: region without unique AperFunction (fail-closed)"
+                    )
+                in_region = True
+                region_points = []
+                continue
+            if command == "G37":
+                if not in_region or len(region_points) < 3 or current_function is None:
+                    raise FabOutputError(f"{path.name}: malformed Gerber region (fail-closed)")
+                board_points = tuple((x, -y) for x, y in region_points)
+                area = abs(
+                    sum(
+                        x1 * y2 - x2 * y1
+                        for (x1, y1), (x2, y2) in zip(
+                            board_points, (*board_points[1:], board_points[0]), strict=True
+                        )
+                    )
+                ) / 2.0
+                xs, ys = zip(*board_points, strict=True)
+                regions.append(
+                    GerberRegionRecord(
+                        current_function,
+                        board_points,
+                        area,
+                        (min(xs), min(ys), max(xs), max(ys)),
+                    )
+                )
+                in_region = False
+                continue
+            if in_region:
+                if command in {"G01", "G02", "G03", "G75"}:
+                    if command != "G75":
+                        interpolation = command
+                    continue
+                match = re.fullmatch(r"(?:G01)?X(-?\d+)Y(-?\d+)D0([123])", command)
+                arc_match = re.fullmatch(
+                    r"(?:G0([23]))?X(-?\d+)Y(-?\d+)I(-?\d+)J(-?\d+)D0([123])",
+                    command,
+                )
+                if arc_match is not None:
+                    if arc_match.group(6) != "1" or not region_points:
+                        raise FabOutputError(
+                            f"{path.name}: malformed region arc (fail-closed)"
+                        )
+                    start = region_points[-1]
+                    end = (
+                        int(arc_match.group(2)) * scale,
+                        int(arc_match.group(3)) * scale,
+                    )
+                    center = (
+                        start[0] + int(arc_match.group(4)) * scale,
+                        start[1] + int(arc_match.group(5)) * scale,
+                    )
+                    start_angle = math.atan2(start[1] - center[1], start[0] - center[0])
+                    end_angle = math.atan2(end[1] - center[1], end[0] - center[0])
+                    arc_direction = arc_match.group(1) or interpolation.removeprefix("G0")
+                    if arc_direction == "2":
+                        while end_angle >= start_angle:
+                            end_angle -= math.tau
+                    else:
+                        while end_angle <= start_angle:
+                            end_angle += math.tau
+                    steps = max(2, int(abs(end_angle - start_angle) / (math.pi / 18)))
+                    radius = math.hypot(start[0] - center[0], start[1] - center[1])
+                    region_points.extend(
+                        (
+                            center[0] + radius * math.cos(angle),
+                            center[1] + radius * math.sin(angle),
+                        )
+                        for angle in (
+                            start_angle
+                            + (end_angle - start_angle) * index / steps
+                            for index in range(1, steps + 1)
+                        )
+                    )
+                    continue
+                if match is None:
+                    raise FabOutputError(
+                        f"{path.name}: unsupported region command {command!r} (fail-closed)"
+                    )
+                point = (int(match.group(1)) * scale, int(match.group(2)) * scale)
+                operation = match.group(3)
+                if operation == "2":
+                    if region_points:
+                        raise FabOutputError(
+                            f"{path.name}: multiple region contours unsupported (fail-closed)"
+                        )
+                    region_points.append(point)
+                elif operation == "1":
+                    region_points.append(point)
+        if in_region:
+            raise FabOutputError(f"{path.name}: unterminated Gerber region (fail-closed)")
+        return tuple(regions)
+
     def read(path: Path) -> list[object]:
         try:
             layer = GerberFile.open(path)  # pyright: ignore[reportUnknownMemberType]
@@ -807,9 +946,21 @@ def verify_ground_plane_gerbers(
 
     all_boxes: list[tuple[float, float, float, float]] = []
     region_records: list[
-        tuple[Path, float, tuple[tuple[float, float], ...], tuple[float, float, float, float]]
+        tuple[Path, GerberRegionRecord]
     ] = []
     for path in (front_path, back_path):
+        raw_regions = read_regions(path)
+        for region in raw_regions:
+            if region.function not in {
+                "Conductor",
+                "SMDPad,CuDef",
+                "ComponentPad",
+                "ViaPad",
+            }:
+                raise FabOutputError(
+                    f"{path.name}: unknown region AperFunction {region.function!r} (fail-closed)"
+                )
+            region_records.append((path, region))
         for obj in read(path):
             if isinstance(obj, (Flash, Region, Line)) and not obj.polarity_dark:
                 continue
@@ -817,32 +968,20 @@ def verify_ground_plane_gerbers(
             if box is None:
                 continue
             all_boxes.append(box)
-            if isinstance(obj, Region):
-                points = cast("Sequence[tuple[float, float]]", obj.outline)  # pyright: ignore[reportUnknownMemberType]
-                board_points = tuple((x, -y) for x, y in points)
-                board_box = (
-                    min(x for x, _ in board_points),
-                    min(y for _, y in board_points),
-                    max(x for x, _ in board_points),
-                    max(y for _, y in board_points),
-                )
-                area = abs(
-                    sum(
-                        x1 * y2 - x2 * y1
-                        for (x1, y1), (x2, y2) in zip(
-                            points, (*points[1:], points[0]), strict=True
-                        )
-                    )
-                ) / 2
-                region_records.append((path, area, board_points, board_box))
     if not all_boxes or not region_records:
         raise FabOutputError("filled copper regions are absent (fail-closed)")
+    conductor_records = [
+        (path, region) for path, region in region_records if region.function == "Conductor"
+    ]
+    if not conductor_records:
+        raise FabOutputError("zone fill regions are absent (fail-closed)")
     inset = model.edge_clearance_mm
-    for _, _, _, (x1, y1, x2, y2) in region_records:
+    for _, region in conductor_records:
+        x1, y1, x2, y2 = region.bbox_mm
         if x1 < inset or y1 < inset or x2 > model.width_mm - inset or y2 > model.height_mm - inset:
             raise FabOutputError("copper violates board edge clearance (fail-closed)")
     declared = min(zone.min_island_area_mm2 for zone in model.copper_zones)
-    if min(record[1] for record in region_records) < declared:
+    if min(region.area_mm2 for _, region in conductor_records) < declared:
         raise FabOutputError("copper island is below declared minimum area (fail-closed)")
 
     def point_in_polygon(
@@ -869,18 +1008,22 @@ def verify_ground_plane_gerbers(
 
     if not model.keepouts:
         raise FabOutputError("antenna keepout declaration is absent (fail-closed)")
-    for _, _, polygon, _ in region_records:
+    for _, region in conductor_records:
         for keepout in model.keepouts:
             if rect_intersects_polygon(
-                polygon, (keepout.x1_mm, keepout.y1_mm, keepout.x2_mm, keepout.y2_mm)
+                region.points_mm,
+                (keepout.x1_mm, keepout.y1_mm, keepout.x2_mm, keepout.y2_mm),
             ):
                 raise FabOutputError("copper inside antenna keepout (fail-closed)")
 
     for x, y in stitch_vias:
-        if not any(point_in_polygon((x, y), record[2]) for record in region_records):
+        if not any(
+            point_in_polygon((x, y), region.points_mm)
+            for _, region in conductor_records
+        ):
             raise FabOutputError(f"stitch via at ({x}, {y}) lacks copper coverage (fail-closed)")
 
-    parent = list(range(len(region_records)))
+    parent = list(range(len(conductor_records)))
 
     def find(index: int) -> int:
         while parent[index] != index:
@@ -893,9 +1036,10 @@ def verify_ground_plane_gerbers(
         if left != right:
             parent[right] = left
 
-    for first, (_, _, _, first_box) in enumerate(region_records):
+    for first, (_, first_region) in enumerate(conductor_records):
+        first_box = first_region.bbox_mm
         for second in range(first):
-            _, _, _, second_box = region_records[second]
+            second_box = conductor_records[second][1].bbox_mm
             if not (
                 first_box[2] < second_box[0]
                 or second_box[2] < first_box[0]
@@ -906,19 +1050,28 @@ def verify_ground_plane_gerbers(
     for x, y in stitch_vias:
         covered = [
             index
-            for index, record in enumerate(region_records)
-            if point_in_polygon((x, y), record[2])
+            for index, (_, region) in enumerate(conductor_records)
+            if point_in_polygon((x, y), region.points_mm)
         ]
         for index in covered[1:]:
             union(covered[0], index)
-    components = len({find(index) for index in range(len(region_records))})
+    components = len({find(index) for index in range(len(conductor_records))})
     return {
-        "front_regions": sum(record[0] == front_path for record in region_records),
-        "back_regions": sum(record[0] == back_path for record in region_records),
-        "copper_area_mm2": sum(record[1] for record in region_records),
+        "front_regions": sum(path == front_path for path, _ in conductor_records),
+        "back_regions": sum(path == back_path for path, _ in conductor_records),
+        "copper_area_mm2": sum(region.area_mm2 for _, region in conductor_records),
         "connected_components": components,
-        "min_island_area_mm2": min(record[1] for record in region_records),
+        "min_island_area_mm2": min(region.area_mm2 for _, region in conductor_records),
         "stitch_via_coverage": len(stitch_vias),
+        "zone_regions": [
+            {
+                "layer": "F.Cu" if path == front_path else "B.Cu",
+                "area_mm2": region.area_mm2,
+                "bbox_mm": region.bbox_mm,
+            }
+            for path, region in conductor_records
+        ],
+        "keepout_copper": False,
     }
 
 

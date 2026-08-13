@@ -61,7 +61,7 @@ def test_stitch_vias_exclude_declared_keepout() -> None:
     from acd_core.board_model import KeepoutRect
 
     model = BoardModel(
-        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.3, (), (), (
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), (
             KeepoutRect("antenna", 5.0, 0.0, 15.0, 5.0),
         ),
         stitch_via_pitch_mm=3.0,
@@ -89,6 +89,54 @@ def test_filled_plane_verifier_rejects_missing_gerber(tmp_path: Path) -> None:
         verify_ground_plane_gerbers(
             tmp_path / "missing-f.gbr", tmp_path / "missing-b.gbr", model, ((1.0, 1.0),)
         )
+
+
+def test_gerber_region_without_aperture_function_fails_closed(tmp_path: Path) -> None:
+    from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
+    from acd_core.board_model import CopperZone, KeepoutRect
+
+    content = _gerber_region("Unknown")
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    front.write_text(content)
+    back.write_text(_gerber_region("Conductor"))
+    model = BoardModel(
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.3, (), (), (
+            KeepoutRect("antenna", 18.0, 10.0, 19.0, 11.0),
+        ),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
+    )
+    with pytest.raises(FabOutputError, match="unknown region AperFunction"):
+        verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),))
+
+
+def test_small_zone_region_fails_but_pad_region_is_excluded(tmp_path: Path) -> None:
+    from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
+    from acd_core.board_model import CopperZone, KeepoutRect
+
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    front.write_text(_gerber_region("Conductor", side=0.5))
+    back.write_text(_gerber_region("Conductor", side=10.0))
+    model = BoardModel(
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), (
+            KeepoutRect("antenna", 18.0, 10.0, 19.0, 11.0),
+        ),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
+    )
+    with pytest.raises(FabOutputError, match="copper island"):
+        verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),))
+
+
+def _gerber_region(function: str, side: float = 0.5) -> str:
+    end = int((1.0 + side) * 10000)
+    return (
+        "%FSLAX46Y46*%\n%MOMM*%\n"
+        f"G04 #@! TA.AperFunction,{function}*\nG36*\nG01*\n"
+        f"X10000Y-10000D02*X{end}Y-10000D01*X{end}Y-{end}D01*"
+        f"X10000Y-{end}D01*X10000Y-10000D01*G37*\n"
+        "G04 #@! TD.AperFunction*\n"
+    )
 
 
 def test_verify_board_detects_missing_net(tmp_path: Path) -> None:
