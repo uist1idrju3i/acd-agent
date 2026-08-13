@@ -13,7 +13,16 @@ from acd_adapter_kicad.routing import (
     inject_routes,
     inject_stitch_vias,
 )
-from acd_core.board_model import BoardModel, BoardNet, RoutedDesign, RoutedVia, RoutedWire
+from acd_core.board_model import (
+    BoardModel,
+    BoardNet,
+    ComponentPlacement,
+    FootprintShape,
+    PadShape,
+    RoutedDesign,
+    RoutedVia,
+    RoutedWire,
+)
 from acd_core.electrical import BoardView
 
 _BOARD = '(kicad_pcb (version 20240108) (net 0 "") (net 1 "GND")\n)\n'
@@ -73,6 +82,45 @@ def test_stitch_vias_exclude_declared_keepout() -> None:
     assert vias
     assert all(not (5.0 <= x <= 15.0 and 0.0 <= y <= 5.0) for x, y in vias)
     assert result.count("(via") == len(vias)
+
+
+def test_stitch_vias_rotate_asymmetric_pad_axes() -> None:
+    placement = ComponentPlacement(
+        "U2",
+        FootprintShape(
+            "test:U2",
+            (
+                PadShape("tab", 3.15, 0.0, 180.0, "rect", 3.8, 2.0, False, None, True, False),
+            ),
+        ),
+        4.15,
+        14.7,
+        90.0,
+    )
+    model = BoardModel(
+        30.0,
+        25.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.3,
+        (placement,),
+        (BoardNet("GND", ()),),
+        stitch_via_pitch_mm=3.011932521069266,
+        stitch_via_net="GND",
+    )
+    _, vias = inject_stitch_vias(
+        _BOARD,
+        model,
+        RoutedDesign((), ()),
+        {"GND": 1},
+        model.stitch_via_pitch_mm,
+        0.6,
+        0.3,
+    )
+    assert (3.611932521069266, 9.635797563207797) not in vias
 
 
 def test_filled_plane_verifier_rejects_missing_gerber(tmp_path: Path) -> None:

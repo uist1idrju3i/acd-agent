@@ -1111,6 +1111,19 @@ def verify_ground_plane_gerbers(
             for path, region in conductor_records
         ):
             continue
+    region_connection_points = [
+        {
+            "layer": "F.Cu" if path == front_path else "B.Cu",
+            "area_mm2": region.area_mm2,
+            "bbox_mm": region.bbox_mm,
+            "gnd_connection_point_count": sum(
+                point_layer == ("F.Cu" if path == front_path else "B.Cu")
+                and point_in_polygon((x, y), region.points_mm)
+                for point_layer, x, y in gnd_points
+            ),
+        }
+        for path, region in conductor_records
+    ]
 
     parent = list(range(len(conductor_records)))
 
@@ -1166,6 +1179,7 @@ def verify_ground_plane_gerbers(
             }
             for path, region in conductor_records
         ],
+        "region_connection_points": region_connection_points,
         "keepout_copper": False,
     }
 

@@ -160,21 +160,16 @@ def inject_stitch_vias(
                 px += placement.x_mm
                 py += placement.y_mm
                 pad_angle = placement.rotation_deg + pad.rotation_deg
-                corners = [
-                    rotate_point(
-                        sx * pad.size_x_mm / 2.0,
-                        sy * pad.size_y_mm / 2.0,
-                        pad_angle,
+                margin = radius + clearance
+                for orientation in (pad_angle, pad_angle + 90.0):
+                    local_x, local_y = rotate_point(
+                        point[0] - px, point[1] - py, -orientation
                     )
-                    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))
-                ]
-                xs, ys = zip(*corners, strict=True)
-                left, right = px + min(xs), px + max(xs)
-                top, bottom = py + min(ys), py + max(ys)
-                dx = max(left - point[0], 0.0, point[0] - right)
-                dy = max(top - point[1], 0.0, point[1] - bottom)
-                if math.hypot(dx, dy) <= radius + clearance:
-                    return True
+                    if (
+                        abs(local_x) <= pad.size_x_mm / 2.0 + margin
+                        and abs(local_y) <= pad.size_y_mm / 2.0 + margin
+                    ):
+                        return True
         for wire in routes.wires:
             for start, end in zip(wire.points, wire.points[1:], strict=False):
                 if (
