@@ -319,10 +319,12 @@ Commentへ出し、不一致の場合はMPNをCommentへ出す。Designatorは�
 カンマ区切りでまとめ、未実装部品は含めない。生成後にDesignator集合、LCSC、footprintを
 グラフと独立に照合し、不一致はfail-closedで停止する。
 
-生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `30`個、drill object `40`個、
-pad `132`個、route wire `207`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
-silk最小stroke幅`0.15 mm`である。出所は`out/gd1/fab/dfm-report.json`、
-`out/gd1/routing-summary.json`、`out/gd1/fab/fab-package.json`である。
+生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `22`個、drill object `32`個、
+pad `132`個、route wire `191`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
+silk最小stroke幅`0.15 mm`である。J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
+ともに回転`0°`である。DSNの`(via_at_smd off)`とSMD pad周囲の`via_keepout`により、
+SMD pad上viaを構造的に禁止している。出所は`out/gd1-fix3/fab/dfm-report.json`、
+`out/gd1-fix3/routing-summary.json`、`out/gd1-fix3/fab/fab-package.json`である。
 | `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
 | `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | stale判定が`unknown`で停止 |
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |

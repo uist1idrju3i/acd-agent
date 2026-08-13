@@ -143,6 +143,44 @@ def _hole_keepouts(board: BoardModel) -> list[str]:
     return lines
 
 
+def _smd_via_keepouts(board: BoardModel) -> list[str]:
+    """Keep via centers outside every SMD pad plus via radius and clearance."""
+    lines: list[str] = []
+    margin = board.via_diameter_mm / 2.0 + board.min_clearance_mm
+    for placement in board.placements:
+        for index, pad in enumerate(placement.footprint.pads):
+            if pad.through_hole or not (pad.on_front or pad.on_back):
+                continue
+            size_x, size_y = _pad_axes(pad)
+            local_corners = (
+                (-size_x / 2.0 - margin, -size_y / 2.0 - margin),
+                (size_x / 2.0 + margin, -size_y / 2.0 - margin),
+                (size_x / 2.0 + margin, size_y / 2.0 + margin),
+                (-size_x / 2.0 - margin, size_y / 2.0 + margin),
+            )
+            angle = placement.rotation_deg
+            import math
+
+            points: list[tuple[float, float]] = []
+            for dx, dy in local_corners:
+                radians = math.radians(angle)
+                px = pad.x_mm + dx * math.cos(radians) - dy * math.sin(radians)
+                py = pad.y_mm + dx * math.sin(radians) + dy * math.cos(radians)
+                points.append(
+                    (
+                        placement.x_mm + px * math.cos(radians) - py * math.sin(radians),
+                        placement.y_mm + px * math.sin(radians) + py * math.cos(radians),
+                    )
+                )
+            coords = " ".join(_point(x, y) for x, y in (*points, points[0]))
+            for layer in _LAYERS:
+                lines.append(
+                    f'(via_keepout "via_smd_{placement.refdes}_{index}_{layer}" '
+                    f"(polygon {layer} 0 {coords}))"
+                )
+    return lines
+
+
 def export_dsn(board: BoardModel, design_name: str) -> str:
     if board.layers != 2:
         raise DsnExportError(f"only 2-layer boards supported, got {board.layers}")
@@ -168,11 +206,14 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
     ]
     for layer in _LAYERS:
         lines.append(f"    (layer {layer} (type signal))")
+    lines.append("    (via_at_smd off)")
     lines.append(f"    {_boundary(board)}")
     for keepout in board.keepouts:
         for entry in _keepout(keepout):
             lines.append(f"    {entry}")
     for entry in _hole_keepouts(board):
+        lines.append(f"    {entry}")
+    for entry in _smd_via_keepouts(board):
         lines.append(f"    {entry}")
     lines.append(f'    (via "{via_name}")')
     lines.append(f"    (rule (width {track_um}) (clearance {clearance_um})")
