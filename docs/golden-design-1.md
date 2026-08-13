@@ -16,6 +16,16 @@ Evidenceを定める。
 付き設計グラフへ変換する前の、検証可能な仕様を記述するものである。回路図、基板、
 FWパッケージ、製造データは設計グラフからの投影とする。
 
+## CPL回転Evidence
+
+U1、J1を含むfitted部品のCPL回転は、保存済みJLC/EasyEDA部品ライブラリの番号付き
+パッド配置と、独立パーサで再読込したKiCadパッド配置を0/90/180/270度で照合して導出する。
+ネットワーク取得は`fetch_lcsc_footprint_orientation.py`に限定し、パイプラインは保存済み
+Evidenceのhashを再計算する。これはメーカーのtape&reel図そのものではないため、
+`fab_library_footprint`として出所と限界を記録し、JLCPCB公式FAQの包装内向き要件を
+再現可能なライブラリ照合で補助する。hash欠落・不一致・一意に決まらない向きは
+発注可否をfail-closedにする。
+
 ## 1. 位置づけ
 
 ### 1.1 マイルストーンとPhase

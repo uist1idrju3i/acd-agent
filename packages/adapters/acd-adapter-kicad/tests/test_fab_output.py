@@ -17,6 +17,7 @@ from acd_adapter_kicad.fab import (
     apply_cpl_contract,
     cross_validate_bom,
     cross_validate_cpl,
+    derive_lcsc_rotation_offset,
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
@@ -87,6 +88,72 @@ def _bom_component(
 
 def _measurement(via: ViaMeasurement) -> BoardMeasurement:
     return BoardMeasurement((), (via,), None, None, None, None, (), 0)
+
+
+def test_derive_lcsc_rotation_offset_matches_numbered_pads() -> None:
+    footprint = FootprintMeasurement(
+        "U2",
+        0.0,
+        0.0,
+        0.0,
+        "top",
+        (
+            PadMeasurement("U2", "smd", -1.0, -1.0, 0.0, 1.0, 1.0, None, None, number="1"),
+            PadMeasurement("U2", "smd", -1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
+            PadMeasurement("U2", "smd", -1.0, 1.0, 0.0, 1.0, 1.0, None, None, number="3"),
+            PadMeasurement("U2", "smd", -1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
+        ),
+    )
+    offset, note = derive_lcsc_rotation_offset(
+        footprint,
+        {"1": (0.0, 1.0), "2": (0.0, 0.0), "3": (0.0, -1.0)},
+        tolerance_mm=0.2,
+        scale=1.0,
+    )
+    assert offset == 180.0
+    assert "unique" in note
+
+
+def test_derive_lcsc_rotation_offset_rejects_unmatched_pads() -> None:
+    footprint = FootprintMeasurement(
+        "C1",
+        0.0,
+        0.0,
+        0.0,
+        "top",
+        (
+            PadMeasurement("C1", "smd", -1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="1"),
+            PadMeasurement("C1", "smd", 1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
+        ),
+    )
+    with pytest.raises(FabOutputError, match="no LCSC rotation candidate"):
+        derive_lcsc_rotation_offset(
+            footprint,
+            {"1": (0.0, 1.0), "2": (0.0, 0.0)},
+            scale=1.0,
+        )
+
+
+def test_derive_lcsc_rotation_offset_handles_ambiguous_nonpolarized_part() -> None:
+    footprint = FootprintMeasurement(
+        "C1",
+        0.0,
+        0.0,
+        0.0,
+        "top",
+        (
+            PadMeasurement("C1", "smd", 0.0, 0.0, 0.0, 1.0, 1.0, None, None, number="1"),
+            PadMeasurement("C1", "smd", 0.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
+        ),
+    )
+    offset, note = derive_lcsc_rotation_offset(
+        footprint,
+        {"1": (0.0, 0.0), "2": (0.0, 0.0)},
+        scale=1.0,
+        polarized=False,
+    )
+    assert offset == 0.0
+    assert "ambiguous but non-polarized" in note
 
 
 def _cpl_profile(*, position_basis: str = "footprint_origin") -> FabProfile:

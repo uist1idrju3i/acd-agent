@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import json
 import math
 import zipfile
 from collections.abc import Iterable, Mapping, Sequence
@@ -57,6 +58,7 @@ class PadMeasurement:
     net: str | None
     drill_x_mm: float | None = None
     drill_y_mm: float | None = None
+    number: str | None = None
 
     @property
     def annular_ring_mm(self) -> float | None:
@@ -160,6 +162,134 @@ def rotate(x: float, y: float, angle: float) -> tuple[float, float]:
 
 def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     return rotate(x, y, -angle)
+
+
+def _parse_lcsc_pad_shape(shape: str) -> tuple[str, float, float] | None:
+    fields = shape.split("~")
+    if len(fields) < 9 or fields[0] != "PAD":
+        return None
+    try:
+        return fields[8], float(fields[2]), float(fields[3])
+    except ValueError:
+        return None
+
+
+def load_lcsc_pad_centers(path: Path) -> dict[str, tuple[float, float]]:
+    """Read numbered pad centers from an archived EasyEDA package response."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+    shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
+    pads = [_parse_lcsc_pad_shape(str(shape)) for shape in shapes]
+    parsed = {number: (x, y) for item in pads if item is not None for number, x, y in [item]}
+    if not parsed:
+        raise FabOutputError(f"{path}: archived LCSC response has no numbered pads")
+    return parsed
+
+
+def derive_lcsc_rotation_offset(
+    footprint: FootprintMeasurement,
+    lcsc_pad_centers: Mapping[str, tuple[float, float]],
+    tolerance_mm: float = 0.1,
+    scale: float = 0.254,
+    polarized: bool = True,
+) -> tuple[float, str]:
+    """Derive a unique quarter-turn offset from numbered pad geometry."""
+    grouped: dict[str, list[tuple[float, float]]] = {}
+    for pad in footprint.pads:
+        if pad.number is not None and pad.number in lcsc_pad_centers:
+            grouped.setdefault(pad.number, []).append(
+                _inverse_rotate(
+                    pad.x_mm - footprint.x_mm,
+                    pad.y_mm - footprint.y_mm,
+                    footprint.rotation_deg,
+                )
+            )
+    representatives = {
+        number: points[0] for number, points in grouped.items() if len(points) == 1
+    }
+    common = set(representatives) & set(lcsc_pad_centers)
+    if len(common) < 2:
+        missing = sorted(set(lcsc_pad_centers) - common)
+        raise FabOutputError(f"{footprint.refdes}: LCSC/KiCad pad number mismatch: {missing}")
+    kicad = representatives
+    all_kicad = [
+        _inverse_rotate(
+            pad.x_mm - footprint.x_mm,
+            pad.y_mm - footprint.y_mm,
+            footprint.rotation_deg,
+        )
+        for pad in footprint.pads
+        if pad.number is not None
+    ]
+    kicad_center = (
+        sum(x for x, _ in all_kicad) / len(all_kicad),
+        sum(y for _, y in all_kicad) / len(all_kicad),
+    )
+    lcsc_values = {number: (x * scale, y * scale) for number, (x, y) in lcsc_pad_centers.items()}
+    lcsc_center = (
+        sum(x for x, _ in lcsc_values.values()) / len(lcsc_values),
+        sum(y for _, y in lcsc_values.values()) / len(lcsc_values),
+    )
+    candidates: list[tuple[float, float]] = []
+    for angle in (0.0, 90.0, 180.0, 270.0):
+        error = max(
+            math.dist(
+                rotate(
+                    kicad[number][0] - kicad_center[0],
+                    kicad[number][1] - kicad_center[1],
+                    angle,
+                ),
+                (lcsc_values[number][0] - lcsc_center[0], lcsc_values[number][1] - lcsc_center[1]),
+            )
+            for number in kicad
+        )
+        if error <= tolerance_mm:
+            candidates.append((angle, error))
+    ignored = sorted(set(lcsc_pad_centers) - common)
+    suffix = f"; ignored_unmatched_lcsc_pads={ignored}" if ignored else ""
+    if len(candidates) == 1:
+        return candidates[0][0], f"unique; max_error_mm={candidates[0][1]:.6f}{suffix}"
+    if len(candidates) > 1 and not polarized:
+        return 0.0, f"ambiguous but non-polarized; candidates={candidates}"
+    if not candidates:
+        raise FabOutputError(f"{footprint.refdes}: no LCSC rotation candidate within tolerance")
+    raise FabOutputError(f"{footprint.refdes}: ambiguous LCSC rotation candidates: {candidates}")
+
+
+def verify_lcsc_rotation_evidence(
+    evidence_dir: Path,
+    board: BoardMeasurement,
+    lane: ElectricalLane,
+    fitted: set[str],
+) -> tuple[dict[str, float], dict[str, str]]:
+    """Recompute archived LCSC rotation Evidence without network access."""
+    footprints = {footprint.refdes: footprint for footprint in board.footprints}
+    offsets: dict[str, float] = {}
+    notes: dict[str, str] = {}
+    for component in lane.components:
+        if component.refdes not in fitted:
+            continue
+        path = evidence_dir / f"{component.refdes}.json"
+        if not path.exists():
+            continue
+        document = json.loads(path.read_text(encoding="utf-8"))
+        response = document["response"]
+        canonical = json.dumps(
+            response, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode()
+        expected_hash = f"sha256:{hashlib.sha256(canonical).hexdigest()}"
+        if document.get("response_canonical_sha256") != expected_hash:
+            raise FabOutputError(f"{component.refdes}: LCSC Evidence response hash mismatch")
+        footprint = footprints.get(component.refdes)
+        if footprint is None:
+            raise FabOutputError(f"{component.refdes}: board footprint missing for LCSC Evidence")
+        offset, note = derive_lcsc_rotation_offset(
+            footprint,
+            load_lcsc_pad_centers(path),
+            polarized=component.cpl_rotation_polarized,
+        )
+        offsets[component.refdes] = offset
+        notes[component.refdes] = note
+    return offsets, notes
 
 
 def _footprint_bbox(
@@ -327,6 +457,7 @@ def _parse_pad(
         net=net_value,
         drill_x_mm=drill_x_mm,
         drill_y_mm=drill_y_mm,
+        number=str(values[1]) if len(values) > 1 else None,
     )
 
 

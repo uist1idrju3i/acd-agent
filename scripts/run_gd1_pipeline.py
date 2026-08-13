@@ -40,6 +40,7 @@ from acd_adapter_kicad.fab import (
     parse_routed_board,
     read_drill_measurement,
     run_dfm,
+    verify_lcsc_rotation_evidence,
     verify_smd_pad_centers_in_gerber,
     zip_content_hash,
 )
@@ -204,6 +205,10 @@ def run_pipeline(
         if node.kind == "mechanical.board_edge_overhang"
     }
     cpl_basis_path = fab_dir / "cpl-basis-report.json"
+    lcsc_evidence_dir = Path(__file__).resolve().parents[1] / "evidence/gd1-cpl-orientation"
+    verified_rotation_offsets, rotation_evidence_notes = verify_lcsc_rotation_evidence(
+        lcsc_evidence_dir, measurement, lane, fitted
+    )
     try:
         resolved_pos_rows, cpl_basis_report = apply_cpl_contract(
             pos_rows, measurement, lane, profile, fitted
@@ -252,6 +257,11 @@ def run_pipeline(
         )
         raise
     cpl_path.write_text(jlcpcb_cpl_csv(resolved_pos_rows, fitted), encoding="utf-8")
+    declared_rotation_offsets = cast(dict[str, float], cpl_basis_report["rotation_offsets"])
+    for ref, offset in verified_rotation_offsets.items():
+        if abs(declared_rotation_offsets.get(ref, 0.0) - offset) > 0.01:
+            raise ValueError(f"{ref}: graph CPL rotation offset differs from LCSC Evidence")
+    cpl_basis_report["rotation_evidence"] = rotation_evidence_notes
     cpl_basis_path.write_text(
         json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     )

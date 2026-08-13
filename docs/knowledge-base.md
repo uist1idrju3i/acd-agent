@@ -83,6 +83,12 @@ footprint・差分・出所EvidenceとともにKnowledgeItemへ接続する。�
   はみ出しはグラフで宣言し、生成物の独立実測と照合する。
 - **回転規約は別経路の生成物と突き合わせる。** 非対称footprintの90°/270°を必ずテストし、
   Gerber銅・3Dレンダ・KiCad出力でpad座標を検証する。
+- **fab側ライブラリのパッド配置を照合Evidenceにする。** JLC/EasyEDAライブラリの番号付き
+  パッド配置は、ネットワーク取得を専用スクリプトに限定し、応答JSON、URL、取得時刻、
+  sha256を版管理下のEvidenceとして保存すれば、fab側の期待向きを再現可能に照合できる。
+  0/90/180/270度を番号ごとの最大距離で比較し、一意の場合だけオフセットを確定する。
+  これはメーカーのtape&reel図ではないため、`fab_library_footprint`として限界を明示し、
+  第三者の補正表で補完しない。
 - **SMD pad上viaを構造的に禁止する。** Freerouting DSNの`structure`へ`(via_at_smd off)`を
   出力し、DFMのvia-in-pad検査を緩めず不要な工程リスクとコストを防ぐ。
 

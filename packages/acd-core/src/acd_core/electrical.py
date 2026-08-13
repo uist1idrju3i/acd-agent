@@ -57,6 +57,7 @@ class ComponentView:
     cpl_rotation_evidence_method: str | None = None
     cpl_rotation_evidence_revision: str | None = None
     cpl_rotation_offset_deg: float | None = None
+    cpl_rotation_polarized: bool = True
 
 
 @dataclass(frozen=True)
@@ -184,6 +185,13 @@ def _optional_number(node: GraphNode, key: str) -> float | None:
     return None if value is None else float(value)
 
 
+def _optional_bool(node: GraphNode, key: str, default: bool) -> bool:
+    value = node.attrs.get(key)
+    if value is not None and not isinstance(value, bool):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a boolean")
+    return default if value is None else value
+
+
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
     components: list[ComponentView] = []
     nets: list[NetView] = []
@@ -248,6 +256,7 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                         node, "cpl_rotation_evidence_revision"
                     ),
                     cpl_rotation_offset_deg=_optional_number(node, "cpl_rotation_offset_deg"),
+                    cpl_rotation_polarized=_optional_bool(node, "cpl_rotation_polarized", True),
                 )
             )
             if components[-1].assembly not in {"fitted", "not_fitted"}:
