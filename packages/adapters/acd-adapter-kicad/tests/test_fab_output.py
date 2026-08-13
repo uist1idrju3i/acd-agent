@@ -64,14 +64,38 @@ def _bom_lane(*components: ComponentView) -> ElectricalLane:
     return ElectricalLane(tuple(components), (), (), library)
 
 
-def _golden_component(refdes: str) -> ComponentView:
+def _golden_component(refdes: str, symbol_dir: Path) -> ComponentView:
     graph = DesignGraph.model_validate(
         json.loads(
             (ROOT / "fixtures/golden-design-1/graph.json").read_text(encoding="utf-8")
         )
     )
     lane = extract_electrical_lane(graph)
-    return next(component for component in lane.components if component.refdes == refdes)
+    component = next(component for component in lane.components if component.refdes == refdes)
+    symbol_name = component.library.symbol.split(":", 1)[1]
+    pins = [
+        f'      (pin passive line (at 0 0 0) (length 2.54) (name "{function}") '
+        f'(number "{number}"))'
+        for number, function in component.cpl_rotation_pin_functions.items()
+        if number not in component.cpl_rotation_unverified_pads
+    ]
+    symbol_path = symbol_dir / f"{refdes}.kicad_sym"
+    symbol_path.write_text(
+        "(kicad_symbol_lib (version 20231120) (generator kicad_symbol_editor) "
+        f'(symbol "{symbol_name}" (symbol "{symbol_name}_0_1" '
+        + " ".join(pins)
+        + ")))\n",
+        encoding="utf-8",
+    )
+    symbol_hash = "sha256:" + hashlib.sha256(symbol_path.read_bytes()).hexdigest()
+    return replace(
+        component,
+        library=replace(
+            component.library,
+            symbol_file=str(symbol_path),
+            symbol_sha256=symbol_hash,
+        ),
+    )
 
 
 def _bom_component(
@@ -297,15 +321,15 @@ def test_geometry_exception_rejects_symmetric_geometry() -> None:
 
 
 @pytest.mark.parametrize("refdes", ["D1", "U2", "J1"])
-def test_cpl_pin_functions_match_pinned_kicad_symbols(refdes: str) -> None:
+def test_cpl_pin_functions_match_pinned_kicad_symbols(refdes: str, tmp_path: Path) -> None:
     note = verify_cpl_pin_function_declaration(
-        _golden_component(refdes), ROOT / "fixtures/golden-design-1"
+        _golden_component(refdes, tmp_path), ROOT / "fixtures/golden-design-1"
     )
     assert "symbol-verified" in note
 
 
-def test_cpl_pin_function_declaration_mismatch_fails_closed() -> None:
-    component = _golden_component("D1")
+def test_cpl_pin_function_declaration_mismatch_fails_closed(tmp_path: Path) -> None:
+    component = _golden_component("D1", tmp_path)
     with pytest.raises(FabOutputError, match="CPL pin function mismatch"):
         verify_cpl_pin_function_declaration(
             replace(
