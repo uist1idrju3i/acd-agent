@@ -184,6 +184,15 @@ def run_pipeline(
                 stitch_vias,
                 routes,
             )
+            iteration_measurements.append(
+                {
+                    "iteration": iteration,
+                    "via_count": len(stitch_vias),
+                    "uncovered_count": 0,
+                    "uncovered_vias": [],
+                }
+            )
+            print(f"[stitch-prune {iteration}] vias={len(stitch_vias)} uncovered=0")
             converged_iteration = iteration
             break
         except FabOutputError as exc:
