@@ -13,7 +13,7 @@ from acd_adapter_kicad.routing import (
     inject_routes,
     inject_stitch_vias,
 )
-from acd_core.board_model import BoardModel, RoutedDesign, RoutedVia, RoutedWire
+from acd_core.board_model import BoardModel, BoardNet, RoutedDesign, RoutedVia, RoutedWire
 from acd_core.electrical import BoardView
 
 _BOARD = '(kicad_pcb (version 20240108) (net 0 "") (net 1 "GND")\n)\n'
@@ -87,7 +87,11 @@ def test_filled_plane_verifier_rejects_missing_gerber(tmp_path: Path) -> None:
     )
     with pytest.raises(FabOutputError, match="copper Gerber parse failed"):
         verify_ground_plane_gerbers(
-            tmp_path / "missing-f.gbr", tmp_path / "missing-b.gbr", model, ((1.0, 1.0),)
+            tmp_path / "missing-f.gbr",
+            tmp_path / "missing-b.gbr",
+            model,
+            ((1.0, 1.0),),
+            RoutedDesign((), ()),
         )
 
 
@@ -107,7 +111,7 @@ def test_gerber_region_without_aperture_function_fails_closed(tmp_path: Path) ->
         (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
     )
     with pytest.raises(FabOutputError, match="unknown region AperFunction"):
-        verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),))
+        verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),), RoutedDesign((), ()))
 
 
 def test_small_zone_region_fails_but_pad_region_is_excluded(tmp_path: Path) -> None:
@@ -119,13 +123,14 @@ def test_small_zone_region_fails_but_pad_region_is_excluded(tmp_path: Path) -> N
     front.write_text(_gerber_region("Conductor", side=0.5))
     back.write_text(_gerber_region("Conductor", side=10.0))
     model = BoardModel(
-        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), (
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0,
+        (), (BoardNet("GND", ()),), (
             KeepoutRect("antenna", 18.0, 10.0, 19.0, 11.0),
         ),
         (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
     )
     with pytest.raises(FabOutputError, match="copper island"):
-        verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),))
+        verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),), RoutedDesign((), ()))
 
 
 def _gerber_region(function: str, side: float = 0.5) -> str:

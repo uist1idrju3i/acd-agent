@@ -216,6 +216,7 @@ def run_pipeline(
         gerber_paths[GERBER_LAYERS.index("B.Cu")],
         project.board_projection.model,
         stitch_vias,
+        routes,
     )
     edge_overhang_declarations = {
         str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))

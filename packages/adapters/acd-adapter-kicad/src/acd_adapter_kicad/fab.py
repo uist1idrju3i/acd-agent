@@ -26,7 +26,8 @@ from gerbonara.graphic_objects import Flash, Line, Region  # pyright: ignore[rep
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
 from acd_adapter_kicad.library import SymbolLibrary
-from acd_core.board_model import BoardModel
+from acd_adapter_kicad.placement import rotate_point
+from acd_core.board_model import BoardModel, RoutedDesign
 from acd_core.bom import refdes_key
 from acd_core.electrical import ComponentView, ElectricalLane
 from acd_core.fab import (
@@ -759,6 +760,7 @@ def verify_ground_plane_gerbers(
     back_path: Path,
     model: BoardModel,
     stitch_vias: Sequence[tuple[float, float]],
+    routes: RoutedDesign,
 ) -> dict[str, object]:
     """Measure filled copper independently from both plane Gerbers."""
     if not model.copper_zones:
@@ -975,6 +977,33 @@ def verify_ground_plane_gerbers(
     ]
     if not conductor_records:
         raise FabOutputError("zone fill regions are absent (fail-closed)")
+    gnd_net = next(
+        (net for net in model.nets if net.name == "GND"),
+        None,
+    )
+    if gnd_net is None:
+        raise FabOutputError("GND net declaration is absent (fail-closed)")
+    gnd_pads: list[tuple[str, float, float]] = []
+    for placement in model.placements:
+        for refdes, pad_number in gnd_net.pads:
+            if refdes != placement.refdes:
+                continue
+            for pad in placement.footprint.pads:
+                if pad.number != pad_number:
+                    continue
+                x, y = rotate_point(pad.x_mm, pad.y_mm, placement.rotation_deg)
+                layers = ("F.Cu", "B.Cu") if pad.through_hole else ("F.Cu",)
+                gnd_pads.extend((layer, placement.x_mm + x, placement.y_mm + y) for layer in layers)
+    gnd_points = [
+        *[
+            (layer, via.x_mm, via.y_mm)
+            for via in routes.vias
+            if via.net == "GND"
+            for layer in ("F.Cu", "B.Cu")
+        ],
+        *[(layer, x, y) for layer, x, y in gnd_pads],
+        *[(layer, x, y) for x, y in stitch_vias for layer in ("F.Cu", "B.Cu")],
+    ]
     inset = model.edge_clearance_mm
     for _, region in conductor_records:
         x1, y1, x2, y2 = region.bbox_mm
@@ -1016,10 +1045,11 @@ def verify_ground_plane_gerbers(
             ):
                 raise FabOutputError("copper inside antenna keepout (fail-closed)")
 
-    for x, y in stitch_vias:
+    for layer, x, y in gnd_points:
         if not any(
-            point_in_polygon((x, y), region.points_mm)
-            for _, region in conductor_records
+            ("F.Cu" if path == front_path else "B.Cu") == layer
+            and point_in_polygon((x, y), region.points_mm)
+            for path, region in conductor_records
         ):
             raise FabOutputError(f"stitch via at ({x}, {y}) lacks copper coverage (fail-closed)")
 
@@ -1036,25 +1066,31 @@ def verify_ground_plane_gerbers(
         if left != right:
             parent[right] = left
 
-    for first, (_, first_region) in enumerate(conductor_records):
-        first_box = first_region.bbox_mm
-        for second in range(first):
-            second_box = conductor_records[second][1].bbox_mm
-            if not (
-                first_box[2] < second_box[0]
-                or second_box[2] < first_box[0]
-                or first_box[3] < second_box[1]
-                or second_box[3] < first_box[1]
-            ):
-                union(first, second)
-    for x, y in stitch_vias:
+    for layer, x, y in gnd_points:
         covered = [
             index
-            for index, (_, region) in enumerate(conductor_records)
-            if point_in_polygon((x, y), region.points_mm)
+            for index, (path, region) in enumerate(conductor_records)
+            if ("F.Cu" if path == front_path else "B.Cu") == layer
+            and point_in_polygon((x, y), region.points_mm)
         ]
-        for index in covered[1:]:
-            union(covered[0], index)
+        if not covered:
+            continue
+        other_layer = [
+            index
+            for index, (path, region) in enumerate(conductor_records)
+            if ("F.Cu" if path == front_path else "B.Cu") != layer
+            and point_in_polygon((x, y), region.points_mm)
+        ]
+        for first in covered:
+            for second in other_layer:
+                union(first, second)
+    for _index, (path, region) in enumerate(conductor_records):
+        layer = "F.Cu" if path == front_path else "B.Cu"
+        if not any(
+            point_layer == layer and point_in_polygon((x, y), region.points_mm)
+            for point_layer, x, y in gnd_points
+        ):
+            raise FabOutputError("Conductor region lacks a GND connection point (fail-closed)")
     components = len({find(index) for index in range(len(conductor_records))})
     return {
         "front_regions": sum(path == front_path for path, _ in conductor_records),

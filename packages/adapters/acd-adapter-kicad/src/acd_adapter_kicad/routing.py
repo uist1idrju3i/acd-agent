@@ -78,14 +78,27 @@ def inject_stitch_vias(
     radius = via_diameter_mm / 2.0
     clearance = model.min_clearance_mm
     candidates: list[tuple[float, float]] = []
+    def add_candidate(point: tuple[float, float]) -> None:
+        if point not in candidates:
+            candidates.append(point)
+
     x = inset + radius + pitch_mm
     while x <= model.width_mm - inset - radius + 1e-9:
-        candidates.extend(((x, inset + radius), (x, model.height_mm - inset - radius)))
+        add_candidate((x, inset + radius))
+        add_candidate((x, model.height_mm - inset - radius))
         x += pitch_mm
     y = inset + radius + pitch_mm
     while y <= model.height_mm - inset - radius - pitch_mm + 1e-9:
-        candidates.extend(((inset + radius, y), (model.width_mm - inset - radius, y)))
+        add_candidate((inset + radius, y))
+        add_candidate((model.width_mm - inset - radius, y))
         y += pitch_mm
+    x = inset + radius + pitch_mm
+    while x <= model.width_mm - inset - radius + 1e-9:
+        y = inset + radius + pitch_mm
+        while y <= model.height_mm - inset - radius + 1e-9:
+            add_candidate((x, y))
+            y += pitch_mm
+        x += pitch_mm
 
     def distance_to_segment(
         point: tuple[float, float],
@@ -108,6 +121,23 @@ def inject_stitch_vias(
             ):
                 return True
         for placement in model.placements:
+            for footprint_box in (
+                placement.footprint.courtyard_bbox_mm,
+                placement.footprint.body_bbox_mm,
+            ):
+                if footprint_box is None:
+                    continue
+                x1, y1, x2, y2 = footprint_box
+                corners = [
+                    rotate_point(x, y, placement.rotation_deg)
+                    for x, y in ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
+                ]
+                xs, ys = zip(*corners, strict=True)
+                if (
+                    min(xs) - radius - clearance <= point[0] <= max(xs) + radius + clearance
+                    and min(ys) - radius - clearance <= point[1] <= max(ys) + radius + clearance
+                ):
+                    return True
             for x1, y1, x2, y2 in placement.footprint.keepout_bboxes_mm:
                 corners = [
                     tuple(
@@ -127,9 +157,21 @@ def inject_stitch_vias(
                 px, py = rotate_point(pad.x_mm, pad.y_mm, placement.rotation_deg)
                 px += placement.x_mm
                 py += placement.y_mm
-                if math.hypot(point[0] - px, point[1] - py) <= (
-                    max(pad.size_x_mm, pad.size_y_mm) / 2.0 + radius + clearance
-                ):
+                pad_angle = placement.rotation_deg + pad.rotation_deg
+                corners = [
+                    rotate_point(
+                        sx * pad.size_x_mm / 2.0,
+                        sy * pad.size_y_mm / 2.0,
+                        pad_angle,
+                    )
+                    for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))
+                ]
+                xs, ys = zip(*corners, strict=True)
+                left, right = px + min(xs), px + max(xs)
+                top, bottom = py + min(ys), py + max(ys)
+                dx = max(left - point[0], 0.0, point[0] - right)
+                dy = max(top - point[1], 0.0, point[1] - bottom)
+                if math.hypot(dx, dy) <= radius + clearance:
                     return True
         for wire in routes.wires:
             for start, end in zip(wire.points, wire.points[1:], strict=False):
@@ -143,7 +185,18 @@ def inject_stitch_vias(
                 return True
         return False
 
-    selected = tuple(point for point in candidates if not occupied(point))
+    selected_points: list[tuple[float, float]] = []
+    for point in candidates:
+        if occupied(point):
+            continue
+        if any(
+            math.hypot(point[0] - other[0], point[1] - other[1])
+            <= via_diameter_mm + clearance
+            for other in selected_points
+        ):
+            continue
+        selected_points.append(point)
+    selected = tuple(selected_points)
     lines = [
         f'  (via (at {fmt(x)} {fmt(y)}) (size {fmt(via_diameter_mm)}) '
         f'(drill {fmt(via_drill_mm)}) (layers "F.Cu" "B.Cu") '
