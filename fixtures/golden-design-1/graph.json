@@ -1099,7 +1099,10 @@
           "2=EH",
           "3=EH",
           "4=EH"
-        ]
+        ],
+        "cpl_rotation_geometry_exception": true,
+        "cpl_rotation_geometry_exception_reason": "USB Type-Cレセプタクルは嵌合口の向きが機構的に決まり、パッド配置がy方向に非対称なため回転が幾何的に一意である。CC1/CC2およびVBUS/GNDは仕様上対称で、CC両側5.1kとD+/D-のA/B短絡を含む本設計の電気的機能に左右反転相当の命名差が影響しない。",
+        "cpl_rotation_geometry_exception_source": "実測: LCSC SMD y=-2.474 mm、shield y=-1.706/+2.474 mm、KiCad SMD y=-4.045 mm、shield y=-3.13/+1.05 mm、shield間隔4.18 mm一致。出所: USB Type-C仕様、KiCad USB_C_Receptacle_HRO_TYPE-C-31-M-12、LCSC C165948 Evidence。"
       },
       "depends_on": [],
       "id": "comp.j1",

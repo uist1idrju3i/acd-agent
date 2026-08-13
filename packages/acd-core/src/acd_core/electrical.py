@@ -58,6 +58,9 @@ class ComponentView:
     cpl_rotation_evidence_revision: str | None = None
     cpl_rotation_offset_deg: float | None = None
     cpl_rotation_polarized: bool = True
+    cpl_rotation_geometry_exception: bool = False
+    cpl_rotation_geometry_exception_reason: str | None = None
+    cpl_rotation_geometry_exception_source: str | None = None
     cpl_rotation_pin_functions: dict[str, str] = field(
         default_factory=lambda: dict[str, str]()
     )
@@ -278,6 +281,15 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ),
                     cpl_rotation_offset_deg=_optional_number(node, "cpl_rotation_offset_deg"),
                     cpl_rotation_polarized=_optional_bool(node, "cpl_rotation_polarized", True),
+                    cpl_rotation_geometry_exception=_optional_bool(
+                        node, "cpl_rotation_geometry_exception", False
+                    ),
+                    cpl_rotation_geometry_exception_reason=_optional_str(
+                        node, "cpl_rotation_geometry_exception_reason"
+                    ),
+                    cpl_rotation_geometry_exception_source=_optional_str(
+                        node, "cpl_rotation_geometry_exception_source"
+                    ),
                     cpl_rotation_pin_functions=_optional_string_map(
                         node, "cpl_rotation_pin_functions"
                     ),

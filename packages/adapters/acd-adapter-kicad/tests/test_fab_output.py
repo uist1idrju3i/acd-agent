@@ -22,6 +22,7 @@ from acd_adapter_kicad.fab import (
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
     load_lcsc_pin_centers,
+    load_lcsc_pin_geometries,
     rotate,
     run_dfm,
 )
@@ -201,6 +202,80 @@ def test_real_u2_evidence_derives_180_degree_offset() -> None:
         tolerance_mm=0.3,
     )
     assert offset == 180.0
+
+
+def test_real_j1_evidence_derives_zero_degree_geometry_exception() -> None:
+    geometries = load_lcsc_pin_geometries(ROOT / "evidence/gd1-cpl-orientation/J1.json")
+    center_x = sum(item[2] for item in geometries) / len(geometries)
+    center_y = sum(item[3] for item in geometries) / len(geometries)
+    footprint = FootprintMeasurement(
+        "J1",
+        0.0,
+        0.0,
+        0.0,
+        "top",
+        tuple(
+            PadMeasurement(
+                "J1",
+                "smd",
+                x * 0.254 - center_x * 0.254,
+                y * 0.254 - center_y * 0.254,
+                0.0,
+                width * 0.254,
+                height * 0.254,
+                None,
+                None,
+                number=str(index),
+            )
+            for index, (_, _, x, y, width, height) in enumerate(geometries)
+        ),
+    )
+    offset, note = derive_lcsc_rotation_offset(
+        footprint,
+        load_lcsc_pin_centers(ROOT / "evidence/gd1-cpl-orientation/J1.json"),
+        lcsc_pin_geometries=geometries,
+        geometry_exception=True,
+        tolerance_mm=0.01,
+    )
+    assert offset == 0.0
+    assert "declared-geometry-exception" in note
+
+
+def test_geometry_exception_requires_provenance_at_verification_boundary() -> None:
+    footprint = FootprintMeasurement("J1", 0.0, 0.0, 0.0, "top", ())
+    with pytest.raises(FabOutputError, match="KiCad pin functions are required"):
+        derive_lcsc_rotation_offset(
+            footprint,
+            (),
+            geometry_exception=False,
+        )
+
+
+def test_geometry_exception_rejects_symmetric_geometry() -> None:
+    footprint = FootprintMeasurement(
+        "J1",
+        0.0,
+        0.0,
+        0.0,
+        "top",
+        (
+            PadMeasurement("J1", "smd", -1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="1"),
+            PadMeasurement("J1", "smd", 1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
+        ),
+    )
+    with pytest.raises(FabOutputError, match="ambiguous geometry"):
+        derive_lcsc_rotation_offset(
+            footprint,
+            (("1", "X", -1.0, 0.0), ("2", "X", 1.0, 0.0)),
+            lcsc_pin_geometries=(
+                ("1", "X", -1.0 / 0.254, 0.0, 1.0 / 0.254, 1.0 / 0.254),
+                ("2", "X", 1.0 / 0.254, 0.0, 1.0 / 0.254, 1.0 / 0.254),
+            ),
+            geometry_exception=True,
+            polarized=False,
+            tolerance_mm=0.01,
+            scale=0.254,
+        )
 
 
 def _cpl_profile(*, position_basis: str = "footprint_origin") -> FabProfile:

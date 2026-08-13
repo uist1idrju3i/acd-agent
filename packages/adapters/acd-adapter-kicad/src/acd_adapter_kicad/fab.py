@@ -112,6 +112,11 @@ class BoardMeasurement:
         return tuple(pad for fp in self.footprints for pad in fp.pads)
 
 
+PAD_SIZE_TOLERANCE_MM = 0.3
+# Combined fab-library lands can represent multiple KiCad pads in one outline.
+PAD_SIZE_MERGE_RATIO = 5.0
+
+
 def _items(node: object) -> list[object]:
     return cast("list[object]", node) if isinstance(node, list) else []
 
@@ -193,7 +198,7 @@ def _minimum_matching_error(
                     return True
             return False
 
-        if all(visit(index, set()) for index in range(len(actual))):
+        if all(visit(index, set()) for index in range(len(expected))):
             return threshold
     raise FabOutputError("pin-function matching has no perfect assignment")
 
@@ -209,12 +214,79 @@ def _normalize_pin_function(name: str, aliases: Mapping[str, str]) -> str:
     return normalized_aliases.get(normalized, normalized)
 
 
+def _minimum_matching_geometry_error(
+    actual: Sequence[tuple[tuple[float, float], tuple[float, float]]],
+    expected: Sequence[tuple[tuple[float, float], tuple[float, float]]],
+    tolerance_mm: float,
+) -> float:
+    distances = sorted(
+        {
+            math.dist(left[0], right[0])
+            for left in actual
+            for right in expected
+        }
+    )
+    for threshold in distances:
+        matched: dict[int, int] = {}
+
+        def visit(
+            expected_index: int,
+            seen: set[int],
+            limit: float = threshold,
+            assignments: dict[int, int] = matched,
+        ) -> bool:
+            for candidate, point in enumerate(actual):
+                if candidate in seen:
+                    continue
+                actual_size = point[1]
+                expected_size = expected[expected_index][1]
+                size_compatible = (
+                    abs(actual_size[0] - expected_size[0]) <= tolerance_mm
+                    and abs(actual_size[1] - expected_size[1]) <= tolerance_mm
+                )
+                if not size_compatible:
+                    size_compatible = (
+                        all(value > 0 for value in actual_size + expected_size)
+                        and max(
+                            expected_size[0] / actual_size[0],
+                            expected_size[1] / actual_size[1],
+                        )
+                        <= PAD_SIZE_MERGE_RATIO
+                    )
+                if not size_compatible:
+                    continue
+                if math.dist(point[0], expected[expected_index][0]) > limit:
+                    continue
+                seen.add(candidate)
+                previous = assignments.get(candidate)
+                if previous is None or visit(previous, seen):
+                    assignments[candidate] = expected_index
+                    return True
+            return False
+
+        if all(visit(index, set()) for index in range(len(expected))):
+            return threshold
+    raise FabOutputError("geometry matching has no compatible perfect assignment")
+
+
 def _parse_lcsc_pad_shape(shape: str) -> tuple[str, float, float] | None:
     fields = shape.split("~")
     if len(fields) < 9 or fields[0] != "PAD":
         return None
     try:
         return fields[8], float(fields[2]), float(fields[3])
+    except ValueError:
+        return None
+
+
+def _parse_lcsc_pad_geometry(
+    shape: str,
+) -> tuple[str, float, float, float, float] | None:
+    fields = shape.split("~")
+    if len(fields) < 9 or fields[0] != "PAD":
+        return None
+    try:
+        return fields[8], float(fields[2]), float(fields[3]), float(fields[4]), float(fields[5])
     except ValueError:
         return None
 
@@ -259,6 +331,34 @@ def load_lcsc_pin_centers(path: Path) -> tuple[tuple[str, str, float, float], ..
     return parsed
 
 
+def load_lcsc_pin_geometries(
+    path: Path,
+) -> tuple[tuple[str, str, float, float, float, float], ...]:
+    """Read pin functions and pad geometry from an archived EasyEDA response."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+    package_shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
+    pad_geometries = [_parse_lcsc_pad_geometry(str(shape)) for shape in package_shapes]
+    pads = {
+        number: (x, y, width, height)
+        for item in pad_geometries
+        if item is not None
+        for number, x, y, width, height in [item]
+    }
+    pin_shapes = package_shapes
+    if not any(str(shape).startswith("P~") for shape in pin_shapes):
+        pin_shapes = document["response"]["result"]["dataStr"]["shape"]
+    parsed = tuple(
+        (number, function, *pads[number])
+        for item in [_parse_lcsc_pin_shape(str(shape)) for shape in pin_shapes]
+        if item is not None
+        for number, function, _, _ in [item]
+        if number in pads
+    )
+    if not parsed:
+        raise FabOutputError(f"{path}: archived LCSC response has no pin-function geometry")
+    return parsed
+
+
 def derive_lcsc_rotation_offset(
     footprint: FootprintMeasurement,
     lcsc_pin_centers: Sequence[tuple[str, str, float, float]],
@@ -267,10 +367,12 @@ def derive_lcsc_rotation_offset(
     tolerance_mm: float = 0.3,
     scale: float = 0.254,
     polarized: bool = True,
+    lcsc_pin_geometries: Sequence[tuple[str, str, float, float, float, float]] | None = None,
+    geometry_exception: bool = False,
 ) -> tuple[float, str]:
     """Derive a unique quarter-turn offset from pin-function geometry."""
     aliases = pin_name_aliases or {}
-    if polarized and not kicad_pin_functions:
+    if polarized and not kicad_pin_functions and not geometry_exception:
         raise FabOutputError(f"{footprint.refdes}: KiCad pin functions are required")
     all_kicad = [
         _inverse_rotate(
@@ -281,6 +383,65 @@ def derive_lcsc_rotation_offset(
         for pad in footprint.pads
         if pad.number is not None
     ]
+    if geometry_exception:
+        if lcsc_pin_geometries is None:
+            raise FabOutputError(
+                f"{footprint.refdes}: geometry exception requires LCSC pad sizes"
+            )
+        if len(all_kicad) < len(lcsc_pin_geometries):
+            raise FabOutputError(
+                f"{footprint.refdes}: geometry pad count mismatch: "
+                f"KiCad={len(all_kicad)} LCSC={len(lcsc_pin_geometries)}"
+            )
+        kicad_center = (
+            sum(x for x, _ in all_kicad) / len(all_kicad),
+            sum(y for _, y in all_kicad) / len(all_kicad),
+        )
+        lcsc_values = [(x * scale, y * scale) for _, _, x, y, _, _ in lcsc_pin_geometries]
+        lcsc_center = (
+            sum(x for x, _ in lcsc_values) / len(lcsc_values),
+            sum(y for _, y in lcsc_values) / len(lcsc_values),
+        )
+        candidates: list[tuple[float, float]] = []
+        for angle in (0.0, 90.0, 180.0, 270.0):
+            quarter_turn = int(angle) % 180 == 90
+            actual = [
+                (
+                    rotate(x - kicad_center[0], y - kicad_center[1], angle),
+                    (pad.size_y_mm, pad.size_x_mm)
+                    if quarter_turn
+                    else (pad.size_x_mm, pad.size_y_mm),
+                )
+                for pad, (x, y) in zip(footprint.pads, all_kicad, strict=True)
+            ]
+            expected = [
+                (
+                    (x * scale - lcsc_center[0], y * scale - lcsc_center[1]),
+                    (width * scale, height * scale),
+                )
+                for _, _, x, y, width, height in lcsc_pin_geometries
+            ]
+            try:
+                error = _minimum_matching_geometry_error(
+                    actual, expected, PAD_SIZE_TOLERANCE_MM
+                )
+            except FabOutputError:
+                continue
+            if error <= tolerance_mm:
+                candidates.append((angle, error))
+        if len(candidates) == 1:
+            return candidates[0][0], (
+                "unique; basis=declared-geometry-exception; "
+                f"max_error_mm={candidates[0][1]:.6f}; "
+                f"pad_size_tolerance_mm={PAD_SIZE_TOLERANCE_MM:.3f}"
+            )
+        if not candidates:
+            raise FabOutputError(
+                f"{footprint.refdes}: no geometry rotation candidate within tolerance"
+            )
+        raise FabOutputError(
+            f"{footprint.refdes}: ambiguous geometry rotation candidates: {candidates}"
+        )
     kicad: dict[str, list[tuple[float, float]]] = defaultdict(list)
     lcsc: dict[str, list[tuple[float, float]]] = defaultdict(list)
     if kicad_pin_functions:
@@ -388,12 +549,24 @@ def verify_lcsc_rotation_evidence(
         if footprint is None:
             raise FabOutputError(f"{component.refdes}: board footprint missing for LCSC Evidence")
         try:
+            geometry_exception = component.cpl_rotation_geometry_exception
+            if geometry_exception and (
+                not component.cpl_rotation_geometry_exception_reason
+                or not component.cpl_rotation_geometry_exception_source
+            ):
+                raise FabOutputError(
+                    f"{component.refdes}: geometry exception provenance is required"
+                )
             offset, note = derive_lcsc_rotation_offset(
                 footprint,
                 load_lcsc_pin_centers(path),
                 component.cpl_rotation_pin_functions,
                 component.cpl_rotation_pin_aliases,
                 polarized=component.cpl_rotation_polarized,
+                lcsc_pin_geometries=(
+                    load_lcsc_pin_geometries(path) if geometry_exception else None
+                ),
+                geometry_exception=geometry_exception,
             )
         except FabOutputError as exc:
             unknowns.append(component.refdes)
