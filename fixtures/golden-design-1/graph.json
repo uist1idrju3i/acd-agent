@@ -1401,7 +1401,7 @@
         "cpl_rotation_evidence_at": "2026-08-13T16:41:33Z",
         "cpl_rotation_evidence_method": "fab_library_footprint",
         "cpl_rotation_evidence_revision": "r1",
-        "cpl_rotation_evidence_note": "JLC/EasyEDA部品ライブラリのピン機能付きパッド配置をKiCad側のピン機能へ対応付け、番号ではなく機能ごとの配置を照合して導出。メーカーtape&reel図そのものではなく、JLC側ライブラリ由来の再現可能な照合Evidenceである。",
+        "cpl_rotation_evidence_note": "JLC/EasyEDA部品ライブラリのピン機能付きパッド配置をKiCad側のピン機能へ対応付け、番号ではなく機能ごとの配置を照合して導出。メーカーtape&reel図そのものではなく、JLC側ライブラリ由来の再現可能な照合Evidenceである。 2026-08-13、対象revision r1の最新CPLを使い、fab側PCBAプレビューを人が目視確認した。ビューワのpin1マーカーが左下、3本足が下側、tabが上側となり、実測rotation 90°、pin1=GND (1.85, 17.85)、tab=3V3側 y=11.55と一致した。",
         "cpl_rotation_offset_deg": 180,
         "cpl_rotation_polarized": true,
         "cpl_rotation_pin_functions": [
