@@ -7,7 +7,9 @@ import hashlib
 import io
 import json
 import math
+import re
 import zipfile
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -164,6 +166,49 @@ def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     return rotate(x, y, -angle)
 
 
+def _minimum_matching_error(
+    actual: Sequence[tuple[float, float]], expected: Sequence[tuple[float, float]]
+) -> float:
+    distances = sorted(
+        {math.dist(left, right) for left in actual for right in expected}
+    )
+    for threshold in distances:
+        matched: dict[int, int] = {}
+
+        def visit(
+            index: int,
+            seen: set[int],
+            limit: float = threshold,
+            assignments: dict[int, int] = matched,
+        ) -> bool:
+            for candidate, distance in enumerate(
+                math.dist(actual[index], point) for point in expected
+            ):
+                if distance > limit or candidate in seen:
+                    continue
+                seen.add(candidate)
+                previous = assignments.get(candidate)
+                if previous is None or visit(previous, seen):
+                    assignments[candidate] = index
+                    return True
+            return False
+
+        if all(visit(index, set()) for index in range(len(actual))):
+            return threshold
+    raise FabOutputError("pin-function matching has no perfect assignment")
+
+
+def _normalize_pin_function(name: str, aliases: Mapping[str, str]) -> str:
+    normalized = re.sub(r"[^A-Z0-9+_-]", "", name.upper())
+    normalized_aliases = {
+        re.sub(r"[^A-Z0-9+_-]", "", source.upper()): re.sub(
+            r"[^A-Z0-9+_-]", "", target.upper()
+        )
+        for source, target in aliases.items()
+    }
+    return normalized_aliases.get(normalized, normalized)
+
+
 def _parse_lcsc_pad_shape(shape: str) -> tuple[str, float, float] | None:
     fields = shape.split("~")
     if len(fields) < 9 or fields[0] != "PAD":
@@ -174,43 +219,59 @@ def _parse_lcsc_pad_shape(shape: str) -> tuple[str, float, float] | None:
         return None
 
 
-def load_lcsc_pad_centers(path: Path) -> dict[str, tuple[float, float]]:
-    """Read numbered pad centers from an archived EasyEDA package response."""
+def _parse_lcsc_pin_shape(shape: str) -> tuple[str, str, float, float] | None:
+    fields = shape.split("~")
+    if len(fields) < 6 or fields[0] != "P":
+        return None
+    pin_name_match = re.search(r"~([^~]+)~(?:start|end)~", shape)
+    if pin_name_match is None:
+        return None
+    try:
+        return fields[3], pin_name_match.group(1), float(fields[4]), float(fields[5])
+    except ValueError:
+        return None
+
+
+def load_lcsc_pin_centers(path: Path) -> tuple[tuple[str, str, float, float], ...]:
+    """Read pin-function pad centers from an archived EasyEDA package response."""
     document = json.loads(path.read_text(encoding="utf-8"))
-    shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
-    pads = [_parse_lcsc_pad_shape(str(shape)) for shape in shapes]
-    parsed = {number: (x, y) for item in pads if item is not None for number, x, y in [item]}
+    package_shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
+    pad_shapes = [_parse_lcsc_pad_shape(str(shape)) for shape in package_shapes]
+    pad_centers = {
+        number: (x, y)
+        for item in pad_shapes
+        if item is not None
+        for number, x, y in [item]
+    }
+    pin_shapes = package_shapes
+    if not any(str(shape).startswith("P~") for shape in pin_shapes):
+        pin_shapes = document["response"]["result"]["dataStr"]["shape"]
+    pins = [_parse_lcsc_pin_shape(str(shape)) for shape in pin_shapes]
+    parsed = tuple(
+        (number, function, pad_centers[number][0], pad_centers[number][1])
+        for item in pins
+        if item is not None
+        for number, function, _, _ in [item]
+        if number in pad_centers
+    )
     if not parsed:
-        raise FabOutputError(f"{path}: archived LCSC response has no numbered pads")
+        raise FabOutputError(f"{path}: archived LCSC response has no pin-function pads")
     return parsed
 
 
 def derive_lcsc_rotation_offset(
     footprint: FootprintMeasurement,
-    lcsc_pad_centers: Mapping[str, tuple[float, float]],
-    tolerance_mm: float = 0.1,
+    lcsc_pin_centers: Sequence[tuple[str, str, float, float]],
+    kicad_pin_functions: Mapping[str, str] | None = None,
+    pin_name_aliases: Mapping[str, str] | None = None,
+    tolerance_mm: float = 0.3,
     scale: float = 0.254,
     polarized: bool = True,
 ) -> tuple[float, str]:
-    """Derive a unique quarter-turn offset from numbered pad geometry."""
-    grouped: dict[str, list[tuple[float, float]]] = {}
-    for pad in footprint.pads:
-        if pad.number is not None and pad.number in lcsc_pad_centers:
-            grouped.setdefault(pad.number, []).append(
-                _inverse_rotate(
-                    pad.x_mm - footprint.x_mm,
-                    pad.y_mm - footprint.y_mm,
-                    footprint.rotation_deg,
-                )
-            )
-    representatives = {
-        number: points[0] for number, points in grouped.items() if len(points) == 1
-    }
-    common = set(representatives) & set(lcsc_pad_centers)
-    if len(common) < 2:
-        missing = sorted(set(lcsc_pad_centers) - common)
-        raise FabOutputError(f"{footprint.refdes}: LCSC/KiCad pad number mismatch: {missing}")
-    kicad = representatives
+    """Derive a unique quarter-turn offset from pin-function geometry."""
+    aliases = pin_name_aliases or {}
+    if polarized and not kicad_pin_functions:
+        raise FabOutputError(f"{footprint.refdes}: KiCad pin functions are required")
     all_kicad = [
         _inverse_rotate(
             pad.x_mm - footprint.x_mm,
@@ -220,36 +281,79 @@ def derive_lcsc_rotation_offset(
         for pad in footprint.pads
         if pad.number is not None
     ]
+    kicad: dict[str, list[tuple[float, float]]] = defaultdict(list)
+    lcsc: dict[str, list[tuple[float, float]]] = defaultdict(list)
+    if kicad_pin_functions:
+        for pad in footprint.pads:
+            if pad.number is not None and pad.number in kicad_pin_functions:
+                function = _normalize_pin_function(kicad_pin_functions[pad.number], aliases)
+                kicad[function].append(
+                    _inverse_rotate(
+                        pad.x_mm - footprint.x_mm,
+                        pad.y_mm - footprint.y_mm,
+                        footprint.rotation_deg,
+                    )
+                )
+        raw_lcsc: dict[str, list[tuple[str, float, float]]] = defaultdict(list)
+        for number, function, x, y in lcsc_pin_centers:
+            raw_lcsc[_normalize_pin_function(function, aliases)].append(
+                (number, x * scale, y * scale)
+            )
+        for function, target in kicad.items():
+            selected = [
+                (point[0], point[1])
+                for number, *point in raw_lcsc[function]
+                if number in kicad_pin_functions
+            ]
+            if len(selected) < len(target):
+                selected.extend(
+                    (point[0], point[1])
+                    for number, *point in raw_lcsc[function]
+                    if number not in kicad_pin_functions
+                )
+            lcsc[function] = selected[: len(target)]
+        if {key: len(value) for key, value in kicad.items()} != {
+            key: len(value) for key, value in lcsc.items()
+        }:
+            raise FabOutputError(
+                f"{footprint.refdes}: pin-function mismatch: "
+                f"KiCad={sorted(kicad)} LCSC={sorted(lcsc)}"
+            )
+    else:
+        kicad["__geometry__"] = all_kicad
+        lcsc["__geometry__"] = [(x * scale, y * scale) for _, _, x, y in lcsc_pin_centers]
+    kicad_values = [point for points in kicad.values() for point in points]
     kicad_center = (
-        sum(x for x, _ in all_kicad) / len(all_kicad),
-        sum(y for _, y in all_kicad) / len(all_kicad),
+        sum(x for x, _ in kicad_values) / len(kicad_values),
+        sum(y for _, y in kicad_values) / len(kicad_values),
     )
-    lcsc_values = {number: (x * scale, y * scale) for number, (x, y) in lcsc_pad_centers.items()}
+    lcsc_values = [point for points in lcsc.values() for point in points]
     lcsc_center = (
-        sum(x for x, _ in lcsc_values.values()) / len(lcsc_values),
-        sum(y for _, y in lcsc_values.values()) / len(lcsc_values),
+        sum(x for x, _ in lcsc_values) / len(lcsc_values),
+        sum(y for _, y in lcsc_values) / len(lcsc_values),
     )
     candidates: list[tuple[float, float]] = []
     for angle in (0.0, 90.0, 180.0, 270.0):
-        error = max(
-            math.dist(
-                rotate(
-                    kicad[number][0] - kicad_center[0],
-                    kicad[number][1] - kicad_center[1],
-                    angle,
-                ),
-                (lcsc_values[number][0] - lcsc_center[0], lcsc_values[number][1] - lcsc_center[1]),
-            )
-            for number in kicad
-        )
+        error = 0.0
+        for function, kicad_points in kicad.items():
+            transformed = [
+                rotate(x - kicad_center[0], y - kicad_center[1], angle)
+                for x, y in kicad_points
+            ]
+            remaining = [
+                (x - lcsc_center[0], y - lcsc_center[1]) for x, y in lcsc[function]
+            ]
+            error = max(error, _minimum_matching_error(transformed, remaining))
         if error <= tolerance_mm:
             candidates.append((angle, error))
-    ignored = sorted(set(lcsc_pad_centers) - common)
-    suffix = f"; ignored_unmatched_lcsc_pads={ignored}" if ignored else ""
     if len(candidates) == 1:
-        return candidates[0][0], f"unique; max_error_mm={candidates[0][1]:.6f}{suffix}"
+        basis = "pin-function" if kicad_pin_functions else "geometry-only"
+        return candidates[0][0], f"unique; basis={basis}; max_error_mm={candidates[0][1]:.6f}"
     if len(candidates) > 1 and not polarized:
-        return 0.0, f"ambiguous but non-polarized; candidates={candidates}"
+        return 0.0, (
+            "ambiguous but non-polarized and symmetric; "
+            f"polarity unaffected; candidates={candidates}"
+        )
     if not candidates:
         raise FabOutputError(f"{footprint.refdes}: no LCSC rotation candidate within tolerance")
     raise FabOutputError(f"{footprint.refdes}: ambiguous LCSC rotation candidates: {candidates}")
@@ -260,11 +364,12 @@ def verify_lcsc_rotation_evidence(
     board: BoardMeasurement,
     lane: ElectricalLane,
     fitted: set[str],
-) -> tuple[dict[str, float], dict[str, str]]:
+) -> tuple[dict[str, float], dict[str, str], list[str]]:
     """Recompute archived LCSC rotation Evidence without network access."""
     footprints = {footprint.refdes: footprint for footprint in board.footprints}
     offsets: dict[str, float] = {}
     notes: dict[str, str] = {}
+    unknowns: list[str] = []
     for component in lane.components:
         if component.refdes not in fitted:
             continue
@@ -282,14 +387,21 @@ def verify_lcsc_rotation_evidence(
         footprint = footprints.get(component.refdes)
         if footprint is None:
             raise FabOutputError(f"{component.refdes}: board footprint missing for LCSC Evidence")
-        offset, note = derive_lcsc_rotation_offset(
-            footprint,
-            load_lcsc_pad_centers(path),
-            polarized=component.cpl_rotation_polarized,
-        )
+        try:
+            offset, note = derive_lcsc_rotation_offset(
+                footprint,
+                load_lcsc_pin_centers(path),
+                component.cpl_rotation_pin_functions,
+                component.cpl_rotation_pin_aliases,
+                polarized=component.cpl_rotation_polarized,
+            )
+        except FabOutputError as exc:
+            unknowns.append(component.refdes)
+            notes[component.refdes] = f"unknown; {exc}"
+            continue
         offsets[component.refdes] = offset
         notes[component.refdes] = note
-    return offsets, notes
+    return offsets, notes, unknowns
 
 
 def _footprint_bbox(

@@ -6,7 +6,7 @@ graph semantics stay in core. Missing or malformed attributes fail closed.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from acd_schema.design_graph import DesignGraph, GraphNode
 
@@ -58,6 +58,12 @@ class ComponentView:
     cpl_rotation_evidence_revision: str | None = None
     cpl_rotation_offset_deg: float | None = None
     cpl_rotation_polarized: bool = True
+    cpl_rotation_pin_functions: dict[str, str] = field(
+        default_factory=lambda: dict[str, str]()
+    )
+    cpl_rotation_pin_aliases: dict[str, str] = field(
+        default_factory=lambda: dict[str, str]()
+    )
 
 
 @dataclass(frozen=True)
@@ -192,6 +198,21 @@ def _optional_bool(node: GraphNode, key: str, default: bool) -> bool:
     return default if value is None else value
 
 
+def _optional_string_map(node: GraphNode, key: str) -> dict[str, str]:
+    value = node.attrs.get(key)
+    if value is None:
+        return {}
+    if not isinstance(value, list):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string map list")
+    result: dict[str, str] = {}
+    for item in value:
+        parts = item.split("=", 1)
+        if len(parts) != 2 or not all(parts):
+            raise GraphExtractionError(f"node {node.id!r}: attr {key!r} has invalid entry")
+        result[parts[0]] = parts[1]
+    return result
+
+
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
     components: list[ComponentView] = []
     nets: list[NetView] = []
@@ -257,6 +278,12 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ),
                     cpl_rotation_offset_deg=_optional_number(node, "cpl_rotation_offset_deg"),
                     cpl_rotation_polarized=_optional_bool(node, "cpl_rotation_polarized", True),
+                    cpl_rotation_pin_functions=_optional_string_map(
+                        node, "cpl_rotation_pin_functions"
+                    ),
+                    cpl_rotation_pin_aliases=_optional_string_map(
+                        node, "cpl_rotation_pin_aliases"
+                    ),
                 )
             )
             if components[-1].assembly not in {"fitted", "not_fitted"}:

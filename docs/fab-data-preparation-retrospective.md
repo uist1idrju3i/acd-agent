@@ -71,7 +71,11 @@ capability violationにはallowanceを適用しない。
     グラフの出所時点は`cpl_position_evidence_at`／`cpl_rotation_evidence_at`で記録し、
     人によるconfirmed宣言には確認手段、対象revision、根拠メモも必須とする。
     fab側ライブラリの番号付きパッド配置は取得可能な照合対象であり、保存した応答のURL、
-    取得時刻、hashをEvidenceとして固定し、KiCad側パッドと番号・座標を再計算する。
+    取得時刻、hashをEvidenceとして固定し、KiCad側パッドとピン機能・座標を再計算する。
+    パッド番号はライブラリ間で意味が異なり得るため照合キーにせず、D1のような極性部品で
+    番号照合が逆実装を導くことを防ぐ。一意な幾何解も正しさの証明とはせず、機能を1:1
+    対応できない場合はfail-closedとする。無極性・対称部品だけは極性影響なしの根拠を
+    Evidenceへ残して幾何照合する。
     ただしこれはメーカーのtape&reel図そのものではないため、ライブラリ由来である限界を
     `fab_library_footprint`として明示する。JLCPCB公式FAQの「0°は包装内の部品向きと
     一致すべき」という要件を補助する再現可能な照合であり、公式の部品別テープ表とは

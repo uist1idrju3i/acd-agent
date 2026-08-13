@@ -21,6 +21,7 @@ from acd_adapter_kicad.fab import (
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
+    load_lcsc_pin_centers,
     rotate,
     run_dfm,
 )
@@ -90,7 +91,7 @@ def _measurement(via: ViaMeasurement) -> BoardMeasurement:
     return BoardMeasurement((), (via,), None, None, None, None, (), 0)
 
 
-def test_derive_lcsc_rotation_offset_matches_numbered_pads() -> None:
+def test_derive_lcsc_rotation_offset_matches_pin_functions() -> None:
     footprint = FootprintMeasurement(
         "U2",
         0.0,
@@ -101,20 +102,20 @@ def test_derive_lcsc_rotation_offset_matches_numbered_pads() -> None:
             PadMeasurement("U2", "smd", -1.0, -1.0, 0.0, 1.0, 1.0, None, None, number="1"),
             PadMeasurement("U2", "smd", -1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
             PadMeasurement("U2", "smd", -1.0, 1.0, 0.0, 1.0, 1.0, None, None, number="3"),
-            PadMeasurement("U2", "smd", -1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
         ),
     )
     offset, note = derive_lcsc_rotation_offset(
         footprint,
-        {"1": (0.0, 1.0), "2": (0.0, 0.0), "3": (0.0, -1.0)},
+        (("1", "G", -1.0, -1.0), ("2", "K", -1.0, 0.0), ("3", "A", -1.0, 1.0)),
+        {"1": "G", "2": "K", "3": "A"},
         tolerance_mm=0.2,
         scale=1.0,
     )
-    assert offset == 180.0
+    assert offset == 0.0
     assert "unique" in note
 
 
-def test_derive_lcsc_rotation_offset_rejects_unmatched_pads() -> None:
+def test_derive_lcsc_rotation_offset_rejects_unmatched_pin_functions() -> None:
     footprint = FootprintMeasurement(
         "C1",
         0.0,
@@ -126,10 +127,11 @@ def test_derive_lcsc_rotation_offset_rejects_unmatched_pads() -> None:
             PadMeasurement("C1", "smd", 1.0, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
         ),
     )
-    with pytest.raises(FabOutputError, match="no LCSC rotation candidate"):
+    with pytest.raises(FabOutputError, match="pin-function mismatch"):
         derive_lcsc_rotation_offset(
             footprint,
-            {"1": (0.0, 1.0), "2": (0.0, 0.0)},
+            (("1", "A", 0.0, 1.0), ("2", "K", 0.0, 0.0)),
+            {"1": "A", "2": "B"},
             scale=1.0,
         )
 
@@ -148,12 +150,57 @@ def test_derive_lcsc_rotation_offset_handles_ambiguous_nonpolarized_part() -> No
     )
     offset, note = derive_lcsc_rotation_offset(
         footprint,
-        {"1": (0.0, 0.0), "2": (0.0, 0.0)},
+        (("1", "X", 0.0, 0.0), ("2", "X", 0.0, 0.0)),
         scale=1.0,
         polarized=False,
     )
     assert offset == 0.0
     assert "ambiguous but non-polarized" in note
+
+
+def test_real_d1_evidence_derives_zero_degree_offset() -> None:
+    footprint = FootprintMeasurement(
+        "D1",
+        0.0,
+        0.0,
+        0.0,
+        "top",
+        (
+            PadMeasurement("D1", "smd", -0.7875, 0.0, 0.0, 1.0, 1.0, None, None, number="1"),
+            PadMeasurement("D1", "smd", 0.7875, 0.0, 0.0, 1.0, 1.0, None, None, number="2"),
+        ),
+    )
+    offset, _ = derive_lcsc_rotation_offset(
+        footprint,
+        load_lcsc_pin_centers(ROOT / "evidence/gd1-cpl-orientation/D1.json"),
+        {"1": "K", "2": "A"},
+        tolerance_mm=0.3,
+    )
+    assert offset == 0.0
+
+
+def test_real_u2_evidence_derives_180_degree_offset() -> None:
+    footprint = FootprintMeasurement(
+        "U2",
+        0.0,
+        0.0,
+        90.0,
+        "top",
+        (
+            PadMeasurement("U2", "smd", -2.3, 3.15, 0.0, 1.0, 1.0, None, None, number="1"),
+            PadMeasurement("U2", "smd", 0.0, 3.15, 0.0, 1.0, 1.0, None, None, number="2"),
+            PadMeasurement("U2", "smd", 0.0, -3.15, 0.0, 1.0, 1.0, None, None, number="2"),
+            PadMeasurement("U2", "smd", 2.3, 3.15, 0.0, 1.0, 1.0, None, None, number="3"),
+        ),
+    )
+    offset, _ = derive_lcsc_rotation_offset(
+        footprint,
+        load_lcsc_pin_centers(ROOT / "evidence/gd1-cpl-orientation/U2.json"),
+        {"1": "GND", "2": "VO", "3": "VI"},
+        {"VO": "VOUT", "VI": "VIN"},
+        tolerance_mm=0.3,
+    )
+    assert offset == 180.0
 
 
 def _cpl_profile(*, position_basis: str = "footprint_origin") -> FabProfile:

@@ -206,8 +206,10 @@ def run_pipeline(
     }
     cpl_basis_path = fab_dir / "cpl-basis-report.json"
     lcsc_evidence_dir = Path(__file__).resolve().parents[1] / "evidence/gd1-cpl-orientation"
-    verified_rotation_offsets, rotation_evidence_notes = verify_lcsc_rotation_evidence(
+    verified_rotation_offsets, rotation_evidence_notes, rotation_unknowns = (
+        verify_lcsc_rotation_evidence(
         lcsc_evidence_dir, measurement, lane, fitted
+        )
     )
     try:
         resolved_pos_rows, cpl_basis_report = apply_cpl_contract(
@@ -262,6 +264,13 @@ def run_pipeline(
         if abs(declared_rotation_offsets.get(ref, 0.0) - offset) > 0.01:
             raise ValueError(f"{ref}: graph CPL rotation offset differs from LCSC Evidence")
     cpl_basis_report["rotation_evidence"] = rotation_evidence_notes
+    cpl_unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
+    existing_rotation_unknowns = cast(
+        list[str], cpl_unknowns["cpl_rotation_basis_fab_lcsc"]
+    )
+    cpl_unknowns["cpl_rotation_basis_fab_lcsc"] = sorted(
+        set(existing_rotation_unknowns).union(rotation_unknowns)
+    )
     cpl_basis_path.write_text(
         json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     )
