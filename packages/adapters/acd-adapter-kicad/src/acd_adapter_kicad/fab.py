@@ -1097,13 +1097,20 @@ def verify_ground_plane_gerbers(
             ):
                 raise FabOutputError("copper inside antenna keepout (fail-closed)")
 
+    for x, y in stitch_vias:
+        if not any(
+            point_in_polygon((x, y), region.points_mm)
+            for _, region in conductor_records
+        ):
+            raise FabOutputError(f"stitch via at ({x}, {y}) lacks copper coverage (fail-closed)")
+
     for layer, x, y in gnd_points:
         if not any(
             ("F.Cu" if path == front_path else "B.Cu") == layer
             and point_in_polygon((x, y), region.points_mm)
             for path, region in conductor_records
         ):
-            raise FabOutputError(f"stitch via at ({x}, {y}) lacks copper coverage (fail-closed)")
+            continue
 
     parent = list(range(len(conductor_records)))
 

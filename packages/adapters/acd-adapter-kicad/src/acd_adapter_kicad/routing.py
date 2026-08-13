@@ -200,8 +200,7 @@ def inject_stitch_vias(
         selected_points.append(point)
     selected = tuple(selected_points)
     if allowed_points is not None:
-        allowed = set(allowed_points)
-        selected = tuple(point for point in selected if point in allowed)
+        selected = tuple(dict.fromkeys(allowed_points))
     lines = [
         f'  (via (at {fmt(x)} {fmt(y)}) (size {fmt(via_diameter_mm)}) '
         f'(drill {fmt(via_drill_mm)}) (layers "F.Cu" "B.Cu") '

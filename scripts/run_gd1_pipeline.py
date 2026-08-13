@@ -158,6 +158,7 @@ def run_pipeline(
     dru_source = out_dir / f"{name}.kicad_dru"
     initial_candidate_count = len(stitch_vias)
     pruned_vias: list[tuple[float, float]] = []
+    iteration_measurements: list[dict[str, object]] = []
     converged_iteration: int | None = None
     for iteration in range(1, max_iterations + 1):
         iteration_board = iteration_dir / f"{name}-{iteration}.kicad_pcb"
@@ -194,7 +195,37 @@ def run_pipeline(
                 raise
             uncovered = (float(match.group(1)), float(match.group(2)))
             pruned_vias.append(uncovered)
-            covered = tuple(point for point in stitch_vias if point != uncovered)
+            covered = tuple(
+                point
+                for point in stitch_vias
+                if (point[0] - uncovered[0]) ** 2 + (point[1] - uncovered[1]) ** 2
+                > 1e-12
+            )
+            if len(covered) == len(stitch_vias):
+                raise RuntimeError(
+                    f"measured uncovered via was not in candidate set: {uncovered}"
+                ) from None
+            iteration_measurements.append(
+                {
+                    "iteration": iteration,
+                    "via_count": len(stitch_vias),
+                    "uncovered_count": 1,
+                    "uncovered_vias": [uncovered],
+                }
+            )
+            print(
+                f"[stitch-prune {iteration}] vias={len(stitch_vias)} "
+                f"uncovered=1 at {uncovered}"
+            )
+        else:
+            iteration_measurements.append(
+                {
+                    "iteration": iteration,
+                    "via_count": len(stitch_vias),
+                    "uncovered_count": 0,
+                    "uncovered_vias": [],
+                }
+            )
         routed_board, stitch_vias = inject_stitch_vias(
             base_routed_board,
             project.board_projection.model,
@@ -214,6 +245,7 @@ def run_pipeline(
         "pruned_count": len(pruned_vias),
         "pruned_vias": pruned_vias,
         "final_vias": stitch_vias,
+        "measurements": iteration_measurements,
     }
     # kicad-cli reads DRC constraints from the sibling .kicad_pro, so the
     # routed board lives in its own directory with a copy of the project file.
