@@ -74,6 +74,7 @@
 | `adr/ADR-0003-sdk-feature-adoption.md` | Phase 0でのSDK機能の採否 | Accepted |
 | `adr/ADR-0004-parts-catalog-provenance.md` | 部品カタログとライブラリ出所方針 | Accepted |
 | `adr/ADR-0005-jlcpcb-pcba-preparation-contract.md` | JLCPCB PCBA準備契約 | Accepted |
+| `adr/ADR-0006-vendor-submodule-policy.md` | vendor submoduleの対象と固定方針 | Accepted |
 
 `runtime.md`は後続の実装・設計決定で追加する。機械可読契約の正本は`schemas/`、
 設計決定は`docs/adr/`にある。未作成の文書へリンクを張らず、必要な場合は本文で

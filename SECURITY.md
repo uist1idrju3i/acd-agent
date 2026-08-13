@@ -66,7 +66,8 @@ GitHubの[Security Advisories](https://github.com/uist1idrju3i/acd-agent/securit
 対象外の例：
 
 - 実行環境の設定ミスや、ユーザーが導入した外部ツール自体の脆弱性
-- `vendor/`配下のsubmodule（OpenHands Software Agent SDK）そのものの脆弱性。
+- `vendor/`配下のsubmodule（OpenHands Software Agent SDKおよびAgent Canvasソース）
+  そのものの脆弱性。
   上流へ報告してください。ACD側の利用方法に起因する場合は本ポリシーの対象です。
 - ユーザーが明示的に許可した外部サービス連携で、仕様どおりに送信されるデータ
 - 実機で発生する電気的・熱的な設計問題（品質の課題として通常のIssueで扱います）

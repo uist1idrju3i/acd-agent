@@ -1,3 +1,7 @@
 [submodule "vendor/software-agent-sdk"]
 	path = vendor/software-agent-sdk
 	url = https://github.com/OpenHands/software-agent-sdk
+[submodule "vendor/openhands"]
+	path = vendor/openhands
+	url = https://github.com/OpenHands/openhands
+	shallow = true
