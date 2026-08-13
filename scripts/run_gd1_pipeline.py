@@ -261,6 +261,7 @@ def run_pipeline(
         measurement,
         fitted,
         cast(dict[str, str], cpl_basis_report["position_bases"]),
+        cast(dict[str, float], cpl_basis_report["rotation_offsets"]),
     )
     bom_path = fab_dir / f"{name}-bom-jlcpcb.csv"
     bom_path.write_text(jlcpcb_bom_csv(lane), encoding="utf-8")
@@ -289,40 +290,18 @@ def run_pipeline(
     )
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-    if dfm_report["status"] != "pass":
-        (fab_dir / "fab-package.json").write_text(
-            json.dumps(
-                {
-                    "schema_version": "0.1",
-                    "status": "fail",
-                    "target_revision": revision,
-                    "fab_profile": {
-                        "profile_id": profile.profile_id,
-                        "source_url": profile.data["sources"][0]["url"],
-                        "fetched_at": profile.data["sources"][0]["fetched_at"],
-                    },
-                    "files": [],
-                    "gates": {
-                        "cpl_basis": cpl_basis_report["status"],
-                        "dfm": str(dfm_report["status"]),
-                    },
-                    "unknowns": dfm_report["unknowns"],
-                },
-                ensure_ascii=False,
-                indent=2,
-                sort_keys=True,
-            )
-            + "\n"
-        )
-        raise ValueError(f"DFM gate failed: {dfm_path}")
-    print(f"[9/10] DFM gate passed ({len(cast(list[object], dfm_report['findings']))} findings)")
+    print(
+        f"[9/10] DFM report written ({dfm_report['status']}; "
+        f"{len(cast(list[object], dfm_report['findings']))} findings)"
+    )
 
     package_members = [*gerber_paths, *drill_paths]
     zip_path = fab_dir / f"{name}-gerbers.zip"
     deterministic_zip(zip_path, package_members, gerber_dir)
     profile_hash = normalized_hash(fab_profile_path)
-    manifest = {
+    manifest: dict[str, object] = {
         "schema_version": "0.1",
+        "status": "not_order_ready",
         "target_revision": revision,
         "fab_profile": {
             "profile_id": profile.profile_id,
@@ -373,6 +352,41 @@ def run_pipeline(
             ),
         },
     }
+    cpl_unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
+    position_unknown = cast(list[str], cpl_unknowns["cpl_position_basis"])
+    rotation_unknown = cast(list[str], cpl_unknowns["cpl_rotation_basis_fab_lcsc"])
+    readiness_reasons: list[str] = []
+    if position_unknown:
+        readiness_reasons.append("CPL位置基準に未確認またはestimatedの部品がある")
+    if rotation_unknown:
+        readiness_reasons.append("CPL回転基準に未確認の部品がある")
+    if dfm_report["status"] != "pass":
+        readiness_reasons.append("実測DFM指摘が未解決である")
+    order_readiness = {
+        "schema_version": "0.1",
+        "status": "not_order_ready" if readiness_reasons else "ready",
+        "target_revision": revision,
+        "reasons": readiness_reasons,
+        "unknowns": {
+            "cpl_position_basis": position_unknown,
+            "cpl_rotation_basis_fab_lcsc": rotation_unknown,
+        },
+    }
+    order_readiness_path = fab_dir / "order-readiness.json"
+    order_readiness_path.write_text(
+        json.dumps(order_readiness, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    )
+    manifest["status"] = order_readiness["status"]
+    cast(dict[str, object], manifest["gates"])["order_readiness"] = order_readiness["status"]
+    cast(list[dict[str, str]], manifest["files"]).append(
+        {
+            "path": str(order_readiness_path.relative_to(out_dir)),
+            "content_hash": normalized_hash(order_readiness_path),
+        }
+    )
+    cast(dict[str, object], manifest["unknowns"]).update(
+        cast(dict[str, object], dfm_report["unknowns"])
+    )
     package_path = fab_dir / "fab-package.json"
     package_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -391,6 +405,7 @@ def run_pipeline(
         bom_path,
         cpl_path,
         dfm_path,
+        order_readiness_path,
         package_path,
         zip_path,
         *gerber_paths,
@@ -403,6 +418,9 @@ def run_pipeline(
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
     print(f"[10/10] hash manifest: {manifest_path}")
+    if order_readiness["status"] != "ready":
+        print("製造データは生成済み、発注は不可: order-readiness gate failed")
+        raise ValueError(f"Order readiness gate failed: {order_readiness_path}")
     return hashes
 
 

@@ -64,7 +64,12 @@ capability violationにはallowanceを適用しない。
     いないため、GD1のU1/J1でpad bbox中心を採用した結論は推定として記録し、confirmed
     とは扱わない。ビューワ実測との差の符号と大きさが一致することは傍証であり、第三者の
     補正テーブルは一次情報の出所として採用しない。estimatedな基準はfab側プレビューの
-    目視確認が必要で、自動発注合格にしない。
+    目視確認が必要で、自動発注合格にしない。製造データ生成と発注可否は分離し、
+    Gerber、CPL、BOM、DFM、fab-packageを生成した後にorder-readinessゲートで発注可否を
+    判定する。未確認の位置・回転基準が残る間は製造データを確認用に出力するが、
+    `order-readiness.json`を`not_order_ready`として発注を停止する。
+    グラフの出所時点は`cpl_position_evidence_at`／`cpl_rotation_evidence_at`で記録し、
+    人によるconfirmed宣言には確認手段、対象revision、根拠メモも必須とする。
 
 ## 残るリスクとunknown
 

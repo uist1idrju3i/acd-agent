@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acd.example/schemas/order-readiness.schema.json",
+  "title": "ACD order readiness gate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "target_revision", "reasons", "unknowns"],
+  "properties": {
+    "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
+    "status": {"enum": ["ready", "not_order_ready"]},
+    "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
+    "reasons": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "unknowns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpl_position_basis", "cpl_rotation_basis_fab_lcsc"],
+      "properties": {
+        "cpl_position_basis": {"type": "array", "items": {"type": "string"}},
+        "cpl_rotation_basis_fab_lcsc": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}

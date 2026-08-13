@@ -323,7 +323,10 @@ CPLの`Mid X`/`Mid Y`はJLCPCB公式のcomponent centroid定義を参照する�
 公式に明記されていない。GD1では独立測定とビューワ実測の符号・大きさが一致したため、
 U1/J1のpad bbox中心を`estimated`な宣言として記録した。これはJLCPCBの確定仕様ではなく、
 fab側プレビューの目視確認が必要であり、回転の部品番号別テープ向きも未確認として
-部品単位のunknownに残す。第三者補正表は合格根拠にしない。
+部品単位のunknownに残す。第三者補正表は合格根拠にしない。製造データ生成と発注可否は
+分離し、`order-readiness.json`で人によるfab側プレビュー確認の完了を判定する。未確認の
+間はGerber、CPL、BOM、DFM、fab-packageを生成するが、fab-packageのstatusは
+`not_order_ready`となり、パイプラインは発注不可として終了する。
 
 生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `24`個、drill object `34`個、
 pad `132`個、route wire `188`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、

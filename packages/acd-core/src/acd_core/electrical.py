@@ -44,12 +44,18 @@ class ComponentView:
     decoupling_target: str | None = None
     cpl_position_basis: str | None = None
     cpl_position_source_url: str | None = None
-    cpl_position_confirmed_at: str | None = None
+    cpl_position_evidence_at: str | None = None
+    cpl_position_evidence_method: str | None = None
+    cpl_position_evidence_revision: str | None = None
     cpl_position_evidence_basis: str | None = None
     cpl_position_evidence_note: str | None = None
     cpl_rotation_basis: str | None = None
     cpl_rotation_source_url: str | None = None
-    cpl_rotation_confirmed_at: str | None = None
+    cpl_rotation_evidence_basis: str | None = None
+    cpl_rotation_evidence_note: str | None = None
+    cpl_rotation_evidence_at: str | None = None
+    cpl_rotation_evidence_method: str | None = None
+    cpl_rotation_evidence_revision: str | None = None
     cpl_rotation_offset_deg: float | None = None
 
 
@@ -213,7 +219,13 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     decoupling_target=decoupling_target,
                     cpl_position_basis=_optional_str(node, "cpl_position_basis"),
                     cpl_position_source_url=_optional_str(node, "cpl_position_source_url"),
-                    cpl_position_confirmed_at=_optional_str(node, "cpl_position_confirmed_at"),
+                    cpl_position_evidence_at=_optional_str(node, "cpl_position_evidence_at"),
+                    cpl_position_evidence_method=_optional_str(
+                        node, "cpl_position_evidence_method"
+                    ),
+                    cpl_position_evidence_revision=_optional_str(
+                        node, "cpl_position_evidence_revision"
+                    ),
                     cpl_position_evidence_basis=_optional_str(
                         node, "cpl_position_evidence_basis"
                     ),
@@ -222,7 +234,19 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ),
                     cpl_rotation_basis=_optional_str(node, "cpl_rotation_basis"),
                     cpl_rotation_source_url=_optional_str(node, "cpl_rotation_source_url"),
-                    cpl_rotation_confirmed_at=_optional_str(node, "cpl_rotation_confirmed_at"),
+                    cpl_rotation_evidence_basis=_optional_str(
+                        node, "cpl_rotation_evidence_basis"
+                    ),
+                    cpl_rotation_evidence_note=_optional_str(
+                        node, "cpl_rotation_evidence_note"
+                    ),
+                    cpl_rotation_evidence_at=_optional_str(node, "cpl_rotation_evidence_at"),
+                    cpl_rotation_evidence_method=_optional_str(
+                        node, "cpl_rotation_evidence_method"
+                    ),
+                    cpl_rotation_evidence_revision=_optional_str(
+                        node, "cpl_rotation_evidence_revision"
+                    ),
                     cpl_rotation_offset_deg=_optional_number(node, "cpl_rotation_offset_deg"),
                 )
             )

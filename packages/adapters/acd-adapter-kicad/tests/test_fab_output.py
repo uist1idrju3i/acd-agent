@@ -16,6 +16,7 @@ from acd_adapter_kicad.fab import (
     ViaMeasurement,
     apply_cpl_contract,
     cross_validate_bom,
+    cross_validate_cpl,
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
@@ -267,8 +268,11 @@ def test_cpl_basis_gate_emits_declared_provenanced_center() -> None:
         _bom_component("C1", "test"),
         cpl_position_basis="pad_bbox_center",
         cpl_position_source_url="https://example.com/centroid",
-        cpl_position_confirmed_at="2026-08-13T00:00:00Z",
+        cpl_position_evidence_at="2026-08-13T00:00:00Z",
         cpl_position_evidence_basis="confirmed",
+        cpl_position_evidence_method="test",
+        cpl_position_evidence_revision="r1",
+        cpl_position_evidence_note="test evidence",
     )
     rows, report = apply_cpl_contract(
         _cpl_rows(), _cpl_board(), _bom_lane(component), _cpl_profile(), {"C1"}
@@ -283,7 +287,7 @@ def test_cpl_estimated_position_remains_unknown_without_blocking_projection() ->
         _bom_component("C1", "test"),
         cpl_position_basis="pad_bbox_center",
         cpl_position_source_url="https://example.com/centroid",
-        cpl_position_confirmed_at="2026-08-13T00:00:00Z",
+        cpl_position_evidence_at="2026-08-13T00:00:00Z",
         cpl_position_evidence_basis="estimated",
     )
     rows, report = apply_cpl_contract(
@@ -292,7 +296,33 @@ def test_cpl_estimated_position_remains_unknown_without_blocking_projection() ->
     assert rows[0]["PosY"] == "-1.000000"
     assert report["status"] == "fail"
     unknowns = cast(dict[str, object], report["unknowns"])
-    assert unknowns["cpl_position_basis_fab_preview"] == ["C1"]
+    assert unknowns["cpl_position_basis"] == ["C1"]
+
+
+def test_cross_validate_cpl_rejects_rotation_offset_mismatch(tmp_path: Path) -> None:
+    cpl_path = tmp_path / "cpl.csv"
+    cpl_path.write_text(
+        "Designator,Mid X,Mid Y,Rotation,Layer\n"
+        "C1,0.000000,-1.000000,10.000000,Top\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(FabOutputError, match="CPL rotation differs"):
+        cross_validate_cpl(
+            cpl_path,
+            (
+                {
+                    "Ref": "C1",
+                    "PosX": "0.000000",
+                    "PosY": "0.000000",
+                    "Rot": "10.000000",
+                    "Side": "top",
+                },
+            ),
+            _cpl_board(),
+            {"C1"},
+            {"C1": "pad_bbox_center"},
+            {"C1": 0.0},
+        )
 
 
 def test_jlcpcb_bom_groups_by_fab_part_and_uses_mpn_for_mixed_values() -> None:

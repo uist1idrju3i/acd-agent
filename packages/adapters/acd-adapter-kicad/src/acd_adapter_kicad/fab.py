@@ -998,8 +998,6 @@ def run_dfm(
                 "designators": list(refs),
                 "reason": "実装基準はfab側プレビューでの目視確認が必要",
             }
-        if any(cpl_unknowns.values()):
-            status = "fail"
     return {
         "schema_version": "0.1",
         "target_revision": revision,
@@ -1125,6 +1123,7 @@ def apply_cpl_contract(
     errors: list[str] = []
     resolved: list[dict[str, str]] = []
     resolved_bases: dict[str, str] = {}
+    rotation_offsets: dict[str, float] = {}
 
     for source in sorted(position_rows, key=lambda row: refdes_key(row["Ref"])):
         ref = source["Ref"]
@@ -1147,7 +1146,7 @@ def apply_cpl_contract(
                 )
             elif (
                 component.cpl_position_source_url is None
-                or component.cpl_position_confirmed_at is None
+                or component.cpl_position_evidence_at is None
             ):
                 unknown_position.append(ref)
                 errors.append(
@@ -1157,6 +1156,15 @@ def apply_cpl_contract(
             elif component.cpl_position_evidence_basis not in {"estimated", "confirmed"}:
                 errors.append(
                     f"{ref}: CPL position evidence basis must be 'estimated' or 'confirmed'"
+                )
+            elif component.cpl_position_evidence_basis == "confirmed" and (
+                component.cpl_position_evidence_method is None
+                or component.cpl_position_evidence_revision is None
+                or component.cpl_position_evidence_note is None
+            ):
+                errors.append(
+                    f"{ref}: confirmed CPL position evidence requires method, date, "
+                    "revision, and note"
                 )
             elif component.cpl_position_evidence_basis == "estimated":
                 unknown_position.append(ref)
@@ -1178,12 +1186,18 @@ def apply_cpl_contract(
                     if (
                         component.cpl_rotation_basis != "component_part_number"
                         or component.cpl_rotation_source_url is None
-                        or component.cpl_rotation_confirmed_at is None
                         or component.cpl_rotation_offset_deg is None
+                        or component.cpl_rotation_evidence_at is None
+                        or component.cpl_rotation_evidence_basis != "confirmed"
+                        or component.cpl_rotation_evidence_method is None
+                        or component.cpl_rotation_evidence_revision is None
+                        or component.cpl_rotation_evidence_note is None
                     ):
                         unknown_rotation.append(ref)
+                        rotation_offsets[ref] = 0.0
                     else:
                         rotation += component.cpl_rotation_offset_deg
+                        rotation_offsets[ref] = component.cpl_rotation_offset_deg
                 elif default_rotation_basis != "kicad_footprint":
                     errors.append(
                         f"{ref}: unsupported CPL rotation basis {default_rotation_basis!r}"
@@ -1199,11 +1213,9 @@ def apply_cpl_contract(
         "unknowns": {
             "cpl_position_basis": sorted(set(unknown_position), key=refdes_key),
             "cpl_rotation_basis_fab_lcsc": sorted(set(unknown_rotation), key=refdes_key),
-            "cpl_position_basis_fab_preview": sorted(
-                set(unknown_position), key=refdes_key
-            ),
         },
         "position_bases": resolved_bases,
+        "rotation_offsets": rotation_offsets,
         "errors": errors,
     }
     if errors:
@@ -1285,7 +1297,9 @@ def cross_validate_cpl(
     board: BoardMeasurement,
     fitted: set[str],
     position_bases: Mapping[str, str] | None = None,
+    rotation_offsets: Mapping[str, float] | None = None,
     tolerance_mm: float = 0.001,
+    tolerance_deg: float = 0.01,
 ) -> None:
     with cpl_path.open(newline="", encoding="utf-8-sig") as stream:
         cpl_rows = tuple(csv.DictReader(stream))
@@ -1311,6 +1325,11 @@ def cross_validate_cpl(
             raise FabOutputError(f"{ref}: CPL X differs from selected independent basis")
         if abs(-float(row["Mid Y"]) - selected[1]) > tolerance_mm:
             raise FabOutputError(f"{ref}: CPL Y differs from selected independent basis")
+        expected_rotation = (
+            actual.rotation_deg + (rotation_offsets or {}).get(ref, 0.0)
+        ) % 360.0
+        if abs(float(row["Rotation"]) - expected_rotation) > tolerance_deg:
+            raise FabOutputError(f"{ref}: CPL rotation differs from declared basis")
         if row["Layer"].lower() != expected["Side"].lower():
             raise FabOutputError(f"{ref}: CPL layer differs from position CSV")
 

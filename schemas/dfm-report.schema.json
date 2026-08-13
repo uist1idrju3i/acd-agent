@@ -15,7 +15,7 @@
     "measurements": {"type": "object", "additionalProperties": true},
     "unknowns": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": ["cpl_rotation_basis_fab_lcsc"],
       "properties": {
         "cpl_rotation_basis_fab_lcsc": {"type": "string", "minLength": 1}
