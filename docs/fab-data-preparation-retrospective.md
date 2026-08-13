@@ -43,6 +43,9 @@ capability violationにはallowanceを適用しない。
    大物部品が最後に残らなくなり解消し、制約は緩和していない。
 6. レビューで見つかったDFM閾値のハードコード、`unused_allowance`の分類誤り、Economic判定の
    色・表面処理・組合せ表・assembly sides不足、oval drillの計算、overlay内rule ID literalを修正した。
+7. SW1とSW2は同じLCSC・MPN・footprintだったが、graph投影のvalue（`RESET`／`BOOT`）が異なるため
+   発注用BOMで分割された。export format側の同一性キーをfab部品番号へ分離し、`SW1,SW2`を1行へ
+   まとめ、value不一致時はMPNをCommentへ使い、生成後のBOMをグラフと再照合するようにした。
 
 ## 残るリスクとunknown
 
@@ -76,6 +79,8 @@ JLCPCB KiCad pluginは将来の任意adapterとして二次保持する。既定
   座標符号、回転規約をprofileのexport format宣言へ移す。
 - `packages/adapters/acd-adapter-kicad/src/acd_adapter_kicad/project.py`の`.kicad_dru` rule名に
   ある`jlcpcb-` prefixを一般化する。
+- 発注用BOMの行同一性キーをgraph投影の同一性キーと混同しない。fabの部品番号（LCSC、MPN、
+  footprint）とexport formatの列契約をprofile側で宣言し、valueの差異で同一発注部品を分割しない。
 - `packages/acd-core/src/acd_core/fab.py`のassembly class literal検証をprofile由来にする。
 - capability値とpreferenceの`rule_id`はfab依存である。profileに出所、取得時刻、hashを付ける
   共通原則を維持し、未確認値は追加しない。

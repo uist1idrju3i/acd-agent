@@ -15,8 +15,8 @@ from typing import cast
 import sexpdata  # pyright: ignore[reportMissingTypeStubs]
 from gerbonara.excellon import ExcellonFile  # pyright: ignore[reportMissingTypeStubs]
 
-from acd_core.bom import BomRow, build_bom
-from acd_core.electrical import ElectricalLane
+from acd_core.bom import refdes_key
+from acd_core.electrical import ComponentView, ElectricalLane
 from acd_core.fab import (
     FabOrderIntentView,
     FabProfile,
@@ -833,17 +833,65 @@ def jlcpcb_bom_csv(lane: ElectricalLane) -> str:
     fitted = tuple(comp for comp in lane.components if comp.assembly == "fitted")
     if any(not comp.lcsc for comp in fitted):
         raise FabOutputError("fitted component without LCSC part number (fail-closed)")
-    grouped: dict[tuple[str, ...], BomRow] = {}
-    for row in build_bom(lane):
-        refs = tuple(ref for ref in row.refdes if any(comp.refdes == ref for comp in fitted))
-        if refs:
-            grouped[refs] = row
+    grouped: dict[tuple[str, str, str], list[ComponentView]] = {}
+    for comp in fitted:
+        key = (comp.lcsc, comp.mpn, comp.library.footprint)
+        grouped.setdefault(key, []).append(comp)
     output = io.StringIO()
     writer = csv.writer(output, lineterminator="\n")
     writer.writerow(("Comment", "Designator", "Footprint", "LCSC Part #"))
-    for refs, row in sorted(grouped.items(), key=lambda item: item[0][0]):
-        writer.writerow((row.value, ",".join(refs), row.footprint, row.lcsc))
+    for (lcsc, mpn, footprint), components in sorted(
+        grouped.items(),
+        key=lambda item: min(refdes_key(c.refdes) for c in item[1]),
+    ):
+        values = {comp.value for comp in components}
+        comment = next(iter(values)) if len(values) == 1 else mpn
+        refs = sorted((comp.refdes for comp in components), key=refdes_key)
+        writer.writerow((comment, ",".join(refs), footprint, lcsc))
     return output.getvalue()
+
+
+def cross_validate_bom(
+    bom_path: Path,
+    lane: ElectricalLane,
+    fitted: set[str],
+) -> None:
+    with bom_path.open(newline="", encoding="utf-8-sig") as stream:
+        rows = tuple(csv.DictReader(stream))
+    required = {"Comment", "Designator", "Footprint", "LCSC Part #"}
+    if not rows or not required <= set(rows[0]):
+        raise FabOutputError(f"{bom_path.name}: BOM missing required columns")
+    components = {
+        comp.refdes: comp for comp in lane.components if comp.assembly == "fitted"
+    }
+    seen: set[str] = set()
+    for row in rows:
+        refs = tuple(ref.strip() for ref in row["Designator"].split(",") if ref.strip())
+        if not refs:
+            raise FabOutputError(f"{bom_path.name}: BOM row has no designator")
+        overlap = seen.intersection(refs)
+        if overlap:
+            raise FabOutputError(
+                f"{bom_path.name}: duplicate designators {sorted(overlap, key=refdes_key)}"
+            )
+        seen.update(refs)
+        lcsc = row["LCSC Part #"].strip()
+        footprint = row["Footprint"].strip()
+        if not lcsc:
+            raise FabOutputError(f"{bom_path.name}: BOM row has empty LCSC part number")
+        for ref in refs:
+            comp = components.get(ref)
+            if comp is None:
+                raise FabOutputError(f"{bom_path.name}: unknown fitted designator {ref!r}")
+            if comp.lcsc != lcsc:
+                raise FabOutputError(f"{ref}: BOM LCSC differs from graph")
+            if comp.library.footprint != footprint:
+                raise FabOutputError(f"{ref}: BOM footprint differs from graph")
+    if seen != fitted:
+        raise FabOutputError(
+            f"BOM fitted designator mismatch: missing={sorted(fitted - seen, key=refdes_key)}, "
+            f"extra={sorted(seen - fitted, key=refdes_key)}"
+        )
 
 
 def cross_validate_cpl(

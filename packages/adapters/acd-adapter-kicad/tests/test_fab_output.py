@@ -1,3 +1,4 @@
+import csv
 import hashlib
 import json
 from pathlib import Path
@@ -11,17 +12,72 @@ from acd_adapter_kicad.fab import (
     FootprintMeasurement,
     PadMeasurement,
     ViaMeasurement,
+    cross_validate_bom,
     deterministic_zip,
+    jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
     run_dfm,
 )
 from acd_adapter_kicad.library import LibraryPinError
 from acd_adapter_kicad.overlay import apply_overlay
+from acd_core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
 from acd_core.fab import ProcessAllowanceView, load_fab_profile
 from acd_core.sexpr import SExpr
 
 ROOT = Path(__file__).parents[4]
 PROFILE = load_fab_profile(ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json")
+
+
+def _bom_lane(*components: ComponentView) -> ElectricalLane:
+    library = BoardView(
+        "board",
+        30.0,
+        25.0,
+        2,
+        1.6,
+        "mm",
+        "lower-left",
+        "up",
+        0.15,
+        0.15,
+        0.2,
+        0.4,
+        0.2,
+        False,
+    )
+    return ElectricalLane(tuple(components), (), (), library)
+
+
+def _bom_component(
+    refdes: str,
+    value: str,
+    *,
+    assembly: str = "fitted",
+    lcsc: str = "C720477",
+    mpn: str = "TS-1088-AR02016",
+) -> ComponentView:
+    footprint = "Button_Switch_SMD:SW_SPST_TL3301"
+    return ComponentView(
+        refdes,
+        refdes,
+        value,
+        mpn,
+        lcsc,
+        "basic",
+        assembly,
+        LibraryPin(
+            "Switch:SW_Push",
+            "symbol.kicad_sym",
+            "fixture",
+            "r1",
+            "sha256:symbol",
+            footprint,
+            "footprint.kicad_mod",
+            "fixture",
+            "r1",
+            "sha256:footprint",
+        ),
+    )
 
 
 def _measurement(via: ViaMeasurement) -> BoardMeasurement:
@@ -105,6 +161,55 @@ def test_cpl_requires_exact_fitted_set() -> None:
         pass
     else:
         raise AssertionError("CPL mismatch must fail closed")
+
+
+def test_jlcpcb_bom_groups_by_fab_part_and_uses_mpn_for_mixed_values() -> None:
+    lane = _bom_lane(
+        _bom_component("SW1", "RESET"),
+        _bom_component("SW2", "BOOT"),
+        _bom_component("R1", "not fitted", assembly="not_fitted"),
+    )
+    rows = list(csv.DictReader(jlcpcb_bom_csv(lane).splitlines()))
+    assert len(rows) == 1
+    assert rows[0]["Designator"] == "SW1,SW2"
+    assert rows[0]["Comment"] == "TS-1088-AR02016"
+    assert rows[0]["LCSC Part #"] == "C720477"
+    assert "R1" not in rows[0]["Designator"]
+
+
+def _write_bom(path: Path, designator: str, lcsc: str = "C720477") -> None:
+    path.write_text(
+        "Comment,Designator,Footprint,LCSC Part #\n"
+        f"TS-1088-AR02016,{designator},Button_Switch_SMD:SW_SPST_TL3301,{lcsc}\n"
+    )
+
+
+def test_bom_cross_validation_rejects_missing_designator(tmp_path: Path) -> None:
+    lane = _bom_lane(_bom_component("SW1", "RESET"), _bom_component("SW2", "BOOT"))
+    path = tmp_path / "bom.csv"
+    _write_bom(path, "SW1")
+    with pytest.raises(FabOutputError):
+        cross_validate_bom(path, lane, {"SW1", "SW2"})
+
+
+def test_bom_cross_validation_rejects_duplicate_designator(tmp_path: Path) -> None:
+    lane = _bom_lane(_bom_component("SW1", "RESET"), _bom_component("SW2", "BOOT"))
+    path = tmp_path / "bom.csv"
+    path.write_text(
+        "Comment,Designator,Footprint,LCSC Part #\n"
+        "TS-1088-AR02016,SW1,Button_Switch_SMD:SW_SPST_TL3301,C720477\n"
+        "TS-1088-AR02016,SW1,Button_Switch_SMD:SW_SPST_TL3301,C720477\n"
+    )
+    with pytest.raises(FabOutputError):
+        cross_validate_bom(path, lane, {"SW1", "SW2"})
+
+
+def test_bom_cross_validation_rejects_lcsc_mismatch(tmp_path: Path) -> None:
+    lane = _bom_lane(_bom_component("SW1", "RESET"))
+    path = tmp_path / "bom.csv"
+    _write_bom(path, "SW1", lcsc="C999999")
+    with pytest.raises(FabOutputError):
+        cross_validate_bom(path, lane, {"SW1"})
 
 
 def test_zip_is_byte_deterministic(tmp_path: Path) -> None:

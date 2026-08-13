@@ -17,6 +17,7 @@ pipeline with a nonzero exit.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -28,6 +29,7 @@ from acd_adapter_freerouting.ses import parse_ses
 from acd_adapter_kicad.cli import KicadCli
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
+    cross_validate_bom,
     cross_validate_cpl,
     deterministic_zip,
     jlcpcb_bom_csv,
@@ -194,7 +196,13 @@ def run_pipeline(
     cross_validate_cpl(cpl_path, pos_rows, measurement, fitted)
     bom_path = fab_dir / f"{name}-bom-jlcpcb.csv"
     bom_path.write_text(jlcpcb_bom_csv(lane), encoding="utf-8")
-    print(f"[8/10] CPL/BOM generated and cross-validated ({len(pos_rows)} position rows)")
+    cross_validate_bom(bom_path, lane, fitted)
+    with bom_path.open(newline="", encoding="utf-8") as stream:
+        bom_rows = tuple(csv.DictReader(stream))
+    print(
+        f"[8/10] CPL/BOM generated and cross-validated "
+        f"({len(pos_rows)} position rows, {len(bom_rows)} BOM rows)"
+    )
 
     dfm_report = run_dfm(measurement, profile, revision, allowances, lane, intent)
     dfm_path = fab_dir / "dfm-report.json"

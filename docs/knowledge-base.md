@@ -75,6 +75,9 @@ footprint・差分・出所EvidenceとともにKnowledgeItemへ接続する。�
   DRC、DFMで共有し、投影ごとに適用前後が分裂しないようにする。
 - **外部ツール出力は正規化してhashする。** timestamp等の非決定な保存内容を除去する正規化規則を
   固定し、zipの生バイトではなくメンバhashからcontent hashを導出する。
+- **graph投影と発注用exportの同一性キーを分ける。** BOMの行はfab部品番号（LCSC、MPN、
+  footprint）でまとめ、graph上のvalue差異だけで同一発注部品を分割しない。列契約に従う
+  export後のDesignator集合、LCSC、footprintは独立に再読込して照合する。
 
 ## ゲートへの還流
 

@@ -305,6 +305,12 @@ GD1最新実行で生成される製造データは、`out/gd1/fab/`の次のフ
 - `dfm-report.json`
 - `fab-package.json`
 
+発注用BOMの行同一性はfab部品番号（LCSC、MPN、footprint）で決まり、設計グラフ上の
+`value`が異なるだけでは行を分割しない。同一部品番号でvalueが一致する場合はvalueを
+Commentへ出し、不一致の場合はMPNをCommentへ出す。Designatorは自然順のrefdesを
+カンマ区切りでまとめ、未実装部品は含めない。生成後にDesignator集合、LCSC、footprintを
+グラフと独立に照合し、不一致はfail-closedで停止する。
+
 生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `30`個、drill object `40`個、
 pad `132`個、route wire `207`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
 silk最小stroke幅`0.15 mm`である。出所は`out/gd1/fab/dfm-report.json`、
