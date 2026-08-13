@@ -29,6 +29,8 @@ from acd_adapter_freerouting.ses import parse_ses
 from acd_adapter_kicad.cli import KicadCli
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
+    CplBasisError,
+    apply_cpl_contract,
     cross_validate_bom,
     cross_validate_cpl,
     deterministic_zip,
@@ -181,7 +183,6 @@ def run_pipeline(
     pos_rows = parse_pos_csv(pos_path)
     fitted = {component.refdes for component in lane.components if component.assembly == "fitted"}
     cpl_path = fab_dir / f"{name}-cpl-jlcpcb.csv"
-    cpl_path.write_text(jlcpcb_cpl_csv(pos_rows, fitted), encoding="utf-8")
     measurement = parse_routed_board(routed_path)
     drill_tools, drill_count = read_drill_measurement(drill_paths[0])
     measurement = BoardMeasurement(
@@ -197,7 +198,70 @@ def run_pipeline(
     verify_smd_pad_centers_in_gerber(
         gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement
     )
-    cross_validate_cpl(cpl_path, pos_rows, measurement, fitted)
+    edge_overhang_declarations = {
+        str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
+        for node in graph.nodes
+        if node.kind == "mechanical.board_edge_overhang"
+    }
+    cpl_basis_path = fab_dir / "cpl-basis-report.json"
+    try:
+        resolved_pos_rows, cpl_basis_report = apply_cpl_contract(
+            pos_rows, measurement, lane, profile, fitted
+        )
+    except CplBasisError as exc:
+        cpl_basis_report = exc.report
+        cpl_basis_path.write_text(
+            json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        )
+        unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
+        dfm_report = run_dfm(
+            measurement,
+            profile,
+            revision,
+            allowances,
+            lane,
+            intent,
+            edge_clearance_mm=lane.board.edge_copper_clearance_mm,
+            edge_overhang_declarations=edge_overhang_declarations,
+            cpl_unknowns={
+                key: tuple(cast(list[str], value))
+                for key, value in unknowns.items()
+                if isinstance(value, list)
+            },
+        )
+        dfm_report["status"] = "fail"
+        dfm_path = fab_dir / "dfm-report.json"
+        dfm_path.write_text(
+            json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        )
+        failure_package: dict[str, object] = {
+            "schema_version": "0.1",
+            "status": "fail",
+            "target_revision": revision,
+            "fab_profile": {
+                "profile_id": profile.profile_id,
+                "source_url": profile.data["sources"][0]["url"],
+                "fetched_at": profile.data["sources"][0]["fetched_at"],
+            },
+            "files": [],
+            "gates": {"cpl_basis": "fail", "dfm": str(dfm_report["status"])},
+            "unknowns": unknowns,
+        }
+        (fab_dir / "fab-package.json").write_text(
+            json.dumps(failure_package, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        )
+        raise
+    cpl_path.write_text(jlcpcb_cpl_csv(resolved_pos_rows, fitted), encoding="utf-8")
+    cpl_basis_path.write_text(
+        json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    )
+    cross_validate_cpl(
+        cpl_path,
+        pos_rows,
+        measurement,
+        fitted,
+        cast(dict[str, str], cpl_basis_report["position_bases"]),
+    )
     bom_path = fab_dir / f"{name}-bom-jlcpcb.csv"
     bom_path.write_text(jlcpcb_bom_csv(lane), encoding="utf-8")
     cross_validate_bom(bom_path, lane, fitted)
@@ -208,11 +272,6 @@ def run_pipeline(
         f"({len(pos_rows)} position rows, {len(bom_rows)} BOM rows)"
     )
 
-    edge_overhang_declarations = {
-        str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
-        for node in graph.nodes
-        if node.kind == "mechanical.board_edge_overhang"
-    }
     dfm_report = run_dfm(
         measurement,
         profile,
@@ -222,10 +281,39 @@ def run_pipeline(
         intent,
         edge_clearance_mm=lane.board.edge_copper_clearance_mm,
         edge_overhang_declarations=edge_overhang_declarations,
+        cpl_unknowns={
+            key: tuple(cast(list[str], value))
+            for key, value in cast(dict[str, object], cpl_basis_report["unknowns"]).items()
+            if isinstance(value, list)
+        },
     )
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     if dfm_report["status"] != "pass":
+        (fab_dir / "fab-package.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": "0.1",
+                    "status": "fail",
+                    "target_revision": revision,
+                    "fab_profile": {
+                        "profile_id": profile.profile_id,
+                        "source_url": profile.data["sources"][0]["url"],
+                        "fetched_at": profile.data["sources"][0]["fetched_at"],
+                    },
+                    "files": [],
+                    "gates": {
+                        "cpl_basis": cpl_basis_report["status"],
+                        "dfm": str(dfm_report["status"]),
+                    },
+                    "unknowns": dfm_report["unknowns"],
+                },
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        )
         raise ValueError(f"DFM gate failed: {dfm_path}")
     print(f"[9/10] DFM gate passed ({len(cast(list[object], dfm_report['findings']))} findings)")
 

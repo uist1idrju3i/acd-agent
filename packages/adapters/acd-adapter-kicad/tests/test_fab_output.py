@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -8,10 +9,12 @@ import pytest
 
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
+    CplBasisError,
     FabOutputError,
     FootprintMeasurement,
     PadMeasurement,
     ViaMeasurement,
+    apply_cpl_contract,
     cross_validate_bom,
     deterministic_zip,
     jlcpcb_bom_csv,
@@ -22,7 +25,7 @@ from acd_adapter_kicad.fab import (
 from acd_adapter_kicad.library import LibraryPinError
 from acd_adapter_kicad.overlay import apply_overlay
 from acd_core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
-from acd_core.fab import ProcessAllowanceView, load_fab_profile
+from acd_core.fab import FabProfile, ProcessAllowanceView, load_fab_profile
 from acd_core.sexpr import SExpr
 
 ROOT = Path(__file__).parents[4]
@@ -83,6 +86,50 @@ def _bom_component(
 
 def _measurement(via: ViaMeasurement) -> BoardMeasurement:
     return BoardMeasurement((), (via,), None, None, None, None, (), 0)
+
+
+def _cpl_profile(*, position_basis: str = "footprint_origin") -> FabProfile:
+    data = dict(PROFILE.data)
+    data["cpl_contract"] = {
+        "position_basis": position_basis,
+        "position_source_index": 0,
+        "position_evidence_status": "confirmed",
+        "position_note": "test",
+        "rotation_basis": "kicad_footprint",
+        "rotation_source_index": 0,
+        "rotation_evidence_status": "confirmed",
+        "rotation_note": "test",
+    }
+    return FabProfile(data)
+
+
+def _cpl_board() -> BoardMeasurement:
+    pads = (
+        PadMeasurement("C1", "smd", -1.0, 1.0, 0.0, 0.5, 0.5, None, None),
+        PadMeasurement("C1", "smd", 1.0, 1.0, 0.0, 0.5, 0.5, None, None),
+    )
+    fp = FootprintMeasurement(
+        "C1",
+        0.0,
+        0.0,
+        0.0,
+        "F.Cu",
+        pads,
+        body_bbox_mm=(-1.0, -1.0, 1.0, 1.0),
+    )
+    return BoardMeasurement((fp,), (), None, None, None, None, (), 0)
+
+
+def _cpl_rows() -> tuple[dict[str, str], ...]:
+    return (
+        {
+            "Ref": "C1",
+            "PosX": "0.000000",
+            "PosY": "0.000000",
+            "Rot": "0.000000",
+            "Side": "top",
+        },
+    )
 
 
 @pytest.mark.parametrize(
@@ -170,6 +217,82 @@ def test_cpl_requires_exact_fitted_set() -> None:
         pass
     else:
         raise AssertionError("CPL mismatch must fail closed")
+
+
+def test_cpl_basis_gate_accepts_coincident_centers() -> None:
+    component = _bom_component("C1", "test")
+    lane = _bom_lane(component)
+    board = _cpl_board()
+    coincident = FootprintMeasurement(
+        "C1",
+        0.0,
+        0.0,
+        0.0,
+        "F.Cu",
+        (
+            PadMeasurement("C1", "smd", -1.0, 0.0, 0.0, 0.5, 0.5, None, None),
+            PadMeasurement("C1", "smd", 1.0, 0.0, 0.0, 0.5, 0.5, None, None),
+        ),
+        body_bbox_mm=(-1.0, 0.0, 1.0, 0.0),
+    )
+    board = BoardMeasurement((coincident,), (), None, None, None, None, (), 0)
+    rows, report = apply_cpl_contract(
+        _cpl_rows(), board, lane, _cpl_profile(), {"C1"}
+    )
+    assert rows[0]["PosX"] == "0.000000"
+    assert report["status"] == "pass"
+
+
+def test_cpl_basis_gate_rejects_divergent_centers_without_declaration() -> None:
+    with pytest.raises(CplBasisError, match="position basis is unknown"):
+        apply_cpl_contract(
+            _cpl_rows(),
+            _cpl_board(),
+            _bom_lane(_bom_component("C1", "test")),
+            _cpl_profile(),
+            {"C1"},
+        )
+
+
+def test_cpl_basis_gate_rejects_declaration_without_provenance() -> None:
+    component = replace(_bom_component("C1", "test"), cpl_position_basis="pad_bbox_center")
+    with pytest.raises(CplBasisError, match="no source URL"):
+        apply_cpl_contract(
+            _cpl_rows(), _cpl_board(), _bom_lane(component), _cpl_profile(), {"C1"}
+        )
+
+
+def test_cpl_basis_gate_emits_declared_provenanced_center() -> None:
+    component = replace(
+        _bom_component("C1", "test"),
+        cpl_position_basis="pad_bbox_center",
+        cpl_position_source_url="https://example.com/centroid",
+        cpl_position_confirmed_at="2026-08-13T00:00:00Z",
+        cpl_position_evidence_basis="confirmed",
+    )
+    rows, report = apply_cpl_contract(
+        _cpl_rows(), _cpl_board(), _bom_lane(component), _cpl_profile(), {"C1"}
+    )
+    assert rows[0]["PosX"] == "0.000000"
+    assert rows[0]["PosY"] == "-1.000000"
+    assert report["status"] == "pass"
+
+
+def test_cpl_estimated_position_remains_unknown_without_blocking_projection() -> None:
+    component = replace(
+        _bom_component("C1", "test"),
+        cpl_position_basis="pad_bbox_center",
+        cpl_position_source_url="https://example.com/centroid",
+        cpl_position_confirmed_at="2026-08-13T00:00:00Z",
+        cpl_position_evidence_basis="estimated",
+    )
+    rows, report = apply_cpl_contract(
+        _cpl_rows(), _cpl_board(), _bom_lane(component), _cpl_profile(), {"C1"}
+    )
+    assert rows[0]["PosY"] == "-1.000000"
+    assert report["status"] == "fail"
+    unknowns = cast(dict[str, object], report["unknowns"])
+    assert unknowns["cpl_position_basis_fab_preview"] == ["C1"]
 
 
 def test_jlcpcb_bom_groups_by_fab_part_and_uses_mpn_for_mixed_values() -> None:

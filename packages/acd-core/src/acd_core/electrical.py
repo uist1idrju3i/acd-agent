@@ -42,6 +42,15 @@ class ComponentView:
     overlay_file: str | None = None
     overlay_sha256: str | None = None
     decoupling_target: str | None = None
+    cpl_position_basis: str | None = None
+    cpl_position_source_url: str | None = None
+    cpl_position_confirmed_at: str | None = None
+    cpl_position_evidence_basis: str | None = None
+    cpl_position_evidence_note: str | None = None
+    cpl_rotation_basis: str | None = None
+    cpl_rotation_source_url: str | None = None
+    cpl_rotation_confirmed_at: str | None = None
+    cpl_rotation_offset_deg: float | None = None
 
 
 @dataclass(frozen=True)
@@ -155,6 +164,20 @@ def _library_pin(node: GraphNode) -> LibraryPin:
     )
 
 
+def _optional_str(node: GraphNode, key: str) -> str | None:
+    value = node.attrs.get(key)
+    if value is not None and (not isinstance(value, str) or not value):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a non-empty string")
+    return value
+
+
+def _optional_number(node: GraphNode, key: str) -> float | None:
+    value = node.attrs.get(key)
+    if value is not None and (isinstance(value, bool) or not isinstance(value, int | float)):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a number")
+    return None if value is None else float(value)
+
+
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
     components: list[ComponentView] = []
     nets: list[NetView] = []
@@ -188,6 +211,19 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     overlay_file=overlay_file,
                     overlay_sha256=overlay_sha256,
                     decoupling_target=decoupling_target,
+                    cpl_position_basis=_optional_str(node, "cpl_position_basis"),
+                    cpl_position_source_url=_optional_str(node, "cpl_position_source_url"),
+                    cpl_position_confirmed_at=_optional_str(node, "cpl_position_confirmed_at"),
+                    cpl_position_evidence_basis=_optional_str(
+                        node, "cpl_position_evidence_basis"
+                    ),
+                    cpl_position_evidence_note=_optional_str(
+                        node, "cpl_position_evidence_note"
+                    ),
+                    cpl_rotation_basis=_optional_str(node, "cpl_rotation_basis"),
+                    cpl_rotation_source_url=_optional_str(node, "cpl_rotation_source_url"),
+                    cpl_rotation_confirmed_at=_optional_str(node, "cpl_rotation_confirmed_at"),
+                    cpl_rotation_offset_deg=_optional_number(node, "cpl_rotation_offset_deg"),
                 )
             )
             if components[-1].assembly not in {"fitted", "not_fitted"}:

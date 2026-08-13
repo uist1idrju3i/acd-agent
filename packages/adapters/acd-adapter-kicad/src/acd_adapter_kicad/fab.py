@@ -36,6 +36,14 @@ class FabOutputError(ValueError):
     """Raised when manufacturing output cannot be proven correct."""
 
 
+class CplBasisError(FabOutputError):
+    """Raised when CPL basis or provenance is unknown."""
+
+    def __init__(self, message: str, report: dict[str, object]) -> None:
+        super().__init__(message)
+        self.report = report
+
+
 @dataclass(frozen=True)
 class PadMeasurement:
     refdes: str
@@ -542,6 +550,7 @@ def run_dfm(
     intent: FabOrderIntentView | None = None,
     edge_clearance_mm: float | None = None,
     edge_overhang_declarations: Mapping[str, float] | None = None,
+    cpl_unknowns: Mapping[str, Sequence[str]] | None = None,
 ) -> dict[str, object]:
     if edge_clearance_mm is None:
         raise FabOutputError(
@@ -976,6 +985,21 @@ def run_dfm(
             )
         )
     status = "pass" if all(item["status"] == "allowed" for item in findings) else "fail"
+    unknowns: dict[str, object] = {
+        "cpl_rotation_basis_fab_lcsc": (
+            "unknown: KiCad rotation was emitted without independent fab/LCSC "
+            "component-orientation preview comparison"
+        )
+    }
+    if cpl_unknowns is not None:
+        for key, refs in cpl_unknowns.items():
+            unknowns[key] = {
+                "status": "unknown",
+                "designators": list(refs),
+                "reason": "実装基準はfab側プレビューでの目視確認が必要",
+            }
+        if any(cpl_unknowns.values()):
+            status = "fail"
     return {
         "schema_version": "0.1",
         "target_revision": revision,
@@ -1003,12 +1027,7 @@ def run_dfm(
             "drill_tool_diameters_mm": measurement.drill_tool_diameters_mm,
             "drill_object_count": measurement.drill_object_count,
         },
-        "unknowns": {
-            "cpl_rotation_basis_fab_lcsc": (
-                "unknown: KiCad rotation was emitted without independent fab/LCSC "
-                "component-orientation preview comparison"
-            )
-        },
+        "unknowns": unknowns,
     }
 
 
@@ -1038,6 +1057,161 @@ def jlcpcb_cpl_csv(rows: Iterable[dict[str, str]], fitted: set[str]) -> str:
     if seen != fitted:
         raise FabOutputError(f"CPL fitted designator mismatch: missing={sorted(fitted - seen)}")
     return output.getvalue()
+
+
+def _bbox_center(
+    bbox: tuple[float, float, float, float] | None,
+) -> tuple[float, float] | None:
+    if bbox is None:
+        return None
+    return ((bbox[0] + bbox[2]) / 2.0, (bbox[1] + bbox[3]) / 2.0)
+
+
+def _pad_bbox_center(fp: FootprintMeasurement) -> tuple[float, float] | None:
+    if not fp.pads:
+        return None
+    xs = [pad.x_mm for pad in fp.pads]
+    ys = [pad.y_mm for pad in fp.pads]
+    return ((min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0)
+
+
+def _cpl_position(
+    fp: FootprintMeasurement, basis: str
+) -> tuple[float, float] | None:
+    if basis == "footprint_origin":
+        return (fp.x_mm, fp.y_mm)
+    if basis == "body_bbox_center":
+        return _bbox_center(fp.body_bbox_mm)
+    if basis == "pad_bbox_center":
+        return _pad_bbox_center(fp)
+    raise FabOutputError(f"{fp.refdes}: unsupported CPL position basis {basis!r}")
+
+
+def _geometry_centers(fp: FootprintMeasurement) -> dict[str, tuple[float, float] | None]:
+    return {
+        "footprint_origin": (fp.x_mm, fp.y_mm),
+        "body_bbox_center": _bbox_center(fp.body_bbox_mm),
+        "pad_bbox_center": _pad_bbox_center(fp),
+    }
+
+
+def _centers_disagree(
+    centers: Mapping[str, tuple[float, float] | None], tolerance_mm: float
+) -> bool:
+    present = [center for center in centers.values() if center is not None]
+    return any(
+        math.dist(first, second) > tolerance_mm
+        for index, first in enumerate(present)
+        for second in present[index + 1 :]
+    )
+
+
+def apply_cpl_contract(
+    position_rows: tuple[dict[str, str], ...],
+    board: BoardMeasurement,
+    lane: ElectricalLane,
+    profile: FabProfile,
+    fitted: set[str],
+    tolerance_mm: float = 0.001,
+) -> tuple[tuple[dict[str, str], ...], dict[str, object]]:
+    """Resolve and independently validate the declared CPL basis."""
+    contract = cast(dict[str, object], profile.data["cpl_contract"])
+    default_position_basis = str(contract["position_basis"])
+    default_rotation_basis = str(contract["rotation_basis"])
+    components = {component.refdes: component for component in lane.components}
+    footprints = {fp.refdes: fp for fp in board.footprints}
+    unknown_position: list[str] = []
+    unknown_rotation: list[str] = []
+    errors: list[str] = []
+    resolved: list[dict[str, str]] = []
+    resolved_bases: dict[str, str] = {}
+
+    for source in sorted(position_rows, key=lambda row: refdes_key(row["Ref"])):
+        ref = source["Ref"]
+        if ref not in fitted:
+            continue
+        component = components.get(ref)
+        fp = footprints.get(ref)
+        if component is None or fp is None:
+            errors.append(f"{ref}: CPL basis source is absent from independent sources")
+            continue
+        centers = _geometry_centers(fp)
+        position_basis = default_position_basis
+        if _centers_disagree(centers, tolerance_mm):
+            position_basis = component.cpl_position_basis or ""
+            if not position_basis:
+                unknown_position.append(ref)
+                errors.append(
+                    f"{ref}: CPL position basis is unknown; "
+                    "component declaration and provenance are required"
+                )
+            elif (
+                component.cpl_position_source_url is None
+                or component.cpl_position_confirmed_at is None
+            ):
+                unknown_position.append(ref)
+                errors.append(
+                    f"{ref}: CPL position basis {position_basis!r} has no source URL "
+                    "and confirmation date"
+                )
+            elif component.cpl_position_evidence_basis not in {"estimated", "confirmed"}:
+                errors.append(
+                    f"{ref}: CPL position evidence basis must be 'estimated' or 'confirmed'"
+                )
+            elif component.cpl_position_evidence_basis == "estimated":
+                unknown_position.append(ref)
+        if position_basis:
+            resolved_bases[ref] = position_basis
+            try:
+                position = _cpl_position(fp, position_basis)
+            except FabOutputError as exc:
+                errors.append(str(exc))
+                position = None
+            if position is None:
+                errors.append(f"{ref}: CPL position basis {position_basis!r} is unmeasurable")
+            else:
+                output = dict(source)
+                output["PosX"] = f"{position[0]:.6f}"
+                output["PosY"] = f"{-position[1]:.6f}"
+                rotation = float(source["Rot"])
+                if default_rotation_basis == "component_part_number":
+                    if (
+                        component.cpl_rotation_basis != "component_part_number"
+                        or component.cpl_rotation_source_url is None
+                        or component.cpl_rotation_confirmed_at is None
+                        or component.cpl_rotation_offset_deg is None
+                    ):
+                        unknown_rotation.append(ref)
+                    else:
+                        rotation += component.cpl_rotation_offset_deg
+                elif default_rotation_basis != "kicad_footprint":
+                    errors.append(
+                        f"{ref}: unsupported CPL rotation basis {default_rotation_basis!r}"
+                    )
+                output["Rot"] = f"{rotation % 360.0:.6f}"
+                resolved.append(output)
+
+    report: dict[str, object] = {
+        "schema_version": "0.1",
+        "status": "fail" if errors or unknown_position or unknown_rotation else "pass",
+        "position_basis": default_position_basis,
+        "rotation_basis": default_rotation_basis,
+        "unknowns": {
+            "cpl_position_basis": sorted(set(unknown_position), key=refdes_key),
+            "cpl_rotation_basis_fab_lcsc": sorted(set(unknown_rotation), key=refdes_key),
+            "cpl_position_basis_fab_preview": sorted(
+                set(unknown_position), key=refdes_key
+            ),
+        },
+        "position_bases": resolved_bases,
+        "errors": errors,
+    }
+    if errors:
+        raise CplBasisError(
+            "CPL basis gate failed: " + "; ".join(errors),
+            report,
+        )
+    return tuple(resolved), report
 
 
 def jlcpcb_bom_csv(lane: ElectricalLane) -> str:
@@ -1110,8 +1284,8 @@ def cross_validate_cpl(
     position_rows: tuple[dict[str, str], ...],
     board: BoardMeasurement,
     fitted: set[str],
+    position_bases: Mapping[str, str] | None = None,
     tolerance_mm: float = 0.001,
-    tolerance_deg: float = 0.01,
 ) -> None:
     with cpl_path.open(newline="", encoding="utf-8-sig") as stream:
         cpl_rows = tuple(csv.DictReader(stream))
@@ -1125,12 +1299,18 @@ def cross_validate_cpl(
             raise FabOutputError(f"CPL refdes {ref!r} is absent from independent sources")
         expected = source[ref]
         actual = footprints[ref]
-        if abs(float(row["Mid X"]) - actual.x_mm) > tolerance_mm:
-            raise FabOutputError(f"{ref}: CPL X differs from routed board")
-        if abs(-float(row["Mid Y"]) - actual.y_mm) > tolerance_mm:
-            raise FabOutputError(f"{ref}: CPL Y differs from routed board")
-        if abs(float(row["Rotation"]) - actual.rotation_deg) > tolerance_deg:
-            raise FabOutputError(f"{ref}: CPL rotation differs from routed board")
+        if abs(float(expected["PosX"]) - actual.x_mm) > tolerance_mm:
+            raise FabOutputError(f"{ref}: position source X differs from routed board origin")
+        if abs(-float(expected["PosY"]) - actual.y_mm) > tolerance_mm:
+            raise FabOutputError(f"{ref}: position source Y differs from routed board origin")
+        basis = (position_bases or {}).get(ref, "footprint_origin")
+        selected = _cpl_position(actual, basis)
+        if selected is None:
+            raise FabOutputError(f"{ref}: selected CPL basis {basis!r} is unmeasurable")
+        if abs(float(row["Mid X"]) - selected[0]) > tolerance_mm:
+            raise FabOutputError(f"{ref}: CPL X differs from selected independent basis")
+        if abs(-float(row["Mid Y"]) - selected[1]) > tolerance_mm:
+            raise FabOutputError(f"{ref}: CPL Y differs from selected independent basis")
         if row["Layer"].lower() != expected["Side"].lower():
             raise FabOutputError(f"{ref}: CPL layer differs from position CSV")
 

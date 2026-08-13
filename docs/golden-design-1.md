@@ -319,6 +319,12 @@ Commentへ出し、不一致の場合はMPNをCommentへ出す。Designatorは�
 カンマ区切りでまとめ、未実装部品は含めない。生成後にDesignator集合、LCSC、footprintを
 グラフと独立に照合し、不一致はfail-closedで停止する。
 
+CPLの`Mid X`/`Mid Y`はJLCPCB公式のcomponent centroid定義を参照するが、算出方法は
+公式に明記されていない。GD1では独立測定とビューワ実測の符号・大きさが一致したため、
+U1/J1のpad bbox中心を`estimated`な宣言として記録した。これはJLCPCBの確定仕様ではなく、
+fab側プレビューの目視確認が必要であり、回転の部品番号別テープ向きも未確認として
+部品単位のunknownに残す。第三者補正表は合格根拠にしない。
+
 生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `24`個、drill object `34`個、
 pad `132`個、route wire `188`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
 silk最小stroke幅`0.15 mm`である。J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、

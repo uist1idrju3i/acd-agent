@@ -229,6 +229,11 @@
     {
       "attrs": {
         "assembly": "fitted",
+        "cpl_position_basis": "pad_bbox_center",
+        "cpl_position_evidence_basis": "estimated",
+        "cpl_position_evidence_note": "JLCPCB公式(https://jlcpcb.com/help/article/pick-place-file-for-pcb-assembly、2026-08-13取得)はcomponent centroidと定義するが算出方法は非公開。独立実測の原点→pad bbox中心は(0,+2.7000)mm、ビューワ実測は約(0,+2.9)mmで符号と大きさが概ね一致し、原点→本体bbox中心は(0,0)mmだったため、land中心と推定した。第三者資料(https://github.com/Bouni/kicad-jlcpcb-tools/issues/418、https://forum.kicad.info/t/is-there-a-simple-way-to-update-all-my-footprints-to-use-the-jlcpcb-orientations/38931)は傍証であり合格根拠ではない。fab側プレビューの目視確認が必要で、自動承認しない。",
+        "cpl_position_source_url": "https://jlcpcb.com/help/article/pick-place-file-for-pcb-assembly",
+        "cpl_position_confirmed_at": "2026-08-13",
         "footprint": "Espressif:ESP32-C3-MINI-1",
         "footprint_file": "libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod",
         "footprint_sha256": "sha256:f1899b54ab6c007d50e76334f3fb8f340a827bc1d26f1ba24003333c214a7626",
@@ -974,6 +979,11 @@
     {
       "attrs": {
         "assembly": "fitted",
+        "cpl_position_basis": "pad_bbox_center",
+        "cpl_position_evidence_basis": "estimated",
+        "cpl_position_evidence_note": "JLCPCB公式(https://jlcpcb.com/help/article/pick-place-file-for-pcb-assembly、2026-08-13取得)はcomponent centroidと定義するが算出方法は非公開。独立実測の原点→pad bbox中心は(0,-1.4975)mm、ビューワ実測は約(0,-1.5)mmで符号と大きさが一致し、原点→本体bbox中心は(0,0)mmだったため、land中心と推定した。第三者資料(https://github.com/Bouni/kicad-jlcpcb-tools/issues/418、https://forum.kicad.info/t/is-there-a-simple-way-to-update-all-my-footprints-to-use-the-jlcpcb-orientations/38931)は傍証であり合格根拠ではない。fab側プレビューの目視確認が必要で、自動承認しない。",
+        "cpl_position_source_url": "https://jlcpcb.com/help/article/pick-place-file-for-pcb-assembly",
+        "cpl_position_confirmed_at": "2026-08-13",
         "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
         "footprint_file": "/usr/share/kicad/footprints/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
         "footprint_sha256": "sha256:c562a7f9713a8b754c4d2305a2ea15453469a1c8c48a9b17973383e8993fc750",
