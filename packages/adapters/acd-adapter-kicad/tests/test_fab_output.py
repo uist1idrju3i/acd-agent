@@ -16,6 +16,7 @@ from acd_adapter_kicad.fab import (
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
+    rotate_kicad,
     run_dfm,
 )
 from acd_adapter_kicad.library import LibraryPinError
@@ -82,6 +83,14 @@ def _bom_component(
 
 def _measurement(via: ViaMeasurement) -> BoardMeasurement:
     return BoardMeasurement((), (via,), None, None, None, None, (), 0)
+
+
+@pytest.mark.parametrize(
+    ("angle", "expected"),
+    [(0.0, (3.15, 2.3)), (90.0, (2.3, -3.15)), (180.0, (-3.15, -2.3)), (270.0, (-2.3, 3.15))],
+)
+def test_fab_rotation_matches_kicad(angle: float, expected: tuple[float, float]) -> None:
+    assert rotate_kicad(3.15, 2.3, angle) == pytest.approx(expected)
 
 
 def test_small_via_requires_allowance() -> None:

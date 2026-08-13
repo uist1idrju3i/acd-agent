@@ -10,10 +10,11 @@ import zipfile
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import sexpdata  # pyright: ignore[reportMissingTypeStubs]
 from gerbonara.excellon import ExcellonFile  # pyright: ignore[reportMissingTypeStubs]
+from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
 from acd_core.bom import refdes_key
 from acd_core.electrical import ComponentView, ElectricalLane
@@ -138,13 +139,16 @@ def _property(node: object, name: str) -> str | None:
 def _rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     radians = math.radians(angle)
     return (
-        x * math.cos(radians) - y * math.sin(radians),
-        x * math.sin(radians) + y * math.cos(radians),
+        x * math.cos(radians) + y * math.sin(radians),
+        -x * math.sin(radians) + y * math.cos(radians),
     )
 
 
 def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     return _rotate(x, y, -angle)
+
+
+rotate_kicad = _rotate
 
 
 def _footprint_bbox(
@@ -176,6 +180,77 @@ def _footprint_bbox(
     ]
     xs, ys = zip(*transformed, strict=True)
     return min(xs), min(ys), max(xs), max(ys)
+
+
+def _point_in_polygon(x: float, y: float, polygon: Sequence[tuple[float, float]]) -> bool:
+    inside = False
+    for (x1, y1), (x2, y2) in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            inside = not inside
+    return inside
+
+
+def verify_smd_pad_centers_in_gerber(
+    gerber_path: Path, measurement: BoardMeasurement
+) -> None:
+    try:
+        layer = GerberFile.open(gerber_path)  # pyright: ignore[reportUnknownMemberType]
+        objects = cast("list[object]", layer.objects)  # pyright: ignore[reportUnknownMemberType]
+    except Exception as exc:
+        raise FabOutputError(
+            f"{gerber_path.name}: Gerber pad coverage parse failed: {exc}"
+        ) from exc
+
+    def covered(x: float, y: float) -> bool:
+        for obj in objects:
+            if not getattr(obj, "polarity_dark", True):
+                continue
+            kind = type(obj).__name__
+            if kind == "Flash":
+                typed_obj = cast(Any, obj)
+                aperture = getattr(obj, "aperture", None)
+                width = float(getattr(aperture, "w", getattr(aperture, "diameter", 0.0)))
+                height = float(getattr(aperture, "h", width))
+                obj_x = float(typed_obj.x)
+                obj_y = float(typed_obj.y)
+                if abs(x - obj_x) <= width / 2 and abs(y - obj_y) <= height / 2:
+                    return True
+            elif kind == "Region":
+                outline = cast("list[tuple[float, float]]", cast(Any, obj).outline)
+                if _point_in_polygon(x, y, outline):
+                    return True
+            elif kind == "Line":
+                typed_obj = cast(Any, obj)
+                x1 = float(typed_obj.x1)
+                y1 = float(typed_obj.y1)
+                x2 = float(typed_obj.x2)
+                y2 = float(typed_obj.y2)
+                dx, dy = x2 - x1, y2 - y1
+                length_sq = dx * dx + dy * dy
+                t = (
+                    0.0
+                    if length_sq == 0
+                    else max(
+                        0.0,
+                        min(1.0, ((x - x1) * dx + (y - y1) * dy) / length_sq),
+                    )
+                )
+                nearest_x, nearest_y = x1 + t * dx, y1 + t * dy
+                aperture = getattr(obj, "aperture", None)
+                radius = float(getattr(aperture, "diameter", 0.0)) / 2
+                if math.hypot(x - nearest_x, y - nearest_y) <= radius:
+                    return True
+        return False
+
+    missing = [
+        pad.refdes
+        for pad in measurement.pads
+        if pad.kind == "smd" and not covered(pad.x_mm, -pad.y_mm)
+    ]
+    if missing:
+        raise FabOutputError(
+            f"{gerber_path.name}: F.Cu does not cover SMD pad centers {sorted(set(missing))}"
+        )
 
 
 def _parse_pad(

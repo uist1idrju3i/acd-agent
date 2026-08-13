@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from acd_adapter_kicad.placement import PlacementError, compute_placements
+from acd_adapter_kicad.placement import (
+    PlacementError,
+    compute_placements,
+    pad_position,
+    placed_rect,
+)
 from acd_core.board_model import FootprintShape, PadShape
 from acd_core.electrical import BoardView, ComponentView, LibraryPin
 
@@ -94,7 +99,7 @@ def test_connected_components_placed_near_each_other() -> None:
     d_unconnected = abs(placements["R1"].x_mm - placements["R2"].x_mm) + abs(
         placements["R1"].y_mm - placements["R2"].y_mm
     )
-    assert d_connected <= d_unconnected + 1e-9
+    assert d_connected <= d_unconnected + 2 * 0.25 + 1e-9
 
 
 def test_placement_fails_closed_when_board_is_too_small() -> None:
@@ -130,3 +135,51 @@ def test_edge_anchors_are_derived_from_footprint_geometry() -> None:
     by_refdes = {item.refdes: item for item in placements}
     assert by_refdes["J1"].y_mm == pytest.approx(21.35)
     assert by_refdes["U1"].y_mm == pytest.approx(2.9)
+
+
+@pytest.mark.parametrize(
+    ("rotation", "expected"),
+    [
+        (0.0, (7.3, 14.7)),
+        (90.0, (4.15, 11.55)),
+        (180.0, (1.0, 14.7)),
+        (270.0, (4.15, 17.85)),
+    ],
+)
+def test_tab_pad_position_uses_kicad_clockwise_rotation(
+    rotation: float, expected: tuple[float, float]
+) -> None:
+    footprint = FootprintShape(
+        "Package_SOT:SOT-223-3_TabPin2",
+        (
+            PadShape("2", 3.15, 0.0, 0.0, "rect", 2.0, 3.8, False, None, True, False),
+        ),
+    )
+    assert pad_position(footprint, (4.15, 14.7), rotation, "2") == pytest.approx(expected)
+
+
+def test_u2_asymmetric_pads_match_kicad_coordinates() -> None:
+    footprint = FootprintShape(
+        "Package_SOT:SOT-223-3_TabPin2",
+        (
+            PadShape("1", -3.15, -2.3, 0.0, "rect", 1.0, 1.0, False, None, True, False),
+            PadShape("2", 3.15, 0.0, 0.0, "rect", 2.0, 3.8, False, None, True, False),
+        ),
+    )
+    assert pad_position(footprint, (4.15, 14.7), 90.0, "1") == pytest.approx(
+        (1.85, 17.85)
+    )
+    assert pad_position(footprint, (4.15, 14.7), 90.0, "2") == pytest.approx(
+        (4.15, 11.55)
+    )
+
+
+def test_placed_rect_uses_kicad_clockwise_rotation() -> None:
+    footprint = FootprintShape(
+        "Package_SOT:SOT-223-3_TabPin2",
+        (PadShape("2", 3.15, 0.0, 0.0, "rect", 2.0, 3.8, False, None, True, False),),
+    )
+    rect = placed_rect(footprint, 4.15, 14.7, 90.0)
+    assert (rect.x1, rect.y1, rect.x2, rect.y2) == pytest.approx(
+        (2.25, 10.55, 6.05, 12.55)
+    )

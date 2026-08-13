@@ -38,6 +38,7 @@ from acd_adapter_kicad.fab import (
     parse_routed_board,
     read_drill_measurement,
     run_dfm,
+    verify_smd_pad_centers_in_gerber,
     zip_content_hash,
 )
 from acd_adapter_kicad.gates import assert_converged, assert_rule_check_passed
@@ -192,6 +193,9 @@ def run_pipeline(
         measurement.outline_bbox_mm,
         drill_tools,
         drill_count,
+    )
+    verify_smd_pad_centers_in_gerber(
+        gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement
     )
     cross_validate_cpl(cpl_path, pos_rows, measurement, fitted)
     bom_path = fab_dir / f"{name}-bom-jlcpcb.csv"

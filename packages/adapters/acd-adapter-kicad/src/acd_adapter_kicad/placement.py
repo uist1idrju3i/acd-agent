@@ -83,11 +83,11 @@ def _placed_rect(footprint: FootprintShape, x: float, y: float, rotation: float)
     x1, y1, x2, y2 = _pad_bbox(footprint, _MARGIN_MM)
     rot = rotation % 360
     if rot == 90.0:
-        x1, y1, x2, y2 = -y2, x1, -y1, x2
+        x1, y1, x2, y2 = y1, -x2, y2, -x1
     elif rot == 180.0:
         x1, y1, x2, y2 = -x2, -y2, -x1, -y1
     elif rot == 270.0:
-        x1, y1, x2, y2 = y1, -x2, y2, -x1
+        x1, y1, x2, y2 = -y2, x1, -y1, x2
     elif rot != 0.0:
         raise PlacementError(f"unsupported rotation {rotation} (fail-closed)")
     return Rect(x + x1, y + y1, x + x2, y + y2)
@@ -346,11 +346,11 @@ def _pad_position(
     x, y = pad.x_mm, pad.y_mm
     rot = rotation % 360.0
     if rot == 90.0:
-        x, y = -y, x
+        x, y = y, -x
     elif rot == 180.0:
         x, y = -x, -y
     elif rot == 270.0:
-        x, y = y, -x
+        x, y = -y, x
     elif rot != 0.0:
         raise PlacementError(f"unsupported rotation {rotation} (fail-closed)")
     return placement[0] + x, placement[1] + y
@@ -375,3 +375,7 @@ def _pad_positions(
         for pad in footprint.pads
         if pad.number == pad_number
     )
+
+
+pad_position = _pad_position
+placed_rect = _placed_rect

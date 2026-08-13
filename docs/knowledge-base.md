@@ -80,6 +80,8 @@ footprint・差分・出所EvidenceとともにKnowledgeItemへ接続する。�
   export後のDesignator集合、LCSC、footprintは独立に再読込して照合する。
 - **配置アンカーはfootprint幾何とグラフ宣言から導出し、定数化しない。** 意図した板端
   はみ出しはグラフで宣言し、生成物の独立実測と照合する。
+- **回転規約は別経路の生成物と突き合わせる。** 非対称footprintの90°/270°を必ずテストし、
+  Gerber銅・3Dレンダ・KiCad出力でpad座標を検証する。
 - **SMD pad上viaを構造的に禁止する。** Freerouting DSNの`structure`へ`(via_at_smd off)`を
   出力し、DFMのvia-in-pad検査を緩めず不要な工程リスクとコストを防ぐ。
 
