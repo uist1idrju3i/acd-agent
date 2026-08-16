@@ -5,6 +5,9 @@
 
 本書は、設計グラフからレビュー用投影を生成し、別コンテキストのAIが観察結果を
 `ReviewFinding`として記録し、決定論的ゲートで工程出口への収束を確認する契約を正とする。
+この`ReviewFinding`の処分状態、`RV1`／`RV2`、影響分析に基づく投影選択は
+`small-production`以上で有効化する。`hobby`はSDKのsubagent／visionによるbest-effortレビューと
+ERC/DRC・独立parser再読込を用いる。profile境界はADR-0008を参照する。
 投影の正規性は[`architecture.md`](architecture.md)、工程の順序は
 [`design-flow.md`](design-flow.md)、Q7/N7の定義は[`qc-tools.md`](qc-tools.md)を参照する。
 

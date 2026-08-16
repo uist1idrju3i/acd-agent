@@ -80,6 +80,7 @@
 | `adr/ADR-0005-jlcpcb-pcba-preparation-contract.md` | JLCPCB PCBA準備契約 | Accepted |
 | `adr/ADR-0006-vendor-submodule-policy.md` | vendor submoduleの対象と固定方針 | Accepted |
 | `adr/ADR-0007-llm-guided-physical-design.md` | LLM主導の物理設計探索の三層分離 | Accepted |
+| `adr/ADR-0008-minimal-vibebb-scope.md` | VibeBB最小構成とprofileによる段階有効化 | Accepted |
 
 `runtime.md`は後続の実装・設計決定で追加する。機械可読契約の正本は`schemas/`、
 設計決定は`docs/adr/`にある。未作成の文書へリンクを張らず、必要な場合は本文で

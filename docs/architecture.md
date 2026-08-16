@@ -103,6 +103,9 @@ idempotency keyの単位はtool呼び出し1回とする。coreは外部ツー�
 分割の判定基準は「版とstale境界」である。独立に版が動くツール版、形式版、ライブラリ
 commit、profileは別モジュールへ分ける。モジュール境界と再検証単位（stale伝播の単位）を
 一致させ、schema変更で無関係なEvidenceが一斉失効しないようにする。
+このstale伝播と影響分析による選択的再検証は`small-production`以上で有効化する。
+`hobby`では変更ごとに全ゲートを再実行し、境界の詳細は
+[`adr/ADR-0008-minimal-vibebb-scope.md`](adr/ADR-0008-minimal-vibebb-scope.md)に従う。
 
 SDKはSkill／plugin（作業資材）、`AgentDefinition`（役割）、tool（副作用）、workspace
 （実行環境）という分割単位を持つ。ACDのモジュール境界はこれらへ写像できるようにするが、

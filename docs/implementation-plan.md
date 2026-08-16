@@ -73,10 +73,11 @@ acd-agent/
 | `gate_run` | read | 決定論的ゲート実行とEvidence生成 |
 | `evidence_query` | read | Evidence・stale状態の照会 |
 | `commit_receipt` | 可逆 | commit実行とcommit receipt生成 |
-| `order_execute` | 不可逆 | 発注実行（Phase 11。裁量枠・最終ゲート・承認確認付き） |
+| `order_execute` | 不可逆 | 発注実行（Phase 11。`hobby`は上限額と直前全ゲート、`small-production`以上は裁量枠・最終ゲート・承認確認付き） |
 
-全toolは共通executorを経由し、tool envelope（版、入力・出力hash、実行条件、idempotency
-key、`unknown`意味論）を強制する。readと不可逆操作を同一toolへ混ぜない。
+全toolは共通executorを経由し、`hobby`では版と入力・出力hashを記録する。
+idempotency key、副作用分類、`unknown`意味論を含む量産品質のtool envelopeは
+`small-production`以上で有効化する。readと不可逆操作を同一toolへ混ぜない。
 
 ## 3. Skill・plugin・AgentDefinitionの分割
 
@@ -136,6 +137,7 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 4. 部品カタログ・ライブラリの出所方針（Phase 0で確定）。
 5. AI主導の配置・回転・配線探索の三層分離と、探索ハーネスをリポジトリへcommitする方針
    （[`ADR-0007`](adr/ADR-0007-llm-guided-physical-design.md)）。
+6. VibeBBの最小構成とprofileによる機構の段階有効化（[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)）。
 
 探索器・整合化器・代理指標の生成側と、実測・ゲートの判定側は別モジュールとして実装する。
 探索ハーネスは`scripts/`または`packages/`へcommitし、使い捨ての外部スクリプトへ依存しない。

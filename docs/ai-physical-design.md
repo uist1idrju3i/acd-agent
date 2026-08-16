@@ -4,6 +4,9 @@
 > 対象: `E2`アートワーク（配置・回転・配線）の探索へのLLM活用方針、OpenHands SDK v1.42.1、調査日 2026-08-16 UTC
 
 本書は、部品配置・回転角・配線という組合せ探索へLLMをどう使い、どこに使わないかの方針を正とする。
+機械可読な探索仕様と探索固有の詳細Evidenceは`small-production`以上で必須とし、`hobby`では
+会話履歴を設計根拠として利用できる。LLMの座標・回転角の直接出力禁止と代理指標を合格根拠にしない
+原則は全profileで維持する。profile境界は[`adr/ADR-0008-minimal-vibebb-scope.md`](adr/ADR-0008-minimal-vibebb-scope.md)を参照する。
 先行事例の一次情報と確度は[`prior-art.md`](prior-art.md)の「§21 配置・配線へのAI／LLM適用」、
 レビューの契約は[`projection-review.md`](projection-review.md)、SDK機能の割り当ては
 [`openhands-integration.md`](openhands-integration.md)、フェーズ境界は[`roadmap.md`](roadmap.md)を正とする。
@@ -194,6 +197,9 @@ LLMは「この基板ではどの部品にどの刻みを使うべきか」と�
 `prior-art.md`の追跡対象として保持する。
 
 ## 9. 記録するEvidence
+
+以下の探索固有の詳細記録は`small-production`以上で有効化する。`hobby`では外部ツール名、
+版、入力hash、出力hashと、ERC/DRC・独立parser再読込の結果を最低限記録する。
 
 探索ループの各段で、次を記録する。既存の記録要件（[`../AGENTS.md`](../AGENTS.md)の
 「決定論と記録」）に加えて、探索固有の項目を明示する。

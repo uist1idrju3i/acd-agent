@@ -168,6 +168,14 @@ SDKの機能は実行、配布、反復、分業、防護の基盤として利�
 [`architecture.md`](architecture.md)に従い、OpenHands側へ移したファイル実体をACDの正へ
 逆流させない。
 
+### `hobby`最小構成でのSDK割り当て
+
+`hobby`では会話履歴（OpenHandsの`EventLog`）を設計根拠として扱い、SDKのsubagentとvisionを
+best-effortレビューへ割り当てる。予算は`AgentDefinition.max_budget_per_run`、長時間実行は
+checkpoint／resume、安全な副作用確認は`ConfirmationPolicy`を使う。ACDに残す責務は投影生成、
+決定論的ゲート、発注ガードであり、`ReviewFinding`処分状態や重いEvidence失効伝播は
+`small-production`以上で有効化する。profile境界はADR-0008を参照する。
+
 ### skills、plugin、marketplace
 
 工程ごとのレビュー観点チェックリスト、Q7/N7の作業手法、ECAD操作手順をfrontmatter付き
