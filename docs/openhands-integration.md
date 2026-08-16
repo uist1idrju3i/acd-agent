@@ -12,6 +12,48 @@
 `openhands-sdk/openhands/sdk/tool/`、`openhands-sdk/openhands/sdk/security/`、
 `openhands-workspace/openhands/workspace/`のリポジトリ相対パスにある。
 
+## v1.41.0からv1.42.1への変更点記録
+
+確認日: 2026-08-16。一次情報は[SDK v1.42.0リリースノート](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.0)、
+[SDK v1.42.1リリースノート](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1)、
+[v1.41.0からv1.42.1のcommit差分](https://github.com/OpenHands/software-agent-sdk/compare/v1.41.0...v1.42.1)、
+およびsubmoduleのcommit
+`ca46719d5e9a0b0af79f7de2da37067a5b94563c`→
+`167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`である。
+
+### ACDが使用するAPIの確認
+
+ACDが実際にimportする次のAPIについて、両commitのtreeとsourceを比較した。
+
+- `openhands.sdk.event.base.Event`
+- `openhands.sdk.hooks.types.HookDecision`
+- `openhands.sdk.llm`
+- `openhands.sdk.testing.TestLLM`
+- `openhands.sdk.extensions.installation.info.InstallationInfo`
+- `openhands.sdk.extensions.installation.metadata.InstallationMetadata`
+
+上記のmodule pathと対象symbolは両commitに存在した。`event/base.py`、
+`hooks/types.py`、`testing/test_llm.py`、installationの`info.py`／`metadata.py`には
+この範囲の変更を確認せず、関連領域で差分があった`llm.py`にも上記import pathを
+壊す変更は確認しなかった。したがって、今回の差分におけるACDの使用APIへの破壊的変更は
+確認されていない。ただし、未使用APIやagent-server全体の互換性まで保証するものではない。
+
+### 主な変更とACDでの評価
+
+| 変更 | 一次情報で確認した内容 | ACDでの評価 |
+|---|---|---|
+| structured output | v1.42.0でstructured output機能と実行例が追加された | ACDのJSON Schema／決定論的gateとの接続方法、schemaの正、失敗時のEvidenceが未評価。勝手に採用せず、継続調査とする |
+| PluginFormat抽出 | plugin loaderのformat戦略を抽出し、Agent Plugins対応の準備を行った | ACDは`.plugin/plugin.json`、skills、hooks、MCP設定を既存契約として固定している。新formatは未採用で、移行要否を継続調査とする |
+| prompt-based hooks evaluation | hookにprompt-based evaluationを追加 | ACDの`SessionStart` denyと決定論的gateは維持し、prompt評価やhookのallowを合否根拠にしない。補助的採用は継続調査とする |
+| LLM global config serialization修正 | v1.42.1でglobal config経由の呼び出し直列化を停止する修正が入った | ACDが使うLLM呼び出しの同時実行挙動に関係する。直列化修正は利用側のAPI採用ではなくSDK更新の挙動として受け入れ、並行実行と回帰を継続確認する |
+| agent-serverのworktree／初期化／observability変更 | v1.42.0〜v1.42.1でworktree root設定、deferred init、event／telemetry等の変更を確認 | ACDのserver実行契約に影響しうるが、今回のsource import確認だけでは相互運用を保証できない。継続調査とする |
+| goal／STUCK処理 | STUCK時にgoal loopを停止しない修正をv1.42.1で確認 | ACDの決定論的gateを置き換えないため、ACD側での採用はしていない。SDK挙動として回帰対象にする |
+
+ACDの方針は、SDKのcritic、judge、hookを合否の正にしないことである。structured output、
+prompt-based evaluation、goal判定を採用する場合は、JSON Schema、Evidence、stale判定、
+fail-closed境界を含む設計判断が必要であり、今回の依存更新だけでは採用決定を行わない。
+この採否判断は [`ADR-0003`](adr/ADR-0003-sdk-feature-adoption.md) と整合させる。
+
 ## パッケージ構成
 
 | package | 責務 | ACDでの使い方 |
