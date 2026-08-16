@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -27,7 +28,7 @@ from typing import cast
 from acd_adapter_freerouting.dsn import export_dsn
 from acd_adapter_freerouting.router import FreeroutingRunner
 from acd_adapter_freerouting.ses import parse_ses
-from acd_adapter_kicad.cli import KicadCli
+from acd_adapter_kicad.cli import KicadCli, RuleCheckResult
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
     CplBasisError,
@@ -59,6 +60,7 @@ from acd_adapter_kicad.reload import (
     verify_schematic,
 )
 from acd_adapter_kicad.routing import inject_routes, inject_stitch_vias
+from acd_core.board_model import NetClass
 from acd_core.electrical import extract_electrical_lane
 from acd_core.fab import extract_fab_intent, load_fab_profile
 from acd_core.routing_width import derive_net_widths
@@ -76,6 +78,43 @@ GERBER_LAYERS = [
 ]
 
 
+def _summarize_width_violations(
+    result: RuleCheckResult,
+    net_name: str,
+    report_path: Path,
+) -> dict[str, object]:
+    error_count = result.error_count
+    unconnected_items = result.unconnected_items
+    violations = result.violations
+    width_violations = tuple(
+        violation
+        for violation in violations
+        if "width" in json.dumps(violation, sort_keys=True).lower()
+    )
+    target_width_violations = tuple(
+        violation
+        for violation in width_violations
+        if any(
+            f"[{net_name}]" in str(item.get("description", ""))
+            for item in cast(list[dict[str, object]], violation.get("items", []))
+        )
+    )
+    return {
+        "drc_error_count": error_count,
+        "drc_unconnected_count": len(unconnected_items),
+        "width_violation_count": len(width_violations),
+        "target_net_width_violation_count": len(target_width_violations),
+        "width_violation_types": sorted(
+            {str(item.get("type", "")) for item in width_violations}
+        ),
+        "width_violation_messages": sorted(
+            {str(item.get("description", "")) for item in width_violations}
+        ),
+        "width_violation_samples": list(width_violations[:3]),
+        "report_path": str(report_path),
+    }
+
+
 def _run_kicad_netclass_positive_control(
     kicad: KicadCli,
     routed_path: Path,
@@ -85,20 +124,10 @@ def _run_kicad_netclass_positive_control(
     revision: str,
     normal_width_mm: float,
 ) -> dict[str, object]:
-    """Measure the projected netclass width with a KiCad positive control."""
+    """Measure class-only and board-level KiCad width controls."""
     control_dir = out_dir / "kicad-netclass-positive-control"
     control_dir.mkdir(parents=True, exist_ok=True)
-    control_board = control_dir / routed_path.name
-    control_project = control_dir / project_path.name
-    control_dru = control_dir / dru_path.name
-    shutil.copy2(routed_path, control_board)
-    shutil.copy2(project_path, control_project)
-    if dru_path.is_file():
-        shutil.copy2(dru_path, control_dru)
-    project_data = cast(
-        dict[str, object],
-        json.loads(control_project.read_text(encoding="utf-8")),
-    )
+    project_data = cast(dict[str, object], json.loads(project_path.read_text(encoding="utf-8")))
     net_settings = project_data.get("net_settings")
     net_settings = (
         cast(dict[str, object], net_settings)
@@ -163,52 +192,175 @@ def _run_kicad_netclass_positive_control(
     )
     if not isinstance(rules, dict):
         raise ValueError("KiCad board DRC rules are missing")
-    # KiCad 10 DRC applies the board minimum-width rule to existing tracks;
-    # the class/pattern is retained as the selected projection under test.
-    rules["min_track_width"] = inflated_width_mm
-    control_project.write_text(
-        json.dumps(project_data, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    report_path = control_dir / "positive-control.drc.json"
-    result = kicad.drc(control_board, report_path, revision)
-    width_violations = tuple(
-        violation
-        for violation in result.violations
-        if "width" in json.dumps(violation, sort_keys=True).lower()
-    )
-    target_width_violations = tuple(
-        violation
-        for violation in width_violations
-        if any(
-            f"[{net_name}]" in str(item.get("description", ""))
-            for item in cast(list[dict[str, object]], violation.get("items", []))
+    original_min_track_width = rules.get("min_track_width")
+    if not isinstance(original_min_track_width, (int, float)):
+        raise ValueError("KiCad board minimum track width is invalid")
+
+    def run_arm(name: str, change_board_minimum: bool) -> dict[str, object]:
+        arm_dir = control_dir / name
+        arm_dir.mkdir(parents=True, exist_ok=True)
+        arm_board = arm_dir / routed_path.name
+        arm_project = arm_dir / project_path.name
+        arm_dru = arm_dir / dru_path.name
+        shutil.copy2(routed_path, arm_board)
+        shutil.copy2(project_path, arm_project)
+        if dru_path.is_file():
+            shutil.copy2(dru_path, arm_dru)
+        arm_project_data = cast(
+            dict[str, object],
+            json.loads(arm_project.read_text(encoding="utf-8")),
         )
-    )
-    if not width_violations:
+        arm_net_settings_obj = arm_project_data.get("net_settings")
+        arm_net_settings = (
+            cast(dict[str, object], arm_net_settings_obj)
+            if isinstance(arm_net_settings_obj, dict)
+            else None
+        )
+        if arm_net_settings is None:
+            raise ValueError(f"{name}: KiCad net settings are missing")
+        arm_classes_obj = arm_net_settings.get("classes")
+        arm_classes = (
+            cast(list[dict[str, object]], arm_classes_obj)
+            if isinstance(arm_classes_obj, list)
+            else None
+        )
+        if arm_classes is None:
+            raise ValueError(f"{name}: KiCad netclass list is missing")
+        arm_custom = next(
+            (
+                item
+                for item in arm_classes
+                if item.get("name") == class_name
+            ),
+            None,
+        )
+        if arm_custom is None:
+            raise ValueError(f"{name}: selected KiCad netclass is missing")
+        arm_custom["track_width"] = inflated_width_mm
+        arm_board_settings_obj = arm_project_data.get("board")
+        arm_board_settings = (
+            cast(dict[str, object], arm_board_settings_obj)
+            if isinstance(arm_board_settings_obj, dict)
+            else None
+        )
+        if arm_board_settings is None:
+            raise ValueError(f"{name}: KiCad board settings are missing")
+        arm_design_settings_obj = arm_board_settings.get("design_settings")
+        arm_design_settings = (
+            cast(dict[str, object], arm_design_settings_obj)
+            if isinstance(arm_design_settings_obj, dict)
+            else None
+        )
+        if arm_design_settings is None:
+            raise ValueError(f"{name}: KiCad design settings are missing")
+        arm_rules_obj = arm_design_settings.get("rules")
+        arm_rules = (
+            cast(dict[str, object], arm_rules_obj)
+            if isinstance(arm_rules_obj, dict)
+            else None
+        )
+        if arm_rules is None:
+            raise ValueError(f"{name}: KiCad DRC rules are missing")
+        if change_board_minimum:
+            arm_rules["min_track_width"] = inflated_width_mm
+        else:
+            arm_rules["min_track_width"] = original_min_track_width
+        arm_project.write_text(
+            json.dumps(arm_project_data, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        report_path = arm_dir / "positive-control.drc.json"
+        result = kicad.drc(arm_board, report_path, revision)
+        summary = _summarize_width_violations(result, net_name, report_path)
+        summary.update(
+            {
+                "class_track_width_mm": inflated_width_mm,
+                "board_min_track_width_mm": arm_rules["min_track_width"],
+                "board_min_track_width_changed": change_board_minimum,
+            }
+        )
+        return summary
+
+    arm_a = run_arm("arm-a-class-only", change_board_minimum=False)
+    arm_b = run_arm("arm-b-class-and-board-minimum", change_board_minimum=True)
+    class_only_detected = bool(arm_a["width_violation_count"])
+    board_level_detected = bool(arm_b["width_violation_count"])
+    if not class_only_detected and not board_level_detected:
         raise ValueError(
-            "KiCad netclass_patterns positive control produced no width violation "
-            "(fail-closed)"
+            "KiCad width projection positive controls produced no width violation "
+            "in either arm (fail-closed)"
         )
     return {
         "class": class_name,
         "net": net_name,
         "normal_track_width_mm": normal_width_mm,
         "intentionally_inflated_track_width_mm": inflated_width_mm,
-        "drc_error_count": result.error_count,
-        "drc_unconnected_count": len(result.unconnected_items),
-        "width_violation_count": len(width_violations),
-        "target_net_width_violation_count": len(target_width_violations),
-        "drc_width_constraint_source": "board.design_settings.rules.min_track_width",
-        "width_violation_types": sorted(
-            {str(item.get("type", "")) for item in width_violations}
+        "original_board_min_track_width_mm": original_min_track_width,
+        "arm_a_class_only": arm_a,
+        "arm_b_class_and_board_minimum": arm_b,
+        "class_only_width_violation_detected": class_only_detected,
+        "board_level_width_violation_detected": board_level_detected,
+        "interpretation": (
+            "Arm A measures whether class-only projection affects existing-track "
+            "DRC; Arm B measures board-level minimum-width enforcement."
         ),
-        "width_violation_messages": sorted(
-            {str(item.get("description", "")) for item in width_violations}
+    }
+
+
+def _measure_dsn_class_correspondence(
+    dsn_path: Path,
+    netclasses: tuple[NetClass, ...],
+    net_evidence: dict[str, object],
+    tolerance_mm: float,
+) -> dict[str, object]:
+    text = dsn_path.read_text(encoding="utf-8")
+    class_matches = list(
+        re.finditer(
+            r'(?ms)^\s*\(class "([^"]+)" ""(.*?)^\s*\)\s*$',
+            text,
+        )
+    )
+    if not class_matches:
+        raise ValueError("DSN netclass declarations are missing (fail-closed)")
+    expected_names = {item.name for item in netclasses}
+    observed: dict[str, dict[str, object]] = {}
+    for match in class_matches:
+        name = match.group(1)
+        body = match.group(2)
+        width_match = re.search(r"\(rule \(width ([0-9]+(?:\.[0-9]+)?)\)", body)
+        member_names = re.findall(r'"([^"]+)"', body.split("(circuit", 1)[0])
+        if width_match is None or name in observed:
+            raise ValueError("DSN netclass width declaration is malformed (fail-closed)")
+        width_mm = float(width_match.group(1)) / 1000.0
+        measured: dict[str, float] = {}
+        for net_name in member_names:
+            raw_obj = net_evidence.get(net_name)
+            raw = cast(dict[str, object], raw_obj) if isinstance(raw_obj, dict) else None
+            measured_minimum = raw.get("measured_minimum_mm") if raw is not None else None
+            if not isinstance(measured_minimum, (int, float)):
+                raise ValueError(f"DSN net {net_name!r} measurement is missing (fail-closed)")
+            measured[net_name] = float(measured_minimum)
+        observed[name] = {
+            "dsn_width_mm": width_mm,
+            "members": sorted(member_names),
+            "measured_minimum_widths_mm": measured,
+            "measured_width_at_least_dsn_width": all(
+                value + tolerance_mm >= width_mm for value in measured.values()
+            ),
+        }
+    if set(observed) != expected_names:
+        raise ValueError("DSN netclass set differs from projected netclasses (fail-closed)")
+    return {
+        "measurement_method": (
+            "independent parse of generated DSN class rule widths matched to "
+            "post-refill Gerber net widths"
         ),
-        "width_violation_samples": list(width_violations[:3]),
-        "report_path": str(report_path),
-        "positive_control_passed": True,
+        "tolerance_mm": tolerance_mm,
+        "classes": observed,
+        "all_classes_correspond": all(
+            bool(item["measured_width_at_least_dsn_width"])
+            for item in observed.values()
+        ),
     }
 
 
@@ -514,6 +666,12 @@ def run_pipeline(
         }
         for netclass in project.board_projection.model.netclasses
     ]
+    width_evidence["dsn_class_projection"] = _measure_dsn_class_correspondence(
+        dsn_path,
+        project.board_projection.model.netclasses,
+        net_evidence,
+        lane.board.width_measurement_tolerance_mm,
+    )
     width_evidence["kicad_projection"] = {
         "schema": "net_settings.classes plus netclass_patterns",
         "kicad_version": kicad.version(),

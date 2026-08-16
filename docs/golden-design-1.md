@@ -409,14 +409,17 @@ fail-closedとした。製造最小幅はnetへ複製せず、fab profileの
 未知の種類はfail-closedとした。全導体オブジェクトは520個（route `Line`は325個）で、
 許容差は`0.01 mm`であり、照合不能な導体は合格扱いにしていない。KiCad 10.0.5では
 `net_settings.classes`に`Default`と決定論的な`ACD_0150um`を投影し、
-`netclass_patterns`で全15ネットを明示的に割り当てた。さらに`+3V3`の同じpatternを
-意図的に`0.4 mm`へ膨らませた別projectでDRCを実行し、track-width違反を検出する
-陽性対照を通した。通常projectのDRCは0 errors・0 unconnectedへ到達した。
-この陽性対照では、KiCad 10.0.5が既存trackへ適用した実測制約が
-`board.design_settings.rules.min_track_width`だったため、コピーした対照projectでは
-class幅と同時にこのboard-level最小幅も`0.4 mm`へ設定した。したがって、DRCが幅違反を
-報告することはboard-level制約の適用を実証するが、class幅だけの変更が既存trackへ直接
-適用されることまでは実証していない。この制約源と未実証範囲をEvidenceへ記録した。
+`netclass_patterns`で全15ネットを明示的に割り当てた。`+3V3`のclass幅を意図的に
+`0.4 mm`へ膨らませ、2つの別projectでDRCを実行した。Arm Aはclass幅だけを変更し、
+board-level `min_track_width`を`0.15 mm`に据え置いた。Arm Bはclass幅とboard-level
+最小幅をともに`0.4 mm`へ変更した。Arm Aでは幅違反0件、Arm Bでは幅違反199件
+（うち`+3V3`対象54件）となった。したがってKiCad 10.0.5の既存track DRCへ
+class幅が直接適用されることは未実証であり、board-level最小幅の適用だけが確認された。
+どちらのArmでも違反が出ない場合はfail-closedとする。通常projectのDRCは
+0 errors・0 unconnectedへ到達した。
+DSNは独立にparseし、class ruleの幅と、塗り後Gerberのnet別実測最小幅を照合した。
+今回の`ACD_0150um`はDSN幅`0.15 mm`、全15ネットの実測最小幅も`0.15 mm`で、
+Freeroutingへ渡したclass幅と生成物の対応を確認した。
 
 | ネット | basis | 導出幅(mm) | 採用幅(mm) | Gerber実測最小(mm) | 全導体長(mm) | 直列抵抗上界(Ω) | IR drop上界(V) | 最遠pad間経路抵抗(Ω) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
