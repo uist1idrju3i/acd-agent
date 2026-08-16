@@ -59,7 +59,7 @@
 | LLMRegistry | SDKがusage ID別にLLMインスタンスと独立metricsを管理する機構。profile分離とコスト分解に使うが、合否の正ではない |
 | FallbackStrategy | SDKがtransient error時に代替LLM profileを順に試すper-call fallback機構。fallback発生時は実体modelを記録し、レビュー中の版不定は`unknown`とする |
 | RouterLLM | SDKが複数LLMを暗黙に選択するLLM。model版固定と両立しないためACDでは採用しない |
-| persistent memory（MEMORY.md） | SDKがuser／project tierの`MEMORY.md`をプロンプトへ読み込む作業メモリ。プロンプト資材であり、`KnowledgeItem`の正や合否根拠ではない |
+| persistent memory（MEMORY.md） | SDKがuser／project tierの`MEMORY.md`をプロンプトへ読み込む作業メモリ。プロンプト資材であり、契約の正や合否根拠ではない |
 | preset／builtinサブエージェント | SDKが提供するtool束・agent構成と汎用サブエージェント（code-explorer等）。汎用作業へ再利用し、ACD工程agentは別途project levelで定義する |
 | InstallationInfo／resolved_ref | SDKの`.installed.json`に保存される資材の解決済みcommit SHA情報。`requested_ref`だけの資材はACDではfail-closedとする |
 | ConversationStats | SDKのusage単位metrics取得機構。`get_metrics_for_usage(usage_id)`でagent／profile別へ分解できるが、合否の正ではない |
@@ -68,7 +68,6 @@
 | OpenAI互換gateway | agent-serverのOpenAI chat completion形状の連携入口。照会・起票・状態取得に限定し、合否・承認・不可逆操作は駆動しない |
 | StuckDetector | SDKの反復、error連続、monologue、交互パターン等の停滞検出機構。差し戻しを起動できるが、合否の正ではない |
 | ゲート | 候補や成果物を次の工程へ進めるかを決定論的に判定する境界 |
-| KnowledgeItem | 検証済みの事実、測定、失敗、修正を出所と適用範囲付きで蓄積する知識単位 |
 | Assumption | 未確定の前提。確度、確定予定アクション、覆った場合の影響先を持つ |
 | LibraryOverlay | 公式ライブラリを改変せず、プロジェクトローカルにfootprint等の差分を保持する仕組み |
 | 対象範囲 | 趣味・研究・小規模試作の単一構成。1〜4層基板と3Dプリント・卓上切削の筐体を対象とする |

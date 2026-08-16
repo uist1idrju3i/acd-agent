@@ -359,7 +359,7 @@ uv run python -V
 本VMでの実測では、`uv sync`は約4.5秒（キャッシュ済み、208パッケージ解決、51パッケージ導入）で
 完了し、`uv run python -V`は`Python 3.12.8`だった。この所要時間は`uv`のキャッシュがある状態の
 値であり、キャッシュが無い初回はCAD kernel（build123d／cadquery-ocp、OCP）の取得で所要時間と
-ディスク使用量が大きくなる。Phase 3の測定値は[`phase3-plan.md`](phase3-plan.md)にある。
+ディスク使用量が大きくなる。Phase 3の測定条件は[`roadmap.md`](roadmap.md)にある。
 
 ### 5.4 検証コマンド
 
@@ -493,7 +493,7 @@ uv run python scripts/probe_tools.py
 - `scripts/build_gd1_fixture.py`は、Pythonソース内の固定定義からGD1 graphを決定論的に生成する。
 - `packages/acd-core/src/acd_core/patch.py`の`GraphPatch`は過去実装の調査対象であり、
   現行の修正は入力ファイルへ直接反映する。
-- `acd_runtime.review`のLLM呼び出しは自然文の所見の提案だけで、入力ファイルの生成・変更や
+- OpenHands SDKのLLM呼び出しは自然文の所見の提案だけで、入力ファイルの生成・変更や
   gateの合否権限は持たない。
 - `plugins/acd`には`acd-contracts` Skillと`SessionStart` hookがある。
   `plugins/acd/agents/`には具体的なagent定義はまだない。

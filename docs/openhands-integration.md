@@ -127,7 +127,7 @@ SHAで固定する。ただしCanvasのフロントエンド本体がSDK reposit
 | ledger取り込み | agent-server `WebhookSpec`（buffer／flush timer／POST） | task状態の低遅延取り込み。正はEventLog replayとcommit済みartifact |
 | secrets | `SecretRegistry`、`StaticSecret`／`LookupSecret`、`conversation.update_secrets()` | `SecretSource`参照名、at rest secret-freeなgraph／Evidence／profile |
 | LLM可用性 | `LLMRegistry`（usage ID別インスタンスと独立metrics）、`FallbackStrategy`（transient error時のprofile fallback） | fallback発生の記録、実体model版のEvidence束ね、レビュー中fallbackの`unknown`扱い |
-| 作業メモリ | 二層persistent memory（`MEMORY.md` loader、user／project tier） | `KnowledgeItem`の正、配布内容のhash記録。memoryはプロンプト資材であり合否根拠にしない |
+| 作業メモリ | 二層persistent memory（`MEMORY.md` loader、user／project tier） | 作業手法の補助。memoryはプロンプト資材であり合否根拠にしない |
 | sourcing | `browser_use` toolset（navigate、click、type、get_state、get_content、screenshot、tabs） | API一次・browser二次の期限付きEvidence、Phase 11での利用禁止 |
 | 起動契約 | `SessionStart` hook、`HookDecision` | ACD import、外部tool版、解決SHA／MCP設定hashの検証と失敗時deny |
 | 可観測性 | `observability/laminar.py` | 任意の計測、Evidenceと判定面の分離 |
@@ -294,8 +294,8 @@ profileを切り替えられるが、同一レビュー途中のAI起点の切�
 
 SDKの二層persistent memory（`~/.openhands/memory/`と`<workspace>/.openhands/memory/`の
 `MEMORY.md`）は、初回`run()`時に文字数上限付きでプロンプトへ読み込まれる作業メモリである。
-位置づけはSkillと同じプロンプト資材であり、`KnowledgeItem`の正・Evidence・合否根拠にはならない。
-project tierの`MEMORY.md`へ「現時点の標準」の要約を`KnowledgeItem`から投影・配布することは
+位置づけはSkillと同じプロンプト資材であり、契約の正・Evidence・合否根拠にはならない。
+project tierの`MEMORY.md`へ「現時点の標準」の要約を作業手法から投影・配布することは
 できるが、その場合も内容hashと生成元revisionを記録し、memoryの記述から設計判断の正へ
 逆流させない。
 

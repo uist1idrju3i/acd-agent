@@ -7,7 +7,7 @@
 テスト・CI戦略の具体名を正とする。分割の**原則**（レイヤ境界、1 adapter = 1ツール、
 生成と判定の分離、ツール版の固定）は[`architecture.md`](architecture.md)を正とし、本書は
 その原則をディレクトリとパッケージ名へ具体化する。フェーズ境界と完了条件は
-[`roadmap.md`](roadmap.md)、Phase 0の作業単位は[`phase0-plan.md`](phase0-plan.md)、
+[`roadmap.md`](roadmap.md)、
 SDKの責務境界は[`openhands-integration.md`](openhands-integration.md)を参照する。
 
 ## 1. リポジトリ構成
@@ -76,7 +76,7 @@ acd-agent/
 | `fw-lane-procedure` | FWレーン手順・ピン整合の確認手順 | TaskTrigger |
 
 Skillはプロンプト資材であり、triggerの発火を適用可否の最終判定にしない
-（[`knowledge-base.md`](knowledge-base.md)）。
+Skillとpluginで配布する作業手法へ反映する）。
 
 ### AgentDefinition（1 agent = 1役割、生成と判定は別）
 
@@ -124,7 +124,7 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 
 実装はマイルストーン・フェーズ順（[`roadmap.md`](roadmap.md)）に従い、各フェーズ着手時に
 `docs/phaseN-plan.md`で作業単位を管理する。最初の対象はPhase 0であり、その作業単位・
-順序・撤退条件は[`phase0-plan.md`](phase0-plan.md)を正とする。Phase 1〜2は
+順序・撤退条件は[`roadmap.md`](roadmap.md)を正とする。Phase 1〜2は
 [`golden-design-1.md`](golden-design-1.md)を対象実物とする。
 
 ## 7. 未決事項
