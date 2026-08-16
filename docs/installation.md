@@ -834,7 +834,7 @@ ACDのEvidenceは、発注可否、価格、在庫、納期、fab側DFM合格を
 | Node.js／npm | `v22.23.2`／`10.9.8` |
 | uv | `0.7.9`（SDKが推奨する0.8.13以上ではない） |
 | acd-agentのAgent Canvasソースsubmodule | `4f465f3ccada5271a3bbe4a0148941b0c40d243b`（v1.13.0、作業ツリー18M＋Git object database 400M、shallow指定） |
-| acd-agentのSDK submodule | `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`（v1.42.1） |
+| acd-agentのSDK submodule | 測定時点は`ca46719d5e9a0b0af79f7de2da37067a5b94563c`（v1.41.0）。現行の固定版は`167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`（v1.42.1）で、本節の測定は再実施していない |
 | acd-agentのlint／型検査／テスト／文書検証 | すべて成功（ruff 0.16.2、pyright 1.1.411、pytest 9.1.1で118 passed、Markdown 36ファイル） |
 | KiCad | `kicad-cli 10.0.5`、`kicad-symbols 10.0.5~ubuntu22.04.1`、`kicad-footprints 10.0.5~ubuntu22.04.1` |
 | 外部ツール | freerouting `2.3.0`、build123d `0.11.1`／cadquery-ocp `7.9.3.1.1`、ESP-IDF `v6.0.2`、QEMU `9.2.2` |
@@ -842,8 +842,8 @@ ACDのEvidenceは、発注可否、価格、在庫、納期、fab側DFM合格を
 
 acd-agentが参照するAgent Canvasソース（v1.13.0）およびSDK（v1.41.0）と、Agent Canvasが
 npm導入版として既定で起動するagent server同梱SDK（1.40.1）は版が異なる。両者を同一環境で
-組み合わせる場合の互換性は、SDK v1.41.0時点の実測で未確認である。今回更新したSDK
-v1.42.1との組み合わせは未検証であり、必要なら
+組み合わせる場合の互換性は未確認である。上記は測定時点のSDK v1.41.0に関する記述であり、
+現行の固定版であるSDK v1.42.1との組み合わせも未検証である。必要なら
 `OH_AGENT_SERVER_VERSION`で明示的に固定してから検証する。
 
 ## 10. 未確認事項
