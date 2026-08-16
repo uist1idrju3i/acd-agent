@@ -30,6 +30,7 @@ VibeBBは設計や検証が軽いという意味ではなく、重い検証を�
 - [VibeBB — Vibe BreadBoarding](#vibebb--vibe-breadboarding)
 - [なぜACDか](#なぜacdか)
 - [設計原則](#設計原則)
+- [配置・配線をAIで解く](#配置配線をaiで解く)
 - [設計フロー](#設計フロー)
 - [知識の蓄積](docs/knowledge-base.md)
 - [将来展望](docs/future-outlook.md)
@@ -161,6 +162,23 @@ OpenHands連携でも同じコンセプトが上手く動くのではないか�
   承認必須または許可の領域も含めた詳細は [`SECURITY.md`](SECURITY.md) と
   [`docs/design-flow.md`](docs/design-flow.md) に定めます。
 
+## 配置・配線をAIで解く
+
+部品の配置、回転、配線を総当たりすると、制約の組合せ爆発で候補数と実測コストが膨らみます。
+ACDはこの探索を、LLM-only CADのようにLLMへ座標や角度を直接生成させる問題として扱いません。
+LLMはモジュール分解、相対配置制約、優先度、回転刻み方針、探索戦略、評価方針を探索仕様として
+宣言し、設計根拠を残します。具体的な座標・回転角の候補生成と幾何整合化、合否判定は決定論的な
+探索器とゲートが担います。
+
+安価な代理指標で候補を順位付けし、外部router、DRC/ERC、Gerber独立再読込などの高価な実測は
+上位の少数候補に限定します。90度刻みは固定の前提ではなく、版管理されたprofileの許可と
+Evidenceに基づいて段階的に緩和します。
+
+LLM-only CADとの違いは、毎回同じ解を出すことではなく、出た設計を後から再検証できることです。
+実行ごとに解が異なっても、候補の設計根拠と探索仕様・seed・ツール版・入力hash・対象revisionを
+記録し、Evidenceのstaleを検出できればよいとします。詳細は
+[`docs/ai-physical-design.md`](docs/ai-physical-design.md)を参照してください。
+
 ## 設計フロー
 
 ```mermaid
@@ -255,6 +273,7 @@ Evidenceの失効、承認IDと不可逆操作の束縛はACDが実装します�
 | [`AGENTS.md`](AGENTS.md) | エージェント向け作業契約 | Draft |
 | [`docs/README.md`](docs/README.md) | 文書索引と読む順序 | Draft |
 | [`docs/design-flow.md`](docs/design-flow.md) | 基板・筐体・FWの工程フロー | Draft |
+| [`docs/ai-physical-design.md`](docs/ai-physical-design.md) | AI主導の配置・回転・配線探索 | Draft |
 | [`docs/projection-review.md`](docs/projection-review.md) | 投影レビューとPDCAループ | Draft |
 | [`docs/knowledge-base.md`](docs/knowledge-base.md) | 知識の構造化と還流 | Draft |
 | [`docs/future-outlook.md`](docs/future-outlook.md) | ローカル製造と将来展望 | Draft |

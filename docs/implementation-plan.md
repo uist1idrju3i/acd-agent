@@ -69,6 +69,7 @@ acd-agent/
 | `graph_patch` | 可逆 | patch適用と新revision生成、影響導出の起動 |
 | `projection_generate` | 可逆 | 対象revisionからの投影生成（adapter経由） |
 | `projection_reload` | read | 生成artifactの独立再読込・照合 |
+| `placement_search` | 可逆 | 探索仕様に基づく決定論的候補生成・幾何整合化・代理指標順位付け |
 | `gate_run` | read | 決定論的ゲート実行とEvidence生成 |
 | `evidence_query` | read | Evidence・stale状態の照会 |
 | `commit_receipt` | 可逆 | commit実行とcommit receipt生成 |
@@ -102,7 +103,7 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 | agent | 役割 | 主なtools |
 |---|---|---|
 | `acd-requirements` | S1要件対話・構造化 | `graph_query`、`graph_patch` |
-| `acd-electrical` | E1/E2生成 | graph系、projection系、`gate_run` |
+| `acd-electrical` | E1/E2生成。配置・回転・配線の探索仕様と設計根拠を宣言する | graph系、projection系、`placement_search`、`gate_run` |
 | `acd-mechanical` | M1/M2生成 | graph系、projection系、`gate_run` |
 | `acd-firmware` | FWレーン実装 | projection系、terminal、file editor |
 | `acd-reviewer` | RV1機械可読レビュー（グラフ書込み不可） | `graph_query`、`projection_reload` |
@@ -133,6 +134,11 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 3. 最小ACDドメインeventをSDK `EventLog`へ載せ、ドメイン記録の正をcommit済み
    Evidence artifactへ置く方式。
 4. 部品カタログ・ライブラリの出所方針（Phase 0で確定）。
+5. AI主導の配置・回転・配線探索の三層分離と、探索ハーネスをリポジトリへcommitする方針
+   （[`ADR-0007`](adr/ADR-0007-llm-guided-physical-design.md)）。
+
+探索器・整合化器・代理指標の生成側と、実測・ゲートの判定側は別モジュールとして実装する。
+探索ハーネスは`scripts/`または`packages/`へcommitし、使い捨ての外部スクリプトへ依存しない。
 
 ## 6. 実装順序
 

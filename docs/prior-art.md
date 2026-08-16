@@ -512,6 +512,91 @@ GPL/AGPLの「外部プロセスなら必ず問題ない」という意味では
 提供、binaryの同梱、改変、配布、プラグイン、IPC境界が著作権法上どう評価される
 かは利用形態・法域に依存するため、製品配布前に法的判断を取得する。
 
+## 21. 配置・配線へのAI／LLM適用（2026-08-16追加調査）
+
+本節は、[`ai-physical-design.md`](ai-physical-design.md)の方針根拠となる事例を、証拠の種別と
+確度を分けて記録する。既存節（§2商用AI ECAD、§4KiCad MCP／AI、§6研究・benchmark、§10MCAD）に
+記載済みの事例は重複させず、本節では「配置・回転・配線の探索と、その検証構造」に絞る。
+
+### 21.1 証拠種別の区分
+
+| 区分 | 意味 | 合格根拠としての扱い |
+|---|---|---|
+| 査読論文 | 会議・雑誌の査読を経た報告 | 手法選択の根拠にできる。ACDでの再現は別途必要 |
+| preprint | arXiv等の未査読公開 | 仮説として扱う。数値は独立検証していない |
+| benchmark | 公開データ・評価コードのある測定 | 能力限界の根拠にできる。評価設計の偏りは残る |
+| OSS実装 | 動作するコードが公開されている | 構造の参考にできる。品質・保守性は別評価 |
+| ベンダー主張 | 製品ページ・press release | 実現可能性の示唆にとどまる。独立再現なし |
+| 二次情報 | 第三者記事のみ | 事実として引用しない |
+
+### 21.2 LLMによる配置・制約生成
+
+| 事例 | 種別 | 構造 | ACDへの含意 |
+|---|---|---|---|
+| [ModuPlace](https://yhhan.com/PDFs/ModuPlace_paper.pdf) | 論文（査読状況は本調査で未確認） | LLMがモジュール分解と制約グラフを作り、配置最適化は従来手法が実行 | L1宣言層／L2探索層の分離と同型。ACDの三層分離の主要根拠 |
+| [LLM-augmented PCB placement refinement](https://doi.org/10.1145/3804601.3804665) | 査読論文（ACM DOI） | LLMが衝突の優先順位付けと修復戦略を選び、幾何調整はheuristicが行う | 「LLMは優先順位、幾何は決定論器」の裏付け |
+| [LLM-Orchestrated PCB Design](https://doi.org/10.5281/zenodo.19440163) | preprint（Zenodo、実験検証はfuture workと明記） | LLMを回路意図から形式的配置制約への意味変換層に置く提案 | 提案の枠組みは近いが、効果は未実証。ACDでも効果主張はしない |
+| [AnalogCoder](https://arxiv.org/abs/2405.14918)（§6にも記載） | preprint | 生成→シミュレーション→修復の反復 | 修復ループには外部評価器が必要という一般則の例 |
+
+### 21.3 能力限界を示すbenchmark
+
+| 事例 | 種別 | 読み取り |
+|---|---|---|
+| [PCB-Bench](https://github.com/digailab/PCB-Bench)（§6にも記載） | benchmark（ICLR proceedings PDFあり） | text／multimodal／実PCB成果物の推論を評価し、空間・制約推論に大きな弱点が残ることを報告。LLMに座標・角度を直接生成させない判断の主要根拠 |
+| HWE-Bench、pcbGPT（§6に記載） | benchmark／preprint | 生成とreasoningの評価にとどまり、fab・実装・bring-up・実測を含まない。ACDの実測ゲートを代替しない |
+
+### 21.4 商用のAI配置・配線（ベンダー主張）
+
+| 事例 | 種別 | 主張されている構造 | 注意 |
+|---|---|---|---|
+| [Quilter](https://www.quilter.ai/product/technology) | ベンダー主張 | 物理駆動のAI（強化学習を含むとされる）で複数レイアウト候補を生成し、物理・製造検証を通す | 内部アルゴリズム、検証範囲、再現性は非公開。§2にも記載 |
+| [DeepPCB](https://deeppcb.ai/) | ベンダー主張＋[関連研究](https://arxiv.org/abs/2003.07897) | クラウドでのAI配置・配線。RL routingの研究が併存 | 製品と論文の対応関係は未確認 |
+| [Cadence Allegro X AI](https://www.cadence.com/en_US/home/company/newsroom/press-releases/pr/2023/cadence-introduces-allegro-x-ai-accelerating-pcb-design-with.html) | ベンダー主張 | 生成AIを従来の物理設計アルゴリズムと解析へ組み合わせる | 数値（設計時間短縮等）は独立検証なし。§2にも記載 |
+| [Flux Auto Layout](https://docs.flux.ai/tutorials/auto-layout) | ベンダー主張＋公開ドキュメント | AIが反復的に配線し、保護されたtrace／viaは変更せず、結果は取り消し可能な形で適用 | 「既存成果物の保護」と「可逆適用」はACDの探索にも採用すべき設計。§2にも記載 |
+
+共通する構造は「AIが候補を作り、既存の物理設計アルゴリズムと物理検証が絞る」であり、
+LLMが単独で最終配線を確定する製品は確認できない。
+
+### 21.5 コード駆動・solver接地のAI設計
+
+| 事例 | 種別 | 構造 | ACDへの含意 |
+|---|---|---|---|
+| [JITX](https://docs.jitx.com/en/latest/essentials/design/index.html)、[jitx-skills](https://github.com/jitx-inc/jitx-skills) | ベンダー主張＋OSS資材 | 設計を検査可能なコードとして表現し、生成・検証を分ける | 投影とゲートの構造と整合。agent資材の配布形態も参考になる |
+| [Onshape FeatureScript MCP](https://www.ptc.com/en/news/2026/onshape-launches-featurescript-mcp-server) | ベンダー主張（press release） | 自然言語からFeatureScriptを作成・テスト・デバッグ | AIにコードを書かせ、実行と検証はCADエンジンが担う形 |
+| [Zoo Zookeeper](https://zoo.dev/research/zookeeper) | ベンダー主張＋研究ページ | 対話CADでコードと形状を検査しながら設計レビュー | 視覚だけで閉じない構造の商用例 |
+| Embodied CAD（[preprint](https://arxiv.org/html/2606.31252v1)）、Arko-T（[preprint](https://arxiv.org/html/2606.30429v1)）、[CAD-HLLM](https://proceedings.mlr.press/v304/zuo26a.html) | preprint／査読論文 | LLMが型付きCAD操作を選び、厳密カーネルが実行し、solverフィードバックで修復 | MCADレーンでも「提案はLLM、判定はカーネル」を採る根拠 |
+
+### 21.6 探索ヒューリスティックのLLM生成
+
+| 事例 | 種別 | 読み取り |
+|---|---|---|
+| [FunSearch](https://www.nature.com/articles/s41586-023-06924-6) | 査読論文（Nature） | LLMと系統的評価器を組み合わせ、bin packing等のヒューリスティックをコードとして発見。**評価器が本体**である |
+| [AlphaEvolve](https://arxiv.org/abs/2506.13131v1) | preprint | 実行と自動評価に接地したLLM主導の進化的コード生成 |
+| [Evolution of Heuristics](https://proceedings.mlr.press/v235/liu24bs.html) | 査読論文（ICML） | 組合せ最適化のヒューリスティック設計をLLMで進化させる |
+| [OPRO](https://arxiv.org/abs/2309.03409v2) | preprint | LLMが過去の解とスコアから次の解を提案する。明示的な評価器が前提 |
+| [AlphaChip](https://www.nature.com/articles/s41586-024-08032-5) | 査読論文（Nature） | RLによるチップフロアプラン。graph状態と明示的目的関数（配線長・混雑・密度） |
+
+ACDでこの系統を採るなら、生成物は「commitされたコード」であり、通常のlint・型検査・
+テスト・golden task回帰の対象とする。生成器の出力をその場で信じて回す構成は採らない。
+RL系（AlphaChip、DeepPCB）は学習環境と計算資源を要するため初期ターゲット外とし、追跡のみ行う。
+
+### 21.7 AIレビュー実装から得られる限界
+
+| 事例 | 種別 | 読み取り |
+|---|---|---|
+| [boardroom](https://github.com/lluisestape-upc/boardroom) | OSS実装（品質・保守性は未評価） | Evidence必須の専門agent、tool laneの強制、構造化finding、限定的な討論、render画像による視覚レビュー。著者自身が検出率の限界を報告しており、視覚レビュー単独では合格にできない |
+| [mcp-pcb-emcopilot](https://github.com/RFingAdam/mcp-pcb-emcopilot) | OSS実装 | Gerber/ODB++/IPC-2581/STEP等のparserと物理ベース検査toolをMCPで提供 | 「parseできる」ことと「製造可否を判定できる」ことを分けて扱う必要がある |
+| [KiCad AI Assistant](https://github.com/paul356/KiCad-AI-Assistant)（§4にも記載） | OSS実装 | KiCad plugin＋MCP tool | GUI前提の書き込み境界はACDの承認・ゲート契約と別に検討する |
+
+### 21.8 未確認事項
+
+- 商用製品の内部アルゴリズム、検証範囲、成功率は非公開であり、本節の主張は独立検証していない。
+- 2026年公開のpreprint（Embodied CAD、Arko-T、LLM-Orchestrated PCB Design、AlphaEvolve）は
+  査読状況を確認していない。数値は引用せず、構造の参考としてのみ扱う。
+- 回転刻み（90度以外の実装可否、CPL回転規約との整合）について、公開の実測比較は確認できなかった。
+  ACD側の実測が必要な未決事項である。
+- 代理指標（HPWL、混雑度）と実配線・DRC結果の相関を、PCB規模で公開測定した資料は確認できなかった。
+
 ## 本台帳の使い方
 
 - ツールを採用するときは、本台帳の記述だけを根拠にせず、対象versionの一次情報を再確認する。

@@ -40,6 +40,25 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 - 投影を正へ逆流させず、投影は意味的にマージしない（MUST NOT）。対象revisionから再生成する（MUST）。
 - ワークツリー操作と外部ツール実行は排他にし、プロセス終了とファイルハンドル解放を確認してから切り替える（MUST）。
 - AIは提案し、決定論的ゲートが判定する（MUST）。
+- 配置・回転・配線の探索では、LLMは機械可読な探索仕様（モジュール分解、相対配置制約、優先度、
+  回転刻み方針、探索戦略、評価方針、緩和提案）と設計根拠を宣言し、座標・回転角の値を直接
+  出力しない（MUST NOT）。具体的な座標・回転角の生成と幾何整合化は決定論的探索器が行う（MUST）。
+- 探索の内側ループでLLMを呼ばない（MUST NOT）。探索予算（反復、wall-clock、候補数、token、money）
+  を探索仕様で宣言し実測を記録する（MUST）。予算超過、連続非改善、同一探索仕様の再提出、同一
+  `ReviewFinding`種別の再発上限超過はfail-closedで停止する（MUST）。
+- 代理指標（HPWL、混雑度等）のスコアは候補の順位付けにのみ使い、合格根拠にしない（MUST NOT）。
+  外部router、DRC/ERC、Gerber独立再読込などの実測は代理指標上位の少数候補に対して実行する（SHOULD）。
+- 回転刻みの許容範囲は`profiles/`配下の版管理された宣言を正とし、90度刻み以外はprofileの明示的
+  許可とEvidence（CPL回転値の往復一致、clearance・courtyard実測、router収束）なしに採用しない
+  （MUST NOT）。LLMは刻みの方針と根拠を提案してよい（MAY）。
+- 毎回同一の設計解が得られることは要求しない。要求するのは、各候補に設計根拠が紐づくこと、
+  および記録した探索仕様・seed・ツール版・入力hash・対象revisionからEvidenceを再測定してstaleを
+  検出できることである（MUST）。
+- `ReviewFinding`ごとの機械可読な再測定は必須にしない（MAY）が、処分と理由の記録は必須とする（MUST）。
+  実測とstale検出は出口ゲート（`RV2`、DRC/ERC、Gerber再読込、DFM、発注前最終ゲート）へ集約する
+  （MUST）。
+- 詳細は[`docs/ai-physical-design.md`](docs/ai-physical-design.md)を参照する（SHOULD）。フェーズ境界節・
+  モジュール境界節と同様に、ここで詳細を二重管理しない。
 - 実行、資材配布、分業、反復、防護はOpenHands SDKの既存機能を優先して使う（SHOULD）。同等機能を
   ACDで自作しない（MUST NOT）。ただし設計グラフ、投影、Evidence、決定論的ゲート、合否の正はACDに残し（MUST）、
   SDKのcritic、judge、hook、LLM security analyzer等を合格根拠にしない（MUST NOT）。詳細は
