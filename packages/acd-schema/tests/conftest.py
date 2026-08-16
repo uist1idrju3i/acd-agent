@@ -25,8 +25,3 @@ def load_fixture(kind: str, name: str) -> dict[str, Json]:
 def fixture_obj(value: Json) -> dict[str, Json]:
     assert isinstance(value, dict)
     return value
-
-
-def fixture_list(value: Json) -> list[Json]:
-    assert isinstance(value, list)
-    return value

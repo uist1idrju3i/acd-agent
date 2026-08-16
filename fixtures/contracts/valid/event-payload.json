@@ -1,8 +1,0 @@
-{
-  "schema_version": "0.1",
-  "kind": "gate_result",
-  "target_revision": "r3",
-  "gate_id": "gate-erc",
-  "status": "pass",
-  "evidence_refs": ["ev-erc-r3-0001"]
-}

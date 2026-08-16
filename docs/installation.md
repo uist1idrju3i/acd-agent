@@ -491,8 +491,7 @@ uv run python scripts/probe_tools.py
 工程を実行するLLM入口は未実装である。
 
 - `scripts/build_gd1_fixture.py`は、Pythonソース内の固定定義からGD1 graphを決定論的に生成する。
-- `packages/acd-core/src/acd_core/patch.py`の`GraphPatch`は過去実装の調査対象であり、
-  現行の修正は入力ファイルへ直接反映する。
+- 現行の修正は入力ファイルへ直接反映する。
 - OpenHands SDKのLLM呼び出しは自然文の所見の提案だけで、入力ファイルの生成・変更や
   gateの合否権限は持たない。
 - `plugins/acd`には`acd-contracts` Skillがある。
@@ -714,7 +713,7 @@ fw-package.jsonのsource_hashとartifact_hash、各FW envelopeの実値を報告
 次の設計変更を検討してください。
 LEDのGPIO番号、または筐体の最小肉厚を変更する場合、まず変更内容とgit commitを
 表にしてください。現状は自然言語から自動でgraphを変更する入口がないため、
-scripts/build_gd1_fixture.pyの固定定義を編集するか、ACDの型付きGraphPatchを使ってください。
+scripts/build_gd1_fixture.pyの固定定義を編集し、入力ファイルへ変更を反映してください。
 
 変更後はfixtureを再生成し、変更対象レーンを再実行してください。
 fixtureと各出力のhashes.json（またはsummary.json）の差分、各gateの再判定結果、

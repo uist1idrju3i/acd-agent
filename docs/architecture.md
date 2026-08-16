@@ -55,7 +55,7 @@ coreは生成物を独立測定し、capabilities（絶対能力）とpreference
 ```text
 schema
   ↓
-core（graph、rationale、impact、gate、knowledge）
+core（graph、rationale、gate、knowledge）
   ↓
 adapters（KiCad、FreeCAD/code-CAD、slicer、simulation、sourcing）
   ↓
@@ -123,7 +123,7 @@ renderer種別、vision profile／model、解像度を含める。視覚投影�
 ゾーン塗りつぶし等の派生状態は、外形・ルール・接続の変更後に再計算してから検証する。
 再計算前の結果は合格根拠にしない。図面、3D形状、ブラウザ閲覧形式などのレビュー用投影は
 正ではなく、観察の入力に限る。投影側の編集や期待hash不一致は出所不明の派生物として検出し、
-設計グラフから再生成する。
+入力ファイルから再生成する。
 
 ## ツール契約
 
@@ -173,8 +173,8 @@ criticの例外時にSDKが評価なしとして扱うこと、反復終了は�
 
 OpenHandsはConversation、Tool、DockerWorkspace／RemoteWorkspace、MCP、delegate、metrics、retryを
 提供する。ACDはLocalWorkspaceを実行基盤として採用せず、agent-serverを前提にVS Code、noVNC、
-Canvas、Webhook、OpenAI互換gatewayを利用する。Docker image digestとRemoteWorkspaceの対象
-revisionを実行条件へ束ね、外部ツール版の固定と可搬性を優先する。
+Canvas、Webhook、OpenAI互換gatewayを利用する。Docker image digestとRemoteWorkspaceの実行条件を
+固定し、外部ツール版の固定と可搬性を優先する。
 設計グラフと決定論的ゲートはOpenHandsのEventLogへ埋め込まず、ACDのcoreとadapterが所有する。
 Conversationは計画と実行を進めるが、設計の正や合否を決めない。
 
@@ -197,14 +197,14 @@ SDKにartifact store、manifest、content-addressed registryはない。生成�
 `RemoteWorkspace`系workspaceに置き、ACDはworkspaceの`execute_command`、`file_upload`、
 `file_download`、`git_changes`、`git_diff`をHTTP越しに利用する。リポジトリのcloneと
 GitHub／GitLab／Bitbucketのprovider連携もworkspace側の契約として扱う。ACDが常時保持するのは
-設計グラフのrevision識別子、artifactのhash、Evidenceのメタデータであり、ファイル実体ではない。
+入力ファイル、artifactのhash、Evidenceのメタデータであり、ファイル実体ではない。
 保存抽象が必要になった場合はSDKの`FileStore`（`LocalFileStore`／`InMemoryFileStore`）へ合わせ、
 ACD独自I/Fを増やさない。SDKにはremote FileStore実装がないため、RemoteWorkspace側の保存経路
 は未確定として扱う。
 この構成のSDKとの責務分担は[`openhands-integration.md`](openhands-integration.md)にも従う。
 
 workspaceのファイルシステムは揮発する前提で扱う。したがって、gitへcommitしpushされた
-revisionだけをEvidenceおよび投影の所在とし、未commitの作業ツリー状態をゲート根拠にしない。
+入力ファイルだけをEvidenceおよび投影の所在とし、未commitの作業ツリー状態をゲート根拠にしない。
 決定論的ゲートは入力ファイルから生成した投影を再取得して判定し、投影を正へ逆流させず、
 壊れた成果物や`unknown`を合格扱いしない。
 
