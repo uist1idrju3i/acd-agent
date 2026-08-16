@@ -6,7 +6,7 @@ graph semantics stay in core. Missing or malformed attributes fail closed.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from acd_schema.design_graph import DesignGraph, GraphNode
 
@@ -42,6 +42,34 @@ class ComponentView:
     overlay_file: str | None = None
     overlay_sha256: str | None = None
     decoupling_target: str | None = None
+    cpl_position_basis: str | None = None
+    cpl_position_source_url: str | None = None
+    cpl_position_evidence_at: str | None = None
+    cpl_position_evidence_method: str | None = None
+    cpl_position_evidence_revision: str | None = None
+    cpl_position_evidence_basis: str | None = None
+    cpl_position_evidence_note: str | None = None
+    cpl_rotation_basis: str | None = None
+    cpl_rotation_source_url: str | None = None
+    cpl_rotation_evidence_basis: str | None = None
+    cpl_rotation_evidence_note: str | None = None
+    cpl_rotation_evidence_at: str | None = None
+    cpl_rotation_evidence_method: str | None = None
+    cpl_rotation_evidence_revision: str | None = None
+    cpl_rotation_offset_deg: float | None = None
+    cpl_rotation_polarized: bool = True
+    cpl_rotation_geometry_exception: bool = False
+    cpl_rotation_geometry_exception_reason: str | None = None
+    cpl_rotation_geometry_exception_source: str | None = None
+    cpl_rotation_unverified_pads: tuple[str, ...] = ()
+    cpl_rotation_unverified_pad_reason: str | None = None
+    cpl_rotation_unverified_pad_source: str | None = None
+    cpl_rotation_pin_functions: dict[str, str] = field(
+        default_factory=lambda: dict[str, str]()
+    )
+    cpl_rotation_pin_aliases: dict[str, str] = field(
+        default_factory=lambda: dict[str, str]()
+    )
 
 
 @dataclass(frozen=True)
@@ -155,6 +183,51 @@ def _library_pin(node: GraphNode) -> LibraryPin:
     )
 
 
+def _optional_str(node: GraphNode, key: str) -> str | None:
+    value = node.attrs.get(key)
+    if value is not None and (not isinstance(value, str) or not value):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a non-empty string")
+    return value
+
+
+def _optional_number(node: GraphNode, key: str) -> float | None:
+    value = node.attrs.get(key)
+    if value is not None and (isinstance(value, bool) or not isinstance(value, int | float)):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a number")
+    return None if value is None else float(value)
+
+
+def _optional_bool(node: GraphNode, key: str, default: bool) -> bool:
+    value = node.attrs.get(key)
+    if value is not None and not isinstance(value, bool):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a boolean")
+    return default if value is None else value
+
+
+def _optional_string_map(node: GraphNode, key: str) -> dict[str, str]:
+    value = node.attrs.get(key)
+    if value is None:
+        return {}
+    if not isinstance(value, list):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string map list")
+    result: dict[str, str] = {}
+    for item in value:
+        parts = item.split("=", 1)
+        if len(parts) != 2 or not all(parts):
+            raise GraphExtractionError(f"node {node.id!r}: attr {key!r} has invalid entry")
+        result[parts[0]] = parts[1]
+    return result
+
+
+def _optional_string_list(node: GraphNode, key: str) -> list[str]:
+    value = node.attrs.get(key)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise GraphExtractionError(f"node {node.id!r}: attr {key!r} must be a string list")
+    return value
+
+
 def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
     components: list[ComponentView] = []
     nets: list[NetView] = []
@@ -188,6 +261,62 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     overlay_file=overlay_file,
                     overlay_sha256=overlay_sha256,
                     decoupling_target=decoupling_target,
+                    cpl_position_basis=_optional_str(node, "cpl_position_basis"),
+                    cpl_position_source_url=_optional_str(node, "cpl_position_source_url"),
+                    cpl_position_evidence_at=_optional_str(node, "cpl_position_evidence_at"),
+                    cpl_position_evidence_method=_optional_str(
+                        node, "cpl_position_evidence_method"
+                    ),
+                    cpl_position_evidence_revision=_optional_str(
+                        node, "cpl_position_evidence_revision"
+                    ),
+                    cpl_position_evidence_basis=_optional_str(
+                        node, "cpl_position_evidence_basis"
+                    ),
+                    cpl_position_evidence_note=_optional_str(
+                        node, "cpl_position_evidence_note"
+                    ),
+                    cpl_rotation_basis=_optional_str(node, "cpl_rotation_basis"),
+                    cpl_rotation_source_url=_optional_str(node, "cpl_rotation_source_url"),
+                    cpl_rotation_evidence_basis=_optional_str(
+                        node, "cpl_rotation_evidence_basis"
+                    ),
+                    cpl_rotation_evidence_note=_optional_str(
+                        node, "cpl_rotation_evidence_note"
+                    ),
+                    cpl_rotation_evidence_at=_optional_str(node, "cpl_rotation_evidence_at"),
+                    cpl_rotation_evidence_method=_optional_str(
+                        node, "cpl_rotation_evidence_method"
+                    ),
+                    cpl_rotation_evidence_revision=_optional_str(
+                        node, "cpl_rotation_evidence_revision"
+                    ),
+                    cpl_rotation_offset_deg=_optional_number(node, "cpl_rotation_offset_deg"),
+                    cpl_rotation_polarized=_optional_bool(node, "cpl_rotation_polarized", True),
+                    cpl_rotation_geometry_exception=_optional_bool(
+                        node, "cpl_rotation_geometry_exception", False
+                    ),
+                    cpl_rotation_geometry_exception_reason=_optional_str(
+                        node, "cpl_rotation_geometry_exception_reason"
+                    ),
+                    cpl_rotation_geometry_exception_source=_optional_str(
+                        node, "cpl_rotation_geometry_exception_source"
+                    ),
+                    cpl_rotation_unverified_pads=tuple(
+                        _optional_string_list(node, "cpl_rotation_unverified_pads")
+                    ),
+                    cpl_rotation_unverified_pad_reason=_optional_str(
+                        node, "cpl_rotation_unverified_pad_reason"
+                    ),
+                    cpl_rotation_unverified_pad_source=_optional_str(
+                        node, "cpl_rotation_unverified_pad_source"
+                    ),
+                    cpl_rotation_pin_functions=_optional_string_map(
+                        node, "cpl_rotation_pin_functions"
+                    ),
+                    cpl_rotation_pin_aliases=_optional_string_map(
+                        node, "cpl_rotation_pin_aliases"
+                    ),
                 )
             )
             if components[-1].assembly not in {"fitted", "not_fitted"}:

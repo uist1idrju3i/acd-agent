@@ -25,7 +25,7 @@ class BomRow:
     jlcpcb_class: str
 
 
-def _refdes_key(refdes: str) -> tuple[str, int, str]:
+def refdes_key(refdes: str) -> tuple[str, int, str]:
     prefix = refdes.rstrip("0123456789")
     digits = refdes[len(prefix) :]
     return prefix, int(digits) if digits.isdigit() else 0, refdes
@@ -44,7 +44,7 @@ def build_bom(lane: ElectricalLane) -> tuple[BomRow, ...]:
         groups.setdefault(key, []).append(comp)
     rows = [
         BomRow(
-            refdes=tuple(sorted((c.refdes for c in comps), key=_refdes_key)),
+            refdes=tuple(sorted((c.refdes for c in comps), key=refdes_key)),
             value=key[0],
             mpn=key[1],
             lcsc=key[2],
@@ -53,7 +53,7 @@ def build_bom(lane: ElectricalLane) -> tuple[BomRow, ...]:
         )
         for key, comps in groups.items()
     ]
-    rows.sort(key=lambda r: _refdes_key(r.refdes[0]))
+    rows.sort(key=lambda r: refdes_key(r.refdes[0]))
     return tuple(rows)
 
 

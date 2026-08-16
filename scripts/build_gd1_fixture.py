@@ -654,6 +654,21 @@ def mechanical_nodes() -> list[GraphNode]:
             depends_on=[node.id for node in nodes[1:]],
         )
     )
+    nodes.extend(
+        [
+            GraphNode(
+                id="mechanical.board_edge_overhang.u1",
+                kind="mechanical.board_edge_overhang",
+                attrs={
+                    "component_refdes": "U1",
+                    "overhang_mm": 5.4,
+                    "requirement_id": "req.gd1-req-015",
+                    "edge": "top",
+                },
+                depends_on=["comp.u1", "req.gd1-req-015"],
+            ),
+        ]
+    )
     return nodes
 
 

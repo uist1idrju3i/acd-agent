@@ -66,3 +66,10 @@ def test_export_dsn_emits_hole_keepouts_for_unnumbered_drills() -> None:
     footprint = FootprintShape(library_ref="Lib:H", pads=(_pad("1"), _pad("", x=3.0, drill=2.2)))
     dsn = export_dsn(_model(footprint), "t3")
     assert "keepout" in dsn
+
+
+def test_export_dsn_disables_vias_on_smd_pads() -> None:
+    footprint = FootprintShape(library_ref="Lib:R", pads=(_pad("1"),))
+    dsn = export_dsn(_model(footprint), "t4")
+    assert "(via_at_smd off)" in dsn
+    assert "via_smd_R1_0_F.Cu" in dsn

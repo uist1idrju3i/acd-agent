@@ -168,6 +168,10 @@ def load_fab_profile(path: Path, schema_path: Path | None = None) -> FabProfile:
     for item in profile["preferences"]:
         if item["source_index"] >= source_count:
             raise ValueError("fab profile preference source_index is out of range")
+    contract = profile["cpl_contract"]
+    for key in ("position_source_index", "rotation_source_index"):
+        if contract[key] >= source_count:
+            raise ValueError(f"fab profile CPL contract {key} is out of range")
     return FabProfile(data=profile)
 
 

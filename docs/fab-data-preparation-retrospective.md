@@ -43,6 +43,52 @@ capability violationにはallowanceを適用しない。
    大物部品が最後に残らなくなり解消し、制約は緩和していない。
 6. レビューで見つかったDFM閾値のハードコード、`unused_allowance`の分類誤り、Economic判定の
    色・表面処理・組合せ表・assembly sides不足、oval drillの計算、overlay内rule ID literalを修正した。
+7. SW1とSW2は同じLCSC・MPN・footprintだったが、graph投影のvalue（`RESET`／`BOOT`）が異なるため
+   発注用BOMで分割された。export format側の同一性キーをfab部品番号へ分離し、`SW1,SW2`を1行へ
+   まとめ、value不一致時はMPNをCommentへ使い、生成後のBOMをグラフと再照合するようにした。
+8. GD1では配置アンカーをfootprint幾何とグラフ宣言から導出せず、`J1`と`U1`の位置を
+   マジックナンバーで固定していた。そのため板端との関係を誰も検証できず、DRC 0・DFM 0でも
+   誤配置が通った。生成物の3Dレンダを人が目視するのは最初に異常へ気付ける安価な手段であり、
+   今回もユーザの目視指摘が起点になった。今後はアンカーを幾何と宣言から導出し、意図した
+   板端はみ出しを宣言して独立実測と照合する。
+9. 発注用exportの行識別キーはgraph投影の同一性キーと分ける。fab部品番号によるBOM統合と
+   value差異の扱いを混同せず、生成後のDesignator集合を独立照合する。
+10. KiCadの回転規約を思い込みで実装したため、90°/270°の非対称部品で実測pad座標が
+    180°ずれた。0°/180°だけでは符号誤りが露見しないため、SOT-223のtabやUSB-C shield
+    のような非対称形状を90°/270°でテストし、Gerber銅、3Dレンダ、KiCad自身の出力と
+    突き合わせる独立ゲートを必須にする。DRC 0でも実測層の座標変換が誤っていれば、
+    DFM判定自体が無意味になる。
+11. CPLのfootprint原点と部品centroidを混同した。生成物と独立測定が同じfootprint原点を
+    共有していると、その基準自体の誤りは検出できない。fabが要求する位置基準は一次情報
+    で確認する。JLCPCB公式はcomponent centroidと定義するが算出方法を明記していない
+    ため、GD1のU1/J1でpad bbox中心を採用した結論は独立実測とビューワ表示の一致に基づく
+    宣言として記録し、JLCPCBの確定仕様とは扱わない。第三者の補正テーブルは一次情報の
+    出所として採用しない。
+12. CPL位置基準の確認経路を発注可否から分離した。estimatedな基準はfab側プレビューの
+    目視確認が必要で、自動発注合格にしない。一方、製造データ生成と発注可否は分離し、
+    Gerber、CPL、BOM、DFM、fab-packageを生成した後にorder-readinessゲートで判定する。
+    未確認の位置・回転基準が残る間は製造データを確認用に出力し、
+    `order-readiness.json`を`not_order_ready`として発注を停止する。グラフの出所時点は
+    `cpl_position_evidence_at`／`cpl_rotation_evidence_at`で記録し、人によるconfirmed宣言
+    には確認手段、対象revision、根拠メモも必須とする。
+13. fab側ライブラリの番号付きパッド配置は取得可能な照合対象である。保存した応答のURL、
+    取得時刻、hashをEvidenceとして固定し、KiCad側パッドとピン機能・座標を再計算する。
+    ただしこれはメーカーのtape&reel図そのものではないため、`fab_library_footprint`由来
+    という限界を明示する。JLCPCB公式FAQの「0°は包装内の部品向きと一致すべき」という
+    要件を補助する再現可能な照合であり、公式の部品別テープ表とは扱わない。
+14. パッド番号はライブラリ間で意味が異なり得るため照合キーにせず、D1のような極性部品で
+    番号照合が逆実装を導くことを防ぐ。一意な幾何解も正しさの証明とはせず、機能を1:1
+    対応できない場合はfail-closedとする。無極性・対称部品だけは極性影響なしの根拠を
+    Evidenceへ残して幾何照合する。照合の優先順位はピン機能が第一であり、機能対応を
+    省略する幾何例外には機構的な向きまたは仕様上の機能対称性の出所付き宣言を必須とする。
+    左右反転は回転では解消できないため、幾何的一意性だけでなく左右の電気的機能対称性も
+    確認する。
+15. graphのピン機能宣言は手書き値をそのまま信頼せず、pathとsha256を検証したKiCad
+    symbolからピン番号・ピン名を再抽出して独立照合する。宣言とsymbolが食い違う部品、
+    またはsymbolで検証できないパッドの根拠が不足する部品は発注不可とする。実物symbolの
+    照合はgraphが固定したKiCadライブラリが配置されたGD1実行環境で行う。CIでは環境依存
+    によりライブラリ不在を理由付きskipとする場合があるが、ライブラリが存在する場合の
+    hash不一致や宣言不一致は必ず失敗させる。
 
 ## 残るリスクとunknown
 
@@ -76,6 +122,8 @@ JLCPCB KiCad pluginは将来の任意adapterとして二次保持する。既定
   座標符号、回転規約をprofileのexport format宣言へ移す。
 - `packages/adapters/acd-adapter-kicad/src/acd_adapter_kicad/project.py`の`.kicad_dru` rule名に
   ある`jlcpcb-` prefixを一般化する。
+- 発注用BOMの行同一性キーをgraph投影の同一性キーと混同しない。fabの部品番号（LCSC、MPN、
+  footprint）とexport formatの列契約をprofile側で宣言し、valueの差異で同一発注部品を分割しない。
 - `packages/acd-core/src/acd_core/fab.py`のassembly class literal検証をprofile由来にする。
 - capability値とpreferenceの`rule_id`はfab依存である。profileに出所、取得時刻、hashを付ける
   共通原則を維持し、未確認値は追加しない。

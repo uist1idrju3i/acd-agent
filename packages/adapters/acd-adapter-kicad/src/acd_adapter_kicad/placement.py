@@ -51,11 +51,8 @@ _GRID_MM = 0.25
 _SPACING_STEPS_MM = (0.45, 0.15, 0.0)
 _COMPACTNESS_WEIGHT = 0.05
 
-# Anchored placements for the golden design profile: the antenna module hangs
-# over the top edge, the USB receptacle sits on the bottom edge.
-ANTENNA_MODULE_Y_MM = 6.4
-USB_CONNECTOR_Y_MM = 22.0
 MOUNTING_HOLE_INSET_MM = 3.0
+_EDGE_TOLERANCE_MM = 1e-6
 
 
 def _pad_bbox(footprint: FootprintShape, margin: float) -> tuple[float, float, float, float]:
@@ -82,18 +79,38 @@ def _pad_bbox(footprint: FootprintShape, margin: float) -> tuple[float, float, f
     return min(xs) - margin, min(ys) - margin, max(xs) + margin, max(ys) + margin
 
 
-def _placed_rect(footprint: FootprintShape, x: float, y: float, rotation: float) -> Rect:
+def placed_rect(footprint: FootprintShape, x: float, y: float, rotation: float) -> Rect:
     x1, y1, x2, y2 = _pad_bbox(footprint, _MARGIN_MM)
     rot = rotation % 360
     if rot == 90.0:
-        x1, y1, x2, y2 = -y2, x1, -y1, x2
+        x1, y1, x2, y2 = y1, -x2, y2, -x1
     elif rot == 180.0:
         x1, y1, x2, y2 = -x2, -y2, -x1, -y1
     elif rot == 270.0:
-        x1, y1, x2, y2 = y1, -x2, y2, -x1
+        x1, y1, x2, y2 = -y2, x1, -y1, x2
     elif rot != 0.0:
         raise PlacementError(f"unsupported rotation {rotation} (fail-closed)")
     return Rect(x + x1, y + y1, x + x2, y + y2)
+
+
+def _edge_anchor_y(
+    board: BoardView, footprint: FootprintShape, *, kind: str
+) -> float:
+    if kind == "usb_connector":
+        body = footprint.body_bbox_mm
+        if body is None:
+            raise PlacementError("USB connector body geometry missing (fail-closed)")
+        pad_y = sum(pad.y_mm for pad in footprint.pads) / len(footprint.pads)
+        edge = body[3] if body[3] >= pad_y else body[1]
+        return board.height_mm - edge if edge >= pad_y else -edge
+    if kind == "rf_module":
+        if len(footprint.keepout_bboxes_mm) != 1:
+            raise PlacementError("RF antenna keepout is not unique (fail-closed)")
+        keepout = footprint.keepout_bboxes_mm[0]
+        pad_y = max(pad.y_mm for pad in footprint.pads)
+        inner = keepout[3] if keepout[3] < pad_y else keepout[1]
+        return -inner
+    raise PlacementError(f"unsupported edge anchor kind {kind!r}")
 
 
 def _classify(comp: ComponentView) -> str:
@@ -134,17 +151,26 @@ def compute_placements(
     for comp in ordered:
         kind = _classify(comp)
         footprint = footprints[comp.refdes]
-        if kind == "rf_module":
-            x, y, rot = center_x, ANTENNA_MODULE_Y_MM, 0.0
-        elif kind == "usb_connector":
-            x, y, rot = center_x, USB_CONNECTOR_Y_MM, 0.0
+        if kind == "rf_module" or kind == "usb_connector":
+            x, y, rot = center_x, _edge_anchor_y(board, footprint, kind=kind), 0.0
         elif kind == "mounting_hole":
             x, y = hole_positions[holes.index(comp)]
             rot = 0.0
         else:
             continue
         placements.append(Placement(comp.refdes, x, y, rot))
-        occupied.append(_placed_rect(footprint, x, y, rot))
+        placed_pad = placed_rect(
+            FootprintShape(footprint.library_ref, footprint.pads), x, y, rot
+        )
+        edge_clearance = board.edge_copper_clearance_mm
+        if (
+            placed_pad.x1 < edge_clearance - _EDGE_TOLERANCE_MM
+            or placed_pad.y1 < edge_clearance - _EDGE_TOLERANCE_MM
+            or placed_pad.x2 > board.width_mm - edge_clearance + _EDGE_TOLERANCE_MM
+            or placed_pad.y2 > board.height_mm - edge_clearance + _EDGE_TOLERANCE_MM
+        ):
+            raise PlacementError(f"{comp.refdes}: pad edge clearance violated")
+        occupied.append(placed_rect(footprint, x, y, rot))
 
     def bbox_area(comp: ComponentView) -> float:
         x1, y1, x2, y2 = _pad_bbox(footprints[comp.refdes], _MARGIN_MM)
@@ -247,7 +273,7 @@ def compute_placements(
             )
         x, y, rot = spot
         placements.append(Placement(comp.refdes, x, y, rot))
-        occupied.append(_placed_rect(footprint, x, y, rot))
+        occupied.append(placed_rect(footprint, x, y, rot))
         placed_at[comp.refdes] = (x, y)
 
     return tuple(sorted(placements, key=lambda p: p.refdes))
@@ -284,7 +310,7 @@ def _best_fit(
                         cost = sum(abs(x - ax) + abs(y - ay) for ax, ay in anchors)
                     else:
                         target_at, target_footprint, target_pad, cap_pad = target
-                        candidate_point = _pad_position(footprint, (x, y), rotation, cap_pad)
+                        candidate_point = pad_position(footprint, (x, y), rotation, cap_pad)
                         cost = min(
                             abs(candidate_point[0] - target_point[0])
                             + abs(candidate_point[1] - target_point[1])
@@ -307,7 +333,7 @@ def _best_fit(
     return round(best[1], 4), round(best[2], 4), (0.0, 90.0)[int(best[3])]
 
 
-def _pad_position(
+def pad_position(
     footprint: FootprintShape,
     placement: tuple[float, float],
     rotation: float,
@@ -320,11 +346,11 @@ def _pad_position(
     x, y = pad.x_mm, pad.y_mm
     rot = rotation % 360.0
     if rot == 90.0:
-        x, y = -y, x
+        x, y = y, -x
     elif rot == 180.0:
         x, y = -x, -y
     elif rot == 270.0:
-        x, y = y, -x
+        x, y = -y, x
     elif rot != 0.0:
         raise PlacementError(f"unsupported rotation {rotation} (fail-closed)")
     return placement[0] + x, placement[1] + y
@@ -337,7 +363,7 @@ def _pad_positions(
     pad_number: str,
 ) -> tuple[tuple[float, float], ...]:
     return tuple(
-        _pad_position(
+        pad_position(
             FootprintShape(
                 library_ref=footprint.library_ref,
                 pads=(pad,),

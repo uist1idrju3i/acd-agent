@@ -15,7 +15,6 @@ from acd_adapter_kicad.emit import det_uuid, fmt, requote
 from acd_adapter_kicad.library import FootprintLibrary
 from acd_adapter_kicad.overlay import apply_overlay
 from acd_adapter_kicad.placement import (
-    ANTENNA_MODULE_Y_MM,
     Placement,
     Rect,
     compute_placements,
@@ -227,7 +226,7 @@ def _antenna_keepout_depth(
         top_pad_edge = min(
             pad.y_mm - max(pad.size_x_mm, pad.size_y_mm) / 2.0 for pad in footprint.pads
         )
-        depth = ANTENNA_MODULE_Y_MM + top_pad_edge - _ANTENNA_KEEPOUT_PAD_CLEARANCE_MM
+        depth = top_pad_edge - _ANTENNA_KEEPOUT_PAD_CLEARANCE_MM
         return max(0.0, min(_ANTENNA_KEEPOUT_DEPTH_MM, depth))
     return _ANTENNA_KEEPOUT_DEPTH_MM
 

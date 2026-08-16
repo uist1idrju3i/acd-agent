@@ -26,6 +26,7 @@ NodeKind = Literal[
     "mechanical.outline",
     "mechanical.component_body",
     "mechanical.connector_opening",
+    "mechanical.board_edge_overhang",
     "mechanical.enclosure",
     "firmware.module",
     "firmware.pin_assignment",

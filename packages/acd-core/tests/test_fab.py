@@ -51,7 +51,10 @@ def test_profile_schema_and_provenance() -> None:
     profile = load_fab_profile(PROFILE)
     assert profile.profile_id == "jlcpcb-fr4-2l-1oz"
     assert len(profile.preference_rule_ids) == len(profile.data["preferences"])
-    assert {source["fetched_at"] for source in profile.data["sources"]} == {"2026-08-11T00:00:00Z"}
+    assert {source["fetched_at"] for source in profile.data["sources"]} == {
+        "2026-08-11T00:00:00Z",
+        "2026-08-13T00:00:00Z",
+    }
     json.dumps(profile.data)
 
 

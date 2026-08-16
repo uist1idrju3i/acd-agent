@@ -5,18 +5,29 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import json
 import math
+import re
 import zipfile
+from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
 import sexpdata  # pyright: ignore[reportMissingTypeStubs]
+from gerbonara.apertures import (  # pyright: ignore[reportMissingTypeStubs]
+    CircleAperture,
+    ObroundAperture,
+    RectangleAperture,
+)
 from gerbonara.excellon import ExcellonFile  # pyright: ignore[reportMissingTypeStubs]
+from gerbonara.graphic_objects import Flash, Line, Region  # pyright: ignore[reportMissingTypeStubs]
+from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
-from acd_core.bom import BomRow, build_bom
-from acd_core.electrical import ElectricalLane
+from acd_adapter_kicad.library import SymbolLibrary
+from acd_core.bom import refdes_key
+from acd_core.electrical import ComponentView, ElectricalLane
 from acd_core.fab import (
     FabOrderIntentView,
     FabProfile,
@@ -27,6 +38,14 @@ from acd_core.fab import (
 
 class FabOutputError(ValueError):
     """Raised when manufacturing output cannot be proven correct."""
+
+
+class CplBasisError(FabOutputError):
+    """Raised when CPL basis or provenance is unknown."""
+
+    def __init__(self, message: str, report: dict[str, object]) -> None:
+        super().__init__(message)
+        self.report = report
 
 
 @dataclass(frozen=True)
@@ -42,6 +61,7 @@ class PadMeasurement:
     net: str | None
     drill_x_mm: float | None = None
     drill_y_mm: float | None = None
+    number: str | None = None
 
     @property
     def annular_ring_mm(self) -> float | None:
@@ -73,6 +93,8 @@ class FootprintMeasurement:
     rotation_deg: float
     layer: str
     pads: tuple[PadMeasurement, ...]
+    courtyard_bbox_mm: tuple[float, float, float, float] | None = None
+    body_bbox_mm: tuple[float, float, float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -89,6 +111,11 @@ class BoardMeasurement:
     @property
     def pads(self) -> tuple[PadMeasurement, ...]:
         return tuple(pad for fp in self.footprints for pad in fp.pads)
+
+
+PAD_SIZE_TOLERANCE_MM = 0.3
+# Combined fab-library lands can represent multiple KiCad pads in one outline.
+PAD_SIZE_MERGE_RATIO = 5.0
 
 
 def _items(node: object) -> list[object]:
@@ -133,16 +160,589 @@ def _property(node: object, name: str) -> str | None:
     return None
 
 
-def _rotate(x: float, y: float, angle: float) -> tuple[float, float]:
+def rotate(x: float, y: float, angle: float) -> tuple[float, float]:
     radians = math.radians(angle)
     return (
-        x * math.cos(radians) - y * math.sin(radians),
-        x * math.sin(radians) + y * math.cos(radians),
+        x * math.cos(radians) + y * math.sin(radians),
+        -x * math.sin(radians) + y * math.cos(radians),
     )
 
 
 def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
-    return _rotate(x, y, -angle)
+    return rotate(x, y, -angle)
+
+
+def _minimum_matching_error(
+    actual: Sequence[tuple[float, float]], expected: Sequence[tuple[float, float]]
+) -> float:
+    distances = sorted(
+        {math.dist(left, right) for left in actual for right in expected}
+    )
+    for threshold in distances:
+        matched: dict[int, int] = {}
+
+        def visit(
+            index: int,
+            seen: set[int],
+            limit: float = threshold,
+            assignments: dict[int, int] = matched,
+        ) -> bool:
+            for candidate, distance in enumerate(
+                math.dist(actual[index], point) for point in expected
+            ):
+                if distance > limit or candidate in seen:
+                    continue
+                seen.add(candidate)
+                previous = assignments.get(candidate)
+                if previous is None or visit(previous, seen):
+                    assignments[candidate] = index
+                    return True
+            return False
+
+        if all(visit(index, set()) for index in range(len(expected))):
+            return threshold
+    raise FabOutputError("pin-function matching has no perfect assignment")
+
+
+def _normalize_pin_function(name: str, aliases: Mapping[str, str]) -> str:
+    normalized = re.sub(r"[^A-Z0-9+_-]", "", name.upper())
+    normalized_aliases = {
+        re.sub(r"[^A-Z0-9+_-]", "", source.upper()): re.sub(
+            r"[^A-Z0-9+_-]", "", target.upper()
+        )
+        for source, target in aliases.items()
+    }
+    return normalized_aliases.get(normalized, normalized)
+
+
+def _minimum_matching_geometry_error(
+    actual: Sequence[tuple[tuple[float, float], tuple[float, float]]],
+    expected: Sequence[tuple[tuple[float, float], tuple[float, float]]],
+    tolerance_mm: float,
+) -> float:
+    distances = sorted(
+        {
+            math.dist(left[0], right[0])
+            for left in actual
+            for right in expected
+        }
+    )
+    for threshold in distances:
+        matched: dict[int, int] = {}
+
+        def visit(
+            expected_index: int,
+            seen: set[int],
+            limit: float = threshold,
+            assignments: dict[int, int] = matched,
+        ) -> bool:
+            for candidate, point in enumerate(actual):
+                if candidate in seen:
+                    continue
+                actual_size = point[1]
+                expected_size = expected[expected_index][1]
+                size_compatible = (
+                    abs(actual_size[0] - expected_size[0]) <= tolerance_mm
+                    and abs(actual_size[1] - expected_size[1]) <= tolerance_mm
+                )
+                if not size_compatible:
+                    size_compatible = (
+                        all(value > 0 for value in actual_size + expected_size)
+                        and max(
+                            expected_size[0] / actual_size[0],
+                            expected_size[1] / actual_size[1],
+                        )
+                        <= PAD_SIZE_MERGE_RATIO
+                    )
+                if not size_compatible:
+                    continue
+                if math.dist(point[0], expected[expected_index][0]) > limit:
+                    continue
+                seen.add(candidate)
+                previous = assignments.get(candidate)
+                if previous is None or visit(previous, seen):
+                    assignments[candidate] = expected_index
+                    return True
+            return False
+
+        if all(visit(index, set()) for index in range(len(expected))):
+            return threshold
+    raise FabOutputError("geometry matching has no compatible perfect assignment")
+
+
+def _parse_lcsc_pad_shape(shape: str) -> tuple[str, float, float] | None:
+    fields = shape.split("~")
+    if len(fields) < 9 or fields[0] != "PAD":
+        return None
+    try:
+        return fields[8], float(fields[2]), float(fields[3])
+    except ValueError:
+        return None
+
+
+def _parse_lcsc_pad_geometry(
+    shape: str,
+) -> tuple[str, float, float, float, float] | None:
+    fields = shape.split("~")
+    if len(fields) < 9 or fields[0] != "PAD":
+        return None
+    try:
+        return fields[8], float(fields[2]), float(fields[3]), float(fields[4]), float(fields[5])
+    except ValueError:
+        return None
+
+
+def _parse_lcsc_pin_shape(shape: str) -> tuple[str, str, float, float] | None:
+    fields = shape.split("~")
+    if len(fields) < 6 or fields[0] != "P":
+        return None
+    pin_name_match = re.search(r"~([^~]+)~(?:start|end)~", shape)
+    if pin_name_match is None:
+        return None
+    try:
+        return fields[3], pin_name_match.group(1), float(fields[4]), float(fields[5])
+    except ValueError:
+        return None
+
+
+def load_lcsc_pin_centers(path: Path) -> tuple[tuple[str, str, float, float], ...]:
+    """Read pin-function pad centers from an archived EasyEDA package response."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+    package_shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
+    pad_shapes = [_parse_lcsc_pad_shape(str(shape)) for shape in package_shapes]
+    pad_centers = {
+        number: (x, y)
+        for item in pad_shapes
+        if item is not None
+        for number, x, y in [item]
+    }
+    pin_shapes = package_shapes
+    if not any(str(shape).startswith("P~") for shape in pin_shapes):
+        pin_shapes = document["response"]["result"]["dataStr"]["shape"]
+    pins = [_parse_lcsc_pin_shape(str(shape)) for shape in pin_shapes]
+    parsed = tuple(
+        (number, function, pad_centers[number][0], pad_centers[number][1])
+        for item in pins
+        if item is not None
+        for number, function, _, _ in [item]
+        if number in pad_centers
+    )
+    if not parsed:
+        raise FabOutputError(f"{path}: archived LCSC response has no pin-function pads")
+    return parsed
+
+
+def load_lcsc_pin_geometries(
+    path: Path,
+) -> tuple[tuple[str, str, float, float, float, float], ...]:
+    """Read pin functions and pad geometry from an archived EasyEDA response."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+    package_shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
+    pad_geometries = [_parse_lcsc_pad_geometry(str(shape)) for shape in package_shapes]
+    pads = {
+        number: (x, y, width, height)
+        for item in pad_geometries
+        if item is not None
+        for number, x, y, width, height in [item]
+    }
+    pin_shapes = package_shapes
+    if not any(str(shape).startswith("P~") for shape in pin_shapes):
+        pin_shapes = document["response"]["result"]["dataStr"]["shape"]
+    parsed = tuple(
+        (number, function, *pads[number])
+        for item in [_parse_lcsc_pin_shape(str(shape)) for shape in pin_shapes]
+        if item is not None
+        for number, function, _, _ in [item]
+        if number in pads
+    )
+    if not parsed:
+        raise FabOutputError(f"{path}: archived LCSC response has no pin-function geometry")
+    return parsed
+
+
+def derive_lcsc_rotation_offset(
+    footprint: FootprintMeasurement,
+    lcsc_pin_centers: Sequence[tuple[str, str, float, float]],
+    kicad_pin_functions: Mapping[str, str] | None = None,
+    pin_name_aliases: Mapping[str, str] | None = None,
+    tolerance_mm: float = 0.3,
+    scale: float = 0.254,
+    polarized: bool = True,
+    lcsc_pin_geometries: Sequence[tuple[str, str, float, float, float, float]] | None = None,
+    geometry_exception: bool = False,
+) -> tuple[float, str]:
+    """Derive a unique quarter-turn offset from pin-function geometry."""
+    aliases = pin_name_aliases or {}
+    if polarized and not kicad_pin_functions and not geometry_exception:
+        raise FabOutputError(f"{footprint.refdes}: KiCad pin functions are required")
+    all_kicad = [
+        _inverse_rotate(
+            pad.x_mm - footprint.x_mm,
+            pad.y_mm - footprint.y_mm,
+            footprint.rotation_deg,
+        )
+        for pad in footprint.pads
+        if pad.number is not None
+    ]
+    if geometry_exception:
+        if lcsc_pin_geometries is None:
+            raise FabOutputError(
+                f"{footprint.refdes}: geometry exception requires LCSC pad sizes"
+            )
+        if len(all_kicad) < len(lcsc_pin_geometries):
+            raise FabOutputError(
+                f"{footprint.refdes}: geometry pad count mismatch: "
+                f"KiCad={len(all_kicad)} LCSC={len(lcsc_pin_geometries)}"
+            )
+        kicad_center = (
+            sum(x for x, _ in all_kicad) / len(all_kicad),
+            sum(y for _, y in all_kicad) / len(all_kicad),
+        )
+        lcsc_values = [(x * scale, y * scale) for _, _, x, y, _, _ in lcsc_pin_geometries]
+        lcsc_center = (
+            sum(x for x, _ in lcsc_values) / len(lcsc_values),
+            sum(y for _, y in lcsc_values) / len(lcsc_values),
+        )
+        candidates: list[tuple[float, float]] = []
+        for angle in (0.0, 90.0, 180.0, 270.0):
+            quarter_turn = int(angle) % 180 == 90
+            actual = [
+                (
+                    rotate(x - kicad_center[0], y - kicad_center[1], angle),
+                    (pad.size_y_mm, pad.size_x_mm)
+                    if quarter_turn
+                    else (pad.size_x_mm, pad.size_y_mm),
+                )
+                for pad, (x, y) in zip(footprint.pads, all_kicad, strict=True)
+            ]
+            expected = [
+                (
+                    (x * scale - lcsc_center[0], y * scale - lcsc_center[1]),
+                    (width * scale, height * scale),
+                )
+                for _, _, x, y, width, height in lcsc_pin_geometries
+            ]
+            try:
+                error = _minimum_matching_geometry_error(
+                    actual, expected, PAD_SIZE_TOLERANCE_MM
+                )
+            except FabOutputError:
+                continue
+            if error <= tolerance_mm:
+                candidates.append((angle, error))
+        if len(candidates) == 1:
+            return candidates[0][0], (
+                "unique; basis=declared-geometry-exception; "
+                f"max_error_mm={candidates[0][1]:.6f}; "
+                f"pad_size_tolerance_mm={PAD_SIZE_TOLERANCE_MM:.3f}"
+            )
+        if not candidates:
+            raise FabOutputError(
+                f"{footprint.refdes}: no geometry rotation candidate within tolerance"
+            )
+        raise FabOutputError(
+            f"{footprint.refdes}: ambiguous geometry rotation candidates: {candidates}"
+        )
+    kicad: dict[str, list[tuple[float, float]]] = defaultdict(list)
+    lcsc: dict[str, list[tuple[float, float]]] = defaultdict(list)
+    if kicad_pin_functions:
+        for pad in footprint.pads:
+            if pad.number is not None and pad.number in kicad_pin_functions:
+                function = _normalize_pin_function(kicad_pin_functions[pad.number], aliases)
+                kicad[function].append(
+                    _inverse_rotate(
+                        pad.x_mm - footprint.x_mm,
+                        pad.y_mm - footprint.y_mm,
+                        footprint.rotation_deg,
+                    )
+                )
+        raw_lcsc: dict[str, list[tuple[str, float, float]]] = defaultdict(list)
+        for number, function, x, y in lcsc_pin_centers:
+            raw_lcsc[_normalize_pin_function(function, aliases)].append(
+                (number, x * scale, y * scale)
+            )
+        for function, target in kicad.items():
+            selected = [
+                (point[0], point[1])
+                for number, *point in raw_lcsc[function]
+                if number in kicad_pin_functions
+            ]
+            if len(selected) < len(target):
+                selected.extend(
+                    (point[0], point[1])
+                    for number, *point in raw_lcsc[function]
+                    if number not in kicad_pin_functions
+                )
+            lcsc[function] = selected[: len(target)]
+        if {key: len(value) for key, value in kicad.items()} != {
+            key: len(value) for key, value in lcsc.items()
+        }:
+            raise FabOutputError(
+                f"{footprint.refdes}: pin-function mismatch: "
+                f"KiCad={sorted(kicad)} LCSC={sorted(lcsc)}"
+            )
+    else:
+        kicad["__geometry__"] = all_kicad
+        lcsc["__geometry__"] = [(x * scale, y * scale) for _, _, x, y in lcsc_pin_centers]
+    kicad_values = [point for points in kicad.values() for point in points]
+    kicad_center = (
+        sum(x for x, _ in kicad_values) / len(kicad_values),
+        sum(y for _, y in kicad_values) / len(kicad_values),
+    )
+    lcsc_values = [point for points in lcsc.values() for point in points]
+    lcsc_center = (
+        sum(x for x, _ in lcsc_values) / len(lcsc_values),
+        sum(y for _, y in lcsc_values) / len(lcsc_values),
+    )
+    candidates: list[tuple[float, float]] = []
+    for angle in (0.0, 90.0, 180.0, 270.0):
+        error = 0.0
+        for function, kicad_points in kicad.items():
+            transformed = [
+                rotate(x - kicad_center[0], y - kicad_center[1], angle)
+                for x, y in kicad_points
+            ]
+            remaining = [
+                (x - lcsc_center[0], y - lcsc_center[1]) for x, y in lcsc[function]
+            ]
+            error = max(error, _minimum_matching_error(transformed, remaining))
+        if error <= tolerance_mm:
+            candidates.append((angle, error))
+    if len(candidates) == 1:
+        basis = "pin-function" if kicad_pin_functions else "geometry-only"
+        return candidates[0][0], f"unique; basis={basis}; max_error_mm={candidates[0][1]:.6f}"
+    if len(candidates) > 1 and not polarized:
+        return 0.0, (
+            "ambiguous but non-polarized and symmetric; "
+            f"polarity unaffected; candidates={candidates}"
+        )
+    if not candidates:
+        raise FabOutputError(f"{footprint.refdes}: no LCSC rotation candidate within tolerance")
+    raise FabOutputError(f"{footprint.refdes}: ambiguous LCSC rotation candidates: {candidates}")
+
+
+def verify_lcsc_rotation_evidence(
+    evidence_dir: Path,
+    fixture_dir: Path,
+    board: BoardMeasurement,
+    lane: ElectricalLane,
+    fitted: set[str],
+) -> tuple[dict[str, float], dict[str, str], list[str]]:
+    """Recompute archived LCSC rotation Evidence without network access."""
+    footprints = {footprint.refdes: footprint for footprint in board.footprints}
+    offsets: dict[str, float] = {}
+    notes: dict[str, str] = {}
+    unknowns: list[str] = []
+    for component in lane.components:
+        if component.refdes not in fitted:
+            continue
+        path = evidence_dir / f"{component.refdes}.json"
+        if not path.exists():
+            continue
+        document = json.loads(path.read_text(encoding="utf-8"))
+        response = document["response"]
+        canonical = json.dumps(
+            response, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode()
+        expected_hash = f"sha256:{hashlib.sha256(canonical).hexdigest()}"
+        if document.get("response_canonical_sha256") != expected_hash:
+            raise FabOutputError(f"{component.refdes}: LCSC Evidence response hash mismatch")
+        footprint = footprints.get(component.refdes)
+        if footprint is None:
+            raise FabOutputError(f"{component.refdes}: board footprint missing for LCSC Evidence")
+        try:
+            symbol_note = verify_cpl_pin_function_declaration(
+                component, fixture_dir
+            )
+            geometry_exception = component.cpl_rotation_geometry_exception
+            if geometry_exception and (
+                not component.cpl_rotation_geometry_exception_reason
+                or not component.cpl_rotation_geometry_exception_source
+            ):
+                raise FabOutputError(
+                    f"{component.refdes}: geometry exception provenance is required"
+                )
+            offset, note = derive_lcsc_rotation_offset(
+                footprint,
+                load_lcsc_pin_centers(path),
+                component.cpl_rotation_pin_functions,
+                component.cpl_rotation_pin_aliases,
+                polarized=component.cpl_rotation_polarized,
+                lcsc_pin_geometries=(
+                    load_lcsc_pin_geometries(path) if geometry_exception else None
+                ),
+                geometry_exception=geometry_exception,
+            )
+        except FabOutputError as exc:
+            unknowns.append(component.refdes)
+            notes[component.refdes] = f"unknown; {exc}"
+            continue
+        offsets[component.refdes] = offset
+        notes[component.refdes] = f"{symbol_note}; {note}"
+    return offsets, notes, unknowns
+
+
+def verify_cpl_pin_function_declaration(
+    component: ComponentView,
+    fixture_dir: Path,
+) -> str:
+    """Verify graph CPL pin functions against the pinned KiCad symbol."""
+    if not component.cpl_rotation_pin_functions:
+        return "no pin-function declaration"
+    symbol_path = Path(component.library.symbol_file)
+    if not symbol_path.is_absolute():
+        symbol_path = fixture_dir / symbol_path
+    parsed = SymbolLibrary().load(
+        component.library.symbol,
+        symbol_path,
+        component.library.symbol_sha256,
+    )
+    symbol_pins = {
+        pin.number: _normalize_pin_function(pin.name, component.cpl_rotation_pin_aliases)
+        for pin in parsed.pins
+    }
+    unverified = set(component.cpl_rotation_unverified_pads)
+    for number, declared in component.cpl_rotation_pin_functions.items():
+        if number not in symbol_pins:
+            if (
+                number not in unverified
+                or not component.cpl_rotation_unverified_pad_reason
+                or not component.cpl_rotation_unverified_pad_source
+            ):
+                raise FabOutputError(
+                    f"{component.refdes}: CPL pin {number} is absent from symbol "
+                    "without sourced unverified-pad declaration"
+                )
+            continue
+        expected = _normalize_pin_function(declared, component.cpl_rotation_pin_aliases)
+        if expected != symbol_pins[number]:
+            raise FabOutputError(
+                f"{component.refdes}: CPL pin function mismatch for {number}: "
+                f"declared={declared!r} symbol={symbol_pins[number]!r}"
+            )
+    if unverified:
+        return (
+            f"symbol-verified; unverified_pads={sorted(unverified)}; "
+            f"reason={component.cpl_rotation_unverified_pad_reason}"
+        )
+    return "symbol-verified; all declared CPL pins matched"
+
+
+def _footprint_bbox(
+    node: object, fp_at: tuple[float, float, float], layer_suffix: str
+) -> tuple[float, float, float, float] | None:
+    points: list[tuple[float, float]] = []
+    for tag in ("fp_line", "fp_rect", "fp_circle", "fp_arc", "fp_poly"):
+        for item in _direct(node, tag):
+            layer = _one(item, "layer")
+            if layer is None or not str(layer[1]).endswith(layer_suffix):
+                continue
+            for point_tag in ("start", "mid", "end", "center"):
+                point = _one(item, point_tag)
+                if point is not None and len(point) > 2:
+                    points.append((_number(point[1]), _number(point[2])))
+            pts_node = _one(item, "pts")
+            if pts_node is not None:
+                for xy in pts_node[1:]:
+                    if isinstance(xy, list):
+                        values = cast(list[object], xy)
+                        if len(values) <= 2:
+                            continue
+                        points.append((_number(values[1]), _number(values[2])))
+    if not points:
+        return None
+    transformed = [
+        (fp_at[0] + rotate(x, y, fp_at[2])[0], fp_at[1] + rotate(x, y, fp_at[2])[1])
+        for x, y in points
+    ]
+    xs, ys = zip(*transformed, strict=True)
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _point_in_polygon(x: float, y: float, polygon: Sequence[tuple[float, float]]) -> bool:
+    inside = False
+    for (x1, y1), (x2, y2) in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
+            inside = not inside
+    return inside
+
+
+def verify_smd_pad_centers_in_gerber(
+    gerber_path: Path, measurement: BoardMeasurement
+) -> None:
+    try:
+        layer = GerberFile.open(gerber_path)  # pyright: ignore[reportUnknownMemberType]
+        objects = cast("list[Flash | Region | Line]", layer.objects)  # pyright: ignore[reportUnknownMemberType]
+    except Exception as exc:
+        raise FabOutputError(
+            f"{gerber_path.name}: Gerber pad coverage parse failed: {exc}"
+        ) from exc
+
+    def covered(x: float, y: float) -> bool:
+        for obj in objects:
+            if not obj.polarity_dark:
+                continue
+            if isinstance(obj, Flash):
+                if not isinstance(
+                    obj.aperture,
+                    (CircleAperture, ObroundAperture, RectangleAperture),
+                ):
+                    raise FabOutputError(
+                        f"{gerber_path.name}: unsupported Flash aperture "
+                        f"{type(obj.aperture).__name__}; SMD pad coverage is unknown"
+                    )
+                if isinstance(obj.aperture, CircleAperture):
+                    width = height = float(obj.aperture.diameter)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                else:
+                    width = float(obj.aperture.w)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                    height = float(obj.aperture.h)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                obj_x = float(obj.x)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                obj_y = float(obj.y)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                if abs(x - obj_x) <= width / 2 and abs(y - obj_y) <= height / 2:
+                    return True
+            elif isinstance(obj, Region):
+                outline = cast("list[tuple[float, float]]", obj.outline)  # pyright: ignore[reportUnknownMemberType]
+                if _point_in_polygon(x, y, outline):
+                    return True
+            else:
+                if not isinstance(obj.aperture, CircleAperture):
+                    raise FabOutputError(
+                        f"{gerber_path.name}: unsupported Line aperture "
+                        f"{type(obj.aperture).__name__}; SMD pad coverage is unknown"
+                    )
+                x1 = float(obj.x1)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                y1 = float(obj.y1)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                x2 = float(obj.x2)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                y2 = float(obj.y2)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                dx, dy = x2 - x1, y2 - y1
+                length_sq = dx * dx + dy * dy
+                t = (
+                    0.0
+                    if length_sq == 0
+                    else max(
+                        0.0,
+                        min(1.0, ((x - x1) * dx + (y - y1) * dy) / length_sq),
+                    )
+                )
+                nearest_x, nearest_y = x1 + t * dx, y1 + t * dy
+                radius = float(obj.aperture.diameter) / 2  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                if math.hypot(x - nearest_x, y - nearest_y) <= radius:
+                    return True
+        return False
+
+    missing = [
+        pad.refdes
+        for pad in measurement.pads
+        if pad.kind == "smd"
+        and not covered(
+            pad.x_mm,
+            -pad.y_mm,  # KiCad Y increases downward; Gerber Y increases upward.
+        )
+    ]
+    if missing:
+        raise FabOutputError(
+            f"{gerber_path.name}: F.Cu does not cover SMD pad centers {sorted(set(missing))}"
+        )
 
 
 def _parse_pad(
@@ -159,7 +759,7 @@ def _parse_pad(
     if pad_at is None or size is None or len(pad_at) < 3 or len(size) < 3:
         raise FabOutputError(f"{fp_ref}: pad missing at/size")
     local_x, local_y = _number(pad_at[1]), _number(pad_at[2])
-    x_off, y_off = _rotate(local_x, local_y, fp_at[2])
+    x_off, y_off = rotate(local_x, local_y, fp_at[2])
     drill = _one(node, "drill")
     drill_mm = None
     drill_x_mm = None
@@ -193,6 +793,7 @@ def _parse_pad(
         net=net_value,
         drill_x_mm=drill_x_mm,
         drill_y_mm=drill_y_mm,
+        number=str(values[1]) if len(values) > 1 else None,
     )
 
 
@@ -246,7 +847,9 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
                         silk_widths.append(_number(thickness[1]))
             footprints.append(
                 FootprintMeasurement(
-                    refdes, fp_at[0], fp_at[1], fp_at[2], str(layer), pads
+                    refdes, fp_at[0], fp_at[1], fp_at[2], str(layer), pads,
+                    _footprint_bbox(node, fp_at, "CrtYd"),
+                    _footprint_bbox(node, fp_at, "Fab"),
                 )
             )
         elif tag == "via":
@@ -412,7 +1015,14 @@ def run_dfm(
     allowances: tuple[ProcessAllowanceView, ...],
     lane: ElectricalLane | None = None,
     intent: FabOrderIntentView | None = None,
+    edge_clearance_mm: float | None = None,
+    edge_overhang_declarations: Mapping[str, float] | None = None,
+    cpl_unknowns: Mapping[str, Sequence[str]] | None = None,
 ) -> dict[str, object]:
+    if edge_clearance_mm is None:
+        raise FabOutputError(
+            "board edge copper clearance is required from the electrical graph"
+        )
     allowed = _allowance_map(allowances, profile)
     thresholds = {
         rule: _pref(profile, rule)
@@ -528,6 +1138,29 @@ def run_dfm(
                 "mm",
                 loc,
             )
+        pad_half_x = pad.size_x_mm / 2.0
+        pad_half_y = pad.size_y_mm / 2.0
+        outline = measurement.outline_bbox_mm
+        if outline is not None and (
+            pad.x_mm - pad_half_x < edge_clearance_mm - 1e-6
+            or pad.y_mm - pad_half_y < edge_clearance_mm - 1e-6
+            or pad.x_mm + pad_half_x
+            > outline[2]
+            - edge_clearance_mm
+            + 1e-6
+            or pad.y_mm + pad_half_y
+            > outline[3]
+            - edge_clearance_mm
+            + 1e-6
+        ):
+            add(
+                "pad-to-board-edge-clearance",
+                "capability_violation",
+                {"refdes": pad.refdes, "x_mm": pad.x_mm, "y_mm": pad.y_mm},
+                edge_clearance_mm,
+                "mm",
+                loc,
+            )
         if pad.kind == "through-hole" and pad.annular_ring_mm is not None:
             if pad.annular_ring_mm < _cap(profile, "min_pth_annular_ring_2l_1oz"):
                 add(
@@ -566,6 +1199,36 @@ def run_dfm(
                 "mm",
                 loc,
             )
+    if measurement.outline_bbox_mm is None and measurement.pads:
+        add(
+            "board-outline-geometry-missing",
+            "capability_violation",
+            None,
+            "board outline required",
+            "geometry",
+            [],
+        )
+    missing_body_refdes: list[str] = []
+    declarations = edge_overhang_declarations or {}
+    for fp in measurement.footprints:
+        bbox = fp.body_bbox_mm
+        if bbox is None or measurement.outline_bbox_mm is None:
+            if bbox is None:
+                missing_body_refdes.append(fp.refdes)
+            continue
+        ox1, oy1, ox2, oy2 = measurement.outline_bbox_mm
+        overhang = max(ox1 - bbox[0], oy1 - bbox[1], bbox[2] - ox2, bbox[3] - oy2, 0.0)
+        if overhang > 1e-9:
+            declared_allowed = declarations.get(fp.refdes)
+            if declared_allowed is None or overhang > declared_allowed + 1e-6:
+                add(
+                    "undeclared-board-edge-overhang",
+                    "capability_violation",
+                    overhang,
+                    declared_allowed if declared_allowed is not None else "declaration required",
+                    "mm",
+                    [{"refdes": fp.refdes, "x_mm": fp.x_mm, "y_mm": fp.y_mm}],
+                )
     for via in measurement.vias:
         for pad in measurement.pads:
             if pad.kind != "smd":
@@ -676,6 +1339,16 @@ def run_dfm(
             )
     checks = [
         {
+            "rule_id": "component_body_geometry",
+            "reason": (
+                "F.Fab body geometry is unavailable for "
+                + ", ".join(missing_body_refdes)
+                + "; physical overhang was not independently measured for these references."
+            ),
+        }
+        if missing_body_refdes
+        else None,
+        {
             "rule_id": "pth-to-track-prefer-035",
             "reason": (
                 "DFM v1 does not yet independently measure pad-to-track distances; "
@@ -691,6 +1364,13 @@ def run_dfm(
             "rule_id": "routed_edge_copper_clearance",
             "reason": "The KiCad custom-rule edge-clearance constraint was not accepted "
             "as semantically equivalent; independent edge geometry is not implemented.",
+        },
+        {
+            "rule_id": "connector_mating_face_edge_alignment",
+            "reason": (
+                "Connector mating-face alignment requires a footprint semantic marker not emitted "
+                "by the independent board parser."
+            ),
         },
         {
             "rule_id": "pad_to_silk",
@@ -737,6 +1417,7 @@ def run_dfm(
             "reason": "Graph component data does not include BGA pitch.",
         },
     ]
+    checks = [item for item in checks if item is not None]
     if measurement.silk_min_height_mm is None:
         checks.append(
             {
@@ -771,6 +1452,19 @@ def run_dfm(
             )
         )
     status = "pass" if all(item["status"] == "allowed" for item in findings) else "fail"
+    unknowns: dict[str, object] = {
+        "cpl_rotation_basis_fab_lcsc": (
+            "unknown: KiCad rotation was emitted without independent fab/LCSC "
+            "component-orientation preview comparison"
+        )
+    }
+    if cpl_unknowns is not None:
+        for key, refs in cpl_unknowns.items():
+            unknowns[key] = {
+                "status": "unknown",
+                "designators": list(refs),
+                "reason": "実装基準はfab側プレビューでの目視確認が必要",
+            }
     return {
         "schema_version": "0.1",
         "target_revision": revision,
@@ -798,6 +1492,7 @@ def run_dfm(
             "drill_tool_diameters_mm": measurement.drill_tool_diameters_mm,
             "drill_object_count": measurement.drill_object_count,
         },
+        "unknowns": unknowns,
     }
 
 
@@ -829,21 +1524,238 @@ def jlcpcb_cpl_csv(rows: Iterable[dict[str, str]], fitted: set[str]) -> str:
     return output.getvalue()
 
 
+def _bbox_center(
+    bbox: tuple[float, float, float, float] | None,
+) -> tuple[float, float] | None:
+    if bbox is None:
+        return None
+    return ((bbox[0] + bbox[2]) / 2.0, (bbox[1] + bbox[3]) / 2.0)
+
+
+def _pad_bbox_center(fp: FootprintMeasurement) -> tuple[float, float] | None:
+    if not fp.pads:
+        return None
+    xs = [pad.x_mm for pad in fp.pads]
+    ys = [pad.y_mm for pad in fp.pads]
+    return ((min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0)
+
+
+def _cpl_position(
+    fp: FootprintMeasurement, basis: str
+) -> tuple[float, float] | None:
+    if basis == "footprint_origin":
+        return (fp.x_mm, fp.y_mm)
+    if basis == "body_bbox_center":
+        return _bbox_center(fp.body_bbox_mm)
+    if basis == "pad_bbox_center":
+        return _pad_bbox_center(fp)
+    raise FabOutputError(f"{fp.refdes}: unsupported CPL position basis {basis!r}")
+
+
+def _geometry_centers(fp: FootprintMeasurement) -> dict[str, tuple[float, float] | None]:
+    return {
+        "footprint_origin": (fp.x_mm, fp.y_mm),
+        "body_bbox_center": _bbox_center(fp.body_bbox_mm),
+        "pad_bbox_center": _pad_bbox_center(fp),
+    }
+
+
+def _centers_disagree(
+    centers: Mapping[str, tuple[float, float] | None], tolerance_mm: float
+) -> bool:
+    present = [center for center in centers.values() if center is not None]
+    return any(
+        math.dist(first, second) > tolerance_mm
+        for index, first in enumerate(present)
+        for second in present[index + 1 :]
+    )
+
+
+def apply_cpl_contract(
+    position_rows: tuple[dict[str, str], ...],
+    board: BoardMeasurement,
+    lane: ElectricalLane,
+    profile: FabProfile,
+    fitted: set[str],
+    tolerance_mm: float = 0.001,
+) -> tuple[tuple[dict[str, str], ...], dict[str, object]]:
+    """Resolve and independently validate the declared CPL basis."""
+    contract = cast(dict[str, object], profile.data["cpl_contract"])
+    default_position_basis = str(contract["position_basis"])
+    default_rotation_basis = str(contract["rotation_basis"])
+    components = {component.refdes: component for component in lane.components}
+    footprints = {fp.refdes: fp for fp in board.footprints}
+    unknown_position: list[str] = []
+    unknown_rotation: list[str] = []
+    errors: list[str] = []
+    resolved: list[dict[str, str]] = []
+    resolved_bases: dict[str, str] = {}
+    rotation_offsets: dict[str, float] = {}
+
+    for source in sorted(position_rows, key=lambda row: refdes_key(row["Ref"])):
+        ref = source["Ref"]
+        if ref not in fitted:
+            continue
+        component = components.get(ref)
+        fp = footprints.get(ref)
+        if component is None or fp is None:
+            errors.append(f"{ref}: CPL basis source is absent from independent sources")
+            continue
+        centers = _geometry_centers(fp)
+        position_basis = default_position_basis
+        if _centers_disagree(centers, tolerance_mm):
+            position_basis = component.cpl_position_basis or ""
+            if not position_basis:
+                unknown_position.append(ref)
+                errors.append(
+                    f"{ref}: CPL position basis is unknown; "
+                    "component declaration and provenance are required"
+                )
+            elif (
+                component.cpl_position_source_url is None
+                or component.cpl_position_evidence_at is None
+            ):
+                unknown_position.append(ref)
+                errors.append(
+                    f"{ref}: CPL position basis {position_basis!r} has no source URL "
+                    "and confirmation date"
+                )
+            elif component.cpl_position_evidence_basis not in {"estimated", "confirmed"}:
+                errors.append(
+                    f"{ref}: CPL position evidence basis must be 'estimated' or 'confirmed'"
+                )
+            elif component.cpl_position_evidence_basis == "confirmed" and (
+                component.cpl_position_evidence_method is None
+                or component.cpl_position_evidence_revision is None
+                or component.cpl_position_evidence_note is None
+            ):
+                errors.append(
+                    f"{ref}: confirmed CPL position evidence requires method, date, "
+                    "revision, and note"
+                )
+            elif component.cpl_position_evidence_basis == "estimated":
+                unknown_position.append(ref)
+        if position_basis:
+            resolved_bases[ref] = position_basis
+            try:
+                position = _cpl_position(fp, position_basis)
+            except FabOutputError as exc:
+                errors.append(str(exc))
+                position = None
+            if position is None:
+                errors.append(f"{ref}: CPL position basis {position_basis!r} is unmeasurable")
+            else:
+                output = dict(source)
+                output["PosX"] = f"{position[0]:.6f}"
+                output["PosY"] = f"{-position[1]:.6f}"
+                rotation = float(source["Rot"])
+                if default_rotation_basis == "component_part_number":
+                    if (
+                        component.cpl_rotation_basis != "component_part_number"
+                        or component.cpl_rotation_source_url is None
+                        or component.cpl_rotation_offset_deg is None
+                        or component.cpl_rotation_evidence_at is None
+                        or component.cpl_rotation_evidence_basis != "confirmed"
+                        or component.cpl_rotation_evidence_method is None
+                        or component.cpl_rotation_evidence_revision is None
+                        or component.cpl_rotation_evidence_note is None
+                    ):
+                        unknown_rotation.append(ref)
+                        rotation_offsets[ref] = 0.0
+                    else:
+                        rotation += component.cpl_rotation_offset_deg
+                        rotation_offsets[ref] = component.cpl_rotation_offset_deg
+                elif default_rotation_basis != "kicad_footprint":
+                    errors.append(
+                        f"{ref}: unsupported CPL rotation basis {default_rotation_basis!r}"
+                    )
+                output["Rot"] = f"{rotation % 360.0:.6f}"
+                resolved.append(output)
+
+    report: dict[str, object] = {
+        "schema_version": "0.1",
+        "status": "fail" if errors or unknown_position or unknown_rotation else "pass",
+        "position_basis": default_position_basis,
+        "rotation_basis": default_rotation_basis,
+        "unknowns": {
+            "cpl_position_basis": sorted(set(unknown_position), key=refdes_key),
+            "cpl_rotation_basis_fab_lcsc": sorted(set(unknown_rotation), key=refdes_key),
+        },
+        "position_bases": resolved_bases,
+        "rotation_offsets": rotation_offsets,
+        "errors": errors,
+    }
+    if errors:
+        raise CplBasisError(
+            "CPL basis gate failed: " + "; ".join(errors),
+            report,
+        )
+    return tuple(resolved), report
+
+
 def jlcpcb_bom_csv(lane: ElectricalLane) -> str:
     fitted = tuple(comp for comp in lane.components if comp.assembly == "fitted")
     if any(not comp.lcsc for comp in fitted):
         raise FabOutputError("fitted component without LCSC part number (fail-closed)")
-    grouped: dict[tuple[str, ...], BomRow] = {}
-    for row in build_bom(lane):
-        refs = tuple(ref for ref in row.refdes if any(comp.refdes == ref for comp in fitted))
-        if refs:
-            grouped[refs] = row
+    grouped: dict[tuple[str, str, str], list[ComponentView]] = {}
+    for comp in fitted:
+        key = (comp.lcsc, comp.mpn, comp.library.footprint)
+        grouped.setdefault(key, []).append(comp)
     output = io.StringIO()
     writer = csv.writer(output, lineterminator="\n")
     writer.writerow(("Comment", "Designator", "Footprint", "LCSC Part #"))
-    for refs, row in sorted(grouped.items(), key=lambda item: item[0][0]):
-        writer.writerow((row.value, ",".join(refs), row.footprint, row.lcsc))
+    for (lcsc, mpn, footprint), components in sorted(
+        grouped.items(),
+        key=lambda item: min(refdes_key(c.refdes) for c in item[1]),
+    ):
+        values = {comp.value for comp in components}
+        comment = next(iter(values)) if len(values) == 1 else mpn
+        refs = sorted((comp.refdes for comp in components), key=refdes_key)
+        writer.writerow((comment, ",".join(refs), footprint, lcsc))
     return output.getvalue()
+
+
+def cross_validate_bom(
+    bom_path: Path,
+    lane: ElectricalLane,
+    fitted: set[str],
+) -> None:
+    with bom_path.open(newline="", encoding="utf-8-sig") as stream:
+        rows = tuple(csv.DictReader(stream))
+    required = {"Comment", "Designator", "Footprint", "LCSC Part #"}
+    if not rows or not required <= set(rows[0]):
+        raise FabOutputError(f"{bom_path.name}: BOM missing required columns")
+    components = {
+        comp.refdes: comp for comp in lane.components if comp.assembly == "fitted"
+    }
+    seen: set[str] = set()
+    for row in rows:
+        refs = tuple(ref.strip() for ref in row["Designator"].split(",") if ref.strip())
+        if not refs:
+            raise FabOutputError(f"{bom_path.name}: BOM row has no designator")
+        overlap = seen.intersection(refs)
+        if overlap:
+            raise FabOutputError(
+                f"{bom_path.name}: duplicate designators {sorted(overlap, key=refdes_key)}"
+            )
+        seen.update(refs)
+        lcsc = row["LCSC Part #"].strip()
+        footprint = row["Footprint"].strip()
+        if not lcsc:
+            raise FabOutputError(f"{bom_path.name}: BOM row has empty LCSC part number")
+        for ref in refs:
+            comp = components.get(ref)
+            if comp is None:
+                raise FabOutputError(f"{bom_path.name}: unknown fitted designator {ref!r}")
+            if comp.lcsc != lcsc:
+                raise FabOutputError(f"{ref}: BOM LCSC differs from graph")
+            if comp.library.footprint != footprint:
+                raise FabOutputError(f"{ref}: BOM footprint differs from graph")
+    if seen != fitted:
+        raise FabOutputError(
+            f"BOM fitted designator mismatch: missing={sorted(fitted - seen, key=refdes_key)}, "
+            f"extra={sorted(seen - fitted, key=refdes_key)}"
+        )
 
 
 def cross_validate_cpl(
@@ -851,6 +1763,8 @@ def cross_validate_cpl(
     position_rows: tuple[dict[str, str], ...],
     board: BoardMeasurement,
     fitted: set[str],
+    position_bases: Mapping[str, str] | None = None,
+    rotation_offsets: Mapping[str, float] | None = None,
     tolerance_mm: float = 0.001,
     tolerance_deg: float = 0.01,
 ) -> None:
@@ -866,12 +1780,23 @@ def cross_validate_cpl(
             raise FabOutputError(f"CPL refdes {ref!r} is absent from independent sources")
         expected = source[ref]
         actual = footprints[ref]
-        if abs(float(row["Mid X"]) - actual.x_mm) > tolerance_mm:
-            raise FabOutputError(f"{ref}: CPL X differs from routed board")
-        if abs(-float(row["Mid Y"]) - actual.y_mm) > tolerance_mm:
-            raise FabOutputError(f"{ref}: CPL Y differs from routed board")
-        if abs(float(row["Rotation"]) - actual.rotation_deg) > tolerance_deg:
-            raise FabOutputError(f"{ref}: CPL rotation differs from routed board")
+        if abs(float(expected["PosX"]) - actual.x_mm) > tolerance_mm:
+            raise FabOutputError(f"{ref}: position source X differs from routed board origin")
+        if abs(-float(expected["PosY"]) - actual.y_mm) > tolerance_mm:
+            raise FabOutputError(f"{ref}: position source Y differs from routed board origin")
+        basis = (position_bases or {}).get(ref, "footprint_origin")
+        selected = _cpl_position(actual, basis)
+        if selected is None:
+            raise FabOutputError(f"{ref}: selected CPL basis {basis!r} is unmeasurable")
+        if abs(float(row["Mid X"]) - selected[0]) > tolerance_mm:
+            raise FabOutputError(f"{ref}: CPL X differs from selected independent basis")
+        if abs(-float(row["Mid Y"]) - selected[1]) > tolerance_mm:
+            raise FabOutputError(f"{ref}: CPL Y differs from selected independent basis")
+        expected_rotation = (
+            actual.rotation_deg + (rotation_offsets or {}).get(ref, 0.0)
+        ) % 360.0
+        if abs(float(row["Rotation"]) - expected_rotation) > tolerance_deg:
+            raise FabOutputError(f"{ref}: CPL rotation differs from declared basis")
         if row["Layer"].lower() != expected["Side"].lower():
             raise FabOutputError(f"{ref}: CPL layer differs from position CSV")
 

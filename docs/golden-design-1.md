@@ -16,6 +16,19 @@ Evidenceを定める。
 付き設計グラフへ変換する前の、検証可能な仕様を記述するものである。回路図、基板、
 FWパッケージ、製造データは設計グラフからの投影とする。
 
+## CPL回転Evidence
+
+U1、J1を含むfitted部品のCPL回転は、まず保存済みJLC/EasyEDA部品ライブラリのピン機能と
+独立パーサで再読込したKiCadパッドの機能を対応付け、0/90/180/270度で照合して導出する。
+機能対応が成立しない場合の幾何のみの照合は、USB Type-Cレセプタクルのように機構的な
+向きまたは仕様上の機能対称性を出所付きで宣言した例外に限る。左右反転は回転では解消
+できないため、幾何的一意性だけでなく電気的な機能対称性も確認する。
+ネットワーク取得は`fetch_lcsc_footprint_orientation.py`に限定し、パイプラインは保存済み
+Evidenceのhashを再計算する。これはメーカーのtape&reel図そのものではないため、
+`fab_library_footprint`として出所と限界を記録し、JLCPCB公式FAQの包装内向き要件を
+再現可能なライブラリ照合で補助する。hash欠落・不一致・一意に決まらない向きは
+発注可否をfail-closedにする。
+
 ## 1. 位置づけ
 
 ### 1.1 マイルストーンとPhase
@@ -293,10 +306,19 @@ overlayの適用後geometryは、DSN export、routing、最終board、DRC、DFM�
 3. 能動部品の電源pinへ接続するデカップリングコンデンサ
 4. 残りの部品をcourtyard面積の降順、同面積はrefdes順
 
+配置ゲートでは、USBコネクタの本体外形とパッド重心から嵌合側の板端アンカーを導出し、
+RFモジュールではfootprint内の単一アンテナkeepoutから板端アンカーを導出する。
+独立DFMゲートのcheck IDは`pad-to-board-edge-clearance`、
+`undeclared-board-edge-overhang`であり、これらは発注能力違反
+（`capability_violation`）として扱う。CPLの回転は、fab側ライブラリのピン機能付き
+パッド配置とKiCad symbolの独立検証から部品ごとのオフセットを導出し、基板実測回転へ
+宣言オフセットを加えて出力する。生成CPLは、実測回転と宣言オフセットのcross-validation
+でも検証する。
+
 第3段のデカップリング対象は設計グラフの`decoupling_target`宣言から導出し、
 対象ICの電源padまでの距離を目的関数にする。推測による分類や配置不能時の制約緩和は行わない。
 
-GD1最新実行で生成される製造データは、`out/gd1/fab/`の次のファイルである。
+GD1最新実行で生成される製造データは、`out/gd1-fix6/fab/`の次のファイルである。
 
 - `gd1-gerbers.zip`
 - `gd1-bom-jlcpcb.csv`
@@ -305,10 +327,29 @@ GD1最新実行で生成される製造データは、`out/gd1/fab/`の次のフ
 - `dfm-report.json`
 - `fab-package.json`
 
-生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `30`個、drill object `40`個、
-pad `132`個、route wire `207`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
-silk最小stroke幅`0.15 mm`である。出所は`out/gd1/fab/dfm-report.json`、
-`out/gd1/routing-summary.json`、`out/gd1/fab/fab-package.json`である。
+発注用BOMの行同一性はfab部品番号（LCSC、MPN、footprint）で決まり、設計グラフ上の
+`value`が異なるだけでは行を分割しない。同一部品番号でvalueが一致する場合はvalueを
+Commentへ出し、不一致の場合はMPNをCommentへ出す。Designatorは自然順のrefdesを
+カンマ区切りでまとめ、未実装部品は含めない。生成後にDesignator集合、LCSC、footprintを
+グラフと独立に照合し、不一致はfail-closedで停止する。
+
+CPLの`Mid X`/`Mid Y`はJLCPCB公式のcomponent centroid定義を参照するが、算出方法は
+公式に明記されていない。GD1では独立測定とビューワ実測の符号・大きさが一致したため、
+U1/J1のpad bbox中心を基準として宣言した。これは独立実測とビューワ表示の一致に基づく
+基準であり、JLCPCBが公式に確定した算出定義ではない。U1/J1の位置Evidenceは
+`confirmed`（確認手段`fab_side_preview`、確認日`2026-08-13`）である。
+回転はfitted 19部品すべてについてfab側ライブラリのピン機能付きパッド配置から導出し、
+KiCad symbolのpathとsha256を独立検証した。これはメーカーのtape&reel図そのものでは
+なく、`fab_library_footprint`由来の再現可能な照合Evidenceである。製造データ生成と発注
+可否は分離し、全位置・回転Evidenceが揃ったGD1の`order-readiness.json`は`ready`となる。
+
+生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `24`個、drill object `34`個、
+pad `132`個、route wire `188`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
+silk最小stroke幅`0.15 mm`である。J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
+ともに回転`0°`である。U1の板端はみ出し宣言は本体外形基準で`5.4 mm`である。DSNの
+`(via_at_smd off)`とSMD pad周囲の`via_keepout`により、
+SMD pad上viaを構造的に禁止している。出所は`out/gd1-fix6/fab/dfm-report.json`、
+`out/gd1-fix6/routing-summary.json`、`out/gd1-fix6/fab/fab-package.json`である。
 | `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
 | `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | stale判定が`unknown`で停止 |
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |

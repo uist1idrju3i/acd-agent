@@ -17,6 +17,7 @@ pipeline with a nonzero exit.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from pathlib import Path
@@ -28,6 +29,9 @@ from acd_adapter_freerouting.ses import parse_ses
 from acd_adapter_kicad.cli import KicadCli
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
+    CplBasisError,
+    apply_cpl_contract,
+    cross_validate_bom,
     cross_validate_cpl,
     deterministic_zip,
     jlcpcb_bom_csv,
@@ -36,6 +40,8 @@ from acd_adapter_kicad.fab import (
     parse_routed_board,
     read_drill_measurement,
     run_dfm,
+    verify_lcsc_rotation_evidence,
+    verify_smd_pad_centers_in_gerber,
     zip_content_hash,
 )
 from acd_adapter_kicad.gates import assert_converged, assert_rule_check_passed
@@ -178,7 +184,6 @@ def run_pipeline(
     pos_rows = parse_pos_csv(pos_path)
     fitted = {component.refdes for component in lane.components if component.assembly == "fitted"}
     cpl_path = fab_dir / f"{name}-cpl-jlcpcb.csv"
-    cpl_path.write_text(jlcpcb_cpl_csv(pos_rows, fitted), encoding="utf-8")
     measurement = parse_routed_board(routed_path)
     drill_tools, drill_count = read_drill_measurement(drill_paths[0])
     measurement = BoardMeasurement(
@@ -191,24 +196,131 @@ def run_pipeline(
         drill_tools,
         drill_count,
     )
-    cross_validate_cpl(cpl_path, pos_rows, measurement, fitted)
+    verify_smd_pad_centers_in_gerber(
+        gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement
+    )
+    edge_overhang_declarations = {
+        str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
+        for node in graph.nodes
+        if node.kind == "mechanical.board_edge_overhang"
+    }
+    cpl_basis_path = fab_dir / "cpl-basis-report.json"
+    lcsc_evidence_dir = Path(__file__).resolve().parents[1] / "evidence/gd1-cpl-orientation"
+    verified_rotation_offsets, rotation_evidence_notes, rotation_unknowns = (
+        verify_lcsc_rotation_evidence(
+        lcsc_evidence_dir, fixture_dir, measurement, lane, fitted
+        )
+    )
+    try:
+        resolved_pos_rows, cpl_basis_report = apply_cpl_contract(
+            pos_rows, measurement, lane, profile, fitted
+        )
+    except CplBasisError as exc:
+        cpl_basis_report = exc.report
+        cpl_basis_path.write_text(
+            json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        )
+        unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
+        dfm_report = run_dfm(
+            measurement,
+            profile,
+            revision,
+            allowances,
+            lane,
+            intent,
+            edge_clearance_mm=lane.board.edge_copper_clearance_mm,
+            edge_overhang_declarations=edge_overhang_declarations,
+            cpl_unknowns={
+                key: tuple(cast(list[str], value))
+                for key, value in unknowns.items()
+                if isinstance(value, list)
+            },
+        )
+        dfm_report["status"] = "fail"
+        dfm_path = fab_dir / "dfm-report.json"
+        dfm_path.write_text(
+            json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        )
+        failure_package: dict[str, object] = {
+            "schema_version": "0.1",
+            "status": "fail",
+            "target_revision": revision,
+            "fab_profile": {
+                "profile_id": profile.profile_id,
+                "source_url": profile.data["sources"][0]["url"],
+                "fetched_at": profile.data["sources"][0]["fetched_at"],
+            },
+            "files": [],
+            "gates": {"cpl_basis": "fail", "dfm": str(dfm_report["status"])},
+            "unknowns": unknowns,
+        }
+        (fab_dir / "fab-package.json").write_text(
+            json.dumps(failure_package, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        )
+        raise
+    cpl_path.write_text(jlcpcb_cpl_csv(resolved_pos_rows, fitted), encoding="utf-8")
+    declared_rotation_offsets = cast(dict[str, float], cpl_basis_report["rotation_offsets"])
+    for ref, offset in verified_rotation_offsets.items():
+        if abs(declared_rotation_offsets.get(ref, 0.0) - offset) > 0.01:
+            raise ValueError(f"{ref}: graph CPL rotation offset differs from LCSC Evidence")
+    cpl_basis_report["rotation_evidence"] = rotation_evidence_notes
+    cpl_unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
+    existing_rotation_unknowns = cast(
+        list[str], cpl_unknowns["cpl_rotation_basis_fab_lcsc"]
+    )
+    cpl_unknowns["cpl_rotation_basis_fab_lcsc"] = sorted(
+        set(existing_rotation_unknowns).union(rotation_unknowns)
+    )
+    cpl_basis_path.write_text(
+        json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    )
+    cross_validate_cpl(
+        cpl_path,
+        pos_rows,
+        measurement,
+        fitted,
+        cast(dict[str, str], cpl_basis_report["position_bases"]),
+        cast(dict[str, float], cpl_basis_report["rotation_offsets"]),
+    )
     bom_path = fab_dir / f"{name}-bom-jlcpcb.csv"
     bom_path.write_text(jlcpcb_bom_csv(lane), encoding="utf-8")
-    print(f"[8/10] CPL/BOM generated and cross-validated ({len(pos_rows)} position rows)")
+    cross_validate_bom(bom_path, lane, fitted)
+    with bom_path.open(newline="", encoding="utf-8") as stream:
+        bom_rows = tuple(csv.DictReader(stream))
+    print(
+        f"[8/10] CPL/BOM generated and cross-validated "
+        f"({len(pos_rows)} position rows, {len(bom_rows)} BOM rows)"
+    )
 
-    dfm_report = run_dfm(measurement, profile, revision, allowances, lane, intent)
+    dfm_report = run_dfm(
+        measurement,
+        profile,
+        revision,
+        allowances,
+        lane,
+        intent,
+        edge_clearance_mm=lane.board.edge_copper_clearance_mm,
+        edge_overhang_declarations=edge_overhang_declarations,
+        cpl_unknowns={
+            key: tuple(cast(list[str], value))
+            for key, value in cast(dict[str, object], cpl_basis_report["unknowns"]).items()
+            if isinstance(value, list)
+        },
+    )
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
-    if dfm_report["status"] != "pass":
-        raise ValueError(f"DFM gate failed: {dfm_path}")
-    print(f"[9/10] DFM gate passed ({len(cast(list[object], dfm_report['findings']))} findings)")
+    print(
+        f"[9/10] DFM report written ({dfm_report['status']}; "
+        f"{len(cast(list[object], dfm_report['findings']))} findings)"
+    )
 
     package_members = [*gerber_paths, *drill_paths]
     zip_path = fab_dir / f"{name}-gerbers.zip"
     deterministic_zip(zip_path, package_members, gerber_dir)
     profile_hash = normalized_hash(fab_profile_path)
-    manifest = {
+    manifest: dict[str, object] = {
         "schema_version": "0.1",
+        "status": "not_order_ready",
         "target_revision": revision,
         "fab_profile": {
             "profile_id": profile.profile_id,
@@ -253,8 +365,47 @@ def run_pipeline(
             "lead_time": "unknown",
             "total_order_amount": "unknown",
             "fab_dfm_review": "unknown",
+            "cpl_rotation_basis_fab_lcsc": (
+                "unknown: KiCad rotation was emitted without independent fab/LCSC "
+                "component-orientation preview comparison"
+            ),
         },
     }
+    cpl_unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
+    position_unknown = cast(list[str], cpl_unknowns["cpl_position_basis"])
+    rotation_unknown = cast(list[str], cpl_unknowns["cpl_rotation_basis_fab_lcsc"])
+    readiness_reasons: list[str] = []
+    if position_unknown:
+        readiness_reasons.append("CPL位置基準に未確認またはestimatedの部品がある")
+    if rotation_unknown:
+        readiness_reasons.append("CPL回転基準に未確認の部品がある")
+    if dfm_report["status"] != "pass":
+        readiness_reasons.append("実測DFM指摘が未解決である")
+    order_readiness = {
+        "schema_version": "0.1",
+        "status": "not_order_ready" if readiness_reasons else "ready",
+        "target_revision": revision,
+        "reasons": readiness_reasons,
+        "unknowns": {
+            "cpl_position_basis": position_unknown,
+            "cpl_rotation_basis_fab_lcsc": rotation_unknown,
+        },
+    }
+    order_readiness_path = fab_dir / "order-readiness.json"
+    order_readiness_path.write_text(
+        json.dumps(order_readiness, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    )
+    manifest["status"] = order_readiness["status"]
+    cast(dict[str, object], manifest["gates"])["order_readiness"] = order_readiness["status"]
+    cast(list[dict[str, str]], manifest["files"]).append(
+        {
+            "path": str(order_readiness_path.relative_to(out_dir)),
+            "content_hash": normalized_hash(order_readiness_path),
+        }
+    )
+    cast(dict[str, object], manifest["unknowns"]).update(
+        cast(dict[str, object], dfm_report["unknowns"])
+    )
     package_path = fab_dir / "fab-package.json"
     package_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -273,6 +424,7 @@ def run_pipeline(
         bom_path,
         cpl_path,
         dfm_path,
+        order_readiness_path,
         package_path,
         zip_path,
         *gerber_paths,
@@ -285,6 +437,9 @@ def run_pipeline(
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
     print(f"[10/10] hash manifest: {manifest_path}")
+    if order_readiness["status"] != "ready":
+        print("製造データは生成済み、発注は不可: order-readiness gate failed")
+        raise ValueError(f"Order readiness gate failed: {order_readiness_path}")
     return hashes
 
 

@@ -7,8 +7,20 @@
     {"url": "https://jlcpcb.com/capabilities/pcb-capabilities", "fetched_at": "2026-08-11T00:00:00Z", "title": "PCB Capabilities"},
     {"url": "https://jlcpcb.com/capabilities/pcb-assembly-capabilities", "fetched_at": "2026-08-11T00:00:00Z", "title": "PCB Assembly Capabilities"},
     {"url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad", "fetched_at": "2026-08-11T00:00:00Z", "title": "KiCad BOM and Centroid"},
-    {"url": "https://jlcpcb.com/help/article/smt-service-lead-time-overview", "fetched_at": "2026-08-11T00:00:00Z", "title": "SMT Service Lead Time Overview"}
+    {"url": "https://jlcpcb.com/help/article/smt-service-lead-time-overview", "fetched_at": "2026-08-11T00:00:00Z", "title": "SMT Service Lead Time Overview"},
+    {"url": "https://jlcpcb.com/help/article/pick-place-file-for-pcb-assembly", "fetched_at": "2026-08-13T00:00:00Z", "title": "Pick and Place File"},
+    {"url": "https://jlcpcb.com/help/article/pcb-assembly-faqs-part-2", "fetched_at": "2026-08-13T00:00:00Z", "title": "PCB Assembly FAQs Part 2"}
   ],
+  "cpl_contract": {
+    "position_basis": "pad_bbox_center",
+    "position_source_index": 4,
+    "position_evidence_status": "estimated",
+    "position_note": "JLCPCB公式はcomponent centroidと記載するが、centroidの算出方法は一次情報に明記されていない。pad_bbox_centerはGD1の独立実測に基づく暫定的な基準宣言であり、JLCPCBの正解基準を確定するものではない。estimatedな部品はfab側プレビューの目視確認が必要である。",
+    "rotation_basis": "component_part_number",
+    "rotation_source_index": 5,
+    "rotation_evidence_status": "estimated",
+    "rotation_note": "JLCPCB公式は設計側とJLC側の0度が異なりうること、部品番号ごとにテープ内向きが異なりうることを記載している。部品単位の確認がない回転はunknownとする。"
+  },
   "capabilities": {
     "min_track_width": {"value": 0.1, "unit": "mm", "source_index": 0, "basis": "primary", "note": "1oz 1-2層"},
     "min_spacing": {"value": 0.1, "unit": "mm", "source_index": 0, "basis": "primary", "note": "1oz 1-2層"},
