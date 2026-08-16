@@ -22,6 +22,9 @@ Agent Canvasソースはsubmodule（`vendor/openhands`）として取り込み�
   `plugins/acd/`（OpenHands plugin骨格）、`scripts/`をルート直下に置く。
 
 ADR-0008により、契約の正は`schemas/`からPydanticモデルへ移行した。
+ADR-0009により、`acd-events`と`acd-runtime`は削除した。現行のパッケージは`acd-schema`、
+`acd-core`、`acd-tools`と`packages/adapters/*`であり、機械ゲートは
+`acd-adapter-cad`（CAD kernelを使う投影と同じ境界）に置く。
 
 ## 影響
 

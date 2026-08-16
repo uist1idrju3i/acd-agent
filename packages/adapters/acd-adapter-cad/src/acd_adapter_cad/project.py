@@ -18,7 +18,6 @@ class CadProjection:
     step_path: Path
     model_path: Path
     envelope: Any
-    skipped: bool
 
 
 def cad_tool_version() -> str:
@@ -153,5 +152,4 @@ def project_enclosure(
         step_path=step_path,
         model_path=model_path,
         envelope=run.envelope,
-        skipped=run.skipped,
     )

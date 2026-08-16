@@ -674,4 +674,5 @@ ACDへの反映：各ゲート・各チェックに「このチェックを外�
 
 ## 関連文書
 
+- [`../plugins/acd/skills/acd-reliability-review/SKILL.md`](../plugins/acd/skills/acd-reliability-review/SKILL.md)：本書のスクリーニングをSkillとして実行する資材
 - [`qc-tools.md`](qc-tools.md)：Q7／N7による品質分析

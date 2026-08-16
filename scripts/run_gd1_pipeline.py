@@ -458,7 +458,7 @@ def run_pipeline(
     ses_path = out_dir / f"{name}.ses"
     route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
     assert_converged(route_run.envelope.convergence_state)
-    print(f"[3/10] routing converged (skipped={route_run.skipped})")
+    print("[3/10] routing converged")
 
     routes = parse_ses(
         ses_path.read_text(),

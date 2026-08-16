@@ -9,14 +9,12 @@ from pathlib import Path
 
 import pytest
 
+from acd_adapter_cad.mechanical import MechanicalGateError, run_mechanical_gates
 from acd_adapter_cad.project import project_enclosure
 from acd_core.mechanical import extract_mechanical_lane
-from acd_runtime.mechanical import MechanicalGateError, run_mechanical_gates
 from acd_schema.design_graph import DesignGraph
 
-FIXTURE = (
-    Path(__file__).resolve().parents[3] / "fixtures" / "golden-design-1" / "graph.json"
-)
+FIXTURE = Path(__file__).resolve().parents[4] / "fixtures" / "golden-design-1" / "graph.json"
 
 
 class KnownProbe:

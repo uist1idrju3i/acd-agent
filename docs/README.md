@@ -52,6 +52,10 @@ Skillの実行結果はACDの設計ゲートの合否ではない。方針の正
 | `acd-firmware-esp32c3` | ESP-IDFプロジェクトの生成、ビルド、ピン割当検査、QEMU仮想実行 | ESP-IDF、QEMU |
 | `acd-placement-search` | 決定論的な配置・回転探索と代理指標の採点 | なし |
 | `acd-silkscreen-placement` | シルクラベルの周囲探索と却下根拠の記録 | なし |
+| `acd-cad-determinism-probe` | STEP／3MF出力の決定性測定と正規化規則の確認 | build123d、cadquery-ocp |
+| `acd-qc-seven-tools` | Q7/N7による所見のパレート順位付けと層別 | なし |
+| `acd-reliability-review` | ディレーティングの三値スクリーニングと信頼性レビュー手順 | なし |
+| `acd-contracts` | Pydantic契約の読み方とfixtureの使い方 | なし |
 
 Skillのテストは`uv run pytest plugins -q`で本体テストと別に実行する。
 

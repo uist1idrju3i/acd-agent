@@ -179,9 +179,12 @@ skills repositoryとpluginの参照は信頼済みsourceに限定する。
 Skillの記述、pluginの定義、triggerの発火はプロンプト資材または実行制御であり、設計グラフ
 の正でも合否根拠にもならない。入力hashと実行結果は最小限の記録として残す。
 
-本リポジトリでは、ACD本体から委譲した実装を`plugins/acd/skills/`のSkillとして配布する。
-`acd-firmware-esp32c3`はFWの生成・ビルド・検査・QEMU仮想実行、`acd-placement-search`は
-配置・回転探索と代理指標の採点、`acd-silkscreen-placement`はシルクラベルの周囲探索を持つ。
+本リポジトリでは、ACD本体から委譲した実装と再利用可能な作業手法を`plugins/acd/skills/`の
+Skillとして配布する。`acd-firmware-esp32c3`はFWの生成・ビルド・検査・QEMU仮想実行、
+`acd-placement-search`は配置・回転探索と代理指標の採点、`acd-silkscreen-placement`は
+シルクラベルの周囲探索、`acd-cad-determinism-probe`はSTEP／3MF出力の決定性測定、
+`acd-qc-seven-tools`はQ7/N7による所見の整理、`acd-reliability-review`はディレーティングの
+三値スクリーニングを持つ。一覧は[`README.md`](README.md)の表を正とする。
 いずれも任意利用であり、採否はタスクごとにOpenHands側が判断する。Skillの実行結果は
 ACDの設計ゲートの合否ではない。Skillのテストは`uv run pytest plugins -q`で本体テストと
 分離して実行する。

@@ -8,9 +8,9 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+from acd_adapter_cad.mechanical import run_mechanical_gates
 from acd_adapter_cad.project import project_enclosure
 from acd_core.mechanical import extract_mechanical_lane
-from acd_runtime.mechanical import run_mechanical_gates
 from acd_schema.design_graph import DesignGraph
 from acd_schema.evidence import Evidence, EvidenceClaim
 from acd_tools.probe import probe_cad_kernel
@@ -30,8 +30,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         out_dir=out_dir,
         target_revision=graph.revision,
     )
-    state = "skipped" if projection.skipped else "projected"
-    print(f"[2/4] enclosure CAD {state}: {projection.step_path}")
+    print(f"[2/4] enclosure CAD projected: {projection.step_path}")
 
     probe = probe_cad_kernel()
     gate_report = run_mechanical_gates(
@@ -97,7 +96,6 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         "step_path": str(projection.step_path),
         "model_path": str(projection.model_path),
         "normalized_output_hash": projection.envelope.output_hash,
-        "skipped": projection.skipped,
         "evidence": str(evidence_path),
         "measured_volume_mm3": gate_report.measured_volume_mm3,
         "measured_min_wall_mm": gate_report.measured_min_wall_mm,

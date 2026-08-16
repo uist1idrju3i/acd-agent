@@ -1,4 +1,4 @@
-"""External process envelope tests: hashing, idempotency, fail-closed."""
+"""External process envelope tests: hashing, rerun, fail-closed."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _copy_command(src: Path, dst: Path) -> list[str]:
     ]
 
 
-def test_run_tool_records_envelope_and_skips_identical_rerun(tmp_path: Path) -> None:
+def test_run_tool_records_envelope_and_reruns_every_time(tmp_path: Path) -> None:
     src = tmp_path / "in.txt"
     src.write_text("payload")
     dst = tmp_path / "out.txt"
@@ -40,18 +40,16 @@ def test_run_tool_records_envelope_and_skips_identical_rerun(tmp_path: Path) -> 
         measurement_conditions="test",
     )
     first = run_tool(**kwargs)  # type: ignore[arg-type]
-    assert not first.skipped
     assert first.envelope.input_hash.startswith("sha256:")
     assert first.envelope.output_hash.startswith("sha256:")
     assert first.envelope.exit_code == 0
 
     second = run_tool(**kwargs)  # type: ignore[arg-type]
-    assert second.skipped
-    assert second.envelope == first.envelope
+    assert second.envelope.input_hash == first.envelope.input_hash
+    assert second.envelope.started_at >= first.envelope.started_at
 
     src.write_text("different payload")
     third = run_tool(**kwargs)  # type: ignore[arg-type]
-    assert not third.skipped
     assert third.envelope.input_hash != first.envelope.input_hash
 
 
@@ -104,7 +102,7 @@ def test_run_tool_fails_closed_on_missing_output(tmp_path: Path) -> None:
         )
 
 
-def test_run_in_process_records_and_skips_normalized_outputs(tmp_path: Path) -> None:
+def test_run_in_process_records_normalized_outputs_on_every_run(tmp_path: Path) -> None:
     source = tmp_path / "input.txt"
     source.write_text("payload")
     output = tmp_path / "output.txt"
@@ -133,7 +131,5 @@ def test_run_in_process_records_and_skips_normalized_outputs(tmp_path: Path) -> 
 
     first = execute()
     second = execute()
-    assert not first.skipped
-    assert second.skipped
-    assert calls == 1
-    assert first.envelope == second.envelope
+    assert calls == 2
+    assert first.envelope.output_hash == second.envelope.output_hash

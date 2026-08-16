@@ -88,7 +88,12 @@ OpenHands側の機能で不足するとVibeBBの実運用で確認できた場�
   Skillへ移した。配置探索・採点は`acd-placement-search`、シルクラベル探索は
   `acd-silkscreen-placement`へ移した。
 - CI（`.github/workflows/ci.yml`）にSkill専用ジョブを追加した。
-- 過去に削除した品質管理・信頼性の作業手法は、必要なものをSkillとして再構成する。
+- `packages/acd-runtime`は削除し、機械ゲートは`acd-adapter-cad`へ統合した。CAD出力の決定性
+  測定は`acd-cad-determinism-probe` Skillへ移し、本体のプローブはツールの有無と版に絞った。
+- 品質管理・信頼性の作業手法は`acd-qc-seven-tools`（Q7/N7の集計）と
+  `acd-reliability-review`（ディレーティングの三値スクリーニング）としてSkill化した。
+  手法の定義は[`../qc-tools.md`](../qc-tools.md)と
+  [`../reliability-practices.md`](../reliability-practices.md)を正とする。
 
 ## 未確認・リスク
 

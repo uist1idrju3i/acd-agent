@@ -2,7 +2,6 @@
 
 from acd_tools.probe import (
     PROBES,
-    CadFormatProbe,
     ProbeReport,
     ToolProbeResult,
     probe_all,
@@ -14,7 +13,6 @@ from acd_tools.probe import (
 
 __all__ = [
     "PROBES",
-    "CadFormatProbe",
     "ProbeReport",
     "ToolProbeResult",
     "probe_all",

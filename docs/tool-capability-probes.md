@@ -4,6 +4,9 @@
 > 測定日: 2026-08-11
 
 プローブ実装は`packages/acd-tools`、実行は`uv run python scripts/probe_tools.py`。
+本体のプローブはツールの有無と版だけを見る。CAD出力の決定性測定は
+`plugins/acd/skills/acd-cad-determinism-probe`のSkillが持ち、実行は
+`uv run python plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determinism_probe.py`。
 不在・版不明は`unknown`として構造化記録し、成功扱いしない（fail-closed）。
 能力プローブ候補の背景は[`docs/ecad-domain-notes.md`](ecad-domain-notes.md)を参照。
 
