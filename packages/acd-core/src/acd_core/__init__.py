@@ -9,6 +9,7 @@ from acd_core.fab import (
     load_fab_profile,
     validate_allowances_against_profile,
 )
+
 __all__ = [
     "CadNormalizationError",
     "FabOrderIntentView",
