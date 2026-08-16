@@ -37,6 +37,7 @@ from acd_core.fab import (
     ProcessAllowanceView,
     validate_allowances_against_profile,
 )
+from acd_core.routing_width import NetWidthRequirement
 
 
 class FabOutputError(ValueError):
@@ -113,6 +114,15 @@ class ViaMeasurement:
 
 
 @dataclass(frozen=True)
+class SegmentMeasurement:
+    net: str
+    layer: str
+    width_mm: float
+    start: tuple[float, float]
+    end: tuple[float, float]
+
+
+@dataclass(frozen=True)
 class FootprintMeasurement:
     refdes: str
     x_mm: float
@@ -135,6 +145,7 @@ class BoardMeasurement:
     drill_tool_diameters_mm: tuple[float, ...]
     drill_object_count: int
     net_name_source: str = "unknown"
+    segments: tuple[SegmentMeasurement, ...] = ()
 
     @property
     def pads(self) -> tuple[PadMeasurement, ...]:
@@ -1453,6 +1464,7 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
     footprints: list[FootprintMeasurement] = []
     vias: list[ViaMeasurement] = []
     tracks: list[float] = []
+    segments: list[SegmentMeasurement] = []
     outline_points: list[tuple[float, float]] = []
     silk_heights: list[float] = []
     silk_widths: list[float] = []
@@ -1534,8 +1546,36 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
             )
         elif tag == "segment":
             width = _one(node, "width")
-            if width is not None and len(width) > 1:
-                tracks.append(_number(width[1]))
+            start = _one(node, "start")
+            end = _one(node, "end")
+            layer_node = _one(node, "layer")
+            net_node = _one(node, "net")
+            if (
+                width is None
+                or len(width) < 2
+                or start is None
+                or len(start) < 3
+                or end is None
+                or len(end) < 3
+                or layer_node is None
+                or len(layer_node) < 2
+                or net_node is None
+                or len(net_node) < 2
+            ):
+                raise FabOutputError("segment missing width/start/end/layer/net")
+            net_id = str(net_node[1])
+            if net_id not in net_names:
+                raise FabOutputError("segment net name unavailable (fail-closed)")
+            tracks.append(_number(width[1]))
+            segments.append(
+                SegmentMeasurement(
+                    net=net_names[net_id],
+                    layer=str(layer_node[1]),
+                    width_mm=_number(width[1]),
+                    start=(_number(start[1]), _number(start[2])),
+                    end=(_number(end[1]), _number(end[2])),
+                )
+            )
         elif tag in {"gr_line", "gr_rect", "gr_arc", "gr_poly"}:
             layer = _one(node, "layer")
             if layer is None or len(layer) < 2 or str(layer[1]) != "Edge.Cuts":
@@ -1576,7 +1616,119 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
         (),
         0,
         net_name_source,
+        tuple(segments),
     )
+
+
+def measure_net_track_widths(
+    gerber_paths: Mapping[str, Path],
+    measurement: BoardMeasurement,
+    requirements: Sequence[NetWidthRequirement],
+    tolerance_mm: float,
+) -> dict[str, object]:
+    """Match every routed Gerber line to a saved-board segment and measure width."""
+    if not math.isfinite(tolerance_mm) or tolerance_mm <= 0:
+        raise FabOutputError("width measurement tolerance is invalid (fail-closed)")
+    segments = measurement.segments
+    if not segments:
+        raise FabOutputError("saved board has no net segments (fail-closed)")
+    matched: dict[str, list[float]] = defaultdict(list)
+    lengths: dict[str, float] = defaultdict(float)
+    matched_objects = 0
+    for layer_name, path in sorted(gerber_paths.items()):
+        if layer_name not in {"F.Cu", "B.Cu"}:
+            continue
+        try:
+            gerber = GerberFile.open(path)  # pyright: ignore[reportUnknownMemberType]
+            objects = cast("list[object]", gerber.objects)  # pyright: ignore[reportUnknownMemberType]
+        except Exception as exc:
+            raise FabOutputError(
+                f"{path.name}: Gerber width measurement parse failed: {exc}"
+            ) from exc
+        for obj in objects:
+            if not isinstance(obj, Line):
+                continue
+            aperture = obj.aperture
+            if not isinstance(aperture, CircleAperture):
+                raise FabOutputError(
+                    f"{path.name}: unsupported conductor aperture "
+                    f"{type(aperture).__name__}; width is unknown"
+                )
+            start = _gerber_to_board_point(
+                float(obj.x1),  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                float(obj.y1),  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+            )
+            end = _gerber_to_board_point(
+                float(obj.x2),  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+                float(obj.y2),  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+            )
+            candidates = [
+                segment
+                for segment in segments
+                if segment.layer == layer_name
+                and (
+                    (
+                        math.dist(start, segment.start) <= tolerance_mm
+                        and math.dist(end, segment.end) <= tolerance_mm
+                    )
+                    or (
+                        math.dist(start, segment.end) <= tolerance_mm
+                        and math.dist(end, segment.start) <= tolerance_mm
+                    )
+                )
+            ]
+            if len(candidates) != 1:
+                raise FabOutputError(
+                    f"{path.name}: conductor line cannot be uniquely matched "
+                    f"to saved-board net segment at {start}->{end}"
+                )
+            segment = candidates[0]
+            width_mm = float(aperture.diameter)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType]
+            matched[segment.net].append(width_mm)
+            lengths[segment.net] += math.dist(segment.start, segment.end)
+            matched_objects += 1
+    if matched_objects == 0:
+        raise FabOutputError("no routed Gerber conductor lines were measured (fail-closed)")
+    by_net = {requirement.net_name: requirement for requirement in requirements}
+    if set(matched) - set(by_net):
+        raise FabOutputError(
+            f"Gerber conductor attributed to undeclared net(s): "
+            f"{sorted(set(matched) - set(by_net))}"
+        )
+    evidence: dict[str, object] = {
+        "matching_method": (
+            "post-refill Gerber Line endpoints to saved-board segment endpoints; "
+            "Gerber Y-up converted to board Y-down"
+        ),
+        "tolerance_mm": tolerance_mm,
+        "matched_object_count": matched_objects,
+        "recognized_object_count": matched_objects,
+        "nets": {},
+    }
+    net_evidence: dict[str, object] = {}
+    for requirement in requirements:
+        widths = matched.get(requirement.net_name)
+        if not widths:
+            raise FabOutputError(
+                f"net {requirement.net_name}: no matched Gerber conductor width"
+            )
+        measured = min(widths)
+        passed = measured + tolerance_mm >= requirement.adopted_width_mm
+        net_evidence[requirement.net_name] = {
+            **requirement.evidence(),
+            "measured_minimum_mm": measured,
+            "sample_count": len(widths),
+            "matched_object_count": len(widths),
+            "pass": passed,
+            "route_length_mm": lengths[requirement.net_name],
+        }
+        if not passed:
+            raise FabOutputError(
+                f"net {requirement.net_name}: measured width {measured:.6f} mm "
+                f"is below adopted width {requirement.adopted_width_mm:.6f} mm"
+            )
+    evidence["nets"] = net_evidence
+    return evidence
 
 
 def read_drill_measurement(path: Path) -> tuple[tuple[float, ...], int]:

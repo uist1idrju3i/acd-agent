@@ -38,6 +38,7 @@ from acd_adapter_kicad.fab import (
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
+    measure_net_track_widths,
     parse_pos_csv,
     parse_routed_board,
     read_drill_measurement,
@@ -59,6 +60,7 @@ from acd_adapter_kicad.reload import (
 from acd_adapter_kicad.routing import inject_routes, inject_stitch_vias
 from acd_core.electrical import extract_electrical_lane
 from acd_core.fab import extract_fab_intent, load_fab_profile
+from acd_core.routing_width import derive_net_widths
 from acd_schema.design_graph import DesignGraph
 
 GERBER_LAYERS = [
@@ -302,7 +304,68 @@ def run_pipeline(
         drill_tools,
         drill_count,
         measurement.net_name_source,
+        measurement.segments,
     )
+    profile_minimum = float(profile.data["capabilities"]["min_track_width"]["value"])
+    width_requirements = derive_net_widths(lane, profile_minimum)
+    if lane.board.width_measurement_tolerance_mm is None:
+        raise ValueError("width measurement tolerance is missing (fail-closed)")
+    width_evidence = measure_net_track_widths(
+        {
+            "F.Cu": gerber_paths[GERBER_LAYERS.index("F.Cu")],
+            "B.Cu": gerber_paths[GERBER_LAYERS.index("B.Cu")],
+        },
+        measurement,
+        width_requirements,
+        lane.board.width_measurement_tolerance_mm,
+    )
+    net_evidence = cast(dict[str, object], width_evidence["nets"])
+    for _net_name, raw in net_evidence.items():
+        item = cast(dict[str, object], raw)
+        item["copper_thickness_um"] = lane.board.outer_copper_thickness_um
+        item["copper_thickness_source"] = lane.board.copper_thickness_source
+        item["allowable_temperature_rise_k"] = lane.board.allowable_temperature_rise_k
+        item["tolerance_mm"] = width_evidence["tolerance_mm"]
+        item["formula_source"] = lane.board.width_basis_source
+        item["ipc2221_external"] = {
+            "k": lane.board.ipc2221_external_k,
+            "b": lane.board.ipc2221_external_b,
+            "c": lane.board.ipc2221_external_c,
+        }
+        if item["current_max_a"] is not None:
+            thickness_mm = (
+                lane.board.outer_copper_thickness_um or 0.0
+            ) / 1000.0
+            width_mm = float(cast(float, item["measured_minimum_mm"]))
+            length_mm = float(cast(float, item["route_length_mm"]))
+            resistance = (
+                1.724e-5 * length_mm / (width_mm * thickness_mm)
+                if width_mm > 0 and thickness_mm > 0
+                else None
+            )
+            item["resistance_ohm"] = resistance
+            item["ir_drop_v"] = (
+                resistance * float(cast(float, item["current_max_a"]))
+                if resistance is not None
+                else None
+            )
+            item["electrical_sufficiency_note"] = (
+                "Measured/adopted width exceeds the IPC-2221 derived width; "
+                "current capacity is electrically sufficient."
+            )
+    width_evidence["netclasses"] = [
+        {
+            "name": netclass.name,
+            "track_width_mm": netclass.width_mm,
+            "members": list(netclass.nets),
+        }
+        for netclass in project.board_projection.model.netclasses
+    ]
+    width_evidence["kicad_projection"] = {
+        "schema": "net_settings.classes plus netclass_patterns",
+        "kicad_version": kicad.version(),
+        "validation": "project opened and DRC passed after projected netclass generation",
+    }
     verify_smd_pad_centers_in_gerber(
         gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement
     )
@@ -471,6 +534,7 @@ def run_pipeline(
         "cost_note": lane.board.stitch_via_cost_note,
         "via_profile_cost_evidence": via_profile_evidence,
     }
+    dfm_report["routing_width"] = width_evidence
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     print(
@@ -522,6 +586,7 @@ def run_pipeline(
             "cost_note": lane.board.stitch_via_cost_note,
             "via_profile_cost_evidence": via_profile_evidence,
         },
+        "routing_width": width_evidence,
         "gates": {
             "drc": (
                 "pass"

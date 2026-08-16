@@ -58,6 +58,15 @@ class BoardNet:
 
 
 @dataclass(frozen=True)
+class NetClass:
+    """Deterministic routing class and its net membership."""
+
+    name: str
+    width_mm: float
+    nets: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class KeepoutRect:
     """Rectangular all-layer keepout (no copper, tracks, or vias)."""
 
@@ -121,6 +130,7 @@ class BoardModel:
     stitch_via_pitch_mm: float | None = None
     stitch_via_net: str | None = None
     stitch_via_refill_max_iterations: int | None = None
+    netclasses: tuple[NetClass, ...] = ()
 
     def placement_by_refdes(self, refdes: str) -> ComponentPlacement:
         for placement in self.placements:

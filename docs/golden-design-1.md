@@ -389,11 +389,57 @@ via径`0.6 mm`、drill`0.3 mm`であり、profileの`via-hole-prefer-020`、
 `via-hole-015-cost`、`via-hole-small-diameter-cost`、`via-diameter-margin-quality`
 の閾値へ照合した。profileには数量単位のper-via surchargeが無いため、該当数値は追加工程負荷
 として`fab-package.json`へ記録し、金額・納期の確定値とは扱わない。
+
+### 8.0 GD1計画2: netclass別配線幅の実測
+
+計画2では、各`electrical.net`へ`width_basis`を宣言し、基板の銅厚・許容温度上昇・
+IPC-2221定数・式の出所・突合許容差をグラフへ宣言した。必要最小幅は、宣言basisからの
+導出値、グラフ最小track幅、fab profile最小track幅の最大値で決定した。電源系の
+`VBUS_5V`、`+3V3`、`GND`は、プレーンとは独立に測定する routed conductor の電流容量
+根拠として`current_ipc2221`を採用した。その他の信号系は、電流容量ではなく製造最小幅が
+支配的である理由を`width_basis_source`へ宣言した。
+
+塗り後・保存後KiCad基板から出力したF.Cu/B.Cu Gerberの全`Line`を、保存基板の
+`segment`端点・層・netへ座標照合し、Gerber aperture径をネット別に独立測定した。
+照合対象は325オブジェクト、許容差は`0.01 mm`であり、照合不能な導体は合格扱いに
+していない。KiCad 10.0.5では`net_settings.classes`に`Default`と決定論的な
+`ACD_0150um`を投影し、`netclass_patterns`で全15ネットを明示的に割り当てた。
+このprojectを開いて最終基板のDRCを実行し、0 errors・0 unconnectedへ到達した。
+
+| ネット | basis | 導出幅(mm) | 採用幅(mm) | Gerber実測最小(mm) | 配線長(mm) | 抵抗(Ω) | IR drop(V) |
+|---|---|---:|---:|---:|---:|---:|---:|
+| VBUS_5V | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 20.222430 | 0.066407 | 0.033203 |
+| +3V3 | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 98.300328 | 0.322800 | 0.161400 |
+| GND | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 138.688073 | 0.455425 | 0.227713 |
+| BOOT | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 19.985928 | — | — |
+| CC1 | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 15.448290 | — | — |
+| CC2 | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 14.629516 | — | — |
+| EN | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 30.983008 | — | — |
+| I2C_SCL | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 20.970387 | — | — |
+| I2C_SDA | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 33.506214 | — | — |
+| LED | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 31.787344 | — | — |
+| LED_A | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 7.665831 | — | — |
+| UART_RX | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 16.599099 | — | — |
+| UART_TX | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 12.291826 | — | — |
+| USB_D+ | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 17.703585 | — | — |
+| USB_D- | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 18.502620 | — | — |
+
+電源ネットのIPC-2221導出値は約`0.115469 mm`で、採用・実測幅`0.15 mm`が上回る。
+したがって現行幅は電流容量上十分であり、幅を広げることによる定量的な改善がないため
+既存幅を維持した。抵抗とIR dropは、1 oz外層銅厚`35 µm`、抵抗率`1.724e-5 Ω·mm`、
+実測配線長、実測幅から計算した。導出値をグラフ最小値が上回る事実は、各ネットの
+`capability_or_minimum_governed`とEvidenceへ記録した。
+
+計画2の出力は`out/gd1-plan2-default/fab/dfm-report.json`および
+`out/gd1-plan2-default/fab/fab-package.json`である。route wireは`188`、route viaは
+`24`、stitch viaは`7`、DRCは`0/0`、Freeroutingは収束済みである。計画1で記録した
+stitch via `7`、銅面積`1066.8861574973707 mm²`、連結成分`1`、最小島面積
+`33.343936651752315 mm²`、`declared_pitch_satisfied: false`は変更していない。
 J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
 ともに回転`0°`である。U1の板端はみ出し宣言は本体外形基準で`5.4 mm`である。DSNの
 `(via_at_smd off)`とSMD pad周囲の`via_keepout`により、
-SMD pad上viaを構造的に禁止している。出所は`out/gd1-final/fab/dfm-report.json`、
-`out/gd1-final/routing-summary.json`、`out/gd1-final/fab/fab-package.json`である。
+SMD pad上viaを構造的に禁止している。出所は`out/gd1-plan2-default/fab/dfm-report.json`、
+`out/gd1-plan2-default/routing-summary.json`、`out/gd1-plan2-default/fab/fab-package.json`である。
 | `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
 | `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | stale判定が`unknown`で停止 |
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |
