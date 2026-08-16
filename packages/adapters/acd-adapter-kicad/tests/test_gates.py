@@ -34,7 +34,7 @@ def _result(
             "exit_code": 0,
         }
     )
-    run = ToolRun(envelope=envelope, stdout="", stderr="", skipped=False)
+    run = ToolRun(envelope=envelope, stdout="", stderr="")
     return RuleCheckResult(
         run=run,
         report_path=Path("report.json"),

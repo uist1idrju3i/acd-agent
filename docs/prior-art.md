@@ -543,7 +543,7 @@ GPL/AGPLの「外部プロセスなら必ず問題ない」という意味では
 
 | 事例 | 種別 | 読み取り |
 |---|---|---|
-| [PCB-Bench](https://github.com/digailab/PCB-Bench)（§6にも記載） | benchmark（ICLR proceedings PDFあり） | text／multimodal／実PCB成果物の推論を評価し、空間・制約推論に大きな弱点が残ることを報告。LLMに座標・角度を直接生成させない判断の主要根拠 |
+| [PCB-Bench](https://github.com/digailab/PCB-Bench)（§6にも記載） | benchmark（ICLR proceedings PDFあり） | text／multimodal／実PCB成果物の推論を評価し、空間・制約推論に大きな弱点が残ることを報告。座標・角度の提案を決定論的ゲートで検証する判断の主要根拠 |
 | HWE-Bench、pcbGPT（§6に記載） | benchmark／preprint | 生成とreasoningの評価にとどまり、fab・実装・bring-up・実測を含まない。ACDの実測ゲートを代替しない |
 
 ### 21.4 商用のAI配置・配線（ベンダー主張）

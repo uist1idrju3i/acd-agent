@@ -81,15 +81,11 @@ class FreeroutingRunner:
             measurement_conditions=f"headless; max {max_passes} passes",
             convergence_state="unknown",
         )
-        if not run.skipped:
-            convergence = _convergence_from_log(run.stdout + run.stderr)
-            envelope = run.envelope.model_copy(update={"convergence_state": convergence})
-            envelope_path = ses_path.with_suffix(ses_path.suffix + ".envelope.json")
-            envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
-            run = ToolRun(
-                envelope=envelope, stdout=run.stdout, stderr=run.stderr, skipped=False
-            )
-        return run
+        convergence = _convergence_from_log(run.stdout + run.stderr)
+        envelope = run.envelope.model_copy(update={"convergence_state": convergence})
+        envelope_path = ses_path.with_suffix(ses_path.suffix + ".envelope.json")
+        envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
+        return ToolRun(envelope=envelope, stdout=run.stdout, stderr=run.stderr)
 
 
 def _convergence_from_log(log: str) -> ConvergenceState:

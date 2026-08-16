@@ -3,43 +3,24 @@
 Each probe detects presence and version of one external tool. Absence or an
 unparsable version is recorded as ``unknown`` — never as a success — so the
 result can gate session start and evidence validity (fail-closed).
+
+Output determinism measurements are not part of the probe: they live in the
+``acd-cad-determinism-probe`` skill under ``plugins/acd/skills/``.
 """
 
 from __future__ import annotations
 
 import contextlib
-import hashlib
 import importlib.metadata
 import re
 import shutil
 import subprocess
-import tempfile
-import time
 from collections.abc import Callable
-from pathlib import Path
-from typing import Any
 
 from pydantic import Field
 
-from acd_core.cad_normalize import normalize_3mf, normalize_step
 from acd_schema import AcdModel
 from acd_schema.common import NonEmptyStr
-
-
-class CadFormatProbe(AcdModel):
-    """Measured determinism and normalization result for one CAD format."""
-
-    format: NonEmptyStr
-    raw_equal: bool
-    normalized_equal: bool
-    raw_hashes: list[NonEmptyStr]
-    normalized_hashes: list[NonEmptyStr]
-    differences: list[str] = Field(default_factory=list)
-    normalization_rule: NonEmptyStr
-
-
-def _empty_cad_formats() -> list[CadFormatProbe]:
-    return []
 
 
 class ToolProbeResult(AcdModel):
@@ -50,7 +31,6 @@ class ToolProbeResult(AcdModel):
     version: NonEmptyStr  # concrete version or "unknown"
     path: str | None = None
     detail: str = ""
-    cad_formats: list[CadFormatProbe] = Field(default_factory=_empty_cad_formats)
 
     @property
     def is_known(self) -> bool:
@@ -137,83 +117,13 @@ def probe_cad_kernel() -> ToolProbeResult:
             path=None,
             detail="no CAD kernel distribution installed (build123d / cadquery-ocp)",
         )
-    try:
-        formats = _probe_cad_exports()
-    except Exception as exc:
-        return ToolProbeResult(
-            tool_name="cad-kernel",
-            present=True,
-            version="unknown",
-            path=None,
-            detail=f"CAD export probe failed: {type(exc).__name__}: {exc}",
-        )
     return ToolProbeResult(
         tool_name="cad-kernel",
         present=True,
         version=versions.get("build123d", versions["cadquery-ocp"]),
         path=None,
         detail="python distributions " + ", ".join(f"{k}={v}" for k, v in versions.items()),
-        cad_formats=formats,
     )
-
-
-def _sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
-def _export_3mf(shape: Any, path: Path) -> None:
-    import importlib
-
-    build123d: Any = importlib.import_module("build123d")
-    mesher = build123d.Mesher()
-    mesher.add_shape(shape, linear_deflection=0.01, angular_deflection=0.1, part_number="box")
-    mesher.write(path)
-
-
-def _probe_cad_exports() -> list[CadFormatProbe]:
-    import importlib
-
-    build123d: Any = importlib.import_module("build123d")
-
-    with tempfile.TemporaryDirectory() as directory:
-        root = Path(directory)
-        shape = build123d.Box(10, 10, 10)
-        build123d.export_step(shape, root / "first.step")
-        time.sleep(1.1)
-        build123d.export_step(shape, root / "second.step")
-        step_a = (root / "first.step").read_bytes()
-        step_b = (root / "second.step").read_bytes()
-        _export_3mf(shape, root / "first.3mf")
-        _export_3mf(shape, root / "second.3mf")
-        mf_a = (root / "first.3mf").read_bytes()
-        mf_b = (root / "second.3mf").read_bytes()
-
-    normalized_step_a = normalize_step(step_a)
-    normalized_step_b = normalize_step(step_b)
-    normalized_mf_a = normalize_3mf(mf_a)
-    normalized_mf_b = normalize_3mf(mf_b)
-    return [
-        CadFormatProbe(
-            format="STEP",
-            raw_equal=step_a == step_b,
-            normalized_equal=normalized_step_a == normalized_step_b,
-            raw_hashes=[_sha256(step_a), _sha256(step_b)],
-            normalized_hashes=[_sha256(normalized_step_a), _sha256(normalized_step_b)],
-            differences=["FILE_NAME timestamp"] if step_a != step_b else [],
-            normalization_rule="Replace FILE_NAME timestamp with 1970-01-01T00:00:00.",
-        ),
-        CadFormatProbe(
-            format="3MF",
-            raw_equal=mf_a == mf_b,
-            normalized_equal=normalized_mf_a == normalized_mf_b,
-            raw_hashes=[_sha256(mf_a), _sha256(mf_b)],
-            normalized_hashes=[_sha256(normalized_mf_a), _sha256(normalized_mf_b)],
-            differences=["3D/3dmodel.model p:UUID attributes"] if mf_a != mf_b else [],
-            normalization_rule=(
-                "Replace all 3D/3dmodel.model p:UUID values and canonicalize ZIP entry timestamps."
-            ),
-        ),
-    ]
 
 
 PROBES: dict[str, Callable[[], ToolProbeResult]] = {

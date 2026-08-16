@@ -1,1 +1,1 @@
-"""CAD adapter: mechanical enclosure projection."""
+"""CAD adapter: mechanical enclosure projection and mechanical gates."""

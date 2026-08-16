@@ -1,15 +1,13 @@
 """Adapter-boundary helper for external tool processes.
 
-Every external run is wrapped in a ToolEnvelope with input/output/config
-hashes. Reruns with identical input, config, and tool version are skipped
-when a matching envelope and intact outputs already exist, so side effects
-are never duplicated. This module performs no gate judgment.
+Every run is wrapped in a ToolEnvelope with input/output/config hashes and is
+executed unconditionally: gates are re-run on every change. This module
+performs no gate judgment.
 """
 
 from __future__ import annotations
 
 import hashlib
-import json
 import platform
 import subprocess
 from collections.abc import Callable
@@ -48,7 +46,6 @@ class ToolRun:
     envelope: ToolEnvelope
     stdout: str
     stderr: str
-    skipped: bool
 
 
 def _hash_paths_with(
@@ -63,15 +60,6 @@ def _hash_paths_with(
         digest.update(normalizer(path))
         digest.update(b"\x00")
     return "sha256:" + digest.hexdigest()
-
-
-def _load_previous(envelope_path: Path) -> ToolEnvelope | None:
-    if not envelope_path.is_file():
-        return None
-    try:
-        return ToolEnvelope.model_validate(json.loads(envelope_path.read_text()))
-    except ValueError:
-        return None
 
 
 def run_tool(
@@ -89,24 +77,12 @@ def run_tool(
     allowed_exit_codes: frozenset[int] = frozenset({0}),
     cwd: Path | None = None,
 ) -> ToolRun:
-    """Run ``command`` once per (input, config, tool version) and envelope it."""
+    """Run ``command`` and envelope the run."""
     for path in input_paths:
         if not path.is_file():
             raise ExternalToolError(f"{tool_name}: input file missing: {path}")
     input_hash = sha256_paths(input_paths)
     config_hash = sha256_bytes("\x00".join(command).encode())
-
-    previous = _load_previous(envelope_path)
-    if (
-        previous is not None
-        and previous.tool_name == tool_name
-        and previous.tool_version == tool_version
-        and previous.input_hash == input_hash
-        and previous.config_hash == config_hash
-        and all(p.is_file() for p in output_paths)
-        and previous.output_hash == sha256_paths(output_paths)
-    ):
-        return ToolRun(envelope=previous, stdout="", stderr="", skipped=True)
 
     started_at = datetime.now(UTC)
     result = subprocess.run(
@@ -144,7 +120,7 @@ def run_tool(
     )
     envelope_path.parent.mkdir(parents=True, exist_ok=True)
     envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
-    return ToolRun(envelope=envelope, stdout=result.stdout, stderr=result.stderr, skipped=False)
+    return ToolRun(envelope=envelope, stdout=result.stdout, stderr=result.stderr)
 
 
 def run_in_process(
@@ -161,24 +137,12 @@ def run_in_process(
     config: bytes,
     output_normalizer: Callable[[Path], bytes] | None = None,
 ) -> ToolRun:
-    """Run an in-process projection once per matching inputs, config, and outputs."""
+    """Run an in-process projection and envelope the run."""
     for path in input_paths:
         if not path.is_file():
             raise ExternalToolError(f"{tool_name}: input file missing: {path}")
     input_hash = sha256_paths(input_paths)
     config_hash = sha256_bytes(config)
-    previous = _load_previous(envelope_path)
-    if (
-        previous is not None
-        and previous.tool_name == tool_name
-        and previous.tool_version == tool_version
-        and previous.input_hash == input_hash
-        and previous.config_hash == config_hash
-        and all(path.is_file() for path in output_paths)
-        and previous.output_hash == _hash_paths_with(output_paths, output_normalizer)
-    ):
-        return ToolRun(envelope=previous, stdout="", stderr="", skipped=True)
-
     started_at = datetime.now(UTC)
     runner()
     finished_at = datetime.now(UTC)
@@ -202,4 +166,4 @@ def run_in_process(
     )
     envelope_path.parent.mkdir(parents=True, exist_ok=True)
     envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
-    return ToolRun(envelope=envelope, stdout="", stderr="", skipped=False)
+    return ToolRun(envelope=envelope, stdout="", stderr="")

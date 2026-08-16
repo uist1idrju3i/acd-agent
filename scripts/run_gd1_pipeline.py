@@ -25,9 +25,12 @@ import sys
 from pathlib import Path
 from typing import cast
 
+from skill_loader import load_skill_module
+
 from acd_adapter_freerouting.dsn import export_dsn
 from acd_adapter_freerouting.router import FreeroutingRunner
 from acd_adapter_freerouting.ses import parse_ses
+from acd_adapter_kicad.board import board_keepouts, keepout_rects, load_board_footprints
 from acd_adapter_kicad.cli import KicadCli, RuleCheckResult
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
@@ -52,6 +55,8 @@ from acd_adapter_kicad.fab import (
     zip_content_hash,
 )
 from acd_adapter_kicad.gates import assert_converged, assert_rule_check_passed
+from acd_adapter_kicad.library import FootprintLibrary
+from acd_adapter_kicad.placement import Placement
 from acd_adapter_kicad.project import write_project
 from acd_adapter_kicad.reload import (
     normalized_hash,
@@ -61,14 +66,11 @@ from acd_adapter_kicad.reload import (
     verify_schematic,
 )
 from acd_adapter_kicad.routing import inject_routes, inject_stitch_vias
-from acd_core.board_model import NetClass
-from acd_core.electrical import extract_electrical_lane
-from acd_core.fab import extract_fab_intent, load_fab_profile
+from acd_core.board_model import BoardModel, NetClass
+from acd_core.electrical import ElectricalLane, extract_electrical_lane
+from acd_core.fab import FabProfile, extract_fab_intent, load_fab_profile
 from acd_core.routing_width import derive_net_widths
-from acd_core.silkscreen import (
-    extract_silkscreen_lane,
-    resolve_silkscreen_placements,
-)
+from acd_core.silkscreen import SilkscreenLane, extract_silkscreen_lane
 from acd_schema.design_graph import DesignGraph
 
 GERBER_LAYERS = [
@@ -369,6 +371,39 @@ def _measure_dsn_class_correspondence(
     }
 
 
+def _search_placements(
+    lane: ElectricalLane, fixture_dir: Path, profile: FabProfile
+) -> tuple[Placement, ...]:
+    """Ask the placement-search skill for candidate placements.
+
+    Coordinates are design data, so they are only candidates here; the ERC/DRC
+    and reload gates decide whether the resulting board is acceptable.
+    """
+    search = load_skill_module("acd-placement-search", "placement_search")
+    footprints = load_board_footprints(lane, FootprintLibrary(), fixture_dir, profile).shapes
+    keepouts = keepout_rects(board_keepouts(lane, footprints))
+    net_refdes = tuple(
+        tuple(ref for ref, _pad in lane.pads_of_net(net.node_id))
+        for net in sorted(lane.nets, key=lambda n: n.name)
+    )
+    placements = search.compute_placements(
+        lane.board,
+        lane.components,
+        footprints,
+        keepouts,
+        net_refdes,
+        lane.pins,
+        lane.nets,
+    )
+    return cast(tuple[Placement, ...], placements)
+
+
+def _search_silkscreen(lane: SilkscreenLane, board: BoardModel) -> SilkscreenLane:
+    """Ask the silkscreen-placement skill to resolve declared labels."""
+    search = load_skill_module("acd-silkscreen-placement", "silkscreen_search")
+    return cast(SilkscreenLane, search.resolve_silkscreen_placements(lane, board))
+
+
 def run_pipeline(
     fixture_dir: Path,
     out_dir: Path,
@@ -389,21 +424,22 @@ def run_pipeline(
             f"{profile.profile_id!r}"
         )
 
+    placements = _search_placements(lane, fixture_dir, profile)
     project = write_project(
         lane,
         fixture_dir,
         out_dir,
         profile=profile,
+        placements=placements,
         silkscreen=None,
     )
-    silkscreen = resolve_silkscreen_placements(
-        silkscreen, project.board_projection.model
-    )
+    silkscreen = _search_silkscreen(silkscreen, project.board_projection.model)
     project = write_project(
         lane,
         fixture_dir,
         out_dir,
         profile=profile,
+        placements=placements,
         silkscreen=silkscreen,
     )
     name = project.name
@@ -422,7 +458,7 @@ def run_pipeline(
     ses_path = out_dir / f"{name}.ses"
     route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
     assert_converged(route_run.envelope.convergence_state)
-    print(f"[3/10] routing converged (skipped={route_run.skipped})")
+    print("[3/10] routing converged")
 
     routes = parse_ses(
         ses_path.read_text(),

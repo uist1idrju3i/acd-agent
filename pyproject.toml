@@ -16,10 +16,8 @@ exclude = ["packages/adapters"]
 acd-schema = { workspace = true }
 acd-core = { workspace = true }
 acd-tools = { workspace = true }
-acd-runtime = { workspace = true }
 acd-adapter-kicad = { workspace = true }
 acd-adapter-freerouting = { workspace = true }
-acd-adapter-espidf = { workspace = true }
 acd-adapter-cad = { workspace = true }
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
 
@@ -28,10 +26,8 @@ dev = [
     "acd-schema",
     "acd-core",
     "acd-tools",
-    "acd-runtime",
     "acd-adapter-kicad",
     "acd-adapter-freerouting",
-    "acd-adapter-espidf",
     "acd-adapter-cad",
     "openhands-sdk",
     "build123d==0.11.1",
@@ -44,7 +40,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/*/src", "packages/adapters/*/src"]
+src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts"]
 extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
@@ -53,17 +49,34 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
-include = ["packages", "scripts", "fixtures"]
+include = ["packages", "scripts", "fixtures", "plugins"]
 exclude = ["**/__pycache__", "vendor", "**/.venv"]
 executionEnvironments = [
     { root = "packages/acd-schema/src" },
     { root = "packages/acd-core/src" },
     { root = "packages/acd-tools/src" },
-    { root = "packages/acd-runtime/src" },
     { root = "packages/adapters/acd-adapter-kicad/src" },
     { root = "packages/adapters/acd-adapter-freerouting/src" },
-    { root = "packages/adapters/acd-adapter-espidf/src" },
     { root = "packages/adapters/acd-adapter-cad/src" },
+    { root = "plugins/acd/skills/acd-firmware-esp32c3", extraPaths = [
+        "plugins/acd/skills/acd-firmware-esp32c3/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-cad-determinism-probe", extraPaths = [
+        "plugins/acd/skills/acd-cad-determinism-probe/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-qc-seven-tools", extraPaths = [
+        "plugins/acd/skills/acd-qc-seven-tools/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-reliability-review", extraPaths = [
+        "plugins/acd/skills/acd-reliability-review/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-placement-search", extraPaths = [
+        "plugins/acd/skills/acd-placement-search/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-silkscreen-placement", extraPaths = [
+        "plugins/acd/skills/acd-silkscreen-placement/scripts",
+    ] },
+    { root = "scripts" },
     { root = "." },
 ]
 

@@ -29,17 +29,14 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 - ソースコードのコメントと識別子は英語とする（MUST）。
 - `vendor/software-agent-sdk`のsubmodule参照を更新したときは、本書冒頭の版表記も
   同じコミットで更新する（MUST）。
-- 別リポジトリ `uist1idrju3i/ACD` の仕様、ADR、フェーズ定義、教訓文は本リポジトリの権威ではない。
-- 別リポジトリ `uist1idrju3i/ACD` を本書やdocsから根拠・参照先として引用しない（MUST NOT）。
-  別リポジトリとして別の開発が進むため、必要な内容は本リポジトリへ転記して
-  本リポジトリの記述として管理してよい（MAY）。
+- 本リポジトリの権威は本リポジトリ内の文書に限る。外部リポジトリの仕様、ADR、フェーズ定義を
+  根拠・参照先として引用しない（MUST NOT）。
 
 ## 製品・安全の不変条件
 
 入力ファイルとgitを設計の正とし、投影を正へ逆流させない（MUST）。ワークツリー操作と外部
 ツール実行は排他にする（MUST）。AIは提案し、決定論的ゲートが判定する（MUST）。
 
-- 配置・回転・配線でLLMは座標・回転角を直接出力しない（MUST NOT）。
 - 代理指標は候補の順位付けだけに使い、合格根拠にしない（MUST NOT）。実測は少数候補に行う（SHOULD）。
 - 機械可読投影と視覚投影を生成し、SDKのsubagent／visionで自然文のレビューを行う（MUST）。
   レビューは合否権限を持たない（MUST NOT）。
@@ -48,11 +45,23 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 - 安全境界は`profiles/`配下の版管理された設定のcommitによってのみ変更する（MUST）。
 - 発注は設定上限額以内で、発注直前に全ゲートを実行して通過した場合だけ行う（MUST）。
   価格・在庫の鮮度も発注直前に確認する。
-- FWはビルド、静的解析、単体テスト、ピン割当整合、ログ期待値照合を生成スクリプト内で検査する（MUST）。
+- FWのビルド、静的解析、単体テスト、ピン割当整合、ログ期待値照合はOpenHandsへ委譲する（MUST）。
+  ACD本体はFWゲートを持たない（MUST NOT）。
+- 配置・回転・配線の探索と代理指標の採点はOpenHandsへ委譲する（MUST）。座標は設計の入力
+  ファイルに確定し、ACDはそれを投影して決定論的ゲートで判定する（MUST）。
+- LLMが座標・回転角を直接提案してよい（MAY）。提案は候補にとどまり、入力ファイルへ確定した
+  のちにACDの投影と決定論的ゲートを通す（MUST）。
 - ライブラリ記述やLLMの説明を合格根拠にしない（MUST NOT）。
 - OpenHands SDKの既存機能を優先し、同等のACD独自tool層・executor・eventを作らない（MUST NOT）。
 - ACDが保持する実装は投影、決定論的ゲート、パイプラインスクリプト、adapters、発注ガード、
-  `profiles/`の宣言とOpenHands plugin資材に限る。
+  `profiles/`の宣言とOpenHands plugin資材に限る（MUST）。委譲した処理の実装資産は
+  `plugins/acd/skills/`配下のSkillとして提供する（MUST）。
+- ACD本体は軽量に保ち、基板設計・筐体設計・FWに使えるSkillは充実させる（MUST）。Skillの採否は
+  タスクごとにOpenHands側が判断する（MAY）。Skillが存在することは採用の義務を意味しない。
+- Skillの実行結果はACDの設計ゲートの合否ではない（MUST NOT）。合否は入力ファイルと
+  決定論的ゲートだけが決める（MUST）。
+- OpenHands側の機能で不足すると実運用（VibeBB）で確認できた場合に限り、ACD本体への実装を
+  検討する（SHOULD）。
 
 ## 決定権とエスカレーション
 
@@ -149,15 +158,21 @@ EDA、配置配線、製造、機械生成のアルゴリズムについて、AC
 ## 検証契約
 
 検証は`uv sync`、`uv run ruff check`、`uv run pyright`、`uv run pytest`、
-`uv run python scripts/verify_docs.py`、`git diff --check`を使う（MUST）。
+`uv run pytest plugins -q`、`uv run python scripts/verify_docs.py`、`git diff --check`を使う（MUST）。
+Skillのテストは本体テストから分離し、`uv run pytest plugins -q`で実行する（MUST）。CIでも
+本体ジョブとは別ジョブで実行する（MUST）。外部ツール（ESP-IDF、QEMUなど）を要するSkillテストは
+ツール不在時にskipしてよい（MAY）。
 CI（`.github/workflows/ci.yml`）ではこれらを同じコマンド・同じ入力で実行する（MUST）。
 変更ファイルがMarkdownのみで、かつ
-`packages/`・`scripts/`・`profiles/`・`fixtures/`・`pyproject.toml`・`uv.lock`・`.github/`を
+`packages/`・`plugins/`・`scripts/`・`profiles/`・`fixtures/`・`pyproject.toml`・`uv.lock`・`.github/`を
 変更していない場合、ローカルでは`uv run python scripts/verify_docs.py`と
 `git diff --check`のみで足りる（MAY）。
 それ以外はローカルでも全コマンドを実行する（MUST）。CIは従来どおり全コマンドを実行する（MUST）。
 文書検証は全Markdownの相対リンクとGitHub互換アンカー（記号除去、空白のハイフン化、重複slugの連番）、
 Mermaid構文、コードフェンス、見出し階層、用語集との整合を対象とする（MUST）。
+Skillには専用テストを置き（MUST）、本体テストとは分離して`uv run pytest plugins`で実行する（MUST）。
+外部ツール（ESP-IDF、QEMUなど）を要するSkillテストは、ツール不在時にskipしてよい（MAY）。
+Skillの合否は本体の合否条件ではない（MUST NOT）。
 未確認やunknownを合格扱いしない（MUST NOT）。SDK経路をテストするときは
 `TestLLM`で応答・例外を固定し（MUST）、ACD側にレビュー応答の固定解析を持たせない。
 実LLMのgolden taskは適格性の定期再測定として分離する（SHOULD）。

@@ -13,12 +13,10 @@ resolution-markers = [
 [manifest]
 members = [
     "acd-adapter-cad",
-    "acd-adapter-espidf",
     "acd-adapter-freerouting",
     "acd-adapter-kicad",
     "acd-agent",
     "acd-core",
-    "acd-runtime",
     "acd-schema",
     "acd-tools",
 ]
@@ -40,21 +38,6 @@ requires-dist = [
     { name = "acd-schema", editable = "packages/acd-schema" },
     { name = "build123d", specifier = "==0.11.1" },
     { name = "cadquery-ocp", specifier = "==7.9.3.1.1" },
-]
-
-[[package]]
-name = "acd-adapter-espidf"
-version = "0.0.1"
-source = { editable = "packages/adapters/acd-adapter-espidf" }
-dependencies = [
-    { name = "acd-core" },
-    { name = "acd-schema" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "acd-core", editable = "packages/acd-core" },
-    { name = "acd-schema", editable = "packages/acd-schema" },
 ]
 
 [[package]]
@@ -99,11 +82,9 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "acd-adapter-cad" },
-    { name = "acd-adapter-espidf" },
     { name = "acd-adapter-freerouting" },
     { name = "acd-adapter-kicad" },
     { name = "acd-core" },
-    { name = "acd-runtime" },
     { name = "acd-schema" },
     { name = "acd-tools" },
     { name = "build123d" },
@@ -119,11 +100,9 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "acd-adapter-cad", editable = "packages/adapters/acd-adapter-cad" },
-    { name = "acd-adapter-espidf", editable = "packages/adapters/acd-adapter-espidf" },
     { name = "acd-adapter-freerouting", editable = "packages/adapters/acd-adapter-freerouting" },
     { name = "acd-adapter-kicad", editable = "packages/adapters/acd-adapter-kicad" },
     { name = "acd-core", editable = "packages/acd-core" },
-    { name = "acd-runtime", editable = "packages/acd-runtime" },
     { name = "acd-schema", editable = "packages/acd-schema" },
     { name = "acd-tools", editable = "packages/acd-tools" },
     { name = "build123d", specifier = "==0.11.1" },
@@ -144,21 +123,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "acd-schema", editable = "packages/acd-schema" }]
-
-[[package]]
-name = "acd-runtime"
-version = "0.0.1"
-source = { editable = "packages/acd-runtime" }
-dependencies = [
-    { name = "acd-core" },
-    { name = "build123d" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "acd-core", editable = "packages/acd-core" },
-    { name = "build123d", specifier = "==0.11.1" },
-]
 
 [[package]]
 name = "acd-schema"

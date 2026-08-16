@@ -247,5 +247,6 @@ Q7/N7は基板だけでなく、筐体の形状、材料、加工条件、組立
 
 ## 関連文書
 
+- [`../plugins/acd/skills/acd-qc-seven-tools/SKILL.md`](../plugins/acd/skills/acd-qc-seven-tools/SKILL.md)：本書の手法をSkillとして実行する資材
 - [`../README.md`](../README.md)：設計原則、知識、検証ゲート
 - [`reliability-practices.md`](reliability-practices.md)：信頼性・安全性設計プラクティス

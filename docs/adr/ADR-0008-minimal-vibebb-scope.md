@@ -1,5 +1,7 @@
 # ADR-0008: VibeBBの最小構成とSDK優先の実装境界
 
+> 追補: ADR-0009により、探索・採点・FW検査はOpenHandsへ委譲し、実装資産は`plugins/acd/skills/`のSkillとして提供する。
+
 > ステータス: Accepted
 > 日付: 2026-08-16
 > 関連: [`../../README.md`](../../README.md)、[`../roadmap.md`](../roadmap.md)、[`../openhands-integration.md`](../openhands-integration.md)、[`ADR-0002-json-schema-canonical.md`](ADR-0002-json-schema-canonical.md)、[`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)
@@ -86,7 +88,9 @@ eventのreplayと構造化レビュー記録である。
 ### 8. ファームウェアの独自契約を捨てる
 
 FWパッケージの機械可読契約をやめ、ファームウェアはSDKの標準的なソフトウェア開発能力へ委譲する。
-ピン割当と設計の整合検査だけは、実バグを捕まえるため生成スクリプト内の検査として残す。
+ピン割当整合を生成スクリプト内の検査として残す判断はADR-0009で撤回した。FW検査は全て
+OpenHands側（`acd-firmware-esp32c3` Skillおよび通常のテスト）の責務であり、ACD本体はFWゲートを
+持たない。
 
 ### 実装として残るもの
 
@@ -111,8 +115,8 @@ FWパッケージの機械可読契約をやめ、ファームウェアはSDKの
 
 - [`ADR-0002-json-schema-canonical.md`](ADR-0002-json-schema-canonical.md)は本ADRにより廃止（Superseded）とする。
 - [`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)の三層分離は維持するが、
-  探索仕様の機械可読契約と探索固有Evidenceの記録は要求から外す。LLMに座標・回転角を直接出力させないこと、
-  代理指標を合格根拠にしないことは維持する。
+  探索仕様の機械可読契約と探索固有Evidenceの記録は要求から外す。代理指標を合格根拠にしないことは維持する。
+  LLMに座標・回転角を直接出力させない制約は[`ADR-0009-openhands-delegation-and-skills.md`](ADR-0009-openhands-delegation-and-skills.md)で撤回した。
 - 量産品質向けの機構を前提にした記述と文書は削除する。信頼性・安全性・QC手法・先行事例の調査記録は、
   将来の高信頼化の参照として残し、規範ではないことを明示する。
 - `schemas/`、`packages/acd-events`、`packages/acd-runtime`の該当実装、独自tool層の削除は

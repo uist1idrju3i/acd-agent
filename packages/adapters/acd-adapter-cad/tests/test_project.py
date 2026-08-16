@@ -14,7 +14,7 @@ FIXTURE = (
 )
 
 
-def test_projection_rerun_uses_normalized_hash_and_skips(tmp_path: Path) -> None:
+def test_projection_rerun_matches_normalized_hash(tmp_path: Path) -> None:
     graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
     lane = extract_mechanical_lane(graph)
     first = project_enclosure(
@@ -29,8 +29,6 @@ def test_projection_rerun_uses_normalized_hash_and_skips(tmp_path: Path) -> None
         out_dir=tmp_path,
         target_revision=graph.revision,
     )
-    assert not first.skipped
-    assert second.skipped
     assert first.envelope.output_hash == second.envelope.output_hash
     assert first.step_path.is_file()
     assert first.model_path.is_file()
