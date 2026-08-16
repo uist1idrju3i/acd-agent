@@ -179,6 +179,13 @@ skills repositoryとpluginの参照は信頼済みsourceに限定する。
 Skillの記述、pluginの定義、triggerの発火はプロンプト資材または実行制御であり、設計グラフ
 の正でも合否根拠にもならない。入力hashと実行結果は最小限の記録として残す。
 
+本リポジトリでは、ACD本体から委譲した実装を`plugins/acd/skills/`のSkillとして配布する。
+`acd-firmware-esp32c3`はFWの生成・ビルド・検査・QEMU仮想実行、`acd-placement-search`は
+配置・回転探索と代理指標の採点、`acd-silkscreen-placement`はシルクラベルの周囲探索を持つ。
+いずれも任意利用であり、採否はタスクごとにOpenHands側が判断する。Skillの実行結果は
+ACDの設計ゲートの合否ではない。Skillのテストは`uv run pytest plugins -q`で本体テストと
+分離して実行する。
+
 ### subagentとレビューの独立性
 
 `AgentDefinition`で生成側とレビュー側を別のagent定義、別profile、別コンテキスト
@@ -401,10 +408,11 @@ Evidenceとして記録し、DOM取得の非決定性を`unknown`境界に含め
 ## ファームウェア開発とOpenHands
 
 OpenHands SDKのソフトウェア開発能力（bash、ファイル編集、テスト実行、MCP client、
-delegate）は、FWレーンの実装にそのまま利用できる。ACD側が用意するのは、設計グラフ
-から投影する型付きFWパッケージ、ピン・ネット整合ゲート、ビルド・テスト・ログの
-Evidence記録である。FW側の決定がピン割当やペリフェラル設定を変える場合は、E1へ
-戻す双方向契約として扱う。
+delegate）は、FWレーンの実装にそのまま利用できる。FWのビルド、静的解析、単体テスト、
+ピン割当整合、ログ期待値照合はいずれもOpenHands側の責務であり、ACD本体はFWゲートを
+持たない。ESP-IDFプロジェクトの生成、ビルド、ピン割当検査、QEMU仮想実行は
+`plugins/acd/skills/acd-firmware-esp32c3`のSkillとして提供し、採否はOpenHands側が判断する。
+FW側の決定がピン割当やペリフェラル設定を変える場合は、E1へ戻す双方向契約として扱う。
 
 実機への書き込み、RTT等のログ取得、Blinkの実行を外部ツールまたはMCPサーバとして
 OpenHandsから呼び出す構成は候補である。候補例として`FreeOCD/freeocd-vscode-extension`

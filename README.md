@@ -118,8 +118,9 @@ ACDは既存ツールを借り、決定論的ゲートと実機フィードバ�
   シミュレーション、fabルールが検証し、未検証の銅箔配線は生成しません。
 - 回路図レス・図面レスを既定とします。回路図、PCB、筐体図面は入力ファイルから生成する投影です。
 - 入力ファイルとgitを正とし、投影は正へ逆流させず、意味的にマージしません。
-- 基板・筐体・ファームウェアはいずれも第一級の設計対象です。基板と筐体では外形、干渉、
-  肉厚、締結、組立性を検証し、ファームウェアではピン割当整合とログ期待値を検証します。
+- 基板・筐体・ファームウェアはいずれも第一級の設計対象です。基板と筐体の外形、干渉、肉厚、
+  締結、組立性はACDの決定論的ゲートが判定し、ファームウェアのビルド・検査はOpenHands側で
+  行います（ACD本体はFWゲートを持ちません）。
 - 各工程で機械可読投影と視覚投影を生成し、SDKのsubagent／visionがbest-effortでレビューします。
   所見は自然文で修正ループへ渡し、合否は決定論的ゲートだけで判定します。
 - 現在のGD1ではJLCPCB形式BOM/CPL、Gerber/drill zip、独立DFM report、fab packageまでを
@@ -138,10 +139,10 @@ ACDは既存ツールを借り、決定論的ゲートと実機フィードバ�
 ## 配置・配線をAIで解く
 
 部品の配置、回転、配線を総当たりすると、制約の組合せ爆発で候補数と実測コストが膨らみます。
-ACDはこの探索を、LLM-only CADのようにLLMへ座標や角度を直接生成させる問題として扱いません。
-LLMはモジュール分解、相対配置制約、優先度、回転刻み方針、探索戦略、評価方針を探索仕様として
-宣言し、設計根拠を残します。具体的な座標・回転角の候補生成と幾何整合化、合否判定は決定論的な
-探索器とゲートが担います。
+LLMはモジュール分解、相対配置制約、優先度、回転刻み方針、探索戦略、評価方針を宣言し、
+必要なら具体的な座標・回転角を提案してもかまいません。提案は候補にとどまり、設計の入力
+ファイルへ確定したのちにACDの投影と決定論的ゲートが判定します。探索器と代理指標の採点は
+ACD本体ではなく`plugins/acd/skills/`のSkillが持ち、採否はOpenHands側が判断します。
 
 安価な代理指標で候補を順位付けし、外部router、DRC/ERC、Gerber独立再読込などの高価な実測は
 上位の少数候補に限定します。90度刻みは版管理された`profiles/`の宣言に従います。
@@ -213,6 +214,14 @@ condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow
 詳細は [`docs/architecture.md`](docs/architecture.md) と
 [`docs/openhands-integration.md`](docs/openhands-integration.md) を参照してください。
 
+### ACD本体とSkill
+
+ACD本体は軽量に保ち、入力ファイルの読み取り、投影、独立再読込、ERC/DRC・機械ゲート、
+発注ガードだけを持ちます。基板設計・筐体設計・FWに使える探索、採点、検査、品質手法は
+`plugins/acd/skills/`のSkillとして充実させ、どれを使うかはOpenHands側がタスクごとに判断します。
+Skillの実行結果はACDの設計ゲートの合否ではなく、合否は入力ファイルと決定論的ゲートが決めます。
+方針の正は [`docs/adr/ADR-0009-openhands-delegation-and-skills.md`](docs/adr/ADR-0009-openhands-delegation-and-skills.md) です。
+
 ## ACDではないもの
 
 - チャットパネルを付けた回路図エディタではありません。対話と入力ファイルがインターフェースです。
@@ -232,7 +241,7 @@ condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow
 
 ## ドキュメント
 
-文書の一覧と読む順序は [`docs/README.md`](docs/README.md) を正とします。主要な入口は次の4点です。
+文書の一覧と読む順序は [`docs/README.md`](docs/README.md) を正とします。主要な入口は次の5点です。
 
 | ファイル | 内容 |
 |---|---|
@@ -240,6 +249,7 @@ condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow
 | [`docs/README.md`](docs/README.md) | 文書索引と読む順序 |
 | [`docs/roadmap.md`](docs/roadmap.md) | フェーズと到達状況 |
 | [`docs/adr/ADR-0008-minimal-vibebb-scope.md`](docs/adr/ADR-0008-minimal-vibebb-scope.md) | 現行の最小構成方針 |
+| [`docs/adr/ADR-0009-openhands-delegation-and-skills.md`](docs/adr/ADR-0009-openhands-delegation-and-skills.md) | OpenHandsへの委譲範囲とSkill化方針 |
 
 ## ライセンス
 
