@@ -1,4 +1,4 @@
-"""Canonical design graph (mirrors ``schemas/design-graph.schema.json``)."""
+"""Canonical Pydantic design graph."""
 
 from __future__ import annotations
 

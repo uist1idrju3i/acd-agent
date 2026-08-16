@@ -1,4 +1,4 @@
-"""Firmware package projection (mirrors ``schemas/fw-package.schema.json``)."""
+"""Firmware package projection."""
 
 from __future__ import annotations
 

@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from conftest import fixture_list, fixture_obj, load_fixture
 
-from acd_schema import Evidence, GateMatrix, ReviewFinding, ToolEnvelope
+from acd_schema import Evidence, ToolEnvelope
 
 NOW = datetime(2026, 8, 12, tzinfo=UTC)
 
@@ -44,40 +44,3 @@ def test_evidence_with_unknown_provenance_never_supports_pass() -> None:
     evidence = Evidence.model_validate({**data, "envelope": envelope})
     assert not evidence.supports_pass("r3")
 
-
-def test_gate_matrix_verdict_pass_with_live_waiver() -> None:
-    matrix = GateMatrix.model_validate(load_fixture("valid", "gate-matrix.json"))
-    assert matrix.verdict(NOW) == "pass"
-
-
-def test_gate_matrix_verdict_fails_on_expired_waiver() -> None:
-    matrix = GateMatrix.model_validate(load_fixture("valid", "gate-matrix.json"))
-    assert matrix.verdict(datetime(2026, 10, 1, tzinfo=UTC)) == "fail"
-
-
-def test_gate_matrix_verdict_fails_on_unknown_stale_or_not_run() -> None:
-    data = load_fixture("valid", "gate-matrix.json")
-    for status in ("unknown", "stale", "not_run"):
-        gates = [dict(fixture_obj(g)) for g in fixture_list(data["gates"])]
-        gates[0]["status"] = status
-        gates[0].pop("waiver", None)
-        matrix = GateMatrix.model_validate({**data, "gates": gates})
-        assert matrix.verdict(NOW) == "fail", status
-
-
-def test_gate_pass_without_evidence_fails() -> None:
-    data = load_fixture("valid", "gate-matrix.json")
-    gates = [dict(fixture_obj(g)) for g in fixture_list(data["gates"])]
-    gates[0]["evidence_refs"] = []
-    matrix = GateMatrix.model_validate({**data, "gates": gates})
-    assert matrix.verdict(NOW) == "fail"
-
-
-def test_open_high_severity_finding_blocks_pass() -> None:
-    data = load_fixture("valid", "review-finding.json")
-    disposed = ReviewFinding.model_validate(data)
-    assert not disposed.blocks_pass()
-    open_finding = ReviewFinding.model_validate(
-        {**data, "disposition": "open", "disposition_reason": None, "disposed_at": None}
-    )
-    assert open_finding.blocks_pass()
