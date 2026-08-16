@@ -21,7 +21,6 @@ acd-adapter-kicad = { workspace = true }
 acd-adapter-freerouting = { workspace = true }
 acd-adapter-espidf = { workspace = true }
 acd-adapter-cad = { workspace = true }
-openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
 
 [dependency-groups]
 dev = [

@@ -1,13 +1,11 @@
 [project]
 name = "acd-runtime"
 version = "0.0.1"
-description = "SessionStart validation hook and executor skeleton on the OpenHands SDK"
+description = "Fail-closed mechanical gates for enclosure geometry"
 requires-python = ">=3.12"
 dependencies = [
-    "acd-schema",
     "acd-core",
-    "acd-tools",
-    "openhands-sdk",
+    "build123d==0.11.1",
 ]
 
 [build-system]
