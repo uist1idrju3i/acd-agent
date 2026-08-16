@@ -7,6 +7,7 @@
 本書は、公開先行事例、一次情報の確度、ライセンス境界、ACDとの差分候補を扱う調査台帳を
 正とする。製品の設計原則は [`../README.md`](../README.md)、実装方針は
 [`architecture.md`](architecture.md)と [`roadmap.md`](roadmap.md)を参照する。
+将来の高信頼化のための調査記録であり、現在のACD規範ではありません。
 
 ## 0. 調査方法と読み方
 

@@ -1,33 +1,22 @@
-# レビュー観点チェックリスト（RV1／RV2）
+# 投影レビュー・チェックリスト
 
-> ステータス: Draft（Phase 0最小版）
-> 対象: 投影レビュー。背景は[`docs/projection-review.md`](projection-review.md)を参照。
+投影レビューは、機械可読投影と視覚投影をsubagent／visionで観察するための補助です。
+所見は自然文で修正ループへ渡し、レビューは合否を決めません。
 
-AIレビューは`ReviewFinding`（[`schemas/review-finding.schema.json`](../schemas/review-finding.schema.json)）
-を提案するだけで、合否権限を持たない。高重大度（high）で未処分（open）のfindingが
-ある間、`review_disposition`ゲートは合格しない。
+## 機械可読投影
 
-## RV1: 機械可読投影レビュー
+- netlistの接続とピン割当が要求と一致しているか。
+- 寸法、干渉、keepout、外形が成立しているか。
+- ERC/DRC結果と製造データを独立parserで再読込できるか。
+- 形式、単位、座標系、部品番号に不一致がないか。
 
-対象: 設計グラフから生成した機械可読投影（netlist、pin割当表、FWパッケージ等）。
+## 視覚投影
 
-- 投影の`source_revision`が現在のグラフrevisionと一致しているか。
-- 要求（requirementノード)から導出されていない値（定数、部品定格）がないか。
-- ネット・ピン・FW pin割当の相互整合が取れているか。
-- 安全境界ノードに関わる値が境界内か、境界の判定がunknownでないか。
-- 出所（部品、ライブラリ）のpinとhashが記録されているか。
+- 回路図、配置、レイアウト、3Dビューの見落としがないか。
+- 部品の向き、外形、組立性、アクセス性が要求と一致しているか。
+- 機械と電気の境界に明らかな不整合がないか。
 
-## RV2: 視覚投影レビュー
+## 判定
 
-対象: 人間可読の視覚投影（回路図画像、基板図、レポート）。
-
-- 視覚投影が同じrevisionの機械可読投影と同一内容を表しているか。
-- 描画依存の情報（重なり、非表示要素）で意味が欠落していないか。
-- 注記・単位・軸・原点の表示が canonical グラフの定義と一致しているか。
-
-## disposition運用
-
-- `fixed`: 修正commitとrevisionを根拠に閉じる。
-- `waived`: 期限・対象revision・理由付きのwaiverで閉じる。
-- `assumption`: 前提として記録し、前提が崩れたらstale化する。
-- `rejected`: 誤検出。理由を必須とする。
+LLMの説明、subagentの成功状態、visionの応答を合格根拠にしない。合否はERC/DRC、
+独立parser再読込などの決定論的ゲートだけで決める。

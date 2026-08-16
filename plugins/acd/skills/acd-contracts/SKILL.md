@@ -5,9 +5,9 @@ description: How to read and validate ACD contracts (design graph, evidence, gat
 
 # ACD contracts
 
-- Canonical JSON Schemas live in `schemas/`; Pydantic models in `packages/acd-schema`.
-- Every document carries `schema_version` and a `target_revision` (`r<N>`).
-- `unknown` values are allowed but fail-closed: they never support a pass verdict.
+- Contracts are defined by Pydantic models in `packages/acd-schema`.
+- Input files and git are the design source of truth.
+- `unknown` values are fail-closed: they never support a pass verdict.
 - Validate documents with:
 
 ```bash

@@ -12,7 +12,7 @@
 2. [`glossary.md`](glossary.md): 用語と工程IDの定義。
 3. [`installation.md`](installation.md): OpenHands Agent Canvasとacd-agentの導入手順。
 4. [`architecture.md`](architecture.md): 設計グラフ、投影、レイヤ境界。
-5. [`ecad-domain-notes.md`](ecad-domain-notes.md): ECAD領域知識と投影契約。
+5. [`ecad-domain-notes.md`](ecad-domain-notes.md): ECAD adapterと形式の注意点。
 6. [`design-flow.md`](design-flow.md): 基板・筐体・FWの工程と第三レーン。
 7. [`ai-physical-design.md`](ai-physical-design.md): AI主導の配置・回転・配線探索。
 8. [`projection-review.md`](projection-review.md): 投影レビューとPDCAループ。
@@ -28,10 +28,10 @@
     [`phase2-retrospective.md`](phase2-retrospective.md)を参照する。
 15. [`phase3-plan.md`](phase3-plan.md): Phase 3の作業単位・順序・撤退条件。
     実施後の振り返りは[`phase3-retrospective.md`](phase3-retrospective.md)を参照する。
-16. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
+16. [`knowledge-base.md`](knowledge-base.md): ライブラリと実測のメモ。
 17. [`fab-data-preparation-retrospective.md`](fab-data-preparation-retrospective.md): JLCPCB製造データ先行実装の振り返り。
 18. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-19. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+19. [`qc-tools.md`](qc-tools.md): 将来のQCツール調査。
 20. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
 21. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
 22. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
@@ -50,10 +50,10 @@
 | `design-flow.md` | 電気・機械・FWレーンの入力・出力・ゲート | Draft |
 | `ai-physical-design.md` | AI主導の配置・回転・配線探索 | Draft |
 | `projection-review.md` | 投影レビューとPDCAループ | Draft |
-| `knowledge-base.md` | 知識の構造化、スコープ、実測、還流 | Draft |
+| `knowledge-base.md` | ライブラリと実測のメモ | Draft |
 | `fab-data-preparation-retrospective.md` | JLCPCB製造データ先行実装の事実、失敗、一般化対象 | Draft |
 | `future-outlook.md` | ローカル製造、プリンテッドエレクトロニクス、将来展望 | Draft |
-| `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
+| `architecture.md` | adapterとパイプライン設計 | Draft |
 | `openhands-integration.md` | SDK v1.42.1との統合判断 | Draft |
 | `dependency-notes.md` | 依存更新時の一次情報、使用箇所、関連文書の対応表（対応関係の正） | Draft |
 | `implementation-plan.md` | 実装の構成正本（リポジトリ・パッケージ・Skill・agent・CI） | Draft |
@@ -64,24 +64,24 @@
 | `phase2-retrospective.md` | Phase 2実施結果・逸脱・教訓の記録 | Draft |
 | `phase3-plan.md` | Phase 3の作業単位・順序・撤退条件 | Draft |
 | `phase3-retrospective.md` | Phase 3実施結果・逸脱・教訓の記録 | Draft |
-| `qc-tools.md` | Q7/N7を使う品質・計画分析 | Draft |
+| `qc-tools.md` | 将来のQCツール調査 | Draft |
 | `tool-selection.md` | 実装で使う外部ツールの採否と設計根拠 | Draft |
 | `reliability-practices.md` | JAXA公開資料を根拠にした信頼性方針 | Draft |
 | `prior-art.md` | 公開先行事例、API、ライセンス | Draft |
 | `roadmap.md` | ACD固有のPhase 0〜11 | Draft |
 | `golden-design-1.md` | 第1マイルストーンの具体設計とfixture入力 | Draft |
-| `ecad-domain-notes.md` | ECAD領域知識と投影契約 | Draft |
-| `review-checklist.md` | RV1/RV2レビュー観点とdisposition運用 | Draft |
+| `ecad-domain-notes.md` | ECAD adapterと形式の注意点 | Draft |
+| `review-checklist.md` | 投影レビュー観点 | Draft |
 | `tool-capability-probes.md` | 外部ツール能力プローブの測定結果と候補 | Draft |
 | `adr/ADR-0001-monorepo-structure.md` | uv workspaceによるmonorepo構成 | Accepted |
-| `adr/ADR-0002-json-schema-canonical.md` | JSON Schemaを契約の正本とする | Accepted |
+| `adr/ADR-0002-json-schema-canonical.md` | JSON Schema契約の旧決定（廃止） | Superseded by ADR-0008 |
 | `adr/ADR-0003-sdk-feature-adoption.md` | Phase 0でのSDK機能の採否 | Accepted |
 | `adr/ADR-0004-parts-catalog-provenance.md` | 部品カタログとライブラリ出所方針 | Accepted |
 | `adr/ADR-0005-jlcpcb-pcba-preparation-contract.md` | JLCPCB PCBA準備契約 | Accepted |
 | `adr/ADR-0006-vendor-submodule-policy.md` | vendor submoduleの対象と固定方針 | Accepted |
 | `adr/ADR-0007-llm-guided-physical-design.md` | LLM主導の物理設計探索の三層分離 | Accepted |
-| `adr/ADR-0008-minimal-vibebb-scope.md` | VibeBB最小構成とprofileによる段階有効化 | Accepted |
+| `adr/ADR-0008-minimal-vibebb-scope.md` | VibeBBの最小構成とSDK優先の実装境界 | Accepted |
 
-`runtime.md`は後続の実装・設計決定で追加する。機械可読契約の正本は`schemas/`、
+`runtime.md`は後続の実装・設計決定で追加する。契約はPydanticモデル、
 設計決定は`docs/adr/`にある。未作成の文書へリンクを張らず、必要な場合は本文で
 「後続作業」と言及する。

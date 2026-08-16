@@ -18,7 +18,7 @@ Phase 1でKiCadライブラリを参照する前に出所方針を確定する�
 - pinのないライブラリ参照、出所不明のfootprint、hash未記録の3D modelは
   `unknown`としてfail-closedで扱い、照合Evidenceなしに合格根拠にしない。
 - ライブラリ記述と実部品の照合（datasheet照合、ピン配列検証）は独立した
-  Evidenceとして記録し、ライブラリ更新時はstale化して再照合する。
+  検証記録として保存し、ライブラリ更新時は再読込して再照合する。
 - KiCad公式ライブラリを既定の第一候補とし、ライセンス
   （KiCad libraries: CC-BY-SA 4.0ほか）は[`docs/prior-art.md`](../prior-art.md)の
   ライセンス境界に従って利用形態を確認する。
@@ -27,4 +27,4 @@ Phase 1でKiCadライブラリを参照する前に出所方針を確定する�
 
 - Phase 1のKiCad投影は、pinされたライブラリ参照だけを解決できる。
 - 部品・ライブラリ出所のスキーマ詳細（catalog契約）はPhase 1で
-  `schemas/`に追加し、本ADRを正として設計する。
+  Pydanticモデルに追加し、本ADRを補足資料として扱う。

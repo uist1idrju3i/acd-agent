@@ -4,14 +4,14 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/uist1idrju3i/acd-agent)
 
-OpenHands Software Agent SDK 上で動作し、**基板・筐体・ファームウェアを同じ設計グラフから
-一貫して扱う**AIファーストCADです。FW開発はOpenHandsのソフトウェア開発能力を活用し、
-ACDはFWパッケージの投影、整合ゲート、実測Evidenceを設計グラフへ結びます。
+OpenHands Software Agent SDK 上で動作し、**基板・筐体・ファームウェアを一貫して扱う**
+AIファーストCADです。FW開発はOpenHandsのソフトウェア開発能力を活用し、ACDは生成物、
+整合ゲート、実測をパイプラインでつなぎます。
 
 ACDは従来のEDAモデルを反転させ、AIが主たる設計者となることを目指します。AIはユーザーへの
 ヒアリング、部品選定、回路・基板レイアウト・筐体・ファームウェアの設計、製造データの生成、
 工場や試作からのフィードバックを受けた反復までを担い、人間は要件のオーナーとして関わり、
-必要に応じてレビュアーの役割も担えます。設計を重ねるほど知識が蓄積されて賢くなり、
+必要に応じてレビュアーの役割も担えます。
 ACDという名称はCADのアナグラムとして、人間主体からAI主体への役割反転を象徴します。
 この新しいAIセントリックな基板・筐体・FW開発スタイルを、私たちはVibeBBと呼びます。
 
@@ -25,14 +25,13 @@ VibeBBは設計や検証が軽いという意味ではなく、重い検証を�
 ## 目次
 
 - [想定ユーザー](#想定ユーザー)
-- [設計プロファイル](#設計プロファイル)
+- [対象範囲](#対象範囲)
 - [成功の計測対象](#成功の計測対象)
 - [VibeBB — Vibe BreadBoarding](#vibebb--vibe-breadboarding)
 - [なぜACDか](#なぜacdか)
 - [設計原則](#設計原則)
 - [配置・配線をAIで解く](#配置配線をaiで解く)
 - [設計フロー](#設計フロー)
-- [知識の蓄積](docs/knowledge-base.md)
 - [将来展望](docs/future-outlook.md)
 - [アーキテクチャ](#アーキテクチャ)
 - [ACDではないもの](#acdではないもの)
@@ -45,19 +44,10 @@ VibeBBは設計や検証が軽いという意味ではなく、重い検証を�
 作者自身が最初のユーザーであり、dogfoodingを前提とします。将来の対象は、KiCadは使えるが
 基板1枚に週末を溶かしている個人開発者です。
 
-## 設計プロファイル
+## 対象範囲
 
-設計プロファイルは、検証の重さだけでなく、どの機構を有効化するかの境界を定める第一級の概念です。
-
-| プロファイル | 既定の扱い |
-|---|---|
-| `hobby` | 既定値。最小限の安全・整合ゲートを有効にします |
-| `small-production` | `hobby`に加え、[`reliability-practices.md`](docs/reliability-practices.md)の要求を段階的に有効にします |
-| `high-reliability` | 同文書の要求をより広く有効にし、追加の根拠・検証・変更管理を要求します |
-
-プロファイルのテーラリングは、適用範囲、除外理由、代替根拠、残余リスクを記録して行います。
-プロファイルごとの要求の正は [`docs/reliability-practices.md`](docs/reliability-practices.md) に置きます。
-有効化境界の正は[`docs/adr/ADR-0008-minimal-vibebb-scope.md`](docs/adr/ADR-0008-minimal-vibebb-scope.md)を参照してください。
+対象は趣味・研究・小規模試作です。1〜4層基板と、3Dプリント・卓上切削で製造できる筐体を
+扱います。量産品質や認証を前提にせず、動く試作へ最短で到達することを目的とします。
 
 ## 成功の計測対象
 
@@ -83,82 +73,64 @@ VibeBBではやりたいことを言葉で伝えるだけで、AIが部品選定
 ファームウェア、製造データを進め、人間は動く試作基板と収まる筐体を見てフィードバックを返します。
 回路図を描かないことは、コードを読まないVibe Codingと対になる発想です。
 
-`hobby`の最小構成では、入力ファイルとgitを正とし、変更ごとに全ゲートを再実行します。
-合否はERC/DRCと、生成経路とは別のparserによる再読込で決めます。レビューはSDKのsubagent／
-visionによるbest-effortとし、発注ガードは上限額以内かつ発注直前の全ゲート通過の2条件に絞ります。
-Evidence失効伝播、影響導出、`ReviewFinding`処分状態、多次元裁量枠、承認IDは
-`small-production`以上で有効化します。
+入力ファイルとgitを正とし、変更ごとに全ゲートを再実行します。合否はERC/DRCと、生成経路とは
+別のparserによる再読込で決めます。機械可読投影と視覚投影の2種類をLLMへ渡し、SDKのsubagent
+とvisionによるbest-effortレビューから次の修正を決めます。所見は自然文でよく、レビューに合否
+権限はありません。
 
-AIは要件を聞き、設計と製造データを提案し、決定論的な最小検証を通過させます。人間レビューは
-既定の前提ではありません。重い検証を人間に見せない主張は維持しますが、`hobby`では検証自体も
-最小で足ります。量産品質プロファイルでは、必要な機構を段階的に追加します。
+AIは要件を聞き、設計と製造データを提案し、決定論的な最小検証を通過させます。重い検証を
+人間に見せない主張は維持しますが、検証自体もERC/DRCと独立parser再読込に絞ります。
 [Simon Willison](https://simonwillison.net/2025/Mar/19/vibe-coding/)が区別した
 生成物をレビューしない本来のVibe Codingとレビューを伴うAI活用を踏まえ、ACDはレビューの
 役割を人間から自動検証と実機テストへ移すことで、バイブスのままでも安心して作れることを目指します。
 
-長時間の机上検討よりも、**まず作って実機で確かめ、すぐ次のリビジョンを回す**ことを
-基本サイクルにします。`hobby`では上限額と発注直前の全ゲート通過を満たした場合だけ発注へ進みます。
+長時間の机上検討よりも、**まず作って実機で確かめ、すぐ次の変更を回す**ことを
+基本サイクルにします。発注は上限額以内で、発注直前の全ゲート通過を満たした場合だけ進めます。
 実機で問題が出たときは、会話履歴を手がかりに対話で
 修正を指示すれば、AIが次のリビジョンを作ります。
 基板製造のコストとリードタイムが低下し、JLCPCBに代表される安価・短納期の製造サービスが
 利用できることを、このループの前提に置きます。
 
 流れは、**語る（要件を伝える）→ AIが設計し自動検証する → 作って試す（製造・実機テスト）
-→ フィードバックが知識として蓄積される**です。ブレッドボードの気軽さで基板・筐体を回し、
-FWを実機で検証しながら、知識の蓄積によって量産品質へ到達することを目指します。
+→ 会話へフィードバックを返す**です。ブレッドボードの気軽さで基板・筐体を回します。
 
 ## なぜACDか
 
 既存のEDA/MCADは、設計者が複数のGUIとファイルを手で同期する前提です。コード駆動設計、
 AI支援EDA、ヘッドレス検証、製造APIは進展しましたが、要求、電気、筐体、製造、実測を
-一つの型付き設計グラフとEvidenceでつなぐ公開実装は確認できません。
+一つの対話的な流れでつなぐ公開実装は確認できません。
 ACDが埋めるギャップは、(a)対話を検証可能な要件へ変換すること、(b)人間が回路図を
 描かずに設計すること、(c)決定論的チェッカーを提案のゲートにすること、(d)プロジェクトを
-またいで工場フィードバックと試作結果から学習することです。
+入力ファイルとgitを基に、試作結果を次の修正へ反映することです。
 ファームウェアについてはOpenHands本来のソフトウェア開発能力を活用し、基板・筐体・FWを
-同じ設計グラフで一貫して設計・検証するワンストップの流れへつなぎます。
-先行事例は、コード駆動設計、AI支援EDA、ヘッドレス検証、製造APIが個別に進展している一方、
-要求・電気・筐体・製造・実測を一つの型付き設計グラフとEvidenceで結ぶ公開実装は確認できません。
+同じ対話的な流れで設計・検証するワンストップの流れへつなぎます。
+先行事例は、コード駆動設計、AI支援EDA、ヘッドレス検証、製造APIが個別に進展しています。
 ACDは既存ツールを借り、決定論的ゲートと実機フィードバックを統合する点に差別化候補を置きます。
 詳しい調査台帳は [`docs/prior-art.md`](docs/prior-art.md) を参照してください。
 
-### `uist1idrju3i/ACD`との関係
-
-別リポジトリ [`uist1idrju3i/ACD`](https://github.com/uist1idrju3i/ACD)（TypeScript実装）は、
-別リポジトリとしてそのまま開発を継続します。`acd-agent`はその後継・置き換えではありません。
-OpenHands連携でも同じコンセプトが上手く動くのではないかという着想から立ち上げた、
-並走するリポジトリです。両リポジトリの仕様、ADR、フェーズ定義、教訓文は共有せず、
-本リポジトリの権威は本リポジトリ内の文書に限ります。
-
 ## 設計原則
 
-原則が衝突する場合の優先順位は、第一に安全境界とfail-closed、第二に型付き設計グラフと
-決定論的ゲート、第三に重い検証を人間へ見せず実機まで到達させることです。第一は危険な設計・
-副作用を止めるため、第二は判断の正と根拠を一つに保つため、第三はVibeBBの体験価値を守るためです。
+原則が衝突する場合の優先順位は、第一に安全境界とfail-closed、第二に決定論的ゲート、
+第三に重い検証を人間へ見せず実機まで到達させることです。第一は危険な設計・副作用を止め、
+第二は合否の判断を一つに保ち、第三はVibeBBの体験価値を守ります。
 
 - AIは候補を提案し、決定論的ツールが判定します。パーサー、制約ソルバー、DRC、
   シミュレーション、fabルールが検証し、未検証の銅箔配線は生成しません。
-- 回路図レス・図面レスを既定とします。回路図、PCB、筐体図面は設計グラフの投影です。
-- 投影は正へ逆流させず、意味的にマージしません。分岐・調停・復元は設計グラフ上で行い、
-  対象revisionから投影を再生成します。`hobby`ではこのrevisionを入力ファイルを管理するgit commitとして扱います。
+- 回路図レス・図面レスを既定とします。回路図、PCB、筐体図面は入力ファイルから生成する投影です。
+- 入力ファイルとgitを正とし、投影は正へ逆流させず、意味的にマージしません。
 - 基板と筐体はともに第一級の設計対象です。外形、干渉、肉厚、締結、組立性を検証します。
-- 型付き・バージョン付き設計グラフを正とするのは`small-production`以上とし、`hobby`では入力ファイルとgitを正とします。
-- 設計根拠（Design Rationale）の設計グラフへの紐付け、差分の影響分析、必要範囲のゲート再実行は
-  `small-production`以上で有効化します。`hobby`では変更ごとに全ゲートを再実行します。
-- 各工程の出口で投影を生成し、SDKのsubagent／visionがbest-effortでレビューします。
-  `ReviewFinding`処分状態とRV1/RV2は`small-production`以上で有効化し、合否は常に決定論的ゲートで判定します。
-- 監査文書、Q7/N7図表、追加の投影は`small-production`以上で有効化します。
+- 各工程で機械可読投影と視覚投影を生成し、SDKのsubagent／visionがbest-effortでレビューします。
+  所見は自然文で修正ループへ渡し、合否は決定論的ゲートだけで判定します。
 - 現在のGD1ではJLCPCB形式BOM/CPL、Gerber/drill zip、独立DFM report、fab packageまでを
   決定論的に生成しますが、価格・在庫・納期取得、総発注額、発注前最終ゲート、
-  API ordering、fab側DFMレビュー、実機Evidenceは未実装です。
+  API ordering、fab側DFMレビュー、実機測定は未実装です。
 - ファームウェアも投影と検証の対象とし、ビルド、静的解析、単体テスト、仮想実機シナリオ、
-  実機ログの期待値照合を決定論的Evidenceとして判定します。
+  実機ログの期待値照合を決定論的に判定します。
 - 人間レビューは任意です。既定はAIが要件から製造データまで走り切ることです。ユーザーが
   確かめるのは回路図やアートワークではなく、届いた基板と筐体が実際に動き、収まるかどうかです。
   ツール不在、parse失敗、ゲート未実行はfail-closedとし、発注は上限額以内かつ直前の全ゲート通過を要求します。
 - ERC/DRCなどの自動ゲートは記述された整合を判定するものであり、ライブラリ記述の誤りや
-  設計意図そのものを保証しません。ライブラリ照合と意図の根拠を別のEvidenceとして扱います。
-- Q7/N7、staleなEvidenceの下流伝播防止、承認・却下の構造化記録は`small-production`以上で有効化します。
+  設計意図そのものを保証しません。ライブラリの出所と測定値を別途記録します。
 - 安全境界の禁止領域は初期ターゲットに含めません。AC電源、高電圧・大電流、レーザー、
   医療・車載用途、無線送信回路の直接設計、Li-ion/LiPo充電回路は初期は禁止とし、
   承認必須または許可の領域も含めた詳細は [`SECURITY.md`](SECURITY.md) と
@@ -173,12 +145,10 @@ LLMはモジュール分解、相対配置制約、優先度、回転刻み方�
 探索器とゲートが担います。
 
 安価な代理指標で候補を順位付けし、外部router、DRC/ERC、Gerber独立再読込などの高価な実測は
-上位の少数候補に限定します。90度刻みは固定の前提ではなく、版管理されたprofileの許可と
-Evidenceに基づいて段階的に緩和します。
+上位の少数候補に限定します。90度刻みは版管理された`profiles/`の宣言に従います。
 
 LLM-only CADとの違いは、毎回同じ解を出すことではなく、出た設計を後から再検証できることです。
-実行ごとに解が異なっても、候補の設計根拠と探索仕様・seed・ツール版・入力hash・対象revisionを
-記録し、Evidenceのstaleを検出できればよいとします。詳細は
+実行ごとに解が異なっても、決定論的な実測と独立parser再読込で検証できればよいとします。詳細は
 [`docs/ai-physical-design.md`](docs/ai-physical-design.md)を参照してください。
 
 ## 設計フロー
@@ -197,10 +167,7 @@ flowchart LR
     subgraph FWLANE["FWレーン"]
         FW["ファームウェア<br/>Vibe Coding"]
     end
-    subgraph KNOW["知識・ライブラリ"]
-        LIB["部品ライブラリ"]
-        KB["ナレッジベース"]
-    end
+    LIB["部品ライブラリ"]
     S1 --> E1
     S1 --> M1
     E1 --> E2
@@ -225,36 +192,31 @@ flowchart LR
     S3 -.->|フットプリント修正| LIB
     FW -.->|ピン割当変更| E1
     S4 -.->|要件見直し| S1
-    S1 -.-> KB
-    S3 -.-> KB
-    S4 -.-> KB
-    KB -.->|検証済み知識| E1
 ```
 
 工程IDごとの入力、出力、ゲート、筐体側の詳細は [`docs/design-flow.md`](docs/design-flow.md) にまとめます。
 
 ## アーキテクチャ
 
-設計グラフを正とし、回路図、KiCadプロジェクト、Gerber、BOM、STEP/3MF、
-ファームウェアパッケージ、監査文書、Q7/N7図表を投影として扱います。
-レイヤは `schema ← core ← adapters ← agent tools ← OpenHands Conversation` とし、
+入力ファイルとgitを正とし、回路図、KiCadプロジェクト、Gerber、BOM、STEP/3MF、
+ファームウェアパッケージを機械可読投影または視覚投影として扱います。
+レイヤは `Pydantic ← adapters ← pipeline scripts ← OpenHands plugin` とし、
 KiCad、FreeCAD/code-CAD、slicer、sourcingを交換可能なadapterとして扱います。
-ACD coreはnative `ToolDefinition`として登録するPython package、外部adapterはMCP server、
-pluginはSkill・agent定義・hooks・MCP設定・commandの資材配布とします。詳細は
+ACDはadapters、パイプラインスクリプト、`profiles/`の宣言、発注ガードを実装し、
+OpenHands pluginはSkill・`AgentDefinition`・MCP設定を提供します。詳細は
 [`docs/openhands-integration.md`](docs/openhands-integration.md)を参照してください。
 OpenHands SDKはConversation、型付きTool、EventLog、workspace、MCP、delegate、metrics、
 retryに加えて、skills／plugin、subagent（`AgentDefinition`）、hooks、critic、`/goal`、
 condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow／task、
 `LLMRegistry`／`FallbackStrategy`、persistent memory、preset agentを
-提供する実行基盤です。これらの既存機能を優先してフル活用し、設計グラフと決定論的ゲート、
-不可逆操作の束縛はACDが実装します。Evidenceの失効と承認IDは`small-production`以上で
-有効化し、`hobby`では入力ファイル＋git、最小ゲート、上限額ガードを用います。
+提供する実行基盤です。これらの既存機能を優先してフル活用し、ACDは投影生成、決定論的ゲート、
+パイプライン実行、発注ガードに集中します。
 詳細は [`docs/architecture.md`](docs/architecture.md) と
 [`docs/openhands-integration.md`](docs/openhands-integration.md) を参照してください。
 
 ## ACDではないもの
 
-- チャットパネルを付けた回路図エディタではありません。対話と設計グラフがインターフェースです。
+- チャットパネルを付けた回路図エディタではありません。対話と入力ファイルがインターフェースです。
 - 自動配線だけを目的とする製品ではありません。
 - 基板に筐体を後付けする製品ではありません。
 - 決定論的な検証なしにAIを信頼する仕組みではありません。
@@ -266,7 +228,7 @@ condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow
 ## ロードマップ
 
 最初のマイルストーンは「基板＋FWで実機のLEDが光ること」です。次に筐体との統合、
-知識・発注・ローカル製造へ広げます。Phaseの内容と完了条件は
+発注・ローカル製造へ広げます。Phaseの内容と完了条件は
 [`docs/roadmap.md`](docs/roadmap.md) を正とします。
 
 ## ドキュメント
@@ -277,18 +239,17 @@ condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow
 | [`docs/README.md`](docs/README.md) | 文書索引と読む順序 | Draft |
 | [`docs/design-flow.md`](docs/design-flow.md) | 基板・筐体・FWの工程フロー | Draft |
 | [`docs/ai-physical-design.md`](docs/ai-physical-design.md) | AI主導の配置・回転・配線探索 | Draft |
-| [`docs/projection-review.md`](docs/projection-review.md) | 投影レビューとPDCAループ | Draft |
-| [`docs/knowledge-base.md`](docs/knowledge-base.md) | 知識の構造化と還流 | Draft |
+| [`docs/projection-review.md`](docs/projection-review.md) | 機械可読・視覚投影のレビュー | Draft |
 | [`docs/future-outlook.md`](docs/future-outlook.md) | ローカル製造と将来展望 | Draft |
-| [`docs/architecture.md`](docs/architecture.md) | 設計グラフとレイヤ | Draft |
+| [`docs/architecture.md`](docs/architecture.md) | 実装レイヤとadapter | Draft |
 | [`docs/openhands-integration.md`](docs/openhands-integration.md) | SDK統合方針 | Draft |
-| [`docs/qc-tools.md`](docs/qc-tools.md) | Q7/N7分析器 | Draft |
+| [`docs/qc-tools.md`](docs/qc-tools.md) | 将来の高信頼化調査 | Draft |
 | [`docs/reliability-practices.md`](docs/reliability-practices.md) | 信頼性・安全性 | Draft |
 | [`docs/prior-art.md`](docs/prior-art.md) | 先行事例台帳 | Draft |
 | [`docs/roadmap.md`](docs/roadmap.md) | 本リポジトリのフェーズ | Draft |
 | [`docs/glossary.md`](docs/glossary.md) | 用語と工程IDの定義 | Draft |
 | [`docs/golden-design-1.md`](docs/golden-design-1.md) | Golden Design #1の具体設計とfixture入力 | Draft |
-| [`docs/ecad-domain-notes.md`](docs/ecad-domain-notes.md) | ECAD領域知識と投影契約 | Draft |
+| [`docs/ecad-domain-notes.md`](docs/ecad-domain-notes.md) | ECAD adapterと形式の注意点 | Draft |
 
 ## ライセンス
 
