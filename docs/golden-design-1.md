@@ -548,3 +548,166 @@ FWはESP-IDFを採用し、ESP-IDFのバージョンを固定する。固定バ�
 - LEDの極性、実装向き、必要な点灯電流の実測値。
 - AMS1117-3.3の熱計算、入力電圧範囲、実際の最大負荷電流。
 - 実機製造・書き込み・LED点滅・温湿度ログのEvidence取得日と測定条件。
+
+## 12. GD1計画3: シルクの宣言・探索・独立測定
+
+計画3では、F.SilkSを機能ラベル専用とし、`RESET`（SW1）、`BOOT`（SW2）、
+`D1`、`USB`（J1）だけを表面へ投影した。`DEV BOARD`、グラフIDとrevisionから導出した
+基板品番、VibeBB独自ベクターロゴは、機能ラベルとの責務を分離するためB.SilkSへ置いた。
+Bluetoothの語・ロゴ・ライセンス文言は使用していない。
+
+シルク要素は`mechanical.silk_text`または`mechanical.silk_graphic`としてグラフへ宣言し、
+KiCadのboard-level `gr_text` / `gr_poly`へ投影する。基板品番は
+`golden-design-1-r1`としてグラフIDとrevisionから導出し、コード側へ文字列を複製していない。
+ロゴはグラフ宣言のpolygonをそのままベクター投影し、bitmapは使用していない。
+
+### 12.1 決定論的候補探索
+
+機能ラベルは対象footprintの配置とpad形状を初回のシルクなし投影から読み取り、
+グラフ宣言の探索順
+`top,bottom,right,left,top_right,bottom_right,bottom_left,top_left`と、
+宣言された刻み`0.25 mm`、上限`4.0 mm`で候補を生成した。候補は順序を固定し、
+初回投影で利用できるpad形状と基板外形、および保守的なbody bboxを満たすものを
+採用する。mask開口との干渉は初回投影だけでは確定せず、塗り後Gerberの独立測定で
+最終判定する。候補の棄却理由と
+採用座標は`fab-package.json`の`silkscreen.placement_evidence`へ保存し、未解決の
+機能ラベルを裏面へ移す経路は持たない。
+
+裏面のbranding/識別情報は、表面の機能ラベル探索で記録されたpad/mask混雑を根拠に
+グラフ宣言位置を採用した。表面へ置けなかった根拠は、生成物上の代表的なpad/mask
+干渉bboxを含むresolver Evidenceへ記録する。なお、機能ラベルが1つでも候補を持たない
+場合はfail-closedで停止する。
+
+### 12.2 独立Gerber測定
+
+出力`out/gd1-plan3-rotation-final/`では、Gerberを`sexpdata`と`gerbonara`で独立再読込し、
+F.Silkscreen/B.Silkscreen、F.Mask/B.Mask、Edge.Cutsを対象に、Line/Arc/Region/Flashの
+幾何を測定した。recognized object countは568（Arc 14、Line 552、Region 2）であり、
+未知オブジェクト、未対応aperture、parse失敗は合格扱いしない。
+
+文字の実測高さは宣言回転角を逆回転したテキスト局所座標系で測定した。したがって、
+`RESET`の軸平行bbox高さ5.2911−0.4982=4.7929 mmを文字高とは扱わず、
+局所座標の高さ1.6500 mmを記録する。表の高さは
+`宣言height → 局所座標実測height`、線幅の順である。
+
+| 要素 | layer | 宣言位置 mm | 宣言高さ → 実測高さ mm | 実測線幅 mm | 実測インク面積 mm² |
+|---|---|---|---|---:|---:|
+| RESET | F.SilkS | (24.55, 2.5375) | 1.5000 → 1.6500 | 0.15 | 1.83185 |
+| BOOT | F.SilkS | (6.30, 4.7875) | 1.5000 → 1.6500 | 0.15 | 1.57470 |
+| D1 | F.SilkS | (17.6725, 12.78) | 1.5000 → 1.6500 | 0.15 | 1.07539 |
+| USB | F.SilkS | (25.9325, 19.79) | 1.5000 → 1.6500 | 0.15 | 1.39271 |
+| DEV BOARD | B.SilkS | (25.0, 1.0) | 1.0000 → 1.1500 | 0.15 | 2.44104 |
+| golden-design-1-r1 | B.SilkS | (15.0, 24.0) | 1.0000 → 1.4614 | 0.15 | 3.21779 |
+| VibeBB vector logo | B.SilkS | polygon宣言 | — | 0.15 | 1.54045 |
+
+軸平行の実測bboxは、RESET `(23.6611, 0.4982, 25.3111, 5.2911)`、
+BOOT `(4.1893, 3.8986, 7.8393, 5.5486)`、D1
+`(16.4904, 11.8911, 18.9261, 13.5411)`、USB
+`(24.1075, 18.9011, 27.8289, 20.5511)`、DEV BOARD
+`(21.9488, 0.3798, 28.0988, 1.5298)`、基板品番
+`(9.4012, 23.3798, 20.1226, 24.8632)`である。これらは位置・インク存在・
+クリアランス確認用であり、回転テキストの文字高ゲートには使用しない。
+
+Fab capabilityは最小文字高`1.0 mm`、最小線幅`0.15 mm`である。測定結果は全要素で
+この値以上で、pad-to-silk重なり`0`、mask開口-to-silk重なり`0`、板外overflow`0`で
+あった。ロゴもRegion/Lineから面積と最小線幅を独立測定した。
+
+最終ゲートは、宣言位置近傍の実インク面積が正であること、実測高さ・線幅がcapability
+以上であること、実形状のpad/mask/Edge.Cutsとの干渉がないことを同時に要求する。
+bboxは候補の予選に限り、footprint body bboxも候補を保守的に絞るためだけに使う。
+最終的な合否はGerberのstroke、arc、flash、regionと、実形状のpad/mask/Edge.Cuts
+との測定で判定する。body bboxを最終測定の代用にはしない。
+
+最終探索のplacement evidenceでは、機能ラベルをすべて決定論的に解決した。
+RESETは`(24.55, 2.5375)` mmで408候補、BOOTは`(6.30, 4.7875)` mmで508候補、
+D1は`(17.6725, 12.78)` mmで1485候補、USBは`(25.9325, 19.79)` mmで1365候補を
+棄却してから、各々最初の合格候補を採用した。棄却理由はboard-edge overflow、
+pad overlap、およびfootprint body bboxによる保守的な候補除外であり、採用後は
+独立Gerber測定で実形状のpad/mask重なり0を再確認した。
+
+SW1の実配置中心は`(24.05, 9.05)` mm、回転は90°である。RESETの採用位置
+`(24.55, 2.5375)` mmは、SW1中心から`(+0.50, -6.5125)` mmの上側候補であり、
+回転を考慮した局所座標測定でも宣言高さ1.5 mmに対して実測1.65 mmとなる。
+
+### 12.3 グラフ意味差分と再生成
+
+JSON parse後にnode ID、kind、attrs、depends_on、edgesを比較した。計画3親コミットの
+グラフ（215 nodes）から今回のグラフ（222 nodes）への差分は、シルク7 nodeの追加、
+既存nodeの削除なし、既存component 19 nodeのCPL Evidence属性更新、edge同一である。
+追加された7 nodeはすべて`mechanical.silk_text`または
+`mechanical.silk_graphic`である。
+
+既存19 nodeの差分は、シルク候補探索による非決定性ではない。`build_gd1_fixture.py`
+へ計画3作業中に追加したCPL Evidenceの決定論的宣言を、グラフ再生成時に反映した結果で
+ある。対象は`comp.c1`〜`comp.c6`、`comp.r1`〜`comp.r6`、`comp.sw1`、`comp.sw2`、
+`comp.d1`、`comp.j1`、`comp.u1`〜`comp.u3`で、主な変更は固定revision/sourceを持つ
+`cpl_rotation_*` Evidence、J1/U1の`cpl_position_*` Evidence、J1の幾何例外source、
+U3の露出pad理由である。生成時刻に依存する値ではなく、同じ入力から同じ値を出す
+宣言更新であり、シルク追加の幾何的必然ではない。したがって、キー順変更だけの
+差分や無関係なランダム性としては扱っていない。
+
+### 12.4 PNGレンダリング
+
+KiCad 10.0.5の`kicad-cli pcb render`で、銅、pad、Edge.Cuts、実装部品を含む
+上面・下面をレンダリングした。画像はEvidence確認用であり、コミット対象外である。
+
+- F.SilkSを含む上面: `out/gd1-plan3-rotation-final/fab/gd1-top.png`
+- B.SilkSを含む下面: `out/gd1-plan3-rotation-final/fab/gd1-bottom.png`
+
+### 12.5 拡張探索後の可読性ゲート結果（計画4入力）
+
+計画3の最終探索では、機能ラベルをF.SilkSに限定したまま、グラフ宣言の
+回転集合`[0, 90]`、探索上限`8.0 mm`、刻み`0.25 mm`を使用した。候補は
+参照部品中心からの距離が最小のものを選び、同点は宣言探索順、回転順、
+courtyard重なり面積の順で決定した。courtyardは物理占有ではないため合否には
+使わず、重なり面積と距離だけをEvidenceへ記録した。一方、pad、mask開口、
+板外／宣言板端マージン、body、既存footprintシルク、最近傍部品帰属はhard gate
+である。
+
+宣言した候補探索は全機能ラベルについて候補を返したが、Gerber独立測定の最終
+ゲートで合格にはならなかった。fail-closedの最終測定値は次のとおりである。
+
+| ゲート | 実測値 | 判定 |
+|---|---:|---|
+| pad-to-silk重なり | 31 | fail |
+| mask開口-to-silk重なり | 31 | fail |
+| Edge.Cuts外形はみ出し | 0 | pass |
+| 宣言板端マージン違反 | 0 | pass |
+| body重なり | 0 | pass |
+| courtyard重なり | 10 | Evidenceのみ |
+| 既存footprintシルク重なり | 29 | fail |
+| 最近傍部品帰属不一致 | 5 | fail |
+
+代表的なpad/mask干渉は、USB候補付近のインク
+`[22.982914, 20.893571, 23.204342, 21.257857]`とpad
+`[22.88, 20.13, 23.68, 21.08]`、および
+`[18.915477, 12.698866, 19.827382, 12.848866]`とmask開口
+`[19.05, 12.55, 20.55, 14.05]`である。既存footprintシルク重なりは
+29件で、今回のhard gateにより見逃さない。RESETを含む全候補の棄却内訳は、
+次のようにEvidenceへ記録した。
+
+| 要素 | 採用候補（位置、回転） | 棄却候補 | body | pad | 板端 |
+|---|---|---:|---:|---:|---:|
+| RESET | `(24.8, 3.2125)`, 90° | 33278 | 13180 | 3450 | 16648 |
+| BOOT | `(5.3, 3.6625)`, 90° | 33268 | 13329 | 1283 | 18656 |
+| D1 | `(8.9625, 12.78)`, 90° | 33005 | 25829 | 6591 | 585 |
+| USB | `(23.1575, 22.79)`, 90° | 33202 | 10584 | 7142 | 15476 |
+
+採用候補は最終Gerberインクとの対応で再測定されるため、候補Resolverの
+保守的なbbox判定だけを合格根拠にはしない。今回の最終状態は
+`out/gd1-plan3-final-failclosed2/`に生成し、silkゲートで停止した。工程1〜7
+（投影、ERC、routing、DRC、Gerber生成、独立reload）までは完走し、DRCは
+`0 errors / 0 unconnected`、ERCは`0 errors`、DFMは`0 findings`だったが、
+silkの未達により全体はfail-closedである。
+
+PNGは数値ゲートと独立した目視Evidenceとして再生成した。
+
+- F.SilkSを含む上面: `out/gd1-plan3-final-failclosed2/fab/gd1-top.png`
+- B.SilkSを含む下面: `out/gd1-plan3-final-failclosed2/fab/gd1-bottom.png`
+
+計画4では、RESET周辺のSW1、H2、C6、TP5/TP6および周辺既存footprintシルクを
+再配置または基板外形変更の対象として検討する。現行探索で空きが残る領域は、
+RESETではSW1上側の板端までの帯、BOOTではSW2周辺の上側／左側、D1ではD1の
+左側、USBではJ1下側である。ただしUSB下側にはR5のpadと既存シルクがあり、
+最終的な空きとしては未確定である。courtyardは探索優先度にのみ使い、物理占有
+の根拠にはしていない。

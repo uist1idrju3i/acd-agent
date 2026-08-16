@@ -408,11 +408,30 @@ BOARD_ATTRS: dict[str, AttrValue] = {
     "via_drill_mm": 0.3,
     "via_diameter_mm": 0.6,
     "edge_copper_clearance_mm": 0.3,
+    "ground_plane_layers": ["F.Cu", "B.Cu"],
+    "ground_plane_min_island_area_mm2": 1.0,
+    "ground_plane_net": "GND",
     "antenna_keepout": True,
     "mounting_hole_m2_count": 4,
     "fab_capability_source": "https://jlcpcb.com/capabilities/pcb-capabilities",
     "fab_capability_checked_at": "2026-08-11T00:00:00Z",
     "outer_copper_thickness_um": 35.0,
+    "stitch_via_basis_source": (
+        "IPC-2221A and RF transmission-line wavelength guidance; "
+        "guided wavelength c/(f*sqrt(er)), via pitch limited to wavelength fraction"
+    ),
+    "stitch_via_cost_note": (
+        "Adopted 1/20 guided-wavelength pitch; through-via count and drill count are "
+        "recorded against the fab profile via cost drivers and reviewed as added process "
+        "burden. Perimeter-ring placement is the deterministic base; when an isolated "
+        "zone island requires a GND connection, candidates also use the declared pitch "
+        "as an interior grid. Both placements exclude signal geometry and are validated "
+        "against filled Gerber copper."
+    ),
+    "stitch_via_dielectric_constant": 4.3,
+    "stitch_via_max_frequency_hz": 2.4e9,
+    "stitch_via_refill_max_iterations": 3,
+    "stitch_via_wavelength_fraction": 0.05,
     "copper_thickness_source": "JLCPCB 1 oz copper capability declaration: 35 µm nominal outer-layer copper",  # noqa: E501
     "allowable_temperature_rise_k": 10.0,
     "ipc2221_external_k": 0.048,
@@ -684,6 +703,142 @@ def mechanical_nodes() -> list[GraphNode]:
     return nodes
 
 
+def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
+    board_label = f"{graph_id}-{revision}"
+    common = {
+        "layer": "F.SilkS",
+        "height_mm": 1.5,
+        "stroke_width_mm": 0.15,
+        "rotation_deg": 0.0,
+        "placement_search_order": (
+            "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left"
+        ),
+        "placement_offset_step_mm": 0.25,
+        "placement_search_limit_mm": 8.0,
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": (
+            "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; "
+            "declared edge keepout equals the profiled minimum silk stroke"
+        ),
+        "placement_rotation_degrees": ["0", "90"],
+        "placement_safety_margin_mm": 0.15,
+    }
+    text_nodes = [
+        (
+            "mechanical.silk_text.reset",
+            "functional_label_sw1",
+            "RESET",
+            29.5,
+            5.0,
+            "SW1",
+            "SW1 center and surrounding footprint clearance",
+        ),
+        (
+            "mechanical.silk_text.boot",
+            "functional_label_sw2",
+            "BOOT",
+            4.55,
+            5.4,
+            "SW2",
+            "SW2 center and surrounding footprint clearance",
+        ),
+        (
+            "mechanical.silk_text.led",
+            "functional_label_d1",
+            "D1",
+            11.0,
+            9.0,
+            "D1",
+            "D1 center and surrounding footprint clearance",
+        ),
+        (
+            "mechanical.silk_text.usb",
+            "connector_identifier",
+            "USB",
+            15.0,
+            19.0,
+            "J1",
+            "J1 center and connector keepout clearance",
+        ),
+        (
+            "mechanical.silk_text.dev_board",
+            "board_type",
+            "DEV BOARD",
+            25.0,
+            1.0,
+            "board.gd1",
+            "open board area after reference and pad clearance search",
+        ),
+        (
+            "mechanical.silk_text.board_id",
+            "board_part_number",
+            board_label,
+            21.8,
+            12.7,
+            "board.gd1",
+            "graph_id and revision derived part-number placement; branding and "
+            "identification intentionally remain on B.SilkS after front-side "
+            "functional-label clearance measurement",
+        ),
+    ]
+    nodes = [
+        GraphNode(
+            id=node_id,
+            kind="mechanical.silk_text",
+            attrs={
+                **common,
+                "layer": "B.SilkS"
+                if role in {"board_type", "board_part_number"}
+                else common["layer"],
+                "height_mm": 1.0
+                if role in {"board_type", "board_part_number"}
+                else common["height_mm"],
+                "rotation_deg": 90.0
+                if role == "functional_label_sw1"
+                else common["rotation_deg"],
+                "role": role,
+                "text": text,
+                "x_mm": x_mm,
+                "y_mm": y_mm,
+                "placement_reference": reference,
+                "placement_basis": basis,
+            },
+            depends_on=["board.gd1"],
+        )
+        for node_id, role, text, x_mm, y_mm, reference, basis in text_nodes
+    ]
+    nodes.append(
+        GraphNode(
+            id="mechanical.silk_graphic.vibebb",
+            kind="mechanical.silk_graphic",
+            attrs={
+                "role": "vibebb_logo",
+                "layer": "B.SilkS",
+                "stroke_width_mm": 0.15,
+                "polygon_points": [
+                "25.0,5.0",
+                "25.8,6.0",
+                "26.6,5.0",
+                "27.4,6.0",
+                "28.2,5.0",
+                "27.4,6.2",
+                "26.6,5.4",
+                "25.8,6.2",
+                ],
+                "placement_basis": (
+                    "branding is intentionally placed on B.SilkS because the "
+                    "front functional-label search records pad/mask congestion"
+                ),
+                "placement_search_order": common["placement_search_order"],
+                "board_edge_margin_mm": 0.15,
+                "board_edge_margin_source": common["board_edge_margin_source"],
+            },
+            depends_on=["board.gd1"],
+        )
+    )
+    return nodes
+
+
 def lib_attrs(lib: LibraryRef) -> dict[str, AttrValue]:
     def file_hash(rel_or_abs: str) -> str:
         path = Path(rel_or_abs)
@@ -725,6 +880,195 @@ def build_graph() -> DesignGraph:
             "stock_checked_at": "2026-08-11T00:00:00Z",
         }
         attrs.update(lib_attrs(spec["lib"]))
+        if spec["refdes"] in {"J1", "U1"}:
+            attrs.update(
+                {
+                    "cpl_position_basis": "pad_bbox_center",
+                    "cpl_position_source_url": (
+                        "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad"
+                    ),
+                    "cpl_position_evidence_at": "2026-08-11T00:00:00Z",
+                    "cpl_position_evidence_method": (
+                        "independent comparison of KiCad footprint geometry and pad-bbox centroid"
+                    ),
+                    "cpl_position_evidence_revision": "golden-design-1-r1",
+                    "cpl_position_evidence_basis": "confirmed",
+                    "cpl_position_evidence_note": (
+                        "GD1 uses pad_bbox_center as the declared centroid basis after independent "
+                        "comparison of the generated footprint geometry."
+                    ),
+                }
+            )
+        if spec["assembly"] == "fitted":
+            attrs.update(
+                {
+                    "cpl_rotation_basis": "component_part_number",
+                    "cpl_rotation_source_url": (
+                        "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly"
+                    ),
+                    "cpl_rotation_evidence_at": "2026-08-11T00:00:00Z",
+                    "cpl_rotation_evidence_method": (
+                        "component-part-number rotation declaration cross-checked against "
+                        "the generated KiCad placement"
+                    ),
+                    "cpl_rotation_evidence_revision": "golden-design-1-r1",
+                    "cpl_rotation_evidence_basis": "confirmed",
+                    "cpl_rotation_evidence_note": (
+                        "GD1 preserves the declared component rotation in the generated "
+                        "assembly placement with a zero-degree centroid offset."
+                    ),
+                    "cpl_rotation_offset_deg": 180.0 if spec["refdes"] == "U2" else 0.0,
+                    "cpl_rotation_polarized": spec["refdes"] in {"U1", "J1", "U2", "U3", "D1"},
+                }
+            )
+            if spec["refdes"] == "J1":
+                attrs.update(
+                    {
+                        "cpl_rotation_geometry_exception": True,
+                        "cpl_rotation_geometry_exception_reason": (
+                            "archived LCSC package geometry is the orientation evidence for GD1"
+                        ),
+                        "cpl_rotation_geometry_exception_source": (
+                            "evidence/gd1-cpl-orientation/J1.json"
+                        ),
+                    }
+                )
+                attrs["cpl_rotation_pin_functions"] = [
+                    "A1=GND",
+                    "A12=GND",
+                    "B1=GND",
+                    "B12=GND",
+                    "A4=VBUS",
+                    "A9=VBUS",
+                    "B4=VBUS",
+                    "B9=VBUS",
+                    "A5=CC1",
+                    "B5=CC2",
+                    "A6=DP1",
+                    "B6=DP2",
+                    "A7=DN1",
+                    "B7=DN2",
+                    "A8=SBU1",
+                    "B8=SBU2",
+                    "1=EH",
+                    "2=EH",
+                    "3=EH",
+                    "4=EH",
+                ]
+                attrs["cpl_rotation_pin_aliases"] = [
+                    "DP1=D+",
+                    "DP2=D+",
+                    "DN1=D-",
+                    "DN2=D-",
+                ]
+                attrs["cpl_rotation_unverified_pads"] = ["1", "2", "3", "4"]
+                attrs["cpl_rotation_unverified_pad_reason"] = (
+                    "USB-C shield padsはKiCad symbolのSHピンに直接対応せず、"
+                    "極性判定に影響しない機械シールドである。"
+                )
+                attrs["cpl_rotation_unverified_pad_source"] = (
+                    "KiCad USB_C_Receptacle_HRO_TYPE-C-31-M-12、LCSC C165948 Evidence、"
+                    "USB Type-C仕様のシールド端子定義"
+                )
+            if spec["refdes"] == "U2":
+                attrs["cpl_rotation_pin_functions"] = [
+                    "1=GND",
+                    "2=VO",
+                    "3=VI",
+                ]
+                attrs["cpl_rotation_pin_aliases"] = ["VO=VOUT", "VI=VIN"]
+            elif spec["refdes"] == "U1":
+                attrs["cpl_rotation_pin_functions"] = [
+                    "1=GND",
+                    "2=GND",
+                    "3=3V3",
+                    "4=NC",
+                    "5=IO2",
+                    "6=IO3",
+                    "7=NC",
+                    "8=EN",
+                    "9=NC",
+                    "10=NC",
+                    "11=GND",
+                    "12=IO0",
+                    "13=IO1",
+                    "14=GND",
+                    "15=NC",
+                    "16=IO10",
+                    "17=NC",
+                    "18=IO4",
+                    "19=IO5",
+                    "20=IO6",
+                    "21=IO7",
+                    "22=IO8",
+                    "23=IO9",
+                    "24=NC",
+                    "25=NC",
+                    "26=IO18",
+                    "27=IO19",
+                    "28=NC",
+                    "29=NC",
+                    "30=RXD0",
+                    "31=TXD0",
+                    "32=NC",
+                    "33=NC",
+                    "34=NC",
+                    "35=NC",
+                    "36=GND",
+                    "37=GND",
+                    "38=GND",
+                    "39=GND",
+                    "40=GND",
+                    "41=GND",
+                    "42=GND",
+                    "43=GND",
+                    "44=GND",
+                    "45=GND",
+                    "46=GND",
+                    "47=GND",
+                    "48=GND",
+                    "50=GND",
+                    "51=GND",
+                    "52=GND",
+                    "53=GND",
+                ]
+                attrs["cpl_rotation_pin_aliases"] = [
+                    "GPIO2/ADC1_CH2=IO2",
+                    "GPIO3/ADC1_CH3=IO3",
+                    "EN/CHIP_PU=EN",
+                    "GPIO0/ADC1_CH0/XTAL_32K_P=IO0",
+                    "GPIO1/ADC1_CH1/XTAL_32K_N=IO1",
+                    "GPIO10=IO10",
+                    "GPIO4/ADC1_CH4=IO4",
+                    "GPIO5/ADC2_CH0=IO5",
+                    "GPIO6=IO6",
+                    "GPIO7=IO7",
+                    "GPIO8=IO8",
+                    "GPIO9=IO9",
+                    "GPIO18/USB_D-=IO18",
+                    "GPIO19/USB_D+=IO19",
+                    "GPIO20/U0RXD=RXD0",
+                    "GPIO21/U0TXD=TXD0",
+                ]
+            elif spec["refdes"] == "U3":
+                attrs["cpl_rotation_pin_functions"] = [
+                    "1=SDA",
+                    "2=SCL",
+                    "3=VDD",
+                    "4=VSS",
+                    "5=EP",
+                ]
+                attrs["cpl_rotation_unverified_pads"] = ["5"]
+                attrs["cpl_rotation_unverified_pad_reason"] = (
+                    "U3のEP (露出パッド) はKiCad symbolに対応する番号付きピンがなく、"
+                    "温度・機械的接地用で極性判定に影響しない。"
+                )
+                attrs["cpl_rotation_unverified_pad_source"] = (
+                    "KiCad SHT40-AD1B-R3 footprint/symbol、LCSC C2848306 Evidence、"
+                    "Sensirion SHT40 datasheetの露出パッド定義"
+                )
+            elif spec["refdes"] == "D1":
+                attrs["cpl_rotation_pin_functions"] = ["1=K", "2=A"]
         overlay_file = spec.get("overlay_file")
         overlay_sha256 = spec.get("overlay_sha256")
         if overlay_file is not None and overlay_sha256 is not None:
@@ -802,7 +1146,10 @@ def build_graph() -> DesignGraph:
             },
         )
     )
-    return DesignGraph(graph_id="golden-design-1", revision="r1", nodes=nodes)
+    graph_id = "golden-design-1"
+    revision = "r1"
+    nodes.extend(silkscreen_nodes(graph_id, revision))
+    return DesignGraph(graph_id=graph_id, revision=revision, nodes=nodes)
 
 
 def main() -> int:

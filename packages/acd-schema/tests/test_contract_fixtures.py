@@ -6,7 +6,7 @@ import pytest
 from conftest import load_fixture
 from pydantic import ValidationError
 
-from acd_schema import DesignGraph, Evidence, FwPackage, ToolEnvelope
+from acd_schema import AcdModel, DesignGraph, Evidence, FwPackage, ToolEnvelope
 
 
 @pytest.mark.parametrize(
@@ -18,8 +18,8 @@ from acd_schema import DesignGraph, Evidence, FwPackage, ToolEnvelope
         (ToolEnvelope, "tool-envelope.json"),
     ],
 )
-def test_valid_contract_fixtures(model: type[object], name: str) -> None:
-    model.model_validate(load_fixture("valid", name))  # type: ignore[attr-defined]
+def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
+    model.model_validate(load_fixture("valid", name))
 
 
 @pytest.mark.parametrize(
@@ -31,6 +31,6 @@ def test_valid_contract_fixtures(model: type[object], name: str) -> None:
         (ToolEnvelope, "tool-envelope-missing-input-hash.json"),
     ],
 )
-def test_invalid_contract_fixtures(model: type[object], name: str) -> None:
+def test_invalid_contract_fixtures(model: type[AcdModel], name: str) -> None:
     with pytest.raises(ValidationError):
-        model.model_validate(load_fixture("invalid", name))  # type: ignore[attr-defined]
+        model.model_validate(load_fixture("invalid", name))
