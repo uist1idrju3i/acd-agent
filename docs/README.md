@@ -19,21 +19,22 @@
 9. [`roadmap.md`](roadmap.md): マイルストーン、フェーズ境界、ゴールデンタスク。
 10. [`golden-design-1.md`](golden-design-1.md): 第1マイルストーンの具体設計とfixture入力。
 11. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
-12. [`implementation-plan.md`](implementation-plan.md): リポジトリ構成、パッケージ・Skill・agent分割、CI。
-13. [`phase0-plan.md`](phase0-plan.md): Phase 0の作業単位・順序・撤退条件。
+12. [`dependency-notes.md`](dependency-notes.md): 依存更新時の一次情報、使用箇所、関連文書の対応表。
+13. [`implementation-plan.md`](implementation-plan.md): リポジトリ構成、パッケージ・Skill・agent分割、CI。
+14. [`phase0-plan.md`](phase0-plan.md): Phase 0の作業単位・順序・撤退条件。
     実施後の振り返りは[`phase0-retrospective.md`](phase0-retrospective.md)、
     [`phase1-retrospective.md`](phase1-retrospective.md)、
     [`phase2-retrospective.md`](phase2-retrospective.md)を参照する。
-14. [`phase3-plan.md`](phase3-plan.md): Phase 3の作業単位・順序・撤退条件。
+15. [`phase3-plan.md`](phase3-plan.md): Phase 3の作業単位・順序・撤退条件。
     実施後の振り返りは[`phase3-retrospective.md`](phase3-retrospective.md)を参照する。
-15. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
-16. [`fab-data-preparation-retrospective.md`](fab-data-preparation-retrospective.md): JLCPCB製造データ先行実装の振り返り。
-17. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
-18. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
-19. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
-20. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
-21. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
-22. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
+16. [`knowledge-base.md`](knowledge-base.md): 知識の構造化と設計への還流。
+17. [`fab-data-preparation-retrospective.md`](fab-data-preparation-retrospective.md): JLCPCB製造データ先行実装の振り返り。
+18. [`reliability-practices.md`](reliability-practices.md): 信頼性・安全性。
+19. [`qc-tools.md`](qc-tools.md): Q7/N7分析器。
+20. [`prior-art.md`](prior-art.md): 先行事例とライセンス境界。
+21. [`future-outlook.md`](future-outlook.md): ローカル製造と将来展望。
+22. [`../AGENTS.md`](../AGENTS.md): リポジトリ全体の作業契約。
+23. [`../SECURITY.md`](../SECURITY.md): セキュリティポリシーと報告経路。
 
 ## 文書一覧
 
@@ -52,6 +53,7 @@
 | `future-outlook.md` | ローカル製造、プリンテッドエレクトロニクス、将来展望 | Draft |
 | `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
 | `openhands-integration.md` | SDK v1.42.1との統合判断 | Draft |
+| `dependency-notes.md` | 依存更新時の一次情報、使用箇所、関連文書の対応表（対応関係の正） | Draft |
 | `implementation-plan.md` | 実装の構成正本（リポジトリ・パッケージ・Skill・agent・CI） | Draft |
 | `phase0-plan.md` | Phase 0の作業単位・順序・撤退条件 | Draft |
 | `phase0-retrospective.md` | Phase 0実施結果・逸脱・教訓の記録 | Draft |

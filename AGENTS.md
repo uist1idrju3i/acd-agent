@@ -158,6 +158,20 @@ EDA、配置配線、製造、機械生成のアルゴリズムについて、AC
 - reset --hard、clean -fd、checkout -- file、stash dropなど破壊的操作をしない（MUST NOT）。
 - `.env`、credentials、token、秘密ファイルをstageしない（MUST NOT）。
 
+## 依存関係更新契約
+
+- Pythonパッケージ、submodule、外部ツール、GitHub Actionsのいずれを更新する場合も、更新前後の版の
+  一次情報（リリースノート、CHANGELOG、commit差分）で変更点を確認する（MUST）。
+- ACDが実際に使用しているAPI、既定値、挙動への影響（破壊的変更、既定値変更、非推奨、新機能の採否）を
+  評価し、確認した一次情報と結論を同じPRで記録する（MUST）。
+- 変更点を確認できない依存更新を合格扱いにしない（MUST NOT）。
+- 影響する記述を含む関連文書を同じPRで更新する（MUST）。対象文書の対応関係は
+  [`docs/dependency-notes.md`](docs/dependency-notes.md)を正とする。
+- 版表記の更新義務（`vendor/software-agent-sdk`のsubmodule更新時に本書冒頭を更新する規約）と整合させ、
+  依存更新の手順を重複記述しない。既存箇所からは本節と依存関係ノートを参照する（SHOULD）。
+- 実測・観測として記録された値は書き換えず、測定時点の事実として残し、新版が未検証であることを明記する
+  （MUST）。
+
 ## 検証契約
 
 検証は`uv sync`、`uv run ruff check`、`uv run pyright`、`uv run pytest`、
