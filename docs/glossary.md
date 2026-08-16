@@ -26,7 +26,7 @@
 | assembly class | fab profileが定義するPCBA工程区分。class ID、板条件、数量、色、表面処理、実装面、組立条件の組み合わせを表す |
 | 自働 | 人間が異常を検知して止めるのではなく、異常を検知して自ら止まるToyota由来の自働化を指す。ACDでは安全境界、ゲート、fail-closedに適用する |
 | 自動 | 人間の操作を介さず処理を実行する一般的なautomationを指す。自動検証は、判定結果が不合格またはunknownなら停止する自働の性質を必ず併記する |
-| 投影 | 正規設計グラフから再生成される派生成果物であり、正規データを置き換えない |
+| 投影 | 入力ファイルから再生成される派生成果物であり、入力ファイルを置き換えない |
 | レビュー投影 | 入力ファイルから再生成し、別コンテキストのAIが観察するための投影。正ではなく、git commit・hash・版を保持する |
 | 投影レビューPDCA | 入力ファイルの変更と対象工程を選ぶPlan、投影を生成するDo、AIが所見を作るCheck、決定論的ゲートで確認するActのループ |
 | Evidence | ツール版、入力・出力hash、条件、結果、git commitを含む検証の根拠 |
@@ -44,7 +44,7 @@
 | EventLog | SDKが提供する型付き追記イベントの保存・分岐・復元機構。ACDはdomain payloadと合否の正を所有する |
 | MCP server | 外部ツールadapterをプロセス・ライセンス境界の外側で提供する接続先。SDKは接続機構を提供するが、ACDが意味検証とEvidenceを所有する |
 | DeclaredResources | SDK toolが並行実行時の共有resource keyを宣言する機構。ACDが必要なtoolを包んで排他キーを定義し、合否の正にはしない |
-| WebhookSpec | agent-serverがイベントをbufferして外部URLへPOSTする仕様。配信保証は未確認のため、ACDはEventLog replayを正とする |
+| WebhookSpec | agent-serverがイベントをbufferして外部URLへPOSTする仕様。配信保証は未確認のため、ACDはSDKの`EventLog`とcommitした入力ファイルを正とする |
 | SecretSource | SDKがsecretを解決・注入する参照元。ACDはfab API等のsecret本体ではなく参照名だけを保持する |
 | SessionStart | SDKのセッション開始hook。ACDでは独自の起動契約を追加せず、必要に応じて補助的に利用する |
 | browser_use | SDKが提供するbrowser操作toolset。Phase 9の二次sourcingに使うが、Phase 11の発注経路には使わない |
