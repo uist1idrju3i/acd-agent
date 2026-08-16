@@ -46,7 +46,7 @@
 | DeclaredResources | SDK toolが並行実行時の共有resource keyを宣言する機構。ACDが必要なtoolを包んで排他キーを定義し、合否の正にはしない |
 | WebhookSpec | agent-serverがイベントをbufferして外部URLへPOSTする仕様。配信保証は未確認のため、ACDはEventLog replayを正とする |
 | SecretSource | SDKがsecretを解決・注入する参照元。ACDはfab API等のsecret本体ではなく参照名だけを保持する |
-| SessionStart | SDKのセッション開始hook。ACDはimport、版プローブ、`InstallationInfo.resolved_ref`／`.installed.json`、設定hashの検証点として使う |
+| SessionStart | SDKのセッション開始hook。ACDでは独自の起動契約を追加せず、必要に応じて補助的に利用する |
 | browser_use | SDKが提供するbrowser操作toolset。Phase 9の二次sourcingに使うが、Phase 11の発注経路には使わない |
 | workspace | SDKが提供するagentの実行環境。ファイルや外部ツールを置けるが、ACDの設計グラフや合否の正ではない |
 | DockerWorkspace／RemoteWorkspace | SDKが提供する隔離実行環境。ACDはLocalWorkspaceを採用せず、image digestまたはagent-server側の実行条件を固定する |

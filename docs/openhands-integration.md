@@ -44,7 +44,7 @@ ACDが実際にimportする次のAPIについて、両commitのtreeとsourceを�
 |---|---|---|
 | structured output | v1.42.0でstructured output機能と実行例が追加された | ACDのJSON Schema／決定論的gateとの接続方法、schemaの正、失敗時のEvidenceが未評価。勝手に採用せず、継続調査とする |
 | PluginFormat抽出 | plugin loaderのformat戦略を抽出し、Agent Plugins対応の準備を行った | ACDは`.plugin/plugin.json`、skills、hooks、MCP設定を既存契約として固定している。新formatは未採用で、移行要否を継続調査とする |
-| prompt-based hooks evaluation | hookにprompt-based evaluationを追加 | ACDの`SessionStart` denyと決定論的gateは維持し、prompt評価やhookのallowを合否根拠にしない。補助的採用は継続調査とする |
+| prompt-based hooks evaluation | hookにprompt-based evaluationを追加 | prompt評価やhookのallowを合否根拠にせず、決定論的gateを維持する。補助的採用は継続調査とする |
 | LLM global config serialization修正 | v1.42.1でglobal config経由の呼び出し直列化を停止する修正が入った | ACDが使うLLM呼び出しの同時実行挙動に関係する。直列化修正は利用側のAPI採用ではなくSDK更新の挙動として受け入れ、並行実行と回帰を継続確認する |
 | agent-serverのworktree／初期化／observability変更 | v1.42.0〜v1.42.1でworktree root設定、deferred init、event／telemetry等の変更を確認 | ACDのserver実行契約に影響しうるが、今回のsource import確認だけでは相互運用を保証できない。継続調査とする |
 | goal／STUCK処理 | STUCK時にgoal loopを停止しない修正をv1.42.1で確認 | ACDの決定論的gateを置き換えないため、ACD側での採用はしていない。SDK挙動として回帰対象にする |
@@ -114,7 +114,7 @@ SHAで固定する。ただしCanvasのフロントエンド本体がSDK reposit
 | 実行分岐 | `Conversation.fork(from_event_id=...)`（local／remote） | trade studyの比較と会話履歴の保持 |
 | 作業資材の配布 | `Skill`、`KeywordTrigger`／`PathTrigger`／`TaskTrigger`、skill repositoryのpin、`PluginManifest`、marketplace | 工程チェックリスト、Q7/N7の作業手法、レビュー観点、ECAD操作手順 |
 | サブエージェント定義 | `AgentDefinition`、`AgentDefinitionLevel`、model/tools/skills/hooks/MCP/予算・反復上限、`permission_mode` | 生成・レビューagentの役割境界、入力ファイルへの書込み制約 |
-| hook | `PreToolUse`、`PostToolUse`、`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`、`HookDecision` | 不可逆操作の防護、commit側receipt参照、決定論的gate、共通executor |
+| hook | `PreToolUse`、`PostToolUse`、`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`、`HookDecision` | SDK標準hookの利用可否を検討する。合否は決定論的gateとパイプラインが担う |
 | 反復改善 | `CriticBase`、`CriticResult`、`IterativeRefinementConfig`、`Conversation.run()`の自動retry | 自然文の所見を修正ループへ渡す。合否は決定論的ゲート |
 | 目標・停滞検出 | `/goal`、`GoalController`、judge、`GoalVerdict`、`StuckDetector` | 停止・差し戻し・エスカレーション。決定論的な完了条件 |
 | 多観点レビュー | `WorkflowTool`／`WorkflowExecutor`のmap/reduce、`max_concurrency` | 自然文の所見を束ね、レビュー観点を分業する。投影の意味的mergeはACDが禁止 |
@@ -129,12 +129,12 @@ SHAで固定する。ただしCanvasのフロントエンド本体がSDK reposit
 | LLM可用性 | `LLMRegistry`（usage ID別インスタンスと独立metrics）、`FallbackStrategy`（transient error時のprofile fallback） | fallback発生の記録、実体model版のEvidence束ね、レビュー中fallbackの`unknown`扱い |
 | 作業メモリ | 二層persistent memory（`MEMORY.md` loader、user／project tier） | 作業手法の補助。memoryはプロンプト資材であり合否根拠にしない |
 | sourcing | `browser_use` toolset（navigate、click、type、get_state、get_content、screenshot、tabs） | API一次・browser二次の期限付きEvidence、Phase 11での利用禁止 |
-| 起動契約 | `SessionStart` hook、`HookDecision` | ACD import、外部tool版、解決SHA／MCP設定hashの検証と失敗時deny |
+| 起動契約 | `Conversation`、workspace、Skill／plugin資材 | 入力ファイル、設定、外部toolの確認はパイプラインと明示的な検証手順で行う |
 | 可観測性 | `observability/laminar.py` | 任意の計測、Evidenceと判定面の分離 |
 
-ACDのtoolは`ToolDefinition`として登録し、Pydantic Action/Observationで入力と結果を
-型付けする。annotationsはread-only、destructive、idempotentの宣言に使うが、
-宣言だけで安全性は成立しない。共通executorが実際の副作用を分類・検査する。
+ACD固有のtool／executor層は追加せず、workspaceのshell実行、file editor、パイプライン、
+adapters、SDK標準toolを利用する。入力ファイルと成果物をPydanticモデルで検証し、
+安全性は決定論的ゲートと発注直前の全ゲートで確認する。
 
 ## ACDの提供形態
 
@@ -219,21 +219,11 @@ block-listを通す。
 レビュー記録へ残す。visionの応答はAIレビューの観察であり、合否権限を持たない。
 既定ゲートは描画非依存のままとし、視覚投影をゲートの合格根拠にしない。
 
-### hooksによる前段防護
+### SDK標準hookの扱い
 
-`PreToolUse`は発注や実機書込みなど不可逆操作の前段確認に、`PostToolUse`は副作用journalと
-出力hashの記録点に使う。`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`は
-セッション境界や停止時の記録・後処理に利用する。`HookDecision`の`allow`／`deny`は
-多層防御の一層であり、hookが`allow`したことも`deny`されなかったことも合格根拠にしない。
-最終的な上限額、全ゲート、合否はACDの決定論的ゲートとパイプラインが担う。
-
-`SessionStart` hookを起動時契約の強制点として使い、ACD packageのimport、外部ツール版
-プローブ、Skill／plugin／Canvas extensionの`InstallationInfo.resolved_ref`と
-`.installed.json`、MCP設定hashの記録を実行する。ACD独自Eventは最小限のgate結果、承認、
-副作用receiptへの参照だけを扱うため、その型登録を必要とする経路に限定してimportを強制する。
-未登録、版不明、`requested_ref`しかなく`resolved_ref`が無い、設定hash不一致などは
-`HookDecision`でdenyし、セッションをfail-closedで開始しない。plugin導入だけではEvent型
-登録にならないため、このhookを運用契約の検証点とする。
+SDKのhookは必要に応じて不可逆操作の確認やセッション境界の補助に利用できるが、
+ACD独自のSessionStart契約やevent層は追加しない。hookのallow／denyは合否根拠ではなく、
+最終的な上限額、全ゲート、合否は決定論的ゲートとパイプラインが担う。
 
 ### critic、目標判定、停滞検出
 

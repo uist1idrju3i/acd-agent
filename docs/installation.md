@@ -495,25 +495,12 @@ uv run python scripts/probe_tools.py
   現行の修正は入力ファイルへ直接反映する。
 - OpenHands SDKのLLM呼び出しは自然文の所見の提案だけで、入力ファイルの生成・変更や
   gateの合否権限は持たない。
-- `plugins/acd`には`acd-contracts` Skillと`SessionStart` hookがある。
+- `plugins/acd`には`acd-contracts` Skillがある。
   `plugins/acd/agents/`には具体的なagent定義はまだない。
-
-`acd-startup.json`はリポジトリに存在しない。存在しない場合の既定値は
-`required_tools`が空、`mcp_config_hash`が`None`である。workspaceを指定してhookを直接実行した
-実測では次の結果になった。
-
-```json
-{"decision": "allow"}
-```
-
-一方、`required_tools`または`mcp_config_hash`を`acd-startup.json`へ書くと、現行CLI hookには
-実際のtool version／MCP hashが渡されないため、値を検証できずdenyになる。これはfail-closedの
-実装である。
 
 未確認事項は次のとおりである。
 
 - `plugins/acd`のAgent Canvasへの実インストール。
-- plugin導入後にagent-server側のPython環境から`acd_runtime`をimportできるか。
 - Agent Canvas marketplaceへの掲載とUIからの導入。
 - agent-server環境とworkspaceの`uv`環境を接続した実運用。
 
@@ -851,7 +838,7 @@ npm導入版として既定で起動するagent server同梱SDK（1.40.1）は�
 - Ubuntu 24.04上での全手順（Node.js導入、Agent Canvas起動、acd-agentの同期と検証）。
 - Ubuntu 24.04上での外部ツールのインストール実行と動作確認。
 - Agent Canvas用systemd unitの定義と長期運用。
-- `plugins/acd`のAgent Canvasへの導入と`SessionStart` hookの成立。
+- `plugins/acd`のAgent Canvasへの導入とSkillの利用成立。
 - agent-server側Python環境でのACD package import成立。
 - agent server起動時のprotobuf／pyasn1 egg警告の影響。
 - Agent Canvas同梱SDK 1.40.1とacd-agent側SDK v1.41.0の組み合わせ（v1.41.0時点の実測。v1.42.1との組み合わせは未検証）。

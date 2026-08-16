@@ -1,12 +1,12 @@
 ---
 name: acd-contracts
-description: How to read and validate ACD contracts (design graph, evidence, gate matrix) in this workspace. Use when creating or checking ACD documents.
+description: How to read and validate ACD Pydantic contracts in this workspace. Use when creating or checking ACD documents.
 ---
 
 # ACD contracts
 
 - Pydantic models in `packages/acd-schema` are the canonical contract.
-- Every document carries `schema_version` and a `target_revision` (`r<N>`).
+- Contract-bearing documents carry the fields defined by their Pydantic model.
 - `unknown` values are allowed but fail-closed: they never support a pass verdict.
 - Validate documents with:
 
