@@ -69,6 +69,17 @@ class KeepoutRect:
 
 
 @dataclass(frozen=True)
+class CopperZone:
+    """Copper pour declaration projected into a KiCad zone."""
+
+    net: str
+    layers: tuple[str, ...]
+    inset_mm: float
+    min_island_area_mm2: float
+    thermal_relief: bool = True
+
+
+@dataclass(frozen=True)
 class RoutedWire:
     """One routed wire polyline on a copper layer (mm, KiCad frame)."""
 
@@ -106,6 +117,10 @@ class BoardModel:
     placements: tuple[ComponentPlacement, ...]
     nets: tuple[BoardNet, ...]
     keepouts: tuple[KeepoutRect, ...] = field(default_factory=tuple)
+    copper_zones: tuple[CopperZone, ...] = field(default_factory=tuple)
+    stitch_via_pitch_mm: float | None = None
+    stitch_via_net: str | None = None
+    stitch_via_refill_max_iterations: int | None = None
 
     def placement_by_refdes(self, refdes: str) -> ComponentPlacement:
         for placement in self.placements:

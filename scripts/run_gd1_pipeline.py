@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import shutil
 import sys
 from pathlib import Path
 from typing import cast
@@ -30,6 +31,7 @@ from acd_adapter_kicad.cli import KicadCli
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
     CplBasisError,
+    UncoveredStitchViasError,
     apply_cpl_contract,
     cross_validate_bom,
     cross_validate_cpl,
@@ -40,6 +42,7 @@ from acd_adapter_kicad.fab import (
     parse_routed_board,
     read_drill_measurement,
     run_dfm,
+    verify_ground_plane_gerbers,
     verify_lcsc_rotation_evidence,
     verify_smd_pad_centers_in_gerber,
     zip_content_hash,
@@ -53,7 +56,7 @@ from acd_adapter_kicad.reload import (
     verify_gerber,
     verify_schematic,
 )
-from acd_adapter_kicad.routing import inject_routes
+from acd_adapter_kicad.routing import inject_routes, inject_stitch_vias
 from acd_core.electrical import extract_electrical_lane
 from acd_core.fab import extract_fab_intent, load_fab_profile
 from acd_schema.design_graph import DesignGraph
@@ -136,6 +139,108 @@ def run_pipeline(
         lane.board.via_diameter_mm,
         lane.board.via_drill_mm,
     )
+    base_routed_board = routed_board
+    stitch_candidate_report: dict[str, object] = {}
+    routed_board, stitch_vias = inject_stitch_vias(
+        base_routed_board,
+        project.board_projection.model,
+        routes,
+        project.board_projection.net_numbers,
+        project.board_projection.stitch_via_pitch_mm,
+        lane.board.via_diameter_mm,
+        lane.board.via_drill_mm,
+        candidate_report=stitch_candidate_report,
+    )
+    max_iterations = project.board_projection.model.stitch_via_refill_max_iterations
+    if max_iterations is None or max_iterations <= 0:
+        raise RuntimeError("missing stitch-via refill iteration declaration (fail-closed)")
+    iteration_dir = out_dir / ".stitch-iterations"
+    iteration_dir.mkdir(parents=True, exist_ok=True)
+    dru_source = out_dir / f"{name}.kicad_dru"
+    initial_candidate_count = len(stitch_vias)
+    pruned_vias: list[tuple[float, float]] = []
+    iteration_measurements: list[dict[str, object]] = []
+    converged_iteration: int | None = None
+    for iteration in range(1, max_iterations + 1):
+        iteration_board = iteration_dir / f"{name}-{iteration}.kicad_pcb"
+        iteration_board.write_text(routed_board)
+        (iteration_dir / f"{name}-{iteration}.kicad_pro").write_text(
+            project.project.read_text()
+        )
+        if dru_source.is_file():
+            (iteration_dir / f"{name}-{iteration}.kicad_dru").write_text(
+                dru_source.read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+        kicad.refill_zones(iteration_board, revision)
+        iteration_gerbers = iteration_dir / f"gerbers-{iteration}"
+        _, iteration_paths = kicad.export_gerbers(
+            iteration_board, iteration_gerbers, ["F.Cu", "B.Cu"], revision
+        )
+        try:
+            verify_ground_plane_gerbers(
+                iteration_paths[0],
+                iteration_paths[1],
+                project.board_projection.model,
+                stitch_vias,
+                routes,
+            )
+            iteration_measurements.append(
+                {
+                    "iteration": iteration,
+                    "via_count": len(stitch_vias),
+                    "uncovered_count": 0,
+                    "uncovered_vias": [],
+                }
+            )
+            print(f"[stitch-prune {iteration}] vias={len(stitch_vias)} uncovered=0")
+            converged_iteration = iteration
+            break
+        except UncoveredStitchViasError as exc:
+            uncovered = exc.locations
+            pruned_vias.extend(uncovered)
+            covered = tuple(
+                point
+                for point in stitch_vias
+                if point not in uncovered
+            )
+            if len(covered) == len(stitch_vias):
+                raise RuntimeError(
+                    f"measured uncovered vias were not in candidate set: {uncovered}"
+                ) from None
+            iteration_measurements.append(
+                {
+                    "iteration": iteration,
+                    "via_count": len(stitch_vias),
+                    "uncovered_count": len(uncovered),
+                    "uncovered_vias": uncovered,
+                }
+            )
+            print(
+                f"[stitch-prune {iteration}] vias={len(stitch_vias)} "
+                f"uncovered={len(uncovered)} at {uncovered}"
+            )
+        routed_board, stitch_vias = inject_stitch_vias(
+            base_routed_board,
+            project.board_projection.model,
+            routes,
+            project.board_projection.net_numbers,
+            project.board_projection.stitch_via_pitch_mm,
+            lane.board.via_diameter_mm,
+            lane.board.via_drill_mm,
+            allowed_points=covered,
+        )
+    shutil.rmtree(iteration_dir)
+    if converged_iteration is None:
+        raise RuntimeError("stitch-via refill pruning did not converge (fail-closed)")
+    pruning_evidence = {
+        "iterations": converged_iteration,
+        "initial_candidate_count": initial_candidate_count,
+        "pruned_count": len(pruned_vias),
+        "pruned_vias": pruned_vias,
+        "final_vias": stitch_vias,
+        "measurements": iteration_measurements,
+    }
     # kicad-cli reads DRC constraints from the sibling .kicad_pro, so the
     # routed board lives in its own directory with a copy of the project file.
     routed_dir = out_dir / "routed"
@@ -143,10 +248,9 @@ def run_pipeline(
     routed_path = routed_dir / f"{name}.kicad_pcb"
     routed_path.write_text(routed_board)
     (routed_dir / f"{name}.kicad_pro").write_text(project.project.read_text())
-    dru_path = out_dir / f"{name}.kicad_dru"
-    if dru_path.is_file():
+    if dru_source.is_file():
         (routed_dir / f"{name}.kicad_dru").write_text(
-            dru_path.read_text(encoding="utf-8"),
+            dru_source.read_text(encoding="utf-8"),
             encoding="utf-8",
         )
     print(
@@ -155,6 +259,8 @@ def run_pipeline(
         f"normalized_wires={routes.normalized_wire_count}"
     )
 
+    kicad.refill_zones(routed_path, revision)
+    filled_board_hash = normalized_hash(routed_path)
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
     assert_rule_check_passed("DRC", drc, require_connected=True)
     print("[5/10] DRC gate passed (0 errors, 0 unconnected)")
@@ -195,10 +301,19 @@ def run_pipeline(
         measurement.outline_bbox_mm,
         drill_tools,
         drill_count,
+        measurement.net_name_source,
     )
     verify_smd_pad_centers_in_gerber(
         gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement
     )
+    plane_measurement = verify_ground_plane_gerbers(
+        gerber_paths[GERBER_LAYERS.index("F.Cu")],
+        gerber_paths[GERBER_LAYERS.index("B.Cu")],
+        project.board_projection.model,
+        stitch_vias,
+        routes,
+    )
+    plane_measurement["stitch_via_candidates"] = stitch_candidate_report
     edge_overhang_declarations = {
         str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
         for node in graph.nodes
@@ -307,6 +422,55 @@ def run_pipeline(
             if isinstance(value, list)
         },
     )
+    profile_preferences = cast(list[dict[str, object]], profile.data["preferences"])
+    via_driver_ids = {
+        "via-hole-prefer-020",
+        "via-hole-015-cost",
+        "via-hole-small-diameter-cost",
+        "via-diameter-margin-quality",
+        "via-hole-capability",
+    }
+    via_profile_drivers = [
+        {
+            "rule_id": str(preference["rule_id"]),
+            "description": str(preference.get("description", "")),
+            "impact": preference.get("impact"),
+            "threshold": preference.get("threshold"),
+            "matched_dfm_findings": sum(
+                str(finding.get("rule_id")) == str(preference["rule_id"])
+                for finding in cast(list[dict[str, object]], dfm_report["findings"])
+            ),
+        }
+        for preference in profile_preferences
+        if str(preference["rule_id"]) in via_driver_ids
+    ]
+    via_profile_evidence = {
+        "route_via_count": len(routes.vias),
+        "stitch_via_count": len(stitch_vias),
+        "total_routing_via_count": len(routes.vias) + len(stitch_vias),
+        "added_via_count_vs_route_only": len(stitch_vias),
+        "ground_plane_drill_object_count": drill_count,
+        "estimated_drill_object_count_without_stitch": drill_count - len(stitch_vias),
+        "added_drill_object_count_vs_route_only": len(stitch_vias),
+        "via_diameter_mm": lane.board.via_diameter_mm,
+        "via_drill_mm": lane.board.via_drill_mm,
+        "profile_driver_basis": via_profile_drivers,
+        "count_based_cost_driver_present": False,
+        "count_based_cost_driver_note": (
+            "The fab profile has geometry/process thresholds but no numeric "
+            "per-via quantity surcharge; added via and drill counts are recorded "
+            "as process burden."
+        ),
+    }
+    dfm_report["ground_plane"] = {
+        **plane_measurement,
+        "routed_board_net_name_source": measurement.net_name_source,
+        "stitch_via_pruning": pruning_evidence,
+        "stitch_via_count": len(stitch_vias),
+        "drill_count": drill_count,
+        "cost_note": lane.board.stitch_via_cost_note,
+        "via_profile_cost_evidence": via_profile_evidence,
+    }
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     print(
@@ -348,6 +512,16 @@ def run_pipeline(
         ],
         "content_hash": zip_content_hash(zip_path),
         "tools": {"kicad-cli": kicad.version(), "measurement_parser": "sexpdata+gerbonara"},
+        "filled_board_hash": filled_board_hash,
+        "routed_board_net_name_source": measurement.net_name_source,
+        "ground_plane": {
+            **plane_measurement,
+            "stitch_via_pruning": pruning_evidence,
+            "stitch_via_count": len(stitch_vias),
+            "drill_count": drill_count,
+            "cost_note": lane.board.stitch_via_cost_note,
+            "via_profile_cost_evidence": via_profile_evidence,
+        },
         "gates": {
             "drc": (
                 "pass"

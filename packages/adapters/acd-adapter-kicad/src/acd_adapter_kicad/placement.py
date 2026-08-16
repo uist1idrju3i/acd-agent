@@ -344,16 +344,21 @@ def pad_position(
         raise PlacementError(f"pad target is not unique: {footprint.library_ref}-{pad_number}")
     pad = pads[0]
     x, y = pad.x_mm, pad.y_mm
-    rot = rotation % 360.0
-    if rot == 90.0:
-        x, y = y, -x
-    elif rot == 180.0:
-        x, y = -x, -y
-    elif rot == 270.0:
-        x, y = -y, x
-    elif rot != 0.0:
-        raise PlacementError(f"unsupported rotation {rotation} (fail-closed)")
+    x, y = rotate_point(x, y, rotation)
     return placement[0] + x, placement[1] + y
+
+
+def rotate_point(x: float, y: float, rotation: float) -> tuple[float, float]:
+    rot = rotation % 360.0
+    if rot == 0.0:
+        return x, y
+    if rot == 90.0:
+        return y, -x
+    if rot == 180.0:
+        return -x, -y
+    if rot == 270.0:
+        return -y, x
+    raise PlacementError(f"unsupported rotation {rotation} (fail-closed)")
 
 
 def _pad_positions(

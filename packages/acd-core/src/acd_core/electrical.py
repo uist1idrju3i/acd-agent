@@ -104,6 +104,15 @@ class BoardView:
     via_diameter_mm: float
     edge_copper_clearance_mm: float
     antenna_keepout: bool
+    ground_plane_net: str | None = None
+    ground_plane_layers: tuple[str, ...] = ()
+    ground_plane_min_island_area_mm2: float | None = None
+    stitch_via_max_frequency_hz: float | None = None
+    stitch_via_dielectric_constant: float | None = None
+    stitch_via_wavelength_fraction: float | None = None
+    stitch_via_basis_source: str | None = None
+    stitch_via_cost_note: str | None = None
+    stitch_via_refill_max_iterations: int | None = None
 
 
 @dataclass(frozen=True)
@@ -372,6 +381,31 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     via_diameter_mm=_float_attr(node, "via_diameter_mm"),
                     edge_copper_clearance_mm=_float_attr(node, "edge_copper_clearance_mm"),
                     antenna_keepout=_bool_attr(node, "antenna_keepout"),
+                    ground_plane_net=_optional_str(node, "ground_plane_net"),
+                    ground_plane_layers=tuple(
+                        _optional_string_list(node, "ground_plane_layers")
+                    ),
+                    ground_plane_min_island_area_mm2=_optional_number(
+                        node, "ground_plane_min_island_area_mm2"
+                    ),
+                    stitch_via_max_frequency_hz=_optional_number(
+                        node, "stitch_via_max_frequency_hz"
+                    ),
+                    stitch_via_dielectric_constant=_optional_number(
+                        node, "stitch_via_dielectric_constant"
+                    ),
+                    stitch_via_wavelength_fraction=_optional_number(
+                        node, "stitch_via_wavelength_fraction"
+                    ),
+                    stitch_via_basis_source=_optional_str(node, "stitch_via_basis_source"),
+                    stitch_via_cost_note=_optional_str(node, "stitch_via_cost_note"),
+                    stitch_via_refill_max_iterations=(
+                        int(value)
+                        if (value := _optional_number(
+                            node, "stitch_via_refill_max_iterations"
+                        )) is not None
+                        else None
+                    ),
                 )
             )
     if len(boards) != 1:

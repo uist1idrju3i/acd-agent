@@ -103,6 +103,10 @@ footprint・差分・出所EvidenceとともにKnowledgeItemへ接続する。�
   実物symbolとの照合は、graphが固定したKiCadライブラリが存在する環境（GD1パイプライン
   実行環境）で実施する。ライブラリがないCI環境では、理由を明示したskipとなることが
   あり、生成fixtureによるロジック検証とは区別する。
+- **GND zoneは宣言値だけで合格にしない。** グラフからzoneを投影しても、KiCadで塗り直した
+  同一基板からF.Cu/B.Cu Gerberを出力し、keepout、板端clearance、連結成分、最小島面積、
+  stitch viaの銅被覆を独立測定する。塗り前基板からのGerber生成、parse失敗、未対応apertureは
+  fail-closedとする。
 - **SMD pad上viaを構造的に禁止する。** Freerouting DSNの`structure`へ`(via_at_smd off)`を
   出力し、DFMのvia-in-pad検査を緩めず不要な工程リスクとコストを防ぐ。
 
