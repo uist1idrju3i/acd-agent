@@ -2,6 +2,7 @@
 
 > ステータス: Draft  
 > 対象: 公開先行事例、調査日 2026-08-11 UTC
+> 2026-08-13に、部品ライブラリとライブラリ品質検査（§3.1）、製造ベンダークライアントとEDA→fab送信経路（§8.1）の追加調査を追記。
 
 本書は、公開先行事例、一次情報の確度、ライセンス境界、ACDとの差分候補を扱う調査台帳を
 正とする。製品の設計原則は [`../README.md`](../README.md)、実装方針は
@@ -24,6 +25,8 @@ GitHub Releases APIまたは公式releaseページで版番号・公開日を取
 - **一次情報で確認済み:** 約24件（LICENSE本文、または公式release情報の少なくとも一方を取得）
 - **二次情報のみ:** 約14件（README・公式説明は確認したが、LICENSE本文または版番号の一次確認が不足）
 - **未確認:** 約4件（対象URLのLICENSE/releaseが404、API拒否、または対象を一意に同定できず）
+
+上記の件数は、2026-08-13の§3.1部品ライブラリ調査分と§8.1製造ベンダークライアント調査分を含まない。
 
 この分類は「法的に利用可能」と同義ではない。依存ライブラリ、同梱データ、
 プラグイン、商標、特許、商用API契約は別途確認が必要である。
@@ -77,6 +80,33 @@ GitHub Releases APIまたは公式releaseページで版番号・公開日を取
 | [kiutils](https://github.com/mvnmgrx/kiutils) | OSS。SPDX未確認。 | KiCad S-expression filesをPythonでparse/write。 | Python API。`.kicad_sch/.kicad_pcb`等→Python objects→files、GUI不要。 | **高**。deterministic parser/patcher。version/date不明。 |
 | [kicad-skip](https://github.com/psychogenic/kicad-skip) | OSS。SPDX未確認。 | KiCad fileをPython/S-expressionとして扱うライブラリ。 | Python API、headless。KiCad S-expression。 | **中**。投影・差分の比較。現行status不明。 |
 | [freerouting](https://github.com/freerouting/freerouting) | OSS Java。SPDXは本調査で未確認。 | PCB autorouter。 | CLI/GUI/Java。KiCad等からDSNを入力しSESを出力する交換境界。headless CLI可能。 | **最高**。router worker。version/release date/license exactは未確認。 |
+
+### 3.1 部品ライブラリとライブラリ品質検査（2026-08-13追加調査）
+
+ライブラリ記述の誤りはERC/DRCだけでは検出できないため、部品ライブラリそのものの
+出所・ライセンス・生成方法・検査手段を独立した調査対象として扱う。以下は本節の
+追加調査で、リポジトリのLICENSE本文、GitLab/GitHub API、READMEを一次情報として
+取得できた範囲を記録する。
+
+| 名称／一次URL | 種別・license | 実体・生成方法 | 自動化境界／入出力 | 最新状況（2026-08-13確認） | acd-agent関連度・役割 | 不確実性 |
+|---|---|---|---|---|---|---|
+| [CERN KiCad Libraries](https://gitlab.com/ohwr/cern-kicad-libs) | OSS。`LICENSE`と`LICENSES/`、`.reuse/dep5`で`CERN-OHL-P-2.0`（permissive variant）を明示。dep5のcopyrightは`2024-2025 CERN`。 | CERNのElectronics Design Officeが保守するAltium Designer原本を、CERN GitLabのpipelineが`kicad-cli`で毎晩変換したsymbol/footprint。SchLib 29個の`.kicad_sym`、PcbLib 59個の`.pretty`。3D modelとdatasheetは第三者IPを含むため非同梱。 | Git clone。`CERN.sqlite`＋`CERN_Linux/Windows.kicad_dbl`のKiCad database libraryとして使う設計で、ODBC driverが必要。symbol/footprintを個別に登録する使い方は想定外とREADMEが明示。`sym-lib-table`/`fp-lib-table`を同梱。 | tag/releaseはなくmaster nightly。最新commitは2026-08-13T01:05Z、著者は`CERN KiCad Library Bot`で、commit messageにpipeline URL、job URL、source commitを記録。生成はKiCad 9.x系、10.x互換、10.xネイティブ版はREADME上「coming soon」。 | **高**。permissive licenseで再配布境界が明確な実部品ライブラリであり、(a)ライブラリ生成pipelineのprovenance記録、(b)`CHECKSUMS`（ライブラリファイル単位のMD5）、(c)database library形式という三点がACDの部品Evidence設計の参照になる。 | 変換ログ（`schlib_conversion_log.txt`等）は変換対象名の列挙であり、KiCad版・変換設定・入力hashまでは含まない。原本Altiumライブラリは非公開のため、変換の正しさを外部から再現検証できない。MD5は改竄検知用途には弱い。 |
+| [KiCad公式ライブラリ](https://gitlab.com/kicad/libraries)（[kicad-symbols](https://gitlab.com/kicad/libraries/kicad-symbols)、kicad-footprints、[kicad-packages3D](https://gitlab.com/kicad/libraries/kicad-packages3D)） | OSS。`CC-BY-SA-4.0`＋設計向け例外（`Licensed Material`を使った設計とその生成物にarticle 3を放棄）。 | 公式symbol/footprint/3D model。KLC（KiCad Library Convention）に沿ってレビューされる。 | Git clone、KiCad同梱配布。`.kicad_sym`/`.pretty`/`.step`/`.wrl`。 | `kicad-symbols`の最新tagは`10.0.5`（2026-07-15）でKiCad本体版に追随。 | **最高**。既定の部品出所。例外条項により、設計成果物へのshare-alike波及は生じない読み方が公式見解。 | ライブラリ「集合」としての再配布・改変再配布はCC-BY-SA義務が残る。個々のsymbolの電気的正しさは保証されない。 |
+| [kicad-library-utils](https://gitlab.com/kicad/libraries/kicad-library-utils) | OSS。`COPYING`は`GPL-3.0`。 | KLC準拠チェックのCLI群。`klc-check/check_symbol.py`、`check_footprint.py`、`check_3d_coverage.py`、`comparelibs.py`（同一ライブラリの2版比較、公式CIで使用）。 | Python CLI、headless。ライブラリファイル→違反レポート、版間diff。 | tagはなく、master更新（2026-08-11に活動）。独自ルール追加は現状forkが必要とREADMEが明記。 | **最高**。ライブラリ層の決定論的ゲート候補。symbol/footprint patchの前後で`comparelibs.py`によるdiffをEvidence化できる。 | GPL-3.0のためACD本体へのimport結合は避け、外部プロセス実行を前提にする。KLC適合はfootprint寸法がdatasheet通りである保証ではない。 |
+| [kicad-footprint-generator](https://gitlab.com/kicad/libraries/kicad-footprint-generator) | OSS。READMEは`GPL-3.0-or-later`（ファイル単位の例外あり）。 | パラメータからfootprintと3D modelをscript生成する公式generator。 | Python script、headless。定義（yaml/script）→`.kicad_mod`/3D model。 | master更新。詳細手順は公式Wikiへ移設。 | **高**。手作業footprintではなく「生成物としてのfootprint」を扱う先行例で、生成器版＋入力定義をhash化すれば再現可能なライブラリ投影になる。 | GPL。生成物の再配布条件と、生成器の版差による出力変化は個別確認。 |
+| [Digi-Key KiCad library](https://github.com/Digi-Key/digikey-kicad-library) | OSS。`LICENSE.md`はKiCad公式と同文の`CC-BY-SA-4.0`＋設計向け例外。 | Digi-Key品番に紐づくatomic parts（symbolにMPN・供給者情報を埋め込む方式）。 | Git clone。`digikey-symbols`/`digikey-footprints.pretty`。 | 最終pushは2024-03-16で、更新は停滞している。 | **中〜高**。symbolへ調達属性を持たせるatomic partsの参照例。ACDの部品provenance（MPN、lifecycle、price snapshot）を設計graph側に持つ方式との対比になる。 | 更新停止のため部品lifecycleの現況とは乖離しうる。release/tagなし。 |
+| [Espressif KiCad Libraries](https://github.com/espressif/kicad-libraries) | OSS。`LICENSE.md`は`CC-BY-SA-4.0`＋設計向け例外（KiCad公式と同条件と明記）。 | ベンダー公式のSoC/module/DevKit symbol・footprint・3D model。v2.0.0以降はPCM（Plugin and Content Manager）配布、KLC準拠を掲げる。 | PCM addon、またはGit clone。KiCad 10向けと明記。 | 最新release `3.2.1`（2026-07-24）。 | **高**。ベンダー公式ライブラリをpinして使う運用の代表例。addon配布物はversionとhashを記録して固定できる。 | READMEは無保証を明記。footprint寸法のdatasheet照合Evidenceは別途必要。 |
+| [SparkFun KiCad Libraries](https://github.com/sparkfun/SparkFun-KiCad-Libraries) | OSS想定だが**LICENSEファイルを確認できず**（GitHub license APIも404）。 | KiCad標準部品、SparkFun固有footprint、OSS 3D modelの混成。symbolに社内品番（`PROD_ID-*`）を持つ。 | PCM addonまたはGit clone。 | 最新release `v9.0.0`（2025-10-17）。 | **中**。社内品番をライブラリに埋める運用例。 | ライセンス未確認のため、ACDでの同梱・再配布は判断保留。 |
+| [Horizon EDA pool](https://github.com/horizon-eda/horizon-pool) | OSS。`LICENSE.md`は`CC-BY-SA-4.0`＋設計向け例外。 | Horizon EDA本体のpool。unit／entity／symbol／package／part／padstackを別階層に分けたKiCadと異なるライブラリモデル。 | Horizon EDA固有format、pool管理CLI/GUI。 | 最終pushは2026-06-26。 | **中〜高**。「部品＝単一symbol＋footprint」ではなく、抽象unitから実部品までを型で分ける設計の参照。ACDの型付きライブラリモデルの比較対象。 | KiCadとの相互変換とheadless検査の範囲は未確認。 |
+| [jlcparts](https://github.com/yaqwsx/jlcparts) | OSS、`MIT`（コードのライセンスであり、収集される部品データはJLCPCB/LCSC由来）。 | JLCPCB SMT assembly対応部品カタログをscrapeし、パラメトリック検索可能なDBとweb UIを生成。 | Python/JS、CI生成のDB＋静的サイト。releaseはなく、生成DBはgh-pages配布。 | 最終pushは2026-08-13。 | **高**。fab在庫と設計を突き合わせるためのデータ源。ACDでは「取得時点付きsnapshot」として扱えば部品選定Evidenceになる。 | 部品データ自体の再配布可否と正確性はJLCPCB/LCSC側の条件に従うため要確認。 |
+| [kicad-jlcpcb-tools](https://github.com/Bouni/kicad-jlcpcb-tools) | OSS、`MIT`。 | KiCad plugin。LCSC品番の割当、部品DB検索、BOM/CPL生成。 | KiCad GUI plugin（PCM）。footprint fieldへLCSC番号を書き込む。 | 最終pushは2026-07-30。 | **中〜高**。fab固有属性を設計データへ書き戻す実装例。ACDでは属性の正はgraph側に置き、KiCadへは投影する設計と対比する。 | GUI plugin前提でheadless実行境界は未確認。 |
+| [InvenTree](https://github.com/inventree/InvenTree) | OSS、`MIT`。 | 部品・在庫・BOM・supplier partを管理するinventory system。REST APIとpluginを持つ。 | Web/REST API、Python plugin。 | 活発に更新（2026-08-13）。 | **中**。部品masterと調達情報を外部systemに持つ場合の統合先候補。KiCad database libraryのbackendとして使う運用例が知られる。 | ACDの設計graphとどちらを正にするかは設計判断。KiCad連携の公式サポート範囲は未確認。 |
+
+KiCadの**database library**（`.kicad_dbl`＋ODBC）は、CERN、InvenTree連携の双方で
+使われている実運用パターンである。ライブラリの正を外部DBに置き、KiCad側はviewとして
+参照する構造は、ACDの「設計グラフが正、KiCadは投影」という方針と整合しうる。ただし
+ODBC driverと外部DBは実行環境依存が増えるため、決定論的ゲートで使う場合はdriver版、
+DBスナップショットhash、接続設定を記録する必要がある。
 
 ## 4. KiCad MCP／AIエコシステム
 
@@ -147,7 +177,7 @@ KiCadの決定的な検証保証を意味しない。各プロジェクトのGit
 
 | 名称／URL | 種別・license | 自動化・形式 | APIで見積／発注 | 関連度・注意 |
 |---|---|---|---|---|
-| [JLCPCB capabilities](https://jlcpcb.com/capabilities/pcb-capabilities) | 商用 | PCB capability/DFM仕様、Gerber/Drill/BOM/placement等をWebに投入。 | PCB capabilityページだけではAPIを確認できず。別の[JLC API Platform](https://api.jlcpcb.com/)はPCB pricing/order/tracking APIを明記し、**見積・発注・tracking可**。アクセス申請が必要。 | **最高**。DFM profile/Evidence。API利用資格・契約・境界を確認必須。 |
+| [JLCPCB capabilities](https://jlcpcb.com/capabilities/pcb-capabilities) | 商用 | PCB capability/DFM仕様、Gerber/Drill/BOM/placement等をWebに投入。 | PCB capabilityページだけではAPIを確認できず。別の[JLC API Platform](https://api.jlcpcb.com/)はPCB pricing/order/tracking APIに加え、Components API（EDA/ERP連携による100万点規模の部品の実時間価格・在庫・仕様取得）を明記し、**見積・発注・tracking可**。アクセス申請が必要。 | **最高**。DFM profile/Evidence。API利用資格・契約・境界を確認必須。 |
 | [PCBWay capabilities](https://www.pcbway.com/capabilities.html) | 商用 | PCB/assembly capability、Web quote。 | 公式partner API docsには`PcbQuotation`、`PlaceOrder`、`ConfirmOrder/Pay`、status queryがあるため、**partner APIで見積・発注フロー可**。api-key、sandbox/契約要。 | **最高**。manufacturing profile＋bounded ordering。 |
 | [Nexar/Octopart](https://nexar.com/api) | 商用API | GraphQL、OAuth2。parts、pricing、inventory、lifecycle、offers、lead time。 | **検索・価格・在庫可**。発注APIではなくsupply data API。 | **最高**、sourcing Evidence。snapshot時刻・region・currencyを保存。 |
 | [Digi-Key API](https://developer.digikey.com/) | 商用API | Product Information V4、part search/change notifications。 | 公式developer portalはAPI solutionsとordering automationを説明。**product情報とordering自動化の可能性はあるが、具体的発注endpoint/資格は要契約**。 | **高**。価格在庫の外部Evidence。 |
@@ -164,6 +194,36 @@ KiCadの決定的な検証保証を意味しない。各プロジェクトのGit
 | [Craftcloud](https://craftcloud3d.com/) | 商用 marketplace | network比較、instant quotes、3D print/CNC。 | 公開developer API/自動発注は**確認できず**。Web instant quoteとAPIは別物。 | **中**。price comparison external source。 |
 | DMM.make 3D print | 商用 | 3D print upload/quote/order Web。 | 公開APIによる自動見積・発注は**確認できず**。 | **低〜中**。日本向けmanual fallback。 |
 | [Slant3D API](https://www.slant3d.com/api) | 商用API | REST、3D printed manufacturing endpoint、quote/order/shipping/tracking。 | **可**。公式ページはinstant quote、place orders、track fulfillment、API keyを明記。 | **高**。automated local manufacturing候補。契約・materials/profile要確認。 |
+
+### 8.1 製造ベンダークライアントとEDA→fab送信経路（2026-08-13追加調査）
+
+§8はvendorのcapabilityと見積・発注APIを扱ったが、実際の設計→製造の経路には、
+GUIクライアント、EDA plugin、vendor側DFM、非公式CLIといった別の層がある。その層の
+自動化可能性とEvidence化可否を切り分けて記録する。
+
+| 名称／一次URL | 種別・license | 実体・機能 | 自動化境界／入出力 | 最新状況（2026-08-13確認） | acd-agent関連度・役割 | 不確実性 |
+|---|---|---|---|---|---|---|
+| [JLCONE](https://jlcpcb.com/jp/download)（[英語版](https://jlcpcb.com/download)） | JLCPCB公式proprietaryクライアント、closed source | Windows／macOS（ARM・Intel）デスクトップ版とGoogle Play／App Storeモバイル版。PCB、PCBA、SMTステンシル、3Dプリント、CNC、板金、機構部品の発注を単一UIへ統合し、注文状態のpush通知、製造例外時のエンジニアとのライブチャット、アプリ限定割引（初回$104クーポン）を提供。 | 人間向けGUI／モバイル。注文・状態確認・問い合わせを一体化する。 | 公開は2025-08-25とされるが、根拠は第三者press release（2025-08-28）で二次情報。ヘルプセンターの「JLCONE Download and Installation」はmacOSインストールガイドのみ。 | **中**。agent自動化面ではなく、不可逆な発注を人手で確認するfallback経路と注文状態の可視化経路。自動化の正面は§8既出のJLC API Platform。 | ダウンロードページで版番号・changelog・checksum・署名情報・ライセンス条項を確認できず、配布binaryをEvidenceとしてpinできない。利用規約とデータ取り扱いは未確認。 |
+| [JLC API Platform](https://api.jlcpcb.com/)（Components API） | 商用API、proprietary | EDAツールやERPと連携し、100万点規模の部品の実時間価格・在庫・仕様を取得するComponents APIを公開ページに明記。 | developer portalでアカウント登録し、無償のAPI access申請を行う。Components APIの具体的endpointは申請後の境界。 | §8既出のPCB／Stencil／3D Printing APIに加えてComponents APIを確認（2026-08-13確認）。 | **高**。§3.1のjlcparts（scrape）に対する公式データ経路の候補。 | 具体的endpoint仕様、rate limit、データ再配布条件、審査基準は申請しないと確認できない。 |
+| [EasyEDA / LCSC / JLCPCB](https://easyeda.com/page/about) | proprietary Web EDA／SaaS | LCSCの部品カタログとJLCPCBの製造サービスを設計ツール内に統合。100万超の無料ライブラリ、API、script、Altium／KiCad／Eagle／PNG／DXF importを掲げ、OSHWLab、JLC3DP、JLCCNC、JLCMCも周辺に統合。 | Web GUI／cloud format。設計から部品選択・製造サービスへ接続するが、外部ゲートとの機械的な境界は未確認。 | 公式Aboutで機能と垂直統合を確認（2026-08-13確認）。 | **中**。設計から発注までを単一ベンダーで閉じる例で、設計graphを正、製造を外部境界とするACDとは対照的。 | 設計データのcloud・format依存、外部の決定論的ゲートやEvidence保存との接続可否、APIの範囲、data export／所有権条件は未確認。 |
+| [Fabrication Toolkit（bennymeg）](https://github.com/bennymeg/Fabrication-Toolkit) | OSS、`Apache-2.0` | KiCad pcbnew plugin。JLCPCB向けGerber／BOM／CPLを生成し、footprint回転補正の対応表を内蔵。 | GUIに加えてCLIを持つ。`python3 -m plugins.cli -p /myProject/myBoard.kicad_pcb`で実行でき、GUIの全オプションをCLIでも利用可能。KiCad jobsetからも呼び出せる。`.kicad_pcb`→Gerber／BOM／CPL。 | 最新release `5.3.1`（2026-05-15）（2026-08-13確認）。 | **高**。fab固有のfabrication packageをheadless生成でき、入力hash→出力hashで決定論的ゲート化できる数少ないplugin。 | 回転補正tableの正しさはJLC側の運用に依存し、plugin版差で出力が変わりうるため、生成物hashだけでなくplugin版の固定が必要。 |
+| [PCBWay Plug-in for KiCad](https://github.com/pcbway/PCBWay-Plug-in-for-Kicad) | OSS、`MIT` | ワンクリックでGerber、IPC-netlist、BOM、Pick and Placeをexportしuploadし、Save to Cartでカート投入まで進むKiCad plugin。KiCad 10対応。 | GUI plugin。`.kicad`設計→製造ファイルupload／cart投入。assembly発注にはMPNが必要で、schematicからのboard更新が前提。 | 最新release `v1.0.5`（2026-03-31）（2026-08-13確認）。 | **中**。発注の一歩手前（cart投入）までを自動化する例で、見積と発注の分離の実装バリエーション。 | headless実行境界は未確認。PCBWay partner API（§8既出）との機能重複関係も未確認。 |
+| [AISLER Push for KiCad / Push for CLI](https://github.com/AislerHQ/PushForKiCad) | OSS、`MIT` | Gerberに加えてODB++をassembly・smart testの一次データとしてexportし、BOMとPick'n'Placeも送る。再pushすると同一projectの新revisionとしてサーバ側に保存される。 | KiCad plugin／CLI。board setupのtext variable `aisler_export_locally`でuploadせずZIPをローカル出力できる。Push for CLIはS3互換クライアントで組織ごとのtoken配下へputし、CI pipelineで利用できる。 | 最新release `0.3.2`（2026-04-09）、KiCad 10対応（2026-08-13確認）。公開API specはなく、個別access key発行運用。 | **高**。pushごとの製造側revision管理とODB++一次交換formatが、ACDのfab package投影設計の参考になる。 | quote/order stateの機械可読取得可否は未確認。認証情報のキー文字列は本台帳に転記しない。 |
+| [Eurocircuits PCB / PCBA Visualizer](https://www.eurocircuits.com/user-guides/visualizer-user-guides/) | 商用Webツール、proprietary SaaS | アップロードした製造データからdigital twinを作り、700超のDRC／DFM ruleと970超のpre-defined buildupに照らして製造可否を自動判定。PCB CheckerとAssembly Checkerで指摘を確認でき、VisualizerまたはCAD側で修正する。 | Web UI／アカウント。製造データ→digital twin／DFM判定。公開APIによる自動実行は確認できず。 | PCB Visualizerは2012年、PCBA Visualizerは2017年提供開始（2026-08-13確認）。 | **高**。vendor側DFM gateとして成熟した公開例で、ACDのDFM profile比較対象。 | 判定ruleは非公開のblack boxで、結果を外部で再現検証できない。 |
+| [Seeed Studio OPL KiCad Library](https://github.com/Seeed-Studio/OPL_Kicad_Library) | OSS、`CC-BY-SA-4.0` | Seeed Fusion PCBAサービスのOpen Parts Library（OPL）に対応するsymbol／footprint。Seeed Fusionチームとコミュニティが保守。 | Git clone／KiCad library。fabが実装できる部品集合を設計側へ配布する。 | 最終push 2026-06-23、releaseなし（2026-08-13確認）。 | **中〜高**。Digi-Key atomic partsやjlcpartsと同系で、fab実装可能部品集合のライブラリ化を比較できる。 | 設計成果物向け例外条項は確認できず、素のCC-BY-SA-4.0。改変・再配布時のshare-alike影響を個別確認し、版はcommit hashで固定する必要がある。 |
+| [KiCost](https://github.com/hildogjr/KiCost) | OSS、`MIT` | KiCad BOMから複数distributorの価格・在庫を横断取得し、cost spreadsheetを生成。 | CLI／Python。BOM→価格・在庫snapshot／spreadsheet。 | 最新release `v1.1.21`（2026-07-08）（2026-08-13確認）。 | **高**。取得時刻・通貨・地域つきcost／availability snapshotをartifact化する先行例。 | distributorごとのAPI key要否・利用規約は個別確認。web scrape経路では規約リスクがあり、保存メタデータの範囲は実装依存。 |
+| [InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom) | OSS、`MIT` | KiCad、EasyEDA、Eagle、Fusion360、Allegroの基板データから実装作業向け対話的HTML BOMを生成。 | KiCad plugin。基板データ→HTML BOM。 | 最新release `v2.11.2`（2026-05-24）、最終push 2026-07-12（2026-08-13確認）。 | **中**。決定論的に生成できるassembly補助artifactで、実装・検査Evidenceに利用できる。 | headless／CLI実行の範囲は今回確認していない。 |
+| [jlcpcb-mcp（Eyalm321）](https://github.com/Eyalm321/jlcpcb-mcp) | OSS、`MIT` | jlcpartsのSQLite catalog検索、`wmsc.lcsc.com`からの実時間在庫・価格・datasheet取得、公式JLC Open API経由のGerber upload、見積、注文明細／状態、注文作成を計28 toolで提供。 | MCP server。注文作成toolは`JLCPCB_ENABLE_ORDERS`既定offのgateで塞がれ、見積・uploadは資格情報のみで動く。 | 最新release `v0.3.3`（2026-06-03）（2026-08-13確認）。 | **高**。不可逆な発注をgateで分離する最も近い実装例。 | star 1程度の小規模個人実装で運用・監査実績はなく、そのまま依存する対象ではない。`wmsc.lcsc.com`は非公式endpointで規約適合性未確認。env flag一つでは承認ID・最終artifact固定に不足。 |
+| [hatlabs/jlcpcb-cli](https://github.com/hatlabs/jlcpcb-cli) | ライセンス未確認（LICENSEファイルなし、GitHub license APIもnull） | ブラウザログインでJLCPCBのWeb内部APIを叩き、注文batch一覧、PCB／SMT／3DP明細、コスト内訳、personal parts inventoryをJSON取得。 | 非公式CLI。ブラウザ認証→注文・実績JSON。公式API keyは使わない。 | 最終push 2026-07-03、releaseなし（2026-08-13確認）。 | **中**。製造結果のclosed loopに必要な実コスト・納期・状態を機械可読に取り出す例。 | 非公式経路のため仕様変更で壊れ、規約適合性も不明。ライセンス未確認のためACDへの取り込み・参照実装としての流用は保留。 |
+| [tracespace](https://github.com/tracespace/tracespace) | OSS、`MIT` | Gerber／drillからSVG renderingを生成。 | CLI／renderer。Gerber／drill→SVG。 | 既定branchは`v5`、最終push 2025-01-20で更新停滞、latest releaseはAPI取得不可（2026-08-13確認）。 | **中**。fab packageの視覚検証を決定論的に行うrenderer候補。 | 最新Gerber表現への追随は未確認。 |
+
+この層は「GUIクライアント（JLCONE、EasyEDA）」「EDA plugin（Fabrication Toolkit、
+PCBWay、AISLER）」「vendor側DFM（Eurocircuits Visualizer）」「非公式CLI/MCP
+（jlcpcb-cli、jlcpcb-mcp）」に分かれる。自動化とEvidence化に適するのはCLIを持つ
+ものだけであり、ACDでは発注のような不可逆操作はJLCONEのようなGUI経路を人手の確認点
+として残しつつ、機械が回すのは見積・DFM・package生成までに限り、そこで生成物hashと
+tool版を記録する切り分けが妥当である。§3.1のjlcpartsとkicad-jlcpcb-toolsもこの層と
+地続きだが、部品ライブラリ側の調査として同節に記録している。
 
 ## 9. コラボレーション・版管理
 
@@ -252,9 +312,10 @@ deterministic gate、approval-bound irreversible operationはACD側で定義す�
 2. **決定論的gateの標準化:** `kicad-cli`、DRC、SPICE、FreeCAD recompute、
    slicerは個別に自動化できる。しかし、tool version、input hash、output hash、
    convergence、uncertainty、approvalを共通envelopeにまとめる例は少ない。
-3. **製造結果のclosed loop:** fab package生成やquoteの公開例はある。しかし、
-   実製造のDFM修正、納期、歩留まり、実測を設計graphへ戻す公開end-to-end実装は
-   確認できない。
+3. **製造結果のclosed loop:** fab package生成やquoteの公開例はある。hatlabs/jlcpcb-cliは
+   注文履歴・コスト内訳・在庫を機械可読に取得する部分的な先行例だが、非公式Web API経由で
+   ライセンスも未確認であり、取得した実績を設計graphへ戻す経路は確認できない。実製造の
+   DFM修正、納期、歩留まり、実測を設計graphへ戻す公開end-to-end実装も確認できない。
 4. **筐体×基板の同時制約:** StepUp/CoDesignerは協調交換、Ultimate Box Makerは
    parametric box、agentcad/cad-khanaはgeometry diagnosticsを提供する。
    電気制約と機械制約を同時に探索し、根拠付きで修復する仕組みは未成熟である。
@@ -264,12 +325,16 @@ deterministic gate、approval-bound irreversible operationはACD側で定義す�
 6. **部品・3Dモデルの出所:** SnapMagic、Ultra Librarian、Nexar等はデータ源である。
    しかし、採用時点のdatasheet、lifecycle、stock、footprint/3D hashを設計revision
    に固定する横断的な公開実装は確認できない。
+   CERN KiCad Librariesは、nightly生成pipelineのprovenanceをcommit messageに記録し、
+   `CHECKSUMS`によるファイル単位hashとdatabase library形式を備える最も近い先行例である。
+   一方、設計revisionへの採用時点のdatasheet、lifecycle、stock、hashの固定までは確認できない。
 7. **benchmarkの製造・実測不足:** HWE-Bench、pcbGPT、PCB-Benchは生成とreasoningの
    評価を進めているが、fab、assembly、bring-up、measurementまでを含む公開benchmarkは
    確認できない。
 8. **API-first orderingの安全境界:** JLC、PCBWay、Slant3D等には自動化APIがある。
-   しかし発注は不可逆副作用であり、見積、承認、最終artifact固定、status webhookを
-   分けた汎用ゲートは先行例として確認できない。
+   jlcpcb-mcpは注文作成toolを`JLCPCB_ENABLE_ORDERS`の既定offで塞ぐ最も近い実装例だが、
+   小規模な個人実装であり、見積→承認ID→最終artifact固定→status webhookを分離した
+   汎用ゲートには至っていない。
 9. **製造可能性の実体検査:** slicerはG-codeを生成できるが、ケースの肉厚、overhang、
    support、嵌合、ねじ、insert、公差を一つの標準診断にまとめた例はcad-khana等の
    新しい実装に限られる。
@@ -314,6 +379,9 @@ deterministic gate、approval-bound irreversible operationはACD側で定義す�
 | PCB fab quote/DFM | JLCPCB API、PCBWay partner API | Gerber/zip＋profile→quote/DFM/order state | quoteとorderを分離。orderはapproval ID必須。 |
 | 3D print quote/order | JLC3DP、Slant3D、Xometry partner API | STEP/STL/3MF→quote/order/webhook | 契約・access、価格snapshot、最終hashを記録。 |
 | Component evidence | Nexar/Octopart、Digi-Key、Mouser | MPN/query→price/stock/lifecycle | time/region/currency/credentials scopeを保存。 |
+| fab package生成 | Fabrication Toolkit CLI | `.kicad_pcb`→Gerber/BOM/CPL | plugin版と回転補正tableを固定。 |
+| Gerber視覚検証 | tracespace | Gerber/drill→SVG | 更新停滞に注意し、renderの一致を製造可否の証拠にしない。 |
+| BOM cost snapshot | KiCost | BOM→価格・在庫spreadsheet | 取得時刻・通貨・distributor資格情報のscopeを保存。 |
 
 ## 19. まとめ
 
@@ -388,6 +456,29 @@ FreeCAD、OCCT、スライサは同梱依存物・データ・プラグインに
 | CuraEngine | `AGPL-3.0-or-later` | AGPL | 最新releaseは**取得できず**（試行: [releases/latest](https://github.com/Ultimaker/CuraEngine/releases/latest)） | [LICENSE本文](https://raw.githubusercontent.com/Ultimaker/CuraEngine/main/LICENSE) | `CuraEngine` CLIを外部プロセスで使うのが実用的。AGPL codeをACDへimport/linkすることは避け、再配布・改変時のsource offerとNOTICEを法務確認。 |
 | OrcaSlicer | `AGPL-3.0-or-later`想定だがLICENSE本文は**取得できず**（試行: [LICENSE](https://raw.githubusercontent.com/SoftFever/OrcaSlicer/main/LICENSE)） | AGPL想定／未確定 | 最新releaseは**取得できず**（試行: [releases/latest](https://github.com/SoftFever/OrcaSlicer/releases/latest)） | [repository](https://github.com/SoftFever/OrcaSlicer) | AGPLを前提に、CLI外部実行のみを採用候補とする。本文・同梱PrusaSlicer由来コード・profilesのlicense確定が先。 |
 | PCB-Bench | LICENSE本文は**取得できず**（試行: [LICENSE](https://raw.githubusercontent.com/digailab/PCB-Bench/main/LICENSE)） | 未確認 | 最新releaseは**取得できず**（試行: [releases/latest](https://github.com/digailab/PCB-Bench/releases/latest)） | [repository](https://github.com/digailab/PCB-Bench) | benchmark code/data/model weightsをACDへimport・再配布する前に、コードとデータセットを分離してlicense確認。 |
+| CERN KiCad Libraries | `CERN-OHL-P-2.0`（`LICENSE`、`LICENSES/`、`.reuse/dep5`で明示。dep5のcopyrightは2024-2025 CERN） | permissive（CERN-OHL-P） | tag・releaseはなくmaster nightly更新、最新commit `2026-08-13T01:05Z`（bot commit）（2026-08-13確認） | [LICENSE](https://gitlab.com/ohwr/cern-kicad-libs/-/raw/master/LICENSE)、[.reuse/dep5](https://gitlab.com/ohwr/cern-kicad-libs/-/raw/master/.reuse/dep5) | permissive variantなので設計・再配布とも制約が緩いが、ライブラリデータの再配布時はCERN-OHL-P-2.0の表示義務と免責（section 5）を守る。3D model・datasheetは非同梱で、別出所のデータを混ぜる場合はライセンスが分かれる。 |
+| KiCad公式ライブラリ（`kicad-symbols`/`kicad-footprints`/`kicad-packages3D`） | `CC-BY-SA-4.0`＋設計向け例外 | CC-BY-SA＋例外 | `kicad-symbols`の最新tag `10.0.5`（2026-07-15）（2026-08-13確認） | [kicad-symbols/LICENSE.md](https://gitlab.com/kicad/libraries/kicad-symbols/-/raw/master/LICENSE.md) | 例外により設計成果物へのshare-alike波及は生じない読み方が公式見解だが、ライブラリを集合として再配布・改変再配布する場合はCC-BY-SA義務が残る。 |
+| kicad-library-utils | `GPL-3.0`（COPYING本文取得） | GPL | tagなし、master更新（2026-08-11活動）（2026-08-13確認） | [COPYING](https://gitlab.com/kicad/libraries/kicad-library-utils/-/raw/master/COPYING) | KLCチェックは外部プロセス（CLI）実行に限定し、ACDへimport結合しない。 |
+| kicad-footprint-generator | README記載 `GPL-3.0-or-later`（ファイル単位の例外あり、LICENSE本文は未取得） | GPL | tagなし、master更新（2026-08-13確認） | [README](https://gitlab.com/kicad/libraries/kicad-footprint-generator/-/raw/master/README.md) | 生成器は外部プロセス実行。生成されたfootprintの再配布条件は別途確認。 |
+| Digi-Key KiCad library | `CC-BY-SA-4.0`＋KiCadと同文の設計向け例外 | CC-BY-SA＋例外 | 最終push 2024-03-16、releaseなし（2026-08-13確認） | [LICENSE.md](https://github.com/Digi-Key/digikey-kicad-library/blob/master/LICENSE.md) | 更新停滞、atomic partsの調達属性は取得時点付きsnapshotとして扱う。 |
+| Espressif KiCad Libraries | `CC-BY-SA-4.0`＋設計向け例外 | CC-BY-SA＋例外 | 最新release `3.2.1`（2026-07-24）（2026-08-13確認） | [LICENSE.md](https://github.com/espressif/kicad-libraries/blob/main/LICENSE.md) | PCM addonをversion固定で利用。 |
+| SparkFun KiCad Libraries | LICENSE本文を**取得できず**（GitHub license APIも404。試行: [LICENSE.md](https://raw.githubusercontent.com/sparkfun/SparkFun-KiCad-Libraries/main/LICENSE.md)） | 未確認 | 最新release `v9.0.0`（2025-10-17）（2026-08-13確認） | [LICENSE.md試行](https://raw.githubusercontent.com/sparkfun/SparkFun-KiCad-Libraries/main/LICENSE.md) | ライセンス確定まで同梱・再配布は保留。 |
+| Horizon EDA pool | `CC-BY-SA-4.0`＋設計向け例外 | CC-BY-SA＋例外 | 最終push 2026-06-26（2026-08-13確認） | [LICENSE.md](https://github.com/horizon-eda/horizon-pool/blob/master/LICENSE.md) | KiCadと異なるライブラリモデルのため、変換して取り込む場合は帰属表示を維持。 |
+| jlcparts | `MIT`（コードのみ。収集データはJLCPCB/LCSC由来） | MIT | releaseなし、最終push 2026-08-13（2026-08-13確認） | [repository](https://github.com/yaqwsx/jlcparts) | コードはMITだが部品データの再配布可否はLCSC/JLCPCB側条件。 |
+| kicad-jlcpcb-tools | `MIT` | MIT | 最終push 2026-07-30（2026-08-13確認） | [repository](https://github.com/Bouni/kicad-jlcpcb-tools) | KiCad GUI plugin前提。 |
+| InvenTree | `MIT` | MIT | 活発更新（2026-08-13確認） | [repository](https://github.com/inventree/InvenTree) | 外部サービスとしてAPI連携する形が境界明瞭。 |
+| JLCONE | proprietary（配布条項未確認） | proprietary | 公開日は2025-08-25とされるが第三者press release由来（2026-08-13確認） | [ダウンロード](https://jlcpcb.com/jp/download) | 配布binaryの版・checksum・署名・ライセンス条項が確認できないため、ACDへの同梱・pinは保留。人手fallbackとして利用する。 |
+| EasyEDA／LCSC／JLCPCB | proprietary SaaS | proprietary | 現行版・日付は未確認（2026-08-13確認） | [EasyEDA About](https://easyeda.com/page/about) | SaaS利用を前提とし、設計データのcloud／format境界、export・所有権条件を確認するまでACDへの結合・再配布は行わない。 |
+| Eurocircuits PCB／PCBA Visualizer | proprietary SaaS | proprietary | PCB Visualizerは2012年、PCBA Visualizerは2017年提供開始（2026-08-13確認） | [Visualizer user guides](https://www.eurocircuits.com/user-guides/visualizer-user-guides/) | Webサービスとして外部DFMを利用する。ruleがblack boxで公開APIも未確認のため、判定結果だけを再現可能なEvidenceとみなさない。 |
+| Fabrication Toolkit | `Apache-2.0` | permissive | 最新release `5.3.1`（2026-05-15）（2026-08-13確認） | [repository](https://github.com/bennymeg/Fabrication-Toolkit) | CLIを外部プロセス実行するかimportする境界は比較的明瞭。回転補正tableとplugin版を固定し、生成packageのhashを保存する。 |
+| PCBWay Plug-in for KiCad | `MIT` | permissive | 最新release `v1.0.5`（2026-03-31）（2026-08-13確認） | [repository](https://github.com/pcbway/PCBWay-Plug-in-for-Kicad) | pluginは同梱・外部実行とも候補だが、GUI前提でheadless境界は未確認。Save to Cartは発注前の人手確認点に留める。 |
+| AISLER PushForKiCad | `MIT` | permissive | 最新release `0.3.2`（2026-04-09）（2026-08-13確認） | [repository](https://github.com/AislerHQ/PushForKiCad) | plugin／CLIは外部プロセス利用候補。個別access keyと非公開API境界を分離し、pushごとのrevisionをEvidence化する。 |
+| Seeed Studio OPL KiCad Library | `CC-BY-SA-4.0` | CC-BY-SA（設計成果物向け例外なし） | 最終push 2026-06-23、releaseなし（2026-08-13確認） | [repository](https://github.com/Seeed-Studio/OPL_Kicad_Library) | 素のCC-BY-SA-4.0のため、設計成果物向け例外のあるKiCad公式とは異なる。同梱・改変再配布はshare-alike影響を確認するまで保留する。 |
+| KiCost | `MIT` | permissive | 最新release `v1.1.21`（2026-07-08）（2026-08-13確認） | [repository](https://github.com/hildogjr/KiCost) | CLI／importとも候補。distributorごとのAPI key・規約と、価格・在庫snapshotの取得時刻等を分離記録する。 |
+| InteractiveHtmlBom | `MIT` | permissive | 最新release `v2.11.2`（2026-05-24）、最終push 2026-07-12（2026-08-13確認） | [repository](https://github.com/openscopeproject/InteractiveHtmlBom) | CLI生成artifactとして同梱・外部実行とも候補。入力hashと生成tool版を保存する。 |
+| jlcpcb-mcp | `MIT` | permissive | 最新release `v0.3.3`（2026-06-03）（2026-08-13確認） | [repository](https://github.com/Eyalm321/jlcpcb-mcp) | MCPを外部プロセス実行する候補。`wmsc.lcsc.com`は非公式endpointで、注文gateも汎用承認境界としては不足する。 |
+| hatlabs/jlcpcb-cli | ライセンス未確認（LICENSEなし、GitHub license APIもnull） | 未確認 | 最終push 2026-07-03、releaseなし（2026-08-13確認） | [repository](https://github.com/hatlabs/jlcpcb-cli) | ライセンス未確認・非公式Web API経路のため、ACDへの取り込み・同梱・参照実装としての流用は保留。 |
+| tracespace | `MIT` | permissive | 既定branch `v5`、最終push 2025-01-20、latest releaseはAPI取得不可（2026-08-13確認） | [repository](https://github.com/tracespace/tracespace) | CLI／rendererとして利用候補だが更新停滞に注意。SVG renderは製造可否判定の代替にしない。 |
 
 ### 20.2 acd-agentでの暫定採用方針
 
@@ -403,9 +494,18 @@ FreeCAD、OCCT、スライサは同梱依存物・データ・プラグインに
   OpenSCAD、PrusaSlicer、CuraEngine、OrcaSlicer。外部プロセス化は
   ライセンス義務を消すものではないが、ACDのMIT想定コードとのlibrary
   combined-work論点を減らし、ツールbinary、NOTICE、依存SBOMを分離管理しやすい。
+  kicad-library-utils（GPL）は外部プロセス側で扱い、CERN KiCad Librariesは
+  permissiveなデータとして利用できる。
+- **permissiveなplugin／CLI群:** Fabrication Toolkit、AISLER PushForKiCad、
+  PCBWay plugin、KiCost、InteractiveHtmlBom、tracespace、jlcpcb-mcpは
+  Apache-2.0またはMITで、外部プロセス実行にもimportにも障害が小さい。
+- **同梱・参照を保留するもの:** Seeed OPLは設計成果物向け例外のない
+  CC-BY-SA-4.0のため同梱・再配布を保留する。hatlabs/jlcpcb-cliは
+  ライセンス未確認のため、参照実装としての利用も保留する。
 - **importの第一候補:** diodeinc/pcb、atopile、tscircuit、SKiDL、
   build123d、CadQuery、OCP、trimesh、agentcad、cad-khana、
-  build123d-mcp、Renode、scikit-rf。ただし、各依存・生成データ・商用
+  build123d-mcp、Renode、scikit-rf。CERN KiCad Librariesもデータ利用の候補。
+  ただし、各依存・生成データ・商用
   libraryのライセンスを解消した後に採用する。
 
 GPL/AGPLの「外部プロセスなら必ず問題ない」という意味ではない。ネットワーク
