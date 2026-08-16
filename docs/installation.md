@@ -6,7 +6,7 @@
 >
 > 対象版: OpenHands Agent Canvas 1.12.0（同梱既定 agent-server 1.40.1 / automation 1.6.0）、
 > Agent Canvasソース（`vendor/openhands` = v1.13.0）、acd-agent
->（`vendor/software-agent-sdk` = OpenHands Software Agent SDK v1.41.0）
+>（`vendor/software-agent-sdk` = OpenHands Software Agent SDK v1.42.1）
 >
 > 一次情報の確認日: 2026-08-11（公式ドキュメント`https://docs.openhands.dev/`および
 > `OpenHands/OpenHands`リポジトリのREADME）
@@ -339,13 +339,13 @@ git submodule update --init --recursive
 
 ```text
 4f465f3ccada5271a3bbe4a0148941b0c40d243b vendor/openhands (v1.13.0)
-ca46719d5e9a0b0af79f7de2da37067a5b94563c vendor/software-agent-sdk (v1.41.0)
+167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497 vendor/software-agent-sdk (v1.42.1)
 ```
 
 `vendor/openhands`の実測サイズは、作業ツリー18M、Git object database 400M、
 合計約418Mだった。CIのcloneコストを考慮し、`.gitmodules`で`shallow = true`を指定した。
 このcommitがAgent Canvasソース版の出所であり、既存SDKの
-`ca46719d5e9a0b0af79f7de2da37067a5b94563c`も同様に固定される。
+`167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`も同様に固定される。
 SDKの利用範囲とACD側の実装境界は[`openhands-integration.md`](openhands-integration.md)の
 記述に対応する。
 
@@ -834,7 +834,7 @@ ACDのEvidenceは、発注可否、価格、在庫、納期、fab側DFM合格を
 | Node.js／npm | `v22.23.2`／`10.9.8` |
 | uv | `0.7.9`（SDKが推奨する0.8.13以上ではない） |
 | acd-agentのAgent Canvasソースsubmodule | `4f465f3ccada5271a3bbe4a0148941b0c40d243b`（v1.13.0、作業ツリー18M＋Git object database 400M、shallow指定） |
-| acd-agentのSDK submodule | `ca46719d5e9a0b0af79f7de2da37067a5b94563c`（v1.41.0） |
+| acd-agentのSDK submodule | `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`（v1.42.1） |
 | acd-agentのlint／型検査／テスト／文書検証 | すべて成功（ruff 0.16.2、pyright 1.1.411、pytest 9.1.1で118 passed、Markdown 36ファイル） |
 | KiCad | `kicad-cli 10.0.5`、`kicad-symbols 10.0.5~ubuntu22.04.1`、`kicad-footprints 10.0.5~ubuntu22.04.1` |
 | 外部ツール | freerouting `2.3.0`、build123d `0.11.1`／cadquery-ocp `7.9.3.1.1`、ESP-IDF `v6.0.2`、QEMU `9.2.2` |
@@ -842,7 +842,8 @@ ACDのEvidenceは、発注可否、価格、在庫、納期、fab側DFM合格を
 
 acd-agentが参照するAgent Canvasソース（v1.13.0）およびSDK（v1.41.0）と、Agent Canvasが
 npm導入版として既定で起動するagent server同梱SDK（1.40.1）は版が異なる。両者を同一環境で
-組み合わせる場合の互換性は未確認であり、必要なら
+組み合わせる場合の互換性は、SDK v1.41.0時点の実測で未確認である。今回更新したSDK
+v1.42.1との組み合わせは未検証であり、必要なら
 `OH_AGENT_SERVER_VERSION`で明示的に固定してから検証する。
 
 ## 10. 未確認事項
@@ -853,7 +854,7 @@ npm導入版として既定で起動するagent server同梱SDK（1.40.1）は�
 - `plugins/acd`のAgent Canvasへの導入と`SessionStart` hookの成立。
 - agent-server側Python環境でのACD package import成立。
 - agent server起動時のprotobuf／pyasn1 egg警告の影響。
-- Agent Canvas同梱SDK 1.40.1とacd-agent側SDK v1.41.0の組み合わせ。
+- Agent Canvas同梱SDK 1.40.1とacd-agent側SDK v1.41.0の組み合わせ（v1.41.0時点の実測。v1.42.1との組み合わせは未検証）。
 - `uv` 0.8.13未満での長期運用（本VMは0.7.9で`uv sync`が成功したが、SDKは0.8.13以上を要求する）。
 - 実機probe-rsによるFW書き込み、実機LED、実機シリアル、SHT40測定。
 - rootless Dockerの長期運用、cgroup制約の解消、UIDマッピングを含むproduction運用。

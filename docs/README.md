@@ -1,7 +1,7 @@
 # ACDドキュメント索引
 
 > ステータス: Draft  
-> 対象: ACDコンセプト段階、OpenHands SDK v1.41.0、調査日 2026-08-11
+> 対象: ACDコンセプト段階、OpenHands SDK v1.42.1、調査日 2026-08-11
 
 本索引は`docs/`の文書一覧と読む順序を正とする。各文書は、冒頭の対象範囲と
 関連文書へのリンクを基準に、個別の仕様・調査・運用方針を記述する。
@@ -51,7 +51,7 @@
 | `fab-data-preparation-retrospective.md` | JLCPCB製造データ先行実装の事実、失敗、一般化対象 | Draft |
 | `future-outlook.md` | ローカル製造、プリンテッドエレクトロニクス、将来展望 | Draft |
 | `architecture.md` | 型付き設計グラフとadapter設計 | Draft |
-| `openhands-integration.md` | SDK v1.41.0との統合判断 | Draft |
+| `openhands-integration.md` | SDK v1.42.1との統合判断 | Draft |
 | `implementation-plan.md` | 実装の構成正本（リポジトリ・パッケージ・Skill・agent・CI） | Draft |
 | `phase0-plan.md` | Phase 0の作業単位・順序・撤退条件 | Draft |
 | `phase0-retrospective.md` | Phase 0実施結果・逸脱・教訓の記録 | Draft |
