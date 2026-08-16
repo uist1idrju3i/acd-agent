@@ -318,7 +318,7 @@ RFモジュールではfootprint内の単一アンテナkeepoutから板端ア�
 第3段のデカップリング対象は設計グラフの`decoupling_target`宣言から導出し、
 対象ICの電源padまでの距離を目的関数にする。推測による分類や配置不能時の制約緩和は行わない。
 
-GD1最新実行で生成される製造データは、`out/gd1-fix6/fab/`の次のファイルである。
+GD1最新実行で生成される製造データは、`out/gd1-final/fab/`の次のファイルである。
 
 - `gd1-gerbers.zip`
 - `gd1-bom-jlcpcb.csv`
@@ -364,11 +364,36 @@ F.Cu `2`領域、B.Cu `1`領域、銅面積`1066.8861574973707 mm²`、連結成
 塗り後剪定`1`反復、剪定`0`個であった。ERCは`0` errors、DRCは`0` errors・
 `0` unconnected、DFM findingsは`0`である。
 最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、silk最小stroke幅`0.15 mm`である。
+塗り後Gerberのflash中心を座標照合した達成pitchの独立実測は、宣言pitch
+`3.011932521069266 mm`に対して、外周隣接最大gap `40.8478 mm`、全stitch viaの
+最近傍距離最大 `9.610355810790772 mm`であり、`declared_pitch_satisfied: false`である。
+この未達は今回のpipeline合否ゲートにはせず、Evidenceへ明示的に記録する。証拠の欠落や
+Gerber座標の照合不能はfail-closedとする。stitch候補は`93`点で、除外ヒット数は
+footprint body/courtyard `82`、wire `51`、pad `48`、keepout `1`、via `1`、
+板端インセット `0`、相互間隔 `0`である（理由は重複計上）。選択は`7`点であり、
+body/courtyardとwire、padが支配的な制約だった。回転後軸平行bbox判定を回転矩形そのもの
+の判定へ置き換える比較では、候補`93`点、選択`7`点で差がなかった。clearanceは変更していない。
+Freeroutingのwire方式の実測は、`188` route wire、`24` route via、0 unroutedで収束し、
+KiCad DRCは`0` errors・`0` unconnected、銅面積`1066.8861574973707 mm²`、stitch via
+`7`点、上記pitch値である。plane方式はDSNの`(plane F.Cu GND ...)`入力で
+`Plane.read_scope: String expected at 'Via_600:300'`および`DSN structure parsing failed`
+を実測し、CLI status `0`でも有効なrouting outputや収束とは扱わなかった。
+板端から`via diameter + clearance = 0.6 + 0.15 = 0.75 mm`の帯をF.Cu/B.Cu keepout
+として予約する比較では、Freeroutingは`188` wire、`24` via、0 unroutedで収束したが、
+最終scoreは`956.81`（`19` violations）であり、KiCad DRC 0/0へ到達した証拠は得られなかった。
+この比較経路の最終Gerber再生成・stitch via挿入は既定経路へ反映していないため、帯方式の
+stitch数・達成pitch・銅面積は`unknown`として合格根拠にしない。
+via profileとの突合では、route `24`個に対してstitch `7`個を追加し、routing via合計は
+`31`個、ground-plane drill objectは`41`個（stitchなし推定`34`個、追加`7`個）となった。
+via径`0.6 mm`、drill`0.3 mm`であり、profileの`via-hole-prefer-020`、
+`via-hole-015-cost`、`via-hole-small-diameter-cost`、`via-diameter-margin-quality`
+の閾値へ照合した。profileには数量単位のper-via surchargeが無いため、該当数値は追加工程負荷
+として`fab-package.json`へ記録し、金額・納期の確定値とは扱わない。
 J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
 ともに回転`0°`である。U1の板端はみ出し宣言は本体外形基準で`5.4 mm`である。DSNの
 `(via_at_smd off)`とSMD pad周囲の`via_keepout`により、
-SMD pad上viaを構造的に禁止している。出所は`out/gd1-revalidated/fab/dfm-report.json`、
-`out/gd1-revalidated/routing-summary.json`、`out/gd1-revalidated/fab/fab-package.json`である。
+SMD pad上viaを構造的に禁止している。出所は`out/gd1-final/fab/dfm-report.json`、
+`out/gd1-final/routing-summary.json`、`out/gd1-final/fab/fab-package.json`である。
 | `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
 | `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | stale判定が`unknown`で停止 |
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |

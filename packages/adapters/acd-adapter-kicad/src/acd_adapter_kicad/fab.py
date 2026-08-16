@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
+import itertools
 import json
 import math
 import re
@@ -40,6 +41,22 @@ from acd_core.fab import (
 
 class FabOutputError(ValueError):
     """Raised when manufacturing output cannot be proven correct."""
+
+
+class UncoveredStitchViasError(FabOutputError):
+    """Raised when filled Gerbers do not cover requested stitch vias."""
+
+    def __init__(self, locations: tuple[tuple[float, float], ...]) -> None:
+        self.locations = locations
+        locations_text = ", ".join(f"({x}, {y})" for x, y in locations)
+        super().__init__(
+            f"stitch vias lack copper coverage (fail-closed): {locations_text}"
+        )
+
+
+def _gerber_to_board_point(x_mm: float, y_mm: float) -> tuple[float, float]:
+    """Convert Gerber's Y-up coordinates to the board's Y-down frame."""
+    return x_mm, -y_mm
 
 
 @dataclass(frozen=True)
@@ -1122,10 +1139,7 @@ def verify_ground_plane_gerbers(
         )
     ]
     if uncovered_stitch_vias:
-        locations = ", ".join(f"({x}, {y})" for x, y in uncovered_stitch_vias)
-        raise FabOutputError(
-            f"stitch vias lack copper coverage (fail-closed): {locations}"
-        )
+        raise UncoveredStitchViasError(tuple(uncovered_stitch_vias))
 
     uncovered_gnd_points = [
         (layer, x, y)
@@ -1146,15 +1160,16 @@ def verify_ground_plane_gerbers(
             if region.function
             in {"Conductor", "SMDPad,CuDef", "ComponentPad", "ViaPad"}
         )
-        and not any(
-            ("F.Cu" if path == front_path else "B.Cu") == layer
-            and (
-                flash_box := bbox(flash)
-            ) is not None
-            and flash_box[0] <= x <= flash_box[2]
-            and flash_box[1] <= -y <= flash_box[3]
-            for path, flash in flash_records
-        )
+            and not any(
+                ("F.Cu" if path == front_path else "B.Cu") == layer
+                and (
+                    flash_box := bbox(flash)
+                ) is not None
+                and flash_box[0] <= x <= flash_box[2]
+                # Gerbonara flash Y is in a Y-up frame; board coordinates are Y-down.
+                and flash_box[1] <= -y <= flash_box[3]
+                for path, flash in flash_records
+            )
     ]
     if uncovered_gnd_points or uncovered_gnd_pads:
         uncovered = (*uncovered_gnd_points, *uncovered_gnd_pads)
@@ -1226,6 +1241,130 @@ def verify_ground_plane_gerbers(
             "GND conductor regions are disconnected (fail-closed): "
             f"connected_components={components}"
         )
+    def gerber_point(path: Path, flash: Flash) -> tuple[float, float]:
+        x = float(cast(float, flash.x))  # pyright: ignore[reportUnknownMemberType]
+        y = float(cast(float, flash.y))  # pyright: ignore[reportUnknownMemberType]
+        return _gerber_to_board_point(x, y)
+
+    def matching_flash(
+        path: Path, point: tuple[float, float]
+    ) -> tuple[float, float] | None:
+        gerber_match_tolerance_mm = 1e-4
+        matches = [
+            gerber_point(path, flash)
+            for record_path, flash in flash_records
+            if record_path == path
+        ]
+        if not matches:
+            return None
+        match = min(
+            matches,
+            key=lambda candidate: math.hypot(
+                candidate[0] - point[0], candidate[1] - point[1]
+            ),
+        )
+        return (
+            match
+            if math.hypot(match[0] - point[0], match[1] - point[1])
+            <= gerber_match_tolerance_mm
+            else None
+        )
+
+    measured_stitch_points: list[tuple[float, float]] = []
+    for stitch_point in stitch_vias:
+        front_match = matching_flash(front_path, stitch_point)
+        back_match = matching_flash(back_path, stitch_point)
+        if front_match is None or back_match is None:
+            raise FabOutputError(
+                "stitch via flash is absent from filled Gerbers (fail-closed): "
+                f"location={stitch_point}"
+            )
+        measured_stitch_points.append(front_match)
+    if len(measured_stitch_points) < 2:
+        raise FabOutputError(
+            "at least two stitch via flashes are required for pitch measurement "
+            "(fail-closed)"
+        )
+    nearest_distances = [
+        min(
+            math.hypot(point[0] - other[0], point[1] - other[1])
+            for other in measured_stitch_points
+            if other != point
+        )
+        for point in measured_stitch_points
+    ]
+    edge_x = model.edge_clearance_mm + model.via_diameter_mm / 2.0
+    edge_y = edge_x
+    edge_points = [
+        point
+        for point in measured_stitch_points
+        if min(
+            abs(point[0] - edge_x),
+            abs(point[0] - (model.width_mm - edge_x)),
+            abs(point[1] - edge_y),
+            abs(point[1] - (model.height_mm - edge_y)),
+        )
+        <= 1e-5
+    ]
+    if len(edge_points) < 2:
+        raise FabOutputError(
+            "at least two perimeter stitch via flashes are required for perimeter "
+            "pitch measurement (fail-closed)"
+        )
+    perimeter_width = model.width_mm - 2.0 * edge_x
+    perimeter_height = model.height_mm - 2.0 * edge_y
+
+    def perimeter_coordinate(point: tuple[float, float]) -> float:
+        x, y = point
+        distances = (
+            abs(y - edge_y),
+            abs(x - (model.width_mm - edge_x)),
+            abs(y - (model.height_mm - edge_y)),
+            abs(x - edge_x),
+        )
+        side = min(range(4), key=distances.__getitem__)
+        if side == 0:
+            return x - edge_x
+        if side == 1:
+            return perimeter_width + y - edge_y
+        if side == 2:
+            return perimeter_width + perimeter_height + (model.width_mm - edge_x - x)
+        return (
+            perimeter_width
+            + perimeter_height
+            + perimeter_width
+            + (model.height_mm - edge_y - y)
+        )
+
+    perimeter_length = 2.0 * (perimeter_width + perimeter_height)
+    perimeter_coordinates = sorted(perimeter_coordinate(point) for point in edge_points)
+    perimeter_gaps = [
+        second - first
+        for first, second in itertools.pairwise(perimeter_coordinates)
+    ]
+    perimeter_gaps.append(
+        perimeter_length - perimeter_coordinates[-1] + perimeter_coordinates[0]
+    )
+    declared_pitch = model.stitch_via_pitch_mm
+    if declared_pitch is None:
+        raise FabOutputError("declared stitch via pitch is unknown (fail-closed)")
+    perimeter_max_gap = max(perimeter_gaps)
+    nearest_max_distance = max(nearest_distances)
+    pitch_measurement = {
+        "declared_pitch_mm": declared_pitch,
+        "perimeter_adjacent_max_gap_mm": perimeter_max_gap,
+        "all_stitch_nearest_neighbor_max_distance_mm": nearest_max_distance,
+        "perimeter_stitch_via_count": len(edge_points),
+        "stitch_via_count": len(measured_stitch_points),
+        "declared_pitch_satisfied": (
+            perimeter_max_gap <= declared_pitch + 1e-6
+            and nearest_max_distance <= declared_pitch + 1e-6
+        ),
+        "basis": (
+            "Filled F.Cu and B.Cu Gerber flash centers independently matched "
+            "to each requested stitch via location."
+        ),
+    }
     return {
         "front_regions": sum(path == front_path for path, _ in conductor_records),
         "back_regions": sum(path == back_path for path, _ in conductor_records),
@@ -1245,6 +1384,7 @@ def verify_ground_plane_gerbers(
         "keepout_copper": keepout_copper_area_mm2 > 1e-9,
         "keepout_copper_area_mm2": keepout_copper_area_mm2,
         "keepout_measurements": keepout_measurements,
+        "stitch_via_pitch_measurement": pitch_measurement,
     }
 
 

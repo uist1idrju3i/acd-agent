@@ -177,17 +177,23 @@ def stitch_via_pitch(board: BoardView) -> float | None:
     dielectric_constant = board.stitch_via_dielectric_constant
     wavelength_fraction = board.stitch_via_wavelength_fraction
     basis_source = board.stitch_via_basis_source
-    values = (frequency_hz, dielectric_constant, wavelength_fraction, basis_source)
-    if any(value is None for value in values):
-        if any(value is not None for value in values):
+    if (
+        frequency_hz is None
+        or dielectric_constant is None
+        or wavelength_fraction is None
+        or basis_source is None
+    ):
+        if any(
+            value is not None
+            for value in (
+                frequency_hz,
+                dielectric_constant,
+                wavelength_fraction,
+                basis_source,
+            )
+        ):
             raise ValueError("incomplete stitch-via basis declaration (fail-closed)")
         return None
-    assert (
-        frequency_hz is not None
-        and dielectric_constant is not None
-        and wavelength_fraction is not None
-        and basis_source is not None
-    )
     if (
         frequency_hz <= 0
         or dielectric_constant <= 0

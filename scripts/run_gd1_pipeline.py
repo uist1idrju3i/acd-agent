@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -32,7 +31,7 @@ from acd_adapter_kicad.cli import KicadCli
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
     CplBasisError,
-    FabOutputError,
+    UncoveredStitchViasError,
     apply_cpl_contract,
     cross_validate_bom,
     cross_validate_cpl,
@@ -141,6 +140,7 @@ def run_pipeline(
         lane.board.via_drill_mm,
     )
     base_routed_board = routed_board
+    stitch_candidate_report: dict[str, object] = {}
     routed_board, stitch_vias = inject_stitch_vias(
         base_routed_board,
         project.board_projection.model,
@@ -149,6 +149,7 @@ def run_pipeline(
         project.board_projection.stitch_via_pitch_mm,
         lane.board.via_diameter_mm,
         lane.board.via_drill_mm,
+        candidate_report=stitch_candidate_report,
     )
     max_iterations = project.board_projection.model.stitch_via_refill_max_iterations
     if max_iterations is None or max_iterations <= 0:
@@ -195,14 +196,8 @@ def run_pipeline(
             print(f"[stitch-prune {iteration}] vias={len(stitch_vias)} uncovered=0")
             converged_iteration = iteration
             break
-        except FabOutputError as exc:
-            matches = re.findall(
-                r"\(([-0-9.eE]+), ([-0-9.eE]+)\)",
-                str(exc),
-            )
-            if not matches or "stitch vias lack copper coverage" not in str(exc):
-                raise
-            uncovered = tuple((float(x), float(y)) for x, y in matches)
+        except UncoveredStitchViasError as exc:
+            uncovered = exc.locations
             pruned_vias.extend(uncovered)
             covered = tuple(
                 point
@@ -318,6 +313,7 @@ def run_pipeline(
         stitch_vias,
         routes,
     )
+    plane_measurement["stitch_via_candidates"] = stitch_candidate_report
     edge_overhang_declarations = {
         str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
         for node in graph.nodes
@@ -426,6 +422,46 @@ def run_pipeline(
             if isinstance(value, list)
         },
     )
+    profile_preferences = cast(list[dict[str, object]], profile.data["preferences"])
+    via_driver_ids = {
+        "via-hole-prefer-020",
+        "via-hole-015-cost",
+        "via-hole-small-diameter-cost",
+        "via-diameter-margin-quality",
+        "via-hole-capability",
+    }
+    via_profile_drivers = [
+        {
+            "rule_id": str(preference["rule_id"]),
+            "description": str(preference.get("description", "")),
+            "impact": preference.get("impact"),
+            "threshold": preference.get("threshold"),
+            "matched_dfm_findings": sum(
+                str(finding.get("rule_id")) == str(preference["rule_id"])
+                for finding in cast(list[dict[str, object]], dfm_report["findings"])
+            ),
+        }
+        for preference in profile_preferences
+        if str(preference["rule_id"]) in via_driver_ids
+    ]
+    via_profile_evidence = {
+        "route_via_count": len(routes.vias),
+        "stitch_via_count": len(stitch_vias),
+        "total_routing_via_count": len(routes.vias) + len(stitch_vias),
+        "added_via_count_vs_route_only": len(stitch_vias),
+        "ground_plane_drill_object_count": drill_count,
+        "estimated_drill_object_count_without_stitch": drill_count - len(stitch_vias),
+        "added_drill_object_count_vs_route_only": len(stitch_vias),
+        "via_diameter_mm": lane.board.via_diameter_mm,
+        "via_drill_mm": lane.board.via_drill_mm,
+        "profile_driver_basis": via_profile_drivers,
+        "count_based_cost_driver_present": False,
+        "count_based_cost_driver_note": (
+            "The fab profile has geometry/process thresholds but no numeric "
+            "per-via quantity surcharge; added via and drill counts are recorded "
+            "as process burden."
+        ),
+    }
     dfm_report["ground_plane"] = {
         **plane_measurement,
         "routed_board_net_name_source": measurement.net_name_source,
@@ -433,6 +469,7 @@ def run_pipeline(
         "stitch_via_count": len(stitch_vias),
         "drill_count": drill_count,
         "cost_note": lane.board.stitch_via_cost_note,
+        "via_profile_cost_evidence": via_profile_evidence,
     }
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
@@ -483,6 +520,7 @@ def run_pipeline(
             "stitch_via_count": len(stitch_vias),
             "drill_count": drill_count,
             "cost_note": lane.board.stitch_via_cost_note,
+            "via_profile_cost_evidence": via_profile_evidence,
         },
         "gates": {
             "drc": (

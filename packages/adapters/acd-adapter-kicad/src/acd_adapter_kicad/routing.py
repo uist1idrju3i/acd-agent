@@ -69,6 +69,7 @@ def inject_stitch_vias(
     via_diameter_mm: float,
     via_drill_mm: float,
     allowed_points: Sequence[tuple[float, float]] | None = None,
+    candidate_report: dict[str, object] | None = None,
 ) -> tuple[str, tuple[tuple[float, float], ...]]:
     """Add deterministic GND stitching vias outside occupied geometry."""
     if pitch_mm is None or model.stitch_via_net is None:
@@ -115,13 +116,14 @@ def inject_stitch_vias(
         )
         return math.hypot(point[0] - (start[0] + t * dx), point[1] - (start[1] + t * dy))
 
-    def occupied(point: tuple[float, float]) -> bool:
+    def occupied_reasons(point: tuple[float, float]) -> tuple[str, ...]:
+        reasons: set[str] = set()
         for keepout in model.keepouts:
             if (
                 keepout.x1_mm <= point[0] <= keepout.x2_mm
                 and keepout.y1_mm <= point[1] <= keepout.y2_mm
             ):
-                return True
+                reasons.add("keepout")
         for placement in model.placements:
             for footprint_box in (
                 placement.footprint.courtyard_bbox_mm,
@@ -146,7 +148,7 @@ def inject_stitch_vias(
                     min(xs) - radius - clearance <= point[0] <= max(xs) + radius + clearance
                     and min(ys) - radius - clearance <= point[1] <= max(ys) + radius + clearance
                 ):
-                    return True
+                    reasons.add("footprint_body_or_courtyard")
             for x1, y1, x2, y2 in placement.footprint.keepout_bboxes_mm:
                 corners = [
                     tuple(
@@ -161,7 +163,7 @@ def inject_stitch_vias(
                 ]
                 xs, ys = zip(*corners, strict=True)
                 if min(xs) <= point[0] <= max(xs) and min(ys) <= point[1] <= max(ys):
-                    return True
+                    reasons.add("keepout")
             for pad in placement.footprint.pads:
                 px, py = rotate_point(pad.x_mm, pad.y_mm, placement.rotation_deg)
                 px += placement.x_mm
@@ -176,33 +178,71 @@ def inject_stitch_vias(
                         abs(local_x) <= pad.size_x_mm / 2.0 + margin
                         and abs(local_y) <= pad.size_y_mm / 2.0 + margin
                     ):
-                        return True
+                        reasons.add("pad")
         for wire in routes.wires:
             for start, end in zip(wire.points, wire.points[1:], strict=False):
                 if (
                     distance_to_segment(point, start, end)
                     <= radius + wire.width_mm / 2.0 + clearance
                 ):
-                    return True
+                    reasons.add("wire")
         for via in routes.vias:
             if math.hypot(point[0] - via.x_mm, point[1] - via.y_mm) <= radius + clearance:
-                return True
-        return False
+                reasons.add("via")
+        return tuple(sorted(reasons))
 
     selected_points: list[tuple[float, float]] = []
+    exclusion_counts = {
+        "keepout": 0,
+        "footprint_body_or_courtyard": 0,
+        "pad": 0,
+        "wire": 0,
+        "via": 0,
+        "board_edge_inset": 0,
+        "inter_via_spacing": 0,
+    }
+    exclusion_combinations: dict[str, int] = {}
     for point in candidates:
-        if occupied(point):
+        reasons = occupied_reasons(point)
+        if reasons:
+            for reason in reasons:
+                exclusion_counts[reason] += 1
+            combination = "+".join(reasons)
+            exclusion_combinations[combination] = (
+                exclusion_combinations.get(combination, 0) + 1
+            )
             continue
         if any(
             math.hypot(point[0] - other[0], point[1] - other[1])
             <= via_diameter_mm + clearance
             for other in selected_points
         ):
+            exclusion_counts["inter_via_spacing"] += 1
+            exclusion_combinations["inter_via_spacing"] = (
+                exclusion_combinations.get("inter_via_spacing", 0) + 1
+            )
             continue
         selected_points.append(point)
     selected = tuple(selected_points)
     if allowed_points is not None:
         selected = tuple(dict.fromkeys(allowed_points))
+    if candidate_report is not None:
+        candidate_report.update(
+            {
+                "candidate_total": len(candidates),
+                "selected_count": len(selected),
+                "exclusion_counts": exclusion_counts,
+                "exclusion_combinations": exclusion_combinations,
+                "board_edge_inset_basis": (
+                    "Candidates are generated inside the board edge inset; "
+                    "no post-generation edge rejection is performed."
+                ),
+                "footprint_clearance_method": (
+                    "Rotated body/courtyard corners with an axis-aligned bounding "
+                    "box, expanded by via radius plus clearance."
+                ),
+            }
+        )
     lines = [
         f'  (via (at {fmt(x)} {fmt(y)}) (size {fmt(via_diameter_mm)}) '
         f'(drill {fmt(via_drill_mm)}) (layers "F.Cu" "B.Cu") '

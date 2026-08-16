@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 
 from acd_adapter_kicad.board import stitch_via_pitch
+from acd_adapter_kicad.fab import (
+    UncoveredStitchViasError,
+    _gerber_to_board_point,  # pyright: ignore[reportPrivateUsage]
+)
 from acd_adapter_kicad.reload import ReloadError, normalized_hash, verify_board
 from acd_adapter_kicad.routing import (
     RouteInjectionError,
@@ -83,6 +88,54 @@ def test_stitch_vias_exclude_declared_keepout() -> None:
     assert vias
     assert all(not (5.0 <= x <= 15.0 and 0.0 <= y <= 5.0) for x, y in vias)
     assert result.count("(via") == len(vias)
+
+
+def test_stitch_candidate_report_records_exclusion_reasons() -> None:
+    from acd_core.board_model import KeepoutRect
+
+    model = BoardModel(
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), (
+            KeepoutRect("antenna", 5.0, 0.0, 15.0, 5.0),
+        ),
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    report: dict[str, object] = {}
+    inject_stitch_vias(
+        _BOARD,
+        model,
+        RoutedDesign((), ()),
+        {"GND": 1},
+        3.0,
+        0.6,
+        0.3,
+        candidate_report=report,
+    )
+    candidate_total = report["candidate_total"]
+    assert isinstance(candidate_total, int) and candidate_total > 0
+    exclusions = report["exclusion_counts"]
+    assert isinstance(exclusions, dict)
+    assert set(cast(dict[str, object], exclusions)) == {
+        "keepout",
+        "footprint_body_or_courtyard",
+        "pad",
+        "wire",
+        "via",
+        "board_edge_inset",
+        "inter_via_spacing",
+    }
+
+
+def test_uncovered_stitch_via_error_preserves_structured_locations() -> None:
+    locations = ((1.25, 2.5), (3.75, 4.0))
+    error = UncoveredStitchViasError(locations)
+    assert error.locations == locations
+    assert "stitch vias lack copper coverage" in str(error)
+
+
+def test_gerber_y_axis_conversion_matches_board_frame() -> None:
+    assert _gerber_to_board_point(2.0, -3.0) == (2.0, 3.0)
+    assert _gerber_to_board_point(2.0, 3.0) == (2.0, -3.0)
 
 
 def test_stitch_vias_rotate_asymmetric_pad_axes() -> None:
