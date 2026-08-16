@@ -142,7 +142,6 @@ EDA、配置配線、製造、機械生成のアルゴリズムについて、AC
 - `--no-verify`、amend、force push、mainへの直pushをしない。
 - reset --hard、clean -fd、checkout -- file、stash dropなど破壊的操作をしない。
 - `.env`、credentials、token、秘密ファイルをstageしない。
-- 明示的な指示がない限り、エージェントはcommitのpushとPR作成・更新を行わない。
 
 ## 検証契約
 
