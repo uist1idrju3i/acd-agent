@@ -14,8 +14,8 @@ OpenHands SDKの実行・分業・反復・防護機能は再利用し、同等�
 SDK標準機能を利用する骨組み:
 
 - `EventLog`: ACD独自eventを定義せず、SDKの`EventLog`と成果物ファイルを履歴とする。
-- `TestLLM`: 決定論的AI回帰の唯一の経路とする。レビュー応答の解析
-  はTestLLMの固定応答で回帰テストする。
+- `TestLLM`: SDK経路をテストするときに応答・例外を固定するために使う。ACD側に
+  レビュー応答の固定解析を回帰対象として持たせない。
 - plugin構成: `plugins/acd/`に`.plugin/plugin.json`、`skills/`、`agents/`、
   の骨格を置く。
 

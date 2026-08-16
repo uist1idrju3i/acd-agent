@@ -58,8 +58,8 @@
 | `ecad-domain-notes.md` | ECAD領域知識と投影契約 | Draft |
 | `review-checklist.md` | 機械可読投影と視覚投影のレビュー観点 | Draft |
 | `tool-capability-probes.md` | 外部ツール能力プローブの測定結果と候補 | Draft |
-| `adr/ADR-0001-monorepo-structure.md` | uv workspaceによるmonorepo構成 | Accepted |
-| `adr/ADR-0002-json-schema-canonical.md` | JSON Schemaを契約の正本とする | Accepted |
+| `adr/ADR-0001-monorepo-structure.md` | uv workspaceによるmonorepo構成（acd-schema、acd-core、acd-tools、acd-runtime、adapters） | Accepted |
+| `adr/ADR-0002-json-schema-canonical.md` | JSON Schemaを契約の正本とする（ADR-0008により廃止） | Superseded by ADR-0008 |
 | `adr/ADR-0003-sdk-feature-adoption.md` | Phase 0でのSDK機能の採否 | Accepted |
 | `adr/ADR-0004-parts-catalog-provenance.md` | 部品カタログとライブラリ出所方針 | Accepted |
 | `adr/ADR-0005-jlcpcb-pcba-preparation-contract.md` | JLCPCB PCBA準備契約 | Accepted |

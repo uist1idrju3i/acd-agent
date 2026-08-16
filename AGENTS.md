@@ -158,7 +158,8 @@ CI（`.github/workflows/ci.yml`）ではこれらを同じコマンド・同じ�
 それ以外はローカルでも全コマンドを実行する（MUST）。CIは従来どおり全コマンドを実行する（MUST）。
 文書検証は全Markdownの相対リンクとGitHub互換アンカー（記号除去、空白のハイフン化、重複slugの連番）、
 Mermaid構文、コードフェンス、見出し階層、用語集との整合を対象とする（MUST）。
-未確認やunknownを合格扱いしない（MUST NOT）。決定論的なAI回帰はSDKの`TestLLM`で応答・例外を固定し（MUST）、
+未確認やunknownを合格扱いしない（MUST NOT）。SDK経路をテストするときは
+`TestLLM`で応答・例外を固定し（MUST）、ACD側にレビュー応答の固定解析を持たせない。
 実LLMのgolden taskは適格性の定期再測定として分離する（SHOULD）。
 
 ## ハンドオフ前のセルフレビュー
