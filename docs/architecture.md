@@ -165,9 +165,9 @@ AIの出力はすべて決定論的検証を通し、ツール版、入力、出
 criticの例外時にSDKが評価なしとして扱うこと、反復終了は合否根拠にせず、詳細は
 [`openhands-integration.md`](openhands-integration.md)に従う。
 
-承認ゲートを有効化した場合は、対象revision、入力hash、ゲート結果、予算、承認状態を
-記録し、承認対象と異なる副作用を合格根拠にしない。承認ゲートの有無にかかわらず、
-設計グラフと決定論的ゲートが正規の判定面である。
+発注前は、入力を管理するgit commit、入力hash、ゲート結果、予算を
+記録し、発注と異なる副作用を合格根拠にしない。設計グラフと決定論的ゲートが
+判定面である。
 
 ## OpenHandsとの境界
 
@@ -189,7 +189,7 @@ ACDはファイルシステムを所有しない構成を採り得る。SDKのGi
 提供するが、typedなcommit／push／branch作成／merge APIはない。`GitHelper`にあるのは
 `checkout`と`reset_hard`である。commit／pushはSDKの
 `openhands-sdk/openhands/sdk/git/utils.py`にある`run_git_command`（shell injection回避、
-URL資格情報のredact、timeout付き）を介してworkspaceで行う。ACDのtyped wrapperは対象revision、
+URL資格情報のredact、timeout付き）を介してworkspaceで行う。ACDのadapterはgit commit、
 commit SHA、artifact hash、ツール版、実行条件を含むcommit receiptを生成し、Evidenceへ束ねる。
 終了コードだけをcommit成立の根拠にせず、commit SHAを再取得して確認する。
 

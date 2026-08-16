@@ -17,7 +17,7 @@ Git refからSkillを取得するときは`fetch_skill_with_resolution()`を使�
 Evidenceへ記録します。`requested_ref`だけで`resolved_ref`がないSkillは採用しません。
 Skillのtriggerは`KeywordTrigger`、`TaskTrigger`、
 `PathTrigger`だけであり、それぞれkeyword、task text、path globを表現します。部品属性、
-対象revision、gate状態、fab profile、ツール版互換といったACD固有の適用条件はtriggerで
+入力ファイル、gate状態、fab profile、ツール版互換といった適用条件はtriggerで
 表現できません。そのためtriggerが発火したことを適用可否の最終判定にはしません。ACDの
 決定論的ゲートでscope、revision、版、Evidenceを確認してから適用します。
 
@@ -71,7 +71,7 @@ footprint・差分・出所EvidenceとともにKnowledgeItemへ接続する。�
 - **判定は生成物の独立測定から導く。** generatorの到達状態や自己申告を合格根拠にせず、
   Gerber、drill、BOM、CPLを独立parserと測定器で再読込する。
 - **未測定は合格ではない。** `checks_not_implemented`に残る条件は`unknown`として停止側へ
-  集約し、測定実装または対象revisionを含む理由がない限り通過させない。
+  集約し、測定実装を含む理由がない限り通過させない。
 - **overlay geometryは一元化する。** LibraryOverlay後のgeometryをDSN、routing、最終board、
   DRC、DFMで共有し、投影ごとに適用前後が分裂しないようにする。
 - **外部ツール出力は正規化してhashする。** timestamp等の非決定な保存内容を除去する正規化規則を
@@ -113,7 +113,7 @@ footprint・差分・出所EvidenceとともにKnowledgeItemへ接続する。�
 ## ゲートへの還流
 
 KnowledgeItemは、単なる検索用メモではありません。S3のDFM所見、造形・加工結果、
-S4の実測、部品故障、嵌合や干渉の結果を、対象revision、出所、適用スコープ、
+S4の実測、部品故障、嵌合や干渉の結果を、git commit、出所、適用スコープ、
 根拠Evidenceとともに構造化します。採用候補となったKnowledgeItemは、次のS1、E1、E2、
 M1、M2、S2〜S4の
 要件質問、部品選定、配置・配線、筐体生成、製造プロファイル、自動検証ゲートの入力へ

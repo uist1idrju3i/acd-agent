@@ -1,6 +1,6 @@
 # ACDロードマップ
 
-> ステータス: Draft
+> ステータス: Draft  
 > 対象: ACD固有のPhase 0〜12、初期ターゲット（1〜4層基板＋小規模筐体）
 
 本書は、ACD固有Phase 0〜12の内容、やらないこと、完了条件を正とする。工程の詳細は
@@ -56,7 +56,7 @@ ADRの記述をここで重複管理しない。
 | 6 | 契約はPydanticモデルから導く | runnerと文書でgate番号・状態を二重管理する |
 | 7 | 安全条件・保護対象は書き換わる部分木で判断する | pathの完全一致だけで許可・却下を決める |
 | 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。SDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | 予算次元を不明のまま次フェーズへ渡す |
-| 9 | 探索を含む工程では、探索仕様のhash、seed、代理指標定義版、探索予算の実測値、停止理由をEvidenceへ記録し、代理指標スコアを合格根拠にしない | 代理指標だけで合格させる。探索予算や停止理由を記録しない |
+| 9 | 探索を含む工程では、代理指標スコアを合格根拠にせず、停止理由と実行結果を記録する | 代理指標だけで合格させる。停止理由を記録しない |
 
 ## マイルストーン
 
@@ -73,27 +73,22 @@ ADRの記述をここで重複管理しない。
 |---|---|---|---|
 | Phase 0 契約とツール能力確認 | Pydantic契約、外部ツール能力プローブ、文書検証、fail-closed境界を最小限確定する。`kicad-cli`、freerouting、CAD kernelの存在・版・parse・ERC/DRC・geometry・干渉・ピン割当整合を確認し、部品カタログとライブラリ出所方針も確定する | 自然言語対話、汎用最適化、自動発注、Phase 1〜4の投影一貫生成、不要な契約層の作り込み、SDK機能の全面実装 | Pydantic契約と文書検証が通り、外部ツール不在・版不明・parse失敗・ゲート未実行を注入すると停止する |
 | [Phase 1 電気レーン最小縦切り](golden-design-1.md) | fixture要件→固定部品→netlist/BOM→決定論的配置→外部router（freerouting DSN/SES）→`kicad-cli` ERC/DRC→Gerber/drill | 筐体、知識ベース、FW実装、自然言語入力、自動発注、汎用router自作 | 単一コマンドでfixtureからGerber/drillまで到達し、`kicad-cli`と独立parser（sexpdata系＋gerbonara）の二重で再読込できる。同一入力の再実行で成果物hashが一致し、外部processの副作用が重複しない。配線不能・ERC違反・router不在を注入すると停止する（negative test） |
-| [Phase 2 FW連携と実機LED](golden-design-1.md) | FWパッケージ投影、OpenHandsによるFW実装、ピン割当整合ゲート<br/>仮想実機（QEMUを一次採用。Renodeは実測でESP32-C3非対応のため不採用、wokwi-cliは二次保持。[`tool-selection.md`](tool-selection.md)）<br/>実機書き込みとログ取得（probe-rs一次候補、pyOCDは二次保持） | 筐体、自動発注、独自コンパイラ・独自シミュレータの開発<br/>仮想試験を実測の代替にすること | 同一設計グラフから基板・FWパッケージを生成し、FWのビルドとピン割当整合ゲートを通す。ピン割当を故意にずらすと不合格になる。仮想実機のログは仮想検証Evidence、実機のログは実測Evidenceとして、条件・版付きで分類して設計グラフへ記録できる。実機へ書き込んだFWでLEDが点灯することを追加の到達条件とする |
+| [Phase 2 FW連携と実機LED](golden-design-1.md) | FWパッケージ投影、OpenHandsによるFW実装、ピン割当整合ゲート<br/>仮想実機（QEMUを一次採用。Renodeは実測でESP32-C3非対応のため不採用、wokwi-cliは二次保持。[`tool-selection.md`](tool-selection.md)）<br/>実機書き込みとログ取得（probe-rs一次候補、pyOCDは二次保持） | 筐体、自動発注、独自コンパイラ・独自シミュレータの開発<br/>仮想試験を実測の代替にすること | 同じ入力ファイルから基板・FWパッケージを生成し、FWのビルドとピン割当整合ゲートを通す。ピン割当を故意にずらすと不合格になる。仮想実機のログは仮想検証、実機のログは実測として、条件・版付きで分類できる。実機へ書き込んだFWでLEDが点灯することを追加の到達条件とする |
 | Phase 3 機械レーン最小縦切り | 外形・部品高さ・connector位置からbuild123dで筐体を生成→干渉/clearance/肉厚→STEP/3MF | レーン統合、知識ベース、自然言語入力、自動発注 | 単一コマンドでfixtureから筐体を生成し、CAD kernelの妥当性・干渉・clearance・肉厚チェックを通過する。出力を再読込でき、同一入力の再実行で成果物hashが一致する。干渉・肉厚不足・CAD kernel不在を注入すると停止する（negative test） |
 | Phase 4 レーン統合と共通ゲート | 同一fixtureから基板＋筐体を再生成し、ECAD↔MCAD交換（`kicad-cli pcb export step`）と高さ・keepoutの受け渡しを通す | 片レーンだけの合格で次段へ進むこと、協調修復、知識ベース、自動発注、汎用router自作 | 基板＋筐体を同一fixtureから再生成し、ECAD↔MCAD交換、高さ・keepout、干渉・clearance・肉厚の共通ゲートに合格する |
 | Phase 5 検証ゲートと根拠 | 機械可読投影と視覚投影を生成し、`ImageContent`／`inspect_image_with_vision`とsubagentによるレビューを修正ループへ接続する。実機テスト項目を生成し、ERC/DRCと独立parser再読込を実行する | 協調修復の自動化、長期知識loop、高精度SI・熱解析 | 2種類の投影を生成して自然文の所見を次の修正へ渡し、決定論的ゲートだけで合否を判定できる。実機テスト項目を生成し、必要な検査に合格する |
-| Phase 6 電気↔機械協調修復 | 相互制約の反復解決、優先度・根拠・調停の記録。trade studyと代替案を`Conversation.fork(from_event_id=...)`の子conversationへ対応付け、停止条件は`run_goal`／`GoalController`へ委譲する | 自由な要件変更、未知影響の自動無視 | 配線不能、部品高さ超過、開口不足のfixtureを両レーンで修復できる。採用枝だけをcanonicalへpatchし、非採用枝をEvidence付きtrade studyとして残す。`GoalVerdict`やLLM judgeはEvidence・合否根拠にせず、修復の合否は修復器と独立な検証で判定する |
+| Phase 6 電気↔機械協調修復 | 相互制約の反復解決、優先度・根拠・調停の記録。trade studyと代替案を`Conversation.fork(from_event_id=...)`の子conversationへ対応付け、停止条件は`run_goal`／`GoalController`へ委譲する | 自由な要件変更、未知影響の自動無視 | 配線不能、部品高さ超過、開口不足のfixtureを両レーンで修復できる。採用した修正を入力ファイルへ反映し、非採用枝は会話履歴として残す。`GoalVerdict`やLLM judgeは合否根拠にせず、修復の合否は独立な検証で判定する |
 | Phase 7 知識ループ | fab DFM、造形不良、実測を構造化し次設計へ適用 | 未検証のLLM学習、設計データの無断共有 | 同一スコープの不良が再発しない候補ルールをEvidence付きで登録できる。適用は実際にツール入力へ届いていることをnegative testで示す（ルールやライブラリ修正を壊すと検証が不合格になる）。`applicability: unknown`の知識は適用対象にせず合格に到達させない。入力の少なくとも1件は実fab指摘または実測とし、fixtureのみでは完了としない |
-| Phase 8 製造データ契約とマルチfab対応 | fab profileの一般化（capabilities／preferences／assembly class／export formatを宣言データ側へ寄せ、実装からfab固有名詞を排除）、2社目以降のfab profile追加、BOM/CPLの列定義・BOM行同一性キー・座標系・回転規約・単位のexport format宣言化、`checks_not_implemented`に残る独立測定の実装、同一設計グラフから複数fab向け製造データを生成してQuality→Cost→Deliveryで比較する。コネクタやRFモジュールを置く板端は現状footprint幾何から暗黙に決まり、`mechanical.connector_opening.face`等のグラフ宣言から決めていないため一般化対象とする | 実発注（Phase 11）、価格・在庫・納期の取得（Phase 9）、fab固有GUIプラグイン出力をそのまま合否根拠にすること、未確認のfab能力値をprofileへ書くこと | 同一fixtureから2社以上のfab profileで製造データを生成できる。あるfab profileの能力値だけを厳しくすると当該fabのみ不合格になるnegative testを通す。rule_id・列名・class名がprofile由来であることを検査できる。`checks_not_implemented`が空、または残余ごとに理由・対象revisionを持つ。profileのhash・出所・取得時刻を製造パッケージへ記録する |
+| Phase 8 製造データ契約とマルチfab対応 | fab profileの一般化（capabilities／preferences／assembly class／export formatを宣言データ側へ寄せ、実装からfab固有名詞を排除）、2社目以降のfab profile追加、BOM/CPLの列定義・BOM行同一性キー・座標系・回転規約・単位のexport format宣言化、`checks_not_implemented`に残る独立測定の実装、同じ入力ファイルから複数fab向け製造データを生成してQuality→Cost→Deliveryで比較する。コネクタやRFモジュールを置く板端は現状footprint幾何から暗黙に決まり、`mechanical.connector_opening.face`等の入力宣言から決めていないため一般化対象とする | 実発注（Phase 11）、価格・在庫・納期の取得（Phase 9）、fab固有GUIプラグイン出力をそのまま合否根拠にすること、未確認のfab能力値をprofileへ書くこと | 同一fixtureから2社以上のfab profileで製造データを生成できる。あるfab profileの能力値だけを厳しくすると当該fabのみ不合格になるnegative testを通す。rule_id・列名・class名がprofile由来であることを検査できる。`checks_not_implemented`が空、または残余ごとに理由を持つ。profileのhash・出所・取得時刻を製造パッケージへ記録する |
 | Phase 9 要件対話とsourcing | 自然言語→構造化要件、sourcing API、データシート抽出、部品ライブラリの設計経路への接続。API経路を一次、`browser_use`を二次経路とし、期限付きEvidenceへ記録する | 自動発注、契約判断の自動化、browser経路からの発注 | 部品候補と筐体材料候補を出所・取得時点付きで比較し、未確認事項を質問できる。価格・在庫の期限切れは停止条件として働く。browser取得値はURL・取得時刻・screenshot hash付きで期限管理し、token／moneyの実測値と`unknown`境界を記録する |
 | Phase 10 長時間ラン運用 | OpenHands SDKのcheckpoint／resume、`StuckDetector`、condenser、agent-server `WebhookSpec`を土台とし、会話履歴、workspace、予算、watchdog、`TestLLM`回帰を利用する | 独自retry・予算会計、根拠なしの自動復旧 | 強制終了後にSDKのcheckpoint／resumeから再開して完走し、成果物hashとゲート結果を確認できる |
 | Phase 11 自働発注 | 設定上限額の確認、発注直前の全ゲート、API ordering | 予算超過、契約不明の発注、browser経路の発注 | 実発注は上限額以内かつ発注直前の全ゲート通過のときだけ実行される |
-| Phase 12 ローカル製造 | 3Dプリンタ、卓上CNC、材料・機械profile、ローカル版と外注版 | 量産能力の無根拠な保証 | 同じgraphからローカル試作版と外注版を生成し、機械条件・測定Evidenceを比較できる |
+| Phase 12 ローカル製造 | 3Dプリンタ、卓上CNC、材料・機械profile、ローカル版と外注版 | 量産能力の無根拠な保証 | 同じ入力ファイルからローカル試作版と外注版を生成し、機械条件・測定結果を比較できる |
 | Phase 13 AI主導の配置・回転探索 | 決定論的候補生成・合法化、代理指標による大域探索、少数候補の実測と決定論的ゲートを実装する | 強化学習モデルの学習、LLMによる直接の座標・角度生成、LLMによるトレース生成 | LLMに座標・回転角を直接出力させず、代理指標は候補順位付けだけに使い、実測は少数候補に限定できる |
 
-Phase 0のevent契約は、独自のevent log payload schemaを別ストアとして自作するのではなく、
-gate結果・承認・commit側副作用receipt参照に絞った最小ACDドメインイベント型を定義し、
-SDK `EventLog`へ載せる方法を確定する。投影レビュー契約には
-機械可読投影と視覚投影、画像hash・renderer・vision profile／model・解像度の記録、
-`ImageContent`／`inspect_image_with_vision`の観察経路を含める。Phase 5のPDCAとPhase 6の
-協調修復ではSDKの反復機構を修復ループの実行に利用する。Phase 10のtask ledgerは
-最小ACDイベントとcommit済みEvidence artifactから射影するread modelとして実装し、SDKのtask状態を
-正にしない。副作用journalはcommit側へ寄せ、低遅延より可搬性とrevision結合を優先する。
+Phase 0ではACD独自eventを定義せず、SDK `EventLog`と成果物ファイルを履歴として利用する。
+投影レビュー契約には機械可読投影と視覚投影、`ImageContent`／`inspect_image_with_vision`の
+観察経路を含める。Phase 5のレビューとPhase 6の協調修復ではSDKの反復機構を修正ループへ利用する。
 
 フェーズ境界の変更は本表を更新し、既存のゴールデンタスクを再実行する。
 
@@ -131,23 +126,22 @@ flowchart LR
 ```
 
 Phase 1とPhase 2は電気成果物を共有するため、Phase 1のfixtureをPhase 2で再読込する。
-FWパッケージschemaはPhase 0の契約に含め、投影と整合ゲートをPhase 2で実装する。
-schemaを後から追加すると、Phase 1以降のEvidenceが一斉に失効するためである。Phase 11は
-Phase 9の価格出所、Phase 10の副作用journal、Phase 8の製造データ契約のすべてを前提にする。
+FWパッケージの生成とピン割当整合ゲートをPhase 2で実装する。Phase 11は
+Phase 9の価格・在庫の確認、発注直前の全ゲート、Phase 8の製造データ生成を前提にする。
 Phase 13はPhase 5の検証ゲートと根拠、Phase 6の協調修復を前提とし、Phase 7以降とは並行して進められる。
-Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを定め、工程別の作り込みや
+Phase 0の投影レビュー契約は2種類の投影と観察経路を定め、工程別の作り込みや
 全投影の実装は後段へ送る。最短経路を遅延させない。
 
 ## 実機Evidence待ちの扱い
 
 実機の製造・組立・測定はユーザー側の作業であり、エージェントの実行時間で閉じない。
-したがって各フェーズの完了判定は、(a)測定計画の生成、(b)測定Evidenceの取り込み経路、
-(c)取り込んだEvidenceによる合否判定と失効伝播、までを対象とする。実測値そのものは
-「実機Evidence待ち」として対象revisionごとに管理し、フェーズを無期限にblockしない。
-仮想検証Evidence（仮想実機・シミュレーション結果）は実測Evidenceの代替にはしない。
-実機ログだけを実測Evidenceとして扱い、仮想実機のログは仮想検証Evidenceとして分類する。
+したがって各フェーズの完了判定は、(a)測定計画の生成、(b)測定結果の取り込み経路、
+(c)取り込んだ結果による合否判定、までを対象とする。実測値そのものは
+「実機測定待ち」として入力ファイルを管理するgit commitごとに記録し、フェーズを無期限にblockしない。
+仮想検証（仮想実機・シミュレーション結果）は実測の代替にはしない。
+実機ログは実測、仮想実機のログは仮想検証として分類する。
 Phase 2の追加到達条件（実機へ書き込んだFWでのLED点灯）は本方式の最初の適用例であり、
-デバッグprobe不在環境では「実機Evidence待ち」として対象revision付きで管理する
+デバッグprobe不在環境では「実機測定待ち」として入力ファイルを管理するgit commit付きで管理する
 （[`phase2-retrospective.md`](phase2-retrospective.md)）。
 
 ## 撤退・見直し条件
@@ -174,4 +168,3 @@ Phase 2の追加到達条件（実機へ書き込んだFWでのLED点灯）は�
   取得時期（実機・デバッグprobeが使える環境の確保に依存）。
 - agent-server webhookの配信保証（重複・欠落時の再送、at-least-once等）の一次確認。
 - 代理指標と実測の相関は未測定であり、評価する候補集合と測定条件。
-- 探索仕様schemaの所在（設計グラフnodeか独立契約か）。

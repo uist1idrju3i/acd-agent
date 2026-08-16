@@ -19,7 +19,7 @@
 | DFM finding分類 | `capability_violation`、`cost_or_lead_time_adder`、`quality_risk`、`unused_allowance`の分類 |
 | `fab.order_intent` | 対象fab、基板条件、数量、実装面、色、表面処理、PCB／PCBA class targetなど、製造投影の要求を表す設計グラフnode |
 | `fab.process_allowance` | 追加工程やコスト・納期・品質影響を、対象ruleと要件根拠付きで明示する設計グラフnode。capability violationには適用できない |
-| DFM report | 独立測定した製造性判定、findings、未実装検査、測定値を対象revisionとfab profileへ結び付けた投影 |
+| DFM report | 独立測定した製造性判定、findings、未実装検査、測定値をgit commitとfab profileへ結び付けた投影 |
 | fab package | Gerber/drill zip、JLCPCB形式BOM/CPL、DFM report、profile・overlay provenance、member content hashをまとめた製造投影 |
 | デカップリング配置段 | 配置アルゴリズム第3段。設計グラフの`decoupling_target`から対象ICを決め、電源pinまでの距離を目的にコンデンサを配置する段 |
 | export format | fab profileが宣言する製造出力の形式契約。BOM/CPLの列名・列順、単位、原点、座標系、面、回転基準、命名を含む |
@@ -27,9 +27,9 @@
 | 自働 | 人間が異常を検知して止めるのではなく、異常を検知して自ら止まるToyota由来の自働化を指す。ACDでは安全境界、ゲート、fail-closedに適用する |
 | 自動 | 人間の操作を介さず処理を実行する一般的なautomationを指す。自動検証は、判定結果が不合格またはunknownなら停止する自働の性質を必ず併記する |
 | 投影 | 正規設計グラフから再生成される派生成果物であり、正規データを置き換えない |
-| レビュー投影 | 設計グラフから再生成し、別コンテキストのAIが観察するための投影。正ではなく、対象revision・hash・版を保持する |
+| レビュー投影 | 入力ファイルから再生成し、別コンテキストのAIが観察するための投影。正ではなく、git commit・hash・版を保持する |
 | 投影レビューPDCA | 影響分析で対象と観点を選ぶPlan、投影を生成するDo、AIが所見を作るCheck、処分して再投影するActのループ |
-| Evidence | ツール版、入力・出力hash、条件、結果、対象revisionを含む検証の根拠 |
+| Evidence | ツール版、入力・出力hash、条件、結果、git commitを含む検証の根拠 |
 | Skill | SDKが提供するfrontmatter付きMarkdownの作業資材。工程手順や観点を配布するが、ACDの正や合否根拠ではない |
 | plugin | SDKが提供するskills、hooks、MCP設定、agent定義、commandをまとめた配布単位。ACDの契約正ではない |
 | AgentDefinition | SDKが提供するサブエージェントの役割定義。model、tools、skills、権限等を指定するが、ACDの判定正ではない |
@@ -80,7 +80,7 @@
 | negative test | 禁止、矛盾、失敗、unknownなどを意図的に入力し、処理が合格へ進まず停止することを確認する試験 |
 | VibeBB | Vibe BreadBoardingの略称。重い検証を人間に見せず、対話から実機まで進めるACDの体験価値 |
 | Q7/N7 | 将来の高信頼化調査で扱う品質分析手法。現在の合否機構ではない |
-| SafetyBoundaryResult | `SB1`または`SB2`の判定について、危険区分、状態、根拠、対象revisionを記録する結果 |
+| SafetyBoundaryResult | `SB1`または`SB2`の判定について、危険区分、状態、根拠、git commitを記録する結果 |
 | SB1 | 安全境界の予備判定段階。工程IDではなく判定段階のIDであり、工程`S1`で自然言語から実行する |
 | SB2 | 安全境界の確定判定段階。工程IDではなく判定段階のIDであり、工程`E1`で設計グラフの述語から実行する。ゲートの正であり、`unknown`はfail-closedで停止する |
 | RV1 | 旧文書で使われた工程内レビュー段階ID。現在の合否機構では使用しない |

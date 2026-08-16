@@ -16,8 +16,10 @@ JLCPCB PCBAに必要な製造データと、品質を最優先にしたDFM／コ
 - fab能力値とコスト／納期ドライバはコードへハードコードせず、版管理されたfab
   profileとして保持する。各値には出所URL、確認日時、一次情報か推論かの区分を持たせる。
 - DFM判定は`capability_violation`、`cost_or_lead_time_adder`、`quality_risk`の
-  3分類とする。能力違反はwaiver不可で常にfailとし、後2者は根拠付き
+  3分類とする。能力違反は常にfailとし、後2者は根拠付き
   `fab.process_allowance`がある場合のみ通す。宣言の有無と根拠はEvidenceに残す。
+
+ADR-0008によりwaiver機構は廃止し、能力違反は常にfailとする。
 - Qualityを最優先とし、`quality_risk`の緩和には、設計上の必要性を示す要件nodeへの
   参照を必須とする。参照欠落、rule_id不整合、reason空はfail-closedとする。
 - 判定の両辺は別出自から取得する。判定入力は生成済み成果物を独立parserで読み直した

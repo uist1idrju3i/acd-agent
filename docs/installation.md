@@ -491,8 +491,8 @@ uv run python scripts/probe_tools.py
 工程を実行するLLM入口は未実装である。
 
 - `scripts/build_gd1_fixture.py`は、Pythonソース内の固定定義からGD1 graphを決定論的に生成する。
-- `packages/acd-core/src/acd_core/patch.py`の`GraphPatch`は型付きpatch適用であり、自然言語を
-  patchへ変換するCLI入口はない。
+- `packages/acd-core/src/acd_core/patch.py`の`GraphPatch`は過去実装の調査対象であり、
+  現行の修正は入力ファイルへ直接反映する。
 - `acd_runtime.review`のLLM呼び出しは自然文の所見の提案だけで、入力ファイルの生成・変更や
   gateの合否権限は持たない。
 - `plugins/acd`には`acd-contracts` Skillと`SessionStart` hookがある。
@@ -725,7 +725,7 @@ fw-package.jsonのsource_hashとartifact_hash、各FW envelopeの実値を報告
 
 ```text
 次の設計変更を検討してください。
-LEDのGPIO番号、または筐体の最小肉厚を変更する場合、まず変更内容と対象revisionを
+LEDのGPIO番号、または筐体の最小肉厚を変更する場合、まず変更内容とgit commitを
 表にしてください。現状は自然言語から自動でgraphを変更する入口がないため、
 scripts/build_gd1_fixture.pyの固定定義を編集するか、ACDの型付きGraphPatchを使ってください。
 
@@ -814,7 +814,7 @@ ERC／DRC等の既存ゲートを通過した」ことである。「発注し�
 - アップロード後に表示されるfab側DFMレビュー結果を人が確認する。ACDの`dfm-report.json`は
   fab側レビュー結果ではない。
 - `fab-package.json`のmember `content_hash`と`out/gd1/hashes.json`で提出物との同一性を確認する。
-- 対象revisionと、各Evidenceの`target_revision`が一致していることを確認する。
+- 入力を管理するgit commitと、各記録の入力hashが一致していることを確認する。
 - 価格、在庫、納期を発注時点で再取得する。
 
 ACDのEvidenceは、発注可否、価格、在庫、納期、fab側DFM合格を判定しない。

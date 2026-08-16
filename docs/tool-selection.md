@@ -136,7 +136,7 @@ LICENSE本文未取得のため、Phase 0〜4の既定にはしない。
 | `kicadfiles`（PyPI） | metadataにlicenseなし、本文取得できず | 継続調査 | ライセンスと形式網羅が未確認 |
 | KiCad IPC API／[kicad-python](https://docs.kicad.org/kicad-python-main/) | KiCad配布物と同体系 | 不採用（Phase 0〜4） | KiCad 10のIPCはGUI起動中のPCB editorが対象で、回路図ファイルのAPIは公開されていない。ヘッドレスIPC serverは公式docsでKiCad 11の追加とされる |
 
-ACDのpatchは正規グラフ側で表現し、KiCadファイルは投影である。したがって必要なのは
+ACDの修正は入力ファイルへ反映し、KiCadファイルから投影を生成する。したがって必要なのは
 「投影の生成」と「投影の再読込確認」であり、外部の高機能KiCad patcherへの依存は最小にする。
 生成物の再読込は`kicad-cli`と自前parserの二重で確認し、片方だけを合格根拠にしない。
 
