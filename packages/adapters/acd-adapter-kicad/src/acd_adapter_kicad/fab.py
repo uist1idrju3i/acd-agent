@@ -169,6 +169,7 @@ class _SilkObject:
     end_mm: tuple[float, float] | None = None
     center_mm: tuple[float, float] | None = None
     radius_mm: float | None = None
+    points_mm: tuple[tuple[float, float], ...] = ()
 
 
 def _bbox_overlap_area(
@@ -253,6 +254,7 @@ def _silk_object(obj: Any, layer: str) -> _SilkObject:
             (min(xs), min(ys), max(xs), max(ys)),
             max(area, 1e-9),
             None,
+            points_mm=tuple(points),
         )
     if isinstance(obj, Flash):
         diameter = _silk_aperture_width(raw.aperture)
@@ -312,6 +314,70 @@ def _union_bbox(
         max(item.bbox_mm[2] for item in objects),
         max(item.bbox_mm[3] for item in objects),
     )
+
+
+def _local_silk_bounds(
+    objects: Sequence[_SilkObject],
+    anchor_mm: tuple[float, float],
+    rotation_deg: float,
+) -> tuple[float, float, float, float]:
+    """Measure silk geometry in the declared text coordinate system."""
+    angle = math.radians(rotation_deg)
+    cosine = math.cos(angle)
+    sine = math.sin(angle)
+    local_points: list[tuple[float, float]] = []
+    for item in objects:
+        if (
+            item.kind == "Line"
+            and item.start_mm is not None
+            and item.end_mm is not None
+        ):
+            x1, y1 = item.start_mm
+            x2, y2 = item.end_mm
+            dx = x2 - x1
+            dy = y2 - y1
+            length = math.hypot(dx, dy)
+            half_width = (item.stroke_width_mm or 0.0) / 2.0
+            if length > 0:
+                normal = (-dy / length * half_width, dx / length * half_width)
+            else:
+                normal = (half_width, 0.0)
+            points = (
+                (x1 + normal[0], y1 + normal[1]),
+                (x1 - normal[0], y1 - normal[1]),
+                (x2 + normal[0], y2 + normal[1]),
+                (x2 - normal[0], y2 - normal[1]),
+            )
+        elif item.points_mm:
+            points = item.points_mm
+        elif (
+            item.kind == "Flash"
+            and item.center_mm is not None
+            and item.radius_mm is not None
+        ):
+            x, y = item.center_mm
+            radius = item.radius_mm
+            points = (
+                (x - radius, y - radius),
+                (x - radius, y + radius),
+                (x + radius, y - radius),
+                (x + radius, y + radius),
+            )
+        else:
+            points = (
+                (item.bbox_mm[0], item.bbox_mm[1]),
+                (item.bbox_mm[0], item.bbox_mm[3]),
+                (item.bbox_mm[2], item.bbox_mm[1]),
+                (item.bbox_mm[2], item.bbox_mm[3]),
+            )
+        for x, y in points:
+            dx = x - anchor_mm[0]
+            dy = y - anchor_mm[1]
+            local_points.append((cosine * dx + sine * dy, -sine * dx + cosine * dy))
+    if not local_points:
+        raise FabOutputError("silkscreen declaration has no measurable geometry (fail-closed)")
+    xs, ys = zip(*local_points, strict=True)
+    return min(xs), min(ys), max(xs), max(ys)
 
 
 def _point_rect_distance(
@@ -471,7 +537,11 @@ def measure_silkscreen(
         ]
         measured_width = min(measured_widths) if measured_widths else None
         area = sum(item.area_mm2 for item in nearby)
-        height = bbox[3] - bbox[1]
+        local_bbox = _local_silk_bounds(
+            nearby, (text.x_mm, text.y_mm), text.rotation_deg
+        )
+        height = local_bbox[3] - local_bbox[1]
+        text_length = local_bbox[2] - local_bbox[0]
         if area <= 0 or measured_width is None:
             raise FabOutputError(
                 f"silkscreen text {text.node_id!r} has no measurable ink (fail-closed)"
@@ -491,10 +561,17 @@ def measure_silkscreen(
                 "text": text.text,
                 "layer": text.layer,
                 "declared_position_mm": [text.x_mm, text.y_mm],
+                "declared_height_mm": text.height_mm,
+                "declared_stroke_width_mm": text.stroke_width_mm,
+                "declared_rotation_deg": text.rotation_deg,
                 "measured_bbox_mm": list(bbox),
                 "measured_ink_area_mm2": area,
                 "measured_height_mm": height,
+                "measured_text_length_mm": text_length,
                 "measured_minimum_stroke_width_mm": measured_width,
+                "measurement_coordinate_system": (
+                    "text-local coordinates after inverse declared rotation"
+                ),
                 "placement_basis": text.placement_basis,
                 "placement_search_order": text.placement_search_order,
                 "placement_reference": text.placement_reference,

@@ -13,6 +13,7 @@ from acd_adapter_kicad import fab
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
     FabOutputError,
+    _local_silk_bounds,
     _silk_objects_overlap,
     _silk_overlaps_rect,
     _SilkObject,
@@ -49,6 +50,12 @@ def test_silk_over_mask_flash_is_rejected() -> None:
         radius_mm=0.2,
     )
     assert _silk_objects_overlap(silk, mask)
+
+
+def test_rotated_text_height_uses_declared_local_coordinates() -> None:
+    silk = _line(1.0, 1.0, 2.0, 1.0)
+    local_bbox = _local_silk_bounds((silk,), (1.5, 1.0), 90.0)
+    assert local_bbox[3] - local_bbox[1] == pytest.approx(1.0)
 
 
 def test_graphic_below_capability_is_not_treated_as_pass() -> None:

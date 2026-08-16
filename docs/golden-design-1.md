@@ -582,20 +582,33 @@ KiCadのboard-level `gr_text` / `gr_poly`へ投影する。基板品番は
 
 ### 12.2 独立Gerber測定
 
-出力`out/gd1-plan3-final/`では、Gerberを`sexpdata`と`gerbonara`で独立再読込し、
+出力`out/gd1-plan3-rotation-final/`では、Gerberを`sexpdata`と`gerbonara`で独立再読込し、
 F.Silkscreen/B.Silkscreen、F.Mask/B.Mask、Edge.Cutsを対象に、Line/Arc/Region/Flashの
 幾何を測定した。recognized object countは568（Arc 14、Line 552、Region 2）であり、
 未知オブジェクト、未対応aperture、parse失敗は合格扱いしない。
 
-| 要素 | layer | 確定位置 mm | 実測bbox mm | 実測高さ/線幅 mm | 面積 mm² |
+文字の実測高さは宣言回転角を逆回転したテキスト局所座標系で測定した。したがって、
+`RESET`の軸平行bbox高さ5.2911−0.4982=4.7929 mmを文字高とは扱わず、
+局所座標の高さ1.6500 mmを記録する。表の高さは
+`宣言height → 局所座標実測height`、線幅の順である。
+
+| 要素 | layer | 宣言位置 mm | 宣言高さ → 実測高さ mm | 実測線幅 mm | 実測インク面積 mm² |
 |---|---|---|---|---:|---:|
-| RESET | F.SilkS | (24.55, 2.5375) | (23.6611, 0.4982, 25.3111, 5.2911) | 4.7929 / 0.15 | 1.83185 |
-| BOOT | F.SilkS | (6.30, 4.7875) | (4.1893, 3.8986, 7.8393, 5.5486) | 1.6500 / 0.15 | 1.57470 |
-| D1 | F.SilkS | (17.6725, 12.78) | (16.4904, 11.8911, 18.9261, 13.5411) | 1.6500 / 0.15 | 1.07539 |
-| USB | F.SilkS | (25.9325, 19.79) | (24.1075, 18.9011, 27.8289, 20.5511) | 1.6500 / 0.15 | 1.39271 |
-| DEV BOARD | B.SilkS | (25.0, 1.0) | (21.9488, 0.3798, 28.0988, 1.5298) | 1.1500 / 0.15 | 2.44104 |
-| golden-design-1-r1 | B.SilkS | (15.0, 24.0) | (9.4012, 23.3798, 20.1226, 24.8632) | 1.4833 / 0.15 | 3.21779 |
-| VibeBB vector logo | B.SilkS | polygon宣言 | (24.9250, 4.9250, 28.2750, 6.2750) | — / 0.15 | 1.54045 |
+| RESET | F.SilkS | (24.55, 2.5375) | 1.5000 → 1.6500 | 0.15 | 1.83185 |
+| BOOT | F.SilkS | (6.30, 4.7875) | 1.5000 → 1.6500 | 0.15 | 1.57470 |
+| D1 | F.SilkS | (17.6725, 12.78) | 1.5000 → 1.6500 | 0.15 | 1.07539 |
+| USB | F.SilkS | (25.9325, 19.79) | 1.5000 → 1.6500 | 0.15 | 1.39271 |
+| DEV BOARD | B.SilkS | (25.0, 1.0) | 1.0000 → 1.1500 | 0.15 | 2.44104 |
+| golden-design-1-r1 | B.SilkS | (15.0, 24.0) | 1.0000 → 1.4614 | 0.15 | 3.21779 |
+| VibeBB vector logo | B.SilkS | polygon宣言 | — | 0.15 | 1.54045 |
+
+軸平行の実測bboxは、RESET `(23.6611, 0.4982, 25.3111, 5.2911)`、
+BOOT `(4.1893, 3.8986, 7.8393, 5.5486)`、D1
+`(16.4904, 11.8911, 18.9261, 13.5411)`、USB
+`(24.1075, 18.9011, 27.8289, 20.5511)`、DEV BOARD
+`(21.9488, 0.3798, 28.0988, 1.5298)`、基板品番
+`(9.4012, 23.3798, 20.1226, 24.8632)`である。これらは位置・インク存在・
+クリアランス確認用であり、回転テキストの文字高ゲートには使用しない。
 
 Fab capabilityは最小文字高`1.0 mm`、最小線幅`0.15 mm`である。測定結果は全要素で
 この値以上で、pad-to-silk重なり`0`、mask開口-to-silk重なり`0`、板外overflow`0`で
@@ -613,3 +626,32 @@ D1は`(17.6725, 12.78)` mmで1485候補、USBは`(25.9325, 19.79)` mmで1365候�
 棄却してから、各々最初の合格候補を採用した。棄却理由はboard-edge overflow、
 pad overlap、およびfootprint body bboxによる保守的な候補除外であり、採用後は
 独立Gerber測定で実形状のpad/mask重なり0を再確認した。
+
+SW1の実配置中心は`(24.05, 9.05)` mm、回転は90°である。RESETの採用位置
+`(24.55, 2.5375)` mmは、SW1中心から`(+0.50, -6.5125)` mmの上側候補であり、
+回転を考慮した局所座標測定でも宣言高さ1.5 mmに対して実測1.65 mmとなる。
+
+### 12.3 グラフ意味差分と再生成
+
+JSON parse後にnode ID、kind、attrs、depends_on、edgesを比較した。計画3親コミットの
+グラフ（215 nodes）から今回のグラフ（222 nodes）への差分は、シルク7 nodeの追加、
+既存nodeの削除なし、既存component 19 nodeのCPL Evidence属性更新、edge同一である。
+追加された7 nodeはすべて`mechanical.silk_text`または
+`mechanical.silk_graphic`である。
+
+既存19 nodeの差分は、シルク候補探索による非決定性ではない。`build_gd1_fixture.py`
+へ計画3作業中に追加したCPL Evidenceの決定論的宣言を、グラフ再生成時に反映した結果で
+ある。対象は`comp.c1`〜`comp.c6`、`comp.r1`〜`comp.r6`、`comp.sw1`、`comp.sw2`、
+`comp.d1`、`comp.j1`、`comp.u1`〜`comp.u3`で、主な変更は固定revision/sourceを持つ
+`cpl_rotation_*` Evidence、J1/U1の`cpl_position_*` Evidence、J1の幾何例外source、
+U3の露出pad理由である。生成時刻に依存する値ではなく、同じ入力から同じ値を出す
+宣言更新であり、シルク追加の幾何的必然ではない。したがって、キー順変更だけの
+差分や無関係なランダム性としては扱っていない。
+
+### 12.4 PNGレンダリング
+
+KiCad 10.0.5の`kicad-cli pcb render`で、銅、pad、Edge.Cuts、実装部品を含む
+上面・下面をレンダリングした。画像はEvidence確認用であり、コミット対象外である。
+
+- F.SilkSを含む上面: `out/gd1-plan3-rotation-final/fab/gd1-top.png`
+- B.SilkSを含む下面: `out/gd1-plan3-rotation-final/fab/gd1-bottom.png`
