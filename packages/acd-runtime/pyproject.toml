@@ -7,7 +7,6 @@ dependencies = [
     "acd-schema",
     "acd-core",
     "acd-tools",
-    "acd-events",
     "openhands-sdk",
 ]
 

@@ -15,7 +15,6 @@ exclude = ["packages/adapters"]
 [tool.uv.sources]
 acd-schema = { workspace = true }
 acd-core = { workspace = true }
-acd-events = { workspace = true }
 acd-tools = { workspace = true }
 acd-runtime = { workspace = true }
 acd-adapter-kicad = { workspace = true }
@@ -28,7 +27,6 @@ openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
 dev = [
     "acd-schema",
     "acd-core",
-    "acd-events",
     "acd-tools",
     "acd-runtime",
     "acd-adapter-kicad",
@@ -40,7 +38,6 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.9",
     "pyright>=1.1.390",
-    "jsonschema>=4.23",
 ]
 
 [tool.ruff]
@@ -60,7 +57,6 @@ exclude = ["**/__pycache__", "vendor", "**/.venv"]
 executionEnvironments = [
     { root = "packages/acd-schema/src" },
     { root = "packages/acd-core/src" },
-    { root = "packages/acd-events/src" },
     { root = "packages/acd-tools/src" },
     { root = "packages/acd-runtime/src" },
     { root = "packages/adapters/acd-adapter-kicad/src" },
