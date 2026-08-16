@@ -6,7 +6,7 @@ import pytest
 from conftest import load_fixture
 from pydantic import ValidationError
 
-from acd_schema import AcdModel, DesignGraph, Evidence, FwPackage, ToolEnvelope
+from acd_schema import AcdModel, DesignGraph, Evidence, ToolEnvelope
 
 
 @pytest.mark.parametrize(
@@ -14,7 +14,6 @@ from acd_schema import AcdModel, DesignGraph, Evidence, FwPackage, ToolEnvelope
     [
         (DesignGraph, "design-graph.json"),
         (Evidence, "evidence.json"),
-        (FwPackage, "fw-package.json"),
         (ToolEnvelope, "tool-envelope.json"),
     ],
 )
@@ -27,7 +26,6 @@ def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
     [
         (DesignGraph, "design-graph-unknown-field.json"),
         (Evidence, "evidence-bad-status.json"),
-        (FwPackage, "fw-package-unknown-field.json"),
         (ToolEnvelope, "tool-envelope-missing-input-hash.json"),
     ],
 )

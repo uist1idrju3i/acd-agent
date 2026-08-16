@@ -1,10 +1,10 @@
-"""Virtual serial-log gate tests: required behaviour or fail-closed."""
+"""Virtual serial-log check tests: required behaviour or failure."""
 
 from __future__ import annotations
 
 import pytest
 
-from acd_adapter_espidf.qemu import VirtualRunGateError, assert_virtual_log_ok
+from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
 
 GOOD_LOG = """\
 I (100) acd_gd1: ACD GD1 fw boot target_revision=r1
@@ -22,27 +22,27 @@ def test_good_virtual_log_passes() -> None:
 
 def test_missing_boot_line_fails() -> None:
     log = GOOD_LOG.replace("ACD GD1 fw boot", "boot")
-    with pytest.raises(VirtualRunGateError, match="boot line"):
+    with pytest.raises(VirtualRunCheckError, match="boot line"):
         assert_virtual_log_ok(log, target_revision="r1", led_gpio=7)
 
 
 def test_revision_mismatch_fails() -> None:
-    with pytest.raises(VirtualRunGateError, match="boot line"):
+    with pytest.raises(VirtualRunCheckError, match="boot line"):
         assert_virtual_log_ok(GOOD_LOG, target_revision="r2", led_gpio=7)
 
 
 def test_wrong_led_gpio_fails() -> None:
-    with pytest.raises(VirtualRunGateError, match="LED"):
+    with pytest.raises(VirtualRunCheckError, match="LED"):
         assert_virtual_log_ok(GOOD_LOG, target_revision="r1", led_gpio=6)
 
 
 def test_led_stuck_in_one_state_fails() -> None:
     log = GOOD_LOG.replace("state=0", "state=1")
-    with pytest.raises(VirtualRunGateError, match="LED"):
+    with pytest.raises(VirtualRunCheckError, match="LED"):
         assert_virtual_log_ok(log, target_revision="r1", led_gpio=7)
 
 
 def test_missing_sensor_attempt_fails() -> None:
     log = GOOD_LOG.replace("SHT40", "sensor")
-    with pytest.raises(VirtualRunGateError, match="SHT40"):
+    with pytest.raises(VirtualRunCheckError, match="SHT40"):
         assert_virtual_log_ok(log, target_revision="r1", led_gpio=7)

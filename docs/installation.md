@@ -606,63 +606,51 @@ ACDはこの終了コードだけで合否を決めず、reportのerror数とunc
 また、Gerber/drillの独立reload時にgerbonaraのG90 `SyntaxWarning`が出力されたが、
 独立reloadは成功した。警告を成功根拠にはしていない。
 
-### 6.3 FWレーン
+### 6.3 FWレーン（Skill）
 
-ESP-IDF `v6.0.2`、ESP-IDF専用Python環境、ESP32-C3 toolchain、QEMU
-`9.2.2 (esp_develop_9.2.2_20250817)`が必要である。`export.sh`はスクリプトが
-自動sourceしないため、呼び出し側でsourceする必要がある。
+FWはACD本体のゲート対象ではない。ビルド、静的解析、単体テスト、ピン割当整合、
+ログ期待値照合はOpenHands側の作業であり、再利用できる実装は
+`plugins/acd/skills/acd-firmware-esp32c3/`のSkillとして提供する。参照パイプラインは
+次で実行する。
 
 ```bash
-source ~/tools/esp-idf/export.sh
-uv run python scripts/run_gd1_fw_pipeline.py --out out/gd1-fw
+uv run python plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+  --out out/gd1-fw
 ```
 
-`export.sh`なしでは次でfail-closed停止する。
+ESP-IDF `v6.0.2`、ESP32-C3 toolchain、QEMU `9.2.2 (esp_develop_9.2.2_20250817)`が
+必要である。Skillは`IDF_PATH`から`export.sh`をsourceして`idf.py`とESP-IDF同梱QEMUを
+解決するため、呼び出し側での事前sourceは不要である。`IDF_PATH`未設定や`export.sh`
+不在ではfail-closed停止する。
 
 ```text
-IDF_PATH not set or idf.py missing (fail-closed)
+IDF_PATH is not set (fail-closed)
 ```
 
-source後の実測結果:
+実測結果（本リポジトリのGD1 fixture、ESP-IDF v6.0.2）:
 
 - 成功、終了コード`0`
-- 所要時間`68秒`
-- 6段階すべて成功
-- ESP-IDF build passed（`v6.0.2`）
-- pin-assignment consistency gate passed
-- QEMU virtual run gate passed
+- 5段階すべて成功（投影、ピン割当整合、build、QEMU実行、ログ照合）
 - 出力ディレクトリは`203M`
 
 主要生成物:
 
 | ファイル | サイズ |
 | --- | ---: |
-| `fw-package.json` | 1,244 bytes |
+| `summary.json` | 493 bytes |
 | `flash.bin` | 4,194,304 bytes |
-| `qemu-serial.log` | 4,499 bytes |
-| `evidence-virtual-run.json` | 1,394 bytes |
-| `summary.json` | 289 bytes |
-| `envelope-build.json` | 758 bytes |
-| `envelope-merge.json` | 747 bytes |
-| `envelope-qemu.json` | 861 bytes |
-| `build/merged-binary.bin` | 233,808 bytes |
+| `qemu-serial.log` | 4,505 bytes |
+| `acd_gd1_fw/build/merged-binary.bin` | 233,808 bytes |
 
-合格根拠として次を確認する。
+Skill側の合否根拠として次を確認する。
 
 - `qemu-serial.log`: `LED gpio=7 state=1`と`LED gpio=7 state=0`の状態遷移
-- `fw-package.json`: `target_revision`、ESP-IDF version、`source_hash`、
-  `artifact_hash`
-- `evidence-virtual-run.json`: `virtual_led_blink_observed=true`
-- `envelope-build.json`、`envelope-merge.json`、`envelope-qemu.json`: tool version、
-  input/output hash、target revision、測定条件
+- `summary.json`: `target_revision`、`toolchain_version`、`source_hash`、
+  `artifact_hash`、`qemu_version`、`measurement_conditions`
 
-`envelope-qemu.json`の`exit_code=124`は15秒の許容timeoutによる終了であり、ログ照合gateが
-成功したためパイプラインは成功した。これはQEMU仮想Evidenceであり、実機測定の代替ではない。
-実機Evidenceには次が記録され、未取得のままである。
-
-```json
-{"property": "real_device_led_measurement", "value": "unavailable", "verified": false}
-```
+QEMUは15秒の許容timeoutで終了するため、QEMU自体の終了コード`124`は失敗ではない。
+これはQEMU仮想検証であり、実機測定の代替にはならない（MUST NOT）。実機のLED測定は
+debug probe未接続のため未取得のままである。Skillの合否はACD本体の設計ゲートの合否ではない。
 
 ## 7. Agent Canvasから使う（VibeBB／VibeCoding）
 
@@ -697,13 +685,13 @@ target_revision、convergence_state、measurement_conditions）の値を表で�
 
 ```text
 workspaceのacd-agentでFWレーンを動作確認してください。
-最初にsource ~/tools/esp-idf/export.shを実行し、次を実行します。
+acd-firmware-esp32c3 Skillの参照パイプラインを次で実行します。
 
-uv run python scripts/run_gd1_fw_pipeline.py --out out/gd1-fw
+uv run python plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py --out out/gd1-fw
 
-pin-assignment consistency gate、QEMUシリアルログのLED gpio/state遷移、
-fw-package.jsonのsource_hashとartifact_hash、各FW envelopeの実値を報告してください。
-実機Evidenceのunavailableは未検証として扱い、仮想Evidenceを実機の代替にしないでください。
+ピン割当整合の検査結果、QEMUシリアルログのLED gpio/state遷移、
+summary.jsonのsource_hashとartifact_hash、toolchain_versionとqemu_versionを報告してください。
+実機測定が未取得であることは未検証として扱い、仮想検証を実機の代替にしないでください。
 承認なしにprobe-rsで実機へ書き込まず、発注も行わないでください。
 ```
 
