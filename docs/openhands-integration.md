@@ -112,7 +112,7 @@ SHAで固定する。ただしCanvasのフロントエンド本体がSDK reposit
 | 外部tool | MCP client、動的Pydantic schema、timeout、再接続 | adapterの意味検証、tool version固定、Evidence生成 |
 | 視覚レビュー | `ImageContent`、`inspect_image_with_vision`、画像inline化 | 視覚投影の分類、画像hash、rendererの記録 |
 | 実行分岐 | `Conversation.fork(from_event_id=...)`（local／remote） | trade studyの比較と会話履歴の保持 |
-| 作業資材の配布 | `Skill`、`KeywordTrigger`／`PathTrigger`／`TaskTrigger`、skill repositoryのpin、`PluginManifest`、marketplace | 工程チェックリスト、レビュー観点、ECAD操作手順の内容と版 |
+| 作業資材の配布 | `Skill`、`KeywordTrigger`／`PathTrigger`／`TaskTrigger`、skill repositoryのpin、`PluginManifest`、marketplace | 工程チェックリスト、Q7/N7の作業手法、レビュー観点、ECAD操作手順 |
 | サブエージェント定義 | `AgentDefinition`、`AgentDefinitionLevel`、model/tools/skills/hooks/MCP/予算・反復上限、`permission_mode` | 生成・レビューagentの役割境界、入力ファイルへの書込み制約 |
 | hook | `PreToolUse`、`PostToolUse`、`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`、`HookDecision` | 不可逆操作の防護、commit側receipt参照、決定論的gate、共通executor |
 | 反復改善 | `CriticBase`、`CriticResult`、`IterativeRefinementConfig`、`Conversation.run()`の自動retry | 自然文の所見を修正ループへ渡す。合否は決定論的ゲート |

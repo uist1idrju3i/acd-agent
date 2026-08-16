@@ -71,6 +71,7 @@ acd-agent/
 | `m1-m2-enclosure-review` | 筐体観点（干渉・肉厚・締結・公差） | TaskTrigger |
 | `s2-manufacturing-output` | 製造出力・面付け手順 | TaskTrigger |
 | `ecad-pitfalls` | [`ecad-domain-notes.md`](ecad-domain-notes.md)の落とし穴 | PathTrigger（ECAD投影パス） |
+| `q7n7-methods` | [`qc-tools.md`](qc-tools.md)の作業手法 | KeywordTrigger |
 | `projection-review` | [`projection-review.md`](projection-review.md)のレビュー観点 | KeywordTrigger |
 | `fw-lane-procedure` | FWレーン手順・ピン整合の確認手順 | TaskTrigger |
 
@@ -86,7 +87,7 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 | `acd-mechanical` | M1/M2生成 | workspace shell、file editor、パイプラインスクリプト |
 | `acd-firmware` | FWレーン実装 | projection系、terminal、file editor |
 | `acd-reviewer` | 機械可読投影のレビュー（入力ファイルへの書込み不可） | file editor、`inspect_image_with_vision`、workspace shell |
-| `acd-visual-reviewer` | 視覚投影レビュー（vision profile、書込み不可） | `inspect_image_with_vision` |
+| `acd-visual-reviewer` | 視覚投影レビュー（入力ファイルへの書込み不可） | `inspect_image_with_vision` |
 
 リポジトリ探索・テスト実行等の汎用作業はSDK builtinサブエージェント
 （`code-explorer`、`bash-runner`等）を再利用し、自作しない。
