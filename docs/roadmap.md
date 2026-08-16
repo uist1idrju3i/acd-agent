@@ -134,7 +134,7 @@ Phase 1とPhase 2は電気成果物を共有するため、Phase 1のfixtureをP
 FWパッケージschemaはPhase 0の契約に含め、投影と整合ゲートをPhase 2で実装する。
 schemaを後から追加すると、Phase 1以降のEvidenceが一斉に失効するためである。Phase 11は
 Phase 9の価格出所、Phase 10の副作用journal、Phase 8の製造データ契約のすべてを前提にする。
-Phase 13はPhase 5の検証ゲートと根拠、Phase 6の協調修復を前提とし、両者と並行して着手できる。
+Phase 13はPhase 5の検証ゲートと根拠、Phase 6の協調修復を前提とし、Phase 7以降とは並行して進められる。
 Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを定め、工程別の作り込みや
 全投影の実装は後段へ送る。最短経路を遅延させない。
 
