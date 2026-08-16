@@ -24,6 +24,9 @@ def test_generator_mechanical_nodes_match_fixture_without_kicad(
     ]
     actual = [
         node.model_dump(mode="json")
-        for node in module.mechanical_nodes()
+        for node in (
+            module.mechanical_nodes()
+            + module.silkscreen_nodes("golden-design-1", "r1")
+        )
     ]
     assert actual == expected

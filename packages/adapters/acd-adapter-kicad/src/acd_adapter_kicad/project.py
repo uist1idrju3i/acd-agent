@@ -19,6 +19,7 @@ from acd_core.bom import bom_csv
 from acd_core.electrical import BoardView, ElectricalLane
 from acd_core.fab import FabProfile
 from acd_core.routing_width import derive_net_widths, group_netclasses
+from acd_core.silkscreen import SilkscreenLane
 
 
 @dataclass(frozen=True)
@@ -128,6 +129,7 @@ def write_project(
     out_dir: Path,
     profile: FabProfile,
     name: str = "gd1",
+    silkscreen: SilkscreenLane | None = None,
 ) -> ProjectFiles:
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -148,7 +150,13 @@ def write_project(
     power_sha = "sha256:" + hashlib.sha256(power_lib.read_bytes()).hexdigest()
     pwr_flag_symbol = symbol_library.load(PWR_FLAG_LIB_ID, power_lib, power_sha)
     schematic_content = generate_schematic(lane, symbol_library, fixture_dir, pwr_flag_symbol)
-    board_projection = generate_board(lane, FootprintLibrary(), fixture_dir, profile)
+    board_projection = generate_board(
+        lane,
+        FootprintLibrary(),
+        fixture_dir,
+        profile,
+        silkscreen=silkscreen,
+    )
 
     schematic = out_dir / f"{name}.kicad_sch"
     board = out_dir / f"{name}.kicad_pcb"

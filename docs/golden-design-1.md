@@ -550,3 +550,66 @@ FWはESP-IDFを採用し、ESP-IDFのバージョンを固定する。固定バ�
 - LEDの極性、実装向き、必要な点灯電流の実測値。
 - AMS1117-3.3の熱計算、入力電圧範囲、実際の最大負荷電流。
 - 実機製造・書き込み・LED点滅・温湿度ログのEvidence取得日と測定条件。
+
+## 12. GD1計画3: シルクの宣言・探索・独立測定
+
+計画3では、F.SilkSを機能ラベル専用とし、`RESET`（SW1）、`BOOT`（SW2）、
+`D1`、`USB`（J1）だけを表面へ投影した。`DEV BOARD`、グラフIDとrevisionから導出した
+基板品番、VibeBB独自ベクターロゴは、機能ラベルとの責務を分離するためB.SilkSへ置いた。
+Bluetoothの語・ロゴ・ライセンス文言は使用していない。
+
+シルク要素は`mechanical.silk_text`または`mechanical.silk_graphic`としてグラフへ宣言し、
+KiCadのboard-level `gr_text` / `gr_poly`へ投影する。基板品番は
+`golden-design-1-r1`としてグラフIDとrevisionから導出し、コード側へ文字列を複製していない。
+ロゴはグラフ宣言のpolygonをそのままベクター投影し、bitmapは使用していない。
+
+### 12.1 決定論的候補探索
+
+機能ラベルは対象footprintの配置とpad形状を初回のシルクなし投影から読み取り、
+グラフ宣言の探索順
+`top,bottom,right,left,top_right,bottom_right,bottom_left,top_left`と、
+宣言された刻み`0.25 mm`、上限`4.0 mm`で候補を生成した。候補は順序を固定し、
+初回投影で利用できるpad形状と基板外形、および保守的なbody bboxを満たすものを
+採用する。mask開口との干渉は初回投影だけでは確定せず、塗り後Gerberの独立測定で
+最終判定する。候補の棄却理由と
+採用座標は`fab-package.json`の`silkscreen.placement_evidence`へ保存し、未解決の
+機能ラベルを裏面へ移す経路は持たない。
+
+裏面のbranding/識別情報は、表面の機能ラベル探索で記録されたpad/mask混雑を根拠に
+グラフ宣言位置を採用した。表面へ置けなかった根拠は、生成物上の代表的なpad/mask
+干渉bboxを含むresolver Evidenceへ記録する。なお、機能ラベルが1つでも候補を持たない
+場合はfail-closedで停止する。
+
+### 12.2 独立Gerber測定
+
+出力`out/gd1-plan3-final/`では、Gerberを`sexpdata`と`gerbonara`で独立再読込し、
+F.Silkscreen/B.Silkscreen、F.Mask/B.Mask、Edge.Cutsを対象に、Line/Arc/Region/Flashの
+幾何を測定した。recognized object countは568（Arc 14、Line 552、Region 2）であり、
+未知オブジェクト、未対応aperture、parse失敗は合格扱いしない。
+
+| 要素 | layer | 確定位置 mm | 実測bbox mm | 実測高さ/線幅 mm | 面積 mm² |
+|---|---|---|---|---:|---:|
+| RESET | F.SilkS | (24.55, 2.5375) | (23.6611, 0.4982, 25.3111, 5.2911) | 4.7929 / 0.15 | 1.83185 |
+| BOOT | F.SilkS | (6.30, 4.7875) | (4.1893, 3.8986, 7.8393, 5.5486) | 1.6500 / 0.15 | 1.57470 |
+| D1 | F.SilkS | (17.6725, 12.78) | (16.4904, 11.8911, 18.9261, 13.5411) | 1.6500 / 0.15 | 1.07539 |
+| USB | F.SilkS | (25.9325, 19.79) | (24.1075, 18.9011, 27.8289, 20.5511) | 1.6500 / 0.15 | 1.39271 |
+| DEV BOARD | B.SilkS | (25.0, 1.0) | (21.9488, 0.3798, 28.0988, 1.5298) | 1.1500 / 0.15 | 2.44104 |
+| golden-design-1-r1 | B.SilkS | (15.0, 24.0) | (9.4012, 23.3798, 20.1226, 24.8632) | 1.4833 / 0.15 | 3.21779 |
+| VibeBB vector logo | B.SilkS | polygon宣言 | (24.9250, 4.9250, 28.2750, 6.2750) | — / 0.15 | 1.54045 |
+
+Fab capabilityは最小文字高`1.0 mm`、最小線幅`0.15 mm`である。測定結果は全要素で
+この値以上で、pad-to-silk重なり`0`、mask開口-to-silk重なり`0`、板外overflow`0`で
+あった。ロゴもRegion/Lineから面積と最小線幅を独立測定した。
+
+最終ゲートは、宣言位置近傍の実インク面積が正であること、実測高さ・線幅がcapability
+以上であること、実形状のpad/mask/Edge.Cutsとの干渉がないことを同時に要求する。
+bboxは候補の予選に限り、footprint body bboxも候補を保守的に絞るためだけに使う。
+最終的な合否はGerberのstroke、arc、flash、regionと、実形状のpad/mask/Edge.Cuts
+との測定で判定する。body bboxを最終測定の代用にはしない。
+
+最終探索のplacement evidenceでは、機能ラベルをすべて決定論的に解決した。
+RESETは`(24.55, 2.5375)` mmで408候補、BOOTは`(6.30, 4.7875)` mmで508候補、
+D1は`(17.6725, 12.78)` mmで1485候補、USBは`(25.9325, 19.79)` mmで1365候補を
+棄却してから、各々最初の合格候補を採用した。棄却理由はboard-edge overflow、
+pad overlap、およびfootprint body bboxによる保守的な候補除外であり、採用後は
+独立Gerber測定で実形状のpad/mask重なり0を再確認した。
