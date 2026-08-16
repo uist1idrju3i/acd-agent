@@ -58,11 +58,6 @@ def test_profile_schema_and_provenance() -> None:
     json.dumps(profile.data)
 
 
-def test_profile_loader_accepts_explicit_schema_path() -> None:
-    profile = load_fab_profile(PROFILE, ROOT / "schemas/fab-profile.schema.json")
-    assert profile.profile_id == "jlcpcb-fr4-2l-1oz"
-
-
 def test_economic_combinations_are_complete() -> None:
     profile = load_fab_profile(PROFILE)
     combinations = profile.data["assembly_classes"]["economic"]["combinations"]

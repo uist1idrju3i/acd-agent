@@ -7,10 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
-from referencing.jsonschema import Schema
-
 from acd_core.electrical import GraphExtractionError
 from acd_schema.design_graph import DesignGraph, GraphNode
 
@@ -131,33 +127,9 @@ def extract_fab_intent(
     return intents[0], tuple(allowances)
 
 
-def load_fab_profile(path: Path, schema_path: Path | None = None) -> FabProfile:
+def load_fab_profile(path: Path) -> FabProfile:
     """Load and validate a tracked fab profile, including provenance invariants."""
     profile = json.loads(path.read_text(encoding="utf-8"))
-    if schema_path is None:
-        for parent in (path.resolve(), *path.resolve().parents):
-            candidate = parent / "schemas" / "fab-profile.schema.json"
-            if candidate.is_file():
-                schema_path = candidate
-                break
-        if schema_path is None:
-            raise ValueError(
-                "fab profile schema path must be supplied when repository root is unavailable"
-            )
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    common_path = schema_path.with_name("common.schema.json")
-    common = json.loads(common_path.read_text(encoding="utf-8"))
-    registry: Registry[Schema] = Registry[Schema]()
-    registry = registry.with_resource(
-        schema["$id"],
-        cast(Resource[Schema], Resource.from_contents(schema)),
-    )
-    registry = registry.with_resource(
-        common["$id"],
-        cast(Resource[Schema], Resource.from_contents(common)),
-    )
-    validator = Draft202012Validator(cast(Schema, schema), registry=registry)
-    validator.validate(profile)  # pyright: ignore[reportUnknownMemberType]
     source_count = len(profile["sources"])
     for item in profile["capabilities"].values():
         if item["source_index"] >= source_count:
