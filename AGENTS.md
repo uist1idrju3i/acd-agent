@@ -28,13 +28,15 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 - 本リポジトリでは上記の日本語規約を採用し、一般設定にある英語の推奨より優先する（MUST）。
 - ソースコードのコメントと識別子は英語とする（MUST）。
 - `vendor/software-agent-sdk`のsubmodule参照を更新したときは、本書冒頭の版表記も同じコミットで更新する（MUST）。
-- 別リポジトリ `uist1idrju3i/ACD` の仕様、ADR、フェーズ定義、教訓文は本リポジトリの権威ではない（MUST NOT）。
-- 別リポジトリ `uist1idrju3i/ACD` を本書やdocsから根拠・参照先として引用しない（MUST NOT）。別リポジトリとして別の開発が進むため、必要な内容は本リポジトリへ転記して本リポジトリの記述として管理してよい（MAY）。
+- 別リポジトリ `uist1idrju3i/ACD` の仕様、ADR、フェーズ定義、教訓文は本リポジトリの権威ではない。
+- 別リポジトリ `uist1idrju3i/ACD` を本書やdocsから根拠・参照先として引用しない（MUST NOT）。
+  別リポジトリとして別の開発が進むため、必要な内容は本リポジトリへ転記して
+  本リポジトリの記述として管理してよい（MAY）。
 
 ## 製品・安全の不変条件
 
 - 型付き・バージョン付き設計グラフを正とし、生成物は投影とする（MUST）。
-- 投影を正へ逆流させず、投影は意味的にマージせず、対象revisionから再生成する（MUST NOT）。
+- 投影を正へ逆流させず、投影は意味的にマージしない（MUST NOT）。対象revisionから再生成する（MUST）。
 - ワークツリー操作と外部ツール実行は排他にし、プロセス終了とファイルハンドル解放を確認してから切り替える（MUST）。
 - AIは提案し、決定論的ゲートが判定する（MUST）。
 - 実行、資材配布、分業、反復、防護はOpenHands SDKの既存機能を優先して使う（SHOULD）。同等機能を
@@ -54,15 +56,18 @@ MUST NOT、SHOULD、MAYは規範語として使う。
   会話文脈から変更してはならず（MUST NOT）、`profiles/`配下の版管理された設定ファイルのcommitによってのみ変更する（MUST）。
 - 不可逆操作は、操作対象・入力ハッシュ・ゲート結果・予算を確認してから実行し、発注については発注条項の裁量枠・最終ゲート・承認要否に従う（MUST）。
 - 総発注額は基板、部品、実装、送料、税、筐体、機械部品を含める（MUST）。
-- 発注は、金額・納期・月間発注回数・fab指定・地域からなる多次元裁量枠内の場合は発注前最終ゲート合格のみで実行でき、枠外の場合は発注前最終ゲート合格に加えて人間の承認を必須とする（MUST）。
-  裁量枠内では人間の承認IDを必須としない（MUST）。
+- 発注は、金額・納期・月間発注回数・fab指定・地域からなる多次元裁量枠内の場合は、
+  発注前最終ゲート合格のみで実行でき、枠外の場合は発注前最終ゲート合格に加えて
+  人間の承認を必須とする（MUST）。
+  裁量枠内では人間の承認IDを要求しない（MUST NOT）。
 - waiverは一回限り、期限付き、対象revisionと根拠付きでなければならず、記録項目は
-  [`schemas/gate-matrix.schema.json`](schemas/gate-matrix.schema.json)の`waiver`定義（`waiver_id`、`reason`、`target_revision`、`expires_at`）に従う（MUST）。
+  [`schemas/gate-matrix.schema.json`](schemas/gate-matrix.schema.json)の`waiver`定義
+  （`waiver_id`、`reason`、`target_revision`、`expires_at`）に従う（MUST）。
 - ファームウェアは設計グラフから投影し、ビルド、静的解析、単体テスト、ピン割当・ネット整合、
   仮想実機または実機ログの期待値照合を検証Evidenceとして記録する（MUST）。
 - LLMの説明や動作しているように見えることはFWの合格根拠にしない（MUST NOT）。未実行または不整合のFW
   ゲートは合格扱いしない（MUST NOT）。
-- ACD独自`Event`の読み戻しにはACD packageのimportが必要である（MUST）。未知の`kind`は
+- ACD独自`Event`の読み戻しにはACD packageのimportが必要である。未知の`kind`は
   fail-closedで停止し、読み飛ばしたりopaqueに保持したりしない（MUST NOT）。
 - セッション開始時は`SessionStart` hookでACD packageのimport、外部ツール版プローブ、
   SDKの`InstallationInfo.resolved_ref`／`.installed.json`に基づくSkill／pluginの解決済みSHA、
@@ -89,14 +94,14 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 収束状態、測定条件、不確実性、生成時刻、対象グラフrevisionを記録する（MUST）。次の場合は
 合格として扱わない（MUST NOT）。
 
-- 入力またはツール版が不明（MUST NOT）。
-- ツール版・形式版・設定ディレクトリが固定されていない（MUST NOT）。
-- 出力が壊れている、再読込できない、または期待形式でない（MUST NOT）。
-- solverが未収束、geometryが無効、DRC/ERC/干渉検証が未実行（MUST NOT）。
-- Evidenceの対象revisionが現在のrevisionと一致しない（MUST NOT）。
-- 外部サービスの見積・在庫・製造能力・価格が期限切れ（MUST NOT）。
+- 入力またはツール版が不明。
+- ツール版・形式版・設定ディレクトリが固定されていない。
+- 出力が壊れている、再読込できない、または期待形式でない。
+- solverが未収束、geometryが無効、DRC/ERC/干渉検証が未実行。
+- Evidenceの対象revisionが現在のrevisionと一致しない。
+- 外部サービスの見積・在庫・製造能力・価格が期限切れ。
 - Skill／pluginの解決済みSHA、prompt内容hash、model／profile revision、MCP設定hashが
-  記録されていない（MUST NOT）。
+  記録されていない。
 
 ## 秘密情報と信頼できない入力
 
@@ -118,7 +123,7 @@ SDKの`InstallationInfo.resolved_ref`と`.installed.json`から解決済みSHA�
 ## 出所と再現性
 
 部品、footprint、3D model、ルール、材料、価格、製造能力、測定値は出所、取得時点、
-版、hashを付ける（MUST）。推測は推測と書き、確認できない値を既定値にしない（MUST NOT）。派生投影は
+版、hashを付ける（MUST）。推測は推測と書く（MUST）。確認できない値を既定値にしない（MUST NOT）。派生投影は
 対象revision、イベント範囲、入力hash、Evidence、ツール版、生成時刻を保持する（MUST）。
 ライブラリは取得元URLとcommitをpinし、取得時点と解決した実パスを記録する（MUST）。
 Skill／pluginの解決済みSHAはSDKの`InstallationInfo.resolved_ref`と`.installed.json`を
@@ -131,7 +136,7 @@ Skill／pluginの解決済みSHAはSDKの`InstallationInfo.resolved_ref`と`.ins
   参照する（MUST）。
 - GPL/AGPLコードをACDへimport結合しない（MUST NOT）。
 - 外部プロセス呼び出しでも、binaryの同梱、改変、配布、ネットワーク提供、依存物の義務が
-  消えるわけではない（MUST）。
+  消えるわけではない。
 - 利用形態が不明な場合は法務判断を得る（MUST）。
 - 現行LICENSE（BSD 3-Clause）は今回変更しない（MUST NOT）。
 - 使用ツールが固まった段階でライセンス整合を再検討する（MUST）。
@@ -140,7 +145,7 @@ Skill／pluginの解決済みSHAはSDKの`InstallationInfo.resolved_ref`と`.ins
 ## 特許への注意
 
 EDA、配置配線、製造、機械生成のアルゴリズムについて、ACDはfreedom to operateを
-主張しない（MUST NOT）。特許、標準、商用規約、輸出規制に懸念があれば、採用を止めて法務確認する（MUST）。
+主張しない。特許、標準、商用規約、輸出規制に懸念があれば、採用を止めて法務確認する（MUST）。
 
 ## Git・PR規約
 
@@ -153,13 +158,14 @@ EDA、配置配線、製造、機械生成のアルゴリズムについて、AC
 ## 検証契約
 
 検証は`uv sync`、`uv run ruff check`、`uv run pyright`、`uv run pytest`、
-`uv run python scripts/verify_docs.py`、`git diff --check`を使う（MUST）。CI（`.github/workflows/ci.yml`）ではこれらを
-同じコマンド・同じ入力で実行する（MUST）。変更ファイルがMarkdownのみで、
-かつ`scripts/`・`schemas/`・`packages/`・`profiles/`・`fixtures/`・`pyproject.toml`・`uv.lock`・`.github/`を
-変更していない場合、ローカルでは`uv run python scripts/verify_docs.py`と`git diff --check`のみで足りる（MAY）。
+`uv run python scripts/verify_docs.py`、`git diff --check`を使う（MUST）。
+CI（`.github/workflows/ci.yml`）ではこれらを同じコマンド・同じ入力で実行する（MUST）。
+変更ファイルがMarkdownのみで、かつ
+`scripts/`・`schemas/`・`packages/`・`profiles/`・`fixtures/`・`pyproject.toml`・`uv.lock`・`.github/`を
+変更していない場合、ローカルでは`uv run python scripts/verify_docs.py`と
+`git diff --check`のみで足りる（MAY）。
 それ以外はローカルでも全コマンドを実行する（MUST）。CIは従来どおり全コマンドを実行する（MUST）。
-文書検証は全Markdownの
-相対リンクとGitHub互換アンカー（記号除去、空白のハイフン化、重複slugの連番）、
+文書検証は全Markdownの相対リンクとGitHub互換アンカー（記号除去、空白のハイフン化、重複slugの連番）、
 Mermaid構文、コードフェンス、見出し階層、用語集との整合を対象とする（MUST）。
 未確認やunknownを合格扱いしない（MUST NOT）。決定論的なAI回帰はSDKの`TestLLM`で応答・例外を固定し（MUST）、
 実LLMのgolden taskは適格性の定期再測定として分離する（SHOULD）。
