@@ -50,58 +50,6 @@ class GerberRegionRecord:
     bbox_mm: tuple[float, float, float, float]
 
 
-def measure_stitch_via_coverage(
-    front_path: Path,
-    back_path: Path,
-    stitch_vias: Sequence[tuple[float, float]],
-) -> tuple[tuple[float, float], ...]:
-    """Measure via coverage against all parsed Gerber region interiors."""
-
-    def regions(path: Path) -> tuple[tuple[tuple[float, float], ...], ...]:
-        text = path.read_text(encoding="ascii")
-        scale = 1e-6
-        function: str | None = None
-        active = False
-        points: list[tuple[float, float]] = []
-        result: list[tuple[tuple[float, float], ...]] = []
-        for command in text.split("*"):
-            command = command.strip()
-            match = re.search(r"G04 #@! TA\.AperFunction,([^*]+)", command)
-            if match:
-                function = match.group(1).strip()
-            elif "G04 #@! TD.AperFunction" in command:
-                function = None
-            elif command == "G36":
-                active = function == "Conductor"
-                points = []
-            elif command == "G37":
-                if active and len(points) >= 3:
-                    result.append(tuple(points))
-                active = False
-            elif active:
-                match = re.fullmatch(r"(?:G01)?X(-?\d+)Y(-?\d+)D0[12]", command)
-                if match:
-                    points.append(
-                        (int(match.group(1)) * scale, -int(match.group(2)) * scale)
-                    )
-        return tuple(result)
-
-    polygons = (*regions(front_path), *regions(back_path))
-
-    def inside(point: tuple[float, float], polygon: Sequence[tuple[float, float]]) -> bool:
-        result = False
-        for first, second in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
-            if (first[1] > point[1]) != (second[1] > point[1]):
-                crossing = (second[0] - first[0]) * (point[1] - first[1]) / (
-                    second[1] - first[1]
-                ) + first[0]
-                if point[0] < crossing:
-                    result = not result
-        return result
-
-    return tuple(point for point in stitch_vias if any(inside(point, poly) for poly in polygons))
-
-
 class CplBasisError(FabOutputError):
     """Raised when CPL basis or provenance is unknown."""
 
@@ -169,6 +117,7 @@ class BoardMeasurement:
     outline_bbox_mm: tuple[float, float, float, float] | None
     drill_tool_diameters_mm: tuple[float, ...]
     drill_object_count: int
+    net_name_source: str = "unknown"
 
     @property
     def pads(self) -> tuple[PadMeasurement, ...]:
@@ -1002,6 +951,7 @@ def verify_ground_plane_gerbers(
     region_records: list[
         tuple[Path, GerberRegionRecord]
     ] = []
+    flash_records: list[tuple[Path, Flash]] = []
     for path in (front_path, back_path):
         raw_regions = read_regions(path)
         for region in raw_regions:
@@ -1018,6 +968,8 @@ def verify_ground_plane_gerbers(
         for obj in read(path):
             if isinstance(obj, (Flash, Region, Line)) and not obj.polarity_dark:
                 continue
+            if isinstance(obj, Flash):
+                flash_records.append((path, obj))
             box = bbox(obj)
             if box is None:
                 continue
@@ -1037,6 +989,10 @@ def verify_ground_plane_gerbers(
         raise FabOutputError("GND net declaration is absent (fail-closed)")
     gnd_pads: list[tuple[str, float, float]] = []
     for placement in model.placements:
+        if placement.side not in {"front", "back"}:
+            raise FabOutputError(
+                f"{placement.refdes}: unknown placement side (fail-closed)"
+            )
         for refdes, pad_number in gnd_net.pads:
             if refdes != placement.refdes:
                 continue
@@ -1044,7 +1000,17 @@ def verify_ground_plane_gerbers(
                 if pad.number != pad_number:
                     continue
                 x, y = rotate_point(pad.x_mm, pad.y_mm, placement.rotation_deg)
-                layers = ("F.Cu", "B.Cu") if pad.through_hole else ("F.Cu",)
+                if pad.through_hole:
+                    layers = ("F.Cu", "B.Cu")
+                elif pad.on_front == pad.on_back:
+                    raise FabOutputError(
+                        f"{placement.refdes} pad {pad.number}: copper layer is "
+                        "ambiguous (fail-closed)"
+                    )
+                elif placement.side == "front":
+                    layers = ("F.Cu",) if pad.on_front else ("B.Cu",)
+                else:
+                    layers = ("B.Cu",) if pad.on_front else ("F.Cu",)
                 gnd_pads.extend((layer, placement.x_mm + x, placement.y_mm + y) for layer in layers)
     gnd_points = [
         *[
@@ -1053,7 +1019,6 @@ def verify_ground_plane_gerbers(
             if via.net == "GND"
             for layer in ("F.Cu", "B.Cu")
         ],
-        *[(layer, x, y) for layer, x, y in gnd_pads],
         *[(layer, x, y) for x, y in stitch_vias for layer in ("F.Cu", "B.Cu")],
     ]
     inset = model.edge_clearance_mm
@@ -1078,39 +1043,128 @@ def verify_ground_plane_gerbers(
                     inside = not inside
         return inside
 
-    def rect_intersects_polygon(
-        polygon: Sequence[tuple[float, float]], rect: tuple[float, float, float, float]
-    ) -> bool:
-        x1, y1, x2, y2 = rect
-        return any(x1 <= x <= x2 and y1 <= y <= y2 for x, y in polygon) or any(
-            point_in_polygon(corner, polygon)
-            for corner in ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
-        )
-
     if not model.keepouts:
         raise FabOutputError("antenna keepout declaration is absent (fail-closed)")
-    for _, region in conductor_records:
-        for keepout in model.keepouts:
-            if rect_intersects_polygon(
-                region.points_mm,
-                (keepout.x1_mm, keepout.y1_mm, keepout.x2_mm, keepout.y2_mm),
-            ):
-                raise FabOutputError("copper inside antenna keepout (fail-closed)")
+    def polygon_area(points: Sequence[tuple[float, float]]) -> float:
+        if len(points) < 3:
+            return 0.0
+        return abs(
+            sum(
+                x1 * y2 - x2 * y1
+                for (x1, y1), (x2, y2) in zip(
+                    points, (*points[1:], points[0]), strict=True
+                )
+            )
+        ) / 2.0
 
-    for x, y in stitch_vias:
+    def clip_polygon(
+        polygon: Sequence[tuple[float, float]],
+        axis: int,
+        bound: float,
+        keep_greater: bool,
+    ) -> list[tuple[float, float]]:
+        if not polygon:
+            return []
+        result: list[tuple[float, float]] = []
+        for first, second in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
+            first_inside = (
+                first[axis] >= bound if keep_greater else first[axis] <= bound
+            )
+            second_inside = (
+                second[axis] >= bound if keep_greater else second[axis] <= bound
+            )
+            if first_inside != second_inside:
+                denominator = second[axis] - first[axis]
+                if denominator == 0:
+                    continue
+                ratio = (bound - first[axis]) / denominator
+                result.append(
+                    (
+                        first[0] + ratio * (second[0] - first[0]),
+                        first[1] + ratio * (second[1] - first[1]),
+                    )
+                )
+            if second_inside:
+                result.append(second)
+        return result
+
+    keepout_measurements: list[dict[str, object]] = []
+    keepout_copper_area_mm2 = 0.0
+    for keepout in model.keepouts:
+        rect = (keepout.x1_mm, keepout.y1_mm, keepout.x2_mm, keepout.y2_mm)
+        overlap_area = 0.0
+        for _, region in conductor_records:
+            clipped = list(region.points_mm)
+            for axis, bound, keep_greater in (
+                (0, rect[0], True),
+                (0, rect[2], False),
+                (1, rect[1], True),
+                (1, rect[3], False),
+            ):
+                clipped = clip_polygon(clipped, axis, bound, keep_greater)
+            overlap_area += polygon_area(clipped)
+        keepout_copper_area_mm2 += overlap_area
+        keepout_measurements.append(
+            {"name": keepout.name, "copper_area_mm2": overlap_area}
+        )
+    if keepout_copper_area_mm2 > 1e-9:
+        raise FabOutputError(
+            "copper inside antenna keepout (fail-closed): "
+            f"measured_area_mm2={keepout_copper_area_mm2}"
+        )
+
+    uncovered_stitch_vias = [
+        (x, y)
+        for x, y in stitch_vias
         if not any(
             point_in_polygon((x, y), region.points_mm)
             for _, region in conductor_records
-        ):
-            raise FabOutputError(f"stitch via at ({x}, {y}) lacks copper coverage (fail-closed)")
+        )
+    ]
+    if uncovered_stitch_vias:
+        locations = ", ".join(f"({x}, {y})" for x, y in uncovered_stitch_vias)
+        raise FabOutputError(
+            f"stitch vias lack copper coverage (fail-closed): {locations}"
+        )
 
-    for layer, x, y in gnd_points:
+    uncovered_gnd_points = [
+        (layer, x, y)
+        for layer, x, y in gnd_points
         if not any(
             ("F.Cu" if path == front_path else "B.Cu") == layer
             and point_in_polygon((x, y), region.points_mm)
             for path, region in conductor_records
-        ):
-            continue
+        )
+    ]
+    uncovered_gnd_pads = [
+        (layer, x, y)
+        for layer, x, y in gnd_pads
+        if not any(
+            ("F.Cu" if path == front_path else "B.Cu") == layer
+            and point_in_polygon((x, y), region.points_mm)
+            for path, region in region_records
+            if region.function
+            in {"Conductor", "SMDPad,CuDef", "ComponentPad", "ViaPad"}
+        )
+        and not any(
+            ("F.Cu" if path == front_path else "B.Cu") == layer
+            and (
+                flash_box := bbox(flash)
+            ) is not None
+            and flash_box[0] <= x <= flash_box[2]
+            and flash_box[1] <= -y <= flash_box[3]
+            for path, flash in flash_records
+        )
+    ]
+    if uncovered_gnd_points or uncovered_gnd_pads:
+        uncovered = (*uncovered_gnd_points, *uncovered_gnd_pads)
+        locations = ", ".join(
+            f"{layer}@({x}, {y})" for layer, x, y in uncovered
+        )
+        raise FabOutputError(
+            f"GND connection points lack copper coverage (fail-closed): {locations}"
+        )
+    connection_points = (*gnd_points, *gnd_pads)
     region_connection_points = [
         {
             "layer": "F.Cu" if path == front_path else "B.Cu",
@@ -1119,7 +1173,7 @@ def verify_ground_plane_gerbers(
             "gnd_connection_point_count": sum(
                 point_layer == ("F.Cu" if path == front_path else "B.Cu")
                 and point_in_polygon((x, y), region.points_mm)
-                for point_layer, x, y in gnd_points
+                for point_layer, x, y in connection_points
             ),
         }
         for path, region in conductor_records
@@ -1138,7 +1192,7 @@ def verify_ground_plane_gerbers(
         if left != right:
             parent[right] = left
 
-    for layer, x, y in gnd_points:
+    for layer, x, y in connection_points:
         covered = [
             index
             for index, (path, region) in enumerate(conductor_records)
@@ -1160,10 +1214,18 @@ def verify_ground_plane_gerbers(
         layer = "F.Cu" if path == front_path else "B.Cu"
         if not any(
             point_layer == layer and point_in_polygon((x, y), region.points_mm)
-            for point_layer, x, y in gnd_points
+            for point_layer, x, y in connection_points
         ):
-            raise FabOutputError("Conductor region lacks a GND connection point (fail-closed)")
+            raise FabOutputError(
+                "Conductor region lacks a GND connection point (fail-closed): "
+                f"layer={layer}, bbox_mm={region.bbox_mm}"
+            )
     components = len({find(index) for index in range(len(conductor_records))})
+    if components != 1:
+        raise FabOutputError(
+            "GND conductor regions are disconnected (fail-closed): "
+            f"connected_components={components}"
+        )
     return {
         "front_regions": sum(path == front_path for path, _ in conductor_records),
         "back_regions": sum(path == back_path for path, _ in conductor_records),
@@ -1180,7 +1242,9 @@ def verify_ground_plane_gerbers(
             for path, region in conductor_records
         ],
         "region_connection_points": region_connection_points,
-        "keepout_copper": False,
+        "keepout_copper": keepout_copper_area_mm2 > 1e-9,
+        "keepout_copper_area_mm2": keepout_copper_area_mm2,
+        "keepout_measurements": keepout_measurements,
     }
 
 
@@ -1259,7 +1323,9 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
         for items in [_items(child)]
         if len(items) > 2
     }
+    net_name_source = "board_net_declarations"
     if not net_names:
+        net_name_source = "pad_net_fallback"
         for footprint in _direct(root, "footprint"):
             for pad in _direct(footprint, "pad"):
                 net_node = _one(pad, "net")
@@ -1267,6 +1333,17 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
                     net_names[str(net_node[1])] = str(
                         net_node[2] if len(net_node) > 2 else net_node[1]
                     )
+    if not net_names:
+        raise FabOutputError(f"{path.name}: net names unavailable (fail-closed)")
+    for footprint in _direct(root, "footprint"):
+        for pad in _direct(footprint, "pad"):
+            net_node = _one(pad, "net")
+            if net_node is not None and (
+                len(net_node) < 2 or str(net_node[1]) not in net_names
+            ):
+                raise FabOutputError(
+                    f"{path.name}: pad net name unavailable (fail-closed)"
+                )
     for node in _items(root)[1:]:
         tag = _tag(node)
         if tag == "footprint":
@@ -1358,6 +1435,7 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
         bbox,
         (),
         0,
+        net_name_source,
     )
 
 

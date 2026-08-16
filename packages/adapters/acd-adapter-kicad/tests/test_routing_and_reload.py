@@ -17,6 +17,7 @@ from acd_core.board_model import (
     BoardModel,
     BoardNet,
     ComponentPlacement,
+    CopperZone,
     FootprintShape,
     PadShape,
     RoutedDesign,
@@ -123,6 +124,92 @@ def test_stitch_vias_rotate_asymmetric_pad_axes() -> None:
     assert (3.611932521069266, 9.635797563207797) not in vias
 
 
+def test_stitch_vias_exclude_rotated_translated_body_bbox() -> None:
+    placement = ComponentPlacement(
+        "U2",
+        FootprintShape(
+            "test:U2",
+            (),
+            body_bbox_mm=(-1.0, -1.0, 1.0, 1.0),
+        ),
+        3.6,
+        9.6,
+        90.0,
+    )
+    model = BoardModel(
+        30.0,
+        25.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.3,
+        (placement,),
+        (BoardNet("GND", ()),),
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    _, vias = inject_stitch_vias(
+        _BOARD,
+        model,
+        RoutedDesign((), ()),
+        {"GND": 1},
+        model.stitch_via_pitch_mm,
+        0.6,
+        0.3,
+    )
+    assert (3.6, 9.6) not in vias
+
+
+def test_missing_stitch_basis_fails_downstream() -> None:
+    board = BoardView(
+        "b",
+        20.0,
+        15.0,
+        2,
+        1.6,
+        "mm",
+        "board_upper_left",
+        "down",
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.3,
+        False,
+    )
+    assert stitch_via_pitch(board) is None
+    model = BoardModel(
+        20.0,
+        15.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.3,
+        (),
+        (BoardNet("GND", ()),),
+        copper_zones=(CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
+        stitch_via_net="GND",
+    )
+    _, vias = inject_stitch_vias(
+        _BOARD, model, RoutedDesign((), ()), {"GND": 1}, None, 0.6, 0.3
+    )
+    assert vias == ()
+    from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
+
+    with pytest.raises(FabOutputError, match="no stitch vias"):
+        verify_ground_plane_gerbers(
+            Path("missing-f.gbr"),
+            Path("missing-b.gbr"),
+            model,
+            vias,
+            RoutedDesign((), ()),
+        )
+
+
 def test_filled_plane_verifier_rejects_missing_gerber(tmp_path: Path) -> None:
     from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
     from acd_core.board_model import CopperZone
@@ -162,6 +249,63 @@ def test_gerber_region_without_aperture_function_fails_closed(tmp_path: Path) ->
         verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),), RoutedDesign((), ()))
 
 
+def test_antenna_keepout_copper_fails_closed(tmp_path: Path) -> None:
+    from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
+    from acd_core.board_model import CopperZone, KeepoutRect
+
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    front.write_text(_gerber_region("Conductor", side=2.0))
+    back.write_text(_gerber_region("Conductor", side=10.0))
+    model = BoardModel(
+        20.0,
+        15.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.0,
+        (),
+        (BoardNet("GND", ()),),
+        (KeepoutRect("antenna", 1.2, 1.2, 1.8, 1.8),),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 0.0),),
+    )
+    with pytest.raises(FabOutputError, match="measured_area_mm2"):
+        verify_ground_plane_gerbers(
+            front, back, model, ((2.0, 2.0),), RoutedDesign((), ())
+        )
+
+
+def test_prefill_gerbers_fail_closed(tmp_path: Path) -> None:
+    from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
+    from acd_core.board_model import CopperZone
+
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    empty = "%FSLAX46Y46*%\n%MOMM*%\n"
+    front.write_text(empty)
+    back.write_text(empty)
+    model = BoardModel(
+        20.0,
+        15.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.0,
+        (),
+        (BoardNet("GND", ()),),
+        (),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
+    )
+    with pytest.raises(FabOutputError, match="filled copper regions are absent"):
+        verify_ground_plane_gerbers(
+            front, back, model, ((1.1, 1.1),), RoutedDesign((), ())
+        )
+
+
 def test_small_zone_region_fails_but_pad_region_is_excluded(tmp_path: Path) -> None:
     from acd_adapter_kicad.fab import FabOutputError, verify_ground_plane_gerbers
     from acd_core.board_model import CopperZone, KeepoutRect
@@ -182,12 +326,12 @@ def test_small_zone_region_fails_but_pad_region_is_excluded(tmp_path: Path) -> N
 
 
 def _gerber_region(function: str, side: float = 0.5) -> str:
-    end = int((1.0 + side) * 10000)
+    end = int((1.0 + side) * 1_000_000)
     return (
         "%FSLAX46Y46*%\n%MOMM*%\n"
         f"G04 #@! TA.AperFunction,{function}*\nG36*\nG01*\n"
-        f"X10000Y-10000D02*X{end}Y-10000D01*X{end}Y-{end}D01*"
-        f"X10000Y-{end}D01*X10000Y-10000D01*G37*\n"
+        f"X1000000Y-1000000D02*X{end}Y-1000000D01*X{end}Y-{end}D01*"
+        f"X1000000Y-{end}D01*X1000000Y-1000000D01*G37*\n"
         "G04 #@! TD.AperFunction*\n"
     )
 

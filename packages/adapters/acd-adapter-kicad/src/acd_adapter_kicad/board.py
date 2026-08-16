@@ -173,37 +173,35 @@ def _copper_zone(
 
 
 def stitch_via_pitch(board: BoardView) -> float | None:
-    values = (
-        board.stitch_via_max_frequency_hz,
-        board.stitch_via_dielectric_constant,
-        board.stitch_via_wavelength_fraction,
-        board.stitch_via_basis_source,
-    )
+    frequency_hz = board.stitch_via_max_frequency_hz
+    dielectric_constant = board.stitch_via_dielectric_constant
+    wavelength_fraction = board.stitch_via_wavelength_fraction
+    basis_source = board.stitch_via_basis_source
+    values = (frequency_hz, dielectric_constant, wavelength_fraction, basis_source)
     if any(value is None for value in values):
         if any(value is not None for value in values):
             raise ValueError("incomplete stitch-via basis declaration (fail-closed)")
         return None
+    assert (
+        frequency_hz is not None
+        and dielectric_constant is not None
+        and wavelength_fraction is not None
+        and basis_source is not None
+    )
     if (
-        board.stitch_via_max_frequency_hz is None
-        or board.stitch_via_dielectric_constant is None
-        or board.stitch_via_wavelength_fraction is None
-        or board.stitch_via_basis_source is None
-    ):
-        raise ValueError("incomplete stitch-via basis declaration (fail-closed)")
-    if (
-        board.stitch_via_max_frequency_hz <= 0
-        or board.stitch_via_dielectric_constant <= 0
-        or not 0 < board.stitch_via_wavelength_fraction <= 1
+        frequency_hz <= 0
+        or dielectric_constant <= 0
+        or not 0 < wavelength_fraction <= 1
     ):
         raise ValueError("invalid stitch-via basis declaration (fail-closed)")
     speed_of_light_mm_s = 299_792_458_000.0
     return (
         speed_of_light_mm_s
         / (
-            board.stitch_via_max_frequency_hz
-            * board.stitch_via_dielectric_constant**0.5
+            frequency_hz
+            * dielectric_constant**0.5
         )
-        * board.stitch_via_wavelength_fraction
+        * wavelength_fraction
     )
 
 

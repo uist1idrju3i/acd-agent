@@ -131,7 +131,14 @@ def inject_stitch_vias(
                     continue
                 x1, y1, x2, y2 = footprint_box
                 corners = [
-                    rotate_point(x, y, placement.rotation_deg)
+                    tuple(
+                        placement_value + offset
+                        for placement_value, offset in zip(
+                            (placement.x_mm, placement.y_mm),
+                            rotate_point(x, y, placement.rotation_deg),
+                            strict=True,
+                        )
+                    )
                     for x, y in ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
                 ]
                 xs, ys = zip(*corners, strict=True)

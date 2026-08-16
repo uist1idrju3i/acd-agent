@@ -196,44 +196,34 @@ def run_pipeline(
             converged_iteration = iteration
             break
         except FabOutputError as exc:
-            match = re.search(
-                r"stitch via at \(([-0-9.eE]+), ([-0-9.eE]+)\) lacks copper coverage",
+            matches = re.findall(
+                r"\(([-0-9.eE]+), ([-0-9.eE]+)\)",
                 str(exc),
             )
-            if match is None:
+            if not matches or "stitch vias lack copper coverage" not in str(exc):
                 raise
-            uncovered = (float(match.group(1)), float(match.group(2)))
-            pruned_vias.append(uncovered)
+            uncovered = tuple((float(x), float(y)) for x, y in matches)
+            pruned_vias.extend(uncovered)
             covered = tuple(
                 point
                 for point in stitch_vias
-                if (point[0] - uncovered[0]) ** 2 + (point[1] - uncovered[1]) ** 2
-                > 1e-12
+                if point not in uncovered
             )
             if len(covered) == len(stitch_vias):
                 raise RuntimeError(
-                    f"measured uncovered via was not in candidate set: {uncovered}"
+                    f"measured uncovered vias were not in candidate set: {uncovered}"
                 ) from None
             iteration_measurements.append(
                 {
                     "iteration": iteration,
                     "via_count": len(stitch_vias),
-                    "uncovered_count": 1,
-                    "uncovered_vias": [uncovered],
+                    "uncovered_count": len(uncovered),
+                    "uncovered_vias": uncovered,
                 }
             )
             print(
                 f"[stitch-prune {iteration}] vias={len(stitch_vias)} "
-                f"uncovered=1 at {uncovered}"
-            )
-        else:
-            iteration_measurements.append(
-                {
-                    "iteration": iteration,
-                    "via_count": len(stitch_vias),
-                    "uncovered_count": 0,
-                    "uncovered_vias": [],
-                }
+                f"uncovered={len(uncovered)} at {uncovered}"
             )
         routed_board, stitch_vias = inject_stitch_vias(
             base_routed_board,
@@ -316,6 +306,7 @@ def run_pipeline(
         measurement.outline_bbox_mm,
         drill_tools,
         drill_count,
+        measurement.net_name_source,
     )
     verify_smd_pad_centers_in_gerber(
         gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement
@@ -437,6 +428,7 @@ def run_pipeline(
     )
     dfm_report["ground_plane"] = {
         **plane_measurement,
+        "routed_board_net_name_source": measurement.net_name_source,
         "stitch_via_pruning": pruning_evidence,
         "stitch_via_count": len(stitch_vias),
         "drill_count": drill_count,
@@ -484,9 +476,10 @@ def run_pipeline(
         "content_hash": zip_content_hash(zip_path),
         "tools": {"kicad-cli": kicad.version(), "measurement_parser": "sexpdata+gerbonara"},
         "filled_board_hash": filled_board_hash,
+        "routed_board_net_name_source": measurement.net_name_source,
         "ground_plane": {
-        **plane_measurement,
-        "stitch_via_pruning": pruning_evidence,
+            **plane_measurement,
+            "stitch_via_pruning": pruning_evidence,
             "stitch_via_count": len(stitch_vias),
             "drill_count": drill_count,
             "cost_note": lane.board.stitch_via_cost_note,

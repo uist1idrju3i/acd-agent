@@ -2878,7 +2878,7 @@
         "stitch_via_wavelength_fraction": 0.05,
         "stitch_via_basis_source": "IPC-2221A and RF transmission-line wavelength guidance; guided wavelength c/(f*sqrt(er)), via pitch limited to wavelength fraction",
         "stitch_via_cost_note": "Adopted 1/20 guided-wavelength pitch; through-via count and drill count are recorded against the fab profile via cost drivers and reviewed as added process burden. Perimeter-ring placement is the deterministic base; when an isolated zone island requires a GND connection, candidates also use the declared pitch as an interior grid. Both placements exclude signal geometry and are validated against filled Gerber copper.",
-          "stitch_via_refill_max_iterations": 3
+        "stitch_via_refill_max_iterations": 3
       },
       "depends_on": [
         "comp.c1",
