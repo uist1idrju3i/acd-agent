@@ -3869,12 +3869,19 @@
     },
     {
       "attrs": {
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke",
         "height_mm": 1.5,
         "layer": "F.SilkS",
         "placement_basis": "SW1 center and surrounding footprint clearance",
         "placement_offset_step_mm": 0.25,
         "placement_reference": "SW1",
-        "placement_search_limit_mm": 4.0,
+        "placement_rotation_degrees": [
+          "0",
+          "90"
+        ],
+        "placement_safety_margin_mm": 0.15,
+        "placement_search_limit_mm": 8.0,
         "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
         "role": "functional_label_sw1",
         "rotation_deg": 90.0,
@@ -3891,12 +3898,19 @@
     },
     {
       "attrs": {
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke",
         "height_mm": 1.5,
         "layer": "F.SilkS",
         "placement_basis": "SW2 center and surrounding footprint clearance",
         "placement_offset_step_mm": 0.25,
         "placement_reference": "SW2",
-        "placement_search_limit_mm": 4.0,
+        "placement_rotation_degrees": [
+          "0",
+          "90"
+        ],
+        "placement_safety_margin_mm": 0.15,
+        "placement_search_limit_mm": 8.0,
         "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
         "role": "functional_label_sw2",
         "rotation_deg": 0.0,
@@ -3913,12 +3927,19 @@
     },
     {
       "attrs": {
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke",
         "height_mm": 1.5,
         "layer": "F.SilkS",
         "placement_basis": "D1 center and surrounding footprint clearance",
         "placement_offset_step_mm": 0.25,
         "placement_reference": "D1",
-        "placement_search_limit_mm": 4.0,
+        "placement_rotation_degrees": [
+          "0",
+          "90"
+        ],
+        "placement_safety_margin_mm": 0.15,
+        "placement_search_limit_mm": 8.0,
         "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
         "role": "functional_label_d1",
         "rotation_deg": 0.0,
@@ -3935,12 +3956,19 @@
     },
     {
       "attrs": {
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke",
         "height_mm": 1.5,
         "layer": "F.SilkS",
         "placement_basis": "J1 center and connector keepout clearance",
         "placement_offset_step_mm": 0.25,
         "placement_reference": "J1",
-        "placement_search_limit_mm": 4.0,
+        "placement_rotation_degrees": [
+          "0",
+          "90"
+        ],
+        "placement_safety_margin_mm": 0.15,
+        "placement_search_limit_mm": 8.0,
         "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
         "role": "connector_identifier",
         "rotation_deg": 0.0,
@@ -3957,12 +3985,19 @@
     },
     {
       "attrs": {
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke",
         "height_mm": 1.0,
         "layer": "B.SilkS",
         "placement_basis": "open board area after reference and pad clearance search",
         "placement_offset_step_mm": 0.25,
         "placement_reference": "board.gd1",
-        "placement_search_limit_mm": 4.0,
+        "placement_rotation_degrees": [
+          "0",
+          "90"
+        ],
+        "placement_safety_margin_mm": 0.15,
+        "placement_search_limit_mm": 8.0,
         "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
         "role": "board_type",
         "rotation_deg": 0.0,
@@ -3979,19 +4014,26 @@
     },
     {
       "attrs": {
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke",
         "height_mm": 1.0,
         "layer": "B.SilkS",
-        "placement_basis": "graph_id and revision derived part-number placement",
+        "placement_basis": "graph_id and revision derived part-number placement; branding and identification intentionally remain on B.SilkS after front-side functional-label clearance measurement",
         "placement_offset_step_mm": 0.25,
         "placement_reference": "board.gd1",
-        "placement_search_limit_mm": 4.0,
+        "placement_rotation_degrees": [
+          "0",
+          "90"
+        ],
+        "placement_safety_margin_mm": 0.15,
+        "placement_search_limit_mm": 8.0,
         "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
         "role": "board_part_number",
         "rotation_deg": 0.0,
         "stroke_width_mm": 0.15,
         "text": "golden-design-1-r1",
-        "x_mm": 15.0,
-        "y_mm": 24.0
+        "x_mm": 21.8,
+        "y_mm": 12.7
       },
       "depends_on": [
         "board.gd1"
@@ -4001,6 +4043,8 @@
     },
     {
       "attrs": {
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke",
         "layer": "B.SilkS",
         "placement_basis": "branding is intentionally placed on B.SilkS because the front functional-label search records pad/mask congestion",
         "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",

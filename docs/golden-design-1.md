@@ -655,3 +655,61 @@ KiCad 10.0.5の`kicad-cli pcb render`で、銅、pad、Edge.Cuts、実装部品�
 
 - F.SilkSを含む上面: `out/gd1-plan3-rotation-final/fab/gd1-top.png`
 - B.SilkSを含む下面: `out/gd1-plan3-rotation-final/fab/gd1-bottom.png`
+
+### 12.5 拡張探索後の可読性ゲート結果（計画4入力）
+
+計画3の最終探索では、機能ラベルをF.SilkSに限定したまま、グラフ宣言の
+回転集合`[0, 90]`、探索上限`8.0 mm`、刻み`0.25 mm`を使用した。候補は
+参照部品中心からの距離が最小のものを選び、同点は宣言探索順、回転順、
+courtyard重なり面積の順で決定した。courtyardは物理占有ではないため合否には
+使わず、重なり面積と距離だけをEvidenceへ記録した。一方、pad、mask開口、
+板外／宣言板端マージン、body、既存footprintシルク、最近傍部品帰属はhard gate
+である。
+
+宣言した候補探索は全機能ラベルについて候補を返したが、Gerber独立測定の最終
+ゲートで合格にはならなかった。fail-closedの最終測定値は次のとおりである。
+
+| ゲート | 実測値 | 判定 |
+|---|---:|---|
+| pad-to-silk重なり | 31 | fail |
+| mask開口-to-silk重なり | 31 | fail |
+| Edge.Cuts外形はみ出し | 0 | pass |
+| 宣言板端マージン違反 | 0 | pass |
+| body重なり | 0 | pass |
+| courtyard重なり | 10 | Evidenceのみ |
+| 既存footprintシルク重なり | 29 | fail |
+| 最近傍部品帰属不一致 | 5 | fail |
+
+代表的なpad/mask干渉は、USB候補付近のインク
+`[22.982914, 20.893571, 23.204342, 21.257857]`とpad
+`[22.88, 20.13, 23.68, 21.08]`、および
+`[18.915477, 12.698866, 19.827382, 12.848866]`とmask開口
+`[19.05, 12.55, 20.55, 14.05]`である。既存footprintシルク重なりは
+29件で、今回のhard gateにより見逃さない。RESETを含む全候補の棄却内訳は、
+次のようにEvidenceへ記録した。
+
+| 要素 | 採用候補（位置、回転） | 棄却候補 | body | pad | 板端 |
+|---|---|---:|---:|---:|---:|
+| RESET | `(24.8, 3.2125)`, 90° | 33278 | 13180 | 3450 | 16648 |
+| BOOT | `(5.3, 3.6625)`, 90° | 33268 | 13329 | 1283 | 18656 |
+| D1 | `(8.9625, 12.78)`, 90° | 33005 | 25829 | 6591 | 585 |
+| USB | `(23.1575, 22.79)`, 90° | 33202 | 10584 | 7142 | 15476 |
+
+採用候補は最終Gerberインクとの対応で再測定されるため、候補Resolverの
+保守的なbbox判定だけを合格根拠にはしない。今回の最終状態は
+`out/gd1-plan3-final-failclosed2/`に生成し、silkゲートで停止した。工程1〜7
+（投影、ERC、routing、DRC、Gerber生成、独立reload）までは完走し、DRCは
+`0 errors / 0 unconnected`、ERCは`0 errors`、DFMは`0 findings`だったが、
+silkの未達により全体はfail-closedである。
+
+PNGは数値ゲートと独立した目視Evidenceとして再生成した。
+
+- F.SilkSを含む上面: `out/gd1-plan3-final-failclosed2/fab/gd1-top.png`
+- B.SilkSを含む下面: `out/gd1-plan3-final-failclosed2/fab/gd1-bottom.png`
+
+計画4では、RESET周辺のSW1、H2、C6、TP5/TP6および周辺既存footprintシルクを
+再配置または基板外形変更の対象として検討する。現行探索で空きが残る領域は、
+RESETではSW1上側の板端までの帯、BOOTではSW2周辺の上側／左側、D1ではD1の
+左側、USBではJ1下側である。ただしUSB下側にはR5のpadと既存シルクがあり、
+最終的な空きとしては未確定である。courtyardは探索優先度にのみ使い、物理占有
+の根拠にはしていない。

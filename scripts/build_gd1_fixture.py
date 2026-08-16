@@ -714,7 +714,14 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
             "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left"
         ),
         "placement_offset_step_mm": 0.25,
-        "placement_search_limit_mm": 4.0,
+        "placement_search_limit_mm": 8.0,
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": (
+            "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; "
+            "declared edge keepout equals the profiled minimum silk stroke"
+        ),
+        "placement_rotation_degrees": ["0", "90"],
+        "placement_safety_margin_mm": 0.15,
     }
     text_nodes = [
         (
@@ -766,10 +773,12 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
             "mechanical.silk_text.board_id",
             "board_part_number",
             board_label,
-            15.0,
-            24.0,
+            21.8,
+            12.7,
             "board.gd1",
-            "graph_id and revision derived part-number placement",
+            "graph_id and revision derived part-number placement; branding and "
+            "identification intentionally remain on B.SilkS after front-side "
+            "functional-label clearance measurement",
         ),
     ]
     nodes = [
@@ -821,6 +830,8 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
                     "front functional-label search records pad/mask congestion"
                 ),
                 "placement_search_order": common["placement_search_order"],
+                "board_edge_margin_mm": 0.15,
+                "board_edge_margin_source": common["board_edge_margin_source"],
             },
             depends_on=["board.gd1"],
         )

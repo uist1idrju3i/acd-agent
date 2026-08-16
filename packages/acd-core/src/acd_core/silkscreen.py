@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, replace
+from typing import cast
 
 from acd_core.board_model import BoardModel, ComponentPlacement, PadShape
 from acd_core.electrical import GraphExtractionError
@@ -25,6 +27,10 @@ class SilkTextView:
     placement_reference: str
     placement_offset_step_mm: float
     placement_search_limit_mm: float
+    board_edge_margin_mm: float = 0.0
+    board_edge_margin_source: str = "unknown"
+    placement_rotation_degrees: tuple[float, ...] = (0.0, 90.0)
+    placement_safety_margin_mm: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -36,6 +42,8 @@ class SilkGraphicView:
     polygon_points: tuple[tuple[float, float], ...]
     placement_basis: str
     placement_search_order: str
+    board_edge_margin_mm: float = 0.0
+    board_edge_margin_source: str = "unknown"
 
 
 @dataclass(frozen=True)
@@ -81,6 +89,23 @@ def _points_attr(node: GraphNode) -> tuple[tuple[float, float], ...]:
     if points[0] != points[-1]:
         points.append(points[0])
     return tuple(points)
+
+
+def _rotation_degrees_attr(node: GraphNode) -> tuple[float, ...]:
+    value = node.attrs.get("placement_rotation_degrees")
+    if value is None:
+        return (0.0, 90.0)
+    if not isinstance(value, list) or not value:
+        raise GraphExtractionError(
+            f"node {node.id!r}: placement_rotation_degrees is invalid"
+        )
+    try:
+        rotations = tuple(float(item) for item in value)
+    except (TypeError, ValueError) as exc:
+        raise GraphExtractionError(
+            f"node {node.id!r}: placement_rotation_degrees is invalid"
+        ) from exc
+    return rotations
 
 
 def _depends_on_board(node: GraphNode, board_id: str) -> None:
@@ -129,6 +154,14 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
                     placement_search_limit_mm=_number_attr(
                         node, "placement_search_limit_mm"
                     ),
+                    board_edge_margin_mm=_number_attr(node, "board_edge_margin_mm"),
+                    board_edge_margin_source=_str_attr(
+                        node, "board_edge_margin_source"
+                    ),
+                    placement_rotation_degrees=_rotation_degrees_attr(node),
+                    placement_safety_margin_mm=_number_attr(
+                        node, "placement_safety_margin_mm"
+                    ),
                 )
             )
         elif node.kind == "mechanical.silk_graphic":
@@ -148,6 +181,10 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
                     polygon_points=_points_attr(node),
                     placement_basis=_str_attr(node, "placement_basis"),
                     placement_search_order=_str_attr(node, "placement_search_order"),
+                    board_edge_margin_mm=_number_attr(node, "board_edge_margin_mm"),
+                    board_edge_margin_source=_str_attr(
+                        node, "board_edge_margin_source"
+                    ),
                 )
             )
     if not texts and not graphics:
@@ -242,6 +279,14 @@ def _placement_bbox(
     if local is None:
         return None
     x1, y1, x2, y2 = local
+    return _transform_bbox(placement, (x1, y1, x2, y2))
+
+
+def _transform_bbox(
+    placement: ComponentPlacement,
+    bbox: tuple[float, float, float, float],
+) -> tuple[float, float, float, float]:
+    x1, y1, x2, y2 = bbox
     corners = ((x1, y1), (x1, y2), (x2, y1), (x2, y2))
     angle = placement.rotation_deg % 360.0
     if angle not in {0.0, 90.0, 180.0, 270.0}:
@@ -271,6 +316,15 @@ def _rects_overlap(
         or first[3] <= second[1]
         or second[3] <= first[1]
     )
+
+
+def _rect_overlap_area(
+    first: tuple[float, float, float, float],
+    second: tuple[float, float, float, float],
+) -> float:
+    x_overlap = max(0.0, min(first[2], second[2]) - max(first[0], second[0]))
+    y_overlap = max(0.0, min(first[3], second[3]) - max(first[1], second[1]))
+    return x_overlap * y_overlap
 
 
 def resolve_silkscreen_placements(
@@ -303,6 +357,7 @@ def resolve_silkscreen_placements(
                     "search_order": text.placement_search_order.split(","),
                     "offset_step_mm": text.placement_offset_step_mm,
                     "search_limit_mm": text.placement_search_limit_mm,
+                    "board_edge_margin_mm": text.board_edge_margin_mm,
                     "accepted_position_mm": [text.x_mm, text.y_mm],
                     "rejected_candidates": [],
                     "resolution": "graph_declared_backside_position",
@@ -316,10 +371,7 @@ def resolve_silkscreen_placements(
             if is_board_target
             else _footprint_bbox(board, reference)
         )
-        text_width, text_height = _text_size(text)
-        edge_margin = text.stroke_width_mm * 3.5
-        text_width += edge_margin
-        text_height += edge_margin
+        edge_margin = text.stroke_width_mm * 3.5 + text.placement_safety_margin_mm
         order = tuple(
             item.strip()
             for item in text.placement_search_order.split(",")
@@ -335,8 +387,15 @@ def resolve_silkscreen_placements(
             raise GraphExtractionError(
                 f"silk text {text.node_id!r} has invalid placement search range"
             )
+        rotations = tuple(text.placement_rotation_degrees)
+        if not rotations or any(
+            rotation % 90.0 != 0.0 for rotation in rotations
+        ):
+            raise GraphExtractionError(
+                f"silk text {text.node_id!r} has invalid placement rotations"
+            )
         rejected: list[dict[str, object]] = []
-        chosen: tuple[float, float] | None = None
+        valid_candidates: list[dict[str, object]] = []
         offsets = [
             round(step * index, 9)
             for index in range(1, int(limit / step) + 1)
@@ -344,87 +403,136 @@ def resolve_silkscreen_placements(
         tangent_offsets = [0.0]
         for offset in offsets:
             tangent_offsets.extend((offset, -offset))
-        for side in order:
-            dx, dy = order_aliases[side]
-            for offset in offsets:
-                for tangent in tangent_offsets:
-                    if is_board_target:
-                        if dx > 0:
-                            x = board.width_mm - text_width / 2 - offset
-                            y = board.height_mm / 2 + tangent
-                        elif dx < 0:
-                            x = text_width / 2 + offset
-                            y = board.height_mm / 2 + tangent
-                        elif dy < 0:
-                            x = board.width_mm / 2 + tangent
-                            y = text_height / 2 + offset
+        for rotation_index, rotation in enumerate(rotations):
+            sized_text = replace(text, rotation_deg=rotation)
+            text_width, text_height = _text_size(sized_text)
+            text_width += edge_margin
+            text_height += edge_margin
+            for side_index, side in enumerate(order):
+                dx, dy = order_aliases[side]
+                for offset in offsets:
+                    for tangent in tangent_offsets:
+                        if is_board_target:
+                            if dx > 0:
+                                x = board.width_mm - text_width / 2 - offset
+                                y = board.height_mm / 2 + tangent
+                            elif dx < 0:
+                                x = text_width / 2 + offset
+                                y = board.height_mm / 2 + tangent
+                            elif dy < 0:
+                                x = board.width_mm / 2 + tangent
+                                y = text_height / 2 + offset
+                            else:
+                                x = board.width_mm / 2 + tangent
+                                y = board.height_mm - text_height / 2 - offset
+                        elif dx:
+                            x = (
+                                target[2] + text_width / 2 + offset
+                                if dx > 0
+                                else target[0] - text_width / 2 - offset
+                            )
+                            y = (target[1] + target[3]) / 2 + tangent
+                        elif dy:
+                            x = (target[0] + target[2]) / 2 + tangent
+                            y = (
+                                target[1] - text_height / 2 - offset
+                                if dy < 0
+                                else target[3] + text_height / 2 + offset
+                            )
                         else:
-                            x = board.width_mm / 2 + tangent
-                            y = board.height_mm - text_height / 2 - offset
-                    elif dx:
-                        x = (
-                            target[2] + text_width / 2 + offset
-                            if dx > 0
-                            else target[0] - text_width / 2 - offset
+                            raise GraphExtractionError(
+                                "invalid zero placement direction"
+                            )
+                        bbox = (
+                            x - text_width / 2,
+                            y - text_height / 2,
+                            x + text_width / 2,
+                            y + text_height / 2,
                         )
-                        y = (target[1] + target[3]) / 2 + tangent
-                    elif dy:
-                        x = (target[0] + target[2]) / 2 + tangent
-                        y = (
-                            target[1] - text_height / 2 - offset
-                            if dy < 0
-                            else target[3] + text_height / 2 + offset
-                        )
-                    else:
-                        raise GraphExtractionError("invalid zero placement direction")
-                    bbox = (
-                        x - text_width / 2,
-                        y - text_height / 2,
-                        x + text_width / 2,
-                        y + text_height / 2,
-                    )
-                    if (
-                        bbox[0] < 0
-                        or bbox[1] < 0
-                        or bbox[2] > board.width_mm
-                        or bbox[3] > board.height_mm
-                    ):
-                        reason = "board_edge_overflow"
-                    else:
-                        reason = None
-                        for placement in board.placements:
-                            body_box = _placement_bbox(placement)
-                            if body_box is not None and _rects_overlap(bbox, body_box):
-                                reason = f"body_overlap:{placement.refdes}"
-                                break
-                            for pad in placement.footprint.pads:
-                                pad_box = _pad_bbox(board, placement, pad)
-                                if _rects_overlap(bbox, pad_box):
-                                    reason = (
-                                        f"pad_overlap:{placement.refdes}:{pad.number}"
-                                    )
+                        if (
+                            bbox[0] < text.board_edge_margin_mm
+                            or bbox[1] < text.board_edge_margin_mm
+                            or bbox[2] > board.width_mm - text.board_edge_margin_mm
+                            or bbox[3] > board.height_mm - text.board_edge_margin_mm
+                        ):
+                            reason = "board_edge_overflow"
+                            courtyard_overlap_area = 0.0
+                        else:
+                            reason = None
+                            courtyard_overlap_area = 0.0
+                            for placement in board.placements:
+                                body_box = _placement_bbox(placement)
+                                if body_box is not None and _rects_overlap(
+                                    bbox, body_box
+                                ):
+                                    reason = f"body_overlap:{placement.refdes}"
                                     break
-                            if reason:
-                                break
-                    if reason is not None:
-                        rejected.append(
+                                courtyard_box = placement.footprint.courtyard_bbox_mm
+                                if courtyard_box is not None:
+                                    transformed_courtyard = _transform_bbox(
+                                        placement, courtyard_box
+                                    )
+                                    courtyard_overlap_area += _rect_overlap_area(
+                                        bbox, transformed_courtyard
+                                    )
+                                for pad in placement.footprint.pads:
+                                    pad_box = _pad_bbox(board, placement, pad)
+                                    if _rects_overlap(bbox, pad_box):
+                                        reason = (
+                                            f"pad_overlap:{placement.refdes}:"
+                                            f"{pad.number}"
+                                        )
+                                        break
+                                if reason:
+                                    break
+                        if reason is not None:
+                            rejected.append(
+                                {
+                                    "side": side,
+                                    "rotation_deg": rotation,
+                                    "offset_mm": offset,
+                                    "tangent_offset_mm": tangent,
+                                    "reason": reason,
+                                }
+                            )
+                            continue
+                        valid_candidates.append(
                             {
-                                "side": side,
+                                "x_mm": x,
+                                "y_mm": y,
+                                "rotation_deg": rotation,
+                                "distance_mm": math.hypot(
+                                    x - (target[0] + target[2]) / 2.0,
+                                    y - (target[1] + target[3]) / 2.0,
+                                ),
+                                "courtyard_overlap_area_mm2": courtyard_overlap_area,
+                                "side_index": side_index,
+                                "rotation_index": rotation_index,
                                 "offset_mm": offset,
                                 "tangent_offset_mm": tangent,
-                                "reason": reason,
                             }
                         )
-                        continue
-                    chosen = (x, y)
-                    break
-            if chosen is not None:
-                break
-        if chosen is None:
+        if not valid_candidates:
             raise GraphExtractionError(
                 f"silk text {text.node_id!r} has no valid placement (fail-closed)"
             )
-        resolved_text = replace(text, x_mm=chosen[0], y_mm=chosen[1])
+        chosen = min(
+            valid_candidates,
+            key=lambda candidate: (
+                candidate["distance_mm"],
+                candidate["side_index"],
+                candidate["rotation_index"],
+                candidate["courtyard_overlap_area_mm2"],
+                candidate["offset_mm"],
+                candidate["tangent_offset_mm"],
+            ),
+        )
+        resolved_text = replace(
+            text,
+            x_mm=cast(float, chosen["x_mm"]),
+            y_mm=cast(float, chosen["y_mm"]),
+            rotation_deg=cast(float, chosen["rotation_deg"]),
+        )
         resolved.append(resolved_text)
         evidence.append(
             {
@@ -434,7 +542,19 @@ def resolve_silkscreen_placements(
                 "search_order": list(order),
                 "offset_step_mm": step,
                 "search_limit_mm": limit,
-                "accepted_position_mm": list(chosen),
+                "board_edge_margin_mm": text.board_edge_margin_mm,
+                    "rotation_degrees": list(rotations),
+                    "placement_safety_margin_mm": text.placement_safety_margin_mm,
+                "accepted_position_mm": [chosen["x_mm"], chosen["y_mm"]],
+                "accepted_rotation_deg": chosen["rotation_deg"],
+                "reference_center_distance_mm": chosen["distance_mm"],
+                "courtyard_overlap_area_mm2": chosen[
+                    "courtyard_overlap_area_mm2"
+                ],
+                "candidate_selection": (
+                    "minimum reference-center distance; ties use declared "
+                    "search order, rotation order, then courtyard overlap"
+                ),
                 "rejected_candidates": rejected,
             }
         )

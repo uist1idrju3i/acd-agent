@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -13,6 +14,7 @@ from acd_adapter_kicad import fab
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
     FabOutputError,
+    FootprintMeasurement,
     _local_silk_bounds,
     _silk_objects_overlap,
     _silk_overlaps_rect,
@@ -102,6 +104,73 @@ def test_graphic_below_capability_is_not_treated_as_pass() -> None:
                 ),
                 profile,
             )
+    finally:
+        fab._gerber_silk_objects = original
+
+
+def test_courtyard_overlap_is_evidence_only() -> None:
+    profile = FabProfile(
+        {
+            "capabilities": {
+                "min_silk_width": {"value": 0.15},
+                "min_silk_height": {"value": 1.0},
+            }
+        }
+    )
+    silk = _line(1.0, 1.0, 2.0, 1.0)
+    edge = _line(0.0, 0.0, 3.0, 0.0)
+    original = fab._gerber_silk_objects
+    fab._gerber_silk_objects = (
+        lambda _path, layer: (silk,)
+        if layer == "F.SilkS"
+        else (edge,)
+        if layer == "Edge.Cuts"
+        else ()
+    )
+    try:
+        evidence = fab.measure_silkscreen(
+            {"F.SilkS": Path("silk.gto")},
+            {"F.Mask": Path("mask.gts")},
+            Path("edge.gm1"),
+            BoardMeasurement(
+                (
+                    FootprintMeasurement(
+                        "U1",
+                        1.5,
+                        1.0,
+                        0.0,
+                        "F.Cu",
+                        (),
+                        courtyard_bbox_mm=(0.5, 0.5, 2.5, 1.5),
+                    ),
+                ),
+                (),
+                None,
+                None,
+                None,
+                (0.0, 0.0, 3.0, 3.0),
+                (),
+                0,
+            ),
+            SilkscreenLane(
+                "board.gd1",
+                (),
+                (
+                    SilkGraphicView(
+                        "graphic",
+                        "logo",
+                        "F.SilkS",
+                        0.15,
+                        ((1.0, 1.0), (2.0, 1.0), (2.0, 2.0)),
+                        "test",
+                        "test",
+                    ),
+                ),
+            ),
+            profile,
+        )
+        assert cast(int, evidence["courtyard_overlap_count"]) > 0
+        assert evidence["status"] == "measured_pass"
     finally:
         fab._gerber_silk_objects = original
 
