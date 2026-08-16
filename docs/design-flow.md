@@ -95,7 +95,7 @@ Skillは手順、レビュー観点、作業資材を、gateは決定論的な�
   `SafetyBoundaryResult`として記録する。
 - **記録:** 規制要件、対象fab、目標コスト／数量を記録し、仮定は仮定として明示する。
   要件ドキュメントにはバージョンを付け、下流の出所情報の起点にする。
-- **知識フック:** 過去の確認質問、要求パターン、fab・筐体の失敗モードをQ7/N7で参照する。
+- **知識フック:** 過去の確認質問、要求パターン、fab・筐体の失敗モードをレビュー観点として参照する。
 - **出口投影とAIレビュー:** システム構成図（案）、要求の系統図、要求×制約マトリクスをレビューし、
   詳細は[`projection-review.md`](projection-review.md)で定める。
 - **筐体側:** enclosure envelope、mounting、connector、thermal、sealing、assemblyの

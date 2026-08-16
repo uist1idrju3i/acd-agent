@@ -71,7 +71,7 @@ acd-agent/
 | `m1-m2-enclosure-review` | 筐体観点（干渉・肉厚・締結・公差） | TaskTrigger |
 | `s2-manufacturing-output` | 製造出力・面付け手順 | TaskTrigger |
 | `ecad-pitfalls` | [`ecad-domain-notes.md`](ecad-domain-notes.md)の落とし穴 | PathTrigger（ECAD投影パス） |
-| `q7n7-methods` | [`qc-tools.md`](qc-tools.md)の作業手法 | KeywordTrigger |
+| `projection-review` | [`projection-review.md`](projection-review.md)のレビュー観点 | KeywordTrigger |
 | `fw-lane-procedure` | FWレーン手順・ピン整合の確認手順 | TaskTrigger |
 
 Skillはプロンプト資材であり、triggerの発火を適用可否の最終判定にしない
@@ -81,11 +81,11 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 
 | agent | 役割 | 主なtools |
 |---|---|---|
-| `acd-requirements` | S1要件対話・構造化 | `graph_query`、`graph_patch` |
-| `acd-electrical` | E1/E2生成。配置・回転・配線の探索仕様と設計根拠を宣言する | graph系、projection系、`placement_search`、`gate_run` |
-| `acd-mechanical` | M1/M2生成 | graph系、projection系、`gate_run` |
+| `acd-requirements` | S1要件対話・構造化 | workspace shell、file editor、パイプラインスクリプト |
+| `acd-electrical` | E1/E2生成。配置・回転・配線の探索と設計根拠を確認する | workspace shell、file editor、パイプラインスクリプト |
+| `acd-mechanical` | M1/M2生成 | workspace shell、file editor、パイプラインスクリプト |
 | `acd-firmware` | FWレーン実装 | projection系、terminal、file editor |
-| `acd-reviewer` | RV1機械可読レビュー（グラフ書込み不可） | `graph_query`、`projection_reload` |
+| `acd-reviewer` | 機械可読投影のレビュー（入力ファイルへの書込み不可） | file editor、`inspect_image_with_vision`、workspace shell |
 | `acd-visual-reviewer` | 視覚投影レビュー（vision profile、書込み不可） | `inspect_image_with_vision` |
 
 リポジトリ探索・テスト実行等の汎用作業はSDK builtinサブエージェント
@@ -93,7 +93,7 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 
 ## 4. テスト・CI戦略
 
-- 単体テスト: パッケージごとに`pytest`。schemaはJSON Schema⇔Pydanticの往復検証を必須とする。
+- 単体テスト: パッケージごとに`pytest`。Pydanticモデルの検証を必須とする。
 - 決定論的AI回帰: SDKの`TestLLM`で応答・例外を固定する。実LLMのgolden taskは適格性の
   定期再測定として分離する（[`../AGENTS.md`](../AGENTS.md)）。
 - golden task: `scripts/`の単一コマンドでfixtureから実行し、negative testを必ず対にする。
@@ -109,7 +109,7 @@ Skillはプロンプト資材であり、triggerの発火を適用可否の最�
 `docs/adr/`をPhase 0で開始し、以後の構成変更はADRを先に起こす。最初に記録するADR:
 
 1. monorepo（uv workspace）とパッケージ境界の採用。
-2. schema正本をJSON Schemaとし、Pydanticモデルと相互検証する方式。
+2. Pydanticモデルを契約の正とし、モデルの検証を行う方式。
 3. 最小ACDドメインeventをSDK `EventLog`へ載せ、ドメイン記録の正をcommit済み
    Evidence artifactへ置く方式。
 4. 部品カタログ・ライブラリの出所方針（Phase 0で確定）。

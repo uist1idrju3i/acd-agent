@@ -110,10 +110,10 @@ SHAで固定する。ただしCanvasのフロントエンド本体がSDK reposit
 | LLM運用 | `Metrics`／`MetricsSnapshot`、`ConversationStats`、token/cost、latency、cache、retry | 外部process回数・外部tool時間の実測。SDKのretry・予算会計へ委譲 |
 | 予算上限 | `AgentDefinition.max_budget_per_run`／`max_iteration_per_run`、SDK `Metrics`、`get_metrics_for_usage(usage_id)` | token／money／LLM latencyの実行記録。外部process回数・外部tool wall-clockも最小記録へ含める |
 | 外部tool | MCP client、動的Pydantic schema、timeout、再接続 | adapterの意味検証、tool version固定、Evidence生成 |
-| 視覚レビュー | `ImageContent`、`inspect_image_with_vision`、画像inline化 | 視覚投影の分類、画像hash、renderer、vision profile／model、解像度のEvidence binding |
+| 視覚レビュー | `ImageContent`、`inspect_image_with_vision`、画像inline化 | 視覚投影の分類、画像hash、rendererの記録 |
 | 実行分岐 | `Conversation.fork(from_event_id=...)`（local／remote） | trade studyの比較と会話履歴の保持 |
-| 作業資材の配布 | `Skill`、`KeywordTrigger`／`PathTrigger`／`TaskTrigger`、skill repositoryのpin、`PluginManifest`、marketplace | 工程契約、レビュー観点、Q7/N7手法、ECAD操作手順の内容と版、Evidenceへの記録 |
-| サブエージェント定義 | `AgentDefinition`、`AgentDefinitionLevel`、model/tools/skills/hooks/MCP/予算・反復上限、`permission_mode` | 生成・レビューagentの役割境界、別profile、設計グラフへの書込み制約、`RV1`／`RV2`の判定 |
+| 作業資材の配布 | `Skill`、`KeywordTrigger`／`PathTrigger`／`TaskTrigger`、skill repositoryのpin、`PluginManifest`、marketplace | 工程チェックリスト、レビュー観点、ECAD操作手順の内容と版 |
+| サブエージェント定義 | `AgentDefinition`、`AgentDefinitionLevel`、model/tools/skills/hooks/MCP/予算・反復上限、`permission_mode` | 生成・レビューagentの役割境界、入力ファイルへの書込み制約 |
 | hook | `PreToolUse`、`PostToolUse`、`UserPromptSubmit`、`SessionStart`、`SessionEnd`、`Stop`、`HookDecision` | 不可逆操作の防護、commit側receipt参照、決定論的gate、共通executor |
 | 反復改善 | `CriticBase`、`CriticResult`、`IterativeRefinementConfig`、`Conversation.run()`の自動retry | 自然文の所見を修正ループへ渡す。合否は決定論的ゲート |
 | 目標・停滞検出 | `/goal`、`GoalController`、judge、`GoalVerdict`、`StuckDetector` | 停止・差し戻し・エスカレーション。決定論的な完了条件 |
@@ -170,7 +170,7 @@ SDKの機能は実行、配布、反復、分業、防護の基盤として利�
 
 ### skills、plugin、marketplace
 
-工程ごとのレビュー観点チェックリスト、Q7/N7の作業手法、ECAD操作手順をfrontmatter付き
+工程ごとのレビュー観点チェックリスト、ECAD操作手順をfrontmatter付き
 Markdownの`Skill`として配布し、`KeywordTrigger`、`PathTrigger`、`TaskTrigger`で必要な
 工程へ載せる。複数のskill、hooks、MCP設定、agent定義、commandをまとめて配布する場合は
 `PluginManifest`を用い、marketplaceからGitHubまたはGitのURLでpluginを取得する。
@@ -181,7 +181,7 @@ Skillの記述、pluginの定義、triggerの発火はプロンプト資材ま�
 
 ### subagentとレビューの独立性
 
-`AgentDefinition`で生成側と`RV1`レビュー側を別のagent定義、別profile、別コンテキスト
+`AgentDefinition`で生成側とレビュー側を別のagent定義、別profile、別コンテキスト
 として固定する。`AgentDefinition`の`name`、`description`、`model`、`tools`、`skills`、
 `max_iteration_per_run`、`max_budget_per_run`、`hooks`、`mcp_config`、`permission_mode`、
 `condenser`を役割ごとに明示する。定義のlevelは`project`、`user`、`builtin`、`plugin`、
@@ -215,7 +215,7 @@ project levelの`AgentDefinition`として別途版管理する。
 vision対応の別LLM profileへ渡す。HTTP(S)画像はSDKのbase64インライン化とSSRF
 block-listを通す。
 
-画像hash、renderer種別、vision profile／model、解像度、取得時刻をEvidenceと
+画像hash、renderer種別、解像度、取得時刻を最小限の実行記録と
 レビュー記録へ残す。visionの応答はAIレビューの観察であり、合否権限を持たない。
 既定ゲートは描画非依存のままとし、視覚投影をゲートの合格根拠にしない。
 
@@ -250,14 +250,14 @@ criticの例外はSDK側で捕捉され、評価が無かった扱いになる�
 
 critic結果はEvidenceでも合否の正でもない。合否の正はACDゲートそのものである。
 `agent_finished`、`empty_patch`、`pass_critic`、API basedのcritic結果も改善シグナルに
-とどまり、`RV2`の合格根拠にはならない。
+とどまり、決定論的ゲートの合格根拠にはならない。
 
 `/goal`の`GoalController`と別LLMのjudge（`judge_goal`／`GoalVerdict`）は、PDCAが目標へ
 収束したかを確認し、停止条件として上限まで再プロンプトする機構として使う。`GoalVerdict`
 はEvidenceにせず、合否はゲートで判定する。`StuckDetector`はaction／observationの反復、
 error連続、agentのmonologue、交互パターンなどの閾値を検出し、差し戻しまたは
 エスカレーションを起動する。いずれもLLMまたは宣言的な補助機構であり、judgeの判定や
-停滞検出結果は`RV2`の判定面ではない。
+停滞検出結果は合否の判定面ではない。
 
 ### LLM可用性とmodel実体の記録
 
@@ -269,8 +269,8 @@ error連続、agentのmonologue、交互パターンなどの閾値を検出し�
 `LLMProfileStore`のprofile列を順に試すper-callのfallback機構である。可用性のために採用できるが、
 fallbackが起きると実際に応答したmodelが指名profileと異なるため、`log_completions` callbackで
 実体model・prompt内容hashを必ず記録し、fallback先は同等能力のprofileに限定する。レビュー実行中に
-fallbackで実体modelが変わった場合、そのレビュー結果のmodel版は`unknown`として扱い、`RV2`の
-鮮度判定で停止させる。
+fallbackで実体modelが変わった場合、そのレビュー結果のmodel版は`unknown`として記録する。
+レビューは合否権限を持たないため、合否は決定論的ゲートで判定する。
 
 `RouterLLM`（`MultimodalRouter`等）は、画像の有無やtoken量に応じてmodelを暗黙に選択する。
 呼び出しごとにmodel実体が変わり、レビューのmodel／profile版固定と両立しないため採用しない。
