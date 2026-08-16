@@ -195,6 +195,15 @@ FWレーンの実装・調査タスクやリポジトリ探索にはこれらを
 ACDの工程agent（生成・レビュー・視覚レビュー）は役割境界と権限が異なるため、presetの流用ではなく
 project levelの`AgentDefinition`として別途版管理する。
 
+### 探索ループでのSDK機能割り当て
+
+探索仕様の生成agentとレビューagentは`AgentDefinition`で分離する。観点別レビューは
+`WorkflowTool`のmap/reduce、trade studyの枝は`Conversation.fork`で実行する。停止条件は
+`run_goal`／`GoalController`と`StuckDetector`を実行機構としてのみ利用し、停止結果を合否根拠にしない。
+予算は`ConversationStats`／`LLMRegistry`のusage別metricsで実測する。決定論的AI回帰は`TestLLM`、
+視覚投影は`ImageContent`／`inspect_image_with_vision`を使う。L2探索層はSDKのagent反復ではなく、
+外部プロセスまたは決定論コードとして実行する。
+
 レビュー側はtoolsと`permission_mode`を絞り、設計グラフへ書き込めない構成にする。
 ただしSDKのagent定義だけを信頼境界とはせず、共通executorとACDの権限検査でも書込みを
 拒否する。レビューagentは自分または生成agentの成果物を修正して合格根拠にせず、

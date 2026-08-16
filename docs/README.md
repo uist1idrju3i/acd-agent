@@ -14,14 +14,15 @@
 4. [`architecture.md`](architecture.md): 設計グラフ、投影、レイヤ境界。
 5. [`ecad-domain-notes.md`](ecad-domain-notes.md): ECAD領域知識と投影契約。
 6. [`design-flow.md`](design-flow.md): 基板・筐体・FWの工程と第三レーン。
-7. [`projection-review.md`](projection-review.md): 投影レビューとPDCAループ。
-8. [`tool-selection.md`](tool-selection.md): 実装で使う外部ツールの採否と設計根拠。
-9. [`roadmap.md`](roadmap.md): マイルストーン、フェーズ境界、ゴールデンタスク。
-10. [`golden-design-1.md`](golden-design-1.md): 第1マイルストーンの具体設計とfixture入力。
-11. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
-12. [`dependency-notes.md`](dependency-notes.md): 依存更新時の一次情報、使用箇所、関連文書の対応表。
-13. [`implementation-plan.md`](implementation-plan.md): リポジトリ構成、パッケージ・Skill・agent分割、CI。
-14. [`phase0-plan.md`](phase0-plan.md): Phase 0の作業単位・順序・撤退条件。
+7. [`ai-physical-design.md`](ai-physical-design.md): AI主導の配置・回転・配線探索。
+8. [`projection-review.md`](projection-review.md): 投影レビューとPDCAループ。
+9. [`tool-selection.md`](tool-selection.md): 実装で使う外部ツールの採否と設計根拠。
+10. [`roadmap.md`](roadmap.md): マイルストーン、フェーズ境界、ゴールデンタスク。
+11. [`golden-design-1.md`](golden-design-1.md): 第1マイルストーンの具体設計とfixture入力。
+12. [`openhands-integration.md`](openhands-integration.md): SDKの利用範囲とACD側の実装境界。
+13. [`dependency-notes.md`](dependency-notes.md): 依存更新時の一次情報、使用箇所、関連文書の対応表。
+14. [`implementation-plan.md`](implementation-plan.md): リポジトリ構成、パッケージ・Skill・agent分割、CI。
+15. [`phase0-plan.md`](phase0-plan.md): Phase 0の作業単位・順序・撤退条件。
     実施後の振り返りは[`phase0-retrospective.md`](phase0-retrospective.md)、
     [`phase1-retrospective.md`](phase1-retrospective.md)、
     [`phase2-retrospective.md`](phase2-retrospective.md)を参照する。
@@ -47,6 +48,7 @@
 | `glossary.md` | 用語と工程IDの定義 | Draft |
 | `installation.md` | OpenHands Agent Canvasとacd-agentの導入手順 | Draft |
 | `design-flow.md` | 電気・機械・FWレーンの入力・出力・ゲート | Draft |
+| `ai-physical-design.md` | AI主導の配置・回転・配線探索 | Draft |
 | `projection-review.md` | 投影レビューとPDCAループ | Draft |
 | `knowledge-base.md` | 知識の構造化、スコープ、実測、還流 | Draft |
 | `fab-data-preparation-retrospective.md` | JLCPCB製造データ先行実装の事実、失敗、一般化対象 | Draft |
@@ -77,6 +79,7 @@
 | `adr/ADR-0004-parts-catalog-provenance.md` | 部品カタログとライブラリ出所方針 | Accepted |
 | `adr/ADR-0005-jlcpcb-pcba-preparation-contract.md` | JLCPCB PCBA準備契約 | Accepted |
 | `adr/ADR-0006-vendor-submodule-policy.md` | vendor submoduleの対象と固定方針 | Accepted |
+| `adr/ADR-0007-llm-guided-physical-design.md` | LLM主導の物理設計探索の三層分離 | Accepted |
 
 `runtime.md`は後続の実装・設計決定で追加する。機械可読契約の正本は`schemas/`、
 設計決定は`docs/adr/`にある。未作成の文書へリンクを張らず、必要な場合は本文で

@@ -56,6 +56,7 @@ ADRの記述をここで重複管理しない。
 | 6 | 契約は単一の機械可読正本（gate matrix、error taxonomy、event payload schema、tool envelope）から導く | runnerと文書でgate番号・状態を二重管理する。用途の異なるhashを同一semanticsで共有する |
 | 7 | 安全条件・保護対象は書き換わる部分木で判断する | pathの完全一致だけで許可・却下を決める |
 | 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。token／money／LLM latencyはSDK `Metrics`／`MetricsSnapshot`、外部process回数・外部tool wall-clockはACD tool envelopeを出所とし、`AgentDefinition`の`max_budget_per_run`／`max_iteration_per_run`を上限へ使う | 予算次元を`unknown`のまま次フェーズへ渡す |
+| 9 | 探索を含む工程では、探索仕様のhash、seed、代理指標定義版、探索予算の実測値、停止理由をEvidenceへ記録し、代理指標スコアを合格根拠にしない | 代理指標だけで合格させる。探索予算や停止理由を記録しない |
 
 ## マイルストーン
 
@@ -64,7 +65,7 @@ ADRの記述をここで重複管理しない。
 
 1. **基板＋FWで実機のLEDが光る:** Phase 0〜2。要件から基板、FW、書き込み、実機LED点灯までを通す。
 2. **基板と筐体が一体で動く:** Phase 3〜5。筐体、レーン統合、検証根拠を加えて実機の収まりと動作を確認する。
-3. **学習して発注・製造できる:** Phase 6〜12。知識、要件対話、製造データ契約、長時間運用、自働発注、ローカル製造へ広げる。
+3. **学習して発注・製造できる:** Phase 6〜13。知識、要件対話、製造データ契約、長時間運用、自働発注、ローカル製造、AI主導探索へ広げる。
 
 ## フェーズ
 
@@ -83,6 +84,7 @@ ADRの記述をここで重複管理しない。
 | Phase 10 長時間ラン運用 | OpenHands SDKのcheckpoint／resume、`StuckDetector`、condenser、agent-server `WebhookSpec`を土台とし、commit済みEvidence artifactを正とするtask ledger・side-effect journal、予算、watchdog、`TestLLM`回帰と対応付ける | 独自retry・予算会計、根拠なしの自動復旧、EventLog replayに代わるwebhook正本 | 強制終了後に同じrevisionから再開して完走し、成果物hash・gate結果・最小event列・台帳が一致する。同一入力の外部副作用を重複させない。webhookの重複・欠落を許容してもEventLog replayとcommit済みartifactから正しく再構成できる |
 | Phase 11 自働発注 | 見積dry-run、基板＋部品＋実装＋送料＋税＋筐体の**総発注額**、発注前最終ゲート、API ordering | 予算超過、価格stale、契約不明の発注、browser経路の発注 | 副作用のない見積dry-runで総発注額と最終ゲート結果を再現でき、実発注は予算内かつ最終ゲート合格のときだけ実行される。予算超過・stale価格・ゲート未実行を注入すると発注に到達しない |
 | Phase 12 ローカル製造 | 3Dプリンタ、卓上CNC、材料・機械profile、ローカル版と外注版 | 量産能力の無根拠な保証 | 同じgraphからローカル試作版と外注版を生成し、機械条件・測定Evidenceを比較できる |
+| Phase 13 AI主導の配置・回転探索 | L1の機械可読な探索仕様宣言、L2の決定論的候補生成・整合化・代理指標順位付け、L3の少数候補への実測と決定論的ゲートを実装する。Phase 5の検証ゲートと根拠、Phase 6の協調修復に依存する | 強化学習モデルの学習、LLMによる直接の座標・角度生成、LLMによるトレース生成 | 探索仕様の機械可読契約が定義されている。代理指標のみで大域探索し実測は少数候補に限定した探索ハーネスがリポジトリ内（`scripts/`または`packages/`）にcommitされている。探索予算と停止理由がEvidenceへ記録される。回転刻みの緩和がprofile許可とEvidenceに基づいて判定される。LLMなしの既定探索仕様との対照条件で効果を測定できる |
 
 Phase 0のevent契約は、独自のevent log payload schemaを別ストアとして自作するのではなく、
 gate結果・承認・commit側副作用receipt参照に絞った最小ACDドメインイベント型を定義し、
@@ -114,6 +116,8 @@ flowchart LR
     P3 --> P4["Phase 4 レーン統合と共通ゲート"]
     P4 --> P5["Phase 5 検証ゲートと根拠"]
     P5 --> P6["Phase 6 電気↔機械協調修復"]
+    P5 --> P13["Phase 13 AI主導の配置・回転探索"]
+    P6 --> P13
     P6 --> P7["Phase 7 知識ループ"]
     P4 --> P8["Phase 8 製造データ契約とマルチfab対応"]
     P7 --> P8
@@ -130,6 +134,7 @@ Phase 1とPhase 2は電気成果物を共有するため、Phase 1のfixtureをP
 FWパッケージschemaはPhase 0の契約に含め、投影と整合ゲートをPhase 2で実装する。
 schemaを後から追加すると、Phase 1以降のEvidenceが一斉に失効するためである。Phase 11は
 Phase 9の価格出所、Phase 10の副作用journal、Phase 8の製造データ契約のすべてを前提にする。
+Phase 13はPhase 5の検証ゲートと根拠、Phase 6の協調修復を前提とし、Phase 7以降とは並行して進められる。
 Phase 0の投影レビュー契約は最小限のschemaと判定段階だけを定め、工程別の作り込みや
 全投影の実装は後段へ送る。最短経路を遅延させない。
 
@@ -168,3 +173,5 @@ Phase 2の追加到達条件（実機へ書き込んだFWでのLED点灯）は�
 - Phase 2残余の実機Evidence（probe-rs書き込み、実機LED、実機シリアルログ、SHT40実測）の
   取得時期（実機・デバッグprobeが使える環境の確保に依存）。
 - agent-server webhookの配信保証（重複・欠落時の再送、at-least-once等）の一次確認。
+- 代理指標と実測の相関は未測定であり、評価する候補集合と測定条件。
+- 探索仕様schemaの所在（設計グラフnodeか独立契約か）。
