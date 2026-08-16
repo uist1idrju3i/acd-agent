@@ -1,7 +1,6 @@
 # 実装計画
 
-> ステータス: Draft
-> 対象: ACD実装の構成正本（リポジトリ構成、Pydantic契約、adapters、Skill、agent、テスト、CI）
+> ステータス: Draft  > 対象: ACD実装の構成正本（リポジトリ構成、Pydantic契約、adapters、Skill、agent、テスト、CI）
 
 本書は、実装のリポジトリ構成、パッケージ分割、配布資材（Skill／plugin／AgentDefinition）、
 テスト・CI戦略の具体名を正とする。分割の**原則**（レイヤ境界、1 adapter = 1ツール、

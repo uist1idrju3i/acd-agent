@@ -1,7 +1,6 @@
 # OpenHands SDK統合
 
-> ステータス: Draft
-> 対象バージョン: OpenHands Software Agent SDK v1.42.1（submodule commit
+> ステータス: Draft  > 対象バージョン: OpenHands Software Agent SDK v1.42.1（submodule commit
 > `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`、2026-08-12）、ライセンス: MIT、Python 3.12+
 
 本書は、`vendor/software-agent-sdk`のソースと公式ドキュメントを一次情報として調査した

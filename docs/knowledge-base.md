@@ -1,7 +1,6 @@
 # 知識の蓄積
 
-> ステータス: Draft
-> 対象: ACDのS1、E1、E2、M1、M2、S2〜S4知識ループ、基板・筐体・FW・製造フィードバック
+> ステータス: Draft  > 対象: ACDのS1、E1、E2、M1、M2、S2〜S4知識ループ、基板・筐体・FW・製造フィードバック
 
 本書は、KnowledgeItemの構造、適用スコープ、実測Evidence、設計ゲートへの還流を正とします。
 工程ごとの入力・出力は [`design-flow.md`](design-flow.md)、正規データモデルは

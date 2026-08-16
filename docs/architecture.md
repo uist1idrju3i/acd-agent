@@ -1,7 +1,6 @@
 # アーキテクチャ
 
-> ステータス: Draft
-> 対象: ACDコンセプト段階、OpenHands SDK v1.42.1
+> ステータス: Draft  > 対象: ACDコンセプト段階、OpenHands SDK v1.42.1
 
 本書は、設計グラフ、レイヤ境界、投影、ツール契約のアーキテクチャを正とする。
 工程の入力・出力・還流は [`design-flow.md`](design-flow.md)、SDKの責務境界は
