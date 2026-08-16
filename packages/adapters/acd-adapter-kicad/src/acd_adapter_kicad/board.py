@@ -32,6 +32,7 @@ from acd_core.electrical import BoardView, ElectricalLane
 from acd_core.fab import FabProfile
 from acd_core.routing_width import derive_net_widths, group_netclasses
 from acd_core.sexpr import Quoted, SExpr, Sym, dumps
+from acd_core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
 
 PCB_VERSION = "20241229"
 
@@ -49,6 +50,7 @@ class BoardProjection:
     model: BoardModel
     stitch_via_pitch_mm: float | None = None
     overlays: tuple[dict[str, str], ...] = ()
+    silkscreen: SilkscreenLane | None = None
 
 
 def _setup(lane: ElectricalLane) -> list[SExpr]:
@@ -106,6 +108,38 @@ def _edge_lines(width: float, height: float) -> list[list[SExpr]]:
             ]
         )
     return lines
+
+
+def _silk_text(item: SilkTextView) -> list[SExpr]:
+    return [
+        Sym("gr_text"),
+        Quoted(item.text),
+        [Sym("at"), fmt(item.x_mm), fmt(item.y_mm), fmt(item.rotation_deg)],
+        [Sym("layer"), Quoted(item.layer)],
+        [
+            Sym("effects"),
+            [
+                Sym("font"),
+                [Sym("size"), fmt(item.height_mm), fmt(item.height_mm)],
+                [Sym("thickness"), fmt(item.stroke_width_mm)],
+            ],
+        ],
+        [Sym("uuid"), Quoted(det_uuid("silk-text", item.node_id))],
+    ]
+
+
+def _silk_graphic(item: SilkGraphicView) -> list[SExpr]:
+    points: list[SExpr] = [Sym("pts")]
+    for x_mm, y_mm in item.polygon_points:
+        points.append([Sym("xy"), fmt(x_mm), fmt(y_mm)])
+    return [
+        Sym("gr_poly"),
+        points,
+        [Sym("stroke"), [Sym("width"), fmt(item.stroke_width_mm)], [Sym("type"), Sym("solid")]],
+        [Sym("fill"), Sym("none")],
+        [Sym("layer"), Quoted(item.layer)],
+        [Sym("uuid"), Quoted(det_uuid("silk-graphic", item.node_id))],
+    ]
 
 
 def _keepout_zone(keepout: KeepoutRect, index: int) -> list[SExpr]:
@@ -313,6 +347,7 @@ def generate_board(
     footprint_library: FootprintLibrary,
     fixture_dir: Path,
     profile: FabProfile,
+    silkscreen: SilkscreenLane | None = None,
 ) -> BoardProjection:
     board = lane.board
     footprints: dict[str, FootprintShape] = {}
@@ -437,6 +472,9 @@ def generate_board(
         )
 
     doc.extend(_edge_lines(board.width_mm, board.height_mm))
+    if silkscreen is not None:
+        doc.extend(_silk_text(item) for item in silkscreen.texts)
+        doc.extend(_silk_graphic(item) for item in silkscreen.graphics)
     for index, keepout in enumerate(keepouts):
         doc.append(_keepout_zone(keepout, index))
     for index, zone in enumerate(copper_zones):
@@ -487,4 +525,5 @@ def generate_board(
         model=model,
         overlays=tuple(overlay_records),
         stitch_via_pitch_mm=stitch_pitch,
+        silkscreen=silkscreen,
     )

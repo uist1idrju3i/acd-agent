@@ -41,6 +41,7 @@ from acd_adapter_kicad.fab import (
     jlcpcb_cpl_csv,
     measure_net_path_resistance,
     measure_net_track_widths,
+    measure_silkscreen,
     parse_pos_csv,
     parse_routed_board,
     read_drill_measurement,
@@ -64,6 +65,10 @@ from acd_core.board_model import NetClass
 from acd_core.electrical import extract_electrical_lane
 from acd_core.fab import extract_fab_intent, load_fab_profile
 from acd_core.routing_width import derive_net_widths
+from acd_core.silkscreen import (
+    extract_silkscreen_lane,
+    resolve_silkscreen_placements,
+)
 from acd_schema.design_graph import DesignGraph
 
 GERBER_LAYERS = [
@@ -375,6 +380,7 @@ def run_pipeline(
     )
     revision = graph.revision
     lane = extract_electrical_lane(graph)
+    silkscreen = extract_silkscreen_lane(graph)
     intent, allowances = extract_fab_intent(graph)
     profile = load_fab_profile(fab_profile_path)
     if intent.fab_profile != profile.profile_id:
@@ -383,7 +389,23 @@ def run_pipeline(
             f"{profile.profile_id!r}"
         )
 
-    project = write_project(lane, fixture_dir, out_dir, profile=profile)
+    project = write_project(
+        lane,
+        fixture_dir,
+        out_dir,
+        profile=profile,
+        silkscreen=None,
+    )
+    silkscreen = resolve_silkscreen_placements(
+        silkscreen, project.board_projection.model
+    )
+    project = write_project(
+        lane,
+        fixture_dir,
+        out_dir,
+        profile=profile,
+        silkscreen=silkscreen,
+    )
     name = project.name
     kicad = KicadCli()
 
@@ -604,6 +626,20 @@ def run_pipeline(
         measurement.net_name_source,
         measurement.segments,
     )
+    silk_evidence = measure_silkscreen(
+        {
+            "F.SilkS": gerber_paths[GERBER_LAYERS.index("F.SilkS")],
+            "B.SilkS": gerber_paths[GERBER_LAYERS.index("B.SilkS")],
+        },
+        {
+            "F.Mask": gerber_paths[GERBER_LAYERS.index("F.Mask")],
+            "B.Mask": gerber_paths[GERBER_LAYERS.index("B.Mask")],
+        },
+        gerber_paths[GERBER_LAYERS.index("Edge.Cuts")],
+        measurement,
+        silkscreen,
+        profile,
+    )
     profile_minimum = float(profile.data["capabilities"]["min_track_width"]["value"])
     width_requirements = derive_net_widths(lane, profile_minimum)
     if lane.board.width_measurement_tolerance_mm is None:
@@ -728,6 +764,7 @@ def run_pipeline(
                 for key, value in unknowns.items()
                 if isinstance(value, list)
             },
+            silkscreen_evidence=silk_evidence,
         )
         dfm_report["status"] = "fail"
         dfm_path = fab_dir / "dfm-report.json"
@@ -799,6 +836,7 @@ def run_pipeline(
             for key, value in cast(dict[str, object], cpl_basis_report["unknowns"]).items()
             if isinstance(value, list)
         },
+        silkscreen_evidence=silk_evidence,
     )
     profile_preferences = cast(list[dict[str, object]], profile.data["preferences"])
     via_driver_ids = {
@@ -902,6 +940,7 @@ def run_pipeline(
             "via_profile_cost_evidence": via_profile_evidence,
         },
         "routing_width": width_evidence,
+        "silkscreen": silk_evidence,
         "gates": {
             "drc": (
                 "pass"

@@ -37,6 +37,8 @@
             "mechanical.connector_opening",
             "mechanical.board_edge_overhang",
             "mechanical.enclosure",
+            "mechanical.silk_text",
+            "mechanical.silk_graphic",
             "firmware.module",
             "firmware.pin_assignment",
             "safety.boundary",
