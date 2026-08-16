@@ -38,6 +38,7 @@ from acd_adapter_kicad.fab import (
     deterministic_zip,
     jlcpcb_bom_csv,
     jlcpcb_cpl_csv,
+    measure_net_path_resistance,
     measure_net_track_widths,
     parse_pos_csv,
     parse_routed_board,
@@ -73,6 +74,142 @@ GERBER_LAYERS = [
     "F.Paste",
     "Edge.Cuts",
 ]
+
+
+def _run_kicad_netclass_positive_control(
+    kicad: KicadCli,
+    routed_path: Path,
+    project_path: Path,
+    dru_path: Path,
+    out_dir: Path,
+    revision: str,
+    normal_width_mm: float,
+) -> dict[str, object]:
+    """Measure the projected netclass width with a KiCad positive control."""
+    control_dir = out_dir / "kicad-netclass-positive-control"
+    control_dir.mkdir(parents=True, exist_ok=True)
+    control_board = control_dir / routed_path.name
+    control_project = control_dir / project_path.name
+    control_dru = control_dir / dru_path.name
+    shutil.copy2(routed_path, control_board)
+    shutil.copy2(project_path, control_project)
+    if dru_path.is_file():
+        shutil.copy2(dru_path, control_dru)
+    project_data = cast(
+        dict[str, object],
+        json.loads(control_project.read_text(encoding="utf-8")),
+    )
+    net_settings = project_data.get("net_settings")
+    net_settings = (
+        cast(dict[str, object], net_settings)
+        if isinstance(net_settings, dict)
+        else None
+    )
+    classes = (
+        cast(list[dict[str, object]], net_settings["classes"])
+        if net_settings is not None
+        and isinstance(net_settings.get("classes"), list)
+        else None
+    )
+    patterns = (
+        cast(list[dict[str, object]], net_settings["netclass_patterns"])
+        if net_settings is not None
+        and isinstance(net_settings.get("netclass_patterns"), list)
+        else None
+    )
+    if not isinstance(classes, list) or not isinstance(patterns, list):
+        raise ValueError("KiCad netclass positive-control schema is missing")
+    custom: dict[str, object] | None = next(
+        (
+            item
+            for item in classes
+            if item.get("name") != "Default"
+        ),
+        None,
+    )
+    pattern: dict[str, object] | None = next(
+        (
+            item
+            for item in patterns
+            if item.get("netclass") == (custom or {}).get("name")
+        ),
+        None,
+    )
+    if custom is None or pattern is None:
+        raise ValueError("KiCad netclass positive-control mapping is missing")
+    class_name = custom.get("name")
+    net_name = pattern.get("pattern")
+    if not isinstance(class_name, str) or not isinstance(net_name, str):
+        raise ValueError("KiCad netclass positive-control names are invalid")
+    inflated_width_mm = max(normal_width_mm * 2.0, normal_width_mm + 0.25)
+    custom["track_width"] = inflated_width_mm
+    board_settings_obj = project_data.get("board")
+    board_settings = (
+        cast(dict[str, object], board_settings_obj)
+        if isinstance(board_settings_obj, dict)
+        else None
+    )
+    design_settings_obj = (
+        board_settings.get("design_settings") if board_settings is not None else None
+    )
+    design_settings = (
+        cast(dict[str, object], design_settings_obj)
+        if isinstance(design_settings_obj, dict)
+        else None
+    )
+    rules_obj = design_settings.get("rules") if design_settings is not None else None
+    rules = (
+        cast(dict[str, object], rules_obj) if isinstance(rules_obj, dict) else None
+    )
+    if not isinstance(rules, dict):
+        raise ValueError("KiCad board DRC rules are missing")
+    # KiCad 10 DRC applies the board minimum-width rule to existing tracks;
+    # the class/pattern is retained as the selected projection under test.
+    rules["min_track_width"] = inflated_width_mm
+    control_project.write_text(
+        json.dumps(project_data, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    report_path = control_dir / "positive-control.drc.json"
+    result = kicad.drc(control_board, report_path, revision)
+    width_violations = tuple(
+        violation
+        for violation in result.violations
+        if "width" in json.dumps(violation, sort_keys=True).lower()
+    )
+    target_width_violations = tuple(
+        violation
+        for violation in width_violations
+        if any(
+            f"[{net_name}]" in str(item.get("description", ""))
+            for item in cast(list[dict[str, object]], violation.get("items", []))
+        )
+    )
+    if not width_violations:
+        raise ValueError(
+            "KiCad netclass_patterns positive control produced no width violation "
+            "(fail-closed)"
+        )
+    return {
+        "class": class_name,
+        "net": net_name,
+        "normal_track_width_mm": normal_width_mm,
+        "intentionally_inflated_track_width_mm": inflated_width_mm,
+        "drc_error_count": result.error_count,
+        "drc_unconnected_count": len(result.unconnected_items),
+        "width_violation_count": len(width_violations),
+        "target_net_width_violation_count": len(target_width_violations),
+        "drc_width_constraint_source": "board.design_settings.rules.min_track_width",
+        "width_violation_types": sorted(
+            {str(item.get("type", "")) for item in width_violations}
+        ),
+        "width_violation_messages": sorted(
+            {str(item.get("description", "")) for item in width_violations}
+        ),
+        "width_violation_samples": list(width_violations[:3]),
+        "report_path": str(report_path),
+        "positive_control_passed": True,
+    }
 
 
 def run_pipeline(
@@ -266,6 +403,15 @@ def run_pipeline(
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
     assert_rule_check_passed("DRC", drc, require_connected=True)
     print("[5/10] DRC gate passed (0 errors, 0 unconnected)")
+    kicad_positive_control = _run_kicad_netclass_positive_control(
+        kicad,
+        routed_path,
+        routed_dir / f"{name}.kicad_pro",
+        dru_source,
+        out_dir,
+        revision,
+        lane.board.min_track_mm,
+    )
 
     gerber_dir = out_dir / "gerbers"
     _gerber_run, gerber_paths = kicad.export_gerbers(
@@ -319,9 +465,16 @@ def run_pipeline(
         width_requirements,
         lane.board.width_measurement_tolerance_mm,
     )
+    path_evidence = measure_net_path_resistance(
+        measurement,
+        width_requirements,
+        routes.vias,
+        (lane.board.outer_copper_thickness_um or 0.0) / 1000.0,
+    )
     net_evidence = cast(dict[str, object], width_evidence["nets"])
     for _net_name, raw in net_evidence.items():
         item = cast(dict[str, object], raw)
+        item.update(cast(dict[str, object], path_evidence[_net_name]))
         item["copper_thickness_um"] = lane.board.outer_copper_thickness_um
         item["copper_thickness_source"] = lane.board.copper_thickness_source
         item["allowable_temperature_rise_k"] = lane.board.allowable_temperature_rise_k
@@ -337,21 +490,21 @@ def run_pipeline(
                 lane.board.outer_copper_thickness_um or 0.0
             ) / 1000.0
             width_mm = float(cast(float, item["measured_minimum_mm"]))
-            length_mm = float(cast(float, item["route_length_mm"]))
+            length_mm = float(cast(float, item["total_conductor_length_mm"]))
             resistance = (
                 1.724e-5 * length_mm / (width_mm * thickness_mm)
                 if width_mm > 0 and thickness_mm > 0
                 else None
             )
-            item["resistance_ohm"] = resistance
-            item["ir_drop_v"] = (
+            item["series_resistance_upper_bound_ohm"] = resistance
+            item["ir_drop_upper_bound_v"] = (
                 resistance * float(cast(float, item["current_max_a"]))
                 if resistance is not None
                 else None
             )
-            item["electrical_sufficiency_note"] = (
-                "Measured/adopted width exceeds the IPC-2221 derived width; "
-                "current capacity is electrically sufficient."
+            derived_width = float(cast(float, item["derived_width_mm"]))
+            item["adopted_to_derived_width_ratio"] = (
+                width_mm / derived_width if derived_width > 0 else None
             )
     width_evidence["netclasses"] = [
         {
@@ -364,7 +517,11 @@ def run_pipeline(
     width_evidence["kicad_projection"] = {
         "schema": "net_settings.classes plus netclass_patterns",
         "kicad_version": kicad.version(),
-        "validation": "project opened and DRC passed after projected netclass generation",
+        "validation": {
+            "normal_drc_error_count": drc.error_count,
+            "normal_drc_unconnected_count": len(drc.unconnected_items),
+            "netclass_patterns_positive_control": kicad_positive_control,
+        },
     }
     verify_smd_pad_centers_in_gerber(
         gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement

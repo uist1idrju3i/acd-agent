@@ -28,7 +28,7 @@ from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStub
 
 from acd_adapter_kicad.library import SymbolLibrary
 from acd_adapter_kicad.placement import rotate_point
-from acd_core.board_model import BoardModel, RoutedDesign
+from acd_core.board_model import BoardModel, RoutedDesign, RoutedVia
 from acd_core.bom import refdes_key
 from acd_core.electrical import ComponentView, ElectricalLane
 from acd_core.fab import (
@@ -1635,6 +1635,7 @@ def measure_net_track_widths(
     matched: dict[str, list[float]] = defaultdict(list)
     lengths: dict[str, float] = defaultdict(float)
     matched_objects = 0
+    object_type_counts: dict[str, int] = defaultdict(int)
     for layer_name, path in sorted(gerber_paths.items()):
         if layer_name not in {"F.Cu", "B.Cu"}:
             continue
@@ -1646,8 +1647,15 @@ def measure_net_track_widths(
                 f"{path.name}: Gerber width measurement parse failed: {exc}"
             ) from exc
         for obj in objects:
-            if not isinstance(obj, Line):
+            object_type = type(obj).__name__
+            object_type_counts[object_type] += 1
+            if isinstance(obj, (Region, Flash)):
                 continue
+            if not isinstance(obj, Line):
+                raise FabOutputError(
+                    f"{path.name}: unexpected conductor object type "
+                    f"{object_type} (fail-closed)"
+                )
             aperture = obj.aperture
             if not isinstance(aperture, CircleAperture):
                 raise FabOutputError(
@@ -1702,7 +1710,8 @@ def measure_net_track_widths(
         ),
         "tolerance_mm": tolerance_mm,
         "matched_object_count": matched_objects,
-        "recognized_object_count": matched_objects,
+        "recognized_object_count": sum(object_type_counts.values()),
+        "object_type_counts": dict(sorted(object_type_counts.items())),
         "nets": {},
     }
     net_evidence: dict[str, object] = {}
@@ -1720,7 +1729,7 @@ def measure_net_track_widths(
             "sample_count": len(widths),
             "matched_object_count": len(widths),
             "pass": passed,
-            "route_length_mm": lengths[requirement.net_name],
+            "total_conductor_length_mm": lengths[requirement.net_name],
         }
         if not passed:
             raise FabOutputError(
@@ -1729,6 +1738,151 @@ def measure_net_track_widths(
             )
     evidence["nets"] = net_evidence
     return evidence
+
+
+def measure_net_path_resistance(
+    measurement: BoardMeasurement,
+    requirements: Sequence[NetWidthRequirement],
+    routed_vias: Sequence[RoutedVia],
+    copper_thickness_mm: float,
+    tolerance_mm: float = 1e-4,
+) -> dict[str, object]:
+    """Measure shortest pad-to-pad resistance through saved routed geometry."""
+    if not math.isfinite(copper_thickness_mm) or copper_thickness_mm <= 0:
+        raise FabOutputError("copper thickness is invalid (fail-closed)")
+    if not math.isfinite(tolerance_mm) or tolerance_mm <= 0:
+        raise FabOutputError("path matching tolerance is invalid (fail-closed)")
+    rho_ohm_mm = 1.724e-5
+    by_net: dict[str, list[SegmentMeasurement]] = defaultdict(list)
+    for segment in measurement.segments:
+        by_net[segment.net].append(segment)
+    result: dict[str, object] = {}
+    for requirement in requirements:
+        segments = by_net.get(requirement.net_name, [])
+        pads = [pad for pad in measurement.pads if pad.net == requirement.net_name]
+        nodes: set[tuple[str, float, float]] = set()
+        edges: dict[
+            tuple[str, float, float],
+            list[tuple[tuple[str, float, float], float]],
+        ] = defaultdict(list)
+
+        def node_for(
+            layer: str,
+            point: tuple[float, float],
+            nodes_ref: set[tuple[str, float, float]] = nodes,
+        ) -> tuple[str, float, float]:
+            for existing in nodes_ref:
+                if existing[0] == layer and math.dist(existing[1:], point) <= tolerance_mm:
+                    return existing
+            node = (layer, round(point[0], 6), round(point[1], 6))
+            nodes_ref.add(node)
+            return node
+
+        for segment in segments:
+            start = node_for(segment.layer, segment.start)
+            end = node_for(segment.layer, segment.end)
+            length_mm = math.dist(segment.start, segment.end)
+            resistance = (
+                rho_ohm_mm * length_mm
+                / (segment.width_mm * copper_thickness_mm)
+            )
+            edges[start].append((end, resistance))
+            edges[end].append((start, resistance))
+        for via in routed_vias:
+            if via.net != requirement.net_name:
+                continue
+            front = node_for("F.Cu", (via.x_mm, via.y_mm))
+            back = node_for("B.Cu", (via.x_mm, via.y_mm))
+            edges[front].append((back, 0.0))
+            edges[back].append((front, 0.0))
+
+        pad_nodes: list[tuple[str, tuple[str, float, float]]] = []
+        for pad in pads:
+            candidates = [
+                node
+                for node in nodes
+                if math.dist(node[1:], (pad.x_mm, pad.y_mm)) <= tolerance_mm
+            ]
+            if len(candidates) != 1:
+                continue
+            label = f"{pad.refdes}-{pad.number or '?'}"
+            pad_nodes.append((label, candidates[0]))
+
+        def shortest_path(
+            source: tuple[str, float, float],
+            target: tuple[str, float, float],
+            edges_ref: dict[
+                tuple[str, float, float],
+                list[tuple[tuple[str, float, float], float]],
+            ] = edges,
+        ) -> float | None:
+            distances: dict[tuple[str, float, float], float] = {source: 0.0}
+            pending: list[tuple[float, tuple[str, float, float]]] = [(0.0, source)]
+            while pending:
+                pending.sort(key=lambda pending_item: pending_item[0], reverse=True)
+                distance, current = pending.pop()
+                if current == target:
+                    return distance
+                if distance > distances.get(current, math.inf):
+                    continue
+                for neighbor, weight in edges_ref.get(current, []):
+                    candidate = distance + weight
+                    if candidate < distances.get(neighbor, math.inf):
+                        distances[neighbor] = candidate
+                        pending.append((candidate, neighbor))
+            return None
+
+        path_candidates: list[tuple[float, str, str]] = []
+        for index, (source_label, source_node) in enumerate(pad_nodes):
+            for target_label, target_node in pad_nodes[index + 1 :]:
+                resistance = shortest_path(source_node, target_node)
+                if resistance is not None:
+                    path_candidates.append((resistance, source_label, target_label))
+        total_length = sum(
+            math.dist(segment.start, segment.end) for segment in segments
+        )
+        total_resistance = (
+            rho_ohm_mm
+            * total_length
+            / (requirement.adopted_width_mm * copper_thickness_mm)
+        )
+        current = requirement.current_max_a
+        upper_bound_basis = (
+            "Total routed conductor length is treated as one series path; "
+            "parallel branches are ignored. For GND, the filled-plane return path "
+            "is omitted, so this is a pessimistic routed-conductor upper bound."
+        )
+        item: dict[str, object] = {
+            "total_conductor_length_mm": total_length,
+            "series_resistance_upper_bound_ohm": total_resistance,
+            "ir_drop_upper_bound_v": (
+                total_resistance * current if current is not None else None
+            ),
+            "upper_bound_basis": upper_bound_basis,
+            "path_resistance_basis": (
+                "Shortest resistance path between measured pads over saved-board "
+                "segment endpoints and routed via endpoints; GND plane return is "
+                "not represented."
+            ),
+            "via_resistance_model": (
+                "Routed via endpoint connections are modeled as ideal zero-ohm "
+                "connections because barrel plating resistance is not measured."
+            ),
+            "path_measurement_status": "measured" if path_candidates else "unknown",
+        }
+        if path_candidates:
+            resistance, source_label, target_label = max(path_candidates)
+            item.update(
+                {
+                    "farthest_pad_pair": [source_label, target_label],
+                    "farthest_pad_path_resistance_ohm": resistance,
+                    "farthest_pad_path_ir_drop_v": (
+                        resistance * current if current is not None else None
+                    ),
+                }
+            )
+        result[requirement.net_name] = item
+    return result
 
 
 def read_drill_measurement(path: Path) -> tuple[tuple[float, ...], int]:

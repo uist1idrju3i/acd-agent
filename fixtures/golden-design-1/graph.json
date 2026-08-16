@@ -104,7 +104,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "CC1",
         "voltage_nominal_v": 5.0,
         "width_basis": "manufacturing_minimum",
@@ -117,7 +116,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "CC2",
         "voltage_nominal_v": 5.0,
         "width_basis": "manufacturing_minimum",
@@ -154,7 +152,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "USB_D-",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -167,7 +164,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "USB_D+",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -180,7 +176,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "EN",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -193,7 +188,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "BOOT",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -206,7 +200,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "LED",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -219,7 +212,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "LED_A",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -232,7 +224,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "I2C_SDA",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -245,7 +236,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "I2C_SCL",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -258,7 +248,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "UART_TX",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -271,7 +260,6 @@
     {
       "attrs": {
         "manufacturing_margin_mm": 0.0,
-        "manufacturing_minimum_mm": 0.1,
         "name": "UART_RX",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
@@ -2941,6 +2929,7 @@
         "unit": "mm",
         "via_diameter_mm": 0.6,
         "via_drill_mm": 0.3,
+        "width_basis_equation": "ipc2221_external_current_capacity",
         "width_basis_source": "IPC-2221 current-capacity equation: A = (I / (k * ΔT^b))^(1/c), width = A / thickness; IPC-2221, external/internal conductor current-capacity method.",
         "width_measurement_tolerance_mm": 0.01,
         "width_mm": 30.0,

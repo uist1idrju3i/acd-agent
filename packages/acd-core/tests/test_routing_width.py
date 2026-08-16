@@ -36,6 +36,8 @@ def test_missing_width_basis_fails_closed() -> None:
         "copper_thickness_source",
         "allowable_temperature_rise_k",
         "ipc2221_external_k",
+        "width_basis_equation",
+        "width_basis_source",
     ],
 )
 def test_current_basis_missing_board_input_fails_closed(removed: str) -> None:
@@ -43,6 +45,29 @@ def test_current_basis_missing_board_input_fails_closed(removed: str) -> None:
     board = replace(lane.board, **{removed: None})
     with pytest.raises(GraphExtractionError):
         derive_net_widths(replace(lane, board=board), 0.1)
+
+
+def test_unknown_width_basis_equation_fails_closed() -> None:
+    lane = _lane()
+    with pytest.raises(GraphExtractionError, match="unsupported IPC-2221"):
+        derive_net_widths(
+            replace(lane, board=replace(lane.board, width_basis_equation="unknown")),
+            0.1,
+        )
+
+
+def test_net_manufacturing_minimum_must_come_from_profile() -> None:
+    lane = _lane()
+    net = next(net for net in lane.nets if net.width_basis == "manufacturing_minimum")
+    modified = replace(
+        lane,
+        nets=tuple(
+            replace(item, manufacturing_minimum_mm=0.1) if item is net else item
+            for item in lane.nets
+        ),
+    )
+    with pytest.raises(GraphExtractionError, match="must come from fab profile"):
+        derive_net_widths(modified, 0.1)
 
 
 def test_netclass_grouping_is_deterministic() -> None:

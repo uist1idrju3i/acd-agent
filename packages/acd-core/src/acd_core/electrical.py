@@ -127,6 +127,7 @@ class BoardView:
     ipc2221_internal_k: float | None = None
     ipc2221_internal_b: float | None = None
     ipc2221_internal_c: float | None = None
+    width_basis_equation: str | None = None
     width_basis_source: str | None = None
     width_measurement_tolerance_mm: float | None = None
 
@@ -446,6 +447,7 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ipc2221_internal_k=_optional_number(node, "ipc2221_internal_k"),
                     ipc2221_internal_b=_optional_number(node, "ipc2221_internal_b"),
                     ipc2221_internal_c=_optional_number(node, "ipc2221_internal_c"),
+                    width_basis_equation=_optional_str(node, "width_basis_equation"),
                     width_basis_source=_optional_str(node, "width_basis_source"),
                     width_measurement_tolerance_mm=_optional_number(
                         node, "width_measurement_tolerance_mm"

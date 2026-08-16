@@ -398,43 +398,54 @@ IPC-2221定数・式の出所・突合許容差をグラフへ宣言した。必
 `VBUS_5V`、`+3V3`、`GND`は、プレーンとは独立に測定する routed conductor の電流容量
 根拠として`current_ipc2221`を採用した。その他の信号系は、電流容量ではなく製造最小幅が
 支配的である理由を`width_basis_source`へ宣言した。
+式の同定は散文の部分一致ではなく、`width_basis_equation =
+ipc2221_external_current_capacity`という構造化値で行い、未知の式種別と空の出典は
+fail-closedとした。製造最小幅はnetへ複製せず、fab profileの
+`capabilities.min_track_width`に宣言マージンを加えて導出した。
 
-塗り後・保存後KiCad基板から出力したF.Cu/B.Cu Gerberの全`Line`を、保存基板の
-`segment`端点・層・netへ座標照合し、Gerber aperture径をネット別に独立測定した。
-照合対象は325オブジェクト、許容差は`0.01 mm`であり、照合不能な導体は合格扱いに
-していない。KiCad 10.0.5では`net_settings.classes`に`Default`と決定論的な
-`ACD_0150um`を投影し、`netclass_patterns`で全15ネットを明示的に割り当てた。
-このprojectを開いて最終基板のDRCを実行し、0 errors・0 unconnectedへ到達した。
+塗り後・保存後KiCad基板から出力したF.Cu/B.Cu Gerberの導体オブジェクトを種類別に
+数え、`Line`だけを保存基板の`segment`端点・層・netへ座標照合して、Gerber aperture径を
+ネット別に独立測定した。`Line`以外の`Region`と`Flash`も読み取り済み導体として記録し、
+未知の種類はfail-closedとした。全導体オブジェクトは520個（route `Line`は325個）で、
+許容差は`0.01 mm`であり、照合不能な導体は合格扱いにしていない。KiCad 10.0.5では
+`net_settings.classes`に`Default`と決定論的な`ACD_0150um`を投影し、
+`netclass_patterns`で全15ネットを明示的に割り当てた。さらに`+3V3`の同じpatternを
+意図的に`0.4 mm`へ膨らませた別projectでDRCを実行し、track-width違反を検出する
+陽性対照を通した。通常projectのDRCは0 errors・0 unconnectedへ到達した。
+この陽性対照では、KiCad 10.0.5が既存trackへ適用した実測制約が
+`board.design_settings.rules.min_track_width`だったため、コピーした対照projectでは
+class幅と同時にこのboard-level最小幅も`0.4 mm`へ設定した。したがって、DRCが幅違反を
+報告することはboard-level制約の適用を実証するが、class幅だけの変更が既存trackへ直接
+適用されることまでは実証していない。この制約源と未実証範囲をEvidenceへ記録した。
 
-| ネット | basis | 導出幅(mm) | 採用幅(mm) | Gerber実測最小(mm) | 配線長(mm) | 抵抗(Ω) | IR drop(V) |
-|---|---|---:|---:|---:|---:|---:|---:|
-| VBUS_5V | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 20.222430 | 0.066407 | 0.033203 |
-| +3V3 | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 98.300328 | 0.322800 | 0.161400 |
-| GND | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 138.688073 | 0.455425 | 0.227713 |
-| BOOT | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 19.985928 | — | — |
-| CC1 | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 15.448290 | — | — |
-| CC2 | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 14.629516 | — | — |
-| EN | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 30.983008 | — | — |
-| I2C_SCL | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 20.970387 | — | — |
-| I2C_SDA | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 33.506214 | — | — |
-| LED | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 31.787344 | — | — |
-| LED_A | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 7.665831 | — | — |
-| UART_RX | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 16.599099 | — | — |
-| UART_TX | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 12.291826 | — | — |
-| USB_D+ | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 17.703585 | — | — |
-| USB_D- | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | 18.502620 | — | — |
+| ネット | basis | 導出幅(mm) | 採用幅(mm) | Gerber実測最小(mm) | 全導体長(mm) | 直列抵抗上界(Ω) | IR drop上界(V) | 最遠pad間経路抵抗(Ω) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| VBUS_5V | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 20.222430 | 0.066407 | 0.033203 | 0.052694 |
+| +3V3 | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 98.300328 | 0.322800 | 0.161400 | 0.215703 |
+| GND | current_ipc2221 | 0.115469 | 0.15 | 0.15 | 138.688073 | 0.455425 | 0.227713 | 0.129320 |
+| その他11ネット | manufacturing_minimum | 0.100000 | 0.15 | 0.15 | — | — | — | — |
 
 電源ネットのIPC-2221導出値は約`0.115469 mm`で、採用・実測幅`0.15 mm`が上回る。
 したがって現行幅は電流容量上十分であり、幅を広げることによる定量的な改善がないため
-既存幅を維持した。抵抗とIR dropは、1 oz外層銅厚`35 µm`、抵抗率`1.724e-5 Ω·mm`、
-実測配線長、実測幅から計算した。導出値をグラフ最小値が上回る事実は、各ネットの
-`capability_or_minimum_governed`とEvidenceへ記録した。
+既存幅を維持した。全導体長を一つの直列経路とみなす抵抗・IR dropは、分岐による
+並列経路を無視した悲観的な上界である。特にGNDはベタ面の帰路をモデル化していないため、
+通常の負荷端子間IR dropではない。併せて、保存基板のsegment/via端点グラフ上で全pad
+terminal pairの最短抵抗を測定し、最遠pad pairの経路抵抗をEvidenceへ記録した。
+抵抗は1 oz外層銅厚`35 µm`、抵抗率`1.724e-5 Ω·mm`、実測幅から計算した。採用幅／
+導出幅比率、導出値をグラフ最小値またはprofile最小値が上回る事実は数値フィールドで
+記録し、固定文言による判定は行わない。
+最短経路のvia接続は、barrel plating抵抗を測定していないため理想0 Ωとして扱い、
+この仮定もEvidenceへ記録した。
 
 計画2の出力は`out/gd1-plan2-default/fab/dfm-report.json`および
 `out/gd1-plan2-default/fab/fab-package.json`である。route wireは`188`、route viaは
 `24`、stitch viaは`7`、DRCは`0/0`、Freeroutingは収束済みである。計画1で記録した
 stitch via `7`、銅面積`1066.8861574973707 mm²`、連結成分`1`、最小島面積
 `33.343936651752315 mm²`、`declared_pitch_satisfied: false`は変更していない。
+今回の`graph.json`はJSON parse後にnode ID、kind、attrs、depends_on、edgesを比較した。
+node数は215→215、edgesは同一で、意味差分は式種別の追加
+`board.gd1.attrs.width_basis_equation`と、製造下限の重複宣言を削除した12 netの
+`manufacturing_minimum_mm`だけだった。キー順や空白の差は比較対象にしていない。
 J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
 ともに回転`0°`である。U1の板端はみ出し宣言は本体外形基準で`5.4 mm`である。DSNの
 `(via_at_smd off)`とSMD pad周囲の`via_keepout`により、

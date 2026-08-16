@@ -88,20 +88,20 @@ class ComponentSpec(TypedDict):
 
 NETS: dict[str, dict[str, AttrValue]] = {
     "net.vbus_5v": {"name": "VBUS_5V", "voltage_nominal_v": 5.0, "current_max_a": 0.5, "width_basis": "current_ipc2221", "width_basis_source": "USB VBUS power net; IPC-2221 external-layer current capacity governs the routed conductor.",},  # noqa: E501
-    "net.cc1": {"name": "CC1", "voltage_nominal_v": 5.0, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.cc2": {"name": "CC2", "voltage_nominal_v": 5.0, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.cc1": {"name": "CC1", "voltage_nominal_v": 5.0, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.cc2": {"name": "CC2", "voltage_nominal_v": 5.0, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
     "net.gnd": {"name": "GND", "voltage_nominal_v": 0.0, "width_basis": "current_ipc2221", "current_max_a": 0.5, "width_basis_source": "GND is a plane plus routed conductors; IPC-2221 external-layer current capacity governs each explicit routed conductor while the plane is independently measured as filled copper.",},  # noqa: E501
     "net.p3v3": {"name": "+3V3", "voltage_nominal_v": 3.3, "current_max_a": 0.5, "width_basis": "current_ipc2221", "width_basis_source": "Regulated 3.3 V power net; IPC-2221 external-layer current capacity governs the routed conductor.",},  # noqa: E501
-    "net.usb_dn": {"name": "USB_D-", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.usb_dp": {"name": "USB_D+", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.en": {"name": "EN", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "Enable logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.boot": {"name": "BOOT", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "Boot logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.led": {"name": "LED", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "LED control logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.led_a": {"name": "LED_A", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "LED current is limited by the series resistor and manufacturing minimum governs this routed net.",},  # noqa: E501
-    "net.i2c_sda": {"name": "I2C_SDA", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "I2C logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.i2c_scl": {"name": "I2C_SCL", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "I2C logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.uart_tx": {"name": "UART_TX", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "UART logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
-    "net.uart_rx": {"name": "UART_RX", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_minimum_mm": 0.1, "manufacturing_margin_mm": 0.0, "width_basis_source": "UART logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.usb_dn": {"name": "USB_D-", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.usb_dp": {"name": "USB_D+", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.en": {"name": "EN", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "Enable logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.boot": {"name": "BOOT", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "Boot logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.led": {"name": "LED", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "LED control logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.led_a": {"name": "LED_A", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "LED current is limited by the series resistor and manufacturing minimum governs this routed net.",},  # noqa: E501
+    "net.i2c_sda": {"name": "I2C_SDA", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "I2C logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.i2c_scl": {"name": "I2C_SCL", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "I2C logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.uart_tx": {"name": "UART_TX", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "UART logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
+    "net.uart_rx": {"name": "UART_RX", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "manufacturing_margin_mm": 0.0, "width_basis_source": "UART logic signal; current-derived capacity is not the controlling constraint.",},  # noqa: E501
 }
 
 _ESP32_GND_PADS = ["1", "2", "11", "14"] + [str(n) for n in range(36, 54)]
@@ -421,6 +421,7 @@ BOARD_ATTRS: dict[str, AttrValue] = {
     "ipc2221_internal_k": 0.024,
     "ipc2221_internal_b": 0.44,
     "ipc2221_internal_c": 0.725,
+    "width_basis_equation": "ipc2221_external_current_capacity",
     "width_basis_source": "IPC-2221 current-capacity equation: A = (I / (k * ΔT^b))^(1/c), width = A / thickness; IPC-2221, external/internal conductor current-capacity method.",  # noqa: E501
     "width_measurement_tolerance_mm": 0.01,
 }

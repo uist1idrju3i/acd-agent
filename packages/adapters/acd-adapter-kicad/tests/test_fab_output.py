@@ -241,6 +241,39 @@ def test_net_width_measurement_rejects_unmatched_conductor(
         )
 
 
+def test_net_width_measurement_rejects_unexpected_conductor_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Gerber:
+        def __init__(self) -> None:
+            self.objects = [object()]
+
+    monkeypatch.setattr(  # pyright: ignore[reportUnknownArgumentType]
+        fab_module.GerberFile,  # pyright: ignore[reportPrivateImportUsage]
+        "open",
+        lambda _path: Gerber(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    )
+    measurement = BoardMeasurement(
+        (),
+        (),
+        0.15,
+        None,
+        None,
+        None,
+        (),
+        0,
+        "board_net_declarations",
+        (fab_module.SegmentMeasurement("PWR", "F.Cu", 0.15, (1.0, 1.0), (2.0, 1.0)),),
+    )
+    with pytest.raises(FabOutputError, match="unexpected conductor object type"):
+        measure_net_track_widths(
+            {"F.Cu": Path("fixture-F.gbr")},
+            measurement,
+            (_width_requirement(),),
+            0.01,
+        )
+
+
 def test_derive_lcsc_rotation_offset_matches_pin_functions() -> None:
     footprint = FootprintMeasurement(
         "U2",

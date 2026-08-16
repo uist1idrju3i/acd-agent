@@ -21,6 +21,7 @@ class NetWidthRequirement:
     profile_minimum_mm: float
     adopted_width_mm: float
     capability_or_minimum_governed: bool
+    formula_type: str = ""
     formula_source: str = ""
 
     def evidence(self) -> dict[str, object]:
@@ -34,6 +35,7 @@ class NetWidthRequirement:
             "profile_minimum_mm": self.profile_minimum_mm,
             "adopted_width_mm": self.adopted_width_mm,
             "capability_or_minimum_governed": self.capability_or_minimum_governed,
+            "formula_type": self.formula_type,
             "formula_source": self.formula_source,
         }
 
@@ -56,8 +58,13 @@ def derive_net_widths(
         raise GraphExtractionError("copper thickness source is missing (fail-closed)")
     _positive(board.allowable_temperature_rise_k, "allowable temperature rise")
     source = board.width_basis_source
-    if not source or "A = (I / (k * ΔT^b))^(1/c)" not in source:
-        raise GraphExtractionError("IPC-2221 width basis equation/source is missing")
+    formula_type = board.width_basis_equation
+    if formula_type != "ipc2221_external_current_capacity":
+        raise GraphExtractionError(
+            "unsupported IPC-2221 width basis equation (fail-closed)"
+        )
+    if not source:
+        raise GraphExtractionError("IPC-2221 width basis source is missing (fail-closed)")
     _positive(board.width_measurement_tolerance_mm, "width measurement tolerance")
     constants = (
         board.ipc2221_external_k,
@@ -94,20 +101,21 @@ def derive_net_widths(
             ) ** (1.0 / external_c)
             derived = area_mil2 / thickness_mil / MM_TO_MIL
         else:
-            if net.manufacturing_minimum_mm is None or net.manufacturing_margin_mm is None:
+            if net.manufacturing_minimum_mm is not None:
                 raise GraphExtractionError(
-                    f"net {net.name!r}: manufacturing minimum and margin are required"
+                    f"net {net.name!r}: manufacturing minimum must come from fab profile"
                 )
-            minimum = _positive(
-                net.manufacturing_minimum_mm, f"net {net.name} manufacturing minimum"
-            )
+            if net.manufacturing_margin_mm is None:
+                raise GraphExtractionError(
+                    f"net {net.name!r}: manufacturing margin is required"
+                )
             margin = net.manufacturing_margin_mm
             if not math.isfinite(margin) or margin < 0:
                 raise GraphExtractionError(
                     f"net {net.name!r}: manufacturing margin is invalid"
                 )
             current = None
-            derived = minimum + margin
+            derived = profile_min + margin
         adopted = max(derived, lane.board.min_track_mm, profile_min)
         requirements.append(
             NetWidthRequirement(
@@ -120,6 +128,7 @@ def derive_net_widths(
                 profile_minimum_mm=profile_min,
                 adopted_width_mm=adopted,
                 capability_or_minimum_governed=adopted > derived + 1e-9,
+                formula_type=formula_type,
                 formula_source=source,
             )
         )
