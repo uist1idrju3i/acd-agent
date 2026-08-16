@@ -47,8 +47,7 @@ profileごとの有効化境界は[`docs/adr/ADR-0008-minimal-vibebb-scope.md`](
 - 配置・回転・配線の探索では、LLMは座標・回転角の値を直接出力せず（MUST NOT）、具体的な
   生成と幾何整合化は決定論的探索器が行う（MUST）。`small-production`以上では機械可読な探索仕様
   （モジュール分解、相対配置制約、優先度、
-  回転刻み方針、探索戦略、評価方針、緩和提案）と設計根拠を宣言し、座標・回転角の値を直接
-  出力しないことを機械可読契約で確認する（MUST）。
+  回転刻み方針、探索戦略、評価方針、緩和提案）と設計根拠の宣言を要求する（MUST）。
 - 探索の内側ループでLLMを呼ばない（MUST NOT）。`small-production`以上では探索予算（反復、
   wall-clock、候補数、token、money）を機械可読探索仕様で宣言し実測を記録する（MUST）。
   予算超過、連続非改善、同一探索仕様の再提出、同一`ReviewFinding`種別の再発上限超過は
@@ -73,8 +72,11 @@ profileごとの有効化境界は[`docs/adr/ADR-0008-minimal-vibebb-scope.md`](
 - `small-production`以上では工程の出口と工程内の随時で投影を生成し、別コンテキストのAIがレビューする（MUST）。
   `hobby`ではSDKのsubagent／visionによるbest-effortレビューとする。AIレビューは
   合否権限を持たず（MUST NOT）、未処分の重大`ReviewFinding`は合格扱いにしない（MUST NOT）。
-- staleな投影・レビューは合格根拠にせず（MUST NOT）、`unknown`はfail-closedで停止する（MUST）。
-- 異常、矛盾、未知の影響、stale Evidenceは合格扱いしない（MUST NOT）。
+- `small-production`以上ではstaleな投影・レビューを合格根拠にせず（MUST NOT）。
+  `hobby`ではツール不在、parse失敗、ゲート未実行をfail-closedで停止する（MUST）。
+  安全境界の`unknown`も全profileで停止する（MUST）。
+- `small-production`以上では異常、矛盾、未知の影響、stale Evidenceを合格扱いしない（MUST NOT）。
+  `hobby`ではツール不在、parse失敗、ゲート未実行、および安全境界の`unknown`を合格扱いしない。
 - `small-production`以上ではstaleなEvidenceを下流の合格根拠として使わず、失効を伝播させる（MUST NOT）。
 - ライブラリ記述の誤りはERC/DRCだけでは検出できないため、照合Evidenceなしに合格根拠にしない（MUST NOT）。
 - `small-production`以上では派生状態を再計算していない検証結果をstaleとして扱う（MUST）。
@@ -86,7 +88,8 @@ profileごとの有効化境界は[`docs/adr/ADR-0008-minimal-vibebb-scope.md`](
   commitによってのみ変更する（MUST）。
 - 不可逆操作は、操作対象・入力ハッシュ・ゲート結果・予算を確認してから実行し、発注については
   発注条項の裁量枠・最終ゲート・承認要否に従う（MUST）。
-- 総発注額は基板、部品、実装、送料、税、筐体、機械部品を含める（MUST）。
+- `small-production`以上で総発注額を扱う場合は、基板、部品、実装、送料、税、筐体、機械部品を
+  内訳へ含める（MUST）。`hobby`では設定した上限額との比較に必要な範囲を扱う。
 - `hobby`の発注は、設定した上限額以内で、発注直前に全ゲートを実行して通過した場合だけ
   実行する（MUST）。`small-production`以上では金額・納期・月間発注回数・fab指定・地域からなる
   多次元裁量枠と承認IDを有効化する（MUST）。
@@ -99,10 +102,10 @@ profileごとの有効化境界は[`docs/adr/ADR-0008-minimal-vibebb-scope.md`](
   ゲートは合格扱いしない（MUST NOT）。
 - ACD独自`Event`の読み戻しにはACD packageのimportが必要である。未知の`kind`は
   fail-closedで停止し、読み飛ばしたりopaqueに保持したりしない（MUST NOT）。
-- セッション開始時は`SessionStart` hookでACD packageのimport、外部ツール版プローブ、
-  SDKの`InstallationInfo.resolved_ref`／`.installed.json`に基づくSkill／pluginの解決済みSHA、
-  MCP設定hashを検証する（MUST）。未登録、版不明、resolved_ref欠落、hash不一致は
-  `HookDecision`でdenyし、起動をfail-closedにする（MUST）。
+- セッション開始時は`SessionStart` hookでACD packageのimportと外部ツール版プローブを検証する（MUST）。
+  `small-production`以上ではSDKの`InstallationInfo.resolved_ref`／`.installed.json`に基づく
+  Skill／pluginの解決済みSHAとMCP設定hashも検証し、未登録、版不明、resolved_ref欠落、hash不一致は
+  `HookDecision`でdenyして起動をfail-closedにする（MUST）。
 
 ## 決定権とエスカレーション
 
@@ -129,10 +132,11 @@ profileごとの有効化境界は[`docs/adr/ADR-0008-minimal-vibebb-scope.md`](
 - ツール版・形式版・設定ディレクトリが固定されていない。
 - 出力が壊れている、再読込できない、または期待形式でない。
 - solverが未収束、geometryが無効、DRC/ERC/干渉検証が未実行。
-- Evidenceの対象revisionが現在のrevisionと一致しない。
-- 外部サービスの見積・在庫・製造能力・価格が期限切れ。
-- Skill／pluginの解決済みSHA、prompt内容hash、model／profile revision、MCP設定hashが
-  記録されていない。
+- `small-production`以上でEvidenceの対象revisionが現在のrevisionと一致しない。
+- 発注時の外部サービスの見積・在庫・製造能力・価格が期限切れ（`hobby`でも発注直前の
+  全ゲートの一部として確認する）。
+- `small-production`以上でSkill／pluginの解決済みSHA、prompt内容hash、model／profile revision、
+  MCP設定hashが記録されていない。
 
 ## 秘密情報と信頼できない入力
 

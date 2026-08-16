@@ -140,7 +140,7 @@ OpenHands連携でも同じコンセプトが上手く動くのではないか�
   シミュレーション、fabルールが検証し、未検証の銅箔配線は生成しません。
 - 回路図レス・図面レスを既定とします。回路図、PCB、筐体図面は設計グラフの投影です。
 - 投影は正へ逆流させず、意味的にマージしません。分岐・調停・復元は設計グラフ上で行い、
-  対象revisionから投影を再生成します。
+  対象revisionから投影を再生成します。`hobby`ではこのrevisionを入力ファイルを管理するgit commitとして扱います。
 - 基板と筐体はともに第一級の設計対象です。外形、干渉、肉厚、締結、組立性を検証します。
 - 型付き・バージョン付き設計グラフを正とするのは`small-production`以上とし、`hobby`では入力ファイルとgitを正とします。
 - 設計根拠（Design Rationale）の設計グラフへの紐付け、差分の影響分析、必要範囲のゲート再実行は
@@ -246,8 +246,9 @@ OpenHands SDKはConversation、型付きTool、EventLog、workspace、MCP、dele
 retryに加えて、skills／plugin、subagent（`AgentDefinition`）、hooks、critic、`/goal`、
 condenser、security analyzer／`ConfirmationPolicy`、`AgentProfile`、workflow／task、
 `LLMRegistry`／`FallbackStrategy`、persistent memory、preset agentを
-提供する実行基盤です。これらの既存機能を優先してフル活用し、設計グラフ、決定論的ゲート、
-Evidenceの失効、承認IDと不可逆操作の束縛はACDが実装します。
+提供する実行基盤です。これらの既存機能を優先してフル活用し、設計グラフと決定論的ゲート、
+不可逆操作の束縛はACDが実装します。Evidenceの失効と承認IDは`small-production`以上で
+有効化し、`hobby`では入力ファイル＋git、最小ゲート、上限額ガードを用います。
 詳細は [`docs/architecture.md`](docs/architecture.md) と
 [`docs/openhands-integration.md`](docs/openhands-integration.md) を参照してください。
 
@@ -285,7 +286,6 @@ Evidenceの失効、承認IDと不可逆操作の束縛はACDが実装します�
 | [`docs/reliability-practices.md`](docs/reliability-practices.md) | 信頼性・安全性 | Draft |
 | [`docs/prior-art.md`](docs/prior-art.md) | 先行事例台帳 | Draft |
 | [`docs/roadmap.md`](docs/roadmap.md) | 本リポジトリのフェーズ | Draft |
-| [`docs/adr/ADR-0008-minimal-vibebb-scope.md`](docs/adr/ADR-0008-minimal-vibebb-scope.md) | VibeBB最小構成とprofile有効化境界 | Accepted |
 | [`docs/glossary.md`](docs/glossary.md) | 用語と工程IDの定義 | Draft |
 | [`docs/golden-design-1.md`](docs/golden-design-1.md) | Golden Design #1の具体設計とfixture入力 | Draft |
 | [`docs/ecad-domain-notes.md`](docs/ecad-domain-notes.md) | ECAD領域知識と投影契約 | Draft |
