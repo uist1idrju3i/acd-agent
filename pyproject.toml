@@ -64,6 +64,13 @@ executionEnvironments = [
     { root = "plugins/acd/skills/acd-firmware-esp32c3", extraPaths = [
         "plugins/acd/skills/acd-firmware-esp32c3/scripts",
     ] },
+    { root = "plugins/acd/skills/acd-placement-search", extraPaths = [
+        "plugins/acd/skills/acd-placement-search/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-silkscreen-placement", extraPaths = [
+        "plugins/acd/skills/acd-silkscreen-placement/scripts",
+    ] },
+    { root = "scripts" },
     { root = "." },
 ]
 

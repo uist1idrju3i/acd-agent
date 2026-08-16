@@ -14,6 +14,7 @@ from pathlib import Path
 
 from acd_adapter_kicad.board import BoardProjection, generate_board
 from acd_adapter_kicad.library import FootprintLibrary, SymbolLibrary
+from acd_adapter_kicad.placement import Placement
 from acd_adapter_kicad.schematic import PWR_FLAG_LIB_ID, generate_schematic
 from acd_core.bom import bom_csv
 from acd_core.electrical import BoardView, ElectricalLane
@@ -128,6 +129,7 @@ def write_project(
     fixture_dir: Path,
     out_dir: Path,
     profile: FabProfile,
+    placements: tuple[Placement, ...],
     name: str = "gd1",
     silkscreen: SilkscreenLane | None = None,
 ) -> ProjectFiles:
@@ -155,6 +157,7 @@ def write_project(
         FootprintLibrary(),
         fixture_dir,
         profile,
+        placements,
         silkscreen=silkscreen,
     )
 

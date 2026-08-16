@@ -49,11 +49,19 @@ MUST NOT、SHOULD、MAYは規範語として使う。
   ACD本体はFWゲートを持たない（MUST NOT）。
 - 配置・回転・配線の探索と代理指標の採点はOpenHandsへ委譲する（MUST）。座標は設計の入力
   ファイルに確定し、ACDはそれを投影して決定論的ゲートで判定する（MUST）。
+- LLMが座標・回転角を直接提案してよい（MAY）。提案は候補にとどまり、入力ファイルへ確定した
+  のちにACDの投影と決定論的ゲートを通す（MUST）。
 - ライブラリ記述やLLMの説明を合格根拠にしない（MUST NOT）。
 - OpenHands SDKの既存機能を優先し、同等のACD独自tool層・executor・eventを作らない（MUST NOT）。
 - ACDが保持する実装は投影、決定論的ゲート、パイプラインスクリプト、adapters、発注ガード、
   `profiles/`の宣言とOpenHands plugin資材に限る（MUST）。委譲した処理の実装資産は
   `plugins/acd/skills/`配下のSkillとして提供する（MUST）。
+- ACD本体は軽量に保ち、基板設計・筐体設計・FWに使えるSkillは充実させる（MUST）。Skillの採否は
+  タスクごとにOpenHands側が判断する（MAY）。Skillが存在することは採用の義務を意味しない。
+- Skillの実行結果はACDの設計ゲートの合否ではない（MUST NOT）。合否は入力ファイルと
+  決定論的ゲートだけが決める（MUST）。
+- OpenHands側の機能で不足すると実運用（VibeBB）で確認できた場合に限り、ACD本体への実装を
+  検討する（SHOULD）。
 
 ## 決定権とエスカレーション
 
@@ -150,10 +158,13 @@ EDA、配置配線、製造、機械生成のアルゴリズムについて、AC
 ## 検証契約
 
 検証は`uv sync`、`uv run ruff check`、`uv run pyright`、`uv run pytest`、
-`uv run python scripts/verify_docs.py`、`git diff --check`を使う（MUST）。
+`uv run pytest plugins -q`、`uv run python scripts/verify_docs.py`、`git diff --check`を使う（MUST）。
+Skillのテストは本体テストから分離し、`uv run pytest plugins -q`で実行する（MUST）。CIでも
+本体ジョブとは別ジョブで実行する（MUST）。外部ツール（ESP-IDF、QEMUなど）を要するSkillテストは
+ツール不在時にskipしてよい（MAY）。
 CI（`.github/workflows/ci.yml`）ではこれらを同じコマンド・同じ入力で実行する（MUST）。
 変更ファイルがMarkdownのみで、かつ
-`packages/`・`scripts/`・`profiles/`・`fixtures/`・`pyproject.toml`・`uv.lock`・`.github/`を
+`packages/`・`plugins/`・`scripts/`・`profiles/`・`fixtures/`・`pyproject.toml`・`uv.lock`・`.github/`を
 変更していない場合、ローカルでは`uv run python scripts/verify_docs.py`と
 `git diff --check`のみで足りる（MAY）。
 それ以外はローカルでも全コマンドを実行する（MUST）。CIは従来どおり全コマンドを実行する（MUST）。

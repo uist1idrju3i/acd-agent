@@ -14,11 +14,7 @@ from pathlib import Path
 from acd_adapter_kicad.emit import det_uuid, fmt, requote
 from acd_adapter_kicad.library import FootprintLibrary
 from acd_adapter_kicad.overlay import apply_overlay
-from acd_adapter_kicad.placement import (
-    Placement,
-    Rect,
-    compute_placements,
-)
+from acd_adapter_kicad.placement import Placement, PlacementError, Rect
 from acd_core.board_model import (
     BoardModel,
     BoardNet,
@@ -324,6 +320,28 @@ def _inject_footprint(
     return node
 
 
+def _validated_placements(
+    lane: ElectricalLane, placements: tuple[Placement, ...]
+) -> dict[str, Placement]:
+    by_refdes: dict[str, Placement] = {}
+    for placement in placements:
+        if placement.refdes in by_refdes:
+            raise PlacementError(f"duplicate placement for {placement.refdes} (fail-closed)")
+        if placement.rotation_deg % 90.0 != 0.0:
+            raise PlacementError(
+                f"{placement.refdes}: unsupported rotation {placement.rotation_deg} (fail-closed)"
+            )
+        by_refdes[placement.refdes] = placement
+    declared = {comp.refdes for comp in lane.components}
+    missing = sorted(declared - by_refdes.keys())
+    if missing:
+        raise PlacementError(f"placement missing for {', '.join(missing)} (fail-closed)")
+    unknown = sorted(by_refdes.keys() - declared)
+    if unknown:
+        raise PlacementError(f"placement for undeclared component {', '.join(unknown)}")
+    return by_refdes
+
+
 def _antenna_keepout_depth(
     lane: ElectricalLane,
     footprints: dict[str, FootprintShape],
@@ -342,14 +360,26 @@ def _antenna_keepout_depth(
     return _ANTENNA_KEEPOUT_DEPTH_MM
 
 
-def generate_board(
+@dataclass(frozen=True)
+class BoardFootprints:
+    """Pinned footprint geometry of every component, plus the raw KiCad forms."""
+
+    shapes: dict[str, FootprintShape]
+    raw: dict[str, list[SExpr]]
+    overlays: tuple[dict[str, str], ...]
+
+
+def load_board_footprints(
     lane: ElectricalLane,
     footprint_library: FootprintLibrary,
     fixture_dir: Path,
     profile: FabProfile,
-    silkscreen: SilkscreenLane | None = None,
-) -> BoardProjection:
-    board = lane.board
+) -> BoardFootprints:
+    """Load pinned footprints and apply declared overlays.
+
+    Exposed separately from the projection so a placement search can read the
+    same geometry the projection will use.
+    """
     footprints: dict[str, FootprintShape] = {}
     raw_footprints: dict[str, list[SExpr]] = {}
     overlay_records: list[dict[str, str]] = []
@@ -385,6 +415,16 @@ def generate_board(
                 }
             )
 
+    return BoardFootprints(
+        shapes=footprints, raw=raw_footprints, overlays=tuple(overlay_records)
+    )
+
+
+def board_keepouts(
+    lane: ElectricalLane, footprints: dict[str, FootprintShape]
+) -> tuple[KeepoutRect, ...]:
+    """Keepout rectangles declared by the board node (antenna clearance)."""
+    board = lane.board
     keepouts: tuple[KeepoutRect, ...] = ()
     if board.antenna_keepout:
         center_x = board.width_mm / 2.0
@@ -398,21 +438,35 @@ def generate_board(
                 y2_mm=depth,
             ),
         )
-    keepout_rects = tuple(Rect(k.x1_mm, k.y1_mm, k.x2_mm, k.y2_mm) for k in keepouts)
-    net_refdes = tuple(
-        tuple(ref for ref, _pad in lane.pads_of_net(net.node_id))
-        for net in sorted(lane.nets, key=lambda n: n.name)
-    )
-    placements = compute_placements(
-        board,
-        lane.components,
-        footprints,
-        keepout_rects,
-        net_refdes,
-        lane.pins,
-        lane.nets,
-    )
-    placement_by_refdes = {p.refdes: p for p in placements}
+    return keepouts
+
+
+def keepout_rects(keepouts: tuple[KeepoutRect, ...]) -> tuple[Rect, ...]:
+    return tuple(Rect(k.x1_mm, k.y1_mm, k.x2_mm, k.y2_mm) for k in keepouts)
+
+
+def generate_board(
+    lane: ElectricalLane,
+    footprint_library: FootprintLibrary,
+    fixture_dir: Path,
+    profile: FabProfile,
+    placements: tuple[Placement, ...],
+    silkscreen: SilkscreenLane | None = None,
+) -> BoardProjection:
+    """Project the board from the lane and the given placements.
+
+    Placements are design data: they are produced outside the ACD core (for
+    example by the ``acd-placement-search`` skill) and judged by the ERC/DRC and
+    reload gates. Unknown or missing placements stop the projection.
+    """
+    board = lane.board
+    loaded = load_board_footprints(lane, footprint_library, fixture_dir, profile)
+    footprints = loaded.shapes
+    raw_footprints = loaded.raw
+    overlay_records = list(loaded.overlays)
+    keepouts = board_keepouts(lane, footprints)
+    placements = tuple(sorted(placements, key=lambda p: p.refdes))
+    placement_by_refdes = _validated_placements(lane, placements)
 
     net_numbers: dict[str, int] = {}
     for index, net in enumerate(sorted(lane.nets, key=lambda n: n.name)):
