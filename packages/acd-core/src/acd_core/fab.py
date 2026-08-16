@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from acd_core.electrical import GraphExtractionError
-from acd_schema.design_graph import DesignGraph, GraphNode
+from acd_schema import DesignGraph, FabProfileDocument, GraphNode
 
 
 @dataclass(frozen=True)
@@ -130,6 +130,7 @@ def extract_fab_intent(
 def load_fab_profile(path: Path) -> FabProfile:
     """Load and validate a tracked fab profile, including provenance invariants."""
     profile = json.loads(path.read_text(encoding="utf-8"))
+    FabProfileDocument.model_validate(profile)
     source_count = len(profile["sources"])
     for item in profile["capabilities"].values():
         if item["source_index"] >= source_count:
