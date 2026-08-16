@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+from gerbonara.apertures import CircleAperture  # pyright: ignore[reportMissingTypeStubs]
+from gerbonara.graphic_objects import Line  # pyright: ignore[reportMissingTypeStubs]
 
+from acd_adapter_kicad import fab as fab_module
 from acd_adapter_kicad.fab import (
     BoardMeasurement,
     CplBasisError,
@@ -23,6 +26,7 @@ from acd_adapter_kicad.fab import (
     jlcpcb_cpl_csv,
     load_lcsc_pin_centers,
     load_lcsc_pin_geometries,
+    measure_net_track_widths,
     rotate,
     run_dfm,
     verify_cpl_pin_function_declaration,
@@ -37,6 +41,7 @@ from acd_core.electrical import (
     extract_electrical_lane,
 )
 from acd_core.fab import FabProfile, ProcessAllowanceView, load_fab_profile
+from acd_core.routing_width import NetWidthRequirement
 from acd_core.sexpr import SExpr
 from acd_schema import DesignGraph
 
@@ -148,6 +153,125 @@ def _bom_component(
 
 def _measurement(via: ViaMeasurement) -> BoardMeasurement:
     return BoardMeasurement((), (via,), None, None, None, None, (), 0)
+
+
+def _width_requirement() -> NetWidthRequirement:
+    return NetWidthRequirement(
+        "PWR",
+        "manufacturing_minimum",
+        None,
+        "logic signal manufacturing basis",
+        0.1,
+        0.15,
+        0.1,
+        0.15,
+        True,
+    )
+
+
+def test_net_width_measurement_rejects_below_requirement(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Gerber:
+        def __init__(self) -> None:
+            self.objects = [Line(1.0, -1.0, 2.0, -1.0, CircleAperture(0.1))]
+
+    monkeypatch.setattr(  # pyright: ignore[reportUnknownArgumentType]
+        fab_module.GerberFile,  # pyright: ignore[reportPrivateImportUsage]
+        "open",
+        lambda _path: Gerber(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    )
+    measurement = BoardMeasurement(
+        (),
+        (),
+        0.1,
+        None,
+        None,
+        None,
+        (),
+        0,
+        "board_net_declarations",
+        (
+            fab_module.SegmentMeasurement(
+                "PWR", "F.Cu", 0.1, (1.0, 1.0), (2.0, 1.0)
+            ),
+        ),
+    )
+    with pytest.raises(FabOutputError, match="below adopted width"):
+        measure_net_track_widths(
+            {"F.Cu": Path("fixture-F.gbr")},
+            measurement,
+            (_width_requirement(),),
+            0.01,
+        )
+
+
+def test_net_width_measurement_rejects_unmatched_conductor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Gerber:
+        def __init__(self) -> None:
+            self.objects = [Line(3.0, -3.0, 4.0, -3.0, CircleAperture(0.15))]
+
+    monkeypatch.setattr(  # pyright: ignore[reportUnknownArgumentType]
+        fab_module.GerberFile,  # pyright: ignore[reportPrivateImportUsage]
+        "open",
+        lambda _path: Gerber(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    )
+    measurement = BoardMeasurement(
+        (),
+        (),
+        0.15,
+        None,
+        None,
+        None,
+        (),
+        0,
+        "board_net_declarations",
+        (
+            fab_module.SegmentMeasurement(
+                "PWR", "F.Cu", 0.15, (1.0, 1.0), (2.0, 1.0)
+            ),
+        ),
+    )
+    with pytest.raises(FabOutputError, match="cannot be uniquely matched"):
+        measure_net_track_widths(
+            {"F.Cu": Path("fixture-F.gbr")},
+            measurement,
+            (_width_requirement(),),
+            0.01,
+        )
+
+
+def test_net_width_measurement_rejects_unexpected_conductor_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Gerber:
+        def __init__(self) -> None:
+            self.objects = [object()]
+
+    monkeypatch.setattr(  # pyright: ignore[reportUnknownArgumentType]
+        fab_module.GerberFile,  # pyright: ignore[reportPrivateImportUsage]
+        "open",
+        lambda _path: Gerber(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    )
+    measurement = BoardMeasurement(
+        (),
+        (),
+        0.15,
+        None,
+        None,
+        None,
+        (),
+        0,
+        "board_net_declarations",
+        (fab_module.SegmentMeasurement("PWR", "F.Cu", 0.15, (1.0, 1.0), (2.0, 1.0)),),
+    )
+    with pytest.raises(FabOutputError, match="unexpected conductor object type"):
+        measure_net_track_widths(
+            {"F.Cu": Path("fixture-F.gbr")},
+            measurement,
+            (_width_requirement(),),
+            0.01,
+        )
 
 
 def test_derive_lcsc_rotation_offset_matches_pin_functions() -> None:

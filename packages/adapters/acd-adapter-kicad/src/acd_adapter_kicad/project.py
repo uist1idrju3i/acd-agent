@@ -18,6 +18,7 @@ from acd_adapter_kicad.schematic import PWR_FLAG_LIB_ID, generate_schematic
 from acd_core.bom import bom_csv
 from acd_core.electrical import BoardView, ElectricalLane
 from acd_core.fab import FabProfile
+from acd_core.routing_width import derive_net_widths, group_netclasses
 
 
 @dataclass(frozen=True)
@@ -49,10 +50,15 @@ def _resolve(path_text: str, fixture_dir: Path) -> Path:
 
 
 def _project_settings(
-    filename: str, board: BoardView, profile: FabProfile | None = None
+    filename: str,
+    board: BoardView,
+    profile: FabProfile | None = None,
+    netclasses: tuple[tuple[str, tuple[str, ...], float], ...] = (),
 ) -> dict[str, object]:
     """Project file carrying the graph's board constraints so DRC judges
     against the design graph, not KiCad defaults."""
+    if not netclasses:
+        raise ValueError("netclass declarations are missing (fail-closed)")
     profile_min_track = (
         float(profile.data["capabilities"]["min_track_width"]["value"]) if profile else 0.0
     )
@@ -69,6 +75,30 @@ def _project_settings(
         float(profile.data["capabilities"]["min_spacing"]["value"]) if profile else 0.0
     )
     effective_clearance = max(board.min_clearance_mm, profile_min_clearance)
+    classes = [
+        {
+            "name": "Default",
+            "clearance": effective_clearance,
+            "track_width": effective_track,
+            "via_diameter": effective_via_diameter,
+            "via_drill": effective_via_drill,
+        },
+        *[
+            {
+                "name": name,
+                "clearance": effective_clearance,
+                "track_width": width,
+                "via_diameter": effective_via_diameter,
+                "via_drill": effective_via_drill,
+            }
+            for name, _nets, width in netclasses
+        ],
+    ]
+    patterns = [
+        {"netclass": name, "pattern": net}
+        for name, nets, _width in netclasses
+        for net in sorted(nets)
+    ]
     return {
         "meta": {"filename": filename, "version": 3},
         "board": {
@@ -85,15 +115,8 @@ def _project_settings(
             },
         },
         "net_settings": {
-            "classes": [
-                {
-                    "name": "Default",
-                    "clearance": effective_clearance,
-                    "track_width": effective_track,
-                    "via_diameter": effective_via_diameter,
-                    "via_drill": effective_via_drill,
-                }
-            ],
+            "classes": classes,
+            "netclass_patterns": patterns,
             "meta": {"version": 4},
         },
     }
@@ -147,7 +170,10 @@ def write_project(
                 f"graph declaration {key}={declared} is below fab capability "
                 f"{capability} (capability_violation)"
             )
-    settings = _project_settings(project.name, lane.board, profile)
+    profile_minimum = float(profile.data["capabilities"]["min_track_width"]["value"])
+    width_requirements = derive_net_widths(lane, profile_minimum)
+    netclasses = group_netclasses(width_requirements)
+    settings = _project_settings(project.name, lane.board, profile, netclasses)
     project.write_text(json.dumps(settings, sort_keys=True) + "\n")
     custom_rules = _custom_rules(profile)
     dru_path = out_dir / f"{name}.kicad_dru"

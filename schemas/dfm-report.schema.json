@@ -4,7 +4,7 @@
   "title": "ACD DFM report",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "target_revision", "profile_id", "status", "findings", "checks_not_implemented", "measurements", "unknowns"],
+  "required": ["schema_version", "target_revision", "profile_id", "status", "findings", "checks_not_implemented", "measurements", "unknowns", "routing_width"],
   "properties": {
     "schema_version": {"$ref": "common.schema.json#/$defs/schemaVersion"},
     "target_revision": {"$ref": "common.schema.json#/$defs/revision"},
@@ -20,7 +20,8 @@
       "properties": {
         "cpl_rotation_basis_fab_lcsc": {"type": "string", "minLength": 1}
       }
-    }
+    },
+    "routing_width": {"type": "object", "additionalProperties": true}
   },
   "$defs": {
     "finding": {

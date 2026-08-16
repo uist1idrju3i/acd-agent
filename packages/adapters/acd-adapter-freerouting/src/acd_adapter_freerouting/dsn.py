@@ -8,7 +8,12 @@ clearance and final DRC still runs on the exact KiCad geometry.
 
 from __future__ import annotations
 
-from acd_core.board_model import BoardModel, FootprintShape, KeepoutRect, PadShape
+from acd_core.board_model import (
+    BoardModel,
+    FootprintShape,
+    KeepoutRect,
+    PadShape,
+)
 
 
 class DsnExportError(ValueError):
@@ -184,7 +189,6 @@ def _smd_via_keepouts(board: BoardModel) -> list[str]:
 def export_dsn(board: BoardModel, design_name: str) -> str:
     if board.layers != 2:
         raise DsnExportError(f"only 2-layer boards supported, got {board.layers}")
-    track_um = _um(board.min_track_mm)
     clearance_um = _um(board.min_clearance_mm)
     via_name = _via_name(board)
 
@@ -216,7 +220,7 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
     for entry in _smd_via_keepouts(board):
         lines.append(f"    {entry}")
     lines.append(f'    (via "{via_name}")')
-    lines.append(f"    (rule (width {track_um}) (clearance {clearance_um})")
+    lines.append(f"    (rule (width {_um(board.min_track_mm)} ) (clearance {clearance_um})")
     lines.append(f"      (clearance {clearance_um} (type default_smd))")
     lines.append("      (clearance 100 (type smd_smd)))")
     lines.append("  )")
@@ -277,11 +281,42 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
                 )
             pin_refs.extend(f"{refdes}-{pin_id}" for pin_id in matches)
         lines.append(f'    (net "{net.name}" (pins {" ".join(pin_refs)}))')
-    quoted_nets = " ".join(f'"{name}"' for name in net_names)
-    lines.append(f'    (class kicad_default "" {quoted_nets}')
-    lines.append(f'      (circuit (use_via "{via_name}"))')
-    lines.append(f"      (rule (width {track_um}) (clearance {clearance_um}))")
-    lines.append("    )")
+    netclasses = board.netclasses
+    if not netclasses:
+        raise DsnExportError("netclass declarations are missing (fail-closed)")
+    class_names: set[str] = set()
+    netclass_by_net = {
+        net_name: netclass
+        for netclass in netclasses
+        for net_name in netclass.nets
+    }
+    for netclass in netclasses:
+        if netclass.name in class_names:
+            raise DsnExportError(f"duplicate netclass {netclass.name!r} (fail-closed)")
+        class_names.add(netclass.name)
+        if netclass.width_mm <= 0:
+            raise DsnExportError(
+                f"netclass {netclass.name!r} has invalid width (fail-closed)"
+            )
+    if len(netclass_by_net) != sum(len(netclass.nets) for netclass in netclasses):
+        raise DsnExportError("netclass membership is duplicated (fail-closed)")
+    if set(net_names) != set(netclass_by_net):
+        missing = sorted(set(net_names) - set(netclass_by_net))
+        extra = sorted(set(netclass_by_net) - set(net_names))
+        raise DsnExportError(
+            f"netclass membership mismatch: missing={missing}, extra={extra} (fail-closed)"
+        )
+    for netclass in netclasses:
+        members = [name for name in net_names if name in netclass.nets]
+        if not members:
+            continue
+        quoted_nets = " ".join(f'"{name}"' for name in sorted(members))
+        lines.append(f'    (class "{netclass.name}" "" {quoted_nets}')
+        lines.append(f'      (circuit (use_via "{via_name}"))')
+        lines.append(
+            f"      (rule (width {_um(netclass.width_mm)}) (clearance {clearance_um}))"
+        )
+        lines.append("    )")
     lines.append("  )")
     lines.append("  (wiring)")
     lines.append(")")

@@ -26,9 +26,11 @@ from acd_core.board_model import (
     CopperZone,
     FootprintShape,
     KeepoutRect,
+    NetClass,
 )
 from acd_core.electrical import BoardView, ElectricalLane
 from acd_core.fab import FabProfile
+from acd_core.routing_width import derive_net_widths, group_netclasses
 from acd_core.sexpr import Quoted, SExpr, Sym, dumps
 
 PCB_VERSION = "20241229"
@@ -441,6 +443,12 @@ def generate_board(
         zone_net_id = next(net_id for net_id, name in net_names.items() if name == zone.net)
         doc.append(_copper_zone(zone, board, net_numbers[zone_net_id], index))
 
+    profile_minimum = float(profile.data["capabilities"]["min_track_width"]["value"])
+    width_requirements = derive_net_widths(lane, profile_minimum)
+    netclasses = tuple(
+        NetClass(name=name, width_mm=width, nets=nets)
+        for name, nets, width in group_netclasses(width_requirements)
+    )
     model = BoardModel(
         width_mm=board.width_mm,
         height_mm=board.height_mm,
@@ -469,6 +477,7 @@ def generate_board(
         stitch_via_pitch_mm=stitch_pitch,
         stitch_via_net=board.ground_plane_net,
         stitch_via_refill_max_iterations=board.stitch_via_refill_max_iterations,
+        netclasses=netclasses,
     )
     return BoardProjection(
         content=dumps(doc) + "\n",

@@ -18,6 +18,7 @@
     "pcb_class": {"enum": ["economic", "standard"]},
     "pcb_class_basis": {"type": "string", "minLength": 1},
     "pcba_class": {"enum": ["economic", "standard"]},
-    "unknowns": {"type": "object", "additionalProperties": true, "required": ["price", "inventory", "lead_time", "total_order_amount", "fab_dfm_review", "cpl_rotation_basis_fab_lcsc"], "properties": {"price": {"const": "unknown"}, "inventory": {"const": "unknown"}, "lead_time": {"const": "unknown"}, "total_order_amount": {"const": "unknown"}, "fab_dfm_review": {"const": "unknown"}, "cpl_rotation_basis_fab_lcsc": {}}}
+    "unknowns": {"type": "object", "additionalProperties": true, "required": ["price", "inventory", "lead_time", "total_order_amount", "fab_dfm_review", "cpl_rotation_basis_fab_lcsc"], "properties": {"price": {"const": "unknown"}, "inventory": {"const": "unknown"}, "lead_time": {"const": "unknown"}, "total_order_amount": {"const": "unknown"}, "fab_dfm_review": {"const": "unknown"}, "cpl_rotation_basis_fab_lcsc": {}}},
+    "routing_width": {"type": "object", "additionalProperties": true}
   }
 }

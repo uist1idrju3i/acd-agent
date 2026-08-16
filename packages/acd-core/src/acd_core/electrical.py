@@ -77,6 +77,11 @@ class NetView:
     node_id: str
     name: str
     voltage_nominal_v: float | None
+    width_basis: str
+    current_max_a: float | None
+    width_basis_source: str | None
+    manufacturing_minimum_mm: float | None
+    manufacturing_margin_mm: float | None
 
 
 @dataclass(frozen=True)
@@ -113,6 +118,18 @@ class BoardView:
     stitch_via_basis_source: str | None = None
     stitch_via_cost_note: str | None = None
     stitch_via_refill_max_iterations: int | None = None
+    outer_copper_thickness_um: float | None = None
+    copper_thickness_source: str | None = None
+    allowable_temperature_rise_k: float | None = None
+    ipc2221_external_k: float | None = None
+    ipc2221_external_b: float | None = None
+    ipc2221_external_c: float | None = None
+    ipc2221_internal_k: float | None = None
+    ipc2221_internal_b: float | None = None
+    ipc2221_internal_c: float | None = None
+    width_basis_equation: str | None = None
+    width_basis_source: str | None = None
+    width_measurement_tolerance_mm: float | None = None
 
 
 @dataclass(frozen=True)
@@ -341,6 +358,15 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                         if isinstance(voltage, int | float) and not isinstance(voltage, bool)
                         else None
                     ),
+                    width_basis=_str_attr(node, "width_basis"),
+                    current_max_a=_optional_number(node, "current_max_a"),
+                    width_basis_source=_optional_str(node, "width_basis_source"),
+                    manufacturing_minimum_mm=_optional_number(
+                        node, "manufacturing_minimum_mm"
+                    ),
+                    manufacturing_margin_mm=_optional_number(
+                        node, "manufacturing_margin_mm"
+                    ),
                 )
             )
         elif node.kind == "electrical.pin":
@@ -405,6 +431,26 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                             node, "stitch_via_refill_max_iterations"
                         )) is not None
                         else None
+                    ),
+                    outer_copper_thickness_um=_optional_number(
+                        node, "outer_copper_thickness_um"
+                    ),
+                    copper_thickness_source=_optional_str(
+                        node, "copper_thickness_source"
+                    ),
+                    allowable_temperature_rise_k=_optional_number(
+                        node, "allowable_temperature_rise_k"
+                    ),
+                    ipc2221_external_k=_optional_number(node, "ipc2221_external_k"),
+                    ipc2221_external_b=_optional_number(node, "ipc2221_external_b"),
+                    ipc2221_external_c=_optional_number(node, "ipc2221_external_c"),
+                    ipc2221_internal_k=_optional_number(node, "ipc2221_internal_k"),
+                    ipc2221_internal_b=_optional_number(node, "ipc2221_internal_b"),
+                    ipc2221_internal_c=_optional_number(node, "ipc2221_internal_c"),
+                    width_basis_equation=_optional_str(node, "width_basis_equation"),
+                    width_basis_source=_optional_str(node, "width_basis_source"),
+                    width_measurement_tolerance_mm=_optional_number(
+                        node, "width_measurement_tolerance_mm"
                     ),
                 )
             )
