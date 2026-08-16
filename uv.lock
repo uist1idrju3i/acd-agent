@@ -18,7 +18,6 @@ members = [
     "acd-adapter-kicad",
     "acd-agent",
     "acd-core",
-    "acd-events",
     "acd-runtime",
     "acd-schema",
     "acd-tools",
@@ -104,13 +103,11 @@ dev = [
     { name = "acd-adapter-freerouting" },
     { name = "acd-adapter-kicad" },
     { name = "acd-core" },
-    { name = "acd-events" },
     { name = "acd-runtime" },
     { name = "acd-schema" },
     { name = "acd-tools" },
     { name = "build123d" },
     { name = "cadquery-ocp" },
-    { name = "jsonschema" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
@@ -125,13 +122,11 @@ dev = [
     { name = "acd-adapter-freerouting", editable = "packages/adapters/acd-adapter-freerouting" },
     { name = "acd-adapter-kicad", editable = "packages/adapters/acd-adapter-kicad" },
     { name = "acd-core", editable = "packages/acd-core" },
-    { name = "acd-events", editable = "packages/acd-events" },
     { name = "acd-runtime", editable = "packages/acd-runtime" },
     { name = "acd-schema", editable = "packages/acd-schema" },
     { name = "acd-tools", editable = "packages/acd-tools" },
     { name = "build123d", specifier = "==0.11.1" },
     { name = "cadquery-ocp", specifier = "==7.9.3.1.1" },
-    { name = "jsonschema", specifier = ">=4.23" },
     { name = "pyright", specifier = ">=1.1.390" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "ruff", specifier = ">=0.9" },
@@ -149,27 +144,11 @@ dependencies = [
 requires-dist = [{ name = "acd-schema", editable = "packages/acd-schema" }]
 
 [[package]]
-name = "acd-events"
-version = "0.0.1"
-source = { editable = "packages/acd-events" }
-dependencies = [
-    { name = "acd-schema" },
-    { name = "openhands-sdk" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "acd-schema", editable = "packages/acd-schema" },
-    { name = "openhands-sdk", directory = "vendor/software-agent-sdk/openhands-sdk" },
-]
-
-[[package]]
 name = "acd-runtime"
 version = "0.0.1"
 source = { editable = "packages/acd-runtime" }
 dependencies = [
     { name = "acd-core" },
-    { name = "acd-events" },
     { name = "acd-schema" },
     { name = "acd-tools" },
     { name = "openhands-sdk" },
@@ -178,7 +157,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "acd-core", editable = "packages/acd-core" },
-    { name = "acd-events", editable = "packages/acd-events" },
     { name = "acd-schema", editable = "packages/acd-schema" },
     { name = "acd-tools", editable = "packages/acd-tools" },
     { name = "openhands-sdk", directory = "vendor/software-agent-sdk/openhands-sdk" },
@@ -2916,7 +2894,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "ptyprocess" },
+    { name = "ptyprocess", marker = "sys_platform != 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/42/92/cc564bf6381ff43ce1f4d06852fc19a2f11d180f23dc32d9588bee2f149d/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f", size = 166450, upload-time = "2023-11-25T09:07:26.339Z" }
 wheels = [

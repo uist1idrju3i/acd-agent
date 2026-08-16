@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from conftest import fixture_list, fixture_obj, load_fixture
+from conftest import fixture_obj, load_fixture
 
 from acd_schema import Evidence, ToolEnvelope
 
@@ -43,4 +43,3 @@ def test_evidence_with_unknown_provenance_never_supports_pass() -> None:
     envelope["tool_version"] = "unknown"
     evidence = Evidence.model_validate({**data, "envelope": envelope})
     assert not evidence.supports_pass("r3")
-

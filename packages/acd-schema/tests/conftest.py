@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 from typing import cast
 
-import pytest
-
 type Json = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

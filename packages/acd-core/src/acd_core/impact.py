@@ -6,7 +6,21 @@ narrowing it (fail-closed).
 
 from __future__ import annotations
 
-from acd_schema import DesignGraph, Evidence, GateKind
+from typing import Literal
+
+from acd_schema import DesignGraph, Evidence
+
+GateKind = Literal[
+    "erc",
+    "drc",
+    "dfm",
+    "fw_build",
+    "fw_static_analysis",
+    "fw_unit_test",
+    "pin_net_consistency",
+    "review_disposition",
+    "safety_boundary",
+]
 
 # Gates that must rerun when a node of the given kind is affected.
 GATES_BY_NODE_KIND: dict[str, tuple[GateKind, ...]] = {
