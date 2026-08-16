@@ -357,13 +357,18 @@ GD1のGNDプレーンはグラフの`GND`ネットをF.Cu/B.Cuへ投影し、板
 候補は信号wire、pad、via、アンテナkeepoutとの衝突を除外したうえで、塗り後の銅被覆を
 独立検証する。配置根拠はグラフのcost/process宣言にも記録する。
 
-生成時の実測は、2層、外形`30.0 × 25.0 mm`、via `24`個、drill object `34`個、
-pad `132`個、route wire `188`本、最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、
-silk最小stroke幅`0.15 mm`である。J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
+生成時の実測は、2層、外形`30.0 × 25.0 mm`、route via `24`個、stitch via `7`個、
+ground-plane drill object `41`個、pad `132`個、route wire `188`本である。塗り後Gerberの独立測定は
+F.Cu `2`領域、B.Cu `1`領域、銅面積`1066.8861574973707 mm²`、連結成分`1`、
+最小島面積`33.343936651752315 mm²`、stitch via被覆`7/7`、keepout内銅面積`0.0 mm²`、
+塗り後剪定`1`反復、剪定`0`個であった。ERCは`0` errors、DRCは`0` errors・
+`0` unconnected、DFM findingsは`0`である。
+最小track幅`0.15 mm`、silk最小文字高`1.0 mm`、silk最小stroke幅`0.15 mm`である。
+J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
 ともに回転`0°`である。U1の板端はみ出し宣言は本体外形基準で`5.4 mm`である。DSNの
 `(via_at_smd off)`とSMD pad周囲の`via_keepout`により、
-SMD pad上viaを構造的に禁止している。出所は`out/gd1-fix6/fab/dfm-report.json`、
-`out/gd1-fix6/routing-summary.json`、`out/gd1-fix6/fab/fab-package.json`である。
+SMD pad上viaを構造的に禁止している。出所は`out/gd1-revalidated/fab/dfm-report.json`、
+`out/gd1-revalidated/routing-summary.json`、`out/gd1-revalidated/fab/fab-package.json`である。
 | `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
 | `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | stale判定が`unknown`で停止 |
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |
