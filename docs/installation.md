@@ -359,7 +359,7 @@ uv run python -V
 本VMでの実測では、`uv sync`は約4.5秒（キャッシュ済み、208パッケージ解決、51パッケージ導入）で
 完了し、`uv run python -V`は`Python 3.12.8`だった。この所要時間は`uv`のキャッシュがある状態の
 値であり、キャッシュが無い初回はCAD kernel（build123d／cadquery-ocp、OCP）の取得で所要時間と
-ディスク使用量が大きくなる。Phase 3の測定値は[`phase3-plan.md`](phase3-plan.md)にある。
+ディスク使用量が大きくなる。Phase 3の測定条件は[`roadmap.md`](roadmap.md)にある。
 
 ### 5.4 検証コマンド
 
@@ -491,29 +491,15 @@ uv run python scripts/probe_tools.py
 工程を実行するLLM入口は未実装である。
 
 - `scripts/build_gd1_fixture.py`は、Pythonソース内の固定定義からGD1 graphを決定論的に生成する。
-- `packages/acd-core/src/acd_core/patch.py`の`GraphPatch`は型付きpatch適用であり、自然言語を
-  patchへ変換するCLI入口はない。
-- `acd_runtime.review`のLLM呼び出しは`ReviewFinding`の提案だけで、設計グラフの生成・変更や
+- 現行の修正は入力ファイルへ直接反映する。
+- OpenHands SDKのLLM呼び出しは自然文の所見の提案だけで、入力ファイルの生成・変更や
   gateの合否権限は持たない。
-- `plugins/acd`には`acd-contracts` Skillと`SessionStart` hookがある。
+- `plugins/acd`には`acd-contracts` Skillがある。
   `plugins/acd/agents/`には具体的なagent定義はまだない。
-
-`acd-startup.json`はリポジトリに存在しない。存在しない場合の既定値は
-`required_tools`が空、`mcp_config_hash`が`None`である。workspaceを指定してhookを直接実行した
-実測では次の結果になった。
-
-```json
-{"decision": "allow"}
-```
-
-一方、`required_tools`または`mcp_config_hash`を`acd-startup.json`へ書くと、現行CLI hookには
-実際のtool version／MCP hashが渡されないため、値を検証できずdenyになる。これはfail-closedの
-実装である。
 
 未確認事項は次のとおりである。
 
 - `plugins/acd`のAgent Canvasへの実インストール。
-- plugin導入後にagent-server側のPython環境から`acd_runtime`をimportできるか。
 - Agent Canvas marketplaceへの掲載とUIからの導入。
 - agent-server環境とworkspaceの`uv`環境を接続した実運用。
 
@@ -685,7 +671,7 @@ source後の実測結果:
 実装境界は[5.7](#57-agent-canvasからacd-agentを使う)のとおりで、自然言語から設計グラフを
 自動生成・変更する入口はまだない。従って、以下のプロンプトは既存の決定論的スクリプトを
 Agent Canvasのterminal toolから実行させる使い方であり、LLMの役割は投影の読み取りと
-`ReviewFinding`の提案に留まる。未実装のLLM設計生成を実装済みとして扱ってはならない。
+自然文の所見の提案に留まる。未実装のLLM設計生成を実装済みとして扱ってはならない。
 プロンプトを送る前に、[4.5](#45-初回セットアップ)のLLM設定（provider、model、APIキー）と、
 workspaceとしてacd-agentのチェックアウトを開いていることを確認する。
 
@@ -725,14 +711,14 @@ fw-package.jsonのsource_hashとartifact_hash、各FW envelopeの実値を報告
 
 ```text
 次の設計変更を検討してください。
-LEDのGPIO番号、または筐体の最小肉厚を変更する場合、まず変更内容と対象revisionを
+LEDのGPIO番号、または筐体の最小肉厚を変更する場合、まず変更内容とgit commitを
 表にしてください。現状は自然言語から自動でgraphを変更する入口がないため、
-scripts/build_gd1_fixture.pyの固定定義を編集するか、ACDの型付きGraphPatchを使ってください。
+scripts/build_gd1_fixture.pyの固定定義を編集し、入力ファイルへ変更を反映してください。
 
 変更後はfixtureを再生成し、変更対象レーンを再実行してください。
 fixtureと各出力のhashes.json（またはsummary.json）の差分、各gateの再判定結果、
 Evidenceのtarget_revisionとinput/output hashを報告してください。
-失敗、stale、unknownがあれば停止し、原因とログ該当行を報告してください。
+失敗、parse失敗、unknownがあれば停止し、原因とログ該当行を報告してください。
 ```
 
 各例とも、エージェントの説明を合格根拠にしてはならない。設計グラフ生成・変更のLLM入口、
@@ -814,7 +800,7 @@ ERC／DRC等の既存ゲートを通過した」ことである。「発注し�
 - アップロード後に表示されるfab側DFMレビュー結果を人が確認する。ACDの`dfm-report.json`は
   fab側レビュー結果ではない。
 - `fab-package.json`のmember `content_hash`と`out/gd1/hashes.json`で提出物との同一性を確認する。
-- 対象revisionと、各Evidenceの`target_revision`が一致していることを確認する。
+- 入力を管理するgit commitと、各記録の入力hashが一致していることを確認する。
 - 価格、在庫、納期を発注時点で再取得する。
 
 ACDのEvidenceは、発注可否、価格、在庫、納期、fab側DFM合格を判定しない。
@@ -851,7 +837,7 @@ npm導入版として既定で起動するagent server同梱SDK（1.40.1）は�
 - Ubuntu 24.04上での全手順（Node.js導入、Agent Canvas起動、acd-agentの同期と検証）。
 - Ubuntu 24.04上での外部ツールのインストール実行と動作確認。
 - Agent Canvas用systemd unitの定義と長期運用。
-- `plugins/acd`のAgent Canvasへの導入と`SessionStart` hookの成立。
+- `plugins/acd`のAgent Canvasへの導入とSkillの利用成立。
 - agent-server側Python環境でのACD package import成立。
 - agent server起動時のprotobuf／pyasn1 egg警告の影響。
 - Agent Canvas同梱SDK 1.40.1とacd-agent側SDK v1.41.0の組み合わせ（v1.41.0時点の実測。v1.42.1との組み合わせは未検証）。

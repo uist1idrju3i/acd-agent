@@ -1,6 +1,6 @@
 # アーキテクチャ
 
-> ステータス: Draft  
+> ステータス: Draft
 > 対象: ACDコンセプト段階、OpenHands SDK v1.42.1
 
 本書は、設計グラフ、レイヤ境界、投影、ツール契約のアーキテクチャを正とする。
@@ -10,8 +10,8 @@
 
 ## 正規データモデル
 
-正規データモデルは、型付き・バージョン付き設計グラフである。少なくとも次の
-ドメインを持つ。
+正規データモデルは、Pydanticモデルで表す入力ファイルである。gitを変更履歴として使い、
+少なくとも次のドメインを持つ。
 
 - 電気: Requirement、FunctionalBlock、Part、Pin、Net、Footprint、Stackup、Layout。
   `Requirement.intended_use`、`Net.voltage_nominal`、`Net.current_max`、`Part.hazard_class`、
@@ -22,9 +22,7 @@
   Quantity、DFMReport、FabPackage。
 - 発注: OrderEnvelope（金額、納期、月間発注回数、fab指定、地域）、`fab.order_intent`、
   `fab.process_allowance`。
-- 根拠: Rationale、Source、Evidence、VerificationResult、Waiver、Approval、Assumption、
-  `ReviewFinding`。
-  `Assumption`は確度、確定予定アクション、覆った場合の影響先を持つ。
+- 根拠: Source、VerificationResult、Assumption。
 - 安全: `SafetyBoundaryResult`は`SB1`（工程`S1`で実行する予備判定）と
   `SB2`（工程`E1`で実行する確定判定）を区別し、判定根拠、危険区分、状態
   （`pass`／`fail`／`unknown`）を保持する。`SB2`のグラフ述語判定をゲートの正とし、
@@ -38,32 +36,26 @@ coreは生成物を独立測定し、capabilities（絶対能力）とpreference
 出所・取得時刻・hashを宣言し、adapterはその宣言に従ってBOM/CPL等の形式へ投影する。
 特定fabの名称、列名、座標・回転規約、工程区分をcoreの判定ロジックへ埋め込まない。
 
-グラフのnodeとedgeは、revision、schema version、出所、入力hash、状態を持つ。
-設計変更はpatchとして表現し、影響するnode、再実行するgate、無効になるEvidenceを導出する。
+入力ファイルとgit commitが変更履歴を表し、変更後は全ゲートを再実行する。
 
-回路図、KiCad project、Gerber、BOM、STEP/3MF、図面、FW package、監査文書、
-Q7/N7図表はすべて派生投影であり、正規データを置き換えない。グラフはテキストとして
-シリアライズ可能なJSON形式にし、差分比較、レビュー、gitでの保存を容易にする。
+回路図、KiCad project、Gerber、BOM、STEP/3MF、図面、FW packageはすべて派生投影であり、
+入力ファイルを置き換えない。
 この方針はZener、atopile、tscircuitから得られる教訓である。
 
-投影は意味的にマージしない。分岐、調停、リビジョン復元は設計グラフ上で行い、過去の
-生成物を現行Evidenceとして再利用せず、対象revisionから投影を再生成して再検証する。
+投影は意味的にマージせず、投影から入力ファイルへ逆流させない。変更後は全ゲートを再実行する。
 投影へ写す属性は、ピン電気種別、内部接続ピン、netclass／ルール、variant／DNP、
 原点・単位・軸、stackup・基板厚、メタデータ、安定identifierとrefdesを含む。
-定義とインスタンスは分離し、共有情報と固有情報の波及範囲をimpact analysisへ渡す。
+定義とインスタンスは分離し、共有情報と固有情報を入力ファイルで管理する。
 
-実行側の代替案探索は`Conversation.fork(from_event_id=...)`へ対応付ける。trade studyや
-Phase 6の協調修復では、基準eventから子conversationを作り、各枝を独立した作業revision
-として比較する。採用枝だけをcanonical graphへpatchし、非採用枝は対象revision、入力・
-出力hash、比較理由を含むEvidence付きtrade study記録として残す。投影を意味的にマージ
-せず、採用枝のgraphから投影を再生成する不変条件は維持する。
+実行側の代替案探索は`Conversation.fork(from_event_id=...)`へ対応付ける。各枝の比較結果は
+自然文の作業メモとして残し、採用した入力ファイルから投影を再生成する。
 
 ## レイヤ境界
 
 ```text
 schema
   ↓
-core（graph、rationale、impact、gate、knowledge）
+core（graph、rationale、gate、knowledge）
   ↓
 adapters（KiCad、FreeCAD/code-CAD、slicer、simulation、sourcing）
   ↓
@@ -78,17 +70,15 @@ schema検証済みのActionへ変換する。
 
 ## モジュール分割の粒度
 
-パッケージ分割は既存のレイヤ境界（schema、core、adapters、agent tools）を単位とし、
+パッケージ分割はPydantic契約、adapters、pipeline scripts、pluginを単位とし、
 依存は一方向とする。電気・機械・FWの3レーンは工程の軸であってモジュール分割の軸ではない。
 3レーンは共通のgraph coreを共有し、レーン固有の事情はadapterとgate policyへ置く。
 
 原則として、1 adapterは1つの外部ツールかつ1つの形式版系列に対応させる。複数ツールを
-1つのadapterへ束ねず、ツールを差し替えてもcoreを変更しない構造を維持する。1 schema
-ファイルは1契約とし、設計グラフ、tool envelope、gate matrix、error taxonomy、event
-payload、`ReviewFinding`はそれぞれ独立した機械可読正本を持つ。文書はこれらの正本から導く。
+1つのadapterへ束ねず、ツールを差し替えても入力契約を変更しない構造を維持する。
+契約はPydanticモデルで定義し、文書は入力ファイルと実装の使い方を説明する。
 
-1 agent toolは1つの副作用クラスに対応させる。readと不可逆操作を同じtoolへ混ぜず、
-idempotency keyの単位はtool呼び出し1回とする。coreは外部ツール固有の型、ファイル形式、
+coreは外部ツール固有の型、ファイル形式、
 座標系変換を持たず、adapterはACDの設計意味論と合否判定を持たない。
 
 生成と判定は別モジュールにする。判定モジュールは生成モジュールへ依存しない。これは
@@ -100,9 +90,7 @@ idempotency keyの単位はtool呼び出し1回とする。coreは外部ツー�
 実測とゲートを判定側モジュールに置く。判定側は生成側へ依存せず、生成側の候補や代理指標を
 合格根拠として直接信頼しないことで、生成と判定の分離を具体化する。
 
-分割の判定基準は「版とstale境界」である。独立に版が動くツール版、形式版、ライブラリ
-commit、profileは別モジュールへ分ける。モジュール境界と再検証単位（stale伝播の単位）を
-一致させ、schema変更で無関係なEvidenceが一斉失効しないようにする。
+分割の判定基準は、独立に版管理するツール、形式、ライブラリ、設定の境界である。
 
 SDKはSkill／plugin（作業資材）、`AgentDefinition`（役割）、tool（副作用）、workspace
 （実行環境）という分割単位を持つ。ACDのモジュール境界はこれらへ写像できるようにするが、
@@ -121,83 +109,38 @@ SDKの配布単位に合わせてACDの契約境界を歪めない。詳細な�
 
 ## 投影
 
-投影は対象revisionから再生成でき、生成時のtool version、input/output hash、Evidence、
-時刻を保持する。再読込できない、対象revisionが違う、またはtool versionが不明な投影は
-staleである。
+投影は入力ファイルから再生成でき、生成時のtool version、input/output hash、時刻を保持する。
+再読込できない、またはtool versionが不明な投影は合格根拠にしない。
 
-レビュー用投影には、別コンテキストのAIレビューと`ReviewFinding`を結び付ける。対象revision、
-入力hash、ツール版、ライブラリcommit、profileのいずれかが変われば投影とレビューをstale
-とし、staleなレビューを出口ゲートの根拠にしない。詳細なPDCA、RV1／RV2、処分契約は
-[`projection-review.md`](projection-review.md)に定める。
+レビュー用投影は別コンテキストのAIレビューに渡す。所見は自然文で修正ループへ渡し、
+合否は決定論的ゲートだけで判定する。詳細は[`projection-review.md`](projection-review.md)に定める。
 
 レビュー投影は機械可読投影と視覚投影に分ける。視覚投影のメタデータには画像hash、
-renderer種別、vision profile／model、解像度を含め、レビュー結果と`ReviewFinding`へ
-束ねる。視覚投影は観察入力であり、描画に依存しない決定論的ゲートの入力や合否根拠には
+renderer種別、vision profile／model、解像度を含める。視覚投影は観察入力であり、
+決定論的ゲートの入力や合否根拠には
 しない。
 
 ゾーン塗りつぶし等の派生状態は、外形・ルール・接続の変更後に再計算してから検証する。
-再計算前の結果はstaleとして扱う。図面、3D形状、ブラウザ閲覧形式などのレビュー用投影は
+再計算前の結果は合格根拠にしない。図面、3D形状、ブラウザ閲覧形式などのレビュー用投影は
 正ではなく、観察の入力に限る。投影側の編集や期待hash不一致は出所不明の派生物として検出し、
-設計グラフから再生成する。
-
-## 監査文書の投影
-
-設計グラフから、次の監査文書を生成する。
-
-- 要求トレーサビリティマトリクス
-- 設計履歴・レビュー記録
-- ECO相当の変更記録
-- 検証・試験報告
-- 出所付きBOM
-- リスク／FMEA風ビュー
-- PPAP／PSW相当の量産引き渡し証拠パッケージ
-
-これらは対象revisionとEvidenceから再生成できる派生投影である。
-
-形式はISO 9001の設計記録や医療機器DHFの形式に整合する方向性を持つが、これらの
-投影によって認証・法規制適合や顧客承認を自動的に主張しない。
+入力ファイルから再生成する。
 
 ## ツール契約
 
-SDKのPydantic `Action`／`Observation`、JSON Schema、tool call ID、Action↔Observationの
-紐付け、`ToolAnnotations`、`DeclaredResources`をtool契約の土台とする。ACDはこれらの
-派生型として契約を定義する。`readOnlyHint`、`destructiveHint`、`idempotentHint`は
-宣言（hint）であって強制ではない。
-
-ACDはidempotency key、重複副作用防止、side-effect classの強制、ツール版、入力・出力・
-artifact hash、実行条件、gate・承認binding、予算、`unknown`の意味論を追加する。副作用は
-read、可逆、不可逆に分類する。ECAD adapterは形式版、隔離した設定ディレクトリ、言語、
-単位、解決済みライブラリ参照も実行条件として固定する。
-
-- readは再実行可能である。
-- 可逆操作はrollbackまたは新revisionで戻せる。
-- 不可逆操作は、金額・納期・月間発注回数・fab指定・地域の裁量枠、最終ゲート、
-  承認状態を共通executorが確認する。
-
-tool結果には、success/fail/unknown、diagnostics、warnings、Evidence、artifact
-hash、収束状態を含める。外部プロセスのstdoutだけをEvidenceにせず、構造化結果と
-再読込確認を要求する。
+Pydanticモデルを契約として使う。adapterは形式版、隔離した設定ディレクトリ、言語、単位、
+解決済みライブラリ参照を固定し、外部ツールの版、入力・出力hash、収束状態、実行時刻を記録する。
+出力は独立parserで再読込し、決定論的ゲートで判定する。
 
 ## イベントログとチェックポイント
 
-SDKの`EventLog`を汎用の実行履歴層として利用し、その上にACDドメインpayload層を置く。
+SDKの`EventLog`を汎用の実行履歴層として利用する。
 SDKは`events/event-{idx:05d}-{event_id}.json`への追記保存、ファイルロック、event ID重複拒否、
 parent ID検証、Pydantic型付きevent union（`extra="forbid"`、`frozen=True`）、parent-child
 event treeと`path_to_root()`、branch navigation、`fork(from_event_id=...)`、
 conversation stateの永続化、異常終了後の未完了tool call検出を提供する。
 
-ACDが定義するのはその上に載せる最小限のドメインイベントpayloadである。payloadはgate結果、
-承認、commit側の副作用receiptへの参照を中心とし、ドメイン記録の正はcommit済みEvidence
-artifactへ置く。対象revision、projection ID、入力hash、出力hash、ツール版、形式版、
-stale状態などの詳細はcommit済みEvidence artifactへ束ねる。ACDはSDKの汎用保存機構を
-再実装せず、Evidenceと合否の意味論を所有する。
-
-最小限のACD独自`Event`サブクラスも`DiscriminatedUnionMixin`のsubclass走査で解決される
-ため、EventLogを読む前にACD packageがimport済みでなければならない。未知の`kind`は
-`ValueError`となり、読み飛ばしやopaque保持はできない。このfail-closed挙動は望ましいため、
-例外を握り潰さない。pluginを導入しただけではACDのEvent型は登録されず、起動時importを
-gate結果・承認・副作用receipt参照を読む経路の運用契約とする。低遅延の実行journalを諦め、
-commit側へ寄せることで可搬性とrevision結合を優先する。
+ACD独自のevent層は作らず、SDKの会話履歴とworkspaceを使う。合否はEventLogではなく
+決定論的ゲートが判定する。
 
 ## AIオーケストレーション
 
@@ -222,16 +165,16 @@ AIの出力はすべて決定論的検証を通し、ツール版、入力、出
 criticの例外時にSDKが評価なしとして扱うこと、反復終了は合否根拠にせず、詳細は
 [`openhands-integration.md`](openhands-integration.md)に従う。
 
-承認ゲートを有効化した場合は、対象revision、入力hash、ゲート結果、予算、承認状態を
-記録し、承認対象と異なる副作用を合格根拠にしない。承認ゲートの有無にかかわらず、
-設計グラフと決定論的ゲートが正規の判定面である。
+発注前は、入力を管理するgit commit、入力hash、ゲート結果、予算を
+記録し、発注と異なる副作用を合格根拠にしない。設計グラフと決定論的ゲートが
+判定面である。
 
 ## OpenHandsとの境界
 
 OpenHandsはConversation、Tool、DockerWorkspace／RemoteWorkspace、MCP、delegate、metrics、retryを
 提供する。ACDはLocalWorkspaceを実行基盤として採用せず、agent-serverを前提にVS Code、noVNC、
-Canvas、Webhook、OpenAI互換gatewayを利用する。Docker image digestとRemoteWorkspaceの対象
-revisionを実行条件へ束ね、外部ツール版の固定と可搬性を優先する。
+Canvas、Webhook、OpenAI互換gatewayを利用する。Docker image digestとRemoteWorkspaceの実行条件を
+固定し、外部ツール版の固定と可搬性を優先する。
 設計グラフと決定論的ゲートはOpenHandsのEventLogへ埋め込まず、ACDのcoreとadapterが所有する。
 Conversationは計画と実行を進めるが、設計の正や合否を決めない。
 
@@ -246,7 +189,7 @@ ACDはファイルシステムを所有しない構成を採り得る。SDKのGi
 提供するが、typedなcommit／push／branch作成／merge APIはない。`GitHelper`にあるのは
 `checkout`と`reset_hard`である。commit／pushはSDKの
 `openhands-sdk/openhands/sdk/git/utils.py`にある`run_git_command`（shell injection回避、
-URL資格情報のredact、timeout付き）を介してworkspaceで行う。ACDのtyped wrapperは対象revision、
+URL資格情報のredact、timeout付き）を介してworkspaceで行う。ACDのadapterはgit commit、
 commit SHA、artifact hash、ツール版、実行条件を含むcommit receiptを生成し、Evidenceへ束ねる。
 終了コードだけをcommit成立の根拠にせず、commit SHAを再取得して確認する。
 
@@ -254,22 +197,19 @@ SDKにartifact store、manifest、content-addressed registryはない。生成�
 `RemoteWorkspace`系workspaceに置き、ACDはworkspaceの`execute_command`、`file_upload`、
 `file_download`、`git_changes`、`git_diff`をHTTP越しに利用する。リポジトリのcloneと
 GitHub／GitLab／Bitbucketのprovider連携もworkspace側の契約として扱う。ACDが常時保持するのは
-設計グラフのrevision識別子、artifactのhash、Evidenceのメタデータであり、ファイル実体ではない。
+入力ファイル、artifactのhash、Evidenceのメタデータであり、ファイル実体ではない。
 保存抽象が必要になった場合はSDKの`FileStore`（`LocalFileStore`／`InMemoryFileStore`）へ合わせ、
 ACD独自I/Fを増やさない。SDKにはremote FileStore実装がないため、RemoteWorkspace側の保存経路
 は未確定として扱う。
 この構成のSDKとの責務分担は[`openhands-integration.md`](openhands-integration.md)にも従う。
 
 workspaceのファイルシステムは揮発する前提で扱う。したがって、gitへcommitしpushされた
-revisionだけをEvidenceおよび投影の所在とし、未commitの作業ツリー状態をゲート根拠にしない。
-正規性は作業ツリーではなくcommit SHAに束ねる。決定論的ゲートは対象revisionのcommitから
-投影を再取得して判定し、投影を正へ逆流させず、staleな成果物や`unknown`を合格扱いしない。
-これは「対象revisionから投影を再生成する」という既存の不変条件を、ストレージ側にも適用する
-規律である。
+入力ファイルだけをEvidenceおよび投影の所在とし、未commitの作業ツリー状態をゲート根拠にしない。
+決定論的ゲートは入力ファイルから生成した投影を再取得して判定し、投影を正へ逆流させず、
+壊れた成果物や`unknown`を合格扱いしない。
 
 artifact hashはworkspace内で生成し、ツール版、形式版、ライブラリcommit、設定その他の
-実行条件とともにtool envelopeへ載せる。ACDはhashの値とメタデータだけを保持して照合し、
-workspaceから取得した値との不一致を検出できなければならない。workspace側に置く外部ツール
+実行条件とともに記録する。workspace側に置く外部ツール
 （KiCad CLI等）はworkspace imageへ版を固定し、実行環境と版をEvidenceへ記録する。ツールの
 所在をworkspaceへ移しても、既存のツール契約（版・入力hash・出力hash・実行条件の記録）は
 緩めない。
@@ -277,7 +217,7 @@ workspaceから取得した値との不一致を検出できなければなら�
 Gerber、STEP、3MF等のバイナリ成果物はgit本体を肥大化させるため、Git LFSまたは別artifact
 storeを利用する。ただし採用する保管方式、workspace側永続化の保持期間、署名・改ざん検知の
 扱いは未決であり、これらが確定するまで該当Evidenceを完全な永続保管の証拠として扱わない。
-OpenHandsはこの構成でも実行基盤であり、設計グラフと合否判定の正はACDが所有する。
+OpenHandsはこの構成でも実行基盤であり、入力ファイルと決定論的ゲートが合否判定の正を所有する。
 
 ## task ledgerの実装方針
 

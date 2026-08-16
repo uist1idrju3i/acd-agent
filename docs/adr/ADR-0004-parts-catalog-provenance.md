@@ -28,3 +28,5 @@ Phase 1でKiCadライブラリを参照する前に出所方針を確定する�
 - Phase 1のKiCad投影は、pinされたライブラリ参照だけを解決できる。
 - 部品・ライブラリ出所のスキーマ詳細（catalog契約）はPhase 1で
   `schemas/`に追加し、本ADRを正として設計する。
+
+ADR-0008により、契約の正は`schemas/`からPydanticモデルへ移行した。

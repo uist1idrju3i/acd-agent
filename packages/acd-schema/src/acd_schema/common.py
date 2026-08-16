@@ -1,8 +1,4 @@
-"""Shared value types for ACD contracts.
-
-Mirrors ``schemas/common.schema.json``. Unknown values are explicit
-(``"unknown"``) and are treated fail-closed by consumers.
-"""
+"""Shared value types for the canonical Pydantic ACD contracts."""
 
 from __future__ import annotations
 

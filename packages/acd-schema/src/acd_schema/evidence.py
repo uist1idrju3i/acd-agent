@@ -1,4 +1,4 @@
-"""Evidence record (mirrors ``schemas/evidence.schema.json``)."""
+"""Evidence record for minimal external-tool execution records."""
 
 from __future__ import annotations
 

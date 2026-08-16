@@ -21,6 +21,8 @@ Agent Canvasソースはsubmodule（`vendor/openhands`）として取り込み�
 - `schemas/`（機械可読契約の正）、`fixtures/`（tracked golden／negative fixture）、
   `plugins/acd/`（OpenHands plugin骨格）、`scripts/`をルート直下に置く。
 
+ADR-0008により、契約の正は`schemas/`からPydanticモデルへ移行した。
+
 ## 影響
 
 - ローカルとCIは同一コマンド（`uv sync` → `uv run ruff check` → `uv run pyright` →

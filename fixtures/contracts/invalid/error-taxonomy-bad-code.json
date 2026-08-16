@@ -1,8 +1,0 @@
-{
-  "schema_version": "0.1",
-  "code": "E-1",
-  "category": "internal",
-  "severity": "error",
-  "message": "bad code format",
-  "retriable": false
-}

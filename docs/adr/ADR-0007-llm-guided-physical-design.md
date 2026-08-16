@@ -1,5 +1,7 @@
 # ADR-0007: 配置・回転・配線探索へのLLM適用境界
 
+> 追補: ADR-0008により、探索仕様の機械可読契約と探索固有Evidenceは現行要求から外した。決定論的な候補生成・合法化、代理指標による順位付け、少数候補の実測を残す。
+
 > ステータス: Accepted
 > 日付: 2026-08-16
 > 関連: [`../ai-physical-design.md`](../ai-physical-design.md)、[`../prior-art.md`](../prior-art.md)、[`../roadmap.md`](../roadmap.md)、[`ADR-0003-sdk-feature-adoption.md`](ADR-0003-sdk-feature-adoption.md)

@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from acd_core.electrical import GraphExtractionError, extract_electrical_lane
 from acd_core.fab import (
@@ -16,6 +18,19 @@ from acd_schema import DesignGraph
 
 ROOT = Path(__file__).resolve().parents[3]
 PROFILE = ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
+ProfileMutation = Callable[[dict[str, Any]], None]
+
+
+def _add_unknown_key(data: dict[str, Any]) -> None:
+    data["unexpected"] = True
+
+
+def _set_invalid_position_basis(data: dict[str, Any]) -> None:
+    data["cpl_contract"]["position_basis"] = "unknown"
+
+
+def _add_source_index(data: dict[str, Any]) -> None:
+    data["sources"][0]["source_index"] = 0
 
 
 def _graph(
@@ -58,9 +73,23 @@ def test_profile_schema_and_provenance() -> None:
     json.dumps(profile.data)
 
 
-def test_profile_loader_accepts_explicit_schema_path() -> None:
-    profile = load_fab_profile(PROFILE, ROOT / "schemas/fab-profile.schema.json")
-    assert profile.profile_id == "jlcpcb-fr4-2l-1oz"
+@pytest.mark.parametrize(
+    ("change", "match"),
+    [
+        (_add_unknown_key, "unexpected"),
+        (_set_invalid_position_basis, "position_basis"),
+        (_add_source_index, "source_index"),
+    ],
+)
+def test_invalid_profile_fails_closed(
+    change: ProfileMutation, match: str, tmp_path: Path
+) -> None:
+    data = json.loads(PROFILE.read_text(encoding="utf-8"))
+    change(data)
+    path = tmp_path / "invalid-profile.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ValidationError, match=match):
+        load_fab_profile(path)
 
 
 def test_economic_combinations_are_complete() -> None:

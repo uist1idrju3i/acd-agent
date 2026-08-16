@@ -1,4 +1,4 @@
-"""External tool execution envelope (mirrors ``schemas/tool-envelope.schema.json``)."""
+"""External tool execution envelope."""
 
 from __future__ import annotations
 

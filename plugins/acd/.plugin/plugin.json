@@ -1,7 +1,7 @@
 {
   "name": "acd",
   "version": "0.0.1",
-  "description": "ACD plugin: SessionStart fail-closed validation and ACD skills",
+  "description": "ACD plugin: ACD skills",
   "license": "BSD-3-Clause",
   "repository": "https://github.com/uist1idrju3i/acd-agent"
 }
