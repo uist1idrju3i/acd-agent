@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from acd_core.firmware import FirmwareLane
+from fw_graph import FirmwareLane
 
 FW_PROJECT_NAME = "acd_gd1_fw"
 

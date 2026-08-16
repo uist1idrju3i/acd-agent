@@ -14,7 +14,7 @@ still decided by ERC/DRC and the projection reload gates.
 from __future__ import annotations
 
 from acd_core.electrical import ElectricalLane
-from acd_core.firmware import FirmwareLane
+from fw_graph import FirmwareLane
 
 
 class PinConsistencyError(RuntimeError):

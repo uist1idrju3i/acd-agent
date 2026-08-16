@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from acd_core.electrical import ElectricalLane, extract_electrical_lane
-from acd_core.firmware import (
+from fw_graph import (
     FirmwareExtractionError,
     FirmwareLane,
     FirmwarePinView,
