@@ -10,7 +10,7 @@
 ## 目的と規範用語
 
 ACDは、OpenHands Software Agent SDKを実行基盤として、基板・筐体・ファームウェアを
-同じ設計グラフから一貫して設計・検証・製造するAIファーストCADである。本書のMUST、
+入力ファイルから一貫して設計・検証・製造するAIファーストCADである。本書のMUST、
 MUST NOT、SHOULD、MAYは規範語として使う。
 
 - MUST: 必ず守ること。
@@ -81,7 +81,7 @@ MUST NOT、SHOULD、MAYは規範語として使う。
 
 ## 秘密情報と信頼できない入力
 
-API key、token、secretはログ、設計グラフ、Evidence、コミットに書かない（MUST NOT）。fab APIや
+API key、token、secretはログ、入力ファイル、コミットに書かない（MUST NOT）。fab APIや
 provider tokenはSDKの`SecretRegistry`／`SecretSource`へ登録し、ACDは参照名だけを保持する（MUST）。
 `StaticSecret`／`LookupSecret`と`conversation.update_secrets()`の注入・maskingを利用し、
 at rest secret-freeを維持する（MUST）。
@@ -131,7 +131,7 @@ EDA、配置配線、製造、機械生成のアルゴリズムについて、AC
   一次情報（リリースノート、CHANGELOG、commit差分）で変更点を確認する（MUST）。
 - ACDが実際に使用しているAPI、既定値、挙動への影響（破壊的変更、既定値変更、非推奨、新機能の採否）を
   評価し、確認した一次情報と結論を同じPRで記録する（MUST）。
-- 更新で追加された新機能・改善が、設計グラフ、投影、Evidence、決定論的ゲート、レビュー、実行基盤の
+- 更新で追加された新機能・改善が、投影、決定論的ゲート、レビュー、実行基盤の
   運用を改善できないか評価する（MUST）。評価結果は「採用」「継続調査」「不採用」のいずれかで記録し、
   「継続調査」または「不採用」の場合も理由を依存関係ノートまたは該当する依存の文書に残す（MUST）。
 - ロードマップにない機能を先行採用する場合は、フェーズ境界の規約に従い、先にADRとして設計決定を記録する

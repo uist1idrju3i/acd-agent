@@ -1,5 +1,7 @@
 # ADR-0007: 配置・回転・配線探索へのLLM適用境界
 
+> 追補: ADR-0008により、探索仕様の機械可読契約と探索固有Evidenceは現行要求から外した。決定論的な候補生成・合法化、代理指標による順位付け、少数候補の実測を残す。
+
 > ステータス: Accepted
 > 日付: 2026-08-16
 > 関連: [`../ai-physical-design.md`](../ai-physical-design.md)、[`../prior-art.md`](../prior-art.md)、[`../roadmap.md`](../roadmap.md)、[`ADR-0003-sdk-feature-adoption.md`](ADR-0003-sdk-feature-adoption.md)
@@ -67,9 +69,6 @@
 - `E2`の実装は、探索器・整合化器・代理指標を生成側モジュールへ、実測とゲートを判定側モジュールへ
   分ける（[`../architecture.md`](../architecture.md)の生成と判定の分離）。
 - 予算次元（反復、wall-clock、token、money、外部process回数）を探索ゴールデンタスクで実測する。
-
-ADR-0008により、探索仕様の機械可読契約と探索固有Evidenceは現在の要求から外し、決定論的な
-候補生成・代理指標による順位付け・少数候補の実測だけを残す。本ADRのその他の方針は履歴として保持する。
 
 ## 未確認・リスク
 

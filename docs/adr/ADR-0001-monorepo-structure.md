@@ -18,7 +18,7 @@ Agent Canvasソースはsubmodule（`vendor/openhands`）として取り込み�
 - `openhands-sdk`はworkspace sourceとしてsubmoduleのパスを参照し、PyPIから取得しない。
 - lint（ruff）、型検査（pyright strict）、テスト（pytest）、文書検証
   （`scripts/verify_docs.py`）の設定はルート`pyproject.toml`に一元化する。
-- `packages/`のPydantic契約、`fixtures/`（tracked golden／negative fixture）、
+- `schemas/`（機械可読契約の正）、`fixtures/`（tracked golden／negative fixture）、
   `plugins/acd/`（OpenHands plugin骨格）、`scripts/`をルート直下に置く。
 
 ## 影響
