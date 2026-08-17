@@ -145,6 +145,8 @@ def _context(*, outline: list[float] | None = None) -> dict[str, object]:
             "min_silk_height_mm": 0.5,
             "silk_text_advance_ratio": 0.95,
             "silk_text_attribution_margin_stroke_widths": 1.0,
+            "silk_text_descender_chars": "gjpqy",
+            "silk_text_descender_height_ratio": 1.25,
         },
         "pad_bboxes_mm": [],
         "mask_objects": [],

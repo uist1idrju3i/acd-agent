@@ -186,6 +186,30 @@ def _gerber_silk_objects(path: Path, layer: str) -> tuple[_SilkObject, ...]:
 # times the declared height; 0.95 is an attribution upper bound with margin.
 SILK_TEXT_ADVANCE_RATIO = 0.95
 SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS = 1.0
+SILK_TEXT_DESCENDER_CHARS = frozenset("gjpqy")
+# KiCad stroke-font measurements showed descender ink about 1.238 times the
+# nominal height; 1.25 is a deterministic upper bound for g/j/p/q/y.
+SILK_TEXT_DESCENDER_HEIGHT_RATIO = 1.25
+
+
+def _text_model_size(
+    text: str,
+    height_mm: float,
+    stroke_width_mm: float,
+    rotation_deg: float = 0.0,
+) -> tuple[float, float]:
+    advance_width = max(height_mm * SILK_TEXT_ADVANCE_RATIO * len(text), height_mm)
+    glyph_height = height_mm * (
+        SILK_TEXT_DESCENDER_HEIGHT_RATIO
+        if SILK_TEXT_DESCENDER_CHARS.intersection(text)
+        else 1.0
+    )
+    margin = stroke_width_mm * SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
+    width = advance_width + 2.0 * margin
+    height = glyph_height + margin
+    if int(rotation_deg) % 180:
+        width, height = height, width
+    return width, height
 
 
 def _declared_bbox(
@@ -196,18 +220,14 @@ def _declared_bbox(
     stroke_width_mm: float,
     rotation_deg: float = 0.0,
 ) -> tuple[float, float, float, float]:
-    estimated_width = max(
-        height_mm * SILK_TEXT_ADVANCE_RATIO * len(text),
-        height_mm,
+    estimated_width, estimated_height = _text_model_size(
+        text, height_mm, stroke_width_mm, rotation_deg
     )
-    if int(rotation_deg) % 180:
-        estimated_width, height_mm = height_mm, estimated_width
-    margin = stroke_width_mm * SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
     return (
-        x_mm - estimated_width / 2.0 - margin,
-        y_mm - height_mm / 2.0 - margin,
-        x_mm + estimated_width / 2.0 + margin,
-        y_mm + height_mm / 2.0 + margin,
+        x_mm - estimated_width / 2.0,
+        y_mm - estimated_height / 2.0,
+        x_mm + estimated_width / 2.0,
+        y_mm + estimated_height / 2.0,
     )
 
 
@@ -216,27 +236,28 @@ def _text_attribution_overflow(
     measured_length_mm: float,
     measured_height_mm: float,
 ) -> tuple[dict[str, object], ...]:
-    estimated_width = max(
-        text.height_mm * SILK_TEXT_ADVANCE_RATIO * len(text.text),
-        text.height_mm,
+    estimated_width, _ = _text_model_size(
+        text.text, text.height_mm, text.stroke_width_mm
     )
-    margin = text.stroke_width_mm * SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
+    _, estimated_height = _text_model_size(
+        text.text, text.height_mm, text.stroke_width_mm
+    )
     overflows: list[dict[str, object]] = []
-    if measured_length_mm > estimated_width + 2.0 * margin + text.stroke_width_mm:
+    if measured_length_mm > estimated_width + text.stroke_width_mm:
         overflows.append(
             {
                 "dimension": "length",
                 "measured_mm": measured_length_mm,
-                "upper_bound_mm": estimated_width + 2.0 * margin,
+                "upper_bound_mm": estimated_width,
                 "tolerance_mm": text.stroke_width_mm,
             }
         )
-    if measured_height_mm > text.height_mm + 2.0 * margin + text.stroke_width_mm:
+    if measured_height_mm > estimated_height + text.stroke_width_mm:
         overflows.append(
             {
                 "dimension": "height",
                 "measured_mm": measured_height_mm,
-                "upper_bound_mm": text.height_mm + 2.0 * margin,
+                "upper_bound_mm": estimated_height,
                 "tolerance_mm": text.stroke_width_mm,
             }
         )
@@ -461,8 +482,6 @@ def measure_silkscreen(
             text.stroke_width_mm,
             text.rotation_deg,
         )
-        target_half_width = (target[2] - target[0]) / 2.0
-        target_half_height = (target[3] - target[1]) / 2.0
         nearby = [
             item
             for item in all_silk
@@ -471,8 +490,6 @@ def measure_silkscreen(
                 item.stroke_width_mm is None or item.stroke_width_mm + 1e-6 >= text.stroke_width_mm
             )
             and _bbox_overlap_area(item.bbox_mm, target) > 0
-            and abs((item.bbox_mm[0] + item.bbox_mm[2]) / 2.0 - text.x_mm) <= target_half_width
-            and abs((item.bbox_mm[1] + item.bbox_mm[3]) / 2.0 - text.y_mm) <= target_half_height
         ]
         bbox = _union_bbox(nearby)
         declared_objects.extend(nearby)
@@ -484,12 +501,10 @@ def measure_silkscreen(
         local_bbox = _local_silk_bounds(nearby, (text.x_mm, text.y_mm), text.rotation_deg)
         height = local_bbox[3] - local_bbox[1]
         text_length = local_bbox[2] - local_bbox[0]
-        attribution_margin = (
-            text.stroke_width_mm * SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
-        )
-        estimated_local_width = max(
-            text.height_mm * SILK_TEXT_ADVANCE_RATIO * len(text.text),
+        estimated_local_width, estimated_local_height = _text_model_size(
+            text.text,
             text.height_mm,
+            text.stroke_width_mm,
         )
         attribution_overflows = list(
             _text_attribution_overflow(text, text_length, height)
@@ -520,10 +535,10 @@ def measure_silkscreen(
             "measured_height_mm": height,
             "measured_text_length_mm": text_length,
             "attribution_upper_bound_width_mm": (
-                estimated_local_width + 2.0 * attribution_margin
+                estimated_local_width
             ),
             "attribution_upper_bound_height_mm": (
-                text.height_mm + 2.0 * attribution_margin
+                estimated_local_height
             ),
             "attribution_overflow": attribution_overflows,
             "measured_minimum_stroke_width_mm": measured_width,
@@ -856,6 +871,8 @@ def measure_silkscreen(
             "silk_text_attribution_margin_stroke_widths": (
                 SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
             ),
+            "silk_text_descender_chars": "".join(sorted(SILK_TEXT_DESCENDER_CHARS)),
+            "silk_text_descender_height_ratio": SILK_TEXT_DESCENDER_HEIGHT_RATIO,
             "declared_board_edge_margin_mm": sorted(
                 {
                     float(cast(float, item["board_edge_margin_mm"]))

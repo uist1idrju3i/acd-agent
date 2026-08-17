@@ -22,6 +22,7 @@ from acd_adapter_kicad.fab.silkscreen import (
     _silk_overlaps_rect,
     _SilkObject,
     _text_attribution_overflow,
+    _text_model_size,
 )
 from acd_core.fab import FabProfile
 from acd_core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
@@ -112,6 +113,33 @@ def test_ink_beyond_attribution_upper_bound_fails_closed() -> None:
     overflow = _text_attribution_overflow(text, 5.3, 1.15)
     assert overflow
     assert overflow[0]["dimension"] == "length"
+
+
+def test_descender_text_uses_extended_orthogonal_upper_bound() -> None:
+    _, descender_height = _text_model_size("golden", 1.0, 0.15)
+    _, uppercase_height = _text_model_size("BOOT", 1.0, 0.15)
+    assert descender_height == pytest.approx(1.4)
+    assert uppercase_height == pytest.approx(1.15)
+
+
+def test_descender_self_ink_fits_extended_attribution_bound() -> None:
+    text = SilkTextView(
+        "text",
+        "label",
+        "golden",
+        1.0,
+        1.0,
+        "B.SilkS",
+        1.0,
+        0.15,
+        0.0,
+        "test",
+        "test",
+        "board.gd1",
+        0.25,
+        1.0,
+    )
+    assert _text_attribution_overflow(text, 5.0, 1.388) == ()
 
 
 def test_graphic_below_capability_is_not_treated_as_pass() -> None:

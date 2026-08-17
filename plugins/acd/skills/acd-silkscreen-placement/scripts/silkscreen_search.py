@@ -618,11 +618,18 @@ def resolve_from_context(
     margin_stroke_widths = float(
         requirements.get("silk_text_attribution_margin_stroke_widths", 0.0)
     )
+    descender_chars = requirements.get("silk_text_descender_chars")
+    descender_ratio = float(
+        requirements.get("silk_text_descender_height_ratio", 0.0)
+    )
     if (
         min_width <= 0
         or min_height <= 0
         or advance_ratio <= 0
         or margin_stroke_widths <= 0
+        or not isinstance(descender_chars, str)
+        or not descender_chars
+        or descender_ratio <= 0
     ):
         raise GraphExtractionError("silkscreen context capability requirements are missing")
 
@@ -738,12 +745,14 @@ def resolve_from_context(
                 text.height_mm * advance_ratio * len(text.text),
                 text.height_mm,
             )
-            height = text.height_mm
+            height = text.height_mm * (
+                descender_ratio if any(char in descender_chars for char in text.text) else 1.0
+            )
             if int(rotation) % 180:
                 width, height = height, width
             margin = text.stroke_width_mm * margin_stroke_widths
             width += 2.0 * margin
-            height += 2.0 * margin
+            height += margin
             x = outline[0] + width / 2
             while x <= outline[2] - width / 2 + 1e-9:
                 y = outline[1] + height / 2
