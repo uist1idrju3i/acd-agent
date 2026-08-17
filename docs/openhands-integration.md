@@ -67,10 +67,17 @@ referenceとして参照するだけで、rationaleや合否の権威ではな�
 | `acd-mechanical` | 筐体投影、機械ゲート、CAD決定性 | `acd-contracts`, `acd-cad-determinism-probe` | `confirm_risky` |
 | `acd-firmware` | ESP32-C3のFW開発、ビルド、仮想実行 | `acd-firmware-esp32c3` | `confirm_risky` |
 | `acd-reviewer` | 投影レビューと所見整理。合否権限なし | `acd-qc-seven-tools`, `acd-reliability-review` | `never_confirm` |
+| `acd-search` | 決定論的探索CLIの実行と候補provenanceの返却。合否権限なし | `acd-placement-search`, `acd-silkscreen-placement` | `confirm_risky` |
 
 各定義は`model: inherit`、反復上限、budget上限を持ち、toolはSDKで確認した
 `terminal`、`file_editor`、`grep`、`glob`、`task_tracker`に限定する。reviewerの
 自然文所見は合否を決めず、決定論的ゲートへ戻される。
+
+`acd-search`は決定論的探索laneである。既存の探索CLIをterminal経由で実行し、
+候補とSkill名・script SHA-256 provenanceだけを返す。候補は合否根拠ではなく、
+設計入力へ確定した後に決定論的ゲートで検証する。配置greedy探索とsilkscreen探索は
+状態依存のため並列化しない。SDK workflowはLLM subagent専用で、scriptからの
+shell・file操作が禁止されるためACD探索には使用しない。
 
 ## `/acd:gates`
 

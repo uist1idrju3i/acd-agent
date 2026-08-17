@@ -124,14 +124,17 @@ P3aの`AcdGateCritic`はDesign Graphの`graph.revision`をEvidenceの
 clean判定だけに使う。criticのスコアは二値であり、全要件充足時だけ1.0、
 それ以外は0.0である。
 
-### P4: 探索の並列化をworkflow/subagentへ移す
+### P4: ACD側の決定論的並列化と探索lane
 
-`acd-placement-search`と`acd-silkscreen-placement`は単一プロセスの探索script
-（373行 / 615行）。SDKの`openhands.tools.workflow`は`async def main(wf)`の
-orchestration scriptを`max_concurrency`付きで実行し、中間結果を主contextの外に
-保つ。`tools.delegate` / `sdk.subagent`（`agents/*.md`が既にAgentDefinition）と
-組み合わせれば、候補生成の並列化と「探索の詳細を主会話に持ち込まない」が同時に
-得られる。ACD側は候補を`graph.json`へ確定する境界（sha256 provenance）を維持する。
+GD1基板pipelineの独立したwidth positive-control armだけを`ThreadPoolExecutor`
+で並列化する。arm-a、arm-bの結果は固定順で集約し、並列度1とNで決定論的出力が
+byte一致することを検証する。greedy配置探索とsilkscreen探索は状態依存のため
+並列化しない。
+
+`acd-search` AgentDefinitionは既存の決定論的探索CLIを実行し、候補とSkill名・
+script SHA-256 provenanceだけを返す。候補は合否権限を持たず、設計入力へ確定した
+後に決定論的ゲートで判定する。SDK workflowはLLM subagent用でshell・file操作が
+禁止されるため採用しない。
 
 ### P5: 外部ツール版の固定を`openhands-workspace`へ
 

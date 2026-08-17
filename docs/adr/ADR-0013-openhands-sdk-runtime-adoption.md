@@ -38,7 +38,7 @@ mtimeの新しさはpassの根拠ではない。`supports_pass()`はcommit済み
 - P2: `ToolDefinition`化とFastMCP server廃止
 - P5: `DockerWorkspace`
 - P3a: `AcdGateCritic`による決定論的ゲート駆動のcritic反復
-- P4: workflow探索並列化
+- P4: ACD側の決定論的探索並列化と探索AgentDefinition
 - P6/P7: EventLog・Metrics
 - P8: 配布・TestLLM
 - P9: agent-server runbook

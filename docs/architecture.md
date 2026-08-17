@@ -137,6 +137,18 @@ Dockerはdeterminismを保証しないため、timestamp、filesystem、外部�
 スコアへ影響せず、critic出力はpass evidenceではない。設計入力がgitでdirty、
 parse不能、stale、unknown、または要件未達なら0.0とし、全要件充足時だけ1.0とする。
 
+## 探索並列化境界
+
+GD1基板pipelineでは、独立したKiCad width positive-controlの2 armだけを
+thread poolで並列実行できる。結果はarm-a、arm-bの固定順で集約し、並列度1は
+逐次経路と同一である。並列度を変えても決定論的出力はbyte一致し、worker例外は
+fail-closedで伝播する。greedy配置探索とsilkscreen探索は状態依存のため並列化しない。
+
+`acd-search` AgentDefinitionは冗長な探索出力を主会話から分離するだけで、候補と
+Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力は合否権限を持たず、
+設計入力へ確定した後に既存ゲートで判定する。SDK workflow toolはLLM subagent用で
+shell・file操作を禁止するため、決定論的探索には使わない。
+
 ## 実装していない境界
 
 SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、Conversationを使った

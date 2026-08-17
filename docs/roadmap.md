@@ -13,6 +13,8 @@ P5として、ホスト実行を既定にした任意のDockerDevWorkspaceゲー
 image digest未解決時は停止する。
 P3aとして、`AcdGateCritic`による決定論的ゲート結果駆動の反復を追加する。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
+P4として、GD1の独立したwidth positive-control armをACD側で並列化し、
+探索候補を返す`acd-search` AgentDefinitionを追加する。SDK workflowは採用しない。
 
 ## 現行実装計画
 
@@ -24,6 +26,7 @@ SDKへ委譲するのは反復制御だけであり、criticはpass evidenceで�
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 実装済み |
+| 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 実装済み |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
 
 各マイルストーンの完了条件は、(1)入力と出所、(2)実装、(3)正常系、(4)negative/

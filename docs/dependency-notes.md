@@ -103,6 +103,14 @@ ACDは`AcdGateCritic`でこれを利用するが、eventsとgit patchは評価�
 Design Graph、Evidence、製造manifestだけを読む。既定値は
 `success_threshold=1.0`、`max_iterations=3`である。
 
+### OpenHands SDK workflow境界
+
+SDK v1.42.1のworkflow実装を確認し、`run_agent`、`map_agents`、
+`reduce_agent`、`pipeline`、`flatten`はいずれもLLM subagent orchestrationの
+APIであることを確認した。workflow scriptはshell実行やファイル読み書きを行わない
+契約のため、KiCadなどの決定論的CLI探索には採用しない。ACD側のwidth arm並列化は
+`ThreadPoolExecutor`で実装し、外部subprocessを独立に待機する。
+
 ### OpenHands SDK hooks
 
 SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは
