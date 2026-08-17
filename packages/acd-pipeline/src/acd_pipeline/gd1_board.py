@@ -67,6 +67,7 @@ from acd_core.electrical import ElectricalLane, extract_electrical_lane
 from acd_core.fab import extract_fab_intent, load_fab_profile
 from acd_core.routing_width import derive_net_widths
 from acd_core.silkscreen import extract_silkscreen_lane
+from acd_pipeline.rationale import validate_and_project_rationale
 from acd_schema.design_graph import DesignGraph
 
 GERBER_LAYERS = [
@@ -379,6 +380,9 @@ def run_pipeline(
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    validate_and_project_rationale(graph, fixture_dir, out_dir)
+    print("[0/10] rationale coverage passed")
     revision = graph.revision
     lane = extract_electrical_lane(graph)
     silkscreen = extract_silkscreen_lane(graph)

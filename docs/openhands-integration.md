@@ -20,6 +20,7 @@ OpenHandsの公開Skills repositoryはsubmoduleにせず外部参照とする:
 plugins/acd/
 ├── .plugin/plugin.json
 ├── .mcp.json
+├── hooks/hooks.json
 ├── commands/gates.md
 ├── agents/
 │   ├── acd-electrical.md
@@ -47,6 +48,11 @@ Skillは作業手法と探索器を提供するが、結果は合否Evidenceで�
 fixture生成で利用する場合も、ACD本体からSkillのPython moduleをimportせず、CLIを
 subprocess実行して結果を設計入力へ確定する。scriptのsha256とSkill名をprovenanceへ
 記録し、入力不備や実行失敗はfail-closedとする。
+
+設計入力の編集後は実装済みの`PostToolUse` hookがrationale不足を警告し、`Stop` hookが
+`scripts/check_rationale.py --if-present`を実行する。exit code 2の不足・parse失敗・
+staleは停止をブロックする。Conversationの永続ログはconversation event referenceとして
+参照するだけで、rationaleや合否の権威ではない。
 
 ## AgentDefinition
 

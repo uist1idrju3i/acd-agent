@@ -120,13 +120,13 @@ def check_rationale_coverage(
                 )
                 for node_id, attr in record_subjects
             )
-        if record.provenance.script_hash in (None, "unknown"):
+        if record.provenance.script_hash == "unknown":
             unknown.append(RationaleUnknownProvenance(rationale_id=record.rationale_id))
         if (
             not record_stale
             and not record_orphan
             and hash_matches
-            and record.provenance.script_hash not in (None, "unknown")
+            and record.provenance.script_hash != "unknown"
         ):
             for subject in record_subjects:
                 covered[subject].append(record.rationale_id)

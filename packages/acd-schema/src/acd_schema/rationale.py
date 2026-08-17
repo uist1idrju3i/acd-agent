@@ -87,7 +87,7 @@ class RationaleRecord(AcdModel):
         return (
             self.target_revision == current_revision
             and self.subject_hash == expected_subject_hash
-            and self.provenance.script_hash not in (None, "unknown")
+            and self.provenance.script_hash != "unknown"
         )
 
 

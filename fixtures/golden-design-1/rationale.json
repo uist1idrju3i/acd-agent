@@ -1,0 +1,292 @@
+{
+  "graph_id": "golden-design-1",
+  "records": [
+    {
+      "assumptions": [],
+      "decision": "Use the graph-declared MPN and LCSC mapping for each component.",
+      "decision_kind": "part_selection",
+      "driving_requirements": [
+        "req.gd1-req-007",
+        "req.gd1-req-008"
+      ],
+      "justification": "The graph records the selected MPN and LCSC values as the canonical component selection.",
+      "no_alternatives_reason": "No rejected alternative is recorded in the GD1 design specification or graph basis attributes.",
+      "provenance": {
+        "recorded_at": "2025-01-01T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "gd1-part-selection",
+      "rejected_alternatives": [],
+      "risks": [],
+      "subject_attrs": [
+        "mpn",
+        "lcsc"
+      ],
+      "subject_hash": "sha256:d23d7c83a08f3e406e8298965ebd55b29e62833b359e27bd495b4bedf9df6e0c",
+      "subject_nodes": [
+        "comp.u1",
+        "comp.j1",
+        "comp.u2",
+        "comp.u3",
+        "comp.d1",
+        "comp.sw1",
+        "comp.sw2",
+        "comp.r1",
+        "comp.r2",
+        "comp.r3",
+        "comp.r4",
+        "comp.r5",
+        "comp.r6",
+        "comp.c1",
+        "comp.c2",
+        "comp.c3",
+        "comp.c4",
+        "comp.c5",
+        "comp.c6",
+        "comp.tp1",
+        "comp.tp2",
+        "comp.tp3",
+        "comp.tp4",
+        "comp.tp5",
+        "comp.tp6",
+        "comp.tp7",
+        "comp.h1",
+        "comp.h2",
+        "comp.h3",
+        "comp.h4"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Use the graph-declared component placement and rotation.",
+      "decision_kind": "placement",
+      "driving_requirements": [
+        "req.gd1-req-015"
+      ],
+      "justification": "The graph records placement coordinates, rotation, and the deterministic placement source reference for each component.",
+      "no_alternatives_reason": "No rejected alternative is recorded in the GD1 design specification or graph basis attributes.",
+      "provenance": {
+        "recorded_at": "2025-01-01T00:00:00Z",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "skill_name": "acd-placement-search",
+        "source": "acd_skill"
+      },
+      "rationale_id": "gd1-component-placement",
+      "rejected_alternatives": [],
+      "risks": [],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:3ea96ee103145f242bbcff2cef5c3e4a86c00961f387d96db2f59508e652e357",
+      "subject_nodes": [
+        "comp.u1",
+        "comp.j1",
+        "comp.u2",
+        "comp.u3",
+        "comp.d1",
+        "comp.sw1",
+        "comp.sw2",
+        "comp.r1",
+        "comp.r2",
+        "comp.r3",
+        "comp.r4",
+        "comp.r5",
+        "comp.r6",
+        "comp.c1",
+        "comp.c2",
+        "comp.c3",
+        "comp.c4",
+        "comp.c5",
+        "comp.c6",
+        "comp.tp1",
+        "comp.tp2",
+        "comp.tp3",
+        "comp.tp4",
+        "comp.tp5",
+        "comp.tp6",
+        "comp.tp7",
+        "comp.h1",
+        "comp.h2",
+        "comp.h3",
+        "comp.h4"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Use each net node's graph-declared width basis.",
+      "decision_kind": "routing_width",
+      "driving_requirements": [
+        "req.gd1-req-005"
+      ],
+      "justification": "Each subject net carries an existing width_basis and width_basis_source attribute that declares the controlling routing-width basis.",
+      "no_alternatives_reason": "No rejected alternative is recorded in the GD1 design specification or graph basis attributes.",
+      "provenance": {
+        "recorded_at": "2025-01-01T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "gd1-routing-width",
+      "rejected_alternatives": [],
+      "risks": [],
+      "subject_attrs": [
+        "width_basis"
+      ],
+      "subject_hash": "sha256:440ef1d549073106851e447cb4fbfea9dd348bc72830621d053af38b1826fa09",
+      "subject_nodes": [
+        "net.vbus_5v",
+        "net.cc1",
+        "net.cc2",
+        "net.gnd",
+        "net.p3v3",
+        "net.usb_dn",
+        "net.usb_dp",
+        "net.en",
+        "net.boot",
+        "net.led",
+        "net.led_a",
+        "net.i2c_sda",
+        "net.i2c_scl",
+        "net.uart_tx",
+        "net.uart_rx"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Use the graph-declared GPIO assignment for each firmware pin.",
+      "decision_kind": "firmware_pin",
+      "driving_requirements": [
+        "req.gd1-req-008",
+        "req.gd1-req-010",
+        "req.gd1-req-011"
+      ],
+      "justification": "The graph records the GPIO and net assignment for each firmware pin node.",
+      "no_alternatives_reason": "No rejected alternative is recorded in the GD1 design specification or graph basis attributes.",
+      "provenance": {
+        "recorded_at": "2025-01-01T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "gd1-firmware-pins",
+      "rejected_alternatives": [],
+      "risks": [],
+      "subject_attrs": [
+        "gpio"
+      ],
+      "subject_hash": "sha256:2c56c479a83083cdef035bf6e8613a85e8e557db8b3b9c7ed22e5aa216a3290b",
+      "subject_nodes": [
+        "fw.pin.boot",
+        "fw.pin.i2c_scl",
+        "fw.pin.i2c_sda",
+        "fw.pin.led",
+        "fw.pin.uart_rx",
+        "fw.pin.uart_tx",
+        "fw.pin.usb_dn",
+        "fw.pin.usb_dp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Use the graph-declared board width, depth, and thickness.",
+      "decision_kind": "mechanical",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-014"
+      ],
+      "justification": "The graph records these dimensions and identifies the mechanical declaration in docs/golden-design-1.md as the position source reference.",
+      "no_alternatives_reason": "No rejected alternative is recorded in the GD1 design specification or graph basis attributes.",
+      "provenance": {
+        "recorded_at": "2025-01-01T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "gd1-board-outline",
+      "rejected_alternatives": [],
+      "risks": [],
+      "subject_attrs": [
+        "width_mm",
+        "depth_mm",
+        "thickness_mm"
+      ],
+      "subject_hash": "sha256:8fdca7b2db8e3057634acd46ebea8cf6af7949d9175f43c8f7c10b4cda2ed91c",
+      "subject_nodes": [
+        "mechanical.outline.gd1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Use PETG with the graph-declared enclosure wall thickness.",
+      "decision_kind": "mechanical",
+      "driving_requirements": [
+        "req.gd1-req-014"
+      ],
+      "justification": "The graph records material and wall_thickness_mm; the enclosure tolerance basis points to the GD1 mechanical gate declaration.",
+      "no_alternatives_reason": "No rejected alternative is recorded in the GD1 design specification or graph basis attributes.",
+      "provenance": {
+        "recorded_at": "2025-01-01T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "gd1-enclosure",
+      "rejected_alternatives": [],
+      "risks": [],
+      "subject_attrs": [
+        "material",
+        "wall_thickness_mm"
+      ],
+      "subject_hash": "sha256:5bbafe91f12f31e48548824f691d34b6a088860cb750673213e93b99534005f8",
+      "subject_nodes": [
+        "mechanical.enclosure.gd1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Use the graph-declared silkscreen text position and rotation.",
+      "decision_kind": "silkscreen",
+      "driving_requirements": [
+        "req.gd1-req-015"
+      ],
+      "justification": "The graph records each accepted text position, rotation, placement basis, and deterministic silkscreen placement source reference.",
+      "no_alternatives_reason": "No rejected alternative is recorded in the GD1 design specification or graph basis attributes.",
+      "provenance": {
+        "recorded_at": "2025-01-01T00:00:00Z",
+        "script_hash": "sha256:338f0266d44be715b29c2bc4786d25336a7262434ebdd2284173d0004b99a87b",
+        "skill_name": "acd-silkscreen-placement",
+        "source": "acd_skill"
+      },
+      "rationale_id": "gd1-silkscreen-placement",
+      "rejected_alternatives": [],
+      "risks": [],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:027fef163fa21df3f7f924951547f138f89ebeabacc8267c32f7541f4f5fcfa5",
+      "subject_nodes": [
+        "mechanical.silk_text.reset",
+        "mechanical.silk_text.boot",
+        "mechanical.silk_text.led",
+        "mechanical.silk_text.usb",
+        "mechanical.silk_text.dev_board",
+        "mechanical.silk_text.board_id"
+      ],
+      "target_revision": "r1"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

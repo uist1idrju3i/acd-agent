@@ -18,20 +18,20 @@ def main() -> int:
     parser.add_argument("--rationale", default="fixtures/golden-design-1/rationale.json")
     parser.add_argument("--report")
     parser.add_argument("--if-present", action="store_true")
+    parser.add_argument("--warn-only", action="store_true")
     args = parser.parse_args()
+    graph_path = Path(args.graph)
     rationale_path = Path(args.rationale)
-    if not rationale_path.is_file() and args.if_present:
+    if args.if_present and (not graph_path.is_file() or not rationale_path.is_file()):
         result: dict[str, Any] = {"status": "not_applicable"}
-        print("Rationale not present; validation not applicable.")
+        print("Rationale validation not applicable; graph or rationale is not present.")
         if args.report:
             Path(args.report).write_text(
                 json.dumps(result, indent=2) + "\n", encoding="utf-8"
             )
         return 0
     try:
-        graph = DesignGraph.model_validate(
-            json.loads(Path(args.graph).read_text(encoding="utf-8"))
-        )
+        graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
         document = RationaleDocument.model_validate(
             json.loads(rationale_path.read_text(encoding="utf-8"))
         )
@@ -39,7 +39,7 @@ def main() -> int:
         result = report.model_dump(mode="json")
     except Exception as exc:
         print(f"Rationale validation failed: {exc}")
-        return 2
+        return 0 if args.warn_only else 2
     print(f"Rationale coverage: {report.status}")
     for field in ("missing", "stale", "unknown_provenance", "orphan", "conflicting"):
         values = result[field]
@@ -49,7 +49,7 @@ def main() -> int:
         Path(args.report).write_text(
             json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
-    return 0 if report.status == "pass" else 2
+    return 0 if report.status == "pass" or args.warn_only else 2
 
 
 if __name__ == "__main__":

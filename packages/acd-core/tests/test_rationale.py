@@ -84,6 +84,43 @@ def test_coverage_passes() -> None:
     assert report.status == "pass"
 
 
+def test_human_provenance_without_script_is_covered() -> None:
+    graph = _graph()
+    document = _document(graph)
+    record = document.records[0].model_copy(
+        update={
+            "provenance": document.records[0].provenance.model_copy(
+                update={"source": "human", "script_hash": None}
+            )
+        }
+    )
+    report = check_rationale_coverage(
+        graph, document.model_copy(update={"records": [record]})
+    )
+    assert report.status == "pass"
+    assert report.unknown_provenance == []
+    assert record.supports_coverage(
+        graph.revision, record.subject_hash
+    )
+
+
+def test_explicit_unknown_script_hash_fails_coverage() -> None:
+    graph = _graph()
+    document = _document(graph)
+    record = document.records[0].model_copy(
+        update={
+            "provenance": document.records[0].provenance.model_copy(
+                update={"script_hash": "unknown"}
+            )
+        }
+    )
+    report = check_rationale_coverage(
+        graph, document.model_copy(update={"records": [record]})
+    )
+    assert report.status == "fail"
+    assert [item.rationale_id for item in report.unknown_provenance] == ["rat-1"]
+
+
 @pytest.mark.parametrize(
     "change",
     ["missing", "stale", "conflicting", "orphan", "unknown", "graph_id", "revision"],

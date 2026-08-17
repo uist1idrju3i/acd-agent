@@ -1,0 +1,24 @@
+{
+  "PostToolUse": [
+    {
+      "matcher": "FileEditorTool",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "scripts/check_rationale.py --if-present --warn-only"
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "scripts/check_rationale.py --if-present"
+        }
+      ]
+    }
+  ]
+}
