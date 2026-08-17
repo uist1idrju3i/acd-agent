@@ -1,6 +1,14 @@
 ---
 name: acd-firmware-esp32c3
 description: Develop, build and virtually run ESP32-C3 (ESP-IDF) firmware for an ACD design, with a pin-consistency check against the design graph. Use when firmware work is part of an ACD design task.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - firmware
+  - ESP32-C3
+  - ESP-IDF
+  - QEMU
+  - GPIO
 ---
 
 # ACD firmware (ESP32-C3 / ESP-IDF)

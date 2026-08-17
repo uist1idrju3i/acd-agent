@@ -165,17 +165,21 @@ version = "0.0.1"
 source = { editable = "packages/acd-tools" }
 dependencies = [
     { name = "acd-core" },
+    { name = "acd-pipeline" },
     { name = "acd-schema" },
     { name = "build123d" },
     { name = "cadquery-ocp" },
+    { name = "fastmcp" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "acd-core", editable = "packages/acd-core" },
+    { name = "acd-pipeline", editable = "packages/acd-pipeline" },
     { name = "acd-schema", editable = "packages/acd-schema" },
     { name = "build123d", specifier = "==0.11.1" },
     { name = "cadquery-ocp", specifier = "==7.9.3.1.1" },
+    { name = "fastmcp", specifier = ">=3.0.0" },
 ]
 
 [[package]]

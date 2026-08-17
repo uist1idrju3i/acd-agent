@@ -1,6 +1,15 @@
 ---
 name: acd-placement-search
 description: Search deterministic component placements (position and rotation) for an ACD board and rank candidates with surrogate metrics. Use when a board needs placements before the KiCad projection and the ERC/DRC gates.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - placement
+  - component layout
+  - footprint
+  - rotation
+  - ERC
+  - DRC
 ---
 
 # 基板の配置探索とスコアリング

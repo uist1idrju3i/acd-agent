@@ -2,6 +2,11 @@
   "name": "acd",
   "version": "0.0.1",
   "description": "ACD plugin: ACD skills",
+  "author": {
+    "name": "ACD contributors",
+    "url": "https://github.com/uist1idrju3i/acd-agent"
+  },
   "license": "BSD-3-Clause",
-  "repository": "https://github.com/uist1idrju3i/acd-agent"
+  "repository": "https://github.com/uist1idrju3i/acd-agent",
+  "entry_command": "gates"
 }

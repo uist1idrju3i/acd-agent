@@ -13,37 +13,50 @@ import json
 import subprocess
 import sys
 import tempfile
+from collections.abc import Sequence
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from acd_schema.design_graph import AttrValue, DesignGraph, GraphNode
 
-from .components import *  # noqa: F401,F403
-from .mechanical import *  # noqa: F401,F403
-from .silkscreen import *  # noqa: F401,F403
+from .components import (
+    BOARD_ATTRS,
+    FAB_PROFILE_FETCHED_AT,
+    FAB_PROFILE_ID,
+    FAB_PROFILE_SOURCE,
+    FIXTURE_DIR,
+    FW_PIN_ASSIGNMENTS,
+    NETS,
+    PLACEMENTS,
+    REPO_ROOT,
+    REQUIREMENTS,
+    LibraryRef,
+    components,
+    sha256_of,
+)
+from .mechanical import mechanical_nodes
+from .silkscreen import silkscreen_nodes
 
 PLACEMENT_SKILL = REPO_ROOT / "plugins/acd/skills/acd-placement-search/scripts/placement_search.py"
 SILK_SKILL = REPO_ROOT / "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
 FAB_PROFILE = REPO_ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
 
 
-def _run_skill(script: Path, input_data: dict[str, object], output: Path) -> dict[str, Any]:
+def _run_skill(
+    script: Path,
+    input_data: dict[str, object],
+    output: Path,
+    *,
+    extra_args: Sequence[str] = (),
+) -> dict[str, Any]:
     input_path = output.with_suffix(".input.json")
     input_path.write_text(
         json.dumps(input_data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     command = [sys.executable, str(script), "--input", str(input_path)]
-    if script == PLACEMENT_SKILL:
-        command.extend(
-            [
-                "--fixture-dir",
-                str(FIXTURE_DIR),
-                "--fab-profile",
-                str(FAB_PROFILE),
-            ]
-        )
+    command.extend(extra_args)
     command.extend(["--output", str(output)])
     subprocess.run(command, check=True, cwd=REPO_ROOT)
     value = json.loads(output.read_text(encoding="utf-8"))
@@ -60,6 +73,12 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
             PLACEMENT_SKILL,
             graph_payload,
             directory_path / "placements.json",
+            extra_args=(
+                "--fixture-dir",
+                str(FIXTURE_DIR),
+                "--fab-profile",
+                str(FAB_PROFILE),
+            ),
         )
         placements = placement_result.get("placements")
         if not isinstance(placements, list):
@@ -205,7 +224,7 @@ def build_graph() -> DesignGraph:
                 "placement_source": "acd-placement-search",
                 "placement_source_ref": (
                     "plugins/acd/skills/acd-placement-search/scripts/"
-                    f"placement_search.py:sha256:{sha256_of(PLACEMENT_SKILL)}"
+                    f"placement_search.py:{sha256_of(PLACEMENT_SKILL)}"
                 ),
             }
         )
