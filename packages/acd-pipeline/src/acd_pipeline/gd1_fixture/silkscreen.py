@@ -15,7 +15,7 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
     board_label = f"{graph_id}-{revision}"
     common = {
         "layer": "F.SilkS",
-        "height_mm": 1.5,
+        "height_mm": 1.0,
         "stroke_width_mm": 0.15,
         "rotation_deg": 0.0,
         "placement_search_order": (
@@ -35,7 +35,7 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
         (
             "mechanical.silk_text.reset",
             "functional_label_sw1",
-            "RESET",
+            "RST",
             29.5,
             5.0,
             "SW1",

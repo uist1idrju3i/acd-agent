@@ -3,6 +3,9 @@
 
 # ruff: noqa: I001,RUF100,F401,E501
 
+from collections.abc import Mapping
+from pathlib import Path
+
 from .common import *  # noqa: F401,F403
 from .geometry import rotate  # noqa: F401
 from .archive import deterministic_zip, zip_content_hash  # noqa: F401
@@ -25,6 +28,8 @@ from .common import (  # noqa: F401
     UncoveredStitchViasError,
     ViaMeasurement,
 )
+from acd_core.fab import FabProfile
+from acd_core.silkscreen import SilkscreenLane
 from .cpl_orientation import (  # noqa: F401
     derive_lcsc_rotation_offset,
     load_lcsc_pin_centers,
@@ -46,12 +51,30 @@ from .routed_board import (  # noqa: F401
 )
 
 from . import silkscreen as _silkscreen
-from .silkscreen import _gerber_silk_objects, measure_silkscreen as _measure_silkscreen
+from .silkscreen import (
+    _gerber_silk_objects,
+    build_silkscreen_context as _build_silkscreen_context,
+    measure_silkscreen as _measure_silkscreen,
+)
 
 
 def measure_silkscreen(*args, **kwargs):
     _silkscreen._gerber_silk_objects = _gerber_silk_objects
     return _measure_silkscreen(*args, **kwargs)
+
+
+def build_silkscreen_context(
+    silk_paths: Mapping[str, Path],
+    mask_paths: Mapping[str, Path],
+    edge_path: Path,
+    measurement: BoardMeasurement,
+    declarations: SilkscreenLane,
+    profile: FabProfile,
+) -> dict[str, object]:
+    _silkscreen._gerber_silk_objects = _gerber_silk_objects
+    return _build_silkscreen_context(
+        silk_paths, mask_paths, edge_path, measurement, declarations, profile
+    )
 
 
 __all__ = [
@@ -65,6 +88,7 @@ __all__ = [
     "UncoveredStitchViasError",
     "ViaMeasurement",
     "apply_cpl_contract",
+    "build_silkscreen_context",
     "cross_validate_bom",
     "cross_validate_cpl",
     "derive_lcsc_rotation_offset",
