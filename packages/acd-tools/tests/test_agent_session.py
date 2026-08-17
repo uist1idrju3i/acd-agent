@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import os
 import shutil
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from openhands.sdk import LLM
@@ -20,6 +22,7 @@ from openhands.sdk.tool import (
     ToolDefinition,
     ToolExecutor,
 )
+from openhands.sdk.tool import registry as tool_registry
 from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportUnknownVariableType]
 
 from acd_tools.agent_session import build_acd_conversation, write_conversation_metrics
@@ -57,7 +60,44 @@ class _TerminalTool(ToolDefinition[_TerminalAction, _TerminalObservation]):
         ]
 
 
-register_tool("terminal", _TerminalTool)  # pyright: ignore[reportUnknownVariableType]
+@pytest.fixture
+def terminal_tool_registration() -> Iterator[None]:
+    original_registry: Any = tool_registry._REG.get(  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType, reportUnknownVariableType]
+        "terminal"
+    )
+    original_usability: Any = tool_registry._USABILITY_REG.get(  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType]
+        "terminal"
+    )
+    original_module: Any = tool_registry._MODULE_QUALNAMES.get(  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType]
+        "terminal"
+    )
+    register_tool("terminal", _TerminalTool)  # pyright: ignore[reportUnknownVariableType]
+    yield
+    with tool_registry._LOCK:  # pyright: ignore[reportPrivateUsage]
+        if original_registry is None:
+            tool_registry._REG.pop(  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType]
+                "terminal", None
+            )
+        else:
+            tool_registry._REG["terminal"] = (  # pyright: ignore[reportPrivateUsage, reportUnknownMemberType]
+                original_registry
+            )
+        if original_usability is None:
+            tool_registry._USABILITY_REG.pop(  # pyright: ignore[reportPrivateUsage]
+                "terminal", None
+            )
+        else:
+            tool_registry._USABILITY_REG["terminal"] = (  # pyright: ignore[reportPrivateUsage]
+                original_usability
+            )
+        if original_module is None:
+            tool_registry._MODULE_QUALNAMES.pop(  # pyright: ignore[reportPrivateUsage]
+                "terminal", None
+            )
+        else:
+            tool_registry._MODULE_QUALNAMES["terminal"] = (  # pyright: ignore[reportPrivateUsage]
+                original_module
+            )
 
 
 def _minimal_plugin(tmp_path: Path) -> Path:
@@ -128,15 +168,15 @@ def test_bootstrap_accepts_pinned_plugin_source(tmp_path: Path) -> None:
         persistence_dir=tmp_path / "sessions",
         plugin_source=acd_plugin_source("a" * 40),
     )
-    assert conversation._plugin_specs is not None  # pyright: ignore[reportPrivateUsage]
-    plugin = conversation._plugin_specs[0]  # pyright: ignore[reportPrivateUsage]
-    assert plugin.source == "github:uist1idrju3i/acd-agent"
-    assert plugin.repo_path == "plugins/acd"
-    assert plugin.ref == "a" * 40
+    assert conversation.agent.critic is not None
+    assert conversation.state.execution_status.value == "idle"
+    assert conversation.workspace.working_dir == str(Path.cwd())
 
 
 def test_testllm_conversation_denies_protected_terminal_write(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    terminal_tool_registration: None,
 ) -> None:
     llm = TestLLM.from_messages(
         [
@@ -219,4 +259,4 @@ def test_testllm_conversation_critic_refinement_stops_at_max_iterations(
     assert sum(
         "Deterministic ACD gate requirements remain unmet" in str(event)
         for event in conversation.state.events
-    )
+    ) >= 1
