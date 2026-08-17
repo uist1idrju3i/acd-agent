@@ -21,6 +21,7 @@ acd-adapter-freerouting = { workspace = true }
 acd-adapter-cad = { workspace = true }
 acd-pipeline = { workspace = true }
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
+openhands-workspace = { path = "vendor/software-agent-sdk/openhands-workspace" }
 
 [dependency-groups]
 dev = [
@@ -32,6 +33,7 @@ dev = [
     "acd-adapter-cad",
     "acd-pipeline",
     "openhands-sdk",
+    "openhands-workspace",
     "build123d==0.11.1",
     "cadquery-ocp==7.9.3.1.1",
     "pytest>=8.3",
@@ -42,7 +44,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts"]
+src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts", "plugins/acd/hooks/scripts"]
 extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
@@ -56,7 +58,10 @@ exclude = ["**/__pycache__", "vendor", "**/.venv"]
 executionEnvironments = [
     { root = "packages/acd-schema/src" },
     { root = "packages/acd-core/src" },
-    { root = "packages/acd-tools/src" },
+    { root = "packages/acd-tools/src", extraPaths = [
+        "vendor/software-agent-sdk/openhands-sdk",
+        "vendor/software-agent-sdk/openhands-workspace",
+    ] },
     { root = "packages/adapters/acd-adapter-kicad/src" },
     { root = "packages/adapters/acd-adapter-freerouting/src" },
     { root = "packages/adapters/acd-adapter-cad/src" },
@@ -79,10 +84,21 @@ executionEnvironments = [
     { root = "plugins/acd/skills/acd-silkscreen-placement", extraPaths = [
         "plugins/acd/skills/acd-silkscreen-placement/scripts",
     ] },
-    { root = "scripts", extraPaths = ["packages/acd-pipeline/src"] },
-    { root = "." },
+    { root = "scripts", extraPaths = [
+        ".",
+        "packages/acd-pipeline/src",
+        "vendor/software-agent-sdk/openhands-workspace",
+    ] },
+    { root = ".", extraPaths = [
+        "scripts",
+        "vendor/software-agent-sdk/openhands-sdk",
+        "vendor/software-agent-sdk/openhands-workspace",
+    ] },
+    { root = "plugins/acd/hooks", extraPaths = [
+        "plugins/acd/hooks/scripts",
+    ] },
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages"]
+testpaths = ["packages", "scripts"]
 addopts = "-q"

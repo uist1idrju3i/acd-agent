@@ -3,6 +3,9 @@ name: acd-electrical
 description: USE THIS when projecting an ACD electrical lane, running ERC/DRC, or investigating electrical pipeline failures.
 model: inherit
 tools:
+  - acd_probe_tools
+  - acd_validate_design_graph
+  - acd_run_board_pipeline
   - terminal
   - file_editor
   - grep

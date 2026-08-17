@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "acd": {
-      "command": "uv",
-      "args": ["run", "acd-mcp"],
-      "cwd": "${SKILL_ROOT}/../.."
-    }
-  }
-}

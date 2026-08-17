@@ -1,6 +1,6 @@
 # ACD — Autonomous Computer Design
 
-> ステータス: 開発中。投影・決定論的ゲート・plugin委譲・MCP公開まで実装済みです。
+> ステータス: 開発中。投影・決定論的ゲート・plugin委譲・SDK tools公開まで実装済みです。
 > 実機測定、発注、routing後のvia mask開口を含む反復は未実装です。
 
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
@@ -46,17 +46,18 @@ silkscreen可読性ゲートまで含めて通過します。F面ラベルは、
 
 ```text
 acd-schema → acd-core → acd-pipeline → adapters/*
-                                      └→ acd-tools (probe / MCP)
+                                      └→ acd-tools (probe / SDK tools)
 
 plugins/acd/
 ├── skills/       # 7つの探索・FW・レビュー手法
 ├── agents/       # 電気、機械、FW、レビュー
 ├── commands/     # /acd:gates
-└── .mcp.json     # acd-mcp stdio server
+└── hooks/        # SDK fail-closed境界と文書検証
 ```
 
 Python側は契約、投影、adapter、決定論的ゲートに限定する。OpenHands pluginは
-Skill、AgentDefinition、command、MCP設定を配布する。Skill結果は合否根拠ではない。
+Skill、AgentDefinition、command、hooksを配布する。Skill結果は合否根拠ではない。
+pipelineとゲートのDocker実行は任意経路であり、ホスト実行が既定である。
 
 ## 実行
 
@@ -64,13 +65,23 @@ Skill、AgentDefinition、command、MCP設定を配布する。Skill結果は合
 uv sync
 uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
 uv run python scripts/run_gd1_pipeline.py
-uv run acd-mcp
+uv run python scripts/probe_tools.py
 ```
 
 基板pipelineはsilkscreenゲートまで通過します。配置探索の出所と実測境界は
 [`docs/adr/ADR-0011-search-results-as-design-input.md`](docs/adr/ADR-0011-search-results-as-design-input.md)、
 [`docs/adr/ADR-0012-silkscreen-observation-boundary.md`](docs/adr/ADR-0012-silkscreen-observation-boundary.md)
 を参照してください。
+
+ゲートだけをDocker workspaceで実行する場合（imageは各自build）:
+
+```bash
+docker build -f docker/acd-tools.Dockerfile -t acd-tools-gates:local .
+ACD_CONTAINER_IMAGE=acd-tools-gates:local uv run python scripts/run_in_workspace.py
+```
+
+image digestを解決できない場合はfail-closedで実行しない。Dockerはdeterminismを
+保証しないため、通常のToolEnvelopeと決定論的ゲートを引き続き適用する。
 
 ## 文書
 

@@ -6,7 +6,7 @@
 ## 統合方針
 
 ACD pluginをOpenHands側の主成果物とする。OpenHandsはSkill、AgentDefinition、
-command、MCP設定、workspace実行を提供し、Python側はPydantic契約、決定論的投影、
+command、SDK ToolDefinition、任意のworkspace実行を提供し、Python側はPydantic契約、決定論的投影、
 ゲート、adapter、evidence契約を保持する。AIやSkillの出力は候補・所見であり、
 ACDの合否根拠ではない。
 
@@ -19,9 +19,10 @@ OpenHandsの公開Skills repositoryはsubmoduleにせず外部参照とする:
 ```text
 plugins/acd/
 ├── .plugin/plugin.json
-├── .mcp.json
-├── hooks/hooks.json
 ├── commands/gates.md
+├── hooks/
+│   ├── hooks.json
+│   └── scripts/
 ├── agents/
 │   ├── acd-electrical.md
 │   ├── acd-mechanical.md
@@ -78,28 +79,57 @@ command本文は既存の決定論的電気・機械ゲートを実行するよ�
 期待値・evidence規則を変更しない。ツール不在、未知状態、parse失敗、未検証は
 fail-closedとする。
 
-## ACD MCP server
+## SDK ToolDefinition境界
 
-`packages/acd-tools`の`acd-mcp`はFastMCP 3.4.7を使いstdioで起動する。公開範囲は
-既存の読み取り・契約検証・pipeline入口だけであり、設計権威をMCPに与えない。
+`packages/acd-tools/src/acd_tools/sdk_tools.py`はSDKの`ToolDefinition`、
+`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を使い、明示的な
+`register_acd_tools()`から次の決定論的入口を登録する。MCP client経由の外部利用は
+当面サポートしない。必要になればSDK側のMCP機構で再導入する。
 
 | tool | 内容 |
 |---|---|
-| `probe_tools()` | 外部ツールの有無と版を返す |
-| `validate_design_graph(path)` | Pydantic契約でgraphを検証する |
-| `run_board_pipeline(fixture, out, fab_profile, max_passes)` | 既存GD1基板pipelineを実行する |
-| `run_enclosure_pipeline(fixture, out)` | 既存GD1筐体pipelineを実行する |
+| `acd_probe_tools` | 外部ツールの有無と版を返す |
+| `acd_validate_design_graph` | Pydantic契約でgraphを検証する |
+| `acd_run_board_pipeline` | 既存GD1基板pipelineを実行する |
+| `acd_run_enclosure_pipeline` | 既存GD1筐体pipelineを実行する |
 
 返り値は`ok`、`operation`、`failure_reason`、`fail_closed`、summary、出力パス、
 ToolEnvelope由来のtool名・版・hashを含む構造化JSONである。入力不備、ファイル不在、
 JSON/Pydantic parse失敗、pipeline例外は成功に見せずfail-closedで返す。
+
+## 任意のDocker workspace実行
+
+ホスト実行が既定であり、agentをコンテナへ入れるのではなく、決定論的pipelineと
+ゲートだけを`DockerDevWorkspace`で実行できる。`DockerDevWorkspace`は
+`base_image`からagent-server imageをbuildできるため、利用者がbuildした
+`docker/acd-tools.Dockerfile`を渡す経路に選んだ。`DockerWorkspace`は既成server
+image向けである。
+
+`scripts/run_in_workspace.py`は`docker image inspect`でRepoDigestsを優先し、
+ローカルbuildではimage IDへフォールバックする。sha256 digestを解決できない場合は
+workspaceを起動しない。repoを`volumes`でmountし、`ACD_CONTAINER_IMAGE_DIGEST`を
+`forward_env`で渡す。Dockerはdeterminismを保証しないため、既存のhash、
+timestamp正規化、独立再読込、決定論的ゲートは維持する。
+
+## hook境界
+
+`plugins/acd/hooks/`はSDK command hookとして実装済みである。投影保護はpathフィールド
+だけを部分木解決して判定し、本文中の文字列は対象にしない。orderガードはtransmission
+commandかつ製造成果物への言及、または明示的order commandの場合だけ作動し、
+`required_evidence_ids`ごとに現revisionの`supports_pass()`を要求する。通常のsource push
+や文書取得は対象外である。
+
+Stopガードはorderガードより弱い。dirtyな設計入力すべてより新しいmtimeのvalidかつ
+unknownなしEvidenceがある場合だけ終了を許可するが、mtimeはpassの根拠ではない。
+`supports_pass()`はcommit済みrevision一致を要求し続ける。基板fabrication側は現状
+Evidenceを生成しないため、該当成果物の送信はdenyされる。
 
 ## 未実装・将来
 
 以下はSDKに存在する概念を調査したが、本リポジトリの採用済み実行経路ではない。
 
 - SecretRegistry連携とprovider secretの注入
-- DockerWorkspace実行
+- agentごとのDocker実行と配布済みACD image
 - agent-serverの運用
 - Conversationを使ったACD実行経路、fork、長時間resume
 - SDKのcritic、goal、workflow、memoryを使う自動修復ループ

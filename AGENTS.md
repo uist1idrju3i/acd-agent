@@ -22,8 +22,8 @@ plugins/acd/
 ├── skills/
 ├── agents/
 ├── commands/
-├── .plugin/plugin.json
-└── .mcp.json
+├── hooks/
+└── .plugin/plugin.json
 vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
 ```
 
@@ -51,12 +51,14 @@ Agent Canvasのsubmoduleは削除済みであり、追加しない。OpenHands�
 ## plugin境界
 
 Skillsは工程手法、探索、FW作業、レビューを提供する。AgentDefinitionは電気、機械、
-FW、レビューの役割を分ける。`/acd:gates` commandと`acd-mcp` MCP serverは既存の
+FW、レビューの役割を分ける。`/acd:gates` commandとSDK ToolDefinitionは既存の
 決定論的入口だけを使う。独自tool、event、history、task、executor基盤は作らず、
 OpenHands SDKへ委譲する。
 
 Skillsのtriggerは`KeywordTrigger`を使う。`paths:`はmodel invocationを無効化し、
 `inputs:`はTaskTriggerになるため現在は使わない。reviewerは合否権限を持たない。
+SDK hooksはagent経路のfail-closed境界として採用するが、CIの決定論的検証を置き換えず、
+既存判定を呼び出すだけとする。
 
 ## 依存とsubmodule
 

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from acd_core.process import ExternalToolError, run_in_process, run_tool
+from acd_core.process import ExternalToolError, execution_env, run_in_process, run_tool
+from acd_schema import Evidence, ToolEnvelope
 
 
 def _copy_command(src: Path, dst: Path) -> list[str]:
@@ -133,3 +135,53 @@ def test_run_in_process_records_normalized_outputs_on_every_run(tmp_path: Path) 
     second = execute()
     assert calls == 2
     assert first.envelope.output_hash == second.envelope.output_hash
+
+
+@pytest.mark.parametrize(
+    ("digest", "in_container", "expected"),
+    [
+        ("sha256:" + "a" * 64, False, "container=sha256:" + "a" * 64),
+        ("", True, "container=unknown"),
+        ("", False, "container=none"),
+    ],
+)
+def test_execution_env_records_container_state(
+    monkeypatch: pytest.MonkeyPatch,
+    digest: str,
+    in_container: bool,
+    expected: str,
+) -> None:
+    monkeypatch.setenv("ACD_CONTAINER_IMAGE_DIGEST", digest)
+    monkeypatch.setattr("acd_core.process._in_container", lambda: in_container)
+    assert expected in execution_env()
+
+
+def test_unknown_container_envelope_is_not_pass_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ACD_CONTAINER_IMAGE_DIGEST", "")
+    monkeypatch.setattr("acd_core.process._in_container", lambda: True)
+    assert "container=unknown" in execution_env()
+    envelope = ToolEnvelope(
+        tool_name="test",
+        tool_version="1.0",
+        format_version="unknown",
+        config_hash="sha256:" + "a" * 64,
+        input_hash="sha256:" + "b" * 64,
+        output_hash="sha256:" + "c" * 64,
+        execution_env=execution_env(),
+        measurement_conditions="test",
+        convergence_state="converged",
+        target_revision="r1",
+        started_at=datetime.now(UTC),
+        finished_at=datetime.now(UTC),
+    )
+    evidence = Evidence(
+        evidence_id="test.unknown-container",
+        target_revision="r1",
+        status="valid",
+        envelope=envelope,
+        created_at=datetime.now(UTC),
+    )
+    assert envelope.has_unknown()
+    assert not evidence.supports_pass("r1")

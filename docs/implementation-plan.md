@@ -14,7 +14,7 @@
 3. **plugin委譲**
    - Skillは探索・FW作業・レビュー手法を提供する。
    - AgentDefinitionは電気、機械、FW、レビューの役割を分離する。
-   - commandとMCPは既存の決定論的入口だけを公開する。
+   - commandとSDK ToolDefinitionは既存の決定論的入口だけを公開する。
 4. **検証**
    - `uv run ruff check`
    - `uv run pyright`

@@ -8,7 +8,9 @@ performs no gate judgment.
 from __future__ import annotations
 
 import hashlib
+import os
 import platform
+import re
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -37,8 +39,29 @@ def sha256_paths(paths: list[Path]) -> str:
     return "sha256:" + digest.hexdigest()
 
 
+_CONTAINER_DIGEST = re.compile(r"sha256:[0-9a-fA-F]{64}\Z")
+
+
+def _in_container() -> bool:
+    """Return whether the current process has a container marker."""
+    return Path("/.dockerenv").exists() or os.getenv("ACD_IN_CONTAINER", "").lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def execution_env() -> str:
-    return f"{platform.system().lower()}-{platform.machine()}; container=none"
+    """Describe the host and fail-closed container identity."""
+    digest = os.getenv("ACD_CONTAINER_IMAGE_DIGEST", "")
+    if _CONTAINER_DIGEST.fullmatch(digest):
+        container = digest
+    elif _in_container():
+        container = "unknown"
+    else:
+        container = "none"
+    return f"{platform.system().lower()}-{platform.machine()}; container={container}"
 
 
 @dataclass(frozen=True)
