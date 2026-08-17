@@ -38,6 +38,11 @@ rationaleのMarkdownはpipeline出力の派生レビュー投影であり、cano
 AIとSkillは探索・実装・所見を提案する。合否はACDの決定論的ゲートだけが判定する。
 ツール不在、入力不備、parse失敗、未実行、unknown、未検証はfail-closedとする。
 
+pluginの外部配布では、`github:uist1idrju3i/acd-agent`の`plugins/acd`を40桁commit SHA
+または`v<semver>` tagへ固定する。branch名や未指定refはprovenance不明として拒否する。
+開発時のlocal pathはSDK Conversationの既定経路として残す。TestLLMはSDK wiringと
+critic反復の回帰に使うが、metricsやcritic出力を合否Evidenceへ昇格させない。
+
 ## Pythonパッケージ
 
 ```text
@@ -130,10 +135,49 @@ Dockerはdeterminismを保証しないため、timestamp、filesystem、外部�
 入力・出力hashの正規化と決定論的ゲートは従来どおり必要である。ACD imageは配布せず、
 利用者が[`docker/README.md`](../docker/README.md)のDockerfileを各自buildする。
 
+## Critic境界
+
+`AcdGateCritic`はSDKの反復制御へ接続するが、合否はDesign Graphのrevisionに
+一致するEvidenceと製造manifestだけで決める。events、git patch、LLM出力は
+スコアへ影響せず、critic出力はpass evidenceではない。設計入力がgitでdirty、
+parse不能、stale、unknown、または要件未達なら0.0とし、全要件充足時だけ1.0とする。
+
+## 探索並列化境界
+
+GD1基板pipelineでは、独立したKiCad width positive-controlの2 armだけを
+thread poolで並列実行できる。結果はarm-a、arm-bの固定順で集約し、並列度1は
+逐次経路と同一である。worker数を変えた検証では、出力パスとKiCad DRC日時を除いた
+arm summaryの正規化結果が一致し、worker例外はfail-closedで伝播する。`hashes.json`
+は既存pipelineのKiCad UUIDとDRC日時による非決定性のため一致せず、この是正はP4の
+範囲外である。greedy配置探索とsilkscreen探索は状態依存のため並列化しない。
+
+`acd-search` AgentDefinitionは冗長な探索出力を主会話から分離するだけで、候補と
+Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力は合否権限を持たず、
+設計入力へ確定した後に既存ゲートで判定する。SDK workflow toolはLLM subagent用で
+shell・file操作を禁止するため、決定論的探索には使わない。
+
+## SDK Conversation session境界
+
+`acd_tools.agent_session`は`LocalConversation`へACD plugin、hooks、workspace、
+`persistence_dir`、`AcdGateCritic`、`LLMSummarizingCondenser`を宣言的に接続する。
+loop、history、state/event persistence、metricsはSDKへ委譲する。EventLog、
+conversation state、metrics、condenser outputは経過でありpass evidenceではない。
+fork/resume後も決定論的ゲートを再実行して合否を決める。SDK gitは設計入力のstale判定
+への入力に限り、Evidenceの正は`Evidence.supports_pass(graph.revision)`である。
+
+## agent-server運用境界
+
+OpenHands SDK v1.42.1のagent-serverは、REST、WebSocket、event、
+conversation persistenceを運ぶ層として文書化する。serverのevent、state、metrics、
+agent出力、OpenAI互換応答は経過であり、pass evidenceではない。合否はCIまたは
+`run_in_workspace`の決定論的pipelineとgateが決める。詳細な起動前確認、保存先、
+resume/fork、直接APIのhook境界、未実測範囲は[`agent-server-runbook.md`](agent-server-runbook.md)
+と[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)を参照する。
+
 ## 実装していない境界
 
-SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、Conversationを使った
-実行経路、実機測定、価格・在庫取得、自働発注は未実装であり、将来構想である。
+SecretRegistry連携、agentごとのコンテナ運用、実運用としてのagent-server、実機測定、価格・在庫
+取得、自働発注は未実装であり、将来構想である。
 
 ## hook境界
 

@@ -16,6 +16,7 @@
 | [`roadmap.md`](roadmap.md) | 近い順の実装計画と将来構想 | 計画 |
 | [`implementation-plan.md`](implementation-plan.md) | 直近作業の分解 | 計画 |
 | [`installation.md`](installation.md) | 現行ツールチェーンの導入 | 運用 |
+| [`agent-server-runbook.md`](agent-server-runbook.md) | agent-serverの運用境界と手順 | 運用契約 |
 | [`golden-design-1.md`](golden-design-1.md) | GD1 fixtureと到達状況 | 規範 |
 | [`projection-review.md`](projection-review.md) | 投影レビュー | 規範 |
 | [`dependency-notes.md`](dependency-notes.md) | 依存と一次情報 | 対応関係の正 |
@@ -50,5 +51,10 @@
 - [`ADR-0013-rationale-coverage-scope.md`](adr/ADR-0013-rationale-coverage-scope.md): 設計根拠coverageの必須範囲と免除分類
 - [`ADR-0014-sdk-tool-definitions.md`](adr/ADR-0014-sdk-tool-definitions.md): SDK ToolDefinitionへの一本化
 - [`ADR-0015-docker-workspace-gate-execution.md`](adr/ADR-0015-docker-workspace-gate-execution.md): Docker workspaceによるゲート実行
+- [`ADR-0016-acd-gate-critic.md`](adr/ADR-0016-acd-gate-critic.md): 決定論的ゲート結果によるcritic反復
+- [`ADR-0017-parallel-search-lane.md`](adr/ADR-0017-parallel-search-lane.md): 決定論的探索並列化と探索lane
+- [`ADR-0018-agent-session-persistence.md`](adr/ADR-0018-agent-session-persistence.md): SDK Conversationによるsession永続化
+- [`ADR-0019-plugin-distribution-and-testllm.md`](adr/ADR-0019-plugin-distribution-and-testllm.md): pinned plugin配布とTestLLM回帰
+- [`ADR-0020-agent-server-operations.md`](adr/ADR-0020-agent-server-operations.md): agent-serverの運用境界
 
 Skillの実行結果は合否根拠ではない。合否は入力ファイルと決定論的ゲートだけが決める。

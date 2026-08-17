@@ -23,12 +23,14 @@ def main() -> int:
         artifact_paths = policy["artifact_paths"]
         order_commands = policy["order_commands"]
         evidence_pattern = policy["evidence_paths"]
+        graph_paths = policy["design_graph_paths"]
         required_ids = policy["required_evidence_ids"]
         if not all(
             isinstance(value, list)
             for value in (
                 transmission,
                 artifact_paths,
+                graph_paths,
                 order_commands,
                 required_ids,
             )
@@ -36,8 +38,11 @@ def main() -> int:
             raise ValueError("invalid policy")
         transmission = cast(list[object], transmission)
         artifact_paths = cast(list[object], artifact_paths)
+        graph_paths = cast(list[object], graph_paths)
         order_commands = cast(list[object], order_commands)
         required_ids = cast(list[object], required_ids)
+        if not all(isinstance(path, str) for path in graph_paths):
+            raise ValueError("invalid graph paths")
     except (OSError, ValueError, json.JSONDecodeError, KeyError, TypeError):
         result(decision="deny", reason="Order policy is unavailable or invalid; operation denied.")
         return 2
@@ -78,7 +83,7 @@ def main() -> int:
     )
     if not is_order and not (is_transmission and artifact):
         return 0
-    current = revision(root)
+    current = revision(root, cast(list[str], graph_paths))
     evidence = sorted(root.glob(evidence_pattern))
     if current is None or not evidence:
         result(

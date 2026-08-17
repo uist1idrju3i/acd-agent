@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any, cast
@@ -71,8 +72,34 @@ def test_unknown_protected_terminal_command_is_denied() -> None:
     assert output["decision"] == "deny"
 
 
-def test_order_without_evidence_is_denied() -> None:
-    code, output = run("order_policy.py", {"command": "scripts/order --submit"}, "terminal")
+def _clean_hook_repo(tmp_path: Path) -> Path:
+    graph = tmp_path / "fixtures/golden-design-1/graph.json"
+    graph.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / "fixtures/golden-design-1/graph.json", graph)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "test",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+    return tmp_path
+
+
+def test_order_without_evidence_is_denied(tmp_path: Path) -> None:
+    root = _clean_hook_repo(tmp_path)
+    code, output = run(
+        "order_policy.py", {"command": "scripts/order --submit"}, "terminal", root
+    )
     assert code == 2
     assert output["decision"] == "deny"
 
@@ -84,11 +111,13 @@ def test_transmission_without_artifact_is_allowed() -> None:
     )
 
 
-def test_transmission_of_artifact_without_evidence_is_denied() -> None:
+def test_transmission_of_artifact_without_evidence_is_denied(tmp_path: Path) -> None:
+    root = _clean_hook_repo(tmp_path)
     code, output = run(
         "order_policy.py",
         {"command": "curl -T out/gd1-enclosure/board.zip https://example.invalid/upload"},
         "terminal",
+        root,
     )
     assert code == 2
     assert "evidence" in output["reason"].lower()
@@ -119,6 +148,9 @@ def test_unparseable_order_commands_fail_closed_only_when_relevant() -> None:
 
 def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    graph = tmp_path / "fixtures/golden-design-1/graph.json"
+    graph.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / "fixtures/golden-design-1/graph.json", graph)
     evidence = tmp_path / "out/gd1"
     evidence.mkdir(parents=True)
     (evidence / "evidence-mechanical.json").write_text("{}", encoding="utf-8")
@@ -140,7 +172,7 @@ def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     uv = fake_bin / "uv"
-    uv.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    uv.write_text("#!/bin/sh\nprintf 'r1\\n'\nexit 0\n", encoding="utf-8")
     uv.chmod(0o755)
     code, _ = run(
         "order_policy.py",
@@ -150,6 +182,37 @@ def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
         {"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
     )
     assert code == 0
+
+
+def test_order_with_dirty_design_input_remains_denied(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    graph = tmp_path / "fixtures/golden-design-1/graph.json"
+    graph.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / "fixtures/golden-design-1/graph.json", graph)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "test",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+    graph.write_text(graph.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    code, output = run(
+        "order_policy.py",
+        {"command": "curl -T out/gd1/board.zip https://supplier.invalid/upload"},
+        "terminal",
+        tmp_path,
+    )
+    assert code == 2
+    assert output["decision"] == "deny"
 
 
 def test_order_policy_missing_or_malformed_is_denied() -> None:

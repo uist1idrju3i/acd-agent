@@ -22,6 +22,8 @@ import json
 import re
 import shutil
 import sys
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import cast
 
@@ -82,6 +84,29 @@ GERBER_LAYERS = [
 ]
 
 
+def _run_ordered_arms(
+    run_arm: Callable[[str, bool], dict[str, object]],
+    workers: int,
+) -> tuple[dict[str, object], dict[str, object]]:
+    """Run independent controls concurrently while collecting them in arm order."""
+    if workers < 1:
+        raise ValueError("width control worker count must be at least 1")
+    controls = (
+        ("arm-a-class-only", False),
+        ("arm-b-class-and-board-minimum", True),
+    )
+    if workers == 1:
+        results = [run_arm(name, board_minimum) for name, board_minimum in controls]
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(run_arm, name, board_minimum)
+                for name, board_minimum in controls
+            ]
+            results = [future.result() for future in futures]
+    return results[0], results[1]
+
+
 def _summarize_width_violations(
     result: RuleCheckResult,
     net_name: str,
@@ -125,6 +150,7 @@ def _run_kicad_netclass_positive_control(
     out_dir: Path,
     revision: str,
     normal_width_mm: float,
+    workers: int,
 ) -> dict[str, object]:
     """Measure class-only and board-level KiCad width controls."""
     control_dir = out_dir / "kicad-netclass-positive-control"
@@ -261,8 +287,7 @@ def _run_kicad_netclass_positive_control(
         )
         return summary
 
-    arm_a = run_arm("arm-a-class-only", change_board_minimum=False)
-    arm_b = run_arm("arm-b-class-and-board-minimum", change_board_minimum=True)
+    arm_a, arm_b = _run_ordered_arms(run_arm, workers)
     class_only_detected = bool(arm_a["width_violation_count"])
     board_level_detected = bool(arm_b["width_violation_count"])
     if not class_only_detected and not board_level_detected:
@@ -376,6 +401,7 @@ def run_pipeline(
     out_dir: Path,
     max_passes: int,
     fab_profile_path: Path,
+    width_control_workers: int = 2,
 ) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -576,6 +602,7 @@ def run_pipeline(
         out_dir,
         revision,
         lane.board.min_track_mm,
+        width_control_workers,
     )
 
     gerber_dir = out_dir / "gerbers"
@@ -1026,6 +1053,12 @@ def main() -> int:
     parser.add_argument("--out", type=Path, default=Path("out/gd1"), help="output directory")
     parser.add_argument("--max-passes", type=int, default=99999, help="router pass budget")
     parser.add_argument(
+        "--width-control-workers",
+        type=int,
+        default=2,
+        help="parallel workers for independent width positive-control arms",
+    )
+    parser.add_argument(
         "--fab-profile",
         type=Path,
         default=Path("profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"),
@@ -1033,7 +1066,13 @@ def main() -> int:
     )
     args = parser.parse_args()
     try:
-        run_pipeline(args.fixture, args.out, args.max_passes, args.fab_profile)
+        run_pipeline(
+            args.fixture,
+            args.out,
+            args.max_passes,
+            args.fab_profile,
+            args.width_control_workers,
+        )
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1

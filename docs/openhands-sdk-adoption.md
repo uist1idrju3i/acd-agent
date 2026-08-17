@@ -119,14 +119,23 @@ READMEの既知課題「投影→実測→再配置の反復ループが未実�
 推奨は`AcdGateCritic`（P3a）が主、goal loopは補助（P3b）。ACD側に新しい
 ループ実装を書かない。
 
-### P4: 探索の並列化をworkflow/subagentへ移す
+P3aの`AcdGateCritic`はDesign Graphの`graph.revision`をEvidenceの
+`target_revision`と比較する。git SHAはtarget revisionではなく、設計入力の
+clean判定だけに使う。criticのスコアは二値であり、全要件充足時だけ1.0、
+それ以外は0.0である。
 
-`acd-placement-search`と`acd-silkscreen-placement`は単一プロセスの探索script
-（373行 / 615行）。SDKの`openhands.tools.workflow`は`async def main(wf)`の
-orchestration scriptを`max_concurrency`付きで実行し、中間結果を主contextの外に
-保つ。`tools.delegate` / `sdk.subagent`（`agents/*.md`が既にAgentDefinition）と
-組み合わせれば、候補生成の並列化と「探索の詳細を主会話に持ち込まない」が同時に
-得られる。ACD側は候補を`graph.json`へ確定する境界（sha256 provenance）を維持する。
+### P4: ACD側の決定論的並列化と探索lane
+
+GD1基板pipelineの独立したwidth positive-control armだけを`ThreadPoolExecutor`
+で並列化する。arm-a、arm-bの結果は固定順で集約する。worker数1と4では、出力パスと
+KiCad DRC日時を除いたarm summaryの正規化比較が一致した。`hashes.json`は既存pipeline
+のKiCad UUIDとDRC日時による非決定性のため一致せず、この是正はP4の範囲外である。
+greedy配置探索とsilkscreen探索は状態依存のため並列化しない。
+
+`acd-search` AgentDefinitionは既存の決定論的探索CLIを実行し、候補とSkill名・
+script SHA-256 provenanceだけを返す。候補は合否権限を持たず、設計入力へ確定した
+後に決定論的ゲートで判定する。SDK workflowはLLM subagent用でshell・file操作が
+禁止されるため採用しない。
 
 ### P5: 外部ツール版の固定を`openhands-workspace`へ
 
@@ -137,7 +146,7 @@ ngspiceを固定したimageをworkspaceとして宣言すれば、**`ToolEnvelop
 初めて検証可能になる**（roadmap「フェーズ横断の検証要件#5」の実効化）。
 ACDはimage digestをenvelopeへ記録するだけでよい。
 
-### P6: 履歴・provenance・再開をSDKの永続化に載せる
+### P6: 履歴・provenance・再開をSDKの永続化に載せる（実装済み）
 
 `EventLog`（`sdk.event`）+ `sdk.io`のFileStore（`local` / `memory` / `cache`）+
 conversation persistence / fork を採用すると、(a) 設計判断の履歴、(b) 長時間セッションの
@@ -145,30 +154,46 @@ resume、(c) 設計案の分岐（fork）が標準機構になる。ACDの正は
 「入力ファイル + git commit + evidence」であり、EventLogは**根拠ではなく経過**として扱う
 （ADR-0008の記述と一致）。あわせて`sdk.git`の`git_changes` / `git_diff` / `git_commits`で
 stale evidence判定の入力（revision差分）を取る。
+`acd_tools.agent_session`が`LocalConversation`へplugin、hooks、workspace、
+`persistence_dir`、`AcdGateCritic`を接続する。loop、history、state/event persistenceは
+SDKへ委譲し、EventLogとconversation stateは経過であって合否Evidenceではない。
 
-### P7: 予算とcontextの標準機構
+### P7: 予算とcontextの標準機構（実装済み）
 
-roadmap「検証要件#8」がSDKの`Metrics` / `MetricsSnapshot`実測を要求しているが未接続。
-`Conversation`経路に載せれば`ConversationStats.get_metrics_for_usage()`で
-agent/profile別のtoken・金額が取れる。長い反復ループには
-`context.condenser.LLMSummarizingCondenser`（`AgentDefinition`の`condenser:`で宣言可）。
+`ConversationStats.get_combined_metrics()`を
+`acd_tools.agent_session.write_conversation_metrics()`でJSONへ出力できる。
+出力は`pass_evidence: false`を持つ経過情報であり、実LLM測定はP8のTestLLMで検証する。
+長い反復ループには`context.condenser.LLMSummarizingCondenser`を接続する。
 
 ### P8: 配布とテスト
 
-- plugin配布: `PluginSource(source="github:uist1idrju3i/acd-agent", repo_path="plugins/acd", ref=<tag>)`
-  でcommit SHAにpinしてfetchできる。現在の`.mcp.json`の`cwd: ${SKILL_ROOT}/../..` +
-  `uv run`はrepo同梱前提で、外部利用者が使えない。`sdk.marketplace`への登録も可能。
-- 回帰テスト: `sdk.testing.TestLLM`でplugin load / hook DENY / critic反復の経路を
-  LLMなしで決定論的に検証できる（ADR-0003の宣言を実装に落とす）。
-- `sdk.profiles`（`AgentProfile` / `agent_profile_store`）で電気・機械・FW・reviewerの
-  モデル設定を宣言に寄せる。`sdk.llm.router`はコスト最適化の選択肢。
+- plugin配布: `acd_tools.plugin_distribution.acd_plugin_source()`で
+  `github:uist1idrju3i/acd-agent`の`plugins/acd`を40桁commit SHAまたは
+  `v<semver>` tagへpinしてfetchできる。branch名や未指定refはfail-closedで拒否する。
+  開発時のlocal pathは既定値として維持する。`sdk.marketplace`はrepo部分木の
+  pinned fetchだけでは不要なため採用しない。
+- 回帰テスト: `sdk.testing.TestLLM`でbootstrapからSDK agent stepを通した投影保護hookの
+  DENYと、Conversationのrunを通した二値criticの未達、follow-up、反復上限をLLMなしで
+  決定論的に検証する。外部plugin fetch、実LLM、Docker、外部terminal実装、
+  複数stepのtool-call E2Eは未検証。
+- `sdk.profiles`（`AgentProfile` / `agent_profile_store`）はsecret-freeな参照モデルだが、
+  ACDの電気・機械・FW・reviewer設定への採用は見送る。解決済みLLMやAPI keyを宣言へ
+  埋め込まず、将来のprofile契約が固まった段階で再評価する。
 - `sdk.observability.laminar`はトレース可視化の選択肢（合否には無関係）。
 
-### P9（将来）: `openhands-agent-server`でVibeBBの運用面を得る
+### P9: `openhands-agent-server`の運用契約を文書化する（文書化済み・実運用未検証）
 
-`openhands-agent-server`はREST/WebSocket、persistence、OpenAI互換API、
-canvas extensions、VSCode extensionsを持つ。VibeBB（人間が要件オーナー）のUIを
-ACDが自作せずに済む。ただし合否・evidence契約はACD側に残す。
+`openhands-agent-server` v1.42.1は、会話、agent実行、event、workspace、永続化を
+運ぶ候補である。P9では一次sourceを読み、起動、保存、resume/fork、停止、metrics、
+Docker、認証の運用境界を[`agent-server-runbook.md`](agent-server-runbook.md)へ整理した。
+実serverの起動・接続・Docker buildはまだ検証していない。
+
+採用範囲はSDKのserver機構を運搬層として使う文書契約に限る。(a) event・metricsを
+pass evidenceへ昇格させない、(b) restart・fork・resume後も決定論的gateを再実行する、
+(c) API key・token・workspaceをACDの入力と混同しない、を不変条件とする。
+agent-serverをACD独自の判定器、history、persistence基盤へ置き換える実装は採用しない。
+未実測範囲と直接APIのhook境界はrunbookと
+[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)に記録する。
 
 ---
 
@@ -240,7 +265,7 @@ plugin配布の手組み」は全部SDK側の既製機構で置き換えられ�
 | 5 | workflow/subagentでの探索並列化（P4） | 中 | 探索時間と主context汚染の削減 |
 | 6 | EventLog / FileStore / git差分、Metrics、condenser（P6・P7） | 中 | 履歴・resume・予算実測（roadmap要件#8）を満たす |
 | 7 | plugin配布のpinned source化 + `TestLLM`回帰（P8） | 小 | 外部利用可能な配布物になる |
-| 8 | agent-server運用（P9） | 大 | VibeBBの運用面。将来 |
+| 8 | agent-server運用（P9） | 大 | 運用契約を文書化済み。実運用は未検証 |
 
 各段でADRを1本追加し、ADR-0003（SDK機能採否）とADR-0010（plugin-first境界）、
 `docs/openhands-integration.md`の「未実装・将来」節を実態に合わせて更新する。

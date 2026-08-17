@@ -11,6 +11,12 @@ SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論�
 実機測定、発注、価格・在庫取得は未実装である。
 P5として、ホスト実行を既定にした任意のDockerDevWorkspaceゲート実行経路を追加し、
 image digest未解決時は停止する。
+P3aとして、`AcdGateCritic`による決定論的ゲート結果駆動の反復を追加する。
+SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
+P4として、GD1の独立したwidth positive-control armをACD側で並列化し、
+探索候補を返す`acd-search` AgentDefinitionを追加する。SDK workflowは採用しない。
+P9として、agent-serverをruntimeの運搬層として扱う運用契約を文書化した。実運用、
+server E2E、Docker image検証は未完了であり、決定論的gateの代替にはしない。
 
 ## 現行実装計画
 
@@ -21,7 +27,10 @@ image digest未解決時は停止する。
 | 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
+| 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 実装済み |
+| 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 実装済み |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
+| P9 | agent-server運用契約 | runtime transportと決定論的gateの境界、保存・resume/fork・安全手順を文書化する | 文書化済み（実運用未検証） |
 
 各マイルストーンの完了条件は、(1)入力と出所、(2)実装、(3)正常系、(4)negative/
 fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけでは完了としない。
@@ -37,6 +46,7 @@ fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけ�
 - 全ゲート通過後だけの自働発注
 - 高密度基板、認証設計、熱・SIなどの拡張
 - agent自体のコンテナ化と配布済みACD image
+- agent-serverの実運用、staging E2E、shared storageと複数instanceの検証
 
 ## 検証要件
 
@@ -59,7 +69,7 @@ parse失敗、未実行、unknownはfail-closedとする。Markdownのみの変�
 | 5 | 外部ツールの保存バイト列を設計状態の権威にしない。非決定な出力は正規化規則を契約に書き、規則外の差異は停止条件とする | 外部ツールの決定論性を説明で仮定する（timestamp、再保存時のセグメント構成差など） |
 | 6 | 契約はPydanticモデルから導く | runnerと文書でgate番号・状態を二重管理する |
 | 7 | 安全条件・保護対象は書き換わる部分木で判断する | pathの完全一致だけで許可・却下を決める |
-| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。SDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | 予算次元を不明のまま次の作業へ渡す |
+| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。SDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | sessionへのmetrics出力配線はP7で実装済み。P8ではTestLLMでSDK wiringと二値critic反復を回帰する。実LLM・外部tool E2Eの実測は未完了 |
 | 9 | 探索を含む工程では、代理指標スコアを合格根拠にせず、停止理由と実行結果を記録する | 代理指標だけで合格させる。停止理由を記録しない |
 
 ## 見直し条件
