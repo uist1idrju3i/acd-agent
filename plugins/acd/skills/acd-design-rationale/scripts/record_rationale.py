@@ -8,75 +8,50 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import TypeGuard
 
-JsonValue = (
-    None
-    | bool
-    | float
-    | int
-    | str
-    | list["JsonValue"]
-    | dict[str, "JsonValue"]
-)
-JsonObject = dict[str, JsonValue]
+from pydantic import TypeAdapter
+
+JsonObject = dict[str, object]
+JSON_OBJECT = TypeAdapter(JsonObject)
+JSON_LIST = TypeAdapter(list[object])
 
 
-def _is_json_value(value: object) -> TypeGuard[JsonValue]:
-    if value is None or isinstance(value, (bool, float, int, str)):
-        return True
-    if isinstance(value, list):
-        for item in value:  # pyright: ignore[reportUnknownVariableType]
-            item_value: object = item  # pyright: ignore[reportUnknownVariableType]
-            if not _is_json_value(  # pyright: ignore[reportUnknownArgumentType]
-                item_value  # pyright: ignore[reportUnknownArgumentType]
-            ):
-                return False
-        return True
-    if isinstance(value, dict):
-        for key in value:  # pyright: ignore[reportUnknownVariableType]
-            key_value: object = key  # pyright: ignore[reportUnknownVariableType]
-            item_value: object = value[key]  # pyright: ignore[reportUnknownVariableType]
-            if not isinstance(key_value, str) or not _is_json_value(  # pyright: ignore[reportUnknownArgumentType]
-                item_value  # pyright: ignore[reportUnknownArgumentType]
-            ):
-                return False
-        return True
-    return False
-
-
-def _load_json(path: Path) -> JsonValue:
+def _load_json(path: Path) -> object:
     value: object = json.loads(path.read_text(encoding="utf-8"))
-    if not _is_json_value(value):
-        raise ValueError(f"JSON value is not supported: {path}")
     return value
 
 
-def _object(value: JsonValue, name: str) -> JsonObject:
+def _object(value: object, name: str) -> JsonObject:
     if not isinstance(value, dict):
         raise ValueError(f"{name} must be a JSON object")
-    return value
+    return JSON_OBJECT.validate_python(value)
 
 
-def _string_list(value: JsonValue | None, name: str) -> list[str]:
-    if not isinstance(value, list) or not value or not all(
-        isinstance(item, str) for item in value
+def _string_list(value: object, name: str) -> list[str]:
+    if not isinstance(value, list) or not value:
+        raise ValueError(f"{name} must be a non-empty string list")
+    items = JSON_LIST.validate_python(value)
+    if not all(
+        isinstance(item, str) for item in items
     ):
         raise ValueError(f"{name} must be a non-empty string list")
     result: list[str] = []
-    for item in value:
+    for item in items:
         if isinstance(item, str):
             result.append(item)
     return result
 
 
-def _objects(value: JsonValue | None, name: str) -> list[JsonObject]:
-    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+def _objects(value: object, name: str) -> list[JsonObject]:
+    if not isinstance(value, list):
+        raise ValueError(f"{name} must be a JSON object list")
+    items = JSON_LIST.validate_python(value)
+    if not all(isinstance(item, dict) for item in items):
         raise ValueError(f"{name} must be a JSON object list")
     result: list[JsonObject] = []
-    for item in value:
+    for item in items:
         if isinstance(item, dict):
-            result.append(item)
+            result.append(JSON_OBJECT.validate_python(item))
     return result
 
 
@@ -89,7 +64,7 @@ def subject_hash(graph: JsonObject, nodes: list[str], attrs: list[str]) -> str:
             raise ValueError("graph node id must be a string")
         by_id[node_id] = node
 
-    values: list[list[JsonValue]] = []
+    values: list[list[object]] = []
     for node_id in sorted(nodes):
         node = by_id.get(node_id)
         if node is None:
@@ -143,7 +118,7 @@ def main() -> int:
         record["target_revision"] = revision
         original = args.rationale.read_text(encoding="utf-8")
         existing.append(record)
-        records_value: list[JsonValue] = []
+        records_value: list[object] = []
         records_value.extend(existing)
         document["records"] = records_value
         args.rationale.write_text(
