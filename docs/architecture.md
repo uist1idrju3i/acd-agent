@@ -129,14 +129,21 @@ Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上�
 
 ## Docker workspace境界
 
-決定論的ゲートの実行環境は`DockerWorkspace(server_image="...@sha256:<digest>")`へ
-一本化する。repoは`volumes`でmountし、`out/`と`evidence/`をホスト側へ残す。
-`DockerDevWorkspace(base_image=...)`はACD tools imageからagent-server imageをbuildする
-準備経路に限定し、ゲート実行の既定経路にはしない。現行runnerは移行中であり、CIと
-ホスト実行は参考経路である。`container=none`の実行は合格側Evidenceを生成しない。
+digest固定コンテナだけを合格側Evidenceの実行環境とする。現行runnerは利用者が渡す
+`base_image`からagent-server imageを準備するため、SDKの
+`DockerDevWorkspace(base_image=...)`を使う。SDK実装上、これは開発・テスト向けの
+on-the-fly build経路である。agent-server imageを事前に配布できる運用へ移行した時点では、
+`DockerWorkspace(server_image="...@sha256:<digest>")`へ切り替える。
+repoは`volumes`でmountし、`out/`と`evidence/`をホスト側へ残す。CIとホスト実行は
+参考経路であり、host実行の結果はprovisionalで合格側Evidenceへ昇格しない。
 runnerは`docker image inspect`でdigestを解決し、解決できない場合はworkspaceを起動せず
-fail-closedで停止する。解決したdigestは`ACD_CONTAINER_IMAGE_DIGEST`としてforwardし、
-ToolEnvelopeの`execution_env`へ記録する。
+fail-closedで停止する。解決したdigestと`ACD_IN_CONTAINER`をforwardし、ToolEnvelopeの
+`execution_context`と`container_image_digest`へ型付きで記録する。`execution_env`は
+host/architectureの説明だけに使い、container identityの判定には使わない。
+
+`Evidence.supports_pass()`はrevision、status、既知provenanceの妥当性を表す。
+`supports_authoritative_pass()`はそれに加えてdigest固定containerを要求し、
+hostで生成されたvalid Evidenceは`is_provisional()`として扱う。
 
 Dockerはdeterminismを保証しないため、timestamp、filesystem、外部ツール版、
 入力・出力hashの正規化と決定論的ゲートは従来どおり必要である。ACD imageは配布せず、
@@ -195,14 +202,16 @@ policyのartifact globに一致する製造成果物に触れる、または(2)�
 である場合だけEvidenceを要求する。コマンドは実行ファイルのtoken単位で検出し、
 URLは成果物として扱わないため、通常の`git push`、文書取得の`curl`、供給者データの
 取得は対象外である。policyのEvidence globで解決した各ファイルをCLIへ複数渡し、
-`required_evidence_ids`の各IDについて現revisionに一致する`supports_pass()`が必要である。
+`required_evidence_ids`の各IDについて現revisionに一致する
+`supports_authoritative_pass()`が必要である。
 GD1基板pipelineは現状Evidenceレコードを生成しないため、基板fabrication成果物の送信は
 fail-closedになる。
 
 Stopガードはorderガードより弱く、order policyのEvidence globで解決したファイルのうち、
 dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが存在する場合に限り
 終了を許可する。mtimeの新しさはpass Evidenceではなく、`--valid-only`はStopガード専用
-の新しさ確認である。`supports_pass()`は引き続きcommit済みrevision一致を要求する。
+の新しさ確認である。`supports_pass()`は引き続きcommit済みrevision一致を要求し、
+orderの合格側Evidenceは`supports_authoritative_pass()`を要求する。
 該当しない場合は原因となった設計入力パスをreasonに列挙する。
 
 ## 実装していない境界
@@ -222,5 +231,6 @@ S4（試作立ち上げ）で構成する。各工程は入力ファイルを更
 
 SDKが実行・対話・配布・観測を担い、ACDが契約・投影・合否を担う。エージェント入口は
 SDK `ToolDefinition`に一本化し、`scripts/*` CLIは人間とCIの入口に限定する。実行形は
-`LocalConversation`と`DockerWorkspace`を基点とし、agent-server経路は未検証の将来構想
+`LocalConversation`とworkspace APIを基点とし、現行runnerは`DockerDevWorkspace`、
+事前build済みimageへの移行後は`DockerWorkspace`を使う。agent-server経路は未検証の将来構想
 として扱う。

@@ -62,9 +62,9 @@
 | tools.tom_consult | `TomConsultTool` | 外部相談 | 不採用 | 合否に関与しない経路を増やさない | 未検証 |
 | tools.preset | tool preset loader | 暗黙tool束 | 不採用 | tool集合を明示固定する | 未検証 |
 | tools.preset.standard | standard presets | 汎用tool束 | 不採用 | ACD固有ToolDefinitionで登録する | 未検証 |
-| workspace.LocalWorkspace | `LocalWorkspace` | agent作業workspace | 採用予定 | 現行の承認実行形はDockerWorkspaceへ限定 | 未検証 |
-| workspace.DockerWorkspace | `DockerWorkspace` | 決定論的ゲート実行 | 採用予定 | 未使用で、digest固定経路への移行を決定 | 未検証 |
-| workspace.DockerDevWorkspace | `DockerDevWorkspace` | agent-server image build準備 | 採用 | 現行runnerがbuild準備に使用 | Docker build試験 |
+| workspace.LocalWorkspace | `LocalWorkspace` | agent作業workspace | 採用予定 | 現行の承認実行形はdigest固定containerへ限定し、hostは参考実行とする | 未検証 |
+| workspace.DockerWorkspace | `DockerWorkspace` | 事前build済みdigest固定server imageの実行 | 採用予定 | 現行runnerはbase imageから準備するため未使用。配布済みserver imageへ移行後に採用 | vendor実装のconstructorとdocstringを確認 |
+| workspace.DockerDevWorkspace | `DockerDevWorkspace` | 現行runnerのbase imageからagent-server imageを準備 | 採用 | `src/acd/openhands/workspace.py`が`base_image`で実行 | vendor実装、runner回帰 |
 | workspace.apptainer | `ApptainerWorkspace` | Apptainer実行 | 不採用 | DockerWorkspace一本化 | 未検証 |
 | workspace.remote_api | `APIRemoteWorkspace` | remote API実行 | 不採用 | remote APIを範囲外とする | 未検証 |
 | workspace.cloud | OpenHands Cloud workspace | cloud実行 | 不採用 | 再現性と運用境界を固定できない | 未検証 |

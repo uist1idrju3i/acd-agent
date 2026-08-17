@@ -8,7 +8,13 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.process import ExternalToolError, execution_env, run_in_process, run_tool
+from acd.core.process import (
+    ExternalToolError,
+    execution_env,
+    execution_provenance,
+    run_in_process,
+    run_tool,
+)
 from acd.schema import Evidence, ToolEnvelope
 
 
@@ -140,7 +146,8 @@ def test_run_in_process_records_normalized_outputs_on_every_run(tmp_path: Path) 
 @pytest.mark.parametrize(
     ("digest", "in_container", "expected"),
     [
-        ("sha256:" + "a" * 64, False, "container=sha256:" + "a" * 64),
+        ("sha256:" + "a" * 64, True, "container=sha256:" + "a" * 64),
+        ("sha256:" + "a" * 64, False, "container=none"),
         ("", True, "container=unknown"),
         ("", False, "container=none"),
     ],
@@ -162,6 +169,7 @@ def test_unknown_container_envelope_is_not_pass_evidence(
     monkeypatch.setenv("ACD_CONTAINER_IMAGE_DIGEST", "")
     monkeypatch.setattr("acd.core.process._in_container", lambda: True)
     assert "container=unknown" in execution_env()
+    assert execution_provenance() == ("container", "unknown")
     envelope = ToolEnvelope(
         tool_name="test",
         tool_version="1.0",
@@ -170,6 +178,8 @@ def test_unknown_container_envelope_is_not_pass_evidence(
         input_hash="sha256:" + "b" * 64,
         output_hash="sha256:" + "c" * 64,
         execution_env=execution_env(),
+        execution_context="container",
+        container_image_digest="unknown",
         measurement_conditions="test",
         convergence_state="converged",
         target_revision="r1",
@@ -185,3 +195,65 @@ def test_unknown_container_envelope_is_not_pass_evidence(
     )
     assert envelope.has_unknown()
     assert not evidence.supports_pass("r1")
+
+
+def test_host_evidence_is_provisional() -> None:
+    envelope = _host_envelope()
+    evidence = Evidence(
+        evidence_id="test.host",
+        target_revision="r1",
+        status="valid",
+        envelope=envelope,
+        created_at=datetime.now(UTC),
+    )
+    assert evidence.supports_pass("r1")
+    assert not evidence.supports_authoritative_pass("r1")
+    assert evidence.is_provisional()
+
+
+def test_container_evidence_is_authoritative() -> None:
+    envelope = ToolEnvelope.model_validate(
+        {
+            **_host_envelope().model_dump(),
+            "execution_context": "container",
+            "container_image_digest": "sha256:" + "d" * 64,
+        }
+    )
+    evidence = Evidence(
+        evidence_id="test.container",
+        target_revision="r1",
+        status="valid",
+        envelope=envelope,
+        created_at=datetime.now(UTC),
+    )
+    assert evidence.supports_authoritative_pass("r1")
+    assert not evidence.is_provisional()
+
+
+def _host_envelope() -> ToolEnvelope:
+    return ToolEnvelope(
+        tool_name="test",
+        tool_version="1.0",
+        format_version="1.0",
+        config_hash="sha256:" + "a" * 64,
+        input_hash="sha256:" + "b" * 64,
+        output_hash="sha256:" + "c" * 64,
+        execution_env="test",
+        execution_context="host",
+        measurement_conditions="test",
+        convergence_state="converged",
+        target_revision="r1",
+        started_at=datetime.now(UTC),
+        finished_at=datetime.now(UTC),
+    )
+
+
+def test_execution_provenance_validator_rejects_contradictions() -> None:
+    invalid_values = (
+        {"execution_context": "host", "container_image_digest": "sha256:" + "e" * 64},
+        {"execution_context": "container", "container_image_digest": None},
+        {"execution_context": "unknown", "container_image_digest": "sha256:" + "f" * 64},
+    )
+    for update in invalid_values:
+        with pytest.raises(ValueError):
+            ToolEnvelope.model_validate({**_host_envelope().model_dump(), **update})

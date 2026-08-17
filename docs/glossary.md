@@ -9,6 +9,9 @@
 | 投影 | 入力から再生成され、入力を置き換えない派生成果物。 |
 | レビュー投影 | AIが観察するための機械可読または視覚的な投影。 |
 | Evidence | ツール版、入力・出力hash、条件、結果、commitを含む検証根拠。 |
+| execution context | `container`、`host`、`unknown`で表すToolEnvelopeの型付き実行場所。 |
+| authoritative Evidence | revision一致、既知provenance、digest固定containerを満たし、合格側へ使えるEvidence。 |
+| provisional Evidence | `supports_pass()`は満たすがdigest固定container要件を満たさず、参考に限るEvidence。 |
 | Rationale | 採用理由、代替案、要求、出所を保持する型付き設計根拠。 |
 | rationale coverage | 必須属性が有効なrationale recordで覆われている状態。 |
 | ゲート | 成果物を次工程へ進めるか決定する境界。 |
@@ -23,6 +26,7 @@
 | Conversation | SDKが管理する対話、履歴、状態、永続化の単位。 |
 | GoalController | 目標達成の反復停止を補助するSDK機構。 |
 | DockerWorkspace | digest固定imageでagentやゲートを実行するworkspace。 |
+| DockerDevWorkspace | base imageからagent-server imageを準備するSDK workspace。現行runnerが使う。 |
 | LocalConversation | 現行ACDが採用するローカルConversation経路。 |
 | agent-server | SDKのREST/WebSocket等を提供する将来構想のserver経路。 |
 | L1/L2/L3 | L1は判定、L2は操舵、L3は観測を表す責務層。 |

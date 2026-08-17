@@ -26,6 +26,7 @@ def test_envelope_unknown_version_is_flagged() -> None:
 def test_valid_evidence_supports_pass_only_on_matching_revision() -> None:
     evidence = Evidence.model_validate(load_fixture("valid", "evidence.json"))
     assert evidence.supports_pass("r3")
+    assert evidence.supports_authoritative_pass("r3")
     assert not evidence.supports_pass("r4")
 
 

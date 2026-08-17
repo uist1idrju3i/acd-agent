@@ -166,7 +166,7 @@ class AcdGateCritic(CriticBase):
                 f"expected {requirement.evidence_id}, got {evidence.evidence_id}"
             )
             return False, detail
-        if not evidence.supports_pass(revision):
+        if not evidence.supports_authoritative_pass(revision):
             reasons: list[str] = []
             if evidence.status != "valid":
                 reasons.append(f"status={evidence.status}")

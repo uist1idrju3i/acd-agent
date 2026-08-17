@@ -149,6 +149,9 @@ AIレビューと決定論的ゲートは相互補完である。
 エスカレーションする。決定論的ゲートが未実行、再読込不能、または安全境界が`unknown`の
 場合はfail-closedで停止する。
 発注へ進む前には、これらのゲートを入力ファイルの現行git commitに対して再実行する。
+Evidenceを`evidence/`へ昇格する場合は`supports_authoritative_pass()`を要求する。
+host実行で全ゲートが通っても、生成物はprovisionalであり昇格を拒否する。digest固定
+containerで再実行し、revision一致、既知provenance、container image digestを確認する。
 
 ## 関連文書
 

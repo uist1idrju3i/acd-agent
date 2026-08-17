@@ -31,6 +31,17 @@ def test_wrong_revision_and_unknown_are_rejected(tmp_path: Path) -> None:
     assert not check("r3", [target])
 
 
+def test_host_evidence_is_rejected_for_promotion(tmp_path: Path) -> None:
+    source = Path("fixtures/contracts/valid/evidence.json")
+    record = json.loads(source.read_text(encoding="utf-8"))
+    record["envelope"]["execution_context"] = "host"
+    record["envelope"]["container_image_digest"] = None
+    record["envelope"]["execution_env"] = "linux-x86_64; container=none"
+    target = tmp_path / "evidence.json"
+    target.write_text(json.dumps(record), encoding="utf-8")
+    assert not check("r3", [target])
+
+
 def test_required_id_missing_and_stale_are_rejected(tmp_path: Path) -> None:
     source = Path("fixtures/contracts/valid/evidence.json")
     record = json.loads(source.read_text(encoding="utf-8"))

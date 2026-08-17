@@ -44,3 +44,17 @@ class Evidence(AcdModel):
             and self.envelope.target_revision == current_revision
             and not self.envelope.has_unknown()
         )
+
+    def supports_authoritative_pass(self, current_revision: str) -> bool:
+        """Return whether this evidence can support an authoritative pass."""
+        return (
+            self.supports_pass(current_revision)
+            and self.envelope.execution_context == "container"
+            and self.envelope.container_image_digest not in {None, "unknown"}
+        )
+
+    def is_provisional(self) -> bool:
+        """Return whether valid evidence lacks authoritative container provenance."""
+        return self.supports_pass(self.target_revision) and not self.supports_authoritative_pass(
+            self.target_revision
+        )

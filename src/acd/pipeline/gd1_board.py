@@ -67,6 +67,7 @@ from acd.adapters.kicad.routing import inject_routes, inject_stitch_vias
 from acd.core.board_model import NetClass
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.fab import extract_fab_intent, load_fab_profile
+from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.rationale import validate_and_project_rationale
@@ -1076,7 +1077,11 @@ def main() -> int:
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1
-    print("PIPELINE PASSED")
+    context, digest = execution_provenance()
+    if context == "container" and digest != "unknown":
+        print("PIPELINE PASSED (authoritative container execution)")
+    else:
+        print("PIPELINE PASSED (provisional host execution)")
     return 0
 
 

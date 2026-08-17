@@ -16,8 +16,10 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from acd.schema import ToolEnvelope
+from acd.schema.common import HashOrUnknown
 from acd.schema.tool_envelope import ConvergenceState
 
 
@@ -54,14 +56,19 @@ def _in_container() -> bool:
 
 def execution_env() -> str:
     """Describe the host and fail-closed container identity."""
-    digest = os.getenv("ACD_CONTAINER_IMAGE_DIGEST", "")
-    if _CONTAINER_DIGEST.fullmatch(digest):
-        container = digest
-    elif _in_container():
-        container = "unknown"
-    else:
-        container = "none"
+    _, digest = execution_provenance()
+    container = digest or "none"
     return f"{platform.system().lower()}-{platform.machine()}; container={container}"
+
+
+def execution_provenance() -> tuple[Literal["container", "host", "unknown"], HashOrUnknown | None]:
+    """Return typed execution context and optional container image digest."""
+    digest = os.getenv("ACD_CONTAINER_IMAGE_DIGEST", "")
+    if _in_container():
+        if _CONTAINER_DIGEST.fullmatch(digest):
+            return "container", digest
+        return "container", "unknown"
+    return "host", None
 
 
 @dataclass(frozen=True)
@@ -126,6 +133,7 @@ def run_tool(
         if not path.is_file():
             raise ExternalToolError(f"{tool_name}: expected output missing: {path}")
 
+    context, digest = execution_provenance()
     envelope = ToolEnvelope(
         tool_name=tool_name,
         tool_version=tool_version,
@@ -134,6 +142,8 @@ def run_tool(
         input_hash=input_hash,
         output_hash=sha256_paths(output_paths),
         execution_env=execution_env(),
+        execution_context=context,
+        container_image_digest=digest,
         measurement_conditions=measurement_conditions,
         convergence_state=convergence_state,
         target_revision=target_revision,
@@ -172,6 +182,7 @@ def run_in_process(
     for path in output_paths:
         if not path.is_file():
             raise ExternalToolError(f"{tool_name}: expected output missing: {path}")
+    context, digest = execution_provenance()
     envelope = ToolEnvelope(
         tool_name=tool_name,
         tool_version=tool_version,
@@ -180,6 +191,8 @@ def run_in_process(
         input_hash=input_hash,
         output_hash=_hash_paths_with(output_paths, output_normalizer),
         execution_env=execution_env(),
+        execution_context=context,
+        container_image_digest=digest,
         measurement_conditions=measurement_conditions,
         convergence_state="converged",
         target_revision=target_revision,

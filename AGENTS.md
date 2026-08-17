@@ -39,7 +39,7 @@ vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
 ## 不変条件
 
 - 入力ファイルとgitを設計の正とし、投影を入力へ逆流させない。
-- L1判定は決定論的ゲートと`Evidence.supports_pass(graph.revision)`だけが担う。
+- L1判定は決定論的ゲートとrevision一致のauthoritative Evidenceだけが担う。
 - L2のcritic、Skill、agent、reviewerは操舵、L3のevent、metrics、telemetryは観測に限る。
 - L2とL3は停止側にだけ作用でき、合格側へ作用させない。
 - ツール不在、parse失敗、ゲート未実行、unknown、未検証はfail-closedにする。
@@ -113,8 +113,10 @@ git diff --check
 ```
 
 Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
-`git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定のDockerWorkspaceを
-正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは移行中である。GD1基板pipelineはsilkscreenゲートまで通過する前提で、
+`git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定containerを
+正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは
+`DockerDevWorkspace`でbase imageからserver imageを準備する移行中の経路である。
+GD1基板pipelineはsilkscreenゲートまで通過する前提で、
 resolverと基板pipelineを実行して確認する。
 
 graphへ設計判断属性を追加する機能変更では、同じ変更で属性を

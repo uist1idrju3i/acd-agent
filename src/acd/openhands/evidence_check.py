@@ -2,7 +2,8 @@
 
 ``--valid-only`` checks only status and the absence of unknown envelope fields
 for the Stop guard's mtime freshness escape hatch. It is not pass evidence:
-pass evidence still requires ``supports_pass()`` for a committed revision.
+pass evidence still requires authoritative container provenance for a committed
+revision.
 """
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ def check(
             continue
         if revision is None:
             return False
-        if record.supports_pass(revision):
+        if record.supports_authoritative_pass(revision):
             if required_ids is None:
                 return True
             if record.evidence_id in required_ids:

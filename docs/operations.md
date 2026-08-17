@@ -12,7 +12,8 @@
 OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1
 （commit `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`）をworkspace sourceとして使用する。
 agent-serverは未検証の将来構想であり、現行の実行形は`LocalConversation`と
-`DockerWorkspace`を基点とする。
+`DockerDevWorkspace` runnerを基点とする。事前build済みimageへの移行後は
+`DockerWorkspace`を使う。
 
 ## cloneと依存関係
 
@@ -31,9 +32,11 @@ git submodule status
 `vendor/software-agent-sdk`がv1.42.1のcommitを指していることを確認する。
 
 Dockerでゲートを実行する場合は、[`docker/README.md`](../docker/README.md)に従って
-`docker/acd-tools.Dockerfile`を各自buildする。決定論的ゲートは
-DockerWorkspaceのdigest固定imageで実行する。現行runnerのホスト経路は
-移行中の参考実行であり、合格側Evidenceを生成しない。
+`docker/acd-tools.Dockerfile`を各自buildする。現行runnerは
+`DockerDevWorkspace(base_image=...)`でagent-server imageを準備する。これはSDK実装上の
+on-the-fly build経路であり、事前build済みserver imageを配布する運用へ移行したら
+`DockerWorkspace(server_image=...)`へ切り替える。ホスト経路は移行中の参考実行であり、
+合格側Evidenceを生成しない。
 
 ## 外部ツール
 
@@ -75,6 +78,10 @@ ACD_CONTAINER_IMAGE=acd-tools-gates:local uv run python scripts/run_in_workspace
 ```
 
 image digestを解決できない場合、runnerはコマンドを実行せず非ゼロ終了する。
+runnerは`ACD_CONTAINER_IMAGE_DIGEST`と`ACD_IN_CONTAINER`をcontainerへforwardする。
+hostのToolEnvelopeは`execution_context="host"`、containerのToolEnvelopeは型付き
+`container_image_digest`を持つ。`evidence/`へ昇格するCLIは
+`supports_authoritative_pass()`を要求する。
 
 外部ツールが無い、版が不明、または出力を独立再読込できない場合、pipelineは
 fail-closedで停止する。ゲートの仕様とprobeの責務は[`gates.md`](gates.md)を参照する。

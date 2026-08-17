@@ -26,6 +26,8 @@ def _result(
             "input_hash": zero_hash,
             "output_hash": zero_hash,
             "execution_env": "test",
+            "execution_context": "host",
+            "container_image_digest": None,
             "measurement_conditions": "test",
             "convergence_state": "not_applicable",
             "target_revision": "r1",

@@ -38,8 +38,11 @@ def check_evidence_with_git(
                 "reason": "design input is stale",
                 "changed_paths": [str(change.path) for change in design_changes],
             }
-        if not evidence.supports_pass(revision):
-            return {"passed": False, "reason": "evidence does not support revision"}
+        if not evidence.supports_authoritative_pass(revision):
+            return {
+                "passed": False,
+                "reason": "evidence does not support authoritative revision",
+            }
         return {"passed": True, "reason": "evidence supports revision"}
     except (OSError, ValueError, GitError) as exc:
         return {"passed": False, "reason": f"git evidence check failed: {exc}"}

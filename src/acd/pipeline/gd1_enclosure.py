@@ -101,6 +101,8 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         "model_path": str(projection.model_path),
         "normalized_output_hash": projection.envelope.output_hash,
         "evidence": str(evidence_path),
+        "provisional": evidence.is_provisional(),
+        "authoritative": evidence.supports_authoritative_pass(graph.revision),
         "measured_volume_mm3": gate_report.measured_volume_mm3,
         "measured_min_wall_mm": gate_report.measured_min_wall_mm,
         "measured_min_clearance_mm": gate_report.measured_min_clearance_mm,
@@ -124,7 +126,10 @@ def main() -> int:
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-    print("PIPELINE PASSED")
+    if summary["provisional"]:
+        print("PIPELINE PASSED (provisional host execution)")
+    else:
+        print("PIPELINE PASSED (authoritative container execution)")
     return 0
 
 

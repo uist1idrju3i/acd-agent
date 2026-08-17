@@ -35,5 +35,6 @@
 | [0021](adr/ADR-0021-design-rationale-records.md) | 設計根拠record |
 | [0023](adr/ADR-0023-deterministic-gate-authority.md) | 三層分離と合否権限 |
 | [0026](adr/ADR-0026-openhands-delegation-contract.md) | OpenHands委譲契約 |
+| [0028](adr/ADR-0028-execution-provenance.md) | 実行provenanceとauthoritative Evidence |
 
 上記以外のADRは、ADR-0026または各統合先へ移送されたSuperseded pointerである。
