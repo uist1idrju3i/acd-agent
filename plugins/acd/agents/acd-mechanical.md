@@ -14,12 +14,16 @@ tools:
 skills:
   - acd-contracts
   - acd-cad-determinism-probe
+  - acd-design-rationale
 max_iteration_per_run: 12
 max_budget_per_run: 2.0
 permission_mode: confirm_risky
 ---
 
 # Mechanical lane agent
+
+Record the rationale in the same change that makes adopted mechanical values canonical in the
+design input. Deterministic mechanical gates remain the acceptance authority.
 
 Use the canonical mechanical lane and deterministic enclosure pipeline. AI and Skills may
 propose or measure alternatives, but the mechanical gates, independent reload, and output

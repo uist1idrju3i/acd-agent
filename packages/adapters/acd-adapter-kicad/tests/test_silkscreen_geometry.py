@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
 
 import pytest
 
@@ -18,9 +17,12 @@ from acd_adapter_kicad.fab import (
 )
 from acd_adapter_kicad.fab.silkscreen import (
     _local_silk_bounds,
+    _same_side,
     _silk_objects_overlap,
     _silk_overlaps_rect,
     _SilkObject,
+    _text_attribution_overflow,
+    _text_model_size,
 )
 from acd_core.fab import FabProfile
 from acd_core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
@@ -42,6 +44,15 @@ def test_silk_on_pad_is_rejected() -> None:
     assert _silk_overlaps_rect(_line(1.0, 1.0, 2.0, 1.0), (1.2, 0.8, 1.8, 1.2))
 
 
+def test_opposite_side_pad_is_ignored_by_gate() -> None:
+    assert not _same_side("F.SilkS", ("B.Cu",))
+
+
+def test_through_hole_pad_is_an_obstacle_on_both_sides() -> None:
+    assert _same_side("F.SilkS", ("F.Cu", "B.Cu"))
+    assert _same_side("B.SilkS", ("F.Cu", "B.Cu"))
+
+
 def test_silk_over_mask_flash_is_rejected() -> None:
     silk = _line(1.0, 1.0, 2.0, 1.0)
     mask = _SilkObject(
@@ -60,6 +71,75 @@ def test_rotated_text_height_uses_declared_local_coordinates() -> None:
     silk = _line(1.0, 1.0, 2.0, 1.0)
     local_bbox = _local_silk_bounds((silk,), (1.5, 1.0), 90.0)
     assert local_bbox[3] - local_bbox[1] == pytest.approx(1.0)
+
+
+def test_stroke_font_self_ink_fits_attribution_upper_bound() -> None:
+    text = SilkTextView(
+        "text",
+        "label",
+        "RESET",
+        1.0,
+        1.0,
+        "F.SilkS",
+        1.0,
+        0.15,
+        0.0,
+        "test",
+        "test",
+        "SW1",
+        0.25,
+        1.0,
+    )
+    assert _text_attribution_overflow(text, 4.34, 1.15) == ()
+
+
+def test_ink_beyond_attribution_upper_bound_fails_closed() -> None:
+    text = SilkTextView(
+        "text",
+        "label",
+        "RESET",
+        1.0,
+        1.0,
+        "F.SilkS",
+        1.0,
+        0.15,
+        0.0,
+        "test",
+        "test",
+        "SW1",
+        0.25,
+        1.0,
+    )
+    overflow = _text_attribution_overflow(text, 5.3, 1.15)
+    assert overflow
+    assert overflow[0]["dimension"] == "length"
+
+
+def test_descender_text_uses_extended_orthogonal_upper_bound() -> None:
+    _, descender_height = _text_model_size("golden", 1.0, 0.15)
+    _, uppercase_height = _text_model_size("BOOT", 1.0, 0.15)
+    assert descender_height == pytest.approx(1.6)
+    assert uppercase_height == pytest.approx(1.15)
+
+
+def test_descender_self_ink_fits_extended_attribution_bound() -> None:
+    text = SilkTextView(
+        "text",
+        "label",
+        "golden",
+        1.0,
+        1.0,
+        "B.SilkS",
+        1.0,
+        0.15,
+        0.0,
+        "test",
+        "test",
+        "board.gd1",
+        0.25,
+        1.0,
+    )
+    assert _text_attribution_overflow(text, 5.0, 1.388) == ()
 
 
 def test_graphic_below_capability_is_not_treated_as_pass() -> None:
@@ -110,7 +190,7 @@ def test_graphic_below_capability_is_not_treated_as_pass() -> None:
         fab._gerber_silk_objects = original
 
 
-def test_courtyard_overlap_is_evidence_only() -> None:
+def test_same_side_courtyard_overlap_is_rejected() -> None:
     profile = FabProfile(
         {
             "capabilities": {
@@ -130,49 +210,48 @@ def test_courtyard_overlap_is_evidence_only() -> None:
         else ()
     )
     try:
-        evidence = fab.measure_silkscreen(
-            {"F.SilkS": Path("silk.gto")},
-            {"F.Mask": Path("mask.gts")},
-            Path("edge.gm1"),
-            BoardMeasurement(
-                (
-                    FootprintMeasurement(
-                        "U1",
-                        1.5,
-                        1.0,
-                        0.0,
-                        "F.Cu",
-                        (),
-                        courtyard_bbox_mm=(0.5, 0.5, 2.5, 1.5),
+        with pytest.raises(FabOutputError, match="courtyard=1"):
+            fab.measure_silkscreen(
+                {"F.SilkS": Path("silk.gto")},
+                {"F.Mask": Path("mask.gts")},
+                Path("edge.gm1"),
+                BoardMeasurement(
+                    (
+                        FootprintMeasurement(
+                            "U1",
+                            1.5,
+                            1.0,
+                            0.0,
+                            "F.Cu",
+                            (),
+                            courtyard_bbox_mm=(0.5, 0.5, 2.5, 1.5),
+                        ),
+                    ),
+                    (),
+                    None,
+                    None,
+                    None,
+                    (0.0, 0.0, 3.0, 3.0),
+                    (),
+                    0,
+                ),
+                SilkscreenLane(
+                    "board.gd1",
+                    (),
+                    (
+                        SilkGraphicView(
+                            "graphic",
+                            "logo",
+                            "F.SilkS",
+                            0.15,
+                            ((1.0, 1.0), (2.0, 1.0), (2.0, 2.0)),
+                            "test",
+                            "test",
+                        ),
                     ),
                 ),
-                (),
-                None,
-                None,
-                None,
-                (0.0, 0.0, 3.0, 3.0),
-                (),
-                0,
-            ),
-            SilkscreenLane(
-                "board.gd1",
-                (),
-                (
-                    SilkGraphicView(
-                        "graphic",
-                        "logo",
-                        "F.SilkS",
-                        0.15,
-                        ((1.0, 1.0), (2.0, 1.0), (2.0, 2.0)),
-                        "test",
-                        "test",
-                    ),
-                ),
-            ),
-            profile,
-        )
-        assert cast(int, evidence["courtyard_overlap_count"]) > 0
-        assert evidence["status"] == "measured_pass"
+                profile,
+            )
     finally:
         fab._gerber_silk_objects = original
 

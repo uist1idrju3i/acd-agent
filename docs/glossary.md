@@ -30,10 +30,17 @@
 | レビュー投影 | 入力ファイルから再生成し、別コンテキストのAIが観察するための投影。正ではなく、git commit・hash・版を保持する |
 | 投影レビューPDCA | 入力ファイルの変更と対象工程を選ぶPlan、投影を生成するDo、AIが所見を作るCheck、決定論的ゲートで確認するActのループ |
 | Evidence | ツール版、入力・出力hash、条件、結果、git commitを含む検証の根拠 |
+| Rationale | 設計判断の採用理由、代替案、要求、provenanceを型付きrecordで保持する説明。合否権限は持たない |
+| rationale coverage | graphの必須`(node, attr)`が有効なrationale recordで一意に覆われていることの決定論的検査 |
 | Skill | SDKが提供するfrontmatter付きMarkdownの作業資材。工程手順や観点を配布するが、ACDの正や合否根拠ではない |
 | plugin | SDKが提供するskills、hooks、agent定義、commandをまとめた配布単位。ACDの契約正ではない |
 | AgentDefinition | SDKが提供するサブエージェントの役割定義。model、tools、skills、権限等を指定するが、ACDの判定正ではない |
 | hook | SDKが提供するtool・prompt・session境界のイベント処理。防護や記録に使うが、ACDの合否根拠ではない |
+| HookConfig | SDK pluginがhooks.jsonから読み込むhookイベント設定 |
+| HookMatcher | SDK hookをtool名等へ適用する完全一致・ワイルドカード・正規表現の指定 |
+| PreToolUse | tool実行前に呼ばれるSDK hookイベント。exit code 2で拒否する |
+| Stop | agent終了前に呼ばれるSDK hookイベント。exit code 2で拒否する |
+| exit code 2契約 | SDK command hookで2だけがブロックを表し、他の非0はログのみとなる契約 |
 | AgentProfile | SDKが提供するmodel、LLM設定等のprofile。秘密情報を含まない参照で管理するが、ACDの正ではない |
 | condenser | SDKが提供する会話contextの圧縮機構。Evidenceやゲート結果を置き換えず、ACDの判定正ではない |
 | critic | SDKが提供する反復改善用の評価機構。ACDゲート結果を伝達できるが、scoreも合否の正ではない |

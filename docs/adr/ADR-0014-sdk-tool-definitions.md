@@ -1,4 +1,4 @@
-# ADR-0013: SDK ToolDefinitionによるACD入口の一本化
+# ADR-0014: SDK ToolDefinitionによるACD入口の一本化
 
 - **状態**: Accepted
 - **日付**: 2026-08-18

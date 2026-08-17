@@ -15,8 +15,15 @@ triggers:
 - Pydantic models in `packages/acd-schema` are the canonical contract.
 - Contract-bearing documents carry the fields defined by their Pydantic model.
 - `unknown` values are allowed but fail-closed: they never support a pass verdict.
+- Design decisions are recorded in the typed `rationale.json` contract.
 - Validate documents with:
 
 ```bash
 uv run pytest packages/acd-schema -q
+```
+
+Validate rationale coverage with:
+
+```bash
+uv run python scripts/check_rationale.py
 ```
