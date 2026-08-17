@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 from openhands.sdk.plugin import PluginSource
 
@@ -28,6 +29,6 @@ def acd_plugin_source(ref: str) -> PluginSource:
 
 def validate_plugin_source(source: PluginSource) -> PluginSource:
     """Validate external refs while permitting local development sources."""
-    if source.source.startswith(("github:", "http://", "https://", "git@")):
+    if not Path(source.source).exists():
         validate_pinned_ref(source.ref)
     return source

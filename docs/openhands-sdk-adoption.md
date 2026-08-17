@@ -172,9 +172,10 @@ SDKへ委譲し、EventLogとconversation stateは経過であって合否Eviden
   `v<semver>` tagへpinしてfetchできる。branch名や未指定refはfail-closedで拒否する。
   開発時のlocal pathは既定値として維持する。`sdk.marketplace`はrepo部分木の
   pinned fetchだけでは不要なため採用しない。
-- 回帰テスト: `sdk.testing.TestLLM`でbootstrap構成、台本応答、二値criticの未達、
-  follow-up文面、反復上限をLLMなしで決定論的に検証する。投影保護hookのDENYは
-  既存のhook subprocess testで検証する。plugin fetchと完全なtool-call E2Eは未検証。
+- 回帰テスト: `sdk.testing.TestLLM`でbootstrapからSDK agent stepを通した投影保護hookの
+  DENYと、Conversationのrunを通した二値criticの未達、follow-up、反復上限をLLMなしで
+  決定論的に検証する。外部plugin fetch、実LLM、Docker、外部terminal実装、
+  複数stepのtool-call E2Eは未検証。
 - `sdk.profiles`（`AgentProfile` / `agent_profile_store`）はsecret-freeな参照モデルだが、
   ACDの電気・機械・FW・reviewer設定への採用は見送る。解決済みLLMやAPI keyを宣言へ
   埋め込まず、将来のprofile契約が固まった段階で再評価する。

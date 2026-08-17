@@ -3,17 +3,92 @@
 from __future__ import annotations
 
 import json
+import os
+import shutil
 from pathlib import Path
-from typing import cast
 
+import pytest
 from openhands.sdk import LLM
-from openhands.sdk.llm import Message, TextContent
+from openhands.sdk.event import HookExecutionEvent
+from openhands.sdk.llm import Message, MessageToolCall, TextContent
 from openhands.sdk.llm.utils.metrics import Metrics
 from openhands.sdk.testing import TestLLM
+from openhands.sdk.tool import (
+    Action,
+    Observation,
+    Tool,
+    ToolDefinition,
+    ToolExecutor,
+)
+from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportUnknownVariableType]
 
 from acd_tools.agent_session import build_acd_conversation, write_conversation_metrics
-from acd_tools.gate_critic import AcdEvidenceRequirement, AcdGateCritic
+from acd_tools.gate_critic import AcdEvidenceRequirement
 from acd_tools.plugin_distribution import acd_plugin_source
+
+
+class _TerminalAction(Action):
+    command: str
+
+
+class _TerminalObservation(Observation):
+    pass
+
+
+class _TerminalExecutor(ToolExecutor[_TerminalAction, _TerminalObservation]):
+    def __call__(
+        self, action: _TerminalAction, conversation: object | None = None
+    ) -> _TerminalObservation:
+        return _TerminalObservation.from_text(action.command)
+
+
+class _TerminalTool(ToolDefinition[_TerminalAction, _TerminalObservation]):
+    name = "terminal"
+
+    @classmethod
+    def create(cls, conv_state: object, **params: object) -> list[_TerminalTool]:
+        return [
+            cls(
+                action_type=_TerminalAction,
+                observation_type=_TerminalObservation,
+                description="Test terminal tool",
+                executor=_TerminalExecutor(),
+            )
+        ]
+
+
+register_tool("terminal", _TerminalTool)  # pyright: ignore[reportUnknownVariableType]
+
+
+def _minimal_plugin(tmp_path: Path) -> Path:
+    plugin_root = tmp_path / "plugin"
+    (plugin_root / ".plugin").mkdir(parents=True)
+    shutil.copytree(Path.cwd() / "plugins/acd/hooks", plugin_root / "hooks")
+    protect_script = plugin_root / "hooks/scripts/protect_projections.py"
+    os.chmod(protect_script, 0o755)
+    (plugin_root / "hooks/hooks.json").write_text(
+        json.dumps(
+            {
+                "pre_tool_use": [
+                    {
+                        "matcher": "terminal",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": f"python3 {protect_script}",
+                            }
+                        ],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (plugin_root / ".plugin/plugin.json").write_text(
+        '{"name":"acd-test","version":"0.0.1","description":"test plugin"}\n',
+        encoding="utf-8",
+    )
+    return plugin_root
 
 
 def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> None:
@@ -53,31 +128,95 @@ def test_bootstrap_accepts_pinned_plugin_source(tmp_path: Path) -> None:
         persistence_dir=tmp_path / "sessions",
         plugin_source=acd_plugin_source("a" * 40),
     )
-    assert conversation.agent is not None
+    assert conversation._plugin_specs is not None  # pyright: ignore[reportPrivateUsage]
+    plugin = conversation._plugin_specs[0]  # pyright: ignore[reportPrivateUsage]
+    assert plugin.source == "github:uist1idrju3i/acd-agent"
+    assert plugin.repo_path == "plugins/acd"
+    assert plugin.ref == "a" * 40
 
 
-def test_testllm_and_gate_critic_refinement_are_deterministic() -> None:
+def test_testllm_conversation_denies_protected_terminal_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     llm = TestLLM.from_messages(
-        [Message(role="assistant", content=[TextContent(text="done")])]
+        [
+            Message(
+                role="assistant",
+                content=[TextContent(text="")],
+                tool_calls=[
+                    MessageToolCall(
+                        id="call-1",
+                        name="terminal",
+                        arguments='{"command":"touch out/blocked.kicad_pcb"}',
+                        origin="completion",
+                    )
+                ],
+            )
+        ]
     )
-    response = llm.completion([])  # pyright: ignore[reportUnknownMemberType]
-    content = cast(TextContent, response.message.content[0])
-    assert content.text == "done"
-
-    critic = AcdGateCritic(
-        repo_root=Path("/nonexistent"),
+    plugin_root = _minimal_plugin(tmp_path)
+    monkeypatch.setenv("ACD_PLUGIN_ROOT", str(plugin_root))
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=llm,
         requirements=[
             AcdEvidenceRequirement(
                 path=Path("missing.json"),
                 evidence_id="missing",
             )
         ],
+        persistence_dir=tmp_path / "sessions",
+        plugin_root=plugin_root,
+        tools=[Tool(name="terminal")],
     )
-    result = critic.evaluate([], None)
-    assert result.score == 0.0
-    assert critic.should_refine(result)
-    assert critic.iterative_refinement is not None
-    assert critic.iterative_refinement.max_iterations == 3
-    assert "Critic output is not pass evidence." in critic.get_followup_prompt(
-        result, 1
+    conversation.send_message("write a protected projection")
+    conversation.agent.step(
+        conversation,
+        on_event=conversation._on_event,  # pyright: ignore[reportPrivateUsage]
+    )
+
+    assert not (Path("out") / "blocked.kicad_pcb").exists()
+    assert any(
+        isinstance(event, HookExecutionEvent)
+        and event.tool_name == "terminal"
+        and event.blocked
+        for event in conversation.state.events
+    )
+
+
+def test_testllm_conversation_critic_refinement_stops_at_max_iterations(
+    tmp_path: Path,
+) -> None:
+    finish = Message(
+        role="assistant",
+        content=[TextContent(text="")],
+        tool_calls=[
+            MessageToolCall(
+                id="finish-call",
+                name="finish",
+                arguments='{"message":"done"}',
+                origin="completion",
+            )
+        ],
+    )
+    llm = TestLLM.from_messages([finish, finish, finish, finish])
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=llm,
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("missing.json"),
+                evidence_id="missing",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+        plugin_root=_minimal_plugin(tmp_path),
+    )
+    conversation.send_message("complete the task")
+    conversation.run()
+
+    assert conversation.state.agent_state["iterative_refinement_iteration"] == 3
+    assert sum(
+        "Deterministic ACD gate requirements remain unmet" in str(event)
+        for event in conversation.state.events
     )

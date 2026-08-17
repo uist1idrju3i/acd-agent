@@ -17,15 +17,16 @@ provenanceが必要である。また、SDK Conversationの配線をネットワ
   local `PluginSource`とpinned external `PluginSource`の双方を受け取る。
 - `sdk.marketplace`は採用しない。今回必要なのはMarketplace登録ではなく、既存repoの
   plugin部分木を不変refで取得する薄い配布契約だからである。
-- `TestLLM`でbootstrap構成、台本応答、二値criticの未達・follow-up文面・反復上限を
-  ネットワークなしで検証する。既存hook subprocess testは投影保護DENYを独立に検証する。
+- `TestLLM`でbootstrapからSDK agent stepを通した投影保護hookのDENYと、
+  Conversationのrunを通した二値criticのfollow-up・反復上限をネットワークなしで検証する。
 
 ## 境界
 
-TestLLMでSDKの実LLM呼び出しは検証しない。外部pluginのfetch、Docker workspace、
-実tool callをConversationの完全な実行ループへ接続したE2E検証もP8の範囲では行わない。
-これらを未検証のまま「回帰済み」と扱わない。合否は従来どおり決定論的ゲート、
-Evidence、入力ファイル、git状態だけで決まる。
+TestLLMは実LLMの適格性を検証しない。外部pluginのfetch、Docker workspace、
+実際の外部terminal実装、および複数stepのtool-call E2EはP8の範囲外である。
+hook DENYはローカルpluginとSDKのtool registryへ登録したテスト用terminal定義で、
+実行前のConversation hook境界までを検証する。これらを未検証のまま「回帰済み」と
+扱わない。合否は従来どおり決定論的ゲート、Evidence、入力ファイル、git状態だけで決まる。
 
 ## 結果
 

@@ -36,10 +36,11 @@ ref=...)`を作る。refは40桁commit SHAまたは`v<semver>` tagだけを受�
 branch名・未指定ref・不正値はfail-closedに拒否する。開発時は
 `build_acd_conversation()`のlocal path既定値を使える。
 
-P8のTestLLM回帰はbootstrap構成、台本応答、ゲート未達時の二値critic、
-follow-up文面、反復上限をカバーする。投影保護hookのDENYは既存の決定論的
-subprocess testでカバーする。外部plugin fetch、実LLM、Docker、完全なtool-call
-Conversation E2Eは未検証であり、合否根拠には使わない。
+P8のTestLLM回帰はbootstrapからSDK agent stepを通した投影保護hookのDENYと、
+Conversationのrunを通したゲート未達時の二値critic、follow-up、反復上限を
+カバーする。hookテストはローカルpluginと登録済みテスト用terminal定義を使い、
+外部fetchを発生させない。外部plugin fetch、実LLM、Docker、外部terminal実装、
+複数stepのtool-call E2Eは未検証であり、合否根拠には使わない。
 
 ## plugin構成
 

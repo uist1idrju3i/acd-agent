@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import pytest
+from openhands.sdk.plugin import PluginSource
 
-from acd_tools.plugin_distribution import acd_plugin_source, validate_pinned_ref
+from acd_tools.plugin_distribution import (
+    acd_plugin_source,
+    validate_pinned_ref,
+    validate_plugin_source,
+)
 
 
 @pytest.mark.parametrize("ref", [None, "", "main", "abc123", "v1", "v1.2.3/evil"])
@@ -20,11 +25,12 @@ def test_sha_and_release_tag_are_accepted() -> None:
 
 def test_external_plugin_source_requires_pinned_ref() -> None:
     with pytest.raises(ValueError):
-        from openhands.sdk.plugin import PluginSource
-
-        from acd_tools.plugin_distribution import validate_plugin_source
-
         validate_plugin_source(PluginSource(source="github:owner/repo"))
+
+
+def test_ssh_plugin_source_requires_pinned_ref() -> None:
+    with pytest.raises(ValueError):
+        validate_plugin_source(PluginSource(source="ssh://git@example.invalid/repo"))
 
 
 def test_acd_plugin_source_is_pinned() -> None:
