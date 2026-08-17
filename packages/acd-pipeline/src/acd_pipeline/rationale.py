@@ -7,7 +7,12 @@ from collections import defaultdict
 from pathlib import Path
 
 from acd_core.rationale import check_rationale_coverage
-from acd_schema import DesignGraph, RationaleDocument, RationaleRecord
+from acd_schema import (
+    DesignGraph,
+    RationaleCoverageReport,
+    RationaleDocument,
+    RationaleRecord,
+)
 
 
 def validate_and_project_rationale(
@@ -33,13 +38,18 @@ def validate_and_project_rationale(
             f"missing={len(report.missing)}, stale={len(report.stale)}, "
             f"orphan={len(report.orphan)}, conflicting={len(report.conflicting)}, "
             f"unknown_provenance={len(report.unknown_provenance)}, "
-            f"untraceable={len(report.untraceable)}"
+            f"untraceable={len(report.untraceable)}, "
+            f"unclassified={len(report.unclassified)}"
         )
-    _write_rationale_markdown(document, out_dir / "rationale.md")
+    _write_rationale_markdown(document, out_dir / "rationale.md", report)
     return document
 
 
-def _write_rationale_markdown(document: RationaleDocument, output_path: Path) -> None:
+def _write_rationale_markdown(
+    document: RationaleDocument,
+    output_path: Path,
+    report: RationaleCoverageReport,
+) -> None:
     grouped: defaultdict[str, list[RationaleRecord]] = defaultdict(list)
     for record in sorted(document.records, key=lambda item: item.rationale_id):
         grouped[record.decision_kind].append(record)
@@ -50,6 +60,24 @@ def _write_rationale_markdown(document: RationaleDocument, output_path: Path) ->
         f"- Revision: `{document.revision}`",
         "",
     ]
+    lines.extend(
+        [
+            "## Coverage",
+            "",
+            f"- Status: `{report.status}`",
+            f"- Required subjects: `{report.required_count}`",
+            f"- Covered subjects: `{report.covered_count}`",
+            f"- Unclassified attributes: `{len(report.unclassified)}`",
+            "",
+        ]
+    )
+    if report.unclassified:
+        lines.extend(["### Unclassified attributes", ""])
+        lines.extend(
+            f"- `{item.node_id}` (`{item.node_kind}`).`{item.attr}`: {item.reason}"
+            for item in report.unclassified
+        )
+        lines.append("")
     for decision_kind in sorted(grouped):
         lines.extend([f"## {decision_kind}", ""])
         for record in grouped[decision_kind]:

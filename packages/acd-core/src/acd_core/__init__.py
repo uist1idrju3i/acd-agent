@@ -10,12 +10,14 @@ from acd_core.fab import (
     validate_allowances_against_profile,
 )
 from acd_core.rationale import (
+    RATIONALE_EXEMPT_ATTRS,
     REQUIRED_RATIONALE_ATTRS,
     check_rationale_coverage,
     subject_hash_for,
 )
 
 __all__ = [
+    "RATIONALE_EXEMPT_ATTRS",
     "REQUIRED_RATIONALE_ATTRS",
     "CadNormalizationError",
     "FabOrderIntentView",
