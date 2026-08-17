@@ -23,7 +23,7 @@ plugins/acd/
 ├── agents/
 ├── commands/
 ├── hooks/
-├── .plugin/plugin.json
+└── .plugin/plugin.json
 vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
 ```
 
