@@ -120,6 +120,21 @@ P6/P7ではSDK v1.42.1の`Agent`、`LocalConversation`、`PluginSource`、
 persistence、metricsは採用し、ACD独自実装は採用しない。metricsは
 `pass_evidence: false`で保存し、合否判定には使わない。
 
+### OpenHands SDK P8 API
+
+P8では`PluginSource`の`source`、`repo_path`、`ref`を使用する。外部配布の`ref`は
+`acd_tools.plugin_distribution`で40桁commit SHAまたは`v<semver>` tagに限定し、
+branch名や未指定refをfail-closedで拒否する。開発時local pathは従来どおり許可する。
+`sdk.marketplace`は既存repoのplugin部分木をpinned fetchする要件を超えるため採用しない。
+
+`sdk.testing.TestLLM`は台本応答を提供し、bootstrap構成とcritic反復方針の回帰に使う。
+hookの投影保護DENYは既存のsubprocess testで確認する。外部fetch、完全なConversation
+tool-call E2E、実LLM、DockerはP8の回帰対象外である。
+
+`sdk.profiles`の`AgentProfile` / `AgentProfileStore`はsecret-freeなLLM profile参照を
+保持するが、ACDの役割別モデル設定へは採用しない。resolved LLMやAPI keyを宣言へ
+持ち込まず、profileのライフサイクル契約が必要になるためである。
+
 ### OpenHands SDK hooks
 
 SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは

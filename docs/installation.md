@@ -68,6 +68,18 @@ OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには7 S
 AgentDefinition、`/acd:gates` command、SDK ToolDefinition、hooksが含まれる。
 決定論的なACD入口は`acd_tools.sdk_tools`の明示的な登録関数からSDKへ登録する。
 
+外部利用者が配布版を読み込む場合は、branch名ではなく不変refを指定する。
+commit SHAは40桁で、release tagは`v<semver>`形式にする。
+
+```python
+from acd_tools.plugin_distribution import acd_plugin_source
+
+plugin = acd_plugin_source("v1.2.3")
+```
+
+`ref=None`、branch名、短縮SHA、空文字、不正なtagはfail-closedで拒否される。
+開発checkoutでは`build_acd_conversation()`の既定local pathを使用できる。
+
 ## 検証
 
 ```bash

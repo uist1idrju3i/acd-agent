@@ -28,6 +28,19 @@ Evidenceの正は引き続き`Evidence.supports_pass(graph.revision)`だけで�
 `graph.revision`は`rN`であってgit SHAではない。EventLog、state、metrics、
 condenser outputはpass evidenceではない。
 
+## P8: pinned plugin配布とTestLLM回帰
+
+`acd_tools.plugin_distribution.acd_plugin_source()`は外部配布用の
+`PluginSource(source="github:uist1idrju3i/acd-agent", repo_path="plugins/acd",
+ref=...)`を作る。refは40桁commit SHAまたは`v<semver>` tagだけを受け付け、
+branch名・未指定ref・不正値はfail-closedに拒否する。開発時は
+`build_acd_conversation()`のlocal path既定値を使える。
+
+P8のTestLLM回帰はbootstrap構成、台本応答、ゲート未達時の二値critic、
+follow-up文面、反復上限をカバーする。投影保護hookのDENYは既存の決定論的
+subprocess testでカバーする。外部plugin fetch、実LLM、Docker、完全なtool-call
+Conversation E2Eは未検証であり、合否根拠には使わない。
+
 ## plugin構成
 
 ```text

@@ -14,6 +14,7 @@ from openhands.sdk.llm.utils.metrics import Metrics
 from openhands.sdk.plugin import PluginSource
 
 from acd_tools.gate_critic import AcdGateCritic, GateRequirement
+from acd_tools.plugin_distribution import validate_plugin_source
 from acd_tools.sdk_tools import register_acd_tools
 
 
@@ -25,6 +26,7 @@ def build_acd_conversation(
     workspace: Path | None = None,
     persistence_dir: Path | None = None,
     plugin_root: Path | None = None,
+    plugin_source: PluginSource | None = None,
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
 ) -> LocalConversation:
@@ -48,10 +50,11 @@ def build_acd_conversation(
         condenser=LLMSummarizingCondenser(llm=llm),
     )
     hook_config = HookConfig.load(hooks_path)
+    selected_plugin = plugin_source or PluginSource(source=str(plugin_root))
     return LocalConversation(
         agent=agent,
         workspace=workspace,
-        plugins=[PluginSource(source=str(plugin_root))],
+        plugins=[validate_plugin_source(selected_plugin)],
         persistence_dir=persistence_dir,
         hook_config=hook_config,
     )

@@ -167,13 +167,17 @@ SDKへ委譲し、EventLogとconversation stateは経過であって合否Eviden
 
 ### P8: 配布とテスト
 
-- plugin配布: `PluginSource(source="github:uist1idrju3i/acd-agent", repo_path="plugins/acd", ref=<tag>)`
-  でcommit SHAにpinしてfetchできる。現在の`.mcp.json`の`cwd: ${SKILL_ROOT}/../..` +
-  `uv run`はrepo同梱前提で、外部利用者が使えない。`sdk.marketplace`への登録も可能。
-- 回帰テスト: `sdk.testing.TestLLM`でplugin load / hook DENY / critic反復の経路を
-  LLMなしで決定論的に検証できる（ADR-0003の宣言を実装に落とす）。
-- `sdk.profiles`（`AgentProfile` / `agent_profile_store`）で電気・機械・FW・reviewerの
-  モデル設定を宣言に寄せる。`sdk.llm.router`はコスト最適化の選択肢。
+- plugin配布: `acd_tools.plugin_distribution.acd_plugin_source()`で
+  `github:uist1idrju3i/acd-agent`の`plugins/acd`を40桁commit SHAまたは
+  `v<semver>` tagへpinしてfetchできる。branch名や未指定refはfail-closedで拒否する。
+  開発時のlocal pathは既定値として維持する。`sdk.marketplace`はrepo部分木の
+  pinned fetchだけでは不要なため採用しない。
+- 回帰テスト: `sdk.testing.TestLLM`でbootstrap構成、台本応答、二値criticの未達、
+  follow-up文面、反復上限をLLMなしで決定論的に検証する。投影保護hookのDENYは
+  既存のhook subprocess testで検証する。plugin fetchと完全なtool-call E2Eは未検証。
+- `sdk.profiles`（`AgentProfile` / `agent_profile_store`）はsecret-freeな参照モデルだが、
+  ACDの電気・機械・FW・reviewer設定への採用は見送る。解決済みLLMやAPI keyを宣言へ
+  埋め込まず、将来のprofile契約が固まった段階で再評価する。
 - `sdk.observability.laminar`はトレース可視化の選択肢（合否には無関係）。
 
 ### P9（将来）: `openhands-agent-server`でVibeBBの運用面を得る

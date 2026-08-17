@@ -38,6 +38,11 @@ rationaleのMarkdownはpipeline出力の派生レビュー投影であり、cano
 AIとSkillは探索・実装・所見を提案する。合否はACDの決定論的ゲートだけが判定する。
 ツール不在、入力不備、parse失敗、未実行、unknown、未検証はfail-closedとする。
 
+pluginの外部配布では、`github:uist1idrju3i/acd-agent`の`plugins/acd`を40桁commit SHA
+または`v<semver>` tagへ固定する。branch名や未指定refはprovenance不明として拒否する。
+開発時のlocal pathはSDK Conversationの既定経路として残す。TestLLMはSDK wiringと
+critic反復の回帰に使うが、metricsやcritic出力を合否Evidenceへ昇格させない。
+
 ## Pythonパッケージ
 
 ```text

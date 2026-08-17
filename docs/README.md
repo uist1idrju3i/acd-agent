@@ -53,5 +53,6 @@
 - [`ADR-0016-acd-gate-critic.md`](adr/ADR-0016-acd-gate-critic.md): 決定論的ゲート結果によるcritic反復
 - [`ADR-0017-parallel-search-lane.md`](adr/ADR-0017-parallel-search-lane.md): 決定論的探索並列化と探索lane
 - [`ADR-0018-agent-session-persistence.md`](adr/ADR-0018-agent-session-persistence.md): SDK Conversationによるsession永続化
+- [`ADR-0019-plugin-distribution-and-testllm.md`](adr/ADR-0019-plugin-distribution-and-testllm.md): pinned plugin配布とTestLLM回帰
 
 Skillの実行結果は合否根拠ではない。合否は入力ファイルと決定論的ゲートだけが決める。
