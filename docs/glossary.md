@@ -31,10 +31,10 @@
 | 投影レビューPDCA | 入力ファイルの変更と対象工程を選ぶPlan、投影を生成するDo、AIが所見を作るCheck、決定論的ゲートで確認するActのループ |
 | Evidence | ツール版、入力・出力hash、条件、結果、git commitを含む検証の根拠 |
 | Skill | SDKが提供するfrontmatter付きMarkdownの作業資材。工程手順や観点を配布するが、ACDの正や合否根拠ではない |
-| plugin | SDKが提供するskills、hooks、MCP設定、agent定義、commandをまとめた配布単位。ACDの契約正ではない |
+| plugin | SDKが提供するskills、hooks、agent定義、commandをまとめた配布単位。ACDの契約正ではない |
 | AgentDefinition | SDKが提供するサブエージェントの役割定義。model、tools、skills、権限等を指定するが、ACDの判定正ではない |
 | hook | SDKが提供するtool・prompt・session境界のイベント処理。防護や記録に使うが、ACDの合否根拠ではない |
-| AgentProfile | SDKが提供するmodel、LLM設定、MCP参照等のprofile。秘密情報を含まない参照で管理するが、ACDの正ではない |
+| AgentProfile | SDKが提供するmodel、LLM設定等のprofile。秘密情報を含まない参照で管理するが、ACDの正ではない |
 | condenser | SDKが提供する会話contextの圧縮機構。Evidenceやゲート結果を置き換えず、ACDの判定正ではない |
 | critic | SDKが提供する反復改善用の評価機構。ACDゲート結果を伝達できるが、scoreも合否の正ではない |
 | ImageContent | SDKが画像URLをLLM入力へ渡す型。ACDでは視覚投影のレビュー入力に使うが、合否の正ではない |
@@ -42,7 +42,7 @@
 | vision profile | 視覚入力を扱う別LLM profile。model、画像hash、renderer、解像度とともにEvidenceへ記録する |
 | renderer | 視覚投影を生成した描画器の種別。描画結果のメタデータであり、決定論的ゲートの判定器ではない |
 | EventLog | SDKが提供する型付き追記イベントの保存・分岐・復元機構。ACDはdomain payloadと合否の正を所有する |
-| MCP server | 外部ツールadapterをプロセス・ライセンス境界の外側で提供する接続先。SDKは接続機構を提供するが、ACDが意味検証とEvidenceを所有する |
+| ToolDefinition | OpenHands SDKへACDの決定論的入口を登録する型。Action、Observation、Executor、Annotationsで契約を表現する |
 | DeclaredResources | SDK toolが並行実行時の共有resource keyを宣言する機構。ACDが必要なtoolを包んで排他キーを定義し、合否の正にはしない |
 | WebhookSpec | agent-serverがイベントをbufferして外部URLへPOSTする仕様。配信保証は未確認のため、ACDはSDKの`EventLog`とcommitした入力ファイルを正とする |
 | SecretSource | SDKがsecretを解決・注入する参照元。ACDはfab API等のsecret本体ではなく参照名だけを保持する |

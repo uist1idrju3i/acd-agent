@@ -18,7 +18,7 @@
 | cadquery-ocp | build123dが使用するOCP CAD kernel。`acd_adapter_cad`で使用し、`acd_tools.probe`で版を取得 | 7.9.3.1.1 | `uv.lock`、`pyproject.toml`で完全固定 | [releases](https://github.com/CadQuery/OCP/releases) | Python／OCP ABI、STEP／3MF出力、kernelの幾何演算 | [`tool-capability-probes.md`](tool-capability-probes.md)、[`research/prior-art.md`](research/prior-art.md) |
 | sexpdata | `acd_core.sexpr`、KiCad adapterでS-expressionの読み書き | 1.0.2 | `uv.lock`、adapterの範囲指定 | [PyPI](https://pypi.org/project/sexpdata/) | parse／emitの型、quote、KiCad／Specctra形式の互換性 | [`research/tool-selection.md`](research/tool-selection.md)、[`installation.md`](installation.md) |
 | gerbonara | KiCad adapterでGerber／Excellonを生成・再読込・検証 | 1.6.3 | `uv.lock`、adapterの範囲指定 | [PyPI](https://pypi.org/project/gerbonara/)、[repository](https://github.com/jaseg/gerbonara) | Gerber／Excellon parse、M02、座標・単位、fail-closed検証 | [`research/tool-selection.md`](research/tool-selection.md)、[`installation.md`](installation.md) |
-| fastmcp | `packages/acd-tools`のACD決定論入口をstdio MCP serverとして公開 | 3.4.7（`fastmcp>=3.0.0`、lock解決値） | `packages/acd-tools/pyproject.toml`、`uv.lock` | [FastMCP v3.4.7 release](https://github.com/PrefectHQ/fastmcp/releases/tag/v3.4.7)、[PyPI 3.4.7](https://pypi.org/project/fastmcp/3.4.7/) | `FastMCP` tool登録、stdio起動、MCP SDK互換性 | [`openhands-integration.md`](openhands-integration.md) |
+| OpenHands SDK ToolDefinition | `acd-tools`の決定論的入口をAction、Observation、Executorとして公開 | 1.42.1 | `vendor/software-agent-sdk`、`uv.lock` | [v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1) | `ToolDefinition`、`ToolAnnotations`、`register_tool`、Action schema、冪等登録 | [`openhands-integration.md`](openhands-integration.md)、[`ADR-0013`](adr/ADR-0013-sdk-tool-definitions.md) |
 | pytest | `packages/`以下の全テストを実行するCI・開発用test runner | 9.1.1 | `uv.lock`、dev dependencyの範囲指定 | [releases](https://github.com/pytest-dev/pytest/releases)、[CHANGELOG](https://docs.pytest.org/en/stable/changelog.html) | collection、fixture、warning、plugin API、Python 3.12互換性 | [`installation.md`](installation.md) |
 | ruff | CIのlint。`pyproject.toml`のE/F/W/I/UP/B/SIM/RUFを検査 | 0.16.3 | `uv.lock`、dev dependencyの範囲指定 | [0.16.3 release notes](https://github.com/astral-sh/ruff/releases/tag/0.16.3) | ルール追加・変更、fix、出力形式、Python／Markdown解析 | [`AGENTS.md`](../AGENTS.md)、[`installation.md`](installation.md) |
 | pyright | CIのstrict型検査。`packages`、`scripts`、`fixtures`を検査 | 1.1.411 | `uv.lock`、dev dependencyの範囲指定 | [releases](https://github.com/microsoft/pyright/releases) | 型推論、strict diagnostics、Python 3.12、stub変更 | [`AGENTS.md`](../AGENTS.md)、[`installation.md`](installation.md) |
@@ -55,13 +55,10 @@ CodeQLと`update-uv-graph`はリポジトリ設定側で動くcheck-runであり
 
 確認日: 2026-08-16。一次情報で確認できない変更は推測せず、未確認の採否を合格扱いにしない。
 
-### FastMCPの明示依存化
+### SDK ToolDefinition API
 
-FastMCPの一次情報としてv3.4.7のリリースノート（OAuthProxyのCIMD
-`private_key_jwt`復旧などの修正）とPyPIの3.4.7メタデータを確認し、`FastMCP`の
-tool登録と`run(transport="stdio")`を現行APIとして確認した。ACDはこの既存APIだけを
-使用し、FastMCP独自のゲートや判定は追加しない。採用版はlockで解決済みの
-`fastmcp 3.4.7`で、同時に解決される`mcp 1.29.0`との組み合わせを`uv sync`と直接
-toolテストで検証する。採否は「採用」とし、3.0.0以上の範囲を宣言しつつlockの版を
-再現性の基準とする。FastMCP 3.4.7の未確認機能は採用せず、stdio transport以外は
-本変更の対象外とした。
+OpenHands SDK v1.42.1の`ToolDefinition`、`Action`、`Observation`、
+`ToolAnnotations`、`ToolExecutor`、`register_tool`を一次情報で確認し、
+`acd_tools.sdk_tools.register_acd_tools()`から明示的に登録する。登録はSDK registryの
+重複登録挙動を踏まえて冪等にし、import副作用を持たせない。SDKのexample実装を写経せず、
+vendorのMIT Licenseに基づく帰属が必要な派生コードも追加していない。

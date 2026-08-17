@@ -51,14 +51,8 @@ fail-closedで停止する。ツールの採否判断は[`research/tool-selectio
 ## plugin
 
 OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには7 Skill、4
-AgentDefinition、`/acd:gates` command、MCP設定が含まれる。MCP serverはrepository
-rootで次のように起動できる。
-
-```bash
-uv run acd-mcp
-```
-
-通常はpluginの`.mcp.json`が`uv run acd-mcp`をstdioで起動する。
+AgentDefinition、`/acd:gates` command、SDK ToolDefinition、hooksが含まれる。
+決定論的なACD入口は`acd_tools.sdk_tools`の明示的な登録関数からSDKへ登録する。
 
 ## 検証
 

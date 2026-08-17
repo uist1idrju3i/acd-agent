@@ -54,7 +54,7 @@ GitHubの[Security Advisories](https://github.com/uist1idrju3i/acd-agent/securit
   Li-ion/LiPo充電回路など、AIに任せない領域）の回避につながる欠陥
 - 外部ツール出力やモデル出力がコードとして実行される経路
 - Skill／plugin source、inline command、marketplace取得経路に起因する任意コード実行
-- MCP serverの動的schema変更やreconnectを悪用した検証回避
+- SDK ToolDefinitionの動的schema変更を悪用した検証回避
 - remote workspaceおよびagent-serverを経由した権限・分離の回避
 - VS Code／noVNC desktopのGUI操作を、commit・receipt・対象ゲート再実行なしに設計根拠や
   合格として扱うこと

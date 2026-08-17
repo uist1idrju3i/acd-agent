@@ -3,6 +3,9 @@ name: acd-mechanical
 description: USE THIS when projecting the ACD enclosure, running mechanical gates, or checking CAD output determinism.
 model: inherit
 tools:
+  - acd_probe_tools
+  - acd_validate_design_graph
+  - acd_run_enclosure_pipeline
   - terminal
   - file_editor
   - grep

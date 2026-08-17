@@ -1,6 +1,6 @@
 # ACD — Autonomous Computer Design
 
-> ステータス: 開発中。投影・決定論的ゲート・plugin委譲・MCP公開まで実装済みです。
+> ステータス: 開発中。投影・決定論的ゲート・plugin委譲・SDK tools公開まで実装済みです。
 > 実機測定、発注、silkscreen再配置ループは未実装です。
 
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
@@ -47,17 +47,17 @@ fabrication出力
 
 ```text
 acd-schema → acd-core → acd-pipeline → adapters/*
-                                      └→ acd-tools (probe / MCP)
+                                      └→ acd-tools (probe / SDK tools)
 
 plugins/acd/
 ├── skills/       # 7つの探索・FW・レビュー手法
 ├── agents/       # 電気、機械、FW、レビュー
 ├── commands/     # /acd:gates
-└── .mcp.json     # acd-mcp stdio server
+└── hooks/        # SDK fail-closed hooks
 ```
 
 Python側は契約、投影、adapter、決定論的ゲートに限定する。OpenHands pluginは
-Skill、AgentDefinition、command、MCP設定を配布する。Skill結果は合否根拠ではない。
+Skill、AgentDefinition、command、hooksを配布する。Skill結果は合否根拠ではない。
 
 ## 実行
 
@@ -65,7 +65,7 @@ Skill、AgentDefinition、command、MCP設定を配布する。Skill結果は合
 uv sync
 uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
 uv run python scripts/run_gd1_pipeline.py
-uv run acd-mcp
+uv run python scripts/probe_tools.py
 ```
 
 基板pipelineのsilkscreen fail-closedは現在の既知状態です。詳細は

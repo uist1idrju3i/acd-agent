@@ -6,7 +6,7 @@
 ## 統合方針
 
 ACD pluginをOpenHands側の主成果物とする。OpenHandsはSkill、AgentDefinition、
-command、MCP設定、workspace実行を提供し、Python側はPydantic契約、決定論的投影、
+command、SDK ToolDefinition、workspace実行を提供し、Python側はPydantic契約、決定論的投影、
 ゲート、adapter、evidence契約を保持する。AIやSkillの出力は候補・所見であり、
 ACDの合否根拠ではない。
 
@@ -19,8 +19,8 @@ OpenHandsの公開Skills repositoryはsubmoduleにせず外部参照とする:
 ```text
 plugins/acd/
 ├── .plugin/plugin.json
-├── .mcp.json
 ├── commands/gates.md
+├── hooks/
 ├── agents/
 │   ├── acd-electrical.md
 │   ├── acd-mechanical.md
@@ -68,17 +68,19 @@ command本文は既存の決定論的電気・機械ゲートを実行するよ�
 期待値・evidence規則を変更しない。ツール不在、未知状態、parse失敗、未検証は
 fail-closedとする。
 
-## ACD MCP server
+## SDK ToolDefinition境界
 
-`packages/acd-tools`の`acd-mcp`はFastMCP 3.4.7を使いstdioで起動する。公開範囲は
-既存の読み取り・契約検証・pipeline入口だけであり、設計権威をMCPに与えない。
+`packages/acd-tools/src/acd_tools/sdk_tools.py`はSDKの`ToolDefinition`、
+`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を使い、明示的な
+`register_acd_tools()`から次の決定論的入口を登録する。MCP client経由の外部利用は
+当面サポートしない。必要になればSDK側のMCP機構で再導入する。
 
 | tool | 内容 |
 |---|---|
-| `probe_tools()` | 外部ツールの有無と版を返す |
-| `validate_design_graph(path)` | Pydantic契約でgraphを検証する |
-| `run_board_pipeline(fixture, out, fab_profile, max_passes)` | 既存GD1基板pipelineを実行する |
-| `run_enclosure_pipeline(fixture, out)` | 既存GD1筐体pipelineを実行する |
+| `acd_probe_tools` | 外部ツールの有無と版を返す |
+| `acd_validate_design_graph` | Pydantic契約でgraphを検証する |
+| `acd_run_board_pipeline` | 既存GD1基板pipelineを実行する |
+| `acd_run_enclosure_pipeline` | 既存GD1筐体pipelineを実行する |
 
 返り値は`ok`、`operation`、`failure_reason`、`fail_closed`、summary、出力パス、
 ToolEnvelope由来のtool名・版・hashを含む構造化JSONである。入力不備、ファイル不在、
