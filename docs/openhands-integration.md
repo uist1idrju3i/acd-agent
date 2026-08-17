@@ -58,7 +58,7 @@ Gerber実測の幾何・判定条件・文字寸法上界モデルをcontextと�
 `uv run python scripts/check_rationale.py --if-present --warn-only`を実行し、
 rationale不足を警告する。`Stop` hookは
 `uv run python scripts/check_rationale.py --if-present`を実行する。exit code 2の不足・
-parse失敗・staleは停止をブロックする。Conversationの永続ログはconversation event
+parse失敗・stale・unclassifiedは停止をブロックする。Conversationの永続ログはconversation event
 referenceとして参照するだけで、rationaleや合否の権威ではない。
 
 ## AgentDefinition

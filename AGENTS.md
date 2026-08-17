@@ -92,6 +92,11 @@ Markdownのみの変更で実装資材を変更していない場合は`verify_d
 `git diff --check`に絞ってよい。GD1基板pipelineはsilkscreenゲートまで通過する前提で、
 resolverと基板pipelineを実行して確認する。
 
+graphへ設計判断属性を追加する機能変更では、同じ変更で属性を
+`REQUIRED_RATIONALE_ATTRS`または`RATIONALE_EXEMPT_ATTRS`へ分類する。必須属性には
+rationale recordを追加し、どちらにも分類されない属性はcoverageの`unclassified`として
+fail-closedになる。免除する場合も、属性ごとの英語理由を免除表へ記録する。
+
 ## Git
 
 日本語コミットを使い、`git add .`、amend、`--no-verify`、force push、mainへのpush、
