@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pytest
 
 from acd_core.board_model import BoardModel, ComponentPlacement, FootprintShape, PadShape
@@ -144,6 +146,7 @@ def _context(*, outline: list[float] | None = None) -> dict[str, object]:
         "body_bboxes_mm": [{"refdes": "J1", "bbox_mm": [9.0, 9.0, 11.0, 11.0]}],
         "courtyard_bboxes_mm": [],
         "existing_silk_objects": [],
+        "fixed_silk_objects": [],
         "silk_objects": [],
         "declarations": [
             {
@@ -173,3 +176,83 @@ def test_context_search_reports_no_candidate_fail_closed() -> None:
     result = resolve_from_context(lane, _context(outline=[0.0, 0.0, 0.1, 0.1]))
     assert result[0]["resolution"] == "no_candidate_fail_closed"
     assert result[0]["candidates"] == []
+
+
+def test_context_search_excludes_previously_placed_declarations() -> None:
+    lane = SilkscreenLane(
+        "board.gd1",
+        (
+            SilkTextView(
+                "first",
+                "first",
+                "A",
+                10.0,
+                10.0,
+                "F.SilkS",
+                1.0,
+                0.15,
+                0.0,
+                "test",
+                "top",
+                "J1",
+                0.25,
+                1.0,
+            ),
+            SilkTextView(
+                "second",
+                "second",
+                "B",
+                10.0,
+                10.0,
+                "F.SilkS",
+                1.0,
+                0.15,
+                0.0,
+                "test",
+                "top",
+                "J1",
+                0.25,
+                1.0,
+            ),
+        ),
+        (),
+    )
+    context = _context()
+    context["declarations"] = [
+        {
+            "node_id": "first",
+            "measured_text_length_mm": 2.0,
+            "measured_height_mm": 0.5,
+        },
+        {
+            "node_id": "second",
+            "measured_text_length_mm": 2.0,
+            "measured_height_mm": 0.5,
+        },
+    ]
+    result = resolve_from_context(lane, context)
+    first = next(item for item in result if item["node_id"] == "first")
+    second = next(item for item in result if item["node_id"] == "second")
+    assert first["resolution"] == "context_candidate"
+    assert second["resolution"] == "context_candidate"
+    assert second["accepted_position_mm"] != first["accepted_position_mm"]
+    rejected = cast(list[dict[str, Any]], second["rejected_candidates"])
+    assert any(
+        item["reason"] == "placed_declaration"
+        for item in rejected
+    )
+
+
+def test_context_search_keeps_fixed_graphic_as_layer_obstacle() -> None:
+    lane = SilkscreenLane("board.gd1", (_search_text(),), ())
+    context = _context()
+    context["fixed_silk_objects"] = [
+        {"kind": "Line", "layer": "F.SilkS", "bbox_mm": [0.0, 0.0, 5.0, 5.0]}
+    ]
+    result = resolve_from_context(lane, context)
+    assert result[0]["resolution"] == "context_candidate"
+    rejected = cast(list[dict[str, Any]], result[0]["rejected_candidates"])
+    assert any(
+        item["reason"] == "fixed_silk_objects"
+        for item in rejected
+    )

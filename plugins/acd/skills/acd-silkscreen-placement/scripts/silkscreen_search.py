@@ -628,7 +628,14 @@ def resolve_from_context(
     bodies = boxes("body_bboxes_mm")
     courtyards = boxes("courtyard_bboxes_mm")
     existing = boxes("existing_silk_objects")
-    forbidden_silk = masks + existing
+    fixed = boxes("fixed_silk_objects")
+    forbidden_silk = [
+        ("mask_objects", item) for item in masks
+    ] + [
+        ("existing_silk_objects", item) for item in existing
+    ] + [
+        ("fixed_silk_objects", item) for item in fixed
+    ]
     declarations = boxes("declarations")
     declaration_sizes = {
         str(item["node_id"]): (
@@ -663,8 +670,17 @@ def resolve_from_context(
         for item in bodies + courtyards
         if isinstance(item.get("refdes"), str)
     }
-    results: list[dict[str, object]] = []
-    for text in lane.texts:
+    results_by_id: dict[str, dict[str, object]] = {}
+    dynamic_silk: list[dict[str, Any]] = []
+    ordered_texts = sorted(
+        lane.texts,
+        key=lambda text: (
+            0 if text.node_id == "mechanical.silk_text.reset" else 1,
+            1 if text.layer == "B.SilkS" else 0,
+            text.node_id,
+        ),
+    )
+    for text in ordered_texts:
         if text.height_mm < min_height or text.stroke_width_mm < min_width:
             raise GraphExtractionError(
                 f"silk text {text.node_id!r} is below measured capability (fail-closed)"
@@ -705,10 +721,10 @@ def resolve_from_context(
                 y = outline[1] + height / 2
                 while y <= outline[3] - height / 2 + 1e-9:
                     candidate_bbox = (
-                        x - width / 2,
-                        y - height / 2,
-                        x + width / 2,
-                        y + height / 2,
+                        x - width / 2 - text.stroke_width_mm,
+                        y - height / 2 - text.stroke_width_mm,
+                        x + width / 2 + text.stroke_width_mm,
+                        y + height / 2 + text.stroke_width_mm,
                     )
                     candidate = {
                         "x_mm": round(x, 9),
@@ -739,15 +755,13 @@ def resolve_from_context(
                                 reason = "pad_bboxes_mm"
                                 break
                         if reason is None:
-                            for item in forbidden_silk:
+                            for source, item in forbidden_silk + [
+                                ("placed_declaration", item) for item in dynamic_silk
+                            ]:
                                 if item.get("layer") == text.layer and _rects_overlap(
                                     candidate_bbox, bbox(item)
                                 ):
-                                    reason = (
-                                        "mask_objects"
-                                        if item in masks
-                                        else "existing_silk_objects"
-                                    )
+                                    reason = source
                                     break
                         if reason is None:
                             for item in bodies + courtyards:
@@ -798,16 +812,15 @@ def resolve_from_context(
                     y = round(y + step, 9)
                 x = round(x + step, 9)
         if not candidates:
-            results.append(
-                {
-                    "node_id": text.node_id,
-                    "role": text.role,
-                    "candidates": [],
-                    "rejected_candidates": rejected,
-                    "resolution": "no_candidate_fail_closed",
-                }
-            )
-            continue
+            results_by_id[text.node_id] = {
+                "node_id": text.node_id,
+                "role": text.role,
+                "candidates": [],
+                "rejected_candidates": rejected,
+                "resolution": "no_candidate_fail_closed",
+                "placement_order": [item.node_id for item in ordered_texts],
+            }
+            break
         chosen = min(
             candidates,
             key=lambda item: (
@@ -815,20 +828,29 @@ def resolve_from_context(
                 float(item["y_mm"]),
                 float(item["x_mm"]),
                 float(item["rotation_deg"]),
-            ),
+            )
         )
-        results.append(
+        results_by_id[text.node_id] = {
+            "node_id": text.node_id,
+            "role": text.role,
+            "candidates": candidates,
+            "rejected_candidates": rejected,
+            "accepted_position_mm": [chosen["x_mm"], chosen["y_mm"]],
+            "accepted_rotation_deg": chosen["rotation_deg"],
+            "resolution": "context_candidate",
+            "placement_order": [item.node_id for item in ordered_texts],
+        }
+        dynamic_silk.append(
             {
-                "node_id": text.node_id,
-                "role": text.role,
-                "candidates": candidates,
-                "rejected_candidates": rejected,
-                "accepted_position_mm": [chosen["x_mm"], chosen["y_mm"]],
-                "accepted_rotation_deg": chosen["rotation_deg"],
-                "resolution": "context_candidate",
+                "layer": text.layer,
+                "bbox_mm": chosen["bbox_mm"],
             }
         )
-    return tuple(results)
+    return tuple(
+        results_by_id[text.node_id]
+        for text in lane.texts
+        if text.node_id in results_by_id
+    )
 
 
 def main() -> int:

@@ -569,6 +569,12 @@ def measure_silkscreen(
     ]
     declared_ids = {id(item) for item in declared_objects}
     non_declared_silk = [item for item in all_silk if id(item) not in declared_ids]
+    fixed_declared_silk = [
+        item
+        for entry, objects in declared_groups
+        if str(entry["node_id"]).startswith("mechanical.silk_graphic.")
+        for item in objects
+    ]
     body_overlaps: list[dict[str, object]] = []
     courtyard_overlaps: list[dict[str, object]] = []
     existing_silk_overlaps: list[dict[str, object]] = []
@@ -739,6 +745,14 @@ def measure_silkscreen(
                 "bbox_mm": list(item.bbox_mm),
             }
             for item in non_declared_silk
+        ],
+        "fixed_silk_objects": [
+            {
+                "kind": item.kind,
+                "layer": item.layer,
+                "bbox_mm": list(item.bbox_mm),
+            }
+            for item in fixed_declared_silk
         ],
         "mask_opening_bboxes_mm": [list(item.bbox_mm) for item in masks],
         "pad_bboxes_mm": [
