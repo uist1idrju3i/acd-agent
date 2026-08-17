@@ -30,7 +30,8 @@ git submodule status
 `vendor/software-agent-sdk`がv1.42.1のcommitを指していることを確認する。
 
 Dockerでゲートを実行する場合は、[`docker/README.md`](../docker/README.md)に従って
-`docker/acd-tools.Dockerfile`を各自buildする。決定論的ゲートはDockerWorkspaceのdigest固定imageで実行する。現行runnerのホスト経路は
+`docker/acd-tools.Dockerfile`を各自buildする。決定論的ゲートは
+DockerWorkspaceのdigest固定imageで実行する。現行runnerのホスト経路は
 移行中の参考実行であり、合格側Evidenceを生成しない。
 
 ## 外部ツール

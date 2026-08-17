@@ -41,10 +41,10 @@ repositoryの固定が必要である。
 準備経路に限定する。現行runnerは移行中であり、ホスト実行は合格側Evidenceを生成しない。
 
 ```python
-from openhands.workspace.docker import DockerDevWorkspace
+from openhands.workspace.docker import DockerWorkspace
 
-with DockerDevWorkspace(
-    base_image="acd-tools-gates:local",
+with DockerWorkspace(
+    server_image="ghcr.io/openhands/agent-server:...@sha256:<digest>",
     volumes=["/absolute/repo/path:/workspace"],
     forward_env=["ACD_CONTAINER_IMAGE_DIGEST"],
 ) as workspace:
@@ -54,6 +54,9 @@ with DockerDevWorkspace(
         cwd="/workspace",
     )
 ```
+
+`DockerDevWorkspace(base_image="acd-tools-gates:local", ...)`は、ACD tools imageを
+agent-server imageへbuildする準備・移行中の経路であり、ゲート実行の正ではない。
 
 ホスト側の`ACD_CONTAINER_IMAGE_DIGEST`は、runnerが`docker image inspect`から解決
 した値を設定する。`forward_env`で同名変数をコンテナへ渡し、ToolEnvelopeの

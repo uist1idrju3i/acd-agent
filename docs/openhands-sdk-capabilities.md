@@ -31,7 +31,7 @@
 | event | `Event`、`MessageEvent`、`EventLog`、resume transcript | 採用済み | — | sessionの経過観測。合否Evidenceではない |
 | hooks | `HookConfig`、`HookMatcher`、command hook | 採用済み | — | `plugins/acd/hooks/`。agent経路の停止側境界 |
 | io | `FileStore`、`LocalFileStore`、`InMemoryFileStore` | 採用候補 | 中。session保存抽象として有用。Evidenceの正との二重化に注意 | gitとfilesystemを正とするため、採否は保存契約の検証後 |
-| git | `LocalWorkspace.git_changes()`等 | 採用済み | — | `scripts/acd_evidence_git_check.py`。stale判定の入力のみ |
+| git | `openhands.sdk.git.git_changes.get_git_changes`、`openhands.sdk.git.exceptions.GitError` | 採用済み | — | `packages/acd-tools/src/acd_tools/evidence_git.py`。stale判定の入力のみ |
 | llm | `LLM`、`LLMResponse`、`LLMStreamChunk`、`TokenUsage` | 採用済み | — | ConversationとTestLLMの配線。合否判定は行わない |
 | llm.router | `RouterLLM`、`RandomRouter`、`MultimodalRouter` | 採用候補 | 低。コスト・可用性を改善する。モデル選択が再現性を損なう | 固定profile、予算計測、L1非依存を満たせば再評価 |
 | llm.auth | OpenAI資格情報・auth helper | 不採用 | — | secret経路へ寄せ、資格情報を宣言へ持ち込まない |
@@ -51,35 +51,35 @@
 | subagent | sub-agent登録・factory・agent loader | 採用済み | — | `plugins/acd/agents/`。合否権限は持たせない |
 | testing | `TestLLM`、test helpers | 採用済み | — | bootstrap、hook DENY、critic反復の回帰テスト |
 | tool | `ToolDefinition`、`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`、`register_tool` | 採用済み | — | `register_acd_tools()`から4入口を登録 |
-| workspace | `Workspace`、`LocalWorkspace`、`RemoteWorkspace` | 採用候補 | 中。SDK実行境界を抽象化する。ACDのDocker一本化と競合しうる | DockerWorkspaceの受け入れ後、非Docker経路は採用しない |
+| workspace | `Workspace`、`LocalWorkspace`、`RemoteWorkspace` | 採用済み | — | `build_acd_conversation()`のagent session workspace境界で使用する。決定論的ゲートには使わず、ホスト実行は参考実行とする |
 | logger | SDK logger、structured logging | 採用候補 | 低。運用診断に有用。secret・Evidence混入がリスク | sanitizerと保存先をV1〜V8で固定 |
 | extensions | SDK extension registry | 不採用 | — | Agent Canvas等の他環境拡張は範囲外 |
 | goal loop | `GoalController`、`judge_goal`、goal endpoint | 不採用 | — | LLM judgeでL1ゲートを省略しない。criticのL2操舵で足りる |
 
 ## `openhands-tools`
 
-| 機能 | 主なAPI | 状態 | ACD側の根拠または理由 |
-|---|---|---|---|
-| terminal | `TerminalTool`、terminal toolset | 採用済み | `plugins/acd/agents/*.md`の標準SDK tool |
-| file_editor | `FileEditorTool` | 採用済み | AgentDefinitionが使用。hookの対象経路 |
-| grep | `GrepTool` | 採用済み | AgentDefinitionの標準検索tool |
-| glob | `GlobTool` | 採用済み | AgentDefinitionの標準検索tool |
-| task_tracker | `TaskTrackerTool` | 採用済み | AgentDefinitionの作業追跡tool |
+| 機能 | 主なAPI | 状態 | 優先度・価値・前提・リスク | ACD側の根拠または理由 |
+|---|---|---|---|---|
+| terminal | `TerminalTool`、terminal toolset | 採用済み | — | `plugins/acd/agents/*.md`の標準SDK tool |
+| file_editor | `FileEditorTool` | 採用済み | — | AgentDefinitionが使用。hookの対象経路 |
+| grep | `GrepTool` | 採用済み | — | AgentDefinitionの標準検索tool |
+| glob | `GlobTool` | 採用済み | — | AgentDefinitionの標準検索tool |
+| task_tracker | `TaskTrackerTool` | 採用済み | — | AgentDefinitionの作業追跡tool |
 | task | `TaskToolSet` | 採用候補 | 中。主contextの汚染を減らす。合否権限なし | delegateの運用受け入れ後に採用 |
 | delegate | `DelegateExecutor`、`spawn`、`delegate` | 採用候補 | 中。sub-agent調整に有用。blockingとmax_children=5が前提 | resource lock、停止側のみの権限を検証 |
-| workflow | `WorkflowContext`、`WorkflowToolSet`、`run_agent`、`map_agents`、`reduce_agent`、`pipeline`、`flatten` | 不採用 | shell/file操作を行う決定論的探索には使えず、L1判定へ委譲しない |
+| workflow | `WorkflowContext`、`WorkflowToolSet`、`run_agent`、`map_agents`、`reduce_agent`、`pipeline`、`flatten` | 不採用 | — | shell/file操作を行う決定論的探索には使えず、L1判定へ委譲しない |
 | browser_use | Browser toolset | 採用候補 | 低。将来のsourcing。外部送信・発注ガードが前提 | order guard、認証、価格・在庫のEvidence契約を実装 |
-| apply_patch | `ApplyPatchTool` | 不採用 | ACDのAgentDefinition tool集合を増やさない |
-| planning_file_editor | planning file editor | 不採用 | file_editorと保護hookの単一経路を維持 |
-| gemini系 | Gemini tools | 不採用 | OpenHands専用の標準tool境界外 |
-| tom_consult | `TomConsultTool` | 不採用 | 合否に関与しない外部相談経路を増やさない |
-| preset | tool preset loader | 不採用 | tool集合を明示固定する |
+| apply_patch | `ApplyPatchTool` | 不採用 | — | ACDのAgentDefinition tool集合を増やさない |
+| planning_file_editor | planning file editor | 不採用 | — | file_editorと保護hookの単一経路を維持 |
+| gemini系 | Gemini tools | 不採用 | — | OpenHands専用の標準tool境界外 |
+| tom_consult | `TomConsultTool` | 不採用 | — | 合否に関与しない外部相談経路を増やさない |
+| preset | tool preset loader | 不採用 | — | tool集合を明示固定する |
 
 ## `openhands-workspace`
 
 | 機能 | 主なAPI | 状態 | 優先度／価値・前提・リスク | ACD側の根拠または理由 |
 |---|---|---|---|---|
-| LocalWorkspace | `LocalWorkspace` | 不採用 | — | ゲートのホスト実行は参考実行で、合格側Evidenceを生成しない |
+| LocalWorkspace | `LocalWorkspace` | 採用済み | — | `build_acd_conversation()`のagent session workspaceとして使用する。決定論的ゲートには使わず、ホスト実行は参考実行とする |
 | DockerWorkspace | `DockerWorkspace(server_image=...)` | 採用済み | — | digest固定agent-server imageを決定論的ゲート実行の正とする。次フェーズ移行 |
 | DockerDevWorkspace | `DockerDevWorkspace(base_image=...)` | 採用済み | — | ACD tools imageからagent-server imageをbuildする準備経路に限定 |
 | Apptainer | `ApptainerWorkspace` | 不採用 | — | Docker一本化 |
