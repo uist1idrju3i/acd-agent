@@ -294,10 +294,6 @@ def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement,
     )
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-
-
 def _best_fit(
     board: BoardView,
     footprint: FootprintShape,
@@ -371,3 +367,7 @@ def _pad_positions(
         for pad in footprint.pads
         if pad.number == pad_number
     )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

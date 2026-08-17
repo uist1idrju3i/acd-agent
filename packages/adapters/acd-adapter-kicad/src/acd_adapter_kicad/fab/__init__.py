@@ -4,7 +4,7 @@
 # ruff: noqa: I001,RUF100,F401,E501
 
 from .common import *  # noqa: F401,F403
-from .common import rotate
+from .geometry import rotate  # noqa: F401
 from .archive import deterministic_zip, zip_content_hash  # noqa: F401
 from .assembly import (  # noqa: F401
     apply_cpl_contract,
@@ -15,7 +15,6 @@ from .assembly import (  # noqa: F401
     parse_pos_csv,
 )
 from .common import (  # noqa: F401
-    _gerber_silk_objects,
     BoardMeasurement,
     CplBasisError,
     FabOutputError,
@@ -39,19 +38,21 @@ from .gerber import (  # noqa: F401
     verify_smd_pad_centers_in_gerber,
 )
 from .routed_board import (  # noqa: F401
+    GerberFile,
     measure_net_path_resistance,
     measure_net_track_widths,
     parse_routed_board,
     read_drill_measurement,
 )
 
-from . import common as _common
-from .common import measure_silkscreen as _measure_silkscreen
+from . import silkscreen as _silkscreen
+from .silkscreen import _gerber_silk_objects, measure_silkscreen as _measure_silkscreen
 
 
 def measure_silkscreen(*args, **kwargs):
-    _common._gerber_silk_objects = _gerber_silk_objects
+    _silkscreen._gerber_silk_objects = _gerber_silk_objects
     return _measure_silkscreen(*args, **kwargs)
+
 
 __all__ = [
     "BoardMeasurement",
