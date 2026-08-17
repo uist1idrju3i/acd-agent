@@ -115,7 +115,7 @@ APIであることを確認した。workflow scriptはshell実行やファイル
 
 P6/P7ではSDK v1.42.1の`Agent`、`LocalConversation`、`PluginSource`、
 `HookConfig.load()`、`LLMSummarizingCondenser`、`LocalWorkspace.git_changes()`、
-`LocalWorkspace.git_diff()`、`ConversationStats.get_combined_metrics()`を使用する。
+`ConversationStats.get_combined_metrics()`を使用する。
 既定の`out/agent-sessions`は生成物であり設計入力ではない。SDKのloop、history、
 persistence、metricsは採用し、ACD独自実装は採用しない。metricsは
 `pass_evidence: false`で保存し、合否判定には使わない。

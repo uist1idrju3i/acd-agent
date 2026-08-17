@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from openhands.sdk import LLM
+from openhands.sdk.llm.utils.metrics import Metrics
 
 from acd_tools.agent_session import build_acd_conversation, write_conversation_metrics
 from acd_tools.gate_critic import AcdEvidenceRequirement
@@ -29,18 +30,7 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
 
 
 def test_metrics_are_marked_as_non_evidence(tmp_path: Path) -> None:
-    class Stats:
-        def get_combined_metrics(self):
-            class Metrics:
-                def model_dump(self, mode: str):
-                    return {"accumulated_cost": 0.0}
-
-            return Metrics()
-
-    class Conversation:
-        conversation_stats = Stats()
-
     path = tmp_path / "metrics.json"
-    write_conversation_metrics(Conversation(), path)  # type: ignore[arg-type]
+    write_conversation_metrics(Metrics(), path)
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["pass_evidence"] is False

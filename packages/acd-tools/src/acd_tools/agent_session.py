@@ -10,6 +10,7 @@ from openhands.sdk import LLM, Agent
 from openhands.sdk.context.condenser import LLMSummarizingCondenser
 from openhands.sdk.conversation import LocalConversation
 from openhands.sdk.hooks import HookConfig
+from openhands.sdk.llm.utils.metrics import Metrics
 from openhands.sdk.plugin import PluginSource
 
 from acd_tools.gate_critic import AcdGateCritic, GateRequirement
@@ -56,13 +57,12 @@ def build_acd_conversation(
     )
 
 
-def write_conversation_metrics(conversation: LocalConversation, path: Path) -> None:
+def write_conversation_metrics(metrics: Metrics, path: Path) -> None:
     """Write SDK metrics as progress metadata, never as pass evidence."""
-    metrics = conversation.conversation_stats.get_combined_metrics()
     payload: dict[str, Any] = {
         "artifact_kind": "conversation_metrics",
         "pass_evidence": False,
-        "description": "経過情報であり合否Evidenceではない",
+        "description": "This is not pass evidence.",
         "metrics": metrics.model_dump(mode="json"),
     }
     path.parent.mkdir(parents=True, exist_ok=True)

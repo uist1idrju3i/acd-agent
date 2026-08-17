@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 from typing import Any
 
+from openhands.sdk.git.exceptions import GitError
 from openhands.sdk.git.git_changes import get_git_changes
-from openhands.sdk.workspace import LocalWorkspace
 
 from acd_schema import Evidence
 
@@ -22,18 +23,15 @@ def check_evidence_with_git(
 ) -> dict[str, Any]:
     """Check Evidence semantics and reject changed design inputs fail-closed."""
     try:
-        evidence = Evidence.model_validate_json(evidence_path.read_text(encoding="utf-8"))
+        evidence = Evidence.model_validate_json(
+            evidence_path.read_text(encoding="utf-8")
+        )
         if evidence.evidence_id != evidence_id:
             return {"passed": False, "reason": "evidence_id mismatch"}
         changes = get_git_changes(repo_root, ref=ref)
-        workspace = LocalWorkspace(working_dir=repo_root)
         design_changes = [
-            change
-            for change in changes
-            if _is_design_input(str(change.path))
+            change for change in changes if _is_design_input(str(change.path))
         ]
-        for change in design_changes:
-            workspace.git_diff(str(change.path))
         if design_changes:
             return {
                 "passed": False,
@@ -43,7 +41,7 @@ def check_evidence_with_git(
         if not evidence.supports_pass(revision):
             return {"passed": False, "reason": "evidence does not support revision"}
         return {"passed": True, "reason": "evidence supports revision"}
-    except Exception as exc:
+    except (OSError, ValueError, GitError) as exc:
         return {"passed": False, "reason": f"git evidence check failed: {exc}"}
 
 
@@ -55,8 +53,6 @@ def _is_design_input(path: str) -> bool:
 
 
 def main() -> int:
-    import argparse
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("evidence", type=Path)
     parser.add_argument("evidence_id")
