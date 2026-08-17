@@ -18,6 +18,7 @@ build-backend = "hatchling.build"
 [project.scripts]
 acd-evidence-check = "acd_tools.evidence_check:main"
 acd-design-revision = "acd_tools.design_revision:main"
+acd-evidence-git-check = "acd_tools.evidence_git:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/acd_tools"]

@@ -151,10 +151,19 @@ Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力�
 設計入力へ確定した後に既存ゲートで判定する。SDK workflow toolはLLM subagent用で
 shell・file操作を禁止するため、決定論的探索には使わない。
 
+## SDK Conversation session境界
+
+`acd_tools.agent_session`は`LocalConversation`へACD plugin、hooks、workspace、
+`persistence_dir`、`AcdGateCritic`、`LLMSummarizingCondenser`を宣言的に接続する。
+loop、history、state/event persistence、metricsはSDKへ委譲する。EventLog、
+conversation state、metrics、condenser outputは経過でありpass evidenceではない。
+fork/resume後も決定論的ゲートを再実行して合否を決める。SDK gitは設計入力のstale判定
+への入力に限り、Evidenceの正は`Evidence.supports_pass(graph.revision)`である。
+
 ## 実装していない境界
 
-SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、Conversationを使った
-実行経路、実機測定、価格・在庫取得、自働発注は未実装であり、将来構想である。
+SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、実機測定、価格・在庫
+取得、自働発注は未実装であり、将来構想である。
 
 ## hook境界
 

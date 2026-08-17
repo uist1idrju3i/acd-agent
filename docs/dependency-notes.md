@@ -111,6 +111,15 @@ APIであることを確認した。workflow scriptはshell実行やファイル
 契約のため、KiCadなどの決定論的CLI探索には採用しない。ACD側のwidth arm並列化は
 `ThreadPoolExecutor`で実装し、外部subprocessを独立に待機する。
 
+### OpenHands SDK P6/P7 API
+
+P6/P7ではSDK v1.42.1の`Agent`、`LocalConversation`、`PluginSource`、
+`HookConfig.load()`、`LLMSummarizingCondenser`、`LocalWorkspace.git_changes()`、
+`LocalWorkspace.git_diff()`、`ConversationStats.get_combined_metrics()`を使用する。
+既定の`out/agent-sessions`は生成物であり設計入力ではない。SDKのloop、history、
+persistence、metricsは採用し、ACD独自実装は採用しない。metricsは
+`pass_evidence: false`で保存し、合否判定には使わない。
+
 ### OpenHands SDK hooks
 
 SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは

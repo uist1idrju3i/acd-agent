@@ -65,7 +65,7 @@ parse失敗、未実行、unknownはfail-closedとする。Markdownのみの変�
 | 5 | 外部ツールの保存バイト列を設計状態の権威にしない。非決定な出力は正規化規則を契約に書き、規則外の差異は停止条件とする | 外部ツールの決定論性を説明で仮定する（timestamp、再保存時のセグメント構成差など） |
 | 6 | 契約はPydanticモデルから導く | runnerと文書でgate番号・状態を二重管理する |
 | 7 | 安全条件・保護対象は書き換わる部分木で判断する | pathの完全一致だけで許可・却下を決める |
-| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。SDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | 予算次元を不明のまま次の作業へ渡す |
+| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。SDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | sessionへのmetrics出力配線はP7で実装済み。実LLM測定はP8のTestLLMで検証する |
 | 9 | 探索を含む工程では、代理指標スコアを合格根拠にせず、停止理由と実行結果を記録する | 代理指標だけで合格させる。停止理由を記録しない |
 
 ## 見直し条件

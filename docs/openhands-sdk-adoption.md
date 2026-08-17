@@ -146,7 +146,7 @@ ngspiceを固定したimageをworkspaceとして宣言すれば、**`ToolEnvelop
 初めて検証可能になる**（roadmap「フェーズ横断の検証要件#5」の実効化）。
 ACDはimage digestをenvelopeへ記録するだけでよい。
 
-### P6: 履歴・provenance・再開をSDKの永続化に載せる
+### P6: 履歴・provenance・再開をSDKの永続化に載せる（実装済み）
 
 `EventLog`（`sdk.event`）+ `sdk.io`のFileStore（`local` / `memory` / `cache`）+
 conversation persistence / fork を採用すると、(a) 設計判断の履歴、(b) 長時間セッションの
@@ -154,13 +154,16 @@ resume、(c) 設計案の分岐（fork）が標準機構になる。ACDの正は
 「入力ファイル + git commit + evidence」であり、EventLogは**根拠ではなく経過**として扱う
 （ADR-0008の記述と一致）。あわせて`sdk.git`の`git_changes` / `git_diff` / `git_commits`で
 stale evidence判定の入力（revision差分）を取る。
+`acd_tools.agent_session`が`LocalConversation`へplugin、hooks、workspace、
+`persistence_dir`、`AcdGateCritic`を接続する。loop、history、state/event persistenceは
+SDKへ委譲し、EventLogとconversation stateは経過であって合否Evidenceではない。
 
-### P7: 予算とcontextの標準機構
+### P7: 予算とcontextの標準機構（実装済み）
 
-roadmap「検証要件#8」がSDKの`Metrics` / `MetricsSnapshot`実測を要求しているが未接続。
-`Conversation`経路に載せれば`ConversationStats.get_metrics_for_usage()`で
-agent/profile別のtoken・金額が取れる。長い反復ループには
-`context.condenser.LLMSummarizingCondenser`（`AgentDefinition`の`condenser:`で宣言可）。
+`ConversationStats.get_combined_metrics()`を
+`acd_tools.agent_session.write_conversation_metrics()`でJSONへ出力できる。
+出力は`pass_evidence: false`を持つ経過情報であり、実LLM測定はP8のTestLLMで検証する。
+長い反復ループには`context.condenser.LLMSummarizingCondenser`を接続する。
 
 ### P8: 配布とテスト
 

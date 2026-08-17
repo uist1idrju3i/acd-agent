@@ -14,6 +14,20 @@ SDKは`vendor/software-agent-sdk`のv1.42.1を参照する。Agent Canvasのsubm
 OpenHandsの公開Skills repositoryはsubmoduleにせず外部参照とする:
 <https://github.com/OpenHands/extensions>
 
+## P6/P7: SDK Conversation bootstrap
+
+`acd_tools.agent_session.build_acd_conversation()`は、`Agent`へ
+`AcdGateCritic`と`LLMSummarizingCondenser`を設定し、`LocalConversation`へ
+`plugins/acd`、`plugins/acd/hooks/hooks.json`、workspace、
+`persistence_dir`を渡す。登録済みのACD ToolDefinitionは
+`register_acd_tools()`で利用可能にする。SDKがloop、history、state/event persistence、
+metricsを担当し、ACD側は配線と決定論的ゲートの設定だけを行う。
+
+`acd-evidence-git-check`はSDK gitの変更情報をstale判定の入力にする薄いCLIである。
+Evidenceの正は引き続き`Evidence.supports_pass(graph.revision)`だけであり、
+`graph.revision`は`rN`であってgit SHAではない。EventLog、state、metrics、
+condenser outputはpass evidenceではない。
+
 ## plugin構成
 
 ```text
