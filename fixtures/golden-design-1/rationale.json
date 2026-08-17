@@ -60,7 +60,7 @@
       ],
       "subject_hash": "sha256:40a0d3d97fac27ef51e2ef634c18ef6538c445c018a6b3abfd5c971533feea0c",
       "decision": "Reserve a 5.4 mm top-edge overhang for the ESP32-C3-MINI-1 antenna.",
-      "justification": "GD1-REQ-015 and §8.1 identify the ESP32-C3-MINI-1 antenna at the top edge and the graph declares 5.4 mm overhang. This value keeps enclosure material and copper away from the antenna boundary while preserving the 30 x 25 mm board datum.",
+      "justification": "GD1-REQ-015 and §8.1 identify the ESP32-C3-MINI-1 antenna at the top edge and require a 5.4 mm overhang. This separation keeps enclosure material and copper away from the antenna boundary while preserving the 30 x 25 mm board datum.",
       "driving_requirements": [
         "req.gd1-req-015"
       ],
@@ -68,11 +68,11 @@
       "rejected_alternatives": [
         {
           "option": "Use 0 mm overhang",
-          "reason": "A flush top edge would cover the declared antenna boundary and violate GD1-REQ-015."
+          "reason": "A flush edge would place enclosure material and copper directly under the ESP32-C3-MINI-1 antenna, degrading the RF keepout and violating GD1-REQ-015."
         },
         {
           "option": "Use 3.0 mm overhang",
-          "reason": "It is 2.4 mm less than the declared 5.4 mm antenna overhang and would not preserve the documented boundary."
+          "reason": "The smaller extension would leave less separation between the antenna and the board/enclosure boundary than the 5.4 mm RF clearance requirement."
         }
       ],
       "assumptions": [
@@ -120,11 +120,11 @@
       "rejected_alternatives": [
         {
           "option": "Assign a solid body or nonzero height to test points and holes",
-          "reason": "The graph source explicitly declares body_type=none and height=0.0 mm for these features."
+          "reason": "TestPoint and MountingHole features are pads/apertures with no package volume; assigning height would create false enclosure collisions and misrepresent probe and screw access."
         },
         {
           "option": "Place the features on the bottom side",
-          "reason": "Top-side declarations keep the probe pads and mounting apertures aligned with the board datum."
+          "reason": "Top-side pads and apertures are needed for direct probing and for the shared mounting-hole datum used by the enclosure."
         }
       ],
       "assumptions": [
@@ -188,7 +188,7 @@
         }
       ],
       "assumptions": [
-        "The dimensions and source URLs remain the graph declarations."
+        "The package dimensions and source URLs are the datasheet/library evidence cited by the mechanical declaration."
       ],
       "risks": [
         "Library dimensions do not prove manufactured fit until the physical prototype is checked."
@@ -215,7 +215,7 @@
       ],
       "subject_hash": "sha256:ad10510211d4c60358f789b6ac13cde67a8f93473f866867473e3a35c502fd2d",
       "decision": "Place regulator and sensor bodies at their declared coordinates.",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for the regulator and sensor x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the power and sensor lanes and remains consistent with enclosure, antenna, connector opening, and board datum.",
+      "justification": "§8.1 places the AMS1117 body at (10.0,18.0) and the SHT40 body at (24.0,8.0), both at 0 degrees. Separating the regulator from the sensor keeps heat and bulk away from the humidity sensor while leaving the sensor in an exposed board region; these are source-backed mechanical coordinates rather than KiCad placement observations.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -223,12 +223,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Move the regulator beside the sensor",
+          "reason": "That would put the heat-producing regulator in the sensor lane and reduce the environmental measurement margin."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to the power, sensor, and indicator lanes."
+          "option": "Move the sensor into the regulator or antenna lane",
+          "reason": "That would compromise sensor exposure or the ESP32 antenna boundary."
         }
       ],
       "assumptions": [
@@ -261,7 +261,7 @@
       ],
       "subject_hash": "sha256:d0a9e36040cdfa618158bd3f947313f947cc0df18ef819430637ce9922a64df7",
       "decision": "Place M2 hole centers at their declared coordinates.",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the shared enclosure mounting datum and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "justification": "§8.1 places the four 2.2 mm M2 holes at (1.5,1.5), (28.5,1.5), (1.5,23.5), and (28.5,23.5) mm. These corner centers define the shared board/enclosure standoff datum and keep the mounting pattern outside the active routing lanes; the declared positions are used directly.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -269,12 +269,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Move a hole inward into the passive lanes",
+          "reason": "That would consume routing area and reduce the symmetric enclosure support pattern."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to the shared enclosure mounting datum."
+          "option": "Place a hole over a connector or component body",
+          "reason": "That would create a mechanical collision and invalidate the 2.2 mm M2 clearance."
         }
       ],
       "assumptions": [
@@ -304,7 +304,7 @@
       ],
       "subject_hash": "sha256:24df0426f27258a23aee124d897b15d564be459806e4e3e8f473533f95b14ab4",
       "decision": "Place ESP32-C3-MINI-1 at (15.0,13.0,0.0 deg).",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the antenna edge and enclosure datum and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "justification": "§8.1 places the 13.2 x 16.6 mm ESP32-C3-MINI-1 body at (15.0,13.0) with 0 degrees rotation. Centering the module leaves the top antenna edge aligned with the 5.4 mm overhang while keeping the USB connector and enclosure standoffs in their separate datums; only the declared mechanical input is used here.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -312,12 +312,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Move the MCU toward the top edge",
+          "reason": "That would reduce the antenna boundary and standoff clearance available at the top edge."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to the antenna edge and enclosure datum."
+          "option": "Rotate the module 90 degrees",
+          "reason": "Rotation would change the antenna direction and disrupt the documented USB/data and power lane orientation."
         }
       ],
       "assumptions": [
@@ -358,7 +358,7 @@
       ],
       "subject_hash": "sha256:b194e909fb3ffe6f53a7f56816d2f4c9ef80ac7adaa4b10437c435ae8b0e775a",
       "decision": "Place 0603 passive bodies at their declared coordinates.",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the routed nets and enclosure clearance and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "justification": "§8.1 places the twelve 0603 passives in repeated x/y lanes at x=8.0 or 12.0 mm and y=8.0, 11.0, 14.0, or 17.0 mm, all at 0 degrees. The repeated grid keeps decouplers close to their regulator/MCU pins, keeps pull-ups beside SDA/SCL, and leaves the antenna, USB opening, and mounting-hole datums clear; only the declared mechanical lane is authoritative.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -366,12 +366,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Move the passive grid toward the antenna edge",
+          "reason": "That would consume RF keepout and increase the MCU decoupling path."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to the routed nets and enclosure clearance."
+          "option": "Scatter passives around the board perimeter",
+          "reason": "That would lengthen power and pull-up routes and reduce the compact 0603 placement needed for the declared board area."
         }
       ],
       "assumptions": [
@@ -402,7 +402,7 @@
       ],
       "subject_hash": "sha256:954d4e6698e650f6424b570d07cb7ab4d3cfe799f7ef1c2e985f16498699d275",
       "decision": "Place RESET/BOOT bodies at their declared coordinates.",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the control labels and enclosure face and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "justification": "§8.1 places RESET at (7.0,5.0) and BOOT at (23.0,5.0), both at 0 degrees. The two switches share the front-side control row at opposite sides of the board, leaving the central USB opening unobstructed and allowing the corresponding silkscreen labels to remain readable; the row is a declared mechanical arrangement.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -410,12 +410,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Cluster both switches beside USB-C",
+          "reason": "That would crowd the front connector opening and reduce independent finger access."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to the control labels and enclosure face."
+          "option": "Place a switch over a standoff datum",
+          "reason": "The switch bodies need the top-side control surface and must not collide with enclosure supports."
         }
       ],
       "assumptions": [
@@ -451,7 +451,7 @@
       ],
       "subject_hash": "sha256:8dd48091866956d99e63ce43a90c26246411f30b1bb10c6688b5cc563a5cde7c",
       "decision": "Place test-point centers at their declared coordinates.",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with probe access and the board edge and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "justification": "§8.1 places the seven 1.5 mm test points along y=23.0 mm at x=2.0, 10.0, 18.0, and 26.0 mm, with repeated positions for shared nets. The edge row keeps probes accessible from the board perimeter and avoids the enclosure standoffs and active bodies; the source declaration is not replaced by runtime placement.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -459,12 +459,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Move test points to the board center",
+          "reason": "Center placement would be blocked by components and would make probe access difficult inside the enclosure."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to probe access and the board edge."
+          "option": "Move the row to within 0.5 mm of the edge",
+          "reason": "That would reduce pad-to-edge manufacturing material and leave less tolerance for probing and outline variation."
         }
       ],
       "assumptions": [
@@ -494,7 +494,7 @@
       ],
       "subject_hash": "sha256:4f00ffd22e1ce361f12cb79a4c90deb04a29f18ab72af6788627cec68479e501",
       "decision": "Place USB-C body at (15.0,5.0,0.0 deg).",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the front connector opening and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "justification": "§8.1 places the 9.0 x 7.0 mm USB-C body at (15.0,5.0) with 0 degrees rotation. This center aligns the connector with the front-face 8.0 x 5.0 mm opening and leaves the insertion face accessible while the board and enclosure mounting datums remain behind it; the coordinate is a declaration, not a runtime readback.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -502,12 +502,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Move USB-C to a side edge",
+          "reason": "A side placement would no longer align with the front-face opening or the intended cable insertion direction."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to the front connector opening."
+          "option": "Rotate the connector 90 degrees",
+          "reason": "The rotated body would not match the front opening orientation and would alter the 0.5 mm opening interface margin."
         }
       ],
       "assumptions": [
@@ -564,7 +564,7 @@
       ],
       "subject_hash": "sha256:a2c28375d5608beaf78738491bacf0f388ef27dcafa24263c94b67a547fc4849",
       "decision": "Populate 19 functional parts; leave 7 TestPoint pads and 4 M2 mounting-hole features not_fitted, with no DNP or variant population.",
-      "justification": "§9 and GD1-REQ-017 require the assembly projection to use JLCPCBA-eligible parts. The graph declares 19 functional components fitted and the test/fixture features not_fitted: test points remain probe pads and mounting holes remain mechanical apertures, not DNP alternatives.",
+      "justification": "§9 and GD1-REQ-017 require the assembly projection to use JLCPCBA-eligible parts. The 19 functional components are fitted, while test points remain probe pads and mounting holes remain mechanical apertures rather than DNP or BOM variants.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
@@ -574,16 +574,16 @@
       "rejected_alternatives": [
         {
           "option": "Mark a fitted functional part DNP or introduce a variant",
-          "reason": "That would contradict the single GD1 BOM/CPL projection and the declared function coverage."
+          "reason": "A DNP or variant would remove a declared function from the single GD1 BOM/CPL and require a separate population definition."
         },
         {
           "option": "Assemble TestPoint pads or MountingHole features",
-          "reason": "Their graph assembly value is not_fitted because they are probe/mechanical features, not PCBA parts."
+          "reason": "Test points are accessed by probes and mounting holes provide screw clearance; neither has a solderable component body intended for PCBA placement."
         }
       ],
       "no_alternatives_reason": null,
       "assumptions": [
-        "The JLCPCBA profile and stock snapshot remain those recorded in graph provenance."
+        "The JLCPCBA eligibility profile and stock snapshot require confirmation before ordering."
       ],
       "risks": [
         "Supplier availability and physical assembly yield must be reconfirmed before ordering."
@@ -615,7 +615,7 @@
       ],
       "subject_hash": "sha256:052ae3db764d58320c87eb318d20e6719c0b0109874265f9358ca82395918db5",
       "decision": "Cut a front-face 8.0 x 5.0 mm opening centered at (15.0,5.0) mm with 0.5 mm margin.",
-      "justification": "§8.1 declares the USB-C body as 9.0 x 7.0 mm at the front datum, while the graph opening is 8.0 x 5.0 mm centered at (15.0,5.0) with 0.5 mm margin for the connector access interface. The front face matches the USB-C insertion direction and the board opening datum.",
+      "justification": "§8.1 declares the USB-C body as 9.0 x 7.0 mm at the front datum, while the enclosure opening is 8.0 x 5.0 mm centered at (15.0,5.0) with 0.5 mm margin for connector access. The front face matches the USB-C insertion direction and the board opening datum.",
       "driving_requirements": [
         "req.gd1-req-006",
         "req.gd1-req-013"
@@ -624,11 +624,11 @@
       "rejected_alternatives": [
         {
           "option": "Move the opening to a side or back face",
-          "reason": "USB-C insertion is defined on the front face; moving it would break the declared access direction."
+          "reason": "USB-C insertion occurs at the front face, so a different face would prevent the intended cable approach."
         },
         {
           "option": "Use 0.0 mm margin",
-          "reason": "The graph declares 0.5 mm margin to preserve wall and fit tolerance around the opening."
+          "reason": "Zero margin leaves no room for the 0.5 mm opening-to-body interface allowance, wall thickness, connector insertion tolerance, or the board outline tolerance of +/-0.2 mm."
         }
       ],
       "assumptions": [
@@ -662,7 +662,7 @@
       ],
       "subject_hash": "sha256:8b45362cc85774018e872605b9ee5ce06811e8c8a30596fd8c0ff81846ce98fd",
       "decision": "Use 0.15 mm minimum track and clearance, 0.30 mm edge copper clearance, 0.60/0.30 mm vias, 10 K allowable rise, IPC-2221 width basis, and 0.01 mm width measurement tolerance.",
-      "justification": "The graph adopts 0.15 mm min track/clearance against the JLCPCB 0.10 mm capability, retaining 0.05 mm nominal margin. It uses 0.60 mm via diameter with 0.30 mm drill against 0.25/0.15 mm capability (and the 0.20 mm recommended drill), 0.30 mm edge clearance against >=0.20 mm capability, DeltaT=10 K, and 0.01 mm measurement tolerance so the 0.115469 mm calculated 5 V width is measured and routed as 0.15 mm.",
+      "justification": "JLCPCB capability data permits 0.10 mm tracks and clearances, while the selected 0.15 mm minima retain 0.05 mm nominal margin. The 0.60 mm via diameter and 0.30 mm drill exceed 0.25/0.15 mm capability minima (with 0.20 mm recommended drill), 0.30 mm edge clearance exceeds the >=0.20 mm capability, and DeltaT=10 K with 0.01 mm measurement tolerance makes the 0.115469 mm calculated 5 V width measurable and routable as 0.15 mm.",
       "driving_requirements": [
         "req.gd1-req-005"
       ],
@@ -746,8 +746,8 @@
         "interference_tolerance_mm3"
       ],
       "subject_hash": "sha256:54361c3fc38681abd44e58f3bcc1d3a7b0385693375a84f59f25f486d1d3a29d",
-      "decision": "Use PETG with 2.0 mm walls, 1.2 mm minimum wall, 1.0 mm internal clearance, 4.0/2.0 mm standoffs, 0.2 mm lid gap, 0.05 mm tolerance, and 0.01 mm3 interference limit.",
-      "justification": "§8.1/§9 and the graph define PETG, 2.0 mm nominal wall versus 1.2 mm minimum, 1.0 mm component clearance, 4.0 mm standoff height with 2.0 mm radius, 0.2 mm lid gap, 0.05 mm CAD tolerance, and 0.01 mm3 interference threshold. These values leave measurable assembly room while still failing actual collision.",
+      "decision": "Use 1.2 mm minimum wall, 1.0 mm internal clearance, 4.0 mm standoff height with 2.0 mm radius, 0.2 mm lid gap, 0.05 mm tolerance, and 0.01 mm3 interference limit.",
+      "justification": "§8.1/§9 define 1.2 mm minimum wall, 1.0 mm component clearance, 4.0 mm standoff height with 2.0 mm radius, 0.2 mm lid gap, 0.05 mm CAD tolerance, and 0.01 mm3 interference threshold. These values leave measurable assembly room while still failing actual collision.",
       "driving_requirements": [
         "req.gd1-req-014"
       ],
@@ -839,8 +839,8 @@
         "net"
       ],
       "subject_hash": "sha256:fd84b41913e6e0238f534a24485ac0530a6714c32a809c129dc2c07ff914e057",
-      "decision": "Adopt the documented firmware.pin_assignment design inputs.",
-      "justification": "§5 pin and net tables define the electrical signal carried by each firmware assignment; recording the net alongside GPIO makes the rationale traceable to the interface rather than only to a number. USB, I2C, LED, BOOT, and UART mappings remain distinct because their requirements and strapping constraints differ.",
+      "decision": "Assign IO18/IO19 to USB_D-/USB_D+, IO4/IO5 to SDA/SCL, IO7 to LED, IO9 to BOOT, and IO21/IO20 to UART TX/RX.",
+      "justification": "The §5 pin table assigns IO18/IO19 to USB_D-/USB_D+, IO4/IO5 to the SHT40 SDA/SCL bus, IO7 to the indicator, IO9 to BOOT, and IO21/IO20 to UART TX/RX. Recording these exact mappings keeps USB, I2C, LED, strapping, and serial-console constraints aligned across firmware, schematic, and routing.",
       "driving_requirements": [
         "req.gd1-req-008",
         "req.gd1-req-010",
@@ -854,12 +854,16 @@
       ],
       "rejected_alternatives": [
         {
-          "option": "Move a signal to an unused GPIO without reviewing its net function",
-          "reason": "GD1-REQ-008/010/011 and the document pin table assign interface-specific functions and exclude unsafe strapping pins."
+          "option": "Swap USB_D- and USB_D+",
+          "reason": "The USB differential interface requires the documented IO18/IO19 polarity."
         },
         {
-          "option": "Treat the GPIO number as sufficient without recording the net",
-          "reason": "The net is the cross-lane identity needed to validate firmware, schematic, and routing consistency."
+          "option": "Use IO2, IO8, or IO9 for the LED",
+          "reason": "The pin table reserves strapping-sensitive functions and assigns the indicator to IO7."
+        },
+        {
+          "option": "Move UART to an unassigned GPIO pair",
+          "reason": "The documented IO21/IO20 pair provides the required serial-log interface without changing the declared pin plan."
         }
       ],
       "assumptions": [
@@ -891,7 +895,7 @@
       ],
       "subject_hash": "sha256:44e9832d8912657d2e3ff5af2271c8c13138ca5c3dfcf3c65532721aa63ad25c",
       "decision": "Use GND planes on F.Cu/B.Cu, 1.0 mm2 minimum islands, 2.4 GHz epsilon-r 4.3 lambda/20 stitch pitch, and at most 3 refill iterations.",
-      "justification": "The graph sets 2.4 GHz and epsilon-r=4.3, so guided wavelength is used with stitch_via_wavelength_fraction=0.05 (lambda/20). A 1.0 mm2 minimum island avoids tiny isolated copper, and refill is bounded at 3 iterations for deterministic completion while the GND plane spans F.Cu and B.Cu.",
+      "justification": "IPC-2221A and the RF wavelength guidance use the 2.4 GHz maximum frequency and epsilon-r=4.3; guided wavelength therefore gives the lambda/20 rule represented by 0.05. A 1.0 mm2 minimum island avoids tiny isolated copper, and refill is bounded at 3 iterations for deterministic completion while the GND plane spans F.Cu and B.Cu.",
       "driving_requirements": [
         "req.gd1-req-005",
         "req.gd1-req-015"
@@ -900,15 +904,15 @@
       "rejected_alternatives": [
         {
           "option": "Use lambda/10 or a lower-frequency stitch rule",
-          "reason": "The declared 2.4 GHz and lambda/20 rule provide the tighter RF spacing; relaxing it would double the pitch or use an unsupported frequency basis."
+          "reason": "At 2.4 GHz with epsilon-r=4.3, lambda/20 is the documented tighter RF spacing; lambda/10 would double the pitch."
         },
         {
           "option": "Accept islands below 1.0 mm2",
-          "reason": "The graph explicitly rejects smaller islands as unreliable copper fragments."
+          "reason": "Very small isolated copper islands are difficult to connect reliably, can detach during fabrication, and make visual and electrical inspection ambiguous."
         },
         {
           "option": "Allow more than 3 refill iterations",
-          "reason": "The declared 3-iteration bound prevents a non-deterministic refill loop."
+          "reason": "A bounded three-pass refill prevents a non-deterministic plane-generation loop."
         }
       ],
       "assumptions": [
@@ -988,7 +992,7 @@
       ],
       "subject_hash": "sha256:2eb98b816d81e184414705f904c08b0fc7465af63590db3cb5b322918f91018c",
       "decision": "Class EN/BOOT/LED/I2C/UART=3.3 V with 0.00 mm added manufacturing margin.",
-      "justification": "GD1-REQ-009/010/011/012 define 3.3 V control, indicator, sensor, and UART signals. Their current is set by pull-ups, the LED resistor, or receiver inputs rather than the 0.5 A power boundary, so the graph uses the manufacturing-minimum class and 0.00 mm explicit additional margin.",
+      "justification": "GD1-REQ-009/010/011/012 define 3.3 V control, indicator, sensor, and UART signals. Their current is set by pull-ups, the LED resistor, or receiver inputs rather than the 0.5 A power boundary, so these logic routes use the manufacturing minimum and no added current-derived margin.",
       "driving_requirements": [
         "req.gd1-req-010",
         "req.gd1-req-011"
@@ -1000,11 +1004,11 @@
       "rejected_alternatives": [
         {
           "option": "Apply the 0.5 A power class to every control and sensor net",
-          "reason": "That would ignore the declared resistor-limited or receiver-input nature of these 3.3 V signals."
+          "reason": "EN, BOOT, I2C, UART, and LED currents are limited by pull-up values, receiver inputs, or the 1 kOhm LED resistor, so the power-domain current class is not electrically applicable."
         },
         {
-          "option": "Invent a positive manufacturing margin",
-          "reason": "The canonical graph records 0.00 mm for this class; the fab minimum remains the measurable constraint."
+          "option": "Add a power-style routing margin to these signals",
+          "reason": "These are logic routes whose manufacturability is governed by the 0.15 mm fab minimum; extra current-carrying width is reserved for the 0.5 A power domain rather than added to signal traces."
         }
       ],
       "assumptions": [
@@ -1036,7 +1040,7 @@
       ],
       "subject_hash": "sha256:96a7ab144cab580c7bc6d871efe73398105a123ad60ccb6a3fc22deda64dfd1c",
       "decision": "Class CC1/CC2=5.0 V and USB_D-/USB_D+=3.3 V with 0.00 mm added manufacturing margin.",
-      "justification": "GD1-REQ-004/006/008 define USB-C sink CC signals and IO18/IO19 USB data at logic voltage. These nets are logic/current-minimum routes, so the graph records 0.00 mm additional margin rather than applying the 0.5 A power class.",
+      "justification": "GD1-REQ-004/006/008 define USB-C sink CC signals and IO18/IO19 USB data at logic voltage. These nets are logic/current-minimum routes, so they use no added power-domain margin rather than applying the 0.5 A class.",
       "driving_requirements": [
         "req.gd1-req-004",
         "req.gd1-req-006",
@@ -1046,11 +1050,11 @@
       "rejected_alternatives": [
         {
           "option": "Apply the 5.0 V/0.5 A power class to USB data",
-          "reason": "USB_D-/USB_D+ are 3.3 V logic nets and CC is a configuration signal; the power class would overstate their current requirement."
+          "reason": "USB_D-/USB_D+ are 3.3 V logic lines and CC1/CC2 are configuration inputs, so they do not carry the power-domain current."
         },
         {
-          "option": "Claim a positive routing margin not present in the graph",
-          "reason": "manufacturing_margin_mm is explicitly 0.00 mm for these nets, so a larger value would change the canonical graph."
+          "option": "Add a power-style routing margin to USB logic and CC traces",
+          "reason": "The USB routes are governed by interface geometry and the fab minimum line width; current-derived width margin belongs to VBUS, +3V3, and GND, not these logic/configuration nets."
         }
       ],
       "assumptions": [
@@ -1752,7 +1756,7 @@
       ],
       "subject_hash": "sha256:cb31d88c2fc96c122ff36b96e89eee3e421912e0f91d254386fb20aba3cbc508",
       "decision": "Declare a hobby author_prototype boundary: USB VBUS 5.0 V maximum and 0.5 A maximum, with no battery, charger, motor, actuator, or laser.",
-      "justification": "GD1-REQ-004/005 and the graph set profile=hobby, intended_use=author_prototype, max_net_voltage_v=5.0, and max_current_a=0.5. This scope is deliberately below the 5 V/500 mA USB prototype envelope and keeps excluded energy functions outside the gate.",
+      "justification": "GD1-REQ-004/005 set a hobby author_prototype boundary of 5.0 V maximum and 0.5 A maximum. This scope is deliberately below the 5 V/500 mA USB prototype envelope and keeps excluded energy functions outside the gate.",
       "driving_requirements": [
         "req.gd1-req-004",
         "req.gd1-req-005"
@@ -1761,11 +1765,11 @@
       "rejected_alternatives": [
         {
           "option": "Declare 12 V or 1.0 A operation",
-          "reason": "The graph and GD1-REQ-004/005 define 5.0 V and 0.5 A; doubling either limit would be an unsupported safety-scope change."
+          "reason": "GD1-REQ-004/005 set the operating envelope at 5.0 V and 0.5 A; doubling either limit would be an unsupported safety-scope change."
         },
         {
           "option": "Declare a certified product",
-          "reason": "§11 leaves module certification unresolved and the graph profile is hobby author_prototype."
+          "reason": "§11 leaves module certification unresolved, while the documented use case is a hobby author_prototype rather than a certified product."
         }
       ],
       "assumptions": [
@@ -1795,7 +1799,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:a039c8959c58dd161ba212b14774847f33ae46b40cf9f06e34a71f240470e784",
-      "decision": "Adopt two TS-1088-AR02016 parts in Button_Switch_SMD:SW_SPST_TS-1088-xR020, for buttons.",
+      "decision": "Adopt two TS-1088-AR02016 parts in Button_Switch_SMD:SW_SPST_TS-1088-xR020 as the RESET and BOOT tactile switches.",
       "justification": "GD1-REQ-009 requires separate RESET and BOOT controls; the 6 x 6 mm TS-1088 package supplies both tactile interfaces within the declared board area.",
       "driving_requirements": [],
       "driving_requirement_refs": [
@@ -1834,7 +1838,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:c1886d1dd1b3885d2063b3f1eb7b13fef90f2243c2167473a21ba790bfefe535",
-      "decision": "Adopt two 5.1 kOhm parts in Resistor_SMD:R_0603_1608Metric, for cc.",
+      "decision": "Adopt two 5.1 kOhm 0603 parts as the USB-C CC1 and CC2 sink pulldowns.",
       "justification": "GD1-REQ-006 requires one 5.1 kOhm sink resistor per CC line; 0603 parts provide the required pair in the small USB-C keepout.",
       "driving_requirements": [
         "req.gd1-req-006"
@@ -1879,7 +1883,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:27793d20a4c849ff15e50557699b0bfe4c5aba9bf63a5b522c0a81e0108660d0",
-      "decision": "Adopt one 10 kOhm part in Resistor_SMD:R_0603_1608Metric, for en.",
+      "decision": "Adopt one 10 kOhm 0603 resistor as the EN pull-up in the reset network.",
       "justification": "The §5.2 EN network declares 10 kOhm pull-up, 1 uF capacitor, and RESET switch; 0603 keeps the RC network routable in the declared passive lane.",
       "driving_requirements": [],
       "driving_requirement_refs": [
@@ -1917,7 +1921,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:545a017bd0be084001a274717efabb2516efccd28504dfba814559637edc4c92",
-      "decision": "Adopt one 1 uF in Capacitor_SMD:C_0603_1608Metric, for en-cap.",
+      "decision": "Adopt one 1 uF 0603 capacitor as the EN reset RC capacitor.",
       "justification": "§5.2 pairs 1 uF with the 10 kOhm EN pull-up and RESET switch; the 0603 package fits the declared RC reset network.",
       "driving_requirements": [],
       "driving_requirement_refs": [
@@ -1958,7 +1962,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:cb5df4cc27572cf24d3af02a1aed30e8fb8f1af3075fe3b67d4985643713a8d2",
-      "decision": "Adopt four MountingHole:MountingHole_2.2mm_M2 footprints, for holes.",
+      "decision": "Adopt four 2.2 mm MountingHole footprints as the four shared M2 mounting-hole features.",
       "justification": "GD1-REQ-014 requires four shared M2 anchors; the 2.2 mm mounting-hole footprint provides M2 clearance without an assembled part.",
       "driving_requirements": [
         "req.gd1-req-014"
@@ -1997,7 +2001,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:eff31a64ce3db0817311bb4a329610dc3bd99bca7d9154a073624722cce3e97c",
-      "decision": "Adopt two 4.7 kOhm parts in Resistor_SMD:R_0603_1608Metric, for i2c.",
+      "decision": "Adopt two 4.7 kOhm 0603 resistors as the SHT40 SDA and SCL pull-ups.",
       "justification": "GD1-REQ-011 requires one 4.7 kOhm pull-up on each SHT40 SDA/SCL line; two 0603 parts satisfy that bus topology and board-area constraint.",
       "driving_requirements": [
         "req.gd1-req-011"
@@ -2043,7 +2047,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:bdfc7dca183ab2581173530f09826b6f7861670553f032c764cb2d5a1d934726",
-      "decision": "Adopt AMS1117-3.3 in Package_TO_SOT_SMD:SOT-223-3_TabPin2, for ldo.",
+      "decision": "Adopt AMS1117-3.3 in Package_TO_SOT_SMD:SOT-223-3_TabPin2 as the 5 V to 3.3 V regulator.",
       "justification": "GD1-REQ-007 names AMS1117-3.3; the SOT-223 package is the declared 6.5 x 3.5 mm regulator body and supports the specified 5 V to 3.3 V path.",
       "driving_requirements": [
         "req.gd1-req-007"
@@ -2085,7 +2089,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:bc16efd35e527d41731541f46f4450152f0a4048ef68ef407e271cdfb8924fea",
-      "decision": "Adopt 10 uF and 100 nF in Capacitor_SMD:C_0603_1608Metric, for regulator input.",
+      "decision": "Adopt 10 uF and 100 nF 0603 capacitors as the regulator input bulk and high-frequency pair.",
       "justification": "GD1-REQ-007 requires the AMS1117 input bulk/high-frequency pair; the two 0603 capacitor packages fit beside the regulator.",
       "driving_requirements": [
         "req.gd1-req-007"
@@ -2126,7 +2130,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:de55ac5c2b037c081df6fc753bba41d91e12f6793f8922940acc5a3c7869fb8f",
-      "decision": "Adopt 10 uF and 100 nF in Capacitor_SMD:C_0603_1608Metric, for regulator output.",
+      "decision": "Adopt 10 uF and 100 nF 0603 capacitors as the regulator output bulk and high-frequency pair.",
       "justification": "GD1-REQ-007 requires the same pair at the 3.3 V output; 0603 packages fit beside the regulator output and preserve the declared decoupling topology.",
       "driving_requirements": [
         "req.gd1-req-007"
@@ -2167,7 +2171,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:566eff03ce2434c665bfc0c344a6b6f5be9946688fcb785d2500f0b5ac3131c9",
-      "decision": "Adopt KT-0603R in LED_SMD:LED_0603_1608Metric plus one 1 kOhm Resistor_SMD:R_0603_1608Metric, for led.",
+      "decision": "Adopt KT-0603R plus one 1 kOhm 0603 resistor as the IO7 red indicator circuit.",
       "justification": "GD1-REQ-001/010 require a red indicator driven through 1 kOhm on IO7; 0603 LED and resistor packages fit the declared indicator lane.",
       "driving_requirements": [
         "req.gd1-req-001",
@@ -2213,7 +2217,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:d617fb08693be8be4a797468d195528174b4e9bdeabec2e3616ed50bd09c7ab6",
-      "decision": "Adopt ESP32-C3-MINI-1-N4 in Espressif:ESP32-C3-MINI-1, for mcu.",
+      "decision": "Adopt ESP32-C3-MINI-1-N4 in Espressif:ESP32-C3-MINI-1 as the USB-capable MCU module.",
       "justification": "GD1-REQ-008 fixes the module and its IO18/IO19 USB-Serial-JTAG path; the declared 13.2 x 16.6 mm module is the §8.1 placement envelope.",
       "driving_requirements": [
         "req.gd1-req-008"
@@ -2260,7 +2264,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:ae9b817bb1b7c520a46a67514f2b876b2ae7bfd2de2341ccd21b14d15bb3100e",
-      "decision": "Adopt one 100 nF in Capacitor_SMD:C_0603_1608Metric, for mcu-cap.",
+      "decision": "Adopt one 100 nF 0603 capacitor as the MCU local decoupler.",
       "justification": "§5.2 requires a separate local 100 nF at the ESP32-C3-MINI-1 supply; the 0603 package fits adjacent to the module power pin.",
       "driving_requirements": [
         "req.gd1-req-007",
@@ -2304,7 +2308,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:030a8d10ab9fc714af91c3e85bcfbdb2ea57cc3ac7adf92e43eeece582938277",
-      "decision": "Adopt SHT40-AD1B-R3 in Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad, for sensor.",
+      "decision": "Adopt SHT40-AD1B-R3 in the Sensirion DFN-4 1.5 x 1.5 mm footprint as the I2C humidity sensor.",
       "justification": "GD1-REQ-003/011 require SHT40 at I2C address 0x44; the DFN-4 1.5 x 1.5 mm package fits the §8.1 sensor placement envelope.",
       "driving_requirements": [
         "req.gd1-req-011"
@@ -2356,7 +2360,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:63df109564dbb945207f4dbe5ecf584fcc4a665f19d0356bc8e31152f4981169",
-      "decision": "Adopt seven TestPoint:TestPoint_Pad_D1.5mm footprints, for testpoints.",
+      "decision": "Adopt seven 1.5 mm TestPoint footprints as the bring-up probe features.",
       "justification": "GD1-REQ-012 requires seven bring-up pads; the 1.5 mm TestPoint footprint has no body and preserves probe access without adding an assembled package.",
       "driving_requirements": [],
       "driving_requirement_refs": [
@@ -2394,7 +2398,7 @@
         "footprint"
       ],
       "subject_hash": "sha256:344b9a6369e0f13ae1a5aedd651724bbd61d675967ac2d13f62de79b6b69c455",
-      "decision": "Adopt TYPE-C-31-M-12 in Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12, for usbc.",
+      "decision": "Adopt TYPE-C-31-M-12 in Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12 as the front USB-C sink connector.",
       "justification": "GD1-REQ-004/006 require a USB-C sink interface; the 9.0 x 7.0 mm §8.1 connector body and official footprint provide the declared power, CC, and data access.",
       "driving_requirements": [
         "req.gd1-req-004",
@@ -2805,7 +2809,7 @@
       ],
       "subject_hash": "sha256:e464bef807faef7539ff0547dd924f6e68d747616380ea4e7306161e1d0f24c9",
       "decision": "Place the LED body at its declared coordinate.",
-      "justification": "§8.1 is the source-of-truth mechanical declaration for the LED x/y/rotation value; Phase 1 placement and KiCad runtime state are not read back to fill this record. The LED group aligns with the indicator lane and remains consistent with the board edge, enclosure, and silk clearance constraints.",
+      "justification": "§8.1 places the 1.6 x 0.8 mm LED body at (5.0,20.0) with 0 degrees. The indicator stays near the board edge for visibility and near its 1 kOhm driver route without consuming the MCU, USB, or enclosure-standoff lanes; the declared coordinate is used without runtime supplementation.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -2813,12 +2817,12 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use routed-board or runtime coordinates as the rationale source",
-          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+          "option": "Move the LED beside the MCU antenna",
+          "reason": "That would crowd the RF keepout and make the indicator less visible at the board edge."
         },
         {
-          "option": "Move the group without rechecking its interface",
-          "reason": "That would break the declared relationship to the power, sensor, and indicator lanes."
+          "option": "Move the LED to the USB opening",
+          "reason": "That would consume connector-access space and lengthen the IO7 indicator route."
         }
       ],
       "assumptions": [
