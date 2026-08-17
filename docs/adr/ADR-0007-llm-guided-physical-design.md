@@ -5,7 +5,7 @@
 
 > ステータス: Accepted
 > 日付: 2026-08-16
-> 関連: [`../research/README.md`](../research/README.md)、[`../roadmap.md`](../roadmap.md)、[`ADR-0003-sdk-feature-adoption.md`](ADR-0003-sdk-feature-adoption.md)、[`ADR-0026-openhands-delegation-contract.md`](ADR-0026-openhands-delegation-contract.md)
+> 関連: [`../research/README.md`](../research/README.md)、[`../roadmap.md`](../roadmap.md)、[`ADR-0026-openhands-delegation-contract.md`](ADR-0026-openhands-delegation-contract.md)
 
 ## コンテキスト
 

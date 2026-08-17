@@ -38,3 +38,41 @@
 | DFM finding | 製造性に関する独立測定結果と分類。 |
 | LibraryOverlay | 公式ライブラリを改変せず差分を保持する仕組み。 |
 | Canvas | GUIベースのOpenHands拡張経路。ACDでは採用しない。 |
+| VibeBB | Vibe BreadBoarding。対話から設計・検証へ進むACDの体験価値。 |
+| 安全境界 | 禁止、承認必須、許可の三層で設計対象を制限する規則。 |
+| 対象範囲 | 趣味・研究・小規模試作の単一構成。1〜4層基板と卓上加工筐体を対象とする。 |
+| 探索仕様 | 配置・回転・配線の探索空間、制約、戦略、評価、緩和方針を宣言する契約。 |
+| 探索予算 | 反復回数、wall-clock、候補数、token、money等の上限。超過はfail-closed。 |
+| 整合化（legalization） | 配置候補から重なり、keepout侵入、外形逸脱等を幾何計算で除去する処理。 |
+| 回転刻み方針 | 部品カテゴリごとの許容回転角集合と、そのprofile上の根拠。 |
+| process allowance | 追加費用、納期、品質影響を伴う工法を設計側が許容する宣言。 |
+| DFM finding分類 | `capability_violation`、`cost_or_lead_time_adder`、`quality_risk`、`unused_allowance`。 |
+| `fab.order_intent` | 対象fab、基板条件、数量、実装面、色、表面処理等の製造要求node。 |
+| `fab.process_allowance` | 対象ruleと要求根拠付きで追加工程・影響を表す設計node。 |
+| DFM report | 独立測定した製造性判定、finding、未実装検査、測定値の投影。 |
+| fab package | Gerber/drill、BOM/CPL、DFM report、profile provenanceをまとめた製造投影。 |
+| export format | BOM/CPL列、単位、原点、座標系、面、回転、命名を含む出力形式契約。 |
+| assembly class | 板条件、数量、色、表面処理、実装面、組立条件を組み合わせたPCBA区分。 |
+| courtyard | footprintの占有・干渉検査領域。未定義時は検査能力をunknownとする。 |
+| アニュラリング | 穴の周囲に残るランド幅。fab profileの最小値と照合する。 |
+| テンティング | via等の開口を樹脂・ソルダーマスクで覆う製造処理。 |
+| stackup | 基板層、誘電体、厚さ、銅厚等の積層定義。 |
+| 面付け／面付け投影 | 複数基板を製造パネルへ配置する定義／その派生投影。 |
+| variant/DNP | variantは構成差分、DNPはDo Not Populate指定。 |
+| netclass／ルールエリア | ネット共有制約／局所領域制約の設計グラフ定義。 |
+| カスタムルール | 条件式、重大度、対象範囲を持つ表形式外の制約。 |
+| 内部接続ピン | 外部端子でなく部品・モジュール内部接続に使うpin。 |
+| バックアノテーション | 実装・測定結果を設計入力へ反映する更新。根拠とrevisionを記録する。 |
+| refdes／安定identifier | 部品参照名／再生成後も同一対象を追跡する識別子。 |
+| 形式版 | ファイル形式・schemaの版。入力と出力の互換性確認に使う。 |
+| 派生状態 | 入力から生成された成果物の状態。設計入力の正ではない。 |
+| Assumption | 未確定の前提。確度、確定予定、影響先を記録する。 |
+| LibraryOverlay | 公式ライブラリを改変せずプロジェクト固有差分を保持する仕組み。 |
+| tailoring | profileに応じて検証項目やEvidenceの重さを調整すること。最低安全条件は緩めない。 |
+| unclassified | 必須にも明示免除にも分類されない属性。coverageをfail-closedにする。 |
+| Q7/N7 | 品質分析・計画の作業手法。合否機構ではない。 |
+| InstallationInfo／resolved_ref | SDK資材の要求refと解決済みcommit SHAを表す情報。 |
+| TestLLM | 応答・例外を固定するSDKテスト用LLM。実LLMや合否を直接表さない。 |
+| 投影レビューPDCA | 入力と工程を選ぶPlan、投影生成Do、AI所見Check、ゲート確認Actのループ。 |
+| 自動 | 人の操作なしに処理する性質。異常時に安全側へ止まる自働と区別する。 |
+| デカップリング配置段 | `decoupling_target`から対象ICを決め、電源pinまでの距離を目的に配置する段。 |

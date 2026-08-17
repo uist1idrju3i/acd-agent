@@ -256,7 +256,7 @@ def main() -> int:
     if glossary_md is None:
         print("fail-closed: docs/glossary.md not found", file=sys.stderr)
         return 1
-    terms, term_errors = glossary_terms(glossary_md)
+    _, term_errors = glossary_terms(glossary_md)
 
     all_errors: list[str] = list(term_errors)
     for md in mds:

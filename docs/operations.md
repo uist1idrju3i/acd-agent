@@ -45,6 +45,22 @@ command -v java
 command -v freerouting
 ```
 
+## 依存・版・破壊的変更の記録
+
+依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、
+採否を本節へ追記する。現行の基準は次のとおりである。
+
+- SDKは`vendor/software-agent-sdk`のv1.42.1、commit
+  `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`に固定する。更新前にpinned checkoutの
+  API、上流release tag、CHANGELOGまたは一次リリース情報を確認する。
+- Python依存は`pyproject.toml`とlockを正とし、既定値・公開API・破壊的変更を確認して
+  `docs/openhands-sdk-capabilities.md`の採否へ反映する。未検証のAPIは採用しない。
+- KiCad CLI、Java、FreeRouting等の外部ツールは`command -v`と
+  `uv run python scripts/probe_tools.py`で版と能力を記録する。版不明、未実行、
+  出力不整合はゲートを緩めずfail-closedとする。
+- DockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
+  ホスト実行の結果を合格側Evidenceへ昇格しない。
+
 版と能力は次で記録する。
 
 ```bash

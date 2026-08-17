@@ -15,6 +15,28 @@
 存在する場合は`driving_requirements`で参照し、要求が文書にだけ存在する場合は
 `driving_requirement_refs`に文書パスと要求IDを記録する。
 
+`REQUIRED_RATIONALE_ATTRS`は安全または製造影響を持つ設計判断属性を列挙し、
+`RATIONALE_EXEMPT_ATTRS`は出典・標準定数・座標規約・識別子・一次資料の事実などを
+英語理由付きで明示的に免除する。どちらにもない属性は`unclassified`として
+fail-closedにする。安全・製造影響以外の属性は警告とするが、分類を曖昧にして
+coverage外へ置いてはならない。
+
+新しい設計判断属性を追加する変更は、同じ変更で必須または免除の分類を追加する。
+必須属性にはrationale recordも同時に追加する。graphに要求nodeがある要求は
+`driving_requirements`で参照し、文書にしかない要求は`driving_requirement_refs`へ
+文書パスと要求IDを記録する。後者を無関係なgraph nodeで代用してはならない。
+
+## 探索結果とSkillの境界
+
+配置・回転・シルク探索の採用結果は`graph.json`へ確定し、Skill CLIはsubprocessで
+実行する。ACD本体からSkillのPython moduleをimportせず、Skill名と実行scriptの
+`sha256:`をprovenanceへ記録する。時刻やgraph自身への参照は決定性を壊すため記録しない。
+入力不備、候補欠落、実行失敗、provenance欠落はfail-closedとする。
+
+Skill側とゲート側の観測範囲に差がある場合は、ゲートが実測したcontextをSkillへ渡し、
+同じ条件で候補を再探索し、受理後に再投影・再測定する「投影→実測→再配置」ループで
+解消する。Skillの代理指標やAI出力は合否権威ではなく、最終ゲートが引き続き権威である。
+
 ## 背景
 
 部品、配置、配線幅、筐体寸法、FWピン割当の採用理由が設計入力と別の会話や記憶に

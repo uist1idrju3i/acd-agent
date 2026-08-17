@@ -83,6 +83,7 @@ git diff --check
 通常:
 
 ```bash
+uv sync
 uv run ruff check
 uv run pyright
 uv run pytest
@@ -92,6 +93,7 @@ uv run python scripts/verify_docs.py
 フル:
 
 ```bash
+uv sync
 uv run ruff check
 uv run pyright
 uv run pytest
@@ -103,9 +105,6 @@ uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
 uv run python scripts/probe_tools.py
 git diff --check
 ```
-
-本リポジトリはOpenHands Software Agent SDK v1.42.1専用拡張であり、機能採否は
-`docs/openhands-sdk-capabilities.md`で管理する。
 
 Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
 `git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定のDockerWorkspaceを
