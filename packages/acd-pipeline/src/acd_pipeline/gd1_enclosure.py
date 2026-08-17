@@ -11,6 +11,7 @@ from pathlib import Path
 from acd_adapter_cad.mechanical import run_mechanical_gates
 from acd_adapter_cad.project import project_enclosure
 from acd_core.mechanical import extract_mechanical_lane
+from acd_pipeline.rationale import validate_and_project_rationale
 from acd_schema.design_graph import DesignGraph
 from acd_schema.evidence import Evidence, EvidenceClaim
 from acd_tools.probe import probe_cad_kernel
@@ -21,6 +22,9 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     graph = DesignGraph.model_validate(
         json.loads(graph_path.read_text(encoding="utf-8"))
     )
+    out_dir.mkdir(parents=True, exist_ok=True)
+    validate_and_project_rationale(graph, fixture_dir, out_dir)
+    print("[0/4] rationale coverage passed")
     lane = extract_mechanical_lane(graph)
     print("[1/4] mechanical lane extracted")
 

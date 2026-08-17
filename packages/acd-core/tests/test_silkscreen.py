@@ -20,7 +20,7 @@ def _graph() -> DesignGraph:
 
 def test_silkscreen_lane_extracts_declared_text_and_vector_logo() -> None:
     lane = extract_silkscreen_lane(_graph())
-    assert {item.text for item in lane.texts} >= {"RESET", "BOOT", "DEV BOARD"}
+    assert {item.text for item in lane.texts} >= {"RST", "BOOT", "DEV BOARD"}
     assert len(lane.graphics) == 1
     assert lane.graphics[0].role == "vibebb_logo"
     assert all(item.placement_reference for item in lane.texts)
@@ -43,4 +43,3 @@ def test_silkscreen_text_requires_board_dependency() -> None:
     )
     with pytest.raises(GraphExtractionError, match="must depend on board"):
         extract_silkscreen_lane(graph.model_copy(update={"nodes": nodes}))
-

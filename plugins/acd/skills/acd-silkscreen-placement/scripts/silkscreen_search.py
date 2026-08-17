@@ -377,6 +377,519 @@ def resolve_silkscreen_placements(lane: SilkscreenLane, board: BoardModel) -> Si
     )
 
 
+def resolve_from_context_offsets(
+    lane: SilkscreenLane, context: dict[str, Any]
+) -> tuple[dict[str, object], ...]:
+    """Return candidates using only gate-measured context geometry."""
+    outline_raw = context.get("board_outline_bbox_mm")
+    if not isinstance(outline_raw, list) or len(outline_raw) != 4:
+        raise GraphExtractionError("silkscreen context outline is missing")
+    outline = tuple(float(item) for item in outline_raw)
+    min_width = float(context.get("requirements", {}).get("min_silk_width_mm", 0.0))
+    min_height = float(context.get("requirements", {}).get("min_silk_height_mm", 0.0))
+    if min_width <= 0 or min_height <= 0:
+        raise GraphExtractionError("silkscreen context capability requirements are missing")
+    forbidden: list[tuple[str, str | None, tuple[float, float, float, float]]] = []
+    for key in ("pad_bboxes_mm",):
+        values = context.get(key)
+        if not isinstance(values, list):
+            raise GraphExtractionError(f"silkscreen context {key} is missing")
+        for value in values:
+            if not isinstance(value, list) or len(value) != 4:
+                raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+            forbidden.append((key, None, tuple(float(item) for item in value)))
+    values = context.get("mask_objects")
+    if not isinstance(values, list):
+        raise GraphExtractionError("silkscreen context mask_objects is missing")
+    for value in values:
+        if not isinstance(value, dict) or not isinstance(value.get("bbox_mm"), list):
+            raise GraphExtractionError("silkscreen context mask_objects contains malformed object")
+        bbox = value["bbox_mm"]
+        if len(bbox) != 4:
+            raise GraphExtractionError("silkscreen context mask_objects contains malformed bbox")
+        forbidden.append(
+            (
+                "mask_objects",
+                str(value.get("layer")),
+                tuple(float(item) for item in bbox),
+            )
+        )
+    for key in ("body_bboxes_mm", "courtyard_bboxes_mm"):
+        values = context.get(key)
+        if not isinstance(values, list):
+            raise GraphExtractionError(f"silkscreen context {key} is missing")
+        for value in values:
+            if not isinstance(value, dict) or not isinstance(value.get("bbox_mm"), list):
+                raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+            bbox = value["bbox_mm"]
+            if len(bbox) != 4:
+                raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+            forbidden.append((key, None, tuple(float(item) for item in bbox)))
+    for key in ("existing_silk_objects",):
+        values = context.get(key)
+        if not isinstance(values, list):
+            raise GraphExtractionError(f"silkscreen context {key} is missing")
+        for value in values:
+            if not isinstance(value, dict):
+                raise GraphExtractionError(f"silkscreen context {key} contains malformed object")
+            bbox = value.get("bbox_mm")
+            if not isinstance(bbox, list) or len(bbox) != 4:
+                raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+            forbidden.append(
+                (
+                    key,
+                    str(value.get("layer")),
+                    tuple(float(item) for item in bbox),
+                )
+            )
+    for value in context.get("silk_objects", []):
+        if not isinstance(value, dict) or not isinstance(value.get("bbox_mm"), list):
+            raise GraphExtractionError("silkscreen context silk_objects contains malformed object")
+    directions = {
+        "top": (0.0, -1.0),
+        "bottom": (0.0, 1.0),
+        "right": (1.0, 0.0),
+        "left": (-1.0, 0.0),
+        "top_right": (1.0, -1.0),
+        "bottom_right": (1.0, 1.0),
+        "bottom_left": (-1.0, 1.0),
+        "top_left": (-1.0, -1.0),
+    }
+    body_by_ref = {
+        str(item["refdes"]): tuple(float(value) for value in item["bbox_mm"])
+        for item in context["body_bboxes_mm"]
+    }
+    courtyard_by_ref = {
+        str(item["refdes"]): tuple(float(value) for value in item["bbox_mm"])
+        for item in context["courtyard_bboxes_mm"]
+    }
+    results: list[dict[str, object]] = []
+    for text in lane.texts:
+        target = (
+            outline
+            if text.placement_reference == lane.board_node_id
+            else body_by_ref.get(text.placement_reference)
+            or courtyard_by_ref.get(text.placement_reference)
+        )
+        if target is None:
+            raise GraphExtractionError(
+                f"silkscreen context has no geometry for {text.placement_reference!r}"
+            )
+        order = tuple(
+            item.strip()
+            for item in text.placement_search_order.split(",")
+            if item.strip()
+        )
+        if not order or any(item not in directions for item in order):
+            raise GraphExtractionError(f"silk text {text.node_id!r} has invalid search order")
+        if text.stroke_width_mm < min_width or text.height_mm < min_height:
+            raise GraphExtractionError(
+                f"silk text {text.node_id!r} is below measured capability (fail-closed)"
+            )
+        rejected: list[dict[str, object]] = []
+        candidates: list[dict[str, object]] = []
+        edge_margin = text.board_edge_margin_mm
+        for rotation_index, rotation in enumerate(text.placement_rotation_degrees):
+            width, height = _text_size(replace(text, rotation_deg=rotation))
+            offsets = [
+                round(text.placement_offset_step_mm * index, 9)
+                for index in range(
+                    1, int(text.placement_search_limit_mm / text.placement_offset_step_mm) + 1
+                )
+            ]
+            for side_index, side in enumerate(order):
+                dx, dy = directions[side]
+                for offset in offsets:
+                    if text.placement_reference == lane.board_node_id:
+                        x = (
+                            outline[2] - width / 2 - offset
+                            if dx > 0
+                            else outline[0] + width / 2 + offset
+                            if dx < 0
+                            else (outline[0] + outline[2]) / 2
+                        )
+                        y = (
+                            outline[1] + height / 2 + offset
+                            if dy < 0
+                            else outline[3] - height / 2 - offset
+                            if dy > 0
+                            else (outline[1] + outline[3]) / 2
+                        )
+                    else:
+                        x = (
+                            target[2] + width / 2 + offset
+                            if dx > 0
+                            else target[0] - width / 2 - offset
+                            if dx < 0
+                            else (target[0] + target[2]) / 2
+                        )
+                        y = (
+                            target[1] - height / 2 - offset
+                            if dy < 0
+                            else target[3] + height / 2 + offset
+                            if dy > 0
+                            else (target[1] + target[3]) / 2
+                        )
+                    bbox = (x - width / 2, y - height / 2, x + width / 2, y + height / 2)
+                    reason: str | None = None
+                    if (
+                        bbox[0] < outline[0] + edge_margin
+                        or bbox[1] < outline[1] + edge_margin
+                        or bbox[2] > outline[2] - edge_margin
+                        or bbox[3] > outline[3] - edge_margin
+                    ):
+                        reason = "board_edge_margin"
+                    else:
+                        for name, layer, rect in forbidden:
+                            if layer is not None and layer != text.layer:
+                                continue
+                            if _rects_overlap(bbox, rect):
+                                reason = name
+                                break
+                    candidate = {
+                        "x_mm": x,
+                        "y_mm": y,
+                        "rotation_deg": rotation,
+                        "layer": text.layer,
+                        "bbox_mm": list(bbox),
+                    }
+                    if reason is not None:
+                        rejected.append({**candidate, "reason": reason})
+                    else:
+                        candidates.append(
+                            {
+                                **candidate,
+                                "side_index": side_index,
+                                "rotation_index": rotation_index,
+                                "offset_mm": offset,
+                            }
+                        )
+        if not candidates:
+            results.append(
+                {
+                    "node_id": text.node_id,
+                    "role": text.role,
+                    "candidates": [],
+                    "rejected_candidates": rejected,
+                    "resolution": "no_candidate_fail_closed",
+                }
+            )
+            continue
+        chosen = min(
+            candidates,
+            key=lambda item: (
+                float(item["offset_mm"]),
+                int(item["side_index"]),
+                int(item["rotation_index"]),
+            ),
+        )
+        results.append(
+            {
+                "node_id": text.node_id,
+                "role": text.role,
+                "candidates": candidates,
+                "rejected_candidates": rejected,
+                "accepted_position_mm": [chosen["x_mm"], chosen["y_mm"]],
+                "accepted_rotation_deg": chosen["rotation_deg"],
+                "resolution": "context_candidate",
+            }
+        )
+    return tuple(results)
+
+
+def resolve_from_context(
+    lane: SilkscreenLane,
+    context: dict[str, Any],
+    _compute_order: bool = True,
+) -> tuple[dict[str, object], ...]:
+    """Search the complete board grid using only measured context."""
+    outline_raw = context.get("board_outline_bbox_mm")
+    requirements = context.get("requirements")
+    if (
+        not isinstance(outline_raw, list)
+        or len(outline_raw) != 4
+        or not isinstance(requirements, dict)
+    ):
+        raise GraphExtractionError("silkscreen context capability requirements are missing")
+    outline = tuple(float(item) for item in outline_raw)
+    min_width = float(requirements.get("min_silk_width_mm", 0.0))
+    min_height = float(requirements.get("min_silk_height_mm", 0.0))
+    advance_ratio = float(requirements.get("silk_text_advance_ratio", 0.0))
+    margin_stroke_widths = float(
+        requirements.get("silk_text_attribution_margin_stroke_widths", 0.0)
+    )
+    descender_chars = requirements.get("silk_text_descender_chars")
+    descender_ratio = float(
+        requirements.get("silk_text_descender_height_ratio", 0.0)
+    )
+    if (
+        min_width <= 0
+        or min_height <= 0
+        or advance_ratio <= 0
+        or margin_stroke_widths <= 0
+        or not isinstance(descender_chars, str)
+        or not descender_chars
+        or descender_ratio <= 0
+    ):
+        raise GraphExtractionError("silkscreen context capability requirements are missing")
+
+    def boxes(key: str) -> list[dict[str, Any]]:
+        value = context.get(key)
+        if not isinstance(value, list):
+            raise GraphExtractionError(f"silkscreen context {key} is missing")
+        if not all(isinstance(item, dict) for item in value):
+            raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+        return value
+
+    pads = boxes("pad_bboxes_mm")
+    masks = boxes("mask_objects")
+    bodies = boxes("body_bboxes_mm")
+    courtyards = boxes("courtyard_bboxes_mm")
+    existing = boxes("existing_silk_objects")
+    fixed = boxes("fixed_silk_objects")
+    forbidden_silk = [
+        ("mask_objects", item) for item in masks
+    ] + [
+        ("existing_silk_objects", item) for item in existing
+    ] + [
+        ("fixed_silk_objects", item) for item in fixed
+    ]
+    declarations = boxes("declarations")
+    declaration_sizes = {
+        str(item["node_id"]): (
+            float(item["measured_text_length_mm"]),
+            float(item["measured_height_mm"]),
+        )
+        for item in declarations
+        if "node_id" in item
+        and "measured_text_length_mm" in item
+        and "measured_height_mm" in item
+    }
+
+    def bbox(item: dict[str, Any], key: str = "bbox_mm") -> tuple[float, float, float, float]:
+        value = item.get(key)
+        if not isinstance(value, list) or len(value) != 4:
+            raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+        parts = tuple(float(part) for part in value)
+        if len(parts) != 4:
+            raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+        return (parts[0], parts[1], parts[2], parts[3])
+
+    def distance(
+        left: tuple[float, float, float, float],
+        right: tuple[float, float, float, float],
+    ) -> float:
+        dx = max(right[0] - left[2], left[0] - right[2], 0.0)
+        dy = max(right[1] - left[3], left[1] - right[3], 0.0)
+        return (dx * dx + dy * dy) ** 0.5
+
+    known_refs = {
+        str(item.get("refdes"))
+        for item in bodies + courtyards
+        if isinstance(item.get("refdes"), str)
+    }
+    results_by_id: dict[str, dict[str, object]] = {}
+    dynamic_silk: list[dict[str, Any]] = []
+    if _compute_order and len(lane.texts) > 1:
+        candidate_counts: dict[str, int] = {}
+        for text in lane.texts:
+            single_result = resolve_from_context(
+                SilkscreenLane(lane.board_node_id, (text,), ()),
+                context,
+                False,
+            )
+            candidate_counts[text.node_id] = len(
+                cast(list[object], single_result[0].get("candidates", []))
+            )
+        ordered_texts = sorted(
+            lane.texts,
+            key=lambda text: (candidate_counts[text.node_id], text.node_id),
+        )
+    else:
+        ordered_texts = list(lane.texts)
+    for text in ordered_texts:
+        if text.height_mm < min_height or text.stroke_width_mm < min_width:
+            raise GraphExtractionError(
+                f"silk text {text.node_id!r} is below measured capability (fail-closed)"
+            )
+        reference = (
+            text.placement_reference
+            if text.placement_reference in known_refs
+            else None
+        )
+        target_boxes = [
+            bbox(item)
+            for item in bodies + courtyards
+            if item.get("refdes") == reference
+            and item.get("layer") == text.layer.replace("SilkS", "Cu")
+        ]
+        target = target_boxes[0] if target_boxes else None
+        center = (
+            ((target[0] + target[2]) / 2, (target[1] + target[3]) / 2)
+            if target is not None
+            else ((outline[0] + outline[2]) / 2, (outline[1] + outline[3]) / 2)
+        )
+        step = text.placement_offset_step_mm
+        if step <= 0:
+            raise GraphExtractionError("silkscreen context grid step is invalid")
+        candidates: list[dict[str, object]] = []
+        rejected: list[dict[str, object]] = []
+        for rotation in text.placement_rotation_degrees:
+            base_size = declaration_sizes.get(text.node_id)
+            if base_size is None:
+                raise GraphExtractionError(
+                    f"silkscreen context declaration is missing for {text.node_id!r}"
+                )
+            width, height = base_size
+            width = max(
+                text.height_mm * advance_ratio * len(text.text),
+                text.height_mm,
+            )
+            height = text.height_mm * (
+                descender_ratio if any(char in descender_chars for char in text.text) else 1.0
+            )
+            if int(rotation) % 180:
+                width, height = height, width
+            margin = text.stroke_width_mm * margin_stroke_widths
+            width += 2.0 * margin
+            height += margin
+            x = outline[0] + width / 2
+            while x <= outline[2] - width / 2 + 1e-9:
+                y = outline[1] + height / 2
+                while y <= outline[3] - height / 2 + 1e-9:
+                    candidate_bbox = (
+                        x - width / 2,
+                        y - height / 2,
+                        x + width / 2,
+                        y + height / 2,
+                    )
+                    candidate = {
+                        "x_mm": round(x, 9),
+                        "y_mm": round(y, 9),
+                        "rotation_deg": rotation,
+                        "layer": text.layer,
+                        "bbox_mm": list(candidate_bbox),
+                    }
+                    reason: str | None = None
+                    margin = text.board_edge_margin_mm
+                    if (
+                        candidate_bbox[0] < outline[0] + margin
+                        or candidate_bbox[1] < outline[1] + margin
+                        or candidate_bbox[2] > outline[2] - margin
+                        or candidate_bbox[3] > outline[3] - margin
+                    ):
+                        reason = "board_edge_margin"
+                    else:
+                        for item in pads:
+                            layers = item.get("layers")
+                            if not isinstance(layers, list):
+                                raise GraphExtractionError(
+                                    "silkscreen context pad layers are missing"
+                                )
+                            if text.layer.replace("SilkS", "Cu") in layers and _rects_overlap(
+                                candidate_bbox, bbox(item)
+                            ):
+                                reason = "pad_bboxes_mm"
+                                break
+                        if reason is None:
+                            for source, item in forbidden_silk + [
+                                ("placed_declaration", item) for item in dynamic_silk
+                            ]:
+                                if item.get("layer") == text.layer and _rects_overlap(
+                                    candidate_bbox, bbox(item)
+                                ):
+                                    reason = source
+                                    break
+                        if reason is None:
+                            for item in bodies + courtyards:
+                                if (
+                                    item.get("layer") == text.layer.replace("SilkS", "Cu")
+                                    and _rects_overlap(candidate_bbox, bbox(item))
+                                ):
+                                    reason = (
+                                        "body_bboxes_mm"
+                                        if item in bodies
+                                        else "courtyard_bboxes_mm"
+                                    )
+                                    break
+                        if reason is None and reference is not None:
+                            component_distances: dict[str, float] = {}
+                            for item in bodies + courtyards:
+                                refdes = item.get("refdes")
+                                if (
+                                    isinstance(refdes, str)
+                                    and item.get("layer") == text.layer.replace("SilkS", "Cu")
+                                ):
+                                    component_distances[refdes] = min(
+                                        component_distances.get(refdes, float("inf")),
+                                        distance(candidate_bbox, bbox(item)),
+                                    )
+                            nearest = (
+                                min(
+                                    component_distances.items(),
+                                    key=lambda item: (item[1], item[0]),
+                                )
+                                if component_distances
+                                else None
+                            )
+                            if nearest is not None and nearest[0] != reference:
+                                reason = "nearest_component_mismatch"
+                    if reason is None:
+                        candidate["distance_mm"] = (
+                            distance(candidate_bbox, target)
+                            if target is not None
+                            else distance(
+                                candidate_bbox,
+                                (center[0], center[1], center[0], center[1]),
+                            )
+                        )
+                        candidates.append(candidate)
+                    else:
+                        rejected.append({**candidate, "reason": reason})
+                    y = round(y + step, 9)
+                x = round(x + step, 9)
+        if not candidates:
+            results_by_id[text.node_id] = {
+                "node_id": text.node_id,
+                "role": text.role,
+                "candidates": [],
+                "rejected_candidates": rejected,
+                "resolution": "no_candidate_fail_closed",
+                "placement_order": [item.node_id for item in ordered_texts],
+            }
+            break
+        chosen = min(
+            candidates,
+            key=lambda item: (
+                float(item["distance_mm"]),
+                float(item["y_mm"]),
+                float(item["x_mm"]),
+                float(item["rotation_deg"]),
+            )
+        )
+        results_by_id[text.node_id] = {
+            "node_id": text.node_id,
+            "role": text.role,
+            "candidates": candidates,
+            "rejected_candidates": rejected,
+            "accepted_position_mm": [chosen["x_mm"], chosen["y_mm"]],
+            "accepted_rotation_deg": chosen["rotation_deg"],
+            "resolution": "context_candidate",
+            "placement_order": [item.node_id for item in ordered_texts],
+        }
+        dynamic_silk.append(
+            {
+                "layer": text.layer,
+                "bbox_mm": chosen["bbox_mm"],
+            }
+        )
+    return tuple(
+        results_by_id[text.node_id]
+        for text in lane.texts
+        if text.node_id in results_by_id
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
@@ -386,26 +899,30 @@ def main() -> int:
         payload = json.loads(args.input.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise GraphExtractionError("silkscreen input must be a JSON object")
-        board = _board_from_json(payload.get("board"))
         lane = _lane_from_json(payload.get("lane"))
-        resolved = resolve_silkscreen_placements(lane, board)
-        result = {
-            "texts": [
-                {
-                    "node_id": text.node_id,
-                    "role": text.role,
-                    "text": text.text,
-                    "x_mm": text.x_mm,
-                    "y_mm": text.y_mm,
-                    "layer": text.layer,
-                    "height_mm": text.height_mm,
-                    "stroke_width_mm": text.stroke_width_mm,
-                    "rotation_deg": text.rotation_deg,
-                }
-                for text in resolved.texts
-            ],
-            "placement_evidence": list(resolved.placement_evidence),
-        }
+        if "context" in payload:
+            candidates = resolve_from_context(lane, _mapping(payload.get("context"), "context"))
+            result = {"candidates": list(candidates)}
+        else:
+            board = _board_from_json(payload.get("board"))
+            resolved = resolve_silkscreen_placements(lane, board)
+            result = {
+                "texts": [
+                    {
+                        "node_id": text.node_id,
+                        "role": text.role,
+                        "text": text.text,
+                        "x_mm": text.x_mm,
+                        "y_mm": text.y_mm,
+                        "layer": text.layer,
+                        "height_mm": text.height_mm,
+                        "stroke_width_mm": text.stroke_width_mm,
+                        "rotation_deg": text.rotation_deg,
+                    }
+                    for text in resolved.texts
+                ],
+                "placement_evidence": list(resolved.placement_evidence),
+            }
         encoded = json.dumps(result, indent=2, sort_keys=True) + "\n"
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(encoded, encoding="utf-8")

@@ -41,6 +41,16 @@
           "command": "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/stop_policy.py"
         }
       ]
+    },
+    {
+      "matcher": "*",
+      "hooks": [
+        {
+          "type": "command",
+          "name": "check-design-rationale",
+          "command": "uv run python scripts/check_rationale.py --if-present"
+        }
+      ]
     }
   ],
   "post_tool_use": [
@@ -51,6 +61,16 @@
           "type": "command",
           "name": "verify-markdown",
           "command": "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/verify_markdown.py"
+        }
+      ]
+    },
+    {
+      "matcher": "file_editor",
+      "hooks": [
+        {
+          "type": "command",
+          "name": "check-design-rationale-warn",
+          "command": "uv run python scripts/check_rationale.py --if-present --warn-only"
         }
       ]
     }

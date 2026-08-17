@@ -8,8 +8,13 @@ import subprocess
 from pathlib import Path
 from typing import Any, cast
 
+from openhands.sdk.hooks.config import HookConfig
+from openhands.sdk.hooks.types import HookEventType
+
 ROOT = Path(__file__).parents[4]
 SCRIPTS = ROOT / "plugins/acd/hooks/scripts"
+HOOKS_PATH = Path(__file__).parents[1] / "hooks.json"
+RATIONALE_COMMAND = "uv run python scripts/check_rationale.py --if-present"
 
 
 def run(
@@ -225,3 +230,43 @@ def test_stop_allows_newer_valid_evidence(tmp_path: Path) -> None:
         {"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
     )
     assert code == 0
+
+
+def test_rationale_hooks_match_sdk_tool_name_and_commands() -> None:
+    config = HookConfig.load(HOOKS_PATH)
+
+    post_commands = [
+        hook.command
+        for hook in config.get_hooks_for_event(HookEventType.POST_TOOL_USE, "file_editor")
+    ]
+    assert f"{RATIONALE_COMMAND} --warn-only" in post_commands
+    assert not config.get_hooks_for_event(HookEventType.POST_TOOL_USE, "FileEditorTool")
+
+    stop_commands = [
+        hook.command for hook in config.get_hooks_for_event(HookEventType.STOP, "file_editor")
+    ]
+    assert RATIONALE_COMMAND in stop_commands
+
+
+def test_fail_closed_hooks_are_registered_for_sdk_events() -> None:
+    config = HookConfig.load(HOOKS_PATH)
+
+    names = {
+        event: {
+            hook.name
+            for tool in ("file_editor", "terminal")
+            for hook in config.get_hooks_for_event(event, tool)
+        }
+        for event in (
+            HookEventType.PRE_TOOL_USE,
+            HookEventType.POST_TOOL_USE,
+            HookEventType.SESSION_START,
+            HookEventType.STOP,
+        )
+    }
+    assert {"protect-derived-projections", "require-order-evidence"} <= names[
+        HookEventType.PRE_TOOL_USE
+    ]
+    assert "verify-markdown" in names[HookEventType.POST_TOOL_USE]
+    assert "probe-tools" in names[HookEventType.SESSION_START]
+    assert "require-gate-after-input-change" in names[HookEventType.STOP]

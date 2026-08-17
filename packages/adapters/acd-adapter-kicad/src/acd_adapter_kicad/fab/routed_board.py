@@ -89,6 +89,16 @@ def _parse_pad(
         if net_node is not None and len(net_node) > 1
         else None
     )
+    layers_node = _one(node, "layers")
+    layers = (
+        ("F.Cu", "B.Cu")
+        if kind == "through-hole"
+        else tuple(
+            str(item)
+            for item in (layers_node[1:] if layers_node is not None else ())
+            if not isinstance(item, list)
+        )
+    )
     return PadMeasurement(
         refdes=fp_ref,
         kind=kind,
@@ -102,6 +112,7 @@ def _parse_pad(
         drill_x_mm=drill_x_mm,
         drill_y_mm=drill_y_mm,
         number=str(values[1]) if len(values) > 1 else None,
+        layers=layers,
     )
 
 

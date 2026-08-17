@@ -1,6 +1,6 @@
 # ADR-0011: 探索結果を設計入力として確定する
 
-> ステータス: Accepted（silkscreen判定差は未解決）
+> ステータス: Accepted（投影・実測・再配置ループを実装済み）
 > 日付: 2026-08-16
 > 関連: [`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)、[`ADR-0009-openhands-delegation-and-skills.md`](ADR-0009-openhands-delegation-and-skills.md)
 
@@ -14,9 +14,9 @@ graphにはSkill名と実行scriptの`sha256:` hashをprovenanceとして記録�
 graph自身への参照は決定性を壊すため記録しない。Skill CLIの入力不備、候補欠落、
 実行失敗、provenance欠落はfail-closedとする。
 
-## 判定基準の未解決課題
+## 解消した観測範囲の不一致
 
-現行のSkillと決定論的silkscreen gateには次の観測範囲の差がある。
+従来のSkillと決定論的silkscreen gateには次の観測範囲の差があった。
 
 | 条件 | Skill側 | ゲート側 |
 |---|---|---|
@@ -28,13 +28,10 @@ graph自身への参照は決定性を壊すため記録しない。Skill CLIの
 | nearest component | 判定しない | 最近傍部品の不一致を拒否 |
 | board edge | BoardModelの候補bboxで判定 | 生成後Gerber bboxとedge marginを測定 |
 
-そのため、Skillが候補を返しても、生成後のmask、既存silk、実文字stroke、
-nearest component条件でゲートが不合格になる。GD1のsilkscreen gateはこの既知課題に
-よりfail-closedのままとする。閾値、検査、期待値を緩めない。
-
-解決方向は、OpenHandsが候補を出し、ACDが投影・Gerber実測・決定論的判定を行い、
-不合格時に再配置候補を生成する「投影 → 実測 → 再配置」の反復ループである。
-このループは未実装であり、今回の変更では採用しない。
+この差は、ゲートが実測したcontextをSkillへ渡し、候補を同じ条件で逐次探索し、
+受理後に再投影・再測定する「投影 → 実測 → 再配置」ループで解消した。GD1では
+silkscreenゲートまで通過し、同一入力の再実行もbyte一致する。routing後のvia mask開口は
+このrouting前ループの観測範囲外であり、最終pipelineのゲートが引き続き権威である。
 
 ## 理由
 

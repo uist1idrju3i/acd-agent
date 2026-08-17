@@ -65,6 +65,11 @@ VS Code／noVNCの同一workspaceを人間が観察・手修正に使えるが�
 下流の根拠になり、画面を開けたこと自体は合格根拠にならない。
 各工程の出口では機械可読投影と視覚投影を生成してAIレビューを行い、決定論的ゲートで判定する。
 所見は自然文で次の修正へ渡す。
+
+採用値を設計入力へ確定する変更では、同じ工程で`rationale.json`へ判断理由を記録する。
+基板・筐体pipelineは投影前にgraph全体のrationale coverageを検査し、missing、stale、
+unknown、orphan、conflicting、parse失敗はfail-closedで停止する。出力の
+`rationale.md`とcoverage JSONは振り返り用の派生投影であり、入力へ逆流させない。
 電気・機械・FWの3レーンの分業は、OpenHands SDKの`AgentDefinition`、`delegate`、`workflow`
 で実行する。レビュー用agentは生成側とは別のagent定義・別コンテキストに固定し、詳細な
 SDK活用方針とレビュー独立性は[`openhands-integration.md`](openhands-integration.md)および
