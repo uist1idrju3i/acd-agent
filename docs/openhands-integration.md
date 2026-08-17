@@ -14,7 +14,7 @@ SDKは`vendor/software-agent-sdk`のv1.42.1を参照する。Agent Canvasのsubm
 OpenHandsの公開Skills repositoryはsubmoduleにせず外部参照とする:
 <https://github.com/OpenHands/extensions>
 
-## P6/P7: SDK Conversation bootstrap
+## 現行LocalConversation経路: SDK Conversation bootstrap
 
 `acd_tools.agent_session.build_acd_conversation()`は、`Agent`へ
 `AcdGateCritic`と`LLMSummarizingCondenser`を設定し、`LocalConversation`へ
@@ -28,7 +28,7 @@ Evidenceの正は引き続き`Evidence.supports_pass(graph.revision)`だけで�
 `graph.revision`は`rN`であってgit SHAではない。EventLog、state、metrics、
 condenser outputはpass evidenceではない。
 
-## P8: pinned plugin配布とTestLLM回帰
+## 次フェーズ: pinned plugin配布とTestLLM回帰
 
 `acd_tools.plugin_distribution.acd_plugin_source()`は外部配布用の
 `PluginSource(source="github:uist1idrju3i/acd-agent", repo_path="plugins/acd",
@@ -36,13 +36,13 @@ ref=...)`を作る。refは40桁commit SHAまたは`v<semver>` tagだけを受�
 branch名・未指定ref・不正値はfail-closedに拒否する。開発時は
 `build_acd_conversation()`のlocal path既定値を使える。
 
-P8のTestLLM回帰はbootstrapからSDK agent stepを通した投影保護hookのDENYと、
+次フェーズのTestLLM回帰はbootstrapからSDK agent stepを通した投影保護hookのDENYと、
 Conversationのrunを通したゲート未達時の二値critic、follow-up、反復上限を
 カバーする。hookテストはローカルpluginと登録済みテスト用terminal定義を使い、
 外部fetchを発生させない。外部plugin fetch、実LLM、Docker、外部terminal実装、
 複数stepのtool-call E2Eは未検証であり、合否根拠には使わない。
 
-## P9: agent-server運用境界
+## agent-server実運用: agent-server運用境界
 
 SDK v1.42.1の`openhands-agent-server`を、conversation、event、workspace、
 永続化を運ぶruntime層として文書化した。REST、WebSocket、`/v1` OpenAI互換API、
@@ -67,7 +67,8 @@ plugins/acd/
 │   ├── acd-electrical.md
 │   ├── acd-mechanical.md
 │   ├── acd-firmware.md
-│   └── acd-reviewer.md
+│   ├── acd-reviewer.md
+│   └── acd-search.md
 └── skills/
     ├── acd-contracts
     ├── acd-placement-search
@@ -75,12 +76,13 @@ plugins/acd/
     ├── acd-firmware-esp32c3
     ├── acd-cad-determinism-probe
     ├── acd-qc-seven-tools
-    └── acd-reliability-review
+    ├── acd-reliability-review
+    └── acd-design-rationale
 ```
 
 ### Skill trigger
 
-7 Skillは`version`、`license`、`triggers`をfrontmatterに持つ。
+8 Skillは`version`、`license`、`triggers`をfrontmatterに持つ。
 `triggers`はSDKの`KeywordTrigger`であり、内容に即した英語キーワードを3〜6個指定する。
 `paths:`は`disable_model_invocation=True`を強制するため使わない。`inputs:`は
 TaskTriggerになるため、現在の自然言語起点の任意利用には適さず使わない。
@@ -130,8 +132,8 @@ fail-closedとする。
 
 `packages/acd-tools/src/acd_tools/sdk_tools.py`はSDKの`ToolDefinition`、
 `Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を使い、明示的な
-`register_acd_tools()`から次の決定論的入口を登録する。MCP client経由の外部利用は
-当面サポートしない。必要になればSDK側のMCP機構で再導入する。
+`register_acd_tools()`から次の4つの決定論的入口を登録する。これはSDK標準toolとは
+別のACD toolであり、MCP client互換層は提供しない。
 
 | tool | 内容 |
 |---|---|
@@ -144,9 +146,13 @@ fail-closedとする。
 ToolEnvelope由来のtool名・版・hashを含む構造化JSONである。入力不備、ファイル不在、
 JSON/Pydantic parse失敗、pipeline例外は成功に見せずfail-closedで返す。
 
+一方、`terminal`、`file_editor`、`grep`、`glob`、`task_tracker`は
+`plugins/acd/agents/*.md`のAgentDefinitionが使用するOpenHands SDK標準toolであり、
+`register_acd_tools()`が登録する4つのACD toolとは区別する。
+
 ## 決定論的ゲートcritic
 
-P3aでは`AcdGateCritic`をagentのcriticへ接続できる。
+現行では`AcdGateCritic`をagentのcriticへ接続できる。
 
 ```python
 from acd_tools.gate_critic import AcdEvidenceRequirement, AcdGateCritic
@@ -173,13 +179,12 @@ hookのDesign Graph revision解決は`acd-design-revision` console scriptへ委�
 CLIはpathを`DesignGraph`として検証し、単一pathが有効な場合だけrevisionをstdoutへ
 出力する。hookは別途gitによる設計入力のdirty判定とpath数の検査を行う。
 
-## 任意のDocker workspace実行
+## Docker workspace実行
 
-ホスト実行が既定であり、agentをコンテナへ入れるのではなく、決定論的pipelineと
-ゲートだけを`DockerDevWorkspace`で実行できる。`DockerDevWorkspace`は
-`base_image`からagent-server imageをbuildできるため、利用者がbuildした
-`docker/acd-tools.Dockerfile`を渡す経路に選んだ。`DockerWorkspace`は既成server
-image向けである。
+決定論的pipelineとゲートは`DockerWorkspace(server_image="...@sha256:<digest>")`で
+実行する。`DockerDevWorkspace`は`base_image`からagent-server imageをbuildする準備
+経路に限定する。現行runnerのホスト実行とDockerDevWorkspace経路は移行中であり、
+ホスト実行は合格側Evidenceを生成しない。
 
 `scripts/run_in_workspace.py`は`docker image inspect`でRepoDigestsを優先し、
 ローカルbuildではimage IDへフォールバックする。sha256 digestを解決できない場合は

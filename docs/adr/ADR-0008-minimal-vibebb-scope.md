@@ -97,7 +97,7 @@ OpenHands側（`acd-firmware-esp32c3` Skillおよび通常のテスト）の責�
 - adapters: KiCad、freerouting、Gerber、機械CADの生成と、生成経路とは独立なparserによる再読込。
 - パイプラインスクリプト: fixtureまたは入力ファイルから製造データまでを一括生成し、全ゲートを実行する。
 - fab profileの宣言データと発注ガード。
-- OpenHands plugin: Skill、`AgentDefinition`、MCP設定。
+- OpenHands plugin: Skill、`AgentDefinition`、SDK ToolDefinition、hooks。
 
 ## 検討した代替案
 

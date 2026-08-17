@@ -1,6 +1,6 @@
 # OpenHands agent-server運用runbook
 
-> ステータス: 運用契約（未実運用）
+> ステータス: 実運用手順（受け入れ条件追跡中）
 > 対象: OpenHands Software Agent SDK v1.42.1
 
 ## 目的と前提
@@ -82,12 +82,12 @@ CIまたはrun_in_workspaceの決定論的pipelineとgate
 
 agent-server経由のevent、state、metrics、condenser出力、agent最終応答、
 OpenAI互換応答は、実行の進捗・観測・表示のための情報である。これらをEvidenceへ
-変換して合格側へ倒してはならない。合否はCIまたはP5の
+変換して合格側へ倒してはならない。合否はCIまたはDockerWorkspaceの
 `scripts/run_in_workspace.py`によるDocker workspace側で決定論的gateを再実行して決める。
 agent-serverはこの経路を置き換えない。
 
 fork、resume、server再起動でstateやeventの枝が変わっても、合否は同じ設計入力と
-git状態に対するgateの再実行で決める。P6/P7の`write_conversation_metrics`が出力する
+git状態に対するgateの再実行で決める。LocalConversationの`write_conversation_metrics`が出力する
 metrics JSONも`pass_evidence: false`を持つ経過情報であり、serverのtelemetryやmetrics
 と同様にpass evidenceではない。
 
@@ -143,15 +143,15 @@ SDK経路に委譲する。forkは`POST /api/conversations/{id}/fork`で行い�
 - 不要なconversationは`DELETE /api/conversations/{id}`で削除し、専用の保存volumeと
   bash eventの保持方針に従って後片付けする。
 - server標準ログ、event API、WebSocketは経過観測であり、Evidenceではない。
-- P6/P7のlocal SDK経路では`conversation_stats`から
+- LocalConversationのlocal SDK経路では`conversation_stats`から
   `write_conversation_metrics(metrics, path)`を呼び出してJSONを保存する。
-  server経由のmetricsをこの関数へ無理に接続する実装は本P9では追加しない。
+  server経由のmetricsをこの関数へ無理に接続する実装は本本手順では追加しない。
 
 ### 5. `out/`成果物とDocker workspace
 
 `out/`、`evidence/`、fabrication成果物は専用volumeまたはhost mountへ明示的に回収する。
 containerの一時filesystemにだけ置いた成果物は、container停止・削除で失われる。
-P5の`run_in_workspace`を併用する場合、agent-serverは会話とagent操作の運搬層、
+DockerWorkspaceの`run_in_workspace`を併用する場合、agent-serverは会話とagent操作の運搬層、
 Docker workspaceは決定論的pipelineとgateの実行層とする。image digestが解決できない、
 toolが無い、gateが未実行、parse失敗、unknownの場合は成功扱いにしない。
 
@@ -179,14 +179,17 @@ toolが無い、gateが未実行、parse失敗、unknownの場合は成功扱い
 - conversationのpause、interrupt、fork、delete、event取得API
 - Dockerfileのtargetと`build.py`のimage名既定値
 
-### 未実測
+### ADR-0025受け入れ条件（未実測）
 
-- このACD repositoryでのagent-server起動、REST接続、WebSocket接続
-- real LLMを使ったconversationの完走、resume、fork、OpenAI互換応答
-- plugin hooksがserverの全ての直接API経路へ適用されること
-- Docker imageのbuild、registryからのpull、image digest、ACD pipelineのserver内実行
-- shared storage、複数server、lease、停止時の全event flush
+- **V1**: agent-server起動とhealth応答。
+- **V2**: RESTでconversation作成、message送信、run、event取得。
+- **V3**: WebSocketでイベント購読と受信。
+- **V4**: agent-server imageのDocker buildとdigest記録。
+- **V5**: DockerWorkspaceでGD1基板・筐体pipelineを実行し、出力差を記録。
+- **V6**: fork/resume後のゲート再実行と、ゲートだけによる合否判定。
+- **V7**: file、git、bash router、OpenAI互換gatewayへのhook適用可否。
+- **V8**: token、money、wall-clock、外部process回数の予算実測。
 
-未実測の項目を実運用済み・検証済みと表現しない。実運用へ進む場合は、まずsecretを
+V1〜V8を実測し、各項目にfail-closed negative testを付けるまで、実運用済み・検証済みと表現しない。実運用へ進む場合は、まずsecretを
 含まないstagingでREST/WebSocket、再起動resume、fork、生成物回収、決定論的gate再実行を
 別途記録する。

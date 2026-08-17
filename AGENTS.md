@@ -33,8 +33,9 @@ Agent Canvasのsubmoduleは削除済みであり、追加しない。OpenHands�
 ## 不変条件
 
 - 入力ファイルとgitを設計の正とし、投影を入力へ逆流させない。
-- AIとSkillは提案し、決定論的ゲートが合否を判定する。
-- Skill結果、代理指標、自然文レビューを合否根拠にしない。
+- L1判定は決定論的ゲートと`Evidence.supports_pass(graph.revision)`だけが担う。
+- L2のcritic、Skill、agent、reviewerは操舵、L3のevent、metrics、telemetryは観測に限る。
+- L2とL3は停止側にだけ作用でき、合格側へ作用させない。
 - ツール不在、parse失敗、ゲート未実行、unknown、未検証はfail-closedにする。
 - 閾値、期待値、evidence規則を成功のために緩めない。
 - SkillのPython moduleをACD本体からimportしない。必要なCLIはsubprocessで実行する。
@@ -57,14 +58,15 @@ OpenHands SDKへ委譲する。
 
 Skillsのtriggerは`KeywordTrigger`を使う。`paths:`はmodel invocationを無効化し、
 `inputs:`はTaskTriggerになるため現在は使わない。reviewerは合否権限を持たない。
-SDK hooksはagent経路のfail-closed境界として採用するが、CIの決定論的検証を置き換えず、
-既存判定を呼び出すだけとする。
+SDK hooksはagent経路のfail-closed境界として採用する。agent-serverのhooks APIは設定ロードを
+担うが、server直接API全体への自動適用は未確認である。CIの決定論的検証を置き換えない。
 
 ## 依存とsubmodule
 
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
 使用API、既定値、破壊的変更、採否を`docs/dependency-notes.md`へ記録する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
+SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とする。
 
 ファイルを削除・移動するときは、関連文書、索引、相対リンク、参照先を同じ変更で更新し、
 旧パスへの参照を残さない。
@@ -88,7 +90,8 @@ git diff --check
 ```
 
 Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
-`git diff --check`に絞ってよい。GD1基板pipelineはsilkscreenゲートまで通過する前提で、
+`git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定のDockerWorkspaceを
+正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは移行中である。GD1基板pipelineはsilkscreenゲートまで通過する前提で、
 resolverと基板pipelineを実行して確認する。
 
 graphへ設計判断属性を追加する機能変更では、同じ変更で属性を

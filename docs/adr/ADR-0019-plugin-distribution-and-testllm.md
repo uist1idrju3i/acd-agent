@@ -1,8 +1,11 @@
 # ADR-0019: pinned plugin配布とTestLLM回帰
 
+> ステータス: Accepted
+> 日付: 2026-08-17
+
 ## 状況
 
-P6/P7でACDのpluginは開発checkoutのlocal pathから読み込めるようになった。
+現行のplugin配布経路でACDのpluginは開発checkoutのlocal pathから読み込めるようになった。
 外部利用者が別のcheckoutを同じ版として読み込まないため、配布経路には不変な
 provenanceが必要である。また、SDK Conversationの配線をネットワークやAPI keyなしで
 回帰検証する必要がある。
@@ -23,7 +26,7 @@ provenanceが必要である。また、SDK Conversationの配線をネットワ
 ## 境界
 
 TestLLMは実LLMの適格性を検証しない。外部pluginのfetch、Docker workspace、
-実際の外部terminal実装、および複数stepのtool-call E2EはP8の範囲外である。
+実際の外部terminal実装、および複数stepのtool-call E2Eは次フェーズの範囲外である。
 hook DENYはローカルpluginとSDKのtool registryへ登録したテスト用terminal定義で、
 実行前のConversation hook境界までを検証する。これらを未検証のまま「回帰済み」と
 扱わない。合否は従来どおり決定論的ゲート、Evidence、入力ファイル、git状態だけで決まる。

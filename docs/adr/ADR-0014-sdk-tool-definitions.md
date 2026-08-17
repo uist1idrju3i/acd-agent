@@ -1,45 +1,25 @@
 # ADR-0014: SDK ToolDefinitionによるACD入口の一本化
 
-- **状態**: Accepted
-- **日付**: 2026-08-18
+> ステータス: Accepted
+> 日付: 2026-08-17
 
 ## 決定
 
-ACDの決定論的エントリポイントは、OpenHands SDKの`ToolDefinition`、`Action`、
-`Observation`、`ToolExecutor`、`ToolAnnotations`で公開する。FastMCP serverは互換層
-として残さず廃止する。この決定はユーザーに明示的に承認された。
+ACDの決定論的入口はOpenHands SDK v1.42.1の`ToolDefinition`、`Action`、`Observation`、
+`ToolExecutor`、`ToolAnnotations`、`register_tool`で公開する。実装は
+`packages/acd-tools/src/acd_tools/sdk_tools.py`に置き、明示的な登録関数から登録する。
 
-MCP client経由の外部利用は当面サポートしない。将来必要になった場合は、SDK側のMCP
-機構を使って再導入を検討する。
+MCP client互換層とFastMCP serverは提供しない。MCPをSDK側の機構で再導入するという
+留保も置かない。これは本リポジトリをOpenHands専用拡張とする
+[`ADR-0024`](ADR-0024-openhands-only-scope.md)による。
 
-## 契約
+## 境界
 
-`acd_probe_tools`、`acd_validate_design_graph`、`acd_run_board_pipeline`、
-`acd_run_enclosure_pipeline`は、既存入口と同じ入力妥当性、返却キー、
-`ToolEnvelope`列挙、`Evidence`の意味、fail-closed契約を保つ。入力不備や例外を成功に
-変換しない。fail-closedのObservationをLLMへ伝える場合は失敗理由と「これはpass
-evidenceではない」ことを含める。
+ObservationのpayloadはACD契約として`ok`、`operation`、`failure_reason`、`fail_closed`
+およびToolEnvelopeを返す。これはMCP互換規約ではない。ToolAnnotationsはconfirmationと
+risk情報をSDKへ渡すが、Observationは合否Evidenceではない。
 
-`ToolAnnotations`はLLMと実行器への助言であり、強制制約ではない。実際の書き込み制約、
-派生投影保護、発注・送信境界はP1のPreToolUse hookとCIが担う。pipeline toolの
-`readOnlyHint=False`、`destructiveHint=False`、`idempotentHint=True`、
-`openWorldHint=False`は、その既存の決定論的性質を表す。
+## 関連
 
-## 依存削減
-
-本決定によりFastMCPとそれに伴うMCP依存スタックをACDの直接依存から削除する。
-なお、vendorするOpenHands SDK v1.42.1自身がSDK全体のMCP機能のために持つ依存は、
-SDKのlock解決に残るが、ACDのentrypointや互換serverとしては利用しない。SDK registry
-への登録はimport副作用にせず、`register_acd_tools()`を明示的に呼ぶ。
-重複登録を許容するSDK registryの挙動を前提に、関数自体は冪等にする。
-
-## 既存ADRとの関係
-
-ADR-0003とADR-0010は過去時点の決定として保存する。本ADRが現在の公開方式を上書き
-参照する。契約の正、決定論的ゲート、plugin境界、fail-closed方針は変更しない。
-
-## P5との関係
-
-P5の任意Docker workspace実行は、既存の決定論的pipelineとゲートを実行する場所を
-選ぶ機能であり、本ADRのToolDefinition契約、Evidence意味、fail-closed境界を変更
-しない。詳細は[`ADR-0015`](ADR-0015-docker-workspace-gate-execution.md)に記録する。
+SDK機能の全採否は[`openhands-sdk-capabilities.md`](../openhands-sdk-capabilities.md)、
+合否権限の境界は[`ADR-0023`](ADR-0023-deterministic-gate-authority.md)を参照する。

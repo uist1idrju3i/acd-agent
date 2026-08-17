@@ -1,10 +1,12 @@
 # アーキテクチャ
 
-> ステータス: Draft
+> ステータス: Accepted
 > 対象: OpenHands Software Agent SDK v1.42.1、Python 3.12+
 
-本書は、入力ファイルを正とするACDの実装境界を定める。実行基盤の統合面は
-[`openhands-integration.md`](openhands-integration.md)、工程は
+本書は境界説明の単一の正であり、入力ファイルを正とするACDの実装境界を定める。
+SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)、
+agent-serverの運用手順は[`agent-server-runbook.md`](agent-server-runbook.md)を参照する。
+実行基盤の統合面は[`openhands-integration.md`](openhands-integration.md)、工程は
 [`design-flow.md`](design-flow.md)、設計決定は[`adr/`](adr)を参照する。
 
 ## 正規データと責務境界
@@ -35,7 +37,10 @@ conflicting、missing、untraceable、unclassifiedはfail-closedで停止する�
 必須または英語理由付き免除のどちらかに分類し、未分類属性を黙ってcoverage外へ置かない。
 rationaleのMarkdownはpipeline出力の派生レビュー投影であり、canonical inputではない。
 
-AIとSkillは探索・実装・所見を提案する。合否はACDの決定論的ゲートだけが判定する。
+AIとSkillは探索・実装・所見を提案する。三層分離は
+[`ADR-0023`](adr/ADR-0023-deterministic-gate-authority.md)に従う。L1判定は
+決定論的ゲートと`Evidence.supports_pass(graph.revision)`だけが担い、L2操舵とL3観測は
+合否を判定しない。L2とL3は停止側にだけ作用でき、合格側へ作用させない。
 ツール不在、入力不備、parse失敗、未実行、unknown、未検証はfail-closedとする。
 
 pluginの外部配布では、`github:uist1idrju3i/acd-agent`の`plugins/acd`を40桁commit SHA
@@ -73,7 +78,8 @@ plugins/acd/
 │   ├── acd-electrical.md
 │   ├── acd-mechanical.md
 │   ├── acd-firmware.md
-│   └── acd-reviewer.md
+│   ├── acd-reviewer.md
+│   └── acd-search.md
 └── skills/
     ├── acd-contracts/
     ├── acd-placement-search/
@@ -81,7 +87,8 @@ plugins/acd/
     ├── acd-firmware-esp32c3/
     ├── acd-cad-determinism-probe/
     ├── acd-qc-seven-tools/
-    └── acd-reliability-review/
+    ├── acd-reliability-review/
+    └── acd-design-rationale/
 ```
 
 pluginはOpenHands SDKが読むMarkdown、manifest、hooksの配布単位であり、ACD Python
@@ -106,8 +113,7 @@ Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 - `acd_run_enclosure_pipeline`
 
 返り値のキー、ToolEnvelopeの列挙、入力妥当性、fail-closed契約は旧公開方式から
-不変である。MCP client経由の外部利用は当面サポートしない。必要になればSDK側の
-MCP機構で再導入する。
+不変である。MCP client互換層は提供しない。
 
 ## 生成と判定の分離
 
@@ -124,10 +130,12 @@ Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上�
 
 ## Docker workspace境界
 
-ホスト実行を既定とし、`scripts/run_in_workspace.py`から決定論的pipelineとゲートだけを
-任意に`DockerDevWorkspace`で実行できる。repoは`volumes`でmountし、`out/`と
-`evidence/`をホスト側へ残す。runnerは`docker image inspect`でRepoDigestsまたは
-ローカルimage IDのsha256 digestを解決し、解決できない場合はworkspaceを起動せず
+決定論的ゲートの実行環境は`DockerWorkspace(server_image="...@sha256:<digest>")`へ
+一本化する。repoは`volumes`でmountし、`out/`と`evidence/`をホスト側へ残す。
+`DockerDevWorkspace(base_image=...)`はACD tools imageからagent-server imageをbuildする
+準備経路に限定し、ゲート実行の既定経路にはしない。現行runnerは移行中であり、CIと
+ホスト実行は参考経路である。`container=none`の実行は合格側Evidenceを生成しない。
+runnerは`docker image inspect`でdigestを解決し、解決できない場合はworkspaceを起動せず
 fail-closedで停止する。解決したdigestは`ACD_CONTAINER_IMAGE_DIGEST`としてforwardし、
 ToolEnvelopeの`execution_env`へ記録する。
 
@@ -148,8 +156,9 @@ GD1基板pipelineでは、独立したKiCad width positive-controlの2 armだけ
 thread poolで並列実行できる。結果はarm-a、arm-bの固定順で集約し、並列度1は
 逐次経路と同一である。worker数を変えた検証では、出力パスとKiCad DRC日時を除いた
 arm summaryの正規化結果が一致し、worker例外はfail-closedで伝播する。`hashes.json`
-は既存pipelineのKiCad UUIDとDRC日時による非決定性のため一致せず、この是正はP4の
-範囲外である。greedy配置探索とsilkscreen探索は状態依存のため並列化しない。
+は既存pipelineのKiCad UUIDとDRC日時による非決定性のため一致しない。この是正は
+現行の決定論的探索契約の範囲外である。greedy配置探索とsilkscreen探索は状態依存の
+ため並列化しない。
 
 `acd-search` AgentDefinitionは冗長な探索出力を主会話から分離するだけで、候補と
 Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力は合否権限を持たず、
@@ -173,11 +182,6 @@ agent出力、OpenAI互換応答は経過であり、pass evidenceではない�
 `run_in_workspace`の決定論的pipelineとgateが決める。詳細な起動前確認、保存先、
 resume/fork、直接APIのhook境界、未実測範囲は[`agent-server-runbook.md`](agent-server-runbook.md)
 と[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)を参照する。
-
-## 実装していない境界
-
-SecretRegistry連携、agentごとのコンテナ運用、実運用としてのagent-server、実機測定、価格・在庫
-取得、自働発注は未実装であり、将来構想である。
 
 ## hook境界
 
@@ -203,4 +207,7 @@ dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが�
 の新しさ確認である。`supports_pass()`は引き続きcommit済みrevision一致を要求する。
 該当しない場合は原因となった設計入力パスをreasonに列挙する。
 
-これらを現行ACDの採用済み機能や合否根拠として扱わない。
+## 実装していない境界
+
+SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)に整理する。
+ACD機能としては、実機測定、価格・在庫取得、自働発注が未実装であり、将来構想である。

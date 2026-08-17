@@ -1,6 +1,6 @@
 # ADR-0011: 探索結果を設計入力として確定する
 
-> ステータス: Accepted（投影・実測・再配置ループを実装済み）
+> ステータス: Accepted
 > 日付: 2026-08-16
 > 関連: [`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)、[`ADR-0009-openhands-delegation-and-skills.md`](ADR-0009-openhands-delegation-and-skills.md)
 

@@ -1,41 +1,19 @@
-# 直近の実装計画
+# 実装計画
 
-> ステータス: 現行作業の分解。長期計画は[`roadmap.md`](roadmap.md)を参照する。
+> ステータス: Accepted
 
-## 作業単位
+## 次フェーズ
 
-1. **契約と入力**
-   - `acd-schema`でgraph、profile、evidenceを検証する。
-   - 欠落、不正、unknownをfail-closedにする。
-2. **投影とadapter**
-   - `acd-core`からレーンを抽出する。
-   - `acd-pipeline`がKiCad、FreeRouting、CAD adapterを呼ぶ。
-   - 生成物を独立parserで再読込する。
-3. **plugin委譲**
-   - Skillは探索・FW作業・レビュー手法を提供する。
-   - AgentDefinitionは電気、機械、FW、レビューの役割を分離する。
-   - commandとSDK ToolDefinitionは既存の決定論的入口だけを公開する。
-4. **検証**
-   - `uv run ruff check`
-   - `uv run pyright`
-   - `uv run pytest`
-   - `uv run pytest plugins -q`
-   - `uv run python scripts/verify_docs.py`
-   - `git diff --check`
+| 作業 | 完了条件 |
+|---|---|
+| DockerWorkspace移行 | runnerがdigest固定`server_image`を使い、digest不明を拒否する |
+| container CI | gates-containerがGD1を実行し、Docker不可を失敗にする |
+| KiCad更新 | image pinを10系、GD1期待値を10.0.5基準へ更新する |
+| agent-server検証 | ADR-0025のV1〜V8とnegative testを実装する |
+| secret経路 | `SecretSource`候補を評価し、平文転送を避ける |
+| 予算観測 | token、money、wall-clock、process回数を記録する |
 
-## 作業境界
+## 実装済みの前提
 
-Python側へ新しいagent executor、独自event、history、task基盤を追加しない。
-SkillのPython moduleをACD本体からimportしない。探索結果を採用する場合はgraph.jsonへ
-確定し、Skill名とscript sha256を記録する。合否はSkillの出力ではなく決定論的
-pipelineと独立測定で判定する。
-
-## 未着手の作業
-
-- 投影後Gerber実測を使ったsilkscreen再配置ループ
-- 実機の製造・組立・測定Evidence
-- sourcing、価格・在庫・納期、発注guard
-- SecretRegistry、DockerWorkspace、agent-server、Conversation実行経路
-
-これらを実装する場合は、既存ADRとロードマップを先に更新し、fail-closed境界を
-維持する。
+ToolDefinition、hooks、critic、Conversation、plugin配布、TestLLM、agent-server接続、
+DockerDevWorkspaceによるbuild準備は実装済みである。これらを未実装作業へ戻さない。

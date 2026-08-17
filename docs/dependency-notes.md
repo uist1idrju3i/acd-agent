@@ -9,7 +9,7 @@ SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展�
 停止側へ集約し、gate実行または変更をcommitしてからEvidenceを生成する。
 # 依存関係ノート
 
-> ステータス: Draft  
+> ステータス: Draft
 > 対象: acd-agentのPython依存、submodule、外部ツール、GitHub Actions、調査日 2026-08-16
 
 本書は、依存関係を更新するときに確認する一次情報、ACD内の使用箇所、影響する関連文書の
@@ -21,7 +21,7 @@ SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展�
 
 | 依存 | 役割・ACD内の使用箇所 | 現行採用版 | 固定方法 | 一次情報 | 更新時に確認する観点 | 更新する関連文書 |
 |---|---|---:|---|---|---|---|
-| OpenHands Software Agent SDK | subagent、視覚投影、Skill、plugin、workspace shell、`EventLog`、agent-server等を使用 | 1.42.1 | `vendor/software-agent-sdk`のsubmodule SHA、`uv.lock` | [v1.42.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.0)、[v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1)、[commit比較](https://github.com/OpenHands/software-agent-sdk/compare/v1.41.0...v1.42.1) | ACDのimport API、LLM設定、plugin／agent-serverの挙動 | [`openhands-integration.md`](openhands-integration.md)、[`agent-server-runbook.md`](agent-server-runbook.md)、必要時は [`ADR-0003`](adr/ADR-0003-sdk-feature-adoption.md) |
+| OpenHands Software Agent SDK | subagent、視覚投影、Skill、plugin、workspace shell、`EventLog`、agent-server等を使用 | 1.42.1 | `vendor/software-agent-sdk`のsubmodule SHA、`uv.lock` | [v1.42.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.0)、[v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1)、[commit比較](https://github.com/OpenHands/software-agent-sdk/compare/v1.41.0...v1.42.1) | ACDのimport API、LLM設定、plugin／agent-serverの挙動 | [`openhands-integration.md`](openhands-integration.md)、[`agent-server-runbook.md`](agent-server-runbook.md)、必要時は [`ADR-0023`](adr/ADR-0023-deterministic-gate-authority.md)／[`ADR-0024`](adr/ADR-0024-openhands-only-scope.md) |
 | OpenHands SDK hooks | `HookConfig`、`HookMatcher`、command hookでagent経路のfail-closed境界を実装 | 1.42.1 | `plugins/acd/hooks/hooks.json`、SDK submodule SHA | [hooks API](https://github.com/OpenHands/software-agent-sdk/tree/v1.42.1/openhands-sdk/openhands/sdk/hooks) | HookEvent、exit code 2、command環境変数、ブロック可能なevent | [`ADR-0013`](adr/ADR-0013-openhands-sdk-runtime-adoption.md)、[`architecture.md`](architecture.md) |
 | pydantic | ACDの契約モデル、`Field`、validation | 2.13.4 | `uv.lock`。範囲指定は各packageの`pyproject.toml` | [releases](https://github.com/pydantic/pydantic/releases)、[migration guide](https://docs.pydantic.dev/latest/migration/) | model validation、serialization、strict mode、既定値と非推奨 | [`architecture.md`](architecture.md)、[`installation.md`](installation.md) |
 | build123d | `acd_adapter_cad`の投影と機械ゲートでCAD形状生成・STEP／3MF出力 | 0.11.1 | `uv.lock`、`pyproject.toml`で完全固定 | [releases](https://github.com/gumyr/build123d/releases) | kernel互換性、形状演算、exportの決定性、測定値とhash | [`tool-capability-probes.md`](tool-capability-probes.md)、[`design-flow.md`](design-flow.md) |
@@ -37,7 +37,7 @@ SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展�
 | astral-sh/setup-uv | CIでuvとPythonを導入 | v10.0.1 | commit SHA `20cfd1bf945f4377ade1205e4dbc17946fc9a30d`、コメントで版を併記 | [v10.0.1 release](https://github.com/astral-sh/setup-uv/releases/tag/v10.0.1) | Node 24 runner互換性、`python-version`、cache、uvの取得 | [`installation.md`](installation.md)、[`AGENTS.md`](../AGENTS.md) |
 | CodeQL | `Analyze (python)`、`Analyze (actions)`のcheck-runを確認。いずれもappは`github-actions`で、repository内に対応するworkflowファイルはない | GitHub側のCodeQL default setupと推定（版表記なし） | リポジトリ設定で管理。action SHAのpin対象外 | [GitHub CodeQL](https://codeql.github.com/docs/) | check-run名、対象言語、結果、権限を確認。`code-scanning/default-setup` APIは権限不足の403で直接確認できず、default setupという管理形態は推定 | リポジトリ設定、必要時は関連するセキュリティ文書 |
 | `update-uv-graph` | `update-uv-graph`のcheck-runを確認。appは`github-actions`で、repository内に対応するworkflowファイルはない | GitHub側の依存グラフ送信設定と推定（版表記なし） | リポジトリ設定で管理。action SHAのpin対象外 | [GitHub dependency graph](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependency-graph) | `uv.lock`更新後のcheck-run結果と依存グラフへの反映を確認。設定の詳細は権限不足のため未確認 | リポジトリ設定、`uv.lock`、必要時は依存更新文書 |
-| kicad-cli | KiCad adapterでERC／DRC、netlist、Gerber／drill出力。`scripts/run_gd1_pipeline.py`でも使用 | 環境プローブで検出（CI固定なし） | 実行環境で版をprobeしEvidenceへ記録 | [KiCad 10 CLI docs](https://docs.kicad.org/10.0/en/cli/cli.html) | CLI引数、ERC／DRC、出力形式、ライブラリとproject format | [`research/tool-selection.md`](research/tool-selection.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
+| kicad-cli | KiCad adapterでERC／DRC、netlist、Gerber／drill出力。`scripts/run_gd1_pipeline.py`でも使用 | 10.0.5を一次情報とGD1期待値の基準にする。Dockerfileも10系PPAへ更新済み | 実行環境で版をprobeしEvidenceへ記録 | [KiCad 10.0 CLI docs](https://docs.kicad.org/10.0/en/cli/cli.html) | CLI引数、ERC／DRC、出力形式、ライブラリとproject format | [`research/tool-selection.md`](research/tool-selection.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
 | FreeRouting | `acd_adapter_freerouting`でDSN→SES外部routing | 環境プローブで検出（CI固定なし） | 実行環境で版をprobeしEvidenceへ記録 | [FreeRouting releases](https://github.com/freerouting/freerouting/releases) | DSN／SES形式、収束、幅・clearance、終了コード | [`research/tool-selection.md`](research/tool-selection.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
 | ESP-IDF | acd-firmware-esp32c3 Skillが`idf.py`を呼ぶ。ACD本体のゲートではなくSkill側の作業 | 固定なし（要probe） | `IDF_PATH`と`idf.py --version`を実行時検証 | [ESP-IDF releases](https://github.com/espressif/esp-idf/releases) | toolchain／target、build output、merge-bin、ログ、再現性 | [`design-flow.md`](design-flow.md)、[`installation.md`](installation.md) |
 | QEMU | acd-firmware-esp32c3 Skillが`qemu-system-riscv32`で仮想実行しログを照合する | 固定なし（要probe） | 実行時にversionをprobeしSkillのsummaryへ記録 | [QEMU releases](https://www.qemu.org/download/) | target、machine、serial log、timeout、exit status | [`design-flow.md`](design-flow.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
@@ -164,25 +164,25 @@ APIであることを確認した。workflow scriptはshell実行やファイル
 契約のため、KiCadなどの決定論的CLI探索には採用しない。ACD側のwidth arm並列化は
 `ThreadPoolExecutor`で実装し、外部subprocessを独立に待機する。
 
-### OpenHands SDK P6/P7 API
+### OpenHands SDK Conversation API
 
-P6/P7ではSDK v1.42.1の`Agent`、`LocalConversation`、`PluginSource`、
+現行のLocalConversation経路ではSDK v1.42.1の`Agent`、`LocalConversation`、`PluginSource`、
 `HookConfig.load()`、`LLMSummarizingCondenser`、`LocalWorkspace.git_changes()`、
 `ConversationStats.get_combined_metrics()`を使用する。
 既定の`out/agent-sessions`は生成物であり設計入力ではない。SDKのloop、history、
 persistence、metricsは採用し、ACD独自実装は採用しない。metricsは
 `pass_evidence: false`で保存し、合否判定には使わない。
 
-### OpenHands SDK P8 API
+### OpenHands SDK plugin配布・TestLLM API
 
-P8では`PluginSource`の`source`、`repo_path`、`ref`を使用する。外部配布の`ref`は
+次フェーズでは`PluginSource`の`source`、`repo_path`、`ref`を使用する。外部配布の`ref`は
 `acd_tools.plugin_distribution`で40桁commit SHAまたは`v<semver>` tagに限定し、
 branch名や未指定refをfail-closedで拒否する。開発時local pathは従来どおり許可する。
 `sdk.marketplace`は既存repoのplugin部分木をpinned fetchする要件を超えるため採用しない。
 
 `sdk.testing.TestLLM`は台本応答を提供し、bootstrap構成とcritic反復方針の回帰に使う。
 hookの投影保護DENYは既存のsubprocess testで確認する。外部fetch、完全なConversation
-tool-call E2E、実LLM、DockerはP8の回帰対象外である。
+tool-call E2E、実LLM、Dockerは次フェーズの回帰対象外である。
 
 `sdk.profiles`の`AgentProfile` / `AgentProfileStore`はsecret-freeなLLM profile参照を
 保持するが、ACDの役割別モデル設定へは採用しない。resolved LLMやAPI keyを宣言へ

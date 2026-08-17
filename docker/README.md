@@ -2,7 +2,7 @@
 
 ## 位置づけ
 
-このイメージは、ACDの決定論的pipelineとゲートだけを任意に実行するための
+このイメージは、ACDの決定論的pipelineとゲートだけをDockerWorkspaceで実行するための
 base imageである。agentそのものをコンテナへ移すものではなく、ACD imageとして
 再配布もしない。利用者が各自でDockerfileからbuildする。
 
@@ -37,15 +37,15 @@ repositoryの固定が必要である。
 
 ## OpenHands SDKからの利用
 
-P5では、カスタムbase imageからagent-server imageをbuildできる
-`DockerDevWorkspace`を選ぶ。`DockerWorkspace`は既成のagent-server imageを
-使う経路であり、今回の公開しないローカルbuild用base imageには適さない。
+`DockerWorkspace(server_image="...@sha256:<digest>")`を決定論的ゲート実行の正とする。
+`DockerDevWorkspace(base_image=...)`は、このDockerfileからagent-server imageをbuildする
+準備経路に限定する。現行runnerは移行中であり、ホスト実行は合格側Evidenceを生成しない。
 
 ```python
-from openhands.workspace.docker import DockerDevWorkspace
+from openhands.workspace.docker import DockerWorkspace
 
-with DockerDevWorkspace(
-    base_image="acd-tools-gates:local",
+with DockerWorkspace(
+    server_image="ghcr.io/openhands/agent-server:...@sha256:<digest>",
     volumes=["/absolute/repo/path:/workspace"],
     forward_env=["ACD_CONTAINER_IMAGE_DIGEST"],
 ) as workspace:
@@ -55,6 +55,9 @@ with DockerDevWorkspace(
         cwd="/workspace",
     )
 ```
+
+`DockerDevWorkspace(base_image="acd-tools-gates:local", ...)`は、ACD tools imageを
+agent-server imageへbuildする準備・移行中の経路であり、ゲート実行の正ではない。
 
 ホスト側の`ACD_CONTAINER_IMAGE_DIGEST`は、runnerが`docker image inspect`から解決
 した値を設定する。`forward_env`で同名変数をコンテナへ渡し、ToolEnvelopeの

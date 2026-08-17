@@ -7,7 +7,7 @@
 - `uv`
 - KiCad CLI
 - JavaとFreeRouting
-- （任意）Docker
+- Docker（ゲート実行の正）
 
 OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1を
 workspace sourceとして使用する。Agent Canvasのソースは取得しない。OpenHands公開Skillsは
@@ -30,8 +30,9 @@ git submodule status
 `vendor/software-agent-sdk`がv1.42.1のcommitを指していることを確認する。
 
 Dockerでゲートを実行する場合は、[`docker/README.md`](../docker/README.md)に従って
-`docker/acd-tools.Dockerfile`を各自buildする。通常のpipelineは引き続きホストで
-実行する。
+`docker/acd-tools.Dockerfile`を各自buildする。決定論的ゲートは
+DockerWorkspaceのdigest固定imageで実行する。現行runnerのホスト経路は
+移行中の参考実行であり、合格側Evidenceを生成しない。
 
 ## 外部ツール
 
@@ -49,7 +50,7 @@ command -v freerouting
 uv run python scripts/probe_tools.py
 ```
 
-Docker workspace経路（任意）:
+Docker workspace経路（ゲート実行の正）:
 
 ```bash
 docker build -f docker/acd-tools.Dockerfile -t acd-tools-gates:local .
@@ -64,7 +65,7 @@ fail-closedで停止する。ツールの採否判断は[`research/tool-selectio
 
 ## plugin
 
-OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには7 Skill、4
+OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには8 Skill、5
 AgentDefinition、`/acd:gates` command、SDK ToolDefinition、hooksが含まれる。
 決定論的なACD入口は`acd_tools.sdk_tools`の明示的な登録関数からSDKへ登録する。
 

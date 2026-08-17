@@ -4,19 +4,20 @@
 
 ## 現在地
 
-OpenHands plugin、7 Skill、4 AgentDefinition、`/acd:gates`、SDK ToolDefinition、
+OpenHands plugin、8 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefinition、
 GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SES import、DRC、
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機測定、発注、価格・在庫取得は未実装である。
-P5として、ホスト実行を既定にした任意のDockerDevWorkspaceゲート実行経路を追加し、
-image digest未解決時は停止する。
-P3aとして、`AcdGateCritic`による決定論的ゲート結果駆動の反復を追加する。
+DockerWorkspace（agent-server image、digest固定）へのゲート実行一本化は次フェーズで
+実装する。現行runnerのDockerDevWorkspace、CI、ホスト経路は移行中の参考実行であり、
+合格側Evidenceを生成しない。
+`AcdGateCritic`は決定論的ゲート結果を使うL2操舵として実装済みである。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
-P4として、GD1の独立したwidth positive-control armをACD側で並列化し、
-探索候補を返す`acd-search` AgentDefinitionを追加する。SDK workflowは採用しない。
-P9として、agent-serverをruntimeの運搬層として扱う運用契約を文書化した。実運用、
-server E2E、Docker image検証は未完了であり、決定論的gateの代替にはしない。
+GD1の独立したwidth positive-control armは固定順で並列集約し、`acd-search`は候補と
+provenanceだけを返す。SDK workflowは採用しない。
+agent-serverとConversationは実運用前提の経路として、ADR-0025のV1〜V8受け入れ条件と
+CI検証へ移行する。決定論的gateの代替にはしない。
 
 ## 現行実装計画
 
@@ -30,7 +31,7 @@ server E2E、Docker image検証は未完了であり、決定論的gateの代替
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 実装済み |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 実装済み |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
-| P9 | agent-server運用契約 | runtime transportと決定論的gateの境界、保存・resume/fork・安全手順を文書化する | 文書化済み（実運用未検証） |
+| 6 | agent-server実運用化 | ADR-0025のV1〜V8、DockerWorkspace、REST/WebSocket、resume/forkを検証する | 受け入れ条件確定（実装・実測待ち） |
 
 各マイルストーンの完了条件は、(1)入力と出所、(2)実装、(3)正常系、(4)negative/
 fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけでは完了としない。
@@ -46,7 +47,7 @@ fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけ�
 - 全ゲート通過後だけの自働発注
 - 高密度基板、認証設計、熱・SIなどの拡張
 - agent自体のコンテナ化と配布済みACD image
-- agent-serverの実運用、staging E2E、shared storageと複数instanceの検証
+- 複数instanceのshared storage負荷検証
 
 ## 検証要件
 
@@ -69,8 +70,8 @@ parse失敗、未実行、unknownはfail-closedとする。Markdownのみの変�
 | 5 | 外部ツールの保存バイト列を設計状態の権威にしない。非決定な出力は正規化規則を契約に書き、規則外の差異は停止条件とする | 外部ツールの決定論性を説明で仮定する（timestamp、再保存時のセグメント構成差など） |
 | 6 | 契約はPydanticモデルから導く | runnerと文書でgate番号・状態を二重管理する |
 | 7 | 安全条件・保護対象は書き換わる部分木で判断する | pathの完全一致だけで許可・却下を決める |
-| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。SDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | sessionへのmetrics出力配線はP7で実装済み。P8ではTestLLMでSDK wiringと二値critic反復を回帰する。実LLM・外部tool E2Eの実測は未完了 |
-| 9 | 探索を含む工程では、代理指標スコアを合格根拠にせず、停止理由と実行結果を記録する | 代理指標だけで合格させる。停止理由を記録しない |
+| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。ADR-0025 V8でSDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | 予算を実測せず見積や説明で代替する。`Metrics`／`MetricsSnapshot`出力を合格根拠へ昇格させる |
+| 9 | 探索を含む工程では、代理指標スコアを合格根拠にせず、停止理由と実行結果を記録する | 代理指標をL1合否へ混入する。停止理由を記録しない |
 
 ## 見直し条件
 
