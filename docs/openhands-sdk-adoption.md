@@ -141,7 +141,7 @@ script SHA-256 provenanceだけを返す。候補は合否権限を持たず、�
 
 `ToolEnvelope.execution_env` / `tool_version`は現在probeの自己申告で、
 ホスト環境が変われば再現しない。`openhands-workspace`は`DockerWorkspace`
-（+ `apptainer`、`remote_api`、`cloud`）を持つ。KiCad 9 / FreeRouting / FreeCAD /
+（+ `apptainer`、`remote_api`、`cloud`）を持つ。KiCad 10 / FreeRouting / FreeCAD /
 ngspiceを固定したimageをworkspaceとして宣言すれば、**`ToolEnvelope`の再現性主張が
 初めて検証可能になる**（roadmap「フェーズ横断の検証要件#5」の実効化）。
 ACDはimage digestをenvelopeへ記録するだけでよい。
@@ -323,7 +323,7 @@ ACD はどちらかを選ぶ必要がある。
 | 方式 | API | 特徴 |
 |---|---|---|
 | A. 実行時ビルド | `DockerDevWorkspace(base_image="<ACD tool image>", target="source")` | 内部で `openhands.agent_server.docker.build.build(BuildOptions(base_image=...))` を呼び、SDK の sdist を含めて agent-server 層を base image の上に構築する。`base_image` に prebuilt agent-server を渡すのは禁止（validator）。SDK ソースが手元に必要 → ACD は vendor しているので条件を満たす |
-| B. 事前ビルド + 固定 | 自前で上記 build を1回実行し `ghcr.io/uist1idrju3i/acd-agent-server:<sha>-kicad9` を publish → `DockerWorkspace(server_image="...@sha256:<digest>")` | 起動が速く、**digest で固定できる**。ACDの再現性主張と相性が良い。CI でも同じ digest を使える |
+| B. 事前ビルド + 固定 | 自前で上記 build を1回実行し `ghcr.io/uist1idrju3i/acd-agent-server:<sha>-kicad10` を publish → `DockerWorkspace(server_image="...@sha256:<digest>")` | 起動が速く、**digest で固定できる**。ACDの再現性主張と相性が良い。CI でも同じ digest を使える |
 
 **推奨は B**（digest 固定が ToolEnvelope の主張と直結する）。A は image を作る前の実験用。
 
@@ -335,11 +335,11 @@ ACD はどちらかを選ぶ必要がある。
 
 ```dockerfile
 # 例: acd-tools base image（agent-server 層は SDK の build が上に載せる）
-FROM ubuntu:24.04
-# kicad-cli 9.x（KiCad 公式 PPA / apt pin で版固定）
-# openjdk-17-jre + freerouting.jar（版とjar sha256を固定）
-# ngspice
-# python3.12（build123d / cadquery-ocp は uv 側で wheel 固定）
+FROM ubuntu:26.04
+# kicad-cli 10.x（KiCad 公式 PPA / apt pin で版固定）
+# openjdk-25-jre + freerouting 2.3.0 jar（版とjar sha256を固定）
+# ngspice 45.2
+# Ubuntu 26.04のsystem Python 3.14（build123d / cadquery-ocpはuv側でwheel固定）
 ```
 
 ACD 本体は次のどちらかで持ち込む:
@@ -388,7 +388,7 @@ ACD 本体は次のどちらかで持ち込む:
   非決定性は正規化規則に書く）が実効化する。** 今は `container=none` の自己申告なので、
   ホストの KiCad が上がれば envelope の意味が静かに変わる。digest 固定なら
   「同一 digest + 同一入力 → 同一 output_hash」を回帰にできる。
-- ホスト環境差による GD1 pipeline の非再現（KiCad 9.x のマイナー差、
+- ホスト環境差による GD1 pipeline の非再現（KiCad 10.x のマイナー差、
   freerouting の JVM 差、OCP の版差）が消える。
 - B2 なら fail-closed 境界が**物理境界**になる（agent がホストの `out/` を触れない）。
 - `extra_ports=True` で VNC(8002)/VSCode(8001) が開くので、KiCad/FreeCAD の GUI 確認や
