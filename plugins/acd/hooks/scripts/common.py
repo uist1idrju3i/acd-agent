@@ -64,14 +64,7 @@ def revision(root: Path, graph_paths: list[str]) -> str | None:
                 "run",
                 "--project",
                 str(root),
-                "python",
-                "-c",
-                (
-                    "import sys; from pathlib import Path; "
-                    "from acd_schema import DesignGraph; "
-                    "print(DesignGraph.model_validate_json("
-                    "Path(sys.argv[1]).read_text(encoding='utf-8')).revision)"
-                ),
+                "acd-design-revision",
                 str(graph_path),
             ],
             cwd=root,

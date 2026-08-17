@@ -122,6 +122,10 @@ cleanな場合だけEvidenceの`supports_pass()`を評価する。git SHAを
 全要件充足時の`1.0`またはそれ以外の`0.0`だけである。critic出力は反復の
 操舵信号であり、pass evidenceではない。
 
+hookのDesign Graph revision解決は`acd-design-revision` console scriptへ委譲する。
+CLIはpathを`DesignGraph`として検証し、単一pathが有効な場合だけrevisionをstdoutへ
+出力する。hookは別途gitによる設計入力のdirty判定とpath数の検査を行う。
+
 ## 任意のDocker workspace実行
 
 ホスト実行が既定であり、agentをコンテナへ入れるのではなく、決定論的pipelineと

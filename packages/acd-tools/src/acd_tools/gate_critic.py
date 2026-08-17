@@ -75,9 +75,9 @@ class AcdGateCritic(CriticBase):
     ) -> CriticResult:
         """Evaluate configured artifacts at the current git revision."""
         del events, git_patch
-        revision = self._current_revision()
+        revision, revision_failure = self._current_revision()
         if revision is None:
-            failures = ["revision: unable to resolve git HEAD"]
+            failures = [f"revision: {revision_failure}"]
             return self._result(failures, [])
 
         failures: list[str] = []
@@ -111,7 +111,7 @@ class AcdGateCritic(CriticBase):
             "Critic output is not pass evidence.\n"
         )
 
-    def _current_revision(self) -> str | None:
+    def _current_revision(self) -> tuple[str | None, str]:
         try:
             status = subprocess.run(
                 ["git", "status", "--porcelain", "--untracked-files=all"],
@@ -121,19 +121,19 @@ class AcdGateCritic(CriticBase):
                 check=False,
             )
             if status.returncode != 0:
-                return None
+                return None, "git status unavailable"
             if any(
                 self._is_design_input(line[3:])
                 for line in status.stdout.splitlines()
                 if len(line) > 3
             ):
-                return None
+                return None, "design input is dirty"
             graph = DesignGraph.model_validate_json(
                 (self.repo_root / self.design_graph_path).read_text(encoding="utf-8")
             )
         except (OSError, ValueError, TypeError):
-            return None
-        return graph.revision
+            return None, "Design Graph is unreadable or invalid"
+        return graph.revision, ""
 
     @staticmethod
     def _is_design_input(path: str) -> bool:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from acd_tools.gate_critic import (
     AcdEvidenceRequirement,
@@ -14,6 +15,25 @@ from acd_tools.gate_critic import (
 
 ROOT = Path(__file__).parents[3]
 EVIDENCE_SOURCE = ROOT / "fixtures/contracts/valid/evidence.json"
+
+
+def _init_clean_repo(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "test",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
 
 
 def _evidence(tmp_path: Path, *, unknown: bool = False, stale: bool = False) -> Path:
@@ -136,13 +156,29 @@ def test_model_round_trip_preserves_paths_and_config() -> None:
 def test_unresolvable_revision_fails_closed(tmp_path: Path) -> None:
     graph = tmp_path / "graph.json"
     graph.write_text("{}", encoding="utf-8")
+    _init_clean_repo(tmp_path)
     result = AcdGateCritic(
         repo_root=tmp_path,
         design_graph_path=Path("graph.json"),
         requirements=[AcdManifestRequirement(path=Path("manifest.json"))],
     ).evaluate([], None)
     assert result.score == 0.0
-    assert "revision" in (result.message or "")
+    assert "Design Graph is unreadable or invalid" in (result.message or "")
+
+
+def test_git_status_failure_has_distinct_revision_message(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    def failed_status(*args: Any, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(args, 1, "", "git unavailable")
+
+    monkeypatch.setattr(subprocess, "run", failed_status)
+    result = AcdGateCritic(
+        repo_root=tmp_path,
+        requirements=[AcdManifestRequirement(path=Path("manifest.json"))],
+    ).evaluate([], None)
+    assert result.score == 0.0
+    assert "git status unavailable" in (result.message or "")
 
 
 def test_dirty_design_input_fails_closed(tmp_path: Path) -> None:
@@ -174,4 +210,4 @@ def test_dirty_design_input_fails_closed(tmp_path: Path) -> None:
         requirements=[AcdManifestRequirement(path=Path("manifest.json"))],
     ).evaluate([], None)
     assert result.score == 0.0
-    assert "revision" in (result.message or "")
+    assert "design input is dirty" in (result.message or "")

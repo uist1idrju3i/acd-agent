@@ -29,6 +29,10 @@ graphを読めない、schema違反、gitが使えない、またはgraph.json�
 P1のorder hookも同じrevision意味論へ統一し、有効なEvidenceに出口を与える。
 ゲート閾値、Evidence契約、保護対象、fail-closed規則は変更しない。
 
+hookはinline Pythonを実行せず、`acd-design-revision` console scriptへgraph pathを
+渡す。このCLIは単一pathだけを受け取り、`DesignGraph`として検証したrevisionをstdoutへ
+出し、path不在・複数path・不正JSON・schema違反では非0終了して出力しない。
+
 ## 要件
 
 `AcdGateCritic`は`Evidence`要件では指定されたpathと`evidence_id`を検証し、
