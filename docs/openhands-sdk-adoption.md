@@ -181,11 +181,19 @@ SDKへ委譲し、EventLogとconversation stateは経過であって合否Eviden
   埋め込まず、将来のprofile契約が固まった段階で再評価する。
 - `sdk.observability.laminar`はトレース可視化の選択肢（合否には無関係）。
 
-### P9（将来）: `openhands-agent-server`でVibeBBの運用面を得る
+### P9: `openhands-agent-server`の運用契約を文書化する（文書化済み・実運用未検証）
 
-`openhands-agent-server`はREST/WebSocket、persistence、OpenAI互換API、
-canvas extensions、VSCode extensionsを持つ。VibeBB（人間が要件オーナー）のUIを
-ACDが自作せずに済む。ただし合否・evidence契約はACD側に残す。
+`openhands-agent-server` v1.42.1は、会話、agent実行、event、workspace、永続化を
+運ぶ候補である。P9では一次sourceを読み、起動、保存、resume/fork、停止、metrics、
+Docker、認証の運用境界を[`agent-server-runbook.md`](agent-server-runbook.md)へ整理した。
+実serverの起動・接続・Docker buildはまだ検証していない。
+
+採用範囲はSDKのserver機構を運搬層として使う文書契約に限る。(a) event・metricsを
+pass evidenceへ昇格させない、(b) restart・fork・resume後も決定論的gateを再実行する、
+(c) API key・token・workspaceをACDの入力と混同しない、を不変条件とする。
+agent-serverをACD独自の判定器、history、persistence基盤へ置き換える実装は採用しない。
+未実測範囲と直接APIのhook境界はrunbookと
+[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)に記録する。
 
 ---
 
@@ -257,7 +265,7 @@ plugin配布の手組み」は全部SDK側の既製機構で置き換えられ�
 | 5 | workflow/subagentでの探索並列化（P4） | 中 | 探索時間と主context汚染の削減 |
 | 6 | EventLog / FileStore / git差分、Metrics、condenser（P6・P7） | 中 | 履歴・resume・予算実測（roadmap要件#8）を満たす |
 | 7 | plugin配布のpinned source化 + `TestLLM`回帰（P8） | 小 | 外部利用可能な配布物になる |
-| 8 | agent-server運用（P9） | 大 | VibeBBの運用面。将来 |
+| 8 | agent-server運用（P9） | 大 | 運用契約を文書化済み。実運用は未検証 |
 
 各段でADRを1本追加し、ADR-0003（SDK機能採否）とADR-0010（plugin-first境界）、
 `docs/openhands-integration.md`の「未実装・将来」節を実態に合わせて更新する。

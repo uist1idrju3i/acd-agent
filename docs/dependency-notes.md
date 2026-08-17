@@ -21,7 +21,7 @@ SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展�
 
 | 依存 | 役割・ACD内の使用箇所 | 現行採用版 | 固定方法 | 一次情報 | 更新時に確認する観点 | 更新する関連文書 |
 |---|---|---:|---|---|---|---|
-| OpenHands Software Agent SDK | subagent、視覚投影、Skill、plugin、workspace shell、`EventLog`等を使用 | 1.42.1 | `vendor/software-agent-sdk`のsubmodule SHA、`uv.lock` | [v1.42.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.0)、[v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1)、[commit比較](https://github.com/OpenHands/software-agent-sdk/compare/v1.41.0...v1.42.1) | ACDのimport API、LLM設定、plugin／agent-serverの挙動 | [`openhands-integration.md`](openhands-integration.md)、必要時は [`ADR-0003`](adr/ADR-0003-sdk-feature-adoption.md) |
+| OpenHands Software Agent SDK | subagent、視覚投影、Skill、plugin、workspace shell、`EventLog`、agent-server等を使用 | 1.42.1 | `vendor/software-agent-sdk`のsubmodule SHA、`uv.lock` | [v1.42.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.0)、[v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1)、[commit比較](https://github.com/OpenHands/software-agent-sdk/compare/v1.41.0...v1.42.1) | ACDのimport API、LLM設定、plugin／agent-serverの挙動 | [`openhands-integration.md`](openhands-integration.md)、[`agent-server-runbook.md`](agent-server-runbook.md)、必要時は [`ADR-0003`](adr/ADR-0003-sdk-feature-adoption.md) |
 | OpenHands SDK hooks | `HookConfig`、`HookMatcher`、command hookでagent経路のfail-closed境界を実装 | 1.42.1 | `plugins/acd/hooks/hooks.json`、SDK submodule SHA | [hooks API](https://github.com/OpenHands/software-agent-sdk/tree/v1.42.1/openhands-sdk/openhands/sdk/hooks) | HookEvent、exit code 2、command環境変数、ブロック可能なevent | [`ADR-0013`](adr/ADR-0013-openhands-sdk-runtime-adoption.md)、[`architecture.md`](architecture.md) |
 | pydantic | ACDの契約モデル、`Field`、validation | 2.13.4 | `uv.lock`。範囲指定は各packageの`pyproject.toml` | [releases](https://github.com/pydantic/pydantic/releases)、[migration guide](https://docs.pydantic.dev/latest/migration/) | model validation、serialization、strict mode、既定値と非推奨 | [`architecture.md`](architecture.md)、[`installation.md`](installation.md) |
 | build123d | `acd_adapter_cad`の投影と機械ゲートでCAD形状生成・STEP／3MF出力 | 0.11.1 | `uv.lock`、`pyproject.toml`で完全固定 | [releases](https://github.com/gumyr/build123d/releases) | kernel互換性、形状演算、exportの決定性、測定値とhash | [`tool-capability-probes.md`](tool-capability-probes.md)、[`design-flow.md`](design-flow.md) |
@@ -134,6 +134,23 @@ tool-call E2E、実LLM、DockerはP8の回帰対象外である。
 `sdk.profiles`の`AgentProfile` / `AgentProfileStore`はsecret-freeなLLM profile参照を
 保持するが、ACDの役割別モデル設定へは採用しない。resolved LLMやAPI keyを宣言へ
 持ち込まず、profileのライフサイクル契約が必要になるためである。
+
+### OpenHands agent-server API
+
+v1.42.1の`openhands-agent-server/openhands/agent_server/`を読み、
+`api.py`のREST router登録、`conversation_router.py`、`event_router.py`、
+`sockets.py`、`openai/router.py`、`config.py`、`conversation_service.py`、
+`event_service.py`を確認した。ACDはREST/WebSocket、filesystem persistence、
+`/v1` OpenAI互換APIの運搬機構だけを採用候補とし、serverのevent、state、metrics、
+agent応答をpass evidenceには使わない。
+
+既定保存先は`workspace/conversations`、`workspace/project`、
+`workspace/bash_events`である。session keyは任意設定で、`OH_SECRET_KEY`はsecretの
+再起動後復元に必要である。`docker/Dockerfile`と`docker/build.py`のtarget・既定image名
+も確認したが、registry imageの存在、digest、ACD server E2Eは未確認である。
+`sdk.marketplace`やagent-serverの独自改修は採用しない。運用手順と未実測範囲は
+[`agent-server-runbook.md`](agent-server-runbook.md)と
+[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)を正とする。
 
 ### OpenHands SDK hooks
 

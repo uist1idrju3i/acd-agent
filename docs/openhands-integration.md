@@ -42,6 +42,18 @@ Conversationのrunを通したゲート未達時の二値critic、follow-up、�
 外部fetchを発生させない。外部plugin fetch、実LLM、Docker、外部terminal実装、
 複数stepのtool-call E2Eは未検証であり、合否根拠には使わない。
 
+## P9: agent-server運用境界
+
+SDK v1.42.1の`openhands-agent-server`を、conversation、event、workspace、
+永続化を運ぶruntime層として文書化した。REST、WebSocket、`/v1` OpenAI互換API、
+pause/interrupt/resume/forkとfilesystem保存先の事実は
+[`agent-server-runbook.md`](agent-server-runbook.md)に整理している。
+
+agent-serverのevent、conversation state、metrics、agent出力、OpenAI互換応答は
+経過であり、合否Evidenceではない。合否はCIまたは`run_in_workspace`側の決定論的
+pipelineとgateが決める。ACDではagent-serverを実運用済みとは扱わず、起動、
+REST/WebSocket E2E、resume/fork、Docker image buildは未検証である。
+
 ## plugin構成
 
 ```text
@@ -194,7 +206,7 @@ Evidenceを生成しないため、該当成果物の送信はdenyされる。
 
 - SecretRegistry連携とprovider secretの注入
 - agentごとのDocker実行と配布済みACD image
-- agent-serverの運用
+- agent-serverの実運用とstaging E2E
 - Conversationを使ったACD実行経路、fork、長時間resume
 - SDKのcritic、goal、workflow、memoryを使う自動修復ループ
 - browser経由のsourcingと自働発注

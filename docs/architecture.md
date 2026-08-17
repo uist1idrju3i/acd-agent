@@ -165,9 +165,18 @@ conversation state、metrics、condenser outputは経過でありpass evidence�
 fork/resume後も決定論的ゲートを再実行して合否を決める。SDK gitは設計入力のstale判定
 への入力に限り、Evidenceの正は`Evidence.supports_pass(graph.revision)`である。
 
+## agent-server運用境界
+
+OpenHands SDK v1.42.1のagent-serverは、REST、WebSocket、event、
+conversation persistenceを運ぶ層として文書化する。serverのevent、state、metrics、
+agent出力、OpenAI互換応答は経過であり、pass evidenceではない。合否はCIまたは
+`run_in_workspace`の決定論的pipelineとgateが決める。詳細な起動前確認、保存先、
+resume/fork、直接APIのhook境界、未実測範囲は[`agent-server-runbook.md`](agent-server-runbook.md)
+と[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)を参照する。
+
 ## 実装していない境界
 
-SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、実機測定、価格・在庫
+SecretRegistry連携、agentごとのコンテナ運用、実運用としてのagent-server、実機測定、価格・在庫
 取得、自働発注は未実装であり、将来構想である。
 
 ## hook境界
