@@ -15,9 +15,8 @@ ACDはOpenHandsのソースを参照する一方、外部プロセスとして�
 - `vendor/`のgit submoduleは、ACDが直接importまたは資材として参照する、
   permissiveライセンスで、サイズが実用的なソースに限定する。
 - submoduleはタグ由来のcommit SHAで固定する。
-- 今回、OpenHands Agent Canvasの本体ソースを`vendor/openhands`として追加し、
-  MITライセンスのv1.13.0（`4f465f3ccada5271a3bbe4a0148941b0c40d243b`）に固定する。
-  既存の`vendor/software-agent-sdk`（v1.41.0）もこの方針に含める。
+- `vendor/software-agent-sdk`（v1.42.1）をsubmoduleとして固定する。
+- OpenHands Agent CanvasはACDの実行基盤でも参照資材でもないため、submoduleにしない。
 
 ## 根拠
 
@@ -26,7 +25,7 @@ ACDはOpenHandsのソースを参照する一方、外部プロセスとして�
 ### 分類A: submodule固定が適切
 
 ACDがソースを直接参照・import・資材配布するpermissiveなものはsubmoduleに固定する。
-既存のsoftware-agent-sdkと、今回追加するopenhands/Agent Canvasが該当する。
+ACDが直接参照するsoftware-agent-sdkだけが該当する。
 
 ### 分類B: submoduleにせず、版pin＋probeで固定する
 
@@ -45,10 +44,14 @@ GPL/AGPLコードをACDへimport結合し得るもの（kiutils、PySpice、boar
 ## 影響
 
 - submoduleのポインタとcommit SHAにより、参照するソースの再現性を確保する。
-- `vendor/openhands`はMITライセンスであり、ライセンス境界を確認したうえで参照する。
+- OpenHandsの公開Skillsは外部URLを参照し、submoduleにはしない。
 - submoduleはポインタであり再配布ではない。ただし将来binaryを同梱・配布する場合は、
-  ライセンス義務が別途発生する。詳細は[`prior-art.md`](../prior-art.md)の
+  ライセンス義務が別途発生する。詳細は[`research/prior-art.md`](../research/prior-art.md)の
   「ライセンス境界まとめ」を参照する。
-- `vendor/`の取得はCIのcloneコストに影響するため、サイズが大きいsubmoduleには
-  shallow clone設定を付ける。`vendor/openhands`は作業ツリー18M、Git object database
-  400Mの実測であり、`.gitmodules`に`shallow = true`を設定した。
+- `vendor/`の取得はCIのcloneコストに影響するため、submoduleは直接参照するSDKに
+  限定する。公開Skills repositoryはcloneせず、必要時に外部参照する。
+
+## H3更新
+
+旧版ではAgent Canvasをsubmodule化していたが、ACDの実行・ビルド・テストに使わず、
+参照価値もないため削除した。OpenHands/extensionsも同じ理由でsubmoduleに追加しない。

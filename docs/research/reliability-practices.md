@@ -5,7 +5,7 @@
 
 本書は、将来の高信頼化のための調査記録であり、現在の規範ではありません。
 JAXA公開技術文書から抽出した信頼性・安全性プラクティスを記録します。工程のゲートと
-分析手法は [`design-flow.md`](design-flow.md)、[`qc-tools.md`](qc-tools.md)を参照します。
+分析手法は [`../design-flow.md`](../design-flow.md)、[`qc-tools.md`](qc-tools.md)を参照します。
 
 本書の調査内容は、現在の単一構成へ直接の追加要求を行わない。量産品質へ進む場合の
 検討材料として保持する。
@@ -674,5 +674,5 @@ ACDへの反映：各ゲート・各チェックに「このチェックを外�
 
 ## 関連文書
 
-- [`../plugins/acd/skills/acd-reliability-review/SKILL.md`](../plugins/acd/skills/acd-reliability-review/SKILL.md)：本書のスクリーニングをSkillとして実行する資材
+- [`../../plugins/acd/skills/acd-reliability-review/SKILL.md`](../../plugins/acd/skills/acd-reliability-review/SKILL.md)：本書のスクリーニングをSkillとして実行する資材
 - [`qc-tools.md`](qc-tools.md)：Q7／N7による品質分析

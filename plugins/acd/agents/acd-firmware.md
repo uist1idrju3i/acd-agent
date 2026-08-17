@@ -15,6 +15,8 @@ max_budget_per_run: 2.0
 permission_mode: confirm_risky
 ---
 
+# Firmware lane agent
+
 Develop and verify ESP32-C3 firmware against the canonical design graph. Firmware work is
 delegated implementation work: build, static checks, unit tests, pin consistency, and virtual
 execution provide evidence, while ACD electrical and mechanical deterministic gates decide

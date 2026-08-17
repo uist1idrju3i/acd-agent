@@ -7,7 +7,7 @@
 
 ACDは設計グラフ契約、コアロジック、イベント、外部ツールadapter、実行ランタイムを
 一貫して開発する必要がある。OpenHands SDKはsubmodule（`vendor/software-agent-sdk`）、
-Agent Canvasソースはsubmodule（`vendor/openhands`）として取り込み済みであり、
+OpenHands SDKは`vendor/software-agent-sdk`として取り込み済みであり、
 いずれもソース自体は変更しない。
 
 ## 決定

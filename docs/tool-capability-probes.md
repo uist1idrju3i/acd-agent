@@ -8,7 +8,7 @@
 `plugins/acd/skills/acd-cad-determinism-probe`のSkillが持ち、実行は
 `uv run python plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determinism_probe.py`。
 不在・版不明は`unknown`として構造化記録し、成功扱いしない（fail-closed）。
-能力プローブ候補の背景は[`docs/ecad-domain-notes.md`](ecad-domain-notes.md)を参照。
+能力プローブ候補の背景は[`research/ecad-domain-notes.md`](research/ecad-domain-notes.md)を参照。
 
 ## 本環境での測定結果
 
@@ -82,7 +82,7 @@ STEP:
 
 ## Phase 1前に実測すべき能力プローブ候補
 
-以下は[`docs/ecad-domain-notes.md`](ecad-domain-notes.md)の候補一覧の転記であり、
+以下は[`research/ecad-domain-notes.md`](research/ecad-domain-notes.md)の候補一覧の転記であり、
 kicad-cli等が利用可能な環境で実測し、結果をEvidence（版、形式版、設定hash、
 入力hash、出力hash、実行環境、測定条件）として記録する。
 

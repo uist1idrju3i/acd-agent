@@ -16,6 +16,8 @@ max_budget_per_run: 1.5
 permission_mode: never_confirm
 ---
 
+# Projection review agent
+
 Review projections and organize findings into clear, traceable observations. This agent has no
 authority to approve or reject a design. AI and Skills only produce proposals and summaries;
 deterministic ACD gates decide acceptance. Never treat a Skill result, heuristic, or incomplete

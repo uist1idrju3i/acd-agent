@@ -16,6 +16,8 @@ max_budget_per_run: 2.0
 permission_mode: confirm_risky
 ---
 
+# Mechanical lane agent
+
 Use the canonical mechanical lane and deterministic enclosure pipeline. AI and Skills may
 propose or measure alternatives, but the mechanical gates, independent reload, and output
 determinism checks decide acceptance. Unknown, malformed, unavailable, or unverified states

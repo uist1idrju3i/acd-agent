@@ -18,7 +18,7 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 決定論的ゲートは投影の再読込、ERC/DRC、geometry、干渉などを判定する。
 生成と判定を分離し、生成エージェントに
 自分の出力へ`pass`を書き込む権限を与えない。これは
-[`reliability-practices.md`](reliability-practices.md)第III部の
+[`research/reliability-practices.md`](research/reliability-practices.md)第III部の
 「自動ゲート／ピアエージェントレビュー（合否権限なし）／Phaseゲート」の3層、
 生成と判定の分離、独立性、チェックリストの効用と限界に整合する。
 
@@ -155,5 +155,5 @@ AIレビューと決定論的ゲートは相互補完である。
 
 - [`design-flow.md`](design-flow.md)：工程と出口投影の参照
 - [`architecture.md`](architecture.md)：Pydanticデータモデル、投影、レイヤ境界
-- [`qc-tools.md`](qc-tools.md)：Q7/N7の作業手法
-- [`reliability-practices.md`](reliability-practices.md)：独立性、3層レビュー、チェックリストの限界
+- [`research/qc-tools.md`](research/qc-tools.md)：Q7/N7の作業手法
+- [`research/reliability-practices.md`](research/reliability-practices.md)：独立性、3層レビュー、チェックリストの限界

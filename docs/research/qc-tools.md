@@ -5,8 +5,8 @@
 
 本書は、Skill・pluginで配布するAIの作業手法としてQ7/N7分析の定義、入力、利用範囲を
 記録します。Q7の数量系結果や図表は合否根拠にせず、合否は決定論的ゲートだけで判定します。
-設計ゲートと記録の扱いは [`design-flow.md`](design-flow.md)および
-[`projection-review.md`](projection-review.md)を参照します。
+設計ゲートと記録の扱いは [`../design-flow.md`](../design-flow.md)および
+[`../projection-review.md`](../projection-review.md)を参照します。
 
 数量データを要するQ7は、サンプルや測定結果が不足する場合に傾向を断定せず、
 `unknown`または参考として扱います。一方、N7の言語・計画系はAIの作業手法として使います。
@@ -47,7 +47,7 @@ Q7/N7は図表の有無にかかわらず、投影レビューPDCAの作業手�
   自然文の所見を次の修正へ渡します。
 
 工程ごとの投影セットと手法の割り当ては、二重管理せず
-[`projection-review.md`](projection-review.md)の表を参照します。数量系Q7はデータ不足時に
+[`../projection-review.md`](../projection-review.md)の表を参照します。数量系Q7はデータ不足時に
 傾向を断定せず`unknown`または「参考」として扱い、ゲート根拠にはしません。N7の言語・計画系は
 データ蓄積前でも作業手法として利用できます。
 
@@ -247,6 +247,6 @@ Q7/N7は基板だけでなく、筐体の形状、材料、加工条件、組立
 
 ## 関連文書
 
-- [`../plugins/acd/skills/acd-qc-seven-tools/SKILL.md`](../plugins/acd/skills/acd-qc-seven-tools/SKILL.md)：本書の手法をSkillとして実行する資材
+- [`../../plugins/acd/skills/acd-qc-seven-tools/SKILL.md`](../../plugins/acd/skills/acd-qc-seven-tools/SKILL.md)：本書の手法をSkillとして実行する資材
 - [`../README.md`](../README.md)：設計原則、知識、検証ゲート
 - [`reliability-practices.md`](reliability-practices.md)：信頼性・安全性設計プラクティス

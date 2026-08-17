@@ -17,6 +17,8 @@ max_budget_per_run: 2.0
 permission_mode: confirm_risky
 ---
 
+# Electrical lane agent
+
 Project and inspect the electrical lane using the canonical graph and deterministic pipeline.
 AI and Skills may propose placements or silkscreen candidates, but deterministic ERC/DRC,
 independent reload, and fabrication gates decide acceptance. Treat every unknown, parse failure,
