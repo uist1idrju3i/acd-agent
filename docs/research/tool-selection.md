@@ -5,9 +5,9 @@
 
 本書は、ACD実装で呼び出す外部ツールの採否と、その設計根拠・代替案・未決事項を正とする。
 各ツールの機能・ライセンス・版の調査事実は [`prior-art.md`](prior-art.md)、ツール契約と
-adapter境界は [`architecture.md`](architecture.md)、工程ごとのゲートは
-[`design-flow.md`](design-flow.md)、ECADの詳細契約は
-[`ecad-domain-notes.md`](ecad-domain-notes.md)、フェーズ境界は [`roadmap.md`](roadmap.md)を参照する。
+adapter境界は [`../architecture.md`](../architecture.md)、工程ごとのゲートは
+[`../design-flow.md`](../design-flow.md)、ECADの詳細契約は
+[`ecad-domain-notes.md`](ecad-domain-notes.md)、フェーズ境界は [`../roadmap.md`](../roadmap.md)を参照する。
 
 本書は選定「判断」を記録するものであり、ライセンスの法的結論ではない。GPL/AGPL/LGPLの
 利用形態、binary同梱、改変配布、ネットワーク提供の評価は法務判断を要する。
@@ -66,7 +66,7 @@ commandの資材配布とする。permissiveなライブラリでACDの意味論
 MCP server経由での呼び出しも外部プロセス方式の一形態として扱う。SDKのMCP clientから
 動的schemaを受け取っても、adapterによる設計意味論の検証、ツール版の固定、Evidenceの
 生成はACD側で行う。MCP serverを利用してもライセンス義務は消えない。adapterの分割粒度は
-[`architecture.md`](architecture.md)を正とする。
+[`../architecture.md`](../architecture.md)を正とする。
 
 ## 電気レーンの選定
 
@@ -100,7 +100,7 @@ Phase 9まで既定経路にしない。未知部品のfootprint自動生成と�
 | [atopile](https://github.com/atopile/atopile)、[diodeinc/pcb](https://github.com/diodeinc/pcb)、[tscircuit](https://github.com/tscircuit/tscircuit) | MIT | 不採用（設計参照） | いずれも自身のDSL／JSONを正とする設計であり、ACDの正規グラフと競合する。制約表現とKiCad投影の設計参照としては有用 |
 
 ACDは回路図レスであり、人間が書くDSLを入力の既定にしない。この判断は、DSLを正とする
-先行実装群との最大の差分であり、[`architecture.md`](architecture.md)の「投影」原則に従う。
+先行実装群との最大の差分であり、[`../architecture.md`](../architecture.md)の「投影」原則に従う。
 
 ### ECAD投影と決定論的検証（`kicad-cli`以外の検討）
 
@@ -145,7 +145,7 @@ ACDの修正は入力ファイルへ反映し、KiCadファイルから投影を
 一次情報で、permissiveかつ現行のPCB placement最適化OSSを確認できなかった。ASIC向けの
 OpenROAD、Coloquinte、CoriolisはPCB配置の代替と確認していない。
 
-したがってPhase 1の配置は、[`roadmap.md`](roadmap.md)どおりACD自前の決定論的配置とする。
+したがってPhase 1の配置は、[`../roadmap.md`](../roadmap.md)どおりACD自前の決定論的配置とする。
 候補生成をLLMに任せる場合も、判定は幾何・製造制約チェックで行う。
 
 ### 配線（routing）
@@ -248,7 +248,7 @@ ACD配布物へ同梱せず、ユーザー環境前提の外部プロセスと�
 
 ## FWレーンの選定
 
-FWの実装とビルドはOpenHands本来のソフトウェア開発能力を使う（[`openhands-integration.md`](openhands-integration.md)）。
+FWの実装とビルドはOpenHands本来のソフトウェア開発能力を使う（[`../openhands-integration.md`](../openhands-integration.md)）。
 ACDが選ぶのは、ピン割当整合とログ取得のための外部ツールである。
 
 | 用途 | 候補 | ライセンス | 判定 |
@@ -262,10 +262,10 @@ ACDが選ぶのは、ピン割当整合とログ取得のための外部ツー�
 Renodeは一次候補だったが、Phase 2の能力プローブでv1.16.1にESP32-C3のCPU／
 プラットフォーム定義が存在しないことを実測し、二次保持だったQEMU（Espressif fork、
 ESP-IDF tools同梱の`qemu-system-riscv32`）を一次採用へ入れ替えた（実測記録は
-[`tool-capability-probes.md`](tool-capability-probes.md)）。
+[`../tool-capability-probes.md`](../tool-capability-probes.md)）。
 wokwi-cliはMITだがtokenと外部サービスが必要であり、既定の検証経路には置かない。
 probe-rsとpyOCDは物理probe前提であり、仮想実機の代替ではない。仮想実機のログを
-実測Evidenceとして扱わない原則は[`AGENTS.md`](../AGENTS.md)のとおりとする。
+実測Evidenceとして扱わない原則は[`../../AGENTS.md`](../../AGENTS.md)のとおりとする。
 
 ## 調達・製造APIの選定
 

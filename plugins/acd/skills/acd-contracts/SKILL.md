@@ -1,6 +1,13 @@
 ---
 name: acd-contracts
 description: How to read and validate ACD Pydantic contracts in this workspace. Use when creating or checking ACD documents.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - contract
+  - Pydantic
+  - design graph
+  - schema validation
 ---
 
 # ACD contracts

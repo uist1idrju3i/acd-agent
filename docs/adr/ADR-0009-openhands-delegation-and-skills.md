@@ -2,7 +2,7 @@
 
 > ステータス: Accepted
 > 日付: 2026-08-16
-> 関連: [`../../README.md`](../../README.md)、[`../../AGENTS.md`](../../AGENTS.md)、[`../openhands-integration.md`](../openhands-integration.md)、[`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)、[`ADR-0008-minimal-vibebb-scope.md`](ADR-0008-minimal-vibebb-scope.md)
+> 関連: [`../../README.md`](../../README.md)、[`../../AGENTS.md`](../../AGENTS.md)、[`../openhands-integration.md`](../openhands-integration.md)、[`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)、[`ADR-0008-minimal-vibebb-scope.md`](ADR-0008-minimal-vibebb-scope.md)、[`ADR-0010-plugin-first-openhands-integration.md`](ADR-0010-plugin-first-openhands-integration.md)
 
 ## コンテキスト
 
@@ -92,8 +92,12 @@ OpenHands側の機能で不足するとVibeBBの実運用で確認できた場�
   測定は`acd-cad-determinism-probe` Skillへ移し、本体のプローブはツールの有無と版に絞った。
 - 品質管理・信頼性の作業手法は`acd-qc-seven-tools`（Q7/N7の集計）と
   `acd-reliability-review`（ディレーティングの三値スクリーニング）としてSkill化した。
-  手法の定義は[`../qc-tools.md`](../qc-tools.md)と
-  [`../reliability-practices.md`](../reliability-practices.md)を正とする。
+  手法の定義は[`../research/qc-tools.md`](../research/qc-tools.md)と
+  [`../research/reliability-practices.md`](../research/reliability-practices.md)を正とする。
+
+H3以降のplugin-first境界と探索結果の設計入力化は
+[`ADR-0010-plugin-first-openhands-integration.md`](ADR-0010-plugin-first-openhands-integration.md)と
+[`ADR-0011-search-results-as-design-input.md`](ADR-0011-search-results-as-design-input.md)で更新する。
 
 ## 未確認・リスク
 

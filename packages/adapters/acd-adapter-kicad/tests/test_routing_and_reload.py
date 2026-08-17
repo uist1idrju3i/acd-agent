@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+# pyright: reportPrivateImportUsage=false, reportPrivateUsage=false, reportUnknownMemberType=false, reportUnknownLambdaType=false
 from pathlib import Path
 from typing import cast
 
@@ -10,6 +11,8 @@ import pytest
 from acd_adapter_kicad.board import stitch_via_pitch
 from acd_adapter_kicad.fab import (
     UncoveredStitchViasError,
+)
+from acd_adapter_kicad.fab.gerber import (
     _gerber_to_board_point,  # pyright: ignore[reportPrivateUsage]
 )
 from acd_adapter_kicad.reload import ReloadError, normalized_hash, verify_board

@@ -12,18 +12,18 @@ from pathlib import Path
 import pytest
 
 from acd_core.electrical import ElectricalLane, extract_electrical_lane
-from acd_core.firmware import (
-    FirmwareExtractionError,
-    FirmwareLane,
-    FirmwarePinView,
-    extract_firmware_lane,
-)
 from acd_schema.design_graph import DesignGraph
 from fw_checks import (
     ESP32_C3_MINI_1_PAD_TO_GPIO,
     PinConsistencyError,
     assert_header_matches_lane,
     assert_pin_assignments_consistent,
+)
+from fw_graph import (
+    FirmwareExtractionError,
+    FirmwareLane,
+    FirmwarePinView,
+    extract_firmware_lane,
 )
 from fw_project import render_pins_header, write_firmware_project
 

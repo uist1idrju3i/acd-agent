@@ -1,6 +1,14 @@
 ---
 name: acd-silkscreen-placement
 description: Resolve silkscreen label positions for an ACD board by deterministic perimeter search, recording accepted and rejected candidates as evidence. Use when functional labels must be positioned before the board projection and DRC.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - silkscreen
+  - label placement
+  - board edge
+  - footprint clearance
+  - DRC
 ---
 
 # シルクスクリーン文字の配置探索
@@ -25,7 +33,7 @@ import sys
 
 sys.path.insert(0, "plugins/acd/skills/acd-silkscreen-placement/scripts")
 
-from silkscreen_search import resolve_silkscreen_placements
+uv run python plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py --input silkscreen-input.json --output silkscreen-output.json
 
 resolved = resolve_silkscreen_placements(lane, board_projection.model)
 ```

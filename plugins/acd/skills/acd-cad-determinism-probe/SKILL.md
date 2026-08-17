@@ -1,6 +1,14 @@
 ---
 name: acd-cad-determinism-probe
 description: Measure whether STEP and 3MF exports from the CAD kernel are byte-identical across runs and which normalization rule makes them comparable. Use when investigating CAD output hashes or updating build123d / cadquery-ocp.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - determinism
+  - CAD output
+  - STEP
+  - 3MF
+  - output hash
 ---
 
 # CAD出力の決定性測定

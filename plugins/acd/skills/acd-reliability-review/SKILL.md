@@ -1,11 +1,19 @@
 ---
 name: acd-reliability-review
 description: Screen a design against reliability practices — derating and part stress analysis, worst-case analysis, single point of failure review, and evidence validity. Use when reviewing margins before ordering or when a rule table's validity domain is in question.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - reliability
+  - derating
+  - worst case
+  - stress analysis
+  - single point of failure
 ---
 
 # 信頼性設計のスクリーニング
 
-手法の定義、出典、適用区分は[`../../../../docs/reliability-practices.md`](../../../../docs/reliability-practices.md)を正とする。
+手法の定義、出典、適用区分は[`../../../../docs/research/reliability-practices.md`](../../../../docs/research/reliability-practices.md)を正とする。
 このSkillはスクリーニングと所見の整理だけを行う。設計の合否はACDの決定論的ゲート（ERC/DRC、
 機械ゲート、独立再読込、発注ガード）だけが決める。基準表の推奨値は合否ではなくスクリーニングで
 あり、有効域を外れた入力は不合格ではなく「要詳細解析」として扱う。

@@ -6,7 +6,7 @@
 本書は、基板・筐体・FWの各レーンにおける工程、ゲート、還流経路を正とする。
 設計グラフの構造は [`architecture.md`](architecture.md)、作業手法の配布は
 Skill・plugin、ECADの詳細契約は
-[`ecad-domain-notes.md`](ecad-domain-notes.md)、実装フェーズは [`roadmap.md`](roadmap.md)を参照する。
+[`research/ecad-domain-notes.md`](research/ecad-domain-notes.md)、実装フェーズは [`roadmap.md`](roadmap.md)を参照する。
 
 ## 全体像
 
@@ -156,7 +156,7 @@ Skillは手順、レビュー観点、作業資材を、gateは決定論的な�
 - **筐体側:** 基板edge、mounting hole、connector、発熱部品の熱・開口制約を更新する。
 - **候補比較:** 配線長マッチング、混雑度、熱、コストによるスコアカードで複数のレイアウト候補を比較する。
 - **探索順序:** 配置・回転の探索は、探索仕様の宣言→決定論的候補生成・整合化→代理指標での順位付け→少数候補のみ実測の順で行う。
-  詳細は[`ai-physical-design.md`](ai-physical-design.md)を参照する。
+  詳細は[`research/ai-physical-design.md`](research/ai-physical-design.md)を参照する。
 - **出口投影とAIレビュー:** 配置図、層別レイアウト、stackup図、混雑・配線長グラフをレビューし、
   詳細は[`projection-review.md`](projection-review.md)で定める。
 

@@ -10,16 +10,29 @@ The chosen positions are candidates. They become design data once written to the
 design input files, and the silkscreen result is judged by the ACD projection and
 the DRC/reload gates, not by this script.
 """
+# pyright: reportUnknownVariableType=false,reportUnknownArgumentType=false,reportUnknownMemberType=false,reportUnknownParameterType=false,reportInvalidTypeForm=false,reportUnusedVariable=false,reportUnusedImport=false,reportGeneralTypeIssues=false,reportArgumentType=false
 
 from __future__ import annotations
 
+import argparse
+import json
 import math
 from dataclasses import replace
-from typing import cast
+from pathlib import Path
+from typing import Any, cast
 
-from acd_core.board_model import BoardModel, ComponentPlacement, PadShape
+from acd_core.board_model import (
+    BoardModel,
+    BoardNet,
+    ComponentPlacement,
+    CopperZone,
+    FootprintShape,
+    KeepoutRect,
+    NetClass,
+    PadShape,
+)
 from acd_core.electrical import GraphExtractionError
-from acd_core.silkscreen import SilkscreenLane, SilkTextView
+from acd_core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
 
 
 def _text_size(text: SilkTextView) -> tuple[float, float]:
@@ -29,9 +42,7 @@ def _text_size(text: SilkTextView) -> tuple[float, float]:
     return width, text.height_mm
 
 
-def _footprint_bbox(
-    board: BoardModel, refdes: str
-) -> tuple[float, float, float, float]:
+def _footprint_bbox(board: BoardModel, refdes: str) -> tuple[float, float, float, float]:
     placement = board.placement_by_refdes(refdes)
     footprint = placement.footprint
     points: list[tuple[float, float]] = []
@@ -48,16 +59,12 @@ def _footprint_bbox(
         x1, y1, x2, y2 = footprint.courtyard_bbox_mm
         points.extend(((x1, y1), (x2, y2)))
     if not points:
-        raise GraphExtractionError(
-            f"silk placement reference {refdes!r} has no footprint geometry"
-        )
+        raise GraphExtractionError(f"silk placement reference {refdes!r} has no footprint geometry")
     # GD1 placements are orthogonal; reject unsupported rotations rather than
     # silently using an incorrect clearance frame.
     rotation = placement.rotation_deg % 360.0
     if rotation not in {0.0, 90.0, 180.0, 270.0}:
-        raise GraphExtractionError(
-            f"silk placement reference {refdes!r} has unsupported rotation"
-        )
+        raise GraphExtractionError(f"silk placement reference {refdes!r} has unsupported rotation")
     transformed: list[tuple[float, float]] = []
     for x, y in points:
         if rotation == 0.0:
@@ -154,9 +161,7 @@ def _rect_overlap_area(
     return x_overlap * y_overlap
 
 
-def resolve_silkscreen_placements(
-    lane: SilkscreenLane, board: BoardModel
-) -> SilkscreenLane:
+def resolve_silkscreen_placements(lane: SilkscreenLane, board: BoardModel) -> SilkscreenLane:
     """Resolve declared functional labels by deterministic perimeter search."""
     resolved: list[SilkTextView] = []
     evidence: list[dict[str, object]] = []
@@ -171,10 +176,7 @@ def resolve_silkscreen_placements(
         "top_left": (-1.0, -1.0),
     }
     for text in lane.texts:
-        if not (
-            text.role.startswith("functional_label_")
-            or text.role == "connector_identifier"
-        ):
+        if not (text.role.startswith("functional_label_") or text.role == "connector_identifier"):
             resolved.append(text)
             evidence.append(
                 {
@@ -184,7 +186,6 @@ def resolve_silkscreen_placements(
                     "search_order": text.placement_search_order.split(","),
                     "offset_step_mm": text.placement_offset_step_mm,
                     "search_limit_mm": text.placement_search_limit_mm,
-                    "board_edge_margin_mm": text.board_edge_margin_mm,
                     "accepted_position_mm": [text.x_mm, text.y_mm],
                     "rejected_candidates": [],
                     "resolution": "graph_declared_backside_position",
@@ -200,9 +201,7 @@ def resolve_silkscreen_placements(
         )
         edge_margin = text.stroke_width_mm * 3.5 + text.placement_safety_margin_mm
         order = tuple(
-            item.strip()
-            for item in text.placement_search_order.split(",")
-            if item.strip()
+            item.strip() for item in text.placement_search_order.split(",") if item.strip()
         )
         if not order or any(item not in order_aliases for item in order):
             raise GraphExtractionError(
@@ -215,18 +214,13 @@ def resolve_silkscreen_placements(
                 f"silk text {text.node_id!r} has invalid placement search range"
             )
         rotations = tuple(text.placement_rotation_degrees)
-        if not rotations or any(
-            rotation % 90.0 != 0.0 for rotation in rotations
-        ):
+        if not rotations or any(rotation % 90.0 != 0.0 for rotation in rotations):
             raise GraphExtractionError(
                 f"silk text {text.node_id!r} has invalid placement rotations"
             )
         rejected: list[dict[str, object]] = []
         valid_candidates: list[dict[str, object]] = []
-        offsets = [
-            round(step * index, 9)
-            for index in range(1, int(limit / step) + 1)
-        ]
+        offsets = [round(step * index, 9) for index in range(1, int(limit / step) + 1)]
         tangent_offsets = [0.0]
         for offset in offsets:
             tangent_offsets.extend((offset, -offset))
@@ -267,9 +261,7 @@ def resolve_silkscreen_placements(
                                 else target[3] + text_height / 2 + offset
                             )
                         else:
-                            raise GraphExtractionError(
-                                "invalid zero placement direction"
-                            )
+                            raise GraphExtractionError("invalid zero placement direction")
                         bbox = (
                             x - text_width / 2,
                             y - text_height / 2,
@@ -289,9 +281,7 @@ def resolve_silkscreen_placements(
                             courtyard_overlap_area = 0.0
                             for placement in board.placements:
                                 body_box = _placement_bbox(placement)
-                                if body_box is not None and _rects_overlap(
-                                    bbox, body_box
-                                ):
+                                if body_box is not None and _rects_overlap(bbox, body_box):
                                     reason = f"body_overlap:{placement.refdes}"
                                     break
                                 courtyard_box = placement.footprint.courtyard_bbox_mm
@@ -305,10 +295,7 @@ def resolve_silkscreen_placements(
                                 for pad in placement.footprint.pads:
                                     pad_box = _pad_bbox(board, placement, pad)
                                     if _rects_overlap(bbox, pad_box):
-                                        reason = (
-                                            f"pad_overlap:{placement.refdes}:"
-                                            f"{pad.number}"
-                                        )
+                                        reason = f"pad_overlap:{placement.refdes}:{pad.number}"
                                         break
                                 if reason:
                                     break
@@ -370,14 +357,12 @@ def resolve_silkscreen_placements(
                 "offset_step_mm": step,
                 "search_limit_mm": limit,
                 "board_edge_margin_mm": text.board_edge_margin_mm,
-                    "rotation_degrees": list(rotations),
-                    "placement_safety_margin_mm": text.placement_safety_margin_mm,
+                "rotation_degrees": list(rotations),
+                "placement_safety_margin_mm": text.placement_safety_margin_mm,
                 "accepted_position_mm": [chosen["x_mm"], chosen["y_mm"]],
                 "accepted_rotation_deg": chosen["rotation_deg"],
                 "reference_center_distance_mm": chosen["distance_mm"],
-                "courtyard_overlap_area_mm2": chosen[
-                    "courtyard_overlap_area_mm2"
-                ],
+                "courtyard_overlap_area_mm2": chosen["courtyard_overlap_area_mm2"],
                 "candidate_selection": (
                     "minimum reference-center distance; ties use declared "
                     "search order, rotation order, then courtyard overlap"
@@ -390,3 +375,241 @@ def resolve_silkscreen_placements(
         texts=tuple(resolved),
         placement_evidence=tuple(evidence),
     )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    try:
+        payload = json.loads(args.input.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise GraphExtractionError("silkscreen input must be a JSON object")
+        board = _board_from_json(payload.get("board"))
+        lane = _lane_from_json(payload.get("lane"))
+        resolved = resolve_silkscreen_placements(lane, board)
+        result = {
+            "texts": [
+                {
+                    "node_id": text.node_id,
+                    "role": text.role,
+                    "text": text.text,
+                    "x_mm": text.x_mm,
+                    "y_mm": text.y_mm,
+                    "layer": text.layer,
+                    "height_mm": text.height_mm,
+                    "stroke_width_mm": text.stroke_width_mm,
+                    "rotation_deg": text.rotation_deg,
+                }
+                for text in resolved.texts
+            ],
+            "placement_evidence": list(resolved.placement_evidence),
+        }
+        encoded = json.dumps(result, indent=2, sort_keys=True) + "\n"
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(encoded, encoding="utf-8")
+        print(encoded, end="")
+        return 0
+    except (
+        OSError,
+        TypeError,
+        ValueError,
+        KeyError,
+        GraphExtractionError,
+        json.JSONDecodeError,
+    ) as exc:
+        parser.error(f"invalid silkscreen input: {exc}")
+    return 2
+
+
+def _mapping(value: object, name: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise GraphExtractionError(f"{name} must be an object")
+    return value
+
+
+def _number(value: object, name: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise GraphExtractionError(f"{name} must be numeric")
+    return float(value)
+
+
+def _board_from_json(value: object) -> BoardModel:
+    data = _mapping(value, "board")
+    placements: list[ComponentPlacement] = []
+    for index, item in enumerate(data.get("placements", [])):
+        placement = _mapping(item, f"board.placements[{index}]")
+        footprint = _mapping(placement.get("footprint"), "footprint")
+        pads: list[PadShape] = []
+        for pad_index, raw_pad in enumerate(footprint.get("pads", [])):
+            pad = _mapping(raw_pad, f"footprint.pads[{pad_index}]")
+            pads.append(
+                PadShape(
+                    **{
+                        "number": str(pad["number"]),
+                        "x_mm": _number(pad["x_mm"], "pad.x_mm"),
+                        "y_mm": _number(pad["y_mm"], "pad.y_mm"),
+                        "rotation_deg": _number(pad["rotation_deg"], "pad.rotation_deg"),
+                        "shape": str(pad["shape"]),
+                        "size_x_mm": _number(pad["size_x_mm"], "pad.size_x_mm"),
+                        "size_y_mm": _number(pad["size_y_mm"], "pad.size_y_mm"),
+                        "through_hole": _bool(pad["through_hole"], "pad.through_hole"),
+                        "drill_mm": (
+                            None
+                            if pad["drill_mm"] is None
+                            else _number(pad["drill_mm"], "pad.drill_mm")
+                        ),
+                        "on_front": _bool(pad["on_front"], "pad.on_front"),
+                        "on_back": _bool(pad["on_back"], "pad.on_back"),
+                    }
+                )
+            )
+        placements.append(
+            ComponentPlacement(
+                refdes=str(placement["refdes"]),
+                footprint=FootprintShape(
+                    library_ref=str(footprint["library_ref"]),
+                    pads=tuple(pads),
+                    courtyard_bbox_mm=_bbox(footprint.get("courtyard_bbox_mm")),
+                    body_bbox_mm=_bbox(footprint.get("body_bbox_mm")),
+                    keepout_bboxes_mm=tuple(
+                        _bbox(item) for item in footprint.get("keepout_bboxes_mm", [])
+                    ),
+                ),
+                x_mm=_number(placement["x_mm"], "placement.x_mm"),
+                y_mm=_number(placement["y_mm"], "placement.y_mm"),
+                rotation_deg=_number(placement["rotation_deg"], "placement.rotation_deg"),
+                side=str(placement.get("side", "front")),
+            )
+        )
+    nets = tuple(
+        BoardNet(
+            name=str(item["name"]),
+            pads=tuple((str(pair[0]), str(pair[1])) for pair in item["pads"]),
+        )
+        for item in (_mapping(item, "board.nets[]") for item in data.get("nets", []))
+    )
+    keepouts = tuple(
+        KeepoutRect(
+            name=str(item["name"]),
+            x1_mm=_number(item["x1_mm"], "keepout.x1_mm"),
+            y1_mm=_number(item["y1_mm"], "keepout.y1_mm"),
+            x2_mm=_number(item["x2_mm"], "keepout.x2_mm"),
+            y2_mm=_number(item["y2_mm"], "keepout.y2_mm"),
+        )
+        for item in (_mapping(item, "board.keepouts[]") for item in data.get("keepouts", []))
+    )
+    zones = tuple(
+        CopperZone(
+            net=str(item["net"]),
+            layers=tuple(str(layer) for layer in item["layers"]),
+            inset_mm=_number(item["inset_mm"], "zone.inset_mm"),
+            min_island_area_mm2=_number(item["min_island_area_mm2"], "zone.min_island_area_mm2"),
+            thermal_relief=_bool(item.get("thermal_relief", True), "zone.thermal_relief"),
+        )
+        for item in (
+            _mapping(item, "board.copper_zones[]") for item in data.get("copper_zones", [])
+        )
+    )
+    netclasses = tuple(
+        NetClass(
+            name=str(item["name"]),
+            width_mm=_number(item["width_mm"], "netclass.width_mm"),
+            nets=tuple(str(net) for net in item["nets"]),
+        )
+        for item in (_mapping(item, "board.netclasses[]") for item in data.get("netclasses", []))
+    )
+    return BoardModel(
+        width_mm=_number(data["width_mm"], "board.width_mm"),
+        height_mm=_number(data["height_mm"], "board.height_mm"),
+        layers=int(data["layers"]),
+        min_track_mm=_number(data["min_track_mm"], "board.min_track_mm"),
+        min_clearance_mm=_number(data["min_clearance_mm"], "board.min_clearance_mm"),
+        via_drill_mm=_number(data["via_drill_mm"], "board.via_drill_mm"),
+        via_diameter_mm=_number(data["via_diameter_mm"], "board.via_diameter_mm"),
+        edge_clearance_mm=_number(data["edge_clearance_mm"], "board.edge_clearance_mm"),
+        placements=tuple(placements),
+        nets=nets,
+        keepouts=keepouts,
+        copper_zones=zones,
+        stitch_via_pitch_mm=data.get("stitch_via_pitch_mm"),
+        stitch_via_net=data.get("stitch_via_net"),
+        stitch_via_refill_max_iterations=data.get("stitch_via_refill_max_iterations"),
+        netclasses=netclasses,
+    )
+
+
+def _bool(value: object, name: str) -> bool:
+    if not isinstance(value, bool):
+        raise GraphExtractionError(f"{name} must be boolean")
+    return value
+
+
+def _bbox(value: object) -> tuple[float, float, float, float] | None:
+    if value is None:
+        return None
+    if not isinstance(value, list | tuple) or len(value) != 4:
+        raise GraphExtractionError("bounding box must contain four numbers")
+    return tuple(_number(item, "bbox") for item in value)  # type: ignore[return-value]
+
+
+def _lane_from_json(value: object) -> SilkscreenLane:
+    data = _mapping(value, "lane")
+    texts = tuple(
+        SilkTextView(
+            node_id=str(item["node_id"]),
+            role=str(item["role"]),
+            text=str(item["text"]),
+            x_mm=_number(item["x_mm"], "text.x_mm"),
+            y_mm=_number(item["y_mm"], "text.y_mm"),
+            layer=str(item["layer"]),
+            height_mm=_number(item["height_mm"], "text.height_mm"),
+            stroke_width_mm=_number(item["stroke_width_mm"], "text.stroke_width_mm"),
+            rotation_deg=_number(item["rotation_deg"], "text.rotation_deg"),
+            placement_basis=str(item["placement_basis"]),
+            placement_search_order=str(item["placement_search_order"]),
+            placement_reference=str(item["placement_reference"]),
+            placement_offset_step_mm=_number(item["placement_offset_step_mm"], "text.step"),
+            placement_search_limit_mm=_number(item["placement_search_limit_mm"], "text.limit"),
+            board_edge_margin_mm=_number(item.get("board_edge_margin_mm", 0.0), "text.edge_margin"),
+            board_edge_margin_source=str(item.get("board_edge_margin_source", "unknown")),
+            placement_rotation_degrees=tuple(
+                _number(rotation, "text.rotation_options")
+                for rotation in item.get("placement_rotation_degrees", [0.0, 90.0])
+            ),
+            placement_safety_margin_mm=_number(
+                item.get("placement_safety_margin_mm", 0.0), "text.safety_margin"
+            ),
+        )
+        for item in (_mapping(item, "lane.texts[]") for item in data.get("texts", []))
+    )
+    graphics = tuple(
+        SilkGraphicView(
+            node_id=str(item["node_id"]),
+            role=str(item["role"]),
+            layer=str(item["layer"]),
+            stroke_width_mm=_number(item["stroke_width_mm"], "graphic.stroke_width_mm"),
+            polygon_points=tuple(
+                (float(point[0]), float(point[1])) for point in item["polygon_points"]
+            ),
+            placement_basis=str(item["placement_basis"]),
+            placement_search_order=str(item["placement_search_order"]),
+            board_edge_margin_mm=_number(
+                item.get("board_edge_margin_mm", 0.0), "graphic.edge_margin"
+            ),
+            board_edge_margin_source=str(item.get("board_edge_margin_source", "unknown")),
+        )
+        for item in (_mapping(item, "lane.graphics[]") for item in data.get("graphics", []))
+    )
+    if not texts and not graphics:
+        raise GraphExtractionError("lane must contain text or graphic declarations")
+    return SilkscreenLane(
+        board_node_id=str(data["board_node_id"]),
+        texts=texts,
+        graphics=graphics,
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

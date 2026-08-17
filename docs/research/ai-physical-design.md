@@ -5,8 +5,8 @@
 
 本書は、部品配置・回転角・配線という組合せ探索へLLMをどう使い、どこに使わないかの方針を正とする。
 先行事例の一次情報と確度は[`prior-art.md`](prior-art.md)の「§21 配置・配線へのAI／LLM適用」、
-レビューの契約は[`projection-review.md`](projection-review.md)、SDK機能の割り当ては
-[`openhands-integration.md`](openhands-integration.md)、フェーズ境界は[`roadmap.md`](roadmap.md)を正とする。
+レビューの契約は[`../projection-review.md`](../projection-review.md)、SDK機能の割り当ては
+[`../openhands-integration.md`](../openhands-integration.md)、フェーズ境界は[`../roadmap.md`](../roadmap.md)を正とする。
 
 ## 1. 問題設定
 
@@ -32,7 +32,7 @@ LLMは**探索空間と評価方針の宣言**を担い、幾何の整合化と�
 | L2 探索層 | 決定論的探索器・整合化器 | 具体的な座標・回転角の候補集合と代理指標スコア | 内側ループでは呼ばないことを既定とする |
 | L3 判定層 | 外部ツールと決定論的ゲート | router結果、DRC/ERC、Gerber独立再読込、実測Evidence | なし。合否はゲートのみ |
 
-この分離は、[`../AGENTS.md`](../AGENTS.md)の「AIは提案し、決定論的ゲートが判定する」を
+この分離は、[`../../AGENTS.md`](../../AGENTS.md)の「AIは提案し、決定論的ゲートが判定する」を
 配置・配線という連続量の探索へ具体化したものである。LLMが座標や回転角を直接提案することは
 禁止しない。ただし、次の理由から探索本体は決定論的な探索器に任せることを既定とする。
 
@@ -50,7 +50,7 @@ LLMは**探索空間と評価方針の宣言**を担い、幾何の整合化と�
 L2の探索器と代理指標の採点はACD本体ではなく`plugins/acd/skills/acd-placement-search`と
 `plugins/acd/skills/acd-silkscreen-placement`のSkillが持つ。Skillは任意利用であり、採否は
 タスクごとにOpenHands側が判断する。Skillの実行結果はACDの設計ゲートの合否ではない。
-方針の正は[`adr/ADR-0009-openhands-delegation-and-skills.md`](adr/ADR-0009-openhands-delegation-and-skills.md)である。
+方針の正は[`../adr/ADR-0009-openhands-delegation-and-skills.md`](../adr/ADR-0009-openhands-delegation-and-skills.md)である。
 
 一方、LLMが担うべき仕事は決定論器が持てない部分である。要件・データシート・設計根拠から
 モジュール分解と相対配置関係を作ること、critical netの優先順位を付けること、
@@ -105,7 +105,7 @@ wall-clock、候補数、token、money）は探索仕様で宣言し、実測し
 代理指標で選んだ上位候補（既定は1件、多くても数件）に対してのみ、外部router、
 `kicad-cli`のERC/DRC、Gerber/drillの独立再読込、必要な物理検証を実行する。
 合否は決定論的ゲートだけが決め、routerの収束状態、ツール版、入出力hash、
-測定条件、入力を管理するgit commitを[`../AGENTS.md`](../AGENTS.md)の記録要件どおりに残す。
+測定条件、入力を管理するgit commitを[`../../AGENTS.md`](../../AGENTS.md)の記録要件どおりに残す。
 
 実測で不合格になった場合、その結果は次の探索仕様へ戻す構造化された入力とする。
 「不合格だったので座標を少し動かす」といった投影側の場当たり修正は行わず、
@@ -113,7 +113,7 @@ wall-clock、候補数、token、money）は探索仕様で宣言し、実測し
 
 ## 6. レビューループ — 機械可読投影と視覚投影
 
-無人ループのレビュー段は、[`projection-review.md`](projection-review.md)の
+無人ループのレビュー段は、[`../projection-review.md`](../projection-review.md)の
 投影レビューPDCAをそのまま使う。配置探索では次のように割り当てる。
 
 ```mermaid
@@ -190,7 +190,7 @@ LLMは「この基板ではどの部品にどの刻みを使うべきか」と�
 
 ## 9. 記録するEvidence
 
-探索ループの各段で、次を記録する。既存の記録要件（[`../AGENTS.md`](../AGENTS.md)の
+探索ループの各段で、次を記録する。既存の記録要件（[`../../AGENTS.md`](../../AGENTS.md)の
 「決定論と記録」）に加えて、探索固有の項目を明示する。
 
 - 探索仕様のhashとrevision、生成したmodel／profile revision、prompt内容hash。

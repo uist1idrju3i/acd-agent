@@ -1,12 +1,20 @@
 ---
 name: acd-qc-seven-tools
 description: Apply QC seven tools (Q7) and new QC seven tools (N7) to ACD design findings — Pareto ranking, stratification, cause candidates, tree and matrix diagrams. Use when organizing ERC/DRC, DFM, review, or measurement findings before deciding what to fix first.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - Pareto
+  - QC seven tools
+  - stratification
+  - DFM findings
+  - root cause
 ---
 
 # Q7／N7による所見の整理
 
 Q7は件数・測定値などの数量データ、N7は要求・意見・計画などの言語データを扱う。手法の定義と
-ACDでの入力は[`../../../../docs/qc-tools.md`](../../../../docs/qc-tools.md)を正とする。
+ACDでの入力は[`../../../../docs/research/qc-tools.md`](../../../../docs/research/qc-tools.md)を正とする。
 このSkillは所見の整理と優先度付けだけを行う。合否はACDの決定論的ゲート（ERC/DRC、機械ゲート、
 独立再読込）だけが決める。図表や傾向を原因の確定にも合格根拠にも使わない。
 

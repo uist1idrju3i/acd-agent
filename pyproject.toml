@@ -19,6 +19,7 @@ acd-tools = { workspace = true }
 acd-adapter-kicad = { workspace = true }
 acd-adapter-freerouting = { workspace = true }
 acd-adapter-cad = { workspace = true }
+acd-pipeline = { workspace = true }
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
 
 [dependency-groups]
@@ -29,6 +30,7 @@ dev = [
     "acd-adapter-kicad",
     "acd-adapter-freerouting",
     "acd-adapter-cad",
+    "acd-pipeline",
     "openhands-sdk",
     "build123d==0.11.1",
     "cadquery-ocp==7.9.3.1.1",
@@ -58,6 +60,7 @@ executionEnvironments = [
     { root = "packages/adapters/acd-adapter-kicad/src" },
     { root = "packages/adapters/acd-adapter-freerouting/src" },
     { root = "packages/adapters/acd-adapter-cad/src" },
+    { root = "packages/acd-pipeline/src" },
     { root = "plugins/acd/skills/acd-firmware-esp32c3", extraPaths = [
         "plugins/acd/skills/acd-firmware-esp32c3/scripts",
     ] },
@@ -76,7 +79,7 @@ executionEnvironments = [
     { root = "plugins/acd/skills/acd-silkscreen-placement", extraPaths = [
         "plugins/acd/skills/acd-silkscreen-placement/scripts",
     ] },
-    { root = "scripts" },
+    { root = "scripts", extraPaths = ["packages/acd-pipeline/src"] },
     { root = "." },
 ]
 

@@ -1,6 +1,15 @@
 ---
 name: acd-placement-search
 description: Search deterministic component placements (position and rotation) for an ACD board and rank candidates with surrogate metrics. Use when a board needs placements before the KiCad projection and the ERC/DRC gates.
+version: 0.1.0
+license: BSD-3-Clause
+triggers:
+  - placement
+  - component layout
+  - footprint
+  - rotation
+  - ERC
+  - DRC
 ---
 
 # 基板の配置探索とスコアリング
@@ -25,7 +34,7 @@ import sys
 
 sys.path.insert(0, "plugins/acd/skills/acd-placement-search/scripts")
 
-from placement_search import compute_placements
+uv run python plugins/acd/skills/acd-placement-search/scripts/placement_search.py --input graph.json --fixture-dir fixtures/golden-design-1 --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json --output placements.json
 from placement_score import rank_candidates, score_placement
 ```
 

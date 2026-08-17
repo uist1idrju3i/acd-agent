@@ -1,7 +1,7 @@
 """Independent silkscreen geometry negative controls."""
 
 # These tests intentionally exercise adapter-private geometry primitives.
-# pyright: reportPrivateUsage=false
+# pyright: reportPrivateUsage=false, reportPrivateImportUsage=false, reportUnknownMemberType=false, reportUnknownLambdaType=false
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from acd_adapter_kicad.fab import (
     BoardMeasurement,
     FabOutputError,
     FootprintMeasurement,
+)
+from acd_adapter_kicad.fab.silkscreen import (
     _local_silk_bounds,
     _silk_objects_overlap,
     _silk_overlaps_rect,

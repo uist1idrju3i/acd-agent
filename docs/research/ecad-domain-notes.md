@@ -5,10 +5,10 @@
 
 本書は、ECADプロジェクト、回路意図、ライブラリ、ルール、幾何、製造出力を
 ACDの設計グラフから投影するときの契約と、既知の落とし穴チェックリストを正とする。
-工程IDは[`glossary.md`](glossary.md)、工程ごとのゲートは
-[`design-flow.md`](design-flow.md)、ツール採否と一次確認事項は
+工程IDは[`../glossary.md`](../glossary.md)、工程ごとのゲートは
+[`../design-flow.md`](../design-flow.md)、ツール採否と一次確認事項は
 [`tool-selection.md`](tool-selection.md)、フェーズ境界は
-[`roadmap.md`](roadmap.md)を参照する。
+[`../roadmap.md`](../roadmap.md)を参照する。
 
 本書の「ACDの扱い」は設計方針・不変条件であり、特定ツールの挙動を保証しない。
 ツール依存の事項は「Phase 0の能力プローブ候補」として一次確認し、確認できない場合は
@@ -211,7 +211,7 @@ ERC／DRCなどの自動ゲートは、与えられた記述とルールの整�
 **ACDの扱い：**
 
 能力プローブの結果を工程・ツール・形式版ごとのEvidenceとして保存し、未確認項目を
-成功扱いしない。実装経路の採否は[`roadmap.md`](roadmap.md)と
+成功扱いしない。実装経路の採否は[`../roadmap.md`](../roadmap.md)と
 [`tool-selection.md`](tool-selection.md)へ反映する。
 
 | プローブ項目 | 未確認時の扱い |
@@ -228,5 +228,5 @@ ERC／DRCなどの自動ゲートは、与えられた記述とルールの整�
 | GPU・表示サーバ依存機能と非描画代替経路 | 描画依存機能を既定ゲートにしない |
 | 検査、router、シミュレーションの非決定性と正規化範囲 | 規則外の差分は停止 |
 
-これらの結果は[`roadmap.md`](roadmap.md)のPhase 0完了条件と
+これらの結果は[`../roadmap.md`](../roadmap.md)のPhase 0完了条件と
 [`tool-selection.md`](tool-selection.md)の未決事項へ還流する。

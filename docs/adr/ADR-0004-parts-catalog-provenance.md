@@ -20,7 +20,7 @@ Phase 1でKiCadライブラリを参照する前に出所方針を確定する�
 - ライブラリ記述と実部品の照合（datasheet照合、ピン配列検証）は独立した
   Evidenceとして記録し、ライブラリ更新時はstale化して再照合する。
 - KiCad公式ライブラリを既定の第一候補とし、ライセンス
-  （KiCad libraries: CC-BY-SA 4.0ほか）は[`docs/prior-art.md`](../prior-art.md)の
+  （KiCad libraries: CC-BY-SA 4.0ほか）は[`docs/research/prior-art.md`](../research/prior-art.md)の
   ライセンス境界に従って利用形態を確認する。
 
 ## 影響

@@ -14,6 +14,12 @@ script.
 
 from __future__ import annotations
 
+import argparse
+import json
+from pathlib import Path
+
+from acd_adapter_kicad.board import board_keepouts, load_board_footprints
+from acd_adapter_kicad.library import FootprintLibrary
 from acd_adapter_kicad.placement import (
     MARGIN_MM,
     Placement,
@@ -24,7 +30,15 @@ from acd_adapter_kicad.placement import (
     placed_rect,
 )
 from acd_core.board_model import FootprintShape
-from acd_core.electrical import BoardView, ComponentView, NetView, PinView
+from acd_core.electrical import (
+    BoardView,
+    ComponentView,
+    NetView,
+    PinView,
+    extract_electrical_lane,
+)
+from acd_core.fab import load_fab_profile
+from acd_schema.design_graph import DesignGraph
 
 _GRID_MM = 0.25
 # Preferred spacing between neighbouring components leaves a routing channel
@@ -219,6 +233,67 @@ def compute_placements(
     return tuple(sorted(placements, key=lambda p: p.refdes))
 
 
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--fixture-dir", type=Path, required=True)
+    parser.add_argument("--fab-profile", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    graph = json.loads(args.input.read_text(encoding="utf-8"))
+    placements = compute_placements_from_json(
+        {
+            "graph": graph,
+            "fixture_dir": str(args.fixture_dir),
+            "fab_profile": str(args.fab_profile),
+        }
+    )
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        json.dumps(
+            [
+                {
+                    "refdes": item.refdes,
+                    "x_mm": item.x_mm,
+                    "y_mm": item.y_mm,
+                    "rotation_deg": item.rotation_deg,
+                }
+                for item in placements
+            ],
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return 0
+
+
+def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement, ...]:
+    """Resolve the graph/fixture JSON CLI contract into typed search inputs."""
+    graph = DesignGraph.model_validate(payload["graph"])
+    lane = extract_electrical_lane(graph)
+    fixture_dir = Path(str(payload["fixture_dir"]))
+    profile = load_fab_profile(Path(str(payload["fab_profile"])))
+    footprints = load_board_footprints(lane, FootprintLibrary(), fixture_dir, profile).shapes
+    keepouts = tuple(
+        Rect(item.x1_mm, item.y1_mm, item.x2_mm, item.y2_mm)
+        for item in board_keepouts(lane, footprints)
+    )
+    net_refdes = tuple(
+        tuple(ref for ref, _pad in lane.pads_of_net(net.node_id))
+        for net in sorted(lane.nets, key=lambda n: n.name)
+    )
+    return compute_placements(
+        lane.board,
+        lane.components,
+        footprints,
+        keepouts,
+        net_refdes,
+        lane.pins,
+        lane.nets,
+    )
+
+
 def _best_fit(
     board: BoardView,
     footprint: FootprintShape,
@@ -292,3 +367,7 @@ def _pad_positions(
         for pad in footprint.pads
         if pad.number == pad_number
     )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
