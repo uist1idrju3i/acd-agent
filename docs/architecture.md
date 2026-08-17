@@ -110,6 +110,9 @@ allowlist環境変数はSDK `SecretRegistry`へlazy sourceとして渡し、出�
 Conversationの`stuck_detection=True`と`StuckDetectionThresholds`は停止・再試行の操舵だけに
 使う。これらのL2機能と既存hooksはauthoritative Evidenceを生成せず、L1の決定論的gateを
 置き換えない。
+`GoalController`を再利用したACD goal loopと`LocalConversation.interrupt()`へのSIGINT結線も
+L2の停止・再試行層として扱う。`ConversationStats`はL3観測に限定し、goalのjudge評決と
+ともにauthoritative Evidenceの合否へ影響させない。
 
 ## SDK ToolDefinition境界
 

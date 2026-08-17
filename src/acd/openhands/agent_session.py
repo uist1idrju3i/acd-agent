@@ -11,6 +11,7 @@ from openhands.sdk import LLM, Agent
 from openhands.sdk.context import AgentContext
 from openhands.sdk.context.condenser import LLMSummarizingCondenser
 from openhands.sdk.conversation import LocalConversation
+from openhands.sdk.conversation.conversation_stats import ConversationStats
 from openhands.sdk.conversation.stuck_detector import StuckDetectionThresholds
 from openhands.sdk.hooks import HookConfig
 from openhands.sdk.llm.utils.metrics import Metrics
@@ -98,6 +99,20 @@ def write_conversation_metrics(metrics: Metrics, path: Path) -> None:
         "pass_evidence": False,
         "description": "This is not pass evidence.",
         "metrics": metrics.model_dump(mode="json"),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+
+
+def write_conversation_stats(stats: ConversationStats, path: Path) -> None:
+    """Write SDK conversation statistics as non-authoritative observations."""
+    snapshot = stats.model_dump(context={"use_snapshot": True})
+    payload: dict[str, Any] = {
+        "artifact_kind": "conversation_stats",
+        "pass_evidence": False,
+        "description": "This is not pass evidence.",
+        "combined_metrics": stats.get_combined_metrics().model_dump(mode="json"),
+        "usage_to_metrics": snapshot["usage_to_metrics"],
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")

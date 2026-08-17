@@ -106,6 +106,11 @@ callableの説明もあるが、実装の`_wrap_secret()`は`str | SecretSource`
 そのためACDは環境変数をlazy `SecretSource`でラップする。secretの値はログ、
 ToolEnvelope、Evidenceへ出さず、SDK registryのmaskingだけを出力境界に使う。
 
+Goal loopはSDK `GoalController`をACD側のdriverから再利用する。SIGINTは
+`LocalConversation.interrupt()`へ結線し、goalの中断結果は`status="interrupted"`として
+記録する。`goal_result`と`conversation_stats`は`pass_evidence=false`の観測成果物であり、
+judgeのcomplete評決や統計値を合否へ使わない。
+
 外部利用者が配布版を読み込む場合は、branch名ではなく不変refを指定する。
 commit SHAは40桁で、release tagは`v<semver>`形式にする。
 

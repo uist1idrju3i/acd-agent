@@ -71,7 +71,8 @@ Conversationにはpinned SDKの`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
 操舵・停止・漏洩防止層であり、authoritative Evidenceを生成・昇格しない。ACD Skillは
 `plugins/acd/skills`だけを明示ロードし、public/user/marketplaceの自動読み込みを無効にする。
 Skill資材の読み込み失敗はfail-closedとし、既存のorder guard、projection保護、
-stop policy hookを置換しない。
+stop policy hookを置換しない。GoalControllerとconversation cancellationは同じL2停止境界で
+再利用し、ConversationStatsはL3観測に限定する。goal結果やjudge評決をEvidenceへ昇格しない。
 
 ## 依存とsubmodule
 
