@@ -53,6 +53,7 @@ plugins/acd/
 ├── skills/       # 7つの探索・FW・レビュー手法
 ├── agents/       # 電気、機械、FW、レビュー
 ├── commands/     # /acd:gates
+├── hooks/        # fail-closed境界と文書検証
 └── .mcp.json     # acd-mcp stdio server
 ```
 

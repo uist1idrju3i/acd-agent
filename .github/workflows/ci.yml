@@ -54,7 +54,7 @@ jobs:
           python-version: "3.12"
       - name: Sync workspace
         run: uv sync
-      # Skill tests are separate from the core gates: a skill result never
+      # Skill and hook tests are separate from the core gates: their result never
       # decides an ACD design gate.
-      - name: Skill tests (pytest plugins)
+      - name: Skill and hook tests (pytest plugins)
         run: uv run pytest plugins -q

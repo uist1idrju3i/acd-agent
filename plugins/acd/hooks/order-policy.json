@@ -1,0 +1,13 @@
+{
+  "commands": [
+    "git push",
+    "curl ",
+    "wget ",
+    "scp ",
+    "rsync ",
+    "gh release",
+    "kicad-cli fab",
+    "python scripts/order"
+  ],
+  "evidence": "out/evidence"
+}

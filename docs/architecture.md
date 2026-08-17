@@ -112,4 +112,13 @@ GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabricatio
 
 SecretRegistry連携、DockerWorkspace実行、agent-server運用、Conversationを使った
 実行経路、実機測定、価格・在庫取得、自働発注は未実装であり、将来構想である。
+
+## hook境界
+
+`plugins/acd/hooks/`はSDKのhook契約を使い、agent経路だけで安全境界を追加する。
+派生投影（`out/`、`evidence/`、製造出力）への直接書き込み、ゲート未通過の発注・
+外部送信、設計入力変更後の未検証終了をdenyする。保護部分木に触れていない操作は
+停止させず、保護対象への言及を読み取り専用と確定できない場合はfail-closedにする。
+hookは既存のPydantic契約と決定論的ゲートを呼ぶだけで、新しい閾値を持たない。
+SDK hookのDENYはagent経路にしか効かないため、CI側の検証も二重に保持する。
 これらを現行ACDの採用済み機能や合否根拠として扱わない。

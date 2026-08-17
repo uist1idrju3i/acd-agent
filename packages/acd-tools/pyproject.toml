@@ -18,6 +18,7 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 acd-mcp = "acd_tools.mcp_server:main"
+acd-evidence-check = "acd_tools.evidence_check:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/acd_tools"]

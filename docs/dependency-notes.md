@@ -1,3 +1,12 @@
+SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは
+`hooks.json`から読み込まれ、stdinのHookEvent JSONを受け取る。exit code 0は許可、
+2はブロック、その他の非0は非ブロッキングエラーである。SessionStartとPostToolUseは
+ブロックできないため常に0で返す。
+
+SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展開しない。
+そのため`${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}`を使い、別配置時だけ
+`ACD_PLUGIN_ROOT`で上書きする。git不能、policy欠落、unknown、Evidence不一致は
+停止側へ集約し、gate実行または変更をcommitしてからEvidenceを生成する。
 # 依存関係ノート
 
 > ステータス: Draft  

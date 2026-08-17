@@ -1,0 +1,108 @@
+"""Subprocess tests for deterministic SDK hook commands."""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+from pathlib import Path
+from typing import Any, cast
+
+ROOT = Path(__file__).parents[4]
+SCRIPTS = ROOT / "plugins/acd/hooks/scripts"
+
+
+def run(
+    name: str,
+    tool_input: object,
+    tool_name: str = "file_editor",
+    root: Path = ROOT,
+    extra_env: dict[str, str] | None = None,
+) -> tuple[int, dict[str, Any]]:
+    payload = {"tool_name": tool_name, "tool_input": tool_input, "working_dir": str(root)}
+    completed = subprocess.run(
+        ["python", str(SCRIPTS / name)], input=json.dumps(payload), text=True,
+        capture_output=True,
+        cwd=root,
+        env={
+            **os.environ,
+            "OPENHANDS_PROJECT_DIR": str(root),
+            **(extra_env or {}),
+        },
+    )
+    output: Any = json.loads(completed.stdout) if completed.stdout else {}
+    if not isinstance(output, dict):
+        output = {}
+    return completed.returncode, cast(dict[str, Any], output)
+
+
+def test_projection_write_and_parent_escape_are_denied() -> None:
+    assert run("protect_projections.py", {"path": "out/board.kicad_pcb"})[0] == 2
+    assert run("protect_projections.py", {"path": "fixtures/../out/result.zip"})[0] == 2
+
+
+def test_unrelated_edit_and_read_only_terminal_are_allowed() -> None:
+    assert run("protect_projections.py", {"path": "fixtures/contracts/valid/evidence.json"})[0] == 0
+    assert run("protect_projections.py", {"command": "cat out/result.zip"}, "terminal")[0] == 0
+
+
+def test_unknown_protected_terminal_command_is_denied() -> None:
+    code, output = run("protect_projections.py", {"command": "rm out/result.zip"}, "terminal")
+    assert code == 2
+    assert output["decision"] == "deny"
+
+
+def test_order_without_evidence_is_denied() -> None:
+    code, output = run("order_policy.py", {"command": "git push origin feature"}, "terminal")
+    assert code == 2
+    assert output["decision"] == "deny"
+
+
+def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    evidence = tmp_path / "out/evidence"
+    evidence.mkdir(parents=True)
+    (evidence / "gate.json").write_text("{}", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "test",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    uv = fake_bin / "uv"
+    uv.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    uv.chmod(0o755)
+    code, _ = run(
+        "order_policy.py",
+        {"command": "git push origin feature"},
+        "terminal",
+        tmp_path,
+        {"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
+    )
+    assert code == 0
+
+
+def test_session_start_never_blocks() -> None:
+    code, output = run("session_start.py", {}, "session_start")
+    assert code == 0
+    assert "additionalContext" in output
+
+
+def test_stop_denies_changed_design_input(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "fixtures/a").mkdir(parents=True)
+    (tmp_path / "fixtures/a/graph.json").write_text("{}", encoding="utf-8")
+    code, output = run("stop_policy.py", {}, "stop", tmp_path)
+    assert code == 2
+    assert output["decision"] == "deny"

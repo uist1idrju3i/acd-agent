@@ -22,6 +22,7 @@ plugins/acd/
 ├── skills/
 ├── agents/
 ├── commands/
+├── hooks/
 ├── .plugin/plugin.json
 └── .mcp.json
 vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
@@ -57,6 +58,8 @@ OpenHands SDKへ委譲する。
 
 Skillsのtriggerは`KeywordTrigger`を使う。`paths:`はmodel invocationを無効化し、
 `inputs:`はTaskTriggerになるため現在は使わない。reviewerは合否権限を持たない。
+SDK hooksはagent経路のfail-closed境界として採用するが、CIの決定論的検証を置き換えず、
+既存判定を呼び出すだけとする。
 
 ## 依存とsubmodule
 

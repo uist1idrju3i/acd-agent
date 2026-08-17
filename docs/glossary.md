@@ -34,6 +34,11 @@
 | plugin | SDKが提供するskills、hooks、MCP設定、agent定義、commandをまとめた配布単位。ACDの契約正ではない |
 | AgentDefinition | SDKが提供するサブエージェントの役割定義。model、tools、skills、権限等を指定するが、ACDの判定正ではない |
 | hook | SDKが提供するtool・prompt・session境界のイベント処理。防護や記録に使うが、ACDの合否根拠ではない |
+| HookConfig | SDK pluginがhooks.jsonから読み込むhookイベント設定 |
+| HookMatcher | SDK hookをtool名等へ適用する完全一致・ワイルドカード・正規表現の指定 |
+| PreToolUse | tool実行前に呼ばれるSDK hookイベント。exit code 2で拒否する |
+| Stop | agent終了前に呼ばれるSDK hookイベント。exit code 2で拒否する |
+| exit code 2契約 | SDK command hookで2だけがブロックを表し、他の非0はログのみとなる契約 |
 | AgentProfile | SDKが提供するmodel、LLM設定、MCP参照等のprofile。秘密情報を含まない参照で管理するが、ACDの正ではない |
 | condenser | SDKが提供する会話contextの圧縮機構。Evidenceやゲート結果を置き換えず、ACDの判定正ではない |
 | critic | SDKが提供する反復改善用の評価機構。ACDゲート結果を伝達できるが、scoreも合否の正ではない |

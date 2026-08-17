@@ -42,7 +42,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts"]
+src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts", "plugins/acd/hooks/scripts"]
 extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
@@ -78,6 +78,9 @@ executionEnvironments = [
     ] },
     { root = "plugins/acd/skills/acd-silkscreen-placement", extraPaths = [
         "plugins/acd/skills/acd-silkscreen-placement/scripts",
+    ] },
+    { root = "plugins/acd/hooks", extraPaths = [
+        "plugins/acd/hooks/scripts",
     ] },
     { root = "scripts", extraPaths = ["packages/acd-pipeline/src"] },
     { root = "." },

@@ -12,6 +12,7 @@
 | [`architecture.md`](architecture.md) | パッケージ、plugin、責務境界 | 規範 |
 | [`design-flow.md`](design-flow.md) | 電気・機械・FWレーン | 規範 |
 | [`openhands-integration.md`](openhands-integration.md) | SDK統合面と未実装境界 | 規範 |
+| [`openhands-sdk-adoption.md`](openhands-sdk-adoption.md) | SDK活用分析と段階計画 | 計画 |
 | [`roadmap.md`](roadmap.md) | 近い順の実装計画と将来構想 | 計画 |
 | [`implementation-plan.md`](implementation-plan.md) | 直近作業の分解 | 計画 |
 | [`installation.md`](installation.md) | 現行ツールチェーンの導入 | 運用 |

@@ -21,6 +21,9 @@ plugins/acd/
 ├── .plugin/plugin.json
 ├── .mcp.json
 ├── commands/gates.md
+├── hooks/
+│   ├── hooks.json
+│   └── scripts/
 ├── agents/
 │   ├── acd-electrical.md
 │   ├── acd-mechanical.md
@@ -94,6 +97,9 @@ JSON/Pydantic parse失敗、pipeline例外は成功に見せずfail-closedで返
 - Conversationを使ったACD実行経路、fork、長時間resume
 - SDKのcritic、goal、workflow、memoryを使う自動修復ループ
 - browser経由のsourcingと自働発注
+
+hooksは実装済みであり、agent経路の投影保護、発注Evidence、SessionStart probe、
+Stop検証、Markdown検証を担当する。ただしCIの検証を置き換えない。
 
 これらは将来検討であり、現行の合否・Evidence・発注契約には使わない。
 

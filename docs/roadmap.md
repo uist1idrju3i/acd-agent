@@ -5,7 +5,7 @@
 ## 現在地
 
 OpenHands plugin、7 Skill、4 AgentDefinition、`/acd:gates`、ACD MCP server、
-GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、
+GD1基板・筐体pipelineを提供する。SDK hooksによるfail-closed境界も提供する。GD1基板はERC、routing収束、
 SES import、DRC、fabrication出力、独立再読込まで通過するが、既知のsilkscreen可読性
 ゲートでfail-closedになる。これは未解決課題であり、ゲートを緩めない。筐体pipelineは
 決定論的ゲートを通過する。実機測定、発注、価格・在庫取得は未実装である。
@@ -18,6 +18,7 @@ SES import、DRC、fabrication出力、独立再読込まで通過するが、�
 | 2 | 電気レーンの独立検証 | ERC、routing収束、SES import、DRC、Gerber/drill生成、独立再読込を通す | silkscreenを除き達成 |
 | 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
 | 4 | plugin委譲とMCP境界 | Skill/agent/commandをSDKでloadし、MCPが既存gateをfail-closedで公開する | 達成 |
+| 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
 
 各マイルストーンの完了条件は、(1)入力と出所、(2)実装、(3)正常系、(4)negative/
