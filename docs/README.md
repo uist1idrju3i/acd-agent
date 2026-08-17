@@ -47,6 +47,7 @@
 - [`ADR-0012-design-rationale-records.md`](adr/ADR-0012-design-rationale-records.md): 設計根拠record
 - [`ADR-0012-silkscreen-observation-boundary.md`](adr/ADR-0012-silkscreen-observation-boundary.md): silkscreen観測範囲とevidence要約
 - [`ADR-0013-openhands-sdk-runtime-adoption.md`](adr/ADR-0013-openhands-sdk-runtime-adoption.md): SDKランタイム機能の段階採用
+- [`ADR-0013-rationale-coverage-scope.md`](adr/ADR-0013-rationale-coverage-scope.md): 設計根拠coverageの必須範囲と免除分類
 - [`ADR-0014-sdk-tool-definitions.md`](adr/ADR-0014-sdk-tool-definitions.md): SDK ToolDefinitionへの一本化
 - [`ADR-0015-docker-workspace-gate-execution.md`](adr/ADR-0015-docker-workspace-gate-execution.md): Docker workspaceによるゲート実行
 
