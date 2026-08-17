@@ -77,6 +77,7 @@ def test_validate_rationale_valid_document(tmp_path: Path) -> None:
     assert result["ok"] is True
     assert result["operation"] == "validate_rationale"
     assert result["fail_closed"] is False
+    assert result["summary"]["unclassified"] == []
 
 
 def test_pipeline_tools_fail_closed_for_missing_fixture(tmp_path: Path) -> None:

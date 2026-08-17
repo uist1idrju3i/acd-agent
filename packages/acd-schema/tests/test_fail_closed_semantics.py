@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from conftest import fixture_obj, load_fixture
 
-from acd_schema import Evidence, ToolEnvelope
+from acd_schema import Evidence, RationaleCoverageReport, RationaleUnclassified, ToolEnvelope
 
 NOW = datetime(2026, 8, 12, tzinfo=UTC)
 
@@ -43,3 +43,24 @@ def test_evidence_with_unknown_provenance_never_supports_pass() -> None:
     envelope["tool_version"] = "unknown"
     evidence = Evidence.model_validate({**data, "envelope": envelope})
     assert not evidence.supports_pass("r3")
+
+
+def test_rationale_report_serializes_unclassified_attributes() -> None:
+    report = RationaleCoverageReport(
+        status="fail",
+        graph_id="g",
+        revision="r1",
+        graph_id_match=False,
+        revision_match=False,
+        required_count=1,
+        covered_count=0,
+        unclassified=[
+            RationaleUnclassified(
+                node_id="node",
+                node_kind="future.kind",
+                attr="future_attr",
+                reason="attribute is absent from both rationale classification tables",
+            )
+        ],
+    )
+    assert report.model_dump(mode="json")["unclassified"][0]["attr"] == "future_attr"
