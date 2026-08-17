@@ -91,6 +91,20 @@ fail-closedで停止する。ゲートの仕様とprobeの責務は[`gates.md`](
 OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには8 Skill、5
 AgentDefinition、`/acd:gates` command、SDK ToolDefinition、hooksが含まれる。
 決定論的なACD入口は`acd.openhands.sdk_tools`の`register_acd_tools()`からSDKへ登録する。
+Conversationの安全設定は`EnsembleSecurityAnalyzer`、`ConfirmRisky`、allowlist付き
+`SecretRegistry`、ローカルSkill loader、`StuckDetector`を使用する。ACD analyzerと
+Pattern analyzerのensembleは具体的riskの最大値を採用し、全て`UNKNOWN`なら
+`UNKNOWN`、`propagate_unknown=True`なら任意の`UNKNOWN`を伝播する。これらはL2であり、
+hostの参考実行をauthoritative Evidenceへ変えることはない。
+
+Skill loaderはpinned SDKの
+`load_skills_from_dir(skill_dir: str | Path) -> tuple[dict[str, Skill], dict[str, Skill], dict[str, Skill]]`
+を使う。SDKは個別エラーを警告して継続する実装だが、ACD wrapperは各`SKILL.md`を
+SDK `Skill.load()`で事前検証し、ロード数も照合して壊れた・欠落した資材をfail-closedにする。
+public/user/marketplace自動読み込みは無効である。pinned SDKの`SecretValue`注釈は
+callableも受ける説明だが、実装の`_wrap_secret()`は`str | SecretSource`以外を拒否する。
+そのためACDは環境変数をlazy `SecretSource`でラップする。secretの値はログ、
+ToolEnvelope、Evidenceへ出さず、SDK registryのmaskingだけを出力境界に使う。
 
 外部利用者が配布版を読み込む場合は、branch名ではなく不変refを指定する。
 commit SHAは40桁で、release tagは`v<semver>`形式にする。

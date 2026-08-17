@@ -100,6 +100,17 @@ Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 自然言語起点の任意利用には採用しない。Skill結果、AgentDefinitionの所見、reviewerの
 出力は合否Evidenceではない。
 
+安全境界はpinned SDKへ委譲する。`AcdSecurityAnalyzer`とSDKの
+`PatternSecurityAnalyzer`を`EnsembleSecurityAnalyzer(analyzers=[...])`へ合成し、
+`LocalConversation.set_security_analyzer()`で設定する。確認方針は
+`set_confirmation_policy(ConfirmRisky(threshold=SecurityRisk.MEDIUM))`である。
+allowlist環境変数はSDK `SecretRegistry`へlazy sourceとして渡し、出力はSDKの
+`mask_secrets_in_output()`でマスクする。`load_skills_from_dir()`でローカルSkillだけを
+読み、`AgentContext(skills=..., load_public_skills=False, load_user_skills=False)`へ渡す。
+Conversationの`stuck_detection=True`と`StuckDetectionThresholds`は停止・再試行の操舵だけに
+使う。これらのL2機能と既存hooksはauthoritative Evidenceを生成せず、L1の決定論的gateを
+置き換えない。
+
 ## SDK ToolDefinition境界
 
 `src/acd/openhands/sdk_tools.py`はOpenHands SDKの

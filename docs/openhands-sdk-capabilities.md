@@ -20,12 +20,12 @@
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |
 | sdk.event | `Event`, `MessageEvent`, `EventLog` | session経過の記録 | 採用 | Conversationのイベント経路で使用 | event/resume回帰 |
-| sdk.security | `ConfirmRisky`, `NeverConfirm`, `permission_mode` | agent操作の安全境界 | 採用 | AgentDefinitionの権限資材で参照 | risky/deny試験 |
+| sdk.security | `ConfirmRisky`, `NeverConfirm`, `permission_mode` | agent操作の安全境界 | 採用 | 現行conversationへMEDIUM以上の確認方針を設定 | risky/deny試験 |
 | sdk.subagent | agent loader/factory | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照 | agent資材検査 |
-| sdk.skills | `skills` | Skillの配布・起動 | 採用予定 | 現行Skill資材をSDK経路へ統合する決定 | 未検証 |
+| sdk.skills | `load_skills_from_dir(skill_dir: str | Path) -> tuple[dict[str, Skill], dict[str, Skill], dict[str, Skill]]` | ローカルACD Skillの配布・prompt提供 | 採用 | `build_acd_conversation()`が`plugins/acd/skills`を明示ロードし、壊れた資材はfail-closed | Skill loader回帰 |
 | sdk.profiles | `AgentProfile`, `AgentProfileStore` | secret-free profile配布 | 採用予定 | profile driftを管理する採用方針 | 未検証 |
-| sdk.secret | `SecretSource`, `StaticSecret`, `LookupSecret` | secretを平文から分離 | 採用予定 | 外部API keyを入力・Evidenceへ入れない | 未検証 |
-| sdk.security.analyzer | `LLMSecurityAnalyzer`, `PolicyRailSecurityAnalyzer`, `PatternSecurityAnalyzer`, `ToolShield` | agent操作の追加監視 | 採用予定 | L2停止側の多重防御として採用 | 未検証 |
+| sdk.secret | `SecretSource`, `StaticSecret`, `LookupSecret` | secretを平文から分離 | 採用 | allowlist環境変数をlazy sourceとしてConversation registryへ渡す | registry masking回帰 |
+| sdk.security.analyzer | `SecurityAnalyzerBase`, `PatternSecurityAnalyzer`, `EnsembleSecurityAnalyzer`, `SecurityRisk` | agent操作の決定論的追加監視 | 採用 | ACD analyzerとPattern analyzerをSDK ensembleへ合成し、LLM/GraySwanは使わない | risk/ensemble回帰 |
 | sdk.context.memory | `MEMORY.md` memory | 作業文脈の補助 | 採用予定 | 契約・合否の正にしない前提で採用 | 未検証 |
 | sdk.context.prompts | `Prompt`, `PromptSection`, preset/registry/section、static/dynamic/planning | role別prompt構造化 | 採用予定 | prompt hashと資材固定を条件に採用 | 未検証 |
 | sdk.context.view | context/event view properties | 長時間sessionの表示 | 採用予定 | 原EventLogと照合し、Evidenceを置換しない | 未検証 |
@@ -34,9 +34,9 @@
 | sdk.tools.delegate | `DelegateExecutor`, `delegate`, `spawn` | sub-agent調整 | 採用予定 | resource lockと停止側権限を条件に採用 | 未検証 |
 | sdk.tools.workflow | `WorkflowToolSet`, `map_agents`, `reduce_agent`, `pipeline` | lane並列化のmap/reduce | 採用予定 | 電気・機械・FW laneの並列化に限り、決定論的探索と投影の意味的mergeは委譲しない | 未検証 |
 | sdk.conversation.goal | `GoalController`, `GoalVerdict` | 反復停止の補助 | 採用予定 | L2停止側に限り、L1合否を置換しない | 未検証 |
-| sdk.conversation.stuck_detector | `StuckDetector` | 停滞時の差し戻し | 採用予定 | 停止・修正の操舵に限定する | 未検証 |
+| sdk.conversation.stuck_detector | `StuckDetector`, `StuckDetectionThresholds` | 停滞時の差し戻し | 採用 | `LocalConversation(stuck_detection=True)`へ既定値・閾値を渡す | conversation wiring回帰 |
 | sdk.conversation.cancellation | cancellation APIs | 対話中断 | 採用予定 | 未使用だが停止境界への採用を決定 | 未検証 |
-| sdk.conversation.secrets_manager | `SecretsManager` | secret注入・漏洩防止 | 採用予定 | 未使用だがsecret境界への採用を決定 | 未検証 |
+| sdk.conversation.secrets_manager | `SecretsManager` | secret注入・漏洩防止 | 採用 | pinned registryのmaskingとlazy secret注入を現行Conversationで使用 | registry回帰 |
 | sdk.conversation.conversation_stats | `ConversationStats` | session別使用量観測 | 採用予定 | L3観測として採用し合否に混入しない | 未検証 |
 | sdk.llm.router | `RouterLLM`, `RandomRouter`, `MultimodalRouter` | 将来のprofile routing | 採用予定 | 固定profileと予算記録を条件に採用 | 未検証 |
 | sdk.observability | `observe`, Laminar初期化 | L3 telemetry | 採用予定 | 送信先・sanitizer・既定無効を固定する | 未検証 |

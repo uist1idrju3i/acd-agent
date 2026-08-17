@@ -66,6 +66,12 @@ Skillsのtriggerは`KeywordTrigger`を使う。`paths:`はmodel invocationを無
 `inputs:`はTaskTriggerになるため現在は使わない。reviewerは合否権限を持たない。
 SDK hooksはagent経路のfail-closed境界として採用する。agent-serverのhooks APIは設定ロードを
 担うが、server直接API全体への自動適用は未確認である。CIの決定論的検証を置き換えない。
+Conversationにはpinned SDKの`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
+`SecretRegistry`、`load_skills_from_dir`、`StuckDetector`を設定する。これらはL2の
+操舵・停止・漏洩防止層であり、authoritative Evidenceを生成・昇格しない。ACD Skillは
+`plugins/acd/skills`だけを明示ロードし、public/user/marketplaceの自動読み込みを無効にする。
+Skill資材の読み込み失敗はfail-closedとし、既存のorder guard、projection保護、
+stop policy hookを置換しない。
 
 ## 依存とsubmodule
 

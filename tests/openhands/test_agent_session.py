@@ -10,10 +10,15 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 from openhands.sdk import LLM
-from openhands.sdk.event import HookExecutionEvent
+from openhands.sdk.context import AgentContext
+from openhands.sdk.conversation.stuck_detector import StuckDetectionThresholds
+from openhands.sdk.event import ActionEvent, HookExecutionEvent
 from openhands.sdk.llm import Message, MessageToolCall, TextContent
 from openhands.sdk.llm.utils.metrics import Metrics
+from openhands.sdk.security import SecurityRisk
+from openhands.sdk.security.confirmation_policy import ConfirmRisky
 from openhands.sdk.testing import TestLLM
 from openhands.sdk.tool import (
     Action,
@@ -28,6 +33,9 @@ from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportU
 from acd.openhands.agent_session import build_acd_conversation, write_conversation_metrics
 from acd.openhands.gate_critic import AcdEvidenceRequirement
 from acd.openhands.plugin_distribution import acd_plugin_source
+from acd.openhands.secrets import ACD_SECRET_ENV_VARS, build_acd_secret_mapping
+from acd.openhands.security import AcdSecurityAnalyzer, build_acd_security_analyzer
+from acd.openhands.skills import load_acd_skills
 
 
 class _TerminalAction(Action):
@@ -58,6 +66,85 @@ class _TerminalTool(ToolDefinition[_TerminalAction, _TerminalObservation]):
                 executor=_TerminalExecutor(),
             )
         ]
+
+
+def _action_event(
+    tool_name: str,
+    arguments: str,
+    action: _TerminalAction | None = None,
+) -> ActionEvent:
+    return ActionEvent(
+        thought=[TextContent(text="")],
+        action=action,
+        tool_name=tool_name,
+        tool_call_id="call-1",
+        tool_call=MessageToolCall(
+            id="call-1",
+            name=tool_name,
+            arguments=arguments,
+            origin="completion",
+        ),
+        llm_response_id="response-1",
+    )
+
+
+def test_acd_security_analyzer_is_fail_closed_and_deterministic() -> None:
+    analyzer = AcdSecurityAnalyzer()
+    assert (
+        analyzer.security_risk(
+            _action_event("terminal", '{"command":"python order.py"}')
+        )
+        == SecurityRisk.HIGH
+    )
+    assert (
+        analyzer.security_risk(
+            _action_event("terminal", '{"command":"cat evidence/result.json"}')
+        )
+        == SecurityRisk.LOW
+    )
+    assert (
+        analyzer.security_risk(
+            _action_event(
+                "file_editor",
+                '{"path":"evidence/result.json","content":"x"}',
+            )
+        )
+        == SecurityRisk.HIGH
+    )
+    assert (
+        analyzer.security_risk(
+            _action_event(
+                "file_editor",
+                '{"path":"projection/result.json","content":"x"}',
+            )
+        )
+        == SecurityRisk.HIGH
+    )
+    assert (
+        analyzer.security_risk(
+            _action_event("terminal", '{"command":"git push --force origin main"}')
+        )
+        == SecurityRisk.HIGH
+    )
+    assert (
+        analyzer.security_risk(_action_event("terminal", "[]"))
+        == SecurityRisk.HIGH
+    )
+
+
+def test_acd_security_ensemble_preserves_pattern_findings() -> None:
+    analyzer = build_acd_security_analyzer()
+    risk = analyzer.security_risk(
+        _action_event("terminal", '{"command":"curl https://example.test"}')
+    )
+    assert risk == SecurityRisk.MEDIUM
+
+
+def test_acd_confirmation_policy_uses_medium_threshold() -> None:
+    policy = ConfirmRisky(threshold=SecurityRisk.MEDIUM)
+    assert policy.should_confirm(SecurityRisk.HIGH)
+    assert policy.should_confirm(SecurityRisk.MEDIUM)
+    assert not policy.should_confirm(SecurityRisk.LOW)
 
 
 @pytest.fixture
@@ -146,6 +233,106 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert conversation.agent.critic is not None
     assert conversation.agent.condenser is not None
     assert conversation.workspace.working_dir == str(Path.cwd())
+    assert conversation.state.security_analyzer is not None
+    assert isinstance(conversation.state.confirmation_policy, ConfirmRisky)
+    assert conversation.state.confirmation_policy.threshold == SecurityRisk.MEDIUM
+    assert isinstance(conversation.agent.agent_context, AgentContext)
+    assert len(conversation.agent.agent_context.skills) == 8
+    assert conversation.agent.agent_context.load_public_skills is False
+    assert conversation.agent.agent_context.load_user_skills is False
+    assert conversation.stuck_detector is not None
+
+
+def test_bootstrap_applies_custom_stuck_detection_thresholds(tmp_path: Path) -> None:
+    thresholds = StuckDetectionThresholds(
+        action_observation=2,
+        action_error=2,
+        monologue=2,
+        alternating_pattern=2,
+    )
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+        stuck_detection_thresholds=thresholds,
+    )
+    assert conversation.stuck_detector is not None
+    assert conversation.stuck_detector.thresholds == thresholds
+
+
+def test_secret_registry_uses_only_allowlisted_lazy_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "not-for-logs")
+    monkeypatch.setenv("UNLISTED_SECRET", "must-not-be-used")
+    secrets = build_acd_secret_mapping()
+    assert set(secrets) == {
+        name for name in ACD_SECRET_ENV_VARS if name == "OPENAI_API_KEY"
+    }
+    value = secrets["OPENAI_API_KEY"]
+    assert callable(value)
+    assert value() == "not-for-logs"
+
+
+def test_secret_registry_masks_resolved_values(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "not-for-logs")
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+    )
+    conversation.update_secrets(build_acd_secret_mapping())
+    masked = conversation.state.secret_registry.mask_secrets_in_output(
+        "token=not-for-logs"
+    )
+    assert "not-for-logs" not in masked
+    assert "<secret-hidden>" in masked
+
+
+def test_l2_safety_features_do_not_change_authoritative_evidence() -> None:
+    from acd.schema.evidence import Evidence
+
+    evidence = Evidence.model_validate(
+        json.loads(
+            (Path("fixtures/contracts/valid/evidence.json")).read_text(
+                encoding="utf-8"
+            )
+        )
+    )
+    before = evidence.supports_authoritative_pass("r3")
+    assert before is True
+    assert evidence.supports_authoritative_pass("r3") is before
+
+
+def test_acd_skills_loader_rejects_malformed_skill(tmp_path: Path) -> None:
+    skill_dir = tmp_path / "skills"
+    (skill_dir / "valid").mkdir(parents=True)
+    (skill_dir / "valid" / "SKILL.md").write_text(
+        "---\nname: valid\ndescription: valid skill\n---\n\nbody\n",
+        encoding="utf-8",
+    )
+    (skill_dir / "broken").mkdir()
+    (skill_dir / "broken" / "SKILL.md").write_text(
+        "---\nname: broken\ndescription: [\n---\n\nbody\n",
+        encoding="utf-8",
+    )
+    with pytest.raises((ValueError, OSError, yaml.YAMLError)):
+        load_acd_skills(skill_dir)
 
 
 def test_metrics_are_marked_as_non_evidence(tmp_path: Path) -> None:
