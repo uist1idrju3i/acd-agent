@@ -39,8 +39,14 @@ Agent Canvasのsubmoduleは削除済みであり、追加しない。OpenHands�
 - 閾値、期待値、evidence規則を成功のために緩めない。
 - SkillのPython moduleをACD本体からimportしない。必要なCLIはsubprocessで実行する。
 - 探索結果を設計入力へ確定した場合、Skill名とscript sha256をprovenanceへ記録する。
+- evidence／provenanceには、出所、取得時点、版、入力hash、出力hash、ツール名・版を記録する。
+- 判定対象を故意に壊すnegative testを用意し、壊した入力が不合格になることを確認する。
 - API key、token、secretをログ、入力、commitに書かない。
 - GPL/AGPLコードをACDへimport結合しない。
+
+外部由来コードを含むファイルでは、元のライセンス表記と帰属を維持する。派生コードを
+含むファイルにのみ必要な表記を追加し、新規自作ファイルへ無関係な第三者著作権表記を
+追加しない。
 
 ## plugin境界
 
@@ -57,6 +63,9 @@ Skillsのtriggerは`KeywordTrigger`を使う。`paths:`はmodel invocationを無
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
 使用API、既定値、破壊的変更、採否を`docs/dependency-notes.md`へ記録する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
+
+ファイルを削除・移動するときは、関連文書、索引、相対リンク、参照先を同じ変更で更新し、
+旧パスへの参照を残さない。
 
 ## 検証
 

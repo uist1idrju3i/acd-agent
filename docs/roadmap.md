@@ -4,8 +4,8 @@
 
 ## 現在地
 
-H1/H1b/H2を実装済み。OpenHands plugin、7 Skill、4 AgentDefinition、`/acd:gates`、
-ACD MCP server、GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、
+OpenHands plugin、7 Skill、4 AgentDefinition、`/acd:gates`、ACD MCP server、
+GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、
 SES import、DRC、fabrication出力、独立再読込まで通過するが、既知のsilkscreen可読性
 ゲートでfail-closedになる。これは未解決課題であり、ゲートを緩めない。筐体pipelineは
 決定論的ゲートを通過する。実機測定、発注、価格・在庫取得は未実装である。
@@ -39,6 +39,24 @@ fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけ�
 変更ごとに、契約・投影・独立再読込・決定論的ゲートを実行する。ツール不在、
 parse失敗、未実行、unknownはfail-closedとする。Markdownのみの変更は
 `verify_docs.py`と`git diff --check`で検証し、それ以外は`AGENTS.md`の全検証を行う。
+
+## フェーズ横断の検証要件
+
+以下は全マイルストーンの完了条件に共通して要求する。固有の達成条件が満たされても、
+ここに反する実装は合格にしない。これらは実際の欠陥類型に基づく設計判断であり、
+外部リポジトリの記述を権威として引くものではない。
+
+| # | 要件 | 禁止する構造 |
+|---|---|---|
+| 1 | 判定の両辺は別の出自から取る | 自分が生成した成果物の存在を自分の合格根拠にする（自己証明）。replay結果同士、生成器同士の比較 |
+| 2 | 導出できない入力は`unknown`として停止側へ集約する | `continue`・早期return・既定値補完でskipを合格に見せる。宣言の欠如を0や空と同一視する |
+| 3 | 実行中のstageを入場時に宣言し、失敗はその宣言から帰属させる | 直前の成功結果や末尾要素を失敗の帰属先にする |
+| 4 | CIが読み込む入力・fixture・scriptはtrackedにし、typecheck／lintの対象に含める | 検査対象外の領域を「検査済み」と扱う。gitignore下のデータに依存する回帰 |
+| 5 | 外部ツールの保存バイト列を設計状態の権威にしない。非決定な出力は正規化規則を契約に書き、規則外の差異は停止条件とする | 外部ツールの決定論性を説明で仮定する（timestamp、再保存時のセグメント構成差など） |
+| 6 | 契約はPydanticモデルから導く | runnerと文書でgate番号・状態を二重管理する |
+| 7 | 安全条件・保護対象は書き換わる部分木で判断する | pathの完全一致だけで許可・却下を決める |
+| 8 | 予算（token、money、wall-clock、外部process回数）を各ゴールデンタスクで実測して記録する。SDK `Metrics`／`MetricsSnapshot`と外部ツールの実行記録を使う | 予算次元を不明のまま次の作業へ渡す |
+| 9 | 探索を含む工程では、代理指標スコアを合格根拠にせず、停止理由と実行結果を記録する | 代理指標だけで合格させる。停止理由を記録しない |
 
 ## 見直し条件
 

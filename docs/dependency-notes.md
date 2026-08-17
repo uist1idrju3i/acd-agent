@@ -55,7 +55,7 @@ CodeQLと`update-uv-graph`はリポジトリ設定側で動くcheck-runであり
 
 確認日: 2026-08-16。一次情報で確認できない変更は推測せず、未確認の採否を合格扱いにしない。
 
-### FastMCPの明示依存化（H2）
+### FastMCPの明示依存化
 
 FastMCPの一次情報としてv3.4.7のリリースノート（OAuthProxyのCIMD
 `private_key_jwt`復旧などの修正）とPyPIの3.4.7メタデータを確認し、`FastMCP`の
