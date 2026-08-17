@@ -58,6 +58,7 @@ plugins/acd/
 
 Python側は契約、投影、adapter、決定論的ゲートに限定する。OpenHands pluginは
 Skill、AgentDefinition、command、hooksを配布する。Skill結果は合否根拠ではない。
+pipelineとゲートのDocker実行は任意経路であり、ホスト実行が既定である。
 
 ## 実行
 
@@ -72,6 +73,16 @@ uv run python scripts/probe_tools.py
 [`docs/golden-design-1.md`](docs/golden-design-1.md)、
 [`docs/adr/ADR-0011-search-results-as-design-input.md`](docs/adr/ADR-0011-search-results-as-design-input.md)
 を参照してください。
+
+ゲートだけをDocker workspaceで実行する場合（imageは各自build）:
+
+```bash
+docker build -f docker/acd-tools.Dockerfile -t acd-tools-gates:local .
+ACD_CONTAINER_IMAGE=acd-tools-gates:local uv run python scripts/run_in_workspace.py
+```
+
+image digestを解決できない場合はfail-closedで実行しない。Dockerはdeterminismを
+保証しないため、通常のToolEnvelopeと決定論的ゲートを引き続き適用する。
 
 ## 文書
 

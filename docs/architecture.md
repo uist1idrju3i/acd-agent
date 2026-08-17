@@ -109,8 +109,21 @@ GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabricatio
 [`adr/ADR-0011-search-results-as-design-input.md`](adr/ADR-0011-search-results-as-design-input.md)
 に記録する。筐体pipelineは決定論的CADゲートを通過する。
 
+## Docker workspace境界
+
+ホスト実行を既定とし、`scripts/run_in_workspace.py`から決定論的pipelineとゲートだけを
+任意に`DockerDevWorkspace`で実行できる。repoは`volumes`でmountし、`out/`と
+`evidence/`をホスト側へ残す。runnerは`docker image inspect`でRepoDigestsまたは
+ローカルimage IDのsha256 digestを解決し、解決できない場合はworkspaceを起動せず
+fail-closedで停止する。解決したdigestは`ACD_CONTAINER_IMAGE_DIGEST`としてforwardし、
+ToolEnvelopeの`execution_env`へ記録する。
+
+Dockerはdeterminismを保証しないため、timestamp、filesystem、外部ツール版、
+入力・出力hashの正規化と決定論的ゲートは従来どおり必要である。ACD imageは配布せず、
+利用者が[`docker/README.md`](../docker/README.md)のDockerfileを各自buildする。
+
 ## 実装していない境界
 
-SecretRegistry連携、DockerWorkspace実行、agent-server運用、Conversationを使った
+SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、Conversationを使った
 実行経路、実機測定、価格・在庫取得、自働発注は未実装であり、将来構想である。
 これらを現行ACDの採用済み機能や合否根拠として扱わない。

@@ -9,6 +9,8 @@ GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、
 SES import、DRC、fabrication出力、独立再読込まで通過するが、既知のsilkscreen可読性
 ゲートでfail-closedになる。これは未解決課題であり、ゲートを緩めない。筐体pipelineは
 決定論的ゲートを通過する。実機測定、発注、価格・在庫取得は未実装である。
+P5として、ホスト実行を既定にした任意のDockerDevWorkspaceゲート実行経路を追加し、
+image digest未解決時は停止する。
 
 ## 現行実装計画
 
@@ -33,6 +35,7 @@ fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけ�
 - 実機Evidenceを使う知識ループとローカル製造
 - 全ゲート通過後だけの自働発注
 - 高密度基板、認証設計、熱・SIなどの拡張
+- agent自体のコンテナ化と配布済みACD image
 
 ## 検証要件
 

@@ -7,6 +7,7 @@
 - `uv`
 - KiCad CLI
 - JavaとFreeRouting
+- （任意）Docker
 
 OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1を
 workspace sourceとして使用する。Agent Canvasのソースは取得しない。OpenHands公開Skillsは
@@ -28,6 +29,10 @@ git submodule status
 
 `vendor/software-agent-sdk`がv1.42.1のcommitを指していることを確認する。
 
+Dockerでゲートを実行する場合は、[`docker/README.md`](../docker/README.md)に従って
+`docker/acd-tools.Dockerfile`を各自buildする。通常のpipelineは引き続きホストで
+実行する。
+
 ## 外部ツール
 
 環境に次の実行ファイルが必要である。
@@ -43,6 +48,15 @@ command -v freerouting
 ```bash
 uv run python scripts/probe_tools.py
 ```
+
+Docker workspace経路（任意）:
+
+```bash
+docker build -f docker/acd-tools.Dockerfile -t acd-tools-gates:local .
+ACD_CONTAINER_IMAGE=acd-tools-gates:local uv run python scripts/run_in_workspace.py
+```
+
+image digestを解決できない場合、runnerはコマンドを実行せず非ゼロ終了する。
 
 外部ツールが無い、版が不明、または出力を独立再読込できない場合、pipelineは
 fail-closedで停止する。ツールの採否判断は[`research/tool-selection.md`](research/tool-selection.md)、

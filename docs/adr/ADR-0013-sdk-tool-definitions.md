@@ -37,3 +37,9 @@ SDKのlock解決に残るが、ACDのentrypointや互換serverとしては利用
 
 ADR-0003とADR-0010は過去時点の決定として保存する。本ADRが現在の公開方式を上書き
 参照する。契約の正、決定論的ゲート、plugin境界、fail-closed方針は変更しない。
+
+## P5との関係
+
+P5の任意Docker workspace実行は、既存の決定論的pipelineとゲートを実行する場所を
+選ぶ機能であり、本ADRのToolDefinition契約、Evidence意味、fail-closed境界を変更
+しない。詳細は[`ADR-0014`](ADR-0014-docker-workspace-gate-execution.md)に記録する。

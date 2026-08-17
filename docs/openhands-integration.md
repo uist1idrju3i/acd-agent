@@ -6,7 +6,7 @@
 ## 統合方針
 
 ACD pluginをOpenHands側の主成果物とする。OpenHandsはSkill、AgentDefinition、
-command、SDK ToolDefinition、workspace実行を提供し、Python側はPydantic契約、決定論的投影、
+command、SDK ToolDefinition、任意のworkspace実行を提供し、Python側はPydantic契約、決定論的投影、
 ゲート、adapter、evidence契約を保持する。AIやSkillの出力は候補・所見であり、
 ACDの合否根拠ではない。
 
@@ -86,12 +86,26 @@ fail-closedとする。
 ToolEnvelope由来のtool名・版・hashを含む構造化JSONである。入力不備、ファイル不在、
 JSON/Pydantic parse失敗、pipeline例外は成功に見せずfail-closedで返す。
 
+## 任意のDocker workspace実行
+
+ホスト実行が既定であり、agentをコンテナへ入れるのではなく、決定論的pipelineと
+ゲートだけを`DockerDevWorkspace`で実行できる。`DockerDevWorkspace`は
+`base_image`からagent-server imageをbuildできるため、利用者がbuildした
+`docker/acd-tools.Dockerfile`を渡す経路に選んだ。`DockerWorkspace`は既成server
+image向けである。
+
+`scripts/run_in_workspace.py`は`docker image inspect`でRepoDigestsを優先し、
+ローカルbuildではimage IDへフォールバックする。sha256 digestを解決できない場合は
+workspaceを起動しない。repoを`volumes`でmountし、`ACD_CONTAINER_IMAGE_DIGEST`を
+`forward_env`で渡す。Dockerはdeterminismを保証しないため、既存のhash、
+timestamp正規化、独立再読込、決定論的ゲートは維持する。
+
 ## 未実装・将来
 
 以下はSDKに存在する概念を調査したが、本リポジトリの採用済み実行経路ではない。
 
 - SecretRegistry連携とprovider secretの注入
-- DockerWorkspace実行
+- agentごとのDocker実行と配布済みACD image
 - agent-serverの運用
 - Conversationを使ったACD実行経路、fork、長時間resume
 - SDKのcritic、goal、workflow、memoryを使う自動修復ループ

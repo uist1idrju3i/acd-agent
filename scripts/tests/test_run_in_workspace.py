@@ -1,0 +1,140 @@
+"""Tests for the Docker workspace gate runner."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+from pathlib import Path
+from typing import Any
+
+import pytest
+from scripts.run_in_workspace import (
+    ImageReference,
+    resolve_image_digest,
+    run_command_in_workspace,
+)
+
+
+def _completed(stdout: str, returncode: int = 0) -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(
+        args=["docker"],
+        returncode=returncode,
+        stdout=stdout,
+        stderr="inspect failed" if returncode else "",
+    )
+
+
+def test_resolve_repo_digest() -> None:
+    calls: list[list[str]] = []
+
+    def run(command: list[str], **_: Any) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return _completed('["registry.example/acd@sha256:' + "a" * 64 + '"]')
+
+    assert resolve_image_digest("acd:local", run=run) == ImageReference(
+        "sha256:" + "a" * 64, "RepoDigests"
+    )
+    assert len(calls) == 1
+
+
+def test_resolve_image_id_when_repo_digest_is_absent() -> None:
+    responses = iter([_completed("[]"), _completed("sha256:" + "b" * 64)])
+
+    def run(command: list[str], **_: Any) -> subprocess.CompletedProcess[str]:
+        return next(responses)
+
+    assert resolve_image_digest("acd:local", run=run) == ImageReference(
+        "sha256:" + "b" * 64, "image ID"
+    )
+
+
+def test_resolve_digest_fails_on_inspect_error() -> None:
+    def run(command: list[str], **_: Any) -> subprocess.CompletedProcess[str]:
+        return _completed("", returncode=1)
+
+    assert resolve_image_digest("missing:local", run=run) is None
+
+
+def test_resolve_digest_fails_when_docker_is_unavailable() -> None:
+    def run(command: list[str], **_: Any) -> subprocess.CompletedProcess[str]:
+        raise FileNotFoundError("docker")
+
+    assert resolve_image_digest("acd:local", run=run) is None
+
+
+def test_unresolved_digest_does_not_start_workspace(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def resolve_none(_image: str) -> ImageReference | None:
+        return None
+
+    monkeypatch.setattr(
+        "scripts.run_in_workspace.resolve_image_digest",
+        resolve_none,
+    )
+    started = False
+
+    def factory(**_: Any) -> Any:
+        nonlocal started
+        started = True
+        return object()
+
+    assert (
+        run_command_in_workspace(
+            image="acd:local",
+            command="true",
+            repository=tmp_path,
+            workspace_factory=factory,
+        )
+        == 2
+    )
+    assert started is False
+
+
+def test_digest_is_forwarded_to_workspace(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    reference = ImageReference("sha256:" + "c" * 64, "image ID")
+
+    def resolve_reference(_image: str) -> ImageReference:
+        return reference
+
+    monkeypatch.setattr(
+        "scripts.run_in_workspace.resolve_image_digest",
+        resolve_reference,
+    )
+    captured: dict[str, Any] = {}
+
+    class Workspace:
+        def __enter__(self) -> Workspace:
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            return None
+
+        def execute_command(self, command: str, cwd: str) -> Any:
+            captured["command"] = command
+            captured["cwd"] = cwd
+            captured["env"] = os.environ["ACD_CONTAINER_IMAGE_DIGEST"]
+            return type(
+                "Result",
+                (),
+                {"exit_code": 0, "stdout": "ok\n", "stderr": ""},
+            )()
+
+    def factory(**kwargs: Any) -> Workspace:
+        captured["constructor"] = kwargs
+        assert "ACD_CONTAINER_IMAGE_DIGEST" in kwargs["forward_env"]
+        return Workspace()
+
+    assert (
+        run_command_in_workspace(
+            image="acd:local",
+            command="echo ok",
+            repository=tmp_path,
+            workspace_factory=factory,
+        )
+        == 0
+    )
+    assert captured["cwd"] == "/workspace"
+    assert captured["env"] == reference.digest

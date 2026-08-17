@@ -62,3 +62,23 @@ OpenHands SDK v1.42.1の`ToolDefinition`、`Action`、`Observation`、
 `acd_tools.sdk_tools.register_acd_tools()`から明示的に登録する。登録はSDK registryの
 重複登録挙動を踏まえて冪等にし、import副作用を持たせない。SDKのexample実装を写経せず、
 vendorのMIT Licenseに基づく帰属が必要な派生コードも追加していない。
+
+### Docker workspace API
+
+OpenHands SDK v1.42.1の一次情報として、次のvendor sourceを確認した。
+
+- `vendor/software-agent-sdk/openhands-workspace/openhands/workspace/docker/workspace.py`
+- `vendor/software-agent-sdk/openhands-workspace/openhands/workspace/docker/dev_workspace.py`
+- `vendor/software-agent-sdk/openhands-workspace/openhands/workspace/AGENTS.md`
+
+`DockerWorkspace`は既成のagent-server imageを受け取り、
+`DockerDevWorkspace`は`base_image`からagent-server imageをbuildする。P5は利用者が
+buildしたACD tools imageをbase imageとして渡すため`DockerDevWorkspace`を選ぶ。
+API上の既定値は`platform="linux/amd64"`、container起動は`--rm`、health checkを
+行い、`volumes`は`/host/path:/workspace`の文字列形式である。環境変数は
+`forward_env`に名前を渡す方式であり、runnerは`ACD_CONTAINER_IMAGE_DIGEST`を
+forwardする。
+
+docker CLI側は`docker image inspect --format`でRepoDigestsを優先し、ローカルbuild
+でRepoDigestsが無い場合は`.Id`のimage IDを使う。いずれもsha256 digestが得られ
+なければ実行しない。Docker daemonが利用できない場合も同じfail-closedである。
