@@ -101,6 +101,17 @@ def test_supplier_data_and_similar_command_names_are_allowed() -> None:
     assert run("order_policy.py", {"command": "curlprogram out/board.zip"}, "terminal")[0] == 0
 
 
+def test_unparseable_order_commands_fail_closed_only_when_relevant() -> None:
+    code, output = run(
+        "order_policy.py",
+        {"command": "curl -T out/gd1/board.zip 'https://supplier.invalid/upload"},
+        "terminal",
+    )
+    assert code == 2
+    assert output["decision"] == "deny"
+    assert run("order_policy.py", {"command": "echo 'unrelated"}, "terminal")[0] == 0
+
+
 def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     evidence = tmp_path / "out/gd1"
@@ -128,7 +139,7 @@ def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     uv.chmod(0o755)
     code, _ = run(
         "order_policy.py",
-            {"command": "curl -T out/gd1/board.zip https://supplier.invalid/upload"},
+        {"command": "curl -T out/gd1/board.zip https://supplier.invalid/upload"},
         "terminal",
         tmp_path,
         {"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},

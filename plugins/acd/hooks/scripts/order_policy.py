@@ -52,7 +52,19 @@ def main() -> int:
     try:
         tokens = shlex.split(command)
     except ValueError:
-        return 0
+        is_order = any(
+            isinstance(pattern, str) and pattern in command for pattern in order_commands
+        )
+        is_transmission = any(
+            isinstance(pattern, str) and pattern in command for pattern in transmission
+        )
+        if not is_order and not (is_transmission and "out/" in command):
+            return 0
+        result(
+            decision="deny",
+            reason="A passing gate evidence for the current revision is required.",
+        )
+        return 2
     is_order = any(
         isinstance(pattern, str) and pattern in command for pattern in order_commands
     )
