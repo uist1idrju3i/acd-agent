@@ -78,14 +78,16 @@ uv run pyright
 uv run pytest
 uv run pytest plugins -q
 uv run python scripts/verify_docs.py
+uv run python scripts/resolve_gd1_silkscreen.py
+uv run python scripts/run_gd1_pipeline.py
 uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
 uv run python scripts/probe_tools.py
 git diff --check
 ```
 
 Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
-`git diff --check`に絞ってよい。GD1基板pipelineのsilkscreen fail-closedは既知状態で
-あり、silkscreen以前の各段階を確認して報告する。
+`git diff --check`に絞ってよい。GD1基板pipelineはsilkscreenゲートまで通過する前提で、
+resolverと基板pipelineを実行して確認する。
 
 ## Git
 

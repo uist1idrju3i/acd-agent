@@ -20,12 +20,16 @@
       "driving_requirements": [
         "req.gd1-req-008"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [
         {
           "option": "Bare ESP32-C3 plus custom RF",
           "reason": "GD1-REQ-008 names the module and GD1-REQ-015 requires its module antenna keepout."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Module certification evidence must be attached separately.",
         "2026-08-11 inventory is only a procurement snapshot."
@@ -36,12 +40,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -61,12 +66,16 @@
         "req.gd1-req-004",
         "req.gd1-req-006"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [
         {
           "option": "USB-PD source/charging connector",
           "reason": "GD1-REQ-004 excludes USB PD, battery, and charging circuitry."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "VBUS remains 5 V."
       ],
@@ -75,12 +84,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -99,6 +109,9 @@
       "driving_requirements": [
         "req.gd1-req-007"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`req.gd1-req-007` specifies AMS1117-3.3 by part number and its capacitor network, so this record has no regulator choice to compare.",
       "assumptions": [
@@ -110,12 +123,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -134,12 +148,17 @@
       "driving_requirements": [
         "req.gd1-req-011"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [
         {
           "option": "AHT20 secondary candidate",
           "reason": "GD1-REQ-011 specifies SHT40 at 0x44."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -148,13 +167,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-003",
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -172,6 +191,9 @@
       "decision": "Use two TS-1088-AR02016 switches (C720477).",
       "justification": "GD1-REQ-009 assigns separate RESET/EN and BOOT/IO9 controls; two Basic switches implement those distinct functions while preserving the BOOT strapping role.",
       "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 and `GD1-REQ-009` specify separate RESET and BOOT switches; no other switch function is defined.",
       "assumptions": [
@@ -182,12 +204,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -207,12 +230,16 @@
       "driving_requirements": [
         "req.gd1-req-006"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [
         {
           "option": "Omit one CC resistor",
           "reason": "The USB CC gate requires both CC1 and CC2 resistors."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -221,12 +248,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -243,6 +271,9 @@
       "decision": "Use a 10 kΩ 0603 part (C25804) for EN.",
       "justification": "The §5.2 EN network is 10 kΩ to +3V3, 1 µF to GND, and a RESET button to GND; this Basic BOM resistor implements that RC reset topology.",
       "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN network at 10 kΩ and 1 µF, leaving no alternate value in this fixture.",
       "assumptions": [
@@ -253,12 +284,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -278,12 +310,17 @@
       "driving_requirements": [
         "req.gd1-req-011"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [
         {
           "option": "One shared or missing pull-up",
           "reason": "The requirement and I2C gate require one resistor on each line."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -292,13 +329,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-003",
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -319,12 +356,16 @@
         "req.gd1-req-001",
         "req.gd1-req-010"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [
         {
           "option": "Assign LED to IO2, IO8, or IO9",
           "reason": "GD1-REQ-010 excludes those strapping-sensitive pins."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -333,12 +374,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -358,6 +400,9 @@
       "driving_requirements": [
         "req.gd1-req-007"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator input pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
       "assumptions": [
@@ -368,12 +413,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -393,6 +439,9 @@
       "driving_requirements": [
         "req.gd1-req-007"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator output pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
       "assumptions": [
@@ -403,12 +452,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -428,12 +478,14 @@
         "req.gd1-req-007",
         "req.gd1-req-008"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Rely only on regulator capacitors",
           "reason": "The power-decoupling gate requires a separate MCU-pin 100 nF."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -442,10 +494,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -462,6 +517,9 @@
       "decision": "Use a 1 µF EN RC capacitor (C15849).",
       "justification": "The §5.2 EN definition pairs 1 µF to GND with the 10 kΩ pull-up and RESET switch; this Basic BOM part preserves the declared reset conditioning.",
       "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN timing capacitor at 1 µF as part of the reset RC network.",
       "assumptions": [
@@ -472,12 +530,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -500,6 +559,9 @@
       "decision": "Keep seven non-assembled test-point footprints with empty MPN/LCSC.",
       "justification": "GD1-REQ-012 requires pads for 3V3, GND, SDA, SCL, IO7, UART TX, and RX to collect bring-up evidence; these are measurement features, not JLCPCBA components, so empty sourcing fields are intentional.",
       "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`GD1-REQ-012` lists the seven required observation signals; it does not define an alternate test-point component.",
       "assumptions": [
@@ -510,12 +572,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-012"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -537,6 +600,7 @@
       "driving_requirements": [
         "req.gd1-req-014"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`req.gd1-req-014` fixes four shared M2 holes as the board/enclosure interface, so the hole features have no part-selection alternative.",
       "assumptions": [
@@ -547,10 +611,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -571,12 +638,14 @@
         "req.gd1-req-008",
         "req.gd1-req-015"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Move it fully inside the board",
           "reason": "GD1-REQ-015 requires the antenna to overhang the board edge."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The module footprint remains the library geometry."
       ],
@@ -587,10 +656,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -611,12 +681,14 @@
         "req.gd1-req-004",
         "req.gd1-req-006"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Move it away from the edge",
           "reason": "The mating-side connector anchor would no longer describe a usable USB-C interface."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The local connector overlay is used in projection and DFM."
       ],
@@ -627,10 +699,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -652,12 +725,14 @@
         "req.gd1-req-007",
         "req.gd1-req-011"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Place passives before active parts",
           "reason": "§9 fixes active parts as stage 2 and decoupling as stage 3."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Declared footprint dimensions remain valid."
       ],
@@ -668,10 +743,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -690,12 +766,16 @@
       "decision": "Use the deterministic placement-search result for this functional group.",
       "justification": "The switches implement separate RESET and BOOT functions; their remaining-component placement follows the deterministic §9 order after anchors, active parts, and decoupling.",
       "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
       "rejected_alternatives": [
         {
           "option": "Swap their net roles",
           "reason": "GD1-REQ-009 names separate RESET and BOOT functions."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The TS-1088 mechanical lane remains valid."
       ],
@@ -706,12 +786,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -738,12 +817,16 @@
         "req.gd1-req-010",
         "req.gd1-req-011"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
       "rejected_alternatives": [
         {
           "option": "Use arbitrary manual order",
           "reason": "That would discard the declared courtyard/refdes ordering."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "0603 dimensions remain the declared mechanical lane."
       ],
@@ -754,12 +837,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -785,12 +867,16 @@
         "req.gd1-req-007",
         "req.gd1-req-008"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
       "rejected_alternatives": [
         {
           "option": "Place capacitors only in leftover space",
           "reason": "The power-decoupling gate requires proximity to the relevant pin."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Power nets and roles remain those of §5.2."
       ],
@@ -801,12 +887,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -830,12 +915,16 @@
       "decision": "Use the deterministic placement-search result for this functional group.",
       "justification": "GD1-REQ-012 names the exact seven observed signals; their non-assembled footprints are placed to preserve probe access within the fixed board envelope.",
       "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
       "rejected_alternatives": [
         {
           "option": "Omit dedicated test points",
           "reason": "GD1-REQ-012 explicitly requires these observation pads."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Probes are available during bring-up."
       ],
@@ -846,12 +935,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-012"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -874,12 +962,14 @@
       "driving_requirements": [
         "req.gd1-req-014"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Use fewer or independent holes",
           "reason": "The shared four-M2 pattern is explicit."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The enclosure uses the same origin and coordinates."
       ],
@@ -890,10 +980,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -915,12 +1006,14 @@
         "req.gd1-req-005",
         "req.gd1-req-013"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Use only manufacturing minimum",
           "reason": "Power current is the controlling constraint in the declared basis."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "1 oz outer copper remains the fabrication condition."
       ],
@@ -929,10 +1022,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -955,12 +1051,14 @@
         "req.gd1-req-008",
         "req.gd1-req-013"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Apply the power current width",
           "reason": "The declared basis says current is not controlling for these logic nets."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Signals remain in the declared 3.3 V logic domain."
       ],
@@ -969,10 +1067,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -999,12 +1100,17 @@
         "req.gd1-req-011",
         "req.gd1-req-013"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009",
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
       "rejected_alternatives": [
         {
           "option": "Use a power-net basis for every control net",
           "reason": "The declared width_basis_source identifies logic or resistor-limited behavior."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "LED current remains limited by 1 kΩ."
       ],
@@ -1013,13 +1119,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009",
-        "docs/golden-design-1.md#GD1-REQ-012"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1038,12 +1144,16 @@
       "driving_requirements": [
         "req.gd1-req-008"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-002"
+      ],
       "rejected_alternatives": [
         {
           "option": "Use another GPIO pair or external bridge",
           "reason": "The requirement fixes internal USB on IO18/IO19 and excludes the bridge."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Firmware is projected from graph pins."
       ],
@@ -1052,12 +1162,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-002"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1076,12 +1187,16 @@
       "driving_requirements": [
         "req.gd1-req-011"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003"
+      ],
       "rejected_alternatives": [
         {
           "option": "Swap or move SDA/SCL",
           "reason": "The requirement explicitly defines IO4=SDA and IO5=SCL."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The address remains 0x44."
       ],
@@ -1090,12 +1205,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-003"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1114,12 +1230,16 @@
       "driving_requirements": [
         "req.gd1-req-010"
       ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
       "rejected_alternatives": [
         {
           "option": "Assign LED to IO2/IO8/IO9",
           "reason": "Those strapping-sensitive pins are explicitly excluded."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "IO7 drives the resistor-limited LED."
       ],
@@ -1128,12 +1248,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1150,6 +1271,10 @@
       "decision": "Keep UART TX/RX on IO21/IO20 at the declared test points.",
       "justification": "GD1-REQ-012 names TX(IO21) and RX(IO20) observation pads, while GD1-REQ-002 requires serial-log access in the USB workflow.",
       "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-002",
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`GD1-REQ-012` fixes TX/RX GPIOs and test points, while `GD1-REQ-002` fixes serial-log access; no alternate UART mapping is defined.",
       "assumptions": [
@@ -1160,13 +1285,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-002",
-        "docs/golden-design-1.md#GD1-REQ-012"
-      ]
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1187,12 +1312,14 @@
         "req.gd1-req-013",
         "req.gd1-req-014"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Use high-precision 50 × 50 mm fabrication",
           "reason": "§6 says high precision requires at least 50 × 50 mm and three tooling holes, conflicting with GD1."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Regular ±0.2 mm outline tolerance is used for enclosure fit."
       ],
@@ -1201,10 +1328,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1223,6 +1353,7 @@
       "driving_requirements": [
         "req.gd1-req-014"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [],
       "no_alternatives_reason": "`req.gd1-req-014` and the GD1 mechanical declaration fix the shared enclosure interface and PETG/2.0 mm lane for this fixture.",
       "assumptions": [
@@ -1233,10 +1364,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1253,33 +1387,36 @@
         "y_mm",
         "rotation_deg"
       ],
-      "subject_hash": "sha256:3a03db3302d5a70ec299060bc5ac3c1384a1b7041eb126a488bf879e1e5bd988",
-      "decision": "Place RESET/BOOT/D1/USB as front functional labels.",
-      "justification": "§12 reserves F.SilkS for functional labels and the deterministic search rejects board-edge, pad, and conservative-body collisions before independent Gerber measurement.",
+      "subject_hash": "sha256:4e0e6a0654cd8c99578631244fefd2da7e4fcb319fefbc057701d78d1c812bc7",
+      "decision": "Place RST/BOOT/D1/USB as front functional labels.",
+      "justification": "The updated silkscreen resolver keeps the four operational labels on F.SilkS and places them in the declared sequential order after excluding board-edge, same-side pad, fixed-silk, and conservative body conflicts. The accepted context candidates are RST (16.825, 9.325) at 0°, BOOT (13.05, 9.325) at 0°, D1 (16.65, 12.525) at 90°, and USB (19.575, 15.075) at 0°; the graph evidence records the rejection counts and full-evidence hash for each result.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Keep a rejected candidate",
-          "reason": "The search evidence rejects overflow, pad overlap, or body overlap before acceptance."
+          "option": "Retain the former RESET label and its former candidate",
+          "reason": "The silkscreen observation update changed the label to the shorter RST form and reran the sequential resolver; the former candidates and RESET text are not the accepted graph state."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
-        "Fab minimum is 1.0 mm text and 0.15 mm stroke."
+        "The resolver's accepted context candidates satisfy the graph's declared silkscreen side and the fab minimum of 1.0 mm text and 0.15 mm stroke; final physical acceptance remains the independent silkscreen gate."
       ],
       "risks": [
-        "The known final silkscreen gate failure means placement is not acceptance evidence by itself."
+        "Placement evidence is a candidate-resolution record, not final physical acceptance; same-side mask/pad and rendered-ink measurements remain required by the silkscreen gate."
       ],
       "provenance": {
         "source": "acd_skill",
         "skill_name": "acd-silkscreen-placement",
-        "script_hash": "sha256:338f0266d44be715b29c2bc4786d25336a7262434ebdd2284173d0004b99a87b",
+        "script_hash": "sha256:554ac9c114c9bfa716ad4faf07ea7b87af487cde60b80fd009c7df685c3611d4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1294,32 +1431,35 @@
         "y_mm",
         "rotation_deg"
       ],
-      "subject_hash": "sha256:61e10e7e89757f0b7b3f2f50fa45e8dc022b6ea2ff12df7011972622bc0b4139",
-      "decision": "Place board type and identifier on B.SilkS.",
-      "justification": "§12 separates branding/identification from front functional labels; front pad/mask congestion is the documented reason to keep DEV BOARD and golden-design-1-r1 on the back.",
+      "subject_hash": "sha256:52440a6434ef6975975c6f917f0a2eb694f2f0d9b93b90b896427e730bea5718",
+      "decision": "Place DEV BOARD and golden-design-1-r1 on B.SilkS.",
+      "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (15.65, 8.35) at 90° and golden-design-1-r1 (14.125, 8.875) at 90°; their evidence records the fixed-silk, pad, and board-edge rejection counts used to select these positions.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Place branding on F.SilkS",
-          "reason": "The front is reserved for functional labels and the observed pad/mask congestion rejected front-side branding."
+          "option": "Place DEV BOARD or the board identifier on F.SilkS",
+          "reason": "The graph's side declaration assigns branding and identification to B.SilkS, leaving the sequential F.SilkS resolver and its available clearance for operational labels."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
-        "The identifier continues to derive from graph_id and revision."
+        "The board identifier remains derived from graph_id and revision, and both B.SilkS labels use the resolver's accepted 90° context candidates."
       ],
       "risks": [
-        "The final silkscreen gate can still reject unrelated generated artwork."
+        "The resolver summary is not a physical acceptance result; rendered B.SilkS geometry and the independent silkscreen gate must still confirm clearance and ink presence."
       ],
       "provenance": {
         "source": "acd_skill",
         "skill_name": "acd-silkscreen-placement",
-        "script_hash": "sha256:338f0266d44be715b29c2bc4786d25336a7262434ebdd2284173d0004b99a87b",
+        "script_hash": "sha256:554ac9c114c9bfa716ad4faf07ea7b87af487cde60b80fd009c7df685c3611d4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1339,12 +1479,14 @@
       "driving_requirements": [
         "req.gd1-req-010"
       ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
           "option": "Place D1 without the series-resistor functional path",
           "reason": "The LED function is defined as the IO7-to-1 kΩ path in the GD1 circuit declaration."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The LED remains connected to comp.r6 and IO7."
       ],
@@ -1355,10 +1497,11 @@
         "source": "acd_skill",
         "skill_name": "acd-placement-search",
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "driving_requirement_refs": []
+      "target_revision": "r1"
     }
   ]
 }
