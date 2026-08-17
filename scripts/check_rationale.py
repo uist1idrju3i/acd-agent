@@ -48,6 +48,7 @@ def main() -> int:
         "orphan",
         "untraceable",
         "conflicting",
+        "unclassified",
     ):
         values = result[field]
         if values:

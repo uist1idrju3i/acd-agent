@@ -27,6 +27,11 @@ The graph and rationale document are authoritative. This Skill cannot approve
 a design, and malformed input, missing subjects, stale records, or duplicate
 coverage must stop the operation.
 
+Use the decision kinds `part_selection`, `placement`, `routing_width`,
+`silkscreen`, `firmware_pin`, `mechanical`, `fab_process`, `stackup`,
+`design_rule`, `net_class`, `safety_scope`, and `population` according to the
+decision being recorded.
+
 When a requirement exists as a graph node, use `driving_requirements`. When it
 exists only in the design document, use `driving_requirement_refs` with a
 reference such as `docs/golden-design-1.md#GD1-REQ-012`; do not invent a graph

@@ -1502,6 +1502,809 @@
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-stackup-board",
+      "decision_kind": "stackup",
+      "subject_nodes": [
+        "board.gd1"
+      ],
+      "subject_attrs": [
+        "layers",
+        "material",
+        "thickness_mm",
+        "copper_oz",
+        "finish",
+        "width_mm",
+        "height_mm",
+        "assembly_side",
+        "antenna_keepout"
+      ],
+      "subject_hash": "sha256:48aed8bbfad1e2dd3159691b2b0739cf906d6c0475a95f674335e946a29f34d3",
+      "decision": "Adopt the documented electrical.board design inputs.",
+      "justification": "GD1-REQ-013 and §6 constrain a small two-layer FR-4 board with one-sided assembly, while §8.1 and §9 reserve the antenna edge and its keepout for reliable RF operation and repeatable fabrication. The chosen stackup and outline therefore balance the stated prototype size, assembly direction, and antenna boundary instead of introducing a thicker board or a second assembly face.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use a four-layer or two-sided assembly stackup",
+          "reason": "§6 and GD1-REQ-013 specify the two-layer, one-sided prototype construction; those alternatives add cost or violate the stated manufacturing target."
+        },
+        {
+          "option": "Place copper or parts below the antenna",
+          "reason": "GD1-REQ-015 explicitly excludes copper, ground, components, and silk in the antenna keepout."
+        }
+      ],
+      "assumptions": [
+        "The JLCPCB capability values in §6 remain the manufacturing basis for the prototype."
+      ],
+      "risks": [
+        "The antenna module certification state is unknown, so the keepout is a conservative design boundary rather than certification evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-design-rules-board",
+      "decision_kind": "design_rule",
+      "subject_nodes": [
+        "board.gd1"
+      ],
+      "subject_attrs": [
+        "min_track_mm",
+        "min_clearance_mm",
+        "edge_copper_clearance_mm",
+        "via_diameter_mm",
+        "via_drill_mm",
+        "allowable_temperature_rise_k",
+        "width_basis_equation",
+        "width_measurement_tolerance_mm"
+      ],
+      "subject_hash": "sha256:8b45362cc85774018e872605b9ee5ce06811e8c8a30596fd8c0ff81846ce98fd",
+      "decision": "Adopt the documented electrical.board design inputs.",
+      "justification": "§6 fab capability limits, §7 gate conditions, and §8.0 current/temperature calculations establish the minimum trace, clearance, via, edge-copper, and width-measurement rules. These values are selected to retain a manufacturing margin rather than to use the smallest nominal library geometry.",
+      "driving_requirements": [
+        "req.gd1-req-005"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use 0.20 mm via drill and the tightest nominal clearance everywhere",
+          "reason": "The §6 capability boundary leaves no additional yield margin at the lower limit, so the design uses the declared conservative values and verifies them in the gate."
+        },
+        {
+          "option": "Treat the calculated trace width as a guarantee of routability",
+          "reason": "§8.0 defines a sizing proxy; routing and DRC must still validate the actual copper geometry."
+        }
+      ],
+      "assumptions": [
+        "The width equation is applied with the documented 5 V and sub-500 mA design envelope."
+      ],
+      "risks": [
+        "The width proxy does not guarantee every routed segment is manufacturable; DRC remains authoritative."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-ground-stitch-board",
+      "decision_kind": "design_rule",
+      "subject_nodes": [
+        "board.gd1"
+      ],
+      "subject_attrs": [
+        "ground_plane_net",
+        "ground_plane_layers",
+        "ground_plane_min_island_area_mm2",
+        "stitch_via_wavelength_fraction",
+        "stitch_via_max_frequency_hz",
+        "stitch_via_refill_max_iterations"
+      ],
+      "subject_hash": "sha256:44e9832d8912657d2e3ff5af2271c8c13138ca5c3dfcf3c65532721aa63ad25c",
+      "decision": "Adopt the documented electrical.board design inputs.",
+      "justification": "§8.1 and the ground-return design use a continuous GND plane on the two-layer board, with stitch-via spacing derived from the documented frequency/wavelength proxy and a bounded refill loop. The choice preserves return continuity while keeping the automated refill deterministic and bounded.",
+      "driving_requirements": [
+        "req.gd1-req-005",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use isolated copper islands instead of a connected ground plane",
+          "reason": "The shared GND return and antenna keepout require a connected, inspectable plane; isolated islands would make the return path and gate result indeterminate."
+        },
+        {
+          "option": "Allow unlimited stitch-via refill iterations",
+          "reason": "A fixed iteration bound is required for deterministic failure instead of silently looping."
+        }
+      ],
+      "assumptions": [
+        "The frequency proxy is a design rule, not an RF certification result."
+      ],
+      "risks": [
+        "The antenna keepout can interrupt the plane locally and must be checked by the independent gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-fab-order",
+      "decision_kind": "population",
+      "subject_nodes": [
+        "fab.order_intent.gd1"
+      ],
+      "subject_attrs": [
+        "fab_profile",
+        "quantity_pcs",
+        "surface_finish",
+        "soldermask_color",
+        "assembly_sides",
+        "pcba_class_target",
+        "delivery_format"
+      ],
+      "subject_hash": "sha256:141d6b38de10934615e5622764a8b15f9bb60be29e048c1a12d49754e526610e",
+      "decision": "Adopt the documented fab.order_intent design inputs.",
+      "justification": "§6 and §9 define the prototype manufacturing route, quantity, one-sided assembly, and output package. HASL is selected for the documented GD1 prototype process; the green mask value is only the current order-intent placeholder because §11 leaves mask color and lead status for confirmation.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Order a production quantity or two-sided assembly",
+          "reason": "The fixture is an author prototype and §6/§9 define the small one-sided manufacturing lane, so those alternatives are outside this milestone."
+        },
+        {
+          "option": "Treat the green soldermask and HASL lead status as finalized safety facts",
+          "reason": "§11 lists these as unresolved manufacturing questions; they remain assumptions and risks until the fab confirms them."
+        }
+      ],
+      "assumptions": [
+        "The selected fab profile remains the current JLCPCB capability snapshot."
+      ],
+      "risks": [
+        "Soldermask color and HASL lead content remain unresolved §11 items and must be confirmed before ordering."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-safety-scope",
+      "decision_kind": "safety_scope",
+      "subject_nodes": [
+        "sb.gd1"
+      ],
+      "subject_attrs": [
+        "profile",
+        "intended_use",
+        "max_net_voltage_v",
+        "max_current_a"
+      ],
+      "subject_hash": "sha256:cb31d88c2fc96c122ff36b96e89eee3e421912e0f91d254386fb20aba3cbc508",
+      "decision": "Adopt the documented safety.boundary design inputs.",
+      "justification": "GD1-REQ-004/005 define a USB VBUS-only, 5 V and below 500 mA hobby prototype boundary. The boundary excludes battery charging and high-energy actuators so the electrical and manufacturing gates operate within the documented author-prototype scope.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-005"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Add a battery, charger, or USB-PD negotiation",
+          "reason": "GD1-REQ-004 explicitly excludes those functions from this fixture."
+        },
+        {
+          "option": "Treat the board as a certified product",
+          "reason": "§11 records module certification as unknown and the project is an author prototype, not a certified product."
+        }
+      ],
+      "assumptions": [
+        "The USB source remains within the documented 5 V, sub-500 mA envelope."
+      ],
+      "risks": [
+        "Module certification is unknown; this record does not claim certification or production safety approval."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-net-electrical-limits-1",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.vbus_5v",
+        "net.gnd",
+        "net.p3v3"
+      ],
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "current_max_a"
+      ],
+      "subject_hash": "sha256:20d0be1235fb92ba579cda7a95493e8e7c125fd6ffdbfb755bf0f95bc6f9fef4",
+      "decision": "Adopt the documented electrical.net design inputs.",
+      "justification": "GD1-REQ-004/005 bound the VBUS and 3.3 V domains, while §8.0 derives width from current and preserves manufacturing margin. Net-class limits keep power, sensor, USB, and ground routing decisions tied to the stated electrical envelope rather than using a single undifferentiated rule.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-005"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Assign every net the 5 V/500 mA class",
+          "reason": "The requirement distinguishes the 5 V source domain from the 3.3 V and signal domains; a single class would overstate signal requirements and obscure the power constraint."
+        },
+        {
+          "option": "Remove the manufacturing margin from the width basis",
+          "reason": "§6 and §8.0 require the margin to remain explicit so nominal geometry is not mistaken for a guaranteed fab result."
+        }
+      ],
+      "assumptions": [
+        "Net current values are planning limits for the prototype, not measured load characterization."
+      ],
+      "risks": [
+        "Actual load transients and return-current distribution still require electrical review."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-net-electrical-limits-2",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.cc1",
+        "net.cc2",
+        "net.usb_dn",
+        "net.usb_dp",
+        "net.en",
+        "net.boot",
+        "net.led",
+        "net.led_a",
+        "net.i2c_sda",
+        "net.i2c_scl",
+        "net.uart_tx",
+        "net.uart_rx"
+      ],
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "manufacturing_margin_mm"
+      ],
+      "subject_hash": "sha256:acd96f0b3154ce7dec56196d6aea65a2122244817f5b7ec9830677f27b1582ec",
+      "decision": "Adopt the documented electrical.net design inputs.",
+      "justification": "GD1-REQ-004/005 bound the VBUS and 3.3 V domains, while §8.0 derives width from current and preserves manufacturing margin. Net-class limits keep power, sensor, USB, and ground routing decisions tied to the stated electrical envelope rather than using a single undifferentiated rule.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-005"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Assign every net the 5 V/500 mA class",
+          "reason": "The requirement distinguishes the 5 V source domain from the 3.3 V and signal domains; a single class would overstate signal requirements and obscure the power constraint."
+        },
+        {
+          "option": "Remove the manufacturing margin from the width basis",
+          "reason": "§6 and §8.0 require the margin to remain explicit so nominal geometry is not mistaken for a guaranteed fab result."
+        }
+      ],
+      "assumptions": [
+        "Net current values are planning limits for the prototype, not measured load characterization."
+      ],
+      "risks": [
+        "Actual load transients and return-current distribution still require electrical review."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-component-population",
+      "decision_kind": "population",
+      "subject_nodes": [
+        "comp.u1",
+        "comp.j1",
+        "comp.u2",
+        "comp.u3",
+        "comp.d1",
+        "comp.sw1",
+        "comp.sw2",
+        "comp.r1",
+        "comp.r2",
+        "comp.r3",
+        "comp.r4",
+        "comp.r5",
+        "comp.r6",
+        "comp.c1",
+        "comp.c2",
+        "comp.c3",
+        "comp.c4",
+        "comp.c5",
+        "comp.c6",
+        "comp.tp1",
+        "comp.tp2",
+        "comp.tp3",
+        "comp.tp4",
+        "comp.tp5",
+        "comp.tp6",
+        "comp.tp7",
+        "comp.h1",
+        "comp.h2",
+        "comp.h3",
+        "comp.h4"
+      ],
+      "subject_attrs": [
+        "value",
+        "footprint",
+        "assembly"
+      ],
+      "subject_hash": "sha256:bc438c5831107b263bf3e4ade8f96f790bef247fda23c04e7a37da8f51b888c8",
+      "decision": "Adopt the documented electrical.component design inputs.",
+      "justification": "§4/§5 define the BOM roles and §9 defines the assembly projection: values and footprints are selected to realize the required USB power path, regulator decoupling, sensor interface, indicator, and mechanical fit, while assembly flags distinguish the populated prototype from optional or test-only entries.",
+      "driving_requirements": [
+        "req.gd1-req-006",
+        "req.gd1-req-007",
+        "req.gd1-req-008",
+        "req.gd1-req-010",
+        "req.gd1-req-011",
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Populate every library candidate or omit the required support parts",
+          "reason": "§4/§5 require the stated decoupling, CC, pull-up, indicator, and interface functions; changing population would remove a required function or violate the manufacturing projection."
+        },
+        {
+          "option": "Use a footprint without the documented fab/library source",
+          "reason": "§6 and §9 require the selected footprint source and overlay to remain reproducible for fabrication and assembly."
+        }
+      ],
+      "assumptions": [
+        "The BOM source and supplier availability snapshot remain those recorded in the graph provenance."
+      ],
+      "risks": [
+        "Stock and library versions can change; a future order must recheck supplier availability and footprint evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-outline-holes",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.outline.gd1"
+      ],
+      "subject_attrs": [
+        "corner_radius_mm",
+        "mount_hole_count",
+        "mount_hole_1_x_mm",
+        "mount_hole_1_y_mm",
+        "mount_hole_1_diameter_mm",
+        "mount_hole_2_x_mm",
+        "mount_hole_2_y_mm",
+        "mount_hole_2_diameter_mm",
+        "mount_hole_3_x_mm",
+        "mount_hole_3_y_mm",
+        "mount_hole_3_diameter_mm",
+        "mount_hole_4_x_mm",
+        "mount_hole_4_y_mm",
+        "mount_hole_4_diameter_mm"
+      ],
+      "subject_hash": "sha256:d6e974fe001d650ddaa98f87a157680a4dc8667901ae6de81a10733f15c3fb1a",
+      "decision": "Adopt the documented mechanical.outline design inputs.",
+      "justification": "GD1-REQ-013 fixes the approximately 30 × 25 mm board envelope and GD1-REQ-014 fixes four shared M2 mounting holes for the milestone enclosure. §8.1/§9 use the rounded outline and hole anchors as the mechanical lane before component placement, so the enclosure and board remain interchangeable.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-014"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use a sharp-corner board or a different hole pattern",
+          "reason": "The enclosure is shared with the four M2 anchors and the stated board envelope; changing either would break the mechanical interface."
+        },
+        {
+          "option": "Select high-precision outline tolerance for this small board",
+          "reason": "§6 limits the available precision class for the stated size, so the standard capability is retained instead of claiming an unavailable tolerance."
+        }
+      ],
+      "assumptions": [
+        "The enclosure projection consumes the same four mounting anchors."
+      ],
+      "risks": [
+        "The final fabricated hole position and fit still require the mechanical gate and physical confirmation."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-enclosure-clearance",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.enclosure.gd1"
+      ],
+      "subject_attrs": [
+        "min_wall_thickness_mm",
+        "internal_clearance_mm",
+        "standoff_height_mm",
+        "standoff_radius_mm",
+        "lid_fit_gap_mm",
+        "tolerance_mm",
+        "interference_tolerance_mm3"
+      ],
+      "subject_hash": "sha256:54361c3fc38681abd44e58f3bcc1d3a7b0385693375a84f59f25f486d1d3a29d",
+      "decision": "Adopt the documented mechanical.enclosure design inputs.",
+      "justification": "§8.1 and §9 define the enclosure lane around the shared board, four mounting holes, component keepouts, and deterministic CAD tolerances. The wall, clearance, standoffs, lid gap, and interference threshold are chosen to leave assembly room while keeping the enclosure gate sensitive to actual collision rather than visual intent.",
+      "driving_requirements": [
+        "req.gd1-req-014"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use zero lid gap or wall thickness below the fab/CAD floor",
+          "reason": "Those alternatives would convert normal tolerance into interference and are rejected by the mechanical capability and gate conditions."
+        },
+        {
+          "option": "Accept a nonzero interference volume as cosmetic",
+          "reason": "The gate treats interference as a hard failure because it prevents assembly."
+        }
+      ],
+      "assumptions": [
+        "CAD kernel dimensions remain deterministic for the current fixture."
+      ],
+      "risks": [
+        "The selected tolerances do not replace a physical fit check for a manufactured enclosure."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-connector-openings",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.connector_opening.j1"
+      ],
+      "subject_attrs": [
+        "face",
+        "center_x_mm",
+        "center_y_mm",
+        "width_mm",
+        "height_mm",
+        "margin_mm"
+      ],
+      "subject_hash": "sha256:052ae3db764d58320c87eb318d20e6719c0b0109874265f9358ca82395918db5",
+      "decision": "Adopt the documented mechanical.connector_opening design inputs.",
+      "justification": "§5 identifies the USB-C connector as the power and USB access interface, and §8.1/§9 project an opening on the enclosure face around its anchored placement. The opening margin preserves insertion access without allowing the connector cutout to undermine the wall or board datum.",
+      "driving_requirements": [
+        "req.gd1-req-006",
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Place the connector opening on a different face",
+          "reason": "The USB-C access direction and board anchor in §5/§9 define the usable face; moving it would make the enclosure inaccessible."
+        },
+        {
+          "option": "Use an opening with no edge margin",
+          "reason": "A zero margin would make normal placement/tolerance consume the wall and is rejected by the mechanical gate."
+        }
+      ],
+      "assumptions": [
+        "The selected opening follows the current connector footprint and board placement."
+      ],
+      "risks": [
+        "Connector tolerances and cable fit remain to be confirmed on the physical prototype."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-board-overhang",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.board_edge_overhang.u1"
+      ],
+      "subject_attrs": [
+        "edge",
+        "overhang_mm"
+      ],
+      "subject_hash": "sha256:40a0d3d97fac27ef51e2ef634c18ef6538c445c018a6b3abfd5c971533feea0c",
+      "decision": "Adopt the documented mechanical.board_edge_overhang design inputs.",
+      "justification": "GD1-REQ-015 and §8.1 reserve the antenna edge as an intentional board overhang/keepout so the module antenna is not covered by copper, parts, or enclosure material. The overhang is therefore an RF/mechanical interface decision, not an accidental board offset.",
+      "driving_requirements": [
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Flush the antenna edge with the enclosure wall",
+          "reason": "That would place enclosure material in the reserved antenna region and violate GD1-REQ-015."
+        },
+        {
+          "option": "Use a larger overhang without checking the enclosure",
+          "reason": "The enclosure interface is shared with the board datum, so unsupported overhang would create a new mechanical failure mode."
+        }
+      ],
+      "assumptions": [
+        "The antenna keepout geometry is based on the module guidance recorded in the fixture."
+      ],
+      "risks": [
+        "Module certification and final RF performance remain unverified."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-component-bodies",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.1",
+        "mechanical.component_body.2",
+        "mechanical.component_body.3",
+        "mechanical.component_body.4",
+        "mechanical.component_body.5",
+        "mechanical.component_body.6",
+        "mechanical.component_body.7",
+        "mechanical.component_body.8",
+        "mechanical.component_body.9",
+        "mechanical.component_body.10",
+        "mechanical.component_body.11",
+        "mechanical.component_body.12",
+        "mechanical.component_body.13",
+        "mechanical.component_body.14",
+        "mechanical.component_body.15",
+        "mechanical.component_body.16",
+        "mechanical.component_body.17",
+        "mechanical.component_body.18",
+        "mechanical.component_body.19",
+        "mechanical.component_body.20",
+        "mechanical.component_body.21",
+        "mechanical.component_body.22",
+        "mechanical.component_body.23",
+        "mechanical.component_body.24",
+        "mechanical.component_body.25",
+        "mechanical.component_body.26",
+        "mechanical.component_body.27",
+        "mechanical.component_body.28",
+        "mechanical.component_body.29",
+        "mechanical.component_body.30"
+      ],
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:c2daf85e6297c516fdf1c9fe4317ae65912c7c934ff986df4dae83d10e6355cd",
+      "decision": "Adopt the documented mechanical.component_body design inputs.",
+      "justification": "§4/§5 component geometry and §9 placement lanes establish body type, mounting side, and orientation before enclosure projection. The placement sequence anchors the antenna, connector, holes, and active components first, then fits passive and test components within the remaining board area while preserving keepouts.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Place every body by centroid alone",
+          "reason": "§9 requires anchor-relative placement and keepout checks; centroid-only placement could hide antenna, connector, or enclosure collisions."
+        },
+        {
+          "option": "Flip a body to the opposite assembly side for area",
+          "reason": "GD1-REQ-013 specifies one-sided assembly and §8.1 reserves the opposite side/antenna boundary, so the area shortcut is rejected."
+        }
+      ],
+      "assumptions": [
+        "Body dimensions are datasheet/library facts and are separately exempt from rationale coverage."
+      ],
+      "risks": [
+        "CPL geometry evidence can expose library exceptions; those are not proof that the physical assembly has been manufactured."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-silk-graphic-design",
+      "decision_kind": "silkscreen",
+      "subject_nodes": [
+        "mechanical.silk_graphic.vibebb"
+      ],
+      "subject_attrs": [
+        "layer",
+        "stroke_width_mm",
+        "polygon_points",
+        "board_edge_margin_mm",
+        "placement_search_order"
+      ],
+      "subject_hash": "sha256:1b36b9ca371729859b4d41d0fc291d50e7a3377db4e5d6594525ef23267ec35a",
+      "decision": "Adopt the documented mechanical.silk_graphic design inputs.",
+      "justification": "§12 separates functional labels from branding and uses vector geometry on the declared silk layer. The ordered search and edge margin preserve reproducibility and keep the artwork inside the board while the fab minimum stroke remains measurable by the independent gate.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use a bitmap or an unordered polygon search",
+          "reason": "§12 requires vector projection and deterministic candidate order so the artwork can be independently measured and reproduced."
+        },
+        {
+          "option": "Place the graphic at the board edge",
+          "reason": "The declared margin and independent silkscreen gate reject edge overflow and fragile fabrication clearance."
+        }
+      ],
+      "assumptions": [
+        "The graphic is reviewed as rendered evidence, not as a substitute for the silkscreen gate."
+      ],
+      "risks": [
+        "Artwork readability and branding approval remain separate from geometric acceptance."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-silk-text-rules",
+      "decision_kind": "silkscreen",
+      "subject_nodes": [
+        "mechanical.silk_text.reset",
+        "mechanical.silk_text.boot",
+        "mechanical.silk_text.led",
+        "mechanical.silk_text.usb",
+        "mechanical.silk_text.dev_board",
+        "mechanical.silk_text.board_id"
+      ],
+      "subject_attrs": [
+        "layer",
+        "text",
+        "height_mm",
+        "stroke_width_mm",
+        "board_edge_margin_mm",
+        "placement_search_order",
+        "placement_offset_step_mm",
+        "placement_search_limit_mm",
+        "placement_safety_margin_mm"
+      ],
+      "subject_hash": "sha256:8cdbb60ff16212fac58c4dcff9d04714d2523ad3993ab5685aa59da0fc3a6386",
+      "decision": "Adopt the documented mechanical.silk_text design inputs.",
+      "justification": "§12 defines the functional-label and identification split, fab minimum text/stroke constraints, and deterministic candidate order/step/limit. The resolver uses those bounds to reject board-edge, same-side pad, mask, body, and existing-silk conflicts before the independent rendered-geometry gate.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use the old unrestricted text size or a random candidate order",
+          "reason": "§12 requires measurable fab dimensions and deterministic search order; either alternative would make placement non-reproducible or unreviewable."
+        },
+        {
+          "option": "Move an unresolved functional label to the back without evidence",
+          "reason": "§12 requires functional labels to resolve on F.SilkS and fail-closed if no candidate exists."
+        }
+      ],
+      "assumptions": [
+        "The current graph evidence is a resolver summary; final acceptance remains the independent Gerber measurement."
+      ],
+      "risks": [
+        "The known silkscreen gate and readability limits can still reject a candidate despite resolver evidence."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-firmware-net",
+      "decision_kind": "firmware_pin",
+      "subject_nodes": [
+        "fw.pin.boot",
+        "fw.pin.i2c_scl",
+        "fw.pin.i2c_sda",
+        "fw.pin.led",
+        "fw.pin.uart_rx",
+        "fw.pin.uart_tx",
+        "fw.pin.usb_dn",
+        "fw.pin.usb_dp"
+      ],
+      "subject_attrs": [
+        "net"
+      ],
+      "subject_hash": "sha256:fd84b41913e6e0238f534a24485ac0530a6714c32a809c129dc2c07ff914e057",
+      "decision": "Adopt the documented firmware.pin_assignment design inputs.",
+      "justification": "§5 pin and net tables define the electrical signal carried by each firmware assignment; recording the net alongside GPIO makes the rationale traceable to the interface rather than only to a number. USB, I2C, LED, BOOT, and UART mappings remain distinct because their requirements and strapping constraints differ.",
+      "driving_requirements": [
+        "req.gd1-req-008",
+        "req.gd1-req-010",
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-002",
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-009",
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Move a signal to an unused GPIO without reviewing its net function",
+          "reason": "GD1-REQ-008/010/011 and the document pin table assign interface-specific functions and exclude unsafe strapping pins."
+        },
+        {
+          "option": "Treat the GPIO number as sufficient without recording the net",
+          "reason": "The net is the cross-lane identity needed to validate firmware, schematic, and routing consistency."
+        }
+      ],
+      "assumptions": [
+        "The firmware pin table remains the canonical interface declaration for this fixture."
+      ],
+      "risks": [
+        "Firmware implementation and runtime behavior are not validated by graph rationale coverage alone."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
     }
   ]
 }

@@ -26,6 +26,11 @@ DecisionKind = Literal[
     "firmware_pin",
     "mechanical",
     "fab_process",
+    "stackup",
+    "design_rule",
+    "net_class",
+    "safety_scope",
+    "population",
 ]
 RationaleSource = Literal["human", "openhands_agent", "acd_skill", "deterministic_tool"]
 
@@ -146,6 +151,13 @@ class RationaleUntraceable(AcdModel):
     subject: RationaleSubject
 
 
+class RationaleUnclassified(AcdModel):
+    node_id: NodeId
+    node_kind: NonEmptyStr
+    attr: NonEmptyStr
+    reason: NonEmptyStr
+
+
 class RationaleCoverageReport(AcdModel):
     status: RationaleCoverageStatus
     graph_id: NonEmptyStr
@@ -165,6 +177,9 @@ class RationaleCoverageReport(AcdModel):
     )
     conflicting: list[RationaleRecordSubject] = Field(
         default_factory=list[RationaleRecordSubject]
+    )
+    unclassified: list[RationaleUnclassified] = Field(
+        default_factory=list[RationaleUnclassified]
     )
     required_count: int = 0
     covered_count: int = 0

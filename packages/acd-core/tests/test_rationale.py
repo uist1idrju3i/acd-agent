@@ -100,6 +100,25 @@ def test_document_requirement_reference_supports_coverage() -> None:
     assert report.untraceable == []
 
 
+def test_unclassified_attribute_fails_closed() -> None:
+    base = _graph()
+    graph = base.model_copy(
+        update={
+            "nodes": [
+                base.nodes[0].model_copy(
+                    update={"attrs": {**base.nodes[0].attrs, "future_choice": "x"}}
+                ),
+                base.nodes[1],
+            ]
+        }
+    )
+    report = check_rationale_coverage(graph, _document(base))
+    assert report.status == "fail"
+    assert [(item.node_id, item.attr) for item in report.unclassified] == [
+        ("comp.u1", "future_choice")
+    ]
+
+
 def test_human_provenance_without_script_is_covered() -> None:
     graph = _graph()
     document = _document(graph)
@@ -146,6 +165,7 @@ def test_explicit_unknown_script_hash_fails_coverage() -> None:
         "orphan",
         "unknown",
         "untraceable",
+        "unclassified",
         "graph_id",
         "revision",
     ],
@@ -181,6 +201,18 @@ def test_coverage_failures(change: str) -> None:
         record = _document(graph).records[0].model_dump()
         record["driving_requirements"] = []
         document = _document(graph, records=[record])
+    elif change == "unclassified":
+        graph = graph.model_copy(
+            update={
+                "nodes": [
+                    graph.nodes[0].model_copy(
+                        update={"attrs": {**graph.nodes[0].attrs, "future_choice": "x"}}
+                    ),
+                    graph.nodes[1],
+                ]
+            }
+        )
+        document = _document(graph)
     elif change == "graph_id":
         document = _document(graph, graph_id="other")
     else:
