@@ -1,4 +1,4 @@
-# ADR-0012: OpenHands SDKランタイム機能の段階採用
+# ADR-0013: OpenHands SDKランタイム機能の段階採用
 
 - **状態**: Accepted
 - **日付**: 2026-08-17

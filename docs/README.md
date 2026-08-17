@@ -46,5 +46,6 @@
 - [`ADR-0011-search-results-as-design-input.md`](adr/ADR-0011-search-results-as-design-input.md): 探索結果の設計入力化
 - [`ADR-0012-design-rationale-records.md`](adr/ADR-0012-design-rationale-records.md): 設計根拠record
 - [`ADR-0012-silkscreen-observation-boundary.md`](adr/ADR-0012-silkscreen-observation-boundary.md): silkscreen観測範囲とevidence要約
+- [`ADR-0013-openhands-sdk-runtime-adoption.md`](adr/ADR-0013-openhands-sdk-runtime-adoption.md): SDKランタイム機能の段階採用
 
 Skillの実行結果は合否根拠ではない。合否は入力ファイルと決定論的ゲートだけが決める。
