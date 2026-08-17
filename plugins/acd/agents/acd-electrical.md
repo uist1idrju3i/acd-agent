@@ -11,7 +11,7 @@ tools:
   - grep
   - glob
   - task_tracker
-  - task
+  - task_tool_set
 skills:
   - acd-contracts
   - acd-placement-search

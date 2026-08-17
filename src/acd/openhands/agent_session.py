@@ -98,6 +98,7 @@ def build_acd_conversation(
 
 
 def _hook_commands(hook_config: HookConfig) -> dict[str, str]:
+    """Return named hook commands from a hook configuration."""
     commands: dict[str, str] = {}
     for matchers in (hook_config.pre_tool_use, hook_config.stop):
         for matcher in matchers:
@@ -111,8 +112,9 @@ def validate_acd_agent_hooks(
     agent_dir: Path,
     hook_config: HookConfig,
 ) -> list[AgentDefinition]:
+    """Load ACD agent definitions and enforce the required hook commands."""
     if not agent_dir.is_dir():
-        return []
+        raise FileNotFoundError(f"ACD agent directory not found: {agent_dir}")
     required = {
         "protect-derived-projections",
         "require-order-evidence",
@@ -131,6 +133,8 @@ def validate_acd_agent_hooks(
         ):
             raise ValueError(f"agent definition hooks drifted: {agent_path}")
         definitions.append(definition)
+    if not definitions:
+        raise FileNotFoundError(f"no ACD agent definitions found: {agent_dir}")
     return definitions
 
 

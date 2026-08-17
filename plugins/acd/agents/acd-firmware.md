@@ -8,7 +8,7 @@ tools:
   - grep
   - glob
   - task_tracker
-  - task
+  - task_tool_set
 skills:
   - acd-firmware-esp32c3
   - acd-design-rationale
