@@ -12,6 +12,7 @@
 | [`architecture.md`](architecture.md) | パッケージ、plugin、責務境界 | 規範 |
 | [`design-flow.md`](design-flow.md) | 電気・機械・FWレーン | 規範 |
 | [`openhands-integration.md`](openhands-integration.md) | SDK統合面と未実装境界 | 規範 |
+| [`openhands-sdk-adoption.md`](openhands-sdk-adoption.md) | SDK活用分析と段階計画 | 計画 |
 | [`roadmap.md`](roadmap.md) | 近い順の実装計画と将来構想 | 計画 |
 | [`implementation-plan.md`](implementation-plan.md) | 直近作業の分解 | 計画 |
 | [`installation.md`](installation.md) | 現行ツールチェーンの導入 | 運用 |
@@ -43,5 +44,10 @@
 - [`ADR-0009-openhands-delegation-and-skills.md`](adr/ADR-0009-openhands-delegation-and-skills.md): Skill委譲
 - [`ADR-0010-plugin-first-openhands-integration.md`](adr/ADR-0010-plugin-first-openhands-integration.md): plugin-first
 - [`ADR-0011-search-results-as-design-input.md`](adr/ADR-0011-search-results-as-design-input.md): 探索結果の設計入力化
+- [`ADR-0012-design-rationale-records.md`](adr/ADR-0012-design-rationale-records.md): 設計根拠record
+- [`ADR-0012-silkscreen-observation-boundary.md`](adr/ADR-0012-silkscreen-observation-boundary.md): silkscreen観測範囲とevidence要約
+- [`ADR-0013-openhands-sdk-runtime-adoption.md`](adr/ADR-0013-openhands-sdk-runtime-adoption.md): SDKランタイム機能の段階採用
+- [`ADR-0014-sdk-tool-definitions.md`](adr/ADR-0014-sdk-tool-definitions.md): SDK ToolDefinitionへの一本化
+- [`ADR-0015-docker-workspace-gate-execution.md`](adr/ADR-0015-docker-workspace-gate-execution.md): Docker workspaceによるゲート実行
 
 Skillの実行結果は合否根拠ではない。合否は入力ファイルと決定論的ゲートだけが決める。

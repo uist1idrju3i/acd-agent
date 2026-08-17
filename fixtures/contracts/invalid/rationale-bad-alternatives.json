@@ -1,0 +1,22 @@
+{
+  "graph_id": "test",
+  "revision": "r1",
+  "records": [
+    {
+      "rationale_id": "rat-001",
+      "decision_kind": "part_selection",
+      "subject_nodes": ["comp.u1"],
+      "subject_attrs": ["mpn"],
+      "subject_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "decision": "Use U1",
+      "justification": "Meets the electrical requirements.",
+      "rejected_alternatives": [{"option": "U2", "reason": "Unavailable"}],
+      "no_alternatives_reason": "Also no alternatives.",
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2025-01-01T00:00:00Z"
+      },
+      "target_revision": "r1"
+    }
+  ]
+}

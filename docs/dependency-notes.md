@@ -1,3 +1,12 @@
+SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは
+`hooks.json`から読み込まれ、stdinのHookEvent JSONを受け取る。exit code 0は許可、
+2はブロック、その他の非0は非ブロッキングエラーである。SessionStartとPostToolUseは
+ブロックできないため常に0で返す。
+
+SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展開しない。
+そのため`${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}`を使い、別配置時だけ
+`ACD_PLUGIN_ROOT`で上書きする。git不能、policy欠落、unknown、Evidence不一致は
+停止側へ集約し、gate実行または変更をcommitしてからEvidenceを生成する。
 # 依存関係ノート
 
 > ステータス: Draft  
@@ -13,12 +22,13 @@
 | 依存 | 役割・ACD内の使用箇所 | 現行採用版 | 固定方法 | 一次情報 | 更新時に確認する観点 | 更新する関連文書 |
 |---|---|---:|---|---|---|---|
 | OpenHands Software Agent SDK | subagent、視覚投影、Skill、plugin、workspace shell、`EventLog`等を使用 | 1.42.1 | `vendor/software-agent-sdk`のsubmodule SHA、`uv.lock` | [v1.42.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.0)、[v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1)、[commit比較](https://github.com/OpenHands/software-agent-sdk/compare/v1.41.0...v1.42.1) | ACDのimport API、LLM設定、plugin／agent-serverの挙動 | [`openhands-integration.md`](openhands-integration.md)、必要時は [`ADR-0003`](adr/ADR-0003-sdk-feature-adoption.md) |
+| OpenHands SDK hooks | `HookConfig`、`HookMatcher`、command hookでagent経路のfail-closed境界を実装 | 1.42.1 | `plugins/acd/hooks/hooks.json`、SDK submodule SHA | [hooks API](https://github.com/OpenHands/software-agent-sdk/tree/v1.42.1/openhands-sdk/openhands/sdk/hooks) | HookEvent、exit code 2、command環境変数、ブロック可能なevent | [`ADR-0013`](adr/ADR-0013-openhands-sdk-runtime-adoption.md)、[`architecture.md`](architecture.md) |
 | pydantic | ACDの契約モデル、`Field`、validation | 2.13.4 | `uv.lock`。範囲指定は各packageの`pyproject.toml` | [releases](https://github.com/pydantic/pydantic/releases)、[migration guide](https://docs.pydantic.dev/latest/migration/) | model validation、serialization、strict mode、既定値と非推奨 | [`architecture.md`](architecture.md)、[`installation.md`](installation.md) |
 | build123d | `acd_adapter_cad`の投影と機械ゲートでCAD形状生成・STEP／3MF出力 | 0.11.1 | `uv.lock`、`pyproject.toml`で完全固定 | [releases](https://github.com/gumyr/build123d/releases) | kernel互換性、形状演算、exportの決定性、測定値とhash | [`tool-capability-probes.md`](tool-capability-probes.md)、[`design-flow.md`](design-flow.md) |
 | cadquery-ocp | build123dが使用するOCP CAD kernel。`acd_adapter_cad`で使用し、`acd_tools.probe`で版を取得 | 7.9.3.1.1 | `uv.lock`、`pyproject.toml`で完全固定 | [releases](https://github.com/CadQuery/OCP/releases) | Python／OCP ABI、STEP／3MF出力、kernelの幾何演算 | [`tool-capability-probes.md`](tool-capability-probes.md)、[`research/prior-art.md`](research/prior-art.md) |
 | sexpdata | `acd_core.sexpr`、KiCad adapterでS-expressionの読み書き | 1.0.2 | `uv.lock`、adapterの範囲指定 | [PyPI](https://pypi.org/project/sexpdata/) | parse／emitの型、quote、KiCad／Specctra形式の互換性 | [`research/tool-selection.md`](research/tool-selection.md)、[`installation.md`](installation.md) |
 | gerbonara | KiCad adapterでGerber／Excellonを生成・再読込・検証 | 1.6.3 | `uv.lock`、adapterの範囲指定 | [PyPI](https://pypi.org/project/gerbonara/)、[repository](https://github.com/jaseg/gerbonara) | Gerber／Excellon parse、M02、座標・単位、fail-closed検証 | [`research/tool-selection.md`](research/tool-selection.md)、[`installation.md`](installation.md) |
-| OpenHands SDK ToolDefinition | `acd-tools`の決定論的入口をAction、Observation、Executorとして公開 | 1.42.1 | `vendor/software-agent-sdk`、`uv.lock` | [v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1) | `ToolDefinition`、`ToolAnnotations`、`register_tool`、Action schema、冪等登録 | [`openhands-integration.md`](openhands-integration.md)、[`ADR-0013`](adr/ADR-0013-sdk-tool-definitions.md) |
+| OpenHands SDK ToolDefinition | `acd-tools`の決定論的入口をAction、Observation、Executorとして公開 | 1.42.1 | `vendor/software-agent-sdk`、`uv.lock` | [v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1) | `ToolDefinition`、`ToolAnnotations`、`register_tool`、Action schema、冪等登録 | [`openhands-integration.md`](openhands-integration.md)、[`ADR-0014`](adr/ADR-0014-sdk-tool-definitions.md) |
 | pytest | `packages/`以下の全テストを実行するCI・開発用test runner | 9.1.1 | `uv.lock`、dev dependencyの範囲指定 | [releases](https://github.com/pytest-dev/pytest/releases)、[CHANGELOG](https://docs.pytest.org/en/stable/changelog.html) | collection、fixture、warning、plugin API、Python 3.12互換性 | [`installation.md`](installation.md) |
 | ruff | CIのlint。`pyproject.toml`のE/F/W/I/UP/B/SIM/RUFを検査 | 0.16.3 | `uv.lock`、dev dependencyの範囲指定 | [0.16.3 release notes](https://github.com/astral-sh/ruff/releases/tag/0.16.3) | ルール追加・変更、fix、出力形式、Python／Markdown解析 | [`AGENTS.md`](../AGENTS.md)、[`installation.md`](installation.md) |
 | pyright | CIのstrict型検査。`packages`、`scripts`、`fixtures`を検査 | 1.1.411 | `uv.lock`、dev dependencyの範囲指定 | [releases](https://github.com/microsoft/pyright/releases) | 型推論、strict diagnostics、Python 3.12、stub変更 | [`AGENTS.md`](../AGENTS.md)、[`installation.md`](installation.md) |
@@ -62,7 +72,6 @@ OpenHands SDK v1.42.1の`ToolDefinition`、`Action`、`Observation`、
 `acd_tools.sdk_tools.register_acd_tools()`から明示的に登録する。登録はSDK registryの
 重複登録挙動を踏まえて冪等にし、import副作用を持たせない。SDKのexample実装を写経せず、
 vendorのMIT Licenseに基づく帰属が必要な派生コードも追加していない。
-
 ### Docker workspace API
 
 OpenHands SDK v1.42.1の一次情報として、次のvendor sourceを確認した。
@@ -82,3 +91,14 @@ forwardする。
 docker CLI側は`docker image inspect --format`でRepoDigestsを優先し、ローカルbuild
 でRepoDigestsが無い場合は`.Id`のimage IDを使う。いずれもsha256 digestが得られ
 なければ実行しない。Docker daemonが利用できない場合も同じfail-closedである。
+
+### OpenHands SDK hooks
+
+SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは
+`hooks.json`から読み込まれ、stdinのHookEvent JSONを受け取る。exit code 0は許可、
+2はブロック、その他の非0は非ブロッキングエラーである。SessionStartとPostToolUseは
+ブロックできないため常に0で返す。
+
+SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展開しない。
+そのため`${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}`を使い、別配置時だけ
+`ACD_PLUGIN_ROOT`で上書きする。policy欠落、unknown、Evidence不一致は停止側へ集約する。

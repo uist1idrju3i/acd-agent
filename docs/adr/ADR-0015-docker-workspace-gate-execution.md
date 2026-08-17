@@ -1,4 +1,4 @@
-# ADR-0014: DockerWorkspaceによるゲート実行
+# ADR-0015: DockerWorkspaceによるゲート実行
 
 > ステータス: Accepted
 > 日付: 2026-08-18

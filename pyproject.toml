@@ -44,7 +44,7 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts"]
+src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts", "plugins/acd/hooks/scripts"]
 extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
@@ -93,6 +93,9 @@ executionEnvironments = [
         "scripts",
         "vendor/software-agent-sdk/openhands-sdk",
         "vendor/software-agent-sdk/openhands-workspace",
+    ] },
+    { root = "plugins/acd/hooks", extraPaths = [
+        "plugins/acd/hooks/scripts",
     ] },
 ]
 

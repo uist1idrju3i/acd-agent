@@ -1,7 +1,7 @@
 # ACD — Autonomous Computer Design
 
 > ステータス: 開発中。投影・決定論的ゲート・plugin委譲・SDK tools公開まで実装済みです。
-> 実機測定、発注、silkscreen再配置ループは未実装です。
+> 実機測定、発注、routing後のvia mask開口を含む反復は未実装です。
 
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
 AIファーストCADです。入力ファイルとgitを設計の正とし、AIとSkillは候補を提案し、
@@ -38,10 +38,9 @@ fabrication出力
 独立再読込
 ```
 
-その後のsilkscreen可読性ゲートは、Skillが投影前のlibrary由来geometryを使い、
-ゲートが生成後Gerber実測を使う判定基準の不一致によりfail-closedとなります。
-これは既知の未解決課題であり、今回の実装で閾値・検査・期待値を緩めていません。
-解決方向は投影→実測→再配置の反復ループですが、未実装です。
+silkscreen可読性ゲートまで含めて通過します。F面ラベルは、文字寸法の上界モデルで
+解が存在しなかったため高さを1.5mmから1.0mmへ変更し、`RESET`は`RST`へ変更しました。
+いずれも閾値や検査条件の緩和ではなく、実測に基づく設計入力の修正です。
 
 ## 構成
 
@@ -53,7 +52,7 @@ plugins/acd/
 ├── skills/       # 7つの探索・FW・レビュー手法
 ├── agents/       # 電気、機械、FW、レビュー
 ├── commands/     # /acd:gates
-└── hooks/        # SDK fail-closed hooks
+└── hooks/        # SDK fail-closed境界と文書検証
 ```
 
 Python側は契約、投影、adapter、決定論的ゲートに限定する。OpenHands pluginは
@@ -69,9 +68,9 @@ uv run python scripts/run_gd1_pipeline.py
 uv run python scripts/probe_tools.py
 ```
 
-基板pipelineのsilkscreen fail-closedは現在の既知状態です。詳細は
-[`docs/golden-design-1.md`](docs/golden-design-1.md)、
-[`docs/adr/ADR-0011-search-results-as-design-input.md`](docs/adr/ADR-0011-search-results-as-design-input.md)
+基板pipelineはsilkscreenゲートまで通過します。配置探索の出所と実測境界は
+[`docs/adr/ADR-0011-search-results-as-design-input.md`](docs/adr/ADR-0011-search-results-as-design-input.md)、
+[`docs/adr/ADR-0012-silkscreen-observation-boundary.md`](docs/adr/ADR-0012-silkscreen-observation-boundary.md)
 を参照してください。
 
 ゲートだけをDocker workspaceで実行する場合（imageは各自build）:

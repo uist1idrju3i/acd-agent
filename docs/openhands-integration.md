@@ -21,6 +21,8 @@ plugins/acd/
 ├── .plugin/plugin.json
 ├── commands/gates.md
 ├── hooks/
+│   ├── hooks.json
+│   └── scripts/
 ├── agents/
 │   ├── acd-electrical.md
 │   ├── acd-mechanical.md
@@ -46,7 +48,16 @@ TaskTriggerになるため、現在の自然言語起点の任意利用には適
 Skillは作業手法と探索器を提供するが、結果は合否Evidenceではない。配置・シルク探索を
 fixture生成で利用する場合も、ACD本体からSkillのPython moduleをimportせず、CLIを
 subprocess実行して結果を設計入力へ確定する。scriptのsha256とSkill名をprovenanceへ
-記録し、入力不備や実行失敗はfail-closedとする。
+記録し、入力不備や実行失敗はfail-closedとする。silkscreen探索では、決定論的ゲートが
+Gerber実測の幾何・判定条件・文字寸法上界モデルをcontextとして渡し、Skillは自前の
+閾値や文字寸法係数を持たず、受け取った条件だけで候補を生成する。
+
+設計入力の編集後は実装済みの`PostToolUse` hookが`file_editor`に対して
+`uv run python scripts/check_rationale.py --if-present --warn-only`を実行し、
+rationale不足を警告する。`Stop` hookは
+`uv run python scripts/check_rationale.py --if-present`を実行する。exit code 2の不足・
+parse失敗・staleは停止をブロックする。Conversationの永続ログはconversation event
+referenceとして参照するだけで、rationaleや合否の権威ではない。
 
 ## AgentDefinition
 
@@ -99,6 +110,19 @@ image向けである。
 workspaceを起動しない。repoを`volumes`でmountし、`ACD_CONTAINER_IMAGE_DIGEST`を
 `forward_env`で渡す。Dockerはdeterminismを保証しないため、既存のhash、
 timestamp正規化、独立再読込、決定論的ゲートは維持する。
+
+## hook境界
+
+`plugins/acd/hooks/`はSDK command hookとして実装済みである。投影保護はpathフィールド
+だけを部分木解決して判定し、本文中の文字列は対象にしない。orderガードはtransmission
+commandかつ製造成果物への言及、または明示的order commandの場合だけ作動し、
+`required_evidence_ids`ごとに現revisionの`supports_pass()`を要求する。通常のsource push
+や文書取得は対象外である。
+
+Stopガードはorderガードより弱い。dirtyな設計入力すべてより新しいmtimeのvalidかつ
+unknownなしEvidenceがある場合だけ終了を許可するが、mtimeはpassの根拠ではない。
+`supports_pass()`はcommit済みrevision一致を要求し続ける。基板fabrication側は現状
+Evidenceを生成しないため、該当成果物の送信はdenyされる。
 
 ## 未実装・将来
 

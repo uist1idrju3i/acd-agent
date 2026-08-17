@@ -11,7 +11,8 @@
 
 設計グラフとプロファイルはPydantic契約で検証する入力ファイルであり、git commitと
 ともに設計の正である。KiCad project、Gerber/drill、BOM/CPL、STEP/3MF、evidenceは
-入力から生成する派生投影であり、投影結果を入力へ逆流させない。
+入力から生成する派生投影であり、投影結果を入力へ逆流させない。設計判断の理由は
+typed `rationale.json`へ記録し、graphの必須属性に対するcoverageを決定論的に検査する。
 
 ```text
 入力ファイル / profiles
@@ -26,6 +27,12 @@ adapters/*（KiCad、FreeRouting、CAD）
         ↓
 生成物、独立再読込、evidence
 ```
+
+`rationale.json`はgraphと同じrevisionを対象にし、subject hash、要求、代替案、provenance
+を保持する。graphに要求nodeがある場合は`driving_requirements`、文書にだけ要求がある
+場合は`driving_requirement_refs`（文書パスと要求ID）を使う。stale、unknown、orphan、
+conflicting、missing、untraceableはfail-closedで停止する。
+rationaleのMarkdownはpipeline出力の派生レビュー投影であり、canonical inputではない。
 
 AIとSkillは探索・実装・所見を提案する。合否はACDの決定論的ゲートだけが判定する。
 ツール不在、入力不備、parse失敗、未実行、unknown、未検証はfail-closedとする。
@@ -103,11 +110,11 @@ MCP機構で再導入する。
 ゲートは生成後の成果物を独立parser・測定器で確認し、Skillの代理指標や自然文を
 合格根拠にしない。
 
-GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込
-まで進む一方、silkscreen可読性ゲートは既知のgeometry判定不一致によりfail-closedで
-停止する。この既知課題の条件差と解決方向は
-[`adr/ADR-0011-search-results-as-design-input.md`](adr/ADR-0011-search-results-as-design-input.md)
-に記録する。筐体pipelineは決定論的CADゲートを通過する。
+GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
+silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして
+Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上界モデルもゲート側を単一の
+出所とし、候補bboxと予約領域へcontext経由で伝える。筐体pipelineも決定論的CADゲートを
+通過する。
 
 ## Docker workspace境界
 
@@ -126,4 +133,29 @@ Dockerはdeterminismを保証しないため、timestamp、filesystem、外部�
 
 SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、Conversationを使った
 実行経路、実機測定、価格・在庫取得、自働発注は未実装であり、将来構想である。
+
+## hook境界
+
+`plugins/acd/hooks/`はSDKのhook契約を使い、agent経路だけで安全境界を追加する。
+派生投影（`out/`、`evidence/`、製造出力）への直接書き込み、ゲート未通過の発注・
+外部送信、設計入力変更後の未検証終了をdenyする。保護部分木に触れていない操作は
+停止させず、保護対象への言及を読み取り専用と確定できない場合はfail-closedにする。
+hookは既存のPydantic契約と決定論的ゲートを呼ぶだけで、新しい閾値を持たない。
+SDK hookのDENYはagent経路にしか効かないため、CI側の検証も二重に保持する。
+
+発注・外部送信のorderガードは、(1) transmission commandがリポジトリ内の`out/`または
+policyのartifact globに一致する製造成果物に触れる、または(2)明示的なorder command
+である場合だけEvidenceを要求する。コマンドは実行ファイルのtoken単位で検出し、
+URLは成果物として扱わないため、通常の`git push`、文書取得の`curl`、供給者データの
+取得は対象外である。policyのEvidence globで解決した各ファイルをCLIへ複数渡し、
+`required_evidence_ids`の各IDについて現revisionに一致する`supports_pass()`が必要である。
+GD1基板pipelineは現状Evidenceレコードを生成しないため、基板fabrication成果物の送信は
+fail-closedになる。
+
+Stopガードはorderガードより弱く、order policyのEvidence globで解決したファイルのうち、
+dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが存在する場合に限り
+終了を許可する。mtimeの新しさはpass Evidenceではなく、`--valid-only`はStopガード専用
+の新しさ確認である。`supports_pass()`は引き続きcommit済みrevision一致を要求する。
+該当しない場合は原因となった設計入力パスをreasonに列挙する。
+
 これらを現行ACDの採用済み機能や合否根拠として扱わない。

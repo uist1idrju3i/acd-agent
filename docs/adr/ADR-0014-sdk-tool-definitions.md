@@ -1,4 +1,4 @@
-# ADR-0013: SDK ToolDefinitionによるACD入口の一本化
+# ADR-0014: SDK ToolDefinitionによるACD入口の一本化
 
 - **状態**: Accepted
 - **日付**: 2026-08-18
@@ -42,4 +42,4 @@ ADR-0003とADR-0010は過去時点の決定として保存する。本ADRが現�
 
 P5の任意Docker workspace実行は、既存の決定論的pipelineとゲートを実行する場所を
 選ぶ機能であり、本ADRのToolDefinition契約、Evidence意味、fail-closed境界を変更
-しない。詳細は[`ADR-0014`](ADR-0014-docker-workspace-gate-execution.md)に記録する。
+しない。詳細は[`ADR-0015`](ADR-0015-docker-workspace-gate-execution.md)に記録する。

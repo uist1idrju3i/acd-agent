@@ -81,9 +81,9 @@ uv run python scripts/probe_tools.py
 git diff --check
 ```
 
-GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込まで
-進行するが、現状はsilkscreen可読性ゲートで既知のfail-closedとなる。この失敗は
-インストール不良を意味しない。ゲートを緩めず、状態をそのまま記録する。
+GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
+silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを
+緩めずfail-closedとして状態をそのまま記録する。
 
 ## トラブル時
 

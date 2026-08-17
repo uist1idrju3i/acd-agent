@@ -9,6 +9,7 @@ closed downstream (ADR-0004).
 from __future__ import annotations
 
 # ruff: noqa: E501,RUF100,F405
+import argparse
 import json
 import subprocess
 import sys
@@ -18,8 +19,11 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from acd_core.rationale import subject_hash_for
 from acd_schema.design_graph import AttrValue, DesignGraph, GraphNode
+from acd_schema.rationale import RationaleDocument
 
+from ..placement_evidence import summarize_placement_evidence
 from .components import (
     BOARD_ATTRS,
     FAB_PROFILE_FETCHED_AT,
@@ -139,6 +143,13 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
             {"board": asdict(projection.model), "lane": asdict(silk_lane)},
             directory_path / "silkscreen.json",
         )
+        evidence_archive = REPO_ROOT / "out" / "gd1-fixture-evidence"
+        evidence_archive.mkdir(parents=True, exist_ok=True)
+        evidence_archive.joinpath("silkscreen.json").write_text(
+            json.dumps(silk_result, ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n",
+            encoding="utf-8",
+        )
         resolved_texts = silk_result.get("texts")
         evidence = silk_result.get("placement_evidence")
         if not isinstance(resolved_texts, list) or not isinstance(evidence, list):
@@ -157,12 +168,19 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
                         "x_mm": resolved["x_mm"],
                         "y_mm": resolved["y_mm"],
                         "rotation_deg": resolved["rotation_deg"],
+                        "placement_rotation_deg": resolved["rotation_deg"],
                         "placement_source": "acd-silkscreen-placement",
                         "placement_source_ref": f"plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py:{sha256_of(SILK_SKILL)}",
                         "placement_evidence": json.dumps(
-                            evidence_by_id.get(node.id, {}),
+                            summarize_placement_evidence(evidence_by_id[node.id]),
                             ensure_ascii=False,
                             sort_keys=True,
+                        ),
+                        "placement_evidence_input_sha256": sha256_of(
+                            directory_path / "silkscreen.input.json"
+                        ),
+                        "placement_evidence_output_sha256": sha256_of(
+                            evidence_archive / "silkscreen.json"
                         ),
                     }
                 )
@@ -501,8 +519,82 @@ def build_graph() -> DesignGraph:
     return _resolve_skill_inputs(DesignGraph(graph_id=graph_id, revision=revision, nodes=nodes))
 
 
+def check_rationale_hashes(
+    graph: DesignGraph,
+    rationale_path: Path,
+    *,
+    refresh: bool,
+) -> int:
+    if not rationale_path.is_file():
+        return 0
+    try:
+        document = RationaleDocument.model_validate(
+            json.loads(rationale_path.read_text(encoding="utf-8"))
+        )
+    except Exception as exc:
+        print(f"rationale validation failed; graph was not written: {exc}", file=sys.stderr)
+        return 2
+    stale: list[tuple[str, str]] = []
+    refreshed = []
+    for record in document.records:
+        try:
+            expected_hash = subject_hash_for(
+                graph, record.subject_nodes, record.subject_attrs
+            )
+        except KeyError as exc:
+            stale.append((record.rationale_id, str(exc)))
+            continue
+        if record.subject_hash != expected_hash or record.target_revision != graph.revision:
+            subjects = ", ".join(
+                f"({node_id}, {attr})"
+                for node_id in record.subject_nodes
+                for attr in record.subject_attrs
+            )
+            stale.append((record.rationale_id, subjects))
+            refreshed.append(
+                record.model_copy(
+                    update={
+                        "subject_hash": expected_hash,
+                        "target_revision": graph.revision,
+                    }
+                )
+            )
+    if stale and not refresh:
+        print("rationale hashes are stale; graph was not written:", file=sys.stderr)
+        for rationale_id, subjects in stale:
+            print(f"  {rationale_id}: {subjects}", file=sys.stderr)
+        print(
+            "Re-record the rationale or pass --refresh-rationale-hashes explicitly.",
+            file=sys.stderr,
+        )
+        return 2
+    if stale and refresh:
+        refreshed_by_id = {record.rationale_id: record for record in refreshed}
+        updated_records = [
+            refreshed_by_id.get(record.rationale_id, record)
+            for record in document.records
+        ]
+        updated_document = document.model_copy(update={"records": updated_records})
+        rationale_path.write_text(
+            updated_document.model_dump_json(indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"refreshed rationale hashes in {rationale_path}")
+    return 0
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--refresh-rationale-hashes", action="store_true")
+    args = parser.parse_args()
     graph = build_graph()
+    rationale_status = check_rationale_hashes(
+        graph,
+        FIXTURE_DIR / "rationale.json",
+        refresh=args.refresh_rationale_hashes,
+    )
+    if rationale_status != 0:
+        return rationale_status
     payload = graph.model_dump(mode="json")
     out = FIXTURE_DIR / "graph.json"
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
