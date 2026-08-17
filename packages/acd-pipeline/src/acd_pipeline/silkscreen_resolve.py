@@ -25,6 +25,7 @@ from acd_schema.design_graph import DesignGraph
 
 from .gd1_board import placements_from_graph
 from .gd1_fixture.components import REPO_ROOT, sha256_of
+from .placement_evidence import summarize_placement_evidence
 
 SILK_SKILL = REPO_ROOT / (
     "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
@@ -161,6 +162,15 @@ def resolve_silkscreen(
             skill_result = cast(
                 dict[str, Any], json.loads(output_path.read_text(encoding="utf-8"))
             )
+            skill_input_sha256 = sha256_of(input_path)
+        full_evidence_path = (
+            out_dir / f"iteration-{iteration}" / "silkscreen-skill-result.json"
+        )
+        full_evidence_path.write_text(
+            json.dumps(skill_result, ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n",
+            encoding="utf-8",
+        )
         raw_candidates = skill_result.get("candidates")
         if not isinstance(raw_candidates, list):
             raise ValueError("silkscreen context Skill output is missing candidates")
@@ -173,11 +183,15 @@ def resolve_silkscreen(
             for item in candidates
             if item.get("accepted_position_mm") is not None
         }
-        failures = [
+        failures: list[dict[str, object]] = [
             {
                 "node_id": item.get("node_id"),
                 "rejection_counts": _rejection_counts(item.get("rejected_candidates")),
-                "rejected_candidates": item.get("rejected_candidates", []),
+                "rejection_examples": (
+                    cast(list[object], item.get("rejected_candidates", []))[:5]
+                    if isinstance(item.get("rejected_candidates"), list)
+                    else []
+                ),
             }
             for item in candidates
             if item.get("accepted_position_mm") is None
@@ -201,6 +215,7 @@ def resolve_silkscreen(
             item = accepted.get(node.id)
             if node.kind == "mechanical.silk_text" and item is not None:
                 attrs = dict(node.attrs)
+                evidence_summary = summarize_placement_evidence(item)
                 raw_position: Any = item["accepted_position_mm"]
                 if not isinstance(raw_position, list):
                     raise ValueError("Skill candidate position is malformed")
@@ -223,7 +238,13 @@ def resolve_silkscreen(
                             "plugins/acd/skills/acd-silkscreen-placement/scripts/"
                             f"silkscreen_search.py:sha256:{sha256_of(SILK_SKILL)}"
                         ),
-                        "placement_evidence": json.dumps(item, sort_keys=True),
+                        "placement_evidence": json.dumps(
+                            evidence_summary, ensure_ascii=False, sort_keys=True
+                        ),
+                        "placement_evidence_input_sha256": skill_input_sha256,
+                        "placement_evidence_output_sha256": sha256_of(
+                            full_evidence_path
+                        ),
                     }
                 )
                 updated_nodes.append(node.model_copy(update={"attrs": attrs}))

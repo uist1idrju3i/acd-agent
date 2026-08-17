@@ -102,11 +102,11 @@ ToolEnvelope情報を含む構造化JSONで、入力不備や例外はfail-close
 ゲートは生成後の成果物を独立parser・測定器で確認し、Skillの代理指標や自然文を
 合格根拠にしない。
 
-GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込
-まで進む一方、silkscreen可読性ゲートは既知のgeometry判定不一致によりfail-closedで
-停止する。この既知課題の条件差と解決方向は
-[`adr/ADR-0011-search-results-as-design-input.md`](adr/ADR-0011-search-results-as-design-input.md)
-に記録する。筐体pipelineは決定論的CADゲートを通過する。
+GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
+silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして
+Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上界モデルもゲート側を単一の
+出所とし、候補bboxと予約領域へcontext経由で伝える。筐体pipelineも決定論的CADゲートを
+通過する。
 
 ## 実装していない境界
 

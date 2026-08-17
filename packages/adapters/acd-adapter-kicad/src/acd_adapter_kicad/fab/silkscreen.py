@@ -1,5 +1,5 @@
 """Independent manufacturing measurements, DFM checks, and JLCPCB exports."""
-# pyright: reportUnusedImport=false,reportUnknownArgumentType=false,reportUnknownVariableType=false,reportUnknownMemberType=false
+# pyright: reportUnusedImport=false,reportUnknownVariableType=false,reportUnknownMemberType=false
 # ruff: noqa
 
 from __future__ import annotations
@@ -77,6 +77,14 @@ class SilkscreenGateError(FabOutputError):
 
 def _silk_side(layer: str) -> str:
     return "F.Cu" if layer.startswith("F.") else "B.Cu"
+
+
+def _mask_layer_for_silk(layer: str) -> str:
+    if layer == "F.SilkS":
+        return "F.Mask"
+    if layer == "B.SilkS":
+        return "B.Mask"
+    raise ValueError(f"unsupported silkscreen layer {layer!r}")
 
 
 def _same_side(silk_layer: str, copper_layers: tuple[str, ...]) -> bool:
@@ -237,10 +245,7 @@ def _text_attribution_overflow(
     measured_length_mm: float,
     measured_height_mm: float,
 ) -> tuple[dict[str, object], ...]:
-    estimated_width, _ = _text_model_size(
-        text.text, text.height_mm, text.stroke_width_mm
-    )
-    _, estimated_height = _text_model_size(
+    estimated_width, estimated_height = _text_model_size(
         text.text, text.height_mm, text.stroke_width_mm
     )
     overflows: list[dict[str, object]] = []
@@ -483,6 +488,10 @@ def measure_silkscreen(
             text.stroke_width_mm,
             text.rotation_deg,
         )
+        target_center_x = (target[0] + target[2]) / 2.0
+        target_center_y = (target[1] + target[3]) / 2.0
+        target_half_width = (target[2] - target[0]) / 2.0
+        target_half_height = (target[3] - target[1]) / 2.0
         nearby = [
             item
             for item in all_silk
@@ -491,6 +500,10 @@ def measure_silkscreen(
                 item.stroke_width_mm is None or item.stroke_width_mm + 1e-6 >= text.stroke_width_mm
             )
             and _bbox_overlap_area(item.bbox_mm, target) > 0
+            and abs((item.bbox_mm[0] + item.bbox_mm[2]) / 2.0 - target_center_x)
+            <= target_half_width
+            and abs((item.bbox_mm[1] + item.bbox_mm[3]) / 2.0 - target_center_y)
+            <= target_half_height
         ]
         bbox = _union_bbox(nearby)
         declared_objects.extend(nearby)
@@ -629,7 +642,7 @@ def measure_silkscreen(
         {"silk_bbox_mm": list(item.bbox_mm), "mask_bbox_mm": list(mask.bbox_mm)}
         for item in declared_objects
         for mask in masks
-        if item.layer.replace("SilkS", "Mask") == mask.layer
+        if _mask_layer_for_silk(item.layer) == mask.layer
         and _silk_objects_overlap(item, mask)
     ]
     outside = [
@@ -652,10 +665,11 @@ def measure_silkscreen(
     ]
     declared_ids = {id(item) for item in declared_objects}
     non_declared_silk = [item for item in all_silk if id(item) not in declared_ids]
+    graphic_node_ids = {graphic.node_id for graphic in declarations.graphics}
     fixed_declared_silk = [
         item
         for entry, objects in declared_groups
-        if str(entry["node_id"]).startswith("mechanical.silk_graphic.")
+        if str(entry["node_id"]) in graphic_node_ids
         for item in objects
     ]
     body_overlaps: list[dict[str, object]] = []
@@ -795,7 +809,7 @@ def measure_silkscreen(
                             "nearest_distance_mm": nearest_distance,
                         }
                     )
-    attribution_overflows = [
+    attribution_overflows: list[dict[str, object]] = [
         {
             "node_id": entry["node_id"],
             **overflow,
@@ -930,7 +944,10 @@ def measure_silkscreen(
         "object_type_counts": dict(sorted(type_counts.items())),
         "recognized_object_count": len(all_silk),
         "declared_elements": declared,
-        "placement_evidence": [dict(item) for item in declarations.placement_evidence],
+        "placement_evidence": [
+            dict(item)
+            for item in declarations.placement_evidence
+        ],
         "pad_to_silk_overlap_count": len(pad_overlaps),
         "mask_to_silk_overlap_count": len(mask_overlaps),
         "board_edge_overflow_count": len(outside),
@@ -980,6 +997,6 @@ def build_silkscreen_context(
     context_value = result.get("silkscreen_context")
     if not isinstance(context_value, dict):
         raise FabOutputError("silkscreen context missing from measurement (fail-closed)")
-    context = dict(context_value)
+    context = dict(cast(Mapping[str, object], context_value))
     context["status"] = "measured_pass"
     return context
