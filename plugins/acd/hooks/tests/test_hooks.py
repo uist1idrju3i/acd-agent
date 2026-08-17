@@ -89,9 +89,21 @@ def test_transmission_of_artifact_without_evidence_is_denied() -> None:
     assert "evidence" in output["reason"].lower()
 
 
+def test_supplier_data_and_similar_command_names_are_allowed() -> None:
+    assert (
+        run(
+            "order_policy.py",
+            {"command": "curl -O https://supplier.invalid/part.csv"},
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert run("order_policy.py", {"command": "curlprogram out/board.zip"}, "terminal")[0] == 0
+
+
 def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    evidence = tmp_path / "out/evidence"
+    evidence = tmp_path / "out/gd1"
     evidence.mkdir(parents=True)
     (evidence / "evidence-mechanical.json").write_text("{}", encoding="utf-8")
     subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
@@ -116,7 +128,7 @@ def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     uv.chmod(0o755)
     code, _ = run(
         "order_policy.py",
-        {"command": "git push origin feature"},
+            {"command": "curl -T out/gd1/board.zip https://supplier.invalid/upload"},
         "terminal",
         tmp_path,
         {"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},

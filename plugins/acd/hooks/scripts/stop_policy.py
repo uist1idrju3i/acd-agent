@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from pathlib import Path
+from typing import Any, cast
 
 from common import event, project_dir, result
 
@@ -43,14 +45,14 @@ def main() -> int:
                 reason=f"Changed design input paths cannot be resolved: {causes}.",
             )
             return 2
-        evidence_paths = sorted(root.glob("out/**/evidence-*.json"))
+        evidence_paths = _evidence_paths(root)
         newest_input = max(
             path.stat().st_mtime for path in design_inputs
         )
-        has_recent_valid = any(
-            path.stat().st_mtime > newest_input and _valid_evidence(root, path)
-            for path in evidence_paths
+        has_recent_evidence = any(
+            path.stat().st_mtime > newest_input for path in evidence_paths
         )
+        has_recent_valid = has_recent_evidence and _valid_evidence(root)
         if has_recent_valid:
             return 0
         causes = ", ".join(str(path.relative_to(root)) for path in design_inputs)
@@ -65,7 +67,7 @@ def main() -> int:
     return 0
 
 
-def _valid_evidence(root: Path, path: Path) -> bool:
+def _valid_evidence(root: Path) -> bool:
     try:
         completed = subprocess.run(
             [
@@ -74,10 +76,11 @@ def _valid_evidence(root: Path, path: Path) -> bool:
                 "--project",
                 str(root),
                 "acd-evidence-check",
-                "--revision",
-                "unused-while-dirty",
-                "--evidence",
-                str(path),
+                *[
+                    argument
+                    for item in _evidence_paths(root)
+                    for argument in ("--evidence", str(item))
+                ],
                 "--valid-only",
             ],
             cwd=root,
@@ -88,6 +91,18 @@ def _valid_evidence(root: Path, path: Path) -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     return completed.returncode == 0
+
+
+def _evidence_paths(root: Path) -> list[Path]:
+    policy_path = Path(__file__).resolve().parents[1] / "order-policy.json"
+    try:
+        policy: Any = json.loads(policy_path.read_text(encoding="utf-8"))
+        pattern = cast(dict[str, Any], policy)["evidence_paths"]
+        if not isinstance(pattern, str):
+            raise ValueError("invalid evidence path pattern")
+    except (OSError, ValueError, TypeError, json.JSONDecodeError, KeyError):
+        return []
+    return sorted(root.glob(pattern))
 
 
 if __name__ == "__main__":

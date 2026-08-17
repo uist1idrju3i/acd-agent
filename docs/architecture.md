@@ -122,15 +122,19 @@ SecretRegistry連携、DockerWorkspace実行、agent-server運用、Conversation
 hookは既存のPydantic契約と決定論的ゲートを呼ぶだけで、新しい閾値を持たない。
 SDK hookのDENYはagent経路にしか効かないため、CI側の検証も二重に保持する。
 
-発注・外部送信のorderガードは、(1) transmission commandが製造成果物に触れる、
-または(2)明示的なorder commandである場合だけEvidenceを要求する。通常の`git push`
-や文書取得の`curl`は対象外である。要求Evidenceは`required_evidence_ids`で指定し、
-各IDについて現revisionに一致する`supports_pass()`が必要である。GD1基板pipelineは
-現状Evidenceレコードを生成しないため、基板fabrication成果物の送信はfail-closedになる。
+発注・外部送信のorderガードは、(1) transmission commandがリポジトリ内の`out/`または
+policyのartifact globに一致する製造成果物に触れる、または(2)明示的なorder command
+である場合だけEvidenceを要求する。コマンドは実行ファイルのtoken単位で検出し、
+URLは成果物として扱わないため、通常の`git push`、文書取得の`curl`、供給者データの
+取得は対象外である。policyのEvidence globで解決した各ファイルをCLIへ複数渡し、
+`required_evidence_ids`の各IDについて現revisionに一致する`supports_pass()`が必要である。
+GD1基板pipelineは現状Evidenceレコードを生成しないため、基板fabrication成果物の送信は
+fail-closedになる。
 
-Stopガードはorderガードより弱く、dirtyな設計入力より新しいvalidかつunknownなしの
-Evidenceがmtime上存在する場合に限り終了を許可する。mtimeの新しさはpass Evidence
-ではなく、`supports_pass()`は引き続きcommit済みrevision一致を要求する。該当しない
-場合は原因となった設計入力パスをreasonに列挙する。
+Stopガードはorderガードより弱く、order policyのEvidence globで解決したファイルのうち、
+dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが存在する場合に限り
+終了を許可する。mtimeの新しさはpass Evidenceではなく、`--valid-only`はStopガード専用
+の新しさ確認である。`supports_pass()`は引き続きcommit済みrevision一致を要求する。
+該当しない場合は原因となった設計入力パスをreasonに列挙する。
 
 これらを現行ACDの採用済み機能や合否根拠として扱わない。

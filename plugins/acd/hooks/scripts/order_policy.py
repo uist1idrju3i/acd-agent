@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 from fnmatch import fnmatch
 from pathlib import Path
@@ -20,7 +21,6 @@ def main() -> int:
         policy = json.loads(policy_path.read_text(encoding="utf-8"))
         transmission = policy["transmission_commands"]
         artifact_paths = policy["artifact_paths"]
-        artifact_suffixes = policy["artifact_suffixes"]
         order_commands = policy["order_commands"]
         evidence_pattern = policy["evidence_paths"]
         required_ids = policy["required_evidence_ids"]
@@ -29,7 +29,6 @@ def main() -> int:
             for value in (
                 transmission,
                 artifact_paths,
-                artifact_suffixes,
                 order_commands,
                 required_ids,
             )
@@ -37,7 +36,6 @@ def main() -> int:
             raise ValueError("invalid policy")
         transmission = cast(list[object], transmission)
         artifact_paths = cast(list[object], artifact_paths)
-        artifact_suffixes = cast(list[object], artifact_suffixes)
         order_commands = cast(list[object], order_commands)
         required_ids = cast(list[object], required_ids)
     except (OSError, ValueError, json.JSONDecodeError, KeyError, TypeError):
@@ -51,28 +49,26 @@ def main() -> int:
     )
     if not isinstance(command, str):
         return 0
-    is_order = any(isinstance(pattern, str) and pattern in command for pattern in order_commands)
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return 0
+    is_order = any(
+        isinstance(pattern, str) and pattern in command for pattern in order_commands
+    )
     is_transmission = any(
-        isinstance(pattern, str) and pattern in command for pattern in transmission
+        isinstance(pattern, str)
+        and any(Path(token).name == pattern for token in tokens)
+        for pattern in transmission
     )
     artifact = any(
-        isinstance(pattern, str) and fnmatch(token, pattern)
-        for token in command.split()
-        for pattern in artifact_paths
-    ) or any(
-        isinstance(suffix, str) and suffix in token.lower()
-        for token in command.split()
-        for suffix in artifact_suffixes
+        _is_artifact_token(token, root, artifact_paths) for token in tokens
     )
     if not is_order and not (is_transmission and artifact):
         return 0
     current = revision(root)
-    evidence = root / "out"
-    if (
-        current is None
-        or not evidence.exists()
-        or not any(root.glob(evidence_pattern))
-    ):
+    evidence = sorted(root.glob(evidence_pattern))
+    if current is None or not evidence:
         result(
             decision="deny",
             reason="A passing gate evidence for the current revision is required.",
@@ -94,8 +90,7 @@ def main() -> int:
                 "acd-evidence-check",
                 "--revision",
                 current,
-                "--evidence",
-                str(evidence),
+                *[argument for path in evidence for argument in ("--evidence", str(path))],
                 *required_args,
             ],
             cwd=root, text=True, capture_output=True, timeout=120, env=os.environ.copy(),
@@ -109,6 +104,32 @@ def main() -> int:
         )
         return 2
     return 0
+
+
+def _is_artifact_token(token: str, root: Path, patterns: list[object]) -> bool:
+    if token.startswith(("http://", "https://")):
+        return False
+    candidate = Path(token)
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    try:
+        relative = candidate.resolve(strict=False).relative_to(root.resolve())
+    except (OSError, ValueError):
+        return False
+    if relative.parts and relative.parts[0] == "out":
+        return True
+    relative_text = relative.as_posix()
+    return any(
+        isinstance(pattern, str)
+        and (
+            fnmatch(relative_text, pattern)
+            or (
+                "/**/" in pattern
+                and fnmatch(relative_text, pattern.replace("/**/", "/"))
+            )
+        )
+        for pattern in patterns
+    )
 
 
 if __name__ == "__main__":

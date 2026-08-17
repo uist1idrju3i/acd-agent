@@ -19,20 +19,6 @@
     "out/**/*.kicad_sch",
     "out/**/*.kicad_pro"
   ],
-  "artifact_suffixes": [
-    ".zip",
-    ".gbr",
-    ".ger",
-    ".drl",
-    ".xln",
-    ".csv",
-    ".step",
-    ".stp",
-    ".3mf",
-    ".kicad_pcb",
-    ".kicad_sch",
-    ".kicad_pro"
-  ],
   "order_commands": [
     "scripts/order",
     "supplier-order"
