@@ -6,9 +6,9 @@ import math
 
 import pytest
 
-from acd_adapter_kicad.placement import Placement
-from acd_core.board_model import FootprintShape, PadShape
-from acd_core.electrical import (
+from acd.adapters.kicad.placement import Placement
+from acd.core.board_model import FootprintShape, PadShape
+from acd.core.electrical import (
     BoardView,
     ComponentView,
     ElectricalLane,

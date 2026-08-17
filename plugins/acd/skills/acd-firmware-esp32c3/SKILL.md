@@ -56,4 +56,4 @@ when a tool is missing; tests that need the tools skip instead.
   used by Golden Design #1, sourced from the module datasheet. Extend it from
   the datasheet, not from guesses, and keep the citation.
 - When you find a firmware check that the ACD gates genuinely need, propose it
-  as an ADR before moving it into `packages/`.
+  as an ADR before moving it into `src/acd/`.

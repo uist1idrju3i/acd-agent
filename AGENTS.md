@@ -9,15 +9,21 @@ README、docs、Issue、PR、コミットメッセージは日本語、コード
 ## 構成
 
 ```text
-packages/
-├── acd-schema/
-├── acd-core/
-├── acd-pipeline/
-├── acd-tools/
+src/acd/
+├── schema/
+├── core/
+├── pipeline/
+├── openhands/
 └── adapters/
-    ├── acd-adapter-kicad/
-    ├── acd-adapter-freerouting/
-    └── acd-adapter-cad/
+    ├── kicad/
+    ├── freerouting/
+    └── cad/
+tests/
+├── schema/
+├── core/
+├── pipeline/
+├── openhands/
+└── adapters/
 plugins/acd/
 ├── skills/
 ├── agents/

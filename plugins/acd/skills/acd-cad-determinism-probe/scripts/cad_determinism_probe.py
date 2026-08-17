@@ -1,7 +1,7 @@
 """Measure CAD export determinism for STEP and 3MF.
 
 The measurement re-exports the same solid twice, hashes the raw bytes, and
-hashes the normalized bytes produced by ``acd_core.cad_normalize``. It records
+hashes the normalized bytes produced by ``acd.core.cad_normalize``. It records
 what differs between two runs and which normalization rule removes it.
 
 This is a measurement record, not a gate. Pass/fail for a design is decided by
@@ -19,7 +19,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from acd_core.cad_normalize import normalize_3mf, normalize_step
+from acd.core.cad_normalize import normalize_3mf, normalize_step
 
 
 @dataclass(frozen=True)

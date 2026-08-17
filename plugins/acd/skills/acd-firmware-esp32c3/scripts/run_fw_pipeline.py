@@ -26,8 +26,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from acd_core.electrical import extract_electrical_lane
-from acd_schema.design_graph import DesignGraph
+from acd.core.electrical import extract_electrical_lane
+from acd.schema.design_graph import DesignGraph
 from fw_build import EspIdfBuilder
 from fw_checks import (
     ESP32_C3_MINI_1_PAD_TO_GPIO,

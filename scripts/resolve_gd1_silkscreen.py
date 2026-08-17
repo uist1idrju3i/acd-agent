@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from acd_pipeline.silkscreen_resolve import resolve_silkscreen
+from acd.pipeline.silkscreen_resolve import resolve_silkscreen
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PROFILE = REPO_ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"

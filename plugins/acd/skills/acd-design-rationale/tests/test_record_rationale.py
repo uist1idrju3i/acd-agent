@@ -6,8 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-from acd_core.rationale import subject_hash_for
-from acd_schema import DesignGraph
+from acd.core.rationale import subject_hash_for
+from acd.schema import DesignGraph
 
 ROOT = Path(__file__).resolve().parents[5]
 SCRIPT = ROOT / "plugins/acd/skills/acd-design-rationale/scripts/record_rationale.py"

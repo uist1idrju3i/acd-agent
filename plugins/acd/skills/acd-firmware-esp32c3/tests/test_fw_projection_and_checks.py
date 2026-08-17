@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from acd_core.electrical import ElectricalLane, extract_electrical_lane
-from acd_schema.design_graph import DesignGraph
+from acd.core.electrical import ElectricalLane, extract_electrical_lane
+from acd.schema.design_graph import DesignGraph
 from fw_checks import (
     ESP32_C3_MINI_1_PAD_TO_GPIO,
     PinConsistencyError,

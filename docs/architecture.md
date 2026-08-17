@@ -18,13 +18,13 @@ typed `rationale.json`へ記録し、graphの必須属性に対するcoverageを
 ```text
 入力ファイル / profiles
         ↓
-acd-schema（Pydantic契約）
+acd.schema（Pydantic契約）
         ↓
-acd-core（電気・機械・fab意図の抽出と共通モデル）
+acd.core（電気・機械・fab意図の抽出と共通モデル）
         ↓
-acd-pipeline（GD1基板・筐体の決定論的投影とゲート）
+acd.pipeline（GD1基板・筐体の決定論的投影とゲート）
         ↓
-adapters/*（KiCad、FreeRouting、CAD）
+acd.adapters.*（KiCad、FreeRouting、CAD）
         ↓
 生成物、独立再読込、evidence
 ```
@@ -50,21 +50,21 @@ critic反復の回帰に使うが、metricsやcritic出力を合否Evidenceへ�
 ## Pythonパッケージ
 
 ```text
-packages/
-├── acd-schema/       # DesignGraph、Evidence、ToolEnvelope等の契約
-├── acd-core/         # 電気・機械・fab意図の抽出と共通モデル
-├── acd-pipeline/     # GD1 board/enclosure pipeline
-├── acd-tools/        # 外部ツールprobeとSDK ToolDefinition
+src/acd/
+├── schema/           # DesignGraph、Evidence、ToolEnvelope等の契約
+├── core/             # 電気・機械・fab意図の抽出と共通モデル
+├── pipeline/         # GD1 board/enclosure pipeline
+├── openhands/        # 外部ツールprobeとSDK ToolDefinition
 └── adapters/
-    ├── acd-adapter-kicad
-    ├── acd-adapter-freerouting
-    └── acd-adapter-cad
+    ├── kicad
+    ├── freerouting
+    └── cad
 ```
 
-`acd-schema`は契約の正であり、`acd-core`は外部ツール固有の判定を持たない。
-`acd-pipeline`は入力を投影し、ERC/DRC、routing収束、独立再読込、Gerber/機械測定などの
+`acd.schema`は契約の正であり、`acd.core`は外部ツール固有の判定を持たない。
+`acd.pipeline`は入力を投影し、ERC/DRC、routing収束、独立再読込、Gerber/機械測定などの
 ゲートを実行する。adaptersは外部ツールとの形式・process境界を担当し、設計の合否を
-独自に決めない。`acd-tools`のSDK toolは既存の決定論的入口を公開するだけである。
+独自に決めない。`acd.openhands`のSDK toolは既存の決定論的入口を公開するだけである。
 
 ## OpenHands plugin
 
@@ -102,7 +102,7 @@ Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 
 ## SDK ToolDefinition境界
 
-`packages/acd-tools/src/acd_tools/sdk_tools.py`はOpenHands SDKの
+`src/acd/openhands/sdk_tools.py`はOpenHands SDKの
 `ToolDefinition`、`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を
 使い、`register_acd_tools()`から次の既存入口を明示的に登録する。
 
@@ -166,7 +166,7 @@ shell・file操作を禁止するため、決定論的探索には使わない�
 
 ## SDK Conversation session境界
 
-`acd_tools.agent_session`は`LocalConversation`へACD plugin、hooks、workspace、
+`acd.openhands.agent_session`は`LocalConversation`へACD plugin、hooks、workspace、
 `persistence_dir`、`AcdGateCritic`、`LLMSummarizingCondenser`を宣言的に接続する。
 loop、history、state/event persistence、metricsはSDKへ委譲する。EventLog、
 conversation state、metrics、condenser outputは経過でありpass evidenceではない。

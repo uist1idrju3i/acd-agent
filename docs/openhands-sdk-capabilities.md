@@ -9,12 +9,12 @@
 | 能力ドメイン（パッケージ） | 代表API | ACDでの用途 | 採否 | 根拠 | 検証手段 |
 |---|---|---|---|---|---|
 | sdk.agent | `Agent`, `AgentDefinition` | pluginの役割別agent | 採用 | `plugins/acd/agents/`がAgentDefinitionを参照 | plugin資材検査、agent起動 |
-| sdk.conversation | `LocalConversation`, `ConversationState` | 現行agent session | 採用 | `packages/acd-tools/src/acd_tools/agent_session.py`で使用 | session回帰 |
+| sdk.conversation | `LocalConversation`, `ConversationState` | 現行agent session | 採用 | `src/acd/openhands/agent_session.py`で使用 | session回帰 |
 | sdk.critic | `CriticBase`, `CriticResult`, `IterativeRefinementConfig` | gate結果によるL2操舵 | 採用 | `gate_critic.py`で使用し、pass authorityにしない | critic回帰、negative |
 | sdk.context.condenser | `LLMSummarizingCondenser` | 長い対話の圧縮 | 採用 | `agent_session.py`で使用し、Evidenceを置換しない | resume/fork回帰 |
 | sdk.hooks | `HookConfig`, `HookEventType`, `HookExecutionEvent` | agent経路の停止側境界 | 採用 | `plugins/acd/hooks/`がSDK hook契約を使用 | DENY/allow試験 |
-| sdk.git | `get_git_changes`, `GitError` | stale判定へのgit入力 | 採用 | `acd_tools/evidence_git.py`で使用 | dirty/stale fixture |
-| sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | `plugin_distribution.py`でSHA/tagを固定 | ref検証、拒否試験 |
+| sdk.git | `get_git_changes`, `GitError` | stale判定へのgit入力 | 採用 | `src/acd/openhands/evidence_git.py`で使用 | dirty/stale fixture |
+| sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | `src/acd/openhands/plugin_distribution.py`でSHA/tagを固定 | ref検証、拒否試験 |
 | sdk.tool | `ToolDefinition`, `Tool`, `register_tool`, `list_registered_tools` | ACD toolのagent入口 | 採用 | `register_acd_tools()`とSDK登録を使用 | schema/実行試験 |
 | sdk.llm | `LLM`, `Message`, `TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |

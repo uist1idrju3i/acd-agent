@@ -11,9 +11,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from acd_adapter_kicad.placement import MARGIN_MM, Placement, pad_bbox, placed_rect
-from acd_core.board_model import FootprintShape
-from acd_core.electrical import BoardView, ElectricalLane
+from acd.adapters.kicad.placement import MARGIN_MM, Placement, pad_bbox, placed_rect
+from acd.core.board_model import FootprintShape
+from acd.core.electrical import BoardView, ElectricalLane
 
 
 class PlacementScoreError(ValueError):

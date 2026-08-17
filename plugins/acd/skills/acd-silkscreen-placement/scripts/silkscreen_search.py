@@ -21,7 +21,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
-from acd_core.board_model import (
+from acd.core.board_model import (
     BoardModel,
     BoardNet,
     ComponentPlacement,
@@ -31,8 +31,8 @@ from acd_core.board_model import (
     NetClass,
     PadShape,
 )
-from acd_core.electrical import GraphExtractionError
-from acd_core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
+from acd.core.electrical import GraphExtractionError
+from acd.core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
 
 
 def _text_size(text: SilkTextView) -> tuple[float, float]:

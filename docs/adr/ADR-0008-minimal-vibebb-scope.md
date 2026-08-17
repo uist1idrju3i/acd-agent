@@ -67,7 +67,7 @@ git commitである。設計根拠は会話履歴（OpenHands `EventLog`）が�
 ### 5. JSON Schema正本を捨て、契約はPydanticのみとする
 
 `schemas/*.schema.json`を機械可読契約の正本とする[`ADR-0002-json-schema-canonical.md`](ADR-0002-json-schema-canonical.md)
-を廃止し、契約は`packages/acd-schema`のPydanticモデルだけで表現する。往復検証テストと
+を廃止し、契約は`src/acd/schema`のPydanticモデルだけで表現する。往復検証テストと
 JSON Schemaの維持コストを外す。失うのは他言語実装からの契約参照と、契約差分をJSON Schemaの
 差分としてレビューできることである。
 

@@ -83,13 +83,13 @@ fail-closedで停止する。ゲートの仕様とprobeの責務は[`gates.md`](
 
 OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには8 Skill、5
 AgentDefinition、`/acd:gates` command、SDK ToolDefinition、hooksが含まれる。
-決定論的なACD入口は`acd_tools.sdk_tools`の明示的な登録関数からSDKへ登録する。
+決定論的なACD入口は`acd.openhands.sdk_tools`の`register_acd_tools()`からSDKへ登録する。
 
 外部利用者が配布版を読み込む場合は、branch名ではなく不変refを指定する。
 commit SHAは40桁で、release tagは`v<semver>`形式にする。
 
 ```python
-from acd_tools.plugin_distribution import acd_plugin_source
+from acd.openhands.plugin_distribution import acd_plugin_source
 
 plugin = acd_plugin_source("v1.2.3")
 ```

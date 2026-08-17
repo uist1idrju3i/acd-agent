@@ -10,8 +10,8 @@ AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立�
 ## 構成
 
 ```text
-acd-schema → acd-core → acd-pipeline → adapters/*
-                                      └→ acd-tools
+acd.schema → acd.core → acd.pipeline → acd.adapters.*
+                                    └→ acd.openhands
 plugins/acd/ → Skill / AgentDefinition / command / hooks
 vendor/software-agent-sdk/ → OpenHands SDK v1.42.1
 ```
@@ -19,6 +19,9 @@ vendor/software-agent-sdk/ → OpenHands SDK v1.42.1
 本リポジトリはOpenHands専用拡張です。境界と不採用機能は
 [`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)、
 SDKの採否は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)を参照してください。
+
+Python配布物はルートの単一パッケージ`acd`であり、実装は`src/acd/`、テストは
+`tests/`に配置します。
 
 ## 実行
 
