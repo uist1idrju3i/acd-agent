@@ -92,6 +92,17 @@ docker CLI側は`docker image inspect --format`でRepoDigestsを優先し、ロ�
 でRepoDigestsが無い場合は`.Id`のimage IDを使う。いずれもsha256 digestが得られ
 なければ実行しない。Docker daemonが利用できない場合も同じfail-closedである。
 
+### OpenHands SDK critic API
+
+OpenHands SDK v1.42.1の
+`vendor/software-agent-sdk/openhands-sdk/openhands/sdk/critic/base.py`、
+`result.py`を確認した。`CriticBase.evaluate(events, git_patch)`は
+`CriticResult`を返し、`IterativeRefinementConfig`の
+`success_threshold`と`max_iterations`が反復制御に使われる。
+ACDは`AcdGateCritic`でこれを利用するが、eventsとgit patchは評価に使わず、
+Design Graph、Evidence、製造manifestだけを読む。既定値は
+`success_threshold=1.0`、`max_iterations=3`である。
+
 ### OpenHands SDK hooks
 
 SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは

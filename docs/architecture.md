@@ -130,6 +130,13 @@ Dockerはdeterminismを保証しないため、timestamp、filesystem、外部�
 入力・出力hashの正規化と決定論的ゲートは従来どおり必要である。ACD imageは配布せず、
 利用者が[`docker/README.md`](../docker/README.md)のDockerfileを各自buildする。
 
+## Critic境界
+
+`AcdGateCritic`はSDKの反復制御へ接続するが、合否はDesign Graphのrevisionに
+一致するEvidenceと製造manifestだけで決める。events、git patch、LLM出力は
+スコアへ影響せず、critic出力はpass evidenceではない。設計入力がgitでdirty、
+parse不能、stale、unknown、または要件未達なら0.0とし、全要件充足時だけ1.0とする。
+
 ## 実装していない境界
 
 SecretRegistry連携、agentごとのコンテナ運用、agent-server運用、Conversationを使った

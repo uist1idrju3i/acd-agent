@@ -11,6 +11,8 @@ SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論�
 実機測定、発注、価格・在庫取得は未実装である。
 P5として、ホスト実行を既定にした任意のDockerDevWorkspaceゲート実行経路を追加し、
 image digest未解決時は停止する。
+P3aとして、`AcdGateCritic`による決定論的ゲート結果駆動の反復を追加する。
+SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
 
 ## 現行実装計画
 
@@ -21,6 +23,7 @@ image digest未解決時は停止する。
 | 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
+| 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 実装済み |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
 
 各マイルストーンの完了条件は、(1)入力と出所、(2)実装、(3)正常系、(4)negative/

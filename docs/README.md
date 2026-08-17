@@ -50,5 +50,6 @@
 - [`ADR-0013-rationale-coverage-scope.md`](adr/ADR-0013-rationale-coverage-scope.md): 設計根拠coverageの必須範囲と免除分類
 - [`ADR-0014-sdk-tool-definitions.md`](adr/ADR-0014-sdk-tool-definitions.md): SDK ToolDefinitionへの一本化
 - [`ADR-0015-docker-workspace-gate-execution.md`](adr/ADR-0015-docker-workspace-gate-execution.md): Docker workspaceによるゲート実行
+- [`ADR-0016-acd-gate-critic.md`](adr/ADR-0016-acd-gate-critic.md): 決定論的ゲート結果によるcritic反復
 
 Skillの実行結果は合否根拠ではない。合否は入力ファイルと決定論的ゲートだけが決める。

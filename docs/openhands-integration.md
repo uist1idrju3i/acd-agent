@@ -97,6 +97,31 @@ fail-closedとする。
 ToolEnvelope由来のtool名・版・hashを含む構造化JSONである。入力不備、ファイル不在、
 JSON/Pydantic parse失敗、pipeline例外は成功に見せずfail-closedで返す。
 
+## 決定論的ゲートcritic
+
+P3aでは`AcdGateCritic`をagentのcriticへ接続できる。
+
+```python
+from acd_tools.gate_critic import AcdEvidenceRequirement, AcdGateCritic
+from openhands.sdk import Agent
+
+critic = AcdGateCritic(
+    requirements=[
+        AcdEvidenceRequirement(
+            path="out/gd1-enclosure/evidence-mechanical.json",
+            evidence_id="evidence.gd1.mechanical",
+        ),
+    ],
+)
+agent = Agent(llm=llm, tools=tools, critic=critic)
+```
+
+criticはDesign Graphの`graph.revision`を現revisionとし、設計入力がgitで
+cleanな場合だけEvidenceの`supports_pass()`を評価する。git SHAを
+`target_revision`へ変換しない。eventsと`git_patch`は評価対象外で、スコアは
+全要件充足時の`1.0`またはそれ以外の`0.0`だけである。critic出力は反復の
+操舵信号であり、pass evidenceではない。
+
 ## 任意のDocker workspace実行
 
 ホスト実行が既定であり、agentをコンテナへ入れるのではなく、決定論的pipelineと

@@ -46,15 +46,46 @@ def project_dir(payload: dict[str, Any]) -> Path:
     ).resolve()
 
 
-def revision(root: Path) -> str | None:
+def revision(root: Path, graph_paths: list[str]) -> str | None:
     try:
-        if subprocess.run(["git", "diff", "--quiet"], cwd=root, check=False).returncode != 0:
+        changed = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=root,
+            text=True,
+        )
+        if any(_is_design_input(line[3:]) for line in changed.splitlines() if len(line) > 3):
             return None
-        if (
-            subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=root, check=False).returncode
-            != 0
-        ):
+        if len(graph_paths) != 1:
             return None
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
-    except (OSError, subprocess.CalledProcessError):
+        graph_path = root / graph_paths[0]
+        validated = subprocess.run(
+            [
+                "uv",
+                "run",
+                "--project",
+                str(root),
+                "python",
+                "-c",
+                (
+                    "import sys; from pathlib import Path; "
+                    "from acd_schema import DesignGraph; "
+                    "print(DesignGraph.model_validate_json("
+                    "Path(sys.argv[1]).read_text(encoding='utf-8')).revision)"
+                ),
+                str(graph_path),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        revision = validated.stdout.strip()
+        return revision if validated.returncode == 0 and revision else None
+    except (OSError, subprocess.CalledProcessError, ValueError, TypeError):
         return None
+
+
+def _is_design_input(path: str) -> bool:
+    return (path.startswith("fixtures/") and path.endswith("/graph.json")) or path.startswith(
+        "profiles/"
+    )

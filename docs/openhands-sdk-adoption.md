@@ -119,6 +119,11 @@ READMEの既知課題「投影→実測→再配置の反復ループが未実�
 推奨は`AcdGateCritic`（P3a）が主、goal loopは補助（P3b）。ACD側に新しい
 ループ実装を書かない。
 
+P3aの`AcdGateCritic`はDesign Graphの`graph.revision`をEvidenceの
+`target_revision`と比較する。git SHAはtarget revisionではなく、設計入力の
+clean判定だけに使う。criticのスコアは二値であり、全要件充足時だけ1.0、
+それ以外は0.0である。
+
 ### P4: 探索の並列化をworkflow/subagentへ移す
 
 `acd-placement-search`と`acd-silkscreen-placement`は単一プロセスの探索script
