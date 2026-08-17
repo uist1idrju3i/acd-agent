@@ -4039,7 +4039,7 @@
         "role": "functional_label_sw1",
         "rotation_deg": 90.0,
         "stroke_width_mm": 0.15,
-        "text": "RESET",
+        "text": "RST",
         "x_mm": 24.8,
         "y_mm": 3.212500000000001
       },

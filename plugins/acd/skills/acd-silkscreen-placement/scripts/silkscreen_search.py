@@ -598,7 +598,9 @@ def resolve_from_context_offsets(
 
 
 def resolve_from_context(
-    lane: SilkscreenLane, context: dict[str, Any]
+    lane: SilkscreenLane,
+    context: dict[str, Any],
+    _compute_order: bool = True,
 ) -> tuple[dict[str, object], ...]:
     """Search the complete board grid using only measured context."""
     outline_raw = context.get("board_outline_bbox_mm")
@@ -612,7 +614,16 @@ def resolve_from_context(
     outline = tuple(float(item) for item in outline_raw)
     min_width = float(requirements.get("min_silk_width_mm", 0.0))
     min_height = float(requirements.get("min_silk_height_mm", 0.0))
-    if min_width <= 0 or min_height <= 0:
+    advance_ratio = float(requirements.get("silk_text_advance_ratio", 0.0))
+    margin_stroke_widths = float(
+        requirements.get("silk_text_attribution_margin_stroke_widths", 0.0)
+    )
+    if (
+        min_width <= 0
+        or min_height <= 0
+        or advance_ratio <= 0
+        or margin_stroke_widths <= 0
+    ):
         raise GraphExtractionError("silkscreen context capability requirements are missing")
 
     def boxes(key: str) -> list[dict[str, Any]]:
@@ -672,14 +683,23 @@ def resolve_from_context(
     }
     results_by_id: dict[str, dict[str, object]] = {}
     dynamic_silk: list[dict[str, Any]] = []
-    ordered_texts = sorted(
-        lane.texts,
-        key=lambda text: (
-            0 if text.node_id == "mechanical.silk_text.reset" else 1,
-            1 if text.layer == "B.SilkS" else 0,
-            text.node_id,
-        ),
-    )
+    if _compute_order and len(lane.texts) > 1:
+        candidate_counts: dict[str, int] = {}
+        for text in lane.texts:
+            single_result = resolve_from_context(
+                SilkscreenLane(lane.board_node_id, (text,), ()),
+                context,
+                False,
+            )
+            candidate_counts[text.node_id] = len(
+                cast(list[object], single_result[0].get("candidates", []))
+            )
+        ordered_texts = sorted(
+            lane.texts,
+            key=lambda text: (candidate_counts[text.node_id], text.node_id),
+        )
+    else:
+        ordered_texts = list(lane.texts)
     for text in ordered_texts:
         if text.height_mm < min_height or text.stroke_width_mm < min_width:
             raise GraphExtractionError(
@@ -714,17 +734,25 @@ def resolve_from_context(
                     f"silkscreen context declaration is missing for {text.node_id!r}"
                 )
             width, height = base_size
+            width = max(
+                text.height_mm * advance_ratio * len(text.text),
+                text.height_mm,
+            )
+            height = text.height_mm
             if int(rotation) % 180:
                 width, height = height, width
+            margin = text.stroke_width_mm * margin_stroke_widths
+            width += 2.0 * margin
+            height += 2.0 * margin
             x = outline[0] + width / 2
             while x <= outline[2] - width / 2 + 1e-9:
                 y = outline[1] + height / 2
                 while y <= outline[3] - height / 2 + 1e-9:
                     candidate_bbox = (
-                        x - width / 2 - text.stroke_width_mm,
-                        y - height / 2 - text.stroke_width_mm,
-                        x + width / 2 + text.stroke_width_mm,
-                        y + height / 2 + text.stroke_width_mm,
+                        x - width / 2,
+                        y - height / 2,
+                        x + width / 2,
+                        y + height / 2,
                     )
                     candidate = {
                         "x_mm": round(x, 9),

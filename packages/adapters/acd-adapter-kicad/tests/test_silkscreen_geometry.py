@@ -21,6 +21,7 @@ from acd_adapter_kicad.fab.silkscreen import (
     _silk_objects_overlap,
     _silk_overlaps_rect,
     _SilkObject,
+    _text_attribution_overflow,
 )
 from acd_core.fab import FabProfile
 from acd_core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
@@ -69,6 +70,48 @@ def test_rotated_text_height_uses_declared_local_coordinates() -> None:
     silk = _line(1.0, 1.0, 2.0, 1.0)
     local_bbox = _local_silk_bounds((silk,), (1.5, 1.0), 90.0)
     assert local_bbox[3] - local_bbox[1] == pytest.approx(1.0)
+
+
+def test_stroke_font_self_ink_fits_attribution_upper_bound() -> None:
+    text = SilkTextView(
+        "text",
+        "label",
+        "RESET",
+        1.0,
+        1.0,
+        "F.SilkS",
+        1.0,
+        0.15,
+        0.0,
+        "test",
+        "test",
+        "SW1",
+        0.25,
+        1.0,
+    )
+    assert _text_attribution_overflow(text, 4.34, 1.15) == ()
+
+
+def test_ink_beyond_attribution_upper_bound_fails_closed() -> None:
+    text = SilkTextView(
+        "text",
+        "label",
+        "RESET",
+        1.0,
+        1.0,
+        "F.SilkS",
+        1.0,
+        0.15,
+        0.0,
+        "test",
+        "test",
+        "SW1",
+        0.25,
+        1.0,
+    )
+    overflow = _text_attribution_overflow(text, 5.3, 1.15)
+    assert overflow
+    assert overflow[0]["dimension"] == "length"
 
 
 def test_graphic_below_capability_is_not_treated_as_pass() -> None:

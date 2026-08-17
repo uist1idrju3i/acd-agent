@@ -215,6 +215,9 @@ def resolve_silkscreen(
                         "x_mm": float(position[0]),
                         "y_mm": float(position[1]),
                         "rotation_deg": float(item["accepted_rotation_deg"]),
+                        "placement_rotation_deg": float(
+                            item["accepted_rotation_deg"]
+                        ),
                         "placement_source": "acd-silkscreen-placement",
                         "placement_source_ref": (
                             "plugins/acd/skills/acd-silkscreen-placement/scripts/"

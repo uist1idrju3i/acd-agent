@@ -35,7 +35,7 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
         (
             "mechanical.silk_text.reset",
             "functional_label_sw1",
-            "RESET",
+            "RST",
             29.5,
             5.0,
             "SW1",

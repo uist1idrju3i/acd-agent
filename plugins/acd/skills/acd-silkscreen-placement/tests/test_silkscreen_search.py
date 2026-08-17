@@ -140,7 +140,12 @@ def test_silkscreen_backside_position_is_not_search_resolved() -> None:
 def _context(*, outline: list[float] | None = None) -> dict[str, object]:
     return {
         "board_outline_bbox_mm": outline or [0.0, 0.0, 20.0, 20.0],
-        "requirements": {"min_silk_width_mm": 0.1, "min_silk_height_mm": 0.5},
+        "requirements": {
+            "min_silk_width_mm": 0.1,
+            "min_silk_height_mm": 0.5,
+            "silk_text_advance_ratio": 0.95,
+            "silk_text_attribution_margin_stroke_widths": 1.0,
+        },
         "pad_bboxes_mm": [],
         "mask_objects": [],
         "body_bboxes_mm": [{"refdes": "J1", "bbox_mm": [9.0, 9.0, 11.0, 11.0]}],

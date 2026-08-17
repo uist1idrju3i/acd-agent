@@ -157,6 +157,7 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
                         "x_mm": resolved["x_mm"],
                         "y_mm": resolved["y_mm"],
                         "rotation_deg": resolved["rotation_deg"],
+                        "placement_rotation_deg": resolved["rotation_deg"],
                         "placement_source": "acd-silkscreen-placement",
                         "placement_source_ref": f"plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py:{sha256_of(SILK_SKILL)}",
                         "placement_evidence": json.dumps(

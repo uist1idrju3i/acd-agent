@@ -45,7 +45,7 @@ from acd_core.fab import (
     validate_allowances_against_profile,
 )
 from acd_core.routing_width import NetWidthRequirement
-from acd_core.silkscreen import SilkscreenLane
+from acd_core.silkscreen import SilkTextView, SilkscreenLane
 
 
 from .common import *  # noqa: F401,F403
@@ -182,22 +182,65 @@ def _gerber_silk_objects(path: Path, layer: str) -> tuple[_SilkObject, ...]:
         raise FabOutputError(f"{path.name}: silkscreen parse failed (fail-closed)") from exc
 
 
+# KiCad stroke-font measurements showed an uppercase advance of about 0.868
+# times the declared height; 0.95 is an attribution upper bound with margin.
+SILK_TEXT_ADVANCE_RATIO = 0.95
+SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS = 1.0
+
+
 def _declared_bbox(
     x_mm: float,
     y_mm: float,
     text: str,
     height_mm: float,
+    stroke_width_mm: float,
     rotation_deg: float = 0.0,
 ) -> tuple[float, float, float, float]:
-    estimated_width = max(height_mm * 0.6 * len(text), height_mm)
+    estimated_width = max(
+        height_mm * SILK_TEXT_ADVANCE_RATIO * len(text),
+        height_mm,
+    )
     if int(rotation_deg) % 180:
         estimated_width, height_mm = height_mm, estimated_width
+    margin = stroke_width_mm * SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
     return (
-        x_mm - estimated_width / 2.0 - 0.4,
-        y_mm - height_mm / 2.0 - 0.4,
-        x_mm + estimated_width / 2.0 + 0.4,
-        y_mm + height_mm / 2.0 + 0.4,
+        x_mm - estimated_width / 2.0 - margin,
+        y_mm - height_mm / 2.0 - margin,
+        x_mm + estimated_width / 2.0 + margin,
+        y_mm + height_mm / 2.0 + margin,
     )
+
+
+def _text_attribution_overflow(
+    text: SilkTextView,
+    measured_length_mm: float,
+    measured_height_mm: float,
+) -> tuple[dict[str, object], ...]:
+    estimated_width = max(
+        text.height_mm * SILK_TEXT_ADVANCE_RATIO * len(text.text),
+        text.height_mm,
+    )
+    margin = text.stroke_width_mm * SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
+    overflows: list[dict[str, object]] = []
+    if measured_length_mm > estimated_width + 2.0 * margin + text.stroke_width_mm:
+        overflows.append(
+            {
+                "dimension": "length",
+                "measured_mm": measured_length_mm,
+                "upper_bound_mm": estimated_width + 2.0 * margin,
+                "tolerance_mm": text.stroke_width_mm,
+            }
+        )
+    if measured_height_mm > text.height_mm + 2.0 * margin + text.stroke_width_mm:
+        overflows.append(
+            {
+                "dimension": "height",
+                "measured_mm": measured_height_mm,
+                "upper_bound_mm": text.height_mm + 2.0 * margin,
+                "tolerance_mm": text.stroke_width_mm,
+            }
+        )
+    return tuple(overflows)
 
 
 def _union_bbox(
@@ -410,7 +453,14 @@ def measure_silkscreen(
     declared_objects: list[_SilkObject] = []
     declared_groups: list[tuple[dict[str, object], tuple[_SilkObject, ...]]] = []
     for text in declarations.texts:
-        target = _declared_bbox(text.x_mm, text.y_mm, text.text, text.height_mm, text.rotation_deg)
+        target = _declared_bbox(
+            text.x_mm,
+            text.y_mm,
+            text.text,
+            text.height_mm,
+            text.stroke_width_mm,
+            text.rotation_deg,
+        )
         target_half_width = (target[2] - target[0]) / 2.0
         target_half_height = (target[3] - target[1]) / 2.0
         nearby = [
@@ -434,6 +484,16 @@ def measure_silkscreen(
         local_bbox = _local_silk_bounds(nearby, (text.x_mm, text.y_mm), text.rotation_deg)
         height = local_bbox[3] - local_bbox[1]
         text_length = local_bbox[2] - local_bbox[0]
+        attribution_margin = (
+            text.stroke_width_mm * SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
+        )
+        estimated_local_width = max(
+            text.height_mm * SILK_TEXT_ADVANCE_RATIO * len(text.text),
+            text.height_mm,
+        )
+        attribution_overflows = list(
+            _text_attribution_overflow(text, text_length, height)
+        )
         if area <= 0 or measured_width is None:
             raise FabOutputError(
                 f"silkscreen text {text.node_id!r} has no measurable ink (fail-closed)"
@@ -459,6 +519,13 @@ def measure_silkscreen(
             "measured_ink_area_mm2": area,
             "measured_height_mm": height,
             "measured_text_length_mm": text_length,
+            "attribution_upper_bound_width_mm": (
+                estimated_local_width + 2.0 * attribution_margin
+            ),
+            "attribution_upper_bound_height_mm": (
+                text.height_mm + 2.0 * attribution_margin
+            ),
+            "attribution_overflow": attribution_overflows,
             "measured_minimum_stroke_width_mm": measured_width,
             "measurement_coordinate_system": (
                 "text-local coordinates after inverse declared rotation"
@@ -712,6 +779,20 @@ def measure_silkscreen(
                             "nearest_distance_mm": nearest_distance,
                         }
                     )
+    attribution_overflows = [
+        {
+            "node_id": entry["node_id"],
+            **overflow,
+        }
+        for entry in declared
+        for overflow in cast(
+            list[object],
+            entry.get("attribution_overflow", [])
+            if isinstance(entry.get("attribution_overflow"), list)
+            else [],
+        )
+        if isinstance(overflow, dict)
+    ]
     context = {
         "schema_version": "0.1",
         "measurement_method": (
@@ -771,6 +852,10 @@ def measure_silkscreen(
         "requirements": {
             "min_silk_width_mm": min_width,
             "min_silk_height_mm": min_height,
+            "silk_text_advance_ratio": SILK_TEXT_ADVANCE_RATIO,
+            "silk_text_attribution_margin_stroke_widths": (
+                SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS
+            ),
             "declared_board_edge_margin_mm": sorted(
                 {
                     float(cast(float, item["board_edge_margin_mm"]))
@@ -784,6 +869,7 @@ def measure_silkscreen(
             "mask_overlap": mask_overlaps,
             "board_edge_overflow": outside,
             "board_edge_margin": edge_margin_violations,
+            "attribution_overflow": attribution_overflows,
             "body_overlap": body_overlaps,
             "courtyard_overlap": courtyard_overlaps,
             "existing_silk_overlap": existing_silk_overlaps,
@@ -795,6 +881,7 @@ def measure_silkscreen(
         or mask_overlaps
         or outside
         or edge_margin_violations
+        or attribution_overflows
         or body_overlaps
         or courtyard_overlaps
         or existing_silk_overlaps
@@ -804,12 +891,14 @@ def measure_silkscreen(
             "silkscreen clearance or board-edge overlap detected (fail-closed): "
             f"pad={len(pad_overlaps)}, mask={len(mask_overlaps)}, edge={len(outside)}, "
             f"edge_margin={len(edge_margin_violations)}, "
+            f"attribution_overflow={len(attribution_overflows)}, "
             f"body={len(body_overlaps)}, courtyard={len(courtyard_overlaps)}, "
             f"existing_silk={len(existing_silk_overlaps)}, "
             f"nearest_component={len(nearest_component_mismatches)}; "
             f"pad_examples={pad_overlaps[:3]}, mask_examples={mask_overlaps[:3]}, "
             f"edge_examples={outside[:3]}, body_examples={body_overlaps[:3]}, "
             f"edge_margin_examples={edge_margin_violations[:3]}, "
+            f"attribution_examples={attribution_overflows[:3]}, "
             f"nearest_component_examples={nearest_component_mismatches[:3]}",
             cast(dict[str, object], context),
         )
@@ -828,6 +917,7 @@ def measure_silkscreen(
         "mask_to_silk_overlap_count": len(mask_overlaps),
         "board_edge_overflow_count": len(outside),
         "board_edge_margin_violation_count": len(edge_margin_violations),
+        "attribution_overflow_count": len(attribution_overflows),
         "body_overlap_count": len(body_overlaps),
         "courtyard_overlap_count": len(courtyard_overlaps),
         "existing_footprint_silk_overlap_count": len(existing_silk_overlaps),
@@ -836,6 +926,7 @@ def measure_silkscreen(
         "mask_to_silk_overlaps": mask_overlaps,
         "board_edge_overflows": outside,
         "board_edge_margin_violations": edge_margin_violations,
+        "attribution_overflows": attribution_overflows,
         "body_overlaps": body_overlaps,
         "courtyard_overlaps": courtyard_overlaps,
         "existing_footprint_silk_overlaps": existing_silk_overlaps,
