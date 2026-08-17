@@ -22,11 +22,13 @@ docker build \
 Dockerfileでは次を固定または検証する。
 
 - KiCad CLI: KiCad 9.0 PPAの9系をインストールし、build時に9系であることを検証
-- FreeRouting: 2.1.0、GitHub release URL、SHA-256を検証
+- FreeRouting: 2.1.0、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
+  wrapperからPATH上で実行できることを検証
 - OpenJDK: Ubuntu 24.04の`openjdk-21-jre-headless`
-- ngspice: Ubuntu 24.04のパッケージ
+- ngspice: Ubuntu 24.04のパッケージと`ngspice --version`を検証
 - Python: Ubuntu 24.04のPython 3.12
 - uv: 0.7.12
+- git: revision解決と差分確認のためUbuntu 24.04のパッケージを利用
 
 APT由来のパッケージはUbuntuのrepository snapshotを別途固定しない限り、同じ
 Dockerfileでも再解決される可能性がある。完全な再現性にはimage digestとAPT
@@ -75,6 +77,8 @@ GPL系ソフトウェアを含むイメージを配布すると、対応する�
 
 ```bash
 docker image inspect --format='{{json .RepoDigests}}' acd-tools-gates:local
+docker run --rm acd-tools-gates:local sh -lc \
+  'command -v freerouting && freerouting --version && command -v ngspice && ngspice --version && command -v git'
 ACD_CONTAINER_IMAGE=acd-tools-gates:local \
   uv run python scripts/run_in_workspace.py
 ```

@@ -19,6 +19,8 @@ Docker workspace内で実行できる経路を追加する。agentそのもの�
 `DockerDevWorkspace`は`base_image`からagent-server imageをbuildできるため、
 利用者がbuildした`docker/acd-tools.Dockerfile`を渡すP5の経路には後者を選択した。
 workspaceはrepoを`volumes`で`/workspace`へmountし、出力とevidenceをホストへ残す。
+DockerfileはFreeRouting JARを`/usr/local/bin/freerouting` wrapperからPATH上で実行可能にし、
+ngspiceの版をbuild時に検証する。revision解決と差分確認のためgitもimageへ含める。
 SDK v1.42.1のworkspace実装は`--rm`、`linux/amd64`、health check、
 `forward_env`を提供する。
 
