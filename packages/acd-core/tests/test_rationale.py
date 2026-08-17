@@ -123,7 +123,16 @@ def test_explicit_unknown_script_hash_fails_coverage() -> None:
 
 @pytest.mark.parametrize(
     "change",
-    ["missing", "stale", "conflicting", "orphan", "unknown", "graph_id", "revision"],
+    [
+        "missing",
+        "stale",
+        "conflicting",
+        "orphan",
+        "unknown",
+        "untraceable",
+        "graph_id",
+        "revision",
+    ],
 )
 def test_coverage_failures(change: str) -> None:
     graph = _graph()
@@ -152,8 +161,16 @@ def test_coverage_failures(change: str) -> None:
         record = _document(graph).records[0].model_dump()
         record["provenance"] = {**record["provenance"], "script_hash": "unknown"}
         document = _document(graph, records=[record])
+    elif change == "untraceable":
+        record = _document(graph).records[0].model_dump()
+        record["driving_requirements"] = []
+        document = _document(graph, records=[record])
     elif change == "graph_id":
         document = _document(graph, graph_id="other")
     else:
         document = _document(graph, revision="r2")
-    assert check_rationale_coverage(graph, document).status == "fail"
+    report = check_rationale_coverage(graph, document)
+    assert report.status == "fail"
+    if change == "untraceable":
+        assert len(report.untraceable) == 5
+        assert {item.rationale_id for item in report.untraceable} == {"rat-1"}

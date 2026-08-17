@@ -128,6 +128,11 @@ class RationaleOrphan(AcdModel):
     reason: NonEmptyStr
 
 
+class RationaleUntraceable(AcdModel):
+    rationale_id: NonEmptyStr
+    subject: RationaleSubject
+
+
 class RationaleCoverageReport(AcdModel):
     status: RationaleCoverageStatus
     graph_id: NonEmptyStr
@@ -142,6 +147,9 @@ class RationaleCoverageReport(AcdModel):
         default_factory=list[RationaleUnknownProvenance]
     )
     orphan: list[RationaleOrphan] = Field(default_factory=list[RationaleOrphan])
+    untraceable: list[RationaleUntraceable] = Field(
+        default_factory=list[RationaleUntraceable]
+    )
     conflicting: list[RationaleRecordSubject] = Field(
         default_factory=list[RationaleRecordSubject]
     )

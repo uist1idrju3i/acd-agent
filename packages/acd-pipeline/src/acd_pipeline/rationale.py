@@ -32,7 +32,8 @@ def validate_and_project_rationale(
             "rationale coverage failed: "
             f"missing={len(report.missing)}, stale={len(report.stale)}, "
             f"orphan={len(report.orphan)}, conflicting={len(report.conflicting)}, "
-            f"unknown_provenance={len(report.unknown_provenance)}"
+            f"unknown_provenance={len(report.unknown_provenance)}, "
+            f"untraceable={len(report.untraceable)}"
         )
     _write_rationale_markdown(document, out_dir / "rationale.md")
     return document

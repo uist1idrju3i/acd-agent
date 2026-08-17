@@ -16,6 +16,7 @@ from acd_schema.rationale import (
     RationaleSource,
     RationaleSubject,
     RationaleUnknownProvenance,
+    RationaleUntraceable,
     RejectedAlternative,
 )
 from acd_schema.tool_envelope import ConvergenceState, ToolEnvelope
@@ -43,6 +44,7 @@ __all__ = [
     "RationaleSource",
     "RationaleSubject",
     "RationaleUnknownProvenance",
+    "RationaleUntraceable",
     "RejectedAlternative",
     "ToolEnvelope",
     "is_unknown",

@@ -15,6 +15,7 @@ from acd_schema import (
     RationaleRecordSubject,
     RationaleSubject,
     RationaleUnknownProvenance,
+    RationaleUntraceable,
 )
 from acd_schema.common import Sha256
 
@@ -67,6 +68,7 @@ def check_rationale_coverage(
     stale: list[RationaleRecordSubject] = []
     unknown: list[RationaleUnknownProvenance] = []
     orphan: list[RationaleOrphan] = []
+    untraceable: list[RationaleUntraceable] = []
 
     for record in document.records:
         record_subjects = [
@@ -74,6 +76,15 @@ def check_rationale_coverage(
             for node_id in record.subject_nodes
             for attr in record.subject_attrs
         ]
+        if not record.driving_requirements:
+            untraceable.extend(
+                RationaleUntraceable(
+                    rationale_id=record.rationale_id,
+                    subject=_subject(node_id, attr),
+                )
+                for node_id, attr in record_subjects
+                if (node_id, attr) in required_set
+            )
         record_stale = record.target_revision != graph.revision
         record_orphan = False
         for node_id, attr in record_subjects:
@@ -145,7 +156,7 @@ def check_rationale_coverage(
     failed = (
         not graph_id_match
         or not revision_match
-        or bool(missing or stale or unknown or orphan or conflicting)
+        or bool(missing or stale or unknown or orphan or untraceable or conflicting)
     )
     return RationaleCoverageReport(
         status="fail" if failed else "pass",
@@ -157,6 +168,7 @@ def check_rationale_coverage(
         stale=stale,
         unknown_provenance=unknown,
         orphan=orphan,
+        untraceable=untraceable,
         conflicting=conflicting,
         required_count=len(required_set),
         covered_count=sum(1 for subject in required_set if covered[subject]),

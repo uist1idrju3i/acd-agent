@@ -41,7 +41,14 @@ def main() -> int:
         print(f"Rationale validation failed: {exc}")
         return 0 if args.warn_only else 2
     print(f"Rationale coverage: {report.status}")
-    for field in ("missing", "stale", "unknown_provenance", "orphan", "conflicting"):
+    for field in (
+        "missing",
+        "stale",
+        "unknown_provenance",
+        "orphan",
+        "untraceable",
+        "conflicting",
+    ):
         values = result[field]
         if values:
             print(f"{field}: {json.dumps(values, ensure_ascii=False)}")

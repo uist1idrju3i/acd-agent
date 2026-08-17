@@ -1,7 +1,8 @@
 # ADR-0012: 設計根拠recordの保持
 
-- **状態:** Accepted
-- **日付:** 2025-01-01
+> ステータス: Accepted
+> 日付: 2026-08-17
+> 関連: [`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)、[`ADR-0009-openhands-delegation-and-skills.md`](ADR-0009-openhands-delegation-and-skills.md)、[`ADR-0011-search-results-as-design-input.md`](ADR-0011-search-results-as-design-input.md)
 
 ## 決定
 
