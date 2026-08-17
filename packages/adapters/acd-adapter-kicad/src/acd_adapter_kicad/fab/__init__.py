@@ -46,12 +46,21 @@ from .routed_board import (  # noqa: F401
 )
 
 from . import silkscreen as _silkscreen
-from .silkscreen import _gerber_silk_objects, measure_silkscreen as _measure_silkscreen
+from .silkscreen import (
+    _gerber_silk_objects,
+    build_silkscreen_context as _build_silkscreen_context,
+    measure_silkscreen as _measure_silkscreen,
+)
 
 
 def measure_silkscreen(*args, **kwargs):
     _silkscreen._gerber_silk_objects = _gerber_silk_objects
     return _measure_silkscreen(*args, **kwargs)
+
+
+def build_silkscreen_context(*args, **kwargs):
+    _silkscreen._gerber_silk_objects = _gerber_silk_objects
+    return _build_silkscreen_context(*args, **kwargs)
 
 
 __all__ = [
@@ -65,6 +74,7 @@ __all__ = [
     "UncoveredStitchViasError",
     "ViaMeasurement",
     "apply_cpl_contract",
+    "build_silkscreen_context",
     "cross_validate_bom",
     "cross_validate_cpl",
     "derive_lcsc_rotation_offset",

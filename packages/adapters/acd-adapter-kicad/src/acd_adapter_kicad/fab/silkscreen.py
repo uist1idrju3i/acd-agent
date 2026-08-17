@@ -1,5 +1,5 @@
 """Independent manufacturing measurements, DFM checks, and JLCPCB exports."""
-# pyright: reportUnusedImport=false
+# pyright: reportUnusedImport=false,reportUnknownArgumentType=false,reportUnknownVariableType=false,reportUnknownMemberType=false
 # ruff: noqa
 
 from __future__ import annotations
@@ -675,6 +675,72 @@ def measure_silkscreen(
                             "nearest_distance_mm": nearest_distance,
                         }
                     )
+    context = {
+        "schema_version": "0.1",
+        "measurement_method": (
+            "independent gerbonara parse of F.Silkscreen/B.Silkscreen, "
+            "F.Mask/B.Mask, and Edge.Cuts"
+        ),
+        "silk_objects": [
+            {
+                "kind": item.kind,
+                "layer": item.layer,
+                "bbox_mm": list(item.bbox_mm),
+                "area_mm2": item.area_mm2,
+                "stroke_width_mm": item.stroke_width_mm,
+            }
+            for item in all_silk
+        ],
+        "mask_objects": [
+            {
+                "kind": item.kind,
+                "layer": item.layer,
+                "bbox_mm": list(item.bbox_mm),
+                "area_mm2": item.area_mm2,
+                "stroke_width_mm": item.stroke_width_mm,
+            }
+            for item in masks
+        ],
+        "existing_silk_objects": [
+            {
+                "kind": item.kind,
+                "layer": item.layer,
+                "bbox_mm": list(item.bbox_mm),
+            }
+            for item in non_declared_silk
+        ],
+        "mask_opening_bboxes_mm": [list(item.bbox_mm) for item in masks],
+        "pad_bboxes_mm": [list(item) for item in pad_bboxes],
+        "body_bboxes_mm": [
+            {"refdes": refdes, "bbox_mm": list(rect)} for refdes, rect in body_rects
+        ],
+        "courtyard_bboxes_mm": [
+            {"refdes": refdes, "bbox_mm": list(rect)} for refdes, rect in courtyard_rects
+        ],
+        "board_outline_bbox_mm": list(outline),
+        "declarations": declared,
+        "requirements": {
+            "min_silk_width_mm": min_width,
+            "min_silk_height_mm": min_height,
+            "declared_board_edge_margin_mm": sorted(
+                {
+                    float(cast(float, item["board_edge_margin_mm"]))
+                    for item in declared
+                    if "board_edge_margin_mm" in item
+                }
+            ),
+        },
+        "fail_conditions": {
+            "pad_overlap": pad_overlaps,
+            "mask_overlap": mask_overlaps,
+            "board_edge_overflow": outside,
+            "board_edge_margin": edge_margin_violations,
+            "body_overlap": body_overlaps,
+            "courtyard_overlap": courtyard_overlaps,
+            "existing_silk_overlap": existing_silk_overlaps,
+            "nearest_component_mismatch": nearest_component_mismatches,
+        },
+    }
     if (
         pad_overlaps
         or mask_overlaps
@@ -684,7 +750,7 @@ def measure_silkscreen(
         or existing_silk_overlaps
         or nearest_component_mismatches
     ):
-        raise FabOutputError(
+        error = FabOutputError(
             "silkscreen clearance or board-edge overlap detected (fail-closed): "
             f"pad={len(pad_overlaps)}, mask={len(mask_overlaps)}, edge={len(outside)}, "
             f"edge_margin={len(edge_margin_violations)}, "
@@ -696,6 +762,8 @@ def measure_silkscreen(
             f"edge_margin_examples={edge_margin_violations[:3]}, "
             f"nearest_component_examples={nearest_component_mismatches[:3]}"
         )
+        error.context = context  # type: ignore[attr-defined]
+        raise error
     return {
         "measurement_method": (
             "independent gerbonara parse of F.Silkscreen/B.Silkscreen, "
@@ -723,5 +791,40 @@ def measure_silkscreen(
         "courtyard_overlaps": courtyard_overlaps,
         "existing_footprint_silk_overlaps": existing_silk_overlaps,
         "nearest_component_mismatches": nearest_component_mismatches,
+        "silkscreen_context": context,
         "status": "measured_pass",
     }
+
+
+def build_silkscreen_context(
+    silk_paths: Mapping[str, Path],
+    mask_paths: Mapping[str, Path],
+    edge_path: Path,
+    measurement: BoardMeasurement,
+    declarations: SilkscreenLane,
+    profile: FabProfile,
+) -> dict[str, object]:
+    """Return the gate's measured context without turning approximation into proof.
+
+    The context is collected by the same measurement gate.  A failed clearance
+    check is represented as a context with ``status=measured_fail``; callers
+    must still run the routed-board gate before accepting a design.
+    """
+    try:
+        result = measure_silkscreen(
+            silk_paths, mask_paths, edge_path, measurement, declarations, profile
+        )
+    except FabOutputError as exc:
+        context = getattr(exc, "context", None)
+        if not isinstance(context, dict):
+            raise
+        context = dict(context)
+        context["status"] = "measured_fail"
+        context["failure_reason"] = str(exc)
+        return context
+    context_value = result.get("silkscreen_context")
+    if not isinstance(context_value, dict):
+        raise FabOutputError("silkscreen context missing from measurement (fail-closed)")
+    context = dict(context_value)
+    context["status"] = "measured_pass"
+    return context

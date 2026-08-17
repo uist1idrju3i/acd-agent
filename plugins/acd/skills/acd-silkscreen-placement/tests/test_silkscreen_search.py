@@ -7,7 +7,7 @@ import pytest
 from acd_core.board_model import BoardModel, ComponentPlacement, FootprintShape, PadShape
 from acd_core.electrical import GraphExtractionError
 from acd_core.silkscreen import SilkscreenLane, SilkTextView
-from silkscreen_search import resolve_silkscreen_placements
+from silkscreen_search import resolve_from_context, resolve_silkscreen_placements
 
 
 def _search_board(rotation_deg: float = 0.0) -> BoardModel:
@@ -133,3 +133,36 @@ def test_silkscreen_backside_position_is_not_search_resolved() -> None:
     assert resolved.placement_evidence[0]["resolution"] == (
         "graph_declared_backside_position"
     )
+
+
+def _context(*, outline: list[float] | None = None) -> dict[str, object]:
+    return {
+        "board_outline_bbox_mm": outline or [0.0, 0.0, 20.0, 20.0],
+        "requirements": {"min_silk_width_mm": 0.1, "min_silk_height_mm": 0.5},
+        "pad_bboxes_mm": [],
+        "mask_objects": [],
+        "body_bboxes_mm": [{"refdes": "J1", "bbox_mm": [9.0, 9.0, 11.0, 11.0]}],
+        "courtyard_bboxes_mm": [],
+        "existing_silk_objects": [],
+        "silk_objects": [],
+    }
+
+
+def test_context_search_returns_candidates_without_gate_threshold_copies() -> None:
+    lane = SilkscreenLane("board.gd1", (_search_text(),), ())
+    result = resolve_from_context(lane, _context())
+    assert result[0]["resolution"] == "context_candidate"
+    assert result[0]["accepted_position_mm"]
+
+
+def test_context_search_fails_closed_for_missing_context_geometry() -> None:
+    lane = SilkscreenLane("board.gd1", (_search_text(),), ())
+    with pytest.raises(GraphExtractionError, match="capability requirements are missing"):
+        resolve_from_context(lane, {"board_outline_bbox_mm": [0.0, 0.0, 20.0, 20.0]})
+
+
+def test_context_search_reports_no_candidate_fail_closed() -> None:
+    lane = SilkscreenLane("board.gd1", (_search_text(limit=0.25),), ())
+    result = resolve_from_context(lane, _context(outline=[0.0, 0.0, 2.0, 2.0]))
+    assert result[0]["resolution"] == "no_candidate_fail_closed"
+    assert result[0]["candidates"] == []

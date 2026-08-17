@@ -173,6 +173,9 @@ def test_courtyard_overlap_is_evidence_only() -> None:
         )
         assert cast(int, evidence["courtyard_overlap_count"]) > 0
         assert evidence["status"] == "measured_pass"
+        context = cast(dict[str, object], evidence["silkscreen_context"])
+        assert context["board_outline_bbox_mm"] == [0.0, 0.0, 3.0, 3.0]
+        assert "fail_conditions" in context
     finally:
         fab._gerber_silk_objects = original
 
