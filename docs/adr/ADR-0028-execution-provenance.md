@@ -1,16 +1,17 @@
 # ADR-0028: 実行provenanceとauthoritative Evidence
 
-- Status: Accepted
-- Date: 2026-08-11
+> ステータス: Accepted
+>
+> 日付: 2026-08-17
 
-## Context
+## コンテキスト
 
 従来の`ToolEnvelope.execution_env`はhost/architectureの説明文字列に
 container情報を埋め込んでいた。そのため、hostで決定論的ゲートが通った結果と、
 digest固定containerで通った結果を型安全に区別できず、valid Evidenceが合格側へ
 誤って昇格し得た。
 
-## Decision
+## 決定
 
 `ToolEnvelope`は`execution_context`（`container`、`host`、`unknown`）と
 `container_image_digest`を持つ。containerはdigestまたは`unknown`を必須とし、
@@ -37,7 +38,7 @@ CLIは`scripts/run_in_workspace.py`で引数と表示だけを担う。現行run
 配布する運用へ移行した時点で、`DockerWorkspace(server_image=...)`へ切り替える。
 runnerは解決済みdigestとcontainer markerをforwardする。
 
-## Consequences
+## 影響
 
 - host CIの既存exit 0を壊さず、結果をprovisionalとして明示できる。
 - 合格側Evidenceはimage digestへ結び付く。
@@ -46,7 +47,7 @@ runnerは解決済みdigestとcontainer markerをforwardする。
 - timestamp、filesystem、外部tool版、入力・出力hashの正規化と決定論的gateは
   引き続き必要であり、container化だけでdeterminismを仮定しない。
 
-## Verification
+## 検証
 
 validatorの矛盾拒否、host provisional、digest固定container authoritative、
 markerのみのunknown拒否、Evidence CLIのhost拒否を回帰試験に含める。
