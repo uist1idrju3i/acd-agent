@@ -78,3 +78,11 @@ parse失敗、未実行、unknownはfail-closedとする。Markdownのみの変�
 外部ツールの非決定性が正規化できない、一次情報とライセンス境界が合わない、
 negative testなしでしか完了条件を満たせない場合は、その機能を止めてADRと本書を
 更新する。閾値・期待値を変更して成功に見せない。
+
+## PR1後のSDK委譲計画
+
+SDKの実行・対話・配布・観測機能を活用し、ACDの契約・投影・合否を保持する。
+次フェーズでは依存と配布構造を整理し、その後に採用予定機能を実装する。
+GoalController、browser_use、Skills、security analyzer、secret/redactionは採用予定または
+採用対象としてカタログに記録し、ToolDefinition、DockerWorkspace、決定論的gateの
+責務境界を変更しない。agent-server、MCP、Canvas、remote API、cloudは採用しない。

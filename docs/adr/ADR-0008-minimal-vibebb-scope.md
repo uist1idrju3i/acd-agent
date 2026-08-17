@@ -4,7 +4,7 @@
 
 > ステータス: Accepted
 > 日付: 2026-08-16
-> 関連: [`../../README.md`](../../README.md)、[`../roadmap.md`](../roadmap.md)、[`../openhands-integration.md`](../openhands-integration.md)、[`ADR-0002-json-schema-canonical.md`](ADR-0002-json-schema-canonical.md)、[`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)
+> 関連: [`../../README.md`](../../README.md)、[`../roadmap.md`](../roadmap.md)、[`ADR-0002-json-schema-canonical.md`](ADR-0002-json-schema-canonical.md)、[`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)
 
 ## コンテキスト
 

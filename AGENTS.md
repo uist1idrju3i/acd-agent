@@ -27,8 +27,8 @@ plugins/acd/
 vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
 ```
 
-Agent Canvasのsubmoduleは削除済みであり、追加しない。OpenHands公開Skills repository
-（<https://github.com/OpenHands/extensions>）もsubmoduleにしない。
+本リポジトリはOpenHands Software Agent SDK v1.42.1専用拡張であり、機能採否は
+`docs/openhands-sdk-capabilities.md`で管理する。
 
 ## 不変条件
 
@@ -64,7 +64,7 @@ SDK hooksはagent経路のfail-closed境界として採用する。agent-server�
 ## 依存とsubmodule
 
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
-使用API、既定値、破壊的変更、採否を`docs/dependency-notes.md`へ記録する。
+使用API、既定値、破壊的変更、採否を`docs/operations.md`へ記録する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
 SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とする。
 
@@ -73,10 +73,25 @@ SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とす�
 
 ## 検証
 
-通常は次をすべて実行する。
+文書のみ:
 
 ```bash
-uv sync
+uv run python scripts/verify_docs.py
+git diff --check
+```
+
+通常:
+
+```bash
+uv run ruff check
+uv run pyright
+uv run pytest
+uv run python scripts/verify_docs.py
+```
+
+フル:
+
+```bash
 uv run ruff check
 uv run pyright
 uv run pytest
@@ -88,6 +103,9 @@ uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
 uv run python scripts/probe_tools.py
 git diff --check
 ```
+
+本リポジトリはOpenHands Software Agent SDK v1.42.1専用拡張であり、機能採否は
+`docs/openhands-sdk-capabilities.md`で管理する。
 
 Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
 `git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定のDockerWorkspaceを

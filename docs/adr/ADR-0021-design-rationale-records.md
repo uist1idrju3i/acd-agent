@@ -6,6 +6,9 @@
 
 ## 決定
 
+安全または製造影響を持つ属性だけをrationale必須範囲とする。他の属性は警告として
+扱い、未分類属性はfail-closedで停止する。
+
 設計判断の理由を型付きrecordとして`rationale.json`に保持し、設計グラフ全体の
 網羅性を決定論的ゲートで判定する。`rationale.json`は設計入力と同じ変更で更新し、
 配置やシルクのSkill由来値にはSkill名とscript hashを記録する。graphに要求nodeが

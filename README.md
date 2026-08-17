@@ -16,9 +16,9 @@ plugins/acd/ → Skill / AgentDefinition / command / hooks
 vendor/software-agent-sdk/ → OpenHands SDK v1.42.1
 ```
 
-本リポジトリはOpenHands専用拡張です。MCP互換層、ACP、Agent Canvas、Apptainer、remote_api、
-cloud workspaceは提供しません。境界は[`docs/architecture.md`](docs/architecture.md)、SDKの
-採否は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)を参照してください。
+本リポジトリはOpenHands専用拡張です。境界と不採用機能は
+[`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)、
+SDKの採否は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)を参照してください。
 
 ## 実行
 
@@ -29,9 +29,10 @@ uv run python scripts/run_gd1_pipeline.py
 uv run python scripts/probe_tools.py
 ```
 
-決定論的ゲートの正はdigest固定のDockerWorkspaceです。現行runnerは移行中で、DockerDevWorkspace
-によるbuild準備とホスト実行が残っています。digest不明またはホスト実行のEvidenceは合格側に
-使用しません。
+決定論的ゲートの実行形はdigest固定のDockerWorkspaceです。現行runnerは移行中で、
+digest不明またはホスト実行のEvidenceは合格側に使用しません。OpenHands固有の境界と
+不採用機能は[`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)
+を参照してください。
 
 ## 文書
 

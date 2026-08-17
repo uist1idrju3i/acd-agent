@@ -1,4 +1,4 @@
-# インストール
+# 運用・インストール
 
 ## 前提
 
@@ -9,9 +9,10 @@
 - JavaとFreeRouting
 - Docker（ゲート実行の正）
 
-OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1を
-workspace sourceとして使用する。Agent Canvasのソースは取得しない。OpenHands公開Skillsは
-必要な場合だけ外部repositoryを参照する。
+OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1
+（commit `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`）をworkspace sourceとして使用する。
+agent-serverは未検証の将来構想であり、現行の実行形は`LocalConversation`と
+`DockerWorkspace`を基点とする。
 
 ## cloneと依存関係
 
@@ -60,8 +61,7 @@ ACD_CONTAINER_IMAGE=acd-tools-gates:local uv run python scripts/run_in_workspace
 image digestを解決できない場合、runnerはコマンドを実行せず非ゼロ終了する。
 
 外部ツールが無い、版が不明、または出力を独立再読込できない場合、pipelineは
-fail-closedで停止する。ツールの採否判断は[`research/tool-selection.md`](research/tool-selection.md)、
-実測は[`tool-capability-probes.md`](tool-capability-probes.md)を参照する。
+fail-closedで停止する。ゲートの仕様とprobeの責務は[`gates.md`](gates.md)を参照する。
 
 ## plugin
 
@@ -83,16 +83,9 @@ plugin = acd_plugin_source("v1.2.3")
 
 ## 検証
 
-```bash
-uv run ruff check
-uv run pyright
-uv run pytest
-uv run pytest plugins -q
-uv run python scripts/verify_docs.py
-uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
-uv run python scripts/probe_tools.py
-git diff --check
-```
+文書のみの変更は`uv run python scripts/verify_docs.py`と`git diff --check`で確認する。
+通常のコード変更は`uv run ruff check`、`uv run pyright`、`uv run pytest`と文書検査を行い、
+フル検証では`uv run pytest plugins -q`、GD1基板・筐体pipeline、`probe_tools.py`も実行する。
 
 GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを

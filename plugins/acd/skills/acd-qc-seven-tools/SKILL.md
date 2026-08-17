@@ -14,7 +14,7 @@ triggers:
 # Q7／N7による所見の整理
 
 Q7は件数・測定値などの数量データ、N7は要求・意見・計画などの言語データを扱う。手法の定義と
-ACDでの入力は[`../../../../docs/research/qc-tools.md`](../../../../docs/research/qc-tools.md)を正とする。
+ACDでの入力は[`../../../../docs/research/README.md`](../../../../docs/research/README.md)を正とする。
 このSkillは所見の整理と優先度付けだけを行う。合否はACDの決定論的ゲート（ERC/DRC、機械ゲート、
 独立再読込）だけが決める。図表や傾向を原因の確定にも合格根拠にも使わない。
 

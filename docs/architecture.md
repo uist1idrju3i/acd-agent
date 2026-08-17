@@ -5,9 +5,8 @@
 
 本書は境界説明の単一の正であり、入力ファイルを正とするACDの実装境界を定める。
 SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)、
-agent-serverの運用手順は[`agent-server-runbook.md`](agent-server-runbook.md)を参照する。
-実行基盤の統合面は[`openhands-integration.md`](openhands-integration.md)、工程は
-[`design-flow.md`](design-flow.md)、設計決定は[`adr/`](adr)を参照する。
+運用手順は[`operations.md`](operations.md)、ゲート仕様は[`gates.md`](gates.md)を参照する。
+設計決定は[`adr/`](adr)を参照する。
 
 ## 正規データと責務境界
 
@@ -177,11 +176,10 @@ fork/resume後も決定論的ゲートを再実行して合否を決める。SDK
 ## agent-server運用境界
 
 OpenHands SDK v1.42.1のagent-serverは、REST、WebSocket、event、
-conversation persistenceを運ぶ層として文書化する。serverのevent、state、metrics、
-agent出力、OpenAI互換応答は経過であり、pass evidenceではない。合否はCIまたは
-`run_in_workspace`の決定論的pipelineとgateが決める。詳細な起動前確認、保存先、
-resume/fork、直接APIのhook境界、未実測範囲は[`agent-server-runbook.md`](agent-server-runbook.md)
-と[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)を参照する。
+conversation persistenceを運ぶ将来構想の層として文書化する。serverのevent、state、
+metrics、agent出力、OpenAI互換応答は経過であり、pass evidenceではない。合否はCIまたは
+`run_in_workspace`の決定論的pipelineとgateが決める。起動、保存、resume/fork、直接APIの
+hook境界は、実装着手時に受け入れ条件を定義して検証する。
 
 ## hook境界
 
@@ -211,3 +209,18 @@ dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが�
 
 SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)に整理する。
 ACD機能としては、実機測定、価格・在庫取得、自働発注が未実装であり、将来構想である。
+
+## 工程境界
+
+工程はS1（要件対話）、E1（部品選定と回路設計）、E2（アートワーク）、M1（筐体
+コンセプト）、M2（筐体詳細）、S2（製造出力）、S3（製造・加工フィードバック）、
+S4（試作立ち上げ）で構成する。各工程は入力ファイルを更新し、投影、独立再読込、
+決定論的ゲートを実行する。工程の詳細な希望的仕様は保持せず、実装済みの境界だけを
+本書の正とする。
+
+## OpenHands実行境界
+
+SDKが実行・対話・配布・観測を担い、ACDが契約・投影・合否を担う。エージェント入口は
+SDK `ToolDefinition`に一本化し、`scripts/*` CLIは人間とCIの入口に限定する。実行形は
+`LocalConversation`と`DockerWorkspace`を基点とし、agent-server経路は未検証の将来構想
+として扱う。

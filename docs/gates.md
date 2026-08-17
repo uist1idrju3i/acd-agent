@@ -1,11 +1,11 @@
-# 投影レビュー
+# ゲート仕様
 
-> ステータス: Draft  
+> ステータス: Accepted
 > 対象: 入力ファイルから生成する機械可読投影と視覚投影、工程出口ゲート
 
 本書は、入力ファイルからレビュー用投影を生成し、別コンテキストのAIが観察結果を
 自然文の所見として次の修正へ渡し、決定論的ゲートで工程出口を判定する方針を正とする。
-工程の順序は[`design-flow.md`](design-flow.md)を参照する。
+工程の順序は[`architecture.md`](architecture.md)を参照する。
 
 ## 目的と不変条件
 
@@ -18,8 +18,7 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 決定論的ゲートは投影の再読込、ERC/DRC、geometry、干渉などを判定する。
 生成と判定を分離し、生成エージェントに
 自分の出力へ`pass`を書き込む権限を与えない。これは
-[`research/reliability-practices.md`](research/reliability-practices.md)第III部の
-「自動ゲート／ピアエージェントレビュー（合否権限なし）／Phaseゲート」の3層、
+「自動ゲート／ピアエージェントレビュー（合否権限なし）／工程ゲート」の3層、
 生成と判定の分離、独立性、チェックリストの効用と限界に整合する。
 
 ## レビュー投影の定義と分類
@@ -153,7 +152,14 @@ AIレビューと決定論的ゲートは相互補完である。
 
 ## 関連文書
 
-- [`design-flow.md`](design-flow.md)：工程と出口投影の参照
+- [`architecture.md`](architecture.md)：工程と境界の参照
 - [`architecture.md`](architecture.md)：Pydanticデータモデル、投影、レイヤ境界
-- [`research/qc-tools.md`](research/qc-tools.md)：Q7/N7の作業手法
-- [`research/reliability-practices.md`](research/reliability-practices.md)：独立性、3層レビュー、チェックリストの限界
+- [`ADR-0023`](adr/ADR-0023-deterministic-gate-authority.md)：判定・操舵・観測の三層分離
+
+## 外部ツール能力プローブ
+
+`scripts/probe_tools.py`はKiCad CLI、FreeRouting、CAD kernelなどACDが要求する外部
+実行ファイルの存在、版、実行可能性を記録する。SDKが提供するtoolの登録状態や
+agent-serverのrouter一覧とは別の責務であり、外部CLIの未検出・版不明・出力不整合は
+`unknown`としてpipelineを停止させる。プローブ結果はツールの存在を示すだけで、
+設計の合否やEvidenceの代替にはしない。

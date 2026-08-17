@@ -30,7 +30,7 @@ uv run python plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determini
 ```
 
 JSONを標準出力へ書く。測定値を文書へ残す場合は取得時点とツール版を添える。記録先は
-[`../../../../docs/tool-capability-probes.md`](../../../../docs/tool-capability-probes.md)である。
+[`../../../../docs/gates.md`](../../../../docs/gates.md)である。
 
 ## 前提と限界
 
