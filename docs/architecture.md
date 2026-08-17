@@ -11,7 +11,8 @@
 
 設計グラフとプロファイルはPydantic契約で検証する入力ファイルであり、git commitと
 ともに設計の正である。KiCad project、Gerber/drill、BOM/CPL、STEP/3MF、evidenceは
-入力から生成する派生投影であり、投影結果を入力へ逆流させない。
+入力から生成する派生投影であり、投影結果を入力へ逆流させない。設計判断の理由は
+typed `rationale.json`へ記録し、graphの必須属性に対するcoverageを決定論的に検査する。
 
 ```text
 入力ファイル / profiles
@@ -26,6 +27,12 @@ adapters/*（KiCad、FreeRouting、CAD）
         ↓
 生成物、独立再読込、evidence
 ```
+
+`rationale.json`はgraphと同じrevisionを対象にし、subject hash、要求、代替案、provenance
+を保持する。graphに要求nodeがある場合は`driving_requirements`、文書にだけ要求がある
+場合は`driving_requirement_refs`（文書パスと要求ID）を使う。stale、unknown、orphan、
+conflicting、missing、untraceableはfail-closedで停止する。
+rationaleのMarkdownはpipeline出力の派生レビュー投影であり、canonical inputではない。
 
 AIとSkillは探索・実装・所見を提案する。合否はACDの決定論的ゲートだけが判定する。
 ツール不在、入力不備、parse失敗、未実行、unknown、未検証はfail-closedとする。

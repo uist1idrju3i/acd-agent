@@ -20,6 +20,7 @@ OpenHandsの公開Skills repositoryはsubmoduleにせず外部参照とする:
 plugins/acd/
 ├── .plugin/plugin.json
 ├── .mcp.json
+├── hooks/hooks.json
 ├── commands/gates.md
 ├── agents/
 │   ├── acd-electrical.md
@@ -49,6 +50,13 @@ subprocess実行して結果を設計入力へ確定する。scriptのsha256とS
 記録し、入力不備や実行失敗はfail-closedとする。silkscreen探索では、決定論的ゲートが
 Gerber実測の幾何・判定条件・文字寸法上界モデルをcontextとして渡し、Skillは自前の
 閾値や文字寸法係数を持たず、受け取った条件だけで候補を生成する。
+
+設計入力の編集後は実装済みの`PostToolUse` hookが`file_editor`に対して
+`uv run python scripts/check_rationale.py --if-present --warn-only`を実行し、
+rationale不足を警告する。`Stop` hookは
+`uv run python scripts/check_rationale.py --if-present`を実行する。exit code 2の不足・
+parse失敗・staleは停止をブロックする。Conversationの永続ログはconversation event
+referenceとして参照するだけで、rationaleや合否の権威ではない。
 
 ## AgentDefinition
 
