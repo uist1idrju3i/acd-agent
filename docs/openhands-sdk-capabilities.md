@@ -32,7 +32,7 @@
 | sdk.agent.parallel_executor | `ParallelToolExecutor` | agent lane並列化 | 採用予定 | 固定順集約と共有resource宣言を条件に採用 | 未検証 |
 | sdk.tools.task | `TaskToolSet` | task分離 | 採用予定 | 主会話の汚染を減らすが合否権限なし | 未検証 |
 | sdk.tools.delegate | `DelegateExecutor`, `delegate`, `spawn` | sub-agent調整 | 採用予定 | resource lockと停止側権限を条件に採用 | 未検証 |
-| sdk.tools.workflow | `WorkflowToolSet`, `map_agents`, `reduce_agent`, `pipeline` | 観点別agent分業 | 不採用 | 決定論的探索と投影の意味的mergeを委譲しない | 未検証 |
+| sdk.tools.workflow | `WorkflowToolSet`, `map_agents`, `reduce_agent`, `pipeline` | lane並列化のmap/reduce | 採用予定 | 電気・機械・FW laneの並列化に限り、決定論的探索と投影の意味的mergeは委譲しない | 未検証 |
 | sdk.conversation.goal | `GoalController`, `GoalVerdict` | 反復停止の補助 | 採用予定 | L2停止側に限り、L1合否を置換しない | 未検証 |
 | sdk.conversation.stuck_detector | `StuckDetector` | 停滞時の差し戻し | 採用予定 | 停止・修正の操舵に限定する | 未検証 |
 | sdk.conversation.cancellation | cancellation APIs | 対話中断 | 採用予定 | 未使用だが停止境界への採用を決定 | 未検証 |

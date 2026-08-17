@@ -2,7 +2,7 @@
 
 > ステータス: Accepted
 > 日付: 2026-08-17
-> 関連: [`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)、[`ADR-0009-openhands-delegation-and-skills.md`](ADR-0009-openhands-delegation-and-skills.md)、[`ADR-0011-search-results-as-design-input.md`](ADR-0011-search-results-as-design-input.md)
+> 関連: [`ADR-0007-llm-guided-physical-design.md`](ADR-0007-llm-guided-physical-design.md)、[`ADR-0026-openhands-delegation-contract.md`](ADR-0026-openhands-delegation-contract.md)
 
 ## 決定
 
@@ -25,17 +25,6 @@ coverage外へ置いてはならない。
 必須属性にはrationale recordも同時に追加する。graphに要求nodeがある要求は
 `driving_requirements`で参照し、文書にしかない要求は`driving_requirement_refs`へ
 文書パスと要求IDを記録する。後者を無関係なgraph nodeで代用してはならない。
-
-## 探索結果とSkillの境界
-
-配置・回転・シルク探索の採用結果は`graph.json`へ確定し、Skill CLIはsubprocessで
-実行する。ACD本体からSkillのPython moduleをimportせず、Skill名と実行scriptの
-`sha256:`をprovenanceへ記録する。時刻やgraph自身への参照は決定性を壊すため記録しない。
-入力不備、候補欠落、実行失敗、provenance欠落はfail-closedとする。
-
-Skill側とゲート側の観測範囲に差がある場合は、ゲートが実測したcontextをSkillへ渡し、
-同じ条件で候補を再探索し、受理後に再投影・再測定する「投影→実測→再配置」ループで
-解消する。Skillの代理指標やAI出力は合否権威ではなく、最終ゲートが引き続き権威である。
 
 ## 背景
 
