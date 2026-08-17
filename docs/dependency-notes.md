@@ -65,6 +65,59 @@ CodeQLと`update-uv-graph`はリポジトリ設定側で動くcheck-runであり
 
 確認日: 2026-08-16。一次情報で確認できない変更は推測せず、未確認の採否を合格扱いにしない。
 
+## ゲート用Dockerイメージのツール更新（2026-08-17）
+
+`docker/acd-tools.Dockerfile`のベースイメージとゲート用外部ツールを更新した。
+採用版、固定方法、一次情報、既定値および破壊的変更の有無は次のとおりである。
+
+| 対象 | 採用版・固定値 | 固定・検証方法 | 一次情報 |
+|---|---|---|---|
+| Ubuntu | `ubuntu:26.04`（Resolute） | Docker Hubの公式library image tag | [Ubuntu Docker Official Image](https://hub.docker.com/_/ubuntu) |
+| KiCad | 10.0.5 | `ppa:kicad/kicad-10.0-releases`を追加し、`kicad-cli --version`が10系であることをbuild時検証 | [KiCad PPA](https://launchpad.net/~kicad/+archive/ubuntu/kicad-10.0-releases)、[KiCad CLI 10 docs](https://docs.kicad.org/10.0/en/cli/cli.html) |
+| FreeRouting | 2.3.0 | GitHub release URLとjarのSHA-256 `3cf18d608437740bc497db6b8ef5888e2e60a08de0def20691d1bad0c0e0ee24`を検証 | [v2.3.0 release](https://github.com/freerouting/freerouting/releases/tag/v2.3.0) |
+| OpenJDK | `openjdk-25-jre-headless`（25.0.3+9-2~26.04.2、LTS） | Ubuntu 26.04のAPT package | [Ubuntu packages: openjdk-25](https://packages.ubuntu.com/resolute/openjdk-25-jre-headless) |
+| ngspice | 45.2 | Ubuntu 26.04のAPT packageを導入し、`ngspice --version`をbuild時検証 | [Ubuntu packages: ngspice](https://packages.ubuntu.com/resolute/ngspice) |
+| Python | Ubuntu 26.04 system Python 3.14 | `python3.14`、`python3.14-venv`をAPTから導入し、`python3.14 --version`が3.14系であることをbuild時検証 | [Ubuntu packages: python3.14](https://packages.ubuntu.com/resolute/python3.14)、[Ubuntu packages: python3.14-venv](https://packages.ubuntu.com/resolute/python3.14-venv) |
+| uv | 0.12.3 | GitHub release tarballのSHA-256 `600cf9a742aca00d292673b16b5acffaa7b8c269a364ad0c2e79498dcb1fe101`を検証 | [uv v0.12.3](https://github.com/astral-sh/uv/releases/tag/0.12.3)、[uv v0.12.5](https://github.com/astral-sh/uv/releases/tag/0.12.5) |
+| git | Ubuntu 26.04 package | `git --version`をbuild時検証 | [Ubuntu packages: git](https://packages.ubuntu.com/resolute/git) |
+
+既定値として、`UV_SYSTEM_PYTHON=1`を維持し、コンテナ内のuvはUbuntu 26.04の
+system Python 3.14を使用する。`python3.14`と`python3.14-venv`をAPTから導入し、
+build時に`python3.14 --version`を検証する。uv管理Pythonのインストール先や
+`UV_PYTHON_INSTALL_DIR`は設定しない。
+
+Ubuntu 26.04には`python3.12` packageがなく、system Pythonは3.14のみであるため、
+ユーザー判断によりsystem Python 3.14を採用した。`cadquery-ocp` 7.9.3.1.1には
+cp314のmanylinux_2_31 wheelがあり、`build123d` 0.11.1と`lib3mf` 2.5.0はpure
+wheelで、いずれもPython <3.15制約内である。リポジトリのrequires-python >=3.12と
+pyrightのpythonVersion 3.12は変更しない。
+
+この変更によるACDのPython APIやlock済み依存の仕様変更はない。一方、コンテナ内で
+`/usr/bin/python3.12`やuv管理Pythonを直接参照する利用者にとっては破壊的な運用変更で
+あり、Ubuntu 26.04のsystem Python 3.14を使う契約へ移行する。Python 3.12系で取得済みの
+決定性evidenceは流用せず、3.14.4環境で再測定した。正規化後hashは3.12実測と一致した。
+詳細は[`docs/tool-capability-probes.md`](tool-capability-probes.md)を参照する。
+
+uvは0.12.5が最新だが、公開後7日以上のsupply-chain方針を満たす0.12.3を採用した。
+OpenJDKは26ではなく、LTSである25を採用した。KiCadは10系安定版の10.0.5を採用し、
+11系は未リリースである。
+
+### ベースディストリビューション比較
+
+今回の候補比較ではUbuntu LTSを継続採用した。
+
+- **Alpineは不採用。** `cadquery-ocp` 7.9.3.1.1と`lib3mf` 2.5.0はPyPIに
+  musllinux wheelも利用可能なsdistもなく、`cadquery-ocp`はmanylinux_2_31、
+  macOS、Windows向けのみである。muslでは機械レーンのCADゲートが成立しない。
+  Alpine edgeのKiCadは10.0.4-r1、ngspiceは46であり、採用版要件とも一致しない。
+- **Arch Linuxは技術的には可能。** glibc、KiCad 10.0.5-1、ngspice 46-2、
+  jdk25-openjdk 25.0.4.u7を利用できるが、rolling releaseの版固定には
+  Arch Linux Archiveのsnapshot運用が前提となる。LTSの再現性とセキュリティ更新の
+  観点から、Ubuntu LTSを継続採用する。
+
+今回の更新で既定のゲート実行方式、APT packageの役割、FreeRouting wrapper、
+curl/software-properties-commonのbuild後purge、APT list削除は変更していない。
+
 ### SDK ToolDefinition API
 
 OpenHands SDK v1.42.1の`ToolDefinition`、`Action`、`Observation`、
