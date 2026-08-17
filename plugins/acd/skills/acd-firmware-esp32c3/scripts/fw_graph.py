@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from acd_schema.design_graph import DesignGraph
+from acd.schema.design_graph import DesignGraph
 
 
 class FirmwareExtractionError(ValueError):

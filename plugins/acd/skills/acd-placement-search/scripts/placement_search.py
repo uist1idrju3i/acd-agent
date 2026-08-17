@@ -18,9 +18,9 @@ import argparse
 import json
 from pathlib import Path
 
-from acd_adapter_kicad.board import board_keepouts, load_board_footprints
-from acd_adapter_kicad.library import FootprintLibrary
-from acd_adapter_kicad.placement import (
+from acd.adapters.kicad.board import board_keepouts, load_board_footprints
+from acd.adapters.kicad.library import FootprintLibrary
+from acd.adapters.kicad.placement import (
     MARGIN_MM,
     Placement,
     PlacementError,
@@ -29,16 +29,16 @@ from acd_adapter_kicad.placement import (
     pad_position,
     placed_rect,
 )
-from acd_core.board_model import FootprintShape
-from acd_core.electrical import (
+from acd.core.board_model import FootprintShape
+from acd.core.electrical import (
     BoardView,
     ComponentView,
     NetView,
     PinView,
     extract_electrical_lane,
 )
-from acd_core.fab import load_fab_profile
-from acd_schema.design_graph import DesignGraph
+from acd.core.fab import load_fab_profile
+from acd.schema.design_graph import DesignGraph
 
 _GRID_MM = 0.25
 # Preferred spacing between neighbouring components leaves a routing channel

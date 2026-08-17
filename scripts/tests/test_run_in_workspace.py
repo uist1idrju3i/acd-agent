@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from scripts.run_in_workspace import (
+
+from acd.openhands.workspace import (
     ImageReference,
     resolve_image_digest,
     run_command_in_workspace,
@@ -69,7 +70,7 @@ def test_unresolved_digest_does_not_start_workspace(
         return None
 
     monkeypatch.setattr(
-        "scripts.run_in_workspace.resolve_image_digest",
+        "acd.openhands.workspace.resolve_image_digest",
         resolve_none,
     )
     started = False
@@ -79,15 +80,13 @@ def test_unresolved_digest_does_not_start_workspace(
         started = True
         return object()
 
-    assert (
+    with pytest.raises(ValueError, match="digest"):
         run_command_in_workspace(
             image="acd:local",
             command="true",
             repository=tmp_path,
             workspace_factory=factory,
         )
-        == 2
-    )
     assert started is False
 
 
@@ -100,7 +99,7 @@ def test_digest_is_forwarded_to_workspace(
         return reference
 
     monkeypatch.setattr(
-        "scripts.run_in_workspace.resolve_image_digest",
+        "acd.openhands.workspace.resolve_image_digest",
         resolve_reference,
     )
     captured: dict[str, Any] = {}
@@ -116,6 +115,7 @@ def test_digest_is_forwarded_to_workspace(
             captured["command"] = command
             captured["cwd"] = cwd
             captured["env"] = os.environ["ACD_CONTAINER_IMAGE_DIGEST"]
+            captured["marker"] = os.environ["ACD_IN_CONTAINER"]
             return type(
                 "Result",
                 (),
@@ -125,16 +125,16 @@ def test_digest_is_forwarded_to_workspace(
     def factory(**kwargs: Any) -> Workspace:
         captured["constructor"] = kwargs
         assert "ACD_CONTAINER_IMAGE_DIGEST" in kwargs["forward_env"]
+        assert "ACD_IN_CONTAINER" in kwargs["forward_env"]
         return Workspace()
 
-    assert (
-        run_command_in_workspace(
-            image="acd:local",
-            command="echo ok",
-            repository=tmp_path,
-            workspace_factory=factory,
-        )
-        == 0
+    result = run_command_in_workspace(
+        image="acd:local",
+        command="echo ok",
+        repository=tmp_path,
+        workspace_factory=factory,
     )
+    assert result.exit_code == 0
     assert captured["cwd"] == "/workspace"
     assert captured["env"] == reference.digest
+    assert captured["marker"] == "1"

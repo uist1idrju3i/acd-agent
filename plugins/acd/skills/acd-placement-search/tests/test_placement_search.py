@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from acd_adapter_kicad.placement import PlacementError, pad_position, placed_rect
-from acd_core.board_model import FootprintShape, PadShape
-from acd_core.electrical import BoardView, ComponentView, LibraryPin
+from acd.adapters.kicad.placement import PlacementError, pad_position, placed_rect
+from acd.core.board_model import FootprintShape, PadShape
+from acd.core.electrical import BoardView, ComponentView, LibraryPin
 from placement_search import compute_placements
 
 

@@ -6,9 +6,9 @@ from typing import Any, cast
 
 import pytest
 
-from acd_core.board_model import BoardModel, ComponentPlacement, FootprintShape, PadShape
-from acd_core.electrical import GraphExtractionError
-from acd_core.silkscreen import SilkscreenLane, SilkTextView
+from acd.core.board_model import BoardModel, ComponentPlacement, FootprintShape, PadShape
+from acd.core.electrical import GraphExtractionError
+from acd.core.silkscreen import SilkscreenLane, SilkTextView
 from silkscreen_search import resolve_from_context, resolve_silkscreen_placements
 
 

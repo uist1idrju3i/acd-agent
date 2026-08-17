@@ -9,15 +9,21 @@ README、docs、Issue、PR、コミットメッセージは日本語、コード
 ## 構成
 
 ```text
-packages/
-├── acd-schema/
-├── acd-core/
-├── acd-pipeline/
-├── acd-tools/
+src/acd/
+├── schema/
+├── core/
+├── pipeline/
+├── openhands/
 └── adapters/
-    ├── acd-adapter-kicad/
-    ├── acd-adapter-freerouting/
-    └── acd-adapter-cad/
+    ├── kicad/
+    ├── freerouting/
+    └── cad/
+tests/
+├── schema/
+├── core/
+├── pipeline/
+├── openhands/
+└── adapters/
 plugins/acd/
 ├── skills/
 ├── agents/
@@ -27,13 +33,13 @@ plugins/acd/
 vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
 ```
 
-Agent Canvasのsubmoduleは削除済みであり、追加しない。OpenHands公開Skills repository
-（<https://github.com/OpenHands/extensions>）もsubmoduleにしない。
+本リポジトリはOpenHands Software Agent SDK v1.42.1専用拡張であり、機能採否は
+`docs/openhands-sdk-capabilities.md`で管理する。
 
 ## 不変条件
 
 - 入力ファイルとgitを設計の正とし、投影を入力へ逆流させない。
-- L1判定は決定論的ゲートと`Evidence.supports_pass(graph.revision)`だけが担う。
+- L1判定は決定論的ゲートとrevision一致のauthoritative Evidenceだけが担う。
 - L2のcritic、Skill、agent、reviewerは操舵、L3のevent、metrics、telemetryは観測に限る。
 - L2とL3は停止側にだけ作用でき、合格側へ作用させない。
 - ツール不在、parse失敗、ゲート未実行、unknown、未検証はfail-closedにする。
@@ -60,11 +66,21 @@ Skillsのtriggerは`KeywordTrigger`を使う。`paths:`はmodel invocationを無
 `inputs:`はTaskTriggerになるため現在は使わない。reviewerは合否権限を持たない。
 SDK hooksはagent経路のfail-closed境界として採用する。agent-serverのhooks APIは設定ロードを
 担うが、server直接API全体への自動適用は未確認である。CIの決定論的検証を置き換えない。
+Conversationにはpinned SDKの`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
+`SecretRegistry`、`load_skills_from_dir`、`StuckDetector`を設定する。これらはL2の
+操舵・停止・漏洩防止層であり、authoritative Evidenceを生成・昇格しない。ACD Skillは
+`plugins/acd/skills`だけを明示ロードし、public/user/marketplaceの自動読み込みを無効にする。
+Skill資材の読み込み失敗はfail-closedとし、既存のorder guard、projection保護、
+stop policy hookを置換しない。GoalControllerとconversation cancellationは同じL2停止境界で
+再利用し、ConversationStatsはL3観測に限定する。goal結果やjudge評決をEvidenceへ昇格しない。
+lane並列は`tool_concurrency_limit`を明示した場合だけ有効化し、資源宣言不能時は
+SDKのmutexによる直列化へ倒す。task/delegateのsub-agentは親hookを継承しないため、
+ACD AgentDefinitionへ必須hookを明記し、SDKロード結果を検査する。
 
 ## 依存とsubmodule
 
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
-使用API、既定値、破壊的変更、採否を`docs/dependency-notes.md`へ記録する。
+使用API、既定値、破壊的変更、採否を`docs/operations.md`へ記録する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
 SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とする。
 
@@ -73,7 +89,24 @@ SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とす�
 
 ## 検証
 
-通常は次をすべて実行する。
+文書のみ:
+
+```bash
+uv run python scripts/verify_docs.py
+git diff --check
+```
+
+通常:
+
+```bash
+uv sync
+uv run ruff check
+uv run pyright
+uv run pytest
+uv run python scripts/verify_docs.py
+```
+
+フル:
 
 ```bash
 uv sync
@@ -90,8 +123,10 @@ git diff --check
 ```
 
 Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
-`git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定のDockerWorkspaceを
-正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは移行中である。GD1基板pipelineはsilkscreenゲートまで通過する前提で、
+`git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定containerを
+正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは
+`DockerDevWorkspace`でbase imageからserver imageを準備する移行中の経路である。
+GD1基板pipelineはsilkscreenゲートまで通過する前提で、
 resolverと基板pipelineを実行して確認する。
 
 graphへ設計判断属性を追加する機能変更では、同じ変更で属性を

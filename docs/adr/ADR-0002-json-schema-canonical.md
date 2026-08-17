@@ -1,6 +1,6 @@
 # ADR-0002: JSON Schemaを契約の正本とする
 
-> 本決定はADR-0008により廃止され、現在の契約の正はPydanticモデルとする。本文は過去の決定履歴として保持する。
+> Pydanticモデルが契約の正であり、JSON Schemaはその投影である。本文は過去の決定履歴として保持する。
 
 > ステータス: Accepted
 > 日付: 2026-08-11
@@ -14,7 +14,7 @@ ReviewFinding、Evidence、FWパッケージの契約は、Python実装と独立
 ## 決定
 
 - `schemas/*.schema.json`（JSON Schema draft 2020-12）を機械可読契約の正本とする。
-- `packages/acd-schema`のPydanticモデルは正本の実装であり、両者の整合は
+- `src/acd/schema`のPydanticモデルは正本の実装であり、両者の整合は
   往復検証テスト（golden fixtureが両方で受理され、negative fixtureが両方で
   拒否されること）で担保する。
 - 共有語彙（revision、hash、unknown、timestamp等）は`common.schema.json`に置き、

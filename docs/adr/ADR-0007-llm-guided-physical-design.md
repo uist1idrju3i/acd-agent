@@ -5,7 +5,7 @@
 
 > ステータス: Accepted
 > 日付: 2026-08-16
-> 関連: [`../research/ai-physical-design.md`](../research/ai-physical-design.md)、[`../research/prior-art.md`](../research/prior-art.md)、[`../roadmap.md`](../roadmap.md)、[`ADR-0003-sdk-feature-adoption.md`](ADR-0003-sdk-feature-adoption.md)、[`ADR-0010-plugin-first-openhands-integration.md`](ADR-0010-plugin-first-openhands-integration.md)
+> 関連: [`../research/README.md`](../research/README.md)、[`../roadmap.md`](../roadmap.md)、[`ADR-0026-openhands-delegation-contract.md`](ADR-0026-openhands-delegation-contract.md)
 
 ## コンテキスト
 
@@ -22,7 +22,7 @@
 紐づき、記録した仕様・seed・ツール版・入力hashからEvidenceを再測定できることである。
 
 研究・商用の先行事例も、LLMを制約生成・優先順位付け・戦略選択に使い、幾何の生成と検証は決定論的アルゴリズムと物理検証に任せる構成が主流である
-（[`../research/prior-art.md`](../research/prior-art.md)の§21）。
+（[`../research/README.md`](../research/README.md)のprior art結論）。
 
 ## 決定
 
@@ -62,9 +62,20 @@
 | 90度刻みを全面的に撤廃し、連続角度を既定にする | CPL回転規約、実装機精度、検査性への影響を実測していない。撤廃はprofileとEvidenceに基づく段階的緩和として扱う |
 | stale判定も外してLLM主導にする | 不可逆点は発注（金額と納期）であり、古い外形や差し替え前footprintの成果物で発注が通る。損失が非対称なため、所見の再測定は緩めてもstale検出は残す |
 
+## 探索結果とSkillの境界
+
+配置・回転・シルク探索の採用結果は`graph.json`へ確定し、Skill CLIはsubprocessで
+実行する。ACD本体からSkillのPython moduleをimportせず、Skill名と実行scriptの
+`sha256:`をprovenanceへ記録する。時刻やgraph自身への参照は決定性を壊すため記録しない。
+入力不備、候補欠落、実行失敗、provenance欠落はfail-closedとする。
+
+Skill側とゲート側の観測範囲に差がある場合は、ゲートが実測したcontextをSkillへ渡し、
+同じ条件で候補を再探索し、受理後に再投影・再測定する「投影→実測→再配置」ループで
+解消する。Skillの代理指標やAI出力は合否権威ではなく、最終ゲートが引き続き権威である。
+
 ## 影響
 
-- `docs/research/ai-physical-design.md`が探索方針の正となり、[`../roadmap.md`](../roadmap.md)に
+- `docs/research/README.md`のai physical design結論が探索方針を支え、[`../roadmap.md`](../roadmap.md)に
   当該フェーズを追加する。
 - 探索仕様のschema正本の所在（設計グラフnodeか独立契約か）は未決であり、フェーズ着手時に確定する。
 - `E2`の実装は、探索器・整合化器・代理指標を生成側モジュールへ、実測とゲートを判定側モジュールへ

@@ -10,3 +10,7 @@ OpenHands SDKで読み込むACDサブエージェント定義を配置する。
 
 AIとSkillは候補・所見を提供するだけで、合否を決定しない。合否は決定論的ゲートが
 判定し、unknown、parse失敗、ツール不在、未検証状態はfail-closedとして扱う。
+sub-agentは親conversationのhookを継承しないため、各AgentDefinitionに
+`protect-derived-projections`、`require-order-evidence`、
+`require-gate-after-input-change`を明記する。SDKロード後のHookConfigを試験で照合し、
+hook drift時はtask/delegate経路を受け入れない。workflowの採否は別途判断する。

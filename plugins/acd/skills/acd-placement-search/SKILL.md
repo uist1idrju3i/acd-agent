@@ -38,7 +38,7 @@ uv run python plugins/acd/skills/acd-placement-search/scripts/placement_search.p
 from placement_score import rank_candidates, score_placement
 ```
 
-`acd_adapter_kicad.board.load_board_footprints()` と `board_keepouts()` で投影と同じ
+`acd.adapters.kicad.board.load_board_footprints()` と `board_keepouts()` で投影と同じ
 footprint 幾何・keepout を読み、`compute_placements()` に渡す。得られた `Placement` を
 設計入力ファイルへ書き戻し、`generate_board()`／`write_project()` で投影して
 ERC/DRC ゲートにかける。参照実装は `scripts/run_gd1_pipeline.py` にある。

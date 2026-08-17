@@ -13,7 +13,7 @@ triggers:
 
 # シルクスクリーン文字の配置探索
 
-ACD本体はシルク文字の探索を持たない。グラフ宣言の抽出（`acd_core.silkscreen.extract_silkscreen_lane`）
+ACD本体はシルク文字の探索を持たない。グラフ宣言の抽出（`acd.core.silkscreen.extract_silkscreen_lane`）
 だけが本体に残り、位置決めはこの Skill が行う。結果は候補であり、合否は ACD の
 決定論的ゲート（DRC と独立再読込）が判定する。
 

@@ -5,6 +5,9 @@
 
 ## コンテキスト
 
+ホスト実行は開発時の暫定経路であり、pass昇格はCI/Docker経路に限定する。開発中の
+dirty worktreeは警告とし、CIでは失敗にする。
+
 Conversationとagent-serverを実運用経路にすると、critic score、LLM judge、metrics、
 Skill出力を合否へ混入させる圧力が高まる。禁止事項の列挙だけでは、利用可能な範囲を
 明確にできない。

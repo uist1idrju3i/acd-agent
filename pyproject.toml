@@ -1,50 +1,50 @@
 [project]
-name = "acd-agent"
+name = "acd"
 version = "0.0.1"
-description = "ACD workspace root (AI-first CAD on OpenHands Software Agent SDK)"
+description = "AI-first PCB, enclosure, and firmware design framework"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.9",
+    "sexpdata>=1.0.2",
+    "gerbonara>=1.6.3",
+    "build123d==0.11.1",
+    "cadquery-ocp==7.9.3.1.1",
+    "openhands-sdk",
+    "openhands-tools",
+    "openhands-workspace",
+]
 
-[tool.uv]
-package = false
-
-[tool.uv.workspace]
-members = ["packages/*", "packages/adapters/*"]
-exclude = ["packages/adapters"]
+[project.scripts]
+acd-evidence-check = "acd.openhands.evidence_check:main"
+acd-design-revision = "acd.openhands.design_revision:main"
+acd-evidence-git-check = "acd.openhands.evidence_git:main"
 
 [tool.uv.sources]
-acd-schema = { workspace = true }
-acd-core = { workspace = true }
-acd-tools = { workspace = true }
-acd-adapter-kicad = { workspace = true }
-acd-adapter-freerouting = { workspace = true }
-acd-adapter-cad = { workspace = true }
-acd-pipeline = { workspace = true }
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
+openhands-tools = { path = "vendor/software-agent-sdk/openhands-tools" }
 openhands-workspace = { path = "vendor/software-agent-sdk/openhands-workspace" }
 
 [dependency-groups]
 dev = [
-    "acd-schema",
-    "acd-core",
-    "acd-tools",
-    "acd-adapter-kicad",
-    "acd-adapter-freerouting",
-    "acd-adapter-cad",
-    "acd-pipeline",
     "openhands-sdk",
+    "openhands-tools",
     "openhands-workspace",
-    "build123d==0.11.1",
-    "cadquery-ocp==7.9.3.1.1",
     "pytest>=8.3",
     "ruff>=0.9",
     "pyright>=1.1.390",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/acd"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["packages/*/src", "packages/adapters/*/src", "plugins/acd/skills/*/scripts", "plugins/acd/hooks/scripts"]
+src = ["src", "scripts", "plugins/acd/skills/*/scripts", "plugins/acd/hooks/scripts"]
 extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
@@ -53,19 +53,14 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
-include = ["packages", "scripts", "fixtures", "plugins"]
+include = ["src", "tests", "scripts", "fixtures", "plugins"]
 exclude = ["**/__pycache__", "vendor", "**/.venv"]
 executionEnvironments = [
-    { root = "packages/acd-schema/src" },
-    { root = "packages/acd-core/src" },
-    { root = "packages/acd-tools/src", extraPaths = [
+    { root = "src", extraPaths = [
         "vendor/software-agent-sdk/openhands-sdk",
+        "vendor/software-agent-sdk/openhands-tools",
         "vendor/software-agent-sdk/openhands-workspace",
     ] },
-    { root = "packages/adapters/acd-adapter-kicad/src" },
-    { root = "packages/adapters/acd-adapter-freerouting/src" },
-    { root = "packages/adapters/acd-adapter-cad/src" },
-    { root = "packages/acd-pipeline/src" },
     { root = "plugins/acd/skills/acd-firmware-esp32c3", extraPaths = [
         "plugins/acd/skills/acd-firmware-esp32c3/scripts",
     ] },
@@ -86,12 +81,13 @@ executionEnvironments = [
     ] },
     { root = "scripts", extraPaths = [
         ".",
-        "packages/acd-pipeline/src",
+        "src",
         "vendor/software-agent-sdk/openhands-workspace",
     ] },
     { root = ".", extraPaths = [
         "scripts",
         "vendor/software-agent-sdk/openhands-sdk",
+        "vendor/software-agent-sdk/openhands-tools",
         "vendor/software-agent-sdk/openhands-workspace",
     ] },
     { root = "plugins/acd/hooks", extraPaths = [
@@ -100,5 +96,5 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["packages", "scripts"]
+testpaths = ["tests", "scripts"]
 addopts = "-q"

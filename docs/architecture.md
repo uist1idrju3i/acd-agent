@@ -5,9 +5,8 @@
 
 本書は境界説明の単一の正であり、入力ファイルを正とするACDの実装境界を定める。
 SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)、
-agent-serverの運用手順は[`agent-server-runbook.md`](agent-server-runbook.md)を参照する。
-実行基盤の統合面は[`openhands-integration.md`](openhands-integration.md)、工程は
-[`design-flow.md`](design-flow.md)、設計決定は[`adr/`](adr)を参照する。
+運用手順は[`operations.md`](operations.md)、ゲート仕様は[`gates.md`](gates.md)を参照する。
+設計決定は[`adr/`](adr)を参照する。
 
 ## 正規データと責務境界
 
@@ -19,13 +18,13 @@ typed `rationale.json`へ記録し、graphの必須属性に対するcoverageを
 ```text
 入力ファイル / profiles
         ↓
-acd-schema（Pydantic契約）
+acd.schema（Pydantic契約）
         ↓
-acd-core（電気・機械・fab意図の抽出と共通モデル）
+acd.core（電気・機械・fab意図の抽出と共通モデル）
         ↓
-acd-pipeline（GD1基板・筐体の決定論的投影とゲート）
+acd.pipeline（GD1基板・筐体の決定論的投影とゲート）
         ↓
-adapters/*（KiCad、FreeRouting、CAD）
+acd.adapters.*（KiCad、FreeRouting、CAD）
         ↓
 生成物、独立再読込、evidence
 ```
@@ -51,21 +50,21 @@ critic反復の回帰に使うが、metricsやcritic出力を合否Evidenceへ�
 ## Pythonパッケージ
 
 ```text
-packages/
-├── acd-schema/       # DesignGraph、Evidence、ToolEnvelope等の契約
-├── acd-core/         # 電気・機械・fab意図の抽出と共通モデル
-├── acd-pipeline/     # GD1 board/enclosure pipeline
-├── acd-tools/        # 外部ツールprobeとSDK ToolDefinition
+src/acd/
+├── schema/           # DesignGraph、Evidence、ToolEnvelope等の契約
+├── core/             # 電気・機械・fab意図の抽出と共通モデル
+├── pipeline/         # GD1 board/enclosure pipeline
+├── openhands/        # 外部ツールprobeとSDK ToolDefinition
 └── adapters/
-    ├── acd-adapter-kicad
-    ├── acd-adapter-freerouting
-    └── acd-adapter-cad
+    ├── kicad
+    ├── freerouting
+    └── cad
 ```
 
-`acd-schema`は契約の正であり、`acd-core`は外部ツール固有の判定を持たない。
-`acd-pipeline`は入力を投影し、ERC/DRC、routing収束、独立再読込、Gerber/機械測定などの
+`acd.schema`は契約の正であり、`acd.core`は外部ツール固有の判定を持たない。
+`acd.pipeline`は入力を投影し、ERC/DRC、routing収束、独立再読込、Gerber/機械測定などの
 ゲートを実行する。adaptersは外部ツールとの形式・process境界を担当し、設計の合否を
-独自に決めない。`acd-tools`のSDK toolは既存の決定論的入口を公開するだけである。
+独自に決めない。`acd.openhands`のSDK toolは既存の決定論的入口を公開するだけである。
 
 ## OpenHands plugin
 
@@ -101,9 +100,27 @@ Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 自然言語起点の任意利用には採用しない。Skill結果、AgentDefinitionの所見、reviewerの
 出力は合否Evidenceではない。
 
+安全境界はpinned SDKへ委譲する。`AcdSecurityAnalyzer`とSDKの
+`PatternSecurityAnalyzer`を`EnsembleSecurityAnalyzer(analyzers=[...])`へ合成し、
+`LocalConversation.set_security_analyzer()`で設定する。確認方針は
+`set_confirmation_policy(ConfirmRisky(threshold=SecurityRisk.MEDIUM))`である。
+allowlist環境変数はSDK `SecretRegistry`へlazy sourceとして渡し、出力はSDKの
+`mask_secrets_in_output()`でマスクする。`load_skills_from_dir()`でローカルSkillだけを
+読み、`AgentContext(skills=..., load_public_skills=False, load_user_skills=False)`へ渡す。
+Conversationの`stuck_detection=True`と`StuckDetectionThresholds`は停止・再試行の操舵だけに
+使う。これらのL2機能と既存hooksはauthoritative Evidenceを生成せず、L1の決定論的gateを
+置き換えない。
+`GoalController`を再利用したACD goal loopと`LocalConversation.interrupt()`へのSIGINT結線も
+L2の停止・再試行層として扱う。`ConversationStats`はL3観測に限定し、goalのjudge評決と
+ともにauthoritative Evidenceの合否へ影響させない。
+lane並列は`Agent.tool_concurrency_limit`で明示的に有効化する。ACD toolの資源宣言不能時は
+SDKの既定どおりtool単位のmutexで直列化する。task/delegateのsub-agentは親hookを継承
+しないため、5つのACD AgentDefinitionへ同じ必須hookを明記し、SDKがロードした
+`HookConfig`を決定論的に照合する。workflowの採否は別途判断する。
+
 ## SDK ToolDefinition境界
 
-`packages/acd-tools/src/acd_tools/sdk_tools.py`はOpenHands SDKの
+`src/acd/openhands/sdk_tools.py`はOpenHands SDKの
 `ToolDefinition`、`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を
 使い、`register_acd_tools()`から次の既存入口を明示的に登録する。
 
@@ -130,14 +147,21 @@ Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上�
 
 ## Docker workspace境界
 
-決定論的ゲートの実行環境は`DockerWorkspace(server_image="...@sha256:<digest>")`へ
-一本化する。repoは`volumes`でmountし、`out/`と`evidence/`をホスト側へ残す。
-`DockerDevWorkspace(base_image=...)`はACD tools imageからagent-server imageをbuildする
-準備経路に限定し、ゲート実行の既定経路にはしない。現行runnerは移行中であり、CIと
-ホスト実行は参考経路である。`container=none`の実行は合格側Evidenceを生成しない。
+digest固定コンテナだけを合格側Evidenceの実行環境とする。現行runnerは利用者が渡す
+`base_image`からagent-server imageを準備するため、SDKの
+`DockerDevWorkspace(base_image=...)`を使う。SDK実装上、これは開発・テスト向けの
+on-the-fly build経路である。agent-server imageを事前に配布できる運用へ移行した時点では、
+`DockerWorkspace(server_image="...@sha256:<digest>")`へ切り替える。
+repoは`volumes`でmountし、`out/`と`evidence/`をホスト側へ残す。CIとホスト実行は
+参考経路であり、host実行の結果はprovisionalで合格側Evidenceへ昇格しない。
 runnerは`docker image inspect`でdigestを解決し、解決できない場合はworkspaceを起動せず
-fail-closedで停止する。解決したdigestは`ACD_CONTAINER_IMAGE_DIGEST`としてforwardし、
-ToolEnvelopeの`execution_env`へ記録する。
+fail-closedで停止する。解決したdigestと`ACD_IN_CONTAINER`をforwardし、ToolEnvelopeの
+`execution_context`と`container_image_digest`へ型付きで記録する。`execution_env`は
+host/architectureの説明だけに使い、container identityの判定には使わない。
+
+`Evidence.supports_pass()`はrevision、status、既知provenanceの妥当性を表す。
+`supports_authoritative_pass()`はそれに加えてdigest固定containerを要求し、
+hostで生成されたvalid Evidenceは`is_provisional()`として扱う。
 
 Dockerはdeterminismを保証しないため、timestamp、filesystem、外部ツール版、
 入力・出力hashの正規化と決定論的ゲートは従来どおり必要である。ACD imageは配布せず、
@@ -167,7 +191,7 @@ shell・file操作を禁止するため、決定論的探索には使わない�
 
 ## SDK Conversation session境界
 
-`acd_tools.agent_session`は`LocalConversation`へACD plugin、hooks、workspace、
+`acd.openhands.agent_session`は`LocalConversation`へACD plugin、hooks、workspace、
 `persistence_dir`、`AcdGateCritic`、`LLMSummarizingCondenser`を宣言的に接続する。
 loop、history、state/event persistence、metricsはSDKへ委譲する。EventLog、
 conversation state、metrics、condenser outputは経過でありpass evidenceではない。
@@ -177,11 +201,10 @@ fork/resume後も決定論的ゲートを再実行して合否を決める。SDK
 ## agent-server運用境界
 
 OpenHands SDK v1.42.1のagent-serverは、REST、WebSocket、event、
-conversation persistenceを運ぶ層として文書化する。serverのevent、state、metrics、
-agent出力、OpenAI互換応答は経過であり、pass evidenceではない。合否はCIまたは
-`run_in_workspace`の決定論的pipelineとgateが決める。詳細な起動前確認、保存先、
-resume/fork、直接APIのhook境界、未実測範囲は[`agent-server-runbook.md`](agent-server-runbook.md)
-と[`ADR-0020`](adr/ADR-0020-agent-server-operations.md)を参照する。
+conversation persistenceを運ぶ将来構想の層として文書化する。serverのevent、state、
+metrics、agent出力、OpenAI互換応答は経過であり、pass evidenceではない。合否はCIまたは
+`run_in_workspace`の決定論的pipelineとgateが決める。起動、保存、resume/fork、直接APIの
+hook境界は、実装着手時に受け入れ条件を定義して検証する。
 
 ## hook境界
 
@@ -197,17 +220,35 @@ policyのartifact globに一致する製造成果物に触れる、または(2)�
 である場合だけEvidenceを要求する。コマンドは実行ファイルのtoken単位で検出し、
 URLは成果物として扱わないため、通常の`git push`、文書取得の`curl`、供給者データの
 取得は対象外である。policyのEvidence globで解決した各ファイルをCLIへ複数渡し、
-`required_evidence_ids`の各IDについて現revisionに一致する`supports_pass()`が必要である。
+`required_evidence_ids`の各IDについて現revisionに一致する
+`supports_authoritative_pass()`が必要である。
 GD1基板pipelineは現状Evidenceレコードを生成しないため、基板fabrication成果物の送信は
 fail-closedになる。
 
 Stopガードはorderガードより弱く、order policyのEvidence globで解決したファイルのうち、
 dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが存在する場合に限り
 終了を許可する。mtimeの新しさはpass Evidenceではなく、`--valid-only`はStopガード専用
-の新しさ確認である。`supports_pass()`は引き続きcommit済みrevision一致を要求する。
+の新しさ確認である。`supports_pass()`は引き続きcommit済みrevision一致を要求し、
+orderの合格側Evidenceは`supports_authoritative_pass()`を要求する。
 該当しない場合は原因となった設計入力パスをreasonに列挙する。
 
 ## 実装していない境界
 
 SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)に整理する。
 ACD機能としては、実機測定、価格・在庫取得、自働発注が未実装であり、将来構想である。
+
+## 工程境界
+
+工程はS1（要件対話）、E1（部品選定と回路設計）、E2（アートワーク）、M1（筐体
+コンセプト）、M2（筐体詳細）、S2（製造出力）、S3（製造・加工フィードバック）、
+S4（試作立ち上げ）で構成する。各工程は入力ファイルを更新し、投影、独立再読込、
+決定論的ゲートを実行する。工程の詳細な希望的仕様は保持せず、実装済みの境界だけを
+本書の正とする。
+
+## OpenHands実行境界
+
+SDKが実行・対話・配布・観測を担い、ACDが契約・投影・合否を担う。エージェント入口は
+SDK `ToolDefinition`に一本化し、`scripts/*` CLIは人間とCIの入口に限定する。実行形は
+`LocalConversation`とworkspace APIを基点とし、現行runnerは`DockerDevWorkspace`、
+事前build済みimageへの移行後は`DockerWorkspace`を使う。agent-server経路は未検証の将来構想
+として扱う。

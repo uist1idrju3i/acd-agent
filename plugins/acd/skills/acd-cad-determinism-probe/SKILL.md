@@ -20,7 +20,7 @@ ACD本体のプローブはツールの有無と版だけを見る。出力バ�
 ## できること
 
 - `scripts/cad_determinism_probe.py`: 同一の立体をSTEPと3MFで2回出力し、生バイト列のhashと
-  `acd_core.cad_normalize`で正規化したあとのhashを比較する。差分の内容と、それを除去する
+  `acd.core.cad_normalize`で正規化したあとのhashを比較する。差分の内容と、それを除去する
   正規化規則を併記する。
 
 ## 使い方
@@ -30,7 +30,7 @@ uv run python plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determini
 ```
 
 JSONを標準出力へ書く。測定値を文書へ残す場合は取得時点とツール版を添える。記録先は
-[`../../../../docs/tool-capability-probes.md`](../../../../docs/tool-capability-probes.md)である。
+[`../../../../docs/gates.md`](../../../../docs/gates.md)である。
 
 ## 前提と限界
 

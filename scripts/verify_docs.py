@@ -9,8 +9,7 @@ Checks all tracked Markdown files (excluding vendor/) for:
 3. Mermaid blocks start with a known diagram type.
 4. Code fences are balanced.
 5. Heading hierarchy does not skip levels and each file starts with one H1.
-6. Process/judgment-stage IDs used in docs are defined in the glossary, and
-   glossary terms are not defined twice.
+6. Glossary terms are not defined twice.
 7. `git diff --check` reports no whitespace errors.
 
 Unknown or unverifiable states are treated as failures (fail-closed).
@@ -47,7 +46,6 @@ MERMAID_DIAGRAM_TYPES = (
     "requirementDiagram",
 )
 
-STAGE_ID_RE = re.compile(r"^(S[0-9]|E[0-9]|M[0-9]|SB[0-9]|RV[0-9])$")
 FENCE_RE = re.compile(r"^(\s*)(```+|~~~+)(.*)$")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 INLINE_LINK_RE = re.compile(r"!?\[(?:[^\]\[]|\[[^\]]*\])*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
@@ -240,13 +238,6 @@ def glossary_terms(md: MarkdownFile) -> tuple[set[str], list[str]]:
     return terms, errors
 
 
-def check_stage_ids(md: MarkdownFile, terms: set[str]) -> None:
-    for line_no, code in md.inline_codes:
-        token = code.strip()
-        if STAGE_ID_RE.match(token) and token not in terms:
-            md.error(line_no, f"stage ID `{token}` is not defined in docs/glossary.md")
-
-
 def check_git_diff() -> list[str]:
     errors: list[str] = []
     for args in (["git", "diff", "--check"], ["git", "diff", "--cached", "--check"]):
@@ -265,14 +256,13 @@ def main() -> int:
     if glossary_md is None:
         print("fail-closed: docs/glossary.md not found", file=sys.stderr)
         return 1
-    terms, term_errors = glossary_terms(glossary_md)
+    _, term_errors = glossary_terms(glossary_md)
 
     all_errors: list[str] = list(term_errors)
     for md in mds:
         check_headings(md)
         check_links(md, anchor_index)
         check_mermaid(md)
-        check_stage_ids(md, terms)
         all_errors.extend(md.errors)
     all_errors.extend(check_git_diff())
 

@@ -13,7 +13,7 @@ triggers:
 
 # 信頼性設計のスクリーニング
 
-手法の定義、出典、適用区分は[`../../../../docs/research/reliability-practices.md`](../../../../docs/research/reliability-practices.md)を正とする。
+手法の定義、出典、適用区分は[`../../../../docs/research/README.md`](../../../../docs/research/README.md)を正とする。
 このSkillはスクリーニングと所見の整理だけを行う。設計の合否はACDの決定論的ゲート（ERC/DRC、
 機械ゲート、独立再読込、発注ガード）だけが決める。基準表の推奨値は合否ではなくスクリーニングで
 あり、有効域を外れた入力は不合格ではなく「要詳細解析」として扱う。

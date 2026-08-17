@@ -8,8 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from acd_core import check_rationale_coverage
-from acd_schema import DesignGraph, RationaleDocument
+from acd.core import check_rationale_coverage
+from acd.schema import DesignGraph, RationaleDocument
 
 
 def main() -> int:

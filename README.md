@@ -1,7 +1,7 @@
 # ACD — Autonomous Computer Design
 
 > ステータス: 開発中。決定論的ゲート、OpenHands plugin、Conversation経路を実装済みです。
-> DockerWorkspace一本化とagent-server受け入れ条件は次フェーズです。
+> 事前build済みDockerWorkspaceへの一本化とagent-server受け入れ条件は次フェーズです。
 
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
 AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立再読込、機械測定などの
@@ -10,15 +10,18 @@ AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立�
 ## 構成
 
 ```text
-acd-schema → acd-core → acd-pipeline → adapters/*
-                                      └→ acd-tools
+acd.schema → acd.core → acd.pipeline → acd.adapters.*
+                                    └→ acd.openhands
 plugins/acd/ → Skill / AgentDefinition / command / hooks
 vendor/software-agent-sdk/ → OpenHands SDK v1.42.1
 ```
 
-本リポジトリはOpenHands専用拡張です。MCP互換層、ACP、Agent Canvas、Apptainer、remote_api、
-cloud workspaceは提供しません。境界は[`docs/architecture.md`](docs/architecture.md)、SDKの
-採否は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)を参照してください。
+本リポジトリはOpenHands専用拡張です。境界と不採用機能は
+[`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)、
+SDKの採否は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)を参照してください。
+
+Python配布物はルートの単一パッケージ`acd`であり、実装は`src/acd/`、テストは
+`tests/`に配置します。
 
 ## 実行
 
@@ -29,9 +32,11 @@ uv run python scripts/run_gd1_pipeline.py
 uv run python scripts/probe_tools.py
 ```
 
-決定論的ゲートの正はdigest固定のDockerWorkspaceです。現行runnerは移行中で、DockerDevWorkspace
-によるbuild準備とホスト実行が残っています。digest不明またはホスト実行のEvidenceは合格側に
-使用しません。
+決定論的ゲートの正はdigest固定containerです。現行runnerはDockerDevWorkspaceで
+base imageからagent-server imageを準備する移行中の参考経路で、
+digest不明またはホスト実行のEvidenceは合格側に使用しません。OpenHands固有の境界と
+不採用機能は[`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)
+を参照してください。
 
 ## 文書
 
