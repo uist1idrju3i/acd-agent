@@ -48,6 +48,14 @@ freeroutingの「版バナー出力＋非ゼロexit」は実測した仕様と�
   `2c1c8cde9d8ece9acc1fb32d2e17359318fdf3d5545304746293481e229d8168` /
   `fe398ca65ddf779dea49fcd2430f1699ad84b660d6ba599e8c5b4d05f436503e`、
   正規化後は両方`14715d034c23713b611be563f72363f2204f28069151f6d3a2241cb0fce5db2f`となった。
+- Ubuntu 26.04のsystem Python `3.14.4`へ移行後、同probeを再測定した。STEP raw hashは
+  `daf8615c7aa8aa207ed0e241864b5157a0bbfd6ca73779d6c4a46d3f299f4591` /
+  `97d7ec8d6e1ef6aa1010ad8eba00489df15c10781dea02753b1260a17e491d93`、3MF raw hashは
+  `1209d943ff250781d560737230bfe75794cf76e1e5496d0218b93f02e63b233f` /
+  `e5cff5d73776752502f7bcbdd251326771caae481c35d1a8b853bff55bdb4b25`で実行ごとに異なるが、
+  正規化後hashはSTEP `d89aeb4b2de9015eb079b6e697318eadbd9c3943a5d2b8c4978e028f28bbc237`、
+  3MF `14715d034c23713b611be563f72363f2204f28069151f6d3a2241cb0fce5db2f`で、3.12実測と一致した。
+  正規化規則は3.14でも変更不要。
 - FreeRouting `2.3.0`のGD1実測では、DSNのclass widthを`0.15 mm`に指定しても、
   SESの224 wire中22本の短いsegmentが`0.1124 mm`で出力された。SES取込時に、
   設計グラフの`min_track_mm`（GD1では`0.15 mm`）未満のwire widthを`min_track_mm`

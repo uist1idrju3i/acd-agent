@@ -95,7 +95,8 @@ pyrightのpythonVersion 3.12は変更しない。
 この変更によるACDのPython APIやlock済み依存の仕様変更はない。一方、コンテナ内で
 `/usr/bin/python3.12`やuv管理Pythonを直接参照する利用者にとっては破壊的な運用変更で
 あり、Ubuntu 26.04のsystem Python 3.14を使う契約へ移行する。Python 3.12系で取得済みの
-決定性evidenceはPython 3.14へ流用せず、3.14環境で再測定する。
+決定性evidenceは流用せず、3.14.4環境で再測定した。正規化後hashは3.12実測と一致した。
+詳細は[`docs/tool-capability-probes.md`](tool-capability-probes.md)を参照する。
 
 uvは0.12.5が最新だが、公開後7日以上のsupply-chain方針を満たす0.12.3を採用した。
 OpenJDKは26ではなく、LTSである25を採用した。KiCadは10系安定版の10.0.5を採用し、

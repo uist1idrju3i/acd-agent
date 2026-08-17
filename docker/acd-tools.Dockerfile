@@ -43,4 +43,5 @@ RUN apt-get update \
     && apt-get purge -y --auto-remove curl software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
+ENV PATH="/usr/local/bin:${PATH}"
 WORKDIR /workspace
