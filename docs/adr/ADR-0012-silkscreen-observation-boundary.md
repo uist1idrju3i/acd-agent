@@ -1,7 +1,7 @@
 # ADR-0012: silkscreen観測範囲とevidence要約
 
 > ステータス: Accepted
-> 日付: 2026-08-20
+> 日付: 2026-08-16
 > 関連: [`ADR-0011-search-results-as-design-input.md`](ADR-0011-search-results-as-design-input.md)
 
 ## 決定

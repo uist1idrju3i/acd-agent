@@ -236,7 +236,7 @@ def resolve_silkscreen(
                         "placement_source": "acd-silkscreen-placement",
                         "placement_source_ref": (
                             "plugins/acd/skills/acd-silkscreen-placement/scripts/"
-                            f"silkscreen_search.py:sha256:{sha256_of(SILK_SKILL)}"
+                            f"silkscreen_search.py:{sha256_of(SILK_SKILL)}"
                         ),
                         "placement_evidence": json.dumps(
                             evidence_summary, ensure_ascii=False, sort_keys=True

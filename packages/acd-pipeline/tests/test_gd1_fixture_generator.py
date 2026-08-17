@@ -79,3 +79,20 @@ def test_fixture_placement_evidence_has_required_summary_fields() -> None:
         evidence = json.loads(node["attrs"]["placement_evidence"])
         assert required <= evidence.keys()
         assert "rejected_candidates" not in evidence
+
+
+def test_fixture_provenance_hashes_have_single_sha256_prefix() -> None:
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    for node in fixture["nodes"]:
+        if node["kind"] != "mechanical.silk_text":
+            continue
+        attrs = node["attrs"]
+        source_ref = attrs["placement_source_ref"]
+        assert source_ref.count("sha256:") == 1
+        for key in (
+            "placement_evidence_input_sha256",
+            "placement_evidence_output_sha256",
+        ):
+            value = attrs[key]
+            assert value.startswith("sha256:")
+            assert value.count("sha256:") == 1
