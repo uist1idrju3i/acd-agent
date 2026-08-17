@@ -37,7 +37,7 @@ SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展�
 | astral-sh/setup-uv | CIでuvとPythonを導入 | v10.0.1 | commit SHA `20cfd1bf945f4377ade1205e4dbc17946fc9a30d`、コメントで版を併記 | [v10.0.1 release](https://github.com/astral-sh/setup-uv/releases/tag/v10.0.1) | Node 24 runner互換性、`python-version`、cache、uvの取得 | [`installation.md`](installation.md)、[`AGENTS.md`](../AGENTS.md) |
 | CodeQL | `Analyze (python)`、`Analyze (actions)`のcheck-runを確認。いずれもappは`github-actions`で、repository内に対応するworkflowファイルはない | GitHub側のCodeQL default setupと推定（版表記なし） | リポジトリ設定で管理。action SHAのpin対象外 | [GitHub CodeQL](https://codeql.github.com/docs/) | check-run名、対象言語、結果、権限を確認。`code-scanning/default-setup` APIは権限不足の403で直接確認できず、default setupという管理形態は推定 | リポジトリ設定、必要時は関連するセキュリティ文書 |
 | `update-uv-graph` | `update-uv-graph`のcheck-runを確認。appは`github-actions`で、repository内に対応するworkflowファイルはない | GitHub側の依存グラフ送信設定と推定（版表記なし） | リポジトリ設定で管理。action SHAのpin対象外 | [GitHub dependency graph](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependency-graph) | `uv.lock`更新後のcheck-run結果と依存グラフへの反映を確認。設定の詳細は権限不足のため未確認 | リポジトリ設定、`uv.lock`、必要時は依存更新文書 |
-| kicad-cli | KiCad adapterでERC／DRC、netlist、Gerber／drill出力。`scripts/run_gd1_pipeline.py`でも使用 | 10.0.5を一次情報とGD1期待値の基準にする。Dockerfileは9系pinで次フェーズ是正 | 実行環境で版をprobeしEvidenceへ記録 | [KiCad 10.0 CLI docs](https://docs.kicad.org/10.0/en/cli/cli.html) | CLI引数、ERC／DRC、出力形式、ライブラリとproject format | [`research/tool-selection.md`](research/tool-selection.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
+| kicad-cli | KiCad adapterでERC／DRC、netlist、Gerber／drill出力。`scripts/run_gd1_pipeline.py`でも使用 | 10.0.5を一次情報とGD1期待値の基準にする。Dockerfileも10系PPAへ更新済み | 実行環境で版をprobeしEvidenceへ記録 | [KiCad 10.0 CLI docs](https://docs.kicad.org/10.0/en/cli/cli.html) | CLI引数、ERC／DRC、出力形式、ライブラリとproject format | [`research/tool-selection.md`](research/tool-selection.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
 | FreeRouting | `acd_adapter_freerouting`でDSN→SES外部routing | 環境プローブで検出（CI固定なし） | 実行環境で版をprobeしEvidenceへ記録 | [FreeRouting releases](https://github.com/freerouting/freerouting/releases) | DSN／SES形式、収束、幅・clearance、終了コード | [`research/tool-selection.md`](research/tool-selection.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
 | ESP-IDF | acd-firmware-esp32c3 Skillが`idf.py`を呼ぶ。ACD本体のゲートではなくSkill側の作業 | 固定なし（要probe） | `IDF_PATH`と`idf.py --version`を実行時検証 | [ESP-IDF releases](https://github.com/espressif/esp-idf/releases) | toolchain／target、build output、merge-bin、ログ、再現性 | [`design-flow.md`](design-flow.md)、[`installation.md`](installation.md) |
 | QEMU | acd-firmware-esp32c3 Skillが`qemu-system-riscv32`で仮想実行しログを照合する | 固定なし（要probe） | 実行時にversionをprobeしSkillのsummaryへ記録 | [QEMU releases](https://www.qemu.org/download/) | target、machine、serial log、timeout、exit status | [`design-flow.md`](design-flow.md)、[`tool-capability-probes.md`](tool-capability-probes.md) |
@@ -64,6 +64,59 @@ CodeQLと`update-uv-graph`はリポジトリ設定側で動くcheck-runであり
 | `orjson` | 3.11.9→3.12.0 | [一次CHANGELOG](https://github.com/ijl/orjson/blob/master/CHANGELOG.md)を確認したが、3.12.0専用releaseページは有効な変更説明を取得できなかった。ACDの直接importはなく、serializationのbyte表現・ABI・Python 3.12 wheelを未確認の回帰リスクとして扱い、追加機能は採用していない |
 
 確認日: 2026-08-16。一次情報で確認できない変更は推測せず、未確認の採否を合格扱いにしない。
+
+## ゲート用Dockerイメージのツール更新（2026-08-17）
+
+`docker/acd-tools.Dockerfile`のベースイメージとゲート用外部ツールを更新した。
+採用版、固定方法、一次情報、既定値および破壊的変更の有無は次のとおりである。
+
+| 対象 | 採用版・固定値 | 固定・検証方法 | 一次情報 |
+|---|---|---|---|
+| Ubuntu | `ubuntu:26.04`（Resolute） | Docker Hubの公式library image tag | [Ubuntu Docker Official Image](https://hub.docker.com/_/ubuntu) |
+| KiCad | 10.0.5 | `ppa:kicad/kicad-10.0-releases`を追加し、`kicad-cli --version`が10系であることをbuild時検証 | [KiCad PPA](https://launchpad.net/~kicad/+archive/ubuntu/kicad-10.0-releases)、[KiCad CLI 10 docs](https://docs.kicad.org/10.0/en/cli/cli.html) |
+| FreeRouting | 2.3.0 | GitHub release URLとjarのSHA-256 `3cf18d608437740bc497db6b8ef5888e2e60a08de0def20691d1bad0c0e0ee24`を検証 | [v2.3.0 release](https://github.com/freerouting/freerouting/releases/tag/v2.3.0) |
+| OpenJDK | `openjdk-25-jre-headless`（25.0.3+9-2~26.04.2、LTS） | Ubuntu 26.04のAPT package | [Ubuntu packages: openjdk-25](https://packages.ubuntu.com/resolute/openjdk-25-jre-headless) |
+| ngspice | 45.2 | Ubuntu 26.04のAPT packageを導入し、`ngspice --version`をbuild時検証 | [Ubuntu packages: ngspice](https://packages.ubuntu.com/resolute/ngspice) |
+| Python | Ubuntu 26.04 system Python 3.14 | `python3.14`、`python3.14-venv`をAPTから導入し、`python3.14 --version`が3.14系であることをbuild時検証 | [Ubuntu packages: python3.14](https://packages.ubuntu.com/resolute/python3.14)、[Ubuntu packages: python3.14-venv](https://packages.ubuntu.com/resolute/python3.14-venv) |
+| uv | 0.12.3 | GitHub release tarballのSHA-256 `600cf9a742aca00d292673b16b5acffaa7b8c269a364ad0c2e79498dcb1fe101`を検証 | [uv v0.12.3](https://github.com/astral-sh/uv/releases/tag/0.12.3)、[uv v0.12.5](https://github.com/astral-sh/uv/releases/tag/0.12.5) |
+| git | Ubuntu 26.04 package | `git --version`をbuild時検証 | [Ubuntu packages: git](https://packages.ubuntu.com/resolute/git) |
+
+既定値として、`UV_SYSTEM_PYTHON=1`を維持し、コンテナ内のuvはUbuntu 26.04の
+system Python 3.14を使用する。`python3.14`と`python3.14-venv`をAPTから導入し、
+build時に`python3.14 --version`を検証する。uv管理Pythonのインストール先や
+`UV_PYTHON_INSTALL_DIR`は設定しない。
+
+Ubuntu 26.04には`python3.12` packageがなく、system Pythonは3.14のみであるため、
+ユーザー判断によりsystem Python 3.14を採用した。`cadquery-ocp` 7.9.3.1.1には
+cp314のmanylinux_2_31 wheelがあり、`build123d` 0.11.1と`lib3mf` 2.5.0はpure
+wheelで、いずれもPython <3.15制約内である。リポジトリのrequires-python >=3.12と
+pyrightのpythonVersion 3.12は変更しない。
+
+この変更によるACDのPython APIやlock済み依存の仕様変更はない。一方、コンテナ内で
+`/usr/bin/python3.12`やuv管理Pythonを直接参照する利用者にとっては破壊的な運用変更で
+あり、Ubuntu 26.04のsystem Python 3.14を使う契約へ移行する。Python 3.12系で取得済みの
+決定性evidenceは流用せず、3.14.4環境で再測定した。正規化後hashは3.12実測と一致した。
+詳細は[`docs/tool-capability-probes.md`](tool-capability-probes.md)を参照する。
+
+uvは0.12.5が最新だが、公開後7日以上のsupply-chain方針を満たす0.12.3を採用した。
+OpenJDKは26ではなく、LTSである25を採用した。KiCadは10系安定版の10.0.5を採用し、
+11系は未リリースである。
+
+### ベースディストリビューション比較
+
+今回の候補比較ではUbuntu LTSを継続採用した。
+
+- **Alpineは不採用。** `cadquery-ocp` 7.9.3.1.1と`lib3mf` 2.5.0はPyPIに
+  musllinux wheelも利用可能なsdistもなく、`cadquery-ocp`はmanylinux_2_31、
+  macOS、Windows向けのみである。muslでは機械レーンのCADゲートが成立しない。
+  Alpine edgeのKiCadは10.0.4-r1、ngspiceは46であり、採用版要件とも一致しない。
+- **Arch Linuxは技術的には可能。** glibc、KiCad 10.0.5-1、ngspice 46-2、
+  jdk25-openjdk 25.0.4.u7を利用できるが、rolling releaseの版固定には
+  Arch Linux Archiveのsnapshot運用が前提となる。LTSの再現性とセキュリティ更新の
+  観点から、Ubuntu LTSを継続採用する。
+
+今回の更新で既定のゲート実行方式、APT packageの役割、FreeRouting wrapper、
+curl/software-properties-commonのbuild後purge、APT list削除は変更していない。
 
 ### SDK ToolDefinition API
 

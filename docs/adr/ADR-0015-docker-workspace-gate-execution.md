@@ -22,7 +22,7 @@ Dockerはdeterminismを保証しない。timestamp、locale、filesystem、CPU�
 
 現行runnerは`DockerDevWorkspace`を使い、CIとホスト実行が既定である。次フェーズで
 runnerを`DockerWorkspace`とdigest固定へ移行し、CIのゲート実行をcontainerへ移す。
-同時に`docker/acd-tools.Dockerfile`のKiCad pinを9系から10系へ更新し、GD1の期待値は
+`docker/acd-tools.Dockerfile`のKiCad pinは10系へ更新済みであり、GD1の期待値は
 10.0.5基準とする。受け入れ条件は[`ADR-0025`](ADR-0025-agent-server-production-adoption.md)
 を参照する。
 
