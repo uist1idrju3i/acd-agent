@@ -14,12 +14,15 @@ from acd_tools.sdk_tools import (
     AcdObservation,
     AcdProbeTools,
     AcdProbeToolsAction,
+    AcdProbeToolsObservation,
     AcdRunBoardPipeline,
     AcdRunBoardPipelineAction,
+    AcdRunBoardPipelineObservation,
     AcdRunEnclosurePipeline,
     AcdRunEnclosurePipelineAction,
     AcdValidateDesignGraph,
     AcdValidateDesignGraphAction,
+    AcdValidateDesignGraphObservation,
     register_acd_tools,
 )
 
@@ -40,6 +43,48 @@ def test_probe_tools_shape_and_unknown_is_fail_closed() -> None:
     assert set(result.versions) == {"kicad-cli", "freerouting", "cad-kernel"}
     if result.fail_closed:
         assert "not pass evidence" in result.to_llm_content[0].text.lower()
+
+
+def test_probe_success_llm_content_lists_versions_and_unknowns() -> None:
+    result = AcdProbeToolsObservation(
+        ok=True,
+        operation="probe_tools",
+        results=[{"tool_name": "known", "is_known": True}],
+        versions={"known": "1.2.3"},
+        fail_closed=False,
+    )
+    text = result.to_llm_content[0].text
+    assert "known=1.2.3" in text
+
+
+def test_validate_success_llm_content_lists_graph_facts() -> None:
+    result = AcdValidateDesignGraphObservation(
+        ok=True,
+        operation="validate_design_graph",
+        graph_id="gd1",
+        revision="r7",
+        node_count=12,
+        fail_closed=False,
+    )
+    text = result.to_llm_content[0].text
+    assert "graph_id=gd1" in text
+    assert "revision=r7" in text
+    assert "node_count=12" in text
+
+
+def test_pipeline_success_llm_content_lists_output_facts() -> None:
+    result = AcdRunBoardPipelineObservation(
+        ok=True,
+        operation="run_board_pipeline",
+        output_path="out/gd1",
+        envelopes=[{"path": "out/gd1/e.json", "envelope": {}}],
+        summary={"zeta": 1, "alpha": {"status": "passed"}},
+        fail_closed=False,
+    )
+    text = result.to_llm_content[0].text
+    assert "output_path=out/gd1" in text
+    assert "envelopes=1" in text
+    assert "summary_keys=alpha, zeta" in text
 
 
 def test_validate_design_graph_missing_path_is_fail_closed(tmp_path: Path) -> None:

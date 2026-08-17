@@ -83,6 +83,31 @@ class AcdObservation(Observation):
                 f"{self.operation} failed closed: {reason}. "
                 "This is not pass evidence."
             )
+        elif self.operation == "probe_tools":
+            versions = self.versions or {}
+            version_text = ", ".join(
+                f"{name}={versions[name]}" for name in sorted(versions)
+            ) or "none"
+            unknown = sorted(
+                str(result.get("tool_name", "unknown"))
+                for result in self.results or []
+                if result.get("is_known") is False
+            )
+            unknown_text = f"; unknown={', '.join(unknown)}" if unknown else ""
+            text = f"{self.operation}: versions={version_text}{unknown_text}."
+        elif self.operation == "validate_design_graph":
+            text = (
+                f"{self.operation}: graph_id={self.graph_id}, "
+                f"revision={self.revision}, node_count={self.node_count}."
+            )
+        elif self.operation in {"run_board_pipeline", "run_enclosure_pipeline"}:
+            summary = self.summary or {}
+            summary_keys = ", ".join(sorted(str(key) for key in summary)) or "none"
+            text = (
+                f"{self.operation}: output_path={self.output_path}, "
+                f"envelopes={len(self.envelopes or [])}, "
+                f"summary_keys={summary_keys}."
+            )
         elif self.failure_reason:
             text = f"{self.operation}: {self.failure_reason}"
         else:
@@ -407,13 +432,6 @@ class AcdRunEnclosurePipeline(
                 executor=AcdRunEnclosurePipelineExecutor(),
             )
         ]
-
-
-# Explicit aliases retain the SDK-derived public names expected by callers.
-AcdProbeToolsTool = AcdProbeTools
-AcdValidateDesignGraphTool = AcdValidateDesignGraph
-AcdRunBoardPipelineTool = AcdRunBoardPipeline
-AcdRunEnclosurePipelineTool = AcdRunEnclosurePipeline
 
 
 ACD_TOOL_DEFINITIONS: tuple[
