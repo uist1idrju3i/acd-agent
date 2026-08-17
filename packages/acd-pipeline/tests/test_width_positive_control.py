@@ -1,14 +1,12 @@
 """Tests for deterministic parallel width positive-control collection."""
 
-# pyright: reportPrivateUsage=false
+# pyright: reportPrivateUsage=false, reportMissingTypeStubs=false
 
 from __future__ import annotations
 
 import pytest
 
-from acd_pipeline.gd1_board import (  # pyright: ignore[reportMissingTypeStubs, reportPrivateUsage]
-    _run_ordered_arms,
-)
+from acd_pipeline.gd1_board import _run_ordered_arms
 
 
 def test_width_controls_keep_deterministic_arm_order() -> None:

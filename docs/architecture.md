@@ -141,8 +141,10 @@ parse不能、stale、unknown、または要件未達なら0.0とし、全要件
 
 GD1基板pipelineでは、独立したKiCad width positive-controlの2 armだけを
 thread poolで並列実行できる。結果はarm-a、arm-bの固定順で集約し、並列度1は
-逐次経路と同一である。並列度を変えても決定論的出力はbyte一致し、worker例外は
-fail-closedで伝播する。greedy配置探索とsilkscreen探索は状態依存のため並列化しない。
+逐次経路と同一である。worker数を変えた検証では、出力パスとKiCad DRC日時を除いた
+arm summaryの正規化結果が一致し、worker例外はfail-closedで伝播する。`hashes.json`
+は既存pipelineのKiCad UUIDとDRC日時による非決定性のため一致せず、この是正はP4の
+範囲外である。greedy配置探索とsilkscreen探索は状態依存のため並列化しない。
 
 `acd-search` AgentDefinitionは冗長な探索出力を主会話から分離するだけで、候補と
 Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力は合否権限を持たず、

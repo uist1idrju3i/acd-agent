@@ -127,9 +127,10 @@ clean判定だけに使う。criticのスコアは二値であり、全要件充
 ### P4: ACD側の決定論的並列化と探索lane
 
 GD1基板pipelineの独立したwidth positive-control armだけを`ThreadPoolExecutor`
-で並列化する。arm-a、arm-bの結果は固定順で集約し、並列度1とNで決定論的出力が
-byte一致することを検証する。greedy配置探索とsilkscreen探索は状態依存のため
-並列化しない。
+で並列化する。arm-a、arm-bの結果は固定順で集約する。worker数1と4では、出力パスと
+KiCad DRC日時を除いたarm summaryの正規化比較が一致した。`hashes.json`は既存pipeline
+のKiCad UUIDとDRC日時による非決定性のため一致せず、この是正はP4の範囲外である。
+greedy配置探索とsilkscreen探索は状態依存のため並列化しない。
 
 `acd-search` AgentDefinitionは既存の決定論的探索CLIを実行し、候補とSkill名・
 script SHA-256 provenanceだけを返す。候補は合否権限を持たず、設計入力へ確定した

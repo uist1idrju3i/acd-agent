@@ -11,8 +11,12 @@ KiCad DRC subprocessを実行するため独立している。thread poolを使�
 並列度は2、`1`を指定した場合は従来どおり逐次実行する。
 
 結果はarm-a、arm-bの固定順で集約する。workerの例外は抑制せずpipelineの既存の
-fail-closed経路へ伝播させ、部分結果を成功扱いしない。並列度を変えても決定論的
-なsummaryと`hashes.json`がbyte一致することを検証する。
+fail-closed経路へ伝播させ、部分結果を成功扱いしない。worker数1と4で、出力パスと
+KiCad DRC日時を除いたarm summaryの正規化比較がbyte一致することを検証した。
+
+`hashes.json`はworker数1と4でbyte一致しなかった。これは並列化が導入した差ではなく、
+基板pipeline既存経路が実行ごとに生成するKiCad UUIDとDRC日時に由来する既存の
+非決定性である。この非決定性の是正はP4の範囲外の未解決事項とする。
 
 ## workflow toolを採用しない理由
 
