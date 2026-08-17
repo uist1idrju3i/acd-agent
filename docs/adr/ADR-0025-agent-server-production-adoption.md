@@ -1,7 +1,7 @@
 # ADR-0025: agent-serverとConversationの実運用化
 
 > ステータス: Accepted
-> 日付: 2026-08-19
+> 日付: 2026-08-17
 
 ## 決定
 

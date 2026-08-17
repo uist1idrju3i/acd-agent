@@ -5,7 +5,7 @@
 
 ## 状況
 
-P6/P7では、ACDのagent経路をOpenHands SDKの`LocalConversation`へ宣言的に接続する。
+現行のLocalConversation経路では、ACDのagent経路をOpenHands SDKの`LocalConversation`へ宣言的に接続する。
 ACD側でloop、history、persistence、metricsを再実装しない。
 
 ## 決定

@@ -1,11 +1,11 @@
 # ADR-0016: 決定論的ゲート結果によるcritic反復
 
 > ステータス: Accepted
-> 日付: 2026-08-18
+> 日付: 2026-08-17
 
 ## 決定
 
-P3aではOpenHands SDK v1.42.1の`CriticBase`と`IterativeRefinementConfig`を反復制御だけに
+現行ではOpenHands SDK v1.42.1の`CriticBase`と`IterativeRefinementConfig`を反復制御だけに
 採用し、`AcdGateCritic`を`acd-tools`へ追加する。criticは[`ADR-0023`](ADR-0023-deterministic-gate-authority.md)
 のL2操舵であり、合否を判定しない。合否はACDの決定論的成果物だけで決まる。
 

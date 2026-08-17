@@ -7,18 +7,20 @@
 
 SDK v1.42.1のACD側採用範囲を次の通り整理する。
 
-- P1: hooksによるagent経路のfail-closed境界
-- P2: SDK ToolDefinitionによるACD入口
-- P3: Docker workspaceでの決定論的ゲート実行準備とcritic反復
-- P4: 決定論的探索lane
-- P5: Conversationとagent session persistence
-- P6: agent-serverとの運搬経路
-- P7: pinned plugin配布とTestLLM回帰
-- P8: agent-server/Conversation実運用化の検証要件
-- P9: DockerWorkspaceをゲート実行の正とする移行
+現行の採用対象は次のとおりである。
 
-P1〜P7のSDK配線は現行実装に存在する。ただしP8、P9の受け入れ条件とDockerWorkspace
-一本化は次フェーズの実装対象である。各機能の採否は
+- hooksによるagent経路のfail-closed境界
+- SDK ToolDefinitionによるACD入口
+- Docker workspaceでの決定論的ゲート実行準備とcritic反復
+- 決定論的探索lane
+- Conversationとagent session persistence
+- agent-serverとの運搬経路
+- pinned plugin配布とTestLLM回帰
+- agent-server／Conversation実運用化の検証要件
+- DockerWorkspaceをゲート実行の正とする移行
+
+SDK配線の多くは現行実装に存在する。ただしagent-server／Conversationの受け入れ条件と
+DockerWorkspace一本化は次フェーズの実装対象である。各機能の採否は
 [`openhands-sdk-capabilities.md`](../openhands-sdk-capabilities.md)を参照する。
 
 ## 境界
