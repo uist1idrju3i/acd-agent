@@ -49,6 +49,7 @@ class PadMeasurement:
     drill_x_mm: float | None = None
     drill_y_mm: float | None = None
     number: str | None = None
+    layers: tuple[str, ...] = ()
 
     @property
     def annular_ring_mm(self) -> float | None:

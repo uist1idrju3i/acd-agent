@@ -15,7 +15,7 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
     board_label = f"{graph_id}-{revision}"
     common = {
         "layer": "F.SilkS",
-        "height_mm": 1.5,
+        "height_mm": 1.0,
         "stroke_width_mm": 0.15,
         "rotation_deg": 0.0,
         "placement_search_order": (

@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
 
 import pytest
 
@@ -18,6 +17,7 @@ from acd_adapter_kicad.fab import (
 )
 from acd_adapter_kicad.fab.silkscreen import (
     _local_silk_bounds,
+    _same_side,
     _silk_objects_overlap,
     _silk_overlaps_rect,
     _SilkObject,
@@ -40,6 +40,15 @@ def _line(x1: float, y1: float, x2: float, y2: float) -> _SilkObject:
 
 def test_silk_on_pad_is_rejected() -> None:
     assert _silk_overlaps_rect(_line(1.0, 1.0, 2.0, 1.0), (1.2, 0.8, 1.8, 1.2))
+
+
+def test_opposite_side_pad_is_ignored_by_gate() -> None:
+    assert not _same_side("F.SilkS", ("B.Cu",))
+
+
+def test_through_hole_pad_is_an_obstacle_on_both_sides() -> None:
+    assert _same_side("F.SilkS", ("F.Cu", "B.Cu"))
+    assert _same_side("B.SilkS", ("F.Cu", "B.Cu"))
 
 
 def test_silk_over_mask_flash_is_rejected() -> None:
@@ -110,7 +119,7 @@ def test_graphic_below_capability_is_not_treated_as_pass() -> None:
         fab._gerber_silk_objects = original
 
 
-def test_courtyard_overlap_is_evidence_only() -> None:
+def test_same_side_courtyard_overlap_is_rejected() -> None:
     profile = FabProfile(
         {
             "capabilities": {
@@ -130,52 +139,48 @@ def test_courtyard_overlap_is_evidence_only() -> None:
         else ()
     )
     try:
-        evidence = fab.measure_silkscreen(
-            {"F.SilkS": Path("silk.gto")},
-            {"F.Mask": Path("mask.gts")},
-            Path("edge.gm1"),
-            BoardMeasurement(
-                (
-                    FootprintMeasurement(
-                        "U1",
-                        1.5,
-                        1.0,
-                        0.0,
-                        "F.Cu",
-                        (),
-                        courtyard_bbox_mm=(0.5, 0.5, 2.5, 1.5),
+        with pytest.raises(FabOutputError, match="courtyard=1"):
+            fab.measure_silkscreen(
+                {"F.SilkS": Path("silk.gto")},
+                {"F.Mask": Path("mask.gts")},
+                Path("edge.gm1"),
+                BoardMeasurement(
+                    (
+                        FootprintMeasurement(
+                            "U1",
+                            1.5,
+                            1.0,
+                            0.0,
+                            "F.Cu",
+                            (),
+                            courtyard_bbox_mm=(0.5, 0.5, 2.5, 1.5),
+                        ),
+                    ),
+                    (),
+                    None,
+                    None,
+                    None,
+                    (0.0, 0.0, 3.0, 3.0),
+                    (),
+                    0,
+                ),
+                SilkscreenLane(
+                    "board.gd1",
+                    (),
+                    (
+                        SilkGraphicView(
+                            "graphic",
+                            "logo",
+                            "F.SilkS",
+                            0.15,
+                            ((1.0, 1.0), (2.0, 1.0), (2.0, 2.0)),
+                            "test",
+                            "test",
+                        ),
                     ),
                 ),
-                (),
-                None,
-                None,
-                None,
-                (0.0, 0.0, 3.0, 3.0),
-                (),
-                0,
-            ),
-            SilkscreenLane(
-                "board.gd1",
-                (),
-                (
-                    SilkGraphicView(
-                        "graphic",
-                        "logo",
-                        "F.SilkS",
-                        0.15,
-                        ((1.0, 1.0), (2.0, 1.0), (2.0, 2.0)),
-                        "test",
-                        "test",
-                    ),
-                ),
-            ),
-            profile,
-        )
-        assert cast(int, evidence["courtyard_overlap_count"]) > 0
-        assert evidence["status"] == "measured_pass"
-        context = cast(dict[str, object], evidence["silkscreen_context"])
-        assert context["board_outline_bbox_mm"] == [0.0, 0.0, 3.0, 3.0]
-        assert "fail_conditions" in context
+                profile,
+            )
     finally:
         fab._gerber_silk_objects = original
 

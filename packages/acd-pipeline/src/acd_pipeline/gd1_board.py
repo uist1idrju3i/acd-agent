@@ -342,7 +342,7 @@ def _measure_dsn_class_correspondence(
     }
 
 
-def _placements_from_graph(graph: DesignGraph, lane: ElectricalLane) -> tuple[Placement, ...]:
+def placements_from_graph(graph: DesignGraph, lane: ElectricalLane) -> tuple[Placement, ...]:
     components = {
         str(node.attrs["refdes"]): node.attrs
         for node in graph.nodes
@@ -390,7 +390,7 @@ def run_pipeline(
             f"{profile.profile_id!r}"
         )
 
-    placements = _placements_from_graph(graph, lane)
+    placements = placements_from_graph(graph, lane)
     project = write_project(
         lane,
         fixture_dir,

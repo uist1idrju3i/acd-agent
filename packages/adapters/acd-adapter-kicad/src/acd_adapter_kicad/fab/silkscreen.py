@@ -67,6 +67,22 @@ class _SilkObject:
     points_mm: tuple[tuple[float, float], ...] = ()
 
 
+class SilkscreenGateError(FabOutputError):
+    """Raised when silkscreen geometry fails, with measured context."""
+
+    def __init__(self, message: str, context: dict[str, object]) -> None:
+        super().__init__(message)
+        self.context = context
+
+
+def _silk_side(layer: str) -> str:
+    return "F.Cu" if layer.startswith("F.") else "B.Cu"
+
+
+def _same_side(silk_layer: str, copper_layers: tuple[str, ...]) -> bool:
+    return _silk_side(silk_layer) in copper_layers
+
+
 def _silk_aperture_width(aperture: Any) -> float:
     raw = aperture
     if isinstance(aperture, CircleAperture):
@@ -506,24 +522,32 @@ def measure_silkscreen(
         declared_groups.append((entry, tuple(nearby)))
     pad_bboxes = [
         (
-            pad.x_mm - pad.size_x_mm / 2.0,
-            pad.y_mm - pad.size_y_mm / 2.0,
-            pad.x_mm + pad.size_x_mm / 2.0,
-            pad.y_mm + pad.size_y_mm / 2.0,
+            (
+                pad.x_mm - pad.size_x_mm / 2.0,
+                pad.y_mm - pad.size_y_mm / 2.0,
+                pad.x_mm + pad.size_x_mm / 2.0,
+                pad.y_mm + pad.size_y_mm / 2.0,
+            ),
+            pad.layers,
         )
         for pad in measurement.pads
     ]
     pad_overlaps = [
-        {"silk_bbox_mm": list(item.bbox_mm), "pad_bbox_mm": list(pad_bbox)}
+        {
+            "silk_bbox_mm": list(item.bbox_mm),
+            "pad_bbox_mm": list(pad_bbox),
+            "layer": item.layer,
+        }
         for item in declared_objects
-        for pad_bbox in pad_bboxes
-        if _silk_overlaps_rect(item, pad_bbox)
+        for pad_bbox, pad_layers in pad_bboxes
+        if _same_side(item.layer, pad_layers) and _silk_overlaps_rect(item, pad_bbox)
     ]
     mask_overlaps = [
         {"silk_bbox_mm": list(item.bbox_mm), "mask_bbox_mm": list(mask.bbox_mm)}
         for item in declared_objects
         for mask in masks
-        if _silk_objects_overlap(item, mask)
+        if item.layer.replace("SilkS", "Mask") == mask.layer
+        and _silk_objects_overlap(item, mask)
     ]
     outside = [
         list(item.bbox_mm)
@@ -534,10 +558,12 @@ def measure_silkscreen(
         or item.bbox_mm[3] > outline[3]
     ]
     body_rects = [
-        (fp.refdes, fp.body_bbox_mm) for fp in measurement.footprints if fp.body_bbox_mm is not None
+        (fp.refdes, fp.layer, fp.body_bbox_mm)
+        for fp in measurement.footprints
+        if fp.body_bbox_mm is not None
     ]
     courtyard_rects = [
-        (fp.refdes, fp.courtyard_bbox_mm)
+        (fp.refdes, fp.layer, fp.courtyard_bbox_mm)
         for fp in measurement.footprints
         if fp.courtyard_bbox_mm is not None
     ]
@@ -559,8 +585,8 @@ def measure_silkscreen(
                 "overlap_area_mm2": _bbox_overlap_area(item.bbox_mm, rect),
             }
             for item in objects
-            for refdes, rect in body_rects
-            if _silk_overlaps_rect(item, rect)
+            for refdes, layer, rect in body_rects
+            if _same_side(item.layer, (layer,)) and _silk_overlaps_rect(item, rect)
         ]
         courtyard_hits: list[dict[str, object]] = [
             {
@@ -571,8 +597,8 @@ def measure_silkscreen(
                 "overlap_area_mm2": _bbox_overlap_area(item.bbox_mm, rect),
             }
             for item in objects
-            for refdes, rect in courtyard_rects
-            if _silk_overlaps_rect(item, rect)
+            for refdes, layer, rect in courtyard_rects
+            if _same_side(item.layer, (layer,)) and _silk_overlaps_rect(item, rect)
         ]
         other_hits: list[dict[str, object]] = [
             {
@@ -596,12 +622,14 @@ def measure_silkscreen(
         body_distances = [
             (_silk_rect_distance(item, rect), refdes)
             for item in objects
-            for refdes, rect in body_rects
+            for refdes, layer, rect in body_rects
+            if _same_side(item.layer, (layer,))
         ]
         courtyard_distances = [
             (_silk_rect_distance(item, rect), refdes)
             for item in objects
-            for refdes, rect in courtyard_rects
+            for refdes, layer, rect in courtyard_rects
+            if _same_side(item.layer, (layer,))
         ]
         entry["nearest_body_distance_mm"] = min(body_distances)[0] if body_distances else None
         entry["nearest_body_refdes"] = min(body_distances)[1] if body_distances else None
@@ -641,12 +669,13 @@ def measure_silkscreen(
         reference_value = entry.get("placement_reference")
         reference = str(reference_value) if isinstance(reference_value, str) else None
         component_distances: list[tuple[float, str]] = []
-        for refdes in sorted({ref for ref, _ in body_rects + courtyard_rects}):
+        for refdes in sorted({ref for ref, _, _ in body_rects + courtyard_rects}):
             distances = [
                 _silk_rect_distance(item, rect)
                 for item in objects
-                for candidate_ref, rect in body_rects + courtyard_rects
+                for candidate_ref, layer, rect in body_rects + courtyard_rects
                 if candidate_ref == refdes
+                and _same_side(item.layer, (layer,))
             ]
             if distances:
                 component_distances.append((min(distances), refdes))
@@ -654,7 +683,9 @@ def measure_silkscreen(
             nearest_distance, nearest_refdes = min(component_distances)
             entry["nearest_component_distance_mm"] = nearest_distance
             entry["nearest_component_refdes"] = nearest_refdes
-            if reference is not None:
+            if reference is not None and reference in {
+                refdes for _, refdes in component_distances
+            }:
                 reference_distance = next(
                     (distance for distance, refdes in component_distances if refdes == reference),
                     None,
@@ -710,12 +741,16 @@ def measure_silkscreen(
             for item in non_declared_silk
         ],
         "mask_opening_bboxes_mm": [list(item.bbox_mm) for item in masks],
-        "pad_bboxes_mm": [list(item) for item in pad_bboxes],
+        "pad_bboxes_mm": [
+            {"bbox_mm": list(bbox), "layers": list(layers)} for bbox, layers in pad_bboxes
+        ],
         "body_bboxes_mm": [
-            {"refdes": refdes, "bbox_mm": list(rect)} for refdes, rect in body_rects
+            {"refdes": refdes, "layer": layer, "bbox_mm": list(rect)}
+            for refdes, layer, rect in body_rects
         ],
         "courtyard_bboxes_mm": [
-            {"refdes": refdes, "bbox_mm": list(rect)} for refdes, rect in courtyard_rects
+            {"refdes": refdes, "layer": layer, "bbox_mm": list(rect)}
+            for refdes, layer, rect in courtyard_rects
         ],
         "board_outline_bbox_mm": list(outline),
         "declarations": declared,
@@ -747,10 +782,11 @@ def measure_silkscreen(
         or outside
         or edge_margin_violations
         or body_overlaps
+        or courtyard_overlaps
         or existing_silk_overlaps
         or nearest_component_mismatches
     ):
-        error = FabOutputError(
+        raise SilkscreenGateError(
             "silkscreen clearance or board-edge overlap detected (fail-closed): "
             f"pad={len(pad_overlaps)}, mask={len(mask_overlaps)}, edge={len(outside)}, "
             f"edge_margin={len(edge_margin_violations)}, "
@@ -760,10 +796,9 @@ def measure_silkscreen(
             f"pad_examples={pad_overlaps[:3]}, mask_examples={mask_overlaps[:3]}, "
             f"edge_examples={outside[:3]}, body_examples={body_overlaps[:3]}, "
             f"edge_margin_examples={edge_margin_violations[:3]}, "
-            f"nearest_component_examples={nearest_component_mismatches[:3]}"
+            f"nearest_component_examples={nearest_component_mismatches[:3]}",
+            cast(dict[str, object], context),
         )
-        error.context = context  # type: ignore[attr-defined]
-        raise error
     return {
         "measurement_method": (
             "independent gerbonara parse of F.Silkscreen/B.Silkscreen, "
@@ -814,11 +849,8 @@ def build_silkscreen_context(
         result = measure_silkscreen(
             silk_paths, mask_paths, edge_path, measurement, declarations, profile
         )
-    except FabOutputError as exc:
-        context = getattr(exc, "context", None)
-        if not isinstance(context, dict):
-            raise
-        context = dict(context)
+    except SilkscreenGateError as exc:
+        context = dict(exc.context)
         context["status"] = "measured_fail"
         context["failure_reason"] = str(exc)
         return context

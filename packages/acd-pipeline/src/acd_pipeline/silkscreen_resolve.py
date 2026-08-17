@@ -1,13 +1,15 @@
 """Measure and resolve GD1 silkscreen using the ACD projection boundary."""
-# pyright: reportUnknownVariableType=false,reportUnknownArgumentType=false,reportUnknownMemberType=false,reportUnknownParameterType=false,reportGeneralTypeIssues=false,reportPrivateUsage=false,reportUnnecessaryIsInstance=false
 
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
+from dataclasses import asdict
 from pathlib import Path
+from typing import Any, cast
 
 from acd_adapter_kicad.cli import KicadCli
 from acd_adapter_kicad.fab import (
@@ -21,7 +23,7 @@ from acd_core.fab import extract_fab_intent, load_fab_profile
 from acd_core.silkscreen import SilkscreenLane, extract_silkscreen_lane
 from acd_schema.design_graph import DesignGraph
 
-from .gd1_board import _placements_from_graph
+from .gd1_board import placements_from_graph
 from .gd1_fixture.components import REPO_ROOT, sha256_of
 
 SILK_SKILL = REPO_ROOT / (
@@ -55,7 +57,7 @@ def measure_silkscreen(
         fixture_dir,
         out_dir,
         profile=profile,
-        placements=_placements_from_graph(graph, lane),
+        placements=placements_from_graph(graph, lane),
         silkscreen=silkscreen,
     )
     kicad = KicadCli()
@@ -109,19 +111,25 @@ def resolve_silkscreen(
     """Run bounded projection/measurement/Skill iterations fail-closed."""
     if max_iterations <= 0:
         raise ValueError("max_iterations must be positive")
-    graph_path = fixture_dir / "graph.json"
+    work_fixture_dir = out_dir / "work-fixture"
+    shutil.copytree(fixture_dir, work_fixture_dir, dirs_exist_ok=True)
+    graph_path = work_fixture_dir / "graph.json"
     iterations: list[dict[str, object]] = []
     for iteration in range(1, max_iterations + 1):
         measured = measure_silkscreen(
-            fixture_dir, out_dir / f"iteration-{iteration}", fab_profile_path
+            work_fixture_dir, out_dir / f"iteration-{iteration}", fab_profile_path
         )
-        context = measured["context"]
-        if not isinstance(context, dict):
+        context_value = measured.get("context")
+        if not isinstance(context_value, dict):
             raise ValueError("silkscreen context is malformed")
+        context = cast(dict[str, Any], context_value)
         status = context.get("status")
         if status == "measured_pass":
+            shutil.copy2(graph_path, fixture_dir / "graph.json")
             return {"status": "resolved", "iterations": iterations, "final": measured}
-        graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
+        graph = DesignGraph.model_validate(
+            json.loads(graph_path.read_text(encoding="utf-8"))
+        )
         lane = extract_silkscreen_lane(graph)
         with tempfile.TemporaryDirectory(prefix="acd-silk-context-") as directory:
             directory_path = Path(directory)
@@ -150,14 +158,20 @@ def resolve_silkscreen(
                 capture_output=True,
                 text=True,
             )
-            skill_result = json.loads(output_path.read_text(encoding="utf-8"))
-        candidates = skill_result.get("candidates") if isinstance(skill_result, dict) else None
-        if not isinstance(candidates, list):
+            skill_result = cast(
+                dict[str, Any], json.loads(output_path.read_text(encoding="utf-8"))
+            )
+        raw_candidates = skill_result.get("candidates")
+        if not isinstance(raw_candidates, list):
             raise ValueError("silkscreen context Skill output is missing candidates")
-        accepted = {
+        raw_candidates = cast(list[Any], raw_candidates)
+        if not all(isinstance(item, dict) for item in raw_candidates):
+            raise ValueError("silkscreen context Skill candidates are malformed")
+        candidates = cast(list[dict[str, Any]], raw_candidates)
+        accepted: dict[str, dict[str, Any]] = {
             str(item["node_id"]): item
             for item in candidates
-            if isinstance(item, dict) and item.get("accepted_position_mm") is not None
+            if item.get("accepted_position_mm") is not None
         }
         failures = [
             {
@@ -166,7 +180,7 @@ def resolve_silkscreen(
                 "rejected_candidates": item.get("rejected_candidates", []),
             }
             for item in candidates
-            if isinstance(item, dict) and item.get("accepted_position_mm") is None
+            if item.get("accepted_position_mm") is None
         ]
         iterations.append(
             {
@@ -182,14 +196,20 @@ def resolve_silkscreen(
                 "iterations": iterations,
                 "final": measured,
             }
-        updated_nodes = []
+        updated_nodes: list[Any] = []
         for node in graph.nodes:
             item = accepted.get(node.id)
             if node.kind == "mechanical.silk_text" and item is not None:
                 attrs = dict(node.attrs)
-                position = item["accepted_position_mm"]
-                if not isinstance(position, list) or len(position) != 2:
+                raw_position: Any = item["accepted_position_mm"]
+                if not isinstance(raw_position, list):
                     raise ValueError("Skill candidate position is malformed")
+                position_values = cast(list[Any], raw_position)
+                if len(position_values) != 2 or not all(
+                    isinstance(value, int | float) for value in position_values
+                ):
+                    raise ValueError("Skill candidate position is malformed")
+                position = cast(list[float | int], position_values)
                 attrs.update(
                     {
                         "x_mm": float(position[0]),
@@ -220,19 +240,18 @@ def resolve_silkscreen(
 
 
 def lane_to_json(lane: SilkscreenLane) -> dict[str, object]:
-    from dataclasses import asdict
-
-    value = asdict(lane)
-    if not isinstance(value, dict):
-        raise ValueError("silkscreen lane serialization failed")
-    return value
+    return cast(dict[str, object], asdict(lane))
 
 
-def _rejection_counts(value: object) -> dict[str, int]:
+def _rejection_counts(value: Any) -> dict[str, int]:
     if not isinstance(value, list):
         return {"malformed": 1}
     counts: dict[str, int] = {}
-    for item in value:
-        reason = str(item.get("reason", "unknown")) if isinstance(item, dict) else "malformed"
+    for item in cast(list[Any], value):
+        reason = (
+            str(cast(dict[str, Any], item).get("reason", "unknown"))
+            if isinstance(item, dict)
+            else "malformed"
+        )
         counts[reason] = counts.get(reason, 0) + 1
     return dict(sorted(counts.items()))

@@ -145,6 +145,13 @@ def _context(*, outline: list[float] | None = None) -> dict[str, object]:
         "courtyard_bboxes_mm": [],
         "existing_silk_objects": [],
         "silk_objects": [],
+        "declarations": [
+            {
+                "node_id": "silk",
+                "measured_text_length_mm": 2.0,
+                "measured_height_mm": 0.5,
+            }
+        ],
     }
 
 
@@ -163,6 +170,6 @@ def test_context_search_fails_closed_for_missing_context_geometry() -> None:
 
 def test_context_search_reports_no_candidate_fail_closed() -> None:
     lane = SilkscreenLane("board.gd1", (_search_text(limit=0.25),), ())
-    result = resolve_from_context(lane, _context(outline=[0.0, 0.0, 2.0, 2.0]))
+    result = resolve_from_context(lane, _context(outline=[0.0, 0.0, 0.1, 0.1]))
     assert result[0]["resolution"] == "no_candidate_fail_closed"
     assert result[0]["candidates"] == []
