@@ -2,86 +2,35 @@
 
 ## 位置づけ
 
-このイメージは、ACDの決定論的pipelineとゲートだけを任意に実行するための
-base imageである。agentそのものをコンテナへ移すものではなく、ACD imageとして
-再配布もしない。利用者が各自でDockerfileからbuildする。
-
-Dockerはdeterminismを保証しない。時刻、locale、filesystem、CPU、外部サービスなど
-の差は残るため、ToolEnvelope、出力hash、timestamp正規化、独立再読込、期待値と
-ゲートの規則は引き続き必要である。
+このimageはACDの決定論的pipelineとゲートを実行するため、利用者が各自buildする。
+ACDはimageを再配布しない。Dockerはdeterminismを保証しないため、ToolEnvelope、出力hash、
+timestamp正規化、独立再読込、決定論的ゲートは引き続き必要である。
 
 ## build
 
 ```bash
-docker build \
-  --file docker/acd-tools.Dockerfile \
-  --tag acd-tools-gates:local \
-  .
+docker build --file docker/acd-tools.Dockerfile --tag acd-tools-gates:local .
 ```
 
-Dockerfileでは次を固定または検証する。
+Dockerfileの現行pinはKiCad 9系、FreeRouting 2.1.0、OpenJDK 21、ngspice、Python 3.12、
+uv 0.7.12である。DockerWorkspace一本化に伴い、次フェーズでKiCadを10系へ更新する。
+GD1の期待値はKiCad 10.0.5を基準とする。
 
-- KiCad CLI: KiCad 9.0 PPAの9系をインストールし、build時に9系であることを検証
-- FreeRouting: 2.1.0、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
-  wrapperからPATH上で実行できることを検証
-- OpenJDK: Ubuntu 24.04の`openjdk-21-jre-headless`
-- ngspice: Ubuntu 24.04のパッケージと`ngspice --version`を検証
-- Python: Ubuntu 24.04のPython 3.12
-- uv: 0.7.12
-- git: revision解決と差分確認のためUbuntu 24.04のパッケージを利用
+## SDK workspace
 
-APT由来のパッケージはUbuntuのrepository snapshotを別途固定しない限り、同じ
-Dockerfileでも再解決される可能性がある。完全な再現性にはimage digestとAPT
-repositoryの固定が必要である。
-
-## OpenHands SDKからの利用
-
-P5では、カスタムbase imageからagent-server imageをbuildできる
-`DockerDevWorkspace`を選ぶ。`DockerWorkspace`は既成のagent-server imageを
-使う経路であり、今回の公開しないローカルbuild用base imageには適さない。
+`DockerWorkspace(server_image=...)`をdigest固定のゲート実行の正とする。現行の
+`DockerDevWorkspace(base_image=...)`はACD tools imageからagent-server imageをbuildする準備
+経路に限る。
 
 ```python
-from openhands.workspace.docker import DockerDevWorkspace
+from openhands.workspace.docker import DockerWorkspace
 
-with DockerDevWorkspace(
-    base_image="acd-tools-gates:local",
+with DockerWorkspace(
+    server_image="ghcr.io/openhands/agent-server:tag@sha256:<digest>",
     volumes=["/absolute/repo/path:/workspace"],
-    forward_env=["ACD_CONTAINER_IMAGE_DIGEST"],
 ) as workspace:
-    result = workspace.execute_command(
-        "uv run python scripts/run_gd1_enclosure_pipeline.py "
-        "--out out/gd1-enclosure",
-        cwd="/workspace",
-    )
+    result = workspace.execute_command("uv run python scripts/run_gd1_pipeline.py", cwd="/workspace")
 ```
 
-ホスト側の`ACD_CONTAINER_IMAGE_DIGEST`は、runnerが`docker image inspect`から解決
-した値を設定する。`forward_env`で同名変数をコンテナへ渡し、ToolEnvelopeの
-`execution_env`へ記録する。digestを解決できない場合はworkspaceを起動せず停止する。
-
-## ライセンスとupstream
-
-ACDはこのイメージを配布しない。KiCad（GPLv3）、FreeRouting（GPLv3）などの
-GPL系ソフトウェアを含むイメージを配布すると、対応するソース提供やライセンス
-義務が発生するためである。各利用者は自分の環境でbuildし、各upstreamの条件に
-従うこと。
-
-- KiCad: GPLv3、<https://www.kicad.org/>
-- FreeRouting: GPLv3、<https://github.com/freerouting/freerouting>
-- ngspice: BSD系ライセンス、<https://ngspice.sourceforge.io/>
-- OpenJDK: GPLv2 with Classpath Exception、<https://openjdk.org/>
-- Python: PSF License、<https://www.python.org/>
-- uv: MIT License、<https://github.com/astral-sh/uv>
-
-## 手動確認
-
-```bash
-docker image inspect --format='{{json .RepoDigests}}' acd-tools-gates:local
-docker run --rm acd-tools-gates:local sh -lc \
-  'command -v freerouting && freerouting --version && command -v ngspice && ngspice --version && command -v git'
-ACD_CONTAINER_IMAGE=acd-tools-gates:local \
-  uv run python scripts/run_in_workspace.py
-```
-
-ローカルbuild imageにはRepoDigestsが無いことがある。その場合runnerはimage ID
-（`sha256:...`）を使う。どちらも解決できない場合は何も実行しない。
+SDKの`server_image`は文字列をDocker runへ渡すためdigest参照を受け取れる構造だが、SDKが
+digest固定を自動検証するわけではない。runner側で解決・記録し、digest不明は停止する。

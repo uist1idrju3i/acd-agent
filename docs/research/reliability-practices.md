@@ -565,7 +565,7 @@ SDKはこれらをEvidenceへ自動的に束縛しないが、`LLM.log_completio
 取得できる。ACDはcallbackを利用して、解決済みmodel名、provider、profile revision、
 system prompt・tool schema・有効なSkill内容を含むprompt内容hash、SDKの
 `InstallationInfo.resolved_ref`／`.installed.json`から得たSkill／pluginの解決済みSHA、
-MCP設定hash、response ID、推論設定、`ReviewFinding`との対応付けを算出し、Evidenceへ束ねる。
+plugin設定hash、response ID、推論設定、`ReviewFinding`との対応付けを算出し、Evidenceへ束ねる。
 `requested_ref`だけで`resolved_ref`がない資材は適格性不明として採用しない。
 routerを使う場合はモデル選択が非決定的になり得ることもEvidenceへ記録し、`RandomRouter`は
 採用しない。

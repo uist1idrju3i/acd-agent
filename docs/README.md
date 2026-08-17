@@ -1,60 +1,51 @@
 # ACDドキュメント索引
 
-> ステータス: Draft
+> ステータス: Accepted
 > 対象: OpenHands Software Agent SDK v1.42.1
 
 ## 読む順序
 
-| 文書 | 内容 | 位置づけ |
-|---|---|---|
-| [`../README.md`](../README.md) | 製品概要と現状 | 入口 |
-| [`glossary.md`](glossary.md) | 用語と工程ID | 規範 |
-| [`architecture.md`](architecture.md) | パッケージ、plugin、責務境界 | 規範 |
-| [`design-flow.md`](design-flow.md) | 電気・機械・FWレーン | 規範 |
-| [`openhands-integration.md`](openhands-integration.md) | SDK統合面と未実装境界 | 規範 |
-| [`openhands-sdk-adoption.md`](openhands-sdk-adoption.md) | SDK活用分析と段階計画 | 計画 |
-| [`roadmap.md`](roadmap.md) | 近い順の実装計画と将来構想 | 計画 |
-| [`implementation-plan.md`](implementation-plan.md) | 直近作業の分解 | 計画 |
-| [`installation.md`](installation.md) | 現行ツールチェーンの導入 | 運用 |
-| [`agent-server-runbook.md`](agent-server-runbook.md) | agent-serverの運用境界と手順 | 運用契約 |
-| [`golden-design-1.md`](golden-design-1.md) | GD1 fixtureと到達状況 | 規範 |
-| [`projection-review.md`](projection-review.md) | 投影レビュー | 規範 |
-| [`dependency-notes.md`](dependency-notes.md) | 依存と一次情報 | 対応関係の正 |
-| [`tool-capability-probes.md`](tool-capability-probes.md) | 外部ツール能力の実測 | 記録 |
-
-## 調査記録
-
-大型の調査文書は[`research/`](research)へ移設した。現行仕様と混同しないが、
-他文書から参照される要求・採否判断・出典は保持する。
-
 | 文書 | 内容 |
 |---|---|
-| [`research/prior-art.md`](research/prior-art.md) | 先行事例とライセンス境界 |
-| [`research/tool-selection.md`](research/tool-selection.md) | 外部ツールの採否判断 |
-| [`research/ecad-domain-notes.md`](research/ecad-domain-notes.md) | ECAD領域知識 |
-| [`research/ai-physical-design.md`](research/ai-physical-design.md) | AI主導の物理設計 |
-| [`research/qc-tools.md`](research/qc-tools.md) | Q7/N7手法 |
-| [`research/reliability-practices.md`](research/reliability-practices.md) | 信頼性・ディレーティング |
-| [`research/future-outlook.md`](research/future-outlook.md) | 将来展望 |
+| [`../README.md`](../README.md) | 製品概要と現状 |
+| [`glossary.md`](glossary.md) | 用語と工程ID |
+| [`architecture.md`](architecture.md) | 境界の単一の正 |
+| [`openhands-integration.md`](openhands-integration.md) | plugin資材と登録 |
+| [`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md) | SDK機能の網羅と採否 |
+| [`roadmap.md`](roadmap.md) | 現在地と計画 |
+| [`implementation-plan.md`](implementation-plan.md) | 次フェーズ作業 |
+| [`installation.md`](installation.md) | 導入手順 |
+| [`agent-server-runbook.md`](agent-server-runbook.md) | server運用手順 |
+| [`dependency-notes.md`](dependency-notes.md) | 依存と一次情報 |
+| [`golden-design-1.md`](golden-design-1.md) | GD1の到達状況 |
+| [`projection-review.md`](projection-review.md) | 投影レビュー |
 
-## ADR
+## ADR一覧
 
-設計決定は[`adr/`](adr)に記録する。現行の重要な決定は次のとおり。
-
-- [`ADR-0008-minimal-vibebb-scope.md`](adr/ADR-0008-minimal-vibebb-scope.md): 最小構成
-- [`ADR-0009-openhands-delegation-and-skills.md`](adr/ADR-0009-openhands-delegation-and-skills.md): Skill委譲
-- [`ADR-0010-plugin-first-openhands-integration.md`](adr/ADR-0010-plugin-first-openhands-integration.md): plugin-first
-- [`ADR-0011-search-results-as-design-input.md`](adr/ADR-0011-search-results-as-design-input.md): 探索結果の設計入力化
-- [`ADR-0012-design-rationale-records.md`](adr/ADR-0012-design-rationale-records.md): 設計根拠record
-- [`ADR-0012-silkscreen-observation-boundary.md`](adr/ADR-0012-silkscreen-observation-boundary.md): silkscreen観測範囲とevidence要約
-- [`ADR-0013-openhands-sdk-runtime-adoption.md`](adr/ADR-0013-openhands-sdk-runtime-adoption.md): SDKランタイム機能の段階採用
-- [`ADR-0013-rationale-coverage-scope.md`](adr/ADR-0013-rationale-coverage-scope.md): 設計根拠coverageの必須範囲と免除分類
-- [`ADR-0014-sdk-tool-definitions.md`](adr/ADR-0014-sdk-tool-definitions.md): SDK ToolDefinitionへの一本化
-- [`ADR-0015-docker-workspace-gate-execution.md`](adr/ADR-0015-docker-workspace-gate-execution.md): Docker workspaceによるゲート実行
-- [`ADR-0016-acd-gate-critic.md`](adr/ADR-0016-acd-gate-critic.md): 決定論的ゲート結果によるcritic反復
-- [`ADR-0017-parallel-search-lane.md`](adr/ADR-0017-parallel-search-lane.md): 決定論的探索並列化と探索lane
-- [`ADR-0018-agent-session-persistence.md`](adr/ADR-0018-agent-session-persistence.md): SDK Conversationによるsession永続化
-- [`ADR-0019-plugin-distribution-and-testllm.md`](adr/ADR-0019-plugin-distribution-and-testllm.md): pinned plugin配布とTestLLM回帰
-- [`ADR-0020-agent-server-operations.md`](adr/ADR-0020-agent-server-operations.md): agent-serverの運用境界
-
-Skillの実行結果は合否根拠ではない。合否は入力ファイルと決定論的ゲートだけが決める。
+| ADR | 題 | ステータス |
+|---|---|---|
+| [0001](adr/ADR-0001-monorepo-structure.md) | uv workspaceによるmonorepo構成 | Accepted |
+| [0002](adr/ADR-0002-json-schema-canonical.md) | JSON Schemaを契約の正本とする | Accepted |
+| [0003](adr/ADR-0003-sdk-feature-adoption.md) | SDK機能採用方針 | Superseded |
+| [0004](adr/ADR-0004-parts-catalog-provenance.md) | 部品カタログと出所 | Accepted |
+| [0005](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md) | PCBA準備契約 | Accepted |
+| [0006](adr/ADR-0006-vendor-submodule-policy.md) | SDK submodule更新方針 | Accepted |
+| [0007](adr/ADR-0007-llm-guided-physical-design.md) | LLMによる物理設計 | Accepted |
+| [0008](adr/ADR-0008-minimal-vibebb-scope.md) | 最小VibeBB範囲 | Accepted |
+| [0009](adr/ADR-0009-openhands-delegation-and-skills.md) | delegationとSkill | Accepted |
+| [0010](adr/ADR-0010-plugin-first-openhands-integration.md) | plugin-first統合 | Accepted |
+| [0011](adr/ADR-0011-search-results-as-design-input.md) | 探索結果の設計入力化 | Accepted |
+| [0012](adr/ADR-0012-silkscreen-observation-boundary.md) | silkscreen観測境界 | Accepted |
+| [0013](adr/ADR-0013-openhands-sdk-runtime-adoption.md) | SDK runtime採用 | Accepted |
+| [0014](adr/ADR-0014-sdk-tool-definitions.md) | SDK ToolDefinition | Accepted |
+| [0015](adr/ADR-0015-docker-workspace-gate-execution.md) | DockerWorkspaceゲート | Accepted |
+| [0016](adr/ADR-0016-acd-gate-critic.md) | gate critic | Accepted |
+| [0017](adr/ADR-0017-parallel-search-lane.md) | 探索並列化 | Accepted |
+| [0018](adr/ADR-0018-agent-session-persistence.md) | Conversation persistence | Accepted |
+| [0019](adr/ADR-0019-plugin-distribution-and-testllm.md) | plugin配布とTestLLM | Accepted |
+| [0020](adr/ADR-0020-agent-server-operations.md) | agent-server運用境界 | Accepted |
+| [0021](adr/ADR-0021-design-rationale-records.md) | 設計根拠record | Accepted |
+| [0022](adr/ADR-0022-rationale-coverage-scope.md) | 設計根拠coverage | Accepted |
+| [0023](adr/ADR-0023-deterministic-gate-authority.md) | 三層分離と合否権限 | Accepted |
+| [0024](adr/ADR-0024-openhands-only-scope.md) | OpenHands専用範囲 | Accepted |
+| [0025](adr/ADR-0025-agent-server-production-adoption.md) | agent-server実運用化 | Accepted |

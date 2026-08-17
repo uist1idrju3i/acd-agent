@@ -1,5 +1,8 @@
 # ADR-0019: pinned plugin配布とTestLLM回帰
 
+> ステータス: Accepted
+> 日付: 2026-08-17
+
 ## 状況
 
 P6/P7でACDのpluginは開発checkoutのlocal pathから読み込めるようになった。

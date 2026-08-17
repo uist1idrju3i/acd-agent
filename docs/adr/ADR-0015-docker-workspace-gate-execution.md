@@ -1,53 +1,32 @@
 # ADR-0015: DockerWorkspaceによるゲート実行
 
 > ステータス: Accepted
-> 日付: 2026-08-18
+> 日付: 2026-08-17
 
 ## 決定
 
-ACDはホスト実行を既定のまま維持し、決定論的pipelineとゲートだけを任意に
-Docker workspace内で実行できる経路を追加する。agentそのものをコンテナへ
-移すことは今回の範囲外である。
+決定論的ゲートの実行環境を`DockerWorkspace(server_image=...)`へ一本化する。
+`server_image`にはDockerが受け付けるdigest参照（`...@sha256:<digest>`）を渡し、digestを
+解決できないEvidenceは合否根拠にしない。ホスト実行は参考実行であり、合格側Evidenceを
+生成しない。
 
-配布用ACD imageは作らない。KiCad、FreeRoutingなどGPL系ライセンスのソフトウェアを
-含むimageを配布すると、対応するソース提供その他の頒布義務が発生するため、Dockerfile
-を公開し利用者が各自buildする。
+`DockerDevWorkspace(base_image=...)`はACD tools imageからagent-server imageをbuildする
+準備経路に限定し、ゲートの既定経路にしない。imageは配布せず、利用者がbuildしてdigest
+を記録する。KiCadとFreeRoutingのGPL頒布義務を回避するためである。
 
-## Workspaceの選択
+Dockerはdeterminismを保証しない。timestamp、locale、filesystem、CPU、APT repositoryの
+差は残るため、ToolEnvelope、入力・出力hash、timestamp正規化、独立再読込、決定論的
+期待値とゲートは維持する。
 
-`DockerWorkspace`は既成のagent-server imageを起動する経路である。一方、
-`DockerDevWorkspace`は`base_image`からagent-server imageをbuildできるため、
-利用者がbuildした`docker/acd-tools.Dockerfile`を渡すP5の経路には後者を選択した。
-workspaceはrepoを`volumes`で`/workspace`へmountし、出力とevidenceをホストへ残す。
-DockerfileはFreeRouting JARを`/usr/local/bin/freerouting` wrapperからPATH上で実行可能にし、
-ngspiceの版をbuild時に検証する。revision解決と差分確認のためgitもimageへ含める。
-SDK v1.42.1のworkspace実装は`--rm`、`linux/amd64`、health check、
-`forward_env`を提供する。
+## 現行実装との差分
 
-## Container記録とfail-closed
+現行runnerは`DockerDevWorkspace`を使い、CIとホスト実行が既定である。次フェーズで
+runnerを`DockerWorkspace`とdigest固定へ移行し、CIのゲート実行をcontainerへ移す。
+同時に`docker/acd-tools.Dockerfile`のKiCad pinを9系から10系へ更新し、GD1の期待値は
+10.0.5基準とする。受け入れ条件は[`ADR-0025`](ADR-0025-agent-server-production-adoption.md)
+を参照する。
 
-`execution_env()`のcontainer値は次の決定論的規則で記録する。
+## 記録
 
-1. `ACD_CONTAINER_IMAGE_DIGEST`が`sha256:`と64桁hexで始まる妥当な値なら、その値を
-   `container=`へそのまま記録する。
-2. `/.dockerenv`または`ACD_IN_CONTAINER`の真値からコンテナ内と判定できるがdigestが
-   未設定・空・不正なら`container=unknown`とする。ToolEnvelopeのunknownは
-   `has_unknown()`を真にし、Evidenceの`supports_pass()`を通さない。
-3. それ以外は`container=none`とする。
-
-runnerは`docker image inspect`でRepoDigestsを優先し、ローカルbuildでそれが無い
-場合はimage IDを使う。いずれも`sha256:` digestを解決できなければworkspaceを
-起動せず非ゼロ終了する。docker CLI不在も同じ扱いとする。
-
-## Determinismの境界
-
-Dockerは実行環境の隔離を補助するが、determinismを保証しない。timestamp、locale、
-filesystem、CPU、APT repositoryなどの差は残るため、ToolEnvelope、入力・出力hash、
-timestamp正規化、独立再読込、決定論的期待値とゲートを緩めない。
-runnerはpipelineの終了コード、stdout/stderr、生成物の場所を報告するだけで、
-pipelineに追加の合否判定を行わない。
-
-## 将来課題
-
-agentごとのコンテナ実行、配布済みACD image、実機測定を含む運用は将来課題であり、
-本ADRの決定には含めない。
+`execution_env.container`がdigestならEvidence適格性を検討できる。digest不明は
+`unknown`、ホスト実行は`none`として記録し、どちらも合格側の根拠にしない。

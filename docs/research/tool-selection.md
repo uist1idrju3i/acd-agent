@@ -48,11 +48,11 @@ adapter境界は [`../architecture.md`](../architecture.md)、工程ごとのゲ
 
 ライセンス境界（[`prior-art.md`](prior-art.md) 20章）を実装形態へ落とすと、次の3方式になる。
 
-ACDの提供形態もこの判断に合わせ、coreはnative `ToolDefinition`として登録するPython
-package、外部ツールadapterはMCP server、pluginはSkill・agent定義・hooks・MCP設定・
-commandの資材配布とする。permissiveなライブラリでACDの意味論と同一プロセスに置く価値が
-あるものはimport結合でcoreへ束ねる。GPL/AGPL等のrestrictiveなコンポーネント、または
-プロセス・ライセンス境界を保つべきツールはMCP serverまたは外部プロセスへ分離する。
+ACDの提供形態もこの判断に合わせ、coreはOpenHands SDKのnative `ToolDefinition`として登録するPython package、
+外部ツールadapterは独立した外部プロセス、pluginはSkill・agent定義・hooks・commandの
+資材配布とする。permissiveなライブラリでACDの意味論と同一プロセスに置く価値があるものは
+import結合でcoreへ束ねる。GPL/AGPL等のrestrictiveなコンポーネント、またはプロセス・
+ライセンス境界を保つべきツールは外部プロセスへ分離する。
 
 | 方式 | 対象 | 実装上の意味 |
 |---|---|---|
@@ -63,10 +63,9 @@ commandの資材配布とする。permissiveなライブラリでACDの意味論
 外部プロセス化はライセンス義務を消さない。binary同梱、改変、再配布、ネットワーク提供の
 可否は別に判断する。
 
-MCP server経由での呼び出しも外部プロセス方式の一形態として扱う。SDKのMCP clientから
-動的schemaを受け取っても、adapterによる設計意味論の検証、ツール版の固定、Evidenceの
-生成はACD側で行う。MCP serverを利用してもライセンス義務は消えない。adapterの分割粒度は
-[`../architecture.md`](../architecture.md)を正とする。
+外部プロセスを利用してもライセンス義務は消えない。実行ファイル、版、入力、出力、
+終了状態はACD側で記録する。adapterの分割粒度は[`../architecture.md`](../architecture.md)を
+正とする。
 
 ## 電気レーンの選定
 
