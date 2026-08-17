@@ -26,7 +26,7 @@ L2として採用する。
   `SecretRegistry.mask_secrets_in_output()`を出力maskingの権威とする。計画が想定した
   callableをSDKの`SecretValue`へ直接渡すことは、pinned実装の`_wrap_secret()`が
   `str | SecretSource`以外を拒否するため採用しなかった。ACDの`EnvironmentSecret`は
-  `get_value()`を遅延実行し、callable互換の`__call__()`も提供する。secret値はログ、
+  `get_value()`を遅延実行する。secret値はログ、
   ToolEnvelope、Evidenceへ入れない。
 - `load_skills_from_dir(skill_dir: str | Path)`で`plugins/acd/skills`だけを読み、
   `AgentContext(skills=...)`へ渡す。public/user/marketplace自動読み込みは無効にする。

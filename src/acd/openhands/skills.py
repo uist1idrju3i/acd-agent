@@ -20,7 +20,7 @@ def load_acd_skills(skill_dir: Path) -> list[Skill]:
     # The SDK loader intentionally logs and skips malformed files. ACD's local
     # contract is stricter, so validate every discovered asset before loading.
     for skill_file in skill_files:
-        Skill.load(skill_file, skill_base_dir=skill_dir, strict=False)
+        Skill.load(skill_file, skill_base_dir=skill_dir, strict=True)
 
     repo_skills, knowledge_skills, agent_skills = load_skills_from_dir(skill_dir)
     loaded = [*repo_skills.values(), *knowledge_skills.values(), *agent_skills.values()]

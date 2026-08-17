@@ -74,7 +74,7 @@ class AcdSecurityAnalyzer(SecurityAnalyzerBase):
         ):
             return SecurityRisk.HIGH
 
-        return SecurityRisk.LOW
+        return SecurityRisk.UNKNOWN
 
 
 def build_acd_security_analyzer() -> EnsembleSecurityAnalyzer:

@@ -33,7 +33,11 @@ from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportU
 from acd.openhands.agent_session import build_acd_conversation, write_conversation_metrics
 from acd.openhands.gate_critic import AcdEvidenceRequirement
 from acd.openhands.plugin_distribution import acd_plugin_source
-from acd.openhands.secrets import ACD_SECRET_ENV_VARS, build_acd_secret_mapping
+from acd.openhands.secrets import (
+    ACD_SECRET_ENV_VARS,
+    EnvironmentSecret,
+    build_acd_secret_mapping,
+)
 from acd.openhands.security import AcdSecurityAnalyzer, build_acd_security_analyzer
 from acd.openhands.skills import load_acd_skills
 
@@ -100,7 +104,7 @@ def test_acd_security_analyzer_is_fail_closed_and_deterministic() -> None:
         analyzer.security_risk(
             _action_event("terminal", '{"command":"cat evidence/result.json"}')
         )
-        == SecurityRisk.LOW
+        == SecurityRisk.UNKNOWN
     )
     assert (
         analyzer.security_risk(
@@ -129,6 +133,12 @@ def test_acd_security_analyzer_is_fail_closed_and_deterministic() -> None:
     assert (
         analyzer.security_risk(_action_event("terminal", "[]"))
         == SecurityRisk.HIGH
+    )
+    assert (
+        build_acd_security_analyzer().security_risk(
+            _action_event("terminal", '{"command":"cat evidence/result.json"}')
+        )
+        == SecurityRisk.LOW
     )
 
 
@@ -191,6 +201,7 @@ def _minimal_plugin(tmp_path: Path) -> Path:
     plugin_root = tmp_path / "plugin"
     (plugin_root / ".plugin").mkdir(parents=True)
     shutil.copytree(Path.cwd() / "plugins/acd/hooks", plugin_root / "hooks")
+    shutil.copytree(Path.cwd() / "plugins/acd/skills", plugin_root / "skills")
     protect_script = plugin_root / "hooks/scripts/protect_projections.py"
     os.chmod(protect_script, 0o755)
     (plugin_root / "hooks/hooks.json").write_text(
@@ -266,6 +277,24 @@ def test_bootstrap_applies_custom_stuck_detection_thresholds(tmp_path: Path) -> 
     assert conversation.stuck_detector.thresholds == thresholds
 
 
+def test_bootstrap_rejects_plugin_without_skills(tmp_path: Path) -> None:
+    plugin_root = _minimal_plugin(tmp_path)
+    shutil.rmtree(plugin_root / "skills")
+    with pytest.raises(FileNotFoundError):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="test"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            plugin_root=plugin_root,
+        )
+
+
 def test_secret_registry_uses_only_allowlisted_lazy_values(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -276,8 +305,8 @@ def test_secret_registry_uses_only_allowlisted_lazy_values(
         name for name in ACD_SECRET_ENV_VARS if name == "OPENAI_API_KEY"
     }
     value = secrets["OPENAI_API_KEY"]
-    assert callable(value)
-    assert value() == "not-for-logs"
+    assert isinstance(value, EnvironmentSecret)
+    assert value.get_value() == "not-for-logs"
 
 
 def test_secret_registry_masks_resolved_values(

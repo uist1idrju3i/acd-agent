@@ -101,8 +101,8 @@ Skill loaderはpinned SDKの
 `load_skills_from_dir(skill_dir: str | Path) -> tuple[dict[str, Skill], dict[str, Skill], dict[str, Skill]]`
 を使う。SDKは個別エラーを警告して継続する実装だが、ACD wrapperは各`SKILL.md`を
 SDK `Skill.load()`で事前検証し、ロード数も照合して壊れた・欠落した資材をfail-closedにする。
-public/user/marketplace自動読み込みは無効である。pinned SDKの`SecretValue`注釈は
-callableも受ける説明だが、実装の`_wrap_secret()`は`str | SecretSource`以外を拒否する。
+public/user/marketplace自動読み込みは無効である。pinned SDKの`SecretValue`注釈には
+callableの説明もあるが、実装の`_wrap_secret()`は`str | SecretSource`以外を拒否する。
 そのためACDは環境変数をlazy `SecretSource`でラップする。secretの値はログ、
 ToolEnvelope、Evidenceへ出さず、SDK registryのmaskingだけを出力境界に使う。
 

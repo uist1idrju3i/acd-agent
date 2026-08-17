@@ -24,9 +24,6 @@ class EnvironmentSecret(SecretSource):
     def get_value(self) -> str:
         return os.environ.get(self.environment_name, "")
 
-    def __call__(self) -> str:
-        return self.get_value()
-
 
 def build_acd_secret_mapping() -> dict[str, SecretValue]:
     """Return lazy sources for explicitly allowlisted environment variables."""

@@ -49,10 +49,7 @@ def build_acd_conversation(
     plugin_root = plugin_root or repo_root / "plugins" / "acd"
     hooks_path = hooks_path or plugin_root / "hooks" / "hooks.json"
     design_graph_path = design_graph_path or Path("fixtures/golden-design-1/graph.json")
-    skill_root = plugin_root / "skills"
-    if not skill_root.is_dir():
-        skill_root = repo_root / "plugins" / "acd" / "skills"
-    skills = load_acd_skills(skill_root)
+    skills = load_acd_skills(plugin_root / "skills")
 
     register_acd_tools()
     critic = AcdGateCritic(
