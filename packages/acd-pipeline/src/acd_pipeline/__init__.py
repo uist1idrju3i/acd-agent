@@ -1,0 +1,1 @@
+"""Golden design pipeline logic."""

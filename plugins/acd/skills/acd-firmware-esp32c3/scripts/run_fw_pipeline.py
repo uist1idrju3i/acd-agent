@@ -27,7 +27,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from acd_core.electrical import extract_electrical_lane
-from fw_graph import extract_firmware_lane
 from acd_schema.design_graph import DesignGraph
 from fw_build import EspIdfBuilder
 from fw_checks import (
@@ -35,6 +34,7 @@ from fw_checks import (
     assert_header_matches_lane,
     assert_pin_assignments_consistent,
 )
+from fw_graph import extract_firmware_lane
 from fw_project import write_firmware_project
 from fw_qemu import (
     VIRTUAL_MEASUREMENT_CONDITIONS,

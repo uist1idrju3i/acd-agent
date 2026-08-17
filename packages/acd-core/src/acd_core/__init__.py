@@ -1,4 +1,4 @@
-"""Core CAD, electrical, firmware, and manufacturing operations."""
+"""Core CAD, electrical, and manufacturing operations."""
 
 from acd_core.cad_normalize import CadNormalizationError, normalize_3mf, normalize_step
 from acd_core.fab import (

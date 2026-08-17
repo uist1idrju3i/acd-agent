@@ -13,8 +13,11 @@ the DRC/reload gates, not by this script.
 
 from __future__ import annotations
 
+import argparse
+import json
 import math
 from dataclasses import replace
+from pathlib import Path
 from typing import cast
 
 from acd_core.board_model import BoardModel, ComponentPlacement, PadShape
@@ -29,9 +32,7 @@ def _text_size(text: SilkTextView) -> tuple[float, float]:
     return width, text.height_mm
 
 
-def _footprint_bbox(
-    board: BoardModel, refdes: str
-) -> tuple[float, float, float, float]:
+def _footprint_bbox(board: BoardModel, refdes: str) -> tuple[float, float, float, float]:
     placement = board.placement_by_refdes(refdes)
     footprint = placement.footprint
     points: list[tuple[float, float]] = []
@@ -48,16 +49,12 @@ def _footprint_bbox(
         x1, y1, x2, y2 = footprint.courtyard_bbox_mm
         points.extend(((x1, y1), (x2, y2)))
     if not points:
-        raise GraphExtractionError(
-            f"silk placement reference {refdes!r} has no footprint geometry"
-        )
+        raise GraphExtractionError(f"silk placement reference {refdes!r} has no footprint geometry")
     # GD1 placements are orthogonal; reject unsupported rotations rather than
     # silently using an incorrect clearance frame.
     rotation = placement.rotation_deg % 360.0
     if rotation not in {0.0, 90.0, 180.0, 270.0}:
-        raise GraphExtractionError(
-            f"silk placement reference {refdes!r} has unsupported rotation"
-        )
+        raise GraphExtractionError(f"silk placement reference {refdes!r} has unsupported rotation")
     transformed: list[tuple[float, float]] = []
     for x, y in points:
         if rotation == 0.0:
@@ -154,9 +151,7 @@ def _rect_overlap_area(
     return x_overlap * y_overlap
 
 
-def resolve_silkscreen_placements(
-    lane: SilkscreenLane, board: BoardModel
-) -> SilkscreenLane:
+def resolve_silkscreen_placements(lane: SilkscreenLane, board: BoardModel) -> SilkscreenLane:
     """Resolve declared functional labels by deterministic perimeter search."""
     resolved: list[SilkTextView] = []
     evidence: list[dict[str, object]] = []
@@ -171,10 +166,7 @@ def resolve_silkscreen_placements(
         "top_left": (-1.0, -1.0),
     }
     for text in lane.texts:
-        if not (
-            text.role.startswith("functional_label_")
-            or text.role == "connector_identifier"
-        ):
+        if not (text.role.startswith("functional_label_") or text.role == "connector_identifier"):
             resolved.append(text)
             evidence.append(
                 {
@@ -200,9 +192,7 @@ def resolve_silkscreen_placements(
         )
         edge_margin = text.stroke_width_mm * 3.5 + text.placement_safety_margin_mm
         order = tuple(
-            item.strip()
-            for item in text.placement_search_order.split(",")
-            if item.strip()
+            item.strip() for item in text.placement_search_order.split(",") if item.strip()
         )
         if not order or any(item not in order_aliases for item in order):
             raise GraphExtractionError(
@@ -215,18 +205,13 @@ def resolve_silkscreen_placements(
                 f"silk text {text.node_id!r} has invalid placement search range"
             )
         rotations = tuple(text.placement_rotation_degrees)
-        if not rotations or any(
-            rotation % 90.0 != 0.0 for rotation in rotations
-        ):
+        if not rotations or any(rotation % 90.0 != 0.0 for rotation in rotations):
             raise GraphExtractionError(
                 f"silk text {text.node_id!r} has invalid placement rotations"
             )
         rejected: list[dict[str, object]] = []
         valid_candidates: list[dict[str, object]] = []
-        offsets = [
-            round(step * index, 9)
-            for index in range(1, int(limit / step) + 1)
-        ]
+        offsets = [round(step * index, 9) for index in range(1, int(limit / step) + 1)]
         tangent_offsets = [0.0]
         for offset in offsets:
             tangent_offsets.extend((offset, -offset))
@@ -267,9 +252,7 @@ def resolve_silkscreen_placements(
                                 else target[3] + text_height / 2 + offset
                             )
                         else:
-                            raise GraphExtractionError(
-                                "invalid zero placement direction"
-                            )
+                            raise GraphExtractionError("invalid zero placement direction")
                         bbox = (
                             x - text_width / 2,
                             y - text_height / 2,
@@ -289,9 +272,7 @@ def resolve_silkscreen_placements(
                             courtyard_overlap_area = 0.0
                             for placement in board.placements:
                                 body_box = _placement_bbox(placement)
-                                if body_box is not None and _rects_overlap(
-                                    bbox, body_box
-                                ):
+                                if body_box is not None and _rects_overlap(bbox, body_box):
                                     reason = f"body_overlap:{placement.refdes}"
                                     break
                                 courtyard_box = placement.footprint.courtyard_bbox_mm
@@ -305,10 +286,7 @@ def resolve_silkscreen_placements(
                                 for pad in placement.footprint.pads:
                                     pad_box = _pad_bbox(board, placement, pad)
                                     if _rects_overlap(bbox, pad_box):
-                                        reason = (
-                                            f"pad_overlap:{placement.refdes}:"
-                                            f"{pad.number}"
-                                        )
+                                        reason = f"pad_overlap:{placement.refdes}:{pad.number}"
                                         break
                                 if reason:
                                     break
@@ -370,14 +348,12 @@ def resolve_silkscreen_placements(
                 "offset_step_mm": step,
                 "search_limit_mm": limit,
                 "board_edge_margin_mm": text.board_edge_margin_mm,
-                    "rotation_degrees": list(rotations),
-                    "placement_safety_margin_mm": text.placement_safety_margin_mm,
+                "rotation_degrees": list(rotations),
+                "placement_safety_margin_mm": text.placement_safety_margin_mm,
                 "accepted_position_mm": [chosen["x_mm"], chosen["y_mm"]],
                 "accepted_rotation_deg": chosen["rotation_deg"],
                 "reference_center_distance_mm": chosen["distance_mm"],
-                "courtyard_overlap_area_mm2": chosen[
-                    "courtyard_overlap_area_mm2"
-                ],
+                "courtyard_overlap_area_mm2": chosen["courtyard_overlap_area_mm2"],
                 "candidate_selection": (
                     "minimum reference-center distance; ties use declared "
                     "search order, rotation order, then courtyard overlap"
@@ -390,3 +366,16 @@ def resolve_silkscreen_placements(
         texts=tuple(resolved),
         placement_evidence=tuple(evidence),
     )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    json.loads(args.input.read_text(encoding="utf-8"))
+    raise GraphExtractionError("silkscreen CLI requires a typed BoardModel input (fail-closed)")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

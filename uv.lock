@@ -17,6 +17,7 @@ members = [
     "acd-adapter-kicad",
     "acd-agent",
     "acd-core",
+    "acd-pipeline",
     "acd-schema",
     "acd-tools",
 ]
@@ -85,6 +86,7 @@ dev = [
     { name = "acd-adapter-freerouting" },
     { name = "acd-adapter-kicad" },
     { name = "acd-core" },
+    { name = "acd-pipeline" },
     { name = "acd-schema" },
     { name = "acd-tools" },
     { name = "build123d" },
@@ -103,6 +105,7 @@ dev = [
     { name = "acd-adapter-freerouting", editable = "packages/adapters/acd-adapter-freerouting" },
     { name = "acd-adapter-kicad", editable = "packages/adapters/acd-adapter-kicad" },
     { name = "acd-core", editable = "packages/acd-core" },
+    { name = "acd-pipeline", editable = "packages/acd-pipeline" },
     { name = "acd-schema", editable = "packages/acd-schema" },
     { name = "acd-tools", editable = "packages/acd-tools" },
     { name = "build123d", specifier = "==0.11.1" },
@@ -123,6 +126,27 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "acd-schema", editable = "packages/acd-schema" }]
+
+[[package]]
+name = "acd-pipeline"
+version = "0.0.1"
+source = { editable = "packages/acd-pipeline" }
+dependencies = [
+    { name = "acd-adapter-cad" },
+    { name = "acd-adapter-freerouting" },
+    { name = "acd-adapter-kicad" },
+    { name = "acd-core" },
+    { name = "acd-schema" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "acd-adapter-cad", editable = "packages/adapters/acd-adapter-cad" },
+    { name = "acd-adapter-freerouting", editable = "packages/adapters/acd-adapter-freerouting" },
+    { name = "acd-adapter-kicad", editable = "packages/adapters/acd-adapter-kicad" },
+    { name = "acd-core", editable = "packages/acd-core" },
+    { name = "acd-schema", editable = "packages/acd-schema" },
+]
 
 [[package]]
 name = "acd-schema"

@@ -25,7 +25,7 @@ import sys
 
 sys.path.insert(0, "plugins/acd/skills/acd-silkscreen-placement/scripts")
 
-from silkscreen_search import resolve_silkscreen_placements
+uv run python plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py --input silkscreen-input.json --output silkscreen-output.json
 
 resolved = resolve_silkscreen_placements(lane, board_projection.model)
 ```

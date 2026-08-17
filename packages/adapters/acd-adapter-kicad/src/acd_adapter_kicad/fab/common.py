@@ -56,9 +56,7 @@ class UncoveredStitchViasError(FabOutputError):
     def __init__(self, locations: tuple[tuple[float, float], ...]) -> None:
         self.locations = locations
         locations_text = ", ".join(f"({x}, {y})" for x, y in locations)
-        super().__init__(
-            f"stitch vias lack copper coverage (fail-closed): {locations_text}"
-        )
+        super().__init__(f"stitch vias lack copper coverage (fail-closed): {locations_text}")
 
 
 def _gerber_to_board_point(x_mm: float, y_mm: float) -> tuple[float, float]:
@@ -189,9 +187,7 @@ def _silk_aperture_width(aperture: Any) -> float:
         return max(float(raw.w), float(raw.h))
     if isinstance(aperture, ObroundAperture):
         return max(float(raw.w), float(raw.h))
-    raise FabOutputError(
-        f"unsupported silkscreen aperture {type(aperture).__name__} (fail-closed)"
-    )
+    raise FabOutputError(f"unsupported silkscreen aperture {type(aperture).__name__} (fail-closed)")
 
 
 def _silk_object(obj: Any, layer: str) -> _SilkObject:
@@ -242,8 +238,7 @@ def _silk_object(obj: Any, layer: str) -> _SilkObject:
         xs, ys = zip(*points, strict=True)
         area = abs(
             sum(
-                points[index][0] * points[index + 1][1]
-                - points[index + 1][0] * points[index][1]
+                points[index][0] * points[index + 1][1] - points[index + 1][0] * points[index][1]
                 for index in range(len(points) - 1)
             )
             / 2.0
@@ -269,9 +264,7 @@ def _silk_object(obj: Any, layer: str) -> _SilkObject:
             center_mm=(x, y),
             radius_mm=radius,
         )
-    raise FabOutputError(
-        f"unsupported silkscreen object {type(obj).__name__} (fail-closed)"
-    )
+    raise FabOutputError(f"unsupported silkscreen object {type(obj).__name__} (fail-closed)")
 
 
 def _gerber_silk_objects(path: Path, layer: str) -> tuple[_SilkObject, ...]:
@@ -327,11 +320,7 @@ def _local_silk_bounds(
     sine = math.sin(angle)
     local_points: list[tuple[float, float]] = []
     for item in objects:
-        if (
-            item.kind == "Line"
-            and item.start_mm is not None
-            and item.end_mm is not None
-        ):
+        if item.kind == "Line" and item.start_mm is not None and item.end_mm is not None:
             x1, y1 = item.start_mm
             x2, y2 = item.end_mm
             dx = x2 - x1
@@ -350,11 +339,7 @@ def _local_silk_bounds(
             )
         elif item.points_mm:
             points = item.points_mm
-        elif (
-            item.kind == "Flash"
-            and item.center_mm is not None
-            and item.radius_mm is not None
-        ):
+        elif item.kind == "Flash" and item.center_mm is not None and item.radius_mm is not None:
             x, y = item.center_mm
             radius = item.radius_mm
             points = (
@@ -423,15 +408,14 @@ def _silk_overlaps_rect(item: _SilkObject, rect: tuple[float, float, float, floa
         half_width = (item.stroke_width_mm or 0.0) / 2.0
         return minimum <= item.radius_mm + half_width and maximum >= item.radius_mm - half_width
     if item.kind == "Line" and item.start_mm is not None and item.end_mm is not None:
-        return _segment_distance_to_rect(item.start_mm, item.end_mm, rect) <= (
-            item.stroke_width_mm or 0.0
-        ) / 2.0
+        return (
+            _segment_distance_to_rect(item.start_mm, item.end_mm, rect)
+            <= (item.stroke_width_mm or 0.0) / 2.0
+        )
     return _bbox_overlap_area(item.bbox_mm, rect) > 1e-6
 
 
-def _silk_rect_distance(
-    item: _SilkObject, rect: tuple[float, float, float, float]
-) -> float:
+def _silk_rect_distance(item: _SilkObject, rect: tuple[float, float, float, float]) -> float:
     if _silk_overlaps_rect(item, rect):
         return 0.0
     return math.hypot(
@@ -464,16 +448,19 @@ def _silk_objects_overlap(first: _SilkObject, second: _SilkObject) -> bool:
         and second.radius_mm is not None
     ):
         stroke_width = first.stroke_width_mm or 0.0
-        return _segment_distance_to_rect(
-            first.start_mm,
-            first.end_mm,
-            (
-                second.center_mm[0] - second.radius_mm,
-                second.center_mm[1] - second.radius_mm,
-                second.center_mm[0] + second.radius_mm,
-                second.center_mm[1] + second.radius_mm,
-            ),
-        ) <= stroke_width / 2
+        return (
+            _segment_distance_to_rect(
+                first.start_mm,
+                first.end_mm,
+                (
+                    second.center_mm[0] - second.radius_mm,
+                    second.center_mm[1] - second.radius_mm,
+                    second.center_mm[0] + second.radius_mm,
+                    second.center_mm[1] + second.radius_mm,
+                ),
+            )
+            <= stroke_width / 2
+        )
     if (
         first.kind == "Flash"
         and second.kind == "Flash"
@@ -519,9 +506,7 @@ def measure_silkscreen(
     declared_objects: list[_SilkObject] = []
     declared_groups: list[tuple[dict[str, object], tuple[_SilkObject, ...]]] = []
     for text in declarations.texts:
-        target = _declared_bbox(
-            text.x_mm, text.y_mm, text.text, text.height_mm, text.rotation_deg
-        )
+        target = _declared_bbox(text.x_mm, text.y_mm, text.text, text.height_mm, text.rotation_deg)
         target_half_width = (target[2] - target[0]) / 2.0
         target_half_height = (target[3] - target[1]) / 2.0
         nearby = [
@@ -529,18 +514,11 @@ def measure_silkscreen(
             for item in all_silk
             if item.layer == text.layer
             and (
-                item.stroke_width_mm is None
-                or item.stroke_width_mm + 1e-6 >= text.stroke_width_mm
+                item.stroke_width_mm is None or item.stroke_width_mm + 1e-6 >= text.stroke_width_mm
             )
             and _bbox_overlap_area(item.bbox_mm, target) > 0
-            and abs(
-                (item.bbox_mm[0] + item.bbox_mm[2]) / 2.0 - text.x_mm
-            )
-            <= target_half_width
-            and abs(
-                (item.bbox_mm[1] + item.bbox_mm[3]) / 2.0 - text.y_mm
-            )
-            <= target_half_height
+            and abs((item.bbox_mm[0] + item.bbox_mm[2]) / 2.0 - text.x_mm) <= target_half_width
+            and abs((item.bbox_mm[1] + item.bbox_mm[3]) / 2.0 - text.y_mm) <= target_half_height
         ]
         bbox = _union_bbox(nearby)
         declared_objects.extend(nearby)
@@ -549,9 +527,7 @@ def measure_silkscreen(
         ]
         measured_width = min(measured_widths) if measured_widths else None
         area = sum(item.area_mm2 for item in nearby)
-        local_bbox = _local_silk_bounds(
-            nearby, (text.x_mm, text.y_mm), text.rotation_deg
-        )
+        local_bbox = _local_silk_bounds(nearby, (text.x_mm, text.y_mm), text.rotation_deg)
         height = local_bbox[3] - local_bbox[1]
         text_length = local_bbox[2] - local_bbox[0]
         if area <= 0 or measured_width is None:
@@ -606,15 +582,9 @@ def measure_silkscreen(
                 or item.stroke_width_mm + 1e-6 >= graphic.stroke_width_mm
             )
             and _bbox_overlap_area(item.bbox_mm, target) > 0
-            and abs(
-                (item.bbox_mm[0] + item.bbox_mm[2]) / 2.0
-                - (min(xs) + max(xs)) / 2.0
-            )
+            and abs((item.bbox_mm[0] + item.bbox_mm[2]) / 2.0 - (min(xs) + max(xs)) / 2.0)
             <= target_half_width
-            and abs(
-                (item.bbox_mm[1] + item.bbox_mm[3]) / 2.0
-                - (min(ys) + max(ys)) / 2.0
-            )
+            and abs((item.bbox_mm[1] + item.bbox_mm[3]) / 2.0 - (min(ys) + max(ys)) / 2.0)
             <= target_half_height
         ]
         bbox = _union_bbox(nearby)
@@ -676,9 +646,7 @@ def measure_silkscreen(
         or item.bbox_mm[3] > outline[3]
     ]
     body_rects = [
-        (fp.refdes, fp.body_bbox_mm)
-        for fp in measurement.footprints
-        if fp.body_bbox_mm is not None
+        (fp.refdes, fp.body_bbox_mm) for fp in measurement.footprints if fp.body_bbox_mm is not None
     ]
     courtyard_rects = [
         (fp.refdes, fp.courtyard_bbox_mm)
@@ -686,9 +654,7 @@ def measure_silkscreen(
         if fp.courtyard_bbox_mm is not None
     ]
     declared_ids = {id(item) for item in declared_objects}
-    non_declared_silk = [
-        item for item in all_silk if id(item) not in declared_ids
-    ]
+    non_declared_silk = [item for item in all_silk if id(item) not in declared_ids]
     body_overlaps: list[dict[str, object]] = []
     courtyard_overlaps: list[dict[str, object]] = []
     existing_silk_overlaps: list[dict[str, object]] = []
@@ -727,9 +693,7 @@ def measure_silkscreen(
                 "existing_silk_bbox_mm": list(other.bbox_mm),
                 "layer": item.layer,
                 "existing_silk_kind": other.kind,
-                "overlap_area_mm2": _bbox_overlap_area(
-                    item.bbox_mm, other.bbox_mm
-                ),
+                "overlap_area_mm2": _bbox_overlap_area(item.bbox_mm, other.bbox_mm),
             }
             for item in objects
             for other in non_declared_silk
@@ -751,12 +715,8 @@ def measure_silkscreen(
             for item in objects
             for refdes, rect in courtyard_rects
         ]
-        entry["nearest_body_distance_mm"] = (
-            min(body_distances)[0] if body_distances else None
-        )
-        entry["nearest_body_refdes"] = (
-            min(body_distances)[1] if body_distances else None
-        )
+        entry["nearest_body_distance_mm"] = min(body_distances)[0] if body_distances else None
+        entry["nearest_body_refdes"] = min(body_distances)[1] if body_distances else None
         entry["nearest_courtyard_distance_mm"] = (
             min(courtyard_distances)[0] if courtyard_distances else None
         )
@@ -772,9 +732,7 @@ def measure_silkscreen(
             )
             for item in objects
         ]
-        entry["board_edge_minimum_distance_mm"] = (
-            min(edge_distances) if edge_distances else None
-        )
+        entry["board_edge_minimum_distance_mm"] = min(edge_distances) if edge_distances else None
         margin = float(cast(float, entry["board_edge_margin_mm"]))
         for item in objects:
             distance = min(
@@ -793,9 +751,7 @@ def measure_silkscreen(
                     }
                 )
         reference_value = entry.get("placement_reference")
-        reference = (
-            str(reference_value) if isinstance(reference_value, str) else None
-        )
+        reference = str(reference_value) if isinstance(reference_value, str) else None
         component_distances: list[tuple[float, str]] = []
         for refdes in sorted({ref for ref, _ in body_rects + courtyard_rects}):
             distances = [
@@ -812,11 +768,7 @@ def measure_silkscreen(
             entry["nearest_component_refdes"] = nearest_refdes
             if reference is not None:
                 reference_distance = next(
-                    (
-                        distance
-                        for distance, refdes in component_distances
-                        if refdes == reference
-                    ),
+                    (distance for distance, refdes in component_distances if refdes == reference),
                     None,
                 )
                 entry["reference_component_distance_mm"] = reference_distance
@@ -886,6 +838,7 @@ def measure_silkscreen(
         "status": "measured_pass",
     }
 
+
 PAD_SIZE_TOLERANCE_MM = 0.3
 # Combined fab-library lands can represent multiple KiCad pads in one outline.
 PAD_SIZE_MERGE_RATIO = 5.0
@@ -948,9 +901,7 @@ def _inverse_rotate(x: float, y: float, angle: float) -> tuple[float, float]:
 def _minimum_matching_error(
     actual: Sequence[tuple[float, float]], expected: Sequence[tuple[float, float]]
 ) -> float:
-    distances = sorted(
-        {math.dist(left, right) for left in actual for right in expected}
-    )
+    distances = sorted({math.dist(left, right) for left in actual for right in expected})
     for threshold in distances:
         matched: dict[int, int] = {}
 
@@ -980,9 +931,7 @@ def _minimum_matching_error(
 def _normalize_pin_function(name: str, aliases: Mapping[str, str]) -> str:
     normalized = re.sub(r"[^A-Z0-9+_-]", "", name.upper())
     normalized_aliases = {
-        re.sub(r"[^A-Z0-9+_-]", "", source.upper()): re.sub(
-            r"[^A-Z0-9+_-]", "", target.upper()
-        )
+        re.sub(r"[^A-Z0-9+_-]", "", source.upper()): re.sub(r"[^A-Z0-9+_-]", "", target.upper())
         for source, target in aliases.items()
     }
     return normalized_aliases.get(normalized, normalized)
@@ -993,13 +942,7 @@ def _minimum_matching_geometry_error(
     expected: Sequence[tuple[tuple[float, float], tuple[float, float]]],
     tolerance_mm: float,
 ) -> float:
-    distances = sorted(
-        {
-            math.dist(left[0], right[0])
-            for left in actual
-            for right in expected
-        }
-    )
+    distances = sorted({math.dist(left[0], right[0]) for left in actual for right in expected})
     for threshold in distances:
         matched: dict[int, int] = {}
 
@@ -1084,10 +1027,7 @@ def load_lcsc_pin_centers(path: Path) -> tuple[tuple[str, str, float, float], ..
     package_shapes = document["response"]["result"]["packageDetail"]["dataStr"]["shape"]
     pad_shapes = [_parse_lcsc_pad_shape(str(shape)) for shape in package_shapes]
     pad_centers = {
-        number: (x, y)
-        for item in pad_shapes
-        if item is not None
-        for number, x, y in [item]
+        number: (x, y) for item in pad_shapes if item is not None for number, x, y in [item]
     }
     pin_shapes = package_shapes
     if not any(str(shape).startswith("P~") for shape in pin_shapes):
@@ -1159,9 +1099,7 @@ def derive_lcsc_rotation_offset(
     ]
     if geometry_exception:
         if lcsc_pin_geometries is None:
-            raise FabOutputError(
-                f"{footprint.refdes}: geometry exception requires LCSC pad sizes"
-            )
+            raise FabOutputError(f"{footprint.refdes}: geometry exception requires LCSC pad sizes")
         if len(all_kicad) < len(lcsc_pin_geometries):
             raise FabOutputError(
                 f"{footprint.refdes}: geometry pad count mismatch: "
@@ -1196,9 +1134,7 @@ def derive_lcsc_rotation_offset(
                 for _, _, x, y, width, height in lcsc_pin_geometries
             ]
             try:
-                error = _minimum_matching_geometry_error(
-                    actual, expected, PAD_SIZE_TOLERANCE_MM
-                )
+                error = _minimum_matching_geometry_error(actual, expected, PAD_SIZE_TOLERANCE_MM)
             except FabOutputError:
                 continue
             if error <= tolerance_mm:
@@ -1272,12 +1208,9 @@ def derive_lcsc_rotation_offset(
         error = 0.0
         for function, kicad_points in kicad.items():
             transformed = [
-                rotate(x - kicad_center[0], y - kicad_center[1], angle)
-                for x, y in kicad_points
+                rotate(x - kicad_center[0], y - kicad_center[1], angle) for x, y in kicad_points
             ]
-            remaining = [
-                (x - lcsc_center[0], y - lcsc_center[1]) for x, y in lcsc[function]
-            ]
+            remaining = [(x - lcsc_center[0], y - lcsc_center[1]) for x, y in lcsc[function]]
             error = max(error, _minimum_matching_error(transformed, remaining))
         if error <= tolerance_mm:
             candidates.append((angle, error))
@@ -1324,9 +1257,7 @@ def verify_lcsc_rotation_evidence(
         if footprint is None:
             raise FabOutputError(f"{component.refdes}: board footprint missing for LCSC Evidence")
         try:
-            symbol_note = verify_cpl_pin_function_declaration(
-                component, fixture_dir
-            )
+            symbol_note = verify_cpl_pin_function_declaration(component, fixture_dir)
             geometry_exception = component.cpl_rotation_geometry_exception
             if geometry_exception and (
                 not component.cpl_rotation_geometry_exception_reason
@@ -1440,9 +1371,7 @@ def _point_in_polygon(x: float, y: float, polygon: Sequence[tuple[float, float]]
     return inside
 
 
-def verify_smd_pad_centers_in_gerber(
-    gerber_path: Path, measurement: BoardMeasurement
-) -> None:
+def verify_smd_pad_centers_in_gerber(gerber_path: Path, measurement: BoardMeasurement) -> None:
     try:
         layer = GerberFile.open(gerber_path)  # pyright: ignore[reportUnknownMemberType]
         objects = cast("list[Flash | Region | Line]", layer.objects)  # pyright: ignore[reportUnknownMemberType]
@@ -1578,14 +1507,17 @@ def verify_ground_plane_gerbers(
                 if not in_region or len(region_points) < 3 or current_function is None:
                     raise FabOutputError(f"{path.name}: malformed Gerber region (fail-closed)")
                 board_points = tuple((x, -y) for x, y in region_points)
-                area = abs(
-                    sum(
-                        x1 * y2 - x2 * y1
-                        for (x1, y1), (x2, y2) in zip(
-                            board_points, (*board_points[1:], board_points[0]), strict=True
+                area = (
+                    abs(
+                        sum(
+                            x1 * y2 - x2 * y1
+                            for (x1, y1), (x2, y2) in zip(
+                                board_points, (*board_points[1:], board_points[0]), strict=True
+                            )
                         )
                     )
-                ) / 2.0
+                    / 2.0
+                )
                 xs, ys = zip(*board_points, strict=True)
                 regions.append(
                     GerberRegionRecord(
@@ -1609,9 +1541,7 @@ def verify_ground_plane_gerbers(
                 )
                 if arc_match is not None:
                     if arc_match.group(6) != "1" or not region_points:
-                        raise FabOutputError(
-                            f"{path.name}: malformed region arc (fail-closed)"
-                        )
+                        raise FabOutputError(f"{path.name}: malformed region arc (fail-closed)")
                     start = region_points[-1]
                     end = (
                         int(arc_match.group(2)) * scale,
@@ -1638,8 +1568,7 @@ def verify_ground_plane_gerbers(
                             center[1] + radius * math.sin(angle),
                         )
                         for angle in (
-                            start_angle
-                            + (end_angle - start_angle) * index / steps
+                            start_angle + (end_angle - start_angle) * index / steps
                             for index in range(1, steps + 1)
                         )
                     )
@@ -1694,9 +1623,12 @@ def verify_ground_plane_gerbers(
             aperture = obj.aperture
             if not isinstance(aperture, CircleAperture):
                 raise FabOutputError("unsupported copper line aperture (fail-closed)")
-            radius = float(
-                cast(float, aperture.diameter)  # pyright: ignore[reportUnknownMemberType]
-            ) / 2
+            radius = (
+                float(
+                    cast(float, aperture.diameter)  # pyright: ignore[reportUnknownMemberType]
+                )
+                / 2
+            )
             x1 = float(cast(float, obj.x1))  # pyright: ignore[reportUnknownMemberType]
             y1 = float(cast(float, obj.y1))  # pyright: ignore[reportUnknownMemberType]
             x2 = float(cast(float, obj.x2))  # pyright: ignore[reportUnknownMemberType]
@@ -1710,9 +1642,7 @@ def verify_ground_plane_gerbers(
         raise FabOutputError(f"unsupported copper object {type(obj).__name__} (fail-closed)")
 
     all_boxes: list[tuple[float, float, float, float]] = []
-    region_records: list[
-        tuple[Path, GerberRegionRecord]
-    ] = []
+    region_records: list[tuple[Path, GerberRegionRecord]] = []
     flash_records: list[tuple[Path, Flash]] = []
     for path in (front_path, back_path):
         raw_regions = read_regions(path)
@@ -1752,9 +1682,7 @@ def verify_ground_plane_gerbers(
     gnd_pads: list[tuple[str, float, float]] = []
     for placement in model.placements:
         if placement.side not in {"front", "back"}:
-            raise FabOutputError(
-                f"{placement.refdes}: unknown placement side (fail-closed)"
-            )
+            raise FabOutputError(f"{placement.refdes}: unknown placement side (fail-closed)")
         for refdes, pad_number in gnd_net.pads:
             if refdes != placement.refdes:
                 continue
@@ -1807,17 +1735,19 @@ def verify_ground_plane_gerbers(
 
     if not model.keepouts:
         raise FabOutputError("antenna keepout declaration is absent (fail-closed)")
+
     def polygon_area(points: Sequence[tuple[float, float]]) -> float:
         if len(points) < 3:
             return 0.0
-        return abs(
-            sum(
-                x1 * y2 - x2 * y1
-                for (x1, y1), (x2, y2) in zip(
-                    points, (*points[1:], points[0]), strict=True
+        return (
+            abs(
+                sum(
+                    x1 * y2 - x2 * y1
+                    for (x1, y1), (x2, y2) in zip(points, (*points[1:], points[0]), strict=True)
                 )
             )
-        ) / 2.0
+            / 2.0
+        )
 
     def clip_polygon(
         polygon: Sequence[tuple[float, float]],
@@ -1829,12 +1759,8 @@ def verify_ground_plane_gerbers(
             return []
         result: list[tuple[float, float]] = []
         for first, second in zip(polygon, (*polygon[1:], polygon[0]), strict=True):
-            first_inside = (
-                first[axis] >= bound if keep_greater else first[axis] <= bound
-            )
-            second_inside = (
-                second[axis] >= bound if keep_greater else second[axis] <= bound
-            )
+            first_inside = first[axis] >= bound if keep_greater else first[axis] <= bound
+            second_inside = second[axis] >= bound if keep_greater else second[axis] <= bound
             if first_inside != second_inside:
                 denominator = second[axis] - first[axis]
                 if denominator == 0:
@@ -1866,9 +1792,7 @@ def verify_ground_plane_gerbers(
                 clipped = clip_polygon(clipped, axis, bound, keep_greater)
             overlap_area += polygon_area(clipped)
         keepout_copper_area_mm2 += overlap_area
-        keepout_measurements.append(
-            {"name": keepout.name, "copper_area_mm2": overlap_area}
-        )
+        keepout_measurements.append({"name": keepout.name, "copper_area_mm2": overlap_area})
     if keepout_copper_area_mm2 > 1e-9:
         raise FabOutputError(
             "copper inside antenna keepout (fail-closed): "
@@ -1878,10 +1802,7 @@ def verify_ground_plane_gerbers(
     uncovered_stitch_vias = [
         (x, y)
         for x, y in stitch_vias
-        if not any(
-            point_in_polygon((x, y), region.points_mm)
-            for _, region in conductor_records
-        )
+        if not any(point_in_polygon((x, y), region.points_mm) for _, region in conductor_records)
     ]
     if uncovered_stitch_vias:
         raise UncoveredStitchViasError(tuple(uncovered_stitch_vias))
@@ -1902,25 +1823,20 @@ def verify_ground_plane_gerbers(
             ("F.Cu" if path == front_path else "B.Cu") == layer
             and point_in_polygon((x, y), region.points_mm)
             for path, region in region_records
-            if region.function
-            in {"Conductor", "SMDPad,CuDef", "ComponentPad", "ViaPad"}
+            if region.function in {"Conductor", "SMDPad,CuDef", "ComponentPad", "ViaPad"}
         )
-            and not any(
-                ("F.Cu" if path == front_path else "B.Cu") == layer
-                and (
-                    flash_box := bbox(flash)
-                ) is not None
-                and flash_box[0] <= x <= flash_box[2]
-                # Gerbonara flash Y is in a Y-up frame; board coordinates are Y-down.
-                and flash_box[1] <= -y <= flash_box[3]
-                for path, flash in flash_records
-            )
+        and not any(
+            ("F.Cu" if path == front_path else "B.Cu") == layer
+            and (flash_box := bbox(flash)) is not None
+            and flash_box[0] <= x <= flash_box[2]
+            # Gerbonara flash Y is in a Y-up frame; board coordinates are Y-down.
+            and flash_box[1] <= -y <= flash_box[3]
+            for path, flash in flash_records
+        )
     ]
     if uncovered_gnd_points or uncovered_gnd_pads:
         uncovered = (*uncovered_gnd_points, *uncovered_gnd_pads)
-        locations = ", ".join(
-            f"{layer}@({x}, {y})" for layer, x, y in uncovered
-        )
+        locations = ", ".join(f"{layer}@({x}, {y})" for layer, x, y in uncovered)
         raise FabOutputError(
             f"GND connection points lack copper coverage (fail-closed): {locations}"
         )
@@ -1986,32 +1902,26 @@ def verify_ground_plane_gerbers(
             "GND conductor regions are disconnected (fail-closed): "
             f"connected_components={components}"
         )
+
     def gerber_point(path: Path, flash: Flash) -> tuple[float, float]:
         x = float(cast(float, flash.x))  # pyright: ignore[reportUnknownMemberType]
         y = float(cast(float, flash.y))  # pyright: ignore[reportUnknownMemberType]
         return _gerber_to_board_point(x, y)
 
-    def matching_flash(
-        path: Path, point: tuple[float, float]
-    ) -> tuple[float, float] | None:
+    def matching_flash(path: Path, point: tuple[float, float]) -> tuple[float, float] | None:
         gerber_match_tolerance_mm = 1e-4
         matches = [
-            gerber_point(path, flash)
-            for record_path, flash in flash_records
-            if record_path == path
+            gerber_point(path, flash) for record_path, flash in flash_records if record_path == path
         ]
         if not matches:
             return None
         match = min(
             matches,
-            key=lambda candidate: math.hypot(
-                candidate[0] - point[0], candidate[1] - point[1]
-            ),
+            key=lambda candidate: math.hypot(candidate[0] - point[0], candidate[1] - point[1]),
         )
         return (
             match
-            if math.hypot(match[0] - point[0], match[1] - point[1])
-            <= gerber_match_tolerance_mm
+            if math.hypot(match[0] - point[0], match[1] - point[1]) <= gerber_match_tolerance_mm
             else None
         )
 
@@ -2027,8 +1937,7 @@ def verify_ground_plane_gerbers(
         measured_stitch_points.append(front_match)
     if len(measured_stitch_points) < 2:
         raise FabOutputError(
-            "at least two stitch via flashes are required for pitch measurement "
-            "(fail-closed)"
+            "at least two stitch via flashes are required for pitch measurement (fail-closed)"
         )
     nearest_distances = [
         min(
@@ -2074,22 +1983,12 @@ def verify_ground_plane_gerbers(
             return perimeter_width + y - edge_y
         if side == 2:
             return perimeter_width + perimeter_height + (model.width_mm - edge_x - x)
-        return (
-            perimeter_width
-            + perimeter_height
-            + perimeter_width
-            + (model.height_mm - edge_y - y)
-        )
+        return perimeter_width + perimeter_height + perimeter_width + (model.height_mm - edge_y - y)
 
     perimeter_length = 2.0 * (perimeter_width + perimeter_height)
     perimeter_coordinates = sorted(perimeter_coordinate(point) for point in edge_points)
-    perimeter_gaps = [
-        second - first
-        for first, second in itertools.pairwise(perimeter_coordinates)
-    ]
-    perimeter_gaps.append(
-        perimeter_length - perimeter_coordinates[-1] + perimeter_coordinates[0]
-    )
+    perimeter_gaps = [second - first for first, second in itertools.pairwise(perimeter_coordinates)]
+    perimeter_gaps.append(perimeter_length - perimeter_coordinates[-1] + perimeter_coordinates[0])
     declared_pitch = model.stitch_via_pitch_mm
     if declared_pitch is None:
         raise FabOutputError("declared stitch via pitch is unknown (fail-closed)")
@@ -2224,12 +2123,8 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
     for footprint in _direct(root, "footprint"):
         for pad in _direct(footprint, "pad"):
             net_node = _one(pad, "net")
-            if net_node is not None and (
-                len(net_node) < 2 or str(net_node[1]) not in net_names
-            ):
-                raise FabOutputError(
-                    f"{path.name}: pad net name unavailable (fail-closed)"
-                )
+            if net_node is not None and (len(net_node) < 2 or str(net_node[1]) not in net_names):
+                raise FabOutputError(f"{path.name}: pad net name unavailable (fail-closed)")
     for node in _items(root)[1:]:
         tag = _tag(node)
         if tag == "footprint":
@@ -2239,9 +2134,7 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
             fp_at = _at(node)
             layer_node = _one(node, "layer")
             layer = str(layer_node[1]) if layer_node and len(layer_node) > 1 else "unknown"
-            pads = tuple(
-                _parse_pad(refdes, fp_at, pad, net_names) for pad in _direct(node, "pad")
-            )
+            pads = tuple(_parse_pad(refdes, fp_at, pad, net_names) for pad in _direct(node, "pad"))
             for text in _direct(node, "fp_text") + _direct(node, "property"):
                 layer = _one(text, "layer")
                 effects = _one(text, "effects")
@@ -2249,15 +2142,23 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
                 size = _one(font, "size") if font else None
                 thickness = _one(font, "thickness") if font else None
                 if (
-                    layer and len(layer) > 1 and str(layer[1]).endswith("SilkS")
-                    and size and len(size) > 2
+                    layer
+                    and len(layer) > 1
+                    and str(layer[1]).endswith("SilkS")
+                    and size
+                    and len(size) > 2
                 ):
                     silk_heights.append(_number(size[2]))
                     if thickness and len(thickness) > 1:
                         silk_widths.append(_number(thickness[1]))
             footprints.append(
                 FootprintMeasurement(
-                    refdes, fp_at[0], fp_at[1], fp_at[2], str(layer), pads,
+                    refdes,
+                    fp_at[0],
+                    fp_at[1],
+                    fp_at[2],
+                    str(layer),
+                    pads,
                     _footprint_bbox(node, fp_at, "CrtYd"),
                     _footprint_bbox(node, fp_at, "Fab"),
                 )
@@ -2387,8 +2288,7 @@ def measure_net_track_widths(
                 continue
             if not isinstance(obj, Line):
                 raise FabOutputError(
-                    f"{path.name}: unexpected conductor object type "
-                    f"{object_type} (fail-closed)"
+                    f"{path.name}: unexpected conductor object type {object_type} (fail-closed)"
                 )
             aperture = obj.aperture
             if not isinstance(aperture, CircleAperture):
@@ -2452,9 +2352,7 @@ def measure_net_track_widths(
     for requirement in requirements:
         widths = matched.get(requirement.net_name)
         if not widths:
-            raise FabOutputError(
-                f"net {requirement.net_name}: no matched Gerber conductor width"
-            )
+            raise FabOutputError(f"net {requirement.net_name}: no matched Gerber conductor width")
         measured = min(widths)
         passed = measured + tolerance_mm >= requirement.adopted_width_mm
         net_evidence[requirement.net_name] = {
@@ -2516,10 +2414,7 @@ def measure_net_path_resistance(
             start = node_for(segment.layer, segment.start)
             end = node_for(segment.layer, segment.end)
             length_mm = math.dist(segment.start, segment.end)
-            resistance = (
-                rho_ohm_mm * length_mm
-                / (segment.width_mm * copper_thickness_mm)
-            )
+            resistance = rho_ohm_mm * length_mm / (segment.width_mm * copper_thickness_mm)
             edges[start].append((end, resistance))
             edges[end].append((start, resistance))
         for via in routed_vias:
@@ -2533,9 +2428,7 @@ def measure_net_path_resistance(
         pad_nodes: list[tuple[str, tuple[str, float, float]]] = []
         for pad in pads:
             candidates = [
-                node
-                for node in nodes
-                if math.dist(node[1:], (pad.x_mm, pad.y_mm)) <= tolerance_mm
+                node for node in nodes if math.dist(node[1:], (pad.x_mm, pad.y_mm)) <= tolerance_mm
             ]
             if len(candidates) != 1:
                 continue
@@ -2572,13 +2465,9 @@ def measure_net_path_resistance(
                 resistance = shortest_path(source_node, target_node)
                 if resistance is not None:
                     path_candidates.append((resistance, source_label, target_label))
-        total_length = sum(
-            math.dist(segment.start, segment.end) for segment in segments
-        )
+        total_length = sum(math.dist(segment.start, segment.end) for segment in segments)
         total_resistance = (
-            rho_ohm_mm
-            * total_length
-            / (requirement.adopted_width_mm * copper_thickness_mm)
+            rho_ohm_mm * total_length / (requirement.adopted_width_mm * copper_thickness_mm)
         )
         current = requirement.current_max_a
         upper_bound_basis = (
@@ -2589,9 +2478,7 @@ def measure_net_path_resistance(
         item: dict[str, object] = {
             "total_conductor_length_mm": total_length,
             "series_resistance_upper_bound_ohm": total_resistance,
-            "ir_drop_upper_bound_v": (
-                total_resistance * current if current is not None else None
-            ),
+            "ir_drop_upper_bound_v": (total_resistance * current if current is not None else None),
             "upper_bound_basis": upper_bound_basis,
             "path_resistance_basis": (
                 "Shortest resistance path between measured pads over saved-board "
@@ -2726,9 +2613,7 @@ def run_dfm(
     silkscreen_evidence: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     if edge_clearance_mm is None:
-        raise FabOutputError(
-            "board edge copper clearance is required from the electrical graph"
-        )
+        raise FabOutputError("board edge copper clearance is required from the electrical graph")
     allowed = _allowance_map(allowances, profile)
     thresholds = {
         rule: _pref(profile, rule)
@@ -2850,14 +2735,8 @@ def run_dfm(
         if outline is not None and (
             pad.x_mm - pad_half_x < edge_clearance_mm - 1e-6
             or pad.y_mm - pad_half_y < edge_clearance_mm - 1e-6
-            or pad.x_mm + pad_half_x
-            > outline[2]
-            - edge_clearance_mm
-            + 1e-6
-            or pad.y_mm + pad_half_y
-            > outline[3]
-            - edge_clearance_mm
-            + 1e-6
+            or pad.x_mm + pad_half_x > outline[2] - edge_clearance_mm + 1e-6
+            or pad.y_mm + pad_half_y > outline[3] - edge_clearance_mm + 1e-6
         ):
             add(
                 "pad-to-board-edge-clearance",
@@ -3251,9 +3130,7 @@ def _pad_bbox_center(fp: FootprintMeasurement) -> tuple[float, float] | None:
     return ((min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0)
 
 
-def _cpl_position(
-    fp: FootprintMeasurement, basis: str
-) -> tuple[float, float] | None:
+def _cpl_position(fp: FootprintMeasurement, basis: str) -> tuple[float, float] | None:
     if basis == "footprint_origin":
         return (fp.x_mm, fp.y_mm)
     if basis == "body_bbox_center":
@@ -3436,9 +3313,7 @@ def cross_validate_bom(
     required = {"Comment", "Designator", "Footprint", "LCSC Part #"}
     if not rows or not required <= set(rows[0]):
         raise FabOutputError(f"{bom_path.name}: BOM missing required columns")
-    components = {
-        comp.refdes: comp for comp in lane.components if comp.assembly == "fitted"
-    }
+    components = {comp.refdes: comp for comp in lane.components if comp.assembly == "fitted"}
     seen: set[str] = set()
     for row in rows:
         refs = tuple(ref.strip() for ref in row["Designator"].split(",") if ref.strip())
@@ -3503,9 +3378,7 @@ def cross_validate_cpl(
             raise FabOutputError(f"{ref}: CPL X differs from selected independent basis")
         if abs(-float(row["Mid Y"]) - selected[1]) > tolerance_mm:
             raise FabOutputError(f"{ref}: CPL Y differs from selected independent basis")
-        expected_rotation = (
-            actual.rotation_deg + (rotation_offsets or {}).get(ref, 0.0)
-        ) % 360.0
+        expected_rotation = (actual.rotation_deg + (rotation_offsets or {}).get(ref, 0.0)) % 360.0
         if abs(float(row["Rotation"]) - expected_rotation) > tolerance_deg:
             raise FabOutputError(f"{ref}: CPL rotation differs from declared basis")
         if row["Layer"].lower() != expected["Side"].lower():
@@ -3530,10 +3403,13 @@ def zip_content_hash(path: Path) -> str:
     entries: list[str] = []
     with zipfile.ZipFile(path) as archive:
         for name in sorted(archive.namelist()):
-            data = b"\n".join(
-                line
-                for line in archive.read(name).splitlines()
-                if not line.lstrip().startswith((b"G04", b";"))
-            ) + b"\n"
+            data = (
+                b"\n".join(
+                    line
+                    for line in archive.read(name).splitlines()
+                    if not line.lstrip().startswith((b"G04", b";"))
+                )
+                + b"\n"
+            )
             entries.append(f"{name}:sha256:{hashlib.sha256(data).hexdigest()}")
     return "sha256:" + hashlib.sha256("\n".join(entries).encode()).hexdigest()
