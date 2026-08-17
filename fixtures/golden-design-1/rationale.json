@@ -5,1080 +5,973 @@
   "records": [
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-select-mcu",
-      "decision_kind": "part_selection",
+      "rationale_id": "gd1-board-envelope",
+      "decision_kind": "stackup",
       "subject_nodes": [
-        "comp.u1"
+        "board.gd1"
       ],
       "subject_attrs": [
-        "mpn",
-        "lcsc"
+        "width_mm",
+        "height_mm",
+        "assembly_side",
+        "antenna_keepout"
       ],
-      "subject_hash": "sha256:40c18068e0994aa15cc2bd8cf934e4bbf7b72bdd6a52002d3abd45deb8927eeb",
-      "decision": "Use ESP32-C3-MINI-1-N4 (C2838502).",
-      "justification": "GD1-REQ-008 fixes this module and its internal IO18/IO19 USB-Serial-JTAG path; the Extended JLCPCB BOM entry satisfies that interface without an external USB-UART bridge.",
+      "subject_hash": "sha256:03286b64a33067527f44cb06a99897d8b7d3fbf3245a02c4d16d2b9167c4bafa",
+      "decision": "Use a 30.0 x 25.0 mm board envelope, top-side assembly, and an antenna keepout.",
+      "justification": "GD1-REQ-013 and §8.1 define the 30 x 25 mm physical envelope, top-side assembly, and ESP32-C3 antenna boundary. electrical.board width/height deliberately equal mechanical.outline width/depth so the electrical and mechanical lanes evaluate the same board datum rather than two competing outlines.",
       "driving_requirements": [
-        "req.gd1-req-008"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "Bare ESP32-C3 plus custom RF",
-          "reason": "GD1-REQ-008 names the module and GD1-REQ-015 requires its module antenna keepout."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "Module certification evidence must be attached separately.",
-        "2026-08-11 inventory is only a procurement snapshot."
-      ],
-      "risks": [
-        "Certification is unknown without safety evidence.",
-        "Stock and price can change."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-usbc",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.j1"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:5f40ec876a718e67ff4ddcd7a46a4496799bb697c36bea296b547f74f8bcc606",
-      "decision": "Use TYPE-C-31-M-12 (C165948).",
-      "justification": "GD1-REQ-004 makes USB-C VBUS the only source and forbids PD/charging; GD1-REQ-006 requires the sink CC network. This Extended receptacle is the BOM implementation of that sink-only VBUS/CC/data interface.",
-      "driving_requirements": [
-        "req.gd1-req-004",
-        "req.gd1-req-006"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "USB-PD source/charging connector",
-          "reason": "GD1-REQ-004 excludes USB PD, battery, and charging circuitry."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "VBUS remains 5 V."
-      ],
-      "risks": [
-        "Mating and plated-hole DFM must still pass."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-ldo",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.u2"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:658290dcdfa65b627f0d8b4560b3e19622095efe4c4b908b71273f5967ce4de6",
-      "decision": "Use AMS1117-3.3 (C6186).",
-      "justification": "GD1-REQ-007 names AMS1117-3.3 as the 3.3 V source for MCU, sensor, LED, and pull-ups; the Basic BOM part is that specified regulator, not an inferred substitute.",
-      "driving_requirements": [
-        "req.gd1-req-007"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`req.gd1-req-007` specifies AMS1117-3.3 by part number and its capacitor network, so this record has no regulator choice to compare.",
-      "assumptions": [
-        "The less-than-500 mA power boundary remains true.",
-        "The required input/output capacitor pair is populated."
-      ],
-      "risks": [
-        "Thermal calculation and actual maximum load remain open follow-up items."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-sensor",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.u3"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:94ade9300f59c01c734629c53ca22499e5b46aca3df7821a1a65e31522ed1fea",
-      "decision": "Use SHT40-AD1B-R3 (C2848306).",
-      "justification": "GD1-REQ-003 requires temperature/humidity logging and GD1-REQ-011 fixes SHT40 at address 0x44; the Extended BOM part implements that exact endpoint.",
-      "driving_requirements": [
-        "req.gd1-req-011"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-003",
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "AHT20 secondary candidate",
-          "reason": "GD1-REQ-011 specifies SHT40 at 0x44."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "SHT40 power conditions, I2C speed, and log period remain fixture follow-up values."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-buttons",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.sw1",
-        "comp.sw2"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:79a2e10eb4cf66328806aca3e590d0419325db5909bff483af436aafd0469742",
-      "decision": "Use two TS-1088-AR02016 switches (C720477).",
-      "justification": "GD1-REQ-009 assigns separate RESET/EN and BOOT/IO9 controls; two Basic switches implement those distinct functions while preserving the BOOT strapping role.",
-      "driving_requirements": [],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 and `GD1-REQ-009` specify separate RESET and BOOT switches; no other switch function is defined.",
-      "assumptions": [
-        "Each switch pulls its assigned net to GND."
-      ],
-      "risks": [
-        "Switch and label clearances remain downstream checks."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-cc",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.r1",
-        "comp.r2"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:161aee02d2f413f79770d2b315a7e293438c60f18ef1f2436e95355673d55177",
-      "decision": "Use two 5.1 kΩ 0603 parts (C23186) on CC1 and CC2.",
-      "justification": "GD1-REQ-006 requires one 5.1 kΩ sink pull-down on each CC line; the symmetric Basic 0603 pair implements the USB sink declaration.",
-      "driving_requirements": [
-        "req.gd1-req-006"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "Omit one CC resistor",
-          "reason": "The USB CC gate requires both CC1 and CC2 resistors."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "Removing either resistor is a documented negative test."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-en",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.r3"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:8f16337944e1e8b75dfc4c901e3195c3c3884ff7b3502c5c9e54ed0e7d081c01",
-      "decision": "Use a 10 kΩ 0603 part (C25804) for EN.",
-      "justification": "The §5.2 EN network is 10 kΩ to +3V3, 1 µF to GND, and a RESET button to GND; this Basic BOM resistor implements that RC reset topology.",
-      "driving_requirements": [],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN network at 10 kΩ and 1 µF, leaving no alternate value in this fixture.",
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "The corresponding deterministic gate and downstream evidence still have to pass."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-i2c",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.r4",
-        "comp.r5"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:20504b3f3432fd1adf6a60dfac34b5510a1ed9ae6c9c29e612f72222166dd674",
-      "decision": "Use two 4.7 kΩ 0603 parts (C23162) on SDA/SCL.",
-      "justification": "GD1-REQ-011 requires one 4.7 kΩ pull-up on IO4/SDA and IO5/SCL for the 0x44 SHT40 bus; the identical Basic pair implements those two open-drain pull-ups.",
-      "driving_requirements": [
-        "req.gd1-req-011"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-003",
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "One shared or missing pull-up",
-          "reason": "The requirement and I2C gate require one resistor on each line."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "A missing pull-up is a documented fail-closed test."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-led",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.d1",
-        "comp.r6"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:a6e77d63dca0a120ff2d05c8c64fd15e2e78f62bbd4fb14002c395c8a87043fe",
-      "decision": "Use KT-0603R (C2286) with a 1 kΩ resistor (C21190).",
-      "justification": "GD1-REQ-001 needs a red 1 Hz indicator and GD1-REQ-010 fixes IO7 through 1 kΩ; this Basic LED/resistor pair provides the visible test while limiting current and avoiding strapping pins.",
-      "driving_requirements": [
-        "req.gd1-req-001",
-        "req.gd1-req-010"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "Assign LED to IO2, IO8, or IO9",
-          "reason": "GD1-REQ-010 excludes those strapping-sensitive pins."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "LED current/luminous behavior is not separately characterized."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-ldo-in",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.c1",
-        "comp.c2"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:c35f1376ba794e3edd4ed3ec965f05f3571fe26f23e7973d141e45d098e3c9fe",
-      "decision": "Use 10 µF and 100 nF input capacitors (C1691/C1591).",
-      "justification": "GD1-REQ-007 explicitly requires 10 µF+100 nF at the AMS1117 input; these Extended BOM parts implement the stated bulk/high-frequency pair.",
-      "driving_requirements": [
-        "req.gd1-req-007"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator input pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "Input voltage range and capacitor derating remain follow-up checks."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-ldo-out",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.c3",
-        "comp.c4"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:33054414b13a3638475f2950cc2f3f5c99685c62a529e94a98e1238410ed7c01",
-      "decision": "Use 10 µF and 100 nF output capacitors (C1691/C1591).",
-      "justification": "GD1-REQ-007 requires the same pair at the regulator output for the 3.3 V load; the BOM values preserve that declared regulator network.",
-      "driving_requirements": [
-        "req.gd1-req-007"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator output pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "Actual load and regulator thermal margin remain unresolved."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-mcu-cap",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.c5"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:2ac1c246527125e2767173cef673e3321c84199968041fa82ae143e419e32eef",
-      "decision": "Use a 100 nF local MCU decoupler (C1591).",
-      "justification": "The MCU power block and §5.2 require a separate 100 nF at the ESP32-C3-MINI-1 3V3 pin, not only the AMS1117 output pair; this Extended part implements that local requirement.",
-      "driving_requirements": [
-        "req.gd1-req-007",
-        "req.gd1-req-008"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Rely only on regulator capacitors",
-          "reason": "The power-decoupling gate requires a separate MCU-pin 100 nF."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "Physical distance to the module pin remains an inspection risk."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-en-cap",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.c6"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:1f645cb97ebed1d04d2afe9b7d9e7ad0abc4e247db7450407832c75bf4555583",
-      "decision": "Use a 1 µF EN RC capacitor (C15849).",
-      "justification": "The §5.2 EN definition pairs 1 µF to GND with the 10 kΩ pull-up and RESET switch; this Basic BOM part preserves the declared reset conditioning.",
-      "driving_requirements": [],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN timing capacitor at 1 µF as part of the reset RC network.",
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "No measured reset timing is recorded yet."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-testpoints",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.tp1",
-        "comp.tp2",
-        "comp.tp3",
-        "comp.tp4",
-        "comp.tp5",
-        "comp.tp6",
-        "comp.tp7"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:b3f43c949ff2a89a791e300a671fb12ccd675f0bacce590bb92173a5ec3fcc83",
-      "decision": "Keep seven non-assembled test-point footprints with empty MPN/LCSC.",
-      "justification": "GD1-REQ-012 requires pads for 3V3, GND, SDA, SCL, IO7, UART TX, and RX to collect bring-up evidence; these are measurement features, not JLCPCBA components, so empty sourcing fields are intentional.",
-      "driving_requirements": [],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-012"
-      ],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`GD1-REQ-012` lists the seven required observation signals; it does not define an alternate test-point component.",
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "Probe access consumes board area and must survive DRC/mechanical review."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-select-holes",
-      "decision_kind": "part_selection",
-      "subject_nodes": [
-        "comp.h1",
-        "comp.h2",
-        "comp.h3",
-        "comp.h4"
-      ],
-      "subject_attrs": [
-        "mpn",
-        "lcsc"
-      ],
-      "subject_hash": "sha256:67059935bf806e819b493eb60e047b98ab12ae2b2ad83724b7d87b2c7cb9e79b",
-      "decision": "Keep four non-assembled M2 hole features with empty MPN/LCSC.",
-      "justification": "GD1-REQ-014 requires four M2 holes shared with the enclosure; NPTH/mechanical features are not purchased assembly parts, so empty sourcing fields preserve that role.",
-      "driving_requirements": [
-        "req.gd1-req-014"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`req.gd1-req-014` fixes four shared M2 holes as the board/enclosure interface, so the hole features have no part-selection alternative.",
-      "assumptions": [
-        "The graph and revision remain the declared GD1 input."
-      ],
-      "risks": [
-        "Hole/enclosure fit must be rechecked with the second milestone."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-place-mcu",
-      "decision_kind": "placement",
-      "subject_nodes": [
-        "comp.u1"
-      ],
-      "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
-      ],
-      "subject_hash": "sha256:6320bce6d5c4173a2b71fb69d54a00656d6248fa973762988913c105865ecef6",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "§9 makes the RF module an anchor; GD1-REQ-015 requires antenna overhang and an empty copper/GND/component/silk keepout. The pad-bbox anchor and deterministic candidate search preserve that constraint.",
-      "driving_requirements": [
-        "req.gd1-req-008",
+        "req.gd1-req-013",
         "req.gd1-req-015"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Move it fully inside the board",
-          "reason": "GD1-REQ-015 requires the antenna to overhang the board edge."
+          "option": "Use a different electrical width/height from the mechanical outline",
+          "reason": "A mismatch would make routing clearances and enclosure fit refer to different edges; the two 30 x 25 mm declarations must remain identical."
+        },
+        {
+          "option": "Place copper or parts in the antenna keepout",
+          "reason": "GD1-REQ-015 forbids that in the 5.4 mm antenna boundary."
         }
       ],
-      "no_alternatives_reason": null,
       "assumptions": [
-        "The module footprint remains the library geometry."
+        "The assembly-side value is top and the antenna keepout remains a design boundary, not certification evidence."
       ],
       "risks": [
-        "Placement provenance does not prove RF performance; the antenna gate must pass."
+        "Antenna certification and final RF performance remain unverified."
       ],
       "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
+        "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "no_alternatives_reason": null
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-place-usbc",
-      "decision_kind": "placement",
+      "rationale_id": "gd1-board-overhang",
+      "decision_kind": "mechanical",
       "subject_nodes": [
-        "comp.j1"
+        "mechanical.board_edge_overhang.u1"
       ],
       "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
+        "edge",
+        "overhang_mm"
       ],
-      "subject_hash": "sha256:14b2e00a9afd8d55fdcddf222e99b09185a2a2ec0a162a3ea6540fe9a4d6f8a6",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "§9 makes the USB receptacle a mating-side board-edge anchor derived from body and pad geometry, keeping the sink-only VBUS/CC/data interface usable.",
+      "subject_hash": "sha256:40a0d3d97fac27ef51e2ef634c18ef6538c445c018a6b3abfd5c971533feea0c",
+      "decision": "Reserve a 5.4 mm top-edge overhang for the ESP32-C3-MINI-1 antenna.",
+      "justification": "GD1-REQ-015 and §8.1 identify the ESP32-C3-MINI-1 antenna at the top edge and the graph declares 5.4 mm overhang. This value keeps enclosure material and copper away from the antenna boundary while preserving the 30 x 25 mm board datum.",
       "driving_requirements": [
-        "req.gd1-req-004",
-        "req.gd1-req-006"
+        "req.gd1-req-015"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Move it away from the edge",
-          "reason": "The mating-side connector anchor would no longer describe a usable USB-C interface."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The local connector overlay is used in projection and DFM."
-      ],
-      "risks": [
-        "Plated-hole and board-edge capability remain downstream checks."
-      ],
-      "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-place-active",
-      "decision_kind": "placement",
-      "subject_nodes": [
-        "comp.u2",
-        "comp.u3"
-      ],
-      "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
-      ],
-      "subject_hash": "sha256:ce67bb5142d51683b9dba7e96c7198586fe4feac03f965b586bb99bc1442d3b8",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "§9 places active parts after fixed anchors; keeping AMS1117 with its power lanes and SHT40 with its I2C block follows the declared functional blocks without an undocumented visual preference.",
-      "driving_requirements": [
-        "req.gd1-req-007",
-        "req.gd1-req-011"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
+          "option": "Use 0 mm overhang",
+          "reason": "A flush top edge would cover the declared antenna boundary and violate GD1-REQ-015."
+        },
         {
-          "option": "Place passives before active parts",
-          "reason": "§9 fixes active parts as stage 2 and decoupling as stage 3."
+          "option": "Use 3.0 mm overhang",
+          "reason": "It is 2.4 mm less than the declared 5.4 mm antenna overhang and would not preserve the documented boundary."
         }
       ],
-      "no_alternatives_reason": null,
       "assumptions": [
-        "Declared footprint dimensions remain valid."
+        "The antenna keepout remains a conservative design rule, not certification evidence."
       ],
       "risks": [
-        "Final DRC and electrical checks still govern."
+        "Final RF performance and module certification remain unverified."
       ],
       "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
+        "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-place-switches",
+      "rationale_id": "gd1-body-policy-none",
       "decision_kind": "placement",
       "subject_nodes": [
-        "comp.sw1",
-        "comp.sw2"
+        "mechanical.component_body.20",
+        "mechanical.component_body.21",
+        "mechanical.component_body.22",
+        "mechanical.component_body.23",
+        "mechanical.component_body.24",
+        "mechanical.component_body.25",
+        "mechanical.component_body.26",
+        "mechanical.component_body.27",
+        "mechanical.component_body.28",
+        "mechanical.component_body.29",
+        "mechanical.component_body.30"
       ],
       "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
+        "body_type",
+        "mounting_side"
       ],
-      "subject_hash": "sha256:1955bcaf80ee28a2353f80582c2d16904711cde35075af74a908fef3675b265a",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "The switches implement separate RESET and BOOT functions; their remaining-component placement follows the deterministic §9 order after anchors, active parts, and decoupling.",
-      "driving_requirements": [],
+      "subject_hash": "sha256:ee2a1fcdd8f9f2948f9e249f7b02dfca93798cf989ae8080eefe763553d943db",
+      "decision": "Use body_type=none and mounting_side=top for seven TestPoint pads and four M2 mounting holes.",
+      "justification": "§8.1 declares that test points and mounting holes have no component body and 0.0 mm height; keeping their top-side feature declarations preserves probe access and the four-hole mechanical datum without inventing a package body.",
+      "driving_requirements": [
+        "req.gd1-req-014"
+      ],
       "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
+        "docs/golden-design-1.md#GD1-REQ-012"
       ],
       "rejected_alternatives": [
         {
-          "option": "Swap their net roles",
-          "reason": "GD1-REQ-009 names separate RESET and BOOT functions."
+          "option": "Assign a solid body or nonzero height to test points and holes",
+          "reason": "The graph source explicitly declares body_type=none and height=0.0 mm for these features."
+        },
+        {
+          "option": "Place the features on the bottom side",
+          "reason": "Top-side declarations keep the probe pads and mounting apertures aligned with the board datum."
         }
       ],
-      "no_alternatives_reason": null,
       "assumptions": [
-        "The TS-1088 mechanical lane remains valid."
+        "The no-body declaration is a source fact and is not a claim that no copper or pad geometry exists."
       ],
       "risks": [
-        "Nearby labels and clearances remain downstream risks."
+        "Probe access and enclosure fit remain downstream checks."
       ],
       "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
+        "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "no_alternatives_reason": null
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-place-resistors",
+      "rationale_id": "gd1-body-policy-solid",
       "decision_kind": "placement",
       "subject_nodes": [
+        "mechanical.component_body.1",
+        "mechanical.component_body.2",
+        "mechanical.component_body.3",
+        "mechanical.component_body.4",
+        "mechanical.component_body.5",
+        "mechanical.component_body.6",
+        "mechanical.component_body.7",
+        "mechanical.component_body.8",
+        "mechanical.component_body.9",
+        "mechanical.component_body.10",
+        "mechanical.component_body.11",
+        "mechanical.component_body.12",
+        "mechanical.component_body.13",
+        "mechanical.component_body.14",
+        "mechanical.component_body.15",
+        "mechanical.component_body.16",
+        "mechanical.component_body.17",
+        "mechanical.component_body.18",
+        "mechanical.component_body.19"
+      ],
+      "subject_attrs": [
+        "body_type",
+        "mounting_side"
+      ],
+      "subject_hash": "sha256:d32583ce2d955d979fdd594b6e2e9e6ede05420c7427f9a0cfce9eec97e8920b",
+      "decision": "Use solid bodies on the top assembly side for MCU, USB-C, regulator, sensor, LED, switches, and passives.",
+      "justification": "§8.1 declares the physical bodies and GD1-REQ-013 requires top-side assembly; body_type=solid and mounting_side=top are policy values for assembled packages, not values inferred from a routed board.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Flip solid bodies to the bottom side",
+          "reason": "That would violate the one-sided assembly declaration and change enclosure/antenna clearances."
+        },
+        {
+          "option": "Treat package bodies as none",
+          "reason": "The declared solid bodies have nonzero heights and must participate in the enclosure clearance gate."
+        }
+      ],
+      "assumptions": [
+        "The dimensions and source URLs remain the graph declarations."
+      ],
+      "risks": [
+        "Library dimensions do not prove manufactured fit until the physical prototype is checked."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-actives",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.3",
+        "mechanical.component_body.4"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:ad10510211d4c60358f789b6ac13cde67a8f93473f866867473e3a35c502fd2d",
+      "decision": "Place regulator and sensor bodies at their declared coordinates.",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for the regulator and sensor x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the power and sensor lanes and remains consistent with enclosure, antenna, connector opening, and board datum.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to the power, sensor, and indicator lanes."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-holes",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.27",
+        "mechanical.component_body.28",
+        "mechanical.component_body.29",
+        "mechanical.component_body.30"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:d0a9e36040cdfa618158bd3f947313f947cc0df18ef819430637ce9922a64df7",
+      "decision": "Place M2 hole centers at their declared coordinates.",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the shared enclosure mounting datum and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to the shared enclosure mounting datum."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-mcu",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.1"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:24df0426f27258a23aee124d897b15d564be459806e4e3e8f473533f95b14ab4",
+      "decision": "Place ESP32-C3-MINI-1 at (15.0,13.0,0.0 deg).",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the antenna edge and enclosure datum and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to the antenna edge and enclosure datum."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-passives",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.8",
+        "mechanical.component_body.9",
+        "mechanical.component_body.10",
+        "mechanical.component_body.11",
+        "mechanical.component_body.12",
+        "mechanical.component_body.13",
+        "mechanical.component_body.14",
+        "mechanical.component_body.15",
+        "mechanical.component_body.16",
+        "mechanical.component_body.17",
+        "mechanical.component_body.18",
+        "mechanical.component_body.19"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:b194e909fb3ffe6f53a7f56816d2f4c9ef80ac7adaa4b10437c435ae8b0e775a",
+      "decision": "Place 0603 passive bodies at their declared coordinates.",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the routed nets and enclosure clearance and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to the routed nets and enclosure clearance."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-switches",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.6",
+        "mechanical.component_body.7"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:954d4e6698e650f6424b570d07cb7ab4d3cfe799f7ef1c2e985f16498699d275",
+      "decision": "Place RESET/BOOT bodies at their declared coordinates.",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the control labels and enclosure face and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to the control labels and enclosure face."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-testpoints",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.20",
+        "mechanical.component_body.21",
+        "mechanical.component_body.22",
+        "mechanical.component_body.23",
+        "mechanical.component_body.24",
+        "mechanical.component_body.25",
+        "mechanical.component_body.26"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:8dd48091866956d99e63ce43a90c26246411f30b1bb10c6688b5cc563a5cde7c",
+      "decision": "Place test-point centers at their declared coordinates.",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with probe access and the board edge and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to probe access and the board edge."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-usbc",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.2"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:4f00ffd22e1ce361f12cb79a4c90deb04a29f18ab72af6788627cec68479e501",
+      "decision": "Place USB-C body at (15.0,5.0,0.0 deg).",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for these x/y/rotation values; Phase 1 placement and KiCad runtime state are not read back to fill this record. The group aligns with the front connector opening and remains consistent with the antenna, connector opening, enclosure, and board datum.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to the front connector opening."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-component-assembly",
+      "decision_kind": "population",
+      "subject_nodes": [
+        "comp.u1",
+        "comp.j1",
+        "comp.u2",
+        "comp.u3",
+        "comp.d1",
+        "comp.sw1",
+        "comp.sw2",
         "comp.r1",
         "comp.r2",
         "comp.r3",
         "comp.r4",
         "comp.r5",
-        "comp.r6"
-      ],
-      "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
-      ],
-      "subject_hash": "sha256:793161b22adb0fed9d91e82cb48a0c8b53c462550936ac44141950dce54374e7",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "These resistors serve CC, EN, I2C, and LED functions. §9 orders remaining components by courtyard area then refdes, making the result repeatable rather than arbitrary.",
-      "driving_requirements": [
-        "req.gd1-req-006",
-        "req.gd1-req-010",
-        "req.gd1-req-011"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "Use arbitrary manual order",
-          "reason": "That would discard the declared courtyard/refdes ordering."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "0603 dimensions remain the declared mechanical lane."
-      ],
-      "risks": [
-        "Dense passive placement can still cause route/silk conflicts."
-      ],
-      "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-place-capacitors",
-      "decision_kind": "placement",
-      "subject_nodes": [
+        "comp.r6",
         "comp.c1",
         "comp.c2",
         "comp.c3",
         "comp.c4",
         "comp.c5",
-        "comp.c6"
-      ],
-      "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
-      ],
-      "subject_hash": "sha256:aa6aa571634be8844fc65699c24d39ec05c7ab89badd015be6771e4b8067b60a",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "§9 makes decoupling stage 3 and derives its objective from distance to the declared regulator/MCU power pins; C6 remains in the EN RC network.",
-      "driving_requirements": [
-        "req.gd1-req-007",
-        "req.gd1-req-008"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-009"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "Place capacitors only in leftover space",
-          "reason": "The power-decoupling gate requires proximity to the relevant pin."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "Power nets and roles remain those of §5.2."
-      ],
-      "risks": [
-        "No numerical maximum distance is declared, so independent review remains necessary."
-      ],
-      "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-place-testpoints",
-      "decision_kind": "placement",
-      "subject_nodes": [
+        "comp.c6",
         "comp.tp1",
         "comp.tp2",
         "comp.tp3",
         "comp.tp4",
         "comp.tp5",
         "comp.tp6",
-        "comp.tp7"
-      ],
-      "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
-      ],
-      "subject_hash": "sha256:2263c1fed4076c8c880e3eb632ca21c8231920299a5b7e60791f2ed33ac5cb2a",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "GD1-REQ-012 names the exact seven observed signals; their non-assembled footprints are placed to preserve probe access within the fixed board envelope.",
-      "driving_requirements": [],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-012"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "Omit dedicated test points",
-          "reason": "GD1-REQ-012 explicitly requires these observation pads."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "Probes are available during bring-up."
-      ],
-      "risks": [
-        "Probe access competes with board area."
-      ],
-      "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-place-holes",
-      "decision_kind": "placement",
-      "subject_nodes": [
+        "comp.tp7",
         "comp.h1",
         "comp.h2",
         "comp.h3",
         "comp.h4"
       ],
       "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
+        "assembly"
       ],
-      "subject_hash": "sha256:3c83be7d270d140bf67a18bdea02767912fe7e36848d7e3f863b7b9bb159aef7",
-      "decision": "Use the deterministic placement-search result for this functional group.",
-      "justification": "GD1-REQ-014 makes the four-hole pattern the board/enclosure interface; the declared upper-left origin and coordinates therefore control placement.",
+      "subject_hash": "sha256:a2c28375d5608beaf78738491bacf0f388ef27dcafa24263c94b67a547fc4849",
+      "decision": "Populate 19 functional parts; leave 7 TestPoint pads and 4 M2 mounting-hole features not_fitted, with no DNP or variant population.",
+      "justification": "§9 and GD1-REQ-017 require the assembly projection to use JLCPCBA-eligible parts. The graph declares 19 functional components fitted and the test/fixture features not_fitted: test points remain probe pads and mounting holes remain mechanical apertures, not DNP alternatives.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Mark a fitted functional part DNP or introduce a variant",
+          "reason": "That would contradict the single GD1 BOM/CPL projection and the declared function coverage."
+        },
+        {
+          "option": "Assemble TestPoint pads or MountingHole features",
+          "reason": "Their graph assembly value is not_fitted because they are probe/mechanical features, not PCBA parts."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The JLCPCBA profile and stock snapshot remain those recorded in graph provenance."
+      ],
+      "risks": [
+        "Supplier availability and physical assembly yield must be reconfirmed before ordering."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-connector-openings",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.connector_opening.j1"
+      ],
+      "subject_attrs": [
+        "face",
+        "center_x_mm",
+        "center_y_mm",
+        "width_mm",
+        "height_mm",
+        "margin_mm"
+      ],
+      "subject_hash": "sha256:052ae3db764d58320c87eb318d20e6719c0b0109874265f9358ca82395918db5",
+      "decision": "Cut a front-face 8.0 x 5.0 mm opening centered at (15.0,5.0) mm with 0.5 mm margin.",
+      "justification": "§8.1 declares the USB-C body as 9.0 x 7.0 mm at the front datum, while the graph opening is 8.0 x 5.0 mm centered at (15.0,5.0) with 0.5 mm margin for the connector access interface. The front face matches the USB-C insertion direction and the board opening datum.",
+      "driving_requirements": [
+        "req.gd1-req-006",
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Move the opening to a side or back face",
+          "reason": "USB-C insertion is defined on the front face; moving it would break the declared access direction."
+        },
+        {
+          "option": "Use 0.0 mm margin",
+          "reason": "The graph declares 0.5 mm margin to preserve wall and fit tolerance around the opening."
+        }
+      ],
+      "assumptions": [
+        "The opening follows the declared connector datum and enclosure projection."
+      ],
+      "risks": [
+        "Cable mating and manufactured connector tolerance require physical confirmation."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-design-rules-board",
+      "decision_kind": "design_rule",
+      "subject_nodes": [
+        "board.gd1"
+      ],
+      "subject_attrs": [
+        "min_track_mm",
+        "min_clearance_mm",
+        "edge_copper_clearance_mm",
+        "via_diameter_mm",
+        "via_drill_mm",
+        "allowable_temperature_rise_k",
+        "width_basis_equation",
+        "width_measurement_tolerance_mm"
+      ],
+      "subject_hash": "sha256:8b45362cc85774018e872605b9ee5ce06811e8c8a30596fd8c0ff81846ce98fd",
+      "decision": "Use 0.15 mm minimum track and clearance, 0.30 mm edge copper clearance, 0.60/0.30 mm vias, 10 K allowable rise, IPC-2221 width basis, and 0.01 mm width measurement tolerance.",
+      "justification": "The graph adopts 0.15 mm min track/clearance against the JLCPCB 0.10 mm capability, retaining 0.05 mm nominal margin. It uses 0.60 mm via diameter with 0.30 mm drill against 0.25/0.15 mm capability (and the 0.20 mm recommended drill), 0.30 mm edge clearance against >=0.20 mm capability, DeltaT=10 K, and 0.01 mm measurement tolerance so the 0.115469 mm calculated 5 V width is measured and routed as 0.15 mm.",
+      "driving_requirements": [
+        "req.gd1-req-005"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use 0.10 mm tracks and clearances",
+          "reason": "That equals the JLCPCB capability floor and leaves no 0.05 mm design margin."
+        },
+        {
+          "option": "Use 0.25/0.15 mm via geometry",
+          "reason": "Those are capability minima; the adopted 0.60/0.30 mm geometry and 0.20 mm recommended drill guidance leave substantially more process margin."
+        },
+        {
+          "option": "Use 0.20 mm edge clearance",
+          "reason": "That equals capability, while 0.30 mm retains 0.10 mm additional edge margin."
+        }
+      ],
+      "assumptions": [
+        "The IPC-2221 calculation uses the declared 5 V and 0.5 A envelope."
+      ],
+      "risks": [
+        "The 0.115469 mm calculated width remains subject to routed geometry and DRC."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-enclosure",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.enclosure.gd1"
+      ],
+      "subject_attrs": [
+        "material",
+        "wall_thickness_mm"
+      ],
+      "subject_hash": "sha256:5bbafe91f12f31e48548824f691d34b6a088860cb750673213e93b99534005f8",
+      "decision": "Use PETG with a 2.0 mm wall.",
+      "justification": "GD1-REQ-014 requires a board/enclosure shared hole interface; the mechanical lane declares PETG, 2.0 mm wall, and the corresponding clearance/fit gate, so the enclosure projection remains tied to the board interface.",
+      "driving_requirements": [
+        "req.gd1-req-014"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`req.gd1-req-014` and the GD1 mechanical declaration fix the shared enclosure interface and PETG/2.0 mm lane for this fixture.",
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "Geometry gates do not establish long-term material strength or environment suitability."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-enclosure-clearance",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.enclosure.gd1"
+      ],
+      "subject_attrs": [
+        "min_wall_thickness_mm",
+        "internal_clearance_mm",
+        "standoff_height_mm",
+        "standoff_radius_mm",
+        "lid_fit_gap_mm",
+        "tolerance_mm",
+        "interference_tolerance_mm3"
+      ],
+      "subject_hash": "sha256:54361c3fc38681abd44e58f3bcc1d3a7b0385693375a84f59f25f486d1d3a29d",
+      "decision": "Use PETG with 2.0 mm walls, 1.2 mm minimum wall, 1.0 mm internal clearance, 4.0/2.0 mm standoffs, 0.2 mm lid gap, 0.05 mm tolerance, and 0.01 mm3 interference limit.",
+      "justification": "§8.1/§9 and the graph define PETG, 2.0 mm nominal wall versus 1.2 mm minimum, 1.0 mm component clearance, 4.0 mm standoff height with 2.0 mm radius, 0.2 mm lid gap, 0.05 mm CAD tolerance, and 0.01 mm3 interference threshold. These values leave measurable assembly room while still failing actual collision.",
       "driving_requirements": [
         "req.gd1-req-014"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use fewer or independent holes",
-          "reason": "The shared four-M2 pattern is explicit."
+          "option": "Use 1.0 mm walls or 0.0 mm lid gap",
+          "reason": "Both are below the declared 1.2 mm minimum wall or 0.2 mm fit gap and would consume the 0.05 mm tolerance budget."
+        },
+        {
+          "option": "Allow 0.1 mm3 interference",
+          "reason": "The declared 0.01 mm3 threshold is a hard gate; accepting ten times more collision would hide assembly failure."
         }
       ],
-      "no_alternatives_reason": null,
       "assumptions": [
-        "The enclosure uses the same origin and coordinates."
+        "The CAD kernel remains deterministic for the declared dimensions."
       ],
       "risks": [
-        "An enclosure revision can make this placement stale."
+        "Manufactured PETG shrinkage and physical fit remain to be confirmed."
       ],
       "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
+        "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-width-power",
-      "decision_kind": "routing_width",
+      "rationale_id": "gd1-fab-order",
+      "decision_kind": "fab_process",
       "subject_nodes": [
-        "net.vbus_5v",
-        "net.p3v3",
-        "net.gnd"
+        "fab.order_intent.gd1"
       ],
       "subject_attrs": [
-        "width_basis"
+        "fab_profile",
+        "quantity_pcs",
+        "surface_finish",
+        "soldermask_color",
+        "assembly_sides",
+        "pcba_class_target",
+        "delivery_format"
       ],
-      "subject_hash": "sha256:119261bcf443df29ead65e9a635e897333d30cc36ded477a97acbb9924e5dedd",
-      "decision": "Use IPC-2221 current capacity for power and return nets.",
-      "justification": "GD1-REQ-004/005 limit the domain to 5 V and <500 mA; §8.0 derives 0.115469 mm, adopts/measures 0.15 mm, and treats GND routed segments separately from its filled plane.",
+      "subject_hash": "sha256:141d6b38de10934615e5622764a8b15f9bb60be29e048c1a12d49754e526610e",
+      "decision": "Order 5 pcs with jlcpcb-fr4-2l-1oz, HASL, green mask, top-side assembly, economic PCBA, and a single delivery.",
+      "justification": "§6/§9 select 5 prototype boards, the jlcpcb-fr4-2l-1oz profile, HASL, green mask, top-side assembly, economic PCBA, and single delivery. The standard outline tolerance is +/-0.2 mm; high precision +/-0.1 mm is unavailable below 50 x 50 mm, so the 30 x 25 mm board remains on the standard lane.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Use high-precision +/-0.1 mm outline tolerance",
+          "reason": "The profile disallows high precision for boards below 50 x 50 mm; the 30 x 25 mm board must use +/-0.2 mm."
+        },
+        {
+          "option": "Order 1 pc or assemble both sides",
+          "reason": "The 5-piece, top-side prototype lane is the declared §6/§9 manufacturing plan."
+        }
+      ],
+      "assumptions": [
+        "Green mask and HASL lead content remain unresolved §11 questions until fab confirmation."
+      ],
+      "risks": [
+        "The order must confirm soldermask color and HASL lead status before release."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-firmware-net",
+      "decision_kind": "firmware_pin",
+      "subject_nodes": [
+        "fw.pin.boot",
+        "fw.pin.i2c_scl",
+        "fw.pin.i2c_sda",
+        "fw.pin.led",
+        "fw.pin.uart_rx",
+        "fw.pin.uart_tx",
+        "fw.pin.usb_dn",
+        "fw.pin.usb_dp"
+      ],
+      "subject_attrs": [
+        "net"
+      ],
+      "subject_hash": "sha256:fd84b41913e6e0238f534a24485ac0530a6714c32a809c129dc2c07ff914e057",
+      "decision": "Adopt the documented firmware.pin_assignment design inputs.",
+      "justification": "§5 pin and net tables define the electrical signal carried by each firmware assignment; recording the net alongside GPIO makes the rationale traceable to the interface rather than only to a number. USB, I2C, LED, BOOT, and UART mappings remain distinct because their requirements and strapping constraints differ.",
+      "driving_requirements": [
+        "req.gd1-req-008",
+        "req.gd1-req-010",
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-002",
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-009",
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Move a signal to an unused GPIO without reviewing its net function",
+          "reason": "GD1-REQ-008/010/011 and the document pin table assign interface-specific functions and exclude unsafe strapping pins."
+        },
+        {
+          "option": "Treat the GPIO number as sufficient without recording the net",
+          "reason": "The net is the cross-lane identity needed to validate firmware, schematic, and routing consistency."
+        }
+      ],
+      "assumptions": [
+        "The firmware pin table remains the canonical interface declaration for this fixture."
+      ],
+      "risks": [
+        "Firmware implementation and runtime behavior are not validated by graph rationale coverage alone."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-ground-stitch-board",
+      "decision_kind": "design_rule",
+      "subject_nodes": [
+        "board.gd1"
+      ],
+      "subject_attrs": [
+        "ground_plane_net",
+        "ground_plane_layers",
+        "ground_plane_min_island_area_mm2",
+        "stitch_via_wavelength_fraction",
+        "stitch_via_max_frequency_hz",
+        "stitch_via_refill_max_iterations"
+      ],
+      "subject_hash": "sha256:44e9832d8912657d2e3ff5af2271c8c13138ca5c3dfcf3c65532721aa63ad25c",
+      "decision": "Use GND planes on F.Cu/B.Cu, 1.0 mm2 minimum islands, 2.4 GHz epsilon-r 4.3 lambda/20 stitch pitch, and at most 3 refill iterations.",
+      "justification": "The graph sets 2.4 GHz and epsilon-r=4.3, so guided wavelength is used with stitch_via_wavelength_fraction=0.05 (lambda/20). A 1.0 mm2 minimum island avoids tiny isolated copper, and refill is bounded at 3 iterations for deterministic completion while the GND plane spans F.Cu and B.Cu.",
+      "driving_requirements": [
+        "req.gd1-req-005",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use lambda/10 or a lower-frequency stitch rule",
+          "reason": "The declared 2.4 GHz and lambda/20 rule provide the tighter RF spacing; relaxing it would double the pitch or use an unsupported frequency basis."
+        },
+        {
+          "option": "Accept islands below 1.0 mm2",
+          "reason": "The graph explicitly rejects smaller islands as unreliable copper fragments."
+        },
+        {
+          "option": "Allow more than 3 refill iterations",
+          "reason": "The declared 3-iteration bound prevents a non-deterministic refill loop."
+        }
+      ],
+      "assumptions": [
+        "The 2.4 GHz wavelength proxy is an RF design rule, not certification evidence."
+      ],
+      "risks": [
+        "The antenna keepout can interrupt the plane and requires the independent copper gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-net-power",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.vbus_5v",
+        "net.gnd",
+        "net.p3v3"
+      ],
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "current_max_a"
+      ],
+      "subject_hash": "sha256:20d0be1235fb92ba579cda7a95493e8e7c125fd6ffdbfb755bf0f95bc6f9fef4",
+      "decision": "Class VBUS_5V=5.0 V/0.5 A, GND=0 V/0.5 A, and +3V3=3.3 V/0.5 A as the power domain.",
+      "justification": "GD1-REQ-004/005 define 5.0 V USB input and less than 0.5 A operation; GD1-REQ-007 defines the regulated 3.3 V rail. The 0.5 A planning limit is therefore applied to VBUS, return, and regulator output, while GND is 0 V and its routed segments still use the power width basis.",
       "driving_requirements": [
         "req.gd1-req-004",
         "req.gd1-req-005",
-        "req.gd1-req-013"
+        "req.gd1-req-007"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use only manufacturing minimum",
-          "reason": "Power current is the controlling constraint in the declared basis."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "1 oz outer copper remains the fabrication condition."
-      ],
-      "risks": [
-        "GND IR-drop is a conservative routed-path bound, not a plane model."
-      ],
-      "provenance": {
-        "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-width-usb",
-      "decision_kind": "routing_width",
-      "subject_nodes": [
-        "net.cc1",
-        "net.cc2",
-        "net.usb_dn",
-        "net.usb_dp"
-      ],
-      "subject_attrs": [
-        "width_basis"
-      ],
-      "subject_hash": "sha256:bed5d617e1f4b94fbdf416fbf97e4fb6c79427f78510e386f65830286b2a2f45",
-      "decision": "Use manufacturing minimum for CC and USB data nets.",
-      "justification": "The basis attributes classify CC and USB D-/D+ as logic, not current-capacity conductors; §8.0 adopts/measures 0.15 mm against the 0.10 mm fabrication minimum.",
-      "driving_requirements": [
-        "req.gd1-req-006",
-        "req.gd1-req-008",
-        "req.gd1-req-013"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
+          "option": "Assign 5.0 V/0.5 A to +3V3 and GND without distinguishing domains",
+          "reason": "+3V3 is regulated to 3.3 V and GND is 0 V; collapsing the values would misstate the electrical envelope."
+        },
         {
-          "option": "Apply the power current width",
-          "reason": "The declared basis says current is not controlling for these logic nets."
+          "option": "Use 0.15 A for VBUS or +3V3",
+          "reason": "That would not cover the declared sub-500 mA prototype boundary."
         }
       ],
-      "no_alternatives_reason": null,
       "assumptions": [
-        "Signals remain in the declared 3.3 V logic domain."
+        "Current limits are planning bounds, not measured load characterization."
       ],
       "risks": [
-        "Width alone does not prove USB signal integrity."
+        "Transient load and return-current distribution require downstream review."
       ],
       "provenance": {
         "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "no_alternatives_reason": null
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-width-control",
-      "decision_kind": "routing_width",
+      "rationale_id": "gd1-net-signal",
+      "decision_kind": "net_class",
       "subject_nodes": [
         "net.en",
         "net.boot",
@@ -1090,15 +983,15 @@
         "net.uart_rx"
       ],
       "subject_attrs": [
-        "width_basis"
+        "voltage_nominal_v",
+        "manufacturing_margin_mm"
       ],
-      "subject_hash": "sha256:29d10e68b50a890903d8352cbafa65043e37e960e243dacfaee8c28c9c876d2a",
-      "decision": "Use manufacturing minimum for reset, boot, LED, I2C, and UART nets.",
-      "justification": "Their basis attributes identify logic or resistor-limited behavior as controlling; §8.0 adopts/measures 0.15 mm, above the 0.10 mm fabrication minimum, without treating low-current signals as power paths.",
+      "subject_hash": "sha256:2eb98b816d81e184414705f904c08b0fc7465af63590db3cb5b322918f91018c",
+      "decision": "Class EN/BOOT/LED/I2C/UART=3.3 V with 0.00 mm added manufacturing margin.",
+      "justification": "GD1-REQ-009/010/011/012 define 3.3 V control, indicator, sensor, and UART signals. Their current is set by pull-ups, the LED resistor, or receiver inputs rather than the 0.5 A power boundary, so the graph uses the manufacturing-minimum class and 0.00 mm explicit additional margin.",
       "driving_requirements": [
         "req.gd1-req-010",
-        "req.gd1-req-011",
-        "req.gd1-req-013"
+        "req.gd1-req-011"
       ],
       "driving_requirement_refs": [
         "docs/golden-design-1.md#GD1-REQ-009",
@@ -1106,16 +999,105 @@
       ],
       "rejected_alternatives": [
         {
-          "option": "Use a power-net basis for every control net",
-          "reason": "The declared width_basis_source identifies logic or resistor-limited behavior."
+          "option": "Apply the 0.5 A power class to every control and sensor net",
+          "reason": "That would ignore the declared resistor-limited or receiver-input nature of these 3.3 V signals."
+        },
+        {
+          "option": "Invent a positive manufacturing margin",
+          "reason": "The canonical graph records 0.00 mm for this class; the fab minimum remains the measurable constraint."
+        }
+      ],
+      "assumptions": [
+        "Signal current values are interface planning assumptions, not measured load results."
+      ],
+      "risks": [
+        "Firmware timing and signal integrity remain outside this coverage gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-net-usb",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.cc1",
+        "net.cc2",
+        "net.usb_dn",
+        "net.usb_dp"
+      ],
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "manufacturing_margin_mm"
+      ],
+      "subject_hash": "sha256:96a7ab144cab580c7bc6d871efe73398105a123ad60ccb6a3fc22deda64dfd1c",
+      "decision": "Class CC1/CC2=5.0 V and USB_D-/USB_D+=3.3 V with 0.00 mm added manufacturing margin.",
+      "justification": "GD1-REQ-004/006/008 define USB-C sink CC signals and IO18/IO19 USB data at logic voltage. These nets are logic/current-minimum routes, so the graph records 0.00 mm additional margin rather than applying the 0.5 A power class.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-006",
+        "req.gd1-req-008"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Apply the 5.0 V/0.5 A power class to USB data",
+          "reason": "USB_D-/USB_D+ are 3.3 V logic nets and CC is a configuration signal; the power class would overstate their current requirement."
+        },
+        {
+          "option": "Claim a positive routing margin not present in the graph",
+          "reason": "manufacturing_margin_mm is explicitly 0.00 mm for these nets, so a larger value would change the canonical graph."
+        }
+      ],
+      "assumptions": [
+        "The USB logic levels follow the declared interface, not a measured transient waveform."
+      ],
+      "risks": [
+        "USB signal integrity and connector mating remain downstream checks."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-outline",
+      "decision_kind": "mechanical",
+      "subject_nodes": [
+        "mechanical.outline.gd1"
+      ],
+      "subject_attrs": [
+        "width_mm",
+        "depth_mm",
+        "thickness_mm"
+      ],
+      "subject_hash": "sha256:8fdca7b2db8e3057634acd46ebea8cf6af7949d9175f43c8f7c10b4cda2ed91c",
+      "decision": "Use a 30.0 × 25.0 mm, 1.6 mm board.",
+      "justification": "GD1-REQ-013 fixes two-layer FR-4, 1.6 mm, and the approximate 30 × 25 mm envelope; GD1-REQ-014 adds the four-hole enclosure interface.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-014"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use high-precision 50 × 50 mm fabrication",
+          "reason": "§6 says high precision requires at least 50 × 50 mm and three tooling holes, conflicting with GD1."
         }
       ],
       "no_alternatives_reason": null,
       "assumptions": [
-        "LED current remains limited by 1 kΩ."
+        "Regular ±0.2 mm outline tolerance is used for enclosure fit."
       ],
       "risks": [
-        "Manufacturing width does not guarantee bus timing or noise margin."
+        "Exact outer tolerance and enclosure fit remain follow-up checks."
       ],
       "provenance": {
         "source": "human",
@@ -1129,43 +1111,53 @@
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-pin-usb",
-      "decision_kind": "firmware_pin",
+      "rationale_id": "gd1-outline-holes",
+      "decision_kind": "mechanical",
       "subject_nodes": [
-        "fw.pin.usb_dn",
-        "fw.pin.usb_dp"
+        "mechanical.outline.gd1"
       ],
       "subject_attrs": [
-        "gpio"
+        "corner_radius_mm",
+        "mount_hole_count",
+        "mount_hole_1_x_mm",
+        "mount_hole_1_y_mm",
+        "mount_hole_1_diameter_mm",
+        "mount_hole_2_x_mm",
+        "mount_hole_2_y_mm",
+        "mount_hole_2_diameter_mm",
+        "mount_hole_3_x_mm",
+        "mount_hole_3_y_mm",
+        "mount_hole_3_diameter_mm",
+        "mount_hole_4_x_mm",
+        "mount_hole_4_y_mm",
+        "mount_hole_4_diameter_mm"
       ],
-      "subject_hash": "sha256:e1a40f14c0104be6e3195d1a7c87f19dc1a5ff96383cf81ffecde029a281e88f",
-      "decision": "Keep USB D-/D+ on IO18/IO19.",
-      "justification": "GD1-REQ-008 and the pin table reserve IO18/IO19 for internal USB-Serial-JTAG used for flashing and logs.",
+      "subject_hash": "sha256:d6e974fe001d650ddaa98f87a157680a4dc8667901ae6de81a10733f15c3fb1a",
+      "decision": "Use R1.0 mm corners, four 2.2 mm M2-clearance holes at (1.5,1.5), (28.5,1.5), (1.5,23.5), and (28.5,23.5) mm.",
+      "justification": "GD1-REQ-013/014 and §8.1 select a 30 x 25 mm rounded outline with R1.0 corners and four 2.2 mm holes for M2 clearance. The 1.5 mm edge offsets leave the 2.2 mm aperture inside the standard +/-0.2 mm outline tolerance while preserving the shared enclosure datum.",
       "driving_requirements": [
-        "req.gd1-req-008"
+        "req.gd1-req-013",
+        "req.gd1-req-014"
       ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-002"
-      ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use another GPIO pair or external bridge",
-          "reason": "The requirement fixes internal USB on IO18/IO19 and excludes the bridge."
+          "option": "Use 2.0 mm holes",
+          "reason": "M2 clearance needs the declared 2.2 mm aperture; 2.0 mm would reduce assembly clearance."
+        },
+        {
+          "option": "Place holes 0.5 mm from the edge",
+          "reason": "The 1.5 mm offsets provide more edge material and keep the 2.2 mm aperture inside the +/-0.2 mm standard outline tolerance."
         }
       ],
-      "no_alternatives_reason": null,
       "assumptions": [
-        "Firmware is projected from graph pins."
+        "The enclosure consumes the same four hole centers."
       ],
       "risks": [
-        "Either change breaks USB/FW consistency."
+        "Final fabricated hole position and fit require mechanical inspection."
       ],
       "provenance": {
         "source": "human",
-        "skill_name": null,
-        "script_hash": null,
-        "agent_model": null,
-        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -1295,36 +1287,36 @@
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-outline",
-      "decision_kind": "mechanical",
+      "rationale_id": "gd1-pin-usb",
+      "decision_kind": "firmware_pin",
       "subject_nodes": [
-        "mechanical.outline.gd1"
+        "fw.pin.usb_dn",
+        "fw.pin.usb_dp"
       ],
       "subject_attrs": [
-        "width_mm",
-        "depth_mm",
-        "thickness_mm"
+        "gpio"
       ],
-      "subject_hash": "sha256:8fdca7b2db8e3057634acd46ebea8cf6af7949d9175f43c8f7c10b4cda2ed91c",
-      "decision": "Use a 30.0 × 25.0 mm, 1.6 mm board.",
-      "justification": "GD1-REQ-013 fixes two-layer FR-4, 1.6 mm, and the approximate 30 × 25 mm envelope; GD1-REQ-014 adds the four-hole enclosure interface.",
+      "subject_hash": "sha256:e1a40f14c0104be6e3195d1a7c87f19dc1a5ff96383cf81ffecde029a281e88f",
+      "decision": "Keep USB D-/D+ on IO18/IO19.",
+      "justification": "GD1-REQ-008 and the pin table reserve IO18/IO19 for internal USB-Serial-JTAG used for flashing and logs.",
       "driving_requirements": [
-        "req.gd1-req-013",
-        "req.gd1-req-014"
+        "req.gd1-req-008"
       ],
-      "driving_requirement_refs": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-002"
+      ],
       "rejected_alternatives": [
         {
-          "option": "Use high-precision 50 × 50 mm fabrication",
-          "reason": "§6 says high precision requires at least 50 × 50 mm and three tooling holes, conflicting with GD1."
+          "option": "Use another GPIO pair or external bridge",
+          "reason": "The requirement fixes internal USB on IO18/IO19 and excludes the bridge."
         }
       ],
       "no_alternatives_reason": null,
       "assumptions": [
-        "Regular ±0.2 mm outline tolerance is used for enclosure fit."
+        "Firmware is projected from graph pins."
       ],
       "risks": [
-        "Exact outer tolerance and enclosure fit remain follow-up checks."
+        "Either change breaks USB/FW consistency."
       ],
       "provenance": {
         "source": "human",
@@ -1338,34 +1330,1139 @@
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-enclosure",
-      "decision_kind": "mechanical",
+      "rationale_id": "gd1-place-active",
+      "decision_kind": "placement",
       "subject_nodes": [
-        "mechanical.enclosure.gd1"
+        "comp.u2",
+        "comp.u3"
       ],
       "subject_attrs": [
-        "material",
-        "wall_thickness_mm"
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
       ],
-      "subject_hash": "sha256:5bbafe91f12f31e48548824f691d34b6a088860cb750673213e93b99534005f8",
-      "decision": "Use PETG with a 2.0 mm wall.",
-      "justification": "GD1-REQ-014 requires a board/enclosure shared hole interface; the mechanical lane declares PETG, 2.0 mm wall, and the corresponding clearance/fit gate, so the enclosure projection remains tied to the board interface.",
+      "subject_hash": "sha256:ce67bb5142d51683b9dba7e96c7198586fe4feac03f965b586bb99bc1442d3b8",
+      "decision": "Place comp.u2=(4.15,14.70,90.0 deg); comp.u3=(15.00,13.05,0.0 deg).",
+      "justification": "§9 places active parts after fixed anchors; keeping AMS1117 with its power lanes and SHT40 with its I2C block follows the declared functional blocks without an undocumented visual preference.",
+      "driving_requirements": [
+        "req.gd1-req-007",
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Place passives before active parts",
+          "reason": "§9 fixes active parts as stage 2 and decoupling as stage 3."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "Declared footprint dimensions remain valid."
+      ],
+      "risks": [
+        "Final DRC and electrical checks still govern."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-capacitors",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.c1",
+        "comp.c2",
+        "comp.c3",
+        "comp.c4",
+        "comp.c5",
+        "comp.c6"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:aa6aa571634be8844fc65699c24d39ec05c7ab89badd015be6771e4b8067b60a",
+      "decision": "Place comp.c1=(7.53,20.28,0.0 deg); comp.c2=(7.53,22.28,0.0 deg); comp.c3=(9.28,14.78,0.0 deg); comp.c4=(7.28,2.53,90.0 deg); comp.c5=(16.53,14.78,0.0 deg); comp.c6=(23.03,4.03,90.0 deg).",
+      "justification": "§9 makes decoupling stage 3 and derives its objective from distance to the declared regulator/MCU power pins; C6 remains in the EN RC network.",
+      "driving_requirements": [
+        "req.gd1-req-007",
+        "req.gd1-req-008"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Place capacitors only in leftover space",
+          "reason": "The power-decoupling gate requires proximity to the relevant pin."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "Power nets and roles remain those of §5.2."
+      ],
+      "risks": [
+        "No numerical maximum distance is declared, so independent review remains necessary."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-holes",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.h1",
+        "comp.h2",
+        "comp.h3",
+        "comp.h4"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:3c83be7d270d140bf67a18bdea02767912fe7e36848d7e3f863b7b9bb159aef7",
+      "decision": "Place comp.h1=(3.00,3.00,0.0 deg); comp.h2=(27.00,3.00,0.0 deg); comp.h3=(3.00,22.00,0.0 deg); comp.h4=(27.00,22.00,0.0 deg).",
+      "justification": "GD1-REQ-014 makes the four-hole pattern the board/enclosure interface; the declared upper-left origin and coordinates therefore control placement.",
       "driving_requirements": [
         "req.gd1-req-014"
       ],
       "driving_requirement_refs": [],
-      "rejected_alternatives": [],
-      "no_alternatives_reason": "`req.gd1-req-014` and the GD1 mechanical declaration fix the shared enclosure interface and PETG/2.0 mm lane for this fixture.",
+      "rejected_alternatives": [
+        {
+          "option": "Use fewer or independent holes",
+          "reason": "The shared four-M2 pattern is explicit."
+        }
+      ],
+      "no_alternatives_reason": null,
       "assumptions": [
-        "The graph and revision remain the declared GD1 input."
+        "The enclosure uses the same origin and coordinates."
       ],
       "risks": [
-        "Geometry gates do not establish long-term material strength or environment suitability."
+        "An enclosure revision can make this placement stale."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-led",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.d1"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:dd6d034b9b3a96bb5bd943f428866b68a08af6e460ed1c94abb31ba23f4748d9",
+      "decision": "Place comp.d1=(11.78,12.78,0.0 deg).",
+      "justification": "The LED is the visible IO7 indicator required by GD1-REQ-010. Its placement is resolved after the fixed anchors and active/decoupling stages under the §9 remaining-component order, while the D1 label is handled by the separate silkscreen search.",
+      "driving_requirements": [
+        "req.gd1-req-010"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Place D1 without the series-resistor functional path",
+          "reason": "The LED function is defined as the IO7-to-1 kΩ path in the GD1 circuit declaration."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The LED remains connected to comp.r6 and IO7."
+      ],
+      "risks": [
+        "The final silkscreen and clearance gates can still reject the generated LED region."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-mcu",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.u1"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:6320bce6d5c4173a2b71fb69d54a00656d6248fa973762988913c105865ecef6",
+      "decision": "Place comp.u1=(15.00,2.90,0.0 deg).",
+      "justification": "§9 makes the RF module an anchor; GD1-REQ-015 requires antenna overhang and an empty copper/GND/component/silk keepout. The pad-bbox anchor and deterministic candidate search preserve that constraint.",
+      "driving_requirements": [
+        "req.gd1-req-008",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Move it fully inside the board",
+          "reason": "GD1-REQ-015 requires the antenna to overhang the board edge."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The module footprint remains the library geometry."
+      ],
+      "risks": [
+        "Placement provenance does not prove RF performance; the antenna gate must pass."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-resistors",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.r1",
+        "comp.r2",
+        "comp.r3",
+        "comp.r4",
+        "comp.r5",
+        "comp.r6"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:793161b22adb0fed9d91e82cb48a0c8b53c462550936ac44141950dce54374e7",
+      "decision": "Place comp.r1=(21.53,21.28,90.0 deg); comp.r2=(27.53,17.53,90.0 deg); comp.r3=(28.28,13.53,90.0 deg); comp.r4=(13.28,15.03,0.0 deg); comp.r5=(23.28,19.78,90.0 deg); comp.r6=(8.78,17.28,90.0 deg).",
+      "justification": "These resistors serve CC, EN, I2C, and LED functions. §9 orders remaining components by courtyard area then refdes, making the result repeatable rather than arbitrary.",
+      "driving_requirements": [
+        "req.gd1-req-006",
+        "req.gd1-req-010",
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Use arbitrary manual order",
+          "reason": "That would discard the declared courtyard/refdes ordering."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "0603 dimensions remain the declared mechanical lane."
+      ],
+      "risks": [
+        "Dense passive placement can still cause route/silk conflicts."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-switches",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.sw1",
+        "comp.sw2"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:1955bcaf80ee28a2353f80582c2d16904711cde35075af74a908fef3675b265a",
+      "decision": "Place comp.sw1=(24.05,9.05,90.0 deg); comp.sw2=(4.55,7.80,0.0 deg).",
+      "justification": "The switches implement separate RESET and BOOT functions; their remaining-component placement follows the deterministic §9 order after anchors, active parts, and decoupling.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Swap their net roles",
+          "reason": "GD1-REQ-009 names separate RESET and BOOT functions."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The TS-1088 mechanical lane remains valid."
+      ],
+      "risks": [
+        "Nearby labels and clearances remain downstream risks."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-testpoints",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.tp1",
+        "comp.tp2",
+        "comp.tp3",
+        "comp.tp4",
+        "comp.tp5",
+        "comp.tp6",
+        "comp.tp7"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:2263c1fed4076c8c880e3eb632ca21c8231920299a5b7e60791f2ed33ac5cb2a",
+      "decision": "Place comp.tp1=(19.80,13.30,0.0 deg); comp.tp2=(22.80,13.80,0.0 deg); comp.tp3=(22.05,16.80,0.0 deg); comp.tp4=(25.80,13.80,0.0 deg); comp.tp5=(27.55,7.30,0.0 deg); comp.tp6=(27.55,10.30,0.0 deg); comp.tp7=(25.05,16.80,0.0 deg).",
+      "justification": "GD1-REQ-012 names the exact seven observed signals; their non-assembled footprints are placed to preserve probe access within the fixed board envelope.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Omit dedicated test points",
+          "reason": "GD1-REQ-012 explicitly requires these observation pads."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "Probes are available during bring-up."
+      ],
+      "risks": [
+        "Probe access competes with board area."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-place-usbc",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "comp.j1"
+      ],
+      "subject_attrs": [
+        "placement_x_mm",
+        "placement_y_mm",
+        "placement_rotation_deg"
+      ],
+      "subject_hash": "sha256:14b2e00a9afd8d55fdcddf222e99b09185a2a2ec0a162a3ea6540fe9a4d6f8a6",
+      "decision": "Place comp.j1=(15.00,21.35,0.0 deg).",
+      "justification": "§9 makes the USB receptacle a mating-side board-edge anchor derived from body and pad geometry, keeping the sink-only VBUS/CC/data interface usable.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-006"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Move it away from the edge",
+          "reason": "The mating-side connector anchor would no longer describe a usable USB-C interface."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The local connector overlay is used in projection and DFM."
+      ],
+      "risks": [
+        "Plated-hole and board-edge capability remain downstream checks."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-placement-search",
+        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-safety-scope",
+      "decision_kind": "safety_scope",
+      "subject_nodes": [
+        "sb.gd1"
+      ],
+      "subject_attrs": [
+        "profile",
+        "intended_use",
+        "max_net_voltage_v",
+        "max_current_a"
+      ],
+      "subject_hash": "sha256:cb31d88c2fc96c122ff36b96e89eee3e421912e0f91d254386fb20aba3cbc508",
+      "decision": "Declare a hobby author_prototype boundary: USB VBUS 5.0 V maximum and 0.5 A maximum, with no battery, charger, motor, actuator, or laser.",
+      "justification": "GD1-REQ-004/005 and the graph set profile=hobby, intended_use=author_prototype, max_net_voltage_v=5.0, and max_current_a=0.5. This scope is deliberately below the 5 V/500 mA USB prototype envelope and keeps excluded energy functions outside the gate.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-005"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Declare 12 V or 1.0 A operation",
+          "reason": "The graph and GD1-REQ-004/005 define 5.0 V and 0.5 A; doubling either limit would be an unsupported safety-scope change."
+        },
+        {
+          "option": "Declare a certified product",
+          "reason": "§11 leaves module certification unresolved and the graph profile is hobby author_prototype."
+        }
+      ],
+      "assumptions": [
+        "The USB source remains within 5.0 V and 0.5 A."
+      ],
+      "risks": [
+        "Certification remains unknown; this record does not approve production safety."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-buttons",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.sw1",
+        "comp.sw2"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:a039c8959c58dd161ba212b14774847f33ae46b40cf9f06e34a71f240470e784",
+      "decision": "Adopt two TS-1088-AR02016 parts in Button_Switch_SMD:SW_SPST_TS-1088-xR020, for buttons.",
+      "justification": "GD1-REQ-009 requires separate RESET and BOOT controls; the 6 x 6 mm TS-1088 package supplies both tactile interfaces within the declared board area.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 and `GD1-REQ-009` specify separate RESET and BOOT switches; no other switch function is defined.",
+      "assumptions": [
+        "Each switch pulls its assigned net to GND."
+      ],
+      "risks": [
+        "Switch and label clearances remain downstream checks."
       ],
       "provenance": {
         "source": "human",
         "skill_name": null,
         "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-cc",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.r1",
+        "comp.r2"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:c1886d1dd1b3885d2063b3f1eb7b13fef90f2243c2167473a21ba790bfefe535",
+      "decision": "Adopt two 5.1 kOhm parts in Resistor_SMD:R_0603_1608Metric, for cc.",
+      "justification": "GD1-REQ-006 requires one 5.1 kOhm sink resistor per CC line; 0603 parts provide the required pair in the small USB-C keepout.",
+      "driving_requirements": [
+        "req.gd1-req-006"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Omit one CC resistor",
+          "reason": "The USB CC gate requires both CC1 and CC2 resistors."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "Removing either resistor is a documented negative test."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-en",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.r3"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:27793d20a4c849ff15e50557699b0bfe4c5aba9bf63a5b522c0a81e0108660d0",
+      "decision": "Adopt one 10 kOhm part in Resistor_SMD:R_0603_1608Metric, for en.",
+      "justification": "The §5.2 EN network declares 10 kOhm pull-up, 1 uF capacitor, and RESET switch; 0603 keeps the RC network routable in the declared passive lane.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN network at 10 kΩ and 1 µF, leaving no alternate value in this fixture.",
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "The corresponding deterministic gate and downstream evidence still have to pass."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-en-cap",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c6"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:545a017bd0be084001a274717efabb2516efccd28504dfba814559637edc4c92",
+      "decision": "Adopt one 1 uF in Capacitor_SMD:C_0603_1608Metric, for en-cap.",
+      "justification": "§5.2 pairs 1 uF with the 10 kOhm EN pull-up and RESET switch; the 0603 package fits the declared RC reset network.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN timing capacitor at 1 µF as part of the reset RC network.",
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "No measured reset timing is recorded yet."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-holes",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.h1",
+        "comp.h2",
+        "comp.h3",
+        "comp.h4"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:cb5df4cc27572cf24d3af02a1aed30e8fb8f1af3075fe3b67d4985643713a8d2",
+      "decision": "Adopt four MountingHole:MountingHole_2.2mm_M2 footprints, for holes.",
+      "justification": "GD1-REQ-014 requires four shared M2 anchors; the 2.2 mm mounting-hole footprint provides M2 clearance without an assembled part.",
+      "driving_requirements": [
+        "req.gd1-req-014"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`req.gd1-req-014` fixes four shared M2 holes as the board/enclosure interface, so the hole features have no part-selection alternative.",
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "Hole/enclosure fit must be rechecked with the second milestone."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-i2c",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.r4",
+        "comp.r5"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:eff31a64ce3db0817311bb4a329610dc3bd99bca7d9154a073624722cce3e97c",
+      "decision": "Adopt two 4.7 kOhm parts in Resistor_SMD:R_0603_1608Metric, for i2c.",
+      "justification": "GD1-REQ-011 requires one 4.7 kOhm pull-up on each SHT40 SDA/SCL line; two 0603 parts satisfy that bus topology and board-area constraint.",
+      "driving_requirements": [
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "One shared or missing pull-up",
+          "reason": "The requirement and I2C gate require one resistor on each line."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "A missing pull-up is a documented fail-closed test."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-ldo",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.u2"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:bdfc7dca183ab2581173530f09826b6f7861670553f032c764cb2d5a1d934726",
+      "decision": "Adopt AMS1117-3.3 in Package_TO_SOT_SMD:SOT-223-3_TabPin2, for ldo.",
+      "justification": "GD1-REQ-007 names AMS1117-3.3; the SOT-223 package is the declared 6.5 x 3.5 mm regulator body and supports the specified 5 V to 3.3 V path.",
+      "driving_requirements": [
+        "req.gd1-req-007"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`req.gd1-req-007` specifies AMS1117-3.3 by part number and its capacitor network, so this record has no regulator choice to compare.",
+      "assumptions": [
+        "The less-than-500 mA power boundary remains true.",
+        "The required input/output capacitor pair is populated."
+      ],
+      "risks": [
+        "Thermal calculation and actual maximum load remain open follow-up items."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-ldo-in",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c1",
+        "comp.c2"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:bc16efd35e527d41731541f46f4450152f0a4048ef68ef407e271cdfb8924fea",
+      "decision": "Adopt 10 uF and 100 nF in Capacitor_SMD:C_0603_1608Metric, for regulator input.",
+      "justification": "GD1-REQ-007 requires the AMS1117 input bulk/high-frequency pair; the two 0603 capacitor packages fit beside the regulator.",
+      "driving_requirements": [
+        "req.gd1-req-007"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator input pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "Input voltage range and capacitor derating remain follow-up checks."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-ldo-out",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c3",
+        "comp.c4"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:de55ac5c2b037c081df6fc753bba41d91e12f6793f8922940acc5a3c7869fb8f",
+      "decision": "Adopt 10 uF and 100 nF in Capacitor_SMD:C_0603_1608Metric, for regulator output.",
+      "justification": "GD1-REQ-007 requires the same pair at the 3.3 V output; 0603 packages fit beside the regulator output and preserve the declared decoupling topology.",
+      "driving_requirements": [
+        "req.gd1-req-007"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator output pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "Actual load and regulator thermal margin remain unresolved."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-led",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.d1",
+        "comp.r6"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:566eff03ce2434c665bfc0c344a6b6f5be9946688fcb785d2500f0b5ac3131c9",
+      "decision": "Adopt KT-0603R in LED_SMD:LED_0603_1608Metric plus one 1 kOhm Resistor_SMD:R_0603_1608Metric, for led.",
+      "justification": "GD1-REQ-001/010 require a red indicator driven through 1 kOhm on IO7; 0603 LED and resistor packages fit the declared indicator lane.",
+      "driving_requirements": [
+        "req.gd1-req-001",
+        "req.gd1-req-010"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Assign LED to IO2, IO8, or IO9",
+          "reason": "GD1-REQ-010 excludes those strapping-sensitive pins."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "LED current/luminous behavior is not separately characterized."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-mcu",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.u1"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:d617fb08693be8be4a797468d195528174b4e9bdeabec2e3616ed50bd09c7ab6",
+      "decision": "Adopt ESP32-C3-MINI-1-N4 in Espressif:ESP32-C3-MINI-1, for mcu.",
+      "justification": "GD1-REQ-008 fixes the module and its IO18/IO19 USB-Serial-JTAG path; the declared 13.2 x 16.6 mm module is the §8.1 placement envelope.",
+      "driving_requirements": [
+        "req.gd1-req-008"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Bare ESP32-C3 plus custom RF",
+          "reason": "GD1-REQ-008 names the module and GD1-REQ-015 requires its module antenna keepout."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "Module certification evidence must be attached separately.",
+        "2026-08-11 inventory is only a procurement snapshot."
+      ],
+      "risks": [
+        "Certification is unknown without safety evidence.",
+        "Stock and price can change."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-mcu-cap",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.c5"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:ae9b817bb1b7c520a46a67514f2b876b2ae7bfd2de2341ccd21b14d15bb3100e",
+      "decision": "Adopt one 100 nF in Capacitor_SMD:C_0603_1608Metric, for mcu-cap.",
+      "justification": "§5.2 requires a separate local 100 nF at the ESP32-C3-MINI-1 supply; the 0603 package fits adjacent to the module power pin.",
+      "driving_requirements": [
+        "req.gd1-req-007",
+        "req.gd1-req-008"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Rely only on regulator capacitors",
+          "reason": "The power-decoupling gate requires a separate MCU-pin 100 nF."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "Physical distance to the module pin remains an inspection risk."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-sensor",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.u3"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:030a8d10ab9fc714af91c3e85bcfbdb2ea57cc3ac7adf92e43eeece582938277",
+      "decision": "Adopt SHT40-AD1B-R3 in Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad, for sensor.",
+      "justification": "GD1-REQ-003/011 require SHT40 at I2C address 0x44; the DFN-4 1.5 x 1.5 mm package fits the §8.1 sensor placement envelope.",
+      "driving_requirements": [
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "AHT20 secondary candidate",
+          "reason": "GD1-REQ-011 specifies SHT40 at 0x44."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "SHT40 power conditions, I2C speed, and log period remain fixture follow-up values."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-testpoints",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.tp1",
+        "comp.tp2",
+        "comp.tp3",
+        "comp.tp4",
+        "comp.tp5",
+        "comp.tp6",
+        "comp.tp7"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:63df109564dbb945207f4dbe5ecf584fcc4a665f19d0356bc8e31152f4981169",
+      "decision": "Adopt seven TestPoint:TestPoint_Pad_D1.5mm footprints, for testpoints.",
+      "justification": "GD1-REQ-012 requires seven bring-up pads; the 1.5 mm TestPoint footprint has no body and preserves probe access without adding an assembled package.",
+      "driving_requirements": [],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "`GD1-REQ-012` lists the seven required observation signals; it does not define an alternate test-point component.",
+      "assumptions": [
+        "The graph and revision remain the declared GD1 input."
+      ],
+      "risks": [
+        "Probe access consumes board area and must survive DRC/mechanical review."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-select-usbc",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.j1"
+      ],
+      "subject_attrs": [
+        "mpn",
+        "lcsc",
+        "value",
+        "footprint"
+      ],
+      "subject_hash": "sha256:344b9a6369e0f13ae1a5aedd651724bbd61d675967ac2d13f62de79b6b69c455",
+      "decision": "Adopt TYPE-C-31-M-12 in Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12, for usbc.",
+      "justification": "GD1-REQ-004/006 require a USB-C sink interface; the 9.0 x 7.0 mm §8.1 connector body and official footprint provide the declared power, CC, and data access.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-006"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "USB-PD source/charging connector",
+          "reason": "GD1-REQ-004 excludes USB PD, battery, and charging circuitry."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "VBUS remains 5 V."
+      ],
+      "risks": [
+        "Mating and plated-hole DFM must still pass."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-silk-back",
+      "decision_kind": "silkscreen",
+      "subject_nodes": [
+        "mechanical.silk_text.dev_board",
+        "mechanical.silk_text.board_id"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:52440a6434ef6975975c6f917f0a2eb694f2f0d9b93b90b896427e730bea5718",
+      "decision": "Place DEV BOARD and golden-design-1-r1 on B.SilkS.",
+      "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (15.65, 8.35) at 90° and golden-design-1-r1 (14.125, 8.875) at 90°; their evidence records the fixed-silk, pad, and board-edge rejection counts used to select these positions.",
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Place DEV BOARD or the board identifier on F.SilkS",
+          "reason": "The graph's side declaration assigns branding and identification to B.SilkS, leaving the sequential F.SilkS resolver and its available clearance for operational labels."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The board identifier remains derived from graph_id and revision, and both B.SilkS labels use the resolver's accepted 90° context candidates."
+      ],
+      "risks": [
+        "The resolver summary is not a physical acceptance result; rendered B.SilkS geometry and the independent silkscreen gate must still confirm clearance and ink presence."
+      ],
+      "provenance": {
+        "source": "acd_skill",
+        "skill_name": "acd-silkscreen-placement",
+        "script_hash": "sha256:554ac9c114c9bfa716ad4faf07ea7b87af487cde60b80fd009c7df685c3611d4",
         "agent_model": null,
         "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
@@ -1420,746 +2517,6 @@
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-silk-back",
-      "decision_kind": "silkscreen",
-      "subject_nodes": [
-        "mechanical.silk_text.dev_board",
-        "mechanical.silk_text.board_id"
-      ],
-      "subject_attrs": [
-        "x_mm",
-        "y_mm",
-        "rotation_deg"
-      ],
-      "subject_hash": "sha256:52440a6434ef6975975c6f917f0a2eb694f2f0d9b93b90b896427e730bea5718",
-      "decision": "Place DEV BOARD and golden-design-1-r1 on B.SilkS.",
-      "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (15.65, 8.35) at 90° and golden-design-1-r1 (14.125, 8.875) at 90°; their evidence records the fixed-silk, pad, and board-edge rejection counts used to select these positions.",
-      "driving_requirements": [
-        "req.gd1-req-013"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Place DEV BOARD or the board identifier on F.SilkS",
-          "reason": "The graph's side declaration assigns branding and identification to B.SilkS, leaving the sequential F.SilkS resolver and its available clearance for operational labels."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The board identifier remains derived from graph_id and revision, and both B.SilkS labels use the resolver's accepted 90° context candidates."
-      ],
-      "risks": [
-        "The resolver summary is not a physical acceptance result; rendered B.SilkS geometry and the independent silkscreen gate must still confirm clearance and ink presence."
-      ],
-      "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-silkscreen-placement",
-        "script_hash": "sha256:554ac9c114c9bfa716ad4faf07ea7b87af487cde60b80fd009c7df685c3611d4",
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-place-led",
-      "decision_kind": "placement",
-      "subject_nodes": [
-        "comp.d1"
-      ],
-      "subject_attrs": [
-        "placement_x_mm",
-        "placement_y_mm",
-        "placement_rotation_deg"
-      ],
-      "subject_hash": "sha256:dd6d034b9b3a96bb5bd943f428866b68a08af6e460ed1c94abb31ba23f4748d9",
-      "decision": "Use the deterministic placement-search result for the LED.",
-      "justification": "The LED is the visible IO7 indicator required by GD1-REQ-010. Its placement is resolved after the fixed anchors and active/decoupling stages under the §9 remaining-component order, while the D1 label is handled by the separate silkscreen search.",
-      "driving_requirements": [
-        "req.gd1-req-010"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Place D1 without the series-resistor functional path",
-          "reason": "The LED function is defined as the IO7-to-1 kΩ path in the GD1 circuit declaration."
-        }
-      ],
-      "no_alternatives_reason": null,
-      "assumptions": [
-        "The LED remains connected to comp.r6 and IO7."
-      ],
-      "risks": [
-        "The final silkscreen and clearance gates can still reject the generated LED region."
-      ],
-      "provenance": {
-        "source": "acd_skill",
-        "skill_name": "acd-placement-search",
-        "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
-        "agent_model": null,
-        "conversation_event_ref": null,
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-stackup-board",
-      "decision_kind": "stackup",
-      "subject_nodes": [
-        "board.gd1"
-      ],
-      "subject_attrs": [
-        "layers",
-        "material",
-        "thickness_mm",
-        "copper_oz",
-        "finish",
-        "width_mm",
-        "height_mm",
-        "assembly_side",
-        "antenna_keepout"
-      ],
-      "subject_hash": "sha256:48aed8bbfad1e2dd3159691b2b0739cf906d6c0475a95f674335e946a29f34d3",
-      "decision": "Adopt the documented electrical.board design inputs.",
-      "justification": "GD1-REQ-013 and §6 constrain a small two-layer FR-4 board with one-sided assembly, while §8.1 and §9 reserve the antenna edge and its keepout for reliable RF operation and repeatable fabrication. The chosen stackup and outline therefore balance the stated prototype size, assembly direction, and antenna boundary instead of introducing a thicker board or a second assembly face.",
-      "driving_requirements": [
-        "req.gd1-req-013",
-        "req.gd1-req-015"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Use a four-layer or two-sided assembly stackup",
-          "reason": "§6 and GD1-REQ-013 specify the two-layer, one-sided prototype construction; those alternatives add cost or violate the stated manufacturing target."
-        },
-        {
-          "option": "Place copper or parts below the antenna",
-          "reason": "GD1-REQ-015 explicitly excludes copper, ground, components, and silk in the antenna keepout."
-        }
-      ],
-      "assumptions": [
-        "The JLCPCB capability values in §6 remain the manufacturing basis for the prototype."
-      ],
-      "risks": [
-        "The antenna module certification state is unknown, so the keepout is a conservative design boundary rather than certification evidence."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-design-rules-board",
-      "decision_kind": "design_rule",
-      "subject_nodes": [
-        "board.gd1"
-      ],
-      "subject_attrs": [
-        "min_track_mm",
-        "min_clearance_mm",
-        "edge_copper_clearance_mm",
-        "via_diameter_mm",
-        "via_drill_mm",
-        "allowable_temperature_rise_k",
-        "width_basis_equation",
-        "width_measurement_tolerance_mm"
-      ],
-      "subject_hash": "sha256:8b45362cc85774018e872605b9ee5ce06811e8c8a30596fd8c0ff81846ce98fd",
-      "decision": "Adopt the documented electrical.board design inputs.",
-      "justification": "§6 fab capability limits, §7 gate conditions, and §8.0 current/temperature calculations establish the minimum trace, clearance, via, edge-copper, and width-measurement rules. These values are selected to retain a manufacturing margin rather than to use the smallest nominal library geometry.",
-      "driving_requirements": [
-        "req.gd1-req-005"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Use 0.20 mm via drill and the tightest nominal clearance everywhere",
-          "reason": "The §6 capability boundary leaves no additional yield margin at the lower limit, so the design uses the declared conservative values and verifies them in the gate."
-        },
-        {
-          "option": "Treat the calculated trace width as a guarantee of routability",
-          "reason": "§8.0 defines a sizing proxy; routing and DRC must still validate the actual copper geometry."
-        }
-      ],
-      "assumptions": [
-        "The width equation is applied with the documented 5 V and sub-500 mA design envelope."
-      ],
-      "risks": [
-        "The width proxy does not guarantee every routed segment is manufacturable; DRC remains authoritative."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-ground-stitch-board",
-      "decision_kind": "design_rule",
-      "subject_nodes": [
-        "board.gd1"
-      ],
-      "subject_attrs": [
-        "ground_plane_net",
-        "ground_plane_layers",
-        "ground_plane_min_island_area_mm2",
-        "stitch_via_wavelength_fraction",
-        "stitch_via_max_frequency_hz",
-        "stitch_via_refill_max_iterations"
-      ],
-      "subject_hash": "sha256:44e9832d8912657d2e3ff5af2271c8c13138ca5c3dfcf3c65532721aa63ad25c",
-      "decision": "Adopt the documented electrical.board design inputs.",
-      "justification": "§8.1 and the ground-return design use a continuous GND plane on the two-layer board, with stitch-via spacing derived from the documented frequency/wavelength proxy and a bounded refill loop. The choice preserves return continuity while keeping the automated refill deterministic and bounded.",
-      "driving_requirements": [
-        "req.gd1-req-005",
-        "req.gd1-req-015"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Use isolated copper islands instead of a connected ground plane",
-          "reason": "The shared GND return and antenna keepout require a connected, inspectable plane; isolated islands would make the return path and gate result indeterminate."
-        },
-        {
-          "option": "Allow unlimited stitch-via refill iterations",
-          "reason": "A fixed iteration bound is required for deterministic failure instead of silently looping."
-        }
-      ],
-      "assumptions": [
-        "The frequency proxy is a design rule, not an RF certification result."
-      ],
-      "risks": [
-        "The antenna keepout can interrupt the plane locally and must be checked by the independent gate."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-fab-order",
-      "decision_kind": "population",
-      "subject_nodes": [
-        "fab.order_intent.gd1"
-      ],
-      "subject_attrs": [
-        "fab_profile",
-        "quantity_pcs",
-        "surface_finish",
-        "soldermask_color",
-        "assembly_sides",
-        "pcba_class_target",
-        "delivery_format"
-      ],
-      "subject_hash": "sha256:141d6b38de10934615e5622764a8b15f9bb60be29e048c1a12d49754e526610e",
-      "decision": "Adopt the documented fab.order_intent design inputs.",
-      "justification": "§6 and §9 define the prototype manufacturing route, quantity, one-sided assembly, and output package. HASL is selected for the documented GD1 prototype process; the green mask value is only the current order-intent placeholder because §11 leaves mask color and lead status for confirmation.",
-      "driving_requirements": [
-        "req.gd1-req-013"
-      ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-017"
-      ],
-      "rejected_alternatives": [
-        {
-          "option": "Order a production quantity or two-sided assembly",
-          "reason": "The fixture is an author prototype and §6/§9 define the small one-sided manufacturing lane, so those alternatives are outside this milestone."
-        },
-        {
-          "option": "Treat the green soldermask and HASL lead status as finalized safety facts",
-          "reason": "§11 lists these as unresolved manufacturing questions; they remain assumptions and risks until the fab confirms them."
-        }
-      ],
-      "assumptions": [
-        "The selected fab profile remains the current JLCPCB capability snapshot."
-      ],
-      "risks": [
-        "Soldermask color and HASL lead content remain unresolved §11 items and must be confirmed before ordering."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-safety-scope",
-      "decision_kind": "safety_scope",
-      "subject_nodes": [
-        "sb.gd1"
-      ],
-      "subject_attrs": [
-        "profile",
-        "intended_use",
-        "max_net_voltage_v",
-        "max_current_a"
-      ],
-      "subject_hash": "sha256:cb31d88c2fc96c122ff36b96e89eee3e421912e0f91d254386fb20aba3cbc508",
-      "decision": "Adopt the documented safety.boundary design inputs.",
-      "justification": "GD1-REQ-004/005 define a USB VBUS-only, 5 V and below 500 mA hobby prototype boundary. The boundary excludes battery charging and high-energy actuators so the electrical and manufacturing gates operate within the documented author-prototype scope.",
-      "driving_requirements": [
-        "req.gd1-req-004",
-        "req.gd1-req-005"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Add a battery, charger, or USB-PD negotiation",
-          "reason": "GD1-REQ-004 explicitly excludes those functions from this fixture."
-        },
-        {
-          "option": "Treat the board as a certified product",
-          "reason": "§11 records module certification as unknown and the project is an author prototype, not a certified product."
-        }
-      ],
-      "assumptions": [
-        "The USB source remains within the documented 5 V, sub-500 mA envelope."
-      ],
-      "risks": [
-        "Module certification is unknown; this record does not claim certification or production safety approval."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-net-electrical-limits-1",
-      "decision_kind": "net_class",
-      "subject_nodes": [
-        "net.vbus_5v",
-        "net.gnd",
-        "net.p3v3"
-      ],
-      "subject_attrs": [
-        "voltage_nominal_v",
-        "current_max_a"
-      ],
-      "subject_hash": "sha256:20d0be1235fb92ba579cda7a95493e8e7c125fd6ffdbfb755bf0f95bc6f9fef4",
-      "decision": "Adopt the documented electrical.net design inputs.",
-      "justification": "GD1-REQ-004/005 bound the VBUS and 3.3 V domains, while §8.0 derives width from current and preserves manufacturing margin. Net-class limits keep power, sensor, USB, and ground routing decisions tied to the stated electrical envelope rather than using a single undifferentiated rule.",
-      "driving_requirements": [
-        "req.gd1-req-004",
-        "req.gd1-req-005"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Assign every net the 5 V/500 mA class",
-          "reason": "The requirement distinguishes the 5 V source domain from the 3.3 V and signal domains; a single class would overstate signal requirements and obscure the power constraint."
-        },
-        {
-          "option": "Remove the manufacturing margin from the width basis",
-          "reason": "§6 and §8.0 require the margin to remain explicit so nominal geometry is not mistaken for a guaranteed fab result."
-        }
-      ],
-      "assumptions": [
-        "Net current values are planning limits for the prototype, not measured load characterization."
-      ],
-      "risks": [
-        "Actual load transients and return-current distribution still require electrical review."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-net-electrical-limits-2",
-      "decision_kind": "net_class",
-      "subject_nodes": [
-        "net.cc1",
-        "net.cc2",
-        "net.usb_dn",
-        "net.usb_dp",
-        "net.en",
-        "net.boot",
-        "net.led",
-        "net.led_a",
-        "net.i2c_sda",
-        "net.i2c_scl",
-        "net.uart_tx",
-        "net.uart_rx"
-      ],
-      "subject_attrs": [
-        "voltage_nominal_v",
-        "manufacturing_margin_mm"
-      ],
-      "subject_hash": "sha256:acd96f0b3154ce7dec56196d6aea65a2122244817f5b7ec9830677f27b1582ec",
-      "decision": "Adopt the documented electrical.net design inputs.",
-      "justification": "GD1-REQ-004/005 bound the VBUS and 3.3 V domains, while §8.0 derives width from current and preserves manufacturing margin. Net-class limits keep power, sensor, USB, and ground routing decisions tied to the stated electrical envelope rather than using a single undifferentiated rule.",
-      "driving_requirements": [
-        "req.gd1-req-004",
-        "req.gd1-req-005"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Assign every net the 5 V/500 mA class",
-          "reason": "The requirement distinguishes the 5 V source domain from the 3.3 V and signal domains; a single class would overstate signal requirements and obscure the power constraint."
-        },
-        {
-          "option": "Remove the manufacturing margin from the width basis",
-          "reason": "§6 and §8.0 require the margin to remain explicit so nominal geometry is not mistaken for a guaranteed fab result."
-        }
-      ],
-      "assumptions": [
-        "Net current values are planning limits for the prototype, not measured load characterization."
-      ],
-      "risks": [
-        "Actual load transients and return-current distribution still require electrical review."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-component-population",
-      "decision_kind": "population",
-      "subject_nodes": [
-        "comp.u1",
-        "comp.j1",
-        "comp.u2",
-        "comp.u3",
-        "comp.d1",
-        "comp.sw1",
-        "comp.sw2",
-        "comp.r1",
-        "comp.r2",
-        "comp.r3",
-        "comp.r4",
-        "comp.r5",
-        "comp.r6",
-        "comp.c1",
-        "comp.c2",
-        "comp.c3",
-        "comp.c4",
-        "comp.c5",
-        "comp.c6",
-        "comp.tp1",
-        "comp.tp2",
-        "comp.tp3",
-        "comp.tp4",
-        "comp.tp5",
-        "comp.tp6",
-        "comp.tp7",
-        "comp.h1",
-        "comp.h2",
-        "comp.h3",
-        "comp.h4"
-      ],
-      "subject_attrs": [
-        "value",
-        "footprint",
-        "assembly"
-      ],
-      "subject_hash": "sha256:bc438c5831107b263bf3e4ade8f96f790bef247fda23c04e7a37da8f51b888c8",
-      "decision": "Adopt the documented electrical.component design inputs.",
-      "justification": "§4/§5 define the BOM roles and §9 defines the assembly projection: values and footprints are selected to realize the required USB power path, regulator decoupling, sensor interface, indicator, and mechanical fit, while assembly flags distinguish the populated prototype from optional or test-only entries.",
-      "driving_requirements": [
-        "req.gd1-req-006",
-        "req.gd1-req-007",
-        "req.gd1-req-008",
-        "req.gd1-req-010",
-        "req.gd1-req-011",
-        "req.gd1-req-013"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Populate every library candidate or omit the required support parts",
-          "reason": "§4/§5 require the stated decoupling, CC, pull-up, indicator, and interface functions; changing population would remove a required function or violate the manufacturing projection."
-        },
-        {
-          "option": "Use a footprint without the documented fab/library source",
-          "reason": "§6 and §9 require the selected footprint source and overlay to remain reproducible for fabrication and assembly."
-        }
-      ],
-      "assumptions": [
-        "The BOM source and supplier availability snapshot remain those recorded in the graph provenance."
-      ],
-      "risks": [
-        "Stock and library versions can change; a future order must recheck supplier availability and footprint evidence."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-outline-holes",
-      "decision_kind": "mechanical",
-      "subject_nodes": [
-        "mechanical.outline.gd1"
-      ],
-      "subject_attrs": [
-        "corner_radius_mm",
-        "mount_hole_count",
-        "mount_hole_1_x_mm",
-        "mount_hole_1_y_mm",
-        "mount_hole_1_diameter_mm",
-        "mount_hole_2_x_mm",
-        "mount_hole_2_y_mm",
-        "mount_hole_2_diameter_mm",
-        "mount_hole_3_x_mm",
-        "mount_hole_3_y_mm",
-        "mount_hole_3_diameter_mm",
-        "mount_hole_4_x_mm",
-        "mount_hole_4_y_mm",
-        "mount_hole_4_diameter_mm"
-      ],
-      "subject_hash": "sha256:d6e974fe001d650ddaa98f87a157680a4dc8667901ae6de81a10733f15c3fb1a",
-      "decision": "Adopt the documented mechanical.outline design inputs.",
-      "justification": "GD1-REQ-013 fixes the approximately 30 × 25 mm board envelope and GD1-REQ-014 fixes four shared M2 mounting holes for the milestone enclosure. §8.1/§9 use the rounded outline and hole anchors as the mechanical lane before component placement, so the enclosure and board remain interchangeable.",
-      "driving_requirements": [
-        "req.gd1-req-013",
-        "req.gd1-req-014"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Use a sharp-corner board or a different hole pattern",
-          "reason": "The enclosure is shared with the four M2 anchors and the stated board envelope; changing either would break the mechanical interface."
-        },
-        {
-          "option": "Select high-precision outline tolerance for this small board",
-          "reason": "§6 limits the available precision class for the stated size, so the standard capability is retained instead of claiming an unavailable tolerance."
-        }
-      ],
-      "assumptions": [
-        "The enclosure projection consumes the same four mounting anchors."
-      ],
-      "risks": [
-        "The final fabricated hole position and fit still require the mechanical gate and physical confirmation."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-enclosure-clearance",
-      "decision_kind": "mechanical",
-      "subject_nodes": [
-        "mechanical.enclosure.gd1"
-      ],
-      "subject_attrs": [
-        "min_wall_thickness_mm",
-        "internal_clearance_mm",
-        "standoff_height_mm",
-        "standoff_radius_mm",
-        "lid_fit_gap_mm",
-        "tolerance_mm",
-        "interference_tolerance_mm3"
-      ],
-      "subject_hash": "sha256:54361c3fc38681abd44e58f3bcc1d3a7b0385693375a84f59f25f486d1d3a29d",
-      "decision": "Adopt the documented mechanical.enclosure design inputs.",
-      "justification": "§8.1 and §9 define the enclosure lane around the shared board, four mounting holes, component keepouts, and deterministic CAD tolerances. The wall, clearance, standoffs, lid gap, and interference threshold are chosen to leave assembly room while keeping the enclosure gate sensitive to actual collision rather than visual intent.",
-      "driving_requirements": [
-        "req.gd1-req-014"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Use zero lid gap or wall thickness below the fab/CAD floor",
-          "reason": "Those alternatives would convert normal tolerance into interference and are rejected by the mechanical capability and gate conditions."
-        },
-        {
-          "option": "Accept a nonzero interference volume as cosmetic",
-          "reason": "The gate treats interference as a hard failure because it prevents assembly."
-        }
-      ],
-      "assumptions": [
-        "CAD kernel dimensions remain deterministic for the current fixture."
-      ],
-      "risks": [
-        "The selected tolerances do not replace a physical fit check for a manufactured enclosure."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-connector-openings",
-      "decision_kind": "mechanical",
-      "subject_nodes": [
-        "mechanical.connector_opening.j1"
-      ],
-      "subject_attrs": [
-        "face",
-        "center_x_mm",
-        "center_y_mm",
-        "width_mm",
-        "height_mm",
-        "margin_mm"
-      ],
-      "subject_hash": "sha256:052ae3db764d58320c87eb318d20e6719c0b0109874265f9358ca82395918db5",
-      "decision": "Adopt the documented mechanical.connector_opening design inputs.",
-      "justification": "§5 identifies the USB-C connector as the power and USB access interface, and §8.1/§9 project an opening on the enclosure face around its anchored placement. The opening margin preserves insertion access without allowing the connector cutout to undermine the wall or board datum.",
-      "driving_requirements": [
-        "req.gd1-req-006",
-        "req.gd1-req-013"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Place the connector opening on a different face",
-          "reason": "The USB-C access direction and board anchor in §5/§9 define the usable face; moving it would make the enclosure inaccessible."
-        },
-        {
-          "option": "Use an opening with no edge margin",
-          "reason": "A zero margin would make normal placement/tolerance consume the wall and is rejected by the mechanical gate."
-        }
-      ],
-      "assumptions": [
-        "The selected opening follows the current connector footprint and board placement."
-      ],
-      "risks": [
-        "Connector tolerances and cable fit remain to be confirmed on the physical prototype."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-board-overhang",
-      "decision_kind": "mechanical",
-      "subject_nodes": [
-        "mechanical.board_edge_overhang.u1"
-      ],
-      "subject_attrs": [
-        "edge",
-        "overhang_mm"
-      ],
-      "subject_hash": "sha256:40a0d3d97fac27ef51e2ef634c18ef6538c445c018a6b3abfd5c971533feea0c",
-      "decision": "Adopt the documented mechanical.board_edge_overhang design inputs.",
-      "justification": "GD1-REQ-015 and §8.1 reserve the antenna edge as an intentional board overhang/keepout so the module antenna is not covered by copper, parts, or enclosure material. The overhang is therefore an RF/mechanical interface decision, not an accidental board offset.",
-      "driving_requirements": [
-        "req.gd1-req-015"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Flush the antenna edge with the enclosure wall",
-          "reason": "That would place enclosure material in the reserved antenna region and violate GD1-REQ-015."
-        },
-        {
-          "option": "Use a larger overhang without checking the enclosure",
-          "reason": "The enclosure interface is shared with the board datum, so unsupported overhang would create a new mechanical failure mode."
-        }
-      ],
-      "assumptions": [
-        "The antenna keepout geometry is based on the module guidance recorded in the fixture."
-      ],
-      "risks": [
-        "Module certification and final RF performance remain unverified."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
-      "rationale_id": "gd1-component-bodies",
-      "decision_kind": "placement",
-      "subject_nodes": [
-        "mechanical.component_body.1",
-        "mechanical.component_body.2",
-        "mechanical.component_body.3",
-        "mechanical.component_body.4",
-        "mechanical.component_body.5",
-        "mechanical.component_body.6",
-        "mechanical.component_body.7",
-        "mechanical.component_body.8",
-        "mechanical.component_body.9",
-        "mechanical.component_body.10",
-        "mechanical.component_body.11",
-        "mechanical.component_body.12",
-        "mechanical.component_body.13",
-        "mechanical.component_body.14",
-        "mechanical.component_body.15",
-        "mechanical.component_body.16",
-        "mechanical.component_body.17",
-        "mechanical.component_body.18",
-        "mechanical.component_body.19",
-        "mechanical.component_body.20",
-        "mechanical.component_body.21",
-        "mechanical.component_body.22",
-        "mechanical.component_body.23",
-        "mechanical.component_body.24",
-        "mechanical.component_body.25",
-        "mechanical.component_body.26",
-        "mechanical.component_body.27",
-        "mechanical.component_body.28",
-        "mechanical.component_body.29",
-        "mechanical.component_body.30"
-      ],
-      "subject_attrs": [
-        "body_type",
-        "mounting_side",
-        "x_mm",
-        "y_mm",
-        "rotation_deg"
-      ],
-      "subject_hash": "sha256:c2daf85e6297c516fdf1c9fe4317ae65912c7c934ff986df4dae83d10e6355cd",
-      "decision": "Adopt the documented mechanical.component_body design inputs.",
-      "justification": "§4/§5 component geometry and §9 placement lanes establish body type, mounting side, and orientation before enclosure projection. The placement sequence anchors the antenna, connector, holes, and active components first, then fits passive and test components within the remaining board area while preserving keepouts.",
-      "driving_requirements": [
-        "req.gd1-req-013",
-        "req.gd1-req-015"
-      ],
-      "driving_requirement_refs": [],
-      "rejected_alternatives": [
-        {
-          "option": "Place every body by centroid alone",
-          "reason": "§9 requires anchor-relative placement and keepout checks; centroid-only placement could hide antenna, connector, or enclosure collisions."
-        },
-        {
-          "option": "Flip a body to the opposite assembly side for area",
-          "reason": "GD1-REQ-013 specifies one-sided assembly and §8.1 reserves the opposite side/antenna boundary, so the area shortcut is rejected."
-        }
-      ],
-      "assumptions": [
-        "Body dimensions are datasheet/library facts and are separately exempt from rationale coverage."
-      ],
-      "risks": [
-        "CPL geometry evidence can expose library exceptions; those are not proof that the physical assembly has been manufactured."
-      ],
-      "provenance": {
-        "source": "human",
-        "recorded_at": "2026-08-17T00:00:00Z"
-      },
-      "target_revision": "r1"
-    },
-    {
-      "schema_version": "0.1",
       "rationale_id": "gd1-silk-graphic-design",
       "decision_kind": "silkscreen",
       "subject_nodes": [
@@ -2173,27 +2530,27 @@
         "placement_search_order"
       ],
       "subject_hash": "sha256:1b36b9ca371729859b4d41d0fc291d50e7a3377db4e5d6594525ef23267ec35a",
-      "decision": "Adopt the documented mechanical.silk_graphic design inputs.",
-      "justification": "§12 separates functional labels from branding and uses vector geometry on the declared silk layer. The ordered search and edge margin preserve reproducibility and keep the artwork inside the board while the fab minimum stroke remains measurable by the independent gate.",
+      "decision": "Use vector graphic geometry on the declared silk layer with 0.15 mm stroke, 0.15 mm edge margin, and ordered candidate search.",
+      "justification": "§12 requires vector artwork on the declared silk layer; the graph uses 0.15 mm stroke and 0.15 mm edge margin, with an ordered search rather than arbitrary polygon placement so the result remains reproducible and measurable.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use a bitmap or an unordered polygon search",
-          "reason": "§12 requires vector projection and deterministic candidate order so the artwork can be independently measured and reproduced."
+          "option": "Use raster artwork or 0.10 mm stroke",
+          "reason": "That would violate the vector workflow or the 0.15 mm fab minimum."
         },
         {
-          "option": "Place the graphic at the board edge",
-          "reason": "The declared margin and independent silkscreen gate reject edge overflow and fragile fabrication clearance."
+          "option": "Place the polygon at 0.0 mm edge margin",
+          "reason": "The graph reserves 0.15 mm to keep the artwork inside the board edge."
         }
       ],
       "assumptions": [
-        "The graphic is reviewed as rendered evidence, not as a substitute for the silkscreen gate."
+        "The graphic remains subject to the independent Gerber gate."
       ],
       "risks": [
-        "Artwork readability and branding approval remain separate from geometric acceptance."
+        "Branding readability remains a review concern separate from geometric acceptance."
       ],
       "provenance": {
         "source": "human",
@@ -2225,27 +2582,27 @@
         "placement_safety_margin_mm"
       ],
       "subject_hash": "sha256:8cdbb60ff16212fac58c4dcff9d04714d2523ad3993ab5685aa59da0fc3a6386",
-      "decision": "Adopt the documented mechanical.silk_text design inputs.",
-      "justification": "§12 defines the functional-label and identification split, fab minimum text/stroke constraints, and deterministic candidate order/step/limit. The resolver uses those bounds to reject board-edge, same-side pad, mask, body, and existing-silk conflicts before the independent rendered-geometry gate.",
+      "decision": "Use 1.0 mm text height, 0.15 mm stroke, 0.15 mm board-edge margin, 0.25 mm search step, 8.0 mm limit, 0.15 mm safety margin, and top,bottom,right,left,top_right,bottom_right,bottom_left,top_left order.",
+      "justification": "§12 and the graph use the fab minimum 1.0 mm text height and 0.15 mm stroke, with 0.15 mm edge/safety margin. The resolver advances in 0.25 mm steps up to 8.0 mm and searches in the declared top,bottom,right,left,top_right,bottom_right,bottom_left,top_left order, making rejection and acceptance reproducible.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use the old unrestricted text size or a random candidate order",
-          "reason": "§12 requires measurable fab dimensions and deterministic search order; either alternative would make placement non-reproducible or unreviewable."
+          "option": "Use 0.10 mm stroke or 0.5 mm text",
+          "reason": "Both are below the profiled 0.15 mm stroke and 1.0 mm text minima."
         },
         {
-          "option": "Move an unresolved functional label to the back without evidence",
-          "reason": "§12 requires functional labels to resolve on F.SilkS and fail-closed if no candidate exists."
+          "option": "Use 0.50 mm step or unlimited search",
+          "reason": "The declared 0.25 mm step and 8.0 mm limit provide deterministic resolution and bounded failure."
         }
       ],
       "assumptions": [
-        "The current graph evidence is a resolver summary; final acceptance remains the independent Gerber measurement."
+        "Resolver evidence is supplementary; rendered Gerber measurement remains authoritative."
       ],
       "risks": [
-        "The known silkscreen gate and readability limits can still reject a candidate despite resolver evidence."
+        "Readability or independent silk measurement may still reject a candidate."
       ],
       "provenance": {
         "source": "human",
@@ -2255,56 +2612,227 @@
     },
     {
       "schema_version": "0.1",
-      "rationale_id": "gd1-firmware-net",
-      "decision_kind": "firmware_pin",
+      "rationale_id": "gd1-stackup-board",
+      "decision_kind": "stackup",
       "subject_nodes": [
-        "fw.pin.boot",
-        "fw.pin.i2c_scl",
-        "fw.pin.i2c_sda",
-        "fw.pin.led",
-        "fw.pin.uart_rx",
-        "fw.pin.uart_tx",
-        "fw.pin.usb_dn",
-        "fw.pin.usb_dp"
+        "board.gd1"
       ],
       "subject_attrs": [
-        "net"
+        "layers",
+        "material",
+        "thickness_mm",
+        "copper_oz",
+        "finish"
       ],
-      "subject_hash": "sha256:fd84b41913e6e0238f534a24485ac0530a6714c32a809c129dc2c07ff914e057",
-      "decision": "Adopt the documented firmware.pin_assignment design inputs.",
-      "justification": "§5 pin and net tables define the electrical signal carried by each firmware assignment; recording the net alongside GPIO makes the rationale traceable to the interface rather than only to a number. USB, I2C, LED, BOOT, and UART mappings remain distinct because their requirements and strapping constraints differ.",
+      "subject_hash": "sha256:a5269739b8cf8eaf0262490f8b93f1fb6b8a3b10cf7714ef0cc37830ba1c068a",
+      "decision": "Use a 2-layer FR-4 stackup, 1.6 mm nominal thickness, 1 oz (35 um) copper, and HASL finish.",
+      "justification": "§6 and GD1-REQ-013 select a 2-layer FR-4 prototype. The 1.6 mm board has the declared +/-10% thickness tolerance (1.44-1.76 mm), 1 oz means 35 um outer copper, and HASL follows the profiled prototype process.",
       "driving_requirements": [
-        "req.gd1-req-008",
-        "req.gd1-req-010",
-        "req.gd1-req-011"
+        "req.gd1-req-013",
+        "req.gd1-req-015"
       ],
-      "driving_requirement_refs": [
-        "docs/golden-design-1.md#GD1-REQ-002",
-        "docs/golden-design-1.md#GD1-REQ-003",
-        "docs/golden-design-1.md#GD1-REQ-009",
-        "docs/golden-design-1.md#GD1-REQ-012"
-      ],
+      "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Move a signal to an unused GPIO without reviewing its net function",
-          "reason": "GD1-REQ-008/010/011 and the document pin table assign interface-specific functions and exclude unsafe strapping pins."
-        },
-        {
-          "option": "Treat the GPIO number as sufficient without recording the net",
-          "reason": "The net is the cross-lane identity needed to validate firmware, schematic, and routing consistency."
+          "option": "Use 4 layers or 2.0 mm thickness",
+          "reason": "The documented 2-layer 1.6 mm prototype stackup is sufficient for the 30 x 25 mm board; adding layers or 0.4 mm thickness changes the declared fab lane without a cited need."
         }
       ],
       "assumptions": [
-        "The firmware pin table remains the canonical interface declaration for this fixture."
+        "HASL lead content remains an unresolved §11 manufacturing question."
       ],
       "risks": [
-        "Firmware implementation and runtime behavior are not validated by graph rationale coverage alone."
+        "The +/-10% board-thickness tolerance must be included in enclosure fit review."
       ],
       "provenance": {
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-width-control",
+      "decision_kind": "routing_width",
+      "subject_nodes": [
+        "net.en",
+        "net.boot",
+        "net.led",
+        "net.led_a",
+        "net.i2c_sda",
+        "net.i2c_scl",
+        "net.uart_tx",
+        "net.uart_rx"
+      ],
+      "subject_attrs": [
+        "width_basis"
+      ],
+      "subject_hash": "sha256:29d10e68b50a890903d8352cbafa65043e37e960e243dacfaee8c28c9c876d2a",
+      "decision": "Use manufacturing minimum for reset, boot, LED, I2C, and UART nets.",
+      "justification": "Their basis attributes identify logic or resistor-limited behavior as controlling; §8.0 adopts/measures 0.15 mm, above the 0.10 mm fabrication minimum, without treating low-current signals as power paths.",
+      "driving_requirements": [
+        "req.gd1-req-010",
+        "req.gd1-req-011",
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009",
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ],
+      "rejected_alternatives": [
+        {
+          "option": "Use a power-net basis for every control net",
+          "reason": "The declared width_basis_source identifies logic or resistor-limited behavior."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "LED current remains limited by 1 kΩ."
+      ],
+      "risks": [
+        "Manufacturing width does not guarantee bus timing or noise margin."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-width-power",
+      "decision_kind": "routing_width",
+      "subject_nodes": [
+        "net.vbus_5v",
+        "net.p3v3",
+        "net.gnd"
+      ],
+      "subject_attrs": [
+        "width_basis"
+      ],
+      "subject_hash": "sha256:119261bcf443df29ead65e9a635e897333d30cc36ded477a97acbb9924e5dedd",
+      "decision": "Use IPC-2221 current capacity for power and return nets.",
+      "justification": "GD1-REQ-004/005 limit the domain to 5 V and <500 mA; §8.0 derives 0.115469 mm, adopts/measures 0.15 mm, and treats GND routed segments separately from its filled plane.",
+      "driving_requirements": [
+        "req.gd1-req-004",
+        "req.gd1-req-005",
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use only manufacturing minimum",
+          "reason": "Power current is the controlling constraint in the declared basis."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "1 oz outer copper remains the fabrication condition."
+      ],
+      "risks": [
+        "GND IR-drop is a conservative routed-path bound, not a plane model."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-width-usb",
+      "decision_kind": "routing_width",
+      "subject_nodes": [
+        "net.cc1",
+        "net.cc2",
+        "net.usb_dn",
+        "net.usb_dp"
+      ],
+      "subject_attrs": [
+        "width_basis"
+      ],
+      "subject_hash": "sha256:bed5d617e1f4b94fbdf416fbf97e4fb6c79427f78510e386f65830286b2a2f45",
+      "decision": "Use manufacturing minimum for CC and USB data nets.",
+      "justification": "The basis attributes classify CC and USB D-/D+ as logic, not current-capacity conductors; §8.0 adopts/measures 0.15 mm against the 0.10 mm fabrication minimum.",
+      "driving_requirements": [
+        "req.gd1-req-006",
+        "req.gd1-req-008",
+        "req.gd1-req-013"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Apply the power current width",
+          "reason": "The declared basis says current is not controlling for these logic nets."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "Signals remain in the declared 3.3 V logic domain."
+      ],
+      "risks": [
+        "Width alone does not prove USB signal integrity."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-body-position-led",
+      "decision_kind": "placement",
+      "subject_nodes": [
+        "mechanical.component_body.5"
+      ],
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:e464bef807faef7539ff0547dd924f6e68d747616380ea4e7306161e1d0f24c9",
+      "decision": "Place the LED body at its declared coordinate.",
+      "justification": "§8.1 is the source-of-truth mechanical declaration for the LED x/y/rotation value; Phase 1 placement and KiCad runtime state are not read back to fill this record. The LED group aligns with the indicator lane and remains consistent with the board edge, enclosure, and silk clearance constraints.",
+      "driving_requirements": [
+        "req.gd1-req-013",
+        "req.gd1-req-015"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use routed-board or runtime coordinates as the rationale source",
+          "reason": "The mechanical lane must remain a declared, reviewable input from §8.1 rather than an accidental generated state."
+        },
+        {
+          "option": "Move the group without rechecking its interface",
+          "reason": "That would break the declared relationship to the power, sensor, and indicator lanes."
+        }
+      ],
+      "assumptions": [
+        "Mechanical coordinates remain explicit source declarations."
+      ],
+      "risks": [
+        "Manufactured fit and final clearance require the independent mechanical gate."
+      ],
+      "provenance": {
+        "source": "human",
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1",
+      "no_alternatives_reason": null
     }
   ]
 }

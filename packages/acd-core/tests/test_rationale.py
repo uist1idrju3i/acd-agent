@@ -2,12 +2,25 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 
 from acd_core.rationale import check_rationale_coverage, subject_hash_for
 from acd_schema import DesignGraph, RationaleDocument
+
+
+def test_gd1_rationale_decisions_and_justifications_are_unique() -> None:
+    fixture = Path(__file__).parents[3] / "fixtures/golden-design-1/rationale.json"
+    records = json.loads(fixture.read_text(encoding="utf-8"))["records"]
+
+    decisions = [record["decision"] for record in records]
+    justifications = [record["justification"] for record in records]
+
+    assert len(decisions) == len(set(decisions))
+    assert len(justifications) == len(set(justifications))
 
 
 def _graph() -> DesignGraph:
