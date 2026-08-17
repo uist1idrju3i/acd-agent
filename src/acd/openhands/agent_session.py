@@ -17,7 +17,9 @@ from openhands.sdk.hooks import HookConfig
 from openhands.sdk.llm.utils.metrics import Metrics
 from openhands.sdk.plugin import PluginSource
 from openhands.sdk.security import ConfirmRisky, SecurityRisk
+from openhands.sdk.subagent import AgentDefinition
 from openhands.sdk.tool import Tool
+from openhands.tools.task import TaskToolSet
 
 from acd.openhands.gate_critic import AcdGateCritic, GateRequirement
 from acd.openhands.plugin_distribution import validate_plugin_source
@@ -37,6 +39,7 @@ def build_acd_conversation(
     plugin_root: Path | None = None,
     plugin_source: PluginSource | None = None,
     tools: list[Tool] | None = None,
+    tool_concurrency_limit: int = 1,
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
     stuck_detection_thresholds: (
@@ -51,6 +54,8 @@ def build_acd_conversation(
     hooks_path = hooks_path or plugin_root / "hooks" / "hooks.json"
     design_graph_path = design_graph_path or Path("fixtures/golden-design-1/graph.json")
     skills = load_acd_skills(plugin_root / "skills")
+    hook_config = HookConfig.load(hooks_path)
+    validate_acd_agent_hooks(plugin_root / "agents", hook_config)
 
     register_acd_tools()
     critic = AcdGateCritic(
@@ -68,12 +73,12 @@ def build_acd_conversation(
     )
     agent = Agent(
         llm=llm,
-        tools=tools or [],
+        tools=tools if tools is not None else [Tool(name=TaskToolSet.name)],
         critic=critic,
         condenser=LLMSummarizingCondenser(llm=llm),
         agent_context=agent_context,
+        tool_concurrency_limit=tool_concurrency_limit,
     )
-    hook_config = HookConfig.load(hooks_path)
     selected_plugin = plugin_source or PluginSource(source=str(plugin_root))
     conversation = LocalConversation(
         agent=agent,
@@ -90,6 +95,43 @@ def build_acd_conversation(
         ConfirmRisky(threshold=SecurityRisk.MEDIUM)
     )
     return conversation
+
+
+def _hook_commands(hook_config: HookConfig) -> dict[str, str]:
+    commands: dict[str, str] = {}
+    for matchers in (hook_config.pre_tool_use, hook_config.stop):
+        for matcher in matchers:
+            for hook in matcher.hooks:
+                if hook.name is not None:
+                    commands[hook.name] = hook.command
+    return commands
+
+
+def validate_acd_agent_hooks(
+    agent_dir: Path,
+    hook_config: HookConfig,
+) -> list[AgentDefinition]:
+    if not agent_dir.is_dir():
+        return []
+    required = {
+        "protect-derived-projections",
+        "require-order-evidence",
+        "require-gate-after-input-change",
+    }
+    expected = _hook_commands(hook_config)
+    definitions: list[AgentDefinition] = []
+    for agent_path in sorted(agent_dir.glob("acd-*.md")):
+        definition = AgentDefinition.load(agent_path)
+        if definition.hooks is None:
+            raise ValueError(f"agent definition has no hooks: {agent_path}")
+        actual = _hook_commands(definition.hooks)
+        if any(
+            name not in actual or actual[name] != expected.get(name)
+            for name in required
+        ):
+            raise ValueError(f"agent definition hooks drifted: {agent_path}")
+        definitions.append(definition)
+    return definitions
 
 
 def write_conversation_metrics(metrics: Metrics, path: Path) -> None:

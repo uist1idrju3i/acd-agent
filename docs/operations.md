@@ -111,6 +111,12 @@ Goal loopはSDK `GoalController`をACD側のdriverから再利用する。SIGINT
 記録する。`goal_result`と`conversation_stats`は`pass_evidence=false`の観測成果物であり、
 judgeのcomplete評決や統計値を合否へ使わない。
 
+lane並列は`tool_concurrency_limit`で設定し、既定値は1（直列）とする。2以上を指定する
+場合は、ACD toolの`declared_resources()`が返す資源keyを経由して共有入力・出力を
+直列化する。資源宣言やpath解決に失敗したtoolは宣言不能としてtool単位のmutexへ
+fail-closedに倒す。task/delegateはhook付きAgentDefinitionに限定し、sub-agentの結果を
+Evidenceへ昇格しない。workflowの採否は別途判断する。
+
 外部利用者が配布版を読み込む場合は、branch名ではなく不変refを指定する。
 commit SHAは40桁で、release tagは`v<semver>`形式にする。
 

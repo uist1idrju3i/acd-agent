@@ -11,6 +11,7 @@ tools:
   - grep
   - glob
   - task_tracker
+  - task
 skills:
   - acd-contracts
   - acd-cad-determinism-probe
@@ -18,6 +19,23 @@ skills:
 max_iteration_per_run: 12
 max_budget_per_run: 2.0
 permission_mode: confirm_risky
+hooks:
+  pre_tool_use:
+    - matcher: file_editor|apply_patch|terminal
+      hooks:
+        - type: command
+          name: protect-derived-projections
+          command: "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/protect_projections.py"
+    - matcher: terminal
+      hooks:
+        - type: command
+          name: require-order-evidence
+          command: "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/order_policy.py"
+  stop:
+    - hooks:
+        - type: command
+          name: require-gate-after-input-change
+          command: "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/stop_policy.py"
 ---
 
 # Mechanical lane agent

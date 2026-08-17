@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Self, cast
 from openhands.sdk.llm import TextContent
 from openhands.sdk.tool import (
     Action,
+    DeclaredResources,
     Observation,
     ToolAnnotations,
     ToolDefinition,
@@ -56,6 +57,13 @@ def _envelopes(out_dir: Path) -> list[dict[str, Any]]:
         }.issubset(cast(dict[str, Any], value)):
             envelopes.append({"path": str(path), "envelope": value})
     return envelopes
+
+
+def _resolved_resource_path(raw_path: str) -> Path | None:
+    try:
+        return Path(raw_path).expanduser().resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
 
 
 class AcdObservation(Observation):
@@ -321,6 +329,10 @@ class AcdRunEnclosurePipelineExecutor(
 
 
 class AcdProbeTools(ToolDefinition[AcdProbeToolsAction, AcdProbeToolsObservation]):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        del action
+        return DeclaredResources(keys=(), declared=True)
+
     @classmethod
     def create(
         cls,
@@ -350,6 +362,14 @@ class AcdProbeTools(ToolDefinition[AcdProbeToolsAction, AcdProbeToolsObservation
 class AcdValidateDesignGraph(
     ToolDefinition[AcdValidateDesignGraphAction, AcdValidateDesignGraphObservation]
 ):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdValidateDesignGraphAction):
+            return DeclaredResources(keys=(), declared=False)
+        path = _resolved_resource_path(action.path)
+        if path is None:
+            return DeclaredResources(keys=(), declared=False)
+        return DeclaredResources(keys=(f"file:{path}",), declared=True)
+
     @classmethod
     def create(
         cls,
@@ -379,6 +399,20 @@ class AcdValidateDesignGraph(
 class AcdRunBoardPipeline(
     ToolDefinition[AcdRunBoardPipelineAction, AcdRunBoardPipelineObservation]
 ):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRunBoardPipelineAction):
+            return DeclaredResources(keys=(), declared=False)
+        graph_path = _resolved_resource_path(
+            str(Path(action.fixture) / "graph.json")
+        )
+        out_path = _resolved_resource_path(action.out)
+        if graph_path is None or out_path is None:
+            return DeclaredResources(keys=(), declared=False)
+        return DeclaredResources(
+            keys=(f"file:{graph_path}", f"acd-out:{out_path}"),
+            declared=True,
+        )
+
     @classmethod
     def create(
         cls,
@@ -408,6 +442,20 @@ class AcdRunBoardPipeline(
 class AcdRunEnclosurePipeline(
     ToolDefinition[AcdRunEnclosurePipelineAction, AcdRunEnclosurePipelineObservation]
 ):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRunEnclosurePipelineAction):
+            return DeclaredResources(keys=(), declared=False)
+        graph_path = _resolved_resource_path(
+            str(Path(action.fixture) / "graph.json")
+        )
+        out_path = _resolved_resource_path(action.out)
+        if graph_path is None or out_path is None:
+            return DeclaredResources(keys=(), declared=False)
+        return DeclaredResources(
+            keys=(f"file:{graph_path}", f"acd-out:{out_path}"),
+            declared=True,
+        )
+
     @classmethod
     def create(
         cls,

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import threading
 from pathlib import Path
 from typing import Any
 
 import pytest
-from openhands.sdk.tool import list_registered_tools
+from openhands.sdk.agent.parallel_executor import ResourceLockManager
+from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
 import acd.openhands.sdk_tools as sdk_tools
 from acd.openhands.sdk_tools import (
@@ -97,6 +99,101 @@ def test_validate_design_graph_missing_path_is_fail_closed(tmp_path: Path) -> No
     assert result.failure_reason is not None
     assert result.failure_reason in result.to_llm_content[0].text
     assert "not pass evidence" in result.to_llm_content[0].text.lower()
+
+
+def test_acd_tools_declare_shared_resources_and_probe_is_read_only(
+    tmp_path: Path,
+) -> None:
+    graph = tmp_path / "fixture" / "graph.json"
+    board_out = tmp_path / "board-out"
+    enclosure_out = tmp_path / "enclosure-out"
+    fixture = graph.parent
+    board_action = AcdRunBoardPipelineAction(
+        fixture=str(fixture),
+        out=str(board_out),
+    )
+    enclosure_action = AcdRunEnclosurePipelineAction(
+        fixture=str(fixture),
+        out=str(enclosure_out),
+    )
+
+    probe_resources = AcdProbeTools.create()[0].declared_resources(
+        AcdProbeToolsAction()
+    )
+    assert probe_resources.declared is True
+    assert probe_resources.keys == ()
+
+    validate_resources = AcdValidateDesignGraph.create()[0].declared_resources(
+        AcdValidateDesignGraphAction(path=str(graph))
+    )
+    assert validate_resources.keys == (f"file:{graph.resolve()}",)
+
+    board_resources = AcdRunBoardPipeline.create()[0].declared_resources(
+        board_action
+    )
+    assert board_resources.keys == (
+        f"file:{graph.resolve()}",
+        f"acd-out:{board_out.resolve()}",
+    )
+    enclosure_resources = AcdRunEnclosurePipeline.create()[0].declared_resources(
+        enclosure_action
+    )
+    assert enclosure_resources.keys == (
+        f"file:{graph.resolve()}",
+        f"acd-out:{enclosure_out.resolve()}",
+    )
+
+
+def test_acd_tool_resource_resolution_failure_serializes() -> None:
+    action = AcdValidateDesignGraphAction(path="\x00")
+    resources = AcdValidateDesignGraph.create()[0].declared_resources(action)
+    assert resources.declared is False
+
+
+def test_same_output_resource_is_serialized_by_parallel_executor(
+    tmp_path: Path,
+) -> None:
+    fixture = tmp_path / "fixture"
+    action = AcdRunBoardPipelineAction(
+        fixture=str(fixture),
+        out=str(tmp_path / "out"),
+    )
+    entered = threading.Event()
+    release = threading.Event()
+    active = 0
+    max_active = 0
+    active_lock = threading.Lock()
+
+    board_tool: ToolDefinition[
+        AcdRunBoardPipelineAction, AcdRunBoardPipelineObservation
+    ] = AcdRunBoardPipeline.create()[0]
+    resources = board_tool.declared_resources(action)
+    assert resources.declared is True
+    keys = list(resources.keys)
+    lock_manager = ResourceLockManager()
+
+    def runner() -> None:
+        nonlocal active, max_active
+        with lock_manager.lock(*keys):
+            with active_lock:
+                active += 1
+                max_active = max(max_active, active)
+            entered.set()
+            assert release.wait(timeout=5)
+            with active_lock:
+                active -= 1
+
+    workers = [threading.Thread(target=runner) for _ in range(2)]
+    for worker in workers:
+        worker.start()
+    assert entered.wait(timeout=5)
+    with active_lock:
+        assert max_active == 1
+    release.set()
+    for worker in workers:
+        worker.join(timeout=5)
+        assert not worker.is_alive()
+    assert max_active == 1
 
 
 def test_validate_design_graph_valid_and_invalid(tmp_path: Path) -> None:

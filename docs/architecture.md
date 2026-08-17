@@ -113,6 +113,10 @@ Conversationの`stuck_detection=True`と`StuckDetectionThresholds`は停止・�
 `GoalController`を再利用したACD goal loopと`LocalConversation.interrupt()`へのSIGINT結線も
 L2の停止・再試行層として扱う。`ConversationStats`はL3観測に限定し、goalのjudge評決と
 ともにauthoritative Evidenceの合否へ影響させない。
+lane並列は`Agent.tool_concurrency_limit`で明示的に有効化する。ACD toolの資源宣言不能時は
+SDKの既定どおりtool単位のmutexで直列化する。task/delegateのsub-agentは親hookを継承
+しないため、5つのACD AgentDefinitionへ同じ必須hookを明記し、SDKがロードした
+`HookConfig`を決定論的に照合する。workflowの採否は別途判断する。
 
 ## SDK ToolDefinition境界
 

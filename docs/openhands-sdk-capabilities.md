@@ -29,9 +29,9 @@
 | sdk.context.memory | `MEMORY.md` memory | 作業文脈の補助 | 採用予定 | 契約・合否の正にしない前提で採用 | 未検証 |
 | sdk.context.prompts | `Prompt`, `PromptSection`, preset/registry/section、static/dynamic/planning | role別prompt構造化 | 採用予定 | prompt hashと資材固定を条件に採用 | 未検証 |
 | sdk.context.view | context/event view properties | 長時間sessionの表示 | 採用予定 | 原EventLogと照合し、Evidenceを置換しない | 未検証 |
-| sdk.agent.parallel_executor | `ParallelToolExecutor` | agent lane並列化 | 採用予定 | 固定順集約と共有resource宣言を条件に採用 | 未検証 |
-| sdk.tools.task | `TaskToolSet` | task分離 | 採用予定 | 主会話の汚染を減らすが合否権限なし | 未検証 |
-| sdk.tools.delegate | `DelegateExecutor`, `delegate`, `spawn` | sub-agent調整 | 採用予定 | resource lockと停止側権限を条件に採用 | 未検証 |
+| sdk.agent.parallel_executor | `ParallelToolExecutor` | agent lane並列化 | 採用 | `Agent.tool_concurrency_limit`経由で使用し、資源宣言不能時は直列化 | `tests/openhands/test_sdk_tools.py` |
+| sdk.tools.task | `TaskToolSet` | task分離 | 採用 | hook付きACD agent定義へ限定し、合否権限なし | `tests/openhands/test_agent_session.py` |
+| sdk.tools.delegate | `DelegateExecutor`, `delegate`, `spawn` | sub-agent調整 | 採用 | SDKのTask実行経路で使用し、hookと確認方針を境界にする | `tests/openhands/test_agent_session.py` |
 | sdk.tools.workflow | `WorkflowToolSet`, `map_agents`, `reduce_agent`, `pipeline` | lane並列化のmap/reduce | 採用予定 | 電気・機械・FW laneの並列化に限り、決定論的探索と投影の意味的mergeは委譲しない | 未検証 |
 | sdk.conversation.goal | `GoalController`, `GoalVerdict` | 反復停止の補助 | 採用 | L2停止側に限り、L1合否を置換しない | `tests/openhands/test_goal_loop.py` |
 | sdk.conversation.stuck_detector | `StuckDetector`, `StuckDetectionThresholds` | 停滞時の差し戻し | 採用 | `LocalConversation(stuck_detection=True)`へ既定値・閾値を渡す | conversation wiring回帰 |

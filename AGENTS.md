@@ -73,6 +73,9 @@ Conversationにはpinned SDKの`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
 Skill資材の読み込み失敗はfail-closedとし、既存のorder guard、projection保護、
 stop policy hookを置換しない。GoalControllerとconversation cancellationは同じL2停止境界で
 再利用し、ConversationStatsはL3観測に限定する。goal結果やjudge評決をEvidenceへ昇格しない。
+lane並列は`tool_concurrency_limit`を明示した場合だけ有効化し、資源宣言不能時は
+SDKのmutexによる直列化へ倒す。task/delegateのsub-agentは親hookを継承しないため、
+ACD AgentDefinitionへ必須hookを明記し、SDKロード結果を検査する。
 
 ## 依存とsubmodule
 

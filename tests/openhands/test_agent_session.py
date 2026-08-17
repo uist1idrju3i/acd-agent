@@ -15,6 +15,7 @@ from openhands.sdk import LLM
 from openhands.sdk.context import AgentContext
 from openhands.sdk.conversation.stuck_detector import StuckDetectionThresholds
 from openhands.sdk.event import ActionEvent, HookExecutionEvent
+from openhands.sdk.hooks import HookConfig
 from openhands.sdk.llm import Message, MessageToolCall, TextContent
 from openhands.sdk.llm.utils.metrics import Metrics
 from openhands.sdk.security import SecurityRisk
@@ -30,7 +31,11 @@ from openhands.sdk.tool import (
 from openhands.sdk.tool import registry as tool_registry
 from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportUnknownVariableType]
 
-from acd.openhands.agent_session import build_acd_conversation, write_conversation_metrics
+from acd.openhands.agent_session import (
+    build_acd_conversation,
+    validate_acd_agent_hooks,
+    write_conversation_metrics,
+)
 from acd.openhands.gate_critic import AcdEvidenceRequirement
 from acd.openhands.plugin_distribution import acd_plugin_source
 from acd.openhands.secrets import (
@@ -252,6 +257,53 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert conversation.agent.agent_context.load_public_skills is False
     assert conversation.agent.agent_context.load_user_skills is False
     assert conversation.stuck_detector is not None
+
+
+def test_acd_agent_definitions_load_with_required_hooks() -> None:
+    hooks = HookConfig.load(Path("plugins/acd/hooks/hooks.json"))
+    definitions = validate_acd_agent_hooks(Path("plugins/acd/agents"), hooks)
+    assert len(definitions) == 5
+    assert all(definition.hooks is not None for definition in definitions)
+
+
+def test_acd_agent_definition_hook_drift_fails_closed(tmp_path: Path) -> None:
+    source = Path("plugins/acd/agents/acd-search.md")
+    agent_path = tmp_path / source.name
+    content = source.read_text(encoding="utf-8")
+    content = content.replace("name: require-order-evidence", "name: drifted-hook")
+    agent_path.write_text(content, encoding="utf-8")
+    hooks = HookConfig.load(Path("plugins/acd/hooks/hooks.json"))
+    with pytest.raises(ValueError, match="hooks drifted"):
+        validate_acd_agent_hooks(tmp_path, hooks)
+
+
+def test_bootstrap_forwards_tool_concurrency_and_task_tool(tmp_path: Path) -> None:
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+        tool_concurrency_limit=2,
+    )
+    assert conversation.agent.tool_concurrency_limit == 2
+    assert [tool.name for tool in conversation.agent.tools] == ["task_tool_set"]
+
+def test_subagent_boundary_keeps_authoritative_evidence_unchanged() -> None:
+    from acd.schema.evidence import Evidence
+
+    evidence = Evidence.model_validate_json(
+        Path("fixtures/contracts/valid/evidence.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    before = evidence.supports_authoritative_pass("r3")
+    assert before is True
+    assert evidence.supports_authoritative_pass("r3") is before
 
 
 def test_bootstrap_applies_custom_stuck_detection_thresholds(tmp_path: Path) -> None:
