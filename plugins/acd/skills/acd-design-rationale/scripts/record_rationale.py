@@ -8,38 +8,93 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, TypedDict, cast
+from typing import TypeGuard
 
-# pyright: reportUnknownVariableType=false,reportUnknownMemberType=false,reportUnknownArgumentType=false,reportUnnecessaryIsInstance=false,reportUnnecessaryCast=false,reportGeneralTypeIssues=false
-
-
-class GraphNode(TypedDict):
-    id: str
-    attrs: dict[str, Any]
-
-
-class RationaleRecord(TypedDict, total=False):
-    rationale_id: str
-    subject_nodes: list[str]
-    subject_attrs: list[str]
-    driving_requirements: list[str]
-    driving_requirement_refs: list[str]
+JsonValue = (
+    None
+    | bool
+    | float
+    | int
+    | str
+    | list["JsonValue"]
+    | dict[str, "JsonValue"]
+)
+JsonObject = dict[str, JsonValue]
 
 
-class RationaleDocument(TypedDict):
-    schema_version: str
-    graph_id: str
-    revision: str
-    records: list[RationaleRecord]
+def _is_json_value(value: object) -> TypeGuard[JsonValue]:
+    if value is None or isinstance(value, (bool, float, int, str)):
+        return True
+    if isinstance(value, list):
+        for item in value:  # pyright: ignore[reportUnknownVariableType]
+            item_value: object = item  # pyright: ignore[reportUnknownVariableType]
+            if not _is_json_value(  # pyright: ignore[reportUnknownArgumentType]
+                item_value  # pyright: ignore[reportUnknownArgumentType]
+            ):
+                return False
+        return True
+    if isinstance(value, dict):
+        for key in value:  # pyright: ignore[reportUnknownVariableType]
+            key_value: object = key  # pyright: ignore[reportUnknownVariableType]
+            item_value: object = value[key]  # pyright: ignore[reportUnknownVariableType]
+            if not isinstance(key_value, str) or not _is_json_value(  # pyright: ignore[reportUnknownArgumentType]
+                item_value  # pyright: ignore[reportUnknownArgumentType]
+            ):
+                return False
+        return True
+    return False
 
 
-def subject_hash(graph: dict[str, Any], nodes: list[str], attrs: list[str]) -> str:
-    by_id = {cast(GraphNode, node)["id"]: cast(GraphNode, node) for node in graph["nodes"]}
-    values = []
+def _load_json(path: Path) -> JsonValue:
+    value: object = json.loads(path.read_text(encoding="utf-8"))
+    if not _is_json_value(value):
+        raise ValueError(f"JSON value is not supported: {path}")
+    return value
+
+
+def _object(value: JsonValue, name: str) -> JsonObject:
+    if not isinstance(value, dict):
+        raise ValueError(f"{name} must be a JSON object")
+    return value
+
+
+def _string_list(value: JsonValue | None, name: str) -> list[str]:
+    if not isinstance(value, list) or not value or not all(
+        isinstance(item, str) for item in value
+    ):
+        raise ValueError(f"{name} must be a non-empty string list")
+    result: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            result.append(item)
+    return result
+
+
+def _objects(value: JsonValue | None, name: str) -> list[JsonObject]:
+    if not isinstance(value, list) or not all(isinstance(item, dict) for item in value):
+        raise ValueError(f"{name} must be a JSON object list")
+    result: list[JsonObject] = []
+    for item in value:
+        if isinstance(item, dict):
+            result.append(item)
+    return result
+
+
+def subject_hash(graph: JsonObject, nodes: list[str], attrs: list[str]) -> str:
+    graph_nodes = _objects(graph.get("nodes"), "graph.nodes")
+    by_id: dict[str, JsonObject] = {}
+    for node in graph_nodes:
+        node_id = node.get("id")
+        if not isinstance(node_id, str):
+            raise ValueError("graph node id must be a string")
+        by_id[node_id] = node
+
+    values: list[list[JsonValue]] = []
     for node_id in sorted(nodes):
-        if node_id not in by_id:
+        node = by_id.get(node_id)
+        if node is None:
             raise ValueError(f"subject node does not exist: {node_id}")
-        node_attrs = by_id[node_id].get("attrs", {})
+        node_attrs = _object(node.get("attrs"), f"attrs for {node_id}")
         for attr in sorted(attrs):
             if attr not in node_attrs:
                 raise ValueError(f"subject attribute does not exist: {node_id}.{attr}")
@@ -57,35 +112,21 @@ def main() -> int:
     parser.add_argument("--record", type=Path, required=True)
     args = parser.parse_args()
     try:
-        graph = cast(dict[str, Any], json.loads(args.graph.read_text(encoding="utf-8")))
-        document = cast(
-            RationaleDocument, json.loads(args.rationale.read_text(encoding="utf-8"))
-        )
-        record = cast(RationaleRecord, json.loads(args.record.read_text(encoding="utf-8")))
-        if not isinstance(record, dict):
-            raise ValueError("record must be a JSON object")
-        nodes = cast(list[str], record.get("subject_nodes"))
-        attrs = cast(list[str], record.get("subject_attrs"))
-        if not isinstance(nodes, list) or not nodes or not all(
-            isinstance(value, str) for value in nodes
-        ):
-            raise ValueError("subject_nodes must be a non-empty string list")
+        graph = _object(_load_json(args.graph), "graph")
+        document = _object(_load_json(args.rationale), "rationale document")
+        record = _object(_load_json(args.record), "record")
+        nodes = _string_list(record.get("subject_nodes"), "subject_nodes")
+        attrs = _string_list(record.get("subject_attrs"), "subject_attrs")
         if len(nodes) != len(set(nodes)):
             raise ValueError("subject_nodes must not contain duplicates")
-        if not isinstance(attrs, list) or not attrs or not all(
-            isinstance(value, str) for value in attrs
-        ):
-            raise ValueError("subject_attrs must be a non-empty string list")
         if len(attrs) != len(set(attrs)):
             raise ValueError("subject_attrs must not contain duplicates")
-        existing = cast(list[RationaleRecord], document.get("records"))
-        if not isinstance(existing, list):
-            raise ValueError("rationale records must be a list")
+        existing = _objects(document.get("records"), "rationale records")
         covered = {
-            (node_id, attr)
+            (old_node, old_attr)
             for old in existing
-            for node_id in cast(list[str], old.get("subject_nodes", []))
-            for attr in cast(list[str], old.get("subject_attrs", []))
+            for old_node in _string_list(old.get("subject_nodes"), "subject_nodes")
+            for old_attr in _string_list(old.get("subject_attrs"), "subject_attrs")
         }
         duplicate = [
             (node_id, attr)
@@ -95,10 +136,16 @@ def main() -> int:
         ]
         if duplicate:
             raise ValueError(f"duplicate rationale coverage: {duplicate}")
+        revision = graph.get("revision")
+        if not isinstance(revision, str):
+            raise ValueError("graph revision must be a string")
         record["subject_hash"] = subject_hash(graph, nodes, attrs)
-        record["target_revision"] = graph["revision"]
+        record["target_revision"] = revision
         original = args.rationale.read_text(encoding="utf-8")
-        document["records"].append(record)
+        existing.append(record)
+        records_value: list[JsonValue] = []
+        records_value.extend(existing)
+        document["records"] = records_value
         args.rationale.write_text(
             json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
@@ -106,7 +153,9 @@ def main() -> int:
         repo_root = Path(__file__).resolve().parents[5]
         check = subprocess.run(
             [
-                sys.executable,
+                "uv",
+                "run",
+                "python",
                 str(repo_root / "scripts/check_rationale.py"),
                 "--graph",
                 str(args.graph),
@@ -122,7 +171,8 @@ def main() -> int:
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         print(f"rationale record failed closed: {exc}", file=sys.stderr)
         return 2
-    print(f"appended rationale record: {record.get('rationale_id', '<unknown>')}")
+    rationale_id = record.get("rationale_id", "<unknown>")
+    print(f"appended rationale record: {rationale_id}")
     return 0
 
 

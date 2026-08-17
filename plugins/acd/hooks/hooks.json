@@ -1,11 +1,11 @@
 {
   "PostToolUse": [
     {
-      "matcher": "FileEditorTool",
+      "matcher": "file_editor",
       "hooks": [
         {
           "type": "command",
-          "command": "scripts/check_rationale.py --if-present --warn-only"
+          "command": "uv run python scripts/check_rationale.py --if-present --warn-only"
         }
       ]
     }
@@ -16,7 +16,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "scripts/check_rationale.py --if-present"
+          "command": "uv run python scripts/check_rationale.py --if-present"
         }
       ]
     }

@@ -49,10 +49,12 @@ fixture生成で利用する場合も、ACD本体からSkillのPython moduleをi
 subprocess実行して結果を設計入力へ確定する。scriptのsha256とSkill名をprovenanceへ
 記録し、入力不備や実行失敗はfail-closedとする。
 
-設計入力の編集後は実装済みの`PostToolUse` hookがrationale不足を警告し、`Stop` hookが
-`scripts/check_rationale.py --if-present`を実行する。exit code 2の不足・parse失敗・
-staleは停止をブロックする。Conversationの永続ログはconversation event referenceとして
-参照するだけで、rationaleや合否の権威ではない。
+設計入力の編集後は実装済みの`PostToolUse` hookが`file_editor`に対して
+`uv run python scripts/check_rationale.py --if-present --warn-only`を実行し、
+rationale不足を警告する。`Stop` hookは
+`uv run python scripts/check_rationale.py --if-present`を実行する。exit code 2の不足・
+parse失敗・staleは停止をブロックする。Conversationの永続ログはconversation event
+referenceとして参照するだけで、rationaleや合否の権威ではない。
 
 ## AgentDefinition
 
