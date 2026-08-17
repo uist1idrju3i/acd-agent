@@ -118,7 +118,7 @@ def test_ink_beyond_attribution_upper_bound_fails_closed() -> None:
 def test_descender_text_uses_extended_orthogonal_upper_bound() -> None:
     _, descender_height = _text_model_size("golden", 1.0, 0.15)
     _, uppercase_height = _text_model_size("BOOT", 1.0, 0.15)
-    assert descender_height == pytest.approx(1.4)
+    assert descender_height == pytest.approx(1.6)
     assert uppercase_height == pytest.approx(1.15)
 
 

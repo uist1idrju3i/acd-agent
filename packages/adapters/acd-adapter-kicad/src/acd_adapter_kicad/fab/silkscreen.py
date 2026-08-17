@@ -187,9 +187,10 @@ def _gerber_silk_objects(path: Path, layer: str) -> tuple[_SilkObject, ...]:
 SILK_TEXT_ADVANCE_RATIO = 0.95
 SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS = 1.0
 SILK_TEXT_DESCENDER_CHARS = frozenset("gjpqy")
-# KiCad stroke-font measurements showed descender ink about 1.238 times the
-# nominal height; 1.25 is a deterministic upper bound for g/j/p/q/y.
-SILK_TEXT_DESCENDER_HEIGHT_RATIO = 1.25
+# KiCad stroke-font measurements showed 1.483 mm of orthogonal ink at height
+# 1.0 mm (1.333 times height without stroke); 1.45 is an upper bound for
+# descenders in g/j/p/q/y with about 8% margin.
+SILK_TEXT_DESCENDER_HEIGHT_RATIO = 1.45
 
 
 def _text_model_size(

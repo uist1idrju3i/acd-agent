@@ -18,7 +18,7 @@ def main() -> int:
     parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
     parser.add_argument("--out", type=Path, default=Path("out/gd1-silkscreen-resolve"))
     parser.add_argument("--fab-profile", type=Path, default=DEFAULT_PROFILE)
-    parser.add_argument("--max-iterations", type=int, default=3)
+    parser.add_argument("--max-iterations", type=int, default=5)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     try:

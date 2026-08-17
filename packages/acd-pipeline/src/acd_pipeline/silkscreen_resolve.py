@@ -106,7 +106,7 @@ def resolve_silkscreen(
     fixture_dir: Path,
     out_dir: Path,
     fab_profile_path: Path = FAB_PROFILE,
-    max_iterations: int = 3,
+    max_iterations: int = 5,
 ) -> dict[str, object]:
     """Run bounded projection/measurement/Skill iterations fail-closed."""
     if max_iterations <= 0:
