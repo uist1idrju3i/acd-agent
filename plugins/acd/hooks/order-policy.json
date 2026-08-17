@@ -1,13 +1,44 @@
 {
-  "commands": [
-    "git push",
-    "curl ",
-    "wget ",
-    "scp ",
-    "rsync ",
-    "gh release",
-    "kicad-cli fab",
-    "python scripts/order"
+  "transmission_commands": [
+    "curl",
+    "wget",
+    "scp",
+    "rsync"
   ],
-  "evidence": "out/evidence"
+  "artifact_paths": [
+    "out/**/*.zip",
+    "out/**/*.gbr",
+    "out/**/*.ger",
+    "out/**/*.drl",
+    "out/**/*.xln",
+    "out/**/*.csv",
+    "out/**/*.step",
+    "out/**/*.stp",
+    "out/**/*.3mf",
+    "out/**/*.kicad_pcb",
+    "out/**/*.kicad_sch",
+    "out/**/*.kicad_pro"
+  ],
+  "artifact_suffixes": [
+    ".zip",
+    ".gbr",
+    ".ger",
+    ".drl",
+    ".xln",
+    ".csv",
+    ".step",
+    ".stp",
+    ".3mf",
+    ".kicad_pcb",
+    ".kicad_sch",
+    ".kicad_pro"
+  ],
+  "order_commands": [
+    "scripts/order",
+    "supplier-order"
+  ],
+  "evidence_paths": "out/**/evidence-*.json",
+  "required_evidence_ids": [
+    "evidence.gd1.mechanical"
+  ]
 }

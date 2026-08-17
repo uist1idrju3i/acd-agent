@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from fnmatch import fnmatch
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
-from common import event, project_dir, result, revision, strings
+from common import event, project_dir, result, revision
 
 
 def main() -> int:
@@ -17,25 +18,73 @@ def main() -> int:
     policy_path = Path(__file__).resolve().parents[1] / "order-policy.json"
     try:
         policy = json.loads(policy_path.read_text(encoding="utf-8"))
-        raw_commands = policy["commands"]
-        evidence = root / policy["evidence"]
-        if not isinstance(raw_commands, list) or not isinstance(policy["evidence"], str):
+        transmission = policy["transmission_commands"]
+        artifact_paths = policy["artifact_paths"]
+        artifact_suffixes = policy["artifact_suffixes"]
+        order_commands = policy["order_commands"]
+        evidence_pattern = policy["evidence_paths"]
+        required_ids = policy["required_evidence_ids"]
+        if not all(
+            isinstance(value, list)
+            for value in (
+                transmission,
+                artifact_paths,
+                artifact_suffixes,
+                order_commands,
+                required_ids,
+            )
+        ) or not isinstance(evidence_pattern, str):
             raise ValueError("invalid policy")
-        commands = cast(list[object], raw_commands)
+        transmission = cast(list[object], transmission)
+        artifact_paths = cast(list[object], artifact_paths)
+        artifact_suffixes = cast(list[object], artifact_suffixes)
+        order_commands = cast(list[object], order_commands)
+        required_ids = cast(list[object], required_ids)
     except (OSError, ValueError, json.JSONDecodeError, KeyError, TypeError):
         result(decision="deny", reason="Order policy is unavailable or invalid; operation denied.")
         return 2
-    command = " ".join(strings(payload.get("tool_input")))
-    if not any(isinstance(pattern, str) and pattern in command for pattern in commands):
+    tool_input: Any = payload.get("tool_input")
+    command = (
+        cast(dict[str, Any], tool_input).get("command", "")
+        if isinstance(tool_input, dict)
+        else ""
+    )
+    if not isinstance(command, str):
+        return 0
+    is_order = any(isinstance(pattern, str) and pattern in command for pattern in order_commands)
+    is_transmission = any(
+        isinstance(pattern, str) and pattern in command for pattern in transmission
+    )
+    artifact = any(
+        isinstance(pattern, str) and fnmatch(token, pattern)
+        for token in command.split()
+        for pattern in artifact_paths
+    ) or any(
+        isinstance(suffix, str) and suffix in token.lower()
+        for token in command.split()
+        for suffix in artifact_suffixes
+    )
+    if not is_order and not (is_transmission and artifact):
         return 0
     current = revision(root)
-    if current is None or not evidence.exists():
+    evidence = root / "out"
+    if (
+        current is None
+        or not evidence.exists()
+        or not any(root.glob(evidence_pattern))
+    ):
         result(
             decision="deny",
             reason="A passing gate evidence for the current revision is required.",
         )
         return 2
     try:
+        required_args = [
+            argument
+            for evidence_id in required_ids
+            if isinstance(evidence_id, str)
+            for argument in ("--require-id", evidence_id)
+        ]
         completed = subprocess.run(
             [
                 "uv",
@@ -47,6 +96,7 @@ def main() -> int:
                 current,
                 "--evidence",
                 str(evidence),
+                *required_args,
             ],
             cwd=root, text=True, capture_output=True, timeout=120, env=os.environ.copy(),
         )

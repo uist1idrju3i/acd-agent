@@ -87,6 +87,19 @@ fail-closedとする。
 ToolEnvelope由来のtool名・版・hashを含む構造化JSONである。入力不備、ファイル不在、
 JSON/Pydantic parse失敗、pipeline例外は成功に見せずfail-closedで返す。
 
+## hook境界
+
+`plugins/acd/hooks/`はSDK command hookとして実装済みである。投影保護はpathフィールド
+だけを部分木解決して判定し、本文中の文字列は対象にしない。orderガードはtransmission
+commandかつ製造成果物への言及、または明示的order commandの場合だけ作動し、
+`required_evidence_ids`ごとに現revisionの`supports_pass()`を要求する。通常のsource push
+や文書取得は対象外である。
+
+Stopガードはorderガードより弱い。dirtyな設計入力すべてより新しいmtimeのvalidかつ
+unknownなしEvidenceがある場合だけ終了を許可するが、mtimeはpassの根拠ではない。
+`supports_pass()`はcommit済みrevision一致を要求し続ける。基板fabrication側は現状
+Evidenceを生成しないため、該当成果物の送信はdenyされる。
+
 ## 未実装・将来
 
 以下はSDKに存在する概念を調査したが、本リポジトリの採用済み実行経路ではない。
@@ -97,9 +110,6 @@ JSON/Pydantic parse失敗、pipeline例外は成功に見せずfail-closedで返
 - Conversationを使ったACD実行経路、fork、長時間resume
 - SDKのcritic、goal、workflow、memoryを使う自動修復ループ
 - browser経由のsourcingと自働発注
-
-hooksは実装済みであり、agent経路の投影保護、発注Evidence、SessionStart probe、
-Stop検証、Markdown検証を担当する。ただしCIの検証を置き換えない。
 
 これらは将来検討であり、現行の合否・Evidence・発注契約には使わない。
 

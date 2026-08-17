@@ -22,6 +22,7 @@ SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展�
 | 依存 | 役割・ACD内の使用箇所 | 現行採用版 | 固定方法 | 一次情報 | 更新時に確認する観点 | 更新する関連文書 |
 |---|---|---:|---|---|---|---|
 | OpenHands Software Agent SDK | subagent、視覚投影、Skill、plugin、workspace shell、`EventLog`等を使用 | 1.42.1 | `vendor/software-agent-sdk`のsubmodule SHA、`uv.lock` | [v1.42.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.0)、[v1.42.1](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.42.1)、[commit比較](https://github.com/OpenHands/software-agent-sdk/compare/v1.41.0...v1.42.1) | ACDのimport API、LLM設定、plugin／agent-serverの挙動 | [`openhands-integration.md`](openhands-integration.md)、必要時は [`ADR-0003`](adr/ADR-0003-sdk-feature-adoption.md) |
+| OpenHands SDK hooks | `HookConfig`、`HookMatcher`、command hookでagent経路のfail-closed境界を実装 | 1.42.1 | `plugins/acd/hooks/hooks.json`、SDK submodule SHA | [hooks API](https://github.com/OpenHands/software-agent-sdk/tree/v1.42.1/openhands-sdk/openhands/sdk/hooks) | HookEvent、exit code 2、command環境変数、ブロック可能なevent | [`ADR-0012`](adr/ADR-0012-openhands-sdk-runtime-adoption.md)、[`architecture.md`](architecture.md) |
 | pydantic | ACDの契約モデル、`Field`、validation | 2.13.4 | `uv.lock`。範囲指定は各packageの`pyproject.toml` | [releases](https://github.com/pydantic/pydantic/releases)、[migration guide](https://docs.pydantic.dev/latest/migration/) | model validation、serialization、strict mode、既定値と非推奨 | [`architecture.md`](architecture.md)、[`installation.md`](installation.md) |
 | build123d | `acd_adapter_cad`の投影と機械ゲートでCAD形状生成・STEP／3MF出力 | 0.11.1 | `uv.lock`、`pyproject.toml`で完全固定 | [releases](https://github.com/gumyr/build123d/releases) | kernel互換性、形状演算、exportの決定性、測定値とhash | [`tool-capability-probes.md`](tool-capability-probes.md)、[`design-flow.md`](design-flow.md) |
 | cadquery-ocp | build123dが使用するOCP CAD kernel。`acd_adapter_cad`で使用し、`acd_tools.probe`で版を取得 | 7.9.3.1.1 | `uv.lock`、`pyproject.toml`で完全固定 | [releases](https://github.com/CadQuery/OCP/releases) | Python／OCP ABI、STEP／3MF出力、kernelの幾何演算 | [`tool-capability-probes.md`](tool-capability-probes.md)、[`research/prior-art.md`](research/prior-art.md) |
@@ -74,3 +75,14 @@ tool登録と`run(transport="stdio")`を現行APIとして確認した。ACDは�
 toolテストで検証する。採否は「採用」とし、3.0.0以上の範囲を宣言しつつlockの版を
 再現性の基準とする。FastMCP 3.4.7の未確認機能は採用せず、stdio transport以外は
 本変更の対象外とした。
+
+### OpenHands SDK hooks
+
+SDK v1.42.1の`HookConfig`、`HookMatcher`、command hookを使用する。command hookは
+`hooks.json`から読み込まれ、stdinのHookEvent JSONを受け取る。exit code 0は許可、
+2はブロック、その他の非0は非ブロッキングエラーである。SessionStartとPostToolUseは
+ブロックできないため常に0で返す。
+
+SDK側はhooks.jsonのcommandで`${CLAUDE_PLUGIN_ROOT}`や`${SKILL_ROOT}`を展開しない。
+そのため`${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}`を使い、別配置時だけ
+`ACD_PLUGIN_ROOT`で上書きする。policy欠落、unknown、Evidence不一致は停止側へ集約する。

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import shlex
 from pathlib import Path
+from typing import Any, cast
 
-from common import REASON, event, project_dir, result, strings
+from common import REASON, event, project_dir, result
 
 PROTECTED = ("out", "evidence")
 GENERATED = {
@@ -13,6 +14,10 @@ GENERATED = {
     ".step", ".stp", ".3mf", ".zip",
 }
 READ_COMMANDS = {"cat", "ls", "grep", "rg", "find", "head", "tail", "less", "file", "stat", "pwd"}
+PATH_FIELDS = {
+    "path", "file_path", "paths", "old_path", "new_path", "dest", "destination",
+    "target", "source",
+}
 
 
 def protected(path: Path, root: Path) -> bool:
@@ -26,37 +31,62 @@ def protected(path: Path, root: Path) -> bool:
     )
 
 
-def path_mentions(value: str, root: Path) -> tuple[bool, bool]:
-    tokens = [value]
-    try:
-        tokens += shlex.split(value)
-    except ValueError:
+def path_mentions(value: str, root: Path, *, command: bool = False) -> tuple[bool, bool]:
+    if "\x00" in value:
         return True, False
+    tokens = [value]
+    if command:
+        try:
+            tokens = shlex.split(value)
+        except ValueError:
+            return True, False
     mentioned = False
     resolvable = True
     for token in tokens:
         candidate = Path(token)
         if not candidate.is_absolute():
             candidate = root / candidate
-        if protected(candidate, root) or any(part in PROTECTED for part in Path(token).parts):
+        try:
+            resolved = candidate.resolve(strict=False)
+        except (OSError, ValueError):
+            mentioned |= any(part in PROTECTED for part in Path(token).parts)
+            resolvable = False
+            continue
+        if protected(resolved, root):
             mentioned = True
-            try:
-                candidate.resolve(strict=False)
-            except OSError:
-                resolvable = False
     return mentioned, resolvable
+
+
+def input_paths(tool_input: Any, tool: str) -> list[str]:
+    if tool == "terminal":
+        if not isinstance(tool_input, dict):
+            return []
+        command = cast(dict[str, Any], tool_input).get("command")
+        return [command] if isinstance(command, str) else []
+    if not isinstance(tool_input, dict):
+        return []
+    mapping = cast(dict[str, Any], tool_input)
+    values: list[str] = []
+    for key, value in mapping.items():
+        if key not in PATH_FIELDS:
+            continue
+        if isinstance(value, str):
+            values.append(value)
+        elif isinstance(value, list):
+            values.extend(item for item in cast(list[Any], value) if isinstance(item, str))
+    return values
 
 
 def main() -> int:
     payload = event()
     root = project_dir(payload)
     tool = str(payload.get("tool_name", ""))
-    values = strings(payload.get("tool_input"))
-    command = " ".join(values)
+    values = input_paths(payload.get("tool_input"), tool)
+    command = values[0] if tool == "terminal" and values else ""
     mentioned = False
     resolvable = True
     for value in values:
-        found, can_resolve = path_mentions(value, root)
+        found, can_resolve = path_mentions(value, root, command=tool == "terminal")
         mentioned |= found
         resolvable &= can_resolve
     if not mentioned:
@@ -68,10 +98,7 @@ def main() -> int:
             first = ""
         if first in READ_COMMANDS and resolvable:
             return 0
-    if not resolvable:
-        result(decision="deny", reason=REASON)
-    else:
-        result(decision="deny", reason=REASON)
+    result(decision="deny", reason=REASON)
     return 2
 
 

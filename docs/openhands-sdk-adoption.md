@@ -256,7 +256,7 @@ plugin配布の手組み」は全部SDK側の既製機構で置き換えられ�
   （ADR-0006のvendor方針の再検討が必要）。
 - workflow並列化は探索の再現性を落としうる。seed・順序・打ち切り条件を
   provenanceへ記録しないと、同一入力で同一候補にならない。
-# DockerWorkspace を ACD に入れると具体的にどうなるか
+## DockerWorkspace を ACD に入れると具体的にどうなるか
 
 > 根拠: `vendor/software-agent-sdk` v1.42.1 の
 > `openhands-workspace/openhands/workspace/docker/{workspace,dev_workspace}.py`、

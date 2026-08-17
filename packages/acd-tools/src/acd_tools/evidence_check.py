@@ -17,23 +17,47 @@ def _paths(value: Path) -> list[Path]:
     return []
 
 
-def check(revision: str, evidence: Path) -> bool:
+def check(
+    revision: str,
+    evidence: Path,
+    required_ids: set[str] | None = None,
+    *,
+    valid_only: bool = False,
+) -> bool:
+    matched: set[str] = set()
+    invalid: set[str] = set()
     for path in _paths(evidence):
         try:
             record = Evidence.model_validate_json(path.read_text(encoding="utf-8"))
         except (OSError, ValueError, json.JSONDecodeError):
             continue
+        if valid_only:
+            if record.status == "valid" and not record.envelope.has_unknown():
+                return True
+            continue
         if record.supports_pass(revision):
-            return True
-    return False
+            if required_ids is None:
+                return True
+            if record.evidence_id in required_ids:
+                matched.add(record.evidence_id)
+        elif required_ids is not None and record.evidence_id in required_ids:
+            invalid.add(record.evidence_id)
+    return required_ids is not None and not invalid and matched == required_ids
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--revision", required=True)
     parser.add_argument("--evidence", type=Path, required=True)
+    parser.add_argument("--require-id", action="append", default=[])
+    parser.add_argument("--valid-only", action="store_true")
     args = parser.parse_args()
-    return 0 if check(args.revision, args.evidence) else 2
+    required_ids = set(args.require_id) or None
+    return (
+        0
+        if check(args.revision, args.evidence, required_ids, valid_only=args.valid_only)
+        else 2
+    )
 
 
 if __name__ == "__main__":

@@ -19,6 +19,15 @@ hookのDENYはagent経路にしか効かないため、CI側の検証を唯一�
 注入し、Markdown変更後に既存の文書検証を実行する。判定の閾値とEvidence契約は
 既存のPydanticモデルを正とする。
 
+orderガードは、transmission commandが製造成果物に触れる場合、または明示的なorder
+commandの場合だけ作動する。`required_evidence_ids`に指定された各Evidence IDについて
+現revisionの`supports_pass()`を要求する。通常のsource pushや文書取得は対象外である。
+GD1基板pipelineは現状Evidenceを生成しないため、基板fabrication成果物の送信はdenyする。
+
+Stopガードには出口を設ける。dirtyな設計入力すべてより新しいmtimeのvalidかつunknown
+なしEvidenceがあればallowするが、これはorderガードより弱い。mtimeの新しさはpassの
+根拠ではなく、`supports_pass()`はcommit済みrevision一致を要求し続ける。
+
 以降の段では各段でADRを追加する。
 
 - P2: `ToolDefinition`化とFastMCP server廃止

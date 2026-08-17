@@ -17,7 +17,10 @@ def main() -> int:
             cwd=root, text=True, capture_output=True, timeout=120, env=os.environ.copy(),
         )
         report = json.loads(completed.stdout)
-        versions = ", ".join(f"{item['tool_name']}={item['version']}" for item in report["results"])
+        results = report["results"]
+        versions = ", ".join(f"{item['tool_name']}={item['version']}" for item in results)
+        if not results:
+            versions = "no probe results"
         unknown = any(item["version"] == "unknown" for item in report["results"])
         context = f"External tool probe: {versions}."
         if unknown:

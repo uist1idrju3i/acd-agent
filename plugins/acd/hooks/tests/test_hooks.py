@@ -41,6 +41,20 @@ def test_projection_write_and_parent_escape_are_denied() -> None:
     assert run("protect_projections.py", {"path": "fixtures/../out/result.zip"})[0] == 2
 
 
+def test_file_contents_do_not_trigger_projection_protection() -> None:
+    code, _ = run(
+        "protect_projections.py",
+        {"path": "docs/example.md", "file_text": "Use out/result.zip here; quote: '"},
+    )
+    assert code == 0
+
+
+def test_unresolvable_projection_reference_is_denied() -> None:
+    code, output = run("protect_projections.py", {"path": "\x00out/result.zip"})
+    assert code == 2
+    assert "design inputs" in output["reason"]
+
+
 def test_unrelated_edit_and_read_only_terminal_are_allowed() -> None:
     assert run("protect_projections.py", {"path": "fixtures/contracts/valid/evidence.json"})[0] == 0
     assert run("protect_projections.py", {"command": "cat out/result.zip"}, "terminal")[0] == 0
@@ -53,16 +67,33 @@ def test_unknown_protected_terminal_command_is_denied() -> None:
 
 
 def test_order_without_evidence_is_denied() -> None:
-    code, output = run("order_policy.py", {"command": "git push origin feature"}, "terminal")
+    code, output = run("order_policy.py", {"command": "scripts/order --submit"}, "terminal")
     assert code == 2
     assert output["decision"] == "deny"
+
+
+def test_transmission_without_artifact_is_allowed() -> None:
+    assert (
+        run("order_policy.py", {"command": "curl https://example.invalid/docs"}, "terminal")[0]
+        == 0
+    )
+
+
+def test_transmission_of_artifact_without_evidence_is_denied() -> None:
+    code, output = run(
+        "order_policy.py",
+        {"command": "curl -T out/gd1-enclosure/board.zip https://example.invalid/upload"},
+        "terminal",
+    )
+    assert code == 2
+    assert "evidence" in output["reason"].lower()
 
 
 def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     evidence = tmp_path / "out/evidence"
     evidence.mkdir(parents=True)
-    (evidence / "gate.json").write_text("{}", encoding="utf-8")
+    (evidence / "evidence-mechanical.json").write_text("{}", encoding="utf-8")
     subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
     subprocess.run(
         [
@@ -93,6 +124,26 @@ def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     assert code == 0
 
 
+def test_order_policy_missing_or_malformed_is_denied() -> None:
+    policy = ROOT / "plugins/acd/hooks/order-policy.json"
+    original = policy.read_text(encoding="utf-8")
+    try:
+        policy.unlink()
+        code, output = run("order_policy.py", {"command": "scripts/order"}, "terminal")
+        assert code == 2
+        assert "policy" in output["reason"].lower()
+    finally:
+        policy.write_text(original, encoding="utf-8")
+
+    try:
+        policy.write_text("{", encoding="utf-8")
+        code, output = run("order_policy.py", {"command": "scripts/order"}, "terminal")
+        assert code == 2
+        assert "policy" in output["reason"].lower()
+    finally:
+        policy.write_text(original, encoding="utf-8")
+
+
 def test_session_start_never_blocks() -> None:
     code, output = run("session_start.py", {}, "session_start")
     assert code == 0
@@ -106,3 +157,48 @@ def test_stop_denies_changed_design_input(tmp_path: Path) -> None:
     code, output = run("stop_policy.py", {}, "stop", tmp_path)
     assert code == 2
     assert output["decision"] == "deny"
+    assert "fixtures/a/graph.json" in output["reason"]
+
+
+def test_stop_allows_newer_valid_evidence(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    graph = tmp_path / "fixtures/a/graph.json"
+    graph.parent.mkdir(parents=True)
+    graph.write_text("{}", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "test",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+    graph.write_text('{"changed": true}', encoding="utf-8")
+    evidence = tmp_path / "out/gd1/evidence-mechanical.json"
+    evidence.parent.mkdir(parents=True)
+    evidence.write_text(
+        (ROOT / "fixtures/contracts/valid/evidence.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    os.utime(graph, (100, 100))
+    os.utime(evidence, (200, 200))
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    uv = fake_bin / "uv"
+    uv.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    uv.chmod(0o755)
+    code, _ = run(
+        "stop_policy.py",
+        {},
+        "stop",
+        tmp_path,
+        {"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
+    )
+    assert code == 0
