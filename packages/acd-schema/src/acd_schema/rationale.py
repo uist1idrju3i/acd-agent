@@ -62,6 +62,9 @@ class RationaleRecord(AcdModel):
     decision: NonEmptyStr
     justification: NonEmptyStr
     driving_requirements: list[NodeId] = Field(default_factory=list[NodeId])
+    driving_requirement_refs: list[NonEmptyStr] = Field(
+        default_factory=list[NonEmptyStr]
+    )
     rejected_alternatives: list[RejectedAlternative] = Field(
         default_factory=list[RejectedAlternative]
     )
@@ -81,6 +84,16 @@ class RationaleRecord(AcdModel):
             raise ValueError("subject_nodes entries must be unique")
         if len(set(self.subject_attrs)) != len(self.subject_attrs):
             raise ValueError("subject_attrs entries must be unique")
+        for requirement_ref in self.driving_requirement_refs:
+            if (
+                "#" not in requirement_ref
+                or any(character.isspace() for character in requirement_ref)
+                or not requirement_ref.split("#", 1)[0]
+                or not requirement_ref.split("#", 1)[1]
+            ):
+                raise ValueError(
+                    "driving_requirement_refs must use a non-empty path#identifier format"
+                )
         return self
 
     def supports_coverage(self, current_revision: str, expected_subject_hash: str) -> bool:

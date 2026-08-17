@@ -57,6 +57,16 @@ def test_acd_skill_requires_skill_provenance() -> None:
         RationaleDocument.model_validate(value)
 
 
+def test_rationale_requirement_reference_requires_path_and_identifier() -> None:
+    value = load_fixture("valid", "rationale.json")
+    records = value["records"]
+    assert isinstance(records, list)
+    record = fixture_obj(records[0])
+    record["driving_requirement_refs"] = ["GD1-REQ-017"]
+    with pytest.raises(ValidationError):
+        RationaleDocument.model_validate(value)
+
+
 def test_rationale_ids_must_be_unique() -> None:
     value = load_fixture("valid", "rationale.json")
     records = value["records"]

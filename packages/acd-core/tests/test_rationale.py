@@ -84,6 +84,22 @@ def test_coverage_passes() -> None:
     assert report.status == "pass"
 
 
+def test_document_requirement_reference_supports_coverage() -> None:
+    graph = _graph()
+    document = _document(graph)
+    record = document.records[0].model_copy(
+        update={
+            "driving_requirements": [],
+            "driving_requirement_refs": ["docs/golden-design-1.md#GD1-REQ-017"],
+        }
+    )
+    report = check_rationale_coverage(
+        graph, document.model_copy(update={"records": [record]})
+    )
+    assert report.status == "pass"
+    assert report.untraceable == []
+
+
 def test_human_provenance_without_script_is_covered() -> None:
     graph = _graph()
     document = _document(graph)

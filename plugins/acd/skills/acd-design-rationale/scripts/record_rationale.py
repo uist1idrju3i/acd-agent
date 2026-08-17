@@ -22,6 +22,8 @@ class RationaleRecord(TypedDict, total=False):
     rationale_id: str
     subject_nodes: list[str]
     subject_attrs: list[str]
+    driving_requirements: list[str]
+    driving_requirement_refs: list[str]
 
 
 class RationaleDocument(TypedDict):

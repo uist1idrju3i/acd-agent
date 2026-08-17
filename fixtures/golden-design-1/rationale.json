@@ -18,8 +18,7 @@
       "decision": "Use ESP32-C3-MINI-1-N4 (C2838502).",
       "justification": "GD1-REQ-008 fixes this module and its internal IO18/IO19 USB-Serial-JTAG path; the Extended JLCPCB BOM entry satisfies that interface without an external USB-UART bridge.",
       "driving_requirements": [
-        "req.gd1-req-008",
-        "req.gd1-req-013"
+        "req.gd1-req-008"
       ],
       "rejected_alternatives": [
         {
@@ -39,7 +38,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -57,8 +59,7 @@
       "justification": "GD1-REQ-004 makes USB-C VBUS the only source and forbids PD/charging; GD1-REQ-006 requires the sink CC network. This Extended receptacle is the BOM implementation of that sink-only VBUS/CC/data interface.",
       "driving_requirements": [
         "req.gd1-req-004",
-        "req.gd1-req-006",
-        "req.gd1-req-013"
+        "req.gd1-req-006"
       ],
       "rejected_alternatives": [
         {
@@ -76,7 +77,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -93,11 +97,10 @@
       "decision": "Use AMS1117-3.3 (C6186).",
       "justification": "GD1-REQ-007 names AMS1117-3.3 as the 3.3 V source for MCU, sensor, LED, and pull-ups; the Basic BOM part is that specified regulator, not an inferred substitute.",
       "driving_requirements": [
-        "req.gd1-req-007",
-        "req.gd1-req-013"
+        "req.gd1-req-007"
       ],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`req.gd1-req-007` specifies AMS1117-3.3 by part number and its capacitor network, so this record has no regulator choice to compare.",
       "assumptions": [
         "The less-than-500 mA power boundary remains true.",
         "The required input/output capacitor pair is populated."
@@ -109,7 +112,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -126,8 +132,7 @@
       "decision": "Use SHT40-AD1B-R3 (C2848306).",
       "justification": "GD1-REQ-003 requires temperature/humidity logging and GD1-REQ-011 fixes SHT40 at address 0x44; the Extended BOM part implements that exact endpoint.",
       "driving_requirements": [
-        "req.gd1-req-011",
-        "req.gd1-req-013"
+        "req.gd1-req-011"
       ],
       "rejected_alternatives": [
         {
@@ -145,7 +150,11 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -162,12 +171,9 @@
       "subject_hash": "sha256:79a2e10eb4cf66328806aca3e590d0419325db5909bff483af436aafd0469742",
       "decision": "Use two TS-1088-AR02016 switches (C720477).",
       "justification": "GD1-REQ-009 assigns separate RESET/EN and BOOT/IO9 controls; two Basic switches implement those distinct functions while preserving the BOOT strapping role.",
-      "driving_requirements": [
-        "req.gd1-req-010",
-        "req.gd1-req-013"
-      ],
+      "driving_requirements": [],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 and `GD1-REQ-009` specify separate RESET and BOOT switches; no other switch function is defined.",
       "assumptions": [
         "Each switch pulls its assigned net to GND."
       ],
@@ -178,7 +184,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -196,8 +205,7 @@
       "decision": "Use two 5.1 kΩ 0603 parts (C23186) on CC1 and CC2.",
       "justification": "GD1-REQ-006 requires one 5.1 kΩ sink pull-down on each CC line; the symmetric Basic 0603 pair implements the USB sink declaration.",
       "driving_requirements": [
-        "req.gd1-req-006",
-        "req.gd1-req-013"
+        "req.gd1-req-006"
       ],
       "rejected_alternatives": [
         {
@@ -215,7 +223,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -231,12 +242,9 @@
       "subject_hash": "sha256:8f16337944e1e8b75dfc4c901e3195c3c3884ff7b3502c5c9e54ed0e7d081c01",
       "decision": "Use a 10 kΩ 0603 part (C25804) for EN.",
       "justification": "The §5.2 EN network is 10 kΩ to +3V3, 1 µF to GND, and a RESET button to GND; this Basic BOM resistor implements that RC reset topology.",
-      "driving_requirements": [
-        "req.gd1-req-010",
-        "req.gd1-req-013"
-      ],
+      "driving_requirements": [],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN network at 10 kΩ and 1 µF, leaving no alternate value in this fixture.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -247,7 +255,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -265,8 +276,7 @@
       "decision": "Use two 4.7 kΩ 0603 parts (C23162) on SDA/SCL.",
       "justification": "GD1-REQ-011 requires one 4.7 kΩ pull-up on IO4/SDA and IO5/SCL for the 0x44 SHT40 bus; the identical Basic pair implements those two open-drain pull-ups.",
       "driving_requirements": [
-        "req.gd1-req-011",
-        "req.gd1-req-013"
+        "req.gd1-req-011"
       ],
       "rejected_alternatives": [
         {
@@ -284,7 +294,11 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003",
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -321,7 +335,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -339,11 +356,10 @@
       "decision": "Use 10 µF and 100 nF input capacitors (C1691/C1591).",
       "justification": "GD1-REQ-007 explicitly requires 10 µF+100 nF at the AMS1117 input; these Extended BOM parts implement the stated bulk/high-frequency pair.",
       "driving_requirements": [
-        "req.gd1-req-007",
-        "req.gd1-req-013"
+        "req.gd1-req-007"
       ],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator input pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -354,7 +370,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -372,11 +391,10 @@
       "decision": "Use 10 µF and 100 nF output capacitors (C1691/C1591).",
       "justification": "GD1-REQ-007 requires the same pair at the regulator output for the 3.3 V load; the BOM values preserve that declared regulator network.",
       "driving_requirements": [
-        "req.gd1-req-007",
-        "req.gd1-req-013"
+        "req.gd1-req-007"
       ],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`req.gd1-req-007` fixes the regulator output pair at 10 µF plus 100 nF, so no alternative capacitor values are represented.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -387,7 +405,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-017"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -423,7 +444,8 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -439,11 +461,9 @@
       "subject_hash": "sha256:1f645cb97ebed1d04d2afe9b7d9e7ad0abc4e247db7450407832c75bf4555583",
       "decision": "Use a 1 µF EN RC capacitor (C15849).",
       "justification": "The §5.2 EN definition pairs 1 µF to GND with the 10 kΩ pull-up and RESET switch; this Basic BOM part preserves the declared reset conditioning.",
-      "driving_requirements": [
-        "req.gd1-req-010"
-      ],
+      "driving_requirements": [],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`docs/golden-design-1.md` §5.2 fixes the EN timing capacitor at 1 µF as part of the reset RC network.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -454,7 +474,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -476,11 +499,9 @@
       "subject_hash": "sha256:b3f43c949ff2a89a791e300a671fb12ccd675f0bacce590bb92173a5ec3fcc83",
       "decision": "Keep seven non-assembled test-point footprints with empty MPN/LCSC.",
       "justification": "GD1-REQ-012 requires pads for 3V3, GND, SDA, SCL, IO7, UART TX, and RX to collect bring-up evidence; these are measurement features, not JLCPCBA components, so empty sourcing fields are intentional.",
-      "driving_requirements": [
-        "req.gd1-req-013"
-      ],
+      "driving_requirements": [],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`GD1-REQ-012` lists the seven required observation signals; it does not define an alternate test-point component.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -491,7 +512,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -514,7 +538,7 @@
         "req.gd1-req-014"
       ],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`req.gd1-req-014` fixes four shared M2 holes as the board/enclosure interface, so the hole features have no part-selection alternative.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -525,7 +549,8 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -564,7 +589,8 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -603,7 +629,8 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -643,7 +670,8 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -661,9 +689,7 @@
       "subject_hash": "sha256:1955bcaf80ee28a2353f80582c2d16904711cde35075af74a908fef3675b265a",
       "decision": "Use the deterministic placement-search result for this functional group.",
       "justification": "The switches implement separate RESET and BOOT functions; their remaining-component placement follows the deterministic §9 order after anchors, active parts, and decoupling.",
-      "driving_requirements": [
-        "req.gd1-req-010"
-      ],
+      "driving_requirements": [],
       "rejected_alternatives": [
         {
           "option": "Swap their net roles",
@@ -682,7 +708,10 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -727,7 +756,10 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -751,8 +783,7 @@
       "justification": "§9 makes decoupling stage 3 and derives its objective from distance to the declared regulator/MCU power pins; C6 remains in the EN RC network.",
       "driving_requirements": [
         "req.gd1-req-007",
-        "req.gd1-req-008",
-        "req.gd1-req-010"
+        "req.gd1-req-008"
       ],
       "rejected_alternatives": [
         {
@@ -772,7 +803,10 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -795,9 +829,7 @@
       "subject_hash": "sha256:2263c1fed4076c8c880e3eb632ca21c8231920299a5b7e60791f2ed33ac5cb2a",
       "decision": "Use the deterministic placement-search result for this functional group.",
       "justification": "GD1-REQ-012 names the exact seven observed signals; their non-assembled footprints are placed to preserve probe access within the fixed board envelope.",
-      "driving_requirements": [
-        "req.gd1-req-013"
-      ],
+      "driving_requirements": [],
       "rejected_alternatives": [
         {
           "option": "Omit dedicated test points",
@@ -816,7 +848,10 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -857,7 +892,8 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -895,7 +931,8 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -934,7 +971,8 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -977,7 +1015,11 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009",
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -1012,7 +1054,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-002"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -1047,7 +1092,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-003"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -1082,7 +1130,10 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-009"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -1098,12 +1149,9 @@
       "subject_hash": "sha256:638fd48bef0912cad7b74fc5515f68f60997562f32fb5a43f41e3bb5b0185937",
       "decision": "Keep UART TX/RX on IO21/IO20 at the declared test points.",
       "justification": "GD1-REQ-012 names TX(IO21) and RX(IO20) observation pads, while GD1-REQ-002 requires serial-log access in the USB workflow.",
-      "driving_requirements": [
-        "req.gd1-req-008",
-        "req.gd1-req-013"
-      ],
+      "driving_requirements": [],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`GD1-REQ-012` fixes TX/RX GPIOs and test points, while `GD1-REQ-002` fixes serial-log access; no alternate UART mapping is defined.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -1114,7 +1162,11 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": [
+        "docs/golden-design-1.md#GD1-REQ-002",
+        "docs/golden-design-1.md#GD1-REQ-012"
+      ]
     },
     {
       "schema_version": "0.1",
@@ -1151,7 +1203,8 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -1171,7 +1224,7 @@
         "req.gd1-req-014"
       ],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "The cited requirement or declared interface fixes this choice; no competing option is defined for this fixture.",
+      "no_alternatives_reason": "`req.gd1-req-014` and the GD1 mechanical declaration fix the shared enclosure interface and PETG/2.0 mm lane for this fixture.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -1182,7 +1235,8 @@
         "source": "human",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -1224,7 +1278,8 @@
         "script_hash": "sha256:338f0266d44be715b29c2bc4786d25336a7262434ebdd2284173d0004b99a87b",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -1243,8 +1298,7 @@
       "decision": "Place board type and identifier on B.SilkS.",
       "justification": "§12 separates branding/identification from front functional labels; front pad/mask congestion is the documented reason to keep DEV BOARD and golden-design-1-r1 on the back.",
       "driving_requirements": [
-        "req.gd1-req-013",
-        "req.gd1-req-015"
+        "req.gd1-req-013"
       ],
       "rejected_alternatives": [
         {
@@ -1264,7 +1318,8 @@
         "script_hash": "sha256:338f0266d44be715b29c2bc4786d25336a7262434ebdd2284173d0004b99a87b",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     },
     {
       "schema_version": "0.1",
@@ -1302,7 +1357,8 @@
         "script_hash": "sha256:af2d7836c941ea323cc62c314ebc5254d6541da169bb935e027e34a0e907a2b4",
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1"
+      "target_revision": "r1",
+      "driving_requirement_refs": []
     }
   ]
 }

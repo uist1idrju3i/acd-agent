@@ -75,6 +75,13 @@ def _write_rationale_markdown(document: RationaleDocument, output_path: Path) ->
                 "- Driving requirements: "
                 + (", ".join(f"`{item}`" for item in record.driving_requirements) or "None")
             )
+            lines.append(
+                "- Driving requirement references: "
+                + (
+                    ", ".join(f"`{item}`" for item in record.driving_requirement_refs)
+                    or "None"
+                )
+            )
             provenance = record.provenance
             lines.extend(
                 [

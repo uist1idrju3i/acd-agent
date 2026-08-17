@@ -26,3 +26,8 @@ uv run python plugins/acd/skills/acd-design-rationale/scripts/record_rationale.p
 The graph and rationale document are authoritative. This Skill cannot approve
 a design, and malformed input, missing subjects, stale records, or duplicate
 coverage must stop the operation.
+
+When a requirement exists as a graph node, use `driving_requirements`. When it
+exists only in the design document, use `driving_requirement_refs` with a
+reference such as `docs/golden-design-1.md#GD1-REQ-012`; do not invent a graph
+node to satisfy coverage.

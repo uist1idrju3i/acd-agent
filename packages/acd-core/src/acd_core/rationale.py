@@ -76,7 +76,7 @@ def check_rationale_coverage(
             for node_id in record.subject_nodes
             for attr in record.subject_attrs
         ]
-        if not record.driving_requirements:
+        if not record.driving_requirements and not record.driving_requirement_refs:
             untraceable.extend(
                 RationaleUntraceable(
                     rationale_id=record.rationale_id,

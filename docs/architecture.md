@@ -29,7 +29,9 @@ adapters/*（KiCad、FreeRouting、CAD）
 ```
 
 `rationale.json`はgraphと同じrevisionを対象にし、subject hash、要求、代替案、provenance
-を保持する。stale、unknown、orphan、conflicting、missingはfail-closedで停止する。
+を保持する。graphに要求nodeがある場合は`driving_requirements`、文書にだけ要求がある
+場合は`driving_requirement_refs`（文書パスと要求ID）を使う。stale、unknown、orphan、
+conflicting、missing、untraceableはfail-closedで停止する。
 rationaleのMarkdownはpipeline出力の派生レビュー投影であり、canonical inputではない。
 
 AIとSkillは探索・実装・所見を提案する。合否はACDの決定論的ゲートだけが判定する。
