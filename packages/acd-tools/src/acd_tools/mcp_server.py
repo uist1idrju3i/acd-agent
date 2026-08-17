@@ -10,6 +10,7 @@ from typing import Any, cast
 
 from fastmcp import FastMCP
 
+from acd_core.rationale import check_rationale_coverage
 from acd_pipeline.gd1_board import (
     run_pipeline as run_board,  # pyright: ignore[reportMissingTypeStubs]
 )
@@ -17,6 +18,7 @@ from acd_pipeline.gd1_enclosure import (
     run_pipeline as run_enclosure,  # pyright: ignore[reportMissingTypeStubs]
 )
 from acd_schema.design_graph import DesignGraph
+from acd_schema.rationale import RationaleDocument
 from acd_tools.probe import probe_all
 
 mcp = FastMCP("acd")
@@ -85,6 +87,33 @@ def validate_design_graph(path: str) -> dict[str, Any]:
         }
     except (OSError, json.JSONDecodeError, ValueError, TypeError) as exc:
         return _error(str(exc), operation="validate_design_graph")
+
+
+@mcp.tool
+def validate_rationale(graph_path: str, rationale_path: str) -> dict[str, Any]:
+    """Validate a rationale document against a canonical design graph."""
+    operation = "validate_rationale"
+    try:
+        graph_file = Path(graph_path)
+        rationale_file = Path(rationale_path)
+        if not graph_file.is_file():
+            return _error(f"design graph does not exist: {graph_path}", operation=operation)
+        if not rationale_file.is_file():
+            return _error(f"rationale does not exist: {rationale_path}", operation=operation)
+        graph = DesignGraph.model_validate(json.loads(graph_file.read_text(encoding="utf-8")))
+        document = RationaleDocument.model_validate(
+            json.loads(rationale_file.read_text(encoding="utf-8"))
+        )
+        report = check_rationale_coverage(graph, document)
+        return {
+            "ok": report.status == "pass",
+            "operation": operation,
+            "failure_reason": None if report.status == "pass" else "rationale coverage failed",
+            "fail_closed": report.status != "pass",
+            "summary": report.model_dump(mode="json"),
+        }
+    except Exception as exc:
+        return _error(str(exc), operation=operation)
 
 
 @mcp.tool

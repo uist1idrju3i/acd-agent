@@ -10,6 +10,7 @@ from acd_tools.mcp_server import (
     run_board_pipeline,
     run_enclosure_pipeline,
     validate_design_graph,
+    validate_rationale,
 )
 
 
@@ -52,6 +53,30 @@ def test_validate_design_graph_valid_and_invalid(tmp_path: Path) -> None:
     result = validate_design_graph(str(invalid))
     assert result["ok"] is False
     assert result["fail_closed"] is True
+
+
+def test_validate_rationale_missing_path_fails_closed(tmp_path: Path) -> None:
+    result = validate_rationale(str(tmp_path / "graph.json"), str(tmp_path / "rationale.json"))
+    assert result["ok"] is False
+    assert result["operation"] == "validate_rationale"
+    assert result["fail_closed"] is True
+
+
+def test_validate_rationale_valid_document(tmp_path: Path) -> None:
+    graph = tmp_path / "graph.json"
+    rationale = tmp_path / "rationale.json"
+    graph.write_text(
+        json.dumps({"graph_id": "test", "revision": "r1", "nodes": []}),
+        encoding="utf-8",
+    )
+    rationale.write_text(
+        json.dumps({"graph_id": "test", "revision": "r1", "records": []}),
+        encoding="utf-8",
+    )
+    result = validate_rationale(str(graph), str(rationale))
+    assert result["ok"] is True
+    assert result["operation"] == "validate_rationale"
+    assert result["fail_closed"] is False
 
 
 def test_pipeline_tools_fail_closed_for_missing_fixture(tmp_path: Path) -> None:

@@ -4,6 +4,20 @@ from acd_schema.common import CURRENT_SCHEMA_VERSION, UNKNOWN, AcdModel, is_unkn
 from acd_schema.design_graph import DesignGraph, GraphNode, NodeKind
 from acd_schema.evidence import Evidence, EvidenceClaim, EvidenceStatus
 from acd_schema.fab_profile import FabProfileDocument
+from acd_schema.rationale import (
+    DecisionKind,
+    RationaleCoverageReport,
+    RationaleCoverageStatus,
+    RationaleDocument,
+    RationaleOrphan,
+    RationaleProvenance,
+    RationaleRecord,
+    RationaleRecordSubject,
+    RationaleSource,
+    RationaleSubject,
+    RationaleUnknownProvenance,
+    RejectedAlternative,
+)
 from acd_schema.tool_envelope import ConvergenceState, ToolEnvelope
 
 __all__ = [
@@ -11,6 +25,7 @@ __all__ = [
     "UNKNOWN",
     "AcdModel",
     "ConvergenceState",
+    "DecisionKind",
     "DesignGraph",
     "Evidence",
     "EvidenceClaim",
@@ -18,6 +33,17 @@ __all__ = [
     "FabProfileDocument",
     "GraphNode",
     "NodeKind",
+    "RationaleCoverageReport",
+    "RationaleCoverageStatus",
+    "RationaleDocument",
+    "RationaleOrphan",
+    "RationaleProvenance",
+    "RationaleRecord",
+    "RationaleRecordSubject",
+    "RationaleSource",
+    "RationaleSubject",
+    "RationaleUnknownProvenance",
+    "RejectedAlternative",
     "ToolEnvelope",
     "is_unknown",
 ]
