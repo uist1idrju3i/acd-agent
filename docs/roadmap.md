@@ -16,8 +16,9 @@ SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論�
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
 GD1の独立したwidth positive-control armは固定順で並列集約し、`acd-search`は候補と
 provenanceだけを返す。SDK workflowは採用しない。
-roadmap 4.4は`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`まで実装済みである。
-`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、
+roadmap 4.4は`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、
+`sdk.logger`／`sdk.observability`まで実装済みである。
+`sdk.settings`／`sdk.credential`／`sdk.profiles`、
 `sdk.context.memory`／`sdk.context.view`は未着手である。
 
 決定論的ゲートのauthoritative Evidenceはdigest固定container実行だけが生成する。
@@ -40,7 +41,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
-| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`実装済み。logger以降は未着手） |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、`sdk.logger`／`sdk.observability`実装済み。settings以降は未着手） |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
@@ -55,8 +56,8 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 secret allowlistの`SecretSource`、`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
 Skill明示ロード、`StuckDetector`、`ConversationStats`／`Metrics`のL3観測出力、
 role別promptの`PromptSection`化と資材manifest drift検査、role別LLM routing policyは
-実装済みである。`FileStore`によるL3観測保存も実装済みである。一方、
-`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、
+実装済みである。`FileStore`によるL3観測保存と観測の構造化ログ出力も実装済みである。一方、
+`sdk.settings`／`sdk.credential`／`sdk.profiles`、
 `sdk.context.memory`／`sdk.context.view`は未着手である。
 `ToolDefinition`、現行の`DockerWorkspace`、決定論的gateの責務境界は変更しない。
 MCP、Canvas、remote API、cloud、agent-serverは採用しない。
@@ -68,8 +69,11 @@ MCP、Canvas、remote API、cloud、agent-serverは採用しない。
   非Evidence観測を固定する。
 - `sdk.io`: `src/acd/openhands/session/bootstrap.py`のmetrics/stats保存を`FileStore`
   抽象へ移譲する。L3観測だけを対象とし、Evidenceと設計入力の保存経路は変更しない。
-- `sdk.logger`／`sdk.observability`: 未着手。L3観測のad-hoc JSONを構造化ログ・
-  observabilityへ移し、secretとEvidenceを混入させない。
+- `sdk.logger`／`sdk.observability`: 実装済み。metrics/stats/goal_result/
+  model_routing_observationの保存経路を`ObservationLogRecord`の構造化ログへ寄せ、
+  観測名・field名・canonical hashだけを出力する。値は出力せず、secretは
+  `SecretRegistry`のmask経路で検知し、未知の`artifact_kind`、pass authority
+  相当のfield、書込み失敗、ログ出力失敗はfail-closedにする。
 - `sdk.settings`／`sdk.credential`／`sdk.profiles`: 未着手。secret allowlistとprofile
   driftをSDK経路へ移し、unknownはfail-closedにする。
 - `sdk.context.memory`: 作業文脈の補助だけに使い、契約・合否の正にしない。

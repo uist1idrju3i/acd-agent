@@ -1,0 +1,15 @@
+{
+  "artifact_kind": "conversation_metrics",
+  "description": "This is not pass evidence.",
+  "metrics": {
+    "accumulated_cost": 0.0,
+    "accumulated_token_usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "completion_tokens": 12,
+      "prompt_tokens": 34
+    },
+    "model_name": "observation-model"
+  },
+  "pass_evidence": false
+}

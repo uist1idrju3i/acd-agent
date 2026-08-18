@@ -1,0 +1,10 @@
+{
+  "artifact_kind": "goal_result",
+  "description": "observations must not carry evidence",
+  "pass_evidence": false,
+  "result": {
+    "evidence": {
+      "status": "valid"
+    }
+  }
+}

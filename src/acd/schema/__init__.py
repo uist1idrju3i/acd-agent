@@ -49,6 +49,8 @@ from acd.schema.model_routing import (
     ModelRoutingStatus,
     RoutingRole,
 )
+from acd.schema.observation import ObservationArtifactKind, ObservationPayload
+from acd.schema.observation_log import ObservationLogEvent, ObservationLogRecord
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -122,6 +124,10 @@ __all__ = [
     "ModelRoutingReport",
     "ModelRoutingStatus",
     "NodeKind",
+    "ObservationArtifactKind",
+    "ObservationLogEvent",
+    "ObservationLogRecord",
+    "ObservationPayload",
     "PhysicalEvidence",
     "PromptCacheTier",
     "PromptDriftReport",

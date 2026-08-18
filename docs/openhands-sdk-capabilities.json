@@ -350,10 +350,9 @@
       "modules": ["sdk.logger", "sdk.logger.*"],
       "representative_apis": ["get_logger"],
       "use": "L3観測の構造化",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "`secret`と`Evidence`をログへ混入させない",
-      "verification": "pinned API確認、実装未着手"
+      "adoption": "採用",
+      "rationale": "`secret`と`Evidence`をログへ混入させず、観測名とhashだけを構造化ログへ出す",
+      "verification": "scripts/tests/test_observation_log.py、verify_all.py --stage standard"
     },
     {
       "domain": "sdk.marketplace",
@@ -378,10 +377,9 @@
       "modules": ["sdk.observability", "sdk.observability.*"],
       "representative_apis": ["observe"],
       "use": "L3観測の構造化",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "送信先・`sanitizer`・既定無効を固定し、`Evidence`へ触れない",
-      "verification": "pinned API確認、実装未着手"
+      "adoption": "採用",
+      "rationale": "既定無効のspanを観測書込みだけに付け、入出力を送らず`Evidence`へ触れない",
+      "verification": "scripts/tests/test_observation_log.py、verify_all.py --stage standard"
     },
     {
       "domain": "sdk.plugin",

@@ -39,10 +39,10 @@
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | routing結果は合否へ影響させず、profileと資材hashを固定する | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
-| sdk.logger | `get_logger` | L3観測の構造化 | 採用予定（ロードマップ4.4） | `secret`と`Evidence`をログへ混入させない | pinned API確認、実装未着手 |
+| sdk.logger | `get_logger` | L3観測の構造化 | 採用 | `secret`と`Evidence`をログへ混入させず、観測名とhashだけを構造化ログへ出す | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | ADR-0036のinstalled plugin ambient自動読み込みは採用するが、MarketplaceRegistry自体は使用しない | pinned API確認、MarketplaceRegistryを使用しない |
 | sdk.mcp | `MCPClient` | MCP連携 | 不採用 | OpenHands専用拡張にMCP互換層を追加しない | pinned API確認、採用しない |
-| sdk.observability | `observe` | L3観測の構造化 | 採用予定（ロードマップ4.4） | 送信先・`sanitizer`・既定無効を固定し、`Evidence`へ触れない | pinned API確認、実装未着手 |
+| sdk.observability | `observe` | L3観測の構造化 | 採用 | 既定無効のspanを観測書込みだけに付け、入出力を送らず`Evidence`へ触れない | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | 既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する | 明示ref検証、ambient bootstrap回帰 |
 | sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用予定（ロードマップ4.4） | profile driftを管理し、資材hashを固定する | pinned API確認、実装未着手 |
 | sdk.secret | `SecretSource`<br>`StaticSecret`<br>`LookupSecret` | secretを平文から分離 | 採用 | allowlist環境変数をlazy sourceとしてConversation registryへ渡す | registry masking回帰 |

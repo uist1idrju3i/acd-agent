@@ -1,0 +1,5 @@
+{
+  "artifact_kind": "conversation_notes",
+  "description": "unknown observation kind must fail closed",
+  "pass_evidence": false
+}
