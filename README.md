@@ -1,7 +1,7 @@
 # ACD — Autonomous Computer Design
 
 > ステータス: 開発中。決定論的ゲート、OpenHands plugin、Conversation経路を実装済みです。
-> 現行runnerはDockerDevWorkspace、事前build済みdigest固定DockerWorkspaceは将来経路です。
+> runnerは事前build済みdigest固定DockerWorkspaceへ移行済みです。
 > 実機測定、価格・在庫・納期取得、発注は未実装です。計画とフェーズは
 > [`docs/roadmap.md`](docs/roadmap.md)を参照してください。
 
@@ -37,9 +37,9 @@ uv run python scripts/run_gd1_pipeline.py
 uv run python scripts/probe_tools.py
 ```
 
-決定論的ゲートの正はdigest固定containerです。現行runnerはDockerDevWorkspaceで
-base imageからagent-server imageを準備するon-the-fly buildの参考経路で、
-digest不明またはホスト実行のEvidenceは合格側に使用しません。OpenHands固有の境界と
+決定論的ゲートの正はdigest固定containerです。runnerはlockから解決したserver imageを
+DockerWorkspaceへ渡します。digest不明またはホスト実行のEvidenceは合格側に使用しません。
+ホスト経路はprovisional専用であり、経路がunknownの場合はfail-closedです。OpenHands固有の境界と
 不採用機能は[`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)
 を参照してください。
 

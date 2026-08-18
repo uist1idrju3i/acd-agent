@@ -177,11 +177,9 @@ container image digestを決定論的に検査し、条件を満たさないEvid
 
 ## Docker workspace境界
 
-digest固定コンテナだけを合格側Evidenceの実行環境とする。現行runnerは利用者が渡す
-`base_image`からagent-server imageを準備するため、SDKの
-`DockerDevWorkspace(base_image=...)`を使う。SDK実装上、これは開発・テスト向けの
-on-the-fly build経路である。agent-server imageを事前に配布できる運用へ移行した時点では、
-`DockerWorkspace(server_image="...@sha256:<digest>")`へ切り替える。
+digest固定コンテナだけを合格側Evidenceの実行環境とする。runnerはlockから解決した
+`server_image="...@sha256:<digest>"`をSDKの`DockerWorkspace`へ渡す。host経路は
+参考実行であり、provisional Evidenceだけを生成する。
 repoは`volumes`でmountし、`out/`と`evidence/`をホスト側へ残す。CIとホスト実行は
 参考経路であり、host実行の結果はprovisionalで合格側Evidenceへ昇格しない。
 runnerは`docker image inspect`でdigestを解決し、解決できない場合はworkspaceを起動せず
@@ -189,8 +187,8 @@ fail-closedで停止する。解決したdigestと`ACD_IN_CONTAINER`をforward�
 `execution_context`と`container_image_digest`へ型付きで記録する。`execution_env`は
 host/architectureの説明だけに使い、container identityの判定には使わない。
 
-CIの`container-gates` jobはbuildxで`docker/acd-tools.Dockerfile`をbuildしてlocalへloadし、
-SDKの`DockerDevWorkspace`を使う`scripts/run_in_workspace.py`からresolver、基板、
+CIの`container-gates` jobはlock済みserver imageをpullし、SDKの`DockerWorkspace`を使う
+`scripts/run_in_workspace.py`からresolver、基板、
 筐体pipelineを一つのcontainer commandとして実行する。publish workflowはmainのDockerfile
 変更または手動起動でGHCRへimageをpushし、job summaryへdigestを記録する。
 
@@ -294,6 +292,6 @@ S4（試作立ち上げ）で構成する。各工程は入力ファイルを更
 
 SDKが実行・対話・配布・観測を担い、ACDが契約・投影・合否を担う。エージェント入口は
 SDK `ToolDefinition`に一本化し、`scripts/*` CLIは人間とCIの入口に限定する。実行形は
-`LocalConversation`とworkspace APIを基点とし、現行runnerは`DockerDevWorkspace`、
-事前build済みdigest固定server imageへの移行後は`DockerWorkspace`を使う。
+`LocalConversation`とworkspace APIを基点とし、runnerは事前build済みdigest固定server imageを
+`DockerWorkspace`で使う。host経路はprovisional専用であり、経路unknownはfail-closedとする。
 agent-server経路は対象外であり、採用時は新規ADRを起票する。

@@ -19,13 +19,13 @@ roadmap 4.4は`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`まで実装済
 `sdk.context.memory`／`sdk.context.view`は未着手である。
 
 決定論的ゲートのauthoritative Evidenceはdigest固定container実行だけが生成する。
-現行runnerの`DockerDevWorkspace`、CI、ホスト経路は移行中の参考実行であり、
-事前build済みdigest固定server imageによる`DockerWorkspace`一本化はマイルストーン6で扱う。
+runnerとCIは事前build済みdigest固定server imageによる`DockerWorkspace`経路へ移行済みである。
+ホスト経路はprovisional専用であり、経路unknownはfail-closedとする。
 agent-server package、REST/WebSocket API、server側のresume/forkは
 [`ADR-0026`](adr/ADR-0026-openhands-delegation-contract.md)により対象外であり、
 [`ADR-0025`](adr/ADR-0025-agent-server-production-adoption.md)はSupersededである。
 採用する場合は認証・権限・Evidence境界の受入条件を定義した新規ADRを起票する。
-Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gateの代替にはしない。
+Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gateの代替にはしない。
 
 ## 現行実装計画
 
@@ -56,8 +56,8 @@ role別promptの`PromptSection`化と資材manifest drift検査、role別LLM rou
 実装済みである。`FileStore`によるL3観測保存も実装済みである。一方、
 `sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、
 `sdk.context.memory`／`sdk.context.view`は未着手である。
-`ToolDefinition`、現行の`DockerDevWorkspace`、将来の`DockerWorkspace`、決定論的gateの
-責務境界は変更しない。MCP、Canvas、remote API、cloud、agent-serverは採用しない。
+`ToolDefinition`、現行の`DockerWorkspace`、決定論的gateの責務境界は変更しない。
+MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 
 - `sdk.context.prompts`: `plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、
   資材hashを固定してpromptとの整合性を確認する。
@@ -131,10 +131,12 @@ unclassified属性、policy不整合はfail-closedでstatusを`unknown`とする
 
 6.1ではACD toolsのpublish済みdigestを`docker/image-digests.json`へ記録した。
 6.2では、そのlock済みtools digestをbaseにするagent-serverのbuild／publish workflowを追加した。
-derived digestは初回publish実行後に記録する。現行は`DockerDevWorkspace(base_image=...)`で
-agent-server imageをon-the-fly buildする移行中経路であり、6.3以降で事前build済みdigest固定
-server imageへ移行し、
-`DockerWorkspace(server_image=...)`へ一本化する。受入条件は
+6.3ではrunnerを事前build済みserver imageの`DockerWorkspace(server_image=...)`へ切り替え、
+6.4ではCIをlock解決とpullへ移行し、6.5では旧dev workspace経路を撤去した。
+derived server digestは初回publish実行後にlockへ記録済みである。base tools digest
+`sha256:e64405a15e69991063c688a80b4f215bdc3dbfb8b4fb480b3ef3484f017e1395`とderived server
+digest `sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def`は独立した値
+として保持する。受入条件は
 [`ADR-0026`](adr/ADR-0026-openhands-delegation-contract.md)の入口と実行形、
 [`ADR-0028`](adr/ADR-0028-execution-provenance.md)の実行provenanceを正とする。
 フェーズは6.1から順に依存する。
@@ -188,9 +190,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | host実行のEvidence、container実行のEvidence、`ADR-0028`の`execution_context`契約 |
-| 実装 | `DockerDevWorkspace`経路を撤去し、host経路はprovisional専用として文書と実装で明示する |
+| 実装 | 旧SDK dev workspace経路を撤去し、host経路はprovisional専用として文書と実装で明示する |
 | 正常系 | authoritative Evidenceの生成経路が`DockerWorkspace`だけになり、文書の記述と一致する |
-| negative/fail-closed | host Evidenceの合格側昇格、`DockerDevWorkspace`残存参照、経路unknownを拒否する |
+| negative/fail-closed | host Evidenceの合格側昇格、旧dev workspace残存参照、経路unknownを拒否する |
 | 再現性 | 移行後のCIとローカル実行の双方で同一のEvidence provenanceを再生成できる |
 
 ## マイルストーン7: 発注前最終ゲートと自働発注

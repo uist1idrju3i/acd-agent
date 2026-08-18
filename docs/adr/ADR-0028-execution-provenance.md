@@ -31,12 +31,11 @@ container markerがあるのにdigestを解決できない場合は
 digest不明containerは既存のunknown fail-closed経路で停止する。
 
 容器実行の再利用可能な入口は`src/acd/openhands/workspace.py`へ集約し、
-CLIは`scripts/run_in_workspace.py`で引数と表示だけを担う。現行runnerはユーザーが
-指定したbase imageからagent-server imageを準備するため、SDKの
-`DockerDevWorkspace(base_image=...)`を採用する。SDKの実装とdocstringが示すとおり
-これはon-the-fly buildの開発・テスト経路である。事前build済みagent-server imageを
-配布する運用へ移行した時点で、`DockerWorkspace(server_image=...)`へ切り替える。
-runnerは解決済みdigestとcontainer markerをforwardする。
+CLIは`scripts/run_in_workspace.py`で引数と表示だけを担う。以前はSDKのdev workspace経路
+（on-the-fly build）でbase imageからagent-server imageを準備していたが、6.3〜6.5で
+移行を完了した。現在は事前build済みagent-server imageを
+`DockerWorkspace(server_image=...)`へ渡し、runnerは実際のserver imageの解決済みdigestと
+container markerをforwardする。
 
 ## 影響
 
@@ -55,23 +54,21 @@ markerのみのunknown拒否、Evidence CLIのhost拒否を回帰試験に含め
 ## CI authoritative gate
 
 GD1基板pipelineは、ERC、routing、DRC、silkscreen、DFM、発注readinessの決定論的結果を
-`evidence-electrical.json`へ記録する。CIの`container-gates` jobはbuildxで
-`docker/acd-tools.Dockerfile`をbuildしてlocalへloadし、`DockerDevWorkspace`を使う
+`evidence-electrical.json`へ記録する。CIの`container-gates` jobはlock済みserver imageを
+pullし、`DockerWorkspace`を使う
 `scripts/run_in_workspace.py`からresolver、基板pipeline、筐体pipelineを実行する。
 続けて`verify_authoritative_evidence.py`で両Evidenceを決定論的に検査する。
 
-`DockerDevWorkspace`のagent-serverは`/workspace`をconversation保存領域として使用する
+`DockerWorkspace`のagent-serverは`/workspace`をconversation保存領域として使用する
 ため、ホストrepositoryを`/workspace`へmountしない。repositoryは`/acd-src:ro`として
 read-only mountし、container user所有の`/workspace/acd`へ複製してからpipelineを実行する。
 生成物はSDKの`RemoteWorkspace.file_download()`でhostへ取得し、host上のverifierへ渡す。
 commandの失敗やfile downloadの失敗はfail-closedとする。
 
-現行の`DockerDevWorkspace(base_image=...)`はpinned SDK v1.42.1のagent-server imageを
-on-the-flyで派生buildする。`ACD_CONTAINER_IMAGE_DIGEST`には指定base imageのcontent
-addressを記録し、base imageとderived imageが同一だとは主張しない。将来GHCRへpublish
-したACD tools imageのdigestを運用記録へ固定した段階で、そのdigestをpullして
-`DockerWorkspace(server_image=...)`へ渡す方式へ移行する。digestが記録される前にpullへ
-切り替えず、未記録時は現在のbuild経路を維持してfail-openを避ける。
+`ACD_CONTAINER_IMAGE_DIGEST`には実際に実行したserver imageのcontent addressを記録する。
+base tools imageとderived server imageのdigestは別 identityであり、同一とは主張しない。
+server digestがlockへ記録される前は、`print_locked_image.py`とCIがpullを拒否して
+fail-closedで停止する。
 
 local build imageにRepoDigestが無い場合はimage IDをcontent addressとして記録する。
 publish済みdigestが未確定の間は、偽のlock fileやplaceholder digestを作成しない。

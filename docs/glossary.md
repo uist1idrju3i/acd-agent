@@ -46,8 +46,7 @@
 | critic | 反復改善を操舵する評価機構。合否権限は持たない。 |
 | Conversation | SDKが管理する対話、履歴、状態、永続化の単位。 |
 | GoalController | 目標達成の反復停止を補助するSDK機構。 |
-| DockerWorkspace | digest固定imageでagentやゲートを実行するworkspace。 |
-| DockerDevWorkspace | base imageからagent-server imageを準備するSDK workspace。現行runnerが使う。 |
+| DockerWorkspace | digest固定server imageでゲートを実行するSDK workspace。authoritative Evidenceの唯一の実行経路。 |
 | LocalConversation | 現行ACDが採用するローカルConversation経路。 |
 | agent-server | SDKのREST/WebSocket等を提供する将来構想のserver経路。 |
 | L1/L2/L3 | L1は判定、L2は操舵、L3は観測を表す責務層。 |

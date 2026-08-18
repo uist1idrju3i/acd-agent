@@ -46,10 +46,10 @@ jobs:
             --sdk-project-root "$GITHUB_WORKSPACE/vendor/software-agent-sdk"
       - name: Publish latest alias
         run: |
-          SDK_SHA=$(git -C vendor/software-agent-sdk rev-parse HEAD)
+          REPO_SHA=$(git rev-parse HEAD)
           docker buildx imagetools create \
             --tag ghcr.io/uist1idrju3i/acd-server:latest \
-            "ghcr.io/uist1idrju3i/acd-server:${SDK_SHA}-latest-source"
+            "ghcr.io/uist1idrju3i/acd-server:${REPO_SHA}-latest-source"
       - name: Record base and derived digests
         run: |
           DERIVED_DIGEST=$(docker buildx imagetools inspect \

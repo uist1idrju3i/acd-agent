@@ -75,3 +75,22 @@ def test_print_locked_image_fails_closed_for_unset_server(tmp_path: Path) -> Non
     )
     assert result.returncode == 2
     assert "unset" in result.stderr
+
+
+def test_print_locked_image_returns_pinned_server_reference() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--entry",
+            "acd-server",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert result.stdout.strip() == (
+        "ghcr.io/uist1idrju3i/acd-server@"
+        "sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def"
+    )

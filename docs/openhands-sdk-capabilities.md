@@ -76,9 +76,8 @@
 | tools.tom_consult | `TomConsultTool` | 外部相談 | 不採用 | 合否に関与しない経路を増やさない | pinned API確認、採用しない |
 | tools.utils | `run_with_timeout` | SDK内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | tools.workflow | `WorkflowToolSet` | lane並列化のmap/reduce | 不採用 | 任意Python scriptがhook境界を貫通しうるため将来再検討 | pinned API確認、採用しない |
-| workspace | `DockerWorkspace`<br>`DockerDevWorkspace` | OpenHands workspace API | 採用 | runnerとworkspace実装の公開入口を固定する | vendor実装、runner回帰 |
-| workspace.DockerDevWorkspace | `DockerDevWorkspace` | 現行`DockerDevWorkspace`の`base_image`からserver imageをon-the-flyで準備 | 採用 | `src/acd/openhands/workspace.py`が`base_image`で実行 | vendor実装、runner回帰 |
-| workspace.DockerWorkspace | `DockerWorkspace` | 将来の`DockerWorkspace`による事前build済みdigest固定server imageの実行 | 採用予定（ロードマップ4.4） | 現行`DockerDevWorkspace`はprovisional。配布済みdigest固定server image移行後に採用 | constructor確認、実装未着手 |
+| workspace | `DockerWorkspace` | OpenHands workspace API | 採用 | runnerとworkspace実装の公開入口を固定する | vendor実装、DockerWorkspace runner回帰 |
+| workspace.DockerWorkspace | `DockerWorkspace` | `DockerWorkspace`による事前build済みdigest固定server imageの実行 | 採用 | runnerが実行対象server imageのdigestとcontainer markerをforwardする | constructor確認、runner回帰、container Evidence検証 |
 | workspace.apptainer | `ApptainerWorkspace` | Apptainer実行 | 不採用 | `DockerWorkspace`以外の実行環境はOpenHands専用拡張の境界外 | pinned API確認、採用しない |
 | workspace.cloud | `OpenHandsCloudWorkspace` | cloud実行 | 不採用 | 再現性と運用境界を固定できない | pinned API確認、採用しない |
 | workspace.remote_api | `APIRemoteWorkspace` | remote API実行 | 不採用 | remote APIを範囲外とする | pinned API確認、採用しない |

@@ -19,8 +19,9 @@ map/reduceやlaneの意味的mergeは既存の決定論的入口とSDKの安全�
 
 agent-server系能力はACDの対象外とする。agent-serverをACDの実行契約として採用する場合は、
 認証・権限・Evidence境界を満たす受入条件を定義した新規ADRを起票する。
-現行のauthoritative実行経路は`DockerDevWorkspace`であり、`DockerWorkspace`やserver routerを
-この判断なしに置き換えない。
+authoritative実行経路は`DockerWorkspace(server_image=...)`である。6.3〜6.5で
+SDKのdev workspace経路（on-the-fly build）からの移行を完了した。server routerの採用は
+この判断なしに行わない。
 
 ## 採用範囲と権限境界
 

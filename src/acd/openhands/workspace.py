@@ -1,4 +1,4 @@
-"""Run deterministic ACD commands through the OpenHands workspace API."""
+"""Run deterministic ACD commands through a digest-pinned server workspace."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from openhands.workspace.docker import DockerDevWorkspace
+from openhands.workspace import DockerWorkspace
 
 DEFAULT_COMMAND = "uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure"
 DEFAULT_DOWNLOAD_FILES = (
@@ -86,10 +86,6 @@ def resolve_image_digest(
     return None
 
 
-def _workspace_factory() -> type[Any]:
-    return DockerDevWorkspace
-
-
 def run_command_in_workspace(
     *,
     image: str,
@@ -98,12 +94,14 @@ def run_command_in_workspace(
     download_files: tuple[str, ...] = DEFAULT_DOWNLOAD_FILES,
     workspace_factory: Callable[..., Any] | None = None,
 ) -> WorkspaceResult:
-    """Run one command in a DockerDevWorkspace."""
+    """Run one command in a DockerWorkspace using a resolved server digest."""
+    if not image.strip():
+        raise ValueError("server image must not be empty")
     reference = resolve_image_digest(image)
     if reference is None:
-        raise ValueError("image digest could not be resolved; refusing to execute")
+        raise ValueError("server image digest could not be resolved; refusing to execute")
 
-    factory = workspace_factory or _workspace_factory()
+    factory = workspace_factory or DockerWorkspace
     previous_digest = os.environ.get("ACD_CONTAINER_IMAGE_DIGEST")
     previous_marker = os.environ.get("ACD_IN_CONTAINER")
     os.environ["ACD_CONTAINER_IMAGE_DIGEST"] = reference.digest
@@ -111,7 +109,7 @@ def run_command_in_workspace(
     downloaded: list[Path] = []
     try:
         workspace = factory(
-            base_image=image,
+            server_image=image,
             volumes=[f"{repository.resolve()}:{CONTAINER_REPOSITORY}:ro"],
             forward_env=["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
         )
