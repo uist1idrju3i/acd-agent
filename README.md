@@ -2,6 +2,8 @@
 
 > ステータス: 開発中。決定論的ゲート、OpenHands plugin、Conversation経路を実装済みです。
 > 現行runnerはDockerDevWorkspace、事前build済みdigest固定DockerWorkspaceは将来経路です。
+> 実機測定、価格・在庫・納期取得、発注は未実装です。計画とフェーズは
+> [`docs/roadmap.md`](docs/roadmap.md)を参照してください。
 
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
 AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立再読込、機械測定などの
