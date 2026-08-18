@@ -33,6 +33,11 @@ provenanceへ記録する`ACD_CONTAINER_IMAGE_DIGEST`は指定されたbase imag
 addressである。Evidenceではbase digestとSDK版を組み合わせた派生経路を明示し、
 base imageとderived imageが同一だとは主張しない。
 
+将来、GHCRへpublishしたACD tools imageのdigestを運用記録へ固定できた段階では、
+CIで毎回buildする方式から、そのdigestをpullして`DockerDevWorkspace`へ渡す方式へ移行する。
+digestが記録される前に条件分岐でpullへ切り替えることはせず、未記録時は現在のbuild経路を
+維持してfail-openを避ける。
+
 local build imageには通常RepoDigestが無いため、runnerはimage IDをcontent addressとして
 記録する。publish workflowはmainのDockerfile変更または手動起動でGHCRへpublishし、
 digestをjob summaryへ出す。publish済みdigestが未確定の間は、偽のlock fileやplaceholder

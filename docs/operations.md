@@ -57,6 +57,10 @@ GHCRのpublish job summaryに表示されたdigestを、利用するimage refと
 転記する。publish済みdigestを持たない間はplaceholderのlock fileを作成せず、local build
 のimage IDを実行時のcontent addressとして扱う。
 
+将来、GHCRのpublish済みdigestを運用記録へ固定した後は、CIで毎回buildせず、そのdigestを
+pullして`DockerDevWorkspace`へ渡す方式へ移行する。digest記録前に条件分岐でpull/buildを
+切り替える実装は入れず、移行時に明示的な運用変更として扱う。
+
 ## 外部ツール
 
 環境に次の実行ファイルが必要である。
