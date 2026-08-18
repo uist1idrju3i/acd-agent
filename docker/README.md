@@ -35,6 +35,14 @@ APT由来のパッケージはUbuntuのrepository snapshotを別途固定しな�
 Dockerfileでも再解決される可能性がある。完全な再現性にはimage digestとAPT
 repositoryの固定が必要である。
 
+## 事前build済みagent-server image
+
+`docker/image-digests.json`に記録したACD tools image digestをbaseとして、
+`vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/build.py`
+がagent-server imageを生成する。publishは`publish-acd-server.yml`の手動起動だけで行い、
+job summaryへbase digestとderived server digestを別々に記録する。derived imageが
+publishされるまでlockの`acd_server` entryは未設定であり、未設定のimageをpullしてはならない。
+
 ## OpenHands SDKからの利用
 
 `DockerDevWorkspace(base_image=...)`をSDK委譲の決定論的ゲート実行経路とする。

@@ -1,0 +1,20 @@
+{
+  "acd_tools": {
+    "image": "ghcr.io/uist1idrju3i/acd-tools",
+    "tag": "latest",
+    "digest": "sha256:e64405a15e69991063c688a80b4f215bdc3dbfb8b4fb480b3ef3484f017e1395",
+    "published_at": "2026-08-18T10:10:24Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32125394409",
+    "dockerfile": "docker/acd-tools.Dockerfile",
+    "tools": {
+      "kicad-cli": "10.0.5",
+      "freerouting": "2.3.0",
+      "ngspice": "45.2",
+      "python3.14": "Python 3.14.4",
+      "uv": "uv 0.12.3 (x86_64-unknown-linux-gnu)",
+      "java": "openjdk 25.0.3 2026-04-21",
+      "git": "git version 2.53.0"
+    }
+  },
+  "acd_server": null
+}
