@@ -1,6 +1,6 @@
 # ADR-0033: SDK能力の採否とbrowser_useの境界
 
-- ステータス: Accepted
+> ステータス: Accepted
 - 対象: OpenHands Software Agent SDK v1.42.1
 
 ## 決定

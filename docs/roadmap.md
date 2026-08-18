@@ -9,7 +9,9 @@ GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SE
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
-測定結果の入力反映、価格・在庫・納期取得、発注は未実装である。
+マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
+自動逆流は設計上行わない。GD1実機の`measured` Evidenceは未取得で、検証はfixtureベースである。
+価格・在庫・納期取得、発注は未実装である。
 `AcdGateCritic`は決定論的ゲート結果を使うL2操舵として実装済みである。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
 GD1の独立したwidth positive-control armは固定順で並列集約し、`acd-search`は候補と
@@ -39,7 +41,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`実装済み。logger以降は未着手） |
-| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装 |
+| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
@@ -202,8 +204,6 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 [`SECURITY.md`](../SECURITY.md)の「AIエージェント特有の前提」、
 発注ガードの縮約は[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)、
 製造データと`unknown`境界は[`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を正とする。
-旧文書のPhase 10／Phase 11は本マイルストーンを指す。
-
 ### 7.1 期限付き見積入力の取得契約
 
 | 要素 | 完了条件 |
