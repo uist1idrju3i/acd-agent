@@ -24,6 +24,7 @@ import shutil
 import sys
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
@@ -72,6 +73,8 @@ from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.schema.design_graph import DesignGraph
+from acd.schema.evidence import Evidence, EvidenceClaim
+from acd.schema.tool_envelope import ToolEnvelope
 
 GERBER_LAYERS = [
     "F.Cu",
@@ -141,6 +144,108 @@ def _summarize_width_violations(
         "width_violation_samples": list(width_violations[:3]),
         "report_path": str(report_path),
     }
+
+
+def build_electrical_evidence(
+    *,
+    revision: str,
+    envelope: ToolEnvelope,
+    erc_errors: object,
+    erc_unconnected: object,
+    routing_converged: object,
+    drc_errors: object,
+    drc_unconnected: object,
+    silkscreen_status: object,
+    dfm_status: object,
+    order_readiness_status: object,
+) -> Evidence:
+    """Build electrical Evidence from completed deterministic gate results."""
+    if not isinstance(erc_errors, int) or not isinstance(erc_unconnected, int):
+        raise ValueError("electrical ERC results are unknown (fail-closed)")
+    if not isinstance(routing_converged, bool):
+        raise ValueError("electrical routing result is unknown (fail-closed)")
+    if not isinstance(drc_errors, int) or not isinstance(drc_unconnected, int):
+        raise ValueError("electrical DRC results are unknown (fail-closed)")
+    for name, value in (
+        ("silkscreen", silkscreen_status),
+        ("DFM", dfm_status),
+        ("order readiness", order_readiness_status),
+    ):
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"electrical {name} result is unknown (fail-closed)")
+    silkscreen = cast(str, silkscreen_status)
+    dfm = cast(str, dfm_status)
+    order_readiness = cast(str, order_readiness_status)
+    if envelope.target_revision != revision:
+        raise ValueError("electrical evidence envelope revision mismatch (fail-closed)")
+    if (
+        erc_errors != 0
+        or erc_unconnected != 0
+        or not routing_converged
+        or drc_errors != 0
+        or drc_unconnected != 0
+        or silkscreen_status != "measured_pass"
+        or dfm_status != "pass"
+        or order_readiness_status != "ready"
+    ):
+        raise ValueError("electrical deterministic gate did not pass (fail-closed)")
+    return Evidence(
+        evidence_id="evidence.gd1.electrical",
+        target_revision=revision,
+        status="valid",
+        envelope=envelope,
+        claims=[
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="erc_error_count",
+                value=erc_errors,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="erc_unconnected_count",
+                value=erc_unconnected,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="routing_converged",
+                value=routing_converged,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="drc_error_count",
+                value=drc_errors,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="drc_unconnected_count",
+                value=drc_unconnected,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="silkscreen_status",
+                value=silkscreen,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="dfm_status",
+                value=dfm,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node="electrical.board.gd1",
+                property="order_readiness_status",
+                value=order_readiness,
+                verified=True,
+            ),
+        ],
+        created_at=datetime.now(UTC),
+    )
 
 
 def _run_kicad_netclass_positive_control(
@@ -1011,6 +1116,21 @@ def run_pipeline(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     )
     print("[10/10] manufacturing package written")
+    evidence = build_electrical_evidence(
+        revision=revision,
+        envelope=drc.run.envelope,
+        erc_errors=erc.error_count,
+        erc_unconnected=len(erc.unconnected_items),
+        routing_converged=route_run.envelope.convergence_state == "converged",
+        drc_errors=drc.error_count,
+        drc_unconnected=len(drc.unconnected_items),
+        silkscreen_status=silk_evidence.get("status"),
+        dfm_status=dfm_report.get("status"),
+        order_readiness_status=order_readiness.get("status"),
+    )
+    evidence_path = out_dir / "evidence-electrical.json"
+    evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    print(f"[10/10] electrical evidence recorded: {evidence_path}")
 
     hashes: dict[str, str] = {}
     hash_paths = [

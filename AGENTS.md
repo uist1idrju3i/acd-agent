@@ -76,6 +76,9 @@ stop policy hookを置換しない。GoalControllerとconversation cancellation�
 lane並列は`tool_concurrency_limit`を明示した場合だけ有効化し、資源宣言不能時は
 SDKのmutexによる直列化へ倒す。task/delegateのsub-agentは親hookを継承しないため、
 ACD AgentDefinitionへ必須hookを明記し、SDKロード結果を検査する。
+browser_useは既定無効で、明示有効時だけChromiumの利用可能性を検査してL2探索補助として
+登録する。browser由来の観測をEvidenceへ昇格させず、決定論的API取得を置き換えない。
+workflowは任意Python scriptがhook境界の外で実行されうるため不採用（将来再検討）とする。
 
 ## 依存とsubmodule
 
@@ -89,45 +92,36 @@ SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とす�
 
 ## 検証
 
-文書のみ:
+検証段階とコマンド列の正は`scripts/verify_all.py`である。定義は
 
 ```bash
-uv run python scripts/verify_docs.py
-git diff --check
+uv run python scripts/verify_all.py --list
 ```
 
-通常:
+で機械可読に列挙できる。文書のみ、通常、フルの3段階を次で実行する。
 
 ```bash
-uv sync
-uv run ruff check
-uv run pyright
-uv run pytest
-uv run python scripts/verify_docs.py
+uv run python scripts/verify_all.py --stage docs
+uv run python scripts/verify_all.py --stage standard
+uv run python scripts/verify_all.py --stage full
 ```
 
-フル:
-
-```bash
-uv sync
-uv run ruff check
-uv run pyright
-uv run pytest
-uv run pytest plugins -q
-uv run python scripts/verify_docs.py
-uv run python scripts/resolve_gd1_silkscreen.py
-uv run python scripts/run_gd1_pipeline.py
-uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
-uv run python scripts/probe_tools.py
-git diff --check
-```
-
-Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
-`git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定containerを
+Markdownのみの変更で実装資材を変更していない場合は`--stage docs`に絞ってよい。
+GD1のゲート実行とEvidence生成はdigest固定containerを
 正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは
 `DockerDevWorkspace`でbase imageからserver imageを準備する移行中の経路である。
 GD1基板pipelineはsilkscreenゲートまで通過する前提で、
 resolverと基板pipelineを実行して確認する。
+
+CIの`container-gates` jobはフル検証に加えて、buildxでACD tools imageをbuildし、
+`scripts/run_in_workspace.py`（SDKの`DockerDevWorkspace`）経由でsilkscreen resolver、
+GD1基板pipeline、GD1筐体pipelineをcontainer内で実行する。その後、
+`scripts/verify_authoritative_evidence.py`で両laneのEvidenceがrevision一致、
+`status="valid"`、既知のcontainer provenance、digestを持つことを決定論的に検査する。
+host実行のEvidenceはprovisionalであり、合格側へ昇格しない。image publishは
+`.github/workflows/publish-acd-tools.yml`の手動起動またはmainの`docker/**`変更で行い、
+GHCR digestをjob summaryから運用記録へ転記する。publish済みdigestが無い間はlock fileの
+placeholderを作らない。
 
 graphへ設計判断属性を追加する機能変更では、同じ変更で属性を
 `REQUIRED_RATIONALE_ATTRS`または`RATIONALE_EXEMPT_ATTRS`へ分類する。必須属性には

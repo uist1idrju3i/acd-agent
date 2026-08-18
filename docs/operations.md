@@ -38,6 +38,35 @@ on-the-fly build経路であり、事前build済みserver imageを配布する�
 `DockerWorkspace(server_image=...)`へ切り替える。ホスト経路は移行中の参考実行であり、
 合格側Evidenceを生成しない。
 
+CIでは`container-gates` jobがbuildxでACD tools imageをbuildし、SDKの
+`DockerDevWorkspace`を経由する`scripts/run_in_workspace.py`でresolver、基板pipeline、
+筐体pipelineを実行する。agent-serverの`/workspace`を占有させるため、host repositoryは
+`/acd-src:ro`へmountし、container内の`/workspace/acd`へ複製する。container内で生成された
+`out/gd1/evidence-electrical.json`と`out/gd1-enclosure/evidence-mechanical.json`は、
+SDKの`RemoteWorkspace.file_download()`でhostへ取り出してから
+`verify_authoritative_evidence.py`へ渡す。revision不一致、host実行、digest不在、
+unknown、parse失敗、file不在はすべて非ゼロ終了となる。
+
+`DockerDevWorkspace`の実行imageはbase imageからpinned SDK v1.42.1で派生buildされる。
+runnerはderived imageそのものではなく、入力base imageのcontent addressを
+`ACD_CONTAINER_IMAGE_DIGEST`へforwardする。これは派生imageの同一性を偽装せず、base
+digestとSDK版による再現可能な派生経路をEvidenceへ記録するためである。
+
+`publish-acd-tools.yml`は`workflow_dispatch`またはmainへの`docker/**`変更pushで起動する。
+GHCRのpublish job summaryに表示されたdigestを、利用するimage refとともに運用記録へ
+転記する。publish済みdigestを持たない間はplaceholderのlock fileを作成せず、local build
+のimage IDを実行時のcontent addressとして扱う。
+
+将来、GHCRのpublish済みdigestを運用記録へ固定した後は、CIで毎回buildせず、そのdigestを
+pullして`DockerDevWorkspace`へ渡す方式へ移行する。digest記録前に条件分岐でpull/buildを
+切り替える実装は入れず、移行時に明示的な運用変更として扱う。
+
+browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
+Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
+EasyEDA APIの決定論的取得経路は維持し、設計入力へ確定する資材は既存経路で再取得して
+hashを記録する。SDKのworkflowはfail-closed境界を保てないため不採用（将来再検討）とし、
+agent-server系能力は認証・権限・Evidence境界の受入条件が決まるまで保留する。
+
 ## 外部ツール
 
 環境に次の実行ファイルが必要である。
@@ -47,6 +76,21 @@ command -v kicad-cli
 command -v java
 command -v freerouting
 ```
+
+## 検証
+
+検証段階とコマンド列は`uv run python scripts/verify_all.py --list`で確認できる
+`verify_all.py`を正とする。文書のみ、通常、フルの段階を次で実行する。
+
+```bash
+uv run python scripts/verify_all.py --stage docs
+uv run python scripts/verify_all.py --stage standard
+uv run python scripts/verify_all.py --stage full
+```
+
+`full`には`pytest plugins`、silkscreen resolver、基板・筐体pipeline、外部ツールprobeを
+含む。authoritative container gateはCI固有の`container-gates` jobで実行するため、
+`verify_all.py`には含めない。
 
 ## 依存・版・破壊的変更の記録
 
@@ -115,7 +159,7 @@ lane並列は`tool_concurrency_limit`で設定し、既定値は1（直列）と
 場合は、ACD toolの`declared_resources()`が返す資源keyを経由して共有入力・出力を
 直列化する。資源宣言やpath解決に失敗したtoolは宣言不能としてtool単位のmutexへ
 fail-closedに倒す。task/delegateはhook付きAgentDefinitionに限定し、sub-agentの結果を
-Evidenceへ昇格しない。workflowの採否は別途判断する。
+Evidenceへ昇格しない。workflowは任意scriptがhook境界を外れるため不採用（将来再検討）とする。
 
 外部利用者が配布版を読み込む場合は、branch名ではなく不変refを指定する。
 commit SHAは40桁で、release tagは`v<semver>`形式にする。
@@ -138,6 +182,11 @@ plugin = acd_plugin_source("v1.2.3")
 GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを
 緩めずfail-closedとして状態をそのまま記録する。
+
+`verify_authoritative_evidence.py`はLLMやSDKの判定を使わず、
+`Evidence.supports_authoritative_pass()`とその構成要素だけを検査する。引数なし、
+parse失敗、file不在、revision不一致、status不正、host実行、digest不在、unknown混入は
+成功扱いにしない。
 
 ## トラブル時
 

@@ -34,6 +34,7 @@ from openhands.sdk.tool.registry import (
     register_tool,  # pyright: ignore[reportUnknownVariableType]
     resolve_tool,  # pyright: ignore[reportUnknownVariableType]
 )
+from openhands.tools.browser_use import BrowserToolSet
 from openhands.tools.glob import GlobTool
 from openhands.tools.grep import GrepTool
 from openhands.tools.preset.default import register_default_tools
@@ -317,6 +318,59 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert conversation.agent.agent_context.load_public_skills is False
     assert conversation.agent.agent_context.load_user_skills is False
     assert conversation.stuck_detector is not None
+
+
+def test_browser_tools_are_disabled_by_default(tmp_path: Path) -> None:
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+    )
+    assert all(tool.name != BrowserToolSet.name for tool in conversation.agent.tools)
+
+
+def test_browser_tools_require_a_usable_chromium(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(BrowserToolSet, "is_usable", staticmethod(lambda: False))
+    with pytest.raises(RuntimeError, match="Chromium is unavailable"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="test"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            enable_browser=True,
+        )
+
+
+def test_browser_tools_are_added_only_when_enabled(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(BrowserToolSet, "is_usable", staticmethod(lambda: True))
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+        enable_browser=True,
+    )
+    assert [tool.name for tool in conversation.agent.tools].count(BrowserToolSet.name) == 1
 
 
 def test_acd_agent_definitions_load_with_required_hooks() -> None:

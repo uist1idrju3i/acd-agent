@@ -19,6 +19,7 @@ from openhands.sdk.plugin import PluginSource
 from openhands.sdk.security import ConfirmRisky, SecurityRisk
 from openhands.sdk.subagent import AgentDefinition
 from openhands.sdk.tool import Tool
+from openhands.tools.browser_use import BrowserToolSet
 from openhands.tools.task import TaskToolSet
 
 from acd.openhands.gate_critic import AcdGateCritic, GateRequirement
@@ -40,6 +41,7 @@ def build_acd_conversation(
     plugin_source: PluginSource | None = None,
     tools: list[Tool] | None = None,
     tool_concurrency_limit: int = 1,
+    enable_browser: bool = False,
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
     stuck_detection_thresholds: (
@@ -58,6 +60,13 @@ def build_acd_conversation(
     validate_acd_agent_hooks(plugin_root / "agents", hook_config)
 
     register_acd_tools()
+    selected_tools = list(tools) if tools is not None else [Tool(name=TaskToolSet.name)]
+    if enable_browser:
+        if not BrowserToolSet.is_usable():
+            raise RuntimeError(
+                "browser_use was explicitly enabled but Chromium is unavailable"
+            )
+        selected_tools.append(Tool(name=BrowserToolSet.name))
     critic = AcdGateCritic(
         requirements=requirements,
         repo_root=repo_root,
@@ -73,7 +82,7 @@ def build_acd_conversation(
     )
     agent = Agent(
         llm=llm,
-        tools=tools if tools is not None else [Tool(name=TaskToolSet.name)],
+        tools=selected_tools,
         critic=critic,
         condenser=LLMSummarizingCondenser(llm=llm),
         agent_context=agent_context,

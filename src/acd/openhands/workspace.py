@@ -13,10 +13,13 @@ from typing import Any, cast
 
 from openhands.workspace.docker import DockerDevWorkspace
 
-DEFAULT_COMMAND = (
-    "uv run python scripts/run_gd1_enclosure_pipeline.py "
-    "--out out/gd1-enclosure"
+DEFAULT_COMMAND = "uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure"
+DEFAULT_DOWNLOAD_FILES = (
+    "out/gd1/evidence-electrical.json",
+    "out/gd1-enclosure/evidence-mechanical.json",
 )
+CONTAINER_REPOSITORY = Path("/acd-src")
+CONTAINER_WORKTREE = Path("/workspace/acd")
 _DIGEST = re.compile(r"sha256:[0-9a-fA-F]{64}\Z")
 
 
@@ -33,6 +36,7 @@ class WorkspaceResult:
     exit_code: int
     stdout: str
     stderr: str
+    downloaded_files: tuple[Path, ...]
 
 
 def _inspect(
@@ -91,6 +95,7 @@ def run_command_in_workspace(
     image: str,
     command: str,
     repository: Path,
+    download_files: tuple[str, ...] = DEFAULT_DOWNLOAD_FILES,
     workspace_factory: Callable[..., Any] | None = None,
 ) -> WorkspaceResult:
     """Run one command in a DockerDevWorkspace."""
@@ -103,14 +108,40 @@ def run_command_in_workspace(
     previous_marker = os.environ.get("ACD_IN_CONTAINER")
     os.environ["ACD_CONTAINER_IMAGE_DIGEST"] = reference.digest
     os.environ["ACD_IN_CONTAINER"] = "1"
+    downloaded: list[Path] = []
     try:
         workspace = factory(
             base_image=image,
-            volumes=[f"{repository.resolve()}:/workspace"],
+            volumes=[f"{repository.resolve()}:{CONTAINER_REPOSITORY}:ro"],
             forward_env=["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
         )
         with workspace:
-            result = workspace.execute_command(command, cwd="/workspace")
+            setup = (
+                f"mkdir -p {CONTAINER_WORKTREE} && "
+                f"tar -C {CONTAINER_REPOSITORY} "
+                "--exclude=.venv --exclude=out --exclude=.pytest_cache "
+                "--exclude=.ruff_cache -cf - . | "
+                f"tar -C {CONTAINER_WORKTREE} -xf - && "
+                f"cd {CONTAINER_WORKTREE} && "
+            )
+            result = workspace.execute_command(
+                setup + command,
+                cwd="/workspace",
+                timeout=3600.0,
+            )
+            if result.exit_code == 0:
+                for relative in download_files:
+                    destination = repository / relative
+                    file_result = workspace.file_download(
+                        str(CONTAINER_WORKTREE / relative),
+                        destination,
+                    )
+                    if not file_result.success:
+                        raise RuntimeError(
+                            f"failed to download workspace file {relative}: "
+                            f"{file_result.error or 'unknown error'}"
+                        )
+                    downloaded.append(destination)
     finally:
         if previous_digest is None:
             os.environ.pop("ACD_CONTAINER_IMAGE_DIGEST", None)
@@ -126,4 +157,5 @@ def run_command_in_workspace(
         exit_code=result.exit_code,
         stdout=result.stdout,
         stderr=result.stderr,
+        downloaded_files=tuple(downloaded),
     )
