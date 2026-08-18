@@ -463,6 +463,25 @@ role不整合はreportを標準出力へ出してexit code 2を返す。現在�
 vendor modelを既定採用するものではない。コード側でこの資材を暗黙に読み込むことはなく、
 呼び出し側がpolicyを明示的に渡した場合だけroutingへ適用される。
 
+## Agent settings・profile・credential
+
+role別のprofile名、参照するLLM profile名、credentialのSecretRegistry参照名は
+`plugins/acd/agent-settings.json`で宣言する。この資材は秘密情報を持たず、credentialは
+参照名だけを保持して値を保存しない。整合性は次で確認する。
+
+```bash
+uv run python scripts/verify_agent_settings.py --check
+```
+
+`--check`は資材を書き換えず、parse失敗、`unknown`設定、canonical hash不一致、
+`model-policy.json`とのprofile drift、allowlist外のcredential参照名は
+`status="unknown"`のreportを標準出力へ出してexit code 2を返す。現在の資材へcanonical
+hashを固定する場合だけ`--write`を使う。profileはSDKの`OpenHandsAgentProfile`として
+検証し、credential参照名がprofile側へ混入した場合も拒否する。settings報告は
+`pass_evidence=false`固定の非EvidenceなL3観測であり、合否判定には使わない。
+`build_acd_conversation`へ`agent_settings`を明示的に渡した場合だけ、routing profileを
+この資材から導出し、driftとallowlist違反でfail-closedに停止する。
+
 ## Observation store
 
 metrics、stats、goal結果、routing観測のL3 metadataはSDK `FileStore`を経由して保存する。

@@ -1,5 +1,13 @@
 """Pydantic models that form the canonical ACD contracts."""
 
+from acd.schema.agent_settings import (
+    AcdCredentialReference,
+    AcdProfileObservation,
+    AcdProfileSetting,
+    AcdSettingsManifest,
+    AcdSettingsReport,
+    AcdSettingsStatus,
+)
 from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
     UNKNOWN,
@@ -88,7 +96,13 @@ from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "UNKNOWN",
+    "AcdCredentialReference",
     "AcdModel",
+    "AcdProfileObservation",
+    "AcdProfileSetting",
+    "AcdSettingsManifest",
+    "AcdSettingsReport",
+    "AcdSettingsStatus",
     "AppliedFeedbackValidationReport",
     "ConvergenceState",
     "DecisionKind",

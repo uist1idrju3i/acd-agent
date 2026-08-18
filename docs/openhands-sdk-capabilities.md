@@ -28,7 +28,7 @@
 | sdk.conversation.internal | `EventLog` | Conversation内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.conversation.secrets_manager | `SecretRegistry` | secret注入・漏洩防止 | 採用 | pinned registryのmaskingとlazy secret注入を現行Conversationで使用 | registry回帰 |
 | sdk.conversation.stuck_detector | `StuckDetector` | 停滞時の差し戻し | 採用 | `LocalConversation(stuck_detection=True)`へ既定値・閾値を渡す | conversation wiring回帰 |
-| sdk.credential | `CredentialBindingError` | 資格情報の外部化 | 採用予定（ロードマップ4.4） | secret allowlistを維持し、unknownはfail-closedにする | pinned API確認、実装未着手 |
+| sdk.credential | `CredentialBindingError` | 資格情報の外部化 | 採用 | credentialは`SecretRegistry`参照名だけを保持し、allowlist外の参照名とunknown設定はfail-closedにする | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.critic | `CriticBase`<br>`CriticResult`<br>`IterativeRefinementConfig` | gate結果によるL2操舵 | 採用 | session gate criticで使用し、pass authorityにしない | critic回帰、negative |
 | sdk.event | `Event`<br>`MessageEvent`<br>`HookExecutionEvent` | session経過の記録 | 採用 | Conversationのイベント経路で使用 | event/resume回帰 |
 | sdk.extensions | `fetch` | 外部拡張 | 不採用 | Canvas等の別UI・拡張境界を持ち込まない | pinned API確認、採用しない |
@@ -44,13 +44,13 @@
 | sdk.mcp | `MCPClient` | MCP連携 | 不採用 | OpenHands専用拡張にMCP互換層を追加しない | pinned API確認、採用しない |
 | sdk.observability | `observe` | L3観測の構造化 | 採用 | 既定無効のspanを観測書込みだけに付け、入出力を送らず`Evidence`へ触れない | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | 既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する | 明示ref検証、ambient bootstrap回帰 |
-| sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用予定（ロードマップ4.4） | profile driftを管理し、資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用 | `OpenHandsAgentProfile`をsecret-freeなまま検証し、routing policyとのprofile driftをfail-closedで検知する | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.secret | `SecretSource`<br>`StaticSecret`<br>`LookupSecret` | secretを平文から分離 | 採用 | allowlist環境変数をlazy sourceとしてConversation registryへ渡す | registry masking回帰 |
 | sdk.security | `ConfirmRisky`<br>`NeverConfirm` | agent操作の安全境界 | 採用 | 現行conversationへMEDIUM以上の確認方針を設定 | risky/deny試験 |
 | sdk.security.analyzer | `SecurityAnalyzerBase`<br>`PatternSecurityAnalyzer`<br>`EnsembleSecurityAnalyzer`<br>`SecurityRisk` | agent操作の決定論的追加監視 | 採用 | ACD analyzerとPattern analyzerをSDK ensembleへ合成し、LLM/GraySwanは使わない | risk/ensemble回帰 |
 | sdk.security.grayswan | `GraySwanAnalyzer` | 外部security analyzer | 不採用 | GraySwan系analyzerはOpenHands専用拡張の境界外 | pinned API確認、採用しない |
 | sdk.security.internal | `LLMSecurityAnalyzer` | SDK内部security補助 | 不採用 | LLM系analyzerと内部補助をACDが直接依存しない | pinned API確認、採用しない |
-| sdk.settings | `AgentSettingsBase` | SDK設定の外部化 | 採用予定（ロードマップ4.4） | 設定資材のhashを記録し、unknownはfail-closedにする | pinned API確認、実装未着手 |
+| sdk.settings | `AgentSettingsBase` | SDK設定の外部化 | 採用 | `plugins/acd/agent-settings.json`のcanonical hashを固定し、不一致は`unknown`で停止する | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.skills | `load_skills_from_dir` | ローカルACD Skillの配布・prompt提供 | 採用 | 既定の明示経路は`plugins/acd/skills`を事前検証してfail-closedとし、ADR-0036のambient経路はSDK標準loaderへ委ねる | 明示Skill loader回帰、ambient bootstrap回帰 |
 | sdk.subagent | `AgentDefinition` | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照 | agent資材検査 |
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |

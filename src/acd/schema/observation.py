@@ -9,6 +9,7 @@ from pydantic import ConfigDict
 from acd.schema.common import AcdModel, NonEmptyStr
 
 ObservationArtifactKind = Literal[
+    "agent_settings_observation",
     "conversation_metrics",
     "conversation_stats",
     "goal_result",

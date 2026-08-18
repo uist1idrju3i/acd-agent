@@ -40,7 +40,12 @@ from acd.openhands.session.routing import (
     ModelRoutingError,
     create_fixed_role_router,
 )
+from acd.openhands.session.settings import (
+    AcdSettingsError,
+    validate_acd_settings,
+)
 from acd.openhands.tools.definitions import register_acd_tools
+from acd.schema.agent_settings import AcdSettingsManifest
 from acd.schema.model_routing import ModelRoutingPolicy, RoutingRole
 
 
@@ -62,6 +67,7 @@ def build_acd_conversation(
     prompt_manifest_path: Path | None = None,
     prompt_manifest_root: Path | None = None,
     model_routing_policy: ModelRoutingPolicy | None = None,
+    agent_settings: AcdSettingsManifest | None = None,
     condenser_llm: LLM | None = None,
     routing_profiles: Mapping[RoutingRole, str] | None = None,
     stuck_detection_thresholds: (
@@ -98,6 +104,17 @@ def build_acd_conversation(
             raise PromptManifestError(
                 prompt_report.reason or "ACD role prompt manifest drifted"
             )
+    if agent_settings is not None:
+        if model_routing_policy is None:
+            raise AcdSettingsError(
+                "agent settings require a model routing policy"
+            )
+        validate_acd_settings(agent_settings, model_routing_policy)
+        if routing_profiles is None:
+            routing_profiles = {
+                setting.role: setting.profile_name
+                for setting in agent_settings.profiles
+            }
     agent_llm = llm
     condenser_model = condenser_llm or llm
     if model_routing_policy is not None:

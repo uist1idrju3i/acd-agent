@@ -1,0 +1,33 @@
+{
+  "canonical_hash": "sha256:7699a72f7a64eb05e572ebc850b14f43d4b58e141d43e0aaf078e7e781ae8e11",
+  "profiles": [
+    {
+      "credential": {
+        "description": "LLM credential resolved through the SecretRegistry reference name only.",
+        "secret_name": "LLM_API_KEY"
+      },
+      "llm_profile_ref": "acd-agent-default",
+      "profile_name": "acd-agent-default",
+      "role": "reviewer"
+    },
+    {
+      "credential": {
+        "description": "LLM credential resolved through the SecretRegistry reference name only.",
+        "secret_name": "LLM_API_KEY"
+      },
+      "llm_profile_ref": "acd-condenser-default",
+      "profile_name": "acd-condenser-default",
+      "role": "condenser"
+    },
+    {
+      "credential": {
+        "description": "LLM credential resolved through the SecretRegistry reference name only.",
+        "secret_name": "LLM_API_KEY"
+      },
+      "llm_profile_ref": "acd-judge-default",
+      "profile_name": "acd-judge-default",
+      "role": "judge"
+    }
+  ],
+  "schema_version": "0.1"
+}
