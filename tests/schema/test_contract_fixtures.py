@@ -47,6 +47,8 @@ def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
         (ReceiptRecord, "receipt-inspection-reports-missing.json"),
         (ReceiptRecord, "receipt-time-reversed.json"),
         (ReceiptRecord, "receipt-zero-items.json"),
+        (ReceiptRecord, "receipt-manifest-hash-unknown.json"),
+        (ReceiptRecord, "receipt-revision-unknown.json"),
     ],
 )
 def test_invalid_contract_fixtures(model: type[AcdModel], name: str) -> None:

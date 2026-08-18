@@ -36,13 +36,18 @@ def is_unknown(value: str) -> bool:
     return value == UNKNOWN
 
 
-def canonical_sha256(model: AcdModel) -> Sha256:
-    """Return the SHA-256 digest of a model's canonical JSON representation."""
+def canonical_json_sha256(value: object) -> Sha256:
+    """Return the SHA-256 digest of a canonical JSON-compatible value."""
     encoded = json.dumps(
-        model.model_dump(mode="json"),
+        value,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
         allow_nan=False,
     ).encode("utf-8")
     return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
+def canonical_sha256(model: AcdModel) -> Sha256:
+    """Return the SHA-256 digest of a model's canonical JSON representation."""
+    return canonical_json_sha256(model.model_dump(mode="json"))

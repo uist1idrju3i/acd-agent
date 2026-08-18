@@ -1,24 +1,25 @@
 {
+  "counterparty_type": "fab",
   "inspection_reports": [
     {
       "content_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "report_id": "inspection-invalid-items",
       "issued_at": "2026-01-01T12:00:00Z",
+      "report_id": "inspection-invalid-items",
       "source_uri": "https://fab.example/reports/inspection-invalid-items"
     }
   ],
-  "counterparty_type": "fab",
-  "supplier_name": "Example Fabrication",
-  "received_at": "2026-01-01T13:00:00Z",
-  "received_items": [],
-  "receipt_id": "receipt-invalid-items",
-  "recorded_at": "2026-01-01T14:00:00Z",
-  "schema_version": "0.1",
-  "sent_at": "2026-01-01T11:00:00Z",
   "manifest_reference": {
-    "manifest_hash": "sha256:1558de54d03599dbe4dcf70642aa0d21c71d7e8d01491efc2cbdefc3f36fe21a",
+    "manifest_hash": "sha256:eb24e25cf7f0a4198f7d457d8c748cff0aa424cf8fc91828c7f89c7f11eb63c8",
     "manifest_path": "fab-package.json",
     "target_revision": "r12"
   },
-  "source_uri": "https://fab.example/receipts/receipt-invalid-items"
+  "receipt_id": "receipt-invalid-items",
+  "received_at": "2026-01-01T13:00:00Z",
+  "received_items": [],
+  "recorded_at": "2026-01-01T14:00:00Z",
+  "recorded_by": "acd-operations",
+  "schema_version": "0.1",
+  "sent_at": "2026-01-01T11:00:00Z",
+  "source_uri": "https://fab.example/receipts/receipt-invalid-items",
+  "supplier_name": "Example Fabrication"
 }

@@ -19,7 +19,6 @@ from acd.core.receipt import (
     ReceiptReconciliationError,
     ReconciliationReport,
     build_receipt_evidence,
-    canonical_hash_for,
     reconcile_files,
     reconcile_receipt,
 )
@@ -34,7 +33,6 @@ __all__ = [
     "ReceiptReconciliationError",
     "ReconciliationReport",
     "build_receipt_evidence",
-    "canonical_hash_for",
     "check_rationale_coverage",
     "extract_fab_intent",
     "load_fab_profile",

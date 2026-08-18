@@ -47,8 +47,8 @@ class InspectionReportReference(AcdModel):
 
 class ShipmentManifestReference(AcdModel):
     manifest_path: NonEmptyStr
-    manifest_hash: HashOrUnknown
-    target_revision: Revision | Literal["unknown"]
+    manifest_hash: Sha256
+    target_revision: Revision
 
     @field_validator("manifest_path")
     @classmethod
@@ -61,6 +61,7 @@ class ReceiptRecord(AcdModel):
     receipt_id: NonEmptyStr
     counterparty_type: ReceiptParty
     supplier_name: NonEmptyStr
+    recorded_by: NonEmptyStr
     source_uri: AnyUrl
     received_items: list[ReceiptArtifact] = Field(min_length=1)
     inspection_reports: list[InspectionReportReference] = Field(min_length=1)
@@ -90,6 +91,8 @@ class ReconciliationReport(AcdModel):
     receipt_only_paths: list[NonEmptyStr]
     hash_mismatch_paths: list[NonEmptyStr]
     matched_count: int = Field(ge=0)
-    manifest_hash: Sha256
-    target_revision: Revision
+    manifest_hash: HashOrUnknown
+    target_revision: Revision | Literal["unknown"]
+    manifest_status: NonEmptyStr
+    manifest_unknown_keys: list[NonEmptyStr]
     error: NonEmptyStr | None = None

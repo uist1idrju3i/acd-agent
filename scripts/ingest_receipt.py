@@ -9,10 +9,9 @@ from pathlib import Path
 from acd.core.receipt import (
     ReceiptReconciliationError,
     build_receipt_evidence,
-    canonical_hash_for,
     reconcile_files,
 )
-from acd.schema import ReconciliationReport
+from acd.schema import ReconciliationReport, canonical_json_sha256
 
 
 def _write_json(path: Path, value: object) -> None:
@@ -33,7 +32,7 @@ def main() -> int:
     try:
         receipt, report, input_hash = reconcile_files(args.manifest, args.receipt)
         report_value = report.model_dump(mode="json")
-        output_hash = canonical_hash_for(report_value)
+        output_hash = canonical_json_sha256(report_value)
         _write_json(args.report, report_value)
         if report.status != "match":
             return 2
@@ -56,6 +55,8 @@ def main() -> int:
                 matched_count=0,
                 manifest_hash="unknown",
                 target_revision="unknown",
+                manifest_status="unknown",
+                manifest_unknown_keys=[],
                 error=str(exc),
             ).model_dump(mode="json"),
         )

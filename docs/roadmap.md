@@ -89,10 +89,10 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `ReceiptRecord`がfab／assembler、業者名、出所URI、受領物、検査レポート参照、送付manifest参照、送付・受領・記録時刻を保持する |
+| 入力と出所 | `ReceiptRecord`がfab／assembler、業者名、記録者、出所URI、受領物、検査レポート参照、送付manifest参照、送付・受領・記録時刻を保持する |
 | 実装 | `acd.core.receipt`と`scripts/ingest_receipt.py`で受領recordを製造データpackageのmanifestと決定論的に突合し、対応結果を型付きreportへ記録する |
 | 正常系 | 送付manifestと受領recordのhash・対象revision・成果物一覧が一致し、`measured`分類のhost実機Evidenceとして残る |
-| negative/fail-closed | manifest hash不一致、revision不一致、manifest構造不備、unknowns、受領物の欠落・余剰・hash不一致、検査レポート欠落、日時逆転を停止条件にする |
+| negative/fail-closed | manifest hash不一致、revision不一致、`status: "fail"`、manifest構造不備、受領物の欠落・余剰・hash不一致、検査レポート欠落、日時逆転を停止条件にする。manifestの`unknowns`自体はsortedキーをreportへ残し、受領物の突合は継続する |
 | 再現性 | 受領recordの取り込みをCLIで再実行でき、同一入力から同一report・Evidenceバイト列とcanonical hashになる |
 
 ### 5.3 FW書き込みと機能測定

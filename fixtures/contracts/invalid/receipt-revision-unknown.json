@@ -11,7 +11,7 @@
   "manifest_reference": {
     "manifest_hash": "sha256:eb24e25cf7f0a4198f7d457d8c748cff0aa424cf8fc91828c7f89c7f11eb63c8",
     "manifest_path": "fab-package.json",
-    "target_revision": "r12"
+    "target_revision": "unknown"
   },
   "receipt_id": "receipt-2026-001",
   "received_at": "2026-01-01T13:00:00Z",
@@ -23,10 +23,6 @@
     {
       "content_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "path": "artifacts/assembly.csv"
-    },
-    {
-      "content_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-      "path": "artifacts/extra.bin"
     }
   ],
   "recorded_at": "2026-01-01T14:00:00Z",

@@ -14,7 +14,7 @@
   ],
   "gates": {},
   "schema_version": "0.1",
-  "status": "not_order_ready",
+  "status": "fail",
   "target_revision": "r12",
   "unknowns": {
     "price": "unknown"

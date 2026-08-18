@@ -9,7 +9,7 @@ from acd.core.receipt import (
     reconcile_files,
     reconcile_receipt,
 )
-from acd.schema import ReceiptRecord
+from acd.schema import ReceiptRecord, canonical_json_sha256
 
 ROOT = Path(__file__).parents[2]
 
@@ -36,6 +36,7 @@ def test_complete_receipt_reconciliation_builds_provisional_physical_evidence() 
     assert evidence.measurements[0].value == 2
     assert evidence.supports_pass("r12")
     assert not evidence.supports_authoritative_pass("r12")
+    assert evidence.instrument.operator == receipt.recorded_by
     assert evidence.canonical_hash() == evidence.canonical_hash()
 
 
@@ -83,13 +84,20 @@ def test_manifest_revision_and_unknowns_are_fail_closed() -> None:
     assert mismatch_report.status == "unknown"
 
     unknown_manifest = dict(manifest)
-    unknown_manifest["unknowns"] = {"price": "unknown"}
+    unknown_manifest["unknowns"] = {"price": "unknown", "lead_time": "unknown"}
+    unknown_receipt_data = receipt.model_dump(mode="json")
+    unknown_receipt_data["manifest_reference"]["manifest_hash"] = canonical_json_sha256(
+        unknown_manifest
+    )
+    unknown_receipt = ReceiptRecord.model_validate(unknown_receipt_data)
     unknown_report = reconcile_receipt(
         unknown_manifest,
-        receipt,
-        manifest_hash=receipt.manifest_reference.manifest_hash,
+        unknown_receipt,
+        manifest_hash=canonical_json_sha256(unknown_manifest),
     )
-    assert unknown_report.status == "unknown"
+    assert unknown_report.status == "match"
+    assert unknown_report.manifest_status == "not_order_ready"
+    assert unknown_report.manifest_unknown_keys == ["lead_time", "price"]
 
 
 def test_receipt_missing_artifact_is_a_mismatch() -> None:

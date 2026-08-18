@@ -48,7 +48,7 @@ def test_ingest_receipt_is_byte_stable(tmp_path: Path) -> None:
     assert first_evidence.canonical_hash() == second_evidence.canonical_hash()
 
 
-def test_ingest_receipt_blocks_manifest_unknowns(tmp_path: Path) -> None:
+def test_ingest_receipt_blocks_manifest_fail_status(tmp_path: Path) -> None:
     result = subprocess.run(
         [
             sys.executable,
@@ -68,3 +68,26 @@ def test_ingest_receipt_blocks_manifest_unknowns(tmp_path: Path) -> None:
     )
     assert result.returncode == 2
     assert json.loads((tmp_path / "report.json").read_text())["status"] == "unknown"
+
+
+def test_ingest_receipt_invalid_receipt_writes_unknown_report(tmp_path: Path) -> None:
+    report = tmp_path / "report.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/ingest_receipt.py",
+            "--manifest",
+            "fixtures/contracts/valid/fab-package-receipt.json",
+            "--receipt",
+            "fixtures/contracts/invalid/receipt-time-reversed.json",
+            "--evidence",
+            str(tmp_path / "evidence.json"),
+            "--report",
+            str(report),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 2
+    assert json.loads(report.read_text())["status"] == "unknown"

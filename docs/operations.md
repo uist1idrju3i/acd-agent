@@ -97,7 +97,9 @@ uv run python scripts/verify_all.py --stage full
 送付manifestとfabまたは実装業者の受領recordを決定論的に突合する。manifest自身の
 canonical JSON SHA-256を受領recordの`manifest_reference.manifest_hash`と比較し、
 成果物の相対pathとcontent hash、対象revision、manifestの`unknowns`を検査する。
-不一致、契約違反、unknownは非ゼロ終了となり、合格側Evidenceへ昇格しない。
+成果物の同一性に関係する構造不備、`status: "fail"`、不一致、受領record契約違反は
+非ゼロ終了となる。manifestの`unknowns`は価格・納期などの追跡情報としてsortedキーを
+reportへ記録するが、それ自体では突合を停止しない。出力Evidenceは合格側へ昇格しない。
 
 ```bash
 uv run python scripts/ingest_receipt.py \
@@ -108,6 +110,9 @@ uv run python scripts/ingest_receipt.py \
 ```
 
 同一のmanifestとreceiptを再実行した場合、reportとEvidenceは同じバイト列になる。
+受領recordの`recorded_by`は記録者 provenance としてEvidenceの測定機器operatorへ引き継がれる。
+入力のJSON parse失敗、契約違反、manifest構造不備でもCLIはexit code 2を返し、
+`status="unknown"`のreportを可能な限り出力する。
 出力Evidenceは`execution_context="host"`で、`PhysicalEvidence.supports_authoritative_pass()`
 は常に`False`である。
 

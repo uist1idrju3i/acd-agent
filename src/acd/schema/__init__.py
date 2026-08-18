@@ -4,6 +4,7 @@ from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
     UNKNOWN,
     AcdModel,
+    canonical_json_sha256,
     canonical_sha256,
     is_unknown,
 )
@@ -83,6 +84,7 @@ __all__ = [
     "RejectedAlternative",
     "ShipmentManifestReference",
     "ToolEnvelope",
+    "canonical_json_sha256",
     "canonical_sha256",
     "is_unknown",
 ]

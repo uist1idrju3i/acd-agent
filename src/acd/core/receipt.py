@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
-from acd.schema.common import Revision, Sha256
+from acd.schema.common import Revision, Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, MeasurementInstrument, PhysicalEvidence
 from acd.schema.receipt import ReceiptRecord, ReconciliationReport
 from acd.schema.tool_envelope import ToolEnvelope
@@ -17,17 +16,6 @@ from acd.schema.tool_envelope import ToolEnvelope
 
 class ReceiptReconciliationError(ValueError):
     """Raised when receipt reconciliation cannot produce a fail-closed result."""
-
-
-def canonical_hash_for(value: object) -> Sha256:
-    encoded = json.dumps(
-        value,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    ).encode("utf-8")
-    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
 def _parse_sha256(value: object) -> Sha256:
@@ -49,7 +37,9 @@ def _load_json(path: Path) -> object:
         raise ReceiptReconciliationError(f"could not parse JSON: {path}") from exc
 
 
-def _manifest_files(manifest: Mapping[str, Any]) -> dict[str, Sha256]:
+def _manifest_files(
+    manifest: Mapping[str, Any],
+) -> tuple[dict[str, Sha256], str, list[str], Revision]:
     required = (
         "schema_version",
         "status",
@@ -61,8 +51,13 @@ def _manifest_files(manifest: Mapping[str, Any]) -> dict[str, Sha256]:
     )
     if any(key not in manifest for key in required):
         raise ReceiptReconciliationError("manifest is missing required fields")
-    if not isinstance(manifest["schema_version"], str) or not isinstance(manifest["status"], str):
+    if not isinstance(manifest["schema_version"], str) or not isinstance(
+        manifest["status"], str
+    ):
         raise ReceiptReconciliationError("manifest schema_version and status must be strings")
+    manifest_status = manifest["status"]
+    if manifest_status == "fail":
+        raise ReceiptReconciliationError("manifest status is fail")
     try:
         _parse_revision(manifest["target_revision"])
     except ValueError as exc:
@@ -72,8 +67,12 @@ def _manifest_files(manifest: Mapping[str, Any]) -> dict[str, Sha256]:
     unknowns = manifest["unknowns"]
     if not isinstance(unknowns, dict):
         raise ReceiptReconciliationError("manifest unknowns must be an object")
-    if unknowns:
-        raise ReceiptReconciliationError("manifest contains unknowns")
+    unknown_mapping = cast(dict[object, object], unknowns)
+    if not all(isinstance(key, str) for key in unknown_mapping):
+        raise ReceiptReconciliationError("manifest unknowns keys must be strings")
+    unknown_keys = sorted(
+        key for key, value in cast(dict[str, object], unknowns).items() if bool(value)
+    )
     files = manifest["files"]
     if not isinstance(files, list) or not files:
         raise ReceiptReconciliationError("manifest files must be a non-empty array")
@@ -84,7 +83,7 @@ def _manifest_files(manifest: Mapping[str, Any]) -> dict[str, Sha256]:
         item = cast(dict[str, object], item_value)
         path = item.get("path")
         content_hash = item.get("content_hash")
-        if not isinstance(path, str) or not path.strip():
+        if not isinstance(path, str) or not path.strip() or path == "unknown":
             raise ReceiptReconciliationError("manifest file path is missing")
         if path.startswith("/") or path == ".." or path.startswith("../"):
             raise ReceiptReconciliationError("manifest file path must be relative")
@@ -95,7 +94,24 @@ def _manifest_files(manifest: Mapping[str, Any]) -> dict[str, Sha256]:
         if path in result:
             raise ReceiptReconciliationError("manifest file paths must be unique")
         result[path] = digest
-    return result
+        if content_hash == "unknown":
+            raise ReceiptReconciliationError("manifest file content_hash is unknown")
+    return result, manifest_status, unknown_keys, _parse_revision(manifest["target_revision"])
+
+
+def _manifest_report_context(manifest: Mapping[str, Any]) -> tuple[str, list[str]]:
+    status = manifest.get("status")
+    manifest_status = status if isinstance(status, str) and status else "unknown"
+    unknowns = manifest.get("unknowns")
+    if not isinstance(unknowns, dict):
+        return manifest_status, []
+    unknown_mapping = cast(dict[object, object], unknowns)
+    if not all(isinstance(key, str) for key in unknown_mapping):
+        return manifest_status, []
+    keys = sorted(
+        key for key, value in cast(dict[str, object], unknowns).items() if bool(value)
+    )
+    return manifest_status, keys
 
 
 def reconcile_receipt(
@@ -105,10 +121,13 @@ def reconcile_receipt(
     manifest_hash: Sha256,
 ) -> ReconciliationReport:
     """Reconcile a validated receipt against a manifest mapping."""
-    unknown_target = receipt.manifest_reference.target_revision
     try:
-        manifest_revision = _parse_revision(manifest.get("target_revision"))
-    except ValueError:
+        manifest_files, manifest_status, unknown_keys, manifest_revision = _manifest_files(manifest)
+    except ReceiptReconciliationError as exc:
+        manifest_status, unknown_keys = _manifest_report_context(manifest)
+        target_revision = manifest.get("target_revision")
+        if not isinstance(target_revision, str) or not re.fullmatch(r"r[0-9]+", target_revision):
+            target_revision = "unknown"
         return ReconciliationReport(
             status="unknown",
             manifest_only_paths=[],
@@ -116,8 +135,10 @@ def reconcile_receipt(
             hash_mismatch_paths=[],
             matched_count=0,
             manifest_hash=manifest_hash,
-            target_revision=unknown_target,
-            error="manifest target_revision is invalid",
+            target_revision=target_revision,
+            manifest_status=manifest_status,
+            manifest_unknown_keys=unknown_keys,
+            error=str(exc),
         )
     if manifest_hash != receipt.manifest_reference.manifest_hash:
         return ReconciliationReport(
@@ -128,6 +149,8 @@ def reconcile_receipt(
             matched_count=0,
             manifest_hash=manifest_hash,
             target_revision=manifest_revision,
+            manifest_status=manifest_status,
+            manifest_unknown_keys=unknown_keys,
             error="manifest hash does not match receipt declaration",
         )
     if manifest_revision != receipt.manifest_reference.target_revision:
@@ -139,20 +162,9 @@ def reconcile_receipt(
             matched_count=0,
             manifest_hash=manifest_hash,
             target_revision=manifest_revision,
+            manifest_status=manifest_status,
+            manifest_unknown_keys=unknown_keys,
             error="manifest and receipt revisions do not match",
-        )
-    try:
-        manifest_files = _manifest_files(manifest)
-    except ReceiptReconciliationError as exc:
-        return ReconciliationReport(
-            status="unknown",
-            manifest_only_paths=[],
-            receipt_only_paths=[],
-            hash_mismatch_paths=[],
-            matched_count=0,
-            manifest_hash=manifest_hash,
-            target_revision=manifest_revision,
-            error=str(exc),
         )
     receipt_files = {item.path: item.content_hash for item in receipt.received_items}
     manifest_only = sorted(set(manifest_files) - set(receipt_files))
@@ -175,6 +187,8 @@ def reconcile_receipt(
         matched_count=matched_count,
         manifest_hash=manifest_hash,
         target_revision=manifest_revision,
+        manifest_status=manifest_status,
+        manifest_unknown_keys=unknown_keys,
     )
 
 
@@ -201,7 +215,7 @@ def build_receipt_evidence(
         tool_name="acd-receipt-ingestion",
         tool_version="0.1",
         format_version="0.1",
-        config_hash=canonical_hash_for({"tool": "acd-receipt-ingestion", "version": "0.1"}),
+        config_hash=canonical_json_sha256({"tool": "acd-receipt-ingestion", "version": "0.1"}),
         input_hash=input_hash,
         output_hash=output_hash,
         execution_env="python-3.12; deterministic receipt reconciliation",
@@ -224,7 +238,7 @@ def build_receipt_evidence(
             instrument_name="receipt-reconciliation",
             instrument_version="0.1",
             fixture_id=receipt.manifest_reference.manifest_path,
-            operator=receipt.supplier_name,
+            operator=receipt.recorded_by,
         ),
         acquired_at=receipt.received_at,
         measurements=[measurement],
@@ -244,13 +258,13 @@ def reconcile_files(
         receipt = ReceiptRecord.model_validate(receipt_value)
     except Exception as exc:
         raise ReceiptReconciliationError("receipt record is invalid") from exc
-    manifest_hash = canonical_hash_for(cast(dict[str, object], manifest_value))
+    manifest_hash = canonical_json_sha256(cast(dict[str, object], manifest_value))
     report = reconcile_receipt(
         cast(Mapping[str, Any], manifest_value),
         receipt,
         manifest_hash=manifest_hash,
     )
-    input_hash = canonical_hash_for(
+    input_hash = canonical_json_sha256(
         {
             "manifest": cast(dict[str, object], manifest_value),
             "receipt": receipt.model_dump(mode="json"),

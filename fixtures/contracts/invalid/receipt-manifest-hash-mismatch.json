@@ -26,6 +26,7 @@
     }
   ],
   "recorded_at": "2026-01-01T14:00:00Z",
+  "recorded_by": "acd-operations",
   "schema_version": "0.1",
   "sent_at": "2026-01-01T11:00:00Z",
   "source_uri": "https://fab.example/receipts/receipt-2026-001",
