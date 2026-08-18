@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 18" width="40mm" height="18mm" role="img" aria-label="VibeBB silkscreen logo">
+  <!--
+    Single-color silkscreen artwork for PCB silkscreen layers.
+    Geometry only (no text elements, no gradients) so the outline is
+    font-independent when imported into KiCad.
+    Units are millimeters: viewBox 40x18 = 40mm x 18mm at 1:1 scale.
+    Stroke widths are 0.4mm and above, so the artwork stays over the
+    typical 0.15mm silkscreen minimum feature size of low-cost fabs.
+    The board-colored plate below is preview only: import the
+    "silkscreen" group and drop the "board-preview" group.
+  -->
+  <g id="board-preview">
+    <path d="M4 0 H40 V14 L36 18 H0 V4 Z" fill="#07130f"/>
+  </g>
+
+  <g id="silkscreen" fill="none" stroke="#ffffff" stroke-linecap="square" stroke-linejoin="miter">
+    <!-- chamfered frame with corner brackets -->
+    <path d="M4.2 1 H39 V13.8 L35.8 17 H1 V4.2 Z" stroke-width="0.6"/>
+    <g stroke-width="0.45">
+      <path d="M36.9 2.3 H37.7 V4.4"/>
+      <path d="M3.1 15.7 H2.3 V13.6"/>
+    </g>
+
+    <!-- bus trace with vias -->
+    <path d="M4 3 H19.6 l1.4 -1.4 H30.4" stroke-width="0.4"/>
+    <g fill="#ffffff" stroke="none">
+      <rect x="3.6" y="2.6" width="0.8" height="0.8"/>
+      <rect x="30.2" y="1.2" width="0.8" height="0.8"/>
+    </g>
+
+    <!-- angular wordmark: VibeBB -->
+    <g stroke-width="0.75">
+      <path d="M4.5 6 L6.5 12 L8.5 6"/>
+      <path d="M10.2 8 V12"/>
+      <path d="M12 5 V12"/>
+      <path d="M12 8 H15.4 L16.4 9 V11 L15.4 12 H12"/>
+      <path d="M21.2 11 L20.4 12 H18.2 L17.4 11 V9 L18.2 8 H20.4 L21.2 9 V10 H17.4"/>
+      <path d="M22.4 6 V12"/>
+      <path d="M22.4 6 H25.8 L26.8 7 V8 L25.8 9 H22.4"/>
+      <path d="M22.4 9 H25.8 L26.8 10 V11 L25.8 12 H22.4"/>
+      <path d="M27.8 6 V12"/>
+      <path d="M27.8 6 H31.2 L32.2 7 V8 L31.2 9 H27.8"/>
+      <path d="M27.8 9 H31.2 L32.2 10 V11 L31.2 12 H27.8"/>
+    </g>
+    <rect x="9.6" y="6" width="1.2" height="1.2" fill="#ffffff" stroke="none"/>
+
+    <!-- glitch bars -->
+    <g stroke-width="0.5">
+      <path d="M33.6 6.6 H37.4"/>
+      <path d="M34.8 8.6 H37.4"/>
+      <path d="M33.6 10.6 H36.2"/>
+    </g>
+
+    <!-- data strip -->
+    <g stroke-width="0.45">
+      <path d="M4 15.6 V14.2"/>
+      <path d="M5.4 15.6 V13.4"/>
+      <path d="M6.8 15.6 V14.6"/>
+      <path d="M8.2 15.6 V13.4"/>
+      <path d="M9.6 15.6 V14.6"/>
+      <path d="M11 15.6 V14.2"/>
+      <path d="M12.4 15.6 V13.4"/>
+      <path d="M13.8 15.6 V14.6"/>
+      <path d="M15.2 15.6 V14.2"/>
+      <path d="M16.6 15.6 V13.4"/>
+      <path d="M18 15.6 V14.6"/>
+      <path d="M19.4 15.6 V14.2"/>
+      <path d="M20.8 15.6 V13.4"/>
+      <path d="M22.2 15.6 V14.6"/>
+      <path d="M23.6 15.6 V14.2"/>
+      <path d="M25 15.6 V13.4"/>
+      <path d="M26.4 15.6 V14.6"/>
+      <path d="M27.8 15.6 V14.2"/>
+      <path d="M29.2 15.6 V13.4"/>
+      <path d="M30.6 15.6 V14.6"/>
+      <path d="M32 15.6 V14.2"/>
+    </g>
+  </g>
+</svg>

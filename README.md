@@ -1,10 +1,31 @@
 # ACD — Autonomous Computer Design
 
+![acd-agent — Autonomous Computer Design on OpenHands](assets/banner.svg)
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/uist1idrju3i/acd-agent)
 
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
 AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立再読込、機械測定などの
 決定論的ゲートが合否を判定します。
+
+## インストール
+
+ビルドもCLIのセットアップも不要です。OpenHandsのLocal GUI（Agent Canvas）で3ステップで
+導入できます。
+
+1. 「カスタマイズ → Plugins → プラグインを追加」を開く。
+2. ソースに `github:uist1idrju3i/acd-agent`、パスに `plugins/acd` を入力する。
+   パスは必須で、省略するとACDのSkill／AgentDefinition／command／hooksが読み込まれません。
+3. 追加を実行する。以後は`/acd:gates`などのACD機能がそのまま使えます。
+
+最新化（default branchの先頭への更新）も、同じPlugins画面の「更新」ボタンだけで完了します。
+アンインストールは不要で、有効・無効の状態も維持されます。
+
+> 参考: 特定のtagまたは40桁commit SHAへ固定・切替・ダウングレードする場合は、更新ボタンで
+> refを指定できないため、いったんアンインストールして新しいrefで再インストールします。
+> 通常の利用では不要です。
+
+その他の運用手順は[`docs/operations.md`](docs/operations.md)を参照してください。
 
 ## ACDとは？
 
@@ -44,6 +65,8 @@ ACDが埋めるギャップは4点です。
 [`docs/research/README.md`](docs/research/README.md)を参照してください。
 
 ## VibeBB — Vibe BreadBoarding
+
+<img src="assets/vibebb-silkscreen.svg" alt="VibeBB — Vibe BreadBoarding（シルク印字用ロゴ）" width="320">
 
 VibeBBは、Vibe Codingになぞらえた「Vibe BreadBoarding」です。Andrej Karpathyが
 [2025年2月の投稿](https://x.com/karpathy/status/1886192184808149383)で示した
@@ -104,9 +127,23 @@ ACDは、要件から基板・筐体・ファームウェアを設計し、製�
 - ERC/DRCなどの自動ゲートは記述された整合を判定するものであり、ライブラリ記述の誤りや
   設計意図そのものを保証しません。ライブラリの出所と測定値を別途記録します。
 - 安全境界の禁止領域は初期ターゲットに含めません。AC電源、高電圧・大電流、レーザー、
-  医療・車載用途、無線送信回路の直接設計、Li-ion/LiPo充電回路は初期は禁止とし、
-  詳細は[`SECURITY.md`](SECURITY.md)と
-  [`docs/adr/ADR-0029-agent-safety-boundary.md`](docs/adr/ADR-0029-agent-safety-boundary.md)に定めます。
+  医療・車載用途、無線送信回路の直接設計、Li-ion/LiPo充電回路は初期は禁止とします。
+
+## 設計根拠を残す
+
+ACDは「なぜその設計にしたか」を会話ログや記憶に頼らず、設計入力と同じ変更で`rationale.json`へ
+型付きrecordとして保存します。部品、配置、配線幅、シルク、stackup、design rule、net class、
+安全境界、機構寸法、FWピン割当のように設計者（AI）が選んだ値は、採用理由、却下した代替案、
+駆動している要求、出所とともに記録されます。配置やシルクのようにSkill由来の値には、
+Skill名とscript hashも残ります。
+
+記録漏れは決定論的に検出します。設計判断を表す属性は必須と免除に分類され、どちらにも
+分類されない属性は`unclassified`としてfail-closedになります。graphの値やrevisionが変わって
+recordが対象と一致しなくなった場合もstaleとして停止し、理由の再記述を求めます。
+
+これにより、数リビジョン後や別の人が見たときでも、「なぜこの部品なのか」「なぜこの配線幅か」
+「なぜこの寸法か」を後から辿れます。設計根拠は理由の説明であり、合否の権限は持ちません。
+合否は決定論的ゲートとEvidenceが判定します。
 
 ## 設計フロー
 
@@ -168,9 +205,7 @@ ACD本体ではなく`plugins/acd/skills/`のSkillが持ち、採否はOpenHands
 上位の少数候補に限定します。回転刻みは版管理された`profiles/`の宣言に従います。
 
 LLM-only CADとの違いは、毎回同じ解を出すことではなく、出た設計を後から再検証できることです。
-実行ごとに解が異なっても、決定論的な実測と独立parser再読込で検証できればよいとします。方針の正は
-[`docs/adr/ADR-0007-llm-guided-physical-design.md`](docs/adr/ADR-0007-llm-guided-physical-design.md)と
-[`docs/adr/ADR-0011-search-results-as-design-input.md`](docs/adr/ADR-0011-search-results-as-design-input.md)です。
+実行ごとに解が異なっても、決定論的な実測と独立parser再読込で検証できればよいとします。
 
 ## ACDではないもの
 
@@ -183,23 +218,23 @@ LLM-only CADとの違いは、毎回同じ解を出すことではなく、出�
 - 独自のコンパイラ、デバッガ、シミュレータを作る製品ではありません。既存ツールを
   外部ツールとして呼び出します。
 
-## インストール
+## ロゴ
 
-OpenHandsのLocal GUI（Agent Canvas）の「カスタマイズ → Plugins →
-プラグインを追加」から、ソース`github:uist1idrju3i/acd-agent`、パス`plugins/acd`で
-インストールできます。
-パスは必須で、省略するとACDのSkill／AgentDefinition／command／hooksは読み込まれません。
+![acd-agent](assets/logo.svg)
 
-通常の最新化（default branchの先頭への更新）は、同じPlugins画面の「更新」ボタンだけで
-行えます。アンインストールは不要で、有効・無効の状態も維持されます。特定のtagまたは
-40桁commit SHAへ固定・切替・ダウングレードする場合は、更新ボタンでrefを指定できないため、
-いったんアンインストールして新しいrefで再インストールします。
+- [`assets/logo.svg`](assets/logo.svg): acd-agentのロゴ。
+- [`assets/banner.svg`](assets/banner.svg): READMEなどで使うバナー。
+- [`assets/vibebb-silkscreen.svg`](assets/vibebb-silkscreen.svg): 基板シルク印字用のVibeBBロゴ。
+  単色・線画・幾何要素のみで、1:1スケールは40mm×18mmです。
+- [`assets/qr-repository-silkscreen.svg`](assets/qr-repository-silkscreen.svg): 基板シルク印字用の
+  リポジトリURLのQRコード。誤り訂正レベルH、1モジュール0.8mm、余白4モジュールで、1:1スケールは
+  36mm×36mmです。白シルクを明るい地として塗り、データモジュールは非印字（基板色）で抜くことで、
+  規格どおりの「暗いモジュール＋明るい背景」のコントラストにしています。
 
-その他の運用手順は[`docs/operations.md`](docs/operations.md)を参照してください。
+<img src="assets/qr-repository-silkscreen.svg" alt="リポジトリURLのQRコード（シルク印字用）" width="200">
 
-## 文書索引
-
-文書の一覧とAccepted ADRの索引は[`docs/README.md`](docs/README.md)を参照してください。
+シルク印字用の資材は、基板へ載せる場合は`board-preview`グループを外し、`silkscreen`グループ
+だけを取り込みます。
 
 ## ライセンス
 
