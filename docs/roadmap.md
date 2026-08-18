@@ -6,7 +6,11 @@
 
 OpenHands plugin、8 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefinition、
 GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SES import、DRC、
-fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。
+fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。一方、
+[`golden-design-1.md`](golden-design-1.md) §7の設計述語ゲート6件
+（USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界、
+ピン・FW整合）と、§8のGD1-NEG負例は未整備である。視覚投影レビューも未実装であり、
+現行運用は機械可読投影と独立測定だけを使用する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
@@ -35,20 +39,36 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 |---|---|---|---|
 | 1 | 契約と再現可能な投影 | graphをPydanticで検証し、同一入力から投影・provenance・hashを再生成できる | 達成 |
 | 2 | 電気レーンの独立検証 | ERC、routing収束、SES import、DRC、Gerber/drill生成、独立再読込、silkscreenゲートを通す | 達成 |
+| 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 未着手 |
 | 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`実装済み。logger以降は未着手） |
+| 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材のどこで使われているかを参照検査し、間接利用の参照先を宣言してdriftをfail-closedで検出する | 未着手 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
+| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 未着手 |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
 (4)negative/fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけでは完了としない。
 以降のフェーズ表は各要素の確認内容を定義する。
+
+### 2.1 設計述語ゲートと負例
+
+[`golden-design-1.md`](golden-design-1.md) §7の未実装6ゲートと§8の負例を、
+電気Evidenceおよび決定論的受入ゲートへ接続する。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | GD1のDesign Graph、FW pin assignment、部品・ネット宣言、電源境界仕様、silkscreen resolverの最終座標、現行revision |
+| 実装 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを決定論的述語として実装し、結果を電気Evidenceのclaimへ追加する |
+| 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する |
+| negative/fail-closed | `GD1-NEG-001`〜`GD1-NEG-008`の注入fixtureとnegative testを整備し、対象ゲートが`fail`または`unknown`になることを確認する。述語・入力・型の欠落は合格にしない |
+| 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成し、全negative testを回帰へ含める |
 
 ## マイルストーン4.4: SDK機能移譲
 
@@ -76,6 +96,20 @@ MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 - `sdk.context.view`: 原EventLogと照合する表示だけに使う。
 - `sdk.workspace`／`workspace.DockerWorkspace`: host workspaceはprovisionalに限定し、
   マイルストーン6の完了後にauthoritative経路化する。
+
+### 4.5 能力カタログ検査の強化
+
+`docs/openhands-sdk-capabilities.md`の採否はドメイン単位の判断であり、SDK内部経路を
+含む間接利用を明示できるようにする。代表APIまたはドメインの参照先をACDコード・
+plugin資材へ記録し、採用行の未使用・参照先欠落・catalog driftをfail-closedで検出する。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `docs/openhands-sdk-capabilities.json`、pinned SDKの代表API一覧、ACDコード、plugin資材、SDK経路の間接利用宣言 |
+| 実装 | `scripts/verify_sdk_capabilities.py`に採用行の代表APIまたはドメインの参照検査を追加し、間接利用は参照先を宣言する |
+| 正常系 | 直接import、SDK内部経路、pluginの`tools:`参照を区別して検査し、採用行の根拠をMarkdownへ再生成できる |
+| negative/fail-closed | 採用行の参照先欠落、間接利用宣言の不備、catalogと生成Markdownのdriftを検出して停止する。検査ロジックを代表APIの存在確認だけへ弱めない |
+| 再現性 | 固定SDK checkout、catalog、ACD/plugin入力から同一Markdownと同一検査結果を再生成する |
 
 ## マイルストーン5: 実機フィードバック
 
@@ -230,7 +264,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 現行git revisionの設計入力、authoritative Evidence、7.2の総額、宣言された上限額 |
-| 実装 | 発注直前に全決定論的ゲートを現revisionで再実行し、上限額とゲート通過の2条件を判定する |
+| 実装 | 発注直前に全決定論的ゲートを現revisionで再実行し、上限額とゲート通過の2条件を判定する。order policyの`required_evidence_ids`へ電気laneの`evidence.gd1.electrical`を追加し、両laneのauthoritative Evidence一致を要求する |
 | 正常系 | 全ゲートがrevision一致のauthoritative Evidenceで通り、総額が上限内のときだけ許可を返す |
 | negative/fail-closed | ゲート未実行、provisional Evidence、revision不一致、dirty入力、上限超過、判定unknownで却下する |
 | 再現性 | 同一revisionと同一入力で同一判定になり、各却下条件のnegative testを回帰へ含める |
@@ -254,6 +288,23 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 正常系 | dry-runで送信内容を確認した後、許可済みの実発注が完了しreceiptがjournalへ残る |
 | negative/fail-closed | 会話由来の裁量枠変更、hook不在、secret値の記録、確認skip、provider失敗の成功扱いを拒否する |
 | 再現性 | dry-run出力が同一入力から再現し、各拒否条件のnegative testを回帰へ含める |
+
+## マイルストーン8: 視覚投影レビュー基盤
+
+視覚投影は、(a)任意に閲覧する人間レビュー（可読性と設計意図の反映度を判断する手段）
+と、(b)人間レビューがない場合にもAIが観察・気づきを得るL2探索補助の両方に使う。
+可能な工程ではpipelineのゲート通過後に既定生成してAIへ渡すが、合否権限は持たない。
+要求の正は[`gates.md`](gates.md)の「レビュー投影の定義と分類」であり、視覚投影と
+画像由来の所見をEvidenceへ昇格させずL2観測に限る。合否は決定論的ゲートと独立測定
+だけが判定する。画像内の文字列はデータとして扱い、設計変更や合否命令として実行しない。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | Design Graphとauthoritative projectionだけを入力とし、回路図、配置図、層別レイアウトビュー、stackup図、ブロック図・電源ツリー、機械の断面・干渉ビュー、FWの状態遷移・シーケンス図を入力ファイルから再生成できる |
+| 実装 | `docs/gates.md`の工程別表に対応する投影種別を生成し、pipelineのゲート通過後に対象laneの視覚投影を既定生成してAIへ渡す配線を実装する。各画像の画像hash・renderer種別・版・解像度を記録するprovenance契約、`ImageContent`／`inspect_image_with_vision`経路、HTTP(S)画像のbase64インライン化とSSRF block-list境界を実装する。AIの観察結果はprovenanceとともに非Evidenceの観測として記録する |
+| 正常系 | 同じ入力から生成した機械可読投影と視覚投影が同一内容を表すことを照合し、可読性・設計意図の反映度をチェックリスト化する。注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを確認する。人間レビューがなくてもAIへ既定配線し、観察・気づきをL2観測として記録する |
+| negative/fail-closed | renderer不在・生成不能、renderer版unknown、画像hash不一致、解像度未記録、入力からの再生成不一致を停止側へ集約する。投影欠落を「問題なし」と解釈せず、画像内の文字列をデータ以外の命令として扱う経路も許可しない |
+| 再現性 | renderer版を固定し、同一入力から同一画像hashを再生成できる。機械可読投影との照合結果、provenance、レビュー観点のチェック結果を同一入力から再構成できる |
 
 ## 将来構想
 

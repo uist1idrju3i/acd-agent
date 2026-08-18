@@ -73,7 +73,7 @@
       "representative_apis": ["ParallelToolExecutor"],
       "use": "agent lane並列化",
       "adoption": "採用",
-      "rationale": "`Agent.tool_concurrency_limit`経由で使用し、資源宣言不能時は直列化",
+      "rationale": "`Agent.tool_concurrency_limit`を設定するとSDK内部の`ParallelToolExecutor`経路へ渡され、資源宣言不能時はSDK mutexで直列化される",
       "verification": "`tests/openhands/tools/test_definitions.py`"
     },
     {
@@ -157,7 +157,7 @@
       "representative_apis": ["CancellationToken"],
       "use": "対話中断",
       "adoption": "採用",
-      "rationale": "SIGINTからinterruptへ結線し、L2停止側に限定",
+      "rationale": "`LocalConversation.interrupt()`がSDK内部の`CancellationToken`経路を使う。L2停止側に限定する",
       "verification": "`tests/openhands/session/test_goal_loop.py`"
     },
     {
@@ -207,7 +207,7 @@
       "representative_apis": ["SecretRegistry"],
       "use": "secret注入・漏洩防止",
       "adoption": "採用",
-      "rationale": "pinned registryのmaskingとlazy secret注入を現行Conversationで使用",
+      "rationale": "`LocalConversation(secrets=...)`経由でSDK内部registryへallowlist sourceを渡し、maskingはSDK内部（terminal tool）で行う",
       "verification": "registry回帰"
     },
     {
@@ -271,7 +271,7 @@
       "representative_apis": ["HookConfig", "HookEventType", "HookExecutor"],
       "use": "agent経路の停止側境界",
       "adoption": "採用",
-      "rationale": "`plugins/acd/hooks/`がSDK hook契約を使用",
+      "rationale": "`HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する",
       "verification": "DENY/allow試験"
     },
     {
@@ -333,7 +333,7 @@
       "representative_apis": ["RouterLLM", "RandomRouter", "MultimodalRouter"],
       "use": "judge/critic用modelと主agent用modelの分離",
       "adoption": "採用",
-      "rationale": "routing結果は合否へ影響させず、profileと資材hashを固定する",
+      "rationale": "ACDは`RouterLLM`によるrole routingを使用する。`RandomRouter`/`MultimodalRouter`は直接使用せず、routing結果は合否へ影響させない",
       "verification": "verify_model_policy.py --check、tests/openhands/session/test_routing.py"
     },
     {
@@ -408,7 +408,7 @@
       "representative_apis": ["SecretSource", "StaticSecret", "LookupSecret"],
       "use": "secretを平文から分離",
       "adoption": "採用",
-      "rationale": "allowlist環境変数をlazy sourceとしてConversation registryへ渡す",
+      "rationale": "allowlist環境変数を`SecretSource`として`LocalConversation(secrets=...)`経由でSDK内部registryへ渡し、`StaticSecret`/`LookupSecret`は直接importしない",
       "verification": "registry masking回帰"
     },
     {
@@ -417,7 +417,7 @@
       "representative_apis": ["ConfirmRisky", "NeverConfirm"],
       "use": "agent操作の安全境界",
       "adoption": "採用",
-      "rationale": "現行conversationへMEDIUM以上の確認方針を設定",
+      "rationale": "現行conversationへ`ConfirmRisky`を設定する。`NeverConfirm`は直接使用しない",
       "verification": "risky/deny試験"
     },
     {
@@ -579,7 +579,7 @@
       "representative_apis": ["BrowserClickTool"],
       "use": "L2の部品調査・datasheet確認",
       "adoption": "採用",
-      "rationale": "L2探索補助に限定し、設計入力へ直接昇格させない。決定論的APIで再取得して`hash`固定し、`Evidence`やL1合否を置換しない",
+      "rationale": "`BrowserToolSet.is_usable()`経由で利用可能性を検査して登録する。L2探索補助に限定し、`BrowserClickTool`を直接importせず、`Evidence`やL1合否を置換しない",
       "verification": "`BrowserToolSet.is_usable()`、agent session回帰"
     },
     {
@@ -588,7 +588,7 @@
       "representative_apis": ["DelegateExecutor"],
       "use": "sub-agent調整",
       "adoption": "採用",
-      "rationale": "SDKのTask実行経路で使用し、hookと確認方針を境界にする",
+      "rationale": "SDKのTask/delegate実行経路を採用するが、ACD側から`DelegateExecutor`を直接参照しない。hookと確認方針を境界にする",
       "verification": "session回帰"
     },
     {
@@ -615,7 +615,7 @@
       "representative_apis": ["GlobTool"],
       "use": "agent検索",
       "adoption": "採用",
-      "rationale": "AgentDefinitionの標準toolとして参照",
+      "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.glob`名を参照する。Python APIの直接importはない",
       "verification": "agent実行試験"
     },
     {
@@ -624,7 +624,7 @@
       "representative_apis": ["GrepTool"],
       "use": "agent検索",
       "adoption": "採用",
-      "rationale": "AgentDefinitionの標準toolとして参照",
+      "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.grep`名を参照する。Python APIの直接importはない",
       "verification": "agent実行試験"
     },
     {
@@ -669,7 +669,7 @@
       "representative_apis": ["TaskTrackerTool"],
       "use": "agent作業追跡",
       "adoption": "採用",
-      "rationale": "AgentDefinitionの標準toolとして参照",
+      "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.task_tracker`名を参照する。Python APIの直接importはない",
       "verification": "agent実行試験"
     },
     {
@@ -678,7 +678,7 @@
       "representative_apis": ["TerminalTool"],
       "use": "agentのCLI実行",
       "adoption": "採用",
-      "rationale": "AgentDefinitionの標準toolとして参照",
+      "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.terminal`名を参照する。Python APIの直接importはない",
       "verification": "agent実行試験"
     },
     {

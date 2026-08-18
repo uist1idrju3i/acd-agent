@@ -271,17 +271,21 @@ M2取付穴と将来の筐体の嵌合公差は、外形の±0.2 mm（regular）
 |---|---|---|---|
 | ERC | 未接続、電源入力、駆動競合、ピン方向の電気規則違反 | VBUSとGNDの誤接続、ENの駆動競合 | `kicad-cli` ERC結果、入力hash、版 |
 | DRC | クリアランス、未配線、製造形状、穴・銅の規則違反 | 短絡、未配線、能力値未確定 | `kicad-cli` DRC結果、ルール版 |
-| アンテナキープアウト | アンテナ直下・周囲の銅箔、GND、部品、シルクの有無 | アンテナ下へGNDベタを追加 | グラフ述語結果、git commit、形状hash |
+| アンテナキープアウト | アンテナ直下・周囲の銅箔、GND、部品、シルクの有無 | アンテナ下へGNDベタを追加 | グラフ宣言、投影Gerberの独立測定、形状hash |
 | USB CC | CC1/CC2それぞれの5.1 kΩ RdとGND接続 | CC1またはCC2の抵抗を削除 | ネット述語、抵抗MPN、接続hash |
 | strapping pin | IO2/IO8/IO9の起動条件を壊す割当・負荷 | LEDをIO8またはIO9へ割当 | ピン述語、FW整合結果 |
 | I2C pull-up | SDA/SCLそれぞれの4.7 kΩと電源接続 | SDAまたはSCLのプルアップを削除 | ネット述語、ERC結果 |
 | 電源デカップリング | LDOの入力・出力に10 µF＋100 nFがあり、ESP32-C3-MINI-1の3V3ピン直近に100 nFがあること | LDO側またはMCU側のコンデンサを削除・遠ざける | 部品・ネット述語、BOM hash |
-| 電源境界 | 5 V VBUS、3.3 V生成、電流・電圧境界 | バッテリ充電回路または5 V超の電源を追加 | `SafetyBoundaryResult` |
-| ピン・FW整合 | グラフの`Net`/`Pin`とFWパッケージの一致 | FWだけIO7をIO8へ変更 | 投影hash、整合ゲート結果 |
+| 電源境界 | 5 V VBUS、3.3 V生成、電流・電圧境界 | バッテリ充電回路または5 V超の電源を追加 | 未実装（`SafetyBoundaryResult`型なし） |
+| ピン・FW整合 | グラフの`Net`/`Pin`とFWパッケージの一致 | FWだけIO7をIO8へ変更 | 未実装（整合ゲートなし） |
 
-アンテナキープアウトは通常のDRCだけでは検出できないため、設計グラフの専用述語
-として実装する。述語が評価不能な場合は`unknown`で停止し、配置が見た目に正しい
-ことを合格根拠にしない。
+実装状況は次のとおりである。ERC、DRC、アンテナキープアウトの3件は実装済みである。
+ERCとDRCは共通の決定論的gate関数で検査し、アンテナキープアウトはグラフ宣言を生成した
+後、投影Gerberを独立測定してfail-closedにする。USB CC、strapping pin、I2C pull-up、
+電源デカップリング、電源境界、ピン・FW整合の6件は、現時点で合否述語・ゲート関数が
+未実装であり、生成される電気Evidenceのclaimにも含まれない。電源境界のEvidenceとして
+記載していた`SafetyBoundaryResult`型も未実装である。6件の実装とEvidence claim追加は
+[`roadmap.md`](roadmap.md)のマイルストーン2.1で扱う。
 
 ## 8. negative test
 
@@ -463,7 +467,9 @@ SMD pad上viaを構造的に禁止している。出所は`out/gd1-plan2-default
 
 各negative testは、注入前の入力ファイル、注入差分、実行したゲート、停止理由を
 Evidenceへ記録する。検証器が異常を検出できない場合や、入力の比較対象が`unknown`の
-場合は、`pass`ではなく停止とする。
+場合は、`pass`ではなく停止とする。`GD1-NEG-001`〜`GD1-NEG-008`に対応する
+注入fixtureとnegative testは現時点では未整備であり、[`roadmap.md`](roadmap.md)の
+マイルストーン2.1で整備する。
 
 ### 8.1 機械レーン宣言
 
@@ -774,10 +780,12 @@ RESETではSW1上側の板端までの帯、BOOTではSW2周辺の上側／左�
 | BOOT | F.SilkS | `(2.3, 5.15)` | 0° | SW2: 0.370181 |
 | D1 | F.SilkS | `(9.1, 12.4)` | 0° | D1: 0.339286 |
 | USB | F.SilkS | `(8.075, 23.9)` | 0° | J1: 0.220477 |
-| DEV BOARD | B.SilkS | `(8.016282355, 11.0472)` | 0° | — |
-| golden-design-1-r1 | B.SilkS | `(8.95, 14.47915)` | 0° | — |
+| DEV BOARD | B.SilkS | `(24.925, 16.9614905)` | 0° | — |
+| golden-design-1-r1 | B.SilkS | `(8.95, 15.305683004)` | 0° | — |
 
 現行context測定では、上記6文字列のbody/courtyard重なりはすべて`0`であり、
 resolverの最終状態は候補生成だけでなく投影後の測定でも合格している。なお、
 最終製造受入れは引き続きauthoritative projection、独立reload、Gerber測定の
 各ゲートで判定する。
+この座標表とresolverの最終statusを固定するpinning testは現時点で未整備であり、
+[`roadmap.md`](roadmap.md)のマイルストーン2.1で整備する。
