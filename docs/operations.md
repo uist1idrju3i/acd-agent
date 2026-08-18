@@ -463,6 +463,25 @@ role不整合はreportを標準出力へ出してexit code 2を返す。現在�
 vendor modelを既定採用するものではない。コード側でこの資材を暗黙に読み込むことはなく、
 呼び出し側がpolicyを明示的に渡した場合だけroutingへ適用される。
 
+## Agent settings・profile・credential
+
+role別のprofile名、参照するLLM profile名、credentialのSecretRegistry参照名は
+`plugins/acd/agent-settings.json`で宣言する。この資材は秘密情報を持たず、credentialは
+参照名だけを保持して値を保存しない。整合性は次で確認する。
+
+```bash
+uv run python scripts/verify_agent_settings.py --check
+```
+
+`--check`は資材を書き換えず、parse失敗、`unknown`設定、canonical hash不一致、
+`model-policy.json`とのprofile drift、allowlist外のcredential参照名は
+`status="unknown"`のreportを標準出力へ出してexit code 2を返す。現在の資材へcanonical
+hashを固定する場合だけ`--write`を使う。profileはSDKの`OpenHandsAgentProfile`として
+検証し、credential参照名がprofile側へ混入した場合も拒否する。settings報告は
+`pass_evidence=false`固定の非EvidenceなL3観測であり、合否判定には使わない。
+`build_acd_conversation`へ`agent_settings`を明示的に渡した場合だけ、routing profileを
+この資材から導出し、driftとallowlist違反でfail-closedに停止する。
+
 ## Observation store
 
 metrics、stats、goal結果、routing観測のL3 metadataはSDK `FileStore`を経由して保存する。
@@ -472,6 +491,26 @@ Evidenceと設計入力の保存経路は対象外であり、FileStoreへ移譲
 内部で使用する。`FileStore`を明示する場合のpathはstore rootからの相対pathだけを許可し、
 空path、絶対path、`..`によるroot脱出、rootを準備できない場合はfail-closedで拒否する。
 payloadは`pass_evidence=false`固定の型付き観測だけを受け付ける。
+
+## 永続memoryとevent view
+
+`.openhands/memory/MEMORY.md`の永続memoryは既定で無効であり、
+`build_acd_conversation(enable_persistent_memory=True)`を明示した場合だけSDKの
+`load_memory`経路で読み込む。memory本文は保存せず、観測はindex path、文字数、
+context hashだけを`pass_evidence=false`固定で記録する。allowlist対象のsecret値が
+memoryへ混入した場合、読込失敗、index不在はfail-closedで停止する。
+
+event viewは原EventLogと照合する表示専用のprojectionであり、表示するeventごとに
+event id、event種別、内容hashだけを記録する。整合性は次で確認する。
+
+```bash
+uv run python scripts/verify_context_view.py --check
+```
+
+`--check`は資材を書き換えず、canonical hash不一致、EventLog不一致、EventLogに存在しない
+view entry、EventLog読込失敗は`status="unknown"`のreportを標準出力へ出してexit code 2を
+返す。tracked projectionを再生成する場合だけ`--write`を使う。memory観測とview projectionは
+gate criticのEvidence経路で明示的に拒否し、合否判定には使わない。
 
 ## 依存・版・破壊的変更の記録
 

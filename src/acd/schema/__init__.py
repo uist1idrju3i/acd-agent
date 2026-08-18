@@ -1,5 +1,13 @@
 """Pydantic models that form the canonical ACD contracts."""
 
+from acd.schema.agent_settings import (
+    AcdCredentialReference,
+    AcdProfileObservation,
+    AcdProfileSetting,
+    AcdSettingsManifest,
+    AcdSettingsReport,
+    AcdSettingsStatus,
+)
 from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
     UNKNOWN,
@@ -7,6 +15,12 @@ from acd.schema.common import (
     canonical_json_sha256,
     canonical_sha256,
     is_unknown,
+)
+from acd.schema.context import (
+    ContextSource,
+    EventViewEntry,
+    EventViewProjection,
+    MemoryContextObservation,
 )
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 from acd.schema.evidence import (
@@ -49,6 +63,8 @@ from acd.schema.model_routing import (
     ModelRoutingStatus,
     RoutingRole,
 )
+from acd.schema.observation import ObservationArtifactKind, ObservationPayload
+from acd.schema.observation_log import ObservationLogEvent, ObservationLogRecord
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -86,11 +102,20 @@ from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "UNKNOWN",
+    "AcdCredentialReference",
     "AcdModel",
+    "AcdProfileObservation",
+    "AcdProfileSetting",
+    "AcdSettingsManifest",
+    "AcdSettingsReport",
+    "AcdSettingsStatus",
     "AppliedFeedbackValidationReport",
+    "ContextSource",
     "ConvergenceState",
     "DecisionKind",
     "DesignGraph",
+    "EventViewEntry",
+    "EventViewProjection",
     "Evidence",
     "EvidenceClaim",
     "EvidenceStatus",
@@ -116,12 +141,17 @@ __all__ = [
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
+    "MemoryContextObservation",
     "ModelRoutingBinding",
     "ModelRoutingObservation",
     "ModelRoutingPolicy",
     "ModelRoutingReport",
     "ModelRoutingStatus",
     "NodeKind",
+    "ObservationArtifactKind",
+    "ObservationLogEvent",
+    "ObservationLogRecord",
+    "ObservationPayload",
     "PhysicalEvidence",
     "PromptCacheTier",
     "PromptDriftReport",

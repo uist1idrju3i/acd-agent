@@ -1,0 +1,71 @@
+[
+  {
+    "activated_skills": [],
+    "critic_result": null,
+    "extended_content": [],
+    "id": "11111111-1111-4111-8111-111111111111",
+    "kind": "MessageEvent",
+    "llm_message": {
+      "content": [
+        {
+          "cache_prompt": false,
+          "text": "design the GD1 board",
+          "type": "text"
+        }
+      ],
+      "name": null,
+      "reasoning_content": null,
+      "responses_reasoning_item": null,
+      "role": "user",
+      "thinking_blocks": [],
+      "tool_call_id": null,
+      "tool_calls": null
+    },
+    "llm_response_id": null,
+    "parent_id": null,
+    "sender": null,
+    "source": "user",
+    "timestamp": "2026-01-01T00:00:00.000000"
+  },
+  {
+    "activated_skills": [],
+    "critic_result": null,
+    "extended_content": [],
+    "id": "22222222-2222-4222-8222-222222222222",
+    "kind": "MessageEvent",
+    "llm_message": {
+      "content": [
+        {
+          "cache_prompt": false,
+          "text": "running deterministic gates",
+          "type": "text"
+        }
+      ],
+      "name": null,
+      "reasoning_content": null,
+      "responses_reasoning_item": null,
+      "role": "assistant",
+      "thinking_blocks": [],
+      "tool_call_id": null,
+      "tool_calls": null
+    },
+    "llm_response_id": null,
+    "parent_id": null,
+    "sender": null,
+    "source": "agent",
+    "timestamp": "2026-01-01T00:00:01.000000"
+  },
+  {
+    "forgotten_event_ids": [
+      "11111111-1111-4111-8111-111111111111"
+    ],
+    "id": "33333333-3333-4333-8333-333333333333",
+    "kind": "Condensation",
+    "llm_response_id": "response-1",
+    "parent_id": null,
+    "source": "environment",
+    "summary": "earlier request summarized",
+    "summary_offset": null,
+    "timestamp": "2026-01-01T00:00:02.000000"
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "artifact_kind": "conversation_metrics",
+  "description": "pass_evidence must stay false",
+  "pass_evidence": true
+}

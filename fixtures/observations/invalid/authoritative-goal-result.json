@@ -1,0 +1,13 @@
+{
+  "artifact_kind": "goal_result",
+  "description": "observations must not claim authority",
+  "pass_evidence": false,
+  "result": {
+    "authoritative": true,
+    "gate_passed": true,
+    "iterations": 1,
+    "objective": "demo",
+    "status": "finished",
+    "verdict": null
+  }
+}

@@ -12,6 +12,7 @@ from openhands.sdk.critic import CriticBase, CriticResult, IterativeRefinementCo
 from openhands.sdk.event import LLMConvertibleEvent
 from pydantic import BaseModel, Field
 
+from acd.openhands.session.context import is_context_artifact
 from acd.schema import Evidence
 from acd.schema.design_graph import DesignGraph
 
@@ -156,7 +157,14 @@ class AcdGateCritic(CriticBase):
             detail["failure"] = f"evidence missing: {requirement.path}"
             return False, detail
         try:
-            evidence = Evidence.model_validate_json(path.read_text(encoding="utf-8"))
+            raw = path.read_text(encoding="utf-8")
+            payload = json.loads(raw)
+            if is_context_artifact(payload):
+                detail["failure"] = (
+                    f"context material is not pass evidence: {requirement.path}"
+                )
+                return False, detail
+            evidence = Evidence.model_validate_json(raw)
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             detail["failure"] = f"evidence invalid: {requirement.path}: {exc}"
             return False, detail

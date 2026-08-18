@@ -26,6 +26,7 @@ from acd.openhands.distribution.skills import load_acd_skills
 from acd.openhands.safety.hooks import validate_acd_agent_hooks
 from acd.openhands.safety.secrets import build_acd_secret_mapping
 from acd.openhands.safety.security import build_acd_security_analyzer
+from acd.openhands.session.context import load_acd_memory_context
 from acd.openhands.session.gate_critic import AcdGateCritic, GateRequirement
 from acd.openhands.session.observation_store import (
     ObservationPayload,
@@ -40,7 +41,12 @@ from acd.openhands.session.routing import (
     ModelRoutingError,
     create_fixed_role_router,
 )
+from acd.openhands.session.settings import (
+    AcdSettingsError,
+    validate_acd_settings,
+)
 from acd.openhands.tools.definitions import register_acd_tools
+from acd.schema.agent_settings import AcdSettingsManifest
 from acd.schema.model_routing import ModelRoutingPolicy, RoutingRole
 
 
@@ -57,11 +63,13 @@ def build_acd_conversation(
     tools: list[Tool] | None = None,
     tool_concurrency_limit: int = 1,
     enable_browser: bool = False,
+    enable_persistent_memory: bool = False,
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
     prompt_manifest_path: Path | None = None,
     prompt_manifest_root: Path | None = None,
     model_routing_policy: ModelRoutingPolicy | None = None,
+    agent_settings: AcdSettingsManifest | None = None,
     condenser_llm: LLM | None = None,
     routing_profiles: Mapping[RoutingRole, str] | None = None,
     stuck_detection_thresholds: (
@@ -98,6 +106,19 @@ def build_acd_conversation(
             raise PromptManifestError(
                 prompt_report.reason or "ACD role prompt manifest drifted"
             )
+    if agent_settings is not None:
+        if model_routing_policy is None:
+            raise AcdSettingsError(
+                "agent settings require a model routing policy"
+            )
+        validate_acd_settings(agent_settings, model_routing_policy)
+        if routing_profiles is None:
+            routing_profiles = {
+                setting.role: setting.profile_name
+                for setting in agent_settings.profiles
+            }
+    if enable_persistent_memory:
+        load_acd_memory_context(workspace)
     agent_llm = llm
     condenser_model = condenser_llm or llm
     if model_routing_policy is not None:
@@ -162,7 +183,7 @@ def build_acd_conversation(
         load_public_skills=False,
         load_user_skills=False,
         load_project_skills=False,
-        load_memory=False,
+        load_memory=enable_persistent_memory,
         marketplace_path=None,
     )
     agent = Agent(
