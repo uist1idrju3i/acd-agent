@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def _record() -> dict[str, object]:
     record = json.loads(
@@ -28,13 +30,19 @@ def _write(tmp_path: Path, record: dict[str, object]) -> Path:
     return path
 
 
-def _verify(*paths: Path, revision: str = "r3") -> bool:
+def _verify(
+    *paths: Path, revision: str = "r3", revision_from: Path | None = None
+) -> bool:
+    revision_args = (
+        ["--revision-from", str(revision_from)]
+        if revision_from is not None
+        else ["--revision", revision]
+    )
     result = subprocess.run(
         [
             sys.executable,
             "scripts/verify_authoritative_evidence.py",
-            "--revision",
-            revision,
+            *revision_args,
             *(str(path) for path in paths),
         ],
         check=False,
@@ -81,3 +89,39 @@ def test_unknown_digest_and_malformed_files_are_rejected(tmp_path: Path) -> None
 def test_missing_and_empty_inputs_are_rejected(tmp_path: Path) -> None:
     assert not _verify()
     assert not _verify(tmp_path / "missing.json")
+
+
+def test_revision_can_be_read_from_design_graph(tmp_path: Path) -> None:
+    graph = tmp_path / "graph.json"
+    graph.write_text(json.dumps({"revision": "r3"}), encoding="utf-8")
+    assert _verify(_write(tmp_path, _record()), revision_from=graph)
+
+
+@pytest.mark.parametrize(
+    "graph_content",
+    ["{", "{}", '{"revision": ""}', '{"revision": null}'],
+)
+def test_invalid_revision_graph_is_rejected(
+    tmp_path: Path, graph_content: str
+) -> None:
+    graph = tmp_path / "graph.json"
+    graph.write_text(graph_content, encoding="utf-8")
+    assert not _verify(_write(tmp_path, _record()), revision_from=graph)
+
+
+def test_revision_sources_cannot_be_combined(tmp_path: Path) -> None:
+    graph = tmp_path / "graph.json"
+    graph.write_text(json.dumps({"revision": "r3"}), encoding="utf-8")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/verify_authoritative_evidence.py",
+            "--revision",
+            "r3",
+            "--revision-from",
+            str(graph),
+            str(_write(tmp_path, _record())),
+        ],
+        check=False,
+    )
+    assert result.returncode != 0

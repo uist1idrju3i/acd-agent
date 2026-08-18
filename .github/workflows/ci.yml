@@ -92,6 +92,6 @@ jobs:
             --repo "$GITHUB_WORKSPACE" \
             'uv sync && uv run python scripts/resolve_gd1_silkscreen.py && uv run python scripts/run_gd1_pipeline.py --out out/gd1 && uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure'
           uv run python scripts/verify_authoritative_evidence.py \
-            --revision r1 \
+            --revision-from fixtures/golden-design-1/graph.json \
             out/gd1/evidence-electrical.json \
             out/gd1-enclosure/evidence-mechanical.json

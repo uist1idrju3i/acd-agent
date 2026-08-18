@@ -4,19 +4,39 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import cast
 
 from acd.schema.evidence import Evidence
 
 
-def _revision(value: str | None) -> str:
+def _revision_from_graph(path: Path) -> str:
+    if not path.is_file():
+        raise ValueError(f"revision graph not found: {path}")
+    try:
+        graph = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise ValueError(f"could not parse revision graph {path}: {exc}") from exc
+    graph_mapping = cast(dict[str, object], graph) if isinstance(graph, dict) else {}
+    revision = graph_mapping.get("revision")
+    if not isinstance(revision, str) or not revision:
+        raise ValueError(f"revision graph has no non-empty revision: {path}")
+    return revision
+
+
+def _revision(value: str | None, revision_from: Path | None) -> str:
+    if value is not None and revision_from is not None:
+        raise ValueError("--revision and --revision-from are mutually exclusive")
     if value is not None:
         if not value:
             raise ValueError("revision must not be empty")
         return value
+    if revision_from is not None:
+        return _revision_from_graph(revision_from)
     result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         capture_output=True,
@@ -29,13 +49,17 @@ def _revision(value: str | None) -> str:
     return revision
 
 
-def verify(paths: Sequence[Path], revision: str | None = None) -> bool:
+def verify(
+    paths: Sequence[Path],
+    revision: str | None = None,
+    revision_from: Path | None = None,
+) -> bool:
     """Return whether all supplied Evidence records support an authoritative pass."""
     if not paths:
         print("FAIL: no Evidence files supplied", file=sys.stderr)
         return False
     try:
-        target_revision = _revision(revision)
+        target_revision = _revision(revision, revision_from)
     except ValueError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return False
@@ -83,9 +107,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Parse arguments and verify authoritative Evidence files."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--revision", help="expected git revision")
+    parser.add_argument(
+        "--revision-from",
+        type=Path,
+        help="read the expected revision from a design graph JSON file",
+    )
     parser.add_argument("evidence", nargs="*", type=Path)
     args = parser.parse_args(argv)
-    return 0 if verify(args.evidence, args.revision) else 1
+    return 0 if verify(args.evidence, args.revision, args.revision_from) else 1
 
 
 if __name__ == "__main__":
