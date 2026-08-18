@@ -34,12 +34,19 @@ Reference implementations in `scripts/`, reusable as-is or as a starting point:
 
 ```bash
 # Full reference pipeline (needs ESP-IDF and qemu-system-riscv32).
-uv run python plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
     --fixture fixtures/golden-design-1 --out out/gd1-fw
+
+# Firmware lane extraction and checks:
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py
 
 # Skill tests (kept separate from the ACD test suite).
 uv run pytest plugins/acd/skills/acd-firmware-esp32c3 -q
 ```
+
+`--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
+開発する場合は、従来どおり`uv run python <path>`を使用します。
 
 Requirements: `IDF_PATH` and `IDF_PYTHON_ENV_PATH` for building,
 `qemu-system-riscv32` on `PATH` for the virtual run. Both probes fail loudly

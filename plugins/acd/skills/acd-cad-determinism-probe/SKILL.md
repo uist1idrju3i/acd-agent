@@ -26,8 +26,11 @@ ACD本体のプローブはツールの有無と版だけを見る。出力バ�
 ## 使い方
 
 ```bash
-uv run python plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determinism_probe.py
+uv run --script plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determinism_probe.py
 ```
+
+`--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
+開発する場合は、従来どおり`uv run python <path>`を使用します。
 
 JSONを標準出力へ書く。測定値を文書へ残す場合は取得時点とツール版を添える。記録先は
 [`../../../../docs/gates.md`](../../../../docs/gates.md)である。

@@ -33,10 +33,13 @@ import sys
 
 sys.path.insert(0, "plugins/acd/skills/acd-silkscreen-placement/scripts")
 
-uv run python plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py --input silkscreen-input.json --output silkscreen-output.json
+uv run --script plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py --input silkscreen-input.json --output silkscreen-output.json
 
 resolved = resolve_silkscreen_placements(lane, board_projection.model)
 ```
+
+`--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
+開発する場合は、従来どおり`uv run python <path>`を使用します。
 
 `lane` は `extract_silkscreen_lane()` の結果、`board_projection.model` は配置確定後の
 `BoardModel` である。参照実装は `scripts/run_gd1_pipeline.py` にある。
