@@ -7,7 +7,7 @@ import os
 import shutil
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import yaml
@@ -17,6 +17,7 @@ from openhands.sdk.conversation.stuck_detector import StuckDetectionThresholds
 from openhands.sdk.event import ActionEvent, HookExecutionEvent
 from openhands.sdk.llm import Message, MessageToolCall, TextContent
 from openhands.sdk.llm.utils.metrics import Metrics
+from openhands.sdk.plugin.types import PluginManifest
 from openhands.sdk.security import SecurityRisk
 from openhands.sdk.security.confirmation_policy import ConfirmRisky
 from openhands.sdk.testing import TestLLM
@@ -33,6 +34,7 @@ from openhands.sdk.tool.registry import (
 )
 from openhands.tools.browser_use import BrowserToolSet
 
+import acd.openhands.session.bootstrap as bootstrap_module
 from acd.openhands.distribution.plugin import acd_plugin_source
 from acd.openhands.distribution.skills import load_acd_skills
 from acd.openhands.safety.secrets import (
@@ -319,6 +321,69 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert conversation.agent.agent_context.load_public_skills is False
     assert conversation.agent.agent_context.load_user_skills is False
     assert conversation.stuck_detector is not None
+
+
+def test_bootstrap_ambient_mode_skips_local_plugin_validation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("ambient mode must not validate local plugin assets")
+
+    monkeypatch.setattr(bootstrap_module, "check_prompt_manifest", fail)
+    monkeypatch.setattr(bootstrap_module, "load_acd_skills", fail)
+    monkeypatch.setattr(bootstrap_module, "validate_acd_agent_hooks", fail)
+    monkeypatch.setattr(bootstrap_module, "validate_plugin_source", fail)
+
+    class FailingHookConfig:
+        @classmethod
+        def load(cls, *_args: Any, **_kwargs: Any) -> Any:
+            raise AssertionError("ambient mode must not load local hooks")
+
+    monkeypatch.setattr(bootstrap_module, "HookConfig", FailingHookConfig)
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+        plugin_root=tmp_path / "missing-plugin",
+        plugin_mode="ambient",
+    )
+
+    assert conversation.agent.agent_context is not None
+    assert conversation.agent.agent_context.skills == []
+    assert conversation.state.hook_config is None
+    assert conversation._plugin_specs == []  # pyright: ignore[reportPrivateUsage]
+
+
+def test_acd_plugin_manifest_matches_sdk_contract() -> None:
+    manifest_path = (
+        Path(__file__).resolve().parents[3] / "plugins" / "acd" / ".plugin" / "plugin.json"
+    )
+    manifest = PluginManifest.model_validate(
+        json.loads(manifest_path.read_text(encoding="utf-8"))
+    )
+
+    assert manifest.name == "acd"
+    assert manifest.version == "0.0.1"
+    assert manifest.description
+    assert manifest.author is not None
+    assert manifest.author.name == "ACD contributors"
+
+
+def test_bootstrap_rejects_invalid_plugin_mode(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="unsupported plugin_mode"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="test"),
+            requirements=[],
+            persistence_dir=tmp_path / "sessions",
+            plugin_mode=cast(Any, "invalid"),
+        )
 
 
 def test_bootstrap_rejects_model_routing_agent_mismatch(tmp_path: Path) -> None:

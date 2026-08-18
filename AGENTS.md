@@ -76,9 +76,12 @@ SDK hooksはagent経路のfail-closed境界として採用する。agent-server 
 対象外であり、採用する場合は新規ADRで受入条件を定義する。CIの決定論的検証を置き換えない。
 Conversationにはpinned SDKの`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
 `SecretRegistry`、`load_skills_from_dir`、`StuckDetector`を設定する。これらはL2の
-操舵・停止・漏洩防止層であり、authoritative Evidenceを生成・昇格しない。ACD Skillは
-`plugins/acd/skills`だけを明示ロードし、public/user/marketplaceの自動読み込みを無効にする。
-Skill資材の読み込み失敗はfail-closedとし、既存のorder guard、projection保護、
+操舵・停止・漏洩防止層であり、authoritative Evidenceを生成・昇格しない。既定の明示経路では
+ACD Skillを`plugins/acd/skills`だけからロードし、事前検証・ロード数照合とfail-closed契約を
+維持する。ADR-0036のambient install経路ではSDK installed-plugin自動読み込みのwarn-and-continue
+意味論に従い、事前検証を行わない。public/userの自動読み込みは明示経路では無効とし、
+MarketplaceRegistryは引き続き使用しない。Skill資材の読み込み失敗は明示経路ではfail-closedとし、
+既存のorder guard、projection保護、
 stop policy hookを置換しない。GoalControllerとconversation cancellationは同じL2停止境界で
 再利用し、ConversationStatsはL3観測に限定する。goal結果やjudge評決をEvidenceへ昇格しない。
 lane並列は`tool_concurrency_limit`を明示した場合だけ有効化し、資源宣言不能時は

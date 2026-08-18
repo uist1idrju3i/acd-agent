@@ -40,10 +40,10 @@
 | sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | routing結果は合否へ影響させず、profileと資材hashを固定する | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
 | sdk.logger | `get_logger` | L3観測の構造化 | 採用予定（ロードマップ4.4） | `secret`と`Evidence`をログへ混入させない | pinned API確認、実装未着手 |
-| sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | pinned PluginSourceでprovenanceを固定する | pinned API確認、採用しない |
+| sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | ADR-0036のinstalled plugin ambient自動読み込みは採用するが、MarketplaceRegistry自体は使用しない | pinned API確認、MarketplaceRegistryを使用しない |
 | sdk.mcp | `MCPClient` | MCP連携 | 不採用 | OpenHands専用拡張にMCP互換層を追加しない | pinned API確認、採用しない |
 | sdk.observability | `observe` | L3観測の構造化 | 採用予定（ロードマップ4.4） | 送信先・`sanitizer`・既定無効を固定し、`Evidence`へ触れない | pinned API確認、実装未着手 |
-| sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | `src/acd/openhands/distribution/plugin.py`でSHA/tagを固定 | ref検証、拒否試験 |
+| sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | 既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する | 明示ref検証、ambient bootstrap回帰 |
 | sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用予定（ロードマップ4.4） | profile driftを管理し、資材hashを固定する | pinned API確認、実装未着手 |
 | sdk.secret | `SecretSource`<br>`StaticSecret`<br>`LookupSecret` | secretを平文から分離 | 採用 | allowlist環境変数をlazy sourceとしてConversation registryへ渡す | registry masking回帰 |
 | sdk.security | `ConfirmRisky`<br>`NeverConfirm` | agent操作の安全境界 | 採用 | 現行conversationへMEDIUM以上の確認方針を設定 | risky/deny試験 |
@@ -51,7 +51,7 @@
 | sdk.security.grayswan | `GraySwanAnalyzer` | 外部security analyzer | 不採用 | GraySwan系analyzerはOpenHands専用拡張の境界外 | pinned API確認、採用しない |
 | sdk.security.internal | `LLMSecurityAnalyzer` | SDK内部security補助 | 不採用 | LLM系analyzerと内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.settings | `AgentSettingsBase` | SDK設定の外部化 | 採用予定（ロードマップ4.4） | 設定資材のhashを記録し、unknownはfail-closedにする | pinned API確認、実装未着手 |
-| sdk.skills | `load_skills_from_dir` | ローカルACD Skillの配布・prompt提供 | 採用 | `build_acd_conversation()`が`plugins/acd/skills`を明示ロードし、壊れた資材はfail-closed | Skill loader回帰 |
+| sdk.skills | `load_skills_from_dir` | ローカルACD Skillの配布・prompt提供 | 採用 | 既定の明示経路は`plugins/acd/skills`を事前検証してfail-closedとし、ADR-0036のambient経路はSDK標準loaderへ委ねる | 明示Skill loader回帰、ambient bootstrap回帰 |
 | sdk.subagent | `AgentDefinition` | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照 | agent資材検査 |
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |
 | sdk.tool | `ToolDefinition`<br>`Tool`<br>`register_tool`<br>`list_registered_tools` | ACD toolのagent入口 | 採用 | `register_acd_tools()`とSDK登録を使用 | schema/実行試験 |

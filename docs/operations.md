@@ -57,6 +57,63 @@ plugin = Plugin.load(Plugin.fetch(
 ゲート実行の正はlock記録済みdigest固定server imageであり、`DockerWorkspace`を
 通したauthoritative Evidenceの契約は変わらない。
 
+## OpenHandsへのインストール（installed plugin自動読み込み）
+
+ADR-0035のpackage導入後、SDK標準のinstalled plugin storeへpluginをinstallする。
+
+```bash
+uv pip install "git+https://github.com/uist1idrju3i/acd-agent@<tag or SHA>"
+```
+
+```python
+from openhands.sdk.plugin.installed import install_plugin
+
+install_plugin(
+    "github:uist1idrju3i/acd-agent",
+    ref="<tag or SHA>",
+    repo_path="plugins/acd",
+)
+```
+
+同じ処理は、次のcopy-pastableなコマンドでも実行できる。
+
+```bash
+python -c "from openhands.sdk.plugin.installed import install_plugin; print(install_plugin('github:uist1idrju3i/acd-agent', ref='<tag or SHA>', repo_path='plugins/acd'))"
+```
+
+install後に起動する`LocalConversation`は、SDKのambient自動読み込みでinstalled pluginを
+取得する。不変ref（tagまたは40桁SHA）を推奨するが、この経路では強制しない。開発・CIや
+provenanceを厳密に固定する用途では、ADR-0035の明示`Plugin.fetch()`経路を使用する。
+この経路を選択しても、ゲート実行の正はlock記録済みdigest固定server imageを
+`DockerWorkspace(server_image=...)`で実行する契約から変わらない。
+将来catalogへacdを登録した後は、これらの手動コマンドは不要となり、GUIからの
+インストールへ置き換わる（「将来のGUI掲載（marketplaceカタログ）」参照）。
+
+### 将来のGUI掲載（marketplaceカタログ）
+
+OpenHands Enterpriseには、catalog repositoryをMarketplace Source URI
+（例: `github://owner/plugin-directory@ref`）で参照するexperimentalなPlugin Marketplace
+GUIがある。`plugins/acd/.plugin/plugin.json`は、GUIの詳細画面が表示するname、version、
+description、authorを含むSDK manifestとしてcatalog掲載に対応できる。
+
+掲載時は、catalog repositoryへ次のようなentryを登録する。これは配布側の作業であり、
+ACD本体のコード変更は必要ない。
+
+```json
+{
+  "name": "acd",
+  "source": {
+    "source": "github",
+    "repo": "uist1idrju3i/acd-agent",
+    "path": "plugins/acd",
+    "ref": "<tag or SHA>"
+  }
+}
+```
+
+このentryは`github:uist1idrju3i/acd-agent`の`plugins/acd`を不変refで指し、
+GUIからのinstallをSDK installed-plugin経路へ接続する。
+
 Dockerでゲートを実行する場合は、`docker/image-digests.json`のlockからserver imageを解決し、
 `DockerWorkspace(server_image=...)`へ渡す。server digestが未記録、空、または解決不能なら
 runnerは起動せずfail-closedで停止する。host経路は参考実行であり、合格側Evidenceを生成しない。
