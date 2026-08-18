@@ -255,8 +255,12 @@ URLは成果物として扱わないため、通常の`git push`、文書取得�
 取得は対象外である。policyのEvidence globで解決した各ファイルをCLIへ複数渡し、
 `required_evidence_ids`の各IDについて現revisionに一致する
 `supports_authoritative_pass()`が必要である。
-GD1基板pipelineは現状Evidenceレコードを生成しないため、基板fabrication成果物の送信は
-fail-closedになる。
+GD1基板pipelineは`build_electrical_evidence()`で電気Evidenceを生成し、
+`out/gd1/evidence-electrical.json`へ書き出す。基板fabrication成果物の送信が
+fail-closedになるのは、order policyの`required_evidence_ids`が現状
+`evidence.gd1.mechanical`だけを要求し、電気laneの
+`evidence.gd1.electrical`を含まないためである。両laneのauthoritative Evidenceを
+要求するための`required_evidence_ids`拡張はマイルストーン7.3で扱う。
 
 Stopガードはorderガードより弱く、order policyのEvidence globで解決したファイルのうち、
 dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが存在する場合に限り

@@ -1,6 +1,7 @@
 # ADR-0008: VibeBBの最小構成とSDK優先の実装境界
 
 > 追補: ADR-0009により、探索・採点・FW検査はOpenHandsへ委譲し、実装資産は`plugins/acd/skills/`のSkillとして提供する。
+> 追補: 視覚投影の`ImageContent`／`inspect_image_with_vision`経路は現時点で未実装であり、実装は[`../roadmap.md`](../roadmap.md)のマイルストーン8で扱う。
 
 > ステータス: Accepted
 > 日付: 2026-08-16
