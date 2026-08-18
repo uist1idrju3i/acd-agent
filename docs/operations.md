@@ -31,6 +31,32 @@ git submodule status
 
 `vendor/software-agent-sdk`がv1.42.1のcommitを指していることを確認する。
 
+## OpenHandsへのインストール（SDK標準ルート）
+
+配布版をOpenHands環境へ導入する場合は、repositoryをcloneせず、Python packageを
+不変refからインストールする。
+
+```bash
+uv pip install "git+https://github.com/uist1idrju3i/acd-agent@<tag or SHA>"
+```
+
+次に、SDK標準の`Plugin.fetch()`／`PluginSource`でplugin資材を取得する。refは
+40桁commit SHAまたは`v<semver>` tagに限定される。
+
+```python
+from openhands.sdk.plugin import Plugin
+from acd.openhands.distribution import acd_plugin_source
+
+source = acd_plugin_source("<40桁SHA または v<semver> tag>")
+plugin = Plugin.load(Plugin.fetch(
+    source.source, ref=source.ref, repo_path=source.repo_path))
+```
+
+開発時の編集・submodule確認では、従来どおり「cloneと依存関係」に記載した
+`git clone --recurse-submodules`と`uv sync`の経路を使用する。配布経路を短縮しても、
+ゲート実行の正はlock記録済みdigest固定server imageであり、`DockerWorkspace`を
+通したauthoritative Evidenceの契約は変わらない。
+
 Dockerでゲートを実行する場合は、`docker/image-digests.json`のlockからserver imageを解決し、
 `DockerWorkspace(server_image=...)`へ渡す。server digestが未記録、空、または解決不能なら
 runnerは起動せずfail-closedで停止する。host経路は参考実行であり、合格側Evidenceを生成しない。

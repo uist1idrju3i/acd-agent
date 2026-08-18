@@ -7,15 +7,40 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
+import acd.openhands.image_lock as image_lock
 from acd.openhands.image_lock import ImageDigestLock, load_image_lock, pinned_reference
+from acd.openhands.locked_image_cli import main as locked_image_main
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 LOCK_PATH = REPOSITORY_ROOT / "docker" / "image-digests.json"
 SCRIPT_PATH = REPOSITORY_ROOT / "scripts" / "print_locked_image.py"
+
+
+class _FakeResource:
+    def __init__(self, payload: str | Exception) -> None:
+        self.payload = payload
+
+    def joinpath(self, name: str) -> _FakeResource:
+        assert name == "image-digests.json"
+        return self
+
+    def read_text(self, encoding: str = "utf-8") -> str:
+        assert encoding == "utf-8"
+        if isinstance(self.payload, Exception):
+            raise self.payload
+        return self.payload
+
+
+def _patch_packaged_resource(monkeypatch: pytest.MonkeyPatch, payload: str | Exception) -> None:
+    def fake_files(_package: Any) -> _FakeResource:
+        return _FakeResource(payload)
+
+    monkeypatch.setattr(image_lock.resources, "files", fake_files)
 
 
 def test_valid_lock_loads_and_is_pinned() -> None:
@@ -27,6 +52,24 @@ def test_valid_lock_loads_and_is_pinned() -> None:
         "ghcr.io/uist1idrju3i/acd-tools@"
         "sha256:e64405a15e69991063c688a80b4f215bdc3dbfb8b4fb480b3ef3484f017e1395"
     )
+
+
+def test_packaged_lock_loads_without_repository_path(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_packaged_resource(monkeypatch, LOCK_PATH.read_text(encoding="utf-8"))
+    lock = load_image_lock()
+    assert lock.acd_tools.digest.endswith("017e1395")
+
+
+def test_packaged_lock_missing_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_packaged_resource(monkeypatch, FileNotFoundError("missing"))
+    with pytest.raises(ValueError, match="packaged image lock unavailable"):
+        load_image_lock()
+
+
+def test_packaged_lock_invalid_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_packaged_resource(monkeypatch, "{")
+    with pytest.raises(ValueError, match="invalid image lock"):
+        load_image_lock()
 
 
 def test_digest_matches_sha256_format() -> None:
@@ -94,3 +137,31 @@ def test_print_locked_image_returns_pinned_server_reference() -> None:
         "ghcr.io/uist1idrju3i/acd-server@"
         "sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def"
     )
+
+
+def test_installed_cli_fails_closed_for_unset_server(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    lock = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
+    lock["acd_server"] = None
+    path = tmp_path / "image-digests.json"
+    path.write_text(json.dumps(lock), encoding="utf-8")
+    assert locked_image_main(["--entry", "acd-server", "--lock", str(path)]) == 2
+    assert "unset" in capsys.readouterr().err
+
+
+def test_installed_cli_reads_packaged_lock(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _patch_packaged_resource(monkeypatch, LOCK_PATH.read_text(encoding="utf-8"))
+    assert locked_image_main(["--entry", "acd-server"]) == 0
+    assert capsys.readouterr().out.strip().startswith("ghcr.io/uist1idrju3i/acd-server@")
+
+
+def test_installed_cli_fails_closed_for_invalid_lock(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "image-digests.json"
+    path.write_text("{", encoding="utf-8")
+    assert locked_image_main(["--entry", "acd-server", "--lock", str(path)]) == 2
+    assert "invalid image lock" in capsys.readouterr().err
