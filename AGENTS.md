@@ -93,6 +93,7 @@ workflowは任意Python scriptがhook境界の外で実行されうるため不�
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
 使用API、既定値、破壊的変更、採否を`docs/operations.md`へ記録する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
+submodule版を更新する場合は、同じ変更で`pyproject.toml`のPyPI pinも同じ版へ更新する。
 SDK機能の採否は`docs/openhands-sdk-capabilities.json`を単一の正とし、
 `docs/openhands-sdk-capabilities.md`は機械生成ブロックを含む説明文書とする。
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
+from importlib import resources
 from pathlib import Path
 from typing import Final
 
@@ -80,16 +81,43 @@ class ImageDigestLock(BaseModel):
     acd_server: PublishedImage | None = None
 
 
-def load_image_lock(path: Path) -> ImageDigestLock:
-    """Load and validate an image lock, preserving parse failures."""
+def _validate_lock_payload(payload: object, source: str) -> ImageDigestLock:
+    try:
+        return ImageDigestLock.model_validate(payload)
+    except ValueError as exc:
+        raise ValueError(f"invalid image lock: {source}: {exc}") from exc
+
+
+def _load_packaged_lock() -> ImageDigestLock:
+    try:
+        resource = resources.files("acd.openhands").joinpath("image-digests.json")
+        text = resource.read_text(encoding="utf-8")
+    except (
+        FileNotFoundError,
+        ModuleNotFoundError,
+        OSError,
+        UnicodeDecodeError,
+    ) as exc:
+        raise ValueError(f"packaged image lock unavailable: {exc}") from exc
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(
+            "invalid image lock: packaged acd/openhands/image-digests.json: "
+            f"{exc}"
+        ) from exc
+    return _validate_lock_payload(payload, "packaged acd/openhands/image-digests.json")
+
+
+def load_image_lock(path: Path | None = None) -> ImageDigestLock:
+    """Load and validate an explicit or packaged image lock."""
+    if path is None:
+        return _load_packaged_lock()
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError(f"invalid image lock: {path}: {exc}") from exc
-    try:
-        return ImageDigestLock.model_validate(payload)
-    except ValueError as exc:
-        raise ValueError(f"invalid image lock: {path}: {exc}") from exc
+    return _validate_lock_payload(payload, str(path))
 
 
 def pinned_reference(entry: PublishedImage) -> str:

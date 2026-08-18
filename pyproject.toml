@@ -9,15 +9,16 @@ dependencies = [
     "gerbonara>=1.6.3",
     "build123d==0.11.1",
     "cadquery-ocp==7.9.3.1.1",
-    "openhands-sdk",
-    "openhands-tools",
-    "openhands-workspace",
+    "openhands-sdk==1.42.1",
+    "openhands-tools==1.42.1",
+    "openhands-workspace==1.42.1",
 ]
 
 [project.scripts]
 acd-evidence-check = "acd.openhands.evidence.check:main"
 acd-design-revision = "acd.openhands.evidence.revision:main"
 acd-evidence-git-check = "acd.openhands.evidence.git:main"
+acd-locked-image = "acd.openhands.locked_image_cli:main"
 
 [tool.uv.sources]
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
@@ -40,6 +41,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/acd"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"docker/image-digests.json" = "acd/openhands/image-digests.json"
 
 [tool.ruff]
 line-length = 100
