@@ -24,12 +24,21 @@
   ],
   "capabilities": [
     {
+      "domain": "sdk",
+      "modules": ["sdk", "sdk.banner"],
+      "representative_apis": ["Agent", "LocalConversation", "ToolDefinition"],
+      "use": "SDK公開facade",
+      "adoption": "採用",
+      "rationale": "ACDのOpenHands統合がpinned SDK公開入口を使用",
+      "verification": "import回帰、公開API抽出"
+    },
+    {
       "domain": "sdk.agent",
-      "modules": ["sdk.agent"],
+      "modules": ["sdk.agent", "sdk.agent.agent", "sdk.agent.base"],
       "representative_apis": ["Agent", "AgentBase"],
       "use": "pluginの役割別agent",
       "adoption": "採用",
-      "rationale": "plugins/acd/agents/がAgentDefinitionを参照",
+      "rationale": "`plugins/acd/agents/`が`AgentDefinition`を参照",
       "verification": "plugin資材検査、agent起動"
     },
     {
@@ -49,12 +58,10 @@
     {
       "domain": "sdk.agent.internal",
       "modules": [
-        "sdk.agent.agent",
-        "sdk.agent.base",
         "sdk.agent.critic_mixin",
         "sdk.agent.utils"
       ],
-      "representative_apis": ["AgentBase"],
+      "representative_apis": ["CriticMixin"],
       "use": "SDK内部agent補助",
       "adoption": "不採用",
       "rationale": "内部補助をACDが直接依存しない",
@@ -66,8 +73,8 @@
       "representative_apis": ["ParallelToolExecutor"],
       "use": "agent lane並列化",
       "adoption": "採用",
-      "rationale": "Agent.tool_concurrency_limit経由で使用し、資源宣言不能時は直列化",
-      "verification": "tests/openhands/tools/test_definitions.py"
+      "rationale": "`Agent.tool_concurrency_limit`経由で使用し、資源宣言不能時は直列化",
+      "verification": "`tests/openhands/tools/test_definitions.py`"
     },
     {
       "domain": "sdk.agent.response_dispatch",
@@ -93,7 +100,7 @@
       "representative_apis": ["LLMSummarizingCondenser"],
       "use": "長い対話の圧縮",
       "adoption": "採用",
-      "rationale": "session bootstrapで使用し、Evidenceを置換しない",
+      "rationale": "`src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない",
       "verification": "resume/fork回帰"
     },
     {
@@ -128,11 +135,21 @@
     },
     {
       "domain": "sdk.conversation",
-      "modules": ["sdk.conversation"],
-      "representative_apis": ["LocalConversation", "ConversationState"],
+      "modules": [
+        "sdk.conversation",
+        "sdk.conversation.base",
+        "sdk.conversation.impl",
+        "sdk.conversation.impl.*",
+        "sdk.conversation.state"
+      ],
+      "representative_apis": [
+        "BaseConversation",
+        "LocalConversation",
+        "ConversationState"
+      ],
       "use": "現行agent session",
       "adoption": "採用",
-      "rationale": "src/acd/openhands/session/bootstrap.pyで使用",
+      "rationale": "`src/acd/openhands/session/bootstrap.py`で使用",
       "verification": "session回帰"
     },
     {
@@ -142,7 +159,7 @@
       "use": "対話中断",
       "adoption": "採用",
       "rationale": "SIGINTからinterruptへ結線し、L2停止側に限定",
-      "verification": "tests/openhands/session/test_goal_loop.py"
+      "verification": "`tests/openhands/session/test_goal_loop.py`"
     },
     {
       "domain": "sdk.conversation.conversation_stats",
@@ -151,7 +168,7 @@
       "use": "session別使用量観測",
       "adoption": "採用",
       "rationale": "L3観測として採用し合否に混入しない",
-      "verification": "tests/openhands/session/test_goal_loop.py"
+      "verification": "`tests/openhands/session/test_goal_loop.py`"
     },
     {
       "domain": "sdk.conversation.goal",
@@ -160,30 +177,26 @@
       "use": "反復停止の補助",
       "adoption": "採用",
       "rationale": "L2停止側に限り、L1合否を置換しない",
-      "verification": "tests/openhands/session/test_goal_loop.py"
+      "verification": "`tests/openhands/session/test_goal_loop.py`"
     },
     {
       "domain": "sdk.conversation.internal",
       "modules": [
-        "sdk.conversation.base",
         "sdk.conversation.conversation",
         "sdk.conversation.event_store",
         "sdk.conversation.events_list_base",
         "sdk.conversation.exceptions",
         "sdk.conversation.fifo_lock",
-        "sdk.conversation.impl",
-        "sdk.conversation.impl.*",
         "sdk.conversation.persistence_const",
         "sdk.conversation.request",
         "sdk.conversation.resource_lock_manager",
         "sdk.conversation.response_utils",
-        "sdk.conversation.state",
         "sdk.conversation.title_utils",
         "sdk.conversation.types",
         "sdk.conversation.visualizer",
         "sdk.conversation.visualizer.*"
       ],
-      "representative_apis": ["BaseConversation"],
+      "representative_apis": ["EventLog"],
       "use": "Conversation内部補助",
       "adoption": "不採用",
       "rationale": "内部補助をACDが直接依存しない",
@@ -204,7 +217,7 @@
       "representative_apis": ["StuckDetector"],
       "use": "停滞時の差し戻し",
       "adoption": "採用",
-      "rationale": "LocalConversation(stuck_detection=True)へ既定値・閾値を渡す",
+      "rationale": "`LocalConversation(stuck_detection=True)`へ既定値・閾値を渡す",
       "verification": "conversation wiring回帰"
     },
     {
@@ -250,7 +263,7 @@
       "representative_apis": ["get_git_changes", "GitError"],
       "use": "stale判定へのgit入力",
       "adoption": "採用",
-      "rationale": "src/acd/openhands/evidence/git.pyで使用",
+      "rationale": "`src/acd/openhands/evidence/git.py`で使用",
       "verification": "dirty/stale fixture"
     },
     {
@@ -259,7 +272,7 @@
       "representative_apis": ["HookConfig", "HookEventType", "HookExecutor"],
       "use": "agent経路の停止側境界",
       "adoption": "採用",
-      "rationale": "plugins/acd/hooks/がSDK hook契約を使用",
+      "rationale": "`plugins/acd/hooks/`がSDK hook契約を使用",
       "verification": "DENY/allow試験"
     },
     {
@@ -274,7 +287,7 @@
     },
     {
       "domain": "sdk.llm",
-      "modules": ["sdk.llm"],
+      "modules": ["sdk.llm", "sdk.llm.llm", "sdk.llm.message"],
       "representative_apis": ["LLM", "Message", "TextContent"],
       "use": "Conversation/LLM入出力",
       "adoption": "採用",
@@ -289,11 +302,9 @@
         "sdk.llm.exceptions",
         "sdk.llm.exceptions.*",
         "sdk.llm.fallback_strategy",
-        "sdk.llm.llm",
         "sdk.llm.llm_profile_store",
         "sdk.llm.llm_registry",
         "sdk.llm.llm_response",
-        "sdk.llm.message",
         "sdk.llm.mixins.*",
         "sdk.llm.options",
         "sdk.llm.options.*",
@@ -381,7 +392,7 @@
       "representative_apis": ["PluginSource"],
       "use": "pinned plugin配布",
       "adoption": "採用",
-      "rationale": "src/acd/openhands/distribution/plugin.pyでSHA/tagを固定",
+      "rationale": "`src/acd/openhands/distribution/plugin.py`でSHA/tagを固定",
       "verification": "ref検証、拒否試験"
     },
     {
@@ -393,15 +404,6 @@
       "roadmap": "4.4",
       "rationale": "profile driftを管理し、資材hashを固定する",
       "verification": "pinned API確認、実装未着手"
-    },
-    {
-      "domain": "sdk.root",
-      "modules": ["sdk", "sdk.banner"],
-      "representative_apis": ["Agent", "LocalConversation", "ToolDefinition"],
-      "use": "SDK公開facade",
-      "adoption": "採用",
-      "rationale": "ACDのOpenHands統合がpinned SDK公開入口を使用",
-      "verification": "import回帰、公開API抽出"
     },
     {
       "domain": "sdk.secret",
@@ -427,9 +429,15 @@
         "sdk.security.analyzer",
         "sdk.security.defense_in_depth",
         "sdk.security.defense_in_depth.*",
-        "sdk.security.ensemble"
+        "sdk.security.ensemble",
+        "sdk.security.risk"
       ],
-      "representative_apis": ["SecurityAnalyzerBase", "PatternSecurityAnalyzer", "EnsembleSecurityAnalyzer"],
+      "representative_apis": [
+        "SecurityAnalyzerBase",
+        "PatternSecurityAnalyzer",
+        "EnsembleSecurityAnalyzer",
+        "SecurityRisk"
+      ],
       "use": "agent操作の決定論的追加監視",
       "adoption": "採用",
       "rationale": "ACD analyzerとPattern analyzerをSDK ensembleへ合成し、LLM/GraySwanは使わない",
@@ -448,12 +456,11 @@
       "domain": "sdk.security.internal",
       "modules": [
         "sdk.security.llm_analyzer",
-        "sdk.security.risk",
         "sdk.security.shell_parser",
         "sdk.security.toolshield_helpers",
         "sdk.security.toolshield_llm_analyzer"
       ],
-      "representative_apis": ["SecurityRisk"],
+      "representative_apis": ["LLMSecurityAnalyzer"],
       "use": "SDK内部security補助",
       "adoption": "不採用",
       "rationale": "LLM系analyzerと内部補助をACDが直接依存しない",
@@ -475,7 +482,7 @@
       "representative_apis": ["load_skills_from_dir"],
       "use": "ローカルACD Skillの配布・prompt提供",
       "adoption": "採用",
-      "rationale": "build_acd_conversation()がplugins/acd/skillsを明示ロードし、壊れた資材はfail-closed",
+      "rationale": "`build_acd_conversation()`が`plugins/acd/skills`を明示ロードし、壊れた資材はfail-closed",
       "verification": "Skill loader回帰"
     },
     {
@@ -484,7 +491,7 @@
       "representative_apis": ["AgentDefinition"],
       "use": "役割別sub-agent",
       "adoption": "採用",
-      "rationale": "plugins/acd/agents/で参照",
+      "rationale": "`plugins/acd/agents/`で参照",
       "verification": "agent資材検査"
     },
     {
@@ -498,11 +505,16 @@
     },
     {
       "domain": "sdk.tool",
-      "modules": ["sdk.tool"],
+      "modules": [
+        "sdk.tool",
+        "sdk.tool.registry",
+        "sdk.tool.spec",
+        "sdk.tool.tool"
+      ],
       "representative_apis": ["ToolDefinition", "Tool", "register_tool", "list_registered_tools"],
       "use": "ACD toolのagent入口",
       "adoption": "採用",
-      "rationale": "register_acd_tools()とSDK登録を使用",
+      "rationale": "`register_acd_tools()`とSDK登録を使用",
       "verification": "schema/実行試験"
     },
     {
@@ -519,10 +531,7 @@
       "modules": [
         "sdk.tool.client_tool",
         "sdk.tool.defaults",
-        "sdk.tool.registry",
-        "sdk.tool.schema",
-        "sdk.tool.spec",
-        "sdk.tool.tool"
+        "sdk.tool.schema"
       ],
       "representative_apis": ["ClientTool"],
       "use": "SDK内部tool補助",
@@ -573,8 +582,8 @@
       "representative_apis": ["BrowserClickTool"],
       "use": "L2の部品調査・datasheet確認",
       "adoption": "採用",
-      "rationale": "決定論的APIがない場合の探索補助。設計入力は既存APIで再取得しhash固定",
-      "verification": "BrowserToolSet.is_usable()、session回帰"
+      "rationale": "L2探索補助に限定し、設計入力へ直接昇格させない。決定論的APIで再取得してhash固定し、EvidenceやL1合否を置換しない",
+      "verification": "`BrowserToolSet.is_usable()`、agent session回帰"
     },
     {
       "domain": "tools.delegate",
@@ -717,7 +726,7 @@
       "representative_apis": ["DockerDevWorkspace"],
       "use": "現行runnerのbase imageからagent-server imageを準備",
       "adoption": "採用",
-      "rationale": "src/acd/openhands/workspace.pyがbase_imageで実行",
+      "rationale": "`src/acd/openhands/workspace.py`が`base_image`で実行",
       "verification": "vendor実装、runner回帰"
     },
     {

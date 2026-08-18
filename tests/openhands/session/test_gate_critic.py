@@ -13,7 +13,7 @@ from acd.openhands.session.gate_critic import (
     AcdManifestRequirement,
 )
 
-ROOT = Path(__file__).parents[2]
+ROOT = Path(__file__).parents[3]
 EVIDENCE_SOURCE = ROOT / "fixtures/contracts/valid/evidence.json"
 
 

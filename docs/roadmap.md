@@ -30,6 +30,7 @@ CI検証へ移行する。決定論的gateの代替にはしない。
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 実装済み |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 実装済み |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する。`sdk.context.prompts`は`plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、資材hashと整合させる。`sdk.llm.router`はcritic/judge modelと主agent modelを分離するが、routing結果を合否へ影響させない。`sdk.io`は`src/acd/openhands/session/bootstrap.py`のmetrics/stats保存を`FileStore`抽象へ移譲する。`sdk.logger`／`sdk.observability`はad-hoc JSONを構造化ログ・observabilityへ移し、secretとEvidenceを混入させない。`sdk.settings`／`sdk.credential`／`sdk.profiles`はsecret allowlistとprofile driftをSDK経路へ移し、unknownをfail-closedにする。`sdk.context.memory`は作業文脈の補助に限定し、契約・合否の正にしない。`sdk.context.view`は原EventLogと照合する表示に限定する。`sdk.workspace`／`workspace.DockerWorkspace`はhost workspaceをprovisional限定とし、事前build済みdigest固定server imageへの移行後にauthoritative経路化する | 未着手 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
 | 6 | agent-server実運用化 | ADR-0025のV1〜V8、DockerWorkspace、REST/WebSocket、resume/forkを検証する | 受け入れ条件確定（実装・実測待ち） |
 

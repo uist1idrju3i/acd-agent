@@ -9,7 +9,7 @@ from pathlib import Path
 
 from acd.openhands.evidence.revision import resolve
 
-ROOT = Path(__file__).parents[2]
+ROOT = Path(__file__).parents[3]
 
 
 def _graph(tmp_path: Path) -> Path:

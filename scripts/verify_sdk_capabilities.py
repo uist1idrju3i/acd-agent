@@ -130,16 +130,23 @@ def _package_modules(prefix: str, package_path: Path) -> dict[str, set[str]]:
     return modules
 
 
-def extract_public_modules() -> dict[str, set[str]]:
-    """Extract all public modules from the three pinned package trees."""
-    packages = (
-        ("sdk", VENDOR_ROOT / "openhands-sdk" / "openhands" / "sdk"),
-        ("tools", VENDOR_ROOT / "openhands-tools" / "openhands" / "tools"),
-        ("workspace", VENDOR_ROOT / "openhands-workspace" / "openhands" / "workspace"),
-    )
+def extract_public_modules(
+    scanned_packages: list[ScannedPackage] | None = None,
+) -> dict[str, set[str]]:
+    """Extract all public modules from the catalog's pinned package trees."""
+    if scanned_packages is None:
+        scanned_packages = load_catalog().scanned_packages
+    if not scanned_packages:
+        raise ValueError("scanned_packages is empty")
     modules: dict[str, set[str]] = {}
-    for prefix, path in packages:
-        modules.update(_package_modules(prefix, path))
+    for package in scanned_packages:
+        path = REPO_ROOT / package.path
+        package_modules = _package_modules(package.prefix, path)
+        if not package_modules:
+            raise ValueError(f"scan package is empty: {package.path}")
+        modules.update(package_modules)
+    if not modules:
+        raise ValueError("no public SDK modules were extracted")
     return modules
 
 
@@ -192,6 +199,13 @@ def render_markdown(catalog: CapabilityCatalog) -> str:
     rows = [
         START_MARKER,
         "",
+        f"> 対象: v{catalog.sdk_version} / submodule commit `{catalog.submodule_commit}`",
+        ">",
+        "> 対象SDKより新しい上流release tagはない。"
+        "pinned checkoutをAST traversalして機械抽出した。",
+        "> 「採用」は現行コードまたはplugin資材で使用中、「採用予定」は未使用だが採用を決定済み、",
+        "> 「不採用」は採用しないと決定した能力を表す。",
+        "",
         "| 能力ドメイン（パッケージ） | 代表API | ACDでの用途 | 採否 | 根拠 | 検証手段 |",  # noqa: RUF001
         "|---|---|---|---|---|---|",
     ]
@@ -214,6 +228,8 @@ def render_markdown(catalog: CapabilityCatalog) -> str:
             )
             + " |"
         )
+    for package in catalog.non_target_packages:
+        rows.extend(("", f"{package.prefix}は{package.reason}。"))
     rows.extend(("", END_MARKER))
     return "\n".join(rows)
 
@@ -244,21 +260,11 @@ def validate_catalog(catalog: CapabilityCatalog, modules: dict[str, set[str]]) -
     if catalog.sdk_version != version:
         errors.append("sdk_version does not match openhands-sdk/pyproject.toml")
 
-    expected_scanned = [
-        ScannedPackage(prefix="sdk", path="vendor/software-agent-sdk/openhands-sdk/openhands/sdk"),
-        ScannedPackage(
-            prefix="tools",
-            path="vendor/software-agent-sdk/openhands-tools/openhands/tools",
-        ),
-        ScannedPackage(
-            prefix="workspace",
-            path="vendor/software-agent-sdk/openhands-workspace/openhands/workspace",
-        ),
-    ]
-    if catalog.scanned_packages != expected_scanned:
-        errors.append("scanned_packages does not match the fixed scan roots")
-
     claims: dict[str, list[str]] = {module: [] for module in modules}
+    try:
+        roadmap_text = ROADMAP_PATH.read_text(encoding="utf-8")
+    except OSError:
+        roadmap_text = ""
     for capability in catalog.capabilities:
         for pattern in capability.modules:
             matched = [module for module in modules if _matches(pattern, module)]
@@ -269,7 +275,7 @@ def validate_catalog(catalog: CapabilityCatalog, modules: dict[str, set[str]]) -
         if capability.adoption == "採用予定":
             if not capability.roadmap:
                 errors.append(f"{capability.domain}: 採用予定 requires roadmap")
-            elif capability.roadmap not in ROADMAP_PATH.read_text(encoding="utf-8"):
+            elif capability.roadmap not in roadmap_text:
                 errors.append(f"{capability.domain}: roadmap reference is absent")
         elif capability.roadmap is not None:
             errors.append(f"{capability.domain}: roadmap must be null for {capability.adoption}")
@@ -322,7 +328,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         catalog = load_catalog()
-        modules = extract_public_modules()
+        modules = extract_public_modules(catalog.scanned_packages)
         if not modules:
             raise ValueError("no public SDK modules were extracted")
         errors = validate_catalog(catalog, modules)
@@ -341,6 +347,15 @@ def main(argv: list[str] | None = None) -> int:
             text[:start] + replacement + text[end + len(END_MARKER) :],
             encoding="utf-8",
         )
+        non_drift_errors = [
+            error
+            for error in errors
+            if error != "generated Markdown block differs from JSON"
+        ]
+        for error in non_drift_errors:
+            print(f"error: {error}", file=sys.stderr)
+        if non_drift_errors:
+            return 1
         return 0
     if errors:
         for error in errors:
