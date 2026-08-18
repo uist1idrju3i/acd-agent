@@ -11,13 +11,10 @@ from typing import cast
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_ROOT = REPO_ROOT / "plugins" / "acd" / "skills"
-REF_PATH = SKILLS_ROOT / "acd-package-ref.txt"
-PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 
 IMPORT_RE = re.compile(r"^(?:from acd|import acd)\b", re.MULTILINE)
-SCRIPT_BLOCK_RE = re.compile(
-    r"(?ms)^# /// script[ \t]*\n(?P<body>(?:#.*\n)*)^# ///[ \t]*$"
-)
+SCRIPT_START_RE = re.compile(r"\A# /// script[ \t]*\r?\n")
+SCRIPT_END_RE = re.compile(r"(?m)^# ///[ \t]*$")
 REF_RE = re.compile(r"^(?:[0-9a-f]{40}|v\d+\.\d+\.\d+)$")
 REQUIRES_RE = re.compile(r'(?m)^requires-python\s*=\s*"([^"]*)"\s*$')
 DEPENDENCIES_RE = re.compile(r"(?ms)^dependencies\s*=\s*\[\s*(.*?)\s*\]")
@@ -29,12 +26,15 @@ def _relative(path: Path, repository: Path) -> str:
 
 
 def _metadata_body(source: str) -> tuple[str | None, list[str], str | None]:
-    match = SCRIPT_BLOCK_RE.match(source)
-    if match is None:
+    start = SCRIPT_START_RE.match(source)
+    if start is None:
         return None, [], "missing PEP 723 script block at the top of the file"
+    end = SCRIPT_END_RE.search(source, start.end())
+    if end is None:
+        return None, [], "PEP 723 script block is missing its closing marker"
 
     body_lines: list[str] = []
-    for line in match.group("body").splitlines():
+    for line in source[start.end() : end.start()].splitlines():
         if line == "#":
             body_lines.append("")
         elif line.startswith("# "):
