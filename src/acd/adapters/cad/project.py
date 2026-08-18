@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.metadata
 import json
 from dataclasses import dataclass
@@ -15,9 +16,17 @@ from acd.core.process import ToolRun, run_in_process
 
 @dataclass(frozen=True)
 class CadProjection:
-    step_path: Path
+    shell_step_path: Path
+    lid_step_path: Path
+    assembly_step_path: Path
     model_path: Path
+    artifact_manifest_path: Path
     envelope: Any
+
+    @property
+    def step_path(self) -> Path:
+        """Return the shell STEP for compatibility with mechanical gates."""
+        return self.shell_step_path
 
 
 def cad_tool_version() -> str:
@@ -93,13 +102,16 @@ def project_enclosure(
     target_revision: str,
 ) -> CadProjection:
     out_dir.mkdir(parents=True, exist_ok=True)
-    step_path = out_dir / "enclosure.step"
+    shell_step_path = out_dir / "enclosure-shell.step"
+    lid_step_path = out_dir / "enclosure-lid.step"
+    assembly_step_path = out_dir / "enclosure-assembly.step"
     model_path = out_dir / "enclosure.3mf"
+    artifact_manifest_path = out_dir / "enclosure-artifacts.json"
     envelope_path = out_dir / "envelope-cad.json"
     config = json.dumps(
         {
-            "adapter_revision": "p3-5-v2",
-            "format": "step+3mf",
+            "adapter_revision": "p3-5-v3",
+            "format": "step-parts+assembly+3mf+manifest",
             "linear_deflection": 0.01,
             "angular_deflection": 0.1,
             "part_number": "gd1-enclosure",
@@ -111,7 +123,9 @@ def project_enclosure(
         build123d: Any = importlib.import_module("build123d")
 
         shell, lid = _build_shapes(lane)
-        build123d.export_step(shell + lid, step_path)
+        build123d.export_step(shell, shell_step_path)
+        build123d.export_step(lid, lid_step_path)
+        build123d.export_step(shell + lid, assembly_step_path)
         mesher = build123d.Mesher()
         mesher.add_shape(
             shell,
@@ -126,6 +140,39 @@ def project_enclosure(
             part_number="gd1-enclosure-lid",
         )
         mesher.write(model_path)
+        manifest = {
+            "schema_version": 1,
+            "artifacts": [
+                {
+                    "path": shell_step_path.name,
+                    "role": "enclosure_shell",
+                    "format": "STEP",
+                    "normalized_sha256": _normalized_sha256(shell_step_path),
+                },
+                {
+                    "path": lid_step_path.name,
+                    "role": "enclosure_lid",
+                    "format": "STEP",
+                    "normalized_sha256": _normalized_sha256(lid_step_path),
+                },
+                {
+                    "path": assembly_step_path.name,
+                    "role": "enclosure_assembly",
+                    "format": "STEP",
+                    "normalized_sha256": _normalized_sha256(assembly_step_path),
+                },
+                {
+                    "path": model_path.name,
+                    "role": "enclosure_model",
+                    "format": "3MF",
+                    "normalized_sha256": _normalized_sha256(model_path),
+                },
+            ],
+        }
+        artifact_manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
 
     def normalize(path: Path) -> bytes:
         data = path.read_bytes()
@@ -133,23 +180,44 @@ def project_enclosure(
             return normalize_step(data)
         if path.suffix == ".3mf":
             return normalize_3mf(data)
+        if path.suffix == ".json":
+            return data
         raise ValueError(f"unsupported CAD output: {path}")
 
     run: ToolRun = run_in_process(
         tool_name="cad-kernel",
         tool_version=cad_tool_version(),
-        format_version="STEP+3MF",
+        format_version="STEP parts+assembly+3MF+manifest",
         input_paths=[graph_path],
-        output_paths=[step_path, model_path],
+        output_paths=[
+            shell_step_path,
+            lid_step_path,
+            assembly_step_path,
+            model_path,
+            artifact_manifest_path,
+        ],
         envelope_path=envelope_path,
         target_revision=target_revision,
-        measurement_conditions="build123d box shell, Mesher 3MF, normalized output hash",
+        measurement_conditions=(
+            "build123d box shell/lid, independent STEP parts, assembly STEP, "
+            "Mesher 3MF, normalized artifact manifest and output hash"
+        ),
         runner=runner,
         config=config,
         output_normalizer=normalize,
     )
     return CadProjection(
-        step_path=step_path,
+        shell_step_path=shell_step_path,
+        lid_step_path=lid_step_path,
+        assembly_step_path=assembly_step_path,
         model_path=model_path,
+        artifact_manifest_path=artifact_manifest_path,
         envelope=run.envelope,
     )
+
+
+def _normalized_sha256(path: Path) -> str:
+    normalized = normalize_step(path.read_bytes()) if path.suffix == ".step" else normalize_3mf(
+        path.read_bytes()
+    )
+    return "sha256:" + hashlib.sha256(normalized).hexdigest()

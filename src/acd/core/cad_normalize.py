@@ -12,7 +12,7 @@ class CadNormalizationError(ValueError):
 
 
 def normalize_step(data: bytes) -> bytes:
-    """Normalize the measured STEP FILE_NAME timestamp, failing closed otherwise."""
+    """Normalize measured STEP metadata, failing closed otherwise."""
     text = data.decode("utf-8")
     pattern = r"(FILE_NAME\('Open CASCADE Shape Model',')[^']+(')"
     normalized, count = re.subn(
@@ -24,6 +24,11 @@ def normalize_step(data: bytes) -> bytes:
         raise CadNormalizationError(
             f"expected exactly one Open CASCADE FILE_NAME timestamp, got {count}"
         )
+    normalized = re.sub(
+        r"(NEXT_ASSEMBLY_USAGE_OCCURRENCE\()'[^']*'",
+        r"\g<1>'0'",
+        normalized,
+    )
     return normalized.encode("utf-8")
 
 

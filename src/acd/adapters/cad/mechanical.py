@@ -27,6 +27,94 @@ class MechanicalGateReport:
     measured_max_interference_volume_mm3: float
 
 
+@dataclass(frozen=True)
+class EnclosureArtifactReport:
+    shell_volume_mm3: float
+    lid_volume_mm3: float
+    assembly_volume_mm3: float
+    shell_bbox_mm: tuple[float, float, float, float, float, float]
+    lid_bbox_mm: tuple[float, float, float, float, float, float]
+    assembly_bbox_mm: tuple[float, float, float, float, float, float]
+
+
+def _shape_bbox(shape: Any) -> tuple[float, float, float, float, float, float]:
+    bbox = shape.bounding_box()
+    return (
+        float(bbox.min.X),
+        float(bbox.min.Y),
+        float(bbox.min.Z),
+        float(bbox.max.X),
+        float(bbox.max.Y),
+        float(bbox.max.Z),
+    )
+
+
+def measure_enclosure_artifacts(
+    *,
+    shell_step_path: Path,
+    lid_step_path: Path,
+    assembly_step_path: Path,
+) -> EnclosureArtifactReport:
+    """Reload and validate separated enclosure STEP artifacts."""
+    build123d: Any = importlib.import_module("build123d")
+
+    def load(path: Path, role: str) -> Any:
+        if not path.is_file():
+            raise MechanicalGateError(f"{role} STEP is missing: {path}")
+        try:
+            shape = build123d.import_step(path)
+            solids = list(shape.solids())
+        except Exception as exc:
+            raise MechanicalGateError(f"{role} STEP cannot be reloaded: {path}") from exc
+        if role in {"shell", "lid"} and len(solids) != 1:
+            raise MechanicalGateError(
+                f"{role} STEP must contain exactly one solid, got {len(solids)}"
+            )
+        if role == "assembly" and len(solids) != 2:
+            raise MechanicalGateError(
+                f"assembly STEP must contain exactly two solids, got {len(solids)}"
+            )
+        return shape
+
+    shell = load(shell_step_path, "shell")
+    lid = load(lid_step_path, "lid")
+    assembly = load(assembly_step_path, "assembly")
+    shell_bbox = _shape_bbox(shell)
+    lid_bbox = _shape_bbox(lid)
+    assembly_bbox = _shape_bbox(assembly)
+    if shell_bbox[5] >= lid_bbox[2]:
+        raise MechanicalGateError("shell and lid STEP artifacts overlap in Z")
+    if not math.isclose(
+        float(assembly.volume),
+        float(shell.volume) + float(lid.volume),
+        rel_tol=0.0,
+        abs_tol=1e-4,
+    ):
+        raise MechanicalGateError(
+            "assembly STEP volume does not equal separated shell/lid volumes"
+        )
+    expected_bbox = (
+        min(shell_bbox[0], lid_bbox[0]),
+        min(shell_bbox[1], lid_bbox[1]),
+        min(shell_bbox[2], lid_bbox[2]),
+        max(shell_bbox[3], lid_bbox[3]),
+        max(shell_bbox[4], lid_bbox[4]),
+        max(shell_bbox[5], lid_bbox[5]),
+    )
+    if assembly_bbox != expected_bbox:
+        raise MechanicalGateError(
+            "assembly STEP bbox does not equal separated shell/lid bboxes"
+        )
+    return EnclosureArtifactReport(
+        shell_volume_mm3=float(shell.volume),
+        lid_volume_mm3=float(lid.volume),
+        assembly_volume_mm3=float(assembly.volume),
+        shell_bbox_mm=shell_bbox,
+        lid_bbox_mm=lid_bbox,
+        assembly_bbox_mm=assembly_bbox,
+    )
+
+
 def _body_shape(
     body: ComponentBodyView, board_thickness_mm: float, board_width_mm: float, board_depth_mm: float
 ) -> Any:

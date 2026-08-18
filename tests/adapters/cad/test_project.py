@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import importlib
 import json
+import shutil
 from pathlib import Path
 
+import pytest
+
+from acd.adapters.cad.mechanical import MechanicalGateError, measure_enclosure_artifacts
 from acd.adapters.cad.project import project_enclosure
 from acd.core.mechanical import extract_mechanical_lane
 from acd.schema.design_graph import DesignGraph
@@ -30,5 +35,55 @@ def test_projection_rerun_matches_normalized_hash(tmp_path: Path) -> None:
         target_revision=graph.revision,
     )
     assert first.envelope.output_hash == second.envelope.output_hash
-    assert first.step_path.is_file()
+    assert first.shell_step_path.is_file()
+    assert first.lid_step_path.is_file()
+    assert first.assembly_step_path.is_file()
     assert first.model_path.is_file()
+    assert first.artifact_manifest_path.is_file()
+
+
+def test_projection_exports_separated_solids_and_assembly(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane,
+        graph_path=FIXTURE,
+        out_dir=tmp_path,
+        target_revision=graph.revision,
+    )
+    report = measure_enclosure_artifacts(
+        shell_step_path=projection.shell_step_path,
+        lid_step_path=projection.lid_step_path,
+        assembly_step_path=projection.assembly_step_path,
+    )
+    build123d = importlib.import_module("build123d")
+    assert report.shell_volume_mm3 == pytest.approx(4567.86193, abs=1e-3)
+    assert report.lid_volume_mm3 == pytest.approx(2232.0, abs=1e-3)
+    assert report.assembly_volume_mm3 == pytest.approx(
+        report.shell_volume_mm3 + report.lid_volume_mm3, abs=1e-3
+    )
+    assert report.shell_bbox_mm == pytest.approx((-18.0, -15.5, 0.0, 18.0, 15.5, 10.9))
+    assert report.lid_bbox_mm == pytest.approx((-18.0, -15.5, 11.1, 18.0, 15.5, 13.1))
+    assert len(build123d.import_step(projection.shell_step_path).solids()) == 1
+    assert len(build123d.import_step(projection.lid_step_path).solids()) == 1
+    assert len(build123d.import_step(projection.assembly_step_path).solids()) == 2
+    assert report.shell_bbox_mm != report.assembly_bbox_mm
+    assert report.lid_bbox_mm != report.assembly_bbox_mm
+
+
+def test_projection_rejects_fused_part_artifact(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane,
+        graph_path=FIXTURE,
+        out_dir=tmp_path,
+        target_revision=graph.revision,
+    )
+    shutil.copyfile(projection.assembly_step_path, projection.shell_step_path)
+    with pytest.raises(MechanicalGateError, match="shell STEP must contain exactly one solid"):
+        measure_enclosure_artifacts(
+            shell_step_path=projection.shell_step_path,
+            lid_step_path=projection.lid_step_path,
+            assembly_step_path=projection.assembly_step_path,
+        )

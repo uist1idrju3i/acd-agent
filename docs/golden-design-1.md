@@ -488,6 +488,21 @@ placementやKiCad実行時状態を読み出して補完しない。
 
 全componentに対応するbody nodeが無い場合、機械レーン抽出は`unknown`として停止する。
 
+筐体CADはshellとlidを別部品として出力する。製造・組立の成果物は次の構成であり、
+STEP部品を融合して1ファイルにすることはしない。
+
+| 成果物 | 用途 | 内容 |
+|---|---|---|
+| `out/gd1-enclosure/enclosure-shell.step` | shell製造部品 | shellソリッドのみ |
+| `out/gd1-enclosure/enclosure-lid.step` | lid製造部品 | lidソリッドのみ |
+| `out/gd1-enclosure/enclosure-assembly.step` | 組立確認 | shellとlidの統合STEP |
+| `out/gd1-enclosure/enclosure.3mf` | 3Dプリント確認 | `gd1-enclosure-shell`と`gd1-enclosure-lid`の2オブジェクト |
+| `out/gd1-enclosure/enclosure-artifacts.json` | 構成物provenance | 各成果物の役割・形式・正規化SHA-256 |
+
+部品別STEPは独立再読込でソリッド数、体積、bboxを確認し、統合STEPとの差異も検証する。
+Evidenceのenvelopeは部品別STEP、統合STEP、3MF、構成物manifestをすべてhash対象に含める。
+ねじ、ボス、スナップ等の新しい締結機構はこの出力分割では追加しない。
+
 ## 9. FWの範囲とEvidence
 
 ### 9.1 FW範囲
