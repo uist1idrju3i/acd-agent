@@ -35,7 +35,7 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
-| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`実装済み） |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`実装済み） |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装 |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 一部実装 |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
@@ -50,8 +50,8 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 secret allowlistの`SecretSource`、`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
 Skill明示ロード、`StuckDetector`、`ConversationStats`／`Metrics`のL3観測出力、
 role別promptの`PromptSection`化と資材manifest drift検査、role別LLM routing policyは
-実装済みである。`FileStore`保存、observability、settings／credential／profile driftは
-未着手である。
+実装済みである。`FileStore`によるL3観測保存も実装済みである。observability、
+settings／credential／profile driftは未着手である。
 `ToolDefinition`、現行の`DockerDevWorkspace`、将来の`DockerWorkspace`、決定論的gateの
 責務境界は変更しない。MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 
@@ -61,7 +61,7 @@ role別promptの`PromptSection`化と資材manifest drift検査、role別LLM rou
   `AcdGateCritic`は変更しない）。routing結果は合否へ影響させず、policy hashと
   非Evidence観測を固定する。
 - `sdk.io`: `src/acd/openhands/session/bootstrap.py`のmetrics/stats保存を`FileStore`
-  抽象へ移譲する。
+  抽象へ移譲する。L3観測だけを対象とし、Evidenceと設計入力の保存経路は変更しない。
 - `sdk.logger`／`sdk.observability`: L3観測のad-hoc JSONを構造化ログ・observabilityへ
   移し、secretとEvidenceを混入させない。
 - `sdk.settings`／`sdk.credential`／`sdk.profiles`: secret allowlistとprofile driftを

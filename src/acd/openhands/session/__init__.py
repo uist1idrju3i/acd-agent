@@ -17,6 +17,13 @@ from acd.openhands.session.goal_loop import (
     run_acd_goal,
     write_goal_result,
 )
+from acd.openhands.session.observation_store import (
+    AcdObservationStore,
+    ObservationArtifactKind,
+    ObservationPayload,
+    ObservationStoreError,
+    write_observation_payload,
+)
 from acd.openhands.session.prompts import (
     AcdRolePromptSection,
     PromptManifestError,
@@ -44,10 +51,14 @@ __all__ = [
     "AcdGateCritic",
     "AcdGoalResult",
     "AcdManifestRequirement",
+    "AcdObservationStore",
     "AcdRolePromptSection",
     "FixedRoleRouter",
     "GateRequirement",
     "ModelRoutingError",
+    "ObservationArtifactKind",
+    "ObservationPayload",
+    "ObservationStoreError",
     "PromptManifestError",
     "build_acd_conversation",
     "check_prompt_manifest",
@@ -67,5 +78,6 @@ __all__ = [
     "write_goal_result",
     "write_model_routing_policy",
     "write_model_routing_report",
+    "write_observation_payload",
     "write_prompt_manifest",
 ]

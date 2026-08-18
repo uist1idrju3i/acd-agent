@@ -34,7 +34,7 @@
 | sdk.extensions | `fetch` | 外部拡張 | 不採用 | Canvas等の別UI・拡張境界を持ち込まない | pinned API確認、採用しない |
 | sdk.git | `get_git_changes`<br>`GitError` | stale判定へのgit入力 | 採用 | `src/acd/openhands/evidence/git.py`で使用 | dirty/stale fixture |
 | sdk.hooks | `HookConfig`<br>`HookEventType`<br>`HookExecutor` | agent経路の停止側境界 | 採用 | `plugins/acd/hooks/`がSDK hook契約を使用 | DENY/allow試験 |
-| sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用予定（ロードマップ4.4） | git/inputを正とし二重の合否状態を持たない | pinned API確認、実装未着手 |
+| sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用 | L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない | tests/openhands/session/test_observation_store.py、verify_all.py --stage standard |
 | sdk.llm | `LLM`<br>`Message`<br>`TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | routing結果は合否へ影響させず、profileと資材hashを固定する | verify_model_policy.py --check、tests/openhands/session/test_routing.py |

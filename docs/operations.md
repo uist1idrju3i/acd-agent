@@ -208,6 +208,16 @@ role不整合はreportを標準出力へ出してexit code 2を返す。現在�
 vendor modelを既定採用するものではない。コード側でこの資材を暗黙に読み込むことはなく、
 呼び出し側がpolicyを明示的に渡した場合だけroutingへ適用される。
 
+## Observation store
+
+metrics、stats、goal結果、routing観測のL3 metadataはSDK `FileStore`を経由して保存する。
+Evidenceと設計入力の保存経路は対象外であり、FileStoreへ移譲しない。
+
+既存の`Path`引数を使うwriterは、Pathの親ディレクトリをrootとする`LocalFileStore`を
+内部で使用する。`FileStore`を明示する場合のpathはstore rootからの相対pathだけを許可し、
+空path、絶対path、`..`によるroot脱出、rootを準備できない場合はfail-closedで拒否する。
+payloadは`pass_evidence=false`固定の型付き観測だけを受け付ける。
+
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、

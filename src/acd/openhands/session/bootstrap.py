@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 
 from openhands.sdk import LLM, Agent
 from openhands.sdk.context import AgentContext
@@ -14,6 +12,7 @@ from openhands.sdk.conversation import LocalConversation
 from openhands.sdk.conversation.conversation_stats import ConversationStats
 from openhands.sdk.conversation.stuck_detector import StuckDetectionThresholds
 from openhands.sdk.hooks import HookConfig
+from openhands.sdk.io import FileStore
 from openhands.sdk.llm.utils.metrics import Metrics
 from openhands.sdk.plugin import PluginSource
 from openhands.sdk.security import ConfirmRisky, SecurityRisk
@@ -27,6 +26,10 @@ from acd.openhands.safety.hooks import validate_acd_agent_hooks
 from acd.openhands.safety.secrets import build_acd_secret_mapping
 from acd.openhands.safety.security import build_acd_security_analyzer
 from acd.openhands.session.gate_critic import AcdGateCritic, GateRequirement
+from acd.openhands.session.observation_store import (
+    ObservationPayload,
+    write_observation_payload,
+)
 from acd.openhands.session.prompts import (
     DEFAULT_MANIFEST_NAME,
     PromptManifestError,
@@ -175,27 +178,39 @@ def build_acd_conversation(
     return conversation
 
 
-def write_conversation_metrics(metrics: Metrics, path: Path) -> None:
+def write_conversation_metrics(
+    metrics: Metrics,
+    path: Path,
+    *,
+    file_store: FileStore | None = None,
+) -> None:
     """Write SDK metrics as progress metadata, never as pass evidence."""
-    payload: dict[str, Any] = {
-        "artifact_kind": "conversation_metrics",
-        "pass_evidence": False,
-        "description": "This is not pass evidence.",
-        "metrics": metrics.model_dump(mode="json"),
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    payload = ObservationPayload.model_validate(
+        {
+            "artifact_kind": "conversation_metrics",
+            "pass_evidence": False,
+            "description": "This is not pass evidence.",
+            "metrics": metrics.model_dump(mode="json"),
+        }
+    )
+    write_observation_payload(payload, path, file_store=file_store)
 
 
-def write_conversation_stats(stats: ConversationStats, path: Path) -> None:
+def write_conversation_stats(
+    stats: ConversationStats,
+    path: Path,
+    *,
+    file_store: FileStore | None = None,
+) -> None:
     """Write SDK conversation statistics as non-authoritative observations."""
     snapshot = stats.model_dump(context={"use_snapshot": True})
-    payload: dict[str, Any] = {
-        "artifact_kind": "conversation_stats",
-        "pass_evidence": False,
-        "description": "This is not pass evidence.",
-        "combined_metrics": stats.get_combined_metrics().model_dump(mode="json"),
-        "usage_to_metrics": snapshot["usage_to_metrics"],
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    payload = ObservationPayload.model_validate(
+        {
+            "artifact_kind": "conversation_stats",
+            "pass_evidence": False,
+            "description": "This is not pass evidence.",
+            "combined_metrics": stats.get_combined_metrics().model_dump(mode="json"),
+            "usage_to_metrics": snapshot["usage_to_metrics"],
+        }
+    )
+    write_observation_payload(payload, path, file_store=file_store)

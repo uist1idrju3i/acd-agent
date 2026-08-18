@@ -41,6 +41,7 @@
 | prompt section | OpenHands SDKの`PromptSection` protocolに適合するL2 role promptの構造。 |
 | model routing policy | roleごとのmodel、SDK `usage_id`、profile識別子とcanonical hashを固定する宣言。秘密情報を持たず、Evidenceではない。 |
 | judge model | goalの完了評定を補助するrole別model。決定論的gateの合否やEvidenceを決めない。 |
+| observation store | L3観測を`FileStore`へ保存するACD側経路。Evidenceと設計入力は対象外で、`pass_evidence=false`を固定する。 |
 | hook | toolやsession境界で防護・記録を行うイベント処理。 |
 | critic | 反復改善を操舵する評価機構。合否権限は持たない。 |
 | Conversation | SDKが管理する対話、履歴、状態、永続化の単位。 |

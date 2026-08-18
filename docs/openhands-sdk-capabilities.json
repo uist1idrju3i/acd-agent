@@ -279,10 +279,9 @@
       "modules": ["sdk.io", "sdk.io.*"],
       "representative_apis": ["FileStore", "LocalFileStore", "InMemoryFileStore"],
       "use": "session保存抽象",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "git/inputを正とし二重の合否状態を持たない",
-      "verification": "pinned API確認、実装未着手"
+      "adoption": "採用",
+      "rationale": "L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない",
+      "verification": "tests/openhands/session/test_observation_store.py、verify_all.py --stage standard"
     },
     {
       "domain": "sdk.llm",

@@ -131,6 +131,9 @@ L2の停止・再試行層として扱う。`ConversationStats`はL3観測に限
 role別model routingは主agent、judge、condenserのbindingをpolicyへ固定し、
 `RouterLLM`の選択をroleだけで決定する。policy hashとrouting観測はL2/L3資材であり、
 Evidenceを生成・昇格せず、決定論的gateの合否へ影響させない。
+metrics、stats、goal結果、routing観測のL3保存はSDK `FileStore`を経由する。
+既存のJSON bytesと非Evidence契約を維持し、Evidenceと設計入力の保存経路は
+FileStoreへ移譲しない。
 lane並列は`Agent.tool_concurrency_limit`で明示的に有効化する。ACD toolの資源宣言不能時は
 SDKの既定どおりtool単位のmutexで直列化する。task/delegateのsub-agentは親hookを継承
 しないため、5つのACD AgentDefinitionへ同じ必須hookを明記し、SDKがロードした

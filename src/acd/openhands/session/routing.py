@@ -6,11 +6,16 @@ import json
 from collections.abc import Mapping
 from pathlib import Path
 
+from openhands.sdk.io import FileStore
 from openhands.sdk.llm import LLM
 from openhands.sdk.llm.message import Message
 from openhands.sdk.llm.router import RouterLLM
 from pydantic import ValidationError
 
+from acd.openhands.session.observation_store import (
+    ObservationPayload,
+    write_observation_payload,
+)
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.model_routing import (
     ModelRoutingBinding,
@@ -178,19 +183,16 @@ def write_model_routing_report(
     llms: Mapping[RoutingRole, LLM],
     path: Path,
     profiles: Mapping[RoutingRole, str] | None = None,
+    *,
+    file_store: FileStore | None = None,
 ) -> ModelRoutingReport:
     """Write a deterministic non-authoritative routing observation."""
     report = model_routing_report(policy, llms, profiles)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(
-            report.model_dump(mode="json"),
-            ensure_ascii=False,
-            indent=2,
-            sort_keys=True,
-        )
-        + "\n",
-        encoding="utf-8",
+    payload = ObservationPayload.model_validate(report.model_dump(mode="json"))
+    write_observation_payload(
+        payload,
+        path,
+        file_store=file_store,
     )
     return report
 
