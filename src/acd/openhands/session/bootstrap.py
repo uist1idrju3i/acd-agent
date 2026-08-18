@@ -89,6 +89,14 @@ def build_acd_conversation(
     agent_llm = llm
     condenser_model = condenser_llm or llm
     if model_routing_policy is not None:
+        has_condenser_binding = any(
+            binding.role == "condenser"
+            for binding in model_routing_policy.bindings
+        )
+        if condenser_llm is not None and not has_condenser_binding:
+            raise ModelRoutingError(
+                "condenser LLM is not declared by model routing policy"
+            )
         profile = (
             routing_profiles.get("agent")
             if routing_profiles is not None
@@ -100,7 +108,7 @@ def build_acd_conversation(
             llm,
             profile=profile,
         )
-        if any(binding.role == "condenser" for binding in model_routing_policy.bindings):
+        if has_condenser_binding:
             if condenser_llm is None:
                 raise ModelRoutingError(
                     "condenser LLM is required by model routing policy"

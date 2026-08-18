@@ -401,6 +401,60 @@ def test_bootstrap_requires_policy_bound_condenser(tmp_path: Path) -> None:
         )
 
 
+def test_bootstrap_rejects_unbound_policy_condenser(tmp_path: Path) -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "judge-usage",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    with pytest.raises(ModelRoutingError, match="not declared"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="agent-model", usage_id="agent-usage"),
+            condenser_llm=LLM(model="unbound-condenser", usage_id="condenser-usage"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            model_routing_policy=policy,
+        )
+
+
+def test_bootstrap_does_not_load_default_model_policy(tmp_path: Path) -> None:
+    llm = LLM(model="caller-model", usage_id="caller-usage")
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=llm,
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+    )
+    assert conversation.agent.llm is llm
+
+
 def test_browser_tools_are_disabled_by_default(tmp_path: Path) -> None:
     conversation = build_acd_conversation(
         repo_root=Path.cwd(),

@@ -25,16 +25,11 @@ class ModelRoutingError(ValueError):
     """Raised when model routing inputs cannot satisfy the policy contract."""
 
 
-def _policy_hash(policy: ModelRoutingPolicy) -> Sha256:
+def model_routing_policy_hash(policy: ModelRoutingPolicy) -> Sha256:
+    """Return the canonical hash of a model routing policy."""
     value = policy.model_dump(mode="json")
     value["canonical_hash"] = "unknown"
     return canonical_json_sha256(value)
-
-
-def model_routing_policy_hash(policy: ModelRoutingPolicy) -> Sha256:
-    """Return the canonical hash of a model routing policy."""
-    return _policy_hash(policy)
-
 
 def load_model_routing_policy(path: Path) -> ModelRoutingPolicy:
     """Load a model routing policy from deterministic JSON."""
@@ -52,7 +47,7 @@ def _binding(policy: ModelRoutingPolicy, role: RoutingRole) -> ModelRoutingBindi
 
 
 def _validate_policy_hash(policy: ModelRoutingPolicy) -> None:
-    if policy.canonical_hash != _policy_hash(policy):
+    if policy.canonical_hash != model_routing_policy_hash(policy):
         raise ModelRoutingError("model routing policy canonical hash is invalid")
 
 
@@ -125,6 +120,20 @@ def create_fixed_role_router(
     )
 
 
+def _routing_observations(
+    policy: ModelRoutingPolicy,
+) -> list[ModelRoutingObservation]:
+    return [
+        ModelRoutingObservation(
+            role=binding.role,
+            model=binding.model,
+            usage_id=binding.usage_id,
+            profile=binding.profile,
+        )
+        for binding in policy.bindings
+    ]
+
+
 def model_routing_report(
     policy: ModelRoutingPolicy,
     llms: Mapping[RoutingRole, LLM],
@@ -139,19 +148,10 @@ def model_routing_report(
             policy_hash="unknown",
             reason=str(exc),
         )
-    bindings = [
-        ModelRoutingObservation(
-            role=binding.role,
-            model=binding.model,
-            usage_id=binding.usage_id,
-            profile=binding.profile,
-        )
-        for binding in policy.bindings
-    ]
     return ModelRoutingReport(
         status="pass",
         policy_hash=policy.canonical_hash,
-        bindings=bindings,
+        bindings=_routing_observations(policy),
     )
 
 
@@ -168,15 +168,7 @@ def model_routing_policy_report(policy: ModelRoutingPolicy) -> ModelRoutingRepor
     return ModelRoutingReport(
         status="pass",
         policy_hash=policy.canonical_hash,
-        bindings=[
-            ModelRoutingObservation(
-                role=binding.role,
-                model=binding.model,
-                usage_id=binding.usage_id,
-                profile=binding.profile,
-            )
-            for binding in policy.bindings
-        ],
+        bindings=_routing_observations(policy),
     )
 
 
@@ -207,7 +199,9 @@ def write_model_routing_policy(
     path: Path,
 ) -> ModelRoutingPolicy:
     """Write a policy with its canonical hash populated."""
-    value = policy.model_copy(update={"canonical_hash": _policy_hash(policy)})
+    value = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
     path.write_text(
         json.dumps(
             value.model_dump(mode="json"),
