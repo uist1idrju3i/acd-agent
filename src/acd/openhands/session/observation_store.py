@@ -5,33 +5,28 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path, PureWindowsPath
-from typing import Literal
 
 from openhands.sdk.io import FileStore, LocalFileStore
-from pydantic import ConfigDict
 
-from acd.schema.common import AcdModel, NonEmptyStr
+from acd.openhands.session.observation_log import (
+    ObservationLogError,
+    emit_observation_log,
+    observation_log_record,
+)
+from acd.schema.observation import ObservationArtifactKind, ObservationPayload
+from acd.schema.observation_log import ObservationLogRecord
 
-ObservationArtifactKind = Literal[
-    "conversation_metrics",
-    "conversation_stats",
-    "goal_result",
-    "model_routing_observation",
+__all__ = [
+    "AcdObservationStore",
+    "ObservationArtifactKind",
+    "ObservationPayload",
+    "ObservationStoreError",
+    "write_observation_payload",
 ]
 
 
 class ObservationStoreError(ValueError):
     """Raised when an observation cannot be written safely."""
-
-
-class ObservationPayload(AcdModel):
-    """Typed envelope for non-authoritative observation payloads."""
-
-    model_config = ConfigDict(extra="allow", frozen=True)
-
-    artifact_kind: ObservationArtifactKind
-    pass_evidence: Literal[False] = False
-    description: NonEmptyStr | None = None
 
 
 def _validate_observation_path(
@@ -72,7 +67,11 @@ class AcdObservationStore:
                 "observation store root is unavailable"
             ) from exc
 
-    def write(self, path: str | Path, payload: ObservationPayload) -> None:
+    def write(
+        self,
+        path: str | Path,
+        payload: ObservationPayload,
+    ) -> ObservationLogRecord:
         """Write deterministic observation bytes at a relative store path."""
         relative_path = _validate_store_path(path)
         serialized_payload = payload.model_dump(mode="json")
@@ -87,6 +86,7 @@ class AcdObservationStore:
             )
             + "\n"
         ).encode("utf-8")
+        record = observation_log_record(serialized_payload, relative_path, contents)
         try:
             with self.file_store.lock(relative_path):
                 self.file_store.write(relative_path, contents)
@@ -94,6 +94,13 @@ class AcdObservationStore:
             raise ObservationStoreError(
                 "observation store write failed"
             ) from exc
+        try:
+            emit_observation_log(record)
+        except ObservationLogError as exc:
+            raise ObservationStoreError(
+                "observation structured log emission failed"
+            ) from exc
+        return record
 
 
 def _store_for_path(path: Path) -> tuple[AcdObservationStore, str]:
@@ -114,11 +121,11 @@ def write_observation_payload(
     path: Path,
     *,
     file_store: FileStore | None = None,
-) -> None:
+) -> ObservationLogRecord:
     """Write an observation using an explicit or path-backed FileStore."""
     if file_store is None:
         store, relative_path = _store_for_path(path)
     else:
         store = AcdObservationStore(file_store)
         relative_path = _validate_store_path(path)
-    store.write(relative_path, payload)
+    return store.write(relative_path, payload)

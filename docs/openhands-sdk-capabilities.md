@@ -18,9 +18,9 @@
 | sdk.agent.response_dispatch | `classify_response` | SDK内部応答配信 | 不採用 | ACDが直接依存する責務ではない | pinned API確認、採用しない |
 | sdk.context | `AgentContext` | agent作業文脈 | 採用 | 現行sessionでローカルSkillと文脈設定を明示する | session回帰 |
 | sdk.context.condenser | `LLMSummarizingCondenser` | 長い対話の圧縮 | 採用 | `src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない | resume/fork回帰 |
-| sdk.context.memory | `load_memory` | 作業文脈の補助 | 採用予定（ロードマップ4.4） | 契約・合否の正にしない。資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.context.memory | `load_memory` | 作業文脈の補助 | 採用 | `enable_persistent_memory`で明示有効化し、secret混入をfail-closedにする。内容はhashだけ観測し契約・合否の正にしない | tests/openhands/session/test_context.py |
 | sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用 | role別promptと資材hashを固定する | verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py |
-| sdk.context.view | `View` | 長時間sessionの表示 | 採用予定（ロードマップ4.4） | 原`EventLog`と照合し、`Evidence`を置換しない | pinned API確認、実装未着手 |
+| sdk.context.view | `View` | 長時間sessionの表示 | 採用 | 原`EventLog`と照合する表示専用projectionにし、canonical hashを固定して`Evidence`を置換しない | verify_context_view.py --check、tests/openhands/session/test_context.py |
 | sdk.conversation | `BaseConversation`<br>`LocalConversation`<br>`ConversationState` | 現行agent session | 採用 | `src/acd/openhands/session/bootstrap.py`で使用 | session回帰 |
 | sdk.conversation.cancellation | `CancellationToken` | 対話中断 | 採用 | SIGINTからinterruptへ結線し、L2停止側に限定 | `tests/openhands/session/test_goal_loop.py` |
 | sdk.conversation.conversation_stats | `ConversationStats` | session別使用量観測 | 採用 | L3観測として採用し合否に混入しない | `tests/openhands/session/test_goal_loop.py` |
@@ -28,7 +28,7 @@
 | sdk.conversation.internal | `EventLog` | Conversation内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.conversation.secrets_manager | `SecretRegistry` | secret注入・漏洩防止 | 採用 | pinned registryのmaskingとlazy secret注入を現行Conversationで使用 | registry回帰 |
 | sdk.conversation.stuck_detector | `StuckDetector` | 停滞時の差し戻し | 採用 | `LocalConversation(stuck_detection=True)`へ既定値・閾値を渡す | conversation wiring回帰 |
-| sdk.credential | `CredentialBindingError` | 資格情報の外部化 | 採用予定（ロードマップ4.4） | secret allowlistを維持し、unknownはfail-closedにする | pinned API確認、実装未着手 |
+| sdk.credential | `CredentialBindingError` | 資格情報の外部化 | 採用 | credentialは`SecretRegistry`参照名だけを保持し、allowlist外の参照名とunknown設定はfail-closedにする | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.critic | `CriticBase`<br>`CriticResult`<br>`IterativeRefinementConfig` | gate結果によるL2操舵 | 採用 | session gate criticで使用し、pass authorityにしない | critic回帰、negative |
 | sdk.event | `Event`<br>`MessageEvent`<br>`HookExecutionEvent` | session経過の記録 | 採用 | Conversationのイベント経路で使用 | event/resume回帰 |
 | sdk.extensions | `fetch` | 外部拡張 | 不採用 | Canvas等の別UI・拡張境界を持ち込まない | pinned API確認、採用しない |
@@ -39,18 +39,18 @@
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | routing結果は合否へ影響させず、profileと資材hashを固定する | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
-| sdk.logger | `get_logger` | L3観測の構造化 | 採用予定（ロードマップ4.4） | `secret`と`Evidence`をログへ混入させない | pinned API確認、実装未着手 |
+| sdk.logger | `get_logger` | L3観測の構造化 | 採用 | `secret`と`Evidence`をログへ混入させず、観測名とhashだけを構造化ログへ出す | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | ADR-0036のinstalled plugin ambient自動読み込みは採用するが、MarketplaceRegistry自体は使用しない | pinned API確認、MarketplaceRegistryを使用しない |
 | sdk.mcp | `MCPClient` | MCP連携 | 不採用 | OpenHands専用拡張にMCP互換層を追加しない | pinned API確認、採用しない |
-| sdk.observability | `observe` | L3観測の構造化 | 採用予定（ロードマップ4.4） | 送信先・`sanitizer`・既定無効を固定し、`Evidence`へ触れない | pinned API確認、実装未着手 |
+| sdk.observability | `observe` | L3観測の構造化 | 採用 | 既定無効のspanを観測書込みだけに付け、入出力を送らず`Evidence`へ触れない | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | 既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する | 明示ref検証、ambient bootstrap回帰 |
-| sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用予定（ロードマップ4.4） | profile driftを管理し、資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用 | `OpenHandsAgentProfile`をsecret-freeなまま検証し、routing policyとのprofile driftをfail-closedで検知する | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.secret | `SecretSource`<br>`StaticSecret`<br>`LookupSecret` | secretを平文から分離 | 採用 | allowlist環境変数をlazy sourceとしてConversation registryへ渡す | registry masking回帰 |
 | sdk.security | `ConfirmRisky`<br>`NeverConfirm` | agent操作の安全境界 | 採用 | 現行conversationへMEDIUM以上の確認方針を設定 | risky/deny試験 |
 | sdk.security.analyzer | `SecurityAnalyzerBase`<br>`PatternSecurityAnalyzer`<br>`EnsembleSecurityAnalyzer`<br>`SecurityRisk` | agent操作の決定論的追加監視 | 採用 | ACD analyzerとPattern analyzerをSDK ensembleへ合成し、LLM/GraySwanは使わない | risk/ensemble回帰 |
 | sdk.security.grayswan | `GraySwanAnalyzer` | 外部security analyzer | 不採用 | GraySwan系analyzerはOpenHands専用拡張の境界外 | pinned API確認、採用しない |
 | sdk.security.internal | `LLMSecurityAnalyzer` | SDK内部security補助 | 不採用 | LLM系analyzerと内部補助をACDが直接依存しない | pinned API確認、採用しない |
-| sdk.settings | `AgentSettingsBase` | SDK設定の外部化 | 採用予定（ロードマップ4.4） | 設定資材のhashを記録し、unknownはfail-closedにする | pinned API確認、実装未着手 |
+| sdk.settings | `AgentSettingsBase` | SDK設定の外部化 | 採用 | `plugins/acd/agent-settings.json`のcanonical hashを固定し、不一致は`unknown`で停止する | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.skills | `load_skills_from_dir` | ローカルACD Skillの配布・prompt提供 | 採用 | 既定の明示経路は`plugins/acd/skills`を事前検証してfail-closedとし、ADR-0036のambient経路はSDK標準loaderへ委ねる | 明示Skill loader回帰、ambient bootstrap回帰 |
 | sdk.subagent | `AgentDefinition` | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照 | agent資材検査 |
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |

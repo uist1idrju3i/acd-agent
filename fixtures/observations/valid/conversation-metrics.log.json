@@ -1,0 +1,17 @@
+{
+  "artifact_kind": "observation_log_record",
+  "event": "acd.observation.write",
+  "logger_name": "acd.observation",
+  "observation_kind": "conversation_metrics",
+  "pass_evidence": false,
+  "payload_bytes": 364,
+  "payload_fields": [
+    "artifact_kind",
+    "description",
+    "metrics",
+    "pass_evidence"
+  ],
+  "payload_hash": "sha256:93e03912a7706c0c20268d0b0fe56bbca6f745daae7370e3b9dee2b71b7fa41c",
+  "schema_version": "0.1",
+  "store_path": "observations/conversation-metrics.json"
+}
