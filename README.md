@@ -127,9 +127,7 @@ ACDは、要件から基板・筐体・ファームウェアを設計し、製�
 - ERC/DRCなどの自動ゲートは記述された整合を判定するものであり、ライブラリ記述の誤りや
   設計意図そのものを保証しません。ライブラリの出所と測定値を別途記録します。
 - 安全境界の禁止領域は初期ターゲットに含めません。AC電源、高電圧・大電流、レーザー、
-  医療・車載用途、無線送信回路の直接設計、Li-ion/LiPo充電回路は初期は禁止とし、
-  詳細は[`SECURITY.md`](SECURITY.md)と
-  [`docs/adr/ADR-0029-agent-safety-boundary.md`](docs/adr/ADR-0029-agent-safety-boundary.md)に定めます。
+  医療・車載用途、無線送信回路の直接設計、Li-ion/LiPo充電回路は初期は禁止とします。
 
 ## 設計フロー
 
@@ -191,9 +189,7 @@ ACD本体ではなく`plugins/acd/skills/`のSkillが持ち、採否はOpenHands
 上位の少数候補に限定します。回転刻みは版管理された`profiles/`の宣言に従います。
 
 LLM-only CADとの違いは、毎回同じ解を出すことではなく、出た設計を後から再検証できることです。
-実行ごとに解が異なっても、決定論的な実測と独立parser再読込で検証できればよいとします。方針の正は
-[`docs/adr/ADR-0007-llm-guided-physical-design.md`](docs/adr/ADR-0007-llm-guided-physical-design.md)と
-[`docs/adr/ADR-0011-search-results-as-design-input.md`](docs/adr/ADR-0011-search-results-as-design-input.md)です。
+実行ごとに解が異なっても、決定論的な実測と独立parser再読込で検証できればよいとします。
 
 ## ACDではないもの
 
@@ -206,10 +202,6 @@ LLM-only CADとの違いは、毎回同じ解を出すことではなく、出�
 - 独自のコンパイラ、デバッガ、シミュレータを作る製品ではありません。既存ツールを
   外部ツールとして呼び出します。
 
-## 文書索引
-
-文書の一覧とAccepted ADRの索引は[`docs/README.md`](docs/README.md)を参照してください。
-
 ## ロゴ
 
 ![acd-agent](assets/logo.svg)
@@ -219,9 +211,6 @@ LLM-only CADとの違いは、毎回同じ解を出すことではなく、出�
 - [`assets/vibebb-silkscreen.svg`](assets/vibebb-silkscreen.svg): 基板シルク印字用のVibeBBロゴ。
   単色・線画・幾何要素のみで、1:1スケールは26mm×15mmです。基板へ載せる場合は
   `board-preview`グループを外し、`silkscreen`グループだけを取り込みます。
-
-ロゴのアイコン意匠と配色は[uist1idrju3i/ACD](https://github.com/uist1idrju3i/ACD)の
-`assets/logo.svg`（BSD 3-Clause、Copyright (c) Y. Yamashiro）に基づきます。
 
 ## ライセンス
 
