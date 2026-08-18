@@ -16,8 +16,8 @@ from openhands.sdk.event import Event
 from openhands.sdk.llm import Message, TextContent
 from openhands.sdk.testing import TestLLM
 
-from acd.openhands.agent_session import write_conversation_stats
-from acd.openhands.goal_loop import (
+from acd.openhands.session.bootstrap import write_conversation_stats
+from acd.openhands.session.goal_loop import (
     AcdGoalResult,
     install_goal_interrupt,
     run_acd_goal,

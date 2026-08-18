@@ -19,17 +19,30 @@ from openhands.sdk.tool import (
 from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportUnknownVariableType]
 from pydantic import Field
 
-from acd.openhands.probe import probe_all
-from acd.pipeline.gd1_board import (  # pyright: ignore[reportMissingTypeStubs]
-    run_pipeline as run_board,
-)
-from acd.pipeline.gd1_enclosure import (  # pyright: ignore[reportMissingTypeStubs]
-    run_pipeline as run_enclosure,
-)
+from acd.openhands.tools.probe import probe_all
 from acd.schema.design_graph import DesignGraph
 
 if TYPE_CHECKING:
     from openhands.sdk.conversation.state import ConversationState
+
+
+def run_board(
+    fixture_dir: Path,
+    out_dir: Path,
+    max_passes: int,
+    fab_profile_path: Path,
+) -> dict[str, str]:
+    """Run the board pipeline without importing it during package initialization."""
+    from acd.pipeline.gd1_board import run_pipeline
+
+    return run_pipeline(fixture_dir, out_dir, max_passes, fab_profile_path)
+
+
+def run_enclosure(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
+    """Run the enclosure pipeline without importing it during package initialization."""
+    from acd.pipeline.gd1_enclosure import run_pipeline
+
+    return run_pipeline(fixture_dir, out_dir)
 
 
 def _error(message: str, *, operation: str) -> dict[str, Any]:

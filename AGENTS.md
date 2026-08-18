@@ -14,6 +14,11 @@ src/acd/
 ├── core/
 ├── pipeline/
 ├── openhands/
+│   ├── session/
+│   ├── safety/
+│   ├── evidence/
+│   ├── tools/
+│   └── distribution/
 └── adapters/
     ├── kicad/
     ├── freerouting/
@@ -34,7 +39,10 @@ vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
 ```
 
 本リポジトリはOpenHands Software Agent SDK v1.42.1専用拡張であり、機能採否は
-`docs/openhands-sdk-capabilities.md`で管理する。
+`docs/openhands-sdk-capabilities.json`を契約の正として管理する。Markdown表は
+`scripts/verify_sdk_capabilities.py`で機械生成し、driftを検査する。
+Accepted ADRの索引は`docs/README.md`を正とし、Superseded ADRは統合先を示すpointerだけを残す。
+agent-serverは対象外であり、採用する場合は新規ADRを起票する。
 
 ## 不変条件
 
@@ -64,8 +72,8 @@ OpenHands SDKへ委譲する。
 
 Skillsのtriggerは`KeywordTrigger`を使う。`paths:`はmodel invocationを無効化し、
 `inputs:`はTaskTriggerになるため現在は使わない。reviewerは合否権限を持たない。
-SDK hooksはagent経路のfail-closed境界として採用する。agent-serverのhooks APIは設定ロードを
-担うが、server直接API全体への自動適用は未確認である。CIの決定論的検証を置き換えない。
+SDK hooksはagent経路のfail-closed境界として採用する。agent-server packageとserver直接APIは
+対象外であり、採用する場合は新規ADRで受入条件を定義する。CIの決定論的検証を置き換えない。
 Conversationにはpinned SDKの`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
 `SecretRegistry`、`load_skills_from_dir`、`StuckDetector`を設定する。これらはL2の
 操舵・停止・漏洩防止層であり、authoritative Evidenceを生成・昇格しない。ACD Skillは
@@ -85,7 +93,8 @@ workflowは任意Python scriptがhook境界の外で実行されうるため不�
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
 使用API、既定値、破壊的変更、採否を`docs/operations.md`へ記録する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
-SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とする。
+SDK機能の採否は`docs/openhands-sdk-capabilities.json`を単一の正とし、
+`docs/openhands-sdk-capabilities.md`は機械生成ブロックを含む説明文書とする。
 
 ファイルを削除・移動するときは、関連文書、索引、相対リンク、参照先を同じ変更で更新し、
 旧パスへの参照を残さない。
@@ -109,7 +118,8 @@ uv run python scripts/verify_all.py --stage full
 Markdownのみの変更で実装資材を変更していない場合は`--stage docs`に絞ってよい。
 GD1のゲート実行とEvidence生成はdigest固定containerを
 正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは
-`DockerDevWorkspace`でbase imageからserver imageを準備する移行中の経路である。
+`DockerDevWorkspace`でbase imageからserver imageを準備するon-the-fly buildの移行中経路である。
+事前build済みdigest固定server imageへ移行した後は`DockerWorkspace`を使う。
 GD1基板pipelineはsilkscreenゲートまで通過する前提で、
 resolverと基板pipelineを実行して確認する。
 

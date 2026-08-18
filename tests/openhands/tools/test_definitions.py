@@ -11,8 +11,8 @@ import pytest
 from openhands.sdk.agent.parallel_executor import ResourceLockManager
 from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
-import acd.openhands.sdk_tools as sdk_tools
-from acd.openhands.sdk_tools import (
+import acd.openhands.tools.definitions as sdk_tools
+from acd.openhands.tools.definitions import (
     AcdObservation,
     AcdProbeTools,
     AcdProbeToolsAction,
@@ -302,7 +302,7 @@ def test_registration_is_idempotent_and_tool_schemas_are_exposed() -> None:
 
 
 def test_removed_server_is_not_a_runtime_or_dependency_reference() -> None:
-    root = Path(__file__).parents[2]
+    root = Path(__file__).parents[3]
     ignored = {".venv", "vendor", ".git", "out", "__pycache__"}
     references: list[str] = []
     for path in root.rglob("*"):

@@ -15,9 +15,9 @@ dependencies = [
 ]
 
 [project.scripts]
-acd-evidence-check = "acd.openhands.evidence_check:main"
-acd-design-revision = "acd.openhands.design_revision:main"
-acd-evidence-git-check = "acd.openhands.evidence_git:main"
+acd-evidence-check = "acd.openhands.evidence.check:main"
+acd-design-revision = "acd.openhands.evidence.revision:main"
+acd-evidence-git-check = "acd.openhands.evidence.git:main"
 
 [tool.uv.sources]
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }

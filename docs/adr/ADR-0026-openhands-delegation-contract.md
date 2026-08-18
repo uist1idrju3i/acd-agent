@@ -32,21 +32,71 @@ agent、GoalController、analyzerは停止・修正を操舵し、L3のevent・m
 ## 入口と実行形
 
 エージェント入口はSDK `ToolDefinition`だけとし、`scripts/*` CLIは人間とCIの入口とする。
-現行の実行形は`LocalConversation` + `DockerWorkspace`である。Docker imageはdigest固定し、
-CI/Docker経路でのみ合格側Evidenceを昇格する。
+現行の実行形は`LocalConversation` + `DockerDevWorkspace`である。
+`DockerDevWorkspace(base_image=...)`はon-the-fly build経路であり、事前build済みdigest固定
+server imageへ移行した時点で`DockerWorkspace(server_image=...)`へ切り替える。CI/Docker
+経路でのみ合格側Evidenceを昇格する。
 
-## 将来構想
+## Agent安全境界
 
-agent-serverはv1.42.1のrouter、REST、WebSocket、persistenceを含む将来構想だが、
-本ADRでは実装・実測・本番採用を行わない。`browser_use`も後段採用予定であり、現時点では
-未実装・未検証である。
+ACDのagent経路に必要な確認、secret注入、Skill資材配布、停滞検知は、独自基盤を追加せず
+pinned OpenHands SDK v1.42.1のL2機能へ委譲する。`AcdSecurityAnalyzer`とSDKの
+`PatternSecurityAnalyzer`を`EnsembleSecurityAnalyzer`へ渡し、`LLMSecurityAnalyzer`、
+`ToolShieldLLMSecurityAnalyzer`、`GraySwanAnalyzer`は採用しない。Conversationには
+`ConfirmRisky(threshold=SecurityRisk.MEDIUM)`を設定し、HIGHとMEDIUMは確認し、LOWは
+通過させる。
+
+明示allowlistの環境変数だけをlazy `SecretSource`として`LocalConversation(secrets=...)`
+へ渡し、`SecretRegistry.mask_secrets_in_output()`を出力maskingの権威とする。secret値は
+ログ、`ToolEnvelope`、Evidenceへ入れない。`load_skills_from_dir()`で
+`plugins/acd/skills`だけを読み、壊れた資材はwrapperの事前検証とロード数照合で
+fail-closedにする。`LocalConversation(stuck_detection=True)`と
+`StuckDetectionThresholds`は停止・修正の操舵に限定する。
+
+## Goal loopと中断・観測境界
+
+SDKの`GoalController`をACD固有driverから再利用し、SDKの`run_goal()`は使わない。
+ACD driverは各run後の`execution_status`を観測し、`PAUSED`ならjudgeを呼ばず
+`interrupted`で終了する。judgeの`GoalVerdict`は反復制御だけに使い、
+`gate_passed`と`authoritative`はACDの決定論的判定からのみ導出する。判定未指定または
+例外時は`False`へ倒す。
+
+SIGINTは`LocalConversation.interrupt()`へ結線し、handlerはcontext manager終了時に元へ
+戻す。`goal_result`と`conversation_stats`は`pass_evidence=false`の観測成果物とし、
+`ConversationStats`はcombined metricsとusage別snapshotを記録する。
+
+## lane並列とsub-agent境界
+
+ACDは`tool_concurrency_limit`の既定値1を維持し、2以上は呼び出し側の明示指定に限る。
+`acd_*` toolは入力graphと出力directoryを`DeclaredResources`へ明示し、path解決不能時は
+`declared=False`としてSDKのmutexによる直列化へ倒す。
+
+5つのACD `AgentDefinition`へhooks.jsonの必須hookを明記し、検査はfrontmatter文字列
+ではなく`AgentDefinition.load()`後の`HookConfig`を対象にする。task/delegateはL2の
+実行・操舵経路とし、sub-agentの結果をEvidenceへ昇格しない。sub-agentへ親hookが
+自動継承されないため、必須hookを各定義へ明記する。workflowは任意Python script実行の
+安全境界を含めて別途判断する。
+
+## 統合後の権限境界
+
+critic、security analyzer、Skill、GoalController、cancellation、parallel executor、
+task、delegate、sub-agentはいずれもL2の操舵・停止層であり、Evidenceを生成・昇格しない。
+ConversationStats、event、metrics、telemetryはL3観測層である。L1の合否は、digest固定
+containerで実行されたrevision一致の決定論的gateとauthoritative Evidenceだけが担う。
+中断、judge評決、hook drift、資源宣言不能、path解決失敗を合格へ倒さず、fail-closedとする。
+
+## agent-server境界
+
+agent-serverはACDの対象外とする。将来採用する場合は、認証・権限・Evidence境界の受入
+条件を定義した新規ADRを起票してから検討する。現行の実行経路をagent-serverへ置き換えない。
 
 ## 不採用
 
 MCP、marketplace、extensions、Canvas、VSCode、desktop、Apptainer、remote API、cloud、
-Gemini、Tom Consult、Apply Patch、ACP agent、agent-serverは、現行のOpenHands-only scope、
-provenance境界、DockerWorkspace承認形と合わないため不採用とする。
+Gemini、Tom Consult、Apply Patch、ACP agentは、現行のOpenHands-only scopeとprovenance
+境界に合わないため不採用とする。agent-serverは非対象として別途管理する。
 
 ## 統合したADR
 
-ADR-0003、0009、0010、0013、0014、0015、0016、0017、0018、0019、0020、0024、0025。
+ADR-0003、0009、0010、0013、0014、0015、0016、0017、0018、0019、0020、0024、0025、
+0029、0030、0031。

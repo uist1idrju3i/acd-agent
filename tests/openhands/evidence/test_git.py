@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from openhands.sdk.git.exceptions import GitError
 
-from acd.openhands.evidence_git import check_evidence_with_git
+from acd.openhands.evidence.git import check_evidence_with_git
 
 SOURCE = Path("fixtures/contracts/valid/evidence.json")
 
@@ -91,7 +91,7 @@ def test_sdk_git_error_fails_closed(
     def raise_git_error(_: str | Path, *, ref: str | None) -> list[object]:
         raise GitError("git unavailable")
 
-    monkeypatch.setattr("acd.openhands.evidence_git.get_git_changes", raise_git_error)
+    monkeypatch.setattr("acd.openhands.evidence.git.get_git_changes", raise_git_error)
     result = check_evidence_with_git(
         _write_evidence(tmp_path),
         "ev-erc-r3-0001",

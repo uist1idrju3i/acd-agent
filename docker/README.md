@@ -2,7 +2,7 @@
 
 ## 位置づけ
 
-このイメージは、ACDの決定論的pipelineとゲートだけをDockerWorkspaceで実行するための
+このイメージは、ACDの決定論的pipelineとゲートだけをDockerDevWorkspaceで実行するための
 base imageである。agentそのものをコンテナへ移すものではなく、ACD imageとして
 再配布もしない。利用者が各自でDockerfileからbuildする。
 

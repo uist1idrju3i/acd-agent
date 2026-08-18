@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from acd.core.cad_normalize import CadNormalizationError, normalize_3mf, normalize_step
-from acd.openhands import probe_all, probe_executable
+from acd.openhands.tools.probe import probe_all, probe_executable
 
 
 def make_stub(directory: Path, name: str, script: str) -> None:

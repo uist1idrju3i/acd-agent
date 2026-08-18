@@ -11,9 +11,9 @@
 
 OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1
 （commit `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`）をworkspace sourceとして使用する。
-agent-serverは未検証の将来構想であり、現行の実行形は`LocalConversation`と
-`DockerDevWorkspace` runnerを基点とする。事前build済みimageへの移行後は
-`DockerWorkspace`を使う。
+agent-serverはACDの対象外であり、採用する場合は新規ADRで受入条件を定義する。現行の
+実行形は`LocalConversation`と`DockerDevWorkspace` runnerを基点とする。事前build済み
+digest固定imageへの移行後は`DockerWorkspace`を使う。
 
 ## cloneと依存関係
 
@@ -65,7 +65,7 @@ browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探�
 Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
 EasyEDA APIの決定論的取得経路は維持し、設計入力へ確定する資材は既存経路で再取得して
 hashを記録する。SDKのworkflowはfail-closed境界を保てないため不採用（将来再検討）とし、
-agent-server系能力は認証・権限・Evidence境界の受入条件が決まるまで保留する。
+agent-server系能力は対象外とし、採用判断は新規ADRの起票後に行う。
 
 ## 外部ツール
 
@@ -101,11 +101,12 @@ uv run python scripts/verify_all.py --stage full
   `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`に固定する。更新前にpinned checkoutの
   API、上流release tag、CHANGELOGまたは一次リリース情報を確認する。
 - Python依存は`pyproject.toml`とlockを正とし、既定値・公開API・破壊的変更を確認して
-  `docs/openhands-sdk-capabilities.md`の採否へ反映する。未検証のAPIは採用しない。
+  `docs/openhands-sdk-capabilities.json`の採否へ反映する。Markdown表は
+  `scripts/verify_sdk_capabilities.py`で生成し、採否enumと代表APIの検査を通す。
 - KiCad CLI、Java、FreeRouting等の外部ツールは`command -v`と
   `uv run python scripts/probe_tools.py`で版と能力を記録する。版不明、未実行、
   出力不整合はゲートを緩めずfail-closedとする。
-- DockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
+- DockerDevWorkspaceからDockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
   ホスト実行の結果を合格側Evidenceへ昇格しない。
 
 版と能力は次で記録する。
@@ -134,7 +135,7 @@ fail-closedで停止する。ゲートの仕様とprobeの責務は[`gates.md`](
 
 OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには8 Skill、5
 AgentDefinition、`/acd:gates` command、SDK ToolDefinition、hooksが含まれる。
-決定論的なACD入口は`acd.openhands.sdk_tools`の`register_acd_tools()`からSDKへ登録する。
+決定論的なACD入口は`acd.openhands.tools.definitions`の`register_acd_tools()`からSDKへ登録する。
 Conversationの安全設定は`EnsembleSecurityAnalyzer`、`ConfirmRisky`、allowlist付き
 `SecretRegistry`、ローカルSkill loader、`StuckDetector`を使用する。ACD analyzerと
 Pattern analyzerのensembleは具体的riskの最大値を採用し、全て`UNKNOWN`なら
@@ -165,7 +166,7 @@ Evidenceへ昇格しない。workflowは任意scriptがhook境界を外れるた
 commit SHAは40桁で、release tagは`v<semver>`形式にする。
 
 ```python
-from acd.openhands.plugin_distribution import acd_plugin_source
+from acd.openhands.distribution.plugin import acd_plugin_source
 
 plugin = acd_plugin_source("v1.2.3")
 ```
