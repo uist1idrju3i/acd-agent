@@ -361,8 +361,8 @@
       "representative_apis": ["MarketplaceRegistry"],
       "use": "外部資材取得",
       "adoption": "不採用",
-      "rationale": "pinned PluginSourceでprovenanceを固定する",
-      "verification": "pinned API確認、採用しない"
+      "rationale": "ADR-0036のinstalled plugin ambient自動読み込みは採用するが、MarketplaceRegistry自体は使用しない",
+      "verification": "pinned API確認、MarketplaceRegistryを使用しない"
     },
     {
       "domain": "sdk.mcp",
@@ -389,8 +389,8 @@
       "representative_apis": ["PluginSource"],
       "use": "pinned plugin配布",
       "adoption": "採用",
-      "rationale": "`src/acd/openhands/distribution/plugin.py`でSHA/tagを固定",
-      "verification": "ref検証、拒否試験"
+      "rationale": "既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する",
+      "verification": "明示ref検証、ambient bootstrap回帰"
     },
     {
       "domain": "sdk.profiles",
@@ -479,8 +479,8 @@
       "representative_apis": ["load_skills_from_dir"],
       "use": "ローカルACD Skillの配布・prompt提供",
       "adoption": "採用",
-      "rationale": "`build_acd_conversation()`が`plugins/acd/skills`を明示ロードし、壊れた資材はfail-closed",
-      "verification": "Skill loader回帰"
+      "rationale": "既定の明示経路は`plugins/acd/skills`を事前検証してfail-closedとし、ADR-0036のambient経路はSDK標準loaderへ委ねる",
+      "verification": "明示Skill loader回帰、ambient bootstrap回帰"
     },
     {
       "domain": "sdk.subagent",

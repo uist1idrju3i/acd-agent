@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Literal
 
 from openhands.sdk import LLM, Agent
 from openhands.sdk.context import AgentContext
@@ -52,6 +53,7 @@ def build_acd_conversation(
     persistence_dir: Path | None = None,
     plugin_root: Path | None = None,
     plugin_source: PluginSource | None = None,
+    plugin_mode: Literal["explicit", "ambient"] = "explicit",
     tools: list[Tool] | None = None,
     tool_concurrency_limit: int = 1,
     enable_browser: bool = False,
@@ -67,28 +69,35 @@ def build_acd_conversation(
     ) = None,
 ) -> LocalConversation:
     """Connect ACD's declarative pieces to an SDK LocalConversation."""
+    if plugin_mode not in ("explicit", "ambient"):
+        raise ValueError(f"unsupported plugin_mode: {plugin_mode}")
+
     repo_root = repo_root.resolve()
     workspace = (workspace or repo_root).resolve()
     persistence_dir = persistence_dir or repo_root / "out" / "agent-sessions"
-    plugin_root = plugin_root or repo_root / "plugins" / "acd"
-    hooks_path = hooks_path or plugin_root / "hooks" / "hooks.json"
     design_graph_path = design_graph_path or Path("fixtures/golden-design-1/graph.json")
-    prompt_manifest_path = (
-        prompt_manifest_path or plugin_root / "agents" / DEFAULT_MANIFEST_NAME
+    resolved_plugin_root = plugin_root or repo_root / "plugins" / "acd"
+    resolved_hooks_path = hooks_path or resolved_plugin_root / "hooks" / "hooks.json"
+    resolved_prompt_manifest_path = (
+        prompt_manifest_path
+        or resolved_plugin_root / "agents" / DEFAULT_MANIFEST_NAME
     )
-    try:
-        agent_dir_root = plugin_root / "agents"
-        prompt_report = check_prompt_manifest(
-            agent_dir_root,
-            prompt_manifest_path,
-            root=prompt_manifest_root or repo_root,
-        )
-    except (OSError, ValueError) as exc:
-        raise PromptManifestError("ACD role prompt manifest verification failed") from exc
-    if prompt_report.status != "pass":
-        raise PromptManifestError(
-            prompt_report.reason or "ACD role prompt manifest drifted"
-        )
+    if plugin_mode == "explicit":
+        try:
+            agent_dir_root = resolved_plugin_root / "agents"
+            prompt_report = check_prompt_manifest(
+                agent_dir_root,
+                resolved_prompt_manifest_path,
+                root=prompt_manifest_root or repo_root,
+            )
+        except (OSError, ValueError) as exc:
+            raise PromptManifestError(
+                "ACD role prompt manifest verification failed"
+            ) from exc
+        if prompt_report.status != "pass":
+            raise PromptManifestError(
+                prompt_report.reason or "ACD role prompt manifest drifted"
+            )
     agent_llm = llm
     condenser_model = condenser_llm or llm
     if model_routing_policy is not None:
@@ -127,9 +136,13 @@ def build_acd_conversation(
                 condenser_llm,
                 profile=profile,
             )
-    skills = load_acd_skills(plugin_root / "skills")
-    hook_config = HookConfig.load(hooks_path)
-    validate_acd_agent_hooks(plugin_root / "agents", hook_config)
+    if plugin_mode == "explicit":
+        skills = load_acd_skills(resolved_plugin_root / "skills")
+        hook_config = HookConfig.load(resolved_hooks_path)
+        validate_acd_agent_hooks(resolved_plugin_root / "agents", hook_config)
+    else:
+        skills = []
+        hook_config = None
 
     register_acd_tools()
     selected_tools = list(tools) if tools is not None else [Tool(name=TaskToolSet.name)]
@@ -160,11 +173,14 @@ def build_acd_conversation(
         agent_context=agent_context,
         tool_concurrency_limit=tool_concurrency_limit,
     )
-    selected_plugin = plugin_source or PluginSource(source=str(plugin_root))
+    plugins: list[PluginSource] = []
+    if plugin_mode == "explicit":
+        selected_plugin = plugin_source or PluginSource(source=str(resolved_plugin_root))
+        plugins = [validate_plugin_source(selected_plugin)]
     conversation = LocalConversation(
         agent=agent,
         workspace=workspace,
-        plugins=[validate_plugin_source(selected_plugin)],
+        plugins=plugins,
         persistence_dir=persistence_dir,
         hook_config=hook_config,
         stuck_detection=True,
