@@ -76,6 +76,9 @@ stop policy hookを置換しない。GoalControllerとconversation cancellation�
 lane並列は`tool_concurrency_limit`を明示した場合だけ有効化し、資源宣言不能時は
 SDKのmutexによる直列化へ倒す。task/delegateのsub-agentは親hookを継承しないため、
 ACD AgentDefinitionへ必須hookを明記し、SDKロード結果を検査する。
+browser_useは既定無効で、明示有効時だけChromiumの利用可能性を検査してL2探索補助として
+登録する。browser由来の観測をEvidenceへ昇格させず、決定論的API取得を置き換えない。
+workflowは任意Python scriptがhook境界の外で実行されうるため不採用（将来再検討）とする。
 
 ## 依存とsubmodule
 

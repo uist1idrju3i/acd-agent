@@ -61,6 +61,12 @@ GHCRのpublish job summaryに表示されたdigestを、利用するimage refと
 pullして`DockerDevWorkspace`へ渡す方式へ移行する。digest記録前に条件分岐でpull/buildを
 切り替える実装は入れず、移行時に明示的な運用変更として扱う。
 
+browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
+Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
+EasyEDA APIの決定論的取得経路は維持し、設計入力へ確定する資材は既存経路で再取得して
+hashを記録する。SDKのworkflowはfail-closed境界を保てないため不採用（将来再検討）とし、
+agent-server系能力は認証・権限・Evidence境界の受入条件が決まるまで保留する。
+
 ## 外部ツール
 
 環境に次の実行ファイルが必要である。
@@ -138,7 +144,7 @@ lane並列は`tool_concurrency_limit`で設定し、既定値は1（直列）と
 場合は、ACD toolの`declared_resources()`が返す資源keyを経由して共有入力・出力を
 直列化する。資源宣言やpath解決に失敗したtoolは宣言不能としてtool単位のmutexへ
 fail-closedに倒す。task/delegateはhook付きAgentDefinitionに限定し、sub-agentの結果を
-Evidenceへ昇格しない。workflowの採否は別途判断する。
+Evidenceへ昇格しない。workflowは任意scriptがhook境界を外れるため不採用（将来再検討）とする。
 
 外部利用者が配布版を読み込む場合は、branch名ではなく不変refを指定する。
 commit SHAは40桁で、release tagは`v<semver>`形式にする。

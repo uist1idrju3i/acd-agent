@@ -116,7 +116,9 @@ L2の停止・再試行層として扱う。`ConversationStats`はL3観測に限
 lane並列は`Agent.tool_concurrency_limit`で明示的に有効化する。ACD toolの資源宣言不能時は
 SDKの既定どおりtool単位のmutexで直列化する。task/delegateのsub-agentは親hookを継承
 しないため、5つのACD AgentDefinitionへ同じ必須hookを明記し、SDKがロードした
-`HookConfig`を決定論的に照合する。workflowの採否は別途判断する。
+`HookConfig`を決定論的に照合する。browser_useは明示有効時だけL2探索補助として登録し、
+browser由来の観測をEvidenceへ昇格させない。決定論的APIがある取得経路は変更しない。
+workflowは任意Python scriptがhook境界を外れるため不採用（将来再検討）とする。
 
 ## SDK ToolDefinition境界
 
