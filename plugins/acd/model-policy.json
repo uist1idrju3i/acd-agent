@@ -1,0 +1,24 @@
+{
+  "bindings": [
+    {
+      "model": "openai/gpt-4o-mini",
+      "profile": "acd-agent-default",
+      "role": "agent",
+      "usage_id": "acd-agent"
+    },
+    {
+      "model": "openai/gpt-4o-mini",
+      "profile": "acd-condenser-default",
+      "role": "condenser",
+      "usage_id": "acd-condenser"
+    },
+    {
+      "model": "openai/gpt-4o",
+      "profile": "acd-judge-default",
+      "role": "judge",
+      "usage_id": "acd-judge"
+    }
+  ],
+  "canonical_hash": "sha256:73ef07a30291be90f3ad9fcffd7e18ac7ccb92eff36632eebc86f0870d92d6cc",
+  "schema_version": "0.1"
+}

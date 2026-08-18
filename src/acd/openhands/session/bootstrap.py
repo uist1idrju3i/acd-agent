@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 
 from openhands.sdk import LLM, Agent
 from openhands.sdk.context import AgentContext
@@ -14,6 +12,7 @@ from openhands.sdk.conversation import LocalConversation
 from openhands.sdk.conversation.conversation_stats import ConversationStats
 from openhands.sdk.conversation.stuck_detector import StuckDetectionThresholds
 from openhands.sdk.hooks import HookConfig
+from openhands.sdk.io import FileStore
 from openhands.sdk.llm.utils.metrics import Metrics
 from openhands.sdk.plugin import PluginSource
 from openhands.sdk.security import ConfirmRisky, SecurityRisk
@@ -27,7 +26,21 @@ from acd.openhands.safety.hooks import validate_acd_agent_hooks
 from acd.openhands.safety.secrets import build_acd_secret_mapping
 from acd.openhands.safety.security import build_acd_security_analyzer
 from acd.openhands.session.gate_critic import AcdGateCritic, GateRequirement
+from acd.openhands.session.observation_store import (
+    ObservationPayload,
+    write_observation_payload,
+)
+from acd.openhands.session.prompts import (
+    DEFAULT_MANIFEST_NAME,
+    PromptManifestError,
+    check_prompt_manifest,
+)
+from acd.openhands.session.routing import (
+    ModelRoutingError,
+    create_fixed_role_router,
+)
 from acd.openhands.tools.definitions import register_acd_tools
+from acd.schema.model_routing import ModelRoutingPolicy, RoutingRole
 
 
 def build_acd_conversation(
@@ -44,6 +57,11 @@ def build_acd_conversation(
     enable_browser: bool = False,
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
+    prompt_manifest_path: Path | None = None,
+    prompt_manifest_root: Path | None = None,
+    model_routing_policy: ModelRoutingPolicy | None = None,
+    condenser_llm: LLM | None = None,
+    routing_profiles: Mapping[RoutingRole, str] | None = None,
     stuck_detection_thresholds: (
         StuckDetectionThresholds | Mapping[str, int] | None
     ) = None,
@@ -55,6 +73,60 @@ def build_acd_conversation(
     plugin_root = plugin_root or repo_root / "plugins" / "acd"
     hooks_path = hooks_path or plugin_root / "hooks" / "hooks.json"
     design_graph_path = design_graph_path or Path("fixtures/golden-design-1/graph.json")
+    prompt_manifest_path = (
+        prompt_manifest_path or plugin_root / "agents" / DEFAULT_MANIFEST_NAME
+    )
+    try:
+        agent_dir_root = plugin_root / "agents"
+        prompt_report = check_prompt_manifest(
+            agent_dir_root,
+            prompt_manifest_path,
+            root=prompt_manifest_root or repo_root,
+        )
+    except (OSError, ValueError) as exc:
+        raise PromptManifestError("ACD role prompt manifest verification failed") from exc
+    if prompt_report.status != "pass":
+        raise PromptManifestError(
+            prompt_report.reason or "ACD role prompt manifest drifted"
+        )
+    agent_llm = llm
+    condenser_model = condenser_llm or llm
+    if model_routing_policy is not None:
+        has_condenser_binding = any(
+            binding.role == "condenser"
+            for binding in model_routing_policy.bindings
+        )
+        if condenser_llm is not None and not has_condenser_binding:
+            raise ModelRoutingError(
+                "condenser LLM is not declared by model routing policy"
+            )
+        profile = (
+            routing_profiles.get("agent")
+            if routing_profiles is not None
+            else None
+        )
+        agent_llm = create_fixed_role_router(
+            model_routing_policy,
+            "agent",
+            llm,
+            profile=profile,
+        )
+        if has_condenser_binding:
+            if condenser_llm is None:
+                raise ModelRoutingError(
+                    "condenser LLM is required by model routing policy"
+                )
+            profile = (
+                routing_profiles.get("condenser")
+                if routing_profiles is not None
+                else None
+            )
+            condenser_model = create_fixed_role_router(
+                model_routing_policy,
+                "condenser",
+                condenser_llm,
+                profile=profile,
+            )
     skills = load_acd_skills(plugin_root / "skills")
     hook_config = HookConfig.load(hooks_path)
     validate_acd_agent_hooks(plugin_root / "agents", hook_config)
@@ -81,10 +153,10 @@ def build_acd_conversation(
         marketplace_path=None,
     )
     agent = Agent(
-        llm=llm,
+        llm=agent_llm,
         tools=selected_tools,
         critic=critic,
-        condenser=LLMSummarizingCondenser(llm=llm),
+        condenser=LLMSummarizingCondenser(llm=condenser_model),
         agent_context=agent_context,
         tool_concurrency_limit=tool_concurrency_limit,
     )
@@ -106,27 +178,39 @@ def build_acd_conversation(
     return conversation
 
 
-def write_conversation_metrics(metrics: Metrics, path: Path) -> None:
+def write_conversation_metrics(
+    metrics: Metrics,
+    path: Path,
+    *,
+    file_store: FileStore | None = None,
+) -> None:
     """Write SDK metrics as progress metadata, never as pass evidence."""
-    payload: dict[str, Any] = {
-        "artifact_kind": "conversation_metrics",
-        "pass_evidence": False,
-        "description": "This is not pass evidence.",
-        "metrics": metrics.model_dump(mode="json"),
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    payload = ObservationPayload.model_validate(
+        {
+            "artifact_kind": "conversation_metrics",
+            "pass_evidence": False,
+            "description": "This is not pass evidence.",
+            "metrics": metrics.model_dump(mode="json"),
+        }
+    )
+    write_observation_payload(payload, path, file_store=file_store)
 
 
-def write_conversation_stats(stats: ConversationStats, path: Path) -> None:
+def write_conversation_stats(
+    stats: ConversationStats,
+    path: Path,
+    *,
+    file_store: FileStore | None = None,
+) -> None:
     """Write SDK conversation statistics as non-authoritative observations."""
     snapshot = stats.model_dump(context={"use_snapshot": True})
-    payload: dict[str, Any] = {
-        "artifact_kind": "conversation_stats",
-        "pass_evidence": False,
-        "description": "This is not pass evidence.",
-        "combined_metrics": stats.get_combined_metrics().model_dump(mode="json"),
-        "usage_to_metrics": snapshot["usage_to_metrics"],
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    payload = ObservationPayload.model_validate(
+        {
+            "artifact_kind": "conversation_stats",
+            "pass_evidence": False,
+            "description": "This is not pass evidence.",
+            "combined_metrics": stats.get_combined_metrics().model_dump(mode="json"),
+            "usage_to_metrics": snapshot["usage_to_metrics"],
+        }
+    )
+    write_observation_payload(payload, path, file_store=file_store)

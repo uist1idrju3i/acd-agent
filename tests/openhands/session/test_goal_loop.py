@@ -9,6 +9,7 @@ from pathlib import Path
 from types import FrameType, SimpleNamespace
 from typing import cast
 
+import pytest
 from openhands.sdk.conversation import ConversationExecutionStatus
 from openhands.sdk.conversation.base import BaseConversation
 from openhands.sdk.conversation.conversation_stats import ConversationStats
@@ -23,7 +24,9 @@ from acd.openhands.session.goal_loop import (
     run_acd_goal,
     write_goal_result,
 )
+from acd.openhands.session.routing import model_routing_policy_hash
 from acd.schema.evidence import Evidence
+from acd.schema.model_routing import ModelRoutingPolicy
 
 
 class _FakeConversation:
@@ -55,7 +58,9 @@ def _conversation(
     return cast(BaseConversation, fake)
 
 
-def _judge_llm(*, complete: bool, count: int = 1) -> TestLLM:
+def _judge_llm(
+    *, complete: bool, count: int = 1, usage_id: str = "test-llm"
+) -> TestLLM:
     message = Message(
         role="assistant",
         content=[
@@ -70,7 +75,7 @@ def _judge_llm(*, complete: bool, count: int = 1) -> TestLLM:
             )
         ],
     )
-    return TestLLM.from_messages([message] * count)
+    return TestLLM.from_messages([message] * count, model="judge-model", usage_id=usage_id)
 
 
 def test_goal_loop_completes_in_one_iteration() -> None:
@@ -128,6 +133,72 @@ def test_goal_judge_completion_does_not_pass_gate() -> None:
         gate_evaluator=lambda _conversation: (False, False),
     )
 
+    assert result.verdict is not None
+    assert result.verdict.complete is True
+    assert result.gate_passed is False
+    assert result.authoritative is False
+
+
+def test_goal_loop_rejects_judge_model_mismatch() -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "judge-usage",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    with pytest.raises(ValueError, match="judge usage_id"):
+        run_acd_goal(
+            _conversation(_FakeConversation()),
+            "finish the design",
+            _judge_llm(complete=True),
+            model_routing_policy=policy,
+        )
+
+
+def test_routed_judge_verdict_remains_non_authoritative() -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "test-llm",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    result = run_acd_goal(
+        _conversation(_FakeConversation()),
+        "finish the design",
+        _judge_llm(complete=True),
+        model_routing_policy=policy,
+        gate_evaluator=lambda _conversation: (False, False),
+    )
     assert result.verdict is not None
     assert result.verdict.complete is True
     assert result.gate_passed is False

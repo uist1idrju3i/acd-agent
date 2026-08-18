@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import signal
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 from types import FrameType
-from typing import Any
 
 from openhands.sdk.conversation import ConversationExecutionStatus
 from openhands.sdk.conversation.base import BaseConversation
@@ -18,8 +16,16 @@ from openhands.sdk.conversation.goal import (
     GoalStatusName,
     GoalVerdict,
 )
+from openhands.sdk.io import FileStore
 from openhands.sdk.llm import LLM
 from pydantic import BaseModel
+
+from acd.openhands.session.observation_store import (
+    ObservationPayload,
+    write_observation_payload,
+)
+from acd.openhands.session.routing import create_fixed_role_router
+from acd.schema.model_routing import ModelRoutingPolicy
 
 GateEvaluator = Callable[[BaseConversation], tuple[bool, bool]]
 
@@ -56,8 +62,17 @@ def run_acd_goal(
     *,
     max_iterations: int = 10,
     gate_evaluator: GateEvaluator | None = None,
+    model_routing_policy: ModelRoutingPolicy | None = None,
+    routing_profile: str | None = None,
 ) -> AcdGoalResult:
     """Drive a goal with SDK decisions and ACD-owned I/O and authority checks."""
+    if model_routing_policy is not None:
+        judge_llm = create_fixed_role_router(
+            model_routing_policy,
+            "judge",
+            judge_llm,
+            profile=routing_profile,
+        )
     controller = GoalController(
         objective,
         judge_llm,
@@ -117,15 +132,19 @@ def install_goal_interrupt(conversation: BaseConversation) -> Generator[None, No
         signal.signal(signal.SIGINT, previous_handler)
 
 
-def write_goal_result(result: AcdGoalResult, path: Path) -> None:
+def write_goal_result(
+    result: AcdGoalResult,
+    path: Path,
+    *,
+    file_store: FileStore | None = None,
+) -> None:
     """Write goal-loop metadata without creating pass evidence."""
-    payload: dict[str, Any] = {
-        "artifact_kind": "goal_result",
-        "pass_evidence": False,
-        "description": "This is not pass evidence.",
-        "result": result.model_dump(mode="json"),
-    }
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    payload = ObservationPayload.model_validate(
+        {
+            "artifact_kind": "goal_result",
+            "pass_evidence": False,
+            "description": "This is not pass evidence.",
+            "result": result.model_dump(mode="json"),
+        }
     )
+    write_observation_payload(payload, path, file_store=file_store)

@@ -42,6 +42,8 @@ AIとSkillは探索・実装・所見を提案する。三層分離は
 [`ADR-0023`](adr/ADR-0023-deterministic-gate-authority.md)に従う。L1判定は
 決定論的ゲートと`Evidence.supports_pass(graph.revision)`だけが担い、L2操舵とL3観測は
 合否を判定しない。L2とL3は停止側にだけ作用でき、合格側へ作用させない。
+実機Evidenceは測定結果を入力更新へ渡す根拠であり、`supports_pass()`を満たしても
+決定論的ゲートの合格側へ昇格しない。
 ツール不在、入力不備、parse失敗、未実行、unknown、未検証はfail-closedとする。
 
 pluginの外部配布では、`github:uist1idrju3i/acd-agent`の`plugins/acd`を40桁commit SHA
@@ -85,7 +87,8 @@ plugins/acd/
 │   ├── acd-mechanical.md
 │   ├── acd-firmware.md
 │   ├── acd-reviewer.md
-│   └── acd-search.md
+│   ├── acd-search.md
+│   └── prompt-manifest.json
 └── skills/
     ├── acd-contracts/
     ├── acd-placement-search/
@@ -107,6 +110,11 @@ Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 自然言語起点の任意利用には採用しない。Skill結果、AgentDefinitionの所見、reviewerの
 出力は合否Evidenceではない。
 
+role promptは`PromptSection`へ変換するL2操舵資材であり、資材bytesと抽出本文を
+`prompt-manifest.json`で固定する。prompt sectionとmanifestはEvidenceではなく、
+authoritative Evidenceを生成・昇格せず、決定論的ゲートの合否へ影響しない。manifest
+drift、parse失敗、資材欠落はfail-closedで会話構築を停止する。
+
 安全境界はpinned SDKへ委譲する。`AcdSecurityAnalyzer`とSDKの
 `PatternSecurityAnalyzer`を`EnsembleSecurityAnalyzer(analyzers=[...])`へ合成し、
 `LocalConversation.set_security_analyzer()`で設定する。確認方針は
@@ -120,6 +128,12 @@ Conversationの`stuck_detection=True`と`StuckDetectionThresholds`は停止・�
 `GoalController`を再利用したACD goal loopと`LocalConversation.interrupt()`へのSIGINT結線も
 L2の停止・再試行層として扱う。`ConversationStats`はL3観測に限定し、goalのjudge評決と
 ともにauthoritative Evidenceの合否へ影響させない。
+role別model routingは主agent、judge、condenserのbindingをpolicyへ固定し、
+`RouterLLM`の選択をroleだけで決定する。policy hashとrouting観測はL2/L3資材であり、
+Evidenceを生成・昇格せず、決定論的gateの合否へ影響させない。
+metrics、stats、goal結果、routing観測のL3保存はSDK `FileStore`を経由する。
+既存のJSON bytesと非Evidence契約を維持し、Evidenceと設計入力の保存経路は
+FileStoreへ移譲しない。
 lane並列は`Agent.tool_concurrency_limit`で明示的に有効化する。ACD toolの資源宣言不能時は
 SDKの既定どおりtool単位のmutexで直列化する。task/delegateのsub-agentは親hookを継承
 しないため、5つのACD AgentDefinitionへ同じ必須hookを明記し、SDKがロードした
@@ -183,6 +197,8 @@ SDKの`DockerDevWorkspace`を使う`scripts/run_in_workspace.py`からresolver�
 `Evidence.supports_pass()`はrevision、status、既知provenanceの妥当性を表す。
 `supports_authoritative_pass()`はそれに加えてdigest固定containerを要求し、
 hostで生成されたvalid Evidenceは`is_provisional()`として扱う。
+実機Evidenceの`supports_authoritative_pass()`は常に`False`であり、実機測定結果を
+authoritative Evidenceへ置き換える経路を作らない。
 
 Dockerはdeterminismを保証しないため、timestamp、filesystem、外部ツール版、
 入力・出力hashの正規化と決定論的ゲートは従来どおり必要である。ACD imageは配布せず、
@@ -255,7 +271,16 @@ orderの合格側Evidenceは`supports_authoritative_pass()`を要求する。
 
 SDK機能の採否は[`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json)に整理し、
 Markdown表は`scripts/verify_sdk_capabilities.py`から生成し、CIでdriftを検査する。
-ACD機能としては、実機測定、価格・在庫取得、自働発注が未実装であり、将来構想である。
+ACD機能としては、FW書き込み・機能測定、価格・在庫取得、
+自働発注が未実装であり、将来構想である。実機Evidenceのschema契約と分類だけは
+マイルストーン5.1、製造・組立受領の取り込みはマイルストーン5.2で実装済みである。
+受領取り込みは`execution_context="host"`の`PhysicalEvidence`を入力更新の根拠として
+生成するが、`supports_authoritative_pass()`は常に`False`であり、決定論的ゲートの
+合格側へ昇格しない。
+測定結果の入力反映は5.4のproposal生成と適用後validatorに限定し、反映policyに
+明示された候補だけを提示する。proposalや実機Evidenceがgraph、rationale、policyへ
+自動逆流する経路は持たず、入力更新は人または別の明示的工程が行った後に既存の
+決定論的ゲートを再実行する。`rationale_required`が残る候補は適用可と扱わない。
 
 ## 工程境界
 

@@ -1,0 +1,27 @@
+{
+  "fab_profile": {
+    "id": "prototype"
+  },
+  "files": [
+    {
+      "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "path": "artifacts/board.zip"
+    },
+    {
+      "content_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "path": "artifacts/assembly.csv"
+    }
+  ],
+  "gates": {},
+  "schema_version": "0.1",
+  "status": "not_order_ready",
+  "target_revision": "r12",
+  "unknowns": {
+    "cpl_rotation_basis_fab_lcsc": "unknown: source basis not provided",
+    "fab_dfm_review": "unknown",
+    "inventory": "unknown",
+    "lead_time": "unknown",
+    "price": "unknown",
+    "total_order_amount": "unknown"
+  }
+}

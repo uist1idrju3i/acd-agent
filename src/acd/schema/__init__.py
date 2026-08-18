@@ -1,9 +1,61 @@
 """Pydantic models that form the canonical ACD contracts."""
 
-from acd.schema.common import CURRENT_SCHEMA_VERSION, UNKNOWN, AcdModel, is_unknown
+from acd.schema.common import (
+    CURRENT_SCHEMA_VERSION,
+    UNKNOWN,
+    AcdModel,
+    canonical_json_sha256,
+    canonical_sha256,
+    is_unknown,
+)
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
-from acd.schema.evidence import Evidence, EvidenceClaim, EvidenceStatus
+from acd.schema.evidence import (
+    Evidence,
+    EvidenceClaim,
+    EvidenceStatus,
+    MeasuredQuantity,
+    MeasurementClass,
+    MeasurementInstrument,
+    PhysicalEvidence,
+)
 from acd.schema.fab_profile import FabProfileDocument
+from acd.schema.feedback import (
+    AppliedFeedbackValidationReport,
+    FeedbackItemStatus,
+    FeedbackPolicy,
+    FeedbackProposal,
+    FeedbackProposalItem,
+    FeedbackProposalStatus,
+    FeedbackRule,
+    FeedbackRuleKind,
+    FeedbackValidationStatus,
+)
+from acd.schema.functional_run import (
+    FunctionalArtifact,
+    FunctionalCheckReport,
+    FunctionalCheckStatus,
+    FunctionalExpectations,
+    FunctionalLogReference,
+    FunctionalRunRecord,
+    FunctionalRunReport,
+    LedExpectation,
+    SerialExpectation,
+)
+from acd.schema.model_routing import (
+    ModelRoutingBinding,
+    ModelRoutingObservation,
+    ModelRoutingPolicy,
+    ModelRoutingReport,
+    ModelRoutingStatus,
+    RoutingRole,
+)
+from acd.schema.prompt_manifest import (
+    PromptCacheTier,
+    PromptDriftReport,
+    PromptManifestStatus,
+    RolePromptManifest,
+    RolePromptManifestEntry,
+)
 from acd.schema.rationale import (
     DecisionKind,
     RationaleCoverageReport,
@@ -20,12 +72,22 @@ from acd.schema.rationale import (
     RationaleUntraceable,
     RejectedAlternative,
 )
+from acd.schema.receipt import (
+    InspectionReportReference,
+    ReceiptArtifact,
+    ReceiptParty,
+    ReceiptRecord,
+    ReconciliationReport,
+    ReconciliationStatus,
+    ShipmentManifestReference,
+)
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "UNKNOWN",
     "AcdModel",
+    "AppliedFeedbackValidationReport",
     "ConvergenceState",
     "DecisionKind",
     "DesignGraph",
@@ -33,8 +95,37 @@ __all__ = [
     "EvidenceClaim",
     "EvidenceStatus",
     "FabProfileDocument",
+    "FeedbackItemStatus",
+    "FeedbackPolicy",
+    "FeedbackProposal",
+    "FeedbackProposalItem",
+    "FeedbackProposalStatus",
+    "FeedbackRule",
+    "FeedbackRuleKind",
+    "FeedbackValidationStatus",
+    "FunctionalArtifact",
+    "FunctionalCheckReport",
+    "FunctionalCheckStatus",
+    "FunctionalExpectations",
+    "FunctionalLogReference",
+    "FunctionalRunRecord",
+    "FunctionalRunReport",
     "GraphNode",
+    "InspectionReportReference",
+    "LedExpectation",
+    "MeasuredQuantity",
+    "MeasurementClass",
+    "MeasurementInstrument",
+    "ModelRoutingBinding",
+    "ModelRoutingObservation",
+    "ModelRoutingPolicy",
+    "ModelRoutingReport",
+    "ModelRoutingStatus",
     "NodeKind",
+    "PhysicalEvidence",
+    "PromptCacheTier",
+    "PromptDriftReport",
+    "PromptManifestStatus",
     "RationaleCoverageReport",
     "RationaleCoverageStatus",
     "RationaleDocument",
@@ -47,7 +138,19 @@ __all__ = [
     "RationaleUnclassified",
     "RationaleUnknownProvenance",
     "RationaleUntraceable",
+    "ReceiptArtifact",
+    "ReceiptParty",
+    "ReceiptRecord",
+    "ReconciliationReport",
+    "ReconciliationStatus",
     "RejectedAlternative",
+    "RolePromptManifest",
+    "RolePromptManifestEntry",
+    "RoutingRole",
+    "SerialExpectation",
+    "ShipmentManifestReference",
     "ToolEnvelope",
+    "canonical_json_sha256",
+    "canonical_sha256",
     "is_unknown",
 ]

@@ -9,6 +9,22 @@
 | 投影 | 入力から再生成され、入力を置き換えない派生成果物。 |
 | レビュー投影 | AIが観察するための機械可読または視覚的な投影。 |
 | Evidence | ツール版、入力・出力hash、条件、結果、commitを含む検証根拠。 |
+| 実機Evidence | 実機または仮想実機から取得した測定機器、条件、時刻、対象revision、測定量を含む入力更新用のEvidence。決定論的ゲートのauthoritative合格には使わない。 |
+| measured/virtual分類 | `measured`は実機で取得した測定、`virtual`はRenode等の仮想実機ログを表す分類。`virtual`は実測の代替にならない。 |
+| 測定量 | 名前、単位、値、期待範囲、許容差を持つ実機Evidenceの数値記録。 |
+| 期待範囲 | 測定量が満たすべき下限・上限と許容差による決定論的な値域。 |
+| 受領record | fabまたは実装業者から受領した成果物、検査レポート、送付manifest、出所、時刻を記録する契約。 |
+| 送付manifest | 製造・組立へ送付した成果物の相対path、content hash、対象revisionを記録するmanifest。 |
+| 突合（reconciliation） | 送付manifestと受領recordの成果物一覧、hash、対象revisionを決定論的に比較する処理。 |
+| 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |
+| 機能測定run record | FWの版、成果物、生ログ、測定機器、期待条件、対象revision、時刻を1回の実行単位として宣言する契約。 |
+| LED capture | LEDの`timestamp_s,level`時系列を保存した生ログ。周期、周波数、duty比の独立測定へ使う。 |
+| 書き込み検証 | `esptool.py`相当のflash logで、対象chip、app imageの`app_flash_offset`・サイズ、書き込み行と`Hash of data verified.`行の件数、`Hard resetting`完了を照合する処理。 |
+| シリアル温湿度ログ | `I (12345) gd1: temp=25.31C rh=48.20%`形式の生ログ。tagに一致するセンサ行だけを厳格parseし、温度、湿度、値域、周期を独立parserで測定する。 |
+| 反映policy | 実機Evidenceのmeasurement nameを、対象graphのnode／属性、反映種別、許容差、decision kindへ明示的に対応付ける宣言。推測による対応付けは行わない。 |
+| proposal document | 実機Evidenceに基づく設計入力属性の変更候補、根拠Evidence、rationale要否、入力・出力hashを保持する派生文書。入力graphへ自動適用しない。 |
+| stale Evidence | 対象graphのrevisionと一致せず、現行設計入力の根拠に使えないEvidence。 |
+| 適用後validator | 人または別工程が更新したgraphについて、proposalに宣言された属性だけが提案値へ変わったことを検査する決定論的検証。 |
 | execution context | `container`、`host`、`unknown`で表すToolEnvelopeの型付き実行場所。 |
 | authoritative Evidence | revision一致、既知provenance、digest固定containerを満たし、合格側へ使えるEvidence。 |
 | provisional Evidence | `supports_pass()`は満たすがdigest固定container要件を満たさず、参考に限るEvidence。 |
@@ -21,6 +37,11 @@
 | Skill | SDKが配布する工程手順や観点を記述した作業資材。 |
 | plugin | Skill、hook、agent定義、commandをまとめる配布単位。 |
 | AgentDefinition | agentの役割、model、tool、Skill、権限を定義する資材。 |
+| role prompt manifest | role promptのrepo相対path、資材・本文hash、PromptSection名、cache tierを固定するmanifest。Evidenceではない。 |
+| prompt section | OpenHands SDKの`PromptSection` protocolに適合するL2 role promptの構造。 |
+| model routing policy | roleごとのmodel、SDK `usage_id`、profile識別子とcanonical hashを固定する宣言。秘密情報を持たず、Evidenceではない。 |
+| judge model | goalの完了評定を補助するrole別model。決定論的gateの合否やEvidenceを決めない。 |
+| observation store | L3観測を`FileStore`へ保存するACD側経路。Evidenceと設計入力は対象外で、`pass_evidence=false`を固定する。 |
 | hook | toolやsession境界で防護・記録を行うイベント処理。 |
 | critic | 反復改善を操舵する評価機構。合否権限は持たない。 |
 | Conversation | SDKが管理する対話、履歴、状態、永続化の単位。 |

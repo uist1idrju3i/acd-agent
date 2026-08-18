@@ -1,0 +1,16 @@
+{
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "rules": [
+    {
+      "attr": "gpio",
+      "decision_kind": "firmware_pin",
+      "measurement_name": "temperature",
+      "node_id": "fw.pin.led",
+      "rule_id": "measurement-missing",
+      "rule_kind": "set_value",
+      "tolerance": 0.0
+    }
+  ],
+  "schema_version": "0.1"
+}

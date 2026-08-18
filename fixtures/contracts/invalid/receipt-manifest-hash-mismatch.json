@@ -1,0 +1,34 @@
+{
+  "counterparty_type": "fab",
+  "inspection_reports": [
+    {
+      "content_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "issued_at": "2026-01-01T12:00:00Z",
+      "report_id": "inspection-2026-001",
+      "source_uri": "https://fab.example/reports/inspection-2026-001"
+    }
+  ],
+  "manifest_reference": {
+    "manifest_hash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "manifest_path": "fab-package.json",
+    "target_revision": "r12"
+  },
+  "receipt_id": "receipt-2026-001",
+  "received_at": "2026-01-01T13:00:00Z",
+  "received_items": [
+    {
+      "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "path": "artifacts/board.zip"
+    },
+    {
+      "content_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "path": "artifacts/assembly.csv"
+    }
+  ],
+  "recorded_at": "2026-01-01T14:00:00Z",
+  "recorded_by": "acd-operations",
+  "schema_version": "0.1",
+  "sent_at": "2026-01-01T11:00:00Z",
+  "source_uri": "https://fab.example/receipts/receipt-2026-001",
+  "supplier_name": "Example Fabrication"
+}

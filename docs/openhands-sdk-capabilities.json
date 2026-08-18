@@ -118,10 +118,9 @@
       "modules": ["sdk.context.prompts", "sdk.context.prompts.*"],
       "representative_apis": ["PromptSection"],
       "use": "role別prompt構造化",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
+      "adoption": "採用",
       "rationale": "role別promptと資材hashを固定する",
-      "verification": "pinned API確認、実装未着手"
+      "verification": "verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py"
     },
     {
       "domain": "sdk.context.view",
@@ -280,10 +279,9 @@
       "modules": ["sdk.io", "sdk.io.*"],
       "representative_apis": ["FileStore", "LocalFileStore", "InMemoryFileStore"],
       "use": "session保存抽象",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "git/inputを正とし二重の合否状態を持たない",
-      "verification": "pinned API確認、実装未着手"
+      "adoption": "採用",
+      "rationale": "L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない",
+      "verification": "tests/openhands/session/test_observation_store.py、verify_all.py --stage standard"
     },
     {
       "domain": "sdk.llm",
@@ -334,10 +332,9 @@
       "modules": ["sdk.llm.router", "sdk.llm.router.*"],
       "representative_apis": ["RouterLLM", "RandomRouter", "MultimodalRouter"],
       "use": "judge/critic用modelと主agent用modelの分離",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
+      "adoption": "採用",
       "rationale": "routing結果は合否へ影響させず、profileと資材hashを固定する",
-      "verification": "pinned API確認、実装未着手"
+      "verification": "verify_model_policy.py --check、tests/openhands/session/test_routing.py"
     },
     {
       "domain": "sdk.llm.utils.metrics",

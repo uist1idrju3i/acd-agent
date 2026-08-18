@@ -8,11 +8,15 @@ OpenHands plugin、8 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefiniti
 GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SES import、DRC、
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
-実機測定、価格・在庫・納期取得、発注は未実装である。
+実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
+測定結果の入力反映、価格・在庫・納期取得、発注は未実装である。
 `AcdGateCritic`は決定論的ゲート結果を使うL2操舵として実装済みである。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
 GD1の独立したwidth positive-control armは固定順で並列集約し、`acd-search`は候補と
 provenanceだけを返す。SDK workflowは採用しない。
+roadmap 4.4は`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`まで実装済みである。
+`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、
+`sdk.context.memory`／`sdk.context.view`は未着手である。
 
 決定論的ゲートのauthoritative Evidenceはdigest固定container実行だけが生成する。
 現行runnerの`DockerDevWorkspace`、CI、ホスト経路は移行中の参考実行であり、
@@ -34,8 +38,8 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
-| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装 |
-| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`実装済み。logger以降は未着手） |
+| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装 |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 一部実装 |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
@@ -47,21 +51,25 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 ## マイルストーン4.4: SDK機能移譲
 
 secret allowlistの`SecretSource`、`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
-Skill明示ロード、`StuckDetector`、`ConversationStats`／`Metrics`のL3観測出力は実装済みである。
-prompt資材、LLM routing、`FileStore`保存、observability、settings／profile driftは未着手である。
+Skill明示ロード、`StuckDetector`、`ConversationStats`／`Metrics`のL3観測出力、
+role別promptの`PromptSection`化と資材manifest drift検査、role別LLM routing policyは
+実装済みである。`FileStore`によるL3観測保存も実装済みである。一方、
+`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、
+`sdk.context.memory`／`sdk.context.view`は未着手である。
 `ToolDefinition`、現行の`DockerDevWorkspace`、将来の`DockerWorkspace`、決定論的gateの
 責務境界は変更しない。MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 
 - `sdk.context.prompts`: `plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、
   資材hashを固定してpromptとの整合性を確認する。
-- `sdk.llm.router`: critic/judge modelと主agent modelを分離する。routing結果は合否へ
-  影響させない。
+- `sdk.llm.router`: judge modelと主agent modelを分離する（決定論的な
+  `AcdGateCritic`は変更しない）。routing結果は合否へ影響させず、policy hashと
+  非Evidence観測を固定する。
 - `sdk.io`: `src/acd/openhands/session/bootstrap.py`のmetrics/stats保存を`FileStore`
-  抽象へ移譲する。
-- `sdk.logger`／`sdk.observability`: L3観測のad-hoc JSONを構造化ログ・observabilityへ
-  移し、secretとEvidenceを混入させない。
-- `sdk.settings`／`sdk.credential`／`sdk.profiles`: secret allowlistとprofile driftを
-  SDK経路へ移し、unknownはfail-closedにする。
+  抽象へ移譲する。L3観測だけを対象とし、Evidenceと設計入力の保存経路は変更しない。
+- `sdk.logger`／`sdk.observability`: 未着手。L3観測のad-hoc JSONを構造化ログ・
+  observabilityへ移し、secretとEvidenceを混入させない。
+- `sdk.settings`／`sdk.credential`／`sdk.profiles`: 未着手。secret allowlistとprofile
+  driftをSDK経路へ移し、unknownはfail-closedにする。
 - `sdk.context.memory`: 作業文脈の補助だけに使い、契約・合否の正にしない。
 - `sdk.context.view`: 原EventLogと照合する表示だけに使う。
 - `sdk.workspace`／`workspace.DockerWorkspace`: host workspaceはprovisionalに限定し、
@@ -78,41 +86,46 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | 測定機器名・版、治具、実行条件、測定者、取得時点、対象graph revisionを入力に持つ |
-| 実装 | `acd.schema.evidence`へ`measured`／`virtual`の分類と測定量・単位・許容差を持つ実機Evidence契約を追加する |
-| 正常系 | 分類と必須項目を満たすrecordが`supports_pass(revision)`の判定対象として読み込める |
-| negative/fail-closed | 分類欠落、単位欠落、revision不一致、機器版unknownを拒否する |
-| 再現性 | 同一入力から同一hashのrecordを再生成し、schemaのnegative testを回帰へ含める |
+| 入力と出所 | 測定機器名・版、治具、実行条件、測定者、取得時点、対象graph revisionを入力に持つ契約を実装した |
+| 実装 | `acd.schema.evidence`に`measured`／`virtual`の分類、測定量・単位・期待範囲・許容差、機器情報、時刻整合性、canonical hashを追加した |
+| 正常系 | `measured`分類のvalid recordが必須項目と値域を満たし、`supports_pass(revision)`の判定対象として読み込めることをfixtureとtestで確認した |
+| negative/fail-closed | 分類欠落、`unknown`分類、単位欠落、revision不一致、機器版unknown、時刻逆転、値域外、測定量ゼロ件をfixtureとtestに含めた。実機Evidenceのauthoritative合格は常に拒否する |
+| 再現性 | フィールド順に依存しないcanonical JSONから同一入力の同一hashを得るtestを追加した |
 
 ### 5.2 製造・組立受領の取り込み
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | fabと実装業者のreceipt、検査レポート、送付manifest、受領日時を出所付きで入力する |
-| 実装 | 受領recordを製造データpackageのhashと突き合わせ、送付した成果物と受領物の対応を記録する |
-| 正常系 | 送付manifestと受領recordのhashが一致し、対象revisionの実機Evidenceとして残る |
-| negative/fail-closed | manifest hash不一致、revision不明、receipt欠落、日時逆転を停止条件にする |
-| 再現性 | 受領recordの取り込みをCLIで再実行でき、同一入力から同一出力hashになる |
+| 入力と出所 | `ReceiptRecord`がfab／assembler、業者名、記録者、出所URI、受領物、検査レポート参照、送付manifest参照、送付・受領・記録時刻を保持する |
+| 実装 | `acd.core.receipt`と`scripts/ingest_receipt.py`で受領recordを製造データpackageのmanifestと決定論的に突合し、対応結果を型付きreportへ記録する |
+| 正常系 | 送付manifestと受領recordのhash・対象revision・成果物一覧が一致し、`measured`分類のhost実機Evidenceとして残る |
+| negative/fail-closed | manifest hash不一致、revision不一致、`status: "fail"`、manifest構造不備、受領物の欠落・余剰・hash不一致、検査レポート欠落、日時逆転を停止条件にする。manifestの`unknowns`自体はsortedキーをreportへ残し、受領物の突合は継続する |
+| 再現性 | 受領recordの取り込みをCLIで再実行でき、同一入力から同一report・Evidenceバイト列とcanonical hashになる |
 
 ### 5.3 FW書き込みと機能測定
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | 固定版toolchainのbuild成果物hash、書き込みログ、シリアルログ、測定値の生ファイルを入力する |
-| 実装 | 書き込み成否と機能測定値を独立parserで読み直し、期待範囲の判定を決定論的に行う |
-| 正常系 | GD1の実機Evidence 4件が期待範囲内で記録され、`measured`分類で保存される |
-| negative/fail-closed | ログ文字列の存在だけでの合格、parse失敗、値域外、時刻不明、機器不在をfail-closedにする |
-| 再現性 | 保存済み生ログから判定を再実行して同一結果になり、壊したログのnegative testを含める |
+| 入力と出所 | `FunctionalRunRecord`がESP-IDF版、toolchain版、project commit、`.elf`／`.bin`成果物、`app_flash_offset`、build／flash／LED／serialの生ログ、測定機器、シリアルtag、期待条件、時刻を宣言する |
+| 実装 | `acd.core.firmware`と`scripts/ingest_functional_run.py`が宣言hashを実ファイルへ照合した後、build、flash、LED capture、serial logを独立parserで読み直す |
+| 正常系 | 固定版の宣言値と成果物hashが一致し、ESP32-C3書き込み検証、LED 1 Hz、温湿度値域・周期を満たす4件の`measured` host実機Evidenceを個別に保存する |
+| negative/fail-closed | 成果物・ログhash不一致、成果物欠落、必須ログ行の欠落・形式不正・parse不能は`unknown`、ESP-IDF版不一致、書き込みverify数不足・対象chip不一致、値域外、周波数・duty・周期外れは`fail`として停止する。flashは書き込み行と`Hash of data verified.`行の件数一致、app offset・サイズ一致、`Hard resetting`完了を検査する |
+| 再現性 | recordと保存済み生ログから同一report・4件のEvidenceバイト列とcanonical hashを再生成し、各negative fixtureを含める |
 
 ### 5.4 測定結果の入力反映ループ
 
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 5.1〜5.3の実機Evidenceと現行の設計入力ファイル、git revisionを入力する |
-| 実装 | 実機Evidenceと設計入力の差分を検出し、更新すべき入力属性とrationale recordを提示する |
-| 正常系 | 実機Evidenceに基づく入力更新後、決定論的ゲートを再実行してauthoritative Evidenceを更新できる |
-| negative/fail-closed | 投影や実機Evidenceを入力へ直接逆流させる経路、stale Evidenceでの合格、rationale欠落を拒否する |
-| 再現性 | 同一の実機Evidence集合から同一の差分提示を再生成し、staleケースのnegative testを含める |
+| 実装 | 明示的な反映policyに従い、実機Evidenceと設計入力の差分、更新候補、必要なrationaleを型付きproposal documentへ提示する。入力ファイルは書き換えない |
+| 正常系 | proposal documentを人または別の明示的工程でレビュー・適用した後、適用後validatorで宣言された属性だけの変更を検査できる |
+| negative/fail-closed | 投影や実機Evidenceを入力へ直接逆流させる経路、stale／virtual／invalid Evidence、policy不整合、unclassified属性、rationale欠落をunknownまたは適用不可として扱う |
+| 再現性 | 同一のgraph、rationale、policy、実機Evidence集合から同一のproposalとcanonical hashを再生成し、適用後の余分な差分をnegative testに含める |
+
+5.4では`propose_input_feedback.py`が入力を読み取り、`set_value`または`reconfirm`の
+明示的な反映policyに基づく提案だけを出力する。`rationale_required`が残る提案は
+適用可とは扱わず、proposalから入力への自動逆流は実装しない。stale Evidence、
+unclassified属性、policy不整合はfail-closedでstatusを`unknown`とする。
 
 ## マイルストーン6: 実行基盤のDockerWorkspace一本化
 

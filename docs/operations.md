@@ -92,6 +92,132 @@ uv run python scripts/verify_all.py --stage full
 含む。authoritative container gateはCI固有の`container-gates` jobで実行するため、
 `verify_all.py`には含めない。
 
+## 製造・組立受領の取り込み
+
+送付manifestとfabまたは実装業者の受領recordを決定論的に突合する。manifest自身の
+canonical JSON SHA-256を受領recordの`manifest_reference.manifest_hash`と比較し、
+成果物の相対pathとcontent hash、対象revision、manifestの`unknowns`を検査する。
+成果物の同一性に関係する構造不備、`status: "fail"`、不一致、受領record契約違反は
+非ゼロ終了となる。manifestの`unknowns`は価格・納期などの追跡情報としてsortedキーを
+reportへ記録するが、それ自体では突合を停止しない。出力Evidenceは合格側へ昇格しない。
+
+```bash
+uv run python scripts/ingest_receipt.py \
+  --manifest fixtures/contracts/valid/fab-package-receipt.json \
+  --receipt fixtures/contracts/valid/receipt.json \
+  --evidence out/receipt-evidence.json \
+  --report out/receipt-reconciliation.json
+```
+
+同一のmanifestとreceiptを再実行した場合、reportとEvidenceは同じバイト列になる。
+受領recordの`recorded_by`は記録者 provenance としてEvidenceの測定機器operatorへ引き継がれる。
+入力のJSON parse失敗、契約違反、manifest構造不備でもCLIはexit code 2を返し、
+`status="unknown"`のreportを可能な限り出力する。
+出力Evidenceは`execution_context="host"`で、`PhysicalEvidence.supports_authoritative_pass()`
+は常に`False`である。
+
+## FW書き込みと機能測定の取り込み
+
+`FunctionalRunRecord`へESP-IDF版、toolchain版、project commit、build成果物、4種類の
+生ログ、測定機器、期待条件、時刻を宣言し、次のCLIで決定論的に取り込む。
+
+```bash
+uv run python scripts/ingest_functional_run.py \
+  --run fixtures/functional/valid/run.json \
+  --logs-dir fixtures/functional/valid/logs \
+  --evidence-dir out/functional-evidence \
+  --report out/functional-report.json
+```
+
+CLIは宣言された全ファイルのSHA-256を実体へ先に照合し、`idf.py build`相当の
+`ESP-IDF v...`、`Project build complete.`、`.bin`サイズ行、`esptool.py`相当の
+`Chip is ...`、書き込み行と`Hash of data verified.`行の件数、`Hard resetting`完了、
+LED captureの時系列・周波数・duty、`I (12345) gd1: temp=25.31C rh=48.20%`形式の
+serial logの温湿度・周期を独立parserで検査する。buildの版行やflashの必須行が無い、
+形式不正、parse不能、ファイル読取不能は`unknown`、版不一致、chip不一致、verify数不足、
+値域外、周期外れは`fail`となる。全checkがpassなら全体もpass、unknownが1件でもあれば
+全体unknown、それ以外のfailは全体failとする。4件すべてがpassしたときだけexit code 0、
+それ以外はexit code 2でreportを出力する。
+
+reportの入力hashはrecordと参照ファイルの実体hashから決定し、Evidenceの時刻はrecordの
+宣言時刻から導出する。同一入力は同一report・Evidenceを生成する。生成Evidenceは
+`measurement_class="measured"`かつ`execution_context="host"`であり、決定論的ゲートの
+authoritative合格へ昇格しない。
+
+## 測定結果の入力反映proposal
+
+5.1〜5.3の実機Evidenceを、明示的な反映policyと現行のgraph／rationaleへ照合し、
+入力更新の候補だけを生成する。入力ファイル、policy、Evidence、rationaleは変更せず、
+proposalを入力へ自動適用しない。
+
+```bash
+uv run python scripts/propose_input_feedback.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --rationale fixtures/golden-design-1/rationale.json \
+  --policy fixtures/feedback/policy.json \
+  --evidence fixtures/feedback/valid/led_frequency.json \
+  --evidence fixtures/feedback/valid/matched_artifact_count.json \
+  --proposal out/input-feedback-proposal.json
+```
+
+policyはgraph id、revision、measurement name、対象node／属性、`set_value`または
+`reconfirm`、許容差、decision kindを宣言する。stale／virtual／invalid Evidence、
+未分類属性、対象不在、measurement不在、重複rule id、graph／revision不一致は
+fail-closedとなり、CLIはtracebackを出さずexit code 2と`status="unknown"`のproposalを
+可能な限り出力する。正常なproposal生成はexit code 0であり、`rationale_required`が
+残っていても人のレビューが必要なため、自動適用可能を意味しない。
+
+適用を行う場合は人または別の明示的工程が入力graphを更新し、
+`validate_applied_feedback`でproposalに宣言されたnode／属性以外の差分がないことを
+検査する。提案生成と適用後検証はいずれも入力を書き換えない。
+
+## Role prompt manifest
+
+role別promptは`plugins/acd/agents/acd-*.md`から`PromptSection`へ読み込まれ、
+資材bytesと抽出本文のhashを`plugins/acd/agents/prompt-manifest.json`へ固定する。
+manifestの整合性は次で確認する。
+
+```bash
+uv run python scripts/verify_agent_prompts.py --check
+```
+
+`--check`はagent資材とmanifestを一切書き換えない。資材の欠落、parse失敗、hash drift、
+manifest不正はfail-closedとなり、reportを標準出力へ出してexit code 2を返す。
+drift reportの`unregistered_roles`は資材に存在するがmanifestへ未登録のrole、
+`missing_roles`はmanifestにあるが資材から欠落したroleを表す。
+manifestを現在の資材から決定論的に生成する場合だけ`--write`を使う。
+
+```bash
+uv run python scripts/verify_agent_prompts.py --write
+```
+
+## Model routing policy
+
+主agent、judge、condenserのmodel、SDK `usage_id`、profile識別子は
+`plugins/acd/model-policy.json`で宣言する。この資材は秘密情報を持たず、整合性は次で
+確認する。
+
+```bash
+uv run python scripts/verify_model_policy.py --check
+```
+
+`--check`はpolicyを書き換えず、parse失敗、`unknown`、canonical hash不一致、
+role不整合はreportを標準出力へ出してexit code 2を返す。現在のpolicyを書き出す場合だけ
+`--write`を使う。routing観測は非EvidenceのL2/L3 metadataであり、合否判定には使わない。
+`model-policy.json`のmodel識別子は運用側が差し替える宣言例であり、ACDが記載された
+vendor modelを既定採用するものではない。コード側でこの資材を暗黙に読み込むことはなく、
+呼び出し側がpolicyを明示的に渡した場合だけroutingへ適用される。
+
+## Observation store
+
+metrics、stats、goal結果、routing観測のL3 metadataはSDK `FileStore`を経由して保存する。
+Evidenceと設計入力の保存経路は対象外であり、FileStoreへ移譲しない。
+
+既存の`Path`引数を使うwriterは、Pathの親ディレクトリをrootとする`LocalFileStore`を
+内部で使用する。`FileStore`を明示する場合のpathはstore rootからの相対pathだけを許可し、
+空path、絶対path、`..`によるroot脱出、rootを準備できない場合はfail-closedで拒否する。
+payloadは`pass_evidence=false`固定の型付き観測だけを受け付ける。
+
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、

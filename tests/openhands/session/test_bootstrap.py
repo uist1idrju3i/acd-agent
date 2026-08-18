@@ -46,6 +46,9 @@ from acd.openhands.session.bootstrap import (
     write_conversation_metrics,
 )
 from acd.openhands.session.gate_critic import AcdEvidenceRequirement
+from acd.openhands.session.prompts import PromptManifestError, write_prompt_manifest
+from acd.openhands.session.routing import ModelRoutingError, model_routing_policy_hash
+from acd.schema.model_routing import ModelRoutingPolicy
 
 
 class _TerminalAction(Action):
@@ -285,6 +288,11 @@ Test agent.
         '{"name":"acd-test","version":"0.0.1","description":"test plugin"}\n',
         encoding="utf-8",
     )
+    write_prompt_manifest(
+        plugin_root / "agents",
+        plugin_root / "agents/prompt-manifest.json",
+        root=tmp_path,
+    )
     return plugin_root
 
 
@@ -311,6 +319,140 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert conversation.agent.agent_context.load_public_skills is False
     assert conversation.agent.agent_context.load_user_skills is False
     assert conversation.stuck_detector is not None
+
+
+def test_bootstrap_rejects_model_routing_agent_mismatch(tmp_path: Path) -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "judge-usage",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    with pytest.raises(ModelRoutingError, match="agent model"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="wrong-model", usage_id="agent-usage"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            model_routing_policy=policy,
+        )
+
+
+def test_bootstrap_requires_policy_bound_condenser(tmp_path: Path) -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "condenser",
+                    "model": "condenser-model",
+                    "usage_id": "condenser-usage",
+                    "profile": "condenser-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "judge-usage",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    with pytest.raises(ModelRoutingError, match="condenser LLM"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="agent-model", usage_id="agent-usage"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            model_routing_policy=policy,
+        )
+
+
+def test_bootstrap_rejects_unbound_policy_condenser(tmp_path: Path) -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "judge-usage",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    with pytest.raises(ModelRoutingError, match="not declared"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="agent-model", usage_id="agent-usage"),
+            condenser_llm=LLM(model="unbound-condenser", usage_id="condenser-usage"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            model_routing_policy=policy,
+        )
+
+
+def test_bootstrap_does_not_load_default_model_policy(tmp_path: Path) -> None:
+    llm = LLM(model="caller-model", usage_id="caller-usage")
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=llm,
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+    )
+    assert conversation.agent.llm is llm
 
 
 def test_browser_tools_are_disabled_by_default(tmp_path: Path) -> None:
@@ -433,7 +575,69 @@ def test_bootstrap_rejects_plugin_without_skills(tmp_path: Path) -> None:
             ],
             persistence_dir=tmp_path / "sessions",
             plugin_root=plugin_root,
+            prompt_manifest_root=tmp_path,
         )
+
+
+def test_bootstrap_rejects_prompt_manifest_drift(tmp_path: Path) -> None:
+    plugin_root = _minimal_plugin(tmp_path)
+    (plugin_root / "agents/acd-test.md").write_text(
+        "---\nname: acd-test\n---\n\nchanged\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(PromptManifestError):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="test"),
+            requirements=[],
+            persistence_dir=tmp_path / "sessions",
+            plugin_root=plugin_root,
+            prompt_manifest_root=tmp_path,
+        )
+
+
+def test_bootstrap_rejects_missing_prompt_manifest(tmp_path: Path) -> None:
+    plugin_root = _minimal_plugin(tmp_path)
+    (plugin_root / "agents/prompt-manifest.json").unlink()
+    with pytest.raises(PromptManifestError):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="test"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            plugin_root=plugin_root,
+            prompt_manifest_root=tmp_path,
+        )
+
+
+def test_bootstrap_honors_custom_prompt_manifest_path(tmp_path: Path) -> None:
+    plugin_root = _minimal_plugin(tmp_path)
+    alternate = tmp_path / "alternate-prompt-manifest.json"
+    write_prompt_manifest(
+        plugin_root / "agents",
+        alternate,
+        root=tmp_path,
+    )
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+        plugin_root=plugin_root,
+        prompt_manifest_path=alternate,
+        prompt_manifest_root=tmp_path,
+    )
+    assert conversation.agent.critic is not None
 
 
 def test_secret_registry_uses_only_allowlisted_lazy_values(
@@ -564,6 +768,7 @@ def test_testllm_conversation_denies_protected_terminal_write(
         ],
         persistence_dir=tmp_path / "sessions",
         plugin_root=plugin_root,
+        prompt_manifest_root=tmp_path,
         tools=[Tool(name="terminal")],
     )
     conversation.send_message("write a protected projection")
@@ -597,6 +802,7 @@ def test_testllm_conversation_critic_refinement_stops_at_max_iterations(
         ],
     )
     llm = TestLLM.from_messages([finish, finish, finish, finish])
+    plugin_root = _minimal_plugin(tmp_path)
     conversation = build_acd_conversation(
         repo_root=Path.cwd(),
         llm=llm,
@@ -607,7 +813,8 @@ def test_testllm_conversation_critic_refinement_stops_at_max_iterations(
             )
         ],
         persistence_dir=tmp_path / "sessions",
-        plugin_root=_minimal_plugin(tmp_path),
+        plugin_root=plugin_root,
+        prompt_manifest_root=tmp_path,
     )
     conversation.send_message("complete the task")
     conversation.run()

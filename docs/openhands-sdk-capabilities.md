@@ -19,7 +19,7 @@
 | sdk.context | `AgentContext` | agent作業文脈 | 採用 | 現行sessionでローカルSkillと文脈設定を明示する | session回帰 |
 | sdk.context.condenser | `LLMSummarizingCondenser` | 長い対話の圧縮 | 採用 | `src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない | resume/fork回帰 |
 | sdk.context.memory | `load_memory` | 作業文脈の補助 | 採用予定（ロードマップ4.4） | 契約・合否の正にしない。資材hashを固定する | pinned API確認、実装未着手 |
-| sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用予定（ロードマップ4.4） | role別promptと資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用 | role別promptと資材hashを固定する | verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py |
 | sdk.context.view | `View` | 長時間sessionの表示 | 採用予定（ロードマップ4.4） | 原`EventLog`と照合し、`Evidence`を置換しない | pinned API確認、実装未着手 |
 | sdk.conversation | `BaseConversation`<br>`LocalConversation`<br>`ConversationState` | 現行agent session | 採用 | `src/acd/openhands/session/bootstrap.py`で使用 | session回帰 |
 | sdk.conversation.cancellation | `CancellationToken` | 対話中断 | 採用 | SIGINTからinterruptへ結線し、L2停止側に限定 | `tests/openhands/session/test_goal_loop.py` |
@@ -34,10 +34,10 @@
 | sdk.extensions | `fetch` | 外部拡張 | 不採用 | Canvas等の別UI・拡張境界を持ち込まない | pinned API確認、採用しない |
 | sdk.git | `get_git_changes`<br>`GitError` | stale判定へのgit入力 | 採用 | `src/acd/openhands/evidence/git.py`で使用 | dirty/stale fixture |
 | sdk.hooks | `HookConfig`<br>`HookEventType`<br>`HookExecutor` | agent経路の停止側境界 | 採用 | `plugins/acd/hooks/`がSDK hook契約を使用 | DENY/allow試験 |
-| sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用予定（ロードマップ4.4） | git/inputを正とし二重の合否状態を持たない | pinned API確認、実装未着手 |
+| sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用 | L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない | tests/openhands/session/test_observation_store.py、verify_all.py --stage standard |
 | sdk.llm | `LLM`<br>`Message`<br>`TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
-| sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用予定（ロードマップ4.4） | routing結果は合否へ影響させず、profileと資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | routing結果は合否へ影響させず、profileと資材hashを固定する | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
 | sdk.logger | `get_logger` | L3観測の構造化 | 採用予定（ロードマップ4.4） | `secret`と`Evidence`をログへ混入させない | pinned API確認、実装未着手 |
 | sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | pinned PluginSourceでprovenanceを固定する | pinned API確認、採用しない |

@@ -1,0 +1,6 @@
+I (1000) boot: ESP-IDF firmware
+I (12345) gd1: temp=22.50C rh=45.00%
+I (13345) gd1: temp=22.60C rh=45.20%
+I (14345) gd1: temp=22.40C rh=44.90%
+I (15345) gd1: temp=22.50C rh=45.10%
+I (16345) gd1: malformed
