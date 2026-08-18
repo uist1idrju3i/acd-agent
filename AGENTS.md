@@ -92,41 +92,22 @@ SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とす�
 
 ## 検証
 
-文書のみ:
+検証段階とコマンド列の正は`scripts/verify_all.py`である。定義は
 
 ```bash
-uv run python scripts/verify_docs.py
-git diff --check
+uv run python scripts/verify_all.py --list
 ```
 
-通常:
+で機械可読に列挙できる。文書のみ、通常、フルの3段階を次で実行する。
 
 ```bash
-uv sync
-uv run ruff check
-uv run pyright
-uv run pytest
-uv run python scripts/verify_docs.py
+uv run python scripts/verify_all.py --stage docs
+uv run python scripts/verify_all.py --stage standard
+uv run python scripts/verify_all.py --stage full
 ```
 
-フル:
-
-```bash
-uv sync
-uv run ruff check
-uv run pyright
-uv run pytest
-uv run pytest plugins -q
-uv run python scripts/verify_docs.py
-uv run python scripts/resolve_gd1_silkscreen.py
-uv run python scripts/run_gd1_pipeline.py
-uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
-uv run python scripts/probe_tools.py
-git diff --check
-```
-
-Markdownのみの変更で実装資材を変更していない場合は`verify_docs.py`と
-`git diff --check`に絞ってよい。GD1のゲート実行とEvidence生成はdigest固定containerを
+Markdownのみの変更で実装資材を変更していない場合は`--stage docs`に絞ってよい。
+GD1のゲート実行とEvidence生成はdigest固定containerを
 正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは
 `DockerDevWorkspace`でbase imageからserver imageを準備する移行中の経路である。
 GD1基板pipelineはsilkscreenゲートまで通過する前提で、

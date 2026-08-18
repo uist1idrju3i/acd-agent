@@ -77,6 +77,21 @@ command -v java
 command -v freerouting
 ```
 
+## 検証
+
+検証段階とコマンド列は`uv run python scripts/verify_all.py --list`で確認できる
+`verify_all.py`を正とする。文書のみ、通常、フルの段階を次で実行する。
+
+```bash
+uv run python scripts/verify_all.py --stage docs
+uv run python scripts/verify_all.py --stage standard
+uv run python scripts/verify_all.py --stage full
+```
+
+`full`には`pytest plugins`、silkscreen resolver、基板・筐体pipeline、外部ツールprobeを
+含む。authoritative container gateはCI固有の`container-gates` jobで実行するため、
+`verify_all.py`には含めない。
+
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、

@@ -24,16 +24,8 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: "3.12"
-      - name: Sync workspace
-        run: uv sync
-      - name: Lint (ruff)
-        run: uv run ruff check
-      - name: Type check (pyright)
-        run: uv run pyright
-      - name: Tests (pytest)
-        run: uv run pytest
-      - name: Verify docs
-        run: uv run python scripts/verify_docs.py
+      - name: Standard verification
+        run: uv run python scripts/verify_all.py --stage standard
       - name: Golden mechanical task
         run: uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
       - name: Probe external tools (informational)
