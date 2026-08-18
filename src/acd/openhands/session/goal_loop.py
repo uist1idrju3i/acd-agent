@@ -21,6 +21,9 @@ from openhands.sdk.conversation.goal import (
 from openhands.sdk.llm import LLM
 from pydantic import BaseModel
 
+from acd.openhands.session.routing import create_fixed_role_router
+from acd.schema.model_routing import ModelRoutingPolicy
+
 GateEvaluator = Callable[[BaseConversation], tuple[bool, bool]]
 
 
@@ -56,8 +59,17 @@ def run_acd_goal(
     *,
     max_iterations: int = 10,
     gate_evaluator: GateEvaluator | None = None,
+    model_routing_policy: ModelRoutingPolicy | None = None,
+    routing_profile: str | None = None,
 ) -> AcdGoalResult:
     """Drive a goal with SDK decisions and ACD-owned I/O and authority checks."""
+    if model_routing_policy is not None:
+        judge_llm = create_fixed_role_router(
+            model_routing_policy,
+            "judge",
+            judge_llm,
+            profile=routing_profile,
+        )
     controller = GoalController(
         objective,
         judge_llm,

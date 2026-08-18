@@ -49,15 +49,17 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 
 secret allowlistの`SecretSource`、`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
 Skill明示ロード、`StuckDetector`、`ConversationStats`／`Metrics`のL3観測出力、
-role別promptの`PromptSection`化と資材manifest drift検査は実装済みである。
-LLM routing、`FileStore`保存、observability、settings／credential／profile driftは未着手である。
+role別promptの`PromptSection`化と資材manifest drift検査、role別LLM routing policyは
+実装済みである。`FileStore`保存、observability、settings／credential／profile driftは
+未着手である。
 `ToolDefinition`、現行の`DockerDevWorkspace`、将来の`DockerWorkspace`、決定論的gateの
 責務境界は変更しない。MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 
 - `sdk.context.prompts`: `plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、
   資材hashを固定してpromptとの整合性を確認する。
-- `sdk.llm.router`: critic/judge modelと主agent modelを分離する。routing結果は合否へ
-  影響させない。
+- `sdk.llm.router`: judge modelと主agent modelを分離する（決定論的な
+  `AcdGateCritic`は変更しない）。routing結果は合否へ影響させず、policy hashと
+  非Evidence観測を固定する。
 - `sdk.io`: `src/acd/openhands/session/bootstrap.py`のmetrics/stats保存を`FileStore`
   抽象へ移譲する。
 - `sdk.logger`／`sdk.observability`: L3観測のad-hoc JSONを構造化ログ・observabilityへ

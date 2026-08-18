@@ -47,6 +47,8 @@ from acd.openhands.session.bootstrap import (
 )
 from acd.openhands.session.gate_critic import AcdEvidenceRequirement
 from acd.openhands.session.prompts import PromptManifestError, write_prompt_manifest
+from acd.openhands.session.routing import ModelRoutingError, model_routing_policy_hash
+from acd.schema.model_routing import ModelRoutingPolicy
 
 
 class _TerminalAction(Action):
@@ -317,6 +319,86 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert conversation.agent.agent_context.load_public_skills is False
     assert conversation.agent.agent_context.load_user_skills is False
     assert conversation.stuck_detector is not None
+
+
+def test_bootstrap_rejects_model_routing_agent_mismatch(tmp_path: Path) -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "judge-usage",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    with pytest.raises(ModelRoutingError, match="agent model"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="wrong-model", usage_id="agent-usage"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            model_routing_policy=policy,
+        )
+
+
+def test_bootstrap_requires_policy_bound_condenser(tmp_path: Path) -> None:
+    policy = ModelRoutingPolicy.model_validate(
+        {
+            "bindings": [
+                {
+                    "role": "agent",
+                    "model": "agent-model",
+                    "usage_id": "agent-usage",
+                    "profile": "agent-profile",
+                },
+                {
+                    "role": "condenser",
+                    "model": "condenser-model",
+                    "usage_id": "condenser-usage",
+                    "profile": "condenser-profile",
+                },
+                {
+                    "role": "judge",
+                    "model": "judge-model",
+                    "usage_id": "judge-usage",
+                    "profile": "judge-profile",
+                },
+            ]
+        }
+    )
+    policy = policy.model_copy(
+        update={"canonical_hash": model_routing_policy_hash(policy)}
+    )
+    with pytest.raises(ModelRoutingError, match="condenser LLM"):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="agent-model", usage_id="agent-usage"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            model_routing_policy=policy,
+        )
 
 
 def test_browser_tools_are_disabled_by_default(tmp_path: Path) -> None:

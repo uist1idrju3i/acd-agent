@@ -187,6 +187,20 @@ drift reportの`unregistered_roles`は資材に存在するがmanifestへ未登�
 `missing_roles`はmanifestにあるが資材から欠落したroleを表す。
 manifestを現在の資材から決定論的に生成する場合だけ`--write`を使う。
 
+## Model routing policy
+
+主agent、judge、condenserのmodel、SDK `usage_id`、profile識別子は
+`plugins/acd/model-policy.json`で宣言する。この資材は秘密情報を持たず、整合性は次で
+確認する。
+
+```bash
+uv run python scripts/verify_model_policy.py --check
+```
+
+`--check`はpolicyを書き換えず、parse失敗、`unknown`、canonical hash不一致、
+role不整合はreportを標準出力へ出してexit code 2を返す。現在のpolicyを書き出す場合だけ
+`--write`を使う。routing観測は非EvidenceのL2/L3 metadataであり、合否判定には使わない。
+
 ```bash
 uv run python scripts/verify_agent_prompts.py --write
 ```

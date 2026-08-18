@@ -37,7 +37,7 @@
 | sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用予定（ロードマップ4.4） | git/inputを正とし二重の合否状態を持たない | pinned API確認、実装未着手 |
 | sdk.llm | `LLM`<br>`Message`<br>`TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
-| sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用予定（ロードマップ4.4） | routing結果は合否へ影響させず、profileと資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | routing結果は合否へ影響させず、profileと資材hashを固定する | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
 | sdk.logger | `get_logger` | L3観測の構造化 | 採用予定（ロードマップ4.4） | `secret`と`Evidence`をログへ混入させない | pinned API確認、実装未着手 |
 | sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | pinned PluginSourceでprovenanceを固定する | pinned API確認、採用しない |

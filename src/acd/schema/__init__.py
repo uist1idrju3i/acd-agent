@@ -41,6 +41,14 @@ from acd.schema.functional_run import (
     LedExpectation,
     SerialExpectation,
 )
+from acd.schema.model_routing import (
+    ModelRoutingBinding,
+    ModelRoutingObservation,
+    ModelRoutingPolicy,
+    ModelRoutingReport,
+    ModelRoutingStatus,
+    RoutingRole,
+)
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -108,6 +116,11 @@ __all__ = [
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
+    "ModelRoutingBinding",
+    "ModelRoutingObservation",
+    "ModelRoutingPolicy",
+    "ModelRoutingReport",
+    "ModelRoutingStatus",
     "NodeKind",
     "PhysicalEvidence",
     "PromptCacheTier",
@@ -133,6 +146,7 @@ __all__ = [
     "RejectedAlternative",
     "RolePromptManifest",
     "RolePromptManifestEntry",
+    "RoutingRole",
     "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",

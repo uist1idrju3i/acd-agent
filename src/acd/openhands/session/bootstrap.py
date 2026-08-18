@@ -32,7 +32,12 @@ from acd.openhands.session.prompts import (
     PromptManifestError,
     check_prompt_manifest,
 )
+from acd.openhands.session.routing import (
+    ModelRoutingError,
+    create_fixed_role_router,
+)
 from acd.openhands.tools.definitions import register_acd_tools
+from acd.schema.model_routing import ModelRoutingPolicy, RoutingRole
 
 
 def build_acd_conversation(
@@ -51,6 +56,9 @@ def build_acd_conversation(
     design_graph_path: Path | None = None,
     prompt_manifest_path: Path | None = None,
     prompt_manifest_root: Path | None = None,
+    model_routing_policy: ModelRoutingPolicy | None = None,
+    condenser_llm: LLM | None = None,
+    routing_profiles: Mapping[RoutingRole, str] | None = None,
     stuck_detection_thresholds: (
         StuckDetectionThresholds | Mapping[str, int] | None
     ) = None,
@@ -78,6 +86,36 @@ def build_acd_conversation(
         raise PromptManifestError(
             prompt_report.reason or "ACD role prompt manifest drifted"
         )
+    agent_llm = llm
+    condenser_model = condenser_llm or llm
+    if model_routing_policy is not None:
+        profile = (
+            routing_profiles.get("agent")
+            if routing_profiles is not None
+            else None
+        )
+        agent_llm = create_fixed_role_router(
+            model_routing_policy,
+            "agent",
+            llm,
+            profile=profile,
+        )
+        if any(binding.role == "condenser" for binding in model_routing_policy.bindings):
+            if condenser_llm is None:
+                raise ModelRoutingError(
+                    "condenser LLM is required by model routing policy"
+                )
+            profile = (
+                routing_profiles.get("condenser")
+                if routing_profiles is not None
+                else None
+            )
+            condenser_model = create_fixed_role_router(
+                model_routing_policy,
+                "condenser",
+                condenser_llm,
+                profile=profile,
+            )
     skills = load_acd_skills(plugin_root / "skills")
     hook_config = HookConfig.load(hooks_path)
     validate_acd_agent_hooks(plugin_root / "agents", hook_config)
@@ -104,10 +142,10 @@ def build_acd_conversation(
         marketplace_path=None,
     )
     agent = Agent(
-        llm=llm,
+        llm=agent_llm,
         tools=selected_tools,
         critic=critic,
-        condenser=LLMSummarizingCondenser(llm=llm),
+        condenser=LLMSummarizingCondenser(llm=condenser_model),
         agent_context=agent_context,
         tool_concurrency_limit=tool_concurrency_limit,
     )
