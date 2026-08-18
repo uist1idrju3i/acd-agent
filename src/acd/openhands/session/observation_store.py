@@ -34,19 +34,30 @@ class ObservationPayload(AcdModel):
     description: NonEmptyStr | None = None
 
 
-def _validate_store_path(path: str | Path) -> str:
+def _validate_observation_path(
+    path: str | Path,
+    *,
+    allow_absolute: bool,
+) -> str:
     raw_path = os.fspath(path)
     if not raw_path.strip():
-        raise ObservationStoreError("observation store path must not be empty")
-    if Path(raw_path).is_absolute() or PureWindowsPath(raw_path).is_absolute():
-        raise ObservationStoreError("observation store path must be relative")
+        raise ObservationStoreError("observation path must not be empty")
+    if (
+        not allow_absolute
+        and (Path(raw_path).is_absolute() or PureWindowsPath(raw_path).is_absolute())
+    ):
+        raise ObservationStoreError("observation path must be relative")
     normalized = raw_path.replace("\\", "/")
     parts = normalized.split("/")
     if any(part == ".." for part in parts):
-        raise ObservationStoreError("observation store path escapes its root")
-    if normalized in {"", "."} or normalized.endswith("/"):
-        raise ObservationStoreError("observation store path must name a file")
+        raise ObservationStoreError("observation path escapes its root")
+    if normalized in {"", "."} or normalized.endswith("/") or parts[-1] == ".":
+        raise ObservationStoreError("observation path must name a file")
     return normalized
+
+
+def _validate_store_path(path: str | Path) -> str:
+    return _validate_observation_path(path, allow_absolute=False)
 
 
 class AcdObservationStore:
@@ -86,17 +97,9 @@ class AcdObservationStore:
 
 
 def _store_for_path(path: Path) -> tuple[AcdObservationStore, str]:
-    raw_path = os.fspath(path)
-    if not raw_path.strip():
-        raise ObservationStoreError("observation path must not be empty")
-    if raw_path in {".", ".."} or raw_path.endswith(("/", "\\")):
-        raise ObservationStoreError("observation path must name a file")
-    if any(part == ".." for part in path.parts):
-        raise ObservationStoreError("observation path escapes its root")
+    _validate_observation_path(path, allow_absolute=True)
     absolute_path = path if path.is_absolute() else Path.cwd() / path
     absolute_path = absolute_path.absolute()
-    if not absolute_path.name:
-        raise ObservationStoreError("observation path must name a file")
     try:
         file_store = LocalFileStore(str(absolute_path.parent))
     except (OSError, TypeError, ValueError) as exc:

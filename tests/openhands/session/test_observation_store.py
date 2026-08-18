@@ -87,7 +87,7 @@ def test_in_memory_observation_bytes_are_deterministic() -> None:
 
 @pytest.mark.parametrize(
     "path",
-    ["", ".", "../metrics.json", "/metrics.json", r"..\\metrics.json"],
+    ["", ".", "metrics/.", "../metrics.json", "/metrics.json", r"..\\metrics.json"],
 )
 def test_observation_store_rejects_unsafe_paths(path: str) -> None:
     store = AcdObservationStore(InMemoryFileStore())
