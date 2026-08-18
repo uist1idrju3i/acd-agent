@@ -82,7 +82,7 @@ def _search_text(
 
 
 def test_non_search_text_without_coordinates_fails_closed() -> None:
-    text = replace(_search_text(role="board_type"), x_mm=None, y_mm=None)
+    text = replace(_search_text(role="non_search_label"), x_mm=None, y_mm=None)
     with pytest.raises(GraphExtractionError, match="no declared position"):
         resolve_silkscreen_placements(
             SilkscreenLane("board.gd1", (text,), ()),
@@ -121,7 +121,7 @@ def test_silkscreen_search_declaration_is_validated(
         resolve_silkscreen_placements(lane, _search_board())
 
 
-def test_silkscreen_backside_position_is_not_search_resolved() -> None:
+def test_silkscreen_backside_text_is_search_resolved() -> None:
     text = _search_text(role="board_type", order="top", step=0.25, limit=1.0)
     text = SilkTextView(
         text.node_id,
@@ -142,10 +142,14 @@ def test_silkscreen_backside_position_is_not_search_resolved() -> None:
     resolved = resolve_silkscreen_placements(
         SilkscreenLane("board.gd1", (text,), ()), _search_board(rotation_deg=90.0)
     )
-    assert (resolved.texts[0].x_mm, resolved.texts[0].y_mm) == (15.0, 2.0)
-    assert resolved.placement_evidence[0]["resolution"] == (
-        "graph_declared_backside_position"
-    )
+    resolved_text = resolved.texts[0]
+    evidence = resolved.placement_evidence[0]
+    assert resolved_text.layer == "B.SilkS"
+    assert (resolved_text.x_mm, resolved_text.y_mm) != (15.0, 2.0)
+    assert evidence["accepted_position_mm"] == [
+        resolved_text.x_mm,
+        resolved_text.y_mm,
+    ]
 
 
 def _context(*, outline: list[float] | None = None) -> dict[str, object]:

@@ -30,10 +30,15 @@ ACD gates (DRC and independent reload) decide acceptance.
   retained with a reason in the evidence, and no candidate is a fail-closed
   result.
 - Candidates are ordered by distance to the datum, then declaration order,
-  rotation order, courtyard overlap area, and offset. F.SilkS functional
-  labels and connector identifiers, including D1 and USB, are searched with
-  their references; fixed coordinates are not acceptance evidence. Fixed
-  B.SilkS branding and identification labels are not searched.
+  rotation order, courtyard overlap area, and offset. Text roles beginning
+  with `functional_label_`, plus `connector_identifier`, `board_type`, and
+  `board_part_number`, are search targets. This includes backside branding and
+  identification text: `B.SilkS` is retained as the layer, while the position
+  is selected by the same deterministic search and measured-clearance gates as
+  other search targets.
+- Other text roles are not search targets and must carry declared coordinates.
+  Missing coordinates for such a role fail closed; a provisional coordinate is
+  never acceptance evidence.
 
 ## Usage
 
