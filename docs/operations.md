@@ -149,6 +149,12 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    シルク解決を個別に実行した場合は、回路図を含む中間成果物が
    `out/gd1-silkscreen-resolve/iteration-1/`に生成される。
 
+   JLCPCBへ投入するファイルは、製造出力ディレクトリ内の
+   `out/gd1/fab/gd1-bom-jlcpcb.csv`と
+   `out/gd1/fab/gd1-cpl-jlcpcb.csv`の2つだけである。
+   `out/gd1/gd1.bom.csv`はDesign Graph由来の内部BOM投影であり、非実装部品も含み得るため、
+   発注用ファイルとして投入してはならない。
+
 3. 実行済みのGD1筐体pipelineでは、`out/gd1-enclosure/enclosure.step`、
    `out/gd1-enclosure/enclosure.3mf`、および
    `out/gd1-enclosure/evidence-mechanical.json`が生成される。

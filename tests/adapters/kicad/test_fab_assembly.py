@@ -19,6 +19,7 @@ from acd.adapters.kicad.fab import (
 )
 from acd.adapters.kicad.library import LibraryPinError
 from acd.adapters.kicad.overlay import apply_overlay
+from acd.core.bom import bom_csv, build_bom
 from acd.core.electrical import (
     BoardView,
     ComponentView,
@@ -213,6 +214,30 @@ def test_jlcpcb_bom_groups_by_fab_part_and_uses_mpn_for_mixed_values() -> None:
     assert rows[0]["Comment"] == "TS-1088-AR02016"
     assert rows[0]["LCSC Part #"] == "C720477"
     assert "R1" not in rows[0]["Designator"]
+
+
+def test_internal_bom_groups_mixed_values_deterministically() -> None:
+    lane = _bom_lane(
+        _bom_component("SW2", "BOOT"),
+        _bom_component("SW1", "RESET"),
+    )
+    rows = build_bom(lane)
+    assert len(rows) == 1
+    assert rows[0].refdes == ("SW1", "SW2")
+    assert rows[0].value == "BOOT; RESET"
+
+    csv_rows = list(csv.DictReader(bom_csv(lane).splitlines()))
+    assert csv_rows == [
+        {
+            "refdes": "SW1 SW2",
+            "qty": "2",
+            "value": "BOOT; RESET",
+            "mpn": "TS-1088-AR02016",
+            "lcsc": "C720477",
+            "footprint": "Button_Switch_SMD:SW_SPST_TL3301",
+            "jlcpcb_class": "basic",
+        }
+    ]
 
 
 def test_bom_cross_validation_rejects_missing_designator(tmp_path: Path) -> None:

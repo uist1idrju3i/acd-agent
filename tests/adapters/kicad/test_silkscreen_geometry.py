@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -15,6 +16,7 @@ from acd.adapters.kicad.fab import (
     FabOutputError,
     FootprintMeasurement,
 )
+from acd.adapters.kicad.fab.routed_board import parse_routed_board
 from acd.adapters.kicad.fab.silkscreen import (
     _local_silk_bounds,
     _same_side,
@@ -254,6 +256,100 @@ def test_same_side_courtyard_overlap_is_rejected() -> None:
             )
     finally:
         fab._gerber_silk_objects = original
+
+
+def test_routed_board_layers_reach_silkscreen_fail_conditions(tmp_path: Path) -> None:
+    board_path = tmp_path / "minimal.kicad_pcb"
+    board_path.write_text(
+        """(kicad_pcb
+  (version 20240108)
+  (generator pcbnew)
+  (general (thickness 1.6))
+  (paper "A4")
+  (layers (0 "F.Cu" signal) (31 "B.Cu" signal)
+    (36 "B.SilkS" user "b.silkscreen") (37 "F.SilkS" user "f.silkscreen")
+    (44 "Edge.Cuts" user))
+  (setup (pad_to_mask_clearance 0))
+  (net 0 "")
+  (footprint "Test:U1"
+    (layer "F.Cu")
+    (at 5 5)
+    (fp_text reference "U1" (at 0 0) (layer "F.SilkS")
+      (effects (font (size 1 1) (thickness 0.15))))
+    (fp_rect (start -1 -1) (end 1 1)
+      (stroke (width 0.1) (type default)) (fill none) (layer "F.Fab"))
+    (fp_rect (start -1.5 -1.5) (end 1.5 1.5)
+      (stroke (width 0.05) (type default)) (fill none) (layer "F.CrtYd"))
+  )
+  (footprint "Test:U2"
+    (layer "B.Cu")
+    (at 8 8)
+    (fp_text reference "U2" (at 0 0) (layer "F.SilkS")
+      (effects (font (size 1 1) (thickness 0.15))))
+  )
+  (gr_rect (start 0 0) (end 10 10)
+    (stroke (width 0.1) (type default)) (fill none) (layer "Edge.Cuts"))
+)""",
+        encoding="utf-8",
+    )
+    measurement = parse_routed_board(board_path)
+    assert {fp.layer for fp in measurement.footprints} == {"F.Cu", "B.Cu"}
+
+    profile = FabProfile(
+        {
+            "capabilities": {
+                "min_silk_width": {"value": 0.15},
+                "min_silk_height": {"value": 1.0},
+            }
+        }
+    )
+    silk = _SilkObject("Region", "F.SilkS", (4.0, 4.5, 6.0, 5.5), 2.0, 0.15)
+    edge = _line(0.0, 0.0, 10.0, 0.0)
+    original = fab._gerber_silk_objects
+    fab._gerber_silk_objects = (
+        lambda _path, layer: (silk,)
+        if layer == "F.SilkS"
+        else (edge,)
+        if layer == "Edge.Cuts"
+        else ()
+    )
+    try:
+        context = fab.build_silkscreen_context(
+            {"F.SilkS": Path("silk.gto")},
+            {"F.Mask": Path("mask.gts")},
+            Path("edge.gm1"),
+            measurement,
+            SilkscreenLane(
+                "board.gd1",
+                (
+                    SilkTextView(
+                        "text",
+                        "label",
+                        "BOOT",
+                        5.0,
+                        5.0,
+                        "F.SilkS",
+                        1.0,
+                        0.15,
+                        0.0,
+                        "test",
+                        "test",
+                        "U1",
+                        0.25,
+                        1.0,
+                    ),
+                ),
+                (),
+            ),
+            profile,
+        )
+    finally:
+        fab._gerber_silk_objects = original
+
+    assert context["status"] == "measured_fail"
+    fail_conditions = cast(dict[str, object], context["fail_conditions"])
+    assert fail_conditions["body_overlap"]
+    assert fail_conditions["courtyard_overlap"]
 
 
 def test_declared_text_without_ink_is_rejected() -> None:

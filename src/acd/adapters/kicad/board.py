@@ -107,19 +107,22 @@ def _edge_lines(width: float, height: float) -> list[list[SExpr]]:
 
 
 def _silk_text(item: SilkTextView) -> list[SExpr]:
+    effects: list[SExpr] = [
+        Sym("effects"),
+        [
+            Sym("font"),
+            [Sym("size"), fmt(item.height_mm), fmt(item.height_mm)],
+            [Sym("thickness"), fmt(item.stroke_width_mm)],
+        ],
+    ]
+    if item.layer == "B.SilkS":
+        effects.append([Sym("justify"), Sym("mirror")])
     return [
         Sym("gr_text"),
         Quoted(item.text),
         [Sym("at"), fmt(item.x_mm), fmt(item.y_mm), fmt(item.rotation_deg)],
         [Sym("layer"), Quoted(item.layer)],
-        [
-            Sym("effects"),
-            [
-                Sym("font"),
-                [Sym("size"), fmt(item.height_mm), fmt(item.height_mm)],
-                [Sym("thickness"), fmt(item.stroke_width_mm)],
-            ],
-        ],
+        effects,
         [Sym("uuid"), Quoted(det_uuid("silk-text", item.node_id))],
     ]
 

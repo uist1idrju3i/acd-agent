@@ -1,7 +1,8 @@
 """Deterministic graph-derived BOM projection.
 
-Rows are grouped by (value, mpn, lcsc, footprint) and ordered by the smallest
-refdes in each group; refdes lists inside a group are sorted naturally.
+Rows are grouped by manufacturing identity and ordered by the smallest refdes
+in each group; refdes lists and distinct values inside a group are sorted
+naturally.
 """
 
 from __future__ import annotations
@@ -32,10 +33,9 @@ def refdes_key(refdes: str) -> tuple[str, int, str]:
 
 
 def build_bom(lane: ElectricalLane) -> tuple[BomRow, ...]:
-    groups: dict[tuple[str, str, str, str, str], list[ComponentView]] = {}
+    groups: dict[tuple[str, str, str, str], list[ComponentView]] = {}
     for comp in lane.components:
         key = (
-            comp.value,
             comp.mpn,
             comp.lcsc,
             comp.library.footprint,
@@ -45,11 +45,11 @@ def build_bom(lane: ElectricalLane) -> tuple[BomRow, ...]:
     rows = [
         BomRow(
             refdes=tuple(sorted((c.refdes for c in comps), key=refdes_key)),
-            value=key[0],
-            mpn=key[1],
-            lcsc=key[2],
-            footprint=key[3],
-            jlcpcb_class=key[4],
+            value="; ".join(sorted({c.value for c in comps})),
+            mpn=key[0],
+            lcsc=key[1],
+            footprint=key[2],
+            jlcpcb_class=key[3],
         )
         for key, comps in groups.items()
     ]
