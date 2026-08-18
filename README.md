@@ -225,8 +225,16 @@ LLM-only CADとの違いは、毎回同じ解を出すことではなく、出�
 - [`assets/logo.svg`](assets/logo.svg): acd-agentのロゴ。
 - [`assets/banner.svg`](assets/banner.svg): READMEなどで使うバナー。
 - [`assets/vibebb-silkscreen.svg`](assets/vibebb-silkscreen.svg): 基板シルク印字用のVibeBBロゴ。
-  単色・線画・幾何要素のみで、1:1スケールは40mm×18mmです。基板へ載せる場合は
-  `board-preview`グループを外し、`silkscreen`グループだけを取り込みます。
+  単色・線画・幾何要素のみで、1:1スケールは40mm×18mmです。
+- [`assets/qr-repository-silkscreen.svg`](assets/qr-repository-silkscreen.svg): 基板シルク印字用の
+  リポジトリURLのQRコード。誤り訂正レベルH、1モジュール0.8mm、余白4モジュールで、1:1スケールは
+  36mm×36mmです。白シルクを明るい地として塗り、データモジュールは非印字（基板色）で抜くことで、
+  規格どおりの「暗いモジュール＋明るい背景」のコントラストにしています。
+
+<img src="assets/qr-repository-silkscreen.svg" alt="リポジトリURLのQRコード（シルク印字用）" width="200">
+
+シルク印字用の資材は、基板へ載せる場合は`board-preview`グループを外し、`silkscreen`グループ
+だけを取り込みます。
 
 ## ライセンス
 
