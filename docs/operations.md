@@ -186,15 +186,15 @@ authoritative Evidenceの契約は変更しない。
 ### アップデート
 
 pluginの更新は2通りある。SDKの`update_plugin()`は、記録済みのsourceを`ref=None`
-（default branchの先頭）で再取得して上書きする。
+（default branchの先頭）で再取得して上書きする。GUIの「更新」ボタンはこの経路を使うため、
+アンインストールは不要で、有効・無効の状態も維持される。更新ボタンではrefを指定できない。
 
 ```bash
 python -c "from openhands.sdk.plugin.installed import update_plugin; print(update_plugin('acd'))"
 ```
 
 特定のtagまたは40桁SHAへ更新する場合は、`install_plugin(..., force=True)`で
-上書きinstallする。GUIからはいったんアンインストールし、新しいrefで再度
-インストールしても同じ結果になる。
+上書きinstallする。GUIではいったんアンインストールし、新しいrefで再度インストールする。
 
 ```bash
 python -c "from openhands.sdk.plugin.installed import install_plugin; print(install_plugin('github:uist1idrju3i/acd-agent', ref='<new tag or SHA>', repo_path='plugins/acd', force=True))"

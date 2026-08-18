@@ -26,9 +26,10 @@ OpenHandsのLocal GUI（Agent Canvas）の「カスタマイズ → Plugins →
 プラグインを追加」から、ソース`github:uist1idrju3i/acd-agent`、パス`plugins/acd`で
 インストールできます。
 
-アップデートは同じPlugins画面から行えます。インストール済みの`acd` pluginを
-いったんアンインストールし、新しいplugin ref（tagまたは40桁commit SHA）を指定して
-再度インストールします。
+通常の最新化（default branchの先頭への更新）は、同じPlugins画面の「更新」ボタンだけで
+行えます。アンインストールは不要で、有効・無効の状態も維持されます。特定のtagまたは
+40桁commit SHAへ固定・切替・ダウングレードする場合は、更新ボタンでrefを指定できないため、
+いったんアンインストールして新しいrefで再インストールします。
 
 その他の運用手順は[`docs/operations.md`](docs/operations.md)を参照してください。
 
