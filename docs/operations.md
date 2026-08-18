@@ -86,8 +86,28 @@ install後に起動する`LocalConversation`は、SDKのambient自動読み込�
 provenanceを厳密に固定する用途では、ADR-0035の明示`Plugin.fetch()`経路を使用する。
 この経路を選択しても、ゲート実行の正はlock記録済みdigest固定server imageを
 `DockerWorkspace(server_image=...)`で実行する契約から変わらない。
-将来catalogへacdを登録した後は、これらの手動コマンドは不要となり、GUIからの
+同じinstalled plugin storeへは、後述のAgent Canvas GUIからもinstallできる。
+将来catalogへacdを登録した後は、これらの手動操作は不要となり、catalog経由の
 インストールへ置き換わる（「将来のGUI掲載（marketplaceカタログ）」参照）。
+
+### Agent Canvas GUIからのインストール
+
+OpenHandsのLocal GUI（Agent Canvas）は「カスタマイズ → Plugins → プラグインを追加」
+ダイアログを持ち、入力値はSDKの`install_plugin(source, ref, repo_path)`へそのまま渡る
+（[公式ドキュメント](https://docs.openhands.dev/overview/plugins#local-gui)）。
+ACDは次の値でinstallできる。
+
+| 項目 | 入力値 |
+| --- | --- |
+| ソース | `github:uist1idrju3i/acd-agent` |
+| リファレンス（任意） | branch名、tag、または40桁commit SHA |
+| パス | `plugins/acd` |
+
+リファレンスを省略するとdefault branchの先頭を取得する。再現性が必要な場合は
+不変ref（tagまたは40桁commit SHA）を指定する。短縮SHAはSDKのfetchが
+`git clone --branch`で解決するため使用できない。install後の挙動と契約は
+上記のambient自動読み込み経路（ADR-0036）と同一であり、Skillが呼ぶ`acd`
+Pythonパッケージ本体はADR-0035の`uv pip install`で別途導入する。
 
 ### 将来のGUI掲載（marketplaceカタログ）
 

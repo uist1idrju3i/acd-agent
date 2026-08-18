@@ -28,6 +28,20 @@ agent-serverは対象外です。
 Python配布物はルートの単一パッケージ`acd`であり、実装は`src/acd/`、テストは
 `tests/`に配置します。
 
+## インストール
+
+OpenHands環境へは、Pythonパッケージ`acd`のgitインストールと、SDK標準の
+installed plugin storeへのplugin installで導入できます。
+
+```bash
+uv pip install "git+https://github.com/uist1idrju3i/acd-agent@<tag or SHA>"
+```
+
+pluginはOpenHandsのLocal GUI（Agent Canvas）の「カスタマイズ → Plugins →
+プラグインを追加」から、ソース`github:uist1idrju3i/acd-agent`、パス`plugins/acd`で
+インストールできます。CLI手順と詳細は
+[`docs/operations.md`](docs/operations.md)を参照してください。
+
 ## 実行
 
 ```bash
