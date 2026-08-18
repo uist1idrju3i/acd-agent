@@ -47,7 +47,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、`sdk.context.memory`／`sdk.context.view`実装済み。`sdk.workspace`はマイルストーン6依存） |
-| 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材のどこで使われているかを参照検査し、間接利用の参照先を宣言してdriftをfail-closedで検出する | 未着手 |
+| 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
@@ -117,15 +117,17 @@ MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 ### 4.5 能力カタログ検査の強化
 
 `docs/openhands-sdk-capabilities.md`の採否はドメイン単位の判断であり、SDK内部経路を
-含む間接利用を明示できるようにする。代表APIまたはドメインの参照先をACDコード・
-plugin資材へ記録し、採用行の未使用・参照先欠落・catalog driftをfail-closedで検出する。
+含む間接利用と、明示したテスト利用を区別して記録する。代表APIまたはドメインの参照先を
+ACDコード・plugin資材・テストへ種別付きで記録し、採用行の未使用・参照先欠落・catalog
+driftをfail-closedで検出する。現行catalogは採用46行の参照を宣言し、テスト専用の
+`sdk.testing`だけをテスト直接importとして登録する。
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `docs/openhands-sdk-capabilities.json`、pinned SDKの代表API一覧、ACDコード、plugin資材、SDK経路の間接利用宣言 |
-| 実装 | `scripts/verify_sdk_capabilities.py`に採用行の代表APIまたはドメインの参照検査を追加し、間接利用は参照先を宣言する |
-| 正常系 | 直接import、SDK内部経路、pluginの`tools:`参照を区別して検査し、採用行の根拠をMarkdownへ再生成できる |
-| negative/fail-closed | 採用行の参照先欠落、間接利用宣言の不備、catalogと生成Markdownのdriftを検出して停止する。検査ロジックを代表APIの存在確認だけへ弱めない |
+| 入力と出所 | `docs/openhands-sdk-capabilities.json`、pinned SDKの代表API一覧、ACDコード、plugin資材、テスト、SDK経路の間接利用宣言 |
+| 実装 | `scripts/verify_sdk_capabilities.py`に直接import、SDK内部経路、plugin資材、テスト直接importの4種別を追加し、参照先を宣言する |
+| 正常系 | 4種別をroot境界付きで区別して検査し、採用行の根拠とテスト利用をMarkdownへ再生成できる |
+| negative/fail-closed | 採用行の参照先欠落、4種別のroot境界違反、直接import・SDK内部経路・plugin token・テスト直接importの不備、catalogと生成Markdownのdriftを検出して停止する。検査ロジックを代表APIの存在確認だけへ弱めない |
 | 再現性 | 固定SDK checkout、catalog、ACD/plugin入力から同一Markdownと同一検査結果を再生成する |
 
 ## マイルストーン5: 実機フィードバック

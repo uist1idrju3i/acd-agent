@@ -15,6 +15,7 @@ def _catalog(
     representative_apis: list[str] | None = None,
     adoption: str = "採用",
     roadmap: str | None = None,
+    references: list[dict[str, str]] | None = None,
 ) -> verifier.CapabilityCatalog:
     return verifier.CapabilityCatalog.model_validate(
         {
@@ -44,6 +45,7 @@ def _catalog(
                     "adoption": adoption,
                     "rationale": "test",
                     "verification": "test",
+                    "references": references or [],
                     "roadmap": roadmap,
                 }
             ],
@@ -144,6 +146,211 @@ def test_planned_adoption_requires_roadmap(
     assert any("requires roadmap" in error for error in errors)
 
 
+def test_adopted_capability_requires_reference(
+    valid_environment: dict[str, set[str]],
+) -> None:
+    errors = verifier.validate_catalog(_catalog(), valid_environment)
+
+    assert any("採用には参照宣言が必要" in error for error in errors)
+
+
+def test_reference_path_must_exist(
+    valid_environment: dict[str, set[str]],
+) -> None:
+    errors = verifier.validate_catalog(
+        _catalog(
+            references=[
+                {
+                    "kind": "sdk_internal",
+                    "path": "src/acd/missing.py",
+                    "symbol": "value",
+                    "note": "test",
+                }
+            ]
+        ),
+        valid_environment,
+    )
+
+    assert any("reference path does not exist" in error for error in errors)
+
+
+def test_reference_path_must_use_allowed_root(
+    valid_environment: dict[str, set[str]],
+) -> None:
+    errors = verifier.validate_catalog(
+        _catalog(
+            references=[
+                {
+                    "kind": "sdk_internal",
+                    "path": "vendor/example.py",
+                    "symbol": "value",
+                    "note": "test",
+                }
+            ]
+        ),
+        valid_environment,
+    )
+
+    assert any("outside allowed roots" in error for error in errors)
+
+
+def test_direct_import_reference_requires_openhands_import(
+    valid_environment: dict[str, set[str]],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "src/acd/example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("from acd.example import Foo\n", encoding="utf-8")
+    monkeypatch.setattr(verifier, "REPO_ROOT", tmp_path)
+
+    errors = verifier.validate_catalog(
+        _catalog(
+            references=[
+                {
+                    "kind": "direct_import",
+                    "path": "src/acd/example.py",
+                    "symbol": "Foo",
+                    "note": "test",
+                }
+            ]
+        ),
+        valid_environment,
+    )
+
+    assert any("not directly imported" in error for error in errors)
+
+
+def test_sdk_internal_reference_requires_note(
+    valid_environment: dict[str, set[str]],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "src/acd/example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("value = 1\n", encoding="utf-8")
+    monkeypatch.setattr(verifier, "REPO_ROOT", tmp_path)
+
+    errors = verifier.validate_catalog(
+        _catalog(
+            references=[
+                {
+                    "kind": "sdk_internal",
+                    "path": "src/acd/example.py",
+                    "symbol": "value",
+                    "note": "",
+                }
+            ]
+        ),
+        valid_environment,
+    )
+
+    assert any("reference note is empty" in error for error in errors)
+
+
+def test_plugin_reference_requires_token(
+    valid_environment: dict[str, set[str]],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    asset = tmp_path / "plugins/acd/agent.md"
+    asset.parent.mkdir(parents=True)
+    asset.write_text("tools:\n  - terminal\n", encoding="utf-8")
+    monkeypatch.setattr(verifier, "REPO_ROOT", tmp_path)
+
+    errors = verifier.validate_catalog(
+        _catalog(
+            references=[
+                {
+                    "kind": "plugin_asset",
+                    "path": "plugins/acd/agent.md",
+                    "symbol": "missing_token",
+                    "note": "test",
+                }
+            ]
+        ),
+        valid_environment,
+    )
+
+    assert any("plugin token is absent" in error for error in errors)
+
+
+def test_planned_adoption_rejects_references(
+    valid_environment: dict[str, set[str]],
+) -> None:
+    errors = verifier.validate_catalog(
+        _catalog(
+            adoption="採用予定",
+            roadmap="4.5",
+            references=[
+                {
+                    "kind": "sdk_internal",
+                    "path": "src/acd/missing.py",
+                    "symbol": "value",
+                    "note": "test",
+                }
+            ],
+        ),
+        valid_environment,
+    )
+
+    assert any("採用予定には参照宣言を設定できない" in error for error in errors)
+
+
+def test_test_direct_import_uses_tests_root(
+    valid_environment: dict[str, set[str]],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "tests/example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("from openhands.sdk.testing import Foo\n", encoding="utf-8")
+    monkeypatch.setattr(verifier, "REPO_ROOT", tmp_path)
+
+    errors = verifier.validate_catalog(
+        _catalog(
+            references=[
+                {
+                    "kind": "direct_import",
+                    "path": "tests/example.py",
+                    "symbol": "Foo",
+                    "note": "test",
+                }
+            ]
+        ),
+        valid_environment,
+    )
+
+    assert any("outside allowed roots" in error for error in errors)
+
+
+def test_test_direct_import_rejects_production_root(
+    valid_environment: dict[str, set[str]],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "src/acd/example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("from openhands.sdk.testing import Foo\n", encoding="utf-8")
+    monkeypatch.setattr(verifier, "REPO_ROOT", tmp_path)
+
+    errors = verifier.validate_catalog(
+        _catalog(
+            references=[
+                {
+                    "kind": "test_direct_import",
+                    "path": "src/acd/example.py",
+                    "symbol": "Foo",
+                    "note": "test",
+                }
+            ]
+        ),
+        valid_environment,
+    )
+
+    assert any("outside allowed roots" in error for error in errors)
+
+
 def test_roadmap_reference_must_exist(
     valid_environment: dict[str, set[str]],
     tmp_path: Path,
@@ -226,3 +433,10 @@ def test_catalog_json_is_valid() -> None:
     catalog = json.loads(verifier.CATALOG_PATH.read_text(encoding="utf-8"))
 
     assert verifier.CapabilityCatalog.model_validate(catalog).sdk_version == "1.42.1"
+
+
+def test_current_catalog_has_valid_references() -> None:
+    catalog = verifier.load_catalog()
+    modules = verifier.extract_public_modules(catalog.scanned_packages)
+
+    assert verifier.validate_catalog(catalog, modules) == []

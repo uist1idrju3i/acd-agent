@@ -83,6 +83,57 @@
 | workspace.cloud | `OpenHandsCloudWorkspace` | cloud実行 | 不採用 | 再現性と運用境界を固定できない | pinned API確認、採用しない |
 | workspace.remote_api | `APIRemoteWorkspace` | remote API実行 | 不採用 | remote APIを範囲外とする | pinned API確認、採用しない |
 
+## 採用行の参照先
+
+- `sdk`: **直接import** `src/acd/openhands/session/bootstrap.py` / `Agent` — 現行sessionのSDK公開入口としてagentを生成する
+- `sdk.agent`: **plugin資材** `plugins/acd/agents/README.md` / `AgentDefinition` — 役割別agent資材をAgentDefinitionとして読み込む
+- `sdk.agent.parallel_executor`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `tool_concurrency_limit` — Agentへ並列上限を渡し、SDK内部の並列executor経路を使う
+- `sdk.context`: **直接import** `src/acd/openhands/session/bootstrap.py` / `AgentContext` — 現行sessionへACDのagent contextを渡す
+- `sdk.context.condenser`: **直接import** `src/acd/openhands/session/bootstrap.py` / `LLMSummarizingCondenser` — 会話文脈の圧縮設定にSDK condenserを使う
+- `sdk.context.memory`: **直接import** `src/acd/openhands/session/context.py` / `load_memory` — 永続memoryの読み込みをSDK経路へ委譲する
+- `sdk.context.prompts`: **SDK内部経路** `src/acd/openhands/session/prompts.py` / `PromptContext` — SDK prompt contextへrole別prompt資材を渡す
+- `sdk.context.view`: **直接import** `src/acd/openhands/session/context.py` / `View` — EventLogから表示専用viewを構築する
+- `sdk.conversation`: **直接import** `src/acd/openhands/session/goal_loop.py` / `BaseConversation` — goal loopがSDK conversation基底経路を受け取る
+- `sdk.conversation.cancellation`: **SDK内部経路** `src/acd/openhands/session/goal_loop.py` / `interrupt` — conversation interruptをSDK内部の取消経路へ渡す
+- `sdk.conversation.conversation_stats`: **直接import** `src/acd/openhands/session/bootstrap.py` / `ConversationStats` — Conversationの使用量観測をSDK statsへ委譲する
+- `sdk.conversation.goal`: **直接import** `src/acd/openhands/session/goal_loop.py` / `GoalController` — L2停止側のgoal controllerをSDK経路で実行する
+- `sdk.conversation.secrets_manager`: **直接import** `src/acd/openhands/session/context.py` / `SecretRegistry` — context maskingにSDKのsecret registryを使う
+- `sdk.conversation.stuck_detector`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `stuck_detection` — conversationへSDK stuck detection設定を渡す
+- `sdk.credential`: **SDK内部経路** `src/acd/openhands/session/settings.py` / `credential` — profile設定のcredential参照名をSDK経路へ渡す
+- `sdk.critic`: **直接import** `src/acd/openhands/session/gate_critic.py` / `CriticBase` — gate結果をL2 criticへ渡し合否権限を与えない
+- `sdk.event`: **直接import** `src/acd/openhands/session/context.py` / `Event` — SDK eventを表示projectionの入力として扱う
+- `sdk.git`: **直接import** `src/acd/openhands/evidence/git.py` / `get_git_changes` — git変更をstale判定の入力としてSDK経路で取得する
+- `sdk.hooks`: **直接import** `src/acd/openhands/session/bootstrap.py` / `HookConfig` — 現行conversationへSDK hook設定を渡す
+- `sdk.io`: **直接import** `src/acd/openhands/session/bootstrap.py` / `FileStore` — L3観測の保存先としてSDK FileStoreを使う
+- `sdk.llm`: **直接import** `src/acd/openhands/session/bootstrap.py` / `LLM` — 現行sessionのLLM型をSDK経路で受け取る
+- `sdk.llm.router`: **直接import** `src/acd/openhands/session/routing.py` / `RouterLLM` — role別model routingのSDK基底を使う
+- `sdk.llm.utils.metrics`: **直接import** `src/acd/openhands/session/bootstrap.py` / `Metrics` — 会話metricsをL3観測として扱う
+- `sdk.logger`: **直接import** `src/acd/openhands/session/observation_log.py` / `get_logger` — 観測ログの構造化loggerをSDKから取得する
+- `sdk.observability`: **直接import** `src/acd/openhands/session/observation_log.py` / `observe` — 観測ログspanをSDK decorator経路へ渡す
+- `sdk.plugin`: **直接import** `src/acd/openhands/distribution/plugin.py` / `PluginSource` — pinned plugin sourceをSDKへ渡す
+- `sdk.profiles`: **SDK内部経路** `src/acd/openhands/session/settings.py` / `validate_agent_profile` — ACD設定からSDK profileを検証生成する
+- `sdk.secret`: **直接import** `src/acd/openhands/safety/secrets.py` / `SecretSource` — allowlist環境変数のlazy secret sourceを実装する
+- `sdk.security`: **直接import** `src/acd/openhands/session/bootstrap.py` / `ConfirmRisky` — 現行conversationのrisk confirmation policyを設定する
+- `sdk.security.analyzer`: **直接import** `src/acd/openhands/safety/security.py` / `SecurityAnalyzerBase` — ACD analyzerをSDKのsecurity analyzer基底へ接続する
+- `sdk.settings`: **plugin資材** `plugins/acd/agent-settings.json` / `canonical_hash` — canonical settings manifestのhashをplugin資材で固定する
+- `sdk.skills`: **直接import** `src/acd/openhands/distribution/skills.py` / `load_skills_from_dir` — 検証済みACD Skill資材をSDK loaderへ渡す
+- `sdk.subagent`: **直接import** `src/acd/openhands/session/prompts.py` / `AgentDefinition` — role別agent定義をSDKから読み込む
+- `sdk.testing`: **テスト直接import** `tests/openhands/session/test_bootstrap.py` / `TestLLM` — bootstrap回帰で固定応答LLMを使う
+- `sdk.testing`: **テスト直接import** `tests/openhands/session/test_goal_loop.py` / `TestLLM` — goal loop回帰で固定応答LLMを使う
+- `sdk.testing`: **テスト直接import** `tests/openhands/session/test_routing.py` / `TestLLM` — routing回帰で固定応答LLMを使う
+- `sdk.tool`: **直接import** `src/acd/openhands/tools/definitions.py` / `ToolDefinition` — 決定論的ACD tool定義をSDKへ登録する
+- `tools`: **plugin資材** `plugins/acd/agents/acd-search.md` / `terminal` — AgentDefinitionの標準toolとしてterminalを宣言する
+- `tools.browser_use`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `BrowserToolSet` — 明示有効時にbrowser toolの利用可能性をSDK経路で検査する
+- `tools.delegate`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `TaskToolSet` — SDK task実行経路へsub-agent調整toolを渡す
+- `tools.file_editor`: **plugin資材** `plugins/acd/agents/acd-search.md` / `file_editor` — AgentDefinitionで編集toolを宣言する
+- `tools.glob`: **plugin資材** `plugins/acd/agents/acd-search.md` / `glob` — AgentDefinitionでglob tool名を参照する
+- `tools.grep`: **plugin資材** `plugins/acd/agents/acd-search.md` / `grep` — AgentDefinitionでgrep tool名を参照する
+- `tools.task`: **直接import** `src/acd/openhands/session/bootstrap.py` / `TaskToolSet` — hook付きagentのtask toolをSDKへ登録する
+- `tools.task_tracker`: **plugin資材** `plugins/acd/agents/acd-search.md` / `task_tracker` — AgentDefinitionでtask tracker tool名を参照する
+- `tools.terminal`: **plugin資材** `plugins/acd/agents/acd-search.md` / `terminal` — AgentDefinitionでterminal tool名を参照する
+- `workspace`: **直接import** `src/acd/openhands/workspace.py` / `DockerWorkspace` — workspace公開入口をSDKから取得する
+- `workspace.DockerWorkspace`: **直接import** `src/acd/openhands/workspace.py` / `DockerWorkspace` — digest固定server imageをDockerWorkspaceへ渡す
+
 agent-serverは非対象（将来必要なら新規ADRで起票）。
 
 <!-- end generated -->
@@ -91,3 +142,6 @@ ACD固有のDesign Graph、Pydantic契約、投影、EDA/CAD adapter、fabricati
 決定論的ゲート、`Evidence.supports_pass(revision)`、決定論的探索、rationale契約は
 SDKへ委譲しない。L1のpass authorityはこれらの決定論的責務だけであり、L2のcritic・Skill・
 agent・GoalController・security analyzerとL3のevent・metrics・telemetryは合格を生成しない。
+
+採用根拠の参照先は、直接import、SDK内部経路、plugin資材、テスト直接importを区別して
+catalogへ宣言する。テスト直接importは`tests/`配下に限定し、本番利用の根拠とは区別する。

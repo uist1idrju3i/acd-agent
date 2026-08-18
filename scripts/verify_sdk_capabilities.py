@@ -23,6 +23,24 @@ END_MARKER = "<!-- end generated -->"
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 ADOPTIONS = ("採用", "採用予定", "不採用")
 EXCLUDED_MODULE_PATHS = {"workspace": {("docker", "dev_workspace.py")}}
+REFERENCE_KINDS = (
+    "direct_import",
+    "sdk_internal",
+    "plugin_asset",
+    "test_direct_import",
+)
+REFERENCE_KIND_LABELS = {
+    "direct_import": "直接import",
+    "sdk_internal": "SDK内部経路",
+    "plugin_asset": "plugin資材",
+    "test_direct_import": "テスト直接import",
+}
+REFERENCE_ROOTS = {
+    "direct_import": ("src/acd", "plugins/acd", "scripts"),
+    "sdk_internal": ("src/acd", "plugins/acd", "scripts"),
+    "plugin_asset": ("plugins/acd",),
+    "test_direct_import": ("tests",),
+}
 
 
 class ScannedPackage(BaseModel):
@@ -44,6 +62,27 @@ class NonTargetPackage(BaseModel):
     reason: str
 
 
+class CapabilityReference(BaseModel):
+    """A repository reference supporting one capability adoption claim."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal[
+        "direct_import",
+        "sdk_internal",
+        "plugin_asset",
+        "test_direct_import",
+    ]
+    path: str
+    symbol: str = Field(min_length=1)
+    note: str
+
+
+def _empty_references() -> list[CapabilityReference]:
+    """Return an empty typed reference list for Pydantic defaults."""
+    return []
+
+
 class Capability(BaseModel):
     """One manually reviewed capability claim."""
 
@@ -56,6 +95,7 @@ class Capability(BaseModel):
     adoption: Literal["採用", "採用予定", "不採用"]
     rationale: str
     verification: str
+    references: list[CapabilityReference] = Field(default_factory=_empty_references)
     roadmap: str | None = None
 
 
@@ -197,6 +237,103 @@ def _api_name(value: str) -> str:
     return value.split("(", 1)[0].rsplit(".", 1)[-1].strip()
 
 
+def _reference_path(reference: CapabilityReference) -> Path:
+    """Resolve and validate one repository-relative reference path."""
+    relative = Path(reference.path)
+    if relative.is_absolute() or ".." in relative.parts:
+        raise ValueError(f"reference path must be relative: {reference.path}")
+    roots = tuple((REPO_ROOT / root).resolve() for root in REFERENCE_ROOTS[reference.kind])
+    path = (REPO_ROOT / relative).resolve()
+    if not any(path == root or root in path.parents for root in roots):
+        raise ValueError(
+            f"{reference.kind} reference path is outside allowed roots: "
+            f"{reference.path}"
+        )
+    if not path.is_file():
+        raise ValueError(f"reference path does not exist: {reference.path}")
+    if reference.kind == "plugin_asset" and path.suffix not in {".md", ".json"}:
+        raise ValueError(f"plugin reference must be Markdown or JSON: {reference.path}")
+    return path
+
+
+def _imported_symbols(path: Path) -> set[str]:
+    """Extract symbols imported from public OpenHands modules."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except (OSError, SyntaxError, UnicodeDecodeError) as exc:
+        raise ValueError(f"cannot parse reference source: {path}") from exc
+    symbols: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ImportFrom):
+            continue
+        if node.module is None or not node.module.startswith("openhands."):
+            continue
+        symbols.update(alias.name for alias in node.names if alias.name != "*")
+    return symbols
+
+
+def _identifiers(path: Path) -> set[str]:
+    """Extract identifiers used by a Python reference source."""
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except (OSError, SyntaxError, UnicodeDecodeError) as exc:
+        raise ValueError(f"cannot parse reference source: {path}") from exc
+    identifiers: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name):
+            identifiers.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            identifiers.add(node.attr)
+        elif isinstance(node, ast.keyword) and node.arg is not None:
+            identifiers.add(node.arg)
+    return identifiers
+
+
+def _validate_reference(
+    capability: Capability,
+    reference: CapabilityReference,
+) -> str | None:
+    """Validate one adoption reference and return an error when invalid."""
+    try:
+        path = _reference_path(reference)
+    except ValueError as exc:
+        return f"{capability.domain}: {exc}"
+    if reference.kind in {"direct_import", "test_direct_import"}:
+        api_names = {_api_name(api) for api in capability.representative_apis}
+        if reference.symbol not in api_names:
+            return (
+                f"{capability.domain}: {reference.kind} symbol is not a "
+                f"representative API: {reference.symbol}"
+            )
+        try:
+            imported = _imported_symbols(path)
+        except ValueError as exc:
+            return f"{capability.domain}: {exc}"
+        if reference.symbol not in imported:
+            return (
+                f"{capability.domain}: {reference.symbol} is not directly "
+                f"imported from an openhands module: {reference.path}"
+            )
+    elif reference.kind == "sdk_internal":
+        if not reference.note.strip():
+            return f"{capability.domain}: SDK internal reference note is empty"
+        try:
+            identifiers = _identifiers(path)
+        except ValueError as exc:
+            return f"{capability.domain}: {exc}"
+        if reference.symbol not in identifiers:
+            return (
+                f"{capability.domain}: SDK internal symbol is absent: "
+                f"{reference.symbol} ({reference.path})"
+            )
+    elif reference.symbol not in path.read_text(encoding="utf-8"):
+        return (
+            f"{capability.domain}: plugin token is absent: "
+            f"{reference.symbol} ({reference.path})"
+        )
+    return None
+
+
 def render_markdown(catalog: CapabilityCatalog) -> str:
     """Render the deterministic catalog table block."""
     rows = [
@@ -234,6 +371,16 @@ def render_markdown(catalog: CapabilityCatalog) -> str:
             )
             + " |"
         )
+    adopted = [capability for capability in catalog.capabilities if capability.adoption == "採用"]
+    if adopted:
+        rows.extend(("", "## 採用行の参照先", ""))
+        for capability in adopted:
+            for reference in capability.references:
+                kind = REFERENCE_KIND_LABELS[reference.kind]
+                rows.append(
+                    f"- `{capability.domain}`: **{kind}** `{reference.path}` / "
+                    f"`{reference.symbol}` — {reference.note}"
+                )
     for package in catalog.non_target_packages:
         rows.extend(("", f"{package.prefix}は{package.reason}。"))
     rows.extend(("", END_MARKER))
@@ -272,6 +419,16 @@ def validate_catalog(catalog: CapabilityCatalog, modules: dict[str, set[str]]) -
     except OSError:
         roadmap_text = ""
     for capability in catalog.capabilities:
+        if capability.adoption == "採用" and not capability.references:
+            errors.append(f"{capability.domain}: 採用には参照宣言が必要")
+        elif capability.adoption != "採用" and capability.references:
+            errors.append(
+                f"{capability.domain}: {capability.adoption}には参照宣言を設定できない"
+            )
+        for reference in capability.references:
+            reference_error = _validate_reference(capability, reference)
+            if reference_error is not None:
+                errors.append(reference_error)
         for pattern in capability.modules:
             matched = [module for module in modules if _matches(pattern, module)]
             if not matched:

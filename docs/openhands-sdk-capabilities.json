@@ -30,7 +30,15 @@
       "use": "SDK公開facade",
       "adoption": "採用",
       "rationale": "ACDのOpenHands統合がpinned SDK公開入口を使用",
-      "verification": "import回帰、公開API抽出"
+      "verification": "import回帰、公開API抽出",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "Agent",
+          "note": "現行sessionのSDK公開入口としてagentを生成する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.agent",
@@ -39,7 +47,15 @@
       "use": "pluginの役割別agent",
       "adoption": "採用",
       "rationale": "`plugins/acd/agents/`が`AgentDefinition`を参照",
-      "verification": "plugin資材検査、agent起動"
+      "verification": "plugin資材検査、agent起動",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agents/README.md",
+          "symbol": "AgentDefinition",
+          "note": "役割別agent資材をAgentDefinitionとして読み込む"
+        }
+      ]
+
     },
     {
       "domain": "sdk.agent.acp",
@@ -74,7 +90,15 @@
       "use": "agent lane並列化",
       "adoption": "採用",
       "rationale": "`Agent.tool_concurrency_limit`を設定するとSDK内部の`ParallelToolExecutor`経路へ渡され、資源宣言不能時はSDK mutexで直列化される",
-      "verification": "`tests/openhands/tools/test_definitions.py`"
+      "verification": "`tests/openhands/tools/test_definitions.py`",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "tool_concurrency_limit",
+          "note": "Agentへ並列上限を渡し、SDK内部の並列executor経路を使う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.agent.response_dispatch",
@@ -92,7 +116,15 @@
       "use": "agent作業文脈",
       "adoption": "採用",
       "rationale": "現行sessionでローカルSkillと文脈設定を明示する",
-      "verification": "session回帰"
+      "verification": "session回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "AgentContext",
+          "note": "現行sessionへACDのagent contextを渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.context.condenser",
@@ -101,7 +133,15 @@
       "use": "長い対話の圧縮",
       "adoption": "採用",
       "rationale": "`src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない",
-      "verification": "resume/fork回帰"
+      "verification": "resume/fork回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "LLMSummarizingCondenser",
+          "note": "会話文脈の圧縮設定にSDK condenserを使う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.context.memory",
@@ -110,7 +150,15 @@
       "use": "作業文脈の補助",
       "adoption": "採用",
       "rationale": "`enable_persistent_memory`で明示有効化し、secret混入をfail-closedにする。内容はhashだけ観測し契約・合否の正にしない",
-      "verification": "tests/openhands/session/test_context.py"
+      "verification": "tests/openhands/session/test_context.py",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/context.py",
+          "symbol": "load_memory",
+          "note": "永続memoryの読み込みをSDK経路へ委譲する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.context.prompts",
@@ -119,7 +167,15 @@
       "use": "role別prompt構造化",
       "adoption": "採用",
       "rationale": "role別promptと資材hashを固定する",
-      "verification": "verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py"
+      "verification": "verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/prompts.py",
+          "symbol": "PromptContext",
+          "note": "SDK prompt contextへrole別prompt資材を渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.context.view",
@@ -128,7 +184,15 @@
       "use": "長時間sessionの表示",
       "adoption": "採用",
       "rationale": "原`EventLog`と照合する表示専用projectionにし、canonical hashを固定して`Evidence`を置換しない",
-      "verification": "verify_context_view.py --check、tests/openhands/session/test_context.py"
+      "verification": "verify_context_view.py --check、tests/openhands/session/test_context.py",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/context.py",
+          "symbol": "View",
+          "note": "EventLogから表示専用viewを構築する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.conversation",
@@ -147,7 +211,15 @@
       "use": "現行agent session",
       "adoption": "採用",
       "rationale": "`src/acd/openhands/session/bootstrap.py`で使用",
-      "verification": "session回帰"
+      "verification": "session回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/goal_loop.py",
+          "symbol": "BaseConversation",
+          "note": "goal loopがSDK conversation基底経路を受け取る"
+        }
+      ]
+
     },
     {
       "domain": "sdk.conversation.cancellation",
@@ -156,7 +228,15 @@
       "use": "対話中断",
       "adoption": "採用",
       "rationale": "`LocalConversation.interrupt()`がSDK内部の`CancellationToken`経路を使う。L2停止側に限定する",
-      "verification": "`tests/openhands/session/test_goal_loop.py`"
+      "verification": "`tests/openhands/session/test_goal_loop.py`",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/goal_loop.py",
+          "symbol": "interrupt",
+          "note": "conversation interruptをSDK内部の取消経路へ渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.conversation.conversation_stats",
@@ -165,7 +245,15 @@
       "use": "session別使用量観測",
       "adoption": "採用",
       "rationale": "L3観測として採用し合否に混入しない",
-      "verification": "`tests/openhands/session/test_goal_loop.py`"
+      "verification": "`tests/openhands/session/test_goal_loop.py`",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "ConversationStats",
+          "note": "Conversationの使用量観測をSDK statsへ委譲する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.conversation.goal",
@@ -174,7 +262,15 @@
       "use": "反復停止の補助",
       "adoption": "採用",
       "rationale": "L2停止側に限り、L1合否を置換しない",
-      "verification": "`tests/openhands/session/test_goal_loop.py`"
+      "verification": "`tests/openhands/session/test_goal_loop.py`",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/goal_loop.py",
+          "symbol": "GoalController",
+          "note": "L2停止側のgoal controllerをSDK経路で実行する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.conversation.internal",
@@ -206,7 +302,15 @@
       "use": "secret注入・漏洩防止",
       "adoption": "採用",
       "rationale": "pinned registryのmaskingとlazy secret注入を現行Conversationで使用し、ACD側でも`SecretRegistry`を使ってcontext・観測をmaskingする",
-      "verification": "registry回帰"
+      "verification": "registry回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/context.py",
+          "symbol": "SecretRegistry",
+          "note": "context maskingにSDKのsecret registryを使う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.conversation.stuck_detector",
@@ -215,7 +319,15 @@
       "use": "停滞時の差し戻し",
       "adoption": "採用",
       "rationale": "`LocalConversation(stuck_detection=True)`へ既定値・閾値を渡す",
-      "verification": "conversation wiring回帰"
+      "verification": "conversation wiring回帰",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "stuck_detection",
+          "note": "conversationへSDK stuck detection設定を渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.credential",
@@ -224,7 +336,15 @@
       "use": "資格情報の外部化",
       "adoption": "採用",
       "rationale": "credentialは`SecretRegistry`参照名だけを保持し、allowlist外の参照名とunknown設定はfail-closedにする",
-      "verification": "scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard"
+      "verification": "scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/settings.py",
+          "symbol": "credential",
+          "note": "profile設定のcredential参照名をSDK経路へ渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.critic",
@@ -233,7 +353,15 @@
       "use": "gate結果によるL2操舵",
       "adoption": "採用",
       "rationale": "session gate criticで使用し、pass authorityにしない",
-      "verification": "critic回帰、negative"
+      "verification": "critic回帰、negative",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/gate_critic.py",
+          "symbol": "CriticBase",
+          "note": "gate結果をL2 criticへ渡し合否権限を与えない"
+        }
+      ]
+
     },
     {
       "domain": "sdk.event",
@@ -242,7 +370,15 @@
       "use": "session経過の記録",
       "adoption": "採用",
       "rationale": "Conversationのイベント経路で使用",
-      "verification": "event/resume回帰"
+      "verification": "event/resume回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/context.py",
+          "symbol": "Event",
+          "note": "SDK eventを表示projectionの入力として扱う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.extensions",
@@ -260,7 +396,15 @@
       "use": "stale判定へのgit入力",
       "adoption": "採用",
       "rationale": "`src/acd/openhands/evidence/git.py`で使用",
-      "verification": "dirty/stale fixture"
+      "verification": "dirty/stale fixture",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/evidence/git.py",
+          "symbol": "get_git_changes",
+          "note": "git変更をstale判定の入力としてSDK経路で取得する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.hooks",
@@ -269,7 +413,15 @@
       "use": "agent経路の停止側境界",
       "adoption": "採用",
       "rationale": "`HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する",
-      "verification": "DENY/allow試験"
+      "verification": "DENY/allow試験",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "HookConfig",
+          "note": "現行conversationへSDK hook設定を渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.io",
@@ -278,7 +430,15 @@
       "use": "session保存抽象",
       "adoption": "採用",
       "rationale": "L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない",
-      "verification": "tests/openhands/session/test_observation_store.py、verify_all.py --stage standard"
+      "verification": "tests/openhands/session/test_observation_store.py、verify_all.py --stage standard",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "FileStore",
+          "note": "L3観測の保存先としてSDK FileStoreを使う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.llm",
@@ -287,7 +447,15 @@
       "use": "Conversation/LLM入出力",
       "adoption": "採用",
       "rationale": "現行session配線で使用",
-      "verification": "prompt回帰"
+      "verification": "prompt回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "LLM",
+          "note": "現行sessionのLLM型をSDK経路で受け取る"
+        }
+      ]
+
     },
     {
       "domain": "sdk.llm.internal",
@@ -331,7 +499,15 @@
       "use": "judge/critic用modelと主agent用modelの分離",
       "adoption": "採用",
       "rationale": "ACDは`RouterLLM`によるrole routingを使用する。`RandomRouter`/`MultimodalRouter`は直接使用せず、routing結果は合否へ影響させない",
-      "verification": "verify_model_policy.py --check、tests/openhands/session/test_routing.py"
+      "verification": "verify_model_policy.py --check、tests/openhands/session/test_routing.py",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/routing.py",
+          "symbol": "RouterLLM",
+          "note": "role別model routingのSDK基底を使う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.llm.utils.metrics",
@@ -340,7 +516,15 @@
       "use": "使用量・予算の観測",
       "adoption": "採用",
       "rationale": "現行SDK wiringでmetricsを扱う",
-      "verification": "metrics回帰"
+      "verification": "metrics回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "Metrics",
+          "note": "会話metricsをL3観測として扱う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.logger",
@@ -349,7 +533,15 @@
       "use": "L3観測の構造化",
       "adoption": "採用",
       "rationale": "`secret`と`Evidence`をログへ混入させず、観測名とhashだけを構造化ログへ出す",
-      "verification": "scripts/tests/test_observation_log.py、verify_all.py --stage standard"
+      "verification": "scripts/tests/test_observation_log.py、verify_all.py --stage standard",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/observation_log.py",
+          "symbol": "get_logger",
+          "note": "観測ログの構造化loggerをSDKから取得する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.marketplace",
@@ -376,7 +568,15 @@
       "use": "L3観測の構造化",
       "adoption": "採用",
       "rationale": "既定無効のspanを観測書込みだけに付け、入出力を送らず`Evidence`へ触れない",
-      "verification": "scripts/tests/test_observation_log.py、verify_all.py --stage standard"
+      "verification": "scripts/tests/test_observation_log.py、verify_all.py --stage standard",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/observation_log.py",
+          "symbol": "observe",
+          "note": "観測ログspanをSDK decorator経路へ渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.plugin",
@@ -385,7 +585,15 @@
       "use": "pinned plugin配布",
       "adoption": "採用",
       "rationale": "既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する",
-      "verification": "明示ref検証、ambient bootstrap回帰"
+      "verification": "明示ref検証、ambient bootstrap回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/distribution/plugin.py",
+          "symbol": "PluginSource",
+          "note": "pinned plugin sourceをSDKへ渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.profiles",
@@ -394,7 +602,15 @@
       "use": "secret-free profile配布",
       "adoption": "採用",
       "rationale": "`OpenHandsAgentProfile`をsecret-freeなまま検証し、routing policyとのprofile driftをfail-closedで検知する",
-      "verification": "scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard"
+      "verification": "scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/settings.py",
+          "symbol": "validate_agent_profile",
+          "note": "ACD設定からSDK profileを検証生成する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.secret",
@@ -403,7 +619,15 @@
       "use": "secretを平文から分離",
       "adoption": "採用",
       "rationale": "allowlist環境変数をlazy sourceとしてConversation registryへ渡し、ACD側で`SecretSource`を実装する。`StaticSecret`/`LookupSecret`は直接importしない",
-      "verification": "registry masking回帰"
+      "verification": "registry masking回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/safety/secrets.py",
+          "symbol": "SecretSource",
+          "note": "allowlist環境変数のlazy secret sourceを実装する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.security",
@@ -412,7 +636,15 @@
       "use": "agent操作の安全境界",
       "adoption": "採用",
       "rationale": "現行conversationへ`ConfirmRisky`を設定する。`NeverConfirm`は直接使用しない",
-      "verification": "risky/deny試験"
+      "verification": "risky/deny試験",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "ConfirmRisky",
+          "note": "現行conversationのrisk confirmation policyを設定する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.security.analyzer",
@@ -432,7 +664,15 @@
       "use": "agent操作の決定論的追加監視",
       "adoption": "採用",
       "rationale": "ACD analyzerとPattern analyzerをSDK ensembleへ合成し、LLM/GraySwanは使わない",
-      "verification": "risk/ensemble回帰"
+      "verification": "risk/ensemble回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/safety/security.py",
+          "symbol": "SecurityAnalyzerBase",
+          "note": "ACD analyzerをSDKのsecurity analyzer基底へ接続する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.security.grayswan",
@@ -464,7 +704,15 @@
       "use": "SDK設定の外部化",
       "adoption": "採用",
       "rationale": "`plugins/acd/agent-settings.json`のcanonical hashを固定し、不一致は`unknown`で停止する",
-      "verification": "scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard"
+      "verification": "scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agent-settings.json",
+          "symbol": "canonical_hash",
+          "note": "canonical settings manifestのhashをplugin資材で固定する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.skills",
@@ -473,7 +721,15 @@
       "use": "ローカルACD Skillの配布・prompt提供",
       "adoption": "採用",
       "rationale": "既定の明示経路は`plugins/acd/skills`を事前検証してfail-closedとし、ADR-0036のambient経路はSDK標準loaderへ委ねる",
-      "verification": "明示Skill loader回帰、ambient bootstrap回帰"
+      "verification": "明示Skill loader回帰、ambient bootstrap回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/distribution/skills.py",
+          "symbol": "load_skills_from_dir",
+          "note": "検証済みACD Skill資材をSDK loaderへ渡す"
+        }
+      ]
+
     },
     {
       "domain": "sdk.subagent",
@@ -482,7 +738,15 @@
       "use": "役割別sub-agent",
       "adoption": "採用",
       "rationale": "`plugins/acd/agents/`で参照",
-      "verification": "agent資材検査"
+      "verification": "agent資材検査",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/prompts.py",
+          "symbol": "AgentDefinition",
+          "note": "role別agent定義をSDKから読み込む"
+        }
+      ]
+
     },
     {
       "domain": "sdk.testing",
@@ -491,7 +755,27 @@
       "use": "SDK wiringの回帰",
       "adoption": "採用",
       "rationale": "test fixtureとbootstrap回帰で使用",
-      "verification": "pytest"
+      "verification": "pytest",      "references": [
+        {
+          "kind": "test_direct_import",
+          "path": "tests/openhands/session/test_bootstrap.py",
+          "symbol": "TestLLM",
+          "note": "bootstrap回帰で固定応答LLMを使う"
+        },
+        {
+          "kind": "test_direct_import",
+          "path": "tests/openhands/session/test_goal_loop.py",
+          "symbol": "TestLLM",
+          "note": "goal loop回帰で固定応答LLMを使う"
+        },
+        {
+          "kind": "test_direct_import",
+          "path": "tests/openhands/session/test_routing.py",
+          "symbol": "TestLLM",
+          "note": "routing回帰で固定応答LLMを使う"
+        }
+      ]
+
     },
     {
       "domain": "sdk.tool",
@@ -505,7 +789,15 @@
       "use": "ACD toolのagent入口",
       "adoption": "採用",
       "rationale": "`register_acd_tools()`とSDK登録を使用",
-      "verification": "schema/実行試験"
+      "verification": "schema/実行試験",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/tools/definitions.py",
+          "symbol": "ToolDefinition",
+          "note": "決定論的ACD tool定義をSDKへ登録する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.tool.builtins",
@@ -555,7 +847,15 @@
       "use": "OpenHands標準tool集合",
       "adoption": "採用",
       "rationale": "AgentDefinitionの標準toolとして参照",
-      "verification": "agent実行試験"
+      "verification": "agent実行試験",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agents/acd-search.md",
+          "symbol": "terminal",
+          "note": "AgentDefinitionの標準toolとしてterminalを宣言する"
+        }
+      ]
+
     },
     {
       "domain": "tools.apply_patch",
@@ -573,7 +873,15 @@
       "use": "L2の部品調査・datasheet確認",
       "adoption": "採用",
       "rationale": "`BrowserToolSet.is_usable()`経由で利用可能性を検査して登録する。L2探索補助に限定し、`BrowserClickTool`を直接importせず、`Evidence`やL1合否を置換しない",
-      "verification": "`BrowserToolSet.is_usable()`、agent session回帰"
+      "verification": "`BrowserToolSet.is_usable()`、agent session回帰",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "BrowserToolSet",
+          "note": "明示有効時にbrowser toolの利用可能性をSDK経路で検査する"
+        }
+      ]
+
     },
     {
       "domain": "tools.delegate",
@@ -582,7 +890,15 @@
       "use": "sub-agent調整",
       "adoption": "採用",
       "rationale": "SDKのTask実行経路で使用し、hookと確認方針を境界にする",
-      "verification": "session回帰"
+      "verification": "session回帰",      "references": [
+        {
+          "kind": "sdk_internal",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "TaskToolSet",
+          "note": "SDK task実行経路へsub-agent調整toolを渡す"
+        }
+      ]
+
     },
     {
       "domain": "tools.file_editor",
@@ -591,7 +907,15 @@
       "use": "agentのファイル編集",
       "adoption": "採用",
       "rationale": "AgentDefinitionとhook保護経路で参照",
-      "verification": "hook/編集試験"
+      "verification": "hook/編集試験",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agents/acd-search.md",
+          "symbol": "file_editor",
+          "note": "AgentDefinitionで編集toolを宣言する"
+        }
+      ]
+
     },
     {
       "domain": "tools.gemini",
@@ -609,7 +933,15 @@
       "use": "agent検索",
       "adoption": "採用",
       "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.glob`名を参照する。Python APIの直接importはない",
-      "verification": "agent実行試験"
+      "verification": "agent実行試験",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agents/acd-search.md",
+          "symbol": "glob",
+          "note": "AgentDefinitionでglob tool名を参照する"
+        }
+      ]
+
     },
     {
       "domain": "tools.grep",
@@ -618,7 +950,15 @@
       "use": "agent検索",
       "adoption": "採用",
       "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.grep`名を参照する。Python APIの直接importはない",
-      "verification": "agent実行試験"
+      "verification": "agent実行試験",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agents/acd-search.md",
+          "symbol": "grep",
+          "note": "AgentDefinitionでgrep tool名を参照する"
+        }
+      ]
+
     },
     {
       "domain": "tools.planning_file_editor",
@@ -654,7 +994,15 @@
       "use": "task分離",
       "adoption": "採用",
       "rationale": "hook付きACD agent定義へ限定し、合否権限なし",
-      "verification": "session回帰"
+      "verification": "session回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/bootstrap.py",
+          "symbol": "TaskToolSet",
+          "note": "hook付きagentのtask toolをSDKへ登録する"
+        }
+      ]
+
     },
     {
       "domain": "tools.task_tracker",
@@ -663,7 +1011,15 @@
       "use": "agent作業追跡",
       "adoption": "採用",
       "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.task_tracker`名を参照する。Python APIの直接importはない",
-      "verification": "agent実行試験"
+      "verification": "agent実行試験",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agents/acd-search.md",
+          "symbol": "task_tracker",
+          "note": "AgentDefinitionでtask tracker tool名を参照する"
+        }
+      ]
+
     },
     {
       "domain": "tools.terminal",
@@ -672,7 +1028,15 @@
       "use": "agentのCLI実行",
       "adoption": "採用",
       "rationale": "`plugins/acd/agents/acd-*.md`の`tools:`で`tools.terminal`名を参照する。Python APIの直接importはない",
-      "verification": "agent実行試験"
+      "verification": "agent実行試験",      "references": [
+        {
+          "kind": "plugin_asset",
+          "path": "plugins/acd/agents/acd-search.md",
+          "symbol": "terminal",
+          "note": "AgentDefinitionでterminal tool名を参照する"
+        }
+      ]
+
     },
     {
       "domain": "tools.tom_consult",
@@ -708,7 +1072,15 @@
       "use": "OpenHands workspace API",
       "adoption": "採用",
       "rationale": "runnerとworkspace実装の公開入口を固定する",
-      "verification": "vendor実装、DockerWorkspace runner回帰"
+      "verification": "vendor実装、DockerWorkspace runner回帰",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/workspace.py",
+          "symbol": "DockerWorkspace",
+          "note": "workspace公開入口をSDKから取得する"
+        }
+      ]
+
     },
     {
       "domain": "workspace.DockerWorkspace",
@@ -717,7 +1089,15 @@
       "use": "`DockerWorkspace`による事前build済みdigest固定server imageの実行",
       "adoption": "採用",
       "rationale": "runnerが実行対象server imageのdigestとcontainer markerをforwardする",
-      "verification": "constructor確認、runner回帰、container Evidence検証"
+      "verification": "constructor確認、runner回帰、container Evidence検証",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/workspace.py",
+          "symbol": "DockerWorkspace",
+          "note": "digest固定server imageをDockerWorkspaceへ渡す"
+        }
+      ]
+
     },
     {
       "domain": "workspace.apptainer",
