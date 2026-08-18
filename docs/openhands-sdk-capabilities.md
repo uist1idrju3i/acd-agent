@@ -15,7 +15,7 @@
 | sdk.agent | `Agent`<br>`AgentBase` | pluginの役割別agent | 採用 | `plugins/acd/agents/`が`AgentDefinition`を参照 | plugin資材検査、agent起動 |
 | sdk.agent.acp | `ACPAgent` | 外部ACP連携 | 不採用 | OpenHands専用拡張の境界外／provenance固定と非両立 | pinned API確認、採用しない |
 | sdk.agent.internal | `CriticMixin` | SDK内部agent補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
-| sdk.agent.parallel_executor | `ParallelToolExecutor` | agent lane並列化 | 採用 | `Agent.tool_concurrency_limit`経由で使用し、資源宣言不能時は直列化 | `tests/openhands/tools/test_definitions.py` |
+| sdk.agent.parallel_executor | `ParallelToolExecutor` | agent lane並列化 | 採用 | `Agent.tool_concurrency_limit`を設定するとSDK内部の`ParallelToolExecutor`経路へ渡され、資源宣言不能時はSDK mutexで直列化される | `tests/openhands/tools/test_definitions.py` |
 | sdk.agent.response_dispatch | `classify_response` | SDK内部応答配信 | 不採用 | ACDが直接依存する責務ではない | pinned API確認、採用しない |
 | sdk.context | `AgentContext` | agent作業文脈 | 採用 | 現行sessionでローカルSkillと文脈設定を明示する | session回帰 |
 | sdk.context.condenser | `LLMSummarizingCondenser` | 長い対話の圧縮 | 採用 | `src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない | resume/fork回帰 |
@@ -23,7 +23,7 @@
 | sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用 | role別promptと資材hashを固定する | verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py |
 | sdk.context.view | `View` | 長時間sessionの表示 | 採用 | 原`EventLog`と照合する表示専用projectionにし、canonical hashを固定して`Evidence`を置換しない | verify_context_view.py --check、tests/openhands/session/test_context.py |
 | sdk.conversation | `BaseConversation`<br>`LocalConversation`<br>`ConversationState` | 現行agent session | 採用 | `src/acd/openhands/session/bootstrap.py`で使用 | session回帰 |
-| sdk.conversation.cancellation | `CancellationToken` | 対話中断 | 採用 | SIGINTからinterruptへ結線し、L2停止側に限定 | `tests/openhands/session/test_goal_loop.py` |
+| sdk.conversation.cancellation | `CancellationToken` | 対話中断 | 採用 | `LocalConversation.interrupt()`がSDK内部の`CancellationToken`経路を使う。L2停止側に限定する | `tests/openhands/session/test_goal_loop.py` |
 | sdk.conversation.conversation_stats | `ConversationStats` | session別使用量観測 | 採用 | L3観測として採用し合否に混入しない | `tests/openhands/session/test_goal_loop.py` |
 | sdk.conversation.goal | `GoalController`<br>`GoalVerdict` | 反復停止の補助 | 採用 | L2停止側に限り、L1合否を置換しない | `tests/openhands/session/test_goal_loop.py` |
 | sdk.conversation.internal | `EventLog` | Conversation内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
@@ -34,11 +34,11 @@
 | sdk.event | `Event`<br>`MessageEvent`<br>`HookExecutionEvent` | session経過の記録 | 採用 | Conversationのイベント経路で使用 | event/resume回帰 |
 | sdk.extensions | `fetch` | 外部拡張 | 不採用 | Canvas等の別UI・拡張境界を持ち込まない | pinned API確認、採用しない |
 | sdk.git | `get_git_changes`<br>`GitError` | stale判定へのgit入力 | 採用 | `src/acd/openhands/evidence/git.py`で使用 | dirty/stale fixture |
-| sdk.hooks | `HookConfig`<br>`HookEventType`<br>`HookExecutor` | agent経路の停止側境界 | 採用 | `plugins/acd/hooks/`がSDK hook契約を使用 | DENY/allow試験 |
+| sdk.hooks | `HookConfig`<br>`HookEventType`<br>`HookExecutor` | agent経路の停止側境界 | 採用 | `HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する | DENY/allow試験 |
 | sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用 | L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない | tests/openhands/session/test_observation_store.py、verify_all.py --stage standard |
 | sdk.llm | `LLM`<br>`Message`<br>`TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
-| sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | routing結果は合否へ影響させず、profileと資材hashを固定する | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
+| sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | ACDは`RouterLLM`によるrole routingを使用する。`RandomRouter`/`MultimodalRouter`は直接使用せず、routing結果は合否へ影響させない | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
 | sdk.logger | `get_logger` | L3観測の構造化 | 採用 | `secret`と`Evidence`をログへ混入させず、観測名とhashだけを構造化ログへ出す | scripts/tests/test_observation_log.py、verify_all.py --stage standard |
 | sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | ADR-0036のinstalled plugin ambient自動読み込みは採用するが、MarketplaceRegistry自体は使用しない | pinned API確認、MarketplaceRegistryを使用しない |
@@ -47,7 +47,7 @@
 | sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | 既定の明示PluginSource経路でSHA/tagを固定し、ADR-0036のinstalled plugin ambient経路も採用する | 明示ref検証、ambient bootstrap回帰 |
 | sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用 | `OpenHandsAgentProfile`をsecret-freeなまま検証し、routing policyとのprofile driftをfail-closedで検知する | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.secret | `SecretSource`<br>`StaticSecret`<br>`LookupSecret` | secretを平文から分離 | 採用 | allowlist環境変数をlazy sourceとしてConversation registryへ渡し、ACD側で`SecretSource`を実装する。`StaticSecret`/`LookupSecret`は直接importしない | registry masking回帰 |
-| sdk.security | `ConfirmRisky`<br>`NeverConfirm` | agent操作の安全境界 | 採用 | 現行conversationへMEDIUM以上の確認方針を設定 | risky/deny試験 |
+| sdk.security | `ConfirmRisky`<br>`NeverConfirm` | agent操作の安全境界 | 採用 | 現行conversationへ`ConfirmRisky`を設定する。`NeverConfirm`は直接使用しない | risky/deny試験 |
 | sdk.security.analyzer | `SecurityAnalyzerBase`<br>`PatternSecurityAnalyzer`<br>`EnsembleSecurityAnalyzer`<br>`SecurityRisk` | agent操作の決定論的追加監視 | 採用 | ACD analyzerとPattern analyzerをSDK ensembleへ合成し、LLM/GraySwanは使わない | risk/ensemble回帰 |
 | sdk.security.grayswan | `GraySwanAnalyzer` | 外部security analyzer | 不採用 | GraySwan系analyzerはOpenHands専用拡張の境界外 | pinned API確認、採用しない |
 | sdk.security.internal | `LLMSecurityAnalyzer` | SDK内部security補助 | 不採用 | LLM系analyzerと内部補助をACDが直接依存しない | pinned API確認、採用しない |
@@ -62,18 +62,18 @@
 | sdk.workspace | `LocalWorkspace` | agent作業workspace | 採用予定（ロードマップ4.4） | host実行はprovisionalに限定し、authoritative経路にしない | pinned API確認、実装未着手 |
 | tools | `TerminalTool` | OpenHands標準tool集合 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
 | tools.apply_patch | `ApplyPatchTool` | patch編集 | 不採用 | ACDの明示的tool集合と保護hookを単一化する | pinned API確認、採用しない |
-| tools.browser_use | `BrowserClickTool` | L2の部品調査・datasheet確認 | 採用 | L2探索補助に限定し、設計入力へ直接昇格させない。決定論的APIで再取得して`hash`固定し、`Evidence`やL1合否を置換しない | `BrowserToolSet.is_usable()`、agent session回帰 |
+| tools.browser_use | `BrowserClickTool` | L2の部品調査・datasheet確認 | 採用 | `BrowserToolSet.is_usable()`経由で利用可能性を検査して登録する。L2探索補助に限定し、`BrowserClickTool`を直接importせず、`Evidence`やL1合否を置換しない | `BrowserToolSet.is_usable()`、agent session回帰 |
 | tools.delegate | `DelegateExecutor` | sub-agent調整 | 採用 | SDKのTask実行経路で使用し、hookと確認方針を境界にする | session回帰 |
 | tools.file_editor | `FileEditorTool` | agentのファイル編集 | 採用 | AgentDefinitionとhook保護経路で参照 | hook/編集試験 |
 | tools.gemini | `EditTool` | 外部provider | 不採用 | ACDの固定provider境界外 | pinned API確認、採用しない |
-| tools.glob | `GlobTool` | agent検索 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
-| tools.grep | `GrepTool` | agent検索 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
+| tools.glob | `GlobTool` | agent検索 | 採用 | `plugins/acd/agents/acd-*.md`の`tools:`で`tools.glob`名を参照する。Python APIの直接importはない | agent実行試験 |
+| tools.grep | `GrepTool` | agent検索 | 採用 | `plugins/acd/agents/acd-*.md`の`tools:`で`tools.grep`名を参照する。Python APIの直接importはない | agent実行試験 |
 | tools.planning_file_editor | `PlanningFileEditorTool` | 計画ファイル編集 | 不採用 | file_editorと保護hookの単一経路を維持する | pinned API確認、採用しない |
 | tools.preset | `get_default_agent` | 暗黙tool束 | 不採用 | tool集合を明示固定する | pinned API確認、採用しない |
 | tools.preset.internal | `get_default_tools` | 汎用tool束 | 不採用 | ACD固有`ToolDefinition`で登録する | pinned API確認、採用しない |
 | tools.task | `TaskToolSet` | task分離 | 採用 | hook付きACD agent定義へ限定し、合否権限なし | session回帰 |
-| tools.task_tracker | `TaskTrackerTool` | agent作業追跡 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
-| tools.terminal | `TerminalTool` | agentのCLI実行 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
+| tools.task_tracker | `TaskTrackerTool` | agent作業追跡 | 採用 | `plugins/acd/agents/acd-*.md`の`tools:`で`tools.task_tracker`名を参照する。Python APIの直接importはない | agent実行試験 |
+| tools.terminal | `TerminalTool` | agentのCLI実行 | 採用 | `plugins/acd/agents/acd-*.md`の`tools:`で`tools.terminal`名を参照する。Python APIの直接importはない | agent実行試験 |
 | tools.tom_consult | `TomConsultTool` | 外部相談 | 不採用 | 合否に関与しない経路を増やさない | pinned API確認、採用しない |
 | tools.utils | `run_with_timeout` | SDK内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | tools.workflow | `WorkflowToolSet` | lane並列化のmap/reduce | 不採用 | 任意Python scriptがhook境界を貫通しうるため将来再検討 | pinned API確認、採用しない |
