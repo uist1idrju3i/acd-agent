@@ -1,0 +1,63 @@
+name: Publish ACD agent-server image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - name: Sync workspace
+        run: uv sync
+      - name: Resolve locked tools image
+        run: |
+          TOOLS_REF=$(uv run python scripts/print_locked_image.py --entry acd-tools)
+          printf 'TOOLS_REF=%s\n' "$TOOLS_REF" >> "$GITHUB_ENV"
+      - name: Pull locked tools image
+        run: docker pull "$TOOLS_REF"
+      - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish
+        env:
+          CUSTOM_TAGS: latest
+        run: |
+          uv run python vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/build.py \
+            --base-image "$TOOLS_REF" \
+            --image ghcr.io/uist1idrju3i/acd-server \
+            --target source \
+            --platforms linux/amd64 \
+            --push \
+            --sdk-project-root "$GITHUB_WORKSPACE/vendor/software-agent-sdk"
+      - name: Publish latest alias
+        run: |
+          SDK_SHA=$(git -C vendor/software-agent-sdk rev-parse HEAD)
+          docker buildx imagetools create \
+            --tag ghcr.io/uist1idrju3i/acd-server:latest \
+            "ghcr.io/uist1idrju3i/acd-server:${SDK_SHA}-latest-source"
+      - name: Record base and derived digests
+        run: |
+          DERIVED_DIGEST=$(docker buildx imagetools inspect \
+            --format '{{json .Manifest.Digest}}' \
+            ghcr.io/uist1idrju3i/acd-server:latest | tr -d '"')
+          {
+            echo "## ACD agent-server image"
+            echo
+            echo "- **base**: \`$TOOLS_REF\`"
+            echo "- **derived**: \`ghcr.io/uist1idrju3i/acd-server:latest@$DERIVED_DIGEST\`"
+          } >> "$GITHUB_STEP_SUMMARY"

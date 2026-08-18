@@ -52,14 +52,31 @@ runnerはderived imageそのものではなく、入力base imageのcontent addr
 `ACD_CONTAINER_IMAGE_DIGEST`へforwardする。これは派生imageの同一性を偽装せず、base
 digestとSDK版による再現可能な派生経路をEvidenceへ記録するためである。
 
-`publish-acd-tools.yml`は`workflow_dispatch`またはmainへの`docker/**`変更pushで起動する。
-GHCRのpublish job summaryに表示されたdigestを、利用するimage refとともに運用記録へ
-転記する。publish済みdigestを持たない間はplaceholderのlock fileを作成せず、local build
-のimage IDを実行時のcontent addressとして扱う。
+`publish-acd-tools.yml`のjob summaryに表示されたindex digestを、image refとともに
+`docker/image-digests.json`へ転記する。未publishのentryやplaceholder digestは作成せず、
+lockに記録されていないimageをpullするfallbackも禁止する。lockの検証は次のように行う。
 
-将来、GHCRのpublish済みdigestを運用記録へ固定した後は、CIで毎回buildせず、そのdigestを
-pullして`DockerDevWorkspace`へ渡す方式へ移行する。digest記録前に条件分岐でpull/buildを
-切り替える実装は入れず、移行時に明示的な運用変更として扱う。
+```bash
+TOOLS_REF="$(uv run python scripts/print_locked_image.py --entry acd-tools)"
+docker pull "$TOOLS_REF"
+docker run --rm \
+  -v "$PWD:/acd-src:ro" \
+  -w /tmp \
+  "$TOOLS_REF" \
+  sh -c 'cp -r /acd-src /tmp/acd && cd /tmp/acd && uv sync && uv run python scripts/probe_tools.py'
+```
+
+probe結果の既知版がlockの`tools`と一致することを確認し、版不明、pull失敗、
+parse失敗はfail-closedとする。FreeRoutingとuvはDockerfileでSHA-256を検証している一方、
+KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。したがって再buildを
+同一性の根拠にせず、publish済みimage digestをidentity authorityとして扱う。
+
+`publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
+digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
+job summaryには**base**のtools refと**derived**のserver digestを別々に記録する。
+base digestとderived digestを同一とは主張しない。初回publish実行後、summaryのderived
+digestを`docker/image-digests.json`の`acd_server`へ転記するまで、server entryは
+unsetのままとする。
 
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
 Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
