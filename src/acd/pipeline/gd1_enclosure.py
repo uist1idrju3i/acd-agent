@@ -47,7 +47,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
 
     probe = probe_cad_kernel()
     gate_report = run_mechanical_gates(
-        step_path=projection.shell_step_path,
+        step_path=projection.assembly_step_path,
         lane=lane,
         kernel_probe=probe,
     )

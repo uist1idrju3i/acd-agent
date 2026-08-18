@@ -49,6 +49,18 @@ def _shape_bbox(shape: Any) -> tuple[float, float, float, float, float, float]:
     )
 
 
+def _bboxes_close(
+    first: tuple[float, float, float, float, float, float],
+    second: tuple[float, float, float, float, float, float],
+    *,
+    abs_tol: float = 1e-6,
+) -> bool:
+    return all(
+        math.isclose(left, right, rel_tol=0.0, abs_tol=abs_tol)
+        for left, right in zip(first, second, strict=True)
+    )
+
+
 def measure_enclosure_artifacts(
     *,
     shell_step_path: Path,
@@ -82,8 +94,11 @@ def measure_enclosure_artifacts(
     shell_bbox = _shape_bbox(shell)
     lid_bbox = _shape_bbox(lid)
     assembly_bbox = _shape_bbox(assembly)
+    # GD1 currently uses a stacked shell/lid enclosure; nested designs need a different relation.
     if shell_bbox[5] >= lid_bbox[2]:
-        raise MechanicalGateError("shell and lid STEP artifacts overlap in Z")
+        raise MechanicalGateError(
+            "current stacked GD1 enclosure requires shell/lid Z separation"
+        )
     if not math.isclose(
         float(assembly.volume),
         float(shell.volume) + float(lid.volume),
@@ -101,7 +116,7 @@ def measure_enclosure_artifacts(
         max(shell_bbox[4], lid_bbox[4]),
         max(shell_bbox[5], lid_bbox[5]),
     )
-    if assembly_bbox != expected_bbox:
+    if not _bboxes_close(assembly_bbox, expected_bbox):
         raise MechanicalGateError(
             "assembly STEP bbox does not equal separated shell/lid bboxes"
         )
@@ -171,7 +186,7 @@ def run_mechanical_gates(
         shape = build123d.import_step(step_path)
     except Exception as exc:
         raise MechanicalGateError(f"STEP reload failed: {type(exc).__name__}: {exc}") from exc
-    solids = shape.solids()
+    solids = list(shape.solids())
     if not shape.is_valid or not solids or any(not solid.is_valid for solid in solids):
         raise MechanicalGateError("reloaded STEP contains an invalid or open solid")
     shell = max(solids, key=lambda solid: solid.volume)
@@ -192,30 +207,35 @@ def run_mechanical_gates(
             lane.outline.width_mm,
             lane.outline.depth_mm,
         )
-        intersection = shell & body_shape
-        intersection_volume = 0.0 if intersection is None else float(intersection.volume)
-        measured_max_interference_volume = max(
-            measured_max_interference_volume, intersection_volume
-        )
-        if (
-            intersection is not None
-            and intersection_volume > enclosure.interference_tolerance_mm3
-        ):
-            interference = False
-        standoff_area = math.pi * enclosure.standoff_radius_mm**2
-        wall_faces = [
-            face
-            for face in shell.faces()
-            if face.area > standoff_area and str(face.geom_type).endswith("PLANE")
-        ]
-        if not wall_faces:
-            raise MechanicalGateError("reloaded STEP has no measurable inner wall faces")
-        measured_clearance = min(body_shape.distance_to(face) for face in wall_faces)
-        measured_min_clearance = min(measured_min_clearance, measured_clearance)
-        if measured_clearance < enclosure.internal_clearance_mm - enclosure.tolerance_mm:
-            clearance = False
+        for solid in solids:
+            intersection = solid & body_shape
+            intersection_volume = 0.0 if intersection is None else float(intersection.volume)
+            measured_max_interference_volume = max(
+                measured_max_interference_volume, intersection_volume
+            )
+            if (
+                intersection is not None
+                and intersection_volume > enclosure.interference_tolerance_mm3
+            ):
+                interference = False
+            standoff_area = math.pi * enclosure.standoff_radius_mm**2
+            wall_faces = [
+                face
+                for face in solid.faces()
+                if face.area > standoff_area and str(face.geom_type).endswith("PLANE")
+            ]
+            if not wall_faces:
+                raise MechanicalGateError(
+                    "reloaded STEP solid has no measurable inner wall faces"
+                )
+            measured_clearance = min(body_shape.distance_to(face) for face in wall_faces)
+            measured_min_clearance = min(measured_min_clearance, measured_clearance)
+            if measured_clearance < enclosure.internal_clearance_mm - enclosure.tolerance_mm:
+                clearance = False
 
-    measured_wall = _measured_wall_thickness(shell, enclosure.tolerance_mm)
+    measured_wall = min(
+        _measured_wall_thickness(solid, enclosure.tolerance_mm) for solid in solids
+    )
     if measured_min_clearance == float("inf"):
         raise MechanicalGateError("no solid component body has measurable clearance")
     wall_thickness = measured_wall + enclosure.tolerance_mm >= enclosure.min_wall_thickness_mm
@@ -224,7 +244,7 @@ def run_mechanical_gates(
         interference=interference,
         clearance=clearance,
         wall_thickness=wall_thickness,
-        measured_volume_mm3=float(shell.volume),
+        measured_volume_mm3=float(sum(solid.volume for solid in solids)),
         measured_min_wall_mm=measured_wall,
         measured_min_clearance_mm=measured_min_clearance,
         measured_max_interference_volume_mm3=measured_max_interference_volume,

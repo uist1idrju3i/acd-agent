@@ -23,11 +23,6 @@ class CadProjection:
     artifact_manifest_path: Path
     envelope: Any
 
-    @property
-    def step_path(self) -> Path:
-        """Return the shell STEP for compatibility with mechanical gates."""
-        return self.shell_step_path
-
 
 def cad_tool_version() -> str:
     build123d_version = importlib.metadata.version("build123d")
