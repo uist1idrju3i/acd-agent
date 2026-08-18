@@ -13,6 +13,10 @@
 | measured/virtual分類 | `measured`は実機で取得した測定、`virtual`はRenode等の仮想実機ログを表す分類。`virtual`は実測の代替にならない。 |
 | 測定量 | 名前、単位、値、期待範囲、許容差を持つ実機Evidenceの数値記録。 |
 | 期待範囲 | 測定量が満たすべき下限・上限と許容差による決定論的な値域。 |
+| 受領record | fabまたは実装業者から受領した成果物、検査レポート、送付manifest、出所、時刻を記録する契約。 |
+| 送付manifest | 製造・組立へ送付した成果物の相対path、content hash、対象revisionを記録するmanifest。 |
+| 突合（reconciliation） | 送付manifestと受領recordの成果物一覧、hash、対象revisionを決定論的に比較する処理。 |
+| 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |
 | execution context | `container`、`host`、`unknown`で表すToolEnvelopeの型付き実行場所。 |
 | authoritative Evidence | revision一致、既知provenance、digest固定containerを満たし、合格側へ使えるEvidence。 |
 | provisional Evidence | `supports_pass()`は満たすがdigest固定container要件を満たさず、参考に限るEvidence。 |

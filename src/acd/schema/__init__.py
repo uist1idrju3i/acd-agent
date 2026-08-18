@@ -34,6 +34,15 @@ from acd.schema.rationale import (
     RationaleUntraceable,
     RejectedAlternative,
 )
+from acd.schema.receipt import (
+    InspectionReportReference,
+    ReceiptArtifact,
+    ReceiptParty,
+    ReceiptRecord,
+    ReconciliationReport,
+    ReconciliationStatus,
+    ShipmentManifestReference,
+)
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
 
 __all__ = [
@@ -48,6 +57,7 @@ __all__ = [
     "EvidenceStatus",
     "FabProfileDocument",
     "GraphNode",
+    "InspectionReportReference",
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
@@ -65,7 +75,13 @@ __all__ = [
     "RationaleUnclassified",
     "RationaleUnknownProvenance",
     "RationaleUntraceable",
+    "ReceiptArtifact",
+    "ReceiptParty",
+    "ReceiptRecord",
+    "ReconciliationReport",
+    "ReconciliationStatus",
     "RejectedAlternative",
+    "ShipmentManifestReference",
     "ToolEnvelope",
     "canonical_sha256",
     "is_unknown",

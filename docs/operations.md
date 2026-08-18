@@ -92,6 +92,25 @@ uv run python scripts/verify_all.py --stage full
 含む。authoritative container gateはCI固有の`container-gates` jobで実行するため、
 `verify_all.py`には含めない。
 
+## 製造・組立受領の取り込み
+
+送付manifestとfabまたは実装業者の受領recordを決定論的に突合する。manifest自身の
+canonical JSON SHA-256を受領recordの`manifest_reference.manifest_hash`と比較し、
+成果物の相対pathとcontent hash、対象revision、manifestの`unknowns`を検査する。
+不一致、契約違反、unknownは非ゼロ終了となり、合格側Evidenceへ昇格しない。
+
+```bash
+uv run python scripts/ingest_receipt.py \
+  --manifest fixtures/contracts/valid/fab-package-receipt.json \
+  --receipt fixtures/contracts/valid/receipt.json \
+  --evidence out/receipt-evidence.json \
+  --report out/receipt-reconciliation.json
+```
+
+同一のmanifestとreceiptを再実行した場合、reportとEvidenceは同じバイト列になる。
+出力Evidenceは`execution_context="host"`で、`PhysicalEvidence.supports_authoritative_pass()`
+は常に`False`である。
+
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、

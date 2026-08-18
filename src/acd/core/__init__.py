@@ -15,6 +15,14 @@ from acd.core.rationale import (
     check_rationale_coverage,
     subject_hash_for,
 )
+from acd.core.receipt import (
+    ReceiptReconciliationError,
+    ReconciliationReport,
+    build_receipt_evidence,
+    canonical_hash_for,
+    reconcile_files,
+    reconcile_receipt,
+)
 
 __all__ = [
     "RATIONALE_EXEMPT_ATTRS",
@@ -23,11 +31,17 @@ __all__ = [
     "FabOrderIntentView",
     "FabProfile",
     "ProcessAllowanceView",
+    "ReceiptReconciliationError",
+    "ReconciliationReport",
+    "build_receipt_evidence",
+    "canonical_hash_for",
     "check_rationale_coverage",
     "extract_fab_intent",
     "load_fab_profile",
     "normalize_3mf",
     "normalize_step",
+    "reconcile_files",
+    "reconcile_receipt",
     "subject_hash_for",
     "validate_allowances_against_profile",
 ]

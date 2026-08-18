@@ -8,7 +8,7 @@ OpenHands plugin、8 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefiniti
 GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SES import、DRC、
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
-実機Evidenceのschema契約と分類は実装済みである。実機の受領取り込み、FW書き込み・
+実機Evidenceのschema契約と分類、実機の受領取り込みは実装済みである。FW書き込み・
 機能測定、測定結果の入力反映、価格・在庫・納期取得、発注は未実装である。
 `AcdGateCritic`は決定論的ゲート結果を使うL2操舵として実装済みである。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
@@ -36,7 +36,7 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装 |
-| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1実装、5.2〜5.4未着手 |
+| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.2実装、5.3〜5.4未着手 |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 一部実装 |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
@@ -89,11 +89,11 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | fabと実装業者のreceipt、検査レポート、送付manifest、受領日時を出所付きで入力する |
-| 実装 | 受領recordを製造データpackageのhashと突き合わせ、送付した成果物と受領物の対応を記録する |
-| 正常系 | 送付manifestと受領recordのhashが一致し、対象revisionの実機Evidenceとして残る |
-| negative/fail-closed | manifest hash不一致、revision不明、receipt欠落、日時逆転を停止条件にする |
-| 再現性 | 受領recordの取り込みをCLIで再実行でき、同一入力から同一出力hashになる |
+| 入力と出所 | `ReceiptRecord`がfab／assembler、業者名、出所URI、受領物、検査レポート参照、送付manifest参照、送付・受領・記録時刻を保持する |
+| 実装 | `acd.core.receipt`と`scripts/ingest_receipt.py`で受領recordを製造データpackageのmanifestと決定論的に突合し、対応結果を型付きreportへ記録する |
+| 正常系 | 送付manifestと受領recordのhash・対象revision・成果物一覧が一致し、`measured`分類のhost実機Evidenceとして残る |
+| negative/fail-closed | manifest hash不一致、revision不一致、manifest構造不備、unknowns、受領物の欠落・余剰・hash不一致、検査レポート欠落、日時逆転を停止条件にする |
+| 再現性 | 受領recordの取り込みをCLIで再実行でき、同一入力から同一report・Evidenceバイト列とcanonical hashになる |
 
 ### 5.3 FW書き込みと機能測定
 

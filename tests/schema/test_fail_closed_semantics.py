@@ -13,6 +13,7 @@ from acd.schema import (
     PhysicalEvidence,
     RationaleCoverageReport,
     RationaleUnclassified,
+    ReceiptRecord,
     ToolEnvelope,
     canonical_sha256,
 )
@@ -149,3 +150,17 @@ def test_rationale_report_serializes_unclassified_attributes() -> None:
         ],
     )
     assert report.model_dump(mode="json")["unclassified"][0]["attr"] == "future_attr"
+
+
+def test_receipt_requires_non_empty_inspection_reports_and_items() -> None:
+    value = load_fixture("valid", "receipt.json")
+    with pytest.raises(ValueError):
+        ReceiptRecord.model_validate({**value, "inspection_reports": []})
+    with pytest.raises(ValueError):
+        ReceiptRecord.model_validate({**value, "received_items": []})
+
+
+def test_receipt_timestamps_are_monotonic() -> None:
+    value = load_fixture("valid", "receipt.json")
+    with pytest.raises(ValueError):
+        ReceiptRecord.model_validate({**value, "received_at": "2026-01-01T10:00:00Z"})

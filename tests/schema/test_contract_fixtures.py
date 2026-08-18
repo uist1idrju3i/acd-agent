@@ -12,6 +12,7 @@ from acd.schema import (
     Evidence,
     PhysicalEvidence,
     RationaleDocument,
+    ReceiptRecord,
     ToolEnvelope,
 )
 
@@ -24,6 +25,7 @@ from acd.schema import (
         (PhysicalEvidence, "physical-evidence.json"),
         (ToolEnvelope, "tool-envelope.json"),
         (RationaleDocument, "rationale.json"),
+        (ReceiptRecord, "receipt.json"),
     ],
 )
 def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
@@ -42,6 +44,9 @@ def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
         (PhysicalEvidence, "physical-evidence-no-measurements.json"),
         (ToolEnvelope, "tool-envelope-missing-input-hash.json"),
         (RationaleDocument, "rationale-bad-alternatives.json"),
+        (ReceiptRecord, "receipt-inspection-reports-missing.json"),
+        (ReceiptRecord, "receipt-time-reversed.json"),
+        (ReceiptRecord, "receipt-zero-items.json"),
     ],
 )
 def test_invalid_contract_fixtures(model: type[AcdModel], name: str) -> None:

@@ -1,0 +1,22 @@
+{
+  "inspection_reports": [],
+  "counterparty_type": "fab",
+  "supplier_name": "Example Fabrication",
+  "received_at": "2026-01-01T13:00:00Z",
+  "received_items": [
+    {
+      "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "path": "artifacts/board.zip"
+    }
+  ],
+  "receipt_id": "receipt-invalid",
+  "recorded_at": "2026-01-01T14:00:00Z",
+  "schema_version": "0.1",
+  "sent_at": "2026-01-01T11:00:00Z",
+  "manifest_reference": {
+    "manifest_hash": "sha256:1558de54d03599dbe4dcf70642aa0d21c71d7e8d01491efc2cbdefc3f36fe21a",
+    "manifest_path": "fab-package.json",
+    "target_revision": "r12"
+  },
+  "source_uri": "https://fab.example/receipts/receipt-invalid"
+}

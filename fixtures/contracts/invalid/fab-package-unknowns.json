@@ -1,0 +1,22 @@
+{
+  "fab_profile": {
+    "id": "prototype"
+  },
+  "files": [
+    {
+      "content_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "path": "artifacts/board.zip"
+    },
+    {
+      "content_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "path": "artifacts/assembly.csv"
+    }
+  ],
+  "gates": {},
+  "schema_version": "0.1",
+  "status": "not_order_ready",
+  "target_revision": "r12",
+  "unknowns": {
+    "price": "unknown"
+  }
+}
