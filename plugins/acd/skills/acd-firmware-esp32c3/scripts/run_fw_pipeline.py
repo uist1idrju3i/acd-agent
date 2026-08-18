@@ -8,7 +8,7 @@
 
 Single command:
 
-    uv run python plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+    uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
         --out out/gd1-fw
 
 Stages: graph load/validation -> firmware and electrical lane extraction ->
