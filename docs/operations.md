@@ -183,6 +183,8 @@ uv run python scripts/verify_agent_prompts.py --check
 
 `--check`はagent資材とmanifestを一切書き換えない。資材の欠落、parse失敗、hash drift、
 manifest不正はfail-closedとなり、reportを標準出力へ出してexit code 2を返す。
+drift reportの`unregistered_roles`は資材に存在するがmanifestへ未登録のrole、
+`missing_roles`はmanifestにあるが資材から欠落したroleを表す。
 manifestを現在の資材から決定論的に生成する場合だけ`--write`を使う。
 
 ```bash

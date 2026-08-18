@@ -56,10 +56,10 @@ def test_prompt_drift_report_supports_unknown_fallback() -> None:
     report = PromptDriftReport(status="unknown", reason="manifest parse failed")
     assert report.model_dump(mode="json") == {
         "drifted_roles": [],
-        "extra_roles": [],
         "missing_roles": [],
         "reason": "manifest parse failed",
         "status": "unknown",
+        "unregistered_roles": [],
     }
 
 

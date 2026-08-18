@@ -50,6 +50,7 @@ def build_acd_conversation(
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
     prompt_manifest_path: Path | None = None,
+    prompt_manifest_root: Path | None = None,
     stuck_detection_thresholds: (
         StuckDetectionThresholds | Mapping[str, int] | None
     ) = None,
@@ -66,15 +67,10 @@ def build_acd_conversation(
     )
     try:
         agent_dir_root = plugin_root / "agents"
-        asset_root = repo_root
-        try:
-            agent_dir_root.resolve().relative_to(repo_root)
-        except ValueError:
-            asset_root = plugin_root.parent
         prompt_report = check_prompt_manifest(
             agent_dir_root,
             prompt_manifest_path,
-            root=asset_root,
+            root=prompt_manifest_root or repo_root,
         )
     except (OSError, ValueError) as exc:
         raise PromptManifestError("ACD role prompt manifest verification failed") from exc

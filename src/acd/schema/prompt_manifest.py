@@ -52,6 +52,6 @@ class RolePromptManifest(AcdModel):
 class PromptDriftReport(AcdModel):
     status: PromptManifestStatus
     drifted_roles: list[NonEmptyStr] = Field(default_factory=list)
+    unregistered_roles: list[NonEmptyStr] = Field(default_factory=list)
     missing_roles: list[NonEmptyStr] = Field(default_factory=list)
-    extra_roles: list[NonEmptyStr] = Field(default_factory=list)
     reason: NonEmptyStr | None = None

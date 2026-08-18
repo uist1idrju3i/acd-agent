@@ -24,7 +24,6 @@ from acd.openhands.session.prompts import (
     create_acd_prompt_registry,
     generate_prompt_manifest,
     load_prompt_manifest,
-    verify_prompt_manifest,
     write_prompt_manifest,
 )
 
@@ -43,7 +42,6 @@ __all__ = [
     "install_goal_interrupt",
     "load_prompt_manifest",
     "run_acd_goal",
-    "verify_prompt_manifest",
     "write_conversation_metrics",
     "write_conversation_stats",
     "write_goal_result",

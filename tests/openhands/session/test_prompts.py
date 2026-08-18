@@ -58,14 +58,19 @@ def test_role_prompt_section_is_static_and_always_renders() -> None:
     assert section.render(context) == "body"
 
 
-def test_manifest_generation_is_deterministic(tmp_path: Path) -> None:
+def test_manifest_generation_is_independent_of_cwd(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     agent_dir, manifest_path = _manifest(tmp_path)
-    first = manifest_path.read_bytes()
+    first_manifest = manifest_path.read_bytes()
+    first_generated = generate_prompt_manifest(agent_dir, root=tmp_path)
+    monkeypatch.chdir("/")
+    second_generated = generate_prompt_manifest(agent_dir, root=tmp_path)
+    assert second_generated == first_generated
     write_prompt_manifest(agent_dir, manifest_path, root=tmp_path)
-    assert manifest_path.read_bytes() == first
-    assert generate_prompt_manifest(agent_dir, root=tmp_path).canonical_hash == (
-        json.loads(first)["canonical_hash"]
-    )
+    assert manifest_path.read_bytes() == first_manifest
+    assert json.loads(first_manifest)["canonical_hash"] == first_generated.canonical_hash
+    assert check_prompt_manifest(agent_dir, manifest_path, root=tmp_path).status == "pass"
 
 
 def test_prompt_asset_drift_is_fail_closed(tmp_path: Path) -> None:
@@ -132,8 +137,8 @@ def test_prompt_manifest_entry_missing_and_extra_are_drift(tmp_path: Path) -> No
     )
     report = check_prompt_manifest(agent_dir, manifest_path, root=tmp_path)
     assert report.status == "fail"
-    assert report.missing_roles == ["acd-test"]
-    assert report.extra_roles == ["acd-other"]
+    assert report.unregistered_roles == ["acd-test"]
+    assert report.missing_roles == ["acd-other"]
 
 
 def test_create_registry_rejects_manifest_drift(tmp_path: Path) -> None:

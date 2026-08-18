@@ -439,6 +439,7 @@ def test_bootstrap_rejects_plugin_without_skills(tmp_path: Path) -> None:
             ],
             persistence_dir=tmp_path / "sessions",
             plugin_root=plugin_root,
+            prompt_manifest_root=tmp_path,
         )
 
 
@@ -455,6 +456,7 @@ def test_bootstrap_rejects_prompt_manifest_drift(tmp_path: Path) -> None:
             requirements=[],
             persistence_dir=tmp_path / "sessions",
             plugin_root=plugin_root,
+            prompt_manifest_root=tmp_path,
         )
 
 
@@ -473,6 +475,7 @@ def test_bootstrap_rejects_missing_prompt_manifest(tmp_path: Path) -> None:
             ],
             persistence_dir=tmp_path / "sessions",
             plugin_root=plugin_root,
+            prompt_manifest_root=tmp_path,
         )
 
 
@@ -496,6 +499,7 @@ def test_bootstrap_honors_custom_prompt_manifest_path(tmp_path: Path) -> None:
         persistence_dir=tmp_path / "sessions",
         plugin_root=plugin_root,
         prompt_manifest_path=alternate,
+        prompt_manifest_root=tmp_path,
     )
     assert conversation.agent.critic is not None
 
@@ -628,6 +632,7 @@ def test_testllm_conversation_denies_protected_terminal_write(
         ],
         persistence_dir=tmp_path / "sessions",
         plugin_root=plugin_root,
+        prompt_manifest_root=tmp_path,
         tools=[Tool(name="terminal")],
     )
     conversation.send_message("write a protected projection")
@@ -661,6 +666,7 @@ def test_testllm_conversation_critic_refinement_stops_at_max_iterations(
         ],
     )
     llm = TestLLM.from_messages([finish, finish, finish, finish])
+    plugin_root = _minimal_plugin(tmp_path)
     conversation = build_acd_conversation(
         repo_root=Path.cwd(),
         llm=llm,
@@ -671,7 +677,8 @@ def test_testllm_conversation_critic_refinement_stops_at_max_iterations(
             )
         ],
         persistence_dir=tmp_path / "sessions",
-        plugin_root=_minimal_plugin(tmp_path),
+        plugin_root=plugin_root,
+        prompt_manifest_root=tmp_path,
     )
     conversation.send_message("complete the task")
     conversation.run()

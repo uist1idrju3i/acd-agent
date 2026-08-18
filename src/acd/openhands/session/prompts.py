@@ -54,16 +54,6 @@ def _sha256_bytes(value: bytes) -> Sha256:
     return f"sha256:{hashlib.sha256(value).hexdigest()}"
 
 
-def _default_root(agent_dir: Path) -> Path:
-    current = Path.cwd().resolve()
-    resolved = agent_dir.resolve()
-    try:
-        resolved.relative_to(current)
-    except ValueError:
-        return resolved.parent
-    return current
-
-
 def _manifest_hash(manifest: RolePromptManifest) -> Sha256:
     value = manifest.model_dump(mode="json")
     value["canonical_hash"] = "unknown"
@@ -125,11 +115,10 @@ def _load_entries(agent_dir: Path, root: Path) -> list[RolePromptManifestEntry]:
 def generate_prompt_manifest(
     agent_dir: Path,
     *,
-    root: Path | None = None,
-    repo_root: Path | None = None,
+    root: Path,
 ) -> RolePromptManifest:
     """Generate the canonical manifest from ACD agent Markdown assets."""
-    root = (repo_root or root or _default_root(agent_dir)).resolve()
+    root = root.resolve()
     try:
         entries = _load_entries(agent_dir.resolve(), root)
         manifest = RolePromptManifest(entries=sorted(entries, key=lambda item: item.role))
@@ -152,13 +141,12 @@ def check_prompt_manifest(
     agent_dir: Path,
     manifest_path: Path,
     *,
-    root: Path | None = None,
-    repo_root: Path | None = None,
+    root: Path,
 ) -> PromptDriftReport:
     """Compare current role prompt assets with their persisted manifest."""
     try:
         manifest = load_prompt_manifest(manifest_path)
-        actual = generate_prompt_manifest(agent_dir, root=root, repo_root=repo_root)
+        actual = generate_prompt_manifest(agent_dir, root=root)
         if manifest.canonical_hash != _manifest_hash(manifest):
             return PromptDriftReport(
                 status="unknown", reason="prompt manifest canonical hash is invalid"
@@ -168,38 +156,22 @@ def check_prompt_manifest(
 
     expected_by_role = {entry.role: entry for entry in manifest.entries}
     actual_by_role = {entry.role: entry for entry in actual.entries}
-    missing_roles = sorted(set(actual_by_role) - set(expected_by_role))
-    extra_roles = sorted(set(expected_by_role) - set(actual_by_role))
+    unregistered_roles = sorted(set(actual_by_role) - set(expected_by_role))
+    missing_roles = sorted(set(expected_by_role) - set(actual_by_role))
     drifted_roles = sorted(
         role
         for role in set(expected_by_role) & set(actual_by_role)
         if expected_by_role[role] != actual_by_role[role]
     )
-    if missing_roles or extra_roles or drifted_roles:
+    if missing_roles or unregistered_roles or drifted_roles:
         return PromptDriftReport(
             status="fail",
             drifted_roles=drifted_roles,
+            unregistered_roles=unregistered_roles,
             missing_roles=missing_roles,
-            extra_roles=extra_roles,
             reason="role prompt manifest drift detected",
         )
     return PromptDriftReport(status="pass")
-
-
-def verify_prompt_manifest(
-    agent_dir: Path,
-    manifest_path: Path,
-    *,
-    root: Path | None = None,
-    repo_root: Path | None = None,
-) -> PromptDriftReport:
-    """Verify role prompt assets against a persisted manifest."""
-    return check_prompt_manifest(
-        agent_dir,
-        manifest_path,
-        root=root,
-        repo_root=repo_root,
-    )
 
 
 def _load_sections(
@@ -234,12 +206,11 @@ def create_acd_prompt_registry(
     agent_dir: Path,
     *,
     manifest_path: Path | None = None,
-    root: Path | None = None,
-    repo_root: Path | None = None,
+    root: Path,
     preset: PromptPreset = PromptPreset.DEFAULT,
 ) -> PromptRegistry:
     """Create the default SDK registry with verified ACD role sections added."""
-    root = (repo_root or root or _default_root(agent_dir)).resolve()
+    root = root.resolve()
     manifest_path = manifest_path or agent_dir / DEFAULT_MANIFEST_NAME
     report = check_prompt_manifest(agent_dir, manifest_path, root=root)
     if report.status != "pass":
@@ -255,11 +226,10 @@ def write_prompt_manifest(
     agent_dir: Path,
     manifest_path: Path,
     *,
-    root: Path | None = None,
-    repo_root: Path | None = None,
+    root: Path,
 ) -> RolePromptManifest:
     """Generate and persist a deterministic role prompt manifest."""
-    manifest = generate_prompt_manifest(agent_dir, root=root, repo_root=repo_root)
+    manifest = generate_prompt_manifest(agent_dir, root=root)
     value = manifest.model_dump(mode="json")
     manifest_path.write_text(
         json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",

@@ -13,9 +13,13 @@ AGENTS = ROOT / "plugins/acd/agents"
 MANIFEST = AGENTS / "prompt-manifest.json"
 
 
-def _invoke(*args: str) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
-    command = [sys.executable, "scripts/verify_agent_prompts.py", *args]
-    result = subprocess.run(command, capture_output=True, text=True, check=False)
+def _invoke(
+    *args: str, cwd: Path = ROOT
+) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
+    command = [sys.executable, str(ROOT / "scripts/verify_agent_prompts.py"), *args]
+    result = subprocess.run(
+        command, capture_output=True, text=True, check=False, cwd=cwd
+    )
     return result, json.loads(result.stdout)
 
 
@@ -26,6 +30,9 @@ def test_cli_check_is_stable_and_does_not_write_assets(tmp_path: Path) -> None:
     assert result.returncode == 0
     assert report["status"] == "pass"
     assert {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked} == before
+    other_cwd, other_report = _invoke("--check", cwd=tmp_path)
+    assert other_cwd.returncode == 0
+    assert other_report == report
 
 
 def test_cli_drift_returns_exit_two_without_traceback(tmp_path: Path) -> None:
@@ -63,6 +70,8 @@ def test_cli_drift_returns_exit_two_without_traceback(tmp_path: Path) -> None:
     assert "Traceback" not in result.stderr
     assert report["status"] == "fail"
     assert report["drifted_roles"] == ["acd-electrical"]
+    assert report["unregistered_roles"] == []
+    assert report["missing_roles"] == []
 
 
 def test_cli_malformed_or_missing_inputs_return_report_without_traceback(
