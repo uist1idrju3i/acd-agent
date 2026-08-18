@@ -1,24 +1,182 @@
 # ACD — Autonomous Computer Design
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/uist1idrju3i/acd-agent)
+
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
 AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立再読込、機械測定などの
 決定論的ゲートが合否を判定します。
 
-## 構成
+## ACDとは？
 
-```text
-acd.schema → acd.core → acd.pipeline → acd.adapters.*
-                                    └→ acd.openhands
-plugins/acd/ → Skill / AgentDefinition / command / hooks
-vendor/software-agent-sdk/ → OpenHands SDK v1.42.1
+ACDは従来のEDA/MCADのモデルを反転させ、AIが主たる設計者となることを目指します。AIは
+要件のヒアリング、部品選定、回路・基板レイアウト・筐体・ファームウェアの設計、製造データの
+生成、製造・実機フィードバックを受けた反復までを担い、人間は要件のオーナーとして関わり、
+必要に応じてレビュアーの役割も担えます。ACDという名称はCADのアナグラムとして、人間主体から
+AI主体への役割反転を象徴します。
+
+## 想定ユーザー
+
+作者自身が最初のユーザーであり、dogfoodingを前提とします。将来の対象は、KiCadは使えるが
+基板1枚に週末を溶かしている個人開発者です。
+
+## 対象範囲
+
+対象は趣味・研究・小規模試作です。1〜4層リジッド基板と、3Dプリント・卓上切削・簡易CNCで
+製造できる筐体を扱います。量産品質や認証を前提にせず、動く試作へ最短で到達することを
+目的とします。高密度多層・フレキシブル・認証が必要な量産設計は将来の拡張領域です。
+
+## VibeBB — Vibe BreadBoarding
+
+VibeBBは、Vibe Codingになぞらえた「Vibe BreadBoarding」です。Andrej Karpathyが
+[2025年2月の投稿](https://x.com/karpathy/status/1886192184808149383)で示した
+「完全にバイブスに身を委ね、コードの存在すら忘れる（fully give in to the vibes,
+embrace exponentials, and forget that the code even exists）」という発想と、
+「see stuff, say stuff, run stuff」の対話的なループを、基板・筐体・FWの試作と検証へ持ち込みます。
+[Collins英語辞典の2025年Word of the Year](https://blog.collinsdictionary.com/language-lovers/collins-word-of-the-year-2025-ai-meets-authenticity-as-society-shifts/)
+が示すように、自然言語で目的を伝え、結果を見て、次の指示を返す開発体験は広がっています。
+
+ブレッドボード（BreadBoard）がハンダ付けなしに「考えながら試す」ことを可能にしたように、
+VibeBBではやりたいことを言葉で伝えるだけで、AIが部品選定、回路、基板レイアウト、筐体、
+ファームウェア、製造データを進め、人間は動く試作基板と収まる筐体を見てフィードバックを返します。
+回路図を描かないことは、コードを読まないVibe Codingと対になる発想です。
+
+VibeBBは、設計や検証が軽いという意味ではなく、重い検証を人間の手作業から隠すという意味です。
+[Simon Willison](https://simonwillison.net/2025/Mar/19/vibe-coding/)が区別した
+生成物をレビューしない本来のVibe Codingとレビューを伴うAI活用を踏まえ、ACDはレビューの
+役割を人間から決定論的ゲートと実機Evidenceへ移します。人間レビューは任意であり、合否権限を
+持ちません。ツール不在、parse失敗、ゲート未実行、unknownはfail-closedとします。
+
+流れは、**語る（要件を伝える）→ AIが設計し決定論的ゲートで検証する → 作って試す
+（製造・実機テスト）→ 測定結果を次の設計へ返す**です。長時間の机上検討よりも、まず作って
+実機で確かめ、すぐ次の変更を回すことを基本サイクルにします。
+
+## なぜACDか
+
+既存のEDA/MCADは、設計者が複数のGUIとファイルを手で同期する前提です。コード駆動設計、
+AI支援EDA、ヘッドレス検証、製造APIは個別に進展しましたが、要求、電気、筐体、製造、実測を
+一つの対話的な流れでつなぐ公開実装は確認できません。
+ACDが埋めるギャップは、(a)対話を検証可能な要件へ変換すること、(b)人間が回路図を
+描かずに設計すること、(c)決定論的チェッカーを提案のゲートにすること、(d)入力ファイルとgitを
+基に、試作結果を次の修正へ反映することです。
+ファームウェアについてはOpenHands本来のソフトウェア開発能力を活用し、基板・筐体・FWを
+同じ対話的な流れで設計・検証するワンストップの流れへつなぎます。
+ACDは既存ツールを借り、決定論的ゲートと実機フィードバックを統合する点に差別化候補を置きます。
+調査から得た結論は[`docs/research/README.md`](docs/research/README.md)を参照してください。
+
+## 製品ビジョン
+
+ACDは、要件から基板・筐体・ファームウェアを設計し、製造データを生成し、検証結果を
+次の設計入力へ戻す最小の縦断を目指します。人間は要件のオーナーとフィードバックの提供者に
+集中し、OpenHandsが対話、Skill、subagentを使って候補と修正案を整理します。合否は常に
+決定論的ゲートが担い、authoritative Evidenceはdigest固定container実行だけが生成します。
+
+設計は次の3レーンを同じ入力ファイルとgitの履歴から扱います。
+
+- **基板レーン**: 部品、回路意図、配置・配線、ERC/DRC、製造出力。
+- **筐体レーン**: 外形、部品高さ、締結、干渉、clearance、肉厚、CAD出力。
+- **FWレーン**: OpenHandsへ委譲する実装、ビルド、静的検査、仮想実行。
+
+価格・在庫・納期取得、発注、量産対応は将来範囲です。現在の実装状況はこの節ではなく
+[`docs/roadmap.md`](docs/roadmap.md)を正とします。
+
+## 設計原則
+
+原則が衝突する場合の優先順位は、第一に安全境界とfail-closed、第二に決定論的ゲート、
+第三に重い検証を人間へ見せず実機まで到達させることです。第一は危険な設計・副作用を止め、
+第二は合否の判断を一つに保ち、第三はVibeBBの体験価値を守ります。
+
+- AIは候補を提案し、決定論的ツールが判定します。パーサー、幾何計算、DRC、fabルールが
+  検証し、未検証の銅箔配線は生成しません。
+- 回路図レス・図面レスを既定とします。回路図、PCB、筐体図面は入力ファイルから生成する投影です。
+- 入力ファイルとgitを正とし、投影は正へ逆流させず、意味的にマージしません。
+- 基板・筐体・ファームウェアはいずれも第一級の設計対象です。基板と筐体の外形、干渉、肉厚、
+  締結、組立性はACDの決定論的ゲートが判定し、ファームウェアのビルド・検査はOpenHands側で
+  行います（ACD本体はFWゲートを持ちません）。
+- 各工程で機械可読投影と視覚投影を生成し、SDKのsubagent／visionがbest-effortでレビューします。
+  所見は自然文で修正ループへ渡し、合否は決定論的ゲートだけで判定します。
+- 合格側のEvidenceはdigest固定container実行だけが生成します。ホスト実行はprovisionalであり、
+  経路unknownはfail-closedです。
+- 人間レビューは任意です。既定はAIが要件から製造データまで走り切ることです。ユーザーが
+  確かめるのは回路図やアートワークではなく、届いた基板と筐体が実際に動き、収まるかどうかです。
+- ERC/DRCなどの自動ゲートは記述された整合を判定するものであり、ライブラリ記述の誤りや
+  設計意図そのものを保証しません。ライブラリの出所と測定値を別途記録します。
+- 安全境界の禁止領域は初期ターゲットに含めません。AC電源、高電圧・大電流、レーザー、
+  医療・車載用途、無線送信回路の直接設計、Li-ion/LiPo充電回路は初期は禁止とし、
+  詳細は[`SECURITY.md`](SECURITY.md)と
+  [`docs/adr/ADR-0029-agent-safety-boundary.md`](docs/adr/ADR-0029-agent-safety-boundary.md)に定めます。
+
+## 配置・配線をAIで解く
+
+部品の配置、回転、配線を総当たりすると、制約の組合せ爆発で候補数と実測コストが膨らみます。
+LLMはモジュール分解、相対配置制約、優先度、回転刻み方針、探索戦略、評価方針を宣言し、
+必要なら具体的な座標・回転角を提案してもかまいません。提案は候補にとどまり、設計の入力
+ファイルへ確定したのちにACDの投影と決定論的ゲートが判定します。探索器と代理指標の採点は
+ACD本体ではなく`plugins/acd/skills/`のSkillが持ち、採否はOpenHands側が判断します。
+
+安価な代理指標で候補を順位付けし、外部router、DRC/ERC、Gerber独立再読込などの高価な実測は
+上位の少数候補に限定します。回転刻みは版管理された`profiles/`の宣言に従います。
+
+LLM-only CADとの違いは、毎回同じ解を出すことではなく、出た設計を後から再検証できることです。
+実行ごとに解が異なっても、決定論的な実測と独立parser再読込で検証できればよいとします。方針の正は
+[`docs/adr/ADR-0007-llm-guided-physical-design.md`](docs/adr/ADR-0007-llm-guided-physical-design.md)と
+[`docs/adr/ADR-0011-search-results-as-design-input.md`](docs/adr/ADR-0011-search-results-as-design-input.md)です。
+
+## 設計フロー
+
+```mermaid
+flowchart LR
+    S1["S1 要件対話<br/>電気・機械・製造"]
+    subgraph ELEC["電気レーン"]
+        E1["E1 部品選定と回路設計<br/>電気・部品・回路"]
+        E2["E2 アートワーク<br/>電気・配置・配線"]
+    end
+    subgraph MECH["機械レーン"]
+        M1["M1 筐体コンセプト<br/>機械・外形・締結"]
+        M2["M2 筐体詳細<br/>機械・干渉・公差"]
+    end
+    subgraph FWLANE["FWレーン"]
+        FW["ファームウェア<br/>OpenHandsへ委譲"]
+    end
+    LIB["部品ライブラリ"]
+    S1 --> E1
+    S1 --> M1
+    E1 --> E2
+    M1 --> M2
+    E2 --> G["共通ゲート<br/>ERC/DRC・干渉・製造性"]
+    M2 --> G
+    G --> S2["S2 製造出力<br/>基板・筐体・FW"]
+    S2 --> S3["S3 製造・加工フィードバック<br/>DFM・造形・寸法"]
+    S3 --> S4["S4 試作立ち上げ<br/>測定・組立・実機"]
+    S4 --> DONE["完成／量産"]
+    S2 -->|FWパッケージ| FW
+    FW --> S4
+    LIB -.-> E1
+    LIB -.-> E2
+    G -.-> HR["任意の人間レビュー"]
+    HR -.-> G
+    E1 -.->|要件の矛盾| S1
+    E2 -.->|配線不能| E1
+    M2 -.->|筐体要件の実現不能| S1
+    S3 -.->|DFM指摘| E2
+    S3 -.->|部品入手性| E1
+    S3 -.->|フットプリント修正| LIB
+    FW -.->|ピン割当変更| E1
+    S4 -.->|要件見直し| S1
 ```
 
-本リポジトリはOpenHands専用拡張です。境界と不採用機能は
-[`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)、
-SDKの採否は[`docs/openhands-sdk-capabilities.json`](docs/openhands-sdk-capabilities.json)を正とし、
-説明表は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)で確認できます。
-文書統治は[`docs/adr/ADR-0034-document-governance.md`](docs/adr/ADR-0034-document-governance.md)に従い、
-agent-serverは対象外です。
+工程ごとのゲート仕様は[`docs/gates.md`](docs/gates.md)、実装境界は
+[`docs/architecture.md`](docs/architecture.md)を正とします。
+
+## ACDではないもの
+
+- チャットパネルを付けた回路図エディタではありません。対話と入力ファイルがインターフェースです。
+- 自動配線だけを目的とする製品ではありません。
+- 基板に筐体を後付けする製品ではありません。
+- 決定論的な検証なしにAIを信頼する仕組みではありません。
+- 初期の安全境界を越えて、AC電源、高電圧・大電流、レーザー、医療・車載用途、
+  無線送信回路の直接設計、Li-ion/LiPo充電回路を自動設計・発注する製品ではありません。
+- 独自のコンパイラ、デバッガ、シミュレータを作る製品ではありません。既存ツールを
+  外部ツールとして呼び出します。
 
 ## インストール
 
@@ -37,3 +195,7 @@ OpenHandsのLocal GUI（Agent Canvas）の「カスタマイズ → Plugins →
 ## 文書索引
 
 文書の一覧とAccepted ADRの索引は[`docs/README.md`](docs/README.md)を参照してください。
+
+## ライセンス
+
+BSD 3-Clause。Copyright (c) Y. Yamashiro。
