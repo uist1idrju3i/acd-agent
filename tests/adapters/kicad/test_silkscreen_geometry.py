@@ -200,6 +200,7 @@ def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyP
     matrix, source_pitch = qr_module_matrix_from_svg(qr_path)
     center = (11.05, 7.05)
     scale = 13.5 / 36.0
+    measured_pitch = source_pitch * scale
     graphic = SilkGraphicView(
         "qr",
         "repository_qr",
@@ -217,15 +218,37 @@ def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyP
         qr_module_pitch_mm=13.5 / 37.0,
         qr_quiet_zone_modules=4,
     )
-    objects = (
-        _SilkObject(
-            "Region",
-            "B.SilkS",
-            (4.3, 0.3, 17.8, 13.8),
-            1.0,
-            None,
-        ),
-    )
+    object_list: list[_SilkObject] = []
+    for row in range(45):
+        for column in range(45):
+            expected_ink = not (
+                4 <= row < 41
+                and 4 <= column < 41
+                and matrix[row - 4][column - 4] == "1"
+            )
+            if not expected_ink:
+                continue
+            left = center[0] - ((column + 1) * source_pitch - 18.0) * scale
+            right = center[0] - (column * source_pitch - 18.0) * scale
+            bottom = center[1] + (row * source_pitch - 18.0) * scale
+            top = center[1] + ((row + 1) * source_pitch - 18.0) * scale
+            object_list.append(
+                _SilkObject(
+                    "Region",
+                    "B.SilkS",
+                    (left, bottom, right, top),
+                    (right - left) * (top - bottom),
+                    None,
+                    points_mm=(
+                        (left, bottom),
+                        (right, bottom),
+                        (right, top),
+                        (left, top),
+                        (left, bottom),
+                    ),
+                )
+            )
+    objects = tuple(object_list)
 
     def ink_for_point(point: tuple[float, float], damaged: bool) -> bool:
         source_x = 18.0 + (center[0] - point[0]) / scale
@@ -251,13 +274,55 @@ def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyP
         return ink_for_point(point, damaged=True)
 
     monkeypatch.setattr(fab_silkscreen, "_point_has_ink", intact_ink)
-    assert fab_silkscreen._qr_fidelity_measurement(
-        graphic, objects, 0.15
-    )["module_matrix_match"]
+    intact_result = fab_silkscreen._qr_fidelity_measurement(
+        graphic, objects, 0.15, qr_path
+    )
+    assert intact_result["module_matrix_match"]
+    assert intact_result["minimum_printed_width_mm"] == pytest.approx(0.3)
+    assert intact_result["minimum_unprinted_gap_mm"] == pytest.approx(0.3)
 
     monkeypatch.setattr(fab_silkscreen, "_point_has_ink", damaged_ink)
     with pytest.raises(FabOutputError, match="QR module matrix mismatch"):
-        fab_silkscreen._qr_fidelity_measurement(graphic, objects, 0.15)
+        fab_silkscreen._qr_fidelity_measurement(graphic, objects, 0.15, qr_path)
+
+    hole_row, hole_column = next(
+        (row, column)
+        for row in range(37)
+        for column in range(37)
+        if matrix[row][column] == "1"
+    )
+    hole_left = center[0] - (
+        (hole_column + 5) * source_pitch - 18.0
+    ) * scale
+    hole_right = hole_left + 0.2
+    hole_bottom = center[1] + ((hole_row + 4) * source_pitch - 18.0) * scale
+    hole_top = hole_bottom + measured_pitch
+    expanded_objects = [
+        *objects,
+        _SilkObject(
+            "Region",
+            "B.SilkS",
+            (hole_left, hole_bottom, hole_right, hole_top),
+            (hole_right - hole_left) * (hole_top - hole_bottom),
+            None,
+            points_mm=(
+                (hole_left, hole_bottom),
+                (hole_right, hole_bottom),
+                (hole_right, hole_top),
+                (hole_left, hole_top),
+                (hole_left, hole_bottom),
+            ),
+        ),
+    ]
+    monkeypatch.setattr(fab_silkscreen, "_point_has_ink", intact_ink)
+    with pytest.raises(FabOutputError, match="minimum unprinted gap"):
+        fab_silkscreen._qr_fidelity_measurement(
+            graphic, tuple(expanded_objects), 0.15, qr_path
+        )
+    with pytest.raises(FabOutputError, match="unavailable"):
+        fab_silkscreen._qr_fidelity_measurement(
+            graphic, objects, 0.15, qr_path.parent
+        )
 
 
 def test_same_side_courtyard_overlap_is_rejected() -> None:

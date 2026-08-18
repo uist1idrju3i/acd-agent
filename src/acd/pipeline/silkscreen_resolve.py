@@ -26,7 +26,7 @@ from acd.schema.design_graph import DesignGraph
 from .gd1_board import placements_from_graph
 from .gd1_fixture.components import sha256_of
 from .placement_evidence import summarize_placement_evidence
-from .repository import repository_root
+from .repository import repository_root, resolve_repository_file
 
 
 def measure_silkscreen(
@@ -75,6 +75,11 @@ def measure_silkscreen(
         measurement.net_name_source,
         measurement.segments,
     )
+    resolved_source_paths = {
+        graphic.node_id: resolve_repository_file(graphic.source_path)
+        for graphic in projection_silkscreen.graphics
+        if graphic.source_path is not None
+    }
     context = build_silkscreen_context(
         {"F.SilkS": by_layer["F.SilkS"], "B.SilkS": by_layer["B.SilkS"]},
         {"F.Mask": by_layer["F.Mask"], "B.Mask": by_layer["B.Mask"]},
@@ -82,6 +87,7 @@ def measure_silkscreen(
         measurement,
         projection_silkscreen,
         profile,
+        resolved_source_paths,
     )
     _restore_unresolved_positions(context, silkscreen)
     result: dict[str, object] = {
@@ -141,6 +147,19 @@ def _materialize_unresolved_texts(
     )
 
 
+def _assert_no_unresolved_texts(lane: SilkscreenLane) -> None:
+    unresolved = [
+        text.node_id
+        for text in lane.texts
+        if text.x_mm is None or text.y_mm is None
+    ]
+    if unresolved:
+        raise ValueError(
+            "silkscreen resolution accepted unresolved text coordinates: "
+            + ", ".join(unresolved)
+        )
+
+
 def resolve_silkscreen(
     fixture_dir: Path,
     out_dir: Path,
@@ -168,6 +187,10 @@ def resolve_silkscreen(
         context = cast(dict[str, Any], context_value)
         status = context.get("status")
         if status == "measured_pass":
+            final_graph = DesignGraph.model_validate(
+                json.loads(graph_path.read_text(encoding="utf-8"))
+            )
+            _assert_no_unresolved_texts(extract_silkscreen_lane(final_graph))
             shutil.copy2(graph_path, fixture_dir / "graph.json")
             return {"status": "resolved", "iterations": iterations, "final": measured}
         graph = DesignGraph.model_validate(

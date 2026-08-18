@@ -19,4 +19,13 @@ def repository_root() -> Path:
     return root
 
 
-__all__ = ["repository_root"]
+def resolve_repository_file(path: str | Path) -> Path:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = repository_root() / candidate
+    if not candidate.is_file():
+        raise RuntimeError(f"repository file is unavailable: {candidate}")
+    return candidate
+
+
+__all__ = ["repository_root", "resolve_repository_file"]

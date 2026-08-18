@@ -70,10 +70,17 @@ def build_silkscreen_context(
     measurement: BoardMeasurement,
     declarations: SilkscreenLane,
     profile: FabProfile,
+    resolved_source_paths: Mapping[str, Path] | None = None,
 ) -> dict[str, object]:
     _silkscreen._gerber_silk_objects = _gerber_silk_objects
     return _build_silkscreen_context(
-        silk_paths, mask_paths, edge_path, measurement, declarations, profile
+        silk_paths,
+        mask_paths,
+        edge_path,
+        measurement,
+        declarations,
+        profile,
+        resolved_source_paths,
     )
 
 

@@ -192,6 +192,13 @@ def _silk_graphic(item: SilkGraphicView) -> list[SExpr]:
     for index, part in enumerate(_graphic_parts(item)):
         if not part.contours:
             raise ValueError(f"silkscreen graphic {item.node_id!r} has no contours")
+        if part.fill != "none" and any(
+            len(contour) < 3 or contour[0] != contour[-1]
+            for contour in part.contours
+        ):
+            raise ValueError(
+                f"filled silkscreen graphic {item.node_id!r} has an open contour"
+            )
         contours = (
             _filled_contours(part)
             if part.fill != "none"

@@ -649,12 +649,15 @@ SHA-256、viewBox、縮尺、配置後寸法と、塗り・複数輪郭・`eveno
 X座標を反転して物理面での向きを保つ。投影はDesign Graphから生成し、Region/Lineを
 含むGerberを独立測定する。スケール後のロゴ最小ストロークは`0.16 mm`であり、
 profile最小幅`0.15 mm`未満のストロークはクランプせずfail-closedとする。QRは
-version 5の37 moduleと4-module quiet zoneを保持し、source grid pitchは`0.3 mm`
-（`0.8 × 0.375`）、報告上のdata-module基準寸法は`13.5 / 37 = 0.364864... mm`である。
-塗り図形に輪郭strokeは付けず、最小印刷幅と最小未印刷gapを独立に測定する。
-QRはsource SVGのSHA-256一致、セル単位のmodule行列、module pitch、quiet zoneを
-Gerberから検証し、1セルでも不一致ならfail-closedとする。白いシルク下地と素地に
-残すdata moduleの極性反転は意図した仕様であり、将来反転しない。
+version 5の37 moduleと4-module quiet zoneを保持する。source cell pitchは`0.8 mm`、
+scale後の期待projected cell pitchは`0.3 mm`（`0.8 × 0.375`）、報告上の
+data-module基準寸法は`13.5 / 37 = 0.364864... mm`である。塗り図形に輪郭strokeは
+付けず、投影Gerberの実ジオメトリから最小印刷幅と最小未印刷gapを独立に測定する。
+現行投影のQR実測値は最小印刷幅`0.3 mm`、最小未印刷gap`0.3 mm`であり、期待値を
+測定値として代用しない。QRはsource SVGのSHA-256一致、セル単位のmodule行列、
+expected/projected pitch、quiet zoneをGerberから検証し、1セルでも不一致なら
+fail-closedとする。白いシルク下地と素地に残すdata moduleの極性反転は意図した仕様
+であり、将来反転しない。
 
 採用矩形はQR`[4.3, 0.3, 17.8, 13.8]` mm、VibeBBロゴ
 `[18.3, 0.3, 25.5, 16.3]` mmである。両者の正立を優先し、pad、mask開口、

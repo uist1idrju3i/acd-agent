@@ -72,7 +72,7 @@ from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.rationale import validate_and_project_rationale
-from acd.pipeline.repository import repository_root
+from acd.pipeline.repository import repository_root, resolve_repository_file
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
@@ -764,6 +764,11 @@ def run_pipeline(
         measurement,
         silkscreen,
         profile,
+        {
+            graphic.node_id: resolve_repository_file(graphic.source_path)
+            for graphic in silkscreen.graphics
+            if graphic.source_path is not None
+        },
     )
     profile_minimum = float(profile.data["capabilities"]["min_track_width"]["value"])
     width_requirements = derive_net_widths(lane, profile_minimum)
