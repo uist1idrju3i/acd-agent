@@ -40,12 +40,30 @@ from acd.core.board_model import (
 from acd.core.electrical import GraphExtractionError
 from acd.core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
 
+SILK_TEXT_ADVANCE_RATIO = 0.95
+SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS = 1.0
+SILK_TEXT_DESCENDER_CHARS = frozenset("gjpqy")
+SILK_TEXT_DESCENDER_HEIGHT_RATIO = 1.45
 
-def _text_size(text: SilkTextView) -> tuple[float, float]:
-    width = max(text.height_mm * 0.6 * len(text.text), text.height_mm)
+
+def _text_size(
+    text: SilkTextView,
+    *,
+    advance_ratio: float = SILK_TEXT_ADVANCE_RATIO,
+    attribution_margin_stroke_widths: float = SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS,
+    descender_chars: str = "".join(sorted(SILK_TEXT_DESCENDER_CHARS)),
+    descender_height_ratio: float = SILK_TEXT_DESCENDER_HEIGHT_RATIO,
+) -> tuple[float, float]:
+    width = max(text.height_mm * advance_ratio * len(text.text), text.height_mm)
+    height = text.height_mm * (
+        descender_height_ratio if any(char in descender_chars for char in text.text) else 1.0
+    )
+    margin = text.stroke_width_mm * attribution_margin_stroke_widths
+    width += 2.0 * margin
+    height += margin
     if int(text.rotation_deg) % 180:
-        return text.height_mm, width
-    return width, text.height_mm
+        return height, width
+    return width, height
 
 
 def _footprint_bbox(board: BoardModel, refdes: str) -> tuple[float, float, float, float]:
@@ -431,7 +449,7 @@ def resolve_from_context_offsets(
             if len(bbox) != 4:
                 raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
             forbidden.append((key, None, tuple(float(item) for item in bbox)))
-    for key in ("existing_silk_objects",):
+    for key in ("existing_silk_objects", "fixed_silk_objects"):
         values = context.get(key)
         if not isinstance(values, list):
             raise GraphExtractionError(f"silkscreen context {key} is missing")
@@ -649,6 +667,11 @@ def resolve_from_context(
 
     pads = boxes("pad_bboxes_mm")
     masks = boxes("mask_objects")
+    mask_openings = context.get("mask_opening_bboxes_mm", [])
+    if not isinstance(mask_openings, list):
+        raise GraphExtractionError(
+            "silkscreen context mask_opening_bboxes_mm is malformed"
+        )
     bodies = boxes("body_bboxes_mm")
     courtyards = boxes("courtyard_bboxes_mm")
     existing = boxes("existing_silk_objects")
@@ -746,19 +769,18 @@ def resolve_from_context(
                 raise GraphExtractionError(
                     f"silkscreen context declaration is missing for {text.node_id!r}"
                 )
-            width, height = base_size
-            width = max(
-                text.height_mm * advance_ratio * len(text.text),
-                text.height_mm,
+            width, height = _text_size(
+                replace(text, rotation_deg=rotation),
+                advance_ratio=advance_ratio,
+                attribution_margin_stroke_widths=margin_stroke_widths,
+                descender_chars=descender_chars,
+                descender_height_ratio=descender_ratio,
             )
-            height = text.height_mm * (
-                descender_ratio if any(char in descender_chars for char in text.text) else 1.0
-            )
+            measured_width, measured_height = base_size
             if int(rotation) % 180:
-                width, height = height, width
-            margin = text.stroke_width_mm * margin_stroke_widths
-            width += 2.0 * margin
-            height += margin
+                measured_width, measured_height = measured_height, measured_width
+            width = max(width, measured_width + 2.0 * text.stroke_width_mm)
+            height = max(height, measured_height + text.stroke_width_mm)
             x = outline[0] + width / 2
             while x <= outline[2] - width / 2 + 1e-9:
                 y = outline[1] + height / 2
@@ -768,6 +790,12 @@ def resolve_from_context(
                         y - height / 2,
                         x + width / 2,
                         y + height / 2,
+                    )
+                    attribution_bbox = (
+                        x - measured_width / 2,
+                        y - measured_height / 2,
+                        x + measured_width / 2,
+                        y + measured_height / 2,
                     )
                     candidate = {
                         "x_mm": round(x, 9),
@@ -798,18 +826,49 @@ def resolve_from_context(
                                 reason = "pad_bboxes_mm"
                                 break
                         if reason is None:
-                            for source, item in forbidden_silk + [
-                                ("placed_declaration", item) for item in dynamic_silk
-                            ]:
+                            mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
+                            for item in masks:
+                                if item.get("layer") == mask_layer and _rects_overlap(
+                                    candidate_bbox, bbox(item)
+                                ):
+                                    reason = "mask_opening_bboxes_mm"
+                                    break
+                        if reason is None and not masks:
+                            for item in mask_openings:
+                                if not isinstance(item, list) or len(item) != 4:
+                                    raise GraphExtractionError(
+                                        "silkscreen context mask_opening_bboxes_mm "
+                                        "contains malformed bbox"
+                                    )
+                                if _rects_overlap(
+                                    candidate_bbox,
+                                    tuple(float(part) for part in item),
+                                ):
+                                    reason = "mask_opening_bboxes_mm"
+                                    break
+                        if reason is None:
+                            for item in existing + fixed:
                                 if item.get("layer") == text.layer and _rects_overlap(
                                     candidate_bbox, bbox(item)
                                 ):
-                                    reason = source
+                                    reason = (
+                                        "existing_silk_objects"
+                                        if item in existing
+                                        else "fixed_silk_objects"
+                                    )
                                     break
                         if reason is None:
+                            for item in dynamic_silk:
+                                if item.get("layer") == text.layer and _rects_overlap(
+                                    candidate_bbox, bbox(item)
+                                ):
+                                    reason = "placed_declaration"
+                                    break
+                        if reason is None:
+                            copper_layer = text.layer.replace("SilkS", "Cu")
                             for item in bodies + courtyards:
                                 if (
-                                    item.get("layer") == text.layer.replace("SilkS", "Cu")
+                                    item.get("layer") == copper_layer
                                     and _rects_overlap(candidate_bbox, bbox(item))
                                 ):
                                     reason = (
@@ -817,6 +876,15 @@ def resolve_from_context(
                                         if item in bodies
                                         else "courtyard_bboxes_mm"
                                     )
+                                    break
+                        if reason is None:
+                            for source, item in forbidden_silk + [
+                                ("placed_declaration", item) for item in dynamic_silk
+                            ]:
+                                if item.get("layer") == text.layer and _rects_overlap(
+                                    candidate_bbox, bbox(item)
+                                ):
+                                    reason = source
                                     break
                         if reason is None and reference is not None:
                             component_distances: dict[str, float] = {}
@@ -828,7 +896,7 @@ def resolve_from_context(
                                 ):
                                     component_distances[refdes] = min(
                                         component_distances.get(refdes, float("inf")),
-                                        distance(candidate_bbox, bbox(item)),
+                                        distance(attribution_bbox, bbox(item)),
                                     )
                             nearest = (
                                 min(

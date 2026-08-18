@@ -135,7 +135,9 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    ```
 
    基板pipelineの前提として、シルク配置を解決する場合は
-   `scripts/resolve_gd1_silkscreen.py`を先に実行する。基板pipelineは
+   `scripts/resolve_gd1_silkscreen.py`を先に実行する。resolverはcontextの
+   mask開口、既存／固定シルク、同じ面のbody/courtyard、最近傍部品帰属を候補段階で
+   検査するが、最終合否はauthoritative projectionと独立測定ゲートが判定する。基板pipelineは
    `scripts/run_gd1_pipeline.py`、筐体pipelineは
    `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
    会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを

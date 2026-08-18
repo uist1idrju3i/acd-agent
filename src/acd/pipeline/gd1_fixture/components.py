@@ -14,11 +14,6 @@ from typing import NotRequired, TypedDict
 
 from acd.schema.design_graph import AttrValue
 
-from ..repository import REPO_ROOT
-
-FIXTURE_DIR = REPO_ROOT / "fixtures" / "golden-design-1"
-
-
 KICAD_SYMBOLS = Path("/usr/share/kicad/symbols")
 
 

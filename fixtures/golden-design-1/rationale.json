@@ -2443,9 +2443,9 @@
         "y_mm",
         "rotation_deg"
       ],
-      "subject_hash": "sha256:52440a6434ef6975975c6f917f0a2eb694f2f0d9b93b90b896427e730bea5718",
+      "subject_hash": "sha256:52d202a1bb623e1e93c12c8723c70e9bbac4ef338e3390a9851d3335e618c38f",
       "decision": "Place DEV BOARD and golden-design-1-r1 on B.SilkS.",
-      "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (15.65, 8.35) at 90° and golden-design-1-r1 (14.125, 8.875) at 90°; their evidence records the fixed-silk, pad, and board-edge rejection counts used to select these positions.",
+      "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (19.675, 11.9) at 0° and golden-design-1-r1 (14.130683004, 8.95) at 90°; their evidence records the fixed-silk, pad, and board-edge rejection counts used to select these positions.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
@@ -2488,9 +2488,9 @@
         "y_mm",
         "rotation_deg"
       ],
-      "subject_hash": "sha256:4e0e6a0654cd8c99578631244fefd2da7e4fcb319fefbc057701d78d1c812bc7",
+      "subject_hash": "sha256:c5ef33bd6b5f191124e52945448355662d7db33aaa5b3d8606ee2a7f57f9f329",
       "decision": "Place RST/BOOT/D1/USB as front functional labels.",
-      "justification": "The updated silkscreen resolver keeps the four operational labels on F.SilkS and places them in the declared sequential order after excluding board-edge, same-side pad, fixed-silk, and conservative body conflicts. The accepted context candidates are RST (16.825, 9.325) at 0°, BOOT (13.05, 9.325) at 0°, D1 (16.65, 12.525) at 90°, and USB (19.575, 15.075) at 0°; the graph evidence records the rejection counts and full-evidence hash for each result.",
+      "justification": "The updated silkscreen resolver keeps the four operational labels on F.SilkS and places them in the declared sequential order after excluding board-edge, same-side pad, mask, existing-silk, body/courtyard, and nearest-component conflicts. The accepted context candidates are RST (26.325, 5.4) at 0°, BOOT (2.3, 5.4) at 0°, D1 (9.1, 12.4) at 0°, and USB (8.075, 23.9) at 0°; the graph evidence records the rejection counts and full-evidence hash for each result.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"

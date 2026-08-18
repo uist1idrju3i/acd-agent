@@ -28,7 +28,7 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
             "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; "
             "declared edge keepout equals the profiled minimum silk stroke"
         ),
-        "placement_rotation_degrees": ["0", "90"],
+        "placement_rotation_degrees": ["0", "90", "180", "270"],
         "placement_safety_margin_mm": 0.15,
     }
     text_nodes = [
@@ -54,8 +54,8 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
             "mechanical.silk_text.led",
             "functional_label_d1",
             "D1",
-            11.0,
-            9.0,
+            None,
+            None,
             "D1",
             "D1 center and surrounding footprint clearance",
         ),
@@ -63,8 +63,8 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
             "mechanical.silk_text.usb",
             "connector_identifier",
             "USB",
-            15.0,
-            19.0,
+            None,
+            None,
             "J1",
             "J1 center and connector keepout clearance",
         ),
@@ -104,10 +104,13 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
                 "rotation_deg": 90.0 if role == "functional_label_sw1" else common["rotation_deg"],
                 "role": role,
                 "text": text,
-                "x_mm": x_mm,
-                "y_mm": y_mm,
                 "placement_reference": reference,
                 "placement_basis": basis,
+                **(
+                    {"x_mm": x_mm, "y_mm": y_mm}
+                    if x_mm is not None and y_mm is not None
+                    else {}
+                ),
             },
             depends_on=["board.gd1"],
         )

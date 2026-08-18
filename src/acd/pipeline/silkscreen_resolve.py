@@ -26,12 +26,7 @@ from acd.schema.design_graph import DesignGraph
 from .gd1_board import placements_from_graph
 from .gd1_fixture.components import sha256_of
 from .placement_evidence import summarize_placement_evidence
-from .repository import REPO_ROOT
-
-SILK_SKILL = REPO_ROOT / (
-    "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
-)
-FAB_PROFILE = REPO_ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
+from .repository import repository_root
 
 
 def measure_silkscreen(
@@ -107,12 +102,16 @@ def measure_silkscreen(
 def resolve_silkscreen(
     fixture_dir: Path,
     out_dir: Path,
-    fab_profile_path: Path = FAB_PROFILE,
+    fab_profile_path: Path | None = None,
     max_iterations: int = 5,
 ) -> dict[str, object]:
     """Run bounded projection/measurement/Skill iterations fail-closed."""
     if max_iterations <= 0:
         raise ValueError("max_iterations must be positive")
+    root = repository_root()
+    silk_skill = root / "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
+    if fab_profile_path is None:
+        fab_profile_path = root / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
     work_fixture_dir = out_dir / "work-fixture"
     shutil.copytree(fixture_dir, work_fixture_dir, dirs_exist_ok=True)
     graph_path = work_fixture_dir / "graph.json"
@@ -149,14 +148,14 @@ def resolve_silkscreen(
             subprocess.run(
                 [
                     sys.executable,
-                    str(SILK_SKILL),
+                    str(silk_skill),
                     "--input",
                     str(input_path),
                     "--output",
                     str(output_path),
                 ],
                 check=True,
-                cwd=REPO_ROOT,
+                cwd=root,
                 capture_output=True,
                 text=True,
             )
@@ -237,7 +236,7 @@ def resolve_silkscreen(
                         "placement_source": "acd-silkscreen-placement",
                         "placement_source_ref": (
                             "plugins/acd/skills/acd-silkscreen-placement/scripts/"
-                            f"silkscreen_search.py:{sha256_of(SILK_SKILL)}"
+                            f"silkscreen_search.py:{sha256_of(silk_skill)}"
                         ),
                         "placement_evidence": json.dumps(
                             evidence_summary, ensure_ascii=False, sort_keys=True

@@ -30,7 +30,7 @@ class SilkTextView:
     placement_search_limit_mm: float
     board_edge_margin_mm: float = 0.0
     board_edge_margin_source: str = "unknown"
-    placement_rotation_degrees: tuple[float, ...] = (0.0, 90.0)
+    placement_rotation_degrees: tuple[float, ...] = (0.0, 90.0, 180.0, 270.0)
     placement_safety_margin_mm: float = 0.0
 
 
@@ -140,8 +140,16 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
                     node_id=node.id,
                     role=_str_attr(node, "role"),
                     text=_str_attr(node, "text"),
-                    x_mm=_number_attr(node, "x_mm"),
-                    y_mm=_number_attr(node, "y_mm"),
+                    x_mm=(
+                        _number_attr(node, "x_mm")
+                        if node.attrs.get("x_mm") is not None
+                        else 0.0
+                    ),
+                    y_mm=(
+                        _number_attr(node, "y_mm")
+                        if node.attrs.get("y_mm") is not None
+                        else 0.0
+                    ),
                     layer=layer,
                     height_mm=height,
                     stroke_width_mm=stroke,
@@ -194,4 +202,3 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
     if len(roles) != len(set(roles)):
         raise GraphExtractionError("silkscreen roles must be unique")
     return SilkscreenLane(board_node_id=board_id, texts=tuple(texts), graphics=tuple(graphics))
-

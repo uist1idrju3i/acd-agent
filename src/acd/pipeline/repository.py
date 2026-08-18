@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from pathlib import Path
 
 
-def _resolve_repository_root() -> Path:
+@lru_cache(maxsize=1)
+def repository_root() -> Path:
     root = Path(__file__).resolve().parents[3]
     required_markers = (root / "AGENTS.md", root / "pyproject.toml")
     missing = [str(path) for path in required_markers if not path.is_file()]
@@ -17,6 +19,4 @@ def _resolve_repository_root() -> Path:
     return root
 
 
-REPO_ROOT = _resolve_repository_root()
-
-__all__ = ["REPO_ROOT"]
+__all__ = ["repository_root"]

@@ -11,22 +11,31 @@ triggers:
   - DRC
 ---
 
-# シルクスクリーン文字の配置探索
+# Silkscreen label placement search
 
-ACD本体はシルク文字の探索を持たない。グラフ宣言の抽出（`acd.core.silkscreen.extract_silkscreen_lane`）
-だけが本体に残り、位置決めはこの Skill が行う。結果は候補であり、合否は ACD の
-決定論的ゲート（DRC と独立再読込）が判定する。
+The ACD core does not search for silkscreen text. It only extracts graph
+declarations with `acd.core.silkscreen.extract_silkscreen_lane`; this Skill
+performs placement search. Its output is candidate data, while deterministic
+ACD gates (DRC and independent reload) decide acceptance.
 
-## できること
+## Capabilities
 
-- `scripts/silkscreen_search.py`: 宣言された基準（基板外形または参照 footprint）の周囲を、
-  宣言された探索順・オフセット刻み・上限で走査し、直交回転のみを候補にする。
-  パッド、部品外形、基板端マージンと干渉する候補は却下し、理由付きで evidence に残す。
-  有効候補がなければ fail-closed で停止する。
-- 採用基準は「基準中心までの距離が最小」で、同値は宣言探索順 → 回転順 → courtyard 重なり面積
-  → オフセットの順に決める。裏面など位置がグラフに確定している文字は探索しない。
+- `scripts/silkscreen_search.py` scans around the declared datum (the board
+  outline or a referenced footprint) using the declared order, step, and
+  limit. It considers 0/90/180/270-degree rotations.
+- It uses measured context values and rejects candidates that overlap pads,
+  mask openings, existing footprint silk, fixed silk, same-side body or
+  courtyard geometry, or the board-edge margin. A candidate is also rejected
+  when its nearest component is not the declared reference. Every rejection is
+  retained with a reason in the evidence, and no candidate is a fail-closed
+  result.
+- Candidates are ordered by distance to the datum, then declaration order,
+  rotation order, courtyard overlap area, and offset. F.SilkS functional
+  labels and connector identifiers, including D1 and USB, are searched with
+  their references; fixed coordinates are not acceptance evidence. Fixed
+  B.SilkS branding and identification labels are not searched.
 
-## 使い方
+## Usage
 
 ```python
 import sys
@@ -38,24 +47,26 @@ uv run --script plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_s
 resolved = resolve_silkscreen_placements(lane, board_projection.model)
 ```
 
-`--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
-開発する場合は、従来どおり`uv run python <path>`を使用します。
+`--script` resolves dependencies from the PEP 723 metadata. Use
+`uv run --script <path>` for PEP 723 scripts, including local checkouts.
 
-`lane` は `extract_silkscreen_lane()` の結果、`board_projection.model` は配置確定後の
-`BoardModel` である。参照実装は `scripts/run_gd1_pipeline.py` にある。
+`lane` is the result of `extract_silkscreen_lane()`, and
+`board_projection.model` is the `BoardModel` after placement resolution. The
+reference implementation is `scripts/run_gd1_pipeline.py`.
 
-## 前提と限界
+## Assumptions and limits
 
-- 追加の外部ツールは不要である。`acd-core` を import する。
-- 文字幅は字高からの概算であり、実際のストロークフォント幅ではない。狭小基板では
-  DRC で不合格になりうる。
-- 部品回転は 0/90/180/270° のみを扱う。
-- この Skill の結果は ACD の設計ゲートの結果ではない。
+- No additional external tool is required; the script imports `acd-core`.
+- Text geometry is conservatively estimated from glyph advance, stroke width,
+  descenders, and rotation, and does not understate measured projection
+  geometry. It does not replace final Gerber measurement.
+- Component rotations are limited to 0/90/180/270 degrees.
+- This Skill's result is not an ACD design-gate result.
 
-## テスト
+## Tests
 
 ```bash
 uv run pytest plugins/acd/skills/acd-silkscreen-placement -q
 ```
 
-Skill のテストは ACD 本体のテスト（`uv run pytest`）とは別に実行する。
+Run Skill tests separately from the ACD core tests (`uv run pytest`).
