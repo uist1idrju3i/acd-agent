@@ -9,6 +9,10 @@
 | 投影 | 入力から再生成され、入力を置き換えない派生成果物。 |
 | レビュー投影 | AIが観察するための機械可読または視覚的な投影。 |
 | Evidence | ツール版、入力・出力hash、条件、結果、commitを含む検証根拠。 |
+| 実機Evidence | 実機または仮想実機から取得した測定機器、条件、時刻、対象revision、測定量を含む入力更新用のEvidence。決定論的ゲートのauthoritative合格には使わない。 |
+| measured/virtual分類 | `measured`は実機で取得した測定、`virtual`はRenode等の仮想実機ログを表す分類。`virtual`は実測の代替にならない。 |
+| 測定量 | 名前、単位、値、期待範囲、許容差を持つ実機Evidenceの数値記録。 |
+| 期待範囲 | 測定量が満たすべき下限・上限と許容差による決定論的な値域。 |
 | execution context | `container`、`host`、`unknown`で表すToolEnvelopeの型付き実行場所。 |
 | authoritative Evidence | revision一致、既知provenance、digest固定containerを満たし、合格側へ使えるEvidence。 |
 | provisional Evidence | `supports_pass()`は満たすがdigest固定container要件を満たさず、参考に限るEvidence。 |

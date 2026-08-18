@@ -1,8 +1,22 @@
 """Pydantic models that form the canonical ACD contracts."""
 
-from acd.schema.common import CURRENT_SCHEMA_VERSION, UNKNOWN, AcdModel, is_unknown
+from acd.schema.common import (
+    CURRENT_SCHEMA_VERSION,
+    UNKNOWN,
+    AcdModel,
+    canonical_sha256,
+    is_unknown,
+)
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
-from acd.schema.evidence import Evidence, EvidenceClaim, EvidenceStatus
+from acd.schema.evidence import (
+    Evidence,
+    EvidenceClaim,
+    EvidenceStatus,
+    MeasuredQuantity,
+    MeasurementClass,
+    MeasurementInstrument,
+    PhysicalEvidence,
+)
 from acd.schema.fab_profile import FabProfileDocument
 from acd.schema.rationale import (
     DecisionKind,
@@ -34,7 +48,11 @@ __all__ = [
     "EvidenceStatus",
     "FabProfileDocument",
     "GraphNode",
+    "MeasuredQuantity",
+    "MeasurementClass",
+    "MeasurementInstrument",
     "NodeKind",
+    "PhysicalEvidence",
     "RationaleCoverageReport",
     "RationaleCoverageStatus",
     "RationaleDocument",
@@ -49,5 +67,6 @@ __all__ = [
     "RationaleUntraceable",
     "RejectedAlternative",
     "ToolEnvelope",
+    "canonical_sha256",
     "is_unknown",
 ]

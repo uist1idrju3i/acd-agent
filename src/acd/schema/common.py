@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Annotated, ClassVar, Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
@@ -32,3 +34,15 @@ class AcdModel(BaseModel):
 def is_unknown(value: str) -> bool:
     """Return True when a value is the explicit unknown sentinel."""
     return value == UNKNOWN
+
+
+def canonical_sha256(model: AcdModel) -> Sha256:
+    """Return the SHA-256 digest of a model's canonical JSON representation."""
+    encoded = json.dumps(
+        model.model_dump(mode="json"),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
