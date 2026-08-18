@@ -37,6 +37,8 @@
 | Skill | SDKが配布する工程手順や観点を記述した作業資材。 |
 | plugin | Skill、hook、agent定義、commandをまとめる配布単位。 |
 | AgentDefinition | agentの役割、model、tool、Skill、権限を定義する資材。 |
+| role prompt manifest | role promptのrepo相対path、資材・本文hash、PromptSection名、cache tierを固定するmanifest。Evidenceではない。 |
+| prompt section | OpenHands SDKの`PromptSection` protocolに適合するL2 role promptの構造。 |
 | hook | toolやsession境界で防護・記録を行うイベント処理。 |
 | critic | 反復改善を操舵する評価機構。合否権限は持たない。 |
 | Conversation | SDKが管理する対話、履歴、状態、永続化の単位。 |

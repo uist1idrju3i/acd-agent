@@ -87,7 +87,8 @@ plugins/acd/
 │   ├── acd-mechanical.md
 │   ├── acd-firmware.md
 │   ├── acd-reviewer.md
-│   └── acd-search.md
+│   ├── acd-search.md
+│   └── prompt-manifest.json
 └── skills/
     ├── acd-contracts/
     ├── acd-placement-search/
@@ -108,6 +109,11 @@ Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 `disable_model_invocation=True`を強制し、`inputs:`はTaskTriggerになるため、現在の
 自然言語起点の任意利用には採用しない。Skill結果、AgentDefinitionの所見、reviewerの
 出力は合否Evidenceではない。
+
+role promptは`PromptSection`へ変換するL2操舵資材であり、資材bytesと抽出本文を
+`prompt-manifest.json`で固定する。prompt sectionとmanifestはEvidenceではなく、
+authoritative Evidenceを生成・昇格せず、決定論的ゲートの合否へ影響しない。manifest
+drift、parse失敗、資材欠落はfail-closedで会話構築を停止する。
 
 安全境界はpinned SDKへ委譲する。`AcdSecurityAnalyzer`とSDKの
 `PatternSecurityAnalyzer`を`EnsembleSecurityAnalyzer(analyzers=[...])`へ合成し、

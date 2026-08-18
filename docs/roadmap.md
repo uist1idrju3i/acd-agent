@@ -35,7 +35,7 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
-| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装 |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`実装済み） |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装 |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 一部実装 |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
@@ -48,8 +48,9 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 ## マイルストーン4.4: SDK機能移譲
 
 secret allowlistの`SecretSource`、`EnsembleSecurityAnalyzer`、`ConfirmRisky`、
-Skill明示ロード、`StuckDetector`、`ConversationStats`／`Metrics`のL3観測出力は実装済みである。
-prompt資材、LLM routing、`FileStore`保存、observability、settings／profile driftは未着手である。
+Skill明示ロード、`StuckDetector`、`ConversationStats`／`Metrics`のL3観測出力、
+role別promptの`PromptSection`化と資材manifest drift検査は実装済みである。
+LLM routing、`FileStore`保存、observability、settings／credential／profile driftは未着手である。
 `ToolDefinition`、現行の`DockerDevWorkspace`、将来の`DockerWorkspace`、決定論的gateの
 責務境界は変更しない。MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 

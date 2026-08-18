@@ -27,6 +27,11 @@ from acd.openhands.safety.hooks import validate_acd_agent_hooks
 from acd.openhands.safety.secrets import build_acd_secret_mapping
 from acd.openhands.safety.security import build_acd_security_analyzer
 from acd.openhands.session.gate_critic import AcdGateCritic, GateRequirement
+from acd.openhands.session.prompts import (
+    DEFAULT_MANIFEST_NAME,
+    PromptManifestError,
+    check_prompt_manifest,
+)
 from acd.openhands.tools.definitions import register_acd_tools
 
 
@@ -44,6 +49,7 @@ def build_acd_conversation(
     enable_browser: bool = False,
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
+    prompt_manifest_path: Path | None = None,
     stuck_detection_thresholds: (
         StuckDetectionThresholds | Mapping[str, int] | None
     ) = None,
@@ -55,6 +61,27 @@ def build_acd_conversation(
     plugin_root = plugin_root or repo_root / "plugins" / "acd"
     hooks_path = hooks_path or plugin_root / "hooks" / "hooks.json"
     design_graph_path = design_graph_path or Path("fixtures/golden-design-1/graph.json")
+    prompt_manifest_path = (
+        prompt_manifest_path or plugin_root / "agents" / DEFAULT_MANIFEST_NAME
+    )
+    try:
+        agent_dir_root = plugin_root / "agents"
+        asset_root = repo_root
+        try:
+            agent_dir_root.resolve().relative_to(repo_root)
+        except ValueError:
+            asset_root = plugin_root.parent
+        prompt_report = check_prompt_manifest(
+            agent_dir_root,
+            prompt_manifest_path,
+            root=asset_root,
+        )
+    except (OSError, ValueError) as exc:
+        raise PromptManifestError("ACD role prompt manifest verification failed") from exc
+    if prompt_report.status != "pass":
+        raise PromptManifestError(
+            prompt_report.reason or "ACD role prompt manifest drifted"
+        )
     skills = load_acd_skills(plugin_root / "skills")
     hook_config = HookConfig.load(hooks_path)
     validate_acd_agent_hooks(plugin_root / "agents", hook_config)

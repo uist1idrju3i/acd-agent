@@ -41,6 +41,13 @@ from acd.schema.functional_run import (
     LedExpectation,
     SerialExpectation,
 )
+from acd.schema.prompt_manifest import (
+    PromptCacheTier,
+    PromptDriftReport,
+    PromptManifestStatus,
+    RolePromptManifest,
+    RolePromptManifestEntry,
+)
 from acd.schema.rationale import (
     DecisionKind,
     RationaleCoverageReport,
@@ -103,6 +110,9 @@ __all__ = [
     "MeasurementInstrument",
     "NodeKind",
     "PhysicalEvidence",
+    "PromptCacheTier",
+    "PromptDriftReport",
+    "PromptManifestStatus",
     "RationaleCoverageReport",
     "RationaleCoverageStatus",
     "RationaleDocument",
@@ -121,6 +131,8 @@ __all__ = [
     "ReconciliationReport",
     "ReconciliationStatus",
     "RejectedAlternative",
+    "RolePromptManifest",
+    "RolePromptManifestEntry",
     "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",

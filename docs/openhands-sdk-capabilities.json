@@ -118,10 +118,9 @@
       "modules": ["sdk.context.prompts", "sdk.context.prompts.*"],
       "representative_apis": ["PromptSection"],
       "use": "role別prompt構造化",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
+      "adoption": "採用",
       "rationale": "role別promptと資材hashを固定する",
-      "verification": "pinned API確認、実装未着手"
+      "verification": "verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py"
     },
     {
       "domain": "sdk.context.view",

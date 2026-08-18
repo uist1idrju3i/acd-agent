@@ -46,6 +46,7 @@ from acd.openhands.session.bootstrap import (
     write_conversation_metrics,
 )
 from acd.openhands.session.gate_critic import AcdEvidenceRequirement
+from acd.openhands.session.prompts import PromptManifestError, write_prompt_manifest
 
 
 class _TerminalAction(Action):
@@ -285,6 +286,11 @@ Test agent.
         '{"name":"acd-test","version":"0.0.1","description":"test plugin"}\n',
         encoding="utf-8",
     )
+    write_prompt_manifest(
+        plugin_root / "agents",
+        plugin_root / "agents/prompt-manifest.json",
+        root=tmp_path,
+    )
     return plugin_root
 
 
@@ -434,6 +440,64 @@ def test_bootstrap_rejects_plugin_without_skills(tmp_path: Path) -> None:
             persistence_dir=tmp_path / "sessions",
             plugin_root=plugin_root,
         )
+
+
+def test_bootstrap_rejects_prompt_manifest_drift(tmp_path: Path) -> None:
+    plugin_root = _minimal_plugin(tmp_path)
+    (plugin_root / "agents/acd-test.md").write_text(
+        "---\nname: acd-test\n---\n\nchanged\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(PromptManifestError):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="test"),
+            requirements=[],
+            persistence_dir=tmp_path / "sessions",
+            plugin_root=plugin_root,
+        )
+
+
+def test_bootstrap_rejects_missing_prompt_manifest(tmp_path: Path) -> None:
+    plugin_root = _minimal_plugin(tmp_path)
+    (plugin_root / "agents/prompt-manifest.json").unlink()
+    with pytest.raises(PromptManifestError):
+        build_acd_conversation(
+            repo_root=Path.cwd(),
+            llm=LLM(model="test"),
+            requirements=[
+                AcdEvidenceRequirement(
+                    path=Path("fixtures/contracts/valid/evidence.json"),
+                    evidence_id="ev-erc-r3-0001",
+                )
+            ],
+            persistence_dir=tmp_path / "sessions",
+            plugin_root=plugin_root,
+        )
+
+
+def test_bootstrap_honors_custom_prompt_manifest_path(tmp_path: Path) -> None:
+    plugin_root = _minimal_plugin(tmp_path)
+    alternate = tmp_path / "alternate-prompt-manifest.json"
+    write_prompt_manifest(
+        plugin_root / "agents",
+        alternate,
+        root=tmp_path,
+    )
+    conversation = build_acd_conversation(
+        repo_root=Path.cwd(),
+        llm=LLM(model="test"),
+        requirements=[
+            AcdEvidenceRequirement(
+                path=Path("fixtures/contracts/valid/evidence.json"),
+                evidence_id="ev-erc-r3-0001",
+            )
+        ],
+        persistence_dir=tmp_path / "sessions",
+        plugin_root=plugin_root,
+        prompt_manifest_path=alternate,
+    )
+    assert conversation.agent.critic is not None
 
 
 def test_secret_registry_uses_only_allowlisted_lazy_values(

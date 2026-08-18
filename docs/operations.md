@@ -171,6 +171,24 @@ fail-closedとなり、CLIはtracebackを出さずexit code 2と`status="unknown
 `validate_applied_feedback`でproposalに宣言されたnode／属性以外の差分がないことを
 検査する。提案生成と適用後検証はいずれも入力を書き換えない。
 
+## Role prompt manifest
+
+role別promptは`plugins/acd/agents/acd-*.md`から`PromptSection`へ読み込まれ、
+資材bytesと抽出本文のhashを`plugins/acd/agents/prompt-manifest.json`へ固定する。
+manifestの整合性は次で確認する。
+
+```bash
+uv run python scripts/verify_agent_prompts.py --check
+```
+
+`--check`はagent資材とmanifestを一切書き換えない。資材の欠落、parse失敗、hash drift、
+manifest不正はfail-closedとなり、reportを標準出力へ出してexit code 2を返す。
+manifestを現在の資材から決定論的に生成する場合だけ`--write`を使う。
+
+```bash
+uv run python scripts/verify_agent_prompts.py --write
+```
+
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、

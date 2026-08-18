@@ -19,7 +19,7 @@
 | sdk.context | `AgentContext` | agent作業文脈 | 採用 | 現行sessionでローカルSkillと文脈設定を明示する | session回帰 |
 | sdk.context.condenser | `LLMSummarizingCondenser` | 長い対話の圧縮 | 採用 | `src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない | resume/fork回帰 |
 | sdk.context.memory | `load_memory` | 作業文脈の補助 | 採用予定（ロードマップ4.4） | 契約・合否の正にしない。資材hashを固定する | pinned API確認、実装未着手 |
-| sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用予定（ロードマップ4.4） | role別promptと資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用 | role別promptと資材hashを固定する | verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py |
 | sdk.context.view | `View` | 長時間sessionの表示 | 採用予定（ロードマップ4.4） | 原`EventLog`と照合し、`Evidence`を置換しない | pinned API確認、実装未着手 |
 | sdk.conversation | `BaseConversation`<br>`LocalConversation`<br>`ConversationState` | 現行agent session | 採用 | `src/acd/openhands/session/bootstrap.py`で使用 | session回帰 |
 | sdk.conversation.cancellation | `CancellationToken` | 対話中断 | 採用 | SIGINTからinterruptへ結線し、L2停止側に限定 | `tests/openhands/session/test_goal_loop.py` |

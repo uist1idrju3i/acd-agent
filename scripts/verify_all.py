@@ -18,6 +18,7 @@ STANDARD_COMMANDS: tuple[Command, ...] = (
     ("uv", "run", "pytest"),
     ("uv", "run", "python", "scripts/verify_docs.py"),
     ("uv", "run", "python", "scripts/verify_sdk_capabilities.py", "--check"),
+    ("uv", "run", "python", "scripts/verify_agent_prompts.py", "--check"),
     ("git", "diff", "--check"),
 )
 
