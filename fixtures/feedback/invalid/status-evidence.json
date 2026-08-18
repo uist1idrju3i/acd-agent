@@ -1,0 +1,46 @@
+{
+  "acquired_at": "2026-08-11T00:00:03+00:00",
+  "claims": [],
+  "created_at": "2026-08-11T00:00:06+00:00",
+  "envelope": {
+    "config_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "container_image_digest": null,
+    "convergence_state": "not_applicable",
+    "execution_context": "host",
+    "execution_env": "linux-x86_64; GD1 physical bench",
+    "exit_code": 0,
+    "finished_at": "2026-08-11T00:00:05+00:00",
+    "format_version": "20260811",
+    "idempotency_key": "ev-invalid-r1",
+    "input_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "measurement_conditions": "bench supply nominal; firmware functional measurement",
+    "output_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "schema_version": "0.1",
+    "started_at": "2026-08-11T00:00:00+00:00",
+    "target_revision": "r1",
+    "tool_name": "physical-measurement",
+    "tool_version": "1.0.0",
+    "uncertainty": "declared instrument tolerance"
+  },
+  "evidence_id": "ev-invalid-r1",
+  "instrument": {
+    "fixture_id": "gd1-bench-v1",
+    "instrument_name": "GD1 test instrument",
+    "instrument_version": "1.0",
+    "operator": "operator-001"
+  },
+  "measurement_class": "measured",
+  "measurements": [
+    {
+      "expected_max": 10.0,
+      "expected_min": 0.0,
+      "name": "led_frequency",
+      "tolerance": 0.1,
+      "unit": "Hz",
+      "value": 1.0
+    }
+  ],
+  "schema_version": "0.1",
+  "status": "invalidated",
+  "target_revision": "r1"
+}

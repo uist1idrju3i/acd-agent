@@ -144,6 +144,33 @@ reportの入力hashはrecordと参照ファイルの実体hashから決定し、
 `measurement_class="measured"`かつ`execution_context="host"`であり、決定論的ゲートの
 authoritative合格へ昇格しない。
 
+## 測定結果の入力反映proposal
+
+5.1〜5.3の実機Evidenceを、明示的な反映policyと現行のgraph／rationaleへ照合し、
+入力更新の候補だけを生成する。入力ファイル、policy、Evidence、rationaleは変更せず、
+proposalを入力へ自動適用しない。
+
+```bash
+uv run python scripts/propose_input_feedback.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --rationale fixtures/golden-design-1/rationale.json \
+  --policy fixtures/feedback/policy.json \
+  --evidence fixtures/feedback/valid/led_frequency.json \
+  --evidence fixtures/feedback/valid/matched_artifact_count.json \
+  --proposal out/input-feedback-proposal.json
+```
+
+policyはgraph id、revision、measurement name、対象node／属性、`set_value`または
+`reconfirm`、許容差、decision kindを宣言する。stale／virtual／invalid Evidence、
+未分類属性、対象不在、measurement不在、重複rule id、graph／revision不一致は
+fail-closedとなり、CLIはtracebackを出さずexit code 2と`status="unknown"`のproposalを
+可能な限り出力する。正常なproposal生成はexit code 0であり、`rationale_required`が
+残っていても人のレビューが必要なため、自動適用可能を意味しない。
+
+適用を行う場合は人または別の明示的工程が入力graphを更新し、
+`validate_applied_feedback`でproposalに宣言されたnode／属性以外の差分がないことを
+検査する。提案生成と適用後検証はいずれも入力を書き換えない。
+
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、

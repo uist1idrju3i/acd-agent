@@ -1,0 +1,25 @@
+{
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "rules": [
+    {
+      "attr": "gpio",
+      "decision_kind": "firmware_pin",
+      "measurement_name": "led_frequency",
+      "node_id": "fw.pin.led",
+      "rule_id": "led-frequency-reconfirm",
+      "rule_kind": "reconfirm",
+      "tolerance": 0.0
+    },
+    {
+      "attr": "mount_hole_count",
+      "decision_kind": "mechanical",
+      "measurement_name": "matched_artifact_count",
+      "node_id": "mechanical.outline.gd1",
+      "rule_id": "artifact-count",
+      "rule_kind": "set_value",
+      "tolerance": 0.0
+    }
+  ],
+  "schema_version": "0.1"
+}

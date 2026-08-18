@@ -9,6 +9,12 @@ from acd.core.fab import (
     load_fab_profile,
     validate_allowances_against_profile,
 )
+from acd.core.feedback import (
+    FeedbackError,
+    propose_input_feedback,
+    validate_applied_feedback,
+    validate_feedback_application,
+)
 from acd.core.firmware import (
     FunctionalRunError,
     evaluate_functional_run,
@@ -34,6 +40,7 @@ __all__ = [
     "CadNormalizationError",
     "FabOrderIntentView",
     "FabProfile",
+    "FeedbackError",
     "FunctionalRunError",
     "ProcessAllowanceView",
     "ReceiptReconciliationError",
@@ -46,8 +53,11 @@ __all__ = [
     "load_fab_profile",
     "normalize_3mf",
     "normalize_step",
+    "propose_input_feedback",
     "reconcile_files",
     "reconcile_receipt",
     "subject_hash_for",
     "validate_allowances_against_profile",
+    "validate_applied_feedback",
+    "validate_feedback_application",
 ]

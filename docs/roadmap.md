@@ -36,7 +36,7 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装 |
-| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.3実装、5.4未着手 |
+| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装 |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 一部実装 |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
@@ -110,10 +110,15 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 5.1〜5.3の実機Evidenceと現行の設計入力ファイル、git revisionを入力する |
-| 実装 | 実機Evidenceと設計入力の差分を検出し、更新すべき入力属性とrationale recordを提示する |
-| 正常系 | 実機Evidenceに基づく入力更新後、決定論的ゲートを再実行してauthoritative Evidenceを更新できる |
-| negative/fail-closed | 投影や実機Evidenceを入力へ直接逆流させる経路、stale Evidenceでの合格、rationale欠落を拒否する |
-| 再現性 | 同一の実機Evidence集合から同一の差分提示を再生成し、staleケースのnegative testを含める |
+| 実装 | 明示的な反映policyに従い、実機Evidenceと設計入力の差分、更新候補、必要なrationaleを型付きproposal documentへ提示する。入力ファイルは書き換えない |
+| 正常系 | proposal documentを人または別の明示的工程でレビュー・適用した後、適用後validatorで宣言された属性だけの変更を検査できる |
+| negative/fail-closed | 投影や実機Evidenceを入力へ直接逆流させる経路、stale／virtual／invalid Evidence、policy不整合、unclassified属性、rationale欠落をunknownまたは適用不可として扱う |
+| 再現性 | 同一のgraph、rationale、policy、実機Evidence集合から同一のproposalとcanonical hashを再生成し、適用後の余分な差分をnegative testに含める |
+
+5.4では`propose_input_feedback.py`が入力を読み取り、`set_value`または`reconfirm`の
+明示的な反映policyに基づく提案だけを出力する。`rationale_required`が残る提案は
+適用可とは扱わず、proposalから入力への自動逆流は実装しない。stale Evidence、
+unclassified属性、policy不整合はfail-closedでstatusを`unknown`とする。
 
 ## マイルストーン6: 実行基盤のDockerWorkspace一本化
 

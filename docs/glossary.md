@@ -21,6 +21,10 @@
 | LED capture | LEDの`timestamp_s,level`時系列を保存した生ログ。周期、周波数、duty比の独立測定へ使う。 |
 | 書き込み検証 | `esptool.py`相当のflash logで、対象chip、app imageの`app_flash_offset`・サイズ、書き込み行と`Hash of data verified.`行の件数、`Hard resetting`完了を照合する処理。 |
 | シリアル温湿度ログ | `I (12345) gd1: temp=25.31C rh=48.20%`形式の生ログ。tagに一致するセンサ行だけを厳格parseし、温度、湿度、値域、周期を独立parserで測定する。 |
+| 反映policy | 実機Evidenceのmeasurement nameを、対象graphのnode／属性、反映種別、許容差、decision kindへ明示的に対応付ける宣言。推測による対応付けは行わない。 |
+| proposal document | 実機Evidenceに基づく設計入力属性の変更候補、根拠Evidence、rationale要否、入力・出力hashを保持する派生文書。入力graphへ自動適用しない。 |
+| stale Evidence | 対象graphのrevisionと一致せず、現行設計入力の根拠に使えないEvidence。 |
+| 適用後validator | 人または別工程が更新したgraphについて、proposalに宣言された属性だけが提案値へ変わったことを検査する決定論的検証。 |
 | execution context | `container`、`host`、`unknown`で表すToolEnvelopeの型付き実行場所。 |
 | authoritative Evidence | revision一致、既知provenance、digest固定containerを満たし、合格側へ使えるEvidence。 |
 | provisional Evidence | `supports_pass()`は満たすがdigest固定container要件を満たさず、参考に限るEvidence。 |

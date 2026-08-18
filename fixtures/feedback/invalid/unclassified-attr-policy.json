@@ -1,0 +1,16 @@
+{
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "rules": [
+    {
+      "attr": "new_attr",
+      "decision_kind": "firmware_pin",
+      "measurement_name": "led_frequency",
+      "node_id": "fw.pin.led",
+      "rule_id": "unclassified",
+      "rule_kind": "set_value",
+      "tolerance": 0.0
+    }
+  ],
+  "schema_version": "0.1"
+}

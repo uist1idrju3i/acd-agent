@@ -265,6 +265,10 @@ ACD機能としては、FW書き込み・機能測定、価格・在庫取得、
 受領取り込みは`execution_context="host"`の`PhysicalEvidence`を入力更新の根拠として
 生成するが、`supports_authoritative_pass()`は常に`False`であり、決定論的ゲートの
 合格側へ昇格しない。
+測定結果の入力反映は5.4のproposal生成と適用後validatorに限定し、反映policyに
+明示された候補だけを提示する。proposalや実機Evidenceがgraph、rationale、policyへ
+自動逆流する経路は持たず、入力更新は人または別の明示的工程が行った後に既存の
+決定論的ゲートを再実行する。`rationale_required`が残る候補は適用可と扱わない。
 
 ## 工程境界
 

@@ -19,6 +19,17 @@ from acd.schema.evidence import (
     PhysicalEvidence,
 )
 from acd.schema.fab_profile import FabProfileDocument
+from acd.schema.feedback import (
+    AppliedFeedbackValidationReport,
+    FeedbackItemStatus,
+    FeedbackPolicy,
+    FeedbackProposal,
+    FeedbackProposalItem,
+    FeedbackProposalStatus,
+    FeedbackRule,
+    FeedbackRuleKind,
+    FeedbackValidationStatus,
+)
 from acd.schema.functional_run import (
     FunctionalArtifact,
     FunctionalCheckReport,
@@ -61,6 +72,7 @@ __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "UNKNOWN",
     "AcdModel",
+    "AppliedFeedbackValidationReport",
     "ConvergenceState",
     "DecisionKind",
     "DesignGraph",
@@ -68,6 +80,14 @@ __all__ = [
     "EvidenceClaim",
     "EvidenceStatus",
     "FabProfileDocument",
+    "FeedbackItemStatus",
+    "FeedbackPolicy",
+    "FeedbackProposal",
+    "FeedbackProposalItem",
+    "FeedbackProposalStatus",
+    "FeedbackRule",
+    "FeedbackRuleKind",
+    "FeedbackValidationStatus",
     "FunctionalArtifact",
     "FunctionalCheckReport",
     "FunctionalCheckStatus",
