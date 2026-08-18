@@ -51,3 +51,27 @@ runnerは解決済みdigestとcontainer markerをforwardする。
 
 validatorの矛盾拒否、host provisional、digest固定container authoritative、
 markerのみのunknown拒否、Evidence CLIのhost拒否を回帰試験に含める。
+
+## CI authoritative gate
+
+GD1基板pipelineは、ERC、routing、DRC、silkscreen、DFM、発注readinessの決定論的結果を
+`evidence-electrical.json`へ記録する。CIの`container-gates` jobはbuildxで
+`docker/acd-tools.Dockerfile`をbuildしてlocalへloadし、`DockerDevWorkspace`を使う
+`scripts/run_in_workspace.py`からresolver、基板pipeline、筐体pipelineを実行する。
+続けて`verify_authoritative_evidence.py`で両Evidenceを決定論的に検査する。
+
+`DockerDevWorkspace`のagent-serverは`/workspace`をconversation保存領域として使用する
+ため、ホストrepositoryを`/workspace`へmountしない。repositoryは`/acd-src:ro`として
+read-only mountし、container user所有の`/workspace/acd`へ複製してからpipelineを実行する。
+生成物はSDKの`RemoteWorkspace.file_download()`でhostへ取得し、host上のverifierへ渡す。
+commandの失敗やfile downloadの失敗はfail-closedとする。
+
+現行の`DockerDevWorkspace(base_image=...)`はpinned SDK v1.42.1のagent-server imageを
+on-the-flyで派生buildする。`ACD_CONTAINER_IMAGE_DIGEST`には指定base imageのcontent
+addressを記録し、base imageとderived imageが同一だとは主張しない。将来GHCRへpublish
+したACD tools imageのdigestを運用記録へ固定した段階で、そのdigestをpullして
+`DockerWorkspace(server_image=...)`へ渡す方式へ移行する。digestが記録される前にpullへ
+切り替えず、未記録時は現在のbuild経路を維持してfail-openを避ける。
+
+local build imageにRepoDigestが無い場合はimage IDをcontent addressとして記録する。
+publish済みdigestが未確定の間は、偽のlock fileやplaceholder digestを作成しない。

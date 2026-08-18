@@ -17,8 +17,8 @@ ACDのconversationではbrowser toolを既定無効とし、明示的に有効�
 script自体がhook matcherの外側になるため、ACDのfail-closed境界を貫通しうるためである。
 map/reduceやlaneの意味的mergeは既存の決定論的入口とSDKの安全なtask境界で扱う。
 
-agent-server系能力は保留（着手判断未決）とする。agent-serverをACDの実行契約として採用する
-設計判断と、対象APIが認証・権限・Evidence境界を満たす受入試験を完了したことを着手条件とする。
+agent-server系能力はACDの対象外とする。agent-serverをACDの実行契約として採用する場合は、
+認証・権限・Evidence境界を満たす受入条件を定義した新規ADRを起票する。
 現行のauthoritative実行経路は`DockerDevWorkspace`であり、`DockerWorkspace`やserver routerを
 この判断なしに置き換えない。
 

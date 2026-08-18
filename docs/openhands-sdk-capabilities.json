@@ -130,7 +130,7 @@
       "use": "長時間sessionの表示",
       "adoption": "採用予定",
       "roadmap": "4.4",
-      "rationale": "原EventLogと照合し、Evidenceを置換しない",
+      "rationale": "原`EventLog`と照合し、`Evidence`を置換しない",
       "verification": "pinned API確認、実装未着手"
     },
     {
@@ -355,7 +355,7 @@
       "use": "L3観測の構造化",
       "adoption": "採用予定",
       "roadmap": "4.4",
-      "rationale": "secretとEvidenceをログへ混入させない",
+      "rationale": "`secret`と`Evidence`をログへ混入させない",
       "verification": "pinned API確認、実装未着手"
     },
     {
@@ -383,7 +383,7 @@
       "use": "L3観測の構造化",
       "adoption": "採用予定",
       "roadmap": "4.4",
-      "rationale": "送信先・sanitizer・既定無効を固定し、Evidenceへ触れない",
+      "rationale": "送信先・`sanitizer`・既定無効を固定し、`Evidence`へ触れない",
       "verification": "pinned API確認、実装未着手"
     },
     {
@@ -523,7 +523,7 @@
       "representative_apis": ["FinishTool"],
       "use": "SDK組み込みtool",
       "adoption": "不採用",
-      "rationale": "ACDの明示的ToolDefinition集合を単一化する",
+      "rationale": "ACDの明示的`ToolDefinition`集合を単一化する",
       "verification": "pinned API確認、採用しない"
     },
     {
@@ -582,7 +582,7 @@
       "representative_apis": ["BrowserClickTool"],
       "use": "L2の部品調査・datasheet確認",
       "adoption": "採用",
-      "rationale": "L2探索補助に限定し、設計入力へ直接昇格させない。決定論的APIで再取得してhash固定し、EvidenceやL1合否を置換しない",
+      "rationale": "L2探索補助に限定し、設計入力へ直接昇格させない。決定論的APIで再取得して`hash`固定し、`Evidence`やL1合否を置換しない",
       "verification": "`BrowserToolSet.is_usable()`、agent session回帰"
     },
     {
@@ -654,7 +654,7 @@
       "representative_apis": ["get_default_tools"],
       "use": "汎用tool束",
       "adoption": "不採用",
-      "rationale": "ACD固有ToolDefinitionで登録する",
+      "rationale": "ACD固有`ToolDefinition`で登録する",
       "verification": "pinned API確認、採用しない"
     },
     {
@@ -724,7 +724,7 @@
       "domain": "workspace.DockerDevWorkspace",
       "modules": ["workspace.docker.dev_workspace"],
       "representative_apis": ["DockerDevWorkspace"],
-      "use": "現行runnerのbase imageからagent-server imageを準備",
+      "use": "現行`DockerDevWorkspace`の`base_image`からserver imageをon-the-flyで準備",
       "adoption": "採用",
       "rationale": "`src/acd/openhands/workspace.py`が`base_image`で実行",
       "verification": "vendor実装、runner回帰"
@@ -733,10 +733,10 @@
       "domain": "workspace.DockerWorkspace",
       "modules": ["workspace.docker", "workspace.docker.workspace"],
       "representative_apis": ["DockerWorkspace"],
-      "use": "事前build済みdigest固定server imageの実行",
+      "use": "将来の`DockerWorkspace`による事前build済みdigest固定server imageの実行",
       "adoption": "採用予定",
       "roadmap": "4.4",
-      "rationale": "authoritative経路はDockerDevWorkspace。配布済みserver image移行後に採用",
+      "rationale": "現行`DockerDevWorkspace`はprovisional。配布済みdigest固定server image移行後に採用",
       "verification": "constructor確認、実装未着手"
     },
     {
@@ -745,7 +745,7 @@
       "representative_apis": ["ApptainerWorkspace"],
       "use": "Apptainer実行",
       "adoption": "不採用",
-      "rationale": "DockerWorkspace一本化",
+      "rationale": "`DockerWorkspace`以外の実行環境はOpenHands専用拡張の境界外",
       "verification": "pinned API確認、採用しない"
     },
     {

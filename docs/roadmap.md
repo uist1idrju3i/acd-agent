@@ -9,15 +9,15 @@ GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SE
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機測定、発注、価格・在庫取得は未実装である。
-DockerWorkspace（agent-server image、digest固定）へのゲート実行一本化は次フェーズで
+事前build済みdigest固定server image（DockerWorkspace）へのゲート実行一本化は次フェーズで
 実装する。現行runnerのDockerDevWorkspace、CI、ホスト経路は移行中の参考実行であり、
 合格側Evidenceを生成しない。
 `AcdGateCritic`は決定論的ゲート結果を使うL2操舵として実装済みである。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
 GD1の独立したwidth positive-control armは固定順で並列集約し、`acd-search`は候補と
 provenanceだけを返す。SDK workflowは採用しない。
-agent-serverとConversationは実運用前提の経路として、ADR-0025のV1〜V8受け入れ条件と
-CI検証へ移行する。決定論的gateの代替にはしない。
+agent-serverは対象外とする。将来採用する場合は新規ADRで受け入れ条件を定義する。
+Conversationは現行のDockerDevWorkspace経路で検証し、決定論的gateの代替にはしない。
 
 ## 現行実装計画
 
@@ -30,9 +30,26 @@ CI検証へ移行する。決定論的gateの代替にはしない。
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 実装済み |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 実装済み |
-| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する。`sdk.context.prompts`は`plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、資材hashと整合させる。`sdk.llm.router`はcritic/judge modelと主agent modelを分離するが、routing結果を合否へ影響させない。`sdk.io`は`src/acd/openhands/session/bootstrap.py`のmetrics/stats保存を`FileStore`抽象へ移譲する。`sdk.logger`／`sdk.observability`はad-hoc JSONを構造化ログ・observabilityへ移し、secretとEvidenceを混入させない。`sdk.settings`／`sdk.credential`／`sdk.profiles`はsecret allowlistとprofile driftをSDK経路へ移し、unknownをfail-closedにする。`sdk.context.memory`は作業文脈の補助に限定し、契約・合否の正にしない。`sdk.context.view`は原EventLogと照合する表示に限定する。`sdk.workspace`／`workspace.DockerWorkspace`はhost workspaceをprovisional限定とし、事前build済みdigest固定server imageへの移行後にauthoritative経路化する | 未着手 |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 未着手 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 未着手 |
-| 6 | agent-server実運用化 | ADR-0025のV1〜V8、DockerWorkspace、REST/WebSocket、resume/forkを検証する | 受け入れ条件確定（実装・実測待ち） |
+| 6 | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
+
+### 4.4 SDK機能移譲の詳細
+
+- `sdk.context.prompts`: `plugins/acd/agents/*.md`のrole別promptをSDK prompt構造へ寄せ、
+  資材hashを固定してpromptとの整合性を確認する。
+- `sdk.llm.router`: critic/judge modelと主agent modelを分離する。routing結果は合否へ
+  影響させない。
+- `sdk.io`: `src/acd/openhands/session/bootstrap.py`のmetrics/stats保存を`FileStore`
+  抽象へ移譲する。
+- `sdk.logger`／`sdk.observability`: L3観測のad-hoc JSONを構造化ログ・observabilityへ
+  移し、secretとEvidenceを混入させない。
+- `sdk.settings`／`sdk.credential`／`sdk.profiles`: secret allowlistとprofile driftを
+  SDK経路へ移し、unknownはfail-closedにする。
+- `sdk.context.memory`: 作業文脈の補助だけに使い、契約・合否の正にしない。
+- `sdk.context.view`: 原EventLogと照合する表示だけに使う。
+- `sdk.workspace`／`workspace.DockerWorkspace`: host workspaceはprovisionalに限定し、
+  事前build済みdigest固定server imageへ移行した後にauthoritative経路化する。
 
 各マイルストーンの完了条件は、(1)入力と出所、(2)実装、(3)正常系、(4)negative/
 fail-closed、(5)再現性の5要素で確認する。SkillやAIの所見だけでは完了としない。
@@ -85,5 +102,6 @@ negative testなしでしか完了条件を満たせない場合は、その機�
 SDKの実行・対話・配布・観測機能を活用し、ACDの契約・投影・合否を保持する。
 次フェーズでは依存と配布構造を整理し、その後に採用予定機能を実装する。
 GoalController、browser_use、Skills、security analyzer、secret/redactionは採用予定または
-採用対象としてカタログに記録し、ToolDefinition、DockerWorkspace、決定論的gateの
+採用対象としてカタログに記録し、ToolDefinition、現行のDockerDevWorkspace、将来のDockerWorkspace、
+決定論的gateの
 責務境界を変更しない。agent-server、MCP、Canvas、remote API、cloudは採用しない。

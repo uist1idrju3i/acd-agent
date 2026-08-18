@@ -26,9 +26,41 @@ ADR-0008によりwaiver機構は廃止し、能力違反は常にfailとする�
   実測値、比較対象はfab profileの宣言値とし、graphの宣言値を合格根拠にしない。
 - 実価格、実納期、在庫、JLCDFMのfab側レビュー結果はACDで判定せず、`unknown`として
   Phase 9/11へ送る。
+- 部品カタログは設計グラフの`electrical.component`ノードにMPN、メーカー、出所URL、
+  取得時点、ライセンスを保持する。footprint、3D model、symbolのライブラリは取得元URLと
+  commit、版、またはhashをpinし、解決した実パスと取得日時をEvidenceへ記録する。
+- pinのないライブラリ参照、出所不明のfootprint、hash未記録の3D modelは`unknown`として
+  fail-closedで扱い、照合Evidenceなしに合格根拠にしない。ライブラリ記述と実部品の照合は
+  datasheetとpin mappingを独立に検証し、ライブラリ更新時はstale化して再照合する。
+- KiCad公式ライブラリを第一候補とし、ライセンスは
+  [`docs/research/README.md`](../research/README.md)の境界に従って確認する。
 
 ## 影響
 
 - `fab.order_intent`は対象profileとPCBA工程クラスを設計グラフへ明示する。
 - `fab.process_allowance`は、追加影響を受け入れる工法と要件根拠を明示する。
 - profileの`rule_id`は後続DFM findingの安定した識別子となる。
+
+## silkscreen観測範囲とevidence要約
+
+silkscreenゲートは、silkと同面のpad、mask開口、body、courtyardだけを衝突対象
+とする。through-hole padは両面の対象とし、boardレベル参照にはnearest-component
+制約を適用しない。文字寸法はKiCad stroke fontの実測に基づく上界モデルをゲート側の
+単一の出所とし、文字ごとのadvance係数、stroke余裕、descender係数をcontext経由で
+Skillへ配布する。帰属範囲を広げた場合は、実測text-local範囲が上界をstroke幅以上
+超えたとき`attribution_overflow`でfail-closedにする。
+
+placement evidenceは、採用位置・回転、拒否理由別件数、各理由の先頭例、および完全な
+evidence JSONのsha256をgraphへ保存する。完全な候補列挙は`out/`へ出力し、canonical
+graphには保存しない。
+
+GD1の観測で、裏面silkと表面部品を衝突扱いすること、およびboard参照をrefdes向け
+nearest-component判定へ入れることは物理的に成立しない判定だった。KiCad stroke fontの
+advanceは約`0.868 × height`であり、上界`0.95 × height`とstroke余裕を採用した。
+descender文字`g/j/p/q/y`は、実測直交方向幅`1.483 mm`（height 1.0、stroke 0.15、
+stroke除外で`1.333 × height`）に対して係数`1.45`を上界とした。これは閾値を緩めた
+のではなく、同面性と測定モデルの誤りを是正したものである。
+
+F面ラベルは上界モデルで解が存在する高さ1.0 mmへ変更し、`RESET`は解が存在しない
+ため`RST`へ変更した。投影・実測・再配置後、GD1基板pipelineはsilkscreenゲートまで
+通過する。evidence要約は設計入力のサイズを抑えつつ、完全データをhashで追跡できる。

@@ -18,24 +18,25 @@
 
 ## ADR
 
-主要な責務統合は[`adr/ADR-0026-openhands-delegation-contract.md`](adr/ADR-0026-openhands-delegation-contract.md)
-に記録する。過去の決定を保持するADRは、各文書のSuperseded pointerから参照できる。
+主要な責務統合は[`adr/ADR-0026-openhands-delegation-contract.md`](adr/ADR-0026-openhands-delegation-contract.md)、
+実行provenanceは[`adr/ADR-0028-execution-provenance.md`](adr/ADR-0028-execution-provenance.md)、
+文書統治は[`adr/ADR-0034-document-governance.md`](adr/ADR-0034-document-governance.md)に記録する。
+過去の決定を保持するADRは、各文書のSuperseded pointerから統合先を確認できる。
 
 ## Accepted ADR一覧
 
 | ADR | 題 |
 |---|---|
-| [0001](adr/ADR-0001-monorepo-structure.md) | monorepo構成 |
-| [0002](adr/ADR-0002-json-schema-canonical.md) | Pydantic契約とJSON Schema投影 |
-| [0004](adr/ADR-0004-parts-catalog-provenance.md) | 部品catalogとprovenance |
 | [0005](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md) | PCBA準備契約 |
 | [0006](adr/ADR-0006-vendor-submodule-policy.md) | SDK submodule更新方針 |
 | [0007](adr/ADR-0007-llm-guided-physical-design.md) | LLM物理設計境界 |
 | [0008](adr/ADR-0008-minimal-vibebb-scope.md) | 最小VibeBB範囲 |
-| [0012](adr/ADR-0012-silkscreen-observation-boundary.md) | silkscreen観測境界 |
 | [0021](adr/ADR-0021-design-rationale-records.md) | 設計根拠record |
 | [0023](adr/ADR-0023-deterministic-gate-authority.md) | 三層分離と合否権限 |
 | [0026](adr/ADR-0026-openhands-delegation-contract.md) | OpenHands委譲契約 |
+| [0027](adr/ADR-0027-single-distribution.md) | 単一配布形態 |
 | [0028](adr/ADR-0028-execution-provenance.md) | 実行provenanceとauthoritative Evidence |
+| [0033](adr/ADR-0033-sdk-capability-adoption.md) | SDK能力の採否とbrowser_use境界 |
+| [0034](adr/ADR-0034-document-governance.md) | 文書統治とSDK能力カタログ |
 
-上記以外のADRは、ADR-0026または各統合先へ移送されたSuperseded pointerである。
+上記以外のADRは、統合先を示すSuperseded pointerである。

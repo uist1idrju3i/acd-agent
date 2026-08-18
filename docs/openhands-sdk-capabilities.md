@@ -20,7 +20,7 @@
 | sdk.context.condenser | `LLMSummarizingCondenser` | 長い対話の圧縮 | 採用 | `src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない | resume/fork回帰 |
 | sdk.context.memory | `load_memory` | 作業文脈の補助 | 採用予定（ロードマップ4.4） | 契約・合否の正にしない。資材hashを固定する | pinned API確認、実装未着手 |
 | sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用予定（ロードマップ4.4） | role別promptと資材hashを固定する | pinned API確認、実装未着手 |
-| sdk.context.view | `View` | 長時間sessionの表示 | 採用予定（ロードマップ4.4） | 原EventLogと照合し、Evidenceを置換しない | pinned API確認、実装未着手 |
+| sdk.context.view | `View` | 長時間sessionの表示 | 採用予定（ロードマップ4.4） | 原`EventLog`と照合し、`Evidence`を置換しない | pinned API確認、実装未着手 |
 | sdk.conversation | `BaseConversation`<br>`LocalConversation`<br>`ConversationState` | 現行agent session | 採用 | `src/acd/openhands/session/bootstrap.py`で使用 | session回帰 |
 | sdk.conversation.cancellation | `CancellationToken` | 対話中断 | 採用 | SIGINTからinterruptへ結線し、L2停止側に限定 | `tests/openhands/session/test_goal_loop.py` |
 | sdk.conversation.conversation_stats | `ConversationStats` | session別使用量観測 | 採用 | L3観測として採用し合否に混入しない | `tests/openhands/session/test_goal_loop.py` |
@@ -39,10 +39,10 @@
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用予定（ロードマップ4.4） | routing結果は合否へ影響させず、profileと資材hashを固定する | pinned API確認、実装未着手 |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
-| sdk.logger | `get_logger` | L3観測の構造化 | 採用予定（ロードマップ4.4） | secretとEvidenceをログへ混入させない | pinned API確認、実装未着手 |
+| sdk.logger | `get_logger` | L3観測の構造化 | 採用予定（ロードマップ4.4） | `secret`と`Evidence`をログへ混入させない | pinned API確認、実装未着手 |
 | sdk.marketplace | `MarketplaceRegistry` | 外部資材取得 | 不採用 | pinned PluginSourceでprovenanceを固定する | pinned API確認、採用しない |
 | sdk.mcp | `MCPClient` | MCP連携 | 不採用 | OpenHands専用拡張にMCP互換層を追加しない | pinned API確認、採用しない |
-| sdk.observability | `observe` | L3観測の構造化 | 採用予定（ロードマップ4.4） | 送信先・sanitizer・既定無効を固定し、Evidenceへ触れない | pinned API確認、実装未着手 |
+| sdk.observability | `observe` | L3観測の構造化 | 採用予定（ロードマップ4.4） | 送信先・`sanitizer`・既定無効を固定し、`Evidence`へ触れない | pinned API確認、実装未着手 |
 | sdk.plugin | `PluginSource` | pinned plugin配布 | 採用 | `src/acd/openhands/distribution/plugin.py`でSHA/tagを固定 | ref検証、拒否試験 |
 | sdk.profiles | `AgentProfile`<br>`AgentProfileStore` | secret-free profile配布 | 採用予定（ロードマップ4.4） | profile driftを管理し、資材hashを固定する | pinned API確認、実装未着手 |
 | sdk.secret | `SecretSource`<br>`StaticSecret`<br>`LookupSecret` | secretを平文から分離 | 採用 | allowlist環境変数をlazy sourceとしてConversation registryへ渡す | registry masking回帰 |
@@ -55,13 +55,13 @@
 | sdk.subagent | `AgentDefinition` | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照 | agent資材検査 |
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |
 | sdk.tool | `ToolDefinition`<br>`Tool`<br>`register_tool`<br>`list_registered_tools` | ACD toolのagent入口 | 採用 | `register_acd_tools()`とSDK登録を使用 | schema/実行試験 |
-| sdk.tool.builtins | `FinishTool` | SDK組み込みtool | 不採用 | ACDの明示的ToolDefinition集合を単一化する | pinned API確認、採用しない |
+| sdk.tool.builtins | `FinishTool` | SDK組み込みtool | 不採用 | ACDの明示的`ToolDefinition`集合を単一化する | pinned API確認、採用しない |
 | sdk.tool.internal | `ClientTool` | SDK内部tool補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.utils | `maybe_truncate` | SDK内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.workspace | `LocalWorkspace` | agent作業workspace | 採用予定（ロードマップ4.4） | host実行はprovisionalに限定し、authoritative経路にしない | pinned API確認、実装未着手 |
 | tools | `TerminalTool` | OpenHands標準tool集合 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
 | tools.apply_patch | `ApplyPatchTool` | patch編集 | 不採用 | ACDの明示的tool集合と保護hookを単一化する | pinned API確認、採用しない |
-| tools.browser_use | `BrowserClickTool` | L2の部品調査・datasheet確認 | 採用 | L2探索補助に限定し、設計入力へ直接昇格させない。決定論的APIで再取得してhash固定し、EvidenceやL1合否を置換しない | `BrowserToolSet.is_usable()`、agent session回帰 |
+| tools.browser_use | `BrowserClickTool` | L2の部品調査・datasheet確認 | 採用 | L2探索補助に限定し、設計入力へ直接昇格させない。決定論的APIで再取得して`hash`固定し、`Evidence`やL1合否を置換しない | `BrowserToolSet.is_usable()`、agent session回帰 |
 | tools.delegate | `DelegateExecutor` | sub-agent調整 | 採用 | SDKのTask実行経路で使用し、hookと確認方針を境界にする | session回帰 |
 | tools.file_editor | `FileEditorTool` | agentのファイル編集 | 採用 | AgentDefinitionとhook保護経路で参照 | hook/編集試験 |
 | tools.gemini | `EditTool` | 外部provider | 不採用 | ACDの固定provider境界外 | pinned API確認、採用しない |
@@ -69,7 +69,7 @@
 | tools.grep | `GrepTool` | agent検索 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
 | tools.planning_file_editor | `PlanningFileEditorTool` | 計画ファイル編集 | 不採用 | file_editorと保護hookの単一経路を維持する | pinned API確認、採用しない |
 | tools.preset | `get_default_agent` | 暗黙tool束 | 不採用 | tool集合を明示固定する | pinned API確認、採用しない |
-| tools.preset.internal | `get_default_tools` | 汎用tool束 | 不採用 | ACD固有ToolDefinitionで登録する | pinned API確認、採用しない |
+| tools.preset.internal | `get_default_tools` | 汎用tool束 | 不採用 | ACD固有`ToolDefinition`で登録する | pinned API確認、採用しない |
 | tools.task | `TaskToolSet` | task分離 | 採用 | hook付きACD agent定義へ限定し、合否権限なし | session回帰 |
 | tools.task_tracker | `TaskTrackerTool` | agent作業追跡 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
 | tools.terminal | `TerminalTool` | agentのCLI実行 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
@@ -77,9 +77,9 @@
 | tools.utils | `run_with_timeout` | SDK内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | tools.workflow | `WorkflowToolSet` | lane並列化のmap/reduce | 不採用 | 任意Python scriptがhook境界を貫通しうるため将来再検討 | pinned API確認、採用しない |
 | workspace | `DockerWorkspace`<br>`DockerDevWorkspace` | OpenHands workspace API | 採用 | runnerとworkspace実装の公開入口を固定する | vendor実装、runner回帰 |
-| workspace.DockerDevWorkspace | `DockerDevWorkspace` | 現行runnerのbase imageからagent-server imageを準備 | 採用 | `src/acd/openhands/workspace.py`が`base_image`で実行 | vendor実装、runner回帰 |
-| workspace.DockerWorkspace | `DockerWorkspace` | 事前build済みdigest固定server imageの実行 | 採用予定（ロードマップ4.4） | authoritative経路はDockerDevWorkspace。配布済みserver image移行後に採用 | constructor確認、実装未着手 |
-| workspace.apptainer | `ApptainerWorkspace` | Apptainer実行 | 不採用 | DockerWorkspace一本化 | pinned API確認、採用しない |
+| workspace.DockerDevWorkspace | `DockerDevWorkspace` | 現行`DockerDevWorkspace`の`base_image`からserver imageをon-the-flyで準備 | 採用 | `src/acd/openhands/workspace.py`が`base_image`で実行 | vendor実装、runner回帰 |
+| workspace.DockerWorkspace | `DockerWorkspace` | 将来の`DockerWorkspace`による事前build済みdigest固定server imageの実行 | 採用予定（ロードマップ4.4） | 現行`DockerDevWorkspace`はprovisional。配布済みdigest固定server image移行後に採用 | constructor確認、実装未着手 |
+| workspace.apptainer | `ApptainerWorkspace` | Apptainer実行 | 不採用 | `DockerWorkspace`以外の実行環境はOpenHands専用拡張の境界外 | pinned API確認、採用しない |
 | workspace.cloud | `OpenHandsCloudWorkspace` | cloud実行 | 不採用 | 再現性と運用境界を固定できない | pinned API確認、採用しない |
 | workspace.remote_api | `APIRemoteWorkspace` | remote API実行 | 不採用 | remote APIを範囲外とする | pinned API確認、採用しない |
 

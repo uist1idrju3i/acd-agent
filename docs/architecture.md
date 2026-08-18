@@ -7,7 +7,8 @@
 SDK機能の採否は[`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json)を正とし、
 説明表は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)に置き、
 運用手順は[`operations.md`](operations.md)、ゲート仕様は[`gates.md`](gates.md)を参照する。
-設計決定は[`adr/`](adr)を参照する。
+Accepted ADRの索引は[`README.md`](README.md)、文書統治は
+[`adr/ADR-0034-document-governance.md`](adr/ADR-0034-document-governance.md)を参照する。
 
 ## 正規データと責務境界
 
@@ -55,7 +56,12 @@ src/acd/
 ├── schema/           # DesignGraph、Evidence、ToolEnvelope等の契約
 ├── core/             # 電気・機械・fab意図の抽出と共通モデル
 ├── pipeline/         # GD1 board/enclosure pipeline
-├── openhands/        # 外部ツールprobeとSDK ToolDefinition
+├── openhands/
+│   ├── session/      # Conversation、goal loop、gate critic
+│   ├── safety/       # security、secret、hook境界
+│   ├── evidence/     # evidenceとgit/revision検証
+│   ├── tools/        # SDK ToolDefinitionとprobe
+│   └── distribution/ # pluginとSkill配布
 └── adapters/
     ├── kicad
     ├── freerouting
@@ -215,11 +221,9 @@ fork/resume後も決定論的ゲートを再実行して合否を決める。SDK
 
 ## agent-server運用境界
 
-OpenHands SDK v1.42.1のagent-serverは、REST、WebSocket、event、
-conversation persistenceを運ぶ将来構想の層として文書化する。serverのevent、state、
-metrics、agent出力、OpenAI互換応答は経過であり、pass evidenceではない。合否はCIまたは
-`run_in_workspace`の決定論的pipelineとgateが決める。起動、保存、resume/fork、直接APIの
-hook境界は、実装着手時に受け入れ条件を定義して検証する。
+OpenHands SDK v1.42.1のagent-serverはACDの対象外である。serverの採用を検討する場合は、
+認証、権限、Evidence境界、起動・保存・resume/forkの受入条件を定義する新規ADRを先に
+起票する。現行の合否はCIまたは`run_in_workspace`の決定論的pipelineとgateが決める。
 
 ## hook境界
 
@@ -250,7 +254,7 @@ orderの合格側Evidenceは`supports_authoritative_pass()`を要求する。
 ## 実装していない境界
 
 SDK機能の採否は[`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json)に整理し、
-Markdown表は機械生成する。
+Markdown表は`scripts/verify_sdk_capabilities.py`から生成し、CIでdriftを検査する。
 ACD機能としては、実機測定、価格・在庫取得、自働発注が未実装であり、将来構想である。
 
 ## 工程境界
@@ -266,5 +270,5 @@ S4（試作立ち上げ）で構成する。各工程は入力ファイルを更
 SDKが実行・対話・配布・観測を担い、ACDが契約・投影・合否を担う。エージェント入口は
 SDK `ToolDefinition`に一本化し、`scripts/*` CLIは人間とCIの入口に限定する。実行形は
 `LocalConversation`とworkspace APIを基点とし、現行runnerは`DockerDevWorkspace`、
-事前build済みimageへの移行後は`DockerWorkspace`を使う。agent-server経路は未検証の将来構想
-として扱う。
+事前build済みdigest固定server imageへの移行後は`DockerWorkspace`を使う。
+agent-server経路は対象外であり、採用時は新規ADRを起票する。
