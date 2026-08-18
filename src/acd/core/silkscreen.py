@@ -6,7 +6,9 @@ the ``acd-silkscreen-placement`` skill under ``plugins/acd/skills/``.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from typing import cast
 
 from acd.core.electrical import GraphExtractionError
 from acd.schema.design_graph import DesignGraph, GraphNode
@@ -35,6 +37,14 @@ class SilkTextView:
 
 
 @dataclass(frozen=True)
+class SilkGraphicPartView:
+    contours: tuple[tuple[tuple[float, float], ...], ...]
+    stroke_width_mm: float
+    fill: str = "none"
+    fill_rule: str = "nonzero"
+
+
+@dataclass(frozen=True)
 class SilkGraphicView:
     node_id: str
     role: str
@@ -45,6 +55,10 @@ class SilkGraphicView:
     placement_search_order: str
     board_edge_margin_mm: float = 0.0
     board_edge_margin_source: str = "unknown"
+    contours: tuple[tuple[tuple[float, float], ...], ...] = ()
+    fill: str = "none"
+    fill_rule: str = "nonzero"
+    parts: tuple[SilkGraphicPartView, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -90,6 +104,83 @@ def _points_attr(node: GraphNode) -> tuple[tuple[float, float], ...]:
     if points[0] != points[-1]:
         points.append(points[0])
     return tuple(points)
+
+
+def _graphic_parts_attr(
+    node: GraphNode,
+    polygon_points: tuple[tuple[float, float], ...],
+    stroke_width: float,
+) -> tuple[SilkGraphicPartView, ...]:
+    value = node.attrs.get("graphic_parts")
+    if value is None:
+        return (SilkGraphicPartView((polygon_points,), stroke_width),)
+    if not isinstance(value, list) or not value:
+        raise GraphExtractionError(f"node {node.id!r}: graphic_parts is invalid")
+    parts: list[SilkGraphicPartView] = []
+    for encoded in value:
+        try:
+            raw_item: object = json.loads(encoded)
+        except json.JSONDecodeError as exc:
+            raise GraphExtractionError(
+                f"node {node.id!r}: graphic part is malformed"
+            ) from exc
+        if not isinstance(raw_item, dict):
+            raise GraphExtractionError(f"node {node.id!r}: graphic part is invalid")
+        item = cast(dict[str, object], raw_item)
+        raw_contours_value = item.get("contours")
+        if not isinstance(raw_contours_value, list) or not raw_contours_value:
+            raise GraphExtractionError(f"node {node.id!r}: graphic contours are invalid")
+        raw_contours = cast(list[object], raw_contours_value)
+        contours: list[tuple[tuple[float, float], ...]] = []
+        for raw_contour_value in raw_contours:
+            if not isinstance(raw_contour_value, list):
+                raise GraphExtractionError(
+                    f"node {node.id!r}: graphic contour is invalid"
+                )
+            raw_contour = cast(list[object], raw_contour_value)
+            if len(raw_contour) < 2:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: graphic contour is invalid"
+                )
+            contour: list[tuple[float, float]] = []
+            for point_value in raw_contour:
+                if not isinstance(point_value, list):
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: graphic point is invalid"
+                    )
+                point_values = cast(list[object], point_value)
+                if len(point_values) != 2 or any(
+                    isinstance(value, bool) or not isinstance(value, int | float)
+                    for value in point_values
+                ):
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: graphic point is invalid"
+                    )
+                x_value, y_value = point_values
+                if not isinstance(x_value, int | float) or not isinstance(
+                    y_value, int | float
+                ):
+                    raise GraphExtractionError(
+                        f"node {node.id!r}: graphic point is invalid"
+                    )
+                contour.append((float(x_value), float(y_value)))
+            contours.append(tuple(contour))
+        part_stroke = item.get("stroke_width_mm", stroke_width)
+        if isinstance(part_stroke, bool) or not isinstance(part_stroke, int | float):
+            raise GraphExtractionError(f"node {node.id!r}: graphic stroke is invalid")
+        fill = item.get("fill", "none")
+        fill_rule = item.get("fill_rule", "nonzero")
+        if not isinstance(fill, str) or not isinstance(fill_rule, str):
+            raise GraphExtractionError(f"node {node.id!r}: graphic fill is invalid")
+        parts.append(
+            SilkGraphicPartView(
+                tuple(contours),
+                float(part_stroke),
+                fill,
+                fill_rule,
+            )
+        )
+    return tuple(parts)
 
 
 def _rotation_degrees_attr(node: GraphNode) -> tuple[float, ...]:
@@ -181,19 +272,27 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
             stroke = _number_attr(node, "stroke_width_mm")
             if stroke <= 0:
                 raise GraphExtractionError(f"node {node.id!r}: stroke width must be positive")
+            polygon_points = _points_attr(node)
+            parts = _graphic_parts_attr(node, polygon_points, stroke)
             graphics.append(
                 SilkGraphicView(
                     node_id=node.id,
                     role=_str_attr(node, "role"),
                     layer=layer,
                     stroke_width_mm=stroke,
-                    polygon_points=_points_attr(node),
+                    polygon_points=polygon_points,
                     placement_basis=_str_attr(node, "placement_basis"),
                     placement_search_order=_str_attr(node, "placement_search_order"),
                     board_edge_margin_mm=_number_attr(node, "board_edge_margin_mm"),
                     board_edge_margin_source=_str_attr(
                         node, "board_edge_margin_source"
                     ),
+                    contours=tuple(
+                        contour for part in parts for contour in part.contours
+                    ),
+                    fill=parts[0].fill,
+                    fill_rule=parts[0].fill_rule,
+                    parts=parts,
                 )
             )
     if not texts and not graphics:

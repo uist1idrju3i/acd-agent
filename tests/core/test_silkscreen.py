@@ -21,8 +21,9 @@ def _graph() -> DesignGraph:
 def test_silkscreen_lane_extracts_declared_text_and_vector_logo() -> None:
     lane = extract_silkscreen_lane(_graph())
     assert {item.text for item in lane.texts} >= {"RST", "BOOT", "DEV BOARD"}
-    assert len(lane.graphics) == 1
-    assert lane.graphics[0].role == "vibebb_logo"
+    assert {item.role for item in lane.graphics} == {"vibebb_logo", "repository_qr"}
+    qr = next(item for item in lane.graphics if item.role == "repository_qr")
+    assert qr.fill_rule == "evenodd"
     assert all(item.placement_reference for item in lane.texts)
 
 

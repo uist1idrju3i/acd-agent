@@ -45,7 +45,7 @@ from acd.core.fab import (
     validate_allowances_against_profile,
 )
 from acd.core.routing_width import NetWidthRequirement
-from acd.core.silkscreen import SilkTextView, SilkscreenLane
+from acd.core.silkscreen import SilkGraphicPartView, SilkTextView, SilkscreenLane
 
 
 from .common import *  # noqa: F401,F403
@@ -573,7 +573,21 @@ def measure_silkscreen(
         declared.append(entry)
         declared_groups.append((entry, tuple(nearby)))
     for graphic in declarations.graphics:
-        xs, ys = zip(*graphic.polygon_points, strict=True)
+        graphic_parts = graphic.parts
+        if not graphic_parts:
+            graphic_parts = (
+                SilkGraphicPartView(
+                    graphic.contours or (graphic.polygon_points,),
+                    graphic.stroke_width_mm,
+                ),
+            )
+        graphic_points = [
+            point
+            for part in graphic_parts
+            for contour in part.contours
+            for point in contour
+        ]
+        xs, ys = zip(*graphic_points, strict=True)
         target = (min(xs) - 0.5, min(ys) - 0.5, max(xs) + 0.5, max(ys) + 0.5)
         target_half_width = (target[2] - target[0]) / 2.0
         target_half_height = (target[3] - target[1]) / 2.0
@@ -610,7 +624,7 @@ def measure_silkscreen(
             "node_id": graphic.node_id,
             "role": graphic.role,
             "layer": graphic.layer,
-            "declared_polygon_points": [list(point) for point in graphic.polygon_points],
+            "declared_polygon_points": [list(point) for point in graphic_points],
             "measured_bbox_mm": list(bbox),
             "measured_ink_area_mm2": area,
             "measured_minimum_stroke_width_mm": measured_width,

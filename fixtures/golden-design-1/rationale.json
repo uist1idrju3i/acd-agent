@@ -2530,24 +2530,30 @@
         "layer",
         "stroke_width_mm",
         "polygon_points",
+        "graphic_parts",
+        "source_path",
+        "source_sha256",
+        "source_viewbox_mm",
+        "source_scale",
+        "placed_size_mm",
         "board_edge_margin_mm",
         "placement_search_order"
       ],
-      "subject_hash": "sha256:1b36b9ca371729859b4d41d0fc291d50e7a3377db4e5d6594525ef23267ec35a",
-      "decision": "Use vector graphic geometry on the declared silk layer with 0.15 mm stroke, 0.15 mm edge margin, and ordered candidate search.",
-      "justification": "§12 requires vector artwork on the declared silk layer; the graph uses 0.15 mm stroke and 0.15 mm edge margin, with an ordered search rather than arbitrary polygon placement so the result remains reproducible and measurable.",
+      "subject_hash": "sha256:662a9b43330a2f9a47dbe18fc7a35797d5d0d8a879915914a2cd16863e9948ee",
+      "decision": "Use deterministic SVG-derived vector artwork on B.SilkS with preserved provenance, 0.15 mm minimum stroke, 0.15 mm edge margin, and ordered placement inputs.",
+      "justification": "The approved SVG assets are converted deterministically into Design Graph geometry; source path and SHA-256 remain in the graph, and projection plus independent Gerber measurement remain authoritative.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Use raster artwork or 0.10 mm stroke",
-          "reason": "That would violate the vector workflow or the 0.15 mm fab minimum."
+          "option": "Retain the hand-coded placeholder polygon or omit source provenance",
+          "reason": "That would not preserve the approved artwork geometry or Design Graph provenance."
         },
         {
-          "option": "Place the polygon at 0.0 mm edge margin",
-          "reason": "The graph reserves 0.15 mm to keep the artwork inside the board edge."
+          "option": "Use an artwork size below the profiled minimum feature width",
+          "reason": "That would violate the 0.15 mm manufacturing minimum."
         }
       ],
       "assumptions": [
@@ -2837,6 +2843,55 @@
       },
       "target_revision": "r1",
       "no_alternatives_reason": null
+    },
+    {
+      "assumptions": [
+        "The QR remains subject to the independent Gerber geometry and minimum-width gates."
+      ],
+      "decision": "Add the repository QR as deterministic even-odd SVG-derived B.SilkS artwork at 13.5 mm square.",
+      "decision_kind": "silkscreen",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.gd1-req-013"
+      ],
+      "justification": "The approved repository URL is encoded in the pinned SVG asset; the graph preserves its source hash and compound contours while projection and independent Gerber measurement remain authoritative.",
+      "provenance": {
+        "recorded_at": "2026-08-17T00:00:00Z",
+        "source": "human"
+      },
+      "rationale_id": "gd1-silk-graphic-qr",
+      "rejected_alternatives": [
+        {
+          "option": "Use a raster QR or omit the quiet-zone geometry",
+          "reason": "That would not preserve deterministic vector manufacturing geometry."
+        },
+        {
+          "option": "Scale below the 0.15 mm profiled minimum feature width",
+          "reason": "That would violate the fabrication profile."
+        }
+      ],
+      "risks": [
+        "QR readability requires manufacturing inspection in addition to geometric acceptance."
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "layer",
+        "stroke_width_mm",
+        "polygon_points",
+        "graphic_parts",
+        "source_path",
+        "source_sha256",
+        "source_viewbox_mm",
+        "source_scale",
+        "placed_size_mm",
+        "board_edge_margin_mm",
+        "placement_search_order"
+      ],
+      "subject_hash": "sha256:062c79457007292f52817124274da500b59e5b29998ca8ae2121f8859f89f5ef",
+      "subject_nodes": [
+        "mechanical.silk_graphic.repository_qr"
+      ],
+      "target_revision": "r1"
     }
   ]
 }

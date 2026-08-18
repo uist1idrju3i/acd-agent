@@ -635,6 +635,25 @@ SW1の実配置中心は`(24.05, 9.05)` mm、回転は90°である。RESETの�
 `(24.55, 2.5375)` mmは、SW1中心から`(+0.50, -6.5125)` mmの上側候補であり、
 回転を考慮した局所座標測定でも宣言高さ1.5 mmに対して実測1.65 mmとなる。
 
+### 12.3a SVG由来の裏面アート
+
+裏面アートは、グラフへハンドコードの近似polygonを記録せず、固定したSVG資材から
+決定論的に生成する。`assets/vibebb-silkscreen.svg`は`40 × 18 mm`を
+`16.0 × 7.2 mm`へ縮小し、`assets/qr-repository-silkscreen.svg`は
+`36 × 36 mm`を`13.5 × 13.5 mm`へ縮小する。グラフには相対source path、source
+SHA-256、viewBox、縮尺、配置後寸法と、塗り・複数輪郭・`evenodd`穴を含む
+`graphic_parts`を保存する。SVG内の`id="board-preview"`グループは変換しない。
+
+両資材は`B.SilkS`であり、裏面テキストの`justify mirror`とは別に、基板中心を基準に
+X座標を反転して物理面での向きを保つ。投影はDesign Graphから生成し、Region/Lineを
+含むGerberを独立測定する。QRのモジュールは縮小後約`0.3 mm`であり、製造プロファイル
+の最小シルク幅`0.15 mm`を下回らない。
+
+要求寸法の同時配置は、pad、mask開口、既存シルク、裏面既存文字、板端マージンを
+一切緩めずに測定する。要求寸法の候補が空き領域を持たない場合はresolverを
+`fail-closed`で停止し、QR縮小、ロゴ縮小、配置領域の再設計などを設計判断へ戻す。
+合格していない配置を受入座標としてグラフへ固定しない。
+
 ### 12.3 グラフ意味差分と再生成
 
 JSON parse後にnode ID、kind、attrs、depends_on、edgesを比較した。計画3親コミットの

@@ -7,8 +7,22 @@ closed downstream (ADR-0004).
 
 from __future__ import annotations
 
+from typing import cast
+
 # ruff: noqa: E501,RUF100
 from acd.schema.design_graph import GraphNode
+
+from ..repository import repository_root
+from .svg_artwork import encode_parts, place_svg
+
+
+def _polygon_points(parts: tuple[dict[str, object], ...]) -> list[str]:
+    contours = cast(list[object], parts[0]["contours"])
+    points = cast(list[object], contours[0])
+    return [
+        f"{cast(list[float], point)[0]},{cast(list[float], point)[1]}"
+        for point in points
+    ]
 
 
 def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
@@ -116,6 +130,23 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
         )
         for node_id, role, text, x_mm, y_mm, reference, basis in text_nodes
     ]
+    root = repository_root()
+    logo_parts, logo_provenance = place_svg(
+        root / "assets/vibebb-silkscreen.svg",
+        board_width_mm=30.0,
+        center_x_mm=21.0,
+        center_y_mm=20.0,
+        width_mm=16.0,
+    )
+    qr_parts, qr_provenance = place_svg(
+        root / "assets/qr-repository-silkscreen.svg",
+        board_width_mm=30.0,
+        center_x_mm=7.0,
+        center_y_mm=7.0,
+        width_mm=13.5,
+    )
+    logo_provenance["source_path"] = "assets/vibebb-silkscreen.svg"
+    qr_provenance["source_path"] = "assets/qr-repository-silkscreen.svg"
     nodes.append(
         GraphNode(
             id="mechanical.silk_graphic.vibebb",
@@ -124,19 +155,42 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
                 "role": "vibebb_logo",
                 "layer": "B.SilkS",
                 "stroke_width_mm": 0.15,
-                "polygon_points": [
-                    "25.0,5.0",
-                    "25.8,6.0",
-                    "26.6,5.0",
-                    "27.4,6.0",
-                    "28.2,5.0",
-                    "27.4,6.2",
-                    "26.6,5.4",
-                    "25.8,6.2",
-                ],
+                "polygon_points": _polygon_points(logo_parts),
+                "graphic_parts": encode_parts(logo_parts),
+                "source_path": logo_provenance["source_path"],
+                "source_sha256": logo_provenance["source_sha256"],
+                "source_viewbox_mm": logo_provenance["source_viewbox_mm"],
+                "source_scale": logo_provenance["scale"],
+                "placed_size_mm": logo_provenance["placed_size_mm"],
                 "placement_basis": (
-                    "branding is intentionally placed on B.SilkS because the "
-                    "front functional-label search records pad/mask congestion"
+                    "provisional SVG-derived candidate; resolver must verify "
+                    "backside pad/mask, silk, edge, and text clearance"
+                ),
+                "placement_search_order": common["placement_search_order"],
+                "board_edge_margin_mm": 0.15,
+                "board_edge_margin_source": common["board_edge_margin_source"],
+            },
+            depends_on=["board.gd1"],
+        )
+    )
+    nodes.append(
+        GraphNode(
+            id="mechanical.silk_graphic.repository_qr",
+            kind="mechanical.silk_graphic",
+            attrs={
+                "role": "repository_qr",
+                "layer": "B.SilkS",
+                "stroke_width_mm": 0.15,
+                "polygon_points": _polygon_points(qr_parts),
+                "graphic_parts": encode_parts(qr_parts),
+                "source_path": qr_provenance["source_path"],
+                "source_sha256": qr_provenance["source_sha256"],
+                "source_viewbox_mm": qr_provenance["source_viewbox_mm"],
+                "source_scale": qr_provenance["scale"],
+                "placed_size_mm": qr_provenance["placed_size_mm"],
+                "placement_basis": (
+                    "provisional SVG-derived candidate; resolver must verify "
+                    "backside pad/mask, silk, edge, and text clearance"
                 ),
                 "placement_search_order": common["placement_search_order"],
                 "board_edge_margin_mm": 0.15,

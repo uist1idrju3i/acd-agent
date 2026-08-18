@@ -121,6 +121,12 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "layer",
             "stroke_width_mm",
             "polygon_points",
+            "graphic_parts",
+            "source_path",
+            "source_sha256",
+            "source_viewbox_mm",
+            "source_scale",
+            "placed_size_mm",
             "board_edge_margin_mm",
             "placement_search_order",
         }

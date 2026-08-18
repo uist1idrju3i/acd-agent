@@ -9,7 +9,9 @@ sorted by name, numbered from 1.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
+from typing import cast
 
 from acd.adapters.kicad.emit import det_uuid, fmt, requote
 from acd.adapters.kicad.library import FootprintLibrary
@@ -28,7 +30,12 @@ from acd.core.electrical import BoardView, ElectricalLane
 from acd.core.fab import FabProfile
 from acd.core.routing_width import derive_net_widths, group_netclasses
 from acd.core.sexpr import Quoted, SExpr, Sym, dumps
-from acd.core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
+from acd.core.silkscreen import (
+    SilkGraphicPartView,
+    SilkGraphicView,
+    SilkscreenLane,
+    SilkTextView,
+)
 
 PCB_VERSION = "20241229"
 
@@ -131,18 +138,108 @@ def _silk_text(item: SilkTextView) -> list[SExpr]:
     ]
 
 
-def _silk_graphic(item: SilkGraphicView) -> list[SExpr]:
-    points: list[SExpr] = [Sym("pts")]
-    for x_mm, y_mm in item.polygon_points:
-        points.append([Sym("xy"), fmt(x_mm), fmt(y_mm)])
-    return [
-        Sym("gr_poly"),
-        points,
-        [Sym("stroke"), [Sym("width"), fmt(item.stroke_width_mm)], [Sym("type"), Sym("solid")]],
-        [Sym("fill"), Sym("none")],
-        [Sym("layer"), Quoted(item.layer)],
-        [Sym("uuid"), Quoted(det_uuid("silk-graphic", item.node_id))],
+def _graphic_parts(item: SilkGraphicView) -> tuple[SilkGraphicPartView, ...]:
+    if item.parts:
+        return item.parts
+    contours = item.contours or (item.polygon_points,)
+    return (SilkGraphicPartView(contours, item.stroke_width_mm, item.fill, item.fill_rule),)
+
+
+def _filled_contours(part: SilkGraphicPartView) -> tuple[tuple[tuple[float, float], ...], ...]:
+    outer = next(iter(part.contours), None)
+    if outer is None:
+        raise ValueError("silkscreen graphic part has no contours")
+    if part.fill_rule != "evenodd" or len(part.contours) < 2:
+        return (outer,)
+    outer_bbox = (
+        min(point[0] for point in outer),
+        min(point[1] for point in outer),
+        max(point[0] for point in outer),
+        max(point[1] for point in outer),
+    )
+    x_values = sorted({point[0] for contour in part.contours for point in contour})
+    y_values = sorted({point[1] for contour in part.contours for point in contour})
+    hole_bboxes = [
+        (
+            min(point[0] for point in contour),
+            min(point[1] for point in contour),
+            max(point[0] for point in contour),
+            max(point[1] for point in contour),
+        )
+        for contour in part.contours[1:]
     ]
+    filled: list[tuple[tuple[float, float], ...]] = []
+    for x1, x2 in pairwise(x_values):
+        for y1, y2 in pairwise(y_values):
+            midpoint = ((x1 + x2) / 2.0, (y1 + y2) / 2.0)
+            if not (
+                outer_bbox[0] <= midpoint[0] <= outer_bbox[2]
+                and outer_bbox[1] <= midpoint[1] <= outer_bbox[3]
+            ):
+                continue
+            if any(
+                bbox[0] <= midpoint[0] <= bbox[2]
+                and bbox[1] <= midpoint[1] <= bbox[3]
+                for bbox in hole_bboxes
+            ):
+                continue
+            filled.append(((x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)))
+    return tuple(filled)
+
+
+def _silk_graphic(item: SilkGraphicView) -> list[SExpr]:
+    result: list[SExpr] = []
+    for index, part in enumerate(_graphic_parts(item)):
+        if not part.contours:
+            raise ValueError(f"silkscreen graphic {item.node_id!r} has no contours")
+        contours = (
+            _filled_contours(part)
+            if part.fill != "none"
+            else part.contours
+        )
+        for contour_index, contour in enumerate(contours):
+            stroke = [
+                Sym("stroke"),
+                [Sym("width"), fmt(part.stroke_width_mm)],
+                [Sym("type"), Sym("solid")],
+            ]
+            uuid = f"{item.node_id}-{index}-{contour_index}"
+            if len(contour) >= 3 and contour[0] == contour[-1]:
+                points: list[SExpr] = [Sym("pts")]
+                for x_mm, y_mm in contour:
+                    points.append([Sym("xy"), fmt(x_mm), fmt(y_mm)])
+                result.append(
+                    cast(
+                        SExpr,
+                        [
+                        Sym("gr_poly"),
+                        points,
+                        stroke,
+                        [Sym("fill"), Sym("solid" if part.fill != "none" else "none")],
+                        [Sym("layer"), Quoted(item.layer)],
+                        [Sym("uuid"), Quoted(det_uuid("silk-graphic", uuid))],
+                        ],
+                    )
+                )
+            else:
+                for segment_index, ((x1, y1), (x2, y2)) in enumerate(pairwise(contour)):
+                    result.append(
+                        cast(
+                            SExpr,
+                            [
+                            Sym("gr_line"),
+                            [Sym("start"), fmt(x1), fmt(y1)],
+                            [Sym("end"), fmt(x2), fmt(y2)],
+                            stroke,
+                            [Sym("layer"), Quoted(item.layer)],
+                            [
+                                Sym("uuid"),
+                                Quoted(det_uuid("silk-graphic", f"{uuid}-{segment_index}")),
+                            ],
+                            ],
+                        )
+                    )
+    return result
 
 
 def _keepout_zone(keepout: KeepoutRect, index: int) -> list[SExpr]:
@@ -535,7 +632,8 @@ def generate_board(
     doc.extend(_edge_lines(board.width_mm, board.height_mm))
     if silkscreen is not None:
         doc.extend(_silk_text(item) for item in silkscreen.texts)
-        doc.extend(_silk_graphic(item) for item in silkscreen.graphics)
+        for item in silkscreen.graphics:
+            doc.extend(_silk_graphic(item))
     for index, keepout in enumerate(keepouts):
         doc.append(_keepout_zone(keepout, index))
     for index, zone in enumerate(copper_zones):
