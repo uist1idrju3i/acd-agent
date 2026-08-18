@@ -204,6 +204,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 [`SECURITY.md`](../SECURITY.md)の「AIエージェント特有の前提」、
 発注ガードの縮約は[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)、
 製造データと`unknown`境界は[`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を正とする。
+
 ### 7.1 期限付き見積入力の取得契約
 
 | 要素 | 完了条件 |

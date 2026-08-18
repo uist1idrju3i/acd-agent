@@ -157,7 +157,7 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    含めて起動し、次の入口を実行させる。
 
    ```bash
-   uv run python plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+   uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
      --fixture fixtures/golden-design-1 --out out/gd1-fw
    ```
 
