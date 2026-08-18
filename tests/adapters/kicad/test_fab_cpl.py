@@ -23,6 +23,7 @@ from acd.adapters.kicad.fab import (
     load_lcsc_pin_geometries,
     rotate,
     verify_cpl_pin_function_declaration,
+    verify_lcsc_rotation_evidence,
 )
 from acd.core.electrical import (
     BoardView,
@@ -390,6 +391,32 @@ def test_cpl_requires_exact_fitted_set() -> None:
         pass
     else:
         raise AssertionError("CPL mismatch must fail closed")
+
+
+def test_lcsc_rotation_evidence_requires_directory(tmp_path: Path) -> None:
+    with pytest.raises(FabOutputError, match="Evidence directory is missing"):
+        verify_lcsc_rotation_evidence(
+            tmp_path / "missing-evidence",
+            ROOT / "fixtures/golden-design-1",
+            _cpl_board(),
+            _bom_lane(_bom_component("C1", "test")),
+            {"C1"},
+        )
+
+
+def test_missing_lcsc_rotation_evidence_is_reported_as_unknown(tmp_path: Path) -> None:
+    evidence_dir = tmp_path / "evidence"
+    evidence_dir.mkdir()
+    offsets, notes, unknowns = verify_lcsc_rotation_evidence(
+        evidence_dir,
+        ROOT / "fixtures/golden-design-1",
+        _cpl_board(),
+        _bom_lane(_bom_component("C1", "test")),
+        {"C1"},
+    )
+    assert offsets == {}
+    assert unknowns == ["C1"]
+    assert notes == {"C1": "unknown; LCSC rotation Evidence file is missing"}
 
 
 def test_cpl_basis_gate_accepts_coincident_centers() -> None:

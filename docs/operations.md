@@ -154,6 +154,10 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    `out/gd1/fab/gd1-cpl-jlcpcb.csv`の2つだけである。
    `out/gd1/gd1.bom.csv`はDesign Graph由来の内部BOM投影であり、非実装部品も含み得るため、
    発注用ファイルとして投入してはならない。
+   CPL回転の独立検証には、リポジトリ内の
+   `evidence/gd1-cpl-orientation/`を使用する。このディレクトリ自体が無い場合は
+   製造データ生成をfail-closedで停止し、個別部品のEvidence欠落は
+   `order-readiness.json`の回転unknownとして記録する。
 
 3. 実行済みのGD1筐体pipelineでは、`out/gd1-enclosure/enclosure.step`、
    `out/gd1-enclosure/enclosure.3mf`、および

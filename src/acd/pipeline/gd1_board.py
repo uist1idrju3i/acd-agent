@@ -72,6 +72,7 @@ from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.rationale import validate_and_project_rationale
+from acd.pipeline.repository import REPO_ROOT
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
@@ -854,7 +855,7 @@ def run_pipeline(
         if node.kind == "mechanical.board_edge_overhang"
     }
     cpl_basis_path = fab_dir / "cpl-basis-report.json"
-    lcsc_evidence_dir = Path(__file__).resolve().parents[4] / "evidence/gd1-cpl-orientation"
+    lcsc_evidence_dir = REPO_ROOT / "evidence/gd1-cpl-orientation"
     verified_rotation_offsets, rotation_evidence_notes, rotation_unknowns = (
         verify_lcsc_rotation_evidence(lcsc_evidence_dir, fixture_dir, measurement, lane, fitted)
     )

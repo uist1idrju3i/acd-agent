@@ -393,6 +393,10 @@ def verify_lcsc_rotation_evidence(
     fitted: set[str],
 ) -> tuple[dict[str, float], dict[str, str], list[str]]:
     """Recompute archived LCSC rotation Evidence without network access."""
+    if not evidence_dir.is_dir():
+        raise FabOutputError(
+            f"{evidence_dir}: LCSC rotation Evidence directory is missing (fail-closed)"
+        )
     footprints = {footprint.refdes: footprint for footprint in board.footprints}
     offsets: dict[str, float] = {}
     notes: dict[str, str] = {}
@@ -401,7 +405,9 @@ def verify_lcsc_rotation_evidence(
         if component.refdes not in fitted:
             continue
         path = evidence_dir / f"{component.refdes}.json"
-        if not path.exists():
+        if not path.is_file():
+            unknowns.append(component.refdes)
+            notes[component.refdes] = "unknown; LCSC rotation Evidence file is missing"
             continue
         document = json.loads(path.read_text(encoding="utf-8"))
         response = document["response"]

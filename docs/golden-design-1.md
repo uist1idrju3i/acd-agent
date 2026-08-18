@@ -343,6 +343,8 @@ U1/J1のpad bbox中心を基準として宣言した。これは独立実測と�
 KiCad symbolのpathとsha256を独立検証した。これはメーカーのtape&reel図そのものでは
 なく、`fab_library_footprint`由来の再現可能な照合Evidenceである。製造データ生成と発注
 可否は分離し、全位置・回転Evidenceが揃ったGD1の`order-readiness.json`は`ready`となる。
+`evidence/gd1-cpl-orientation/`自体が無い場合は製造データ生成をfail-closedで停止し、
+個別部品のEvidence欠落は`order-readiness.json`の回転unknownとして扱う。
 
 GD1のGNDプレーンはグラフの`GND`ネットをF.Cu/B.Cuへ投影し、板端clearanceから導出した
 インセットで定義する。塗りは自前計算せず、KiCad 10.0.5の`--refill-zones --save-board`

@@ -24,8 +24,9 @@ from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
 from acd.schema.design_graph import DesignGraph
 
 from .gd1_board import placements_from_graph
-from .gd1_fixture.components import REPO_ROOT, sha256_of
+from .gd1_fixture.components import sha256_of
 from .placement_evidence import summarize_placement_evidence
+from .repository import REPO_ROOT
 
 SILK_SKILL = REPO_ROOT / (
     "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
