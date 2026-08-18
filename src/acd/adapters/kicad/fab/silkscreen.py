@@ -883,7 +883,9 @@ def measure_silkscreen(
             }
             for item in fixed_declared_silk
         ],
-        "mask_opening_bboxes_mm": [list(item.bbox_mm) for item in masks],
+        "mask_opening_bboxes_mm": [
+            {"bbox_mm": list(item.bbox_mm), "layer": item.layer} for item in masks
+        ],
         "pad_bboxes_mm": [
             {"bbox_mm": list(bbox), "layers": list(layers)} for bbox, layers in pad_bboxes
         ],

@@ -2443,9 +2443,9 @@
         "y_mm",
         "rotation_deg"
       ],
-      "subject_hash": "sha256:52d202a1bb623e1e93c12c8723c70e9bbac4ef338e3390a9851d3335e618c38f",
+      "subject_hash": "sha256:b46bb283ff93849a641ab66bc11b97bd0886a0121d8c264e6af27e5402901b2d",
       "decision": "Place DEV BOARD and golden-design-1-r1 on B.SilkS.",
-      "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (19.675, 11.9) at 0° and golden-design-1-r1 (14.130683004, 8.95) at 90°; their evidence records the fixed-silk, pad, and board-edge rejection counts used to select these positions.",
+      "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (8.016282355, 11.0472) at 0° and golden-design-1-r1 (8.95, 14.47915) at 0°; their evidence records the fixed-silk, pad, mask-opening, and board-edge rejection counts used to select these positions.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
@@ -2488,9 +2488,9 @@
         "y_mm",
         "rotation_deg"
       ],
-      "subject_hash": "sha256:c5ef33bd6b5f191124e52945448355662d7db33aaa5b3d8606ee2a7f57f9f329",
+      "subject_hash": "sha256:72b7b09658da5368d61046149a1485dab1e4b25bfd757c5df39a1320a3b5ccef",
       "decision": "Place RST/BOOT/D1/USB as front functional labels.",
-      "justification": "The updated silkscreen resolver keeps the four operational labels on F.SilkS and places them in the declared sequential order after excluding board-edge, same-side pad, mask, existing-silk, body/courtyard, and nearest-component conflicts. The accepted context candidates are RST (26.325, 5.4) at 0°, BOOT (2.3, 5.4) at 0°, D1 (9.1, 12.4) at 0°, and USB (8.075, 23.9) at 0°; the graph evidence records the rejection counts and full-evidence hash for each result.",
+      "justification": "The updated silkscreen resolver keeps the four operational labels on F.SilkS and places them in the declared sequential order after excluding board-edge, same-side pad, mask, existing-silk, body/courtyard, and nearest-component conflicts. The accepted context candidates are RST (26.325, 5.4) at 0°, BOOT (2.3, 5.15) at 0°, D1 (9.1, 12.4) at 0°, and USB (8.075, 23.9) at 0°; the graph evidence records the rejection counts and full-evidence hash for each result.",
       "driving_requirements": [
         "req.gd1-req-013",
         "req.gd1-req-015"
@@ -2539,7 +2539,7 @@
         "board_edge_margin_mm",
         "placement_search_order"
       ],
-      "subject_hash": "sha256:662a9b43330a2f9a47dbe18fc7a35797d5d0d8a879915914a2cd16863e9948ee",
+      "subject_hash": "sha256:d9dfc8ffb3916b8ecf1f38d178b9e53ab491bb4cecd1128a5ad97a14d54a1e66",
       "decision": "Use deterministic SVG-derived vector artwork on B.SilkS with preserved provenance, 0.15 mm minimum stroke, 0.15 mm edge margin, and ordered placement inputs.",
       "justification": "The approved SVG assets are converted deterministically into Design Graph geometry; source path and SHA-256 remain in the graph, and projection plus independent Gerber measurement remain authoritative.",
       "driving_requirements": [
@@ -2887,7 +2887,7 @@
         "board_edge_margin_mm",
         "placement_search_order"
       ],
-      "subject_hash": "sha256:062c79457007292f52817124274da500b59e5b29998ca8ae2121f8859f89f5ef",
+      "subject_hash": "sha256:ce0b885c35979f73a8ec908f5738366a27a6126fe5410e43ddf626605f7e055f",
       "subject_nodes": [
         "mechanical.silk_graphic.repository_qr"
       ],

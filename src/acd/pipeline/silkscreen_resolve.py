@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -18,7 +18,7 @@ from acd.adapters.kicad.fab import (
     parse_routed_board,
 )
 from acd.adapters.kicad.project import write_project
-from acd.core.electrical import extract_electrical_lane
+from acd.core.electrical import BoardView, extract_electrical_lane
 from acd.core.fab import extract_fab_intent, load_fab_profile
 from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
 from acd.schema.design_graph import DesignGraph
@@ -45,6 +45,7 @@ def measure_silkscreen(
     )
     lane = extract_electrical_lane(graph)
     silkscreen = extract_silkscreen_lane(graph)
+    projection_silkscreen = _materialize_unresolved_texts(silkscreen, lane.board)
     intent, _allowances = extract_fab_intent(graph)
     profile = load_fab_profile(fab_profile_path)
     if intent.fab_profile != profile.profile_id:
@@ -55,7 +56,7 @@ def measure_silkscreen(
         out_dir,
         profile=profile,
         placements=placements_from_graph(graph, lane),
-        silkscreen=silkscreen,
+        silkscreen=projection_silkscreen,
     )
     kicad = KicadCli()
     layers = ["F.Mask", "B.Mask", "F.SilkS", "B.SilkS", "Edge.Cuts"]
@@ -79,9 +80,10 @@ def measure_silkscreen(
         {"F.Mask": by_layer["F.Mask"], "B.Mask": by_layer["B.Mask"]},
         by_layer["Edge.Cuts"],
         measurement,
-        silkscreen,
+        projection_silkscreen,
         profile,
     )
+    _restore_unresolved_positions(context, silkscreen)
     result: dict[str, object] = {
         "fixture": str(fixture_dir),
         "board": str(project.board),
@@ -97,6 +99,46 @@ def measure_silkscreen(
         encoding="utf-8",
     )
     return result
+
+
+def _restore_unresolved_positions(
+    context: dict[str, object],
+    declarations: SilkscreenLane,
+) -> None:
+    raw_value = context.get("declarations")
+    if not isinstance(raw_value, list):
+        return
+    raw_declarations = cast(list[dict[str, object]], raw_value)
+    unresolved = {
+        text.node_id
+        for text in declarations.texts
+        if text.x_mm is None or text.y_mm is None
+    }
+    for item in raw_declarations:
+        if item.get("node_id") in unresolved:
+            item["declared_position_mm"] = None
+
+
+def _materialize_unresolved_texts(
+    lane: SilkscreenLane,
+    board: BoardView,
+) -> SilkscreenLane:
+    provisional_x = float(board.width_mm) / 2.0
+    provisional_y = float(board.height_mm) / 2.0
+    texts = tuple(
+        replace(
+            text,
+            x_mm=provisional_x if text.x_mm is None else text.x_mm,
+            y_mm=provisional_y if text.y_mm is None else text.y_mm,
+        )
+        for text in lane.texts
+    )
+    return SilkscreenLane(
+        board_node_id=lane.board_node_id,
+        texts=texts,
+        graphics=lane.graphics,
+        placement_evidence=lane.placement_evidence,
+    )
 
 
 def resolve_silkscreen(

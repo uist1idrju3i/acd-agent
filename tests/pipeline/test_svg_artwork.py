@@ -32,7 +32,7 @@ def test_backside_svg_placement_reflects_asymmetric_geometry() -> None:
         board_width_mm=30.0,
         center_x_mm=10.0,
         center_y_mm=10.0,
-        width_mm=16.0,
+        width_mm=12.0,
         layer="F.SilkS",
     )
     back, _ = place_svg(
@@ -40,7 +40,7 @@ def test_backside_svg_placement_reflects_asymmetric_geometry() -> None:
         board_width_mm=30.0,
         center_x_mm=10.0,
         center_y_mm=10.0,
-        width_mm=16.0,
+        width_mm=12.0,
         layer="B.SilkS",
     )
     front_contours = cast(list[list[list[float]]], front[1]["contours"])

@@ -86,8 +86,8 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
             "mechanical.silk_text.dev_board",
             "board_type",
             "DEV BOARD",
-            25.0,
-            1.0,
+            None,
+            None,
             "board.gd1",
             "open board area after reference and pad clearance search",
         ),
@@ -95,8 +95,8 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
             "mechanical.silk_text.board_id",
             "board_part_number",
             board_label,
-            21.8,
-            12.7,
+            None,
+            None,
             "board.gd1",
             "graph_id and revision derived part-number placement; branding and "
             "identification intentionally remain on B.SilkS after front-side "
@@ -134,16 +134,16 @@ def silkscreen_nodes(graph_id: str, revision: str) -> list[GraphNode]:
     logo_parts, logo_provenance = place_svg(
         root / "assets/vibebb-silkscreen.svg",
         board_width_mm=30.0,
-        center_x_mm=21.0,
-        center_y_mm=20.0,
-        width_mm=16.0,
+        center_x_mm=6.3,
+        center_y_mm=7.0,
+        width_mm=12.0,
     )
     qr_parts, qr_provenance = place_svg(
         root / "assets/qr-repository-silkscreen.svg",
         board_width_mm=30.0,
-        center_x_mm=7.0,
-        center_y_mm=7.0,
-        width_mm=13.5,
+        center_x_mm=19.3,
+        center_y_mm=6.8,
+        width_mm=13.0,
     )
     logo_provenance["source_path"] = "assets/vibebb-silkscreen.svg"
     qr_provenance["source_path"] = "assets/qr-repository-silkscreen.svg"

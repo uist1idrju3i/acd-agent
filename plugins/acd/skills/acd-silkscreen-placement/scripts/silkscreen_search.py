@@ -831,15 +831,32 @@ def resolve_from_context(
                                     reason = "mask_opening_bboxes_mm"
                                     break
                         if reason is None:
+                            mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
                             for item in mask_openings:
-                                if not isinstance(item, list) or len(item) != 4:
+                                if isinstance(item, dict):
+                                    if item.get("layer") != mask_layer:
+                                        continue
+                                    item_bbox = item.get("bbox_mm")
+                                    if not isinstance(item_bbox, list):
+                                        raise GraphExtractionError(
+                                            "silkscreen context mask_opening_bboxes_mm "
+                                            "contains malformed bbox"
+                                        )
+                                elif isinstance(item, list):
+                                    item_bbox = item
+                                else:
+                                    raise GraphExtractionError(
+                                        "silkscreen context mask_opening_bboxes_mm "
+                                        "contains malformed bbox"
+                                    )
+                                if len(item_bbox) != 4:
                                     raise GraphExtractionError(
                                         "silkscreen context mask_opening_bboxes_mm "
                                         "contains malformed bbox"
                                     )
                                 if _rects_overlap(
                                     candidate_bbox,
-                                    tuple(float(part) for part in item),
+                                    tuple(float(part) for part in item_bbox),
                                 ):
                                     reason = "mask_opening_bboxes_mm"
                                     break
@@ -918,7 +935,7 @@ def resolve_from_context(
                 "resolution": "no_candidate_fail_closed",
                 "placement_order": [item.node_id for item in ordered_texts],
             }
-            break
+            continue
         chosen = min(
             candidates,
             key=lambda item: (
