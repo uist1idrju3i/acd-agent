@@ -94,6 +94,19 @@ def test_feedback_fail_closed(
     policy_name: str, evidence_paths: tuple[str, ...], expected: str
 ) -> None:
     graph, rationale, _, _ = _inputs()
+    if policy_name == "invalid/unclassified-attr-policy.json":
+        graph = graph.model_copy(
+            update={
+                "nodes": [
+                    node.model_copy(
+                        update={"attrs": {**node.attrs, "new_attr": 0.0}}
+                    )
+                    if node.id == "fw.pin.led"
+                    else node
+                    for node in graph.nodes
+                ]
+            }
+        )
     policy = FeedbackPolicy.model_validate(_load(ROOT / "fixtures/feedback" / policy_name))
     evidences = [
         PhysicalEvidence.model_validate(

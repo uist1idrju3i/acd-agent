@@ -81,9 +81,18 @@ def test_cli_stale_evidence_is_unknown_without_traceback(tmp_path: Path) -> None
 
 
 def test_cli_unclassified_attribute_is_unknown(tmp_path: Path) -> None:
+    graph_value = json.loads(GRAPH.read_text(encoding="utf-8"))
+    for node in graph_value["nodes"]:
+        if node["id"] == "fw.pin.led":
+            node["attrs"]["new_attr"] = 0.0
+    graph_path = tmp_path / "graph-unclassified.json"
+    graph_path.write_text(
+        json.dumps(graph_value, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     result, proposal = invoke(
         tmp_path,
-        graph=ROOT / "fixtures/feedback/invalid/graph-unclassified.json",
+        graph=graph_path,
         policy=ROOT / "fixtures/feedback/invalid/unclassified-attr-policy.json",
         evidence=(EVIDENCE / "led_frequency.json",),
     )

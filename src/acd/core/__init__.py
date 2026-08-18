@@ -13,7 +13,6 @@ from acd.core.feedback import (
     FeedbackError,
     propose_input_feedback,
     validate_applied_feedback,
-    validate_feedback_application,
 )
 from acd.core.firmware import (
     FunctionalRunError,
@@ -59,5 +58,4 @@ __all__ = [
     "subject_hash_for",
     "validate_allowances_against_profile",
     "validate_applied_feedback",
-    "validate_feedback_application",
 ]

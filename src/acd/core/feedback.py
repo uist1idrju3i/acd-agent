@@ -258,12 +258,3 @@ def validate_applied_feedback(
                     reason=f"unexpected updated graph difference: {node_id}.{attr}",
                 )
     return AppliedFeedbackValidationReport(status="pass")
-
-
-def validate_feedback_application(
-    original_graph: DesignGraph,
-    updated_graph: DesignGraph,
-    proposal: FeedbackProposal,
-) -> AppliedFeedbackValidationReport:
-    """Compatibility name for the deterministic post-application validator."""
-    return validate_applied_feedback(original_graph, updated_graph, proposal)
