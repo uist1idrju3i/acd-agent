@@ -19,6 +19,7 @@ from openhands.sdk.plugin import PluginSource
 from openhands.sdk.security import ConfirmRisky, SecurityRisk
 from openhands.sdk.subagent import AgentDefinition
 from openhands.sdk.tool import Tool
+from openhands.tools.browser_use import BrowserToolSet
 from openhands.tools.task import TaskToolSet
 
 from acd.openhands.gate_critic import AcdGateCritic, GateRequirement
@@ -61,8 +62,6 @@ def build_acd_conversation(
     register_acd_tools()
     selected_tools = list(tools) if tools is not None else [Tool(name=TaskToolSet.name)]
     if enable_browser:
-        from openhands.tools.browser_use import BrowserToolSet
-
         if not BrowserToolSet.is_usable():
             raise RuntimeError(
                 "browser_use was explicitly enabled but Chromium is unavailable"
