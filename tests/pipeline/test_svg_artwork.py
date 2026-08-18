@@ -5,6 +5,7 @@ from typing import cast
 
 import pytest
 
+from acd.core.qr_geometry import qr_module_matrix_from_svg
 from acd.pipeline.gd1_fixture.svg_artwork import (  # pyright: ignore[reportMissingTypeStubs]
     load_svg,
     place_svg,
@@ -49,3 +50,41 @@ def test_backside_svg_placement_reflects_asymmetric_geometry() -> None:
     back_point = back_contours[0][0]
     assert back_point[0] == pytest.approx(20.0 - front_point[0])
     assert back_point[1] == pytest.approx(front_point[1])
+
+
+def test_svg_stroke_below_profile_fails_without_clamping() -> None:
+    with pytest.raises(ValueError, match="below the minimum silkscreen width"):
+        place_svg(
+            ROOT / "assets" / "vibebb-silkscreen.svg",
+            board_width_mm=30.0,
+            center_x_mm=6.3,
+            center_y_mm=7.0,
+            width_mm=12.0,
+            minimum_stroke_width_mm=0.15,
+        )
+
+
+def test_rotated_logo_has_provenance_and_expected_size() -> None:
+    parts, provenance = place_svg(
+        ROOT / "assets" / "vibebb-silkscreen.svg",
+        board_width_mm=30.0,
+        center_x_mm=21.9,
+        center_y_mm=8.3,
+        width_mm=16.0,
+        rotation_degrees=90.0,
+        minimum_stroke_width_mm=0.15,
+    )
+    assert parts
+    assert provenance["scale"] == "0.400000000"
+    assert provenance["placed_size_mm"] == "7.200000000x16.000000000"
+    assert provenance["rotation_degrees"] == "90.000000000"
+
+
+def test_qr_source_matrix_has_version_5_grid_and_quiet_zone_pitch() -> None:
+    matrix, pitch = qr_module_matrix_from_svg(
+        ROOT / "assets" / "qr-repository-silkscreen.svg"
+    )
+    assert len(matrix) == 37
+    assert all(len(row) == 37 for row in matrix)
+    assert pitch == pytest.approx(0.8)
+    assert sum(row.count("1") for row in matrix) == 686

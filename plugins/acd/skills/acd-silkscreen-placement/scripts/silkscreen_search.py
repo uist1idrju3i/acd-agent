@@ -200,7 +200,12 @@ def resolve_silkscreen_placements(lane: SilkscreenLane, board: BoardModel) -> Si
         "top_left": (-1.0, -1.0),
     }
     for text in lane.texts:
-        if not (text.role.startswith("functional_label_") or text.role == "connector_identifier"):
+        searchable = (
+            text.role.startswith("functional_label_")
+            or text.role == "connector_identifier"
+            or text.role in {"board_type", "board_part_number"}
+        )
+        if not searchable:
             if text.x_mm is None or text.y_mm is None:
                 raise GraphExtractionError(
                     f"silk text {text.node_id!r} has no declared position (fail-closed)"

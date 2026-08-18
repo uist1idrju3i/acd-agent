@@ -59,6 +59,15 @@ class SilkGraphicView:
     fill: str = "none"
     fill_rule: str = "nonzero"
     parts: tuple[SilkGraphicPartView, ...] = ()
+    source_path: str | None = None
+    source_sha256: str | None = None
+    source_scale: float | None = None
+    placement_center_mm: tuple[float, float] | None = None
+    rotation_degrees: float = 0.0
+    qr_module_matrix: tuple[str, ...] = ()
+    qr_source_module_pitch_mm: float | None = None
+    qr_module_pitch_mm: float | None = None
+    qr_quiet_zone_modules: int | None = None
 
 
 @dataclass(frozen=True)
@@ -200,6 +209,55 @@ def _rotation_degrees_attr(node: GraphNode) -> tuple[float, ...]:
     return rotations
 
 
+def _optional_number_attr(node: GraphNode, key: str) -> float | None:
+    value = node.attrs.get(key)
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError as exc:
+            raise GraphExtractionError(
+                f"node {node.id!r}: attr {key!r} missing or invalid"
+            ) from exc
+    return _number_attr(node, key)
+
+
+def _placement_center_attr(node: GraphNode) -> tuple[float, float] | None:
+    value = node.attrs.get("placement_center_mm")
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise GraphExtractionError(
+            f"node {node.id!r}: placement_center_mm is invalid"
+        )
+    parts = value.split(",")
+    if len(parts) != 2:
+        raise GraphExtractionError(
+            f"node {node.id!r}: placement_center_mm is invalid"
+        )
+    try:
+        return float(parts[0]), float(parts[1])
+    except ValueError as exc:
+        raise GraphExtractionError(
+            f"node {node.id!r}: placement_center_mm is invalid"
+        ) from exc
+
+
+def _qr_matrix_attr(node: GraphNode) -> tuple[str, ...]:
+    value = node.attrs.get("qr_module_matrix")
+    if value is None:
+        return ()
+    if (
+        not isinstance(value, list)
+        or len(value) != 37
+        or any(len(row) != 37 for row in value)
+        or any(char not in "01" for row in value for char in row)
+    ):
+        raise GraphExtractionError(f"node {node.id!r}: qr_module_matrix is invalid")
+    return tuple(value)
+
+
 def _depends_on_board(node: GraphNode, board_id: str) -> None:
     if node.depends_on.count(board_id) != 1:
         raise GraphExtractionError(
@@ -270,10 +328,14 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
             if layer not in {"F.SilkS", "B.SilkS"}:
                 raise GraphExtractionError(f"node {node.id!r}: invalid silk layer")
             stroke = _number_attr(node, "stroke_width_mm")
-            if stroke <= 0:
-                raise GraphExtractionError(f"node {node.id!r}: stroke width must be positive")
+            if stroke < 0:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: stroke width must be nonnegative"
+                )
             polygon_points = _points_attr(node)
             parts = _graphic_parts_attr(node, polygon_points, stroke)
+            source_path_attr = node.attrs.get("source_path")
+            source_sha256_attr = node.attrs.get("source_sha256")
             graphics.append(
                 SilkGraphicView(
                     node_id=node.id,
@@ -293,6 +355,27 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
                     fill=parts[0].fill,
                     fill_rule=parts[0].fill_rule,
                     parts=parts,
+                    source_path=(
+                        source_path_attr if isinstance(source_path_attr, str) else None
+                    ),
+                    source_sha256=(
+                        source_sha256_attr
+                        if isinstance(source_sha256_attr, str)
+                        else None
+                    ),
+                    source_scale=_optional_number_attr(node, "source_scale"),
+                    placement_center_mm=_placement_center_attr(node),
+                    rotation_degrees=_optional_number_attr(node, "rotation_degrees") or 0.0,
+                    qr_module_matrix=_qr_matrix_attr(node),
+                    qr_source_module_pitch_mm=_optional_number_attr(
+                        node, "qr_source_module_pitch_mm"
+                    ),
+                    qr_module_pitch_mm=_optional_number_attr(node, "qr_module_pitch_mm"),
+                    qr_quiet_zone_modules=(
+                        int(_number_attr(node, "qr_quiet_zone_modules"))
+                        if node.attrs.get("qr_quiet_zone_modules") is not None
+                        else None
+                    ),
                 )
             )
     if not texts and not graphics:

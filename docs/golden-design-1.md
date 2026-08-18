@@ -639,20 +639,25 @@ SW1の実配置中心は`(24.05, 9.05)` mm、回転は90°である。RESETの�
 
 裏面アートは、グラフへハンドコードの近似polygonを記録せず、固定したSVG資材から
 決定論的に生成する。`assets/vibebb-silkscreen.svg`は`40 × 18 mm`を
-`12.0 × 5.4 mm`へ縮小し、中心`(6.3, 7.0)` mmへ配置する。
+scale `0.4`で`7.2 × 16.0 mm`へ縮小し、90°回転、中心`(21.9, 8.3)` mmへ配置する。
 `assets/qr-repository-silkscreen.svg`は`36 × 36 mm`を
-`13.0 × 13.0 mm`へ縮小し、中心`(19.3, 6.8)` mmへ配置する。グラフには相対source path、source
+scale `0.375`で`13.5 × 13.5 mm`へ縮小し、中心`(11.05, 7.05)` mmへ配置する。グラフには相対source path、source
 SHA-256、viewBox、縮尺、配置後寸法と、塗り・複数輪郭・`evenodd`穴を含む
 `graphic_parts`を保存する。SVG内の`id="board-preview"`グループは変換しない。
 
 両資材は`B.SilkS`であり、裏面テキストの`justify mirror`とは別に、基板中心を基準に
 X座標を反転して物理面での向きを保つ。投影はDesign Graphから生成し、Region/Lineを
-含むGerberを独立測定する。QRのモジュールは縮小後`0.351351... mm`であり、製造プロファイル
-の最小シルク幅`0.15 mm`を下回らない。QRはversion 5の37 moduleを
-`13.0 / 37 = 0.351351... mm`/moduleとして実装する。
+含むGerberを独立測定する。スケール後のロゴ最小ストロークは`0.16 mm`であり、
+profile最小幅`0.15 mm`未満のストロークはクランプせずfail-closedとする。QRは
+version 5の37 moduleと4-module quiet zoneを保持し、source grid pitchは`0.3 mm`
+（`0.8 × 0.375`）、報告上のdata-module基準寸法は`13.5 / 37 = 0.364864... mm`である。
+塗り図形に輪郭strokeは付けず、最小印刷幅と最小未印刷gapを独立に測定する。
+QRはsource SVGのSHA-256一致、セル単位のmodule行列、module pitch、quiet zoneを
+Gerberから検証し、1セルでも不一致ならfail-closedとする。白いシルク下地と素地に
+残すdata moduleの極性反転は意図した仕様であり、将来反転しない。
 
-採用矩形はQR`[12.8, 0.3, 25.8, 13.3]` mm、VibeBBロゴ
-`[0.3, 4.3, 12.3, 9.7]` mmである。両者の正立を優先し、pad、mask開口、
+採用矩形はQR`[4.3, 0.3, 17.8, 13.8]` mm、VibeBBロゴ
+`[18.3, 0.3, 25.5, 16.3]` mmである。両者の正立を優先し、pad、mask開口、
 既存シルク、裏面既存文字、板端マージン、要素間ギャップを一切緩めずにresolverと
 Gerber独立測定で検証する。合格後の微小な平行移動だけを許容し、サイズ変更は
 設計判断なしに行わない。

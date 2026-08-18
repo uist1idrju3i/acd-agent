@@ -129,6 +129,12 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "placed_size_mm",
             "board_edge_margin_mm",
             "placement_search_order",
+            "placement_center_mm",
+            "rotation_degrees",
+            "qr_module_matrix",
+            "qr_source_module_pitch_mm",
+            "qr_module_pitch_mm",
+            "qr_quiet_zone_modules",
         }
     ),
     "mechanical.silk_text": frozenset(

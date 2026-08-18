@@ -34,6 +34,7 @@
           "reason": "GD1-REQ-015 forbids that in the 5.4 mm antenna boundary."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The assembly-side value is top and the antenna keepout remains a design boundary, not certification evidence."
       ],
@@ -42,10 +43,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -75,6 +79,7 @@
           "reason": "The smaller extension would leave less separation between the antenna and the board/enclosure boundary than the 5.4 mm RF clearance requirement."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The antenna keepout remains a conservative design rule, not certification evidence."
       ],
@@ -83,6 +88,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -127,6 +136,7 @@
           "reason": "Top-side pads and apertures are needed for direct probing and for the shared mounting-hole datum used by the enclosure."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The no-body declaration is a source fact and is not a claim that no copper or pad geometry exists."
       ],
@@ -135,10 +145,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -187,6 +200,7 @@
           "reason": "The declared solid bodies have nonzero heights and must participate in the enclosure clearance gate."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The package dimensions and source URLs are the datasheet/library evidence cited by the mechanical declaration."
       ],
@@ -195,10 +209,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -231,6 +248,7 @@
           "reason": "That would compromise sensor exposure or the ESP32 antenna boundary."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -239,10 +257,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -277,6 +298,7 @@
           "reason": "That would create a mechanical collision and invalidate the 2.2 mm M2 clearance."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -285,10 +307,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -320,6 +345,7 @@
           "reason": "Rotation would change the antenna direction and disrupt the documented USB/data and power lane orientation."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -328,10 +354,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -374,6 +403,7 @@
           "reason": "That would lengthen power and pull-up routes and reduce the compact 0603 placement needed for the declared board area."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -382,10 +412,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -418,6 +451,7 @@
           "reason": "The switch bodies need the top-side control surface and must not collide with enclosure supports."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -426,10 +460,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -467,6 +504,7 @@
           "reason": "That would reduce pad-to-edge manufacturing material and leave less tolerance for probing and outline variation."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -475,10 +513,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -510,6 +551,7 @@
           "reason": "The rotated body would not match the front opening orientation and would alter the 0.5 mm opening interface margin."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -518,10 +560,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -631,6 +676,7 @@
           "reason": "Zero margin leaves no room for the 0.5 mm opening-to-body interface allowance, wall thickness, connector insertion tolerance, or the board outline tolerance of +/-0.2 mm."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The opening follows the declared connector datum and enclosure projection."
       ],
@@ -639,6 +685,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -681,6 +731,7 @@
           "reason": "That equals capability, while 0.30 mm retains 0.10 mm additional edge margin."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The IPC-2221 calculation uses the declared 5 V and 0.5 A envelope."
       ],
@@ -689,6 +740,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -762,6 +817,7 @@
           "reason": "The declared 0.01 mm3 threshold is a hard gate; accepting ten times more collision would hide assembly failure."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The CAD kernel remains deterministic for the declared dimensions."
       ],
@@ -770,6 +826,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -809,6 +869,7 @@
           "reason": "The 5-piece, top-side prototype lane is the declared §6/§9 manufacturing plan."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Green mask and HASL lead content remain unresolved §11 questions until fab confirmation."
       ],
@@ -817,6 +878,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -866,6 +931,7 @@
           "reason": "The documented IO21/IO20 pair provides the required serial-log interface without changing the declared pin plan."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The firmware pin table remains the canonical interface declaration for this fixture."
       ],
@@ -874,6 +940,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -915,6 +985,7 @@
           "reason": "A bounded three-pass refill prevents a non-deterministic plane-generation loop."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The 2.4 GHz wavelength proxy is an RF design rule, not certification evidence."
       ],
@@ -923,6 +994,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -959,6 +1034,7 @@
           "reason": "That would not cover the declared sub-500 mA prototype boundary."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Current limits are planning bounds, not measured load characterization."
       ],
@@ -967,10 +1043,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1011,6 +1090,7 @@
           "reason": "These are logic routes whose manufacturability is governed by the 0.15 mm fab minimum; extra current-carrying width is reserved for the 0.5 A power domain rather than added to signal traces."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Signal current values are interface planning assumptions, not measured load results."
       ],
@@ -1019,10 +1099,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1057,6 +1140,7 @@
           "reason": "The USB routes are governed by interface geometry and the fab minimum line width; current-derived width margin belongs to VBUS, +3V3, and GND, not these logic/configuration nets."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The USB logic levels follow the declared interface, not a measured transient waveform."
       ],
@@ -1065,10 +1149,13 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
       "schema_version": "0.1",
@@ -1154,6 +1241,7 @@
           "reason": "The 1.5 mm offsets provide more edge material and keep the 2.2 mm aperture inside the +/-0.2 mm standard outline tolerance."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The enclosure consumes the same four hole centers."
       ],
@@ -1162,6 +1250,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -1772,6 +1864,7 @@
           "reason": "§11 leaves module certification unresolved, while the documented use case is a hobby author_prototype rather than a certified product."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The USB source remains within 5.0 V and 0.5 A."
       ],
@@ -1780,6 +1873,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -2443,7 +2540,7 @@
         "y_mm",
         "rotation_deg"
       ],
-      "subject_hash": "sha256:b46bb283ff93849a641ab66bc11b97bd0886a0121d8c264e6af27e5402901b2d",
+      "subject_hash": "sha256:d5ca46447820e69cc21c9ac1661d269bc23b8b89948ccc37e717f4976311c1a4",
       "decision": "Place DEV BOARD and golden-design-1-r1 on B.SilkS.",
       "justification": "The graph keeps branding and board identification on B.SilkS while the resolver reserves the sequential F.SilkS pass for RST, BOOT, D1, and USB. The accepted context candidates are DEV BOARD (8.016282355, 11.0472) at 0° and golden-design-1-r1 (8.95, 14.47915) at 0°; their evidence records the fixed-silk, pad, mask-opening, and board-edge rejection counts used to select these positions.",
       "driving_requirements": [
@@ -2537,11 +2634,13 @@
         "source_scale",
         "placed_size_mm",
         "board_edge_margin_mm",
-        "placement_search_order"
+        "placement_search_order",
+        "placement_center_mm",
+        "rotation_degrees"
       ],
-      "subject_hash": "sha256:d9dfc8ffb3916b8ecf1f38d178b9e53ab491bb4cecd1128a5ad97a14d54a1e66",
-      "decision": "Use deterministic SVG-derived vector artwork on B.SilkS with preserved provenance, 0.15 mm minimum stroke, 0.15 mm edge margin, and ordered placement inputs.",
-      "justification": "The approved SVG assets are converted deterministically into Design Graph geometry; source path and SHA-256 remain in the graph, and projection plus independent Gerber measurement remain authoritative.",
+      "subject_hash": "sha256:7be31a07fcb79a7cbe67ddfa2835161a20d3a2f9e3cdaba6c8ea1ac5649e232c",
+      "decision": "Use deterministic SVG-derived VibeBB artwork on B.SilkS at scale 0.4, 90° rotation, 7.2 × 16.0 mm, with provenance and fail-closed minimum-stroke validation.",
+      "justification": "The approved SVG asset is converted deterministically into Design Graph geometry at scale 0.4 and 90° rotation; source path, SHA-256, placement center, dimensions, and rotation remain in the graph. The scaled minimum stroke is 0.16 mm, while below-profile strokes are rejected rather than clamped; projection plus independent Gerber measurement remain authoritative.",
       "driving_requirements": [
         "req.gd1-req-013"
       ],
@@ -2556,6 +2655,7 @@
           "reason": "That would violate the 0.15 mm manufacturing minimum."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "The graphic remains subject to the independent Gerber gate."
       ],
@@ -2564,6 +2664,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -2608,6 +2712,7 @@
           "reason": "The declared 0.25 mm step and 8.0 mm limit provide deterministic resolution and bounded failure."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Resolver evidence is supplementary; rendered Gerber measurement remains authoritative."
       ],
@@ -2616,6 +2721,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -2648,6 +2757,7 @@
           "reason": "The documented 2-layer 1.6 mm prototype stackup is sufficient for the 30 x 25 mm board; adding layers or 0.4 mm thickness changes the declared fab lane without a cited need."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "HASL lead content remains an unresolved §11 manufacturing question."
       ],
@@ -2656,6 +2766,10 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
@@ -2831,6 +2945,7 @@
           "reason": "That would consume connector-access space and lengthen the IO7 indicator route."
         }
       ],
+      "no_alternatives_reason": null,
       "assumptions": [
         "Mechanical coordinates remain explicit source declarations."
       ],
@@ -2839,41 +2954,21 @@
       ],
       "provenance": {
         "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
         "recorded_at": "2026-08-17T00:00:00Z"
       },
-      "target_revision": "r1",
-      "no_alternatives_reason": null
+      "target_revision": "r1"
     },
     {
-      "assumptions": [
-        "The QR remains subject to the independent Gerber geometry and minimum-width gates."
-      ],
-      "decision": "Add the repository QR as deterministic even-odd SVG-derived B.SilkS artwork at 13.5 mm square.",
-      "decision_kind": "silkscreen",
-      "driving_requirement_refs": [],
-      "driving_requirements": [
-        "req.gd1-req-013"
-      ],
-      "justification": "The approved repository URL is encoded in the pinned SVG asset; the graph preserves its source hash and compound contours while projection and independent Gerber measurement remain authoritative.",
-      "provenance": {
-        "recorded_at": "2026-08-17T00:00:00Z",
-        "source": "human"
-      },
-      "rationale_id": "gd1-silk-graphic-qr",
-      "rejected_alternatives": [
-        {
-          "option": "Use a raster QR or omit the quiet-zone geometry",
-          "reason": "That would not preserve deterministic vector manufacturing geometry."
-        },
-        {
-          "option": "Scale below the 0.15 mm profiled minimum feature width",
-          "reason": "That would violate the fabrication profile."
-        }
-      ],
-      "risks": [
-        "QR readability requires manufacturing inspection in addition to geometric acceptance."
-      ],
       "schema_version": "0.1",
+      "rationale_id": "gd1-silk-graphic-qr",
+      "decision_kind": "silkscreen",
+      "subject_nodes": [
+        "mechanical.silk_graphic.repository_qr"
+      ],
       "subject_attrs": [
         "layer",
         "stroke_width_mm",
@@ -2885,12 +2980,46 @@
         "source_scale",
         "placed_size_mm",
         "board_edge_margin_mm",
-        "placement_search_order"
+        "placement_search_order",
+        "placement_center_mm",
+        "rotation_degrees",
+        "qr_module_matrix",
+        "qr_source_module_pitch_mm",
+        "qr_module_pitch_mm",
+        "qr_quiet_zone_modules"
       ],
-      "subject_hash": "sha256:ce0b885c35979f73a8ec908f5738366a27a6126fe5410e43ddf626605f7e055f",
-      "subject_nodes": [
-        "mechanical.silk_graphic.repository_qr"
+      "subject_hash": "sha256:090b945fc435e651ccb57e75fb5d3124bf755b76a4aa674f3b2cc7e5367a5dcf",
+      "decision": "Add the repository QR as deterministic even-odd SVG-derived B.SilkS artwork at 13.5 mm square with module fidelity enforcement.",
+      "justification": "The approved repository URL is encoded in the pinned SVG asset; the graph preserves its source hash, compound contours, placement center, source and projected pitch, 37×37 module matrix, and four-module quiet zone. Filled projection has no outline stroke; independent Gerber measurement compares every cell and fails closed on any mismatch.",
+      "driving_requirements": [
+        "req.gd1-req-013"
       ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Use a raster QR or omit the quiet-zone geometry",
+          "reason": "That would not preserve deterministic vector manufacturing geometry."
+        },
+        {
+          "option": "Scale below the 0.15 mm profiled minimum feature width",
+          "reason": "That would violate the fabrication profile."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "The QR remains subject to independent Gerber geometry, cell-matrix, quiet-zone, and minimum-gap gates."
+      ],
+      "risks": [
+        "QR readability requires manufacturing inspection in addition to geometric acceptance."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
       "target_revision": "r1"
     }
   ]

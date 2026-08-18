@@ -45,7 +45,17 @@ from acd.core.fab import (
     validate_allowances_against_profile,
 )
 from acd.core.routing_width import NetWidthRequirement
-from acd.core.silkscreen import SilkGraphicPartView, SilkTextView, SilkscreenLane
+from acd.core.qr_geometry import (
+    QR_DATA_MODULES,
+    QR_QUIET_ZONE_MODULES,
+    qr_module_matrix_from_svg,
+)
+from acd.core.silkscreen import (
+    SilkGraphicPartView,
+    SilkGraphicView,
+    SilkTextView,
+    SilkscreenLane,
+)
 
 
 from .common import *  # noqa: F401,F403
@@ -447,6 +457,127 @@ def _silk_objects_overlap(first: _SilkObject, second: _SilkObject) -> bool:
     return _bbox_overlap_area(first.bbox_mm, second.bbox_mm) > 1e-6
 
 
+def _point_has_ink(
+    objects: Sequence[_SilkObject],
+    point: tuple[float, float],
+) -> bool:
+    tiny = (point[0], point[1], point[0], point[1])
+    for item in objects:
+        if item.kind == "Region" and item.points_mm:
+            if _point_in_polygon(point[0], point[1], item.points_mm):
+                return True
+        elif _silk_overlaps_rect(item, tiny):
+            return True
+    return False
+
+
+def _qr_fidelity_measurement(
+    graphic: SilkGraphicView,
+    objects: Sequence[_SilkObject],
+    minimum_gap_mm: float,
+) -> dict[str, object]:
+    if graphic.source_path is None or graphic.source_sha256 is None:
+        raise FabOutputError(
+            f"QR graphic {graphic.node_id!r} lacks SVG provenance (fail-closed)"
+        )
+    source_path = Path(graphic.source_path)
+    if not source_path.exists():
+        source_path = Path(__file__).resolve().parents[5] / graphic.source_path
+    if not source_path.exists():
+        raise FabOutputError(
+            f"QR source SVG {graphic.source_path!r} is unavailable (fail-closed)"
+        )
+    actual_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
+    if actual_hash != graphic.source_sha256:
+        raise FabOutputError(
+            f"QR source SVG hash mismatch for {graphic.node_id!r} (fail-closed)"
+        )
+    source_matrix, source_pitch = qr_module_matrix_from_svg(source_path)
+    if graphic.qr_module_matrix != source_matrix:
+        raise FabOutputError(
+            f"QR module matrix provenance mismatch for {graphic.node_id!r} "
+            "(fail-closed)"
+        )
+    if graphic.placement_center_mm is None or graphic.source_scale is None:
+        raise FabOutputError(
+            f"QR placement provenance is incomplete for {graphic.node_id!r} "
+            "(fail-closed)"
+        )
+    if abs(graphic.rotation_degrees % 360.0) > 1e-9:
+        raise FabOutputError("QR rotation must be zero for fidelity measurement (fail-closed)")
+    center_x, center_y = graphic.placement_center_mm
+    scale = graphic.source_scale
+    source_full_modules = QR_DATA_MODULES + 2 * QR_QUIET_ZONE_MODULES
+    measured_pitch = source_pitch * scale
+    expected_extent = source_full_modules * measured_pitch
+    measured_bbox = _union_bbox(objects)
+    measured_extent = min(
+        measured_bbox[2] - measured_bbox[0],
+        measured_bbox[3] - measured_bbox[1],
+    )
+    if abs(measured_extent - expected_extent) > 1e-6:
+        raise FabOutputError(
+            f"QR quiet-zone extent mismatch for {graphic.node_id!r}: "
+            f"measured={measured_extent:.9f} expected={expected_extent:.9f} "
+            "(fail-closed)"
+        )
+    mismatches: list[dict[str, object]] = []
+    for row in range(source_full_modules):
+        for column in range(source_full_modules):
+            in_data = (
+                QR_QUIET_ZONE_MODULES <= row < QR_QUIET_ZONE_MODULES + QR_DATA_MODULES
+                and QR_QUIET_ZONE_MODULES <= column < QR_QUIET_ZONE_MODULES + QR_DATA_MODULES
+            )
+            expected_hole = (
+                source_matrix[row - QR_QUIET_ZONE_MODULES][column - QR_QUIET_ZONE_MODULES]
+                == "1"
+                if in_data
+                else False
+            )
+            source_x = (column + 0.5) * source_pitch
+            source_y = (row + 0.5) * source_pitch
+            local_x = (source_x - 18.0) * scale
+            local_y = (source_y - 18.0) * scale
+            point = (center_x - local_x, center_y + local_y)
+            samples = (
+                point,
+                (point[0] + measured_pitch * 0.45, point[1]),
+                (point[0] - measured_pitch * 0.45, point[1]),
+                (point[0], point[1] + measured_pitch * 0.45),
+                (point[0], point[1] - measured_pitch * 0.45),
+            )
+            actual_ink = any(_point_has_ink(objects, sample) for sample in samples)
+            if actual_ink == expected_hole:
+                mismatches.append(
+                    {
+                        "row": row,
+                        "column": column,
+                        "expected_hole": expected_hole,
+                        "actual_ink": actual_ink,
+                    }
+                )
+    if measured_pitch < minimum_gap_mm:
+        raise FabOutputError(
+            f"QR minimum unprinted gap {measured_pitch:.9f} mm is below "
+            f"profile minimum {minimum_gap_mm:.9f} mm (fail-closed)"
+        )
+    if mismatches:
+        raise FabOutputError(
+            f"QR module matrix mismatch: {len(mismatches)} cells (fail-closed)"
+        )
+    return {
+        "module_matrix_match": True,
+        "module_count": QR_DATA_MODULES,
+        "quiet_zone_modules": QR_QUIET_ZONE_MODULES,
+        "source_module_pitch_mm": source_pitch,
+        "projected_cell_pitch_mm": measured_pitch,
+        "declared_module_pitch_mm": graphic.qr_module_pitch_mm,
+        "minimum_unprinted_gap_mm": measured_pitch,
+        "minimum_printed_width_mm": measured_pitch,
+        "mismatch_count": 0,
+    }
+
+
 def measure_silkscreen(
     silk_paths: Mapping[str, Path],
     mask_paths: Mapping[str, Path],
@@ -479,6 +610,8 @@ def measure_silkscreen(
     declared: list[dict[str, object]] = []
     declared_objects: list[_SilkObject] = []
     declared_groups: list[tuple[dict[str, object], tuple[_SilkObject, ...]]] = []
+    qr_fidelity_results: list[dict[str, object]] = []
+    qr_fidelity_failures: list[dict[str, object]] = []
     for text in declarations.texts:
         if text.x_mm is None or text.y_mm is None:
             raise FabOutputError(
@@ -612,14 +745,31 @@ def measure_silkscreen(
         ]
         measured_width = min(measured_widths) if measured_widths else None
         area = sum(item.area_mm2 for item in nearby)
+        fill_only = bool(graphic_parts) and all(
+            part.fill != "none" and part.stroke_width_mm == 0.0
+            for part in graphic_parts
+        )
         if area <= 0 or measured_width is None:
-            raise FabOutputError(
-                f"silkscreen graphic {graphic.node_id!r} has no measurable ink (fail-closed)"
-            )
-        if graphic.stroke_width_mm < min_width or measured_width < min_width:
+            if not fill_only or area <= 0:
+                raise FabOutputError(
+                    f"silkscreen graphic {graphic.node_id!r} has no measurable ink "
+                    "(fail-closed)"
+                )
+        if (
+            (not fill_only and graphic.stroke_width_mm < min_width)
+            or (measured_width is not None and measured_width < min_width)
+        ):
             raise FabOutputError(
                 f"silkscreen graphic {graphic.node_id!r} is below fab capability (fail-closed)"
             )
+        minimum_printed_width = measured_width
+        if minimum_printed_width is None and fill_only:
+            region_widths = [
+                min(item.bbox_mm[2] - item.bbox_mm[0], item.bbox_mm[3] - item.bbox_mm[1])
+                for item in nearby
+                if item.kind == "Region"
+            ]
+            minimum_printed_width = min(region_widths) if region_widths else None
         entry: dict[str, object] = {
             "node_id": graphic.node_id,
             "role": graphic.role,
@@ -628,10 +778,22 @@ def measure_silkscreen(
             "measured_bbox_mm": list(bbox),
             "measured_ink_area_mm2": area,
             "measured_minimum_stroke_width_mm": measured_width,
+            "minimum_printed_width_mm": minimum_printed_width,
+            "minimum_unprinted_gap_mm": None,
             "placement_basis": graphic.placement_basis,
             "placement_search_order": graphic.placement_search_order,
             "board_edge_margin_mm": graphic.board_edge_margin_mm,
         }
+        if graphic.role == "repository_qr":
+            try:
+                qr_result = _qr_fidelity_measurement(graphic, nearby, min_width)
+            except FabOutputError as exc:
+                qr_fidelity_failures.append(
+                    {"node_id": graphic.node_id, "error": str(exc)}
+                )
+            else:
+                entry.update(qr_result)
+                qr_fidelity_results.append({"node_id": graphic.node_id, **qr_result})
         declared.append(entry)
         declared_groups.append((entry, tuple(nearby)))
     pad_bboxes = [
@@ -908,6 +1070,7 @@ def measure_silkscreen(
             ),
             "silk_text_descender_chars": "".join(sorted(SILK_TEXT_DESCENDER_CHARS)),
             "silk_text_descender_height_ratio": SILK_TEXT_DESCENDER_HEIGHT_RATIO,
+            "min_silk_gap_mm": min_width,
             "declared_board_edge_margin_mm": sorted(
                 {
                     float(cast(float, item["board_edge_margin_mm"]))
@@ -926,6 +1089,7 @@ def measure_silkscreen(
             "courtyard_overlap": courtyard_overlaps,
             "existing_silk_overlap": existing_silk_overlaps,
             "nearest_component_mismatch": nearest_component_mismatches,
+            "qr_fidelity": qr_fidelity_failures,
         },
     }
     if (
@@ -938,6 +1102,7 @@ def measure_silkscreen(
         or courtyard_overlaps
         or existing_silk_overlaps
         or nearest_component_mismatches
+        or qr_fidelity_failures
     ):
         raise SilkscreenGateError(
             "silkscreen clearance or board-edge overlap detected (fail-closed): "
@@ -947,6 +1112,7 @@ def measure_silkscreen(
             f"body={len(body_overlaps)}, courtyard={len(courtyard_overlaps)}, "
             f"existing_silk={len(existing_silk_overlaps)}, "
             f"nearest_component={len(nearest_component_mismatches)}; "
+            f"qr_fidelity={len(qr_fidelity_failures)}; "
             f"pad_examples={pad_overlaps[:3]}, mask_examples={mask_overlaps[:3]}, "
             f"edge_examples={outside[:3]}, body_examples={body_overlaps[:3]}, "
             f"edge_margin_examples={edge_margin_violations[:3]}, "
@@ -977,6 +1143,8 @@ def measure_silkscreen(
         "courtyard_overlap_count": len(courtyard_overlaps),
         "existing_footprint_silk_overlap_count": len(existing_silk_overlaps),
         "nearest_component_mismatch_count": len(nearest_component_mismatches),
+        "qr_fidelity_failure_count": len(qr_fidelity_failures),
+        "qr_fidelity": qr_fidelity_results,
         "pad_to_silk_overlaps": pad_overlaps,
         "mask_to_silk_overlaps": mask_overlaps,
         "board_edge_overflows": outside,

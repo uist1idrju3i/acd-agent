@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -193,23 +194,34 @@ def place_svg(
     center_y_mm: float,
     width_mm: float,
     layer: str = "B.SilkS",
+    rotation_degrees: float = 0.0,
+    minimum_stroke_width_mm: float | None = None,
 ) -> tuple[tuple[dict[str, object], ...], dict[str, str]]:
     (source_width, source_height), parts = load_svg(path)
     scale = width_mm / source_width
     scaled_height = source_height * scale
-    left = (
-        board_width_mm - center_x_mm - width_mm / 2.0
-        if layer == "B.SilkS"
-        else center_x_mm - width_mm / 2.0
-    )
-    top = center_y_mm - scaled_height / 2.0
+    radians = math.radians(rotation_degrees)
+    cos_angle, sin_angle = math.cos(radians), math.sin(radians)
 
     def transform(point: tuple[float, float]) -> tuple[float, float]:
-        x, y = left + point[0] * scale, top + point[1] * scale
-        return (board_width_mm - x if layer == "B.SilkS" else x, y)
+        local_x = (point[0] - source_width / 2.0) * scale
+        local_y = (point[1] - source_height / 2.0) * scale
+        rotated_x = local_x * cos_angle - local_y * sin_angle
+        rotated_y = local_x * sin_angle + local_y * cos_angle
+        x = center_x_mm + rotated_x
+        y = center_y_mm + rotated_y
+        if layer == "B.SilkS":
+            x = 2.0 * center_x_mm - x
+        return x, y
 
     encoded_parts: list[dict[str, object]] = []
     for part in parts:
+        scaled_stroke = part.stroke_width_mm * scale
+        if minimum_stroke_width_mm is not None and 0 < scaled_stroke < minimum_stroke_width_mm:
+            raise ValueError(
+                f"SVG stroke width {scaled_stroke:.9f} mm is below the "
+                f"minimum silkscreen width {minimum_stroke_width_mm:.9f} mm"
+            )
         encoded_parts.append(
             {
                 "contours": [
@@ -218,15 +230,22 @@ def place_svg(
                 ],
                 "fill": part.fill,
                 "fill_rule": part.fill_rule,
-                "stroke_width_mm": round(max(part.stroke_width_mm * scale, 0.15), 9),
+                "stroke_width_mm": round(scaled_stroke, 9),
             }
         )
+    placed_width, placed_height = (
+        (width_mm, scaled_height)
+        if rotation_degrees % 180 == 0
+        else (scaled_height, width_mm)
+    )
     provenance = {
         "source_path": str(path),
         "source_sha256": sha256_of(path),
         "source_viewbox_mm": f"{source_width:g}x{source_height:g}",
         "scale": f"{scale:.9f}",
-        "placed_size_mm": f"{width_mm:.9f}x{scaled_height:.9f}",
+        "placed_size_mm": f"{placed_width:.9f}x{placed_height:.9f}",
+        "placement_center_mm": f"{center_x_mm:.9f},{center_y_mm:.9f}",
+        "rotation_degrees": f"{rotation_degrees:.9f}",
         "layer": layer,
     }
     return tuple(encoded_parts), provenance

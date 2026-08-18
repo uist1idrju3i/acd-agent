@@ -198,29 +198,33 @@ def _silk_graphic(item: SilkGraphicView) -> list[SExpr]:
             else part.contours
         )
         for contour_index, contour in enumerate(contours):
-            stroke = [
-                Sym("stroke"),
-                [Sym("width"), fmt(part.stroke_width_mm)],
-                [Sym("type"), Sym("solid")],
-            ]
+            stroke: SExpr | None = (
+                None
+                if part.fill != "none"
+                else cast(
+                    SExpr,
+                    [
+                        Sym("stroke"),
+                        [Sym("width"), fmt(part.stroke_width_mm)],
+                        [Sym("type"), Sym("solid")],
+                    ],
+                )
+            )
             uuid = f"{item.node_id}-{index}-{contour_index}"
             if len(contour) >= 3 and contour[0] == contour[-1]:
                 points: list[SExpr] = [Sym("pts")]
                 for x_mm, y_mm in contour:
                     points.append([Sym("xy"), fmt(x_mm), fmt(y_mm)])
-                result.append(
-                    cast(
-                        SExpr,
-                        [
-                        Sym("gr_poly"),
-                        points,
-                        stroke,
-                        [Sym("fill"), Sym("solid" if part.fill != "none" else "none")],
-                        [Sym("layer"), Quoted(item.layer)],
-                        [Sym("uuid"), Quoted(det_uuid("silk-graphic", uuid))],
-                        ],
-                    )
-                )
+                polygon: list[SExpr] = [
+                    Sym("gr_poly"),
+                    points,
+                    [Sym("fill"), Sym("solid" if part.fill != "none" else "none")],
+                    [Sym("layer"), Quoted(item.layer)],
+                    [Sym("uuid"), Quoted(det_uuid("silk-graphic", uuid))],
+                ]
+                if stroke is not None:
+                    polygon.insert(2, stroke)
+                result.append(cast(SExpr, polygon))
             else:
                 for segment_index, ((x1, y1), (x2, y2)) in enumerate(pairwise(contour)):
                     result.append(
@@ -230,7 +234,7 @@ def _silk_graphic(item: SilkGraphicView) -> list[SExpr]:
                             Sym("gr_line"),
                             [Sym("start"), fmt(x1), fmt(y1)],
                             [Sym("end"), fmt(x2), fmt(y2)],
-                            stroke,
+                            cast(SExpr, stroke),
                             [Sym("layer"), Quoted(item.layer)],
                             [
                                 Sym("uuid"),

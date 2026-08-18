@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
@@ -16,6 +17,7 @@ from acd.adapters.kicad.fab import (
     FabOutputError,
     FootprintMeasurement,
 )
+from acd.adapters.kicad.fab import silkscreen as fab_silkscreen
 from acd.adapters.kicad.fab.routed_board import parse_routed_board
 from acd.adapters.kicad.fab.silkscreen import (
     _local_silk_bounds,
@@ -27,6 +29,7 @@ from acd.adapters.kicad.fab.silkscreen import (
     _text_model_size,
 )
 from acd.core.fab import FabProfile
+from acd.core.qr_geometry import qr_module_matrix_from_svg
 from acd.core.silkscreen import SilkGraphicView, SilkscreenLane, SilkTextView
 
 
@@ -190,6 +193,71 @@ def test_graphic_below_capability_is_not_treated_as_pass() -> None:
             )
     finally:
         fab._gerber_silk_objects = original
+
+
+def test_qr_fidelity_gate_rejects_one_damaged_module(monkeypatch: pytest.MonkeyPatch) -> None:
+    qr_path = Path("assets/qr-repository-silkscreen.svg").resolve()
+    matrix, source_pitch = qr_module_matrix_from_svg(qr_path)
+    center = (11.05, 7.05)
+    scale = 13.5 / 36.0
+    graphic = SilkGraphicView(
+        "qr",
+        "repository_qr",
+        "B.SilkS",
+        0.0,
+        ((4.3, 0.3), (17.8, 0.3), (17.8, 13.8), (4.3, 13.8), (4.3, 0.3)),
+        "fixture",
+        "fixed",
+        source_path=str(qr_path),
+        source_sha256="327b783ea78944fd0a70beee139c49a28c7d5cdee2d7b4e92e161fb6b982e32c",
+        source_scale=scale,
+        placement_center_mm=center,
+        qr_module_matrix=matrix,
+        qr_source_module_pitch_mm=source_pitch,
+        qr_module_pitch_mm=13.5 / 37.0,
+        qr_quiet_zone_modules=4,
+    )
+    objects = (
+        _SilkObject(
+            "Region",
+            "B.SilkS",
+            (4.3, 0.3, 17.8, 13.8),
+            1.0,
+            None,
+        ),
+    )
+
+    def ink_for_point(point: tuple[float, float], damaged: bool) -> bool:
+        source_x = 18.0 + (center[0] - point[0]) / scale
+        source_y = 18.0 + (point[1] - center[1]) / scale
+        column = int(source_x / source_pitch)
+        row = int(source_y / source_pitch)
+        expected = (
+            4 <= row < 41
+            and 4 <= column < 41
+            and matrix[row - 4][column - 4] == "1"
+        )
+        actual_ink = not expected
+        return (
+            not actual_ink
+            if damaged and (row, column) == (10, 10)
+            else actual_ink
+        )
+
+    def intact_ink(_objects: Sequence[_SilkObject], point: tuple[float, float]) -> bool:
+        return ink_for_point(point, damaged=False)
+
+    def damaged_ink(_objects: Sequence[_SilkObject], point: tuple[float, float]) -> bool:
+        return ink_for_point(point, damaged=True)
+
+    monkeypatch.setattr(fab_silkscreen, "_point_has_ink", intact_ink)
+    assert fab_silkscreen._qr_fidelity_measurement(
+        graphic, objects, 0.15
+    )["module_matrix_match"]
+
+    monkeypatch.setattr(fab_silkscreen, "_point_has_ink", damaged_ink)
+    with pytest.raises(FabOutputError, match="QR module matrix mismatch"):
+        fab_silkscreen._qr_fidelity_measurement(graphic, objects, 0.15)
 
 
 def test_same_side_courtyard_overlap_is_rejected() -> None:
