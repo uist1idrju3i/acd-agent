@@ -90,3 +90,17 @@ def test_manifest_revision_and_unknowns_are_fail_closed() -> None:
         manifest_hash=receipt.manifest_reference.manifest_hash,
     )
     assert unknown_report.status == "unknown"
+
+
+def test_receipt_missing_artifact_is_a_mismatch() -> None:
+    manifest = load_fixture("valid", "fab-package-receipt.json")
+    receipt = ReceiptRecord.model_validate(
+        load_fixture("invalid", "receipt-missing-item.json")
+    )
+    report = reconcile_receipt(
+        manifest,
+        receipt,
+        manifest_hash=receipt.manifest_reference.manifest_hash,
+    )
+    assert report.status == "mismatch"
+    assert report.manifest_only_paths == ["artifacts/assembly.csv"]
