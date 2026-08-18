@@ -12,7 +12,9 @@ ObservationArtifactKind = Literal[
     "agent_settings_observation",
     "conversation_metrics",
     "conversation_stats",
+    "event_view_projection",
     "goal_result",
+    "memory_context_observation",
     "model_routing_observation",
 ]
 

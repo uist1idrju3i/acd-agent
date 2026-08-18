@@ -18,9 +18,9 @@
 | sdk.agent.response_dispatch | `classify_response` | SDK内部応答配信 | 不採用 | ACDが直接依存する責務ではない | pinned API確認、採用しない |
 | sdk.context | `AgentContext` | agent作業文脈 | 採用 | 現行sessionでローカルSkillと文脈設定を明示する | session回帰 |
 | sdk.context.condenser | `LLMSummarizingCondenser` | 長い対話の圧縮 | 採用 | `src/acd/openhands/session/bootstrap.py`で使用し、`Evidence`を置換しない | resume/fork回帰 |
-| sdk.context.memory | `load_memory` | 作業文脈の補助 | 採用予定（ロードマップ4.4） | 契約・合否の正にしない。資材hashを固定する | pinned API確認、実装未着手 |
+| sdk.context.memory | `load_memory` | 作業文脈の補助 | 採用 | `enable_persistent_memory`で明示有効化し、secret混入をfail-closedにする。内容はhashだけ観測し契約・合否の正にしない | tests/openhands/session/test_context.py |
 | sdk.context.prompts | `PromptSection` | role別prompt構造化 | 採用 | role別promptと資材hashを固定する | verify_agent_prompts.py --check、tests/openhands/session/test_prompts.py |
-| sdk.context.view | `View` | 長時間sessionの表示 | 採用予定（ロードマップ4.4） | 原`EventLog`と照合し、`Evidence`を置換しない | pinned API確認、実装未着手 |
+| sdk.context.view | `View` | 長時間sessionの表示 | 採用 | 原`EventLog`と照合する表示専用projectionにし、canonical hashを固定して`Evidence`を置換しない | verify_context_view.py --check、tests/openhands/session/test_context.py |
 | sdk.conversation | `BaseConversation`<br>`LocalConversation`<br>`ConversationState` | 現行agent session | 採用 | `src/acd/openhands/session/bootstrap.py`で使用 | session回帰 |
 | sdk.conversation.cancellation | `CancellationToken` | 対話中断 | 採用 | SIGINTからinterruptへ結線し、L2停止側に限定 | `tests/openhands/session/test_goal_loop.py` |
 | sdk.conversation.conversation_stats | `ConversationStats` | session別使用量観測 | 採用 | L3観測として採用し合否に混入しない | `tests/openhands/session/test_goal_loop.py` |

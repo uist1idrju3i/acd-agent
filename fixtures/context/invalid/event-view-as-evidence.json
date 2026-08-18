@@ -1,0 +1,16 @@
+{
+  "artifact_kind": "event_view_projection",
+  "canonical_hash": "sha256:3eaf52687228b6f12fb955d7fc23e2f497d2e901c19a159bdf33544002aa97e0",
+  "entries": [
+    {
+      "content_hash": "sha256:2509ae02e7bad5cd3db9dbf331a04dd7d1f9fc50ceb449845e6232cfd19831e9",
+      "event_id": "22222222-2222-4222-8222-222222222222",
+      "event_kind": "MessageEvent",
+      "index": 0
+    }
+  ],
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "source": "event_log",
+  "source_event_count": 3
+}

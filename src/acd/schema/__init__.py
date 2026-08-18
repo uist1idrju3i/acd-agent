@@ -16,6 +16,12 @@ from acd.schema.common import (
     canonical_sha256,
     is_unknown,
 )
+from acd.schema.context import (
+    ContextSource,
+    EventViewEntry,
+    EventViewProjection,
+    MemoryContextObservation,
+)
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 from acd.schema.evidence import (
     Evidence,
@@ -104,9 +110,12 @@ __all__ = [
     "AcdSettingsReport",
     "AcdSettingsStatus",
     "AppliedFeedbackValidationReport",
+    "ContextSource",
     "ConvergenceState",
     "DecisionKind",
     "DesignGraph",
+    "EventViewEntry",
+    "EventViewProjection",
     "Evidence",
     "EvidenceClaim",
     "EvidenceStatus",
@@ -132,6 +141,7 @@ __all__ = [
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
+    "MemoryContextObservation",
     "ModelRoutingBinding",
     "ModelRoutingObservation",
     "ModelRoutingPolicy",

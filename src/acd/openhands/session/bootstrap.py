@@ -26,6 +26,7 @@ from acd.openhands.distribution.skills import load_acd_skills
 from acd.openhands.safety.hooks import validate_acd_agent_hooks
 from acd.openhands.safety.secrets import build_acd_secret_mapping
 from acd.openhands.safety.security import build_acd_security_analyzer
+from acd.openhands.session.context import load_acd_memory_context
 from acd.openhands.session.gate_critic import AcdGateCritic, GateRequirement
 from acd.openhands.session.observation_store import (
     ObservationPayload,
@@ -62,6 +63,7 @@ def build_acd_conversation(
     tools: list[Tool] | None = None,
     tool_concurrency_limit: int = 1,
     enable_browser: bool = False,
+    enable_persistent_memory: bool = False,
     hooks_path: Path | None = None,
     design_graph_path: Path | None = None,
     prompt_manifest_path: Path | None = None,
@@ -115,6 +117,8 @@ def build_acd_conversation(
                 setting.role: setting.profile_name
                 for setting in agent_settings.profiles
             }
+    if enable_persistent_memory:
+        load_acd_memory_context(workspace)
     agent_llm = llm
     condenser_model = condenser_llm or llm
     if model_routing_policy is not None:
@@ -179,7 +183,7 @@ def build_acd_conversation(
         load_public_skills=False,
         load_user_skills=False,
         load_project_skills=False,
-        load_memory=False,
+        load_memory=enable_persistent_memory,
         marketplace_path=None,
     )
     agent = Agent(

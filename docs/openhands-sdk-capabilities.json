@@ -108,10 +108,9 @@
       "modules": ["sdk.context.memory"],
       "representative_apis": ["load_memory"],
       "use": "作業文脈の補助",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "契約・合否の正にしない。資材hashを固定する",
-      "verification": "pinned API確認、実装未着手"
+      "adoption": "採用",
+      "rationale": "`enable_persistent_memory`で明示有効化し、secret混入をfail-closedにする。内容はhashだけ観測し契約・合否の正にしない",
+      "verification": "tests/openhands/session/test_context.py"
     },
     {
       "domain": "sdk.context.prompts",
@@ -127,10 +126,9 @@
       "modules": ["sdk.context.view", "sdk.context.view.*"],
       "representative_apis": ["View"],
       "use": "長時間sessionの表示",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "原`EventLog`と照合し、`Evidence`を置換しない",
-      "verification": "pinned API確認、実装未着手"
+      "adoption": "採用",
+      "rationale": "原`EventLog`と照合する表示専用projectionにし、canonical hashを固定して`Evidence`を置換しない",
+      "verification": "verify_context_view.py --check、tests/openhands/session/test_context.py"
     },
     {
       "domain": "sdk.conversation",
