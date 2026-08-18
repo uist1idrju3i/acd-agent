@@ -106,6 +106,13 @@ ACDは次の値でinstallできる。
 | リファレンス（任意） | branch名、tag、または40桁commit SHA |
 | パス | `plugins/acd` |
 
+パスは必須である。省略するとplugin rootがリポジトリ直下になり、
+`plugins/acd/.plugin/plugin.json`は読まれず、SDKがディレクトリ名からmanifestを推論する。
+その場合、Skill・AgentDefinition・command・hooksは0件のままでもinstall自体は成功し得る。
+インストール直後にplugin詳細ダイアログでplugin名が`acd`であること（`acd-agent-<hash>`では
+ないこと）と、Skillが読み込まれていることを確認する。この確認を完了してから、次節の
+Local GUIからの動作確認手順へ進む。
+
 リファレンスを省略するとdefault branchの先頭を取得する。再現性が必要な場合は
 不変ref（tagまたは40桁commit SHA）を指定する。短縮SHAはSDKのfetchが
 `git clone --branch`で解決するため使用できない。install後の挙動と契約は
@@ -116,8 +123,9 @@ digest固定server image（Docker image）はplugin installでは取得されず
 
 ### Local GUIからの動作確認手順
 
-pluginをAgent Canvasへinstallした後、Local GUIの会話から決定論的な投影・出力を
-確認する。GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定する。
+前節のインストール直後確認（plugin名`acd`とSkillの読み込み）を完了したうえで、
+Local GUIの会話から決定論的な投影・出力を確認する。GUIでの操作は、既存のCLI入口を
+会話から呼び出す形に限定する。
 
 1. 基板・筐体のゲートは`/acd:gates` commandを実行する。`plugins/acd/commands/gates.md`
    の引数契約に合わせ、必要に応じてfixtureと出力先を指定する。

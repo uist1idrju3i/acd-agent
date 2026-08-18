@@ -25,6 +25,7 @@ agent-serverは対象外です。
 OpenHandsのLocal GUI（Agent Canvas）の「カスタマイズ → Plugins →
 プラグインを追加」から、ソース`github:uist1idrju3i/acd-agent`、パス`plugins/acd`で
 インストールできます。
+パスは必須で、省略するとACDのSkill／AgentDefinition／command／hooksは読み込まれません。
 
 通常の最新化（default branchの先頭への更新）は、同じPlugins画面の「更新」ボタンだけで
 行えます。アンインストールは不要で、有効・無効の状態も維持されます。特定のtagまたは
