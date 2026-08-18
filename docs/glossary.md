@@ -17,6 +17,10 @@
 | 送付manifest | 製造・組立へ送付した成果物の相対path、content hash、対象revisionを記録するmanifest。 |
 | 突合（reconciliation） | 送付manifestと受領recordの成果物一覧、hash、対象revisionを決定論的に比較する処理。 |
 | 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |
+| 機能測定run record | FWの版、成果物、生ログ、測定機器、期待条件、対象revision、時刻を1回の実行単位として宣言する契約。 |
+| LED capture | LEDの`timestamp_s,level`時系列を保存した生ログ。周期、周波数、duty比の独立測定へ使う。 |
+| 書き込み検証 | flash logの対象chip、image hashまたはサイズ、全regionの検証結果を照合する処理。 |
+| シリアル温湿度ログ | 温度、湿度、取得時刻を一定形式で記録する生ログ。値域と周期を独立parserで測定する。 |
 | execution context | `container`、`host`、`unknown`で表すToolEnvelopeの型付き実行場所。 |
 | authoritative Evidence | revision一致、既知provenance、digest固定containerを満たし、合格側へ使えるEvidence。 |
 | provisional Evidence | `supports_pass()`は満たすがdigest固定container要件を満たさず、参考に限るEvidence。 |

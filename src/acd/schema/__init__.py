@@ -19,6 +19,17 @@ from acd.schema.evidence import (
     PhysicalEvidence,
 )
 from acd.schema.fab_profile import FabProfileDocument
+from acd.schema.functional_run import (
+    FunctionalArtifact,
+    FunctionalCheckReport,
+    FunctionalCheckStatus,
+    FunctionalExpectations,
+    FunctionalLogReference,
+    FunctionalRunRecord,
+    FunctionalRunReport,
+    LedExpectation,
+    SerialExpectation,
+)
 from acd.schema.rationale import (
     DecisionKind,
     RationaleCoverageReport,
@@ -57,8 +68,16 @@ __all__ = [
     "EvidenceClaim",
     "EvidenceStatus",
     "FabProfileDocument",
+    "FunctionalArtifact",
+    "FunctionalCheckReport",
+    "FunctionalCheckStatus",
+    "FunctionalExpectations",
+    "FunctionalLogReference",
+    "FunctionalRunRecord",
+    "FunctionalRunReport",
     "GraphNode",
     "InspectionReportReference",
+    "LedExpectation",
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
@@ -82,6 +101,7 @@ __all__ = [
     "ReconciliationReport",
     "ReconciliationStatus",
     "RejectedAlternative",
+    "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",
     "canonical_json_sha256",

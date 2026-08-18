@@ -1,0 +1,4 @@
+ESP-IDF_VERSION=v5.2.1
+BUILD_STATUS=success
+ARTIFACT path=app.elf hash=sha256:5caef9370e58114a58b3293822631f849f8d0a4ee28068dad8c63436b83ab0a0 size=15
+ARTIFACT path=app.bin hash=sha256:ba9c218fa691ccd76c79f6d3c0d0db017097fece1da9e25d41af8f714d705a58 size=15

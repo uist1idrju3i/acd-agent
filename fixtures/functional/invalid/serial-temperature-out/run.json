@@ -1,0 +1,71 @@
+{
+  "acquired_at": "2026-01-01T12:00:00Z",
+  "build_artifacts": [
+    {
+      "artifact_type": "elf",
+      "content_hash": "sha256:5caef9370e58114a58b3293822631f849f8d0a4ee28068dad8c63436b83ab0a0",
+      "path": "app.elf"
+    },
+    {
+      "artifact_type": "bin",
+      "content_hash": "sha256:ba9c218fa691ccd76c79f6d3c0d0db017097fece1da9e25d41af8f714d705a58",
+      "path": "app.bin"
+    }
+  ],
+  "build_at": "2026-01-01T10:00:00Z",
+  "esp_idf_version": "v5.2.1",
+  "expectations": {
+    "led": {
+      "duty_max": 0.7,
+      "duty_min": 0.3,
+      "frequency_hz": 1.0,
+      "minimum_cycles": 3,
+      "tolerance_hz": 0.05
+    },
+    "serial": {
+      "humidity_max_rh": 90.0,
+      "humidity_min_rh": 10.0,
+      "minimum_samples": 3,
+      "period_s": 1.0,
+      "period_tolerance_s": 0.1,
+      "temperature_max_deg_c": 35.0,
+      "temperature_min_deg_c": 10.0
+    }
+  },
+  "flash_at": "2026-01-01T11:00:00Z",
+  "instrument": {
+    "fixture_id": "gd1-led-jig",
+    "instrument_name": "oscilloscope-led",
+    "instrument_version": "1.0",
+    "operator": "operator-1"
+  },
+  "logs": [
+    {
+      "content_hash": "sha256:addcfda444e7dcc5d58066c897f8308d45bf85c657e1aed37f9df4499896928d",
+      "log_type": "build",
+      "path": "build.log"
+    },
+    {
+      "content_hash": "sha256:69ca343e44daf8ec34411b46f0d2c0efa736d7aaca08d9639c2e81770f168a55",
+      "log_type": "flash",
+      "path": "flash.log"
+    },
+    {
+      "content_hash": "sha256:03e485572a7dfb96ba00b668c61365d4a4a539fc1f41d4960d9288d3f7d0cc8c",
+      "log_type": "led",
+      "path": "led.csv"
+    },
+    {
+      "content_hash": "sha256:ea02326bce95f1f0fae374c4cfb43577225f2d621b2d82f89d4ed39abf51819e",
+      "log_type": "serial",
+      "path": "serial.log"
+    }
+  ],
+  "measurement_class": "measured",
+  "project_git_commit": "0123456789abcdef0123456789abcdef01234567",
+  "recorded_at": "2026-01-01T13:00:00Z",
+  "run_id": "fw-run-2026-001",
+  "serial_capture_route": "usb-serial-jtag",
+  "target_revision": "r12",
+  "toolchain_version": "xtensa-esp-elf-13.2.0"
+}

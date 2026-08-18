@@ -8,8 +8,8 @@ OpenHands plugin、8 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefiniti
 GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SES import、DRC、
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
-実機Evidenceのschema契約と分類、実機の受領取り込みは実装済みである。FW書き込み・
-機能測定、測定結果の入力反映、価格・在庫・納期取得、発注は未実装である。
+実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
+測定結果の入力反映、価格・在庫・納期取得、発注は未実装である。
 `AcdGateCritic`は決定論的ゲート結果を使うL2操舵として実装済みである。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
 GD1の独立したwidth positive-control armは固定順で並列集約し、`acd-search`は候補と
@@ -36,7 +36,7 @@ Conversationは現行の`DockerDevWorkspace`経路で検証し、決定論的gat
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装 |
-| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.2実装、5.3〜5.4未着手 |
+| 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.3実装、5.4未着手 |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 一部実装 |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
@@ -99,11 +99,11 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | 固定版toolchainのbuild成果物hash、書き込みログ、シリアルログ、測定値の生ファイルを入力する |
-| 実装 | 書き込み成否と機能測定値を独立parserで読み直し、期待範囲の判定を決定論的に行う |
-| 正常系 | GD1の実機Evidence 4件が期待範囲内で記録され、`measured`分類で保存される |
-| negative/fail-closed | ログ文字列の存在だけでの合格、parse失敗、値域外、時刻不明、機器不在をfail-closedにする |
-| 再現性 | 保存済み生ログから判定を再実行して同一結果になり、壊したログのnegative testを含める |
+| 入力と出所 | `FunctionalRunRecord`がESP-IDF版、toolchain版、project commit、`.elf`／`.bin`成果物、build／flash／LED／serialの生ログ、測定機器、期待条件、時刻を宣言する |
+| 実装 | `acd.core.firmware`と`scripts/ingest_functional_run.py`が宣言hashを実ファイルへ照合した後、build、flash、LED capture、serial logを独立parserで読み直す |
+| 正常系 | 固定版の宣言値と成果物hashが一致し、ESP32-C3書き込み検証、LED 1 Hz、温湿度値域・周期を満たす4件の`measured` host実機Evidenceを個別に保存する |
+| negative/fail-closed | 成果物・ログhash不一致、成果物欠落、ESP-IDF版不一致、書き込みverify欠落、対象chip不一致、capture／serial parse失敗、値域外、周期外れ、時刻逆転を停止条件にする |
+| 再現性 | recordと保存済み生ログから同一report・4件のEvidenceバイト列とcanonical hashを再生成し、各negative fixtureを含める |
 
 ### 5.4 測定結果の入力反映ループ
 

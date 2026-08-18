@@ -116,6 +116,30 @@ uv run python scripts/ingest_receipt.py \
 出力Evidenceは`execution_context="host"`で、`PhysicalEvidence.supports_authoritative_pass()`
 は常に`False`である。
 
+## FW書き込みと機能測定の取り込み
+
+`FunctionalRunRecord`へESP-IDF版、toolchain版、project commit、build成果物、4種類の
+生ログ、測定機器、期待条件、時刻を宣言し、次のCLIで決定論的に取り込む。
+
+```bash
+uv run python scripts/ingest_functional_run.py \
+  --run fixtures/functional/valid/run.json \
+  --logs-dir fixtures/functional/valid/logs \
+  --evidence-dir out/functional-evidence \
+  --report out/functional-report.json
+```
+
+CLIは宣言された全ファイルのSHA-256を実体へ先に照合し、build成功と成果物、ESP32-C3の
+全region書き込みverify、LED captureの時系列・周波数・duty、serial logの温湿度・周期を
+独立parserで検査する。文字列だけの成功宣言、版不明、parse失敗、値域外、周期外れ、
+サンプル不足、時刻逆転はfail-closedとなる。4件すべてがpassしたときだけexit code 0、
+それ以外はexit code 2でreportを出力する。
+
+reportの入力hashはrecordと参照ファイルの実体hashから決定し、Evidenceの時刻はrecordの
+宣言時刻から導出する。同一入力は同一report・Evidenceを生成する。生成Evidenceは
+`measurement_class="measured"`かつ`execution_context="host"`であり、決定論的ゲートの
+authoritative合格へ昇格しない。
+
 ## 依存・版・破壊的変更の記録
 
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、

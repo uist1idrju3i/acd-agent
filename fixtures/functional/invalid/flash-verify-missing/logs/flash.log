@@ -1,0 +1,3 @@
+CHIP=ESP32-C3
+IMAGE path=app.bin hash=sha256:ba9c218fa691ccd76c79f6d3c0d0db017097fece1da9e25d41af8f714d705a58 size=15
+FLASH_STATUS=success
