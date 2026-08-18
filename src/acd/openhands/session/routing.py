@@ -31,6 +31,7 @@ def model_routing_policy_hash(policy: ModelRoutingPolicy) -> Sha256:
     value["canonical_hash"] = "unknown"
     return canonical_json_sha256(value)
 
+
 def load_model_routing_policy(path: Path) -> ModelRoutingPolicy:
     """Load a model routing policy from deterministic JSON."""
     try:
