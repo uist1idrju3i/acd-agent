@@ -209,7 +209,7 @@ LLM-only CADとの違いは、毎回同じ解を出すことではなく、出�
 - [`assets/logo.svg`](assets/logo.svg): acd-agentのロゴ。
 - [`assets/banner.svg`](assets/banner.svg): READMEなどで使うバナー。
 - [`assets/vibebb-silkscreen.svg`](assets/vibebb-silkscreen.svg): 基板シルク印字用のVibeBBロゴ。
-  単色・線画・幾何要素のみで、1:1スケールは26mm×15mmです。基板へ載せる場合は
+  単色・線画・幾何要素のみで、1:1スケールは40mm×18mmです。基板へ載せる場合は
   `board-preview`グループを外し、`silkscreen`グループだけを取り込みます。
 
 ## ライセンス
