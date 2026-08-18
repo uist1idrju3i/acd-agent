@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, cast
 
 import pytest
@@ -78,6 +79,15 @@ def _search_text(
         step,
         limit,
     )
+
+
+def test_non_search_text_without_coordinates_fails_closed() -> None:
+    text = replace(_search_text(role="board_type"), x_mm=None, y_mm=None)
+    with pytest.raises(GraphExtractionError, match="no declared position"):
+        resolve_silkscreen_placements(
+            SilkscreenLane("board.gd1", (text,), ()),
+            _search_board(),
+        )
 
 
 def test_silkscreen_resolves_connector_identifier_and_records_rejections() -> None:

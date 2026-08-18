@@ -107,6 +107,10 @@ def _edge_lines(width: float, height: float) -> list[list[SExpr]]:
 
 
 def _silk_text(item: SilkTextView) -> list[SExpr]:
+    if item.x_mm is None or item.y_mm is None:
+        raise ValueError(
+            f"silkscreen text {item.node_id!r} has no declared position (fail-closed)"
+        )
     effects: list[SExpr] = [
         Sym("effects"),
         [

@@ -17,8 +17,8 @@ class SilkTextView:
     node_id: str
     role: str
     text: str
-    x_mm: float
-    y_mm: float
+    x_mm: float | None
+    y_mm: float | None
     layer: str
     height_mm: float
     stroke_width_mm: float
@@ -143,12 +143,12 @@ def extract_silkscreen_lane(graph: DesignGraph) -> SilkscreenLane:
                     x_mm=(
                         _number_attr(node, "x_mm")
                         if node.attrs.get("x_mm") is not None
-                        else 0.0
+                        else None
                     ),
                     y_mm=(
                         _number_attr(node, "y_mm")
                         if node.attrs.get("y_mm") is not None
-                        else 0.0
+                        else None
                     ),
                     layer=layer,
                     height_mm=height,

@@ -480,6 +480,10 @@ def measure_silkscreen(
     declared_objects: list[_SilkObject] = []
     declared_groups: list[tuple[dict[str, object], tuple[_SilkObject, ...]]] = []
     for text in declarations.texts:
+        if text.x_mm is None or text.y_mm is None:
+            raise FabOutputError(
+                f"silkscreen text {text.node_id!r} has no declared position (fail-closed)"
+            )
         target = _declared_bbox(
             text.x_mm,
             text.y_mm,

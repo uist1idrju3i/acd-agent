@@ -201,6 +201,10 @@ def resolve_silkscreen_placements(lane: SilkscreenLane, board: BoardModel) -> Si
     }
     for text in lane.texts:
         if not (text.role.startswith("functional_label_") or text.role == "connector_identifier"):
+            if text.x_mm is None or text.y_mm is None:
+                raise GraphExtractionError(
+                    f"silk text {text.node_id!r} has no declared position (fail-closed)"
+                )
             resolved.append(text)
             evidence.append(
                 {
@@ -676,13 +680,6 @@ def resolve_from_context(
     courtyards = boxes("courtyard_bboxes_mm")
     existing = boxes("existing_silk_objects")
     fixed = boxes("fixed_silk_objects")
-    forbidden_silk = [
-        ("mask_objects", item) for item in masks
-    ] + [
-        ("existing_silk_objects", item) for item in existing
-    ] + [
-        ("fixed_silk_objects", item) for item in fixed
-    ]
     declarations = boxes("declarations")
     declaration_sizes = {
         str(item["node_id"]): (
@@ -833,7 +830,7 @@ def resolve_from_context(
                                 ):
                                     reason = "mask_opening_bboxes_mm"
                                     break
-                        if reason is None and not masks:
+                        if reason is None:
                             for item in mask_openings:
                                 if not isinstance(item, list) or len(item) != 4:
                                     raise GraphExtractionError(
@@ -847,15 +844,14 @@ def resolve_from_context(
                                     reason = "mask_opening_bboxes_mm"
                                     break
                         if reason is None:
-                            for item in existing + fixed:
+                            for source, item in (
+                                [("existing_silk_objects", item) for item in existing]
+                                + [("fixed_silk_objects", item) for item in fixed]
+                            ):
                                 if item.get("layer") == text.layer and _rects_overlap(
                                     candidate_bbox, bbox(item)
                                 ):
-                                    reason = (
-                                        "existing_silk_objects"
-                                        if item in existing
-                                        else "fixed_silk_objects"
-                                    )
+                                    reason = source
                                     break
                         if reason is None:
                             for item in dynamic_silk:
@@ -876,15 +872,6 @@ def resolve_from_context(
                                         if item in bodies
                                         else "courtyard_bboxes_mm"
                                     )
-                                    break
-                        if reason is None:
-                            for source, item in forbidden_silk + [
-                                ("placed_declaration", item) for item in dynamic_silk
-                            ]:
-                                if item.get("layer") == text.layer and _rects_overlap(
-                                    candidate_bbox, bbox(item)
-                                ):
-                                    reason = source
                                     break
                         if reason is None and reference is not None:
                             component_distances: dict[str, float] = {}
@@ -1152,8 +1139,16 @@ def _lane_from_json(value: object) -> SilkscreenLane:
             node_id=str(item["node_id"]),
             role=str(item["role"]),
             text=str(item["text"]),
-            x_mm=_number(item["x_mm"], "text.x_mm"),
-            y_mm=_number(item["y_mm"], "text.y_mm"),
+            x_mm=(
+                None
+                if item.get("x_mm") is None
+                else _number(item["x_mm"], "text.x_mm")
+            ),
+            y_mm=(
+                None
+                if item.get("y_mm") is None
+                else _number(item["y_mm"], "text.y_mm")
+            ),
             layer=str(item["layer"]),
             height_mm=_number(item["height_mm"], "text.height_mm"),
             stroke_width_mm=_number(item["stroke_width_mm"], "text.stroke_width_mm"),
