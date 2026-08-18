@@ -106,6 +106,13 @@ ACDは次の値でinstallできる。
 | リファレンス（任意） | branch名、tag、または40桁commit SHA |
 | パス | `plugins/acd` |
 
+パスは必須である。省略するとplugin rootがリポジトリ直下になり、
+`plugins/acd/.plugin/plugin.json`は読まれず、SDKがディレクトリ名からmanifestを推論する。
+その場合、Skill・AgentDefinition・command・hooksは0件のままでもinstall自体は成功し得る。
+インストール直後にplugin詳細ダイアログでplugin名が`acd`であること（`acd-agent-<hash>`では
+ないこと）と、Skillが読み込まれていることを確認する。この確認を完了してから、次節の
+Local GUIからの動作確認手順へ進む。
+
 リファレンスを省略するとdefault branchの先頭を取得する。再現性が必要な場合は
 不変ref（tagまたは40桁commit SHA）を指定する。短縮SHAはSDKのfetchが
 `git clone --branch`で解決するため使用できない。install後の挙動と契約は
@@ -113,6 +120,61 @@ ACDは次の値でinstallできる。
 依存はPEP 723で自己解決されるため、hostのpip installとは独立している。
 digest固定server image（Docker image）はplugin installでは取得されず、ゲート実行時に
 `DockerWorkspace(server_image=...)`が初回pullする。
+
+### Local GUIからの動作確認手順
+
+前節のインストール直後確認（plugin名`acd`とSkillの読み込み）を完了したうえで、
+Local GUIの会話から決定論的な投影・出力を確認する。GUIでの操作は、既存のCLI入口を
+会話から呼び出す形に限定する。
+
+1. 基板・筐体のゲートは`/acd:gates` commandを実行する。`plugins/acd/commands/gates.md`
+   の引数契約に合わせ、必要に応じてfixtureと出力先を指定する。
+
+   ```text
+   /acd:gates --fixture fixtures/golden-design-1 --out out/gd1
+   ```
+
+   基板pipelineの前提として、シルク配置を解決する場合は
+   `scripts/resolve_gd1_silkscreen.py`を先に実行する。基板pipelineは
+   `scripts/run_gd1_pipeline.py`、筐体pipelineは
+   `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
+   会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを
+   応答へ明記させる。
+
+2. 実行済みのGD1基板pipelineでは、回路図
+   `out/gd1/gd1.kicad_sch`、routed board
+   `out/gd1/routed/gd1.kicad_pcb`、Gerberの
+   `out/gd1/gerbers/`、drillの`out/gd1/gerbers/gd1.drl`、製造出力の
+   `out/gd1/fab/`、電気Evidenceの`out/gd1/evidence-electrical.json`が生成される。
+   シルク解決を個別に実行した場合は、回路図を含む中間成果物が
+   `out/gd1-silkscreen-resolve/iteration-1/`に生成される。
+
+3. 実行済みのGD1筐体pipelineでは、`out/gd1-enclosure/enclosure.step`、
+   `out/gd1-enclosure/enclosure.3mf`、および
+   `out/gd1-enclosure/evidence-mechanical.json`が生成される。
+
+4. FW Skillは会話に`firmware`、`ESP32-C3`、`ESP-IDF`、`QEMU`、`GPIO`のいずれかを
+   含めて起動し、次の入口を実行させる。
+
+   ```bash
+   uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+     --fixture fixtures/golden-design-1 --out out/gd1-fw
+   ```
+
+   実行済みの出力は、FWプロジェクト
+   `out/gd1-fw/acd_gd1_fw/`、ビルド済みFW
+   `out/gd1-fw/acd_gd1_fw/build/acd_gd1_fw.bin`、統合flash image
+   `out/gd1-fw/flash.bin`、QEMUの仮想シリアルログ
+   `out/gd1-fw/qemu-serial.log`、結果の
+   `out/gd1-fw/summary.json`である。ESP-IDFと
+   `qemu-system-riscv32`が利用できない環境ではこの手順を実行できず、推測した成果物パスを
+   成功結果として記録してはならない。
+
+5. これらのhost実行はprovisional専用であり、合格側Evidenceにはならない。authoritative
+   Evidenceは、lock済みdigest固定server imageを`DockerWorkspace(server_image=...)`で
+   実行した経路だけが生成する。digest不明、container marker欠落、Evidenceのrevision不一致、
+   `status`不正、unknown、または実行経路不明はfail-closedとする。FWのQEMUログも仮想検証で
+   あり、GD1実機の`measured` EvidenceやLED実測の代替にはならない。
 
 ### Skill script依存の自己解決（PEP 723）
 
@@ -132,15 +194,15 @@ authoritative Evidenceの契約は変更しない。
 ### アップデート
 
 pluginの更新は2通りある。SDKの`update_plugin()`は、記録済みのsourceを`ref=None`
-（default branchの先頭）で再取得して上書きする。
+（default branchの先頭）で再取得して上書きする。GUIの「更新」ボタンはこの経路を使うため、
+アンインストールは不要で、有効・無効の状態も維持される。更新ボタンではrefを指定できない。
 
 ```bash
 python -c "from openhands.sdk.plugin.installed import update_plugin; print(update_plugin('acd'))"
 ```
 
 特定のtagまたは40桁SHAへ更新する場合は、`install_plugin(..., force=True)`で
-上書きinstallする。GUIからはいったんアンインストールし、新しいrefで再度
-インストールしても同じ結果になる。
+上書きinstallする。GUIではいったんアンインストールし、新しいrefで再度インストールする。
 
 ```bash
 python -c "from openhands.sdk.plugin.installed import install_plugin; print(install_plugin('github:uist1idrju3i/acd-agent', ref='<new tag or SHA>', repo_path='plugins/acd', force=True))"
@@ -257,6 +319,15 @@ uv run python scripts/verify_all.py --stage full
 `full`には`pytest plugins`、silkscreen resolver、基板・筐体pipeline、外部ツールprobeを
 含む。authoritative container gateはCI固有の`container-gates` jobで実行するため、
 `verify_all.py`には含めない。
+
+GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
+silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを
+緩めずfail-closedとして状態をそのまま記録する。
+
+`verify_authoritative_evidence.py`はLLMやSDKの判定を使わず、
+`Evidence.supports_authoritative_pass()`とその構成要素だけを検査する。引数なし、
+parse失敗、file不在、revision不一致、status不正、host実行、digest不在、unknown混入は
+成功扱いにしない。
 
 ## 製造・組立受領の取り込み
 
@@ -467,21 +538,6 @@ plugin = acd_plugin_source("v1.2.3")
 
 `ref=None`、branch名、短縮SHA、空文字、不正なtagはfail-closedで拒否される。
 開発checkoutでは`build_acd_conversation()`の既定local pathを使用できる。
-
-## 検証
-
-文書のみの変更は`uv run python scripts/verify_docs.py`と`git diff --check`で確認する。
-通常のコード変更は`uv run ruff check`、`uv run pyright`、`uv run pytest`と文書検査を行い、
-フル検証では`uv run pytest plugins -q`、GD1基板・筐体pipeline、`probe_tools.py`も実行する。
-
-GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
-silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを
-緩めずfail-closedとして状態をそのまま記録する。
-
-`verify_authoritative_evidence.py`はLLMやSDKの判定を使わず、
-`Evidence.supports_authoritative_pass()`とその構成要素だけを検査する。引数なし、
-parse失敗、file不在、revision不一致、status不正、host実行、digest不在、unknown混入は
-成功扱いにしない。
 
 ## トラブル時
 

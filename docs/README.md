@@ -6,6 +6,7 @@
 | 文書 | 内容 |
 |---|---|
 | [`../README.md`](../README.md) | 製品概要 |
+| [`../AGENTS.md`](../AGENTS.md) | 作業契約 |
 | [`glossary.md`](glossary.md) | 用語定義 |
 | [`architecture.md`](architecture.md) | 責務境界 |
 | [`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json) | SDK能力カタログの契約 |
