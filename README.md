@@ -1,10 +1,31 @@
 # ACD — Autonomous Computer Design
 
+![acd-agent — Autonomous Computer Design on OpenHands](assets/banner.svg)
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/uist1idrju3i/acd-agent)
 
 ACDは、基板・筐体・ファームウェアをOpenHandsと決定論的な投影・ゲートで扱う
 AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立再読込、機械測定などの
 決定論的ゲートが合否を判定します。
+
+## インストール
+
+ビルドもCLIのセットアップも不要です。OpenHandsのLocal GUI（Agent Canvas）で3ステップで
+導入できます。
+
+1. 「カスタマイズ → Plugins → プラグインを追加」を開く。
+2. ソースに `github:uist1idrju3i/acd-agent`、パスに `plugins/acd` を入力する。
+   パスは必須で、省略するとACDのSkill／AgentDefinition／command／hooksが読み込まれません。
+3. 追加を実行する。以後は`/acd:gates`などのACD機能がそのまま使えます。
+
+最新化（default branchの先頭への更新）も、同じPlugins画面の「更新」ボタンだけで完了します。
+アンインストールは不要で、有効・無効の状態も維持されます。
+
+> 参考: 特定のtagまたは40桁commit SHAへ固定・切替・ダウングレードする場合は、更新ボタンで
+> refを指定できないため、いったんアンインストールして新しいrefで再インストールします。
+> 通常の利用では不要です。
+
+その他の運用手順は[`docs/operations.md`](docs/operations.md)を参照してください。
 
 ## ACDとは？
 
@@ -44,6 +65,8 @@ ACDが埋めるギャップは4点です。
 [`docs/research/README.md`](docs/research/README.md)を参照してください。
 
 ## VibeBB — Vibe BreadBoarding
+
+<img src="assets/vibebb-silkscreen.svg" alt="VibeBB — Vibe BreadBoarding（シルク印字用ロゴ）" width="320">
 
 VibeBBは、Vibe Codingになぞらえた「Vibe BreadBoarding」です。Andrej Karpathyが
 [2025年2月の投稿](https://x.com/karpathy/status/1886192184808149383)で示した
@@ -183,23 +206,22 @@ LLM-only CADとの違いは、毎回同じ解を出すことではなく、出�
 - 独自のコンパイラ、デバッガ、シミュレータを作る製品ではありません。既存ツールを
   外部ツールとして呼び出します。
 
-## インストール
-
-OpenHandsのLocal GUI（Agent Canvas）の「カスタマイズ → Plugins →
-プラグインを追加」から、ソース`github:uist1idrju3i/acd-agent`、パス`plugins/acd`で
-インストールできます。
-パスは必須で、省略するとACDのSkill／AgentDefinition／command／hooksは読み込まれません。
-
-通常の最新化（default branchの先頭への更新）は、同じPlugins画面の「更新」ボタンだけで
-行えます。アンインストールは不要で、有効・無効の状態も維持されます。特定のtagまたは
-40桁commit SHAへ固定・切替・ダウングレードする場合は、更新ボタンでrefを指定できないため、
-いったんアンインストールして新しいrefで再インストールします。
-
-その他の運用手順は[`docs/operations.md`](docs/operations.md)を参照してください。
-
 ## 文書索引
 
 文書の一覧とAccepted ADRの索引は[`docs/README.md`](docs/README.md)を参照してください。
+
+## ロゴ
+
+![acd-agent](assets/logo.svg)
+
+- [`assets/logo.svg`](assets/logo.svg): acd-agentのロゴ。
+- [`assets/banner.svg`](assets/banner.svg): READMEなどで使うバナー。
+- [`assets/vibebb-silkscreen.svg`](assets/vibebb-silkscreen.svg): 基板シルク印字用のVibeBBロゴ。
+  単色・線画・幾何要素のみで、1:1スケールは26mm×15mmです。基板へ載せる場合は
+  `board-preview`グループを外し、`silkscreen`グループだけを取り込みます。
+
+ロゴのアイコン意匠と配色は[uist1idrju3i/ACD](https://github.com/uist1idrju3i/ACD)の
+`assets/logo.svg`（BSD 3-Clause、Copyright (c) Y. Yamashiro）に基づきます。
 
 ## ライセンス
 

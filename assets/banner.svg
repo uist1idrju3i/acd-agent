@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 400" width="1280" height="400" role="img" aria-label="acd-agent - Autonomous Computer Design on OpenHands: design graph, projection, deterministic gates, evidence">
+  <!--
+    Banner artwork. The board/copper palette is derived from
+    uist1idrju3i/ACD assets/logo.svg (BSD 3-Clause, Copyright (c) Y. Yamashiro).
+    Latin-only text keeps rendering stable across viewers.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c2b1d"/>
+      <stop offset="1" stop-color="#062217"/>
+    </linearGradient>
+    <linearGradient id="board" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#11835a"/>
+      <stop offset="1" stop-color="#0a5e3b"/>
+    </linearGradient>
+    <linearGradient id="copper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0a44e"/>
+      <stop offset="1" stop-color="#c87533"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1280" height="400" fill="url(#bg)"/>
+
+  <!-- background traces -->
+  <g stroke="#134e35" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M0 60 H240 l40 40 H700"/>
+    <path d="M1280 92 H1040 l-40 -40 H820"/>
+    <path d="M0 348 H300 l40 -40 H900 l40 40 H1280"/>
+    <path d="M60 400 V300 l40 -40 V180"/>
+    <path d="M1220 0 V120 l-40 40 V260"/>
+  </g>
+  <g fill="#1c6c4a">
+    <circle cx="280" cy="100" r="6"/>
+    <circle cx="1000" cy="52" r="6"/>
+    <circle cx="340" cy="308" r="6"/>
+    <circle cx="940" cy="308" r="6"/>
+  </g>
+
+  <!-- icon -->
+  <g transform="translate(72,120) scale(2.5)">
+    <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#board)"/>
+    <g stroke="#9fe0c0" stroke-width="2.5" fill="none" stroke-linecap="round">
+      <path d="M12 52 v-10 l8 -8"/>
+      <path d="M52 12 v10 l-8 8"/>
+      <path d="M12 12 h8 l4 4"/>
+      <path d="M52 52 h-8 l-4 -4"/>
+    </g>
+    <rect x="17" y="17" width="30" height="30" rx="6" fill="#052015" stroke="#9fe0c0" stroke-width="2.5"/>
+    <path d="M32 22.5 L41.5 41.5 H36.7 L34.9 37.6 H29.1 L27.3 41.5 H22.5 Z M32 30.2 L30.4 33.9 H33.6 Z" fill="url(#copper)"/>
+  </g>
+
+  <!-- wordmark -->
+  <g font-family="Verdana, 'DejaVu Sans', sans-serif">
+    <text x="272" y="192" font-size="88" font-weight="bold" letter-spacing="3">
+      <tspan fill="url(#copper)">acd</tspan><tspan fill="#4f7f68">-</tspan><tspan fill="#eef7f2">agent</tspan>
+    </text>
+    <text x="276" y="240" font-size="24" fill="#9fe0c0" letter-spacing="3">AUTONOMOUS COMPUTER DESIGN ON OPENHANDS</text>
+
+    <!-- pipeline chips -->
+    <g font-size="17" font-weight="bold" letter-spacing="1.5">
+      <g>
+        <rect x="276" y="284" width="203" height="48" rx="24" fill="none" stroke="#1c6c4a" stroke-width="2.5"/>
+        <text x="377" y="314" fill="#cfe9dc" text-anchor="middle">DESIGN GRAPH</text>
+      </g>
+      <g>
+        <rect x="499" y="284" width="176" height="48" rx="24" fill="none" stroke="#1c6c4a" stroke-width="2.5"/>
+        <text x="587" y="314" fill="#cfe9dc" text-anchor="middle">PROJECTION</text>
+      </g>
+      <g>
+        <rect x="695" y="284" width="298" height="48" rx="24" fill="none" stroke="#c87533" stroke-width="2.5"/>
+        <text x="844" y="314" fill="#f0a44e" text-anchor="middle">DETERMINISTIC GATES</text>
+      </g>
+      <g>
+        <rect x="1013" y="284" width="149" height="48" rx="24" fill="none" stroke="#1c6c4a" stroke-width="2.5"/>
+        <text x="1087" y="314" fill="#cfe9dc" text-anchor="middle">EVIDENCE</text>
+      </g>
+      <g stroke="#4f7f68" stroke-width="2.5" fill="none" stroke-linecap="round">
+        <path d="M483 308 H495"/>
+        <path d="M679 308 H691"/>
+        <path d="M997 308 H1009"/>
+      </g>
+    </g>
+
+    <!-- VibeBB tag -->
+    <text x="1000" y="150" font-size="34" font-weight="bold" letter-spacing="2">
+      <tspan fill="#f0a44e">Vibe</tspan><tspan fill="#eef7f2">BB</tspan>
+    </text>
+    <text x="1000" y="182" font-size="17" fill="#9fe0c0" letter-spacing="1.5">VIBE BREADBOARDING</text>
+  </g>
+</svg>
