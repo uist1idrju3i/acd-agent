@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from openhands.sdk.plugin import PluginSource
 
-from acd.openhands.plugin_distribution import (
+from acd.openhands.distribution.plugin import (
     acd_plugin_source,
     validate_pinned_ref,
     validate_plugin_source,

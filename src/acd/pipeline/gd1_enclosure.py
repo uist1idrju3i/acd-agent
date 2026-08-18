@@ -11,7 +11,7 @@ from pathlib import Path
 from acd.adapters.cad.mechanical import run_mechanical_gates
 from acd.adapters.cad.project import project_enclosure
 from acd.core.mechanical import extract_mechanical_lane
-from acd.openhands.probe import probe_cad_kernel
+from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim

@@ -19,7 +19,7 @@ from openhands.sdk.tool import (
 from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportUnknownVariableType]
 from pydantic import Field
 
-from acd.openhands.probe import probe_all
+from acd.openhands.tools.probe import probe_all
 from acd.pipeline.gd1_board import (  # pyright: ignore[reportMissingTypeStubs]
     run_pipeline as run_board,
 )

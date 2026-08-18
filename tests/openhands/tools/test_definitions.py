@@ -11,8 +11,8 @@ import pytest
 from openhands.sdk.agent.parallel_executor import ResourceLockManager
 from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
-import acd.openhands.sdk_tools as sdk_tools
-from acd.openhands.sdk_tools import (
+import acd.openhands.tools.definitions as sdk_tools
+from acd.openhands.tools.definitions import (
     AcdObservation,
     AcdProbeTools,
     AcdProbeToolsAction,

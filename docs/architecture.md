@@ -4,7 +4,8 @@
 > 対象: OpenHands Software Agent SDK v1.42.1、Python 3.12+
 
 本書は境界説明の単一の正であり、入力ファイルを正とするACDの実装境界を定める。
-SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)、
+SDK機能の採否は[`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json)を正とし、
+説明表は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)に置き、
 運用手順は[`operations.md`](operations.md)、ゲート仕様は[`gates.md`](gates.md)を参照する。
 設計決定は[`adr/`](adr)を参照する。
 
@@ -122,7 +123,7 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 
 ## SDK ToolDefinition境界
 
-`src/acd/openhands/sdk_tools.py`はOpenHands SDKの
+`src/acd/openhands/tools/definitions.py`はOpenHands SDKの
 `ToolDefinition`、`Action`、`Observation`、`ToolAnnotations`、`ToolExecutor`を
 使い、`register_acd_tools()`から次の既存入口を明示的に登録する。
 
@@ -205,7 +206,7 @@ shell・file操作を禁止するため、決定論的探索には使わない�
 
 ## SDK Conversation session境界
 
-`acd.openhands.agent_session`は`LocalConversation`へACD plugin、hooks、workspace、
+`acd.openhands.session.bootstrap`は`LocalConversation`へACD plugin、hooks、workspace、
 `persistence_dir`、`AcdGateCritic`、`LLMSummarizingCondenser`を宣言的に接続する。
 loop、history、state/event persistence、metricsはSDKへ委譲する。EventLog、
 conversation state、metrics、condenser outputは経過でありpass evidenceではない。
@@ -248,7 +249,8 @@ orderの合格側Evidenceは`supports_authoritative_pass()`を要求する。
 
 ## 実装していない境界
 
-SDK機能の採否は[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)に整理する。
+SDK機能の採否は[`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json)に整理し、
+Markdown表は機械生成する。
 ACD機能としては、実機測定、価格・在庫取得、自働発注が未実装であり、将来構想である。
 
 ## 工程境界

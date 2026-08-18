@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from acd.openhands.gate_critic import (
+from acd.openhands.session.gate_critic import (
     AcdEvidenceRequirement,
     AcdGateCritic,
     AcdManifestRequirement,

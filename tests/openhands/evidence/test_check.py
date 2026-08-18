@@ -7,7 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from acd.openhands.evidence_check import check
+from acd.openhands.evidence.check import check
 
 
 def test_valid_evidence_is_accepted(tmp_path: Path) -> None:

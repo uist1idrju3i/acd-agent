@@ -1,0 +1,761 @@
+{
+  "sdk_version": "1.42.1",
+  "submodule_commit": "167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497",
+  "scanned_packages": [
+    {
+      "prefix": "sdk",
+      "path": "vendor/software-agent-sdk/openhands-sdk/openhands/sdk"
+    },
+    {
+      "prefix": "tools",
+      "path": "vendor/software-agent-sdk/openhands-tools/openhands/tools"
+    },
+    {
+      "prefix": "workspace",
+      "path": "vendor/software-agent-sdk/openhands-workspace/openhands/workspace"
+    }
+  ],
+  "non_target_packages": [
+    {
+      "prefix": "agent-server",
+      "path": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server",
+      "reason": "非対象（将来必要なら新規ADRで起票）"
+    }
+  ],
+  "capabilities": [
+    {
+      "domain": "sdk.agent",
+      "modules": ["sdk.agent"],
+      "representative_apis": ["Agent", "AgentBase"],
+      "use": "pluginの役割別agent",
+      "adoption": "採用",
+      "rationale": "plugins/acd/agents/がAgentDefinitionを参照",
+      "verification": "plugin資材検査、agent起動"
+    },
+    {
+      "domain": "sdk.agent.acp",
+      "modules": [
+        "sdk.agent.acp_agent",
+        "sdk.agent.acp_file_credentials",
+        "sdk.agent.acp_models",
+        "sdk.agent.acp_tracing"
+      ],
+      "representative_apis": ["ACPAgent"],
+      "use": "外部ACP連携",
+      "adoption": "不採用",
+      "rationale": "OpenHands専用拡張の境界外／provenance固定と非両立",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.agent.internal",
+      "modules": [
+        "sdk.agent.agent",
+        "sdk.agent.base",
+        "sdk.agent.critic_mixin",
+        "sdk.agent.utils"
+      ],
+      "representative_apis": ["AgentBase"],
+      "use": "SDK内部agent補助",
+      "adoption": "不採用",
+      "rationale": "内部補助をACDが直接依存しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.agent.parallel_executor",
+      "modules": ["sdk.agent.parallel_executor"],
+      "representative_apis": ["ParallelToolExecutor"],
+      "use": "agent lane並列化",
+      "adoption": "採用",
+      "rationale": "Agent.tool_concurrency_limit経由で使用し、資源宣言不能時は直列化",
+      "verification": "tests/openhands/tools/test_definitions.py"
+    },
+    {
+      "domain": "sdk.agent.response_dispatch",
+      "modules": ["sdk.agent.response_dispatch"],
+      "representative_apis": ["classify_response"],
+      "use": "SDK内部応答配信",
+      "adoption": "不採用",
+      "rationale": "ACDが直接依存する責務ではない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.context",
+      "modules": ["sdk.context", "sdk.context.agent_context"],
+      "representative_apis": ["AgentContext"],
+      "use": "agent作業文脈",
+      "adoption": "採用",
+      "rationale": "現行sessionでローカルSkillと文脈設定を明示する",
+      "verification": "session回帰"
+    },
+    {
+      "domain": "sdk.context.condenser",
+      "modules": ["sdk.context.condenser", "sdk.context.condenser.*"],
+      "representative_apis": ["LLMSummarizingCondenser"],
+      "use": "長い対話の圧縮",
+      "adoption": "採用",
+      "rationale": "session bootstrapで使用し、Evidenceを置換しない",
+      "verification": "resume/fork回帰"
+    },
+    {
+      "domain": "sdk.context.memory",
+      "modules": ["sdk.context.memory"],
+      "representative_apis": ["load_memory"],
+      "use": "作業文脈の補助",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "契約・合否の正にしない。資材hashを固定する",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.context.prompts",
+      "modules": ["sdk.context.prompts", "sdk.context.prompts.*"],
+      "representative_apis": ["PromptSection"],
+      "use": "role別prompt構造化",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "role別promptと資材hashを固定する",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.context.view",
+      "modules": ["sdk.context.view", "sdk.context.view.*"],
+      "representative_apis": ["View"],
+      "use": "長時間sessionの表示",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "原EventLogと照合し、Evidenceを置換しない",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.conversation",
+      "modules": ["sdk.conversation"],
+      "representative_apis": ["LocalConversation", "ConversationState"],
+      "use": "現行agent session",
+      "adoption": "採用",
+      "rationale": "src/acd/openhands/session/bootstrap.pyで使用",
+      "verification": "session回帰"
+    },
+    {
+      "domain": "sdk.conversation.cancellation",
+      "modules": ["sdk.conversation.cancellation"],
+      "representative_apis": ["CancellationToken"],
+      "use": "対話中断",
+      "adoption": "採用",
+      "rationale": "SIGINTからinterruptへ結線し、L2停止側に限定",
+      "verification": "tests/openhands/session/test_goal_loop.py"
+    },
+    {
+      "domain": "sdk.conversation.conversation_stats",
+      "modules": ["sdk.conversation.conversation_stats"],
+      "representative_apis": ["ConversationStats"],
+      "use": "session別使用量観測",
+      "adoption": "採用",
+      "rationale": "L3観測として採用し合否に混入しない",
+      "verification": "tests/openhands/session/test_goal_loop.py"
+    },
+    {
+      "domain": "sdk.conversation.goal",
+      "modules": ["sdk.conversation.goal", "sdk.conversation.goal.*"],
+      "representative_apis": ["GoalController", "GoalVerdict"],
+      "use": "反復停止の補助",
+      "adoption": "採用",
+      "rationale": "L2停止側に限り、L1合否を置換しない",
+      "verification": "tests/openhands/session/test_goal_loop.py"
+    },
+    {
+      "domain": "sdk.conversation.internal",
+      "modules": [
+        "sdk.conversation.base",
+        "sdk.conversation.conversation",
+        "sdk.conversation.event_store",
+        "sdk.conversation.events_list_base",
+        "sdk.conversation.exceptions",
+        "sdk.conversation.fifo_lock",
+        "sdk.conversation.impl",
+        "sdk.conversation.impl.*",
+        "sdk.conversation.persistence_const",
+        "sdk.conversation.request",
+        "sdk.conversation.resource_lock_manager",
+        "sdk.conversation.response_utils",
+        "sdk.conversation.state",
+        "sdk.conversation.title_utils",
+        "sdk.conversation.types",
+        "sdk.conversation.visualizer",
+        "sdk.conversation.visualizer.*"
+      ],
+      "representative_apis": ["BaseConversation"],
+      "use": "Conversation内部補助",
+      "adoption": "不採用",
+      "rationale": "内部補助をACDが直接依存しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.conversation.secrets_manager",
+      "modules": ["sdk.conversation.secret_registry"],
+      "representative_apis": ["SecretRegistry"],
+      "use": "secret注入・漏洩防止",
+      "adoption": "採用",
+      "rationale": "pinned registryのmaskingとlazy secret注入を現行Conversationで使用",
+      "verification": "registry回帰"
+    },
+    {
+      "domain": "sdk.conversation.stuck_detector",
+      "modules": ["sdk.conversation.stuck_detector"],
+      "representative_apis": ["StuckDetector"],
+      "use": "停滞時の差し戻し",
+      "adoption": "採用",
+      "rationale": "LocalConversation(stuck_detection=True)へ既定値・閾値を渡す",
+      "verification": "conversation wiring回帰"
+    },
+    {
+      "domain": "sdk.credential",
+      "modules": ["sdk.credential"],
+      "representative_apis": ["CredentialBindingError"],
+      "use": "資格情報の外部化",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "secret allowlistを維持し、unknownはfail-closedにする",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.critic",
+      "modules": ["sdk.critic", "sdk.critic.*"],
+      "representative_apis": ["CriticBase", "CriticResult", "IterativeRefinementConfig"],
+      "use": "gate結果によるL2操舵",
+      "adoption": "採用",
+      "rationale": "session gate criticで使用し、pass authorityにしない",
+      "verification": "critic回帰、negative"
+    },
+    {
+      "domain": "sdk.event",
+      "modules": ["sdk.event", "sdk.event.*"],
+      "representative_apis": ["Event", "MessageEvent", "HookExecutionEvent"],
+      "use": "session経過の記録",
+      "adoption": "採用",
+      "rationale": "Conversationのイベント経路で使用",
+      "verification": "event/resume回帰"
+    },
+    {
+      "domain": "sdk.extensions",
+      "modules": ["sdk.extensions", "sdk.extensions.*"],
+      "representative_apis": ["fetch"],
+      "use": "外部拡張",
+      "adoption": "不採用",
+      "rationale": "Canvas等の別UI・拡張境界を持ち込まない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.git",
+      "modules": ["sdk.git.*"],
+      "representative_apis": ["get_git_changes", "GitError"],
+      "use": "stale判定へのgit入力",
+      "adoption": "採用",
+      "rationale": "src/acd/openhands/evidence/git.pyで使用",
+      "verification": "dirty/stale fixture"
+    },
+    {
+      "domain": "sdk.hooks",
+      "modules": ["sdk.hooks", "sdk.hooks.*"],
+      "representative_apis": ["HookConfig", "HookEventType", "HookExecutor"],
+      "use": "agent経路の停止側境界",
+      "adoption": "採用",
+      "rationale": "plugins/acd/hooks/がSDK hook契約を使用",
+      "verification": "DENY/allow試験"
+    },
+    {
+      "domain": "sdk.io",
+      "modules": ["sdk.io", "sdk.io.*"],
+      "representative_apis": ["FileStore", "LocalFileStore", "InMemoryFileStore"],
+      "use": "session保存抽象",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "git/inputを正とし二重の合否状態を持たない",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.llm",
+      "modules": ["sdk.llm"],
+      "representative_apis": ["LLM", "Message", "TextContent"],
+      "use": "Conversation/LLM入出力",
+      "adoption": "採用",
+      "rationale": "現行session配線で使用",
+      "verification": "prompt回帰"
+    },
+    {
+      "domain": "sdk.llm.internal",
+      "modules": [
+        "sdk.llm.auth",
+        "sdk.llm.auth.*",
+        "sdk.llm.exceptions",
+        "sdk.llm.exceptions.*",
+        "sdk.llm.fallback_strategy",
+        "sdk.llm.llm",
+        "sdk.llm.llm_profile_store",
+        "sdk.llm.llm_registry",
+        "sdk.llm.llm_response",
+        "sdk.llm.message",
+        "sdk.llm.mixins.*",
+        "sdk.llm.options",
+        "sdk.llm.options.*",
+        "sdk.llm.streaming",
+        "sdk.llm.utils.image_inline",
+        "sdk.llm.utils.image_resize",
+        "sdk.llm.utils.litellm_provider",
+        "sdk.llm.utils.model_features",
+        "sdk.llm.utils.model_info",
+        "sdk.llm.utils.model_prompt_spec",
+        "sdk.llm.utils.openhands_provider",
+        "sdk.llm.utils.responses_serialization",
+        "sdk.llm.utils.retry_mixin",
+        "sdk.llm.utils.telemetry",
+        "sdk.llm.utils.unverified_models",
+        "sdk.llm.utils.verified_models",
+        "sdk.llm.utils.vertex_preflight"
+      ],
+      "representative_apis": ["LLMProfileStore"],
+      "use": "SDK内部provider補助",
+      "adoption": "不採用",
+      "rationale": "provider詳細・内部補助をACDが直接依存しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.llm.router",
+      "modules": ["sdk.llm.router", "sdk.llm.router.*"],
+      "representative_apis": ["RouterLLM", "RandomRouter", "MultimodalRouter"],
+      "use": "judge/critic用modelと主agent用modelの分離",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "routing結果は合否へ影響させず、profileと資材hashを固定する",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.llm.utils.metrics",
+      "modules": ["sdk.llm.utils.metrics"],
+      "representative_apis": ["Metrics"],
+      "use": "使用量・予算の観測",
+      "adoption": "採用",
+      "rationale": "現行SDK wiringでmetricsを扱う",
+      "verification": "metrics回帰"
+    },
+    {
+      "domain": "sdk.logger",
+      "modules": ["sdk.logger", "sdk.logger.*"],
+      "representative_apis": ["get_logger"],
+      "use": "L3観測の構造化",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "secretとEvidenceをログへ混入させない",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.marketplace",
+      "modules": ["sdk.marketplace", "sdk.marketplace.*"],
+      "representative_apis": ["MarketplaceRegistry"],
+      "use": "外部資材取得",
+      "adoption": "不採用",
+      "rationale": "pinned PluginSourceでprovenanceを固定する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.mcp",
+      "modules": ["sdk.mcp", "sdk.mcp.*"],
+      "representative_apis": ["MCPClient"],
+      "use": "MCP連携",
+      "adoption": "不採用",
+      "rationale": "OpenHands専用拡張にMCP互換層を追加しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.observability",
+      "modules": ["sdk.observability", "sdk.observability.*"],
+      "representative_apis": ["observe"],
+      "use": "L3観測の構造化",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "送信先・sanitizer・既定無効を固定し、Evidenceへ触れない",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.plugin",
+      "modules": ["sdk.plugin", "sdk.plugin.*"],
+      "representative_apis": ["PluginSource"],
+      "use": "pinned plugin配布",
+      "adoption": "採用",
+      "rationale": "src/acd/openhands/distribution/plugin.pyでSHA/tagを固定",
+      "verification": "ref検証、拒否試験"
+    },
+    {
+      "domain": "sdk.profiles",
+      "modules": ["sdk.profiles", "sdk.profiles.*"],
+      "representative_apis": ["AgentProfile", "AgentProfileStore"],
+      "use": "secret-free profile配布",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "profile driftを管理し、資材hashを固定する",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.root",
+      "modules": ["sdk", "sdk.banner"],
+      "representative_apis": ["Agent", "LocalConversation", "ToolDefinition"],
+      "use": "SDK公開facade",
+      "adoption": "採用",
+      "rationale": "ACDのOpenHands統合がpinned SDK公開入口を使用",
+      "verification": "import回帰、公開API抽出"
+    },
+    {
+      "domain": "sdk.secret",
+      "modules": ["sdk.secret", "sdk.secret.*"],
+      "representative_apis": ["SecretSource", "StaticSecret", "LookupSecret"],
+      "use": "secretを平文から分離",
+      "adoption": "採用",
+      "rationale": "allowlist環境変数をlazy sourceとしてConversation registryへ渡す",
+      "verification": "registry masking回帰"
+    },
+    {
+      "domain": "sdk.security",
+      "modules": ["sdk.security", "sdk.security.confirmation_policy"],
+      "representative_apis": ["ConfirmRisky", "NeverConfirm"],
+      "use": "agent操作の安全境界",
+      "adoption": "採用",
+      "rationale": "現行conversationへMEDIUM以上の確認方針を設定",
+      "verification": "risky/deny試験"
+    },
+    {
+      "domain": "sdk.security.analyzer",
+      "modules": [
+        "sdk.security.analyzer",
+        "sdk.security.defense_in_depth",
+        "sdk.security.defense_in_depth.*",
+        "sdk.security.ensemble"
+      ],
+      "representative_apis": ["SecurityAnalyzerBase", "PatternSecurityAnalyzer", "EnsembleSecurityAnalyzer"],
+      "use": "agent操作の決定論的追加監視",
+      "adoption": "採用",
+      "rationale": "ACD analyzerとPattern analyzerをSDK ensembleへ合成し、LLM/GraySwanは使わない",
+      "verification": "risk/ensemble回帰"
+    },
+    {
+      "domain": "sdk.security.grayswan",
+      "modules": ["sdk.security.grayswan", "sdk.security.grayswan.*"],
+      "representative_apis": ["GraySwanAnalyzer"],
+      "use": "外部security analyzer",
+      "adoption": "不採用",
+      "rationale": "GraySwan系analyzerはOpenHands専用拡張の境界外",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.security.internal",
+      "modules": [
+        "sdk.security.llm_analyzer",
+        "sdk.security.risk",
+        "sdk.security.shell_parser",
+        "sdk.security.toolshield_helpers",
+        "sdk.security.toolshield_llm_analyzer"
+      ],
+      "representative_apis": ["SecurityRisk"],
+      "use": "SDK内部security補助",
+      "adoption": "不採用",
+      "rationale": "LLM系analyzerと内部補助をACDが直接依存しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.settings",
+      "modules": ["sdk.settings", "sdk.settings.*"],
+      "representative_apis": ["AgentSettingsBase"],
+      "use": "SDK設定の外部化",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "設定資材のhashを記録し、unknownはfail-closedにする",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "sdk.skills",
+      "modules": ["sdk.skills", "sdk.skills.*"],
+      "representative_apis": ["load_skills_from_dir"],
+      "use": "ローカルACD Skillの配布・prompt提供",
+      "adoption": "採用",
+      "rationale": "build_acd_conversation()がplugins/acd/skillsを明示ロードし、壊れた資材はfail-closed",
+      "verification": "Skill loader回帰"
+    },
+    {
+      "domain": "sdk.subagent",
+      "modules": ["sdk.subagent", "sdk.subagent.*"],
+      "representative_apis": ["AgentDefinition"],
+      "use": "役割別sub-agent",
+      "adoption": "採用",
+      "rationale": "plugins/acd/agents/で参照",
+      "verification": "agent資材検査"
+    },
+    {
+      "domain": "sdk.testing",
+      "modules": ["sdk.testing", "sdk.testing.*"],
+      "representative_apis": ["TestLLM"],
+      "use": "SDK wiringの回帰",
+      "adoption": "採用",
+      "rationale": "test fixtureとbootstrap回帰で使用",
+      "verification": "pytest"
+    },
+    {
+      "domain": "sdk.tool",
+      "modules": ["sdk.tool"],
+      "representative_apis": ["ToolDefinition", "Tool", "register_tool", "list_registered_tools"],
+      "use": "ACD toolのagent入口",
+      "adoption": "採用",
+      "rationale": "register_acd_tools()とSDK登録を使用",
+      "verification": "schema/実行試験"
+    },
+    {
+      "domain": "sdk.tool.builtins",
+      "modules": ["sdk.tool.builtins", "sdk.tool.builtins.*"],
+      "representative_apis": ["FinishTool"],
+      "use": "SDK組み込みtool",
+      "adoption": "不採用",
+      "rationale": "ACDの明示的ToolDefinition集合を単一化する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.tool.internal",
+      "modules": [
+        "sdk.tool.client_tool",
+        "sdk.tool.defaults",
+        "sdk.tool.registry",
+        "sdk.tool.schema",
+        "sdk.tool.spec",
+        "sdk.tool.tool"
+      ],
+      "representative_apis": ["ClientTool"],
+      "use": "SDK内部tool補助",
+      "adoption": "不採用",
+      "rationale": "内部補助をACDが直接依存しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.utils",
+      "modules": ["sdk.utils", "sdk.utils.*"],
+      "representative_apis": ["maybe_truncate"],
+      "use": "SDK内部補助",
+      "adoption": "不採用",
+      "rationale": "内部補助をACDが直接依存しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.workspace",
+      "modules": ["sdk.workspace", "sdk.workspace.*"],
+      "representative_apis": ["LocalWorkspace"],
+      "use": "agent作業workspace",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "host実行はprovisionalに限定し、authoritative経路にしない",
+      "verification": "pinned API確認、実装未着手"
+    },
+    {
+      "domain": "tools",
+      "modules": ["tools"],
+      "representative_apis": ["TerminalTool"],
+      "use": "OpenHands標準tool集合",
+      "adoption": "採用",
+      "rationale": "AgentDefinitionの標準toolとして参照",
+      "verification": "agent実行試験"
+    },
+    {
+      "domain": "tools.apply_patch",
+      "modules": ["tools.apply_patch", "tools.apply_patch.*"],
+      "representative_apis": ["ApplyPatchTool"],
+      "use": "patch編集",
+      "adoption": "不採用",
+      "rationale": "ACDの明示的tool集合と保護hookを単一化する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.browser_use",
+      "modules": ["tools.browser_use", "tools.browser_use.*"],
+      "representative_apis": ["BrowserClickTool"],
+      "use": "L2の部品調査・datasheet確認",
+      "adoption": "採用",
+      "rationale": "決定論的APIがない場合の探索補助。設計入力は既存APIで再取得しhash固定",
+      "verification": "BrowserToolSet.is_usable()、session回帰"
+    },
+    {
+      "domain": "tools.delegate",
+      "modules": ["tools.delegate", "tools.delegate.*"],
+      "representative_apis": ["DelegateExecutor"],
+      "use": "sub-agent調整",
+      "adoption": "採用",
+      "rationale": "SDKのTask実行経路で使用し、hookと確認方針を境界にする",
+      "verification": "session回帰"
+    },
+    {
+      "domain": "tools.file_editor",
+      "modules": ["tools.file_editor", "tools.file_editor.*"],
+      "representative_apis": ["FileEditorTool"],
+      "use": "agentのファイル編集",
+      "adoption": "採用",
+      "rationale": "AgentDefinitionとhook保護経路で参照",
+      "verification": "hook/編集試験"
+    },
+    {
+      "domain": "tools.gemini",
+      "modules": ["tools.gemini", "tools.gemini.*"],
+      "representative_apis": ["EditTool"],
+      "use": "外部provider",
+      "adoption": "不採用",
+      "rationale": "ACDの固定provider境界外",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.glob",
+      "modules": ["tools.glob", "tools.glob.*"],
+      "representative_apis": ["GlobTool"],
+      "use": "agent検索",
+      "adoption": "採用",
+      "rationale": "AgentDefinitionの標準toolとして参照",
+      "verification": "agent実行試験"
+    },
+    {
+      "domain": "tools.grep",
+      "modules": ["tools.grep", "tools.grep.*"],
+      "representative_apis": ["GrepTool"],
+      "use": "agent検索",
+      "adoption": "採用",
+      "rationale": "AgentDefinitionの標準toolとして参照",
+      "verification": "agent実行試験"
+    },
+    {
+      "domain": "tools.planning_file_editor",
+      "modules": ["tools.planning_file_editor", "tools.planning_file_editor.*"],
+      "representative_apis": ["PlanningFileEditorTool"],
+      "use": "計画ファイル編集",
+      "adoption": "不採用",
+      "rationale": "file_editorと保護hookの単一経路を維持する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.preset",
+      "modules": ["tools.preset"],
+      "representative_apis": ["get_default_agent"],
+      "use": "暗黙tool束",
+      "adoption": "不採用",
+      "rationale": "tool集合を明示固定する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.preset.internal",
+      "modules": ["tools.preset.default", "tools.preset.gemini", "tools.preset.gpt5", "tools.preset.planning"],
+      "representative_apis": ["get_default_tools"],
+      "use": "汎用tool束",
+      "adoption": "不採用",
+      "rationale": "ACD固有ToolDefinitionで登録する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.task",
+      "modules": ["tools.task", "tools.task.*"],
+      "representative_apis": ["TaskToolSet"],
+      "use": "task分離",
+      "adoption": "採用",
+      "rationale": "hook付きACD agent定義へ限定し、合否権限なし",
+      "verification": "session回帰"
+    },
+    {
+      "domain": "tools.task_tracker",
+      "modules": ["tools.task_tracker", "tools.task_tracker.*"],
+      "representative_apis": ["TaskTrackerTool"],
+      "use": "agent作業追跡",
+      "adoption": "採用",
+      "rationale": "AgentDefinitionの標準toolとして参照",
+      "verification": "agent実行試験"
+    },
+    {
+      "domain": "tools.terminal",
+      "modules": ["tools.terminal", "tools.terminal.*"],
+      "representative_apis": ["TerminalTool"],
+      "use": "agentのCLI実行",
+      "adoption": "採用",
+      "rationale": "AgentDefinitionの標準toolとして参照",
+      "verification": "agent実行試験"
+    },
+    {
+      "domain": "tools.tom_consult",
+      "modules": ["tools.tom_consult", "tools.tom_consult.*"],
+      "representative_apis": ["TomConsultTool"],
+      "use": "外部相談",
+      "adoption": "不採用",
+      "rationale": "合否に関与しない経路を増やさない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.utils",
+      "modules": ["tools.utils", "tools.utils.*"],
+      "representative_apis": ["run_with_timeout"],
+      "use": "SDK内部補助",
+      "adoption": "不採用",
+      "rationale": "内部補助をACDが直接依存しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.workflow",
+      "modules": ["tools.workflow", "tools.workflow.*"],
+      "representative_apis": ["WorkflowToolSet"],
+      "use": "lane並列化のmap/reduce",
+      "adoption": "不採用",
+      "rationale": "任意Python scriptがhook境界を貫通しうるため将来再検討",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "workspace",
+      "modules": ["workspace"],
+      "representative_apis": ["DockerWorkspace", "DockerDevWorkspace"],
+      "use": "OpenHands workspace API",
+      "adoption": "採用",
+      "rationale": "runnerとworkspace実装の公開入口を固定する",
+      "verification": "vendor実装、runner回帰"
+    },
+    {
+      "domain": "workspace.DockerDevWorkspace",
+      "modules": ["workspace.docker.dev_workspace"],
+      "representative_apis": ["DockerDevWorkspace"],
+      "use": "現行runnerのbase imageからagent-server imageを準備",
+      "adoption": "採用",
+      "rationale": "src/acd/openhands/workspace.pyがbase_imageで実行",
+      "verification": "vendor実装、runner回帰"
+    },
+    {
+      "domain": "workspace.DockerWorkspace",
+      "modules": ["workspace.docker", "workspace.docker.workspace"],
+      "representative_apis": ["DockerWorkspace"],
+      "use": "事前build済みdigest固定server imageの実行",
+      "adoption": "採用予定",
+      "roadmap": "4.4",
+      "rationale": "authoritative経路はDockerDevWorkspace。配布済みserver image移行後に採用",
+      "verification": "constructor確認、実装未着手"
+    },
+    {
+      "domain": "workspace.apptainer",
+      "modules": ["workspace.apptainer", "workspace.apptainer.*"],
+      "representative_apis": ["ApptainerWorkspace"],
+      "use": "Apptainer実行",
+      "adoption": "不採用",
+      "rationale": "DockerWorkspace一本化",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "workspace.cloud",
+      "modules": ["workspace.cloud", "workspace.cloud.*"],
+      "representative_apis": ["OpenHandsCloudWorkspace"],
+      "use": "cloud実行",
+      "adoption": "不採用",
+      "rationale": "再現性と運用境界を固定できない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "workspace.remote_api",
+      "modules": ["workspace.remote_api", "workspace.remote_api.*"],
+      "representative_apis": ["APIRemoteWorkspace"],
+      "use": "remote API実行",
+      "adoption": "不採用",
+      "rationale": "remote APIを範囲外とする",
+      "verification": "pinned API確認、採用しない"
+    }
+  ]
+}

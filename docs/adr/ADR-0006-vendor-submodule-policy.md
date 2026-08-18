@@ -18,6 +18,6 @@ Dockerfileとprobeで固定する外部ツール版は運用上のpinとして�
 
 ## 影響
 
-SDK APIの採否は[`openhands-sdk-capabilities.md`](../openhands-sdk-capabilities.md)へ記録する。
+SDK APIの採否は[`openhands-sdk-capabilities.json`](../openhands-sdk-capabilities.json)へ記録する。
 submodule更新に伴い、実行時import、`uv.lock`、生成物、文書の整合を一つの変更として
 検証する。`vendor/openhands/`はSDK submoduleではなく、追跡・追加しない。

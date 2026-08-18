@@ -9,7 +9,7 @@ treat unknown versions as fail-closed.
 
 from __future__ import annotations
 
-from acd.openhands import probe_all
+from acd.openhands.tools.probe import probe_all
 
 
 def main() -> int:

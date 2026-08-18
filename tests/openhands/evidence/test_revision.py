@@ -7,7 +7,7 @@ import os
 import subprocess
 from pathlib import Path
 
-from acd.openhands.design_revision import resolve
+from acd.openhands.evidence.revision import resolve
 
 ROOT = Path(__file__).parents[2]
 

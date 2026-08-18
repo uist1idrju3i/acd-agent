@@ -17,12 +17,14 @@ STANDARD_COMMANDS: tuple[Command, ...] = (
     ("uv", "run", "pyright"),
     ("uv", "run", "pytest"),
     ("uv", "run", "python", "scripts/verify_docs.py"),
+    ("uv", "run", "python", "scripts/verify_sdk_capabilities.py", "--check"),
     ("git", "diff", "--check"),
 )
 
 STAGES: dict[str, tuple[Command, ...]] = {
     "docs": (
         ("uv", "run", "python", "scripts/verify_docs.py"),
+        ("uv", "run", "python", "scripts/verify_sdk_capabilities.py", "--check"),
         ("git", "diff", "--check"),
     ),
     "standard": STANDARD_COMMANDS,

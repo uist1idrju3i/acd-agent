@@ -8,7 +8,8 @@
 | [`../README.md`](../README.md) | 製品概要 |
 | [`glossary.md`](glossary.md) | 用語定義 |
 | [`architecture.md`](architecture.md) | 責務境界 |
-| [`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md) | SDK能力カタログ |
+| [`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json) | SDK能力カタログの契約 |
+| [`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md) | SDK能力カタログの説明表 |
 | [`gates.md`](gates.md) | 投影と決定論的ゲート |
 | [`operations.md`](operations.md) | 運用・インストール |
 | [`golden-design-1.md`](golden-design-1.md) | GD1到達状況 |

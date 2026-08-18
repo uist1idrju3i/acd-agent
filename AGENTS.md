@@ -34,7 +34,8 @@ vendor/software-agent-sdk/       # OpenHands SDK v1.42.1のみ
 ```
 
 本リポジトリはOpenHands Software Agent SDK v1.42.1専用拡張であり、機能採否は
-`docs/openhands-sdk-capabilities.md`で管理する。
+`docs/openhands-sdk-capabilities.json`を契約の正として管理する。Markdown表は
+`scripts/verify_sdk_capabilities.py`で機械生成し、driftを検査する。
 
 ## 不変条件
 
@@ -85,7 +86,8 @@ workflowは任意Python scriptがhook境界の外で実行されうるため不�
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
 使用API、既定値、破壊的変更、採否を`docs/operations.md`へ記録する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
-SDK機能の採否は`docs/openhands-sdk-capabilities.md`を単一の正とする。
+SDK機能の採否は`docs/openhands-sdk-capabilities.json`を単一の正とし、
+`docs/openhands-sdk-capabilities.md`は機械生成ブロックを含む説明文書とする。
 
 ファイルを削除・移動するときは、関連文書、索引、相対リンク、参照先を同じ変更で更新し、
 旧パスへの参照を残さない。

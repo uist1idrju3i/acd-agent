@@ -1,5 +1,9 @@
-"""External tool capability probes (kicad-cli, freerouting, CAD kernel)."""
+"""SDK tool definitions and external capability probes."""
 
+from acd.openhands.tools.definitions import (
+    AcdObservation,
+    register_acd_tools,
+)
 from acd.openhands.tools.probe import (
     PROBES,
     ProbeReport,
@@ -13,6 +17,7 @@ from acd.openhands.tools.probe import (
 
 __all__ = [
     "PROBES",
+    "AcdObservation",
     "ProbeReport",
     "ToolProbeResult",
     "probe_all",
@@ -20,4 +25,5 @@ __all__ = [
     "probe_executable",
     "probe_freerouting",
     "probe_kicad_cli",
+    "register_acd_tools",
 ]

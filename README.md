@@ -18,7 +18,8 @@ vendor/software-agent-sdk/ → OpenHands SDK v1.42.1
 
 本リポジトリはOpenHands専用拡張です。境界と不採用機能は
 [`docs/adr/ADR-0026-openhands-delegation-contract.md`](docs/adr/ADR-0026-openhands-delegation-contract.md)、
-SDKの採否は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)を参照してください。
+SDKの採否は[`docs/openhands-sdk-capabilities.json`](docs/openhands-sdk-capabilities.json)を正とし、
+説明表は[`docs/openhands-sdk-capabilities.md`](docs/openhands-sdk-capabilities.md)で確認できます。
 
 Python配布物はルートの単一パッケージ`acd`であり、実装は`src/acd/`、テストは
 `tests/`に配置します。
