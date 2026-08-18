@@ -11,9 +11,9 @@
 
 OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1
 （commit `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`）をworkspace sourceとして使用する。
-agent-serverはACDの対象外であり、採用する場合は新規ADRで受入条件を定義する。現行の
-実行形は`LocalConversation`と`DockerDevWorkspace` runnerを基点とする。事前build済み
-digest固定imageへの移行後は`DockerWorkspace`を使う。
+agent-serverはACDの対象外であり、採用する場合は新規ADRで受入条件を定義する。実行形は
+`LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
+host経路はprovisional専用であり、authoritative Evidenceを生成しない。
 
 ## cloneと依存関係
 
@@ -31,15 +31,12 @@ git submodule status
 
 `vendor/software-agent-sdk`がv1.42.1のcommitを指していることを確認する。
 
-Dockerでゲートを実行する場合は、[`docker/README.md`](../docker/README.md)に従って
-`docker/acd-tools.Dockerfile`を各自buildする。現行runnerは
-`DockerDevWorkspace(base_image=...)`でagent-server imageを準備する。これはSDK実装上の
-on-the-fly build経路であり、事前build済みserver imageを配布する運用へ移行したら
-`DockerWorkspace(server_image=...)`へ切り替える。ホスト経路は移行中の参考実行であり、
-合格側Evidenceを生成しない。
+Dockerでゲートを実行する場合は、`docker/image-digests.json`のlockからserver imageを解決し、
+`DockerWorkspace(server_image=...)`へ渡す。server digestが未記録、空、または解決不能なら
+runnerは起動せずfail-closedで停止する。host経路は参考実行であり、合格側Evidenceを生成しない。
 
-CIでは`container-gates` jobがbuildxでACD tools imageをbuildし、SDKの
-`DockerDevWorkspace`を経由する`scripts/run_in_workspace.py`でresolver、基板pipeline、
+CIでは`container-gates` jobがlock済みserver imageをpullし、SDKの
+`DockerWorkspace`を経由する`scripts/run_in_workspace.py`でresolver、基板pipeline、
 筐体pipelineを実行する。agent-serverの`/workspace`を占有させるため、host repositoryは
 `/acd-src:ro`へmountし、container内の`/workspace/acd`へ複製する。container内で生成された
 `out/gd1/evidence-electrical.json`と`out/gd1-enclosure/evidence-mechanical.json`は、
@@ -47,10 +44,10 @@ SDKの`RemoteWorkspace.file_download()`でhostへ取り出してから
 `verify_authoritative_evidence.py`へ渡す。revision不一致、host実行、digest不在、
 unknown、parse失敗、file不在はすべて非ゼロ終了となる。
 
-`DockerDevWorkspace`の実行imageはbase imageからpinned SDK v1.42.1で派生buildされる。
-runnerはderived imageそのものではなく、入力base imageのcontent addressを
-`ACD_CONTAINER_IMAGE_DIGEST`へforwardする。これは派生imageの同一性を偽装せず、base
-digestとSDK版による再現可能な派生経路をEvidenceへ記録するためである。
+runnerは実行対象であるderived server imageのcontent addressを
+`ACD_CONTAINER_IMAGE_DIGEST`へforwardする。これによりEvidenceのdigestは実際に
+pipelineを実行したserver imageのidentityを表す。base tools digestとは別の値であり、
+両者を同一とは扱わない。
 
 `publish-acd-tools.yml`のjob summaryに表示されたindex digestを、image refとともに
 `docker/image-digests.json`へ転記する。未publishのentryやplaceholder digestは作成せず、
@@ -73,10 +70,11 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 
 `publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
 digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
-job summaryには**base**のtools refと**derived**のserver digestを別々に記録する。
-base digestとderived digestを同一とは主張しない。初回publish実行後、summaryのderived
-digestを`docker/image-digests.json`の`acd_server`へ転記するまで、server entryは
-unsetのままとする。
+初回実行で得たbaseとderivedは独立に記録し、base
+`sha256:e64405a15e69991063c688a80b4f215bdc3dbfb8b4fb480b3ef3484f017e1395`とderived
+`sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def`を同一とは扱わない。
+derived digestは`docker/image-digests.json`の`acd_server`へ転記済みであり、CIとrunnerは
+このserver digestをpullして実行する。
 
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
 Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
@@ -249,7 +247,7 @@ payloadは`pass_evidence=false`固定の型付き観測だけを受け付ける�
 - KiCad CLI、Java、FreeRouting等の外部ツールは`command -v`と
   `uv run python scripts/probe_tools.py`で版と能力を記録する。版不明、未実行、
   出力不整合はゲートを緩めずfail-closedとする。
-- DockerDevWorkspaceからDockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
+- SDKのdev workspace経路からDockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
   ホスト実行の結果を合格側Evidenceへ昇格しない。
 
 版と能力は次で記録する。
@@ -261,11 +259,13 @@ uv run python scripts/probe_tools.py
 Docker workspace経路（ゲート実行の正）:
 
 ```bash
-docker build -f docker/acd-tools.Dockerfile -t acd-tools-gates:local .
-ACD_CONTAINER_IMAGE=acd-tools-gates:local uv run python scripts/run_in_workspace.py
+SERVER_REF="$(uv run python scripts/print_locked_image.py --entry acd-server)"
+docker pull "$SERVER_REF"
+uv run python scripts/run_in_workspace.py --image "$SERVER_REF"
 ```
 
-image digestを解決できない場合、runnerはコマンドを実行せず非ゼロ終了する。
+server imageがlockに未設定、image digestを解決できない、または経路がunknownの場合、
+runnerはコマンドを実行せず非ゼロ終了する。
 runnerは`ACD_CONTAINER_IMAGE_DIGEST`と`ACD_IN_CONTAINER`をcontainerへforwardする。
 hostのToolEnvelopeは`execution_context="host"`、containerのToolEnvelopeは型付き
 `container_image_digest`を持つ。`evidence/`へ昇格するCLIは

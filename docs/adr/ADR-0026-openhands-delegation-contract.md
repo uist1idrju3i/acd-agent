@@ -32,10 +32,14 @@ agent、GoalController、analyzerは停止・修正を操舵し、L3のevent・m
 ## 入口と実行形
 
 エージェント入口はSDK `ToolDefinition`だけとし、`scripts/*` CLIは人間とCIの入口とする。
-現行の実行形は`LocalConversation` + `DockerDevWorkspace`である。
-`DockerDevWorkspace(base_image=...)`はon-the-fly build経路であり、事前build済みdigest固定
-server imageへ移行した時点で`DockerWorkspace(server_image=...)`へ切り替える。CI/Docker
-経路でのみ合格側Evidenceを昇格する。
+実行形は`LocalConversation` + `DockerWorkspace(server_image=...)`である。
+以前のSDKのdev workspace経路（on-the-fly build）は移行前の開発・テスト経路として
+歴史的に記録し、現在のauthoritative実行経路には含めない。CI/Docker経路でのみ
+合格側Evidenceを昇格する。host経路はprovisional専用である。
+
+6.3〜6.5でrunnerとCIの移行を完了し、事前build済みdigest固定server imageを
+`DockerWorkspace`で実行する。server digestがlockへ記録されるまで、lock解決は
+fail-closedで停止する。
 
 ## Agent安全境界
 

@@ -1,4 +1,4 @@
-"""DockerDevWorkspace runner tests."""
+"""DockerWorkspace runner tests."""
 
 from __future__ import annotations
 
@@ -59,6 +59,7 @@ def test_runner_uses_read_only_mount_and_downloads_evidence(
 
     instance = _FakeWorkspace.instances[0]
     assert instance.kwargs["volumes"] == [f"{tmp_path.resolve()}:/acd-src:ro"]
+    assert instance.kwargs["server_image"] == "acd-tools-gates:local"
     assert instance.kwargs["forward_env"] == [
         "ACD_CONTAINER_IMAGE_DIGEST",
         "ACD_IN_CONTAINER",
@@ -100,6 +101,22 @@ def test_runner_refuses_unresolved_digest(tmp_path: Path, monkeypatch: pytest.Mo
         )
 
 
+def test_runner_refuses_empty_server_image(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def resolve(_image: str) -> workspace_module.ImageReference:
+        raise AssertionError("digest resolution must not run for an empty image")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    with pytest.raises(ValueError, match="server image must not be empty"):
+        workspace_module.run_command_in_workspace(
+            image=" \t",
+            command="true",
+            repository=tmp_path,
+            workspace_factory=_FakeWorkspace,
+        )
+
+
 def test_runner_does_not_download_after_command_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -121,3 +138,24 @@ def test_runner_does_not_download_after_command_failure(
         workspace_factory=_FailingWorkspace,
     )
     assert result.downloaded_files == ()
+
+
+def test_runner_fails_when_evidence_download_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _DownloadFailingWorkspace(_FakeWorkspace):
+        def file_download(self, source: str, destination: Path) -> SimpleNamespace:
+            self.downloads.append((source, destination))
+            return SimpleNamespace(success=False, error="download failed")
+
+    def resolve(_image: str) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "d" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    with pytest.raises(RuntimeError, match="failed to download workspace file"):
+        workspace_module.run_command_in_workspace(
+            image="acd-server:local",
+            command="true",
+            repository=tmp_path,
+            workspace_factory=_DownloadFailingWorkspace,
+        )

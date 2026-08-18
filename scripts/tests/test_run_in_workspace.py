@@ -8,9 +8,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import scripts.run_in_workspace as runner_script
 
 from acd.openhands.workspace import (
     ImageReference,
+    WorkspaceResult,
     resolve_image_digest,
     run_command_in_workspace,
 )
@@ -142,3 +144,36 @@ def test_digest_is_forwarded_to_workspace(
     assert captured["cwd"] == "/workspace"
     assert captured["env"] == reference.digest
     assert captured["marker"] == "1"
+
+
+def test_cli_requires_server_image() -> None:
+    with pytest.raises(SystemExit, match="2"):
+        runner_script.main(["true"])
+
+
+def test_cli_preserves_command_failure_exit_code(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    result = WorkspaceResult(
+        digest="sha256:" + "e" * 64,
+        source="image ID",
+        exit_code=7,
+        stdout="",
+        stderr="command failed\n",
+        downloaded_files=(),
+    )
+
+    def fake_run_command(**_kwargs: Any) -> WorkspaceResult:
+        return result
+
+    monkeypatch.setattr(
+        runner_script,
+        "run_command_in_workspace",
+        fake_run_command,
+    )
+    assert (
+        runner_script.main(
+            ["--image", "acd-server:local", "--repo", str(tmp_path), "false"]
+        )
+        == 7
+    )

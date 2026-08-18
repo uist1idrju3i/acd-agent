@@ -67,12 +67,16 @@ jobs:
           python-version: "3.12"
       - name: Prepare workspace runner
         run: uv sync
-      - name: Build ACD tools image
-        run: docker build -f docker/acd-tools.Dockerfile -t acd-tools-gates:ci .
-      - name: Run deterministic gates in DockerDevWorkspace
+      - name: Resolve locked agent-server image
+        run: |
+          SERVER_REF=$(uv run python scripts/print_locked_image.py --entry acd-server)
+          printf 'SERVER_REF=%s\n' "$SERVER_REF" >> "$GITHUB_ENV"
+      - name: Pull locked agent-server image
+        run: docker pull "$SERVER_REF"
+      - name: Run deterministic gates in DockerWorkspace
         run: |
           uv run python scripts/run_in_workspace.py \
-            --image acd-tools-gates:ci \
+            --image "$SERVER_REF" \
             --repo "$GITHUB_WORKSPACE" \
             'uv sync && uv run python scripts/resolve_gd1_silkscreen.py && uv run python scripts/run_gd1_pipeline.py --out out/gd1 && uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure'
           uv run python scripts/verify_authoritative_evidence.py \

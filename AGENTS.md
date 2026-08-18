@@ -117,14 +117,14 @@ uv run python scripts/verify_all.py --stage full
 
 Markdownのみの変更で実装資材を変更していない場合は`--stage docs`に絞ってよい。
 GD1のゲート実行とEvidence生成はdigest固定containerを
-正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。現行runnerは
-`DockerDevWorkspace`でbase imageからserver imageを準備するon-the-fly buildの移行中経路である。
-事前build済みdigest固定server imageへ移行した後は`DockerWorkspace`を使う。
+正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。runnerは
+事前build済みdigest固定server imageを`DockerWorkspace`で実行する。
+host経路はprovisional専用であり、authoritative Evidenceの生成経路には使わない。
 GD1基板pipelineはsilkscreenゲートまで通過する前提で、
 resolverと基板pipelineを実行して確認する。
 
-CIの`container-gates` jobはフル検証に加えて、buildxでACD tools imageをbuildし、
-`scripts/run_in_workspace.py`（SDKの`DockerDevWorkspace`）経由でsilkscreen resolver、
+CIの`container-gates` jobはlock済みserver imageをpullし、
+`scripts/run_in_workspace.py`（SDKの`DockerWorkspace`）経由でsilkscreen resolver、
 GD1基板pipeline、GD1筐体pipelineをcontainer内で実行する。その後、
 `scripts/verify_authoritative_evidence.py`で両laneのEvidenceがrevision一致、
 `status="valid"`、既知のcontainer provenance、digestを持つことを決定論的に検査する。

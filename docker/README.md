@@ -2,9 +2,8 @@
 
 ## 位置づけ
 
-このイメージは、ACDの決定論的pipelineとゲートだけをDockerDevWorkspaceで実行するための
-base imageである。agentそのものをコンテナへ移すものではなく、ACD imageとして
-再配布もしない。利用者が各自でDockerfileからbuildする。
+このイメージは、ACDの決定論的pipelineとゲートを構築するためのtools imageである。
+agent-server imageのbaseとして使用するが、ACD imageとして再配布はしない。
 
 Dockerはdeterminismを保証しない。時刻、locale、filesystem、CPU、外部サービスなど
 の差は残るため、ToolEnvelope、出力hash、timestamp正規化、独立再読込、期待値と
@@ -45,21 +44,20 @@ publishされるまでlockの`acd_server` entryは未設定であり、未設定
 
 ## OpenHands SDKからの利用
 
-`DockerDevWorkspace(base_image=...)`をSDK委譲の決定論的ゲート実行経路とする。
-現行runnerはこのDockerfileからon-the-flyでserver imageをbuildする。事前build済みimageへ
-移行した時点では`DockerWorkspace(server_image="...@sha256:<digest>")`へ切り替える。
-ホスト実行は合格側Evidenceを生成しない。
+`DockerWorkspace(server_image="...@sha256:<digest>")`をSDK委譲の決定論的ゲート実行経路とする。
+host経路はprovisional専用であり、合格側Evidenceを生成しない。server digestがlockへ
+記録されていない場合は、CLIとCIがfail-closedで停止する。
 
 ```python
-from openhands.workspace.docker import DockerDevWorkspace
+from openhands.workspace import DockerWorkspace
 
-with DockerDevWorkspace(
-    base_image="acd-tools-gates:local",
-    volumes=["/absolute/repo/path:/workspace"],
-    forward_env=["ACD_CONTAINER_IMAGE_DIGEST"],
+with DockerWorkspace(
+    server_image="ghcr.io/uist1idrju3i/acd-server@sha256:<digest>",
+    volumes=["/absolute/repo/path:/acd-src:ro"],
+    forward_env=["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
 ) as workspace:
     result = workspace.execute_command(
-        "uv run python scripts/run_gd1_enclosure_pipeline.py "
+        "cd /workspace/acd && uv run python scripts/run_gd1_enclosure_pipeline.py "
         "--out out/gd1-enclosure",
         cwd="/workspace",
     )

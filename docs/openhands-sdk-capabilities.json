@@ -711,30 +711,20 @@
     {
       "domain": "workspace",
       "modules": ["workspace"],
-      "representative_apis": ["DockerWorkspace", "DockerDevWorkspace"],
+      "representative_apis": ["DockerWorkspace"],
       "use": "OpenHands workspace API",
       "adoption": "採用",
       "rationale": "runnerとworkspace実装の公開入口を固定する",
-      "verification": "vendor実装、runner回帰"
-    },
-    {
-      "domain": "workspace.DockerDevWorkspace",
-      "modules": ["workspace.docker.dev_workspace"],
-      "representative_apis": ["DockerDevWorkspace"],
-      "use": "現行`DockerDevWorkspace`の`base_image`からserver imageをon-the-flyで準備",
-      "adoption": "採用",
-      "rationale": "`src/acd/openhands/workspace.py`が`base_image`で実行",
-      "verification": "vendor実装、runner回帰"
+      "verification": "vendor実装、DockerWorkspace runner回帰"
     },
     {
       "domain": "workspace.DockerWorkspace",
       "modules": ["workspace.docker", "workspace.docker.workspace"],
       "representative_apis": ["DockerWorkspace"],
-      "use": "将来の`DockerWorkspace`による事前build済みdigest固定server imageの実行",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "現行`DockerDevWorkspace`はprovisional。配布済みdigest固定server image移行後に採用",
-      "verification": "constructor確認、実装未着手"
+      "use": "`DockerWorkspace`による事前build済みdigest固定server imageの実行",
+      "adoption": "採用",
+      "rationale": "runnerが実行対象server imageのdigestとcontainer markerをforwardする",
+      "verification": "constructor確認、runner回帰、container Evidence検証"
     },
     {
       "domain": "workspace.apptainer",
