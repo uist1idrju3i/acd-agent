@@ -108,6 +108,34 @@ ACDは次の値でinstallできる。
 `git clone --branch`で解決するため使用できない。install後の挙動と契約は
 上記のambient自動読み込み経路（ADR-0036）と同一であり、Skillが呼ぶ`acd`
 Pythonパッケージ本体はADR-0035の`uv pip install`で別途導入する。
+digest固定server image（Docker image）はplugin installでは取得されず、ゲート実行時に
+`DockerWorkspace(server_image=...)`が初回pullする。
+
+### アップデート
+
+pluginの更新は2通りある。SDKの`update_plugin()`は、記録済みのsourceを`ref=None`
+（default branchの先頭）で再取得して上書きする。
+
+```bash
+python -c "from openhands.sdk.plugin.installed import update_plugin; print(update_plugin('acd'))"
+```
+
+特定のtagまたは40桁SHAへ更新する場合は、`install_plugin(..., force=True)`で
+上書きinstallする。GUIからはいったんアンインストールし、新しいrefで再度
+インストールしても同じ結果になる。
+
+```bash
+python -c "from openhands.sdk.plugin.installed import install_plugin; print(install_plugin('github:uist1idrju3i/acd-agent', ref='<new tag or SHA>', repo_path='plugins/acd', force=True))"
+```
+
+`acd` Pythonパッケージ本体は、新しいrefを指定して再インストールする。
+
+```bash
+uv pip install --force-reinstall "git+https://github.com/uist1idrju3i/acd-agent@<new tag or SHA>"
+```
+
+pluginとpackageは同じrefへ揃える。versionが分かれると、Skillが呼ぶscriptと
+`acd` moduleの契約がずれるためである。
 
 ### 将来のGUI掲載（marketplaceカタログ）
 
