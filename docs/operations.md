@@ -38,6 +38,25 @@ on-the-fly build経路であり、事前build済みserver imageを配布する�
 `DockerWorkspace(server_image=...)`へ切り替える。ホスト経路は移行中の参考実行であり、
 合格側Evidenceを生成しない。
 
+CIでは`container-gates` jobがbuildxでACD tools imageをbuildし、SDKの
+`DockerDevWorkspace`を経由する`scripts/run_in_workspace.py`でresolver、基板pipeline、
+筐体pipelineを実行する。agent-serverの`/workspace`を占有させるため、host repositoryは
+`/acd-src:ro`へmountし、container内の`/workspace/acd`へ複製する。container内で生成された
+`out/gd1/evidence-electrical.json`と`out/gd1-enclosure/evidence-mechanical.json`は、
+SDKの`RemoteWorkspace.file_download()`でhostへ取り出してから
+`verify_authoritative_evidence.py`へ渡す。revision不一致、host実行、digest不在、
+unknown、parse失敗、file不在はすべて非ゼロ終了となる。
+
+`DockerDevWorkspace`の実行imageはbase imageからpinned SDK v1.42.1で派生buildされる。
+runnerはderived imageそのものではなく、入力base imageのcontent addressを
+`ACD_CONTAINER_IMAGE_DIGEST`へforwardする。これは派生imageの同一性を偽装せず、base
+digestとSDK版による再現可能な派生経路をEvidenceへ記録するためである。
+
+`publish-acd-tools.yml`は`workflow_dispatch`またはmainへの`docker/**`変更pushで起動する。
+GHCRのpublish job summaryに表示されたdigestを、利用するimage refとともに運用記録へ
+転記する。publish済みdigestを持たない間はplaceholderのlock fileを作成せず、local build
+のimage IDを実行時のcontent addressとして扱う。
+
 ## 外部ツール
 
 環境に次の実行ファイルが必要である。
@@ -138,6 +157,11 @@ plugin = acd_plugin_source("v1.2.3")
 GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを
 緩めずfail-closedとして状態をそのまま記録する。
+
+`verify_authoritative_evidence.py`はLLMやSDKの判定を使わず、
+`Evidence.supports_authoritative_pass()`とその構成要素だけを検査する。引数なし、
+parse失敗、file不在、revision不一致、status不正、host実行、digest不在、unknown混入は
+成功扱いにしない。
 
 ## トラブル時
 

@@ -37,15 +37,16 @@ repositoryの固定が必要である。
 
 ## OpenHands SDKからの利用
 
-`DockerWorkspace(server_image="...@sha256:<digest>")`を決定論的ゲート実行の正とする。
-`DockerDevWorkspace(base_image=...)`は、このDockerfileからagent-server imageをbuildする
-準備経路に限定する。現行runnerは移行中であり、ホスト実行は合格側Evidenceを生成しない。
+`DockerDevWorkspace(base_image=...)`をSDK委譲の決定論的ゲート実行経路とする。
+現行runnerはこのDockerfileからon-the-flyでserver imageをbuildする。事前build済みimageへ
+移行した時点では`DockerWorkspace(server_image="...@sha256:<digest>")`へ切り替える。
+ホスト実行は合格側Evidenceを生成しない。
 
 ```python
-from openhands.workspace.docker import DockerWorkspace
+from openhands.workspace.docker import DockerDevWorkspace
 
-with DockerWorkspace(
-    server_image="ghcr.io/openhands/agent-server:...@sha256:<digest>",
+with DockerDevWorkspace(
+    base_image="acd-tools-gates:local",
     volumes=["/absolute/repo/path:/workspace"],
     forward_env=["ACD_CONTAINER_IMAGE_DIGEST"],
 ) as workspace:
@@ -56,8 +57,8 @@ with DockerWorkspace(
     )
 ```
 
-`DockerDevWorkspace(base_image="acd-tools-gates:local", ...)`は、ACD tools imageを
-agent-server imageへbuildする準備・移行中の経路であり、ゲート実行の正ではない。
+`scripts/run_in_workspace.py`は上記workspace経路を使用し、image IDまたはRepoDigestを
+解決できない場合は実行しない。
 
 ホスト側の`ACD_CONTAINER_IMAGE_DIGEST`は、runnerが`docker image inspect`から解決
 した値を設定する。`forward_env`で同名変数をコンテナへ渡し、ToolEnvelopeの

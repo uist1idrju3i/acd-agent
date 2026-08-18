@@ -58,3 +58,40 @@ jobs:
       # decides an ACD design gate.
       - name: Skill and hook tests (pytest plugins)
         run: uv run pytest plugins -q
+
+  container-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Prepare workspace runner
+        run: uv sync
+      - name: Build ACD tools image
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        with:
+          context: .
+          file: docker/acd-tools.Dockerfile
+          tags: acd-tools-gates:ci
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run deterministic gates in DockerDevWorkspace
+        run: |
+          uv run python scripts/run_in_workspace.py \
+            --image acd-tools-gates:ci \
+            --repo "$GITHUB_WORKSPACE" \
+            'uv sync && uv run python scripts/resolve_gd1_silkscreen.py && uv run python scripts/run_gd1_pipeline.py --out out/gd1 && uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure'
+          uv run python scripts/verify_authoritative_evidence.py \
+            --revision r1 \
+            out/gd1/evidence-electrical.json \
+            out/gd1-enclosure/evidence-mechanical.json

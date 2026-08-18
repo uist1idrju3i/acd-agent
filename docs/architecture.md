@@ -145,6 +145,13 @@ Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上�
 出所とし、候補bboxと予約領域へcontext経由で伝える。筐体pipelineも決定論的CADゲートを
 通過する。
 
+基板pipelineは決定論的なERC、routing、DRC、silkscreen、DFM、発注readinessの結果を
+`out/gd1/evidence-electrical.json`へ記録する。筐体pipelineの
+`out/gd1-enclosure/evidence-mechanical.json`と同じEvidence契約を使い、host実行では
+validでもprovisionalのままとする。CIの`container-gates` jobは
+`verify_authoritative_evidence.py`で両laneのrevision、status、既知provenance、
+container image digestを決定論的に検査し、条件を満たさないEvidenceを合格側へ通さない。
+
 ## Docker workspace境界
 
 digest固定コンテナだけを合格側Evidenceの実行環境とする。現行runnerは利用者が渡す
@@ -158,6 +165,11 @@ runnerは`docker image inspect`でdigestを解決し、解決できない場合�
 fail-closedで停止する。解決したdigestと`ACD_IN_CONTAINER`をforwardし、ToolEnvelopeの
 `execution_context`と`container_image_digest`へ型付きで記録する。`execution_env`は
 host/architectureの説明だけに使い、container identityの判定には使わない。
+
+CIの`container-gates` jobはbuildxで`docker/acd-tools.Dockerfile`をbuildしてlocalへloadし、
+SDKの`DockerDevWorkspace`を使う`scripts/run_in_workspace.py`からresolver、基板、
+筐体pipelineを一つのcontainer commandとして実行する。publish workflowはmainのDockerfile
+変更または手動起動でGHCRへimageをpushし、job summaryへdigestを記録する。
 
 `Evidence.supports_pass()`はrevision、status、既知provenanceの妥当性を表す。
 `supports_authoritative_pass()`はそれに加えてdigest固定containerを要求し、

@@ -22,7 +22,11 @@ RUN apt-get update \
         python3.14-venv \
     && add-apt-repository ppa:kicad/kicad-10.0-releases \
     && apt-get update \
-    && apt-get install --no-install-recommends -y kicad \
+    && apt-get install --no-install-recommends -y \
+        kicad \
+        kicad-footprints \
+        kicad-libraries \
+        kicad-symbols \
     && kicad-cli --version | grep -E '^10\.' \
     && curl --fail --location --silent --show-error \
         --output /opt/freerouting.jar \

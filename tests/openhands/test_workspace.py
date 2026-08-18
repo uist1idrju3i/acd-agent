@@ -1,0 +1,123 @@
+"""DockerDevWorkspace runner tests."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from types import SimpleNamespace
+from typing import ClassVar
+
+import pytest
+
+from acd.openhands import workspace as workspace_module
+
+
+class _FakeWorkspace:
+    instances: ClassVar[list[_FakeWorkspace]] = []
+
+    def __init__(self, **kwargs: object) -> None:
+        self.kwargs = kwargs
+        self.commands: list[tuple[str, str, float]] = []
+        self.downloads: list[tuple[str, Path]] = []
+        self.__class__.instances.append(self)
+
+    def __enter__(self) -> _FakeWorkspace:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+    def execute_command(
+        self, command: str, cwd: str, timeout: float
+    ) -> SimpleNamespace:
+        self.commands.append((command, cwd, timeout))
+        return SimpleNamespace(exit_code=0, stdout="ok\n", stderr="")
+
+    def file_download(self, source: str, destination: Path) -> SimpleNamespace:
+        self.downloads.append((source, destination))
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text("{}", encoding="utf-8")
+        return SimpleNamespace(success=True, error=None)
+
+
+def test_runner_uses_read_only_mount_and_downloads_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _FakeWorkspace.instances.clear()
+    def resolve(_image: str) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "a" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    monkeypatch.delenv("ACD_CONTAINER_IMAGE_DIGEST", raising=False)
+    monkeypatch.delenv("ACD_IN_CONTAINER", raising=False)
+
+    result = workspace_module.run_command_in_workspace(
+        image="acd-tools-gates:local",
+        command="uv run python scripts/run_gd1_pipeline.py",
+        repository=tmp_path,
+        workspace_factory=_FakeWorkspace,
+    )
+
+    instance = _FakeWorkspace.instances[0]
+    assert instance.kwargs["volumes"] == [f"{tmp_path.resolve()}:/acd-src:ro"]
+    assert instance.kwargs["forward_env"] == [
+        "ACD_CONTAINER_IMAGE_DIGEST",
+        "ACD_IN_CONTAINER",
+    ]
+    command, cwd, timeout = instance.commands[0]
+    assert cwd == "/workspace"
+    assert timeout == 3600.0
+    assert "tar -C /acd-src" in command
+    assert "cd /workspace/acd" in command
+    assert result.downloaded_files == (
+        tmp_path / "out/gd1/evidence-electrical.json",
+        tmp_path / "out/gd1-enclosure/evidence-mechanical.json",
+    )
+    assert instance.downloads == [
+        (
+            "/workspace/acd/out/gd1/evidence-electrical.json",
+            tmp_path / "out/gd1/evidence-electrical.json",
+        ),
+        (
+            "/workspace/acd/out/gd1-enclosure/evidence-mechanical.json",
+            tmp_path / "out/gd1-enclosure/evidence-mechanical.json",
+        ),
+    ]
+    assert "ACD_CONTAINER_IMAGE_DIGEST" not in workspace_module.os.environ
+    assert "ACD_IN_CONTAINER" not in workspace_module.os.environ
+
+
+def test_runner_refuses_unresolved_digest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def resolve(_image: str) -> None:
+        return None
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    with pytest.raises(ValueError, match="digest could not be resolved"):
+        workspace_module.run_command_in_workspace(
+            image="missing:local",
+            command="true",
+            repository=tmp_path,
+            workspace_factory=_FakeWorkspace,
+        )
+
+
+def test_runner_does_not_download_after_command_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _FailingWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            return SimpleNamespace(exit_code=1, stdout="", stderr="failed")
+
+    def resolve(_image: str) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "b" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-tools-gates:local",
+        command="false",
+        repository=tmp_path,
+        workspace_factory=_FailingWorkspace,
+    )
+    assert result.downloaded_files == ()

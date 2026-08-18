@@ -111,9 +111,12 @@ def test_digest_is_forwarded_to_workspace(
         def __exit__(self, *args: Any) -> None:
             return None
 
-        def execute_command(self, command: str, cwd: str) -> Any:
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> Any:
             captured["command"] = command
             captured["cwd"] = cwd
+            captured["timeout"] = timeout
             captured["env"] = os.environ["ACD_CONTAINER_IMAGE_DIGEST"]
             captured["marker"] = os.environ["ACD_IN_CONTAINER"]
             return type(
@@ -132,6 +135,7 @@ def test_digest_is_forwarded_to_workspace(
         image="acd:local",
         command="echo ok",
         repository=tmp_path,
+        download_files=(),
         workspace_factory=factory,
     )
     assert result.exit_code == 0
