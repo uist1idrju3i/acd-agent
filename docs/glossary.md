@@ -19,8 +19,8 @@
 | 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |
 | 機能測定run record | FWの版、成果物、生ログ、測定機器、期待条件、対象revision、時刻を1回の実行単位として宣言する契約。 |
 | LED capture | LEDの`timestamp_s,level`時系列を保存した生ログ。周期、周波数、duty比の独立測定へ使う。 |
-| 書き込み検証 | flash logの対象chip、image hashまたはサイズ、全regionの検証結果を照合する処理。 |
-| シリアル温湿度ログ | 温度、湿度、取得時刻を一定形式で記録する生ログ。値域と周期を独立parserで測定する。 |
+| 書き込み検証 | `esptool.py`相当のflash logで、対象chip、app imageの`app_flash_offset`・サイズ、書き込み行と`Hash of data verified.`行の件数、`Hard resetting`完了を照合する処理。 |
+| シリアル温湿度ログ | `I (12345) gd1: temp=25.31C rh=48.20%`形式の生ログ。tagに一致するセンサ行だけを厳格parseし、温度、湿度、値域、周期を独立parserで測定する。 |
 | execution context | `container`、`host`、`unknown`で表すToolEnvelopeの型付き実行場所。 |
 | authoritative Evidence | revision一致、既知provenance、digest固定containerを満たし、合格側へ使えるEvidence。 |
 | provisional Evidence | `supports_pass()`は満たすがdigest固定container要件を満たさず、参考に限るEvidence。 |

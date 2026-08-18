@@ -112,6 +112,8 @@ class FunctionalRunRecord(AcdModel):
     logs: list[FunctionalLogReference] = Field(min_length=4, max_length=4)
     instrument: MeasurementInstrument
     serial_capture_route: NonEmptyStr
+    serial_log_tag: NonEmptyStr = "gd1"
+    app_flash_offset: int = Field(ge=0)
     expectations: FunctionalExpectations
     build_at: Timestamp
     flash_at: Timestamp

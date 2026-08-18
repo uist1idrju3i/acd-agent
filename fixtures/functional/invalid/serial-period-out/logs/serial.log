@@ -1,4 +1,4 @@
-timestamp=0.0 temp=22.5C humidity=45.0%RH
-timestamp=2.0 temp=22.6C humidity=45.2%RH
-timestamp=4.0 temp=22.4C humidity=44.9%RH
-timestamp=6.0 temp=22.5C humidity=45.1%RH
+I (12345) gd1: temp=22.50C rh=45.00%
+I (14345) gd1: temp=22.60C rh=45.20%
+I (16345) gd1: temp=22.40C rh=44.90%
+I (18345) gd1: temp=22.50C rh=45.10%

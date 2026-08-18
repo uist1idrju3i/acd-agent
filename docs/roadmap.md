@@ -99,10 +99,10 @@ GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `FunctionalRunRecord`がESP-IDF版、toolchain版、project commit、`.elf`／`.bin`成果物、build／flash／LED／serialの生ログ、測定機器、期待条件、時刻を宣言する |
+| 入力と出所 | `FunctionalRunRecord`がESP-IDF版、toolchain版、project commit、`.elf`／`.bin`成果物、`app_flash_offset`、build／flash／LED／serialの生ログ、測定機器、シリアルtag、期待条件、時刻を宣言する |
 | 実装 | `acd.core.firmware`と`scripts/ingest_functional_run.py`が宣言hashを実ファイルへ照合した後、build、flash、LED capture、serial logを独立parserで読み直す |
 | 正常系 | 固定版の宣言値と成果物hashが一致し、ESP32-C3書き込み検証、LED 1 Hz、温湿度値域・周期を満たす4件の`measured` host実機Evidenceを個別に保存する |
-| negative/fail-closed | 成果物・ログhash不一致、成果物欠落、ESP-IDF版不一致、書き込みverify欠落、対象chip不一致、capture／serial parse失敗、値域外、周期外れ、時刻逆転を停止条件にする |
+| negative/fail-closed | 成果物・ログhash不一致、成果物欠落、必須ログ行の欠落・形式不正・parse不能は`unknown`、ESP-IDF版不一致、書き込みverify数不足・対象chip不一致、値域外、周波数・duty・周期外れは`fail`として停止する。flashは書き込み行と`Hash of data verified.`行の件数一致、app offset・サイズ一致、`Hard resetting`完了を検査する |
 | 再現性 | recordと保存済み生ログから同一report・4件のEvidenceバイト列とcanonical hashを再生成し、各negative fixtureを含める |
 
 ### 5.4 測定結果の入力反映ループ

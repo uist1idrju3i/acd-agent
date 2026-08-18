@@ -129,10 +129,14 @@ uv run python scripts/ingest_functional_run.py \
   --report out/functional-report.json
 ```
 
-CLIは宣言された全ファイルのSHA-256を実体へ先に照合し、build成功と成果物、ESP32-C3の
-全region書き込みverify、LED captureの時系列・周波数・duty、serial logの温湿度・周期を
-独立parserで検査する。文字列だけの成功宣言、版不明、parse失敗、値域外、周期外れ、
-サンプル不足、時刻逆転はfail-closedとなる。4件すべてがpassしたときだけexit code 0、
+CLIは宣言された全ファイルのSHA-256を実体へ先に照合し、`idf.py build`相当の
+`ESP-IDF v...`、`Project build complete.`、`.bin`サイズ行、`esptool.py`相当の
+`Chip is ...`、書き込み行と`Hash of data verified.`行の件数、`Hard resetting`完了、
+LED captureの時系列・周波数・duty、`I (12345) gd1: temp=25.31C rh=48.20%`形式の
+serial logの温湿度・周期を独立parserで検査する。buildの版行やflashの必須行が無い、
+形式不正、parse不能、ファイル読取不能は`unknown`、版不一致、chip不一致、verify数不足、
+値域外、周期外れは`fail`となる。全checkがpassなら全体もpass、unknownが1件でもあれば
+全体unknown、それ以外のfailは全体failとする。4件すべてがpassしたときだけexit code 0、
 それ以外はexit code 2でreportを出力する。
 
 reportの入力hashはrecordと参照ファイルの実体hashから決定し、Evidenceの時刻はrecordの

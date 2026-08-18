@@ -24,6 +24,8 @@ def test_valid_functional_run_fixture() -> None:
     assert run.measurement_class == "measured"
     assert len(run.build_artifacts) == 2
     assert len(run.logs) == 4
+    assert run.app_flash_offset == 65536
+    assert run.serial_log_tag == "gd1"
 
 
 @pytest.mark.parametrize(

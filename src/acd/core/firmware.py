@@ -11,7 +11,6 @@ from collections.abc import Mapping
 from itertools import pairwise
 from pathlib import Path
 from statistics import fmean
-from typing import Any
 
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, PhysicalEvidence
@@ -19,6 +18,8 @@ from acd.schema.functional_run import (
     FunctionalCheckReport,
     FunctionalRunRecord,
     FunctionalRunReport,
+    LedExpectation,
+    SerialExpectation,
 )
 from acd.schema.tool_envelope import ToolEnvelope
 
@@ -77,75 +78,116 @@ def _unknown_run_report(run: FunctionalRunRecord, reason: str) -> FunctionalRunR
 def _parse_build(
     run: FunctionalRunRecord,
     path: Path,
-    artifact_hashes: Mapping[str, Sha256],
+    artifact_sizes: Mapping[str, int],
 ) -> FunctionalCheckReport:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeError) as exc:
-        return _failed_check(f"build log could not be read: {exc}")
-    version_match = re.fullmatch(r"ESP-IDF_VERSION=(\S+)", lines[0]) if lines else None
-    status_match = "BUILD_STATUS=success" in lines
-    if version_match is None or version_match.group(1) != run.esp_idf_version:
-        return _failed_check("build log ESP-IDF version does not match the run declaration")
-    if not status_match:
+        return _unknown_check(f"build log could not be read: {exc}")
+    version_matches = [
+        match.group(1)
+        for line in lines
+        if (match := re.fullmatch(r"ESP-IDF (\S+)", line)) is not None
+    ]
+    if not version_matches:
+        return _unknown_check("build log ESP-IDF version line is missing")
+    if version_matches[0] != run.esp_idf_version:
+        return _failed_check(
+            "build log ESP-IDF version does not match the run declaration"
+        )
+    if "Project build complete." not in lines:
         return _failed_check("build log does not declare successful completion")
-    records: dict[str, tuple[Sha256, int]] = {}
-    pattern = re.compile(r"ARTIFACT path=(\S+) hash=(sha256:[0-9a-f]{64}) size=([0-9]+)")
-    for line in lines:
-        match = pattern.fullmatch(line)
-        if match is not None:
-            records[match.group(1)] = (match.group(2), int(match.group(3)))
-    for path_name, declared_hash in artifact_hashes.items():
-        record = records.get(path_name)
-        if record is None or record[0] != declared_hash:
-            return _failed_check(
-                f"build log artifact declaration is missing or mismatched: {path_name}"
-            )
+    bin_artifact = next(
+        item for item in run.build_artifacts if item.artifact_type == "bin"
+    )
+    size_pattern = re.compile(
+        r"(?P<name>\S+) binary size 0x(?P<size>[0-9a-fA-F]+) bytes"
+    )
+    size_matches = [
+        (match.group("name"), int(match.group("size"), 16))
+        for line in lines
+        if (match := size_pattern.fullmatch(line)) is not None
+    ]
+    if not size_matches:
+        return _unknown_check("build log binary size line is missing")
+    basename_matches = [
+        size for name, size in size_matches if name == Path(bin_artifact.path).name
+    ]
+    if not basename_matches:
+        return _failed_check(
+            "build log binary size line does not identify the declared bin artifact"
+        )
+    if len(basename_matches) != 1:
+        return _unknown_check("build log contains duplicate binary size lines")
+    if basename_matches[0] != artifact_sizes[bin_artifact.path]:
+        return _failed_check(
+            "build log binary size does not match the declared bin artifact"
+        )
     return FunctionalCheckReport(status="pass", measured_values={"artifact_count": 2.0})
 
 
 def _parse_flash(
     run: FunctionalRunRecord,
     path: Path,
-    bin_artifact: str,
-    bin_hash: Sha256,
     bin_size: int,
 ) -> FunctionalCheckReport:
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeError) as exc:
-        return _failed_check(f"flash log could not be read: {exc}")
-    chip = next((line.removeprefix("CHIP=") for line in lines if line.startswith("CHIP=")), "")
-    if chip != "ESP32-C3":
-        return _failed_check("flash target chip is not ESP32-C3")
-    image_pattern = re.compile(r"IMAGE path=(\S+) hash=(sha256:[0-9a-f]{64}) size=([0-9]+)")
-    images = [image_pattern.fullmatch(line) for line in lines]
-    image = next((match for match in images if match is not None), None)
-    if image is None or image.group(1) != bin_artifact:
-        return _failed_check("flash log image does not identify the declared bin artifact")
-    if image.group(2) != bin_hash or int(image.group(3)) != bin_size:
-        return _failed_check("flash image hash or size does not match the build artifact")
-    regions = [
-        line
+        return _unknown_check(f"flash log could not be read: {exc}")
+    if any("A fatal error occurred" in line for line in lines):
+        return _failed_check("flash log reports a fatal error")
+    chip_matches = [
+        match.group(1)
         for line in lines
-        if re.fullmatch(r"REGION [0-9]+ verify=hash_verified", line)
+        if (match := re.match(r"^Chip is (\S+)", line)) is not None
     ]
-    if not regions or "FLASH_STATUS=success" not in lines:
-        return _failed_check("flash log lacks successful verification for every region")
+    if not chip_matches:
+        return _unknown_check("flash log chip line is missing")
+    if chip_matches[0] != "ESP32-C3":
+        return _failed_check("flash target chip is not ESP32-C3")
+    write_pattern = re.compile(
+        r"Wrote (?P<size>[0-9]+) bytes \([0-9]+ compressed\) "
+        r"at (?P<offset>0x[0-9a-fA-F]+) in \S+ seconds"
+    )
+    writes = [
+        (int(match.group("size")), int(match.group("offset"), 16))
+        for line in lines
+        if (match := write_pattern.search(line)) is not None
+    ]
+    if not writes:
+        return _unknown_check("flash log write line is missing")
+    verifications = [line for line in lines if line.strip() == "Hash of data verified."]
+    if len(verifications) != len(writes):
+        return _failed_check(
+            "flash verification count does not match write count"
+        )
+    app_writes = [
+        offset
+        for size, offset in writes
+        if size == bin_size and offset == run.app_flash_offset
+    ]
+    if not app_writes:
+        return _failed_check(
+            f"flash app image does not match offset 0x{run.app_flash_offset:x} "
+            f"and size {bin_size}"
+        )
+    if "Hard resetting" not in "\n".join(lines):
+        return _unknown_check("flash log completion marker is missing")
     return FunctionalCheckReport(
         status="pass",
-        measured_values={"verified_regions": float(len(regions))},
+        measured_values={"verified_writes": float(len(writes))},
     )
 
 
-def _parse_led(path: Path, expectation: Any) -> FunctionalCheckReport:
+def _parse_led(path: Path, expectation: LedExpectation) -> FunctionalCheckReport:
     try:
         with path.open(newline="", encoding="utf-8") as stream:
             rows = list(csv.reader(stream))
     except (OSError, UnicodeError, csv.Error) as exc:
-        return _failed_check(f"LED capture could not be read: {exc}")
+        return _unknown_check(f"LED capture could not be read: {exc}")
     if not rows or rows[0] != ["timestamp_s", "level"]:
-        return _failed_check("LED capture header is invalid")
+        return _unknown_check("LED capture header is invalid")
     samples: list[tuple[float, int]] = []
     try:
         for row in rows[1:]:
@@ -154,14 +196,14 @@ def _parse_led(path: Path, expectation: Any) -> FunctionalCheckReport:
             timestamp = float(row[0])
             level = int(row[1])
             if not math.isfinite(timestamp) or level not in {0, 1}:
-                return _failed_check("LED capture contains an invalid sample")
+                return _unknown_check("LED capture contains an invalid sample")
             samples.append((timestamp, level))
     except ValueError:
-        return _failed_check("LED capture contains a non-numeric sample")
+        return _unknown_check("LED capture contains a non-numeric sample")
     if len(samples) < expectation.minimum_cycles * 2:
         return _failed_check("LED capture has too few samples")
     if any(current[0] <= previous[0] for previous, current in pairwise(samples)):
-        return _failed_check("LED capture timestamps are not strictly increasing")
+        return _unknown_check("LED capture timestamps are not strictly increasing")
     rising = [
         timestamp
         for (_previous_timestamp, previous_level), (timestamp, level) in pairwise(samples)
@@ -194,27 +236,35 @@ def _parse_led(path: Path, expectation: Any) -> FunctionalCheckReport:
     )
 
 
-def _parse_serial(path: Path, expectation: Any) -> FunctionalCheckReport:
+def _parse_serial(
+    path: Path,
+    expectation: SerialExpectation,
+    tag: str,
+) -> FunctionalCheckReport:
     pattern = re.compile(
-        r"timestamp=(\d+(?:\.\d+)?) temp=(-?\d+(?:\.\d+)?)C humidity=(\d+(?:\.\d+)?)%RH"
+        rf"I \((\d+)\) {re.escape(tag)}: "
+        r"temp=(-?\d+(?:\.\d+)?)C rh=(-?\d+(?:\.\d+)?)%"
     )
+    sensor_prefix = re.compile(rf"^I \(\d+\) {re.escape(tag)}:")
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeError) as exc:
-        return _failed_check(f"serial log could not be read: {exc}")
+        return _unknown_check(f"serial log could not be read: {exc}")
     samples: list[tuple[float, float, float]] = []
     for line in lines:
+        if not sensor_prefix.match(line):
+            continue
         match = pattern.fullmatch(line)
         if match is None:
-            return _failed_check("serial log contains a malformed line")
-        timestamp, temperature, humidity = (
+            return _unknown_check("serial log contains a malformed sensor line")
+        timestamp_ms, temperature, humidity = (
             float(value) for value in match.groups()
         )
-        samples.append((timestamp, temperature, humidity))
+        samples.append((timestamp_ms / 1000, temperature, humidity))
     if len(samples) < expectation.minimum_samples:
         return _failed_check("serial log has too few samples")
     if any(current[0] <= previous[0] for previous, current in pairwise(samples)):
-        return _failed_check("serial log timestamps are not strictly increasing")
+        return _unknown_check("serial log timestamps are not strictly increasing")
     temperatures = [sample[1] for sample in samples]
     humidities = [sample[2] for sample in samples]
     intervals = [
@@ -328,23 +378,27 @@ def _evidence(
         "led": run.acquired_at,
         "serial": run.acquired_at,
     }[check_name]
-    tool_version = run.esp_idf_version if check_name in {"build", "flash"} else "capture-1"
     envelope = ToolEnvelope(
         tool_name=f"acd-functional-{check_name}",
-        tool_version=tool_version,
+        tool_version="0.1",
         format_version="0.1",
         config_hash=canonical_json_sha256(run.expectations.model_dump(mode="json")),
         input_hash=input_hash,
         output_hash=output_hash,
         execution_env="python-3.12; deterministic firmware functional measurement",
         execution_context="host",
-        measurement_conditions=run.serial_capture_route,
+        measurement_conditions=(
+            f"capture_route={run.serial_capture_route}; "
+            f"serial_tag={run.serial_log_tag}; "
+            f"esp_idf={run.esp_idf_version}; "
+            f"toolchain={run.toolchain_version}; "
+            f"project_git_commit={run.project_git_commit}"
+        ),
         convergence_state="not_applicable",
         target_revision=run.target_revision,
         started_at=run.build_at,
         finished_at=run.recorded_at,
     )
-    instrument = run.instrument.model_copy(update={"instrument_name": f"{check_name}-measurement"})
     return PhysicalEvidence(
         evidence_id=f"evidence.functional.{run.run_id}.{check_name}",
         target_revision=run.target_revision,
@@ -353,7 +407,7 @@ def _evidence(
         claims=[],
         created_at=run.recorded_at,
         measurement_class="measured",
-        instrument=instrument,
+        instrument=run.instrument,
         acquired_at=acquired_at,
         measurements=quantities,
     )
@@ -391,29 +445,31 @@ def evaluate_functional_run(
             "files": actual_hashes,
         }
     )
-    artifact_hashes = {
-        item.path: item.content_hash for item in run.build_artifacts
-    }
     artifact_sizes = {item.path: paths[item.path].stat().st_size for item in run.build_artifacts}
     logs = {item.log_type: paths[item.path] for item in run.logs}
     checks = {
-        "build": _parse_build(run, logs["build"], artifact_hashes),
+        "build": _parse_build(run, logs["build"], artifact_sizes),
         "flash": _parse_flash(
             run,
             logs["flash"],
-            next(item.path for item in run.build_artifacts if item.artifact_type == "bin"),
-            next(item.content_hash for item in run.build_artifacts if item.artifact_type == "bin"),
             artifact_sizes[
                 next(item.path for item in run.build_artifacts if item.artifact_type == "bin")
             ],
         ),
         "led": _parse_led(logs["led"], run.expectations.led),
-        "serial": _parse_serial(logs["serial"], run.expectations.serial),
+        "serial": _parse_serial(
+            logs["serial"],
+            run.expectations.serial,
+            run.serial_log_tag,
+        ),
     }
+    statuses = {check.status for check in checks.values()}
     overall_status = (
-        "pass"
-        if all(check.status == "pass" for check in checks.values())
+        "unknown"
+        if "unknown" in statuses
         else "fail"
+        if "fail" in statuses
+        else "pass"
     )
     report = FunctionalRunReport(
         status=overall_status,

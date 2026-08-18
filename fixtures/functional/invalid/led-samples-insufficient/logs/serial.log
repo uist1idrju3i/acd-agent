@@ -1,4 +1,5 @@
-timestamp=0.0 temp=22.5C humidity=45.0%RH
-timestamp=1.0 temp=22.6C humidity=45.2%RH
-timestamp=2.0 temp=22.4C humidity=44.9%RH
-timestamp=3.0 temp=22.5C humidity=45.1%RH
+I (1000) boot: ESP-IDF firmware
+I (12345) gd1: temp=22.50C rh=45.00%
+I (13345) gd1: temp=22.60C rh=45.20%
+I (14345) gd1: temp=22.40C rh=44.90%
+I (15345) gd1: temp=22.50C rh=45.10%

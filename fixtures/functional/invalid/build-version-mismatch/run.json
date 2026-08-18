@@ -42,12 +42,12 @@
   },
   "logs": [
     {
-      "content_hash": "sha256:9d2caa09dd9572ee60881098a1897207b12cae6dca2d5fa1ea470da496730635",
+      "content_hash": "sha256:1890c193acca02fe760e68c246269c9474cc6de284c16a14b48a0a10dff215ee",
       "log_type": "build",
       "path": "build.log"
     },
     {
-      "content_hash": "sha256:52c8dfd489ceef285bc10ea9d4f2b352fd42ff5e8c3a4ce81a61aa22144c040e",
+      "content_hash": "sha256:b19537025ccbd9a97bad90b386e50e904466c6bf902bd4d1e8b68d649450f7da",
       "log_type": "flash",
       "path": "flash.log"
     },

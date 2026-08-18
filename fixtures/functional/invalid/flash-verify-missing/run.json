@@ -1,5 +1,6 @@
 {
   "acquired_at": "2026-01-01T12:00:00Z",
+  "app_flash_offset": 65536,
   "build_artifacts": [
     {
       "artifact_type": "elf",
@@ -41,12 +42,12 @@
   },
   "logs": [
     {
-      "content_hash": "sha256:addcfda444e7dcc5d58066c897f8308d45bf85c657e1aed37f9df4499896928d",
+      "content_hash": "sha256:9d2caa09dd9572ee60881098a1897207b12cae6dca2d5fa1ea470da496730635",
       "log_type": "build",
       "path": "build.log"
     },
     {
-      "content_hash": "sha256:3b0c721d8ba82a646ee473d8d5ff8c091c15b85d75e75880182e0163564c1f1a",
+      "content_hash": "sha256:31c4a0ed62383b4f946a6602c0dbf03aba22cc1f6394f26190837b5bf03bed9b",
       "log_type": "flash",
       "path": "flash.log"
     },
@@ -56,7 +57,7 @@
       "path": "led.csv"
     },
     {
-      "content_hash": "sha256:d8a0986b7a3a499d84952385068063b709810c67ab495fb3d10067c0cdff86ed",
+      "content_hash": "sha256:8e8fb546a86291b7e0ecbea5d9e78bdeca34be3eb3ab1ceb206d0d1cbfd42946",
       "log_type": "serial",
       "path": "serial.log"
     }
@@ -66,6 +67,7 @@
   "recorded_at": "2026-01-01T13:00:00Z",
   "run_id": "fw-run-2026-001",
   "serial_capture_route": "usb-serial-jtag",
+  "serial_log_tag": "gd1",
   "target_revision": "r12",
   "toolchain_version": "xtensa-esp-elf-13.2.0"
 }
