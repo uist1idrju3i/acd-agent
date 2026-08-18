@@ -40,7 +40,7 @@ def _projection(tmp_path: Path):
 def test_mechanical_gates_pass_on_golden_projection(tmp_path: Path) -> None:
     lane, projection = _projection(tmp_path)
     report = run_mechanical_gates(
-        step_path=projection.step_path,
+        step_path=projection.shell_step_path,
         lane=lane,
         kernel_probe=KnownProbe(),
     )
@@ -48,6 +48,12 @@ def test_mechanical_gates_pass_on_golden_projection(tmp_path: Path) -> None:
     assert report.clearance
     assert report.wall_thickness
     assert report.measured_min_wall_mm == pytest.approx(2.0, abs=0.1)
+    assembly_report = run_mechanical_gates(
+        step_path=projection.assembly_step_path,
+        lane=lane,
+        kernel_probe=KnownProbe(),
+    )
+    assert assembly_report.measured_volume_mm3 == pytest.approx(6799.86193, abs=1e-3)
 
 
 def test_mechanical_gates_reject_interference(tmp_path: Path) -> None:
@@ -56,7 +62,7 @@ def test_mechanical_gates_reject_interference(tmp_path: Path) -> None:
     broken = replace(lane, component_bodies=(body, *lane.component_bodies[1:]))
     with pytest.raises(MechanicalGateError, match="interference"):
         run_mechanical_gates(
-            step_path=projection.step_path,
+            step_path=projection.shell_step_path,
             lane=broken,
             kernel_probe=KnownProbe(),
         )
@@ -77,7 +83,7 @@ def test_mechanical_gates_reject_thin_wall(tmp_path: Path) -> None:
     )
     with pytest.raises(MechanicalGateError, match="wall_thickness"):
         run_mechanical_gates(
-            step_path=projection.step_path,
+            step_path=projection.shell_step_path,
             lane=broken,
             kernel_probe=KnownProbe(),
         )
@@ -86,7 +92,7 @@ def test_mechanical_gates_reject_thin_wall(tmp_path: Path) -> None:
 def test_mechanical_gates_reject_local_thin_wall(tmp_path: Path) -> None:
     lane, projection = _projection(tmp_path)
     build123d = importlib.import_module("build123d")
-    imported = build123d.import_step(projection.step_path)
+    imported = build123d.import_step(projection.shell_step_path)
     shell = max(imported.solids(), key=lambda solid: solid.volume)
     local_cutter = build123d.Pos(17.25, 0, 5) * build123d.Box(1.5, 8, 4)
     thin_shell = shell - local_cutter
@@ -104,7 +110,7 @@ def test_mechanical_gates_reject_unknown_kernel(tmp_path: Path) -> None:
     lane, projection = _projection(tmp_path)
     with pytest.raises(MechanicalGateError, match="unknown"):
         run_mechanical_gates(
-            step_path=projection.step_path,
+            step_path=projection.shell_step_path,
             lane=lane,
             kernel_probe=UnknownProbe(),
         )

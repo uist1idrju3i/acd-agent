@@ -1,7 +1,9 @@
 """Silkscreen placement search tests (skill asset, separate from the ACD core)."""
+# pyright: reportPrivateUsage=false
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, cast
 
 import pytest
@@ -9,7 +11,7 @@ import pytest
 from acd.core.board_model import BoardModel, ComponentPlacement, FootprintShape, PadShape
 from acd.core.electrical import GraphExtractionError
 from acd.core.silkscreen import SilkscreenLane, SilkTextView
-from silkscreen_search import resolve_from_context, resolve_silkscreen_placements
+from silkscreen_search import _text_size, resolve_from_context, resolve_silkscreen_placements
 
 
 def _search_board(rotation_deg: float = 0.0) -> BoardModel:
@@ -79,6 +81,15 @@ def _search_text(
     )
 
 
+def test_non_search_text_without_coordinates_fails_closed() -> None:
+    text = replace(_search_text(role="non_search_label"), x_mm=None, y_mm=None)
+    with pytest.raises(GraphExtractionError, match="no declared position"):
+        resolve_silkscreen_placements(
+            SilkscreenLane("board.gd1", (text,), ()),
+            _search_board(),
+        )
+
+
 def test_silkscreen_resolves_connector_identifier_and_records_rejections() -> None:
     lane = SilkscreenLane("board.gd1", (_search_text(),), ())
     resolved = resolve_silkscreen_placements(lane, _search_board())
@@ -110,7 +121,7 @@ def test_silkscreen_search_declaration_is_validated(
         resolve_silkscreen_placements(lane, _search_board())
 
 
-def test_silkscreen_backside_position_is_not_search_resolved() -> None:
+def test_silkscreen_backside_text_is_search_resolved() -> None:
     text = _search_text(role="board_type", order="top", step=0.25, limit=1.0)
     text = SilkTextView(
         text.node_id,
@@ -131,10 +142,14 @@ def test_silkscreen_backside_position_is_not_search_resolved() -> None:
     resolved = resolve_silkscreen_placements(
         SilkscreenLane("board.gd1", (text,), ()), _search_board(rotation_deg=90.0)
     )
-    assert (resolved.texts[0].x_mm, resolved.texts[0].y_mm) == (15.0, 2.0)
-    assert resolved.placement_evidence[0]["resolution"] == (
-        "graph_declared_backside_position"
-    )
+    resolved_text = resolved.texts[0]
+    evidence = resolved.placement_evidence[0]
+    assert resolved_text.layer == "B.SilkS"
+    assert (resolved_text.x_mm, resolved_text.y_mm) != (15.0, 2.0)
+    assert evidence["accepted_position_mm"] == [
+        resolved_text.x_mm,
+        resolved_text.y_mm,
+    ]
 
 
 def _context(*, outline: list[float] | None = None) -> dict[str, object]:
@@ -263,3 +278,114 @@ def test_context_search_keeps_fixed_graphic_as_layer_obstacle() -> None:
         item["reason"] == "fixed_silk_objects"
         for item in rejected
     )
+
+
+def test_context_search_rejects_mask_opening_overlap() -> None:
+    context = _context()
+    context["mask_objects"] = [
+        {"layer": "F.Mask", "bbox_mm": [8.0, 7.0, 12.0, 9.0]}
+    ]
+    result = resolve_from_context(
+        SilkscreenLane("board.gd1", (_search_text(order="top", limit=0.25),), ()),
+        context,
+    )
+    assert any(
+        item["reason"] == "mask_opening_bboxes_mm"
+        for item in cast(list[dict[str, object]], result[0]["rejected_candidates"])
+    )
+
+
+@pytest.mark.parametrize("key", ("existing_silk_objects", "fixed_silk_objects"))
+def test_context_search_rejects_silk_obstacle_overlap(key: str) -> None:
+    context = _context()
+    context[key] = [{"layer": "F.SilkS", "bbox_mm": [8.0, 7.0, 12.0, 9.0]}]
+    result = resolve_from_context(
+        SilkscreenLane("board.gd1", (_search_text(order="top", limit=0.25),), ()),
+        context,
+    )
+    assert any(
+        item["reason"] == key
+        for item in cast(list[dict[str, object]], result[0]["rejected_candidates"])
+    )
+
+
+def test_context_search_applies_same_side_body_and_courtyard_checks() -> None:
+    context = _context()
+    context["body_bboxes_mm"] = [
+        {"refdes": "J1", "layer": "B.Cu", "bbox_mm": [8.0, 7.0, 12.0, 9.0]}
+    ]
+    context["courtyard_bboxes_mm"] = [
+        {"refdes": "J1", "layer": "F.Cu", "bbox_mm": [8.0, 7.0, 12.0, 9.0]}
+    ]
+    result = resolve_from_context(
+        SilkscreenLane("board.gd1", (_search_text(order="top", limit=0.25),), ()),
+        context,
+    )
+    reasons = {
+        item["reason"]
+        for item in cast(list[dict[str, object]], result[0]["rejected_candidates"])
+    }
+    assert "courtyard_bboxes_mm" in reasons
+    assert "body_bboxes_mm" not in reasons
+
+
+def test_context_search_rejects_nearest_component_mismatch() -> None:
+    context = _context()
+    context["body_bboxes_mm"] = [
+        {"refdes": "J1", "layer": "F.Cu", "bbox_mm": [9.0, 9.0, 11.0, 11.0]},
+        {"refdes": "U1", "layer": "F.Cu", "bbox_mm": [8.0, 9.0, 8.5, 11.0]},
+    ]
+    result = resolve_from_context(
+        SilkscreenLane("board.gd1", (_search_text(order="top", limit=0.25),), ()),
+        context,
+    )
+    assert any(
+        item["reason"] == "nearest_component_mismatch"
+        for item in cast(list[dict[str, object]], result[0]["rejected_candidates"])
+    )
+
+
+def test_context_search_generates_all_orthogonal_rotations() -> None:
+    result = resolve_from_context(
+        SilkscreenLane("board.gd1", (_search_text(),), ()),
+        _context(),
+    )
+    rotations = {
+        float(cast(float | int, item["rotation_deg"]))
+        for item in cast(list[dict[str, object]], result[0]["candidates"])
+    }
+    assert rotations == {0.0, 90.0, 180.0, 270.0}
+
+
+@pytest.mark.parametrize(
+    ("text", "measured_width", "measured_height"),
+    (
+        ("RST", 2.455952, 1.15),
+        ("BOOT", 3.598809, 1.15),
+        ("DEV BOARD", 8.15, 1.15),
+        ("golden-design-1-r1", 15.789286, 1.461366),
+    ),
+)
+def test_text_size_contains_projected_silkscreen_measurements(
+    text: str, measured_width: float, measured_height: float
+) -> None:
+    view = _search_text()
+    view = SilkTextView(
+        view.node_id,
+        view.role,
+        text,
+        view.x_mm,
+        view.y_mm,
+        view.layer,
+        view.height_mm,
+        view.stroke_width_mm,
+        view.rotation_deg,
+        view.placement_basis,
+        view.placement_search_order,
+        view.placement_reference,
+        view.placement_offset_step_mm,
+        view.placement_search_limit_mm,
+    )
+    width, height = _text_size(view)
+    assert width >= measured_width + 2 * view.stroke_width_mm
+    assert height >= measured_height

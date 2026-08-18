@@ -21,8 +21,9 @@ def _graph() -> DesignGraph:
 def test_silkscreen_lane_extracts_declared_text_and_vector_logo() -> None:
     lane = extract_silkscreen_lane(_graph())
     assert {item.text for item in lane.texts} >= {"RST", "BOOT", "DEV BOARD"}
-    assert len(lane.graphics) == 1
-    assert lane.graphics[0].role == "vibebb_logo"
+    assert {item.role for item in lane.graphics} == {"vibebb_logo", "repository_qr"}
+    qr = next(item for item in lane.graphics if item.role == "repository_qr")
+    assert qr.fill_rule == "evenodd"
     assert all(item.placement_reference for item in lane.texts)
 
 
@@ -43,3 +44,26 @@ def test_silkscreen_text_requires_board_dependency() -> None:
     )
     with pytest.raises(GraphExtractionError, match="must depend on board"):
         extract_silkscreen_lane(graph.model_copy(update={"nodes": nodes}))
+
+
+def test_unresolved_silkscreen_text_coordinates_remain_unresolved() -> None:
+    graph = _graph()
+    nodes = tuple(
+        node.model_copy(
+            update={
+                "attrs": {
+                    key: value
+                    for key, value in node.attrs.items()
+                    if key not in {"x_mm", "y_mm"}
+                }
+            }
+        )
+        if node.id == "mechanical.silk_text.led"
+        else node
+        for node in graph.nodes
+    )
+
+    lane = extract_silkscreen_lane(graph.model_copy(update={"nodes": nodes}))
+    led = next(item for item in lane.texts if item.node_id == "mechanical.silk_text.led")
+    assert led.x_mm is None
+    assert led.y_mm is None

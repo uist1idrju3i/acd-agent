@@ -64,10 +64,22 @@ def test_probe_all_reports_every_tool() -> None:
         assert result.is_known == (result.present and result.version != "unknown")
 
 
-def test_step_normalization_removes_only_file_name_timestamp() -> None:
+def test_step_normalization_removes_file_name_timestamp() -> None:
     first = b"FILE_NAME('Open CASCADE Shape Model','2026-08-11T12:00:00',('Author'));"
     second = b"FILE_NAME('Open CASCADE Shape Model','2026-08-11T12:00:01',('Author'));"
     assert first != second
+    assert normalize_step(first) == normalize_step(second)
+
+
+def test_step_normalization_removes_occurrence_sequence() -> None:
+    first = (
+        b"FILE_NAME('Open CASCADE Shape Model','2026-08-11T12:00:00');"
+        b"NEXT_ASSEMBLY_USAGE_OCCURRENCE('1','=>[0:1:1:2]','',#5,#27,$);"
+    )
+    second = (
+        b"FILE_NAME('Open CASCADE Shape Model','2026-08-11T12:00:00');"
+        b"NEXT_ASSEMBLY_USAGE_OCCURRENCE('2','=>[0:1:1:2]','',#5,#27,$);"
+    )
     assert normalize_step(first) == normalize_step(second)
 
 

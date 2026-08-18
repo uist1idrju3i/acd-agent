@@ -135,7 +135,9 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    ```
 
    基板pipelineの前提として、シルク配置を解決する場合は
-   `scripts/resolve_gd1_silkscreen.py`を先に実行する。基板pipelineは
+   `scripts/resolve_gd1_silkscreen.py`を先に実行する。resolverはcontextの
+   mask開口、既存／固定シルク、同じ面のbody/courtyard、最近傍部品帰属を候補段階で
+   検査するが、最終合否はauthoritative projectionと独立測定ゲートが判定する。基板pipelineは
    `scripts/run_gd1_pipeline.py`、筐体pipelineは
    `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
    会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを
@@ -149,9 +151,25 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    シルク解決を個別に実行した場合は、回路図を含む中間成果物が
    `out/gd1-silkscreen-resolve/iteration-1/`に生成される。
 
-3. 実行済みのGD1筐体pipelineでは、`out/gd1-enclosure/enclosure.step`、
-   `out/gd1-enclosure/enclosure.3mf`、および
-   `out/gd1-enclosure/evidence-mechanical.json`が生成される。
+   JLCPCBへ投入するファイルは、製造出力ディレクトリ内の
+   `out/gd1/fab/gd1-bom-jlcpcb.csv`と
+   `out/gd1/fab/gd1-cpl-jlcpcb.csv`の2つだけである。
+   `out/gd1/gd1.bom.csv`はDesign Graph由来の内部BOM投影であり、非実装部品も含み得るため、
+   発注用ファイルとして投入してはならない。
+   CPL回転の独立検証には、リポジトリ内の
+   `evidence/gd1-cpl-orientation/`を使用する。このディレクトリ自体が無い場合は
+   製造データ生成をfail-closedで停止し、個別部品のEvidence欠落は
+   `order-readiness.json`の回転unknownとして記録する。
+
+3. 実行済みのGD1筐体pipelineでは、部品別STEPとして
+   `out/gd1-enclosure/enclosure-shell.step`と
+   `out/gd1-enclosure/enclosure-lid.step`、組立確認専用の統合STEPとして
+   `out/gd1-enclosure/enclosure-assembly.step`、2オブジェクトを保持する
+   `out/gd1-enclosure/enclosure.3mf`、全構成物の正規化hash一覧
+   `out/gd1-enclosure/enclosure-artifacts.json`、および
+   `out/gd1-enclosure/evidence-mechanical.json`が生成される。部品STEPはshellまたは
+   lidの単独ソリッドだけを含み、統合STEPは組立確認用であり、製造部品ファイルの
+   代用にはしない。構成物一覧が欠落または期待ファイルと不一致の場合はfail-closedで停止する。
 
 4. FW Skillは会話に`firmware`、`ESP32-C3`、`ESP-IDF`、`QEMU`、`GPIO`のいずれかを
    含めて起動し、次の入口を実行させる。

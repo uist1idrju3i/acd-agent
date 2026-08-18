@@ -165,18 +165,20 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
                 continue
             fp_at = _at(node)
             layer_node = _one(node, "layer")
-            layer = str(layer_node[1]) if layer_node and len(layer_node) > 1 else "unknown"
+            footprint_layer = (
+                str(layer_node[1]) if layer_node and len(layer_node) > 1 else "unknown"
+            )
             pads = tuple(_parse_pad(refdes, fp_at, pad, net_names) for pad in _direct(node, "pad"))
             for text in _direct(node, "fp_text") + _direct(node, "property"):
-                layer = _one(text, "layer")
+                text_layer = _one(text, "layer")
                 effects = _one(text, "effects")
                 font = _one(effects, "font") if effects else None
                 size = _one(font, "size") if font else None
                 thickness = _one(font, "thickness") if font else None
                 if (
-                    layer
-                    and len(layer) > 1
-                    and str(layer[1]).endswith("SilkS")
+                    text_layer
+                    and len(text_layer) > 1
+                    and str(text_layer[1]).endswith("SilkS")
                     and size
                     and len(size) > 2
                 ):
@@ -189,7 +191,7 @@ def parse_routed_board(path: Path) -> BoardMeasurement:
                     fp_at[0],
                     fp_at[1],
                     fp_at[2],
-                    str(layer),
+                    footprint_layer,
                     pads,
                     _footprint_bbox(node, fp_at, "CrtYd"),
                     _footprint_bbox(node, fp_at, "Fab"),

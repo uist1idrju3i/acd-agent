@@ -343,6 +343,8 @@ U1/J1のpad bbox中心を基準として宣言した。これは独立実測と�
 KiCad symbolのpathとsha256を独立検証した。これはメーカーのtape&reel図そのものでは
 なく、`fab_library_footprint`由来の再現可能な照合Evidenceである。製造データ生成と発注
 可否は分離し、全位置・回転Evidenceが揃ったGD1の`order-readiness.json`は`ready`となる。
+`evidence/gd1-cpl-orientation/`自体が無い場合は製造データ生成をfail-closedで停止し、
+個別部品のEvidence欠落は`order-readiness.json`の回転unknownとして扱う。
 
 GD1のGNDプレーンはグラフの`GND`ネットをF.Cu/B.Cuへ投影し、板端clearanceから導出した
 インセットで定義する。塗りは自前計算せず、KiCad 10.0.5の`--refill-zones --save-board`
@@ -486,6 +488,21 @@ placementやKiCad実行時状態を読み出して補完しない。
 
 全componentに対応するbody nodeが無い場合、機械レーン抽出は`unknown`として停止する。
 
+筐体CADはshellとlidを別部品として出力する。製造・組立の成果物は次の構成であり、
+STEP部品を融合して1ファイルにすることはしない。
+
+| 成果物 | 用途 | 内容 |
+|---|---|---|
+| `out/gd1-enclosure/enclosure-shell.step` | shell製造部品 | shellソリッドのみ |
+| `out/gd1-enclosure/enclosure-lid.step` | lid製造部品 | lidソリッドのみ |
+| `out/gd1-enclosure/enclosure-assembly.step` | 組立確認 | shellとlidの統合STEP |
+| `out/gd1-enclosure/enclosure.3mf` | 3Dプリント確認 | `gd1-enclosure-shell`と`gd1-enclosure-lid`の2オブジェクト |
+| `out/gd1-enclosure/enclosure-artifacts.json` | 構成物provenance | 各成果物の役割・形式・正規化SHA-256 |
+
+部品別STEPは独立再読込でソリッド数、体積、bboxを確認し、統合STEPとの差異も検証する。
+Evidenceのenvelopeは部品別STEP、統合STEP、3MF、構成物manifestをすべてhash対象に含める。
+ねじ、ボス、スナップ等の新しい締結機構はこの出力分割では追加しない。
+
 ## 9. FWの範囲とEvidence
 
 ### 9.1 FW範囲
@@ -571,9 +588,9 @@ KiCadのboard-level `gr_text` / `gr_poly`へ投影する。基板品番は
 グラフ宣言の探索順
 `top,bottom,right,left,top_right,bottom_right,bottom_left,top_left`と、
 宣言された刻み`0.25 mm`、上限`4.0 mm`で候補を生成した。候補は順序を固定し、
-初回投影で利用できるpad形状と基板外形、および保守的なbody bboxを満たすものを
-採用する。mask開口との干渉は初回投影だけでは確定せず、塗り後Gerberの独立測定で
-最終判定する。候補の棄却理由と
+初回投影で利用できるpad、mask開口、既存／固定シルク、同じ面のbody/courtyard、
+基板外形、最近傍部品帰属、および保守的なテキスト外形を満たすものだけを採用する。
+最終判定は引き続き塗り後Gerberの独立測定が行う。候補の棄却理由と
 採用座標は`fab-package.json`の`silkscreen.placement_evidence`へ保存し、未解決の
 機能ラベルを裏面へ移す経路は持たない。
 
@@ -633,6 +650,36 @@ SW1の実配置中心は`(24.05, 9.05)` mm、回転は90°である。RESETの�
 `(24.55, 2.5375)` mmは、SW1中心から`(+0.50, -6.5125)` mmの上側候補であり、
 回転を考慮した局所座標測定でも宣言高さ1.5 mmに対して実測1.65 mmとなる。
 
+### 12.3a SVG由来の裏面アート
+
+裏面アートは、グラフへハンドコードの近似polygonを記録せず、固定したSVG資材から
+決定論的に生成する。`assets/vibebb-silkscreen.svg`は`40 × 18 mm`を
+scale `0.4`で`7.2 × 16.0 mm`へ縮小し、90°回転、中心`(21.9, 8.3)` mmへ配置する。
+`assets/qr-repository-silkscreen.svg`は`36 × 36 mm`を
+scale `0.375`で`13.5 × 13.5 mm`へ縮小し、中心`(11.05, 7.05)` mmへ配置する。グラフには相対source path、source
+SHA-256、viewBox、縮尺、配置後寸法と、塗り・複数輪郭・`evenodd`穴を含む
+`graphic_parts`を保存する。SVG内の`id="board-preview"`グループは変換しない。
+
+両資材は`B.SilkS`であり、裏面テキストの`justify mirror`とは別に、基板中心を基準に
+X座標を反転して物理面での向きを保つ。投影はDesign Graphから生成し、Region/Lineを
+含むGerberを独立測定する。スケール後のロゴ最小ストロークは`0.16 mm`であり、
+profile最小幅`0.15 mm`未満のストロークはクランプせずfail-closedとする。QRは
+version 5の37 moduleと4-module quiet zoneを保持する。source cell pitchは`0.8 mm`、
+scale後の期待projected cell pitchは`0.3 mm`（`0.8 × 0.375`）、報告上の
+data-module基準寸法は`13.5 / 37 = 0.364864... mm`である。塗り図形に輪郭strokeは
+付けず、投影Gerberの実ジオメトリから最小印刷幅と最小未印刷gapを独立に測定する。
+現行投影のQR実測値は最小印刷幅`0.3 mm`、最小未印刷gap`0.3 mm`であり、期待値を
+測定値として代用しない。QRはsource SVGのSHA-256一致、セル単位のmodule行列、
+expected/projected pitch、quiet zoneをGerberから検証し、1セルでも不一致なら
+fail-closedとする。白いシルク下地と素地に残すdata moduleの極性反転は意図した仕様
+であり、将来反転しない。
+
+採用矩形はQR`[4.3, 0.3, 17.8, 13.8]` mm、VibeBBロゴ
+`[18.3, 0.3, 25.5, 16.3]` mmである。両者の正立を優先し、pad、mask開口、
+既存シルク、裏面既存文字、板端マージン、要素間ギャップを一切緩めずにresolverと
+Gerber独立測定で検証する。合格後の微小な平行移動だけを許容し、サイズ変更は
+設計判断なしに行わない。
+
 ### 12.3 グラフ意味差分と再生成
 
 JSON parse後にnode ID、kind、attrs、depends_on、edgesを比較した。計画3親コミットの
@@ -661,12 +708,12 @@ KiCad 10.0.5の`kicad-cli pcb render`で、銅、pad、Edge.Cuts、実装部品�
 ### 12.5 拡張探索後の可読性ゲート結果（計画4入力）
 
 計画3の最終探索では、機能ラベルをF.SilkSに限定したまま、グラフ宣言の
-回転集合`[0, 90]`、探索上限`8.0 mm`、刻み`0.25 mm`を使用した。候補は
+回転集合`[0, 90, 180, 270]`、探索上限`8.0 mm`、刻み`0.25 mm`を使用した。候補は
 参照部品中心からの距離が最小のものを選び、同点は宣言探索順、回転順、
-courtyard重なり面積の順で決定した。courtyardは物理占有ではないため合否には
-使わず、重なり面積と距離だけをEvidenceへ記録した。一方、pad、mask開口、
-板外／宣言板端マージン、body、既存footprintシルク、最近傍部品帰属はhard gate
-である。
+courtyard重なり面積の順で決定した。pad、mask開口、板外／宣言板端マージン、body、
+courtyard、既存footprintシルク、固定シルク、最近傍部品帰属はhard gateである。
+D1/USBも参照部品付きの機能ラベルとして同じ探索対象に含め、固定座標を合格根拠に
+しない。
 
 宣言した候補探索は全機能ラベルについて候補を返したが、Gerber独立測定の最終
 ゲートで合格にはならなかった。fail-closedの最終測定値は次のとおりである。
@@ -715,3 +762,22 @@ RESETではSW1上側の板端までの帯、BOOTではSW2周辺の上側／左�
 左側、USBではJ1下側である。ただしUSB下側にはR5のpadと既存シルクがあり、
 最終的な空きとしては未確定である。courtyardは探索優先度にのみ使い、物理占有
 の根拠にはしていない。
+
+上記の計画3失敗値は過去の探索入力に対する履歴Evidenceである。現行fixtureでは、
+四方向回転、mask開口、既存／固定シルク、同じ面のbody/courtyard、最近傍部品帰属を
+候補段階で検査し、D1/USBも固定座標なしで探索する。現行resolverは
+`status=measured_pass`となり、最終配置は次のとおりである。
+
+| 要素 | layer | 位置 mm | 回転 | 参照部品までの距離 mm |
+|---|---|---:|---:|---:|
+| RST | F.SilkS | `(26.325, 5.4)` | 0° | SW1: 0.120181 |
+| BOOT | F.SilkS | `(2.3, 5.15)` | 0° | SW2: 0.370181 |
+| D1 | F.SilkS | `(9.1, 12.4)` | 0° | D1: 0.339286 |
+| USB | F.SilkS | `(8.075, 23.9)` | 0° | J1: 0.220477 |
+| DEV BOARD | B.SilkS | `(8.016282355, 11.0472)` | 0° | — |
+| golden-design-1-r1 | B.SilkS | `(8.95, 14.47915)` | 0° | — |
+
+現行context測定では、上記6文字列のbody/courtyard重なりはすべて`0`であり、
+resolverの最終状態は候補生成だけでなく投影後の測定でも合格している。なお、
+最終製造受入れは引き続きauthoritative projection、独立reload、Gerber測定の
+各ゲートで判定する。

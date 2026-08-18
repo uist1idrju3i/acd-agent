@@ -24,16 +24,15 @@ from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 from acd.schema.rationale import RationaleDocument
 
 from ..placement_evidence import summarize_placement_evidence
+from ..repository import repository_root
 from .components import (
     BOARD_ATTRS,
     FAB_PROFILE_FETCHED_AT,
     FAB_PROFILE_ID,
     FAB_PROFILE_SOURCE,
-    FIXTURE_DIR,
     FW_PIN_ASSIGNMENTS,
     NETS,
     PLACEMENTS,
-    REPO_ROOT,
     REQUIREMENTS,
     LibraryRef,
     components,
@@ -42,9 +41,14 @@ from .components import (
 from .mechanical import mechanical_nodes
 from .silkscreen import silkscreen_nodes
 
-PLACEMENT_SKILL = REPO_ROOT / "plugins/acd/skills/acd-placement-search/scripts/placement_search.py"
-SILK_SKILL = REPO_ROOT / "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
-FAB_PROFILE = REPO_ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
+
+def _paths() -> tuple[Path, Path, Path, Path, Path]:
+    root = repository_root()
+    fixture_dir = root / "fixtures" / "golden-design-1"
+    placement_skill = root / "plugins/acd/skills/acd-placement-search/scripts/placement_search.py"
+    silk_skill = root / "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
+    fab_profile = root / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
+    return root, fixture_dir, placement_skill, silk_skill, fab_profile
 
 
 def _run_skill(
@@ -54,6 +58,7 @@ def _run_skill(
     *,
     extra_args: Sequence[str] = (),
 ) -> dict[str, Any]:
+    root, _, _, _, _ = _paths()
     input_path = output.with_suffix(".input.json")
     input_path.write_text(
         json.dumps(input_data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -62,7 +67,7 @@ def _run_skill(
     command = [sys.executable, str(script), "--input", str(input_path)]
     command.extend(extra_args)
     command.extend(["--output", str(output)])
-    subprocess.run(command, check=True, cwd=REPO_ROOT)
+    subprocess.run(command, check=True, cwd=root)
     value = json.loads(output.read_text(encoding="utf-8"))
     if not isinstance(value, dict | list):
         raise ValueError(f"skill output is not a JSON object or array: {script}")
@@ -70,18 +75,19 @@ def _run_skill(
 
 
 def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
+    root, fixture_dir, placement_skill, silk_skill, fab_profile = _paths()
     graph_payload = graph.model_dump(mode="json")
     with tempfile.TemporaryDirectory(prefix="acd-gd1-skill-") as directory:
         directory_path = Path(directory)
         placement_result = _run_skill(
-            PLACEMENT_SKILL,
+            placement_skill,
             graph_payload,
             directory_path / "placements.json",
             extra_args=(
                 "--fixture-dir",
-                str(FIXTURE_DIR),
+                str(fixture_dir),
                 "--fab-profile",
-                str(FAB_PROFILE),
+                str(fab_profile),
             ),
         )
         placements = placement_result.get("placements")
@@ -104,7 +110,7 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
                         "placement_y_mm": placement["y_mm"],
                         "placement_rotation_deg": placement["rotation_deg"],
                         "placement_source": "acd-placement-search",
-                        "placement_source_ref": f"plugins/acd/skills/acd-placement-search/scripts/placement_search.py:{sha256_of(PLACEMENT_SKILL)}",
+                        "placement_source_ref": f"plugins/acd/skills/acd-placement-search/scripts/placement_search.py:{sha256_of(placement_skill)}",
                     }
                 )
                 updated_nodes.append(node.model_copy(update={"attrs": attrs}))
@@ -120,7 +126,7 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
         from acd.core.silkscreen import extract_silkscreen_lane
 
         electrical = extract_electrical_lane(graph)
-        profile = load_fab_profile(FAB_PROFILE)
+        profile = load_fab_profile(fab_profile)
         placement_values = tuple(
             Placement(
                 str(item["refdes"]),
@@ -133,17 +139,17 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
         projection = generate_board(
             electrical,
             FootprintLibrary(),
-            FIXTURE_DIR,
+            fixture_dir,
             profile,
             placement_values,
         )
         silk_lane = extract_silkscreen_lane(graph)
         silk_result = _run_skill(
-            SILK_SKILL,
+            silk_skill,
             {"board": asdict(projection.model), "lane": asdict(silk_lane)},
             directory_path / "silkscreen.json",
         )
-        evidence_archive = REPO_ROOT / "out" / "gd1-fixture-evidence"
+        evidence_archive = root / "out" / "gd1-fixture-evidence"
         evidence_archive.mkdir(parents=True, exist_ok=True)
         evidence_archive.joinpath("silkscreen.json").write_text(
             json.dumps(silk_result, ensure_ascii=False, indent=2, sort_keys=True)
@@ -170,7 +176,7 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
                         "rotation_deg": resolved["rotation_deg"],
                         "placement_rotation_deg": resolved["rotation_deg"],
                         "placement_source": "acd-silkscreen-placement",
-                        "placement_source_ref": f"plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py:{sha256_of(SILK_SKILL)}",
+                        "placement_source_ref": f"plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py:{sha256_of(silk_skill)}",
                         "placement_evidence": json.dumps(
                             summarize_placement_evidence(evidence_by_id[node.id]),
                             ensure_ascii=False,
@@ -192,10 +198,11 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
 
 
 def lib_attrs(lib: LibraryRef) -> dict[str, AttrValue]:
+    fixture_dir = _paths()[1]
     def file_hash(rel_or_abs: str) -> str:
         path = Path(rel_or_abs)
         if not path.is_absolute():
-            path = FIXTURE_DIR / path
+            path = fixture_dir / path
         return sha256_of(path)
 
     return {
@@ -213,6 +220,7 @@ def lib_attrs(lib: LibraryRef) -> dict[str, AttrValue]:
 
 
 def build_graph() -> DesignGraph:
+    _, _, placement_skill, _, _ = _paths()
     nodes: list[GraphNode] = []
     for req_id, text in sorted(REQUIREMENTS.items()):
         nodes.append(GraphNode(id=f"req.{req_id}", kind="requirement", attrs={"text": text}))
@@ -242,7 +250,7 @@ def build_graph() -> DesignGraph:
                 "placement_source": "acd-placement-search",
                 "placement_source_ref": (
                     "plugins/acd/skills/acd-placement-search/scripts/"
-                    f"placement_search.py:{sha256_of(PLACEMENT_SKILL)}"
+                    f"placement_search.py:{sha256_of(placement_skill)}"
                 ),
             }
         )
@@ -584,19 +592,20 @@ def check_rationale_hashes(
 
 
 def main() -> int:
+    _, fixture_dir, _, _, _ = _paths()
     parser = argparse.ArgumentParser()
     parser.add_argument("--refresh-rationale-hashes", action="store_true")
     args = parser.parse_args()
     graph = build_graph()
     rationale_status = check_rationale_hashes(
         graph,
-        FIXTURE_DIR / "rationale.json",
+        fixture_dir / "rationale.json",
         refresh=args.refresh_rationale_hashes,
     )
     if rationale_status != 0:
         return rationale_status
     payload = graph.model_dump(mode="json")
-    out = FIXTURE_DIR / "graph.json"
+    out = fixture_dir / "graph.json"
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     print(f"wrote {out} ({len(graph.nodes)} nodes)")
     return 0
