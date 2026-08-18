@@ -40,5 +40,6 @@
 | [0034](adr/ADR-0034-document-governance.md) | 文書統治とSDK能力カタログ |
 | [0035](adr/ADR-0035-standard-distribution.md) | SDK標準機構による配布とインストール |
 | [0036](adr/ADR-0036-ambient-plugin-install.md) | installed plugin自動読み込みによるインストール |
+| [0037](adr/ADR-0037-pep723-skill-scripts.md) | PEP 723によるSkill scriptの依存自己解決 |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。

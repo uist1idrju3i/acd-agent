@@ -33,10 +33,13 @@ git submodule status
 
 ## OpenHandsへのインストール（SDK標準ルート）
 
-配布版をOpenHands環境へ導入する場合は、repositoryをcloneせず、Python packageを
-不変refからインストールする。
+配布版をOpenHands環境へ導入する場合は、repositoryをcloneせず、pluginを
+installed plugin storeへインストールするだけでSkillを実行できる。Skill scriptは
+PEP 723のメタデータから`acd`を初回実行時に自己解決するため、ネットワーク接続と
+大きな依存パッケージのダウンロードが必要になる。
 
 ```bash
+# 開発checkout用、または任意の事前インストール:
 uv pip install "git+https://github.com/uist1idrju3i/acd-agent@<tag or SHA>"
 ```
 
@@ -106,10 +109,25 @@ ACDは次の値でinstallできる。
 リファレンスを省略するとdefault branchの先頭を取得する。再現性が必要な場合は
 不変ref（tagまたは40桁commit SHA）を指定する。短縮SHAはSDKのfetchが
 `git clone --branch`で解決するため使用できない。install後の挙動と契約は
-上記のambient自動読み込み経路（ADR-0036）と同一であり、Skillが呼ぶ`acd`
-Pythonパッケージ本体はADR-0035の`uv pip install`で別途導入する。
+上記のambient自動読み込み経路（ADR-0036）と同一である。Skill scriptの`acd`
+依存はPEP 723で自己解決されるため、hostのpip installとは独立している。
 digest固定server image（Docker image）はplugin installでは取得されず、ゲート実行時に
 `DockerWorkspace(server_image=...)`が初回pullする。
+
+### Skill script依存の自己解決（PEP 723）
+
+`acd`をimportするSkill scriptは先頭のPEP 723メタデータにpackage URLを持ち、
+`uv run --script <path>`が専用環境を作成してpinned refから依存を解決する。初回は
+ネットワーク接続が必要で、大型依存の取得に時間がかかるため、オフライン環境では
+初回実行が失敗する。開発checkoutのローカル変更を使う場合は`uv run python <path>`を
+使用する。
+
+package refを更新する場合は、`plugins/acd/skills/acd-package-ref.txt`を編集し、
+7つの対象scriptのPEP 723ヘッダーを同じrefへ更新する。その後、
+`uv run python scripts/verify_skill_metadata.py`で整合性を検証する。refはリリース後の
+commitまたはsemver tagを指定し、scriptとref fileはpluginのリリースと一緒に更新する。
+この自己解決経路はローカルSkill実行だけを扱い、ゲート実行の正であるdigest固定imageと
+authoritative Evidenceの契約は変更しない。
 
 ### アップデート
 
@@ -128,14 +146,16 @@ python -c "from openhands.sdk.plugin.installed import update_plugin; print(updat
 python -c "from openhands.sdk.plugin.installed import install_plugin; print(install_plugin('github:uist1idrju3i/acd-agent', ref='<new tag or SHA>', repo_path='plugins/acd', force=True))"
 ```
 
-`acd` Pythonパッケージ本体は、新しいrefを指定して再インストールする。
+Skill scriptのpackage refは`plugins/acd/skills/acd-package-ref.txt`で管理され、
+pluginの更新に含めて変更する。plugin refの更新はhostのpip installとは独立している。
+開発checkout用、または任意の事前インストールとしては、次のコマンドを利用できる。
 
 ```bash
 uv pip install --force-reinstall "git+https://github.com/uist1idrju3i/acd-agent@<new tag or SHA>"
 ```
 
-pluginとpackageは同じrefへ揃える。versionが分かれると、Skillが呼ぶscriptと
-`acd` moduleの契約がずれるためである。
+pluginとscriptのpackage refはリリース時に整合させる。versionが分かれると、
+Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 ### 将来のGUI掲載（marketplaceカタログ）
 

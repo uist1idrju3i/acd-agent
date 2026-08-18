@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@4cca489171ac53e6e55639b791c8571482167bd2",
+# ]
+# ///
 """Deterministic silkscreen label placement search (skill asset, not an ACD gate).
 
 Functional labels declared in the design graph without a fixed position are

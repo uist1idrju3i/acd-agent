@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@4cca489171ac53e6e55639b791c8571482167bd2",
+# ]
+# ///
 """Typed extraction of the firmware lane from a design graph.
 
 The design graph is the only source of firmware pin assignments. Projections

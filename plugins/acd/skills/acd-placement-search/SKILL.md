@@ -34,9 +34,13 @@ import sys
 
 sys.path.insert(0, "plugins/acd/skills/acd-placement-search/scripts")
 
-uv run python plugins/acd/skills/acd-placement-search/scripts/placement_search.py --input graph.json --fixture-dir fixtures/golden-design-1 --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json --output placements.json
+uv run --script plugins/acd/skills/acd-placement-search/scripts/placement_search.py --input graph.json --fixture-dir fixtures/golden-design-1 --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json --output placements.json
+uv run --script plugins/acd/skills/acd-placement-search/scripts/placement_score.py
 from placement_score import rank_candidates, score_placement
 ```
+
+`--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
+開発する場合は、従来どおり`uv run python <path>`を使用します。
 
 `acd.adapters.kicad.board.load_board_footprints()` と `board_keepouts()` で投影と同じ
 footprint 幾何・keepout を読み、`compute_placements()` に渡す。得られた `Placement` を
