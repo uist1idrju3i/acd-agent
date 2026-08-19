@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from acd.core.quote import read_quote
 from acd.schema.common import Revision, Sha256, Timestamp, canonical_json_sha256
+from acd.schema.fab_profile import FabProfileDocument
 from acd.schema.order_scope import OrderScope
 from acd.schema.quote import QuoteAmount, QuoteCategory, QuoteRecord
 
@@ -40,10 +41,13 @@ def aggregate_order_total(
     records: Sequence[QuoteRecord],
     scope: OrderScope,
     *,
+    fab_profile: FabProfileDocument,
     evaluated_at: Timestamp,
     target_revision: Revision,
 ) -> OrderTotalResult:
     """Aggregate revision-matched, confirmed quote fee items."""
+    if fab_profile.profile_id != scope.fab_profile_id:
+        raise OrderTotalError("fab profile does not match order scope")
     if scope.target_revision != target_revision:
         raise OrderTotalError("order scope target revision does not match")
     if not records:
@@ -54,6 +58,8 @@ def aggregate_order_total(
     category_amounts: dict[QuoteCategory, int] = {}
     categories: set[QuoteCategory] = set()
     quote_hashes: list[QuoteCanonicalHash] = []
+    declared_total_minor = 0
+    mechanical_ids: set[str] = set()
 
     for record in records:
         if record.quote_id in quote_ids:
@@ -70,6 +76,7 @@ def aggregate_order_total(
             or record.declared_total.minor_unit_digits != scope.minor_unit_digits
         ):
             raise OrderTotalError("quote declared total currency does not match scope")
+        declared_total_minor += record.declared_total.amount_minor
 
         fee_set = read_quote(
             record,
@@ -91,6 +98,8 @@ def aggregate_order_total(
                 or item.amount.minor_unit_digits != scope.minor_unit_digits
             ):
                 raise OrderTotalError("quote item currency does not match scope")
+            if item.category == "mechanical":
+                mechanical_ids.add(item.item_id)
             categories.add(item.category)
             category_amounts[item.category] = (
                 category_amounts.get(item.category, 0) + item.amount.amount_minor
@@ -115,12 +124,6 @@ def aggregate_order_total(
                 f"order scope does not permit a {category} fee item"
             )
 
-    mechanical_ids = {
-        item.item_id
-        for record in records
-        for item in record.items
-        if item.category == "mechanical"
-    }
     if scope.mechanical_treatment == "included":
         expected_ids = set(scope.mechanical_item_ids or ())
         if mechanical_ids != expected_ids:
@@ -141,12 +144,13 @@ def aggregate_order_total(
         )
         for category, amount_minor in sorted(category_amounts.items())
     )
-    computed_total_minor = sum(category_amounts.values())
     subtotal_total = sum(item.amount.amount_minor for item in subtotals)
-    if subtotal_total != computed_total_minor:
-        raise OrderTotalError("order subtotal total is inconsistent")
+    if declared_total_minor != subtotal_total:
+        raise OrderTotalError(
+            "quote declared totals do not match order fee subtotals"
+        )
     total = QuoteAmount(
-        amount_minor=computed_total_minor,
+        amount_minor=subtotal_total,
         currency=scope.currency,
         minor_unit_digits=scope.minor_unit_digits,
     )

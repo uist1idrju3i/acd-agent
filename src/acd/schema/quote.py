@@ -56,7 +56,7 @@ class QuoteLineItem(QuoteModel):
 
     @model_validator(mode="after")
     def validate_category_fields(self) -> QuoteLineItem:
-        if self.category in ("board", "components"):
+        if self.category in ("board", "components", "mechanical"):
             required_values = (
                 ("quantity", self.quantity),
                 ("stock_quantity", self.stock_quantity),

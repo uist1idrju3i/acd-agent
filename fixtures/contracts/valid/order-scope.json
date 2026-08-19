@@ -2,7 +2,7 @@
   "schema_version": "0.1",
   "scope_id": "gd1-order-scope",
   "target_revision": "r12",
-  "fab_profile_id": "example-fab",
+  "fab_profile_id": "jlcpcb-fr4-2l-1oz",
   "counterparty_type": "fab",
   "allowed_suppliers": [
     "Example Fab"

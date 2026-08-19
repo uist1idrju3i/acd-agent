@@ -298,7 +298,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 7.1の費目、fab profileの宣言値、筐体・機械部品を含む対象範囲の宣言 |
-| 実装 | 基板、部品、実装、送料、税を合算する契約を実装し、内訳と対象revisionを記録する |
+| 実装 | fab profile一致を確認し、基板、部品、実装、機械部品、送料、税を合算する契約を実装し、内訳と対象revisionを記録する |
 | 正常系 | GD1の総発注額が内訳付きで確定し、上限額との比較が決定論的に行える |
 | negative/fail-closed | 費目欠落、通貨・税条件不明、内訳と総額の不一致を`unknown`として停止する |
 | 再現性 | 同一の見積入力集合から同一の総額と内訳hashを再生成する |
@@ -307,8 +307,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 送料・税の扱い、機械部品の扱い、通貨・桁数を明示する入力契約である。`QuoteRecord`の
 供給者申告総額は費目合計と契約validatorで照合し、`aggregate_order_total()`は7.1の
 `read_quote()`を再利用して一次確認済み・期限内の費目だけを区分別に合算する。返却する
-小計、総額、各見積のcanonical hash、内訳hashは再現性のための入力結果であり、上限額との
-比較、合否、Evidence、発注許可は7.3以降の責務としてこの層へ導入しない。
+小計、総額、各見積のcanonical hash、内訳hashは再現性のための入力結果であり、各recordの
+供給者申告総額の合計と内訳から積み上げた総額も突合する。上限額との比較、合否、Evidence、
+発注許可は7.3以降の責務としてこの層へ導入しない。
 
 ### 7.3 発注前最終ゲート
 

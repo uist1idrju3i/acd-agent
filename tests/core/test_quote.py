@@ -131,3 +131,19 @@ def test_quote_declared_total_matches_item_currency_and_scale() -> None:
     declared_total["currency"] = "EUR"
     with pytest.raises(ValidationError):
         QuoteRecord.model_validate(value)
+
+
+def test_mechanical_quote_item_requires_inventory_fields() -> None:
+    value = json.loads(
+        (ROOT / "fixtures/contracts/valid/quote-order.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    items = cast(list[dict[str, object]], value["items"])
+    mechanical = next(item for item in items if item["category"] == "mechanical")
+    mechanical["quantity"] = None
+    mechanical["stock_quantity"] = None
+    mechanical["lead_time_days"] = None
+
+    with pytest.raises(ValidationError, match="mechanical"):
+        QuoteRecord.model_validate(value)
