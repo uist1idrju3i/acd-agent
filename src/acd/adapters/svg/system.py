@@ -87,10 +87,6 @@ def _block_edges(
 ) -> list[tuple[str, str]]:
     edges: set[tuple[str, str]] = set()
     for node in nodes.values():
-        if not node.depends_on and node.kind == "electrical.board":
-            raise SvgVisualProjectionError(
-                f"system block node has empty depends_on: {node.id!r}"
-            )
         for dependency in sorted(node.depends_on):
             try:
                 target = graph.node_by_id(dependency)

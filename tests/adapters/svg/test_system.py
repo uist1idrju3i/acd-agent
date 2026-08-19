@@ -187,11 +187,19 @@ def test_unknown_node_kind_fails_closed(tmp_path: Path) -> None:
 
 def test_empty_block_dependencies_fail_closed(tmp_path: Path) -> None:
     graph = _graph()
-    board = next(node for node in graph.nodes if node.kind == "electrical.board")
+    drawable_kinds = {
+        "electrical.board",
+        "electrical.component",
+        "electrical.net",
+        "firmware.module",
+        "safety.boundary",
+    }
     graph = graph.model_copy(
         update={
             "nodes": [
-                node.model_copy(update={"depends_on": []}) if node is board else node
+                node.model_copy(update={"depends_on": []})
+                if node.kind in drawable_kinds
+                else node
                 for node in graph.nodes
             ]
         }
