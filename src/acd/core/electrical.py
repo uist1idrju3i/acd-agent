@@ -130,6 +130,7 @@ class BoardView:
     width_basis_equation: str | None = None
     width_basis_source: str | None = None
     width_measurement_tolerance_mm: float | None = None
+    copper_layers: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -410,6 +411,11 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     ground_plane_net=_optional_str(node, "ground_plane_net"),
                     ground_plane_layers=tuple(
                         _optional_string_list(node, "ground_plane_layers")
+                    ),
+                    copper_layers=(
+                        None
+                        if "copper_layers" not in node.attrs
+                        else tuple(_optional_string_list(node, "copper_layers"))
                     ),
                     ground_plane_min_island_area_mm2=_optional_number(
                         node, "ground_plane_min_island_area_mm2"

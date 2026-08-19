@@ -9,16 +9,20 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from acd.adapters.kicad.cli import KicadCli
 from acd.adapters.kicad.gates import GateError
 from acd.adapters.kicad.visual_projection import KicadVisualRenderer
 from acd.core.board_model import BoardModel, CopperZone
-from acd.core.design_predicates import PredicateResult
 from acd.core.electrical import BoardView, ElectricalLane
 from acd.core.process import ExternalToolError
 from acd.pipeline.visual_projection import generate_electrical_visual_projections
-from acd.schema.visual_projection import VisualProjectionSet
+from acd.schema.visual_projection import (
+    ElectricalVisualProjectionGates,
+    ElectricalVisualProjectionPredicate,
+    VisualProjectionSet,
+)
 
 _FAKE_KICAD = """\
 #!/usr/bin/env python3
@@ -86,35 +90,29 @@ def _lane_and_board() -> tuple[ElectricalLane, BoardModel]:
     return lane, board
 
 
-def _passing_gates() -> dict[str, object]:
-    return {
-        "erc_errors": 0,
-        "erc_unconnected": 0,
-        "routing_converged": True,
-        "drc_errors": 0,
-        "drc_unconnected": 0,
-        "independent_reload": True,
-        "silkscreen_status": "measured_pass",
-        "dfm_status": "pass",
-        "order_readiness_status": "ready",
-        "design_predicates": tuple(
-            PredicateResult(name=name, status="pass", detail="ok")
-            for name in (
-                "usb_cc",
-                "i2c_pullup",
-                "strapping_pin",
-                "pin_firmware_alignment",
-                "power_decoupling",
-                "power_boundary",
-            )
+def _passing_gates(
+    predicate_names: tuple[str, ...] = ("usb_cc",),
+) -> ElectricalVisualProjectionGates:
+    return ElectricalVisualProjectionGates(
+        erc_errors=0,
+        erc_unconnected=0,
+        routing_converged=True,
+        drc_errors=0,
+        drc_unconnected=0,
+        independent_reload=True,
+        silkscreen_status="measured_pass",
+        dfm_status="pass",
+        design_predicates=tuple(
+            ElectricalVisualProjectionPredicate(name=name, status="pass", detail="ok")
+            for name in predicate_names
         ),
-    }
+    )
 
 
 def _generate(
     out_dir: Path,
     renderer: KicadVisualRenderer,
-    gates: dict[str, object] | None = None,
+    gates: ElectricalVisualProjectionGates | None = None,
 ) -> VisualProjectionSet:
     lane, board = _lane_and_board()
     source_schematic = out_dir / "gd1.kicad_sch"
@@ -163,6 +161,7 @@ def test_generates_electrical_projection_set_without_changing_evidence(
         (tmp_path / "out" / item.image_path).is_file()
         for item in projection_set.projections
     )
+    assert not (tmp_path / "out/hashes.json").exists()
     assert evidence.read_bytes() == before
 
 
@@ -178,17 +177,49 @@ def test_gate_failures_stop_before_renderer(
     tmp_path: Path,
     mutation: str,
 ) -> None:
-    gates = _passing_gates()
-    if mutation == "fail":
-        gates["dfm_status"] = "fail"
-    elif mutation == "unknown":
-        gates["dfm_status"] = "unknown"
-    else:
-        gates.pop("dfm_status")
+    gates = _passing_gates().model_copy(
+        update={"dfm_status": "fail" if mutation == "fail" else "unknown"}
+    )
+    if mutation == "missing":
+        with pytest.raises(ValidationError):
+            ElectricalVisualProjectionGates.model_validate(
+                gates.model_dump(mode="json", exclude={"dfm_status"})
+            )
+        return
 
     with pytest.raises(GateError, match="visual projection gate dfm_status"):
         _generate(tmp_path / "out", _renderer(tmp_path), gates)
     assert not (tmp_path / "out/visual-projections-electrical.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("erc_errors", -1),
+        ("silkscreen_status", "unexpected"),
+        ("dfm_status", "unknown"),
+        ("dfm_status", "unexpected"),
+        ("design_predicates", ()),
+    ],
+)
+def test_gate_contract_rejects_invalid_values(
+    field: str,
+    value: object,
+) -> None:
+    payload = _passing_gates().model_dump(mode="json")
+    payload[field] = value
+    with pytest.raises(ValidationError):
+        ElectricalVisualProjectionGates.model_validate(payload)
+
+
+def test_predicate_count_is_not_fixed(tmp_path: Path) -> None:
+    predicate_names = tuple(f"predicate-{index}" for index in range(7))
+    projection_set = _generate(
+        tmp_path / "out",
+        _renderer(tmp_path),
+        _passing_gates(predicate_names),
+    )
+    assert projection_set.projections
 
 
 @pytest.mark.parametrize("environment_variable", ["FAKE_FAILURE", "FAKE_MISSING_OUTPUT"])
@@ -222,7 +253,7 @@ def test_missing_or_unknown_declared_copper_layers_fails_closed(
     lane, board = _lane_and_board()
     lane = replace(lane, board=replace(lane.board, ground_plane_layers=declared_layers))
     board = replace(board, copper_zones=())
-    with pytest.raises(GateError, match="copper layer declaration"):
+    with pytest.raises(ValueError, match="copper layer declaration"):
         generate_electrical_visual_projections(
             project_name="gd1",
             out_dir=tmp_path,
@@ -234,3 +265,27 @@ def test_missing_or_unknown_declared_copper_layers_fails_closed(
             gates=_passing_gates(),
             renderer=_renderer(tmp_path),
         )
+
+
+def test_explicit_board_copper_layers_take_precedence(tmp_path: Path) -> None:
+    lane, board = _lane_and_board()
+    board = replace(board, copper_layers=("In1.Cu",))
+    schematic = tmp_path / "gd1.kicad_sch"
+    routed_board = tmp_path / "gd1.kicad_pcb"
+    schematic.write_text("schematic")
+    routed_board.write_text("board")
+    projection_set = generate_electrical_visual_projections(
+        project_name="gd1",
+        out_dir=tmp_path,
+        source_revision="r8",
+        schematic=schematic,
+        routed_board=routed_board,
+        lane=lane,
+        board=board,
+        gates=_passing_gates(),
+        renderer=_renderer(tmp_path),
+    )
+    assert [item.projection_id for item in projection_set.projections] == [
+        "gd1-in1-cu",
+        "gd1-schematic",
+    ]

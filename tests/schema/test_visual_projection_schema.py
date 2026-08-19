@@ -57,11 +57,8 @@ def _set(*projections: dict[str, object]) -> dict[str, object]:
         "projections": list(projections),
         "canonical_hash": "unknown",
     }
-    parsed = VisualProjectionSet.model_validate(value)
-    value["identity_hash"] = parsed.computed_identity_hash()
-    parsed = VisualProjectionSet.model_validate(value)
-    value["canonical_hash"] = parsed.computed_canonical_hash()
-    return value
+    parsed = VisualProjectionSet.model_validate(value).with_computed_hashes()
+    return parsed.model_dump(mode="json")
 
 
 def test_visual_projection_set_validates_and_self_hashes() -> None:

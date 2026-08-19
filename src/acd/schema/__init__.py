@@ -99,6 +99,8 @@ from acd.schema.receipt import (
 )
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
 from acd.schema.visual_projection import (
+    ElectricalVisualProjectionGates,
+    ElectricalVisualProjectionPredicate,
     VisualProjectionDomain,
     VisualProjectionInput,
     VisualProjectionRecord,
@@ -125,6 +127,8 @@ __all__ = [
     "ConvergenceState",
     "DecisionKind",
     "DesignGraph",
+    "ElectricalVisualProjectionGates",
+    "ElectricalVisualProjectionPredicate",
     "EventViewEntry",
     "EventViewProjection",
     "Evidence",

@@ -7,7 +7,7 @@ import re
 from pathlib import PurePosixPath, PureWindowsPath
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, StrictBool, StrictInt, field_validator, model_validator
 
 from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
@@ -26,6 +26,7 @@ from acd.schema.common import (
 VisualProjectionType = Literal["schematic_view", "layered_layout_view"]
 VisualProjectionDomain = Literal["electrical", "mechanical", "firmware", "system"]
 VisualRegenerationStatus = Literal["reproduced", "not_reproduced", "unknown"]
+VisualGateStatus = Literal["pass", "fail"]
 
 _VERSION_UNKNOWN = "unknown"
 _DIMENSION_PATTERN = re.compile(
@@ -113,6 +114,26 @@ class VisualRegenerationCheck(AcdModel):
         return self
 
 
+class ElectricalVisualProjectionPredicate(AcdModel):
+    name: NonEmptyStr
+    status: VisualGateStatus
+    detail: NonEmptyStr
+
+
+class ElectricalVisualProjectionGates(AcdModel):
+    """Deterministic electrical gates required before visual projection."""
+
+    erc_errors: StrictInt = Field(ge=0)
+    erc_unconnected: StrictInt = Field(ge=0)
+    routing_converged: StrictBool
+    drc_errors: StrictInt = Field(ge=0)
+    drc_unconnected: StrictInt = Field(ge=0)
+    independent_reload: StrictBool
+    silkscreen_status: Literal["measured_pass", "fail"]
+    dfm_status: Literal["pass", "fail"]
+    design_predicates: tuple[ElectricalVisualProjectionPredicate, ...] = Field(min_length=1)
+
+
 class VisualProjectionRecord(AcdModel):
     schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
     artifact_kind: Literal["visual_projection"] = "visual_projection"
@@ -197,3 +218,13 @@ class VisualProjectionSet(AcdModel):
 
     def computed_canonical_hash(self) -> Sha256:
         return canonical_json_sha256(self.model_dump(mode="json", exclude={"canonical_hash"}))
+
+    def with_computed_hashes(self) -> VisualProjectionSet:
+        identity_hash = self.computed_identity_hash()
+        payload = self.model_dump(mode="json")
+        payload["identity_hash"] = identity_hash
+        payload["canonical_hash"] = "unknown"
+        payload["canonical_hash"] = canonical_json_sha256(
+            {key: value for key, value in payload.items() if key != "canonical_hash"}
+        )
+        return type(self).model_validate(payload)

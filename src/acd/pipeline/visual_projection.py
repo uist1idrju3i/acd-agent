@@ -3,81 +3,70 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
 from pathlib import Path
-from typing import cast
 
 from acd.adapters.kicad.gates import GateError
 from acd.adapters.kicad.visual_projection import KicadVisualRenderer
 from acd.core.board_model import BoardModel
-from acd.core.design_predicates import PredicateResult
 from acd.core.electrical import ElectricalLane
-from acd.schema.visual_projection import VisualProjectionSet
-
-_PREDICATE_COUNT = 6
-_MISSING = object()
-
-
-def _require_zero(gates: Mapping[str, object], key: str) -> None:
-    value = gates.get(key, _MISSING)
-    if isinstance(value, bool) or not isinstance(value, int) or value != 0:
-        raise GateError(f"visual projection gate {key} did not pass (fail-closed)")
+from acd.schema.visual_projection import (
+    ElectricalVisualProjectionGates,
+    VisualProjectionSet,
+)
 
 
-def _require_true(gates: Mapping[str, object], key: str) -> None:
-    if gates.get(key, _MISSING) is not True:
-        raise GateError(f"visual projection gate {key} did not pass (fail-closed)")
-
-
-def _require_status(gates: Mapping[str, object], key: str, expected: str) -> None:
-    if gates.get(key, _MISSING) != expected:
-        raise GateError(f"visual projection gate {key} did not pass (fail-closed)")
-
-
-def _assert_gates_passed(gates: Mapping[str, object]) -> None:
-    _require_zero(gates, "erc_errors")
-    _require_zero(gates, "erc_unconnected")
-    _require_true(gates, "routing_converged")
-    _require_zero(gates, "drc_errors")
-    _require_zero(gates, "drc_unconnected")
-    _require_true(gates, "independent_reload")
-    _require_status(gates, "silkscreen_status", "measured_pass")
-    _require_status(gates, "dfm_status", "pass")
-    _require_status(gates, "order_readiness_status", "ready")
-    predicates_value = gates.get("design_predicates", _MISSING)
-    if not isinstance(predicates_value, tuple):
-        raise GateError("visual projection design predicates are incomplete (fail-closed)")
-    predicates = cast(tuple[object, ...], predicates_value)
-    if len(predicates) != _PREDICATE_COUNT:
-        raise GateError("visual projection design predicates are incomplete (fail-closed)")
-    if not all(
-        isinstance(predicate, PredicateResult) and predicate.status == "pass"
-        for predicate in predicates
-    ):
+def _assert_gates_passed(gates: ElectricalVisualProjectionGates) -> None:
+    if gates.erc_errors != 0:
+        raise GateError("visual projection gate erc_errors did not pass (fail-closed)")
+    if gates.erc_unconnected != 0:
+        raise GateError("visual projection gate erc_unconnected did not pass (fail-closed)")
+    if not gates.routing_converged:
+        raise GateError("visual projection gate routing_converged did not pass (fail-closed)")
+    if gates.drc_errors != 0:
+        raise GateError("visual projection gate drc_errors did not pass (fail-closed)")
+    if gates.drc_unconnected != 0:
+        raise GateError("visual projection gate drc_unconnected did not pass (fail-closed)")
+    if not gates.independent_reload:
+        raise GateError("visual projection gate independent_reload did not pass (fail-closed)")
+    if gates.silkscreen_status != "measured_pass":
+        raise GateError("visual projection gate silkscreen_status did not pass (fail-closed)")
+    if gates.dfm_status != "pass":
+        raise GateError("visual projection gate dfm_status did not pass (fail-closed)")
+    if any(predicate.status != "pass" for predicate in gates.design_predicates):
         raise GateError("visual projection design predicates did not pass (fail-closed)")
 
 
 def _declared_copper_layers(lane: ElectricalLane, board: BoardModel) -> tuple[str, ...]:
-    declarations: list[str] = list(lane.board.ground_plane_layers)
-    for zone in board.copper_zones:
-        declarations.extend(zone.layers)
+    explicit_layers = (
+        board.copper_layers
+        if board.copper_layers is not None
+        else lane.board.copper_layers
+    )
+    if explicit_layers is not None:
+        declarations = list(explicit_layers)
+        if not declarations:
+            raise ValueError("visual projection copper layer declaration is empty")
+    else:
+        declarations = list(lane.board.ground_plane_layers)
+        for zone in board.copper_zones:
+            declarations.extend(zone.layers)
     if not declarations:
-        raise GateError("visual projection copper layer declaration is missing (fail-closed)")
+        raise ValueError("visual projection copper layer declaration is missing")
     layers: list[str] = []
     for layer in declarations:
         if not layer.strip() or not layer.endswith(".Cu"):
-            raise GateError("visual projection copper layer declaration is invalid (fail-closed)")
+            raise ValueError("visual projection copper layer declaration is invalid")
         if layer not in layers:
             layers.append(layer)
     if not layers:
-        raise GateError("visual projection copper layer declaration is empty (fail-closed)")
+        raise ValueError("visual projection copper layer declaration is empty")
     return tuple(layers)
 
 
 def _node_id_fragment(value: str) -> str:
     fragment = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     if not fragment:
-        raise GateError("visual projection identifier declaration is invalid (fail-closed)")
+        raise ValueError("visual projection identifier declaration is invalid")
     return fragment
 
 
@@ -90,7 +79,7 @@ def generate_electrical_visual_projections(
     routed_board: Path,
     lane: ElectricalLane,
     board: BoardModel,
-    gates: Mapping[str, object],
+    gates: ElectricalVisualProjectionGates,
     renderer: KicadVisualRenderer | None = None,
 ) -> VisualProjectionSet:
     """Generate the electrical visual projection set after passing all gates."""
@@ -132,18 +121,7 @@ def generate_electrical_visual_projections(
         source_revision=source_revision,
         projections=records,
     )
-    projection_set = VisualProjectionSet.model_validate(
-        {
-            **projection_set.model_dump(mode="json"),
-            "identity_hash": projection_set.computed_identity_hash(),
-        }
-    )
-    projection_set = VisualProjectionSet.model_validate(
-        {
-            **projection_set.model_dump(mode="json"),
-            "canonical_hash": projection_set.computed_canonical_hash(),
-        }
-    )
+    projection_set = projection_set.with_computed_hashes()
     output_path = out_dir / "visual-projections-electrical.json"
     output_path.write_text(
         projection_set.model_dump_json(indent=2) + "\n",

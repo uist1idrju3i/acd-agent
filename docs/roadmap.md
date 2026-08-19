@@ -365,7 +365,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 電気laneの決定論的ゲート通過後の投影成果物、現行revision。機械laneの断面・干渉ビューはrenderer未実装のため対象外 |
-| 実装 | GD1基板pipelineのゲート通過後に電気laneの回路図ビューと宣言銅層ごとの層別レイアウトビューを既定生成し、投影集合をL3 observationとして書き出す。生成失敗はpipelineの停止条件とし、Evidenceへは昇格させない |
+| 実装 | GD1基板pipelineのERC、routing収束、DRC、独立再読込、silkscreen、DFM、設計述語の決定論的ゲート通過後に電気laneの回路図ビューと宣言銅層ごとの層別レイアウトビューを既定生成し、投影集合をL3 observationとして書き出す。order readinessは視覚投影の前提に含めない。生成失敗はpipelineの停止条件とし、Evidenceへは昇格させない |
 | 正常系 | GD1基板pipelineの完走時に電気laneの投影集合が観測として残る。機械laneは後続フェーズで扱う |
 | negative/fail-closed | ゲート未通過での生成、投影欠落の「問題なし」扱い、Evidence側への書込みを拒否する |
 | 再現性 | `generated_at`を除いた投影内容からidentity hashを計算し、同一入力・同一renderer版で同一のidentity hashを再生成できる |

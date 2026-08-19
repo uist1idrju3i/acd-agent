@@ -131,6 +131,7 @@ class BoardModel:
     stitch_via_net: str | None = None
     stitch_via_refill_max_iterations: int | None = None
     netclasses: tuple[NetClass, ...] = ()
+    copper_layers: tuple[str, ...] | None = None
 
     def placement_by_refdes(self, refdes: str) -> ComponentPlacement:
         for placement in self.placements:
