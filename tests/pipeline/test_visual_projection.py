@@ -35,6 +35,8 @@ if sys.argv[1:] == ["version"]:
 if os.getenv("FAKE_FAILURE"):
     raise SystemExit(7)
 output = pathlib.Path(sys.argv[sys.argv.index("-o") + 1])
+if sys.argv[1:4] == ["sch", "export", "svg"]:
+    output = output / (pathlib.Path(sys.argv[-1]).stem + ".svg")
 if os.getenv("FAKE_MISSING_OUTPUT"):
     raise SystemExit(0)
 output.parent.mkdir(parents=True, exist_ok=True)

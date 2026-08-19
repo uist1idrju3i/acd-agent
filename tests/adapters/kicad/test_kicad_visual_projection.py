@@ -22,10 +22,12 @@ if sys.argv[1:] == ["version"]:
     raise SystemExit(0)
 
 output = pathlib.Path(sys.argv[sys.argv.index("-o") + 1])
+if sys.argv[1:4] == ["sch", "export", "svg"]:
+    output = output / (pathlib.Path(sys.argv[-1]).stem + ".svg")
 output.parent.mkdir(parents=True, exist_ok=True)
 extra = (
     '<path d="different"/>'
-    if os.getenv("FAKE_MISMATCH") and "reproduced" in output.name
+    if os.getenv("FAKE_MISMATCH") and "reproduction" in output.parts
     else '<path d="same"/>'
 )
 output.write_text(

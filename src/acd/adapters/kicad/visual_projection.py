@@ -54,18 +54,22 @@ class KicadVisualRenderer:
     ) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         if projection_type == "schematic_view":
+            generated_output = output.parent / f"{source.stem}.svg"
+            if generated_output.exists():
+                generated_output.unlink()
             command = [
                 self.kicad.executable,
                 "sch",
                 "export",
                 "svg",
                 "-o",
-                str(output),
+                str(output.parent),
                 str(source),
             ]
         else:
             if layer is None or not layer.strip():
                 raise ExternalToolError("layered layout view requires a layer")
+            generated_output = output
             command = [
                 self.kicad.executable,
                 "pcb",
@@ -83,11 +87,18 @@ class KicadVisualRenderer:
             format_version="SVG",
             command=command,
             input_paths=[source],
-            output_paths=[output],
+            output_paths=[generated_output],
             envelope_path=envelope,
             target_revision=target_revision,
             measurement_conditions="single SVG export; measured root dimensions",
         )
+        if generated_output != output:
+            try:
+                generated_output.replace(output)
+            except OSError as exc:
+                raise ExternalToolError(
+                    "kicad-cli schematic SVG output could not be normalized to target path"
+                ) from exc
 
     @staticmethod
     def _resolve_within_base(path: Path, base_dir: Path, field_name: str) -> Path:
