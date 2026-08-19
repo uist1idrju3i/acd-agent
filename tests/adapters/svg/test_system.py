@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, get_args
 
 import pytest
 
@@ -19,7 +19,7 @@ from acd.adapters.svg.system import (
 )
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.visual_projection import measure_svg_resolution
-from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 
 ROOT = Path(__file__).parents[3]
 GRAPH_PATH = ROOT / "fixtures/golden-design-1/graph.json"
@@ -205,8 +205,8 @@ def test_incomplete_block_node_kind_partition_fails_closed(
 ) -> None:
     monkeypatch.setattr(
         system_module,
-        "_BLOCK_OMIT_KINDS",
-        cast(frozenset[str], frozenset()),
+        "_KNOWN_NODE_KINDS",
+        frozenset((*get_args(NodeKind), "future.node")),
     )
     with pytest.raises(SvgVisualProjectionError, match="classification"):
         _generate(tmp_path)

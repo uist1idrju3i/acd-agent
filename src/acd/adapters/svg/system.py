@@ -33,7 +33,28 @@ _BLOCK_DRAW_KINDS = frozenset(
         "safety.boundary",
     }
 )
-_BLOCK_OMIT_KINDS = frozenset(_KNOWN_NODE_KINDS - _BLOCK_DRAW_KINDS)
+_BLOCK_OMIT_KINDS = frozenset(
+    {
+        # Pin-level electrical nodes are represented through component blocks.
+        "electrical.pin",
+        # Requirements and manufacturing intents are not system blocks.
+        "requirement",
+        "fab.order_intent",
+        "fab.process_allowance",
+        # Mechanical geometry and graphics belong to mechanical projections.
+        "mechanical.outline",
+        "mechanical.component_body",
+        "mechanical.connector_opening",
+        "mechanical.board_edge_overhang",
+        "mechanical.enclosure",
+        "mechanical.silk_text",
+        "mechanical.silk_graphic",
+        # Firmware pin assignments are not firmware module blocks.
+        "firmware.pin_assignment",
+        # Evidence anchors are provenance references, not system blocks.
+        "evidence.anchor",
+    }
+)
 
 
 def validate_block_node_kind_partition() -> None:
