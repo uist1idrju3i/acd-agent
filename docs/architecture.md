@@ -232,7 +232,16 @@ destinationを事前予定と突合する。
 も停止条件とする。
 
 このjournalはEvidenceでも合否判定でもなく、新たな発注許可を作らない。journal層は
-追記・検証・再構成だけを担い、実際の送信と発注は7.5の責務である。
+追記・検証・再構成だけを担い、7.5のdry-run記録以外の送信と発注は行わない。
+entryの`execution_mode`は`dry_run`または`real`で、pre/postで一致しなければ停止する。
+dry-runの組は実発注完了を満たさず、real modeは未有効化としてOpenHands runnerが
+明示的に拒否する。
+
+自働発注runnerは7.3の許可recordオブジェクトからrevision・総額・許可hashを導出し、
+credentialの値ではなくallowlist済み`SecretRegistry`参照名だけを受け取る。上限額を
+runtimeや会話から上書きする引数・環境変数経路はない。SDKのconfirmation policyが
+medium/high riskの確認を要求し、既存の必須hookが宣言されている場合だけdry-runを
+journalへ記録する。実providerへの送信経路は本マイルストーンでは未実装である。
 
 再実行は`scripts/pre_order_gate.py --rerun-authoritative`からdigest固定
 `DockerWorkspace`経路を明示的に呼び出す。check-onlyは既存Evidenceだけを検査し、

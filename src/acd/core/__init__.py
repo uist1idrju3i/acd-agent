@@ -19,6 +19,7 @@ from acd.core.firmware import (
     evaluate_functional_run,
     load_and_evaluate_functional_run,
 )
+from acd.core.order_execution import build_dry_run_order_payload
 from acd.core.order_total import (
     OrderSubtotal,
     OrderTotalError,
@@ -74,6 +75,7 @@ __all__ = [
     "aggregate_order_total",
     "append_post_order",
     "append_pre_order",
+    "build_dry_run_order_payload",
     "build_receipt_evidence",
     "check_rationale_coverage",
     "evaluate_functional_run",

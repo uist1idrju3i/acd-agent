@@ -208,6 +208,31 @@ CLIはentry契約、entry自身のhash、直前entryとのhash連鎖、冪等key
 並べ替えられた行、存在しない・読み出し不能なjournalは非ゼロ終了で停止する。この層はjournalの記録と
 再構成だけを行い、送信・発注・新しい発注許可は作らない。
 
+### 自働発注dry-run
+
+7.5のCLIはdry-runが既定であり、7.3の許可record、journal、製造data package hash、
+宛先、対象revision、allowlist済みcredential参照名、実行時刻を受け取る。
+
+```bash
+uv run python scripts/order_execution.py \
+  --permit out/pre-order-gate.json \
+  --journal out/side-effect-journal.jsonl \
+  --idempotency-key order-20260814 \
+  --package-hash sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+  --destination supplier.example \
+  --target-revision r1 \
+  --credential-reference ACD_API_KEY \
+  --occurred-at 2026-08-14T00:00:00Z
+```
+
+出力payloadはpackage hash、宛先、対象revision、総額、許可hashだけから作られ、
+secret値、Evidence内容、時刻を含めない。journalには`dry_run`のpre/post組を記録するが、
+これは実発注完了として扱えない。`--real`は実providerへ送信せず、「real provider order
+execution is not enabled」として非ゼロ終了する。confirmation policyのskip、必須hook不在、
+credential参照名のallowlist外、上限額override、冪等key再送、provider scriptの非ゼロ終了、
+post記録失敗は停止条件である。実providerへの送信は本マイルストーンの範囲外であり、
+credentialの値を引数・journal・ログ・stdoutへ渡してはならない。
+
 4. 実行済みのGD1基板pipelineでは、回路図
    `out/gd1/gd1.kicad_sch`、routed board
    `out/gd1/routed/gd1.kicad_pcb`、Gerberの

@@ -26,6 +26,9 @@
 | order_total_limit | `OrderPolicy`に宣言する、最小通貨単位の整数・通貨・最小単位桁数による発注総額上限。 |
 | side-effect journal | 7.3の許可recordを参照する不可逆操作の事前予定と事後結果を、entry hash連鎖付きJSON Linesへ追記する記録。Evidence、合否権限、発注許可ではない。 |
 | journal entry hash | side-effect journal entry本体をcanonical JSON化したhash。entry自身の内容を検証し、直前entry hashと連鎖する。 |
+| execution mode | journal entryに記録する`dry_run`または`real`。pre/postで一致させ、dry-run組は実発注完了とみなさない。 |
+| order execution dry-run | 7.3許可と7.4 journalを前提に、secret値や外部送信を伴わず、決定論的な送信payloadとreceiptを記録する実行。 |
+| real-order disabled boundary | 実providerへの送信を未有効化として明示的に拒否する7.5の停止境界。 |
 | 送付manifest | 製造・組立へ送付した成果物の相対path、content hash、対象revisionを記録するmanifest。 |
 | 突合（reconciliation） | 送付manifestと受領recordの成果物一覧、hash、対象revisionを決定論的に比較する処理。 |
 | 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |

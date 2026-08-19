@@ -66,6 +66,11 @@ from acd.schema.model_routing import (
 )
 from acd.schema.observation import ObservationArtifactKind, ObservationPayload
 from acd.schema.observation_log import ObservationLogEvent, ObservationLogRecord
+from acd.schema.order_execution import (
+    DryRunExecutionMode,
+    DryRunOrderPayload,
+    dry_run_payload_hash,
+)
 from acd.schema.order_policy import (
     REQUIRED_ORDER_EVIDENCE_IDS,
     EvidenceReference,
@@ -117,6 +122,7 @@ from acd.schema.receipt import (
     ShipmentManifestReference,
 )
 from acd.schema.side_effect_journal import (
+    ExecutionMode,
     JournalEntryBody,
     JournalEntryType,
     JournalResultStatus,
@@ -169,6 +175,8 @@ __all__ = [
     "CrosscheckStatus",
     "DecisionKind",
     "DesignGraph",
+    "DryRunExecutionMode",
+    "DryRunOrderPayload",
     "ElectricalVisualProjectionGates",
     "ElectricalVisualProjectionPredicate",
     "EventViewEntry",
@@ -177,6 +185,7 @@ __all__ = [
     "EvidenceClaim",
     "EvidenceReference",
     "EvidenceStatus",
+    "ExecutionMode",
     "FabProfileDocument",
     "FeedbackItemStatus",
     "FeedbackPolicy",
@@ -278,5 +287,6 @@ __all__ = [
     "canonical_json_sha256",
     "canonical_sha256",
     "contains_unknown",
+    "dry_run_payload_hash",
     "is_unknown",
 ]

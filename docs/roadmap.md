@@ -57,7 +57,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
-| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 一部達成（7.1〜7.4、7.5未完） |
+| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 7.5 dry-run・拒否境界まで達成（実発注は本範囲外） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
@@ -333,12 +333,18 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 ### 7.5 自働発注の実行
 
+ユーザー決定により、本マイルストーンの実装範囲は決定論的なdry-runと拒否境界まで
+とする。実providerへの送信と実発注完了は実装せず、real modeは未有効化として明示的に
+停止する境界だけを持つ。したがって、下表の「正常系」はdry-runのjournal記録までを
+対象とし、実発注完了は将来マイルストーンへ残す。これは完了条件を緩める変更ではなく、
+実発注を行わないというユーザー確認済みのスコープ決定である。
+
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 7.3の許可、7.4のjournal、`SecretRegistry`参照名だけを持つprovider credential |
-| 実装 | 発注scriptをSDKの`ConfirmationPolicy`配下でsubprocess実行し、dry-runと実発注を分離する |
-| 正常系 | dry-runで送信内容を確認した後、許可済みの実発注が完了しreceiptがjournalへ残る |
-| negative/fail-closed | 会話由来の裁量枠変更、hook不在、secret値の記録、確認skip、provider失敗の成功扱いを拒否する |
+| 実装 | 発注scriptのdry-run経路をSDKの`ConfirmationPolicy`とhook境界の下で実行し、real modeは未有効化として停止する |
+| 正常系 | dry-runの送信内容が決定論的に確認でき、dry-run実行のpre/post receiptがjournalへ残る（実発注完了は本範囲外） |
+| negative/fail-closed | 会話由来の裁量枠変更、hook不在、secret値の記録、確認skip、provider失敗の成功扱い、real mode要求を拒否する |
 | 再現性 | dry-run出力が同一入力から再現し、各拒否条件のnegative testを回帰へ含める |
 
 ## マイルストーン8: 視覚投影レビュー基盤

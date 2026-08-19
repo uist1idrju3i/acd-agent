@@ -52,6 +52,7 @@ def _append_complete(path: Path) -> tuple[PreOrderJournalEntry, PostOrderJournal
     planned = append_pre_order(
         path,
         authorization=_authorization(),
+        execution_mode="dry_run",
         package_hash=PACKAGE_HASH,
         destination="supplier.example",
         idempotency_key="order-20260814",
@@ -60,6 +61,7 @@ def _append_complete(path: Path) -> tuple[PreOrderJournalEntry, PostOrderJournal
     result = append_post_order(
         path,
         planned=planned,
+        execution_mode="dry_run",
         result_status="success",
         receipt_id="receipt-20260814",
         receipt_hash=RECEIPT_HASH,
@@ -90,6 +92,7 @@ def test_journal_rejects_duplicate_resend_and_missing_post_result(
     planned = append_pre_order(
         path,
         authorization=_authorization(),
+        execution_mode="dry_run",
         package_hash=PACKAGE_HASH,
         destination="supplier.example",
         idempotency_key="order-20260814",
@@ -99,6 +102,7 @@ def test_journal_rejects_duplicate_resend_and_missing_post_result(
         append_pre_order(
             path,
             authorization=_authorization(),
+            execution_mode="dry_run",
             package_hash=PACKAGE_HASH,
             destination="supplier.example",
             idempotency_key=planned.idempotency_key,
@@ -106,6 +110,29 @@ def test_journal_rejects_duplicate_resend_and_missing_post_result(
         )
     with pytest.raises(SideEffectJournalError, match="without post-order"):
         read_journal(path, require_complete=True)
+
+
+def test_journal_rejects_post_execution_mode_mismatch(tmp_path: Path) -> None:
+    path = tmp_path / "journal.jsonl"
+    planned = append_pre_order(
+        path,
+        authorization=_authorization(),
+        execution_mode="dry_run",
+        package_hash=PACKAGE_HASH,
+        destination="supplier.example",
+        idempotency_key="order-20260814",
+        occurred_at=TIMESTAMP,
+    )
+    with pytest.raises(SideEffectJournalError, match="execution mode"):
+        append_post_order(
+            path,
+            planned=planned,
+            execution_mode="real",
+            result_status="success",
+            receipt_id="receipt-20260814",
+            receipt_hash=RECEIPT_HASH,
+            occurred_at=TIMESTAMP,
+        )
     with pytest.raises(
         SideEffectJournalError,
         match=r"without post-order|no post-order",
@@ -118,6 +145,7 @@ def test_journal_rejects_post_result_without_planned_entry(tmp_path: Path) -> No
         append_post_order(
             tmp_path / "journal.jsonl",
             planned=PreOrderJournalEntry.create(
+                execution_mode="dry_run",
                 idempotency_key="order-20260814",
                 authorization_hash=HASH,
                 target_revision="r1",
@@ -126,6 +154,7 @@ def test_journal_rejects_post_result_without_planned_entry(tmp_path: Path) -> No
                 occurred_at=TIMESTAMP,
                 previous_entry_hash=None,
             ),
+            execution_mode="dry_run",
             result_status="failure",
             receipt_id="receipt-20260814",
             receipt_hash=RECEIPT_HASH,
@@ -167,6 +196,7 @@ def test_append_refuses_corrupted_existing_journal(tmp_path: Path) -> None:
         append_pre_order(
             path,
             authorization=_authorization(),
+            execution_mode="dry_run",
             package_hash=PACKAGE_HASH,
             destination="supplier.example",
             idempotency_key="order-20260815",
@@ -225,6 +255,7 @@ def test_journal_write_failure_is_fail_closed(
         append_pre_order(
             path,
             authorization=_authorization(),
+            execution_mode="dry_run",
             package_hash=PACKAGE_HASH,
             destination="supplier.example",
             idempotency_key="order-20260814",

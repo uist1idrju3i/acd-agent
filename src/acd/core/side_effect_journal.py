@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import cast
 
 from acd.schema import (
+    ExecutionMode,
     JournalResultStatus,
     PostOrderJournalEntry,
     PreOrderGateRecord,
@@ -101,7 +102,8 @@ def _validate_entries(entries: Sequence[JournalEntry], *, require_complete: bool
                     "post-order idempotency key does not match pre-order entry"
                 )
             if (
-                entry.authorization_hash != planned.authorization_hash
+                entry.execution_mode != planned.execution_mode
+                or entry.authorization_hash != planned.authorization_hash
                 or entry.package_hash != planned.package_hash
                 or entry.target_revision != planned.target_revision
                 or entry.destination != planned.destination
@@ -158,6 +160,7 @@ def append_pre_order(
     path: Path,
     *,
     authorization: PreOrderGateRecord,
+    execution_mode: ExecutionMode,
     package_hash: Sha256,
     destination: NonEmptyStr,
     idempotency_key: IdempotencyKey,
@@ -175,6 +178,7 @@ def append_pre_order(
         )
     try:
         entry = PreOrderJournalEntry.create(
+            execution_mode=execution_mode,
             idempotency_key=idempotency_key,
             authorization_hash=authorization.authorization_hash,
             target_revision=authorization.target_revision,
@@ -193,6 +197,7 @@ def append_post_order(
     path: Path,
     *,
     planned: PreOrderJournalEntry,
+    execution_mode: ExecutionMode,
     result_status: JournalResultStatus,
     receipt_id: NonEmptyStr,
     receipt_hash: Sha256,
@@ -210,6 +215,10 @@ def append_post_order(
         raise SideEffectJournalError(
             "post-order journal entry requires an existing pre-order entry"
         )
+    if stored_planned.execution_mode != execution_mode:
+        raise SideEffectJournalError(
+            "post-order execution mode does not match pre-order entry"
+        )
     if any(
         isinstance(entry, PostOrderJournalEntry)
         and entry.idempotency_key == planned.idempotency_key
@@ -223,6 +232,7 @@ def append_post_order(
     try:
         entry = PostOrderJournalEntry.create(
             planned=planned,
+            execution_mode=execution_mode,
             result_status=result_status,
             receipt_id=receipt_id,
             receipt_hash=receipt_hash,
@@ -239,6 +249,7 @@ def reconstruct_order(
     path: Path,
     *,
     idempotency_key: IdempotencyKey,
+    require_real: bool = False,
 ) -> JournalOrderReconstruction:
     """Reconstruct one complete order from a validated journal."""
     entries = read_journal(
@@ -271,5 +282,11 @@ def reconstruct_order(
     if result is None:
         raise SideEffectJournalError(
             "journal has no post-order result for idempotency key"
+        )
+    if require_real and (
+        planned.execution_mode != "real" or result.execution_mode != "real"
+    ):
+        raise SideEffectJournalError(
+            "journal order completion is not a real execution"
         )
     return JournalOrderReconstruction(planned=planned, result=result)
