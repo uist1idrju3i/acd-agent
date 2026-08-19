@@ -72,8 +72,10 @@ from acd.core.fab import extract_fab_intent, load_fab_profile
 from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
+from acd.core.visual_projection import normalized_svg_sha256
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
+from acd.pipeline.visual_projection import generate_electrical_visual_projections
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
@@ -1166,6 +1168,35 @@ def run_pipeline(
     evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
     print(f"[10/10] electrical evidence recorded: {evidence_path}")
 
+    visual_projection_set = generate_electrical_visual_projections(
+        project_name=name,
+        out_dir=out_dir,
+        source_revision=revision,
+        schematic=project.schematic,
+        routed_board=routed_path,
+        lane=lane,
+        board=project.board_projection.model,
+        gates={
+            "erc_errors": erc.error_count,
+            "erc_unconnected": len(erc.unconnected_items),
+            "routing_converged": route_run.envelope.convergence_state == "converged",
+            "drc_errors": drc.error_count,
+            "drc_unconnected": len(drc.unconnected_items),
+            "independent_reload": True,
+            "silkscreen_status": silk_evidence.get("status"),
+            "dfm_status": dfm_report.get("status"),
+            "order_readiness_status": order_readiness.get("status"),
+            "design_predicates": design_predicates,
+        },
+    )
+    visual_primary_paths = [
+        out_dir / projection.image_path for projection in visual_projection_set.projections
+    ]
+    print(
+        "[10/10] electrical visual projections recorded: "
+        f"{out_dir / 'visual-projections-electrical.json'}"
+    )
+
     hashes: dict[str, str] = {}
     hash_paths = [
         project.schematic,
@@ -1181,12 +1212,18 @@ def run_pipeline(
         order_readiness_path,
         package_path,
         zip_path,
+        out_dir / "visual-projections-electrical.json",
+        *visual_primary_paths,
         *gerber_paths,
         *drill_paths,
     ]
     for path in hash_paths:
         hashes[str(path.relative_to(out_dir))] = (
-            zip_content_hash(path) if path.suffix == ".zip" else normalized_hash(path)
+            zip_content_hash(path)
+            if path.suffix == ".zip"
+            else normalized_svg_sha256(path.read_bytes())
+            if path.suffix == ".svg"
+            else normalized_hash(path)
         )
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")

@@ -153,6 +153,7 @@ class VisualProjectionSet(AcdModel):
     pass_evidence: Literal[False] = False
     source_revision: Revision
     projections: list[VisualProjectionRecord] = Field(min_length=1)
+    identity_hash: HashOrUnknown = "unknown"
     canonical_hash: HashOrUnknown = "unknown"
 
     @model_validator(mode="after")
@@ -166,6 +167,10 @@ class VisualProjectionSet(AcdModel):
             projection.source_revision != self.source_revision for projection in self.projections
         ):
             raise ValueError("visual projection revisions must match")
+        if self.identity_hash != "unknown":
+            expected_identity = self.computed_identity_hash()
+            if self.identity_hash != expected_identity:
+                raise ValueError("visual projection set identity_hash mismatch")
         if self.canonical_hash != "unknown":
             expected = canonical_json_sha256(
                 self.model_dump(mode="json", exclude={"canonical_hash"})
@@ -173,6 +178,22 @@ class VisualProjectionSet(AcdModel):
             if self.canonical_hash != expected:
                 raise ValueError("visual projection set canonical_hash mismatch")
         return self
+
+    def computed_identity_hash(self) -> Sha256:
+        """Hash projection content while excluding generated timestamps."""
+        projections = [
+            projection.model_dump(
+                mode="json",
+                exclude={"generated_at"},
+            )
+            for projection in self.projections
+        ]
+        return canonical_json_sha256(
+            {
+                "source_revision": self.source_revision,
+                "projections": projections,
+            }
+        )
 
     def computed_canonical_hash(self) -> Sha256:
         return canonical_json_sha256(self.model_dump(mode="json", exclude={"canonical_hash"}))

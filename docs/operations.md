@@ -351,8 +351,11 @@ fail-closedとする。正規化後hashは再生成時にも照合し、renderer
 `kicad-cli pcb export svg --layers F.Cu -o fixtures/visual_projection/kicad/gd1-front-copper.svg out/gd1-silkscreen-resolve/iteration-1/gd1.kicad_pcb`
 と、出力先だけを`gd1-front-copper-reproduced.svg`へ変えた同じコマンドを実行して生成した。
 出力ファイル名が`<title>`へ入るため、この名前差が生バイト列の非決定性の由来になる。
-8.3〜8.5（既定生成、AI受け渡し、
-機械可読投影との照合）は未実装である。
+8.3ではGD1電気laneに限り、必須ゲート通過後に回路図ビューと宣言銅層ごとの層別レイアウト
+ビューを`out_dir/visual/`へ既定生成し、`visual-projections-electrical.json`へL3観測として
+記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・
+同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneの断面・干渉ビューは
+renderer未実装のため後続フェーズで扱い、AI受け渡しと機械可読投影との照合は未実装である。
 
 ## 検証
 

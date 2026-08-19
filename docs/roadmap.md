@@ -13,7 +13,9 @@ fabrication出力、独立再読込、silkscreen可読性ゲートまで通過�
 ID別negative testで整備済みである。NEG-007は派生状態とDRC結果の対応検査が未実装で、
 未検出の残件である。視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
-記録し、既定生成配線、AI受け渡し、機械可読投影との照合は未実装である。
+記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
+断面・干渉ビューはrenderer未実装のため後続フェーズで扱う。AI受け渡しと機械可読投影との
+照合は未実装である。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
@@ -54,7 +56,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
-| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.2実装済み（8.3〜8.5未着手） |
+| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.3実装済み（8.4〜8.5未着手） |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
@@ -362,11 +364,11 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | 電気・機械laneの決定論的ゲート通過後の投影成果物、現行revision |
-| 実装 | pipelineのゲート通過後に対象laneの視覚投影を既定生成し、投影集合をL3 observationとして書き出す。生成失敗はpipelineの停止条件とし、Evidenceへは昇格させない |
-| 正常系 | GD1基板・筐体pipelineの完走時に、lane別の投影集合が観測として残る |
+| 入力と出所 | 電気laneの決定論的ゲート通過後の投影成果物、現行revision。機械laneの断面・干渉ビューはrenderer未実装のため対象外 |
+| 実装 | GD1基板pipelineのゲート通過後に電気laneの回路図ビューと宣言銅層ごとの層別レイアウトビューを既定生成し、投影集合をL3 observationとして書き出す。生成失敗はpipelineの停止条件とし、Evidenceへは昇格させない |
+| 正常系 | GD1基板pipelineの完走時に電気laneの投影集合が観測として残る。機械laneは後続フェーズで扱う |
 | negative/fail-closed | ゲート未通過での生成、投影欠落の「問題なし」扱い、Evidence側への書込みを拒否する |
-| 再現性 | 同一revisionの再実行で同一の投影集合内容を再生成できる |
+| 再現性 | `generated_at`を除いた投影内容からidentity hashを計算し、同一入力・同一renderer版で同一のidentity hashを再生成できる |
 
 ### 8.4 AIへの受け渡し境界
 

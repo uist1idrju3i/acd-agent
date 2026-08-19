@@ -35,5 +35,6 @@
       "image_path": "out/visual/schematic.svg"
     }
   ],
-  "canonical_hash": "sha256:9db3c01ac8a57f877fad2e3626cdd0bdce77be95ef84ae90a157dd9914d58875"
+  "identity_hash": "sha256:6214cd7cb576426fb8588e2d0ef6519224a24e1a78635af4dc876c3e0a7d5299",
+  "canonical_hash": "sha256:92392ae403332621b16a8b72ddb142f2e51393fede41cd911b3c1ec60e7885f0"
 }
