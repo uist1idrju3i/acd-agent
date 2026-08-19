@@ -8,6 +8,8 @@ import shutil
 from pathlib import Path
 from typing import cast
 
+import pytest
+
 from acd.pipeline.silkscreen_resolve import (  # pyright: ignore[reportMissingTypeStubs]
     resolve_silkscreen,
 )
@@ -48,6 +50,9 @@ def _silkscreen_coordinates(path: Path) -> dict[str, tuple[float, float]]:
 
 
 def test_final_silkscreen_coordinates_are_pinned(tmp_path: Path) -> None:
+    required_library = Path("/usr/share/kicad/symbols/power.kicad_sym")
+    if not required_library.is_file():
+        pytest.skip(f"pinned KiCad library not present in this environment: {required_library}")
     fixture_dir = tmp_path / "fixture"
     shutil.copytree(FIXTURE_DIR, fixture_dir)
     result = resolve_silkscreen(

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from acd.core.design_predicates import (
     evaluate_gd1_predicates,
     evaluate_i2c_pullup,
@@ -40,8 +42,22 @@ def _update_node_attrs(graph: DesignGraph, node_id: str, **updates: object) -> D
     )
 
 
+def _skip_if_gd1_geometry_library_is_missing(graph: DesignGraph) -> None:
+    lane = extract_electrical_lane(graph)
+    required_refs = {"C3", "C4", "C5", "U1", "U2", "U3"}
+    for component in lane.components:
+        if component.refdes not in required_refs:
+            continue
+        path = Path(component.library.footprint_file)
+        if not path.is_absolute():
+            path = FIXTURE_DIR / path
+        if not path.is_file():
+            pytest.skip(f"pinned KiCad library not present in this environment: {path}")
+
+
 def test_gd1_predicates_pass_on_fixture() -> None:
     graph = _graph()
+    _skip_if_gd1_geometry_library_is_missing(graph)
     lane = extract_electrical_lane(graph)
     results = evaluate_gd1_predicates(graph, lane, FIXTURE_DIR)
     assert [result.name for result in results] == [
@@ -111,8 +127,10 @@ def test_pin_firmware_alignment_wrong_net_fails() -> None:
 
 
 def test_power_decoupling_distant_capacitor_fails() -> None:
+    graph = _graph()
+    _skip_if_gd1_geometry_library_is_missing(graph)
     graph = _update_node_attrs(
-        _graph(),
+        graph,
         "comp.c4",
         placement_x_mm=100.0,
         placement_y_mm=100.0,

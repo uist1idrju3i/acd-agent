@@ -120,6 +120,7 @@ def test_gd1_library_hash_mismatch_is_rejected() -> None:
             load_fixture_fab_profile(),
         )
 
+
 def test_gd1_neg_008_unknown_coordinate_unit_stops_extraction() -> None:
     graph = inject_gd1_neg_008_unknown_coordinate_unit(load_gd1_graph())
     with pytest.raises(GraphExtractionError, match="unsupported coordinate system"):

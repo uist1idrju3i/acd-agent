@@ -812,4 +812,6 @@ RESETではSW1上側の板端までの帯、BOOTではSW2周辺の上側／左�
 resolverの最終状態は候補生成だけでなく投影後の測定でも合格している。なお、
 最終製造受入れは引き続きauthoritative projection、独立reload、Gerber測定の
 各ゲートで判定する。
-この座標表とresolverの最終statusはpinning testで固定する。
+この座標表とresolverの最終statusはpinning testで固定する。KiCadライブラリがある
+hostのstandard検証では実行し、hostにライブラリが無い場合は既存のskip慣習で前提不足を示す。
+`container-gates`では固定image内で同じpinning testを実行する。
