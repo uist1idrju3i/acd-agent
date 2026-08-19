@@ -255,6 +255,32 @@ def build_graph() -> DesignGraph:
             }
         )
         attrs.update(lib_attrs(spec["lib"]))
+        if spec["refdes"] == "U1":
+            attrs.update(
+                {
+                    "radio_module": True,
+                    "certification_ids": [
+                        "FCC:2AC7Z-ESPC3MINI1",
+                        "IC:21098-ESPC3MINI1",
+                    ],
+                    "certification_hvin": "ESP32-C3-MINI-1",
+                    "certification_grant_dates": [
+                        "FCC:2021-06-16",
+                        "IC:2024-07-24",
+                    ],
+                    "certification_document_refs": [
+                        "https://documentation.espressif.com/ESP32-C3-MINI-1%20FCC%20Certification.pdf",
+                        "https://documentation.espressif.com/ESP32-C3-MINI-1%20IC%20Certification_0.pdf",
+                    ],
+                    "certification_source": (
+                        "Espressif Systems published module certification documents"
+                    ),
+                    "certification_source_ref": (
+                        "https://www.espressif.com/en/support/documents/certificates"
+                    ),
+                    "certification_checked_at": "2026-08-18T00:00:00Z",
+                }
+            )
         if spec["refdes"] in {"J1", "U1"}:
             attrs.update(
                 {
@@ -517,7 +543,7 @@ def build_graph() -> DesignGraph:
                 "battery": False,
                 "charger": False,
                 "motor_actuator_laser": False,
-                "module_certified": "unknown",
+                "module_certified": "certified",
             },
         )
     )
