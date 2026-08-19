@@ -54,6 +54,21 @@ SDKはexit code 2をblockedとして扱うため、解決不能はfail-closedの
 install doctorのhook invocability checkは、従来の「commandが`${`で始まるか」という
 判定ではなく、`.py`参照の直前にinterpreterがあるかで直接実行を判定する。
 
+rationale coverage hook（Stop・PostToolUse）はACD checkoutの
+`scripts/check_rationale.py`をworkspace相対で直接実行していたため、ambient install経路の
+会話workspaceではscript不在でexit code 2となりStopが常にblockedになった。
+`--if-present`はscript内部の分岐であり、Pythonがfile openに失敗する段では作用しない。
+したがってrationale hookもplugin同梱script
+`plugins/acd/hooks/scripts/check_rationale.py`へ移し、上記の3候補解決を通す。同梱script
+は次の意味論を持つ。
+
+- rationale入力（`fixtures/golden-design-1/graph.json`と`rationale.json`）が無い場合は
+  not applicableとしてexit code 0。従来の`--if-present`と同じ。
+- 入力があるがworkspaceに`scripts/check_rationale.py`が無い場合は、warn-onlyでなければ
+  denyでexit code 2としてfail-closedにする。
+- 入力とvalidatorが揃う場合はworkspaceのvalidatorを`uv run --project <workspace>`で実行し、
+  その終了コードを返す。warn-only（PostToolUse）は従来どおりblockしない。
+
 ## 影響
 
 - ambient install経路でSessionStart・PreToolUse・PostToolUse・Stopのplugin hookが

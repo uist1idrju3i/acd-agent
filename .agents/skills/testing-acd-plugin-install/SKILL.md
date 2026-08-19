@@ -70,6 +70,28 @@ GUI で `/acd:*` を検証する前に、会話冒頭の `🚫フック: Session
 バッジの有無を必ず確認する。出ていたら plugin root が解決できておらず、
 それ以降の doctor/gates 結果は「未取得」として扱う。
 
+## 落とし穴: Stop hook の workspace 相対 script（plugin root 解決の対象外）
+
+Stop / PostToolUse の rationale hook は、以前 `uv run python
+scripts/check_rationale.py --if-present` のように **plugin root を解決しない workspace
+相対 command** だった。plugin 同梱 script ではなく ACD repo checkout 側の `scripts/` を
+前提にしているため、GUI ambient install の空 workspace では次で fail-closed になった。
+
+```text
+[Stop hook feedback] .../bin/python: can't open file '.../workspace/project/<conv_id>/scripts/check_rationale.py': [Errno 2] No such file or directory
+```
+
+`SessionStart` / `PreToolUse` が `ok` でも Stop 段でだけ block されるため、
+agent が「script を探す」ループに入り LLM 呼び出しが膨らむ。GUI 検証では
+Stop hook のバッジも個別に確認し、ループを検知したら手動停止して課金を抑える。
+`--if-present` は script 内部の分岐なので、script 不在は救済されない。
+
+現在は rationale hook も plugin 同梱 script
+`plugins/acd/hooks/scripts/check_rationale.py` を 3 候補解決で起動するため、
+install doctor の `hook plugin root resolution` check がすべての hook command を評価する。
+workspace 相対の外部 script 参照を新たに追加すると doctor の評価対象外になり
+`ok` のまま block が起きうるので、hook は必ず plugin 同梱 script から起動する。
+
 ## install doctor の検証
 
 実行は隔離環境を使わず `python3 <path>` で直接行う（`uv run --script` は利用者環境を
