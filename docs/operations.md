@@ -358,7 +358,10 @@ renameする。複数sheetによる複数SVG出力は未対応で、追加され
 ビューを`out_dir/visual/`へ既定生成し、`visual-projections-electrical.json`へL3観測として
 記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・
 同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneの断面・干渉ビューは
-renderer未実装のため後続フェーズで扱い、AI受け渡しと機械可読投影との照合は未実装である。
+renderer未実装のため後続フェーズで扱う。8.5では電気laneに限り、同一revisionの
+`ElectricalLane`／`BoardModel`とSVGを決定論的に照合し、
+`visual-crosscheck-electrical.json`へL3観測として記録する。この照合は8.3のSVG投影生成直後、
+`hashes.json`生成前に既定実行される。
 8.3の層導出はgraphで宣言された`BoardView.layers`の層数をKiCadの銅層名へ決定論的に
 対応させる。現在の対応表は2層（`F.Cu`／`B.Cu`）と4層（`F.Cu`／`In1.Cu`／`In2.Cu`／`B.Cu`）
 に限り、0層、1層、奇数層、その他の未対応層数はfail-closedとする。
@@ -373,6 +376,17 @@ CairoSVGのimport・版取得・libcairo依存が利用できない場合はfail
 SDKへ渡す画像はworkspace内PNGだけをbase64の`data:image/png;base64,...` URLへ変換し、
 HTTP(S)・`file:` URLは作成しない。`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`がtruthyな環境では
 画像経路を停止し、vision応答は`pass_evidence=false`のL3観測としてだけ保存する。
+
+8.5の照合レポートは、投影集合のidentity hash、machine-readable入力の相対パスとhash、
+投影ごとの照合項目、集約status、レビュー観点チェックリスト、canonical hash、
+`generated_at`を記録する。identity hashは`generated_at`を除外するため、同一入力から
+同一の照合結果とチェック記録を再生成できる。決定論的項目はSVGから直接読み取れる
+事実だけを`match`または`mismatch`とし、可読性、設計意図、注記の視認性、重なり・非表示
+要素による意味欠落、信号・電源系統の読み取り、層別SVGの意味的な銅層identityは
+`observation_required`としてunknownのまま記録する。unknownをmatchへ集約せず、
+mismatch・対象欠落・解析失敗・revision不一致はpipelineを停止する。
+レポートは`pass_evidence=False`のL3観測であり、Evidence、fab claims、gate fields、
+`hashes.json`、fab packageへ追加しない。
 
 ## 検証
 

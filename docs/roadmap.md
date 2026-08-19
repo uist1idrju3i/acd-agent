@@ -14,8 +14,8 @@ ID別negative testで整備済みである。NEG-007は派生状態とDRC結果�
 未検出の残件である。視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
-断面・干渉ビューはrenderer未実装のため後続フェーズで扱う。AI受け渡しと機械可読投影との
-照合は未実装である。
+断面・干渉ビューはrenderer未実装のため後続フェーズで扱う。AI受け渡しと機械可読電気lane投影との
+照合、レビュー観点記録まで実装済みである。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
@@ -56,7 +56,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
-| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.4実装済み（8.5未着手） |
+| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
@@ -386,9 +386,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 同一revisionの機械可読投影（netlist要約、ピン割当表など）と8.3の視覚投影 |
-| 実装 | 視覚投影と機械可読投影が同一内容を表すことを決定論的に照合する規則と、レビュー観点チェックリストの記録契約を実装する。AIの観察はprovenance付きの非Evidence観測として記録する |
-| 正常系 | 照合結果とチェック結果が同一入力から再構成でき、注記・単位・軸・原点の一致を確認できる |
-| negative/fail-closed | 照合不一致、照合対象欠落、チェック結果unknownの合格扱い、観察のEvidence昇格を拒否する |
+| 実装 | 電気laneのみを対象に、8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合する。投影集合の網羅性、SVGのmm単位・軸・原点、title blockの入力ファイル、KiCad renderer版、正規化後image hash、schematicのrefdesを決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。層別SVGが本当に各銅層を描くかはSVGだけでは判定せず、`observation_required`にする。AIの観察はprovenance付きの非Evidence観測として記録する |
+| 正常系 | 注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを、決定論的照合とレビュー観点チェックリストの組合せで記録する |
+| negative/fail-closed | 照合不一致、照合対象欠落、SVG解析不能、revision不一致、チェック結果`unknown`の合格扱い、観察のEvidence昇格を拒否する。照合レポートは`pass_evidence=False`のL3観測としてEvidence、fab claims、gate fields、`hashes.json`へ昇格しない |
 | 再現性 | 同一入力から同一の照合結果とチェック記録を再生成する |
 
 ## 将来構想

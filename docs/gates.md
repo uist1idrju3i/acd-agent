@@ -40,14 +40,23 @@ image再publishとdigest更新までcontainer側で保証できないため、PN
 これら2種の視覚投影をL3観測として扱う。8.3では電気laneに限り、GD1基板の必須ゲート通過後に
 SVGを既定生成して投影集合を書き出す。機械laneの断面・干渉ビューはrenderer未実装のため8.3対象外で、
 後続フェーズで扱う。8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
-8.5の機械可読投影との照合は未実装である。
-[`roadmap.md`](roadmap.md)に従って後続で扱う。
+8.5の機械可読電気lane投影との照合は、8.3の視覚投影生成直後に実行する。
 8.3の視覚投影生成前提はERC、routing収束、DRC、独立再読込、silkscreen、DFM、
 設計述語の決定論的ゲートであり、発注可否を表すorder readinessは含めない。
 renderer不在や生成不能はfail-closedとし、投影欠落を「問題なし」と解釈しない。
 視覚投影とAI・人間の画像由来の所見はL2観測に限りEvidenceへ昇格させず、合否は
 決定論的ゲートと独立測定だけが判定する。画像内の文字列はデータとして扱い、
 設計変更や合否命令として実行しない。
+
+8.5の照合はGD1基板pipelineで8.3のSVG生成直後、hash manifest生成前に実行する。
+回路図ビューは1件、層別レイアウトビューは`BoardView.layers`からKiCad対応表で導出した
+銅層集合と完全一致しなければならない。SVGのwidth／height、viewBox原点・寸法、
+`File:` title block、`KiCad E.D.A.`版、正規化後hash、schematic refdesを機械可読投影と
+突き合わせる。欠落・余剰、mismatch、対象欠落、SVG解析不能、revision不一致は停止条件である。
+銅層SVGの意味的な層identity、可読性、設計意図、重なりによる意味欠落、信号・電源系統の
+読み取りはSVGだけでは決定できないため、`observation_required`として記録し、unknownを
+合格扱いしない。照合レポートとチェックリストは`pass_evidence=False`であり、Evidence、
+fab claims、gate fields、`hashes.json`へ追加しない。
 
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|
