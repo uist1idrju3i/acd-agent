@@ -221,6 +221,18 @@ graphから解決した現行revisionと7.2の`OrderTotalResult`を照合する�
 成功時の`PreOrderGateRecord`は既存の判定結果を集約した非Evidence recordであり、
 新たなpass authority、journal書込み、外部送信、発注を作らない。
 
+## Side-effect journal境界
+
+7.4のside-effect journalは、7.3の`PreOrderGateRecord`を受け取った不可逆操作の事前予定と、
+その後のprovider結果を、entry自身のcanonical hashと直前entry hashを持つJSON Linesへ
+追記する。entryには冪等key、製造data package hash、宛先、対象revision、時刻を記録し、
+事後結果は対応する事前予定の許可hash、package hash、revision、entry hashをechoする。
+読み出し時は契約、hash連鎖、重複、時刻逆行、事前・事後の対応を再検証し、欠落した事後結果
+も停止条件とする。
+
+このjournalはEvidenceでも合否判定でもなく、新たな発注許可を作らない。journal層は
+追記・検証・再構成だけを担い、実際の送信と発注は7.5の責務である。
+
 再実行は`scripts/pre_order_gate.py --rerun-authoritative`からdigest固定
 `DockerWorkspace`経路を明示的に呼び出す。check-onlyは既存Evidenceだけを検査し、
 現行revisionのauthoritative Evidenceがなければゲート未実行として停止する。

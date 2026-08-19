@@ -192,6 +192,22 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 見つからない場合も、ゲート未実行として停止する。このCLIはjournal書込み、送信、実発注を
 行わない。
 
+### side-effect journalの読み出し
+
+7.4のjournalは1行1entryのJSON Linesで、書込みCLIは提供しない。7.3の許可recordを使った
+事前予定とproviderの事後結果が揃った発注だけを、次の読み取り専用CLIで再構成する。
+
+```bash
+uv run python scripts/side_effect_journal.py \
+  --journal out/side-effect-journal.jsonl \
+  --idempotency-key order-20260814
+```
+
+CLIはentry契約、entry自身のhash、直前entryとのhash連鎖、冪等key、事前・事後の許可hash、
+製造data package hash、revision、時刻を検証する。事後結果が欠落したjournal、改変・削除・
+並べ替えられた行、読み出し不能なjournalは非ゼロ終了で停止する。この層はjournalの記録と
+再構成だけを行い、送信・発注・新しい発注許可は作らない。
+
 4. 実行済みのGD1基板pipelineでは、回路図
    `out/gd1/gd1.kicad_sch`、routed board
    `out/gd1/routed/gd1.kicad_pcb`、Gerberの
