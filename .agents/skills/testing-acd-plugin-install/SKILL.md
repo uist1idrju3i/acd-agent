@@ -87,6 +87,35 @@ purge 後の初回 install だけが確実に新しい commit を掴める窓な
 空なら `main` へ切り替えて `git merge-base --is-ancestor <fix-commit> FETCH_HEAD` で
 修正 commit が含まれることを確認してから進める。
 
+#### stale cache の機構と、branch 名で install すべき理由（SDK コード根拠）
+
+`vendor/software-agent-sdk` を読むと挙動の理由が説明できるので、
+GUI が指定 ref を無視したときは実装バグではなく以下の設計制約を疑う。
+
+- `openhands/sdk/extensions/fetch.py` の `get_cache_path` は
+  `sha256(source_url)[:16]` と repo 名だけで cache directory を決め、
+  **ref を cache key に含めない**。よって同じ source URL で ref を変えても
+  同一 cache directory が再利用される。
+- `openhands/sdk/git/cached_repo.py` の `GitHelper.clone` は既定 `depth=1` で
+  `--branch <初回ref>` を付ける。shallow clone は指定 branch の tip しか持たないため、
+  後から別 commit を checkout すると失敗しうる（docstring 自身が警告している）。
+- 失敗しても `_try_fetch` / `_try_checkout_and_reset` が
+  `Failed to checkout <ref>: ... Using cached version.` の warning で例外を飲み込むため、
+  **install は成功したように見えて古い tree が入る**。これが無警告 stale の正体。
+- update 経路は branch 上なら `_try_reset_to_origin(repo_path, current_branch, git)`、
+  detached HEAD なら default branch へ recover する。
+
+したがって「GUI の『更新』ボタンで main 先端へ追従させたい」場合、
+初回 install のリファレンスは **完全 SHA ではなく branch 名 `main`** にする。
+完全 SHA で install すると cache clone が detached HEAD になり update の意味が変わる。
+
+なお解決 ref の表示は要求 ref の反射ではなく
+`resolved_ref = git_helper.get_head_commit(repo_cache_path)`（実 HEAD commit）なので、
+詳細モーダルの「リファレンス」チップは stale 判定の signal として信頼できる。
+plugin 詳細モーダルの下部には `更新` / `アンインストール` / `会話を開始` / `閉じる` があり、
+ref 照合だけを行う回は `会話を開始` を押さないこと（LLM 課金が発生する）。
+会話を作っていないことは、サイドバーの会話一覧件数が検証前後で不変であることで確認する。
+
 ## 落とし穴: installed plugin store が pytest に混ざる
 
 `~/.openhands/plugins/installed/acd/` が存在すると SDK の ambient plugin 読み込みが
