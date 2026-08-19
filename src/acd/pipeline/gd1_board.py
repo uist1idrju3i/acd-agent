@@ -559,6 +559,7 @@ def run_pipeline(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
     out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = out_dir.resolve()
     validate_and_project_rationale(graph, fixture_dir, out_dir)
     print("[0/10] rationale coverage passed")
     revision = graph.revision
