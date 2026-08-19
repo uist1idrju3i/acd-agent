@@ -866,7 +866,8 @@
       "use": "agent作業workspace",
       "adoption": "採用",
       "rationale": "hostはLocalWorkspaceのprovisional経路に限定し、authoritative経路にしない",
-      "verification": "pinned API確認、LocalWorkspace runner回帰",      "references": [
+      "verification": "pinned API確認、LocalWorkspace runner回帰",
+      "references": [
         {
           "kind": "direct_import",
           "path": "src/acd/openhands/workspace.py",
