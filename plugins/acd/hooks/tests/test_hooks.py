@@ -333,3 +333,75 @@ def test_fail_closed_hooks_are_registered_for_sdk_events() -> None:
     assert "verify-markdown" in names[HookEventType.POST_TOOL_USE]
     assert "probe-tools" in names[HookEventType.SESSION_START]
     assert "require-gate-after-input-change" in names[HookEventType.STOP]
+
+
+def _configured_plugin_hook_commands() -> dict[str, str]:
+    document: Any = json.loads(HOOKS_PATH.read_text(encoding="utf-8"))
+    commands: dict[str, str] = {}
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            mapping = cast(dict[str, Any], value)
+            name = mapping.get("name")
+            command = mapping.get("command")
+            if (
+                isinstance(name, str)
+                and isinstance(command, str)
+                and command.startswith("python3 ${ACD_PLUGIN_ROOT")
+            ):
+                commands[name] = command
+            for child in mapping.values():
+                visit(child)
+        elif isinstance(value, list):
+            children = cast(list[Any], value)
+            for child in children:
+                visit(child)
+
+    visit(document)
+    return commands
+
+
+def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugin"
+    shutil.copytree(ROOT / "plugins/acd/hooks", plugin_root / "hooks")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    payloads = {
+        "protect-derived-projections": {
+            "tool_name": "file_editor",
+            "tool_input": {"path": "docs/example.md"},
+            "working_dir": str(tmp_path),
+        },
+        "require-order-evidence": {
+            "tool_name": "terminal",
+            "tool_input": {"command": "printf ok"},
+            "working_dir": str(tmp_path),
+        },
+        "probe-tools": {"working_dir": str(tmp_path)},
+        "require-gate-after-input-change": {"working_dir": str(tmp_path)},
+        "verify-markdown": {
+            "tool_input": {"path": "docs/example.md"},
+            "working_dir": str(tmp_path),
+        },
+    }
+    commands = _configured_plugin_hook_commands()
+    assert set(commands) == set(payloads)
+
+    environment = {
+        **os.environ,
+        "ACD_PLUGIN_ROOT": str(plugin_root),
+        "OPENHANDS_PROJECT_DIR": str(tmp_path),
+    }
+    for name, command in commands.items():
+        completed = subprocess.run(
+            ["sh", "-c", command],
+            input=json.dumps(payloads[name]),
+            text=True,
+            capture_output=True,
+            cwd=tmp_path,
+            env=environment,
+            check=False,
+        )
+        assert completed.returncode == 0, (
+            f"{name} failed to start through its configured shell command: "
+            f"{completed.stderr}"
+        )
