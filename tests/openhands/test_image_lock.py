@@ -57,7 +57,7 @@ def test_valid_lock_loads_and_is_pinned() -> None:
 def test_packaged_lock_loads_without_repository_path(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_packaged_resource(monkeypatch, LOCK_PATH.read_text(encoding="utf-8"))
     lock = load_image_lock()
-    assert lock.acd_tools.digest.endswith("bf1e301")
+    assert lock.acd_tools.digest.endswith("4bf1e301")
 
 
 def test_packaged_lock_missing_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
