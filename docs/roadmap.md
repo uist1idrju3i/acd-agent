@@ -68,7 +68,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 |---|---|
 | 入力と出所 | GD1のDesign Graph、FW pin assignment、部品・ネット宣言、電源境界仕様、silkscreen resolverの最終座標、現行revision |
 | 実装 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを決定論的述語として実装し、結果を電気Evidenceのclaimへ追加する |
-| 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する |
+| 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する。KiCadライブラリがある`--stage standard`ではtestを実行し、hostに無い場合は既存のskip慣習で前提不足を明示する。`container-gates`では固定image内で同じ3件を実行する |
 | negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認する。`GD1-NEG-001`〜`GD1-NEG-008`の注入fixtureとnegative testはマイルストーン2.1の後続変更で整備する |
 | 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成できることを確認する。全negative testはマイルストーン2.1の後続変更で回帰へ含める |
 
