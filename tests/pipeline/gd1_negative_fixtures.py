@@ -96,6 +96,16 @@ def inject_gd1_neg_006_library_hash_mismatch(graph: DesignGraph) -> DesignGraph:
     )
 
 
+def inject_gd1_neg_007_stale_drc(board_path: Path) -> Path:
+    """Mutate one board byte after a DRC result was produced."""
+    data = bytearray(board_path.read_bytes())
+    if not data:
+        raise ValueError("cannot mutate an empty derived board")
+    data[0] ^= 1
+    board_path.write_bytes(data)
+    return board_path
+
+
 def inject_gd1_neg_008_unknown_coordinate_unit(graph: DesignGraph) -> DesignGraph:
     """Make the board coordinate unit unknown."""
     return _map_nodes(

@@ -282,6 +282,9 @@ GUIからのinstallをSDK installed-plugin経路へ接続する。
 Dockerでゲートを実行する場合は、`docker/image-digests.json`のlockからserver imageを解決し、
 `DockerWorkspace(server_image=...)`へ渡す。server digestが未記録、空、または解決不能なら
 runnerは起動せずfail-closedで停止する。host経路は参考実行であり、合格側Evidenceを生成しない。
+hostの参考実行を明示する場合だけ、SDK公開入口の`LocalWorkspace`を使う
+`--local-provisional`を指定する。この経路はprovisional結果だけを返し、
+`ACD_IN_CONTAINER`または`ACD_CONTAINER_IMAGE_DIGEST`が設定された環境では起動せず停止する。
 
 CIでは`container-gates` jobがlock済みserver imageをpullし、SDKの
 `DockerWorkspace`を経由する`scripts/run_in_workspace.py`でresolver、基板pipeline、
@@ -619,6 +622,16 @@ runnerは`ACD_CONTAINER_IMAGE_DIGEST`と`ACD_IN_CONTAINER`をcontainerへforward
 hostのToolEnvelopeは`execution_context="host"`、containerのToolEnvelopeは型付き
 `container_image_digest`を持つ。`evidence/`へ昇格するCLIは
 `supports_authoritative_pass()`を要求する。
+
+host provisional経路（合格側Evidenceへ昇格しない参考実行）:
+
+```bash
+uv run python scripts/run_in_workspace.py --local-provisional --repo "$PWD" \
+  "uv run python scripts/run_gd1_pipeline.py --out out/gd1-host"
+```
+
+この経路は`LocalWorkspace(working_dir=...)`を使用し、結果はhost/provisional型で返す。
+`--image`との併用、container markerまたはdigest環境変数がある状態は拒否する。
 
 外部ツールが無い、版が不明、または出力を独立再読込できない場合、pipelineは
 fail-closedで停止する。ゲートの仕様とprobeの責務は[`gates.md`](gates.md)を参照する。

@@ -14,6 +14,7 @@ from acd.schema.common import (
     AcdModel,
     canonical_json_sha256,
     canonical_sha256,
+    contains_unknown,
     is_unknown,
 )
 from acd.schema.context import (
@@ -65,6 +66,11 @@ from acd.schema.model_routing import (
 )
 from acd.schema.observation import ObservationArtifactKind, ObservationPayload
 from acd.schema.observation_log import ObservationLogEvent, ObservationLogRecord
+from acd.schema.order_scope import (
+    MechanicalTreatment,
+    OrderScope,
+    ScopeFeeTreatment,
+)
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -72,6 +78,7 @@ from acd.schema.prompt_manifest import (
     RolePromptManifest,
     RolePromptManifestEntry,
 )
+from acd.schema.quote import QuoteAmount, QuoteCategory, QuoteLineItem, QuoteParty, QuoteRecord
 from acd.schema.rationale import (
     DecisionKind,
     RationaleCoverageReport,
@@ -169,6 +176,7 @@ __all__ = [
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
+    "MechanicalTreatment",
     "MemoryContextObservation",
     "ModelRoutingBinding",
     "ModelRoutingObservation",
@@ -180,10 +188,16 @@ __all__ = [
     "ObservationLogEvent",
     "ObservationLogRecord",
     "ObservationPayload",
+    "OrderScope",
     "PhysicalEvidence",
     "PromptCacheTier",
     "PromptDriftReport",
     "PromptManifestStatus",
+    "QuoteAmount",
+    "QuoteCategory",
+    "QuoteLineItem",
+    "QuoteParty",
+    "QuoteRecord",
     "RationaleCoverageReport",
     "RationaleCoverageStatus",
     "RationaleDocument",
@@ -206,6 +220,7 @@ __all__ = [
     "RolePromptManifest",
     "RolePromptManifestEntry",
     "RoutingRole",
+    "ScopeFeeTreatment",
     "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",
@@ -226,5 +241,6 @@ __all__ = [
     "VisualVisionObservation",
     "canonical_json_sha256",
     "canonical_sha256",
+    "contains_unknown",
     "is_unknown",
 ]

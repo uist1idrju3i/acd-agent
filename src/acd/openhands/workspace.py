@@ -9,8 +9,9 @@ import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
+from openhands.sdk.workspace import LocalWorkspace
 from openhands.workspace import DockerWorkspace
 
 DEFAULT_COMMAND = "uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure"
@@ -37,6 +38,15 @@ class WorkspaceResult:
     stdout: str
     stderr: str
     downloaded_files: tuple[Path, ...]
+
+
+@dataclass(frozen=True)
+class ProvisionalWorkspaceResult:
+    exit_code: int
+    stdout: str
+    stderr: str
+    execution_context: Literal["host"] = "host"
+    authoritative: Literal[False] = False
 
 
 def _inspect(
@@ -156,4 +166,30 @@ def run_command_in_workspace(
         stdout=result.stdout,
         stderr=result.stderr,
         downloaded_files=tuple(downloaded),
+    )
+
+
+def run_command_in_local_workspace(
+    *,
+    command: str,
+    repository: Path,
+    workspace_factory: Callable[..., Any] | None = None,
+) -> ProvisionalWorkspaceResult:
+    """Run one command in a host-only LocalWorkspace as provisional output."""
+    if "ACD_IN_CONTAINER" in os.environ or "ACD_CONTAINER_IMAGE_DIGEST" in os.environ:
+        raise ValueError(
+            "host provisional workspace refuses container provenance environment"
+        )
+    factory = workspace_factory or LocalWorkspace
+    workspace = factory(working_dir=repository)
+    with workspace:
+        result = workspace.execute_command(
+            command,
+            cwd=repository,
+            timeout=3600.0,
+        )
+    return ProvisionalWorkspaceResult(
+        exit_code=result.exit_code,
+        stdout=result.stdout,
+        stderr=result.stderr,
     )

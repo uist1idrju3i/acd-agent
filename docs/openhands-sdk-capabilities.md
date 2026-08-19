@@ -60,7 +60,7 @@
 | sdk.tool.builtins.vision_inspect | `VisionInspectTool` | 明示されたvision profileによる画像観測 | 採用 | 明示設定されたvision profileがある場合だけbuiltin inspect_image_with_visionを登録し、応答を非Evidence観測として扱う | vision profile境界テスト |
 | sdk.tool.internal | `ClientTool` | SDK内部tool補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.utils | `maybe_truncate` | SDK内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
-| sdk.workspace | `LocalWorkspace` | agent作業workspace | 採用予定（ロードマップ4.4） | host実行はprovisionalに限定し、authoritative経路にしない | pinned API確認、実装未着手 |
+| sdk.workspace | `LocalWorkspace` | agent作業workspace | 採用 | hostはLocalWorkspaceのprovisional経路に限定し、authoritative経路にしない | pinned API確認、LocalWorkspace runner回帰 |
 | tools | `TerminalTool` | OpenHands標準tool集合 | 採用 | AgentDefinitionの標準toolとして参照 | agent実行試験 |
 | tools.apply_patch | `ApplyPatchTool` | patch編集 | 不採用 | ACDの明示的tool集合と保護hookを単一化する | pinned API確認、採用しない |
 | tools.browser_use | `BrowserClickTool` | L2の部品調査・datasheet確認 | 採用 | `BrowserToolSet.is_usable()`経由で利用可能性を検査して登録する。L2探索補助に限定し、`BrowserClickTool`を直接importせず、`Evidence`やL1合否を置換しない | `BrowserToolSet.is_usable()`、agent session回帰 |
@@ -126,6 +126,7 @@
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_routing.py` / `TestLLM` — routing回帰で固定応答LLMを使う
 - `sdk.tool`: **直接import** `src/acd/openhands/tools/definitions.py` / `ToolDefinition` — 決定論的ACD tool定義をSDKへ登録する
 - `sdk.tool.builtins.vision_inspect`: **直接import** `src/acd/openhands/session/visual_projection.py` / `VisionInspectTool` — 明示されたvision profile向けにSDK builtin toolを登録する
+- `sdk.workspace`: **直接import** `src/acd/openhands/workspace.py` / `LocalWorkspace` — hostのprovisional実行をSDK公開入口へ委譲する
 - `tools`: **plugin資材** `plugins/acd/agents/acd-search.md` / `terminal` — AgentDefinitionの標準toolとしてterminalを宣言する
 - `tools.browser_use`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `BrowserToolSet` — 明示有効時にbrowser toolの利用可能性をSDK経路で検査する
 - `tools.delegate`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `TaskToolSet` — SDK task実行経路へsub-agent調整toolを渡す

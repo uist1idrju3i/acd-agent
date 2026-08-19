@@ -870,10 +870,17 @@
       "modules": ["sdk.workspace", "sdk.workspace.*"],
       "representative_apis": ["LocalWorkspace"],
       "use": "agent作業workspace",
-      "adoption": "採用予定",
-      "roadmap": "4.4",
-      "rationale": "host実行はprovisionalに限定し、authoritative経路にしない",
-      "verification": "pinned API確認、実装未着手"
+      "adoption": "採用",
+      "rationale": "hostはLocalWorkspaceのprovisional経路に限定し、authoritative経路にしない",
+      "verification": "pinned API確認、LocalWorkspace runner回帰",
+      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/workspace.py",
+          "symbol": "LocalWorkspace",
+          "note": "hostのprovisional実行をSDK公開入口へ委譲する"
+        }
+      ]
     },
     {
       "domain": "tools",

@@ -9,9 +9,10 @@ GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SE
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。一方、
 [`golden-design-1.md`](golden-design-1.md) §7の設計述語ゲート6件
 （USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界、
-ピン・FW整合）は実装済みで、§8のNEG-001〜006・008も決定論的な注入関数と
-ID別negative testで整備済みである。NEG-007は派生状態とDRC結果の対応検査が未実装で、
-未検出の残件である。視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
+ピン・FW整合）は実装済みで、§8のNEG-001〜008も決定論的な注入関数と
+ID別negative testで整備済みである。DRC結果のToolEnvelope input hashと
+ゲート時点で期待される派生基板の再ハッシュを照合し、対応しない結果をゲート未実行として停止する。
+視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
 断面・干渉ビューはrenderer未実装のため後続フェーズで扱う。AI受け渡しと機械可読電気lane投影との
@@ -27,8 +28,9 @@ GD1の独立したwidth positive-control armは固定順で並列集約し、`ac
 provenanceだけを返す。SDK workflowは採用しない。
 roadmap 4.4は`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、
 `sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、
-`sdk.context.memory`／`sdk.context.view`まで実装済みで、残るのは`sdk.workspace`の
-authoritative経路化だけである。
+`sdk.context.memory`／`sdk.context.view`、`sdk.workspace`まで実装済みである。
+hostはSDK `LocalWorkspace`によるprovisional実行に限定し、authoritativeなゲート実行は
+digest固定`DockerWorkspace`だけが担う。
 
 決定論的ゲートのauthoritative Evidenceはdigest固定container実行だけが生成する。
 runnerとCIは事前build済みdigest固定server imageによる`DockerWorkspace`経路へ移行済みである。
@@ -45,17 +47,17 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 |---|---|---|---|
 | 1 | 契約と再現可能な投影 | graphをPydanticで検証し、同一入力から投影・provenance・hashを再生成できる | 達成 |
 | 2 | 電気レーンの独立検証 | ERC、routing収束、SES import、DRC、Gerber/drill生成、独立再読込、silkscreenゲートを通す | 達成 |
-| 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 一部達成（6ゲート、Evidence claim、正常系、述語のfail/unknown unit test、NEG-001〜006・008の注入fixtureとID別negative test、resolver実出力を検証するsilkscreen座標pinningを実装。NEG-007は派生状態とDRC結果の対応を検出する経路が未実装のため残件） |
+| 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 達成 |
 | 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
-| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、`sdk.context.memory`／`sdk.context.view`実装済み。`sdk.workspace`はマイルストーン6依存） |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 達成（hostは`LocalWorkspace`によるprovisional専用、authoritative経路はdigest固定`DockerWorkspace`） |
 | 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
-| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
+| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 一部達成（7.1・7.2、7.3〜7.5未完） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
@@ -74,8 +76,8 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 入力と出所 | GD1のDesign Graph、FW pin assignment、部品・ネット宣言、電源境界仕様、silkscreen resolverの最終座標、現行revision |
 | 実装 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを決定論的述語として実装し、結果を電気Evidenceのclaimへ追加する |
 | 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する。KiCadライブラリがある`--stage standard`ではtestを実行し、hostに無い場合は既存のskip慣習で前提不足を明示する。`container-gates`では固定image内でKiCad依存の同じ3件を実行する |
-| negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認し、NEG-001〜006・008を決定論的な注入関数とID別negative testで検証する。NEG-007は、現行pipelineに派生状態とDRC結果の対応を検査する経路がなく、未検出の残件である |
-| 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成し、実装済みnegative testを回帰へ含める。NEG-007の検出経路追加後に8件全体へ拡張する |
+| negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認し、NEG-001〜008を決定論的な注入関数とID別negative testで検証する。DRCの入力hash不一致・`unknown`、異なる入力集合・ファイル名、基板欠落はゲート未実行として停止する |
+| 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成し、NEG-001〜008のnegative testを回帰へ含める。DRC結果はゲート時点の基板bytesを再ハッシュして対応を検証する |
 
 KiCadライブラリを要するNEG-002およびライブラリhash不一致の補助testは、
 ライブラリのない`verify` jobでは前提不足としてskipし、KiCad有効な
@@ -122,8 +124,11 @@ MCP、Canvas、remote API、cloud、agent-serverは採用しない。
   hash不一致・EventLog不一致・EventLog外eventはfail-closedにする。projectionと
   memory観測はgate criticのEvidence経路で明示的に拒否し、同一EventLogから同一viewを
   再生成する`scripts/verify_context_view.py --check`を通常検証へ組み込む。
-- `sdk.workspace`／`workspace.DockerWorkspace`: host workspaceはprovisionalに限定し、
-  マイルストーン6の完了後にauthoritative経路化する。
+- `sdk.workspace`／`LocalWorkspace`: 実装済み。`--local-provisional`の明示opt-inから
+  `LocalWorkspace(working_dir=...)`をcontext managerとして使い、host結果をprovisional型で返す。
+  container markerまたはdigest環境変数がある場合は経路を拒否する。
+- `workspace.DockerWorkspace`: 実装済み。authoritativeなゲート実行はdigest固定server imageを
+  `DockerWorkspace`へ渡す既存経路だけに限定し、host結果をEvidenceのauthoritative passへ昇格しない。
 
 ### 4.5 能力カタログ検査の強化
 
@@ -269,7 +274,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 発注ガードの縮約は[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)、
 製造データと`unknown`境界は[`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を正とする。
 
-### 7.1 期限付き見積入力の取得契約
+### 7.1 期限付き見積入力の取得契約（達成）
 
 | 要素 | 完了条件 |
 |---|---|
@@ -277,17 +282,34 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 実装 | 期限付き見積入力のPydantic契約と取得記録を追加し、値の一次確認区分を保持する |
 | 正常系 | 期限内かつ必須項目を満たす入力から、部品・基板・実装の各費目が確定値として読める |
 | negative/fail-closed | 期限切れ、出所欠落、取得時点不明、`unknown`混在を停止条件にする |
-| 再現性 | 保存済み取得recordから同一の費目集合を再生成し、期限切れのnegative testを含める |
+| 再現性 | 保存済み取得recordから同一の費目集合とcanonical hashを再生成し、期限切れのnegative testを含める |
+
+`QuoteRecord`はfixtureとして保存したfab／distributorの見積入力を、URL、取得時点、
+有効期限、記録時点、対象revisionとともに検証する。金額は通貨コードと最小通貨単位桁数を
+持つ整数であり、基板・部品・実装・送料・税の費目を表現する。`read_quote()`は評価時刻と
+対象revisionを明示的に受け取り、一次確認（`primary`）の金額だけを確定値として費目集合へ
+読み出す。`inference`の金額、期限切れ、出所欠落、必須区分欠落、通貨不一致、
+`unknown`混在はfail-closedで停止する。返すのは7.2以降が参照する入力集合とcanonical hash
+だけであり、合否権限、発注許可、外部送信は持たない。実発注は行わず、7.5のdry-runまで
+別工程として扱う。
 
 ### 7.2 総発注額の合算契約
 
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 7.1の費目、fab profileの宣言値、筐体・機械部品を含む対象範囲の宣言 |
-| 実装 | 基板、部品、実装、送料、税を合算する契約を実装し、内訳と対象revisionを記録する |
+| 実装 | fab profile一致を確認し、基板、部品、実装、機械部品、送料、税を合算する契約を実装し、内訳と対象revisionを記録する |
 | 正常系 | GD1の総発注額が内訳付きで確定し、上限額との比較が決定論的に行える |
 | negative/fail-closed | 費目欠落、通貨・税条件不明、内訳と総額の不一致を`unknown`として停止する |
 | 再現性 | 同一の見積入力集合から同一の総額と内訳hashを再生成する |
+
+`OrderScope`は対象revision、fab profile、相手方区分、許可供給者、必須費目区分、
+送料・税の扱い、機械部品の扱い、通貨・桁数を明示する入力契約である。`QuoteRecord`の
+供給者申告総額は費目合計と契約validatorで照合し、`aggregate_order_total()`は7.1の
+`read_quote()`を再利用して一次確認済み・期限内の費目だけを区分別に合算する。返却する
+小計、総額、各見積のcanonical hash、内訳hashは再現性のための入力結果であり、各recordの
+供給者申告総額の合計と内訳から積み上げた総額も突合する。上限額との比較、合否、Evidence、
+発注許可は7.3以降の責務としてこの層へ導入しない。
 
 ### 7.3 発注前最終ゲート
 
