@@ -54,7 +54,12 @@ from acd.adapters.kicad.fab import (
     verify_smd_pad_centers_in_gerber,
     zip_content_hash,
 )
-from acd.adapters.kicad.gates import GateError, assert_converged, assert_rule_check_passed
+from acd.adapters.kicad.gates import (
+    GateError,
+    assert_converged,
+    assert_rule_check_input_matches,
+    assert_rule_check_passed,
+)
 from acd.adapters.kicad.placement import Placement
 from acd.adapters.kicad.project import write_project
 from acd.adapters.kicad.reload import (
@@ -432,6 +437,7 @@ def _run_kicad_netclass_positive_control(
         )
         report_path = arm_dir / "positive-control.drc.json"
         result = kicad.drc(arm_board, report_path, revision)
+        assert_rule_check_input_matches(f"DRC {name}", result, arm_board)
         summary = _summarize_width_violations(result, net_name, report_path)
         summary.update(
             {
@@ -753,6 +759,7 @@ def run_pipeline(
     kicad.refill_zones(routed_path, revision)
     filled_board_hash = normalized_hash(routed_path)
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
+    assert_rule_check_input_matches("DRC", drc, routed_path)
     assert_rule_check_passed("DRC", drc, require_connected=True)
     print("[5/10] DRC gate passed (0 errors, 0 unconnected)")
     kicad_positive_control = _run_kicad_netclass_positive_control(

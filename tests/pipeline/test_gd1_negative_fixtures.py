@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from acd.adapters.kicad.board import load_board_footprints
+from acd.adapters.kicad.cli import RuleCheckResult
 from acd.adapters.kicad.fab import FabOutputError
 from acd.adapters.kicad.fab.gerber import verify_ground_plane_gerbers
+from acd.adapters.kicad.gates import GateError, assert_rule_check_input_matches
 from acd.adapters.kicad.library import FootprintLibrary, LibraryPinError
 from acd.core.board_model import RoutedDesign
 from acd.core.design_predicates import (
@@ -18,6 +21,8 @@ from acd.core.design_predicates import (
     evaluate_usb_cc,
 )
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.process import ToolRun, sha256_paths
+from acd.schema import ToolEnvelope
 from tests.pipeline.gd1_negative_fixtures import (
     FIXTURE_DIR,
     conductor_region_with_stitch_flashes,
@@ -29,6 +34,7 @@ from tests.pipeline.gd1_negative_fixtures import (
     inject_gd1_neg_005_mismatch_firmware_gpio,
     inject_gd1_neg_006_library_hash_mismatch,
     inject_gd1_neg_006_remove_library_evidence,
+    inject_gd1_neg_007_stale_drc,
     inject_gd1_neg_008_unknown_coordinate_unit,
     load_fixture_fab_profile,
     load_gd1_graph,
@@ -119,6 +125,37 @@ def test_gd1_library_hash_mismatch_is_rejected() -> None:
             FIXTURE_DIR,
             load_fixture_fab_profile(),
         )
+
+
+def test_gd1_neg_007_stale_drc_is_rejected_as_gate_not_executed(tmp_path: Path) -> None:
+    board = tmp_path / "derived.kicad_pcb"
+    board.write_bytes(b"(kicad_pcb (version 20240108))\n")
+    envelope = ToolEnvelope(
+        tool_name="kicad-cli",
+        tool_version="10.0.5",
+        format_version="10.0.5",
+        config_hash="sha256:" + "a" * 64,
+        input_hash=sha256_paths([board]),
+        input_paths=(str(board),),
+        output_hash="sha256:" + "c" * 64,
+        execution_env="test",
+        execution_context="host",
+        measurement_conditions="test",
+        convergence_state="not_applicable",
+        target_revision="r1",
+        started_at=datetime(2026, 1, 1, tzinfo=UTC),
+        finished_at=datetime(2026, 1, 1, 0, 0, 1, tzinfo=UTC),
+        exit_code=0,
+    )
+    result = RuleCheckResult(
+        run=ToolRun(envelope=envelope, stdout="", stderr=""),
+        report_path=tmp_path / "drc.json",
+        violations=(),
+        unconnected_items=(),
+    )
+    inject_gd1_neg_007_stale_drc(board)
+    with pytest.raises(GateError, match="gate not executed"):
+        assert_rule_check_input_matches("DRC", result, board)
 
 
 def test_gd1_neg_008_unknown_coordinate_unit_stops_extraction() -> None:

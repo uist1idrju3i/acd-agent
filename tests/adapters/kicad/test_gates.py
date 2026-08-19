@@ -7,14 +7,22 @@ from pathlib import Path
 import pytest
 
 from acd.adapters.kicad.cli import RuleCheckResult
-from acd.adapters.kicad.gates import GateError, assert_converged, assert_rule_check_passed
-from acd.core.process import ToolRun
+from acd.adapters.kicad.gates import (
+    GateError,
+    assert_converged,
+    assert_rule_check_input_matches,
+    assert_rule_check_passed,
+)
+from acd.core.process import ToolRun, sha256_paths
 from acd.schema import ToolEnvelope
 
 
 def _result(
     violations: tuple[dict[str, object], ...] = (),
     unconnected: tuple[dict[str, object], ...] = (),
+    *,
+    input_hash: str | None = None,
+    input_paths: tuple[str, ...] = (),
 ) -> RuleCheckResult:
     zero_hash = "sha256:" + "0" * 64
     envelope = ToolEnvelope.model_validate(
@@ -23,7 +31,8 @@ def _result(
             "tool_version": "10.0.5",
             "format_version": "10.0.5",
             "config_hash": zero_hash,
-            "input_hash": zero_hash,
+            "input_hash": input_hash or zero_hash,
+            "input_paths": input_paths,
             "output_hash": zero_hash,
             "execution_env": "test",
             "execution_context": "host",
@@ -47,6 +56,64 @@ def _result(
 
 def test_gate_passes_clean_result() -> None:
     assert_rule_check_passed("DRC", _result(), require_connected=True)
+
+
+def test_drc_input_correspondence_passes_for_current_board(tmp_path: Path) -> None:
+    board = tmp_path / "board.kicad_pcb"
+    board.write_bytes(b"board")
+    result = _result(
+        input_hash=sha256_paths([board]),
+        input_paths=(str(board),),
+    )
+    assert_rule_check_input_matches("DRC", result, board)
+
+
+def test_drc_input_correspondence_rejects_missing_hash(tmp_path: Path) -> None:
+    board = tmp_path / "board.kicad_pcb"
+    board.write_bytes(b"board")
+    result = _result(input_paths=(str(board),))
+    envelope_data = result.run.envelope.model_dump()
+    envelope_data.pop("input_hash")
+    envelope = ToolEnvelope.model_construct(**envelope_data)
+    stale = RuleCheckResult(
+        run=ToolRun(envelope=envelope, stdout="", stderr=""),
+        report_path=result.report_path,
+        violations=result.violations,
+        unconnected_items=result.unconnected_items,
+    )
+    with pytest.raises(GateError, match="gate not executed"):
+        assert_rule_check_input_matches("DRC", stale, board)
+
+
+def test_drc_input_correspondence_rejects_unknown_hash(tmp_path: Path) -> None:
+    board = tmp_path / "board.kicad_pcb"
+    board.write_bytes(b"board")
+    result = _result(input_hash="unknown", input_paths=(str(board),))
+    with pytest.raises(GateError, match="gate not executed"):
+        assert_rule_check_input_matches("DRC", result, board)
+
+
+def test_drc_input_correspondence_rejects_hash_mismatch(tmp_path: Path) -> None:
+    board = tmp_path / "board.kicad_pcb"
+    board.write_bytes(b"board")
+    result = _result(input_paths=(str(board),))
+    with pytest.raises(GateError, match="gate not executed"):
+        assert_rule_check_input_matches("DRC", result, board)
+
+
+def test_drc_input_correspondence_rejects_undeclared_board(tmp_path: Path) -> None:
+    board = tmp_path / "board.kicad_pcb"
+    board.write_bytes(b"board")
+    result = _result(input_hash=sha256_paths([board]))
+    with pytest.raises(GateError, match="gate not executed"):
+        assert_rule_check_input_matches("DRC", result, board)
+
+
+def test_drc_input_correspondence_rejects_missing_board(tmp_path: Path) -> None:
+    board = tmp_path / "missing.kicad_pcb"
+    result = _result(input_paths=(str(board),))
+    with pytest.raises(GateError, match="gate not executed"):
+        assert_rule_check_input_matches("DRC", result, board)
 
 
 def test_gate_stops_on_error_violation() -> None:
