@@ -123,11 +123,24 @@ digest固定server image（Docker image）はplugin installでは取得されず
 
 ### Local GUIからの動作確認手順
 
-前節のインストール直後確認（plugin名`acd`とSkillの読み込み）を完了したうえで、
-Local GUIの会話から決定論的な投影・出力を確認する。GUIでの操作は、既存のCLI入口を
-会話から呼び出す形に限定する。
+インストール直後に、まず自己診断入口を実行する。doctorはplugin資材と実行環境を
+観測するが合否権限を持たず、`degraded`は任意能力の不足、required checkの
+`failed`はインストール資材の不整合として扱う。その後、既存のplugin名`acd`と
+Skill読み込み確認を行い、Local GUIの会話から決定論的な投影・出力を確認する。
+GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定する。
 
-1. 基板・筐体のゲートは`/acd:gates` commandを実行する。`plugins/acd/commands/gates.md`
+1. `/acd:doctor`を実行する。GUI installでは
+   `~/.openhands/plugins/installed/acd/skills/acd-install-doctor/scripts/install_doctor.py`、
+   開発checkoutでは
+   `plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`を使用する。
+   JSONの`status`、required check、plugin rootをそのまま確認し、doctorのL3観測を
+   authoritative Evidenceやゲート合格へ昇格させない。
+
+2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは
+   doctorのmanifest／Skill資材検査をGUIのロード結果でも確認する手順であり、
+   doctorだけでSDKのロード成功を推定しない。
+
+3. 基板・筐体のゲートは`/acd:gates` commandを実行する。`plugins/acd/commands/gates.md`
    の引数契約に合わせ、必要に応じてfixtureと出力先を指定する。
 
    ```text
@@ -143,7 +156,7 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを
    応答へ明記させる。
 
-2. 実行済みのGD1基板pipelineでは、回路図
+4. 実行済みのGD1基板pipelineでは、回路図
    `out/gd1/gd1.kicad_sch`、routed board
    `out/gd1/routed/gd1.kicad_pcb`、Gerberの
    `out/gd1/gerbers/`、drillの`out/gd1/gerbers/gd1.drl`、製造出力の
@@ -161,7 +174,7 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    製造データ生成をfail-closedで停止し、個別部品のEvidence欠落は
    `order-readiness.json`の回転unknownとして記録する。
 
-3. 実行済みのGD1筐体pipelineでは、部品別STEPとして
+5. 実行済みのGD1筐体pipelineでは、部品別STEPとして
    `out/gd1-enclosure/enclosure-shell.step`と
    `out/gd1-enclosure/enclosure-lid.step`、組立確認専用の統合STEPとして
    `out/gd1-enclosure/enclosure-assembly.step`、2オブジェクトを保持する
@@ -171,7 +184,7 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    lidの単独ソリッドだけを含み、統合STEPは組立確認用であり、製造部品ファイルの
    代用にはしない。構成物一覧が欠落または期待ファイルと不一致の場合はfail-closedで停止する。
 
-4. FW Skillは会話に`firmware`、`ESP32-C3`、`ESP-IDF`、`QEMU`、`GPIO`のいずれかを
+6. FW Skillは会話に`firmware`、`ESP32-C3`、`ESP-IDF`、`QEMU`、`GPIO`のいずれかを
    含めて起動し、次の入口を実行させる。
 
    ```bash
@@ -188,7 +201,7 @@ Local GUIの会話から決定論的な投影・出力を確認する。GUIで�
    `qemu-system-riscv32`が利用できない環境ではこの手順を実行できず、推測した成果物パスを
    成功結果として記録してはならない。
 
-5. これらのhost実行はprovisional専用であり、合格側Evidenceにはならない。authoritative
+7. これらのhost実行はprovisional専用であり、合格側Evidenceにはならない。authoritative
    Evidenceは、lock済みdigest固定server imageを`DockerWorkspace(server_image=...)`で
    実行した経路だけが生成する。digest不明、container marker欠落、Evidenceのrevision不一致、
    `status`不正、unknown、または実行経路不明はfail-closedとする。FWのQEMUログも仮想検証で
