@@ -121,6 +121,22 @@ Local GUIからの動作確認手順へ進む。
 digest固定server image（Docker image）はplugin installでは取得されず、ゲート実行時に
 `DockerWorkspace(server_image=...)`が初回pullする。
 
+#### plugin更新時のキャッシュ確認
+
+同じrepositoryを一度installした環境では、`~/.openhands/cache/extensions/`のクローンが
+再fetchされず、新しいリファレンスを指定してもキャッシュ済みのcommitがinstallされることを
+実機で確認した。branch名でも40桁commit SHAでもgit URL形式でも同じであり、GUIは警告を
+出さない。install直後にplugin詳細のリファレンスを`git ls-remote`の結果と照合し、
+不一致であれば次を実行してからinstallし直す。
+
+```bash
+rm -rf ~/.openhands/plugins/installed/acd
+rm -rf ~/.openhands/cache/extensions/acd-agent-*
+```
+
+削除後はOpenHandsを再起動する。リファレンスが一致しないまま動作確認へ進むと、
+古い資材の挙動を新しい変更の観測結果として誤って扱う。
+
 ### Local GUIからの動作確認手順
 
 インストール直後に、まず自己診断入口を実行する。doctorはplugin資材と実行環境を
