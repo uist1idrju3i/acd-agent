@@ -116,6 +116,15 @@ from acd.schema.receipt import (
     ReconciliationStatus,
     ShipmentManifestReference,
 )
+from acd.schema.side_effect_journal import (
+    JournalEntryBody,
+    JournalEntryType,
+    JournalResultStatus,
+    PostOrderJournalEntry,
+    PostOrderJournalEntryBody,
+    PreOrderJournalEntry,
+    PreOrderJournalEntryBody,
+)
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
 from acd.schema.visual_crosscheck import (
     CrosscheckAspect,
@@ -186,6 +195,9 @@ __all__ = [
     "FunctionalRunReport",
     "GraphNode",
     "InspectionReportReference",
+    "JournalEntryBody",
+    "JournalEntryType",
+    "JournalResultStatus",
     "LedExpectation",
     "MeasuredQuantity",
     "MeasurementClass",
@@ -207,8 +219,12 @@ __all__ = [
     "OrderSubtotalDocument",
     "OrderTotalDocument",
     "PhysicalEvidence",
+    "PostOrderJournalEntry",
+    "PostOrderJournalEntryBody",
     "PreOrderGateRecord",
     "PreOrderGateRecordBody",
+    "PreOrderJournalEntry",
+    "PreOrderJournalEntryBody",
     "PromptCacheTier",
     "PromptDriftReport",
     "PromptManifestStatus",

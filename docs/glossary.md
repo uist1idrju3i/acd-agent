@@ -24,6 +24,8 @@
 | OrderPolicy | 発注hookの既存条件、設計graphパス、両lane Evidence ID、発注総額上限を厳格に宣言する契約。 |
 | 発注前最終ゲートrecord | 現行revision、7.2総額、上限額、Evidence hash、policy hash、判定時刻を集約した非Evidence record。新しいpass authorityや発注権限は持たない。 |
 | order_total_limit | `OrderPolicy`に宣言する、最小通貨単位の整数・通貨・最小単位桁数による発注総額上限。 |
+| side-effect journal | 7.3の許可recordを参照する不可逆操作の事前予定と事後結果を、entry hash連鎖付きJSON Linesへ追記する記録。Evidence、合否権限、発注許可ではない。 |
+| journal entry hash | side-effect journal entry本体をcanonical JSON化したhash。entry自身の内容を検証し、直前entry hashと連鎖する。 |
 | 送付manifest | 製造・組立へ送付した成果物の相対path、content hash、対象revisionを記録するmanifest。 |
 | 突合（reconciliation） | 送付manifestと受領recordの成果物一覧、hash、対象revisionを決定論的に比較する処理。 |
 | 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |
