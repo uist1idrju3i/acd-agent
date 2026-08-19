@@ -15,7 +15,7 @@ ID別negative testで整備済みである。DRC結果のToolEnvelope input hash
 視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
-断面・干渉ビューrenderer、AI受け渡しと機械可読電気lane投影との照合、レビュー観点記録まで
+断面・干渉ビューrenderer、AI受け渡しと機械可読電気・機械lane投影との照合、レビュー観点記録まで
 実装済みである。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
@@ -418,7 +418,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 同一revisionの機械可読投影（netlist要約、ピン割当表など）と8.3の視覚投影 |
-| 実装 | 電気laneのみを対象に、8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合する。投影集合の網羅性、SVGのmm単位・軸・原点、title blockの入力ファイル、KiCad renderer版、正規化後image hash、schematicのrefdesを決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。層別SVGが本当に各銅層を描くかはSVGだけでは判定せず、`observation_required`にする。AIの観察はprovenance付きの非Evidence観測として記録する |
+| 実装 | 電気laneでは8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合し、機械laneでは断面・干渉SVGと同一revisionの`MechanicalLane`、authoritative assembly STEP、`MechanicalGateReport`を照合する。投影集合の網羅性、電気laneのSVG単位・軸・原点・title block・KiCad renderer版・正規化後image hash・schematic refdes、機械laneのSVG単位・viewBox寸法・raw image hash・build123d renderer版・正規化assembly STEP hash・section plane／offset・干渉体積／領域を決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。電気laneの層identityと機械laneの層識別子がSVGだけで確定できない場合は`observation_required`にする。AIの観察はprovenance付きの非Evidence観測として記録する。FW laneの照合は後続PRで実装する |
 | 正常系 | 注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを、決定論的照合とレビュー観点チェックリストの組合せで記録する |
 | negative/fail-closed | 照合不一致、照合対象欠落、SVG解析不能、revision不一致、チェック結果`unknown`の合格扱い、観察のEvidence昇格を拒否する。照合レポートは`pass_evidence=False`のL3観測としてEvidence、fab claims、gate fields、`hashes.json`へ昇格しない |
 | 再現性 | 同一入力から同一の照合結果とチェック記録を再生成する |

@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import math
 import re
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from xml.etree import ElementTree
 
+from acd.adapters.cad.mechanical import MechanicalGateReport
+from acd.adapters.cad.project import CadProjection, cad_tool_version
 from acd.adapters.kicad.gates import GateError
 from acd.adapters.kicad.visual_projection import (
     KicadVisualRenderer,
@@ -15,7 +18,9 @@ from acd.adapters.kicad.visual_projection import (
 )
 from acd.adapters.raster import CairoSvgRasterizer
 from acd.core.board_model import BoardModel
+from acd.core.cad_normalize import normalize_3mf, normalize_step
 from acd.core.electrical import ElectricalLane
+from acd.core.mechanical import MechanicalLane
 from acd.core.process import sha256_bytes
 from acd.core.visual_projection import normalized_svg_sha256
 from acd.schema.visual_crosscheck import (
@@ -544,8 +549,450 @@ def crosscheck_electrical_visual_projections(
     return report
 
 
+def _normalized_step_input(
+    path: Path,
+    *,
+    base_dir: Path,
+) -> VisualProjectionInput:
+    input_record = _machine_input(path, base_dir=base_dir)
+    try:
+        normalized_hash = sha256_bytes(normalize_step(path.read_bytes()))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise ValueError("visual crosscheck assembly STEP cannot be normalized") from exc
+    return input_record.model_copy(update={"content_hash": normalized_hash})
+
+
+def _normalized_model_input(
+    path: Path,
+    *,
+    base_dir: Path,
+) -> VisualProjectionInput:
+    input_record = _machine_input(path, base_dir=base_dir)
+    try:
+        normalized_hash = sha256_bytes(normalize_3mf(path.read_bytes()))
+    except (OSError, ValueError) as exc:
+        raise ValueError("visual crosscheck model cannot be normalized") from exc
+    return input_record.model_copy(update={"content_hash": normalized_hash})
+
+
+def _svg_layer_ids(svg: bytes) -> tuple[str, ...]:
+    try:
+        root = ElementTree.fromstring(svg)
+    except ElementTree.ParseError as exc:
+        raise ValueError("visual crosscheck SVG could not be parsed") from exc
+    return tuple(
+        sorted(
+            {
+                element.attrib["id"]
+                for element in root.iter()
+                if "id" in element.attrib
+            }
+        )
+    )
+
+
+def _mechanical_projection_crosscheck(
+    *,
+    projection: VisualProjectionRecord,
+    lane: MechanicalLane,
+    gate_report: MechanicalGateReport,
+    base_dir: Path,
+    declared_step_hash: str,
+) -> VisualProjectionCrosscheck:
+    if projection.projection_type not in {
+        "mechanical_section_view",
+        "mechanical_interference_view",
+    }:
+        raise ValueError("visual crosscheck contains a non-mechanical projection")
+    path = (base_dir / projection.image_path).resolve()
+    try:
+        path.relative_to(base_dir.resolve())
+        svg = path.read_bytes()
+    except (OSError, ValueError) as exc:
+        raise ValueError("visual crosscheck mechanical SVG could not be read") from exc
+    width, height, view_box = _svg_root_geometry(svg)
+    width_value, width_unit = _svg_dimension(width, "width")
+    height_value, height_unit = _svg_dimension(height, "height")
+    width_number = _decimal(width_value, "width")
+    height_number = _decimal(height_value, "height")
+    view_box_numbers = tuple(_decimal(value, "viewBox") for value in view_box)
+    expected_width = (
+        lane.outline.width_mm
+        + 2 * lane.enclosure.internal_clearance_mm
+        + 2 * lane.enclosure.wall_thickness_mm
+    )
+    expected_height = (
+        lane.outline.depth_mm
+        + 2 * lane.enclosure.internal_clearance_mm
+        + 2 * lane.enclosure.wall_thickness_mm
+    )
+    declared_offset = (
+        lane.enclosure.wall_thickness_mm + lane.enclosure.standoff_height_mm / 2
+    )
+    expected_origin = (-expected_width / 2, -expected_height / 2)
+    expected_layers = (
+        ("section",)
+        if projection.projection_type == "mechanical_section_view"
+        else (
+            ("enclosure", "interference")
+            if projection.interference_region_present
+            else ("enclosure",)
+        )
+    )
+    actual_layers = _svg_layer_ids(svg)
+    try:
+        renderer_version = cad_tool_version()
+    except (ImportError, ModuleNotFoundError, ValueError) as exc:
+        raise ValueError("visual crosscheck CAD renderer version is unavailable") from exc
+    if projection.renderer.tool_version == "unknown":
+        raise ValueError("visual crosscheck CAD renderer version is unknown")
+    input_files = projection.input_files
+    if len(input_files) != 1:
+        raise ValueError("visual crosscheck mechanical projection input is invalid")
+    items = [
+        _crosscheck_item(
+            check_id="svg-units",
+            description="Mechanical SVG root dimensions use millimeter units",
+            expected="width=mm; height=mm",
+            actual=f"width={width_unit}; height={height_unit}",
+            machine_field="SVG.root.width/height",
+            status="match" if width_unit == "mm" and height_unit == "mm" else "mismatch",
+        ),
+        _crosscheck_item(
+            check_id="svg-origin",
+            description="Mechanical SVG viewBox origin matches the centered CAD projection",
+            expected=f"{expected_origin[0]} {expected_origin[1]}",
+            actual=f"{view_box[0]} {view_box[1]}",
+            machine_field="SVG.root.viewBox.origin",
+            status=(
+                "match"
+                if math.isclose(float(view_box_numbers[0]), expected_origin[0], abs_tol=1e-6)
+                and math.isclose(float(view_box_numbers[1]), expected_origin[1], abs_tol=1e-6)
+                else "mismatch"
+            ),
+        ),
+        _crosscheck_item(
+            check_id="svg-viewbox",
+            description="Mechanical SVG viewBox dimensions are self-consistent with the root",
+            expected=f"{width_value} {height_value}",
+            actual=f"{view_box[2]} {view_box[3]}",
+            machine_field="SVG.root.width/height; SVG.root.viewBox",
+            status=(
+                "match"
+                if view_box_numbers[2:] == (width_number, height_number)
+                else "mismatch"
+            ),
+        ),
+        _crosscheck_item(
+            check_id="svg-view-dimensions",
+            description="Mechanical SVG viewBox dimensions match the declared enclosure",
+            expected=f"{expected_width} {expected_height}",
+            actual=f"{view_box[2]} {view_box[3]}",
+            machine_field=(
+                "MechanicalLane.outline.width_mm/depth_mm; "
+                "MechanicalLane.enclosure.internal_clearance_mm/wall_thickness_mm"
+            ),
+            status=(
+                "match"
+                if math.isclose(float(view_box_numbers[2]), expected_width, abs_tol=1e-6)
+                and math.isclose(float(view_box_numbers[3]), expected_height, abs_tol=1e-6)
+                else "mismatch"
+            ),
+        ),
+        _crosscheck_item(
+            check_id="svg-image-hash",
+            description="Mechanical SVG raw-byte hash matches the projection record",
+            expected=projection.image_hash,
+            actual=sha256_bytes(svg),
+            machine_field="VisualProjectionRecord.image_hash",
+            status="match" if sha256_bytes(svg) == projection.image_hash else "mismatch",
+        ),
+        _crosscheck_item(
+            check_id="renderer-version",
+            description="Mechanical SVG renderer version matches the installed CAD tool",
+            expected=renderer_version,
+            actual=projection.renderer.tool_version,
+            machine_field="VisualProjectionRecord.renderer.tool_version; cad_tool_version()",
+            status=(
+                "match"
+                if projection.renderer.tool_version == renderer_version
+                else "mismatch"
+            ),
+        ),
+        _crosscheck_item(
+            check_id="step-input-hash",
+            description="Mechanical projection input matches the normalized assembly STEP",
+            expected=declared_step_hash,
+            actual=input_files[0].content_hash,
+            machine_field="VisualProjectionRecord.input_files[0].content_hash",
+            status="match" if input_files[0].content_hash == declared_step_hash else "mismatch",
+        ),
+        _crosscheck_item(
+            check_id="section-plane",
+            description="Mechanical projection uses the declared XY section plane",
+            expected="xy",
+            actual=projection.section_plane_id or "missing",
+            machine_field="VisualProjectionRecord.section_plane_id",
+            status="match" if projection.section_plane_id == "xy" else "mismatch",
+        ),
+        _crosscheck_item(
+            check_id="section-offset",
+            description="Mechanical projection section offset matches the declared offset",
+            expected=str(declared_offset),
+            actual=(
+                str(projection.section_offset_mm)
+                if projection.section_offset_mm is not None
+                else "missing"
+            ),
+            machine_field=(
+                "VisualProjectionRecord.section_offset_mm; "
+                "MechanicalLane.enclosure.wall_thickness_mm/standoff_height_mm"
+            ),
+            status=(
+                "match"
+                if projection.section_offset_mm is not None
+                and math.isclose(projection.section_offset_mm, declared_offset, abs_tol=1e-6)
+                else "mismatch"
+            ),
+        ),
+        _crosscheck_item(
+            check_id="svg-layer-names",
+            description="Mechanical SVG layer identifiers match the declared view layers",
+            expected=",".join(expected_layers),
+            actual=",".join(actual_layers) or "none",
+            machine_field="SVG.root.g[*].id",
+            status="match" if actual_layers == expected_layers else "mismatch",
+        ),
+    ]
+    if projection.projection_type == "mechanical_interference_view":
+        actual_volume = projection.interference_volume_mm3
+        expected_volume = gate_report.measured_max_interference_volume_mm3
+        items.extend(
+            [
+                _crosscheck_item(
+                    check_id="interference-volume",
+                    description="Interference view volume matches the mechanical gate measurement",
+                    expected=str(expected_volume),
+                    actual=str(actual_volume) if actual_volume is not None else "missing",
+                    machine_field=(
+                        "VisualProjectionRecord.interference_volume_mm3; "
+                        "MechanicalGateReport.measured_max_interference_volume_mm3"
+                    ),
+                    status=(
+                        "match"
+                        if actual_volume is not None
+                        and math.isclose(actual_volume, expected_volume, abs_tol=1e-6)
+                        else "mismatch"
+                    ),
+                ),
+                _crosscheck_item(
+                    check_id="interference-region",
+                    description="Interference region presence matches volume and gate status",
+                    expected=(
+                        f"volume>0={expected_volume > 0}; "
+                        f"gate_interference_free={gate_report.interference}"
+                    ),
+                    actual=(
+                        f"volume>0={actual_volume is not None and actual_volume > 0}; "
+                        f"gate_interference_free={gate_report.interference}; "
+                        f"region={projection.interference_region_present}"
+                    ),
+                    machine_field=(
+                        "VisualProjectionRecord.interference_region_present; "
+                        "MechanicalGateReport.interference"
+                    ),
+                    status=(
+                        "match"
+                        if actual_volume is not None
+                        and projection.interference_region_present is not None
+                        and (actual_volume > 0) == projection.interference_region_present
+                        and gate_report.interference
+                        == (expected_volume <= lane.enclosure.interference_tolerance_mm3)
+                        else "mismatch"
+                    ),
+                ),
+            ]
+        )
+    return VisualProjectionCrosscheck(
+        projection_id=projection.projection_id,
+        source_revision=projection.source_revision,
+        image_hash=projection.image_hash,
+        items=items,
+        status=_status_for_items(items),
+    )
+
+
+def crosscheck_mechanical_visual_projections(
+    *,
+    source_revision: str,
+    visual_projection_set: VisualProjectionSet,
+    lane: MechanicalLane,
+    projection: CadProjection,
+    gate_report: MechanicalGateReport,
+    base_dir: Path,
+    machine_inputs: tuple[Path, ...],
+    output_path: Path | None = None,
+) -> VisualCrosscheckReport:
+    """Cross-check mechanical SVG projections against CAD and gate inputs."""
+    if visual_projection_set.source_revision != source_revision:
+        raise ValueError("visual crosscheck source revisions do not match")
+    if any(
+        item.source_revision != source_revision
+        for item in visual_projection_set.projections
+    ):
+        raise ValueError("visual crosscheck projection revisions do not match")
+    expected_types = {
+        "mechanical_section_view",
+        "mechanical_interference_view",
+    }
+    expected_ids = {
+        "gd1-mechanical-section",
+        "gd1-mechanical-interference",
+    }
+    actual_types = [item.projection_type for item in visual_projection_set.projections]
+    actual_ids = {item.projection_id for item in visual_projection_set.projections}
+    coverage_item = _crosscheck_item(
+        check_id="projection-coverage",
+        description="Projection set contains exactly the declared mechanical views",
+        expected=(
+            "mechanical_section_view=1; mechanical_interference_view=1; "
+            "projection_ids=gd1-mechanical-section,gd1-mechanical-interference"
+        ),
+        actual=(
+            f"types={','.join(sorted(actual_types)) or 'none'}; "
+            f"projection_ids={','.join(sorted(actual_ids)) or 'none'}"
+        ),
+        machine_field="VisualProjectionSet.projections[*].projection_type/projection_id",
+        status=(
+            "match"
+            if len(visual_projection_set.projections) == 2
+            and set(actual_types) == expected_types
+            and actual_ids == expected_ids
+            else "mismatch"
+        ),
+    )
+    if len(machine_inputs) != 3 or machine_inputs[0] != projection.assembly_step_path:
+        raise ValueError("visual crosscheck mechanical machine inputs are invalid")
+    declared_step = _normalized_step_input(machine_inputs[0], base_dir=base_dir)
+    records = [
+        _mechanical_projection_crosscheck(
+            projection=item,
+            lane=lane,
+            gate_report=gate_report,
+            base_dir=base_dir,
+            declared_step_hash=declared_step.content_hash,
+        )
+        for item in visual_projection_set.projections
+    ]
+    if not records:
+        raise ValueError("visual crosscheck has no projection records")
+    deterministic_items = {
+        check_id: [
+            item
+            for record in records
+            for item in record.items
+            if item.check_id == check_id
+        ]
+        for check_id in ("svg-units", "svg-origin", "section-plane")
+    }
+    review_items = [
+        VisualReviewChecklistItem(
+            item_id="review-readability",
+            aspect="readability",
+            verification="observation_required",
+            status="unknown",
+            basis="Mechanical SVG geometry cannot deterministically establish readability.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-design-intent",
+            aspect="design_intent",
+            verification="observation_required",
+            status="unknown",
+            basis="Mechanical SVG bytes cannot deterministically establish design-intent fidelity.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-annotations",
+            aspect="annotations",
+            verification="observation_required",
+            status="unknown",
+            basis="Mechanical SVG annotations require visual observation.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-units",
+            aspect="units",
+            verification="deterministic",
+            status=_status_for_items(
+                [
+                    item
+                    for record in records
+                    for item in record.items
+                    if item.check_id == "svg-units"
+                ]
+            ),
+            basis="SVG root width and height unit checks.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-axis",
+            aspect="axis",
+            verification="observation_required",
+            status="unknown",
+            basis="Mechanical section axis orientation requires visual observation.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-origin",
+            aspect="origin",
+            verification="deterministic",
+            status=_status_for_items(deterministic_items["svg-origin"]),
+            basis="Centered CAD SVG viewBox origin check.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-section-plane",
+            aspect="section_plane",
+            verification="deterministic",
+            status=_status_for_items(deterministic_items["section-plane"]),
+            basis="Declared XY section plane check.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-occlusion",
+            aspect="occlusion",
+            verification="observation_required",
+            status="unknown",
+            basis="Overlapping or hidden mechanical visual elements require visual observation.",
+        ),
+        VisualReviewChecklistItem(
+            item_id="review-interference-visibility",
+            aspect="interference_visibility",
+            verification="observation_required",
+            status="unknown",
+            basis="Interference visibility requires visual observation.",
+        ),
+    ]
+    report = VisualCrosscheckReport(
+        source_revision=source_revision,
+        visual_projection_set_identity_hash=visual_projection_set.identity_hash,
+        machine_input_files=[
+            declared_step,
+            _normalized_model_input(machine_inputs[1], base_dir=base_dir),
+            _machine_input(machine_inputs[2], base_dir=base_dir),
+        ],
+        set_items=[coverage_item],
+        crosschecks=sorted(records, key=lambda record: record.projection_id),
+        review_items=review_items,
+        status=_status_for_items(
+            [coverage_item]
+            + [item for record in records for item in record.items]
+        ),
+        generated_at=datetime.now(UTC),
+    ).with_computed_hashes()
+    if output_path is None:
+        output_path = base_dir / "visual-crosscheck-mechanical.json"
+    output_path.write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    return report
+
+
 __all__ = [
     "crosscheck_electrical_visual_projections",
+    "crosscheck_mechanical_visual_projections",
     "derive_png_visual_projections",
     "generate_electrical_visual_projections",
 ]

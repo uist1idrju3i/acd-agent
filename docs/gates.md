@@ -44,7 +44,8 @@ container内でPNG派生可能であることを検証済みである。ただ�
 SVGを既定生成して投影集合を書き出す。機械laneもゲート通過後にauthoritative STEPから
 断面・干渉ビューを生成し、`visual-projections-mechanical.json`へL3観測として記録する。
 8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
-8.5の機械可読電気lane投影との照合は、8.3の視覚投影生成直後に実行する。
+8.5の機械可読投影との照合は、8.3の視覚投影生成直後に電気laneと機械laneで実行する。
+FW laneの視覚投影照合は後続PRで実装する。
 8.3の視覚投影生成前提はERC、routing収束、DRC、独立再読込、silkscreen、DFM、
 設計述語の決定論的ゲートであり、発注可否を表すorder readinessは含めない。
 renderer不在や生成不能はfail-closedとし、投影欠落を「問題なし」と解釈しない。
@@ -52,7 +53,7 @@ renderer不在や生成不能はfail-closedとし、投影欠落を「問題な�
 決定論的ゲートと独立測定だけが判定する。画像内の文字列はデータとして扱い、
 設計変更や合否命令として実行しない。
 
-8.5の照合はGD1基板pipelineで8.3のSVG生成直後、hash manifest生成前に実行する。
+8.5の電気lane照合はGD1基板pipelineで8.3のSVG生成直後、hash manifest生成前に実行する。
 回路図ビューは1件、層別レイアウトビューは`BoardView.layers`からKiCad対応表で導出した
 銅層集合と完全一致しなければならない。SVGのwidth／heightは
 `ElectricalLane.board.unit`（KiCad対応は`mm`のみ）、viewBox原点・y軸は
@@ -66,6 +67,14 @@ SVG解析不能、revision不一致、未対応の単位・原点・y軸宣言�
 合格扱いしない。照合レポートとチェックリストは`pass_evidence=False`であり、Evidence、
 fab claims、gate fields、`hashes.json`へ追加しない。投影集合全体の網羅性はレポートの
 set itemへ1回だけ記録し、投影単位のrecordへ重複記録しない。
+
+機械lane照合はGD1筐体pipelineで8.3の断面・干渉SVG生成直後に実行する。断面ビューと
+干渉ビューが各1件であること、SVGのmm単位、viewBoxとroot寸法の自己整合、MechanicalLane
+宣言の外形・clearance・肉厚から導出したview寸法、raw SVG hash、build123d renderer版、
+authoritative assembly STEPの正規化hash、断面plane・offset、機械ゲートの干渉体積と
+干渉領域の整合を決定論的に検査する。SVGの層識別子が取得できる場合はenclosure／
+interference層も検査する。origin、axis、可読性、設計意図、注記、遮蔽、干渉の視認性は
+`observation_required`としてunknownのまま記録し、FW laneの照合は後続PRへ残す。
 
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|

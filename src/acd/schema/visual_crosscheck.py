@@ -31,6 +31,8 @@ CrosscheckAspect = Literal[
     "origin",
     "occlusion",
     "signal_power",
+    "section_plane",
+    "interference_visibility",
 ]
 ReviewVerification = Literal["deterministic", "observation_required"]
 
