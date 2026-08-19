@@ -14,6 +14,7 @@ from acd.schema.common import (
     AcdModel,
     canonical_json_sha256,
     canonical_sha256,
+    contains_unknown,
     is_unknown,
 )
 from acd.schema.context import (
@@ -232,5 +233,6 @@ __all__ = [
     "VisualVisionObservation",
     "canonical_json_sha256",
     "canonical_sha256",
+    "contains_unknown",
     "is_unknown",
 ]

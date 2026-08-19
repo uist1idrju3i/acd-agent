@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Self, cast
+from typing import Literal, Self
 
 from pydantic import Field, StrictInt, model_validator
 
@@ -13,6 +13,7 @@ from acd.schema.common import (
     Revision,
     SchemaVersion,
     Timestamp,
+    contains_unknown,
 )
 from acd.schema.fab_profile import Basis, FabSource
 
@@ -20,22 +21,10 @@ QuoteParty = Literal["fab", "distributor"]
 QuoteCategory = Literal["board", "components", "assembly", "shipping", "tax"]
 
 
-def _contains_unknown(value: object) -> bool:
-    if isinstance(value, str):
-        return value == "unknown"
-    if isinstance(value, dict):
-        mapping = cast(dict[object, object], value)
-        return any(_contains_unknown(item) for item in mapping.values())
-    if isinstance(value, list):
-        items = cast(list[object], value)
-        return any(_contains_unknown(item) for item in items)
-    return False
-
-
 class QuoteModel(AcdModel):
     @model_validator(mode="after")
     def reject_unknown_values(self) -> Self:
-        if _contains_unknown(self.model_dump(mode="json")):
+        if contains_unknown(self.model_dump(mode="json")):
             raise ValueError("quote values must not contain unknown")
         return self
 
@@ -60,18 +49,21 @@ class QuoteLineItem(QuoteModel):
 
     @model_validator(mode="after")
     def validate_category_fields(self) -> QuoteLineItem:
-        required: dict[QuoteCategory, tuple[str, ...]] = {
-            "board": ("quantity", "stock_quantity", "lead_time_days"),
-            "components": ("quantity", "stock_quantity", "lead_time_days"),
-            "assembly": ("quantity", "lead_time_days", "assembly_capable"),
-            "shipping": (),
-            "tax": (),
-        }
-        missing = [
-            name
-            for name in required[self.category]
-            if getattr(self, name) is None
-        ]
+        if self.category in ("board", "components"):
+            required_values = (
+                ("quantity", self.quantity),
+                ("stock_quantity", self.stock_quantity),
+                ("lead_time_days", self.lead_time_days),
+            )
+        elif self.category == "assembly":
+            required_values = (
+                ("quantity", self.quantity),
+                ("lead_time_days", self.lead_time_days),
+                ("assembly_capable", self.assembly_capable),
+            )
+        else:
+            required_values = ()
+        missing = [name for name, value in required_values if value is None]
         if missing:
             raise ValueError(
                 f"{self.category} quote item is missing required fields: "

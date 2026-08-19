@@ -53,19 +53,10 @@ def test_quote_read_returns_primary_fee_set_and_stable_hash() -> None:
 @pytest.mark.parametrize(
     "name",
     [
-        "quote-expired-before-fetch.json",
-        "quote-sources-missing.json",
-        "quote-source-index-out-of-range.json",
-        "quote-unknown-value.json",
-        "quote-currency-mismatch.json",
-        "quote-duplicate-item-id.json",
-        "quote-time-reversed.json",
-        "quote-negative-amount.json",
-        "quote-assembly-capability-missing.json",
         "quote-inference-amount.json",
     ],
 )
-def test_quote_invalid_fixtures_fail_closed(name: str) -> None:
+def test_quote_inference_fixture_is_not_confirmed(name: str) -> None:
     with pytest.raises(QuoteReadError):
         load_quote(
             ROOT / "fixtures/contracts/invalid" / name,

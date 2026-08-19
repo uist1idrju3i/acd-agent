@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Annotated, ClassVar, Literal
+from typing import Annotated, ClassVar, Literal, cast
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
 
@@ -34,6 +34,19 @@ class AcdModel(BaseModel):
 def is_unknown(value: str) -> bool:
     """Return True when a value is the explicit unknown sentinel."""
     return value == UNKNOWN
+
+
+def contains_unknown(value: object) -> bool:
+    """Return True when a nested JSON-compatible value contains unknown."""
+    if isinstance(value, str):
+        return is_unknown(value)
+    if isinstance(value, dict):
+        mapping = cast(dict[object, object], value)
+        return any(contains_unknown(item) for item in mapping.values())
+    if isinstance(value, list):
+        items = cast(list[object], value)
+        return any(contains_unknown(item) for item in items)
+    return False
 
 
 def canonical_json_sha256(value: object) -> Sha256:
