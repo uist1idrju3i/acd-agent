@@ -50,16 +50,10 @@ def test_quote_read_returns_primary_fee_set_and_stable_hash() -> None:
     assert all(item.basis == "primary" for item in first.fee_items)
 
 
-@pytest.mark.parametrize(
-    "name",
-    [
-        "quote-inference-amount.json",
-    ],
-)
-def test_quote_inference_fixture_is_not_confirmed(name: str) -> None:
+def test_quote_inference_fixture_is_not_confirmed() -> None:
     with pytest.raises(QuoteReadError):
         load_quote(
-            ROOT / "fixtures/contracts/invalid" / name,
+            ROOT / "fixtures/contracts/invalid/quote-inference-amount.json",
             evaluated_at=EVALUATED_AT,
             target_revision="r12",
         )
