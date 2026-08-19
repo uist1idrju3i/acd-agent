@@ -830,7 +830,6 @@ def crosscheck_mechanical_visual_projections(
     projection: CadProjection,
     gate_report: MechanicalGateReport,
     base_dir: Path,
-    machine_inputs: tuple[Path, ...],
     output_path: Path | None = None,
 ) -> VisualCrosscheckReport:
     """Cross-check mechanical SVG projections against CAD and gate inputs."""
@@ -871,9 +870,10 @@ def crosscheck_mechanical_visual_projections(
             else "mismatch"
         ),
     )
-    if len(machine_inputs) != 3 or machine_inputs[0] != projection.assembly_step_path:
-        raise ValueError("visual crosscheck mechanical machine inputs are invalid")
-    declared_step = _normalized_step_input(machine_inputs[0], base_dir=base_dir)
+    declared_step = _normalized_step_input(
+        projection.assembly_step_path,
+        base_dir=base_dir,
+    )
     records = [
         _mechanical_projection_crosscheck(
             projection=item,
@@ -922,12 +922,7 @@ def crosscheck_mechanical_visual_projections(
             aspect="units",
             verification="deterministic",
             status=_status_for_items(
-                [
-                    item
-                    for record in records
-                    for item in record.items
-                    if item.check_id == "svg-units"
-                ]
+                deterministic_items["svg-units"]
             ),
             basis="SVG root width and height unit checks.",
         ),
@@ -972,8 +967,8 @@ def crosscheck_mechanical_visual_projections(
         visual_projection_set_identity_hash=visual_projection_set.identity_hash,
         machine_input_files=[
             declared_step,
-            _normalized_model_input(machine_inputs[1], base_dir=base_dir),
-            _machine_input(machine_inputs[2], base_dir=base_dir),
+            _normalized_model_input(projection.model_path, base_dir=base_dir),
+            _machine_input(projection.artifact_manifest_path, base_dir=base_dir),
         ],
         set_items=[coverage_item],
         crosschecks=sorted(records, key=lambda record: record.projection_id),

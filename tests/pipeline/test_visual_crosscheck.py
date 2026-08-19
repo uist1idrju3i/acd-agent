@@ -401,11 +401,6 @@ def _mechanical_crosscheck(
         projection=projection,
         gate_report=gates,
         base_dir=base_dir,
-        machine_inputs=(
-            projection.assembly_step_path,
-            projection.model_path,
-            projection.artifact_manifest_path,
-        ),
     )
 
 
@@ -472,10 +467,10 @@ def test_mechanical_crosscheck_mismatches_fail_closed(
             if record.projection_id == "gd1-mechanical-interference"
         )
         assert interference.interference_volume_mm3 is not None
-        object.__setattr__(
-            interference,
-            "interference_volume_mm3",
-            interference.interference_volume_mm3 + 1.0,
+        records[records.index(interference)] = interference.model_copy(
+            update={
+                "interference_volume_mm3": interference.interference_volume_mm3 + 1.0
+            }
         )
     elif mutation == "interference_region_mismatch":
         interference = next(
@@ -483,10 +478,10 @@ def test_mechanical_crosscheck_mismatches_fail_closed(
             for record in records
             if record.projection_id == "gd1-mechanical-interference"
         )
-        object.__setattr__(
-            interference,
-            "interference_region_present",
-            not interference.interference_region_present,
+        records[records.index(interference)] = interference.model_copy(
+            update={
+                "interference_region_present": not interference.interference_region_present
+            }
         )
     elif mutation == "step_hash_mismatch":
         section = next(
@@ -500,12 +495,9 @@ def test_mechanical_crosscheck_mismatches_fail_closed(
         records[records.index(section)] = section.model_copy(
             update={"input_files": [input_file]}
         )
-    if mutation in {"interference_volume_mismatch", "interference_region_mismatch"}:
-        mutated_set = projection_set
-    else:
-        mutated_set = projection_set.model_copy(
-            update={"projections": records}
-        ).with_computed_hashes()
+    mutated_set = projection_set.model_copy(update={"projections": records})
+    if mutation not in {"interference_volume_mismatch", "interference_region_mismatch"}:
+        mutated_set = mutated_set.with_computed_hashes()
     report = crosscheck_mechanical_visual_projections(
         source_revision=graph.revision,
         visual_projection_set=mutated_set,
@@ -513,11 +505,6 @@ def test_mechanical_crosscheck_mismatches_fail_closed(
         projection=projection,
         gate_report=gates,
         base_dir=base_dir,
-        machine_inputs=(
-            projection.assembly_step_path,
-            projection.model_path,
-            projection.artifact_manifest_path,
-        ),
     )
     assert report.status == "mismatch"
 
@@ -531,8 +518,13 @@ def test_mechanical_crosscheck_rejects_unknown_renderer_version(
         for record in projection_set.projections
         if record.projection_id == "gd1-mechanical-section"
     )
-    object.__setattr__(section.renderer, "tool_version", "unknown")
-    mutated_set = projection_set
+    renderer = section.renderer.model_copy(update={"tool_version": "unknown"})
+    mutated_section = section.model_copy(update={"renderer": renderer})
+    records = [
+        mutated_section if record is section else record
+        for record in projection_set.projections
+    ]
+    mutated_set = projection_set.model_copy(update={"projections": records})
     with pytest.raises(ValueError, match="renderer version is unknown"):
         crosscheck_mechanical_visual_projections(
             source_revision=graph.revision,
@@ -541,11 +533,6 @@ def test_mechanical_crosscheck_rejects_unknown_renderer_version(
             projection=projection,
             gate_report=gates,
             base_dir=base_dir,
-            machine_inputs=(
-                projection.assembly_step_path,
-                projection.model_path,
-                projection.artifact_manifest_path,
-            ),
         )
 
 
@@ -562,11 +549,6 @@ def test_mechanical_crosscheck_rejects_revision_mismatch(tmp_path: Path) -> None
             projection=projection,
             gate_report=gates,
             base_dir=base_dir,
-            machine_inputs=(
-                projection.assembly_step_path,
-                projection.model_path,
-                projection.artifact_manifest_path,
-            ),
         )
 
 
@@ -581,12 +563,9 @@ def test_mechanical_crosscheck_rejects_missing_machine_input(tmp_path: Path) -> 
             projection=projection,
             gate_report=gates,
             base_dir=base_dir,
-            machine_inputs=(
-                projection.assembly_step_path,
-                projection.model_path,
-                projection.artifact_manifest_path,
-            ),
         )
+
+
 def test_missing_machine_input_fails_closed(tmp_path: Path) -> None:
     base_dir, projection_set, lane, board = _fixture(tmp_path)
     (base_dir / "gd1.kicad_sch").unlink()

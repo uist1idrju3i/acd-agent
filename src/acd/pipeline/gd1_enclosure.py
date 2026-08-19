@@ -30,7 +30,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     validate_and_project_rationale(graph, fixture_dir, out_dir)
-    print("[0/4] rationale coverage passed")
+    print("[0/5] rationale coverage passed")
     lane = extract_mechanical_lane(graph)
     print("[1/5] mechanical lane extracted")
 
@@ -72,11 +72,6 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         projection=projection,
         gate_report=gate_report,
         base_dir=out_dir,
-        machine_inputs=(
-            projection.assembly_step_path,
-            projection.model_path,
-            projection.artifact_manifest_path,
-        ),
     )
     if visual_crosscheck.status != "match":
         raise RuntimeError("mechanical visual cross-check did not match (fail-closed)")

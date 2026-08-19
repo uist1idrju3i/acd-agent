@@ -72,8 +72,8 @@ set itemへ1回だけ記録し、投影単位のrecordへ重複記録しない�
 干渉ビューが各1件であること、SVGのmm単位、viewBoxとroot寸法の自己整合、MechanicalLane
 宣言の外形・clearance・肉厚から導出したview寸法、raw SVG hash、build123d renderer版、
 authoritative assembly STEPの正規化hash、断面plane・offset、機械ゲートの干渉体積と
-干渉領域の整合を決定論的に検査する。SVGの層識別子が取得できる場合はenclosure／
-interference層も検査する。origin、axis、可読性、設計意図、注記、遮蔽、干渉の視認性は
+干渉領域の整合を決定論的に検査する。SVGの層識別子を決定論的に取得してenclosure／
+interference層を検査し、識別不能または不一致はfail-closedとする。origin、axis、可読性、設計意図、注記、遮蔽、干渉の視認性は
 `observation_required`としてunknownのまま記録し、FW laneの照合は後続PRへ残す。
 
 | ドメイン | 機械可読投影 | 視覚投影 |
