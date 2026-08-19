@@ -53,6 +53,7 @@ class KicadVisualRenderer:
         layer: str | None,
     ) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
+        svg_before: set[Path] = set()
         if projection_type == "schematic_view":
             svg_before = set(output.parent.glob("*.svg"))
             generated_output = output.parent / f"{source.stem}.svg"
