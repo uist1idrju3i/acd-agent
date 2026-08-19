@@ -112,9 +112,6 @@ class PostOrderJournalEntryBody(JournalEntryBody[Literal["post_order"]]):
     receipt_id: NonEmptyStr
     receipt_hash: Sha256
     planned_entry_hash: Sha256
-    planned_authorization_hash: Sha256
-    planned_package_hash: Sha256
-    planned_target_revision: Revision
 
 
 class PostOrderJournalEntry(PostOrderJournalEntryBody):
@@ -152,9 +149,6 @@ class PostOrderJournalEntry(PostOrderJournalEntryBody):
             receipt_id=receipt_id,
             receipt_hash=receipt_hash,
             planned_entry_hash=planned.entry_hash,
-            planned_authorization_hash=planned.authorization_hash,
-            planned_package_hash=planned.package_hash,
-            planned_target_revision=planned.target_revision,
         )
         return cls.model_validate(
             {

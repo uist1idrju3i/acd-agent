@@ -205,7 +205,7 @@ uv run python scripts/side_effect_journal.py \
 
 CLIはentry契約、entry自身のhash、直前entryとのhash連鎖、冪等key、事前・事後の許可hash、
 製造data package hash、revision、時刻を検証する。事後結果が欠落したjournal、改変・削除・
-並べ替えられた行、読み出し不能なjournalは非ゼロ終了で停止する。この層はjournalの記録と
+並べ替えられた行、存在しない・読み出し不能なjournalは非ゼロ終了で停止する。この層はjournalの記録と
 再構成だけを行い、送信・発注・新しい発注許可は作らない。
 
 4. 実行済みのGD1基板pipelineでは、回路図

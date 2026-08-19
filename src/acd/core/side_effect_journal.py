@@ -102,11 +102,8 @@ def _validate_entries(entries: Sequence[JournalEntry], *, require_complete: bool
                 )
             if (
                 entry.authorization_hash != planned.authorization_hash
-                or entry.planned_authorization_hash != planned.authorization_hash
                 or entry.package_hash != planned.package_hash
-                or entry.planned_package_hash != planned.package_hash
                 or entry.target_revision != planned.target_revision
-                or entry.planned_target_revision != planned.target_revision
                 or entry.destination != planned.destination
             ):
                 raise SideEffectJournalError(
@@ -126,9 +123,12 @@ def read_journal(
     path: Path,
     *,
     require_complete: bool = False,
+    require_exists: bool = False,
 ) -> tuple[JournalEntry, ...]:
     """Read and validate every entry in a JSON Lines journal."""
     if not path.exists():
+        if require_exists:
+            raise SideEffectJournalError(f"journal does not exist: {path}")
         return ()
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -218,8 +218,6 @@ def append_post_order(
         raise SideEffectJournalError(
             "journal idempotency key already has a post-order entry"
         )
-    if stored_planned != planned:
-        raise SideEffectJournalError("provided pre-order entry does not match journal")
     if entries and occurred_at < entries[-1].occurred_at:
         raise SideEffectJournalError("journal timestamp moved backwards")
     try:
@@ -243,7 +241,11 @@ def reconstruct_order(
     idempotency_key: IdempotencyKey,
 ) -> JournalOrderReconstruction:
     """Reconstruct one complete order from a validated journal."""
-    entries = read_journal(path, require_complete=True)
+    entries = read_journal(
+        path,
+        require_complete=True,
+        require_exists=True,
+    )
     planned = next(
         (
             entry
