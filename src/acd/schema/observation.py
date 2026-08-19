@@ -18,6 +18,8 @@ ObservationArtifactKind = Literal[
     "model_routing_observation",
     "visual_projection",
     "visual_projection_set",
+    "visual_crosscheck_report",
+    "visual_vision_observation",
 ]
 
 

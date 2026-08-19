@@ -74,7 +74,10 @@ from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
-from acd.pipeline.visual_projection import generate_electrical_visual_projections
+from acd.pipeline.visual_projection import (
+    crosscheck_electrical_visual_projections,
+    generate_electrical_visual_projections,
+)
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
@@ -1190,7 +1193,7 @@ def run_pipeline(
     evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
     print(f"[10/10] electrical evidence recorded: {evidence_path}")
 
-    generate_electrical_visual_projections(
+    visual_projection_set = generate_electrical_visual_projections(
         project_name=name,
         out_dir=out_dir,
         source_revision=revision,
@@ -1218,6 +1221,21 @@ def run_pipeline(
     print(
         "[10/10] electrical visual projections recorded: "
         f"{out_dir / 'visual-projections-electrical.json'}"
+    )
+    visual_crosscheck = crosscheck_electrical_visual_projections(
+        project_name=name,
+        source_revision=revision,
+        visual_projection_set=visual_projection_set,
+        lane=lane,
+        board=project.board_projection.model,
+        base_dir=out_dir,
+        machine_inputs=(project.schematic, routed_path),
+    )
+    if visual_crosscheck.status != "match":
+        raise RuntimeError("electrical visual cross-check did not match (fail-closed)")
+    print(
+        "[10/10] electrical visual cross-check recorded: "
+        f"{out_dir / 'visual-crosscheck-electrical.json'}"
     )
 
     hashes: dict[str, str] = {}

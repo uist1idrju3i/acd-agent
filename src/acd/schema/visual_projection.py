@@ -23,7 +23,7 @@ from acd.schema.common import (
     canonical_json_sha256,
 )
 
-VisualProjectionType = Literal["schematic_view", "layered_layout_view"]
+VisualProjectionType = Literal["schematic_view", "layered_layout_view", "rasterized_view"]
 VisualProjectionDomain = Literal["electrical", "mechanical", "firmware", "system"]
 VisualRegenerationStatus = Literal["reproduced", "not_reproduced", "unknown"]
 VisualGateStatus = Literal["pass", "fail"]
@@ -31,7 +31,7 @@ VisualGateStatus = Literal["pass", "fail"]
 _VERSION_UNKNOWN = "unknown"
 _DIMENSION_PATTERN = re.compile(
     r"^(?P<value>(?:0|[1-9][0-9]*)(?:\.[0-9]+)?)"
-    r"(?P<unit>mm|cm|in|pt|pc)$"
+    r"(?P<unit>mm|cm|in|pt|pc|px)$"
 )
 
 
@@ -60,9 +60,10 @@ class VisualProjectionInput(AcdModel):
 
 
 class VisualRendererProvenance(AcdModel):
-    renderer_type: Literal["kicad-cli"] = "kicad-cli"
-    tool_name: Literal["kicad-cli"] = "kicad-cli"
+    renderer_type: Literal["kicad-cli", "cairosvg"] = "kicad-cli"
+    tool_name: Literal["kicad-cli", "cairosvg"] = "kicad-cli"
     tool_version: VersionOrUnknown
+    output_width: StrictInt | None = None
 
     @field_validator("tool_version")
     @classmethod
@@ -70,6 +71,17 @@ class VisualRendererProvenance(AcdModel):
         if value == _VERSION_UNKNOWN:
             raise ValueError("renderer tool version must be concrete")
         return value
+
+    @model_validator(mode="after")
+    def validate_renderer(self) -> VisualRendererProvenance:
+        if self.renderer_type != self.tool_name:
+            raise ValueError("renderer type and tool name must match")
+        if self.renderer_type == "cairosvg":
+            if self.output_width is None or self.output_width <= 0:
+                raise ValueError("cairosvg provenance requires a positive output width")
+        elif self.output_width is not None:
+            raise ValueError("kicad-cli provenance must not declare output width")
+        return self
 
 
 class VisualResolution(AcdModel):
@@ -144,7 +156,7 @@ class VisualProjectionRecord(AcdModel):
     source_revision: Revision
     input_files: list[VisualProjectionInput] = Field(min_length=1)
     renderer: VisualRendererProvenance
-    media_type: Literal["image/svg+xml"] = "image/svg+xml"
+    media_type: Literal["image/svg+xml", "image/png"] = "image/svg+xml"
     resolution: VisualResolution
     normalization_rule_id: NonEmptyStr
     normalization_rule_description: NonEmptyStr
@@ -228,3 +240,16 @@ class VisualProjectionSet(AcdModel):
         return identity_validated.model_copy(
             update={"canonical_hash": identity_validated.computed_canonical_hash()}
         )
+
+
+class VisualVisionObservation(AcdModel):
+    """Non-authoritative observation returned by a vision inspection."""
+
+    artifact_kind: Literal["visual_vision_observation"] = "visual_vision_observation"
+    pass_evidence: Literal[False] = False
+    tool_name: Literal["inspect_image_with_vision"] = "inspect_image_with_vision"
+    profile_name: NonEmptyStr
+    model: NonEmptyStr
+    projection_id: NodeId
+    image_hash: Sha256
+    response: NonEmptyStr

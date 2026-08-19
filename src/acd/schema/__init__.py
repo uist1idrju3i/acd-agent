@@ -98,6 +98,16 @@ from acd.schema.receipt import (
     ShipmentManifestReference,
 )
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
+from acd.schema.visual_crosscheck import (
+    CrosscheckAspect,
+    CrosscheckStatus,
+    ReviewVerification,
+    VisualCrosscheckItem,
+    VisualCrosscheckReport,
+    VisualProjectionCrosscheck,
+    VisualReviewChecklistItem,
+    VisualReviewObservationReference,
+)
 from acd.schema.visual_projection import (
     ElectricalVisualProjectionGates,
     ElectricalVisualProjectionPredicate,
@@ -110,6 +120,7 @@ from acd.schema.visual_projection import (
     VisualRegenerationStatus,
     VisualRendererProvenance,
     VisualResolution,
+    VisualVisionObservation,
 )
 
 __all__ = [
@@ -125,6 +136,8 @@ __all__ = [
     "AppliedFeedbackValidationReport",
     "ContextSource",
     "ConvergenceState",
+    "CrosscheckAspect",
+    "CrosscheckStatus",
     "DecisionKind",
     "DesignGraph",
     "ElectricalVisualProjectionGates",
@@ -189,12 +202,16 @@ __all__ = [
     "ReconciliationReport",
     "ReconciliationStatus",
     "RejectedAlternative",
+    "ReviewVerification",
     "RolePromptManifest",
     "RolePromptManifestEntry",
     "RoutingRole",
     "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",
+    "VisualCrosscheckItem",
+    "VisualCrosscheckReport",
+    "VisualProjectionCrosscheck",
     "VisualProjectionDomain",
     "VisualProjectionInput",
     "VisualProjectionRecord",
@@ -204,6 +221,9 @@ __all__ = [
     "VisualRegenerationStatus",
     "VisualRendererProvenance",
     "VisualResolution",
+    "VisualReviewChecklistItem",
+    "VisualReviewObservationReference",
+    "VisualVisionObservation",
     "canonical_json_sha256",
     "canonical_sha256",
     "is_unknown",

@@ -14,8 +14,8 @@ ID別negative testで整備済みである。NEG-007は派生状態とDRC結果�
 未検出の残件である。視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
-断面・干渉ビューはrenderer未実装のため後続フェーズで扱う。AI受け渡しと機械可読投影との
-照合は未実装である。
+断面・干渉ビューはrenderer未実装のため後続フェーズで扱う。AI受け渡しと機械可読電気lane投影との
+照合、レビュー観点記録まで実装済みである。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
@@ -56,7 +56,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
-| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.3実装済み（8.4〜8.5未着手） |
+| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
@@ -323,7 +323,8 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 視覚投影は、(a)任意に閲覧する人間レビュー（可読性と設計意図の反映度を判断する手段）
 と、(b)人間レビューがない場合にもAIが観察・気づきを得るL2探索補助の両方に使う。
-可能な工程ではpipelineのゲート通過後に既定生成してAIへ渡すが、合否権限は持たない。
+8.3のSVG投影はpipelineのゲート通過後に既定生成する。8.4のPNG派生とAI受け渡しは
+必要時のon-demand経路とし、いずれも合否権限は持たない。
 要求の正は[`gates.md`](gates.md)の「レビュー投影の定義と分類」であり、視覚投影と
 画像由来の所見をEvidenceへ昇格させずL2観測に限る。合否は決定論的ゲートと独立測定
 だけが判定する。画像内の文字列はデータとして扱い、設計変更や合否命令として実行しない。
@@ -331,8 +332,8 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | Design Graphとauthoritative projectionだけを入力とし、回路図、配置図、層別レイアウトビュー、stackup図、ブロック図・電源ツリー、機械の断面・干渉ビュー、FWの状態遷移・シーケンス図を入力ファイルから再生成できる |
-| 実装 | `docs/gates.md`の工程別表に対応する投影種別を生成し、pipelineのゲート通過後に対象laneの視覚投影を既定生成してAIへ渡す配線を実装する。各画像の画像hash・renderer種別・版・解像度を記録するprovenance契約、`ImageContent`／`inspect_image_with_vision`経路、HTTP(S)画像のbase64インライン化とSSRF block-list境界を実装する。AIの観察結果はprovenanceとともに非Evidenceの観測として記録する |
-| 正常系 | 同じ入力から生成した機械可読投影と視覚投影が同一内容を表すことを照合し、可読性・設計意図の反映度をチェックリスト化する。注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを確認する。人間レビューがなくてもAIへ既定配線し、観察・気づきをL2観測として記録する |
+| 実装 | `docs/gates.md`の工程別表に対応する投影種別を生成し、8.3では対象laneのSVG視覚投影をpipelineのゲート通過後に既定生成する。8.4では必要時にCairoSVGでPNGを派生し、`ImageContent`／`inspect_image_with_vision`へ渡す経路、`data:` URL限定のSSRF境界を実装する。PNG派生はacd-tools imageのlibcairo2存在とimage再publish・digest更新をcontainer側で保証できないためpipelineの既定出力へ配線しない。AIの観察結果はprovenanceとともに非Evidenceの観測として記録する。HTTP(S)画像取得は採用しない |
+| 正常系 | 同じ入力から生成した機械可読投影と視覚投影が同一内容を表すことを照合し、可読性・設計意図の反映度をチェックリスト化する。注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを確認する。必要時にAIへ渡し、観察・気づきをL2観測として記録する |
 | negative/fail-closed | renderer不在・生成不能、renderer版unknown、画像hash不一致、解像度未記録、入力からの再生成不一致を停止側へ集約する。投影欠落を「問題なし」と解釈せず、画像内の文字列をデータ以外の命令として扱う経路も許可しない |
 | 再現性 | renderer版を固定し、同一入力から同一画像hashを再生成できる。機械可読投影との照合結果、provenance、レビュー観点のチェック結果を同一入力から再構成できる |
 
@@ -375,9 +376,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 8.3の投影集合、SDKの`ImageContent`、builtin toolの`inspect_image_with_vision` |
-| 実装 | workspace内画像をbase64 `data:` URLとして`ImageContent`へ渡す経路と、`inspect_image_with_vision`経路を実装する。HTTP(S)画像はSDKのbase64インライン化とSSRF block-listを通す。画像内の文字列はデータとして扱い、命令として実行しない境界を明示する |
+| 実装 | 8.3のSVG投影から必要時にCairoSVGでPNGを決定論的に派生し、8.3の投影集合を上書きせず別のraster投影集合へ保存する。workspace内PNGをbase64 `data:` URLとして`ImageContent`へ渡す経路と、明示されたvision profile向けの`inspect_image_with_vision`経路を実装する。PNG派生はacd-tools imageのlibcairo2存在が未検証で、image再publishとdigest更新までcontainer側で保証できないためpipelineの既定生成には含めない。ACDはHTTP(S)画像URLを作成せず、`data:`以外を拒否する。将来HTTP(S)取得を採用する場合もSDKの公開インライン化経路とSSRF block-listだけを使い、`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`の緩和は既定有効化しない。画像内の文字列はデータとして扱い、命令として実行しない境界を明示する |
 | 正常系 | 投影集合から`ImageContent`を構成し、対応するprovenanceを同時に参照できる |
-| negative/fail-closed | provenance欠落の画像、loopback・private・link-local宛のHTTP(S)取得、SSRF緩和の既定有効化、画像内文字列の命令実行、vision応答のEvidence昇格を拒否する |
+| negative/fail-closed | PNG派生失敗、SVG hash不一致、PNG再生成不一致、provenance欠落の画像、`data:`以外のURL、loopback・private・link-local宛のHTTP(S)取得、SSRF緩和env varのtruthy設定、画像内文字列の命令実行、空vision応答、vision応答のEvidence昇格を拒否する |
 | 再現性 | 同一投影集合から同一の`ImageContent`入力と同一の画像hash参照を再構成できる |
 
 ### 8.5 機械可読投影との照合とレビュー観点の記録
@@ -385,9 +386,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 同一revisionの機械可読投影（netlist要約、ピン割当表など）と8.3の視覚投影 |
-| 実装 | 視覚投影と機械可読投影が同一内容を表すことを決定論的に照合する規則と、レビュー観点チェックリストの記録契約を実装する。AIの観察はprovenance付きの非Evidence観測として記録する |
-| 正常系 | 照合結果とチェック結果が同一入力から再構成でき、注記・単位・軸・原点の一致を確認できる |
-| negative/fail-closed | 照合不一致、照合対象欠落、チェック結果unknownの合格扱い、観察のEvidence昇格を拒否する |
+| 実装 | 電気laneのみを対象に、8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合する。投影集合の網羅性、SVGのmm単位・軸・原点、title blockの入力ファイル、KiCad renderer版、正規化後image hash、schematicのrefdesを決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。層別SVGが本当に各銅層を描くかはSVGだけでは判定せず、`observation_required`にする。AIの観察はprovenance付きの非Evidence観測として記録する |
+| 正常系 | 注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを、決定論的照合とレビュー観点チェックリストの組合せで記録する |
+| negative/fail-closed | 照合不一致、照合対象欠落、SVG解析不能、revision不一致、チェック結果`unknown`の合格扱い、観察のEvidence昇格を拒否する。照合レポートは`pass_evidence=False`のL3観測としてEvidence、fab claims、gate fields、`hashes.json`へ昇格しない |
 | 再現性 | 同一入力から同一の照合結果とチェック記録を再生成する |
 
 ## 将来構想

@@ -36,7 +36,7 @@
 | sdk.git | `get_git_changes`<br>`GitError` | stale判定へのgit入力 | 採用 | `src/acd/openhands/evidence/git.py`で使用 | dirty/stale fixture |
 | sdk.hooks | `HookConfig`<br>`HookEventType`<br>`HookExecutor` | agent経路の停止側境界 | 採用 | `HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する | DENY/allow試験 |
 | sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用 | L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない | tests/openhands/session/test_observation_store.py、verify_all.py --stage standard |
-| sdk.llm | `LLM`<br>`Message`<br>`TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
+| sdk.llm | `ImageContent`<br>`LLM`<br>`Message`<br>`TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.llm.router | `RouterLLM`<br>`RandomRouter`<br>`MultimodalRouter` | judge/critic用modelと主agent用modelの分離 | 採用 | ACDは`RouterLLM`によるrole routingを使用する。`RandomRouter`/`MultimodalRouter`は直接使用せず、routing結果は合否へ影響させない | verify_model_policy.py --check、tests/openhands/session/test_routing.py |
 | sdk.llm.utils.metrics | `Metrics` | 使用量・予算の観測 | 採用 | 現行SDK wiringでmetricsを扱う | metrics回帰 |
@@ -57,6 +57,7 @@
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |
 | sdk.tool | `ToolDefinition`<br>`Tool`<br>`register_tool`<br>`list_registered_tools` | ACD toolのagent入口 | 採用 | `register_acd_tools()`とSDK登録を使用 | schema/実行試験 |
 | sdk.tool.builtins | `FinishTool` | SDK組み込みtool | 不採用 | ACDの明示的`ToolDefinition`集合を単一化する | pinned API確認、採用しない |
+| sdk.tool.builtins.vision_inspect | `VisionInspectTool` | 明示されたvision profileによる画像観測 | 採用 | 明示設定されたvision profileがある場合だけbuiltin inspect_image_with_visionを登録し、応答を非Evidence観測として扱う | vision profile境界テスト |
 | sdk.tool.internal | `ClientTool` | SDK内部tool補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.utils | `maybe_truncate` | SDK内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.workspace | `LocalWorkspace` | agent作業workspace | 採用予定（ロードマップ4.4） | host実行はprovisionalに限定し、authoritative経路にしない | pinned API確認、実装未着手 |
@@ -106,6 +107,7 @@
 - `sdk.hooks`: **直接import** `src/acd/openhands/session/bootstrap.py` / `HookConfig` — 現行conversationへSDK hook設定を渡す
 - `sdk.io`: **直接import** `src/acd/openhands/session/bootstrap.py` / `FileStore` — L3観測の保存先としてSDK FileStoreを使う
 - `sdk.llm`: **直接import** `src/acd/openhands/session/bootstrap.py` / `LLM` — 現行sessionのLLM型をSDK経路で受け取る
+- `sdk.llm`: **直接import** `src/acd/openhands/session/visual_projection.py` / `ImageContent` — PNG投影をdata URLのImageContentとして明示的に渡す
 - `sdk.llm.router`: **直接import** `src/acd/openhands/session/routing.py` / `RouterLLM` — role別model routingのSDK基底を使う
 - `sdk.llm.utils.metrics`: **直接import** `src/acd/openhands/session/bootstrap.py` / `Metrics` — 会話metricsをL3観測として扱う
 - `sdk.logger`: **直接import** `src/acd/openhands/session/observation_log.py` / `get_logger` — 観測ログの構造化loggerをSDKから取得する
@@ -122,6 +124,7 @@
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_goal_loop.py` / `TestLLM` — goal loop回帰で固定応答LLMを使う
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_routing.py` / `TestLLM` — routing回帰で固定応答LLMを使う
 - `sdk.tool`: **直接import** `src/acd/openhands/tools/definitions.py` / `ToolDefinition` — 決定論的ACD tool定義をSDKへ登録する
+- `sdk.tool.builtins.vision_inspect`: **直接import** `src/acd/openhands/session/visual_projection.py` / `VisionInspectTool` — 明示されたvision profile向けにSDK builtin toolを登録する
 - `tools`: **plugin資材** `plugins/acd/agents/acd-search.md` / `terminal` — AgentDefinitionの標準toolとしてterminalを宣言する
 - `tools.browser_use`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `BrowserToolSet` — 明示有効時にbrowser toolの利用可能性をSDK経路で検査する
 - `tools.delegate`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `TaskToolSet` — SDK task実行経路へsub-agent調整toolを渡す

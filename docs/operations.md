@@ -358,10 +358,40 @@ renameする。複数sheetによる複数SVG出力は未対応で、追加され
 ビューを`out_dir/visual/`へ既定生成し、`visual-projections-electrical.json`へL3観測として
 記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・
 同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneの断面・干渉ビューは
-renderer未実装のため後続フェーズで扱い、AI受け渡しと機械可読投影との照合は未実装である。
+renderer未実装のため後続フェーズで扱う。8.5では電気laneに限り、同一revisionの
+`ElectricalLane`／`BoardModel`とSVGを決定論的に照合し、
+`visual-crosscheck-electrical.json`へL3観測として記録する。この照合は8.3のSVG投影生成直後、
+`hashes.json`生成前に既定実行される。
 8.3の層導出はgraphで宣言された`BoardView.layers`の層数をKiCadの銅層名へ決定論的に
 対応させる。現在の対応表は2層（`F.Cu`／`B.Cu`）と4層（`F.Cu`／`In1.Cu`／`In2.Cu`／`B.Cu`）
 に限り、0層、1層、奇数層、その他の未対応層数はfail-closedとする。
+8.4では必要時に8.3の正規化前SVGをCairoSVG 2.9.0で幅1600pxへラスタライズし、
+8.3の`visual-projections-electrical.json`を変更せず、
+`visual-projections-electrical-raster.json`へPNG派生集合を書き出す。PNG派生は
+pipelineの既定出力ではなくon-demandのAI受け渡し経路である。acd-tools imageのlibcairo2存在は
+未検証で、image再publishとdigest更新までcontainer側で保証できないためである。生成PNGのIHDRから
+解像度を測定する。PNGは`png-identity-v1`（正規化なし、生PNG bytesのSHA-256）で記録し、
+2回の生成hashが一致しない場合、入力SVGの正規化後hashがrecordと一致しない場合、または
+CairoSVGのimport・版取得・libcairo依存が利用できない場合はfail-closedとする。
+SDKへ渡す画像はworkspace内PNGだけをbase64の`data:image/png;base64,...` URLへ変換し、
+HTTP(S)・`file:` URLは作成しない。`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`がtruthyな環境では
+画像経路を停止し、vision応答は`pass_evidence=false`のL3観測としてだけ保存する。
+
+8.5の照合レポートは、投影集合のidentity hash、machine-readable入力の相対パスとhash、
+投影集合全体の網羅性を記録するset item、投影ごとの照合項目、集約status、レビュー観点
+チェックリスト、canonical hash、`generated_at`を記録する。set itemは投影recordへ複製しない。
+identity hashは`generated_at`を除外するため、同一入力から同一の照合結果とチェック記録を
+再生成できる。決定論的項目はSVGから直接読み取れる事実だけを`match`または`mismatch`とする。
+SVGのwidth／height単位は`ElectricalLane.board.unit`と突き合わせ、KiCad SVGと対応付けられる
+宣言単位は`mm`だけとする。viewBoxの原点・y軸は`ElectricalLane.board.origin`／`y_axis`と
+突き合わせ、対応する宣言は`board_upper_left`／`down`だけとする。root寸法とviewBox寸法の
+自己整合は確認するが、SVGのA4ページ範囲を基板実寸法と解釈しない。基板寸法はSVGから
+決定論的に読めないため照合対象にしない。未対応の単位・原点・y軸宣言はfail-closedとする。
+可読性、設計意図、注記の視認性、重なり・非表示要素による意味欠落、信号・電源系統の読み取り、
+層別SVGの意味的な銅層identityは`observation_required`としてunknownのまま記録する。
+unknownをmatchへ集約せず、mismatch・対象欠落・解析失敗・revision不一致はpipelineを停止する。
+レポートは`pass_evidence=False`のL3観測であり、Evidence、fab claims、gate fields、
+`hashes.json`、fab packageへ追加しない。
 
 ## 検証
 
