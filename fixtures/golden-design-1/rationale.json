@@ -1861,13 +1861,13 @@
           "reason": "GD1-REQ-004/005 set the operating envelope at 5.0 V and 0.5 A; doubling either limit would be an unsupported safety-scope change."
         },
         {
-          "option": "Declare a certified product",
-          "reason": "§11 leaves module certification unresolved, while the documented use case is a hobby author_prototype rather than a certified product."
+          "option": "Treat the boundary as a certified product",
+          "reason": "The documented use case is a hobby author_prototype, while certified module provenance is checked without declaring the complete product certified."
         }
       ],
       "no_alternatives_reason": null,
       "assumptions": [
-        "The USB source remains within 5.0 V and 0.5 A."
+        "The USB source remains within the declared 5.0 V and 0.5 A boundary."
       ],
       "risks": [
         "Certification provenance is limited to the declared module documents and does not approve production safety."
@@ -3042,17 +3042,17 @@
       "driving_requirement_refs": [],
       "rejected_alternatives": [
         {
-          "option": "Declare 12 V or 1.0 A operation",
-          "reason": "GD1-REQ-004/005 set the operating envelope at 5.0 V and 0.5 A; doubling either limit would be an unsupported safety-scope change."
+          "option": "Mount the ESP32-C3 chip directly with a self-designed antenna",
+          "reason": "This would require obtaining and maintaining certification for the custom RF design rather than using the selected certified module."
         },
         {
-          "option": "Declare a certified product",
-          "reason": "§11 leaves module certification unresolved, while the documented use case is a hobby author_prototype rather than a certified product."
+          "option": "Omit the radio_module declaration",
+          "reason": "Without the declaration, missing or incomplete certification provenance would not be checked as part of the GD1 safety boundary."
         }
       ],
       "no_alternatives_reason": null,
       "assumptions": [
-        "The USB source remains within 5.0 V and 0.5 A."
+        "U1 certification IDs, HVIN, grant dates, document references, source, source reference, and checked timestamp remain attached to the same graph revision."
       ],
       "risks": [
         "Module certification provenance must remain complete and revision-linked."

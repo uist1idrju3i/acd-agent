@@ -159,7 +159,7 @@ def build_electrical_evidence(
     silkscreen_status: object,
     dfm_status: object,
     order_readiness_status: object,
-    design_predicates: object = (),
+    design_predicates: object,
 ) -> Evidence:
     """Build electrical Evidence from completed deterministic gate results."""
     if not isinstance(erc_errors, int) or not isinstance(erc_unconnected, int):
@@ -178,13 +178,13 @@ def build_electrical_evidence(
     silkscreen = cast(str, silkscreen_status)
     dfm = cast(str, dfm_status)
     order_readiness = cast(str, order_readiness_status)
+    if not isinstance(design_predicates, tuple):
+        raise ValueError("electrical design predicates are unknown (fail-closed)")
     candidate_predicates = cast(tuple[object, ...], design_predicates)
-    if not isinstance(design_predicates, tuple) or not all(
-        isinstance(item, PredicateResult) for item in candidate_predicates
-    ):
+    if not all(isinstance(item, PredicateResult) for item in candidate_predicates):
         raise ValueError("electrical design predicates are unknown (fail-closed)")
     typed_predicates = cast(tuple[PredicateResult, ...], design_predicates)
-    if typed_predicates and len(typed_predicates) != 6:
+    if len(typed_predicates) != 6:
         raise ValueError("electrical design predicate set is incomplete (fail-closed)")
     for predicate in typed_predicates:
         if predicate.status != "pass":

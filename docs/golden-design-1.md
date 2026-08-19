@@ -102,7 +102,7 @@ FWパッケージを投影して書き込み、実機のLED点滅とSHT40のシ�
 |---|---|---|
 | `Requirement.intended_use` | 許可領域 | 作者自身の試作であり、医療・車載・航空・産業安全ではない |
 | 最大ネット電圧 | 5 V | USB-C VBUSのみで、許可閾値の50 V AC / 120 V DC以下 |
-| 最大電流 | 500 mA以下 | IPC-2221の電流基準を持つ電源ネットを対象とし、承認必須の5 A超または25 W超に該当しない |
+| 最大電流 | 500 mA以下 | `width_basis=current_ipc2221`の電源ネットを対象とし、対象ネットの電流宣言欠落は`unknown`で停止する。承認必須の5 A超または25 W超に該当しない |
 | バッテリ・充電 | なし | Li-ion/LiPo充電回路を持たない |
 | 動力・光源 | モーター、アクチュエータ、レーザーなし | 赤色LEDは表示用である |
 | 無線 | 認証済みESP32-C3モジュール | チップ直載せとアンテナ設計を行わない |
@@ -124,7 +124,7 @@ unknownをfailより優先してfail-closedに集約する。
 |---|---|
 | `max(Net.voltage_nominal) <= 5 V` | `pass` |
 | `max(Net.voltage_nominal) <= 50 V AC / 120 V DC` | `pass` |
-| `max(Net.current_max) <= 500 mA` | 電源ネット（`width_basis=current_ipc2221`）を対象に`pass` |
+| `max(Net.current_max) <= 500 mA` | 電源ネット（`width_basis=current_ipc2221`）を対象に、宣言欠落は`unknown`、0.5 A以下で`pass` |
 | `Part.certification`がESP32-C3モジュールに存在する | 出所Evidence付きで`pass` |
 | `Part.hazard_class`にバッテリ充電器、モーター、アクチュエータ、レーザーがない | `pass` |
 | `Requirement.intended_use`が許可領域にある | `pass` |
@@ -287,6 +287,8 @@ M2取付穴と将来の筐体の嵌合公差は、外形の±0.2 mm（regular）
 | 電源境界 | 5 V VBUS、3.3 V生成、電流・電圧境界 | バッテリ充電回路または5 V超の電源を追加 | `SafetyBoundaryResult` | 実装済み |
 | ピン・FW整合 | グラフの`Net`/`Pin`とFWパッケージの一致 | FWだけIO7をIO8へ変更 | 投影hash、整合ゲート結果 | 実装済み |
 
+電源デカップリングの100 nF級判定は、`0.1 µF ± 0.02 µF`（±20%）の範囲を用いる。
+
 実装状況は次のとおりである。ERC、DRC、アンテナキープアウトの3件は実装済みである。
 ERCとDRCは共通の決定論的gate関数で検査し、アンテナキープアウトはグラフ宣言を生成した
 後、投影Gerberを独立測定してfail-closedにする。6件はlaneとgraphから決定論的に評価し、
@@ -308,8 +310,8 @@ Espressif ESP32-C3 datasheetのBoot ConfigurationsおよびESP Hardware Design G
 | `GD1-NEG-004` | I2C SDAまたはSCLの4.7 kΩを削除する | I2C pull-upゲートが`fail` |
 | `GD1-NEG-005` | FWのIO7、IO4、IO5、IO9、IO18、IO19、IO20、IO21のいずれかをグラフと異なる値へ変更する | ピン・FW整合ゲートが`fail` |
 
-`GD1-NEG-001`〜`GD1-NEG-008`に対応する注入fixtureとnegative testは現時点で未整備であり、
-[`roadmap.md`](roadmap.md)のマイルストーン2.1で整備する。
+`GD1-NEG-001`〜`GD1-NEG-008`に対応する注入fixtureとnegative testは未整備であり、
+マイルストーン2.1の後続変更で整備する。
 
 ## 9. 製造投影と配置
 
@@ -482,8 +484,7 @@ SMD pad上viaを構造的に禁止している。出所は`out/gd1-plan2-default
 各negative testは、注入前の入力ファイル、注入差分、実行したゲート、停止理由を
 Evidenceへ記録する。検証器が異常を検出できない場合や、入力の比較対象が`unknown`の
 場合は、`pass`ではなく停止とする。`GD1-NEG-001`〜`GD1-NEG-008`に対応する
-注入fixtureとnegative testは現時点では未整備であり、[`roadmap.md`](roadmap.md)の
-マイルストーン2.1で整備する。
+注入fixtureとnegative testは未整備であり、マイルストーン2.1の後続変更で整備する。
 
 ### 8.1 機械レーン宣言
 

@@ -20,15 +20,19 @@ PredicateStatus = Literal["pass", "fail", "unknown"]
 
 CC_EXPECTED_KOHM = "5.1k"
 I2C_EXPECTED_KOHM = "4.7k"
-BOOT_PULLUP_KOHM = "10k"
 STRAPPING_GPIOS = frozenset({2, 8, 9})
 LDO_INPUT_V = 5.0
 LDO_OUTPUT_V = 3.3
 LARGE_DECOUPLING_UF = 10.0
 SMALL_DECOUPLING_UF = 0.1
-SMALL_DECOUPLING_TOLERANCE_UF = 0.02
+# Lead-confirmed maximum pad distance for decoupling capacitors at or below
+# 1 uF; the threshold is 3.0 mm.
 SMALL_CAP_DISTANCE_MM = 3.0
+# Lead-confirmed maximum pad distance for decoupling capacitors above 1 uF;
+# the threshold is 8.0 mm.
 LARGE_CAP_DISTANCE_MM = 8.0
+# 0.02 uF represents the +/-20% range used to classify 100 nF-class capacitors.
+SMALL_DECOUPLING_TOLERANCE_UF = 0.02
 
 
 class PredicateResult(BaseModel):
@@ -123,16 +127,15 @@ def _evaluate_pullups(
 ) -> PredicateResult:
     failures: list[str] = []
     unknowns: list[str] = []
+    rail_net = _net_id(graph, *rail_names)
+    if rail_net is None:
+        return _result(name, "unknown", "required rail net resolution failed")
     for target_name in target_names:
         target_net = _net_id(graph, target_name)
-        rail_net = _net_id(graph, *rail_names)
-        ground_net = _net_id(graph, "GND")
-        if target_net is None or rail_net is None or ground_net is None:
+        if target_net is None:
             unknowns.append(target_name)
             continue
-        candidates = _resistor_matches(lane, target_net, ground_net, expected_value)
-        if rail_names != ("GND",):
-            candidates = _resistor_matches(lane, target_net, rail_net, expected_value)
+        candidates = _resistor_matches(lane, target_net, rail_net, expected_value)
         if len(candidates) != 1:
             failures.append(f"{target_name} has {len(candidates)} matching resistors")
             continue
@@ -418,10 +421,9 @@ def _minimum_pad_distance(
 
 
 def evaluate_power_decoupling(
-    graph: DesignGraph, lane: ElectricalLane, fixture_dir: Path | None = None
+    graph: DesignGraph, lane: ElectricalLane, fixture_dir: Path
 ) -> PredicateResult:
     """Check LDO rails and pinned capacitor-to-target distances."""
-    fixture = fixture_dir or repository_root() / "fixtures" / "golden-design-1"
     ground_net = _net_id(graph, "GND")
     input_net = _net_id(graph, "VBUS_5V")
     output_net = _net_id(graph, "+3V3", "3V3")
@@ -469,9 +471,9 @@ def evaluate_power_decoupling(
             )
         try:
             distance = _minimum_pad_distance(
-                graph, lane, capacitor, target, next(iter(shared_nets)), fixture
+                graph, lane, capacitor, target, next(iter(shared_nets)), fixture_dir
             )
-        except Exception as exc:
+        except (KeyError, OSError, StopIteration, ValueError) as exc:
             return _result(
                 "power_decoupling", "unknown", f"{capacitor.refdes} geometry is unresolved: {exc}"
             )
@@ -662,7 +664,7 @@ def evaluate_power_boundary(graph: DesignGraph, lane: ElectricalLane) -> SafetyB
 
 
 def evaluate_gd1_predicates(
-    graph: DesignGraph, lane: ElectricalLane, fixture_dir: Path | None = None
+    graph: DesignGraph, lane: ElectricalLane, fixture_dir: Path
 ) -> tuple[PredicateResult, ...]:
     """Evaluate the six GD1 gates in their authoritative fixed order."""
     safety = evaluate_power_boundary(graph, lane)
