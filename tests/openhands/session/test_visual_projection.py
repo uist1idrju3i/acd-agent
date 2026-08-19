@@ -222,7 +222,7 @@ def test_register_vision_tool_rejects_unresolvable_profile(
         def load(self, name: str) -> object:
             raise ValueError(name)
 
-        def list_summaries(self) -> list[dict[str, object]]:
+        def list(self) -> list[str]:
             return []
 
     monkeypatch.setattr(visual_projection_module, "LLMProfileStore", Store)
@@ -238,8 +238,8 @@ def test_register_vision_tool_rejects_nonvision_profile(
         def load(self, name: str) -> object:
             return SimpleNamespace(vision_is_active=lambda: False)
 
-        def list_summaries(self) -> list[dict[str, object]]:
-            return [{"name": "text-only"}]
+        def list(self) -> list[str]:
+            return ["text-only"]
 
     monkeypatch.setattr(visual_projection_module, "LLMProfileStore", Store)
 
@@ -254,8 +254,8 @@ def test_register_vision_tool_rejects_missing_sdk_tool(
         def load(self, name: str) -> object:
             return SimpleNamespace(vision_is_active=lambda: True)
 
-        def list_summaries(self) -> list[dict[str, object]]:
-            return [{"name": "vision"}]
+        def list(self) -> list[str]:
+            return ["vision"]
 
     class Tool:
         @classmethod
@@ -276,8 +276,8 @@ def test_register_vision_tool_rejects_profile_not_in_vision_candidates(
         def load(self, name: str) -> object:
             return SimpleNamespace(vision_is_active=lambda: True)
 
-        def list_summaries(self) -> list[dict[str, object]]:
-            return [{"name": "different-vision"}]
+        def list(self) -> list[str]:
+            return ["different-vision"]
 
     monkeypatch.setattr(visual_projection_module, "LLMProfileStore", Store)
 

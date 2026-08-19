@@ -146,16 +146,13 @@ def build_visual_projection_messages(
 
 def _vision_profile_names(store: LLMProfileStore) -> set[str]:
     try:
-        summaries = store.list_summaries()
+        stored_names = store.list()
     except (OSError, TimeoutError) as exc:
         raise VisualProjectionHandoffError(
             "vision profiles could not be listed"
         ) from exc
     names: set[str] = set()
-    for summary in summaries:
-        name = summary.get("name")
-        if not isinstance(name, str):
-            continue
+    for name in stored_names:
         try:
             profile = store.load(name)
         except (FileNotFoundError, ValueError, TimeoutError):

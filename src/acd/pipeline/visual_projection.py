@@ -112,6 +112,7 @@ def generate_electrical_visual_projections(
     )
     return projection_set
 
+
 def derive_png_visual_projections(
     projection_set: VisualProjectionSet,
     *,
