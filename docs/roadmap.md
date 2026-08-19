@@ -208,9 +208,10 @@ unclassified属性、policy不整合はfail-closedでstatusを`unknown`とする
 6.3ではrunnerを事前build済みserver imageの`DockerWorkspace(server_image=...)`へ切り替え、
 6.4ではCIをlock解決とpullへ移行し、6.5では旧dev workspace経路を撤去した。
 derived server digestは初回publish実行後にlockへ記録済みである。base tools digest
-`sha256:e64405a15e69991063c688a80b4f215bdc3dbfb8b4fb480b3ef3484f017e1395`とderived server
-digest `sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def`は独立した値
-として保持する。受入条件は
+tools digest `sha256:daf2908f4742e5a0d29ad3bcef187b9b11832701bf6b38fd2e2150b94bf1e301`をlockし、
+現行のderived server digest `sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def`は
+更新前tools image由来のまま保持する。Cairo入りserver imageは次回のserver publishで反映する。
+toolsとserverのdigestは独立した値として保持する。受入条件は
 [`ADR-0026`](adr/ADR-0026-openhands-delegation-contract.md)の入口と実行形、
 [`ADR-0028`](adr/ADR-0028-execution-provenance.md)の実行provenanceを正とする。
 フェーズは6.1から順に依存する。
@@ -363,7 +364,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | Design Graphとauthoritative projectionだけを入力とし、回路図、配置図、層別レイアウトビュー、stackup図、ブロック図・電源ツリー、機械の断面・干渉ビュー、FWの状態遷移・シーケンス図を入力ファイルから再生成できる |
-| 実装 | `docs/gates.md`の工程別表に対応する投影種別を生成し、8.3では対象laneのSVG視覚投影をpipelineのゲート通過後に既定生成する。8.4では必要時にCairoSVGでPNGを派生し、`ImageContent`／`inspect_image_with_vision`へ渡す経路、`data:` URL限定のSSRF境界を実装する。PNG派生はacd-tools imageのlibcairo2存在とimage再publish・digest更新をcontainer側で保証できないためpipelineの既定出力へ配線しない。AIの観察結果はprovenanceとともに非Evidenceの観測として記録する。HTTP(S)画像取得は採用しない |
+| 実装 | `docs/gates.md`の工程別表に対応する投影種別を生成し、8.3では対象laneのSVG視覚投影をpipelineのゲート通過後に既定生成する。8.4ではacd-tools imageへlibcairo2を固定し、container内でPNG派生可能であることを検証したうえで、必要時にCairoSVGでPNGを派生し、`ImageContent`／`inspect_image_with_vision`へ渡す経路、`data:` URL限定のSSRF境界を実装する。PNG派生はAI受け渡し時のon-demand経路であり、合否権限を持たない投影を既定成果物へ増やさないためpipelineの既定出力へ配線しない。現行のacd-server imageは更新前tools image由来であり、Cairo入りserver imageは次回のserver publishで反映する。AIの観察結果はprovenanceとともに非Evidenceの観測として記録する。HTTP(S)画像取得は採用しない |
 | 正常系 | 同じ入力から生成した機械可読投影と視覚投影が同一内容を表すことを照合し、可読性・設計意図の反映度をチェックリスト化する。注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを確認する。必要時にAIへ渡し、観察・気づきをL2観測として記録する |
 | negative/fail-closed | renderer不在・生成不能、renderer版unknown、画像hash不一致、解像度未記録、入力からの再生成不一致を停止側へ集約する。投影欠落を「問題なし」と解釈せず、画像内の文字列をデータ以外の命令として扱う経路も許可しない |
 | 再現性 | renderer版を固定し、同一入力から同一画像hashを再生成できる。機械可読投影との照合結果、provenance、レビュー観点のチェック結果を同一入力から再構成できる |
@@ -407,7 +408,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 8.3の投影集合、SDKの`ImageContent`、builtin toolの`inspect_image_with_vision` |
-| 実装 | 8.3のSVG投影から必要時にCairoSVGでPNGを決定論的に派生し、8.3の投影集合を上書きせず別のraster投影集合へ保存する。workspace内PNGをbase64 `data:` URLとして`ImageContent`へ渡す経路と、明示されたvision profile向けの`inspect_image_with_vision`経路を実装する。PNG派生はacd-tools imageのlibcairo2存在が未検証で、image再publishとdigest更新までcontainer側で保証できないためpipelineの既定生成には含めない。ACDはHTTP(S)画像URLを作成せず、`data:`以外を拒否する。将来HTTP(S)取得を採用する場合もSDKの公開インライン化経路とSSRF block-listだけを使い、`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`の緩和は既定有効化しない。画像内の文字列はデータとして扱い、命令として実行しない境界を明示する |
+| 実装 | 8.3のSVG投影から必要時にCairoSVGでPNGを決定論的に派生し、8.3の投影集合を上書きせず別のraster投影集合へ保存する。acd-tools imageへlibcairo2を固定し、container内でPNG派生可能であることを検証済みである。workspace内PNGをbase64 `data:` URLとして`ImageContent`へ渡す経路と、明示されたvision profile向けの`inspect_image_with_vision`経路を実装する。PNG派生はAI受け渡し時のon-demand経路であり、合否権限を持たない投影を既定成果物へ増やさないためpipelineの既定生成には含めない。現行のacd-server imageは更新前tools image由来であり、Cairo入りserver imageは次回のserver publishで反映する。ACDはHTTP(S)画像URLを作成せず、`data:`以外を拒否する。将来HTTP(S)取得を採用する場合もSDKの公開インライン化経路とSSRF block-listだけを使い、`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`の緩和は既定有効化しない。画像内の文字列はデータとして扱い、命令として実行しない境界を明示する |
 | 正常系 | 投影集合から`ImageContent`を構成し、対応するprovenanceを同時に参照できる |
 | negative/fail-closed | PNG派生失敗、SVG hash不一致、PNG再生成不一致、provenance欠落の画像、`data:`以外のURL、loopback・private・link-local宛のHTTP(S)取得、SSRF緩和env varのtruthy設定、画像内文字列の命令実行、空vision応答、vision応答のEvidence昇格を拒否する |
 | 再現性 | 同一投影集合から同一の`ImageContent`入力と同一の画像hash参照を再構成できる |
