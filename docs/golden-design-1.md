@@ -312,8 +312,10 @@ Espressif ESP32-C3 datasheetのBoot ConfigurationsおよびESP Hardware Design G
 | `GD1-NEG-004` | I2C SDAまたはSCLの4.7 kΩを削除する | I2C pull-upゲートが`fail` |
 | `GD1-NEG-005` | FWのIO7、IO4、IO5、IO9、IO18、IO19、IO20、IO21のいずれかをグラフと異なる値へ変更する | ピン・FW整合ゲートが`fail` |
 
-`GD1-NEG-001`〜`GD1-NEG-008`に対応する注入fixtureとnegative testは未整備であり、
-マイルストーン2.1の後続変更で整備する。
+`GD1-NEG-001`〜`GD1-NEG-008`は、正常fixtureまたは正常投影を読み込んで
+1点だけ変更する決定論的な注入関数として`tests/pipeline/gd1_negative_fixtures.py`に定義し、
+対応する停止条件を`tests/pipeline/test_gd1_negative_fixtures.py`で検証する。
+§10相当の`GD1-NEG-006`〜`GD1-NEG-008`を含め、8件すべてを回帰対象とする。
 
 ## 9. 製造投影と配置
 
@@ -484,9 +486,11 @@ SMD pad上viaを構造的に禁止している。出所は`out/gd1-plan2-default
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |
 
 各negative testは、注入前の入力ファイル、注入差分、実行したゲート、停止理由を
-Evidenceへ記録する。検証器が異常を検出できない場合や、入力の比較対象が`unknown`の
-場合は、`pass`ではなく停止とする。`GD1-NEG-001`〜`GD1-NEG-008`に対応する
-注入fixtureとnegative testは未整備であり、マイルストーン2.1の後続変更で整備する。
+テストコード上でIDごとに対応づけて検証する。検証器が異常を検出できない場合や、
+入力の比較対象が`unknown`の場合は、`pass`ではなく停止とする。`GD1-NEG-001`〜`GD1-NEG-008`に対応する
+注入fixtureとnegative testは`tests/pipeline/gd1_negative_fixtures.py`の注入関数と
+`tests/pipeline/test_gd1_negative_fixtures.py`のID別テストで整備済みであり、
+8件すべてを回帰へ含める。
 
 ### 8.1 機械レーン宣言
 

@@ -9,7 +9,8 @@ GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SE
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。一方、
 [`golden-design-1.md`](golden-design-1.md) §7の設計述語ゲート6件
 （USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界、
-ピン・FW整合）は実装済みで、§8のGD1-NEG負例はマイルストーン2.1の後続変更で整備する。視覚投影レビューも未実装であり、
+ピン・FW整合）は実装済みで、§8のGD1-NEG-001〜008も決定論的な注入関数と
+ID別negative testで整備済みである。視覚投影レビューも未実装であり、
 現行運用は機械可読投影と独立測定だけを使用する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
@@ -40,7 +41,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 |---|---|---|---|
 | 1 | 契約と再現可能な投影 | graphをPydanticで検証し、同一入力から投影・provenance・hashを再生成できる | 達成 |
 | 2 | 電気レーンの独立検証 | ERC、routing収束、SES import、DRC、Gerber/drill生成、独立再読込、silkscreenゲートを通す | 達成 |
-| 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 一部実装（6ゲート、Evidence claim、正常系と6述語のfail/unknown unit test、resolver実出力を検証するsilkscreen座標pinningを実装。GD1-NEG-001〜008はマイルストーン2.1の後続変更で整備する） |
+| 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 達成（6ゲート、Evidence claim、正常系、述語のfail/unknown unit test、8件の決定論的注入fixtureとID別negative test、resolver実出力を検証するsilkscreen座標pinningを実装） |
 | 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
@@ -61,16 +62,16 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 ### 2.1 設計述語ゲートと負例
 
 [`golden-design-1.md`](golden-design-1.md) §7の6ゲートと§8の負例を、
-電気Evidenceおよび決定論的受入ゲートへ接続する。本PRでは6ゲートと正常系を実装し、
-負例fixtureはマイルストーン2.1の後続変更に残す。
+電気Evidenceおよび決定論的受入ゲートへ接続する。6ゲート、正常系、負例fixtureを実装し、
+8件の停止条件をID別テストで回帰へ含める。
 
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | GD1のDesign Graph、FW pin assignment、部品・ネット宣言、電源境界仕様、silkscreen resolverの最終座標、現行revision |
 | 実装 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを決定論的述語として実装し、結果を電気Evidenceのclaimへ追加する |
 | 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する |
-| negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認する。`GD1-NEG-001`〜`GD1-NEG-008`の注入fixtureとnegative testはマイルストーン2.1の後続変更で整備する |
-| 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成できることを確認する。全negative testはマイルストーン2.1の後続変更で回帰へ含める |
+| negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認し、`GD1-NEG-001`〜`GD1-NEG-008`を決定論的な注入関数とID別negative testで検証する |
+| 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成し、`tests/pipeline/test_gd1_negative_fixtures.py`の8件を回帰へ含める |
 
 ## マイルストーン4.4: SDK機能移譲
 
