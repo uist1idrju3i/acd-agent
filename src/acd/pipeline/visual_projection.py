@@ -1005,7 +1005,6 @@ def _firmware_projection_crosscheck(
     *,
     projection: VisualProjectionRecord,
     lane: FirmwareLane,
-    graph_pin_assignments: tuple[tuple[str, int, str], ...],
     base_dir: Path,
     expected_input: VisualProjectionInput,
 ) -> VisualProjectionCrosscheck:
@@ -1145,21 +1144,38 @@ def _firmware_projection_crosscheck(
         extra_transitions = sorted(
             actual_transition_ids - expected_transition_ids
         )
-        transition_payload_match = all(
-            transition_elements.get(node_id) is not None
-            and transition_elements[node_id].attrib.get("data-from-state")
-            == transition.from_state
-            and transition_elements[node_id].attrib.get("data-to-state")
-            == transition.to_state
-            and transition_elements[node_id].attrib.get("data-trigger")
-            == transition.trigger
-            and transition.trigger
-            in transition_texts.get(
-                f"fw-transition-trigger-{_node_id_fragment(node_id)}",
-                "",
+        transition_mismatches: list[str] = []
+        for node_id in sorted(expected_transitions):
+            transition = expected_transitions[node_id]
+            element = transition_elements.get(node_id)
+            if element is None:
+                transition_mismatches.append(f"{node_id}:element")
+                continue
+            observed = {
+                "from_state": element.attrib.get("data-from-state"),
+                "to_state": element.attrib.get("data-to-state"),
+                "trigger": element.attrib.get("data-trigger"),
+                "text": transition_texts.get(
+                    f"fw-transition-trigger-{_node_id_fragment(node_id)}",
+                    "",
+                ),
+            }
+            expected = {
+                "from_state": transition.from_state,
+                "to_state": transition.to_state,
+                "trigger": transition.trigger,
+                "text": transition.trigger,
+            }
+            transition_mismatches.extend(
+                f"{node_id}:{field}"
+                for field in ("from_state", "to_state", "trigger", "text")
+                if (
+                    observed[field] != expected[field]
+                    if field != "text"
+                    else expected[field] not in str(observed[field])
+                )
             )
-            for node_id, transition in expected_transitions.items()
-        )
+        transition_payload_match = not transition_mismatches
         items.extend(
             [
                 _crosscheck_item(
@@ -1193,7 +1209,11 @@ def _firmware_projection_crosscheck(
                     check_id="transition-declarations",
                     description="Transition endpoints and trigger text match declarations",
                     expected="all declared transition payloads",
-                    actual="match" if transition_payload_match else "mismatch",
+                    actual=(
+                        "match"
+                        if transition_payload_match
+                        else ",".join(transition_mismatches)
+                    ),
                     machine_field="FirmwareLane.transitions[*]",
                     status="match" if transition_payload_match else "mismatch",
                 ),
@@ -1239,22 +1259,52 @@ def _firmware_projection_crosscheck(
             for element in root.iter()
             if element.attrib.get("id", "").startswith("fw-sequence-action-")
         }
-        sequence_match = (
-            set(actual_steps) == set(expected_steps)
-            and all(
-                actual_steps[index].attrib.get("data-node-id") == step.node_id
-                and actual_steps[index].attrib.get("data-actor") == step.actor
-                and actual_steps[index].attrib.get("data-target") == step.target
-                and actual_steps[index].attrib.get("data-action") == step.action
-                and step.action
-                in sequence_texts.get(
+        sequence_mismatches: list[str] = []
+        for index in sorted(expected_steps):
+            step = expected_steps[index]
+            element = actual_steps.get(index)
+            if element is None:
+                sequence_mismatches.append(
+                    f"{step.node_id}[{index}]:element"
+                )
+                continue
+            observed = {
+                "node_id": element.attrib.get("data-node-id"),
+                "step_index": element.attrib.get("data-step-index"),
+                "actor": element.attrib.get("data-actor"),
+                "target": element.attrib.get("data-target"),
+                "action": element.attrib.get("data-action"),
+                "text": sequence_texts.get(
                     f"fw-sequence-action-{index:03d}-"
                     f"{_node_id_fragment(step.node_id)}",
                     "",
+                ),
+            }
+            expected = {
+                "node_id": step.node_id,
+                "step_index": str(step.step_index),
+                "actor": step.actor,
+                "target": step.target,
+                "action": step.action,
+                "text": step.action,
+            }
+            sequence_mismatches.extend(
+                f"{step.node_id}[{index}]:{field}"
+                for field in (
+                    "node_id",
+                    "step_index",
+                    "actor",
+                    "target",
+                    "action",
+                    "text",
                 )
-                for index, step in expected_steps.items()
+                if (
+                    observed[field] != expected[field]
+                    if field != "text"
+                    else expected[field] not in str(observed[field])
+                )
             )
-        )
+        sequence_match = not sequence_mismatches
         items.extend(
             [
                 _crosscheck_item(
@@ -1284,39 +1334,16 @@ def _firmware_projection_crosscheck(
                     check_id="sequence-declarations",
                     description="Sequence actor, target, index, and action match declarations",
                     expected="all declared sequence payloads",
-                    actual="match" if sequence_match else "mismatch",
+                    actual=(
+                        "match"
+                        if sequence_match
+                        else ",".join(sequence_mismatches)
+                    ),
                     machine_field="FirmwareLane.sequence_steps[*]",
                     status="match" if sequence_match else "mismatch",
                 ),
             ]
         )
-    lane_pin_assignments = tuple(
-        sorted(
-            (assignment.node_id, assignment.gpio, assignment.net)
-            for assignment in lane.pin_assignments
-        )
-    )
-    pin_match = lane_pin_assignments == graph_pin_assignments
-    items.append(
-        _crosscheck_item(
-            check_id="pin-assignments",
-            description="Firmware pin assignment GPIO and net declarations remain consistent",
-            expected="graph firmware.pin_assignment declarations",
-            actual=(
-                "match"
-                if pin_match
-                else (
-                    f"lane={lane_pin_assignments}; "
-                    f"graph={graph_pin_assignments}"
-                )
-            ),
-            machine_field=(
-                "FirmwareLane.pin_assignments[*].gpio/net; "
-                "DesignGraph.firmware.pin_assignment[*].attrs"
-            ),
-            status="match" if pin_match else "mismatch",
-        )
-    )
     return VisualProjectionCrosscheck(
         projection_id=projection.projection_id,
         source_revision=projection.source_revision,
@@ -1356,6 +1383,12 @@ def crosscheck_firmware_visual_projections(
             )
         graph_pin_assignments.append((node.id, gpio, net))
     expected_graph_pin_assignments = tuple(sorted(graph_pin_assignments))
+    lane_pin_assignments = tuple(
+        sorted(
+            (assignment.node_id, assignment.gpio, assignment.net)
+            for assignment in lane.pin_assignments
+        )
+    )
     if graph.revision != source_revision:
         raise ValueError("firmware crosscheck graph and source revisions do not match")
     if visual_projection_set.source_revision != source_revision:
@@ -1394,7 +1427,6 @@ def crosscheck_firmware_visual_projections(
         _firmware_projection_crosscheck(
             projection=projection,
             lane=lane,
-            graph_pin_assignments=expected_graph_pin_assignments,
             base_dir=base_dir,
             expected_input=expected_input,
         )
@@ -1445,15 +1477,35 @@ def crosscheck_firmware_visual_projections(
             basis="GD1 measured functional-run Evidence is on hold.",
         ),
     ]
+    pin_match = lane_pin_assignments == expected_graph_pin_assignments
+    pin_item = _crosscheck_item(
+        check_id="pin-assignments",
+        description="Firmware pin assignment GPIO and net declarations remain consistent",
+        expected="graph firmware.pin_assignment declarations",
+        actual=(
+            "match"
+            if pin_match
+            else (
+                f"lane={lane_pin_assignments}; "
+                f"graph={expected_graph_pin_assignments}"
+            )
+        ),
+        machine_field=(
+            "FirmwareLane.pin_assignments[*].gpio/net; "
+            "DesignGraph.firmware.pin_assignment[*].attrs"
+        ),
+        status="match" if pin_match else "mismatch",
+    )
     report = VisualCrosscheckReport(
         source_revision=source_revision,
         visual_projection_set_identity_hash=visual_projection_set.identity_hash,
         machine_input_files=[expected_input],
-        set_items=[coverage_item],
+        set_items=[coverage_item, pin_item],
         crosschecks=sorted(records, key=lambda record: record.projection_id),
         review_items=review_items,
         status=_status_for_items(
-            [coverage_item] + [item for record in records for item in record.items]
+            [coverage_item, pin_item]
+            + [item for record in records for item in record.items]
         ),
         generated_at=datetime.now(UTC),
     ).with_computed_hashes()
