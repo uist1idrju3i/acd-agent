@@ -35,6 +35,7 @@ from acd.schema import (
         (OrderScope, "order-scope.json"),
         (OrderPolicy, "order-policy.json"),
         (VisualProjectionSet, "visual-projection-set.json"),
+        (VisualProjectionSet, "visual-projection-mechanical.json"),
     ],
 )
 def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
@@ -84,6 +85,10 @@ def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
         (VisualProjectionSet, "visual-projection-absolute-image-path.json"),
         (VisualProjectionSet, "visual-projection-duplicate-identifier.json"),
         (VisualProjectionSet, "visual-projection-pass-evidence.json"),
+        (
+            VisualProjectionSet,
+            "visual-projection-interference-region-mismatch.json",
+        ),
     ],
 )
 def test_invalid_contract_fixtures(model: type[AcdModel], name: str) -> None:

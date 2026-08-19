@@ -124,3 +124,83 @@ def test_visual_projection_identity_excludes_generated_at_only() -> None:
     third = VisualProjectionSet.model_validate(changed)
 
     assert first.computed_identity_hash() != third.computed_identity_hash()
+
+
+def _mechanical_projection(
+    projection_type: str,
+    *,
+    section_plane_id: str | None = None,
+    section_offset_mm: float | None = None,
+    interference_volume_mm3: float | None = None,
+    interference_region_present: bool | None = None,
+) -> dict[str, object]:
+    value = _projection("mechanical")
+    value.update(
+        {
+            "projection_type": projection_type,
+            "domain": "mechanical",
+            "section_plane_id": section_plane_id,
+            "section_offset_mm": section_offset_mm,
+            "interference_volume_mm3": interference_volume_mm3,
+            "interference_region_present": interference_region_present,
+        }
+    )
+    return value
+
+
+def test_mechanical_visual_projection_records_require_declared_observations() -> None:
+    section = VisualProjectionRecord.model_validate(
+        _mechanical_projection(
+            "mechanical_section_view",
+            section_plane_id="xy",
+            section_offset_mm=2.0,
+        )
+    )
+    interference = VisualProjectionRecord.model_validate(
+        _mechanical_projection(
+            "mechanical_interference_view",
+            section_plane_id="xy",
+            section_offset_mm=2.0,
+            interference_volume_mm3=0.0,
+            interference_region_present=False,
+        )
+    )
+    assert section.section_plane_id == "xy"
+    assert interference.interference_region_present is False
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["section_missing_plane", "section_nan_offset", "region_zero_volume", "volume_without_region"],
+)
+def test_mechanical_visual_projection_rejects_inconsistent_observations(
+    mutation: str,
+) -> None:
+    if mutation == "section_missing_plane":
+        value = _mechanical_projection(
+            "mechanical_section_view", section_offset_mm=2.0
+        )
+    elif mutation == "section_nan_offset":
+        value = _mechanical_projection(
+            "mechanical_section_view",
+            section_plane_id="xy",
+            section_offset_mm=float("nan"),
+        )
+    elif mutation == "region_zero_volume":
+        value = _mechanical_projection(
+            "mechanical_interference_view",
+            section_plane_id="xy",
+            section_offset_mm=2.0,
+            interference_volume_mm3=0.0,
+            interference_region_present=True,
+        )
+    else:
+        value = _mechanical_projection(
+            "mechanical_interference_view",
+            section_plane_id="xy",
+            section_offset_mm=2.0,
+            interference_volume_mm3=1.0,
+            interference_region_present=False,
+        )
+    with pytest.raises(ValidationError):
+        VisualProjectionRecord.model_validate(value)

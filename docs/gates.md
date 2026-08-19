@@ -31,15 +31,18 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 視覚投影は`ImageContent`または`inspect_image_with_vision`としてAIへ渡す。
 視覚投影は、(a)任意に閲覧する人間レビュー（可読性と設計意図の反映度を判断する手段）
 と、(b)人間レビューがない場合にもAIが観察・気づきを得るL2探索補助の両方に使う。
+`mechanical_section_view`はauthoritative assembly STEPの宣言断面、
+`mechanical_interference_view`は筐体とcomponent bodyの交差観測を表す。
 8.3のSVG投影はpipelineのゲート通過後に既定生成するが、8.4のPNG派生とAI受け渡しは
 必要時のon-demand経路であり、合否権限は持たない。acd-tools imageのlibcairo2存在は未検証で、
 image再publishとdigest更新までcontainer側で保証できないため、PNG派生をpipelineの既定出力へ
 配線していない。
 視覚投影経路と画像provenance schemaのうち、8.1〜8.2で回路図ビューと層別レイアウトビュー
 の生成・正規化・再生成検査・記録を実装した。現行実装は機械可読投影と独立測定に加え、
-これら2種の視覚投影をL3観測として扱う。8.3では電気laneに限り、GD1基板の必須ゲート通過後に
-SVGを既定生成して投影集合を書き出す。機械laneの断面・干渉ビューはrenderer未実装のため8.3対象外で、
-後続フェーズで扱う。8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
+これらの視覚投影をL3観測として扱う。8.3ではGD1基板・筐体の必須ゲート通過後に
+SVGを既定生成して投影集合を書き出す。機械laneもゲート通過後にauthoritative STEPから
+断面・干渉ビューを生成し、`visual-projections-mechanical.json`へL3観測として記録する。
+8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
 8.5の機械可読電気lane投影との照合は、8.3の視覚投影生成直後に実行する。
 8.3の視覚投影生成前提はERC、routing収束、DRC、独立再読込、silkscreen、DFM、
 設計述語の決定論的ゲートであり、発注可否を表すorder readinessは含めない。

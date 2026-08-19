@@ -1,7 +1,11 @@
 """Safety boundaries for hooks, secrets, and action analysis."""
 
 from acd.openhands.safety.agent_skills import validate_acd_agent_skills
-from acd.openhands.safety.hooks import validate_acd_agent_hooks
+from acd.openhands.safety.hooks import (
+    REQUIRED_ACD_HOOK_NAMES,
+    validate_acd_agent_hooks,
+    validate_acd_hook_config,
+)
 from acd.openhands.safety.secrets import (
     ACD_SECRET_ENV_VARS,
     EnvironmentSecret,
@@ -14,10 +18,12 @@ from acd.openhands.safety.security import (
 
 __all__ = [
     "ACD_SECRET_ENV_VARS",
+    "REQUIRED_ACD_HOOK_NAMES",
     "AcdSecurityAnalyzer",
     "EnvironmentSecret",
     "build_acd_secret_mapping",
     "build_acd_security_analyzer",
     "validate_acd_agent_hooks",
     "validate_acd_agent_skills",
+    "validate_acd_hook_config",
 ]

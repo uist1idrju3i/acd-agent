@@ -34,6 +34,7 @@ def _write_journal(path: Path) -> None:
     planned = append_pre_order(
         path,
         authorization=authorization,
+        execution_mode="dry_run",
         package_hash=PACKAGE_HASH,
         destination="supplier.example",
         idempotency_key="order-20260814",
@@ -42,6 +43,7 @@ def _write_journal(path: Path) -> None:
     append_post_order(
         path,
         planned=planned,
+        execution_mode="dry_run",
         result_status="success",
         receipt_id="receipt-20260814",
         receipt_hash=HASH,

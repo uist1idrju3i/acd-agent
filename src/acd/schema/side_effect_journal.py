@@ -22,6 +22,7 @@ from acd.schema.common import (
 
 JournalEntryType = Literal["pre_order", "post_order"]
 JournalResultStatus = Literal["success", "failure", "rejected"]
+ExecutionMode = Literal["dry_run", "real"]
 
 
 def _validate_destination(value: str) -> str:
@@ -41,6 +42,7 @@ def _validate_destination(value: str) -> str:
 class JournalEntryBody[EntryTypeT: str](AcdModel):
     schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
     entry_type: EntryTypeT
+    execution_mode: ExecutionMode
     idempotency_key: IdempotencyKey
     authorization_hash: Sha256
     target_revision: Revision
@@ -81,6 +83,7 @@ class PreOrderJournalEntry(PreOrderJournalEntryBody):
     def create(
         cls,
         *,
+        execution_mode: ExecutionMode,
         idempotency_key: IdempotencyKey,
         authorization_hash: Sha256,
         target_revision: Revision,
@@ -90,6 +93,7 @@ class PreOrderJournalEntry(PreOrderJournalEntryBody):
         previous_entry_hash: Sha256 | None,
     ) -> PreOrderJournalEntry:
         body = PreOrderJournalEntryBody(
+            execution_mode=execution_mode,
             idempotency_key=idempotency_key,
             authorization_hash=authorization_hash,
             target_revision=target_revision,
@@ -131,6 +135,7 @@ class PostOrderJournalEntry(PostOrderJournalEntryBody):
         cls,
         *,
         planned: PreOrderJournalEntry,
+        execution_mode: ExecutionMode,
         result_status: JournalResultStatus,
         receipt_id: NonEmptyStr,
         receipt_hash: Sha256,
@@ -138,6 +143,7 @@ class PostOrderJournalEntry(PostOrderJournalEntryBody):
         previous_entry_hash: Sha256 | None,
     ) -> PostOrderJournalEntry:
         body = PostOrderJournalEntryBody(
+            execution_mode=execution_mode,
             idempotency_key=planned.idempotency_key,
             authorization_hash=planned.authorization_hash,
             target_revision=planned.target_revision,

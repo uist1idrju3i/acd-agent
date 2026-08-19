@@ -308,6 +308,12 @@
           "path": "src/acd/openhands/session/context.py",
           "symbol": "SecretRegistry",
           "note": "context maskingにSDKのsecret registryを使う"
+        },
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/order_execution.py",
+          "symbol": "SecretRegistry",
+          "note": "order runnerでcredential参照名のregistry境界を検証する"
         }
       ]
 
@@ -419,6 +425,12 @@
           "path": "src/acd/openhands/session/bootstrap.py",
           "symbol": "HookConfig",
           "note": "現行conversationへSDK hook設定を渡す"
+        },
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/order_execution.py",
+          "symbol": "HookConfig",
+          "note": "order runnerで必須hook設定を検証する"
         }
       ]
 
@@ -648,6 +660,12 @@
           "path": "src/acd/openhands/session/bootstrap.py",
           "symbol": "ConfirmRisky",
           "note": "現行conversationのrisk confirmation policyを設定する"
+        },
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/order_execution.py",
+          "symbol": "ConfirmRisky",
+          "note": "order runnerでmedium/high risk確認要求を検証する"
         }
       ]
 

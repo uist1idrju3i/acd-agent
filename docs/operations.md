@@ -208,6 +208,34 @@ CLIはentry契約、entry自身のhash、直前entryとのhash連鎖、冪等key
 並べ替えられた行、存在しない・読み出し不能なjournalは非ゼロ終了で停止する。この層はjournalの記録と
 再構成だけを行い、送信・発注・新しい発注許可は作らない。
 
+### 自働発注dry-run
+
+7.5のCLIはdry-runが既定であり、7.3の許可record、journal、製造data package hash、
+宛先、対象revision、allowlist済みcredential参照名、実行時刻を受け取る。
+
+```bash
+uv run python scripts/order_execution.py \
+  --permit out/pre-order-gate.json \
+  --journal out/side-effect-journal.jsonl \
+  --idempotency-key order-20260814 \
+  --package-hash sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+  --destination supplier.example \
+  --target-revision r1 \
+  --credential-reference ACD_API_KEY \
+  --occurred-at 2026-08-14T00:00:00Z \
+  --command echo dry-run
+```
+
+出力payloadはpackage hash、宛先、対象revision、総額、許可hashだけから作られ、
+secret値、Evidence内容、時刻を含めない。journalには`dry_run`のpre/post組を記録するが、
+これは実発注完了として扱えない。`--real`は実providerへ送信せず、「real provider order
+execution is not enabled」として非ゼロ終了する。confirmation policyのskip、必須hook不在、
+credential参照名のallowlist外、上限額override、冪等key再送、provider scriptの非ゼロ終了、
+post記録失敗は停止条件である。実providerへの送信は本マイルストーンの範囲外であり、
+credentialの値を引数・journal・ログ・stdoutへ渡してはならない。`--command`は必須で、
+command未実行をsuccessとして記録する経路はない。command形式不正やsecret値の混入は
+事前予定の追記前に拒否し、providerの`failure`とは区別する。
+
 4. 実行済みのGD1基板pipelineでは、回路図
    `out/gd1/gd1.kicad_sch`、routed board
    `out/gd1/routed/gd1.kicad_pcb`、Gerberの
@@ -405,11 +433,20 @@ fail-closedとする。正規化後hashは再生成時にも照合し、renderer
 出力ファイル名が`<title>`へ入るため、この名前差が生バイト列の非決定性の由来になる。
 回路図SVGはKiCadがsheet名をファイル名にして出力するため、単一sheetの期待出力を投影パスへ
 renameする。複数sheetによる複数SVG出力は未対応で、追加されたSVGを検出した時点でfail-closedとする。
-8.3ではGD1電気laneに限り、必須ゲート通過後に回路図ビューと宣言銅層ごとの層別レイアウト
-ビューを`out_dir/visual/`へ既定生成し、`visual-projections-electrical.json`へL3観測として
-記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・
-同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneの断面・干渉ビューは
-renderer未実装のため後続フェーズで扱う。8.5では電気laneに限り、同一revisionの
+8.3ではGD1の各laneで、必須ゲート通過後にlane固有の視覚投影を
+`out_dir/visual/`へ既定生成する（電気laneは回路図ビューと宣言銅層ごとの層別レイアウト
+ビューを`visual-projections-electrical.json`へ、機械laneは断面・干渉ビューを
+`visual-projections-mechanical.json`へL3観測として
+記録する）。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、
+同一入力・同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneでは
+authoritativeな`enclosure-assembly.step`を`build123d`で断面・干渉SVGへ投影する。
+断面のXY offsetは`wall_thickness_mm + standoff_height_mm / 2`をMechanicalLaneから
+決定論的に導出して記録し、キャビティ床とcoplanarになる位置は使用しない。断面は
+宣言したXY平面とこのoffsetを記録し、
+干渉体積は機械ゲートの`measured_max_interference_volume_mm3`を転記してビューの
+干渉領域有無と突合する。干渉領域がない場合はSVGへ空layerを後付けせず、
+projection recordの`interference_region_present=false`と体積0で観測する。8.5では電気laneに限り、
+同一revisionの
 `ElectricalLane`／`BoardModel`とSVGを決定論的に照合し、
 `visual-crosscheck-electrical.json`へL3観測として記録する。この照合は8.3のSVG投影生成直後、
 `hashes.json`生成前に既定実行される。

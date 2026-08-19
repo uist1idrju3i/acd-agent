@@ -23,7 +23,13 @@ from acd.schema.common import (
     canonical_json_sha256,
 )
 
-VisualProjectionType = Literal["schematic_view", "layered_layout_view", "rasterized_view"]
+VisualProjectionType = Literal[
+    "schematic_view",
+    "layered_layout_view",
+    "rasterized_view",
+    "mechanical_section_view",
+    "mechanical_interference_view",
+]
 VisualProjectionDomain = Literal["electrical", "mechanical", "firmware", "system"]
 VisualRegenerationStatus = Literal["reproduced", "not_reproduced", "unknown"]
 VisualGateStatus = Literal["pass", "fail"]
@@ -60,8 +66,8 @@ class VisualProjectionInput(AcdModel):
 
 
 class VisualRendererProvenance(AcdModel):
-    renderer_type: Literal["kicad-cli", "cairosvg"] = "kicad-cli"
-    tool_name: Literal["kicad-cli", "cairosvg"] = "kicad-cli"
+    renderer_type: Literal["kicad-cli", "cairosvg", "build123d"] = "kicad-cli"
+    tool_name: Literal["kicad-cli", "cairosvg", "build123d"] = "kicad-cli"
     tool_version: VersionOrUnknown
     output_width: StrictInt | None = None
 
@@ -80,7 +86,7 @@ class VisualRendererProvenance(AcdModel):
             if self.output_width is None or self.output_width <= 0:
                 raise ValueError("cairosvg provenance requires a positive output width")
         elif self.output_width is not None:
-            raise ValueError("kicad-cli provenance must not declare output width")
+            raise ValueError("CAD and KiCad provenance must not declare output width")
         return self
 
 
@@ -164,6 +170,10 @@ class VisualProjectionRecord(AcdModel):
     generated_at: Timestamp
     regeneration_check: VisualRegenerationCheck
     image_path: NonEmptyStr
+    section_plane_id: NonEmptyStr | None = None
+    section_offset_mm: float | None = None
+    interference_volume_mm3: float | None = None
+    interference_region_present: StrictBool | None = None
 
     @field_validator("image_path")
     @classmethod
@@ -177,6 +187,38 @@ class VisualProjectionRecord(AcdModel):
             raise ValueError("visual projection input paths must be unique")
         if self.normalization_rule_id == "unknown":
             raise ValueError("normalization rule must be concrete")
+        section_view = self.projection_type == "mechanical_section_view"
+        interference_view = self.projection_type == "mechanical_interference_view"
+        if (section_view or interference_view) != (
+            self.section_plane_id is not None and self.section_offset_mm is not None
+        ):
+            raise ValueError("mechanical visual view requires a plane and offset")
+        if (section_view or interference_view) and (
+            self.section_offset_mm is None
+            or not math.isfinite(self.section_offset_mm)
+        ):
+            raise ValueError("section offset must be finite")
+        if (section_view or interference_view) and self.domain != "mechanical":
+            raise ValueError("mechanical visual projections require mechanical domain")
+        if not section_view and not interference_view and (
+            self.section_plane_id is not None or self.section_offset_mm is not None
+        ):
+            raise ValueError("section specification is only valid for mechanical views")
+        if interference_view != (
+            self.interference_volume_mm3 is not None
+            and self.interference_region_present is not None
+        ):
+            raise ValueError("mechanical interference view requires measured interference")
+        if not interference_view and (
+            self.interference_volume_mm3 is not None
+            or self.interference_region_present is not None
+        ):
+            raise ValueError("interference measurement is only valid for interference views")
+        if self.interference_volume_mm3 is not None:
+            if not math.isfinite(self.interference_volume_mm3) or self.interference_volume_mm3 < 0:
+                raise ValueError("interference volume must be finite and non-negative")
+            if (self.interference_volume_mm3 > 0) != bool(self.interference_region_present):
+                raise ValueError("interference region presence does not match measured volume")
         return self
 
 

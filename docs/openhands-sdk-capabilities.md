@@ -99,12 +99,14 @@
 - `sdk.conversation.conversation_stats`: **直接import** `src/acd/openhands/session/bootstrap.py` / `ConversationStats` — Conversationの使用量観測をSDK statsへ委譲する
 - `sdk.conversation.goal`: **直接import** `src/acd/openhands/session/goal_loop.py` / `GoalController` — L2停止側のgoal controllerをSDK経路で実行する
 - `sdk.conversation.secrets_manager`: **直接import** `src/acd/openhands/session/context.py` / `SecretRegistry` — context maskingにSDKのsecret registryを使う
+- `sdk.conversation.secrets_manager`: **直接import** `src/acd/openhands/order_execution.py` / `SecretRegistry` — order runnerでcredential参照名のregistry境界を検証する
 - `sdk.conversation.stuck_detector`: **SDK内部経路** `src/acd/openhands/session/bootstrap.py` / `stuck_detection` — conversationへSDK stuck detection設定を渡す
 - `sdk.credential`: **SDK内部経路** `src/acd/openhands/session/settings.py` / `credential` — profile設定のcredential参照名をSDK経路へ渡す
 - `sdk.critic`: **直接import** `src/acd/openhands/session/gate_critic.py` / `CriticBase` — gate結果をL2 criticへ渡し合否権限を与えない
 - `sdk.event`: **直接import** `src/acd/openhands/session/context.py` / `Event` — SDK eventを表示projectionの入力として扱う
 - `sdk.git`: **直接import** `src/acd/openhands/evidence/git.py` / `get_git_changes` — git変更をstale判定の入力としてSDK経路で取得する
 - `sdk.hooks`: **直接import** `src/acd/openhands/session/bootstrap.py` / `HookConfig` — 現行conversationへSDK hook設定を渡す
+- `sdk.hooks`: **直接import** `src/acd/openhands/order_execution.py` / `HookConfig` — order runnerで必須hook設定を検証する
 - `sdk.io`: **直接import** `src/acd/openhands/session/bootstrap.py` / `FileStore` — L3観測の保存先としてSDK FileStoreを使う
 - `sdk.llm`: **直接import** `src/acd/openhands/session/bootstrap.py` / `LLM` — 現行sessionのLLM型をSDK経路で受け取る
 - `sdk.llm`: **直接import** `src/acd/openhands/session/visual_projection.py` / `ImageContent` — PNG投影をdata URLのImageContentとして明示的に渡す
@@ -116,6 +118,7 @@
 - `sdk.profiles`: **SDK内部経路** `src/acd/openhands/session/settings.py` / `validate_agent_profile` — ACD設定からSDK profileを検証生成する
 - `sdk.secret`: **直接import** `src/acd/openhands/safety/secrets.py` / `SecretSource` — allowlist環境変数のlazy secret sourceを実装する
 - `sdk.security`: **直接import** `src/acd/openhands/session/bootstrap.py` / `ConfirmRisky` — 現行conversationのrisk confirmation policyを設定する
+- `sdk.security`: **直接import** `src/acd/openhands/order_execution.py` / `ConfirmRisky` — order runnerでmedium/high risk確認要求を検証する
 - `sdk.security.analyzer`: **直接import** `src/acd/openhands/safety/security.py` / `SecurityAnalyzerBase` — ACD analyzerをSDKのsecurity analyzer基底へ接続する
 - `sdk.settings`: **plugin資材** `plugins/acd/agent-settings.json` / `canonical_hash` — canonical settings manifestのhashをplugin資材で固定する
 - `sdk.skills`: **直接import** `src/acd/openhands/distribution/skills.py` / `load_skills_from_dir` — 検証済みACD Skill資材をSDK loaderへ渡す
