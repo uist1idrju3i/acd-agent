@@ -153,21 +153,12 @@ def _docker_stub() -> str:
     )
 
 
-def _make_hooks_invocable(plugin_root: Path) -> None:
-    for hook_script in (plugin_root / "hooks" / "scripts").glob("*.py"):
-        source = hook_script.read_text(encoding="utf-8")
-        if not source.startswith("#!"):
-            hook_script.write_text("#!/usr/bin/env python3\n" + source, encoding="utf-8")
-        hook_script.chmod(0o755)
-
-
 def test_install_location_distinguishes_development_and_store_layouts(
     tmp_path: Path,
 ) -> None:
     home = tmp_path / "home"
     home.mkdir()
-    development_root, development_script = _copy_plugin(tmp_path / "development")
-    _make_hooks_invocable(development_root)
+    _, development_script = _copy_plugin(tmp_path / "development")
     completed, development_report = _run(
         development_script,
         tmp_path / "development-run",
@@ -187,7 +178,6 @@ def test_install_location_distinguishes_development_and_store_layouts(
     correct_root = home / ".openhands" / "plugins" / "installed" / "acd"
     correct_root.parent.mkdir(parents=True)
     shutil.copytree(PLUGIN_ROOT, correct_root)
-    _make_hooks_invocable(correct_root)
     completed, correct_report = _run(
         correct_root / "skills/acd-install-doctor/scripts/install_doctor.py",
         tmp_path / "correct-run",
@@ -224,7 +214,29 @@ def test_install_location_distinguishes_development_and_store_layouts(
     assert "github:uist1idrju3i/acd-agent" in wrong_check["detail"]
 
 
-def test_hook_invocability_is_optional_and_reports_executable_state(
+def _make_direct_hook_reference(plugin_root: Path) -> None:
+    hooks_path = plugin_root / "hooks/hooks.json"
+    source = hooks_path.read_text(encoding="utf-8")
+    updated = source.replace(
+        "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/"
+        "hooks/scripts/protect_projections.py",
+        "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/"
+        "hooks/scripts/protect_projections.py",
+        1,
+    )
+    assert updated != source
+    hooks_path.write_text(updated, encoding="utf-8")
+
+
+def _make_hook_directly_invocable(plugin_root: Path) -> None:
+    hook_script = plugin_root / "hooks/scripts/protect_projections.py"
+    source = hook_script.read_text(encoding="utf-8")
+    if not source.startswith("#!"):
+        hook_script.write_text("#!/usr/bin/env python3\n" + source, encoding="utf-8")
+    hook_script.chmod(0o755)
+
+
+def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
     tmp_path: Path,
 ) -> None:
     copied, script = _copy_plugin(tmp_path / "initial")
@@ -237,16 +249,17 @@ def test_hook_invocability_is_optional_and_reports_executable_state(
         home,
     )
     assert completed.returncode == 0
-    assert report["status"] == "degraded"
+    assert report["status"] == "ok"
     hook_check = next(
         check for check in report["checks"] if check["name"] == "hook invocability"
     )
     assert hook_check["required"] is False
-    assert hook_check["result"] == "fail"
-    assert "protect_projections.py" in hook_check["detail"]
-    assert "hook policy would not be enforced" in hook_check["detail"]
+    assert hook_check["result"] == "pass"
+    assert hook_check["observed_version"] == "0"
+    assert "interpreter" in hook_check["detail"]
+    assert "do not depend on executable bits" in hook_check["detail"]
 
-    _make_hooks_invocable(copied)
+    _make_direct_hook_reference(copied)
     completed, fixed_report = _run(
         script,
         tmp_path / "fixed-run",
@@ -254,8 +267,26 @@ def test_hook_invocability_is_optional_and_reports_executable_state(
         home,
     )
     assert completed.returncode == 0
-    assert fixed_report["status"] == "ok"
+    assert fixed_report["status"] == "degraded"
     fixed_hook_check = next(
         check for check in fixed_report["checks"] if check["name"] == "hook invocability"
     )
-    assert fixed_hook_check["result"] == "pass"
+    assert fixed_hook_check["result"] == "fail"
+    assert "protect_projections.py" in fixed_hook_check["detail"]
+    assert "hook policy would not be enforced" in fixed_hook_check["detail"]
+
+    _make_hook_directly_invocable(copied)
+    completed, invocable_report = _run(
+        script,
+        tmp_path / "invocable-run",
+        {"docker": _docker_stub()},
+        home,
+    )
+    assert completed.returncode == 0
+    assert invocable_report["status"] == "ok"
+    invocable_hook_check = next(
+        check
+        for check in invocable_report["checks"]
+        if check["name"] == "hook invocability"
+    )
+    assert invocable_hook_check["result"] == "pass"

@@ -20,10 +20,10 @@ AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立�
 4. インストール直後に`/acd:doctor`を実行し、plugin資材と実行環境の自己診断結果を確認する。
    `repo_path: plugins/acd`を省略した場合や予期しないディレクトリ名で導入した場合は
    required checkが`failed`となるため、指定のsourceとpathで再インストールします。
-   prompt manifestのcanonical hashと資材hashも確認されます。`degraded`はDocker到達不能や
-   直接実行するhook scriptの権限・shebang不足などを示しますが、ホストEDAツールの不在は
-   観測情報でありstatusを下げません。現在のcommit済みhook scriptはこの理由で
-   `degraded`になり得ます。
+   prompt manifestのcanonical hashと資材hashも確認されます。hookはinterpreter経由で
+   起動されるため、commit済みscriptの実行権限・shebang不足はstatusを下げません。
+   `degraded`はDocker到達不能など、実行環境のoptional capability不足を示します。
+   ホストEDAツールの不在は観測情報でありstatusを下げません。
 
 最新化（default branchの先頭への更新）も、同じPlugins画面の「更新」ボタンだけで完了します。
 アンインストールは不要で、有効・無効の状態も維持されます。

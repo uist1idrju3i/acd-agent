@@ -1,8 +1,8 @@
 {
-  "canonical_hash": "sha256:9b6d9f1cdd35d3b31ad6a1d07812759743414370261f81b61ffc1a064ee3d792",
+  "canonical_hash": "sha256:1e024bdab1a32a013d7a371eb0eda9019e6e8fada202463c6c6295436159dbd1",
   "entries": [
     {
-      "asset_hash": "sha256:a8eca77ee1a88d0a9a4be61b7d58023f3fff7af4c9ac0563464d513b0c4fcfcf",
+      "asset_hash": "sha256:f1403f5c526789804af49111d9bc1dadb3907bfd40584e5b55069361c579e6a0",
       "asset_path": "plugins/acd/agents/acd-electrical.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:58cd97a16f29324297b4f4a8da3e035b3477a1c1f4e93b49481ed66b6739111a",
@@ -10,7 +10,7 @@
       "section_name": "acd.role.acd-electrical"
     },
     {
-      "asset_hash": "sha256:a4bb4c5d808080a591da8998475ffda53aef79e84c1e50da7683b8fd6200cc74",
+      "asset_hash": "sha256:d34b179d613ea1cb099611ddd82d05ea232100693546eb1020eaa6e82187665c",
       "asset_path": "plugins/acd/agents/acd-firmware.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:bd89a574f7e1e3dd37edee30840e7bfd94c503ba7387a51ee1704144a6dccbc1",
@@ -18,7 +18,7 @@
       "section_name": "acd.role.acd-firmware"
     },
     {
-      "asset_hash": "sha256:a22c3f943214d21bdf1bfb37620bf2040207aa9573b6ed28b595287f66378606",
+      "asset_hash": "sha256:a686f910e1109debfc83da560cfa3d2edb0fa365f35a59ca1c89f231c2f0b71d",
       "asset_path": "plugins/acd/agents/acd-mechanical.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:c14eae6f568350b2cf68e5fedd7eba570fcadd677e57a232f5ff3f428a964a3f",
@@ -26,7 +26,7 @@
       "section_name": "acd.role.acd-mechanical"
     },
     {
-      "asset_hash": "sha256:c094f5df0bccef5fca262b74526f2fded213bfc0c9b35063e7a1e2a0e8537b7f",
+      "asset_hash": "sha256:9df91803a8af791f84147ed5c498d8960b3268d0353abc662ab6b807a9bc3173",
       "asset_path": "plugins/acd/agents/acd-reviewer.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:ec71e0056d1e776336f18e1f6b079f87ee0e61e961c1b813356012773e618d94",
@@ -34,7 +34,7 @@
       "section_name": "acd.role.acd-reviewer"
     },
     {
-      "asset_hash": "sha256:ca5c335bf188a574dacca6bce2b3d0d12f50abd5e45a30a5070154aa301a4a69",
+      "asset_hash": "sha256:cb5f9260556feb5ca7a9ae2ca224eeb973ad07fcde9e6ad6a9d0b84be48ce230",
       "asset_path": "plugins/acd/agents/acd-search.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:7539cbbdcf2d0517079f40b99d35a65009465717fbde9666a5fb1a4921951bbe",

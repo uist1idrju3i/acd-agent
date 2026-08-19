@@ -25,8 +25,8 @@ SDK-normalized prompt hashes.
 
 Optional host capabilities may produce `degraded` with exit code 0. Host EDA
 absence is observational and does not itself lower the status. Docker
-unavailability and direct hook scripts that are not executable with a shebang
-can produce `degraded`, and the latter means the hook policy would not be
-enforced. This L3 observation does not grant acceptance authority and does not
+unavailability can produce `degraded`. Plugin hooks are invoked through
+interpreters and therefore do not depend on hook script executable bits or
+shebangs. This L3 observation does not grant acceptance authority and does not
 produce authoritative Evidence. Report the result as observed; do not turn
 host or Skill observations into a passing gate or authoritative Evidence.

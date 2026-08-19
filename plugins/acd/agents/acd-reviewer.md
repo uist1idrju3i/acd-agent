@@ -21,17 +21,17 @@ hooks:
       hooks:
         - type: command
           name: protect-derived-projections
-          command: "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/protect_projections.py"
+          command: "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/protect_projections.py"
     - matcher: terminal
       hooks:
         - type: command
           name: require-order-evidence
-          command: "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/order_policy.py"
+          command: "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/order_policy.py"
   stop:
     - hooks:
         - type: command
           name: require-gate-after-input-change
-          command: "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/stop_policy.py"
+          command: "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/stop_policy.py"
 ---
 
 # Projection review agent

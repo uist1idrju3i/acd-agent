@@ -603,6 +603,15 @@ def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
         )
         if not executable or not has_shebang:
             failures.append(relative)
+    if not direct_refs:
+        return _check(
+            "hook invocability",
+            False,
+            "pass",
+            "all plugin hooks are invoked through an interpreter and do not depend on "
+            "executable bits",
+            "0",
+        )
     if failures:
         return _check(
             "hook invocability",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import shutil
@@ -51,6 +52,28 @@ from acd.openhands.session.gate_critic import AcdEvidenceRequirement
 from acd.openhands.session.prompts import PromptManifestError, write_prompt_manifest
 from acd.openhands.session.routing import ModelRoutingError, model_routing_policy_hash
 from acd.schema.model_routing import ModelRoutingPolicy
+
+
+@pytest.fixture(autouse=True)
+def isolate_ambient_plugin_discovery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    installed_module = importlib.import_module("openhands.sdk.plugin.installed")
+    discovery_module = importlib.import_module("openhands.sdk.plugin.discovery")
+    isolated_home = tmp_path / "home"
+    monkeypatch.setattr(
+        installed_module,
+        "DEFAULT_INSTALLED_PLUGINS_DIR",
+        isolated_home / ".openhands" / "plugins" / "installed",
+    )
+    monkeypatch.setattr(
+        discovery_module,
+        "USER_PLUGINS_DIRS",
+        [
+            isolated_home / ".agents" / "plugins",
+            isolated_home / ".openhands" / "plugins",
+        ],
+    )
 
 
 class _TerminalAction(Action):

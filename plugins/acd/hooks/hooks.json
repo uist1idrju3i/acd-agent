@@ -6,7 +6,7 @@
         {
           "type": "command",
           "name": "protect-derived-projections",
-          "command": "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/protect_projections.py"
+          "command": "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/protect_projections.py"
         }
       ]
     },
@@ -16,7 +16,7 @@
         {
           "type": "command",
           "name": "require-order-evidence",
-          "command": "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/order_policy.py"
+          "command": "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/order_policy.py"
         }
       ]
     }
@@ -27,7 +27,7 @@
         {
           "type": "command",
           "name": "probe-tools",
-          "command": "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/session_start.py"
+          "command": "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/session_start.py"
         }
       ]
     }
@@ -38,7 +38,7 @@
         {
           "type": "command",
           "name": "require-gate-after-input-change",
-          "command": "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/stop_policy.py"
+          "command": "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/stop_policy.py"
         }
       ]
     },
@@ -60,7 +60,7 @@
         {
           "type": "command",
           "name": "verify-markdown",
-          "command": "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/verify_markdown.py"
+          "command": "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/verify_markdown.py"
         }
       ]
     },
