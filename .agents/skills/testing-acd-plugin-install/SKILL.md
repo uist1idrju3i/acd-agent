@@ -45,6 +45,19 @@ print([p.name for p in list_installed_plugins()])"
   cache が fetch しないため要求 ref が事実上無視される。
 - エラー toast も警告も出ず、インストールは成功したように見える。
 
+原因は SDK 側の cache 実装（`openhands.sdk.git.cached_repo`）にある。cache 先は
+source URL の sha256 だけで決まり（`get_cache_path`）、plugin manifest の version は
+参照されないため `plugin.json` の version を上げても cache は再利用される。cache は
+`git clone --depth 1 --branch <初回 ref>` で作られるので `remote.origin.fetch` が
+その branch だけを指し、更新時の素の `git fetch origin` では他の branch や commit を
+取得できない。`_update_repository` は checkout 失敗を warning
+（`Using cached version.`）で飲み込み、古い tree をそのまま install する。
+したがって **初回 install の branch 先端を追う更新は成功し**、別 branch や任意 commit への
+切り替えは cache を消さない限り成功しない。`main` で install しておけば以後は
+「更新」ボタン（`update` は `ref=None` で fetch → `origin/main` へ reset）で追従できる。
+ただし実機では「更新」が HTTP 500、「追加」が HTTP 409 になり uninstall→reinstall で
+回避した観測があり、`main` 運用でこの 500 が再現するかは未確認である。
+
 したがって GUI で新しい commit を検証するには、次を検証開始前の前提条件として扱う。
 
 1. `git ls-remote origin <ref>` で remote 側の commit を先に確定させる。
@@ -59,6 +72,49 @@ print([p.name for p in list_installed_plugins()])"
 
 チップの hex は等幅小フォントで screenshot からの目視誤読が起きやすい。
 `browser` の DOM ダンプに対して `リファレンス[0-9a-f]{7,40}` を grep すると確実に読める。
+
+#### cache purge 後は素直に最新 commit を取得できる
+
+サーバ所有者が `~/.openhands/plugins/installed/acd` と
+`~/.openhands/cache/extensions/acd-agent-*` を削除して OpenHands を再起動した後は、
+`github:<owner>/<repo>` + `ref` + `path` の指定で解決 ref が remote の HEAD に一致した
+（`main` 指定で `git ls-remote origin refs/heads/main` と完全一致を確認）。
+purge 後の初回 install だけが確実に新しい commit を掴める窓なので、
+その 1 回で doctor と gates を続けて回す計画にすると再依頼を減らせる。
+
+また、検証対象の branch はテスト中に merge されて削除されることがある。
+検証開始直前に `git ls-remote origin refs/heads/<branch>` を実行し、
+空なら `main` へ切り替えて `git merge-base --is-ancestor <fix-commit> FETCH_HEAD` で
+修正 commit が含まれることを確認してから進める。
+
+#### stale cache の機構と、branch 名で install すべき理由（SDK コード根拠）
+
+`vendor/software-agent-sdk` を読むと挙動の理由が説明できるので、
+GUI が指定 ref を無視したときは実装バグではなく以下の設計制約を疑う。
+
+- `openhands/sdk/extensions/fetch.py` の `get_cache_path` は
+  `sha256(source_url)[:16]` と repo 名だけで cache directory を決め、
+  **ref を cache key に含めない**。よって同じ source URL で ref を変えても
+  同一 cache directory が再利用される。
+- `openhands/sdk/git/cached_repo.py` の `GitHelper.clone` は既定 `depth=1` で
+  `--branch <初回ref>` を付ける。shallow clone は指定 branch の tip しか持たないため、
+  後から別 commit を checkout すると失敗しうる（docstring 自身が警告している）。
+- 失敗しても `_try_fetch` / `_try_checkout_and_reset` が
+  `Failed to checkout <ref>: ... Using cached version.` の warning で例外を飲み込むため、
+  **install は成功したように見えて古い tree が入る**。これが無警告 stale の正体。
+- update 経路は branch 上なら `_try_reset_to_origin(repo_path, current_branch, git)`、
+  detached HEAD なら default branch へ recover する。
+
+したがって「GUI の『更新』ボタンで main 先端へ追従させたい」場合、
+初回 install のリファレンスは **完全 SHA ではなく branch 名 `main`** にする。
+完全 SHA で install すると cache clone が detached HEAD になり update の意味が変わる。
+
+なお解決 ref の表示は要求 ref の反射ではなく
+`resolved_ref = git_helper.get_head_commit(repo_cache_path)`（実 HEAD commit）なので、
+詳細モーダルの「リファレンス」チップは stale 判定の signal として信頼できる。
+plugin 詳細モーダルの下部には `更新` / `アンインストール` / `会話を開始` / `閉じる` があり、
+ref 照合だけを行う回は `会話を開始` を押さないこと（LLM 課金が発生する）。
+会話を作っていないことは、サイドバーの会話一覧件数が検証前後で不変であることで確認する。
 
 ## 落とし穴: installed plugin store が pytest に混ざる
 
@@ -118,6 +174,16 @@ Stop hook のバッジも個別に確認し、ループを検知したら手動�
 install doctor の `hook plugin root resolution` check がすべての hook command を評価する。
 workspace 相対の外部 script 参照を新たに追加すると doctor の評価対象外になり
 `ok` のまま block が起きうるので、hook は必ず plugin 同梱 script から起動する。
+
+実機 GUI で修正を確認する際の合否判定は、会話の DOM 全文を落として
+`SessionStart\s*blocked` / `PreToolUse.{0,40}blocked` / `PostToolUse.{0,40}blocked` /
+`Stop\s*blocked` / `can't open file` / `acd plugin root unresolved` /
+`No such file or directory` を negative check として grep し、
+`SessionStart ok` / `PreToolUse ok` / `PostToolUse ok` / `Stop ok` の出現数を
+positive check として数えるのが確実（バッジは折り畳まれて screenshot に写らないことがある）。
+`Stop ok` は agent の応答が完全に終わってから描画されるので、
+途中で手動停止すると Stop hook の証拠が取れない。空 workspace の `/acd:gates` は
+設計ファイルを探索するため 5〜7 分かかる場合があり、完走させる余裕を見ておく。
 
 ## install doctor の検証
 

@@ -121,6 +121,39 @@ Local GUIからの動作確認手順へ進む。
 digest固定server image（Docker image）はplugin installでは取得されず、ゲート実行時に
 `DockerWorkspace(server_image=...)`が初回pullする。
 
+#### plugin更新時のキャッシュ確認
+
+同じrepositoryを一度installした環境では、初回install時に指定したbranch以外の
+リファレンスを指定してもキャッシュ済みのcommitがinstallされることを実機で確認した。
+branch名でも40桁commit SHAでもgit URL形式でも同じであり、GUIは警告を出さない。
+
+原因はSDKのキャッシュ実装（`openhands.sdk.git.cached_repo`）にある。キャッシュ先は
+source URLのsha256だけで決まり（`get_cache_path`）、plugin manifestのversionは参照されない。
+そのため`plugin.json`のversionを上げてもキャッシュは再利用される。キャッシュは
+`git clone --depth 1 --branch <初回ref>`で作られるため`remote.origin.fetch`が
+そのbranchだけを指し、更新時の`git fetch origin`では他のbranchやcommitを取得できない。
+`_update_repository`はcheckout失敗を警告だけで飲み込み（`Using cached version.`）、
+古いtreeをそのままinstallする。したがって初回に指定したbranchの先端を追う更新は成功し、
+別branchや任意commitへの切り替えはキャッシュを消さない限り成功しない。
+
+install直後にplugin詳細のリファレンスを`git ls-remote`の結果と照合し、
+不一致であれば次を実行してからinstallし直す。
+
+```bash
+rm -rf ~/.openhands/plugins/installed/acd
+rm -rf ~/.openhands/cache/extensions/acd-agent-*
+```
+
+削除後はOpenHandsを再起動する。リファレンスが一致しないまま動作確認へ進むと、
+古い資材の挙動を新しい変更の観測結果として誤って扱う。
+
+運用上は、リファレンスを省略するかbranch名を指定して`main`でinstallしておく。この場合の
+更新は「更新」ボタンだけで済み、`update`が`ref=None`で再fetchして`origin/main`へ
+resetするため`main`の先端に追従する。作業branchや特定commitで検証したい場合だけ、
+上記のキャッシュ削除を伴うinstallし直しが必要になる。なお実機では「更新」がHTTP 500、
+「追加」がHTTP 409になりuninstall→reinstallで回避した観測があり、`main`運用でこの
+500が再現するかは未確認である。再現する場合はキャッシュ削除からのinstallし直しへ倒す。
+
 ### Local GUIからの動作確認手順
 
 インストール直後に、まず自己診断入口を実行する。doctorはplugin資材と実行環境を
