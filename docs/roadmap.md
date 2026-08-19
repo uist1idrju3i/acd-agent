@@ -28,8 +28,9 @@ GD1の独立したwidth positive-control armは固定順で並列集約し、`ac
 provenanceだけを返す。SDK workflowは採用しない。
 roadmap 4.4は`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、
 `sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、
-`sdk.context.memory`／`sdk.context.view`まで実装済みで、残るのは`sdk.workspace`の
-authoritative経路化だけである。
+`sdk.context.memory`／`sdk.context.view`、`sdk.workspace`まで実装済みである。
+hostはSDK `LocalWorkspace`によるprovisional実行に限定し、authoritativeなゲート実行は
+digest固定`DockerWorkspace`だけが担う。
 
 決定論的ゲートのauthoritative Evidenceはdigest固定container実行だけが生成する。
 runnerとCIは事前build済みdigest固定server imageによる`DockerWorkspace`経路へ移行済みである。
@@ -52,7 +53,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
-| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、`sdk.context.memory`／`sdk.context.view`実装済み。`sdk.workspace`はマイルストーン6依存） |
+| 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 達成（hostは`LocalWorkspace`によるprovisional専用、authoritative経路はdigest固定`DockerWorkspace`） |
 | 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
@@ -123,8 +124,11 @@ MCP、Canvas、remote API、cloud、agent-serverは採用しない。
   hash不一致・EventLog不一致・EventLog外eventはfail-closedにする。projectionと
   memory観測はgate criticのEvidence経路で明示的に拒否し、同一EventLogから同一viewを
   再生成する`scripts/verify_context_view.py --check`を通常検証へ組み込む。
-- `sdk.workspace`／`workspace.DockerWorkspace`: host workspaceはprovisionalに限定し、
-  マイルストーン6の完了後にauthoritative経路化する。
+- `sdk.workspace`／`LocalWorkspace`: 実装済み。`--local-provisional`の明示opt-inから
+  `LocalWorkspace(working_dir=...)`をcontext managerとして使い、host結果をprovisional型で返す。
+  container markerまたはdigest環境変数がある場合は経路を拒否する。
+- `workspace.DockerWorkspace`: 実装済み。authoritativeなゲート実行はdigest固定server imageを
+  `DockerWorkspace`へ渡す既存経路だけに限定し、host結果をEvidenceのauthoritative passへ昇格しない。
 
 ### 4.5 能力カタログ検査の強化
 

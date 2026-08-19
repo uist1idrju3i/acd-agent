@@ -12,6 +12,7 @@ import scripts.run_in_workspace as runner_script
 
 from acd.openhands.workspace import (
     ImageReference,
+    ProvisionalWorkspaceResult,
     WorkspaceResult,
     resolve_image_digest,
     run_command_in_workspace,
@@ -177,3 +178,31 @@ def test_cli_preserves_command_failure_exit_code(
         )
         == 7
     )
+
+
+def test_cli_local_provisional_is_explicit_opt_in(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    result = ProvisionalWorkspaceResult(exit_code=0, stdout="ok\n", stderr="")
+    captured: dict[str, Any] = {}
+
+    def fake_run(**kwargs: Any) -> ProvisionalWorkspaceResult:
+        captured.update(kwargs)
+        return result
+
+    monkeypatch.delenv("ACD_CONTAINER_IMAGE", raising=False)
+    monkeypatch.setattr(runner_script, "run_command_in_local_workspace", fake_run)
+    assert (
+        runner_script.main(
+            ["--local-provisional", "--repo", str(tmp_path), "echo ok"]
+        )
+        == 0
+    )
+    assert captured == {"command": "echo ok", "repository": tmp_path}
+
+
+def test_cli_rejects_local_provisional_with_image(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        runner_script.main(
+            ["--local-provisional", "--image", "acd-server:local", "--repo", str(tmp_path)]
+        )

@@ -159,3 +159,65 @@ def test_runner_fails_when_evidence_download_fails(
             repository=tmp_path,
             workspace_factory=_DownloadFailingWorkspace,
         )
+
+
+def test_local_runner_uses_local_workspace_as_provisional(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: dict[str, object] = {}
+
+    class _LocalWorkspace(_FakeWorkspace):
+        def __init__(self, **kwargs: object) -> None:
+            super().__init__(**kwargs)
+            captured["constructor"] = kwargs
+
+    monkeypatch.delenv("ACD_IN_CONTAINER", raising=False)
+    monkeypatch.delenv("ACD_CONTAINER_IMAGE_DIGEST", raising=False)
+    result = workspace_module.run_command_in_local_workspace(
+        command="echo ok",
+        repository=tmp_path,
+        workspace_factory=_LocalWorkspace,
+    )
+
+    instance = _LocalWorkspace.instances[-1]
+    command, cwd, timeout = instance.commands[0]
+    assert captured["constructor"] == {"working_dir": tmp_path}
+    assert command == "echo ok"
+    assert cwd == tmp_path
+    assert timeout == 3600.0
+    assert result.exit_code == 0
+    assert result.execution_context == "host"
+    assert result.authoritative is False
+
+
+@pytest.mark.parametrize("variable", ["ACD_IN_CONTAINER", "ACD_CONTAINER_IMAGE_DIGEST"])
+def test_local_runner_rejects_container_provenance(
+    variable: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(variable, "configured")
+    with pytest.raises(ValueError, match="container provenance"):
+        workspace_module.run_command_in_local_workspace(
+            command="true",
+            repository=tmp_path,
+            workspace_factory=_FakeWorkspace,
+        )
+
+
+def test_local_runner_preserves_command_failure_exit_code(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _FailingWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            return SimpleNamespace(exit_code=7, stdout="", stderr="failed")
+
+    monkeypatch.delenv("ACD_IN_CONTAINER", raising=False)
+    monkeypatch.delenv("ACD_CONTAINER_IMAGE_DIGEST", raising=False)
+    result = workspace_module.run_command_in_local_workspace(
+        command="false",
+        repository=tmp_path,
+        workspace_factory=_FailingWorkspace,
+    )
+    assert result.exit_code == 7
