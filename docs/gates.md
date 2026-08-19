@@ -37,8 +37,7 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 必要時のon-demand経路であり、合否権限は持たない。acd-tools imageにはlibcairo2を固定し、
 container内でPNG派生可能であることを検証済みである。ただし、AI受け渡し時のon-demand経路で
 あり、合否権限を持たない投影を既定成果物へ増やさないため、PNG派生をpipelineの既定出力へ
-配線していない。現行のacd-server imageは更新前tools image由来であり、Cairo入りserver imageは
-次回のserver publishで反映する。
+配線していない。lock済みacd-server imageもCairo追加後のtools image由来である。
 視覚投影経路と画像provenance schemaのうち、8.1〜8.2で回路図ビューと層別レイアウトビュー
 の生成・正規化・再生成検査・記録を実装した。現行実装は機械可読投影と独立測定に加え、
 これらの視覚投影をL3観測として扱う。8.3ではGD1基板・筐体の必須ゲート通過後に
