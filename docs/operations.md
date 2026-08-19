@@ -150,9 +150,15 @@ rm -rf ~/.openhands/cache/extensions/acd-agent-*
 運用上は、リファレンスを省略するかbranch名を指定して`main`でinstallしておく。この場合の
 更新は「更新」ボタンだけで済み、`update`が`ref=None`で再fetchして`origin/main`へ
 resetするため`main`の先端に追従する。作業branchや特定commitで検証したい場合だけ、
-上記のキャッシュ削除を伴うinstallし直しが必要になる。なお実機では「更新」がHTTP 500、
-「追加」がHTTP 409になりuninstall→reinstallで回避した観測があり、`main`運用でこの
-500が再現するかは未確認である。再現する場合はキャッシュ削除からのinstallし直しへ倒す。
+上記のキャッシュ削除を伴うinstallし直しが必要になる。
+
+この追従は実機で確認した。キャッシュ削除後にbranch名`main`でinstallし、その後`main`が
+進んだ状態で「更新」を押すと、`POST /api/plugins/installed/acd/refresh`が200を返し、
+plugin詳細のリファレンスが`git ls-remote origin refs/heads/main`と40桁一致する新しい
+commitへ移り、再読込後も保持された。以前観測した「更新」のHTTP 500と「追加」のHTTP 409は
+再現しなかった。500は完全SHA指定でinstallしたキャッシュ（detached HEAD相当）に限られる
+可能性が高いが、その再現条件は未確認である。500が出た場合はキャッシュ削除からの
+installし直しへ倒す。
 
 ### Local GUIからの動作確認手順
 

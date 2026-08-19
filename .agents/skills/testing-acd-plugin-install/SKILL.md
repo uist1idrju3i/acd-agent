@@ -55,8 +55,15 @@ source URL の sha256 だけで決まり（`get_cache_path`）、plugin manifest
 したがって **初回 install の branch 先端を追う更新は成功し**、別 branch や任意 commit への
 切り替えは cache を消さない限り成功しない。`main` で install しておけば以後は
 「更新」ボタン（`update` は `ref=None` で fetch → `origin/main` へ reset）で追従できる。
-ただし実機では「更新」が HTTP 500、「追加」が HTTP 409 になり uninstall→reinstall で
-回避した観測があり、`main` 運用でこの 500 が再現するかは未確認である。
+これは実機で実測済み: cache purge 後に branch 名 `main` で install した状態で
+「更新」を押すと `POST /api/plugins/installed/acd/refresh` が 200 を返し、
+解決 ref が新しい main 先端（`git ls-remote` と 40 桁一致）へ移り、再読込後も保持された。
+以前観測した「更新」の HTTP 500 と「追加」の HTTP 409 は再現しなかったので、
+500 は完全 SHA 指定 cache に限られる可能性が高い（未確認）。
+
+GUI 操作の HTTP status を証拠にしたいときは、クリック前に `window.fetch` と
+`XMLHttpRequest.prototype.open` をラップしておき console から status を回収する。
+toast は消えるため、status を直接読むほうが確実。
 
 したがって GUI で新しい commit を検証するには、次を検証開始前の前提条件として扱う。
 
