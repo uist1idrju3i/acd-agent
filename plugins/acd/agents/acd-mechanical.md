@@ -12,10 +12,6 @@ tools:
   - glob
   - task_tracker
   - task_tool_set
-skills:
-  - acd-contracts
-  - acd-cad-determinism-probe
-  - acd-design-rationale
 max_iteration_per_run: 12
 max_budget_per_run: 2.0
 permission_mode: confirm_risky
@@ -47,3 +43,12 @@ Use the canonical mechanical lane and deterministic enclosure pipeline. AI and S
 propose or measure alternatives, but the mechanical gates, independent reload, and output
 determinism checks decide acceptance. Unknown, malformed, unavailable, or unverified states
 must fail closed. Skill results are not acceptance evidence.
+
+## Skill references
+
+Plugin subagents receive no preloaded Skill context. Read the SKILL.md file before using
+a Skill and treat an unreadable Skill asset as fail-closed:
+
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-contracts/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-cad-determinism-probe/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-design-rationale/SKILL.md`

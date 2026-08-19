@@ -1,43 +1,43 @@
 {
-  "canonical_hash": "sha256:1e024bdab1a32a013d7a371eb0eda9019e6e8fada202463c6c6295436159dbd1",
+  "canonical_hash": "sha256:5d3695e9797434fd0448aa45f244e52f9c6ec7189eb504b489ee18d82b45b486",
   "entries": [
     {
-      "asset_hash": "sha256:f1403f5c526789804af49111d9bc1dadb3907bfd40584e5b55069361c579e6a0",
+      "asset_hash": "sha256:04e3098c9cfafadee4d4dcae498bc9fe5a41185b2c8ed8efcef3987cbc22ffc0",
       "asset_path": "plugins/acd/agents/acd-electrical.md",
       "cache_tier": "static",
-      "prompt_hash": "sha256:58cd97a16f29324297b4f4a8da3e035b3477a1c1f4e93b49481ed66b6739111a",
+      "prompt_hash": "sha256:00aa2c2eaa692272d868be1796f5e47c737a429c9bb19982ce86194946acdccb",
       "role": "acd-electrical",
       "section_name": "acd.role.acd-electrical"
     },
     {
-      "asset_hash": "sha256:d34b179d613ea1cb099611ddd82d05ea232100693546eb1020eaa6e82187665c",
+      "asset_hash": "sha256:03ef81ec64541a8f534656b4abe9ca2945af4853ea73bd29d5a7fcfde007c141",
       "asset_path": "plugins/acd/agents/acd-firmware.md",
       "cache_tier": "static",
-      "prompt_hash": "sha256:bd89a574f7e1e3dd37edee30840e7bfd94c503ba7387a51ee1704144a6dccbc1",
+      "prompt_hash": "sha256:65b89d911ce997a95aa9888857aedba1f4e8f66202c6c37b320c6e2637aff8d4",
       "role": "acd-firmware",
       "section_name": "acd.role.acd-firmware"
     },
     {
-      "asset_hash": "sha256:a686f910e1109debfc83da560cfa3d2edb0fa365f35a59ca1c89f231c2f0b71d",
+      "asset_hash": "sha256:cf09ac380f589f945d0009ab7fc8297b1bc2ed0bba4796c6944269cda8a1a2e1",
       "asset_path": "plugins/acd/agents/acd-mechanical.md",
       "cache_tier": "static",
-      "prompt_hash": "sha256:c14eae6f568350b2cf68e5fedd7eba570fcadd677e57a232f5ff3f428a964a3f",
+      "prompt_hash": "sha256:c26ed7abe0e004f79e315e7eed30f83bffd11fa64151e4aac79796eed3719780",
       "role": "acd-mechanical",
       "section_name": "acd.role.acd-mechanical"
     },
     {
-      "asset_hash": "sha256:9df91803a8af791f84147ed5c498d8960b3268d0353abc662ab6b807a9bc3173",
+      "asset_hash": "sha256:187605754ad1e5bc72a253fdd925ea94da08d7abcd299ac93fe5734f2aefc1f4",
       "asset_path": "plugins/acd/agents/acd-reviewer.md",
       "cache_tier": "static",
-      "prompt_hash": "sha256:ec71e0056d1e776336f18e1f6b079f87ee0e61e961c1b813356012773e618d94",
+      "prompt_hash": "sha256:85e4f45a20616e93f39e7b8db619c4d9c77cef952b0e7d20d3ddb95b7e884ccc",
       "role": "acd-reviewer",
       "section_name": "acd.role.acd-reviewer"
     },
     {
-      "asset_hash": "sha256:cb5f9260556feb5ca7a9ae2ca224eeb973ad07fcde9e6ad6a9d0b84be48ce230",
+      "asset_hash": "sha256:14c3dcc720796d1e53b9c6d549a00ecbe2b242c968961c54aa85e56eed7aa4c3",
       "asset_path": "plugins/acd/agents/acd-search.md",
       "cache_tier": "static",
-      "prompt_hash": "sha256:7539cbbdcf2d0517079f40b99d35a65009465717fbde9666a5fb1a4921951bbe",
+      "prompt_hash": "sha256:dda8109a61c640f741a6bf70485c53707c5e012bc1facdd98cdc4709efdc6547",
       "role": "acd-search",
       "section_name": "acd.role.acd-search"
     }

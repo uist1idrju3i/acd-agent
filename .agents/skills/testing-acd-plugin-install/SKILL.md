@@ -33,14 +33,12 @@ print([p.name for p in list_installed_plugins()])"
 `resolved_ref` を `git ls-remote origin <ref>` と突き合わせ、必要なら
 `~/.openhands/cache/extensions/` の該当ディレクトリを消してから再実行する。
 
-## 落とし穴: installed plugin store が pytest を壊す
+## 落とし穴: installed plugin store が pytest に混ざる
 
-`~/.openhands/plugins/installed/acd/` が存在すると SDK の ambient plugin 読み込みにより
-`tests/openhands/session/test_bootstrap.py` の
-`test_testllm_conversation_denies_protected_terminal_write` /
-`..._critic_refinement_stops_at_max_iterations` が
-`ValueError: Skill 'acd-contracts' not found ...` で落ちる（scope外の既知問題）。
-回帰確認は HOME を分離して実行する（store を消さずに済む）:
+`~/.openhands/plugins/installed/acd/` が存在すると SDK の ambient plugin 読み込みが
+テスト中の会話へも効く。古い store（ADR-0039 前の `skills:` 付き AgentDefinition）が
+残っていると `ValueError: Skill 'acd-contracts' not found ...` で会話生成が落ちる。
+store を最新 ref へ入れ替えるか、HOME を分離して実行する:
 
 ```bash
 mkdir -p /tmp/isohome && ln -s ~/.local ~/.cache ~/.pyenv /tmp/isohome/ 2>/dev/null

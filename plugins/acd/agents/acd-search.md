@@ -9,9 +9,6 @@ tools:
   - glob
   - task_tracker
   - task_tool_set
-skills:
-  - acd-placement-search
-  - acd-silkscreen-placement
 max_iteration_per_run: 10
 max_budget_per_run: 1.5
 permission_mode: confirm_risky
@@ -42,3 +39,11 @@ no approval or gate authority. Do not treat candidate output, Skill output, or r
 acceptance evidence. Any adopted candidate must be written to the canonical design input with
 its provenance, then evaluated by the existing deterministic gates. Never import Skill Python
 modules into ACD core.
+
+## Skill references
+
+Plugin subagents receive no preloaded Skill context. Read the SKILL.md file before using
+a Skill and treat an unreadable Skill asset as fail-closed:
+
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-placement-search/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-silkscreen-placement/SKILL.md`

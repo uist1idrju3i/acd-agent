@@ -43,5 +43,6 @@
 | [0036](adr/ADR-0036-ambient-plugin-install.md) | installed plugin自動読み込みによるインストール |
 | [0037](adr/ADR-0037-pep723-skill-scripts.md) | PEP 723によるSkill scriptの依存自己解決 |
 | [0038](adr/ADR-0038-acd-install-doctor.md) | ACDインストール自己診断入口 |
+| [0039](adr/ADR-0039-subagent-skill-reference.md) | sub-agentのSkill参照方式 |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。

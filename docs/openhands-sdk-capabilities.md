@@ -53,7 +53,7 @@
 | sdk.security.internal | `LLMSecurityAnalyzer` | SDK内部security補助 | 不採用 | LLM系analyzerと内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.settings | `AgentSettingsBase` | SDK設定の外部化 | 採用 | `plugins/acd/agent-settings.json`のcanonical hashを固定し、不一致は`unknown`で停止する | scripts/tests/test_verify_agent_settings.py、verify_all.py --stage standard |
 | sdk.skills | `load_skills_from_dir` | ローカルACD Skillの配布・prompt提供 | 採用 | 既定の明示経路は`plugins/acd/skills`を事前検証してfail-closedとし、ADR-0036のambient経路はSDK標準loaderへ委ねる | 明示Skill loader回帰、ambient bootstrap回帰 |
-| sdk.subagent | `AgentDefinition` | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照 | agent資材検査 |
+| sdk.subagent | `AgentDefinition` | 役割別sub-agent | 採用 | `plugins/acd/agents/`で参照。ADR-0039により`skills:`は宣言しない | agent資材検査 |
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |
 | sdk.tool | `ToolDefinition`<br>`Tool`<br>`register_tool`<br>`list_registered_tools` | ACD toolのagent入口 | 採用 | `register_acd_tools()`とSDK登録を使用 | schema/実行試験 |
 | sdk.tool.builtins | `FinishTool` | SDK組み込みtool | 不採用 | ACDの明示的`ToolDefinition`集合を単一化する | pinned API確認、採用しない |
@@ -123,6 +123,7 @@
 - `sdk.settings`: **plugin資材** `plugins/acd/agent-settings.json` / `canonical_hash` — canonical settings manifestのhashをplugin資材で固定する
 - `sdk.skills`: **直接import** `src/acd/openhands/distribution/skills.py` / `load_skills_from_dir` — 検証済みACD Skill資材をSDK loaderへ渡す
 - `sdk.subagent`: **直接import** `src/acd/openhands/session/prompts.py` / `AgentDefinition` — role別agent定義をSDKから読み込む
+- `sdk.subagent`: **直接import** `src/acd/openhands/safety/agent_skills.py` / `AgentDefinition` — 解決不能なsub-agent Skill宣言をfail-closedで拒否する
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_bootstrap.py` / `TestLLM` — bootstrap回帰で固定応答LLMを使う
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_goal_loop.py` / `TestLLM` — goal loop回帰で固定応答LLMを使う
 - `sdk.testing`: **テスト直接import** `tests/openhands/session/test_routing.py` / `TestLLM` — routing回帰で固定応答LLMを使う

@@ -1,5 +1,6 @@
 """Safety boundaries for hooks, secrets, and action analysis."""
 
+from acd.openhands.safety.agent_skills import validate_acd_agent_skills
 from acd.openhands.safety.hooks import (
     REQUIRED_ACD_HOOK_NAMES,
     validate_acd_agent_hooks,
@@ -23,5 +24,6 @@ __all__ = [
     "build_acd_secret_mapping",
     "build_acd_security_analyzer",
     "validate_acd_agent_hooks",
+    "validate_acd_agent_skills",
     "validate_acd_hook_config",
 ]

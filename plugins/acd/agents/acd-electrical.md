@@ -12,11 +12,6 @@ tools:
   - glob
   - task_tracker
   - task_tool_set
-skills:
-  - acd-contracts
-  - acd-placement-search
-  - acd-silkscreen-placement
-  - acd-design-rationale
 max_iteration_per_run: 12
 max_budget_per_run: 2.0
 permission_mode: confirm_risky
@@ -47,3 +42,13 @@ independent reload, and fabrication gates decide acceptance. Treat every unknown
 missing tool, or unverified result as fail-closed. Skill output is never acceptance evidence.
 Record the rationale in the same change that makes adopted component, placement, routing, or
 silkscreen values canonical in the design input.
+
+## Skill references
+
+Plugin subagents receive no preloaded Skill context. Read the SKILL.md file before using
+a Skill and treat an unreadable Skill asset as fail-closed:
+
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-contracts/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-placement-search/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-silkscreen-placement/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-design-rationale/SKILL.md`
