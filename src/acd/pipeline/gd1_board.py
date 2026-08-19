@@ -1260,26 +1260,6 @@ def run_pipeline(
         f"(identity_hash={layout_projection_set.identity_hash}; "
         f"canonical_hash={layout_projection_set.canonical_hash})"
     )
-    (out_dir / "visual-projection-summary.json").write_text(
-        json.dumps(
-            {
-                "electrical": {
-                    "file": "visual-projections-electrical.json",
-                    "identity_hash": visual_projection_set.identity_hash,
-                    "canonical_hash": visual_projection_set.canonical_hash,
-                },
-                "layout": {
-                    "file": "visual-projections-layout.json",
-                    "identity_hash": layout_projection_set.identity_hash,
-                    "canonical_hash": layout_projection_set.canonical_hash,
-                },
-            },
-            indent=2,
-            sort_keys=True,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
 
     hashes: dict[str, str] = {}
     hash_paths = [

@@ -6,7 +6,7 @@ import html
 import math
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import ClassVar, Literal, cast
+from typing import ClassVar, Literal
 
 from acd.adapters.kicad.visual_projection import copper_layers_for_layer_count
 from acd.core.board_model import BoardModel, ComponentPlacement
@@ -193,8 +193,8 @@ def _stackup_svg(board: BoardView) -> bytes:
         raise LayoutVisualProjectionError("stackup layer count is unsupported") from exc
     if board.layers != len(layer_names):
         raise LayoutVisualProjectionError("stackup layer count is unsupported")
-    thickness_mm = cast(float | None, board.thickness_mm)
-    if thickness_mm is None or not math.isfinite(thickness_mm) or thickness_mm <= 0:
+    thickness_mm = board.thickness_mm
+    if not math.isfinite(thickness_mm) or thickness_mm <= 0:
         raise LayoutVisualProjectionError("stackup thickness_mm is undeclared or invalid")
     if (
         board.outer_copper_thickness_um is None
@@ -311,12 +311,6 @@ class SvgLayoutRenderer:
         )
         second_hash = sha256_bytes(reproduction.read_bytes())
         if first_hash != second_hash:
-            VisualRegenerationCheck(
-                status="not_reproduced",
-                first_image_hash=first_hash,
-                second_image_hash=second_hash,
-                reason="layout SVG bytes differ on regeneration",
-            )
             raise LayoutVisualProjectionError("layout visual regeneration hash mismatch")
         try:
             measured = measure_svg_resolution(first)

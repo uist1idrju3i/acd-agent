@@ -179,7 +179,12 @@ def test_stackup_layers_and_root_geometry_are_measured_from_bytes(tmp_path: Path
         ("empty placements", _board(empty=True), _board_view()),
         ("unsupported placement side", _board(side="left"), _board_view()),
         ("unsupported layer count", _board(layers=3), _board_view(layers=3)),
-        ("missing thickness", _board(), replace(_board_view(), thickness_mm=None)),
+        ("invalid thickness", _board(), replace(_board_view(), thickness_mm=0.0)),
+        (
+            "no positive dielectric",
+            _board(),
+            replace(_board_view(), thickness_mm=0.05),
+        ),
         (
             "missing outer copper thickness",
             _board(),
