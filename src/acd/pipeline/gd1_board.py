@@ -70,7 +70,10 @@ from acd.adapters.kicad.reload import (
     verify_schematic,
 )
 from acd.adapters.kicad.routing import inject_routes, inject_stitch_vias
-from acd.adapters.svg import generate_layout_visual_projections
+from acd.adapters.svg import (
+    generate_layout_visual_projections,
+    generate_system_visual_projections,
+)
 from acd.core.board_model import NetClass
 from acd.core.design_predicates import PredicateResult, evaluate_gd1_predicates
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
@@ -1259,6 +1262,21 @@ def run_pipeline(
         f"{out_dir / 'visual-projections-layout.json'} "
         f"(identity_hash={layout_projection_set.identity_hash}; "
         f"canonical_hash={layout_projection_set.canonical_hash})"
+    )
+    system_projection_set = generate_system_visual_projections(
+        project_name=name,
+        out_dir=out_dir,
+        source_revision=revision,
+        graph=graph,
+        lane=lane,
+        authoritative_inputs=(fixture_dir / "graph.json",),
+        input_base_dir=repository_root(),
+    )
+    print(
+        "[10/10] system visual projections recorded: "
+        f"{out_dir / 'visual-projections-system.json'} "
+        f"(identity_hash={system_projection_set.identity_hash}; "
+        f"canonical_hash={system_projection_set.canonical_hash})"
     )
 
     hashes: dict[str, str] = {}

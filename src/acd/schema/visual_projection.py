@@ -28,6 +28,8 @@ VisualProjectionType = Literal[
     "layered_layout_view",
     "placement_view",
     "stackup_view",
+    "system_block_view",
+    "power_tree_view",
     "rasterized_view",
     "mechanical_section_view",
     "mechanical_interference_view",

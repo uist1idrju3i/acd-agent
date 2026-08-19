@@ -1,85 +1,43 @@
 """Deterministic SVG writers for electrical placement and stackup observations."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
-import html
 import math
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar, Literal
 
 from acd.adapters.kicad.visual_projection import copper_layers_for_layer_count
+from acd.adapters.svg.common import (
+    ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
+    ACD_SVG_NORMALIZATION_RULE_ID,
+    ACD_SVG_RENDERER_VERSION,
+    SvgVisualProjectionError,
+    _escape,
+    _fmt,
+    _input_records,
+    _slug,
+    render_svg_projection,
+)
 from acd.core.board_model import BoardModel, ComponentPlacement
 from acd.core.electrical import BoardView
-from acd.core.process import sha256_bytes
-from acd.core.visual_projection import measure_svg_resolution
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,
     VisualProjectionSet,
-    VisualRegenerationCheck,
-    VisualRendererProvenance,
-    VisualResolution,
 )
 
-ACD_SVG_RENDERER_VERSION = "1.0.0"
-ACD_SVG_NORMALIZATION_RULE_ID = "acd-svg-v1"
-ACD_SVG_NORMALIZATION_RULE_DESCRIPTION = "byte-exact、正規化不要"
+LayoutVisualProjectionError = SvgVisualProjectionError
 
-
-class LayoutVisualProjectionError(ValueError):
-    """Raised when a layout visual projection cannot be trusted."""
-
-
-def _fmt(value: float) -> str:
-    if not math.isfinite(value):
-        raise LayoutVisualProjectionError("SVG geometry contains a non-finite value")
-    return f"{value:.6f}".rstrip("0").rstrip(".") or "0"
-
-
-def _escape(value: str) -> str:
-    return html.escape(value, quote=True)
-
-
-def _slug(value: str) -> str:
-    result = "".join(char.lower() if char.isalnum() else "-" for char in value)
-    result = result.strip("-")
-    if not result:
-        raise LayoutVisualProjectionError("SVG identifier is empty")
-    return result
-
-
-def _relative_path(path: Path, base_dir: Path, field_name: str) -> str:
-    try:
-        return path.resolve().relative_to(base_dir.resolve()).as_posix()
-    except ValueError as exc:
-        raise LayoutVisualProjectionError(
-            f"{field_name} must be relative to its declared base directory"
-        ) from exc
-
-
-def _input_records(paths: tuple[Path, ...], base_dir: Path) -> list[VisualProjectionInput]:
-    if not paths:
-        raise LayoutVisualProjectionError("authoritative input files are missing")
-    records: list[VisualProjectionInput] = []
-    for path in paths:
-        if not path.is_file():
-            raise LayoutVisualProjectionError(f"authoritative input file is missing: {path}")
-        try:
-            content = path.read_bytes()
-        except OSError as exc:
-            raise LayoutVisualProjectionError(
-                f"authoritative input file is unreadable: {path}"
-            ) from exc
-        records.append(
-            VisualProjectionInput(
-                path=_relative_path(path, base_dir, "input file"),
-                content_hash=sha256_bytes(content),
-            )
-        )
-    if len({record.path for record in records}) != len(records):
-        raise LayoutVisualProjectionError("authoritative input files must be unique")
-    return records
+__all__ = [
+    "ACD_SVG_NORMALIZATION_RULE_DESCRIPTION",
+    "ACD_SVG_NORMALIZATION_RULE_ID",
+    "ACD_SVG_RENDERER_VERSION",
+    "LayoutVisualProjectionError",
+    "SvgLayoutRenderer",
+    "generate_layout_visual_projections",
+]
 
 
 def _footprint_bbox(placement: ComponentPlacement) -> tuple[float, float, float, float]:
@@ -291,59 +249,21 @@ class SvgLayoutRenderer:
             raise LayoutVisualProjectionError("board layer declarations do not match")
         if any(not path.path for path in input_files):
             raise LayoutVisualProjectionError("layout input paths are missing")
-        output = output_path.resolve()
-        self._write_svg(
-            projection_type=projection_type,
-            board=board,
-            board_view=board_view,
-            output_path=output,
-        )
-        first = output.read_bytes()
-        first_hash = sha256_bytes(first)
-        reproduction = output.parent / "reproduction" / (
-            f"{output.stem}.reproduced{output.suffix}"
-        )
-        self._write_svg(
-            projection_type=projection_type,
-            board=board,
-            board_view=board_view,
-            output_path=reproduction,
-        )
-        second_hash = sha256_bytes(reproduction.read_bytes())
-        if first_hash != second_hash:
-            raise LayoutVisualProjectionError("layout visual regeneration hash mismatch")
-        try:
-            measured = measure_svg_resolution(first)
-        except ValueError as exc:
-            raise LayoutVisualProjectionError(
-                "layout SVG resolution could not be measured"
-            ) from exc
-        return VisualProjectionRecord(
+        return render_svg_projection(
             projection_id=projection_id,
             projection_type=projection_type,
             domain="electrical",
             source_revision=source_revision,
             input_files=input_files,
-            renderer=VisualRendererProvenance(
-                renderer_type=self.renderer_type,
-                tool_name=self.tool_name,
-                tool_version=self.tool_version,
+            output_path=output_path,
+            base_dir=base_dir,
+            tool_version=self.tool_version,
+            write_svg=lambda path: self._write_svg(
+                projection_type=projection_type,
+                board=board,
+                board_view=board_view,
+                output_path=path,
             ),
-            resolution=VisualResolution(
-                width=measured.width,
-                height=measured.height,
-                view_box=measured.view_box,
-            ),
-            normalization_rule_id=ACD_SVG_NORMALIZATION_RULE_ID,
-            normalization_rule_description=ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
-            image_hash=first_hash,
-            generated_at=datetime.now(UTC),
-            regeneration_check=VisualRegenerationCheck(
-                status="reproduced",
-                first_image_hash=first_hash,
-                second_image_hash=second_hash,
-            ),
-            image_path=_relative_path(output, base_dir, "image"),
         )
 
 
