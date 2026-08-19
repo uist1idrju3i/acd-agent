@@ -3082,7 +3082,7 @@
       "decision": "Declare VBUS_5V as a power distribution rail supplied by pin.j1.a4.",
       "justification": "The graph explicitly identifies the USB VBUS pin as the source of this rail; the power-tree projection must use this declaration rather than infer power semantics from names or symbols.",
       "driving_requirements": [
-        "req.gd1-req-002"
+        "req.gd1-req-004"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [],
@@ -3116,7 +3116,7 @@
       "decision": "Declare +3V3 as a power distribution rail supplied by pin.u2.2.",
       "justification": "The graph explicitly identifies the regulator output pin as the source of this rail; the power-tree projection must use this declaration rather than infer power semantics from names or symbols.",
       "driving_requirements": [
-        "req.gd1-req-002"
+        "req.gd1-req-004"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [],
