@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import stat
-from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -55,12 +54,12 @@ def _renderer(tmp_path: Path) -> KicadVisualRenderer:
     return KicadVisualRenderer(KicadCli(str(executable)))
 
 
-def _lane_and_board() -> tuple[ElectricalLane, BoardModel]:
+def _lane_and_board(layer_count: int = 2) -> tuple[ElectricalLane, BoardModel]:
     lane_board = BoardView(
         node_id="electrical-board",
         width_mm=30.0,
         height_mm=25.0,
-        layers=2,
+        layers=layer_count,
         thickness_mm=1.6,
         unit="mm",
         origin="upper-left",
@@ -77,7 +76,7 @@ def _lane_and_board() -> tuple[ElectricalLane, BoardModel]:
     board = BoardModel(
         width_mm=30.0,
         height_mm=25.0,
-        layers=2,
+        layers=layer_count,
         min_track_mm=0.2,
         min_clearance_mm=0.2,
         via_drill_mm=0.3,
@@ -113,8 +112,9 @@ def _generate(
     out_dir: Path,
     renderer: KicadVisualRenderer,
     gates: ElectricalVisualProjectionGates | None = None,
+    layer_count: int = 2,
 ) -> VisualProjectionSet:
-    lane, board = _lane_and_board()
+    lane, board = _lane_and_board(layer_count)
     source_schematic = out_dir / "gd1.kicad_sch"
     source_board = out_dir / "routed" / "gd1.kicad_pcb"
     source_schematic.parent.mkdir(parents=True, exist_ok=True)
@@ -222,6 +222,28 @@ def test_predicate_count_is_not_fixed(tmp_path: Path) -> None:
     assert projection_set.projections
 
 
+@pytest.mark.parametrize(
+    ("layer_count", "expected_layers"),
+    [
+        (2, ("gd1-b-cu", "gd1-f-cu")),
+        (4, ("gd1-b-cu", "gd1-f-cu", "gd1-in1-cu", "gd1-in2-cu")),
+    ],
+)
+def test_kicad_layer_count_mapping(
+    tmp_path: Path,
+    layer_count: int,
+    expected_layers: tuple[str, ...],
+) -> None:
+    projection_set = _generate(
+        tmp_path / "out",
+        _renderer(tmp_path),
+        layer_count=layer_count,
+    )
+    assert [item.projection_id for item in projection_set.projections[:-1]] == list(
+        expected_layers
+    )
+
+
 @pytest.mark.parametrize("environment_variable", ["FAKE_FAILURE", "FAKE_MISSING_OUTPUT"])
 def test_renderer_failure_stops_generation(
     tmp_path: Path,
@@ -245,47 +267,10 @@ def test_identity_hash_is_stable_when_only_time_changes(
     assert first.computed_identity_hash() == second.computed_identity_hash()
 
 
-@pytest.mark.parametrize("declared_layers", [(), ("unknown",)])
-def test_missing_or_unknown_declared_copper_layers_fails_closed(
+@pytest.mark.parametrize("layer_count", [0, 1, 3, 6])
+def test_unsupported_kicad_layer_count_fails_closed(
     tmp_path: Path,
-    declared_layers: tuple[str, ...],
+    layer_count: int,
 ) -> None:
-    lane, board = _lane_and_board()
-    lane = replace(lane, board=replace(lane.board, ground_plane_layers=declared_layers))
-    board = replace(board, copper_zones=())
-    with pytest.raises(ValueError, match="copper layer declaration"):
-        generate_electrical_visual_projections(
-            project_name="gd1",
-            out_dir=tmp_path,
-            source_revision="r8",
-            schematic=tmp_path / "gd1.kicad_sch",
-            routed_board=tmp_path / "gd1.kicad_pcb",
-            lane=lane,
-            board=board,
-            gates=_passing_gates(),
-            renderer=_renderer(tmp_path),
-        )
-
-
-def test_explicit_board_copper_layers_take_precedence(tmp_path: Path) -> None:
-    lane, board = _lane_and_board()
-    board = replace(board, copper_layers=("In1.Cu",))
-    schematic = tmp_path / "gd1.kicad_sch"
-    routed_board = tmp_path / "gd1.kicad_pcb"
-    schematic.write_text("schematic")
-    routed_board.write_text("board")
-    projection_set = generate_electrical_visual_projections(
-        project_name="gd1",
-        out_dir=tmp_path,
-        source_revision="r8",
-        schematic=schematic,
-        routed_board=routed_board,
-        lane=lane,
-        board=board,
-        gates=_passing_gates(),
-        renderer=_renderer(tmp_path),
-    )
-    assert [item.projection_id for item in projection_set.projections] == [
-        "gd1-in1-cu",
-        "gd1-schematic",
-    ]
+    with pytest.raises(ValueError, match="unsupported KiCad copper layer count"):
+        _generate(tmp_path / "out", _renderer(tmp_path), layer_count=layer_count)

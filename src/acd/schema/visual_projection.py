@@ -224,7 +224,7 @@ class VisualProjectionSet(AcdModel):
         payload = self.model_dump(mode="json")
         payload["identity_hash"] = identity_hash
         payload["canonical_hash"] = "unknown"
-        payload["canonical_hash"] = canonical_json_sha256(
-            {key: value for key, value in payload.items() if key != "canonical_hash"}
+        identity_validated = type(self).model_validate(payload)
+        return identity_validated.model_copy(
+            update={"canonical_hash": identity_validated.computed_canonical_hash()}
         )
-        return type(self).model_validate(payload)

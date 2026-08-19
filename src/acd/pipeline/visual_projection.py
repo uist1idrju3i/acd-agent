@@ -6,7 +6,10 @@ import re
 from pathlib import Path
 
 from acd.adapters.kicad.gates import GateError
-from acd.adapters.kicad.visual_projection import KicadVisualRenderer
+from acd.adapters.kicad.visual_projection import (
+    KicadVisualRenderer,
+    copper_layers_for_layer_count,
+)
 from acd.core.board_model import BoardModel
 from acd.core.electrical import ElectricalLane
 from acd.schema.visual_projection import (
@@ -37,30 +40,9 @@ def _assert_gates_passed(gates: ElectricalVisualProjectionGates) -> None:
 
 
 def _declared_copper_layers(lane: ElectricalLane, board: BoardModel) -> tuple[str, ...]:
-    explicit_layers = (
-        board.copper_layers
-        if board.copper_layers is not None
-        else lane.board.copper_layers
-    )
-    if explicit_layers is not None:
-        declarations = list(explicit_layers)
-        if not declarations:
-            raise ValueError("visual projection copper layer declaration is empty")
-    else:
-        declarations = list(lane.board.ground_plane_layers)
-        for zone in board.copper_zones:
-            declarations.extend(zone.layers)
-    if not declarations:
-        raise ValueError("visual projection copper layer declaration is missing")
-    layers: list[str] = []
-    for layer in declarations:
-        if not layer.strip() or not layer.endswith(".Cu"):
-            raise ValueError("visual projection copper layer declaration is invalid")
-        if layer not in layers:
-            layers.append(layer)
-    if not layers:
-        raise ValueError("visual projection copper layer declaration is empty")
-    return tuple(layers)
+    if lane.board.layers != board.layers:
+        raise ValueError("visual projection board layer count declarations differ")
+    return copper_layers_for_layer_count(lane.board.layers)
 
 
 def _node_id_fragment(value: str) -> str:

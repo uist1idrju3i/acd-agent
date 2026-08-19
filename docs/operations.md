@@ -356,8 +356,9 @@ fail-closedとする。正規化後hashは再生成時にも照合し、renderer
 記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・
 同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneの断面・干渉ビューは
 renderer未実装のため後続フェーズで扱い、AI受け渡しと機械可読投影との照合は未実装である。
-GD1の現行lane／BoardModelには銅層stackupの層名宣言がないため、8.3の層導出は
-ground-plane／copper-zone宣言を代替根拠として使い、将来明示的な銅層構成があればそれを優先する。
+8.3の層導出はgraphで宣言された`BoardView.layers`の層数をKiCadの銅層名へ決定論的に
+対応させる。現在の対応表は2層（`F.Cu`／`B.Cu`）と4層（`F.Cu`／`In1.Cu`／`In2.Cu`／`B.Cu`）
+に限り、0層、1層、奇数層、その他の未対応層数はfail-closedとする。
 
 ## 検証
 
