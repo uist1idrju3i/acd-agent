@@ -81,7 +81,9 @@ src/acd/
 plugins/acd/
 ├── .plugin/plugin.json
 ├── hooks/
-├── commands/gates.md
+├── commands/
+│   ├── gates.md
+│   └── doctor.md
 ├── agents/
 │   ├── acd-electrical.md
 │   ├── acd-mechanical.md
@@ -97,13 +99,19 @@ plugins/acd/
     ├── acd-cad-determinism-probe/
     ├── acd-qc-seven-tools/
     ├── acd-reliability-review/
-    └── acd-design-rationale/
+    ├── acd-design-rationale/
+    └── acd-install-doctor/
 ```
 
 pluginはOpenHands SDKが読むMarkdown、manifest、hooksの配布単位であり、ACD Python
 moduleをSkill本文からimportする経路ではない。配置・シルク探索の実行資材はSkillの
 CLIをsubprocessから呼び、結果をgraph.jsonの設計入力へ確定する。Skill名とscript
 sha256をprovenanceへ記録し、欠落・不一致は停止する。
+
+`acd-install-doctor`はplugin内の標準ライブラリscriptだけでinstall経路とruntime
+capabilityを観測する。これはL3観測であり、合否権限やauthoritative Evidence生成を
+持たない。required checkのunknownはfail-closedであり、Docker不在時にhost実行を
+合格側へ緩めない。
 
 Skillの`triggers`はSDKの`KeywordTrigger`を使う。`paths:`は
 `disable_model_invocation=True`を強制し、`inputs:`はTaskTriggerになるため、現在の

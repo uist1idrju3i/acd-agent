@@ -317,7 +317,7 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert isinstance(conversation.state.confirmation_policy, ConfirmRisky)
     assert conversation.state.confirmation_policy.threshold == SecurityRisk.MEDIUM
     assert isinstance(conversation.agent.agent_context, AgentContext)
-    assert len(conversation.agent.agent_context.skills) == 8
+    assert len(conversation.agent.agent_context.skills) == 9
     assert conversation.agent.agent_context.load_public_skills is False
     assert conversation.agent.agent_context.load_user_skills is False
     assert conversation.stuck_detector is not None
