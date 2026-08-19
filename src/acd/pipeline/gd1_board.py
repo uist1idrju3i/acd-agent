@@ -70,6 +70,7 @@ from acd.adapters.kicad.reload import (
     verify_schematic,
 )
 from acd.adapters.kicad.routing import inject_routes, inject_stitch_vias
+from acd.adapters.svg import generate_layout_visual_projections
 from acd.core.board_model import NetClass
 from acd.core.design_predicates import PredicateResult, evaluate_gd1_predicates
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
@@ -1243,6 +1244,41 @@ def run_pipeline(
     print(
         "[10/10] electrical visual cross-check recorded: "
         f"{out_dir / 'visual-crosscheck-electrical.json'}"
+    )
+    layout_projection_set = generate_layout_visual_projections(
+        project_name=name,
+        out_dir=out_dir,
+        source_revision=revision,
+        board=project.board_projection.model,
+        board_view=lane.board,
+        authoritative_inputs=(fixture_dir / "graph.json",),
+        input_base_dir=repository_root(),
+    )
+    print(
+        "[10/10] layout visual projections recorded: "
+        f"{out_dir / 'visual-projections-layout.json'} "
+        f"(identity_hash={layout_projection_set.identity_hash}; "
+        f"canonical_hash={layout_projection_set.canonical_hash})"
+    )
+    (out_dir / "visual-projection-summary.json").write_text(
+        json.dumps(
+            {
+                "electrical": {
+                    "file": "visual-projections-electrical.json",
+                    "identity_hash": visual_projection_set.identity_hash,
+                    "canonical_hash": visual_projection_set.canonical_hash,
+                },
+                "layout": {
+                    "file": "visual-projections-layout.json",
+                    "identity_hash": layout_projection_set.identity_hash,
+                    "canonical_hash": layout_projection_set.canonical_hash,
+                },
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
     )
 
     hashes: dict[str, str] = {}

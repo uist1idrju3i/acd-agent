@@ -26,6 +26,8 @@ from acd.schema.common import (
 VisualProjectionType = Literal[
     "schematic_view",
     "layered_layout_view",
+    "placement_view",
+    "stackup_view",
     "rasterized_view",
     "mechanical_section_view",
     "mechanical_interference_view",
@@ -66,8 +68,8 @@ class VisualProjectionInput(AcdModel):
 
 
 class VisualRendererProvenance(AcdModel):
-    renderer_type: Literal["kicad-cli", "cairosvg", "build123d"] = "kicad-cli"
-    tool_name: Literal["kicad-cli", "cairosvg", "build123d"] = "kicad-cli"
+    renderer_type: Literal["kicad-cli", "cairosvg", "build123d", "acd-svg"] = "kicad-cli"
+    tool_name: Literal["kicad-cli", "cairosvg", "build123d", "acd-svg"] = "kicad-cli"
     tool_version: VersionOrUnknown
     output_width: StrictInt | None = None
 

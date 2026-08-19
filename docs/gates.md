@@ -45,7 +45,8 @@ SVGを既定生成して投影集合を書き出す。機械laneもゲート通�
 断面・干渉ビューを生成し、`visual-projections-mechanical.json`へL3観測として記録する。
 8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
 8.5の機械可読投影との照合は、8.3の視覚投影生成直後に電気laneと機械laneで実行する。
-FW laneの視覚投影照合は後続PRで実装する。
+8.6の追加投影種別のうち配置図・stackup図を本PRで実装し、ブロック図・電源ツリー図・FW図は
+後続PRで実装する。FW laneの視覚投影照合は後続PRで実装する。
 8.3の視覚投影生成前提はERC、routing収束、DRC、独立再読込、silkscreen、DFM、
 設計述語の決定論的ゲートであり、発注可否を表すorder readinessは含めない。
 renderer不在や生成不能はfail-closedとし、投影欠落を「問題なし」と解釈しない。
