@@ -37,10 +37,12 @@ plugin名の誤推論、部分コピー、Skill scriptの依存ref driftを検�
    `kicad-cli`／`freerouting`の版、installed plugin storeと現在のplugin rootの関係を
    観測する。promptの`prompt_hash`は形式だけを確認し、SDK正規化後のhashは
    `scripts/verify_agent_prompts.py --check`を正とする。直接実行されるplugin hookの
-   executable bitとshebangも観測する。ホストEDAツールの不在は観測情報として記録する
-   だけでstatusを下げない。build123d／cadquery-ocpは隔離scriptから観測せず、本体側の
-   `scripts/probe_tools.py`を正とする。Docker不在またはhook非実行可能時は`degraded`と
-   するが、host EDA結果はprovisional専用とする。
+   executable bitとshebangも、interpreterなしで直接実行されるrefに限って観測する。
+   現行のplugin hookはすべてinterpreter経由であり、直接実行refが0件の場合は実行権限に
+   依存しないことを報告する。ホストEDAツールの不在は観測情報として記録するだけで
+   statusを下げない。build123d／cadquery-ocpは隔離scriptから観測せず、本体側の
+   `scripts/probe_tools.py`を正とする。Docker不在時は`degraded`とするが、host EDA結果は
+   provisional専用とする。
 
 出力は機械可読なJSONで、全checkに名前、required、結果、detail、観測版を含める。
 scriptのexit codeは`failed`だけ1、それ以外は0とする。
@@ -58,10 +60,10 @@ commandは既存の`gates` entry commandを変更せず、doctor scriptの場所
   会話から確認できる。
 - pluginに含まれないworkspace scriptの参照は、コピー境界を越える外部参照として
   診断のdetailへ明記する。plugin内hook scriptの欠落はrequired failureとする。
-- Dockerが到達不能な開発環境や、直接実行するhook scriptが非実行可能な環境では、
-  インストール健全性を確認したうえでcapabilityを`degraded`として報告できる。
-  ホストEDA toolの不在だけではstatusを下げない。commit済みhook scriptの権限状態により、
-  現在の実環境も`degraded`になり得る。
+- Dockerが到達不能な開発環境では、インストール健全性を確認したうえでcapabilityを
+  `degraded`として報告できる。ホストEDA toolの不在だけではstatusを下げない。
+  現行plugin hookはinterpreter経由のため、commit済みhook scriptの権限状態だけでは
+  `degraded`にならない。
 - `prompt_hash`のSDK正規化はdoctorで再計算せず、`scripts/verify_agent_prompts.py --check`
   が権威を持つ。doctorはcanonical manifest hashとbyte-exact asset hashを検証する。
 

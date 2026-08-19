@@ -35,9 +35,9 @@ canonical manifest hash and byte-exact asset hashes; SDK-normalized
 
 Optional capability checks observe Docker, host EDA tools, and direct hook
 invocability. Host EDA absence is observational and does not lower the
-status. Docker unavailability or a hook command that lacks the executable
-permission and shebang required for direct invocation can produce
-`degraded`. The committed hook scripts may therefore make the current
-environment report `degraded`; this doctor does not modify those scripts.
+status. Docker unavailability can produce `degraded`. Plugin hooks are invoked
+through interpreters, so committed hook scripts do not depend on executable
+permissions or shebangs; a zero direct-invocation reference count is reported
+as such.
 Host EDA execution remains provisional and cannot be reported as authoritative
 Evidence.

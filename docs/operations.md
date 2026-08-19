@@ -134,9 +134,10 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    `~/.openhands/plugins/installed/acd/skills/acd-install-doctor/scripts/install_doctor.py`、
    開発checkoutでは
    `plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`を使用する。
-   JSONの`status`、required check、plugin rootをそのまま確認する。Dockerが到達不能な場合や
-   直接実行するhook scriptが実行可能権限・shebangを持たない場合は`degraded`となる。
-   ホストEDAツールの不在はhost executionの観測情報として記録されるだけでstatusを下げず、
+   JSONの`status`、required check、plugin rootをそのまま確認する。hookはinterpreter経由で
+   起動されるため、commit済みscriptの実行可能権限・shebang不足はstatusを下げない。
+   Dockerが到達不能な場合は`degraded`となる。ホストEDAツールの不在はhost executionの
+   観測情報として記録されるだけでstatusを下げず、
    doctorのL3観測をauthoritative Evidenceやゲート合格へ昇格させない。
 
 2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは
