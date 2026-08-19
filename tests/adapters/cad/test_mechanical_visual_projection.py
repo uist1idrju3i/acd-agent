@@ -75,6 +75,7 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
     ]
     assert all(item.renderer.tool_name == "build123d" for item in first.projections)
     assert first.identity_hash == second.identity_hash
+    assert first.canonical_hash != second.canonical_hash
     assert (tmp_path / "first/visual/gd1-mechanical-section.svg").is_file()
     assert (tmp_path / "first/visual/gd1-mechanical-interference.svg").is_file()
     assert (tmp_path / "first/visual-projections-mechanical.json").is_file()
