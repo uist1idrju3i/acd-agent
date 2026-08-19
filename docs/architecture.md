@@ -355,8 +355,11 @@ orderの合格側Evidenceは`supports_authoritative_pass()`を要求する。
 
 SDK機能の採否は[`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json)に整理し、
 Markdown表は`scripts/verify_sdk_capabilities.py`から生成し、CIでdriftを検査する。
-ACD機能としては、FW書き込み・機能測定、価格・在庫取得、
-自働発注が未実装であり、将来構想である。実機Evidenceのschema契約と分類だけは
+ACD機能として実装していない境界は、供給者からの価格・在庫・納期・実装可否の自動取得、
+実providerへの送信と実発注完了、量産対応である。マイルストーン5.1〜5.4の実機Evidenceの
+schema契約・受領取り込み・FW書き込み・機能測定・proposal生成、および7.1〜7.5の見積record
+読取・総発注額合算・発注前最終ゲート・side-effect journal・dry-runとreal-order disabled boundary
+は実装済みである。実機Evidenceのschema契約と分類だけは
 マイルストーン5.1、製造・組立受領の取り込みはマイルストーン5.2で実装済みである。
 受領取り込みは`execution_context="host"`の`PhysicalEvidence`を入力更新の根拠として
 生成するが、`supports_authoritative_pass()`は常に`False`であり、決定論的ゲートの

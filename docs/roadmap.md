@@ -21,7 +21,10 @@ SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論�
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
 自動逆流は設計上行わない。GD1実機の`measured` Evidenceは未取得で、検証はfixtureベースである。
-価格・在庫・納期取得、発注は未実装である。
+マイルストーン7は、見積入力契約と保存済みfixtureの読取（7.1）、総発注額の合算（7.2）、
+発注前最終ゲート（7.3）、side-effect journal（7.4）、自働発注のdry-runと拒否境界（7.5）
+まで実装済みである。ただし、供給者からの価格・在庫・納期・実装可否の自動取得、
+実providerへの送信と実発注完了は本範囲外であり、量産対応とともに将来範囲である。
 `AcdGateCritic`は決定論的ゲート結果を使うL2操舵として実装済みである。
 SDKへ委譲するのは反復制御だけであり、criticはpass evidenceではない。
 GD1の独立したwidth positive-control armは固定順で並列集約し、`acd-search`は候補と
