@@ -1,7 +1,7 @@
 # Golden Design #1
 
 > ステータス: Draft
-> 理由: GD1実機の測定Evidence未取得で、§11に未決事項と総発注額unknownが残るため。
+> 理由: GD1実機の測定Evidence未取得で、§12に未決事項と総発注額unknownが残るため。
 > 対象: 趣味・研究・小規模試作の単一構成
 > 対象マイルストーン: 第2「電気レーンの独立検証」、第3「機械レーンの決定論的検証」、第5「実機フィードバック」
 > 対象工程: `S1`、`E1`、`E2`、`S2`
@@ -311,6 +311,9 @@ Espressif ESP32-C3 datasheetのBoot ConfigurationsおよびESP Hardware Design G
 | `GD1-NEG-003` | CC1またはCC2の5.1 kΩを削除する | USB CCゲートが`fail` |
 | `GD1-NEG-004` | I2C SDAまたはSCLの4.7 kΩを削除する | I2C pull-upゲートが`fail` |
 | `GD1-NEG-005` | FWのIO7、IO4、IO5、IO9、IO18、IO19、IO20、IO21のいずれかをグラフと異なる値へ変更する | ピン・FW整合ゲートが`fail` |
+| `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
+| `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | ゲート未実行として停止 |
+| `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |
 
 `GD1-NEG-001`〜`GD1-NEG-008`は、正常fixtureまたは正常投影を
 読み込んで1点だけ変更する決定論的な注入関数として
@@ -322,6 +325,12 @@ Espressif ESP32-C3 datasheetのBoot ConfigurationsおよびESP Hardware Design G
 ファイル名、基板ファイルの欠落をゲート未実行として停止する。
 KiCadライブラリを要する`GD1-NEG-002`およびライブラリhash不一致の補助testは、
 ライブラリのない`verify` jobではskipし、KiCad有効な`container-gates`で実行する。
+
+各negative testは、注入前の入力ファイル、注入差分、実行したゲート、停止理由を
+テストコード上でIDごとに対応づけて検証する。検証器が異常を検出できない場合や、
+入力の比較対象が`unknown`の場合は、`pass`ではなく停止とする。NEG-001〜008の
+注入fixtureとID別negative testはすべて整備済みであり、派生状態とDRC結果の対応は
+ToolEnvelopeの入力hashとゲート時点の基板再ハッシュを異なる出所から照合する。
 
 ## 9. 製造投影と配置
 
@@ -423,7 +432,7 @@ via径`0.6 mm`、drill`0.3 mm`であり、profileの`via-hole-prefer-020`、
 の閾値へ照合した。profileには数量単位のper-via surchargeが無いため、該当数値は追加工程負荷
 として`fab-package.json`へ記録し、金額・納期の確定値とは扱わない。
 
-### 8.0 GD1計画2: netclass別配線幅の実測
+### 9.1 GD1計画2: netclass別配線幅の実測
 
 計画2では、各`electrical.net`へ`width_basis`を宣言し、基板の銅厚・許容温度上昇・
 IPC-2221定数・式の出所・突合許容差をグラフへ宣言した。必要最小幅は、宣言basisからの
@@ -487,17 +496,8 @@ J1は`(15.0, 21.35)` mm、U1は`(15.0, 2.9)` mm、
 `(via_at_smd off)`とSMD pad周囲の`via_keepout`により、
 SMD pad上viaを構造的に禁止している。出所は`out/gd1-plan2-default/fab/dfm-report.json`、
 `out/gd1-plan2-default/routing-summary.json`、`out/gd1-plan2-default/fab/fab-package.json`である。
-| `GD1-NEG-006` | ライブラリ照合Evidenceを削除する | ライブラリ受入ゲートが`unknown`で停止 |
-| `GD1-NEG-007` | 派生状態を再計算せずにDRC結果を採用する | ゲート未実行として停止 |
-| `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |
 
-各negative testは、注入前の入力ファイル、注入差分、実行したゲート、停止理由を
-テストコード上でIDごとに対応づけて検証する。検証器が異常を検出できない場合や、
-入力の比較対象が`unknown`の場合は、`pass`ではなく停止とする。NEG-001〜008の
-注入fixtureとID別negative testはすべて整備済みであり、派生状態とDRC結果の対応は
-ToolEnvelopeの入力hashとゲート時点の基板再ハッシュを異なる出所から照合する。
-
-### 8.1 機械レーン宣言
+### 9.2 機械レーン宣言
 
 マイルストーン3では、基板外形を30 mm × 25 mm、板厚1.6 mm、取付穴4箇所として機械レーンへ
 宣言する。部品のXY位置・回転は機械レーンnodeの出所付き属性で保持し、マイルストーン2の
@@ -535,9 +535,9 @@ STEP部品を融合して1ファイルにすることはしない。
 Evidenceのenvelopeは部品別STEP、統合STEP、3MF、構成物manifestをすべてhash対象に含める。
 ねじ、ボス、スナップ等の新しい締結機構はこの出力分割では追加しない。
 
-## 9. FWの範囲とEvidence
+## 10. FWの範囲とEvidence
 
-### 9.1 FW範囲
+### 10.1 FW範囲
 
 FWはESP-IDFを採用し、ESP-IDFのバージョンを固定する。固定バージョンは未決であり、
 環境プローブで実際の版、ツールチェーン、git commitを記録してからマイルストーン5のfixtureへ
@@ -554,7 +554,7 @@ FWはESP-IDFを採用し、ESP-IDFのバージョンを固定する。固定バ�
 仮想実機はRenodeを一次候補とし、そのログは仮想検証Evidenceとして実測Evidenceと
 明確に区別する。
 
-### 9.2 Evidence
+### 10.2 Evidence
 
 実機Evidenceは次の4件を個別に記録する。
 
@@ -567,7 +567,7 @@ FWはESP-IDFを採用し、ESP-IDFのバージョンを固定する。固定バ�
 グラフrevision、実測または仮想の分類を付ける。ビルド成功やログ文字列の存在だけでは
 実機Evidenceとしない。仮想実機ログは仮想検証Evidenceとして別分類する。
 
-## 10. 総発注額の構成
+## 11. 総発注額の構成
 
 総発注額は、基板、部品、実装、送料、税を含める。[`roadmap.md`](roadmap.md)の
 マイルストーン7（発注前最終ゲートと自働発注）では、
@@ -587,7 +587,7 @@ FWはESP-IDFを採用し、ESP-IDFのバージョンを固定する。固定バ�
 部品表の単価は在庫検索時点の一次確認値であり、発注見積の代わりにはならない。価格、
 在庫、納期、実装可否が期限切れまたは未確認の場合、発注へ進めない。
 
-## 11. 未決事項
+## 12. 未決事項
 
 - 外形のおよそ30 × 25 mmを確定寸法、許容差、角R、取付穴位置へ落とすこと。
 - ESP-IDFの固定バージョンとツールチェーンの固定方法。
@@ -602,7 +602,7 @@ FWはESP-IDFを採用し、ESP-IDFのバージョンを固定する。固定バ�
 - AMS1117-3.3の熱計算、入力電圧範囲、実際の最大負荷電流。
 - 実機製造・書き込み・LED点滅・温湿度ログのEvidence取得日と測定条件。
 
-## 12. GD1計画3: シルクの宣言・探索・独立測定
+## 13. GD1計画3: シルクの宣言・探索・独立測定
 
 計画3では、F.SilkSを機能ラベル専用とし、`RESET`（SW1）、`BOOT`（SW2）、
 `D1`、`USB`（J1）だけを表面へ投影した。`DEV BOARD`、グラフIDとrevisionから導出した
@@ -614,7 +614,7 @@ KiCadのboard-level `gr_text` / `gr_poly`へ投影する。基板品番は
 `golden-design-1-r1`としてグラフIDとrevisionから導出し、コード側へ文字列を複製していない。
 ロゴはグラフ宣言のpolygonをそのままベクター投影し、bitmapは使用していない。
 
-### 12.1 決定論的候補探索
+### 13.1 決定論的候補探索
 
 機能ラベルは対象footprintの配置とpad形状を初回のシルクなし投影から読み取り、
 グラフ宣言の探索順
@@ -631,7 +631,7 @@ KiCadのboard-level `gr_text` / `gr_poly`へ投影する。基板品番は
 干渉bboxを含むresolver Evidenceへ記録する。なお、機能ラベルが1つでも候補を持たない
 場合はfail-closedで停止する。
 
-### 12.2 独立Gerber測定
+### 13.2 独立Gerber測定
 
 出力`out/gd1-plan3-rotation-final/`では、Gerberを`sexpdata`と`gerbonara`で独立再読込し、
 F.Silkscreen/B.Silkscreen、F.Mask/B.Mask、Edge.Cutsを対象に、Line/Arc/Region/Flashの
@@ -682,7 +682,7 @@ SW1の実配置中心は`(24.05, 9.05)` mm、回転は90°である。RESETの�
 `(24.55, 2.5375)` mmは、SW1中心から`(+0.50, -6.5125)` mmの上側候補であり、
 回転を考慮した局所座標測定でも宣言高さ1.5 mmに対して実測1.65 mmとなる。
 
-### 12.3a SVG由来の裏面アート
+### 13.3 SVG由来の裏面アート
 
 裏面アートは、グラフへハンドコードの近似polygonを記録せず、固定したSVG資材から
 決定論的に生成する。`assets/vibebb-silkscreen.svg`は`40 × 18 mm`を
@@ -712,7 +712,7 @@ fail-closedとする。白いシルク下地と素地に残すdata moduleの極�
 Gerber独立測定で検証する。合格後の微小な平行移動だけを許容し、サイズ変更は
 設計判断なしに行わない。
 
-### 12.3 グラフ意味差分と再生成
+### 13.4 グラフ意味差分と再生成
 
 JSON parse後にnode ID、kind、attrs、depends_on、edgesを比較した。計画3親コミットの
 グラフ（215 nodes）から今回のグラフ（222 nodes）への差分は、シルク7 nodeの追加、
@@ -729,7 +729,7 @@ U3の露出pad理由である。生成時刻に依存する値ではなく、同
 宣言更新であり、シルク追加の幾何的必然ではない。したがって、キー順変更だけの
 差分や無関係なランダム性としては扱っていない。
 
-### 12.4 PNGレンダリング
+### 13.5 PNGレンダリング
 
 KiCad 10.0.5の`kicad-cli pcb render`で、銅、pad、Edge.Cuts、実装部品を含む
 上面・下面をレンダリングした。画像はEvidence確認用であり、コミット対象外である。
@@ -737,7 +737,7 @@ KiCad 10.0.5の`kicad-cli pcb render`で、銅、pad、Edge.Cuts、実装部品�
 - F.SilkSを含む上面: `out/gd1-plan3-rotation-final/fab/gd1-top.png`
 - B.SilkSを含む下面: `out/gd1-plan3-rotation-final/fab/gd1-bottom.png`
 
-### 12.5 拡張探索後の可読性ゲート結果（計画4入力）
+### 13.6 拡張探索後の可読性ゲート結果（計画4入力）
 
 計画3の最終探索では、機能ラベルをF.SilkSに限定したまま、グラフ宣言の
 回転集合`[0, 90, 180, 270]`、探索上限`8.0 mm`、刻み`0.25 mm`を使用した。候補は
