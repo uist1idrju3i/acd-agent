@@ -27,7 +27,10 @@ RUN apt-get update \
         kicad-footprints \
         kicad-libraries \
         kicad-symbols \
+        libcairo2 \
+        fonts-dejavu-core \
     && kicad-cli --version | grep -E '^10\.' \
+    && ldconfig -p | grep -q 'libcairo\.so\.2' \
     && curl --fail --location --silent --show-error \
         --output /opt/freerouting.jar \
         "https://github.com/freerouting/freerouting/releases/download/v${FREEROUTING_VERSION}/freerouting-${FREEROUTING_VERSION}.jar" \
