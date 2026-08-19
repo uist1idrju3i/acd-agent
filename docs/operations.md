@@ -339,6 +339,16 @@ command -v java
 command -v freerouting
 ```
 
+### KiCad SVG視覚投影の一次確認
+
+KiCad CLI 10.0.5の`sch export svg`と`pcb export svg`は、SVGの`<title>`要素へ
+出力ファイル名と秒精度のISO 8601生成時刻を埋め込む。このため同一入力でも生バイト列は
+決定的ではないことを一次確認した。8.2では、`<title>`要素が想定形で1個だけ存在する場合に
+要素全体を固定文字列へ置換する`kicad-svg-title-v1`正規化規則を採用した。要素の不在、
+複数、想定形との不一致、SVGルートのwidth／height単位またはviewBoxの測定不能は
+fail-closedとする。正規化後hashは再生成時にも照合し、renderer版は`kicad-cli version`
+から取得する。8.3〜8.5（既定生成、AI受け渡し、機械可読投影との照合）は未実装である。
+
 ## 検証
 
 検証段階とコマンド列は`uv run python scripts/verify_all.py --list`で確認できる

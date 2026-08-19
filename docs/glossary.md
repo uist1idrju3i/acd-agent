@@ -8,6 +8,8 @@
 | Design Graph | 電気・機械・製造意図を表すACDの正規設計モデル。 |
 | 投影 | 入力から再生成され、入力を置き換えない派生成果物。 |
 | レビュー投影 | AIが観察するための機械可読または視覚的な投影。 |
+| 視覚投影provenance | 視覚投影の入力revision・入力hash、renderer種別・版、正規化後画像hash、測定解像度、生成時刻、再生成検査を記録する情報。 |
+| SVG正規化規則 | KiCad SVGの非決定な`<title>`要素だけを固定文字列へ置換して比較可能にする規則。 |
 | Evidence | ツール版、入力・出力hash、条件、結果、commitを含む検証根拠。 |
 | 実機Evidence | 実機または仮想実機から取得した測定機器、条件、時刻、対象revision、測定量を含む入力更新用のEvidence。決定論的ゲートのauthoritative合格には使わない。 |
 | measured/virtual分類 | `measured`は実機で取得した測定、`virtual`はRenode等の仮想実機ログを表す分類。`virtual`は実測の代替にならない。 |

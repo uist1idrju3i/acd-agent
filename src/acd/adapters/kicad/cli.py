@@ -37,14 +37,17 @@ class KicadCli:
 
     def version(self) -> str:
         if self._version is None:
-            result = subprocess.run(
-                [self.executable, "version"],
-                capture_output=True,
-                text=True,
-                check=False,
-                timeout=60,
-            )
-            match = re.match(r"\d+\.\d+\.\d+", result.stdout.strip())
+            try:
+                result = subprocess.run(
+                    [self.executable, "version"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=60,
+                )
+            except OSError as exc:
+                raise ExternalToolError("kicad-cli version probe failed (fail-closed)") from exc
+            match = re.search(r"\d+\.\d+\.\d+", result.stdout)
             if result.returncode != 0 or match is None:
                 raise ExternalToolError("kicad-cli version probe failed (fail-closed)")
             self._version = match.group(0)

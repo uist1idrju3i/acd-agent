@@ -98,6 +98,17 @@ from acd.schema.receipt import (
     ShipmentManifestReference,
 )
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
+from acd.schema.visual_projection import (
+    VisualProjectionDomain,
+    VisualProjectionInput,
+    VisualProjectionRecord,
+    VisualProjectionSet,
+    VisualProjectionType,
+    VisualRegenerationCheck,
+    VisualRegenerationStatus,
+    VisualRendererProvenance,
+    VisualResolution,
+)
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
@@ -180,6 +191,15 @@ __all__ = [
     "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",
+    "VisualProjectionDomain",
+    "VisualProjectionInput",
+    "VisualProjectionRecord",
+    "VisualProjectionSet",
+    "VisualProjectionType",
+    "VisualRegenerationCheck",
+    "VisualRegenerationStatus",
+    "VisualRendererProvenance",
+    "VisualResolution",
     "canonical_json_sha256",
     "canonical_sha256",
     "is_unknown",

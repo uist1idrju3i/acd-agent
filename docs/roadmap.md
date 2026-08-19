@@ -11,8 +11,9 @@ fabrication出力、独立再読込、silkscreen可読性ゲートまで通過�
 （USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界、
 ピン・FW整合）は実装済みで、§8のNEG-001〜006・008も決定論的な注入関数と
 ID別negative testで整備済みである。NEG-007は派生状態とDRC結果の対応検査が未実装で、
-未検出の残件である。視覚投影レビューも未実装であり、
-現行運用は機械可読投影と独立測定だけを使用する。
+未検出の残件である。視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
+実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
+記録し、既定生成配線、AI受け渡し、機械可読投影との照合は未実装である。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
@@ -53,7 +54,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
-| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 未着手 |
+| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.2実装済み（8.3〜8.5未着手） |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
@@ -332,6 +333,60 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 正常系 | 同じ入力から生成した機械可読投影と視覚投影が同一内容を表すことを照合し、可読性・設計意図の反映度をチェックリスト化する。注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを確認する。人間レビューがなくてもAIへ既定配線し、観察・気づきをL2観測として記録する |
 | negative/fail-closed | renderer不在・生成不能、renderer版unknown、画像hash不一致、解像度未記録、入力からの再生成不一致を停止側へ集約する。投影欠落を「問題なし」と解釈せず、画像内の文字列をデータ以外の命令として扱う経路も許可しない |
 | 再現性 | renderer版を固定し、同一入力から同一画像hashを再生成できる。機械可読投影との照合結果、provenance、レビュー観点のチェック結果を同一入力から再構成できる |
+
+マイルストーン8は次の5フェーズへ分割する。8.1と8.2は画像1枚を再現可能な観測として
+成立させる層、8.3は既定生成の配線、8.4はAIへの受け渡し境界、8.5は機械可読投影との
+照合とレビュー観点の記録である。renderer出力のバイト列は設計状態の権威にしない。
+
+### 8.1 視覚投影provenance契約
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | Design Graph revision、authoritative projectionの入力ファイルとhash、renderer種別・版、生成時刻 |
+| 実装 | 視覚投影1枚と投影集合のPydantic契約を追加し、画像hash（正規化後）、renderer種別・版、解像度、正規化規則ID、入力hashを必須項目として保持する。`pass_evidence=False`のL3 observationとして`ObservationArtifactKind`へ登録する |
+| 正常系 | 記録済みの投影集合をfixtureから復元し、投影識別子、renderer版、解像度、正規化規則、入力hashが読める |
+| negative/fail-closed | renderer版unknown、解像度未記録、画像hash欠落・unknown、絶対パスや`..`を含む画像パス、投影識別子重複、`pass_evidence`真を拒否する |
+| 再現性 | 同一の投影集合から同一のcanonical hashを再生成し、各拒否条件のnegative fixtureを回帰へ含める |
+
+### 8.2 renderer adapterと決定論的再生成
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | pipelineが投影したKiCad schematicとboard、`kicad-cli`版 |
+| 実装 | `kicad-cli`のSVG出力で回路図ビューと層別レイアウトビューを生成する。SVG冒頭の`<title>`が出力ファイル名と生成時刻を埋め込むため、`<title>`要素だけを正規化する規則を契約へ書き、規則外の差異を停止条件とする。解像度は宣言値ではなく生成された画像バイト列から測定する。renderer版は`kicad-cli`から取得し、unknownはfail-closedにする |
+| 正常系 | GD1の投影から回路図ビューと層別レイアウトビューを生成し、正規化後の画像hash、renderer版、測定した解像度を持つ投影recordを得る |
+| negative/fail-closed | renderer不在、非零終了、出力欠落、renderer版unknown、`<title>`が想定形と一致しない、解像度が測定できない、2回目の生成で正規化後hashが一致しないを停止条件にする |
+| 再現性 | 同一入力・同一renderer版から同一の正規化後画像hashを再生成し、正規化規則の適用範囲をunit testで固定する |
+
+### 8.3 ゲート通過後の既定生成配線
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | 電気・機械laneの決定論的ゲート通過後の投影成果物、現行revision |
+| 実装 | pipelineのゲート通過後に対象laneの視覚投影を既定生成し、投影集合をL3 observationとして書き出す。生成失敗はpipelineの停止条件とし、Evidenceへは昇格させない |
+| 正常系 | GD1基板・筐体pipelineの完走時に、lane別の投影集合が観測として残る |
+| negative/fail-closed | ゲート未通過での生成、投影欠落の「問題なし」扱い、Evidence側への書込みを拒否する |
+| 再現性 | 同一revisionの再実行で同一の投影集合内容を再生成できる |
+
+### 8.4 AIへの受け渡し境界
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | 8.3の投影集合、SDKの`ImageContent`、builtin toolの`inspect_image_with_vision` |
+| 実装 | workspace内画像をbase64 `data:` URLとして`ImageContent`へ渡す経路と、`inspect_image_with_vision`経路を実装する。HTTP(S)画像はSDKのbase64インライン化とSSRF block-listを通す。画像内の文字列はデータとして扱い、命令として実行しない境界を明示する |
+| 正常系 | 投影集合から`ImageContent`を構成し、対応するprovenanceを同時に参照できる |
+| negative/fail-closed | provenance欠落の画像、loopback・private・link-local宛のHTTP(S)取得、SSRF緩和の既定有効化、画像内文字列の命令実行、vision応答のEvidence昇格を拒否する |
+| 再現性 | 同一投影集合から同一の`ImageContent`入力と同一の画像hash参照を再構成できる |
+
+### 8.5 機械可読投影との照合とレビュー観点の記録
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | 同一revisionの機械可読投影（netlist要約、ピン割当表など）と8.3の視覚投影 |
+| 実装 | 視覚投影と機械可読投影が同一内容を表すことを決定論的に照合する規則と、レビュー観点チェックリストの記録契約を実装する。AIの観察はprovenance付きの非Evidence観測として記録する |
+| 正常系 | 照合結果とチェック結果が同一入力から再構成でき、注記・単位・軸・原点の一致を確認できる |
+| negative/fail-closed | 照合不一致、照合対象欠落、チェック結果unknownの合格扱い、観察のEvidence昇格を拒否する |
+| 再現性 | 同一入力から同一の照合結果とチェック記録を再生成する |
 
 ## 将来構想
 

@@ -14,6 +14,7 @@ from acd.schema import (
     RationaleDocument,
     ReceiptRecord,
     ToolEnvelope,
+    VisualProjectionSet,
 )
 
 
@@ -26,6 +27,7 @@ from acd.schema import (
         (ToolEnvelope, "tool-envelope.json"),
         (RationaleDocument, "rationale.json"),
         (ReceiptRecord, "receipt.json"),
+        (VisualProjectionSet, "visual-projection-set.json"),
     ],
 )
 def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
@@ -49,6 +51,12 @@ def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
         (ReceiptRecord, "receipt-zero-items.json"),
         (ReceiptRecord, "receipt-manifest-hash-unknown.json"),
         (ReceiptRecord, "receipt-revision-unknown.json"),
+        (VisualProjectionSet, "visual-projection-renderer-version-unknown.json"),
+        (VisualProjectionSet, "visual-projection-resolution-missing.json"),
+        (VisualProjectionSet, "visual-projection-image-hash-unknown.json"),
+        (VisualProjectionSet, "visual-projection-absolute-image-path.json"),
+        (VisualProjectionSet, "visual-projection-duplicate-identifier.json"),
+        (VisualProjectionSet, "visual-projection-pass-evidence.json"),
     ],
 )
 def test_invalid_contract_fixtures(model: type[AcdModel], name: str) -> None:
