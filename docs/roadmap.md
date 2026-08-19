@@ -57,7 +57,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
-| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
+| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 一部達成（7.1期限付き見積入力の取得契約） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
@@ -274,7 +274,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 発注ガードの縮約は[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)、
 製造データと`unknown`境界は[`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を正とする。
 
-### 7.1 期限付き見積入力の取得契約
+### 7.1 期限付き見積入力の取得契約（達成）
 
 | 要素 | 完了条件 |
 |---|---|
@@ -282,7 +282,16 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 実装 | 期限付き見積入力のPydantic契約と取得記録を追加し、値の一次確認区分を保持する |
 | 正常系 | 期限内かつ必須項目を満たす入力から、部品・基板・実装の各費目が確定値として読める |
 | negative/fail-closed | 期限切れ、出所欠落、取得時点不明、`unknown`混在を停止条件にする |
-| 再現性 | 保存済み取得recordから同一の費目集合を再生成し、期限切れのnegative testを含める |
+| 再現性 | 保存済み取得recordから同一の費目集合とcanonical hashを再生成し、期限切れのnegative testを含める |
+
+`QuoteRecord`はfixtureとして保存したfab／distributorの見積入力を、URL、取得時点、
+有効期限、記録時点、対象revisionとともに検証する。金額は通貨コードと最小通貨単位桁数を
+持つ整数であり、基板・部品・実装・送料・税の費目を表現する。`read_quote()`は評価時刻と
+対象revisionを明示的に受け取り、一次確認（`primary`）の金額だけを確定値として費目集合へ
+読み出す。`inference`の金額、期限切れ、出所欠落、必須区分欠落、通貨不一致、
+`unknown`混在はfail-closedで停止する。返すのは7.2以降が参照する入力集合とcanonical hash
+だけであり、合否権限、発注許可、外部送信は持たない。実発注は行わず、7.5のdry-runまで
+別工程として扱う。
 
 ### 7.2 総発注額の合算契約
 

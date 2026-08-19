@@ -19,6 +19,7 @@ from acd.core.firmware import (
     evaluate_functional_run,
     load_and_evaluate_functional_run,
 )
+from acd.core.quote import QuoteFeeSet, QuoteReadError, load_quote, read_quote
 from acd.core.rationale import (
     RATIONALE_EXEMPT_ATTRS,
     REQUIRED_RATIONALE_ATTRS,
@@ -42,6 +43,8 @@ __all__ = [
     "FeedbackError",
     "FunctionalRunError",
     "ProcessAllowanceView",
+    "QuoteFeeSet",
+    "QuoteReadError",
     "ReceiptReconciliationError",
     "ReconciliationReport",
     "build_receipt_evidence",
@@ -50,9 +53,11 @@ __all__ = [
     "extract_fab_intent",
     "load_and_evaluate_functional_run",
     "load_fab_profile",
+    "load_quote",
     "normalize_3mf",
     "normalize_step",
     "propose_input_feedback",
+    "read_quote",
     "reconcile_files",
     "reconcile_receipt",
     "subject_hash_for",

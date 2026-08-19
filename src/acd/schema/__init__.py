@@ -72,6 +72,7 @@ from acd.schema.prompt_manifest import (
     RolePromptManifest,
     RolePromptManifestEntry,
 )
+from acd.schema.quote import QuoteAmount, QuoteCategory, QuoteLineItem, QuoteParty, QuoteRecord
 from acd.schema.rationale import (
     DecisionKind,
     RationaleCoverageReport,
@@ -184,6 +185,11 @@ __all__ = [
     "PromptCacheTier",
     "PromptDriftReport",
     "PromptManifestStatus",
+    "QuoteAmount",
+    "QuoteCategory",
+    "QuoteLineItem",
+    "QuoteParty",
+    "QuoteRecord",
     "RationaleCoverageReport",
     "RationaleCoverageStatus",
     "RationaleDocument",

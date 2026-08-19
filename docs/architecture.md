@@ -176,6 +176,21 @@ Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上�
 出所とし、候補bboxと予約領域へcontext経由で伝える。筐体pipelineも決定論的CADゲートを
 通過する。
 
+## 期限付き見積入力境界
+
+見積入力は外部発注ではなく、URL、取得時点、有効期限、記録時点、対象revisionを持つ
+fixtureの`QuoteRecord`として保存する。金額は浮動小数ではなく、ISO 4217形式の通貨コード、
+最小通貨単位桁数、非負の整数最小単位で表し、同一record内の全費目で通貨と桁数を一致させる。
+費目は基板、部品、実装、送料、税を区別し、価格・在庫・納期・実装可否を区分ごとの必須
+フィールドで検証する。
+
+`read_quote()`はモデルの検証だけでは期限を判定せず、評価時刻と対象revisionを引数に取る
+決定論的な読み出し関数である。出所の範囲、必須費目区分、期限、revision、`unknown`混在を
+fail-closedで検査し、金額を確定値として採用するには各費目のbasisが`primary`であることを
+要求する。`inference`の金額はrecordに残るが停止条件となる。返却値は費目集合とcanonical
+hashだけで、Evidence、gate verdict、発注許可の権限を持たない。fixtureの取得は検証用に
+限定し、実発注や外部送信は行わない。
+
 基板pipelineは決定論的なERC、routing、DRC、silkscreen、DFM、発注readinessの結果を
 `out/gd1/evidence-electrical.json`へ記録する。筐体pipelineの
 `out/gd1-enclosure/evidence-mechanical.json`と同じEvidence契約を使い、host実行では
