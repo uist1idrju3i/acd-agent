@@ -98,6 +98,11 @@ def test_missing_required_category_is_fail_closed() -> None:
     value["items"] = [
         item for item in items if item["category"] != "assembly"
     ]
+    value["declared_total"] = {
+        "amount_minor": 8620,
+        "currency": "USD",
+        "minor_unit_digits": 2,
+    }
     record = QuoteRecord.model_validate(value)
 
     with pytest.raises(QuoteReadError, match="categories"):
@@ -117,3 +122,12 @@ def test_quote_amount_rejects_floating_minor_units() -> None:
         QuoteAmount.model_validate(
             {"amount_minor": 1.0, "currency": "USD", "minor_unit_digits": 2}
         )
+
+
+def test_quote_declared_total_matches_item_currency_and_scale() -> None:
+    value = load_quote_value()
+    declared_total = value["declared_total"]
+    assert isinstance(declared_total, dict)
+    declared_total["currency"] = "EUR"
+    with pytest.raises(ValidationError):
+        QuoteRecord.model_validate(value)

@@ -18,7 +18,14 @@ from acd.schema.common import (
 from acd.schema.fab_profile import Basis, FabSource
 
 QuoteParty = Literal["fab", "distributor"]
-QuoteCategory = Literal["board", "components", "assembly", "shipping", "tax"]
+QuoteCategory = Literal[
+    "board",
+    "components",
+    "assembly",
+    "mechanical",
+    "shipping",
+    "tax",
+]
 
 
 class QuoteModel(AcdModel):
@@ -80,6 +87,7 @@ class QuoteRecord(QuoteModel):
     target_revision: Revision
     sources: list[FabSource] = Field(min_length=1)
     items: list[QuoteLineItem] = Field(min_length=1)
+    declared_total: QuoteAmount
     fetched_at: Timestamp
     valid_until: Timestamp
     recorded_at: Timestamp
@@ -93,11 +101,16 @@ class QuoteRecord(QuoteModel):
         item_ids = [item.item_id for item in self.items]
         if len(item_ids) != len(set(item_ids)):
             raise ValueError("quote item_id values must be unique")
+        amounts = [item.amount for item in self.items]
+        amounts.append(self.declared_total)
         currencies = {
-            (item.amount.currency, item.amount.minor_unit_digits) for item in self.items
+            (amount.currency, amount.minor_unit_digits) for amount in amounts
         }
         if len(currencies) != 1:
             raise ValueError("quote amounts must use one currency and minor unit scale")
+        item_total = sum(item.amount.amount_minor for item in self.items)
+        if item_total != self.declared_total.amount_minor:
+            raise ValueError("quote declared_total does not match item total")
         for item in self.items:
             if item.source_index >= len(self.sources):
                 raise ValueError("quote item source_index is out of range")

@@ -66,6 +66,11 @@ from acd.schema.model_routing import (
 )
 from acd.schema.observation import ObservationArtifactKind, ObservationPayload
 from acd.schema.observation_log import ObservationLogEvent, ObservationLogRecord
+from acd.schema.order_scope import (
+    MechanicalTreatment,
+    OrderScope,
+    ScopeFeeTreatment,
+)
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -171,6 +176,7 @@ __all__ = [
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
+    "MechanicalTreatment",
     "MemoryContextObservation",
     "ModelRoutingBinding",
     "ModelRoutingObservation",
@@ -182,6 +188,7 @@ __all__ = [
     "ObservationLogEvent",
     "ObservationLogRecord",
     "ObservationPayload",
+    "OrderScope",
     "PhysicalEvidence",
     "PromptCacheTier",
     "PromptDriftReport",
@@ -213,6 +220,7 @@ __all__ = [
     "RolePromptManifest",
     "RolePromptManifestEntry",
     "RoutingRole",
+    "ScopeFeeTreatment",
     "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",

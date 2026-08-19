@@ -191,6 +191,19 @@ fail-closedで検査し、金額を確定値として採用するには各費目
 hashだけで、Evidence、gate verdict、発注許可の権限を持たない。fixtureの取得は検証用に
 限定し、実発注や外部送信は行わない。
 
+## 総発注額の合算境界
+
+合算前に`OrderScope`で、対象revision、fab profile、相手方区分、許可供給者、必須費目区分、
+送料・税の扱い、機械部品の包含または除外理由、通貨と最小単位桁数を宣言する。宣言しない
+供給者、相手方区分、費目区分、機械部品、通貨は合算時にfail-closedで停止する。
+`QuoteRecord`は供給者申告総額を持ち、費目合計との一致を契約validatorで検査する。
+
+`aggregate_order_total()`は保存済みの見積record群へ7.1の`read_quote()`を適用し、入力順に
+依存しない区分別小計、総額、各見積のcanonical hash、内訳hashを返す。期限切れや
+`inference`など7.1の停止条件は再実装せず、`read_quote()`の停止をそのまま伝播する。
+この合算層は金額の確定と停止だけを担い、上限額との比較、ゲート合否、Evidence、発注許可は
+7.3以降の責務であり、ここでは作成しない。
+
 基板pipelineは決定論的なERC、routing、DRC、silkscreen、DFM、発注readinessの結果を
 `out/gd1/evidence-electrical.json`へ記録する。筐体pipelineの
 `out/gd1-enclosure/evidence-mechanical.json`と同じEvidence契約を使い、host実行では

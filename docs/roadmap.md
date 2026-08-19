@@ -57,7 +57,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
-| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 一部達成（7.1期限付き見積入力の取得契約） |
+| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 一部達成（7.1・7.2、7.3〜7.5未完） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
@@ -302,6 +302,13 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 正常系 | GD1の総発注額が内訳付きで確定し、上限額との比較が決定論的に行える |
 | negative/fail-closed | 費目欠落、通貨・税条件不明、内訳と総額の不一致を`unknown`として停止する |
 | 再現性 | 同一の見積入力集合から同一の総額と内訳hashを再生成する |
+
+`OrderScope`は対象revision、fab profile、相手方区分、許可供給者、必須費目区分、
+送料・税の扱い、機械部品の扱い、通貨・桁数を明示する入力契約である。`QuoteRecord`の
+供給者申告総額は費目合計と契約validatorで照合し、`aggregate_order_total()`は7.1の
+`read_quote()`を再利用して一次確認済み・期限内の費目だけを区分別に合算する。返却する
+小計、総額、各見積のcanonical hash、内訳hashは再現性のための入力結果であり、上限額との
+比較、合否、Evidence、発注許可は7.3以降の責務としてこの層へ導入しない。
 
 ### 7.3 発注前最終ゲート
 

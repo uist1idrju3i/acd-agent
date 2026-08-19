@@ -18,6 +18,9 @@
 | 受領record | fabまたは実装業者から受領した成果物、検査レポート、送付manifest、出所、時刻を記録する契約。 |
 | 見積record | fabまたはdistributorの価格・在庫・納期・実装可否を、出所URL、取得時点、有効期限、対象revisionとともに記録するfixture入力契約。発注許可は持たない。 |
 | 一次確認区分 | 見積費目の金額が出所で直接確認された`primary`か、推定・派生の`inference`かを示す区分。確定値の読み出しは`primary`に限定する。 |
+| OrderScope | 発注対象のrevision、fab profile、相手方、供給者、費目、送料・税、機械部品、通貨を明示する合算入力契約。発注許可は持たない。 |
+| 区分別小計 | 見積record群の費目をcategoryごとに合算した、総額の再現可能な内訳。 |
+| 内訳hash | 区分別小計、総額、各見積canonical hash、対象revisionを正規化して得る合算結果のhash。 |
 | 送付manifest | 製造・組立へ送付した成果物の相対path、content hash、対象revisionを記録するmanifest。 |
 | 突合（reconciliation） | 送付manifestと受領recordの成果物一覧、hash、対象revisionを決定論的に比較する処理。 |
 | 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |

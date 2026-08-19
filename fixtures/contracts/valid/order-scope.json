@@ -1,0 +1,25 @@
+{
+  "schema_version": "0.1",
+  "scope_id": "gd1-order-scope",
+  "target_revision": "r12",
+  "fab_profile_id": "example-fab",
+  "counterparty_type": "fab",
+  "allowed_suppliers": [
+    "Example Fab"
+  ],
+  "required_categories": [
+    "board",
+    "components",
+    "assembly",
+    "mechanical"
+  ],
+  "shipping_treatment": "included",
+  "tax_treatment": "exempt",
+  "mechanical_treatment": "included",
+  "mechanical_item_ids": [
+    "mechanical-enclosure"
+  ],
+  "mechanical_exclusion_reason": null,
+  "currency": "USD",
+  "minor_unit_digits": 2
+}

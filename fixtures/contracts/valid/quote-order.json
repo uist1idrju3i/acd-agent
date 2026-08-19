@@ -1,14 +1,14 @@
 {
   "schema_version": "0.1",
-  "quote_id": "quote-gd1-001",
+  "quote_id": "quote-gd1-order-001",
   "counterparty_type": "fab",
   "supplier_name": "Example Fab",
   "target_revision": "r12",
   "sources": [
     {
-      "url": "https://example.com/quotes/gd1-001",
+      "url": "https://example.com/quotes/gd1-order-001",
       "fetched_at": "2025-01-10T09:00:00Z",
-      "title": "GD1 PCB and PCBA quote"
+      "title": "GD1 order total quote"
     }
   ],
   "items": [
@@ -61,40 +61,24 @@
       "note": "Top-side assembly available"
     },
     {
-      "item_id": "shipping",
-      "category": "shipping",
+      "item_id": "mechanical-enclosure",
+      "category": "mechanical",
       "amount": {
-        "amount_minor": 1200,
+        "amount_minor": 800,
         "currency": "USD",
         "minor_unit_digits": 2
       },
-      "quantity": null,
-      "stock_quantity": null,
-      "lead_time_days": null,
+      "quantity": 1,
+      "stock_quantity": 3,
+      "lead_time_days": 14,
       "assembly_capable": null,
       "source_index": 0,
       "basis": "primary",
-      "note": "Tracked shipping"
-    },
-    {
-      "item_id": "tax",
-      "category": "tax",
-      "amount": {
-        "amount_minor": 720,
-        "currency": "USD",
-        "minor_unit_digits": 2
-      },
-      "quantity": null,
-      "stock_quantity": null,
-      "lead_time_days": null,
-      "assembly_capable": null,
-      "source_index": 0,
-      "basis": "primary",
-      "note": "Estimated tax"
+      "note": "GD1 enclosure"
     }
   ],
   "declared_total": {
-    "amount_minor": 10420,
+    "amount_minor": 9300,
     "currency": "USD",
     "minor_unit_digits": 2
   },

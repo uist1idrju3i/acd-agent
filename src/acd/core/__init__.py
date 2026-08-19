@@ -19,6 +19,13 @@ from acd.core.firmware import (
     evaluate_functional_run,
     load_and_evaluate_functional_run,
 )
+from acd.core.order_total import (
+    OrderSubtotal,
+    OrderTotalError,
+    OrderTotalResult,
+    QuoteCanonicalHash,
+    aggregate_order_total,
+)
 from acd.core.quote import QuoteFeeSet, QuoteReadError, load_quote, read_quote
 from acd.core.rationale import (
     RATIONALE_EXEMPT_ATTRS,
@@ -42,11 +49,16 @@ __all__ = [
     "FabProfile",
     "FeedbackError",
     "FunctionalRunError",
+    "OrderSubtotal",
+    "OrderTotalError",
+    "OrderTotalResult",
     "ProcessAllowanceView",
+    "QuoteCanonicalHash",
     "QuoteFeeSet",
     "QuoteReadError",
     "ReceiptReconciliationError",
     "ReconciliationReport",
+    "aggregate_order_total",
     "build_receipt_evidence",
     "check_rationale_coverage",
     "evaluate_functional_run",
