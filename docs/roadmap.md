@@ -9,7 +9,9 @@ GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SE
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。一方、
 [`golden-design-1.md`](golden-design-1.md) §7の設計述語ゲート6件
 （USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界、
-ピン・FW整合）と、§8のGD1-NEG負例は未整備である。視覚投影レビューも未実装であり、
+ピン・FW整合）は実装済みで、§8のNEG-001〜006・008も決定論的な注入関数と
+ID別negative testで整備済みである。NEG-007は派生状態とDRC結果の対応検査が未実装で、
+未検出の残件である。視覚投影レビューも未実装であり、
 現行運用は機械可読投影と独立測定だけを使用する。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
@@ -40,14 +42,14 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 |---|---|---|---|
 | 1 | 契約と再現可能な投影 | graphをPydanticで検証し、同一入力から投影・provenance・hashを再生成できる | 達成 |
 | 2 | 電気レーンの独立検証 | ERC、routing収束、SES import、DRC、Gerber/drill生成、独立再読込、silkscreenゲートを通す | 達成 |
-| 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 未着手 |
+| 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 一部達成（6ゲート、Evidence claim、正常系、述語のfail/unknown unit test、NEG-001〜006・008の注入fixtureとID別negative test、resolver実出力を検証するsilkscreen座標pinningを実装。NEG-007は派生状態とDRC結果の対応を検出する経路が未実装のため残件） |
 | 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
 | 4.3 | 決定論的探索lane | 独立width armを固定順で並列集約し、探索AgentDefinitionは候補とprovenanceだけを返す | 達成 |
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 一部実装（`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、`sdk.logger`／`sdk.observability`、`sdk.settings`／`sdk.credential`／`sdk.profiles`、`sdk.context.memory`／`sdk.context.view`実装済み。`sdk.workspace`はマイルストーン6依存） |
-| 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材のどこで使われているかを参照検査し、間接利用の参照先を宣言してdriftをfail-closedで検出する | 未着手 |
+| 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 未着手 |
@@ -60,16 +62,22 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 
 ### 2.1 設計述語ゲートと負例
 
-[`golden-design-1.md`](golden-design-1.md) §7の未実装6ゲートと§8の負例を、
-電気Evidenceおよび決定論的受入ゲートへ接続する。
+[`golden-design-1.md`](golden-design-1.md) §7の6ゲートと§8の負例を、
+電気Evidenceおよび決定論的受入ゲートへ接続する。6ゲート、正常系、負例fixtureを実装し、
+8件の停止条件をID別テストで回帰へ含める。
 
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | GD1のDesign Graph、FW pin assignment、部品・ネット宣言、電源境界仕様、silkscreen resolverの最終座標、現行revision |
 | 実装 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを決定論的述語として実装し、結果を電気Evidenceのclaimへ追加する |
-| 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する |
-| negative/fail-closed | `GD1-NEG-001`〜`GD1-NEG-008`の注入fixtureとnegative testを整備し、対象ゲートが`fail`または`unknown`になることを確認する。述語・入力・型の欠落は合格にしない |
-| 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成し、全negative testを回帰へ含める |
+| 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する。KiCadライブラリがある`--stage standard`ではtestを実行し、hostに無い場合は既存のskip慣習で前提不足を明示する。`container-gates`では固定image内でKiCad依存の同じ3件を実行する |
+| negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認し、NEG-001〜006・008を決定論的な注入関数とID別negative testで検証する。NEG-007は、現行pipelineに派生状態とDRC結果の対応を検査する経路がなく、未検出の残件である |
+| 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成し、実装済みnegative testを回帰へ含める。NEG-007の検出経路追加後に8件全体へ拡張する |
+
+KiCadライブラリを要するNEG-002およびライブラリhash不一致の補助testは、
+ライブラリのない`verify` jobでは前提不足としてskipし、KiCad有効な
+`container-gates`で実行する。ローカルの`--stage standard`ではライブラリがある場合に
+実行し、ない場合は同じ条件でskipする。
 
 ## マイルストーン4.4: SDK機能移譲
 
@@ -117,15 +125,17 @@ MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 ### 4.5 能力カタログ検査の強化
 
 `docs/openhands-sdk-capabilities.md`の採否はドメイン単位の判断であり、SDK内部経路を
-含む間接利用を明示できるようにする。代表APIまたはドメインの参照先をACDコード・
-plugin資材へ記録し、採用行の未使用・参照先欠落・catalog driftをfail-closedで検出する。
+含む間接利用と、明示したテスト利用を区別して記録する。代表APIまたはドメインの参照先を
+ACDコード・plugin資材・テストへ種別付きで記録し、採用行の未使用・参照先欠落・catalog
+driftをfail-closedで検出する。現行catalogは採用46行の参照を宣言し、テスト専用の
+`sdk.testing`だけをテスト直接importとして登録する。
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `docs/openhands-sdk-capabilities.json`、pinned SDKの代表API一覧、ACDコード、plugin資材、SDK経路の間接利用宣言 |
-| 実装 | `scripts/verify_sdk_capabilities.py`に採用行の代表APIまたはドメインの参照検査を追加し、間接利用は参照先を宣言する |
-| 正常系 | 直接import、SDK内部経路、pluginの`tools:`参照を区別して検査し、採用行の根拠をMarkdownへ再生成できる |
-| negative/fail-closed | 採用行の参照先欠落、間接利用宣言の不備、catalogと生成Markdownのdriftを検出して停止する。検査ロジックを代表APIの存在確認だけへ弱めない |
+| 入力と出所 | `docs/openhands-sdk-capabilities.json`、pinned SDKの代表API一覧、ACDコード、plugin資材、テスト、SDK経路の間接利用宣言 |
+| 実装 | `scripts/verify_sdk_capabilities.py`に直接import、SDK内部経路、plugin資材、テスト直接importの4種別を追加し、参照先を宣言する |
+| 正常系 | 4種別をroot境界付きで区別して検査し、採用行の根拠とテスト利用をMarkdownへ再生成できる |
+| negative/fail-closed | 採用行の参照先欠落、4種別のroot境界違反、直接import・SDK内部経路・plugin token・テスト直接importの不備、catalogと生成Markdownのdriftを検出して停止する。検査ロジックを代表APIの存在確認だけへ弱めない |
 | 再現性 | 固定SDK checkout、catalog、ACD/plugin入力から同一Markdownと同一検査結果を再生成する |
 
 ## マイルストーン5: 実機フィードバック

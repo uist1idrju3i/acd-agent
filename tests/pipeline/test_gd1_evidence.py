@@ -9,6 +9,7 @@ from typing import Literal
 
 import pytest
 
+from acd.core.design_predicates import PredicateResult
 from acd.pipeline.gd1_board import build_electrical_evidence
 from acd.schema.evidence import Evidence
 from acd.schema.tool_envelope import ToolEnvelope
@@ -49,6 +50,21 @@ def _build(envelope: ToolEnvelope) -> Evidence:
         silkscreen_status="measured_pass",
         dfm_status="pass",
         order_readiness_status="ready",
+        design_predicates=_passing_predicates(),
+    )
+
+
+def _passing_predicates() -> tuple[PredicateResult, ...]:
+    return tuple(
+        PredicateResult(name=name, status="pass", detail="ok")
+        for name in (
+            "usb_cc",
+            "i2c_pullup",
+            "strapping_pin",
+            "pin_firmware_alignment",
+            "power_decoupling",
+            "power_boundary",
+        )
     )
 
 
@@ -71,4 +87,79 @@ def test_missing_gate_value_fails_closed() -> None:
             silkscreen_status=None,
             dfm_status="pass",
             order_readiness_status="ready",
+            design_predicates=_passing_predicates(),
         )
+
+
+def test_missing_design_predicates_fails_closed() -> None:
+    with pytest.raises(ValueError, match="design predicate set is incomplete"):
+        build_electrical_evidence(
+            revision="r3",
+            envelope=_envelope(),
+            erc_errors=0,
+            erc_unconnected=0,
+            routing_converged=True,
+            drc_errors=0,
+            drc_unconnected=0,
+            silkscreen_status="measured_pass",
+            dfm_status="pass",
+            order_readiness_status="ready",
+            design_predicates=(),
+        )
+
+
+@pytest.mark.parametrize(
+    "predicates",
+    [
+        _passing_predicates()[:5],
+        (*_passing_predicates(), PredicateResult(name="extra", status="pass", detail="ok")),
+    ],
+)
+def test_incomplete_design_predicates_fail_closed(
+    predicates: tuple[PredicateResult, ...],
+) -> None:
+    with pytest.raises(ValueError, match="design predicate set is incomplete"):
+        build_electrical_evidence(
+            revision="r3",
+            envelope=_envelope(),
+            erc_errors=0,
+            erc_unconnected=0,
+            routing_converged=True,
+            drc_errors=0,
+            drc_unconnected=0,
+            silkscreen_status="measured_pass",
+            dfm_status="pass",
+            order_readiness_status="ready",
+            design_predicates=predicates,
+        )
+
+
+def test_design_predicate_claims_are_recorded_in_fixed_order() -> None:
+    predicates = tuple(
+        PredicateResult(name=name, status="pass", detail="ok")
+        for name in (
+            "usb_cc",
+            "i2c_pullup",
+            "strapping_pin",
+            "pin_firmware_alignment",
+            "power_decoupling",
+            "power_boundary",
+        )
+    )
+    evidence = build_electrical_evidence(
+        revision="r3",
+        envelope=_envelope(),
+        erc_errors=0,
+        erc_unconnected=0,
+        routing_converged=True,
+        drc_errors=0,
+        drc_unconnected=0,
+        silkscreen_status="measured_pass",
+        dfm_status="pass",
+        order_readiness_status="ready",
+        design_predicates=predicates,
+    )
+    assert [claim.property for claim in evidence.claims[-6:]] == [
+        predicate.name for predicate in predicates
+    ]
+    assert all(claim.value == "pass" and claim.verified for claim in evidence.claims[-6:])

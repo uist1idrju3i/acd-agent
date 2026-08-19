@@ -78,7 +78,7 @@ FWパッケージを投影して書き込み、実機のLED点滅とSHT40のシ�
 | `GD1-REQ-002` | USB-Serial-JTAG経由でFWを書き込み、同じ経路からシリアルログを取得する |
 | `GD1-REQ-003` | SHT40から温度・湿度を読み、一定周期でシリアルログへ出力する |
 | `GD1-REQ-004` | 電源はUSB-C VBUS 5 Vのみとし、バッテリ、充電回路、USB PDネゴシエーションを持たない |
-| `GD1-REQ-005` | 最大ネット電圧は5 V、最大電流は500 mA未満とする |
+| `GD1-REQ-005` | 最大ネット電圧は5 V、最大電流は500 mA以下とする |
 | `GD1-REQ-006` | USB-Cは電力シンク専用とし、CC1/CC2にそれぞれ5.1 kΩのプルダウンを置く |
 | `GD1-REQ-007` | 3.3 VはAMS1117-3.3で生成し、入力・出力に10 µFと100 nFを置く |
 | `GD1-REQ-008` | MCUはESP32-C3-MINI-1-N4とし、IO18/IO19の内蔵USBを使用する |
@@ -102,7 +102,7 @@ FWパッケージを投影して書き込み、実機のLED点滅とSHT40のシ�
 |---|---|---|
 | `Requirement.intended_use` | 許可領域 | 作者自身の試作であり、医療・車載・航空・産業安全ではない |
 | 最大ネット電圧 | 5 V | USB-C VBUSのみで、許可閾値の50 V AC / 120 V DC以下 |
-| 最大電流 | 500 mA未満 | 承認必須の5 A超または25 W超に該当しない |
+| 最大電流 | 500 mA以下 | `width_basis=current_ipc2221`の電源ネットを対象とし、対象ネットの電流宣言欠落は`unknown`で停止する。承認必須の5 A超または25 W超に該当しない |
 | バッテリ・充電 | なし | Li-ion/LiPo充電回路を持たない |
 | 動力・光源 | モーター、アクチュエータ、レーザーなし | 赤色LEDは表示用である |
 | 無線 | 認証済みESP32-C3モジュール | チップ直載せとアンテナ設計を行わない |
@@ -111,8 +111,8 @@ FWパッケージを投影して書き込み、実機のLED点滅とSHT40のシ�
 グラフへ添付されていない場合、その項目は`unknown`として工程`S1`を停止させ、説明だけで
 合格させない。
 
-なお、`SafetyBoundaryResult`型と安全境界の述語判定は現時点で未実装であり、実装は
-[`roadmap.md`](roadmap.md)のマイルストーン2.1で扱う。
+`SafetyBoundaryResult`は電圧、電流、認証、危険区分、intended useの各述語を保持し、
+unknownをfailより優先してfail-closedに集約する。
 
 ### 3.2 SB2（E1で実行する確定判定）
 
@@ -124,16 +124,19 @@ FWパッケージを投影して書き込み、実機のLED点滅とSHT40のシ�
 |---|---|
 | `max(Net.voltage_nominal) <= 5 V` | `pass` |
 | `max(Net.voltage_nominal) <= 50 V AC / 120 V DC` | `pass` |
-| `max(Net.current_max) < 500 mA` | `pass` |
+| `max(Net.current_max) <= 500 mA` | 電源ネット（`width_basis=current_ipc2221`）を対象に、宣言欠落は`unknown`、0.5 A以下で`pass` |
 | `Part.certification`がESP32-C3モジュールに存在する | 出所Evidence付きで`pass` |
 | `Part.hazard_class`にバッテリ充電器、モーター、アクチュエータ、レーザーがない | `pass` |
 | `Requirement.intended_use`が許可領域にある | `pass` |
 | 未知の危険区分、影響、認証、電圧、電流がない | `pass`。一つでも`unknown`なら停止 |
 
-この設計は上記の対象範囲に収まる。ただし、認証出所、ネット電流の導出、部品の実装可否が
-入力ファイルへ取り込まれていない状態は`unknown`であり、許可領域とはみなさない。
-なお、`SafetyBoundaryResult`型と安全境界の述語判定は現時点で未実装であり、実装は
-[`roadmap.md`](roadmap.md)のマイルストーン2.1で扱う。
+この設計は上記の対象範囲に収まる。電流境界は`width_basis=current_ipc2221`の電源ネットを
+対象とし、その対象ネットの`current_max_a`が欠落していれば`unknown`として停止する。
+`width_basis=manufacturing_minimum`の信号ネットは電流境界の対象外だが、そこに電流値が
+宣言されている場合は同じ0.5 A以下の閾値で検査する。認証出所、電流の導出、部品の実装可否が
+入力ファイルへ取り込まれていない状態も`unknown`であり、許可領域とはみなさない。
+`SafetyBoundaryResult`の各述語が`pass`であることを、電気Evidenceの電源境界claimへ
+固定順序で記録する。認証出所はU1のgraph属性から決定論的に検証する。
 
 ## 4. 部品表
 
@@ -277,20 +280,27 @@ M2取付穴と将来の筐体の嵌合公差は、外形の±0.2 mm（regular）
 | ERC | 未接続、電源入力、駆動競合、ピン方向の電気規則違反 | VBUSとGNDの誤接続、ENの駆動競合 | `kicad-cli` ERC結果、入力hash、版 | 実装済み |
 | DRC | クリアランス、未配線、製造形状、穴・銅の規則違反 | 短絡、未配線、能力値未確定 | `kicad-cli` DRC結果、ルール版 | 実装済み |
 | アンテナキープアウト | アンテナ直下・周囲の銅箔、GND、部品、シルクの有無 | アンテナ下へGNDベタを追加 | グラフ宣言、投影Gerberの独立測定、形状hash | 実装済み |
-| USB CC | CC1/CC2それぞれの5.1 kΩ RdとGND接続 | CC1またはCC2の抵抗を削除 | ネット述語、抵抗MPN、接続hash | 未実装 |
-| strapping pin | IO2/IO8/IO9の起動条件を壊す割当・負荷 | LEDをIO8またはIO9へ割当 | ピン述語、FW整合結果 | 未実装 |
-| I2C pull-up | SDA/SCLそれぞれの4.7 kΩと電源接続 | SDAまたはSCLのプルアップを削除 | ネット述語、ERC結果 | 未実装 |
-| 電源デカップリング | LDOの入力・出力に10 µF＋100 nFがあり、ESP32-C3-MINI-1の3V3ピン直近に100 nFがあること | LDO側またはMCU側のコンデンサを削除・遠ざける | 部品・ネット述語、BOM hash | 未実装 |
-| 電源境界 | 5 V VBUS、3.3 V生成、電流・電圧境界 | バッテリ充電回路または5 V超の電源を追加 | `SafetyBoundaryResult` | 未実装 |
-| ピン・FW整合 | グラフの`Net`/`Pin`とFWパッケージの一致 | FWだけIO7をIO8へ変更 | 投影hash、整合ゲート結果 | 未実装 |
+| USB CC | CC1/CC2それぞれの5.1 kΩ RdとGND接続 | CC1またはCC2の抵抗を削除 | ネット述語、抵抗MPN、接続hash | 実装済み |
+| strapping pin | IO2/IO8/IO9の起動条件を壊す割当・負荷 | LEDをIO8またはIO9へ割当 | ピン述語、FW整合結果 | 実装済み |
+| I2C pull-up | SDA/SCLそれぞれの4.7 kΩと電源接続 | SDAまたはSCLのプルアップを削除 | ネット述語、ERC結果 | 実装済み |
+| 電源デカップリング | LDOの入力・出力に10 µF＋100 nFがあり、ESP32-C3-MINI-1の3V3ピン直近に100 nFがあること | LDO側またはMCU側のコンデンサを削除・遠ざける | 部品・ネット述語、BOM hash | 実装済み |
+| 電源境界 | 5 V VBUS、3.3 V生成、電流・電圧境界 | バッテリ充電回路または5 V超の電源を追加 | `SafetyBoundaryResult` | 実装済み |
+| ピン・FW整合 | グラフの`Net`/`Pin`とFWパッケージの一致 | FWだけIO7をIO8へ変更 | 投影hash、整合ゲート結果 | 実装済み |
+
+電源デカップリングの100 nF級判定は、`0.1 µF ± 0.02 µF`（±20%）の範囲を用いる。
+1 µF以下の小容量は高周波過渡応答のため対象電源padから3.0 mm以下、
+1 µF超のbulk容量はレール上のエネルギー保持を担うため対象電源padから8.0 mm以下とする。
 
 実装状況は次のとおりである。ERC、DRC、アンテナキープアウトの3件は実装済みである。
 ERCとDRCは共通の決定論的gate関数で検査し、アンテナキープアウトはグラフ宣言を生成した
-後、投影Gerberを独立測定してfail-closedにする。USB CC、strapping pin、I2C pull-up、
-電源デカップリング、電源境界、ピン・FW整合の6件は、現時点で合否述語・ゲート関数が
-未実装であり、生成される電気Evidenceのclaimにも含まれない。電源境界のEvidenceとして
-記載していた`SafetyBoundaryResult`型も未実装である。6件の実装とEvidence claim追加は
-[`roadmap.md`](roadmap.md)のマイルストーン2.1で扱う。
+後、投影Gerberを独立測定してfail-closedにする。6件はlaneとgraphから決定論的に評価し、
+生成される電気Evidenceのclaimへ固定順序で含める。strapping pinはIO2/IO8を未接続または
+no-connect、IO9をBOOT網だけへ接続し、BOOT網にはIO9 pad、GNDへ落とすボタン1個、
+任意の3.3 Vプルアップ抵抗（0個または1個）だけを許容する。GPIO9のリセット既定値は
+Espressif ESP32-C3 datasheetのBoot ConfigurationsおよびESP Hardware Design Guidelines
+のSchematic Checklist > Strapping Pins > Boot Mode Controlにある`1 (Pull-up)`（約45 kΩ
+内部プルアップ）であり、外部プルアップは任意である。IO9の`fw.pin.boot`だけを例外として
+許可する。
 
 ## 8. negative test
 
@@ -302,8 +312,15 @@ ERCとDRCは共通の決定論的gate関数で検査し、アンテナキープ�
 | `GD1-NEG-004` | I2C SDAまたはSCLの4.7 kΩを削除する | I2C pull-upゲートが`fail` |
 | `GD1-NEG-005` | FWのIO7、IO4、IO5、IO9、IO18、IO19、IO20、IO21のいずれかをグラフと異なる値へ変更する | ピン・FW整合ゲートが`fail` |
 
-`GD1-NEG-001`〜`GD1-NEG-008`に対応する注入fixtureとnegative testは現時点で未整備であり、
-[`roadmap.md`](roadmap.md)のマイルストーン2.1で整備する。
+`GD1-NEG-001`〜`GD1-NEG-006`および`GD1-NEG-008`は、正常fixtureまたは正常投影を
+読み込んで1点だけ変更する決定論的な注入関数として
+`tests/pipeline/gd1_negative_fixtures.py`に定義し、対応する停止条件を
+`tests/pipeline/test_gd1_negative_fixtures.py`で検証する。`GD1-NEG-006`の主testは
+照合Evidenceの欠落を入力属性欠落として扱い、hash不一致は別testで検証する。
+`GD1-NEG-007`は、現行pipelineに派生状態とDRC結果の対応を検査する経路がないため、
+古いDRC結果の流用を検出するtestを実装せず、未検出の残件として扱う。
+KiCadライブラリを要する`GD1-NEG-002`およびライブラリhash不一致の補助testは、
+ライブラリのない`verify` jobではskipし、KiCad有効な`container-gates`で実行する。
 
 ## 9. 製造投影と配置
 
@@ -474,10 +491,10 @@ SMD pad上viaを構造的に禁止している。出所は`out/gd1-plan2-default
 | `GD1-NEG-008` | 原点、単位、または軸を不明にする | 座標系ゲートが`unknown`で停止 |
 
 各negative testは、注入前の入力ファイル、注入差分、実行したゲート、停止理由を
-Evidenceへ記録する。検証器が異常を検出できない場合や、入力の比較対象が`unknown`の
-場合は、`pass`ではなく停止とする。`GD1-NEG-001`〜`GD1-NEG-008`に対応する
-注入fixtureとnegative testは現時点では未整備であり、[`roadmap.md`](roadmap.md)の
-マイルストーン2.1で整備する。
+テストコード上でIDごとに対応づけて検証する。検証器が異常を検出できない場合や、
+入力の比較対象が`unknown`の場合は、`pass`ではなく停止とする。NEG-001〜006・008に
+対応する注入fixtureとnegative testは整備済みである。NEG-007は、派生状態とDRC結果の
+対応を検査する現行経路が存在せず、未検出の残件である。
 
 ### 8.1 機械レーン宣言
 
@@ -795,5 +812,6 @@ RESETではSW1上側の板端までの帯、BOOTではSW2周辺の上側／左�
 resolverの最終状態は候補生成だけでなく投影後の測定でも合格している。なお、
 最終製造受入れは引き続きauthoritative projection、独立reload、Gerber測定の
 各ゲートで判定する。
-この座標表とresolverの最終statusを固定するpinning testは現時点で未整備であり、
-[`roadmap.md`](roadmap.md)のマイルストーン2.1で整備する。
+この座標表とresolverの最終statusはpinning testで固定する。KiCadライブラリがある
+hostのstandard検証では実行し、hostにライブラリが無い場合は既存のskip慣習で前提不足を示す。
+`container-gates`では固定image内で同じpinning testを実行する。

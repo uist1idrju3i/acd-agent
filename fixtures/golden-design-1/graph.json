@@ -380,7 +380,24 @@
         "symbol_sha256": "sha256:bca977294f75d84261181e0b443f5ee9292412d5ed56c3292079685376883a2b",
         "symbol_source": "https://github.com/espressif/kicad-libraries",
         "symbol_source_ref": "dd76561812ab300351234ba6e0ec1295641796f0",
-        "value": "ESP32-C3-MINI-1-N4"
+        "value": "ESP32-C3-MINI-1-N4",
+        "radio_module": true,
+        "certification_ids": [
+          "FCC:2AC7Z-ESPC3MINI1",
+          "IC:21098-ESPC3MINI1"
+        ],
+        "certification_hvin": "ESP32-C3-MINI-1",
+        "certification_grant_dates": [
+          "FCC:2021-06-16",
+          "IC:2024-07-24"
+        ],
+        "certification_document_refs": [
+          "https://documentation.espressif.com/ESP32-C3-MINI-1%20FCC%20Certification.pdf",
+          "https://documentation.espressif.com/ESP32-C3-MINI-1%20IC%20Certification_0.pdf"
+        ],
+        "certification_source": "Espressif Systems published module certification documents",
+        "certification_source_ref": "https://www.espressif.com/en/support/documents/certificates",
+        "certification_checked_at": "2026-08-18T00:00:00Z"
       },
       "depends_on": [],
       "id": "comp.u1",
@@ -4009,7 +4026,7 @@
         "intended_use": "author_prototype",
         "max_current_a": 0.5,
         "max_net_voltage_v": 5.0,
-        "module_certified": "unknown",
+        "module_certified": "certified",
         "motor_actuator_laser": false,
         "profile": "hobby"
       },

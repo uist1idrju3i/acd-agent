@@ -166,8 +166,8 @@ def write_project(
     project = out_dir / f"{name}.kicad_pro"
     bom = out_dir / f"{name}.bom.csv"
 
-    schematic.write_text(schematic_content)
-    board.write_text(board_projection.content)
+    schematic.write_text(schematic_content, encoding="utf-8")
+    board.write_text(board_projection.content, encoding="utf-8")
     minimums = (
         ("min_track_width", lane.board.min_track_mm, "min_track_width"),
         ("min_via_diameter", lane.board.via_diameter_mm, "min_via_diameter"),

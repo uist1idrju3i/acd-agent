@@ -1844,11 +1844,12 @@
         "profile",
         "intended_use",
         "max_net_voltage_v",
-        "max_current_a"
+        "max_current_a",
+        "module_certified"
       ],
-      "subject_hash": "sha256:cb31d88c2fc96c122ff36b96e89eee3e421912e0f91d254386fb20aba3cbc508",
-      "decision": "Declare a hobby author_prototype boundary: USB VBUS 5.0 V maximum and 0.5 A maximum, with no battery, charger, motor, actuator, or laser.",
-      "justification": "GD1-REQ-004/005 set a hobby author_prototype boundary of 5.0 V maximum and 0.5 A maximum. This scope is deliberately below the 5 V/500 mA USB prototype envelope and keeps excluded energy functions outside the gate.",
+      "subject_hash": "sha256:4f2a152e3476cbc309143ce81a4973a6d3fe9d17aeaf3385670c125494d682f8",
+      "decision": "Declare a hobby author_prototype boundary with certified ESP32-C3 module provenance.",
+      "justification": "GD1-REQ-004/005 set a hobby author_prototype boundary of 5.0 V maximum and 0.5 A maximum. The ESP32-C3-MINI-1-N4 module certification provenance is attached to the graph and checked by SB2.",
       "driving_requirements": [
         "req.gd1-req-004",
         "req.gd1-req-005"
@@ -1860,16 +1861,16 @@
           "reason": "GD1-REQ-004/005 set the operating envelope at 5.0 V and 0.5 A; doubling either limit would be an unsupported safety-scope change."
         },
         {
-          "option": "Declare a certified product",
-          "reason": "§11 leaves module certification unresolved, while the documented use case is a hobby author_prototype rather than a certified product."
+          "option": "Treat the boundary as a certified product",
+          "reason": "The documented use case is a hobby author_prototype, while certified module provenance is checked without declaring the complete product certified."
         }
       ],
       "no_alternatives_reason": null,
       "assumptions": [
-        "The USB source remains within 5.0 V and 0.5 A."
+        "The USB source remains within the declared 5.0 V and 0.5 A boundary."
       ],
       "risks": [
-        "Certification remains unknown; this record does not approve production safety."
+        "Certification provenance is limited to the declared module documents and does not approve production safety."
       ],
       "provenance": {
         "source": "human",
@@ -3011,6 +3012,50 @@
       ],
       "risks": [
         "QR readability requires manufacturing inspection in addition to geometric acceptance."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-radio-module",
+      "decision_kind": "part_selection",
+      "subject_nodes": [
+        "comp.u1"
+      ],
+      "subject_attrs": [
+        "radio_module"
+      ],
+      "subject_hash": "sha256:d28dfcb8295268d9c46de0976e6712ae93e4cb9c10879f74e8e4921572b2d909",
+      "decision": "Declare U1 as a radio module requiring certification provenance.",
+      "justification": "U1 is the ESP32-C3-MINI-1-N4 module selected for GD1 and its regulatory certification documents are attached to the graph.",
+      "driving_requirements": [
+        "req.gd1-req-008"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [
+        {
+          "option": "Mount the ESP32-C3 chip directly with a self-designed antenna",
+          "reason": "This would require obtaining and maintaining certification for the custom RF design rather than using the selected certified module."
+        },
+        {
+          "option": "Omit the radio_module declaration",
+          "reason": "Without the declaration, missing or incomplete certification provenance would not be checked as part of the GD1 safety boundary."
+        }
+      ],
+      "no_alternatives_reason": null,
+      "assumptions": [
+        "U1 certification IDs, HVIN, grant dates, document references, source, source reference, and checked timestamp remain attached to the same graph revision."
+      ],
+      "risks": [
+        "Module certification provenance must remain complete and revision-linked."
       ],
       "provenance": {
         "source": "human",

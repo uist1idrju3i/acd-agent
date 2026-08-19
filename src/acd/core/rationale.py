@@ -58,6 +58,7 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "placement_x_mm",
             "placement_y_mm",
             "placement_rotation_deg",
+            "radio_module",
         }
     ),
     "electrical.net": frozenset(
@@ -154,7 +155,13 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
         }
     ),
     "safety.boundary": frozenset(
-        {"profile", "intended_use", "max_net_voltage_v", "max_current_a"}
+        {
+            "profile",
+            "intended_use",
+            "max_net_voltage_v",
+            "max_current_a",
+            "module_certified",
+        }
     ),
 }
 
@@ -225,6 +232,27 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
     },
     "electrical.component": {
+        "certification_checked_at": (
+            "Certification check time records external verification provenance."
+        ),
+        "certification_document_refs": (
+            "Certification document references identify external source material."
+        ),
+        "certification_grant_dates": (
+            "Certification grant dates record external certification provenance."
+        ),
+        "certification_hvin": (
+            "Certification HVIN records the externally certified module identifier."
+        ),
+        "certification_ids": (
+            "Certification identifiers record external regulatory provenance."
+        ),
+        "certification_source": (
+            "Certification source identifies the external certification publisher."
+        ),
+        "certification_source_ref": (
+            "Certification source reference identifies the external source location."
+        ),
         "cpl_position_basis": (
             "CPL position basis records the evidence basis for an already "
             "selected placement."
@@ -419,10 +447,6 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "charger": (
             "Charger exclusion is a dependent safety flag justified by the "
             "safety-scope decision."
-        ),
-        "module_certified": (
-            "Module certification state is an external verification status, "
-            "not a design selection."
         ),
         "motor_actuator_laser": (
             "Actuator exclusion is a dependent safety flag justified by "

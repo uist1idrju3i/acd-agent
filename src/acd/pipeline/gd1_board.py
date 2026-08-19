@@ -54,7 +54,7 @@ from acd.adapters.kicad.fab import (
     verify_smd_pad_centers_in_gerber,
     zip_content_hash,
 )
-from acd.adapters.kicad.gates import assert_converged, assert_rule_check_passed
+from acd.adapters.kicad.gates import GateError, assert_converged, assert_rule_check_passed
 from acd.adapters.kicad.placement import Placement
 from acd.adapters.kicad.project import write_project
 from acd.adapters.kicad.reload import (
@@ -66,6 +66,7 @@ from acd.adapters.kicad.reload import (
 )
 from acd.adapters.kicad.routing import inject_routes, inject_stitch_vias
 from acd.core.board_model import NetClass
+from acd.core.design_predicates import PredicateResult, evaluate_gd1_predicates
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.fab import extract_fab_intent, load_fab_profile
 from acd.core.process import execution_provenance
@@ -105,8 +106,7 @@ def _run_ordered_arms(
     else:
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = [
-                executor.submit(run_arm, name, board_minimum)
-                for name, board_minimum in controls
+                executor.submit(run_arm, name, board_minimum) for name, board_minimum in controls
             ]
             results = [future.result() for future in futures]
     return results[0], results[1]
@@ -159,6 +159,7 @@ def build_electrical_evidence(
     silkscreen_status: object,
     dfm_status: object,
     order_readiness_status: object,
+    design_predicates: object,
 ) -> Evidence:
     """Build electrical Evidence from completed deterministic gate results."""
     if not isinstance(erc_errors, int) or not isinstance(erc_unconnected, int):
@@ -177,6 +178,17 @@ def build_electrical_evidence(
     silkscreen = cast(str, silkscreen_status)
     dfm = cast(str, dfm_status)
     order_readiness = cast(str, order_readiness_status)
+    if not isinstance(design_predicates, tuple):
+        raise ValueError("electrical design predicates are unknown (fail-closed)")
+    candidate_predicates = cast(tuple[object, ...], design_predicates)
+    if not all(isinstance(item, PredicateResult) for item in candidate_predicates):
+        raise ValueError("electrical design predicates are unknown (fail-closed)")
+    typed_predicates = cast(tuple[PredicateResult, ...], design_predicates)
+    if len(typed_predicates) != 6:
+        raise ValueError("electrical design predicate set is incomplete (fail-closed)")
+    for predicate in typed_predicates:
+        if predicate.status != "pass":
+            raise GateError(f"{predicate.name}: status={predicate.status!r} ({predicate.detail})")
     if envelope.target_revision != revision:
         raise ValueError("electrical evidence envelope revision mismatch (fail-closed)")
     if (
@@ -190,6 +202,15 @@ def build_electrical_evidence(
         or order_readiness_status != "ready"
     ):
         raise ValueError("electrical deterministic gate did not pass (fail-closed)")
+    predicate_claims = [
+        EvidenceClaim(
+            subject_node="electrical.board.gd1",
+            property=predicate.name,
+            value=predicate.status,
+            verified=predicate.status == "pass",
+        )
+        for predicate in typed_predicates
+    ]
     return Evidence(
         evidence_id="evidence.gd1.electrical",
         target_revision=revision,
@@ -244,6 +265,7 @@ def build_electrical_evidence(
                 value=order_readiness,
                 verified=True,
             ),
+            *predicate_claims,
         ],
         created_at=datetime.now(UTC),
     )
@@ -518,6 +540,11 @@ def run_pipeline(
     print("[0/10] rationale coverage passed")
     revision = graph.revision
     lane = extract_electrical_lane(graph)
+    design_predicates = evaluate_gd1_predicates(graph, lane, fixture_dir)
+    for predicate in design_predicates:
+        if predicate.status != "pass":
+            raise GateError(f"{predicate.name}: status={predicate.status!r} ({predicate.detail})")
+    print("[0/10] GD1 design predicates passed")
     silkscreen = extract_silkscreen_lane(graph)
     intent, allowances = extract_fab_intent(graph)
     profile = load_fab_profile(fab_profile_path)
@@ -1133,6 +1160,7 @@ def run_pipeline(
         silkscreen_status=silk_evidence.get("status"),
         dfm_status=dfm_report.get("status"),
         order_readiness_status=order_readiness.get("status"),
+        design_predicates=design_predicates,
     )
     evidence_path = out_dir / "evidence-electrical.json"
     evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
