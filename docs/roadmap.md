@@ -61,7 +61,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 7.5 dry-run・拒否境界まで達成（実発注は本範囲外） |
-| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み、8.6は配置図・stackup図を実装済み |
+| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.6実装済み、8.5はFW lane照合まで実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
@@ -372,9 +372,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 マイルストーン8は次の6フェーズへ分割する。8.1と8.2は画像1枚を再現可能な観測として
 成立させる層、8.3は既定生成の配線、8.4はAIへの受け渡し境界、8.5は機械可読投影との
 照合とレビュー観点の記録、8.6は追加投影種別の生成である。renderer出力のバイト列は設計状態の
-権威にしない。8.6のうち配置図・stackup図・ブロック図・電源ツリー図と、FW状態遷移/
-シーケンスの機械可読宣言を実装済み、FW状態遷移・シーケンス図の投影と8.5 FW lane照合は
-未実装である。電源ツリー図の出所はDesign Graphの
+権威にしない。8.6は配置図・stackup図、ブロック図・電源ツリー図、FW状態遷移図・
+FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合まで実装済みである。
+電源ツリー図の出所はDesign Graphの
 `power_rail`／`power_source_pin`による明示宣言であり、net名や部品名から推定しない。
 
 ### 8.1 視覚投影provenance契約
@@ -422,7 +422,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 同一revisionの機械可読投影（netlist要約、ピン割当表など）と8.3の視覚投影 |
-| 実装 | 電気laneでは8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合し、機械laneでは断面・干渉SVGと同一revisionの`MechanicalLane`、authoritative assembly STEP、`MechanicalGateReport`を照合する。投影集合の網羅性、電気laneのSVG単位・軸・原点・title block・KiCad renderer版・正規化後image hash・schematic refdes、機械laneのSVG単位・viewBox寸法・raw image hash・build123d renderer版・正規化assembly STEP hash・section plane／offset・干渉体積／領域を決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。電気laneの層identityと機械laneの層識別子がSVGだけで確定できない場合は`observation_required`にする。AIの観察はprovenance付きの非Evidence観測として記録する。FW laneの照合は後続PRで実装する |
+| 実装 | 電気laneでは8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合し、機械laneでは断面・干渉SVGと同一revisionの`MechanicalLane`、authoritative assembly STEP、`MechanicalGateReport`を照合する。FW laneでは状態・遷移・シーケンスSVGと同一revisionの`FirmwareLane`およびgraph入力を照合する。投影集合の網羅性、入力hash、renderer版、正規化規則、raw image hash、宣言の網羅性を決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。FWのペリフェラル設定表とメモリマップは機械可読宣言がないため対象外とし、宣言を追加する場合は対応する8.5検査を追加する。AIの観察はprovenance付きの非Evidence観測として記録する |
 | 正常系 | 注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを、決定論的照合とレビュー観点チェックリストの組合せで記録する |
 | negative/fail-closed | 照合不一致、照合対象欠落、SVG解析不能、revision不一致、チェック結果`unknown`の合格扱い、観察のEvidence昇格を拒否する。照合レポートは`pass_evidence=False`のL3観測としてEvidence、fab claims、gate fields、`hashes.json`へ昇格しない |
 | 再現性 | 同一入力から同一の照合結果とチェック記録を再生成する |

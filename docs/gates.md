@@ -44,12 +44,14 @@ container内でPNG派生可能であることを検証済みである。ただ�
 SVGを既定生成して投影集合を書き出す。機械laneもゲート通過後にauthoritative STEPから
 断面・干渉ビューを生成し、`visual-projections-mechanical.json`へL3観測として記録する。
 8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
-8.5の機械可読投影との照合は、8.3の視覚投影生成直後に電気laneと機械laneで実行する。
-8.6の追加投影種別のうち配置図・stackup図・ブロック図・電源ツリー図と、FW状態遷移/
-シーケンスの機械可読宣言を実装済み、FW状態遷移・シーケンス図の投影と8.5 FW lane照合は
-未実装である。電源ツリー図の出所はDesign Graphの
+8.5の機械可読投影との照合は、8.3の視覚投影生成直後に電気lane、機械lane、FW laneで
+実行する。8.6は配置図・stackup図、ブロック図・電源ツリー図、FW状態遷移図・
+シーケンス図の3段構成を実装済みである。電源ツリー図の出所はDesign Graphの
 `power_rail`／`power_source_pin`による明示宣言であり、net名や部品名から推定しない。
-FW laneの視覚投影照合は未実装である。
+FW laneの視覚投影照合は、状態・遷移・シーケンスの宣言網羅、renderer provenance、
+入力hash、pin assignmentの宣言整合性を決定論的に検査する。ペリフェラル設定表と
+メモリマップは機械可読宣言がないため対象外であり、宣言を追加する場合は8.5の検査項目へ
+追加する。GD1の実測Evidenceは保留中であり、実provider送信と実発注はスコープ外である。
 8.3の視覚投影生成前提はERC、routing収束、DRC、独立再読込、silkscreen、DFM、
 設計述語の決定論的ゲートであり、発注可否を表すorder readinessは含めない。
 renderer不在や生成不能はfail-closedとし、投影欠落を「問題なし」と解釈しない。
@@ -78,7 +80,9 @@ set itemへ1回だけ記録し、投影単位のrecordへ重複記録しない�
 authoritative assembly STEPの正規化hash、断面plane・offset、機械ゲートの干渉体積と
 干渉領域の整合を決定論的に検査する。SVGの層識別子を決定論的に取得してenclosure／
 interference層を検査し、識別不能または不一致はfail-closedとする。origin、axis、可読性、設計意図、注記、遮蔽、干渉の視認性は
-`observation_required`としてunknownのまま記録し、FW laneの照合は後続PRへ残す。
+`observation_required`としてunknownのまま記録する。FW laneでも可読性、注記、
+重なり・非表示による意味欠落、設計意図一致、実機functional run対応はunknownのままとし、
+合格へ倒さない。
 
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|

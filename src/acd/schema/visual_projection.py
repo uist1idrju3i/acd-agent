@@ -30,6 +30,8 @@ VisualProjectionType = Literal[
     "stackup_view",
     "system_block_view",
     "power_tree_view",
+    "firmware_state_view",
+    "firmware_sequence_view",
     "rasterized_view",
     "mechanical_section_view",
     "mechanical_interference_view",
