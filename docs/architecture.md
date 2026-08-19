@@ -205,6 +205,25 @@ hashだけで、Evidence、gate verdict、発注許可の権限を持たない�
 この合算層は金額の確定と停止だけを担い、上限額との比較、ゲート合否、Evidence、発注許可は
 7.3以降の責務であり、ここでは作成しない。
 
+## 発注前最終ゲート境界
+
+`OrderPolicy`はhookの既存コマンド境界を保ったまま、設計graphの宣言パス、両laneの
+authoritative Evidence ID、既存の発注条件、および`order_total_limit`（最小通貨単位の
+整数、通貨、最小単位桁数）を厳格に宣言する。上限額の欠落、負値、`unknown`、通貨欠落、
+余分なpolicy fieldは停止する。
+
+OpenHands層の`evaluate_pre_order_gate()`は、SDKのgit観測で設計入力のdirty状態を確認し、
+graphから解決した現行revisionと7.2の`OrderTotalResult`を照合する。電気・機械の各Evidenceは
+`supports_authoritative_pass()`、revision、container digest、claimの`verified`と
+`unknown`を再確認する。合算総額は上限額以下（同額を含む）でなければならない。
+成功時の`PreOrderGateRecord`は既存の判定結果を集約した非Evidence recordであり、
+新たなpass authority、journal書込み、外部送信、発注を作らない。
+
+再実行は`scripts/pre_order_gate.py --rerun-authoritative`からdigest固定
+`DockerWorkspace`経路を明示的に呼び出す。check-onlyは既存Evidenceだけを検査し、
+現行revisionのauthoritative Evidenceがなければゲート未実行として停止する。
+`LocalWorkspace`のhost provisional結果では最終ゲートを満たせない。
+
 基板pipelineは決定論的なERC、routing、DRC、silkscreen、DFM、発注readinessの結果を
 `out/gd1/evidence-electrical.json`へ記録する。筐体pipelineの
 `out/gd1-enclosure/evidence-mechanical.json`と同じEvidence契約を使い、host実行では
@@ -294,10 +313,9 @@ URLは成果物として扱わないため、通常の`git push`、文書取得�
 `supports_authoritative_pass()`が必要である。
 GD1基板pipelineは`build_electrical_evidence()`で電気Evidenceを生成し、
 `out/gd1/evidence-electrical.json`へ書き出す。基板fabrication成果物の送信が
-fail-closedになるのは、order policyの`required_evidence_ids`が現状
-`evidence.gd1.mechanical`だけを要求し、電気laneの
-`evidence.gd1.electrical`を含まないためである。両laneのauthoritative Evidenceを
-要求するための`required_evidence_ids`拡張はマイルストーン7.3で扱う。
+fail-closedになるのは、order policyの`required_evidence_ids`に含まれる両laneの
+Evidenceについて、現revision一致かつauthoritative passを確認できない場合である。
+現行policyは`evidence.gd1.electrical`と`evidence.gd1.mechanical`の両方を要求する。
 
 Stopガードはorderガードより弱く、order policyのEvidence globで解決したファイルのうち、
 dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが存在する場合に限り

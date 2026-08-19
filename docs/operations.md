@@ -160,6 +160,36 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを
    応答へ明記させる。
 
+### 発注前最終ゲートの再実行とcheck-only
+
+発注前の判定には7.2の`OrderTotalResult` JSON、policy、判定時刻を渡す。
+既存Evidenceだけを検査する場合は、再実行しないことを明示するcheck-only経路を使う。
+
+```bash
+uv run python scripts/pre_order_gate.py \
+  --order-total out/order-total.json \
+  --evidence out/gd1/evidence-electrical.json \
+  --evidence out/gd1-enclosure/evidence-mechanical.json \
+  --evaluated-at 2026-08-14T00:00:00Z \
+  --check-only
+```
+
+両laneを発注直前に再実行する場合だけ、digestを解決できるserver imageを明示する。
+この経路は`DockerWorkspace`を通り、`docker/image-digests.json`のdigest lockを使う。
+
+```bash
+uv run python scripts/pre_order_gate.py \
+  --order-total out/order-total.json \
+  --evaluated-at 2026-08-14T00:00:00Z \
+  --rerun-authoritative \
+  --image ghcr.io/uist1idrju3i/acd-server@sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def
+```
+
+`--local-provisional`はこのCLIの選択肢ではなく、hostの`LocalWorkspace`結果は
+authoritative Evidenceにならない。再実行しないcheck-onlyで現行revisionの両lane Evidenceが
+見つからない場合も、ゲート未実行として停止する。このCLIはjournal書込み、送信、実発注を
+行わない。
+
 4. 実行済みのGD1基板pipelineでは、回路図
    `out/gd1/gd1.kicad_sch`、routed board
    `out/gd1/routed/gd1.kicad_pcb`、Gerberの

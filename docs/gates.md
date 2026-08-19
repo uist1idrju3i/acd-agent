@@ -190,10 +190,14 @@ AIレビューと決定論的ゲートは相互補完である。
 要求の矛盾、上流前提の誤り、または収束しない所見は上流工程への差し戻しまたは人間の決定へ
 エスカレーションする。決定論的ゲートが未実行、再読込不能、または安全境界が`unknown`の
 場合はfail-closedで停止する。
-発注へ進む前には、これらのゲートを入力ファイルの現行git commitに対して再実行する。
-Evidenceを`evidence/`へ昇格する場合は`supports_authoritative_pass()`を要求する。
-host実行で全ゲートが通っても、生成物はprovisionalであり昇格を拒否する。digest固定
-containerで再実行し、revision一致、既知provenance、container image digestを確認する。
+発注へ進む前には、`scripts/pre_order_gate.py --rerun-authoritative`で電気・機械の
+決定論的pipelineをdigest固定containerへ明示的に再実行し、現行git commitに対応する
+Evidenceを再検証する。`--evidence`を指定したcheck-only経路では再実行せず、現行revisionの
+両lane authoritative Evidenceがなければゲート未実行として停止する。Evidenceを
+`evidence/`へ昇格する場合は`supports_authoritative_pass()`を要求し、claimsもverifiedかつ
+既知値でなければならない。host実行で全ゲートが通っても、生成物はprovisionalであり
+最終ゲートを満たさない。最終ゲートの上限額はorder policyの`order_total_limit`で宣言し、
+総額と通貨・最小単位桁数を照合する。
 
 ## 関連文書
 

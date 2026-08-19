@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "transmission_commands": ["curl"],
+  "artifact_paths": ["out/**/*.zip"],
+  "order_commands": ["scripts/order"],
+  "evidence_paths": "out/**/evidence-*.json",
+  "design_graph_paths": ["fixtures/golden-design-1/graph.json"],
+  "required_evidence_ids": [
+    "evidence.gd1.electrical",
+    "evidence.gd1.mechanical"
+  ],
+  "order_total_limit": {
+    "amount_minor": -1,
+    "currency": "USD",
+    "minor_unit_digits": 2
+  }
+}
