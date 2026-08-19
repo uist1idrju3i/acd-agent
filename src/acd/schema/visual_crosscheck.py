@@ -115,6 +115,7 @@ class VisualCrosscheckReport(AcdModel):
     source_revision: Revision
     visual_projection_set_identity_hash: Sha256
     machine_input_files: list[VisualProjectionInput] = Field(min_length=1)
+    set_items: list[VisualCrosscheckItem] = Field(min_length=1)
     crosschecks: list[VisualProjectionCrosscheck] = Field(min_length=1)
     review_items: list[VisualReviewChecklistItem] = Field(min_length=1)
     status: CrosscheckStatus
@@ -141,7 +142,14 @@ class VisualCrosscheckReport(AcdModel):
             raise ValueError("crosscheck projection identifiers must be unique")
         if any(record.source_revision != self.source_revision for record in self.crosschecks):
             raise ValueError("crosscheck revisions must match the report revision")
-        statuses = {record.status for record in self.crosschecks}
+        statuses = {
+            item.status
+            for item in self.set_items
+        } | {
+            item.status
+            for record in self.crosschecks
+            for item in record.items
+        }
         if self.status == "match" and statuses != {"match"}:
             raise ValueError("matching report requires every projection to match")
         if self.status == "mismatch" and "mismatch" not in statuses:

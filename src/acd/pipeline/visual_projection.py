@@ -28,6 +28,7 @@ from acd.schema.visual_crosscheck import (
 from acd.schema.visual_projection import (
     ElectricalVisualProjectionGates,
     VisualProjectionInput,
+    VisualProjectionRecord,
     VisualProjectionSet,
 )
 
@@ -180,6 +181,8 @@ def _crosscheck_item(
 
 
 def _status_for_items(items: list[VisualCrosscheckItem]) -> CrosscheckStatus:
+    if not items:
+        raise ValueError("visual crosscheck cannot aggregate an empty item list")
     statuses = {item.status for item in items}
     if "mismatch" in statuses:
         return "mismatch"
@@ -240,22 +243,20 @@ def _machine_input(
         relative = resolved.relative_to(base_dir.resolve()).as_posix()
     except ValueError as exc:
         raise ValueError("visual crosscheck machine input is outside the workspace") from exc
-    return VisualProjectionInput(
-        path=relative,
-        content_hash=sha256_bytes(resolved.read_bytes()),
-    )
+    try:
+        content = resolved.read_bytes()
+    except OSError as exc:
+        raise ValueError("visual crosscheck machine input is missing or unreadable") from exc
+    return VisualProjectionInput(path=relative, content_hash=sha256_bytes(content))
 
 
 def _projection_crosscheck(
     *,
-    projection: object,
+    projection: VisualProjectionRecord,
     expected_refdes: tuple[str, ...],
+    declared_coordinate_system: tuple[str, str, str],
     base_dir: Path,
 ) -> VisualProjectionCrosscheck:
-    from acd.schema.visual_projection import VisualProjectionRecord
-
-    if not isinstance(projection, VisualProjectionRecord):
-        raise ValueError("visual crosscheck projection record is invalid")
     path = (base_dir / projection.image_path).resolve()
     try:
         path.relative_to(base_dir.resolve())
@@ -275,34 +276,50 @@ def _projection_crosscheck(
     files = tuple(re.findall(r"\bFile:\s*([^\s<]+)", text))
     versions = tuple(re.findall(r"\bKiCad E\.D\.A\.\s+([^\s<]+)", text))
     expected_file = Path(projection.input_files[0].path).name
+    declared_unit, declared_origin, declared_y_axis = declared_coordinate_system
     items: list[VisualCrosscheckItem] = []
     items.append(
         _crosscheck_item(
             check_id="svg-units",
-            description="SVG width and height use millimetres",
-            expected="width=mm; height=mm",
+            description="SVG width and height use the declared board unit",
+            expected=(
+                f"declared_unit={declared_unit}; "
+                f"width={declared_unit}; height={declared_unit}"
+            ),
             actual=f"width={width_unit}; height={height_unit}",
-            machine_field="VisualProjectionRecord.resolution.width/height",
-            status="match" if width_unit == "mm" and height_unit == "mm" else "mismatch",
+            machine_field="ElectricalLane.board.unit",
+            status=(
+                "match"
+                if declared_unit == "mm"
+                and width_unit == declared_unit
+                and height_unit == declared_unit
+                else "mismatch"
+            ),
         )
     )
     items.append(
         _crosscheck_item(
             check_id="svg-origin",
-            description="SVG viewBox origin is zero",
-            expected="0 0",
-            actual=f"{view_box[0]} {view_box[1]}",
-            machine_field="ElectricalLane.board.origin",
-            status="match" if view_box_numbers[:2] == (Decimal("0"), Decimal("0")) else "mismatch",
+            description="SVG origin and y-axis match the declared board coordinate system",
+            expected=f"origin={declared_origin}; y_axis={declared_y_axis}",
+            actual=f"viewBox_origin={view_box[0]} {view_box[1]}; y_axis=down",
+            machine_field="ElectricalLane.board.origin; ElectricalLane.board.y_axis",
+            status=(
+                "match"
+                if declared_origin == "board_upper_left"
+                and declared_y_axis == "down"
+                and view_box_numbers[:2] == (Decimal("0"), Decimal("0"))
+                else "mismatch"
+            ),
         )
     )
     items.append(
         _crosscheck_item(
             check_id="svg-viewbox",
-            description="SVG viewBox dimensions match root dimensions",
+            description="SVG viewBox dimensions are self-consistent with the SVG root",
             expected=f"{width_value} {height_value}",
             actual=f"{view_box[2]} {view_box[3]}",
-            machine_field="ElectricalLane.board.width_mm/height_mm",
+            machine_field="SVG.root.width/height; SVG.root.viewBox",
             status=(
                 "match"
                 if view_box_numbers[2:] == (width_number, height_number)
@@ -429,13 +446,12 @@ def crosscheck_electrical_visual_projections(
         record = _projection_crosscheck(
             projection=projection,
             expected_refdes=tuple(component.refdes for component in lane.components),
+            declared_coordinate_system=(
+                lane.board.unit,
+                lane.board.origin,
+                lane.board.y_axis,
+            ),
             base_dir=base_dir,
-        )
-        record = record.model_copy(
-            update={
-                "items": [coverage_item, *record.items],
-                "status": _status_for_items([coverage_item, *record.items]),
-            }
         )
         records.append(record)
     if not records:
@@ -509,10 +525,12 @@ def crosscheck_electrical_visual_projections(
             _machine_input(path, base_dir=base_dir)
             for path in machine_inputs
         ],
+        set_items=[coverage_item],
         crosschecks=sorted(records, key=lambda record: record.projection_id),
         review_items=review_items,
         status=_status_for_items(
-            [
+            [coverage_item]
+            + [
                 item
                 for record in records
                 for item in record.items

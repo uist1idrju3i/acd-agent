@@ -378,13 +378,18 @@ HTTP(S)・`file:` URLは作成しない。`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`�
 画像経路を停止し、vision応答は`pass_evidence=false`のL3観測としてだけ保存する。
 
 8.5の照合レポートは、投影集合のidentity hash、machine-readable入力の相対パスとhash、
-投影ごとの照合項目、集約status、レビュー観点チェックリスト、canonical hash、
-`generated_at`を記録する。identity hashは`generated_at`を除外するため、同一入力から
-同一の照合結果とチェック記録を再生成できる。決定論的項目はSVGから直接読み取れる
-事実だけを`match`または`mismatch`とし、可読性、設計意図、注記の視認性、重なり・非表示
-要素による意味欠落、信号・電源系統の読み取り、層別SVGの意味的な銅層identityは
-`observation_required`としてunknownのまま記録する。unknownをmatchへ集約せず、
-mismatch・対象欠落・解析失敗・revision不一致はpipelineを停止する。
+投影集合全体の網羅性を記録するset item、投影ごとの照合項目、集約status、レビュー観点
+チェックリスト、canonical hash、`generated_at`を記録する。set itemは投影recordへ複製しない。
+identity hashは`generated_at`を除外するため、同一入力から同一の照合結果とチェック記録を
+再生成できる。決定論的項目はSVGから直接読み取れる事実だけを`match`または`mismatch`とする。
+SVGのwidth／height単位は`ElectricalLane.board.unit`と突き合わせ、KiCad SVGと対応付けられる
+宣言単位は`mm`だけとする。viewBoxの原点・y軸は`ElectricalLane.board.origin`／`y_axis`と
+突き合わせ、対応する宣言は`board_upper_left`／`down`だけとする。root寸法とviewBox寸法の
+自己整合は確認するが、SVGのA4ページ範囲を基板実寸法と解釈しない。基板寸法はSVGから
+決定論的に読めないため照合対象にしない。未対応の単位・原点・y軸宣言はfail-closedとする。
+可読性、設計意図、注記の視認性、重なり・非表示要素による意味欠落、信号・電源系統の読み取り、
+層別SVGの意味的な銅層identityは`observation_required`としてunknownのまま記録する。
+unknownをmatchへ集約せず、mismatch・対象欠落・解析失敗・revision不一致はpipelineを停止する。
 レポートは`pass_evidence=False`のL3観測であり、Evidence、fab claims、gate fields、
 `hashes.json`、fab packageへ追加しない。
 

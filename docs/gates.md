@@ -50,13 +50,18 @@ renderer不在や生成不能はfail-closedとし、投影欠落を「問題な�
 
 8.5の照合はGD1基板pipelineで8.3のSVG生成直後、hash manifest生成前に実行する。
 回路図ビューは1件、層別レイアウトビューは`BoardView.layers`からKiCad対応表で導出した
-銅層集合と完全一致しなければならない。SVGのwidth／height、viewBox原点・寸法、
-`File:` title block、`KiCad E.D.A.`版、正規化後hash、schematic refdesを機械可読投影と
-突き合わせる。欠落・余剰、mismatch、対象欠落、SVG解析不能、revision不一致は停止条件である。
+銅層集合と完全一致しなければならない。SVGのwidth／heightは
+`ElectricalLane.board.unit`（KiCad対応は`mm`のみ）、viewBox原点・y軸は
+`ElectricalLane.board.origin`／`y_axis`（対応は`board_upper_left`／`down`のみ）と突き合わせ、
+viewBox寸法はSVG rootのwidth／heightとの自己整合だけを確認する。基板の実寸法をSVGから
+決定論的に読めるとは扱わない。`File:` title block、`KiCad E.D.A.`版、正規化後hash、
+schematic refdesも機械可読投影と突き合わせる。欠落・余剰、mismatch、対象欠落、
+SVG解析不能、revision不一致、未対応の単位・原点・y軸宣言は停止条件である。
 銅層SVGの意味的な層identity、可読性、設計意図、重なりによる意味欠落、信号・電源系統の
 読み取りはSVGだけでは決定できないため、`observation_required`として記録し、unknownを
 合格扱いしない。照合レポートとチェックリストは`pass_evidence=False`であり、Evidence、
-fab claims、gate fields、`hashes.json`へ追加しない。
+fab claims、gate fields、`hashes.json`へ追加しない。投影集合全体の網羅性はレポートの
+set itemへ1回だけ記録し、投影単位のrecordへ重複記録しない。
 
 | ドメイン | 機械可読投影 | 視覚投影 |
 |---|---|---|

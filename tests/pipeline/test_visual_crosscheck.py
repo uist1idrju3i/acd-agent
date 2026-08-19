@@ -12,10 +12,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+import acd.pipeline.visual_projection as visual_projection
 from acd.core.board_model import BoardModel, CopperZone
 from acd.core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
 from acd.core.visual_projection import normalized_svg_sha256
-from acd.pipeline.visual_projection import crosscheck_electrical_visual_projections
+from acd.pipeline.visual_projection import (
+    crosscheck_electrical_visual_projections,
+)
 from acd.schema.visual_crosscheck import (
     VisualCrosscheckItem,
     VisualCrosscheckReport,
@@ -34,7 +37,7 @@ def _lane_and_board(layer_count: int = 2) -> tuple[ElectricalLane, BoardModel]:
         layers=layer_count,
         thickness_mm=1.6,
         unit="mm",
-        origin="upper-left",
+        origin="board_upper_left",
         y_axis="down",
         min_track_mm=0.2,
         min_clearance_mm=0.2,
@@ -281,6 +284,74 @@ def test_crosscheck_mismatches_fail_closed(tmp_path: Path, mutation: str) -> Non
         machine_inputs=(base_dir / "gd1.kicad_sch", base_dir / "routed/gd1.kicad_pcb"),
     )
     assert report.status == "mismatch"
+    if mutation == "missing_layer":
+        assert len(report.set_items) == 1
+        assert report.set_items[0].check_id == "projection-coverage"
+        assert report.set_items[0].status == "mismatch"
+        assert all(
+            item.check_id != "projection-coverage"
+            for record in report.crosschecks
+            for item in record.items
+        )
+
+
+def test_empty_deterministic_review_basis_fails_closed() -> None:
+    status_for_items = visual_projection.__dict__["_status_for_items"]
+    with pytest.raises(ValueError, match="empty item list"):
+        status_for_items([])
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("unit", "cm"),
+        ("origin", "center"),
+        ("y_axis", "up"),
+    ],
+)
+def test_unsupported_board_coordinate_declaration_mismatches(
+    tmp_path: Path,
+    field: str,
+    value: str,
+) -> None:
+    base_dir, projection_set, lane, board = _fixture(tmp_path)
+    if field == "unit":
+        lane = replace(lane, board=replace(lane.board, unit=value))
+    elif field == "origin":
+        lane = replace(lane, board=replace(lane.board, origin=value))
+    else:
+        lane = replace(lane, board=replace(lane.board, y_axis=value))
+    report = crosscheck_electrical_visual_projections(
+        project_name="gd1",
+        source_revision="r8",
+        visual_projection_set=projection_set,
+        lane=lane,
+        board=board,
+        base_dir=base_dir,
+        machine_inputs=(base_dir / "gd1.kicad_sch", base_dir / "routed/gd1.kicad_pcb"),
+    )
+    assert report.status == "mismatch"
+    check_id = "svg-units" if field == "unit" else "svg-origin"
+    assert any(
+        item.check_id == check_id and item.status == "mismatch"
+        for record in report.crosschecks
+        for item in record.items
+    )
+
+
+def test_missing_machine_input_fails_closed(tmp_path: Path) -> None:
+    base_dir, projection_set, lane, board = _fixture(tmp_path)
+    (base_dir / "gd1.kicad_sch").unlink()
+    with pytest.raises(ValueError, match="machine input is missing or unreadable"):
+        crosscheck_electrical_visual_projections(
+            project_name="gd1",
+            source_revision="r8",
+            visual_projection_set=projection_set,
+            lane=lane,
+            board=board,
+            base_dir=base_dir,
+            machine_inputs=(base_dir / "gd1.kicad_sch", base_dir / "routed/gd1.kicad_pcb"),
+        )
 
 
 def test_unknown_crosscheck_status_cannot_be_aggregated_as_match() -> None:
