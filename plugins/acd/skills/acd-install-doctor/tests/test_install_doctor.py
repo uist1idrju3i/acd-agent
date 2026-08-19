@@ -103,12 +103,9 @@ def _break_plugin_name(path: Path) -> None:
 
 
 def _break_asset_hash(path: Path) -> None:
-    path.write_text(
-        path.read_text(encoding="utf-8").replace(
-            '"asset_hash": "sha256:a', '"asset_hash": "sha256:b', 1
-        ),
-        encoding="utf-8",
-    )
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["entries"][0]["asset_hash"] = "sha256:" + "0" * 64
+    path.write_text(json.dumps(document), encoding="utf-8")
 
 
 def _break_canonical_hash(path: Path) -> None:
@@ -121,6 +118,17 @@ def _break_package_ref(path: Path) -> None:
     path.write_text("0" * 40 + "\n", encoding="utf-8")
 
 
+def _declare_agent_skill(path: Path) -> None:
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            "model: inherit",
+            "model: inherit\nskills:\n  - acd-placement-search",
+            1,
+        ),
+        encoding="utf-8",
+    )
+
+
 @pytest.mark.parametrize(
     ("relative", "mutate"),
     [
@@ -128,6 +136,7 @@ def _break_package_ref(path: Path) -> None:
         ("agents/prompt-manifest.json", _break_asset_hash),
         ("agents/prompt-manifest.json", _break_canonical_hash),
         ("skills/acd-package-ref.txt", _break_package_ref),
+        ("agents/acd-search.md", _declare_agent_skill),
     ],
 )
 def test_required_tree_drift_fails_closed(
@@ -143,6 +152,18 @@ def test_required_tree_drift_fails_closed(
         check["required"] and check["result"] in {"fail", "unknown"}
         for check in report["checks"]
     )
+
+
+def test_declared_agent_skill_is_reported_by_name(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    _declare_agent_skill(script.parents[3] / "agents" / "acd-search.md")
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    check = next(
+        check for check in report["checks"] if check["name"] == "agent skill declarations"
+    )
+    assert check["required"] and check["result"] == "fail"
+    assert "acd-placement-search" in check["detail"]
 
 
 def _docker_stub() -> str:

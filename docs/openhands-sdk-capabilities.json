@@ -761,13 +761,19 @@
       "representative_apis": ["AgentDefinition"],
       "use": "役割別sub-agent",
       "adoption": "採用",
-      "rationale": "`plugins/acd/agents/`で参照",
+      "rationale": "`plugins/acd/agents/`で参照。ADR-0039により`skills:`は宣言しない",
       "verification": "agent資材検査",      "references": [
         {
           "kind": "direct_import",
           "path": "src/acd/openhands/session/prompts.py",
           "symbol": "AgentDefinition",
           "note": "role別agent定義をSDKから読み込む"
+        },
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/safety/agent_skills.py",
+          "symbol": "AgentDefinition",
+          "note": "解決不能なsub-agent Skill宣言をfail-closedで拒否する"
         }
       ]
 

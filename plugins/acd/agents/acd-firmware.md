@@ -9,9 +9,6 @@ tools:
   - glob
   - task_tracker
   - task_tool_set
-skills:
-  - acd-firmware-esp32c3
-  - acd-design-rationale
 max_iteration_per_run: 12
 max_budget_per_run: 2.0
 permission_mode: confirm_risky
@@ -43,3 +40,11 @@ Develop and verify ESP32-C3 firmware against the canonical design graph. Firmwar
 delegated implementation work: build, static checks, unit tests, pin consistency, and virtual
 execution provide evidence, while ACD electrical and mechanical deterministic gates decide
 design acceptance. Missing tools, parse failures, unknown inputs, and unverified checks fail closed.
+
+## Skill references
+
+Plugin subagents receive no preloaded Skill context. Read the SKILL.md file before using
+a Skill and treat an unreadable Skill asset as fail-closed:
+
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-firmware-esp32c3/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-design-rationale/SKILL.md`

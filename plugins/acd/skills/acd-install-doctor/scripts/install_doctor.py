@@ -29,6 +29,7 @@ SEMVER_RE = re.compile(r"^v\d+\.\d+\.\d+$")
 HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 HOOK_PLUGIN_PATH_RE = re.compile(r"\$\{[^}]+\}(/[^\s'\";]+\.py)")
 HOOK_PATH_RE = re.compile(r"(?:^|\s)([A-Za-z0-9_.-]+/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.py)")
+LIST_ITEM_RE = re.compile(r"^\s+-\s*(\S+)\s*$")
 
 
 def _check(
@@ -630,6 +631,66 @@ def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
     )
 
 
+def _front_matter_list(text: str, key: str) -> list[str]:
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise ValueError("front-matter must start with ---")
+    try:
+        end = lines.index("---", 1)
+    except ValueError as exc:
+        raise ValueError("front-matter closing --- is missing") from exc
+    items: list[str] = []
+    inside = False
+    for line in lines[1:end]:
+        if not inside:
+            inside = line.strip() == f"{key}:"
+            continue
+        item = LIST_ITEM_RE.match(line)
+        if item is None:
+            break
+        items.append(item.group(1))
+    return items
+
+
+def _agent_skills_check(plugin_root: Path) -> dict[str, Any]:
+    """Reject declared subagent Skill names, which the SDK cannot resolve.
+
+    The SDK subagent registry resolves ``skills:`` names against the user and
+    project Skill stores only and raises when a name is absent, so a declared
+    plugin-bundled Skill name aborts conversation startup.
+    """
+    agents = sorted((plugin_root / "agents").glob("acd-*.md"))
+    if not agents:
+        return _check(
+            "agent skill declarations",
+            True,
+            "fail",
+            "agents/acd-*.md: no agent definition found",
+        )
+    errors: list[str] = []
+    for agent in agents:
+        try:
+            declared = _front_matter_list(agent.read_text(encoding="utf-8"), "skills")
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            errors.append(f"{_relative(agent, plugin_root)}: {exc}")
+            continue
+        if declared:
+            errors.append(
+                f"{_relative(agent, plugin_root)}: declares Skill names the SDK "
+                f"subagent registry cannot resolve: {', '.join(declared)}"
+            )
+    if errors:
+        return _check("agent skill declarations", True, "fail", "; ".join(errors))
+    return _check(
+        "agent skill declarations",
+        True,
+        "pass",
+        f"{len(agents)} agent definition(s) reference plugin Skill assets by path "
+        "and declare no subagent Skill names",
+        str(len(agents)),
+    )
+
+
 def _store_check(plugin_root: Path) -> dict[str, Any]:
     store = Path.home() / ".openhands" / "plugins" / "installed"
     try:
@@ -678,6 +739,7 @@ def diagnose() -> dict[str, Any]:
         _install_location_check(plugin_root),
         _assets_check(plugin_root),
         _prompt_manifest_check(plugin_root),
+        _agent_skills_check(plugin_root),
         _package_ref_check(plugin_root),
         _runtime_check(),
         _docker_check(),

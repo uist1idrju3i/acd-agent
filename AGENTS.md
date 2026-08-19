@@ -86,7 +86,8 @@ stop policy hookを置換しない。GoalControllerとconversation cancellation�
 再利用し、ConversationStatsはL3観測に限定する。goal結果やjudge評決をEvidenceへ昇格しない。
 lane並列は`tool_concurrency_limit`を明示した場合だけ有効化し、資源宣言不能時は
 SDKのmutexによる直列化へ倒す。task/delegateのsub-agentは親hookを継承しないため、
-ACD AgentDefinitionへ必須hookを明記し、SDKロード結果を検査する。
+ACD AgentDefinitionへ必須hookを明記し、SDKロード結果を検査する。AgentDefinitionは
+`skills:`を宣言せず、plugin同梱SkillのSKILL.mdをpromptからパス参照する（ADR-0039）。
 browser_useは既定無効で、明示有効時だけChromiumの利用可能性を検査してL2探索補助として
 登録する。browser由来の観測をEvidenceへ昇格させず、決定論的API取得を置き換えない。
 workflowは任意Python scriptがhook境界の外で実行されうるため不採用（将来再検討）とする。
