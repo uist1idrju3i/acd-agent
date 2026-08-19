@@ -26,7 +26,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import cast
+from typing import Literal, cast
 
 from acd.adapters.freerouting.dsn import export_dsn
 from acd.adapters.freerouting.router import FreeroutingRunner
@@ -74,9 +74,14 @@ from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
+from acd.pipeline.visual_projection import generate_electrical_visual_projections
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
+from acd.schema.visual_projection import (
+    ElectricalVisualProjectionGates,
+    ElectricalVisualProjectionPredicate,
+)
 
 GERBER_LAYERS = [
     "F.Cu",
@@ -88,6 +93,24 @@ GERBER_LAYERS = [
     "F.Paste",
     "Edge.Cuts",
 ]
+
+
+def _visual_silkscreen_status(
+    value: object,
+) -> Literal["measured_pass", "fail"]:
+    if value == "measured_pass":
+        return "measured_pass"
+    if value == "fail":
+        return "fail"
+    raise ValueError("silkscreen status is invalid for visual projection")
+
+
+def _visual_dfm_status(value: object) -> Literal["pass", "fail"]:
+    if value == "pass":
+        return "pass"
+    if value == "fail":
+        return "fail"
+    raise ValueError("DFM status is invalid for visual projection")
 
 
 def _run_ordered_arms(
@@ -536,6 +559,7 @@ def run_pipeline(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
     out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = out_dir.resolve()
     validate_and_project_rationale(graph, fixture_dir, out_dir)
     print("[0/10] rationale coverage passed")
     revision = graph.revision
@@ -1166,6 +1190,36 @@ def run_pipeline(
     evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
     print(f"[10/10] electrical evidence recorded: {evidence_path}")
 
+    generate_electrical_visual_projections(
+        project_name=name,
+        out_dir=out_dir,
+        source_revision=revision,
+        schematic=project.schematic,
+        routed_board=routed_path,
+        lane=lane,
+        board=project.board_projection.model,
+        gates=ElectricalVisualProjectionGates(
+            erc_errors=erc.error_count,
+            erc_unconnected=len(erc.unconnected_items),
+            routing_converged=route_run.envelope.convergence_state == "converged",
+            drc_errors=drc.error_count,
+            drc_unconnected=len(drc.unconnected_items),
+            independent_reload=True,
+            silkscreen_status=_visual_silkscreen_status(silk_evidence.get("status")),
+            dfm_status=_visual_dfm_status(dfm_report.get("status")),
+            design_predicates=tuple(
+                ElectricalVisualProjectionPredicate.model_validate(
+                    predicate.model_dump(mode="json")
+                )
+                for predicate in design_predicates
+            ),
+        ),
+    )
+    print(
+        "[10/10] electrical visual projections recorded: "
+        f"{out_dir / 'visual-projections-electrical.json'}"
+    )
+
     hashes: dict[str, str] = {}
     hash_paths = [
         project.schematic,
@@ -1186,7 +1240,9 @@ def run_pipeline(
     ]
     for path in hash_paths:
         hashes[str(path.relative_to(out_dir))] = (
-            zip_content_hash(path) if path.suffix == ".zip" else normalized_hash(path)
+            zip_content_hash(path)
+            if path.suffix == ".zip"
+            else normalized_hash(path)
         )
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")

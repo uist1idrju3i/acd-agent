@@ -340,6 +340,29 @@ command -v java
 command -v freerouting
 ```
 
+### KiCad SVG視覚投影の一次確認
+
+KiCad CLI 10.0.5の`sch export svg`と`pcb export svg`は、SVGの`<title>`要素へ
+出力ファイル名と秒精度のISO 8601生成時刻を埋め込む。このため同一入力でも生バイト列は
+決定的ではないことを一次確認した。8.2では、`<title>`要素が想定形で1個だけ存在する場合に
+要素全体を固定文字列へ置換する`kicad-svg-title-v1`正規化規則を採用した。要素の不在、
+複数、想定形との不一致、SVGルートのwidth／height単位またはviewBoxの測定不能は
+fail-closedとする。正規化後hashは再生成時にも照合し、renderer版は`kicad-cli version`
+から取得する。実物fixtureは`kicad-cli version`が10.0.5の環境で、
+`kicad-cli pcb export svg --layers F.Cu -o fixtures/visual_projection/kicad/gd1-front-copper.svg out/gd1-silkscreen-resolve/iteration-1/gd1.kicad_pcb`
+と、出力先だけを`gd1-front-copper-reproduced.svg`へ変えた同じコマンドを実行して生成した。
+出力ファイル名が`<title>`へ入るため、この名前差が生バイト列の非決定性の由来になる。
+回路図SVGはKiCadがsheet名をファイル名にして出力するため、単一sheetの期待出力を投影パスへ
+renameする。複数sheetによる複数SVG出力は未対応で、追加されたSVGを検出した時点でfail-closedとする。
+8.3ではGD1電気laneに限り、必須ゲート通過後に回路図ビューと宣言銅層ごとの層別レイアウト
+ビューを`out_dir/visual/`へ既定生成し、`visual-projections-electrical.json`へL3観測として
+記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・
+同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneの断面・干渉ビューは
+renderer未実装のため後続フェーズで扱い、AI受け渡しと機械可読投影との照合は未実装である。
+8.3の層導出はgraphで宣言された`BoardView.layers`の層数をKiCadの銅層名へ決定論的に
+対応させる。現在の対応表は2層（`F.Cu`／`B.Cu`）と4層（`F.Cu`／`In1.Cu`／`In2.Cu`／`B.Cu`）
+に限り、0層、1層、奇数層、その他の未対応層数はfail-closedとする。
+
 ## 検証
 
 検証段階とコマンド列は`uv run python scripts/verify_all.py --list`で確認できる

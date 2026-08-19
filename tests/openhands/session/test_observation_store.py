@@ -114,6 +114,20 @@ def test_observation_store_rejects_evidence_payload() -> None:
         )
 
 
+def test_observation_store_accepts_visual_projection_observation() -> None:
+    store = AcdObservationStore(InMemoryFileStore())
+    payload = ObservationPayload.model_validate(
+        {
+            "artifact_kind": "visual_projection_set",
+            "pass_evidence": False,
+            "source_revision": "r8",
+            "projections": [],
+        }
+    )
+    record = store.write("visual.json", payload)
+    assert record.observation_kind == "visual_projection_set"
+
+
 def test_explicit_store_supports_all_observation_writers() -> None:
     file_store = InMemoryFileStore()
     write_conversation_metrics(

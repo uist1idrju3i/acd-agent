@@ -16,6 +16,8 @@ ObservationArtifactKind = Literal[
     "goal_result",
     "memory_context_observation",
     "model_routing_observation",
+    "visual_projection",
+    "visual_projection_set",
 ]
 
 
