@@ -115,3 +115,6 @@
 | 投影レビューPDCA | 入力と工程を選ぶPlan、投影生成Do、AI所見Check、ゲート確認Actのループ。 |
 | 自動 | 人の操作なしに処理する性質。異常時に安全側へ止まる自働と区別する。 |
 | デカップリング配置段 | `decoupling_target`から対象ICを決め、電源pinまでの距離を目的に配置する段。 |
+| mechanical section view | ゲート通過後のauthoritative assembly STEPを宣言したXY平面とoffsetで切断し、XY平面へ移して生成する機械laneのL3 SVG観測。 |
+| mechanical interference view | authoritative enclosure STEPとMechanicalLaneのcomponent bodyの交差領域を別layerで描き、ゲート実測最大干渉体積と突合するL3 SVG観測。 |
+| mechanical visual renderer provenance | build123d/OCP版、STEP入力hash、revision、正規化規則、出力hash、再生成結果を保持する機械視覚投影の出所情報。 |

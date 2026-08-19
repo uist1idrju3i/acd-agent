@@ -15,8 +15,8 @@ ID別negative testで整備済みである。DRC結果のToolEnvelope input hash
 視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
-断面・干渉ビューはrenderer未実装のため後続フェーズで扱う。AI受け渡しと機械可読電気lane投影との
-照合、レビュー観点記録まで実装済みである。
+断面・干渉ビューrenderer、AI受け渡しと機械可読電気lane投影との照合、レビュー観点記録まで
+実装済みである。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
@@ -393,10 +393,10 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | 電気laneの決定論的ゲート通過後の投影成果物、現行revision。機械laneの断面・干渉ビューはrenderer未実装のため対象外 |
-| 実装 | GD1基板pipelineのERC、routing収束、DRC、独立再読込、silkscreen、DFM、設計述語の決定論的ゲート通過後に電気laneの回路図ビューと宣言銅層ごとの層別レイアウトビューを既定生成し、投影集合をL3 observationとして書き出す。order readinessは視覚投影の前提に含めない。生成失敗はpipelineの停止条件とし、Evidenceへは昇格させない |
-| 正常系 | GD1基板pipelineの完走時に電気laneの投影集合が観測として残る。機械laneは後続フェーズで扱う |
-| negative/fail-closed | ゲート未通過での生成、投影欠落の「問題なし」扱い、Evidence側への書込みを拒否する |
+| 入力と出所 | 電気laneおよび機械laneの決定論的ゲート通過後のauthoritative投影成果物、現行revision |
+| 実装 | GD1基板pipelineのERC、routing収束、DRC、独立再読込、silkscreen、DFM、設計述語の決定論的ゲート通過後に電気laneの回路図ビューと宣言銅層ごとの層別レイアウトビューを既定生成し、筐体pipelineの機械ゲート通過後にauthoritative assembly STEPから機械laneの断面・干渉ビューを既定生成する。各投影集合をL3 observationとして書き出し、order readinessは視覚投影の前提に含めない。生成失敗はpipelineの停止条件とし、Evidenceへは昇格させない |
+| 正常系 | GD1基板・筐体pipelineの完走時に各laneの投影集合が観測として残り、機械laneは断面・干渉SVGを生成する |
+| negative/fail-closed | ゲート未通過での生成、renderer不在・版不明、authoritative STEP不在・hash/revision不一致、断面不交差・退化、干渉領域とゲート実測体積の不一致、投影欠落の「問題なし」扱い、Evidence側への書込みを拒否する |
 | 再現性 | `generated_at`を除いた投影内容からidentity hashを計算し、同一入力・同一renderer版で同一のidentity hashを再生成できる |
 
 ### 8.4 AIへの受け渡し境界

@@ -14,6 +14,7 @@ from acd.adapters.cad.mechanical import (
     run_mechanical_gates,
 )
 from acd.adapters.cad.project import project_enclosure
+from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.core.mechanical import extract_mechanical_lane
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
@@ -55,6 +56,13 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         shell_step_path=projection.shell_step_path,
         lid_step_path=projection.lid_step_path,
         assembly_step_path=projection.assembly_step_path,
+    )
+    visual_projections = generate_mechanical_visual_projections(
+        projection=projection,
+        lane=lane,
+        target_revision=graph.revision,
+        gate_report=gate_report,
+        out_dir=out_dir,
     )
     print(
         "[3/4] mechanical gates passed: "
@@ -177,6 +185,9 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         "shell_bbox_mm": artifact_report.shell_bbox_mm,
         "lid_bbox_mm": artifact_report.lid_bbox_mm,
         "assembly_bbox_mm": artifact_report.assembly_bbox_mm,
+        "visual_projections": "visual-projections-mechanical.json",
+        "visual_projection_identity_hash": visual_projections.identity_hash,
+        "visual_projection_canonical_hash": visual_projections.canonical_hash,
     }
     print(f"[4/4] mechanical evidence recorded: {evidence_path}")
     return summary

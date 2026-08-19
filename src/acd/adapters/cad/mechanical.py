@@ -130,7 +130,7 @@ def measure_enclosure_artifacts(
     )
 
 
-def _body_shape(
+def build_component_body_shape(
     body: ComponentBodyView, board_thickness_mm: float, board_width_mm: float, board_depth_mm: float
 ) -> Any:
     build123d: Any = importlib.import_module("build123d")
@@ -201,7 +201,7 @@ def run_mechanical_gates(
     for body in lane.component_bodies:
         if body.body_type == "none":
             continue
-        body_shape = _body_shape(
+        body_shape = build_component_body_shape(
             body,
             enclosure.wall_thickness_mm + enclosure.internal_clearance_mm,
             lane.outline.width_mm,

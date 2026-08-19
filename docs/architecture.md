@@ -14,7 +14,9 @@ Accepted ADRの索引は[`README.md`](README.md)、文書統治は
 
 設計グラフとプロファイルはPydantic契約で検証する入力ファイルであり、git commitと
 ともに設計の正である。KiCad project、Gerber/drill、BOM/CPL、STEP/3MF、evidenceは
-入力から生成する派生投影であり、投影結果を入力へ逆流させない。設計判断の理由は
+入力から生成する派生投影であり、投影結果を入力へ逆流させない。機械laneの断面・干渉
+rendererはgraphから形状を再生成せず、機械ゲートが検証したauthoritative STEPを読み込む。
+視覚投影はL3観測であり、Evidence、gate、`hashes.json`のauthorityを持たない。設計判断の理由は
 typed `rationale.json`へ記録し、graphの必須属性に対するcoverageを決定論的に検査する。
 
 ```text

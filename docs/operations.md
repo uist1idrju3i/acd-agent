@@ -433,11 +433,16 @@ fail-closedとする。正規化後hashは再生成時にも照合し、renderer
 出力ファイル名が`<title>`へ入るため、この名前差が生バイト列の非決定性の由来になる。
 回路図SVGはKiCadがsheet名をファイル名にして出力するため、単一sheetの期待出力を投影パスへ
 renameする。複数sheetによる複数SVG出力は未対応で、追加されたSVGを検出した時点でfail-closedとする。
-8.3ではGD1電気laneに限り、必須ゲート通過後に回路図ビューと宣言銅層ごとの層別レイアウト
-ビューを`out_dir/visual/`へ既定生成し、`visual-projections-electrical.json`へL3観測として
-記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・
-同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneの断面・干渉ビューは
-renderer未実装のため後続フェーズで扱う。8.5では電気laneに限り、同一revisionの
+8.3ではGD1の各laneで、必須ゲート通過後にlane固有の視覚投影を
+`out_dir/visual/`へ既定生成する（電気laneは回路図ビューと宣言銅層ごとの層別レイアウト
+ビューを`visual-projections-electrical.json`へ、機械laneは断面・干渉ビューを
+`visual-projections-mechanical.json`へL3観測として
+記録する）。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、
+同一入力・同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneでは
+authoritativeな`enclosure-assembly.step`を`build123d`で断面・干渉SVGへ投影する。
+断面は宣言したXY平面とoffsetを記録し、
+干渉体積は機械ゲートの`measured_max_interference_volume_mm3`を転記してビューの
+干渉領域有無と突合する。8.5では電気laneに限り、同一revisionの
 `ElectricalLane`／`BoardModel`とSVGを決定論的に照合し、
 `visual-crosscheck-electrical.json`へL3観測として記録する。この照合は8.3のSVG投影生成直後、
 `hashes.json`生成前に既定実行される。

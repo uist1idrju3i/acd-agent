@@ -1,7 +1,13 @@
 {
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
   "source_revision": "r8",
   "projections": [
     {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
       "projection_id": "schematic",
       "projection_type": "schematic_view",
       "domain": "electrical",
@@ -15,26 +21,37 @@
       "renderer": {
         "renderer_type": "kicad-cli",
         "tool_name": "kicad-cli",
-        "tool_version": "10.0.5"
+        "tool_version": "10.0.5",
+        "output_width": null
       },
       "media_type": "image/svg+xml",
       "resolution": {
         "width": "29.9974mm",
         "height": "24.9936mm",
-        "view_box": [0.0, 0.0, 29.9974, 24.9936]
+        "view_box": [
+          0.0,
+          0.0,
+          29.9974,
+          24.9936
+        ]
       },
       "normalization_rule_id": "kicad-svg-title-v1",
       "normalization_rule_description": "Replace one volatile KiCad SVG title.",
       "image_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-      "generated_at": "2026-08-19T00:00:00+00:00",
+      "generated_at": "2026-08-19T00:00:00Z",
       "regeneration_check": {
         "status": "reproduced",
         "first_image_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-        "second_image_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        "second_image_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "reason": null
       },
-      "image_path": "out/visual/schematic.svg"
+      "image_path": "out/visual/schematic.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
     }
   ],
-  "identity_hash": "sha256:2ce5de459b9cd834c18f57a819b10cdf524431908dd4068d9c4e46f38d11b281",
-  "canonical_hash": "sha256:d4d2dde6e29089b3f4a9adc60278c316c5389e78bd5f06d94cfceec28463eb4c"
+  "identity_hash": "sha256:0b698ed07c237fe6896b6bd6ed2416ceb6f30971fbbdb72b8bbddc0de991151c",
+  "canonical_hash": "sha256:b723b86d75bd3696a2e3d3829bd6c01c0a81d11351dcc149694d287cfcfc9894"
 }
