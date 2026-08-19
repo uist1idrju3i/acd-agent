@@ -359,9 +359,8 @@ ACD機能として実装していない境界は、供給者からの価格・�
 実providerへの送信と実発注完了、量産対応である。マイルストーン5.1〜5.4の実機Evidenceの
 schema契約・受領取り込み・FW書き込み・機能測定・proposal生成、および7.1〜7.5の見積record
 読取・総発注額合算・発注前最終ゲート・side-effect journal・dry-runとreal-order disabled boundary
-は実装済みである。実機Evidenceのschema契約と分類だけは
-マイルストーン5.1、製造・組立受領の取り込みはマイルストーン5.2で実装済みである。
-受領取り込みは`execution_context="host"`の`PhysicalEvidence`を入力更新の根拠として
+は実装済みである。
+5.2の受領取り込みは`execution_context="host"`の`PhysicalEvidence`を入力更新の根拠として
 生成するが、`supports_authoritative_pass()`は常に`False`であり、決定論的ゲートの
 合格側へ昇格しない。
 測定結果の入力反映は5.4のproposal生成と適用後validatorに限定し、反映policyに
