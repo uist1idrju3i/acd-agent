@@ -25,11 +25,11 @@ LDO_INPUT_V = 5.0
 LDO_OUTPUT_V = 3.3
 LARGE_DECOUPLING_UF = 10.0
 SMALL_DECOUPLING_UF = 0.1
-# Lead-confirmed maximum pad distance for decoupling capacitors at or below
-# 1 uF; the threshold is 3.0 mm.
+# Small decoupling capacitors serve high-frequency transients, so they must be
+# close to the target power pads; the maximum distance is 3.0 mm at or below 1 uF.
 SMALL_CAP_DISTANCE_MM = 3.0
-# Lead-confirmed maximum pad distance for decoupling capacitors above 1 uF;
-# the threshold is 8.0 mm.
+# Bulk capacitors provide rail energy storage and can be placed farther along
+# the rail; the maximum distance is 8.0 mm above 1 uF.
 LARGE_CAP_DISTANCE_MM = 8.0
 # 0.02 uF represents the +/-20% range used to classify 100 nF-class capacitors.
 SMALL_DECOUPLING_TOLERANCE_UF = 0.02
