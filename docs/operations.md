@@ -223,7 +223,7 @@ uv run python scripts/pre_order_gate.py \
   --order-total out/order-total.json \
   --evaluated-at 2026-08-14T00:00:00Z \
   --rerun-authoritative \
-  --image ghcr.io/uist1idrju3i/acd-server@sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def
+  --image ghcr.io/uist1idrju3i/acd-server@sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b
 ```
 
 `--local-provisional`はこのCLIの選択肢ではなく、hostの`LocalWorkspace`結果は
@@ -436,11 +436,11 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 
 `publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
 digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
-初回実行で得たbaseとderivedは独立に記録し、base
-`sha256:e64405a15e69991063c688a80b4f215bdc3dbfb8b4fb480b3ef3484f017e1395`とderived
-`sha256:a18a56564b7c713b45052ab8c296b59ffcd7fc221f4ed1d0564f4c934b853def`を同一とは扱わない。
-derived digestは`docker/image-digests.json`の`acd_server`へ転記済みであり、CIとrunnerは
-このserver digestをpullして実行する。
+Cairo追加後のbase
+`sha256:daf2908f4742e5a0d29ad3bcef187b9b11832701bf6b38fd2e2150b94bf1e301`からderiveした
+server image `sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b`を
+lockへ記録済みであり、baseとderivedは独立に記録する。toolsとserverのdigestは同一とは
+扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
 
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
 Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
@@ -494,9 +494,11 @@ projection recordの`interference_region_present=false`と体積0で観測する
 に限り、0層、1層、奇数層、その他の未対応層数はfail-closedとする。
 8.4では必要時に8.3の正規化前SVGをCairoSVG 2.9.0で幅1600pxへラスタライズし、
 8.3の`visual-projections-electrical.json`を変更せず、
-`visual-projections-electrical-raster.json`へPNG派生集合を書き出す。PNG派生は
-pipelineの既定出力ではなくon-demandのAI受け渡し経路である。acd-tools imageのlibcairo2存在は
-未検証で、image再publishとdigest更新までcontainer側で保証できないためである。生成PNGのIHDRから
+`visual-projections-electrical-raster.json`へPNG派生集合を書き出す。acd-tools imageには
+libcairo2を固定し、container内でPNG派生可能であることをraster testで検証済みである。
+PNG派生はAI受け渡し時のon-demand経路であり、合否権限を持たない投影を既定成果物へ増やさないため、
+pipelineの既定出力には含めない。lock済みacd-server imageもCairo追加後のtools imageから
+deriveしており、container経路でPNG派生できる。生成PNGのIHDRから
 解像度を測定する。PNGは`png-identity-v1`（正規化なし、生PNG bytesのSHA-256）で記録し、
 2回の生成hashが一致しない場合、入力SVGの正規化後hashがrecordと一致しない場合、または
 CairoSVGのimport・版取得・libcairo依存が利用できない場合はfail-closedとする。

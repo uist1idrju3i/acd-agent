@@ -34,9 +34,10 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 `mechanical_section_view`はauthoritative assembly STEPの宣言断面、
 `mechanical_interference_view`は筐体とcomponent bodyの交差観測を表す。
 8.3のSVG投影はpipelineのゲート通過後に既定生成するが、8.4のPNG派生とAI受け渡しは
-必要時のon-demand経路であり、合否権限は持たない。acd-tools imageのlibcairo2存在は未検証で、
-image再publishとdigest更新までcontainer側で保証できないため、PNG派生をpipelineの既定出力へ
-配線していない。
+必要時のon-demand経路であり、合否権限は持たない。acd-tools imageにはlibcairo2を固定し、
+container内でPNG派生可能であることを検証済みである。ただし、AI受け渡し時のon-demand経路で
+あり、合否権限を持たない投影を既定成果物へ増やさないため、PNG派生をpipelineの既定出力へ
+配線していない。lock済みacd-server imageもCairo追加後のtools image由来である。
 視覚投影経路と画像provenance schemaのうち、8.1〜8.2で回路図ビューと層別レイアウトビュー
 の生成・正規化・再生成検査・記録を実装した。現行実装は機械可読投影と独立測定に加え、
 これらの視覚投影をL3観測として扱う。8.3ではGD1基板・筐体の必須ゲート通過後に
