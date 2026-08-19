@@ -38,7 +38,7 @@
       "normalization_rule_id": "build123d-svg-v1",
       "normalization_rule_description": "Build123d ExportSVG with millimeter units, fixed precision, zero margin, and fit_to_stroke disabled.",
       "image_hash": "sha256:59b566f8ea319e47df0b9db111d37c5c49220882d4995f5cf3456934ff6a626d",
-      "generated_at": "2026-08-19T13:36:29.794154Z",
+      "generated_at": "2026-08-19T13:46:54.079018Z",
       "regeneration_check": {
         "status": "reproduced",
         "first_image_hash": "sha256:59b566f8ea319e47df0b9db111d37c5c49220882d4995f5cf3456934ff6a626d",
@@ -47,7 +47,7 @@
       },
       "image_path": "visual/gd1-mechanical-interference.svg",
       "section_plane_id": "xy",
-      "section_offset_mm": 2.000001,
+      "section_offset_mm": 4.0,
       "interference_volume_mm3": 0.0,
       "interference_region_present": true
     },
@@ -84,21 +84,21 @@
       },
       "normalization_rule_id": "build123d-svg-v1",
       "normalization_rule_description": "Build123d ExportSVG with millimeter units, fixed precision, zero margin, and fit_to_stroke disabled.",
-      "image_hash": "sha256:9b9c38d2d105fca8404f34a58ed8fe05b2c4b764f1c1edbe27ed9a7e099bfb12",
-      "generated_at": "2026-08-19T13:36:29.663851Z",
+      "image_hash": "sha256:42878361afe51c9a3008e66c3698c84b3a2163085476a68f29290958d6c3b76a",
+      "generated_at": "2026-08-19T13:46:53.949090Z",
       "regeneration_check": {
         "status": "reproduced",
-        "first_image_hash": "sha256:9b9c38d2d105fca8404f34a58ed8fe05b2c4b764f1c1edbe27ed9a7e099bfb12",
-        "second_image_hash": "sha256:9b9c38d2d105fca8404f34a58ed8fe05b2c4b764f1c1edbe27ed9a7e099bfb12",
+        "first_image_hash": "sha256:42878361afe51c9a3008e66c3698c84b3a2163085476a68f29290958d6c3b76a",
+        "second_image_hash": "sha256:42878361afe51c9a3008e66c3698c84b3a2163085476a68f29290958d6c3b76a",
         "reason": null
       },
       "image_path": "visual/gd1-mechanical-section.svg",
       "section_plane_id": "xy",
-      "section_offset_mm": 2.000001,
+      "section_offset_mm": 4.0,
       "interference_volume_mm3": null,
       "interference_region_present": null
     }
   ],
-  "identity_hash": "sha256:31048f03c21b505375d4b9cb82f9032029ebdefff3e4db65e4b7574c7613da70",
-  "canonical_hash": "sha256:b2f021ce4d036a2fd893bb0e2590355495c8bf4ef67c72e212c6e388772163f9"
+  "identity_hash": "sha256:dc4181f052c9174c10fa0ca3b3ca756ebd5f0cfa3f368e99fce7fb03c18a7fec",
+  "canonical_hash": "sha256:3b10ebdb47253ca88a580932f9e929594447e548e6d0f4057a6d72b3e649e819"
 }

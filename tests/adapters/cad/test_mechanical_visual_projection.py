@@ -66,6 +66,8 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
 ) -> None:
     first = _generate(tmp_path / "first")
     second = _generate(tmp_path / "second")
+    graph, _ = _fixture()
+    lane = extract_mechanical_lane(graph)
 
     assert [item.projection_type for item in first.projections] == [
         "mechanical_interference_view",
@@ -84,13 +86,16 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
     section_svg = (
         tmp_path / "first/visual/gd1-mechanical-section.svg"
     ).read_text(encoding="utf-8")
-    assert section_svg.count("<line") == 13
+    assert section_svg.count("<line") == 12
     assert section_svg.count("<circle") == 4
     assert 'x1="-16.0" y1="13.5" x2="16.0" y2="13.5"' in section_svg
-    assert 'x1="-4.5" y1="-15.5" x2="4.5" y2="-15.5"' in section_svg
+    assert 'x1="-4.5" y1="-13.5" x2="-4.5" y2="-15.5"' in section_svg
+    assert first.projections[1].section_offset_mm == (
+        lane.enclosure.wall_thickness_mm + lane.enclosure.standoff_height_mm / 2
+    )
 
 
-def test_mechanical_renderer_rejects_unsupported_or_non_intersecting_sections(
+def test_mechanical_renderer_rejects_unsupported_section_plane(
     tmp_path: Path,
 ) -> None:
     graph, lane, projection, _gates = _authoritative(tmp_path / "authoritative")
@@ -103,16 +108,6 @@ def test_mechanical_renderer_rejects_unsupported_or_non_intersecting_sections(
             target_revision=graph.revision,
             output_path=tmp_path / "unsupported.svg",
             section_plane_id="xz",
-            section_offset_mm=2.0,
-        )
-    with pytest.raises(MechanicalVisualProjectionError, match="does not intersect"):
-        renderer.render_section(
-            projection=projection,
-            lane=lane,
-            target_revision=graph.revision,
-            output_path=tmp_path / "empty.svg",
-            section_plane_id="xy",
-            section_offset_mm=100.0,
         )
 
 
@@ -201,7 +196,7 @@ def test_mechanical_renderer_records_positive_interference_section(
     )
 
     assert record.section_plane_id == "xy"
-    assert record.section_offset_mm == expected_offset + 1e-6
+    assert record.section_offset_mm == expected_offset
     assert record.interference_region_present is True
     assert record.interference_volume_mm3 == measured_volume
     assert record.regeneration_check.first_image_hash == record.regeneration_check.second_image_hash
@@ -239,7 +234,29 @@ def test_mechanical_renderer_rejects_section_without_declared_features(
             target_revision=graph.revision,
             output_path=tmp_path / "authoritative/missing-features.svg",
             section_plane_id="xy",
-            section_offset_mm=lane.enclosure.wall_thickness_mm,
+        )
+
+
+def test_mechanical_renderer_rejects_invalid_declared_section_offset(
+    tmp_path: Path,
+) -> None:
+    graph, lane, projection, _gates = _authoritative(tmp_path / "authoritative")
+    invalid_lane = replace(
+        lane,
+        enclosure=replace(lane.enclosure, standoff_height_mm=0.0),
+    )
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / "authoritative")
+
+    with pytest.raises(
+        MechanicalVisualProjectionError,
+        match="section offset declarations are invalid",
+    ):
+        renderer.render_section(
+            projection=projection,
+            lane=invalid_lane,
+            target_revision=graph.revision,
+            output_path=tmp_path / "authoritative/invalid-offset.svg",
+            section_plane_id="xy",
         )
 
 

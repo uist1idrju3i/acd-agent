@@ -440,7 +440,9 @@ renameする。複数sheetによる複数SVG出力は未対応で、追加され
 記録する）。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、
 同一入力・同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneでは
 authoritativeな`enclosure-assembly.step`を`build123d`で断面・干渉SVGへ投影する。
-断面は宣言したXY平面とoffsetを記録し、
+断面のXY offsetは`wall_thickness_mm + standoff_height_mm / 2`をMechanicalLaneから
+決定論的に導出して記録し、キャビティ床とcoplanarになる位置は使用しない。断面は
+宣言したXY平面とこのoffsetを記録し、
 干渉体積は機械ゲートの`measured_max_interference_volume_mm3`を転記してビューの
 干渉領域有無と突合する。干渉領域がない場合はSVGへ空layerを後付けせず、
 projection recordの`interference_region_present=false`と体積0で観測する。8.5では電気laneに限り、
