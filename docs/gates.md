@@ -45,8 +45,9 @@ SVGを既定生成して投影集合を書き出す。機械laneもゲート通�
 断面・干渉ビューを生成し、`visual-projections-mechanical.json`へL3観測として記録する。
 8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
 8.5の機械可読投影との照合は、8.3の視覚投影生成直後に電気laneと機械laneで実行する。
-8.6の追加投影種別のうち配置図・stackup図・ブロック図・電源ツリー図を実装済み、FW状態遷移/
-シーケンス図は未実装である。電源ツリー図の出所はDesign Graphの
+8.6の追加投影種別のうち配置図・stackup図・ブロック図・電源ツリー図と、FW状態遷移/
+シーケンスの機械可読宣言を実装済み、FW状態遷移・シーケンス図の投影と8.5 FW lane照合は
+未実装である。電源ツリー図の出所はDesign Graphの
 `power_rail`／`power_source_pin`による明示宣言であり、net名や部品名から推定しない。
 FW laneの視覚投影照合は未実装である。
 8.3の視覚投影生成前提はERC、routing収束、DRC、独立再読込、silkscreen、DFM、

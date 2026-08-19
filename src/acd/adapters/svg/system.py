@@ -51,6 +51,10 @@ _BLOCK_OMIT_KINDS = frozenset(
         "mechanical.silk_graphic",
         # Firmware pin assignments are not firmware module blocks.
         "firmware.pin_assignment",
+        # Firmware state and sequence nodes belong to dedicated FW projections.
+        "firmware.state",
+        "firmware.state_transition",
+        "firmware.sequence_step",
         # Evidence anchors are provenance references, not system blocks.
         "evidence.anchor",
     }
@@ -83,6 +87,10 @@ def _block_edges(
 ) -> list[tuple[str, str]]:
     edges: set[tuple[str, str]] = set()
     for node in nodes.values():
+        if not node.depends_on and node.kind == "electrical.board":
+            raise SvgVisualProjectionError(
+                f"system block node has empty depends_on: {node.id!r}"
+            )
         for dependency in sorted(node.depends_on):
             try:
                 target = graph.node_by_id(dependency)

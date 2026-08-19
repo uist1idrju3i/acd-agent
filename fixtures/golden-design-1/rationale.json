@@ -3134,6 +3134,162 @@
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-firmware-module-declaration",
+      "decision_kind": "firmware_pin",
+      "subject_nodes": [
+        "fw.module.main"
+      ],
+      "subject_attrs": [
+        "mcu_component",
+        "entry_state"
+      ],
+      "subject_hash": "sha256:86fac89d302d074b2adf97687c3ea9d3681880acc6affb2125e0e19c6950d5df",
+      "decision": "Declare the GD1 main firmware module, MCU component, and entry state.",
+      "justification": "§9.1の機能範囲をDesign Graphから決定論的に抽出するため、MCUと初期状態の関係を機械可読に宣言する。状態遷移・シーケンス投影は非権威のL3観測であり、Evidenceやゲート判定の根拠にはしない。",
+      "driving_requirements": [
+        "req.gd1-req-008"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The module and entry-state declarations are the required graph source.",
+      "assumptions": [],
+      "risks": [
+        "Changing the MCU or entry state requires regenerating firmware observations."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-19T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-firmware-state-declarations",
+      "decision_kind": "firmware_pin",
+      "subject_nodes": [
+        "fw.state.boot",
+        "fw.state.fault",
+        "fw.state.measure",
+        "fw.state.report",
+        "fw.state.sensor_init"
+      ],
+      "subject_attrs": [
+        "initial"
+      ],
+      "subject_hash": "sha256:848e4f4b1b4fcfab28b32c9c581a3c1b62d527d2b89a691263a69a532c8ae7b0",
+      "decision": "Declare the minimal GD1 firmware state set with boot as the sole initial state.",
+      "justification": "§9.1のLED、SHT40、シリアルログ機能範囲から最小限の状態粒度をDesign Graphへ宣言する。状態投影は非権威のL3観測であり、散文やAI所見から状態を推定しない。",
+      "driving_requirements": [
+        "req.gd1-req-001",
+        "req.gd1-req-010",
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The graph declaration is the sole source for firmware state extraction.",
+      "assumptions": [],
+      "risks": [
+        "The declared state granularity does not assert timing or sensor validity thresholds."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-19T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-firmware-transition-declarations",
+      "decision_kind": "firmware_pin",
+      "subject_nodes": [
+        "fw.transition.boot_sensor_init",
+        "fw.transition.measure_fault",
+        "fw.transition.measure_report",
+        "fw.transition.report_measure",
+        "fw.transition.sensor_init_measure"
+      ],
+      "subject_attrs": [
+        "from_state",
+        "to_state",
+        "trigger"
+      ],
+      "subject_hash": "sha256:3f1becbc1d9179f8ee7bbb73d280a98ce2d589361f80a58ad46d3d5eaa8c8616",
+      "decision": "Declare the GD1 firmware state transitions using logical trigger identifiers.",
+      "justification": "§9.1の機能範囲からboot、SHT40初期化、計測、報告、読み取り失敗の遷移を抽出可能にする。未決の周期や妥当範囲は宣言せず、遷移投影は非権威のL3観測に限定する。",
+      "driving_requirements": [
+        "req.gd1-req-001",
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Logical trigger declarations avoid inferring timing or recovery behavior from prose.",
+      "assumptions": [],
+      "risks": [
+        "No recovery transition is declared for the fault state because §9.1 does not define one."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-19T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-firmware-sequence-declarations",
+      "decision_kind": "firmware_pin",
+      "subject_nodes": [
+        "fw.sequence.001",
+        "fw.sequence.002",
+        "fw.sequence.003",
+        "fw.sequence.004",
+        "fw.sequence.005"
+      ],
+      "subject_attrs": [
+        "step_index",
+        "actor",
+        "target",
+        "action"
+      ],
+      "subject_hash": "sha256:0bdd8f7aa4bfa43a8a4c3c9e2937370b3b291117dcec205af29b53c8a3c38a75",
+      "decision": "Declare the minimal GD1 firmware interaction sequence for initialization, LED control, sensor reading, and serial logging.",
+      "justification": "§9.1のLED、SHT40、USB-Serial-JTAGログ機能範囲を実在node id間の決定論的なsequenceとして宣言する。sequence投影は非権威のL3観測であり、未決の周期・速度・妥当範囲を含めない。",
+      "driving_requirements": [
+        "req.gd1-req-001",
+        "req.gd1-req-008",
+        "req.gd1-req-010",
+        "req.gd1-req-011"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "Only graph-declared actors, targets, and logical actions are extracted.",
+      "assumptions": [],
+      "risks": [
+        "The sequence does not claim execution timing or measured functional success."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-19T00:00:00Z"
+      },
+      "target_revision": "r1"
     }
   ]
 }
