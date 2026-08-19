@@ -75,6 +75,18 @@ def inject_gd1_neg_005_mismatch_firmware_gpio(graph: DesignGraph) -> DesignGraph
 
 
 def inject_gd1_neg_006_remove_library_evidence(graph: DesignGraph) -> DesignGraph:
+    """Remove the pinned footprint hash used as library acceptance evidence."""
+    def update(node: GraphNode) -> GraphNode:
+        if node.id != "comp.u1":
+            return node
+        attrs = dict(node.attrs)
+        attrs.pop("footprint_sha256", None)
+        return node.model_copy(update={"attrs": attrs})
+
+    return _map_nodes(graph, update)
+
+
+def inject_gd1_neg_006_library_hash_mismatch(graph: DesignGraph) -> DesignGraph:
     """Replace one pinned library hash with an unverifiable value."""
     return _map_nodes(
         graph,
@@ -145,7 +157,15 @@ def normal_board_model(graph: DesignGraph):
 
 
 def inject_gd1_neg_002_ground_plane(model: BoardModel) -> BoardModel:
-    """Place a GND copper region beneath the module antenna keepout."""
+    """Keep the normal projection while the test injects filled GND copper.
+
+    ``generate_board`` emits the normal GND zone declaration and antenna
+    keepout, but it does not fill zones or write Gerber bytes.  The generated
+    BoardModel therefore remains the canonical projection and the test adds a
+    deterministic filled-copper region at the Gerber boundary.  The explicit
+    keepout bounds provide the intended antenna area because the fixture's
+    footprint-derived depth is zero before the physical injection.
+    """
     return replace(
         model,
         keepouts=(KeepoutRect("antenna_keepout", 8.0, 0.0, 22.0, 4.6),),

@@ -78,7 +78,7 @@ jobs:
           uv run python scripts/run_in_workspace.py \
             --image "$SERVER_REF" \
             --repo "$GITHUB_WORKSPACE" \
-            'uv sync && uv run python scripts/resolve_gd1_silkscreen.py && uv run python scripts/run_gd1_pipeline.py --out out/gd1 && uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure'
+            'uv sync && uv run python scripts/resolve_gd1_silkscreen.py && uv run python scripts/run_gd1_pipeline.py --out out/gd1 && uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure && uv run pytest -q tests/core/test_design_predicates.py::test_gd1_predicates_pass_on_fixture tests/core/test_design_predicates.py::test_power_decoupling_distant_capacitor_fails tests/pipeline/test_gd1_silkscreen_pinning.py::test_final_silkscreen_coordinates_are_pinned tests/pipeline/test_gd1_negative_fixtures.py'
           uv run python scripts/verify_authoritative_evidence.py \
             --revision-from fixtures/golden-design-1/graph.json \
             out/gd1/evidence-electrical.json \

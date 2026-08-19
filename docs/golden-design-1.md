@@ -312,10 +312,15 @@ Espressif ESP32-C3 datasheetのBoot ConfigurationsおよびESP Hardware Design G
 | `GD1-NEG-004` | I2C SDAまたはSCLの4.7 kΩを削除する | I2C pull-upゲートが`fail` |
 | `GD1-NEG-005` | FWのIO7、IO4、IO5、IO9、IO18、IO19、IO20、IO21のいずれかをグラフと異なる値へ変更する | ピン・FW整合ゲートが`fail` |
 
-`GD1-NEG-001`〜`GD1-NEG-008`は、正常fixtureまたは正常投影を読み込んで
-1点だけ変更する決定論的な注入関数として`tests/pipeline/gd1_negative_fixtures.py`に定義し、
-対応する停止条件を`tests/pipeline/test_gd1_negative_fixtures.py`で検証する。
-§10相当の`GD1-NEG-006`〜`GD1-NEG-008`を含め、8件すべてを回帰対象とする。
+`GD1-NEG-001`〜`GD1-NEG-006`および`GD1-NEG-008`は、正常fixtureまたは正常投影を
+読み込んで1点だけ変更する決定論的な注入関数として
+`tests/pipeline/gd1_negative_fixtures.py`に定義し、対応する停止条件を
+`tests/pipeline/test_gd1_negative_fixtures.py`で検証する。`GD1-NEG-006`の主testは
+照合Evidenceの欠落を入力属性欠落として扱い、hash不一致は別testで検証する。
+`GD1-NEG-007`は、現行pipelineに派生状態とDRC結果の対応を検査する経路がないため、
+古いDRC結果の流用を検出するtestを実装せず、未検出の残件として扱う。
+KiCadライブラリを要する`GD1-NEG-002`およびライブラリhash不一致の補助testは、
+ライブラリのない`verify` jobではskipし、KiCad有効な`container-gates`で実行する。
 
 ## 9. 製造投影と配置
 
@@ -487,10 +492,9 @@ SMD pad上viaを構造的に禁止している。出所は`out/gd1-plan2-default
 
 各negative testは、注入前の入力ファイル、注入差分、実行したゲート、停止理由を
 テストコード上でIDごとに対応づけて検証する。検証器が異常を検出できない場合や、
-入力の比較対象が`unknown`の場合は、`pass`ではなく停止とする。`GD1-NEG-001`〜`GD1-NEG-008`に対応する
-注入fixtureとnegative testは`tests/pipeline/gd1_negative_fixtures.py`の注入関数と
-`tests/pipeline/test_gd1_negative_fixtures.py`のID別テストで整備済みであり、
-8件すべてを回帰へ含める。
+入力の比較対象が`unknown`の場合は、`pass`ではなく停止とする。NEG-001〜006・008に
+対応する注入fixtureとnegative testは整備済みである。NEG-007は、派生状態とDRC結果の
+対応を検査する現行経路が存在せず、未検出の残件である。
 
 ### 8.1 機械レーン宣言
 
