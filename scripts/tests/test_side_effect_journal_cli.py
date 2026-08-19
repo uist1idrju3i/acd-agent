@@ -95,3 +95,21 @@ def test_reconstruction_cli_rejects_incomplete_journal(
         == 2
     )
     assert "failed" in capsys.readouterr().err
+
+
+def test_reconstruction_cli_rejects_missing_journal(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert (
+        side_effect_journal.main(
+            [
+                "--journal",
+                str(tmp_path / "missing.jsonl"),
+                "--idempotency-key",
+                "order-20260814",
+            ]
+        )
+        == 2
+    )
+    assert "does not exist" in capsys.readouterr().err

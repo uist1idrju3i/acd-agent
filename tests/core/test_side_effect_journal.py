@@ -177,9 +177,9 @@ def test_append_refuses_corrupted_existing_journal(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
-        ("planned_package_hash", "sha256:" + "d" * 64, "does not match"),
-        ("planned_authorization_hash", "sha256:" + "d" * 64, "does not match"),
-        ("planned_target_revision", "r2", "does not match"),
+        ("package_hash", "sha256:" + "d" * 64, "does not match"),
+        ("authorization_hash", "sha256:" + "d" * 64, "does not match"),
+        ("target_revision", "r2", "does not match"),
         ("occurred_at", datetime(2026, 8, 13, tzinfo=UTC), "timestamp"),
     ],
 )
@@ -201,6 +201,14 @@ def test_journal_rejects_post_mismatch(
 
     with pytest.raises(SideEffectJournalError, match=message):
         read_journal(path)
+
+
+def test_reconstruct_order_rejects_missing_journal(tmp_path: Path) -> None:
+    with pytest.raises(SideEffectJournalError, match="does not exist"):
+        reconstruct_order(
+            tmp_path / "missing.jsonl",
+            idempotency_key="order-20260814",
+        )
 
 
 def test_journal_write_failure_is_fail_closed(

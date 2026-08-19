@@ -226,7 +226,8 @@ graphから解決した現行revisionと7.2の`OrderTotalResult`を照合する�
 7.4のside-effect journalは、7.3の`PreOrderGateRecord`を受け取った不可逆操作の事前予定と、
 その後のprovider結果を、entry自身のcanonical hashと直前entry hashを持つJSON Linesへ
 追記する。entryには冪等key、製造data package hash、宛先、対象revision、時刻を記録し、
-事後結果は対応する事前予定の許可hash、package hash、revision、entry hashをechoする。
+事後結果は`planned_entry_hash`で事前予定を参照し、許可hash、package hash、revision、
+destinationを事前予定と突合する。
 読み出し時は契約、hash連鎖、重複、時刻逆行、事前・事後の対応を再検証し、欠落した事後結果
 も停止条件とする。
 
