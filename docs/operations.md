@@ -442,7 +442,9 @@ renameする。複数sheetによる複数SVG出力は未対応で、追加され
 authoritativeな`enclosure-assembly.step`を`build123d`で断面・干渉SVGへ投影する。
 断面は宣言したXY平面とoffsetを記録し、
 干渉体積は機械ゲートの`measured_max_interference_volume_mm3`を転記してビューの
-干渉領域有無と突合する。8.5では電気laneに限り、同一revisionの
+干渉領域有無と突合する。干渉領域がない場合はSVGへ空layerを後付けせず、
+projection recordの`interference_region_present=false`と体積0で観測する。8.5では電気laneに限り、
+同一revisionの
 `ElectricalLane`／`BoardModel`とSVGを決定論的に照合し、
 `visual-crosscheck-electrical.json`へL3観測として記録する。この照合は8.3のSVG投影生成直後、
 `hashes.json`生成前に既定実行される。

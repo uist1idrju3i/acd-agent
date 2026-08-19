@@ -159,6 +159,8 @@ def test_mechanical_visual_projection_records_require_declared_observations() ->
     interference = VisualProjectionRecord.model_validate(
         _mechanical_projection(
             "mechanical_interference_view",
+            section_plane_id="xy",
+            section_offset_mm=2.0,
             interference_volume_mm3=0.0,
             interference_region_present=False,
         )
@@ -187,12 +189,16 @@ def test_mechanical_visual_projection_rejects_inconsistent_observations(
     elif mutation == "region_zero_volume":
         value = _mechanical_projection(
             "mechanical_interference_view",
+            section_plane_id="xy",
+            section_offset_mm=2.0,
             interference_volume_mm3=0.0,
             interference_region_present=True,
         )
     else:
         value = _mechanical_projection(
             "mechanical_interference_view",
+            section_plane_id="xy",
+            section_offset_mm=2.0,
             interference_volume_mm3=1.0,
             interference_region_present=False,
         )

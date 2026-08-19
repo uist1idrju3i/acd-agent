@@ -189,21 +189,21 @@ class VisualProjectionRecord(AcdModel):
             raise ValueError("normalization rule must be concrete")
         section_view = self.projection_type == "mechanical_section_view"
         interference_view = self.projection_type == "mechanical_interference_view"
-        if section_view != (
+        if (section_view or interference_view) != (
             self.section_plane_id is not None and self.section_offset_mm is not None
         ):
-            raise ValueError("mechanical section view requires a plane and offset")
-        if section_view and (
+            raise ValueError("mechanical visual view requires a plane and offset")
+        if (section_view or interference_view) and (
             self.section_offset_mm is None
             or not math.isfinite(self.section_offset_mm)
         ):
             raise ValueError("section offset must be finite")
         if (section_view or interference_view) and self.domain != "mechanical":
             raise ValueError("mechanical visual projections require mechanical domain")
-        if not section_view and (
+        if not section_view and not interference_view and (
             self.section_plane_id is not None or self.section_offset_mm is not None
         ):
-            raise ValueError("section specification is only valid for section views")
+            raise ValueError("section specification is only valid for mechanical views")
         if interference_view != (
             self.interference_volume_mm3 is not None
             and self.interference_region_present is not None

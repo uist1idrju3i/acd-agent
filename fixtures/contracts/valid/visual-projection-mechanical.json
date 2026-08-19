@@ -37,17 +37,17 @@
       },
       "normalization_rule_id": "build123d-svg-v1",
       "normalization_rule_description": "Build123d ExportSVG with millimeter units, fixed precision, zero margin, and fit_to_stroke disabled.",
-      "image_hash": "sha256:1fbde87b17ea5a17c14fbb8b7e35e96a9a7a7249fec75b6da29b12c8ad40bd63",
-      "generated_at": "2026-08-19T13:02:38.037070Z",
+      "image_hash": "sha256:2ace1dd01351ff6f4cb80348ec00413565db66a5f38f822c0f1d317f87de04e8",
+      "generated_at": "2026-08-19T13:20:37.150067Z",
       "regeneration_check": {
         "status": "reproduced",
-        "first_image_hash": "sha256:1fbde87b17ea5a17c14fbb8b7e35e96a9a7a7249fec75b6da29b12c8ad40bd63",
-        "second_image_hash": "sha256:1fbde87b17ea5a17c14fbb8b7e35e96a9a7a7249fec75b6da29b12c8ad40bd63",
+        "first_image_hash": "sha256:2ace1dd01351ff6f4cb80348ec00413565db66a5f38f822c0f1d317f87de04e8",
+        "second_image_hash": "sha256:2ace1dd01351ff6f4cb80348ec00413565db66a5f38f822c0f1d317f87de04e8",
         "reason": null
       },
       "image_path": "visual/gd1-mechanical-interference.svg",
-      "section_plane_id": null,
-      "section_offset_mm": null,
+      "section_plane_id": "xy",
+      "section_offset_mm": 2.0,
       "interference_volume_mm3": 0.0,
       "interference_region_present": false
     },
@@ -84,12 +84,12 @@
       },
       "normalization_rule_id": "build123d-svg-v1",
       "normalization_rule_description": "Build123d ExportSVG with millimeter units, fixed precision, zero margin, and fit_to_stroke disabled.",
-      "image_hash": "sha256:f5452d398a9ef064017cd8997090ec7a0ef6e54ca5b975b27de94cd674387480",
-      "generated_at": "2026-08-19T13:02:37.907680Z",
+      "image_hash": "sha256:ba850814d8b9442edad20d43845cb3f2a0f1b171fc977178e51864583eb80993",
+      "generated_at": "2026-08-19T13:20:37.013725Z",
       "regeneration_check": {
         "status": "reproduced",
-        "first_image_hash": "sha256:f5452d398a9ef064017cd8997090ec7a0ef6e54ca5b975b27de94cd674387480",
-        "second_image_hash": "sha256:f5452d398a9ef064017cd8997090ec7a0ef6e54ca5b975b27de94cd674387480",
+        "first_image_hash": "sha256:ba850814d8b9442edad20d43845cb3f2a0f1b171fc977178e51864583eb80993",
+        "second_image_hash": "sha256:ba850814d8b9442edad20d43845cb3f2a0f1b171fc977178e51864583eb80993",
         "reason": null
       },
       "image_path": "visual/gd1-mechanical-section.svg",
@@ -99,6 +99,6 @@
       "interference_region_present": null
     }
   ],
-  "identity_hash": "sha256:9564b082466f13e1ad385895142a5f02870c962b3239bc6d53696d0bfd357cc8",
-  "canonical_hash": "sha256:3a34456b89cb163a396001b21b7967ee8b65b50f11da0a7816e2f539d66ba837"
+  "identity_hash": "sha256:56dece4311b5077d0a3f83ae5d92806cfaf1533c2d7eaabb084e85ff3f5aea85",
+  "canonical_hash": "sha256:0961da796f48c3bff218ff8193f4211dbbc6d2c0a2de91fef071f908e8bfce97"
 }

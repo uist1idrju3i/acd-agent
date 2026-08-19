@@ -104,9 +104,9 @@ def _assembly_input(
 
 def _section_edges(shape: Any, offset_mm: float, build123d: Any) -> list[Any]:
     try:
-        plane_face = build123d.Face(build123d.Plane.XY.offset(offset_mm))
-        _vertices, edges = shape._ocp_section(plane_face)
-    except Exception as exc:
+        section = shape & build123d.Plane.XY.offset(offset_mm)
+        edges = list(section.edges())
+    except (TypeError, ValueError, RuntimeError) as exc:
         raise MechanicalVisualProjectionError(
             "section plane could not be evaluated"
         ) from exc
@@ -130,32 +130,13 @@ def _write_svg(
         fit_to_stroke=False,
         precision=6,
     )
-    empty_layers: list[str] = []
     for name, shapes, fill_color in layers:
-        if not shapes:
-            empty_layers.append(name)
-            exporter.add_layer(name, fill_color=fill_color, line_color=(180, 0, 0))
-            continue
         exporter.add_layer(name, fill_color=fill_color, line_color=(180, 0, 0))
-        exporter.add_shape(shapes, layer=name)
+        if shapes:
+            exporter.add_shape(shapes, layer=name)
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         exporter.write(output_path)
-        if empty_layers:
-            text = output_path.read_text(encoding="utf-8")
-            marker = "  </g>\n</svg>"
-            if text.count(marker) != 1:
-                raise MechanicalVisualProjectionError(
-                    "mechanical SVG has unexpected layer structure"
-                )
-            empty_groups = "".join(
-                f'    <g fill="none" stroke="rgb(180,0,0)" id="{name}"></g>\n'
-                for name in empty_layers
-            )
-            output_path.write_text(
-                text.replace(marker, empty_groups + marker),
-                encoding="utf-8",
-            )
     except MechanicalVisualProjectionError:
         raise
     except (OSError, ValueError) as exc:
@@ -210,6 +191,7 @@ def _record(
     tool_version: str,
     first_hash: str,
     second_hash: str,
+    section_plane_id: str | None,
     offset_mm: float | None,
     interference_volume_mm3: float | None,
     interference_region_present: bool | None,
@@ -250,7 +232,7 @@ def _record(
             second_image_hash=second_hash,
         ),
         image_path=_relative_path(output_path, base_dir, "image"),
-        section_plane_id="xy" if offset_mm is not None else None,
+        section_plane_id=section_plane_id,
         section_offset_mm=offset_mm,
         interference_volume_mm3=interference_volume_mm3,
         interference_region_present=interference_region_present,
@@ -278,6 +260,7 @@ class MechanicalVisualRenderer:
         projection_type: VisualProjectionType,
         input_file: VisualProjectionInput,
         render_layers: list[tuple[str, list[Any], tuple[int, int, int] | None]],
+        section_plane_id: str,
         offset_mm: float | None,
         interference_volume_mm3: float | None,
         interference_region_present: bool | None,
@@ -305,6 +288,7 @@ class MechanicalVisualRenderer:
             tool_version=self.tool_version,
             first_hash=first_hash,
             second_hash=second_hash,
+            section_plane_id=section_plane_id,
             offset_mm=offset_mm,
             interference_volume_mm3=interference_volume_mm3,
             interference_region_present=interference_region_present,
@@ -331,14 +315,13 @@ class MechanicalVisualRenderer:
         )
         shape = self.build123d.import_step(projection.assembly_step_path)
         edges = _section_edges(shape, section_offset_mm, self.build123d)
-        if not edges:
-            raise MechanicalVisualProjectionError("section projection is empty")
         record = self._render(
             output_path=output_path,
             projection_id="gd1-mechanical-section",
             projection_type="mechanical_section_view",
             input_file=input_file,
             render_layers=[("section", edges, None)],
+            section_plane_id=section_plane_id,
             offset_mm=section_offset_mm,
             interference_volume_mm3=None,
             interference_region_present=None,
@@ -414,7 +397,8 @@ class MechanicalVisualRenderer:
                 ("enclosure", shell_edges, None),
                 ("interference", interference_edges, (255, 0, 0)),
             ],
-            offset_mm=None,
+            section_plane_id="xy",
+            offset_mm=offset,
             interference_volume_mm3=actual_volume,
             interference_region_present=region_present,
             target_revision=target_revision,

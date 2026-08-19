@@ -11,6 +11,7 @@ import pytest
 from acd.adapters.cad.mechanical import (
     MechanicalGateError,
     MechanicalGateReport,
+    build_component_body_shape,
     run_mechanical_gates,
 )
 from acd.adapters.cad.project import project_enclosure
@@ -77,7 +78,7 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
     assert (tmp_path / "first/visual/gd1-mechanical-interference.svg").is_file()
     assert (tmp_path / "first/visual-projections-mechanical.json").is_file()
     assert not list((tmp_path / "first/visual").glob("*.png"))
-    assert 'id="interference"' in (
+    assert 'id="interference"' not in (
         tmp_path / "first/visual/gd1-mechanical-interference.svg"
     ).read_text(encoding="utf-8")
 
@@ -139,6 +140,69 @@ def test_mechanical_renderer_rejects_step_hash_and_gate_volume_mismatch(
             ),
             output_path=tmp_path / "volume-mismatch.svg",
         )
+
+
+def test_mechanical_renderer_records_positive_interference_section(
+    tmp_path: Path,
+) -> None:
+    graph, lane, projection, _gates = _authoritative(tmp_path / "authoritative")
+    body = replace(
+        lane.component_bodies[0],
+        width_mm=30.0,
+        depth_mm=25.0,
+        height_mm=10.0,
+        x_mm=15.0,
+        y_mm=12.5,
+    )
+    overlapping_lane = replace(
+        lane,
+        component_bodies=(body, *lane.component_bodies[1:]),
+    )
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / "authoritative")
+    assembly = renderer.build123d.import_step(projection.assembly_step_path)
+    body_shape = build_component_body_shape(
+        body,
+        overlapping_lane.enclosure.wall_thickness_mm
+        + overlapping_lane.enclosure.internal_clearance_mm,
+        overlapping_lane.outline.width_mm,
+        overlapping_lane.outline.depth_mm,
+    )
+    intersections = [solid & body_shape for solid in assembly.solids()]
+    interference = max(intersections, key=lambda shape: float(shape.volume))
+    measured_volume = float(interference.volume)
+    expected_offset = (
+        float(interference.bounding_box().min.Z)
+        + float(interference.bounding_box().max.Z)
+    ) / 2
+    assert measured_volume > 0
+    gate_report = MechanicalGateReport(
+        kernel_valid=True,
+        interference=True,
+        clearance=True,
+        wall_thickness=True,
+        measured_volume_mm3=0.0,
+        measured_min_wall_mm=2.0,
+        measured_min_clearance_mm=1.0,
+        measured_max_interference_volume_mm3=measured_volume,
+    )
+    record = renderer.render_interference(
+        projection=projection,
+        lane=overlapping_lane,
+        target_revision=graph.revision,
+        gate_report=gate_report,
+        output_path=tmp_path / "authoritative/positive-interference.svg",
+    )
+
+    assert record.section_plane_id == "xy"
+    assert record.section_offset_mm == expected_offset
+    assert record.interference_region_present is True
+    assert record.interference_volume_mm3 == measured_volume
+    assert record.regeneration_check.first_image_hash == record.regeneration_check.second_image_hash
+    svg = (tmp_path / "authoritative/positive-interference.svg").read_text(
+        encoding="utf-8"
+    )
+    assert 'id="interference"' in svg
+    assert "<line" in svg
 
 
 def test_mechanical_visual_generation_requires_passing_gate(tmp_path: Path) -> None:
