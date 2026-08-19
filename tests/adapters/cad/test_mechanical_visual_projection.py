@@ -81,6 +81,13 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
     assert 'id="interference"' not in (
         tmp_path / "first/visual/gd1-mechanical-interference.svg"
     ).read_text(encoding="utf-8")
+    section_svg = (
+        tmp_path / "first/visual/gd1-mechanical-section.svg"
+    ).read_text(encoding="utf-8")
+    assert section_svg.count("<line") == 13
+    assert section_svg.count("<circle") == 4
+    assert 'x1="-16.0" y1="13.5" x2="16.0" y2="13.5"' in section_svg
+    assert 'x1="-4.5" y1="-15.5" x2="4.5" y2="-15.5"' in section_svg
 
 
 def test_mechanical_renderer_rejects_unsupported_or_non_intersecting_sections(
@@ -194,7 +201,7 @@ def test_mechanical_renderer_records_positive_interference_section(
     )
 
     assert record.section_plane_id == "xy"
-    assert record.section_offset_mm == expected_offset
+    assert record.section_offset_mm == expected_offset + 1e-6
     assert record.interference_region_present is True
     assert record.interference_volume_mm3 == measured_volume
     assert record.regeneration_check.first_image_hash == record.regeneration_check.second_image_hash
@@ -203,6 +210,37 @@ def test_mechanical_renderer_records_positive_interference_section(
     )
     assert 'id="interference"' in svg
     assert "<line" in svg
+
+
+def test_mechanical_renderer_rejects_section_without_declared_features(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    graph, lane, projection, _gates = _authoritative(tmp_path / "authoritative")
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / "authoritative")
+    shape = renderer.build123d.Box(
+        36.0,
+        31.0,
+        10.0,
+    )
+
+    def fake_import_step(_path: Path) -> object:
+        return shape
+
+    monkeypatch.setattr(renderer.build123d, "import_step", fake_import_step)
+
+    with pytest.raises(
+        MechanicalVisualProjectionError,
+        match="missing declared standoff features",
+    ):
+        renderer.render_section(
+            projection=projection,
+            lane=lane,
+            target_revision=graph.revision,
+            output_path=tmp_path / "authoritative/missing-features.svg",
+            section_plane_id="xy",
+            section_offset_mm=lane.enclosure.wall_thickness_mm,
+        )
 
 
 def test_mechanical_visual_generation_requires_passing_gate(tmp_path: Path) -> None:

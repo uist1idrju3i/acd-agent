@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib
 import json
 import math
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,12 @@ CAD_SVG_NORMALIZATION_RULE_DESCRIPTION = (
 
 class MechanicalVisualProjectionError(ExternalToolError):
     """Raised when a mechanical visual projection cannot be trusted."""
+
+
+@dataclass(frozen=True)
+class _SectionGeometry:
+    edges: tuple[Any, ...]
+    wires: tuple[tuple[Any, ...], ...]
 
 
 def _load_build123d() -> Any:
@@ -102,20 +109,207 @@ def _assembly_input(
     )
 
 
-def _section_edges(shape: Any, offset_mm: float, build123d: Any) -> list[Any]:
+def _edge_sort_key(edge: Any) -> tuple[str, float, float, float, float, float, float, float]:
+    bbox = edge.bounding_box()
+    return (
+        str(edge.geom_type),
+        round(float(bbox.min.X), 9),
+        round(float(bbox.min.Y), 9),
+        round(float(bbox.max.X), 9),
+        round(float(bbox.max.Y), 9),
+        round(float(edge.length), 9),
+        round(float(edge.center().X), 9),
+        round(float(edge.center().Y), 9),
+    )
+
+
+def _section_geometry(shape: Any, offset_mm: float, build123d: Any) -> _SectionGeometry:
     try:
-        section = shape & build123d.Plane.XY.offset(offset_mm)
-        edges = list(section.edges())
-    except (TypeError, ValueError, RuntimeError) as exc:
+        plane = build123d.Plane.XY.offset(offset_mm)
+        wires: list[tuple[Any, ...]] = []
+        for solid in shape.solids():
+            section = solid & plane
+            if section is None:
+                continue
+            for face in section.faces():
+                for wire in face.wires():
+                    wire_edges = tuple(wire.edges())
+                    if wire_edges:
+                        wires.append(wire_edges)
+    except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
         raise MechanicalVisualProjectionError(
             "section plane could not be evaluated"
         ) from exc
-    if not edges:
+    if not wires:
         raise MechanicalVisualProjectionError(
             "section plane does not intersect the authoritative shape"
         )
     translation = build123d.Location((0, 0, -offset_mm))
-    return [edge.moved(translation) for edge in edges]
+    translated_wires = tuple(
+        tuple(edge.moved(translation) for edge in wire) for wire in wires
+    )
+    edges = tuple(sorted((edge for wire in translated_wires for edge in wire), key=_edge_sort_key))
+    return _SectionGeometry(edges=edges, wires=translated_wires)
+
+
+def _edge_is(edge: Any, geometry_type: str) -> bool:
+    return str(edge.geom_type).endswith(geometry_type)
+
+
+def _close(left: float, right: float) -> bool:
+    return math.isclose(left, right, rel_tol=0.0, abs_tol=1e-6)
+
+
+def _validate_section_features(
+    geometry: _SectionGeometry,
+    lane: MechanicalLane,
+) -> None:
+    circles = [edge for edge in geometry.edges if _edge_is(edge, "CIRCLE")]
+    holes = lane.outline.mount_holes
+    if len(circles) != len(holes):
+        raise MechanicalVisualProjectionError(
+            "mechanical section is missing declared standoff features"
+        )
+    unmatched = list(circles)
+    for hole in holes:
+        expected_x = hole.x_mm - lane.outline.width_mm / 2
+        expected_y = hole.y_mm - lane.outline.depth_mm / 2
+        expected_radius = lane.enclosure.standoff_radius_mm
+        match = next(
+            (
+                edge
+                for edge in unmatched
+                if _close(
+                    float(edge.bounding_box().min.X + edge.bounding_box().max.X) / 2,
+                    expected_x,
+                )
+                and _close(
+                    float(edge.bounding_box().min.Y + edge.bounding_box().max.Y) / 2,
+                    expected_y,
+                )
+                and _close(
+                    float(edge.bounding_box().max.X - edge.bounding_box().min.X) / 2,
+                    expected_radius,
+                )
+            ),
+            None,
+        )
+        if match is None:
+            raise MechanicalVisualProjectionError(
+                "mechanical section standoff geometry does not match MechanicalLane"
+            )
+        unmatched.remove(match)
+
+    inner_width = lane.outline.width_mm + 2 * lane.enclosure.internal_clearance_mm
+    inner_depth = lane.outline.depth_mm + 2 * lane.enclosure.internal_clearance_mm
+    inner_x = inner_width / 2
+    inner_y = inner_depth / 2
+    has_inner_left = any(
+        _edge_is(edge, "LINE")
+        and _close(float(edge.bounding_box().min.X), -inner_x)
+        and _close(float(edge.bounding_box().max.X), -inner_x)
+        and _close(float(edge.bounding_box().min.Y), -inner_y)
+        and _close(float(edge.bounding_box().max.Y), inner_y)
+        for edge in geometry.edges
+    )
+    has_inner_right = any(
+        _edge_is(edge, "LINE")
+        and _close(float(edge.bounding_box().min.X), inner_x)
+        and _close(float(edge.bounding_box().max.X), inner_x)
+        and _close(float(edge.bounding_box().min.Y), -inner_y)
+        and _close(float(edge.bounding_box().max.Y), inner_y)
+        for edge in geometry.edges
+    )
+    has_inner_top = any(
+        _edge_is(edge, "LINE")
+        and _close(float(edge.bounding_box().min.X), -inner_x)
+        and _close(float(edge.bounding_box().max.X), inner_x)
+        and _close(float(edge.bounding_box().min.Y), inner_y)
+        and _close(float(edge.bounding_box().max.Y), inner_y)
+        for edge in geometry.edges
+    )
+    if not (has_inner_left and has_inner_right and has_inner_top):
+        raise MechanicalVisualProjectionError(
+            "mechanical section is missing the declared enclosure cavity"
+        )
+
+    _outer_width, outer_depth = _expected_view_dimensions(lane)
+    front_y = -outer_depth / 2
+    for opening in lane.connector_openings:
+        if opening.face != "front":
+            raise MechanicalVisualProjectionError(
+                "mechanical section connector opening face is unsupported"
+            )
+        center_x = opening.center_x_mm - lane.outline.width_mm / 2
+        half_width = (opening.width_mm + 2 * opening.margin_mm) / 2
+        boundaries = (center_x - half_width, center_x + half_width)
+        for boundary in boundaries:
+            if not any(
+                _edge_is(edge, "LINE")
+                and _close(float(edge.bounding_box().min.X), boundary)
+                and _close(float(edge.bounding_box().max.X), boundary)
+                and _close(float(edge.bounding_box().min.Y), front_y)
+                and float(edge.bounding_box().max.Y) > front_y
+                for edge in geometry.edges
+            ):
+                raise MechanicalVisualProjectionError(
+                    "mechanical section is missing the declared connector opening"
+                )
+
+
+def _section_offset_mm(offset_mm: float) -> float:
+    return offset_mm + 1e-6
+
+
+def _connector_section_edges(
+    shape: Any,
+    offset_mm: float,
+    lane: MechanicalLane,
+    build123d: Any,
+) -> list[Any]:
+    openings = [opening for opening in lane.connector_openings if opening.face == "front"]
+    if not openings:
+        return []
+    outer_width, outer_depth = _expected_view_dimensions(lane)
+    front_y = -outer_depth / 2
+    try:
+        plane = build123d.Plane.XY.offset(offset_mm)
+        candidates: list[Any] = []
+        for solid in shape.solids():
+            section = solid & plane
+            if section is None:
+                continue
+            candidates.extend(
+                edge
+                for edge in section.edges()
+                if _edge_is(edge, "LINE")
+                and _close(float(edge.bounding_box().min.Y), front_y)
+                and _close(float(edge.bounding_box().max.Y), front_y)
+                and _close(float(edge.bounding_box().min.X), -outer_width / 2)
+                and _close(float(edge.bounding_box().max.X), outer_width / 2)
+            )
+        if len(candidates) != 1:
+            raise MechanicalVisualProjectionError(
+                "mechanical section connector boundary is ambiguous"
+            )
+        boundary = candidates[0]
+        result: list[Any] = []
+        for opening in openings:
+            center_x = opening.center_x_mm - lane.outline.width_mm / 2
+            half_width = (opening.width_mm + 2 * opening.margin_mm) / 2
+            result.append(
+                boundary.trim(
+                    build123d.Vector(center_x - half_width, front_y, offset_mm),
+                    build123d.Vector(center_x + half_width, front_y, offset_mm),
+                ).moved(build123d.Location((0, 0, -offset_mm)))
+            )
+        return result
+    except MechanicalVisualProjectionError:
+        raise
+    except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
+        raise MechanicalVisualProjectionError(
+            "mechanical section connector boundary could not be retained"
+        ) from exc
 
 
 def _write_svg(
@@ -314,15 +508,27 @@ class MechanicalVisualRenderer:
             projection, base_dir=self.base_dir, target_revision=target_revision
         )
         shape = self.build123d.import_step(projection.assembly_step_path)
-        edges = _section_edges(shape, section_offset_mm, self.build123d)
+        effective_offset = _section_offset_mm(section_offset_mm)
+        section = _section_geometry(shape, effective_offset, self.build123d)
+        connector_edges = _connector_section_edges(
+            shape, section_offset_mm, lane, self.build123d
+        )
+        if connector_edges:
+            section = _SectionGeometry(
+                edges=tuple(
+                    sorted((*section.edges, *connector_edges), key=_edge_sort_key)
+                ),
+                wires=section.wires,
+            )
+        _validate_section_features(section, lane)
         record = self._render(
             output_path=output_path,
             projection_id="gd1-mechanical-section",
             projection_type="mechanical_section_view",
             input_file=input_file,
-            render_layers=[("section", edges, None)],
+            render_layers=[("section", list(section.edges), None)],
             section_plane_id=section_plane_id,
-            offset_mm=section_offset_mm,
+            offset_mm=effective_offset,
             interference_volume_mm3=None,
             interference_region_present=None,
             target_revision=target_revision,
@@ -382,9 +588,10 @@ class MechanicalVisualRenderer:
             interference = None
             shell_bbox = max(solids, key=lambda solid: solid.volume).bounding_box()
             offset = float(shell_bbox.min.Z) + lane.enclosure.wall_thickness_mm
-        shell_edges = _section_edges(assembly, offset, self.build123d)
-        interference_edges = (
-            _section_edges(interference, offset, self.build123d)
+        effective_offset = _section_offset_mm(offset)
+        shell_section = _section_geometry(assembly, effective_offset, self.build123d)
+        interference_edges: list[Any] = (
+            list(_section_geometry(interference, effective_offset, self.build123d).edges)
             if interference is not None
             else []
         )
@@ -394,11 +601,11 @@ class MechanicalVisualRenderer:
             projection_type="mechanical_interference_view",
             input_file=input_file,
             render_layers=[
-                ("enclosure", shell_edges, None),
+                ("enclosure", list(shell_section.edges), None),
                 ("interference", interference_edges, (255, 0, 0)),
             ],
             section_plane_id="xy",
-            offset_mm=offset,
+            offset_mm=effective_offset,
             interference_volume_mm3=actual_volume,
             interference_region_present=region_present,
             target_revision=target_revision,
