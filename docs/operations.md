@@ -123,10 +123,20 @@ digest固定server image（Docker image）はplugin installでは取得されず
 
 #### plugin更新時のキャッシュ確認
 
-同じrepositoryを一度installした環境では、`~/.openhands/cache/extensions/`のクローンが
-再fetchされず、新しいリファレンスを指定してもキャッシュ済みのcommitがinstallされることを
-実機で確認した。branch名でも40桁commit SHAでもgit URL形式でも同じであり、GUIは警告を
-出さない。install直後にplugin詳細のリファレンスを`git ls-remote`の結果と照合し、
+同じrepositoryを一度installした環境では、初回install時に指定したbranch以外の
+リファレンスを指定してもキャッシュ済みのcommitがinstallされることを実機で確認した。
+branch名でも40桁commit SHAでもgit URL形式でも同じであり、GUIは警告を出さない。
+
+原因はSDKのキャッシュ実装（`openhands.sdk.git.cached_repo`）にある。キャッシュ先は
+source URLのsha256だけで決まり（`get_cache_path`）、plugin manifestのversionは参照されない。
+そのため`plugin.json`のversionを上げてもキャッシュは再利用される。キャッシュは
+`git clone --depth 1 --branch <初回ref>`で作られるため`remote.origin.fetch`が
+そのbranchだけを指し、更新時の`git fetch origin`では他のbranchやcommitを取得できない。
+`_update_repository`はcheckout失敗を警告だけで飲み込み（`Using cached version.`）、
+古いtreeをそのままinstallする。したがって初回に指定したbranchの先端を追う更新は成功し、
+別branchや任意commitへの切り替えはキャッシュを消さない限り成功しない。
+
+install直後にplugin詳細のリファレンスを`git ls-remote`の結果と照合し、
 不一致であれば次を実行してからinstallし直す。
 
 ```bash
