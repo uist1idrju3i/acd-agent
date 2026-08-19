@@ -10,8 +10,8 @@ fabrication出力、独立再読込、silkscreen可読性ゲートまで通過�
 [`golden-design-1.md`](golden-design-1.md) §7の設計述語ゲート6件
 （USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界、
 ピン・FW整合）は実装済みで、§8のNEG-001〜008も決定論的な注入関数と
-ID別negative testで整備済みである。DRC結果はToolEnvelopeの入力path・input hashと
-ゲート時点の派生基板の再ハッシュを照合し、対応しない結果をゲート未実行として停止する。
+ID別negative testで整備済みである。DRC結果のToolEnvelope input hashと
+ゲート時点で期待される派生基板の再ハッシュを照合し、対応しない結果をゲート未実行として停止する。
 視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
@@ -75,7 +75,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 入力と出所 | GD1のDesign Graph、FW pin assignment、部品・ネット宣言、電源境界仕様、silkscreen resolverの最終座標、現行revision |
 | 実装 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを決定論的述語として実装し、結果を電気Evidenceのclaimへ追加する |
 | 正常系 | 6ゲートがrevision一致の入力から再現可能に評価され、GD1の電気Evidenceへ各結果が記録される。silkscreen最終配置座標表をfixtureとpinning testで固定する。KiCadライブラリがある`--stage standard`ではtestを実行し、hostに無い場合は既存のskip慣習で前提不足を明示する。`container-gates`では固定image内でKiCad依存の同じ3件を実行する |
-| negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認し、NEG-001〜008を決定論的な注入関数とID別negative testで検証する。DRCの入力hash欠落・`unknown`・不一致、入力path欠落、基板欠落はゲート未実行として停止する |
+| negative/fail-closed | 述語・入力・型の欠落は合格にしないことをunit testで確認し、NEG-001〜008を決定論的な注入関数とID別negative testで検証する。DRCの入力hash不一致・`unknown`、異なる入力集合・ファイル名、基板欠落はゲート未実行として停止する |
 | 再現性 | 同一graph、FW入力、fixture、revisionから同一ゲート結果、Evidence claim、座標表を再生成し、NEG-001〜008のnegative testを回帰へ含める。DRC結果はゲート時点の基板bytesを再ハッシュして対応を検証する |
 
 KiCadライブラリを要するNEG-002およびライブラリhash不一致の補助testは、

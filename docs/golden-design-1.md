@@ -317,9 +317,9 @@ Espressif ESP32-C3 datasheetのBoot ConfigurationsおよびESP Hardware Design G
 `tests/pipeline/gd1_negative_fixtures.py`に定義し、対応する停止条件を
 `tests/pipeline/test_gd1_negative_fixtures.py`で検証する。`GD1-NEG-006`の主testは
 照合Evidenceの欠落を入力属性欠落として扱い、hash不一致は別testで検証する。
-`GD1-NEG-007`は、DRCのToolEnvelopeに宣言された入力pathへ対応する派生基板を
-ゲート境界で再ハッシュし、hash不一致、入力hashの欠落・`unknown`、入力pathの欠落、
-基板ファイルの欠落をゲート未実行として停止する。
+`GD1-NEG-007`は、DRCのToolEnvelopeのinput hashと、ゲート境界で再ハッシュした
+期待入力（派生基板）のbytesを照合し、hash不一致、入力hashの`unknown`、異なる入力集合・
+ファイル名、基板ファイルの欠落をゲート未実行として停止する。
 KiCadライブラリを要する`GD1-NEG-002`およびライブラリhash不一致の補助testは、
 ライブラリのない`verify` jobではskipし、KiCad有効な`container-gates`で実行する。
 

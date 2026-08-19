@@ -136,7 +136,6 @@ def test_gd1_neg_007_stale_drc_is_rejected_as_gate_not_executed(tmp_path: Path) 
         format_version="10.0.5",
         config_hash="sha256:" + "a" * 64,
         input_hash=sha256_paths([board]),
-        input_paths=(str(board),),
         output_hash="sha256:" + "c" * 64,
         execution_env="test",
         execution_context="host",
@@ -155,7 +154,7 @@ def test_gd1_neg_007_stale_drc_is_rejected_as_gate_not_executed(tmp_path: Path) 
     )
     inject_gd1_neg_007_stale_drc(board)
     with pytest.raises(GateError, match="gate not executed"):
-        assert_rule_check_input_matches("DRC", result, board)
+        assert_rule_check_input_matches("DRC", result, [board])
 
 
 def test_gd1_neg_008_unknown_coordinate_unit_stops_extraction() -> None:

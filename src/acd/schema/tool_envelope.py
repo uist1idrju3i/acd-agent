@@ -28,7 +28,6 @@ class ToolEnvelope(AcdModel):
     format_version: VersionOrUnknown
     config_hash: HashOrUnknown
     input_hash: HashOrUnknown
-    input_paths: tuple[NonEmptyStr, ...] = ()
     output_hash: HashOrUnknown
     execution_env: NonEmptyStr
     execution_context: Literal["container", "host", "unknown"]
