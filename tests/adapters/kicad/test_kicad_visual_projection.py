@@ -46,10 +46,9 @@ def _executable(tmp_path: Path) -> Path:
 
 def test_renderer_reproduces_and_records_measured_provenance(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.chdir(tmp_path)
-    Path("gd1.kicad_sch").write_text("schematic")
+    source = tmp_path / "gd1.kicad_sch"
+    source.write_text("schematic")
     renderer = KicadVisualRenderer(KicadCli(str(_executable(tmp_path))))
 
     record = renderer.render(
@@ -57,24 +56,27 @@ def test_renderer_reproduces_and_records_measured_provenance(
         projection_type="schematic_view",
         domain="electrical",
         source_revision="r8",
-        source=Path("gd1.kicad_sch"),
-        output_path=Path("schematic.svg"),
+        source=source,
+        output_path=tmp_path / "schematic.svg",
+        base_dir=tmp_path,
     )
 
     assert record.image_hash.startswith("sha256:")
     assert record.regeneration_check.status == "reproduced"
     assert record.resolution.width == "29.9974mm"
     assert record.image_path == "schematic.svg"
-    assert Path("schematic.reproduced.svg").is_file()
+    assert record.input_files[0].path == "gd1.kicad_sch"
+    assert (tmp_path / "reproduction/schematic.reproduced.svg").is_file()
+    assert (tmp_path / "reproduction/schematic.reproduced.svg.envelope.json").is_file()
 
 
 def test_renderer_stops_on_regeneration_mismatch(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("FAKE_MISMATCH", "1")
-    Path("gd1.kicad_sch").write_text("schematic")
+    source = tmp_path / "gd1.kicad_sch"
+    source.write_text("schematic")
     renderer = KicadVisualRenderer(KicadCli(str(_executable(tmp_path))))
 
     with pytest.raises(ExternalToolError, match="regeneration hash mismatch"):
@@ -83,17 +85,17 @@ def test_renderer_stops_on_regeneration_mismatch(
             projection_type="schematic_view",
             domain="electrical",
             source_revision="r8",
-            source=Path("gd1.kicad_sch"),
-            output_path=Path("schematic.svg"),
+            source=source,
+            output_path=tmp_path / "schematic.svg",
+            base_dir=tmp_path,
         )
 
 
 def test_renderer_supports_layered_layout_view(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.chdir(tmp_path)
-    Path("gd1.kicad_pcb").write_text("board")
+    source = tmp_path / "gd1.kicad_pcb"
+    source.write_text("board")
     renderer = KicadVisualRenderer(KicadCli(str(_executable(tmp_path))))
 
     record = renderer.render(
@@ -101,9 +103,10 @@ def test_renderer_supports_layered_layout_view(
         projection_type="layered_layout_view",
         domain="electrical",
         source_revision="r8",
-        source=Path("gd1.kicad_pcb"),
-        output_path=Path("front-copper.svg"),
+        source=source,
+        output_path=tmp_path / "front-copper.svg",
         layer="F.Cu",
+        base_dir=tmp_path,
     )
 
     assert record.projection_type == "layered_layout_view"
@@ -115,15 +118,16 @@ def test_renderer_absent_executable_fails_closed(tmp_path: Path) -> None:
         KicadCli(str(tmp_path / "missing-kicad-cli")).version()
 
 
-def test_renderer_requires_relative_paths(tmp_path: Path) -> None:
+def test_renderer_rejects_paths_outside_base_directory(tmp_path: Path) -> None:
     source = tmp_path / "gd1.kicad_sch"
     source.write_text("schematic")
-    with pytest.raises(ExternalToolError, match="repository-relative"):
+    with pytest.raises(ExternalToolError, match="base directory"):
         KicadVisualRenderer().render(
             projection_id="gd1-schematic",
             projection_type="schematic_view",
             domain="electrical",
             source_revision="r8",
             source=source,
-            output_path=Path("schematic.svg"),
+            output_path=tmp_path.parent / "schematic.svg",
+            base_dir=tmp_path,
         )

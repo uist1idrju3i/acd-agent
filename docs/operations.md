@@ -347,7 +347,12 @@ KiCad CLI 10.0.5の`sch export svg`と`pcb export svg`は、SVGの`<title>`要�
 要素全体を固定文字列へ置換する`kicad-svg-title-v1`正規化規則を採用した。要素の不在、
 複数、想定形との不一致、SVGルートのwidth／height単位またはviewBoxの測定不能は
 fail-closedとする。正規化後hashは再生成時にも照合し、renderer版は`kicad-cli version`
-から取得する。8.3〜8.5（既定生成、AI受け渡し、機械可読投影との照合）は未実装である。
+から取得する。実物fixtureは`kicad-cli version`が10.0.5の環境で、
+`kicad-cli pcb export svg --layers F.Cu -o fixtures/visual_projection/kicad/gd1-front-copper.svg out/gd1-silkscreen-resolve/iteration-1/gd1.kicad_pcb`
+と、出力先だけを`gd1-front-copper-reproduced.svg`へ変えた同じコマンドを実行して生成した。
+出力ファイル名が`<title>`へ入るため、この名前差が生バイト列の非決定性の由来になる。
+8.3〜8.5（既定生成、AI受け渡し、
+機械可読投影との照合）は未実装である。
 
 ## 検証
 

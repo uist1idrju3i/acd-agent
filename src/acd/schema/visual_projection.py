@@ -13,6 +13,7 @@ from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
     AcdModel,
     HashOrUnknown,
+    NodeId,
     NonEmptyStr,
     Revision,
     SchemaVersion,
@@ -116,7 +117,7 @@ class VisualProjectionRecord(AcdModel):
     schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
     artifact_kind: Literal["visual_projection"] = "visual_projection"
     pass_evidence: Literal[False] = False
-    projection_id: NonEmptyStr
+    projection_id: NodeId
     projection_type: VisualProjectionType
     domain: VisualProjectionDomain
     source_revision: Revision

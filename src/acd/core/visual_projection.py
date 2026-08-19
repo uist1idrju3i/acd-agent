@@ -87,7 +87,12 @@ def measure_svg_resolution(svg: bytes) -> MeasuredSvgResolution:
     if len(values) != 4:
         raise SvgResolutionError("SVG viewBox must contain four values")
     try:
-        view_box = tuple(float(value) for value in values)
+        view_box = (
+            float(values[0]),
+            float(values[1]),
+            float(values[2]),
+            float(values[3]),
+        )
     except ValueError as exc:
         raise SvgResolutionError("SVG viewBox values must be numeric") from exc
     if not all(math.isfinite(value) for value in view_box):
@@ -95,5 +100,5 @@ def measure_svg_resolution(svg: bytes) -> MeasuredSvgResolution:
     return MeasuredSvgResolution(
         width=attributes["width"],
         height=attributes["height"],
-        view_box=view_box,  # type: ignore[arg-type]
+        view_box=view_box,
     )

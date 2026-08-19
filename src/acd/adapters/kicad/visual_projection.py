@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 
 from acd.adapters.kicad.cli import KicadCli
-from acd.core.process import ExternalToolError, run_tool
+from acd.core.process import ExternalToolError, run_tool, sha256_bytes
 from acd.core.visual_projection import (
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
     SVG_TITLE_NORMALIZATION_RULE_ID,
     measure_svg_resolution,
     normalized_svg_sha256,
 )
+from acd.pipeline.repository import repository_root
 from acd.schema.visual_projection import (
     VisualProjectionDomain,
     VisualProjectionInput,
@@ -23,10 +23,6 @@ from acd.schema.visual_projection import (
     VisualRendererProvenance,
     VisualResolution,
 )
-
-
-def _content_hash(path: Path) -> str:
-    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
 
 
 class KicadVisualRenderer:
@@ -40,9 +36,11 @@ class KicadVisualRenderer:
         projection_type: VisualProjectionType,
         source: Path,
         output: Path,
+        envelope: Path,
         target_revision: str,
         layer: str | None,
     ) -> None:
+        output.parent.mkdir(parents=True, exist_ok=True)
         if projection_type == "schematic_view":
             command = [
                 self.kicad.executable,
@@ -74,10 +72,22 @@ class KicadVisualRenderer:
             command=command,
             input_paths=[source],
             output_paths=[output],
-            envelope_path=output.with_suffix(output.suffix + ".envelope.json"),
+            envelope_path=envelope,
             target_revision=target_revision,
             measurement_conditions="single SVG export; measured root dimensions",
         )
+
+    @staticmethod
+    def _resolve_within_base(path: Path, base_dir: Path, field_name: str) -> Path:
+        candidate = path if path.is_absolute() else base_dir / path
+        resolved = candidate.resolve()
+        try:
+            resolved.relative_to(base_dir)
+        except ValueError as exc:
+            raise ExternalToolError(
+                f"visual projection {field_name} must stay within base directory"
+            ) from exc
+        return resolved
 
     def render(
         self,
@@ -89,27 +99,49 @@ class KicadVisualRenderer:
         source: Path,
         output_path: Path,
         layer: str | None = None,
+        base_dir: Path | None = None,
     ) -> VisualProjectionRecord:
-        if source.is_absolute() or output_path.is_absolute():
-            raise ExternalToolError("visual projection paths must be repository-relative")
-        reproduction_path = output_path.with_name(
-            f"{output_path.stem}.reproduced{output_path.suffix}"
+        root = (base_dir or repository_root()).resolve()
+        source_path = self._resolve_within_base(source, root, "source")
+        output = self._resolve_within_base(output_path, root, "output")
+        reproduction_path = output.parent / "reproduction" / (
+            f"{output.stem}.reproduced{output.suffix}"
         )
-        self._export(projection_type, source, output_path, source_revision, layer)
-        first = output_path.read_bytes()
+        reproduction_path.parent.mkdir(parents=True, exist_ok=True)
+        self._export(
+            projection_type,
+            source_path,
+            output,
+            output.with_suffix(output.suffix + ".envelope.json"),
+            source_revision,
+            layer,
+        )
+        first = output.read_bytes()
         first_hash = normalized_svg_sha256(first)
         measured = measure_svg_resolution(first)
-        self._export(projection_type, source, reproduction_path, source_revision, layer)
+        self._export(
+            projection_type,
+            source_path,
+            reproduction_path,
+            reproduction_path.with_suffix(reproduction_path.suffix + ".envelope.json"),
+            source_revision,
+            layer,
+        )
         second_hash = normalized_svg_sha256(reproduction_path.read_bytes())
         if first_hash != second_hash:
             raise ExternalToolError("visual projection regeneration hash mismatch")
+        source_record_path = source_path.relative_to(root).as_posix()
+        output_record_path = output.relative_to(root).as_posix()
         return VisualProjectionRecord(
             projection_id=projection_id,
             projection_type=projection_type,
             domain=domain,
             source_revision=source_revision,
             input_files=[
-                VisualProjectionInput(path=source.as_posix(), content_hash=_content_hash(source))
+                VisualProjectionInput(
+                    path=source_record_path,
+                    content_hash=sha256_bytes(source_path.read_bytes()),
+                )
             ],
             renderer=VisualRendererProvenance(tool_version=self.kicad.version()),
             resolution=VisualResolution(
@@ -126,5 +158,5 @@ class KicadVisualRenderer:
                 first_image_hash=first_hash,
                 second_image_hash=second_hash,
             ),
-            image_path=output_path.as_posix(),
+            image_path=output_record_path,
         )

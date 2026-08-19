@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 import pytest
 
+from acd.core.process import sha256_bytes
 from acd.core.visual_projection import (
     SvgNormalizationError,
     SvgResolutionError,
     measure_svg_resolution,
     normalize_svg,
     normalized_svg_sha256,
+)
+
+_REAL_KICAD_FIXTURE_DIR = (
+    Path(__file__).parents[2] / "fixtures" / "visual_projection" / "kicad"
 )
 
 
@@ -51,6 +59,33 @@ def test_normalization_rejects_multiple_titles_and_missing_title() -> None:
             .replace(b"<title>", b"<not-title>")
             .replace(b"</title>", b"</not-title>")
         )
+
+
+def test_real_kicad_exports_normalize_and_measure_deterministically() -> None:
+    first = (_REAL_KICAD_FIXTURE_DIR / "gd1-front-copper.svg").read_bytes()
+    second = (_REAL_KICAD_FIXTURE_DIR / "gd1-front-copper-reproduced.svg").read_bytes()
+
+    assert sha256_bytes(first) != sha256_bytes(second)
+    assert normalized_svg_sha256(first) == normalized_svg_sha256(second)
+
+    root = re.search(
+        rb'<svg\b[^>]*\bwidth="([^"]+)"[^>]*\bheight="([^"]+)"'
+        rb'[^>]*\bviewBox="([^"]+)"',
+        first,
+    )
+    assert root is not None
+    resolution = measure_svg_resolution(first)
+    assert resolution.width == root.group(1).decode()
+    assert resolution.height == root.group(2).decode()
+    assert resolution.view_box == tuple(float(value) for value in root.group(3).split())
+
+    malformed_title = first.replace(
+        b"SVG Image created as ",
+        b"SVG Image created ",
+        1,
+    )
+    with pytest.raises(SvgNormalizationError):
+        normalize_svg(malformed_title)
 
 
 def test_resolution_is_measured_from_svg_root() -> None:
