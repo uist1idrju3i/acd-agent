@@ -253,7 +253,9 @@ class VisualProjectionSet(AcdModel):
             if self.identity_hash != expected_identity:
                 raise ValueError("visual projection set identity_hash mismatch")
         if self.canonical_hash != "unknown":
-            expected = self.computed_canonical_hash()
+            expected = canonical_json_sha256(
+                self.model_dump(mode="json", exclude={"canonical_hash"})
+            )
             if self.canonical_hash != expected:
                 raise ValueError("visual projection set canonical_hash mismatch")
         return self
@@ -275,16 +277,8 @@ class VisualProjectionSet(AcdModel):
         )
 
     def computed_canonical_hash(self) -> Sha256:
-        payload = self.model_dump(
-            mode="json",
-            exclude={"generated_at", "canonical_hash"},
-        )
-        payload["projections"] = [
-            projection.model_dump(mode="json", exclude={"generated_at"})
-            for projection in self.projections
-        ]
         return canonical_json_sha256(
-            payload
+            self.model_dump(mode="json", exclude={"canonical_hash"})
         )
 
     def with_computed_hashes(self) -> VisualProjectionSet:

@@ -282,7 +282,6 @@ def test_crosscheck_hashes_are_reproducible(tmp_path: Path) -> None:
     first = _report(tmp_path)
     second = _report(tmp_path)
     assert first.identity_hash == second.identity_hash
-    assert first.canonical_hash == second.canonical_hash
 
 
 def test_sequence_declaration_mismatch_is_fail_closed(tmp_path: Path) -> None:

@@ -178,10 +178,7 @@ class VisualCrosscheckReport(AcdModel):
 
     def computed_canonical_hash(self) -> Sha256:
         return canonical_json_sha256(
-            self.model_dump(
-                mode="json",
-                exclude={"generated_at", "canonical_hash"},
-            )
+            self.model_dump(mode="json", exclude={"canonical_hash"})
         )
 
     def with_computed_hashes(self) -> VisualCrosscheckReport:

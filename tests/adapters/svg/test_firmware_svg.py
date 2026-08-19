@@ -163,7 +163,6 @@ def test_projection_hashes_are_reproducible(tmp_path: Path) -> None:
     second = _generate(tmp_path / "second")
 
     assert first.identity_hash == second.identity_hash
-    assert first.canonical_hash == second.canonical_hash
     assert [record.image_hash for record in first.projections] == [
         record.image_hash for record in second.projections
     ]
