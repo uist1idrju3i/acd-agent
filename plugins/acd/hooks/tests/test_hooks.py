@@ -348,7 +348,7 @@ def _configured_plugin_hook_commands() -> dict[str, str]:
             if (
                 isinstance(name, str)
                 and isinstance(command, str)
-                and command.startswith("python3 ${ACD_PLUGIN_ROOT")
+                and "/hooks/scripts/" in command
             ):
                 commands[name] = command
             for child in mapping.values():
@@ -406,3 +406,63 @@ def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
             f"{name} failed to start through its configured shell command: "
             f"{completed.stderr}"
         )
+
+
+def _hook_environment(tmp_path: Path, **overrides: str) -> dict[str, str]:
+    """Build a hook environment without the ACD plugin root variables."""
+    environment = {
+        key: value
+        for key, value in os.environ.items()
+        if key not in {"ACD_PLUGIN_ROOT", "OPENHANDS_PROJECT_DIR", "HOME"}
+    }
+    environment["OPENHANDS_PROJECT_DIR"] = str(tmp_path)
+    environment.update(overrides)
+    return environment
+
+
+def test_plugin_hook_commands_resolve_the_installed_plugin_root(tmp_path: Path) -> None:
+    """Hooks run from the installed plugin store when the workspace has no plugin."""
+    home = tmp_path / "home"
+    installed_root = home / ".openhands" / "plugins" / "installed" / "acd"
+    installed_root.parent.mkdir(parents=True)
+    shutil.copytree(ROOT / "plugins/acd/hooks", installed_root / "hooks")
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=workspace, check=True)
+
+    for name, command in _configured_plugin_hook_commands().items():
+        completed = subprocess.run(
+            ["sh", "-c", command],
+            input=json.dumps({"working_dir": str(workspace)}),
+            text=True,
+            capture_output=True,
+            cwd=workspace,
+            env=_hook_environment(workspace, HOME=str(home)),
+            check=False,
+        )
+        assert completed.returncode == 0, (
+            f"{name} did not resolve the installed plugin root: {completed.stderr}"
+        )
+
+
+def test_plugin_hook_commands_fail_closed_without_a_plugin_root(tmp_path: Path) -> None:
+    """An unresolvable plugin root blocks the tool call instead of passing silently."""
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+
+    for name, command in _configured_plugin_hook_commands().items():
+        completed = subprocess.run(
+            ["sh", "-c", command],
+            input=json.dumps({"working_dir": str(workspace)}),
+            text=True,
+            capture_output=True,
+            cwd=workspace,
+            env=_hook_environment(workspace, HOME=str(home)),
+            check=False,
+        )
+        assert completed.returncode == 2, (
+            f"{name} did not fail closed without a plugin root: {completed.stdout}"
+        )
+        assert "acd plugin root unresolved" in completed.stderr

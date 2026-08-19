@@ -9,7 +9,7 @@ import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -129,6 +129,44 @@ def _declare_agent_skill(path: Path) -> None:
     )
 
 
+def _drop_installed_store_candidate(path: Path) -> None:
+    """Rewrite hook commands so they only resolve the workspace plugin tree."""
+    document = json.loads(path.read_text(encoding="utf-8"))
+
+    def visit(value: object) -> None:
+        if isinstance(value, dict):
+            mapping = cast(dict[str, Any], value)
+            command = mapping.get("command")
+            if isinstance(command, str) and "/hooks/scripts/" in command:
+                script = command.rsplit("/hooks/scripts/", 1)[1].rstrip('"')
+                mapping["command"] = (
+                    "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}"
+                    f"/hooks/scripts/{script}"
+                )
+            for child in mapping.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in cast(list[Any], value):
+                visit(child)
+
+    visit(document)
+    path.write_text(json.dumps(document), encoding="utf-8")
+
+
+def test_workspace_only_hook_path_fails_closed(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    _drop_installed_store_candidate(script.parents[3] / "hooks" / "hooks.json")
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "hook plugin root resolution"
+    )
+    assert check["result"] == "fail"
+    assert ".openhands/plugins/installed/acd" in check["detail"]
+
+
 @pytest.mark.parametrize(
     ("relative", "mutate"),
     [
@@ -239,10 +277,8 @@ def _make_direct_hook_reference(plugin_root: Path) -> None:
     hooks_path = plugin_root / "hooks/hooks.json"
     source = hooks_path.read_text(encoding="utf-8")
     updated = source.replace(
-        "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/"
-        "hooks/scripts/protect_projections.py",
-        "${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/"
-        "hooks/scripts/protect_projections.py",
+        'exec python3 \\"${p}/hooks/scripts/protect_projections.py\\"',
+        'exec \\"${p}/hooks/scripts/protect_projections.py\\"',
         1,
     )
     assert updated != source

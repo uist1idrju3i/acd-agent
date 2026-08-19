@@ -34,7 +34,7 @@
 | sdk.event | `Event`<br>`MessageEvent`<br>`HookExecutionEvent` | session経過の記録 | 採用 | Conversationのイベント経路で使用 | event/resume回帰 |
 | sdk.extensions | `fetch` | 外部拡張 | 不採用 | Canvas等の別UI・拡張境界を持ち込まない | pinned API確認、採用しない |
 | sdk.git | `get_git_changes`<br>`GitError` | stale判定へのgit入力 | 採用 | `src/acd/openhands/evidence/git.py`で使用 | dirty/stale fixture |
-| sdk.hooks | `HookConfig`<br>`HookEventType`<br>`HookExecutor` | agent経路の停止側境界 | 採用 | `HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する | DENY/allow試験 |
+| sdk.hooks | `HookConfig`<br>`HookEventType`<br>`HookExecutor` | agent経路の停止側境界 | 採用 | `HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する。`HookExecutor`はplugin rootを環境変数で渡さないため、ADR-0040によりhook command側でplugin rootを自己解決する | DENY/allow試験 |
 | sdk.io | `FileStore`<br>`LocalFileStore`<br>`InMemoryFileStore` | session保存抽象 | 採用 | L3観測だけをFileStoreへ保存し、Evidenceと設計入力の経路を変えない | tests/openhands/session/test_observation_store.py、verify_all.py --stage standard |
 | sdk.llm | `ImageContent`<br>`LLM`<br>`Message`<br>`TextContent` | Conversation/LLM入出力 | 採用 | 現行session配線で使用 | prompt回帰 |
 | sdk.llm.internal | `LLMProfileStore` | SDK内部provider補助 | 不採用 | provider詳細・内部補助をACDが直接依存しない | pinned API確認、採用しない |
