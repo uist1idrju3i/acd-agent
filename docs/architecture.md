@@ -19,6 +19,15 @@ rendererはgraphから形状を再生成せず、機械ゲートが検証したa
 視覚投影はL3観測であり、Evidence、gate、`hashes.json`のauthorityを持たない。設計判断の理由は
 typed `rationale.json`へ記録し、graphの必須属性に対するcoverageを決定論的に検査する。
 
+FWの状態遷移図・シーケンス図は、Design Graphの機械可読FW宣言から抽出した
+`FirmwareLane`だけを入力として生成し、同一revisionのgraph入力・renderer provenance・
+宣言網羅性を8.5のFW lane照合で検査する。投影集合と照合レポートは`pass_evidence=False`の
+L3非権威観測であり、Design Graph、rationale、gate status、Evidence、fabrication claims、
+`hashes.json`へ逆流しない。可読性、注記、重なり、設計意図、実機functional run対応は
+`observation_required`としてunknownを維持し、GD1実測Evidenceの保留を変えない。
+ペリフェラル設定表とメモリマップは機械可読宣言がないため対象外であり、宣言を追加する
+場合は対応する8.5検査も追加する。実provider送信と実発注は引き続きスコープ外である。
+
 ```text
 入力ファイル / profiles
         ↓

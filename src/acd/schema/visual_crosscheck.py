@@ -31,6 +31,9 @@ CrosscheckAspect = Literal[
     "origin",
     "occlusion",
     "signal_power",
+    "section_plane",
+    "interference_visibility",
+    "functional_run",
 ]
 ReviewVerification = Literal["deterministic", "observation_required"]
 
@@ -174,7 +177,9 @@ class VisualCrosscheckReport(AcdModel):
         )
 
     def computed_canonical_hash(self) -> Sha256:
-        return canonical_json_sha256(self.model_dump(mode="json", exclude={"canonical_hash"}))
+        return canonical_json_sha256(
+            self.model_dump(mode="json", exclude={"canonical_hash"})
+        )
 
     def with_computed_hashes(self) -> VisualCrosscheckReport:
         payload = self.model_dump(mode="json")

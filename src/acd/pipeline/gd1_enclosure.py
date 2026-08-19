@@ -18,6 +18,7 @@ from acd.adapters.cad.visual_projection import generate_mechanical_visual_projec
 from acd.core.mechanical import extract_mechanical_lane
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
+from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 
@@ -29,9 +30,9 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     validate_and_project_rationale(graph, fixture_dir, out_dir)
-    print("[0/4] rationale coverage passed")
+    print("[0/5] rationale coverage passed")
     lane = extract_mechanical_lane(graph)
-    print("[1/4] mechanical lane extracted")
+    print("[1/5] mechanical lane extracted")
 
     projection = project_enclosure(
         lane,
@@ -40,7 +41,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         target_revision=graph.revision,
     )
     print(
-        "[2/4] enclosure CAD projected: "
+        "[2/5] enclosure CAD projected: "
         f"shell={projection.shell_step_path}, "
         f"lid={projection.lid_step_path}, "
         f"assembly={projection.assembly_step_path}"
@@ -64,11 +65,25 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         gate_report=gate_report,
         out_dir=out_dir,
     )
+    visual_crosscheck = crosscheck_mechanical_visual_projections(
+        source_revision=graph.revision,
+        visual_projection_set=visual_projections,
+        lane=lane,
+        projection=projection,
+        gate_report=gate_report,
+        base_dir=out_dir,
+    )
+    if visual_crosscheck.status != "match":
+        raise RuntimeError("mechanical visual cross-check did not match (fail-closed)")
     print(
-        "[3/4] mechanical gates passed: "
+        "[3/5] mechanical gates passed: "
         f"volume={gate_report.measured_volume_mm3:.3f} mm3, "
         f"minimum wall={gate_report.measured_min_wall_mm:.3f} mm, "
         f"minimum clearance={gate_report.measured_min_clearance_mm:.3f} mm"
+    )
+    print(
+        "[4/5] mechanical visual cross-check recorded: "
+        f"{out_dir / 'visual-crosscheck-mechanical.json'}"
     )
     artifact_manifest = json.loads(
         projection.artifact_manifest_path.read_text(encoding="utf-8")
@@ -188,8 +203,11 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         "visual_projections": "visual-projections-mechanical.json",
         "visual_projection_identity_hash": visual_projections.identity_hash,
         "visual_projection_canonical_hash": visual_projections.canonical_hash,
+        "visual_crosscheck": "visual-crosscheck-mechanical.json",
+        "visual_crosscheck_identity_hash": visual_crosscheck.identity_hash,
+        "visual_crosscheck_canonical_hash": visual_crosscheck.canonical_hash,
     }
-    print(f"[4/4] mechanical evidence recorded: {evidence_path}")
+    print(f"[5/5] mechanical evidence recorded: {evidence_path}")
     return summary
 
 

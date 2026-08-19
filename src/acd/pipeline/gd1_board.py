@@ -70,10 +70,16 @@ from acd.adapters.kicad.reload import (
     verify_schematic,
 )
 from acd.adapters.kicad.routing import inject_routes, inject_stitch_vias
+from acd.adapters.svg import (
+    generate_firmware_visual_projections,
+    generate_layout_visual_projections,
+    generate_system_visual_projections,
+)
 from acd.core.board_model import NetClass
 from acd.core.design_predicates import PredicateResult, evaluate_gd1_predicates
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.fab import extract_fab_intent, load_fab_profile
+from acd.core.firmware_lane import extract_firmware_lane
 from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
@@ -81,6 +87,7 @@ from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
 from acd.pipeline.visual_projection import (
     crosscheck_electrical_visual_projections,
+    crosscheck_firmware_visual_projections,
     generate_electrical_visual_projections,
 )
 from acd.schema.design_graph import DesignGraph
@@ -570,14 +577,14 @@ def run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     out_dir = out_dir.resolve()
     validate_and_project_rationale(graph, fixture_dir, out_dir)
-    print("[0/10] rationale coverage passed")
+    print("[0/12] rationale coverage passed")
     revision = graph.revision
     lane = extract_electrical_lane(graph)
     design_predicates = evaluate_gd1_predicates(graph, lane, fixture_dir)
     for predicate in design_predicates:
         if predicate.status != "pass":
             raise GateError(f"{predicate.name}: status={predicate.status!r} ({predicate.detail})")
-    print("[0/10] GD1 design predicates passed")
+    print("[0/12] GD1 design predicates passed")
     silkscreen = extract_silkscreen_lane(graph)
     intent, allowances = extract_fab_intent(graph)
     profile = load_fab_profile(fab_profile_path)
@@ -599,11 +606,11 @@ def run_pipeline(
     name = project.name
     kicad = KicadCli()
 
-    print(f"[1/10] project written: {project.root}")
+    print(f"[1/12] project written: {project.root}")
 
     erc = kicad.erc(project.schematic, out_dir / f"{name}.erc.json", revision)
     assert_rule_check_passed("ERC", erc, require_connected=False)
-    print("[2/10] ERC gate passed (0 errors)")
+    print("[2/12] ERC gate passed (0 errors)")
 
     dsn_path = out_dir / f"{name}.dsn"
     dsn_path.write_text(export_dsn(project.board_projection.model, name))
@@ -612,7 +619,7 @@ def run_pipeline(
     ses_path = out_dir / f"{name}.ses"
     route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
     assert_converged(route_run.envelope.convergence_state)
-    print("[3/10] routing converged")
+    print("[3/12] routing converged")
 
     routes = parse_ses(
         ses_path.read_text(),
@@ -751,7 +758,7 @@ def run_pipeline(
             encoding="utf-8",
         )
     print(
-        f"[4/10] SES imported: {len(routes.wires)} wires, {len(routes.vias)} vias; "
+        f"[4/12] SES imported: {len(routes.wires)} wires, {len(routes.vias)} vias; "
         f"observed_min_width={routes.observed_min_width_mm:.4f} mm; "
         f"normalized_wires={routes.normalized_wire_count}"
     )
@@ -761,7 +768,7 @@ def run_pipeline(
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
     assert_rule_check_input_matches("DRC", drc, [routed_path])
     assert_rule_check_passed("DRC", drc, require_connected=True)
-    print("[5/10] DRC gate passed (0 errors, 0 unconnected)")
+    print("[5/12] DRC gate passed (0 errors, 0 unconnected)")
     kicad_positive_control = _run_kicad_netclass_positive_control(
         kicad,
         routed_path,
@@ -778,7 +785,7 @@ def run_pipeline(
         routed_path, gerber_dir, GERBER_LAYERS, revision
     )
     _drill_run, drill_paths = kicad.export_drill(routed_path, gerber_dir, revision)
-    print(f"[6/10] fabrication outputs: {len(gerber_paths)} gerbers, {len(drill_paths)} drill")
+    print(f"[6/12] fabrication outputs: {len(gerber_paths)} gerbers, {len(drill_paths)} drill")
 
     expected_nets = set(project.board_projection.net_numbers)
     expected_refdes = {c.refdes for c in lane.components}
@@ -789,7 +796,7 @@ def run_pipeline(
         verify_gerber(path, min_objects=0 if layer == "B.SilkS" else 1)
     for path in drill_paths:
         verify_drill(path)
-    print("[7/10] independent reload passed (sexpdata + gerbonara)")
+    print("[7/12] independent reload passed (sexpdata + gerbonara)")
 
     fab_dir = out_dir / "fab"
     fab_dir.mkdir(parents=True, exist_ok=True)
@@ -1001,7 +1008,7 @@ def run_pipeline(
     with bom_path.open(newline="", encoding="utf-8") as stream:
         bom_rows = tuple(csv.DictReader(stream))
     print(
-        f"[8/10] CPL/BOM generated and cross-validated "
+        f"[8/12] CPL/BOM generated and cross-validated "
         f"({len(pos_rows)} position rows, {len(bom_rows)} BOM rows)"
     )
 
@@ -1074,7 +1081,7 @@ def run_pipeline(
     dfm_path = fab_dir / "dfm-report.json"
     dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     print(
-        f"[9/10] DFM report written ({dfm_report['status']}; "
+        f"[9/12] DFM report written ({dfm_report['status']}; "
         f"{len(cast(list[object], dfm_report['findings']))} findings)"
     )
 
@@ -1182,7 +1189,7 @@ def run_pipeline(
     package_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     )
-    print("[10/10] manufacturing package written")
+    print("[10/12] manufacturing package written")
     evidence = build_electrical_evidence(
         revision=revision,
         envelope=drc.run.envelope,
@@ -1198,7 +1205,7 @@ def run_pipeline(
     )
     evidence_path = out_dir / "evidence-electrical.json"
     evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
-    print(f"[10/10] electrical evidence recorded: {evidence_path}")
+    print(f"[10/12] electrical evidence recorded: {evidence_path}")
 
     visual_projection_set = generate_electrical_visual_projections(
         project_name=name,
@@ -1226,7 +1233,7 @@ def run_pipeline(
         ),
     )
     print(
-        "[10/10] electrical visual projections recorded: "
+        "[10/12] electrical visual projections recorded: "
         f"{out_dir / 'visual-projections-electrical.json'}"
     )
     visual_crosscheck = crosscheck_electrical_visual_projections(
@@ -1241,8 +1248,70 @@ def run_pipeline(
     if visual_crosscheck.status != "match":
         raise RuntimeError("electrical visual cross-check did not match (fail-closed)")
     print(
-        "[10/10] electrical visual cross-check recorded: "
+        "[10/12] electrical visual cross-check recorded: "
         f"{out_dir / 'visual-crosscheck-electrical.json'}"
+    )
+    layout_projection_set = generate_layout_visual_projections(
+        project_name=name,
+        out_dir=out_dir,
+        source_revision=revision,
+        board=project.board_projection.model,
+        board_view=lane.board,
+        authoritative_inputs=(fixture_dir / "graph.json",),
+        input_base_dir=repository_root(),
+    )
+    print(
+        "[10/12] layout visual projections recorded: "
+        f"{out_dir / 'visual-projections-layout.json'} "
+        f"(identity_hash={layout_projection_set.identity_hash}; "
+        f"canonical_hash={layout_projection_set.canonical_hash})"
+    )
+    system_projection_set = generate_system_visual_projections(
+        project_name=name,
+        out_dir=out_dir,
+        source_revision=revision,
+        graph=graph,
+        lane=lane,
+        authoritative_inputs=(fixture_dir / "graph.json",),
+        input_base_dir=repository_root(),
+    )
+    print(
+        "[10/12] system visual projections recorded: "
+        f"{out_dir / 'visual-projections-system.json'} "
+        f"(identity_hash={system_projection_set.identity_hash}; "
+        f"canonical_hash={system_projection_set.canonical_hash})"
+    )
+    firmware_lane = extract_firmware_lane(graph)
+    firmware_projection_set = generate_firmware_visual_projections(
+        project_name=name,
+        out_dir=out_dir,
+        source_revision=revision,
+        lane=firmware_lane,
+        authoritative_inputs=(fixture_dir / "graph.json",),
+        input_base_dir=repository_root(),
+        projection_ids=("gd1-firmware-state", "gd1-firmware-sequence"),
+    )
+    print(
+        "[11/12] firmware visual projections recorded: "
+        f"{out_dir / 'visual-projections-firmware.json'} "
+        f"(identity_hash={firmware_projection_set.identity_hash}; "
+        f"canonical_hash={firmware_projection_set.canonical_hash})"
+    )
+    firmware_crosscheck = crosscheck_firmware_visual_projections(
+        source_revision=revision,
+        visual_projection_set=firmware_projection_set,
+        lane=firmware_lane,
+        graph_input=fixture_dir / "graph.json",
+        base_dir=out_dir,
+        input_base_dir=repository_root(),
+    )
+    if firmware_crosscheck.status != "match":
+        raise RuntimeError("firmware visual cross-check did not match (fail-closed)")
+    print(
+        "[11/12] firmware visual cross-check recorded: "
+        f"{out_dir / 'visual-crosscheck-firmware.json'} "
+        f"(identity_hash={firmware_crosscheck.identity_hash}; "
+        f"canonical_hash={firmware_crosscheck.canonical_hash})"
     )
 
     hashes: dict[str, str] = {}
@@ -1271,7 +1340,7 @@ def run_pipeline(
         )
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
-    print(f"[10/10] hash manifest: {manifest_path}")
+    print(f"[12/12] hash manifest: {manifest_path}")
     if order_readiness["status"] != "ready":
         print("製造データは生成済み、発注は不可: order-readiness gate failed")
         raise ValueError(f"Order readiness gate failed: {order_readiness_path}")

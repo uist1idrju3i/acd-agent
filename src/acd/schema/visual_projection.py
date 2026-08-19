@@ -26,6 +26,12 @@ from acd.schema.common import (
 VisualProjectionType = Literal[
     "schematic_view",
     "layered_layout_view",
+    "placement_view",
+    "stackup_view",
+    "system_block_view",
+    "power_tree_view",
+    "firmware_state_view",
+    "firmware_sequence_view",
     "rasterized_view",
     "mechanical_section_view",
     "mechanical_interference_view",
@@ -66,8 +72,8 @@ class VisualProjectionInput(AcdModel):
 
 
 class VisualRendererProvenance(AcdModel):
-    renderer_type: Literal["kicad-cli", "cairosvg", "build123d"] = "kicad-cli"
-    tool_name: Literal["kicad-cli", "cairosvg", "build123d"] = "kicad-cli"
+    renderer_type: Literal["kicad-cli", "cairosvg", "build123d", "acd-svg"] = "kicad-cli"
+    tool_name: Literal["kicad-cli", "cairosvg", "build123d", "acd-svg"] = "kicad-cli"
     tool_version: VersionOrUnknown
     output_width: StrictInt | None = None
 
@@ -271,7 +277,9 @@ class VisualProjectionSet(AcdModel):
         )
 
     def computed_canonical_hash(self) -> Sha256:
-        return canonical_json_sha256(self.model_dump(mode="json", exclude={"canonical_hash"}))
+        return canonical_json_sha256(
+            self.model_dump(mode="json", exclude={"canonical_hash"})
+        )
 
     def with_computed_hashes(self) -> VisualProjectionSet:
         identity_hash = self.computed_identity_hash()

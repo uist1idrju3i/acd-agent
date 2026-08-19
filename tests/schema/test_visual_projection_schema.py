@@ -118,6 +118,7 @@ def test_visual_projection_identity_excludes_generated_at_only() -> None:
     projection["generated_at"] = datetime(2027, 1, 1, tzinfo=UTC).isoformat()
     second = VisualProjectionSet.model_validate(changed)
     assert first.computed_identity_hash() == second.computed_identity_hash()
+    assert first.computed_canonical_hash() != second.computed_canonical_hash()
 
     changed["identity_hash"] = "unknown"
     projection["image_path"] = "other/location.svg"

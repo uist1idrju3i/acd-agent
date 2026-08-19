@@ -93,6 +93,8 @@
       "attrs": {
         "current_max_a": 0.5,
         "name": "VBUS_5V",
+        "power_rail": true,
+        "power_source_pin": "pin.j1.a4",
         "voltage_nominal_v": 5.0,
         "width_basis": "current_ipc2221",
         "width_basis_source": "USB VBUS power net; IPC-2221 external-layer current capacity governs the routed conductor."
@@ -141,6 +143,8 @@
       "attrs": {
         "current_max_a": 0.5,
         "name": "+3V3",
+        "power_rail": true,
+        "power_source_pin": "pin.u2.2",
         "voltage_nominal_v": 3.3,
         "width_basis": "current_ipc2221",
         "width_basis_source": "Regulated 3.3 V power net; IPC-2221 external-layer current capacity governs the routed conductor."
@@ -3930,6 +3934,213 @@
       ],
       "id": "mechanical.board_edge_overhang.u1",
       "kind": "mechanical.board_edge_overhang"
+    },
+    {
+      "attrs": {
+        "entry_state": "fw.state.boot",
+        "mcu_component": "comp.u1",
+        "module_name": "Main firmware"
+      },
+      "depends_on": [
+        "comp.u1",
+        "fw.state.boot",
+        "fw.state.fault",
+        "fw.state.measure",
+        "fw.state.report",
+        "fw.state.sensor_init"
+      ],
+      "id": "fw.module.main",
+      "kind": "firmware.module"
+    },
+    {
+      "attrs": {
+        "initial": true,
+        "state_name": "boot"
+      },
+      "depends_on": [
+        "fw.module.main"
+      ],
+      "id": "fw.state.boot",
+      "kind": "firmware.state"
+    },
+    {
+      "attrs": {
+        "initial": false,
+        "state_name": "fault"
+      },
+      "depends_on": [
+        "fw.module.main"
+      ],
+      "id": "fw.state.fault",
+      "kind": "firmware.state"
+    },
+    {
+      "attrs": {
+        "initial": false,
+        "state_name": "measure"
+      },
+      "depends_on": [
+        "fw.module.main"
+      ],
+      "id": "fw.state.measure",
+      "kind": "firmware.state"
+    },
+    {
+      "attrs": {
+        "initial": false,
+        "state_name": "report"
+      },
+      "depends_on": [
+        "fw.module.main"
+      ],
+      "id": "fw.state.report",
+      "kind": "firmware.state"
+    },
+    {
+      "attrs": {
+        "initial": false,
+        "state_name": "sensor_init"
+      },
+      "depends_on": [
+        "fw.module.main"
+      ],
+      "id": "fw.state.sensor_init",
+      "kind": "firmware.state"
+    },
+    {
+      "attrs": {
+        "from_state": "fw.state.boot",
+        "to_state": "fw.state.sensor_init",
+        "trigger": "boot_complete"
+      },
+      "depends_on": [
+        "fw.state.boot",
+        "fw.state.sensor_init"
+      ],
+      "id": "fw.transition.boot_sensor_init",
+      "kind": "firmware.state_transition"
+    },
+    {
+      "attrs": {
+        "from_state": "fw.state.measure",
+        "to_state": "fw.state.fault",
+        "trigger": "sensor_read_failed"
+      },
+      "depends_on": [
+        "fw.state.measure",
+        "fw.state.fault"
+      ],
+      "id": "fw.transition.measure_fault",
+      "kind": "firmware.state_transition"
+    },
+    {
+      "attrs": {
+        "from_state": "fw.state.measure",
+        "to_state": "fw.state.report",
+        "trigger": "measurement_ready"
+      },
+      "depends_on": [
+        "fw.state.measure",
+        "fw.state.report"
+      ],
+      "id": "fw.transition.measure_report",
+      "kind": "firmware.state_transition"
+    },
+    {
+      "attrs": {
+        "from_state": "fw.state.report",
+        "to_state": "fw.state.measure",
+        "trigger": "report_complete"
+      },
+      "depends_on": [
+        "fw.state.report",
+        "fw.state.measure"
+      ],
+      "id": "fw.transition.report_measure",
+      "kind": "firmware.state_transition"
+    },
+    {
+      "attrs": {
+        "from_state": "fw.state.sensor_init",
+        "to_state": "fw.state.measure",
+        "trigger": "sensor_init_complete"
+      },
+      "depends_on": [
+        "fw.state.sensor_init",
+        "fw.state.measure"
+      ],
+      "id": "fw.transition.sensor_init_measure",
+      "kind": "firmware.state_transition"
+    },
+    {
+      "attrs": {
+        "action": "initialize_firmware",
+        "actor": "fw.module.main",
+        "step_index": 1,
+        "target": "comp.u1"
+      },
+      "depends_on": [
+        "fw.module.main",
+        "comp.u1"
+      ],
+      "id": "fw.sequence.001",
+      "kind": "firmware.sequence_step"
+    },
+    {
+      "attrs": {
+        "action": "initialize_sht40",
+        "actor": "fw.module.main",
+        "step_index": 2,
+        "target": "comp.u3"
+      },
+      "depends_on": [
+        "fw.module.main",
+        "comp.u3"
+      ],
+      "id": "fw.sequence.002",
+      "kind": "firmware.sequence_step"
+    },
+    {
+      "attrs": {
+        "action": "toggle_led",
+        "actor": "fw.module.main",
+        "step_index": 3,
+        "target": "comp.d1"
+      },
+      "depends_on": [
+        "fw.module.main",
+        "comp.d1"
+      ],
+      "id": "fw.sequence.003",
+      "kind": "firmware.sequence_step"
+    },
+    {
+      "attrs": {
+        "action": "read_temperature_humidity",
+        "actor": "fw.module.main",
+        "step_index": 4,
+        "target": "comp.u3"
+      },
+      "depends_on": [
+        "fw.module.main",
+        "comp.u3"
+      ],
+      "id": "fw.sequence.004",
+      "kind": "firmware.sequence_step"
+    },
+    {
+      "attrs": {
+        "action": "write_serial_log",
+        "actor": "fw.module.main",
+        "step_index": 5,
+        "target": "comp.u1"
+      },
+      "depends_on": [
+        "fw.module.main",
+        "comp.u1"
+      ],
+      "id": "fw.sequence.005",
+      "kind": "firmware.sequence_step"
     },
     {
       "attrs": {

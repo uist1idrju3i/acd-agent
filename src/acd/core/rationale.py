@@ -62,7 +62,14 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
         }
     ),
     "electrical.net": frozenset(
-        {"width_basis", "voltage_nominal_v", "current_max_a", "manufacturing_margin_mm"}
+        {
+            "width_basis",
+            "voltage_nominal_v",
+            "current_max_a",
+            "manufacturing_margin_mm",
+            "power_rail",
+            "power_source_pin",
+        }
     ),
     "fab.order_intent": frozenset(
         {
@@ -74,6 +81,12 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "pcba_class_target",
             "delivery_format",
         }
+    ),
+    "firmware.module": frozenset({"mcu_component", "entry_state"}),
+    "firmware.state": frozenset({"initial"}),
+    "firmware.state_transition": frozenset({"from_state", "to_state", "trigger"}),
+    "firmware.sequence_step": frozenset(
+        {"step_index", "actor", "target", "action"}
     ),
     "firmware.pin_assignment": frozenset({"gpio", "net"}),
     "mechanical.board_edge_overhang": frozenset({"edge", "overhang_mm"}),
@@ -353,6 +366,12 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
             "No-connect state is connectivity metadata justified by the "
             "surrounding net design."
         ),
+    },
+    "firmware.module": {
+        "module_name": "Module name is a human-readable display label, not a design decision.",
+    },
+    "firmware.state": {
+        "state_name": "State name is a human-readable display label, not a design decision.",
     },
     "firmware.pin_assignment": {},
     "mechanical.board_edge_overhang": {

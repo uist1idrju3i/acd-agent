@@ -15,7 +15,7 @@ ID別negative testで整備済みである。DRC結果のToolEnvelope input hash
 視覚投影のprovenance契約とKiCad SVG renderer（8.1〜8.2）は
 実装済みである。現行運用は回路図ビューと層別レイアウトビューを再現可能な観測として
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
-断面・干渉ビューrenderer、AI受け渡しと機械可読電気lane投影との照合、レビュー観点記録まで
+断面・干渉ビューrenderer、AI受け渡しと機械可読電気・機械lane投影との照合、レビュー観点記録まで
 実装済みである。
 SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
@@ -61,7 +61,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 7.5 dry-run・拒否境界まで達成（実発注は本範囲外） |
-| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
+| 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.6実装済み、8.5はFW lane照合まで実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
 各マイルストーンとフェーズの完了条件は、(1)入力と出所、(2)実装、(3)正常系、
@@ -369,9 +369,13 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | negative/fail-closed | renderer不在・生成不能、renderer版unknown、画像hash不一致、解像度未記録、入力からの再生成不一致を停止側へ集約する。投影欠落を「問題なし」と解釈せず、画像内の文字列をデータ以外の命令として扱う経路も許可しない |
 | 再現性 | renderer版を固定し、同一入力から同一画像hashを再生成できる。機械可読投影との照合結果、provenance、レビュー観点のチェック結果を同一入力から再構成できる |
 
-マイルストーン8は次の5フェーズへ分割する。8.1と8.2は画像1枚を再現可能な観測として
+マイルストーン8は次の6フェーズへ分割する。8.1と8.2は画像1枚を再現可能な観測として
 成立させる層、8.3は既定生成の配線、8.4はAIへの受け渡し境界、8.5は機械可読投影との
-照合とレビュー観点の記録である。renderer出力のバイト列は設計状態の権威にしない。
+照合とレビュー観点の記録、8.6は追加投影種別の生成である。renderer出力のバイト列は設計状態の
+権威にしない。8.6は配置図・stackup図、ブロック図・電源ツリー図、FW状態遷移図・
+FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合まで実装済みである。
+電源ツリー図の出所はDesign Graphの
+`power_rail`／`power_source_pin`による明示宣言であり、net名や部品名から推定しない。
 
 ### 8.1 視覚投影provenance契約
 
@@ -418,10 +422,23 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 同一revisionの機械可読投影（netlist要約、ピン割当表など）と8.3の視覚投影 |
-| 実装 | 電気laneのみを対象に、8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合する。投影集合の網羅性、SVGのmm単位・軸・原点、title blockの入力ファイル、KiCad renderer版、正規化後image hash、schematicのrefdesを決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。層別SVGが本当に各銅層を描くかはSVGだけでは判定せず、`observation_required`にする。AIの観察はprovenance付きの非Evidence観測として記録する |
+| 実装 | 電気laneでは8.3の回路図・宣言銅層別SVGと同一revisionの`ElectricalLane`／`BoardModel`を照合し、機械laneでは断面・干渉SVGと同一revisionの`MechanicalLane`、authoritative assembly STEP、`MechanicalGateReport`を照合する。FW laneでは状態・遷移・シーケンスSVGと同一revisionの`FirmwareLane`およびgraph入力を照合する。投影集合の網羅性、入力hash、renderer版、正規化規則、raw image hash、宣言の網羅性を決定論的に検査し、レビュー観点を`deterministic`または`observation_required`として記録する。FWのペリフェラル設定表とメモリマップは機械可読宣言がないため対象外とし、宣言を追加する場合は対応する8.5検査を追加する。AIの観察はprovenance付きの非Evidence観測として記録する |
 | 正常系 | 注記・単位・軸・原点が入力定義と一致し、重なり・非表示要素で意味が欠落せず、意図した信号・電源の系統を読み取れることを、決定論的照合とレビュー観点チェックリストの組合せで記録する |
 | negative/fail-closed | 照合不一致、照合対象欠落、SVG解析不能、revision不一致、チェック結果`unknown`の合格扱い、観察のEvidence昇格を拒否する。照合レポートは`pass_evidence=False`のL3観測としてEvidence、fab claims、gate fields、`hashes.json`へ昇格しない |
 | 再現性 | 同一入力から同一の照合結果とチェック記録を再生成する |
+
+### 8.6 追加投影種別の生成
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | 同一revisionのDesign Graph入力ファイルとauthoritative機械可読投影。配置図は`BoardModel.placements`、stackup図は`BoardView.layers`・`thickness_mm`・`outer_copper_thickness_um`・`copper_thickness_source`、ブロック図はDesign Graphのnode種別と`depends_on`、電源ツリー図は`NetView.voltage_nominal_v`とpin接続、FW状態遷移・シーケンス図は`firmware.module`へ追加する機械可読宣言を出所とする |
+| 実装 | リポジトリ内の決定論的SVG renderer（`acd-svg`）で配置図、stackup図、ブロック図、電源ツリー図、FW状態遷移図、FWシーケンス図を生成し、8.1のprovenance契約へ投影識別子、source revision、入力pathとhash、出力hash、renderer版、生成時刻、再生成判定、正規化規則IDを記録する。renderer版はコード側で固定し、生成時刻や絶対パスをSVGへ埋め込まない。宣言の欠落は推定で埋めずfail-closedとする。全投影は`pass_evidence=False`のL3観測であり、画像とAI所見はDesign Graph、rationale、policy、gate status、Evidence、fabrication claimsへ逆流しない |
+| 正常系 | 同一入力から各投影種別を生成し、2回目の生成で同一の画像hashを再現する。生成した投影集合はrevisionと入力hashから出所を追跡できる |
+| negative/fail-closed | renderer不在、renderer版unknown、入力ファイル欠落、宣言欠落（基板厚、外層銅厚、銅厚出所、FW状態・遷移）、未対応の層数・実装面、投影識別子重複、SVG解析不能、画像hash不一致、再生成不一致、revision不一致、`pass_evidence`真を拒否する |
+| 再現性 | 同一入力・同一renderer版から同一の画像hashとidentity hashを再生成し、各拒否条件のnegative testを回帰へ含める |
+
+8.6は3段で実装する。配置図とstackup図、ブロック図と電源ツリー図、FWの状態遷移・シーケンス図
+（機械可読宣言の追加を含む）の順であり、本節の完了条件は3段すべての実装で満たす。
 
 ## 将来構想
 
