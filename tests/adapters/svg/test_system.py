@@ -7,13 +7,14 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 import pytest
 
+import acd.adapters.svg.system as system_module
 from acd.adapters.svg.system import (
     SvgSystemRenderer,
-    SystemVisualProjectionError,
+    SvgVisualProjectionError,
     generate_system_visual_projections,
 )
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
@@ -96,8 +97,9 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
     power_svg = (tmp_path / "out" / power.image_path).read_bytes()
     assert b'id="power-tree"' in power_svg
     assert b'id="power-net-net-vbus-5v"' in power_svg
+    assert b'id="power-net-net-gnd"' not in power_svg
     assert b"5.0 V" in power_svg
-    assert measure_svg_resolution(power_svg).view_box == (0.0, 0.0, 240.0, 120.0)
+    assert measure_svg_resolution(power_svg).view_box == (0.0, 0.0, 240.0, 90.0)
 
     second = _generate(tmp_path / "second")
     assert projection_set.identity_hash == second.identity_hash
@@ -108,7 +110,7 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
 
 def test_input_file_missing_fails_closed(tmp_path: Path) -> None:
     graph = _graph()
-    with pytest.raises(SystemVisualProjectionError, match="missing"):
+    with pytest.raises(SvgVisualProjectionError, match="missing"):
         generate_system_visual_projections(
             project_name="gd1",
             out_dir=tmp_path / "out",
@@ -121,12 +123,12 @@ def test_input_file_missing_fails_closed(tmp_path: Path) -> None:
 
 
 def test_unknown_renderer_version_fails_closed(tmp_path: Path) -> None:
-    with pytest.raises(SystemVisualProjectionError, match="unknown"):
+    with pytest.raises(SvgVisualProjectionError, match="unknown"):
         _generate(tmp_path, renderer=SvgSystemRenderer(tool_version="unknown"))
 
 
 def test_duplicate_projection_ids_fail_closed(tmp_path: Path) -> None:
-    with pytest.raises(SystemVisualProjectionError, match="identifiers"):
+    with pytest.raises(SvgVisualProjectionError, match="identifiers"):
         _generate(tmp_path, projection_ids=("same", "same"))
 
 
@@ -152,13 +154,13 @@ def test_second_generation_hash_mismatch_fails_closed(tmp_path: Path) -> None:
             if self.writes == 2:
                 output_path.write_bytes(output_path.read_bytes() + b" ")
 
-    with pytest.raises(SystemVisualProjectionError, match="regeneration"):
+    with pytest.raises(SvgVisualProjectionError, match="regeneration"):
         _generate(tmp_path, renderer=NonDeterministicRenderer())
 
 
 def test_revision_mismatch_fails_closed(tmp_path: Path) -> None:
     graph = _graph()
-    with pytest.raises(SystemVisualProjectionError, match="revision"):
+    with pytest.raises(SvgVisualProjectionError, match="revision"):
         generate_system_visual_projections(
             project_name="gd1",
             out_dir=tmp_path / "out",
@@ -179,7 +181,7 @@ def test_unknown_node_kind_fails_closed(tmp_path: Path) -> None:
         depends_on=[],
     )
     graph = graph.model_copy(update={"nodes": [*graph.nodes, unknown]})
-    with pytest.raises(SystemVisualProjectionError, match="unknown node"):
+    with pytest.raises(SvgVisualProjectionError, match="unknown node"):
         _generate(tmp_path, graph=graph)
 
 
@@ -194,14 +196,33 @@ def test_empty_block_dependencies_fail_closed(tmp_path: Path) -> None:
             ]
         }
     )
-    with pytest.raises(SystemVisualProjectionError, match="depends_on"):
+    with pytest.raises(SvgVisualProjectionError, match="depends_on"):
         _generate(tmp_path, graph=graph)
+
+
+def test_incomplete_block_node_kind_partition_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        system_module,
+        "_BLOCK_OMIT_KINDS",
+        cast(frozenset[str], frozenset()),
+    )
+    with pytest.raises(SvgVisualProjectionError, match="classification"):
+        _generate(tmp_path)
 
 
 def test_power_net_absent_fails_closed(tmp_path: Path) -> None:
     graph = _graph()
-    with pytest.raises(SystemVisualProjectionError, match="no declared power nets"):
-        _generate(tmp_path, lane=replace(_lane(graph), nets=()))
+    lane = _lane(graph)
+    with pytest.raises(SvgVisualProjectionError, match="no declared power rails"):
+        _generate(
+            tmp_path,
+            lane=replace(
+                lane,
+                nets=tuple(replace(net, power_rail=False) for net in lane.nets),
+            ),
+        )
 
 
 def test_voltage_undeclared_fails_closed(tmp_path: Path) -> None:
@@ -209,26 +230,99 @@ def test_voltage_undeclared_fails_closed(tmp_path: Path) -> None:
     lane = _lane(graph)
     lane = replace(
         lane,
-        nets=tuple(replace(net, voltage_nominal_v=None) for net in lane.nets),
+        nets=tuple(
+            replace(net, voltage_nominal_v=None)
+            if net.power_rail
+            else net
+            for net in lane.nets
+        ),
     )
-    with pytest.raises(SystemVisualProjectionError, match="no declared power nets"):
+    with pytest.raises(SvgVisualProjectionError, match="voltage declaration"):
         _generate(tmp_path, lane=lane)
+
+
+def test_power_voltage_nonfinite_fails_closed(tmp_path: Path) -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    nets = tuple(
+        replace(net, voltage_nominal_v=float("nan"))
+        if net.node_id == "net.vbus_5v"
+        else net
+        for net in lane.nets
+    )
+    with pytest.raises(SvgVisualProjectionError, match="voltage declaration"):
+        _generate(tmp_path, lane=replace(lane, nets=nets))
 
 
 def test_power_net_without_pin_connection_fails_closed(tmp_path: Path) -> None:
     graph = _graph()
     lane = _lane(graph)
     pins = tuple(pin for pin in lane.pins if pin.net_id != "net.vbus_5v")
-    with pytest.raises(SystemVisualProjectionError, match="no connected pins"):
+    with pytest.raises(SvgVisualProjectionError, match="connected to the rail"):
         _generate(tmp_path, lane=replace(lane, pins=pins))
 
 
 def test_power_source_not_identified_fails_closed(tmp_path: Path) -> None:
     graph = _graph()
     lane = _lane(graph)
-    components = tuple(
-        replace(component, library=replace(component.library, symbol="Device:R"))
-        for component in lane.components
+    nets = tuple(
+        replace(net, power_source_pin="req.gd1-req-001")
+        if net.node_id == "net.vbus_5v"
+        else net
+        for net in lane.nets
     )
-    with pytest.raises(SystemVisualProjectionError, match="supply source"):
-        _generate(tmp_path, lane=replace(lane, components=components))
+    with pytest.raises(SvgVisualProjectionError, match=r"not an electrical\.pin"):
+        _generate(tmp_path, lane=replace(lane, nets=nets))
+
+
+def test_power_source_pin_id_missing_fails_closed(tmp_path: Path) -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    nets = tuple(
+        replace(net, power_source_pin="pin.missing")
+        if net.node_id == "net.vbus_5v"
+        else net
+        for net in lane.nets
+    )
+    with pytest.raises(SvgVisualProjectionError, match="does not exist"):
+        _generate(tmp_path, lane=replace(lane, nets=nets))
+
+
+def test_power_source_pin_wrong_net_fails_closed(tmp_path: Path) -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    nets = tuple(
+        replace(net, power_source_pin="pin.u2.2")
+        if net.node_id == "net.vbus_5v"
+        else net
+        for net in lane.nets
+    )
+    with pytest.raises(SvgVisualProjectionError, match="connected to the rail"):
+        _generate(tmp_path, lane=replace(lane, nets=nets))
+
+
+def test_power_source_pin_missing_fails_closed(tmp_path: Path) -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    nets = tuple(
+        replace(net, power_source_pin=None)
+        if net.node_id == "net.vbus_5v"
+        else net
+        for net in lane.nets
+    )
+    with pytest.raises(SvgVisualProjectionError, match="undeclared"):
+        _generate(tmp_path, lane=replace(lane, nets=nets))
+
+
+def test_power_rail_without_load_fails_closed(tmp_path: Path) -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    pins = tuple(
+        pin
+        for pin in lane.pins
+        if not (
+            pin.net_id == "net.vbus_5v" and pin.node_id != "pin.j1.a4"
+        )
+    )
+    with pytest.raises(SvgVisualProjectionError, match="no load pin"):
+        _generate(tmp_path, lane=replace(lane, pins=pins))

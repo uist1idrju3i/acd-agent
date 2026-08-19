@@ -82,6 +82,8 @@ class NetView:
     width_basis_source: str | None
     manufacturing_minimum_mm: float | None
     manufacturing_margin_mm: float | None
+    power_rail: bool = False
+    power_source_pin: str | None = None
 
 
 @dataclass(frozen=True)
@@ -358,6 +360,8 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                         if isinstance(voltage, int | float) and not isinstance(voltage, bool)
                         else None
                     ),
+                    power_rail=_optional_bool(node, "power_rail", False),
+                    power_source_pin=_optional_str(node, "power_source_pin"),
                     width_basis=_str_attr(node, "width_basis"),
                     current_max_a=_optional_number(node, "current_max_a"),
                     width_basis_source=_optional_str(node, "width_basis_source"),

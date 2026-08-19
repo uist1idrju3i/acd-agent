@@ -3066,6 +3066,74 @@
         "recorded_at": "2026-08-17T00:00:00Z"
       },
       "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-net-vbus-power-declaration",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.vbus_5v"
+      ],
+      "subject_attrs": [
+        "power_rail",
+        "power_source_pin"
+      ],
+      "subject_hash": "sha256:f35c04b2c194744aafc1ccbf734371723b444d616b5f55d8ba2b312390d406f9",
+      "decision": "Declare VBUS_5V as a power distribution rail supplied by pin.j1.a4.",
+      "justification": "The graph explicitly identifies the USB VBUS pin as the source of this rail; the power-tree projection must use this declaration rather than infer power semantics from names or symbols.",
+      "driving_requirements": [
+        "req.gd1-req-002"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The explicit graph declaration is the required machine-readable source.",
+      "assumptions": [],
+      "risks": [
+        "Changing the declared source pin requires regenerating the power-tree observation."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
+    },
+    {
+      "schema_version": "0.1",
+      "rationale_id": "gd1-net-p3v3-power-declaration",
+      "decision_kind": "net_class",
+      "subject_nodes": [
+        "net.p3v3"
+      ],
+      "subject_attrs": [
+        "power_rail",
+        "power_source_pin"
+      ],
+      "subject_hash": "sha256:952f6b3f3a317daf7ab2423d375efaaaf0892d975df096862c54750c6257ff89",
+      "decision": "Declare +3V3 as a power distribution rail supplied by pin.u2.2.",
+      "justification": "The graph explicitly identifies the regulator output pin as the source of this rail; the power-tree projection must use this declaration rather than infer power semantics from names or symbols.",
+      "driving_requirements": [
+        "req.gd1-req-002"
+      ],
+      "driving_requirement_refs": [],
+      "rejected_alternatives": [],
+      "no_alternatives_reason": "The explicit graph declaration is the required machine-readable source.",
+      "assumptions": [],
+      "risks": [
+        "Changing the declared source pin requires regenerating the power-tree observation."
+      ],
+      "provenance": {
+        "source": "human",
+        "skill_name": null,
+        "script_hash": null,
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-17T00:00:00Z"
+      },
+      "target_revision": "r1"
     }
   ]
 }

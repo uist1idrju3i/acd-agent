@@ -62,7 +62,14 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
         }
     ),
     "electrical.net": frozenset(
-        {"width_basis", "voltage_nominal_v", "current_max_a", "manufacturing_margin_mm"}
+        {
+            "width_basis",
+            "voltage_nominal_v",
+            "current_max_a",
+            "manufacturing_margin_mm",
+            "power_rail",
+            "power_source_pin",
+        }
     ),
     "fab.order_intent": frozenset(
         {

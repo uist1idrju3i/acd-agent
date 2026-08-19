@@ -1,7 +1,5 @@
 """Deterministic SVG writers for electrical placement and stackup observations."""
 
-# pyright: reportPrivateUsage=false
-
 from __future__ import annotations
 
 import math
@@ -14,11 +12,11 @@ from acd.adapters.svg.common import (
     ACD_SVG_NORMALIZATION_RULE_ID,
     ACD_SVG_RENDERER_VERSION,
     SvgVisualProjectionError,
-    _escape,
-    _fmt,
-    _input_records,
-    _slug,
+    escape_xml,
+    format_svg_number,
+    input_records,
     render_svg_projection,
+    slugify_identifier,
 )
 from acd.core.board_model import BoardModel, ComponentPlacement
 from acd.core.electrical import BoardView
@@ -28,14 +26,12 @@ from acd.schema.visual_projection import (
     VisualProjectionSet,
 )
 
-LayoutVisualProjectionError = SvgVisualProjectionError
-
 __all__ = [
     "ACD_SVG_NORMALIZATION_RULE_DESCRIPTION",
     "ACD_SVG_NORMALIZATION_RULE_ID",
     "ACD_SVG_RENDERER_VERSION",
-    "LayoutVisualProjectionError",
     "SvgLayoutRenderer",
+    "SvgVisualProjectionError",
     "generate_layout_visual_projections",
 ]
 
@@ -43,14 +39,14 @@ __all__ = [
 def _footprint_bbox(placement: ComponentPlacement) -> tuple[float, float, float, float]:
     bbox = placement.footprint.courtyard_bbox_mm or placement.footprint.body_bbox_mm
     if bbox is None:
-        raise LayoutVisualProjectionError(
+        raise SvgVisualProjectionError(
             f"{placement.refdes}: footprint dimensions are undeclared"
         )
     if len(bbox) != 4 or not all(math.isfinite(value) for value in bbox):
-        raise LayoutVisualProjectionError(f"{placement.refdes}: footprint dimensions are invalid")
+        raise SvgVisualProjectionError(f"{placement.refdes}: footprint dimensions are invalid")
     x1, y1, x2, y2 = bbox
     if x2 <= x1 or y2 <= y1:
-        raise LayoutVisualProjectionError(f"{placement.refdes}: footprint dimensions are empty")
+        raise SvgVisualProjectionError(f"{placement.refdes}: footprint dimensions are empty")
     return bbox
 
 
@@ -62,7 +58,7 @@ def _rotated_corners(
         math.isfinite(value)
         for value in (placement.x_mm, placement.y_mm, placement.rotation_deg)
     ):
-        raise LayoutVisualProjectionError(f"{placement.refdes}: placement is non-finite")
+        raise SvgVisualProjectionError(f"{placement.refdes}: placement is non-finite")
     angle = math.radians(placement.rotation_deg)
     cosine = math.cos(angle)
     sine = math.sin(angle)
@@ -79,7 +75,7 @@ def _rotated_corners(
 
 def _validate_placement(placement: ComponentPlacement, board: BoardModel) -> None:
     if placement.side not in {"front", "back"}:
-        raise LayoutVisualProjectionError(
+        raise SvgVisualProjectionError(
             f"{placement.refdes}: unsupported placement side {placement.side!r}"
         )
     if (
@@ -88,29 +84,32 @@ def _validate_placement(placement: ComponentPlacement, board: BoardModel) -> Non
         or placement.x_mm > board.width_mm
         or placement.y_mm > board.height_mm
     ):
-        raise LayoutVisualProjectionError(
+        raise SvgVisualProjectionError(
             f"{placement.refdes}: placement lies outside board outline"
         )
 
 
 def _placement_svg(board: BoardModel) -> bytes:
     if not board.placements:
-        raise LayoutVisualProjectionError("placement projection requires placements")
+        raise SvgVisualProjectionError("placement projection requires placements")
     refdes = [placement.refdes for placement in board.placements]
     if len(refdes) != len(set(refdes)):
-        raise LayoutVisualProjectionError("placement reference designators must be unique")
+        raise SvgVisualProjectionError("placement reference designators must be unique")
     for placement in board.placements:
         _validate_placement(placement, board)
     chunks = [
         (
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{_fmt(board.width_mm)}mm" '
-            f'height="{_fmt(board.height_mm)}mm" '
-            f'viewBox="0 0 {_fmt(board.width_mm)} {_fmt(board.height_mm)}">'
+            f'<svg xmlns="http://www.w3.org/2000/svg" '
+            f'width="{format_svg_number(board.width_mm)}mm" '
+            f'height="{format_svg_number(board.height_mm)}mm" '
+            f'viewBox="0 0 {format_svg_number(board.width_mm)} '
+            f'{format_svg_number(board.height_mm)}">'
         ),
         '<g id="board-outline">',
         (
-            f'<rect id="board-outline-rect" x="0" y="0" width="{_fmt(board.width_mm)}" '
-            f'height="{_fmt(board.height_mm)}" fill="none" stroke="#000"/>'
+            f'<rect id="board-outline-rect" x="0" y="0" '
+            f'width="{format_svg_number(board.width_mm)}" '
+            f'height="{format_svg_number(board.height_mm)}" fill="none" stroke="#000"/>'
         ),
         "</g>",
     ]
@@ -119,8 +118,11 @@ def _placement_svg(board: BoardModel) -> bytes:
         for placement in sorted(board.placements, key=lambda item: item.refdes):
             if placement.side != side:
                 continue
-            points = " ".join(f"{_fmt(x)},{_fmt(y)}" for x, y in _rotated_corners(placement))
-            identifier = _slug(placement.refdes)
+            points = " ".join(
+                f"{format_svg_number(x)},{format_svg_number(y)}"
+                for x, y in _rotated_corners(placement)
+            )
+            identifier = slugify_identifier(placement.refdes)
             chunks.extend(
                 [
                     f'<g id="placement-{identifier}">',
@@ -129,12 +131,12 @@ def _placement_svg(board: BoardModel) -> bytes:
                         f'fill="none" stroke="#0088cc"/>'
                     ),
                     (
-                        f'<text id="refdes-{identifier}" x="{_fmt(placement.x_mm)}" '
-                        f'y="{_fmt(placement.y_mm)}">{_escape(placement.refdes)}</text>'
+                        f'<text id="refdes-{identifier}" x="{format_svg_number(placement.x_mm)}" '
+                        f'y="{format_svg_number(placement.y_mm)}">{escape_xml(placement.refdes)}</text>'
                     ),
                     (
-                        f'<text id="side-{identifier}" x="{_fmt(placement.x_mm)}" '
-                        f'y="{_fmt(placement.y_mm + 0.8)}">{side}</text>'
+                        f'<text id="side-{identifier}" x="{format_svg_number(placement.x_mm)}" '
+                        f'y="{format_svg_number(placement.y_mm + 0.8)}">{side}</text>'
                     ),
                     "</g>",
                 ]
@@ -148,44 +150,46 @@ def _stackup_svg(board: BoardView) -> bytes:
     try:
         layer_names = copper_layers_for_layer_count(board.layers)
     except ValueError as exc:
-        raise LayoutVisualProjectionError("stackup layer count is unsupported") from exc
+        raise SvgVisualProjectionError("stackup layer count is unsupported") from exc
     if board.layers != len(layer_names):
-        raise LayoutVisualProjectionError("stackup layer count is unsupported")
+        raise SvgVisualProjectionError("stackup layer count is unsupported")
     thickness_mm = board.thickness_mm
     if not math.isfinite(thickness_mm) or thickness_mm <= 0:
-        raise LayoutVisualProjectionError("stackup thickness_mm is undeclared or invalid")
+        raise SvgVisualProjectionError("stackup thickness_mm is undeclared or invalid")
     if (
         board.outer_copper_thickness_um is None
         or not math.isfinite(board.outer_copper_thickness_um)
         or board.outer_copper_thickness_um <= 0
     ):
-        raise LayoutVisualProjectionError(
+        raise SvgVisualProjectionError(
             "stackup outer_copper_thickness_um is undeclared or invalid"
         )
     if not board.copper_thickness_source:
-        raise LayoutVisualProjectionError("stackup copper_thickness_source is undeclared")
+        raise SvgVisualProjectionError("stackup copper_thickness_source is undeclared")
     copper_mm = board.outer_copper_thickness_um / 1000.0
     dielectric_mm = (thickness_mm - len(layer_names) * copper_mm) / (
         len(layer_names) - 1
     )
     if dielectric_mm <= 0:
-        raise LayoutVisualProjectionError("stackup declarations have no positive dielectric")
+        raise SvgVisualProjectionError("stackup declarations have no positive dielectric")
     width = 80.0
     height = thickness_mm + 20.0
     y = 10.0
     chunks = [
         (
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{_fmt(width)}mm" '
-            f'height="{_fmt(height)}mm" viewBox="0 0 {_fmt(width)} {_fmt(height)}">'
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{format_svg_number(width)}mm" '
+            f'height="{format_svg_number(height)}mm" '
+            f'viewBox="0 0 {format_svg_number(width)} {format_svg_number(height)}">'
         ),
         '<g id="stackup">',
     ]
     current_y = y
     for index, layer_name in enumerate(layer_names):
-        chunks.append(f'<g id="{_escape(layer_name)}">')
+        chunks.append(f'<g id="{escape_xml(layer_name)}">')
         chunks.append(
-            f'<rect id="{_escape(layer_name)}-band" x="10" y="{_fmt(current_y)}" '
-            f'width="60" height="{_fmt(copper_mm)}" fill="#c87533"/>'
+            f'<rect id="{escape_xml(layer_name)}-band" x="10" '
+            f'y="{format_svg_number(current_y)}" width="60" '
+            f'height="{format_svg_number(copper_mm)}" fill="#c87533"/>'
         )
         chunks.append("</g>")
         current_y += copper_mm
@@ -204,7 +208,7 @@ class SvgLayoutRenderer:
 
     def __init__(self, *, tool_version: str = ACD_SVG_RENDERER_VERSION) -> None:
         if not tool_version or tool_version == "unknown":
-            raise LayoutVisualProjectionError("renderer version is unknown")
+            raise SvgVisualProjectionError("renderer version is unknown")
         self.tool_version = tool_version
 
     def _write_svg(
@@ -220,14 +224,14 @@ class SvgLayoutRenderer:
         elif projection_type == "stackup_view":
             content = _stackup_svg(board_view)
         else:
-            raise LayoutVisualProjectionError(
+            raise SvgVisualProjectionError(
                 f"unsupported layout projection type: {projection_type}"
             )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             output_path.write_bytes(content)
         except OSError as exc:
-            raise LayoutVisualProjectionError(
+            raise SvgVisualProjectionError(
                 f"layout SVG could not be written: {output_path}"
             ) from exc
 
@@ -244,11 +248,11 @@ class SvgLayoutRenderer:
         base_dir: Path,
     ) -> VisualProjectionRecord:
         if projection_type not in {"placement_view", "stackup_view"}:
-            raise LayoutVisualProjectionError("unsupported layout projection type")
+            raise SvgVisualProjectionError("unsupported layout projection type")
         if board.layers != board_view.layers:
-            raise LayoutVisualProjectionError("board layer declarations do not match")
+            raise SvgVisualProjectionError("board layer declarations do not match")
         if any(not path.path for path in input_files):
-            raise LayoutVisualProjectionError("layout input paths are missing")
+            raise SvgVisualProjectionError("layout input paths are missing")
         return render_svg_projection(
             projection_id=projection_id,
             projection_type=projection_type,
@@ -281,15 +285,15 @@ def generate_layout_visual_projections(
 ) -> VisualProjectionSet:
     """Generate the placement and stackup projection collection."""
     if board.layers != board_view.layers:
-        raise LayoutVisualProjectionError("board layer declarations do not match")
-    inputs = _input_records(authoritative_inputs, input_base_dir)
+        raise SvgVisualProjectionError("board layer declarations do not match")
+    inputs = input_records(authoritative_inputs, input_base_dir)
     renderer = renderer or SvgLayoutRenderer()
     ids = projection_ids or (
-        f"{_slug(project_name)}-placement",
-        f"{_slug(project_name)}-stackup",
+        f"{slugify_identifier(project_name)}-placement",
+        f"{slugify_identifier(project_name)}-stackup",
     )
     if len(ids) != 2:
-        raise LayoutVisualProjectionError("layout projection identifiers are incomplete")
+        raise SvgVisualProjectionError("layout projection identifiers are incomplete")
     records = [
         renderer.render(
             projection_id=ids[0],

@@ -1,7 +1,5 @@
 """Shared contracts and helpers for deterministic SVG observations."""
 
-# pyright: reportUnusedFunction=false
-
 from __future__ import annotations
 
 import html
@@ -31,17 +29,17 @@ class SvgVisualProjectionError(ValueError):
     """Raised when a deterministic SVG projection cannot be trusted."""
 
 
-def _fmt(value: float) -> str:
+def format_svg_number(value: float) -> str:
     if not math.isfinite(value):
         raise SvgVisualProjectionError("SVG geometry contains a non-finite value")
     return f"{value:.6f}".rstrip("0").rstrip(".") or "0"
 
 
-def _escape(value: str) -> str:
+def escape_xml(value: str) -> str:
     return html.escape(value, quote=True)
 
 
-def _slug(value: str) -> str:
+def slugify_identifier(value: str) -> str:
     result = "".join(char.lower() if char.isalnum() else "-" for char in value)
     result = result.strip("-")
     if not result:
@@ -49,7 +47,7 @@ def _slug(value: str) -> str:
     return result
 
 
-def _relative_path(path: Path, base_dir: Path, field_name: str) -> str:
+def relative_path(path: Path, base_dir: Path, field_name: str) -> str:
     try:
         return path.resolve().relative_to(base_dir.resolve()).as_posix()
     except ValueError as exc:
@@ -58,7 +56,7 @@ def _relative_path(path: Path, base_dir: Path, field_name: str) -> str:
         ) from exc
 
 
-def _input_records(paths: tuple[Path, ...], base_dir: Path) -> list[VisualProjectionInput]:
+def input_records(paths: tuple[Path, ...], base_dir: Path) -> list[VisualProjectionInput]:
     if not paths:
         raise SvgVisualProjectionError("authoritative input files are missing")
     records: list[VisualProjectionInput] = []
@@ -75,7 +73,7 @@ def _input_records(paths: tuple[Path, ...], base_dir: Path) -> list[VisualProjec
             ) from exc
         records.append(
             VisualProjectionInput(
-                path=_relative_path(path, base_dir, "input file"),
+                path=relative_path(path, base_dir, "input file"),
                 content_hash=sha256_bytes(content),
             )
         )
@@ -144,5 +142,5 @@ def render_svg_projection(
             first_image_hash=first_hash,
             second_image_hash=second_hash,
         ),
-        image_path=_relative_path(output, base_dir, "image"),
+        image_path=relative_path(output, base_dir, "image"),
     )

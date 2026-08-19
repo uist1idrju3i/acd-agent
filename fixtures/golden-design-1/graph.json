@@ -93,6 +93,8 @@
       "attrs": {
         "current_max_a": 0.5,
         "name": "VBUS_5V",
+        "power_rail": true,
+        "power_source_pin": "pin.j1.a4",
         "voltage_nominal_v": 5.0,
         "width_basis": "current_ipc2221",
         "width_basis_source": "USB VBUS power net; IPC-2221 external-layer current capacity governs the routed conductor."
@@ -141,6 +143,8 @@
       "attrs": {
         "current_max_a": 0.5,
         "name": "+3V3",
+        "power_rail": true,
+        "power_source_pin": "pin.u2.2",
         "voltage_nominal_v": 3.3,
         "width_basis": "current_ipc2221",
         "width_basis_source": "Regulated 3.3 V power net; IPC-2221 external-layer current capacity governs the routed conductor."

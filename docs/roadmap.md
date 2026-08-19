@@ -373,7 +373,8 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 成立させる層、8.3は既定生成の配線、8.4はAIへの受け渡し境界、8.5は機械可読投影との
 照合とレビュー観点の記録、8.6は追加投影種別の生成である。renderer出力のバイト列は設計状態の
 権威にしない。8.6のうち配置図・stackup図・ブロック図・電源ツリー図を実装済み、FW状態遷移/
-シーケンス図は未実装である。
+シーケンス図は未実装である。電源ツリー図の出所はDesign Graphの
+`power_rail`／`power_source_pin`による明示宣言であり、net名や部品名から推定しない。
 
 ### 8.1 視覚投影provenance契約
 

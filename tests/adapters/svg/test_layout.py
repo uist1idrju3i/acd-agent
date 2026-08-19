@@ -15,8 +15,8 @@ from acd.adapters.svg.layout import (
     ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
     ACD_SVG_NORMALIZATION_RULE_ID,
     ACD_SVG_RENDERER_VERSION,
-    LayoutVisualProjectionError,
     SvgLayoutRenderer,
+    SvgVisualProjectionError,
     generate_layout_visual_projections,
 )
 from acd.core.board_model import (
@@ -203,12 +203,12 @@ def test_layout_projection_rejects_undeclared_or_unsupported_values(
     board: BoardModel,
     board_view: BoardView,
 ) -> None:
-    with pytest.raises(LayoutVisualProjectionError, match="|".join(name.split())):
+    with pytest.raises(SvgVisualProjectionError, match="|".join(name.split())):
         _generate(tmp_path / name.replace(" ", "-"), board=board, board_view=board_view)
 
 
 def test_missing_authoritative_input_fails_closed(tmp_path: Path) -> None:
-    with pytest.raises(LayoutVisualProjectionError, match="missing"):
+    with pytest.raises(SvgVisualProjectionError, match="missing"):
         generate_layout_visual_projections(
             project_name="gd1",
             out_dir=tmp_path / "out",
@@ -224,12 +224,12 @@ def test_placement_anchor_outside_board_fails_closed(tmp_path: Path) -> None:
     placement = _board().placements[0]
     outside = replace(placement, x_mm=31.0)
     board = replace(_board(), placements=(outside,))
-    with pytest.raises(LayoutVisualProjectionError, match="outside"):
+    with pytest.raises(SvgVisualProjectionError, match="outside"):
         _generate(tmp_path, board=board)
 
 
 def test_unknown_renderer_version_fails_closed(tmp_path: Path) -> None:
-    with pytest.raises(LayoutVisualProjectionError, match="unknown"):
+    with pytest.raises(SvgVisualProjectionError, match="unknown"):
         _generate(tmp_path, renderer=SvgLayoutRenderer(tool_version="unknown"))
 
 
@@ -260,7 +260,7 @@ def test_second_generation_hash_mismatch_fails_closed(tmp_path: Path) -> None:
             if self.writes == 2:
                 output_path.write_bytes(output_path.read_bytes() + b" ")
 
-    with pytest.raises(LayoutVisualProjectionError, match="regeneration"):
+    with pytest.raises(SvgVisualProjectionError, match="regeneration"):
         _generate(tmp_path, renderer=NonDeterministicRenderer())
 
 
