@@ -79,10 +79,6 @@ def _validate_confirmation_policy(
 ) -> None:
     if policy is None:
         raise OrderExecutionError("confirmation policy is required")
-    if isinstance(policy, ConfirmRisky) and not policy.should_confirm(
-        SecurityRisk.MEDIUM
-    ):
-        raise OrderExecutionError("confirmation policy must require confirmation")
     try:
         confirms_medium = policy.should_confirm(SecurityRisk.MEDIUM)
         confirms_high = policy.should_confirm(SecurityRisk.HIGH)
@@ -107,8 +103,6 @@ def _validate_secret_reference(
         raise OrderExecutionError(
             "provider credential must be an allowlisted SecretRegistry name"
         )
-    if not secret_name.strip():
-        raise OrderExecutionError("provider credential reference must not be empty")
 
 
 def _validate_runtime_limit_override(
@@ -120,20 +114,26 @@ def _validate_runtime_limit_override(
         )
 
 
-def _run_dry_run_command(
+def _validate_dry_run_command(
     *,
-    command: Sequence[str] | None,
+    command: Sequence[str],
     registry: SecretRegistry,
-    run: Callable[..., subprocess.CompletedProcess[str]],
-) -> tuple[int, str, str]:
-    if command is None:
-        return 0, "", ""
+) -> None:
     if not command or any(not argument for argument in command):
         raise OrderExecutionError("dry-run command must not be empty")
     command_text = " ".join(command)
     secret_values = registry.get_all_secrets_as_env_vars()
     if any(value and value in command_text for value in secret_values.values()):
         raise OrderExecutionError("provider credential value must not be a command argument")
+
+
+def _run_dry_run_command(
+    *,
+    command: Sequence[str],
+    registry: SecretRegistry,
+    run: Callable[..., subprocess.CompletedProcess[str]],
+) -> tuple[int, str, str]:
+    command_text = " ".join(command)
     secret_env = registry.get_secrets_as_env_vars(command_text)
     environment = {
         key: value
@@ -179,7 +179,7 @@ def _receipt(
 
 def execute_order(
     *,
-    authorization: PreOrderGateRecord | None,
+    authorization: PreOrderGateRecord,
     journal_path: Path,
     idempotency_key: IdempotencyKey,
     package_hash: Sha256,
@@ -191,7 +191,7 @@ def execute_order(
     occurred_at: Timestamp,
     execution_mode: ExecutionMode = "dry_run",
     runtime_upper_limit: QuoteAmount | None = None,
-    command: Sequence[str] | None = None,
+    command: Sequence[str],
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> DryRunOrderResult:
     """Record and execute one deterministic dry-run order attempt."""
@@ -201,14 +201,6 @@ def execute_order(
         raise OrderExecutionError(
             "real provider order execution is not enabled in this milestone"
         )
-    if authorization is None:
-        raise OrderExecutionError("pre-order authorization record is required")
-    try:
-        authorization = PreOrderGateRecord.model_validate(
-            authorization.model_dump(mode="python")
-        )
-    except ValueError as exc:
-        raise OrderExecutionError("pre-order authorization record is invalid") from exc
     if authorization.target_revision != target_revision:
         raise OrderExecutionError("authorization revision does not match order revision")
     _validate_runtime_limit_override(runtime_upper_limit)
@@ -221,6 +213,7 @@ def execute_order(
         raise OrderExecutionError("required ACD hooks are not declared") from exc
     registry = _build_secret_registry()
     _validate_secret_reference(provider_credential_reference)
+    _validate_dry_run_command(command=command, registry=registry)
     payload = build_dry_run_order_payload(
         authorization=authorization,
         package_hash=package_hash,
@@ -249,7 +242,7 @@ def execute_order(
         )
     except OrderExecutionError as exc:
         execution_error = exc
-        exit_code, stdout, stderr = 1, "", "dry-run execution refused"
+        exit_code, stdout, stderr = 1, "", "dry-run subprocess could not start"
     status: JournalResultStatus = "success" if exit_code == 0 else "failure"
     receipt_id, receipt_hash = _receipt(
         payload_hash=payload_hash,

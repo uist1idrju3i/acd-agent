@@ -50,6 +50,9 @@ def _args(permit: Path, journal: Path) -> list[str]:
         "ACD_API_KEY",
         "--occurred-at",
         "2026-08-14T00:00:00Z",
+        "--command",
+        "echo",
+        "dry-run",
     ]
 
 
@@ -104,4 +107,22 @@ def test_order_execution_cli_rejects_malformed_package_hash(
 
     assert order_execution.main(args) == 2
     assert "refused" in capsys.readouterr().err
+    assert not journal.exists()
+
+
+def test_order_execution_cli_requires_dry_run_command(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    permit = tmp_path / "permit.json"
+    journal = tmp_path / "journal.jsonl"
+    _permit(permit)
+    args = _args(permit, journal)
+    command_index = args.index("--command")
+    del args[command_index:]
+
+    with pytest.raises(SystemExit) as error:
+        order_execution.main(args)
+    assert error.value.code == 2
+    assert "required" in capsys.readouterr().err
     assert not journal.exists()

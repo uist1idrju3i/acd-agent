@@ -222,7 +222,8 @@ uv run python scripts/order_execution.py \
   --destination supplier.example \
   --target-revision r1 \
   --credential-reference ACD_API_KEY \
-  --occurred-at 2026-08-14T00:00:00Z
+  --occurred-at 2026-08-14T00:00:00Z \
+  --command echo dry-run
 ```
 
 出力payloadはpackage hash、宛先、対象revision、総額、許可hashだけから作られ、
@@ -231,7 +232,9 @@ secret値、Evidence内容、時刻を含めない。journalには`dry_run`のpr
 execution is not enabled」として非ゼロ終了する。confirmation policyのskip、必須hook不在、
 credential参照名のallowlist外、上限額override、冪等key再送、provider scriptの非ゼロ終了、
 post記録失敗は停止条件である。実providerへの送信は本マイルストーンの範囲外であり、
-credentialの値を引数・journal・ログ・stdoutへ渡してはならない。
+credentialの値を引数・journal・ログ・stdoutへ渡してはならない。`--command`は必須で、
+command未実行をsuccessとして記録する経路はない。command形式不正やsecret値の混入は
+事前予定の追記前に拒否し、providerの`failure`とは区別する。
 
 4. 実行済みのGD1基板pipelineでは、回路図
    `out/gd1/gd1.kicad_sch`、routed board

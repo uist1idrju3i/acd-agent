@@ -241,7 +241,8 @@ dry-runの組は実発注完了を満たさず、real modeは未有効化とし�
 credentialの値ではなくallowlist済み`SecretRegistry`参照名だけを受け取る。上限額を
 runtimeや会話から上書きする引数・環境変数経路はない。SDKのconfirmation policyが
 medium/high riskの確認を要求し、既存の必須hookが宣言されている場合だけdry-runを
-journalへ記録する。実providerへの送信経路は本マイルストーンでは未実装である。
+journalへ記録する。dry-run commandは必須で、形式不正やsecret値混入をpre entryの
+追記前に拒否する。実providerへの送信経路は本マイルストーンでは未実装である。
 
 再実行は`scripts/pre_order_gate.py --rerun-authoritative`からdigest固定
 `DockerWorkspace`経路を明示的に呼び出す。check-onlyは既存Evidenceだけを検査し、

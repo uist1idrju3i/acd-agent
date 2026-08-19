@@ -46,7 +46,8 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--command",
         nargs="+",
-        help="optional local dry-run command; never a real provider command",
+        required=True,
+        help="required local dry-run command; never a real provider command",
     )
     parser.add_argument(
         "--real",

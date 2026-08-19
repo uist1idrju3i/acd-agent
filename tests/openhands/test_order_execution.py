@@ -66,7 +66,7 @@ def _execute(
     provider_credential_reference: str = "ACD_API_KEY",
     execution_mode: ExecutionMode = "dry_run",
     run: Callable[..., subprocess.CompletedProcess[str]] = _run_success,
-    command: Sequence[str] | None = ("dry-run",),
+    command: Sequence[str] = ("dry-run",),
 ):
     idempotency_key = "order-20260814"
     package_hash: Sha256 = PACKAGE_HASH
@@ -119,6 +119,14 @@ def test_real_mode_is_explicitly_disabled_before_journal_write(tmp_path: Path) -
     assert not (tmp_path / "journal.jsonl").exists()
 
 
+def test_missing_dry_run_command_is_rejected_before_journal_write(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(OrderExecutionError, match="command"):
+        _execute(tmp_path / "journal.jsonl", command=None)  # type: ignore[arg-type]
+    assert not (tmp_path / "journal.jsonl").exists()
+
+
 def test_confirmation_policy_and_secret_reference_are_fail_closed(
     tmp_path: Path,
 ) -> None:
@@ -134,6 +142,18 @@ def test_confirmation_policy_and_secret_reference_are_fail_closed(
             tmp_path / "skip-confirmation.jsonl",
             confirmation_policy=NeverConfirm(),
         )
+
+
+def test_secret_command_argument_is_rejected_before_journal_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    secret = "do-not-put-this-in-command"
+    monkeypatch.setenv("ACD_API_KEY", secret)
+
+    with pytest.raises(OrderExecutionError, match="command argument"):
+        _execute(tmp_path / "secret-command.jsonl", command=["echo", secret])
+    assert not (tmp_path / "secret-command.jsonl").exists()
 
 
 def test_subprocess_failure_is_recorded_as_failure_and_raises(
