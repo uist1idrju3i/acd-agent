@@ -18,9 +18,12 @@ AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立�
    パスは必須で、省略するとACDのSkill／AgentDefinition／command／hooksが読み込まれません。
 3. 追加を実行する。以後は`/acd:gates`などのACD機能がそのまま使えます。
 4. インストール直後に`/acd:doctor`を実行し、plugin資材と実行環境の自己診断結果を確認する。
-   `degraded`はDocker到達不能などauthoritative Evidenceに影響する能力不足を示します。
-   ホストEDAツールの有無は観測情報であり、required checkの`failed`は再インストールや
-   driftの確認が必要です。
+   `repo_path: plugins/acd`を省略した場合や予期しないディレクトリ名で導入した場合は
+   required checkが`failed`となるため、指定のsourceとpathで再インストールします。
+   prompt manifestのcanonical hashと資材hashも確認されます。`degraded`はDocker到達不能や
+   直接実行するhook scriptの権限・shebang不足などを示しますが、ホストEDAツールの不在は
+   観測情報でありstatusを下げません。現在のcommit済みhook scriptはこの理由で
+   `degraded`になり得ます。
 
 最新化（default branchの先頭への更新）も、同じPlugins画面の「更新」ボタンだけで完了します。
 アンインストールは不要で、有効・無効の状態も維持されます。
@@ -38,7 +41,7 @@ installすると、次のslash commandが会話から使えます。
 | コマンド | 意味 | 使い方例 |
 | --- | --- | --- |
 | `/acd:gates [--fixture PATH] [--out PATH]` | 決定論的な基板・筐体ゲートを既存のCLI入口で実行し、段階、ツール版、入出力Evidenceのパス、失敗理由を報告します。ツール不在・parse失敗・未検証はfail-closedです。 | `/acd:gates --fixture fixtures/golden-design-1 --out out/gd1` |
-| `/acd:doctor` | pluginのインストール資材、Skill依存ref、Python／uv、Docker・ホストEDA能力を自己診断します。L3観測であり合否権限を持ちません。 | `/acd:doctor` |
+| `/acd:doctor` | pluginのインストール位置・資材・prompt manifest、Skill依存ref、Python／uv、Docker・hook・ホストEDA能力を自己診断します。L3観測であり合否権限を持ちません。 | `/acd:doctor` |
 
 あわせて、会話から使えるACD toolが登録されます。名前を指定せずに自然言語で頼めば、
 必要なものがAgentDefinition経由で呼ばれます。

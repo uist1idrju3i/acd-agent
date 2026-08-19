@@ -16,6 +16,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -57,7 +58,7 @@ def _read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _front_matter(text: str) -> tuple[dict[str, str], str]:
+def _front_matter(text: str) -> dict[str, str]:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         raise ValueError("front-matter must start with ---")
@@ -71,8 +72,7 @@ def _front_matter(text: str) -> tuple[dict[str, str], str]:
             continue
         key, value = line.split(":", 1)
         fields[key.strip()] = value.strip()
-    body = "\n".join(lines[end + 1 :]).strip()
-    return fields, body
+    return fields
 
 
 def _manifest_check(plugin_root: Path) -> dict[str, Any]:
@@ -102,9 +102,71 @@ def _manifest_check(plugin_root: Path) -> dict[str, Any]:
     return _check("plugin manifest", True, "pass", "manifest name is acd", "acd")
 
 
-def _hook_references(document: Any, plugin_root: Path) -> tuple[list[str], list[str]]:
+def _install_location_check(plugin_root: Path) -> dict[str, Any]:
+    store = Path.home() / ".openhands" / "plugins" / "installed"
+    manifest_path = plugin_root / ".plugin" / "plugin.json"
+    try:
+        manifest = _read_json(manifest_path)
+        if not isinstance(manifest, dict):
+            return _check(
+                "plugin install location",
+                True,
+                "unknown",
+                "could not determine the plugin manifest name",
+            )
+        manifest = cast(dict[str, Any], manifest)
+        manifest_name = manifest.get("name")
+        if not isinstance(manifest_name, str):
+            return _check(
+                "plugin install location",
+                True,
+                "unknown",
+                "could not determine the plugin manifest name",
+            )
+        root = plugin_root.resolve()
+        store_root = store.resolve()
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError) as exc:
+        return _check(
+            "plugin install location",
+            True,
+            "unknown",
+            f"could not inspect the plugin install location: {exc}",
+        )
+    try:
+        relative = root.relative_to(store_root)
+    except ValueError:
+        return _check(
+            "plugin install location",
+            True,
+            "pass",
+            "plugin root is outside the installed plugin store; treated as a development checkout",
+            "development checkout",
+        )
+    if len(relative.parts) == 1 and relative.name == manifest_name:
+        return _check(
+            "plugin install location",
+            True,
+            "pass",
+            f"plugin root is the direct installed plugin directory {relative.name}",
+            relative.name,
+        )
+    return _check(
+        "plugin install location",
+        True,
+        "fail",
+        "plugin was most likely installed without repo_path: plugins/acd or under an "
+        "unexpected directory name. OpenHands loads the outer directory and none of these "
+        "assets. Reinstall with source github:uist1idrju3i/acd-agent and path plugins/acd.",
+        str(root),
+    )
+
+
+def _hook_references(
+    document: Any, plugin_root: Path
+) -> tuple[list[str], list[str], list[tuple[str, Path]]]:
     plugin_refs: list[str] = []
     external_refs: list[str] = []
+    direct_plugin_refs: list[tuple[str, Path]] = []
 
     def visit(value: Any) -> None:
         if isinstance(value, dict):
@@ -118,13 +180,15 @@ def _hook_references(document: Any, plugin_root: Path) -> tuple[list[str], list[
                 relative = match.group(1).lstrip("/")
                 target = plugin_root / relative
                 plugin_refs.append(f"{relative}: {'present' if target.is_file() else 'missing'}")
+                if value.lstrip().startswith("${"):
+                    direct_plugin_refs.append((relative, target))
             for match in HOOK_PATH_RE.finditer(value):
                 relative = match.group(1)
                 if not relative.startswith(("hooks/", "skills/", "agents/")):
                     external_refs.append(relative)
 
     visit(document)
-    return plugin_refs, sorted(set(external_refs))
+    return plugin_refs, sorted(set(external_refs)), direct_plugin_refs
 
 
 def _assets_check(plugin_root: Path) -> dict[str, Any]:
@@ -136,7 +200,7 @@ def _assets_check(plugin_root: Path) -> dict[str, Any]:
     skill_names: list[str] = []
     for skill in skills:
         try:
-            fields, _ = _front_matter(skill.read_text(encoding="utf-8"))
+            fields = _front_matter(skill.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, ValueError) as exc:
             errors.append(f"{_relative(skill, plugin_root)}: {exc}")
             continue
@@ -155,7 +219,7 @@ def _assets_check(plugin_root: Path) -> dict[str, Any]:
     external_refs: list[str] = []
     try:
         hooks = _read_json(hooks_path)
-        plugin_refs, external_refs = _hook_references(hooks, plugin_root)
+        plugin_refs, external_refs, _ = _hook_references(hooks, plugin_root)
         missing = [item for item in plugin_refs if item.endswith(": missing")]
         if missing:
             errors.extend(f"hooks/hooks.json: referenced plugin script {item}" for item in missing)
@@ -194,6 +258,9 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
     manifest_path = plugin_root / "agents" / "prompt-manifest.json"
     try:
         document = _read_json(manifest_path)
+        if not isinstance(document, dict):
+            raise ValueError("manifest root is not an object")
+        document = cast(dict[str, Any], document)
         entries = document["entries"]
         if not isinstance(entries, list):
             raise ValueError("entries is not a list")
@@ -208,6 +275,26 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
     ) as exc:
         return _check("agent prompt manifest", True, "unknown", f"manifest is invalid: {exc}")
     errors: list[str] = []
+    canonical_hash = document.get("canonical_hash")
+    if not isinstance(canonical_hash, str) or not HASH_RE.fullmatch(canonical_hash):
+        errors.append("canonical_hash is invalid")
+    else:
+        canonical_value = dict(document)
+        canonical_value["canonical_hash"] = "unknown"
+        try:
+            canonical_json = json.dumps(
+                canonical_value,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+                allow_nan=False,
+            ).encode("utf-8")
+            actual_canonical_hash = f"sha256:{hashlib.sha256(canonical_json).hexdigest()}"
+        except (TypeError, ValueError) as exc:
+            errors.append(f"canonical_hash cannot be computed: {exc}")
+        else:
+            if canonical_hash != actual_canonical_hash:
+                errors.append("canonical_hash does not match the manifest contents")
     listed_paths: set[str] = set()
     for entry in entries:
         if not isinstance(entry, dict):
@@ -232,7 +319,7 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
             continue
         try:
             actual_asset_hash = _sha256(target)
-            fields, prompt = _front_matter(target.read_text(encoding="utf-8"))
+            fields = _front_matter(target.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError, ValueError) as exc:
             errors.append(f"{role}: asset cannot be read: {exc}")
             continue
@@ -242,11 +329,8 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
             errors.append(f"{role}: asset_hash is invalid")
         elif expected_asset_hash != actual_asset_hash:
             errors.append(f"{role}: asset_hash does not match {asset_path}")
-        actual_prompt_hash = f"sha256:{hashlib.sha256(prompt.encode('utf-8')).hexdigest()}"
         if not isinstance(expected_prompt_hash, str) or not HASH_RE.fullmatch(expected_prompt_hash):
             errors.append(f"{role}: prompt_hash is invalid")
-        elif expected_prompt_hash != actual_prompt_hash:
-            errors.append(f"{role}: prompt_hash does not match {asset_path}")
         if fields.get("name") != role:
             errors.append(f"{role}: front-matter name does not match manifest role")
     actual_paths = {
@@ -264,7 +348,9 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
         "agent prompt manifest",
         True,
         "pass",
-        f"{len(entries)} agent prompt hash entr{'y' if len(entries) == 1 else 'ies'} match",
+        f"{len(entries)} agent asset hashes and canonical hash match; "
+        "scripts/verify_agent_prompts.py --check is authoritative for SDK-normalized "
+        "prompt hashes",
         str(len(entries)),
     )
 
@@ -487,6 +573,54 @@ def _eda_check() -> dict[str, Any]:
     return _check("host EDA capabilities", False, result, detail, observed_version)
 
 
+def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
+    hooks_path = plugin_root / "hooks" / "hooks.json"
+    try:
+        hooks = _read_json(hooks_path)
+        _, _, direct_refs = _hook_references(hooks, plugin_root)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return _check(
+            "hook invocability",
+            False,
+            "unknown",
+            f"hooks/hooks.json could not be inspected: {exc}",
+        )
+    observations: list[str] = []
+    failures: list[str] = []
+    seen: set[str] = set()
+    for relative, target in direct_refs:
+        if relative in seen:
+            continue
+        seen.add(relative)
+        executable = os.access(target, os.X_OK)
+        try:
+            has_shebang = target.read_bytes().startswith(b"#!")
+        except (OSError, UnicodeDecodeError):
+            has_shebang = False
+        observations.append(
+            f"{relative}: executable={str(executable).lower()}, "
+            f"shebang={str(has_shebang).lower()}"
+        )
+        if not executable or not has_shebang:
+            failures.append(relative)
+    if failures:
+        return _check(
+            "hook invocability",
+            False,
+            "fail",
+            "A non-executable or shebang-less hook command cannot run, so hook policy "
+            f"would not be enforced: {', '.join(failures)}. "
+            f"Observations: {'; '.join(observations)}",
+        )
+    return _check(
+        "hook invocability",
+        False,
+        "pass",
+        f"direct plugin hook scripts are executable with shebangs: {'; '.join(observations)}",
+        str(len(seen)),
+    )
+
+
 def _store_check(plugin_root: Path) -> dict[str, Any]:
     store = Path.home() / ".openhands" / "plugins" / "installed"
     try:
@@ -499,8 +633,18 @@ def _store_check(plugin_root: Path) -> dict[str, Any]:
                 "not present",
             )
         plugins = sorted(path.name for path in store.iterdir() if path.is_dir())
-        inside = plugin_root.resolve().is_relative_to(store.resolve())
-        route = "GUI installed plugin" if inside else "development checkout"
+        root = plugin_root.resolve()
+        store_root = store.resolve()
+        try:
+            relative = root.relative_to(store_root)
+        except ValueError:
+            relative = None
+        if relative is None:
+            route = "development checkout"
+        elif len(relative.parts) == 1 and relative.name == "acd":
+            route = "direct GUI installed plugin root"
+        else:
+            route = "nested or unexpectedly named store path; not a valid GUI plugin root"
         return _check(
             "installed plugin store",
             False,
@@ -522,12 +666,14 @@ def diagnose() -> dict[str, Any]:
     plugin_root = Path(__file__).resolve().parents[3]
     checks = [
         _manifest_check(plugin_root),
+        _install_location_check(plugin_root),
         _assets_check(plugin_root),
         _prompt_manifest_check(plugin_root),
         _package_ref_check(plugin_root),
         _runtime_check(),
         _docker_check(),
         _eda_check(),
+        _hook_invocability_check(plugin_root),
         _store_check(plugin_root),
     ]
     required_failed = any(

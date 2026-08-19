@@ -25,5 +25,19 @@ python3 plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py
 This is an L3 observation only. It has no authority to accept or reject a
 design, generate authoritative Evidence, or replace the deterministic ACD
 gates. Required installation checks are fail-closed; an `unknown` result is
-treated as a failure. Host EDA execution remains provisional and cannot be
-reported as authoritative Evidence.
+treated as a failure. The required install-location check distinguishes a
+development checkout from the direct
+`~/.openhands/plugins/installed/acd/` root and detects a missing
+`repo_path: plugins/acd` installation. The prompt manifest check validates the
+canonical manifest hash and byte-exact asset hashes; SDK-normalized
+`prompt_hash` values remain authoritative in
+`scripts/verify_agent_prompts.py --check`.
+
+Optional capability checks observe Docker, host EDA tools, and direct hook
+invocability. Host EDA absence is observational and does not lower the
+status. Docker unavailability or a hook command that lacks the executable
+permission and shebang required for direct invocation can produce
+`degraded`. The committed hook scripts may therefore make the current
+environment report `degraded`; this doctor does not modify those scripts.
+Host EDA execution remains provisional and cannot be reported as authoritative
+Evidence.

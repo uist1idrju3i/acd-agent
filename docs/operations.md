@@ -124,9 +124,9 @@ digest固定server image（Docker image）はplugin installでは取得されず
 ### Local GUIからの動作確認手順
 
 インストール直後に、まず自己診断入口を実行する。doctorはplugin資材と実行環境を
-観測するが合否権限を持たず、`degraded`はDocker到達不能などauthoritative Evidenceに
-影響する能力不足として扱う。ホストEDAツールの有無は観測情報であり、required checkの
-`failed`はインストール資材の不整合として扱う。その後、既存のplugin名`acd`と
+観測するが合否権限を持たない。required checkの`failed`はインストール資材または
+install locationの不整合として扱い、`repo_path: plugins/acd`を省略した場合は指定のsource
+とpathで再インストールする。prompt manifestのcanonical hashと資材hashも検証する。その後、既存のplugin名`acd`と
 Skill読み込み確認を行い、Local GUIの会話から決定論的な投影・出力を確認する。
 GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定する。
 
@@ -134,8 +134,9 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    `~/.openhands/plugins/installed/acd/skills/acd-install-doctor/scripts/install_doctor.py`、
    開発checkoutでは
    `plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`を使用する。
-   JSONの`status`、required check、plugin rootをそのまま確認する。Dockerが到達不能な場合は
-   `degraded`となるが、ホストEDAツールの不在はhost executionの観測情報として記録されるだけで、
+   JSONの`status`、required check、plugin rootをそのまま確認する。Dockerが到達不能な場合や
+   直接実行するhook scriptが実行可能権限・shebangを持たない場合は`degraded`となる。
+   ホストEDAツールの不在はhost executionの観測情報として記録されるだけでstatusを下げず、
    doctorのL3観測をauthoritative Evidenceやゲート合格へ昇格させない。
 
 2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは

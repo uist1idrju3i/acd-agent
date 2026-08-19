@@ -25,14 +25,22 @@ plugin名の誤推論、部分コピー、Skill scriptの依存ref driftを検�
 
 診断は次の二層に分ける。
 
-1. **required**: plugin manifest、Skill／Agent／command／hook資材、agent prompt
-   manifest hash、package refとPEP 723 dependencyの一致、Python 3.12以上と`uv`
-   の存在を検査する。結果が`unknown`の場合もfail-closedで`failed`とする。
+1. **required**: plugin manifest、installed plugin store直下のinstall location、
+   Skill／Agent／command／hook資材、agent prompt manifestのcanonical hashと
+   byte-exact asset hash、package refとPEP 723 dependencyの一致、Python 3.12以上と
+   `uv`の存在を検査する。結果が`unknown`の場合もfail-closedで`failed`とする。
+   store外の開発checkoutは正常な観測対象とし、store内ではmanifest名の直下だけを
+   正しいGUI install rootとする。`repo_path: plugins/acd`を省略した場合は外側の
+   ディレクトリをOpenHandsが読み込むため、plugin資材が読み込まれないことをdetailへ
+   示し、指定のsourceとpathでの再インストールを案内する。
 2. **capability**: Docker CLIと`acd.openhands.tools.probe.PROBES`と同じ
    `kicad-cli`／`freerouting`の版、installed plugin storeと現在のplugin rootの関係を
-   観測する。ホストEDAツールの不在は観測情報として記録するだけでstatusを下げない。
-   build123d／cadquery-ocpは隔離scriptから観測せず、本体側の`scripts/probe_tools.py`を
-   正とする。Docker不在時にhost実行を合格側へ緩めず、host EDA結果はprovisional専用とする。
+   観測する。promptの`prompt_hash`は形式だけを確認し、SDK正規化後のhashは
+   `scripts/verify_agent_prompts.py --check`を正とする。直接実行されるplugin hookの
+   executable bitとshebangも観測する。ホストEDAツールの不在は観測情報として記録する
+   だけでstatusを下げない。build123d／cadquery-ocpは隔離scriptから観測せず、本体側の
+   `scripts/probe_tools.py`を正とする。Docker不在またはhook非実行可能時は`degraded`と
+   するが、host EDA結果はprovisional専用とする。
 
 出力は機械可読なJSONで、全checkに名前、required、結果、detail、観測版を含める。
 scriptのexit codeは`failed`だけ1、それ以外は0とする。
@@ -50,16 +58,20 @@ commandは既存の`gates` entry commandを変更せず、doctor scriptの場所
   会話から確認できる。
 - pluginに含まれないworkspace scriptの参照は、コピー境界を越える外部参照として
   診断のdetailへ明記する。plugin内hook scriptの欠落はrequired failureとする。
-- Dockerが到達不能な開発環境でも、インストール健全性を確認したうえで
-  capabilityを`degraded`として報告できる。ホストEDA toolの不在だけではstatusを下げない。
+- Dockerが到達不能な開発環境や、直接実行するhook scriptが非実行可能な環境では、
+  インストール健全性を確認したうえでcapabilityを`degraded`として報告できる。
+  ホストEDA toolの不在だけではstatusを下げない。commit済みhook scriptの権限状態により、
+  現在の実環境も`degraded`になり得る。
+- `prompt_hash`のSDK正規化はdoctorで再計算せず、`scripts/verify_agent_prompts.py --check`
+  が権威を持つ。doctorはcanonical manifest hashとbyte-exact asset hashを検証する。
 
 ## 検証
 
 - `python3`で開発checkoutのdoctorを実行する。
 - `plugins/acd`を一時的なinstalled plugin rootへコピーし、GUI install境界でも
   同じscriptが動作することを確認する。
-- doctor自身のpositive testと、manifest名、prompt hash、package refを壊す
-  negative testを実行する。
+- doctor自身のpositive testと、manifest名、asset hash、canonical hash、package refを壊す
+  negative test、install locationとhook invocabilityの状態テストを実行する。
 - Dockerが到達可能な環境では、ホストEDA toolの不在にかかわらず`status`が`ok`になる
   ことを確認する。
 - `uv run pytest plugins -q`と`uv run python scripts/verify_all.py --stage standard`
