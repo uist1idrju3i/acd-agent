@@ -9,6 +9,11 @@ from acd.core.quote import read_quote
 from acd.schema.common import Revision, Sha256, Timestamp, canonical_json_sha256
 from acd.schema.fab_profile import FabProfileDocument
 from acd.schema.order_scope import OrderScope
+from acd.schema.order_total import (
+    OrderSubtotalDocument,
+    OrderTotalDocument,
+    QuoteCanonicalHashDocument,
+)
 from acd.schema.quote import QuoteAmount, QuoteCategory, QuoteRecord
 
 
@@ -35,6 +40,102 @@ class OrderTotalResult:
     target_revision: Revision
     quote_hashes: tuple[QuoteCanonicalHash, ...]
     breakdown_hash: Sha256
+
+
+def order_total_breakdown_hash(
+    *,
+    quote_hashes: Sequence[tuple[str, Sha256]],
+    subtotals: Sequence[tuple[QuoteCategory, QuoteAmount]],
+    target_revision: Revision,
+    total: QuoteAmount,
+) -> Sha256:
+    """Hash the canonical order-total breakdown payload."""
+    return canonical_json_sha256(
+        {
+            "quote_hashes": [
+                {"canonical_hash": canonical_hash, "quote_id": quote_id}
+                for quote_id, canonical_hash in quote_hashes
+            ],
+            "subtotals": [
+                {
+                    "amount": amount.model_dump(mode="json"),
+                    "category": category,
+                }
+                for category, amount in subtotals
+            ],
+            "target_revision": target_revision,
+            "total": total.model_dump(mode="json"),
+        }
+    )
+
+
+def order_total_result_to_document(
+    result: OrderTotalResult,
+) -> OrderTotalDocument:
+    """Convert a computed result to its validated persisted document."""
+    document = OrderTotalDocument(
+        subtotals=[
+            OrderSubtotalDocument(category=item.category, amount=item.amount)
+            for item in result.subtotals
+        ],
+        total=result.total,
+        target_revision=result.target_revision,
+        quote_hashes=[
+            QuoteCanonicalHashDocument(
+                quote_id=item.quote_id,
+                canonical_hash=item.canonical_hash,
+            )
+            for item in result.quote_hashes
+        ],
+        breakdown_hash=result.breakdown_hash,
+    )
+    expected_hash = order_total_breakdown_hash(
+        quote_hashes=[
+            (item.quote_id, item.canonical_hash) for item in result.quote_hashes
+        ],
+        subtotals=[
+            (item.category, item.amount) for item in result.subtotals
+        ],
+        target_revision=result.target_revision,
+        total=result.total,
+    )
+    if result.breakdown_hash != expected_hash:
+        raise OrderTotalError("order total breakdown hash does not match contents")
+    return document
+
+
+def order_total_result_from_document(
+    document: OrderTotalDocument,
+) -> OrderTotalResult:
+    """Convert a validated persisted document to an order-total result."""
+    expected_hash = order_total_breakdown_hash(
+        quote_hashes=[
+            (item.quote_id, item.canonical_hash) for item in document.quote_hashes
+        ],
+        subtotals=[
+            (item.category, item.amount) for item in document.subtotals
+        ],
+        target_revision=document.target_revision,
+        total=document.total,
+    )
+    if document.breakdown_hash != expected_hash:
+        raise OrderTotalError("order total breakdown hash does not match contents")
+    return OrderTotalResult(
+        subtotals=tuple(
+            OrderSubtotal(category=item.category, amount=item.amount)
+            for item in document.subtotals
+        ),
+        total=document.total,
+        target_revision=document.target_revision,
+        quote_hashes=tuple(
+            QuoteCanonicalHash(
+                quote_id=item.quote_id,
+                canonical_hash=item.canonical_hash,
+            )
+            for item in document.quote_hashes
+        ),
+        breakdown_hash=document.breakdown_hash,
+    )
 
 
 def aggregate_order_total(
@@ -156,25 +257,13 @@ def aggregate_order_total(
     )
 
     ordered_quote_hashes = tuple(sorted(quote_hashes, key=lambda item: item.quote_id))
-    breakdown_hash = canonical_json_sha256(
-        {
-            "quote_hashes": [
-                {
-                    "canonical_hash": item.canonical_hash,
-                    "quote_id": item.quote_id,
-                }
-                for item in ordered_quote_hashes
-            ],
-            "subtotals": [
-                {
-                    "amount": item.amount.model_dump(mode="json"),
-                    "category": item.category,
-                }
-                for item in subtotals
-            ],
-            "target_revision": target_revision,
-            "total": total.model_dump(mode="json"),
-        }
+    breakdown_hash = order_total_breakdown_hash(
+        quote_hashes=[
+            (item.quote_id, item.canonical_hash) for item in ordered_quote_hashes
+        ],
+        subtotals=[(item.category, item.amount) for item in subtotals],
+        target_revision=target_revision,
+        total=total,
     )
     return OrderTotalResult(
         subtotals=subtotals,

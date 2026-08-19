@@ -4,151 +4,30 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
-import re
 import sys
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import cast
 
 from acd.core.order_total import (
-    OrderSubtotal,
+    OrderTotalError,
     OrderTotalResult,
-    QuoteCanonicalHash,
+    order_total_result_from_document,
 )
 from acd.openhands.order_gate import PreOrderGateError, evaluate_pre_order_gate
 from acd.openhands.workspace import run_command_in_workspace
-from acd.schema import OrderPolicy, QuoteAmount, QuoteCategory
-from acd.schema.common import canonical_json_sha256
-
-_CATEGORIES = frozenset(
-    {"board", "components", "assembly", "mechanical", "shipping", "tax"}
-)
-_SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
-_REVISION_PATTERN = re.compile(r"^r[0-9]+$")
-
-
-def _mapping(value: object, label: str) -> dict[str, object]:
-    if not isinstance(value, dict):
-        raise ValueError(f"{label} must be an object")
-    return cast(dict[str, object], value)
-
-
-def _text(value: object, label: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"{label} must be a non-empty string")
-    return value
-
-
-def _category(value: object) -> QuoteCategory:
-    text = _text(value, "subtotal category")
-    if text not in _CATEGORIES:
-        raise ValueError(f"unknown subtotal category: {text}")
-    return cast(QuoteCategory, text)
-
-
-def _sha256(value: object, label: str) -> str:
-    text = _text(value, label)
-    if _SHA256_PATTERN.fullmatch(text) is None:
-        raise ValueError(f"{label} must be a sha256 hash")
-    return text
+from acd.schema import OrderPolicy, OrderTotalDocument
 
 
 def _load_order_total(path: Path) -> OrderTotalResult:
     try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        document = OrderTotalDocument.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
+        return order_total_result_from_document(document)
+    except (OSError, ValueError, OrderTotalError) as exc:
         raise ValueError(f"could not parse order total: {path}") from exc
-    value = _mapping(raw, "order total")
-    expected_keys = {
-        "subtotals",
-        "total",
-        "target_revision",
-        "quote_hashes",
-        "breakdown_hash",
-    }
-    if set(value) != expected_keys:
-        raise ValueError("order total fields are incomplete or unexpected")
-    raw_subtotals_value = value["subtotals"]
-    raw_hashes_value = value["quote_hashes"]
-    if not isinstance(raw_subtotals_value, list) or not isinstance(
-        raw_hashes_value, list
-    ):
-        raise ValueError("order total arrays are invalid")
-    raw_subtotals = cast(list[object], raw_subtotals_value)
-    raw_hashes = cast(list[object], raw_hashes_value)
-    subtotals = tuple(
-        OrderSubtotal(
-            category=_category(_mapping(item, "subtotal")["category"]),
-            amount=QuoteAmount.model_validate(
-                _mapping(item, "subtotal")["amount"]
-            ),
-        )
-        for item in raw_subtotals
-    )
-    quote_hashes = tuple(
-        QuoteCanonicalHash(
-            quote_id=_text(
-                _mapping(item, "quote hash")["quote_id"],
-                "quote hash identifier",
-            ),
-            canonical_hash=_sha256(
-                _mapping(item, "quote hash")["canonical_hash"],
-                "quote canonical hash",
-            ),
-        )
-        for item in raw_hashes
-    )
-    target_revision = _text(value["target_revision"], "order total revision")
-    if _REVISION_PATTERN.fullmatch(target_revision) is None:
-        raise ValueError("order total revision is invalid")
-    breakdown_hash = _sha256(value["breakdown_hash"], "breakdown hash")
-    total = QuoteAmount.model_validate(value["total"])
-    categories = [item.category for item in subtotals]
-    if len(categories) != len(set(categories)) or categories != sorted(categories):
-        raise ValueError("order total subtotals must be unique and sorted")
-    if any(
-        item.amount.currency != total.currency
-        or item.amount.minor_unit_digits != total.minor_unit_digits
-        for item in subtotals
-    ):
-        raise ValueError("order subtotal currency does not match total")
-    if sum(item.amount.amount_minor for item in subtotals) != total.amount_minor:
-        raise ValueError("order subtotal does not match total")
-    quote_ids = [item.quote_id for item in quote_hashes]
-    if len(quote_ids) != len(set(quote_ids)) or quote_ids != sorted(quote_ids):
-        raise ValueError("order quote hashes must be unique and sorted")
-    expected_breakdown_hash = canonical_json_sha256(
-        {
-            "quote_hashes": [
-                {
-                    "canonical_hash": item.canonical_hash,
-                    "quote_id": item.quote_id,
-                }
-                for item in quote_hashes
-            ],
-            "subtotals": [
-                {
-                    "amount": item.amount.model_dump(mode="json"),
-                    "category": item.category,
-                }
-                for item in subtotals
-            ],
-            "target_revision": target_revision,
-            "total": total.model_dump(mode="json"),
-        }
-    )
-    if breakdown_hash != expected_breakdown_hash:
-        raise ValueError("order total breakdown hash does not match contents")
-    return OrderTotalResult(
-        subtotals=subtotals,
-        total=total,
-        target_revision=target_revision,
-        quote_hashes=quote_hashes,
-        breakdown_hash=breakdown_hash,
-    )
 
 
 def _load_policy(path: Path) -> OrderPolicy:

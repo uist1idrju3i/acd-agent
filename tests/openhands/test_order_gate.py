@@ -5,11 +5,13 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
+from openhands.sdk.git.exceptions import GitError
 
+import acd.openhands.order_gate as order_gate
 from acd.core.order_total import OrderTotalResult
 from acd.openhands.order_gate import PreOrderGateError, evaluate_pre_order_gate
 from acd.schema import OrderPolicy, QuoteAmount
@@ -126,6 +128,27 @@ def test_pre_order_gate_allows_equal_limit_and_is_reproducible(
     ]
 
 
+def test_pre_order_gate_authorization_hash_accepts_non_utc_timestamp(
+    tmp_path: Path,
+) -> None:
+    record = evaluate_pre_order_gate(
+        repository=_repository(tmp_path),
+        policy=_policy(),
+        order_total=_order_total(),
+        evidence_paths=_evidence_paths(tmp_path / "evidence"),
+        evaluated_at=datetime(
+            2026,
+            8,
+            14,
+            5,
+            30,
+            tzinfo=timezone(timedelta(hours=5, minutes=30)),
+        ),
+    )
+
+    assert record.authorization_hash.startswith("sha256:")
+
+
 def test_pre_order_gate_rejects_total_over_limit(tmp_path: Path) -> None:
     with pytest.raises(PreOrderGateError, match="exceeds"):
         evaluate_pre_order_gate(
@@ -223,6 +246,34 @@ def test_pre_order_gate_rejects_dirty_design_input_and_revision_mismatch(
             policy=_policy(),
             order_total=_order_total(),
             evidence_paths=_evidence_paths(tmp_path),
+            evaluated_at=EVALUATED_AT,
+        )
+
+
+def test_pre_order_gate_wraps_git_observation_failure(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = _repository(tmp_path)
+
+    def fail_git_observation(
+        repository: Path,
+        *,
+        ref: str | None = "HEAD",
+    ) -> tuple[str, ...]:
+        raise GitError("git unavailable")
+
+    monkeypatch.setattr(
+        order_gate,
+        "design_input_changes",
+        fail_git_observation,
+    )
+    with pytest.raises(PreOrderGateError, match="git observation failed"):
+        evaluate_pre_order_gate(
+            repository=repository,
+            policy=_policy(),
+            order_total=_order_total(),
+            evidence_paths=_evidence_paths(tmp_path / "evidence"),
             evaluated_at=EVALUATED_AT,
         )
 

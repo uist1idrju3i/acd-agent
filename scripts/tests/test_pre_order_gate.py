@@ -11,9 +11,14 @@ from pathlib import Path
 import pytest
 import scripts.pre_order_gate as pre_order_gate
 
-from acd.core.order_total import OrderTotalResult
+from acd.core.order_total import (
+    OrderSubtotal,
+    OrderTotalResult,
+    QuoteCanonicalHash,
+    order_total_breakdown_hash,
+    order_total_result_to_document,
+)
 from acd.schema import QuoteAmount
-from acd.schema.common import canonical_json_sha256
 
 ROOT = Path(__file__).parents[2]
 GRAPH = ROOT / "fixtures/golden-design-1/graph.json"
@@ -55,38 +60,36 @@ def _evidence(tmp_path: Path, evidence_id: str) -> Path:
 
 
 def _inputs(tmp_path: Path) -> tuple[Path, list[Path]]:
-    order_total = OrderTotalResult(
-        subtotals=(),
-        total=QuoteAmount(
-            amount_minor=10000,
-            currency="USD",
-            minor_unit_digits=2,
-        ),
-        target_revision="r1",
-        quote_hashes=(),
-        breakdown_hash="sha256:" + "a" * 64,
+    amount = QuoteAmount(
+        amount_minor=10000,
+        currency="USD",
+        minor_unit_digits=2,
     )
-    total_json = order_total.total.model_dump(mode="json")
-    subtotals_json = [{"category": "board", "amount": total_json}]
-    breakdown_hash = canonical_json_sha256(
-        {
-            "quote_hashes": [],
-            "subtotals": subtotals_json,
-            "target_revision": order_total.target_revision,
-            "total": total_json,
-        }
+    order_total = OrderTotalResult(
+        subtotals=(
+            OrderSubtotal(
+                category="board",
+                amount=amount,
+            ),
+        ),
+        total=amount,
+        target_revision="r1",
+        quote_hashes=(
+            QuoteCanonicalHash(
+                quote_id="quote-test",
+                canonical_hash="sha256:" + "a" * 64,
+            ),
+        ),
+        breakdown_hash=order_total_breakdown_hash(
+            quote_hashes=(("quote-test", "sha256:" + "a" * 64),),
+            subtotals=(("board", amount),),
+            target_revision="r1",
+            total=amount,
+        ),
     )
     order_total_path = tmp_path / "order-total.json"
     order_total_path.write_text(
-        json.dumps(
-            {
-                "subtotals": subtotals_json,
-                "total": total_json,
-                "target_revision": order_total.target_revision,
-                "quote_hashes": [],
-                "breakdown_hash": breakdown_hash,
-            }
-        ),
+        order_total_result_to_document(order_total).model_dump_json(),
         encoding="utf-8",
     )
     evidence_paths = [

@@ -71,11 +71,17 @@ from acd.schema.order_policy import (
     EvidenceReference,
     OrderPolicy,
     PreOrderGateRecord,
+    PreOrderGateRecordBody,
 )
 from acd.schema.order_scope import (
     MechanicalTreatment,
     OrderScope,
     ScopeFeeTreatment,
+)
+from acd.schema.order_total import (
+    OrderSubtotalDocument,
+    OrderTotalDocument,
+    QuoteCanonicalHashDocument,
 )
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
@@ -198,12 +204,16 @@ __all__ = [
     "ObservationPayload",
     "OrderPolicy",
     "OrderScope",
+    "OrderSubtotalDocument",
+    "OrderTotalDocument",
     "PhysicalEvidence",
     "PreOrderGateRecord",
+    "PreOrderGateRecordBody",
     "PromptCacheTier",
     "PromptDriftReport",
     "PromptManifestStatus",
     "QuoteAmount",
+    "QuoteCanonicalHashDocument",
     "QuoteCategory",
     "QuoteLineItem",
     "QuoteParty",
