@@ -57,7 +57,7 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 | 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
-| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 一部達成（7.1・7.2、7.3〜7.5未完） |
+| 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 一部達成（7.1〜7.4、7.5未完） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.5実装済み |
 | — | agent-server採用判断 | 対象外を維持し、採用する場合だけ新規ADRで認証・権限・Evidence境界を定義する | 対象外 |
 
@@ -293,7 +293,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 だけであり、合否権限、発注許可、外部送信は持たない。実発注は行わず、7.5のdry-runまで
 別工程として扱う。
 
-### 7.2 総発注額の合算契約
+### 7.2 総発注額の合算契約（達成）
 
 | 要素 | 完了条件 |
 |---|---|
@@ -311,7 +311,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 供給者申告総額の合計と内訳から積み上げた総額も突合する。上限額との比較、合否、Evidence、
 発注許可は7.3以降の責務としてこの層へ導入しない。
 
-### 7.3 発注前最終ゲート
+### 7.3 発注前最終ゲート（達成）
 
 | 要素 | 完了条件 |
 |---|---|
@@ -321,15 +321,15 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | negative/fail-closed | ゲート未実行、provisional Evidence、revision不一致、dirty入力、上限超過、判定unknownで却下する |
 | 再現性 | 同一revisionと同一入力で同一判定になり、各却下条件のnegative testを回帰へ含める |
 
-### 7.4 side-effect journal
+### 7.4 side-effect journal（達成）
 
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 7.3の許可record、送信対象の製造データpackage hash、宛先、実行時刻、操作の冪等key |
-| 実装 | 不可逆操作の事前予定と事後結果を追記専用journalへ記録し、許可recordと相互参照する |
+| 実装 | 不可逆操作の事前予定と事後結果をhash連鎖付きJSON Linesの追記専用journalへ記録し、許可recordと相互参照する。読み出し時に契約、連鎖、冪等性、対応関係を再検証する |
 | 正常系 | 発注1件がjournalの事前・事後1組で追跡でき、receiptと成果物hashが対応する |
-| negative/fail-closed | journal書込み失敗、許可record不在、冪等key重複による再送、事後記録欠落を停止条件にする |
-| 再現性 | journalから発注の入力・判定・結果を再構成でき、追記専用性のnegative testを含める |
+| negative/fail-closed | journal書込み失敗、許可record不在、冪等key重複による再送、事後記録欠落、既存行の改変・削除・並べ替え、hash・package・revision・時刻の不整合を停止条件にする |
+| 再現性 | journalから発注の入力・判定・結果を再構成でき、読み出しCLIと追記専用性のnegative testを含める |
 
 ### 7.5 自働発注の実行
 

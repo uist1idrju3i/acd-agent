@@ -25,6 +25,9 @@ from acd.core.order_total import (
     OrderTotalResult,
     QuoteCanonicalHash,
     aggregate_order_total,
+    order_total_breakdown_hash,
+    order_total_result_from_document,
+    order_total_result_to_document,
 )
 from acd.core.quote import QuoteFeeSet, QuoteReadError, load_quote, read_quote
 from acd.core.rationale import (
@@ -40,6 +43,14 @@ from acd.core.receipt import (
     reconcile_files,
     reconcile_receipt,
 )
+from acd.core.side_effect_journal import (
+    JournalOrderReconstruction,
+    SideEffectJournalError,
+    append_post_order,
+    append_pre_order,
+    read_journal,
+    reconstruct_order,
+)
 
 __all__ = [
     "RATIONALE_EXEMPT_ATTRS",
@@ -49,6 +60,7 @@ __all__ = [
     "FabProfile",
     "FeedbackError",
     "FunctionalRunError",
+    "JournalOrderReconstruction",
     "OrderSubtotal",
     "OrderTotalError",
     "OrderTotalResult",
@@ -58,7 +70,10 @@ __all__ = [
     "QuoteReadError",
     "ReceiptReconciliationError",
     "ReconciliationReport",
+    "SideEffectJournalError",
     "aggregate_order_total",
+    "append_post_order",
+    "append_pre_order",
     "build_receipt_evidence",
     "check_rationale_coverage",
     "evaluate_functional_run",
@@ -68,10 +83,15 @@ __all__ = [
     "load_quote",
     "normalize_3mf",
     "normalize_step",
+    "order_total_breakdown_hash",
+    "order_total_result_from_document",
+    "order_total_result_to_document",
     "propose_input_feedback",
+    "read_journal",
     "read_quote",
     "reconcile_files",
     "reconcile_receipt",
+    "reconstruct_order",
     "subject_hash_for",
     "validate_allowances_against_profile",
     "validate_applied_feedback",

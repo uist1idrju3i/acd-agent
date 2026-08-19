@@ -9,9 +9,19 @@ from typing import cast
 
 import pytest
 
-from acd.core.order_total import OrderTotalError, aggregate_order_total
+from acd.core.order_total import (
+    OrderTotalError,
+    aggregate_order_total,
+    order_total_result_from_document,
+    order_total_result_to_document,
+)
 from acd.core.quote import QuoteReadError
-from acd.schema import FabProfileDocument, OrderScope, QuoteAmount, QuoteRecord
+from acd.schema import (
+    FabProfileDocument,
+    OrderScope,
+    QuoteAmount,
+    QuoteRecord,
+)
 
 ROOT = Path(__file__).parents[2]
 SCOPE_PATH = ROOT / "fixtures/contracts/valid/order-scope.json"
@@ -56,6 +66,36 @@ def test_aggregate_order_total_returns_subtotals_and_hashes() -> None:
     assert result.target_revision == "r12"
     assert result.quote_hashes[0].quote_id == "quote-gd1-order-001"
     assert result.breakdown_hash.startswith("sha256:")
+
+
+def test_order_total_result_document_round_trip_preserves_shared_hash() -> None:
+    result = aggregate_order_total(
+        [load_quote()],
+        load_scope(),
+        fab_profile=load_profile(),
+        evaluated_at=EVALUATED_AT,
+        target_revision="r12",
+    )
+
+    document = order_total_result_to_document(result)
+
+    assert order_total_result_from_document(document) == result
+
+
+def test_order_total_document_rejects_tampered_breakdown_hash() -> None:
+    result = aggregate_order_total(
+        [load_quote()],
+        load_scope(),
+        fab_profile=load_profile(),
+        evaluated_at=EVALUATED_AT,
+        target_revision="r12",
+    )
+    document = order_total_result_to_document(result).model_copy(
+        update={"breakdown_hash": "sha256:" + "a" * 64}
+    )
+
+    with pytest.raises(OrderTotalError, match="breakdown hash"):
+        order_total_result_from_document(document)
 
 
 def test_order_total_requires_matching_fab_profile() -> None:

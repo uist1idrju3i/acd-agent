@@ -66,10 +66,22 @@ from acd.schema.model_routing import (
 )
 from acd.schema.observation import ObservationArtifactKind, ObservationPayload
 from acd.schema.observation_log import ObservationLogEvent, ObservationLogRecord
+from acd.schema.order_policy import (
+    REQUIRED_ORDER_EVIDENCE_IDS,
+    EvidenceReference,
+    OrderPolicy,
+    PreOrderGateRecord,
+    PreOrderGateRecordBody,
+)
 from acd.schema.order_scope import (
     MechanicalTreatment,
     OrderScope,
     ScopeFeeTreatment,
+)
+from acd.schema.order_total import (
+    OrderSubtotalDocument,
+    OrderTotalDocument,
+    QuoteCanonicalHashDocument,
 )
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
@@ -104,6 +116,15 @@ from acd.schema.receipt import (
     ReconciliationStatus,
     ShipmentManifestReference,
 )
+from acd.schema.side_effect_journal import (
+    JournalEntryBody,
+    JournalEntryType,
+    JournalResultStatus,
+    PostOrderJournalEntry,
+    PostOrderJournalEntryBody,
+    PreOrderJournalEntry,
+    PreOrderJournalEntryBody,
+)
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
 from acd.schema.visual_crosscheck import (
     CrosscheckAspect,
@@ -132,6 +153,7 @@ from acd.schema.visual_projection import (
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
+    "REQUIRED_ORDER_EVIDENCE_IDS",
     "UNKNOWN",
     "AcdCredentialReference",
     "AcdModel",
@@ -153,6 +175,7 @@ __all__ = [
     "EventViewProjection",
     "Evidence",
     "EvidenceClaim",
+    "EvidenceReference",
     "EvidenceStatus",
     "FabProfileDocument",
     "FeedbackItemStatus",
@@ -172,6 +195,9 @@ __all__ = [
     "FunctionalRunReport",
     "GraphNode",
     "InspectionReportReference",
+    "JournalEntryBody",
+    "JournalEntryType",
+    "JournalResultStatus",
     "LedExpectation",
     "MeasuredQuantity",
     "MeasurementClass",
@@ -188,12 +214,22 @@ __all__ = [
     "ObservationLogEvent",
     "ObservationLogRecord",
     "ObservationPayload",
+    "OrderPolicy",
     "OrderScope",
+    "OrderSubtotalDocument",
+    "OrderTotalDocument",
     "PhysicalEvidence",
+    "PostOrderJournalEntry",
+    "PostOrderJournalEntryBody",
+    "PreOrderGateRecord",
+    "PreOrderGateRecordBody",
+    "PreOrderJournalEntry",
+    "PreOrderJournalEntryBody",
     "PromptCacheTier",
     "PromptDriftReport",
     "PromptManifestStatus",
     "QuoteAmount",
+    "QuoteCanonicalHashDocument",
     "QuoteCategory",
     "QuoteLineItem",
     "QuoteParty",

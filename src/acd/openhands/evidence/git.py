@@ -28,15 +28,12 @@ def check_evidence_with_git(
         )
         if evidence.evidence_id != evidence_id:
             return {"passed": False, "reason": "evidence_id mismatch"}
-        changes = get_git_changes(repo_root, ref=ref)
-        design_changes = [
-            change for change in changes if _is_design_input(str(change.path))
-        ]
-        if design_changes:
+        changed_paths = design_input_changes(repo_root, ref=ref)
+        if changed_paths:
             return {
                 "passed": False,
                 "reason": "design input is stale",
-                "changed_paths": [str(change.path) for change in design_changes],
+                "changed_paths": list(changed_paths),
             }
         if not evidence.supports_authoritative_pass(revision):
             return {
@@ -52,6 +49,22 @@ def _is_design_input(path: str) -> bool:
     return (
         (path.startswith("fixtures/") and path.endswith("/graph.json"))
         or path.startswith("profiles/")
+    )
+
+
+def design_input_changes(
+    repo_root: Path,
+    *,
+    ref: str | None = "HEAD",
+) -> tuple[str, ...]:
+    """Return changed design-input paths using the SDK git observation."""
+    changes = get_git_changes(repo_root, ref=ref)
+    return tuple(
+        sorted(
+            str(change.path)
+            for change in changes
+            if _is_design_input(str(change.path))
+        )
     )
 
 
