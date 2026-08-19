@@ -24,12 +24,20 @@ def _copy_plugin(tmp_path: Path) -> tuple[Path, Path]:
     return installed, installed / "skills/acd-install-doctor/scripts/install_doctor.py"
 
 
-def _run(script: Path, tmp_path: Path) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
+def _run(
+    script: Path,
+    tmp_path: Path,
+    tool_scripts: dict[str, str] | None = None,
+) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     uv = shutil.which("uv")
     assert uv is not None
     (bin_dir / "uv").symlink_to(uv)
+    for name, body in (tool_scripts or {}).items():
+        tool = bin_dir / name
+        tool.write_text(f"#!/bin/sh\n{body}\n", encoding="utf-8")
+        tool.chmod(0o755)
     environment = {**os.environ, "PATH": str(bin_dir)}
     completed = subprocess.run(
         [sys.executable, str(script)],
@@ -51,6 +59,35 @@ def test_development_tree_is_diagnosable_without_host_tools(tmp_path: Path) -> N
         check["name"] == "docker capability" and check["result"] == "fail"
         for check in report["checks"]
     )
+    eda_check = next(
+        check for check in report["checks"] if check["name"] == "host EDA capabilities"
+    )
+    assert eda_check["result"] == "pass"
+    assert "missing: kicad-cli, freerouting" in eda_check["detail"]
+    assert "build123d / cadquery-ocp are not probed" in eda_check["detail"]
+    assert eda_check["observed_version"] == "kicad-cli=unavailable, freerouting=unavailable"
+
+
+def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
+    tmp_path: Path,
+) -> None:
+    _, script = _copy_plugin(tmp_path)
+    completed, report = _run(
+        script,
+        tmp_path,
+        {
+            "kicad-cli": 'printf "10.0.5\\n"',
+            "freerouting": 'printf "INFO Freerouting v2.3.0\\n"; exit 1',
+        },
+    )
+
+    assert completed.returncode == 0
+    assert report["status"] == "degraded"
+    eda_check = next(
+        check for check in report["checks"] if check["name"] == "host EDA capabilities"
+    )
+    assert eda_check["result"] == "pass"
+    assert eda_check["observed_version"] == "kicad-cli=10.0.5, freerouting=2.3.0"
 
 
 def _break_plugin_name(path: Path) -> None:

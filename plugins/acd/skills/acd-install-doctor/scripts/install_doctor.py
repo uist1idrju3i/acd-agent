@@ -16,7 +16,6 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-import platform
 import re
 import shutil
 import subprocess
@@ -357,10 +356,7 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
 def _runtime_check() -> dict[str, Any]:
     version = ".".join(str(value) for value in sys.version_info[:3])
     errors: list[str] = []
-    python_major, python_minor = (
-        int(part) for part in platform.python_version().split(".")[:2]
-    )
-    if (python_major, python_minor) < (3, 12):
+    if (sys.version_info.major, sys.version_info.minor) < (3, 12):
         errors.append(f"Python {version} is below required 3.12")
     uv_path = shutil.which("uv")
     if uv_path is None:
@@ -396,24 +392,31 @@ def _runtime_check() -> dict[str, Any]:
     )
 
 
-def _run_version(command: str) -> str | None:
+def _run_version(
+    command: str,
+    args: list[str],
+    version_pattern: str,
+    *,
+    allow_nonzero_exit: bool = False,
+) -> str | None:
     path = shutil.which(command)
     if path is None:
         return None
     try:
         completed = subprocess.run(
-            [path, "--version"],
+            [path, *args],
             capture_output=True,
             text=True,
             timeout=5,
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
-        return "unavailable"
-    output = (completed.stdout or completed.stderr).strip().splitlines()
-    if completed.returncode != 0:
-        return "unavailable"
-    return output[0][:120] if output else "unknown"
+        return "unknown"
+    output = f"{completed.stdout}\n{completed.stderr}".strip()
+    match = re.search(version_pattern, output)
+    if match is None or (completed.returncode != 0 and not allow_nonzero_exit):
+        return "unknown"
+    return match.group(1)
 
 
 def _docker_check() -> dict[str, Any]:
@@ -427,7 +430,7 @@ def _docker_check() -> dict[str, Any]:
             "cannot be generated. Host execution must not be used as a passing substitute.",
             "not installed",
         )
-    version = _run_version("docker") or "unknown"
+    version = _run_version("docker", ["--version"], r"Docker version ([^,\s]+)") or "unknown"
     try:
         completed = subprocess.run(
             [docker, "info"],
@@ -458,17 +461,30 @@ def _docker_check() -> dict[str, Any]:
 
 
 def _eda_check() -> dict[str, Any]:
-    tools = ("kicad-cli", "freerouting", "openscad", "openscad-cli", "freecadcmd")
-    observations = {tool: _run_version(tool) for tool in tools}
-    present = [f"{tool}={version}" for tool, version in observations.items() if version is not None]
+    probes = {
+        "kicad-cli": (["version"], r"([0-9]+\.[0-9]+\.[0-9]+)", False),
+        "freerouting": (["--version"], r"Freerouting v([0-9]+\.[0-9]+\.?[0-9]*)", True),
+    }
+    observations = {
+        tool: _run_version(tool, args, pattern, allow_nonzero_exit=allow_nonzero)
+        for tool, (args, pattern, allow_nonzero) in probes.items()
+    }
+    present = [
+        f"{tool}={version}" for tool, version in observations.items() if version is not None
+    ]
     missing = [tool for tool, version in observations.items() if version is None]
     detail = (
         f"present: {', '.join(present) if present else 'none'}; "
         f"missing: {', '.join(missing) if missing else 'none'}. "
-        "Host EDA execution is provisional only and cannot produce authoritative Evidence."
+        "Host EDA execution is provisional only and cannot produce authoritative Evidence. "
+        "build123d / cadquery-ocp are not probed from this isolated script; "
+        "scripts/probe_tools.py is authoritative for the application tool probe."
     )
-    result = "pass" if not missing else "fail"
-    return _check("host EDA capabilities", False, result, detail, ", ".join(present) or "none")
+    result = "pass"
+    observed_version = ", ".join(
+        f"{tool}={version or 'unavailable'}" for tool, version in observations.items()
+    )
+    return _check("host EDA capabilities", False, result, detail, observed_version)
 
 
 def _store_check(plugin_root: Path) -> dict[str, Any]:

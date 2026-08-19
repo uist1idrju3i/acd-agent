@@ -18,7 +18,8 @@ AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立�
    パスは必須で、省略するとACDのSkill／AgentDefinition／command／hooksが読み込まれません。
 3. 追加を実行する。以後は`/acd:gates`などのACD機能がそのまま使えます。
 4. インストール直後に`/acd:doctor`を実行し、plugin資材と実行環境の自己診断結果を確認する。
-   `degraded`は任意のホスト能力不足を示し、required checkの`failed`は再インストールや
+   `degraded`はDocker到達不能などauthoritative Evidenceに影響する能力不足を示します。
+   ホストEDAツールの有無は観測情報であり、required checkの`failed`は再インストールや
    driftの確認が必要です。
 
 最新化（default branchの先頭への更新）も、同じPlugins画面の「更新」ボタンだけで完了します。

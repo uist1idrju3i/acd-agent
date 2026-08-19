@@ -28,9 +28,11 @@ plugin名の誤推論、部分コピー、Skill scriptの依存ref driftを検�
 1. **required**: plugin manifest、Skill／Agent／command／hook資材、agent prompt
    manifest hash、package refとPEP 723 dependencyの一致、Python 3.12以上と`uv`
    の存在を検査する。結果が`unknown`の場合もfail-closedで`failed`とする。
-2. **capability**: Docker CLIと`docker info`、ホストEDA toolの版、installed plugin
-   storeと現在のplugin rootの関係を観測する。不在は`degraded`の理由として報告する。
-   Docker不在時にhost実行を合格側へ緩めず、host EDA結果はprovisional専用とする。
+2. **capability**: Docker CLIと`acd.openhands.tools.probe.PROBES`と同じ
+   `kicad-cli`／`freerouting`の版、installed plugin storeと現在のplugin rootの関係を
+   観測する。ホストEDAツールの不在は観測情報として記録するだけでstatusを下げない。
+   build123d／cadquery-ocpは隔離scriptから観測せず、本体側の`scripts/probe_tools.py`を
+   正とする。Docker不在時にhost実行を合格側へ緩めず、host EDA結果はprovisional専用とする。
 
 出力は機械可読なJSONで、全checkに名前、required、結果、detail、観測版を含める。
 scriptのexit codeは`failed`だけ1、それ以外は0とする。
@@ -48,8 +50,8 @@ commandは既存の`gates` entry commandを変更せず、doctor scriptの場所
   会話から確認できる。
 - pluginに含まれないworkspace scriptの参照は、コピー境界を越える外部参照として
   診断のdetailへ明記する。plugin内hook scriptの欠落はrequired failureとする。
-- DockerまたはEDA toolがない開発環境でも、インストール健全性を確認したうえで
-  capabilityを`degraded`として報告できる。
+- Dockerが到達不能な開発環境でも、インストール健全性を確認したうえで
+  capabilityを`degraded`として報告できる。ホストEDA toolの不在だけではstatusを下げない。
 
 ## 検証
 
@@ -58,5 +60,7 @@ commandは既存の`gates` entry commandを変更せず、doctor scriptの場所
   同じscriptが動作することを確認する。
 - doctor自身のpositive testと、manifest名、prompt hash、package refを壊す
   negative testを実行する。
+- Dockerが到達可能な環境では、ホストEDA toolの不在にかかわらず`status`が`ok`になる
+  ことを確認する。
 - `uv run pytest plugins -q`と`uv run python scripts/verify_all.py --stage standard`
   を通す。
