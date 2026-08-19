@@ -60,6 +60,20 @@ print([p.name for p in list_installed_plugins()])"
 チップの hex は等幅小フォントで screenshot からの目視誤読が起きやすい。
 `browser` の DOM ダンプに対して `リファレンス[0-9a-f]{7,40}` を grep すると確実に読める。
 
+#### cache purge 後は素直に最新 commit を取得できる
+
+サーバ所有者が `~/.openhands/plugins/installed/acd` と
+`~/.openhands/cache/extensions/acd-agent-*` を削除して OpenHands を再起動した後は、
+`github:<owner>/<repo>` + `ref` + `path` の指定で解決 ref が remote の HEAD に一致した
+（`main` 指定で `git ls-remote origin refs/heads/main` と完全一致を確認）。
+purge 後の初回 install だけが確実に新しい commit を掴める窓なので、
+その 1 回で doctor と gates を続けて回す計画にすると再依頼を減らせる。
+
+また、検証対象の branch はテスト中に merge されて削除されることがある。
+検証開始直前に `git ls-remote origin refs/heads/<branch>` を実行し、
+空なら `main` へ切り替えて `git merge-base --is-ancestor <fix-commit> FETCH_HEAD` で
+修正 commit が含まれることを確認してから進める。
+
 ## 落とし穴: installed plugin store が pytest に混ざる
 
 `~/.openhands/plugins/installed/acd/` が存在すると SDK の ambient plugin 読み込みが
@@ -118,6 +132,16 @@ Stop hook のバッジも個別に確認し、ループを検知したら手動�
 install doctor の `hook plugin root resolution` check がすべての hook command を評価する。
 workspace 相対の外部 script 参照を新たに追加すると doctor の評価対象外になり
 `ok` のまま block が起きうるので、hook は必ず plugin 同梱 script から起動する。
+
+実機 GUI で修正を確認する際の合否判定は、会話の DOM 全文を落として
+`SessionStart\s*blocked` / `PreToolUse.{0,40}blocked` / `PostToolUse.{0,40}blocked` /
+`Stop\s*blocked` / `can't open file` / `acd plugin root unresolved` /
+`No such file or directory` を negative check として grep し、
+`SessionStart ok` / `PreToolUse ok` / `PostToolUse ok` / `Stop ok` の出現数を
+positive check として数えるのが確実（バッジは折り畳まれて screenshot に写らないことがある）。
+`Stop ok` は agent の応答が完全に終わってから描画されるので、
+途中で手動停止すると Stop hook の証拠が取れない。空 workspace の `/acd:gates` は
+設計ファイルを探索するため 5〜7 分かかる場合があり、完走させる余裕を見ておく。
 
 ## install doctor の検証
 
