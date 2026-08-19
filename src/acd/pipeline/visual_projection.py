@@ -10,6 +10,7 @@ from acd.adapters.kicad.visual_projection import (
     KicadVisualRenderer,
     copper_layers_for_layer_count,
 )
+from acd.adapters.raster import CairoSvgRasterizer
 from acd.core.board_model import BoardModel
 from acd.core.electrical import ElectricalLane
 from acd.schema.visual_projection import (
@@ -113,3 +114,43 @@ def generate_electrical_visual_projections(
 
 
 __all__ = ["generate_electrical_visual_projections"]
+
+
+def derive_png_visual_projections(
+    projection_set: VisualProjectionSet,
+    *,
+    out_dir: Path,
+    rasterizer: CairoSvgRasterizer | None = None,
+) -> VisualProjectionSet:
+    """Derive PNG projections from an existing SVG projection set."""
+    rasterizer = rasterizer or CairoSvgRasterizer()
+    derived = list(projection_set.projections)
+    for projection in projection_set.projections:
+        if projection.media_type != "image/svg+xml":
+            raise ValueError("PNG derivation requires SVG source projections")
+        derived.append(
+            rasterizer.rasterize(
+                source_record=projection,
+                output_path=out_dir
+                / "visual"
+                / "png"
+                / f"{projection.projection_id}.png",
+                base_dir=out_dir,
+            )
+        )
+    derived.sort(key=lambda record: record.projection_id)
+    result = VisualProjectionSet(
+        source_revision=projection_set.source_revision,
+        projections=derived,
+    ).with_computed_hashes()
+    (out_dir / "visual-projections-electrical.json").write_text(
+        result.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return result
+
+
+__all__ = [
+    "derive_png_visual_projections",
+    "generate_electrical_visual_projections",
+]

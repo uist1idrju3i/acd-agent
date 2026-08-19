@@ -36,7 +36,7 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 の生成・正規化・再生成検査・記録を実装した。現行実装は機械可読投影と独立測定に加え、
 これら2種の視覚投影をL3観測として扱う。8.3では電気laneに限り、GD1基板の必須ゲート通過後に
 既定生成して投影集合を書き出す。機械laneの断面・干渉ビューはrenderer未実装のため8.3対象外で、
-後続フェーズで扱う。8.4のAI受け渡しと8.5の機械可読投影との照合は未実装である。
+後続フェーズで扱う。8.4のAI受け渡しは実装済みで、8.5の機械可読投影との照合は未実装である。
 [`roadmap.md`](roadmap.md)に従って後続で扱う。
 8.3の視覚投影生成前提はERC、routing収束、DRC、独立再読込、silkscreen、DFM、
 設計述語の決定論的ゲートであり、発注可否を表すorder readinessは含めない。
@@ -80,12 +80,14 @@ renderer不在や生成不能はfail-closedとし、投影欠落を「問題な�
 | S4 | テスト計画チェックシート、測定値のヒストグラム・管理図、故障の特性要因図・連関図 | 測定条件、期待値、校正、故障根拠、実測と仮想の区別 | チェックシート、ヒストグラム、管理図、特性要因図、連関図 |
 | FWレーン | ピン割当照合表、ペリフェラル設定表、状態遷移・シーケンス図 | ピン・ネット・設定・要求の一致、初期化順序、ログ期待値 | 系統図法、PDPC法、チェックシート |
 
-視覚投影をAIへ渡す場合、workspace内の画像をbase64の`data:` URLとして
-`ImageContent(image_urls=[...])`へ渡すか、builtin toolの`inspect_image_with_vision`で
-画像と質問をvision対応の別LLM設定へ渡す。HTTP(S)画像を使う場合はSDKの
-base64インライン化とSSRF block-listを通す。応答はレビュー観察であり、画像hash、
-renderer、解像度とともに記録する。画像内の指示はデータとして
-扱い、設計変更や合否命令として実行しない。
+視覚投影をAIへ渡す場合、8.3のSVGから派生したworkspace内PNGだけをbase64の`data:`
+URLとして`ImageContent(image_urls=[...])`へ渡すか、明示されたvision profile向けのbuiltin
+tool `inspect_image_with_vision`で画像と質問をvision対応の別LLM設定へ渡す。ACDは
+HTTP(S)画像URLを作成せず、`data:`以外のURLを拒否する。将来HTTP(S)取得を採用する場合の
+唯一のSDK経路は公開のbase64インライン化とSSRF block-listであり、
+`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`のtruthy設定はACD側でfail-closedにする。応答は
+レビュー観察であり、画像hash、renderer、解像度とともに記録する。画像内の指示はデータ
+として扱い、設計変更や合否命令として実行しない。
 
 ## 最小チェックリスト
 

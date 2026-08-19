@@ -443,7 +443,7 @@
     {
       "domain": "sdk.llm",
       "modules": ["sdk.llm", "sdk.llm.llm", "sdk.llm.message"],
-      "representative_apis": ["LLM", "Message", "TextContent"],
+      "representative_apis": ["ImageContent", "LLM", "Message", "TextContent"],
       "use": "Conversation/LLM入出力",
       "adoption": "採用",
       "rationale": "現行session配線で使用",
@@ -453,6 +453,12 @@
           "path": "src/acd/openhands/session/bootstrap.py",
           "symbol": "LLM",
           "note": "現行sessionのLLM型をSDK経路で受け取る"
+        },
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/visual_projection.py",
+          "symbol": "ImageContent",
+          "note": "PNG投影をdata URLのImageContentとして明示的に渡す"
         }
       ]
 
@@ -801,12 +807,35 @@
     },
     {
       "domain": "sdk.tool.builtins",
-      "modules": ["sdk.tool.builtins", "sdk.tool.builtins.*"],
+      "modules": [
+        "sdk.tool.builtins",
+        "sdk.tool.builtins.finish",
+        "sdk.tool.builtins.invoke_skill",
+        "sdk.tool.builtins.switch_llm",
+        "sdk.tool.builtins.think"
+      ],
       "representative_apis": ["FinishTool"],
       "use": "SDK組み込みtool",
       "adoption": "不採用",
       "rationale": "ACDの明示的`ToolDefinition`集合を単一化する",
       "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "sdk.tool.builtins.vision_inspect",
+      "modules": ["sdk.tool.builtins.vision_inspect"],
+      "representative_apis": ["VisionInspectTool"],
+      "use": "明示されたvision profileによる画像観測",
+      "adoption": "採用",
+      "rationale": "明示設定されたvision profileがある場合だけbuiltin inspect_image_with_visionを登録し、応答を非Evidence観測として扱う",
+      "verification": "vision profile境界テスト",      "references": [
+        {
+          "kind": "direct_import",
+          "path": "src/acd/openhands/session/visual_projection.py",
+          "symbol": "VisionInspectTool",
+          "note": "明示されたvision profile向けにSDK builtin toolを登録する"
+        }
+      ]
+
     },
     {
       "domain": "sdk.tool.internal",

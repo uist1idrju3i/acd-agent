@@ -362,6 +362,13 @@ renderer未実装のため後続フェーズで扱い、AI受け渡しと機械�
 8.3の層導出はgraphで宣言された`BoardView.layers`の層数をKiCadの銅層名へ決定論的に
 対応させる。現在の対応表は2層（`F.Cu`／`B.Cu`）と4層（`F.Cu`／`In1.Cu`／`In2.Cu`／`B.Cu`）
 に限り、0層、1層、奇数層、その他の未対応層数はfail-closedとする。
+8.4では8.3の正規化前SVGをCairoSVG 2.9.0で幅1600pxへラスタライズし、生成PNGのIHDRから
+解像度を測定する。PNGは`png-identity-v1`（正規化なし、生PNG bytesのSHA-256）で記録し、
+2回の生成hashが一致しない場合、入力SVGの正規化後hashがrecordと一致しない場合、または
+CairoSVGのimport・版取得・libcairo依存が利用できない場合はfail-closedとする。
+SDKへ渡す画像はworkspace内PNGだけをbase64の`data:image/png;base64,...` URLへ変換し、
+HTTP(S)・`file:` URLは作成しない。`OH_INLINE_IMAGE_ALLOW_PRIVATE_HOSTS`がtruthyな環境では
+画像経路を停止し、vision応答は`pass_evidence=false`のL3観測としてだけ保存する。
 
 ## 検証
 

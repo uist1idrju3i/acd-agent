@@ -110,6 +110,7 @@ from acd.schema.visual_projection import (
     VisualRegenerationStatus,
     VisualRendererProvenance,
     VisualResolution,
+    VisualVisionObservation,
 )
 
 __all__ = [
@@ -204,6 +205,7 @@ __all__ = [
     "VisualRegenerationStatus",
     "VisualRendererProvenance",
     "VisualResolution",
+    "VisualVisionObservation",
     "canonical_json_sha256",
     "canonical_sha256",
     "is_unknown",
