@@ -33,6 +33,33 @@ print([p.name for p in list_installed_plugins()])"
 `resolved_ref` を `git ls-remote origin <ref>` と突き合わせ、必要なら
 `~/.openhands/cache/extensions/` の該当ディレクトリを消してから再実行する。
 
+#### Local GUI では stale cache が無警告で成立し、ref 指定では回避できない
+
+実機 Local GUI の Plugins 画面で観測した挙動（PR #122 検証時）。
+**アンインストール → 再インストールしても cache は再取得されない。**
+
+- remote に実在する branch 名を「リファレンス」へ入れても、解決 ref は
+  cache 済みの旧 commit のままになる。
+- **完全な 40 桁 commit SHA を入れても同じ旧 commit のままになる。**
+  つまり「存在しない ref だから fallback した」わけではなく、
+  cache が fetch しないため要求 ref が事実上無視される。
+- エラー toast も警告も出ず、インストールは成功したように見える。
+
+したがって GUI で新しい commit を検証するには、次を検証開始前の前提条件として扱う。
+
+1. `git ls-remote origin <ref>` で remote 側の commit を先に確定させる。
+2. install 後に必ず詳細モーダルの「リファレンス」チップを読み、1 と一致するか照合する。
+   一致しなければ、それ以降の `/acd:doctor` `/acd:gates` 結果は
+   **その commit の証拠にならない**ので実行しない（LLM 課金の無駄を避ける）。
+3. 一致しない場合はサーバ側で cache を消す必要がある
+   （`~/.openhands/cache/skills/` の該当 clone と
+   `~/.openhands/plugins/installed/acd` を削除し、サーバを再起動する）。
+   port-forward 専用のトンネル経由では実施できないため、
+   サーバ所有者へ依頼する前提でテスト計画を立てる。
+
+チップの hex は等幅小フォントで screenshot からの目視誤読が起きやすい。
+`browser` の DOM ダンプに対して `リファレンス[0-9a-f]{7,40}` を grep すると確実に読める。
+
 ## 落とし穴: installed plugin store が pytest に混ざる
 
 `~/.openhands/plugins/installed/acd/` が存在すると SDK の ambient plugin 読み込みが
