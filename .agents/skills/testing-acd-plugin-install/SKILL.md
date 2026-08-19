@@ -45,6 +45,19 @@ print([p.name for p in list_installed_plugins()])"
   cache が fetch しないため要求 ref が事実上無視される。
 - エラー toast も警告も出ず、インストールは成功したように見える。
 
+原因は SDK 側の cache 実装（`openhands.sdk.git.cached_repo`）にある。cache 先は
+source URL の sha256 だけで決まり（`get_cache_path`）、plugin manifest の version は
+参照されないため `plugin.json` の version を上げても cache は再利用される。cache は
+`git clone --depth 1 --branch <初回 ref>` で作られるので `remote.origin.fetch` が
+その branch だけを指し、更新時の素の `git fetch origin` では他の branch や commit を
+取得できない。`_update_repository` は checkout 失敗を warning
+（`Using cached version.`）で飲み込み、古い tree をそのまま install する。
+したがって **初回 install の branch 先端を追う更新は成功し**、別 branch や任意 commit への
+切り替えは cache を消さない限り成功しない。`main` で install しておけば以後は
+「更新」ボタン（`update` は `ref=None` で fetch → `origin/main` へ reset）で追従できる。
+ただし実機では「更新」が HTTP 500、「追加」が HTTP 409 になり uninstall→reinstall で
+回避した観測があり、`main` 運用でこの 500 が再現するかは未確認である。
+
 したがって GUI で新しい commit を検証するには、次を検証開始前の前提条件として扱う。
 
 1. `git ls-remote origin <ref>` で remote 側の commit を先に確定させる。

@@ -147,6 +147,13 @@ rm -rf ~/.openhands/cache/extensions/acd-agent-*
 削除後はOpenHandsを再起動する。リファレンスが一致しないまま動作確認へ進むと、
 古い資材の挙動を新しい変更の観測結果として誤って扱う。
 
+運用上は、リファレンスを省略するかbranch名を指定して`main`でinstallしておく。この場合の
+更新は「更新」ボタンだけで済み、`update`が`ref=None`で再fetchして`origin/main`へ
+resetするため`main`の先端に追従する。作業branchや特定commitで検証したい場合だけ、
+上記のキャッシュ削除を伴うinstallし直しが必要になる。なお実機では「更新」がHTTP 500、
+「追加」がHTTP 409になりuninstall→reinstallで回避した観測があり、`main`運用でこの
+500が再現するかは未確認である。再現する場合はキャッシュ削除からのinstallし直しへ倒す。
+
 ### Local GUIからの動作確認手順
 
 インストール直後に、まず自己診断入口を実行する。doctorはplugin資材と実行環境を
