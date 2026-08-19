@@ -163,6 +163,8 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
 ### 発注前最終ゲートの再実行とcheck-only
 
 発注前の判定には7.2の`OrderTotalResult` JSON、policy、判定時刻を渡す。
+`OrderTotalResult`のJSONは`OrderTotalDocument`の契約として読み込み、coreの変換関数が
+内訳hashを再計算して内容との一致を検証する。
 既存Evidenceだけを検査する場合は、再実行しないことを明示するcheck-only経路を使う。
 
 ```bash

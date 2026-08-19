@@ -25,6 +25,9 @@ from acd.core.order_total import (
     OrderTotalResult,
     QuoteCanonicalHash,
     aggregate_order_total,
+    order_total_breakdown_hash,
+    order_total_result_from_document,
+    order_total_result_to_document,
 )
 from acd.core.quote import QuoteFeeSet, QuoteReadError, load_quote, read_quote
 from acd.core.rationale import (
@@ -68,6 +71,9 @@ __all__ = [
     "load_quote",
     "normalize_3mf",
     "normalize_step",
+    "order_total_breakdown_hash",
+    "order_total_result_from_document",
+    "order_total_result_to_document",
     "propose_input_feedback",
     "read_quote",
     "reconcile_files",

@@ -212,6 +212,8 @@ authoritative Evidence ID、既存の発注条件、および`order_total_limit`
 整数、通貨、最小単位桁数）を厳格に宣言する。上限額の欠落、負値、`unknown`、通貨欠落、
 余分なpolicy fieldは停止する。
 
+7.2の`OrderTotalResult`をJSONへ保存・復元する場合は、`OrderTotalDocument`と
+coreの変換関数を使い、集計時と復元時に同じ内訳hash定義を適用する。
 OpenHands層の`evaluate_pre_order_gate()`は、SDKのgit観測で設計入力のdirty状態を確認し、
 graphから解決した現行revisionと7.2の`OrderTotalResult`を照合する。電気・機械の各Evidenceは
 `supports_authoritative_pass()`、revision、container digest、claimの`verified`と

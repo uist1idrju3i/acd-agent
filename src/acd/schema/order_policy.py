@@ -14,7 +14,7 @@ from acd.schema.common import (
     SchemaVersion,
     Sha256,
     Timestamp,
-    canonical_json_sha256,
+    canonical_sha256,
     contains_unknown,
 )
 from acd.schema.quote import QuoteAmount
@@ -59,7 +59,7 @@ class EvidenceReference(AcdModel):
     canonical_hash: Sha256
 
 
-class PreOrderGateRecord(AcdModel):
+class PreOrderGateRecordBody(AcdModel):
     schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
     target_revision: Revision
     total: QuoteAmount
@@ -68,16 +68,24 @@ class PreOrderGateRecord(AcdModel):
     evidence: list[EvidenceReference] = Field(min_length=2)
     policy_hash: Sha256
     evaluated_at: Timestamp
+
+    @model_validator(mode="after")
+    def validate_body(self) -> Self:
+        evidence_ids = [item.evidence_id for item in self.evidence]
+        if len(evidence_ids) != len(set(evidence_ids)):
+            raise ValueError("pre-order Evidence identifiers must be unique")
+        return self
+
+
+class PreOrderGateRecord(PreOrderGateRecordBody):
     authorization_hash: Sha256
 
     @model_validator(mode="after")
     def validate_record(self) -> Self:
-        evidence_ids = [item.evidence_id for item in self.evidence]
-        if len(evidence_ids) != len(set(evidence_ids)):
-            raise ValueError("pre-order Evidence identifiers must be unique")
-        expected_hash = canonical_json_sha256(
-            self.model_dump(mode="json", exclude={"authorization_hash"})
+        body = PreOrderGateRecordBody.model_validate(
+            self.model_dump(exclude={"authorization_hash"})
         )
+        expected_hash = canonical_sha256(body)
         if self.authorization_hash != expected_hash:
             raise ValueError("pre-order authorization hash does not match record")
         return self
@@ -94,19 +102,19 @@ class PreOrderGateRecord(AcdModel):
         policy_hash: Sha256,
         evaluated_at: Timestamp,
     ) -> PreOrderGateRecord:
-        data: dict[str, object] = {
-            "schema_version": CURRENT_SCHEMA_VERSION,
-            "target_revision": target_revision,
-            "total": total.model_dump(mode="json"),
-            "upper_limit": upper_limit.model_dump(mode="json"),
-            "breakdown_hash": breakdown_hash,
-            "evidence": [
-                item.model_dump(mode="json") for item in evidence
-            ],
-            "policy_hash": policy_hash,
-            "evaluated_at": evaluated_at.isoformat().replace("+00:00", "Z"),
-        }
-        authorization_hash = canonical_json_sha256(data)
+        body = PreOrderGateRecordBody(
+            target_revision=target_revision,
+            total=total,
+            upper_limit=upper_limit,
+            breakdown_hash=breakdown_hash,
+            evidence=evidence,
+            policy_hash=policy_hash,
+            evaluated_at=evaluated_at,
+        )
+        authorization_hash = canonical_sha256(body)
         return cls.model_validate(
-            {**data, "authorization_hash": authorization_hash}
+            {
+                **body.model_dump(mode="python"),
+                "authorization_hash": authorization_hash,
+            }
         )

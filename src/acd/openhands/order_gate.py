@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
+from openhands.sdk.git.exceptions import GitError
+
 from acd.core.order_total import OrderTotalResult
 from acd.openhands.evidence.git import design_input_changes
 from acd.openhands.evidence.revision import resolve
@@ -43,7 +45,11 @@ def evaluate_pre_order_gate(
         raise PreOrderGateError(
             "design graph paths must resolve exactly one valid revision"
         )
-    if design_input_changes(repository, ref="HEAD"):
+    try:
+        changed_design_inputs = design_input_changes(repository, ref="HEAD")
+    except GitError as exc:
+        raise PreOrderGateError(f"git observation failed: {exc}") from exc
+    if changed_design_inputs:
         raise PreOrderGateError("design input is dirty")
     if order_total.target_revision != current_revision:
         raise PreOrderGateError("order total target revision does not match")
