@@ -17,3 +17,6 @@ hook drift時はtask/delegate経路を受け入れない。workflowの採否は�
 AgentDefinitionは`skills:`を宣言せず、plugin同梱SkillのSKILL.mdをpromptの
 `## Skill references`節でパス参照する（ADR-0039）。SDKのsub-agent解決は
 plugin同梱Skillを探索しないため、宣言すると会話生成が失敗する。
+hook commandはplugin rootを`$ACD_PLUGIN_ROOT`、`$OPENHANDS_PROJECT_DIR/plugins/acd`、
+`$HOME/.openhands/plugins/installed/acd`の順に自己解決し、解決不能ならexit 2で
+fail-closedにする（ADR-0040）。

@@ -45,6 +45,31 @@ mkdir -p /tmp/isohome && ln -s ~/.local ~/.cache ~/.pyenv /tmp/isohome/ 2>/dev/n
 env HOME=/tmp/isohome uv run python scripts/verify_all.py --stage standard
 ```
 
+## 落とし穴: ambient install の hook script パス解決（ADR-0040 以前の不具合）
+
+SDK の `HookExecutor` は plugin root を環境変数で渡さず、`OPENHANDS_PROJECT_DIR` は
+会話 workspace（`.../workspace/project/<conv_id>/`）を指す。ADR-0040 以前の hook command
+は `python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/<name>.py`
+という形で、GUI ambient install（`~/.openhands/plugins/installed/acd/`）では script が
+存在しないパスを指した。結果は
+
+```text
+python3: can't open file '.../workspace/project/<conv_id>/plugins/acd/hooks/scripts/session_start.py': [Errno 2] No such file or directory
+```
+
+で exit code 2 となり、hook は fail-closed で `SessionStart` と
+`PreToolUse(terminal)` / `PreToolUse(file_editor)` を全て block する。
+この状態では `/acd:doctor` も `/acd:gates` も command body には到達するが
+**ツールを1つも実行できず**、install doctor JSON を得られない。
+
+現行の hook command は POSIX shell で plugin root を自己解決する（`$ACD_PLUGIN_ROOT` →
+`$OPENHANDS_PROJECT_DIR/plugins/acd` → `$HOME/.openhands/plugins/installed/acd` の順で
+`hooks/scripts` が実在する最初のもの、どれも無ければ exit 2）。
+
+GUI で `/acd:*` を検証する前に、会話冒頭の `🚫フック: SessionStart blocked`
+バッジの有無を必ず確認する。出ていたら plugin root が解決できておらず、
+それ以降の doctor/gates 結果は「未取得」として扱う。
+
 ## install doctor の検証
 
 実行は隔離環境を使わず `python3 <path>` で直接行う（`uv run --script` は利用者環境を

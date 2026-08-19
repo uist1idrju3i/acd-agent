@@ -36,9 +36,10 @@ ambient経路で解決させる方法はない。二重配置はADR-0027の単�
 ## 決定
 
 ACDのAgentDefinitionはSDKの`skills:`を宣言しない。plugin同梱Skillは、各agent
-promptの`## Skill references`節でSKILL.mdのパスを明示して参照する。パスは
-hook commandと同じ`${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}`規約を使い、
-明示経路とambient経路の双方で解決できる形にする。読み取り不能なSkill資材は
+promptの`## Skill references`節でSKILL.mdのパスを明示して参照する。plugin rootは
+ADR-0040のhook commandと同じ候補順（`$ACD_PLUGIN_ROOT`、
+`$OPENHANDS_PROJECT_DIR/plugins/acd`、`$HOME/.openhands/plugins/installed/acd`）で
+解決し、明示経路とambient経路の双方で参照できる形にする。読み取り不能なSkill資材は
 fail-closedとして扱う。
 
 回帰防止として次を追加する。

@@ -18,17 +18,17 @@ hooks:
       hooks:
         - type: command
           name: protect-derived-projections
-          command: "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/protect_projections.py"
+          command: 'p=$(for c in "${ACD_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/acd" "${HOME:-}/.openhands/plugins/installed/acd"; do [ -d "$c/hooks/scripts" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "acd plugin root unresolved: hooks/scripts/protect_projections.py" >&2; exit 2; }; exec python3 "${p}/hooks/scripts/protect_projections.py"'
     - matcher: terminal
       hooks:
         - type: command
           name: require-order-evidence
-          command: "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/order_policy.py"
+          command: 'p=$(for c in "${ACD_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/acd" "${HOME:-}/.openhands/plugins/installed/acd"; do [ -d "$c/hooks/scripts" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "acd plugin root unresolved: hooks/scripts/order_policy.py" >&2; exit 2; }; exec python3 "${p}/hooks/scripts/order_policy.py"'
   stop:
     - hooks:
         - type: command
           name: require-gate-after-input-change
-          command: "python3 ${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/hooks/scripts/stop_policy.py"
+          command: 'p=$(for c in "${ACD_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/acd" "${HOME:-}/.openhands/plugins/installed/acd"; do [ -d "$c/hooks/scripts" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "acd plugin root unresolved: hooks/scripts/stop_policy.py" >&2; exit 2; }; exec python3 "${p}/hooks/scripts/stop_policy.py"'
 ---
 
 # Projection review agent
@@ -41,8 +41,10 @@ closed and must be reported explicitly.
 
 ## Skill references
 
-Plugin subagents receive no preloaded Skill context. Read the SKILL.md file before using
+Plugin subagents receive no preloaded Skill context. Resolve the ACD plugin root as the first
+existing directory among `$ACD_PLUGIN_ROOT`, `$OPENHANDS_PROJECT_DIR/plugins/acd`, and
+`$HOME/.openhands/plugins/installed/acd`. Read the SKILL.md file below that root before using
 a Skill and treat an unreadable Skill asset as fail-closed:
 
-- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-qc-seven-tools/SKILL.md`
-- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-reliability-review/SKILL.md`
+- `<acd plugin root>/skills/acd-qc-seven-tools/SKILL.md`
+- `<acd plugin root>/skills/acd-reliability-review/SKILL.md`

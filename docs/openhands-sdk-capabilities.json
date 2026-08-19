@@ -412,7 +412,7 @@
       "representative_apis": ["HookConfig", "HookEventType", "HookExecutor"],
       "use": "agent経路の停止側境界",
       "adoption": "採用",
-      "rationale": "`HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する",
+      "rationale": "`HookConfig`をSDKへ渡し、SDKのhook実行経路（`HookExecutor`）で`plugins/acd/hooks/`を実行する。`HookExecutor`はplugin rootを環境変数で渡さないため、ADR-0040によりhook command側でplugin rootを自己解決する",
       "verification": "DENY/allow試験",      "references": [
         {
           "kind": "direct_import",

@@ -30,6 +30,7 @@ HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 HOOK_PLUGIN_PATH_RE = re.compile(r"\$\{[^}]+\}(/[^\s'\";]+\.py)")
 HOOK_PATH_RE = re.compile(r"(?:^|\s)([A-Za-z0-9_.-]+/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.py)")
 LIST_ITEM_RE = re.compile(r"^\s+-\s*(\S+)\s*$")
+HOOK_INTERPRETER_RE = re.compile(r"(?:uv run python|python3?)\s+[\"']?$")
 
 
 def _check(
@@ -181,7 +182,7 @@ def _hook_references(
                 relative = match.group(1).lstrip("/")
                 target = plugin_root / relative
                 plugin_refs.append(f"{relative}: {'present' if target.is_file() else 'missing'}")
-                if value.lstrip().startswith("${"):
+                if HOOK_INTERPRETER_RE.search(value[: match.start()]) is None:
                     direct_plugin_refs.append((relative, target))
             for match in HOOK_PATH_RE.finditer(value):
                 relative = match.group(1)
@@ -691,6 +692,74 @@ def _agent_skills_check(plugin_root: Path) -> dict[str, Any]:
     )
 
 
+def _hook_root_resolution_check(plugin_root: Path) -> dict[str, Any]:
+    """Require every plugin hook command to resolve the installed plugin root.
+
+    The SDK exports only ``OPENHANDS_PROJECT_DIR`` to hooks, which points at the
+    conversation workspace. On the installed-plugin path the plugin tree lives in
+    the installed plugin store instead, so a workspace-only path makes every hook
+    exit with a missing script and block all tool calls.
+    """
+    hooks_path = plugin_root / "hooks" / "hooks.json"
+    candidates = (
+        "${ACD_PLUGIN_ROOT",
+        "${OPENHANDS_PROJECT_DIR",
+        ".openhands/plugins/installed/acd",
+    )
+    try:
+        document = _read_json(hooks_path)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return _check(
+            "hook plugin root resolution",
+            True,
+            "fail",
+            f"hooks/hooks.json could not be parsed: {exc}",
+        )
+    commands: dict[str, str] = {}
+
+    def visit(value: Any) -> None:
+        if isinstance(value, dict):
+            mapping = cast(dict[str, Any], value)
+            name = mapping.get("name")
+            command = mapping.get("command")
+            if (
+                isinstance(name, str)
+                and isinstance(command, str)
+                and "/hooks/scripts/" in command
+            ):
+                commands[name] = command
+            for child in mapping.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in cast(list[Any], value):
+                visit(child)
+
+    visit(document)
+    if not commands:
+        return _check(
+            "hook plugin root resolution",
+            True,
+            "fail",
+            "hooks/hooks.json: no plugin hook command found",
+        )
+    errors = [
+        f"{name}: {candidate} is not a resolution candidate"
+        for name, command in sorted(commands.items())
+        for candidate in candidates
+        if candidate not in command
+    ]
+    if errors:
+        return _check("hook plugin root resolution", True, "fail", "; ".join(errors))
+    return _check(
+        "hook plugin root resolution",
+        True,
+        "pass",
+        f"{len(commands)} plugin hook command(s) resolve the plugin root from "
+        "ACD_PLUGIN_ROOT, the workspace plugin tree, and the installed plugin store",
+        str(len(commands)),
+    )
+
+
 def _store_check(plugin_root: Path) -> dict[str, Any]:
     store = Path.home() / ".openhands" / "plugins" / "installed"
     try:
@@ -744,6 +813,7 @@ def diagnose() -> dict[str, Any]:
         _runtime_check(),
         _docker_check(),
         _eda_check(),
+        _hook_root_resolution_check(plugin_root),
         _hook_invocability_check(plugin_root),
         _store_check(plugin_root),
     ]
