@@ -362,7 +362,11 @@ renderer未実装のため後続フェーズで扱い、AI受け渡しと機械�
 8.3の層導出はgraphで宣言された`BoardView.layers`の層数をKiCadの銅層名へ決定論的に
 対応させる。現在の対応表は2層（`F.Cu`／`B.Cu`）と4層（`F.Cu`／`In1.Cu`／`In2.Cu`／`B.Cu`）
 に限り、0層、1層、奇数層、その他の未対応層数はfail-closedとする。
-8.4では8.3の正規化前SVGをCairoSVG 2.9.0で幅1600pxへラスタライズし、生成PNGのIHDRから
+8.4では必要時に8.3の正規化前SVGをCairoSVG 2.9.0で幅1600pxへラスタライズし、
+8.3の`visual-projections-electrical.json`を変更せず、
+`visual-projections-electrical-raster.json`へPNG派生集合を書き出す。PNG派生は
+pipelineの既定出力ではなくon-demandのAI受け渡し経路である。acd-tools imageのlibcairo2存在は
+未検証で、image再publishとdigest更新までcontainer側で保証できないためである。生成PNGのIHDRから
 解像度を測定する。PNGは`png-identity-v1`（正規化なし、生PNG bytesのSHA-256）で記録し、
 2回の生成hashが一致しない場合、入力SVGの正規化後hashがrecordと一致しない場合、または
 CairoSVGのimport・版取得・libcairo依存が利用できない場合はfail-closedとする。

@@ -4,6 +4,7 @@ import base64
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Literal
 
 import pytest
 from openhands.sdk.llm import ImageContent, Message, TextContent
@@ -64,6 +65,25 @@ def _set(record: VisualProjectionRecord) -> VisualProjectionSet:
     return VisualProjectionSet(source_revision="r8", projections=[record]).with_computed_hashes()
 
 
+def _svg_record() -> VisualProjectionRecord:
+    return _png_record("visual/board.svg").model_copy(
+        update={
+            "projection_id": "board-svg",
+            "projection_type": "schematic_view",
+            "renderer": VisualRendererProvenance(tool_version="10.0.5"),
+            "media_type": "image/svg+xml",
+            "normalization_rule_id": "kicad-svg-title-v1",
+            "normalization_rule_description": "Normalized SVG.",
+            "image_hash": "sha256:" + "1" * 64,
+            "regeneration_check": VisualRegenerationCheck(
+                status="reproduced",
+                first_image_hash="sha256:" + "1" * 64,
+                second_image_hash="sha256:" + "1" * 64,
+            ),
+        }
+    )
+
+
 def test_build_messages_uses_png_data_url_and_provenance(tmp_path: Path) -> None:
     image = b"\x89PNG\r\n\x1a\n"
     path = tmp_path / "visual/board.png"
@@ -97,7 +117,38 @@ def test_build_messages_rejects_svg_only_set(tmp_path: Path) -> None:
     record = _png_record().model_copy(
         update={"media_type": "image/svg+xml", "image_path": "visual/board.svg"}
     )
-    with pytest.raises(VisualProjectionHandoffError, match="no PNG"):
+    with pytest.raises(VisualProjectionHandoffError, match="PNG derivation"):
+        build_visual_projection_messages(_set(record), workspace=tmp_path)
+
+
+def test_build_messages_rejects_missing_png_derivation(tmp_path: Path) -> None:
+    with pytest.raises(VisualProjectionHandoffError, match="PNG derivation"):
+        build_visual_projection_messages(_set(_svg_record()), workspace=tmp_path)
+
+
+@pytest.mark.parametrize("status", ["not_reproduced", "unknown"])
+def test_build_messages_rejects_unreproduced_png(
+    tmp_path: Path, status: Literal["not_reproduced", "unknown"]
+) -> None:
+    image = b"\x89PNG\r\n\x1a\n"
+    path = tmp_path / "visual/board.png"
+    path.parent.mkdir()
+    path.write_bytes(image)
+    record = _png_record().model_copy(
+        update={
+            "image_hash": sha256_bytes(image),
+            "regeneration_check": VisualRegenerationCheck(
+                status=status,
+                first_image_hash=(
+                    "sha256:" + "2" * 64 if status == "not_reproduced" else "unknown"
+                ),
+                second_image_hash=(
+                    "sha256:" + "3" * 64 if status == "not_reproduced" else "unknown"
+                ),
+            ),
+        }
+    )
+    with pytest.raises(VisualProjectionHandoffError, match="not reproduced"):
         build_visual_projection_messages(_set(record), workspace=tmp_path)
 
 
@@ -171,6 +222,9 @@ def test_register_vision_tool_rejects_unresolvable_profile(
         def load(self, name: str) -> object:
             raise ValueError(name)
 
+        def list_summaries(self) -> list[dict[str, object]]:
+            return []
+
     monkeypatch.setattr(visual_projection_module, "LLMProfileStore", Store)
 
     with pytest.raises(VisualProjectionHandoffError, match="could not be loaded"):
@@ -183,6 +237,9 @@ def test_register_vision_tool_rejects_nonvision_profile(
     class Store:
         def load(self, name: str) -> object:
             return SimpleNamespace(vision_is_active=lambda: False)
+
+        def list_summaries(self) -> list[dict[str, object]]:
+            return [{"name": "text-only"}]
 
     monkeypatch.setattr(visual_projection_module, "LLMProfileStore", Store)
 
@@ -197,6 +254,9 @@ def test_register_vision_tool_rejects_missing_sdk_tool(
         def load(self, name: str) -> object:
             return SimpleNamespace(vision_is_active=lambda: True)
 
+        def list_summaries(self) -> list[dict[str, object]]:
+            return [{"name": "vision"}]
+
     class Tool:
         @classmethod
         def create(cls) -> list[object]:
@@ -206,6 +266,22 @@ def test_register_vision_tool_rejects_missing_sdk_tool(
     monkeypatch.setattr(visual_projection_module, "VisionInspectTool", Tool)
 
     with pytest.raises(VisualProjectionHandoffError, match="available"):
+        register_vision_inspect_tool("vision")
+
+
+def test_register_vision_tool_rejects_profile_not_in_vision_candidates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Store:
+        def load(self, name: str) -> object:
+            return SimpleNamespace(vision_is_active=lambda: True)
+
+        def list_summaries(self) -> list[dict[str, object]]:
+            return [{"name": "different-vision"}]
+
+    monkeypatch.setattr(visual_projection_module, "LLMProfileStore", Store)
+
+    with pytest.raises(VisualProjectionHandoffError, match="not available"):
         register_vision_inspect_tool("vision")
 
 

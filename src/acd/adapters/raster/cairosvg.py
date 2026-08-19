@@ -7,9 +7,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol, cast
 
+import cairosvg  # pyright: ignore[reportMissingTypeStubs]
+
 from acd.core.process import sha256_bytes
 from acd.core.visual_projection import normalized_svg_sha256
-from acd.pipeline.repository import repository_root
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,
@@ -34,6 +35,9 @@ class _CairoSvgModule(Protocol):
 
     def svg2png(self, *, bytestring: bytes, output_width: int) -> bytes | None:
         ...
+
+
+_CAIROSVG = cast(_CairoSvgModule, cairosvg)
 
 
 def _png_resolution(data: bytes) -> tuple[int, int]:
@@ -67,13 +71,7 @@ class CairoSvgRasterizer:
 
     def _render_png(self, svg: bytes) -> bytes:
         try:
-            import cairosvg  # pyright: ignore[reportMissingTypeStubs]
-        except (ImportError, OSError) as exc:
-            raise RasterizerError("CairoSVG is unavailable") from exc
-        module = cast(_CairoSvgModule, cairosvg)
-        self._version(module)
-        try:
-            rendered = module.svg2png(
+            rendered = _CAIROSVG.svg2png(
                 bytestring=svg,
                 output_width=self.output_width,
             )
@@ -84,9 +82,9 @@ class CairoSvgRasterizer:
         return rendered
 
     @staticmethod
-    def _version(cairosvg: object) -> str:
-        version = getattr(cairosvg, "__version__", None)
-        if not isinstance(version, str) or not version or version == "unknown":
+    def _version(cairosvg: _CairoSvgModule) -> str:
+        version = cairosvg.__version__
+        if not version or version == "unknown":
             raise RasterizerError("CairoSVG version is unknown")
         return version
 
@@ -95,11 +93,12 @@ class CairoSvgRasterizer:
         *,
         source_record: VisualProjectionRecord,
         output_path: Path,
-        base_dir: Path | None = None,
+        base_dir: Path,
     ) -> VisualProjectionRecord:
         if source_record.media_type != "image/svg+xml":
             raise RasterizerError("rasterizer input must be an SVG projection")
-        root = (base_dir or repository_root()).resolve()
+        root = base_dir.resolve()
+        version = self._version(_CAIROSVG)
         source_path = self._resolve_within_base(
             root / source_record.image_path,
             root,
@@ -130,11 +129,6 @@ class CairoSvgRasterizer:
         except OSError as exc:
             raise RasterizerError("PNG raster output could not be written") from exc
         width, height = _png_resolution(first)
-        try:
-            import cairosvg  # pyright: ignore[reportMissingTypeStubs]
-        except (ImportError, OSError) as exc:
-            raise RasterizerError("CairoSVG is unavailable") from exc
-        version = self._version(cast(_CairoSvgModule, cairosvg))
         return VisualProjectionRecord(
             projection_id=f"{source_record.projection_id}-png",
             projection_type="rasterized_view",
@@ -143,7 +137,7 @@ class CairoSvgRasterizer:
             input_files=[
                 VisualProjectionInput(
                     path=source_path.relative_to(root).as_posix(),
-                    content_hash=sha256_bytes(svg),
+                    content_hash=source_record.image_hash,
                 )
             ],
             renderer=VisualRendererProvenance(

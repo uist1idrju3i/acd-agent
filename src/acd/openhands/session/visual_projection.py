@@ -14,6 +14,7 @@ from acd.openhands.session.observation_store import (
     ObservationLogRecord,
     write_observation_payload,
 )
+from acd.schema.observation import ObservationPayload
 from acd.schema.visual_projection import (
     VisualProjectionRecord,
     VisualProjectionSet,
@@ -46,17 +47,10 @@ def _projection_message(
         raise VisualProjectionHandoffError("only PNG projections may be handed off")
     if projection.pass_evidence:
         raise VisualProjectionHandoffError("visual projections cannot be Evidence")
-    if any(
-        value == "unknown"
-        for value in (
-            projection.renderer.tool_version,
-            projection.resolution.width,
-            projection.resolution.height,
-            projection.normalization_rule_id,
-            projection.image_hash,
+    if projection.regeneration_check.status != "reproduced":
+        raise VisualProjectionHandoffError(
+            "visual projection regeneration was not reproduced"
         )
-    ):
-        raise VisualProjectionHandoffError("visual projection provenance is incomplete")
     raw_path = projection.image_path.replace("\\", "/")
     relative = Path(raw_path)
     if relative.is_absolute() or ".." in relative.parts:
@@ -101,6 +95,31 @@ def _projection_message(
     )
 
 
+def _assert_png_derivations(
+    projections: list[VisualProjectionRecord],
+) -> None:
+    svg_projections = [
+        projection for projection in projections if projection.media_type == "image/svg+xml"
+    ]
+    png_projections = [
+        projection for projection in projections if projection.media_type == "image/png"
+    ]
+    for svg_projection in svg_projections:
+        matches = [
+            png_projection
+            for png_projection in png_projections
+            if any(
+                input_file.path == svg_projection.image_path
+                and input_file.content_hash == svg_projection.image_hash
+                for input_file in png_projection.input_files
+            )
+        ]
+        if len(matches) != 1:
+            raise VisualProjectionHandoffError(
+                "every SVG projection must have exactly one PNG derivation"
+            )
+
+
 def build_visual_projection_messages(
     projection_set: VisualProjectionSet,
     *,
@@ -113,6 +132,7 @@ def build_visual_projection_messages(
         )
     if not projection_set.projections:
         raise VisualProjectionHandoffError("visual projection set is empty")
+    _assert_png_derivations(projection_set.projections)
     root = workspace.resolve()
     messages = [
         _projection_message(projection, workspace=root)
@@ -124,19 +144,52 @@ def build_visual_projection_messages(
     return messages
 
 
+def _vision_profile_names(store: LLMProfileStore) -> set[str]:
+    try:
+        summaries = store.list_summaries()
+    except (OSError, TimeoutError) as exc:
+        raise VisualProjectionHandoffError(
+            "vision profiles could not be listed"
+        ) from exc
+    names: set[str] = set()
+    for summary in summaries:
+        name = summary.get("name")
+        if not isinstance(name, str):
+            continue
+        try:
+            profile = store.load(name)
+        except (FileNotFoundError, ValueError, TimeoutError):
+            continue
+        if profile.vision_is_active():
+            names.add(name)
+    return names
+
+
 def register_vision_inspect_tool(profile_name: str) -> VisionInspectTool:
     """Register the builtin vision tool only for an explicit capable profile."""
     if not profile_name.strip():
         raise VisualProjectionHandoffError("vision profile name is required")
+    store = LLMProfileStore()
     try:
-        profile = LLMProfileStore().load(profile_name)
-    except Exception as exc:
+        profile = store.load(profile_name)
+    except (FileNotFoundError, ValueError, TimeoutError) as exc:
         raise VisualProjectionHandoffError(
             "requested vision profile could not be loaded"
         ) from exc
     if not profile.vision_is_active():
         raise VisualProjectionHandoffError("requested profile is not vision-capable")
-    tools = list(VisionInspectTool.create())  # pyright: ignore[reportUnknownMemberType]
+    if profile_name not in _vision_profile_names(store):
+        raise VisualProjectionHandoffError(
+            "requested vision profile is not available to the vision tool"
+        )
+    try:
+        tools = list(
+            VisionInspectTool.create()  # pyright: ignore[reportUnknownMemberType]
+        )
+    except (TypeError, ValueError) as exc:
+        raise VisualProjectionHandoffError(
+            "vision inspect tool could not be registered"
+        ) from exc
     if not tools:
         raise VisualProjectionHandoffError("no vision inspect tool is available")
     return tools[0]
@@ -161,8 +214,6 @@ def write_visual_vision_observation(
         image_hash=image_hash,
         response=response,
     )
-    from acd.schema.observation import ObservationPayload
-
     return write_observation_payload(
         ObservationPayload.model_validate(observation.model_dump(mode="json")),
         path,

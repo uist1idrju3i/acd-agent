@@ -112,10 +112,6 @@ def generate_electrical_visual_projections(
     )
     return projection_set
 
-
-__all__ = ["generate_electrical_visual_projections"]
-
-
 def derive_png_visual_projections(
     projection_set: VisualProjectionSet,
     *,
@@ -143,14 +139,11 @@ def derive_png_visual_projections(
         source_revision=projection_set.source_revision,
         projections=derived,
     ).with_computed_hashes()
-    (out_dir / "visual-projections-electrical.json").write_text(
+    (out_dir / "visual-projections-electrical-raster.json").write_text(
         result.model_dump_json(indent=2) + "\n",
         encoding="utf-8",
     )
     return result
 
 
-__all__ = [
-    "derive_png_visual_projections",
-    "generate_electrical_visual_projections",
-]
+__all__ = ["derive_png_visual_projections", "generate_electrical_visual_projections"]

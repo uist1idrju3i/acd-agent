@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -96,10 +95,13 @@ def test_rasterizer_rejects_source_hash_mismatch(tmp_path: Path) -> None:
         )
 
 
-def test_derive_png_projection_writes_augmented_projection_set(tmp_path: Path) -> None:
+def test_derive_png_projection_writes_separate_projection_set(tmp_path: Path) -> None:
     source = tmp_path / "visual/board-f-cu.svg"
     source.parent.mkdir()
     source.write_bytes(_svg())
+    original = tmp_path / "visual-projections-electrical.json"
+    original.write_text('{"artifact_kind":"visual_projection_set"}\n')
+    original_bytes = original.read_bytes()
 
     result = derive_png_visual_projections(
         VisualProjectionSet(
@@ -114,7 +116,8 @@ def test_derive_png_projection_writes_augmented_projection_set(tmp_path: Path) -
         "board-f-cu",
         "board-f-cu-png",
     ]
-    assert (tmp_path / "visual-projections-electrical.json").is_file()
+    assert original.read_bytes() == original_bytes
+    assert (tmp_path / "visual-projections-electrical-raster.json").is_file()
     assert (tmp_path / "visual/png/board-f-cu.png").is_file()
 
 
@@ -124,25 +127,12 @@ def test_rasterizer_rejects_unknown_cairosvg_version(
     source = tmp_path / "visual/board-f-cu.svg"
     source.parent.mkdir()
     source.write_bytes(_svg())
-    monkeypatch.setitem(sys.modules, "cairosvg", type("CairoSvg", (), {"__version__": "unknown"})())
+    monkeypatch.setattr(
+        "acd.adapters.raster.cairosvg._CAIROSVG",
+        type("CairoSvg", (), {"__version__": "unknown"})(),
+    )
 
     with pytest.raises(RasterizerError, match="version is unknown"):
-        CairoSvgRasterizer().rasterize(
-            source_record=_source_record(),
-            output_path=tmp_path / "visual/png/board-f-cu.png",
-            base_dir=tmp_path,
-        )
-
-
-def test_rasterizer_rejects_cairosvg_import_failure(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    source = tmp_path / "visual/board-f-cu.svg"
-    source.parent.mkdir()
-    source.write_bytes(_svg())
-    monkeypatch.setitem(sys.modules, "cairosvg", None)
-
-    with pytest.raises(RasterizerError, match="unavailable"):
         CairoSvgRasterizer().rasterize(
             source_record=_source_record(),
             output_path=tmp_path / "visual/png/board-f-cu.png",
