@@ -36,6 +36,8 @@ output.write_text(
     f'<title>SVG Image created as {output.name} date 2026-08-19T03:45:00Z </title>'
     + extra + '</svg>'
 )
+if os.getenv("FAKE_MULTIPLE_SHEETS") and sys.argv[1:4] == ["sch", "export", "svg"]:
+    output.with_name("sheet-2.svg").write_text(output.read_text())
 """
 
 
@@ -82,6 +84,27 @@ def test_renderer_stops_on_regeneration_mismatch(
     renderer = KicadVisualRenderer(KicadCli(str(_executable(tmp_path))))
 
     with pytest.raises(ExternalToolError, match="regeneration hash mismatch"):
+        renderer.render(
+            projection_id="gd1-schematic",
+            projection_type="schematic_view",
+            domain="electrical",
+            source_revision="r8",
+            source=source,
+            output_path=tmp_path / "schematic.svg",
+            base_dir=tmp_path,
+        )
+
+
+def test_renderer_rejects_multiple_schematic_sheet_outputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("FAKE_MULTIPLE_SHEETS", "1")
+    source = tmp_path / "gd1.kicad_sch"
+    source.write_text("schematic")
+    renderer = KicadVisualRenderer(KicadCli(str(_executable(tmp_path))))
+
+    with pytest.raises(ExternalToolError, match="multiple SVG outputs"):
         renderer.render(
             projection_id="gd1-schematic",
             projection_type="schematic_view",

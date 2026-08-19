@@ -351,6 +351,8 @@ fail-closedとする。正規化後hashは再生成時にも照合し、renderer
 `kicad-cli pcb export svg --layers F.Cu -o fixtures/visual_projection/kicad/gd1-front-copper.svg out/gd1-silkscreen-resolve/iteration-1/gd1.kicad_pcb`
 と、出力先だけを`gd1-front-copper-reproduced.svg`へ変えた同じコマンドを実行して生成した。
 出力ファイル名が`<title>`へ入るため、この名前差が生バイト列の非決定性の由来になる。
+回路図SVGはKiCadがsheet名をファイル名にして出力するため、単一sheetの期待出力を投影パスへ
+renameする。複数sheetによる複数SVG出力は未対応で、追加されたSVGを検出した時点でfail-closedとする。
 8.3ではGD1電気laneに限り、必須ゲート通過後に回路図ビューと宣言銅層ごとの層別レイアウト
 ビューを`out_dir/visual/`へ既定生成し、`visual-projections-electrical.json`へL3観測として
 記録する。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、同一入力・

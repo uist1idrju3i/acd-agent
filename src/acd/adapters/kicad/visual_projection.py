@@ -54,6 +54,7 @@ class KicadVisualRenderer:
     ) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         if projection_type == "schematic_view":
+            svg_before = set(output.parent.glob("*.svg"))
             generated_output = output.parent / f"{source.stem}.svg"
             if generated_output.exists():
                 generated_output.unlink()
@@ -92,6 +93,14 @@ class KicadVisualRenderer:
             target_revision=target_revision,
             measurement_conditions="single SVG export; measured root dimensions",
         )
+        if projection_type == "schematic_view":
+            unexpected_outputs = set(output.parent.glob("*.svg")) - svg_before - {
+                generated_output
+            }
+            if unexpected_outputs:
+                raise ExternalToolError(
+                    "kicad-cli schematic export produced multiple SVG outputs"
+                )
         if generated_output != output:
             try:
                 generated_output.replace(output)
