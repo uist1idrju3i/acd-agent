@@ -48,7 +48,7 @@
         {
           "type": "command",
           "name": "check-design-rationale",
-          "command": "uv run python scripts/check_rationale.py --if-present"
+          "command": "p=$(for c in \"${ACD_PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/acd\" \"${HOME:-}/.openhands/plugins/installed/acd\"; do [ -d \"$c/hooks/scripts\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || { echo \"acd plugin root unresolved: hooks/scripts/check_rationale.py\" >&2; exit 2; }; exec python3 \"${p}/hooks/scripts/check_rationale.py\""
         }
       ]
     }
@@ -70,7 +70,7 @@
         {
           "type": "command",
           "name": "check-design-rationale-warn",
-          "command": "uv run python scripts/check_rationale.py --if-present --warn-only"
+          "command": "p=$(for c in \"${ACD_PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/acd\" \"${HOME:-}/.openhands/plugins/installed/acd\"; do [ -d \"$c/hooks/scripts\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || { echo \"acd plugin root unresolved: hooks/scripts/check_rationale.py\" >&2; exit 2; }; exec python3 \"${p}/hooks/scripts/check_rationale.py\" --warn-only"
         }
       ]
     }

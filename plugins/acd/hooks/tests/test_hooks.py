@@ -15,7 +15,6 @@ from openhands.sdk.hooks.types import HookEventType
 ROOT = Path(__file__).parents[4]
 SCRIPTS = ROOT / "plugins/acd/hooks/scripts"
 HOOKS_PATH = Path(__file__).parents[1] / "hooks.json"
-RATIONALE_COMMAND = "uv run python scripts/check_rationale.py --if-present"
 
 
 def run(
@@ -302,14 +301,57 @@ def test_rationale_hooks_match_sdk_tool_name_and_commands() -> None:
     post_commands = [
         hook.command
         for hook in config.get_hooks_for_event(HookEventType.POST_TOOL_USE, "file_editor")
+        if "hooks/scripts/check_rationale.py" in hook.command
     ]
-    assert f"{RATIONALE_COMMAND} --warn-only" in post_commands
+    assert post_commands
+    assert all(command.endswith("--warn-only") for command in post_commands)
     assert not config.get_hooks_for_event(HookEventType.POST_TOOL_USE, "FileEditorTool")
 
     stop_commands = [
-        hook.command for hook in config.get_hooks_for_event(HookEventType.STOP, "file_editor")
+        hook.command
+        for hook in config.get_hooks_for_event(HookEventType.STOP, "file_editor")
+        if "hooks/scripts/check_rationale.py" in hook.command
     ]
-    assert RATIONALE_COMMAND in stop_commands
+    assert stop_commands
+    assert not any(command.endswith("--warn-only") for command in stop_commands)
+
+
+def _rationale_inputs(root: Path) -> None:
+    fixtures = root / "fixtures/golden-design-1"
+    fixtures.mkdir(parents=True)
+    (fixtures / "graph.json").write_text("{}", encoding="utf-8")
+    (fixtures / "rationale.json").write_text("{}", encoding="utf-8")
+
+
+def _run_rationale_hook(root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["python", str(SCRIPTS / "check_rationale.py"), *arguments],
+        input=json.dumps({"working_dir": str(root)}),
+        text=True,
+        capture_output=True,
+        cwd=root,
+        env={**os.environ, "OPENHANDS_PROJECT_DIR": str(root)},
+        check=False,
+    )
+
+
+def test_rationale_hook_is_not_applicable_without_workspace_inputs(tmp_path: Path) -> None:
+    completed = _run_rationale_hook(tmp_path)
+    assert completed.returncode == 0
+    assert "not applicable" in completed.stdout
+
+
+def test_rationale_hook_denies_present_inputs_without_the_validator(tmp_path: Path) -> None:
+    _rationale_inputs(tmp_path)
+    code, output = run("check_rationale.py", {}, "stop", tmp_path)
+    assert code == 2
+    assert output["decision"] == "deny"
+    assert "scripts/check_rationale.py" in output["reason"]
+
+
+def test_rationale_hook_warn_only_never_blocks(tmp_path: Path) -> None:
+    _rationale_inputs(tmp_path)
+    assert _run_rationale_hook(tmp_path, "--warn-only").returncode == 0
 
 
 def test_fail_closed_hooks_are_registered_for_sdk_events() -> None:
@@ -383,6 +425,8 @@ def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
             "tool_input": {"path": "docs/example.md"},
             "working_dir": str(tmp_path),
         },
+        "check-design-rationale": {"working_dir": str(tmp_path)},
+        "check-design-rationale-warn": {"working_dir": str(tmp_path)},
     }
     commands = _configured_plugin_hook_commands()
     assert set(commands) == set(payloads)
