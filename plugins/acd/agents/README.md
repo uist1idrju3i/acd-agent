@@ -14,3 +14,6 @@ sub-agentは親conversationのhookを継承しないため、各AgentDefinition�
 `protect-derived-projections`、`require-order-evidence`、
 `require-gate-after-input-change`を明記する。SDKロード後のHookConfigを試験で照合し、
 hook drift時はtask/delegate経路を受け入れない。workflowの採否は別途判断する。
+AgentDefinitionは`skills:`を宣言せず、plugin同梱SkillのSKILL.mdをpromptの
+`## Skill references`節でパス参照する（ADR-0039）。SDKのsub-agent解決は
+plugin同梱Skillを探索しないため、宣言すると会話生成が失敗する。

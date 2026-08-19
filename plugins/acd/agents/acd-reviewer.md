@@ -9,9 +9,6 @@ tools:
   - glob
   - task_tracker
   - task_tool_set
-skills:
-  - acd-qc-seven-tools
-  - acd-reliability-review
 max_iteration_per_run: 10
 max_budget_per_run: 1.5
 permission_mode: never_confirm
@@ -41,3 +38,11 @@ authority to approve or reject a design. AI and Skills only produce proposals an
 deterministic ACD gates decide acceptance. Never treat a Skill result, heuristic, or incomplete
 review as acceptance evidence. Unknown, malformed, unavailable, or unverified information fails
 closed and must be reported explicitly.
+
+## Skill references
+
+Plugin subagents receive no preloaded Skill context. Read the SKILL.md file before using
+a Skill and treat an unreadable Skill asset as fail-closed:
+
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-qc-seven-tools/SKILL.md`
+- `${ACD_PLUGIN_ROOT:-$OPENHANDS_PROJECT_DIR/plugins/acd}/skills/acd-reliability-review/SKILL.md`

@@ -23,6 +23,7 @@ from openhands.tools.task import TaskToolSet
 
 from acd.openhands.distribution.plugin import validate_plugin_source
 from acd.openhands.distribution.skills import load_acd_skills
+from acd.openhands.safety.agent_skills import validate_acd_agent_skills
 from acd.openhands.safety.hooks import validate_acd_agent_hooks
 from acd.openhands.safety.secrets import build_acd_secret_mapping
 from acd.openhands.safety.security import build_acd_security_analyzer
@@ -161,6 +162,7 @@ def build_acd_conversation(
         skills = load_acd_skills(resolved_plugin_root / "skills")
         hook_config = HookConfig.load(resolved_hooks_path)
         validate_acd_agent_hooks(resolved_plugin_root / "agents", hook_config)
+        validate_acd_agent_skills(resolved_plugin_root / "agents")
     else:
         skills = []
         hook_config = None
