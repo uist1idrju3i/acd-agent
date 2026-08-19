@@ -154,6 +154,7 @@ def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
     evidence = tmp_path / "out/gd1"
     evidence.mkdir(parents=True)
     (evidence / "evidence-mechanical.json").write_text("{}", encoding="utf-8")
+    (evidence / "evidence-electrical.json").write_text("{}", encoding="utf-8")
     subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
     subprocess.run(
         [

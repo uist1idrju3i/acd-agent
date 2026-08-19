@@ -21,6 +21,9 @@
 | OrderScope | 発注対象のrevision、fab profile、相手方、供給者、費目、送料・税、機械部品、通貨を明示する合算入力契約。発注許可は持たない。 |
 | 区分別小計 | 見積record群の費目をcategoryごとに合算した、総額の再現可能な内訳。 |
 | 内訳hash | 区分別小計、総額、各見積canonical hash、対象revisionを正規化して得る合算結果のhash。 |
+| OrderPolicy | 発注hookの既存条件、設計graphパス、両lane Evidence ID、発注総額上限を厳格に宣言する契約。 |
+| 発注前最終ゲートrecord | 現行revision、7.2総額、上限額、Evidence hash、policy hash、判定時刻を集約した非Evidence record。新しいpass authorityや発注権限は持たない。 |
+| order_total_limit | `OrderPolicy`に宣言する、最小通貨単位の整数・通貨・最小単位桁数による発注総額上限。 |
 | 送付manifest | 製造・組立へ送付した成果物の相対path、content hash、対象revisionを記録するmanifest。 |
 | 突合（reconciliation） | 送付manifestと受領recordの成果物一覧、hash、対象revisionを決定論的に比較する処理。 |
 | 検査レポート参照 | 受領recordから検査レポートの識別子、出所URI、発行時刻、content hashをたどる参照。 |

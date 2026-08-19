@@ -66,6 +66,12 @@ from acd.schema.model_routing import (
 )
 from acd.schema.observation import ObservationArtifactKind, ObservationPayload
 from acd.schema.observation_log import ObservationLogEvent, ObservationLogRecord
+from acd.schema.order_policy import (
+    REQUIRED_ORDER_EVIDENCE_IDS,
+    EvidenceReference,
+    OrderPolicy,
+    PreOrderGateRecord,
+)
 from acd.schema.order_scope import (
     MechanicalTreatment,
     OrderScope,
@@ -132,6 +138,7 @@ from acd.schema.visual_projection import (
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
+    "REQUIRED_ORDER_EVIDENCE_IDS",
     "UNKNOWN",
     "AcdCredentialReference",
     "AcdModel",
@@ -153,6 +160,7 @@ __all__ = [
     "EventViewProjection",
     "Evidence",
     "EvidenceClaim",
+    "EvidenceReference",
     "EvidenceStatus",
     "FabProfileDocument",
     "FeedbackItemStatus",
@@ -188,8 +196,10 @@ __all__ = [
     "ObservationLogEvent",
     "ObservationLogRecord",
     "ObservationPayload",
+    "OrderPolicy",
     "OrderScope",
     "PhysicalEvidence",
+    "PreOrderGateRecord",
     "PromptCacheTier",
     "PromptDriftReport",
     "PromptManifestStatus",
