@@ -338,11 +338,18 @@ command未実行をsuccessとして記録する経路はない。command形式�
 使用する。
 
 package refを更新する場合は、`plugins/acd/skills/acd-package-ref.txt`を編集し、
-7つの対象scriptのPEP 723ヘッダーを同じrefへ更新する。その後、
+14個の対象scriptのPEP 723ヘッダーを同じrefへ更新する。その後、
 `uv run python scripts/verify_skill_metadata.py`で整合性を検証する。refはリリース後の
 commitまたはsemver tagを指定し、scriptとref fileはpluginのリリースと一緒に更新する。
 この自己解決経路はローカルSkill実行だけを扱い、ゲート実行の正であるdigest固定imageと
 authoritative Evidenceの契約は変更しない。
+
+`acd`本体のschemaまたはAPIを変更した場合、package refを更新しない限りSkill scriptは
+古い`acd`で動き続ける。refが実装より古い状態では、FW pipelineがGD1 fixtureに対しても
+`15 validation errors for DesignGraph`のように失敗することがある。既存の
+`scripts/verify_skill_metadata.py`と`/acd:doctor`の`_package_ref_check`はref書式と
+script metadataの一致を検査するが、ref自体の陳腐化は検出しない。詳細な観測と改善提案は
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のH節を参照する。
 
 ### アップデート
 
