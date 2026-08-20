@@ -369,6 +369,13 @@ uv pip install --force-reinstall "git+https://github.com/uist1idrju3i/acd-agent@
 pluginとscriptのpackage refはリリース時に整合させる。versionが分かれると、
 Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
+### リリース手順
+
+リリース前に、対象タグの作成・push権限とrulesetを確認する。タグ作成はrulesetで
+制限されることがあり、`GH013`で拒否された場合は権限を持つ担当者へ作成を依頼する。
+リリースノートは変更のハイライトと実行例へのリンクだけを記載し、Release assetsは
+添付しない。
+
 ### 将来のGUI掲載（marketplaceカタログ）
 
 OpenHands Enterpriseには、catalog repositoryをMarketplace Source URI
@@ -550,6 +557,14 @@ unknownをmatchへ集約せず、mismatch・対象欠落・解析失敗・revisi
 
 検証段階とコマンド列は`uv run python scripts/verify_all.py --list`で確認できる
 `verify_all.py`を正とする。文書のみ、通常、フルの段階を次で実行する。
+
+### 実行例の取り込み
+
+実行例を取り込む場合は、成果物を所定のパスへ配置した後、対象Markdownを`git add`して
+Git追跡対象に加えてから`uv run python scripts/verify_all.py --stage docs`を実行する。
+`verify_docs.py`はgit追跡済みMarkdownだけを検査し、`examples/*/conversation/`配下の
+会話ログなどbyte-exact生成artifactは検査対象外とする。人間が保守するREADME、report、
+docsのMarkdownは引き続き検査対象であり、リンク、fence、見出し、用語の検査を弱めない。
 
 ```bash
 uv run python scripts/verify_all.py --stage docs

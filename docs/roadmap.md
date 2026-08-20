@@ -461,8 +461,10 @@ FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合�
 | host EDA不在時のdoctor誘導 | 改善メモ | doctor出力へlocked image + DockerWorkspaceの推奨経路への誘導リンクを追加する | 未着手 |
 | OpenHands Local GUI APIのトークン発行手順のdocs化 | 改善メモ | トンネル越しcurlがUnauthorizedとなる制約を踏まえ、自動化検証に必要なGUI経由のトークン取得手順を記録する | 未着手 |
 | FW出力命名の改善（`acd_gd1_fw`ディレクトリを含む） | 改善メモ | FW成果物の固定名と`acd_gd1_fw`固定ディレクトリ名を解消し、graph_idを出力名へ反映する | 未着手 |
-| SKILL triggerとACD ToolDefinition登録診断の見直し | レビュー | 実運用語彙でacd-qc-seven-tools / acd-reliability-reviewを活性化できるtriggerへ見直し、ToolDefinition登録有無をdoctorで診断する | 未着手 |
-| hook遮断（UserRejectObservation）の要約自動集計 | レビュー | hookによる遮断理由を実行レポートへ自動集計し、振り返り可能な要約を残す | 未着手 |
+| pipelineログの要約出力（入力トークン削減） | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | pipelineログのtail既定化など、再取り込み量を削減する要約出力を実装する | 未着手 |
+| SKILL triggerとACD ToolDefinition会話登録条件・doctor診断の見直し | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | 実運用語彙でacd-qc-seven-tools / acd-reliability-reviewを活性化できるtriggerへ見直し、会話へのACD ToolDefinition登録条件を文書化し、登録有無をdoctorで診断する | 未着手 |
+| hook遮断（UserRejectObservation）の要約自動集計 | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | hookによる遮断理由を実行レポートへ自動集計し、振り返り可能な要約を残す | 未着手 |
+| リリース手順のdocs化 | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | タグ作成権限・ruleset、GH013時の対応、実行例リンク中心のリリースノート、Release assetsを添付しない方針を運用手順へ記録する | 未着手 |
 
 ## 将来構想
 
