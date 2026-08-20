@@ -29,6 +29,28 @@ Dockerfileでは次を固定または検証する。
 - Python: Ubuntu 26.04のsystem Python 3.14（`python3.14`、`python3.14-venv`）
 - uv: 0.12.3、配布tarballのSHA-256を検証
 - git: revision解決と差分確認のためUbuntu 26.04のパッケージを利用
+- CJKフォント: `fonts-noto-cjk`を同梱し、`fc-list`でNoto Sans CJKの存在を検証
+- ccache: ESP-IDF再ビルド高速化のため同梱し、`ccache --version`を検証。`CCACHE_DIR`と
+  `IDF_CCACHE_ENABLE`をimageで宣言する
+- QEMU: Espressif QEMU 9.2.2（`esp-develop-9.2.2-20260417`のriscv32 softmmu tarball）を
+  SHA-256検証のうえ`/opt/qemu-esp`へ展開し、`qemu-system-riscv32 --version`が9.2.2で
+  あることを検証。`libslirp0`とSDL2共有ライブラリの解決も検証する
+- ESP-IDF: v5.3.1をsubmodule込みでcloneし、esp32c3向けtoolchainとPython環境を
+  build時に導入する。ESP-IDFのPython環境はuvが導入した3.12を使い、ACD本体が使う
+  system Python 3.14とは分離する。`export.sh`経由の`idf.py --version`が
+  `v5.3.1`であることを検証する
+- ACD本体: `pyproject.toml`、`uv.lock`、`src`、`scripts`、`fixtures`、`plugins`、
+  vendored SDKを`/opt/acd`へ同梱し、authoritative実行時のリポジトリcloneを不要にする
+- Python依存のprebake: `/opt/acd`でbuild時に`uv sync --frozen --compile-bytecode`を
+  実行し、実行時の依存解決とダウンロードを不要にする。`UV_FROZEN=1`をimageで宣言する
+- bytecodeキャッシュ: `PYTHONPYCACHEPREFIX=/tmp/acd-pycache`をimageで宣言する。
+  `/opt/acd/src`配下へ`__pycache__`が書かれるとeditable installが無効化され、
+  実行時にビルドバックエンドのダウンロード（ネットワーク）が発生するため、
+  実行時の書き込みをsource treeの外へ退避する
+
+同梱資材の版はDockerfileの`ARG`で固定し、tarballはSHA-256で検証する。build時の検証に
+失敗した場合はimageを生成しない。ESP-IDFはgit tagで固定するが、Espressifのtoolchain
+downloadはupstreamの配布に依存するため、完全な再現性はimage digestで担保する。
 
 APT由来のパッケージはUbuntuのrepository snapshotを別途固定しない限り、同じ
 Dockerfileでも再解決される可能性がある。完全な再現性にはimage digestとAPT
@@ -47,6 +69,21 @@ publishされるまでlockの`acd_server` entryは未設定であり、未設定
 `DockerWorkspace(server_image="...@sha256:<digest>")`をSDK委譲の決定論的ゲート実行経路とする。
 host経路はprovisional専用であり、合格側Evidenceを生成しない。server digestがlockへ
 記録されていない場合は、CLIとCIがfail-closedで停止する。
+
+同梱資材だけで実行する場合は、リポジトリをマウントせずimage内の`/opt/acd`を作業
+ディレクトリにする。
+
+```bash
+ACD_CONTAINER_IMAGE=ghcr.io/uist1idrju3i/acd-server@sha256:<digest> \
+  uv run python scripts/run_in_workspace.py --source bundled \
+  uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
+```
+
+`--source bundled`は`/opt/acd`の`pyproject.toml`、`uv.lock`、`src/acd`、`scripts`、
+`fixtures`、prebake済み`.venv`の存在を実行前に検査し、いずれかが欠ける場合は
+fail-closedで停止する。開発中の変更を実行する場合は既定の`--source mounted`を使う。
+同梱資材を持つimageがpublishされてlockへ記録されるまで、CIとrunnerの既定経路は
+マウント方式のままとする。
 
 ```python
 from openhands.workspace import DockerWorkspace

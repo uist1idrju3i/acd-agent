@@ -9,6 +9,14 @@ triggers:
   - worst case
   - stress analysis
   - single point of failure
+  - design review
+  - before ordering
+  - margin
+  - part stress
+  - レビュー
+  - 信頼性
+  - マージン
+  - 発注前
 ---
 
 # 信頼性設計のスクリーニング

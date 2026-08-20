@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1",
+  "entry_point": "acd.openhands.tools.definitions.register_acd_tools",
+  "tools": [
+    {
+      "tool_name": "acd_probe_tools",
+      "definition_class": "AcdProbeTools"
+    },
+    {
+      "tool_name": "acd_run_board_pipeline",
+      "definition_class": "AcdRunBoardPipeline"
+    },
+    {
+      "tool_name": "acd_run_enclosure_pipeline",
+      "definition_class": "AcdRunEnclosurePipeline"
+    },
+    {
+      "tool_name": "acd_validate_design_graph",
+      "definition_class": "AcdValidateDesignGraph"
+    }
+  ],
+  "canonical_hash": "sha256:99ef9ae934e38bbb013722bfc1f0897d9c844093af0d21c9ef1240bd66b6762d"
+}

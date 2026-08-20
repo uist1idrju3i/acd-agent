@@ -21,6 +21,11 @@ if sys.argv[1:] == ["version"]:
     print("10.0.5")
     raise SystemExit(0)
 
+argv_log = os.getenv("FAKE_ARGV_LOG")
+if argv_log:
+    with open(argv_log, "a", encoding="utf-8") as handle:
+        handle.write("\\x00".join(sys.argv[1:]) + "\\n")
+
 output = pathlib.Path(sys.argv[sys.argv.index("-o") + 1])
 if sys.argv[1:4] == ["sch", "export", "svg"]:
     output = output / (pathlib.Path(sys.argv[-1]).stem + ".svg")
@@ -136,6 +141,41 @@ def test_renderer_supports_layered_layout_view(
 
     assert record.projection_type == "layered_layout_view"
     assert record.input_files[0].path == "gd1.kicad_pcb"
+
+
+def test_layered_layout_view_export_keeps_the_drawing_sheet(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    argv_log = tmp_path / "argv.log"
+    monkeypatch.setenv("FAKE_ARGV_LOG", str(argv_log))
+    source = tmp_path / "gd1.kicad_pcb"
+    source.write_text("board")
+    renderer = KicadVisualRenderer(KicadCli(str(_executable(tmp_path))))
+
+    renderer.render(
+        projection_id="gd1-front-copper",
+        projection_type="layered_layout_view",
+        domain="electrical",
+        source_revision="r8",
+        source=source,
+        output_path=tmp_path / "front-copper.svg",
+        layer="F.Cu",
+        base_dir=tmp_path,
+    )
+
+    exports = [
+        line.split("\x00")
+        for line in argv_log.read_text(encoding="utf-8").splitlines()
+        if line.split("\x00")[:3] == ["pcb", "export", "svg"]
+    ]
+    # The drawing sheet carries the title block that the electrical visual
+    # cross-check reads back as tool-generated evidence, so it must stay in the
+    # export arguments.
+    assert exports
+    for arguments in exports:
+        assert "--exclude-drawing-sheet" not in arguments
+        assert "--page-size-mode" not in arguments
 
 
 def test_renderer_absent_executable_fails_closed(tmp_path: Path) -> None:

@@ -6,6 +6,7 @@ import importlib
 import json
 import os
 import shutil
+import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
@@ -340,7 +341,7 @@ def test_bootstrap_wires_sdk_conversation_without_llm_call(tmp_path: Path) -> No
     assert isinstance(conversation.state.confirmation_policy, ConfirmRisky)
     assert conversation.state.confirmation_policy.threshold == SecurityRisk.MEDIUM
     assert isinstance(conversation.agent.agent_context, AgentContext)
-    assert len(conversation.agent.agent_context.skills) == 9
+    assert len(conversation.agent.agent_context.skills) == 11
     assert conversation.agent.agent_context.load_public_skills is False
     assert conversation.agent.agent_context.load_user_skills is False
     assert conversation.stuck_detector is not None
@@ -384,15 +385,15 @@ def test_bootstrap_ambient_mode_skips_local_plugin_validation(
 
 
 def test_acd_plugin_manifest_matches_sdk_contract() -> None:
-    manifest_path = (
-        Path(__file__).resolve().parents[3] / "plugins" / "acd" / ".plugin" / "plugin.json"
-    )
+    repo_root = Path(__file__).resolve().parents[3]
+    manifest_path = repo_root / "plugins" / "acd" / ".plugin" / "plugin.json"
     manifest = PluginManifest.model_validate(
         json.loads(manifest_path.read_text(encoding="utf-8"))
     )
+    project = tomllib.loads((repo_root / "pyproject.toml").read_text(encoding="utf-8"))
 
     assert manifest.name == "acd"
-    assert manifest.version == "0.0.1"
+    assert manifest.version == project["project"]["version"]
     assert manifest.description
     assert manifest.author is not None
     assert manifest.author.name == "ACD contributors"

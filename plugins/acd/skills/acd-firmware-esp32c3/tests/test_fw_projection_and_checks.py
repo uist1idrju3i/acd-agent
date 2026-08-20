@@ -25,7 +25,12 @@ from fw_graph import (
     FirmwarePinView,
     extract_firmware_lane,
 )
-from fw_project import render_pins_header, write_firmware_project
+from fw_project import (
+    FirmwareProjectionError,
+    firmware_project_name,
+    render_pins_header,
+    write_firmware_project,
+)
 
 FIXTURE = Path(__file__).resolve().parents[5] / "fixtures" / "golden-design-1" / "graph.json"
 
@@ -70,14 +75,33 @@ def test_lane_extraction_fails_closed_on_duplicate_gpio() -> None:
 
 
 def test_pins_header_is_deterministic(fw_lane: FirmwareLane, tmp_path: Path) -> None:
-    first = write_firmware_project(fw_lane, "r1", tmp_path / "a")
-    second = write_firmware_project(fw_lane, "r1", tmp_path / "b")
+    first = write_firmware_project(fw_lane, "r1", tmp_path / "a", "golden-design-1")
+    second = write_firmware_project(fw_lane, "r1", tmp_path / "b", "golden-design-1")
     assert first.pins_header.read_bytes() == second.pins_header.read_bytes()
     assert first.main_source.read_bytes() == second.main_source.read_bytes()
     header = first.pins_header.read_text(encoding="utf-8")
     assert "#define ACD_PIN_LED 7" in header
     assert "#define ACD_SHT40_I2C_ADDRESS 0x44" in header
     assert 'ACD_TARGET_REVISION "r1"' in header
+
+
+def test_project_name_is_derived_from_the_graph_id(
+    fw_lane: FirmwareLane, tmp_path: Path
+) -> None:
+    project = write_firmware_project(fw_lane, "r1", tmp_path, "golden-design-1")
+    assert project.name == "acd_golden_design_1_fw"
+    assert project.root.name == project.name
+    assert project.app_binary.name == "acd_golden_design_1_fw.bin"
+    assert 'project(acd_golden_design_1_fw)' in (
+        project.root / "CMakeLists.txt"
+    ).read_text(encoding="utf-8")
+    assert 'TAG = "acd_golden_design_1"' in project.main_source.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("graph_id", ["", "   ", "---", "///"])
+def test_unusable_graph_id_fails_closed(graph_id: str) -> None:
+    with pytest.raises(FirmwareProjectionError, match="firmware project name"):
+        firmware_project_name(graph_id)
 
 
 def test_generated_header_matches_lane(fw_lane: FirmwareLane) -> None:

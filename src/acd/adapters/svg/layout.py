@@ -11,12 +11,14 @@ from acd.adapters.svg.common import (
     ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
     ACD_SVG_NORMALIZATION_RULE_ID,
     ACD_SVG_RENDERER_VERSION,
+    BOARD_FONT_SIZE_RATIO,
     SvgVisualProjectionError,
     escape_xml,
     format_svg_number,
     input_records,
     render_svg_projection,
     slugify_identifier,
+    view_box_font_size,
 )
 from acd.core.board_model import BoardModel, ComponentPlacement
 from acd.core.electrical import BoardView
@@ -97,6 +99,11 @@ def _placement_svg(board: BoardModel) -> bytes:
         raise SvgVisualProjectionError("placement reference designators must be unique")
     for placement in board.placements:
         _validate_placement(placement, board)
+    font_size = view_box_font_size(
+        min(board.width_mm, board.height_mm),
+        ratio=BOARD_FONT_SIZE_RATIO,
+    )
+    line_height = font_size * 1.2
     chunks = [
         (
             f'<svg xmlns="http://www.w3.org/2000/svg" '
@@ -132,11 +139,14 @@ def _placement_svg(board: BoardModel) -> bytes:
                     ),
                     (
                         f'<text id="refdes-{identifier}" x="{format_svg_number(placement.x_mm)}" '
-                        f'y="{format_svg_number(placement.y_mm)}">{escape_xml(placement.refdes)}</text>'
+                        f'y="{format_svg_number(placement.y_mm)}" '
+                        f'font-size="{format_svg_number(font_size)}">'
+                        f"{escape_xml(placement.refdes)}</text>"
                     ),
                     (
                         f'<text id="side-{identifier}" x="{format_svg_number(placement.x_mm)}" '
-                        f'y="{format_svg_number(placement.y_mm + 0.8)}">{side}</text>'
+                        f'y="{format_svg_number(placement.y_mm + line_height)}" '
+                        f'font-size="{format_svg_number(font_size)}">{side}</text>'
                     ),
                     "</g>",
                 ]

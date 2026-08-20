@@ -29,6 +29,12 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         help="Run through SDK LocalWorkspace as host-only provisional output.",
     )
+    parser.add_argument(
+        "--source",
+        choices=("mounted", "bundled"),
+        default="mounted",
+        help="Use the mounted repository or the ACD bundle baked into the image.",
+    )
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument(
         "--download",
@@ -41,6 +47,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     args = parser.parse_args(argv)
     if args.local_provisional and args.image:
         parser.error("--image cannot be used with --local-provisional")
+    if args.local_provisional and args.source != "mounted":
+        parser.error("--source cannot be used with --local-provisional")
     if not args.local_provisional and not args.image:
         parser.error("--image or ACD_CONTAINER_IMAGE is required")
     return args
@@ -62,6 +70,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 command=command,
                 repository=args.repo,
                 download_files=download_files,
+                source=args.source,
             )
     except ValueError as exc:
         print(str(exc), file=sys.stderr)

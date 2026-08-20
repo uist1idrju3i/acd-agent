@@ -41,6 +41,7 @@ def _envelope(
 def _build(envelope: ToolEnvelope) -> Evidence:
     return build_electrical_evidence(
         revision="r3",
+        subject_node="board.gd1",
         envelope=envelope,
         erc_errors=0,
         erc_unconnected=0,
@@ -78,6 +79,7 @@ def test_missing_gate_value_fails_closed() -> None:
     with pytest.raises(ValueError, match="unknown"):
         build_electrical_evidence(
             revision="r3",
+        subject_node="board.gd1",
             envelope=_envelope(),
             erc_errors=0,
             erc_unconnected=0,
@@ -95,6 +97,7 @@ def test_missing_design_predicates_fails_closed() -> None:
     with pytest.raises(ValueError, match="design predicate set is incomplete"):
         build_electrical_evidence(
             revision="r3",
+        subject_node="board.gd1",
             envelope=_envelope(),
             erc_errors=0,
             erc_unconnected=0,
@@ -121,6 +124,7 @@ def test_incomplete_design_predicates_fail_closed(
     with pytest.raises(ValueError, match="design predicate set is incomplete"):
         build_electrical_evidence(
             revision="r3",
+        subject_node="board.gd1",
             envelope=_envelope(),
             erc_errors=0,
             erc_unconnected=0,
@@ -148,6 +152,7 @@ def test_design_predicate_claims_are_recorded_in_fixed_order() -> None:
     )
     evidence = build_electrical_evidence(
         revision="r3",
+        subject_node="board.gd1",
         envelope=_envelope(),
         erc_errors=0,
         erc_unconnected=0,
@@ -163,3 +168,39 @@ def test_design_predicate_claims_are_recorded_in_fixed_order() -> None:
         predicate.name for predicate in predicates
     ]
     assert all(claim.value == "pass" and claim.verified for claim in evidence.claims[-6:])
+
+
+def test_missing_subject_node_fails_closed() -> None:
+    with pytest.raises(ValueError, match="subject node is unknown"):
+        build_electrical_evidence(
+            revision="r3",
+            subject_node="",
+            envelope=_envelope(),
+            erc_errors=0,
+            erc_unconnected=0,
+            routing_converged=True,
+            drc_errors=0,
+            drc_unconnected=0,
+            silkscreen_status="measured_pass",
+            dfm_status="pass",
+            order_readiness_status="ready",
+            design_predicates=_passing_predicates(),
+        )
+
+
+def test_claims_use_the_graph_derived_subject_node() -> None:
+    evidence = build_electrical_evidence(
+        revision="r3",
+        subject_node="board.custom",
+        envelope=_envelope(),
+        erc_errors=0,
+        erc_unconnected=0,
+        routing_converged=True,
+        drc_errors=0,
+        drc_unconnected=0,
+        silkscreen_status="measured_pass",
+        dfm_status="pass",
+        order_readiness_status="ready",
+        design_predicates=_passing_predicates(),
+    )
+    assert {claim.subject_node for claim in evidence.claims} == {"board.custom"}

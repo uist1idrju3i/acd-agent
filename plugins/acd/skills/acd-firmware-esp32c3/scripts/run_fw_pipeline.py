@@ -57,7 +57,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
     fw_lane = extract_firmware_lane(graph)
     electrical = extract_electrical_lane(graph)
 
-    project = write_firmware_project(fw_lane, revision, out_dir)
+    project = write_firmware_project(fw_lane, revision, out_dir, graph.graph_id)
     print(f"[1/5] firmware project projected: {project.root}")
 
     assert_header_matches_lane(project.pins_header.read_text(encoding="utf-8"), fw_lane)

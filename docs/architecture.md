@@ -111,7 +111,9 @@ plugins/acd/
     ├── acd-qc-seven-tools/
     ├── acd-reliability-review/
     ├── acd-design-rationale/
-    └── acd-install-doctor/
+    ├── acd-install-doctor/
+    ├── acd-product-docs/
+    └── acd-design-knowledge/
 ```
 
 pluginはOpenHands SDKが読むMarkdown、manifest、hooksの配布単位であり、ACD Python
@@ -173,6 +175,21 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 
 返り値のキー、ToolEnvelopeの列挙、入力妥当性、fail-closed契約は旧公開方式から
 不変である。MCP client互換層は提供しない。
+
+会話がこれらのtoolを実際に呼べる条件は次の3つを同時に満たす場合だけである。
+
+1. 会話を構築するprocessで`register_acd_tools()`が実行され、SDKのtool registryへ
+   tool名が登録されている（import時の副作用では登録されない）。
+2. 使用するAgentDefinitionの`tools:`が登録済みのtool名を宣言している。
+   `plugins/acd/agents/acd-electrical.md`と`acd-mechanical.md`が該当する。
+3. registryのtool名とAgentDefinitionの宣言が一致している（drift時はtool不在となる）。
+
+この登録面は`plugins/acd/.plugin/acd-tool-definitions.json`へ機械生成で固定し、
+`scripts/verify_acd_tool_registration.py --check`が、code契約、persisted manifest、
+`register_acd_tools()`後のregistry、AgentDefinitionの宣言の一致を決定論的に検査する。
+`acd-install-doctor`は同じmanifest資材を標準ライブラリだけで読み、宣言漏れと未登録名を
+診断する。registration reportはL3観測（`pass_evidence: false`）であり、
+Evidenceを生成・昇格せず、ToolDefinitionとSkillへ合否権限を与えない。
 
 ## 生成と判定の分離
 

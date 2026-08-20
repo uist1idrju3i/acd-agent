@@ -151,7 +151,9 @@ def write_project(
     symbol_library = SymbolLibrary()
     power_sha = "sha256:" + hashlib.sha256(power_lib.read_bytes()).hexdigest()
     pwr_flag_symbol = symbol_library.load(PWR_FLAG_LIB_ID, power_lib, power_sha)
-    schematic_content = generate_schematic(lane, symbol_library, fixture_dir, pwr_flag_symbol)
+    schematic_content = generate_schematic(
+        lane, symbol_library, fixture_dir, pwr_flag_symbol, name
+    )
     board_projection = generate_board(
         lane,
         FootprintLibrary(),

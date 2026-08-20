@@ -4,7 +4,9 @@ Places every component on a fixed grid and connects pins with global labels
 (one label per connected pin, anchored at the pin connection point). Explicit
 no-connect markers are emitted for unused pins. ``PWR_FLAG`` symbols are added
 to nets that have no driving pin so that ERC power checks are meaningful
-rather than suppressed.
+rather than suppressed. A fixed sheet note states the label-based connection
+convention so that a reader does not read the absence of drawn wires as a
+missing connection.
 """
 
 from __future__ import annotations
@@ -20,7 +22,7 @@ from acd.core.sexpr import Quoted, SExpr, Sym, dumps
 
 SCH_VERSION = "20250114"
 SCH_FORMAT_NAME = "kicad_sch"
-PROJECT_NAME = "gd1"
+DEFAULT_PROJECT_NAME = "gd1"
 
 _GRID = 1.27  # KiCad schematic grid in mm
 _COLS = 6
@@ -30,6 +32,13 @@ _ORIGIN_X = 40.64
 _ORIGIN_Y = 40.64
 
 PWR_FLAG_LIB_ID = "power:PWR_FLAG"
+
+# Connectivity is expressed with global labels instead of drawn wires, so the
+# sheet carries a note that makes the convention explicit to a human reader.
+CONNECTION_CONVENTION_NOTE = (
+    "Connectivity is expressed with global net labels at each pin "
+    "(no drawn wires). Nets with the same label are connected."
+)
 
 
 def _snap(value: float) -> float:
@@ -73,6 +82,7 @@ def _symbol_instance(
     placed: PlacedSymbol,
     root_uuid: str,
     extra_properties: dict[str, str],
+    project_name: str,
 ) -> list[SExpr]:
     comp = placed.component
     sym_uuid = det_uuid("symbol", comp.refdes)
@@ -101,7 +111,7 @@ def _symbol_instance(
             Sym("instances"),
             [
                 Sym("project"),
-                Quoted(PROJECT_NAME),
+                Quoted(project_name),
                 [
                     Sym("path"),
                     Quoted(f"/{root_uuid}"),
@@ -122,6 +132,21 @@ def _global_label(net_name: str, x: float, y: float, rotation: int, key: str) ->
         [Sym("at"), fmt(x), fmt(y), str(rotation)],
         _effects(),
         [Sym("uuid"), Quoted(det_uuid("label", key))],
+    ]
+
+
+def _text_note(content: str, x: float, y: float, key: str) -> list[SExpr]:
+    return [
+        Sym("text"),
+        Quoted(content),
+        [Sym("exclude_from_sim"), Sym("no")],
+        [Sym("at"), fmt(x), fmt(y), "0"],
+        [
+            Sym("effects"),
+            [Sym("font"), [Sym("size"), "3.81", "3.81"]],
+            [Sym("justify"), Sym("left"), Sym("bottom")],
+        ],
+        [Sym("uuid"), Quoted(det_uuid("text", key))],
     ]
 
 
@@ -188,8 +213,11 @@ def generate_schematic(
     symbol_library: SymbolLibrary,
     fixture_dir: Path,
     pwr_flag_symbol: ParsedSymbol,
+    project_name: str = DEFAULT_PROJECT_NAME,
 ) -> str:
     """Render the schematic file content for the electrical lane."""
+    if not project_name:
+        raise ValueError("schematic project name is unknown (fail-closed)")
     symbols: dict[str, ParsedSymbol] = {}
     lib_symbols: dict[str, ParsedSymbol] = {}
     for comp in lane.components:
@@ -221,11 +249,19 @@ def generate_schematic(
 
     body: list[list[SExpr]] = []
     labels: list[list[SExpr]] = []
+    notes: list[list[SExpr]] = [
+        _text_note(
+            CONNECTION_CONVENTION_NOTE,
+            _snap(_ORIGIN_X),
+            _snap(_ORIGIN_Y - 20.0),
+            "connection-convention",
+        )
+    ]
     no_connects: list[list[SExpr]] = []
     for placed in placements:
         comp = placed.component
         extra = {"MPN": comp.mpn, "LCSC": comp.lcsc} if comp.mpn else {}
-        body.append(_symbol_instance(placed, root_uuid, extra))
+        body.append(_symbol_instance(placed, root_uuid, extra, project_name))
         pad_map = pins_by_refdes.get(comp.refdes, {})
         for sym_pin in placed.symbol.pins:
             px, py = _pin_point(placed.x_mm, placed.y_mm, sym_pin)
@@ -265,7 +301,7 @@ def generate_schematic(
             library=_EMPTY_LIBRARY,
         )
         placed_flag = PlacedSymbol(component=flag_comp, symbol=pwr_flag_symbol, x_mm=x, y_mm=y)
-        node = _symbol_instance(placed_flag, root_uuid, {})
+        node = _symbol_instance(placed_flag, root_uuid, {}, project_name)
         # PWR_FLAG has no footprint
         body.append(node)
         flag_pin = pwr_flag_symbol.pins[0]
@@ -290,6 +326,7 @@ def generate_schematic(
         [Sym("paper"), Quoted("A2")],
         lib_symbols_node,
     ]
+    doc.extend(notes)
     doc.extend(no_connects)
     doc.extend(labels)
     doc.extend(body)

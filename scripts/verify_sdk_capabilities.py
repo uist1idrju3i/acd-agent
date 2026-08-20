@@ -349,14 +349,14 @@ def render_markdown(catalog: CapabilityCatalog) -> str:
         "> 代表APIの直接importがない場合も、ACDから渡す設定・SDKの実行経路・"
         "plugin資材の参照を根拠に含める。",
         "",
-        "| 能力ドメイン（パッケージ） | 代表API | ACDでの用途 | 採否 | 根拠 | 検証手段 |",  # noqa: RUF001
+        "| 能力ドメイン（パッケージ） | 代表API | ACDでの用途 | 採否 | 根拠 | 検証手段 |",
         "|---|---|---|---|---|---|",
     ]
     for capability in catalog.capabilities:
         apis = "<br>".join(f"`{api}`" for api in capability.representative_apis)
         adoption = capability.adoption
         if capability.adoption == "採用予定":
-            adoption = f"採用予定（ロードマップ{capability.roadmap}）"  # noqa: RUF001
+            adoption = f"採用予定（ロードマップ{capability.roadmap}）"
         rows.append(
             "| "
             + " | ".join(

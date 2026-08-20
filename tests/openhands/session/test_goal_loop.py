@@ -13,7 +13,7 @@ import pytest
 from openhands.sdk.conversation import ConversationExecutionStatus
 from openhands.sdk.conversation.base import BaseConversation
 from openhands.sdk.conversation.conversation_stats import ConversationStats
-from openhands.sdk.event import Event
+from openhands.sdk.event import Event, UserRejectObservation
 from openhands.sdk.llm import Message, TextContent
 from openhands.sdk.testing import TestLLM
 
@@ -122,6 +122,57 @@ def test_goal_loop_interruption_skips_judge() -> None:
     assert result.verdict is None
     assert result.gate_passed is True
     assert result.authoritative is True
+
+
+def test_goal_loop_summarizes_hook_blocks_automatically(tmp_path: Path) -> None:
+    conversation = _FakeConversation()
+    conversation.state.events.append(
+        UserRejectObservation(
+            tool_name="execute_bash",
+            tool_call_id="call-1",
+            rejection_reason="derived projection is protected",
+            rejection_source="hook",
+            action_id="a1",
+        )
+    )
+    summary_path = tmp_path / "rejections.json"
+    result = run_acd_goal(
+        _conversation(conversation),
+        "finish the design",
+        _judge_llm(complete=True),
+        gate_evaluator=lambda _conversation: (True, True),
+        rejection_summary_path=summary_path,
+    )
+
+    document = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert result.status == "complete"
+    assert document["artifact_kind"] == "hook_rejection_summary"
+    assert document["pass_evidence"] is False
+    assert document["summary"]["hook_blocked"] == 1
+    assert document["summary"]["groups"][0]["tool_name"] == "execute_bash"
+
+
+def test_goal_loop_summarizes_hook_blocks_on_interruption(tmp_path: Path) -> None:
+    conversation = _FakeConversation(pause_after_run=True)
+    conversation.state.events.append(
+        UserRejectObservation(
+            tool_name="execute_bash",
+            tool_call_id="call-1",
+            rejection_reason="gate is required after an input change",
+            rejection_source="hook",
+            action_id="a1",
+        )
+    )
+    summary_path = tmp_path / "rejections.json"
+    result = run_acd_goal(
+        _conversation(conversation),
+        "finish the design",
+        _judge_llm(complete=True),
+        rejection_summary_path=summary_path,
+    )
+
+    assert result.status == "interrupted"
+    assert json.loads(summary_path.read_text(encoding="utf-8"))["summary"]["total"] == 1
 
 
 def test_goal_judge_completion_does_not_pass_gate() -> None:

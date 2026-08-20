@@ -24,6 +24,7 @@ from acd.openhands.session.observation_store import (
     ObservationPayload,
     write_observation_payload,
 )
+from acd.openhands.session.rejection_summary import write_rejection_summary
 from acd.openhands.session.routing import create_fixed_role_router
 from acd.schema.model_routing import ModelRoutingPolicy
 
@@ -64,8 +65,15 @@ def run_acd_goal(
     gate_evaluator: GateEvaluator | None = None,
     model_routing_policy: ModelRoutingPolicy | None = None,
     routing_profile: str | None = None,
+    rejection_summary_path: Path | None = None,
+    file_store: FileStore | None = None,
 ) -> AcdGoalResult:
-    """Drive a goal with SDK decisions and ACD-owned I/O and authority checks."""
+    """Drive a goal with SDK decisions and ACD-owned I/O and authority checks.
+
+    When ``rejection_summary_path`` is given, hook blocks and confirmation
+    rejections observed during the loop are summarized automatically. The
+    summary is an L3 observation and does not affect the returned verdict.
+    """
     if model_routing_policy is not None:
         judge_llm = create_fixed_role_router(
             model_routing_policy,
@@ -73,6 +81,15 @@ def run_acd_goal(
             judge_llm,
             profile=routing_profile,
         )
+    def finish(result: AcdGoalResult) -> AcdGoalResult:
+        if rejection_summary_path is not None:
+            write_rejection_summary(
+                conversation.state.events,
+                rejection_summary_path,
+                file_store=file_store,
+            )
+        return result
+
     controller = GoalController(
         objective,
         judge_llm,
@@ -91,13 +108,15 @@ def run_acd_goal(
                 conversation,
                 gate_evaluator,
             )
-            return AcdGoalResult(
-                objective=objective,
-                status="interrupted",
-                iterations=runs,
-                verdict=None,
-                gate_passed=gate_passed,
-                authoritative=authoritative,
+            return finish(
+                AcdGoalResult(
+                    objective=objective,
+                    status="interrupted",
+                    iterations=runs,
+                    verdict=None,
+                    gate_passed=gate_passed,
+                    authoritative=authoritative,
+                )
             )
 
         step = controller.on_run_finished(conversation.state.events)
@@ -106,13 +125,15 @@ def run_acd_goal(
                 conversation,
                 gate_evaluator,
             )
-            return AcdGoalResult(
-                objective=objective,
-                status=step.outcome.status,
-                iterations=step.outcome.iterations,
-                verdict=step.outcome.verdict,
-                gate_passed=gate_passed,
-                authoritative=authoritative,
+            return finish(
+                AcdGoalResult(
+                    objective=objective,
+                    status=step.outcome.status,
+                    iterations=step.outcome.iterations,
+                    verdict=step.outcome.verdict,
+                    gate_passed=gate_passed,
+                    authoritative=authoritative,
+                )
             )
         conversation.send_message(step.followup)
 

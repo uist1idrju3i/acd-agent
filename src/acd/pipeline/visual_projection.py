@@ -1361,9 +1361,15 @@ def crosscheck_firmware_visual_projections(
     graph_input: Path,
     base_dir: Path,
     input_base_dir: Path,
+    projection_ids: tuple[str, str],
     output_path: Path | None = None,
 ) -> VisualCrosscheckReport:
     """Cross-check firmware SVG projections against graph declarations."""
+    expected_ids = {identifier for identifier in projection_ids if identifier}
+    if len(expected_ids) != 2:
+        raise ValueError(
+            "firmware crosscheck requires two distinct projection identifiers"
+        )
     graph = DesignGraph.model_validate(
         json.loads(graph_input.read_text(encoding="utf-8"))
     )
@@ -1400,7 +1406,6 @@ def crosscheck_firmware_visual_projections(
         raise ValueError("visual crosscheck projection revisions do not match")
     expected_input = _machine_input(graph_input, base_dir=input_base_dir)
     expected_types = {"firmware_state_view", "firmware_sequence_view"}
-    expected_ids = {"gd1-firmware-state", "gd1-firmware-sequence"}
     actual_types = [projection.projection_type for projection in visual_projection_set.projections]
     actual_ids = {projection.projection_id for projection in visual_projection_set.projections}
     coverage_item = _crosscheck_item(
@@ -1408,7 +1413,7 @@ def crosscheck_firmware_visual_projections(
         description="Projection set contains exactly one state and one sequence firmware view",
         expected=(
             "firmware_state_view=1; firmware_sequence_view=1; "
-            "projection_ids=gd1-firmware-state,gd1-firmware-sequence"
+            f"projection_ids={','.join(sorted(expected_ids))}"
         ),
         actual=(
             f"types={','.join(sorted(actual_types)) or 'none'}; "

@@ -33,6 +33,10 @@ from acd.openhands.session.prompts import (
     load_prompt_manifest,
     write_prompt_manifest,
 )
+from acd.openhands.session.rejection_summary import (
+    summarize_rejections,
+    write_rejection_summary,
+)
 from acd.openhands.session.routing import (
     FixedRoleRouter,
     ModelRoutingError,
@@ -72,6 +76,7 @@ __all__ = [
     "model_routing_policy_report",
     "model_routing_report",
     "run_acd_goal",
+    "summarize_rejections",
     "validate_model_routing",
     "write_conversation_metrics",
     "write_conversation_stats",
@@ -80,4 +85,5 @@ __all__ = [
     "write_model_routing_report",
     "write_observation_payload",
     "write_prompt_manifest",
+    "write_rejection_summary",
 ]

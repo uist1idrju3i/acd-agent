@@ -4,7 +4,7 @@
 
 ## 現在地
 
-OpenHands plugin、8 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefinition、
+OpenHands plugin、10 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefinition、
 GD1基板・筐体pipelineを提供する。GD1基板はERC、routing収束、SES import、DRC、
 fabrication出力、独立再読込、silkscreen可読性ゲートまで通過する。一方、
 [`golden-design-1.md`](golden-design-1.md) §7の設計述語ゲート6件
@@ -630,6 +630,18 @@ unknownと答え、推測で補完しない。会話ログは内部向けQAの�
 - 高密度基板、認証設計、熱・SIなどの拡張
 - agent自体のコンテナ化と配布済みACD image
 - 複数instanceのshared storage負荷検証
+- OpenBlink（mruby/cとBLEによる無線コード差し替え）を用いたFW動作の反復探索
+
+### OpenBlink
+
+OpenBlinkはmruby/cのVMをBLE経由で差し替えることで、マイコンを再起動せずに
+Rubyコードを入れ替える構想である。ACDへ取り込む場合は、ドライバ、BLEスタック、
+RTOSを含むC層を宣言由来のFW契約として扱い、無線で差し替えるRuby層はL2の探索・
+操舵経路に限定する。差し替えたコードの実行結果はauthoritative Evidenceへ昇格させず、
+合否は既存のQEMU実行・実機フィードバックとdigest固定containerの決定論的ゲートで判定する。
+採用する場合は、対象ハードウェア（ESP32系を含む）、mruby/cおよびOpenBlink本体の
+ライセンス境界、BLE接続・鍵素材の取り扱い境界を新規ADRで定義し、未定義の項目は
+unknownとしてfail-closedにする。
 
 ## 検証要件
 

@@ -51,6 +51,7 @@ def test_firmware_projections_are_deterministic_and_crosschecked(
         graph_input=graph_path,
         base_dir=tmp_path,
         input_base_dir=repository_root(),
+        projection_ids=("gd1-firmware-state", "gd1-firmware-sequence"),
     )
 
     assert report.status == "match"
@@ -73,9 +74,12 @@ def test_firmware_projections_are_deterministic_and_crosschecked(
     assert 'viewBox="0 0 240 134"' in state_svg
     assert "fw-state-initial-fw-state-boot" in state_svg
     assert "fw-transition-fw-transition-boot-sensor-init" in state_svg
+    # 240 unit wide viewBox * DIAGRAM_FONT_SIZE_RATIO
+    assert 'font-size="3"' in state_svg
     assert 'width="240mm"' in sequence_svg
     assert "fw-sequence-step-001" in sequence_svg
     assert "fw-sequence-action-001-fw-sequence-001" in sequence_svg
+    assert 'font-size="3"' in sequence_svg
 
 
 def _generate(
