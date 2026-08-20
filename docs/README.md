@@ -15,6 +15,7 @@
 | [`operations.md`](operations.md) | 運用・インストール |
 | [`golden-design-1.md`](golden-design-1.md) | GD1到達状況 |
 | [`design-requirement-variation.md`](design-requirement-variation.md) | 要件変更の境界と設計動作の確認 |
+| [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md) | VibeBB単体化に向けた機能ギャップと改善提案 |
 | [`roadmap.md`](roadmap.md) | 現在地と計画 |
 | [`research/README.md`](research/README.md) | 研究結論 |
 
