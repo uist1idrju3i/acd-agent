@@ -457,7 +457,12 @@ FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合�
 | order-readiness `ready`の定義へのCPL実装基準の明示 | レビュー | position/rotation basisについてfab側目視確認を前提とすることをreadyの定義へ明記する | 未着手 |
 | fixture複製ヘルパと組立手順のdocs化 | 改善メモ | libraries/overlays込みで新規fixtureを組み立てるヘルパと手順を追加する | 未着手 |
 | FW pipelineのhost前提の`/acd:doctor`診断化 | 改善メモ | QEMU PATH、libslirp0、SDL2系ライブラリを診断項目へ追加する | 未着手 |
-| QEMU実行環境のDockerイメージ同梱 | 改善メモ | Espressif QEMU、libslirp0、SDL2系ライブラリ、PATH設定をlocked acd-tools/server imageへ同梱する。暫定策としてSKILL.mdとoperations.mdへaptパッケージ一覧を明記する | 未着手 |
+| 実行時clone不要化（locked imageへのacd本体・scripts・fixture同梱） | セッション分析／ユーザー要望 | authoritative経路はimage内のacd本体・pipeline scripts・fixtureだけで完結させ、DockerWorkspace起動のみで実行可能にする。リポジトリcloneは開発時のみ必要とする | 未着手 |
+| ESP-IDF・QEMU実行環境のlocked image同梱 | セッション分析／ユーザー要望 | ESP-IDF v5.3.1、Espressif QEMU 9.2.2、libslirp0、SDL2系ライブラリ、PATH設定を同梱し、FW laneをcontainer経路で実行可能にする | 未着手 |
+| Python依存のprebake | セッション分析／ユーザー要望 | cadquery-ocp等の巨大wheelを含む依存を事前解決したvenv／uvキャッシュをimageへ同梱し、起動高速化とネットワーク非依存の再現性を得る | 未着手 |
+| fonts-noto-cjkの同梱 | セッション分析／ユーザー要望 | 視覚投影の日本語描画とSVG→PNG派生hashの安定化のためCJKフォントを固定同梱する | 未着手 |
+| ccacheの同梱 | セッション分析／ユーザー要望 | ESP-IDF再ビルドを高速化する | 未着手 |
+| KiCad 3Dモデルの選択的同梱 | セッション分析／ユーザー要望 | 設計で使用する部品の3Dモデルのみを単一imageへ同梱し、部品込みSTEP表現を可能にする。フル同梱（kicad-packages3d 約6GB）とimage分割はdigest管理・再現性・CI運用の複雑化を伴うため将来判断とする | 未着手 |
 | host EDA不在時のdoctor誘導 | 改善メモ | doctor出力へlocked image + DockerWorkspaceの推奨経路への誘導リンクを追加する | 未着手 |
 | OpenHands Local GUI APIのトークン発行手順のdocs化 | 改善メモ | トンネル越しcurlがUnauthorizedとなる制約を踏まえ、自動化検証に必要なGUI経由のトークン取得手順を記録する | 未着手 |
 | FW出力命名の改善（`acd_gd1_fw`ディレクトリを含む） | 改善メモ | FW成果物の固定名と`acd_gd1_fw`固定ディレクトリ名を解消し、graph_idを出力名へ反映する | 未着手 |
@@ -465,6 +470,9 @@ FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合�
 | SKILL triggerとACD ToolDefinition会話登録条件・doctor診断の見直し | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | 実運用語彙でacd-qc-seven-tools / acd-reliability-reviewを活性化できるtriggerへ見直し、会話へのACD ToolDefinition登録条件を文書化し、登録有無をdoctorで診断する | 未着手 |
 | hook遮断（UserRejectObservation）の要約自動集計 | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | hookによる遮断理由を実行レポートへ自動集計し、振り返り可能な要約を残す | 未着手 |
 | リリース手順のdocs化 | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | タグ作成権限・ruleset、GH013時の対応、実行例リンク中心のリリースノート、Release assetsを添付しない方針を運用手順へ記録する | 未着手 |
+
+上記のimage同梱には、imageサイズ増加、publish時間の増加、digestの再lock、
+ADR-0028のprovenance更新が伴う。ただし、閾値やゲート挙動の変更ではない。
 
 ## 将来構想
 
