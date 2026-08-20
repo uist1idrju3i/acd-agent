@@ -338,7 +338,9 @@ command未実行をsuccessとして記録する経路はない。command形式�
 使用する。
 
 package refを更新する場合は、`plugins/acd/skills/acd-package-ref.txt`を編集し、
-14個の対象scriptのPEP 723ヘッダーを同じrefへ更新する。その後、
+`acd`をimportする対象scriptすべてのPEP 723ヘッダーを同じrefへ更新する。対象scriptは
+`scripts/verify_skill_metadata.py`が`plugins/acd/skills/*/scripts/*.py`から`acd` importで
+判定する。その後、
 `uv run python scripts/verify_skill_metadata.py`で整合性を検証する。refはリリース後の
 commitまたはsemver tagを指定し、scriptとref fileはpluginのリリースと一緒に更新する。
 この自己解決経路はローカルSkill実行だけを扱い、ゲート実行の正であるdigest固定imageと
