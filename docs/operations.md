@@ -646,6 +646,9 @@ Git追跡対象に加えてから`uv run python scripts/verify_all.py --stage do
 `verify_docs.py`はgit追跡済みMarkdownだけを検査し、`examples/*/conversation/`配下の
 会話ログなどbyte-exact生成artifactは検査対象外とする。人間が保守するREADME、report、
 docsのMarkdownは引き続き検査対象であり、リンク、fence、見出し、用語の検査を弱めない。
+実行例の取り込み時は、同一設計の再実行か新規設計かを設計入力と生成物で確認し、
+その結果を記録する。判定基準と要件を変えた場合の設計動作の確認手順は
+[`design-requirement-variation.md`](design-requirement-variation.md)を参照する。
 
 ```bash
 uv run python scripts/verify_all.py --stage docs

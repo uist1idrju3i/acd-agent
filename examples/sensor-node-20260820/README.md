@@ -1,8 +1,9 @@
 # 実行例: sensor-node（2026-08-20）
 
-Golden Design #1（GD1）を参考モデルとして、小規模製品「ESP32-C3ベースの環境センサノード」
-（単一2層基板＋簡易筐体＋最小ファームウェア）を設計し、JLCPCB発注用の製造データを
-実機環境のOpenHands（ACD plugin導入済み）で生成した実行例である。
+Golden Design #1（GD1）の要件・設計入力を用いた、小規模製品「ESP32-C3ベースの環境
+センサノード」（単一2層基板＋簡易筐体＋最小ファームウェア）相当の実行例である。
+実機環境のOpenHands（ACD plugin導入済み）でpipelineとauthoritative Evidence生成を
+実行したが、生成された設計実体はGD1と同一であり、agentが新規設計を行った実行例ではない。
 
 - graph_id: `sensor-node` / revision: `r1`
 - 実行日: 2026-08-20（JST）
@@ -14,8 +15,15 @@ Golden Design #1（GD1）を参考モデルとして、小規模製品「ESP32-C
 - セッション分析: [`report/session-analysis.md`](report/session-analysis.md)
 - レビュー所見: [`report/review-notes.md`](report/review-notes.md)
 
-注記: 出力ファイル名のprefixおよびevidenceの`subject_node`は`gd1`固定だが、
-中身は`sensor-node`設計（graph_id=`sensor-node`, revision=`r1`）である。
+注記: この実行例は設計実体としてGD1と同一である。`fixture/graph.json`との差分は
+`graph_id`とノードIDのリネーム18箇所のみで、`board/gd1.kicad_pcb`のsha256は
+`1c8a5f306157d2afabaa5129e14f170080f82ddff6c5ff1323b644a93e634e89`でGD1再生成物と
+一致する。ガーバ9ファイルはrawバイト列では不一致だが、差分は`TF.CreationDate`等の
+生成日時だけで、日時を正規化すると9/9一致する。シルクの基板IDは
+`golden-design-1-r1`のままである。したがってpipelineとauthoritative Evidenceの実機動作の
+証拠ではあるが、新規設計の証拠ではない。設計動作を確認するには要件を変える必要があり、
+判定基準は[`../../docs/design-requirement-variation.md`](../../docs/design-requirement-variation.md)
+を参照する。なお、出力ファイル名のprefixとevidenceの`subject_node`は`gd1`固定である。
 
 ## フォルダ構成
 
