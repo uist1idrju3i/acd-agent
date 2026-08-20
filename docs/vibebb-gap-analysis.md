@@ -11,6 +11,9 @@ GPIO・寸法を手で決めない状態**を指す。
 詰まった箇所を根拠とする。「実測根拠」欄が空の項目は文書由来の未実装項目である。
 決定論的ゲートの権限とfail-closed境界を変更する提案ではない。
 
+A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書とコードベース全体を横断して
+再確認した結果であり、汎用エージェントが不在の場合にVibeBB体験を妨げる項目を含む。
+
 ## A. 会話から設計入力を作る経路（最大の欠落）
 
 | # | 不足機能 | 現状 | 実測根拠 |
@@ -123,12 +126,96 @@ GD1を同じdigest固定containerで変更なしに実行すると、FreeRouting
 このblocker行とKiCad boardの読み取りはhost-onlyのprovisional analysisであり、
 pipelineのgate結果やEvidenceを置き換えない。
 
+## H. Skill scriptのacd版skew（致命的、FW laneが停止する）
+
+[`ADR-0037`](adr/ADR-0037-pep723-skill-scripts.md)により、`acd`をimportするSkill scriptは
+PEP 723メタデータで`acd`をgit refへpinし、`uv run --script`が実行時に隔離環境を作る。
+pinの正は[`plugins/acd/skills/acd-package-ref.txt`](../plugins/acd/skills/acd-package-ref.txt)である。
+このrefは導入commit以降更新されておらず、`4cca489…`（2026-08-19）を指したままである。
+一方でmainは`firmware.state`／`firmware.state_transition`／`firmware.sequence_step`を
+`NodeKind`へ追加しており、GD1 fixtureのgraphもこの3種を使う。
+
+その結果、FW pipelineは設計内容に関係なく次で停止する。
+
+```text
+PIPELINE FAILED: 15 validation errors for DesignGraph
+nodes.207.kind
+  Input should be 'requirement', …, 'firmware.module', 'firmware.pin_assignment',
+  'safety.boundary' or 'evidence.anchor'
+  [type=literal_error, input_value='firmware.state', input_type=str]
+```
+
+pinされたcommitの`NodeKind`には`firmware.module`と`firmware.pin_assignment`しか無く、
+mainおよびcontainer image build元commitには3種が存在する。つまりこれはvariant固有の
+設計エラーではなく、**pinned acdとリポジトリのschemaのversion skew**であり、GD1のgraphでも
+同じく失敗する。VibeBBのFW laneは現在誰が実行しても成立しない。
+
+| # | 改善提案 | 現状と理由 |
+|---|---|---|
+| H-1 | schema／APIを変更した変更に対し、後続でrefを更新する運用ではなくCIでskewを検出する | 現在はrefが古いまま検査を通る。検査は「全scriptがref fileと一致するか」だけを見るため、refが実装より古い状態は合格になる |
+| H-2 | [`/acd:doctor`](../plugins/acd/commands/doctor.md)のSkill package reference検査に、pinned refがplugin資材のrevisionと互換かの判定を追加する | [`install_doctor.py`](../plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py)の`_package_ref_check`はref書式とscript metadataの一致のみで、今回のskewを検出できなかった |
+| H-3 | main merge後のref更新を自動化する（F-2と同じ形の自動PR） | ADR-0037は「refは後続の変更で更新する」と定めており、更新漏れが構造的に起きる |
+| H-4 | CIでSkill scriptをリポジトリのfixtureに対して実際に実行し、pinned acdでgraphが読めることを検査する | 現在CIはscriptをmoduleとしてimportするだけで、pinned acdでの実行経路は検査されない |
+| H-5 | pinned `acd`をdigest固定image側へ事前導入し、FW laneが実行時にgitとネットワークへ依存しないようにする | `uv run --script`はcontainer内で毎回依存を解決する（今回のログでも241 packagesを実行時に取得）。offline環境では初回実行がfail-closedになり、digest固定による再現性の主張とも整合しない |
+
+## I. 会話からの入口とgd1固定（Devin抜きでVibeBBが成立しない直接原因）
+
+| # | 不足機能 | 現状 |
+|---|---|---|
+| I-1 | VibeBB loopのcommand | [`plugins/acd/commands/`](../plugins/acd/commands/)は`ask`／`doctor`／`gates`の3つで、設計・生成・発注を進めるcommandが無い。会話から進める手段が「shellで各scriptを叩く」に落ちる |
+| I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)が公開するのはtool probe、graph validate、GD1基板pipeline、GD1筐体pipelineの4つのみ。FW pipeline、fixture編集、発注、失敗診断のtoolが無く、それらは生JSON編集と生shellになる。今回私が座標とGPIOを手で書いたのはこの欠落の帰結である |
+| I-3 | workspace既定値のgd1固定 | [`src/acd/openhands/workspace.py`](../src/acd/openhands/workspace.py)の`DEFAULT_COMMAND`と期待Evidenceパスが`out/gd1`・`out/gd1-enclosure`固定 |
+| I-4 | 発注可否判定のsubject固定 | [`src/acd/schema/order_policy.py`](../src/acd/schema/order_policy.py)の必須evidence anchorが`evidence.gd1.electrical`／`evidence.gd1.mechanical`固定であり、GD1以外の設計は原理的にorder-readyにならない。E-5より重い（成果物名の問題ではなく、発注laneが別設計に到達できない） |
+| I-5 | 生成物名のgd1固定 | KiCad projectの既定名が`gd1`（[`adapters/kicad/schematic.py`](../src/acd/adapters/kicad/schematic.py)）、筐体の`part_number`が`gd1-enclosure*`（[`adapters/cad/project.py`](../src/acd/adapters/cad/project.py)）。製造データの部品番号が別設計でもGD1名になる |
+
+## J. ゲート契約がGD1のトポロジ族しか受け付けない（最も根本的な制約）
+
+[`src/acd/core/design_predicates.py`](../src/acd/core/design_predicates.py)は、net名
+`CC1`／`CC2`／`I2C_SDA`／`I2C_SCL`、refdes `U1`、ESP32-C3のstrapping pin構成を契約として
+固定している。該当netが存在しない設計では`_evaluate_pullups`が
+`required net resolution failed`で`unknown`を返し、fail-closedになる。
+
+つまり、USB-Cを持たない設計、I2Cを使わない設計、センサ構成の異なる設計は、
+設計として妥当であってもゲートを通過できない。VibeBBが掲げる「自然言語の要件から
+小型基板を設計する」に対し、現在の合格可能領域はGD1の1トポロジ族に限られる。
+
+| # | 改善提案 | 現状と理由 |
+|---|---|---|
+| J-1 | 述語の適用条件（applicability）を宣言化し、宣言された機能ブロックに対応する述語だけを必須にする | 現在は「netが無い＝unknown＝fail-closed」であり、機能を持たない設計と検証不能な設計を区別できない。fail-closed境界は維持したまま、適用対象の宣言を要件側へ移す提案である |
+| J-2 | 機能ブロック単位の契約registry（USB-C CC、I2C pull-up、単一LDO等）を導入し、新トポロジの追加を述語コード改変ではなく契約追加で行えるようにする | [`design-requirement-variation.md`](design-requirement-variation.md)が述べるとおり、現状の新トポロジ追加は述語・negative test・ADRの同時改変であり、会話からは到達できない |
+| J-3 | fab profileを複数持てるようにする | [`profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json`](../profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json)の1種のみで、層数・工程・供給者の選択肢が無い |
+
+## K. 手順の連結と失敗時の回復（体験としての詰まり）
+
+| # | 不足機能 | 現状 |
+|---|---|---|
+| K-1 | 単一のorchestrator | silkscreen resolver→基板pipeline→筐体pipeline→FW pipelineを別CLIで順に実行する必要があり（[`docs/operations.md`](operations.md)）、順序と前提は文書側にしか無い。resolverを飛ばすとsilkscreenゲートで落ちる |
+| K-2 | 失敗からの再開 | stage cacheが無く（E-4）、途中失敗は毎回全stage再実行になる。1候補あたり数十分のためVibeBBの対話速度に乗らない |
+| K-3 | 失敗メッセージのremediation | ゲートは値と座標を返すが、次に動かしてよい次元（許可された変更次元）を返さない。専門家か汎用エージェントが居ないと次の一手が決まらない。B-3の構造化Evidenceを、利用者向けの「変更可能な次元と現在の余裕」を含む形にする提案である |
+| K-4 | stageごとの所要時間記録 | 基板pipelineは`[0/12]`〜`[12/12]`の進捗を出すが、stage時間を記録しないため、律速stageの特定を実行中の外部観察に頼る（E-1〜E-3の裏取りが手作業になる） |
+
+## Devinのような汎用エージェントが不在なら止まる項目
+
+VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
+効かない、または代替されている項目を明示する。
+
+| 項目 | 不在時に起きること |
+|---|---|
+| H-1／H-5 | FW pipelineが常に失敗する。設計内容に依存しないため回避手段が無い |
+| J-1／J-2 | GD1以外のトポロジが原理的に合格しない。会話でどれだけ要件を与えても到達できない |
+| I-4 | GD1以外の設計は発注可否判定に到達できない |
+| I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
+| B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
+| G-1／G-2 | workspaceが空のままで開始できない。今回は私がcloneして初期化した |
+
 ## 優先順位（VibeBB単体成立に効く順）
 
-1. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。
-2. A-2／A-3（任意fixtureと要件差分compiler）。無いと新規設計の入口が手編集になる。
-3. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
-4. E-1〜E-4（並列化とcache）。1候補あたりの時間が探索の実現可能性を決める。
-5. F-1〜F-4（image publishとdigest lock更新）。運用の再現性を強化するが、VibeBB自律成立のblocking要因ではない。
-6. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
-7. C-2／C-3（FWのgraph駆動と整合gate）、D-1〜D-3（loopの閉じと発注）。
+1. H-1／H-5（Skill scriptのacd版skew）。現在FW laneが常に失敗しており、設計内容によらず回避できない。最小のコストで最大の停止要因を除ける。
+2. J-1／J-2（述語のapplicabilityと契約registry）。GD1以外のトポロジが合格し得ない現状を解く。ここが解けない限り、他をいくら整えてもVibeBBは「GD1の再生成」に留まる。fail-closed境界は維持する。
+3. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。K-3はB-3の利用者向け表現として同時に扱う。
+4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
+5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
+6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
+7. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
+8. I-3〜I-5／E-5（gd1固定の解消）、C-2／C-3（FWのgraph駆動と整合gate）、D-1〜D-3（loopの閉じと発注）。I-4は発注laneへ進む前に必要になる。
+9. F-1〜F-4（image publishとdigest lock更新）、H-2〜H-4／K-4（skew検出と計測）。運用の再現性と回帰防止を強化する。
