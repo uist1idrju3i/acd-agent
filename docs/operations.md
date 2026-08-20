@@ -446,11 +446,12 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 
 `publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
 digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
-Cairo追加後のbase
-`sha256:daf2908f4742e5a0d29ad3bcef187b9b11832701bf6b38fd2e2150b94bf1e301`からderiveした
-server image `sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b`を
-lockへ記録済みであり、baseとderivedは独立に記録する。toolsとserverのdigestは同一とは
-扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
+現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
+同梱した`sha256:ec8cb4b71baba91125dd667d1ec426d8d06f3c4561954206a21c6a65e2228319`である。
+lockのserver image `sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b`は
+前のtools digestからderiveしたもので、新しいbaseへ揃えるには`publish-acd-server.yml`の
+再`workflow_dispatch`とlock更新が必要である。baseとderivedは独立に記録し、
+toolsとserverのdigestは同一とは扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
 
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
 Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
