@@ -69,7 +69,7 @@ negative testとADRを同じ変更で更新する作業になり、実行例作�
 `electrical.board.gd1`にハードコードされている。別のgraphを`--fixture`で渡しても
 `gd1-gerbers.zip`のような同名で出力されるため、ファイル名やEvidenceの対象node名を
 設計が変わった根拠にしてはならない。この固定の解消は
-[`roadmap.md`](roadmap.md)の改善バックログに記録済みである。
+[`roadmap.md`](roadmap.md)のマイルストーン14.6に記録済みである。
 
 ## 設計動作の確認手順
 
