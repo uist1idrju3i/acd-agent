@@ -440,6 +440,30 @@ FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合�
 8.6は3段で実装する。配置図とstackup図、ブロック図と電源ツリー図、FWの状態遷移・シーケンス図
 （機械可読宣言の追加を含む）の順であり、本節の完了条件は3段すべての実装で満たす。
 
+## 改善バックログ（2026-08-20 実行例とレビューからの反映）
+
+実行例で得た改善メモ（[`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)）
+とレビュー所見（[`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)）から、
+実装・運用へ反映する項目を次のバックログとして記録する。いずれも計画・注記であり、
+現行の閾値、ゲート挙動、fail-closed境界を変更または緩和するものではない。
+
+| 項目 | 出所 | 対応方針 | 状態 |
+|---|---|---|---|
+| 視覚投影SVGへのviewBox相対font-size付与（placement / power-tree / system-block / fw-state / fw-sequence） | レビュー | マイルストーン8 rendererを改善し、viewBoxに対して可読な相対font-sizeを付与する | 未着手 |
+| KiCad由来SVG（f-cu / b-cu / schematic）のfit-to-board化 | レビュー | 用紙全面プロットで基板が極小表示される問題を解消するrendererまたは後処理を実装する | 未着手 |
+| 回路図投影の可読性向上 | レビュー | 機能ブロック配置と主要配線を描画するか、ネットラベル接続方式である旨を投影へ注記する | 未着手 |
+| 出力ファイルprefixとevidence subject_nodeのgraph_id由来化 | 改善メモ／レビュー | `gd1`固定を解消し、出力命名とEvidenceの対象nodeを入力graphから導出する | 未着手 |
+| ToolEnvelopeの`exit_code`のツール別意味論の文書化 | レビュー | kicad-cli ERC/DRCは違反件数由来で非ゼロになりうることを記録し、statusと混同しない説明を追加する | 未着手 |
+| order-readiness `ready`の定義へのCPL実装基準の明示 | レビュー | position/rotation basisについてfab側目視確認を前提とすることをreadyの定義へ明記する | 未着手 |
+| fixture複製ヘルパと組立手順のdocs化 | 改善メモ | libraries/overlays込みで新規fixtureを組み立てるヘルパと手順を追加する | 未着手 |
+| FW pipelineのhost前提の`/acd:doctor`診断化 | 改善メモ | QEMU PATH、libslirp0、SDL2系ライブラリを診断項目へ追加する | 未着手 |
+| QEMU実行環境のDockerイメージ同梱 | 改善メモ | Espressif QEMU、libslirp0、SDL2系ライブラリ、PATH設定をlocked acd-tools/server imageへ同梱する。暫定策としてSKILL.mdとoperations.mdへaptパッケージ一覧を明記する | 未着手 |
+| host EDA不在時のdoctor誘導 | 改善メモ | doctor出力へlocked image + DockerWorkspaceの推奨経路への誘導リンクを追加する | 未着手 |
+| OpenHands Local GUI APIのトークン発行手順のdocs化 | 改善メモ | トンネル越しcurlがUnauthorizedとなる制約を踏まえ、自動化検証に必要なGUI経由のトークン取得手順を記録する | 未着手 |
+| FW出力命名の改善（`acd_gd1_fw`ディレクトリを含む） | 改善メモ | FW成果物の固定名と`acd_gd1_fw`固定ディレクトリ名を解消し、graph_idを出力名へ反映する | 未着手 |
+| SKILL triggerとACD ToolDefinition登録診断の見直し | レビュー | 実運用語彙でacd-qc-seven-tools / acd-reliability-reviewを活性化できるtriggerへ見直し、ToolDefinition登録有無をdoctorで診断する | 未着手 |
+| hook遮断（UserRejectObservation）の要約自動集計 | レビュー | hookによる遮断理由を実行レポートへ自動集計し、振り返り可能な要約を残す | 未着手 |
+
 ## 将来構想
 
 現行実装計画の次に残る機能は、次の構想として保持する。

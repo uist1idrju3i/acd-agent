@@ -458,6 +458,30 @@ command -v java
 command -v freerouting
 ```
 
+### FW pipelineのhost実行とToolEnvelopeの注記
+
+FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
+`libslirp0`およびSDL2系共有ライブラリが必要である。QEMUをtarball等から配置した場合は、
+`qemu-system-riscv32`のあるディレクトリをPATHへ追加してから実行し、次で解決できることを
+確認する。これらのQEMU実行環境をlocked acd-tools/server imageへ同梱することを改善候補とし、
+当面はSKILL.mdと本書に必要なaptパッケージ一覧を明記する。
+
+```bash
+command -v qemu-system-riscv32
+```
+
+host経路はprovisional専用であり、合格側Evidenceの生成には使わない。authoritativeな
+ゲート実行は、引き続きlock済みdigest固定server imageを`DockerWorkspace`で実行する。
+実行例と生成物の構成は[`examples/sensor-node-20260820/`](../examples/sensor-node-20260820/)を
+参照する。
+
+`kicad-cli`のERC/DRCは違反件数に応じたexit codeを返すため、違反が検出された場合に
+非ゼロとなりうる。したがってToolEnvelopeの`exit_code`をToolEnvelopeの`status`と
+混同してはならず、exit codeだけを成功・失敗の根拠にしない。ERC/DRCのstatusは、
+独立したparserと決定論的ゲートが検査した違反件数・種類、およびEvidence契約に従って
+解釈する。exit codeの意味が不明な外部ツールはunknownとして扱い、既存のfail-closed
+境界を維持する。
+
 ### KiCad SVG視覚投影の一次確認
 
 KiCad CLI 10.0.5の`sch export svg`と`pcb export svg`は、SVGの`<title>`要素へ
