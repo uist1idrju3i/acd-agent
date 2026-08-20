@@ -75,6 +75,6 @@
   検査対象から除外（mainのCI回帰の修正）
 - `docs/operations.md`: 実行例取り込み手順（追跡後のdocs検証、生成artifactの扱い）、
   リリース手順の注意（タグ作成ruleset、リリースノート方針）を追記
-- `docs/roadmap.md` マイルストーン15.5・20.3〜20.5: pipelineログの要約出力、
-  hook遮断の要約集計、ToolDefinition登録のdoctor診断化、SKILL trigger見直し等
-  （反映済み項目を含む）
+- `docs/roadmap.md` マイルストーン15.5: pipelineログの要約出力
+- [`roadmap.md`](../../../docs/roadmap.md)の「現在地」: hook遮断の要約集計、ToolDefinition登録のdoctor診断化、
+  SKILL trigger見直し（実装済み）
