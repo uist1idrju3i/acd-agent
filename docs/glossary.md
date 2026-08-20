@@ -117,4 +117,9 @@
 | デカップリング配置段 | `decoupling_target`から対象ICを決め、電源pinまでの距離を目的に配置する段。 |
 | mechanical section view | ゲート通過後のauthoritative assembly STEPを宣言したXY平面とoffsetで切断し、XY平面へ移して生成する機械laneのL3 SVG観測。 |
 | mechanical interference view | authoritative enclosure STEPとMechanicalLaneのcomponent bodyの交差領域を、存在時は別layerで描き、ゲート実測最大干渉体積と突合するL3 SVG観測。交差なしはprojection recordの体積0・領域なしで表す。 |
+| ワークアラウンド | すでに製造・組立を終えた個体を、基板の再製造なしに追加工とFW修正だけで許容可能な動作へ戻す暫定的な回復手段。設計入力の正を書き換えず、本修正はECOとして別に扱う。 |
+| 追加工 | 製造済み個体へ後から施す物理的改変。パターンカット、部品の追加・除去・定数変更、ジャンパ線、手はんだ、筐体の追加加工を含む。 |
+| 追加工差分 | 追加工を`cut`／`add`／`remove`／`replace`／`mechanical`の型付き差分として宣言し、派生graphを導出する投影contract。設計入力へ逆流させない。 |
+| 制約付き救済 | 機能の縮退・無効化を伴うワークアラウンドの判定区分。ゲート合格を意味しない。 |
+| workaround ID | 救済状態を`revision + workaround ID`（例: `rev1.0+WA-001`）で識別する識別子。適用対象個体をロット・シリアル単位で結び付ける。 |
 | mechanical visual renderer provenance | build123d/OCP版、STEP入力hash、revision、正規化規則、出力hash、再生成結果を保持する機械視覚投影の出所情報。 |
