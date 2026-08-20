@@ -135,7 +135,7 @@ def test_print_locked_image_returns_pinned_server_reference() -> None:
     assert result.returncode == 0
     assert result.stdout.strip() == (
         "ghcr.io/uist1idrju3i/acd-server@"
-        "sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b"
+        "sha256:ee012c7afee787b8a46b4dfadfe530721ff42d13a902434ea2b393873556f219"
     )
 
 

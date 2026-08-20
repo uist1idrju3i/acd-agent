@@ -223,7 +223,7 @@ uv run python scripts/pre_order_gate.py \
   --order-total out/order-total.json \
   --evaluated-at 2026-08-14T00:00:00Z \
   --rerun-authoritative \
-  --image ghcr.io/uist1idrju3i/acd-server@sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b
+  --image ghcr.io/uist1idrju3i/acd-server@sha256:ee012c7afee787b8a46b4dfadfe530721ff42d13a902434ea2b393873556f219
 ```
 
 `--local-provisional`はこのCLIの選択肢ではなく、hostの`LocalWorkspace`結果は
@@ -448,9 +448,10 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
 現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
 同梱した`sha256:ec8cb4b71baba91125dd667d1ec426d8d06f3c4561954206a21c6a65e2228319`である。
-lockのserver image `sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b`は
-前のtools digestからderiveしたもので、新しいbaseへ揃えるには`publish-acd-server.yml`の
-再`workflow_dispatch`とlock更新が必要である。baseとderivedは独立に記録し、
+そのbaseからderiveしたserver image
+`sha256:ee012c7afee787b8a46b4dfadfe530721ff42d13a902434ea2b393873556f219`をlockへ記録済みである。
+toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
+更新する。baseとderivedは独立に記録し、
 toolsとserverのdigestは同一とは扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
 
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
