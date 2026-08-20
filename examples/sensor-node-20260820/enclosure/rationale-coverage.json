@@ -1,0 +1,17 @@
+{
+  "status": "pass",
+  "graph_id": "sensor-node",
+  "revision": "r1",
+  "graph_id_match": true,
+  "revision_match": true,
+  "missing": [],
+  "stale": [],
+  "unknown_provenance": [],
+  "orphan": [],
+  "untraceable": [],
+  "conflicting": [],
+  "unclassified": [],
+  "required_count": 669,
+  "covered_count": 669,
+  "record_count": 70
+}

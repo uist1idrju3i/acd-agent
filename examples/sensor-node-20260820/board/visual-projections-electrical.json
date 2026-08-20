@@ -1,0 +1,151 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-b-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/gd1.kicad_pcb",
+          "content_hash": "sha256:85c4ed3651d67d77b330949bc397cabfe29975332c97ed77578a2d7b91f93036"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.5",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "297.0022mm",
+        "height": "210.0072mm",
+        "view_box": [
+          0.0,
+          0.0,
+          297.0022,
+          210.0072
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:f652b17cd909dcd351400a29dc09b0b26e10b853d9c9f1b0f1bc4fdccef41d98",
+      "generated_at": "2026-08-20T00:41:52.076659Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:f652b17cd909dcd351400a29dc09b0b26e10b853d9c9f1b0f1bc4fdccef41d98",
+        "second_image_hash": "sha256:f652b17cd909dcd351400a29dc09b0b26e10b853d9c9f1b0f1bc4fdccef41d98",
+        "reason": null
+      },
+      "image_path": "visual/gd1-b-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-f-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/gd1.kicad_pcb",
+          "content_hash": "sha256:85c4ed3651d67d77b330949bc397cabfe29975332c97ed77578a2d7b91f93036"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.5",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "297.0022mm",
+        "height": "210.0072mm",
+        "view_box": [
+          0.0,
+          0.0,
+          297.0022,
+          210.0072
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:3dd2953d4036a0423919a02208724db478d65a839eca2625849fc4788a5c2641",
+      "generated_at": "2026-08-20T00:41:51.146958Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:3dd2953d4036a0423919a02208724db478d65a839eca2625849fc4788a5c2641",
+        "second_image_hash": "sha256:3dd2953d4036a0423919a02208724db478d65a839eca2625849fc4788a5c2641",
+        "reason": null
+      },
+      "image_path": "visual/gd1-f-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-schematic",
+      "projection_type": "schematic_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "gd1.kicad_sch",
+          "content_hash": "sha256:8b8954c618f77c7aa14879e3569a38e78529ccdb08ce82949ea3f57195898bdd"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.5",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "594.0044mm",
+        "height": "419.9890mm",
+        "view_box": [
+          0.0,
+          0.0,
+          594.0044,
+          419.989
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:b555c81558634e3c6e95181fc65e7b3baf4a6ca514d2ff7c7230c0d5e8be1194",
+      "generated_at": "2026-08-20T00:41:50.121412Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:b555c81558634e3c6e95181fc65e7b3baf4a6ca514d2ff7c7230c0d5e8be1194",
+        "second_image_hash": "sha256:b555c81558634e3c6e95181fc65e7b3baf4a6ca514d2ff7c7230c0d5e8be1194",
+        "reason": null
+      },
+      "image_path": "visual/gd1-schematic.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:263b52c3f5fbf0df22790749e51b1eb0d8440d204cc1a5011c752b058a04553b",
+  "canonical_hash": "sha256:b28e3f5635dc590af19a590fff230e71a07b0d2fc74bdbdef31f13f8cf170891"
+}

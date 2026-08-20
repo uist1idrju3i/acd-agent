@@ -1,0 +1,102 @@
+{
+  "board": {
+    "design_settings": {
+      "rules": {
+        "min_clearance": 0.15,
+        "min_copper_edge_clearance": 0.3,
+        "min_hole_clearance": 0.15,
+        "min_hole_to_hole": 0.15,
+        "min_through_hole_diameter": 0.3,
+        "min_track_width": 0.15,
+        "min_via_diameter": 0.6
+      }
+    }
+  },
+  "meta": {
+    "filename": "gd1.kicad_pro",
+    "version": 3
+  },
+  "net_settings": {
+    "classes": [
+      {
+        "clearance": 0.15,
+        "name": "Default",
+        "track_width": 0.15,
+        "via_diameter": 0.6,
+        "via_drill": 0.3
+      },
+      {
+        "clearance": 0.15,
+        "name": "ACD_0150um",
+        "track_width": 0.4,
+        "via_diameter": 0.6,
+        "via_drill": 0.3
+      }
+    ],
+    "meta": {
+      "version": 4
+    },
+    "netclass_patterns": [
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "+3V3"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "BOOT"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "CC1"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "CC2"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "EN"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "GND"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "I2C_SCL"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "I2C_SDA"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "LED"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "LED_A"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "UART_RX"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "UART_TX"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "USB_D+"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "USB_D-"
+      },
+      {
+        "netclass": "ACD_0150um",
+        "pattern": "VBUS_5V"
+      }
+    ]
+  }
+}

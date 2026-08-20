@@ -1,0 +1,239 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_crosscheck_report",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "visual_projection_set_identity_hash": "sha256:20d8179b567f09902387a509ce1cecd36d9b29a0f7cde9948b024b9bd6cabf4d",
+  "machine_input_files": [
+    {
+      "path": "fixtures/sensor-node/graph.json",
+      "content_hash": "sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a"
+    }
+  ],
+  "set_items": [
+    {
+      "check_id": "projection-coverage",
+      "description": "Projection set contains exactly one state and one sequence firmware view",
+      "status": "match",
+      "expected": "firmware_state_view=1; firmware_sequence_view=1; projection_ids=gd1-firmware-state,gd1-firmware-sequence",
+      "actual": "types=firmware_sequence_view,firmware_state_view; projection_ids=gd1-firmware-sequence,gd1-firmware-state",
+      "machine_field": "VisualProjectionSet.projections[*].projection_type/projection_id"
+    },
+    {
+      "check_id": "pin-assignments",
+      "description": "Firmware pin assignment GPIO and net declarations remain consistent",
+      "status": "match",
+      "expected": "graph firmware.pin_assignment declarations",
+      "actual": "match",
+      "machine_field": "FirmwareLane.pin_assignments[*].gpio/net; DesignGraph.firmware.pin_assignment[*].attrs"
+    }
+  ],
+  "crosschecks": [
+    {
+      "projection_id": "gd1-firmware-sequence",
+      "source_revision": "r1",
+      "image_hash": "sha256:57adeca72f6183e5d92c6848df655b64a3c939a82ae7f6af1b127288ce80e4ab",
+      "items": [
+        {
+          "check_id": "svg-units",
+          "description": "Firmware SVG root dimensions use millimeter units",
+          "status": "match",
+          "expected": "width=mm; height=mm",
+          "actual": "width=mm; height=mm",
+          "machine_field": "SVG.root.width/height"
+        },
+        {
+          "check_id": "svg-viewbox",
+          "description": "Firmware SVG viewBox dimensions match the root dimensions",
+          "status": "match",
+          "expected": "240 175",
+          "actual": "240 175",
+          "machine_field": "SVG.root.width/height; SVG.root.viewBox"
+        },
+        {
+          "check_id": "svg-image-hash",
+          "description": "Firmware SVG raw-byte hash matches the projection record",
+          "status": "match",
+          "expected": "sha256:57adeca72f6183e5d92c6848df655b64a3c939a82ae7f6af1b127288ce80e4ab",
+          "actual": "sha256:57adeca72f6183e5d92c6848df655b64a3c939a82ae7f6af1b127288ce80e4ab",
+          "machine_field": "VisualProjectionRecord.image_hash"
+        },
+        {
+          "check_id": "svg-renderer",
+          "description": "Firmware SVG uses the pinned acd-svg renderer contract",
+          "status": "match",
+          "expected": "acd-svg/1.0.0; normalization=acd-svg-v1",
+          "actual": "acd-svg/1.0.0; normalization=acd-svg-v1",
+          "machine_field": "VisualProjectionRecord.renderer; VisualProjectionRecord.normalization_rule_id"
+        },
+        {
+          "check_id": "input-file",
+          "description": "Firmware projection input path and content hash match the graph input",
+          "status": "match",
+          "expected": "fixtures/sensor-node/graph.json:sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a",
+          "actual": "fixtures/sensor-node/graph.json:sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a",
+          "machine_field": "VisualProjectionRecord.input_files"
+        },
+        {
+          "check_id": "lifeline-coverage",
+          "description": "Firmware module and declared sequence targets have lifelines",
+          "status": "match",
+          "expected": "comp.d1,comp.u1,comp.u3,fw.module.main",
+          "actual": "comp.d1,comp.u1,comp.u3,fw.module.main",
+          "machine_field": "FirmwareLane.module.node_id; FirmwareLane.sequence_steps[*].target"
+        },
+        {
+          "check_id": "sequence-coverage",
+          "description": "Every declared sequence step has one deterministic SVG message",
+          "status": "match",
+          "expected": "1,2,3,4,5",
+          "actual": "1,2,3,4,5",
+          "machine_field": "FirmwareLane.sequence_steps[*].step_index"
+        },
+        {
+          "check_id": "sequence-declarations",
+          "description": "Sequence actor, target, index, and action match declarations",
+          "status": "match",
+          "expected": "all declared sequence payloads",
+          "actual": "match",
+          "machine_field": "FirmwareLane.sequence_steps[*]"
+        }
+      ],
+      "status": "match"
+    },
+    {
+      "projection_id": "gd1-firmware-state",
+      "source_revision": "r1",
+      "image_hash": "sha256:3c2251eeed00c53f4877f19d2bf843d5c96d478dfca3a568c537bdee9ff000d3",
+      "items": [
+        {
+          "check_id": "svg-units",
+          "description": "Firmware SVG root dimensions use millimeter units",
+          "status": "match",
+          "expected": "width=mm; height=mm",
+          "actual": "width=mm; height=mm",
+          "machine_field": "SVG.root.width/height"
+        },
+        {
+          "check_id": "svg-viewbox",
+          "description": "Firmware SVG viewBox dimensions match the root dimensions",
+          "status": "match",
+          "expected": "240 134",
+          "actual": "240 134",
+          "machine_field": "SVG.root.width/height; SVG.root.viewBox"
+        },
+        {
+          "check_id": "svg-image-hash",
+          "description": "Firmware SVG raw-byte hash matches the projection record",
+          "status": "match",
+          "expected": "sha256:3c2251eeed00c53f4877f19d2bf843d5c96d478dfca3a568c537bdee9ff000d3",
+          "actual": "sha256:3c2251eeed00c53f4877f19d2bf843d5c96d478dfca3a568c537bdee9ff000d3",
+          "machine_field": "VisualProjectionRecord.image_hash"
+        },
+        {
+          "check_id": "svg-renderer",
+          "description": "Firmware SVG uses the pinned acd-svg renderer contract",
+          "status": "match",
+          "expected": "acd-svg/1.0.0; normalization=acd-svg-v1",
+          "actual": "acd-svg/1.0.0; normalization=acd-svg-v1",
+          "machine_field": "VisualProjectionRecord.renderer; VisualProjectionRecord.normalization_rule_id"
+        },
+        {
+          "check_id": "input-file",
+          "description": "Firmware projection input path and content hash match the graph input",
+          "status": "match",
+          "expected": "fixtures/sensor-node/graph.json:sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a",
+          "actual": "fixtures/sensor-node/graph.json:sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a",
+          "machine_field": "VisualProjectionRecord.input_files"
+        },
+        {
+          "check_id": "state-coverage",
+          "description": "Every declared firmware state has one deterministic SVG element",
+          "status": "match",
+          "expected": "fw-state-fw-state-boot,fw-state-fw-state-fault,fw-state-fw-state-measure,fw-state-fw-state-report,fw-state-fw-state-sensor-init",
+          "actual": "fw-state-fw-state-boot,fw-state-fw-state-fault,fw-state-fw-state-measure,fw-state-fw-state-report,fw-state-fw-state-sensor-init",
+          "machine_field": "FirmwareLane.states[*].node_id"
+        },
+        {
+          "check_id": "transition-coverage",
+          "description": "Every declared firmware transition has one deterministic SVG element",
+          "status": "match",
+          "expected": "fw-transition-fw-transition-boot-sensor-init,fw-transition-fw-transition-measure-fault,fw-transition-fw-transition-measure-report,fw-transition-fw-transition-report-measure,fw-transition-fw-transition-sensor-init-measure",
+          "actual": "fw-transition-fw-transition-boot-sensor-init,fw-transition-fw-transition-measure-fault,fw-transition-fw-transition-measure-report,fw-transition-fw-transition-report-measure,fw-transition-fw-transition-sensor-init-measure",
+          "machine_field": "FirmwareLane.transitions[*].node_id"
+        },
+        {
+          "check_id": "transition-declarations",
+          "description": "Transition endpoints and trigger text match declarations",
+          "status": "match",
+          "expected": "all declared transition payloads",
+          "actual": "match",
+          "machine_field": "FirmwareLane.transitions[*]"
+        },
+        {
+          "check_id": "initial-state",
+          "description": "Exactly one declared initial state is visibly distinguished",
+          "status": "match",
+          "expected": "fw-state-initial-fw-state-boot",
+          "actual": "fw-state-initial-fw-state-boot",
+          "machine_field": "FirmwareLane.states[*].initial; FirmwareLane.module.entry_state"
+        }
+      ],
+      "status": "match"
+    }
+  ],
+  "review_items": [
+    {
+      "item_id": "review-firmware-readability",
+      "aspect": "readability",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Firmware SVG readability requires visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-firmware-annotations",
+      "aspect": "annotations",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Firmware SVG annotation appropriateness requires visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-firmware-occlusion",
+      "aspect": "occlusion",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Firmware SVG overlap or hidden meaning loss requires visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-firmware-state-intent",
+      "aspect": "design_intent",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "State-transition design-intent fidelity requires visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-firmware-sequence-intent",
+      "aspect": "design_intent",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Sequence design-intent fidelity requires visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-firmware-functional-run",
+      "aspect": "functional_run",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "GD1 measured functional-run Evidence is on hold.",
+      "observation": null
+    }
+  ],
+  "status": "match",
+  "canonical_hash": "sha256:ff729f50382fbbcd1bcb9f44fd94d1ceff0c67ea7758cb169fb8dfa3edecd99a",
+  "identity_hash": "sha256:ba8b9880e6154f1dcdfa4530235e2a6d74746f9a1e89d05c84aa506123c90c0a",
+  "generated_at": "2026-08-20T00:41:52.137164Z"
+}

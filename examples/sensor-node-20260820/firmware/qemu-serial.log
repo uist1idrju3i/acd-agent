@@ -1,0 +1,111 @@
+ESP-ROM:esp32c3-api1-20210207
+Build:Feb  7 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fcd5820,len:0x1738
+load:0x403cc710,len:0xb9c
+load:0x403ce710,len:0x2e4c
+entry 0x403cc71a
+[0;32mI (1) boot: ESP-IDF v5.3.1 2nd stage bootloader[0m
+[0;32mI (2) boot: compile time Aug 20 2026 03:47:23[0m
+[0;32mI (7) boot: chip revision: v0.3[0m
+[0;32mI (9) boot.esp32c3: SPI Speed      : 80MHz[0m
+[0;32mI (9) boot.esp32c3: SPI Mode       : SLOW READ[0m
+[0;32mI (10) boot.esp32c3: SPI Flash Size : 4MB[0m
+[0;32mI (14) boot: Enabling RNG early entropy source...[0m
+[0;32mI (21) boot: Partition Table:[0m
+[0;32mI (22) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (23) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (23) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (24) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (25) boot: End of partition table[0m
+[0;32mI (27) esp_image: segment 0: paddr=00010020 vaddr=3c020020 size=0a1ech ( 41452) map[0m
+[0;32mI (38) esp_image: segment 1: paddr=0001a214 vaddr=3fc8bc00 size=01384h (  4996) load[0m
+[0;32mI (41) esp_image: segment 2: paddr=0001b5a0 vaddr=40380000 size=04a78h ( 19064) load[0m
+[0;32mI (47) esp_image: segment 3: paddr=00020020 vaddr=42000020 size=195e8h (103912) map[0m
+[0;32mI (70) esp_image: segment 4: paddr=00039610 vaddr=40384a78 size=06fc8h ( 28616) load[0m
+[0;32mI (78) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (79) boot: Disabling RNG early entropy source...[0m
+[0;32mI (95) cpu_start: Unicore app[0m
+[0;32mI (116) cpu_start: Pro cpu start user code[0m
+[0;32mI (117) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (117) app_init: Application information:[0m
+[0;32mI (117) app_init: Project name:     acd_gd1_fw[0m
+[0;32mI (118) app_init: App version:      692932d[0m
+[0;32mI (118) app_init: Compile time:     Aug 20 2026 03:47:05[0m
+[0;32mI (118) app_init: ELF file SHA256:  950f60047...[0m
+[0;32mI (119) app_init: ESP-IDF:          v5.3.1[0m
+[0;32mI (119) efuse_init: Min chip rev:     v0.3[0m
+[0;32mI (119) efuse_init: Max chip rev:     v1.99 [0m
+[0;32mI (120) efuse_init: Chip rev:         v0.3[0m
+[0;32mI (121) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (122) heap_init: At 3FC8DE50 len 000321B0 (200 KiB): RAM[0m
+[0;32mI (122) heap_init: At 3FCC0000 len 0001C710 (113 KiB): Retention RAM[0m
+[0;32mI (122) heap_init: At 3FCDC710 len 00002950 (10 KiB): Retention RAM[0m
+[0;32mI (123) heap_init: At 50000200 len 00001DE8 (7 KiB): RTCRAM[0m
+[0;32mI (134) spi_flash: detected chip: gd[0m
+[0;32mI (134) spi_flash: flash io: dio[0m
+[0;32mI (136) sleep: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (137) sleep: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (144) main_task: Started on CPU0[0m
+[0;32mI (144) main_task: Calling app_main()[0m
+[0;32mI (144) acd_gd1: ACD GD1 fw boot target_revision=r1[0m
+[0;32mI (144) acd_gd1: pins led=7 sda=4 scl=5[0m
+[0;32mI (144) gpio: GPIO[7]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;33mW (144) i2c.master: Please check pull-up resistances whether be connected properly. Otherwise unexpected behavior would happen. For more detailed information, please read docs[0m
+[0;32mI (144) gpio: GPIO[4]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (154) gpio: GPIO[5]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 0| Pulldown: 0| Intr:0 [0m
+[0;32mI (154) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (254) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (254) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (254) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m
+[0;32mI (754) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (1254) acd_gd1: LED gpio=7 state=1[0m
+[0;32mI (1754) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (2254) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (2354) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (2354) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (2354) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m
+[0;32mI (2854) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (3354) acd_gd1: LED gpio=7 state=1[0m
+[0;32mI (3854) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (4354) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (4454) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (4454) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (4454) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m
+[0;32mI (4954) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (5454) acd_gd1: LED gpio=7 state=1[0m
+[0;32mI (5954) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (6454) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (6554) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (6554) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (6554) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m
+[0;32mI (7054) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (7554) acd_gd1: LED gpio=7 state=1[0m
+[0;32mI (8054) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (8554) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (8654) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (8654) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (8654) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m
+[0;32mI (9154) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (9654) acd_gd1: LED gpio=7 state=1[0m
+[0;32mI (10154) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (10654) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (10754) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (10754) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (10754) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m
+[0;32mI (11254) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (11754) acd_gd1: LED gpio=7 state=1[0m
+[0;32mI (12254) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (12754) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (12854) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (12854) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (12854) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m
+[0;32mI (13354) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (13854) acd_gd1: LED gpio=7 state=1[0m
+[0;32mI (14354) acd_gd1: LED gpio=7 state=0[0m
+[0;32mI (14854) acd_gd1: LED gpio=7 state=1[0m
+[0;31mE (14954) i2c.master: s_i2c_synchronous_transaction(872): I2C transaction failed[0m
+[0;31mE (14954) i2c.master: i2c_master_transmit(1074): I2C transaction failed[0m
+[0;33mW (14954) acd_gd1: SHT40 read failed: ESP_ERR_INVALID_STATE[0m

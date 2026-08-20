@@ -1,0 +1,9 @@
+{
+  "target_revision": "r1",
+  "toolchain_version": "esp-idf v5.3.1",
+  "source_hash": "sha256:3299bfd82e8a7de0b1719abca46dd3aecce7d12344f2615a8d1ce606aa02fd5e",
+  "artifact_hash": "sha256:ac9d37b5bdb3daba81a627542d958e8e57187cf45ed47146b864ef2714543e77",
+  "qemu_version": "9.2.2 (esp_develop_9.2.2_20260417)",
+  "measurement_conditions": "virtual device (QEMU esp32c3); no SHT40 attached; virtual verification only, not real-device evidence",
+  "virtual_log": "/workspace/acd/out/sensor-node-fw/qemu-serial.log"
+}

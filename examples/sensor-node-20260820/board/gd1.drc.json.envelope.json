@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "tool_name": "kicad-cli",
+  "tool_version": "10.0.5",
+  "format_version": "10.0.5",
+  "config_hash": "sha256:76afb36ca2dedf697c164edcadbac8a79187f021d28b9a72d9edfb51b23ced24",
+  "input_hash": "sha256:969c2b6f230eda798e23be0eec7d8443b1a9d010b2a7e2d99dcc62f194d3c906",
+  "output_hash": "sha256:0a71699dc71d807ca818ce1f320900d3d8e12a35fa3c063405897b58c7feff96",
+  "execution_env": "linux-x86_64; container=sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b",
+  "execution_context": "container",
+  "container_image_digest": "sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b",
+  "measurement_conditions": "single run; project-local library tables",
+  "convergence_state": "not_applicable",
+  "target_revision": "r1",
+  "started_at": "2026-08-20T00:41:38.024691Z",
+  "finished_at": "2026-08-20T00:41:38.787788Z",
+  "exit_code": 5,
+  "idempotency_key": null,
+  "uncertainty": null
+}
