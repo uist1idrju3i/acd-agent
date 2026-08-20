@@ -427,7 +427,10 @@ pipelineを実行したserver imageのidentityを表す。base tools digestと�
 
 `publish-acd-tools.yml`のjob summaryに表示されたindex digestを、image refとともに
 `docker/image-digests.json`へ転記する。未publishのentryやplaceholder digestは作成せず、
-lockに記録されていないimageをpullするfallbackも禁止する。lockの検証は次のように行う。
+lockに記録されていないimageをpullするfallbackも禁止する。lock fileと`docker/README.md`は
+publish trigger（`publish-acd-tools.yml`の`paths`）から除外しており、digest転記commit自体が
+再publishを起こしてlockと`latest`が食い違い続けることを防ぐ。build入力を変更した場合だけ
+publishが走る。lockの検証は次のように行う。
 
 ```bash
 TOOLS_REF="$(uv run python scripts/print_locked_image.py --entry acd-tools)"
