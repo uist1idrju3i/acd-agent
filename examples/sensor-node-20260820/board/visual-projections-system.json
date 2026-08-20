@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-power-tree",
+      "projection_type": "power_tree_view",
+      "domain": "system",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/sensor-node/graph.json",
+          "content_hash": "sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "90mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          90.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:b1170f15fceb732afbacf972fe751a8c33e25c7507f56c800f6360df2871a738",
+      "generated_at": "2026-08-20T00:41:52.129787Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:b1170f15fceb732afbacf972fe751a8c33e25c7507f56c800f6360df2871a738",
+        "second_image_hash": "sha256:b1170f15fceb732afbacf972fe751a8c33e25c7507f56c800f6360df2871a738",
+        "reason": null
+      },
+      "image_path": "visual/gd1-power-tree.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-system-block",
+      "projection_type": "system_block_view",
+      "domain": "system",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/sensor-node/graph.json",
+          "content_hash": "sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "498mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          498.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:149a1445dc601d6cb8cbfc7cc42fc5729d1d62a90359ca25f53d424fa309e70c",
+      "generated_at": "2026-08-20T00:41:52.128920Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:149a1445dc601d6cb8cbfc7cc42fc5729d1d62a90359ca25f53d424fa309e70c",
+        "second_image_hash": "sha256:149a1445dc601d6cb8cbfc7cc42fc5729d1d62a90359ca25f53d424fa309e70c",
+        "reason": null
+      },
+      "image_path": "visual/gd1-system-block.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:18e9aa7e470e106682ab6f8fb557c7f9558c9115a47fdf03d546331612955512",
+  "canonical_hash": "sha256:cb56117728eec33ed4996f3fed416cc2d99ce4106b04acbb2c97d60dd7fea7cc"
+}

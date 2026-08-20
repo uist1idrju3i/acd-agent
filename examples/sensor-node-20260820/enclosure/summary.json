@@ -1,0 +1,75 @@
+{
+  "step_path": "out/sensor-node-enclosure/enclosure-shell.step",
+  "shell_step_path": "out/sensor-node-enclosure/enclosure-shell.step",
+  "lid_step_path": "out/sensor-node-enclosure/enclosure-lid.step",
+  "assembly_step_path": "out/sensor-node-enclosure/enclosure-assembly.step",
+  "model_path": "out/sensor-node-enclosure/enclosure.3mf",
+  "artifact_manifest_path": "out/sensor-node-enclosure/enclosure-artifacts.json",
+  "artifacts": [
+    {
+      "format": "STEP",
+      "normalized_sha256": "sha256:dac31b0a648ace68dd73d22cdffc2315e46294c26c631e42bce9c492e4768415",
+      "path": "enclosure-shell.step",
+      "role": "enclosure_shell"
+    },
+    {
+      "format": "STEP",
+      "normalized_sha256": "sha256:952d1f7cce083143ddcf8475e3190b970d7ec1999c81cbd364aac89b13a5fb5e",
+      "path": "enclosure-lid.step",
+      "role": "enclosure_lid"
+    },
+    {
+      "format": "STEP",
+      "normalized_sha256": "sha256:c413038f46c28f228cf784849b3a9cd87ffe7b18badcb1a0f45c91d7eecfe377",
+      "path": "enclosure-assembly.step",
+      "role": "enclosure_assembly"
+    },
+    {
+      "format": "3MF",
+      "normalized_sha256": "sha256:082cf94804653545b17c1fb8d7e013bd5511ece1e808ac963210a9680017b403",
+      "path": "enclosure.3mf",
+      "role": "enclosure_model"
+    }
+  ],
+  "normalized_output_hash": "sha256:aa61a5aa321d8ecb202531943b2fadc065c383162f7c5b8ff75c18a987465f77",
+  "evidence": "out/sensor-node-enclosure/evidence-mechanical.json",
+  "provisional": false,
+  "authoritative": true,
+  "measured_volume_mm3": 6799.861929829754,
+  "measured_min_wall_mm": 2.0,
+  "measured_min_clearance_mm": 0.9999999999999996,
+  "measured_max_interference_volume_mm3": 0.0,
+  "shell_measured_volume_mm3": 4567.861929829754,
+  "lid_measured_volume_mm3": 2232.0,
+  "assembly_measured_volume_mm3": 6799.861929829754,
+  "shell_bbox_mm": [
+    -18.0,
+    -15.5,
+    0.0,
+    18.0,
+    15.5,
+    10.9
+  ],
+  "lid_bbox_mm": [
+    -18.0,
+    -15.5,
+    11.1,
+    18.0,
+    15.5,
+    13.1
+  ],
+  "assembly_bbox_mm": [
+    -18.0,
+    -15.5,
+    0.0,
+    18.0,
+    15.5,
+    13.1
+  ],
+  "visual_projections": "visual-projections-mechanical.json",
+  "visual_projection_identity_hash": "sha256:dc4181f052c9174c10fa0ca3b3ca756ebd5f0cfa3f368e99fce7fb03c18a7fec",
+  "visual_projection_canonical_hash": "sha256:c62304c35826ddba869110d6b45e14d6071dd1598d049175f55166762ccd2823",
+  "visual_crosscheck": "visual-crosscheck-mechanical.json",
+  "visual_crosscheck_identity_hash": "sha256:ba1b44c9c3d58e617cb7207073ddac16973d93f37163e47c678378b7a8643244",
+  "visual_crosscheck_canonical_hash": "sha256:be76d85c2cbfd46e007cd242523c782284516624ba5e44856636827c3583efaf"
+}

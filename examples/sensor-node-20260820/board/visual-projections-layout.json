@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-placement",
+      "projection_type": "placement_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/sensor-node/graph.json",
+          "content_hash": "sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "30mm",
+        "height": "25mm",
+        "view_box": [
+          0.0,
+          0.0,
+          30.0,
+          25.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:4d07814766344830d0562f186cec21abd763c35156e5017da266fb7f419d9524",
+      "generated_at": "2026-08-20T00:41:52.124620Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:4d07814766344830d0562f186cec21abd763c35156e5017da266fb7f419d9524",
+        "second_image_hash": "sha256:4d07814766344830d0562f186cec21abd763c35156e5017da266fb7f419d9524",
+        "reason": null
+      },
+      "image_path": "visual/gd1-placement.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-stackup",
+      "projection_type": "stackup_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/sensor-node/graph.json",
+          "content_hash": "sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "80mm",
+        "height": "21.6mm",
+        "view_box": [
+          0.0,
+          0.0,
+          80.0,
+          21.6
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:a21a6ad2dc51eab2004dbd9616d905253ebe3dd5fd6bd3db6e6360042a97d272",
+      "generated_at": "2026-08-20T00:41:52.125182Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:a21a6ad2dc51eab2004dbd9616d905253ebe3dd5fd6bd3db6e6360042a97d272",
+        "second_image_hash": "sha256:a21a6ad2dc51eab2004dbd9616d905253ebe3dd5fd6bd3db6e6360042a97d272",
+        "reason": null
+      },
+      "image_path": "visual/gd1-stackup.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:b454420ac3c28f528676374d45145728f112277a9514db59a99c4d13cd32dcd2",
+  "canonical_hash": "sha256:2229763617eb68d1da732fba47e95c4123de9ffbdd28b3a042d29cec08919ea6"
+}

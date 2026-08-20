@@ -1,0 +1,303 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_crosscheck_report",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "visual_projection_set_identity_hash": "sha256:dc4181f052c9174c10fa0ca3b3ca756ebd5f0cfa3f368e99fce7fb03c18a7fec",
+  "machine_input_files": [
+    {
+      "path": "enclosure-assembly.step",
+      "content_hash": "sha256:c413038f46c28f228cf784849b3a9cd87ffe7b18badcb1a0f45c91d7eecfe377"
+    },
+    {
+      "path": "enclosure.3mf",
+      "content_hash": "sha256:082cf94804653545b17c1fb8d7e013bd5511ece1e808ac963210a9680017b403"
+    },
+    {
+      "path": "enclosure-artifacts.json",
+      "content_hash": "sha256:5f870164eadf6c2b9c90a9ac2fc750da8ac8da80e1a66143084f812594de9dc8"
+    }
+  ],
+  "set_items": [
+    {
+      "check_id": "projection-coverage",
+      "description": "Projection set contains exactly the declared mechanical views",
+      "status": "match",
+      "expected": "mechanical_section_view=1; mechanical_interference_view=1; projection_ids=gd1-mechanical-section,gd1-mechanical-interference",
+      "actual": "types=mechanical_interference_view,mechanical_section_view; projection_ids=gd1-mechanical-interference,gd1-mechanical-section",
+      "machine_field": "VisualProjectionSet.projections[*].projection_type/projection_id"
+    }
+  ],
+  "crosschecks": [
+    {
+      "projection_id": "gd1-mechanical-interference",
+      "source_revision": "r1",
+      "image_hash": "sha256:59b566f8ea319e47df0b9db111d37c5c49220882d4995f5cf3456934ff6a626d",
+      "items": [
+        {
+          "check_id": "svg-units",
+          "description": "Mechanical SVG root dimensions use millimeter units",
+          "status": "match",
+          "expected": "width=mm; height=mm",
+          "actual": "width=mm; height=mm",
+          "machine_field": "SVG.root.width/height"
+        },
+        {
+          "check_id": "svg-origin",
+          "description": "Mechanical SVG viewBox origin matches the centered CAD projection",
+          "status": "match",
+          "expected": "-18.0 -15.5",
+          "actual": "-18.0 -15.5",
+          "machine_field": "SVG.root.viewBox.origin"
+        },
+        {
+          "check_id": "svg-viewbox",
+          "description": "Mechanical SVG viewBox dimensions are self-consistent with the root",
+          "status": "match",
+          "expected": "36.0 31.0",
+          "actual": "36.0 31.0",
+          "machine_field": "SVG.root.width/height; SVG.root.viewBox"
+        },
+        {
+          "check_id": "svg-view-dimensions",
+          "description": "Mechanical SVG viewBox dimensions match the declared enclosure",
+          "status": "match",
+          "expected": "36.0 31.0",
+          "actual": "36.0 31.0",
+          "machine_field": "MechanicalLane.outline.width_mm/depth_mm; MechanicalLane.enclosure.internal_clearance_mm/wall_thickness_mm"
+        },
+        {
+          "check_id": "svg-image-hash",
+          "description": "Mechanical SVG raw-byte hash matches the projection record",
+          "status": "match",
+          "expected": "sha256:59b566f8ea319e47df0b9db111d37c5c49220882d4995f5cf3456934ff6a626d",
+          "actual": "sha256:59b566f8ea319e47df0b9db111d37c5c49220882d4995f5cf3456934ff6a626d",
+          "machine_field": "VisualProjectionRecord.image_hash"
+        },
+        {
+          "check_id": "renderer-version",
+          "description": "Mechanical SVG renderer version matches the installed CAD tool",
+          "status": "match",
+          "expected": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+          "actual": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+          "machine_field": "VisualProjectionRecord.renderer.tool_version; cad_tool_version()"
+        },
+        {
+          "check_id": "step-input-hash",
+          "description": "Mechanical projection input matches the normalized assembly STEP",
+          "status": "match",
+          "expected": "sha256:c413038f46c28f228cf784849b3a9cd87ffe7b18badcb1a0f45c91d7eecfe377",
+          "actual": "sha256:c413038f46c28f228cf784849b3a9cd87ffe7b18badcb1a0f45c91d7eecfe377",
+          "machine_field": "VisualProjectionRecord.input_files[0].content_hash"
+        },
+        {
+          "check_id": "section-plane",
+          "description": "Mechanical projection uses the declared XY section plane",
+          "status": "match",
+          "expected": "xy",
+          "actual": "xy",
+          "machine_field": "VisualProjectionRecord.section_plane_id"
+        },
+        {
+          "check_id": "section-offset",
+          "description": "Mechanical projection section offset matches the declared offset",
+          "status": "match",
+          "expected": "4.0",
+          "actual": "4.0",
+          "machine_field": "VisualProjectionRecord.section_offset_mm; MechanicalLane.enclosure.wall_thickness_mm/standoff_height_mm"
+        },
+        {
+          "check_id": "svg-layer-names",
+          "description": "Mechanical SVG layer identifiers match the declared view layers",
+          "status": "match",
+          "expected": "enclosure",
+          "actual": "enclosure",
+          "machine_field": "SVG.root.g[*].id"
+        },
+        {
+          "check_id": "interference-volume",
+          "description": "Interference view volume matches the mechanical gate measurement",
+          "status": "match",
+          "expected": "0.0",
+          "actual": "0.0",
+          "machine_field": "VisualProjectionRecord.interference_volume_mm3; MechanicalGateReport.measured_max_interference_volume_mm3"
+        },
+        {
+          "check_id": "interference-region",
+          "description": "Interference region presence matches volume and gate status",
+          "status": "match",
+          "expected": "volume>0=False; gate_interference_free=True",
+          "actual": "volume>0=False; gate_interference_free=True; region=False",
+          "machine_field": "VisualProjectionRecord.interference_region_present; MechanicalGateReport.interference"
+        }
+      ],
+      "status": "match"
+    },
+    {
+      "projection_id": "gd1-mechanical-section",
+      "source_revision": "r1",
+      "image_hash": "sha256:42878361afe51c9a3008e66c3698c84b3a2163085476a68f29290958d6c3b76a",
+      "items": [
+        {
+          "check_id": "svg-units",
+          "description": "Mechanical SVG root dimensions use millimeter units",
+          "status": "match",
+          "expected": "width=mm; height=mm",
+          "actual": "width=mm; height=mm",
+          "machine_field": "SVG.root.width/height"
+        },
+        {
+          "check_id": "svg-origin",
+          "description": "Mechanical SVG viewBox origin matches the centered CAD projection",
+          "status": "match",
+          "expected": "-18.0 -15.5",
+          "actual": "-18.0 -15.5",
+          "machine_field": "SVG.root.viewBox.origin"
+        },
+        {
+          "check_id": "svg-viewbox",
+          "description": "Mechanical SVG viewBox dimensions are self-consistent with the root",
+          "status": "match",
+          "expected": "36.0 31.0",
+          "actual": "36.0 31.0",
+          "machine_field": "SVG.root.width/height; SVG.root.viewBox"
+        },
+        {
+          "check_id": "svg-view-dimensions",
+          "description": "Mechanical SVG viewBox dimensions match the declared enclosure",
+          "status": "match",
+          "expected": "36.0 31.0",
+          "actual": "36.0 31.0",
+          "machine_field": "MechanicalLane.outline.width_mm/depth_mm; MechanicalLane.enclosure.internal_clearance_mm/wall_thickness_mm"
+        },
+        {
+          "check_id": "svg-image-hash",
+          "description": "Mechanical SVG raw-byte hash matches the projection record",
+          "status": "match",
+          "expected": "sha256:42878361afe51c9a3008e66c3698c84b3a2163085476a68f29290958d6c3b76a",
+          "actual": "sha256:42878361afe51c9a3008e66c3698c84b3a2163085476a68f29290958d6c3b76a",
+          "machine_field": "VisualProjectionRecord.image_hash"
+        },
+        {
+          "check_id": "renderer-version",
+          "description": "Mechanical SVG renderer version matches the installed CAD tool",
+          "status": "match",
+          "expected": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+          "actual": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+          "machine_field": "VisualProjectionRecord.renderer.tool_version; cad_tool_version()"
+        },
+        {
+          "check_id": "step-input-hash",
+          "description": "Mechanical projection input matches the normalized assembly STEP",
+          "status": "match",
+          "expected": "sha256:c413038f46c28f228cf784849b3a9cd87ffe7b18badcb1a0f45c91d7eecfe377",
+          "actual": "sha256:c413038f46c28f228cf784849b3a9cd87ffe7b18badcb1a0f45c91d7eecfe377",
+          "machine_field": "VisualProjectionRecord.input_files[0].content_hash"
+        },
+        {
+          "check_id": "section-plane",
+          "description": "Mechanical projection uses the declared XY section plane",
+          "status": "match",
+          "expected": "xy",
+          "actual": "xy",
+          "machine_field": "VisualProjectionRecord.section_plane_id"
+        },
+        {
+          "check_id": "section-offset",
+          "description": "Mechanical projection section offset matches the declared offset",
+          "status": "match",
+          "expected": "4.0",
+          "actual": "4.0",
+          "machine_field": "VisualProjectionRecord.section_offset_mm; MechanicalLane.enclosure.wall_thickness_mm/standoff_height_mm"
+        },
+        {
+          "check_id": "svg-layer-names",
+          "description": "Mechanical SVG layer identifiers match the declared view layers",
+          "status": "match",
+          "expected": "section",
+          "actual": "section",
+          "machine_field": "SVG.root.g[*].id"
+        }
+      ],
+      "status": "match"
+    }
+  ],
+  "review_items": [
+    {
+      "item_id": "review-readability",
+      "aspect": "readability",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Mechanical SVG geometry cannot deterministically establish readability.",
+      "observation": null
+    },
+    {
+      "item_id": "review-design-intent",
+      "aspect": "design_intent",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Mechanical SVG bytes cannot deterministically establish design-intent fidelity.",
+      "observation": null
+    },
+    {
+      "item_id": "review-annotations",
+      "aspect": "annotations",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Mechanical SVG annotations require visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-units",
+      "aspect": "units",
+      "verification": "deterministic",
+      "status": "match",
+      "basis": "SVG root width and height unit checks.",
+      "observation": null
+    },
+    {
+      "item_id": "review-axis",
+      "aspect": "axis",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Mechanical section axis orientation requires visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-origin",
+      "aspect": "origin",
+      "verification": "deterministic",
+      "status": "match",
+      "basis": "Centered CAD SVG viewBox origin check.",
+      "observation": null
+    },
+    {
+      "item_id": "review-section-plane",
+      "aspect": "section_plane",
+      "verification": "deterministic",
+      "status": "match",
+      "basis": "Declared XY section plane check.",
+      "observation": null
+    },
+    {
+      "item_id": "review-occlusion",
+      "aspect": "occlusion",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Overlapping or hidden mechanical visual elements require visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-interference-visibility",
+      "aspect": "interference_visibility",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Interference visibility requires visual observation.",
+      "observation": null
+    }
+  ],
+  "status": "match",
+  "canonical_hash": "sha256:be76d85c2cbfd46e007cd242523c782284516624ba5e44856636827c3583efaf",
+  "identity_hash": "sha256:ba1b44c9c3d58e617cb7207073ddac16973d93f37163e47c678378b7a8643244",
+  "generated_at": "2026-08-20T00:42:17.708967Z"
+}

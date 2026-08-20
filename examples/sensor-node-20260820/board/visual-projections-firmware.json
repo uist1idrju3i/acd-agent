@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-firmware-sequence",
+      "projection_type": "firmware_sequence_view",
+      "domain": "firmware",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/sensor-node/graph.json",
+          "content_hash": "sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "175mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          175.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:57adeca72f6183e5d92c6848df655b64a3c939a82ae7f6af1b127288ce80e4ab",
+      "generated_at": "2026-08-20T00:41:52.132819Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:57adeca72f6183e5d92c6848df655b64a3c939a82ae7f6af1b127288ce80e4ab",
+        "second_image_hash": "sha256:57adeca72f6183e5d92c6848df655b64a3c939a82ae7f6af1b127288ce80e4ab",
+        "reason": null
+      },
+      "image_path": "visual/gd1-firmware-sequence.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-firmware-state",
+      "projection_type": "firmware_state_view",
+      "domain": "firmware",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/sensor-node/graph.json",
+          "content_hash": "sha256:683e74ef9f579f9a41788ef7102b965c29e8f292bbb72b71d9022a403d7bb30a"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "134mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          134.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:3c2251eeed00c53f4877f19d2bf843d5c96d478dfca3a568c537bdee9ff000d3",
+      "generated_at": "2026-08-20T00:41:52.131951Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:3c2251eeed00c53f4877f19d2bf843d5c96d478dfca3a568c537bdee9ff000d3",
+        "second_image_hash": "sha256:3c2251eeed00c53f4877f19d2bf843d5c96d478dfca3a568c537bdee9ff000d3",
+        "reason": null
+      },
+      "image_path": "visual/gd1-firmware-state.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:20d8179b567f09902387a509ce1cecd36d9b29a0f7cde9948b024b9bd6cabf4d",
+  "canonical_hash": "sha256:5ad4295ba2891c9d006c3224cb5de6b4add001e95960ea0bd98010b56b983004"
+}
