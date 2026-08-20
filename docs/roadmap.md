@@ -474,6 +474,7 @@ FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合�
 | SKILL triggerとACD ToolDefinition会話登録条件・doctor診断の見直し | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | 実運用語彙でacd-qc-seven-tools / acd-reliability-reviewを活性化できるtriggerへ見直し、会話へのACD ToolDefinition登録条件を文書化し、登録有無をdoctorで診断する | 未着手 |
 | hook遮断（UserRejectObservation）の要約自動集計 | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | hookによる遮断理由を実行レポートへ自動集計し、振り返り可能な要約を残す | 未着手 |
 | リリース手順のdocs化 | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | タグ作成権限・ruleset、GH013時の対応、実行例リンク中心のリリースノート、Release assetsを添付しない方針を運用手順へ記録する | 未着手 |
+| GD1と実体が異なる設計での実行例作成 | 追検証 | 要件を変えた実行例で設計動作を確認する | 未着手 |
 
 上記のimage同梱には、imageサイズ増加、publish時間の増加、digestの再lock、
 ADR-0028のprovenance更新が伴う。ただし、閾値やゲート挙動の変更ではない。

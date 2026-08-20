@@ -70,3 +70,29 @@ DFMは14ルールが `checks_not_implemented`（pad-to-track、slot類、solderm
 ## 6. 結論
 
 製造データ・Evidence・トレーサビリティの品質は高く、JLCPCB投入ファイルはそのまま使える状態。最優先の改善は **4.1 視覚射影SVGのfont-size**（README表示が実際に壊れて見える）で、次いで 4.2/4.3 の可読性改善、5 のSKILL trigger/tool登録の見直しを推奨。
+
+## 7. 追検証: 設計同一性（2026-08-20）
+
+同じ要件からagentが新規設計を行ったかを確認するため、GD1 fixtureと
+`examples/sensor-node-20260820/`の設計入力・基板成果物を比較した。確認結果は次のとおり。
+
+- `fixture/graph.json`と`fixtures/golden-design-1/graph.json`の差分は18行で、すべて
+  `graph_id`とノードIDのリネームだった。その他の属性、座標、ネット、部品に実体差分はなかった。
+- `gd1.kicad_pcb`はsha256
+  `1c8a5f306157d2afabaa5129e14f170080f82ddff6c5ff1323b644a93e634e89`で完全一致した。
+- ガーバ9/9ファイルはrawバイト列では不一致だったが、差分は`TF.CreationDate`、
+  `Created by KiCad ... date`、drillの`; #@! TF.CreationDate`などの生成日時だけだった。
+  生成日時を正規化すると9/9ファイルが一致したため、座標・パッド・配線・層データの
+  実体差分は確認されなかった。
+- 上記の再生成はlock済みserver image
+  `sha256:cc605baff68b8d2648d208fe6c29dee57bd418b3e3da7c5f3837708a14792f3b`を
+  DockerWorkspaceで使用し、基板pipelineはauthoritative container executionとして
+  `PIPELINE PASSED`になった。
+- シルクの基板ID（`mechanical.silk_text.board_id`）は`golden-design-1-r1`のままだった。
+
+したがって、この実行例はpipelineとauthoritative Evidence生成が実機で動作した証拠では
+あるが、agentが新規設計を行った証拠ではない。既知の4.6の命名不整合
+（出力prefixとevidenceの`subject_node`が`gd1`固定）はこの判定と矛盾せず、成果物名ではなく
+設計入力と生成物の内容を比較して判断した。設計動作を確認するには要件を変える必要があり、
+判定手順は[`design-requirement-variation.md`](../../../docs/design-requirement-variation.md)
+に記録する。
