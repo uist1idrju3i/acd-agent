@@ -52,6 +52,10 @@ agent-server package、REST/WebSocket API、server側のresume/forkは
 採用する場合は認証・権限・Evidence境界の受入条件を定義した新規ADRを起票する。
 Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gateの代替にはしない。
 
+設計述語の契約が特定のnet名・refdesを前提としているため、GD1以外のトポロジは現状の
+ゲートに到達できない（14.2）。また、Skill scriptのpinned refが実装より古く、
+FW laneはGD1 fixtureでも停止する（14.1）。
+
 ## 現行実装計画
 
 | 順 | マイルストーン | 達成条件 | 現状 |
@@ -452,42 +456,6 @@ FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合�
 8.6は3段で実装する。配置図とstackup図、ブロック図と電源ツリー図、FWの状態遷移・シーケンス図
 （機械可読宣言の追加を含む）の順であり、本節の完了条件は3段すべての実装で満たす。
 
-## 改善バックログ（2026-08-20 実行例とレビューからの反映）
-
-実行例で得た改善メモ（[`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)）
-とレビュー所見（[`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)）から、
-実装・運用へ反映する項目を次のバックログとして記録する。いずれも計画・注記であり、
-現行の閾値、ゲート挙動、fail-closed境界を変更または緩和するものではない。
-
-| 項目 | 出所 | 対応方針 | 状態 |
-|---|---|---|---|
-| 視覚投影SVGへのviewBox相対font-size付与（placement / power-tree / system-block / fw-state / fw-sequence） | レビュー | マイルストーン8 rendererを改善し、viewBoxに対して可読な相対font-sizeを付与する | 達成 |
-| KiCad由来SVG（f-cu / b-cu / schematic）のfit-to-board化 | レビュー | 用紙全面プロットで基板が極小表示される問題を解消するrendererまたは後処理を実装する | 達成 |
-| 回路図投影の可読性向上 | レビュー | 機能ブロック配置と主要配線を描画するか、ネットラベル接続方式である旨を投影へ注記する | 達成 |
-| 出力ファイルprefixとevidence subject_nodeのgraph_id由来化 | 改善メモ／レビュー | `gd1`固定を解消し、出力命名とEvidenceの対象nodeを入力graphから導出する | 達成 |
-| ToolEnvelopeの`exit_code`のツール別意味論の文書化 | レビュー | kicad-cli ERC/DRCは違反件数由来で非ゼロになりうることを記録し、statusと混同しない説明を追加する | 未着手 |
-| order-readiness `ready`の定義へのCPL実装基準の明示 | レビュー | position/rotation basisについてfab側目視確認を前提とすることをreadyの定義へ明記する | 未着手 |
-| fixture複製ヘルパと組立手順のdocs化 | 改善メモ | libraries/overlays込みで新規fixtureを組み立てるヘルパと手順を追加する | 未着手 |
-| FW pipelineのhost前提の`/acd:doctor`診断化 | 改善メモ | QEMU PATH、libslirp0、SDL2系ライブラリを診断項目へ追加する | 未着手 |
-| 実行時clone不要化（locked imageへのacd本体・scripts・fixture同梱） | セッション分析／ユーザー要望 | authoritative経路はimage内のacd本体・pipeline scripts・fixtureだけで完結させ、DockerWorkspace起動のみで実行可能にする。リポジトリcloneは開発時のみ必要とする | 達成 |
-| ESP-IDF・QEMU実行環境のlocked image同梱 | セッション分析／ユーザー要望 | ESP-IDF v5.3.1、Espressif QEMU 9.2.2、libslirp0、SDL2系ライブラリ、PATH設定を同梱し、FW laneをcontainer経路で実行可能にする | 達成 |
-| Python依存のprebake | セッション分析／ユーザー要望 | cadquery-ocp等の巨大wheelを含む依存を事前解決したvenv／uvキャッシュをimageへ同梱し、起動高速化とネットワーク非依存の再現性を得る | 達成 |
-| fonts-noto-cjkの同梱 | セッション分析／ユーザー要望 | 視覚投影の日本語描画とSVG→PNG派生hashの安定化のためCJKフォントを固定同梱する | 達成 |
-| ccacheの同梱 | セッション分析／ユーザー要望 | ESP-IDF再ビルドを高速化する | 達成 |
-| KiCad 3Dモデルの選択的同梱 | セッション分析／ユーザー要望 | 設計で使用する部品の3Dモデルのみを単一imageへ同梱し、部品込みSTEP表現を可能にする。フル同梱（kicad-packages3d 約6GB）とimage分割はdigest管理・再現性・CI運用の複雑化を伴うため将来判断とする | 未着手 |
-| host EDA不在時のdoctor誘導 | 改善メモ | doctor出力へlocked image + DockerWorkspaceの推奨経路への誘導リンクを追加する | 達成 |
-| OpenHands Local GUI APIのトークン発行手順のdocs化 | 改善メモ | トンネル越しcurlがUnauthorizedとなる制約を踏まえ、自動化検証に必要なGUI経由のトークン取得手順を記録する | 未着手 |
-| FW出力命名の改善（`acd_gd1_fw`ディレクトリを含む） | 改善メモ | FW成果物の固定名と`acd_gd1_fw`固定ディレクトリ名を解消し、graph_idを出力名へ反映する | 達成 |
-| pipelineログの要約出力（入力トークン削減） | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | pipelineログのtail既定化など、再取り込み量を削減する要約出力を実装する | 未着手 |
-| SKILL triggerとACD ToolDefinition会話登録条件・doctor診断の見直し | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | 実運用語彙でacd-qc-seven-tools / acd-reliability-reviewを活性化できるtriggerへ見直し、会話へのACD ToolDefinition登録条件を文書化し、登録有無をdoctorで診断する | 達成 |
-| hook遮断（UserRejectObservation）の要約自動集計 | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | hookによる遮断理由を実行レポートへ自動集計し、振り返り可能な要約を残す | 達成 |
-| リリース手順のdocs化 | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | タグ作成権限・ruleset、GH013時の対応、実行例リンク中心のリリースノート、Release assetsを添付しない方針を運用手順へ記録する | 未着手 |
-| GD1と実体が異なる設計での実行例作成 | 追検証 | 要件を変えた実行例で設計動作を確認する | 未着手 |
-| Skill script pinned refのskew検出（現状FW laneが停止する） | 設計演習（`compact-sensor-node-1`） | refの陳腐化をCIと`/acd:doctor`で検出し、pinned `acd`をlocked imageへ事前導入して実行時のgit解決を不要にする（[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md) H節） | 未着手 |
-
-上記のimage同梱には、imageサイズ増加、publish時間の増加、digestの再lock、
-ADR-0028のprovenance更新が伴う。ただし、閾値やゲート挙動の変更ではない。
-
 ## マイルストーン9: 生成文書lane（SKILL拡張）
 
 成果物公開・品質保証・レビューに使う文書を、設計入力・投影・ゲート結果・Evidenceから
@@ -593,6 +561,68 @@ unknownと答え、推測で補完しない。会話ログは内部向けQAの�
 | 13.5 | 作業指示書・検査手順生成 | 対象個体、必要部品・工具、作業手順、該当箇所を強調した視覚投影、作業後の検査項目と期待値を生成する。検査項目は出荷検査文書生成SKILLと同じ知識源（graph・ゲート閾値・FW投影）から導出し、出所のない基準を作らない。生成文書はマイルストーン9のprovenance規則に従い`out/docs/`へ格納する |
 | 13.6 | 個体トレーサビリティとWA廃止条件 | どの個体にどのワークアラウンドを適用したかを追跡可能な記録として残し、次revisionで当該不具合が構造的に解消されたことをゲート結果で確認できた時点をWA廃止条件として定義する。ECOワークフロー（拡張候補バックログE）と対応付ける |
 
+## マイルストーン14: VibeBB単体成立（会話駆動の設計反復）
+
+汎用エージェントの代行なしで、会話から設計反復を開始し、候補生成・検証・失敗からの
+回復までを回せる状態を目指す。L1権限は決定論的ゲートのままとし、不変条件、
+fail-closed境界、L1権限の範囲は変更しない。各項目の観測根拠と詳細は
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)を正とする。
+
+| 順 | フェーズ | 内容 |
+|---|---|---|
+| 14.1 | Skill package refのskew解消（H-1〜H-5） | refの陳腐化をCIと`/acd:doctor`で検出し、pinned `acd`をlocked imageへ事前導入して実行時のgit・ネットワーク依存を除く。CIでSkill scriptをfixtureに対し実行し、pinned `acd`でgraphが読めることを検査する。現状はFW laneがGD1 fixtureでも停止する |
+| 14.2 | 設計述語の適用条件宣言と機能ブロック契約registry（J-1〜J-3） | 宣言された機能ブロックに対応する述語だけを必須にし、新トポロジの追加を述語コード改変ではなく契約追加で行えるようにする。fab profileを複数持てるようにする。fail-closed境界は維持し、「検証不能」と「機能を持たない」を区別する |
+| 14.3 | 失敗理由の構造化とゲートの前倒し評価（B-3、B-4、K-3） | 未配線netとpad対などの失敗理由を機械可読Evidenceとして返し、配置のみで判定できる述語をrouter実行前に評価する。利用者向けに変更可能な次元と現在の余裕を含む形で提示する |
+| 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | 部品配置・回転とGPIO割当の探索、機能グループの結合制約、機構寸法の単一datum化、stitch via候補が全滅した島のfallback、探索対象とする設計自由度の宣言、`stitch_candidate_report`の常時保存 |
+| 14.5 | 要件→graphの変換と任意設計fixture（A-1〜A-5、I-2） | 会話由来の要件レコード化、任意設計向けfixtureビルダー、要件差分からgraph差分（接続・FWピン・テストポイント・シルク・rationale）を同時更新するcompiler、部品選定とlibrary provenance、回路トポロジ合成、agent向けtool（FW pipeline、fixture編集、発注、失敗診断）の網羅 |
+| 14.6 | gd1固定の解消と発注laneの汎用化（I-3〜I-5、E-5） | workspace既定値、生成物名・`part_number`、`order_policy`の必須evidence anchorをgraph_id由来にし、GD1以外の設計がorder-readyに到達できるようにする |
+| 14.7 | 実行時間と再開性（E-1〜E-4、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録 |
+| 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する |
+| 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合 |
+
+C-1〜C-4（筐体の干渉解決探索、FWのgraph駆動化、FW整合gate、CPL orientation期待値の
+fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
+マイルストーン11・5・7の範囲で扱う。
+
+以下の3節は、実行例とレビューからの改善メモ、追加SKILL候補、現行計画と将来構想が
+未カバーの拡張候補をそれぞれ記録する。VibeBB単体化に関する項目はマイルストーン14で
+扱う。
+
+## 改善バックログ（2026-08-20 実行例とレビューからの反映）
+
+実行例で得た改善メモ（[`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)）
+とレビュー所見（[`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)）から、
+実装・運用へ反映する項目を次のバックログとして記録する。いずれも計画・注記であり、
+現行の閾値、ゲート挙動、fail-closed境界を変更または緩和するものではない。
+
+| 項目 | 出所 | 対応方針 | 状態 |
+|---|---|---|---|
+| 視覚投影SVGへのviewBox相対font-size付与（placement / power-tree / system-block / fw-state / fw-sequence） | レビュー | マイルストーン8 rendererを改善し、viewBoxに対して可読な相対font-sizeを付与する | 達成 |
+| KiCad由来SVG（f-cu / b-cu / schematic）のfit-to-board化 | レビュー | 用紙全面プロットで基板が極小表示される問題を解消するrendererまたは後処理を実装する | 達成 |
+| 回路図投影の可読性向上 | レビュー | 機能ブロック配置と主要配線を描画するか、ネットラベル接続方式である旨を投影へ注記する | 達成 |
+| 出力ファイルprefixとevidence subject_nodeのgraph_id由来化 | 改善メモ／レビュー | `gd1`固定を解消し、出力命名とEvidenceの対象nodeを入力graphから導出する | 達成 |
+| ToolEnvelopeの`exit_code`のツール別意味論の文書化 | レビュー | kicad-cli ERC/DRCは違反件数由来で非ゼロになりうることを記録し、statusと混同しない説明を追加する | 未着手 |
+| order-readiness `ready`の定義へのCPL実装基準の明示 | レビュー | position/rotation basisについてfab側目視確認を前提とすることをreadyの定義へ明記する | 未着手 |
+| fixture複製ヘルパと組立手順のdocs化 | 改善メモ | libraries/overlays込みで新規fixtureを組み立てるヘルパと手順を追加する（14.5） | 未着手 |
+| FW pipelineのhost前提の`/acd:doctor`診断化 | 改善メモ | QEMU PATH、libslirp0、SDL2系ライブラリを診断項目へ追加する（14.8） | 未着手 |
+| 実行時clone不要化（locked imageへのacd本体・scripts・fixture同梱） | セッション分析／ユーザー要望 | authoritative経路はimage内のacd本体・pipeline scripts・fixtureだけで完結させ、DockerWorkspace起動のみで実行可能にする。リポジトリcloneは開発時のみ必要とする | 達成 |
+| ESP-IDF・QEMU実行環境のlocked image同梱 | セッション分析／ユーザー要望 | ESP-IDF v5.3.1、Espressif QEMU 9.2.2、libslirp0、SDL2系ライブラリ、PATH設定を同梱し、FW laneをcontainer経路で実行可能にする | 達成 |
+| Python依存のprebake | セッション分析／ユーザー要望 | cadquery-ocp等の巨大wheelを含む依存を事前解決したvenv／uvキャッシュをimageへ同梱し、起動高速化とネットワーク非依存の再現性を得る | 達成 |
+| fonts-noto-cjkの同梱 | セッション分析／ユーザー要望 | 視覚投影の日本語描画とSVG→PNG派生hashの安定化のためCJKフォントを固定同梱する | 達成 |
+| ccacheの同梱 | セッション分析／ユーザー要望 | ESP-IDF再ビルドを高速化する | 達成 |
+| KiCad 3Dモデルの選択的同梱 | セッション分析／ユーザー要望 | 設計で使用する部品の3Dモデルのみを単一imageへ同梱し、部品込みSTEP表現を可能にする。フル同梱（kicad-packages3d 約6GB）とimage分割はdigest管理・再現性・CI運用の複雑化を伴うため将来判断とする | 未着手 |
+| host EDA不在時のdoctor誘導 | 改善メモ | doctor出力へlocked image + DockerWorkspaceの推奨経路への誘導リンクを追加する | 達成 |
+| OpenHands Local GUI APIのトークン発行手順のdocs化 | 改善メモ | トンネル越しcurlがUnauthorizedとなる制約を踏まえ、自動化検証に必要なGUI経由のトークン取得手順を記録する | 未着手 |
+| FW出力命名の改善（`acd_gd1_fw`ディレクトリを含む） | 改善メモ | FW成果物の固定名と`acd_gd1_fw`固定ディレクトリ名を解消し、graph_idを出力名へ反映する | 達成 |
+| pipelineログの要約出力（入力トークン削減） | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | pipelineログのtail既定化など、再取り込み量を削減する要約出力を実装する | 未着手 |
+| SKILL triggerとACD ToolDefinition会話登録条件・doctor診断の見直し | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | 実運用語彙でacd-qc-seven-tools / acd-reliability-reviewを活性化できるtriggerへ見直し、会話へのACD ToolDefinition登録条件を文書化し、登録有無をdoctorで診断する | 達成 |
+| hook遮断（UserRejectObservation）の要約自動集計 | レビュー／[session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | hookによる遮断理由を実行レポートへ自動集計し、振り返り可能な要約を残す | 達成 |
+| リリース手順のdocs化 | [session-analysis.md](../examples/sensor-node-20260820/report/session-analysis.md) | タグ作成権限・ruleset、GH013時の対応、実行例リンク中心のリリースノート、Release assetsを添付しない方針を運用手順へ記録する | 未着手 |
+| GD1と実体が異なる設計での実行例作成 | 追検証 | 要件を変えた実行例で設計動作を確認する。2026-08-20の設計演習ではSkill pinned refのskew（14.1）とGD1トポロジ前提のゲート契約（14.2）により完走できず、両者の解決が前提となる | 着手（未達） |
+
+上記のimage同梱には、imageサイズ増加、publish時間の増加、digestの再lock、
+ADR-0028のprovenance更新が伴う。ただし、閾値やゲート挙動の変更ではない。
+
 ## 追加SKILL候補（バックログ）
 
 | 項目 | 対応方針 |
@@ -641,7 +671,7 @@ unknownと答え、推測で補完しない。会話ログは内部向けQAの�
 
 | 項目 | 対応方針 |
 |---|---|
-| `acd init`ウィザード | fixture複製ヘルパ（改善バックログ）を一般化し、graph・rationale・libraries・overlaysの新規プロジェクト雛形を対話的に生成する |
+| `acd init`ウィザード | fixture複製ヘルパ（改善バックログ）を一般化し、graph・rationale・libraries・overlaysの新規プロジェクト雛形を対話的に生成する（14.8、G-1と重複） |
 | GitHub Actions統合 | 設計変更PRへゲート結果・Evidence要約を自動コメントする。コメントはL3提示であり合否権限を持たない |
 | 視覚投影の自動品質検査 | 8.4のvision経路で投影の可読性（文字の重なり、極小表示、コントラスト）をL2所見として検出する。今回のfont-size問題の再発防止に対応する |
 | トークン・コスト予算ガード | セッションのトークン消費・実行時間をL2で監視し、予算超過を警告する（実行の強制停止はhook側の判断とする） |

@@ -1,6 +1,7 @@
 # VibeBBをacd-agent単体で実現するための機能ギャップ一覧
 
 本書は、`compact-sensor-node-1`の設計演習から得た改善提案（実装計画）である。
+ロードマップ上は[`roadmap.md`](roadmap.md)のマイルストーン14に位置付ける。
 VibeBBの体験ループは[`README.md`](../README.md)の定義に従い、
 「語る → AIが設計し決定論的ゲートで検証する → 作って試す → 測定結果を次の設計へ返す」
 である。ここで言う「acd-agent単体」は、**設計判断の探索と収束をacd-agent側
