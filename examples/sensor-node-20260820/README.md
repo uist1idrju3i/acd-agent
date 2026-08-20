@@ -11,6 +11,8 @@ Golden Design #1（GD1）を参考モデルとして、小規模製品「ESP32-C
   をDockerWorkspaceで実行（authoritative経路）
 - 詳細レポート: [`report/devin-report.md`](report/devin-report.md)
 - 気づき・改善提案: [`report/improvement-notes.md`](report/improvement-notes.md)
+- セッション分析: [`report/session-analysis.md`](report/session-analysis.md)
+- レビュー所見: [`report/review-notes.md`](report/review-notes.md)
 
 注記: 出力ファイル名のprefixおよびevidenceの`subject_node`は`gd1`固定だが、
 中身は`sensor-node`設計（graph_id=`sensor-node`, revision=`r1`）である。
@@ -24,7 +26,7 @@ Golden Design #1（GD1）を参考モデルとして、小規模製品「ESP32-C
 | [`enclosure/`](enclosure/) | 筐体pipeline出力一式（STEP×3・3MF・Evidence・視覚射影） |
 | [`firmware/`](firmware/) | FW pipeline出力（生成FWプロジェクトのソース、`flash.bin`、QEMUシリアルログ、summary）。ESP-IDFの`build/`ツリーはサイズとライセンスの観点から除外 |
 | [`conversation/`](conversation/) | OpenHands Local GUIからエクスポートした会話ログ（Markdown＋raw export zip） |
-| [`report/`](report/) | 詳細レポート・成果物マニフェスト・改善メモ |
+| [`report/`](report/) | 詳細レポート・成果物マニフェスト・改善メモ・セッション分析・レビュー所見 |
 
 ## JLCPCB発注時にアップロードするファイル（この3点のみ）
 

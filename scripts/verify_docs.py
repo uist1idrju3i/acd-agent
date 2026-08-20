@@ -12,6 +12,9 @@ Checks all tracked Markdown files (excluding vendor/) for:
 6. Glossary terms are not defined twice.
 7. `git diff --check` reports no whitespace errors.
 
+Generated conversation exports under `examples/*/conversation/` are excluded because
+they are byte-exact artifacts rather than human-maintained documentation.
+
 Unknown or unverifiable states are treated as failures (fail-closed).
 Exit code 0 means all checks passed.
 """
@@ -46,6 +49,7 @@ MERMAID_DIAGRAM_TYPES = (
     "requirementDiagram",
 )
 
+EXCLUDED_MARKDOWN_PATTERNS = ("examples/*/conversation/*.md",)
 FENCE_RE = re.compile(r"^(\s*)(```+|~~~+)(.*)$")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 INLINE_LINK_RE = re.compile(r"!?\[(?:[^\]\[]|\[[^\]]*\])*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
@@ -53,6 +57,13 @@ INLINE_CODE_RE = re.compile(r"`([^`]+)`")
 
 
 def list_markdown_files() -> list[Path]:
+    """List tracked Markdown docs, excluding generated conversation artifacts.
+
+    Conversation exports match ``examples/*/conversation/*.md`` and are
+    byte-exact generated artifacts, not human-maintained documentation. They
+    are excluded so the checks remain focused without weakening validation of
+    maintained Markdown files.
+    """
     out = subprocess.run(
         ["git", "ls-files", "*.md", "**/*.md"],
         cwd=REPO_ROOT,
@@ -64,6 +75,8 @@ def list_markdown_files() -> list[Path]:
     for line in out.stdout.splitlines():
         path = Path(line)
         if path.parts and path.parts[0] in EXCLUDED_DIRS:
+            continue
+        if any(path.match(pattern) for pattern in EXCLUDED_MARKDOWN_PATTERNS):
             continue
         files.append(REPO_ROOT / path)
     if not files:
