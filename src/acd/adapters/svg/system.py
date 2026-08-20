@@ -8,12 +8,14 @@ from typing import ClassVar, Literal, get_args
 
 from acd.adapters.svg.common import (
     ACD_SVG_RENDERER_VERSION,
+    DIAGRAM_FONT_SIZE_RATIO,
     SvgVisualProjectionError,
     escape_xml,
     format_svg_number,
     input_records,
     render_svg_projection,
     slugify_identifier,
+    view_box_font_size,
 )
 from acd.core.electrical import ElectricalLane, NetView
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
@@ -22,6 +24,9 @@ from acd.schema.visual_projection import (
     VisualProjectionRecord,
     VisualProjectionSet,
 )
+
+# Both system projections are laid out on a fixed 240-unit wide viewBox.
+_DIAGRAM_VIEW_BOX_WIDTH = 240.0
 
 _KNOWN_NODE_KINDS = frozenset(get_args(NodeKind))
 _BLOCK_DRAW_KINDS = frozenset(
@@ -121,6 +126,7 @@ def _block_svg(graph: DesignGraph) -> bytes:
         for index, node in enumerate(ordered)
     }
     height = max(70.0, 50.0 + math.ceil(len(ordered) / 3) * 28.0)
+    font_size = view_box_font_size(_DIAGRAM_VIEW_BOX_WIDTH, ratio=DIAGRAM_FONT_SIZE_RATIO)
     chunks = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="240mm" '
         f'height="{format_svg_number(height)}mm" '
@@ -155,10 +161,13 @@ def _block_svg(graph: DesignGraph) -> bytes:
                     'width="44" height="16" fill="none" stroke="#000"/>',
                     f'<text id="block-label-{identifier}" '
                     f'x="{format_svg_number(x + 2)}" '
-                    f'y="{format_svg_number(y + 6)}">{escape_xml(node.id)}</text>',
+                    f'y="{format_svg_number(y + 6)}" '
+                    f'font-size="{format_svg_number(font_size)}">'
+                    f"{escape_xml(node.id)}</text>",
                     f'<text id="block-kind-label-{identifier}" '
                     f'x="{format_svg_number(x + 2)}" '
-                    f'y="{format_svg_number(y + 12)}">'
+                    f'y="{format_svg_number(y + 12)}" '
+                    f'font-size="{format_svg_number(font_size)}">'
                     f"{escape_xml(node.kind)}</text>",
                     "</g>",
                 ]
@@ -238,6 +247,7 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
     nets = _power_nets(lane)
     row_height = 30.0
     height = 30.0 + len(nets) * row_height
+    font_size = view_box_font_size(_DIAGRAM_VIEW_BOX_WIDTH, ratio=DIAGRAM_FONT_SIZE_RATIO)
     chunks = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="240mm" '
         f'height="{format_svg_number(height)}mm" '
@@ -256,14 +266,19 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                 f'x="10" y="{format_svg_number(y)}" width="46" height="14" '
                 'fill="none" stroke="#000"/>',
                 f'<text id="power-source-label-{net_identifier}" x="12" '
-                f'y="{format_svg_number(y + 8)}">{escape_xml(source_id)}</text>',
+                f'y="{format_svg_number(y + 8)}" '
+                f'font-size="{format_svg_number(font_size)}">'
+                f"{escape_xml(source_id)}</text>",
                 f'<rect id="power-net-box-{net_identifier}" x="92" '
                 f'y="{format_svg_number(y)}" width="56" height="14" '
                 'fill="none" stroke="#000"/>',
                 f'<text id="power-net-label-{net_identifier}" x="94" '
-                f'y="{format_svg_number(y + 6)}">{escape_xml(net.name)}</text>',
+                f'y="{format_svg_number(y + 6)}" '
+                f'font-size="{format_svg_number(font_size)}">'
+                f"{escape_xml(net.name)}</text>",
                 f'<text id="power-voltage-label-{net_identifier}" x="94" '
-                f'y="{format_svg_number(y + 11)}">'
+                f'y="{format_svg_number(y + 11)}" '
+                f'font-size="{format_svg_number(font_size)}">'
                 f"{net.voltage_nominal_v} V</text>",
                 f'<line id="power-edge-source-{net_identifier}-'
                 f'{source_identifier}" x1="56" '
@@ -282,7 +297,8 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                     'fill="none" stroke="#000"/>',
                     f'<text id="power-load-label-{net_identifier}-'
                     f'{load_identifier}" x="176" '
-                    f'y="{format_svg_number(load_y + 8)}">'
+                    f'y="{format_svg_number(load_y + 8)}" '
+                    f'font-size="{format_svg_number(font_size)}">'
                     f"{escape_xml(load_id)}</text>",
                     f'<line id="power-edge-load-{net_identifier}-'
                     f'{load_identifier}" x1="148" '

@@ -548,6 +548,15 @@ def _docker_check() -> dict[str, Any]:
     )
 
 
+CONTAINER_ROUTE_GUIDANCE = (
+    "Run gates through the locked image instead: resolve the digest from "
+    "docker/image-digests.json and execute 'uv run python scripts/run_in_workspace.py "
+    '--image <digest-pinned-ref> --source bundled "uv run python '
+    "scripts/run_gd1_pipeline.py\"'. See docs/operations.md and docker/README.md for the "
+    "DockerWorkspace route."
+)
+
+
 def _eda_check() -> dict[str, Any]:
     probes = {
         "kicad-cli": (["version"], r"([0-9]+\.[0-9]+\.[0-9]+)", False),
@@ -568,6 +577,11 @@ def _eda_check() -> dict[str, Any]:
         "build123d / cadquery-ocp are not probed from this isolated script; "
         "scripts/probe_tools.py is authoritative for the application tool probe."
     )
+    if missing:
+        detail += (
+            " A missing host EDA tool stops the host lane fail-closed. "
+            f"{CONTAINER_ROUTE_GUIDANCE}"
+        )
     result = "pass"
     observed_version = ", ".join(
         f"{tool}={version or 'unavailable'}" for tool, version in observations.items()
@@ -760,6 +774,91 @@ def _hook_root_resolution_check(plugin_root: Path) -> dict[str, Any]:
     )
 
 
+def _tool_registration_check(plugin_root: Path) -> dict[str, Any]:
+    """Diagnose whether agent definitions match the ACD tool registration surface.
+
+    Conversations see ACD tools only when ``register_acd_tools()`` has run in the
+    conversation process and the agent definition declares the registered names.
+    This check compares the declared names against the manifest asset generated
+    from the code contract; scripts/verify_acd_tool_registration.py --check is
+    authoritative for the live SDK registry.
+    """
+    manifest_path = plugin_root / ".plugin" / "acd-tool-definitions.json"
+    try:
+        document = _read_json(manifest_path)
+        if not isinstance(document, dict):
+            raise ValueError("manifest root is not an object")
+        document = cast(dict[str, Any], document)
+        entry_point = document["entry_point"]
+        tools = document["tools"]
+        if not isinstance(entry_point, str) or not isinstance(tools, list):
+            raise ValueError("entry_point or tools is invalid")
+        tool_names = {
+            cast(dict[str, Any], tool)["tool_name"]
+            for tool in cast(list[Any], tools)
+            if isinstance(tool, dict)
+        }
+        if len(tool_names) != len(cast(list[Any], tools)) or not tool_names:
+            raise ValueError("tool names are missing or duplicated")
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        return _check(
+            "ACD tool registration",
+            True,
+            "unknown",
+            f"{_relative(manifest_path, plugin_root)} could not be inspected: {exc}",
+        )
+    agents = sorted((plugin_root / "agents").glob("acd-*.md"))
+    if not agents:
+        return _check(
+            "ACD tool registration",
+            True,
+            "fail",
+            "agents/acd-*.md: no agent definition found",
+        )
+    errors: list[str] = []
+    declaring_agents = 0
+    for agent in agents:
+        try:
+            declared = _front_matter_list(agent.read_text(encoding="utf-8"), "tools")
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            errors.append(f"{_relative(agent, plugin_root)}: {exc}")
+            continue
+        acd_tools = [name for name in declared if name.startswith("acd_")]
+        if acd_tools:
+            declaring_agents += 1
+        unknown = sorted(set(acd_tools) - tool_names)
+        if unknown:
+            errors.append(
+                f"{_relative(agent, plugin_root)}: declares ACD tools that "
+                f"{entry_point} never registers: {', '.join(unknown)}"
+            )
+    if declaring_agents == 0:
+        errors.append(
+            "no agent definition declares an ACD tool, so conversations reach the "
+            "deterministic entrypoints through terminal only"
+        )
+    if errors:
+        return _check("ACD tool registration", True, "fail", "; ".join(errors))
+    return _check(
+        "ACD tool registration",
+        True,
+        "pass",
+        f"{len(tool_names)} ACD tool name(s) registered by {entry_point} and declared by "
+        f"{declaring_agents} agent definition(s); a conversation must call {entry_point} "
+        "and use the ACD AgentDefinition for these tools to appear. "
+        "scripts/verify_acd_tool_registration.py --check is authoritative for the live "
+        "SDK registry.",
+        ", ".join(sorted(tool_names)),
+    )
+
+
 def _store_check(plugin_root: Path) -> dict[str, Any]:
     store = Path.home() / ".openhands" / "plugins" / "installed"
     try:
@@ -809,6 +908,7 @@ def diagnose() -> dict[str, Any]:
         _assets_check(plugin_root),
         _prompt_manifest_check(plugin_root),
         _agent_skills_check(plugin_root),
+        _tool_registration_check(plugin_root),
         _package_ref_check(plugin_root),
         _runtime_check(),
         _docker_check(),

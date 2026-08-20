@@ -8,12 +8,14 @@ yield identical hashes.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from fw_graph import FirmwareLane
 
-FW_PROJECT_NAME = "acd_gd1_fw"
+_SEPARATOR_PATTERN = re.compile(r"[^a-z0-9]+")
+_IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
 # Net roles the Golden Design #1 firmware needs, keyed by graph net node id.
 _REQUIRED_NETS = (
@@ -38,9 +40,30 @@ class FirmwareProjectionError(ValueError):
 
 @dataclass(frozen=True)
 class FirmwareProject:
+    name: str
     root: Path
     pins_header: Path
     main_source: Path
+
+    @property
+    def app_binary(self) -> Path:
+        return self.root / "build" / f"{self.name}.bin"
+
+
+def firmware_project_name(graph_id: str) -> str:
+    """Return the ESP-IDF project name derived from a design graph id."""
+    return f"{log_tag(graph_id)}_fw"
+
+
+def log_tag(graph_id: str) -> str:
+    """Return the firmware log tag derived from a design graph id."""
+    slug = _SEPARATOR_PATTERN.sub("_", graph_id.strip().lower()).strip("_")
+    tag = f"acd_{slug}"
+    if not slug or not _IDENTIFIER_PATTERN.fullmatch(tag):
+        raise FirmwareProjectionError(
+            f"graph_id does not yield a firmware project name: {graph_id!r}"
+        )
+    return tag
 
 
 def _macro_name(net_id: str) -> str:
@@ -71,6 +94,9 @@ def render_pins_header(lane: FirmwareLane, target_revision: str) -> str:
     return "\n".join(lines)
 
 
+# The C template is written verbatim except for this log-tag placeholder.
+_LOG_TAG_PLACEHOLDER = "__ACD_LOG_TAG__"
+
 _MAIN_C = """\
 /* Golden Design #1 firmware: 1 Hz LED blink + SHT40 temperature/humidity log.
  * Pin assignments come exclusively from the generated acd_pins.h projection.
@@ -84,7 +110,7 @@ _MAIN_C = """\
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-static const char *TAG = "acd_gd1";
+static const char *TAG = "__ACD_LOG_TAG__";
 
 static i2c_master_dev_handle_t s_sht40;
 
@@ -169,17 +195,20 @@ CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 
 
 def write_firmware_project(
-    lane: FirmwareLane, target_revision: str, out_dir: Path
+    lane: FirmwareLane, target_revision: str, out_dir: Path, graph_id: str
 ) -> FirmwareProject:
-    root = out_dir.resolve() / FW_PROJECT_NAME
+    name = firmware_project_name(graph_id)
+    root = out_dir.resolve() / name
     main_dir = root / "main"
     main_dir.mkdir(parents=True, exist_ok=True)
 
-    (root / "CMakeLists.txt").write_text(_ROOT_CMAKE.format(name=FW_PROJECT_NAME))
+    (root / "CMakeLists.txt").write_text(_ROOT_CMAKE.format(name=name))
     (root / "sdkconfig.defaults").write_text(_SDKCONFIG_DEFAULTS)
     (main_dir / "CMakeLists.txt").write_text(_MAIN_CMAKE)
     pins_header = main_dir / "acd_pins.h"
     pins_header.write_text(render_pins_header(lane, target_revision))
     main_source = main_dir / "acd_main.c"
-    main_source.write_text(_MAIN_C)
-    return FirmwareProject(root=root, pins_header=pins_header, main_source=main_source)
+    main_source.write_text(_MAIN_C.replace(_LOG_TAG_PLACEHOLDER, log_tag(graph_id)))
+    return FirmwareProject(
+        name=name, root=root, pins_header=pins_header, main_source=main_source
+    )

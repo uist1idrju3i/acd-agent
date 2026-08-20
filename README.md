@@ -66,6 +66,8 @@ installすると、次のslash commandが会話から使えます。
 | `acd-qc-seven-tools` | ERC/DRC・DFM・測定の所見をQC七つ道具／新七つ道具で整理し優先順位を付ける。 | 「DRCの指摘をパレートで整理して直す順番を決めて」 |
 | `acd-cad-determinism-probe` | STEP／3MF出力の再現性（byte一致）と正規化ルールの計測。 | 「CAD出力のhashが毎回変わる原因を調べて」 |
 | `acd-install-doctor` | pluginのインストール健全性と実行環境の能力を確認するL3自己診断。 | 「ACDのインストールと環境構築を確認して」 |
+| `acd-product-docs` | 設計グラフ・視覚投影・FWピン投影から製品説明READMEと取扱説明書を決定論的に生成する。 | 「この設計の製品説明と取扱説明書を作って」 |
+| `acd-design-knowledge` | 設計知識indexから仕様・使い方・不具合対処・根拠・経緯を出典付きで回答し、公開FAQを生成する。 | 「この設計の仕様と変更の経緯を教えて」 |
 
 役割別のAgentDefinition（`acd-electrical`、`acd-mechanical`、`acd-firmware`、
 `acd-reviewer`、`acd-search`）も登録され、電気・機械・FW・レビュー・調査の依頼に応じて

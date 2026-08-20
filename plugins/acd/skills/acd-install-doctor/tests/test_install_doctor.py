@@ -98,6 +98,66 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
     assert eda_check["observed_version"] == "kicad-cli=10.0.5, freerouting=2.3.0"
 
 
+def test_missing_host_eda_tool_points_at_the_container_route(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    _, report = _run(script, tmp_path)
+    eda_check = next(
+        check for check in report["checks"] if check["name"] == "host EDA capabilities"
+    )
+    detail = eda_check["detail"]
+    assert "locked image" in detail
+    assert "docker/image-digests.json" in detail
+    assert "--source bundled" in detail
+    assert "docs/operations.md" in detail
+
+
+def test_tool_registration_check_reports_declared_and_registered_names(
+    tmp_path: Path,
+) -> None:
+    _, script = _copy_plugin(tmp_path)
+    _, report = _run(script, tmp_path)
+    check = next(
+        item for item in report["checks"] if item["name"] == "ACD tool registration"
+    )
+    assert check["result"] == "pass"
+    assert "acd_probe_tools" in check["observed_version"]
+    assert "register_acd_tools" in check["detail"]
+
+
+def test_tool_registration_check_fails_on_undeclared_agent_tool(
+    tmp_path: Path,
+) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    agent = copied / "agents" / "acd-electrical.md"
+    agent.write_text(
+        agent.read_text(encoding="utf-8").replace(
+            "  - acd_probe_tools",
+            "  - acd_probe_tools\n  - acd_unknown_tool",
+        ),
+        encoding="utf-8",
+    )
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    check = next(
+        item for item in report["checks"] if item["name"] == "ACD tool registration"
+    )
+    assert check["result"] == "fail"
+    assert "acd_unknown_tool" in check["detail"]
+
+
+def test_tool_registration_check_fails_closed_on_missing_manifest(
+    tmp_path: Path,
+) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    (copied / ".plugin" / "acd-tool-definitions.json").unlink()
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    check = next(
+        item for item in report["checks"] if item["name"] == "ACD tool registration"
+    )
+    assert check["result"] == "unknown"
+
+
 def _break_plugin_name(path: Path) -> None:
     path.write_text('{"name":"wrong"}', encoding="utf-8")
 

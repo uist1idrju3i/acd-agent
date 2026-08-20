@@ -1,6 +1,6 @@
 [project]
 name = "acd"
-version = "0.0.1"
+version = "0.0.2"
 description = "AI-first PCB, enclosure, and firmware design framework"
 requires-python = ">=3.12"
 dependencies = [
@@ -54,6 +54,8 @@ extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+# Japanese generated-document templates use full-width punctuation on purpose.
+allowed-confusables = ["（", "）", "／", "×", "・"]
 
 [tool.pyright]
 pythonVersion = "3.12"
@@ -83,6 +85,12 @@ executionEnvironments = [
     ] },
     { root = "plugins/acd/skills/acd-silkscreen-placement", extraPaths = [
         "plugins/acd/skills/acd-silkscreen-placement/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-product-docs", extraPaths = [
+        "plugins/acd/skills/acd-product-docs/scripts",
+    ] },
+    { root = "plugins/acd/skills/acd-design-knowledge", extraPaths = [
+        "plugins/acd/skills/acd-design-knowledge/scripts",
     ] },
     { root = "scripts", extraPaths = [
         ".",

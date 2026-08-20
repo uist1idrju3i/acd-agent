@@ -16,6 +16,7 @@ from acd.adapters.cad.mechanical import (
 from acd.adapters.cad.project import project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.core.mechanical import extract_mechanical_lane
+from acd.core.naming import subject_node_id
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
@@ -32,6 +33,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     validate_and_project_rationale(graph, fixture_dir, out_dir)
     print("[0/5] rationale coverage passed")
     lane = extract_mechanical_lane(graph)
+    subject_node = subject_node_id(graph, "mechanical.enclosure")
     print("[1/5] mechanical lane extracted")
 
     projection = project_enclosure(
@@ -103,68 +105,68 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         envelope=projection.envelope,
         claims=[
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="cad_kernel_valid",
                 value=gate_report.kernel_valid,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="interference_free",
                 value=gate_report.interference,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="maximum_interference_volume_mm3",
                 value=gate_report.measured_max_interference_volume_mm3,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="internal_clearance_passed",
                 value=gate_report.clearance,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="measured_min_clearance_mm",
                 value=gate_report.measured_min_clearance_mm,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="minimum_wall_thickness_mm",
                 value=gate_report.measured_min_wall_mm,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="shell_measured_volume_mm3",
                 value=artifact_report.shell_volume_mm3,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="lid_measured_volume_mm3",
                 value=artifact_report.lid_volume_mm3,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="assembly_measured_volume_mm3",
                 value=artifact_report.assembly_volume_mm3,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="mechanical.enclosure.gd1",
+                subject_node=subject_node,
                 property="cad_artifact_manifest_hash",
                 value=manifest_hash,
                 verified=True,
             ),
             *[
                 EvidenceClaim(
-                    subject_node="mechanical.enclosure.gd1",
+                    subject_node=subject_node,
                     property=f"{role}_normalized_sha256",
                     value=artifact_hash,
                     verified=True,
@@ -223,10 +225,10 @@ def main() -> int:
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
-    if summary["provisional"]:
-        print("PIPELINE PASSED (provisional host execution)")
-    else:
+    if summary["authoritative"]:
         print("PIPELINE PASSED (authoritative container execution)")
+    else:
+        print("PIPELINE PASSED (provisional host execution)")
     return 0
 
 

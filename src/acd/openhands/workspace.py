@@ -21,7 +21,10 @@ DEFAULT_DOWNLOAD_FILES = (
 )
 CONTAINER_REPOSITORY = Path("/acd-src")
 CONTAINER_WORKTREE = Path("/workspace/acd")
+CONTAINER_BUNDLE = Path("/opt/acd")
 _DIGEST = re.compile(r"sha256:[0-9a-fA-F]{64}\Z")
+
+WorkspaceSource = Literal["mounted", "bundled"]
 
 
 @dataclass(frozen=True)
@@ -103,10 +106,19 @@ def run_command_in_workspace(
     repository: Path,
     download_files: tuple[str, ...] = DEFAULT_DOWNLOAD_FILES,
     workspace_factory: Callable[..., Any] | None = None,
+    source: WorkspaceSource = "mounted",
 ) -> WorkspaceResult:
-    """Run one command in a DockerWorkspace using a resolved server digest."""
+    """Run one command in a DockerWorkspace using a resolved server digest.
+
+    With ``source="mounted"`` the host repository is mounted read-only and
+    copied into the container worktree. With ``source="bundled"`` the ACD
+    source, pipeline scripts and fixtures baked into the locked image are used
+    and no repository is mounted; a missing or incomplete bundle stops the run.
+    """
     if not image.strip():
         raise ValueError("server image must not be empty")
+    if source not in ("mounted", "bundled"):
+        raise ValueError(f"unknown workspace source: {source!r}")
     reference = resolve_image_digest(image)
     if reference is None:
         raise ValueError("server image digest could not be resolved; refusing to execute")
@@ -117,21 +129,37 @@ def run_command_in_workspace(
     os.environ["ACD_CONTAINER_IMAGE_DIGEST"] = reference.digest
     os.environ["ACD_IN_CONTAINER"] = "1"
     downloaded: list[Path] = []
+    worktree = CONTAINER_BUNDLE if source == "bundled" else CONTAINER_WORKTREE
     try:
-        workspace = factory(
-            server_image=image,
-            volumes=[f"{repository.resolve()}:{CONTAINER_REPOSITORY}:ro"],
-            forward_env=["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
-        )
+        constructor_kwargs: dict[str, Any] = {
+            "server_image": image,
+            "forward_env": ["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
+        }
+        if source == "mounted":
+            constructor_kwargs["volumes"] = [
+                f"{repository.resolve()}:{CONTAINER_REPOSITORY}:ro"
+            ]
+        workspace = factory(**constructor_kwargs)
         with workspace:
-            setup = (
-                f"mkdir -p {CONTAINER_WORKTREE} && "
-                f"tar -C {CONTAINER_REPOSITORY} "
-                "--exclude=.venv --exclude=out --exclude=.pytest_cache "
-                "--exclude=.ruff_cache -cf - . | "
-                f"tar -C {CONTAINER_WORKTREE} -xf - && "
-                f"cd {CONTAINER_WORKTREE} && "
-            )
+            if source == "bundled":
+                setup = (
+                    f"test -f {CONTAINER_BUNDLE / 'pyproject.toml'} && "
+                    f"test -f {CONTAINER_BUNDLE / 'uv.lock'} && "
+                    f"test -d {CONTAINER_BUNDLE / 'src' / 'acd'} && "
+                    f"test -d {CONTAINER_BUNDLE / 'scripts'} && "
+                    f"test -d {CONTAINER_BUNDLE / 'fixtures'} && "
+                    f"test -d {CONTAINER_BUNDLE / '.venv'} && "
+                    f"cd {CONTAINER_BUNDLE} && "
+                )
+            else:
+                setup = (
+                    f"mkdir -p {CONTAINER_WORKTREE} && "
+                    f"tar -C {CONTAINER_REPOSITORY} "
+                    "--exclude=.venv --exclude=out --exclude=.pytest_cache "
+                    "--exclude=.ruff_cache -cf - . | "
+                    f"tar -C {CONTAINER_WORKTREE} -xf - && "
+                    f"cd {CONTAINER_WORKTREE} && "
+                )
             result = workspace.execute_command(
                 setup + command,
                 cwd="/workspace",
@@ -141,7 +169,7 @@ def run_command_in_workspace(
                 for relative in download_files:
                     destination = repository / relative
                     file_result = workspace.file_download(
-                        str(CONTAINER_WORKTREE / relative),
+                        str(worktree / relative),
                         destination,
                     )
                     if not file_result.success:

@@ -80,6 +80,7 @@ from acd.core.design_predicates import PredicateResult, evaluate_gd1_predicates
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.fab import extract_fab_intent, load_fab_profile
 from acd.core.firmware_lane import extract_firmware_lane
+from acd.core.naming import output_prefix, subject_node_id
 from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
@@ -188,6 +189,7 @@ def _summarize_width_violations(
 def build_electrical_evidence(
     *,
     revision: str,
+    subject_node: str,
     envelope: ToolEnvelope,
     erc_errors: object,
     erc_unconnected: object,
@@ -200,6 +202,8 @@ def build_electrical_evidence(
     design_predicates: object,
 ) -> Evidence:
     """Build electrical Evidence from completed deterministic gate results."""
+    if not subject_node:
+        raise ValueError("electrical evidence subject node is unknown (fail-closed)")
     if not isinstance(erc_errors, int) or not isinstance(erc_unconnected, int):
         raise ValueError("electrical ERC results are unknown (fail-closed)")
     if not isinstance(routing_converged, bool):
@@ -242,7 +246,7 @@ def build_electrical_evidence(
         raise ValueError("electrical deterministic gate did not pass (fail-closed)")
     predicate_claims = [
         EvidenceClaim(
-            subject_node="electrical.board.gd1",
+            subject_node=subject_node,
             property=predicate.name,
             value=predicate.status,
             verified=predicate.status == "pass",
@@ -256,49 +260,49 @@ def build_electrical_evidence(
         envelope=envelope,
         claims=[
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="erc_error_count",
                 value=erc_errors,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="erc_unconnected_count",
                 value=erc_unconnected,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="routing_converged",
                 value=routing_converged,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="drc_error_count",
                 value=drc_errors,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="drc_unconnected_count",
                 value=drc_unconnected,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="silkscreen_status",
                 value=silkscreen,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="dfm_status",
                 value=dfm,
                 verified=True,
             ),
             EvidenceClaim(
-                subject_node="electrical.board.gd1",
+                subject_node=subject_node,
                 property="order_readiness_status",
                 value=order_readiness,
                 verified=True,
@@ -601,6 +605,7 @@ def run_pipeline(
         out_dir,
         profile=profile,
         placements=placements,
+        name=output_prefix(graph.graph_id),
         silkscreen=silkscreen,
     )
     name = project.name
@@ -1192,6 +1197,7 @@ def run_pipeline(
     print("[10/12] manufacturing package written")
     evidence = build_electrical_evidence(
         revision=revision,
+        subject_node=subject_node_id(graph, "electrical.board"),
         envelope=drc.run.envelope,
         erc_errors=erc.error_count,
         erc_unconnected=len(erc.unconnected_items),
@@ -1289,7 +1295,7 @@ def run_pipeline(
         lane=firmware_lane,
         authoritative_inputs=(fixture_dir / "graph.json",),
         input_base_dir=repository_root(),
-        projection_ids=("gd1-firmware-state", "gd1-firmware-sequence"),
+        projection_ids=(f"{name}-firmware-state", f"{name}-firmware-sequence"),
     )
     print(
         "[11/12] firmware visual projections recorded: "
@@ -1304,6 +1310,7 @@ def run_pipeline(
         graph_input=fixture_dir / "graph.json",
         base_dir=out_dir,
         input_base_dir=repository_root(),
+        projection_ids=(f"{name}-firmware-state", f"{name}-firmware-sequence"),
     )
     if firmware_crosscheck.status != "match":
         raise RuntimeError("firmware visual cross-check did not match (fail-closed)")

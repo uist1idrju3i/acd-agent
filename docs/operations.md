@@ -275,18 +275,21 @@ credentialの値を引数・journal・ログ・stdoutへ渡してはならない
 command未実行をsuccessとして記録する経路はない。command形式不正やsecret値の混入は
 事前予定の追記前に拒否し、providerの`failure`とは区別する。
 
-4. 実行済みのGD1基板pipelineでは、回路図
-   `out/gd1/gd1.kicad_sch`、routed board
-   `out/gd1/routed/gd1.kicad_pcb`、Gerberの
-   `out/gd1/gerbers/`、drillの`out/gd1/gerbers/gd1.drl`、製造出力の
+4. 出力ファイル名とFWプロジェクト名は入力graphの`graph_id`から導出する。GD1の
+   `graph_id`は`golden-design-1`であり、prefixを固定名で仮定しない。`graph_id`から
+   安全な名前を導出できない場合はfail-closedで停止する。EvidenceのclaimのsubjectはgraphのnodeIDを
+   使い、固定名を埋め込まない。実行済みのGD1基板pipelineでは、回路図
+   `out/gd1/golden-design-1.kicad_sch`、routed board
+   `out/gd1/routed/golden-design-1.kicad_pcb`、Gerberの
+   `out/gd1/gerbers/`、drillの`out/gd1/gerbers/golden-design-1.drl`、製造出力の
    `out/gd1/fab/`、電気Evidenceの`out/gd1/evidence-electrical.json`が生成される。
    シルク解決を個別に実行した場合は、回路図を含む中間成果物が
    `out/gd1-silkscreen-resolve/iteration-1/`に生成される。
 
    JLCPCBへ投入するファイルは、製造出力ディレクトリ内の
-   `out/gd1/fab/gd1-bom-jlcpcb.csv`と
-   `out/gd1/fab/gd1-cpl-jlcpcb.csv`の2つだけである。
-   `out/gd1/gd1.bom.csv`はDesign Graph由来の内部BOM投影であり、非実装部品も含み得るため、
+   `out/gd1/fab/golden-design-1-bom-jlcpcb.csv`と
+   `out/gd1/fab/golden-design-1-cpl-jlcpcb.csv`の2つだけである。
+   `out/gd1/golden-design-1.bom.csv`はDesign Graph由来の内部BOM投影であり、非実装部品も含み得るため、
    発注用ファイルとして投入してはならない。
    CPL回転の独立検証には、リポジトリ内の
    `evidence/gd1-cpl-orientation/`を使用する。このディレクトリ自体が無い場合は
@@ -312,8 +315,8 @@ command未実行をsuccessとして記録する経路はない。command形式�
    ```
 
    実行済みの出力は、FWプロジェクト
-   `out/gd1-fw/acd_gd1_fw/`、ビルド済みFW
-   `out/gd1-fw/acd_gd1_fw/build/acd_gd1_fw.bin`、統合flash image
+   `out/gd1-fw/acd_golden_design_1_fw/`、ビルド済みFW
+   `out/gd1-fw/acd_golden_design_1_fw/build/acd_golden_design_1_fw.bin`、統合flash image
    `out/gd1-fw/flash.bin`、QEMUの仮想シリアルログ
    `out/gd1-fw/qemu-serial.log`、結果の
    `out/gd1-fw/summary.json`である。ESP-IDFと
@@ -470,8 +473,11 @@ command -v freerouting
 FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
 `libslirp0`およびSDL2系共有ライブラリが必要である。QEMUをtarball等から配置した場合は、
 `qemu-system-riscv32`のあるディレクトリをPATHへ追加してから実行し、次で解決できることを
-確認する。これらのQEMU実行環境をlocked acd-tools/server imageへ同梱することを改善候補とし、
-当面はSKILL.mdと本書に必要なaptパッケージ一覧を明記する。
+確認する。ESP-IDF v5.3.1、Espressif QEMU 9.2.2、`libslirp0`、SDL2系ライブラリ、ccache、
+CJKフォントはacd-tools imageへ同梱しており、container経路ではhost側の準備を必要としない
+（`IDF_PATH`、`IDF_TOOLS_PATH`、`IDF_PYTHON_ENV_PATH`、`CCACHE_DIR`、
+`IDF_CCACHE_ENABLE`はimageで宣言する）。同梱内容と検証項目は
+[`docker/README.md`](../docker/README.md)を参照する。
 
 ```bash
 command -v qemu-system-riscv32
@@ -552,6 +558,81 @@ SVGのwidth／height単位は`ElectricalLane.board.unit`と突き合わせ、KiC
 unknownをmatchへ集約せず、mismatch・対象欠落・解析失敗・revision不一致はpipelineを停止する。
 レポートは`pass_evidence=False`のL3観測であり、Evidence、fab claims、gate fields、
 `hashes.json`、fab packageへ追加しない。
+
+## 生成文書lane
+
+`acd-product-docs` Skillは、Design Graph、記録済み視覚投影集合、生成済みFWピン投影
+（`acd_pins.h`）から製品説明READMEと取扱説明書を決定論的に生成する。生成文書はL3観測
+（提示物）であり、合否権限を持たず、投影を設計入力へ逆流させない。
+
+```bash
+uv run python plugins/acd/skills/acd-product-docs/scripts/generate_product_readme.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --projections out/gd1/visual-projections-electrical.json \
+                out/gd1/visual-projections-layout.json \
+                out/gd1/visual-projections-system.json \
+  --out-dir out/docs
+uv run python plugins/acd/skills/acd-product-docs/scripts/generate_instruction_manual.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
+  --out-dir out/docs
+```
+
+出力先は`out/docs/`とし、`product-readme.md`と`instruction-manual.md`のほかに、
+`<文書名>.provenance.json`へ入力の相対パスとcontent hash、template id、生成script
+のhash、graph_id、対象revision、出力hash、生成時刻を記録する。記載値はすべて入力由来で、
+推定値を書かない。文書本文に時刻を埋め込まないため、同一入力の再生成はbyte一致する。
+
+不足・不整合はfail-closedとし、「問題なし」と解釈しない。契約違反のgraph、
+対象revisionと異なる投影集合またはピン投影、`regeneration_check`が`reproduced`でない投影、
+参照画像の欠落、投影集合の未宣言、`acd_pins.h`のmacro欠落は生成を停止する。
+帰属表記は部品ごとのsymbol／footprintライブラリ出所と参照から生成し、
+外部ライブラリのライセンス表示と帰属を保持する。
+
+## 設計知識lane
+
+`acd-design-knowledge` Skillは、Design Graph、設計根拠record、ゲート結果、Evidence、
+生成文書、git履歴、会話ログを決定論的にindex化し、仕様、使い方、不具合対処、設計根拠、
+経緯の質問へ出典付きで回答する。indexとtroubleshooting知識、回答、公開FAQはいずれも
+`pass_evidence=false`のL3観測であり、合否権限を持たず、設計入力へ逆流させない。
+
+```bash
+uv run python plugins/acd/skills/acd-design-knowledge/scripts/build_knowledge_index.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --rationale fixtures/golden-design-1/rationale.json \
+  --documents out/docs \
+  --evidence out/gd1 \
+  --gate-results out/gd1 \
+  --conversation-logs out/conversations \
+  --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
+  --audience internal \
+  --out-dir out/knowledge
+uv run python plugins/acd/skills/acd-design-knowledge/scripts/ask.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --rationale fixtures/golden-design-1/rationale.json \
+  --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
+  --question "LEDが点滅しないときは何を確認するか"
+uv run python plugins/acd/skills/acd-design-knowledge/scripts/generate_faq.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --rationale fixtures/golden-design-1/rationale.json \
+  --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
+  --out-dir out/docs
+```
+
+`build_knowledge_index.py`は`knowledge-index.json`と`troubleshooting-knowledge.json`を
+出力し、source種別、相対参照、hash、状態を記録する。読めない、宣言されていない、
+parseできないsourceは`unknown`として記録し、存在しないことを「問題なし」と解釈しない。
+troubleshooting知識はgraphの電源系統とFWピン投影（`acd_pins.h`）から導出し、QAと
+公開FAQで同じ導出結果を共有する。ピン投影が無い場合、該当項目は`unknown`のまま残す。
+
+`ask.py`は回答できた場合に出典付きの根拠文を返して終了コード0、導出できない場合は
+`unknown`と理由を返して終了コード2とする。推測で回答しない。経緯の質問はgit履歴、
+commitごとのgraph revision、内部会話ログ、ECO recordを出典として引用する。
+
+`--audience public`および`generate_faq.py`は会話ログをindexから除外し、除外した
+source種別をprovenanceの`excluded_source_kinds`へ明記する。FAQは`out/docs/faq.md`と
+`faq.md.provenance.json`へ出力し、本文へ時刻を埋め込まないため同一入力の再生成は
+本文がbyte一致する。
 
 ## 検証
 
@@ -784,6 +865,18 @@ docker pull "$SERVER_REF"
 uv run python scripts/run_in_workspace.py --image "$SERVER_REF"
 ```
 
+imageへ同梱したACD本体・pipeline scripts・fixtureだけで実行する場合は`--source bundled`を
+使う。この経路はリポジトリをマウントせず、image内`/opt/acd`のprebake済み環境で実行する。
+
+```bash
+uv run python scripts/run_in_workspace.py --image "$SERVER_REF" --source bundled \
+  "uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure"
+```
+
+`--source bundled`は実行前に`/opt/acd`の`pyproject.toml`、`uv.lock`、`src/acd`、
+`scripts`、`fixtures`、prebake済み`.venv`を検査し、欠落があればコマンドを実行せず停止する。
+同梱資材を持つimageがpublishされてlockへ記録されるまで、既定は`--source mounted`のままとする。
+
 server imageがlockに未設定、image digestを解決できない、または経路がunknownの場合、
 runnerはコマンドを実行せず非ゼロ終了する。
 runnerは`ACD_CONTAINER_IMAGE_DIGEST`と`ACD_IN_CONTAINER`をcontainerへforwardする。
@@ -806,7 +899,7 @@ fail-closedで停止する。ゲートの仕様とprobeの責務は[`gates.md`](
 
 ## plugin
 
-OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには8 Skill、5
+OpenHands SDKから`plugins/acd`をpluginとして読み込む。pluginには10 Skill、5
 AgentDefinition、`/acd:gates` command、SDK ToolDefinition、hooksが含まれる。
 決定論的なACD入口は`acd.openhands.tools.definitions`の`register_acd_tools()`からSDKへ登録する。
 Conversationの安全設定は`EnsembleSecurityAnalyzer`、`ConfirmRisky`、allowlist付き
@@ -828,6 +921,15 @@ Goal loopはSDK `GoalController`をACD側のdriverから再利用する。SIGINT
 `LocalConversation.interrupt()`へ結線し、goalの中断結果は`status="interrupted"`として
 記録する。`goal_result`と`conversation_stats`は`pass_evidence=false`の観測成果物であり、
 judgeのcomplete評決や統計値を合否へ使わない。
+
+hook遮断と確認mode拒否はSDKの`UserRejectObservation`として現れる。振り返りのために
+event列を直読しなくて済むよう、`run_acd_goal(..., rejection_summary_path=...)`は
+goal終了時（中断時も含む）に遮断理由を自動集計し、
+`acd.openhands.session.rejection_summary`が`hook_rejection_summary`成果物として書き出す。
+集計は`source`（`hook`／`user`／`unknown`）、tool名、遮断理由でgroup化し、件数と
+`action_id`を決定論的に並べる。pinned SDKのliteral外のsourceは落とさず`unknown`として
+数え、遮断のあった実行が「遮断なし」に見えないようにする。要約は
+`pass_evidence=false`のL3観測であり、遮断を解除せず、合否へ影響しない。
 
 lane並列は`tool_concurrency_limit`で設定し、既定値は1（直列）とする。2以上を指定する
 場合は、ACD toolの`declared_resources()`が返す資源keyを経由して共有入力・出力を

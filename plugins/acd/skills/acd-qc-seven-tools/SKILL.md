@@ -9,6 +9,15 @@ triggers:
   - stratification
   - DFM findings
   - root cause
+  - DRC errors
+  - ERC errors
+  - findings
+  - review findings
+  - which to fix first
+  - prioritize
+  - 所見
+  - 優先度
+  - 不具合
 ---
 
 # Q7／N7による所見の整理

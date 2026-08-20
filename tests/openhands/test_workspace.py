@@ -221,3 +221,55 @@ def test_local_runner_preserves_command_failure_exit_code(
         workspace_factory=_FailingWorkspace,
     )
     assert result.exit_code == 7
+
+
+def test_bundled_source_runs_image_bundle_without_repository_mount(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _FakeWorkspace.instances.clear()
+
+    def resolve(_image: str) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "c" * 64, "RepoDigests")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-server:local",
+        command="uv run python scripts/run_gd1_pipeline.py",
+        repository=tmp_path,
+        download_files=("out/gd1/evidence-electrical.json",),
+        workspace_factory=_FakeWorkspace,
+        source="bundled",
+    )
+
+    instance = _FakeWorkspace.instances[0]
+    assert "volumes" not in instance.kwargs
+    command, _cwd, _timeout = instance.commands[0]
+    assert "tar -C /acd-src" not in command
+    assert "test -f /opt/acd/pyproject.toml" in command
+    assert "test -d /opt/acd/.venv" in command
+    assert "test -d /opt/acd/fixtures" in command
+    assert "cd /opt/acd" in command
+    assert instance.downloads == [
+        (
+            "/opt/acd/out/gd1/evidence-electrical.json",
+            tmp_path / "out/gd1/evidence-electrical.json",
+        )
+    ]
+    assert result.exit_code == 0
+
+
+def test_runner_rejects_unknown_workspace_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def resolve(_image: str) -> workspace_module.ImageReference:
+        raise AssertionError("digest resolution must not run for an unknown source")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    with pytest.raises(ValueError, match="unknown workspace source"):
+        workspace_module.run_command_in_workspace(
+            image="acd-server:local",
+            command="true",
+            repository=tmp_path,
+            workspace_factory=_FakeWorkspace,
+            source="image",  # type: ignore[arg-type]
+        )

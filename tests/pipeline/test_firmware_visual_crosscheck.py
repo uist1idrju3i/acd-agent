@@ -17,6 +17,7 @@ from acd.core.firmware_lane import (
     FirmwareStateView,
     extract_firmware_lane,
 )
+from acd.core.naming import output_prefix
 from acd.core.process import sha256_bytes
 from acd.pipeline.repository import repository_root
 from acd.pipeline.visual_projection import crosscheck_firmware_visual_projections
@@ -67,6 +68,7 @@ def _report(
         graph_input=GRAPH_PATH,
         base_dir=tmp_path,
         input_base_dir=repository_root(),
+        projection_ids=("gd1-firmware-state", "gd1-firmware-sequence"),
     )
 
 
@@ -300,3 +302,49 @@ def test_sequence_declaration_mismatch_is_fail_closed(tmp_path: Path) -> None:
         projections=projections,
     )
     assert report.status == "mismatch"
+
+
+def test_ambiguous_expected_projection_identifiers_are_fail_closed(
+    tmp_path: Path,
+) -> None:
+    _, lane, projections = _context(tmp_path)
+    graph = DesignGraph.model_validate(
+        json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
+    )
+    with pytest.raises(ValueError, match="two distinct projection identifiers"):
+        crosscheck_firmware_visual_projections(
+            source_revision=graph.revision,
+            visual_projection_set=projections,
+            lane=lane,
+            graph_input=GRAPH_PATH,
+            base_dir=tmp_path,
+            input_base_dir=repository_root(),
+            projection_ids=("gd1-firmware-state", "gd1-firmware-state"),
+        )
+
+
+def test_graph_derived_projection_identifiers_match(tmp_path: Path) -> None:
+    _, lane, _ = _context(tmp_path)
+    graph = DesignGraph.model_validate(
+        json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
+    )
+    prefix = output_prefix(graph.graph_id)
+    projection_set = generate_firmware_visual_projections(
+        project_name=prefix,
+        out_dir=tmp_path,
+        source_revision=graph.revision,
+        lane=lane,
+        authoritative_inputs=(GRAPH_PATH,),
+        input_base_dir=repository_root(),
+        projection_ids=(f"{prefix}-firmware-state", f"{prefix}-firmware-sequence"),
+    )
+    report = crosscheck_firmware_visual_projections(
+        source_revision=graph.revision,
+        visual_projection_set=projection_set,
+        lane=lane,
+        graph_input=GRAPH_PATH,
+        base_dir=tmp_path,
+        input_base_dir=repository_root(),
+        projection_ids=(f"{prefix}-firmware-state", f"{prefix}-firmware-sequence"),
+    )
+    assert report.status == "match"

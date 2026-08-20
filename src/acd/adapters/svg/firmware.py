@@ -8,12 +8,14 @@ from typing import ClassVar, Literal
 
 from acd.adapters.svg.common import (
     ACD_SVG_RENDERER_VERSION,
+    DIAGRAM_FONT_SIZE_RATIO,
     SvgVisualProjectionError,
     escape_xml,
     format_svg_number,
     input_records,
     render_svg_projection,
     slugify_identifier,
+    view_box_font_size,
 )
 from acd.core.firmware_lane import FirmwareLane
 from acd.schema.visual_projection import (
@@ -26,6 +28,9 @@ FirmwareProjectionType = Literal[
     "firmware_state_view",
     "firmware_sequence_view",
 ]
+
+# Both firmware projections are laid out on a fixed 240-unit wide viewBox.
+_DIAGRAM_VIEW_BOX_WIDTH = 240.0
 
 
 def _state_svg(lane: FirmwareLane) -> bytes:
@@ -52,6 +57,7 @@ def _state_svg(lane: FirmwareLane) -> bytes:
         80.0,
         50.0 + math.ceil(max(len(states), len(transitions)) / 2) * 28.0,
     )
+    font_size = view_box_font_size(_DIAGRAM_VIEW_BOX_WIDTH, ratio=DIAGRAM_FONT_SIZE_RATIO)
     chunks = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="240mm" '
         f'height="{format_svg_number(height)}mm" '
@@ -75,7 +81,8 @@ def _state_svg(lane: FirmwareLane) -> bytes:
                 f'y2="{format_svg_number(to_y + 8)}" stroke="#555"/>',
                 f'<text id="fw-transition-trigger-{identifier}" '
                 f'x="{format_svg_number(95.0)}" '
-                f'y="{format_svg_number((from_y + to_y) / 2 + 6)}">'
+                f'y="{format_svg_number((from_y + to_y) / 2 + 6)}" '
+                f'font-size="{format_svg_number(font_size)}">'
                 f"{escape_xml(transition.trigger)}</text>",
             ]
         )
@@ -93,7 +100,9 @@ def _state_svg(lane: FirmwareLane) -> bytes:
                 'width="48" height="16" fill="none" stroke="#000"/>',
                 f'<text id="fw-state-label-{identifier}" '
                 f'x="{format_svg_number(x + 2)}" '
-                f'y="{format_svg_number(y + 10)}">{escape_xml(state.node_id)}</text>',
+                f'y="{format_svg_number(y + 10)}" '
+                f'font-size="{format_svg_number(font_size)}">'
+                f"{escape_xml(state.node_id)}</text>",
             ]
         )
         if state.initial:
@@ -126,6 +135,7 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
         for index, node_id in enumerate(lifeline_ids)
     }
     height = max(80.0, 55.0 + len(steps) * 24.0)
+    font_size = view_box_font_size(_DIAGRAM_VIEW_BOX_WIDTH, ratio=DIAGRAM_FONT_SIZE_RATIO)
     chunks = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="240mm" '
         f'height="{format_svg_number(height)}mm" '
@@ -140,7 +150,8 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
                 f'<g id="fw-lifeline-{identifier}" '
                 f'data-node-id="{escape_xml(node_id)}">',
                 f'<text id="fw-lifeline-label-{identifier}" '
-                f'x="{format_svg_number(x)}" y="{format_svg_number(y)}">'
+                f'x="{format_svg_number(x)}" y="{format_svg_number(y)}" '
+                f'font-size="{format_svg_number(font_size)}">'
                 f"{escape_xml(node_id)}</text>",
                 f'<line id="fw-lifeline-line-{identifier}" '
                 f'x1="{format_svg_number(x + 12)}" '
@@ -169,7 +180,9 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
                 f'y2="{format_svg_number(y)}" stroke="#555"/>',
                 f'<text id="fw-sequence-action-{identifier}" '
                 f'x="{format_svg_number(min(actor_x, target_x) + 16)}" '
-                f'y="{format_svg_number(y - 3)}">{escape_xml(step.action)}</text>',
+                f'y="{format_svg_number(y - 3)}" '
+                f'font-size="{format_svg_number(font_size)}">'
+                f"{escape_xml(step.action)}</text>",
             ]
         )
     chunks.append("</g></svg>")

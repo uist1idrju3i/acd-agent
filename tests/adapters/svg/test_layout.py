@@ -141,6 +141,8 @@ def test_generates_placement_and_stackup_with_deterministic_provenance(
     assert b'id="front"' in svg
     assert b'id="back"' in svg
     assert b'id="board-outline"' in svg
+    # 20mm board height * BOARD_FONT_SIZE_RATIO
+    assert b'font-size="1"' in svg
     assert b"generated_at" not in svg
     assert b"/home/" not in svg
     assert measure_svg_resolution(svg).view_box == (0.0, 0.0, 30.0, 20.0)

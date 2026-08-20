@@ -14,6 +14,7 @@ ObservationArtifactKind = Literal[
     "conversation_stats",
     "event_view_projection",
     "goal_result",
+    "hook_rejection_summary",
     "memory_context_observation",
     "model_routing_observation",
     "visual_projection",

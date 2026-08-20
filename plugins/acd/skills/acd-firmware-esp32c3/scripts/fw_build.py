@@ -79,7 +79,7 @@ class EspIdfBuilder:
 
     def build(self, project: FirmwareProject) -> Path:
         """Build the firmware and return the application binary path."""
-        binary = project.root / "build" / "acd_gd1_fw.bin"
+        binary = project.app_binary
         run_command(
             self._idf_command(["-C", str(project.root), "build"]),
             tool_version=self._version,
@@ -91,7 +91,7 @@ class EspIdfBuilder:
 
     def merge_bin(self, project: FirmwareProject) -> Path:
         """Merge bootloader/partition-table/app into a single flash image."""
-        app_binary = project.root / "build" / "acd_gd1_fw.bin"
+        app_binary = project.app_binary
         merged = project.root / "build" / "merged-binary.bin"
         run_command(
             self._idf_command(["-C", str(project.root), "merge-bin"]),

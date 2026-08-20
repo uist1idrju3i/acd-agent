@@ -360,10 +360,10 @@ RFモジュールではfootprint内の単一アンテナkeepoutから板端ア�
 
 GD1最新実行で生成される製造データは、`out/gd1-final/fab/`の次のファイルである。
 
-- `gd1-gerbers.zip`
-- `gd1-bom-jlcpcb.csv`
-- `gd1-cpl-jlcpcb.csv`
-- `gd1.pos.csv`
+- `golden-design-1-gerbers.zip`
+- `golden-design-1-bom-jlcpcb.csv`
+- `golden-design-1-cpl-jlcpcb.csv`
+- `golden-design-1.pos.csv`
 - `dfm-report.json`
 - `fab-package.json`
 

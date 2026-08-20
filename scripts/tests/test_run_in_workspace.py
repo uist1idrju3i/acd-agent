@@ -206,3 +206,32 @@ def test_cli_rejects_local_provisional_with_image(tmp_path: Path) -> None:
         runner_script.main(
             ["--local-provisional", "--image", "acd-server:local", "--repo", str(tmp_path)]
         )
+
+
+def test_cli_forwards_bundled_source(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_run_command(**kwargs: Any) -> WorkspaceResult:
+        captured.update(kwargs)
+        return WorkspaceResult(
+            digest="sha256:" + "f" * 64,
+            source="RepoDigests",
+            exit_code=0,
+            stdout="",
+            stderr="",
+            downloaded_files=(),
+        )
+
+    monkeypatch.setattr(runner_script, "run_command_in_workspace", fake_run_command)
+    exit_code = runner_script.main(
+        ["--image", "acd-server:local", "--source", "bundled", "--repo", str(tmp_path), "true"]
+    )
+    assert exit_code == 0
+    assert captured["source"] == "bundled"
+
+
+def test_cli_rejects_bundled_source_for_host_provisional_run() -> None:
+    with pytest.raises(SystemExit, match="2"):
+        runner_script.main(["--local-provisional", "--source", "bundled", "true"])

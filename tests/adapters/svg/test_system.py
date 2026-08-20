@@ -86,6 +86,8 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
     assert b'id="block-kind-electrical-component"' in block_svg
     assert b'id="block-kind-electrical-board"' in block_svg
     assert b'id="block-edge-board-gd1-comp-u1"' in block_svg
+    # 240 unit wide viewBox * DIAGRAM_FONT_SIZE_RATIO
+    assert b'font-size="3"' in block_svg
     assert b"2026-" not in block_svg
     assert b"/home/" not in block_svg
     assert measure_svg_resolution(block_svg).view_box == (0.0, 0.0, 240.0, 498.0)
@@ -99,6 +101,7 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
     assert b'id="power-net-net-vbus-5v"' in power_svg
     assert b'id="power-net-net-gnd"' not in power_svg
     assert b"5.0 V" in power_svg
+    assert b'font-size="3"' in power_svg
     assert measure_svg_resolution(power_svg).view_box == (0.0, 0.0, 240.0, 90.0)
 
     second = _generate(tmp_path / "second")
