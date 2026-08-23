@@ -196,6 +196,11 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    検査するが、最終合否はauthoritative projectionと独立測定ゲートが判定する。基板pipelineは
    `scripts/run_gd1_pipeline.py`、筐体pipelineは
    `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
+   基板pipelineの独立したPython stageは、既定のCPU数（最大4）を使って実行する。
+   `--pipeline-workers N`でworker数を指定でき、`--pipeline-workers 1`は逐次実行になる。
+   CPL／BOM chain、E-2のlane／run並列化、E-4のstage cacheは引き続き逐次または未実装である。
+   並列実行のhash一致integration testは既定ではskipされる。ロック済みcontainerで
+   `ACD_PIPELINE_PARALLEL_TEST=1`、`kicad-cli`、`freerouting`を揃えた場合だけ有効になる。
    会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを
    応答へ明記させる。
 
