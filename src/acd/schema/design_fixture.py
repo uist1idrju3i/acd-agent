@@ -6,12 +6,14 @@ from pydantic import Field
 
 from acd.schema.common import AcdModel, NonEmptyStr, Revision
 from acd.schema.design_graph import AttrValue
+from acd.schema.parts_catalog import ComponentPartRequest
 from acd.schema.requirement import RequirementRecord
 
 
 class FixtureComponentSpec(AcdModel):
     refdes: NonEmptyStr
     library_ref: NonEmptyStr | None = None
+    part_request: ComponentPartRequest | None = None
     attrs: dict[str, AttrValue] = Field(default_factory=dict)
     pads: dict[str, NonEmptyStr | None] = Field(default_factory=dict)
 

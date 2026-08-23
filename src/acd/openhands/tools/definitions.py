@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, cast
 
@@ -86,6 +87,22 @@ def _resolved_resource_path(raw_path: str) -> Path | None:
         return None
 
 
+def _file_sha256(path: Path) -> str:
+    import hashlib
+
+    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+
+
+def _resources(*paths: tuple[str, Path]) -> DeclaredResources:
+    resolved: list[str] = []
+    for prefix, raw_path in paths:
+        path = _resolved_resource_path(str(raw_path))
+        if path is None:
+            return DeclaredResources(keys=(), declared=False)
+        resolved.append(f"{prefix}:{path}")
+    return DeclaredResources(keys=tuple(resolved), declared=True)
+
+
 class AcdObservation(Observation):
     """Common typed result fields for ACD deterministic tools."""
 
@@ -102,20 +119,23 @@ class AcdObservation(Observation):
     revision: str | None = None
     node_count: int | None = None
     path: str | None = None
+    report: dict[str, Any] | None = None
+    changed_node_ids: list[str] | None = None
+    before_hash: str | None = None
+    after_hash: str | None = None
+    provenance: dict[str, Any] | None = None
+    pass_evidence: bool = False
 
     @property
     def to_llm_content(self) -> list[TextContent]:
         if self.fail_closed:
             reason = self.failure_reason or "an unknown failure occurred"
-            text = (
-                f"{self.operation} failed closed: {reason}. "
-                "This is not pass evidence."
-            )
+            text = f"{self.operation} failed closed: {reason}. This is not pass evidence."
         elif self.operation == "probe_tools":
             versions = self.versions or {}
-            version_text = ", ".join(
-                f"{name}={versions[name]}" for name in sorted(versions)
-            ) or "none"
+            version_text = (
+                ", ".join(f"{name}={versions[name]}" for name in sorted(versions)) or "none"
+            )
             unknown = sorted(
                 str(result.get("tool_name", "unknown"))
                 for result in self.results or []
@@ -136,6 +156,8 @@ class AcdObservation(Observation):
                 f"envelopes={len(self.envelopes or [])}, "
                 f"summary_keys={summary_keys}."
             )
+        elif self.report is not None:
+            text = f"{self.operation}: report_keys={', '.join(sorted(self.report))}."
         elif self.failure_reason:
             text = f"{self.operation}: {self.failure_reason}"
         else:
@@ -187,6 +209,48 @@ class AcdRunEnclosurePipelineAction(Action):
     )
 
 
+class AcdRunFirmwarePipelineAction(Action):
+    fixture: str = Field(default="fixtures/golden-design-1")
+    out: str = Field(default="out/gd1-fw")
+    run_seconds: int = Field(
+        default=15,
+        ge=1,
+        description="Bounded virtual-run duration.",
+    )
+
+
+class AcdCompileRequirementChangeAction(Action):
+    fixture_dir: str
+    requirement: str
+    dry_run: bool = False
+
+
+class AcdBuildDesignFixtureAction(Action):
+    spec: str
+    out: str
+
+
+class AcdExploreBoardCandidatesAction(Action):
+    graph: str
+    fixture_dir: str
+    out: str
+    max_candidates: int = Field(ge=1)
+    max_passes: int = Field(default=3, ge=1)
+    dry_run: bool = False
+
+
+class AcdDiagnoseGateFailureAction(Action):
+    out_dir: str
+
+
+class AcdCheckOrderReadinessAction(Action):
+    repository: str = "."
+    policy: str = "plugins/acd/hooks/order-policy.json"
+    order_total: str
+    evidence: list[str] = Field(default_factory=list)
+    evaluated_at: str
+
+
 class AcdProbeToolsObservation(AcdObservation):
     """Observation returned by the external tool probe."""
 
@@ -201,6 +265,30 @@ class AcdRunBoardPipelineObservation(AcdObservation):
 
 class AcdRunEnclosurePipelineObservation(AcdObservation):
     """Observation returned by the enclosure pipeline."""
+
+
+class AcdRunFirmwarePipelineObservation(AcdObservation):
+    """Observation returned by the firmware Skill subprocess."""
+
+
+class AcdCompileRequirementChangeObservation(AcdObservation):
+    """Observation returned by the requirement compiler."""
+
+
+class AcdBuildDesignFixtureObservation(AcdObservation):
+    """Observation returned by the arbitrary fixture builder."""
+
+
+class AcdExploreBoardCandidatesObservation(AcdObservation):
+    """Observation returned by the bounded exploration loop."""
+
+
+class AcdDiagnoseGateFailureObservation(AcdObservation):
+    """Observation returned by the read-only gate diagnosis."""
+
+
+class AcdCheckOrderReadinessObservation(AcdObservation):
+    """Observation returned by the read-only pre-order check."""
 
 
 class AcdProbeToolsExecutor(ToolExecutor[AcdProbeToolsAction, AcdObservation]):
@@ -223,9 +311,7 @@ class AcdProbeToolsExecutor(ToolExecutor[AcdProbeToolsAction, AcdObservation]):
             return AcdProbeToolsObservation(**_error(str(exc), operation="probe_tools"))
 
 
-class AcdValidateDesignGraphExecutor(
-    ToolExecutor[AcdValidateDesignGraphAction, AcdObservation]
-):
+class AcdValidateDesignGraphExecutor(ToolExecutor[AcdValidateDesignGraphAction, AcdObservation]):
     def __call__(
         self,
         action: AcdValidateDesignGraphAction,
@@ -241,9 +327,7 @@ class AcdValidateDesignGraphExecutor(
                         operation="validate_design_graph",
                     )
                 )
-            graph = DesignGraph.model_validate(
-                json.loads(graph_path.read_text(encoding="utf-8"))
-            )
+            graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
             return AcdValidateDesignGraphObservation(
                 ok=True,
                 operation="validate_design_graph",
@@ -259,9 +343,7 @@ class AcdValidateDesignGraphExecutor(
             )
 
 
-class AcdRunBoardPipelineExecutor(
-    ToolExecutor[AcdRunBoardPipelineAction, AcdObservation]
-):
+class AcdRunBoardPipelineExecutor(ToolExecutor[AcdRunBoardPipelineAction, AcdObservation]):
     def __call__(
         self,
         action: AcdRunBoardPipelineAction,
@@ -316,9 +398,7 @@ class AcdRunBoardPipelineExecutor(
             )
 
 
-class AcdRunEnclosurePipelineExecutor(
-    ToolExecutor[AcdRunEnclosurePipelineAction, AcdObservation]
-):
+class AcdRunEnclosurePipelineExecutor(ToolExecutor[AcdRunEnclosurePipelineAction, AcdObservation]):
     def __call__(
         self,
         action: AcdRunEnclosurePipelineAction,
@@ -349,6 +429,244 @@ class AcdRunEnclosurePipelineExecutor(
                 **_error(str(exc), operation="run_enclosure_pipeline"),
                 output_path=action.out,
                 envelopes=_envelopes(out_path),
+            )
+
+
+class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, AcdObservation]):
+    def __call__(
+        self,
+        action: AcdRunFirmwarePipelineAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.pipeline.repository import repository_root
+
+            root = repository_root()
+            script = root / ("plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py")
+            if not script.is_file():
+                return AcdRunFirmwarePipelineObservation(
+                    **_error(
+                        f"firmware Skill script is missing: {script}",
+                        operation="run_firmware_pipeline",
+                    )
+                )
+            if action.run_seconds <= 0:
+                return AcdRunFirmwarePipelineObservation(
+                    **_error("run_seconds must be positive", operation="run_firmware_pipeline")
+                )
+            out_path = Path(action.out)
+            command = [
+                "uv",
+                "run",
+                "--script",
+                str(script),
+                "--fixture",
+                action.fixture,
+                "--out",
+                action.out,
+                "--run-seconds",
+                str(action.run_seconds),
+            ]
+            completed = subprocess.run(
+                command, cwd=root, capture_output=True, text=True, check=False
+            )
+            if completed.returncode != 0:
+                return AcdRunFirmwarePipelineObservation(
+                    **_error(
+                        completed.stderr.strip() or f"firmware Skill exited {completed.returncode}",
+                        operation="run_firmware_pipeline",
+                    ),
+                    output_path=action.out,
+                )
+            summary_path = out_path / "summary.json"
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            if not isinstance(summary, dict):
+                raise ValueError("firmware Skill summary must be an object")
+            return AcdRunFirmwarePipelineObservation(
+                ok=True,
+                operation="run_firmware_pipeline",
+                summary=cast(dict[str, Any], summary),
+                output_path=action.out,
+                provenance={
+                    "skill_name": "acd-firmware-esp32c3",
+                    "script_name": str(script.relative_to(root)),
+                    "script_sha256": _file_sha256(script),
+                    "pass_evidence": False,
+                },
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdRunFirmwarePipelineObservation(
+                **_error(str(exc), operation="run_firmware_pipeline"),
+                output_path=action.out,
+            )
+
+
+class AcdCompileRequirementChangeExecutor(
+    ToolExecutor[AcdCompileRequirementChangeAction, AcdObservation]
+):
+    def __call__(
+        self,
+        action: AcdCompileRequirementChangeAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.core.requirement_compiler import compile_requirement_change
+
+            result = compile_requirement_change(
+                Path(action.fixture_dir),
+                Path(action.requirement),
+                dry_run=action.dry_run,
+            )
+            report = result.report
+            return AcdCompileRequirementChangeObservation(
+                ok=True,
+                operation="compile_requirement_change",
+                report=report,
+                changed_node_ids=report.get("changed_node_ids"),
+                before_hash=report.get("before_hash"),
+                after_hash=report.get("after_hash"),
+                provenance=report.get("provenance"),
+                output_path=action.fixture_dir,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdCompileRequirementChangeObservation(
+                **_error(str(exc), operation="compile_requirement_change")
+            )
+
+
+class AcdBuildDesignFixtureExecutor(ToolExecutor[AcdBuildDesignFixtureAction, AcdObservation]):
+    def __call__(
+        self,
+        action: AcdBuildDesignFixtureAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.pipeline.fixture_builder import build_design_fixture
+            from acd.schema import DesignFixtureSpec
+
+            spec = DesignFixtureSpec.model_validate_json(
+                Path(action.spec).read_text(encoding="utf-8")
+            )
+            graph = build_design_fixture(spec, Path(action.out))
+            return AcdBuildDesignFixtureObservation(
+                ok=True,
+                operation="build_design_fixture",
+                graph_id=graph.graph_id,
+                revision=graph.revision,
+                node_count=len(graph.nodes),
+                output_path=action.out,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdBuildDesignFixtureObservation(
+                **_error(str(exc), operation="build_design_fixture")
+            )
+
+
+class AcdExploreBoardCandidatesExecutor(
+    ToolExecutor[AcdExploreBoardCandidatesAction, AcdObservation]
+):
+    def __call__(
+        self,
+        action: AcdExploreBoardCandidatesAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.core.exploration import explore_board_candidates
+
+            result = explore_board_candidates(
+                Path(action.graph),
+                Path(action.fixture_dir),
+                Path(action.out),
+                action.max_candidates,
+                max_passes=action.max_passes,
+                dry_run=action.dry_run,
+            )
+            return AcdExploreBoardCandidatesObservation(
+                ok=True,
+                operation="explore_board_candidates",
+                report=result.report,
+                output_path=str(result.report_path),
+                pass_evidence=False,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdExploreBoardCandidatesObservation(
+                **_error(str(exc), operation="explore_board_candidates")
+            )
+
+
+class AcdDiagnoseGateFailureExecutor(ToolExecutor[AcdDiagnoseGateFailureAction, AcdObservation]):
+    def __call__(
+        self,
+        action: AcdDiagnoseGateFailureAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.core.gate_diagnosis import diagnose_gate_failure
+
+            report = diagnose_gate_failure(Path(action.out_dir))
+            return AcdDiagnoseGateFailureObservation(
+                ok=True,
+                operation="diagnose_gate_failure",
+                report=report,
+                output_path=action.out_dir,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdDiagnoseGateFailureObservation(
+                **_error(str(exc), operation="diagnose_gate_failure")
+            )
+
+
+class AcdCheckOrderReadinessExecutor(ToolExecutor[AcdCheckOrderReadinessAction, AcdObservation]):
+    def __call__(
+        self,
+        action: AcdCheckOrderReadinessAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from datetime import datetime
+
+            from acd.core.order_total import order_total_result_from_document
+            from acd.openhands.order_gate import evaluate_pre_order_gate
+            from acd.schema import OrderPolicy, OrderTotalDocument
+
+            repository = Path(action.repository)
+            policy = OrderPolicy.model_validate_json(
+                Path(action.policy).read_text(encoding="utf-8")
+            )
+            order_total = order_total_result_from_document(
+                OrderTotalDocument.model_validate_json(
+                    Path(action.order_total).read_text(encoding="utf-8")
+                )
+            )
+            evaluated_at = datetime.fromisoformat(action.evaluated_at.replace("Z", "+00:00"))
+            evidence = [Path(path) for path in action.evidence]
+            record = evaluate_pre_order_gate(
+                repository=repository,
+                policy=policy,
+                order_total=order_total,
+                evidence_paths=evidence,
+                evaluated_at=evaluated_at,
+            )
+            return AcdCheckOrderReadinessObservation(
+                ok=True,
+                operation="check_order_readiness",
+                report=record.model_dump(mode="json"),
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdCheckOrderReadinessObservation(
+                **_error(str(exc), operation="check_order_readiness")
             )
 
 
@@ -426,9 +744,7 @@ class AcdRunBoardPipeline(
     def declared_resources(self, action: Action) -> DeclaredResources:
         if not isinstance(action, AcdRunBoardPipelineAction):
             return DeclaredResources(keys=(), declared=False)
-        graph_path = _resolved_resource_path(
-            str(Path(action.fixture) / "graph.json")
-        )
+        graph_path = _resolved_resource_path(str(Path(action.fixture) / "graph.json"))
         out_path = _resolved_resource_path(action.out)
         if graph_path is None or out_path is None:
             return DeclaredResources(keys=(), declared=False)
@@ -469,9 +785,7 @@ class AcdRunEnclosurePipeline(
     def declared_resources(self, action: Action) -> DeclaredResources:
         if not isinstance(action, AcdRunEnclosurePipelineAction):
             return DeclaredResources(keys=(), declared=False)
-        graph_path = _resolved_resource_path(
-            str(Path(action.fixture) / "graph.json")
-        )
+        graph_path = _resolved_resource_path(str(Path(action.fixture) / "graph.json"))
         out_path = _resolved_resource_path(action.out)
         if graph_path is None or out_path is None:
             return DeclaredResources(keys=(), declared=False)
@@ -506,13 +820,220 @@ class AcdRunEnclosurePipeline(
         ]
 
 
-ACD_TOOL_DEFINITIONS: tuple[
-    tuple[str, type[ToolDefinition[Any, Any]]], ...
-] = (
+class AcdRunFirmwarePipeline(
+    ToolDefinition[AcdRunFirmwarePipelineAction, AcdRunFirmwarePipelineObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRunFirmwarePipelineAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(
+            ("file", Path(action.fixture) / "graph.json"),
+            ("acd-out", Path(action.out)),
+            (
+                "file",
+                Path(__file__).parents[4]
+                / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
+            ),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_run_firmware_pipeline does not accept parameters")
+        return [
+            cls(
+                action_type=AcdRunFirmwarePipelineAction,
+                observation_type=AcdRunFirmwarePipelineObservation,
+                description="Run the firmware Skill through its subprocess boundary.",
+                annotations=ToolAnnotations(
+                    title="acd_run_firmware_pipeline",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdRunFirmwarePipelineExecutor(),
+            )
+        ]
+
+
+class AcdCompileRequirementChange(
+    ToolDefinition[AcdCompileRequirementChangeAction, AcdCompileRequirementChangeObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdCompileRequirementChangeAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(
+            ("acd-out", Path(action.fixture_dir)),
+            ("file", Path(action.requirement)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_compile_requirement_change does not accept parameters")
+        return [
+            cls(
+                action_type=AcdCompileRequirementChangeAction,
+                observation_type=AcdCompileRequirementChangeObservation,
+                description=(
+                    "Compile a machine-linked requirement change without "
+                    "granting pass authority."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_compile_requirement_change",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdCompileRequirementChangeExecutor(),
+            )
+        ]
+
+
+class AcdBuildDesignFixture(
+    ToolDefinition[AcdBuildDesignFixtureAction, AcdBuildDesignFixtureObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdBuildDesignFixtureAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(("file", Path(action.spec)), ("acd-out", Path(action.out)))
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_build_design_fixture does not accept parameters")
+        return [
+            cls(
+                action_type=AcdBuildDesignFixtureAction,
+                observation_type=AcdBuildDesignFixtureObservation,
+                description="Build a deterministic design fixture from a validated specification.",
+                annotations=ToolAnnotations(
+                    title="acd_build_design_fixture",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdBuildDesignFixtureExecutor(),
+            )
+        ]
+
+
+class AcdExploreBoardCandidates(
+    ToolDefinition[AcdExploreBoardCandidatesAction, AcdExploreBoardCandidatesObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdExploreBoardCandidatesAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(
+            ("file", Path(action.graph)),
+            ("acd-out", Path(action.fixture_dir)),
+            ("acd-out", Path(action.out)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_explore_board_candidates does not accept parameters")
+        return [
+            cls(
+                action_type=AcdExploreBoardCandidatesAction,
+                observation_type=AcdExploreBoardCandidatesObservation,
+                description="Explore bounded board candidates under deterministic gate authority.",
+                annotations=ToolAnnotations(
+                    title="acd_explore_board_candidates",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdExploreBoardCandidatesExecutor(),
+            )
+        ]
+
+
+class AcdDiagnoseGateFailure(
+    ToolDefinition[AcdDiagnoseGateFailureAction, AcdDiagnoseGateFailureObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdDiagnoseGateFailureAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(("acd-out", Path(action.out_dir)))
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_diagnose_gate_failure does not accept parameters")
+        return [
+            cls(
+                action_type=AcdDiagnoseGateFailureAction,
+                observation_type=AcdDiagnoseGateFailureObservation,
+                description="Read hashed diagnostic artifacts without producing gate Evidence.",
+                annotations=ToolAnnotations(
+                    title="acd_diagnose_gate_failure",
+                    readOnlyHint=True,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdDiagnoseGateFailureExecutor(),
+            )
+        ]
+
+
+class AcdCheckOrderReadiness(
+    ToolDefinition[AcdCheckOrderReadinessAction, AcdCheckOrderReadinessObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdCheckOrderReadinessAction):
+            return DeclaredResources(keys=(), declared=False)
+        paths = [
+            ("file", Path(action.policy)),
+            ("file", Path(action.order_total)),
+            *[("file", Path(path)) for path in action.evidence],
+        ]
+        return _resources(*paths)
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_check_order_readiness does not accept parameters")
+        return [
+            cls(
+                action_type=AcdCheckOrderReadinessAction,
+                observation_type=AcdCheckOrderReadinessObservation,
+                description="Check pre-order readiness read-only; never execute an order.",
+                annotations=ToolAnnotations(
+                    title="acd_check_order_readiness",
+                    readOnlyHint=True,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdCheckOrderReadinessExecutor(),
+            )
+        ]
+
+
+ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_probe_tools", AcdProbeTools),
     ("acd_validate_design_graph", AcdValidateDesignGraph),
     ("acd_run_board_pipeline", AcdRunBoardPipeline),
     ("acd_run_enclosure_pipeline", AcdRunEnclosurePipeline),
+    ("acd_run_firmware_pipeline", AcdRunFirmwarePipeline),
+    ("acd_compile_requirement_change", AcdCompileRequirementChange),
+    ("acd_build_design_fixture", AcdBuildDesignFixture),
+    ("acd_explore_board_candidates", AcdExploreBoardCandidates),
+    ("acd_diagnose_gate_failure", AcdDiagnoseGateFailure),
+    ("acd_check_order_readiness", AcdCheckOrderReadiness),
 )
 
 

@@ -214,6 +214,12 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 - `acd_validate_design_graph`
 - `acd_run_board_pipeline`
 - `acd_run_enclosure_pipeline`
+- `acd_run_firmware_pipeline`
+- `acd_compile_requirement_change`
+- `acd_build_design_fixture`
+- `acd_explore_board_candidates`
+- `acd_diagnose_gate_failure`
+- `acd_check_order_readiness`
 
 返り値のキー、ToolEnvelopeの列挙、入力妥当性、fail-closed契約は旧公開方式から
 不変である。MCP client互換層は提供しない。

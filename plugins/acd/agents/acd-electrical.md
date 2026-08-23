@@ -6,6 +6,21 @@ tools:
   - acd_probe_tools
   - acd_validate_design_graph
   - acd_run_board_pipeline
+  - acd_compile_requirement_change
+  - acd_build_design_fixture
+  - acd_explore_board_candidates
+  - acd_diagnose_gate_failure
+  - acd_check_order_readiness
+  - acd_compile_requirement_change
+  - acd_build_design_fixture
+  - acd_explore_board_candidates
+  - acd_diagnose_gate_failure
+  - acd_check_order_readiness
+  - acd_compile_requirement_change
+  - acd_build_design_fixture
+  - acd_explore_board_candidates
+  - acd_diagnose_gate_failure
+  - acd_check_order_readiness
   - terminal
   - file_editor
   - grep

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from acd.core.functional_blocks import load_functional_block_registry
+from acd.core.part_selection import PartSelectionError, select_part
 from acd.core.rationale import (
     REQUIRED_RATIONALE_ATTRS,
     check_rationale_coverage,
@@ -76,6 +77,22 @@ def build_graph(spec: DesignFixtureSpec) -> DesignGraph:
         component_id = f"comp.{component.refdes.lower()}"
         component_ids.append(component_id)
         component_attrs = {"refdes": component.refdes, **component.attrs}
+        if component.part_request is not None:
+            try:
+                selection = select_part(component.part_request)
+            except PartSelectionError as exc:
+                raise FixtureBuilderError(str(exc)) from exc
+            entry = selection.entry
+            component_attrs.update(
+                {
+                    "part_number": entry.part_number,
+                    "value": entry.value,
+                    "package": entry.package,
+                    **entry.library_ref.model_dump(mode="json"),
+                    "parts_catalog_id": selection.catalog_id,
+                    "parts_catalog_sha256": selection.catalog_hash,
+                }
+            )
         if component.library_ref is not None:
             component_attrs["library_ref"] = component.library_ref
         nodes.append(

@@ -104,6 +104,12 @@ from acd.schema.order_total import (
     OrderTotalDocument,
     QuoteCanonicalHashDocument,
 )
+from acd.schema.parts_catalog import (
+    ComponentPartRequest,
+    PartCatalogEntry,
+    PartLibraryRef,
+    PartsCatalogDocument,
+)
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -187,6 +193,7 @@ __all__ = [
     "AcdSettingsReport",
     "AcdSettingsStatus",
     "AppliedFeedbackValidationReport",
+    "ComponentPartRequest",
     "ContextSource",
     "ConvergenceState",
     "CrosscheckAspect",
@@ -255,6 +262,9 @@ __all__ = [
     "OrderScope",
     "OrderSubtotalDocument",
     "OrderTotalDocument",
+    "PartCatalogEntry",
+    "PartLibraryRef",
+    "PartsCatalogDocument",
     "PhysicalEvidence",
     "PostOrderJournalEntry",
     "PostOrderJournalEntryBody",
