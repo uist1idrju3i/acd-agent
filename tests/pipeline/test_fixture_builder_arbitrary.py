@@ -72,7 +72,9 @@ def test_fixture_builder_resolves_catalog_component(tmp_path: Path) -> None:
         ],
     )
     build_design_fixture(spec, tmp_path / "fixture")
-    graph = json.loads((tmp_path / "fixture" / "graph.json").read_text())
+    graph = json.loads(
+        (tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8")
+    )
     component = next(node for node in graph["nodes"] if node["id"] == "comp.r1")
     assert component["attrs"]["part_number"] == "0603WAF4701T5E"
     assert component["attrs"]["parts_catalog_id"] == "acd-parts-gd1-14.5"
