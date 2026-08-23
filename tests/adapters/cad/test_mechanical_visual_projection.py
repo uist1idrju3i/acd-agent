@@ -21,6 +21,7 @@ from acd.adapters.cad.visual_projection import (
     generate_mechanical_visual_projections,
 )
 from acd.core.mechanical import extract_mechanical_lane
+from acd.core.parallel import PipelineStageRunner
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.schema.design_graph import DesignGraph
 
@@ -52,14 +53,15 @@ def _authoritative(out_dir: Path):
 
 def _generate(out_dir: Path, *, workers: int = 1):
     graph, lane, projection, gates = _authoritative(out_dir)
-    return generate_mechanical_visual_projections(
-        projection=projection,
-        lane=lane,
-        target_revision=graph.revision,
-        gate_report=gates,
-        out_dir=out_dir,
-        workers=workers,
-    )
+    with PipelineStageRunner(workers) as runner:
+        return generate_mechanical_visual_projections(
+            projection=projection,
+            lane=lane,
+            target_revision=graph.revision,
+            gate_report=gates,
+            out_dir=out_dir,
+            runner=runner,
+        )
 
 
 def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(

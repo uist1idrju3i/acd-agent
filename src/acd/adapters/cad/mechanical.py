@@ -4,15 +4,13 @@ from __future__ import annotations
 
 import importlib
 import math
-import sys
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import Any
 
 from acd.core.mechanical import ComponentBodyView, MechanicalLane
-from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
-from acd.core.parallel import run_ordered_stages as _run_ordered_stages
+from acd.core.parallel import PipelineStageRunner
 
 
 class MechanicalGateError(ValueError):
@@ -101,17 +99,18 @@ def measure_enclosure_artifacts(
     shell_step_path: Path,
     lid_step_path: Path,
     assembly_step_path: Path,
-    workers: int = DEFAULT_PIPELINE_WORKERS,
+    runner: PipelineStageRunner | None = None,
 ) -> EnclosureArtifactReport:
     """Reload and validate separated enclosure STEP artifacts."""
-    effective_workers = 1 if "build123d" in sys.modules else workers
-    measurements = _run_ordered_stages(
-        (
-            ("shell", partial(_measure_artifact, shell_step_path, "shell")),
-            ("lid", partial(_measure_artifact, lid_step_path, "lid")),
-            ("assembly", partial(_measure_artifact, assembly_step_path, "assembly")),
-        ),
-        effective_workers,
+    stages = (
+        ("shell", partial(_measure_artifact, shell_step_path, "shell")),
+        ("lid", partial(_measure_artifact, lid_step_path, "lid")),
+        ("assembly", partial(_measure_artifact, assembly_step_path, "assembly")),
+    )
+    measurements = (
+        runner.run_ordered_stages(stages)
+        if runner is not None
+        else [stage() for _, stage in stages]
     )
     typed_measurements: list[_ArtifactMeasurement] = []
     for item in measurements:

@@ -20,8 +20,7 @@ from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.naming import subject_node_id
-from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
-from acd.core.parallel import run_ordered_stages as _run_ordered_stages
+from acd.core.parallel import DEFAULT_PIPELINE_WORKERS, PipelineStageRunner
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
@@ -41,23 +40,23 @@ def _stage_mechanical_gates(
     )
 
 
-def _stage_measure_enclosure_artifacts(
-    projection: CadProjection,
-) -> EnclosureArtifactReport:
-    return measure_enclosure_artifacts(
-        shell_step_path=projection.shell_step_path,
-        lid_step_path=projection.lid_step_path,
-        assembly_step_path=projection.assembly_step_path,
-        workers=1,
-    )
-
-
 def run_pipeline(
     fixture_dir: Path,
     out_dir: Path,
     *,
     pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
 ) -> dict[str, object]:
+    with PipelineStageRunner(pipeline_workers) as runner:
+        return _run_pipeline(fixture_dir, out_dir, runner=runner)
+
+
+def _run_pipeline(
+    fixture_dir: Path,
+    out_dir: Path,
+    *,
+    runner: PipelineStageRunner,
+) -> dict[str, object]:
+    runner.warm_up(("build123d",))
     graph_path = fixture_dir / "graph.json"
     graph = DesignGraph.model_validate(
         json.loads(graph_path.read_text(encoding="utf-8"))
@@ -82,23 +81,15 @@ def run_pipeline(
         f"assembly={projection.assembly_step_path}"
     )
 
-    effective_workers = 1 if "build123d" in sys.modules else pipeline_workers
-    gate_and_artifact_results = _run_ordered_stages(
-        (
-            (
-                "mechanical-gates",
-                partial(_stage_mechanical_gates, projection, lane),
-            ),
-            (
-                "enclosure-artifacts",
-                partial(
-                    _stage_measure_enclosure_artifacts,
-                    projection,
-                ),
-            ),
-        ),
-        effective_workers,
+    runner.wait_for_warm_up()
+    gate_future = runner.submit_stage(partial(_stage_mechanical_gates, projection, lane))
+    artifact_report = measure_enclosure_artifacts(
+        shell_step_path=projection.shell_step_path,
+        lid_step_path=projection.lid_step_path,
+        assembly_step_path=projection.assembly_step_path,
+        runner=runner,
     )
+    gate_and_artifact_results = [gate_future.result(), artifact_report]
     if len(gate_and_artifact_results) != 2:
         raise RuntimeError("mechanical pipeline stage results are incomplete (fail-closed)")
     gate_report = gate_and_artifact_results[0]
@@ -113,7 +104,7 @@ def run_pipeline(
         target_revision=graph.revision,
         gate_report=gate_report,
         out_dir=out_dir,
-        workers=effective_workers,
+        runner=runner,
     )
     visual_crosscheck = crosscheck_mechanical_visual_projections(
         source_revision=graph.revision,

@@ -88,16 +88,15 @@ src/acd/
 
 GD1筐体pipelineは、rationale検証、lane抽出、筐体投影を依存順に逐次実行した後、
 機械ゲート（CAD kernel probe → mechanical gates）と筐体artifact再読込測定を
-独立stageとして`ProcessPoolExecutor`で並列実行できる。機械ゲート内のprobeと判定、
-artifact測定helperはshell／lid／assembly再読込をrole単位で並列化できる。
-筐体pipelineの外側stageが既にprocessを分けている場合はnested poolを避けるため
-artifact helperをそのstage内で逐次実行し、直接呼び出す経路ではrole並列を利用する。
-ゲート完了後の断面投影と干渉投影も独立stageとして並列化できるが、結果はprojection ID順に
-reduceする。Linuxの既定forkでbuild123dが親へロード済みの経路では、OCPの状態を子へ
-継承すると停止するため、筐体pipelineとCAD adapterはその経路を逐次化する。これは
-spawnへ変更して基板pipelineの既定挙動を変えないためのfail-closedな安全策である。
-`--pipeline-workers 1`は同じ依存境界を逐次実行し、worker数はhash、Evidence、
-provenanceへ含めない。
+独立stageとして実行する。筐体pipeline開始時にCAD専用の
+`PipelineStageRunner`を1つ生成し、`spawn` contextの`ProcessPoolExecutor`をpipeline終了まで
+再利用する。生成直後に呼び出し側が指定したCAD moduleのwarm-upを各workerへ投げ、
+rationale／lane抽出／筐体投影の逐次区間とimportを重ねる。機械ゲート内のprobeと判定、
+artifact測定helperのshell／lid／assembly再読込は同じrunnerへsubmitし、nested poolを作らない。
+ゲート完了後の断面投影と干渉投影も同じrunnerの独立stageとしてsubmitし、結果はprojection ID順に
+reduceする。基板pipelineの`run_ordered_stages`は既定context（Linuxではfork）を維持し、
+spawn化はOCP/build123dを使う筐体経路に限定する。`--pipeline-workers 1`はpoolを作らず
+同じ依存境界を逐次実行し、worker数とstart methodはhash、Evidence、provenanceへ含めない。
 
 ## OpenHands plugin
 

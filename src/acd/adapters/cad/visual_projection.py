@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib
 import json
 import math
-import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import partial
@@ -20,8 +19,7 @@ from acd.adapters.cad.mechanical import (
 from acd.adapters.cad.project import CadProjection, cad_tool_version
 from acd.core.cad_normalize import normalize_step
 from acd.core.mechanical import MechanicalLane
-from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
-from acd.core.parallel import run_ordered_stages as _run_ordered_stages
+from acd.core.parallel import PipelineStageRunner
 from acd.core.process import ExternalToolError, sha256_bytes
 from acd.core.visual_projection import measure_svg_resolution
 from acd.schema.visual_projection import (
@@ -617,37 +615,38 @@ def generate_mechanical_visual_projections(
     target_revision: str,
     gate_report: MechanicalGateReport,
     out_dir: Path,
-    workers: int = DEFAULT_PIPELINE_WORKERS,
+    runner: PipelineStageRunner | None = None,
 ) -> VisualProjectionSet:
     """Generate mechanical SVG projections after mechanical gates pass."""
     if not gate_report.kernel_valid or not gate_report.clearance or not gate_report.wall_thickness:
         raise MechanicalGateError("mechanical visual projections require passing gates")
-    effective_workers = 1 if "build123d" in sys.modules else workers
-    records = _run_ordered_stages(
+    stages = (
         (
-            (
-                "mechanical-section",
-                partial(
-                    _render_mechanical_section,
-                    projection=projection,
-                    lane=lane,
-                    target_revision=target_revision,
-                    out_dir=out_dir,
-                ),
-            ),
-            (
-                "mechanical-interference",
-                partial(
-                    _render_mechanical_interference,
-                    projection=projection,
-                    lane=lane,
-                    target_revision=target_revision,
-                    gate_report=gate_report,
-                    out_dir=out_dir,
-                ),
+            "mechanical-section",
+            partial(
+                _render_mechanical_section,
+                projection=projection,
+                lane=lane,
+                target_revision=target_revision,
+                out_dir=out_dir,
             ),
         ),
-        effective_workers,
+        (
+            "mechanical-interference",
+            partial(
+                _render_mechanical_interference,
+                projection=projection,
+                lane=lane,
+                target_revision=target_revision,
+                gate_report=gate_report,
+                out_dir=out_dir,
+            ),
+        ),
+    )
+    records = (
+        runner.run_ordered_stages(stages)
+        if runner is not None
+        else [stage() for _, stage in stages]
     )
     typed_records: list[VisualProjectionRecord] = []
     for record in records:

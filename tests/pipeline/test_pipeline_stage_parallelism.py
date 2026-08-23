@@ -13,6 +13,7 @@ from typing import cast
 
 import pytest
 
+from acd.core.parallel import PipelineStageRunner
 from acd.pipeline.gd1_board import _run_ordered_stages, run_pipeline
 from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
 
@@ -46,6 +47,28 @@ def test_ordered_stage_failure_is_not_suppressed() -> None:
     )
     with pytest.raises(ValueError, match="stage failed"):
         _run_ordered_stages(stages, 2)
+
+
+def test_pipeline_stage_runner_reuses_spawn_pool() -> None:
+    with PipelineStageRunner(2) as runner:
+        runner.warm_up(("json",))
+        runner.wait_for_warm_up()
+        first = runner.run_ordered_stages(
+            (
+                ("first", _stage_pid),
+                ("second", _stage_pid),
+            )
+        )
+        second = runner.run_ordered_stages(
+            (
+                ("third", _stage_pid),
+                ("fourth", _stage_pid),
+            )
+        )
+
+    parent_pid = os.getpid()
+    assert all(pid != parent_pid for pid in first + second)
+    assert set(first) & set(second)
 
 
 def test_pipeline_worker_count_must_be_positive() -> None:
