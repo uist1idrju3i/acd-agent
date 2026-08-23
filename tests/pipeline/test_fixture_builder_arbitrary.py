@@ -86,7 +86,9 @@ def test_fixture_builder_emits_machine_linked_requirement_graph(tmp_path: Path) 
         requirements=[RequirementRecord(requirement_id="r1", statement="電源を供給する")],
     )
     build_design_fixture(spec, tmp_path / "fixture")
-    graph = json.loads((tmp_path / "fixture" / "graph.json").read_text())
+    graph = json.loads(
+        (tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8")
+    )
     assert graph["nodes"][0] == {
         "attrs": {"text": "電源を供給する"},
         "depends_on": [],
