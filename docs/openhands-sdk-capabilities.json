@@ -1,6 +1,6 @@
 {
-  "sdk_version": "1.42.1",
-  "submodule_commit": "167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497",
+  "sdk_version": "1.43.1",
+  "submodule_commit": "ddac55697c5d15cf8a34495b5ed6d46c86db092a",
   "scanned_packages": [
     {
       "prefix": "sdk",
@@ -476,6 +476,15 @@
 
     },
     {
+      "domain": "sdk.llm.cleanup",
+      "modules": ["sdk.llm.cleanup_profile"],
+      "representative_apis": ["clean_outward_text", "aclean_outward_text"],
+      "use": "出力文面の補正",
+      "adoption": "不採用",
+      "rationale": "cleanup LLMはfail-openの補助surfaceであり、ACDのauthoritative Evidenceや合否へ介入させない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
       "domain": "sdk.llm.internal",
       "modules": [
         "sdk.llm.auth",
@@ -511,6 +520,15 @@
       "verification": "pinned API確認、採用しない"
     },
     {
+      "domain": "sdk.llm.provider_connections",
+      "modules": ["sdk.llm.provider_connection_store"],
+      "representative_apis": ["ProviderConnection", "ProviderConnectionStore"],
+      "use": "LLM接続情報の共有保存",
+      "adoption": "不採用",
+      "rationale": "provider connectionはSDKの補助surfaceであり、ACDの認証情報管理契約を変更しない",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
       "domain": "sdk.llm.router",
       "modules": ["sdk.llm.router", "sdk.llm.router.*"],
       "representative_apis": ["RouterLLM", "RandomRouter", "MultimodalRouter"],
@@ -526,6 +544,19 @@
         }
       ]
 
+    },
+    {
+      "domain": "sdk.llm.runtime_metadata",
+      "modules": [
+        "sdk.llm.utils.runtime_metadata",
+        "sdk.llm.utils.providers",
+        "sdk.llm.utils.providers.openrouter"
+      ],
+      "representative_apis": ["ModelRuntimeMetadata", "resolve_provider_metadata_sync"],
+      "use": "provider routeの実行時メタデータ",
+      "adoption": "不採用",
+      "rationale": "runtime metadataはrouting補助であり、ACDのauthoritative Evidence、閾値、合否を変更しない",
+      "verification": "pinned API確認、採用しない"
     },
     {
       "domain": "sdk.llm.utils.metrics",
@@ -1045,6 +1076,15 @@
       "use": "汎用tool束",
       "adoption": "不採用",
       "rationale": "ACD固有`ToolDefinition`で登録する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.preset.task_outcome",
+      "modules": ["tools.preset.task_outcome"],
+      "representative_apis": ["TaskOutcome"],
+      "use": "structured task outcome",
+      "adoption": "不採用",
+      "rationale": "experimentalなstructured outcomeはACDの決定論的L1判定を置き換えない",
       "verification": "pinned API確認、採用しない"
     },
     {

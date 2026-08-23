@@ -37,7 +37,7 @@ digest固定`DockerWorkspace`だけが担う。
 
 視覚投影はviewBox相対font-sizeとKiCad由来SVGのfit-to-board化まで実装済みで、
 出力命名とEvidenceの対象nodeはgraph_id由来である。locked tools imageはacd本体、
-pipeline scripts、fixture、profile、ESP-IDF v5.3.1、Espressif QEMU 9.2.2、CJKフォント、
+pipeline scripts、fixture、profile、ESP-IDF v6.0.2、Espressif QEMU 9.2.2、CJKフォント、
 ccache、事前解決したPython依存を同梱し、authoritative経路はcloneなしで実行できる。
 回路図投影は機能ブロック配置と主要配線またはネットラベル接続方式を注記し、可読性向上を
 実装済みである。運用面では、host EDA不在時のdoctor誘導、FW出力命名のgraph_id由来化、
@@ -261,7 +261,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | 6.1のACD tools image digestとpinned SDK v1.42.1のagent-server構成 |
+| 入力と出所 | 6.1のACD tools image digestとpinned SDK v1.43.1のagent-server構成 |
 | 実装 | server実行資材を含むimageを事前buildしてpublishし、derived digestを独立に記録する |
 | 正常系 | publish済みserver imageのdigestを指定してworkspaceが起動し、command実行が成功する |
 | negative/fail-closed | base imageとderived imageのdigestを同一と主張する記述、digest不明起動を拒否する |

@@ -9,8 +9,8 @@
 - JavaとFreeRouting
 - Docker（ゲート実行の正）
 
-OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.42.1
-（commit `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`）をworkspace sourceとして使用する。
+OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.43.1
+（commit `ddac55697c5d15cf8a34495b5ed6d46c86db092a`）をworkspace sourceとして使用する。
 agent-serverはACDの対象外であり、採用する場合は新規ADRで受入条件を定義する。実行形は
 `LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
 host経路はprovisional専用であり、authoritative Evidenceを生成しない。
@@ -29,7 +29,7 @@ submoduleの確認:
 git submodule status
 ```
 
-`vendor/software-agent-sdk`がv1.42.1のcommitを指していることを確認する。
+`vendor/software-agent-sdk`がv1.43.1のcommitを指していることを確認する。
 
 ## OpenHandsへのインストール（SDK標準ルート）
 
@@ -487,7 +487,7 @@ command -v freerouting
 FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
 `libslirp0`およびSDL2系共有ライブラリが必要である。QEMUをtarball等から配置した場合は、
 `qemu-system-riscv32`のあるディレクトリをPATHへ追加してから実行し、次で解決できることを
-確認する。ESP-IDF v5.3.1、Espressif QEMU 9.2.2、`libslirp0`、SDL2系ライブラリ、ccache、
+確認する。ESP-IDF v6.0.2、Espressif QEMU 9.2.2、`libslirp0`、SDL2系ライブラリ、ccache、
 CJKフォントはacd-tools imageへ同梱しており、container経路ではhost側の準備を必要としない
 （`IDF_PATH`、`IDF_TOOLS_PATH`、`IDF_PYTHON_ENV_PATH`、`CCACHE_DIR`、
 `IDF_CCACHE_ENABLE`はimageで宣言する）。同梱内容と検証項目は
@@ -853,9 +853,23 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、
 採否を本節へ追記する。現行の基準は次のとおりである。
 
-- SDKは`vendor/software-agent-sdk`のv1.42.1、commit
-  `167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`に固定する。更新前にpinned checkoutの
+- SDKは`vendor/software-agent-sdk`のv1.43.1、commit
+  `ddac55697c5d15cf8a34495b5ed6d46c86db092a`に固定する。更新前にpinned checkoutの
   API、上流release tag、CHANGELOGまたは一次リリース情報を確認する。
+- v1.42.1からv1.43.1への更新では、Agent Pluginsのmanifest loaderとclosed
+  `plugin.json` schema、structured task outcome preset、shell semanticsの
+  defense-in-depth、LLM provider connection/runtime metadata、cleanup LLM profile、
+  `AgentSettingsBase.from_persisted()`、profile validate endpointが追加された。
+  ACDはagent-serverを引き続き非対象とし、structured outcome、shell semantics、
+  provider/runtime metadata、cleanup profile、provider connectionsは採用しない。
+  これらで既存のfail-closed hook/security policy、L1の決定論的判定、authoritative
+  Evidenceの規則を置換・緩和しない。Agent Pluginsのmanifest loaderもSDKの公開追加
+  surfaceとして記録するが、既存のACD plugin format採用範囲を拡大しない。
+- 同更新で、resume時のclient tool再登録、Conversation errorのstructured event、
+  active LLM profile解決、terminal executable prefix重複防止、browser-useの自動
+  Chromium install削除、v1 skills migration修正が行われた。ACDの既存利用箇所では
+  公開APIのimportとsignatureに互換性問題はなく、追加された既定動作は既存の安全境界を
+  変更しない。
 - Python依存は`pyproject.toml`とlockを正とし、既定値・公開API・破壊的変更を確認して
   `docs/openhands-sdk-capabilities.json`の採否へ反映する。Markdown表は
   `scripts/verify_sdk_capabilities.py`で生成し、採否enumと代表APIの検査を通す。

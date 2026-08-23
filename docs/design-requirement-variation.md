@@ -1,7 +1,7 @@
 # 設計要件の変更と設計動作の確認
 
 > ステータス: Accepted
-> 対象: OpenHands Software Agent SDK v1.42.1
+> 対象: OpenHands Software Agent SDK v1.43.1
 
 本書は、agentへ設計を依頼するときの要件の与え方と、agentが実際に新規設計を行ったかを
 判定する手順を記録する。GD1と同じ要件を与えた場合に新規設計が行われないことは

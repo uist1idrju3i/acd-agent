@@ -9,7 +9,7 @@ ADR-0036のambient install経路（Local GUIのplugin install）では、plugin�
 `~/.openhands/plugins/installed/acd/`へコピーされ、`LocalConversation`起動時に
 Skill・hooks・AgentDefinitionが自動読み込みされる。
 
-pinned SDK v1.42.1の`openhands.sdk.subagent.registry.agent_definition_to_factory()`は、
+pinned SDK v1.43.1の`openhands.sdk.subagent.registry.agent_definition_to_factory()`は、
 AgentDefinitionの`skills:`をfactory生成時に`load_available_skills(include_user=True,
 include_project=True)`だけで解決する。この探索範囲は`~/.agents/skills`、
 `~/.openhands/skills`（installed standalone skillを含む）、`~/.openhands/microagents`と
