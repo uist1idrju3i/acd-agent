@@ -2,20 +2,20 @@
   "acd_tools": {
     "image": "ghcr.io/uist1idrju3i/acd-tools",
     "tag": "latest",
-    "digest": "sha256:ec8cb4b71baba91125dd667d1ec426d8d06f3c4561954206a21c6a65e2228319",
-    "published_at": "2026-08-20T15:45:38Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32386804871",
+    "digest": "sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1",
+    "published_at": "2026-08-23T08:58:53Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32629161638",
     "dockerfile": "docker/acd-tools.Dockerfile",
     "tools": {
       "kicad-cli": "10.0.5",
       "freerouting": "2.3.0",
       "ngspice": "45.2",
       "python3.14": "Python 3.14.4",
-      "uv": "uv 0.12.3 (x86_64-unknown-linux-gnu)",
-      "java": "openjdk 25.0.3 2026-04-21",
+      "uv": "uv 0.12.5 (x86_64-unknown-linux-gnu)",
+      "java": "openjdk 26.0.1 2026-04-21",
       "git": "git version 2.53.0",
       "libcairo2": "1.18.4-3",
-      "esp-idf": "ESP-IDF v5.3.1",
+      "esp-idf": "ESP-IDF v6.0.2",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
       "ccache": "ccache version 4.12.3"
     }

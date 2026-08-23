@@ -46,18 +46,18 @@ def _patch_packaged_resource(monkeypatch: pytest.MonkeyPatch, payload: str | Exc
 def test_valid_lock_loads_and_is_pinned() -> None:
     lock = load_image_lock(LOCK_PATH)
     assert lock.acd_tools.digest == (
-        "sha256:ec8cb4b71baba91125dd667d1ec426d8d06f3c4561954206a21c6a65e2228319"
+        "sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1"
     )
     assert pinned_reference(lock.acd_tools) == (
         "ghcr.io/uist1idrju3i/acd-tools@"
-        "sha256:ec8cb4b71baba91125dd667d1ec426d8d06f3c4561954206a21c6a65e2228319"
+        "sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1"
     )
 
 
 def test_packaged_lock_loads_without_repository_path(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_packaged_resource(monkeypatch, LOCK_PATH.read_text(encoding="utf-8"))
     lock = load_image_lock()
-    assert lock.acd_tools.digest.endswith("e2228319")
+    assert lock.acd_tools.digest.endswith("f20e9a1")
 
 
 def test_packaged_lock_missing_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
