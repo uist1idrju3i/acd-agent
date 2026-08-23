@@ -14,7 +14,6 @@ from dataclasses import dataclass
 
 Command = tuple[str, ...]
 
-
 @dataclass(frozen=True)
 class CommandSpec:
     """Describe a verification command and its ordering constraint."""
@@ -40,6 +39,7 @@ STANDARD_COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(("uv", "run", "pytest")),
     CommandSpec(("uv", "run", "python", "scripts/verify_docs.py")),
     CommandSpec(("uv", "run", "python", "scripts/verify_skill_metadata.py")),
+    CommandSpec(("uv", "run", "python", "scripts/verify_skill_package_ref.py", "--check")),
     CommandSpec(("uv", "run", "python", "scripts/verify_sdk_capabilities.py", "--check")),
     CommandSpec(("uv", "run", "python", "scripts/verify_agent_prompts.py", "--check")),
     CommandSpec(("uv", "run", "python", "scripts/verify_acd_tool_registration.py", "--check")),

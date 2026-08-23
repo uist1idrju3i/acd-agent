@@ -121,8 +121,16 @@ RUN cd "${ACD_HOME}" \
     && uv sync --frozen --compile-bytecode \
     && uv run --frozen python -c "import acd, build123d, cairosvg; print(acd.__name__)" \
     && uv run --frozen python scripts/print_locked_image.py --entry acd-tools >/dev/null \
-    && apt-get purge -y --auto-remove software-properties-common \
-    && rm -rf /root/.cache/uv
+    && apt-get purge -y --auto-remove software-properties-common
+
+# Warm the shared PEP 723 environment and prove that the pinned Skill path is
+# reusable without network access. A metadata check verifies that every
+# acd-importing script uses the same block.
+RUN cd "${ACD_HOME}" \
+    && python3.14 scripts/verify_skill_package_ref.py --metadata-only \
+    && uv run --script scripts/probe_pinned_acd_graph.py --fixture fixtures/golden-design-1 \
+    && uv run --offline --script scripts/probe_pinned_acd_graph.py \
+        --fixture fixtures/golden-design-1
 
 ENV PATH="/usr/local/bin:${PATH}"
 ENV UV_FROZEN=1

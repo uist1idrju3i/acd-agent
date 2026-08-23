@@ -160,6 +160,22 @@ mainおよびcontainer image build元commitには3種が存在する。つまり
 | H-4 | CIでSkill scriptをリポジトリのfixtureに対して実際に実行し、pinned acdでgraphが読めることを検査する | 現在CIはscriptをmoduleとしてimportするだけで、pinned acdでの実行経路は検査されない |
 | H-5 | pinned `acd`をdigest固定image側へ事前導入し、FW laneが実行時にgitとネットワークへ依存しないようにする | `uv run --script`はcontainer内で毎回依存を解決する（今回のログでも241 packagesを実行時に取得）。offline環境では初回実行がfail-closedになり、digest固定による再現性の主張とも整合しない |
 
+### Hの解決（マイルストーン14.1）
+
+H-1は`verify_skill_package_ref.py`をstandard CIへ追加し、refの祖先性、schema tree、
+pinned API、fixture kind、script hashを`acd-package-contract.json`と比較して解決した。
+H-2はinstall doctorが同じcontractをgit/importなしで評価し、欠落・parse不能・不一致を
+required failureとすることで解決した。H-3はmain push後にcheckerがskew時だけmerge commitへ
+更新するauto-PR workflowを追加した。一致時は何もせず、auto-PR merge後にretriggerされても
+ループしない。H-4はpinned `acd`でGD1 graphをvalidateし、firmware Skillの
+`extract_firmware_lane`を呼ぶprobeをCIへ追加した。H-5は同一PEP 723 environmentをimage
+build時にwarmし、offline probeを再実行するprebakeで解決した。
+
+観測された`4cca489…`とmainのschema差分、GD1での15 validation errorsという観測記録は
+変更しない。refは現行main commitへ再pinし、checkerとprobeが同じ失敗を再発させないことを
+検査する。実行時のネットワークを不要にしても、L1 authority、閾値、fail-closed境界、
+authoritative Evidenceのdigest固定条件は緩めない。
+
 ## I. 会話からの入口とgd1固定（Devin抜きでVibeBBが成立しない直接原因）
 
 | # | 不足機能 | 現状 |
