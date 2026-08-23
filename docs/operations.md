@@ -415,6 +415,9 @@ command未実行をsuccessとして記録する経路はない。command形式�
    wireへ接続しないpadを含み、
    routerの`convergence_state`と観測結果の不一致も記録する。GND島のstitch via検査で
    欠落が発生した場合は`gnd-stitch-vias.json`へ構造化座標またはエラー理由を保存する。
+   さらに`out/gd1/design-freedom-declaration.json`へ探索対象の設計自由度とregistry整合の
+   hash-linked declarationを、`out/gd1/stitch-candidate-report.json`へ初回およびrefill
+   反復の候補・除外理由・GND島未被覆測定を保存する。
    これらのファイルは`sort_keys`付きJSON、固定座標丸め、canonical JSON SHA-256で
    決定論的に生成される。SES欠落・parse失敗などで観測できない場合も
    `status: "unavailable"`と機械可読な理由を記録する。

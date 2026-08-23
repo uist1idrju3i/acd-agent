@@ -81,6 +81,11 @@ from acd.adapters.svg import (
     generate_system_visual_projections,
 )
 from acd.core.board_model import BoardModel, NetClass
+from acd.core.design_freedom import (
+    load_design_freedom_declaration,
+    searchable_dimensions,
+    validate_change_dimension_alignment,
+)
 from acd.core.design_predicates import (
     PREDICATE_CATALOG,
     PredicateResult,
@@ -112,11 +117,16 @@ from acd.pipeline.gate_evidence import (
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
 from acd.pipeline.routing_connectivity import measure_routing_connectivity
+from acd.pipeline.stitch_candidate_evidence import (
+    summarize_stitch_candidate_report,
+    write_stitch_candidate_report,
+)
 from acd.pipeline.visual_projection import (
     crosscheck_electrical_visual_projections,
     crosscheck_firmware_visual_projections,
     generate_electrical_visual_projections,
 )
+from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
@@ -707,6 +717,28 @@ def run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     out_dir = out_dir.resolve()
     lane = extract_electrical_lane(graph)
+    functional_registry = load_functional_block_registry()
+    design_freedom = load_design_freedom_declaration()
+    validate_change_dimension_alignment(design_freedom, functional_registry)
+    design_freedom_body: dict[str, object] = {
+        "schema_version": design_freedom.document.schema_version,
+        "target_revision": graph.revision,
+        "declaration_id": design_freedom.document.declaration_id,
+        "declaration_sha256": design_freedom.declaration_hash,
+        "source_path": design_freedom.path.relative_to(repository_root()).as_posix(),
+        "dimensions": [
+            dimension.model_dump(mode="json")
+            for dimension in sorted(
+                design_freedom.dimensions, key=lambda item: item.dimension_id
+            )
+        ],
+        "searchable_dimensions": list(searchable_dimensions(design_freedom)),
+    }
+    design_freedom_body["content_sha256"] = canonical_json_sha256(design_freedom_body)
+    (out_dir / "design-freedom-declaration.json").write_text(
+        json.dumps(design_freedom_body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     group0_results = _run_ordered_stages(
         (
             (
@@ -715,7 +747,13 @@ def run_pipeline(
             ),
             (
                 "design-predicates",
-                partial(evaluate_design_predicates, graph, lane, fixture_dir),
+                partial(
+                    evaluate_design_predicates,
+                    graph,
+                    lane,
+                    fixture_dir,
+                    functional_registry,
+                ),
             ),
         ),
         pipeline_workers,
@@ -901,8 +939,8 @@ def run_pipeline(
         lane.board.via_drill_mm,
     )
     base_routed_board = routed_board
-    stitch_candidate_report: dict[str, object] = {}
-    routed_board, stitch_vias = inject_stitch_vias(
+    stitch_candidate_reports: list[dict[str, object]] = []
+    routed_board, stitch_vias, initial_stitch_report = inject_stitch_vias(
         base_routed_board,
         project.board_projection.model,
         routes,
@@ -910,7 +948,9 @@ def run_pipeline(
         project.board_projection.stitch_via_pitch_mm,
         lane.board.via_diameter_mm,
         lane.board.via_drill_mm,
-        candidate_report=stitch_candidate_report,
+    )
+    stitch_candidate_reports.append(
+        {"iteration": 0, "phase": "initial", "report": initial_stitch_report}
     )
     max_iterations = project.board_projection.model.stitch_via_refill_max_iterations
     if max_iterations is None or max_iterations <= 0:
@@ -1018,7 +1058,7 @@ def run_pipeline(
                 failure=exc,
             )
             raise
-        routed_board, stitch_vias = inject_stitch_vias(
+        routed_board, stitch_vias, refill_stitch_report = inject_stitch_vias(
             base_routed_board,
             project.board_projection.model,
             routes,
@@ -1028,9 +1068,28 @@ def run_pipeline(
             lane.board.via_drill_mm,
             allowed_points=covered,
         )
+        stitch_candidate_reports.append(
+            {
+                "iteration": iteration,
+                "phase": "refill",
+                "report": refill_stitch_report,
+            }
+        )
     shutil.rmtree(iteration_dir)
     if converged_iteration is None:
         raise RuntimeError("stitch-via refill pruning did not converge (fail-closed)")
+    stitch_candidate_report_path = write_stitch_candidate_report(
+        out_dir,
+        {
+            "schema_version": "0.1",
+            "target_revision": revision,
+            "reports": stitch_candidate_reports,
+            "coverage_measurements": iteration_measurements,
+            "final_selected_points": [
+                [round(point[0], 6), round(point[1], 6)] for point in stitch_vias
+            ],
+        },
+    )
     pruning_evidence = {
         "iterations": converged_iteration,
         "initial_candidate_count": initial_candidate_count,
@@ -1262,7 +1321,9 @@ def run_pipeline(
         pipeline_workers,
     )
     plane_measurement = cast(dict[str, object], measurement_gate_results[1])
-    plane_measurement["stitch_via_candidates"] = stitch_candidate_report
+    plane_measurement["stitch_via_candidates"] = summarize_stitch_candidate_report(
+        initial_stitch_report
+    )
     edge_overhang_declarations = {
         str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
         for node in graph.nodes
@@ -1687,6 +1748,8 @@ def run_pipeline(
         routed_path,
         dsn_path,
         routing_summary_path,
+        out_dir / "design-freedom-declaration.json",
+        stitch_candidate_report_path,
         pos_path,
         bom_path,
         cpl_path,

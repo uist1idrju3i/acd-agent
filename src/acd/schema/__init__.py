@@ -23,6 +23,11 @@ from acd.schema.context import (
     EventViewProjection,
     MemoryContextObservation,
 )
+from acd.schema.design_freedom import (
+    DESIGN_FREEDOM_DIMENSION_IDS,
+    DesignFreedomDeclarationDocument,
+    DesignFreedomDimension,
+)
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 from acd.schema.evidence import (
     Evidence,
@@ -163,6 +168,7 @@ from acd.schema.visual_projection import (
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
+    "DESIGN_FREEDOM_DIMENSION_IDS",
     "REQUIRED_ORDER_EVIDENCE_IDS",
     "UNKNOWN",
     "AcdCredentialReference",
@@ -178,6 +184,8 @@ __all__ = [
     "CrosscheckAspect",
     "CrosscheckStatus",
     "DecisionKind",
+    "DesignFreedomDeclarationDocument",
+    "DesignFreedomDimension",
     "DesignGraph",
     "DryRunExecutionMode",
     "DryRunOrderPayload",

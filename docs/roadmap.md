@@ -605,7 +605,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.1 | Skill package refのskew解消（H-1〜H-5） | refの陳腐化をCIと`/acd:doctor`で検出し、pinned `acd`をlocked imageへ事前導入して実行時のgit・ネットワーク依存を除く。CIでSkill scriptをfixtureに対し実行し、pinned `acd`でgraphが読めることを検査する。達成 |
 | 14.2 | 設計述語の適用条件宣言と機能ブロック契約registry（J-1〜J-3） | 宣言された機能ブロックに対応する述語だけを必須にし、新トポロジの追加を述語コード改変ではなく契約追加で行えるようにする。fab profileを複数持てるようにする。fail-closed境界は維持し、「検証不能」と「機能を持たない」を区別する |
 | 14.3 | 失敗理由の構造化とゲートの前倒し評価（B-3、B-4、K-3） | 未配線netとpad対などの失敗理由を機械可読Evidenceとして返し、配置のみで判定できる述語をrouter実行前に評価する。利用者向けに変更可能な次元と現在の余裕を含む形で提示する。達成 |
-| 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | 部品配置・回転とGPIO割当の探索、機能グループの結合制約、機構寸法の単一datum化、stitch via候補が全滅した島のfallback、探索対象とする設計自由度の宣言、`stitch_candidate_report`の常時保存 |
+| 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | B-8・B-9達成。設計自由度の宣言と`stitch_candidate_report`の常時保存を追加した。B-1・B-2・B-5〜B-7は未達であり、物理設計の自律探索loop全体は未完了 |
 | 14.5 | 要件→graphの変換と任意設計fixture（A-1〜A-5、I-2） | 会話由来の要件レコード化、任意設計向けfixtureビルダー、要件差分からgraph差分（接続・FWピン・テストポイント・シルク・rationale）を同時更新するcompiler、部品選定とlibrary provenance、回路トポロジ合成、agent向けtool（FW pipeline、fixture編集、発注、失敗診断）の網羅 |
 | 14.6 | gd1固定の解消と発注laneの汎用化（I-3〜I-5、E-5） | workspace既定値、生成物名・`part_number`、`order_policy`の必須evidence anchorをgraph_id由来にし、GD1以外の設計がorder-readyに到達できるようにする |
 | 14.7 | 実行時間と再開性（E-1〜E-4、E-6、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録。検証段階の並列実行（E-6）は達成済みで、pytestの`-n auto --dist loadgroup`と`verify_all.py --jobs N`（既定は`min(cpu_count, 4)`）がbarrierのない連続コマンドを並列実行する。`uv sync`とfullの後続pipelineはbarrierとして単独実行し、段階の構成・閾値・合否条件は変えない |
