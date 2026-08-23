@@ -148,5 +148,5 @@ fail-closedになる。免除する場合も、属性ごとの英語理由を免
 
 日本語コミットを使い、`git add .`、amend、`--no-verify`、force push、mainへのpush、
 `reset --hard`、`clean -fd`、`checkout -- file`、`stash drop`を使わない。
-生成された`out/`、秘密情報、環境ファイルをcommitしない。PR作成・pushは依頼がある
-場合だけ行う。
+生成された`out/`、秘密情報、環境ファイルをcommitしない。作業branchへのpushとPR作成は
+都度の依頼を待たずに行ってよい。mainへの直接pushは行わない。
