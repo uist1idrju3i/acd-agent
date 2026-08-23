@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@a6130e5ebe5a17abc6984fe9af9b97152ec20dd8",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@b821b5466e2feee0783f2f819d8c4105ccf77eb8",
 # ]
 # ///
 """Generate the deterministic instruction manual for a design graph.
