@@ -103,7 +103,7 @@ from acd.core.functional_blocks import (
     declared_functional_blocks,
     load_functional_block_registry,
 )
-from acd.core.naming import evidence_id, output_prefix, subject_node_id
+from acd.core.naming import artifact_prefix, evidence_id, output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
 from acd.core.process import execution_provenance
@@ -1332,7 +1332,7 @@ def run_pipeline(
     }
     cpl_basis_path = fab_dir / "cpl-basis-report.json"
     lcsc_evidence_dir = (
-        repository_root() / f"evidence/{output_prefix(graph.graph_id)}-cpl-orientation"
+        repository_root() / f"evidence/{artifact_prefix(graph.graph_id)}-cpl-orientation"
     )
     verified_rotation_offsets, rotation_evidence_notes, rotation_unknowns = (
         verify_lcsc_rotation_evidence(lcsc_evidence_dir, fixture_dir, measurement, lane, fitted)
