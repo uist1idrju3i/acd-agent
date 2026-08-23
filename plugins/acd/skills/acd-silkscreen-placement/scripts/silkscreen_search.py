@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import multiprocessing
 import os
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, replace
@@ -49,18 +50,11 @@ SILK_TEXT_DESCENDER_HEIGHT_RATIO = 1.45
 
 
 @dataclass(frozen=True)
-class _ContextGridPartition:
-    """Describe one independent rotation and x-column grid partition."""
+class _ContextGridBundle:
+    """Shared context for one text's grid evaluation."""
 
     text: SilkTextView
     outline: tuple[float, float, float, float]
-    rotation: float
-    rotation_index: int
-    x: float
-    width: float
-    height: float
-    measured_width: float
-    measured_height: float
     pads: tuple[dict[str, Any], ...]
     masks: tuple[dict[str, Any], ...]
     mask_openings: tuple[object, ...]
@@ -72,6 +66,110 @@ class _ContextGridPartition:
     target: tuple[float, float, float, float] | None
     center: tuple[float, float]
     reference: str | None
+
+
+@dataclass(frozen=True)
+class _ContextGridColumn:
+    """Describe one rotation and x-column grid partition."""
+
+    rotation: float
+    x: float
+    width: float
+    height: float
+    measured_width: float
+    measured_height: float
+
+
+@dataclass(frozen=True)
+class _ContextGridPartition:
+    """Combine shared context with one grid column for evaluation."""
+
+    bundle: _ContextGridBundle
+    column: _ContextGridColumn
+
+    @property
+    def text(self) -> SilkTextView:
+        return self.bundle.text
+
+    @property
+    def outline(self) -> tuple[float, float, float, float]:
+        return self.bundle.outline
+
+    @property
+    def rotation(self) -> float:
+        return self.column.rotation
+
+    @property
+    def x(self) -> float:
+        return self.column.x
+
+    @property
+    def width(self) -> float:
+        return self.column.width
+
+    @property
+    def height(self) -> float:
+        return self.column.height
+
+    @property
+    def measured_width(self) -> float:
+        return self.column.measured_width
+
+    @property
+    def measured_height(self) -> float:
+        return self.column.measured_height
+
+    @property
+    def pads(self) -> tuple[dict[str, Any], ...]:
+        return self.bundle.pads
+
+    @property
+    def masks(self) -> tuple[dict[str, Any], ...]:
+        return self.bundle.masks
+
+    @property
+    def mask_openings(self) -> tuple[object, ...]:
+        return self.bundle.mask_openings
+
+    @property
+    def existing(self) -> tuple[dict[str, Any], ...]:
+        return self.bundle.existing
+
+    @property
+    def fixed(self) -> tuple[dict[str, Any], ...]:
+        return self.bundle.fixed
+
+    @property
+    def bodies(self) -> tuple[dict[str, Any], ...]:
+        return self.bundle.bodies
+
+    @property
+    def courtyards(self) -> tuple[dict[str, Any], ...]:
+        return self.bundle.courtyards
+
+    @property
+    def dynamic_silk(self) -> tuple[dict[str, Any], ...]:
+        return self.bundle.dynamic_silk
+
+    @property
+    def target(self) -> tuple[float, float, float, float] | None:
+        return self.bundle.target
+
+    @property
+    def center(self) -> tuple[float, float]:
+        return self.bundle.center
+
+    @property
+    def reference(self) -> str | None:
+        return self.bundle.reference
+
+
+@dataclass(frozen=True)
+class _ContextGridChunk:
+    """Group grid columns so each process task reuses one context bundle."""
+
+    bundle: _ContextGridBundle
+    columns: tuple[_ContextGridColumn, ...]
 
 
 def _context_bbox(
@@ -246,12 +344,27 @@ def _evaluate_context_grid_partition(
     return candidates, rejected
 
 
+def _evaluate_context_grid_chunk(
+    chunk: _ContextGridChunk,
+) -> tuple[
+    tuple[list[dict[str, object]], list[dict[str, object]]],
+    ...,
+]:
+    """Evaluate a declaration-ordered chunk of grid columns."""
+    return tuple(
+        _evaluate_context_grid_partition(
+            _ContextGridPartition(bundle=chunk.bundle, column=column)
+        )
+        for column in chunk.columns
+    )
+
+
 def _resolve_single_text_for_order(
     item: tuple[SilkscreenLane, dict[str, Any]],
 ) -> tuple[dict[str, object], ...]:
     """Resolve one text for candidate-count ordering without nested parallelism."""
     lane, context = item
-    return _resolve_from_context_impl(lane, context, False, None)
+    return _resolve_from_context_impl(lane, context, False, None, 1)
 
 
 def _text_size(
@@ -843,6 +956,7 @@ def _resolve_from_context_impl(
     context: dict[str, Any],
     _compute_order: bool = True,
     executor: ProcessPoolExecutor | None = None,
+    workers: int = 1,
 ) -> tuple[dict[str, object], ...]:
     """Search the complete board grid using only measured context."""
     outline_raw = context.get("board_outline_bbox_mm")
@@ -974,8 +1088,8 @@ def _resolve_from_context_impl(
             raise GraphExtractionError("silkscreen context grid step is invalid")
         candidates: list[dict[str, object]] = []
         rejected: list[dict[str, object]] = []
-        partitions: list[_ContextGridPartition] = []
-        for rotation_index, rotation in enumerate(text.placement_rotation_degrees):
+        columns: list[_ContextGridColumn] = []
+        for rotation in text.placement_rotation_degrees:
             base_size = declaration_sizes.get(text.node_id)
             if base_size is None:
                 raise GraphExtractionError(
@@ -995,42 +1109,66 @@ def _resolve_from_context_impl(
             height = max(height, measured_height + text.stroke_width_mm)
             x = outline[0] + width / 2
             while x <= outline[2] - width / 2 + 1e-9:
-                partitions.append(
-                    _ContextGridPartition(
-                        text=text,
-                        outline=outline,
+                columns.append(
+                    _ContextGridColumn(
                         rotation=rotation,
-                        rotation_index=rotation_index,
                         x=x,
                         width=width,
                         height=height,
                         measured_width=measured_width,
                         measured_height=measured_height,
-                        pads=tuple(pads),
-                        masks=tuple(masks),
-                        mask_openings=tuple(mask_openings),
-                        existing=tuple(existing),
-                        fixed=tuple(fixed),
-                        bodies=tuple(bodies),
-                        courtyards=tuple(courtyards),
-                        dynamic_silk=tuple(dynamic_silk),
-                        target=target,
-                        center=center,
-                        reference=reference,
                     )
                 )
                 x = round(x + step, 9)
-        if executor is None:
-            partition_results = tuple(
-                _evaluate_context_grid_partition(partition) for partition in partitions
-            )
+        bundle = _ContextGridBundle(
+            text=text,
+            outline=outline,
+            pads=tuple(pads),
+            masks=tuple(masks),
+            mask_openings=tuple(mask_openings),
+            existing=tuple(existing),
+            fixed=tuple(fixed),
+            bodies=tuple(bodies),
+            courtyards=tuple(courtyards),
+            dynamic_silk=tuple(dynamic_silk),
+            target=target,
+            center=center,
+            reference=reference,
+        )
+        if not columns:
+            chunk_results: tuple[
+                tuple[
+                    tuple[list[dict[str, object]], list[dict[str, object]]],
+                    ...,
+                ],
+                ...,
+            ] = ()
         else:
-            partition_results = tuple(
-                executor.map(_evaluate_context_grid_partition, partitions)
+            chunk_count = (
+                1
+                if executor is None
+                else min(len(columns), max(workers * 4, 1))
             )
-        for partition_candidates, partition_rejected in partition_results:
-            candidates.extend(partition_candidates)
-            rejected.extend(partition_rejected)
+            chunk_size = math.ceil(len(columns) / chunk_count)
+            chunks = tuple(
+                _ContextGridChunk(
+                    bundle=bundle,
+                    columns=tuple(columns[index : index + chunk_size]),
+                )
+                for index in range(0, len(columns), chunk_size)
+            )
+            if executor is None:
+                chunk_results = tuple(
+                    _evaluate_context_grid_chunk(chunk) for chunk in chunks
+                )
+            else:
+                chunk_results = tuple(
+                    executor.map(_evaluate_context_grid_chunk, chunks)
+                )
+        for chunk_result in chunk_results:
+            for partition_candidates, partition_rejected in chunk_result:
+                candidates.extend(partition_candidates)
+                rejected.extend(partition_rejected)
         if not candidates:
             results_by_id[text.node_id] = {
                 "node_id": text.node_id,
@@ -1084,13 +1222,28 @@ def resolve_from_context(
     if workers < 1:
         raise ValueError("workers must be at least 1")
     if workers == 1:
-        return _resolve_from_context_impl(lane, context, _compute_order, None)
-    with ProcessPoolExecutor(max_workers=workers) as executor:
-        return _resolve_from_context_impl(lane, context, _compute_order, executor)
+        return _resolve_from_context_impl(lane, context, _compute_order, None, workers)
+    # Context search is pure Python and does not inherit native-extension state,
+    # so it explicitly uses fork; the CAD path uses spawn for OCP/build123d.
+    fork_context = multiprocessing.get_context("fork")
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=fork_context,
+    ) as executor:
+        return _resolve_from_context_impl(
+            lane,
+            context,
+            _compute_order,
+            executor,
+            workers,
+        )
 
 
 def _positive_workers(value: str) -> int:
-    workers = int(value)
+    try:
+        workers = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("workers must be an integer") from exc
     if workers < 1:
         raise argparse.ArgumentTypeError("workers must be at least 1")
     return workers

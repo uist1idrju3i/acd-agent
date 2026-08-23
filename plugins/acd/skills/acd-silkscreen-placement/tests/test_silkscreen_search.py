@@ -286,7 +286,15 @@ def test_context_search_workers_one_does_not_create_pool(
     assert result[0]["resolution"] == "context_candidate"
 
 
-def test_context_search_cli_rejects_nonpositive_workers(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("workers", "message"),
+    (("0", "workers must be at least 1"), ("invalid", "workers must be an integer")),
+)
+def test_context_search_cli_rejects_invalid_workers(
+    tmp_path: Path,
+    workers: str,
+    message: str,
+) -> None:
     script = (
         Path(__file__).resolve().parents[1]
         / "scripts"
@@ -303,7 +311,7 @@ def test_context_search_cli_rejects_nonpositive_workers(tmp_path: Path) -> None:
             "--output",
             str(tmp_path / "output.json"),
             "--workers",
-            "0",
+            workers,
         ],
         cwd=Path(__file__).resolve().parents[5],
         check=False,
@@ -311,7 +319,7 @@ def test_context_search_cli_rejects_nonpositive_workers(tmp_path: Path) -> None:
         text=True,
     )
     assert completed.returncode != 0
-    assert "workers must be at least 1" in completed.stderr
+    assert message in completed.stderr
 
 
 def test_context_search_fails_closed_for_missing_context_geometry() -> None:

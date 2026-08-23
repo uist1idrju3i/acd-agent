@@ -206,13 +206,14 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    ```
 
    `--workers`の既定値は`min(os.cpu_count() or 1, 4)`であり、`--workers 1`はpoolを
-   作らず完全逐次になる。text単位の候補数前パスと、1 text内のrotation×x-column
-   partitionだけをProcessPoolExecutorで評価し、結果は宣言順に戻す。main passは
+   作らず完全逐次になる。text単位の候補数前パスと、1 text内のrotation×x-column列を
+   共有context bundle付きchunkへまとめてProcessPoolExecutorで評価し、結果はチャンク内・
+   チャンク間とも宣言順に戻す。main passは
    `dynamic_silk`が後続textの障害物になるため逐次である。worker数によって候補、
    rejection、fail-closed結果、output JSONのbyte列、hash、Evidence、provenance、
    summaryは変化しない。SkillはACD本体からimportせず、常にsubprocess境界で実行する。
    2コアVMのhost provisionalでは、同一の未解決6 text入力に対するSkill直接実行が
-   `--workers 1`で50.383秒、`--workers 2`で33.189秒、`--workers 4`で32.893秒となり、
+   `--workers 1`で49.075秒、`--workers 2`で29.245秒、`--workers 4`で29.722秒となり、
    各output JSON（63,900,205 bytes）はbyte一致した。
    `placement_search.py`はwarm状態で1.44秒（interpreter起動込み）、実処理がサブ秒
    だったため、今回の並列化対象に含めていない。

@@ -117,11 +117,12 @@ host provisionalではresolver、筐体lane、pytest subsetまで実行できた
 成功完了の比較値ではない。
 
 silkscreen Skillのcontext候補評価は、texts>1の候補数前パスと、1 text内の
-rotation×x-column partitionを`ProcessPoolExecutor`で並列化する。結果は宣言順へreduceし、
+rotation×x-column列を共有context bundle付きのchunkへまとめて`ProcessPoolExecutor`で並列化する。
+結果はチャンク内・チャンク間とも宣言順へreduceし、
 `dynamic_silk`を更新するmain passのtext間は逐次に保つ。`--workers 1`はpoolを作らず、
 worker数は成果物の意味、hash、Evidence、provenance、summaryへ影響しない。2コアVMの
 host provisionalでは同一の未解決6 text入力に対してSkill直接実行が`--workers 1`で
-50.383秒、`--workers 2`で33.189秒、`--workers 4`で32.893秒となり、3条件の
+49.075秒、`--workers 2`で29.245秒、`--workers 4`で29.722秒となり、3条件の
 output JSON（各63,900,205 bytes）はbyte一致した。通常のGD1 resolverではsilkscreenが
 pinnedのためSkill呼び出しは0回であり、placement search Skillも1.44秒（実処理は
 サブ秒）のため変更していない。これらはhost provisional値であり、container gateの
