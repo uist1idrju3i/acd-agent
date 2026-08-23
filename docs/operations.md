@@ -621,7 +621,7 @@ CPU数でrouter条件が変わるため、GD1基板pipelineは`-mt 1`を既定�
 高速化のためではなく、authoritative Evidenceの実行条件を機械非依存にするための設定である。
 
 2コアVM上のdigest固定image
-`ghcr.io/uist1idrju3i/acd-tools@sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`
+`ghcr.io/uist1idrju3i/acd-tools@sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`
 で、`examples/sensor-node-20260820/board/gd1.dsn`を`-mp 10`で実行した測定では、
 `-mt 0/1/2/4`のSES SHA-256がすべて
 `45d620d0d86c05e860724fb1e0df49c6cda34b00c9dc921b552d2a0f071ddff0`で一致した。

@@ -17,8 +17,7 @@
       "libcairo2": "1.18.4-3",
       "esp-idf": "ESP-IDF v6.0.2",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
-      "ccache": "ccache version 4.12.3",
-      "cad-kernel": "0.11.1"
+      "ccache": "ccache version 4.12.3"
     }
   },
   "acd_server": {
