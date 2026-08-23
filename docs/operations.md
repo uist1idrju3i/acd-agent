@@ -587,7 +587,7 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 `publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
 digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
 現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
-同梱した`sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`である。
+同梱した`sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`である。
 そのbaseからderiveしたserver image
 `sha256:92085be8bc821928ff4cc861f6262817f128a60459ba2302daf45dadcea263f0`をlockへ記録済みである。
 toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
@@ -621,7 +621,7 @@ CPU数でrouter条件が変わるため、GD1基板pipelineは`-mt 1`を既定�
 高速化のためではなく、authoritative Evidenceの実行条件を機械非依存にするための設定である。
 
 2コアVM上のdigest固定image
-`ghcr.io/uist1idrju3i/acd-tools@sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`
+`ghcr.io/uist1idrju3i/acd-tools@sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`
 で、`examples/sensor-node-20260820/board/gd1.dsn`を`-mp 10`で実行した測定では、
 `-mt 0/1/2/4`のSES SHA-256がすべて
 `45d620d0d86c05e860724fb1e0df49c6cda34b00c9dc921b552d2a0f071ddff0`で一致した。
