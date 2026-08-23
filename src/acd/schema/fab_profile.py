@@ -130,3 +130,23 @@ class FabProfileDocument(AcdModel):
     @property
     def preferences_rule_ids(self) -> tuple[str, ...]:
         return tuple(item.rule_id for item in self.preferences)
+
+
+class FabProfileRegistryEntry(AcdModel):
+    profile_id: str = Field(pattern=r"^[a-z][a-z0-9.-]+$")
+    path: NonEmptyStr
+    fab: NonEmptyStr
+    process: NonEmptyStr
+
+
+class FabProfileRegistryDocument(AcdModel):
+    schema_version: SchemaVersion
+    registry_id: NonEmptyStr
+    profiles: list[FabProfileRegistryEntry] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _unique_profile_ids(self) -> FabProfileRegistryDocument:
+        ids = [profile.profile_id for profile in self.profiles]
+        if len(ids) != len(set(ids)):
+            raise ValueError("fab profile registry profile_id values must be unique")
+        return self

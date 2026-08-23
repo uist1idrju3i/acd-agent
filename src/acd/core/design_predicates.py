@@ -1,4 +1,4 @@
-"""Deterministic GD1 design predicates."""
+"""Deterministic design predicates with functional-block applicability."""
 
 from __future__ import annotations
 
@@ -13,10 +13,26 @@ from pydantic import BaseModel, ConfigDict
 from acd.adapters.kicad.library import FootprintLibrary
 from acd.adapters.kicad.placement import rotate_point
 from acd.core.electrical import ComponentView, ElectricalLane
+from acd.core.functional_blocks import (
+    FunctionalBlockRegistry,
+    declared_functional_blocks,
+    load_functional_block_registry,
+    required_predicate_names,
+    validate_predicate_coverage,
+)
 from acd.pipeline.repository import repository_root
 from acd.schema.design_graph import DesignGraph, GraphNode
 
-PredicateStatus = Literal["pass", "fail", "unknown"]
+PredicateStatus = Literal["pass", "fail", "unknown", "not_applicable"]
+
+PREDICATE_CATALOG = (
+    "usb_cc",
+    "i2c_pullup",
+    "strapping_pin",
+    "pin_firmware_alignment",
+    "power_decoupling",
+    "power_boundary",
+)
 
 CC_EXPECTED_KOHM = "5.1k"
 I2C_EXPECTED_KOHM = "4.7k"
@@ -663,28 +679,50 @@ def evaluate_power_boundary(graph: DesignGraph, lane: ElectricalLane) -> SafetyB
     )
 
 
-def evaluate_gd1_predicates(
-    graph: DesignGraph, lane: ElectricalLane, fixture_dir: Path
+def evaluate_design_predicates(
+    graph: DesignGraph,
+    lane: ElectricalLane,
+    fixture_dir: Path,
+    registry: FunctionalBlockRegistry | None = None,
 ) -> tuple[PredicateResult, ...]:
-    """Evaluate the six GD1 gates in their authoritative fixed order."""
-    safety = evaluate_power_boundary(graph, lane)
-    return (
-        evaluate_usb_cc(graph, lane),
-        evaluate_i2c_pullup(graph, lane),
-        evaluate_strapping_pin(graph, lane),
-        evaluate_pin_firmware_alignment(graph, lane),
-        evaluate_power_decoupling(graph, lane, fixture_dir),
-        _result(
-            "power_boundary", safety.status, "; ".join(item.detail for item in safety.predicates)
+    """Evaluate only predicates required by declared functional blocks."""
+    loaded = registry or load_functional_block_registry()
+    validate_predicate_coverage(PREDICATE_CATALOG, loaded)
+    declared = declared_functional_blocks(graph, loaded)
+    required = required_predicate_names(declared, loaded)
+    safety = evaluate_power_boundary(graph, lane) if "power_boundary" in required else None
+    evaluators = {
+        "usb_cc": lambda: evaluate_usb_cc(graph, lane),
+        "i2c_pullup": lambda: evaluate_i2c_pullup(graph, lane),
+        "strapping_pin": lambda: evaluate_strapping_pin(graph, lane),
+        "pin_firmware_alignment": lambda: evaluate_pin_firmware_alignment(graph, lane),
+        "power_decoupling": lambda: evaluate_power_decoupling(graph, lane, fixture_dir),
+        "power_boundary": lambda: _result(
+            "power_boundary",
+            safety.status if safety is not None else "unknown",
+            "; ".join(item.detail for item in safety.predicates) if safety is not None else "",
         ),
+    }
+    declared_text = ", ".join(declared)
+    return tuple(
+        evaluators[name]()
+        if name in required
+        else _result(
+            name,
+            "not_applicable",
+            f"No declared functional block requires {name}; "
+            f"declared functional blocks: {declared_text}",
+        )
+        for name in PREDICATE_CATALOG
     )
 
 
 __all__ = [
+    "PREDICATE_CATALOG",
     "PredicateResult",
     "PredicateStatus",
     "SafetyBoundaryResult",
-    "evaluate_gd1_predicates",
+    "evaluate_design_predicates",
     "evaluate_i2c_pullup",
     "evaluate_pin_firmware_alignment",
     "evaluate_power_boundary",

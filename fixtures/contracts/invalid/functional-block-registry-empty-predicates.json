@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "registry_id": "invalid-functional-blocks",
+  "contracts": [
+    {
+      "block_id": "empty_predicates",
+      "title": "Empty",
+      "description": "Empty predicate contract.",
+      "required_predicates": []
+    }
+  ]
+}

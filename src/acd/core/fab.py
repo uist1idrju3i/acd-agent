@@ -8,7 +8,13 @@ from pathlib import Path
 from typing import Any, cast
 
 from acd.core.electrical import GraphExtractionError
-from acd.schema import DesignGraph, FabProfileDocument, GraphNode
+from acd.pipeline.repository import repository_root
+from acd.schema import (
+    DesignGraph,
+    FabProfileDocument,
+    FabProfileRegistryDocument,
+    GraphNode,
+)
 
 
 @dataclass(frozen=True)
@@ -47,6 +53,56 @@ class FabProfile:
         return frozenset(
             preference["rule_id"] for preference in self.data["preferences"]
         )
+
+
+@dataclass(frozen=True)
+class FabProfileRegistry:
+    document: FabProfileRegistryDocument
+    registry_hash: str
+    path: Path
+
+
+def load_fab_profile_registry(path: Path | None = None) -> FabProfileRegistry:
+    registry_path = path or repository_root() / "profiles" / "fab-profile-registry.json"
+    try:
+        data = json.loads(registry_path.read_text(encoding="utf-8"))
+        document = FabProfileRegistryDocument.model_validate(data)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise ValueError(f"fab profile registry is invalid: {registry_path}: {exc}") from exc
+    from acd.schema.common import canonical_json_sha256
+
+    return FabProfileRegistry(
+        document=document,
+        registry_hash=canonical_json_sha256(document.model_dump(mode="json")),
+        path=registry_path,
+    )
+
+
+def resolve_fab_profile_path(
+    profile_id: str, registry: FabProfileRegistry | None = None
+) -> Path:
+    loaded = registry or load_fab_profile_registry()
+    entries = [entry for entry in loaded.document.profiles if entry.profile_id == profile_id]
+    if len(entries) != 1:
+        raise ValueError(f"unknown fab profile id: {profile_id}")
+    raw_path = Path(entries[0].path)
+    profile_path = raw_path if raw_path.is_absolute() else loaded.path.parent / raw_path
+    if not profile_path.is_file():
+        raise ValueError(f"fab profile path does not exist: {profile_path}")
+    profile = load_fab_profile(profile_path)
+    if profile.profile_id != profile_id:
+        raise ValueError(
+            f"fab profile id mismatch: registry={profile_id!r}, file={profile.profile_id!r}"
+        )
+    if profile.data["fab"] != entries[0].fab or profile.data["process"] != entries[0].process:
+        raise ValueError(f"fab profile metadata mismatch for id: {profile_id}")
+    return profile_path
+
+
+def load_fab_profile_by_id(
+    profile_id: str, registry: FabProfileRegistry | None = None
+) -> FabProfile:
+    return load_fab_profile(resolve_fab_profile_path(profile_id, registry))
 
 
 def _required_str(node: GraphNode, key: str) -> str:

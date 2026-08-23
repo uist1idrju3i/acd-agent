@@ -3143,6 +3143,66 @@
     },
     {
       "attrs": {
+        "block_id": "safety_power_boundary"
+      },
+      "depends_on": [
+        "req.gd1-req-004"
+      ],
+      "id": "fb.safety-power-boundary",
+      "kind": "design.functional_block"
+    },
+    {
+      "attrs": {
+        "block_id": "usb_c_cc_termination"
+      },
+      "depends_on": [
+        "req.gd1-req-006"
+      ],
+      "id": "fb.usb-c-cc-termination",
+      "kind": "design.functional_block"
+    },
+    {
+      "attrs": {
+        "block_id": "i2c_bus_pullup"
+      },
+      "depends_on": [
+        "req.gd1-req-011"
+      ],
+      "id": "fb.i2c-bus-pullup",
+      "kind": "design.functional_block"
+    },
+    {
+      "attrs": {
+        "block_id": "esp32c3_strapping_boot"
+      },
+      "depends_on": [
+        "req.gd1-req-010"
+      ],
+      "id": "fb.esp32c3-strapping-boot",
+      "kind": "design.functional_block"
+    },
+    {
+      "attrs": {
+        "block_id": "firmware_pin_map"
+      },
+      "depends_on": [
+        "req.gd1-req-008"
+      ],
+      "id": "fb.firmware-pin-map",
+      "kind": "design.functional_block"
+    },
+    {
+      "attrs": {
+        "block_id": "single_ldo_power_tree"
+      },
+      "depends_on": [
+        "req.gd1-req-007"
+      ],
+      "id": "fb.single-ldo-power-tree",
+      "kind": "design.functional_block"
+    },
+    {
+      "attrs": {
         "assembly_sides": "top",
         "delivery_format": "single",
         "fab_profile": "jlcpcb-fr4-2l-1oz",

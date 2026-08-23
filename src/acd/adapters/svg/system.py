@@ -44,6 +44,8 @@ _BLOCK_OMIT_KINDS = frozenset(
         "electrical.pin",
         # Requirements and manufacturing intents are not system blocks.
         "requirement",
+        # Functional-block declarations select contracts but are not system blocks.
+        "design.functional_block",
         "fab.order_intent",
         "fab.process_allowance",
         # Mechanical geometry and graphics belong to mechanical projections.

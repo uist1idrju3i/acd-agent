@@ -503,6 +503,23 @@ def build_graph() -> DesignGraph:
             depends_on=sorted(board_deps),
         )
     )
+    functional_blocks = (
+        ("fb.safety-power-boundary", "safety_power_boundary", "req.gd1-req-004"),
+        ("fb.usb-c-cc-termination", "usb_c_cc_termination", "req.gd1-req-006"),
+        ("fb.i2c-bus-pullup", "i2c_bus_pullup", "req.gd1-req-011"),
+        ("fb.esp32c3-strapping-boot", "esp32c3_strapping_boot", "req.gd1-req-010"),
+        ("fb.firmware-pin-map", "firmware_pin_map", "req.gd1-req-008"),
+        ("fb.single-ldo-power-tree", "single_ldo_power_tree", "req.gd1-req-007"),
+    )
+    nodes.extend(
+        GraphNode(
+            id=node_id,
+            kind="design.functional_block",
+            attrs={"block_id": block_id},
+            depends_on=[requirement_id],
+        )
+        for node_id, block_id, requirement_id in functional_blocks
+    )
     nodes.append(
         GraphNode(
             id="fab.order_intent.gd1",
