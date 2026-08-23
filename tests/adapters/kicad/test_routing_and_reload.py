@@ -4,7 +4,7 @@ from __future__ import annotations
 
 # pyright: reportPrivateImportUsage=false, reportPrivateUsage=false, reportUnknownMemberType=false, reportUnknownLambdaType=false
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import pytest
 
@@ -85,12 +85,13 @@ def test_stitch_vias_exclude_declared_keepout() -> None:
         stitch_via_pitch_mm=3.0,
         stitch_via_net="GND",
     )
-    result, vias = inject_stitch_vias(
+    result, vias, report = inject_stitch_vias(
         _BOARD, model, RoutedDesign((), ()), {"GND": 1}, 3.0, 0.6, 0.3
     )
     assert vias
     assert all(not (5.0 <= x <= 15.0 and 0.0 <= y <= 5.0) for x, y in vias)
     assert result.count("(via") == len(vias)
+    assert report["candidate_total"] == len(report["candidates"])  # type: ignore[arg-type]
 
 
 def test_stitch_candidate_report_records_exclusion_reasons() -> None:
@@ -103,8 +104,7 @@ def test_stitch_candidate_report_records_exclusion_reasons() -> None:
         stitch_via_pitch_mm=3.0,
         stitch_via_net="GND",
     )
-    report: dict[str, object] = {}
-    inject_stitch_vias(
+    _, _, report = inject_stitch_vias(
         _BOARD,
         model,
         RoutedDesign((), ()),
@@ -112,7 +112,6 @@ def test_stitch_candidate_report_records_exclusion_reasons() -> None:
         3.0,
         0.6,
         0.3,
-        candidate_report=report,
     )
     candidate_total = report["candidate_total"]
     assert isinstance(candidate_total, int) and candidate_total > 0
@@ -127,6 +126,19 @@ def test_stitch_candidate_report_records_exclusion_reasons() -> None:
         "board_edge_inset",
         "inter_via_spacing",
     }
+    candidates = report["candidates"]
+    assert isinstance(candidates, list)
+    typed_candidates = cast(list[dict[str, Any]], candidates)
+    assert typed_candidates == sorted(
+        typed_candidates,
+        key=lambda item: (item["position_mm"][0], item["position_mm"][1]),
+    )
+    assert all(
+        not item["exclusion_reasons"]
+        for item in typed_candidates
+        if item["selected"]
+    )
+    assert report["allowed_points_override"] is False
 
 
 def test_uncovered_stitch_via_error_preserves_structured_locations() -> None:
@@ -168,7 +180,7 @@ def test_stitch_vias_rotate_asymmetric_pad_axes() -> None:
         stitch_via_pitch_mm=3.011932521069266,
         stitch_via_net="GND",
     )
-    _, vias = inject_stitch_vias(
+    _, vias, _ = inject_stitch_vias(
         _BOARD,
         model,
         RoutedDesign((), ()),
@@ -206,7 +218,7 @@ def test_stitch_vias_exclude_rotated_translated_body_bbox() -> None:
         stitch_via_pitch_mm=3.0,
         stitch_via_net="GND",
     )
-    _, vias = inject_stitch_vias(
+    _, vias, _ = inject_stitch_vias(
         _BOARD,
         model,
         RoutedDesign((), ()),
@@ -250,7 +262,7 @@ def test_missing_stitch_basis_fails_downstream() -> None:
         copper_zones=(CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
         stitch_via_net="GND",
     )
-    _, vias = inject_stitch_vias(
+    _, vias, _ = inject_stitch_vias(
         _BOARD, model, RoutedDesign((), ()), {"GND": 1}, None, 0.6, 0.3
     )
     assert vias == ()

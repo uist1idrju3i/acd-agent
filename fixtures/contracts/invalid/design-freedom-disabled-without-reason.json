@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "declaration_id": "invalid",
+  "dimensions": [
+    {
+      "dimension_id": "component_placement_xy",
+      "title": "Placement",
+      "description": "Placement",
+      "lane": "electrical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph",
+      "bound_basis": "gate",
+      "gate_authority": ["gate"],
+      "search_enabled": false
+    }
+  ]
+}

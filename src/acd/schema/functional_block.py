@@ -5,8 +5,9 @@ from __future__ import annotations
 from pydantic import Field, model_validator
 
 from acd.schema.common import AcdModel, NonEmptyStr, SchemaVersion
+from acd.schema.design_freedom import DESIGN_FREEDOM_DIMENSION_IDS
 
-KNOWN_CHANGE_DIMENSIONS = frozenset({"component_placement_xy"})
+KNOWN_CHANGE_DIMENSIONS = DESIGN_FREEDOM_DIMENSION_IDS
 
 
 class FunctionalBlockContract(AcdModel):

@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0",
+  "declaration_id": "acd-design-freedom-14.4-session-1",
+  "dimensions": [
+    {
+      "dimension_id": "component_placement_xy",
+      "title": "Component placement",
+      "description": "Search the two-dimensional placement of declared components.",
+      "lane": "electrical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attributes electrical.component.placement_x_mm and placement_y_mm",
+      "bound_basis": "The design-predicate and board geometry gates remain the authority; no independent bound is declared.",
+      "gate_authority": ["design_predicates", "kicad_drc", "gnd_stitch_vias"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "component_rotation_deg",
+      "title": "Component rotation",
+      "description": "Search the rotation of declared components in the board frame.",
+      "lane": "electrical",
+      "kind": "continuous",
+      "unit": "deg",
+      "value_source": "graph attribute electrical.component.placement_rotation_deg",
+      "bound_basis": "The board projection and Kicad DRC gates remain the authority; no independent bound is declared.",
+      "gate_authority": ["kicad_drc", "gnd_stitch_vias"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "gpio_assignment",
+      "title": "GPIO assignment",
+      "description": "Search firmware GPIO assignments among graph-declared MCU pads.",
+      "lane": "firmware",
+      "kind": "categorical",
+      "allowed_values": ["graph-declared GPIO assignments"],
+      "value_source": "graph nodes fw.pin.* and electrical MCU pad assignments",
+      "bound_basis": "The pin_firmware_alignment and electrical routing gates remain the authority; no independent bound is declared.",
+      "gate_authority": ["design_predicates", "kicad_drc"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "track_width_mm",
+      "title": "Track width",
+      "description": "Search declared copper track widths.",
+      "lane": "electrical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attributes electrical.board.min_track_mm and netclass width attributes",
+      "bound_basis": "The fab profile and routing-width/DRC gates remain the authority; no independent bound is declared.",
+      "gate_authority": ["routing_width", "kicad_drc"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "copper_layer_count",
+      "title": "Copper layer count",
+      "description": "The selected board copper layer count and its projection.",
+      "lane": "electrical",
+      "kind": "integer_range",
+      "unit": "layers",
+      "value_source": "graph attribute electrical.board.layers and selected fab profile",
+      "bound_basis": "The selected fab profile and board projection remain the authority; no independent bound is declared.",
+      "gate_authority": ["fab_profile", "kicad_drc"],
+      "search_enabled": false,
+      "search_disabled_reason": "Changing layer count changes fab profile selection and board projection; J-3 profile registry work is out of scope for this session."
+    },
+    {
+      "dimension_id": "clearance_mm",
+      "title": "Copper clearance",
+      "description": "Search declared electrical clearance values.",
+      "lane": "electrical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attributes electrical.board.min_clearance_mm and fab profile capabilities",
+      "bound_basis": "The fab profile and Kicad DRC gates remain the authority; no independent bound is declared.",
+      "gate_authority": ["kicad_drc", "gnd_stitch_vias"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "via_rule",
+      "title": "Via rule",
+      "description": "Search the declared routing via geometry and rule choice.",
+      "lane": "electrical",
+      "kind": "categorical",
+      "allowed_values": ["graph-declared via rule"],
+      "value_source": "graph attributes electrical.board.via_diameter_mm and via_drill_mm plus fab profile capabilities",
+      "bound_basis": "The fab profile, routing, DRC, and ground-plane gates remain the authority; no independent bound is declared.",
+      "gate_authority": ["kicad_drc", "gnd_stitch_vias"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "router_max_passes",
+      "title": "Router maximum passes",
+      "description": "Search the bounded router pass budget supplied to the pipeline.",
+      "lane": "electrical",
+      "kind": "integer_range",
+      "unit": "passes",
+      "value_source": "--max-passes CLI flag",
+      "bound_basis": "The router convergence gate remains the authority; no independent bound is declared.",
+      "gate_authority": ["freerouting_convergence", "kicad_drc"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "mechanical_datum",
+      "title": "Mechanical datum",
+      "description": "The datum used to resolve mechanical placement and dimensions.",
+      "lane": "mechanical",
+      "kind": "categorical",
+      "allowed_values": ["graph-declared mechanical datum"],
+      "value_source": "mechanical.* datum nodes",
+      "bound_basis": "The mechanical projection and interference gates remain the authority; no independent bound is declared.",
+      "gate_authority": ["mechanical_projection", "mechanical_interference"],
+      "search_enabled": false,
+      "search_disabled_reason": "Single-datum consolidation is B-6 and has not yet been implemented."
+    }
+  ]
+}

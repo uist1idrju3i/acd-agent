@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 from conftest import fixture_obj, load_fixture
 from pydantic import ValidationError
 
 from acd.schema import (
     AcdModel,
+    DesignFreedomDeclarationDocument,
     DesignGraph,
     Evidence,
     FunctionalBlockRegistryDocument,
@@ -20,6 +24,8 @@ from acd.schema import (
     ToolEnvelope,
     VisualProjectionSet,
 )
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize(
@@ -43,10 +49,25 @@ def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
     model.model_validate(load_fixture("valid", name))
 
 
+def test_design_freedom_contract() -> None:
+    path = ROOT / "contracts" / "design-freedom-declaration.json"
+    DesignFreedomDeclarationDocument.model_validate(
+        json.loads(path.read_text(encoding="utf-8"))
+    )
+
+
 @pytest.mark.parametrize(
     ("model", "name"),
     [
         (DesignGraph, "design-graph-unknown-field.json"),
+        (DesignFreedomDeclarationDocument, "design-freedom-unknown-dimension-id.json"),
+        (DesignFreedomDeclarationDocument, "design-freedom-missing-dimension.json"),
+        (DesignFreedomDeclarationDocument, "design-freedom-unknown-field.json"),
+        (DesignFreedomDeclarationDocument, "design-freedom-bound-without-basis.json"),
+        (
+            DesignFreedomDeclarationDocument,
+            "design-freedom-disabled-without-reason.json",
+        ),
         (FunctionalBlockRegistryDocument, "functional-block-registry-duplicate.json"),
         (
             FunctionalBlockRegistryDocument,

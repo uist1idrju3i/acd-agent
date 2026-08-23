@@ -69,11 +69,35 @@ def inject_stitch_vias(
     via_diameter_mm: float,
     via_drill_mm: float,
     allowed_points: Sequence[tuple[float, float]] | None = None,
-    candidate_report: dict[str, object] | None = None,
-) -> tuple[str, tuple[tuple[float, float], ...]]:
+)-> tuple[str, tuple[tuple[float, float], ...], dict[str, object]]:
     """Add deterministic GND stitching vias outside occupied geometry."""
+    empty_report: dict[str, object] = {
+        "candidate_total": 0,
+        "selected_count": 0,
+        "exclusion_counts": {
+            "keepout": 0,
+            "footprint_body_or_courtyard": 0,
+            "pad": 0,
+            "wire": 0,
+            "via": 0,
+            "board_edge_inset": 0,
+            "inter_via_spacing": 0,
+        },
+        "exclusion_combinations": {},
+        "board_edge_inset_basis": (
+            "Candidates are generated inside the board edge inset; "
+            "no post-generation edge rejection is performed."
+        ),
+        "footprint_clearance_method": (
+            "Rotated body/courtyard corners with an axis-aligned bounding "
+            "box, expanded by via radius plus clearance."
+        ),
+        "candidates": [],
+        "allowed_points_override": allowed_points is not None,
+        "selected_points": [],
+    }
     if pitch_mm is None or model.stitch_via_net is None:
-        return board_content, ()
+        return board_content, (), empty_report
     net_number = net_numbers.get(model.stitch_via_net)
     if net_number is None:
         raise RouteInjectionError("stitch-via net is unknown (fail-closed)")
@@ -202,9 +226,11 @@ def inject_stitch_vias(
         "inter_via_spacing": 0,
     }
     exclusion_combinations: dict[str, int] = {}
+    candidate_reasons: dict[tuple[float, float], tuple[str, ...]] = {}
     for point in candidates:
         reasons = occupied_reasons(point)
         if reasons:
+            candidate_reasons[point] = reasons
             for reason in reasons:
                 exclusion_counts[reason] += 1
             combination = "+".join(reasons)
@@ -217,32 +243,46 @@ def inject_stitch_vias(
             <= via_diameter_mm + clearance
             for other in selected_points
         ):
+            candidate_reasons[point] = ("inter_via_spacing",)
             exclusion_counts["inter_via_spacing"] += 1
             exclusion_combinations["inter_via_spacing"] = (
                 exclusion_combinations.get("inter_via_spacing", 0) + 1
             )
             continue
+        candidate_reasons[point] = ()
         selected_points.append(point)
     selected = tuple(selected_points)
     if allowed_points is not None:
         selected = tuple(dict.fromkeys(allowed_points))
-    if candidate_report is not None:
-        candidate_report.update(
+    selected_set = set(selected)
+    report: dict[str, object] = {
+        "candidate_total": len(candidates),
+        "selected_count": len(selected),
+        "exclusion_counts": exclusion_counts,
+        "exclusion_combinations": exclusion_combinations,
+        "board_edge_inset_basis": (
+            "Candidates are generated inside the board edge inset; "
+            "no post-generation edge rejection is performed."
+        ),
+        "footprint_clearance_method": (
+            "Rotated body/courtyard corners with an axis-aligned bounding "
+            "box, expanded by via radius plus clearance."
+        ),
+        "candidates": [
             {
-                "candidate_total": len(candidates),
-                "selected_count": len(selected),
-                "exclusion_counts": exclusion_counts,
-                "exclusion_combinations": exclusion_combinations,
-                "board_edge_inset_basis": (
-                    "Candidates are generated inside the board edge inset; "
-                    "no post-generation edge rejection is performed."
-                ),
-                "footprint_clearance_method": (
-                    "Rotated body/courtyard corners with an axis-aligned bounding "
-                    "box, expanded by via radius plus clearance."
+                "position_mm": [round(point[0], 6), round(point[1], 6)],
+                "selected": point in selected_set,
+                "exclusion_reasons": (
+                    [] if point in selected_set else list(candidate_reasons[point])
                 ),
             }
-        )
+            for point in sorted(candidates, key=lambda item: (item[0], item[1]))
+        ],
+        "allowed_points_override": allowed_points is not None,
+        "selected_points": [
+            [round(point[0], 6), round(point[1], 6)] for point in selected
+        ],
+    }
     lines = [
         f'  (via (at {fmt(x)} {fmt(y)}) (size {fmt(via_diameter_mm)}) '
         f'(drill {fmt(via_drill_mm)}) (layers "F.Cu" "B.Cu") '
@@ -252,7 +292,7 @@ def inject_stitch_vias(
     stripped = board_content.rstrip()
     if not lines:
         raise RouteInjectionError("no safe stitch-via locations remain (fail-closed)")
-    return stripped[:-1].rstrip() + "\n" + "\n".join(lines) + "\n)\n", selected
+    return stripped[:-1].rstrip() + "\n" + "\n".join(lines) + "\n)\n", selected, report
 
 
 def _wire_key(wire: RoutedWire) -> tuple[str, str, tuple[tuple[float, float], ...]]:
