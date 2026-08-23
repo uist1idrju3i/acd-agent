@@ -44,6 +44,18 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: "3.12"
+      - name: Install KiCad libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y software-properties-common
+          sudo add-apt-repository --yes ppa:kicad/kicad-10.0-releases
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y kicad-footprints kicad-symbols
+          for package in kicad-footprints kicad-symbols; do
+            version=$(dpkg-query -W -f='${Version}' "$package")
+            printf '%s=%s\n' "$package" "$version"
+            printf '%s\n' "$version" | grep -E '^10\.0\.'
+          done
       - name: Sync workspace
         run: uv sync
       # Skill and hook tests are separate from the core gates: their result never
