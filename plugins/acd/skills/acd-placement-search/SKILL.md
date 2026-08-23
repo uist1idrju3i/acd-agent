@@ -29,9 +29,10 @@ ACD本体は配置探索を持たない。座標と回転角は設計データ�
 - `scripts/vision_proposal.py`: 視覚投影のビジョン応答から得た数値案（座標・回転）を候補として
   受け取り、決定論的に整合化（格子snap、許可回転へのsnap、領域内判定、keepout非重複、変位上限）
   してから代理指標を付けて出力する。ADR-0041に従う。
-- `scripts/vision_route_proposal.py`: ビジョン応答から得たnet・銅層・経路点を候補として
-  受け取り、幅を宣言から導出して決定論的に整合化（格子snap、pad端点固定、45度倍数分解、
-  同一層clearance検査、衝突区間の迂回修復）してから代理指標と順位を付けて出力する。
+- `scripts/vision_route_proposal.py`: ビジョン応答から得たnet・銅層・経路点・層変更位置を
+  候補として受け取り、幅とvia幾何を宣言から導出して決定論的に整合化（格子snap、pad端点固定、
+  45度倍数分解、clearance検査、衝突区間の迂回修復、via配置、net連結性検査）してから
+  代理指標と順位を付けて出力する。
 
 ## 使い方
 
@@ -133,10 +134,26 @@ uv run --script plugins/acd/skills/acd-placement-search/scripts/vision_route_pro
       "net": "BOOT",
       "layer": "F.Cu",
       "waypoints": [{ "x_mm": 6.3, "y_mm": 9.2 }, { "x_mm": 15.2, "y_mm": 8.8 }]
+    },
+    {
+      "net": "LED",
+      "from_pad": "U1-21",
+      "to_pad": "R6-1",
+      "segments": [
+        { "layer": "F.Cu", "waypoints": [{ "x_mm": 16.0, "y_mm": 6.0 }] },
+        { "layer": "B.Cu", "waypoints": [{ "x_mm": 9.0, "y_mm": 5.0 }] }
+      ],
+      "vias": [{ "x_mm": 14.0, "y_mm": 5.5 }]
     }
   ]
 }
 ```
+
+一つの提案は一つのpad対の接続である。`layer`と`waypoints`は単層接続の短縮形で、層を変える
+接続は`segments`（層ごとの経路）と`vias`（層変更位置）で宣言する。連続するsegmentは必ず層が
+変わり、n個のsegmentはn-1個の層変更位置を宣言する。3pad以上のnetでは`from_pad`と`to_pad`を
+必須とし、接続をpad対ごとに分けて宣言する。2pad netでは省略できる。pad参照は
+`<refdes>-<pad number>`形式で、footprint内でpad番号が一意でないpadは指定できない。
 
 線幅とclearanceは提案から読まない。graphの`width_basis`とfab profileの最小値から
 `derive_net_widths()`で導出し、両端は実pad位置へ固定する。経路点は格子snap後に45度倍数へ
@@ -144,14 +161,22 @@ uv run --script plugins/acd/skills/acd-placement-search/scripts/vision_route_pro
 同じ格子上の決定論的な迂回探索で修復する。`--placements`を与えない場合は
 `placement_search.py`の決定論的配置を前提にする。
 
+via幾何も提案から読まない。drillとdiameterはgraphの基板宣言（`via_drill_mm`、
+`via_diameter_mm`）から取り、fab profileの`min_via_hole`、`min_via_diameter`、
+`via_diameter_margin`に対して検査する。宣言された層変更位置は格子へsnapし、基板領域と
+他netのpad・配線・viaとのclearanceを満たす最近傍の格子点へ決定論的に寄せる。宣言された
+接続はそのnetの全padを一つの連結成分へ結合しなければならない。
+
 出力は`artifact_kind="vision_route_candidates"`、`pass_evidence=false`の候補報告であり、
 ACD側は`acd.core.route_candidates`でprovenanceとrevision一致を検査してからtool中立の
 `RoutedDesign`へ変換する。合否は基板投影後のDRCとGerber独立再読込だけが判定する。
 
 次の場合はすべてfail-closedで停止する。`artifact_kind`不一致、`pass_evidence`が`false`以外、
 空応答、provenance欠落、未知net、`F.Cu`／`B.Cu`以外の層、netの重複、経路点の欠落・非有限値、
-円弧宣言、変位上限内で整合化できない経路点、迂回不能、宣言層だけでは接続できない（via必須の）net、
-2pad以外のnet、`--fixture-dir`／`--fab-profile`の欠落。
+円弧宣言、変位上限内で整合化できない経路点、迂回不能、pad参照の欠落（3pad以上のnet）・未知・
+非一意・同一pad指定、接続宣言の重複、segmentと層変更位置の個数不一致、連続segmentの層が同じ、
+宣言層に無いpadへの接続、宣言via幾何がfab最小値を下回る、netの全padを結合しない接続集合、
+`--fixture-dir`／`--fab-profile`の欠落。
 
 ## 前提と限界
 
@@ -160,8 +185,8 @@ ACD側は`acd.core.route_candidates`でprovenanceとrevision一致を検査し�
 - ビジョン案の整合化で許可する回転と配線自由度は`profiles/search/`の版管理profileが定義する。
   既定は90度刻みで、1度刻みの任意回転・円弧配線・非45度配線は実測Evidenceがない限り拒否する。
 - 機械laneの候補は提案された部品bodyだけを対象とし、他のbodyとの干渉は機械laneのゲートが判定する。
-- 配線候補は宣言層で接続できる2pad netに限る。via生成と多pad netの分割は未対応であり、
-  FreeRouting経路の代替にならない。
+- 配線候補は宣言された接続をそのまま整合化する。層割当、via位置、pad対の選択は推測せず、
+  木構造の最適性も評価しない。FreeRouting経路の代替にはならない。
 - 高ファンアウト網（GND/電源）は引力から除外するため、ベタ面前提の設計に依存する。
 - 代理指標は概算であり、実配線可能性や実測を代替しない。
 - この Skill の結果は ACD の設計ゲートの結果ではない。
