@@ -332,7 +332,7 @@ uv run python scripts/pre_order_gate.py \
   --order-total out/order-total.json \
   --evaluated-at 2026-08-14T00:00:00Z \
   --rerun-authoritative \
-  --image ghcr.io/uist1idrju3i/acd-server@sha256:92085be8bc821928ff4cc861f6262817f128a60459ba2302daf45dadcea263f0
+  --image ghcr.io/uist1idrju3i/acd-server@sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a
 ```
 
 `--local-provisional`はこのCLIの選択肢ではなく、hostの`LocalWorkspace`結果は
@@ -608,9 +608,8 @@ digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへ
 現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
 同梱した`sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`である。
 lockに記録済みのserver image
-`sha256:92085be8bc821928ff4cc861f6262817f128a60459ba2302daf45dadcea263f0`は、
-一つ前のtools digest`sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`から
-deriveした値であり、現行base digestからのderived digestはまだ記録していない。
+`sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a`は、
+現行base tools digestからderiveした値である。
 toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
 更新する。この更新はlockへ新しいtools digestを記録した後に行う。workflowはlockから
 base toolsを解決するため、lock更新前に起動すると旧baseのserver imageをbuildしてしまう。

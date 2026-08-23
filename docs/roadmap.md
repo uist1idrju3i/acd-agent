@@ -247,7 +247,7 @@ unclassified属性、policy不整合はfail-closedでstatusを`unknown`とする
 derived server digestはpublish実行後にlockへ記録済みである。base tools digest
 `sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`と、
 そこからderiveしたserver digest
-`sha256:92085be8bc821928ff4cc861f6262817f128a60459ba2302daf45dadcea263f0`は
+`sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a`は
 独立した値として保持する。受入条件は
 [`ADR-0026`](adr/ADR-0026-openhands-delegation-contract.md)の入口と実行形、
 [`ADR-0028`](adr/ADR-0028-execution-provenance.md)の実行provenanceを正とする。
