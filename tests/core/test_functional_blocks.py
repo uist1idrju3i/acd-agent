@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 import pytest
 
-from acd.core.design_predicates import PREDICATE_CATALOG, evaluate_design_predicates
+from acd.core.design_predicates import (
+    PREDICATE_CATALOG,
+    PredicateResult,
+    evaluate_design_predicates,
+)
 from acd.core.electrical import extract_electrical_lane
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
@@ -38,6 +42,28 @@ def _without_blocks(graph: DesignGraph, block_ids: set[str]) -> DesignGraph:
             ]
         }
     )
+
+
+def _skip_if_gd1_geometry_library_is_missing(graph: DesignGraph) -> None:
+    lane = extract_electrical_lane(graph)
+    required_refs = {"C3", "C4", "C5", "U1", "U2", "U3"}
+    for component in lane.components:
+        if component.refdes not in required_refs:
+            continue
+        path = Path(component.library.footprint_file)
+        if not path.is_absolute():
+            path = FIXTURE_DIR / path
+        if not path.is_file():
+            pytest.skip(f"pinned KiCad library not present in this environment: {path}")
+
+
+def _assert_predicates_pass(results: Iterable[PredicateResult]) -> None:
+    failures = [
+        f"{result.name}: status={result.status!r}, detail={result.detail}"
+        for result in results
+        if result.status != "pass"
+    ]
+    assert not failures, "unexpected predicate results: " + "; ".join(failures)
 
 
 def _without_all_functional_blocks(graph: DesignGraph) -> DesignGraph:
@@ -95,14 +121,11 @@ def test_all_gd1_functional_blocks_are_declared() -> None:
 
 def test_removing_i2c_declaration_is_not_applicable_only_for_i2c() -> None:
     graph = _without_blocks(_graph(), {"i2c_bus_pullup"})
+    _skip_if_gd1_geometry_library_is_missing(graph)
     lane = extract_electrical_lane(graph)
     results = evaluate_design_predicates(graph, lane, FIXTURE_DIR)
     assert results[1].status == "not_applicable"
-    assert all(
-        result.status == "pass"
-        for result in results
-        if result.name != "i2c_pullup"
-    )
+    _assert_predicates_pass(result for result in results if result.name != "i2c_pullup")
 
 
 def test_i2c_declaration_with_missing_net_remains_unknown() -> None:
@@ -158,14 +181,12 @@ def test_topology_without_usb_and_i2c_blocks_uses_other_contracts() -> None:
         _graph(),
         {"usb_c_cc_termination", "i2c_bus_pullup"},
     )
+    _skip_if_gd1_geometry_library_is_missing(graph)
     lane = extract_electrical_lane(graph)
     results = evaluate_design_predicates(graph, lane, FIXTURE_DIR)
     assert results[0].status == "not_applicable"
     assert results[1].status == "not_applicable"
-    assert all(
-        result.status == "pass"
-        for result in results[2:]
-    )
+    _assert_predicates_pass(results[2:])
 
 
 def test_new_topology_contract_extends_applicability_without_predicate_changes(
