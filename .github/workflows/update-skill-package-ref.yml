@@ -49,23 +49,21 @@ jobs:
           branch="automation/update-skill-package-ref-${GITHUB_SHA::12}"
           git switch -c "$branch"
           uv run python scripts/update_skill_package_ref.py --ref "$GITHUB_SHA"
+          uv run python scripts/verify_skill_package_ref.py --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add plugins/acd/skills/acd-package-ref.txt \
             plugins/acd/skills/acd-package-contract.json \
             plugins/acd/skills/*/scripts/*.py \
             scripts/probe_pinned_acd_graph.py
           git commit -m "Skill package refをmerge commitへ更新"
           git push --set-upstream origin "$branch"
-          gh pr create \
-            --title "Skill package refをmerge commitへ更新" \
-            --body "$(cat <<'EOF'
+          body_file="${RUNNER_TEMP}/skill-package-ref-pr-body.md"
+          cat > "$body_file" <<'EOF'
           ## 概要
 
           merge commitの`acd`実装へSkill package refを再固定しました。
-
-          ## ループ回避
-
-          このPRの変更がmainへmergeされて再度workflowが起動しても、
-          `verify_skill_package_ref.py --check`が契約一致を確認して何もせず終了するため、
-          自動PRは再作成されません。
           EOF
-          )"
+          gh pr create \
+            --title "Skill package refをmerge commitへ更新" \
+            --body-file "$body_file"

@@ -1,5 +1,4 @@
 {
-  "edge_kinds": [],
   "fixture_kinds": [
     "electrical.board",
     "electrical.component",
@@ -231,7 +230,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "scripts/probe_pinned_acd_graph.py",
-      "sha256": "e67d07e1932bf9b42235dac7c3019b9963940bb9389d8bfdf6e8e1f4fd5372b5"
+      "sha256": "85dadd930d46a53b32594aae257b0f158e206d6f98aa6360da0cd4f985eb45c0"
     }
   ]
 }

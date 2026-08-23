@@ -15,6 +15,8 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
+from pydantic import ValidationError
+
 from acd.schema.design_graph import DesignGraph
 
 
@@ -49,12 +51,17 @@ def main(argv: list[str] | None = None) -> int:
         summary = {
             "revision": graph.revision,
             "node_count": len(graph.nodes),
-            "edge_count": len(getattr(graph, "edges", [])),
             "pin_count": len(lane.pins),
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0
-    except Exception as error:
+    except (
+        ValidationError,
+        OSError,
+        json.JSONDecodeError,
+        ValueError,
+        RuntimeError,
+    ) as error:
         print(f"ERROR: pinned ACD graph probe failed: {error}", file=sys.stderr)
         return 1
 

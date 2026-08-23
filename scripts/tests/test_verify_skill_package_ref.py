@@ -98,6 +98,19 @@ def test_older_ref_than_fixture_schema_fails_closed(tmp_path: Path) -> None:
     assert any("src/acd/schema differs" in error for error in errors)
 
 
+def test_fixture_kind_absent_from_pinned_schema_fails_closed(tmp_path: Path) -> None:
+    root = _repository(tmp_path)
+    fixture = root / "fixtures/example/graph.json"
+    fixture.write_text(
+        json.dumps({"nodes": [{"kind": "missing.kind"}], "edges": []}),
+        encoding="utf-8",
+    )
+    errors = checker.verify_repository(root)
+    assert any(
+        "fixture kinds are absent from pinned schema" in error for error in errors
+    )
+
+
 def test_unresolvable_ref_fails_closed(tmp_path: Path) -> None:
     root = _repository(tmp_path)
     (root / "plugins/acd/skills/acd-package-ref.txt").write_text(

@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from verify_skill_metadata import metadata_body as _metadata_body
+    from verify_skill_metadata import metadata_body
 except ModuleNotFoundError:
-    from scripts.verify_skill_metadata import metadata_body as _metadata_body
+    from scripts.verify_skill_metadata import metadata_body
 from verify_skill_package_ref import (
     acd_symbols,
     canonical,
@@ -49,7 +49,7 @@ def update(repository: Path, ref: str) -> list[str]:
         changed.append(relative(ref_path, repository))
     for script in scripts:
         source = script.read_text(encoding="utf-8")
-        _, _, metadata_error = _metadata_body(source)
+        _, _, metadata_error = metadata_body(source)
         if metadata_error is not None:
             errors.append(f"{relative(script, repository)}: {metadata_error}")
             continue
@@ -77,10 +77,11 @@ def update(repository: Path, ref: str) -> list[str]:
         "ref": ref,
         "schema_tree_sha": schema_tree_sha,
         "node_kinds": node_kinds,
-        "edge_kinds": edge_kinds,
         "fixture_kinds": fixture_kinds(repository, errors),
         "scripts": [],
     }
+    if edge_kinds is not None:
+        contract["edge_kinds"] = edge_kinds
     script_entries: list[dict[str, Any]] = []
     for script in scripts:
         source = script.read_text(encoding="utf-8")

@@ -127,9 +127,9 @@ RUN cd "${ACD_HOME}" \
 # reusable without network access. A metadata check verifies that every
 # acd-importing script uses the same block.
 RUN cd "${ACD_HOME}" \
-    && python3.14 scripts/verify_pep723_metadata_blocks.py \
+    && python3.14 scripts/verify_skill_package_ref.py --metadata-only \
     && uv run --script scripts/probe_pinned_acd_graph.py --fixture fixtures/golden-design-1 \
-    && UV_OFFLINE=1 uv run --offline --script scripts/probe_pinned_acd_graph.py \
+    && uv run --offline --script scripts/probe_pinned_acd_graph.py \
         --fixture fixtures/golden-design-1
 
 ENV PATH="/usr/local/bin:${PATH}"

@@ -505,18 +505,30 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
         ):
             errors.append(f"{relative}: imported acd symbols exceed contract symbols")
     node_kinds_value = contract.get("node_kinds")
+    edge_kinds_present = "edge_kinds" in contract
     edge_kinds_value = contract.get("edge_kinds")
     fixture_kinds_value = contract.get("fixture_kinds")
-    lists_valid = all(
-        isinstance(value, list)
-        and all(isinstance(item, str) for item in cast(list[Any], value))
-        for value in (node_kinds_value, edge_kinds_value, fixture_kinds_value)
+    node_kinds_valid = isinstance(node_kinds_value, list) and all(
+        isinstance(item, str) for item in cast(list[Any], node_kinds_value)
     )
-    if not lists_valid:
+    fixture_kinds_valid = isinstance(fixture_kinds_value, list) and all(
+        isinstance(item, str) for item in cast(list[Any], fixture_kinds_value)
+    )
+    edge_kinds_valid = not edge_kinds_present or (
+        isinstance(edge_kinds_value, list)
+        and all(isinstance(item, str) for item in cast(list[Any], edge_kinds_value))
+    )
+    if not (node_kinds_valid and edge_kinds_valid and fixture_kinds_valid):
         errors.append("contract kind lists are invalid")
-    node_kinds = cast(list[str], node_kinds_value) if lists_valid else []
-    edge_kinds = cast(list[str], edge_kinds_value) if lists_valid else []
-    fixture_kinds = cast(list[str], fixture_kinds_value) if lists_valid else []
+    node_kinds = cast(list[str], node_kinds_value) if node_kinds_valid else []
+    edge_kinds = (
+        cast(list[str], edge_kinds_value)
+        if edge_kinds_present and edge_kinds_valid
+        else []
+    )
+    fixture_kinds = (
+        cast(list[str], fixture_kinds_value) if fixture_kinds_valid else []
+    )
     missing_kinds = sorted(
         set(fixture_kinds) - (set(node_kinds) | set(edge_kinds))
     )
