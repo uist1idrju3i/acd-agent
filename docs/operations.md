@@ -606,11 +606,15 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 `publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
 digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
 現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
-同梱した`sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`である。
-そのbaseからderiveしたserver image
-`sha256:92085be8bc821928ff4cc861f6262817f128a60459ba2302daf45dadcea263f0`をlockへ記録済みである。
+同梱した`sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`である。
+lockに記録済みのserver image
+`sha256:92085be8bc821928ff4cc861f6262817f128a60459ba2302daf45dadcea263f0`は、
+一つ前のtools digest`sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`から
+deriveした値であり、現行base digestからのderived digestはまだ記録していない。
 toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
-更新する。baseとderivedは独立に記録し、
+更新する。この更新はlockへ新しいtools digestを記録した後に行う。workflowはlockから
+base toolsを解決するため、lock更新前に起動すると旧baseのserver imageをbuildしてしまう。
+baseとderivedは独立に記録し、
 toolsとserverのdigestは同一とは扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
 
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
