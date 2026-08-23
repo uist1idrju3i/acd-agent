@@ -6,6 +6,7 @@ tools:
   - acd_probe_tools
   - acd_validate_design_graph
   - acd_run_board_pipeline
+  - acd_bootstrap_workspace
   - terminal
   - file_editor
   - grep

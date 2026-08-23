@@ -139,9 +139,9 @@ cloneして立ち上げた。現在のDocker workspace経路は
 
 | # | 改善提案 | 現状と理由 |
 |---|---|---|
-| G-1 | `/acd:init` command（または[`acd-install-doctor` Skill](../plugins/acd/skills/acd-install-doctor/SKILL.md)の拡張）を追加し、workspace作成→clone／submodule取得→`uv sync`→plugin読み込み確認→`/acd:doctor`までを1経路にまとめる | 各段の失敗はfail-closedにする |
-| G-2 | [`/acd:doctor`](../plugins/acd/commands/doctor.md)にworkspace健全性検査を追加する | 現行doctorはplugin資材・runtime・Docker・host EDA能力を見るが、workspaceにrepositoryが存在しない状態を検出しない。submodule初期化、`uv.lock`との同期、lock digestのpull可否も対象にする |
-| G-3 | 会話開始時のbootstrap経路（対象repo revisionとlock digestを記録してworkspaceを用意する）を用意する | VibeBBの「語るだけで始まる」入口として必要 |
+| G-1 | `/acd:init` commandと`init_workspace.py`を追加し、workspace作成→clone／clean checkout再利用→submodule取得→`uv sync`→plugin読み込み確認→`/acd:doctor`までを1経路にまとめる | 達成。各段の失敗はfail-closed JSONで停止する |
+| G-2 | [`/acd:doctor`](../plugins/acd/commands/doctor.md)にworkspace健全性検査を追加する | 達成。repository、submodule、`uv.lock`同期、lock digestのローカルinspect、ESP-IDF／QEMU／CMakeを検査する。検証不能な必須項目はunknownとして停止する |
+| G-3 | 会話開始時のbootstrap経路（対象repo revisionとlock digestを記録してworkspaceを用意する）を用意する | 達成。`acd_bootstrap_workspace`と`.openhands/bootstrap-record.json`を提供する。記録はL3観測であり合否権限を持たない |
 
 ## 実測したfail-closed結果とEvidence境界
 
@@ -303,7 +303,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | I-4 | GD1以外の設計は発注可否判定に到達できない |
 | I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
 | B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
-| G-1／G-2 | workspaceが空のままで開始できない。今回は私がcloneして初期化した |
+| G-1／G-2 | 達成。`/acd:init`とworkspace指定doctorがcloneから健全性検査までをfail-closedに実行する |
 
 ## 優先順位（VibeBB単体成立に効く順）
 
@@ -313,6 +313,6 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
 5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
 6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
-7. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
+7. G-1〜G-3（workspace初期化とbootstrap）。達成済み。`/acd:init`または`acd_bootstrap_workspace`から、対象revisionを宣言して会話開始用workspaceを準備できる。
 8. I-3〜I-5／E-5（gd1固定の解消）、C-2／C-3（FWのgraph駆動と整合gate）、D-1〜D-3（loopの閉じと発注）。I-4は発注laneへ進む前に必要になる。
 9. F-1〜F-4（image publishとdigest lock更新）、H-2〜H-4／K-4（skew検出と計測）。運用の再現性と回帰防止を強化する。

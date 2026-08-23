@@ -1,8 +1,8 @@
 {
-  "canonical_hash": "sha256:f092255dec5e5c4e328f49a4a3d2a6f01e5ef898b65cf22da72aeeff3e8ca553",
+  "canonical_hash": "sha256:0f9763e3f6489c930fe4b35c2b5b47cd5730a760c7d99a8e3376a7b564d6612d",
   "entries": [
     {
-      "asset_hash": "sha256:1c7b14d60a98f38b67f86355cd9e9b9a6f1ca4e358c5cfe0c076f36fd4ad932e",
+      "asset_hash": "sha256:a83bd3a3527d576ceddf1f0cafba62aa1c89eed93f01f63228376045dce419d4",
       "asset_path": "plugins/acd/agents/acd-electrical.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:dbda15444e526420e18b57e8ec0bf0ba52b6e479836806e6503c0beb7ccbc3fe",
@@ -10,7 +10,7 @@
       "section_name": "acd.role.acd-electrical"
     },
     {
-      "asset_hash": "sha256:ccdcca396bac189edfd185c8e07e6ff7b41b669932c42d377ea647dd3fdfd029",
+      "asset_hash": "sha256:9a71473e9bc6edbd535a8f7bfd3c79cfdf9d297c14fdc080e2d29f3685d85b20",
       "asset_path": "plugins/acd/agents/acd-firmware.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:d7a281354c3153bae3e1e43f60b554132e78bf60501cba6963e5bae3b60539d7",

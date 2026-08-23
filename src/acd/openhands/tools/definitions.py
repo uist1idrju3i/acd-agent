@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import subprocess
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, cast
 
@@ -102,6 +105,7 @@ class AcdObservation(Observation):
     revision: str | None = None
     node_count: int | None = None
     path: str | None = None
+    provenance: dict[str, str] | None = None
 
     @property
     def to_llm_content(self) -> list[TextContent]:
@@ -201,6 +205,20 @@ class AcdRunBoardPipelineObservation(AcdObservation):
 
 class AcdRunEnclosurePipelineObservation(AcdObservation):
     """Observation returned by the enclosure pipeline."""
+
+
+class AcdBootstrapWorkspaceAction(Action):
+    """Prepare a clean workspace at an explicit repository revision."""
+
+    repo_url: str = Field(description="Repository URL to clone or reuse.")
+    revision: str = Field(description="Commit SHA or ref to prepare.")
+    workspace: str = Field(description="Workspace directory to create or reuse.")
+
+
+class AcdBootstrapWorkspaceObservation(AcdObservation):
+    """Observation returned by workspace bootstrap."""
+
+    bootstrap_record_path: str | None = None
 
 
 class AcdProbeToolsExecutor(ToolExecutor[AcdProbeToolsAction, AcdObservation]):
@@ -349,6 +367,85 @@ class AcdRunEnclosurePipelineExecutor(
                 **_error(str(exc), operation="run_enclosure_pipeline"),
                 output_path=action.out,
                 envelopes=_envelopes(out_path),
+            )
+
+
+def run_bootstrap(
+    repo_url: str,
+    revision: str,
+    workspace: Path,
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Run the bundled bootstrap script through its subprocess boundary."""
+    script = (
+        Path(__file__).resolve().parents[4]
+        / "plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py"
+    )
+    if not script.is_file():
+        raise FileNotFoundError(f"workspace bootstrap script does not exist: {script}")
+    digest = hashlib.sha256(script.read_bytes()).hexdigest()
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--repo-url",
+            repo_url,
+            "--revision",
+            revision,
+            "--workspace",
+            str(workspace),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=3600,
+    )
+    try:
+        report = cast(dict[str, Any], json.loads(result.stdout))
+    except json.JSONDecodeError as exc:
+        raise ValueError("workspace bootstrap emitted invalid JSON") from exc
+    report["_returncode"] = result.returncode
+    return report, {
+        "script": str(script),
+        "script_sha256": f"sha256:{digest}",
+    }
+
+
+class AcdBootstrapWorkspaceExecutor(
+    ToolExecutor[AcdBootstrapWorkspaceAction, AcdBootstrapWorkspaceObservation]
+):
+    def __call__(
+        self,
+        action: AcdBootstrapWorkspaceAction,
+        conversation: Any = None,
+    ) -> AcdBootstrapWorkspaceObservation:
+        del conversation
+        try:
+            if not action.repo_url or not action.revision or not action.workspace:
+                return AcdBootstrapWorkspaceObservation(
+                    **_error(
+                        "repo_url, revision, and workspace are required",
+                        operation="bootstrap_workspace",
+                    )
+                )
+            report, provenance = run_bootstrap(
+                action.repo_url,
+                action.revision,
+                Path(action.workspace),
+            )
+            ok = bool(report.get("ok")) and report.get("_returncode") == 0
+            return AcdBootstrapWorkspaceObservation(
+                ok=ok,
+                operation="bootstrap_workspace",
+                failure_reason=report.get("failure_reason"),
+                fail_closed=not ok,
+                summary=report,
+                output_path=report.get("bootstrap_record_path"),
+                bootstrap_record_path=report.get("bootstrap_record_path"),
+                provenance=provenance,
+            )
+        except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+            return AcdBootstrapWorkspaceObservation(
+                **_error(str(exc), operation="bootstrap_workspace")
             )
 
 
@@ -506,6 +603,43 @@ class AcdRunEnclosurePipeline(
         ]
 
 
+class AcdBootstrapWorkspace(
+    ToolDefinition[AcdBootstrapWorkspaceAction, AcdBootstrapWorkspaceObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdBootstrapWorkspaceAction):
+            return DeclaredResources(keys=(), declared=False)
+        path = _resolved_resource_path(action.workspace)
+        if path is None:
+            return DeclaredResources(keys=(), declared=False)
+        return DeclaredResources(keys=(f"acd-workspace:{path}",), declared=True)
+
+    @classmethod
+    def create(
+        cls,
+        conv_state: ConversationState | None = None,
+        **params: Any,
+    ) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_bootstrap_workspace does not accept parameters")
+        return [
+            cls(
+                action_type=AcdBootstrapWorkspaceAction,
+                observation_type=AcdBootstrapWorkspaceObservation,
+                description="Initialize and doctor a clean ACD workspace.",
+                annotations=ToolAnnotations(
+                    title="acd_bootstrap_workspace",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=True,
+                ),
+                executor=AcdBootstrapWorkspaceExecutor(),
+            )
+        ]
+
+
 ACD_TOOL_DEFINITIONS: tuple[
     tuple[str, type[ToolDefinition[Any, Any]]], ...
 ] = (
@@ -513,6 +647,7 @@ ACD_TOOL_DEFINITIONS: tuple[
     ("acd_validate_design_graph", AcdValidateDesignGraph),
     ("acd_run_board_pipeline", AcdRunBoardPipeline),
     ("acd_run_enclosure_pipeline", AcdRunEnclosurePipeline),
+    ("acd_bootstrap_workspace", AcdBootstrapWorkspace),
 )
 
 

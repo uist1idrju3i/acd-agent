@@ -13,11 +13,13 @@ environment and could produce a false diagnosis.
 
 from __future__ import annotations
 
+import argparse
 import ast
 import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -1015,7 +1017,251 @@ def _store_check(plugin_root: Path) -> dict[str, Any]:
         )
 
 
-def diagnose() -> dict[str, Any]:
+def _workspace_repository_check(workspace: Path) -> dict[str, Any]:
+    try:
+        completed = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _check("workspace repository", True, "unknown", str(exc))
+    if completed.returncode != 0:
+        return _check(
+            "workspace repository",
+            True,
+            "fail",
+            "git rev-parse could not identify a repository",
+        )
+    try:
+        root = Path(completed.stdout.strip()).resolve()
+        expected = workspace.resolve()
+    except (OSError, RuntimeError, ValueError) as exc:
+        return _check("workspace repository", True, "unknown", str(exc))
+    if root != expected:
+        return _check(
+            "workspace repository",
+            True,
+            "fail",
+            f"Git root is {root}, expected {expected}",
+        )
+    return _check("workspace repository", True, "pass", "workspace is a Git repository", str(root))
+
+
+def _workspace_submodule_check(workspace: Path) -> dict[str, Any]:
+    submodule = workspace / "vendor" / "software-agent-sdk"
+    if not (submodule / "pyproject.toml").is_file():
+        return _check(
+            "workspace submodules",
+            True,
+            "fail",
+            f"submodule is not populated: {submodule}",
+        )
+    try:
+        completed = subprocess.run(
+            ["git", "submodule", "status", "--", "vendor/software-agent-sdk"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _check("workspace submodules", True, "unknown", str(exc))
+    status = completed.stdout.strip()
+    if completed.returncode != 0 or not status or status[0] in "-?":
+        return _check(
+            "workspace submodules",
+            True,
+            "fail",
+            f"submodule status is not initialized: {status or completed.stderr.strip()}",
+        )
+    return _check(
+        "workspace submodules",
+        True,
+        "pass",
+        "vendor/software-agent-sdk is initialized",
+        status.split()[0].lstrip("+"),
+    )
+
+
+def _workspace_lock_check(workspace: Path) -> dict[str, Any]:
+    if not (workspace / "pyproject.toml").is_file() or not (workspace / "uv.lock").is_file():
+        return _check(
+            "workspace lock synchronization",
+            True,
+            "fail",
+            "pyproject.toml or uv.lock is missing",
+        )
+    uv = shutil.which("uv")
+    if uv is None:
+        return _check(
+            "workspace lock synchronization",
+            True,
+            "unknown",
+            "uv is not present on PATH; lock synchronization cannot be checked",
+        )
+    try:
+        completed = subprocess.run(
+            [uv, "lock", "--check"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _check("workspace lock synchronization", True, "unknown", str(exc))
+    if completed.returncode != 0:
+        return _check(
+            "workspace lock synchronization",
+            True,
+            "fail",
+            completed.stderr.strip() or completed.stdout.strip() or "uv lock --check failed",
+        )
+    return _check(
+        "workspace lock synchronization",
+        True,
+        "pass",
+        "uv.lock is synchronized with pyproject.toml",
+    )
+
+
+def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
+    path = workspace / "docker" / "image-digests.json"
+    try:
+        document = _read_json(path)
+        tools = document["acd_tools"]
+        image = tools["image"]
+        digest = tools["digest"]
+        if not isinstance(image, str) or not isinstance(digest, str):
+            raise ValueError("acd_tools image or digest is invalid")
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+            raise ValueError(f"invalid image digest: {digest!r}")
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as exc:
+        return _check("workspace lock digest", True, "unknown", str(exc))
+    docker = shutil.which("docker")
+    if docker is None:
+        return _check(
+            "workspace lock digest",
+            True,
+            "unknown",
+            f"docker is unavailable; cannot inspect {image}@{digest} without pulling",
+            digest,
+        )
+    reference = f"{image}@{digest}"
+    try:
+        completed = subprocess.run(
+            [docker, "image", "inspect", reference],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _check("workspace lock digest", True, "unknown", str(exc), digest)
+    if completed.returncode != 0:
+        return _check(
+            "workspace lock digest",
+            True,
+            "unknown",
+            f"{reference} is not available locally; network pull is not attempted",
+            digest,
+        )
+    return _check(
+        "workspace lock digest",
+        True,
+        "pass",
+        f"locked image is available locally: {reference}",
+        digest,
+    )
+
+
+def _resolve_firmware_tool(binary: str) -> str | None:
+    path = shutil.which(binary)
+    if path is not None:
+        return path
+    idf_path = os.environ.get("IDF_PATH")
+    if not idf_path:
+        return None
+    export = Path(idf_path) / "export.sh"
+    if not export.is_file():
+        return None
+    try:
+        completed = subprocess.run(
+            [
+                "bash",
+                "-c",
+                f". {shlex.quote(str(export))} >/dev/null && command -v {shlex.quote(binary)}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    resolved = completed.stdout.strip()
+    return resolved if completed.returncode == 0 and resolved else None
+
+
+def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
+    del workspace
+    idf_path = os.environ.get("IDF_PATH")
+    idf_ok = bool(idf_path and (Path(idf_path) / "export.sh").is_file())
+    qemu = _resolve_firmware_tool("qemu-system-riscv32")
+    cmake = shutil.which("cmake")
+    missing = [
+        name
+        for name, present in (
+            ("IDF_PATH/export.sh", idf_ok),
+            ("qemu-system-riscv32", qemu is not None),
+            ("cmake", cmake is not None),
+        )
+        if not present
+    ]
+    observed = (
+        f"IDF_PATH={idf_path or 'unset'}, "
+        f"qemu-system-riscv32={qemu or 'unavailable'}, cmake={cmake or 'unavailable'}"
+    )
+    if missing:
+        return _check(
+            "workspace firmware prerequisites",
+            True,
+            "fail",
+            f"missing: {', '.join(missing)}; {observed}",
+            observed,
+        )
+    return _check(
+        "workspace firmware prerequisites",
+        True,
+        "pass",
+        f"ESP-IDF export, QEMU, and CMake are available; {observed}",
+        observed,
+    )
+
+
+def _workspace_checks(workspace: Path) -> list[dict[str, Any]]:
+    return [
+        _workspace_repository_check(workspace),
+        _workspace_submodule_check(workspace),
+        _workspace_lock_check(workspace),
+        _workspace_digest_check(workspace),
+        _workspace_firmware_check(workspace),
+    ]
+
+
+def diagnose(workspace: Path | None = None) -> dict[str, Any]:
     """Return the machine-readable doctor report for this plugin root."""
     plugin_root = Path(__file__).resolve().parents[3]
     checks = [
@@ -1033,6 +1279,8 @@ def diagnose() -> dict[str, Any]:
         _hook_invocability_check(plugin_root),
         _store_check(plugin_root),
     ]
+    if workspace is not None:
+        checks.extend(_workspace_checks(workspace.resolve()))
     required_failed = any(
         check["required"] and check["result"] in {"fail", "unknown"} for check in checks
     )
@@ -1048,10 +1296,18 @@ def diagnose() -> dict[str, Any]:
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     """Print a JSON report and fail only when required checks fail."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--workspace",
+        type=Path,
+        default=None,
+        help="workspace checkout to inspect in addition to plugin capabilities",
+    )
     try:
-        report = diagnose()
+        args = parser.parse_args(argv)
+        report = diagnose(args.workspace)
     except Exception as exc:
         report = {
             "status": "failed",

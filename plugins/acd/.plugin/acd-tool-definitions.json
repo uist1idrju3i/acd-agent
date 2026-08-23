@@ -3,6 +3,10 @@
   "entry_point": "acd.openhands.tools.definitions.register_acd_tools",
   "tools": [
     {
+      "tool_name": "acd_bootstrap_workspace",
+      "definition_class": "AcdBootstrapWorkspace"
+    },
+    {
       "tool_name": "acd_probe_tools",
       "definition_class": "AcdProbeTools"
     },
@@ -19,5 +23,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:99ef9ae934e38bbb013722bfc1f0897d9c844093af0d21c9ef1240bd66b6762d"
+  "canonical_hash": "sha256:ae4a37e2f5dcebf2575d89e4df3b36486930de203b428a14e91392da3dba9800"
 }

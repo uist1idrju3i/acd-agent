@@ -42,6 +42,7 @@ installすると、次のslash commandが会話から使えます。
 | --- | --- | --- |
 | `/acd:gates [--fixture PATH] [--out PATH]` | 決定論的な基板・筐体ゲートを既存のCLI入口で実行し、段階、ツール版、入出力Evidenceのパス、失敗理由を報告します。ツール不在・parse失敗・未検証はfail-closedです。 | `/acd:gates --fixture fixtures/golden-design-1 --out out/gd1` |
 | `/acd:doctor` | pluginのインストール位置・資材・prompt manifest、Skill依存ref、Python／uv、Docker・hook・ホストEDA能力を自己診断します。L3観測であり合否権限を持ちません。 | `/acd:doctor` |
+| `/acd:init` | 指定repository・revision・workspaceについてclone／再利用、submodule、`uv sync`、plugin確認、workspace doctorを順に実行し、bootstrap recordを生成します。 | `/acd:init --repo-url URL --revision SHA --workspace PATH` |
 
 あわせて、会話から使えるACD toolが登録されます。名前を指定せずに自然言語で頼めば、
 必要なものがAgentDefinition経由で呼ばれます。
@@ -50,6 +51,7 @@ installすると、次のslash commandが会話から使えます。
 | --- | --- | --- |
 | `acd_probe_tools` | KiCad CLI、Java、FreeRoutingなど外部ツールの有無と版を検出します。 | 「外部ツールの版を確認して」 |
 | `acd_validate_design_graph` | 設計グラフJSONをPydantic契約で検証します。 | 「`fixtures/golden-design-1/graph.json`を検証して」 |
+| `acd_bootstrap_workspace` | 指定したrevisionのworkspaceを初期化し、doctor結果とbootstrap recordを返します。L3観測であり合否権限を持ちません。 | 「revision SHAのworkspaceをPATHへbootstrapして」 |
 | `acd_run_board_pipeline` | 基板pipeline（投影→ERC/DRC→製造出力）を実行しEvidenceを出します。 | 「GD1の基板pipelineを`out/gd1`へ回して」 |
 | `acd_run_enclosure_pipeline` | 筐体pipeline（外形・干渉・機械測定）を実行しEvidenceを出します。 | 「GD1の筐体pipelineを実行して」 |
 

@@ -13,6 +13,9 @@ from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
 import acd.openhands.tools.definitions as sdk_tools
 from acd.openhands.tools.definitions import (
+    AcdBootstrapWorkspace,
+    AcdBootstrapWorkspaceAction,
+    AcdBootstrapWorkspaceObservation,
     AcdObservation,
     AcdProbeTools,
     AcdProbeToolsAction,
@@ -33,6 +36,45 @@ def _execute(tool: Any, action: Any) -> AcdObservation:
     executor = tool.executor
     assert executor is not None
     return executor(action)
+
+
+def test_bootstrap_workspace_propagates_record_and_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    report = {
+        "ok": True,
+        "failure_reason": None,
+        "bootstrap_record_path": str(tmp_path / ".openhands/bootstrap-record.json"),
+        "_returncode": 0,
+    }
+
+    def fake_bootstrap(
+        repo_url: str,
+        revision: str,
+        workspace: Path,
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        del repo_url, revision, workspace
+        return report, {
+            "script": "init_workspace.py",
+            "script_sha256": "sha256:" + "a" * 64,
+        }
+
+    monkeypatch.setattr(sdk_tools, "run_bootstrap", fake_bootstrap)
+    tool = AcdBootstrapWorkspace.create()[0]
+    result = _execute(
+        tool,
+        AcdBootstrapWorkspaceAction(
+            repo_url="https://example.test/acd.git",
+            revision="a" * 40,
+            workspace=str(tmp_path / "workspace"),
+        ),
+    )
+    assert isinstance(result, AcdBootstrapWorkspaceObservation)
+    assert result.ok is True
+    assert result.fail_closed is False
+    assert result.bootstrap_record_path == report["bootstrap_record_path"]
+    assert result.provenance is not None
 
 
 def test_probe_tools_shape_and_unknown_is_fail_closed() -> None:
