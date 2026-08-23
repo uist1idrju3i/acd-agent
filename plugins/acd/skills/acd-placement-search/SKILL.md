@@ -29,6 +29,9 @@ ACD本体は配置探索を持たない。座標と回転角は設計データ�
 - `scripts/vision_proposal.py`: 視覚投影のビジョン応答から得た数値案（座標・回転）を候補として
   受け取り、決定論的に整合化（格子snap、許可回転へのsnap、領域内判定、keepout非重複、変位上限）
   してから代理指標を付けて出力する。ADR-0041に従う。
+- `scripts/vision_route_proposal.py`: ビジョン応答から得たnet・銅層・経路点を候補として
+  受け取り、幅を宣言から導出して決定論的に整合化（格子snap、pad端点固定、45度倍数分解、
+  同一層clearance検査、衝突区間の迂回修復）してから代理指標と順位を付けて出力する。
 
 ## 使い方
 
@@ -99,6 +102,57 @@ Skill名・script sha256・提案hash・relaxation profile hash・graph revision
 relaxation profileの欠落・破損、実測Evidenceのない回転・配線緩和、変位上限内で整合化できない案、
 電気laneでの`--fixture-dir`／`--fab-profile`欠落。
 
+## ビジョン配線案の取り込み
+
+```bash
+uv run --script plugins/acd/skills/acd-placement-search/scripts/vision_route_proposal.py \
+  --proposal vision-route-proposal.json \
+  --input graph.json \
+  --relaxation-profile profiles/search/placement-relaxation-profile-default.json \
+  --fixture-dir fixtures/golden-design-1 \
+  --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
+  --output out/vision-route-candidates.json
+```
+
+入力契約は次のとおりで、`artifact_kind`は`vision_route_proposal`、`pass_evidence`は`false`固定である。
+
+```json
+{
+  "artifact_kind": "vision_route_proposal",
+  "pass_evidence": false,
+  "observation": {
+    "tool_name": "inspect_image_with_vision",
+    "profile_name": "<vision profile>",
+    "model": "<model>",
+    "projection_id": "<projection node id>",
+    "image_hash": "sha256:...",
+    "response": "<VisualVisionObservation.response>"
+  },
+  "proposals": [
+    {
+      "net": "BOOT",
+      "layer": "F.Cu",
+      "waypoints": [{ "x_mm": 6.3, "y_mm": 9.2 }, { "x_mm": 15.2, "y_mm": 8.8 }]
+    }
+  ]
+}
+```
+
+線幅とclearanceは提案から読まない。graphの`width_basis`とfab profileの最小値から
+`derive_net_widths()`で導出し、両端は実pad位置へ固定する。経路点は格子snap後に45度倍数へ
+分解し、他netのpadと既に整合化済みの同一層配線とのclearanceを検査する。衝突する区間は
+同じ格子上の決定論的な迂回探索で修復する。`--placements`を与えない場合は
+`placement_search.py`の決定論的配置を前提にする。
+
+出力は`artifact_kind="vision_route_candidates"`、`pass_evidence=false`の候補報告であり、
+ACD側は`acd.core.route_candidates`でprovenanceとrevision一致を検査してからtool中立の
+`RoutedDesign`へ変換する。合否は基板投影後のDRCとGerber独立再読込だけが判定する。
+
+次の場合はすべてfail-closedで停止する。`artifact_kind`不一致、`pass_evidence`が`false`以外、
+空応答、provenance欠落、未知net、`F.Cu`／`B.Cu`以外の層、netの重複、経路点の欠落・非有限値、
+円弧宣言、変位上限内で整合化できない経路点、迂回不能、宣言層だけでは接続できない（via必須の）net、
+2pad以外のnet、`--fixture-dir`／`--fab-profile`の欠落。
+
 ## 前提と限界
 
 - 追加の外部ツールは不要である。`acd-core` と `acd-adapter-kicad` を import する。
@@ -106,6 +160,8 @@ relaxation profileの欠落・破損、実測Evidenceのない回転・配線緩
 - ビジョン案の整合化で許可する回転と配線自由度は`profiles/search/`の版管理profileが定義する。
   既定は90度刻みで、1度刻みの任意回転・円弧配線・非45度配線は実測Evidenceがない限り拒否する。
 - 機械laneの候補は提案された部品bodyだけを対象とし、他のbodyとの干渉は機械laneのゲートが判定する。
+- 配線候補は宣言層で接続できる2pad netに限る。via生成と多pad netの分割は未対応であり、
+  FreeRouting経路の代替にならない。
 - 高ファンアウト網（GND/電源）は引力から除外するため、ベタ面前提の設計に依存する。
 - 代理指標は概算であり、実配線可能性や実測を代替しない。
 - この Skill の結果は ACD の設計ゲートの結果ではない。

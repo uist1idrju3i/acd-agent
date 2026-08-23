@@ -139,21 +139,21 @@ class LegalizationMetrics:
         )
 
 
-def _string_field(payload: dict[str, object], key: str) -> str:
+def string_field(payload: dict[str, object], key: str) -> str:
     value = payload.get(key)
     if not isinstance(value, str) or not value.strip():
         raise VisionProposalError(f"{key} must be a non-empty string (fail-closed)")
     return value
 
 
-def _mapping_field(payload: dict[str, object], key: str) -> dict[str, object]:
+def mapping_field(payload: dict[str, object], key: str) -> dict[str, object]:
     value = payload.get(key)
     if not isinstance(value, dict):
         raise VisionProposalError(f"{key} must be an object (fail-closed)")
     return cast(dict[str, object], value)
 
 
-def _float_field(payload: dict[str, object], key: str) -> float:
+def float_field(payload: dict[str, object], key: str) -> float:
     value = payload.get(key)
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise VisionProposalError(f"{key} must be a number (fail-closed)")
@@ -163,15 +163,15 @@ def _float_field(payload: dict[str, object], key: str) -> float:
     return number
 
 
-def _bool_field(payload: dict[str, object], key: str) -> bool:
+def bool_field(payload: dict[str, object], key: str) -> bool:
     value = payload.get(key)
     if not isinstance(value, bool):
         raise VisionProposalError(f"{key} must be a boolean (fail-closed)")
     return value
 
 
-def _sha256_field(payload: dict[str, object], key: str) -> str:
-    value = _string_field(payload, key)
+def sha256_field(payload: dict[str, object], key: str) -> str:
+    value = string_field(payload, key)
     if not value.startswith("sha256:") or len(value) != len("sha256:") + 64:
         raise VisionProposalError(f"{key} must be a sha256: digest (fail-closed)")
     if any(char not in "0123456789abcdef" for char in value.removeprefix("sha256:")):
@@ -198,20 +198,20 @@ def parse_vision_proposal(payload: dict[str, object]) -> VisionProposal:
         )
     if payload.get("pass_evidence") is not False:
         raise VisionProposalError("vision proposals must declare pass_evidence=false")
-    lane = _string_field(payload, "lane")
+    lane = string_field(payload, "lane")
     if lane not in _LANES:
         raise VisionProposalError(f"unsupported lane {lane!r} (fail-closed)")
 
-    observation = _mapping_field(payload, "observation")
+    observation = mapping_field(payload, "observation")
     if observation.get("tool_name") != VISION_TOOL_NAME:
         raise VisionProposalError(f"observation tool_name must be {VISION_TOOL_NAME!r}")
-    response = _string_field(observation, "response")
+    response = string_field(observation, "response")
     reference = VisionObservationRef(
         tool_name=VISION_TOOL_NAME,
-        profile_name=_string_field(observation, "profile_name"),
-        model=_string_field(observation, "model"),
-        projection_id=_string_field(observation, "projection_id"),
-        image_hash=_sha256_field(observation, "image_hash"),
+        profile_name=string_field(observation, "profile_name"),
+        model=string_field(observation, "model"),
+        projection_id=string_field(observation, "projection_id"),
+        image_hash=sha256_field(observation, "image_hash"),
         response_sha256=sha256_of_bytes(response.encode("utf-8")),
     )
 
@@ -224,16 +224,16 @@ def parse_vision_proposal(payload: dict[str, object]) -> VisionProposal:
         if not isinstance(entry, dict):
             raise VisionProposalError("each proposal must be an object (fail-closed)")
         item = cast(dict[str, object], entry)
-        item_id = _string_field(item, "item_id")
+        item_id = string_field(item, "item_id")
         if item_id in seen:
             raise VisionProposalError(f"duplicate proposal for {item_id} (fail-closed)")
         seen.add(item_id)
         items.append(
             ProposedItem(
                 item_id=item_id,
-                x_mm=_float_field(item, "x_mm"),
-                y_mm=_float_field(item, "y_mm"),
-                rotation_deg=_float_field(item, "rotation_deg"),
+                x_mm=float_field(item, "x_mm"),
+                y_mm=float_field(item, "y_mm"),
+                rotation_deg=float_field(item, "rotation_deg"),
             )
         )
     return VisionProposal(
@@ -257,14 +257,14 @@ def load_relaxation_profile(path: Path) -> RelaxationProfile:
     if payload.get("schema_version") != "1.0":
         raise VisionProposalError("unsupported relaxation profile schema_version")
 
-    position = _mapping_field(payload, "position")
-    grid_step = _float_field(position, "grid_step_mm")
-    max_shift = _float_field(position, "max_legalization_shift_mm")
+    position = mapping_field(payload, "position")
+    grid_step = float_field(position, "grid_step_mm")
+    max_shift = float_field(position, "max_legalization_shift_mm")
     if grid_step <= 0.0 or max_shift <= 0.0:
         raise VisionProposalError("grid step and shift limit must be positive")
 
-    rotation = _mapping_field(payload, "rotation")
-    step = _float_field(rotation, "step_deg")
+    rotation = mapping_field(payload, "rotation")
+    step = float_field(rotation, "step_deg")
     if step <= 0.0 or step > 360.0:
         raise VisionProposalError("rotation step must be within (0, 360]")
     raw_allowed = rotation.get("allowed_deg")
@@ -272,7 +272,7 @@ def load_relaxation_profile(path: Path) -> RelaxationProfile:
         raise VisionProposalError("rotation allowed_deg must be a non-empty array")
     allowed: list[float] = []
     for value in cast(list[object], raw_allowed):
-        angle = _float_field({"angle": value}, "angle")
+        angle = float_field({"angle": value}, "angle")
         if angle < 0.0 or angle >= 360.0:
             raise VisionProposalError("allowed rotations must be within [0, 360)")
         if math.fmod(angle, step) > _TOLERANCE and step - math.fmod(angle, step) > _TOLERANCE:
@@ -294,9 +294,9 @@ def load_relaxation_profile(path: Path) -> RelaxationProfile:
             "rotation relaxation beyond 90 degrees requires measured Evidence (fail-closed)"
         )
 
-    routing = _mapping_field(payload, "routing")
-    arc_tracks = _bool_field(routing, "arc_tracks")
-    off_grid_angles = _bool_field(routing, "off_grid_angles")
+    routing = mapping_field(payload, "routing")
+    arc_tracks = bool_field(routing, "arc_tracks")
+    off_grid_angles = bool_field(routing, "off_grid_angles")
     routing_measured = bool(evidence) and routing.get("relaxation_evidence_status") == "measured"
     if (arc_tracks or off_grid_angles) and not routing_measured:
         raise VisionProposalError(
@@ -304,7 +304,7 @@ def load_relaxation_profile(path: Path) -> RelaxationProfile:
         )
 
     return RelaxationProfile(
-        profile_id=_string_field(payload, "profile_id"),
+        profile_id=string_field(payload, "profile_id"),
         grid_step_mm=grid_step,
         max_shift_mm=max_shift,
         rotation_step_deg=step,

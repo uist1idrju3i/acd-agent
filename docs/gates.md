@@ -136,6 +136,16 @@ relaxation profileの宣言に従い、実測Evidenceのない緩和はfail-clos
 ビジョン応答、提案座標、代理指標、順位をEvidence、fab claims、`hashes.json`へ書かない。
 自然文をツール実行や設計変更へ直接変換する経路は追加しない。
 
+配線案も同じ経路を通す。ビジョン応答由来のnet・層・経路点は
+`artifact_kind="vision_route_proposal"`としてSkill CLIへ渡し、幅は宣言（graphの
+`width_basis`とfab profileの最小値）から導出する。経路点は格子snap、pad端点への固定、
+領域内判定、同一層のclearance検査という決定論的legalizationを通し、衝突する区間は
+決定論的な迂回探索で修復する。修復不能はfail-closedである。得られた
+`artifact_kind="vision_route_candidates"`はACD側で`acd.core.route_candidates`が
+provenanceとrevision一致を検査してからtool中立の`RoutedDesign`へ変換し、判定は従来どおり
+基板投影後のDRCとGerber独立再読込だけが行う。円弧と非45度配線は既定で拒否し、
+viaを要する案も現時点ではfail-closedとする。
+
 ## 最小チェックリスト
 
 マイルストーン2の時点で最小限として確認する観点は次のとおりである。所見は自然文で次の修正へ渡す。
