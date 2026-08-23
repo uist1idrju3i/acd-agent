@@ -7,6 +7,10 @@
       "definition_class": "AcdProbeTools"
     },
     {
+      "tool_name": "acd_register_functional_block",
+      "definition_class": "AcdRegisterFunctionalBlock"
+    },
+    {
       "tool_name": "acd_run_board_pipeline",
       "definition_class": "AcdRunBoardPipeline"
     },
@@ -19,5 +23,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:99ef9ae934e38bbb013722bfc1f0897d9c844093af0d21c9ef1240bd66b6762d"
+  "canonical_hash": "sha256:8f8ee5ea7d8c7ee96b3f963203e290aa2756b5fd736cf4e4761ba0e57cf61170"
 }

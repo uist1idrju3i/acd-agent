@@ -5,6 +5,7 @@ model: inherit
 tools:
   - acd_probe_tools
   - acd_validate_design_graph
+  - acd_register_functional_block
   - acd_run_board_pipeline
   - terminal
   - file_editor

@@ -269,6 +269,21 @@ fail-closedで停止する。
 | J-2 | 達成。機能ブロック契約registryの被覆検査とEvidence追跡を実装 | 解決済み |
 | J-3 | 達成。fab profile registryによるID／graph宣言選択を実装 | 解決済み |
 
+### 契約registry宣言入口の部分解決（14.5 Phase 1）
+
+14.2で追加されたregistryを、会話またはagentから手編集なしに拡張する入口を追加した。
+`scripts/register_functional_block.py`と`acd_register_functional_block`は、提案された
+`FunctionalBlockContract`をschema、既存`block_id`、固定述語catalog、設計自由度宣言の
+探索可否に照らしてfail-closedで検査する。検査を通った宣言だけを既存契約を変更・削除せず
+決定論的に追記し、dry-runと書き込みのどちらもregistry ID、更新前後の正規化hash、
+契約の出所を返す。これは契約宣言の入口であり、述語の合否やEvidenceを生成しない。
+
+| 項目 | 14.5 Phase 1後の状態 | 優先度 |
+|---|---|---|
+| registry宣言入口 | 達成。新しい機能ブロック契約をschema・catalog・探索可否つきで追加できる | 解決済み |
+| A-2／A-3 | 未達。任意fixtureビルダーと要件差分→graph差分compilerは未実装 | 未達 |
+| I-2 | 未達。FW pipeline、fixture編集、発注、失敗診断などagent向けtoolの網羅は未実装 | 未達 |
+
 ## K. 手順の連結と失敗時の回復（体験としての詰まり）
 
 | # | 不足機能 | 現状 |
@@ -308,7 +323,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 ## 優先順位（VibeBB単体成立に効く順）
 
 1. H-1／H-5（Skill scriptのacd版skew）。現在FW laneが常に失敗しており、設計内容によらず回避できない。最小のコストで最大の停止要因を除ける。
-2. I-2／A-2／A-3（任意graphと要件差分compiler）。J-1／J-2は14.2で解消したが、契約registryへ新しい宣言を自動反映する入口がまだ必要である。
+2. I-2／A-2／A-3（任意graphと要件差分compiler）。J-1／J-2は14.2で解消し、契約registryへ新しい宣言を自動反映する入口は14.5 Phase 1で達成したが、任意graph・要件差分compiler・agent向けtool網羅は未達である。
 3. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。K-3はB-3の利用者向け表現として同時に扱う。
 4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
 5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
