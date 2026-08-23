@@ -82,7 +82,9 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "delivery_format",
         }
     ),
-    "firmware.module": frozenset({"mcu_component", "entry_state"}),
+"firmware.module": frozenset(
+    {"mcu_component", "entry_state", "led_blink_period_ms", "log_period_ms", "boot_log_message"}
+),
     "firmware.state": frozenset({"initial"}),
     "firmware.state_transition": frozenset({"from_state", "to_state", "trigger"}),
     "firmware.sequence_step": frozenset(
