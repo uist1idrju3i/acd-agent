@@ -78,7 +78,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 |---|---|---|
 | B-8 | 達成。9次元の設計自由度宣言、出所・bound basis・gate authority、探索可否、registry整合検査を追加 | 解決済み |
 | B-9 | 達成。初回・refill反復の候補reportとGND島未被覆測定を常時保存し、DFMにはbounded summaryを埋め込む | 解決済み |
-| B-1・B-2 | 達成。宣言した自由度を使う候補生成・探索loopを実装 | 解決済み |
+| B-1・B-2 | 未着手。候補生成・探索loopは別branchの実装をmainへ統合後に完了 | 14.4 |
 | B-5〜B-7 | 達成。placement coupling、単一datum化、stitch via fallbackを実装 | 解決済み |
 
 ## C. 筐体・FW lane
