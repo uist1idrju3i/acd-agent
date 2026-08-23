@@ -20,9 +20,9 @@ from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.naming import subject_node_id
+from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
+from acd.core.parallel import run_ordered_stages as _run_ordered_stages
 from acd.openhands.tools.probe import probe_cad_kernel
-from acd.pipeline.parallel import DEFAULT_PIPELINE_WORKERS
-from acd.pipeline.parallel import run_ordered_stages as _run_ordered_stages
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
 from acd.schema.design_graph import DesignGraph
@@ -82,6 +82,7 @@ def run_pipeline(
         f"assembly={projection.assembly_step_path}"
     )
 
+    effective_workers = 1 if "build123d" in sys.modules else pipeline_workers
     gate_and_artifact_results = _run_ordered_stages(
         (
             (
@@ -96,7 +97,7 @@ def run_pipeline(
                 ),
             ),
         ),
-        pipeline_workers,
+        effective_workers,
     )
     if len(gate_and_artifact_results) != 2:
         raise RuntimeError("mechanical pipeline stage results are incomplete (fail-closed)")
@@ -112,7 +113,7 @@ def run_pipeline(
         target_revision=graph.revision,
         gate_report=gate_report,
         out_dir=out_dir,
-        workers=pipeline_workers,
+        workers=effective_workers,
     )
     visual_crosscheck = crosscheck_mechanical_visual_projections(
         source_revision=graph.revision,

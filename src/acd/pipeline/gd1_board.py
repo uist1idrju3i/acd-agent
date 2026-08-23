@@ -82,11 +82,11 @@ from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.fab import extract_fab_intent, load_fab_profile
 from acd.core.firmware_lane import extract_firmware_lane
 from acd.core.naming import output_prefix, subject_node_id
+from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
+from acd.core.parallel import run_ordered_stages as _run_ordered_stages
 from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
-from acd.pipeline.parallel import DEFAULT_PIPELINE_WORKERS
-from acd.pipeline.parallel import run_ordered_stages as _run_ordered_stages
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
 from acd.pipeline.visual_projection import (

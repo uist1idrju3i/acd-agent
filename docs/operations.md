@@ -202,6 +202,8 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    shell・lid・assemblyのartifact測定を独立stageとして実行する。ゲート後の断面・干渉
    visual projectionも独立stageである。`--pipeline-workers N`はこれらのOCP/build123d
    処理を`ProcessPoolExecutor`で実行し、結果を宣言順またはprojection ID順に戻す。
+   ただしLinuxの既定forkでは、筐体投影後に親プロセスが保持するOCP状態を子プロセスへ
+   継承すると停止するため、build123dが既にロードされた経路ではfail-closedに逐次化する。
    逐次確認やデバッグには次を使う。
 
    ```bash
@@ -211,9 +213,10 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    ```
 
    2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
-   `--pipeline-workers 1`で`8.010`秒、既定並列で`22.095`秒だった。spawnによる
-   CADプロセスの起動が加わるため、このfixtureでは並列化による短縮は確認できず、
-   外部CAD kernelの起動・STEP再読込が支配的なため、短縮幅は実行環境に依存する。
+   `--pipeline-workers 1`で`8.046`秒、`--pipeline-workers 4`で`8.062`秒だった。
+   既定contextはLinuxのforkであり、OCP状態を継承したworkerが停止することを実測したため、
+   build123dロード後の筐体経路は逐次化している。このfixtureでは短縮は確認できず、
+   worker起動コストやstage粒度を比較する前に、forkとOCPのプロセス状態が支配的な制約になる。
    host実行はprovisionalであり、authoritative Evidenceの合否根拠には使わない。
    CPL／BOM chain、E-2のlane／run並列化、E-4のstage cacheは引き続き逐次または未実装である。
    並列実行のhash差分を逐次2回と比較するintegration testは既定ではskipされる。

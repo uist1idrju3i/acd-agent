@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import importlib
 import math
+import sys
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from acd.core.mechanical import ComponentBodyView, MechanicalLane
-from acd.pipeline.parallel import DEFAULT_PIPELINE_WORKERS
-from acd.pipeline.parallel import run_ordered_stages as _run_ordered_stages
+from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
+from acd.core.parallel import run_ordered_stages as _run_ordered_stages
 
 
 class MechanicalGateError(ValueError):
@@ -103,17 +104,21 @@ def measure_enclosure_artifacts(
     workers: int = DEFAULT_PIPELINE_WORKERS,
 ) -> EnclosureArtifactReport:
     """Reload and validate separated enclosure STEP artifacts."""
+    effective_workers = 1 if "build123d" in sys.modules else workers
     measurements = _run_ordered_stages(
         (
             ("shell", partial(_measure_artifact, shell_step_path, "shell")),
             ("lid", partial(_measure_artifact, lid_step_path, "lid")),
             ("assembly", partial(_measure_artifact, assembly_step_path, "assembly")),
         ),
-        workers,
+        effective_workers,
     )
-    if not all(isinstance(item, _ArtifactMeasurement) for item in measurements):
-        raise MechanicalGateError("enclosure artifact measurements are unknown")
-    shell, lid, assembly = cast(list[_ArtifactMeasurement], measurements)
+    typed_measurements: list[_ArtifactMeasurement] = []
+    for item in measurements:
+        if not isinstance(item, _ArtifactMeasurement):
+            raise MechanicalGateError("enclosure artifact measurements are unknown")
+        typed_measurements.append(item)
+    shell, lid, assembly = typed_measurements
     shell_bbox = shell.bbox_mm
     lid_bbox = lid.bbox_mm
     assembly_bbox = assembly.bbox_mm

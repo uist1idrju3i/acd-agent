@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Sequence
 from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import get_context
 
 DEFAULT_PIPELINE_WORKERS = min(os.cpu_count() or 1, 4)
 
@@ -21,10 +20,6 @@ def run_ordered_stages(
         return [stage() for _, stage in stages]
     with ProcessPoolExecutor(
         max_workers=min(workers, len(stages)),
-        mp_context=get_context("spawn"),
     ) as executor:
         futures = [executor.submit(stage) for _, stage in stages]
         return [future.result() for future in futures]
-
-
-_run_ordered_stages = run_ordered_stages
