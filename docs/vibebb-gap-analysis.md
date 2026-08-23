@@ -203,6 +203,29 @@ authoritative Evidenceのdigest固定条件は緩めない。
 | J-2 | 機能ブロック単位の契約registry（USB-C CC、I2C pull-up、単一LDO等）を導入し、新トポロジの追加を述語コード改変ではなく契約追加で行えるようにする | [`design-requirement-variation.md`](design-requirement-variation.md)が述べるとおり、現状の新トポロジ追加は述語・negative test・ADRの同時改変であり、会話からは到達できない |
 | J-3 | fab profileを複数持てるようにする | [`profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json`](../profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json)の1種のみで、層数・工程・供給者の選択肢が無い |
 
+### Jの解決（マイルストーン14.2）
+
+J-1はgraphの`design.functional_block`宣言と、宣言から導出する適用述語集合で解決した。
+宣言された機能ブロックの述語だけを必須評価し、宣言されたブロックの入力不足は
+`unknown`のまま停止する。機能ブロックが宣言されていない述語だけを`not_applicable`と
+し、両者をEvidence境界でも分離する。
+
+J-2は`contracts/functional-block-registry.json`で解決した。registryと固定述語catalogの
+相互被覆を検査するため、未知述語や契約に属さない述語は黙って適用外にならない。
+GD1は安全電源境界を含む6ブロックを宣言し、別トポロジは契約を追加して述語コードを
+変更せずに適用範囲を定義できる。
+
+J-3は`profiles/fab-profile-registry.json`で解決した。`--fab-profile`の明示パス互換を
+維持しつつ、`--fab-profile-id`またはgraphの`fab.order_intent.fab_profile`から
+registry経由でprofileを選択する。profile本体とのID、fab、processの不一致とpath欠落は
+fail-closedで停止する。
+
+| 項目 | 14.2後の状態 | 優先度 |
+|---|---|---|
+| J-1 | 達成。宣言された機能ブロックに対応する述語だけを必須評価し、`unknown`と`not_applicable`を分離 | 解決済み |
+| J-2 | 達成。機能ブロック契約registryの被覆検査とEvidence追跡を実装 | 解決済み |
+| J-3 | 達成。fab profile registryによるID／graph宣言選択を実装 | 解決済み |
+
 ## K. 手順の連結と失敗時の回復（体験としての詰まり）
 
 | # | 不足機能 | 現状 |
@@ -220,7 +243,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | 項目 | 不在時に起きること |
 |---|---|
 | H-1／H-5 | FW pipelineが常に失敗する。設計内容に依存しないため回避手段が無い |
-| J-1／J-2 | GD1以外のトポロジが原理的に合格しない。会話でどれだけ要件を与えても到達できない |
+| J-1／J-2 | 契約registryへの機能ブロック追加は可能になった。任意graphの生成・差分反映はI-2／A-2／A-3が未達だと生JSON編集になる |
 | I-4 | GD1以外の設計は発注可否判定に到達できない |
 | I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
 | B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
@@ -229,7 +252,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 ## 優先順位（VibeBB単体成立に効く順）
 
 1. H-1／H-5（Skill scriptのacd版skew）。現在FW laneが常に失敗しており、設計内容によらず回避できない。最小のコストで最大の停止要因を除ける。
-2. J-1／J-2（述語のapplicabilityと契約registry）。GD1以外のトポロジが合格し得ない現状を解く。ここが解けない限り、他をいくら整えてもVibeBBは「GD1の再生成」に留まる。fail-closed境界は維持する。
+2. I-2／A-2／A-3（任意graphと要件差分compiler）。J-1／J-2は14.2で解消したが、契約registryへ新しい宣言を自動反映する入口がまだ必要である。
 3. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。K-3はB-3の利用者向け表現として同時に扱う。
 4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
 5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。

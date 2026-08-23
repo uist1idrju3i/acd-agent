@@ -10,6 +10,7 @@ from acd.schema import (
     AcdModel,
     DesignGraph,
     Evidence,
+    FunctionalBlockRegistryDocument,
     OrderPolicy,
     OrderScope,
     PhysicalEvidence,
@@ -46,6 +47,12 @@ def test_valid_contract_fixtures(model: type[AcdModel], name: str) -> None:
     ("model", "name"),
     [
         (DesignGraph, "design-graph-unknown-field.json"),
+        (FunctionalBlockRegistryDocument, "functional-block-registry-duplicate.json"),
+        (
+            FunctionalBlockRegistryDocument,
+            "functional-block-registry-empty-predicates.json",
+        ),
+        (FunctionalBlockRegistryDocument, "functional-block-registry-unknown-field.json"),
         (Evidence, "evidence-bad-status.json"),
         (PhysicalEvidence, "physical-evidence-missing-classification.json"),
         (PhysicalEvidence, "physical-evidence-missing-unit.json"),

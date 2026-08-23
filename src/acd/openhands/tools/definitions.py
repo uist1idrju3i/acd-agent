@@ -30,12 +30,19 @@ def run_board(
     fixture_dir: Path,
     out_dir: Path,
     max_passes: int,
-    fab_profile_path: Path,
+    fab_profile_path: Path | None = None,
+    fab_profile_id: str | None = None,
 ) -> dict[str, str]:
     """Run the board pipeline without importing it during package initialization."""
     from acd.pipeline.gd1_board import run_pipeline
 
-    return run_pipeline(fixture_dir, out_dir, max_passes, fab_profile_path)
+    return run_pipeline(
+        fixture_dir,
+        out_dir,
+        max_passes,
+        fab_profile_path,
+        fab_profile_id=fab_profile_id,
+    )
 
 
 def run_enclosure(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
@@ -157,9 +164,9 @@ class AcdRunBoardPipelineAction(Action):
         default="out/gd1-mcp",
         description="Output directory for generated board artifacts.",
     )
-    fab_profile: str = Field(
-        default="profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json",
-        description="Fabrication profile JSON path.",
+    fab_profile: str | None = Field(default=None, description="Fabrication profile JSON path.")
+    fab_profile_id: str | None = Field(
+        default=None, description="Registered fabrication profile id."
     )
     max_passes: int = Field(
         default=3,
@@ -263,7 +270,7 @@ class AcdRunBoardPipelineExecutor(
         del conversation
         fixture_path = Path(action.fixture)
         out_path = Path(action.out)
-        profile_path = Path(action.fab_profile)
+        profile_path = Path(action.fab_profile) if action.fab_profile is not None else None
         try:
             if not (fixture_path / "graph.json").is_file():
                 return AcdRunBoardPipelineObservation(
@@ -272,7 +279,7 @@ class AcdRunBoardPipelineExecutor(
                         operation="run_board_pipeline",
                     )
                 )
-            if not profile_path.is_file():
+            if profile_path is not None and not profile_path.is_file():
                 return AcdRunBoardPipelineObservation(
                     **_error(
                         f"fab profile does not exist: {action.fab_profile}",
@@ -287,7 +294,11 @@ class AcdRunBoardPipelineExecutor(
                     )
                 )
             summary = run_board(
-                fixture_path, out_path, action.max_passes, profile_path
+                fixture_path,
+                out_path,
+                action.max_passes,
+                profile_path,
+                action.fab_profile_id,
             )
             return AcdRunBoardPipelineObservation(
                 ok=True,

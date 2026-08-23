@@ -48,9 +48,15 @@ rationale recordを追加し、coverageの`unclassified`を出さないこと（
 ## ゲートが契約として固定している値
 
 以下は[`../src/acd/core/design_predicates.py`](../src/acd/core/design_predicates.py)が
-GD1契約として値・net名・トポロジを固定している次元である。要件をここへ踏み込ませると
-`fail`または`unknown`になり、fail-closedで停止する。変更したい場合は、述語と
-negative testとADRを同じ変更で更新する作業になり、実行例作成の範囲を超える。
+各機能ブロック契約の判定として値・net名・トポロジを固定している次元である。宣言された
+機能ブロックでは要件をここへ踏み込ませると`fail`または`unknown`になり、fail-closedで
+停止する。新しいトポロジ族を追加する場合は、まず
+[`../contracts/functional-block-registry.json`](../contracts/functional-block-registry.json)へ
+適用契約を追加する。新しい物理判定や固定値を追加する変更では、述語、negative test、
+ADRも同時に更新する。
+
+固定値の表は、対応する機能ブロックが宣言された場合にだけ適用される。宣言された
+ブロック内のnet・部品の不足は`not_applicable`ではなく`unknown`として停止する。
 
 | 固定されている内容 | 述語 |
 |---|---|

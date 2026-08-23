@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "registry_id": "invalid-functional-blocks",
+  "contracts": [
+    {
+      "block_id": "duplicate_block",
+      "title": "Duplicate",
+      "description": "Duplicate contract.",
+      "required_predicates": ["power_boundary"]
+    },
+    {
+      "block_id": "duplicate_block",
+      "title": "Duplicate",
+      "description": "Duplicate contract.",
+      "required_predicates": ["usb_cc"]
+    }
+  ]
+}

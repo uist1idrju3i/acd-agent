@@ -615,7 +615,17 @@ fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動�
 | negative・fail-closed | 非ancestor・未解決・shallow ref、schema/API/kind不一致、contract drift、script hash/symbol drift、contract欠落・parse不能を不合格にする |
 | 再現性 | ref、schema tree SHA、AST-derived API/kind、script SHA-256を契約へ固定し、standard CI、doctor、digest固定imageのoffline実行で同一判定を再現する |
 
-14.1は達成済みであり、14.2以降は計画である。
+### 14.2 設計述語の適用条件宣言と機能ブロック契約registry（J-1〜J-3）（達成）
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `contracts/functional-block-registry.json`、`profiles/fab-profile-registry.json`、graphの`design.functional_block`宣言、fab profile本体 |
+| 実装 | 機能ブロックregistryと述語catalogの被覆検査、宣言からの適用述語解決、`unknown`／`not_applicable`分離、profile registryとID選択を追加した |
+| 正常系 | GD1の6述語が適用されて合格し、機能ブロックを減らしたgraphでは該当述語だけが`not_applicable`になる。Evidenceとvisual projectionは適用範囲を追跡できる |
+| negative・fail-closed | 宣言ゼロ、未知・重複・mandatory欠落、registry被覆不足、適用ブロックのnet欠落、Evidenceの不正status、profile ID・metadata・path不一致を停止する |
+| 再現性 | registry IDと正規化hash、ソート済み宣言一覧、profile registryの正規化hashを記録し、固定catalog順で同一判定を再現する |
+
+14.1および14.2は達成済みであり、14.3以降は計画である。
 
 ## マイルストーン15: 運用と文書の整備
 

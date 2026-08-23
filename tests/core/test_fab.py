@@ -12,6 +12,9 @@ from acd.core.electrical import GraphExtractionError, extract_electrical_lane
 from acd.core.fab import (
     extract_fab_intent,
     load_fab_profile,
+    load_fab_profile_by_id,
+    load_fab_profile_registry,
+    resolve_fab_profile_path,
     validate_allowances_against_profile,
 )
 from acd.schema import DesignGraph
@@ -155,3 +158,107 @@ def test_component_assembly_is_required() -> None:
     del component["attrs"]["assembly"]
     with pytest.raises(GraphExtractionError, match="assembly"):
         extract_electrical_lane(DesignGraph.model_validate(data))
+
+
+def test_fab_profile_registry_resolves_registered_profile() -> None:
+    registry = load_fab_profile_registry()
+    assert resolve_fab_profile_path("jlcpcb-fr4-2l-1oz", registry) == PROFILE
+    assert load_fab_profile_by_id("jlcpcb-fr4-2l-1oz", registry).profile_id == (
+        "jlcpcb-fr4-2l-1oz"
+    )
+
+
+def test_fab_profile_registry_supports_two_profile_selection(tmp_path: Path) -> None:
+    first = json.loads(PROFILE.read_text(encoding="utf-8"))
+    second = json.loads(PROFILE.read_text(encoding="utf-8"))
+    second["profile_id"] = "jlcpcb-fr4-2l-1oz-alt"
+    first_path = tmp_path / "first.json"
+    second_path = tmp_path / "second.json"
+    first_path.write_text(json.dumps(first), encoding="utf-8")
+    second_path.write_text(json.dumps(second), encoding="utf-8")
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "registry_id": "test-fab-registry",
+                "profiles": [
+                    {
+                        "profile_id": first["profile_id"],
+                        "path": first_path.name,
+                        "fab": first["fab"],
+                        "process": first["process"],
+                    },
+                    {
+                        "profile_id": second["profile_id"],
+                        "path": second_path.name,
+                        "fab": second["fab"],
+                        "process": second["process"],
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    registry = load_fab_profile_registry(registry_path)
+    assert load_fab_profile_by_id("jlcpcb-fr4-2l-1oz-alt", registry).profile_id == (
+        "jlcpcb-fr4-2l-1oz-alt"
+    )
+
+
+@pytest.mark.parametrize("profile_id", ["missing-profile", ""])
+def test_unknown_fab_profile_id_fails_closed(profile_id: str) -> None:
+    with pytest.raises(ValueError):
+        resolve_fab_profile_path(profile_id)
+
+
+def test_fab_profile_registry_detects_metadata_mismatch(tmp_path: Path) -> None:
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "registry_id": "test-fab-registry",
+                "profiles": [
+                    {
+                        "profile_id": "jlcpcb-fr4-2l-1oz",
+                        "path": str(PROFILE),
+                        "fab": "wrong-fab",
+                        "process": "rigid-fr4",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="metadata mismatch"):
+        resolve_fab_profile_path(
+            "jlcpcb-fr4-2l-1oz",
+            load_fab_profile_registry(registry_path),
+        )
+
+
+def test_fab_profile_registry_detects_missing_path(tmp_path: Path) -> None:
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "registry_id": "test-fab-registry",
+                "profiles": [
+                    {
+                        "profile_id": "missing-profile",
+                        "path": "missing.json",
+                        "fab": "fab",
+                        "process": "process",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="does not exist"):
+        resolve_fab_profile_path(
+            "missing-profile",
+            load_fab_profile_registry(registry_path),
+        )

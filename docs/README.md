@@ -49,5 +49,6 @@
 | [0040](adr/ADR-0040-hook-plugin-root-resolution.md) | plugin hookのplugin root解決方式 |
 | [0041](adr/ADR-0041-vision-proposals-as-design-candidates.md) | ビジョン出力の宣言層入力境界 |
 | [0042](adr/ADR-0042-skill-package-ref-skew.md) | Skill package refのskew検出と事前導入 |
+| [0043](adr/ADR-0043-functional-block-contract-registry.md) | 機能ブロック契約registryによる設計述語の適用条件 |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。

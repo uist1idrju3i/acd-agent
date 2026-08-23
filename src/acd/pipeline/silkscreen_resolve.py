@@ -19,7 +19,12 @@ from acd.adapters.kicad.fab import (
 )
 from acd.adapters.kicad.project import write_project
 from acd.core.electrical import BoardView, extract_electrical_lane
-from acd.core.fab import extract_fab_intent, load_fab_profile
+from acd.core.fab import (
+    extract_fab_intent,
+    load_fab_profile,
+    load_fab_profile_registry,
+    resolve_fab_profile_path,
+)
 from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
 from acd.schema.design_graph import DesignGraph
 
@@ -32,7 +37,8 @@ from .repository import repository_root, resolve_repository_file
 def measure_silkscreen(
     fixture_dir: Path,
     out_dir: Path,
-    fab_profile_path: Path,
+    fab_profile_path: Path | None = None,
+    fab_profile_id: str | None = None,
 ) -> dict[str, object]:
     """Project an unrouted board and return the gate-derived silk context.
 
@@ -47,6 +53,12 @@ def measure_silkscreen(
     silkscreen = extract_silkscreen_lane(graph)
     projection_silkscreen = _materialize_unresolved_texts(silkscreen, lane.board)
     intent, _allowances = extract_fab_intent(graph)
+    if fab_profile_path is not None and fab_profile_id is not None:
+        raise ValueError("fab profile path and profile id are mutually exclusive")
+    if fab_profile_path is None:
+        fab_profile_path = resolve_fab_profile_path(
+            fab_profile_id or intent.fab_profile, load_fab_profile_registry()
+        )
     profile = load_fab_profile(fab_profile_path)
     if intent.fab_profile != profile.profile_id:
         raise ValueError("graph fab profile differs from loaded profile")
@@ -165,21 +177,23 @@ def resolve_silkscreen(
     out_dir: Path,
     fab_profile_path: Path | None = None,
     max_iterations: int = 5,
+    fab_profile_id: str | None = None,
 ) -> dict[str, object]:
     """Run bounded projection/measurement/Skill iterations fail-closed."""
     if max_iterations <= 0:
         raise ValueError("max_iterations must be positive")
     root = repository_root()
     silk_skill = root / "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
-    if fab_profile_path is None:
-        fab_profile_path = root / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
     work_fixture_dir = out_dir / "work-fixture"
     shutil.copytree(fixture_dir, work_fixture_dir, dirs_exist_ok=True)
     graph_path = work_fixture_dir / "graph.json"
     iterations: list[dict[str, object]] = []
     for iteration in range(1, max_iterations + 1):
         measured = measure_silkscreen(
-            work_fixture_dir, out_dir / f"iteration-{iteration}", fab_profile_path
+            work_fixture_dir,
+            out_dir / f"iteration-{iteration}",
+            fab_profile_path,
+            fab_profile_id,
         )
         context_value = measured.get("context")
         if not isinstance(context_value, dict):
