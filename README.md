@@ -50,6 +50,7 @@ installすると、次のslash commandが会話から使えます。
 | --- | --- | --- |
 | `acd_probe_tools` | KiCad CLI、Java、FreeRoutingなど外部ツールの有無と版を検出します。 | 「外部ツールの版を確認して」 |
 | `acd_validate_design_graph` | 設計グラフJSONをPydantic契約で検証します。 | 「`fixtures/golden-design-1/graph.json`を検証して」 |
+| `acd_register_functional_block` | 機能ブロック契約の宣言を検証し、registryへ追加します。ゲート合格Evidenceは生成しません。 | 「この機能ブロック契約をregistryへdry-run登録して」 |
 | `acd_run_board_pipeline` | 基板pipeline（投影→ERC/DRC→製造出力）を実行しEvidenceを出します。 | 「GD1の基板pipelineを`out/gd1`へ回して」 |
 | `acd_run_enclosure_pipeline` | 筐体pipeline（外形・干渉・機械測定）を実行しEvidenceを出します。 | 「GD1の筐体pipelineを実行して」 |
 | `acd_run_firmware_pipeline` | FW Skillをsubprocess境界で実行し、結果とprovenanceを返します。合否Evidenceではありません。 | 「ESP32-C3のFW pipelineを実行して」 |

@@ -20,6 +20,7 @@ from openhands.sdk.tool import (
 from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportUnknownVariableType]
 from pydantic import Field
 
+from acd.core.functional_block_entry import register_functional_block_contract
 from acd.openhands.tools.probe import probe_all
 from acd.schema.design_graph import DesignGraph
 
@@ -125,6 +126,12 @@ class AcdObservation(Observation):
     after_hash: str | None = None
     provenance: dict[str, Any] | None = None
     pass_evidence: bool = False
+    registry_id: str | None = None
+    prior_registry_hash: str | None = None
+    new_registry_hash: str | None = None
+    contract_source: str | None = None
+    contract: dict[str, Any] | None = None
+    written: bool | None = None
 
     @property
     def to_llm_content(self) -> list[TextContent]:
@@ -158,6 +165,13 @@ class AcdObservation(Observation):
             )
         elif self.report is not None:
             text = f"{self.operation}: report_keys={', '.join(sorted(self.report))}."
+        elif self.operation == "register_functional_block":
+            text = (
+                f"{self.operation}: registry_id={self.registry_id}, "
+                f"prior_registry_hash={self.prior_registry_hash}, "
+                f"new_registry_hash={self.new_registry_hash}, "
+                f"written={self.written}. This is a declaration, not gate evidence."
+            )
         elif self.failure_reason:
             text = f"{self.operation}: {self.failure_reason}"
         else:
@@ -206,6 +220,22 @@ class AcdRunEnclosurePipelineAction(Action):
     out: str = Field(
         default="out/gd1-enclosure-mcp",
         description="Output directory for generated enclosure artifacts.",
+    )
+
+
+class AcdRegisterFunctionalBlockAction(Action):
+    """Validate and append one functional-block contract declaration."""
+
+    contract: str = Field(
+        description="FunctionalBlockContract JSON path or inline JSON object."
+    )
+    registry: str = Field(
+        default="contracts/functional-block-registry.json",
+        description="Functional-block registry JSON path.",
+    )
+    dry_run: bool = Field(
+        default=False,
+        description="Validate without writing the registry.",
     )
 
 
@@ -265,6 +295,10 @@ class AcdRunBoardPipelineObservation(AcdObservation):
 
 class AcdRunEnclosurePipelineObservation(AcdObservation):
     """Observation returned by the enclosure pipeline."""
+
+
+class AcdRegisterFunctionalBlockObservation(AcdObservation):
+    """Observation returned by functional-block contract registration."""
 
 
 class AcdRunFirmwarePipelineObservation(AcdObservation):
@@ -429,6 +463,38 @@ class AcdRunEnclosurePipelineExecutor(ToolExecutor[AcdRunEnclosurePipelineAction
                 **_error(str(exc), operation="run_enclosure_pipeline"),
                 output_path=action.out,
                 envelopes=_envelopes(out_path),
+            )
+
+
+class AcdRegisterFunctionalBlockExecutor(
+    ToolExecutor[AcdRegisterFunctionalBlockAction, AcdRegisterFunctionalBlockObservation]
+):
+    def __call__(
+        self,
+        action: AcdRegisterFunctionalBlockAction,
+        conversation: Any = None,
+    ) -> AcdRegisterFunctionalBlockObservation:
+        del conversation
+        try:
+            result = register_functional_block_contract(
+                action.contract,
+                Path(action.registry),
+                dry_run=action.dry_run,
+            )
+            return AcdRegisterFunctionalBlockObservation(
+                ok=True,
+                operation="register_functional_block",
+                registry_id=result.registry_id,
+                prior_registry_hash=result.prior_registry_hash,
+                new_registry_hash=result.new_registry_hash,
+                contract_source=result.contract_source,
+                contract=result.contract.model_dump(mode="json"),
+                written=result.written,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdRegisterFunctionalBlockObservation(
+                **_error(str(exc), operation="register_functional_block")
             )
 
 
@@ -1023,11 +1089,58 @@ class AcdCheckOrderReadiness(
         ]
 
 
+class AcdRegisterFunctionalBlock(
+    ToolDefinition[
+        AcdRegisterFunctionalBlockAction,
+        AcdRegisterFunctionalBlockObservation,
+    ]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRegisterFunctionalBlockAction):
+            return DeclaredResources(keys=(), declared=False)
+        registry_path = _resolved_resource_path(action.registry)
+        if registry_path is None:
+            return DeclaredResources(keys=(), declared=False)
+        keys = [f"file:{registry_path}"]
+        contract_path = _resolved_resource_path(action.contract)
+        if contract_path is not None and contract_path.is_file():
+            keys.insert(0, f"file:{contract_path}")
+        return DeclaredResources(keys=tuple(keys), declared=True)
+
+    @classmethod
+    def create(
+        cls,
+        conv_state: ConversationState | None = None,
+        **params: Any,
+    ) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_register_functional_block does not accept parameters")
+        return [
+            cls(
+                action_type=AcdRegisterFunctionalBlockAction,
+                observation_type=AcdRegisterFunctionalBlockObservation,
+                description=(
+                    "Validate and register one functional-block contract declaration."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_register_functional_block",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=False,
+                    openWorldHint=False,
+                ),
+                executor=AcdRegisterFunctionalBlockExecutor(),
+            )
+        ]
+
+
 ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_probe_tools", AcdProbeTools),
     ("acd_validate_design_graph", AcdValidateDesignGraph),
     ("acd_run_board_pipeline", AcdRunBoardPipeline),
     ("acd_run_enclosure_pipeline", AcdRunEnclosurePipeline),
+    ("acd_register_functional_block", AcdRegisterFunctionalBlock),
     ("acd_run_firmware_pipeline", AcdRunFirmwarePipeline),
     ("acd_compile_requirement_change", AcdCompileRequirementChange),
     ("acd_build_design_fixture", AcdBuildDesignFixture),

@@ -212,6 +212,7 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 
 - `acd_probe_tools`
 - `acd_validate_design_graph`
+- `acd_register_functional_block`
 - `acd_run_board_pipeline`
 - `acd_run_enclosure_pipeline`
 - `acd_run_firmware_pipeline`

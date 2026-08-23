@@ -648,13 +648,28 @@ fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動�
 
 14.1〜14.3は達成済みである。14.4はB-1・B-2・B-8・B-9を達成済みだが、
 B-5〜B-7は後続である。14.5はA-1〜A-5とI-2を達成し、要件から任意fixture、
-部品選定、トポロジ合成、決定論的tool入口までを接続した。生成物、compiler、
+部品選定、トポロジ合成、決定論的tool入口までを接続した。機能ブロック契約registryへの
+宣言入口も追加し、述語コードを変更せずに契約を拡張できる。生成物、compiler、
 Skill結果はpass authorityを持たず、L1決定論的ゲートとrevision一致した
 authoritative Evidenceが引き続き唯一の合否根拠である。14.7はE-6
 （検証段階の並列実行）だけ達成済みで、実測値は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のE-6行と
 [`operations.md`](operations.md)を正とする。14.7の残り
 （E-1〜E-4、K-1、K-2、K-4）とその他の14.6以降は計画である。
+
+### 14.5 機能ブロック契約registry宣言入口
+
+機能ブロック契約の宣言を、述語コードを変更せずに会話またはagentからregistryへ
+追加する決定論的な入口を追加した。入力契約、既存registryとの重複、固定述語catalog、
+設計自由度の探索可否を検査し、既存契約を変更・削除せずに追記する。dry-runでは書き込まず、
+registry ID、更新前後の正規化hash、契約の出所を返す。これは宣言の登録であり、
+ゲート合格やEvidenceを生成しない。
+
+| 要素 | 完了条件 |
+|---|---|
+| registry宣言入口 | 達成。`scripts/register_functional_block.py`と`acd_register_functional_block`から、schema・重複・述語catalog・設計自由度をfail-closedで検査し、registryへ決定論的に追記できる |
+| A-2／A-3 | 達成。任意fixtureビルダーと要件差分→graph差分compilerを実装している |
+| I-2 | 達成。FW pipeline、fixture編集、発注、失敗診断などagent向けtool入口を実装している |
 
 ## マイルストーン15: 運用と文書の整備
 
