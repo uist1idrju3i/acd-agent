@@ -34,7 +34,7 @@ Reference implementations in `scripts/`, reusable as-is or as a starting point:
 
 ```bash
 # Full reference pipeline (needs ESP-IDF and qemu-system-riscv32).
-uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+uv run --with cmake==3.31.6 --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
     --fixture fixtures/golden-design-1 --out out/gd1-fw
 
 # Firmware lane extraction and checks:

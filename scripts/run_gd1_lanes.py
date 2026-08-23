@@ -34,6 +34,8 @@ LANE_COMMANDS: tuple[CommandSpec, ...] = (
         (
             "uv",
             "run",
+            "--with",
+            "cmake==3.31.6",
             "--script",
             "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
             "--out",

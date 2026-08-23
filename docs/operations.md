@@ -455,7 +455,7 @@ command未実行をsuccessとして記録する経路はない。command形式�
    含めて起動し、次の入口を実行させる。
 
    ```bash
-   uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+   uv run --with cmake==3.31.6 --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
      --fixture fixtures/golden-design-1 --out out/gd1-fw
    ```
 
