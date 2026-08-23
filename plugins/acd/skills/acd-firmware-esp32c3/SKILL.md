@@ -45,6 +45,8 @@ uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py
 uv run pytest plugins/acd/skills/acd-firmware-esp32c3 -q
 ```
 
+The standard `uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py`
+form is extended with the pinned CMake package above because ESP-IDF requires CMake on `PATH`.
 `--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
 開発する場合は、従来どおり`uv run python <path>`を使用します。
 
