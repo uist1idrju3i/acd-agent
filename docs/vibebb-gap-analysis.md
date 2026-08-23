@@ -223,8 +223,8 @@ authoritative Evidenceのdigest固定条件は緩めない。
 
 | # | 不足機能 | 現状 |
 |---|---|---|
-| I-1 | VibeBB loopのcommand | [`plugins/acd/commands/`](../plugins/acd/commands/)は`ask`／`doctor`／`gates`の3つで、設計・生成・発注を進めるcommandが無い。会話から進める手段が「shellで各scriptを叩く」に落ちる |
-| I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)が公開するのはtool probe、graph validate、GD1基板pipeline、GD1筐体pipelineの4つのみ。FW pipeline、fixture編集、発注、失敗診断のtoolが無く、それらは生JSON編集と生shellになる。今回私が座標とGPIOを手で書いたのはこの欠落の帰結である |
+| I-1 | VibeBB loopのcommand | 達成。`/acd:vibebb-loop`が要件、graph検証、silkscreen barrier、基板・筐体・FW、発注可否を固定順序のfail-closed loopとして実行する |
+| I-2 | agent向けtoolの網羅 | 達成。[`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)にFW pipeline、fixture編集、発注可否、失敗診断、候補探索、design loopを含む13本のtoolを登録済み |
 | I-3 | workspace既定値のgd1固定 | 達成。対象graphのgraph_idからcommand、Evidence path、required anchorを決定論的に導出する |
 | I-4 | 発注可否判定のsubject固定 | 達成。order policyを対象graphと照合し、graph-scoped Evidence anchorの欠落をfail-closedにする |
 | I-5 | 生成物名のgd1固定 | 達成。KiCad、筐体part number、visual projection、CPL pathをgraph_id由来にし、既存GD1互換prefixを保持する |

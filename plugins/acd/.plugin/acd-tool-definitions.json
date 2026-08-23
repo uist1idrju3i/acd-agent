@@ -39,6 +39,10 @@
       "definition_class": "AcdRunBoardPipeline"
     },
     {
+      "tool_name": "acd_run_design_loop",
+      "definition_class": "AcdRunDesignLoop"
+    },
+    {
       "tool_name": "acd_run_enclosure_pipeline",
       "definition_class": "AcdRunEnclosurePipeline"
     },
@@ -51,5 +55,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:c9ca25bd3459ba997b839ad7b555fb47dad282a7ac1d9e6560e752aa2f559f4f"
+  "canonical_hash": "sha256:21073441d8994d5519dc4cc547770d7afdde6181ba7b5f4888e0859f9af66f31"
 }

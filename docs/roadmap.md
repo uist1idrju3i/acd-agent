@@ -611,6 +611,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.7 | 実行時間と再開性（E-1〜E-4、E-6、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録を達成した。検証段階の並列実行（E-6）は既存の`pytest -n auto --dist loadgroup`と`verify_all.py --jobs N`を維持し、`uv sync`とfullの後続pipelineはbarrierとして単独実行する。新しいcacheはDSN／SESの生成物だけを対象とし、ゲートとEvidenceは毎回再実行する |
 | 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する。達成 |
 | 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合。達成 |
+| 14.10 | VibeBB loopのcommand（I-1） | `/acd:vibebb-loop`とgraph駆動の単一orchestratorを追加し、要件からgraph検証、silkscreen barrier、基板・筐体・FW、発注可否までを固定順序でfail-closed実行する。達成 |
 
 C-1〜C-4（筐体の干渉解決探索、FWのgraph駆動化、FW整合gate、CPL orientation期待値の
 fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存

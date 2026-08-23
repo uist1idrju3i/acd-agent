@@ -283,6 +283,22 @@ class AcdCheckOrderReadinessAction(Action):
     evaluated_at: str
 
 
+class AcdRunDesignLoopAction(Action):
+    """Run the fixed graph-driven VibeBB design loop."""
+
+    fixture: str = Field(default="fixtures/golden-design-1")
+    out_root: str = Field(default="out")
+    order_total: str
+    policy: str = "plugins/acd/hooks/order-policy.json"
+    repository: str = "."
+    fab_profile: str | None = None
+    fab_profile_id: str | None = None
+    max_passes: int = Field(default=3, ge=1)
+    max_silkscreen_iterations: int = Field(default=5, ge=1)
+    run_seconds: int = Field(default=15, ge=1)
+    evaluated_at: str | None = None
+
+
 class AcdProbeToolsObservation(AcdObservation):
     """Observation returned by the external tool probe."""
 
@@ -339,6 +355,10 @@ class AcdDiagnoseGateFailureObservation(AcdObservation):
 
 class AcdCheckOrderReadinessObservation(AcdObservation):
     """Observation returned by the read-only pre-order check."""
+
+
+class AcdRunDesignLoopObservation(AcdObservation):
+    """Observation returned by the graph-driven VibeBB design loop."""
 
 
 class AcdProbeToolsExecutor(ToolExecutor[AcdProbeToolsAction, AcdObservation]):
@@ -831,6 +851,55 @@ class AcdCheckOrderReadinessExecutor(ToolExecutor[AcdCheckOrderReadinessAction, 
             )
 
 
+class AcdRunDesignLoopExecutor(
+    ToolExecutor[AcdRunDesignLoopAction, AcdRunDesignLoopObservation]
+):
+    def __call__(
+        self,
+        action: AcdRunDesignLoopAction,
+        conversation: Any = None,
+    ) -> AcdRunDesignLoopObservation:
+        del conversation
+        try:
+            from datetime import datetime
+
+            from acd.pipeline.design_loop import run_design_loop
+
+            evaluated_at = (
+                datetime.fromisoformat(action.evaluated_at.replace("Z", "+00:00"))
+                if action.evaluated_at
+                else None
+            )
+            result = run_design_loop(
+                Path(action.fixture),
+                Path(action.out_root),
+                order_total=Path(action.order_total),
+                policy=Path(action.policy),
+                repository=Path(action.repository),
+                fab_profile=Path(action.fab_profile) if action.fab_profile else None,
+                fab_profile_id=action.fab_profile_id,
+                max_passes=action.max_passes,
+                max_silkscreen_iterations=action.max_silkscreen_iterations,
+                run_seconds=action.run_seconds,
+                evaluated_at=evaluated_at,
+            )
+            return AcdRunDesignLoopObservation(
+                ok=bool(result.get("ok")),
+                operation="run_design_loop",
+                graph_id=result.get("graph_id"),
+                summary=result,
+                output_path=action.out_root,
+                failure_reason=result.get("failure_reason"),
+                fail_closed=bool(result.get("fail_closed", True)),
+                pass_evidence=False,
+            )
+        except Exception as exc:
+            return AcdRunDesignLoopObservation(
+                **_error(str(exc), operation="run_design_loop"),
+                output_path=action.out_root,
+            )
+
+
 class AcdProbeTools(ToolDefinition[AcdProbeToolsAction, AcdProbeToolsObservation]):
     def declared_resources(self, action: Action) -> DeclaredResources:
         del action
@@ -1184,6 +1253,46 @@ class AcdCheckOrderReadiness(
         ]
 
 
+class AcdRunDesignLoop(
+    ToolDefinition[AcdRunDesignLoopAction, AcdRunDesignLoopObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRunDesignLoopAction):
+            return DeclaredResources(keys=(), declared=False)
+        root = Path(action.repository)
+        return _resources(
+            ("file", Path(action.fixture) / "graph.json"),
+            ("file", Path(action.order_total)),
+            ("file", Path(action.policy)),
+            ("file", root / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"),
+            ("acd-out", Path(action.out_root)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_run_design_loop does not accept parameters")
+        return [
+            cls(
+                action_type=AcdRunDesignLoopAction,
+                observation_type=AcdRunDesignLoopObservation,
+                description=(
+                    "Run the fixed graph-driven VibeBB design loop through "
+                    "deterministic stages."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_run_design_loop",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdRunDesignLoopExecutor(),
+            )
+        ]
+
+
 class AcdBootstrapWorkspace(
     ToolDefinition[AcdBootstrapWorkspaceAction, AcdBootstrapWorkspaceObservation]
 ):
@@ -1280,6 +1389,7 @@ ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_explore_board_candidates", AcdExploreBoardCandidates),
     ("acd_diagnose_gate_failure", AcdDiagnoseGateFailure),
     ("acd_check_order_readiness", AcdCheckOrderReadiness),
+    ("acd_run_design_loop", AcdRunDesignLoop),
 )
 
 

@@ -354,6 +354,38 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 見つからない場合も、ゲート未実行として停止する。このCLIはjournal書込み、送信、実発注を
 行わない。
 
+### VibeBB設計loopの実行
+
+会話から要件をgraphへ反映し、設計反復と発注可否を一つの決定論的loopで進める入口は
+`/acd:vibebb-loop`である。要件差分は`acd_compile_requirement_change`、新規fixtureは
+`acd_build_design_fixture`、graphの編集後は`acd_validate_design_graph`を使う。loop本体は
+次の順序をコード側で固定する。
+
+1. silkscreen resolver（基板pipelineの前提となるbarrier）
+2. 基板pipeline
+3. 筐体pipeline
+4. FW pipeline（Skill CLI subprocess）
+5. 発注可否のpre-order gate
+
+コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
+出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`
+互換名を維持する。各段の失敗は後続段を実行せず、失敗段IDとそれまでの段結果を含む
+`ok: false`、`fail_closed: true`のJSONと非ゼロ終了を返す。不在tool、ESP-IDFやQEMUの
+検証不能、parse失敗、unknownも同じ扱いであり、「問題なし」へ置き換えない。
+
+```bash
+uv run python scripts/run_design_loop.py \
+  --fixture fixtures/golden-design-1 \
+  --out-root out \
+  --order-total out/order-total.json \
+  --policy plugins/acd/hooks/order-policy.json \
+  --evaluated-at 2026-08-14T00:00:00Z
+```
+
+`acd_run_design_loop`も同じin-code orchestratorを呼び出す。gate、閾値、期待値、
+revision一致、authoritative Evidenceの規則は変更しない。Skill出力、AI review、host上の
+provisional実行、loopの成功観測は合格Evidenceではなく、実発注もこの入口では行わない。
+
 ### side-effect journalの読み出し
 
 7.4のjournalは1行1entryのJSON Linesで、書込みCLIは提供しない。7.3の許可recordを使った

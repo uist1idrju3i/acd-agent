@@ -1,8 +1,8 @@
 {
-  "canonical_hash": "sha256:e68b238bcc109b90ef6f8e28c2846d361020bcafe2f7757d3528351a150938a5",
+  "canonical_hash": "sha256:6229dbedebc744c32afb574b8a515afb6e11ff60c917f4208e27c1041f2047f6",
   "entries": [
     {
-      "asset_hash": "sha256:2c0907e1617556f54dd3d40ae4b3d194398958515623d923b4acc6d8e7936676",
+      "asset_hash": "sha256:b43c0bc3e2ef2c2a7fd553b0004b0ae848199b219fa7376beecfc4a93ec362f4",
       "asset_path": "plugins/acd/agents/acd-electrical.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:dbda15444e526420e18b57e8ec0bf0ba52b6e479836806e6503c0beb7ccbc3fe",

@@ -182,3 +182,6 @@ fail-closedになる。免除する場合も、属性ごとの英語理由を免
 `reset --hard`、`clean -fd`、`checkout -- file`、`stash drop`を使わない。
 生成された`out/`、秘密情報、環境ファイルをcommitしない。作業branchへのpushとPR作成は
 都度の依頼を待たずに行ってよい。mainへの直接pushは行わない。
+本タスク群で変更が依存する場合は独立PRへ分割し、bottom-upのスタックドPRにする。
+下段PRをbaseにして上段PRを積み、GitHubの自動restackに任せる。手動rebase・mergeは
+行わず、各PRは単独で検証可能な粒度にする。
