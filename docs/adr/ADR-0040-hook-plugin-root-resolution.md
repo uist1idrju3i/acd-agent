@@ -5,7 +5,7 @@
 
 ## コンテキスト
 
-pinned SDK v1.42.1の`openhands.sdk.hooks.executor.HookExecutor.execute()`は、
+pinned SDK v1.43.1の`openhands.sdk.hooks.executor.HookExecutor.execute()`は、
 command hookへ`OPENHANDS_PROJECT_DIR`（`working_dir`）、`OPENHANDS_SESSION_ID`、
 `OPENHANDS_EVENT_TYPE`、`OPENHANDS_TOOL_NAME`だけを渡し、`shell=True`かつ
 `cwd=working_dir`で実行する。plugin rootを示す環境変数は存在せず、

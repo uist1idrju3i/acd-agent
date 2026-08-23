@@ -5,8 +5,8 @@
 
 ## 決定
 
-`vendor/software-agent-sdk`はタグ由来のcommit SHAへ固定する。SDK v1.42.1は
-`167c1f924ac8a8acbeb0432bf9b1fcf77d5c2497`であり、ACDから実行時にimportする箇所は
+`vendor/software-agent-sdk`はタグ由来のcommit SHAへ固定する。SDK v1.43.1は
+`ddac55697c5d15cf8a34495b5ed6d46c86db092a`であり、ACDから実行時にimportする箇所は
 44箇所あるため、submoduleを単なる文書用vendorとして扱わない。
 
 更新時は一次情報（公式release、tag、commit、変更履歴）を確認し、使用APIと破壊的変更を

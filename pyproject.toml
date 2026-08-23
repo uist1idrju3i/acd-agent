@@ -4,14 +4,14 @@ version = "0.0.2"
 description = "AI-first PCB, enclosure, and firmware design framework"
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2.9",
+    "pydantic>=2.13.4",
     "sexpdata>=1.0.2",
     "gerbonara>=1.6.3",
     "build123d==0.11.1",
     "cadquery-ocp==7.9.3.1.1",
-    "openhands-sdk==1.42.1",
-    "openhands-tools==1.42.1",
-    "openhands-workspace==1.42.1",
+    "openhands-sdk==1.43.1",
+    "openhands-tools==1.43.1",
+    "openhands-workspace==1.43.1",
     "cairosvg==2.9.0",
 ]
 
@@ -22,18 +22,18 @@ acd-evidence-git-check = "acd.openhands.evidence.git:main"
 acd-locked-image = "acd.openhands.locked_image_cli:main"
 
 [tool.uv.sources]
-openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk" }
-openhands-tools = { path = "vendor/software-agent-sdk/openhands-tools" }
-openhands-workspace = { path = "vendor/software-agent-sdk/openhands-workspace" }
+openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk", editable = true }
+openhands-tools = { path = "vendor/software-agent-sdk/openhands-tools", editable = true }
+openhands-workspace = { path = "vendor/software-agent-sdk/openhands-workspace", editable = true }
 
 [dependency-groups]
 dev = [
     "openhands-sdk",
     "openhands-tools",
     "openhands-workspace",
-    "pytest>=8.3",
-    "ruff>=0.9",
-    "pyright>=1.1.390",
+    "pytest>=9.1.1",
+    "ruff>=0.16.3",
+    "pyright>=1.1.411",
 ]
 
 [build-system]
