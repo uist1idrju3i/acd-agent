@@ -5,8 +5,10 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 from acd.core.functional_blocks import load_functional_block_registry
+from acd.core.naming import artifact_prefix
 from acd.core.part_selection import PartSelectionError, select_part
 from acd.core.rationale import (
     REQUIRED_RATIONALE_ATTRS,
@@ -23,11 +25,41 @@ from acd.schema import (
     RationaleRecord,
     RequirementDocument,
 )
+from acd.schema.design_graph import AttrValue
+from acd.schema.parts_catalog import PartCplOrientation
 from acd.schema.rationale import DecisionKind
 
 
 class FixtureBuilderError(ValueError):
     """Raised when a design specification cannot produce a fixture safely."""
+
+
+def _cpl_orientation_attrs(
+    orientation: PartCplOrientation | None,
+    graph_id: str,
+    refdes: str,
+) -> dict[str, AttrValue]:
+    if orientation is None:
+        return {}
+    values = orientation.model_dump(mode="json", exclude_defaults=True)
+    source = values.get("geometry_exception_source")
+    if isinstance(source, str):
+        try:
+            values["geometry_exception_source"] = source.format(
+                artifact_prefix=artifact_prefix(graph_id),
+                refdes=refdes,
+            )
+        except (KeyError, ValueError) as exc:
+            raise FixtureBuilderError(
+                f"{refdes}: malformed CPL geometry evidence source"
+            ) from exc
+    return cast(
+        dict[str, AttrValue],
+        {
+            "cpl_rotation_" + key: value
+            for key, value in values.items()
+        },
+    )
 
 
 def _canonical(value: object) -> str:
@@ -92,6 +124,9 @@ def build_graph(spec: DesignFixtureSpec) -> DesignGraph:
                     "parts_catalog_id": selection.catalog_id,
                     "parts_catalog_sha256": selection.catalog_hash,
                 }
+            )
+            component_attrs.update(
+                _cpl_orientation_attrs(entry.cpl_orientation, graph_id, component.refdes)
             )
         if component.library_ref is not None:
             component_attrs["library_ref"] = component.library_ref

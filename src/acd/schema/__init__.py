@@ -109,6 +109,7 @@ from acd.schema.order_total import (
 from acd.schema.parts_catalog import (
     ComponentPartRequest,
     PartCatalogEntry,
+    PartCplOrientation,
     PartLibraryRef,
     PartsCatalogDocument,
 )
@@ -266,6 +267,7 @@ __all__ = [
     "OrderSubtotalDocument",
     "OrderTotalDocument",
     "PartCatalogEntry",
+    "PartCplOrientation",
     "PartLibraryRef",
     "PartsCatalogDocument",
     "PhysicalEvidence",

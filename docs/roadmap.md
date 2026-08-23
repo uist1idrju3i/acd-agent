@@ -314,6 +314,8 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 [`SECURITY.md`](../SECURITY.md)の「AIエージェント特有の前提」、
 発注ガードの縮約は[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)、
 製造データと`unknown`境界は[`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を正とする。
+C-4（CPL orientation期待値のfixture非依存化）は、部品catalog宣言と
+graph_id由来のEvidence pathを使う実装として本マイルストーンの範囲で達成した。
 
 ### 7.1 期限付き見積入力の取得契約（達成）
 
@@ -612,10 +614,9 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する。達成 |
 | 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合。達成 |
 | 14.10 | VibeBB loopのcommand（I-1） | `/acd:vibebb-loop`とgraph駆動の単一orchestratorを追加し、要件からgraph検証、silkscreen barrier、基板・筐体・FW、発注可否までを固定順序でfail-closed実行する。達成 |
-| 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。C-1（筐体の干渉解決探索）とC-4（CPL orientation期待値のfixture非依存化）は既存マイルストーン11・7の範囲で継続する。計画 |
+| 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。C-1（筐体の干渉解決探索）は既存マイルストーン11の範囲で継続する。計画 |
 
-C-1〜C-4（筐体の干渉解決探索、FWのgraph駆動化、FW整合gate、CPL orientation期待値の
-fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
+C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
 マイルストーン14.10後の会話駆動loopの残存不足は、L-1〜L-7として14.11で扱う。
 

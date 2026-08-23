@@ -78,6 +78,82 @@ def test_fixture_builder_resolves_catalog_component(tmp_path: Path) -> None:
     component = next(node for node in graph["nodes"] if node["id"] == "comp.r1")
     assert component["attrs"]["part_number"] == "0603WAF4701T5E"
     assert component["attrs"]["parts_catalog_id"] == "acd-parts-gd1-14.5"
+    assert component["attrs"]["cpl_rotation_basis"] == "component_part_number"
+    assert component["attrs"]["cpl_rotation_offset_deg"] == 0.0
+
+
+def test_fixture_builder_derives_cpl_evidence_path_from_graph_id(tmp_path: Path) -> None:
+    spec = DesignFixtureSpec(
+        design_name="custom-orientation",
+        components=[
+            FixtureComponentSpec(
+                refdes="J1",
+                part_request=ComponentPartRequest(
+                    kind="connector",
+                    value="TYPE-C-31-M-12",
+                    package="USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+                ),
+            )
+        ],
+        requirements=[
+            RequirementRecord(
+                requirement_id="r1",
+                statement="Use the selected connector.",
+                constrains_node_ids=["comp.j1"],
+            )
+        ],
+    )
+    build_design_fixture(spec, tmp_path / "fixture")
+    graph = json.loads(
+        (tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8")
+    )
+    component = next(node for node in graph["nodes"] if node["id"] == "comp.j1")
+    assert component["attrs"]["cpl_rotation_geometry_exception_source"] == (
+        "evidence/custom-orientation-cpl-orientation/J1.json"
+    )
+
+
+def test_fixture_builder_does_not_default_missing_cpl_orientation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data = json.loads(Path("contracts/parts-catalog.json").read_text(encoding="utf-8"))
+    resistor = next(
+        entry for entry in data["entries"] if entry["part_number"] == "0603WAF1001T5E"
+    )
+    resistor.pop("cpl_orientation")
+    catalog_path = tmp_path / "parts-catalog.json"
+    catalog_path.write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr(
+        "acd.core.part_selection.default_parts_catalog_path",
+        lambda: catalog_path,
+    )
+    spec = DesignFixtureSpec(
+        design_name="without-orientation",
+        components=[
+            FixtureComponentSpec(
+                refdes="R1",
+                part_request=ComponentPartRequest(
+                    kind="resistor",
+                    value="1k",
+                    package="R_0603_1608Metric",
+                ),
+            )
+        ],
+        requirements=[
+            RequirementRecord(
+                requirement_id="r1",
+                statement="Use the selected resistor.",
+                constrains_node_ids=["comp.r1"],
+            )
+        ],
+    )
+    build_design_fixture(spec, tmp_path / "fixture")
+    graph = json.loads(
+        (tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8")
+    )
+    component = next(node for node in graph["nodes"] if node["id"] == "comp.r1")
+    assert "cpl_rotation_basis" not in component["attrs"]
 
 
 def test_fixture_builder_emits_machine_linked_requirement_graph(tmp_path: Path) -> None:

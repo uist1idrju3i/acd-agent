@@ -88,7 +88,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 | C-1 | 開口・締結の自動生成と干渉解決探索 | 筐体は宣言寸法から生成するのみで、干渉時に寸法を探索して収束させる機構が無い |
 | C-2 | FWのgraph駆動化 | 達成。`firmware.module`の任意宣言からtimer周期・ログ文字列を生成し、未宣言時は既存GD1既定値を維持する。宣言値のmalformedは検証不能として停止する |
 | C-3 | FW側の整合gate | 達成。Skill subprocessが出力したpin/config reportをACD側でgraphと再照合するL1 gateを追加した。欠落・parse失敗・不一致はfail-closed |
-| C-4 | CPL orientation期待値のfixture非依存化 | 期待値がGD1固定 |
+| C-4 | CPL orientation期待値のfixture非依存化 | 達成。部品catalogの任意orientation宣言から汎用fixture builderが`cpl_rotation_*`属性とgraph_id由来のEvidence pathを生成し、GD1もcatalog由来へ移行した。宣言欠落・不正値・出所不足は既存CPL gateでfail-closed |
 
 ## D. 実機フィードバックと発注（VibeBBの後半loop）
 
