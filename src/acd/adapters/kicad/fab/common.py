@@ -19,6 +19,23 @@ class UncoveredStitchViasError(FabOutputError):
         super().__init__(f"stitch vias lack copper coverage (fail-closed): {locations_text}")
 
 
+class UncoveredGroundRegionsError(FabOutputError):
+    """Raised when a conductor region has no GND connection point."""
+
+    def __init__(
+        self,
+        regions: tuple[tuple[str, tuple[float, float, float, float]], ...],
+    ) -> None:
+        self.regions = regions
+        regions_text = ", ".join(
+            f"layer={layer}, bbox_mm={bbox_mm}" for layer, bbox_mm in regions
+        )
+        super().__init__(
+            "Conductor region lacks a GND connection point (fail-closed): "
+            f"{regions_text}"
+        )
+
+
 @dataclass(frozen=True)
 class GerberRegionRecord:
     function: str

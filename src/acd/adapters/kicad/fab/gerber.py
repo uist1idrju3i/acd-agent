@@ -568,16 +568,16 @@ def verify_ground_plane_gerbers(
         for first in covered:
             for second in other_layer:
                 union(first, second)
+    uncovered_regions: list[tuple[str, tuple[float, float, float, float]]] = []
     for _index, (path, region) in enumerate(conductor_records):
         layer = "F.Cu" if path == front_path else "B.Cu"
         if not any(
             point_layer == layer and point_in_polygon((x, y), region.points_mm)
             for point_layer, x, y in connection_points
         ):
-            raise FabOutputError(
-                "Conductor region lacks a GND connection point (fail-closed): "
-                f"layer={layer}, bbox_mm={region.bbox_mm}"
-            )
+            uncovered_regions.append((layer, region.bbox_mm))
+    if uncovered_regions:
+        raise UncoveredGroundRegionsError(tuple(uncovered_regions))
     components = len({find(index) for index in range(len(conductor_records))})
     if components != 1:
         raise FabOutputError(

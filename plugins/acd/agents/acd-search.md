@@ -3,6 +3,10 @@ name: acd-search
 description: USE THIS when running deterministic ACD placement or electrical search commands and returning candidate provenance.
 model: inherit
 tools:
+  - acd_explore_board_candidates
+  - acd_build_design_fixture
+  - acd_explore_board_candidates
+  - acd_build_design_fixture
   - terminal
   - file_editor
   - grep

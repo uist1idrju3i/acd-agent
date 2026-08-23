@@ -40,7 +40,7 @@ from acd.adapters.kicad.cli import KicadCli, RuleCheckResult
 from acd.adapters.kicad.fab import (
     BoardMeasurement,
     CplBasisError,
-    FabOutputError,
+    UncoveredGroundRegionsError,
     UncoveredStitchViasError,
     apply_cpl_contract,
     cross_validate_bom,
@@ -1043,6 +1043,9 @@ def run_pipeline(
     dru_source = out_dir / f"{name}.kicad_dru"
     initial_candidate_count = len(stitch_vias)
     pruned_vias: list[tuple[float, float]] = []
+    attempted_fallback_regions: set[
+        tuple[str, tuple[float, float, float, float]]
+    ] = set()
     iteration_measurements: list[dict[str, object]] = []
     converged_iteration: int | None = None
     for iteration in range(1, max_iterations + 1):
@@ -1121,7 +1124,42 @@ def run_pipeline(
                 f"[stitch-prune {iteration}] vias={len(stitch_vias)} "
                 f"uncovered={len(uncovered)} at {uncovered}"
             )
-        except FabOutputError as exc:
+        except UncoveredGroundRegionsError as exc:
+            fallback_regions = tuple(
+                region for region in exc.regions if region not in attempted_fallback_regions
+            )
+            if fallback_regions:
+                attempted_fallback_regions.update(fallback_regions)
+                routed_board, stitch_vias, fallback_stitch_report = inject_stitch_vias(
+                    base_routed_board,
+                    project.board_projection.model,
+                    routes,
+                    project.board_projection.net_numbers,
+                    project.board_projection.stitch_via_pitch_mm,
+                    lane.board.via_diameter_mm,
+                    lane.board.via_drill_mm,
+                    fallback_regions=fallback_regions,
+                )
+                stitch_candidate_reports.append(
+                    {
+                        "iteration": iteration,
+                        "phase": "region-fallback",
+                        "report": fallback_stitch_report,
+                    }
+                )
+                iteration_measurements.append(
+                    {
+                        "iteration": iteration,
+                        "via_count": len(stitch_vias),
+                        "uncovered_regions": fallback_regions,
+                        "fallback_attempted": True,
+                    }
+                )
+                print(
+                    f"[stitch-fallback {iteration}] regions={len(fallback_regions)} "
+                    f"vias={len(stitch_vias)}"
+                )
+                continue
             write_gate_evidence_or_unavailable(
                 out_dir,
                 "gnd-stitch-vias.json",
@@ -1136,7 +1174,16 @@ def run_pipeline(
                     gate="gnd_stitch_vias",
                     status="fail",
                     message="GND stitch-via diagnostic observation; not gate authority",
-                    observation={"error": str(exc)},
+                    observation={
+                        "error": str(exc),
+                        "uncovered_regions": [
+                            {
+                                "layer": layer,
+                                "bbox_mm": list(region_bbox),
+                            }
+                            for layer, region_bbox in exc.regions
+                        ],
+                    },
                 ),
                 failure=exc,
             )

@@ -110,7 +110,7 @@
       "bound_basis": "The mechanical projection and interference gates remain the authority; no independent bound is declared.",
       "gate_authority": ["mechanical_projection", "mechanical_interference"],
       "search_enabled": false,
-      "search_disabled_reason": "Single-datum consolidation is B-6 and has not yet been implemented."
+      "search_disabled_reason": "The mechanical outline mount-hole declaration is the single datum; component-body positions are derived deterministically from it. B-6 does not enable datum search."
     }
   ]
 }

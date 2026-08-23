@@ -50,8 +50,15 @@ installすると、次のslash commandが会話から使えます。
 | --- | --- | --- |
 | `acd_probe_tools` | KiCad CLI、Java、FreeRoutingなど外部ツールの有無と版を検出します。 | 「外部ツールの版を確認して」 |
 | `acd_validate_design_graph` | 設計グラフJSONをPydantic契約で検証します。 | 「`fixtures/golden-design-1/graph.json`を検証して」 |
+| `acd_register_functional_block` | 機能ブロック契約の宣言を検証し、registryへ追加します。ゲート合格Evidenceは生成しません。 | 「この機能ブロック契約をregistryへdry-run登録して」 |
 | `acd_run_board_pipeline` | 基板pipeline（投影→ERC/DRC→製造出力）を実行しEvidenceを出します。 | 「GD1の基板pipelineを`out/gd1`へ回して」 |
 | `acd_run_enclosure_pipeline` | 筐体pipeline（外形・干渉・機械測定）を実行しEvidenceを出します。 | 「GD1の筐体pipelineを実行して」 |
+| `acd_run_firmware_pipeline` | FW Skillをsubprocess境界で実行し、結果とprovenanceを返します。合否Evidenceではありません。 | 「ESP32-C3のFW pipelineを実行して」 |
+| `acd_compile_requirement_change` | machine-linked要件変更を決定論的にコンパイルします。 | 「要件変更をdry-runして」 |
+| `acd_build_design_fixture` | 宣言済みspecから設計fixtureを生成します。 | 「このspecからfixtureを生成して」 |
+| `acd_explore_board_candidates` | boundedな配置・GPIO候補探索を実行します。L1ゲートが合否を判定します。 | 「GPIO候補を上限付きで探索して」 |
+| `acd_diagnose_gate_failure` | hash検証済みのゲート診断artifactを読み取り、失敗要約を返します。 | 「ゲート失敗の原因を要約して」 |
+| `acd_check_order_readiness` | 発注実行をせず、既存Evidenceと金額のreadinessだけを確認します。 | 「発注readinessを確認して」 |
 
 工程手法はSkillとして入っており、依頼文のキーワードで読み込まれます。
 
