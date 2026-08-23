@@ -610,6 +610,45 @@ command -v java
 command -v freerouting
 ```
 
+### FreeRoutingの資源宣言
+
+FreeRouting 2.3.0の`--help`と同梱公式文書
+（`command_line_arguments.md`および`docs/settings.md`）では、`-mt`を省略した場合の
+既定値が論理CPU数−1である。この値を機械から暗黙に継承すると、同じ入力でも実行環境の
+CPU数でrouter条件が変わるため、GD1基板pipelineは`-mt 1`を既定として常にcommandへ
+含める。`scripts/run_gd1_pipeline.py --freerouting-threads N`で明示的に変更でき、
+選択値はToolEnvelopeの`config_hash`と`measurement_conditions`へ記録される。これは
+高速化のためではなく、authoritative Evidenceの実行条件を機械非依存にするための設定である。
+
+2コアVM上のdigest固定image
+`ghcr.io/uist1idrju3i/acd-tools@sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`
+で、`examples/sensor-node-20260820/board/gd1.dsn`を`-mp 10`で実行した測定では、
+`-mt 0/1/2/4`のSES SHA-256がすべて
+`45d620d0d86c05e860724fb1e0df49c6cda34b00c9dc921b552d2a0f071ddff0`で一致した。
+wall timeはそれぞれ93.5/93.0/92.5秒で、差は測定誤差の範囲だった。Optimization stageは
+約73.05秒の経過時間に対し約70.01 CPU秒であり、この規模のrouterは実質single-threaded
+である。`-mt 4`を2コアcontainerへ渡すと2へcapするwarningが出る。
+`feature_flags.multi_threading`の既定値はfalseで、実験的機能は有効化しない。
+
+同じ測定で観測したpeak heapは約630 MBだった。wrapper
+[`docker/freerouting`](../docker/freerouting)はJVM最大heapを既定`-Xmx2g`として明示する。
+active processor countは既定では宣言せず、必要な場合だけ
+`FREEROUTING_ACTIVE_PROCESSORS`で`-XX:ActiveProcessorCount=`を追加する。
+`FREEROUTING_MAX_HEAP`でheapを上下できるが、通常はmachine-dependentな既定へ戻さない。
+JVMのCPU認識を既定で1へ制限するとGC／JITとFreeRoutingのCPU検出まで制限するため、
+決定論にはFreeRouting commandの`-mt` pinだけを用いる。SDK `DockerWorkspace`にはCPU／memory resource
+fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
+`tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する
+既存契約を維持する。wrapper変更はimage変更なので、mainの`docker/**`変更で
+`publish-acd-tools.yml`が実行される。publish job summaryのGHCR digestを確認してから
+`docker/image-digests.json`へ転記し、lockのdigestを推測・手書きしてはならない。
+
+変更後wrapperを同じdigest固定tools imageへmountし、同じGD1 DSNを`-mp 10 -mt 1`で
+一度実行したhost provisional測定はwall 94.3秒、Optimization stageのpeak heap
+451.3 MBだった。wrapper変更前に同条件で取得したbaseline 93.5秒より0.8秒遅く、
+この1回の測定では短縮を主張しない。既定値を速度に合わせて変更せず、`-mt`の固定と
+heap上限の明示を優先する。
+
 ### FW pipelineのhost実行とToolEnvelopeの注記
 
 FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて

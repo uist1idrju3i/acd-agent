@@ -24,6 +24,9 @@ Dockerfileでは次を固定または検証する。
 - KiCad CLI: KiCad 10.0 PPAの10系をインストールし、build時に10系であることを検証
 - FreeRouting: 2.3.0、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
   wrapperからPATH上で実行できることを検証
+- FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示する。active processor
+  countは既定では宣言せず、必要な場合だけ`FREEROUTING_ACTIVE_PROCESSORS`で
+  `-XX:ActiveProcessorCount=`を追加できる。heapは`FREEROUTING_MAX_HEAP`で上書きできる
 - OpenJDK: Ubuntu 26.04の`openjdk-26-jre-headless`
 - ngspice: Ubuntu 26.04の45.2パッケージと`ngspice --version`を検証
 - Python: Ubuntu 26.04のsystem Python 3.14（`python3.14`、`python3.14-venv`）
@@ -64,6 +67,12 @@ downloadはupstreamの配布に依存するため、完全な再現性はimage d
 APT由来のパッケージはUbuntuのrepository snapshotを別途固定しない限り、同じ
 Dockerfileでも再解決される可能性がある。完全な再現性にはimage digestとAPT
 repositoryの固定が必要である。
+
+`docker/**`（lock fileの`docker/image-digests.json`とこのREADMEを除く）をmainへ
+変更すると、既存の`.github/workflows/publish-acd-tools.yml`のpublish workflowが実行
+される。publish job summaryに表示されたGHCRの新しいdigestを確認し、通常の運用手順で
+`docker/image-digests.json`へ転記する。image lockのdigestは推測や手書きで更新せず、
+publish結果だけを記録する。
 
 ## 事前build済みagent-server image
 

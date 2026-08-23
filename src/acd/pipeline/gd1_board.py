@@ -30,7 +30,10 @@ from pathlib import Path
 from typing import Literal, cast
 
 from acd.adapters.freerouting.dsn import export_dsn
-from acd.adapters.freerouting.router import FreeroutingRunner
+from acd.adapters.freerouting.router import (
+    DEFAULT_FREEROUTING_THREADS,
+    FreeroutingRunner,
+)
 from acd.adapters.freerouting.ses import parse_ses
 from acd.adapters.kicad.cli import KicadCli, RuleCheckResult
 from acd.adapters.kicad.fab import (
@@ -689,6 +692,7 @@ def run_pipeline(
     width_control_workers: int = 2,
     pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
     fab_profile_id: str | None = None,
+    freerouting_threads: int = DEFAULT_FREEROUTING_THREADS,
 ) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -766,7 +770,13 @@ def run_pipeline(
 
     router = FreeroutingRunner()
     ses_path = out_dir / f"{name}.ses"
-    route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
+    route_run = router.route(
+        dsn_path,
+        ses_path,
+        revision,
+        max_passes=max_passes,
+        freerouting_threads=freerouting_threads,
+    )
     assert_converged(route_run.envelope.convergence_state)
     print("[3/12] routing converged")
 
@@ -1564,6 +1574,16 @@ def run_pipeline(
     return hashes
 
 
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("value must be an integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("value must be positive")
+    return parsed
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -1574,6 +1594,12 @@ def main() -> int:
     )
     parser.add_argument("--out", type=Path, default=Path("out/gd1"), help="output directory")
     parser.add_argument("--max-passes", type=int, default=99999, help="router pass budget")
+    parser.add_argument(
+        "--freerouting-threads",
+        type=_positive_int,
+        default=DEFAULT_FREEROUTING_THREADS,
+        help="explicit FreeRouting router thread count",
+    )
     parser.add_argument(
         "--width-control-workers",
         type=int,
@@ -1598,6 +1624,7 @@ def main() -> int:
             args.width_control_workers,
             args.pipeline_workers,
             args.fab_profile_id,
+            args.freerouting_threads,
         )
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
