@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "declaration_id": "invalid",
+  "dimensions": [
+    {
+      "dimension_id": "gpio_assignment",
+      "title": "GPIO assignment",
+      "description": "GPIO assignment",
+      "lane": "firmware",
+      "kind": "categorical",
+      "allowed_values": ["GPIO"],
+      "domain_source": "graph nodes",
+      "value_source": "graph nodes",
+      "bound_basis": "gate",
+      "gate_authority": ["gate"],
+      "search_enabled": true
+    }
+  ]
+}

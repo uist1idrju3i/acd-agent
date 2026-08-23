@@ -63,11 +63,13 @@ def test_design_freedom_contract() -> None:
         (DesignFreedomDeclarationDocument, "design-freedom-unknown-dimension-id.json"),
         (DesignFreedomDeclarationDocument, "design-freedom-missing-dimension.json"),
         (DesignFreedomDeclarationDocument, "design-freedom-unknown-field.json"),
-        (DesignFreedomDeclarationDocument, "design-freedom-bound-without-basis.json"),
+        (DesignFreedomDeclarationDocument, "design-freedom-bound-missing-basis.json"),
         (
             DesignFreedomDeclarationDocument,
             "design-freedom-disabled-without-reason.json",
         ),
+        (DesignFreedomDeclarationDocument, "design-freedom-domain-both.json"),
+        (DesignFreedomDeclarationDocument, "design-freedom-domain-neither.json"),
         (FunctionalBlockRegistryDocument, "functional-block-registry-duplicate.json"),
         (
             FunctionalBlockRegistryDocument,

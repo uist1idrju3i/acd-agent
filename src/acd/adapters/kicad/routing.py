@@ -15,6 +15,14 @@ from acd.adapters.kicad.placement import rotate_point
 from acd.core.board_model import BoardModel, RoutedDesign, RoutedWire
 
 _LAYERS = frozenset({"F.Cu", "B.Cu"})
+_BOARD_EDGE_INSET_BASIS = (
+    "Candidates are generated inside the board edge inset; "
+    "no post-generation edge rejection is performed."
+)
+_FOOTPRINT_CLEARANCE_METHOD = (
+    "Rotated body/courtyard corners with an axis-aligned bounding "
+    "box, expanded by via radius plus clearance."
+)
 
 
 class RouteInjectionError(ValueError):
@@ -60,6 +68,40 @@ def inject_routes(
     return stripped[:-1].rstrip() + "\n" + "\n".join(lines) + "\n)\n"
 
 
+def _stitch_candidate_report(
+    candidates: Sequence[tuple[float, float]],
+    selected: Sequence[tuple[float, float]],
+    exclusion_counts: dict[str, int],
+    exclusion_combinations: dict[str, int],
+    candidate_reasons: dict[tuple[float, float], tuple[str, ...]],
+) -> dict[str, object]:
+    selected_set = set(selected)
+    return {
+        "candidate_total": len(candidates),
+        "selected_count": len(selected),
+        "exclusion_counts": exclusion_counts,
+        "exclusion_combinations": exclusion_combinations,
+        "board_edge_inset_basis": _BOARD_EDGE_INSET_BASIS,
+        "footprint_clearance_method": _FOOTPRINT_CLEARANCE_METHOD,
+        "candidates": [
+            {
+                "position_mm": [round(point[0], 6), round(point[1], 6)],
+                "selected": point in selected_set,
+                "exclusion_reasons": (
+                    []
+                    if point in selected_set
+                    else list(candidate_reasons.get(point, ()))
+                ),
+            }
+            for point in sorted(candidates, key=lambda item: (item[0], item[1]))
+        ],
+        "allowed_points_override": False,
+        "selected_points": [
+            [round(point[0], 6), round(point[1], 6)] for point in selected
+        ],
+    }
+
+
 def inject_stitch_vias(
     board_content: str,
     model: BoardModel,
@@ -69,12 +111,12 @@ def inject_stitch_vias(
     via_diameter_mm: float,
     via_drill_mm: float,
     allowed_points: Sequence[tuple[float, float]] | None = None,
-)-> tuple[str, tuple[tuple[float, float], ...], dict[str, object]]:
+) -> tuple[str, tuple[tuple[float, float], ...], dict[str, object]]:
     """Add deterministic GND stitching vias outside occupied geometry."""
-    empty_report: dict[str, object] = {
-        "candidate_total": 0,
-        "selected_count": 0,
-        "exclusion_counts": {
+    empty_report = _stitch_candidate_report(
+        candidates=(),
+        selected=(),
+        exclusion_counts={
             "keepout": 0,
             "footprint_body_or_courtyard": 0,
             "pad": 0,
@@ -83,19 +125,10 @@ def inject_stitch_vias(
             "board_edge_inset": 0,
             "inter_via_spacing": 0,
         },
-        "exclusion_combinations": {},
-        "board_edge_inset_basis": (
-            "Candidates are generated inside the board edge inset; "
-            "no post-generation edge rejection is performed."
-        ),
-        "footprint_clearance_method": (
-            "Rotated body/courtyard corners with an axis-aligned bounding "
-            "box, expanded by via radius plus clearance."
-        ),
-        "candidates": [],
-        "allowed_points_override": allowed_points is not None,
-        "selected_points": [],
-    }
+        exclusion_combinations={},
+        candidate_reasons={},
+    )
+    empty_report["allowed_points_override"] = allowed_points is not None
     if pitch_mm is None or model.stitch_via_net is None:
         return board_content, (), empty_report
     net_number = net_numbers.get(model.stitch_via_net)
@@ -254,35 +287,14 @@ def inject_stitch_vias(
     selected = tuple(selected_points)
     if allowed_points is not None:
         selected = tuple(dict.fromkeys(allowed_points))
-    selected_set = set(selected)
-    report: dict[str, object] = {
-        "candidate_total": len(candidates),
-        "selected_count": len(selected),
-        "exclusion_counts": exclusion_counts,
-        "exclusion_combinations": exclusion_combinations,
-        "board_edge_inset_basis": (
-            "Candidates are generated inside the board edge inset; "
-            "no post-generation edge rejection is performed."
-        ),
-        "footprint_clearance_method": (
-            "Rotated body/courtyard corners with an axis-aligned bounding "
-            "box, expanded by via radius plus clearance."
-        ),
-        "candidates": [
-            {
-                "position_mm": [round(point[0], 6), round(point[1], 6)],
-                "selected": point in selected_set,
-                "exclusion_reasons": (
-                    [] if point in selected_set else list(candidate_reasons[point])
-                ),
-            }
-            for point in sorted(candidates, key=lambda item: (item[0], item[1]))
-        ],
-        "allowed_points_override": allowed_points is not None,
-        "selected_points": [
-            [round(point[0], 6), round(point[1], 6)] for point in selected
-        ],
-    }
+    report = _stitch_candidate_report(
+        candidates,
+        selected,
+        exclusion_counts,
+        exclusion_combinations,
+        candidate_reasons,
+    )
+    report["allowed_points_override"] = allowed_points is not None
     lines = [
         f'  (via (at {fmt(x)} {fmt(y)}) (size {fmt(via_diameter_mm)}) '
         f'(drill {fmt(via_drill_mm)}) (layers "F.Cu" "B.Cu") '

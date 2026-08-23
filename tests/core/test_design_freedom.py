@@ -8,7 +8,7 @@ import pytest
 
 from acd.core.design_freedom import (
     DesignFreedomDeclarationError,
-    dimension,
+    design_freedom_dimension,
     load_design_freedom_declaration,
     searchable_dimensions,
     validate_change_dimension_alignment,
@@ -34,7 +34,7 @@ def test_real_design_freedom_declaration_loads_and_is_deterministic() -> None:
         "track_width_mm",
         "via_rule",
     )
-    assert dimension("component_placement_xy", declaration).search_enabled
+    assert design_freedom_dimension("component_placement_xy", declaration).search_enabled
 
 
 def test_alignment_passes_for_real_registry() -> None:

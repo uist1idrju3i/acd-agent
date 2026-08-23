@@ -55,7 +55,7 @@ def load_design_freedom_declaration(
     )
 
 
-def dimension(
+def design_freedom_dimension(
     dimension_id: str,
     declaration: DesignFreedomDeclaration | None = None,
 ) -> DesignFreedomDimension:
@@ -64,10 +64,6 @@ def dimension(
         if item.dimension_id == dimension_id:
             return item
     raise DesignFreedomDeclarationError(f"design freedom dimension is unknown: {dimension_id!r}")
-
-
-get_design_freedom_dimension = dimension
-lookup_dimension = dimension
 
 
 def searchable_dimensions(
@@ -109,10 +105,8 @@ def validate_change_dimension_alignment(
 __all__ = [
     "DesignFreedomDeclaration",
     "DesignFreedomDeclarationError",
-    "dimension",
-    "get_design_freedom_dimension",
+    "design_freedom_dimension",
     "load_design_freedom_declaration",
-    "lookup_dimension",
     "searchable_dimensions",
     "validate_change_dimension_alignment",
 ]

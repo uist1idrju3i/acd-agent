@@ -146,11 +146,6 @@ def _validate_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 def write_stitch_candidate_report(out_dir: Path, payload: Mapping[str, Any]) -> Path:
     """Write one canonical stitch-candidate artifact and return its path."""
-    if "candidates" in payload:
-        payload = {
-            "reports": [{"iteration": 0, "phase": "initial", "report": payload}],
-            "coverage_measurements": [],
-        }
     body = _validate_payload(payload)
     body["content_sha256"] = canonical_json_sha256(body)
     path = out_dir / "stitch-candidate-report.json"

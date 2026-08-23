@@ -49,6 +49,7 @@ class DesignFreedomDimension(AcdModel):
     minimum: float | int | None = None
     maximum: float | int | None = None
     allowed_values: list[NonEmptyStr] = Field(default_factory=list)
+    domain_source: NonEmptyStr | None = None
     gate_authority: list[NonEmptyStr] = Field(min_length=1)
     search_enabled: bool
     search_disabled_reason: NonEmptyStr | None = None
@@ -57,11 +58,19 @@ class DesignFreedomDimension(AcdModel):
     def _validate_declaration(self) -> DesignFreedomDimension:
         if self.minimum is not None and self.maximum is not None and self.minimum > self.maximum:
             raise ValueError("minimum must not exceed maximum")
+        has_allowed_values = bool(self.allowed_values)
+        has_domain_source = self.domain_source is not None
         if self.kind in {"discrete_set", "categorical"}:
-            if not self.allowed_values:
-                raise ValueError("discrete_set and categorical dimensions require allowed_values")
-        elif self.allowed_values:
-            raise ValueError("continuous and integer_range dimensions forbid allowed_values")
+            if has_allowed_values == has_domain_source:
+                raise ValueError(
+                    "discrete_set and categorical dimensions require exactly one "
+                    "of allowed_values or domain_source"
+                )
+        elif has_allowed_values or has_domain_source:
+            raise ValueError(
+                "continuous and integer_range dimensions forbid allowed_values "
+                "and domain_source"
+            )
         if self.kind == "categorical" and self.unit is not None:
             raise ValueError("categorical dimensions must not declare a unit")
         if self.search_enabled and self.search_disabled_reason is not None:
