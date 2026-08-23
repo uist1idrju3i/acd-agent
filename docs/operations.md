@@ -584,12 +584,13 @@ runnerは実行対象であるderived server imageのcontent addressを
 pipelineを実行したserver imageのidentityを表す。base tools digestとは別の値であり、
 両者を同一とは扱わない。
 
-`publish-acd-tools.yml`のjob summaryに表示されたindex digestを、image refとともに
-`docker/image-digests.json`へ転記する。未publishのentryやplaceholder digestは作成せず、
-lockに記録されていないimageをpullするfallbackも禁止する。lock fileと`docker/README.md`は
-publish trigger（`publish-acd-tools.yml`の`paths`）から除外しており、digest転記commit自体が
-再publishを起こしてlockと`latest`が食い違い続けることを防ぐ。build入力を変更した場合だけ
-publishが走る。lockの検証は次のように行う。
+`publish-acd-tools.yml`はjob summaryへindex digestを記録し、同じdigest、image metadata、
+workflow runを更新PRへ渡す。`publish-acd-server.yml`もderived digestとtagを同じ経路で
+更新する。未publishのentryやplaceholder digestは作成せず、lockに記録されていないimageを
+pullするfallbackも禁止する。lock fileと`docker/README.md`はpublish trigger
+（`publish-acd-tools.yml`の`paths`）から除外しており、digest更新PR自体が再publishを起こして
+lockと`latest`が食い違い続けることを防ぐ。build入力を変更した場合だけtools publishが走り、
+成功後にserver publishが`workflow_run`で連鎖する。lockの検証は次のように行う。
 
 ```bash
 TOOLS_REF="$(uv run python scripts/print_locked_image.py --entry acd-tools)"
@@ -606,8 +607,9 @@ parse失敗はfail-closedとする。FreeRoutingとuvはDockerfileでSHA-256を�
 KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。したがって再buildを
 同一性の根拠にせず、publish済みimage digestをidentity authorityとして扱う。
 
-`publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
-digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
+`publish-acd-server.yml`は`workflow_dispatch`またはtools publish成功後の`workflow_run`で起動し、
+lockから解決したACD tools digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、
+GHCRへpublishする。publish後はderived digestとtagをlock更新PRへ記録する。
 現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
 同梱した`sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`である。
 lockに記録済みのserver image

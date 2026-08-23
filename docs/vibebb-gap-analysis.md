@@ -121,10 +121,10 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 
 | # | 改善提案 | 現状と理由 |
 |---|---|---|
-| F-1 | tools publishをmain mergeで自動起動し、成功後に`acd-server` publishを`workflow_run`で連鎖起動する | [`publish-acd-server.yml`](../.github/workflows/publish-acd-server.yml)は`workflow_dispatch`のみ |
-| F-2 | publish jobが[`docker/image-digests.json`](../docker/image-digests.json)を更新するPRを自動作成する | 現状はjob summaryからの人手転記で、転記ミスの余地がある。ただし[`publish-acd-tools.yml`](../.github/workflows/publish-acd-tools.yml)のtriggerがdigest lockと[`docker/README.md`](../docker/README.md)を除外しており、digest更新PRがpublishを再帰起動するloopは構造的に防がれている |
-| F-3 | [`verify_authoritative_evidence.py`](../scripts/verify_authoritative_evidence.py)の検査に、lockのdigestとregistry現行manifestの一致確認を追加する | lock更新漏れをCIで検出できる |
-| F-4 | 文書と実運用の不整合を整理する | [`docker/README.md`](../docker/README.md)は「ACDはこのimageを配布しない」と述べる一方、実際にはGPLv3のKiCad／FreeRoutingを含むimageをGHCRへpublishしている。配布に当たるか否かを整理し、記述を整合させる必要がある。実装は変更せず、指摘のみとする |
+| F-1 | tools publishをmain mergeで自動起動し、成功後に`acd-server` publishを`workflow_run`で連鎖起動する | 達成。tools publish成功を条件にserver workflowをmain上で起動し、手動起動も維持した |
+| F-2 | publish jobが[`docker/image-digests.json`](../docker/image-digests.json)を更新するPRを自動作成する | 達成。publish digest、tag、時刻、workflow runを検証済みhelperで更新し、lockとREADMEをpublish triggerから除外して再帰を防ぐ |
+| F-3 | [`verify_authoritative_evidence.py`](../scripts/verify_authoritative_evidence.py)の検査に、lockのdigestとregistry現行manifestの一致確認を追加する | 達成。GHCR anonymous token flowでmanifest digestを照合し、network unavailable、malformed、mismatchはfail-closedで停止する |
+| F-4 | 文書と実運用の不整合を整理する | 達成。GHCR配布の事実、GPLv3 components、upstream sourceとDockerfile pinによる対応関係を[`docker/README.md`](../docker/README.md)へ記載した |
 | F-5 | FreeRouting／container資源の暗黙継承を除く | FreeRouting 2.3.0の`-mt`既定（論理CPU数−1）を常に明示し、GD1 pipelineの既定を`--freerouting-threads 1`へ固定した。wrapperは`-Xmx2g`を既定で宣言し、active processor countは既定では宣言せず、`FREEROUTING_ACTIVE_PROCESSORS`が明示された場合だけ追加する。`FREEROUTING_MAX_HEAP`でheapを上下できる。2コアVMのdigest固定imageで`-mt 0/1/2/4`のSES hashは一致し、93.5/93.0/92.5秒で有意な短縮は無かった。変更後wrapperの一回測定は94.3秒（baseline比+0.8秒、host provisional）であり、速度向上は主張しない。`feature_flags.multi_threading`は無効のままとした。SDK `DockerWorkspace`にCPU／memory fieldが無いため、資源宣言不能時の`tool_concurrency_limit=1`とSDK mutex直列化契約は維持する。wrapper変更時はmainのDocker publish結果digestをlockへ転記し、推測値を記録しない | 実装済み。FreeRoutingの`-mt`だけを固定し、JVMのCPU認識は既定で制限しない |
 
 ## G. ワークスペース初期化の自動化
@@ -315,4 +315,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
 7. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
 8. I-3〜I-5／E-5（gd1固定の解消）、C-2／C-3（FWのgraph駆動と整合gate）、D-1〜D-3（loopの閉じと発注）。I-4は発注laneへ進む前に必要になる。
-9. F-1〜F-4（image publishとdigest lock更新）、H-2〜H-4／K-4（skew検出と計測）。運用の再現性と回帰防止を強化する。
+9. F-1〜F-4（image publishとdigest lock更新）は達成済み。残存するH-2〜H-4／K-4（skew検出と計測）は運用の再現性と回帰防止を強化する。

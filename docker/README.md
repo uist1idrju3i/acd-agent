@@ -3,7 +3,7 @@
 ## 位置づけ
 
 このイメージは、ACDの決定論的pipelineとゲートを構築するためのtools imageである。
-agent-server imageのbaseとして使用するが、ACD imageとして再配布はしない。
+agent-server imageのbaseとして使用し、tools imageとagent-server imageをGHCRへpublishする。
 
 Dockerはdeterminismを保証しない。時刻、locale、filesystem、CPU、外部サービスなど
 の差は残るため、ToolEnvelope、出力hash、timestamp正規化、独立再読込、期待値と
@@ -69,10 +69,10 @@ Dockerfileでも再解決される可能性がある。完全な再現性にはi
 repositoryの固定が必要である。
 
 `docker/**`（lock fileの`docker/image-digests.json`とこのREADMEを除く）をmainへ
-変更すると、既存の`.github/workflows/publish-acd-tools.yml`のpublish workflowが実行
-される。publish job summaryに表示されたGHCRの新しいdigestを確認し、通常の運用手順で
-`docker/image-digests.json`へ転記する。image lockのdigestは推測や手書きで更新せず、
-publish結果だけを記録する。
+変更すると、`.github/workflows/publish-acd-tools.yml`がtools imageをpublishし、
+成功後に`.github/workflows/publish-acd-server.yml`がagent-server imageをpublishする。
+各workflowはpublish結果を`docker/image-digests.json`へ記録する更新PRを作成する。
+lock更新PRはpublish triggerの対象外であり、digest lockと`latest`が再帰的に更新されることはない。
 
 ## 事前build済みagent-server image
 
@@ -127,13 +127,14 @@ with DockerWorkspace(
 
 ## ライセンスとupstream
 
-ACDはこのイメージを配布しない。KiCad（GPLv3）、FreeRouting（GPLv3）などの
-GPL系ソフトウェアを含むイメージを配布すると、対応するソース提供やライセンス
-義務が発生するためである。各利用者は自分の環境でbuildし、各upstreamの条件に
-従うこと。
+ACDはtools imageとagent-server imageをGHCRへ配布する。イメージに含まれる
+KiCad（GPLv3）とFreeRouting（GPLv3）のソースおよび対応するソースは各upstreamで
+公開されており、このリポジトリではDockerfileに使用版、取得元、取得物のSHA-256を
+固定している。配布物の対応関係は、イメージのDockerfile pinと次のupstream source
+を組み合わせて確認できる。
 
-- KiCad: GPLv3、<https://www.kicad.org/>
-- FreeRouting: GPLv3、<https://github.com/freerouting/freerouting>
+- KiCad: GPLv3、sourceと対応するソースは<https://www.kicad.org/>で提供
+- FreeRouting: GPLv3、sourceと対応するソースは<https://github.com/freerouting/freerouting>で提供
 - ngspice: BSD系ライセンス、<https://ngspice.sourceforge.io/>
 - OpenJDK: GPLv2 with Classpath Exception、<https://openjdk.org/>
 - Python: PSF License、<https://www.python.org/>
