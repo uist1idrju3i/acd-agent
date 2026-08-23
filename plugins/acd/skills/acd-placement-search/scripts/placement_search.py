@@ -94,13 +94,26 @@ def compute_placements(
     net_refdes: tuple[tuple[str, ...], ...] = (),
     pins: tuple[PinView, ...] = (),
     nets: tuple[NetView, ...] = (),
+    seeds: tuple[Placement, ...] = (),
 ) -> tuple[Placement, ...]:
+    """Place components deterministically.
+
+    ``seeds`` pins the given components to the given pose, so a caller may fix a
+    subset (for example a legalized proposal) and let the search fill the rest
+    around it. Seeds are still checked against the board edge clearance.
+    """
     placements: list[Placement] = []
     occupied: list[Rect] = list(keepouts)
     center_x = board.width_mm / 2.0
 
     ordered = sorted(components, key=lambda c: c.refdes)
-    holes = [c for c in ordered if _classify(c) == "mounting_hole"]
+    pinned = {seed.refdes: seed for seed in seeds}
+    unknown_seeds = sorted(set(pinned) - {comp.refdes for comp in ordered})
+    if unknown_seeds:
+        raise PlacementError(f"seeded components are not in the design: {unknown_seeds}")
+    holes = [
+        c for c in ordered if _classify(c) == "mounting_hole" and c.refdes not in pinned
+    ]
     hole_positions = [
         (MOUNTING_HOLE_INSET_MM, MOUNTING_HOLE_INSET_MM),
         (board.width_mm - MOUNTING_HOLE_INSET_MM, MOUNTING_HOLE_INSET_MM),
@@ -113,7 +126,10 @@ def compute_placements(
     for comp in ordered:
         kind = _classify(comp)
         footprint = footprints[comp.refdes]
-        if kind == "rf_module" or kind == "usb_connector":
+        seed = pinned.get(comp.refdes)
+        if seed is not None:
+            x, y, rot = seed.x_mm, seed.y_mm, seed.rotation_deg
+        elif kind == "rf_module" or kind == "usb_connector":
             x, y, rot = center_x, _edge_anchor_y(board, footprint, kind=kind), 0.0
         elif kind == "mounting_hole":
             x, y = hole_positions[holes.index(comp)]
@@ -145,7 +161,7 @@ def compute_placements(
         for ref in refs:
             neighbours.setdefault(ref, set()).update(r for r in refs if r != ref)
 
-    generic = [c for c in ordered if _classify(c) == "generic"]
+    generic = [c for c in ordered if _classify(c) == "generic" and c.refdes not in pinned]
     placed_at: dict[str, tuple[float, float]] = {p.refdes: (p.x_mm, p.y_mm) for p in placements}
     by_refdes = {comp.refdes: comp for comp in components}
     net_names = {net.node_id: net.name for net in nets}
