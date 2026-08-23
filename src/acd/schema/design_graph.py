@@ -100,9 +100,9 @@ class GraphNode(AcdModel):
                 raise ValueError(
                     "electrical.placement_group max_distance_mm must be positive"
                 )
-            if move_together is not True and max_distance is None:
+            if max_distance is None:
                 raise ValueError(
-                    "electrical.placement_group requires max_distance_mm or move_together"
+                    "electrical.placement_group requires explicit max_distance_mm"
                 )
         return self
 

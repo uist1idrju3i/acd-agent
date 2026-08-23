@@ -51,7 +51,6 @@ from acd.core.placement_constraints import (
 from acd.schema.design_graph import DesignGraph
 
 _GRID_MM = 0.25
-_MOVE_TOGETHER_DISTANCE_MM = 3.0
 # Preferred spacing between neighbouring components leaves a routing channel
 # (track width + clearance on both sides); tighter fallbacks keep dense boards
 # placeable while still fully deterministic.
@@ -274,9 +273,7 @@ def compute_placements(
                 coupled_positions=coupled_positions,
                 max_coupling_distance=(
                     group.max_distance_mm
-                    if group is not None and group.max_distance_mm is not None
-                    else _MOVE_TOGETHER_DISTANCE_MM
-                    if group is not None and group.move_together
+                    if group is not None
                     else None
                 ),
             )

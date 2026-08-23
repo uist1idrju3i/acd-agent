@@ -77,7 +77,9 @@ def load_placement_coupling_constraints(
         claimed.update(members)
         distance_value = node.attrs.get("max_distance_mm")
         if distance_value is None:
-            max_distance = None
+            raise PlacementConstraintError(
+                f"group {node.id!r} requires explicit max_distance_mm"
+            )
         else:
             if isinstance(distance_value, bool) or not isinstance(
                 distance_value, (int, float)
@@ -86,7 +88,7 @@ def load_placement_coupling_constraints(
                     f"group {node.id!r} max_distance_mm is malformed"
                 )
             max_distance = float(distance_value)
-        if max_distance is not None and not isfinite(max_distance):
+        if not isfinite(max_distance):
             raise PlacementConstraintError(
                 f"group {node.id!r} max_distance_mm must be finite"
             )

@@ -71,6 +71,17 @@ def test_malformed_distance_fails_closed_at_schema_boundary() -> None:
         )
 
 
+def test_move_together_requires_explicit_distance() -> None:
+    with pytest.raises(ValueError, match="explicit max_distance_mm"):
+        _graph(
+            {
+                "primary_refdes": "U3",
+                "coupled_refdes": ["C5"],
+                "move_together": True,
+            }
+        )
+
+
 def test_group_dependency_mismatch_fails_closed() -> None:
     with pytest.raises(PlacementConstraintError, match="dependencies"):
         load_placement_coupling_constraints(
@@ -78,6 +89,7 @@ def test_group_dependency_mismatch_fails_closed() -> None:
                 {
                     "primary_refdes": "U3",
                     "coupled_refdes": ["C5", "R4"],
+                    "max_distance_mm": 3.0,
                     "move_together": True,
                 },
                 depends_on=["comp.u3", "comp.c5"],
