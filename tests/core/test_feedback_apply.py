@@ -4,7 +4,12 @@ import json
 from pathlib import Path
 
 from acd.core.feedback import apply_input_feedback
-from acd.schema import FeedbackApplyPolicy, FeedbackProposal, FeedbackProposalItem
+from acd.schema import (
+    FeedbackApplyPolicy,
+    FeedbackApplyRule,
+    FeedbackProposal,
+    FeedbackProposalItem,
+)
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1" / "graph.json"
 
@@ -40,13 +45,13 @@ def test_feedback_apply_dry_run_preserves_input_and_writes_l3_record(tmp_path: P
         graph_id="golden-design-1",
         revision="r1",
         rules=[
-            {
-                "node_id": "fw.pin.led",
-                "attr": "gpio",
-                "minimum": 0,
-                "maximum": 21,
-                "tolerance": 1,
-            }
+            FeedbackApplyRule(
+                node_id="fw.pin.led",
+                attr="gpio",
+                minimum=0,
+                maximum=21,
+                tolerance=1,
+            )
         ],
         input_paths=["graph.json"],
     )

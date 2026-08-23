@@ -13,6 +13,7 @@ consume these views; missing or malformed attributes fail closed.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from acd.schema.design_graph import DesignGraph
 
@@ -77,7 +78,11 @@ def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
                 f"node {modules[0].id!r}: attr {name!r} must not be empty"
             )
         values[name] = value
-    return FirmwareSettings(**values)
+    return FirmwareSettings(
+        led_blink_period_ms=cast(int, values["led_blink_period_ms"]),
+        log_period_ms=cast(int, values["log_period_ms"]),
+        boot_log_message=cast(str, values["boot_log_message"]),
+    )
 
 
 def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:
