@@ -65,6 +65,7 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 | E-3 | JVM／containerの資源宣言 | FreeRoutingへ`-mp 99999`を渡す一方でJVM thread・heap指定とcontainerの`--cpus`指定が無い | routerが実行時間の支配項 |
 | E-4 | 入力hash単位のstage cache | 配置だけ変えた再試行でもDSN exportからやり直す | 候補ごとに全stageを再実行した |
 | E-5 | output prefix／`subject_node`のgd1固定 | graph_id由来にすべき。ファイル名で設計同一性を判断できない | variant成果物も`gd1-*`名で出力される |
+| E-6 | 検証段階の並列実行 | pytestは`-n auto --dist loadgroup`、`verify_all.py`は`--jobs N`（既定はCPU数と4の小さい方）で独立コマンドを並列実行する。`uv sync`は先行必須で、`--jobs 1`は最初の失敗で停止し、並列時は起動済みコマンドを完走させて失敗をすべて報告する | 2コアVMの同一入力でpytestは195.13秒（逐次）から108.73秒（自動並列）、standard検証は141.21秒（`--jobs 1`）から126.66秒（既定並列）になった。各条件1回（詳細は[`docs/operations.md`](operations.md)） |
 
 ## F. image publishとlock更新の自動化
 

@@ -678,9 +678,27 @@ uv run python scripts/verify_all.py --stage standard
 uv run python scripts/verify_all.py --stage full
 ```
 
+各段階は最初に`uv sync`だけを実行し、完走後にruff、pyright、pytest、各
+`verify_*.py`、`git diff --check`を独立コマンドとして並列実行する。既定の並列度は
+`min(os.cpu_count() or 1, 4)`で、`--jobs N`で上書きできる。`--jobs 1`は完全逐次で
+最初の失敗で停止し、`--jobs N`（N > 1）は起動済みコマンドを最後まで実行してから、
+宣言順に出力し、失敗したコマンドをすべて報告する。どちらも失敗時は非零終了する。
+コマンドと先行条件は`uv run python scripts/verify_all.py --list`で機械可読に確認できる。
+
+pytestは既定で`-n auto --dist loadgroup`を使うため、`uv run pytest`は自動worker数で
+テストを実行する。単体デバッグなどで無効化する場合は`uv run pytest -n 0`を使う。
+固定パス、cwd、環境変数、installed plugin storeの共有による衝突を避け、独立化できない
+共有状態だけを`pytest.mark.xdist_group`で同一workerへ固定する。判定内容を緩めず、
+並列・逐次の収集件数と正規化hashが一致することを検証する。
+
 `full`には`pytest plugins`、silkscreen resolver、基板・筐体pipeline、外部ツールprobeを
 含む。authoritative container gateはCI固有の`container-gates` jobで実行するため、
 `verify_all.py`には含めない。
+
+2コアVMで同一入力を測定した結果は、pytestの逐次（`-n 0`）195.13秒、
+自動並列（`-n auto`）108.73秒だった。`verify_all.py --stage standard`
+は`--jobs 1` 141.21秒、既定並列 126.66秒だった。
+測定は各条件1回で、外部ツールを含まないstandard段階の比較である。
 
 GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを

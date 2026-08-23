@@ -92,6 +92,21 @@ browser_useは既定無効で、明示有効時だけChromiumの利用可能性�
 登録する。browser由来の観測をEvidenceへ昇格させず、決定論的API取得を置き換えない。
 workflowは任意Python scriptがhook境界の外で実行されうるため不採用（将来再検討）とする。
 
+## 並列実行
+
+CPUバウンドな処理は既定でマルチコアを使う。新規実装でも、要素間が独立なループと
+独立stageは並列実行を前提に設計する。
+
+- 並列度は`--jobs`や`--*-workers`のような明示引数で受け、既定は`min(os.cpu_count() or 1, N)`とする。
+- 外部プロセス待ちとI/O待ちが主体の処理は`ThreadPoolExecutor`、Pythonの計算と
+  ネイティブ拡張（OCP等）が主体の処理は`ProcessPoolExecutor`を使う。
+- 並列度を成果物へ影響させない。reduceは宣言順またはID順で行い、worker数をhash入力、
+  Evidence、provenanceへ入れない。
+- 逐次（worker=1）と並列（worker=N）で正規化hashと判定が一致することを回帰テストで固定する。
+- 失敗はfail-closedのまま扱い、部分成功を合格側へ昇格しない。
+- 並列化で短縮を主張する場合は同一入力の逐次・並列比較を実測し、`docs/`へ記録する。
+  外部ツールが支配項で短縮が測れない場合もその事実を記録する。
+
 ## 依存とsubmodule
 
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
@@ -119,6 +134,19 @@ uv run python scripts/verify_all.py --stage docs
 uv run python scripts/verify_all.py --stage standard
 uv run python scripts/verify_all.py --stage full
 ```
+
+`verify_all.py`は`uv sync`を各段階の先頭で単独実行し、完走後にruff、pyright、
+pytest、各`verify_*.py`、`git diff --check`を最大
+`min(os.cpu_count() or 1, 4)`本まで並列実行する。`--jobs 1`は従来どおり宣言順に
+実行して最初の失敗で停止し、`--jobs N`（N > 1）は起動済みの独立コマンドを完走させ、
+宣言順に出力してから失敗したコマンドをすべて報告する。`--list`のJSONには各コマンドの
+`requires_sync`と`requires_previous`も含める。
+
+pytestは既定で`-n auto --dist loadgroup`を有効にする。単体デバッグなどで並列化を
+無効にする場合は`uv run pytest -n 0`を使う。テストは固定パス、cwd、環境変数、
+installed plugin storeの共有状態を避け、独立化できない共有資源だけを
+`pytest.mark.xdist_group`で同一workerへ固定する。並列・逐次で収集件数、判定、
+正規化hashを一致させ、短縮を記録する場合は同一入力のwall-clockを比較する。
 
 Markdownのみの変更で実装資材を変更していない場合は`--stage docs`に絞ってよい。
 GD1のゲート実行とEvidence生成はdigest固定containerを
