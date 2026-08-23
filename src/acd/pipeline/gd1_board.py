@@ -1574,13 +1574,13 @@ def run_pipeline(
     return hashes
 
 
-def _nonnegative_int(value: str) -> int:
+def _positive_int(value: str) -> int:
     try:
         parsed = int(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError("value must be an integer") from exc
-    if parsed < 0:
-        raise argparse.ArgumentTypeError("value must be non-negative")
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("value must be positive")
     return parsed
 
 
@@ -1596,7 +1596,7 @@ def main() -> int:
     parser.add_argument("--max-passes", type=int, default=99999, help="router pass budget")
     parser.add_argument(
         "--freerouting-threads",
-        type=_nonnegative_int,
+        type=_positive_int,
         default=DEFAULT_FREEROUTING_THREADS,
         help="explicit FreeRouting router thread count",
     )

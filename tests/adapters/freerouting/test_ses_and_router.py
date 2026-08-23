@@ -109,6 +109,9 @@ exit 2
     ses_path = tmp_path / "output.ses"
     runner = FreeroutingRunner(executable=str(executable))
 
+    with pytest.raises(ValueError, match="must be positive"):
+        runner.route(dsn_path, ses_path, "r1", freerouting_threads=0)
+
     run = runner.route(
         dsn_path,
         ses_path,

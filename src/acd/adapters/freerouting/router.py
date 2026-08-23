@@ -61,8 +61,8 @@ class FreeroutingRunner:
         max_passes: int = 100,
         freerouting_threads: int = DEFAULT_FREEROUTING_THREADS,
     ) -> ToolRun:
-        if freerouting_threads < 0:
-            raise ValueError("freerouting thread count must be non-negative")
+        if freerouting_threads < 1:
+            raise ValueError("freerouting thread count must be positive")
         version = self.version()
         # Pin the thread count instead of inheriting host CPU count for machine-independent runs.
         command = [

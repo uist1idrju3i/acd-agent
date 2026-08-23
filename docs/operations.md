@@ -631,15 +631,23 @@ wall timeはそれぞれ93.5/93.0/92.5秒で、差は測定誤差の範囲だっ
 `feature_flags.multi_threading`の既定値はfalseで、実験的機能は有効化しない。
 
 同じ測定で観測したpeak heapは約630 MBだった。wrapper
-[`docker/freerouting`](../docker/freerouting)はJVM最大heapを既定`-Xmx1g`、
-active processor countを既定`-XX:ActiveProcessorCount=1`として明示する。
-`FREEROUTING_MAX_HEAP`と`FREEROUTING_ACTIVE_PROCESSORS`で上書きできるが、通常は
-machine-dependentな既定へ戻さない。SDK `DockerWorkspace`にはCPU／memory resource
+[`docker/freerouting`](../docker/freerouting)はJVM最大heapを既定`-Xmx2g`として明示する。
+active processor countは既定では宣言せず、必要な場合だけ
+`FREEROUTING_ACTIVE_PROCESSORS`で`-XX:ActiveProcessorCount=`を追加する。
+`FREEROUTING_MAX_HEAP`でheapを上下できるが、通常はmachine-dependentな既定へ戻さない。
+JVMのCPU認識を既定で1へ制限するとGC／JITとFreeRoutingのCPU検出まで制限するため、
+決定論にはFreeRouting commandの`-mt` pinだけを用いる。SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
 `tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する
 既存契約を維持する。wrapper変更はimage変更なので、mainの`docker/**`変更で
 `publish-acd-tools.yml`が実行される。publish job summaryのGHCR digestを確認してから
 `docker/image-digests.json`へ転記し、lockのdigestを推測・手書きしてはならない。
+
+変更後wrapperを同じdigest固定tools imageへmountし、同じGD1 DSNを`-mp 10 -mt 1`で
+一度実行したhost provisional測定はwall 94.3秒、Optimization stageのpeak heap
+451.3 MBだった。wrapper変更前に同条件で取得したbaseline 93.5秒より0.8秒遅く、
+この1回の測定では短縮を主張しない。既定値を速度に合わせて変更せず、`-mt`の固定と
+heap上限の明示を優先する。
 
 ### FW pipelineのhost実行とToolEnvelopeの注記
 

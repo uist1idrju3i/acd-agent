@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shutil
@@ -19,7 +20,7 @@ from acd.core.parallel import (
     PipelineStageRunner,
     _warm_up_worker,
 )
-from acd.pipeline.gd1_board import _run_ordered_stages, run_pipeline
+from acd.pipeline.gd1_board import _positive_int, _run_ordered_stages, run_pipeline
 from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
 
 
@@ -52,6 +53,14 @@ def test_ordered_stage_failure_is_not_suppressed() -> None:
     )
     with pytest.raises(ValueError, match="stage failed"):
         _run_ordered_stages(stages, 2)
+
+
+def test_freerouting_threads_argument_requires_positive_integer() -> None:
+    assert _positive_int("1") == 1
+    with pytest.raises(argparse.ArgumentTypeError, match="positive"):
+        _positive_int("0")
+    with pytest.raises(argparse.ArgumentTypeError, match="integer"):
+        _positive_int("not-an-integer")
 
 
 def test_pipeline_stage_runner_reuses_spawn_pool() -> None:

@@ -24,9 +24,9 @@ Dockerfileでは次を固定または検証する。
 - KiCad CLI: KiCad 10.0 PPAの10系をインストールし、build時に10系であることを検証
 - FreeRouting: 2.3.0、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
   wrapperからPATH上で実行できることを検証
-- FreeRouting wrapperはJVM最大heapを`-Xmx1g`、active processor countを
-  `-XX:ActiveProcessorCount=1`として明示する。実行時は
-  `FREEROUTING_MAX_HEAP`と`FREEROUTING_ACTIVE_PROCESSORS`で上書きできる
+- FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示する。active processor
+  countは既定では宣言せず、必要な場合だけ`FREEROUTING_ACTIVE_PROCESSORS`で
+  `-XX:ActiveProcessorCount=`を追加できる。heapは`FREEROUTING_MAX_HEAP`で上書きできる
 - OpenJDK: Ubuntu 26.04の`openjdk-26-jre-headless`
 - ngspice: Ubuntu 26.04の45.2パッケージと`ngspice --version`を検証
 - Python: Ubuntu 26.04のsystem Python 3.14（`python3.14`、`python3.14-venv`）
