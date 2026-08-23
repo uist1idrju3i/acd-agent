@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@b821b5466e2feee0783f2f819d8c4105ccf77eb8",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e26c18b7dded37e0ac21ffef22d6216559de88df",
 # ]
 # ///
 """Shared fail-closed inputs and provenance for generated product documents.
