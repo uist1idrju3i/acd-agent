@@ -14,6 +14,9 @@ from typing import Any, Literal, cast
 from openhands.sdk.workspace import LocalWorkspace
 from openhands.workspace import DockerWorkspace
 
+from acd.core.naming import artifact_prefix, required_evidence_ids
+from acd.schema.design_graph import DesignGraph
+
 DEFAULT_COMMAND = "uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure"
 DEFAULT_DOWNLOAD_FILES = (
     "out/gd1/evidence-electrical.json",
@@ -25,6 +28,35 @@ CONTAINER_BUNDLE = Path("/opt/acd")
 _DIGEST = re.compile(r"sha256:[0-9a-fA-F]{64}\Z")
 
 WorkspaceSource = Literal["mounted", "bundled"]
+
+
+@dataclass(frozen=True)
+class WorkspaceDefaults:
+    command: str
+    download_files: tuple[str, ...]
+    required_evidence_ids: frozenset[str]
+
+
+def workspace_defaults(graph_id: str) -> WorkspaceDefaults:
+    prefix = artifact_prefix(graph_id)
+    return WorkspaceDefaults(
+        command=(
+            "uv run python scripts/run_"
+            f"{prefix}_enclosure_pipeline.py --out out/{prefix}-enclosure"
+        ),
+        download_files=(
+            f"out/{prefix}/evidence-electrical.json",
+            f"out/{prefix}-enclosure/evidence-mechanical.json",
+        ),
+        required_evidence_ids=required_evidence_ids(graph_id),
+    )
+
+
+def load_workspace_graph(path: Path) -> DesignGraph:
+    try:
+        return DesignGraph.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"design graph could not be loaded: {path}") from exc
 
 
 @dataclass(frozen=True)

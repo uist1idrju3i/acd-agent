@@ -16,11 +16,35 @@ _SUMMARY_KEYS = (
     "exclusion_combinations",
     "board_edge_inset_basis",
     "footprint_clearance_method",
+    "fallback_used",
+    "fallback_candidate_count",
+    "fallback_excluded_count",
+    "fallback_region_count",
+)
+
+_REQUIRED_REPORT_KEYS = (
+    "candidate_total",
+    "selected_count",
+    "exclusion_counts",
+    "exclusion_combinations",
+    "board_edge_inset_basis",
+    "footprint_clearance_method",
 )
 
 
+def _validate_fallback_point(value: object, label: str) -> None:
+    if not isinstance(value, list):
+        raise ValueError(f"stitch candidate report {label} is malformed")
+    point = cast(list[object], value)
+    if len(point) != 2 or any(
+        isinstance(item, bool) or not isinstance(item, (int, float))
+        for item in point
+    ):
+        raise ValueError(f"stitch candidate report {label} is malformed")
+
+
 def _validated_report(report: Mapping[str, Any]) -> dict[str, Any]:
-    missing = [key for key in _SUMMARY_KEYS if key not in report]
+    missing = [key for key in _REQUIRED_REPORT_KEYS if key not in report]
     if missing:
         raise ValueError("stitch candidate report is missing: " + ", ".join(missing))
     for key in ("candidate_total", "selected_count"):
@@ -85,9 +109,98 @@ def _validated_report(report: Mapping[str, Any]) -> dict[str, Any]:
             raise ValueError("selected stitch candidate has exclusion reasons")
         if selected:
             selected_candidate_count += 1
+    fallback_used = report.get("fallback_used", False)
+    if not isinstance(fallback_used, bool):
+        raise ValueError("stitch candidate report fallback_used is malformed")
+    fallback_candidates_value = report.get("fallback_candidates", [])
+    if not isinstance(fallback_candidates_value, list):
+        raise ValueError("stitch candidate report fallback_candidates is malformed")
+    fallback_candidates = cast(list[object], fallback_candidates_value)
+    for value in fallback_candidates:
+        _validate_fallback_point(value, "fallback candidate")
+    fallback_selected_value = report.get("fallback_selected_candidates", [])
+    if not isinstance(fallback_selected_value, list):
+        raise ValueError(
+            "stitch candidate report fallback_selected_candidates is malformed"
+        )
+    fallback_selected = cast(list[object], fallback_selected_value)
+    for value in fallback_selected:
+        _validate_fallback_point(value, "fallback selected candidate")
+    fallback_excluded_value = report.get("fallback_excluded_candidates", [])
+    if not isinstance(fallback_excluded_value, list):
+        raise ValueError(
+            "stitch candidate report fallback_excluded_candidates is malformed"
+        )
+    fallback_excluded = cast(list[object], fallback_excluded_value)
+    for value in fallback_excluded:
+        if not isinstance(value, Mapping):
+            raise ValueError("stitch candidate report fallback exclusion is malformed")
+        exclusion = cast(Mapping[str, Any], value)
+        position = exclusion.get("position_mm")
+        reasons = exclusion.get("exclusion_reasons")
+        if not isinstance(position, list):
+            raise ValueError("stitch candidate report fallback exclusion is malformed")
+        position_values = cast(list[object], position)
+        if len(position_values) != 2 or any(
+            isinstance(item, bool) or not isinstance(item, (int, float))
+            for item in position_values
+        ):
+            raise ValueError("stitch candidate report fallback exclusion is malformed")
+        if not isinstance(reasons, list):
+            raise ValueError("stitch candidate report fallback exclusion is malformed")
+        reason_values = cast(list[object], reasons)
+        if any(not isinstance(item, str) for item in reason_values):
+            raise ValueError("stitch candidate report fallback exclusion is malformed")
+    fallback_scope = report.get("fallback_scope", "none")
+    if not isinstance(fallback_scope, str) or not fallback_scope:
+        raise ValueError("stitch candidate report fallback_scope is malformed")
+    fallback_regions_value = report.get("fallback_region_reports", [])
+    if not isinstance(fallback_regions_value, list):
+        raise ValueError("stitch candidate report fallback_region_reports is malformed")
+    fallback_regions = cast(list[object], fallback_regions_value)
+    for region_value in fallback_regions:
+        if not isinstance(region_value, Mapping):
+            raise ValueError("stitch candidate report fallback region is malformed")
+        region = cast(Mapping[str, Any], region_value)
+        layer = region.get("layer")
+        bbox = region.get("bbox_mm")
+        if layer not in {"F.Cu", "B.Cu"} or not isinstance(bbox, list):
+            raise ValueError("stitch candidate report fallback region is malformed")
+        bbox_values = cast(list[object], bbox)
+        if len(bbox_values) != 4 or any(
+            isinstance(item, bool) or not isinstance(item, (int, float))
+            for item in bbox_values
+        ):
+            raise ValueError("stitch candidate report fallback region is malformed")
+        for field_name in ("candidates", "selected_candidates", "excluded_candidates"):
+            field = region.get(field_name)
+            if not isinstance(field, list):
+                raise ValueError("stitch candidate report fallback region is malformed")
+            field_values = cast(list[object], field)
+            if field_name != "excluded_candidates":
+                for point in field_values:
+                    _validate_fallback_point(point, f"fallback region {field_name}")
+                continue
+            for exclusion_value in field_values:
+                if not isinstance(exclusion_value, Mapping):
+                    raise ValueError(
+                        "stitch candidate report fallback region exclusion is malformed"
+                    )
+                exclusion = cast(Mapping[str, Any], exclusion_value)
+                _validate_fallback_point(
+                    exclusion.get("position_mm"),
+                    "fallback region exclusion",
+                )
+                reasons = exclusion.get("exclusion_reasons")
+                if not isinstance(reasons, list) or any(
+                    not isinstance(reason, str) for reason in cast(list[object], reasons)
+                ):
+                    raise ValueError(
+                        "stitch candidate report fallback region exclusion is malformed"
+                    )
     if (
         report.get("allowed_points_override") is not True
-        and selected_candidate_count != report["selected_count"]
+        and selected_candidate_count + len(fallback_selected) != report["selected_count"]
     ):
         raise ValueError("stitch candidate report selected_count does not match candidates")
     return dict(report)
@@ -97,7 +210,22 @@ def summarize_stitch_candidate_report(report: Mapping[str, Any]) -> dict[str, An
     """Return the bounded summary embedded in the DFM report."""
     validated = _validated_report(report)
     return {
-        **{key: validated[key] for key in _SUMMARY_KEYS},
+        **{
+            key: (
+                validated[key]
+                if key in validated
+                else (
+                    len(validated.get("fallback_candidates", []))
+                    if key == "fallback_candidate_count"
+                    else len(validated.get("fallback_excluded_candidates", []))
+                    if key == "fallback_excluded_count"
+                    else len(validated.get("fallback_region_reports", []))
+                    if key == "fallback_region_count"
+                    else False
+                )
+            )
+            for key in _SUMMARY_KEYS
+        },
         "full_report_sha256": canonical_json_sha256(validated),
     }
 

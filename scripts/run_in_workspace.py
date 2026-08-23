@@ -9,11 +9,12 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from acd.openhands.workspace import (
-    DEFAULT_COMMAND,
     DEFAULT_DOWNLOAD_FILES,
     ProvisionalWorkspaceResult,
+    load_workspace_graph,
     run_command_in_local_workspace,
     run_command_in_workspace,
+    workspace_defaults,
 )
 
 
@@ -37,6 +38,12 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     )
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument(
+        "--graph",
+        type=Path,
+        default=Path("fixtures/golden-design-1/graph.json"),
+        help="design graph used to derive default command and Evidence paths",
+    )
+    parser.add_argument(
         "--download",
         dest="download_files",
         action="append",
@@ -56,9 +63,15 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
-    command = " ".join(args.command).strip() or DEFAULT_COMMAND
-    download_files = tuple(args.download_files or DEFAULT_DOWNLOAD_FILES)
     try:
+        if args.command:
+            command = " ".join(args.command).strip()
+            download_files = tuple(args.download_files or DEFAULT_DOWNLOAD_FILES)
+        else:
+            graph_path = args.graph if args.graph.is_absolute() else args.repo / args.graph
+            defaults = workspace_defaults(load_workspace_graph(graph_path).graph_id)
+            command = defaults.command
+            download_files = tuple(args.download_files or defaults.download_files)
         if args.local_provisional:
             result = run_command_in_local_workspace(
                 command=command,

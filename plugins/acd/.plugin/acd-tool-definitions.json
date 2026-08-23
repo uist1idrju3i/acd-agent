@@ -3,8 +3,36 @@
   "entry_point": "acd.openhands.tools.definitions.register_acd_tools",
   "tools": [
     {
+      "tool_name": "acd_bootstrap_workspace",
+      "definition_class": "AcdBootstrapWorkspace"
+    },
+    {
+      "tool_name": "acd_build_design_fixture",
+      "definition_class": "AcdBuildDesignFixture"
+    },
+    {
+      "tool_name": "acd_check_order_readiness",
+      "definition_class": "AcdCheckOrderReadiness"
+    },
+    {
+      "tool_name": "acd_compile_requirement_change",
+      "definition_class": "AcdCompileRequirementChange"
+    },
+    {
+      "tool_name": "acd_diagnose_gate_failure",
+      "definition_class": "AcdDiagnoseGateFailure"
+    },
+    {
+      "tool_name": "acd_explore_board_candidates",
+      "definition_class": "AcdExploreBoardCandidates"
+    },
+    {
       "tool_name": "acd_probe_tools",
       "definition_class": "AcdProbeTools"
+    },
+    {
+      "tool_name": "acd_register_functional_block",
+      "definition_class": "AcdRegisterFunctionalBlock"
     },
     {
       "tool_name": "acd_run_board_pipeline",
@@ -15,9 +43,13 @@
       "definition_class": "AcdRunEnclosurePipeline"
     },
     {
+      "tool_name": "acd_run_firmware_pipeline",
+      "definition_class": "AcdRunFirmwarePipeline"
+    },
+    {
       "tool_name": "acd_validate_design_graph",
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:99ef9ae934e38bbb013722bfc1f0897d9c844093af0d21c9ef1240bd66b6762d"
+  "canonical_hash": "sha256:c9ca25bd3459ba997b839ad7b555fb47dad282a7ac1d9e6560e752aa2f559f4f"
 }

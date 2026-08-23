@@ -1,0 +1,438 @@
+{
+  "catalog_id": "acd-parts-gd1-14.5",
+  "entries": [
+    {
+      "kind": "resistor",
+      "library_ref": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "R_0603_1608Metric",
+      "part_number": "0603WAF1001T5E",
+      "value": "1k"
+    },
+    {
+      "kind": "resistor",
+      "library_ref": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "R_0603_1608Metric",
+      "part_number": "0603WAF1002T5E",
+      "value": "10k"
+    },
+    {
+      "kind": "resistor",
+      "library_ref": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "R_0603_1608Metric",
+      "part_number": "0603WAF4701T5E",
+      "value": "4.7k"
+    },
+    {
+      "kind": "resistor",
+      "library_ref": {
+        "footprint": "Resistor_SMD:R_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:R",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "R_0603_1608Metric",
+      "part_number": "0603WAF5101T5E",
+      "value": "5.1k"
+    },
+    {
+      "kind": "ic",
+      "library_ref": {
+        "footprint": "Package_TO_SOT_SMD:SOT-223-3_TabPin2",
+        "footprint_file": "/usr/share/kicad/footprints/Package_TO_SOT_SMD.pretty/SOT-223-3_TabPin2.kicad_mod",
+        "footprint_sha256": "sha256:8ae5f03e2c16377abed15e51af6864e23a934e1457b97fb7ea930e17fa99f11d",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Regulator_Linear:AMS1117-3.3",
+        "symbol_file": "/usr/share/kicad/symbols/Regulator_Linear.kicad_sym",
+        "symbol_sha256": "sha256:adb996ece7ebe6ec491f077c6de413a7732b1247be290797cc723a0c15596c70",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "SOT-223-3_TabPin2",
+      "part_number": "AMS1117-3.3",
+      "value": "AMS1117-3.3"
+    },
+    {
+      "kind": "capacitor",
+      "library_ref": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "C_0603_1608Metric",
+      "part_number": "CL10A105KB8NNNC",
+      "value": "1uF"
+    },
+    {
+      "kind": "capacitor",
+      "library_ref": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "C_0603_1608Metric",
+      "part_number": "CL10A106MQ8NNNC",
+      "value": "10uF"
+    },
+    {
+      "kind": "capacitor",
+      "library_ref": {
+        "footprint": "Capacitor_SMD:C_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:fe0dbfefbb181a0466f93a8de52d84ba7b00fcd9acdbb69575f4128a0af4e405",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:C",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "C_0603_1608Metric",
+      "part_number": "CL10B104KB8NNNC",
+      "value": "100nF"
+    },
+    {
+      "kind": "ic",
+      "library_ref": {
+        "footprint": "Espressif:ESP32-C3-MINI-1",
+        "footprint_file": "libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod",
+        "footprint_sha256": "sha256:f1899b54ab6c007d50e76334f3fb8f340a827bc1d26f1ba24003333c214a7626",
+        "footprint_source": "https://github.com/espressif/kicad-libraries",
+        "footprint_source_ref": "dd76561812ab300351234ba6e0ec1295641796f0",
+        "symbol": "Espressif:ESP32-C3-MINI-1",
+        "symbol_file": "libraries/Espressif.kicad_sym",
+        "symbol_sha256": "sha256:bca977294f75d84261181e0b443f5ee9292412d5ed56c3292079685376883a2b",
+        "symbol_source": "https://github.com/espressif/kicad-libraries",
+        "symbol_source_ref": "dd76561812ab300351234ba6e0ec1295641796f0"
+      },
+      "package": "ESP32-C3-MINI-1",
+      "part_number": "ESP32-C3-MINI-1-N4",
+      "value": "ESP32-C3-MINI-1-N4"
+    },
+    {
+      "kind": "mounting_hole",
+      "library_ref": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "MountingHole_2.2mm_M2",
+      "part_number": "GD1-H1",
+      "value": "M2"
+    },
+    {
+      "kind": "mounting_hole",
+      "library_ref": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "MountingHole_2.2mm_M2",
+      "part_number": "GD1-H2",
+      "value": "M2"
+    },
+    {
+      "kind": "mounting_hole",
+      "library_ref": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "MountingHole_2.2mm_M2",
+      "part_number": "GD1-H3",
+      "value": "M2"
+    },
+    {
+      "kind": "mounting_hole",
+      "library_ref": {
+        "footprint": "MountingHole:MountingHole_2.2mm_M2",
+        "footprint_file": "/usr/share/kicad/footprints/MountingHole.pretty/MountingHole_2.2mm_M2.kicad_mod",
+        "footprint_sha256": "sha256:1b38bd9b2279c528f6e6bd4cf43f4aea04facae04f4afb1649dae640330a7178",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Mechanical:MountingHole",
+        "symbol_file": "/usr/share/kicad/symbols/Mechanical.kicad_sym",
+        "symbol_sha256": "sha256:7eb7affded8c741aed9762b1c54655ac0f876fba66959e69518928849bc1a2ed",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "MountingHole_2.2mm_M2",
+      "part_number": "GD1-H4",
+      "value": "M2"
+    },
+    {
+      "kind": "testpoint",
+      "library_ref": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "TestPoint_Pad_D1.5mm",
+      "part_number": "GD1-TP1",
+      "value": "TP_3V3"
+    },
+    {
+      "kind": "testpoint",
+      "library_ref": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "TestPoint_Pad_D1.5mm",
+      "part_number": "GD1-TP2",
+      "value": "TP_GND"
+    },
+    {
+      "kind": "testpoint",
+      "library_ref": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "TestPoint_Pad_D1.5mm",
+      "part_number": "GD1-TP3",
+      "value": "TP_SDA"
+    },
+    {
+      "kind": "testpoint",
+      "library_ref": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "TestPoint_Pad_D1.5mm",
+      "part_number": "GD1-TP4",
+      "value": "TP_SCL"
+    },
+    {
+      "kind": "testpoint",
+      "library_ref": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "TestPoint_Pad_D1.5mm",
+      "part_number": "GD1-TP5",
+      "value": "TP_IO7"
+    },
+    {
+      "kind": "testpoint",
+      "library_ref": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "TestPoint_Pad_D1.5mm",
+      "part_number": "GD1-TP6",
+      "value": "TP_TX"
+    },
+    {
+      "kind": "testpoint",
+      "library_ref": {
+        "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+        "footprint_file": "/usr/share/kicad/footprints/TestPoint.pretty/TestPoint_Pad_D1.5mm.kicad_mod",
+        "footprint_sha256": "sha256:d7ae230b69d8c3dad5082515a51aac9e4840360c8f4324a00673353676d43042",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:TestPoint",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "TestPoint_Pad_D1.5mm",
+      "part_number": "GD1-TP7",
+      "value": "TP_RX"
+    },
+    {
+      "kind": "led",
+      "library_ref": {
+        "footprint": "LED_SMD:LED_0603_1608Metric",
+        "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
+        "footprint_sha256": "sha256:7931ed1efba34cb13c8d74a60eb1dca4b0be57d950c38e08c3e7f007db500a1c",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Device:LED",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_sha256": "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "LED_0603_1608Metric",
+      "part_number": "KT-0603R",
+      "value": "KT-0603R"
+    },
+    {
+      "kind": "ic",
+      "library_ref": {
+        "footprint": "Sensor_Humidity:Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
+        "footprint_file": "/usr/share/kicad/footprints/Sensor_Humidity.pretty/Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad.kicad_mod",
+        "footprint_sha256": "sha256:294e2bc1e42d07f0460758b00ba2b6b974a4e25e906e7b28056551220d53301f",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Sensor_Humidity:SHT4x",
+        "symbol_file": "/usr/share/kicad/symbols/Sensor_Humidity.kicad_sym",
+        "symbol_sha256": "sha256:2247c817a7c8f2071d0f8bdc1c940360a5fe8fad19764d5ec328e88640387606",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
+      "part_number": "SHT40-AD1B-R3",
+      "value": "SHT40-AD1B-R3"
+    },
+    {
+      "kind": "switch",
+      "library_ref": {
+        "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
+        "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
+        "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Switch:SW_Push",
+        "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
+        "symbol_sha256": "sha256:b1c7bbbbea22dcf723430c11f6a841620108b3449bd8e5339fa6ebe083f91e63",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "SW_SPST_TS-1088-xR020",
+      "part_number": "TS-1088-AR02016",
+      "value": "RESET"
+    },
+    {
+      "kind": "connector",
+      "library_ref": {
+        "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+        "footprint_file": "/usr/share/kicad/footprints/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
+        "footprint_sha256": "sha256:c562a7f9713a8b754c4d2305a2ea15453469a1c8c48a9b17973383e8993fc750",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "symbol": "Connector:USB_C_Receptacle_USB2.0_16P",
+        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5"
+      },
+      "package": "USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+      "part_number": "TYPE-C-31-M-12",
+      "value": "TYPE-C-31-M-12"
+    }
+  ],
+  "schema_version": "0.1"
+}

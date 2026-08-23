@@ -19,6 +19,7 @@ from acd.adapters.cad.mechanical import (
 from acd.adapters.cad.project import CadProjection, cad_tool_version
 from acd.core.cad_normalize import normalize_step
 from acd.core.mechanical import MechanicalLane
+from acd.core.naming import artifact_prefix
 from acd.core.parallel import PipelineStageRunner
 from acd.core.process import ExternalToolError, sha256_bytes
 from acd.core.visual_projection import measure_svg_resolution
@@ -467,6 +468,7 @@ class MechanicalVisualRenderer:
         projection: CadProjection,
         lane: MechanicalLane,
         target_revision: str,
+        graph_id: str = "golden-design-1",
         output_path: Path,
         section_plane_id: str,
     ) -> VisualProjectionRecord:
@@ -483,7 +485,7 @@ class MechanicalVisualRenderer:
         _validate_section_features(section, lane, section_offset_mm)
         record = self._render(
             output_path=output_path,
-            projection_id="gd1-mechanical-section",
+            projection_id=f"{artifact_prefix(graph_id)}-mechanical-section",
             projection_type="mechanical_section_view",
             input_file=input_file,
             render_layers=[("section", list(section.edges), None)],
@@ -502,6 +504,7 @@ class MechanicalVisualRenderer:
         projection: CadProjection,
         lane: MechanicalLane,
         target_revision: str,
+        graph_id: str = "golden-design-1",
         gate_report: MechanicalGateReport,
         output_path: Path,
     ) -> VisualProjectionRecord:
@@ -556,7 +559,7 @@ class MechanicalVisualRenderer:
         )
         record = self._render(
             output_path=output_path,
-            projection_id="gd1-mechanical-interference",
+            projection_id=f"{artifact_prefix(graph_id)}-mechanical-interference",
             projection_type="mechanical_interference_view",
             input_file=input_file,
             render_layers=[
@@ -578,6 +581,7 @@ def _render_mechanical_section(
     projection: CadProjection,
     lane: MechanicalLane,
     target_revision: str,
+    graph_id: str,
     out_dir: Path,
 ) -> VisualProjectionRecord:
     renderer = MechanicalVisualRenderer(base_dir=out_dir)
@@ -585,7 +589,8 @@ def _render_mechanical_section(
         projection=projection,
         lane=lane,
         target_revision=target_revision,
-        output_path=out_dir / "visual/gd1-mechanical-section.svg",
+        graph_id=graph_id,
+        output_path=out_dir / f"visual/{artifact_prefix(graph_id)}-mechanical-section.svg",
         section_plane_id="xy",
     )
 
@@ -595,6 +600,7 @@ def _render_mechanical_interference(
     projection: CadProjection,
     lane: MechanicalLane,
     target_revision: str,
+    graph_id: str,
     gate_report: MechanicalGateReport,
     out_dir: Path,
 ) -> VisualProjectionRecord:
@@ -603,8 +609,9 @@ def _render_mechanical_interference(
         projection=projection,
         lane=lane,
         target_revision=target_revision,
+        graph_id=graph_id,
         gate_report=gate_report,
-        output_path=out_dir / "visual/gd1-mechanical-interference.svg",
+        output_path=out_dir / f"visual/{artifact_prefix(graph_id)}-mechanical-interference.svg",
     )
 
 
@@ -616,6 +623,7 @@ def generate_mechanical_visual_projections(
     gate_report: MechanicalGateReport,
     out_dir: Path,
     runner: PipelineStageRunner | None = None,
+    graph_id: str = "golden-design-1",
 ) -> VisualProjectionSet:
     """Generate mechanical SVG projections after mechanical gates pass."""
     if not gate_report.kernel_valid or not gate_report.clearance or not gate_report.wall_thickness:
@@ -628,6 +636,7 @@ def generate_mechanical_visual_projections(
                 projection=projection,
                 lane=lane,
                 target_revision=target_revision,
+                graph_id=graph_id,
                 out_dir=out_dir,
             ),
         ),
@@ -638,6 +647,7 @@ def generate_mechanical_visual_projections(
                 projection=projection,
                 lane=lane,
                 target_revision=target_revision,
+                graph_id=graph_id,
                 gate_report=gate_report,
                 out_dir=out_dir,
             ),

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@b821b5466e2feee0783f2f819d8c4105ccf77eb8",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@85ee221e72d7c5f668779211893bd302c0faab55",
 # ]
 # ///
 """Typed extraction of the firmware lane from a design graph.
@@ -13,6 +13,7 @@ consume these views; missing or malformed attributes fail closed.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from acd.schema.design_graph import DesignGraph
 
@@ -43,6 +44,45 @@ class FirmwareLane:
             if pin.net_id == net_id:
                 return pin.gpio
         raise FirmwareExtractionError(f"no firmware pin assignment for net {net_id!r}")
+
+
+@dataclass(frozen=True)
+class FirmwareSettings:
+    led_blink_period_ms: int = 1000
+    log_period_ms: int = 2000
+    boot_log_message: str = "ACD GD1 fw boot target_revision=%s"
+
+
+def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
+    modules = [node for node in graph.nodes if node.kind == "firmware.module"]
+    if len(modules) != 1:
+        raise FirmwareExtractionError("graph must contain exactly one firmware.module node")
+    attrs = modules[0].attrs
+    values: dict[str, object] = {}
+    for name, default in (
+        ("led_blink_period_ms", 1000),
+        ("log_period_ms", 2000),
+        ("boot_log_message", "ACD GD1 fw boot target_revision=%s"),
+    ):
+        value = attrs.get(name, default)
+        if isinstance(value, bool) or not isinstance(value, type(default)):
+            raise FirmwareExtractionError(
+                f"node {modules[0].id!r}: attr {name!r} is malformed"
+            )
+        if isinstance(value, int) and value <= 0:
+            raise FirmwareExtractionError(
+                f"node {modules[0].id!r}: attr {name!r} must be positive"
+            )
+        if isinstance(value, str) and not value:
+            raise FirmwareExtractionError(
+                f"node {modules[0].id!r}: attr {name!r} must not be empty"
+            )
+        values[name] = value
+    return FirmwareSettings(
+        led_blink_period_ms=cast(int, values["led_blink_period_ms"]),
+        log_period_ms=cast(int, values["log_period_ms"]),
+        boot_log_message=cast(str, values["boot_log_message"]),
+    )
 
 
 def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:

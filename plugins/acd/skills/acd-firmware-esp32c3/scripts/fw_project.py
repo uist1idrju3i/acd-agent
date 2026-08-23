@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from fw_graph import FirmwareLane
+from fw_graph import FirmwareLane, FirmwareSettings
 
 _SEPARATOR_PATTERN = re.compile(r"[^a-z0-9]+")
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -70,7 +70,10 @@ def _macro_name(net_id: str) -> str:
     return "ACD_PIN_" + net_id.removeprefix("net.").upper()
 
 
-def render_pins_header(lane: FirmwareLane, target_revision: str) -> str:
+def render_pins_header(
+    lane: FirmwareLane, target_revision: str, settings: FirmwareSettings | None = None
+) -> str:
+    settings = settings or FirmwareSettings()
     lines = [
         "/* Generated from the design graph. Do not edit: the graph is canonical. */",
         "#pragma once",
@@ -87,8 +90,8 @@ def render_pins_header(lane: FirmwareLane, target_revision: str) -> str:
     lines += [
         "",
         f"#define ACD_SHT40_I2C_ADDRESS 0x{SHT40_I2C_ADDRESS:02x}",
-        f"#define ACD_LED_BLINK_PERIOD_MS {LED_BLINK_PERIOD_MS}",
-        f"#define ACD_LOG_PERIOD_MS {LOG_PERIOD_MS}",
+        f"#define ACD_LED_BLINK_PERIOD_MS {settings.led_blink_period_ms}",
+        f"#define ACD_LOG_PERIOD_MS {settings.log_period_ms}",
         "",
     ]
     return "\n".join(lines)
@@ -195,8 +198,13 @@ CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 
 
 def write_firmware_project(
-    lane: FirmwareLane, target_revision: str, out_dir: Path, graph_id: str
+    lane: FirmwareLane,
+    target_revision: str,
+    out_dir: Path,
+    graph_id: str,
+    settings: FirmwareSettings | None = None,
 ) -> FirmwareProject:
+    settings = settings or FirmwareSettings()
     name = firmware_project_name(graph_id)
     root = out_dir.resolve() / name
     main_dir = root / "main"
@@ -206,9 +214,11 @@ def write_firmware_project(
     (root / "sdkconfig.defaults").write_text(_SDKCONFIG_DEFAULTS)
     (main_dir / "CMakeLists.txt").write_text(_MAIN_CMAKE)
     pins_header = main_dir / "acd_pins.h"
-    pins_header.write_text(render_pins_header(lane, target_revision))
+    pins_header.write_text(render_pins_header(lane, target_revision, settings))
     main_source = main_dir / "acd_main.c"
-    main_source.write_text(_MAIN_C.replace(_LOG_TAG_PLACEHOLDER, log_tag(graph_id)))
+    source = _MAIN_C.replace(_LOG_TAG_PLACEHOLDER, log_tag(graph_id))
+    source = source.replace("ACD GD1 fw boot target_revision=%s", settings.boot_log_message)
+    main_source.write_text(source)
     return FirmwareProject(
         name=name, root=root, pins_header=pins_header, main_source=main_source
     )

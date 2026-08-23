@@ -13,13 +13,17 @@ import re
 from acd.schema.design_graph import DesignGraph, NodeKind
 
 __all__ = [
+    "artifact_prefix",
+    "evidence_id",
     "firmware_project_name",
     "output_prefix",
+    "required_evidence_ids",
     "subject_node_id",
 ]
 
 _OUTPUT_PREFIX_PATTERN = re.compile(r"^[a-z0-9]([a-z0-9-]*[a-z0-9])?$")
 _SEPARATOR_PATTERN = re.compile(r"[^a-z0-9]+")
+_LEGACY_GRAPH_PREFIXES = {"golden-design-1": "gd1"}
 
 
 def output_prefix(graph_id: str) -> str:
@@ -28,6 +32,23 @@ def output_prefix(graph_id: str) -> str:
     if not normalized or not _OUTPUT_PREFIX_PATTERN.fullmatch(normalized):
         raise ValueError(f"graph_id does not yield an output prefix: {graph_id!r}")
     return normalized
+
+
+def artifact_prefix(graph_id: str) -> str:
+    """Return the compatibility prefix used by legacy GD1 artifacts."""
+    normalized = output_prefix(graph_id)
+    return _LEGACY_GRAPH_PREFIXES.get(normalized, normalized)
+
+
+def evidence_id(graph_id: str, lane: str) -> str:
+    if lane not in {"electrical", "mechanical"}:
+        raise ValueError(f"unsupported Evidence lane: {lane!r}")
+    return f"evidence.{artifact_prefix(graph_id)}.{lane}"
+
+
+def required_evidence_ids(graph_id: str) -> frozenset[str]:
+    prefix = artifact_prefix(graph_id)
+    return frozenset({evidence_id(prefix, "electrical"), evidence_id(prefix, "mechanical")})
 
 
 def firmware_project_name(graph_id: str) -> str:

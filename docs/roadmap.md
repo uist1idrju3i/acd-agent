@@ -605,12 +605,12 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.1 | Skill package refのskew解消（H-1〜H-5） | refの陳腐化をCIと`/acd:doctor`で検出し、pinned `acd`をlocked imageへ事前導入して実行時のgit・ネットワーク依存を除く。CIでSkill scriptをfixtureに対し実行し、pinned `acd`でgraphが読めることを検査する。達成 |
 | 14.2 | 設計述語の適用条件宣言と機能ブロック契約registry（J-1〜J-3） | 宣言された機能ブロックに対応する述語だけを必須にし、新トポロジの追加を述語コード改変ではなく契約追加で行えるようにする。fab profileを複数持てるようにする。fail-closed境界は維持し、「検証不能」と「機能を持たない」を区別する |
 | 14.3 | 失敗理由の構造化とゲートの前倒し評価（B-3、B-4、K-3） | 未配線netとpad対などの失敗理由を機械可読Evidenceとして返し、配置のみで判定できる述語をrouter実行前に評価する。利用者向けに変更可能な次元と現在の余裕を含む形で提示する。達成 |
-| 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | B-8・B-9達成。設計自由度の宣言と`stitch_candidate_report`の常時保存を追加した。B-1・B-2・B-5〜B-7は未達であり、物理設計の自律探索loop全体は未完了 |
-| 14.5 | 要件→graphの変換と任意設計fixture（A-1〜A-5、I-2） | 会話由来の要件レコード化、任意設計向けfixtureビルダー、要件差分からgraph差分（接続・FWピン・テストポイント・シルク・rationale）を同時更新するcompiler、部品選定とlibrary provenance、回路トポロジ合成、agent向けtool（FW pipeline、fixture編集、発注、失敗診断）の網羅 |
-| 14.6 | gd1固定の解消と発注laneの汎用化（I-3〜I-5、E-5） | workspace既定値、生成物名・`part_number`、`order_policy`の必須evidence anchorをgraph_id由来にし、GD1以外の設計がorder-readyに到達できるようにする |
-| 14.7 | 実行時間と再開性（E-1〜E-4、E-6、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録。検証段階の並列実行（E-6）は達成済みで、pytestの`-n auto --dist loadgroup`と`verify_all.py --jobs N`（既定は`min(cpu_count, 4)`）がbarrierのない連続コマンドを並列実行する。`uv sync`とfullの後続pipelineはbarrierとして単独実行し、段階の構成・閾値・合否条件は変えない |
-| 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する |
-| 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合 |
+| 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | B-1・B-2・B-5〜B-9を達成。配置・回転とGPIO割当のbounded探索loop、placement coupling、単一mechanical datum、stitch via候補fallback、設計自由度の宣言、`stitch_candidate_report`の常時保存を追加した |
+| 14.5 | 要件→graphの変換と任意設計fixture（A-1〜A-5、I-2） | 会話由来の要件レコード化、任意設計向けfixtureビルダー、要件差分からgraph差分（接続・FWピン・テストポイント・シルク・rationale）を同時更新するcompiler、部品選定とlibrary provenance、回路トポロジ合成、agent向けtool（FW pipeline、fixture編集、発注、失敗診断）の網羅。機能ブロック契約registryへの宣言入口も追加した。達成 |
+| 14.6 | gd1固定の解消と発注laneの汎用化（I-3〜I-5、E-5、C-2〜C-3、D-1〜D-3） | workspace既定値、生成物名・`part_number`、`order_policy`の必須evidence anchor、FW設定をgraph_id・graph宣言由来にする。測定feedback適用、見積provider境界、実発注provider境界までを追加し、GD1以外の設計も同じlaneで扱えるようにする。達成（実supplier接続は境界の後続作業） |
+| 14.7 | 実行時間と再開性（E-1〜E-4、E-6、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録を達成した。検証段階の並列実行（E-6）は既存の`pytest -n auto --dist loadgroup`と`verify_all.py --jobs N`を維持し、`uv sync`とfullの後続pipelineはbarrierとして単独実行する。新しいcacheはDSN／SESの生成物だけを対象とし、ゲートとEvidenceは毎回再実行する |
+| 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する。達成 |
+| 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合。達成 |
 
 C-1〜C-4（筐体の干渉解決探索、FWのgraph駆動化、FW整合gate、CPL orientation期待値の
 fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
@@ -646,10 +646,19 @@ fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動�
 | negative・fail-closed | SES欠落・parse失敗は`unavailable`へ記録して従来gateへ委ねる。Evidence失敗で合格を不合格へ変えず、既存のGateError、閾値、停止位置を変更しない。未知の変更次元とcatalog被覆漏れは停止側へ倒す |
 | 再現性 | Evidenceはソート済みキー、固定座標丸め、canonical JSON SHA-256を使い、同一入力から同一バイト列を生成する |
 
-14.1〜14.3は達成済みである。14.7はE-6（検証段階の並列実行）だけ達成済みで、
-実測値は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のE-6行と
-[`operations.md`](operations.md)を正とする。14.7の残り（E-1〜E-4、K-1、K-2、K-4）と
-その他の14.4以降は計画である。
+14.1〜14.3、14.4、14.5、14.6、14.7、14.8および14.9は達成済みである。14.4では、
+配置・回転、GPIO割当、placement coupling、単一datum、stitch via fallbackを含むbounded
+探索loopへ接続した。14.5では、要件から任意fixture、部品選定、トポロジ合成、決定論的
+tool入口、機能ブロック契約registry宣言入口までを接続した。14.6では、GD1依存の命名、
+FW設定、feedback適用、quote/order provider境界をgraph・policy駆動へ一般化した。14.7では、
+単一orchestrator、入力hashに基づくDSN／SES生成物cache、cacheだけを利用するresume、
+各laneのL3 timing recordを追加した。14.8では、`/acd:init`と`acd_bootstrap_workspace`を
+単一のfail-closed初期化経路として追加し、workspace健全性doctorとL3 bootstrap recordを
+提供した。cache hitでもL1ゲートとEvidenceは再実行され、resumeは判定を保存・復元しない。
+生成物、compiler、Skill結果はpass authorityを持たず、14.9ではpublish workflowの連鎖、
+digest lock更新PR、registry manifest照合、配布文書の整合を追加した。L1決定論的ゲートとrevision一致した
+authoritative Evidenceが唯一の合否根拠である。実測値と運用上の注意事項は
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)と[`operations.md`](operations.md)を正とする。
 
 ## マイルストーン15: 運用と文書の整備
 

@@ -25,6 +25,7 @@ from .common import (  # noqa: F401
     GerberRegionRecord,
     PadMeasurement,
     SegmentMeasurement,
+    UncoveredGroundRegionsError,
     UncoveredStitchViasError,
     ViaMeasurement,
 )
@@ -92,6 +93,7 @@ __all__ = [
     "GerberRegionRecord",
     "PadMeasurement",
     "SegmentMeasurement",
+    "UncoveredGroundRegionsError",
     "UncoveredStitchViasError",
     "ViaMeasurement",
     "apply_cpl_contract",

@@ -7,6 +7,10 @@ import subprocess
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from acd.core.runtime_records import TimingRecorder
 
 Command = tuple[str, ...]
 
@@ -83,7 +87,13 @@ def _emit_direct_result(index: int, total: int, result: CommandResult) -> None:
     print(f"[{index}/{total}] {status}", flush=True)
 
 
-def run_stage(commands: Sequence[CommandSpec | Command], jobs: int = 1) -> int:
+def run_stage(
+    commands: Sequence[CommandSpec | Command],
+    jobs: int = 1,
+    *,
+    timing: TimingRecorder | None = None,
+    results: list[tuple[CommandSpec, CommandResult]] | None = None,
+) -> int:
     """Run commands sequentially or concurrently with deterministic output."""
     if jobs < 1:
         raise ValueError("jobs must be a positive integer")
@@ -92,7 +102,14 @@ def run_stage(commands: Sequence[CommandSpec | Command], jobs: int = 1) -> int:
     if jobs == 1:
         for index, spec in enumerate(specs, start=1):
             _emit_start(index, total, spec, buffered=False)
+            stage_name = f"command-{index}:{shlex.join(spec.command)}"
+            if timing is not None:
+                timing.start(stage_name)
             result = _run_command(spec, capture_output=False)
+            if timing is not None:
+                timing.finish(stage_name)
+            if results is not None:
+                results.append((spec, result))
             _emit_direct_result(index, total, result)
             if result.returncode != 0:
                 return result.returncode or 1
@@ -104,7 +121,12 @@ def run_stage(commands: Sequence[CommandSpec | Command], jobs: int = 1) -> int:
             if specs[next_index].barrier:
                 spec = specs[next_index]
                 _emit_start(next_index + 1, total, spec, buffered=True)
+                batch_name = f"batch-{next_index + 1}:barrier"
+                if timing is not None:
+                    timing.start(batch_name)
                 result = _run_command(spec, capture_output=True)
+                if timing is not None:
+                    timing.finish(batch_name)
                 _emit_result(next_index + 1, total, spec, result)
                 next_index += 1
                 if result.returncode != 0:
@@ -118,15 +140,27 @@ def run_stage(commands: Sequence[CommandSpec | Command], jobs: int = 1) -> int:
                 specs[batch_start:next_index], start=batch_start
             ):
                 _emit_start(offset + 1, total, spec, buffered=True)
+                if timing is not None:
+                    timing.start(f"command-{offset + 1}:{shlex.join(spec.command)}")
+            batch_name = f"batch-{batch_start + 1}-{next_index}"
+            if timing is not None:
+                timing.start(batch_name)
             futures = [
                 executor.submit(_run_command, spec, capture_output=True)
                 for spec in specs[batch_start:next_index]
             ]
-            results = [future.result() for future in futures]
+            batch_results = [future.result() for future in futures]
+            if timing is not None:
+                timing.finish(batch_name)
             first_failure: int | None = None
             for offset, (spec, result) in enumerate(
-                zip(specs[batch_start:next_index], results, strict=True), start=batch_start
+                zip(specs[batch_start:next_index], batch_results, strict=True),
+                start=batch_start,
             ):
+                if timing is not None:
+                    timing.finish(f"command-{offset + 1}:{shlex.join(spec.command)}")
+                if results is not None:
+                    results.append((spec, result))
                 _emit_result(offset + 1, total, spec, result)
                 if result.returncode != 0 and first_failure is None:
                     first_failure = result.returncode or 1

@@ -11,7 +11,9 @@ from typing import Any
 
 from acd.core.cad_normalize import normalize_3mf, normalize_step
 from acd.core.mechanical import MechanicalLane
+from acd.core.naming import artifact_prefix
 from acd.core.process import ToolRun, run_in_process
+from acd.schema.design_graph import DesignGraph
 
 
 @dataclass(frozen=True)
@@ -95,8 +97,17 @@ def project_enclosure(
     graph_path: Path,
     out_dir: Path,
     target_revision: str,
+    graph_id: str | None = None,
 ) -> CadProjection:
     out_dir.mkdir(parents=True, exist_ok=True)
+    if graph_id is None:
+        try:
+            graph_id = DesignGraph.model_validate_json(
+                graph_path.read_text(encoding="utf-8")
+            ).graph_id
+        except (OSError, ValueError) as exc:
+            raise ValueError("enclosure graph_id is unknown (fail-closed)") from exc
+    prefix = artifact_prefix(graph_id)
     shell_step_path = out_dir / "enclosure-shell.step"
     lid_step_path = out_dir / "enclosure-lid.step"
     assembly_step_path = out_dir / "enclosure-assembly.step"
@@ -109,7 +120,7 @@ def project_enclosure(
             "format": "step-parts+assembly+3mf+manifest",
             "linear_deflection": 0.01,
             "angular_deflection": 0.1,
-            "part_number": "gd1-enclosure",
+            "part_number": f"{prefix}-enclosure",
         },
         sort_keys=True,
     ).encode()
@@ -126,13 +137,13 @@ def project_enclosure(
             shell,
             linear_deflection=0.01,
             angular_deflection=0.1,
-            part_number="gd1-enclosure-shell",
+            part_number=f"{prefix}-enclosure-shell",
         )
         mesher.add_shape(
             lid,
             linear_deflection=0.01,
             angular_deflection=0.1,
-            part_number="gd1-enclosure-lid",
+            part_number=f"{prefix}-enclosure-lid",
         )
         mesher.write(model_path)
         manifest = {
