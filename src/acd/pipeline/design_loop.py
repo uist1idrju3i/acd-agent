@@ -239,6 +239,8 @@ def run_design_loop(
     )
     try:
         graph_id = _graph_id(fixture_dir)
+        prefix = output_prefix(graph_id)
+        artifact = artifact_prefix(graph_id)
     except Exception as exc:
         return {
             "ok": False,
@@ -248,7 +250,6 @@ def run_design_loop(
             "failure_reason": f"{type(exc).__name__}: {exc}",
             "results": [],
         }
-    prefix = output_prefix(graph_id)
     selected = tuple(stages) if stages is not None else DESIGN_LOOP_STAGE_IDS
     if selected != DESIGN_LOOP_STAGE_IDS:
         return {
@@ -270,7 +271,7 @@ def run_design_loop(
             "pass_evidence": False,
             "graph_id": graph_id,
             "output_prefix": prefix,
-            "artifact_prefix": artifact_prefix(graph_id),
+            "artifact_prefix": artifact,
             "failed_stage": "input",
             "failure_reason": f"output root is not usable: {exc}",
             "results": [],
@@ -302,7 +303,7 @@ def run_design_loop(
                 "pass_evidence": False,
                 "graph_id": graph_id,
                 "output_prefix": prefix,
-                "artifact_prefix": artifact_prefix(graph_id),
+                "artifact_prefix": artifact,
                 "failed_stage": stage_id,
                 "failure_reason": result.get("failure_reason", "stage failed"),
                 "results": results,
@@ -313,6 +314,6 @@ def run_design_loop(
         "pass_evidence": False,
         "graph_id": graph_id,
         "output_prefix": prefix,
-        "artifact_prefix": artifact_prefix(graph_id),
+        "artifact_prefix": artifact,
         "results": results,
     }

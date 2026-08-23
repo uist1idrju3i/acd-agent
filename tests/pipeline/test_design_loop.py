@@ -151,3 +151,25 @@ def test_invalid_graph_input_fails_closed(tmp_path: Path) -> None:
     assert result["fail_closed"] is True
     assert result["failed_stage"] == "input"
     assert result["results"] == []
+
+
+def test_unsafe_graph_id_fails_closed(tmp_path: Path) -> None:
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    graph = (FIXTURE / "graph.json").read_text(encoding="utf-8")
+    (fixture / "graph.json").write_text(
+        graph.replace('"graph_id": "golden-design-1"', '"graph_id": "!!!"'),
+        encoding="utf-8",
+    )
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+    )
+
+    assert result["ok"] is False
+    assert result["fail_closed"] is True
+    assert result["failed_stage"] == "input"
+    assert "output prefix" in result["failure_reason"]
