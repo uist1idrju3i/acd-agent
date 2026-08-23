@@ -81,90 +81,6 @@ class _ContextGridColumn:
 
 
 @dataclass(frozen=True)
-class _ContextGridPartition:
-    """Combine shared context with one grid column for evaluation."""
-
-    bundle: _ContextGridBundle
-    column: _ContextGridColumn
-
-    @property
-    def text(self) -> SilkTextView:
-        return self.bundle.text
-
-    @property
-    def outline(self) -> tuple[float, float, float, float]:
-        return self.bundle.outline
-
-    @property
-    def rotation(self) -> float:
-        return self.column.rotation
-
-    @property
-    def x(self) -> float:
-        return self.column.x
-
-    @property
-    def width(self) -> float:
-        return self.column.width
-
-    @property
-    def height(self) -> float:
-        return self.column.height
-
-    @property
-    def measured_width(self) -> float:
-        return self.column.measured_width
-
-    @property
-    def measured_height(self) -> float:
-        return self.column.measured_height
-
-    @property
-    def pads(self) -> tuple[dict[str, Any], ...]:
-        return self.bundle.pads
-
-    @property
-    def masks(self) -> tuple[dict[str, Any], ...]:
-        return self.bundle.masks
-
-    @property
-    def mask_openings(self) -> tuple[object, ...]:
-        return self.bundle.mask_openings
-
-    @property
-    def existing(self) -> tuple[dict[str, Any], ...]:
-        return self.bundle.existing
-
-    @property
-    def fixed(self) -> tuple[dict[str, Any], ...]:
-        return self.bundle.fixed
-
-    @property
-    def bodies(self) -> tuple[dict[str, Any], ...]:
-        return self.bundle.bodies
-
-    @property
-    def courtyards(self) -> tuple[dict[str, Any], ...]:
-        return self.bundle.courtyards
-
-    @property
-    def dynamic_silk(self) -> tuple[dict[str, Any], ...]:
-        return self.bundle.dynamic_silk
-
-    @property
-    def target(self) -> tuple[float, float, float, float] | None:
-        return self.bundle.target
-
-    @property
-    def center(self) -> tuple[float, float]:
-        return self.bundle.center
-
-    @property
-    def reference(self) -> str | None:
-        return self.bundle.reference
-
-
-@dataclass(frozen=True)
 class _ContextGridChunk:
     """Group grid columns so each process task reuses one context bundle."""
 
@@ -194,44 +110,45 @@ def _context_distance(
 
 
 def _evaluate_context_grid_partition(
-    partition: _ContextGridPartition,
+    bundle: _ContextGridBundle,
+    column: _ContextGridColumn,
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     """Evaluate one rotation and x-column partition in declaration order."""
-    text = partition.text
+    text = bundle.text
     candidates: list[dict[str, object]] = []
     rejected: list[dict[str, object]] = []
-    y = partition.outline[1] + partition.height / 2
-    while y <= partition.outline[3] - partition.height / 2 + 1e-9:
+    y = bundle.outline[1] + column.height / 2
+    while y <= bundle.outline[3] - column.height / 2 + 1e-9:
         candidate_bbox = (
-            partition.x - partition.width / 2,
-            y - partition.height / 2,
-            partition.x + partition.width / 2,
-            y + partition.height / 2,
+            column.x - column.width / 2,
+            y - column.height / 2,
+            column.x + column.width / 2,
+            y + column.height / 2,
         )
         attribution_bbox = (
-            partition.x - partition.measured_width / 2,
-            y - partition.measured_height / 2,
-            partition.x + partition.measured_width / 2,
-            y + partition.measured_height / 2,
+            column.x - column.measured_width / 2,
+            y - column.measured_height / 2,
+            column.x + column.measured_width / 2,
+            y + column.measured_height / 2,
         )
         candidate = {
-            "x_mm": round(partition.x, 9),
+            "x_mm": round(column.x, 9),
             "y_mm": round(y, 9),
-            "rotation_deg": partition.rotation,
+            "rotation_deg": column.rotation,
             "layer": text.layer,
             "bbox_mm": list(candidate_bbox),
         }
         reason: str | None = None
         margin = text.board_edge_margin_mm
         if (
-            candidate_bbox[0] < partition.outline[0] + margin
-            or candidate_bbox[1] < partition.outline[1] + margin
-            or candidate_bbox[2] > partition.outline[2] - margin
-            or candidate_bbox[3] > partition.outline[3] - margin
+            candidate_bbox[0] < bundle.outline[0] + margin
+            or candidate_bbox[1] < bundle.outline[1] + margin
+            or candidate_bbox[2] > bundle.outline[2] - margin
+            or candidate_bbox[3] > bundle.outline[3] - margin
         ):
             reason = "board_edge_margin"
         else:
-            for item in partition.pads:
+            for item in bundle.pads:
                 layers = item.get("layers")
                 if not isinstance(layers, list):
                     raise GraphExtractionError("silkscreen context pad layers are missing")
@@ -242,7 +159,7 @@ def _evaluate_context_grid_partition(
                     break
         if reason is None:
             mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
-            for item in partition.masks:
+            for item in bundle.masks:
                 if item.get("layer") == mask_layer and _rects_overlap(
                     candidate_bbox, _context_bbox(item)
                 ):
@@ -250,7 +167,7 @@ def _evaluate_context_grid_partition(
                     break
         if reason is None:
             mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
-            for item in partition.mask_openings:
+            for item in bundle.mask_openings:
                 if isinstance(item, dict):
                     if item.get("layer") != mask_layer:
                         continue
@@ -277,8 +194,8 @@ def _evaluate_context_grid_partition(
                     break
         if reason is None:
             for source, item in (
-                [("existing_silk_objects", item) for item in partition.existing]
-                + [("fixed_silk_objects", item) for item in partition.fixed]
+                [("existing_silk_objects", item) for item in bundle.existing]
+                + [("fixed_silk_objects", item) for item in bundle.fixed]
             ):
                 if item.get("layer") == text.layer and _rects_overlap(
                     candidate_bbox, _context_bbox(item)
@@ -286,7 +203,7 @@ def _evaluate_context_grid_partition(
                     reason = source
                     break
         if reason is None:
-            for item in partition.dynamic_silk:
+            for item in bundle.dynamic_silk:
                 if item.get("layer") == text.layer and _rects_overlap(
                     candidate_bbox, _context_bbox(item)
                 ):
@@ -294,19 +211,19 @@ def _evaluate_context_grid_partition(
                     break
         if reason is None:
             copper_layer = text.layer.replace("SilkS", "Cu")
-            for item in partition.bodies + partition.courtyards:
+            for item in bundle.bodies + bundle.courtyards:
                 if item.get("layer") == copper_layer and _rects_overlap(
                     candidate_bbox, _context_bbox(item)
                 ):
                     reason = (
                         "body_bboxes_mm"
-                        if item in partition.bodies
+                        if item in bundle.bodies
                         else "courtyard_bboxes_mm"
                     )
                     break
-        if reason is None and partition.reference is not None:
+        if reason is None and bundle.reference is not None:
             component_distances: dict[str, float] = {}
-            for item in partition.bodies + partition.courtyards:
+            for item in bundle.bodies + bundle.courtyards:
                 refdes = item.get("refdes")
                 if (
                     isinstance(refdes, str)
@@ -321,19 +238,19 @@ def _evaluate_context_grid_partition(
                 if component_distances
                 else None
             )
-            if nearest is not None and nearest[0] != partition.reference:
+            if nearest is not None and nearest[0] != bundle.reference:
                 reason = "nearest_component_mismatch"
         if reason is None:
             candidate["distance_mm"] = (
-                _context_distance(candidate_bbox, partition.target)
-                if partition.target is not None
+                _context_distance(candidate_bbox, bundle.target)
+                if bundle.target is not None
                 else _context_distance(
                     candidate_bbox,
                     (
-                        partition.center[0],
-                        partition.center[1],
-                        partition.center[0],
-                        partition.center[1],
+                        bundle.center[0],
+                        bundle.center[1],
+                        bundle.center[0],
+                        bundle.center[1],
                     ),
                 )
             )
@@ -352,9 +269,7 @@ def _evaluate_context_grid_chunk(
 ]:
     """Evaluate a declaration-ordered chunk of grid columns."""
     return tuple(
-        _evaluate_context_grid_partition(
-            _ContextGridPartition(bundle=chunk.bundle, column=column)
-        )
+        _evaluate_context_grid_partition(chunk.bundle, column)
         for column in chunk.columns
     )
 
