@@ -647,13 +647,14 @@ fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動�
 | 再現性 | Evidenceはソート済みキー、固定座標丸め、canonical JSON SHA-256を使い、同一入力から同一バイト列を生成する |
 
 14.1〜14.3は達成済みである。14.4はB-1・B-2・B-8・B-9を達成済みだが、
-B-5〜B-7は後続である。14.7はE-6（検証段階の並列実行）だけ達成済みで、
-実測値は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のE-6行と
-[`operations.md`](operations.md)を正とする。14.7の残り（E-1〜E-4、K-1、K-2、K-4）と
-14.5はA-1〜A-5とI-2を達成し、要件から任意fixture、部品選定、トポロジ合成、
-決定論的tool入口までを接続した。生成物、compiler、Skill結果はpass authorityを持たず、
-L1決定論的ゲートとrevision一致したauthoritative Evidenceが引き続き唯一の合否根拠である。
-その他の14.4以降は計画である。
+B-5〜B-7は後続である。14.5はA-1〜A-5とI-2を達成し、要件から任意fixture、
+部品選定、トポロジ合成、決定論的tool入口までを接続した。生成物、compiler、
+Skill結果はpass authorityを持たず、L1決定論的ゲートとrevision一致した
+authoritative Evidenceが引き続き唯一の合否根拠である。14.7はE-6
+（検証段階の並列実行）だけ達成済みで、実測値は
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のE-6行と
+[`operations.md`](operations.md)を正とする。14.7の残り
+（E-1〜E-4、K-1、K-2、K-4）とその他の14.6以降は計画である。
 
 ## マイルストーン15: 運用と文書の整備
 
