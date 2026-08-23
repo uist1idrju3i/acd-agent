@@ -22,6 +22,10 @@ checkout as valid, but fails a store path other than the direct
 The prompt manifest check validates its canonical hash and asset hashes, while
 `scripts/verify_agent_prompts.py --check` remains authoritative for
 SDK-normalized prompt hashes.
+The Skill package reference check also validates the offline package contract:
+the contract ref, imported-script hashes and symbols, and fixture kinds must
+remain compatible with the pinned ACD schema. A missing or malformed contract
+is a required failure.
 
 Optional host capabilities may produce `degraded` with exit code 0. Host EDA
 absence is observational and does not itself lower the status. Docker

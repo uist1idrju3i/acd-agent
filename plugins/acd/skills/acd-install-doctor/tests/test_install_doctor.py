@@ -264,6 +264,83 @@ def test_declared_agent_skill_is_reported_by_name(tmp_path: Path) -> None:
     assert "acd-placement-search" in check["detail"]
 
 
+def _package_check(report: dict[str, Any]) -> dict[str, Any]:
+    return next(
+        check for check in report["checks"] if check["name"] == "Skill package reference"
+    )
+
+
+def test_package_contract_missing_fails_closed(tmp_path: Path) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    (copied / "skills/acd-package-contract.json").unlink()
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    assert _package_check(report)["result"] == "fail"
+
+
+def test_package_contract_unparseable_fails_closed(tmp_path: Path) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    (copied / "skills/acd-package-contract.json").write_text("{", encoding="utf-8")
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    assert _package_check(report)["result"] == "fail"
+
+
+def test_package_contract_ref_mismatch_fails_closed(tmp_path: Path) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    contract = copied / "skills/acd-package-contract.json"
+    document = json.loads(contract.read_text(encoding="utf-8"))
+    document["ref"] = "0" * 40
+    contract.write_text(json.dumps(document), encoding="utf-8")
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    assert "contract.ref" in _package_check(report)["detail"]
+
+
+def test_package_contract_script_hash_fails_closed(tmp_path: Path) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    contract = copied / "skills/acd-package-contract.json"
+    document = json.loads(contract.read_text(encoding="utf-8"))
+    entry = next(item for item in document["scripts"] if item["path"].startswith("plugins/acd/"))
+    entry["sha256"] = "0" * 64
+    contract.write_text(json.dumps(document), encoding="utf-8")
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    assert "sha256" in _package_check(report)["detail"]
+
+
+def test_package_contract_symbols_and_fixture_kinds_fail_closed(
+    tmp_path: Path,
+) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    contract = copied / "skills/acd-package-contract.json"
+    document = json.loads(contract.read_text(encoding="utf-8"))
+    entry = next(item for item in document["scripts"] if item["path"].startswith("plugins/acd/"))
+    entry["acd_symbols"] = []
+    document["fixture_kinds"] = ["missing.kind"]
+    contract.write_text(json.dumps(document), encoding="utf-8")
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    detail = _package_check(report)["detail"]
+    assert "imported acd symbols exceed contract symbols" in detail
+    assert "absent from schema" in detail
+
+
+def test_package_contract_without_edge_kinds_rejects_fixture_edge_kind(
+    tmp_path: Path,
+) -> None:
+    copied, script = _copy_plugin(tmp_path)
+    contract = copied / "skills/acd-package-contract.json"
+    document = json.loads(contract.read_text(encoding="utf-8"))
+    document.pop("edge_kinds", None)
+    document["fixture_kinds"] = ["edge.kind"]
+    contract.write_text(json.dumps(document), encoding="utf-8")
+    completed, report = _run(script, tmp_path)
+    assert completed.returncode == 1
+    detail = _package_check(report)["detail"]
+    assert "absent from schema" in detail
+
+
 def _docker_stub() -> str:
     return (
         'if [ "$1" = "--version" ]; then '

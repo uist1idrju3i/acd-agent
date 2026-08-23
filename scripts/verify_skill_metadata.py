@@ -21,11 +21,21 @@ DEPENDENCIES_RE = re.compile(r"(?ms)^dependencies\s*=\s*\[\s*(.*?)\s*\]")
 DEPENDENCY_ENTRY_RE = re.compile(r'(?m)^\s*"([^"]*)"\s*,?\s*$')
 
 
-def _relative(path: Path, repository: Path) -> str:
+def relative(path: Path, repository: Path) -> str:
     return path.relative_to(repository).as_posix()
 
 
-def _metadata_body(source: str) -> tuple[str | None, list[str], str | None]:
+def metadata_block(source: str) -> str | None:
+    start = SCRIPT_START_RE.match(source)
+    if start is None:
+        return None
+    end = SCRIPT_END_RE.search(source, start.end())
+    if end is None:
+        return None
+    return source[start.start() : end.end()]
+
+
+def metadata_body(source: str) -> tuple[str | None, list[str], str | None]:
     start = SCRIPT_START_RE.match(source)
     if start is None:
         return None, [], "missing PEP 723 script block at the top of the file"
@@ -56,30 +66,30 @@ def _metadata_body(source: str) -> tuple[str | None, list[str], str | None]:
     return requires[0], entries, None
 
 
-def _read_ref(repository: Path, errors: list[str]) -> str | None:
+def read_ref(repository: Path, errors: list[str]) -> str | None:
     path = repository / "plugins" / "acd" / "skills" / "acd-package-ref.txt"
     try:
         raw = path.read_text(encoding="utf-8")
     except OSError as error:
-        errors.append(f"{_relative(path, repository)}: cannot read ref: {error}")
+        errors.append(f"{relative(path, repository)}: cannot read ref: {error}")
         return None
     lines = raw.splitlines()
     ref = raw.strip()
     if len(lines) != 1 or not ref or lines[0].strip() != ref:
         errors.append(
-            f"{_relative(path, repository)}: ref must contain exactly one non-empty line"
+            f"{relative(path, repository)}: ref must contain exactly one non-empty line"
         )
         return None
     if REF_RE.fullmatch(ref) is None:
         errors.append(
-            f"{_relative(path, repository)}: invalid pinned ref {ref!r}; "
+            f"{relative(path, repository)}: invalid pinned ref {ref!r}; "
             "expected a 40-character lowercase SHA or v<semver> tag"
         )
         return None
     return ref
 
 
-def _read_requires_python(repository: Path, errors: list[str]) -> str | None:
+def read_requires_python(repository: Path, errors: list[str]) -> str | None:
     try:
         document = tomllib.loads(
             (repository / "pyproject.toml").read_text(encoding="utf-8")
@@ -98,8 +108,8 @@ def _read_requires_python(repository: Path, errors: list[str]) -> str | None:
 def verify_repository(repository: Path = REPO_ROOT) -> list[str]:
     """Return all metadata drift errors found in a repository tree."""
     errors: list[str] = []
-    ref = _read_ref(repository, errors)
-    requires_python = _read_requires_python(repository, errors)
+    ref = read_ref(repository, errors)
+    requires_python = read_requires_python(repository, errors)
     scripts_root = repository / "plugins" / "acd" / "skills"
     scripts = sorted(scripts_root.glob("*/scripts/*.py"))
     acd_scripts: list[Path] = []
@@ -107,7 +117,7 @@ def verify_repository(repository: Path = REPO_ROOT) -> list[str]:
         try:
             source = script.read_text(encoding="utf-8")
         except OSError as error:
-            errors.append(f"{_relative(script, repository)}: cannot read script: {error}")
+            errors.append(f"{relative(script, repository)}: cannot read script: {error}")
             continue
         if IMPORT_RE.search(source) is not None:
             acd_scripts.append(script)
@@ -122,12 +132,12 @@ def verify_repository(repository: Path = REPO_ROOT) -> list[str]:
         else None
     )
     for script in acd_scripts:
-        relative_script = _relative(script, repository)
+        relative_script = relative(script, repository)
         try:
             source = script.read_text(encoding="utf-8")
         except OSError:
             continue
-        script_requires, dependencies, metadata_error = _metadata_body(source)
+        script_requires, dependencies, metadata_error = metadata_body(source)
         if metadata_error is not None:
             errors.append(f"{relative_script}: {metadata_error}")
         elif requires_python is not None and script_requires != requires_python:
@@ -142,7 +152,7 @@ def verify_repository(repository: Path = REPO_ROOT) -> list[str]:
             )
 
         skill = script.parent.parent / "SKILL.md"
-        relative_skill = _relative(skill, repository)
+        relative_skill = relative(skill, repository)
         try:
             skill_text = skill.read_text(encoding="utf-8")
         except OSError as error:
