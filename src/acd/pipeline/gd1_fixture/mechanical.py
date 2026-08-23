@@ -39,6 +39,28 @@ MECHANICAL_OUTLINE_ATTRS: dict[str, AttrValue] = {
 }
 
 
+def mounting_hole_body_positions(
+    outline_attrs: dict[str, AttrValue] = MECHANICAL_OUTLINE_ATTRS,
+) -> tuple[tuple[float, float], ...]:
+    """Derive a mounting-hole body center from the outline datum."""
+    count = outline_attrs.get("mount_hole_count")
+    if isinstance(count, bool) or not isinstance(count, int) or count < 1:
+        raise ValueError("mount_hole_count outline datum is malformed")
+    positions: list[tuple[float, float]] = []
+    for index in range(1, count + 1):
+        x = outline_attrs.get(f"mount_hole_{index}_x_mm")
+        y = outline_attrs.get(f"mount_hole_{index}_y_mm")
+        if (
+            isinstance(x, bool)
+            or not isinstance(x, int | float)
+            or isinstance(y, bool)
+            or not isinstance(y, int | float)
+        ):
+            raise ValueError(f"mount_hole_{index} outline datum is malformed")
+        positions.append((float(x), float(y)))
+    return tuple(positions)
+
+
 def _body(
     component_id: str,
     *,
@@ -68,6 +90,22 @@ def _body(
             "dimensions_source_ref": source_ref,
             "dimensions_checked_at": "2026-08-11T00:00:00Z",
         },
+    )
+
+
+def _mounting_hole_body(
+    index: int, position: tuple[float, float]
+) -> tuple[str, dict[str, AttrValue]]:
+    return _body(
+        f"comp.h{index}",
+        x_mm=position[0],
+        y_mm=position[1],
+        width_mm=2.2,
+        depth_mm=2.2,
+        height_mm=0.0,
+        body_type="none",
+        source="KiCad MountingHole_2.2mm_M2 has no component body",
+        source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty",
     )
 
 
@@ -171,18 +209,8 @@ MECHANICAL_COMPONENT_BODIES: tuple[tuple[str, dict[str, AttrValue]], ...] = (
         for index in range(1, 8)
     ),
     *(
-        _body(
-            f"comp.h{index}",
-            x_mm=1.5 if index % 2 else 28.5,
-            y_mm=1.5 if index <= 2 else 23.5,
-            width_mm=2.2,
-            depth_mm=2.2,
-            height_mm=0.0,
-            body_type="none",
-            source="KiCad MountingHole_2.2mm_M2 has no component body",
-            source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty",
-        )
-        for index in range(1, 5)
+        _mounting_hole_body(index, position)
+        for index, position in enumerate(mounting_hole_body_positions(), start=1)
     ),
 )
 

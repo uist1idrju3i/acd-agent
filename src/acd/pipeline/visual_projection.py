@@ -27,6 +27,7 @@ from acd.core.cad_normalize import normalize_3mf, normalize_step
 from acd.core.electrical import ElectricalLane
 from acd.core.firmware_lane import FirmwareLane
 from acd.core.mechanical import MechanicalLane
+from acd.core.naming import artifact_prefix
 from acd.core.process import sha256_bytes
 from acd.core.visual_projection import normalized_svg_sha256
 from acd.schema.design_graph import DesignGraph
@@ -838,6 +839,7 @@ def crosscheck_mechanical_visual_projections(
     gate_report: MechanicalGateReport,
     base_dir: Path,
     output_path: Path | None = None,
+    graph_id: str = "golden-design-1",
 ) -> VisualCrosscheckReport:
     """Cross-check mechanical SVG projections against CAD and gate inputs."""
     if visual_projection_set.source_revision != source_revision:
@@ -851,9 +853,10 @@ def crosscheck_mechanical_visual_projections(
         "mechanical_section_view",
         "mechanical_interference_view",
     }
+    prefix = artifact_prefix(graph_id)
     expected_ids = {
-        "gd1-mechanical-section",
-        "gd1-mechanical-interference",
+        f"{prefix}-mechanical-section",
+        f"{prefix}-mechanical-interference",
     }
     actual_types = [item.projection_type for item in visual_projection_set.projections]
     actual_ids = {item.projection_id for item in visual_projection_set.projections}
@@ -862,7 +865,7 @@ def crosscheck_mechanical_visual_projections(
         description="Projection set contains exactly the declared mechanical views",
         expected=(
             "mechanical_section_view=1; mechanical_interference_view=1; "
-            "projection_ids=gd1-mechanical-section,gd1-mechanical-interference"
+            f"projection_ids={prefix}-mechanical-section,{prefix}-mechanical-interference"
         ),
         actual=(
             f"types={','.join(sorted(actual_types)) or 'none'}; "

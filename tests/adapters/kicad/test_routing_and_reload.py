@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-# pyright: reportPrivateImportUsage=false, reportPrivateUsage=false, reportUnknownMemberType=false, reportUnknownLambdaType=false
+# pyright: reportMissingTypeStubs=false, reportPrivateImportUsage=false, reportPrivateUsage=false, reportUnknownMemberType=false, reportUnknownLambdaType=false
 from pathlib import Path
 from typing import Any, cast
 
@@ -10,6 +10,7 @@ import pytest
 
 from acd.adapters.kicad.board import stitch_via_pitch
 from acd.adapters.kicad.fab import (
+    UncoveredGroundRegionsError,
     UncoveredStitchViasError,
 )
 from acd.adapters.kicad.fab.gerber import (
@@ -33,6 +34,7 @@ from acd.core.board_model import (
     RoutedWire,
 )
 from acd.core.electrical import BoardView
+from acd.pipeline.stitch_candidate_evidence import summarize_stitch_candidate_report
 
 _BOARD = '(kicad_pcb (version 20240108) (net 0 "") (net 1 "GND")\n)\n'
 
@@ -139,6 +141,116 @@ def test_stitch_candidate_report_records_exclusion_reasons() -> None:
         if item["selected"]
     )
     assert report["allowed_points_override"] is False
+    assert report["fallback_used"] is False
+
+
+def test_stitch_via_fallback_activates_after_primary_candidates_are_excluded() -> None:
+    from acd.core.board_model import KeepoutRect
+
+    keepouts = tuple(
+        KeepoutRect(f"primary-{index}", x - 0.2, y - 0.2, x + 0.2, y + 0.2)
+        for index, (x, y) in enumerate(
+                (
+                    (0.3, 3.3),
+                    (0.3, 6.3),
+                    (3.3, 0.3),
+                    (3.3, 3.3),
+                    (3.3, 6.3),
+                    (3.3, 9.3),
+                    (3.3, 9.7),
+                    (6.3, 0.3),
+                    (6.3, 3.3),
+                    (6.3, 6.3),
+                    (6.3, 9.3),
+                    (6.3, 9.7),
+                    (9.3, 0.3),
+                    (9.3, 3.3),
+                    (9.3, 6.3),
+                    (9.3, 9.3),
+                    (9.3, 9.7),
+                    (9.7, 3.3),
+                    (9.7, 6.3),
+                    (4.8, 3.3),
+                )
+        )
+    )
+    model = BoardModel(
+        10.0, 10.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), keepouts,
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    _, vias, report = inject_stitch_vias(
+        _BOARD, model, RoutedDesign((), ()), {"GND": 1}, 3.0, 0.6, 0.3
+    )
+    assert report["fallback_used"] is True
+    assert report["fallback_candidates"]
+    assert report["fallback_excluded_candidates"]
+    assert vias
+
+
+def test_stitch_via_fallback_still_fails_closed_when_empty() -> None:
+    from acd.core.board_model import KeepoutRect
+
+    model = BoardModel(
+        10.0, 10.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (),
+        (KeepoutRect("all", 0.0, 0.0, 10.0, 10.0),),
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    with pytest.raises(RouteInjectionError, match="no safe stitch-via locations"):
+        inject_stitch_vias(
+            _BOARD, model, RoutedDesign((), ()), {"GND": 1}, 3.0, 0.6, 0.3
+        )
+
+
+def test_stitch_via_region_fallback_is_scoped_when_primary_region_is_blocked() -> None:
+    model = BoardModel(
+        20.0,
+        15.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.0,
+        (),
+        (),
+        (),
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    routes = RoutedDesign(
+        (
+            RoutedWire("GND", "F.Cu", 0.15, ((3.3, 2.8), (3.3, 3.8))),
+        ),
+        (),
+    )
+    _, vias, report = inject_stitch_vias(
+        _BOARD,
+        model,
+        routes,
+        {"GND": 1},
+        3.0,
+        0.6,
+        0.3,
+        fallback_regions=(("F.Cu", (3.0, 3.0, 5.9, 5.9)),),
+    )
+    assert report["fallback_used"] is True
+    assert report["fallback_scope"] == "uncovered_conductor_regions"
+    summary = summarize_stitch_candidate_report(report)
+    assert summary["fallback_region_count"] == 1
+    regions = cast(list[object], report["fallback_region_reports"])
+    assert len(regions) == 1
+    region = cast(dict[str, Any], regions[0])
+    assert region["layer"] == "F.Cu"
+    assert region["selected_candidates"]
+    assert vias
+    primary_candidates = cast(list[dict[str, Any]], report["candidates"])
+    assert any(
+        candidate["position_mm"] == [3.3, 3.3]
+        and "wire" in candidate["exclusion_reasons"]
+        for candidate in primary_candidates
+    )
 
 
 def test_uncovered_stitch_via_error_preserves_structured_locations() -> None:
@@ -146,6 +258,53 @@ def test_uncovered_stitch_via_error_preserves_structured_locations() -> None:
     error = UncoveredStitchViasError(locations)
     assert error.locations == locations
     assert "stitch vias lack copper coverage" in str(error)
+
+
+def test_uncovered_ground_regions_error_preserves_layer_and_bbox() -> None:
+    error = UncoveredGroundRegionsError(
+        (("F.Cu", (1.0, 1.0, 1.5, 1.5)), ("B.Cu", (2.0, 2.0, 3.0, 3.0)))
+    )
+    assert error.regions == (
+        ("F.Cu", (1.0, 1.0, 1.5, 1.5)),
+        ("B.Cu", (2.0, 2.0, 3.0, 3.0)),
+    )
+    assert "bbox_mm" in str(error)
+
+
+def test_gerber_uncovered_ground_region_is_structured(tmp_path: Path) -> None:
+    from acd.adapters.kicad.fab import verify_ground_plane_gerbers
+    from acd.core.board_model import CopperZone, KeepoutRect
+
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    front.write_text(
+        _gerber_region("Conductor", side=0.5)
+        + _gerber_region("Conductor", x=9.0, y=9.0, side=4.0)
+    )
+    back.write_text(_gerber_region("Conductor", x=9.0, y=9.0, side=4.0))
+    model = BoardModel(
+        20.0,
+        15.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.0,
+        (),
+        (BoardNet("GND", ()),),
+        (KeepoutRect("antenna", 18.0, 10.0, 19.0, 11.0),),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 0.0),),
+    )
+    with pytest.raises(UncoveredGroundRegionsError) as error_info:
+        verify_ground_plane_gerbers(
+            front,
+            back,
+            model,
+            ((10.0, 10.0),),
+            RoutedDesign((), ()),
+        )
+    assert error_info.value.regions == (("F.Cu", (1.0, 1.0, 1.5, 1.5)),)
 
 
 def test_gerber_y_axis_conversion_matches_board_frame() -> None:
@@ -393,13 +552,22 @@ def test_small_zone_region_fails_but_pad_region_is_excluded(tmp_path: Path) -> N
         verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),), RoutedDesign((), ()))
 
 
-def _gerber_region(function: str, side: float = 0.5) -> str:
-    end = int((1.0 + side) * 1_000_000)
+def _gerber_region(
+    function: str,
+    side: float = 0.5,
+    *,
+    x: float = 1.0,
+    y: float = 1.0,
+) -> str:
+    start_x = int(x * 1_000_000)
+    start_y = int(-y * 1_000_000)
+    end_x = int((x + side) * 1_000_000)
+    end_y = int(-(y + side) * 1_000_000)
     return (
         "%FSLAX46Y46*%\n%MOMM*%\n"
         f"G04 #@! TA.AperFunction,{function}*\nG36*\nG01*\n"
-        f"X1000000Y-1000000D02*X{end}Y-1000000D01*X{end}Y-{end}D01*"
-        f"X1000000Y-{end}D01*X1000000Y-1000000D01*G37*\n"
+        f"X{start_x}Y{start_y}D02*X{end_x}Y{start_y}D01*X{end_x}Y{end_y}D01*"
+        f"X{start_x}Y{end_y}D01*X{start_x}Y{start_y}D01*G37*\n"
         "G04 #@! TD.AperFunction*\n"
     )
 

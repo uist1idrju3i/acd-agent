@@ -23,6 +23,13 @@ from acd.schema.context import (
     EventViewProjection,
     MemoryContextObservation,
 )
+from acd.schema.design_fixture import (
+    DesignFixtureSpec,
+    FixtureComponentSpec,
+    FixtureFirmwarePinSpec,
+    FixtureFunctionalBlockSpec,
+    FixtureNetSpec,
+)
 from acd.schema.design_freedom import (
     DESIGN_FREEDOM_DIMENSION_IDS,
     DesignFreedomDeclarationDocument,
@@ -41,6 +48,8 @@ from acd.schema.evidence import (
 from acd.schema.fab_profile import FabProfileDocument, FabProfileRegistryDocument
 from acd.schema.feedback import (
     AppliedFeedbackValidationReport,
+    FeedbackApplyPolicy,
+    FeedbackApplyRule,
     FeedbackItemStatus,
     FeedbackPolicy,
     FeedbackProposal,
@@ -81,11 +90,11 @@ from acd.schema.order_execution import (
     dry_run_payload_hash,
 )
 from acd.schema.order_policy import (
-    REQUIRED_ORDER_EVIDENCE_IDS,
     EvidenceReference,
     OrderPolicy,
     PreOrderGateRecord,
     PreOrderGateRecordBody,
+    required_order_evidence_ids,
 )
 from acd.schema.order_scope import (
     MechanicalTreatment,
@@ -96,6 +105,12 @@ from acd.schema.order_total import (
     OrderSubtotalDocument,
     OrderTotalDocument,
     QuoteCanonicalHashDocument,
+)
+from acd.schema.parts_catalog import (
+    ComponentPartRequest,
+    PartCatalogEntry,
+    PartLibraryRef,
+    PartsCatalogDocument,
 )
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
@@ -130,6 +145,7 @@ from acd.schema.receipt import (
     ReconciliationStatus,
     ShipmentManifestReference,
 )
+from acd.schema.requirement import RequirementDocument, RequirementRecord
 from acd.schema.side_effect_journal import (
     ExecutionMode,
     JournalEntryBody,
@@ -169,7 +185,6 @@ from acd.schema.visual_projection import (
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "DESIGN_FREEDOM_DIMENSION_IDS",
-    "REQUIRED_ORDER_EVIDENCE_IDS",
     "UNKNOWN",
     "AcdCredentialReference",
     "AcdModel",
@@ -179,11 +194,13 @@ __all__ = [
     "AcdSettingsReport",
     "AcdSettingsStatus",
     "AppliedFeedbackValidationReport",
+    "ComponentPartRequest",
     "ContextSource",
     "ConvergenceState",
     "CrosscheckAspect",
     "CrosscheckStatus",
     "DecisionKind",
+    "DesignFixtureSpec",
     "DesignFreedomDeclarationDocument",
     "DesignFreedomDimension",
     "DesignGraph",
@@ -200,6 +217,8 @@ __all__ = [
     "ExecutionMode",
     "FabProfileDocument",
     "FabProfileRegistryDocument",
+    "FeedbackApplyPolicy",
+    "FeedbackApplyRule",
     "FeedbackItemStatus",
     "FeedbackPolicy",
     "FeedbackProposal",
@@ -208,6 +227,10 @@ __all__ = [
     "FeedbackRule",
     "FeedbackRuleKind",
     "FeedbackValidationStatus",
+    "FixtureComponentSpec",
+    "FixtureFirmwarePinSpec",
+    "FixtureFunctionalBlockSpec",
+    "FixtureNetSpec",
     "FunctionalArtifact",
     "FunctionalBlockContract",
     "FunctionalBlockRegistryDocument",
@@ -242,6 +265,9 @@ __all__ = [
     "OrderScope",
     "OrderSubtotalDocument",
     "OrderTotalDocument",
+    "PartCatalogEntry",
+    "PartLibraryRef",
+    "PartsCatalogDocument",
     "PhysicalEvidence",
     "PostOrderJournalEntry",
     "PostOrderJournalEntryBody",
@@ -276,6 +302,8 @@ __all__ = [
     "ReconciliationReport",
     "ReconciliationStatus",
     "RejectedAlternative",
+    "RequirementDocument",
+    "RequirementRecord",
     "ReviewVerification",
     "RolePromptManifest",
     "RolePromptManifestEntry",
@@ -304,4 +332,5 @@ __all__ = [
     "contains_unknown",
     "dry_run_payload_hash",
     "is_unknown",
+    "required_order_evidence_ids",
 ]

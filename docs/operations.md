@@ -281,13 +281,27 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    ```
 
    `--jobs`の既定値は`min(os.cpu_count() or 1, 4)`である。`--jobs 1`はresolver、
-   基板lane、筐体lane、pytest subsetを宣言順に実行し、最初の失敗で停止する。
+   基板lane、筐体lane、FW lane、pytest subsetを宣言順に実行し、最初の失敗で停止する。
    それより大きい値ではresolverを単独実行した後、基板lane（`out/gd1`）、筐体lane
-   （`out/gd1-enclosure`）、pytest subsetを並列実行し、出力は宣言順に戻して失敗を
-   すべて報告する。`--list`は各commandとbarrier属性をJSONで表示する。
+   （`out/gd1-enclosure`）、FW lane（`out/gd1-fw`）、pytest subsetを並列実行し、
+   出力は宣言順に戻して失敗をすべて報告する。`--list`は各commandとbarrier属性をJSONで
+   表示する。全実行のL3観測は`out/timing-record.json`へ保存し、各laneの直接実行も
+   lane別`timing-record.json`を出力する。
+   基板のDSN exportとFreeRouting SES生成物は、明示した`--cache-dir`へ入力hash単位で
+   保存できる。例えば途中失敗後の再開は次のように実行する。
+
+   ```bash
+   uv run python scripts/run_gd1_lanes.py --resume --cache-dir out/.stage-cache
+   ```
+
+   `--resume`は有効な入力hash一致の生成物だけを復元し、判定、Evidence、timingを復元
+   しない。cache hitでもDSN／SESのparse、routing connectivity、DRC、Gerber、その他の
+   L1 gateは必ず再実行し、Evidenceも新規生成する。破損またはhash不一致のentryは
+   無視して再生成する。cache reportはL3観測であり、合否authorityではない。
    `container-gates` jobも、digest固定imageのDockerWorkspace内で`uv sync && uv run
    python scripts/run_gd1_lanes.py`を実行し、完了後にhost側でauthoritative Evidenceを
-   検証する。CPL／BOM chainとE-4のstage cacheは引き続き逐次または未実装である。
+   検証する。CPL／BOM chainは逐次のままだが、E-4のDSN／SES stage cacheは
+   `--cache-dir`または`--resume`で明示的に利用できる。
    host provisionalでのlane全体の測定は、基板laneが`freerouting` executable不在で
    fail-closedとなったため完了していない。失敗までのwall clockは`--jobs 1`が
    15.902秒、既定並列が29.331秒であり、成功時の短縮比較には使わない。外部ツールを
@@ -376,8 +390,10 @@ uv run python scripts/order_execution.py \
 
 出力payloadはpackage hash、宛先、対象revision、総額、許可hashだけから作られ、
 secret値、Evidence内容、時刻を含めない。journalには`dry_run`のpre/post組を記録するが、
-これは実発注完了として扱えない。`--real`は実providerへ送信せず、「real provider order
-execution is not enabled」として非ゼロ終了する。confirmation policyのskip、必須hook不在、
+これは実発注完了として扱えない。`--real`は明示provider設定とcredential環境変数が無ければ
+fail-closedで停止し、設定が揃っても実supplierへ送信せずprovider境界で非ゼロ終了する。
+submission record（`record_class=L3`、`pass_evidence=false`、`content_sha256`）とjournalの
+pre/post rejected組を残す。confirmation policyのskip、必須hook不在、
 credential参照名のallowlist外、上限額override、冪等key再送、provider scriptの非ゼロ終了、
 post記録失敗は停止条件である。実providerへの送信は本マイルストーンの範囲外であり、
 credentialの値を引数・journal・ログ・stdoutへ渡してはならない。`--command`は必須で、
@@ -441,7 +457,7 @@ command未実行をsuccessとして記録する経路はない。command形式�
    含めて起動し、次の入口を実行させる。
 
    ```bash
-   uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+   uv run --with cmake==3.31.6 --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
      --fixture fixtures/golden-design-1 --out out/gd1-fw
    ```
 
@@ -976,6 +992,23 @@ fail-closedとなり、CLIはtracebackを出さずexit code 2と`status="unknown
 適用を行う場合は人または別の明示的工程が入力graphを更新し、
 `validate_applied_feedback`でproposalに宣言されたnode／属性以外の差分がないことを
 検査する。提案生成と適用後検証はいずれも入力を書き換えない。
+
+policy付き適用を行う場合は次を使う。whitelist外、bounds/tolerance外、graph／revision不一致、
+malformed proposalは検証不能として停止する。`--dry-run`ではhashとL3 recordだけを生成し、
+通常実行ではpolicyのinput pathsを一括stagingして失敗時に全ファイルをrollbackする。
+
+```bash
+uv run python scripts/apply_input_feedback.py \
+  --proposal out/input-feedback-proposal.json \
+  --policy fixtures/feedback/apply-policy.json \
+  --repo-root . \
+  --record out/input-feedback-application.json \
+  --dry-run
+```
+
+見積取得は`QuoteProvider`境界を通るfixture providerを使用する。`scripts/fetch_quote.py`で
+provider設定を選び、期限切れ・malformed・未知providerは検証不能として停止する。実supplier
+adapterはこの境界へ追加する後続作業である。
 
 ## Role prompt manifest
 

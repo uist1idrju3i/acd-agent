@@ -24,6 +24,7 @@ from fw_graph import (
     FirmwareLane,
     FirmwarePinView,
     extract_firmware_lane,
+    extract_firmware_settings,
 )
 from fw_project import (
     FirmwareProjectionError,
@@ -83,6 +84,54 @@ def test_pins_header_is_deterministic(fw_lane: FirmwareLane, tmp_path: Path) -> 
     assert "#define ACD_PIN_LED 7" in header
     assert "#define ACD_SHT40_I2C_ADDRESS 0x44" in header
     assert 'ACD_TARGET_REVISION "r1"' in header
+
+
+def test_firmware_settings_default_and_declared_values(graph: DesignGraph) -> None:
+    defaults = extract_firmware_settings(graph)
+    assert defaults.led_blink_period_ms == 1000
+    assert defaults.log_period_ms == 2000
+    changed = next(node for node in graph.nodes if node.kind == "firmware.module")
+    declared = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={
+                        "attrs": {
+                            **node.attrs,
+                            "led_blink_period_ms": 250,
+                            "log_period_ms": 750,
+                            "boot_log_message": "boot %s",
+                        }
+                    }
+                )
+                if node.id == changed.id
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    settings = extract_firmware_settings(declared)
+    assert settings.led_blink_period_ms == 250
+    assert settings.log_period_ms == 750
+    assert settings.boot_log_message == "boot %s"
+
+
+def test_malformed_firmware_settings_fail_closed(graph: DesignGraph) -> None:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    broken = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={"attrs": {**node.attrs, "log_period_ms": 0}}
+                )
+                if node.id == module.id
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    with pytest.raises(FirmwareExtractionError, match="log_period_ms"):
+        extract_firmware_settings(broken)
 
 
 def test_project_name_is_derived_from_the_graph_id(

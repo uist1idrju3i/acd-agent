@@ -484,3 +484,93 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
         if check["name"] == "hook invocability"
     )
     assert invocable_hook_check["result"] == "pass"
+
+
+def test_workspace_repository_missing_fails_closed(tmp_path: Path) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("install_doctor", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    result = module._workspace_repository_check(tmp_path / "missing")
+    assert result["result"] in {"fail", "unknown"}
+    assert result["required"] is True
+
+
+def test_workspace_submodule_missing_fails_closed(tmp_path: Path) -> None:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("install_doctor", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    result = module._workspace_submodule_check(tmp_path)
+    assert result["result"] == "fail"
+    assert result["required"] is True
+
+
+def test_workspace_lock_out_of_sync_fails_closed(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import importlib.util
+
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (tmp_path / "uv.lock").write_text("version = 1\n", encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("install_doctor", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    def find_uv(command: str) -> str:
+        del command
+        return "/bin/uv"
+
+    monkeypatch.setattr(module.shutil, "which", find_uv)
+
+    def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        del kwargs
+        assert command == ["/bin/uv", "lock", "--check"]
+        return subprocess.CompletedProcess(command, 1, "", "lock needs update")
+
+    monkeypatch.setattr(module.subprocess, "run", run)
+    result = module._workspace_lock_check(tmp_path)
+    assert result["result"] == "fail"
+
+
+def test_workspace_missing_digest_is_unknown_without_pull(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import importlib.util
+
+    digest_path = tmp_path / "docker"
+    digest_path.mkdir()
+    (digest_path / "image-digests.json").write_text(
+        json.dumps(
+            {
+                "acd_tools": {
+                    "image": "example/acd-tools",
+                    "digest": "sha256:" + "a" * 64,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    spec = importlib.util.spec_from_file_location("install_doctor", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    def find_docker(command: str) -> str:
+        del command
+        return "/bin/docker"
+
+    monkeypatch.setattr(module.shutil, "which", find_docker)
+    def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
+        del kwargs
+        return subprocess.CompletedProcess(command, 1, "", "not found")
+
+    monkeypatch.setattr(module.subprocess, "run", run)
+    result = module._workspace_digest_check(tmp_path)
+    assert result["result"] == "unknown"
+    assert "pull" in result["detail"]

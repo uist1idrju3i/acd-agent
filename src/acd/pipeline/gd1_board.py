@@ -24,6 +24,7 @@ import shutil
 import sys
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import asdict
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
@@ -39,7 +40,7 @@ from acd.adapters.kicad.cli import KicadCli, RuleCheckResult
 from acd.adapters.kicad.fab import (
     BoardMeasurement,
     CplBasisError,
-    FabOutputError,
+    UncoveredGroundRegionsError,
     UncoveredStitchViasError,
     apply_cpl_contract,
     cross_validate_bom,
@@ -103,11 +104,12 @@ from acd.core.functional_blocks import (
     declared_functional_blocks,
     load_functional_block_registry,
 )
-from acd.core.naming import output_prefix, subject_node_id
+from acd.core.naming import artifact_prefix, evidence_id, output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
 from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
+from acd.core.runtime_records import StageArtifactCache, TimingRecorder, write_timing_record
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.gate_evidence import (
     write_design_predicate_evidence,
@@ -291,6 +293,7 @@ def _summarize_width_violations(
 
 def build_electrical_evidence(
     *,
+    graph_id: str = "golden-design-1",
     revision: str,
     subject_node: str,
     envelope: ToolEnvelope,
@@ -371,7 +374,7 @@ def build_electrical_evidence(
         if predicate.status != "not_applicable"
     ]
     return Evidence(
-        evidence_id="evidence.gd1.electrical",
+        evidence_id=evidence_id(graph_id, "electrical"),
         target_revision=revision,
         status="valid",
         envelope=envelope,
@@ -710,12 +713,26 @@ def run_pipeline(
     pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
     fab_profile_id: str | None = None,
     freerouting_threads: int = DEFAULT_FREEROUTING_THREADS,
+    cache_dir: Path | None = None,
+    timing_recorder: TimingRecorder | None = None,
 ) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     out_dir = out_dir.resolve()
+    stage_number = 0
+    if timing_recorder is not None:
+        timing_recorder.start("board[0/12]")
+
+    def mark_stage(number: int) -> None:
+        nonlocal stage_number
+        if timing_recorder is None or number == stage_number:
+            return
+        timing_recorder.finish(f"board[{stage_number}/12]")
+        stage_number = number
+        timing_recorder.start(f"board[{stage_number}/12]")
+
     lane = extract_electrical_lane(graph)
     functional_registry = load_functional_block_registry()
     design_freedom = load_design_freedom_declaration()
@@ -759,6 +776,7 @@ def run_pipeline(
         pipeline_workers,
     )
     print("[0/12] rationale coverage passed")
+    mark_stage(1)
     revision = graph.revision
     design_predicates = cast(
         tuple[PredicateResult, ...],
@@ -831,35 +849,100 @@ def run_pipeline(
     kicad = KicadCli()
 
     print(f"[1/12] project written: {project.root}")
+    mark_stage(2)
 
     erc = kicad.erc(project.schematic, out_dir / f"{name}.erc.json", revision)
     assert_rule_check_passed("ERC", erc, require_connected=False)
     print("[2/12] ERC gate passed (0 errors)")
-
-    dsn_path = out_dir / f"{name}.dsn"
-    dsn_path.write_text(export_dsn(project.board_projection.model, name))
+    mark_stage(3)
 
     router = FreeroutingRunner()
+    cache_events: list[dict[str, object]] = []
+    cache = StageArtifactCache(cache_dir, cache_events) if cache_dir is not None else None
+    router_version = router.version() if cache is not None else None
+    routing_inputs = {
+        "graph_revision": revision,
+        "board_projection": asdict(project.board_projection.model),
+        "routing_config": {
+            "max_passes": max_passes,
+            "freerouting_threads": freerouting_threads,
+        },
+        "freerouting_version": router_version or "uncached",
+    }
+    dsn_path = out_dir / f"{name}.dsn"
+    dsn_key = StageArtifactCache.key("dsn-export", routing_inputs)
+    dsn_bytes = cache.get("dsn-export", dsn_key, ".dsn") if cache is not None else None
+    if dsn_bytes is None:
+        dsn_bytes = export_dsn(project.board_projection.model, name).encode("utf-8")
+        if cache is not None:
+            cache.put("dsn-export", dsn_key, ".dsn", dsn_bytes)
+    dsn_path.write_bytes(dsn_bytes)
+
     ses_path = out_dir / f"{name}.ses"
-    try:
-        route_run = router.route(
-            dsn_path,
-            ses_path,
-            revision,
-            max_passes=max_passes,
-            freerouting_threads=freerouting_threads,
-        )
-    except Exception as exc:
-        write_gate_evidence_or_unavailable(
-            out_dir,
-            "routing-connectivity.json",
-            target_revision=revision,
-            gate="routing_connectivity",
-            message="routing connectivity diagnostic unavailable; not gate authority",
-            write_evidence=None,
-            failure=exc,
-        )
-        raise
+    ses_key = StageArtifactCache.key("freerouting-ses", routing_inputs)
+    cached_ses = (
+        cache.get("freerouting-ses", ses_key, ".ses-record")
+        if cache is not None
+        else None
+    )
+    route_convergence_state = "unknown"
+    ses_bytes = b""
+    if cached_ses is not None:
+        try:
+            cached_record = json.loads(cached_ses.decode("utf-8"))
+            ses_bytes = str(cached_record["ses"]).encode("utf-8")
+            route_convergence_state = str(cached_record["convergence_state"])
+            if route_convergence_state not in {"converged", "not_converged", "unknown"}:
+                raise ValueError("cached router convergence state is invalid")
+        except (UnicodeDecodeError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+            cache_events.append(
+                {
+                    "stage": "freerouting-ses",
+                    "key": ses_key,
+                    "status": "ignored",
+                    "reason": "cached router record is malformed",
+                }
+            )
+            cached_ses = None
+    if cached_ses is not None:
+        ses_path.write_bytes(ses_bytes)
+    else:
+        route_run = None
+        try:
+            route_run = router.route(
+                dsn_path,
+                ses_path,
+                revision,
+                max_passes=max_passes,
+                freerouting_threads=freerouting_threads,
+            )
+            route_convergence_state = route_run.envelope.convergence_state
+            if cache is not None:
+                cache.put(
+                    "freerouting-ses",
+                    ses_key,
+                    ".ses-record",
+                    json.dumps(
+                        {
+                            "ses": ses_path.read_text(encoding="utf-8"),
+                            "convergence_state": route_convergence_state,
+                        },
+                        ensure_ascii=False,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    ).encode("utf-8"),
+                )
+        except Exception as exc:
+            write_gate_evidence_or_unavailable(
+                out_dir,
+                "routing-connectivity.json",
+                target_revision=revision,
+                gate="routing_connectivity",
+                message="routing connectivity diagnostic unavailable; not gate authority",
+                write_evidence=None,
+                failure=exc,
+            )
+            raise
     parsed_routes = None
     try:
         parsed_routes = parse_ses(
@@ -884,9 +967,9 @@ def run_pipeline(
                 project.board_projection.model,
                 parsed_routes,
             )
-            connectivity["router_convergence_state"] = route_run.envelope.convergence_state
+            connectivity["router_convergence_state"] = route_convergence_state
             connectivity["router_measurement_mismatch"] = (
-                route_run.envelope.convergence_state == "converged"
+                route_convergence_state == "converged"
                 and connectivity["status"] != "pass"
             )
             return write_gate_evidence(
@@ -907,8 +990,9 @@ def run_pipeline(
             message="routing connectivity diagnostic observation; not gate authority",
             write_evidence=write_connectivity_evidence,
         )
-    assert_converged(route_run.envelope.convergence_state)
+    assert_converged(route_convergence_state)
     print("[3/12] routing converged")
+    mark_stage(4)
 
     routes = parsed_routes or parse_ses(
         ses_path.read_text(),
@@ -960,6 +1044,9 @@ def run_pipeline(
     dru_source = out_dir / f"{name}.kicad_dru"
     initial_candidate_count = len(stitch_vias)
     pruned_vias: list[tuple[float, float]] = []
+    attempted_fallback_regions: set[
+        tuple[str, tuple[float, float, float, float]]
+    ] = set()
     iteration_measurements: list[dict[str, object]] = []
     converged_iteration: int | None = None
     for iteration in range(1, max_iterations + 1):
@@ -1038,7 +1125,42 @@ def run_pipeline(
                 f"[stitch-prune {iteration}] vias={len(stitch_vias)} "
                 f"uncovered={len(uncovered)} at {uncovered}"
             )
-        except FabOutputError as exc:
+        except UncoveredGroundRegionsError as exc:
+            fallback_regions = tuple(
+                region for region in exc.regions if region not in attempted_fallback_regions
+            )
+            if fallback_regions:
+                attempted_fallback_regions.update(fallback_regions)
+                routed_board, stitch_vias, fallback_stitch_report = inject_stitch_vias(
+                    base_routed_board,
+                    project.board_projection.model,
+                    routes,
+                    project.board_projection.net_numbers,
+                    project.board_projection.stitch_via_pitch_mm,
+                    lane.board.via_diameter_mm,
+                    lane.board.via_drill_mm,
+                    fallback_regions=fallback_regions,
+                )
+                stitch_candidate_reports.append(
+                    {
+                        "iteration": iteration,
+                        "phase": "region-fallback",
+                        "report": fallback_stitch_report,
+                    }
+                )
+                iteration_measurements.append(
+                    {
+                        "iteration": iteration,
+                        "via_count": len(stitch_vias),
+                        "uncovered_regions": fallback_regions,
+                        "fallback_attempted": True,
+                    }
+                )
+                print(
+                    f"[stitch-fallback {iteration}] regions={len(fallback_regions)} "
+                    f"vias={len(stitch_vias)}"
+                )
+                continue
             write_gate_evidence_or_unavailable(
                 out_dir,
                 "gnd-stitch-vias.json",
@@ -1053,7 +1175,16 @@ def run_pipeline(
                     gate="gnd_stitch_vias",
                     status="fail",
                     message="GND stitch-via diagnostic observation; not gate authority",
-                    observation={"error": str(exc)},
+                    observation={
+                        "error": str(exc),
+                        "uncovered_regions": [
+                            {
+                                "layer": layer,
+                                "bbox_mm": list(region_bbox),
+                            }
+                            for layer, region_bbox in exc.regions
+                        ],
+                    },
                 ),
                 failure=exc,
             )
@@ -1116,12 +1247,14 @@ def run_pipeline(
         f"normalized_wires={routes.normalized_wire_count}"
     )
 
+    mark_stage(5)
     kicad.refill_zones(routed_path, revision)
     filled_board_hash = normalized_hash(routed_path)
     drc = kicad.drc(routed_path, out_dir / f"{name}.drc.json", revision)
     assert_rule_check_input_matches("DRC", drc, [routed_path])
     assert_rule_check_passed("DRC", drc, require_connected=True)
     print("[5/12] DRC gate passed (0 errors, 0 unconnected)")
+    mark_stage(6)
     kicad_positive_control = _run_kicad_netclass_positive_control(
         kicad,
         routed_path,
@@ -1139,6 +1272,7 @@ def run_pipeline(
     )
     _drill_run, drill_paths = kicad.export_drill(routed_path, gerber_dir, revision)
     print(f"[6/12] fabrication outputs: {len(gerber_paths)} gerbers, {len(drill_paths)} drill")
+    mark_stage(7)
 
     expected_nets = set(project.board_projection.net_numbers)
     expected_refdes = {c.refdes for c in lane.components}
@@ -1160,6 +1294,7 @@ def run_pipeline(
     )
     _run_ordered_stages(reload_stages, pipeline_workers)
     print("[7/12] independent reload passed (sexpdata + gerbonara)")
+    mark_stage(8)
 
     fab_dir = out_dir / "fab"
     fab_dir.mkdir(parents=True, exist_ok=True)
@@ -1330,7 +1465,9 @@ def run_pipeline(
         if node.kind == "mechanical.board_edge_overhang"
     }
     cpl_basis_path = fab_dir / "cpl-basis-report.json"
-    lcsc_evidence_dir = repository_root() / "evidence/gd1-cpl-orientation"
+    lcsc_evidence_dir = (
+        repository_root() / f"evidence/{artifact_prefix(graph.graph_id)}-cpl-orientation"
+    )
     verified_rotation_offsets, rotation_evidence_notes, rotation_unknowns = (
         verify_lcsc_rotation_evidence(lcsc_evidence_dir, fixture_dir, measurement, lane, fitted)
     )
@@ -1413,6 +1550,7 @@ def run_pipeline(
         f"[8/12] CPL/BOM generated and cross-validated "
         f"({len(pos_rows)} position rows, {len(bom_rows)} BOM rows)"
     )
+    mark_stage(9)
 
     dfm_report = run_dfm(
         measurement,
@@ -1486,6 +1624,7 @@ def run_pipeline(
         f"[9/12] DFM report written ({dfm_report['status']}; "
         f"{len(cast(list[object], dfm_report['findings']))} findings)"
     )
+    mark_stage(10)
 
     package_members = [*gerber_paths, *drill_paths]
     zip_path = fab_dir / f"{name}-gerbers.zip"
@@ -1592,15 +1731,17 @@ def run_pipeline(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     )
     print("[10/12] manufacturing package written")
+    mark_stage(11)
     functional_registry = load_functional_block_registry()
     declared_blocks = declared_functional_blocks(graph, functional_registry)
     evidence = build_electrical_evidence(
+        graph_id=graph.graph_id,
         revision=revision,
         subject_node=subject_node_id(graph, "electrical.board"),
         envelope=drc.run.envelope,
         erc_errors=erc.error_count,
         erc_unconnected=len(erc.unconnected_items),
-        routing_converged=route_run.envelope.convergence_state == "converged",
+        routing_converged=route_convergence_state == "converged",
         drc_errors=drc.error_count,
         drc_unconnected=len(drc.unconnected_items),
         silkscreen_status=silk_evidence.get("status"),
@@ -1619,7 +1760,7 @@ def run_pipeline(
     electrical_gates = ElectricalVisualProjectionGates(
         erc_errors=erc.error_count,
         erc_unconnected=len(erc.unconnected_items),
-        routing_converged=route_run.envelope.convergence_state == "converged",
+        routing_converged=route_convergence_state == "converged",
         drc_errors=drc.error_count,
         drc_unconnected=len(drc.unconnected_items),
         independent_reload=True,
@@ -1769,9 +1910,24 @@ def run_pipeline(
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
     print(f"[12/12] hash manifest: {manifest_path}")
+    mark_stage(12)
+    if timing_recorder is not None:
+        timing_recorder.finish("board[12/12]")
     if order_readiness["status"] != "ready":
         print("製造データは生成済み、発注は不可: order-readiness gate failed")
         raise ValueError(f"Order readiness gate failed: {order_readiness_path}")
+    if cache is not None:
+        cache_report: dict[str, object] = {
+            "schema_version": "0.1",
+            "record_class": "L3",
+            "pass_evidence": False,
+            "events": cache_events,
+        }
+        cache_report["content_sha256"] = canonical_json_sha256(cache_report)
+        (out_dir / "cache-report.json").write_text(
+            json.dumps(cache_report, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     return hashes
 
 
@@ -1815,7 +1971,15 @@ def main() -> int:
     )
     parser.add_argument("--fab-profile", type=Path, default=None, help="versioned fab profile")
     parser.add_argument("--fab-profile-id", default=None, help="registered fab profile id")
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="opt-in content-addressed artifact cache directory",
+    )
     args = parser.parse_args()
+    timing = TimingRecorder()
+    timing.start("gd1-board-pipeline")
     try:
         run_pipeline(
             args.fixture,
@@ -1826,10 +1990,15 @@ def main() -> int:
             args.pipeline_workers,
             args.fab_profile_id,
             args.freerouting_threads,
+            args.cache_dir,
+            timing_recorder=timing,
         )
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1
+    finally:
+        timing.finish_open()
+        write_timing_record(args.out, timing)
     context, digest = execution_provenance()
     if context == "container" and digest != "unknown":
         print("PIPELINE PASSED (authoritative container execution)")

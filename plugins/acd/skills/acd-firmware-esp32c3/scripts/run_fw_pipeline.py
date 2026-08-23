@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@b821b5466e2feee0783f2f819d8c4105ccf77eb8",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@c6a2fa3b84a8645397765ca501b141366bc336a4",
 # ]
 # ///
 """Golden Design #1 firmware pipeline: graph -> ESP-IDF build -> QEMU.
@@ -40,7 +40,7 @@ from fw_checks import (
     assert_header_matches_lane,
     assert_pin_assignments_consistent,
 )
-from fw_graph import extract_firmware_lane
+from fw_graph import extract_firmware_lane, extract_firmware_settings
 from fw_project import write_firmware_project
 from fw_qemu import (
     VIRTUAL_MEASUREMENT_CONDITIONS,
@@ -55,9 +55,30 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
     )
     revision = graph.revision
     fw_lane = extract_firmware_lane(graph)
+    fw_settings = extract_firmware_settings(graph)
     electrical = extract_electrical_lane(graph)
 
-    project = write_firmware_project(fw_lane, revision, out_dir, graph.graph_id)
+    project = write_firmware_project(
+        fw_lane, revision, out_dir, graph.graph_id, fw_settings
+    )
+    config_report = {
+        "schema_version": 1,
+        "graph_id": graph.graph_id,
+        "target_revision": revision,
+        "pins": [
+            {"node_id": pin.node_id, "gpio": pin.gpio, "net": pin.net_id}
+            for pin in fw_lane.pins
+        ],
+        "settings": {
+            "led_blink_period_ms": fw_settings.led_blink_period_ms,
+            "log_period_ms": fw_settings.log_period_ms,
+            "boot_log_message": fw_settings.boot_log_message,
+        },
+    }
+    (out_dir / "firmware-config-report.json").write_text(
+        json.dumps(config_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     print(f"[1/5] firmware project projected: {project.root}")
 
     assert_header_matches_lane(project.pins_header.read_text(encoding="utf-8"), fw_lane)
@@ -91,6 +112,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
         "qemu_version": qemu.version(),
         "measurement_conditions": VIRTUAL_MEASUREMENT_CONDITIONS,
         "virtual_log": str(result.log_path),
+        "config_report": str(out_dir / "firmware-config-report.json"),
     }
 
 

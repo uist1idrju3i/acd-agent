@@ -9,6 +9,7 @@ import sys
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 from acd.openhands.order_execution import (
     default_confirmation_policy,
@@ -39,6 +40,16 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser.add_argument("--credential-reference", required=True)
     parser.add_argument("--occurred-at", required=True)
     parser.add_argument(
+        "--provider-config",
+        type=Path,
+        help="declared real-provider configuration; never used for dry-run",
+    )
+    parser.add_argument(
+        "--submission-record",
+        type=Path,
+        help="L3 record path for an explicitly rejected real submission",
+    )
+    parser.add_argument(
         "--hooks",
         type=Path,
         default=Path("plugins/acd/hooks/hooks.json"),
@@ -64,6 +75,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.permit.read_text(encoding="utf-8")
         )
         hooks = load_order_hooks(args.hooks)
+        provider_config = None
+        if args.provider_config is not None:
+            provider_config = json.loads(
+                args.provider_config.read_text(encoding="utf-8")
+            )
+            if not isinstance(provider_config, dict):
+                raise ValueError("provider configuration must be an object")
+            provider_config = cast(dict[str, object], provider_config)
         result = execute_order(
             authorization=authorization,
             journal_path=args.journal,
@@ -76,6 +95,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             hook_config=hooks,
             occurred_at=_timestamp(args.occurred_at),
             execution_mode="real" if args.real else "dry_run",
+            provider_config=provider_config,
+            submission_record_path=args.submission_record,
             command=args.command,
         )
     except (OSError, TypeError, ValueError) as exc:
