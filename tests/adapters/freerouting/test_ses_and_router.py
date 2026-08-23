@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from acd.adapters.freerouting.router import (
@@ -10,6 +12,7 @@ from acd.adapters.freerouting.router import (
     _convergence_from_log,  # pyright: ignore[reportPrivateUsage]
 )
 from acd.adapters.freerouting.ses import SesImportError, parse_ses
+from acd.core.process import sha256_bytes
 
 _SES = """
 (session "gd1.ses"
@@ -78,6 +81,61 @@ def test_router_absent_fails_closed(tmp_path: object) -> None:
     runner = FreeroutingRunner(executable="definitely-not-a-router")
     with pytest.raises(RouterUnavailableError):
         runner.version()
+
+
+def test_router_declares_thread_count_in_command_and_conditions(tmp_path: Path) -> None:
+    executable = tmp_path / "freerouting"
+    executable.write_text(
+        """#!/bin/sh
+if [ "$1" = "--version" ]; then
+  printf 'Freerouting v2.3.0\\n'
+  exit 0
+fi
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "-do" ]; then
+    shift
+    printf '(session "x" (routes (resolution um 10) (network_out)))\\n' > "$1"
+    printf '(0 unrouted and 0 violations)\\n'
+    exit 0
+  fi
+  shift
+done
+exit 2
+"""
+    )
+    executable.chmod(0o755)
+    dsn_path = tmp_path / "input.dsn"
+    dsn_path.write_text("(pcb x)")
+    ses_path = tmp_path / "output.ses"
+    runner = FreeroutingRunner(executable=str(executable))
+
+    with pytest.raises(ValueError, match="must be positive"):
+        runner.route(dsn_path, ses_path, "r1", freerouting_threads=0)
+
+    run = runner.route(
+        dsn_path,
+        ses_path,
+        "r1",
+        max_passes=10,
+        freerouting_threads=2,
+    )
+
+    command = [
+        str(executable),
+        "-de",
+        str(dsn_path),
+        "-do",
+        str(ses_path),
+        "-mp",
+        "10",
+        "-mt",
+        "2",
+    ]
+    assert run.envelope.config_hash == sha256_bytes("\x00".join(command).encode())
+    assert (
+        run.envelope.measurement_conditions
+        == "headless; max 10 passes; max 2 router threads"
+    )
 
 
 def test_convergence_parsing() -> None:
