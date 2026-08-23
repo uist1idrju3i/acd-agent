@@ -15,6 +15,7 @@ from acd.core.order_total import (
     OrderTotalResult,
     order_total_result_from_document,
 )
+from acd.core.timestamps import parse_evaluated_at
 from acd.openhands.order_gate import PreOrderGateError, evaluate_pre_order_gate
 from acd.openhands.workspace import run_command_in_workspace
 from acd.schema import OrderPolicy, OrderTotalDocument
@@ -38,13 +39,7 @@ def _load_policy(path: Path) -> OrderPolicy:
 
 
 def _evaluated_at(value: str) -> datetime:
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise ValueError("evaluated-at must be an ISO-8601 timestamp") from exc
-    if parsed.tzinfo is None:
-        raise ValueError("evaluated-at must include a timezone")
-    return parsed
+    return parse_evaluated_at(value)
 
 
 def _rerun_authoritative(

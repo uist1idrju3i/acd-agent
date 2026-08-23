@@ -861,12 +861,11 @@ class AcdRunDesignLoopExecutor(
     ) -> AcdRunDesignLoopObservation:
         del conversation
         try:
-            from datetime import datetime
-
+            from acd.core.timestamps import parse_evaluated_at
             from acd.pipeline.design_loop import run_design_loop
 
             evaluated_at = (
-                datetime.fromisoformat(action.evaluated_at.replace("Z", "+00:00"))
+                parse_evaluated_at(action.evaluated_at)
                 if action.evaluated_at
                 else None
             )

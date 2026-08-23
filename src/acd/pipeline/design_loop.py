@@ -5,7 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -29,35 +30,24 @@ DESIGN_LOOP_STAGE_IDS: tuple[str, ...] = (
 StageRunner = Callable[["DesignLoopConfig"], Any]
 
 
+@dataclass(frozen=True)
 class DesignLoopConfig:
     """Inputs for one graph-driven design loop."""
 
-    def __init__(
-        self,
-        fixture_dir: Path,
-        out_root: Path,
-        *,
-        order_total: Path,
-        policy: Path,
-        repository: Path | None = None,
-        fab_profile: Path | None = None,
-        fab_profile_id: str | None = None,
-        max_passes: int = 3,
-        max_silkscreen_iterations: int = 5,
-        run_seconds: int = 15,
-        evaluated_at: datetime | None = None,
-    ) -> None:
-        self.fixture_dir = fixture_dir
-        self.out_root = out_root
-        self.order_total = order_total
-        self.policy = policy
-        self.repository = repository or Path.cwd()
-        self.fab_profile = fab_profile
-        self.fab_profile_id = fab_profile_id
-        self.max_passes = max_passes
-        self.max_silkscreen_iterations = max_silkscreen_iterations
-        self.run_seconds = run_seconds
-        self.evaluated_at = evaluated_at or datetime.now(UTC)
+    fixture_dir: Path
+    out_root: Path
+    order_total: Path
+    policy: Path
+    repository: Path
+    graph_id: str
+    output_prefix: str
+    artifact_prefix: str
+    fab_profile: Path | None
+    fab_profile_id: str | None
+    max_passes: int
+    max_silkscreen_iterations: int
+    run_seconds: int
+    evaluated_at: datetime
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -93,7 +83,7 @@ def _file_sha256(path: Path) -> str:
 
 
 def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
-    output = config.out_root / f"{artifact_prefix(_graph_id(config.fixture_dir))}-silkscreen"
+    output = config.out_root / f"{config.artifact_prefix}-silkscreen"
     result = resolve_silkscreen(
         config.fixture_dir,
         output,
@@ -105,7 +95,7 @@ def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
 
 
 def _run_board(config: DesignLoopConfig) -> dict[str, Any]:
-    output = config.out_root / artifact_prefix(_graph_id(config.fixture_dir))
+    output = config.out_root / config.artifact_prefix
     result = run_board_pipeline(
         config.fixture_dir,
         output,
@@ -117,14 +107,14 @@ def _run_board(config: DesignLoopConfig) -> dict[str, Any]:
 
 
 def _run_enclosure(config: DesignLoopConfig) -> dict[str, Any]:
-    output = config.out_root / f"{artifact_prefix(_graph_id(config.fixture_dir))}-enclosure"
+    output = config.out_root / f"{config.artifact_prefix}-enclosure"
     result = run_enclosure_pipeline(config.fixture_dir, output)
     return _success("enclosure-pipeline", output_path=str(output), summary=result)
 
 
 def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
     script = _firmware_script(config.repository)
-    output = config.out_root / f"{artifact_prefix(_graph_id(config.fixture_dir))}-fw"
+    output = config.out_root / f"{config.artifact_prefix}-fw"
     if not script.is_file():
         return _failure("firmware-pipeline", f"firmware Skill script is missing: {script}")
     if config.run_seconds <= 0:
@@ -177,12 +167,22 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
 
 def _run_order_readiness(config: DesignLoopConfig) -> dict[str, Any]:
     try:
+        policy_path = (
+            config.policy
+            if config.policy.is_absolute()
+            else config.repository / config.policy
+        )
+        order_total_path = (
+            config.order_total
+            if config.order_total.is_absolute()
+            else config.repository / config.order_total
+        )
         policy = OrderPolicy.model_validate_json(
-            config.policy.read_text(encoding="utf-8")
+            policy_path.read_text(encoding="utf-8")
         )
         order_total = order_total_result_from_document(
             OrderTotalDocument.model_validate_json(
-                config.order_total.read_text(encoding="utf-8")
+                order_total_path.read_text(encoding="utf-8")
             )
         )
         record = evaluate_pre_order_gate(
@@ -207,6 +207,23 @@ def _graph_id(fixture_dir: Path) -> str:
     return graph.graph_id
 
 
+def _resolve_evaluated_at(value: datetime | None) -> datetime:
+    if value is None:
+        return datetime.now(UTC)
+    if value.tzinfo is None:
+        raise ValueError("evaluated-at must include a timezone")
+    return value
+
+
+DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
+    "silkscreen-resolve": _run_silkscreen,
+    "board-pipeline": _run_board,
+    "enclosure-pipeline": _run_enclosure,
+    "firmware-pipeline": _run_firmware,
+    "order-readiness": _run_order_readiness,
+}
+
+
 def run_design_loop(
     fixture_dir: Path,
     out_root: Path,
@@ -220,27 +237,29 @@ def run_design_loop(
     max_silkscreen_iterations: int = 5,
     run_seconds: int = 15,
     evaluated_at: datetime | None = None,
-    stages: Sequence[str] | None = None,
-    runners: dict[str, StageRunner] | None = None,
 ) -> dict[str, Any]:
     """Run all design stages in their fixed fail-closed order."""
-    config = DesignLoopConfig(
-        fixture_dir,
-        out_root,
-        order_total=order_total,
-        policy=policy,
-        repository=repository,
-        fab_profile=fab_profile,
-        fab_profile_id=fab_profile_id,
-        max_passes=max_passes,
-        max_silkscreen_iterations=max_silkscreen_iterations,
-        run_seconds=run_seconds,
-        evaluated_at=evaluated_at,
-    )
     try:
         graph_id = _graph_id(fixture_dir)
         prefix = output_prefix(graph_id)
         artifact = artifact_prefix(graph_id)
+        evaluated = _resolve_evaluated_at(evaluated_at)
+        config = DesignLoopConfig(
+            fixture_dir=fixture_dir,
+            out_root=out_root,
+            order_total=order_total,
+            policy=policy,
+            repository=(repository or Path.cwd()).resolve(),
+            graph_id=graph_id,
+            output_prefix=prefix,
+            artifact_prefix=artifact,
+            fab_profile=fab_profile,
+            fab_profile_id=fab_profile_id,
+            max_passes=max_passes,
+            max_silkscreen_iterations=max_silkscreen_iterations,
+            run_seconds=run_seconds,
+            evaluated_at=evaluated,
+        )
     except Exception as exc:
         return {
             "ok": False,
@@ -248,18 +267,6 @@ def run_design_loop(
             "pass_evidence": False,
             "failed_stage": "input",
             "failure_reason": f"{type(exc).__name__}: {exc}",
-            "results": [],
-        }
-    selected = tuple(stages) if stages is not None else DESIGN_LOOP_STAGE_IDS
-    if selected != DESIGN_LOOP_STAGE_IDS:
-        return {
-            "ok": False,
-            "fail_closed": True,
-            "pass_evidence": False,
-            "graph_id": graph_id,
-            "output_prefix": prefix,
-            "failed_stage": "stage-selection",
-            "failure_reason": "design loop stages cannot be skipped or reordered",
             "results": [],
         }
     try:
@@ -276,19 +283,10 @@ def run_design_loop(
             "failure_reason": f"output root is not usable: {exc}",
             "results": [],
         }
-    default_runners: dict[str, StageRunner] = {
-        "silkscreen-resolve": _run_silkscreen,
-        "board-pipeline": _run_board,
-        "enclosure-pipeline": _run_enclosure,
-        "firmware-pipeline": _run_firmware,
-        "order-readiness": _run_order_readiness,
-    }
-    if runners:
-        default_runners.update(runners)
     results: list[dict[str, Any]] = []
     for stage_id in DESIGN_LOOP_STAGE_IDS:
         try:
-            result = default_runners[stage_id](config)
+            result = DEFAULT_STAGE_RUNNERS[stage_id](config)
         except Exception as exc:
             result = _failure(stage_id, f"{type(exc).__name__}: {exc}")
         if not isinstance(result, dict):

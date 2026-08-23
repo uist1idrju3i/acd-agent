@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from collections.abc import Sequence
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from acd.core.timestamps import parse_evaluated_at
 from acd.pipeline.design_loop import run_design_loop
 
 
@@ -37,9 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         evaluated_at = (
-            datetime.fromisoformat(args.evaluated_at.replace("Z", "+00:00"))
-            if args.evaluated_at
-            else None
+            parse_evaluated_at(args.evaluated_at) if args.evaluated_at else None
         )
         result: dict[str, Any] = run_design_loop(
             args.fixture,
@@ -68,4 +65,4 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
