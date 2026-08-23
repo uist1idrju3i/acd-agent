@@ -459,9 +459,10 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 `publish-acd-server.yml`は`workflow_dispatch`専用で、lockから解決したACD tools
 digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、GHCRへpublishする。
 現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
-同梱した`sha256:ec8cb4b71baba91125dd667d1ec426d8d06f3c4561954206a21c6a65e2228319`である。
-そのbaseからderiveしたserver image
-`sha256:ee012c7afee787b8a46b4dfadfe530721ff42d13a902434ea2b393873556f219`をlockへ記録済みである。
+同梱した`sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`である。
+lock済みのserver image `sha256:ee012c7afee787b8a46b4dfadfe530721ff42d13a902434ea2b393873556f219`は
+更新前のtools digestからderiveした値であり、現行tools digestを反映するには
+`publish-acd-server.yml`の再`workflow_dispatch`とderived digestの転記が必要である。
 toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
 更新する。baseとderivedは独立に記録し、
 toolsとserverのdigestは同一とは扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
