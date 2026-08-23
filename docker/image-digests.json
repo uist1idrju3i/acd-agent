@@ -22,21 +22,21 @@
   },
   "acd_server": {
     "image": "ghcr.io/uist1idrju3i/acd-server",
-    "tag": "841a7871c78c030fc822c9270daf6ff144714e6b-latest-source",
-    "digest": "sha256:ee012c7afee787b8a46b4dfadfe530721ff42d13a902434ea2b393873556f219",
-    "published_at": "2026-08-20T16:03:49Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32389070021",
+    "tag": "f39ef4f309229a2ca5c6e920b22ad3afd6e1adad-latest-source",
+    "digest": "sha256:92085be8bc821928ff4cc861f6262817f128a60459ba2302daf45dadcea263f0",
+    "published_at": "2026-08-23T09:22:34Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32630370032",
     "dockerfile": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/Dockerfile",
     "tools": {
       "kicad-cli": "10.0.5",
       "freerouting": "2.3.0",
       "ngspice": "45.2",
       "python3.14": "Python 3.14.4",
-      "uv": "uv 0.12.3 (x86_64-unknown-linux-gnu)",
-      "java": "openjdk 25.0.3 2026-04-21",
+      "uv": "uv 0.12.5 (x86_64-unknown-linux-gnu)",
+      "java": "openjdk 26.0.1 2026-04-21",
       "git": "git version 2.53.0",
       "libcairo2": "1.18.4-3",
-      "esp-idf": "ESP-IDF v5.3.1",
+      "esp-idf": "ESP-IDF v6.0.2",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
       "ccache": "ccache version 4.12.3"
     }
