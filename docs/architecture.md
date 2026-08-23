@@ -95,8 +95,12 @@ rationale／lane抽出／筐体投影の逐次区間とimportを重ねる。機�
 artifact測定helperのshell／lid／assembly再読込は同じrunnerへsubmitし、nested poolを作らない。
 ゲート完了後の断面投影と干渉投影も同じrunnerの独立stageとしてsubmitし、結果はprojection ID順に
 reduceする。基板pipelineの`run_ordered_stages`は既定context（Linuxではfork）を維持し、
-spawn化はOCP/build123dを使う筐体経路に限定する。`--pipeline-workers 1`はpoolを作らず
-同じ依存境界を逐次実行し、worker数とstart methodはhash、Evidence、provenanceへ含めない。
+spawn化はOCP/build123dを使う筐体経路に限定する。warm-upはworker数分のjobを
+Manager由来のBarrierで待ち合わせ、import失敗やtimeoutは最適化の失敗として警告し、
+判定を変えずに通常経路を続行する。`--pipeline-workers 1`はpoolを作らず同じ依存境界を
+逐次実行する。2コアVMではCAD stageの実処理よりspawnとOCP importのコストが大きかったため、
+筐体経路の既定worker数は1とし、並列は明示指定時だけ有効にする。worker数とstart methodは
+hash、Evidence、provenanceへ含めない。
 
 ## OpenHands plugin
 

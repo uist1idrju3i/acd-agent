@@ -20,7 +20,7 @@ from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.naming import subject_node_id
-from acd.core.parallel import DEFAULT_PIPELINE_WORKERS, PipelineStageRunner
+from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
@@ -44,7 +44,7 @@ def run_pipeline(
     fixture_dir: Path,
     out_dir: Path,
     *,
-    pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
+    pipeline_workers: int = DEFAULT_CAD_STAGE_WORKERS,
 ) -> dict[str, object]:
     with PipelineStageRunner(pipeline_workers) as runner:
         return _run_pipeline(fixture_dir, out_dir, runner=runner)
@@ -259,7 +259,7 @@ def main() -> int:
     parser.add_argument(
         "--pipeline-workers",
         type=int,
-        default=DEFAULT_PIPELINE_WORKERS,
+        default=DEFAULT_CAD_STAGE_WORKERS,
         help="parallel workers for independent Python pipeline stages",
     )
     args = parser.parse_args()

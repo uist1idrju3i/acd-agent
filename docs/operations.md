@@ -196,16 +196,19 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    検査するが、最終合否はauthoritative projectionと独立測定ゲートが判定する。基板pipelineは
    `scripts/run_gd1_pipeline.py`、筐体pipelineは
    `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
-   基板・筐体pipelineの独立したPython stageは、既定のCPU数（最大4）を使って実行する。
-   `--pipeline-workers N`でworker数を指定でき、`--pipeline-workers 1`は逐次実行になる。
+   基板pipelineの独立したPython stageは既定のCPU数（最大4）を使って実行する。筐体pipelineは
+   `--pipeline-workers N`でworker数を指定でき、既定は`--pipeline-workers 1`（逐次）である。
+   `--pipeline-workers N`を明示すればCAD stageの並列実行をopt-inできる。
    筐体pipelineでは、rationale／lane抽出／筐体投影を逐次実行した後、機械ゲートと
    shell・lid・assemblyのartifact測定を独立stageとして実行する。ゲート後の断面・干渉
    visual projectionも独立stageである。`--pipeline-workers N`はこれらのOCP/build123d
    処理を、pipeline全体で再利用するspawn contextの`ProcessPoolExecutor`で実行し、
-   結果を宣言順またはprojection ID順に戻す。runner生成直後にCAD moduleをworkerへwarm-up
-   するため、逐次のrationale／lane抽出／筐体投影とOCP importを重ねられる。Linuxの既定forkで
+   結果を宣言順またはprojection ID順に戻す。runner生成直後にworker数分のCAD module warm-up jobを
+   Manager由来のBarrierで待ち合わせるため、逐次のrationale／lane抽出／筐体投影とOCP importを重ねられる。
+   Linuxの既定forkで
    OCP状態を継承すると停止するため、CAD経路だけspawnを明示し、基板pipelineの既定contextは
-   変更しない。artifact測定とvisual projectionはこのrunnerへsubmitし、nested poolを作らない。
+   変更しない。warm-upのimport失敗やtimeoutは最適化の失敗として警告し、判定を変えずに
+   通常経路を続行する。artifact測定とvisual projectionはこのrunnerへsubmitし、nested poolを作らない。
    逐次確認やデバッグには次を使う。
 
    ```bash
@@ -217,11 +220,12 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
    `--pipeline-workers 1`で`7.734`秒、`--pipeline-workers 4`で`22.094`秒だった。
    4 workerのspawnと`build123d` warm-upだけを分離測定すると、runner生成は`0.001`秒、
-   warm-up待ちは`4.870`秒、shutdownは`0.915`秒だった。warm-upは逐次のrationale／lane抽出／
-   筐体投影と重ねられるが、2コア環境ではCAD stageの並列処理と4 workerのCPU競合が支配的で、
-   このfixtureでは再利用しても並列短縮を確認できなかった。既定worker数を変更する判断は
-   実行環境別の測定に委ね、host実行はprovisionalでauthoritative Evidenceの合否根拠には使わない。
-   host実行はprovisionalであり、authoritative Evidenceの合否根拠には使わない。
+   warm-up待ちは`4.870`秒（1 workerあたりの測定値）、shutdownは`0.915`秒だった。warm-upは逐次の
+   rationale／lane抽出／筐体投影と重ねられるが、2コア環境ではCAD stageの並列処理と4 workerの
+   CPU競合が支配的で、このfixtureでは再利用しても並列短縮を確認できなかった。そのため筐体
+   経路の既定を逐次にし、CAD stage実処理がworker起動コストを上回る大規模設計や多コア環境では
+   `--pipeline-workers N`を明示して並列化する。host実行はprovisionalでauthoritative Evidenceの
+   合否根拠には使わない。
    CPL／BOM chain、E-2のlane／run並列化、E-4のstage cacheは引き続き逐次または未実装である。
    並列実行のhash差分を逐次2回と比較するintegration testは既定ではskipされる。
    ロック済みcontainerで`ACD_PIPELINE_PARALLEL_TEST=1`、`kicad-cli`、`freerouting`を

@@ -7,13 +7,18 @@ from __future__ import annotations
 import json
 import os
 import shutil
+from concurrent.futures import Future
 from functools import partial
 from pathlib import Path
 from typing import cast
 
 import pytest
 
-from acd.core.parallel import PipelineStageRunner
+from acd.core.parallel import (
+    DEFAULT_CAD_STAGE_WORKERS,
+    PipelineStageRunner,
+    _warm_up_worker,
+)
 from acd.pipeline.gd1_board import _run_ordered_stages, run_pipeline
 from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
 
@@ -52,6 +57,7 @@ def test_ordered_stage_failure_is_not_suppressed() -> None:
 def test_pipeline_stage_runner_reuses_spawn_pool() -> None:
     with PipelineStageRunner(2) as runner:
         runner.warm_up(("json",))
+        assert len(runner._warmup_futures) == 2
         runner.wait_for_warm_up()
         first = runner.run_ordered_stages(
             (
@@ -69,6 +75,45 @@ def test_pipeline_stage_runner_reuses_spawn_pool() -> None:
     parent_pid = os.getpid()
     assert all(pid != parent_pid for pid in first + second)
     assert set(first) & set(second)
+
+
+def test_warm_up_timeout_is_nonfatal() -> None:
+    class TimeoutBarrier:
+        def wait(self, *, timeout: float) -> None:
+            raise TimeoutError("warm-up barrier timed out")
+
+    result = _warm_up_worker(("json",), TimeoutBarrier(), 0.01)
+
+    assert result is not None
+    assert result.startswith("barrier TimeoutError")
+
+
+def test_warm_up_import_failure_is_nonfatal() -> None:
+    class PassingBarrier:
+        def wait(self, *, timeout: float) -> None:
+            return None
+
+    result = _warm_up_worker(
+        ("acd_test_missing_warm_up_module",),
+        PassingBarrier(),
+        0.01,
+    )
+
+    assert result is not None
+    assert result.startswith("ModuleNotFoundError")
+
+
+def test_warm_up_failure_is_reported_without_raising() -> None:
+    future: Future[str | None] = Future()
+    future.set_exception(RuntimeError("warm-up failed"))
+    with PipelineStageRunner(1) as runner:
+        runner._warmup_futures = [future]
+        with pytest.warns(RuntimeWarning, match="warm-up failed"):
+            runner.wait_for_warm_up()
+
+
+def test_cad_stage_workers_default_to_serial() -> None:
+    assert DEFAULT_CAD_STAGE_WORKERS == 1
 
 
 def test_pipeline_worker_count_must_be_positive() -> None:
