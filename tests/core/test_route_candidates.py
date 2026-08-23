@@ -109,7 +109,11 @@ def test_load_reads_a_report_written_outside_acd(tmp_path: Path) -> None:
         ({"lane": "mechanical"}, "electrical lane"),
         ({"candidates": {"vision": [], "vias": []}}, "no wires"),
         ({"candidates": {"vision": [_wires()["vision"][0]]}}, "vias"),
-        ({"candidates": {"vision": [_wires()["vision"][0]], "vias": [{"net": "BOOT"}]}}, "vias"),
+        (
+            {"candidates": {"vision": [_wires()["vision"][0]], "vias": [{"net": "BOOT"}]}},
+            "x_mm",
+        ),
+        ({"candidates": {"vision": [_wires()["vision"][0]], "vias": "none"}}, "must be an array"),
         ({"candidates": _wires(net="NOT_A_NET")}, "unknown net"),
         ({"candidates": _wires(layer="In1.Cu")}, "unsupported layer"),
         ({"candidates": _wires(width_mm=0.01)}, "below the declared minimum"),
@@ -130,6 +134,105 @@ def test_duplicate_wires_fail_closed() -> None:
     report = _report(candidates={"vision": [wire, dict(wire)], "vias": []})
     with pytest.raises(RouteCandidateError, match="duplicate wire"):
         parse_route_candidates(report, _lane(), "r1")
+
+
+def _via_candidates(**overrides: Any) -> dict[str, Any]:
+    """One connection that changes layer at a via, as the skill reports it."""
+    via: dict[str, Any] = {
+        "net": "BOOT",
+        "x_mm": 8.0,
+        "y_mm": 10.0,
+        "drill_mm": 0.3,
+        "diameter_mm": 0.6,
+    }
+    via.update(overrides)
+    return {
+        "vision": [
+            {
+                "net": "BOOT",
+                "layer": "F.Cu",
+                "from_pad": "U1-23",
+                "to_pad": "SW2-1",
+                "width_mm": 0.25,
+                "points": [[2.0, 8.0], [8.0, 10.0]],
+            },
+            {
+                "net": "BOOT",
+                "layer": "B.Cu",
+                "from_pad": "U1-23",
+                "to_pad": "SW2-1",
+                "width_mm": 0.25,
+                "points": [[8.0, 10.0], [12.0, 12.0]],
+            },
+        ],
+        "vias": [via],
+    }
+
+
+def test_a_via_between_two_layers_becomes_a_tool_neutral_via() -> None:
+    design, _ = parse_route_candidates(
+        _report(candidates=_via_candidates()), _lane(), "r1"
+    )
+    assert [wire.layer for wire in design.wires] == ["B.Cu", "F.Cu"]
+    assert [(via.net, via.x_mm, via.y_mm) for via in design.vias] == [("BOOT", 8.0, 10.0)]
+
+
+def test_several_connections_of_one_net_stay_separate_wires() -> None:
+    candidates = {
+        "vision": [
+            {
+                "net": "LED",
+                "layer": "F.Cu",
+                "from_pad": "U1-21",
+                "to_pad": "R6-1",
+                "width_mm": 0.25,
+                "points": [[2.0, 8.0], [6.0, 10.0]],
+            },
+            {
+                "net": "LED",
+                "layer": "F.Cu",
+                "from_pad": "R6-1",
+                "to_pad": "TP5-1",
+                "width_mm": 0.25,
+                "points": [[6.0, 10.0], [14.0, 12.0]],
+            },
+        ],
+        "vias": [],
+    }
+    design, _ = parse_route_candidates(
+        _report(proposed_nets=["LED"], candidates=candidates), _lane(), "r1"
+    )
+    assert len(design.wires) == 2
+
+
+@pytest.mark.parametrize(
+    ("overrides", "match"),
+    [
+        ({"net": "NOT_A_NET"}, "unknown net"),
+        ({"drill_mm": 0.1}, "below the declared minimum"),
+        ({"diameter_mm": 0.45}, "below the declared minimum"),
+        ({"diameter_mm": 0.3, "drill_mm": 0.3}, "not usable"),
+        ({"x_mm": 9.0}, "not reached by wires on two layers"),
+    ],
+)
+def test_broken_vias_fail_closed(overrides: dict[str, Any], match: str) -> None:
+    report = _report(candidates=_via_candidates(**overrides))
+    with pytest.raises(RouteCandidateError, match=match):
+        parse_route_candidates(report, _lane(), "r1")
+
+
+def test_duplicate_vias_fail_closed() -> None:
+    candidates = _via_candidates()
+    candidates["vias"] = [candidates["vias"][0], dict(candidates["vias"][0])]
+    with pytest.raises(RouteCandidateError, match="duplicate via"):
+        parse_route_candidates(_report(candidates=candidates), _lane(), "r1")
+
+
+def test_a_via_of_a_single_layer_candidate_fails_closed() -> None:
+    candidates = _via_candidates()
+    candidates["vision"] = [candidates["vision"][0]]
+    with pytest.raises(RouteCandidateError, match="two layers"):
+        parse_route_candidates(_report(candidates=candidates), _lane(), "r1")
 
 
 @pytest.mark.parametrize(

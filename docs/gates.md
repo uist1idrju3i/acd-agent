@@ -143,8 +143,15 @@ relaxation profileの宣言に従い、実測Evidenceのない緩和はfail-clos
 決定論的な迂回探索で修復する。修復不能はfail-closedである。得られた
 `artifact_kind="vision_route_candidates"`はACD側で`acd.core.route_candidates`が
 provenanceとrevision一致を検査してからtool中立の`RoutedDesign`へ変換し、判定は従来どおり
-基板投影後のDRCとGerber独立再読込だけが行う。円弧と非45度配線は既定で拒否し、
-viaを要する案も現時点ではfail-closedとする。
+基板投影後のDRCとGerber独立再読込だけが行う。円弧と非45度配線は既定で拒否する。
+
+層変更と多pad netは明示宣言だけを受け入れる。提案は`segments`（層ごとの経路）と
+`vias`（層変更位置）で宣言し、3pad以上のnetでは`from_pad`と`to_pad`の宣言を必須とする。
+via幾何（drill、diameter）はビジョン応答から読まず、graphの基板宣言から取ってfab profileの
+最小値と余裕に対して検査する。via位置は格子snapと他netのpad・配線・viaとのclearance検査を通す。
+宣言された接続がnetの全padを結合しない場合、pad対が未知・非一意・重複する場合、
+via幾何が宣言最小値を下回る場合はいずれもfail-closedである。ACD側は`RoutedVia`へ変換する前に
+両層の配線がその点で会うことを検査する。
 
 ## 最小チェックリスト
 

@@ -7,10 +7,15 @@ that the deterministic gates already judge (board injection, DRC, independent
 Gerber reload). Nothing here promotes the candidate, its surrogate metrics, or
 the vision response into Evidence.
 
+A candidate may contain several wires per net (a net with more than two pads is
+routed as one connection per pad pair) and vias where a connection changes
+layer. A via is only accepted when the wires actually meet there on two copper
+layers, so a candidate cannot introduce a floating via.
+
 Every deviation from the declared contract is a stop condition: a wrong
 artifact kind, a candidate that claims to be Evidence, missing provenance,
 unknown nets, non-copper layers, widths below the declared minimum, non-finite
-coordinates, or degenerate geometry.
+coordinates, degenerate geometry, or a via that no wire reaches.
 """
 
 from __future__ import annotations
@@ -21,11 +26,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from acd.core.board_model import RoutedDesign, RoutedWire
+from acd.core.board_model import RoutedDesign, RoutedVia, RoutedWire
 from acd.core.electrical import ElectricalLane
 
 CANDIDATE_ARTIFACT_KIND = "vision_route_candidates"
 COPPER_LAYERS = frozenset({"F.Cu", "B.Cu"})
+_TOLERANCE = 1e-9
 REQUIRED_PROVENANCE_KEYS = (
     "graph_revision",
     "placements_sha256",
@@ -160,6 +166,41 @@ def _wire(entry: dict[str, object], lane: ElectricalLane) -> RoutedWire:
     return RoutedWire(net=net, layer=layer, width_mm=width, points=tuple(points))
 
 
+def _via(
+    entry: dict[str, object], lane: ElectricalLane, wires: tuple[RoutedWire, ...]
+) -> RoutedVia:
+    """One via; it must join wires of its own net on two copper layers."""
+    net = _text(entry, "net")
+    if net not in {view.name for view in lane.nets}:
+        raise RouteCandidateError(f"unknown net {net!r} for a via (fail-closed)")
+    point = (_number(entry, "x_mm"), _number(entry, "y_mm"))
+    drill = _number(entry, "drill_mm")
+    diameter = _number(entry, "diameter_mm")
+    if drill <= 0.0 or diameter <= drill + _TOLERANCE:
+        raise RouteCandidateError(
+            f"net {net!r}: via drill {drill} and diameter {diameter} are not usable (fail-closed)"
+        )
+    if drill < lane.board.via_drill_mm - _TOLERANCE:
+        raise RouteCandidateError(
+            f"net {net!r}: via drill {drill} is below the declared minimum (fail-closed)"
+        )
+    if diameter < lane.board.via_diameter_mm - _TOLERANCE:
+        raise RouteCandidateError(
+            f"net {net!r}: via diameter {diameter} is below the declared minimum (fail-closed)"
+        )
+    layers = {
+        wire.layer
+        for wire in wires
+        if wire.net == net
+        and any(math.dist(point, end) <= _TOLERANCE for end in (wire.points[0], wire.points[-1]))
+    }
+    if len(layers) < 2:
+        raise RouteCandidateError(
+            f"net {net!r}: the via at {point} is not reached by wires on two layers (fail-closed)"
+        )
+    return RoutedVia(net=net, x_mm=point[0], y_mm=point[1])
+
+
 def parse_route_candidates(
     payload: dict[str, object], lane: ElectricalLane, graph_revision: str
 ) -> tuple[RoutedDesign, RouteCandidateProvenance]:
@@ -183,22 +224,40 @@ def parse_route_candidates(
     if not isinstance(raw_wires, list) or not raw_wires:
         raise RouteCandidateError("the candidate report contains no wires (fail-closed)")
     wires: list[RoutedWire] = []
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, tuple[tuple[float, float], ...]]] = set()
     for item in cast(list[object], raw_wires):
         if not isinstance(item, dict):
             raise RouteCandidateError("each wire must be an object (fail-closed)")
         wire = _wire(cast(dict[str, object], item), lane)
-        if (wire.net, wire.layer) in seen:
+        if (wire.net, wire.layer, wire.points) in seen:
             raise RouteCandidateError(
                 f"duplicate wire for net {wire.net!r} on {wire.layer} (fail-closed)"
             )
-        seen.add((wire.net, wire.layer))
+        seen.add((wire.net, wire.layer, wire.points))
         wires.append(wire)
-    vias = candidates.get("vias")
-    if vias != []:
-        raise RouteCandidateError("candidate vias are not supported yet (fail-closed)")
-    ordered = tuple(sorted(wires, key=lambda item: (item.net, item.layer)))
-    return RoutedDesign(wires=ordered, vias=()), provenance
+    ordered = tuple(sorted(wires, key=lambda item: (item.net, item.layer, item.points)))
+    raw_vias = candidates.get("vias")
+    if not isinstance(raw_vias, list):
+        raise RouteCandidateError("candidate vias must be an array (fail-closed)")
+    vias: list[RoutedVia] = []
+    placed: set[tuple[str, float, float]] = set()
+    for item in cast(list[object], raw_vias):
+        if not isinstance(item, dict):
+            raise RouteCandidateError("each via must be an object (fail-closed)")
+        via = _via(cast(dict[str, object], item), lane, ordered)
+        if (via.net, via.x_mm, via.y_mm) in placed:
+            raise RouteCandidateError(
+                f"duplicate via for net {via.net!r} at ({via.x_mm}, {via.y_mm}) (fail-closed)"
+            )
+        placed.add((via.net, via.x_mm, via.y_mm))
+        vias.append(via)
+    return (
+        RoutedDesign(
+            wires=ordered,
+            vias=tuple(sorted(vias, key=lambda item: (item.net, item.x_mm, item.y_mm))),
+        ),
+        provenance,
+    )
 
 
 def load_route_candidates(
