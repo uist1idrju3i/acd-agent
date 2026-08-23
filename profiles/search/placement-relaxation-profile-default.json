@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "placement-relaxation-default",
+  "lane_scope": ["electrical", "mechanical"],
+  "position": {
+    "grid_step_mm": 0.25,
+    "max_legalization_shift_mm": 5.0,
+    "note": "候補位置は0.25mm格子へスナップする。宣言値より大きな変位が必要な提案はfail-closedとする。"
+  },
+  "rotation": {
+    "step_deg": 90,
+    "allowed_deg": [0, 90, 180, 270],
+    "relaxation_evidence_status": "absent",
+    "note": "投影geometryは90度倍数のみを扱い、JLCPCBのCPL回転規約はestimatedである。1度刻みの任意回転はCPL回転規約・実装機精度・検査性の実測Evidenceを宣言するまで許可しない。"
+  },
+  "routing": {
+    "arc_tracks": false,
+    "off_grid_angles": false,
+    "relaxation_evidence_status": "absent",
+    "note": "配線は外部routerの既定規則を正とする。45度非依存の配線や円弧配線は、DRC・独立再読込・検査性への影響を実測するまで許可しない。"
+  },
+  "relaxation_evidence": []
+}

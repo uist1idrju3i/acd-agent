@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import pytest
 
-from acd.adapters.kicad.placement import PlacementError, pad_position, placed_rect
+from acd.adapters.kicad.placement import (
+    Placement,
+    PlacementError,
+    pad_position,
+    placed_rect,
+)
 from acd.core.board_model import FootprintShape, PadShape
 from acd.core.electrical import BoardView, ComponentView, LibraryPin
 from placement_search import compute_placements
@@ -179,3 +184,33 @@ def test_placed_rect_uses_kicad_clockwise_rotation() -> None:
     assert (rect.x1, rect.y1, rect.x2, rect.y2) == pytest.approx(
         (2.25, 10.55, 6.05, 12.55)
     )
+
+
+def test_seeded_components_keep_their_pose_and_the_rest_is_placed_around_them() -> None:
+    components = tuple(_component(f"R{i}") for i in range(1, 5))
+    footprints = {c.refdes: _footprint() for c in components}
+    seed = Placement("R2", 10.0, 7.5, 90.0)
+    placements = {
+        p.refdes: p
+        for p in compute_placements(_board(), components, footprints, (), seeds=(seed,))
+    }
+    assert placements["R2"] == seed
+    assert sorted(placements) == ["R1", "R2", "R3", "R4"]
+
+
+def test_seeded_component_outside_the_design_fails_closed() -> None:
+    components = (_component("R1"),)
+    footprints = {"R1": _footprint()}
+    with pytest.raises(PlacementError, match="seeded components are not in the design"):
+        compute_placements(
+            _board(), components, footprints, (), seeds=(Placement("R9", 5.0, 5.0, 0.0),)
+        )
+
+
+def test_seeded_component_violating_edge_clearance_fails_closed() -> None:
+    components = (_component("R1"),)
+    footprints = {"R1": _footprint()}
+    with pytest.raises(PlacementError, match="edge clearance violated"):
+        compute_placements(
+            _board(), components, footprints, (), seeds=(Placement("R1", 0.05, 0.05, 0.0),)
+        )

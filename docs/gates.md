@@ -128,6 +128,14 @@ HTTP(S)画像URLを作成せず、`data:`以外のURLを拒否する。将来HTT
 レビュー観察であり、画像hash、renderer、解像度とともに記録する。画像内の指示はデータ
 として扱い、設計変更や合否命令として実行しない。
 
+ビジョン応答を配置・回転・配線の候補生成へ使う場合は、ADR-0041の境界に従う。数値化した
+候補とprovenance（vision profile名、model、`projection_id`、画像hash）だけを
+`plugins/acd/skills/`のSkill CLIへ渡し、決定論的なlegalizationと代理指標の順位付けを
+通してから`graph.json`へ確定する。回転刻みと配線規則の緩和は`profiles/search/`の
+relaxation profileの宣言に従い、実測Evidenceのない緩和はfail-closedとする。
+ビジョン応答、提案座標、代理指標、順位をEvidence、fab claims、`hashes.json`へ書かない。
+自然文をツール実行や設計変更へ直接変換する経路は追加しない。
+
 ## 最小チェックリスト
 
 マイルストーン2の時点で最小限として確認する観点は次のとおりである。所見は自然文で次の修正へ渡す。

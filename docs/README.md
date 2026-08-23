@@ -47,5 +47,6 @@
 | [0038](adr/ADR-0038-acd-install-doctor.md) | ACDインストール自己診断入口 |
 | [0039](adr/ADR-0039-subagent-skill-reference.md) | sub-agentのSkill参照方式 |
 | [0040](adr/ADR-0040-hook-plugin-root-resolution.md) | plugin hookのplugin root解決方式 |
+| [0041](adr/ADR-0041-vision-proposals-as-design-candidates.md) | ビジョン出力の宣言層入力境界 |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。
