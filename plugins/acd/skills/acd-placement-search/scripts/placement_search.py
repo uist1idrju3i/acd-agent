@@ -255,14 +255,13 @@ def compute_placements(
                     cap_pad,
                 )
             group = group_for_ref.get(comp.refdes)
-            coupled_positions = tuple(
-                placed_at[member]
-                for member in (
-                    group.primary_refdes,
-                    *group.coupled_refdes,
-                )
-                if member != comp.refdes and member in placed_at
-            ) if group is not None else ()
+            coupled_positions = (
+                (placed_at[group.primary_refdes],)
+                if group is not None
+                and comp.refdes != group.primary_refdes
+                and group.primary_refdes in placed_at
+                else ()
+            )
             spot = _best_fit(
                 board,
                 footprint,
