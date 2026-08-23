@@ -59,6 +59,7 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "placement_y_mm",
             "placement_rotation_deg",
             "radio_module",
+            "library_ref",
         }
     ),
     "electrical.net": frozenset(

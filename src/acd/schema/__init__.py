@@ -28,6 +28,13 @@ from acd.schema.design_freedom import (
     DesignFreedomDeclarationDocument,
     DesignFreedomDimension,
 )
+from acd.schema.design_fixture import (
+    DesignFixtureSpec,
+    FixtureComponentSpec,
+    FixtureFirmwarePinSpec,
+    FixtureFunctionalBlockSpec,
+    FixtureNetSpec,
+)
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 from acd.schema.evidence import (
     Evidence,
@@ -130,6 +137,7 @@ from acd.schema.receipt import (
     ReconciliationStatus,
     ShipmentManifestReference,
 )
+from acd.schema.requirement import RequirementDocument, RequirementRecord
 from acd.schema.side_effect_journal import (
     ExecutionMode,
     JournalEntryBody,
@@ -186,6 +194,7 @@ __all__ = [
     "DecisionKind",
     "DesignFreedomDeclarationDocument",
     "DesignFreedomDimension",
+    "DesignFixtureSpec",
     "DesignGraph",
     "DryRunExecutionMode",
     "DryRunOrderPayload",
@@ -211,6 +220,10 @@ __all__ = [
     "FunctionalArtifact",
     "FunctionalBlockContract",
     "FunctionalBlockRegistryDocument",
+    "FixtureComponentSpec",
+    "FixtureFirmwarePinSpec",
+    "FixtureFunctionalBlockSpec",
+    "FixtureNetSpec",
     "FunctionalCheckReport",
     "FunctionalCheckStatus",
     "FunctionalExpectations",
@@ -273,6 +286,8 @@ __all__ = [
     "ReceiptArtifact",
     "ReceiptParty",
     "ReceiptRecord",
+    "RequirementDocument",
+    "RequirementRecord",
     "ReconciliationReport",
     "ReconciliationStatus",
     "RejectedAlternative",
