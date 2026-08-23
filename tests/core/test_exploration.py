@@ -8,6 +8,8 @@ from pathlib import Path
 import pytest
 
 import acd.core.exploration as exploration
+from acd.core.design_predicates import PREDICATE_CATALOG, PredicateResult
+from acd.core.electrical import ElectricalLane
 from acd.core.exploration import (
     ExplorationCandidate,
     ExplorationError,
@@ -29,6 +31,15 @@ def _number_attr(node: GraphNode, key: str) -> float:
     value = attrs[key]
     assert isinstance(value, int | float) and not isinstance(value, bool)
     return float(value)
+
+
+def _passing_pre_router(
+    _graph: DesignGraph, _lane: ElectricalLane, _fixture_dir: Path
+) -> tuple[PredicateResult, ...]:
+    return tuple(
+        PredicateResult(name=name, status="pass", detail="test pre-router pass")
+        for name in PREDICATE_CATALOG
+    )
 
 
 def _placement_candidate(graph: DesignGraph) -> ExplorationCandidate:
@@ -148,6 +159,7 @@ def test_max_passes_is_forwarded_to_default_pipeline_runner(
         "_placement_candidates",
         lambda *_args: (_placement_candidate(graph),),
     )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
     calls: list[int] = []
 
     def fake_run_pipeline(
@@ -194,6 +206,7 @@ def test_successful_candidate_is_observation_and_writes_only_final_winner(
         "_placement_candidates",
         lambda *_args: (_placement_candidate(graph),),
     )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
 
     result = explore_board_candidates(
         source_graph,
@@ -225,6 +238,7 @@ def test_malformed_gate_evidence_stops_exploration(
         "_placement_candidates",
         lambda *_args: (_placement_candidate(graph),),
     )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
 
     def reject_with_bad_evidence(_fixture: Path, output: Path) -> None:
         evidence = output / "gate-evidence" / "design-predicates.json"
