@@ -35,8 +35,11 @@ roadmap 4.4は`sdk.context.prompts`、`sdk.llm.router`、`sdk.io`、
 hostはSDK `LocalWorkspace`によるprovisional実行に限定し、authoritativeなゲート実行は
 digest固定`DockerWorkspace`だけが担う。
 
-視覚投影はviewBox相対font-sizeとKiCad由来SVGのfit-to-board化まで実装済みで、
-出力命名とEvidenceの対象nodeはgraph_id由来である。locked tools imageはacd本体、
+視覚投影はviewBox相対font-sizeまで実装済みで、
+出力命名とEvidenceの対象nodeはgraph_id由来である。KiCad由来SVGのfit-to-board化
+（用紙余白の除去）は未実装である。8.5の電気視覚照合が図枠のtitle blockをツール生成の
+根拠として読むため、`--exclude-drawing-sheet`と`--page-size-mode`を使わない現行exportを
+維持しており、極小表示の所見は20.4の可読性検査で扱う。locked tools imageはacd本体、
 pipeline scripts、fixture、profile、ESP-IDF v6.0.2、Espressif QEMU 9.2.2、CJKフォント、
 ccache、事前解決したPython依存を同梱し、authoritative経路はcloneなしで実行できる。
 回路図投影は機能ブロック配置と主要配線またはネットラベル接続方式を注記し、可読性向上を
@@ -83,7 +86,7 @@ FW laneはGD1 fixtureでも停止する（14.1）。
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 12.1〜12.5達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
 | 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 計画 |
-| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 計画 |
+| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.6〜15.9達成（15.1〜15.5は計画） |
 | 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 計画 |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
 | 18 | 量産・出荷準備lane | ブリングアップ、panelization、DFA、出荷検査文書と検査FWを整備する | 計画 |
@@ -168,6 +171,12 @@ MCP、Canvas、remote API、cloud、agent-serverは採用しない。
 ACDコード・plugin資材・テストへ種別付きで記録し、採用行の未使用・参照先欠落・catalog
 driftをfail-closedで検出する。現行catalogは採用46行の参照を宣言し、テスト専用の
 `sdk.testing`だけをテスト直接importとして登録する。
+
+catalogの更新運用も本フェーズの成果物とする。SDK版更新時は
+`docs/openhands-sdk-capabilities.json`を正本として更新し、
+`scripts/verify_sdk_capabilities.py`で[`openhands-sdk-capabilities.md`](openhands-sdk-capabilities.md)
+を再生成する。生成Markdownを手で編集せず、正本と生成物のdriftはfail-closedで停止する。
+版更新時の手順は[`operations.md`](operations.md)の依存・版の記録節を正とする。
 
 | 要素 | 完了条件 |
 |---|---|
@@ -599,7 +608,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | 部品配置・回転とGPIO割当の探索、機能グループの結合制約、機構寸法の単一datum化、stitch via候補が全滅した島のfallback、探索対象とする設計自由度の宣言、`stitch_candidate_report`の常時保存 |
 | 14.5 | 要件→graphの変換と任意設計fixture（A-1〜A-5、I-2） | 会話由来の要件レコード化、任意設計向けfixtureビルダー、要件差分からgraph差分（接続・FWピン・テストポイント・シルク・rationale）を同時更新するcompiler、部品選定とlibrary provenance、回路トポロジ合成、agent向けtool（FW pipeline、fixture編集、発注、失敗診断）の網羅 |
 | 14.6 | gd1固定の解消と発注laneの汎用化（I-3〜I-5、E-5） | workspace既定値、生成物名・`part_number`、`order_policy`の必須evidence anchorをgraph_id由来にし、GD1以外の設計がorder-readyに到達できるようにする |
-| 14.7 | 実行時間と再開性（E-1〜E-4、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録 |
+| 14.7 | 実行時間と再開性（E-1〜E-4、E-6、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録。検証段階の並列実行（E-6）は達成済みで、pytestの`-n auto --dist loadgroup`と`verify_all.py --jobs N`（既定は`min(cpu_count, 4)`）がbarrierのない連続コマンドを並列実行する。`uv sync`とfullの後続pipelineはbarrierとして単独実行し、段階の構成・閾値・合否条件は変えない |
 | 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する |
 | 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合 |
 
@@ -627,7 +636,10 @@ fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動�
 | negative・fail-closed | 宣言ゼロ、未知・重複・mandatory欠落、registry被覆不足、適用ブロックのnet欠落、Evidenceの不正status、profile ID・metadata・path不一致を停止する |
 | 再現性 | registry IDと正規化hash、ソート済み宣言一覧、profile registryの正規化hashを記録し、固定catalog順で同一判定を再現する |
 
-14.1および14.2は達成済みであり、14.3以降は計画である。
+14.1および14.2は達成済みである。14.7はE-6（検証段階の並列実行）だけ達成済みで、
+実測値は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のE-6行と
+[`operations.md`](operations.md)を正とする。14.7の残り（E-1〜E-4、K-1、K-2、K-4）と
+その他の14.3以降は計画である。
 
 ## マイルストーン15: 運用と文書の整備
 
@@ -641,8 +653,15 @@ fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動�
 | 15.3 | OpenHands Local GUI APIのトークン発行手順のdocs化 | トンネル越しcurlがUnauthorizedとなる制約を踏まえ、自動化検証に必要なGUI経由のトークン取得手順を記録する |
 | 15.4 | リリース手順のdocs化 | タグ作成権限・ruleset、GH013時の対応、実行例リンク中心のリリースノート、Release assetsを添付しない方針を運用手順へ記録する |
 | 15.5 | pipelineログの要約出力（入力トークン削減） | pipelineログのtail既定化など、再取り込み量を削減してトークン消費を下げる要約出力を実装する |
+| 15.6 | hook遮断理由の要約自動集計 | `RejectionSummary`契約でhookの遮断理由を集計し、遮断の再発箇所を利用者が追える形で提示する。要約はL3観測であり、遮断そのものの判定を置き換えない |
+| 15.7 | SKILL triggerとToolDefinition登録条件のdoctor診断 | `ToolRegistrationManifest`契約と`scripts/verify_acd_tool_registration.py`で登録面を固定し、trigger不一致・未登録tool・登録条件不成立を`/acd:doctor`から診断する |
+| 15.8 | host EDA不在時の推奨経路への誘導 | host EDA（kicad-cli等）が無い環境では、digest固定locked imageと`DockerWorkspace`経路をdoctorから提示する。host経路をprovisional専用とする境界は変更しない |
+| 15.9 | FW実行のhost前提とlocked image同梱のdocs化 | ESP-IDF、Espressif QEMU、`libslirp0`、SDL2系共有ライブラリ、PATH解決の前提を運用手順へ記録し、locked tools imageへの同梱状況を明記する |
 
-15.1〜15.5は計画である。
+15.1〜15.5は計画であり、15.6〜15.9は達成済みである。15.6〜15.9は
+[`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)と
+[`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)の運用改善項目を
+出所とし、いずれも既存の閾値、ゲート挙動、fail-closed境界を変更していない。
 
 ## マイルストーン16: 設計能力の拡張
 
@@ -764,6 +783,132 @@ agentが推測で埋めない。
 対話履歴の保存境界と公開除外規則、各分野のinterface宣言の範囲、責務割当のEvidence境界を
 新規ADRで定義し、未定義の項目はunknownとしてfail-closedにする。
 
+## 契約とマイルストーンの対応
+
+契約はPydanticモデルを正本とし（フェーズ横断の検証要件6）、`src/acd/schema/`の
+各モジュールは次のマイルストーンで定義した。`__init__.py`は再exportだけを行う。
+表に対応先を持たない契約モジュールを追加しない。
+
+| モジュール | 役割 | マイルストーン |
+|---|---|---|
+| `common.py` | 契約共通の値型 | 1 |
+| `design_graph.py` | Design Graph正本 | 1 |
+| `rationale.py` | 設計根拠record（`ADR-0021`） | 1・14.5 |
+| `evidence.py` | Evidence record と`measured`／`virtual`分類 | 1・5.1・6 |
+| `tool_envelope.py` | 外部ツール実行envelope（`exit_code`意味論は15.1） | 1・2・15.1 |
+| `fab_profile.py` | 宣言的fab profileとprofile registry | 2・14.2 |
+| `functional_block.py` | 機能ブロック述語の適用条件（`ADR-0043`） | 14.2 |
+| `visual_projection.py` | 視覚投影の再現可能な観測 | 8.1・8.2・8.3 |
+| `visual_crosscheck.py` | 機械可読投影との電気視覚照合（L3観測） | 8.5・20.4 |
+| `quote.py` | 期限付き見積入力 | 7.1 |
+| `order_scope.py` | 宣言された発注範囲 | 7.1 |
+| `order_total.py` | 決定論的な総発注額 | 7.2 |
+| `order_policy.py` | 発注policyと発注前最終ゲート結果 | 7.3・14.6 |
+| `side_effect_journal.py` | append-onlyのside-effect journal | 7.4 |
+| `order_execution.py` | 自働発注のdry-run出力 | 7.5 |
+| `receipt.py` | 製造・組立受領の取り込み | 5.2 |
+| `functional_run.py` | FW書き込みと機能測定 | 5.3 |
+| `feedback.py` | 測定結果からのproposal（入力へ逆流させない） | 5.4 |
+| `agent_settings.py` | secret-freeなsettings・profile・credential | 4.4 |
+| `context.py` | context memoryとevent viewの非authoritative観測 | 4.4 |
+| `prompt_manifest.py` | 役割promptの決定論的manifest | 4.4 |
+| `model_routing.py` | 役割別modelルーティングpolicy | 4.4 |
+| `observation.py` | 非authoritativeな観測payload | 4.4 |
+| `observation_log.py` | secret-freeな構造化観測ログ | 4.4 |
+| `knowledge_index.py` | 設計知識indexの契約 | 12.1 |
+| `knowledge_answer.py` | 出典付きQA回答（`pass_evidence=false`） | 12.2 |
+| `troubleshooting.py` | 症状から確認手順への機械可読知識 | 12.3 |
+| `rejection_summary.py` | hook遮断理由の要約（L3観測） | 4.1・15.6 |
+| `tool_registration.py` | SDK ToolDefinition登録面の契約 | 4・15.7 |
+
+## ADRとマイルストーンの対応
+
+Accepted ADRの索引は[`README.md`](README.md)を正とし、Superseded ADRは統合先を示す
+pointerだけを残す。本書はSuperseded ADRを現行決定として引用しない
+（`ADR-0025`は`ADR-0026`により対象外化された履歴として現在地でのみ参照する）。
+
+| ADR | 決定 | マイルストーン |
+|---|---|---|
+| [`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md) | JLCPCB PCBA発注準備の契約と宣言データ | 7.1・7.3・15.2 |
+| [`ADR-0006`](adr/ADR-0006-vendor-submodule-policy.md) | SDK vendor submoduleの更新方針 | 4・14.8 |
+| [`ADR-0007`](adr/ADR-0007-llm-guided-physical-design.md) | 配置・回転・配線探索へのLLM適用境界 | 4.3・14.4 |
+| [`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md) | VibeBBの最小構成とSDK優先の実装境界 | 1・4・14 |
+| [`ADR-0021`](adr/ADR-0021-design-rationale-records.md) | 設計根拠recordの保持 | 1・14.5・21.5 |
+| [`ADR-0023`](adr/ADR-0023-deterministic-gate-authority.md) | 判定・操舵・観測の三層分離 | 全マイルストーン（フェーズ横断の検証要件） |
+| [`ADR-0026`](adr/ADR-0026-openhands-delegation-contract.md) | OpenHands委譲契約 | 4・4.1〜4.4・6・agent-server採用判断 |
+| [`ADR-0027`](adr/ADR-0027-single-distribution.md) | 単一配布パッケージ | 4・14.9 |
+| [`ADR-0028`](adr/ADR-0028-execution-provenance.md) | 実行provenanceとauthoritative Evidence | 6・7.3・検証要件 |
+| [`ADR-0033`](adr/ADR-0033-sdk-capability-adoption.md) | SDK能力の採否とbrowser_useの境界 | 4.4・4.5 |
+| [`ADR-0034`](adr/ADR-0034-document-governance.md) | 文書統治とSDK能力カタログ | 4.5・9 |
+| [`ADR-0035`](adr/ADR-0035-standard-distribution.md) | SDK標準機構による配布とインストール | 4・14.9 |
+| [`ADR-0036`](adr/ADR-0036-ambient-plugin-install.md) | installed plugin自動読み込みによるインストール | 4・14.8 |
+| [`ADR-0037`](adr/ADR-0037-pep723-skill-scripts.md) | PEP 723によるSkill scriptの依存自己解決 | 14.1 |
+| [`ADR-0038`](adr/ADR-0038-acd-install-doctor.md) | ACDインストール自己診断入口 | 14.1・14.8・15.7・15.8 |
+| [`ADR-0039`](adr/ADR-0039-subagent-skill-reference.md) | sub-agentのSkill参照方式 | 4・4.3 |
+| [`ADR-0040`](adr/ADR-0040-hook-plugin-root-resolution.md) | plugin hookのplugin root解決方式 | 4.1 |
+| [`ADR-0041`](adr/ADR-0041-vision-proposals-as-design-candidates.md) | ビジョン出力を宣言層入力として受け入れる境界 | 8.4・8.6・20.4 |
+| [`ADR-0042`](adr/ADR-0042-skill-package-ref-skew.md) | Skill package refのskew検出と事前導入 | 14.1 |
+| [`ADR-0043`](adr/ADR-0043-functional-block-contract-registry.md) | 機能ブロック契約registryによる設計述語の適用条件 | 14.2・16 |
+
+## Skill・command・scriptとマイルストーンの対応
+
+plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・L3観測であり、
+表の対応はマイルストーンの成果物としての帰属を示すものであって合否権限を与えない。
+
+| Skill | マイルストーン |
+|---|---|
+| `acd-contracts` | 1・4 |
+| `acd-design-rationale` | 1 |
+| `acd-silkscreen-placement` | 2 |
+| `acd-cad-determinism-probe` | 3 |
+| `acd-placement-search` | 4.3・14.4 |
+| `acd-firmware-esp32c3` | 5.3・8.5・15.9 |
+| `acd-install-doctor` | 14.1・14.8・15.7・15.8 |
+| `acd-product-docs` | 9.1・9.2 |
+| `acd-design-knowledge` | 12.1〜12.5 |
+| `acd-qc-seven-tools` | 9.3・9.4のL2前段（所見の整理） |
+| `acd-reliability-review` | 7.3・9.4のL2前段（余裕のレビュー） |
+| `acd-package-contract.json`／`acd-package-ref.txt` | 14.1 |
+
+| command | マイルストーン |
+|---|---|
+| `/acd:gates` | 4・4.1 |
+| `/acd:ask` | 12.2 |
+| `/acd:doctor` | 14.1・14.8・15.7・15.8 |
+
+| script | マイルストーン |
+|---|---|
+| `verify_all.py` | 検証要件（段階の正）・14.7（E-6） |
+| `verify_docs.py` | 検証要件・4.1 |
+| `verify_sdk_capabilities.py` | 4.5 |
+| `verify_agent_prompts.py` | 4.4 |
+| `verify_model_policy.py` | 4.4 |
+| `verify_agent_settings.py` | 4.4 |
+| `verify_context_view.py` | 4.4 |
+| `verify_acd_tool_registration.py` | 4・15.7 |
+| `verify_authoritative_evidence.py` | 6 |
+| `verify_skill_metadata.py` | 14.1 |
+| `verify_skill_package_ref.py` | 14.1 |
+| `update_skill_package_ref.py` | 14.1 |
+| `probe_pinned_acd_graph.py` | 14.1 |
+| `probe_tools.py` | 4.1 |
+| `print_locked_image.py` | 6 |
+| `run_in_workspace.py` | 6 |
+| `resolve_gd1_silkscreen.py` | 2 |
+| `silkscreen_search.py` | 2 |
+| `run_gd1_pipeline.py` | 2 |
+| `run_gd1_lanes.py` | 2・3 |
+| `run_gd1_enclosure_pipeline.py` | 3 |
+| `build_gd1_fixture.py` | 14.5 |
+| `check_rationale.py` | 1 |
+| `fetch_lcsc_footprint_orientation.py` | 7.1・17.1 |
+| `ingest_receipt.py` | 5.2 |
+| `ingest_functional_run.py` | 5.3 |
+| `propose_input_feedback.py` | 5.4 |
+| `pre_order_gate.py` | 7.3 |
+| `order_execution.py` | 7.5 |
+| `side_effect_journal.py` | 7.4 |
+
 ## バックログからマイルストーンへの移行
 
 旧3バックログ節の全項目を、次のマイルストーンへ移した。実行例・レビュー由来の
@@ -803,6 +948,17 @@ agentが推測で埋めない。
 | （改善バックログ）pipelineログの要約出力（入力トークン削減） | 15.5 |
 | （改善バックログ）リリース手順のdocs化 | 15.4 |
 | （改善バックログ）GD1と実体が異なる設計での実行例作成 | 14.1・14.2 |
+| （ギャップ分析）E-6 検証段階の並列実行 | 14.7（達成） |
+| （ギャップ分析）E-5 生成物名・`subject_node`のgraph_id由来化 | 14.6（出力命名は達成、`order_policy`のevidence anchorは計画） |
+| （改善バックログ）host EDA不在時の推奨経路への誘導 | 15.8（達成） |
+| （改善バックログ）FW実行のhost前提（QEMU・`libslirp0`等）のdocs化とlocked image同梱 | 15.9（達成） |
+| （改善バックログ）FW成果物ディレクトリ名のgraph_id由来化 | 14.6（達成） |
+| （レビュー）視覚投影SVGのviewBox相対font-size | 8.2（達成）、再発防止は20.4 |
+| （レビュー）回路図の可読性（機能ブロック配置とネットラベル接続方式の注記） | 8.2（達成） |
+| （レビュー）KiCad由来SVGのfit-to-board化 | 20.4（未採用。8.5が図枠のtitle blockを読むため現行exportを維持する） |
+| （レビュー）SKILL triggerとToolDefinition登録条件のdoctor診断 | 15.7（達成） |
+| （レビュー）hook遮断理由の要約自動集計 | 15.6（達成） |
+| （レビュー）DFMの未実装チェック一覧の明示 | 9.3 |
 
 ## 将来構想
 
