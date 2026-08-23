@@ -17,8 +17,7 @@ def test_list_matches_stage_definitions(capsys: pytest.CaptureFixture[str]) -> N
         stage: [
             {
                 "command": list(spec.command),
-                "requires_sync": spec.requires_sync,
-                "requires_previous": spec.requires_previous,
+                "barrier": spec.barrier,
             }
             for spec in commands
         ]
@@ -51,20 +50,24 @@ def test_failed_command_stops_stage(
 ) -> None:
     calls: list[tuple[str, ...]] = []
 
-    class Result:
-        def __init__(self, returncode: int) -> None:
-            self.returncode = returncode
-
-    def fake_run(command: Sequence[str], check: bool, **kwargs: object) -> Result:
+    def fake_run(
+        command: Sequence[str], check: bool, **kwargs: object
+    ) -> verify_all.subprocess.CompletedProcess[str]:
         assert check is False
-        assert kwargs == {"capture_output": True, "text": True}
+        assert kwargs == {}
         calls.append(tuple(command))
-        return Result(7 if len(calls) == 2 else 0)
+        print(f"child {command[0]}")
+        return verify_all.subprocess.CompletedProcess(
+            command, 7 if len(calls) == 2 else 0
+        )
 
     monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
     assert verify_all.run_stage((("first",), ("second",), ("third",))) == 7
     assert calls == [("first",), ("second",)]
-    assert "FAIL (exit=7)" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "child first" in output
+    assert "child second" in output
+    assert "FAIL (exit=7)" in output
 
 
 def test_success_output_is_identical_for_sequential_and_parallel_runs(
@@ -82,8 +85,19 @@ def test_success_output_is_identical_for_sequential_and_parallel_runs(
     sequential = capsys.readouterr()
     assert verify_all.run_stage(commands, jobs=4) == 0
     parallel = capsys.readouterr()
-    assert sequential.out == parallel.out
+
+    def result_lines(output: str) -> list[str]:
+        return [
+            line
+            for line in output.splitlines()
+            if " START $ " not in line
+            and ("] $ " in line or "] PASS" in line or "] FAIL" in line)
+        ]
+
+    assert result_lines(sequential.out) == result_lines(parallel.out)
     assert sequential.err == parallel.err
+    assert "[1/3] START $ first" in parallel.out
+    assert "[3/3] START $ third" in parallel.out
 
 
 def test_parallel_stage_reports_all_failures(
@@ -123,3 +137,31 @@ def test_parallel_commands_wait_for_sync(
 
     monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
     assert verify_all.run_stage(commands, jobs=4) == 0
+
+
+def test_barriers_flush_parallel_batches(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    running: set[tuple[str, ...]] = set()
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(command: Sequence[str], **kwargs: object) -> object:
+        command_tuple = tuple(command)
+        calls.append(command_tuple)
+        if command_tuple == ("barrier",):
+            assert running == set()
+        else:
+            running.add(command_tuple)
+            running.remove(command_tuple)
+        return verify_all.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    commands = (
+        verify_all.CommandSpec(("first",)),
+        verify_all.CommandSpec(("second",)),
+        verify_all.CommandSpec(("barrier",), barrier=True),
+        verify_all.CommandSpec(("third",)),
+    )
+    monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
+    assert verify_all.run_stage(commands, jobs=4) == 0
+    assert set(calls[:2]) == {("first",), ("second",)}
+    assert calls[2:] == [("barrier",), ("third",)]

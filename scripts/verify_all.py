@@ -20,8 +20,7 @@ class CommandSpec:
     """Describe a verification command and its ordering constraint."""
 
     command: Command
-    requires_sync: bool = True
-    requires_previous: bool = False
+    barrier: bool = False
 
 
 @dataclass(frozen=True)
@@ -33,7 +32,7 @@ class CommandResult:
     stderr: str
 
 
-SYNC_COMMAND = CommandSpec(("uv", "sync"), requires_sync=False)
+SYNC_COMMAND = CommandSpec(("uv", "sync"), barrier=True)
 STANDARD_COMMANDS: tuple[CommandSpec, ...] = (
     SYNC_COMMAND,
     CommandSpec(("uv", "run", "ruff", "check")),
@@ -52,7 +51,6 @@ STANDARD_COMMANDS: tuple[CommandSpec, ...] = (
 
 STAGES: dict[str, tuple[CommandSpec, ...]] = {
     "docs": (
-        SYNC_COMMAND,
         CommandSpec(("uv", "run", "python", "scripts/verify_docs.py")),
         CommandSpec(("uv", "run", "python", "scripts/verify_sdk_capabilities.py", "--check")),
         CommandSpec(("git", "diff", "--check")),
@@ -60,14 +58,14 @@ STAGES: dict[str, tuple[CommandSpec, ...]] = {
     "standard": STANDARD_COMMANDS,
     "full": (
         *STANDARD_COMMANDS,
-        CommandSpec(("uv", "run", "pytest", "plugins", "-q"), requires_previous=True),
+        CommandSpec(("uv", "run", "pytest", "plugins", "-q"), barrier=True),
         CommandSpec(
             ("uv", "run", "python", "scripts/resolve_gd1_silkscreen.py"),
-            requires_previous=True,
+            barrier=True,
         ),
         CommandSpec(
             ("uv", "run", "python", "scripts/run_gd1_pipeline.py"),
-            requires_previous=True,
+            barrier=True,
         ),
         CommandSpec(
             (
@@ -78,11 +76,11 @@ STAGES: dict[str, tuple[CommandSpec, ...]] = {
                 "--out",
                 "out/gd1-enclosure",
             ),
-            requires_previous=True,
+            barrier=True,
         ),
         CommandSpec(
             ("uv", "run", "python", "scripts/probe_tools.py"),
-            requires_previous=True,
+            barrier=True,
         ),
     ),
 }
@@ -134,8 +132,7 @@ def _list_stages() -> None:
         stage: [
             {
                 "command": list(spec.command),
-                "requires_sync": spec.requires_sync,
-                "requires_previous": spec.requires_previous,
+                "barrier": spec.barrier,
             }
             for spec in commands
         ]
@@ -152,22 +149,31 @@ def _normalize_commands(commands: Sequence[CommandSpec | Command]) -> tuple[Comm
     )
 
 
-def _run_command(spec: CommandSpec) -> CommandResult:
-    """Run one command while buffering both output streams."""
+def _run_command(spec: CommandSpec, *, capture_output: bool) -> CommandResult:
+    """Run one command with optional output buffering."""
     try:
-        completed = subprocess.run(
-            spec.command,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        if capture_output:
+            completed = subprocess.run(
+                spec.command,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            return CommandResult(
+                completed.returncode,
+                completed.stdout or "",
+                completed.stderr or "",
+            )
+        completed = subprocess.run(spec.command, check=False)
     except OSError as error:
         return CommandResult(1, "", f"{type(error).__name__}: {error}\n")
-    return CommandResult(
-        completed.returncode,
-        getattr(completed, "stdout", "") or "",
-        getattr(completed, "stderr", "") or "",
-    )
+    return CommandResult(completed.returncode, "", "")
+
+
+def _emit_start(index: int, total: int, spec: CommandSpec, *, buffered: bool) -> None:
+    """Emit a command start line."""
+    prefix = "START " if buffered else ""
+    print(f"[{index}/{total}] {prefix}$ {shlex.join(spec.command)}", flush=True)
 
 
 def _emit_result(index: int, total: int, spec: CommandSpec, result: CommandResult) -> None:
@@ -180,6 +186,14 @@ def _emit_result(index: int, total: int, spec: CommandSpec, result: CommandResul
     print(f"[{index}/{total}] {status}", flush=True)
 
 
+def _emit_direct_result(index: int, total: int, result: CommandResult) -> None:
+    """Emit a command status after direct subprocess output."""
+    if result.stderr:
+        print(result.stderr, end="" if result.stderr.endswith("\n") else "\n")
+    status = "PASS" if result.returncode == 0 else f"FAIL (exit={result.returncode})"
+    print(f"[{index}/{total}] {status}", flush=True)
+
+
 def run_stage(commands: Sequence[CommandSpec | Command], jobs: int = 1) -> int:
     """Run a stage sequentially or concurrently with deterministic output."""
     if jobs < 1:
@@ -188,47 +202,48 @@ def run_stage(commands: Sequence[CommandSpec | Command], jobs: int = 1) -> int:
     total = len(specs)
     if jobs == 1:
         for index, spec in enumerate(specs, start=1):
-            result = _run_command(spec)
-            _emit_result(index, total, spec, result)
+            _emit_start(index, total, spec, buffered=False)
+            result = _run_command(spec, capture_output=False)
+            _emit_direct_result(index, total, result)
             if result.returncode != 0:
                 return result.returncode or 1
         return 0
 
     next_index = 0
-    if specs and not specs[0].requires_sync:
-        result = _run_command(specs[0])
-        _emit_result(1, total, specs[0], result)
-        if result.returncode != 0:
-            return result.returncode or 1
-        next_index = 1
-
     with ThreadPoolExecutor(max_workers=jobs) as executor:
         while next_index < total:
-            batch_start = next_index
-            while next_index < total and not specs[next_index].requires_previous:
-                next_index += 1
-            futures = [
-                executor.submit(_run_command, spec)
-                for spec in specs[batch_start:next_index]
-            ]
-            results = [future.result() for future in futures]
-            first_failure = 0
-            for offset, (spec, result) in enumerate(
-                zip(specs[batch_start:next_index], results, strict=True), start=batch_start
-            ):
-                _emit_result(offset + 1, total, spec, result)
-                if result.returncode != 0 and first_failure == 0:
-                    first_failure = result.returncode or 1
-            if first_failure:
-                return first_failure
-
-            if next_index < total:
+            if specs[next_index].barrier:
                 spec = specs[next_index]
-                result = _run_command(spec)
+                _emit_start(next_index + 1, total, spec, buffered=True)
+                result = _run_command(spec, capture_output=True)
                 _emit_result(next_index + 1, total, spec, result)
                 next_index += 1
                 if result.returncode != 0:
                     return result.returncode or 1
+                continue
+
+            batch_start = next_index
+            while next_index < total and not specs[next_index].barrier:
+                next_index += 1
+            for offset, spec in enumerate(
+                specs[batch_start:next_index], start=batch_start
+            ):
+                _emit_start(offset + 1, total, spec, buffered=True)
+            futures = [
+                executor.submit(_run_command, spec, capture_output=True)
+                for spec in specs[batch_start:next_index]
+            ]
+            results = [future.result() for future in futures]
+            first_failure: int | None = None
+            for offset, (spec, result) in enumerate(
+                zip(specs[batch_start:next_index], results, strict=True), start=batch_start
+            ):
+                _emit_result(offset + 1, total, spec, result)
+                if result.returncode != 0 and first_failure is None:
+                    first_failure = result.returncode or 1
+            if first_failure is not None:
+                return first_failure
+
     return 0
 
 

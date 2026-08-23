@@ -135,12 +135,12 @@ uv run python scripts/verify_all.py --stage standard
 uv run python scripts/verify_all.py --stage full
 ```
 
-`verify_all.py`は`uv sync`を各段階の先頭で単独実行し、完走後にruff、pyright、
-pytest、各`verify_*.py`、`git diff --check`を最大
-`min(os.cpu_count() or 1, 4)`本まで並列実行する。`--jobs 1`は従来どおり宣言順に
-実行して最初の失敗で停止し、`--jobs N`（N > 1）は起動済みの独立コマンドを完走させ、
-宣言順に出力してから失敗したコマンドをすべて報告する。`--list`のJSONには各コマンドの
-`requires_sync`と`requires_previous`も含める。
+`verify_all.py`はbarrier付きコマンドを単独実行し、barrierのない連続コマンドを
+最大`min(os.cpu_count() or 1, 4)`本まで並列実行する。standardとfullの`uv sync`は
+barrierとして先頭で単独実行する。`--jobs 1`は従来どおり宣言順に実行して最初の失敗で
+停止し、子プロセスの出力をそのまま流す。`--jobs N`（N > 1）は起動済みの独立コマンドを
+完走させ、開始行を出してから出力を宣言順に戻し、失敗したコマンドをすべて報告する。
+`--list`のJSONには各コマンドの`barrier`を含める。
 
 pytestは既定で`-n auto --dist loadgroup`を有効にする。単体デバッグなどで並列化を
 無効にする場合は`uv run pytest -n 0`を使う。テストは固定パス、cwd、環境変数、

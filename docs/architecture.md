@@ -353,11 +353,13 @@ pytestは`pyproject.toml`の既定値として`-n auto --dist loadgroup`を使�
 環境変数をworker間で共有しない。installed plugin storeのようにプロセス外へ残る
 状態を独立化できない場合だけ`xdist_group`で同一workerへ固定する。
 
-検証段階のコマンド列は`verify_all.py --list`のJSONを正とする。各段階は`uv sync`を
-先に単独実行し、その完走後に独立したruff、pyright、pytest、`verify_*.py`、
-`git diff --check`を`ThreadPoolExecutor`で実行する。`--jobs 1`は宣言順の逐次実行で
-最初の失敗で停止し、`--jobs N`（N > 1）は起動済みコマンドを完走させ、出力を宣言順に
-戻して失敗をすべて報告する。いずれも1本でも失敗すればfail-closedで非零終了する。
+検証段階のコマンド列は`verify_all.py --list`のJSONを正とする。barrier付きコマンドは
+単独実行し、barrierのない連続コマンドを`ThreadPoolExecutor`で1バッチとして実行する。
+standardとfullの`uv sync`はbarrierとして先頭で単独実行し、docs stageは文書検証の3本を
+そのまま並列実行する。`--jobs 1`は宣言順の逐次実行で最初の失敗で停止し、子プロセスの
+出力を直接流す。`--jobs N`（N > 1）はバッチの開始行を先に出し、起動済みコマンドを
+完走させてから出力を宣言順に戻し、失敗をすべて報告する。いずれも1本でも失敗すれば
+fail-closedで非零終了する。
 2コアVMでの同一入力の測定では、pytestが逐次195.13秒から自動並列108.73秒へ、
 standard検証が`--jobs 1`の141.21秒から既定並列126.66秒へ短縮した（各条件1回）。
 
