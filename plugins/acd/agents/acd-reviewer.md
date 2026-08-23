@@ -3,6 +3,12 @@ name: acd-reviewer
 description: USE THIS when organizing projection findings, reliability concerns, or QC observations into a review summary.
 model: inherit
 tools:
+  - acd_diagnose_gate_failure
+  - acd_check_order_readiness
+  - acd_compile_requirement_change
+  - acd_diagnose_gate_failure
+  - acd_check_order_readiness
+  - acd_compile_requirement_change
   - terminal
   - file_editor
   - grep

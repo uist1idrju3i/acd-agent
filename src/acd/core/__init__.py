@@ -23,6 +23,10 @@ from acd.core.firmware import (
     evaluate_functional_run,
     load_and_evaluate_functional_run,
 )
+from acd.core.functional_block_entry import (
+    FunctionalBlockEntryResult,
+    register_functional_block_contract,
+)
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
@@ -74,6 +78,7 @@ __all__ = [
     "FabProfileRegistry",
     "FeedbackError",
     "FunctionalBlockContractError",
+    "FunctionalBlockEntryResult",
     "FunctionalBlockRegistry",
     "FunctionalRunError",
     "JournalOrderReconstruction",
@@ -113,6 +118,7 @@ __all__ = [
     "reconcile_files",
     "reconcile_receipt",
     "reconstruct_order",
+    "register_functional_block_contract",
     "required_predicate_names",
     "resolve_fab_profile_path",
     "subject_hash_for",

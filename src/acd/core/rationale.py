@@ -59,6 +59,7 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "placement_y_mm",
             "placement_rotation_deg",
             "radio_module",
+            "library_ref",
         }
     ),
     "electrical.placement_group": frozenset(),
@@ -271,6 +272,11 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
     },
     "electrical.component": {
+        "library_ref": "inline library reference provenance.",
+        "package": "catalog package selection provenance.",
+        "part_number": "catalog part-number selection provenance.",
+        "parts_catalog_id": "catalog identity is provenance metadata.",
+        "parts_catalog_sha256": "catalog hash is provenance metadata.",
         "certification_checked_at": (
             "Certification check time records external verification provenance."
         ),

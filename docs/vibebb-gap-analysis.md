@@ -19,11 +19,11 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 
 | # | 不足機能 | 現状 | 実測根拠 |
 |---|---|---|---|
-| A-1 | 会話→要件レコードの変換 | [`README.md`](../README.md)は「対話を検証可能な要件へ変換する」を掲げるが、実装は`req.*` nodeの手書き。要件文は自由文で、ゲートと機械的に結び付いていない | 変更したREQ-010／REQ-011の文面は手作業更新であり、GPIO変更との整合を機械検査できなかった |
-| A-2 | 任意設計向けfixtureビルダー | [`src/acd/pipeline/gd1_fixture/`](../src/acd/pipeline/gd1_fixture/)はGD1専用。新規設計はGD1のgraphを複製して手編集するしかない | 変異fixtureは自作スクリプトでGD1 graphを書き換えて生成した。acd-agent内には該当機能が無い |
-| A-3 | 要件差分→graph差分のコンパイラ | 「LEDをIO6へ」という要件変更に対し、`pin.*`接続、`fw.pin.*`、テストポイント名、シルク文字、rationaleを同時に更新する経路が無い | 上記4箇所をすべて手で書き換えた。1箇所落とすとresolverかrationale coverageで落ちる |
-| A-4 | 部品選定とlibrary provenanceの自動化 | 部品・footprint・provenanceはGD1 fixtureに固定。カタログ検索や代替品選定の機構が無い | 部品点数を変えない要件に限定したため回避したが、部品を増やす要件は現状扱えない |
-| A-5 | 回路トポロジ合成 | net構成はGD1のコピーが前提。機能ブロックからnetlistを合成する層が無い | I2C・LED以外の構成変更は検討不能だった |
+| A-1 | 会話→要件レコードの変換 | `RequirementRecord`／`RequirementDocument`が要件文と機能ブロック、graph nodeを機械的にリンクし、`req.*` nodeとの双方向整合性をfail-closedで検査する。達成 | 要件文、期待値、対象nodeをcanonical hash付きrequirements documentへ保存する |
+| A-2 | 任意設計向けfixtureビルダー | [`src/acd/pipeline/fixture_builder.py`](../src/acd/pipeline/fixture_builder.py)がPydantic specから決定論的にgraph、requirements、rationaleを生成する。達成 | `scripts/build_design_fixture.py`と部分選定catalog requestを追加した |
+| A-3 | 要件差分→graph差分のコンパイラ | 要件変更compilerがGPIO、FW pin、test point、silk、`req.*`、rationaleを一括更新し、atomic rollbackとbefore/after hashを返す。達成 | unknown／ambiguous／未対応expectationはfail-closedで停止する |
+| A-4 | 部品選定とlibrary provenanceの自動化 | [`contracts/parts-catalog.json`](../contracts/parts-catalog.json)を宣言source of truthとし、kind／value／package／preferred part numberから一意選択し、pinned library provenanceを返す。達成 | ネットワークを使わず、欠落・曖昧・不一致はfail-closedとする |
+| A-5 | 回路トポロジ合成 | 機能ブロックregistryのblock_idに対する明示的templateから、component request、net、制約のfixture fragmentを決定論的に合成する。達成 | unknown blockとtemplate欠落（検証不能）は、機能を持たない状態と区別してfail-closedとする |
 
 ## B. 物理設計の自律探索（今回の直接のfailure源）
 
@@ -54,8 +54,8 @@ Gerber検査はrouting結果に依存するため、従来どおりrouter後に�
 |---|---|---|
 | B-3 | 達成。述語失敗のmeasurement／subjectとrouterの未接続net・pad対を決定論的な診断Evidenceへ保存 | 解決済み |
 | B-4 | 達成。述語catalogの評価段階を宣言し、6述語の`pre_router`被覆と既存評価順を回帰固定 | 解決済み |
-| B-1 | 未着手。候補生成・探索loopは14.4の範囲 | 14.4 |
-| B-2 | 未着手。候補の反復評価は14.4の範囲 | 14.4 |
+| B-1 | 達成。配置・回転Skillをsubprocess境界で呼び出し、設計自由度を検査するbounded候補探索loopを追加 | 解決済み |
+| B-2 | 達成。graph宣言MCU padからGPIO割当を決定論的に列挙し、strapping pinをpre_routerで除外する探索loopを追加 | 解決済み |
 | B-5〜B-7 | 達成。placement group制約、outline単一datumからのmount-hole body導出、stitch via fallbackを実装 | 解決済み |
 | B-8・B-9 | 「Bの一部解決（マイルストーン14.4 第1セッション）」を参照 | 14.4 第1セッション |
 
@@ -78,7 +78,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 |---|---|---|
 | B-8 | 達成。9次元の設計自由度宣言、出所・bound basis・gate authority、探索可否、registry整合検査を追加 | 解決済み |
 | B-9 | 達成。初回・refill反復の候補reportとGND島未被覆測定を常時保存し、DFMにはbounded summaryを埋め込む | 解決済み |
-| B-1・B-2 | 未着手。候補生成・探索loopは別branchの実装をmainへ統合後に完了 | 14.4 |
+| B-1・B-2 | 達成。配置・回転SkillとGPIO solverをsubprocess／決定論的列挙で接続し、候補ごとにpre_routerと既存gateを評価するbounded loopを追加 | 解決済み |
 | B-5〜B-7 | 達成。placement coupling、単一datum化、stitch via fallbackを実装 | 解決済み |
 
 ## C. 筐体・FW lane
@@ -224,7 +224,7 @@ authoritative Evidenceのdigest固定条件は緩めない。
 | # | 不足機能 | 現状 |
 |---|---|---|
 | I-1 | VibeBB loopのcommand | [`plugins/acd/commands/`](../plugins/acd/commands/)は`ask`／`doctor`／`gates`の3つで、設計・生成・発注を進めるcommandが無い。会話から進める手段が「shellで各scriptを叩く」に落ちる |
-| I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)が公開するのはtool probe、graph validate、GD1基板pipeline、GD1筐体pipelineの4つのみ。FW pipeline、fixture編集、発注、失敗診断のtoolが無く、それらは生JSON編集と生shellになる。今回私が座標とGPIOを手で書いたのはこの欠落の帰結である |
+| I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)へFW pipeline、要件compiler、fixture builder、bounded探索、失敗診断、発注readinessの6 toolを追加した。すべて既存SDKのAction／Observation／Executor境界を使い、L1 Evidenceを生成・昇格しない。達成 |
 | I-3 | workspace既定値のgd1固定 | [`src/acd/openhands/workspace.py`](../src/acd/openhands/workspace.py)の`DEFAULT_COMMAND`と期待Evidenceパスが`out/gd1`・`out/gd1-enclosure`固定 |
 | I-4 | 発注可否判定のsubject固定 | [`src/acd/schema/order_policy.py`](../src/acd/schema/order_policy.py)の必須evidence anchorが`evidence.gd1.electrical`／`evidence.gd1.mechanical`固定であり、GD1以外の設計は原理的にorder-readyにならない。E-5より重い（成果物名の問題ではなく、発注laneが別設計に到達できない） |
 | I-5 | 生成物名のgd1固定 | KiCad projectの既定名が`gd1`（[`adapters/kicad/schematic.py`](../src/acd/adapters/kicad/schematic.py)）、筐体の`part_number`が`gd1-enclosure*`（[`adapters/cad/project.py`](../src/acd/adapters/cad/project.py)）。製造データの部品番号が別設計でもGD1名になる |
@@ -302,15 +302,15 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | J-1／J-2 | 契約registryへの機能ブロック追加は可能になった。任意graphの生成・差分反映はI-2／A-2／A-3が未達だと生JSON編集になる |
 | I-4 | GD1以外の設計は発注可否判定に到達できない |
 | I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
-| B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
+| B-1／B-2／B-3 | B-1／B-2のbounded候補探索とB-3の構造化診断を接続した。候補の予算超過や診断不能はfail-closedで記録し、L1 gateの合否権限は変更しない |
 | G-1／G-2 | workspaceが空のままで開始できない。今回は私がcloneして初期化した |
 
 ## 優先順位（VibeBB単体成立に効く順）
 
 1. H-1／H-5（Skill scriptのacd版skew）。現在FW laneが常に失敗しており、設計内容によらず回避できない。最小のコストで最大の停止要因を除ける。
-2. I-2／A-2／A-3（任意graphと要件差分compiler）。J-1／J-2は14.2で解消したが、契約registryへ新しい宣言を自動反映する入口がまだ必要である。
+2. I-2／A-2／A-3（任意graphと要件差分compiler）。14.5で要件document、任意fixture builder、compiler、agent tool入口を接続し、手編集依存を解消した。registry entryは14.2の達成済み機能である。
 3. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。K-3はB-3の利用者向け表現として同時に扱う。
-4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
+4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。14.5で達成済み。部品catalogとトポロジtemplateを追加して新規設計の入口を宣言経由へ移した。
 5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。達成済み。SkillはL2の候補生成に限定し、L1ゲートの権限とfail-closed条件は維持する。
 6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
 7. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
