@@ -26,6 +26,7 @@ from acd.pipeline.repository import repository_root
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 PredicateStatus = Literal["pass", "fail", "unknown", "not_applicable"]
+RemediationDimensionsSource = Literal["registry", "unknown"]
 
 PREDICATE_CATALOG = (
     "usb_cc",
@@ -85,19 +86,6 @@ LARGE_CAP_DISTANCE_MM = 8.0
 SMALL_DECOUPLING_TOLERANCE_UF = 0.02
 
 
-class PredicateResult(BaseModel):
-    """One deterministic predicate outcome."""
-
-    model_config = ConfigDict(frozen=True)
-
-    name: str
-    status: PredicateStatus
-    detail: str
-    measurements: tuple[PredicateMeasurement, ...] = ()
-    subjects: tuple[PredicateSubject, ...] = ()
-    remediation: PredicateRemediation | None = None
-
-
 class PredicateSubject(BaseModel):
     """Machine-readable identifiers associated with a predicate observation."""
 
@@ -117,6 +105,7 @@ class PredicateMeasurement(BaseModel):
 
     measured: float | None = None
     limit: float | None = None
+    quantity: str | None = None
     comparison: str | None = None
     unit: str | None = None
     margin: float | None = None
@@ -130,11 +119,25 @@ class PredicateRemediation(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     change_dimensions: tuple[str, ...]
+    dimensions_source: RemediationDimensionsSource
     source_block_ids: tuple[str, ...]
     subject: PredicateSubject | None = None
     margin: float | None = None
     excess: float | None = None
     message: str
+
+
+class PredicateResult(BaseModel):
+    """One deterministic predicate outcome."""
+
+    model_config = ConfigDict(frozen=True)
+
+    name: str
+    status: PredicateStatus
+    detail: str
+    measurements: tuple[PredicateMeasurement, ...] = ()
+    subjects: tuple[PredicateSubject, ...] = ()
+    remediation: PredicateRemediation | None = None
 
 
 class SafetyBoundaryResult(BaseModel):
@@ -470,7 +473,7 @@ def _component_pad_positions(
     net_id: str,
     fixture_dir: Path,
     library: FootprintLibrary,
-) -> tuple[tuple[float, float], ...]:
+) -> tuple[tuple[str, tuple[float, float]], ...]:
     shape = library.load(
         component.library.footprint,
         _resolve_path(component.library.footprint_file, fixture_dir),
@@ -495,13 +498,13 @@ def _component_pad_positions(
     y_value = float(y)
     rotation_value = float(rotation)
     pads = [pin.pad for pin in lane.pins_of_component(component.node_id) if pin.net_id == net_id]
-    positions: list[tuple[float, float]] = []
+    positions: list[tuple[str, tuple[float, float]]] = []
     for pad_number in pads:
         for pad in shape.pads:
             if pad.number != pad_number:
                 continue
             px, py = rotate_point(pad.x_mm, pad.y_mm, rotation_value)
-            positions.append((x_value + px, y_value + py))
+            positions.append((pad.number, (x_value + px, y_value + py)))
     if not positions:
         raise ValueError(f"{component.refdes}: net pad geometry is missing")
     return tuple(positions)
@@ -516,30 +519,14 @@ def _minimum_pad_pair(
     fixture_dir: Path,
 ) -> tuple[float, str, str]:
     library = FootprintLibrary()
-    cap_positions = _component_pad_positions(graph, lane, capacitor, net_id, fixture_dir, library)
+    cap_positions = _component_pad_positions(
+        graph, lane, capacitor, net_id, fixture_dir, library
+    )
     target_positions = _component_pad_positions(graph, lane, target, net_id, fixture_dir, library)
-    cap_shape = library.load(
-        capacitor.library.footprint,
-        _resolve_path(capacitor.library.footprint_file, fixture_dir),
-        capacitor.library.footprint_sha256,
-    )
-    target_shape = library.load(
-        target.library.footprint,
-        _resolve_path(target.library.footprint_file, fixture_dir),
-        target.library.footprint_sha256,
-    )
-    cap_pin_numbers = {
-        pin.pad for pin in lane.pins_of_component(capacitor.node_id) if pin.net_id == net_id
-    }
-    target_pin_numbers = {
-        pin.pad for pin in lane.pins_of_component(target.node_id) if pin.net_id == net_id
-    }
-    cap_pads = [pad.number for pad in cap_shape.pads if pad.number in cap_pin_numbers]
-    target_pads = [pad.number for pad in target_shape.pads if pad.number in target_pin_numbers]
     candidates = [
         (math.dist(cap_position, target_position), cap_pad, target_pad)
-        for cap_position, cap_pad in zip(cap_positions, cap_pads, strict=True)
-        for target_position, target_pad in zip(target_positions, target_pads, strict=True)
+        for cap_pad, cap_position in cap_positions
+        for target_pad, target_position in target_positions
     ]
     return min(candidates, key=lambda item: (item[0], item[1], item[2]))
 
@@ -580,8 +567,9 @@ def evaluate_power_decoupling(
                     PredicateMeasurement(
                         measured=0.0,
                         limit=1.0,
+                        quantity="qualifying_capacitor_count",
                         comparison=">=",
-                        unit="capacitors",
+                        unit="count",
                         margin=-1.0,
                         excess=1.0,
                         subject=PredicateSubject(net=_net_name(graph, rail)),
@@ -600,8 +588,9 @@ def evaluate_power_decoupling(
                     PredicateMeasurement(
                         measured=0.0,
                         limit=1.0,
+                        quantity="qualifying_capacitor_count",
                         comparison=">=",
-                        unit="capacitors",
+                        unit="count",
                         margin=-1.0,
                         excess=1.0,
                         subject=PredicateSubject(net=_net_name(graph, rail)),
@@ -670,6 +659,7 @@ def evaluate_power_decoupling(
                     PredicateMeasurement(
                         measured=distance,
                         limit=limit,
+                        quantity="pad_distance_mm",
                         comparison="<=",
                         unit="mm",
                         margin=limit - distance,
@@ -906,6 +896,9 @@ def evaluate_design_predicates(
             enriched.append(result)
             continue
         dimensions, source_blocks = remediation_declarations(result.name, declared, loaded)
+        dimensions_source: RemediationDimensionsSource = (
+            "registry" if source_blocks else "unknown"
+        )
         measurement = result.measurements[0] if result.measurements else None
         subject = measurement.subject if measurement is not None else None
         margin = measurement.margin if measurement is not None else None
@@ -934,6 +927,7 @@ def evaluate_design_predicates(
                 update={
                     "remediation": PredicateRemediation(
                         change_dimensions=dimensions,
+                        dimensions_source=dimensions_source,
                         source_block_ids=source_blocks,
                         subject=subject,
                         margin=margin,
@@ -955,6 +949,7 @@ __all__ = [
     "PredicateResult",
     "PredicateStatus",
     "PredicateSubject",
+    "RemediationDimensionsSource",
     "SafetyBoundaryResult",
     "evaluate_design_predicates",
     "evaluate_i2c_pullup",

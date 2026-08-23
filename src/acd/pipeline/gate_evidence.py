@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -60,6 +62,37 @@ def write_gate_evidence(
     )
 
 
+def write_gate_evidence_or_unavailable(
+    out_dir: Path,
+    filename: str,
+    *,
+    target_revision: str,
+    gate: str,
+    message: str,
+    write_evidence: Callable[[], Path] | None,
+    failure: Exception | None = None,
+) -> Path | None:
+    """Write diagnostics without allowing observation failures to alter gate behavior."""
+    try:
+        if write_evidence is None:
+            raise RuntimeError("diagnostic evidence generation was not attempted")
+        return write_evidence()
+    except Exception as exc:
+        # Diagnostic Evidence has no gate authority, so every writer exception is suppressed.
+        reason = failure if failure is not None else exc
+        with suppress(Exception):
+            write_gate_evidence(
+                out_dir,
+                filename,
+                target_revision=target_revision,
+                gate=gate,
+                status="unavailable",
+                message=message,
+                observation=unavailable_observation(reason),
+            )
+        return None
+
+
 def write_design_predicate_evidence(
     out_dir: Path,
     revision: str,
@@ -105,4 +138,5 @@ __all__ = [
     "unavailable_observation",
     "write_design_predicate_evidence",
     "write_gate_evidence",
+    "write_gate_evidence_or_unavailable",
 ]

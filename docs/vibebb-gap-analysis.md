@@ -41,8 +41,9 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 
 ### Bの一部解決（マイルストーン14.3）
 
-B-3は、設計述語の実測値・閾値・比較方向・単位・対象と、routerのnet単位の
-接続成分・未接続pad対を構造化した診断Evidenceとして常時保存することで解決した。
+B-3は、設計述語の実測値・閾値・比較方向・単位・量（`quantity`）・対象と、
+routerのnet単位の接続成分・成分ペアごとの代表的な未接続pad対を構造化した診断Evidence
+として常時保存することで解決した。
 SESの欠落・parse失敗は`status: "unavailable"`として記録するが、既存の収束gateや
 DRC gateの判定を変更しない。EvidenceはL3の診断情報であり、L1の合否権限を持たない。
 B-4は、6述語すべてを`pre_router`として評価段階catalogへ宣言し、catalogの被覆検査を
@@ -258,7 +259,8 @@ fail-closedで停止する。
 K-3は、機能ブロックregistryに許可された変更次元を宣言し、述語失敗のEvidenceと
 `GateError`へ由来block、対象、現在のマージン、超過量、人間向けremediationを追加する
 ことで解決した。registryに宣言のない次元は推測せず`unknown`として扱い、安全境界の
-ように空集合を宣言したblockは追加変更を許可しない。remediationは診断情報であり、
+`dimensions_source: "unknown"`として扱い、変更次元は空にする。安全境界のように空集合を
+宣言したblockは`dimensions_source: "registry"`のまま追加変更を許可しない。remediationは診断情報であり、
 決定論的なゲートの閾値・停止条件・合否権限を変更しない。
 
 | 項目 | 14.3後の状態 | 優先度 |

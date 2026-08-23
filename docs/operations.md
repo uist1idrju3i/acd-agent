@@ -407,8 +407,12 @@ command未実行をsuccessとして記録する経路はない。command形式�
 
    基板pipelineは、ゲートの診断専用Evidenceを`out/gd1/gate-evidence/`へ常時保存する。
    `design-predicates.json`は全述語（`pass`、`fail`、`unknown`、`not_applicable`）の
-   評価段階、measurement、subject、remediationを含む。`routing-connectivity.json`は
-   SESから求めたnet単位のwire／via成分、未接続pad対、wireへ接続しないpadを含み、
+   評価段階、measurement、subject、remediationを含む。measurementには
+   `quantity`があり、例えば`pad_distance_mm`や`qualifying_capacitor_count`として
+   `measured`の意味を明示する。remediationの`dimensions_source`はregistry由来か
+   未知かを示し、未知の場合は変更次元を推測しない。`routing-connectivity.json`は
+   SESから求めたnet単位のwire／via成分、連結成分ペアごとの代表的な未接続pad対、
+   wireへ接続しないpadを含み、
    routerの`convergence_state`と観測結果の不一致も記録する。GND島のstitch via検査で
    欠落が発生した場合は`gnd-stitch-vias.json`へ構造化座標またはエラー理由を保存する。
    これらのファイルは`sort_keys`付きJSON、固定座標丸め、canonical JSON SHA-256で

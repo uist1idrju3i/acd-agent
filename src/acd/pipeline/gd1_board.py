@@ -24,7 +24,6 @@ import shutil
 import sys
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import suppress
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
@@ -103,9 +102,9 @@ from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
 from acd.pipeline.gate_evidence import (
-    unavailable_observation,
     write_design_predicate_evidence,
     write_gate_evidence,
+    write_gate_evidence_or_unavailable,
 )
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
@@ -723,19 +722,24 @@ def run_pipeline(
         tuple[PredicateResult, ...],
         group0_results[1],
     )
-    try:
-        write_design_predicate_evidence(out_dir, revision, design_predicates)
-    except Exception as exc:
-        with suppress(Exception):
-            write_gate_evidence(
-                out_dir,
-                "design-predicates.json",
-                target_revision=revision,
-                gate="design_predicates",
-                status="unavailable",
-                message="design predicate diagnostic observations unavailable; not gate authority",
-                observation=unavailable_observation(exc),
-            )
+    design_evidence_path = write_gate_evidence_or_unavailable(
+        out_dir,
+        "design-predicates.json",
+        target_revision=revision,
+        gate="design_predicates",
+        message="design predicate diagnostic observations unavailable; not gate authority",
+        write_evidence=partial(
+            write_design_predicate_evidence,
+            out_dir,
+            revision,
+            design_predicates,
+        ),
+    )
+    evidence_reference = (
+        "; evidence: gate-evidence/design-predicates.json"
+        if design_evidence_path is not None
+        else "; evidence unavailable"
+    )
     for predicate in design_predicates:
         if predicate.status not in {"pass", "not_applicable"}:
             remediation = (
@@ -745,7 +749,7 @@ def run_pipeline(
             )
             raise GateError(
                 f"{predicate.name}: status={predicate.status!r} ({predicate.detail})"
-                f"{remediation}; evidence: gate-evidence/design-predicates.json"
+                f"{remediation}{evidence_reference}"
             )
     applicable_count = sum(predicate.status != "not_applicable" for predicate in design_predicates)
     print(
@@ -798,16 +802,15 @@ def run_pipeline(
     try:
         route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
     except Exception as exc:
-        with suppress(Exception):
-            write_gate_evidence(
-                out_dir,
-                "routing-connectivity.json",
-                target_revision=revision,
-                gate="routing_connectivity",
-                status="unavailable",
-                message="routing connectivity diagnostic unavailable; not gate authority",
-                observation=unavailable_observation(exc),
-            )
+        write_gate_evidence_or_unavailable(
+            out_dir,
+            "routing-connectivity.json",
+            target_revision=revision,
+            gate="routing_connectivity",
+            message="routing connectivity diagnostic unavailable; not gate authority",
+            write_evidence=None,
+            failure=exc,
+        )
         raise
     parsed_routes = None
     try:
@@ -815,35 +818,47 @@ def run_pipeline(
             ses_path.read_text(),
             minimum_width_mm=lane.board.min_track_mm,
         )
-        connectivity = measure_routing_connectivity(
-            project.board_projection.model,
-            parsed_routes,
-        )
-        connectivity["router_convergence_state"] = route_run.envelope.convergence_state
-        connectivity["router_measurement_mismatch"] = (
-            route_run.envelope.convergence_state == "converged"
-            and connectivity["status"] != "pass"
-        )
-        write_gate_evidence(
+    except Exception as exc:
+        write_gate_evidence_or_unavailable(
             out_dir,
             "routing-connectivity.json",
             target_revision=revision,
             gate="routing_connectivity",
-            status=str(connectivity["status"]),
-            message="routing connectivity diagnostic observation; not gate authority",
-            observation=connectivity,
+            message="routing connectivity diagnostic unavailable; not gate authority",
+            write_evidence=None,
+            failure=exc,
         )
-    except Exception as exc:
-        with suppress(Exception):
-            write_gate_evidence(
+    else:
+        assert parsed_routes is not None
+
+        def write_connectivity_evidence() -> Path:
+            connectivity = measure_routing_connectivity(
+                project.board_projection.model,
+                parsed_routes,
+            )
+            connectivity["router_convergence_state"] = route_run.envelope.convergence_state
+            connectivity["router_measurement_mismatch"] = (
+                route_run.envelope.convergence_state == "converged"
+                and connectivity["status"] != "pass"
+            )
+            return write_gate_evidence(
                 out_dir,
                 "routing-connectivity.json",
                 target_revision=revision,
                 gate="routing_connectivity",
-                status="unavailable",
-                message="routing connectivity diagnostic unavailable; not gate authority",
-                observation=unavailable_observation(exc),
+                status=str(connectivity["status"]),
+                message="routing connectivity diagnostic observation; not gate authority",
+                observation=connectivity,
             )
+
+        write_gate_evidence_or_unavailable(
+            out_dir,
+            "routing-connectivity.json",
+            target_revision=revision,
+            gate="routing_connectivity",
+            message="routing connectivity diagnostic observation; not gate authority",
+            write_evidence=write_connectivity_evidence,
+        )
     assert_converged(route_run.envelope.convergence_state)
     print("[3/12] routing converged")
 
@@ -932,8 +947,14 @@ def run_pipeline(
             break
         except UncoveredStitchViasError as exc:
             uncovered = exc.locations
-            with suppress(Exception):
-                write_gate_evidence(
+            write_gate_evidence_or_unavailable(
+                out_dir,
+                "gnd-stitch-vias.json",
+                target_revision=revision,
+                gate="gnd_stitch_vias",
+                message="GND stitch-via diagnostic observation; not gate authority",
+                write_evidence=partial(
+                    write_gate_evidence,
                     out_dir,
                     "gnd-stitch-vias.json",
                     target_revision=revision,
@@ -946,7 +967,9 @@ def run_pipeline(
                         ],
                         "candidate_count": len(stitch_vias),
                     },
-                )
+                ),
+                failure=exc,
+            )
             pruned_vias.extend(uncovered)
             covered = tuple(point for point in stitch_vias if point not in uncovered)
             if len(covered) == len(stitch_vias):
@@ -966,8 +989,14 @@ def run_pipeline(
                 f"uncovered={len(uncovered)} at {uncovered}"
             )
         except FabOutputError as exc:
-            with suppress(Exception):
-                write_gate_evidence(
+            write_gate_evidence_or_unavailable(
+                out_dir,
+                "gnd-stitch-vias.json",
+                target_revision=revision,
+                gate="gnd_stitch_vias",
+                message="GND stitch-via diagnostic observation; not gate authority",
+                write_evidence=partial(
+                    write_gate_evidence,
                     out_dir,
                     "gnd-stitch-vias.json",
                     target_revision=revision,
@@ -975,7 +1004,9 @@ def run_pipeline(
                     status="fail",
                     message="GND stitch-via diagnostic observation; not gate authority",
                     observation={"error": str(exc)},
-                )
+                ),
+                failure=exc,
+            )
             raise
         routed_board, stitch_vias = inject_stitch_vias(
             base_routed_board,

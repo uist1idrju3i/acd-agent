@@ -156,7 +156,7 @@ def remediation_declarations(
         if predicate in contracts[block_id].required_predicates
     )
     if not source_blocks:
-        return ("unknown",), ()
+        return (), ()
     dimensions = tuple(
         sorted(
             {

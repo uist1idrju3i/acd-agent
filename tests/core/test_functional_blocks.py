@@ -243,3 +243,11 @@ def test_unknown_remediation_dimension_fails_closed() -> None:
             required_predicates=["power_boundary"],
             allowed_change_dimensions=["board_magic"],
         )
+
+
+def test_remediation_declarations_without_source_do_not_use_unknown_dimension() -> None:
+    registry = load_functional_block_registry()
+    assert remediation_declarations("power_decoupling", ("safety_power_boundary",), registry) == (
+        (),
+        (),
+    )

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -21,7 +22,11 @@ from acd.core.board_model import (
     RoutedVia,
     RoutedWire,
 )
-from acd.pipeline.gate_evidence import unavailable_observation, write_gate_evidence
+from acd.pipeline.gate_evidence import (
+    unavailable_observation,
+    write_gate_evidence,
+    write_gate_evidence_or_unavailable,
+)
 from acd.pipeline.routing_connectivity import measure_routing_connectivity
 
 
@@ -101,6 +106,25 @@ def test_routing_connectivity_reports_unconnected_pad_pair() -> None:
     assert gnd["unattached_pads"] == [["J3", "1"], ["J4", "1"]]
 
 
+def test_routing_connectivity_accepts_duplicate_pad_shapes() -> None:
+    board = _board()
+    j3 = next(placement for placement in board.placements if placement.refdes == "J3")
+    pad = j3.footprint.pads[0]
+    duplicate = replace(pad, x_mm=0.2)
+    duplicate_footprint = replace(j3.footprint, pads=(pad, duplicate))
+    placements = tuple(
+        replace(placement, footprint=duplicate_footprint)
+        if placement.refdes == "J3"
+        else placement
+        for placement in board.placements
+    )
+    result = measure_routing_connectivity(
+        replace(board, placements=placements),
+        _connected_routes(),
+    )
+    assert result["status"] == "pass"
+
+
 def test_routing_connectivity_is_deterministic() -> None:
     first = measure_routing_connectivity(_board(), _connected_routes())
     second = measure_routing_connectivity(_board(), _connected_routes())
@@ -126,3 +150,25 @@ def test_malformed_ses_is_recorded_as_unavailable(tmp_path: Path) -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["status"] == "unavailable"
     assert payload["observation"]["reason"].startswith("SesImportError:")
+
+
+def test_evidence_writer_failure_is_recorded_as_unavailable(tmp_path: Path) -> None:
+    def fail_writer() -> Path:
+        raise RuntimeError("evidence serialization failed")
+
+    assert (
+        write_gate_evidence_or_unavailable(
+            tmp_path,
+            "routing-connectivity.json",
+            target_revision="r1",
+            gate="routing_connectivity",
+            message="routing connectivity diagnostic unavailable; not gate authority",
+            write_evidence=fail_writer,
+        )
+        is None
+    )
+    payload = json.loads(
+        (tmp_path / "gate-evidence" / "routing-connectivity.json").read_text(encoding="utf-8")
+    )
+    assert payload["status"] == "unavailable"
+    assert payload["observation"]["reason"] == "RuntimeError: evidence serialization failed"

@@ -1,15 +1,21 @@
 """GD1 deterministic design predicate tests."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
 
+from acd.adapters.kicad.library import FootprintLibrary
 from acd.core.design_predicates import (
     PREDICATE_CATALOG,
     PREDICATE_EVALUATION_STAGE,
+    _component_pad_positions,
+    _minimum_pad_pair,
     evaluate_design_predicates,
     evaluate_i2c_pullup,
     evaluate_pin_firmware_alignment,
@@ -158,6 +164,7 @@ def test_power_decoupling_failure_has_structured_measurement_and_remediation() -
     measurement = result.measurements[0]
     assert measurement.measured == pytest.approx(3.319, abs=0.0005)
     assert measurement.limit == 3.0
+    assert measurement.quantity == "pad_distance_mm"
     assert measurement.comparison == "<="
     assert measurement.unit == "mm"
     assert measurement.margin == pytest.approx(-0.319, abs=0.0005)
@@ -168,12 +175,42 @@ def test_power_decoupling_failure_has_structured_measurement_and_remediation() -
     assert measurement.subject.net == "+3V3"
     assert result.remediation is not None
     assert result.remediation.change_dimensions == ("component_placement_xy",)
+    assert result.remediation.dimensions_source == "registry"
     assert result.remediation.source_block_ids == ("single_ldo_power_tree",)
     assert result.remediation.margin == pytest.approx(-0.319, abs=0.0005)
     assert result.remediation.excess == pytest.approx(0.319, abs=0.0005)
     assert result.remediation.message == (
         "move C5 within 3.000 mm of U3; measured 3.319 mm, exceeds by 0.319 mm"
     )
+
+
+def test_power_decoupling_pad_pair_preserves_duplicate_shape_pad_numbers() -> None:
+    graph = _graph()
+    _skip_if_gd1_geometry_library_is_missing(graph)
+    lane = extract_electrical_lane(graph)
+    capacitor = next(component for component in lane.components if component.refdes == "C3")
+    target = next(component for component in lane.components if component.refdes == "U2")
+    net_id = next(
+        pin.net_id
+        for pin in lane.pins_of_component(capacitor.node_id)
+        if pin.net_id is not None
+    )
+    library = FootprintLibrary()
+    capacitor_entries = _component_pad_positions(
+        graph, lane, capacitor, net_id, FIXTURE_DIR, library
+    )
+    target_entries = _component_pad_positions(graph, lane, target, net_id, FIXTURE_DIR, library)
+    assert [pad for pad, _ in target_entries] == ["2", "2"]
+    expected = min(
+        (
+            math.dist(cap_position, target_position),
+            cap_pad,
+            target_pad,
+        )
+        for cap_pad, cap_position in capacitor_entries
+        for target_pad, target_position in target_entries
+    )
+    assert _minimum_pad_pair(graph, lane, capacitor, target, net_id, FIXTURE_DIR) == expected
 
 
 def test_predicate_evaluation_stage_catalog_is_complete_and_fail_closed() -> None:
