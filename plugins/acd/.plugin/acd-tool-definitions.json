@@ -3,6 +3,10 @@
   "entry_point": "acd.openhands.tools.definitions.register_acd_tools",
   "tools": [
     {
+      "tool_name": "acd_bootstrap_workspace",
+      "definition_class": "AcdBootstrapWorkspace"
+    },
+    {
       "tool_name": "acd_build_design_fixture",
       "definition_class": "AcdBuildDesignFixture"
     },
@@ -47,5 +51,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:abcedee89c855fc30d12ce7e1d79f7f77486959419d393f0a5acc99fb4998a9a"
+  "canonical_hash": "sha256:c9ca25bd3459ba997b839ad7b555fb47dad282a7ac1d9e6560e752aa2f559f4f"
 }
