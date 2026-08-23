@@ -33,9 +33,9 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 | B-2 | GPIO割当solver | strapping pin制約と配線可能性を同時に満たすGPIO割当を探索する機構が無い | pad 6/16案・pad 18/20/21案が未配線で却下され、最終的に「LEDを隣のpadへ1つ動かすだけ」まで人間が縮退させた |
 | B-3 | 却下理由の構造化Evidence | routerログには未配線netとpad対が出るが、gateは`router convergence_state='not_converged'`の文字列で停止し、機械可読な失敗理由を返さない | 次候補の立案は毎回ログの目視解析に依存した |
 | B-4 | gateの依存順・前倒し評価 | 配置だけで判定できる述語（デカップリング距離など）がrouter実行後に評価される | `C5 distance 3.319 mm exceeds 3.0 mm`がrouter完走後に判明し、1候補あたり数十分を無駄にした |
-| B-5 | 結合制約（機能グループ）の表現 | U3を動かすとC5・R4も動かす必要があるという結合がgraphに無い | U3のみ移動した候補がデカップリング距離で却下された |
-| B-6 | 単一datum化されていない機構寸法 | 取付穴がoutline宣言と`comp.h*`配置の二重定義 | 34 mm化の際に両方を手で合わせる必要があった |
-| B-7 | stitch via候補が全滅した島のfallback | `inject_stitch_vias`の候補は原点固定グリッドで、配線が0.043 mm近接するだけで島にGND接続点が無くなりfail-closed | `Conductor region lacks a GND connection point`。島内の唯一の候補(21.698,18.684)が+3V3配線2本で除外されていた |
+| B-5 | 結合制約（機能グループ）の表現 | `electrical.placement_group`がprimaryとcoupled member、距離／move-togetherを宣言し、placement Skillが既配置memberからの距離を制約する | L1のデカップリング距離predicateは変更せず、未知member・重複group・不正距離はfail-closed |
+| B-6 | 単一datum化されていない機構寸法 | 機械outlineのmount-hole座標を単一datumとし、`comp.h*` body位置を決定論的に導出する | outlineとbodyの二重編集を除去し、既存GD1座標を維持 |
+| B-7 | stitch via候補が全滅した島のfallback | 原点固定primary gridが全滅した候補集合に対し、phase-shifted／interior候補を同じ除外規則で追加し、なお空ならfail-closed | fallback使用、生成候補、除外理由をreportへ保存し、primary gridが足りる基板の選択は変更しない |
 | B-8 | 探索用の設計自由度の宣言 | 線幅・層数・clearance・via規則・router pass上限は固定値で、要件に応じた探索対象になっていない | 収束しない候補に対して打てる手が配置しか無かった |
 | B-9 | `stitch_candidate_report`の常時保存 | 呼び出し側が明示的に渡した場合のみ生成され、Evidenceに残らない | 事後解析のためホスト側で独自のKiCad s-expression parserを書く必要があった（provisional） |
 
@@ -56,7 +56,7 @@ Gerber検査はrouting結果に依存するため、従来どおりrouter後に�
 | B-4 | 達成。述語catalogの評価段階を宣言し、6述語の`pre_router`被覆と既存評価順を回帰固定 | 解決済み |
 | B-1 | 未着手。候補生成・探索loopは14.4の範囲 | 14.4 |
 | B-2 | 未着手。候補の反復評価は14.4の範囲 | 14.4 |
-| B-5〜B-7 | 未着手。結合制約、datum化、stitch via fallbackは14.4の範囲 | 14.4 |
+| B-5〜B-7 | 達成。placement group制約、outline単一datumからのmount-hole body導出、stitch via fallbackを実装 | 解決済み |
 | B-8・B-9 | 「Bの一部解決（マイルストーン14.4 第1セッション）」を参照 | 14.4 第1セッション |
 
 ### Bの一部解決（マイルストーン14.4 第1セッション）
@@ -78,8 +78,8 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 |---|---|---|
 | B-8 | 達成。9次元の設計自由度宣言、出所・bound basis・gate authority、探索可否、registry整合検査を追加 | 解決済み |
 | B-9 | 達成。初回・refill反復の候補reportとGND島未被覆測定を常時保存し、DFMにはbounded summaryを埋め込む | 解決済み |
-| B-1・B-2 | 未着手。宣言した自由度を使う候補生成・探索loopは後続セッション | 14.4 |
-| B-5〜B-7 | 未着手。結合制約、単一datum化、stitch via fallbackは後続セッション | 14.4 |
+| B-1・B-2 | 達成。宣言した自由度を使う候補生成・探索loopを実装 | 解決済み |
+| B-5〜B-7 | 達成。placement coupling、単一datum化、stitch via fallbackを実装 | 解決済み |
 
 ## C. 筐体・FW lane
 
@@ -311,7 +311,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 2. I-2／A-2／A-3（任意graphと要件差分compiler）。J-1／J-2は14.2で解消したが、契約registryへ新しい宣言を自動反映する入口がまだ必要である。
 3. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。K-3はB-3の利用者向け表現として同時に扱う。
 4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
-5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
+5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。達成済み。SkillはL2の候補生成に限定し、L1ゲートの権限とfail-closed条件は維持する。
 6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
 7. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
 8. I-3〜I-5／E-5（gd1固定の解消）、C-2／C-3（FWのgraph駆動と整合gate）、D-1〜D-3（loopの閉じと発注）。I-4は発注laneへ進む前に必要になる。

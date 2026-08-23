@@ -139,6 +139,66 @@ def test_stitch_candidate_report_records_exclusion_reasons() -> None:
         if item["selected"]
     )
     assert report["allowed_points_override"] is False
+    assert report["fallback_used"] is False
+
+
+def test_stitch_via_fallback_activates_after_primary_candidates_are_excluded() -> None:
+    from acd.core.board_model import KeepoutRect
+
+    keepouts = tuple(
+        KeepoutRect(f"primary-{index}", x - 0.2, y - 0.2, x + 0.2, y + 0.2)
+        for index, (x, y) in enumerate(
+                (
+                    (0.3, 3.3),
+                    (0.3, 6.3),
+                    (3.3, 0.3),
+                    (3.3, 3.3),
+                    (3.3, 6.3),
+                    (3.3, 9.3),
+                    (3.3, 9.7),
+                    (6.3, 0.3),
+                    (6.3, 3.3),
+                    (6.3, 6.3),
+                    (6.3, 9.3),
+                    (6.3, 9.7),
+                    (9.3, 0.3),
+                    (9.3, 3.3),
+                    (9.3, 6.3),
+                    (9.3, 9.3),
+                    (9.3, 9.7),
+                    (9.7, 3.3),
+                    (9.7, 6.3),
+                    (4.8, 3.3),
+                )
+        )
+    )
+    model = BoardModel(
+        10.0, 10.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (), keepouts,
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    _, vias, report = inject_stitch_vias(
+        _BOARD, model, RoutedDesign((), ()), {"GND": 1}, 3.0, 0.6, 0.3
+    )
+    assert report["fallback_used"] is True
+    assert report["fallback_candidates"]
+    assert report["fallback_excluded_candidates"]
+    assert vias
+
+
+def test_stitch_via_fallback_still_fails_closed_when_empty() -> None:
+    from acd.core.board_model import KeepoutRect
+
+    model = BoardModel(
+        10.0, 10.0, 2, 0.15, 0.15, 0.3, 0.6, 0.0, (), (),
+        (KeepoutRect("all", 0.0, 0.0, 10.0, 10.0),),
+        stitch_via_pitch_mm=3.0,
+        stitch_via_net="GND",
+    )
+    with pytest.raises(RouteInjectionError, match="no safe stitch-via locations"):
+        inject_stitch_vias(
+            _BOARD, model, RoutedDesign((), ()), {"GND": 1}, 3.0, 0.6, 0.3
+        )
 
 
 def test_uncovered_stitch_via_error_preserves_structured_locations() -> None:

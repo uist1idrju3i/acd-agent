@@ -74,6 +74,12 @@ def _stitch_candidate_report(
     exclusion_counts: dict[str, int],
     exclusion_combinations: dict[str, int],
     candidate_reasons: dict[tuple[float, float], tuple[str, ...]],
+    fallback_used: bool = False,
+    fallback_candidates: Sequence[tuple[float, float]] = (),
+    fallback_selected_candidates: Sequence[tuple[float, float]] = (),
+    fallback_excluded_candidates: Sequence[
+        tuple[tuple[float, float], tuple[str, ...]]
+    ] = (),
 ) -> dict[str, object]:
     selected_set = set(selected)
     return {
@@ -83,6 +89,23 @@ def _stitch_candidate_report(
         "exclusion_combinations": exclusion_combinations,
         "board_edge_inset_basis": _BOARD_EDGE_INSET_BASIS,
         "footprint_clearance_method": _FOOTPRINT_CLEARANCE_METHOD,
+        "fallback_used": fallback_used,
+        "fallback_candidates": [
+            [round(point[0], 6), round(point[1], 6)]
+            for point in fallback_candidates
+        ],
+        "fallback_selected_candidates": [
+            [round(point[0], 6), round(point[1], 6)]
+            for point in fallback_selected_candidates
+        ],
+        "fallback_excluded_candidates": [
+            {
+                "position_mm": [round(point[0], 6), round(point[1], 6)],
+                "exclusion_reasons": list(reasons),
+            }
+            for point, reasons in fallback_excluded_candidates
+        ],
+        "fallback_scope": "exhausted_primary_candidate_pool",
         "candidates": [
             {
                 "position_mm": [round(point[0], 6), round(point[1], 6)],
@@ -284,6 +307,61 @@ def inject_stitch_vias(
             continue
         candidate_reasons[point] = ()
         selected_points.append(point)
+    fallback_used = allowed_points is None and not selected_points
+    fallback_candidates: list[tuple[float, float]] = []
+    fallback_excluded_candidates: list[tuple[tuple[float, float], tuple[str, ...]]] = []
+    fallback_selected_candidates: list[tuple[float, float]] = []
+    if fallback_used:
+        phase_offsets = (
+            (pitch_mm / 2.0, 0.0),
+            (0.0, pitch_mm / 2.0),
+            (pitch_mm / 2.0, pitch_mm / 2.0),
+        )
+        for offset_x, offset_y in phase_offsets:
+            x = inset + radius + pitch_mm + offset_x
+            while x <= model.width_mm - inset - radius + 1e-9:
+                y = inset + radius + pitch_mm + offset_y
+                while y <= model.height_mm - inset - radius + 1e-9:
+                    add_point = (x, y)
+                    if add_point not in fallback_candidates:
+                        fallback_candidates.append(add_point)
+                    y += pitch_mm
+                x += pitch_mm
+        centroid = (model.width_mm / 2.0, model.height_mm / 2.0)
+        interior: list[tuple[float, float]] = []
+        x = inset + radius + pitch_mm / 2.0
+        while x <= model.width_mm - inset - radius + 1e-9:
+            y = inset + radius + pitch_mm / 2.0
+            while y <= model.height_mm - inset - radius + 1e-9:
+                point = (x, y)
+                if point not in fallback_candidates:
+                    interior.append(point)
+                y += pitch_mm
+            x += pitch_mm
+        fallback_candidates.extend(
+            sorted(
+                interior,
+                key=lambda point: (
+                    math.hypot(point[0] - centroid[0], point[1] - centroid[1]),
+                    point[0],
+                    point[1],
+                ),
+            )
+        )
+        for point in fallback_candidates:
+            reasons = occupied_reasons(point)
+            if reasons:
+                fallback_excluded_candidates.append((point, reasons))
+                continue
+            if any(
+                math.hypot(point[0] - other[0], point[1] - other[1])
+                <= via_diameter_mm + clearance
+                for other in selected_points
+            ):
+                fallback_excluded_candidates.append((point, ("inter_via_spacing",)))
+                continue
+            selected_points.append(point)
+            fallback_selected_candidates.append(point)
     selected = tuple(selected_points)
     if allowed_points is not None:
         selected = tuple(dict.fromkeys(allowed_points))
@@ -293,6 +371,10 @@ def inject_stitch_vias(
         exclusion_counts,
         exclusion_combinations,
         candidate_reasons,
+        fallback_used=fallback_used,
+        fallback_candidates=fallback_candidates,
+        fallback_selected_candidates=fallback_selected_candidates,
+        fallback_excluded_candidates=fallback_excluded_candidates,
     )
     report["allowed_points_override"] = allowed_points is not None
     lines = [

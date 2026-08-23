@@ -50,6 +50,9 @@ def test_summary_is_bounded_and_hash_linked() -> None:
         "exclusion_combinations",
         "board_edge_inset_basis",
         "footprint_clearance_method",
+        "fallback_used",
+        "fallback_candidate_count",
+        "fallback_excluded_count",
         "full_report_sha256",
     }
 

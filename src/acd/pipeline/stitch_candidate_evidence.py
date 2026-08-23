@@ -16,11 +16,23 @@ _SUMMARY_KEYS = (
     "exclusion_combinations",
     "board_edge_inset_basis",
     "footprint_clearance_method",
+    "fallback_used",
+    "fallback_candidate_count",
+    "fallback_excluded_count",
+)
+
+_REQUIRED_REPORT_KEYS = (
+    "candidate_total",
+    "selected_count",
+    "exclusion_counts",
+    "exclusion_combinations",
+    "board_edge_inset_basis",
+    "footprint_clearance_method",
 )
 
 
 def _validated_report(report: Mapping[str, Any]) -> dict[str, Any]:
-    missing = [key for key in _SUMMARY_KEYS if key not in report]
+    missing = [key for key in _REQUIRED_REPORT_KEYS if key not in report]
     if missing:
         raise ValueError("stitch candidate report is missing: " + ", ".join(missing))
     for key in ("candidate_total", "selected_count"):
@@ -85,9 +97,60 @@ def _validated_report(report: Mapping[str, Any]) -> dict[str, Any]:
             raise ValueError("selected stitch candidate has exclusion reasons")
         if selected:
             selected_candidate_count += 1
+    fallback_used = report.get("fallback_used", False)
+    if not isinstance(fallback_used, bool):
+        raise ValueError("stitch candidate report fallback_used is malformed")
+    fallback_candidates = report.get("fallback_candidates", [])
+    if not isinstance(fallback_candidates, list):
+        raise ValueError("stitch candidate report fallback_candidates is malformed")
+    fallback_selected = report.get("fallback_selected_candidates", [])
+    if not isinstance(fallback_selected, list):
+        raise ValueError(
+            "stitch candidate report fallback_selected_candidates is malformed"
+        )
+    fallback_excluded = report.get("fallback_excluded_candidates", [])
+    if not isinstance(fallback_excluded, list):
+        raise ValueError(
+            "stitch candidate report fallback_excluded_candidates is malformed"
+        )
+    for value in fallback_candidates:
+        if (
+            not isinstance(value, list)
+            or len(value) != 2
+            or any(isinstance(item, bool) or not isinstance(item, (int, float)) for item in value)
+        ):
+            raise ValueError("stitch candidate report fallback candidate is malformed")
+    for value in fallback_selected:
+        if (
+            not isinstance(value, list)
+            or len(value) != 2
+            or any(
+                isinstance(item, bool) or not isinstance(item, (int, float))
+                for item in value
+            )
+        ):
+            raise ValueError(
+                "stitch candidate report fallback selected candidate is malformed"
+            )
+    for value in fallback_excluded:
+        if not isinstance(value, Mapping):
+            raise ValueError("stitch candidate report fallback exclusion is malformed")
+        position = value.get("position_mm")
+        reasons = value.get("exclusion_reasons")
+        if (
+            not isinstance(position, list)
+            or len(position) != 2
+            or any(
+                isinstance(item, bool) or not isinstance(item, (int, float))
+                for item in position
+            )
+            or not isinstance(reasons, list)
+            or any(not isinstance(item, str) for item in reasons)
+        ):
+            raise ValueError("stitch candidate report fallback exclusion is malformed")
     if (
         report.get("allowed_points_override") is not True
-        and selected_candidate_count != report["selected_count"]
+        and selected_candidate_count + len(fallback_selected) != report["selected_count"]
     ):
         raise ValueError("stitch candidate report selected_count does not match candidates")
     return dict(report)
@@ -97,7 +160,20 @@ def summarize_stitch_candidate_report(report: Mapping[str, Any]) -> dict[str, An
     """Return the bounded summary embedded in the DFM report."""
     validated = _validated_report(report)
     return {
-        **{key: validated[key] for key in _SUMMARY_KEYS},
+        **{
+            key: (
+                validated[key]
+                if key in validated
+                else (
+                    len(validated.get("fallback_candidates", []))
+                    if key == "fallback_candidate_count"
+                    else len(validated.get("fallback_excluded_candidates", []))
+                    if key == "fallback_excluded_count"
+                    else False
+                )
+            )
+            for key in _SUMMARY_KEYS
+        },
         "full_report_sha256": canonical_json_sha256(validated),
     }
 

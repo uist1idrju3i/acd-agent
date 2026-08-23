@@ -61,6 +61,7 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "radio_module",
         }
     ),
+    "electrical.placement_group": frozenset(),
     "electrical.net": frozenset(
         {
             "width_basis",
@@ -179,6 +180,24 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
 }
 
 RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
+    "electrical.placement_group": {
+        "primary_refdes": (
+            "Placement group membership is an L2 search constraint; "
+            "L1 gates remain authoritative."
+        ),
+        "coupled_refdes": (
+            "Placement group membership is an L2 search constraint; "
+            "L1 gates remain authoritative."
+        ),
+        "max_distance_mm": (
+            "Placement coupling is a bounded L2 search input; "
+            "the decoupling-distance gate remains authoritative."
+        ),
+        "move_together": (
+            "Move-together semantics steer candidate generation and do not "
+            "grant pass authority."
+        ),
+    },
     "design.functional_block": {
         "block_id": (
             "This declaration is a requirement-derived selection of the applicable "

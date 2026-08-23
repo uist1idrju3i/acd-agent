@@ -20,6 +20,7 @@ NodeKind = Literal[
     "electrical.net",
     "electrical.component",
     "electrical.pin",
+    "electrical.placement_group",
     "electrical.board",
     "fab.order_intent",
     "fab.process_allowance",
@@ -55,6 +56,49 @@ class GraphNode(AcdModel):
             raise ValueError("depends_on entries must be unique")
         if self.kind == "design.functional_block" and set(self.attrs) != {"block_id"}:
             raise ValueError("design.functional_block attrs must contain only block_id")
+        if self.kind == "electrical.placement_group":
+            required = {"primary_refdes", "coupled_refdes"}
+            allowed = {
+                "primary_refdes",
+                "coupled_refdes",
+                "max_distance_mm",
+                "move_together",
+            }
+            if set(self.attrs) - allowed or not required <= set(self.attrs):
+                raise ValueError(
+                    "electrical.placement_group attrs must declare primary_refdes "
+                    "and coupled_refdes"
+                )
+            coupled = self.attrs["coupled_refdes"]
+            primary = self.attrs["primary_refdes"]
+            if not isinstance(primary, str) or not primary:
+                raise ValueError(
+                    "electrical.placement_group primary_refdes must be a non-empty string"
+                )
+            if not isinstance(coupled, list) or not coupled or any(
+                not isinstance(item, str) or not item for item in coupled
+            ):
+                raise ValueError(
+                    "electrical.placement_group coupled_refdes must be a non-empty string list"
+                )
+            move_together = self.attrs.get("move_together")
+            max_distance = self.attrs.get("max_distance_mm")
+            if move_together is not None and not isinstance(move_together, bool):
+                raise ValueError(
+                    "electrical.placement_group move_together must be boolean"
+                )
+            if max_distance is not None and (
+                isinstance(max_distance, bool)
+                or not isinstance(max_distance, int | float)
+                or max_distance <= 0
+            ):
+                raise ValueError(
+                    "electrical.placement_group max_distance_mm must be positive"
+                )
+            if move_together is not True and max_distance is None:
+                raise ValueError(
+                    "electrical.placement_group requires max_distance_mm or move_together"
+                )
         return self
 
 

@@ -23,7 +23,9 @@ ACD本体は配置探索を持たない。座標と回転角は設計データ�
 - `scripts/placement_search.py`: 固定アンカー（RF モジュールを上端、USB コネクタを下端、
   取付穴を四隅）と、残る部品の格子走査による決定論的な first-fit 探索。走査順は refdes 昇順、
   候補位置は 0.25mm 格子の行優先で、同一入力なら常に同一結果を返す。配置できない部品が
-  あれば fail-closed で停止する。
+  あれば fail-closed で停止する。`electrical.placement_group` 宣言がある場合は、
+  primary と coupled member の全refdesを解決し、既配置メンバーからの宣言距離を超える
+  候補を除外する。未知メンバー、重複group、壊れた距離はfail-closedで停止する。
 - `scripts/placement_score.py`: 代理指標（HPWL、部品間最小ギャップ、基板外形までの最小ギャップ）
   と候補の順位付け。順位付けは合格根拠にしない。
 - `scripts/vision_proposal.py`: 視覚投影のビジョン応答から得た数値案（座標・回転）を候補として
