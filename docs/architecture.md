@@ -345,6 +345,24 @@ Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力�
 設計入力へ確定した後に既存ゲートで判定する。SDK workflow toolはLLM subagent用で
 shell・file操作を禁止するため、決定論的探索には使わない。
 
+## 検証実行並列化境界
+
+pytestは`pyproject.toml`の既定値として`-n auto --dist loadgroup`を使い、2コア環境
+では自動的に利用可能なworker数へ分配する。単体デバッグで逐次実行する場合は
+`uv run pytest -n 0`で無効化できる。テストは`tmp_path`などでファイル、cwd、
+環境変数をworker間で共有しない。installed plugin storeのようにプロセス外へ残る
+状態を独立化できない場合だけ`xdist_group`で同一workerへ固定する。
+
+検証段階のコマンド列は`verify_all.py --list`のJSONを正とする。barrier付きコマンドは
+単独実行し、barrierのない連続コマンドを`ThreadPoolExecutor`で1バッチとして実行する。
+standardとfullの`uv sync`はbarrierとして先頭で単独実行し、docs stageは文書検証の3本を
+そのまま並列実行する。`--jobs 1`は宣言順の逐次実行で最初の失敗で停止し、子プロセスの
+出力を直接流す。`--jobs N`（N > 1）はバッチの開始行を先に出し、起動済みコマンドを
+完走させてから出力を宣言順に戻し、失敗をすべて報告する。いずれも1本でも失敗すれば
+fail-closedで非零終了する。
+2コアVMでの同一入力の測定では、pytestが逐次195.13秒から自動並列108.73秒へ、
+standard検証が`--jobs 1`の141.21秒から既定並列126.66秒へ短縮した（各条件1回）。
+
 ## SDK Conversation session境界
 
 `acd.openhands.session.bootstrap`は`LocalConversation`へACD plugin、hooks、workspace、

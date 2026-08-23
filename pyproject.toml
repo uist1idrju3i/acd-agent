@@ -32,6 +32,7 @@ dev = [
     "openhands-tools",
     "openhands-workspace",
     "pytest>=9.1.1",
+    "pytest-xdist>=3.8.0",
     "ruff>=0.16.3",
     "pyright>=1.1.411",
 ]
@@ -110,4 +111,4 @@ executionEnvironments = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "scripts"]
-addopts = "-q"
+addopts = "-q -n auto --dist loadgroup"
