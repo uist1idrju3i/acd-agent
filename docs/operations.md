@@ -405,6 +405,21 @@ command未実行をsuccessとして記録する経路はない。command形式�
    製造データ生成をfail-closedで停止し、個別部品のEvidence欠落は
    `order-readiness.json`の回転unknownとして記録する。
 
+   基板pipelineは、ゲートの診断専用Evidenceを`out/gd1/gate-evidence/`へ常時保存する。
+   `design-predicates.json`は全述語（`pass`、`fail`、`unknown`、`not_applicable`）の
+   評価段階、measurement、subject、remediationを含む。`routing-connectivity.json`は
+   SESから求めたnet単位のwire／via成分、未接続pad対、wireへ接続しないpadを含み、
+   routerの`convergence_state`と観測結果の不一致も記録する。GND島のstitch via検査で
+   欠落が発生した場合は`gnd-stitch-vias.json`へ構造化座標またはエラー理由を保存する。
+   これらのファイルは`sort_keys`付きJSON、固定座標丸め、canonical JSON SHA-256で
+   決定論的に生成される。SES欠落・parse失敗などで観測できない場合も
+   `status: "unavailable"`と機械可読な理由を記録する。
+
+   これらはL3の診断Evidenceであり、L1の合否権限を持たない。したがって、routerが
+   `converged`と報告してconnectivity観測が未接続を示しても合否は変えず、逆にEvidenceの
+   生成失敗で既存の合格を不合格へ変えない。既存の`assert_converged`、閾値、停止位置、
+   authoritative Evidenceのcontainer実行条件は変更しない。
+
 5. 実行済みのGD1筐体pipelineでは、部品別STEPとして
    `out/gd1-enclosure/enclosure-shell.step`と
    `out/gd1-enclosure/enclosure-lid.step`、組立確認専用の統合STEPとして

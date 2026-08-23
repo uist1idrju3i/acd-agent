@@ -137,11 +137,44 @@ def required_predicate_names(
         ) from exc
 
 
+def remediation_declarations(
+    predicate: str,
+    declared: tuple[str, ...],
+    registry: FunctionalBlockRegistry | None = None,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Resolve allowed remediation dimensions without inventing declarations."""
+    registry = registry or load_functional_block_registry()
+    contracts = {contract.block_id: contract for contract in registry.contracts}
+    unknown_blocks = sorted(set(declared) - set(contracts))
+    if unknown_blocks:
+        raise FunctionalBlockContractError(
+            "functional blocks are not registered: " + ", ".join(unknown_blocks)
+        )
+    source_blocks = tuple(
+        block_id
+        for block_id in declared
+        if predicate in contracts[block_id].required_predicates
+    )
+    if not source_blocks:
+        return ("unknown",), ()
+    dimensions = tuple(
+        sorted(
+            {
+                dimension
+                for block_id in source_blocks
+                for dimension in contracts[block_id].allowed_change_dimensions
+            }
+        )
+    )
+    return dimensions, source_blocks
+
+
 __all__ = [
     "FunctionalBlockContractError",
     "FunctionalBlockRegistry",
     "declared_functional_blocks",
     "load_functional_block_registry",
+    "remediation_declarations",
     "required_predicate_names",
     "validate_predicate_coverage",
 ]

@@ -24,6 +24,7 @@ import shutil
 import sys
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
@@ -36,6 +37,7 @@ from acd.adapters.kicad.cli import KicadCli, RuleCheckResult
 from acd.adapters.kicad.fab import (
     BoardMeasurement,
     CplBasisError,
+    FabOutputError,
     UncoveredStitchViasError,
     apply_cpl_contract,
     cross_validate_bom,
@@ -100,8 +102,14 @@ from acd.core.parallel import run_ordered_stages as _run_ordered_stages
 from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
+from acd.pipeline.gate_evidence import (
+    unavailable_observation,
+    write_design_predicate_evidence,
+    write_gate_evidence,
+)
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
+from acd.pipeline.routing_connectivity import measure_routing_connectivity
 from acd.pipeline.visual_projection import (
     crosscheck_electrical_visual_projections,
     crosscheck_firmware_visual_projections,
@@ -715,9 +723,30 @@ def run_pipeline(
         tuple[PredicateResult, ...],
         group0_results[1],
     )
+    try:
+        write_design_predicate_evidence(out_dir, revision, design_predicates)
+    except Exception as exc:
+        with suppress(Exception):
+            write_gate_evidence(
+                out_dir,
+                "design-predicates.json",
+                target_revision=revision,
+                gate="design_predicates",
+                status="unavailable",
+                message="design predicate diagnostic observations unavailable; not gate authority",
+                observation=unavailable_observation(exc),
+            )
     for predicate in design_predicates:
         if predicate.status not in {"pass", "not_applicable"}:
-            raise GateError(f"{predicate.name}: status={predicate.status!r} ({predicate.detail})")
+            remediation = (
+                f"; remediation: {predicate.remediation.message}"
+                if predicate.remediation is not None
+                else ""
+            )
+            raise GateError(
+                f"{predicate.name}: status={predicate.status!r} ({predicate.detail})"
+                f"{remediation}; evidence: gate-evidence/design-predicates.json"
+            )
     applicable_count = sum(predicate.status != "not_applicable" for predicate in design_predicates)
     print(
         f"[0/12] design predicates passed "
@@ -766,11 +795,59 @@ def run_pipeline(
 
     router = FreeroutingRunner()
     ses_path = out_dir / f"{name}.ses"
-    route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
+    try:
+        route_run = router.route(dsn_path, ses_path, revision, max_passes=max_passes)
+    except Exception as exc:
+        with suppress(Exception):
+            write_gate_evidence(
+                out_dir,
+                "routing-connectivity.json",
+                target_revision=revision,
+                gate="routing_connectivity",
+                status="unavailable",
+                message="routing connectivity diagnostic unavailable; not gate authority",
+                observation=unavailable_observation(exc),
+            )
+        raise
+    parsed_routes = None
+    try:
+        parsed_routes = parse_ses(
+            ses_path.read_text(),
+            minimum_width_mm=lane.board.min_track_mm,
+        )
+        connectivity = measure_routing_connectivity(
+            project.board_projection.model,
+            parsed_routes,
+        )
+        connectivity["router_convergence_state"] = route_run.envelope.convergence_state
+        connectivity["router_measurement_mismatch"] = (
+            route_run.envelope.convergence_state == "converged"
+            and connectivity["status"] != "pass"
+        )
+        write_gate_evidence(
+            out_dir,
+            "routing-connectivity.json",
+            target_revision=revision,
+            gate="routing_connectivity",
+            status=str(connectivity["status"]),
+            message="routing connectivity diagnostic observation; not gate authority",
+            observation=connectivity,
+        )
+    except Exception as exc:
+        with suppress(Exception):
+            write_gate_evidence(
+                out_dir,
+                "routing-connectivity.json",
+                target_revision=revision,
+                gate="routing_connectivity",
+                status="unavailable",
+                message="routing connectivity diagnostic unavailable; not gate authority",
+                observation=unavailable_observation(exc),
+            )
     assert_converged(route_run.envelope.convergence_state)
     print("[3/12] routing converged")
 
-    routes = parse_ses(
+    routes = parsed_routes or parse_ses(
         ses_path.read_text(),
         minimum_width_mm=lane.board.min_track_mm,
     )
@@ -855,6 +932,21 @@ def run_pipeline(
             break
         except UncoveredStitchViasError as exc:
             uncovered = exc.locations
+            with suppress(Exception):
+                write_gate_evidence(
+                    out_dir,
+                    "gnd-stitch-vias.json",
+                    target_revision=revision,
+                    gate="gnd_stitch_vias",
+                    status="fail",
+                    message="GND stitch-via diagnostic observation; not gate authority",
+                    observation={
+                        "uncovered_vias": [
+                            [round(point[0], 6), round(point[1], 6)] for point in uncovered
+                        ],
+                        "candidate_count": len(stitch_vias),
+                    },
+                )
             pruned_vias.extend(uncovered)
             covered = tuple(point for point in stitch_vias if point not in uncovered)
             if len(covered) == len(stitch_vias):
@@ -873,6 +965,18 @@ def run_pipeline(
                 f"[stitch-prune {iteration}] vias={len(stitch_vias)} "
                 f"uncovered={len(uncovered)} at {uncovered}"
             )
+        except FabOutputError as exc:
+            with suppress(Exception):
+                write_gate_evidence(
+                    out_dir,
+                    "gnd-stitch-vias.json",
+                    target_revision=revision,
+                    gate="gnd_stitch_vias",
+                    status="fail",
+                    message="GND stitch-via diagnostic observation; not gate authority",
+                    observation={"error": str(exc)},
+                )
+            raise
         routed_board, stitch_vias = inject_stitch_vias(
             base_routed_board,
             project.board_projection.model,

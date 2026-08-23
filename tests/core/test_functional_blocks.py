@@ -18,6 +18,7 @@ from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     declared_functional_blocks,
     load_functional_block_registry,
+    remediation_declarations,
     validate_predicate_coverage,
 )
 from acd.schema import DesignGraph, FunctionalBlockContract
@@ -219,3 +220,26 @@ def test_new_topology_contract_extends_applicability_without_predicate_changes(
     )
     assert results[1].name == "i2c_pullup"
     assert results[1].status == "pass"
+
+
+def test_remediation_declarations_are_registry_derived() -> None:
+    registry = load_functional_block_registry()
+    declared = ("single_ldo_power_tree", "safety_power_boundary")
+    assert remediation_declarations("power_decoupling", declared, registry) == (
+        ("component_placement_xy",),
+        ("single_ldo_power_tree",),
+    )
+    assert remediation_declarations("power_boundary", declared, registry) == ((), (
+        "safety_power_boundary",
+    ))
+
+
+def test_unknown_remediation_dimension_fails_closed() -> None:
+    with pytest.raises(ValueError, match="unknown values"):
+        FunctionalBlockContract(
+            block_id="invalid_dimension_block",
+            title="Invalid dimension block",
+            description="Rejects unsupported remediation dimensions.",
+            required_predicates=["power_boundary"],
+            allowed_change_dimensions=["board_magic"],
+        )

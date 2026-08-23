@@ -604,7 +604,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 |---|---|---|
 | 14.1 | Skill package refのskew解消（H-1〜H-5） | refの陳腐化をCIと`/acd:doctor`で検出し、pinned `acd`をlocked imageへ事前導入して実行時のgit・ネットワーク依存を除く。CIでSkill scriptをfixtureに対し実行し、pinned `acd`でgraphが読めることを検査する。達成 |
 | 14.2 | 設計述語の適用条件宣言と機能ブロック契約registry（J-1〜J-3） | 宣言された機能ブロックに対応する述語だけを必須にし、新トポロジの追加を述語コード改変ではなく契約追加で行えるようにする。fab profileを複数持てるようにする。fail-closed境界は維持し、「検証不能」と「機能を持たない」を区別する |
-| 14.3 | 失敗理由の構造化とゲートの前倒し評価（B-3、B-4、K-3） | 未配線netとpad対などの失敗理由を機械可読Evidenceとして返し、配置のみで判定できる述語をrouter実行前に評価する。利用者向けに変更可能な次元と現在の余裕を含む形で提示する |
+| 14.3 | 失敗理由の構造化とゲートの前倒し評価（B-3、B-4、K-3） | 未配線netとpad対などの失敗理由を機械可読Evidenceとして返し、配置のみで判定できる述語をrouter実行前に評価する。利用者向けに変更可能な次元と現在の余裕を含む形で提示する。達成 |
 | 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | 部品配置・回転とGPIO割当の探索、機能グループの結合制約、機構寸法の単一datum化、stitch via候補が全滅した島のfallback、探索対象とする設計自由度の宣言、`stitch_candidate_report`の常時保存 |
 | 14.5 | 要件→graphの変換と任意設計fixture（A-1〜A-5、I-2） | 会話由来の要件レコード化、任意設計向けfixtureビルダー、要件差分からgraph差分（接続・FWピン・テストポイント・シルク・rationale）を同時更新するcompiler、部品選定とlibrary provenance、回路トポロジ合成、agent向けtool（FW pipeline、fixture編集、発注、失敗診断）の網羅 |
 | 14.6 | gd1固定の解消と発注laneの汎用化（I-3〜I-5、E-5） | workspace既定値、生成物名・`part_number`、`order_policy`の必須evidence anchorをgraph_id由来にし、GD1以外の設計がorder-readyに到達できるようにする |
@@ -636,10 +636,20 @@ fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動�
 | negative・fail-closed | 宣言ゼロ、未知・重複・mandatory欠落、registry被覆不足、適用ブロックのnet欠落、Evidenceの不正status、profile ID・metadata・path不一致を停止する |
 | 再現性 | registry IDと正規化hash、ソート済み宣言一覧、profile registryの正規化hashを記録し、固定catalog順で同一判定を再現する |
 
-14.1および14.2は達成済みである。14.7はE-6（検証段階の並列実行）だけ達成済みで、
+### 14.3 失敗理由の構造化とゲートの前倒し評価（B-3、B-4、K-3）（達成）
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | 設計graph・配置由来の述語結果、routerのSES、機能ブロックregistry |
+| 実装 | 述語measurement／subject、net単位のrouting connectivity観測、決定論的Evidence writer、評価段階catalog、registry由来remediationを追加した |
+| 正常系 | pass／fail／unknown／not_applicableを同じEvidenceへ保存し、収束時もrouting connectivityを保存する。述語は6件すべて`pre_router`として分類される |
+| negative・fail-closed | SES欠落・parse失敗は`unavailable`へ記録して従来gateへ委ねる。Evidence失敗で合格を不合格へ変えず、既存のGateError、閾値、停止位置を変更しない。未知の変更次元とcatalog被覆漏れは停止側へ倒す |
+| 再現性 | Evidenceはソート済みキー、固定座標丸め、canonical JSON SHA-256を使い、同一入力から同一バイト列を生成する |
+
+14.1〜14.3は達成済みである。14.7はE-6（検証段階の並列実行）だけ達成済みで、
 実測値は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のE-6行と
 [`operations.md`](operations.md)を正とする。14.7の残り（E-1〜E-4、K-1、K-2、K-4）と
-その他の14.3以降は計画である。
+その他の14.4以降は計画である。
 
 ## マイルストーン15: 運用と文書の整備
 
