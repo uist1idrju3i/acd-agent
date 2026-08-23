@@ -8,10 +8,12 @@ from acd.core.placement_constraints import (
     PlacementConstraintError,
     load_placement_coupling_constraints,
 )
-from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 
 
-def _graph(group_attrs: dict[str, object], depends_on: list[str] | None = None) -> DesignGraph:
+def _graph(
+    group_attrs: dict[str, AttrValue], depends_on: list[str] | None = None
+) -> DesignGraph:
     return DesignGraph(
         graph_id="g",
         revision="r1",

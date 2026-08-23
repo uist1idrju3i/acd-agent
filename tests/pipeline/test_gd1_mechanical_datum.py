@@ -1,5 +1,8 @@
 """Mechanical datum derivation tests."""
 
+# pyright: reportMissingImports=false, reportMissingTypeStubs=false
+# pyright: reportUnknownVariableType=false, reportUnknownArgumentType=false
+
 from __future__ import annotations
 
 import pytest

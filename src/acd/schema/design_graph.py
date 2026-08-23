@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import Field, model_validator
 
@@ -69,14 +69,19 @@ class GraphNode(AcdModel):
                     "electrical.placement_group attrs must declare primary_refdes "
                     "and coupled_refdes"
                 )
-            coupled = self.attrs["coupled_refdes"]
-            primary = self.attrs["primary_refdes"]
+            coupled = cast(object, self.attrs.get("coupled_refdes"))
+            primary = self.attrs.get("primary_refdes")
             if not isinstance(primary, str) or not primary:
                 raise ValueError(
                     "electrical.placement_group primary_refdes must be a non-empty string"
                 )
-            if not isinstance(coupled, list) or not coupled or any(
-                not isinstance(item, str) or not item for item in coupled
+            if not isinstance(coupled, list) or not coupled:
+                raise ValueError(
+                    "electrical.placement_group coupled_refdes must be a non-empty string list"
+                )
+            coupled_values = cast(list[object], coupled)
+            if any(
+                not isinstance(item, str) or not item for item in coupled_values
             ):
                 raise ValueError(
                     "electrical.placement_group coupled_refdes must be a non-empty string list"
