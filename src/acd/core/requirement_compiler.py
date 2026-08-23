@@ -212,24 +212,33 @@ def compile_requirement_change(
         raise RequirementCompilationError(
             f"requirement_id is missing or ambiguous: {updated.requirement_id}"
         )
-    expectation = updated.expectation or existing[0].expectation
-    if expectation is None:
-        raise RequirementCompilationError("updated requirement has no supported expectation")
-    kind = expectation.get("kind")
-    if kind != "gpio_assignment":
-        raise RequirementCompilationError(f"unknown expectation kind: {kind!r}")
-    net = expectation.get("net")
-    gpio = expectation.get("gpio")
-    if not isinstance(net, str) or not isinstance(gpio, int) or isinstance(gpio, bool):
-        raise RequirementCompilationError("gpio_assignment requires string net and integer gpio")
-    net_id = _net_id(graph, net)
     before_graph_hash = canonical_json_sha256(graph.model_dump(mode="json"))
-    old_gpio = _old_gpio(graph, net_id)
-    try:
-        graph, gpio_changed = apply_gpio_assignment(graph, net_id, gpio)
-    except GpioAssignmentError as exc:
-        raise RequirementCompilationError(str(exc)) from exc
-    graph, label_changed = _update_coupled_labels(graph, net_id, old_gpio, gpio)
+    gpio_changed: tuple[str, ...] = ()
+    label_changed: tuple[str, ...] = ()
+    expectation = updated.expectation or existing[0].expectation
+    if expectation is not None:
+        kind = expectation.get("kind")
+        if kind != "gpio_assignment":
+            raise RequirementCompilationError(f"unknown expectation kind: {kind!r}")
+        net = expectation.get("net")
+        gpio = expectation.get("gpio")
+        if (
+            not isinstance(net, str)
+            or not isinstance(gpio, int)
+            or isinstance(gpio, bool)
+        ):
+            raise RequirementCompilationError(
+                "gpio_assignment requires string net and integer gpio"
+            )
+        net_id = _net_id(graph, net)
+        old_gpio = _old_gpio(graph, net_id)
+        try:
+            graph, gpio_changed = apply_gpio_assignment(graph, net_id, gpio)
+        except GpioAssignmentError as exc:
+            raise RequirementCompilationError(str(exc)) from exc
+        graph, label_changed = _update_coupled_labels(
+            graph, net_id, old_gpio, gpio
+        )
     graph, requirement_changed = _update_requirement_nodes(
         graph, updated.requirement_id, updated.statement
     )

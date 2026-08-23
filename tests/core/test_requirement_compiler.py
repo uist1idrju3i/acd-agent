@@ -113,6 +113,8 @@ def test_text_only_requirement_update_uses_existing_expectation(tmp_path: Path) 
     fixture = _copy_fixture(tmp_path)
     update = _update(tmp_path, statement="LED要件の説明を更新")
     payload = json.loads(update.read_text(encoding="utf-8"))
+    payload["requirement_id"] = "gd1-req-001"
+    payload["drives_functional_blocks"] = []
     payload["expectation"] = None
     update.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     result = compile_requirement_change(fixture, update, dry_run=True)
