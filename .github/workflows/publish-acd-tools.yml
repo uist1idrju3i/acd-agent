@@ -11,19 +11,19 @@ on:
       - "!docker/image-digests.json"
       - "!docker/README.md"
 
-permissions:
-  contents: read
-  packages: write
-
 jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           submodules: true
-          persist-credentials: false
+          persist-credentials: true
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
       - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
@@ -41,9 +41,44 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Record image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
         run: |
           {
             echo "## ACD tools image"
             echo
-            echo "\`${{ steps.publish.outputs.digest }}\`"
+            echo "\`$IMAGE_DIGEST\`"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Open digest lock update PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          set -euo pipefail
+          published_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          workflow_run="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          python scripts/update_image_digest_lock.py \
+            --lock docker/image-digests.json \
+            --entry acd_tools \
+            --image "ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-tools" \
+            --tag latest \
+            --digest "$IMAGE_DIGEST" \
+            --published-at "$published_at" \
+            --workflow-run "$workflow_run"
+          if git diff --quiet -- docker/image-digests.json; then
+            exit 0
+          fi
+          branch="bot/update-image-digest-acd-tools-${IMAGE_DIGEST#sha256:}"
+          branch="${branch:0:70}"
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docker/image-digests.json
+          git commit -m "acd-tools image digest lockを更新"
+          git push --set-upstream origin "$branch"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$branch" \
+            --title "acd-tools image digest lockを更新" \
+            --body "Publish workflowで観測したacd-tools image digestをlockへ記録しました。"
