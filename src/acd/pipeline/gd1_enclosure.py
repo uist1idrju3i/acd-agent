@@ -20,7 +20,7 @@ from acd.adapters.cad.mechanical import (
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
-from acd.core.naming import subject_node_id
+from acd.core.naming import evidence_id, subject_node_id
 from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
@@ -80,6 +80,7 @@ def _run_pipeline(
         graph_path=graph_path,
         out_dir=out_dir,
         target_revision=graph.revision,
+        graph_id=graph.graph_id,
     )
     print(
         "[2/5] enclosure CAD projected: "
@@ -107,6 +108,7 @@ def _run_pipeline(
         target_revision=graph.revision,
         gate_report=gate_report,
         out_dir=out_dir,
+        graph_id=graph.graph_id,
         runner=runner,
     )
     visual_crosscheck = crosscheck_mechanical_visual_projections(
@@ -116,6 +118,7 @@ def _run_pipeline(
         projection=projection,
         gate_report=gate_report,
         base_dir=out_dir,
+        graph_id=graph.graph_id,
     )
     if visual_crosscheck.status != "match":
         raise RuntimeError("mechanical visual cross-check did not match (fail-closed)")
@@ -141,7 +144,7 @@ def _run_pipeline(
     ).hexdigest()
 
     evidence = Evidence(
-        evidence_id="evidence.gd1.mechanical",
+        evidence_id=evidence_id(graph.graph_id, "mechanical"),
         target_revision=graph.revision,
         status="valid",
         envelope=projection.envelope,

@@ -103,7 +103,7 @@ from acd.core.functional_blocks import (
     declared_functional_blocks,
     load_functional_block_registry,
 )
-from acd.core.naming import output_prefix, subject_node_id
+from acd.core.naming import evidence_id, output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
 from acd.core.process import execution_provenance
@@ -291,6 +291,7 @@ def _summarize_width_violations(
 
 def build_electrical_evidence(
     *,
+    graph_id: str = "golden-design-1",
     revision: str,
     subject_node: str,
     envelope: ToolEnvelope,
@@ -371,7 +372,7 @@ def build_electrical_evidence(
         if predicate.status != "not_applicable"
     ]
     return Evidence(
-        evidence_id="evidence.gd1.electrical",
+        evidence_id=evidence_id(graph_id, "electrical"),
         target_revision=revision,
         status="valid",
         envelope=envelope,
@@ -1330,7 +1331,9 @@ def run_pipeline(
         if node.kind == "mechanical.board_edge_overhang"
     }
     cpl_basis_path = fab_dir / "cpl-basis-report.json"
-    lcsc_evidence_dir = repository_root() / "evidence/gd1-cpl-orientation"
+    lcsc_evidence_dir = (
+        repository_root() / f"evidence/{output_prefix(graph.graph_id)}-cpl-orientation"
+    )
     verified_rotation_offsets, rotation_evidence_notes, rotation_unknowns = (
         verify_lcsc_rotation_evidence(lcsc_evidence_dir, fixture_dir, measurement, lane, fitted)
     )
@@ -1595,6 +1598,7 @@ def run_pipeline(
     functional_registry = load_functional_block_registry()
     declared_blocks = declared_functional_blocks(graph, functional_registry)
     evidence = build_electrical_evidence(
+        graph_id=graph.graph_id,
         revision=revision,
         subject_node=subject_node_id(graph, "electrical.board"),
         envelope=drc.run.envelope,

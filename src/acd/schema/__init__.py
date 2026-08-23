@@ -41,6 +41,8 @@ from acd.schema.evidence import (
 from acd.schema.fab_profile import FabProfileDocument, FabProfileRegistryDocument
 from acd.schema.feedback import (
     AppliedFeedbackValidationReport,
+    FeedbackApplyPolicy,
+    FeedbackApplyRule,
     FeedbackItemStatus,
     FeedbackPolicy,
     FeedbackProposal,
@@ -81,11 +83,11 @@ from acd.schema.order_execution import (
     dry_run_payload_hash,
 )
 from acd.schema.order_policy import (
-    REQUIRED_ORDER_EVIDENCE_IDS,
     EvidenceReference,
     OrderPolicy,
     PreOrderGateRecord,
     PreOrderGateRecordBody,
+    required_order_evidence_ids,
 )
 from acd.schema.order_scope import (
     MechanicalTreatment,
@@ -169,7 +171,6 @@ from acd.schema.visual_projection import (
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "DESIGN_FREEDOM_DIMENSION_IDS",
-    "REQUIRED_ORDER_EVIDENCE_IDS",
     "UNKNOWN",
     "AcdCredentialReference",
     "AcdModel",
@@ -200,6 +201,8 @@ __all__ = [
     "ExecutionMode",
     "FabProfileDocument",
     "FabProfileRegistryDocument",
+    "FeedbackApplyPolicy",
+    "FeedbackApplyRule",
     "FeedbackItemStatus",
     "FeedbackPolicy",
     "FeedbackProposal",
@@ -304,4 +307,5 @@ __all__ = [
     "contains_unknown",
     "dry_run_payload_hash",
     "is_unknown",
+    "required_order_evidence_ids",
 ]

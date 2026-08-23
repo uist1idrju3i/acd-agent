@@ -7,17 +7,19 @@ from pathlib import Path
 
 from openhands.sdk.git.exceptions import GitError
 
+from acd.core.naming import required_evidence_ids
 from acd.core.order_total import OrderTotalResult
 from acd.openhands.evidence.git import design_input_changes
 from acd.openhands.evidence.revision import resolve
 from acd.schema import (
-    REQUIRED_ORDER_EVIDENCE_IDS,
+    DesignGraph,
     Evidence,
     EvidenceReference,
     OrderPolicy,
     PreOrderGateRecord,
 )
 from acd.schema.common import Timestamp, canonical_sha256, contains_unknown
+from acd.schema.order_policy import validate_order_policy_for_graph
 
 
 class PreOrderGateError(ValueError):
@@ -33,13 +35,18 @@ def evaluate_pre_order_gate(
     evaluated_at: Timestamp,
 ) -> PreOrderGateRecord:
     """Validate authoritative Evidence and the 7.2 total without side effects."""
-    if not REQUIRED_ORDER_EVIDENCE_IDS.issubset(policy.required_evidence_ids):
-        raise PreOrderGateError(
-            "order policy must require electrical and mechanical Evidence"
-        )
     graph_paths = [
         repository / path for path in policy.design_graph_paths
     ]
+    if len(graph_paths) != 1:
+        raise PreOrderGateError("order policy must target exactly one design graph")
+    try:
+        graph = DesignGraph.model_validate_json(
+            graph_paths[0].read_text(encoding="utf-8")
+        )
+        validate_order_policy_for_graph(policy, graph.graph_id)
+    except (OSError, ValueError) as exc:
+        raise PreOrderGateError(f"design graph policy validation failed: {exc}") from exc
     current_revision = resolve(graph_paths)
     if current_revision is None:
         raise PreOrderGateError(
@@ -73,7 +80,7 @@ def evaluate_pre_order_gate(
         evidence_by_id[evidence.evidence_id] = evidence
 
     references: list[EvidenceReference] = []
-    for evidence_id in sorted(REQUIRED_ORDER_EVIDENCE_IDS):
+    for evidence_id in sorted(required_evidence_ids(graph.graph_id)):
         evidence = evidence_by_id.get(evidence_id)
         if evidence is None:
             raise PreOrderGateError(f"required Evidence is missing: {evidence_id}")

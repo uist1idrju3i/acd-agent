@@ -19,10 +19,6 @@ from acd.schema.common import (
 )
 from acd.schema.quote import QuoteAmount
 
-REQUIRED_ORDER_EVIDENCE_IDS = frozenset(
-    {"evidence.gd1.electrical", "evidence.gd1.mechanical"}
-)
-
 
 class OrderPolicy(AcdModel):
     schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
@@ -47,11 +43,25 @@ class OrderPolicy(AcdModel):
         ):
             if len(values) != len(set(values)):
                 raise ValueError(f"order policy {name} entries must be unique")
-        if not REQUIRED_ORDER_EVIDENCE_IDS.issubset(self.required_evidence_ids):
-            raise ValueError(
-                "order policy must require electrical and mechanical Evidence"
-            )
         return self
+
+
+def validate_order_policy_for_graph(policy: OrderPolicy, graph_id: str) -> None:
+    """Validate graph-specific Evidence coverage at a graph-aware boundary."""
+    from acd.core.naming import required_evidence_ids
+
+    required = required_evidence_ids(graph_id)
+    declared = frozenset(policy.required_evidence_ids)
+    if not required.issubset(declared):
+        missing = ", ".join(sorted(required - declared))
+        raise ValueError(f"order policy is missing required Evidence: {missing}")
+
+
+def required_order_evidence_ids(graph_id: str) -> frozenset[str]:
+    """Return the graph-scoped Evidence anchors required before ordering."""
+    from acd.core.naming import required_evidence_ids
+
+    return required_evidence_ids(graph_id)
 
 
 class EvidenceReference(AcdModel):
