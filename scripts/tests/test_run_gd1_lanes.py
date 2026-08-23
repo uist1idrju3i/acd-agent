@@ -8,6 +8,8 @@ from collections.abc import Sequence
 import pytest
 from scripts import run_gd1_lanes
 
+from acd.core import command_runner
+
 
 def test_list_is_machine_readable(capsys: pytest.CaptureFixture[str]) -> None:
     assert run_gd1_lanes.main(["--list"]) == 0
@@ -33,11 +35,11 @@ def test_parallel_lanes_wait_for_resolver(
         calls.append(command_tuple)
         if command_tuple != resolver:
             assert resolver in calls
-        return run_gd1_lanes.subprocess.CompletedProcess(
+        return command_runner.subprocess.CompletedProcess(
             command, 0, stdout=f"{command_tuple[-1]} output\n", stderr=""
         )
 
-    monkeypatch.setattr(run_gd1_lanes.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
 
     assert run_gd1_lanes.main(["--jobs", "3"]) == 0
 
@@ -51,12 +53,16 @@ def test_sequential_lanes_keep_declared_order(
 ) -> None:
     calls: list[tuple[str, ...]] = []
 
-    def fake_run(command: Sequence[str], **kwargs: object) -> object:
+    def fake_run(
+        command: Sequence[str], **kwargs: object
+    ) -> command_runner.subprocess.CompletedProcess[str]:
         command_tuple = tuple(command)
         calls.append(command_tuple)
-        return run_gd1_lanes.subprocess.CompletedProcess(command, 0)
+        return command_runner.subprocess.CompletedProcess(
+            command, 0, stdout="", stderr=""
+        )
 
-    monkeypatch.setattr(run_gd1_lanes.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
 
     assert run_gd1_lanes.main(["--jobs", "1"]) == 0
 
@@ -68,7 +74,7 @@ def test_parallel_lanes_report_all_failures(
 ) -> None:
     def fake_run(command: Sequence[str], **kwargs: object) -> object:
         command_tuple = tuple(command)
-        return run_gd1_lanes.subprocess.CompletedProcess(
+        return command_runner.subprocess.CompletedProcess(
             command,
             5 if command_tuple in {
                 run_gd1_lanes.LANE_COMMANDS[1].command,
@@ -78,7 +84,7 @@ def test_parallel_lanes_report_all_failures(
             stderr="",
         )
 
-    monkeypatch.setattr(run_gd1_lanes.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
 
     assert run_gd1_lanes.main(["--jobs", "3"]) == 5
 

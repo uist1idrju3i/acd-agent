@@ -8,11 +8,7 @@ import os
 import sys
 from collections.abc import Sequence
 
-from acd.core import command_runner
-
-CommandSpec = command_runner.CommandSpec
-run_stage = command_runner.run_stage
-subprocess = command_runner.subprocess
+from acd.core.command_runner import CommandSpec, run_stage
 
 LANE_COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(
