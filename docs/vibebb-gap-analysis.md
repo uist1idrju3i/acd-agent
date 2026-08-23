@@ -54,8 +54,8 @@ Gerber検査はrouting結果に依存するため、従来どおりrouter後に�
 |---|---|---|
 | B-3 | 達成。述語失敗のmeasurement／subjectとrouterの未接続net・pad対を決定論的な診断Evidenceへ保存 | 解決済み |
 | B-4 | 達成。述語catalogの評価段階を宣言し、6述語の`pre_router`被覆と既存評価順を回帰固定 | 解決済み |
-| B-1 | 未着手。候補生成・探索loopは14.4の範囲 | 14.4 |
-| B-2 | 未着手。候補の反復評価は14.4の範囲 | 14.4 |
+| B-1 | 達成。配置・回転Skillをsubprocess境界で呼び出し、設計自由度を検査するbounded候補探索loopを追加 | 解決済み |
+| B-2 | 達成。graph宣言MCU padからGPIO割当を決定論的に列挙し、strapping pinをpre_routerで除外する探索loopを追加 | 解決済み |
 | B-5〜B-7 | 未着手。結合制約、datum化、stitch via fallbackは14.4の範囲 | 14.4 |
 | B-8・B-9 | 「Bの一部解決（マイルストーン14.4 第1セッション）」を参照 | 14.4 第1セッション |
 
@@ -78,7 +78,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 |---|---|---|
 | B-8 | 達成。9次元の設計自由度宣言、出所・bound basis・gate authority、探索可否、registry整合検査を追加 | 解決済み |
 | B-9 | 達成。初回・refill反復の候補reportとGND島未被覆測定を常時保存し、DFMにはbounded summaryを埋め込む | 解決済み |
-| B-1・B-2 | 未着手。宣言した自由度を使う候補生成・探索loopは後続セッション | 14.4 |
+| B-1・B-2 | 達成。配置・回転SkillとGPIO solverをsubprocess／決定論的列挙で接続し、候補ごとにpre_routerと既存gateを評価するbounded loopを追加 | 解決済み |
 | B-5〜B-7 | 未着手。結合制約、単一datum化、stitch via fallbackは後続セッション | 14.4 |
 
 ## C. 筐体・FW lane
@@ -302,7 +302,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | J-1／J-2 | 契約registryへの機能ブロック追加は可能になった。任意graphの生成・差分反映はI-2／A-2／A-3が未達だと生JSON編集になる |
 | I-4 | GD1以外の設計は発注可否判定に到達できない |
 | I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
-| B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
+| B-1／B-2／B-3 | B-1／B-2のbounded候補探索とB-3の構造化診断を接続した。候補の予算超過や診断不能はfail-closedで記録し、L1 gateの合否権限は変更しない |
 | G-1／G-2 | workspaceが空のままで開始できない。今回は私がcloneして初期化した |
 
 ## 優先順位（VibeBB単体成立に効く順）
