@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any
 
 from acd.core.design_freedom import load_design_freedom_declaration
-from acd.core.design_predicates import PREDICATE_CATALOG
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
@@ -141,6 +140,8 @@ def _validate_new_contract(
     contract: FunctionalBlockContract,
     registry: FunctionalBlockRegistry,
 ) -> None:
+    from acd.core.design_predicates import PREDICATE_CATALOG
+
     existing_ids = {item.block_id for item in registry.contracts}
     if contract.block_id in existing_ids:
         raise FunctionalBlockContractError(
