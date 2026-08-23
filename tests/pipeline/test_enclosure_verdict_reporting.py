@@ -18,7 +18,13 @@ def _run_main(
     tmp_path: Path,
     summary: dict[str, Any],
 ) -> None:
-    def _fake_run_pipeline(fixture: Path, out: Path) -> dict[str, Any]:
+    def _fake_run_pipeline(
+        fixture: Path,
+        out: Path,
+        *,
+        pipeline_workers: int,
+    ) -> dict[str, Any]:
+        assert pipeline_workers > 0
         return summary
 
     monkeypatch.setattr(gd1_enclosure, "run_pipeline", _fake_run_pipeline)

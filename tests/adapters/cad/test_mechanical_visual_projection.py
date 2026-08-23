@@ -21,6 +21,7 @@ from acd.adapters.cad.visual_projection import (
     generate_mechanical_visual_projections,
 )
 from acd.core.mechanical import extract_mechanical_lane
+from acd.core.parallel import PipelineStageRunner
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.schema.design_graph import DesignGraph
 
@@ -50,15 +51,17 @@ def _authoritative(out_dir: Path):
     return graph, lane, projection, gates
 
 
-def _generate(out_dir: Path):
+def _generate(out_dir: Path, *, workers: int = 1):
     graph, lane, projection, gates = _authoritative(out_dir)
-    return generate_mechanical_visual_projections(
-        projection=projection,
-        lane=lane,
-        target_revision=graph.revision,
-        gate_report=gates,
-        out_dir=out_dir,
-    )
+    with PipelineStageRunner(workers) as runner:
+        return generate_mechanical_visual_projections(
+            projection=projection,
+            lane=lane,
+            target_revision=graph.revision,
+            gate_report=gates,
+            out_dir=out_dir,
+            runner=runner,
+        )
 
 
 def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
@@ -93,6 +96,36 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
     assert first.projections[1].section_offset_mm == (
         lane.enclosure.wall_thickness_mm + lane.enclosure.standoff_height_mm / 2
     )
+
+
+def test_mechanical_visual_generation_is_stable_across_worker_counts(
+    tmp_path: Path,
+) -> None:
+    serial = _generate(tmp_path / "serial", workers=1)
+    parallel = _generate(tmp_path / "parallel", workers=4)
+
+    assert parallel.identity_hash == serial.identity_hash
+    assert [
+        (
+            item.projection_id,
+            item.image_hash,
+            item.section_plane_id,
+            item.section_offset_mm,
+            item.interference_volume_mm3,
+            item.interference_region_present,
+        )
+        for item in parallel.projections
+    ] == [
+        (
+            item.projection_id,
+            item.image_hash,
+            item.section_plane_id,
+            item.section_offset_mm,
+            item.interference_volume_mm3,
+            item.interference_region_present,
+        )
+        for item in serial.projections
+    ]
 
 
 def test_mechanical_renderer_rejects_unsupported_section_plane(

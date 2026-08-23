@@ -5,10 +5,12 @@ from __future__ import annotations
 import importlib
 import math
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 from typing import Any
 
 from acd.core.mechanical import ComponentBodyView, MechanicalLane
+from acd.core.parallel import PipelineStageRunner
 
 
 class MechanicalGateError(ValueError):
@@ -37,6 +39,13 @@ class EnclosureArtifactReport:
     assembly_bbox_mm: tuple[float, float, float, float, float, float]
 
 
+@dataclass(frozen=True)
+class _ArtifactMeasurement:
+    role: str
+    volume_mm3: float
+    bbox_mm: tuple[float, float, float, float, float, float]
+
+
 def _shape_bbox(shape: Any) -> tuple[float, float, float, float, float, float]:
     bbox = shape.bounding_box()
     return (
@@ -61,47 +70,65 @@ def _bboxes_close(
     )
 
 
+def _measure_artifact(path: Path, role: str) -> _ArtifactMeasurement:
+    build123d: Any = importlib.import_module("build123d")
+    if not path.is_file():
+        raise MechanicalGateError(f"{role} STEP is missing: {path}")
+    try:
+        shape = build123d.import_step(path)
+        solids = list(shape.solids())
+    except Exception as exc:
+        raise MechanicalGateError(f"{role} STEP cannot be reloaded: {path}") from exc
+    if role in {"shell", "lid"} and len(solids) != 1:
+        raise MechanicalGateError(
+            f"{role} STEP must contain exactly one solid, got {len(solids)}"
+        )
+    if role == "assembly" and len(solids) != 2:
+        raise MechanicalGateError(
+            f"assembly STEP must contain exactly two solids, got {len(solids)}"
+        )
+    return _ArtifactMeasurement(
+        role=role,
+        volume_mm3=float(shape.volume),
+        bbox_mm=_shape_bbox(shape),
+    )
+
+
 def measure_enclosure_artifacts(
     *,
     shell_step_path: Path,
     lid_step_path: Path,
     assembly_step_path: Path,
+    runner: PipelineStageRunner | None = None,
 ) -> EnclosureArtifactReport:
     """Reload and validate separated enclosure STEP artifacts."""
-    build123d: Any = importlib.import_module("build123d")
-
-    def load(path: Path, role: str) -> Any:
-        if not path.is_file():
-            raise MechanicalGateError(f"{role} STEP is missing: {path}")
-        try:
-            shape = build123d.import_step(path)
-            solids = list(shape.solids())
-        except Exception as exc:
-            raise MechanicalGateError(f"{role} STEP cannot be reloaded: {path}") from exc
-        if role in {"shell", "lid"} and len(solids) != 1:
-            raise MechanicalGateError(
-                f"{role} STEP must contain exactly one solid, got {len(solids)}"
-            )
-        if role == "assembly" and len(solids) != 2:
-            raise MechanicalGateError(
-                f"assembly STEP must contain exactly two solids, got {len(solids)}"
-            )
-        return shape
-
-    shell = load(shell_step_path, "shell")
-    lid = load(lid_step_path, "lid")
-    assembly = load(assembly_step_path, "assembly")
-    shell_bbox = _shape_bbox(shell)
-    lid_bbox = _shape_bbox(lid)
-    assembly_bbox = _shape_bbox(assembly)
+    stages = (
+        ("shell", partial(_measure_artifact, shell_step_path, "shell")),
+        ("lid", partial(_measure_artifact, lid_step_path, "lid")),
+        ("assembly", partial(_measure_artifact, assembly_step_path, "assembly")),
+    )
+    measurements = (
+        runner.run_ordered_stages(stages)
+        if runner is not None
+        else [stage() for _, stage in stages]
+    )
+    typed_measurements: list[_ArtifactMeasurement] = []
+    for item in measurements:
+        if not isinstance(item, _ArtifactMeasurement):
+            raise MechanicalGateError("enclosure artifact measurements are unknown")
+        typed_measurements.append(item)
+    shell, lid, assembly = typed_measurements
+    shell_bbox = shell.bbox_mm
+    lid_bbox = lid.bbox_mm
+    assembly_bbox = assembly.bbox_mm
     # GD1 currently uses a stacked shell/lid enclosure; nested designs need a different relation.
     if shell_bbox[5] >= lid_bbox[2]:
         raise MechanicalGateError(
             "current stacked GD1 enclosure requires shell/lid Z separation"
         )
     if not math.isclose(
-        float(assembly.volume),
-        float(shell.volume) + float(lid.volume),
+        assembly.volume_mm3,
+        shell.volume_mm3 + lid.volume_mm3,
         rel_tol=0.0,
         abs_tol=1e-4,
     ):
@@ -121,9 +148,9 @@ def measure_enclosure_artifacts(
             "assembly STEP bbox does not equal separated shell/lid bboxes"
         )
     return EnclosureArtifactReport(
-        shell_volume_mm3=float(shell.volume),
-        lid_volume_mm3=float(lid.volume),
-        assembly_volume_mm3=float(assembly.volume),
+        shell_volume_mm3=shell.volume_mm3,
+        lid_volume_mm3=lid.volume_mm3,
+        assembly_volume_mm3=assembly.volume_mm3,
         shell_bbox_mm=shell_bbox,
         lid_bbox_mm=lid_bbox,
         assembly_bbox_mm=assembly_bbox,

@@ -86,6 +86,24 @@ src/acd/
 ゲートを実行する。adaptersは外部ツールとの形式・process境界を担当し、設計の合否を
 独自に決めない。`acd.openhands`のSDK toolは既存の決定論的入口を公開するだけである。
 
+GD1筐体pipelineは、rationale検証、lane抽出、筐体投影を依存順に逐次実行した後、
+機械ゲート（CAD kernel probe → mechanical gates）と筐体artifact再読込測定を
+独立stageとして実行する。筐体pipeline開始時にCAD専用の
+`PipelineStageRunner`を1つ生成し、`spawn` contextの`ProcessPoolExecutor`をpipeline終了まで
+再利用する。生成直後に呼び出し側が指定したCAD moduleのwarm-upを各workerへ投げ、
+rationale／lane抽出／筐体投影の逐次区間とimportを重ねる。機械ゲート内のprobeと判定、
+artifact測定helperのshell／lid／assembly再読込は同じrunnerへsubmitし、nested poolを作らない。
+ゲート完了後の断面投影と干渉投影も同じrunnerの独立stageとしてsubmitし、結果はprojection ID順に
+reduceする。基板pipelineの`run_ordered_stages`は既定context（Linuxではfork）を維持し、
+spawn化はOCP/build123dを使う筐体経路に限定する。warm-upはworker数分のjobを
+Manager由来のBarrierで待ち合わせ、import失敗やtimeoutは最適化の失敗として警告し、
+判定を変えずに通常経路を続行する。`--pipeline-workers 1`はpoolを作らず同じ依存境界を
+逐次実行する。2コアVMではCAD stageの実処理よりspawnとOCP importのコストが大きかったため、
+筐体経路の既定worker数は1とし、並列は明示指定時だけ有効にする。worker数とstart methodは
+hash、Evidence、provenanceへ含めない。
+同一fixtureのhost provisional測定は、`--pipeline-workers 1`が8.309秒、
+`--pipeline-workers 4`が26.492秒であり、この規模では並列短縮を確認できなかった。
+
 ## OpenHands plugin
 
 ```text

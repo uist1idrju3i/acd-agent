@@ -7,6 +7,7 @@ import json
 import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,7 @@ from acd.adapters.cad.mechanical import (
 from acd.adapters.cad.project import CadProjection, cad_tool_version
 from acd.core.cad_normalize import normalize_step
 from acd.core.mechanical import MechanicalLane
+from acd.core.parallel import PipelineStageRunner
 from acd.core.process import ExternalToolError, sha256_bytes
 from acd.core.visual_projection import measure_svg_resolution
 from acd.schema.visual_projection import (
@@ -571,6 +573,41 @@ class MechanicalVisualRenderer:
         return record
 
 
+def _render_mechanical_section(
+    *,
+    projection: CadProjection,
+    lane: MechanicalLane,
+    target_revision: str,
+    out_dir: Path,
+) -> VisualProjectionRecord:
+    renderer = MechanicalVisualRenderer(base_dir=out_dir)
+    return renderer.render_section(
+        projection=projection,
+        lane=lane,
+        target_revision=target_revision,
+        output_path=out_dir / "visual/gd1-mechanical-section.svg",
+        section_plane_id="xy",
+    )
+
+
+def _render_mechanical_interference(
+    *,
+    projection: CadProjection,
+    lane: MechanicalLane,
+    target_revision: str,
+    gate_report: MechanicalGateReport,
+    out_dir: Path,
+) -> VisualProjectionRecord:
+    renderer = MechanicalVisualRenderer(base_dir=out_dir)
+    return renderer.render_interference(
+        projection=projection,
+        lane=lane,
+        target_revision=target_revision,
+        gate_report=gate_report,
+        output_path=out_dir / "visual/gd1-mechanical-interference.svg",
+    )
+
+
 def generate_mechanical_visual_projections(
     *,
     projection: CadProjection,
@@ -578,32 +615,48 @@ def generate_mechanical_visual_projections(
     target_revision: str,
     gate_report: MechanicalGateReport,
     out_dir: Path,
+    runner: PipelineStageRunner | None = None,
 ) -> VisualProjectionSet:
     """Generate mechanical SVG projections after mechanical gates pass."""
     if not gate_report.kernel_valid or not gate_report.clearance or not gate_report.wall_thickness:
         raise MechanicalGateError("mechanical visual projections require passing gates")
-    visual_dir = out_dir / "visual"
-    renderer = MechanicalVisualRenderer(base_dir=out_dir)
-    records = [
-        renderer.render_section(
-            projection=projection,
-            lane=lane,
-            target_revision=target_revision,
-            output_path=visual_dir / "gd1-mechanical-section.svg",
-            section_plane_id="xy",
+    stages = (
+        (
+            "mechanical-section",
+            partial(
+                _render_mechanical_section,
+                projection=projection,
+                lane=lane,
+                target_revision=target_revision,
+                out_dir=out_dir,
+            ),
         ),
-        renderer.render_interference(
-            projection=projection,
-            lane=lane,
-            target_revision=target_revision,
-            gate_report=gate_report,
-            output_path=visual_dir / "gd1-mechanical-interference.svg",
+        (
+            "mechanical-interference",
+            partial(
+                _render_mechanical_interference,
+                projection=projection,
+                lane=lane,
+                target_revision=target_revision,
+                gate_report=gate_report,
+                out_dir=out_dir,
+            ),
         ),
-    ]
-    records.sort(key=lambda record: record.projection_id)
+    )
+    records = (
+        runner.run_ordered_stages(stages)
+        if runner is not None
+        else [stage() for _, stage in stages]
+    )
+    typed_records: list[VisualProjectionRecord] = []
+    for record in records:
+        if not isinstance(record, VisualProjectionRecord):
+            raise MechanicalGateError("mechanical visual projections are unknown")
+        typed_records.append(record)
+    typed_records.sort(key=lambda record: record.projection_id)
     result = VisualProjectionSet(
         source_revision=target_revision,
-        projections=records,
+        projections=typed_records,
     ).with_computed_hashes()
     (out_dir / "visual-projections-mechanical.json").write_text(
         result.model_dump_json(indent=2) + "\n",
