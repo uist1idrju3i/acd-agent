@@ -8,16 +8,20 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from acd.core.exploration import ExplorationError, explore_board_candidates
+from acd.core.exploration import (
+    DEFAULT_MAX_PASSES,
+    ExplorationError,
+    explore_board_candidates,
+)
 
 
 def _positive_int(value: str) -> int:
     try:
         parsed = int(value)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("max-candidates must be a positive integer") from exc
+        raise argparse.ArgumentTypeError("value must be a positive integer") from exc
     if parsed < 1:
-        raise argparse.ArgumentTypeError("max-candidates must be a positive integer")
+        raise argparse.ArgumentTypeError("value must be a positive integer")
     return parsed
 
 
@@ -47,6 +51,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=8,
         help="bounded number of candidates to evaluate",
     )
+    parser.add_argument(
+        "--max-passes",
+        type=_positive_int,
+        default=DEFAULT_MAX_PASSES,
+        help="bounded router pass budget per candidate",
+    )
     parser.add_argument("--dry-run", action="store_true", help="do not write a confirmed winner")
     args = parser.parse_args(argv)
     try:
@@ -55,6 +65,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.fixture_dir,
             args.out,
             args.max_candidates,
+            max_passes=args.max_passes,
             dry_run=args.dry_run,
         )
     except (ExplorationError, OSError, ValueError) as exc:

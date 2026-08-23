@@ -135,6 +135,52 @@ def test_budget_exhaustion_is_fail_closed_and_preserves_source(
     assert json.loads(result.report_path.read_text(encoding="utf-8"))["content_sha256"]
 
 
+def test_max_passes_is_forwarded_to_default_pipeline_runner(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture = tmp_path / "fixture"
+    shutil.copytree(FIXTURE_DIR, source_fixture)
+    source_graph = source_fixture / "graph.json"
+    source_graph.write_text(GRAPH_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args: (_placement_candidate(graph),),
+    )
+    calls: list[int] = []
+
+    def fake_run_pipeline(
+        _fixture: Path, _out: Path, *, max_passes: int
+    ) -> dict[str, str]:
+        calls.append(max_passes)
+        return {}
+
+    monkeypatch.setattr("acd.pipeline.gd1_board.run_pipeline", fake_run_pipeline)
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=1,
+        max_passes=7,
+    )
+
+    assert result.report["status"] == "candidate_found"
+    assert result.report["max_passes"] == 7
+    assert calls == [7]
+
+
+def test_max_passes_must_be_positive(tmp_path: Path) -> None:
+    with pytest.raises(ExplorationError, match="max_passes must be positive"):
+        explore_board_candidates(
+            GRAPH_PATH,
+            FIXTURE_DIR,
+            tmp_path / "out",
+            max_candidates=1,
+            max_passes=0,
+        )
+
+
 def test_successful_candidate_is_observation_and_writes_only_final_winner(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

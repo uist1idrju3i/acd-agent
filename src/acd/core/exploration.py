@@ -38,6 +38,7 @@ SEARCHABLE_DIMENSIONS = frozenset(
         "gpio_assignment",
     }
 )
+DEFAULT_MAX_PASSES = 3
 
 
 class ExplorationError(ValueError):
@@ -563,12 +564,15 @@ def explore_board_candidates(
     out_dir: Path,
     max_candidates: int,
     *,
+    max_passes: int = DEFAULT_MAX_PASSES,
     dry_run: bool = False,
     pipeline_runner: PipelineRunner | None = None,
 ) -> ExplorationResult:
     """Explore bounded placement and GPIO proposals without pass authority."""
     if max_candidates < 1:
         raise ExplorationError("max_candidates must be positive")
+    if max_passes < 1:
+        raise ExplorationError("max_passes must be positive")
     graph = _load_graph(graph_path)
     if not fixture_dir.is_dir():
         raise ExplorationError(f"fixture directory is missing: {fixture_dir}")
@@ -588,7 +592,7 @@ def explore_board_candidates(
         from acd.pipeline.gd1_board import run_pipeline
 
         def default_pipeline_runner(working: Path, output: Path) -> object:
-            return run_pipeline(working, output, max_passes=99999)
+            return run_pipeline(working, output, max_passes=max_passes)
 
         pipeline_runner = default_pipeline_runner
     candidate_records: list[dict[str, Any]] = []
@@ -664,6 +668,7 @@ def explore_board_candidates(
             "authority_statement": "L1 deterministic gates retain sole authority.",
             "target_revision": graph.revision,
             "max_candidates": max_candidates,
+            "max_passes": max_passes,
             "evaluated_candidates": len(candidate_records),
             "winner_candidate_id": winner,
             "winner_written": winner is not None and not dry_run,
