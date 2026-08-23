@@ -1566,7 +1566,10 @@ def run_pipeline(
         dfm_status=_visual_dfm_status(dfm_report.get("status")),
         design_predicates=tuple(
             ElectricalVisualProjectionPredicate.model_validate(
-                predicate.model_dump(mode="json")
+                predicate.model_dump(
+                    mode="json",
+                    include={"name", "status", "detail"},
+                )
             )
             for predicate in design_predicates
             if predicate.status != "not_applicable"
