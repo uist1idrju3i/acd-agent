@@ -116,6 +116,17 @@ host provisionalではresolver、筐体lane、pytest subsetまで実行できた
 失敗までのwall clockは`--jobs 1`が15.902秒、既定並列が29.331秒だったが、これは
 成功完了の比較値ではない。
 
+silkscreen Skillのcontext候補評価は、texts>1の候補数前パスと、1 text内の
+rotation×x-column partitionを`ProcessPoolExecutor`で並列化する。結果は宣言順へreduceし、
+`dynamic_silk`を更新するmain passのtext間は逐次に保つ。`--workers 1`はpoolを作らず、
+worker数は成果物の意味、hash、Evidence、provenance、summaryへ影響しない。2コアVMの
+host provisionalでは同一の未解決6 text入力に対してSkill直接実行が`--workers 1`で
+50.383秒、`--workers 2`で33.189秒、`--workers 4`で32.893秒となり、3条件の
+output JSON（各63,900,205 bytes）はbyte一致した。通常のGD1 resolverではsilkscreenが
+pinnedのためSkill呼び出しは0回であり、placement search Skillも1.44秒（実処理は
+サブ秒）のため変更していない。これらはhost provisional値であり、container gateの
+authoritativeな判定を置き換えない。
+
 ## OpenHands plugin
 
 ```text
@@ -367,8 +378,12 @@ byte-identicalで、post-`refill_zones` boardだけが異なった。fab gate bl
 electrical Evidenceのclaims、status、revisionは一致した。このため、差分は既存の
 KiCad zone-fillによるUUID再生成（および既存のDRC日時由来の非決定性）であり、Python
 stageのworker数による成果物差分ではない。`hashes.json`の完全一致を要求することは
-できず、この是正は現行の決定論的探索契約の範囲外である。greedy配置探索とsilkscreen
-探索は状態依存のため並列化しない。
+できず、この是正は現行の決定論的探索契約の範囲外である。greedy配置探索は状態依存の
+ため並列化しない。一方、silkscreen探索のcontext候補評価は、前パスのtext単位と
+各text内のrotation×x-column partitionを`ProcessPoolExecutor`で並列化し、宣言順へ
+reduceする。main passは`dynamic_silk`へ受理配置を積むため逐次である。`--workers 1`
+ではpoolを作らず、worker数は候補、rejection、hash、Evidence、provenance、summaryへ
+含めない。
 
 `acd-search` AgentDefinitionは冗長な探索出力を主会話から分離するだけで、候補と
 Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力は合否権限を持たず、

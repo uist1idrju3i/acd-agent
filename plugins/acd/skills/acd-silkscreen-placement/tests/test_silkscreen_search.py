@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+import json
+import subprocess
+from dataclasses import asdict, replace
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
 
+import silkscreen_search
 from acd.core.board_model import BoardModel, ComponentPlacement, FootprintShape, PadShape
 from acd.core.electrical import GraphExtractionError
 from acd.core.silkscreen import SilkscreenLane, SilkTextView
@@ -185,6 +189,129 @@ def test_context_search_returns_candidates_without_gate_threshold_copies() -> No
     result = resolve_from_context(lane, _context())
     assert result[0]["resolution"] == "context_candidate"
     assert result[0]["accepted_position_mm"]
+
+
+def test_context_search_workers_preserve_subprocess_output_bytes(tmp_path: Path) -> None:
+    first = _search_text()
+    second = replace(first, node_id="silk-second")
+    context = _context()
+    context["declarations"] = [
+        {
+            "node_id": first.node_id,
+            "measured_text_length_mm": 2.0,
+            "measured_height_mm": 0.5,
+        },
+        {
+            "node_id": second.node_id,
+            "measured_text_length_mm": 2.0,
+            "measured_height_mm": 0.5,
+        },
+    ]
+    payload = {
+        "lane": {
+            "board_node_id": "board.gd1",
+            "texts": [asdict(first), asdict(second)],
+            "graphics": [],
+        },
+        "context": context,
+    }
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "silkscreen_search.py"
+    )
+    input_path = tmp_path / "silkscreen-input.json"
+    input_path.write_text(json.dumps(payload), encoding="utf-8")
+    outputs: list[bytes] = []
+    for workers in (1, 4):
+        output_path = tmp_path / f"silkscreen-output-{workers}.json"
+        completed = subprocess.run(
+            [
+                "uv",
+                "run",
+                "--script",
+                str(script),
+                "--input",
+                str(input_path),
+                "--output",
+                str(output_path),
+                "--workers",
+                str(workers),
+            ],
+            cwd=Path(__file__).resolve().parents[5],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert completed.returncode == 0, completed.stderr
+        outputs.append(output_path.read_bytes())
+    assert outputs[0] == outputs[1]
+
+
+def test_context_search_all_reject_result_is_worker_invariant() -> None:
+    lane = SilkscreenLane("board.gd1", (_search_text(limit=0.5),), ())
+    context = _context()
+    context["existing_silk_objects"] = [
+        {"layer": "F.SilkS", "bbox_mm": [0.0, 0.0, 20.0, 20.0]}
+    ]
+    sequential = resolve_from_context(lane, context, workers=1)
+    parallel = resolve_from_context(lane, context, workers=4)
+    assert sequential == parallel
+    assert sequential[0]["resolution"] == "no_candidate_fail_closed"
+
+
+def test_context_search_worker_exception_is_not_partial_success() -> None:
+    context = _context()
+    context["pad_bboxes_mm"] = [{"bbox_mm": [0.0, 0.0, 1.0, 1.0]}]
+    with pytest.raises(GraphExtractionError, match="pad layers are missing"):
+        resolve_from_context(
+            SilkscreenLane("board.gd1", (_search_text(),), ()),
+            context,
+            workers=4,
+        )
+
+
+def test_context_search_workers_one_does_not_create_pool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_if_created(*args: object, **kwargs: object) -> None:
+        raise AssertionError("worker=1 must not create a process pool")
+
+    monkeypatch.setattr(silkscreen_search, "ProcessPoolExecutor", fail_if_created)
+    result = resolve_from_context(
+        SilkscreenLane("board.gd1", (_search_text(),), ()),
+        _context(),
+        workers=1,
+    )
+    assert result[0]["resolution"] == "context_candidate"
+
+
+def test_context_search_cli_rejects_nonpositive_workers(tmp_path: Path) -> None:
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "silkscreen_search.py"
+    )
+    completed = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--script",
+            str(script),
+            "--input",
+            str(tmp_path / "missing.json"),
+            "--output",
+            str(tmp_path / "output.json"),
+            "--workers",
+            "0",
+        ],
+        cwd=Path(__file__).resolve().parents[5],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode != 0
+    assert "workers must be at least 1" in completed.stderr
 
 
 def test_context_search_fails_closed_for_missing_context_geometry() -> None:
