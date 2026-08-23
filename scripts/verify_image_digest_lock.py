@@ -10,7 +10,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any, cast
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 
 ManifestOpener = Callable[..., Any]
@@ -36,9 +36,16 @@ def registry_manifest_digest(
     opener: ManifestOpener = urlopen,
 ) -> str:
     """Resolve the current GHCR manifest digest through anonymous auth."""
-    if not image.startswith("ghcr.io/") or "/" not in image.removeprefix("ghcr.io/"):
+    parsed_image = urlsplit(f"//{image}")
+    if (
+        parsed_image.netloc != "ghcr.io"
+        or not parsed_image.path.startswith("/")
+        or not parsed_image.path.removeprefix("/").strip()
+        or parsed_image.query
+        or parsed_image.fragment
+    ):
         raise ValueError(f"unsupported registry image: {image}")
-    repository = image.removeprefix("ghcr.io/")
+    repository = parsed_image.path.removeprefix("/")
     token_request = Request(
         f"https://ghcr.io/token?scope=repository:{quote(repository, safe='/')}:pull",
         headers={"Accept": "application/json"},

@@ -93,6 +93,11 @@ def test_registry_manifest_digest_uses_token_and_head() -> None:
     assert calls[1].headers["Authorization"] == "Bearer anonymous-token"
 
 
+def test_registry_manifest_digest_rejects_non_ghcr_image() -> None:
+    with pytest.raises(ValueError, match="unsupported registry image"):
+        registry_manifest_digest("not-ghcr.io/acd-tools", "latest")
+
+
 def test_verify_lock_passes_and_rejects_mismatch(tmp_path: Path) -> None:
     path = _lock(tmp_path)
 
