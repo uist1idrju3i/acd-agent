@@ -304,7 +304,7 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 | L-4 | order-total生成経路の欠落 | `aggregate_order_total`にCLIもtool入口も無く、`out/order-total.json`の生成手順は[`operations.md`](operations.md)にも無い。発注可否段は既存fileを前提とするため、会話からは発注可否判定へ到達できない | 高 |
 | L-5 | 生成物既定値のgd1残留 | `DEFAULT_PROJECT_NAME = "gd1"`、`src/acd/openhands/workspace.py`の既定evidence path、agent toolの既定出力`out/gd1-*`、FW既定の`boot_log_message`のGD1文字列が残る。いずれも宣言で上書きできるが、任意graphでは既定値が誤誘導になる | 中 |
 | L-6 | 契約registryとcatalogのトポロジ被覆 | `contracts/functional-block-registry.json`はGD1系の6契約、`contracts/parts-catalog.json`は24 entryのみで、USB-Cを持たない設計や電池駆動設計は契約・catalog追加が前提となり会話からは到達できない（マイルストーン16.2・16.3に依存） | 中 |
-| L-7 | 本書の「現状」列の陳腐化 | A節・K節・G節の「現状」列が14.5・14.7・14.8の達成後も更新されておらず、実装状態と齟齬がある | 低 |
+| L-7 | 本書の「現状」列の陳腐化 | 解決済み。A節・K節・G節の「現状」列が14.5・14.7・14.8の達成後も更新されておらず実装状態と齟齬があったため、本節の追加と同じ変更で更新した。実測根拠の観測記録は変更しない | 低 |
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
