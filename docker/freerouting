@@ -1,2 +1,10 @@
 #!/bin/sh
-exec java -jar /opt/freerouting.jar "$@"
+
+FREEROUTING_MAX_HEAP="${FREEROUTING_MAX_HEAP:-1g}"
+FREEROUTING_ACTIVE_PROCESSORS="${FREEROUTING_ACTIVE_PROCESSORS:-1}"
+
+exec java \
+  "-Xmx${FREEROUTING_MAX_HEAP}" \
+  "-XX:ActiveProcessorCount=${FREEROUTING_ACTIVE_PROCESSORS}" \
+  -jar /opt/freerouting.jar \
+  "$@"

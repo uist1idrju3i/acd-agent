@@ -343,6 +343,13 @@ CIの`container-gates` jobはlock済みserver imageをpullし、SDKの`DockerWor
 筐体pipelineを一つのcontainer commandとして実行する。publish workflowはmainのDockerfile
 変更または手動起動でGHCRへimageをpushし、job summaryへdigestを記録する。
 
+`DockerWorkspace`の現行SDKモデルにはCPU／memory resource fieldがないため、workspace側から
+container資源を宣言することはできない。FreeRouting wrapperはこの境界とは独立に、
+JVM最大heapとactive processor countを明示する。container資源をSDKで宣言できない間は
+`tool_concurrency_limit`を既定1とし、資源宣言不能時はSDK mutexによる直列化へ倒す契約を
+維持する。wrapperの既定は`-Xmx1g`と`-XX:ActiveProcessorCount=1`であり、明示された
+環境変数による上書きだけを許可する。
+
 `Evidence.supports_pass()`はrevision、status、既知provenanceの妥当性を表す。
 `supports_authoritative_pass()`はそれに加えてdigest固定containerを要求し、
 hostで生成されたvalid Evidenceは`is_provisional()`として扱う。

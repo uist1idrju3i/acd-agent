@@ -22,6 +22,7 @@ class RouterUnavailableError(ExternalToolError):
 
 
 _VERSION_PATTERN = re.compile(r"Freerouting v([0-9]+\.[0-9]+\.?[0-9]*)")
+DEFAULT_FREEROUTING_THREADS = 1
 
 
 class FreeroutingRunner:
@@ -58,8 +59,12 @@ class FreeroutingRunner:
         ses_path: Path,
         target_revision: str,
         max_passes: int = 100,
+        freerouting_threads: int = DEFAULT_FREEROUTING_THREADS,
     ) -> ToolRun:
+        if freerouting_threads < 0:
+            raise ValueError("freerouting thread count must be non-negative")
         version = self.version()
+        # Pin the thread count instead of inheriting host CPU count for machine-independent runs.
         command = [
             self.executable,
             "-de",
@@ -68,6 +73,8 @@ class FreeroutingRunner:
             str(ses_path),
             "-mp",
             str(max_passes),
+            "-mt",
+            str(freerouting_threads),
         ]
         run = run_tool(
             tool_name="freerouting",
@@ -78,7 +85,10 @@ class FreeroutingRunner:
             output_paths=[ses_path],
             envelope_path=ses_path.with_suffix(ses_path.suffix + ".envelope.json"),
             target_revision=target_revision,
-            measurement_conditions=f"headless; max {max_passes} passes",
+            measurement_conditions=(
+                f"headless; max {max_passes} passes; "
+                f"max {freerouting_threads} router threads"
+            ),
             convergence_state="unknown",
         )
         convergence = _convergence_from_log(run.stdout + run.stderr)

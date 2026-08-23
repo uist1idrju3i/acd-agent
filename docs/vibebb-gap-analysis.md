@@ -83,6 +83,7 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 | F-2 | publish jobが[`docker/image-digests.json`](../docker/image-digests.json)を更新するPRを自動作成する | 現状はjob summaryからの人手転記で、転記ミスの余地がある。ただし[`publish-acd-tools.yml`](../.github/workflows/publish-acd-tools.yml)のtriggerがdigest lockと[`docker/README.md`](../docker/README.md)を除外しており、digest更新PRがpublishを再帰起動するloopは構造的に防がれている |
 | F-3 | [`verify_authoritative_evidence.py`](../scripts/verify_authoritative_evidence.py)の検査に、lockのdigestとregistry現行manifestの一致確認を追加する | lock更新漏れをCIで検出できる |
 | F-4 | 文書と実運用の不整合を整理する | [`docker/README.md`](../docker/README.md)は「ACDはこのimageを配布しない」と述べる一方、実際にはGPLv3のKiCad／FreeRoutingを含むimageをGHCRへpublishしている。配布に当たるか否かを整理し、記述を整合させる必要がある。実装は変更せず、指摘のみとする |
+| F-5 | FreeRouting／container資源の暗黙継承を除く | FreeRouting 2.3.0の`-mt`既定（論理CPU数−1）を常に明示し、GD1 pipelineの既定を`--freerouting-threads 1`へ固定した。wrapperも`-Xmx1g`と`-XX:ActiveProcessorCount=1`を宣言し、`FREEROUTING_MAX_HEAP`／`FREEROUTING_ACTIVE_PROCESSORS`でのみ上書きできる。2コアVMのdigest固定imageで`-mt 0/1/2/4`のSES hashは一致し、93.5/93.0/92.5秒で有意な短縮は無かったため、experimental `feature_flags.multi_threading`は無効のままとした。SDK `DockerWorkspace`にCPU／memory fieldが無いため、資源宣言不能時の`tool_concurrency_limit=1`とSDK mutex直列化契約は維持する。wrapper変更時はmainのDocker publish結果digestをlockへ転記し、推測値を記録しない | 実装済み。実行条件を機械非依存にするための変更であり、速度向上を主張しない |
 
 ## G. ワークスペース初期化の自動化
 
