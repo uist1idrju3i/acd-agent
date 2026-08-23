@@ -14,9 +14,11 @@ from acd.adapters.kicad.library import FootprintLibrary
 from acd.adapters.kicad.placement import rotate_point
 from acd.core.electrical import ComponentView, ElectricalLane
 from acd.core.functional_blocks import (
+    FunctionalBlockContractError,
     FunctionalBlockRegistry,
     declared_functional_blocks,
     load_functional_block_registry,
+    remediation_declarations,
     required_predicate_names,
     validate_predicate_coverage,
 )
@@ -24,6 +26,7 @@ from acd.pipeline.repository import repository_root
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 PredicateStatus = Literal["pass", "fail", "unknown", "not_applicable"]
+RemediationDimensionsSource = Literal["registry", "unknown"]
 
 PREDICATE_CATALOG = (
     "usb_cc",
@@ -33,6 +36,38 @@ PREDICATE_CATALOG = (
     "power_decoupling",
     "power_boundary",
 )
+
+PREDICATE_EVALUATION_STAGE: dict[str, str] = {
+    name: "pre_router" for name in PREDICATE_CATALOG
+}
+PREDICATE_EVALUATION_STAGES = frozenset({"pre_router", "post_router"})
+
+
+def validate_predicate_stage_coverage(
+    catalog: tuple[str, ...],
+    stages: dict[str, str] | None = None,
+) -> None:
+    """Require every catalog predicate to have a known evaluation stage."""
+    declared = stages if stages is not None else PREDICATE_EVALUATION_STAGE
+    catalog_set = set(catalog)
+    declared_set = set(declared)
+    missing = sorted(catalog_set - declared_set)
+    extra = sorted(declared_set - catalog_set)
+    invalid = sorted(
+        name for name, stage in declared.items() if stage not in PREDICATE_EVALUATION_STAGES
+    )
+    details: list[str] = []
+    if missing:
+        details.append("catalog predicates missing evaluation stage: " + ", ".join(missing))
+    if extra:
+        details.append("evaluation stages reference unknown predicates: " + ", ".join(extra))
+    if invalid:
+        details.append("evaluation stages are invalid for: " + ", ".join(invalid))
+    if details:
+        raise FunctionalBlockContractError(
+            "predicate evaluation stage coverage is invalid: " + "; ".join(details)
+        )
+
 
 CC_EXPECTED_KOHM = "5.1k"
 I2C_EXPECTED_KOHM = "4.7k"
@@ -51,6 +86,47 @@ LARGE_CAP_DISTANCE_MM = 8.0
 SMALL_DECOUPLING_TOLERANCE_UF = 0.02
 
 
+class PredicateSubject(BaseModel):
+    """Machine-readable identifiers associated with a predicate observation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    refdes: str | None = None
+    target_refdes: str | None = None
+    net: str | None = None
+    pad: str | None = None
+    target_pad: str | None = None
+
+
+class PredicateMeasurement(BaseModel):
+    """One measured value and its non-authoritative comparison context."""
+
+    model_config = ConfigDict(frozen=True)
+
+    measured: float | None = None
+    limit: float | None = None
+    quantity: str | None = None
+    comparison: str | None = None
+    unit: str | None = None
+    margin: float | None = None
+    excess: float | None = None
+    subject: PredicateSubject | None = None
+
+
+class PredicateRemediation(BaseModel):
+    """Declared, non-authoritative guidance for a rejected predicate."""
+
+    model_config = ConfigDict(frozen=True)
+
+    change_dimensions: tuple[str, ...]
+    dimensions_source: RemediationDimensionsSource
+    source_block_ids: tuple[str, ...]
+    subject: PredicateSubject | None = None
+    margin: float | None = None
+    excess: float | None = None
+    message: str
+
+
 class PredicateResult(BaseModel):
     """One deterministic predicate outcome."""
 
@@ -59,6 +135,9 @@ class PredicateResult(BaseModel):
     name: str
     status: PredicateStatus
     detail: str
+    measurements: tuple[PredicateMeasurement, ...] = ()
+    subjects: tuple[PredicateSubject, ...] = ()
+    remediation: PredicateRemediation | None = None
 
 
 class SafetyBoundaryResult(BaseModel):
@@ -82,8 +161,21 @@ class SafetyBoundaryResult(BaseModel):
         return cls(predicates=predicates, status=status)
 
 
-def _result(name: str, status: PredicateStatus, detail: str) -> PredicateResult:
-    return PredicateResult(name=name, status=status, detail=detail)
+def _result(
+    name: str,
+    status: PredicateStatus,
+    detail: str,
+    *,
+    measurements: tuple[PredicateMeasurement, ...] = (),
+    subjects: tuple[PredicateSubject, ...] = (),
+) -> PredicateResult:
+    return PredicateResult(
+        name=name,
+        status=status,
+        detail=detail,
+        measurements=measurements,
+        subjects=subjects,
+    )
 
 
 def _nodes(graph: DesignGraph, kind: str) -> tuple[GraphNode, ...]:
@@ -381,7 +473,7 @@ def _component_pad_positions(
     net_id: str,
     fixture_dir: Path,
     library: FootprintLibrary,
-) -> tuple[tuple[float, float], ...]:
+) -> tuple[tuple[str, tuple[float, float]], ...]:
     shape = library.load(
         component.library.footprint,
         _resolve_path(component.library.footprint_file, fixture_dir),
@@ -406,34 +498,44 @@ def _component_pad_positions(
     y_value = float(y)
     rotation_value = float(rotation)
     pads = [pin.pad for pin in lane.pins_of_component(component.node_id) if pin.net_id == net_id]
-    positions: list[tuple[float, float]] = []
+    positions: list[tuple[str, tuple[float, float]]] = []
     for pad_number in pads:
         for pad in shape.pads:
             if pad.number != pad_number:
                 continue
             px, py = rotate_point(pad.x_mm, pad.y_mm, rotation_value)
-            positions.append((x_value + px, y_value + py))
+            positions.append((pad.number, (x_value + px, y_value + py)))
     if not positions:
         raise ValueError(f"{component.refdes}: net pad geometry is missing")
     return tuple(positions)
 
 
-def _minimum_pad_distance(
+def _minimum_pad_pair(
     graph: DesignGraph,
     lane: ElectricalLane,
     capacitor: ComponentView,
     target: ComponentView,
     net_id: str,
     fixture_dir: Path,
-) -> float:
+) -> tuple[float, str, str]:
     library = FootprintLibrary()
-    cap_positions = _component_pad_positions(graph, lane, capacitor, net_id, fixture_dir, library)
-    target_positions = _component_pad_positions(graph, lane, target, net_id, fixture_dir, library)
-    return min(
-        math.dist(cap_position, target_position)
-        for cap_position in cap_positions
-        for target_position in target_positions
+    cap_positions = _component_pad_positions(
+        graph, lane, capacitor, net_id, fixture_dir, library
     )
+    target_positions = _component_pad_positions(graph, lane, target, net_id, fixture_dir, library)
+    candidates = [
+        (math.dist(cap_position, target_position), cap_pad, target_pad)
+        for cap_pad, cap_position in cap_positions
+        for target_pad, target_position in target_positions
+    ]
+    return min(candidates, key=lambda item: (item[0], item[1], item[2]))
+
+
+def _net_name(graph: DesignGraph, net_id: str) -> str:
+    for node in _nodes(graph, "electrical.net"):
+        if node.id == net_id and isinstance(node.attrs.get("name"), str):
+            return str(node.attrs["name"])
+    return net_id
 
 
 def evaluate_power_decoupling(
@@ -457,12 +559,44 @@ def evaluate_power_decoupling(
         if capacitors is None:
             return _result("power_decoupling", "unknown", "capacitor value parsing failed")
         if not any(value >= LARGE_DECOUPLING_UF for _, value in capacitors):
-            return _result("power_decoupling", "fail", f"rail {rail} lacks a 10 uF capacitor")
+            return _result(
+                "power_decoupling",
+                "fail",
+                f"rail {rail} lacks a 10 uF capacitor",
+                measurements=(
+                    PredicateMeasurement(
+                        measured=0.0,
+                        limit=1.0,
+                        quantity="qualifying_capacitor_count",
+                        comparison=">=",
+                        unit="count",
+                        margin=-1.0,
+                        excess=1.0,
+                        subject=PredicateSubject(net=_net_name(graph, rail)),
+                    ),
+                ),
+            )
         if not any(
             abs(value - SMALL_DECOUPLING_UF) <= SMALL_DECOUPLING_TOLERANCE_UF
             for _, value in capacitors
         ):
-            return _result("power_decoupling", "fail", f"rail {rail} lacks a 100 nF capacitor")
+            return _result(
+                "power_decoupling",
+                "fail",
+                f"rail {rail} lacks a 100 nF capacitor",
+                measurements=(
+                    PredicateMeasurement(
+                        measured=0.0,
+                        limit=1.0,
+                        quantity="qualifying_capacitor_count",
+                        comparison=">=",
+                        unit="count",
+                        margin=-1.0,
+                        excess=1.0,
+                        subject=PredicateSubject(net=_net_name(graph, rail)),
+                    ),
+                ),
+            )
     for capacitor in lane.components:
         if capacitor.decoupling_target is None:
             continue
@@ -472,6 +606,12 @@ def evaluate_power_decoupling(
                 "power_decoupling",
                 "unknown",
                 f"target is unresolved: {capacitor.decoupling_target}",
+                subjects=(
+                    PredicateSubject(
+                        refdes=capacitor.refdes,
+                        target_refdes=capacitor.decoupling_target,
+                    ),
+                ),
             )
         value = _parse_capacitance(capacitor.value)
         if value is None:
@@ -486,19 +626,47 @@ def evaluate_power_decoupling(
                 "power_decoupling", "unknown", f"{capacitor.refdes} power pad is unresolved"
             )
         try:
-            distance = _minimum_pad_distance(
+            distance, capacitor_pad, target_pad = _minimum_pad_pair(
                 graph, lane, capacitor, target, next(iter(shared_nets)), fixture_dir
             )
         except (KeyError, OSError, StopIteration, ValueError) as exc:
             return _result(
-                "power_decoupling", "unknown", f"{capacitor.refdes} geometry is unresolved: {exc}"
+                "power_decoupling",
+                "unknown",
+                f"{capacitor.refdes} geometry is unresolved: {exc}",
+                subjects=(
+                    PredicateSubject(
+                        refdes=capacitor.refdes,
+                        target_refdes=target.refdes,
+                    ),
+                ),
             )
         limit = SMALL_CAP_DISTANCE_MM if value <= 1.0 else LARGE_CAP_DISTANCE_MM
         if distance > limit:
+            net_name = _net_name(graph, next(iter(shared_nets)))
+            subject = PredicateSubject(
+                refdes=capacitor.refdes,
+                target_refdes=target.refdes,
+                net=net_name,
+                pad=capacitor_pad,
+                target_pad=target_pad,
+            )
             return _result(
                 "power_decoupling",
                 "fail",
                 f"{capacitor.refdes} distance {distance:.3f} mm exceeds {limit:.1f} mm",
+                measurements=(
+                    PredicateMeasurement(
+                        measured=distance,
+                        limit=limit,
+                        quantity="pad_distance_mm",
+                        comparison="<=",
+                        unit="mm",
+                        margin=limit - distance,
+                        excess=max(distance - limit, 0.0),
+                        subject=subject,
+                    ),
+                ),
             )
     return _result(
         "power_decoupling", "pass", "LDO rail capacitors and pinned decoupling distances pass"
@@ -699,6 +867,7 @@ def evaluate_design_predicates(
     """Evaluate only predicates required by declared functional blocks."""
     loaded = registry or load_functional_block_registry()
     validate_predicate_coverage(PREDICATE_CATALOG, loaded)
+    validate_predicate_stage_coverage(PREDICATE_CATALOG, PREDICATE_EVALUATION_STAGE)
     declared = declared_functional_blocks(graph, loaded)
     required = required_predicate_names(declared, loaded)
     evaluators = {
@@ -710,7 +879,7 @@ def evaluate_design_predicates(
         "power_boundary": lambda: _evaluate_power_boundary_predicate(graph, lane),
     }
     declared_text = ", ".join(declared)
-    return tuple(
+    results = tuple(
         evaluators[name]()
         if name in required
         else _result(
@@ -721,12 +890,66 @@ def evaluate_design_predicates(
         )
         for name in PREDICATE_CATALOG
     )
+    enriched: list[PredicateResult] = []
+    for result in results:
+        if result.status != "fail":
+            enriched.append(result)
+            continue
+        dimensions, source_blocks = remediation_declarations(result.name, declared, loaded)
+        dimensions_source: RemediationDimensionsSource = (
+            "registry" if source_blocks else "unknown"
+        )
+        measurement = result.measurements[0] if result.measurements else None
+        subject = measurement.subject if measurement is not None else None
+        margin = measurement.margin if measurement is not None else None
+        excess = measurement.excess if measurement is not None else None
+        if (
+            result.name == "power_decoupling"
+            and measurement is not None
+            and subject is not None
+            and subject.refdes is not None
+            and subject.target_refdes is not None
+            and measurement.measured is not None
+            and measurement.limit is not None
+        ):
+            message = (
+                f"move {subject.refdes} within {measurement.limit:.3f} mm of "
+                f"{subject.target_refdes}; measured {measurement.measured:.3f} mm, "
+                f"exceeds by {measurement.excess or 0.0:.3f} mm"
+            )
+        else:
+            message = (
+                f"predicate {result.name} failed; permitted change dimensions: "
+                + (", ".join(dimensions) if dimensions else "none")
+            )
+        enriched.append(
+            result.model_copy(
+                update={
+                    "remediation": PredicateRemediation(
+                        change_dimensions=dimensions,
+                        dimensions_source=dimensions_source,
+                        source_block_ids=source_blocks,
+                        subject=subject,
+                        margin=margin,
+                        excess=excess,
+                        message=message,
+                    )
+                }
+            )
+        )
+    return tuple(enriched)
 
 
 __all__ = [
     "PREDICATE_CATALOG",
+    "PREDICATE_EVALUATION_STAGE",
+    "PREDICATE_EVALUATION_STAGES",
+    "PredicateMeasurement",
+    "PredicateRemediation",
     "PredicateResult",
     "PredicateStatus",
+    "PredicateSubject",
+    "RemediationDimensionsSource",
     "SafetyBoundaryResult",
     "evaluate_design_predicates",
     "evaluate_i2c_pullup",
@@ -735,4 +958,5 @@ __all__ = [
     "evaluate_power_decoupling",
     "evaluate_strapping_pin",
     "evaluate_usb_cc",
+    "validate_predicate_stage_coverage",
 ]

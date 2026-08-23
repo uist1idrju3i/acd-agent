@@ -1,13 +1,21 @@
 """GD1 deterministic design predicate tests."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import pytest
 
+from acd.adapters.kicad.library import FootprintLibrary
 from acd.core.design_predicates import (
+    PREDICATE_CATALOG,
+    PREDICATE_EVALUATION_STAGE,
+    _component_pad_positions,
+    _minimum_pad_pair,
     evaluate_design_predicates,
     evaluate_i2c_pullup,
     evaluate_pin_firmware_alignment,
@@ -15,6 +23,7 @@ from acd.core.design_predicates import (
     evaluate_power_decoupling,
     evaluate_strapping_pin,
     evaluate_usb_cc,
+    validate_predicate_stage_coverage,
 )
 from acd.core.electrical import extract_electrical_lane
 from acd.schema import DesignGraph
@@ -137,6 +146,87 @@ def test_power_decoupling_distant_capacitor_fails() -> None:
     )
     lane = extract_electrical_lane(graph)
     assert evaluate_power_decoupling(graph, lane, FIXTURE_DIR).status == "fail"
+
+
+def test_power_decoupling_failure_has_structured_measurement_and_remediation() -> None:
+    graph = _graph()
+    _skip_if_gd1_geometry_library_is_missing(graph)
+    graph = _update_node_attrs(graph, "comp.c5", placement_x_mm=19.516)
+    lane = extract_electrical_lane(graph)
+    result = next(
+        item
+        for item in evaluate_design_predicates(graph, lane, FIXTURE_DIR)
+        if item.name == "power_decoupling"
+    )
+    assert result.status == "fail"
+    assert result.detail == "C5 distance 3.319 mm exceeds 3.0 mm"
+    assert len(result.measurements) == 1
+    measurement = result.measurements[0]
+    assert measurement.measured == pytest.approx(3.319, abs=0.0005)
+    assert measurement.limit == 3.0
+    assert measurement.quantity == "pad_distance_mm"
+    assert measurement.comparison == "<="
+    assert measurement.unit == "mm"
+    assert measurement.margin == pytest.approx(-0.319, abs=0.0005)
+    assert measurement.excess == pytest.approx(0.319, abs=0.0005)
+    assert measurement.subject is not None
+    assert measurement.subject.refdes == "C5"
+    assert measurement.subject.target_refdes == "U3"
+    assert measurement.subject.net == "+3V3"
+    assert result.remediation is not None
+    assert result.remediation.change_dimensions == ("component_placement_xy",)
+    assert result.remediation.dimensions_source == "registry"
+    assert result.remediation.source_block_ids == ("single_ldo_power_tree",)
+    assert result.remediation.margin == pytest.approx(-0.319, abs=0.0005)
+    assert result.remediation.excess == pytest.approx(0.319, abs=0.0005)
+    assert result.remediation.message == (
+        "move C5 within 3.000 mm of U3; measured 3.319 mm, exceeds by 0.319 mm"
+    )
+
+
+def test_power_decoupling_pad_pair_preserves_duplicate_shape_pad_numbers() -> None:
+    graph = _graph()
+    _skip_if_gd1_geometry_library_is_missing(graph)
+    lane = extract_electrical_lane(graph)
+    capacitor = next(component for component in lane.components if component.refdes == "C3")
+    target = next(component for component in lane.components if component.refdes == "U2")
+    net_id = next(
+        pin.net_id
+        for pin in lane.pins_of_component(capacitor.node_id)
+        if pin.net_id is not None
+    )
+    library = FootprintLibrary()
+    capacitor_entries = _component_pad_positions(
+        graph, lane, capacitor, net_id, FIXTURE_DIR, library
+    )
+    target_entries = _component_pad_positions(graph, lane, target, net_id, FIXTURE_DIR, library)
+    assert [pad for pad, _ in target_entries] == ["2", "2"]
+    expected = min(
+        (
+            math.dist(cap_position, target_position),
+            cap_pad,
+            target_pad,
+        )
+        for cap_pad, cap_position in capacitor_entries
+        for target_pad, target_position in target_entries
+    )
+    assert _minimum_pad_pair(graph, lane, capacitor, target, net_id, FIXTURE_DIR) == expected
+
+
+def test_predicate_evaluation_stage_catalog_is_complete_and_fail_closed() -> None:
+    validate_predicate_stage_coverage(PREDICATE_CATALOG, PREDICATE_EVALUATION_STAGE)
+    with pytest.raises(ValueError, match="missing evaluation stage"):
+        validate_predicate_stage_coverage(PREDICATE_CATALOG, {})
+    with pytest.raises(ValueError, match="unknown predicates"):
+        validate_predicate_stage_coverage(
+            PREDICATE_CATALOG,
+            {**PREDICATE_EVALUATION_STAGE, "unknown": "pre_router"},
+        )
+    with pytest.raises(ValueError, match="invalid"):
+        validate_predicate_stage_coverage(
+            PREDICATE_CATALOG,
+            {**PREDICATE_EVALUATION_STAGE, "usb_cc": "during_router"},
+        )
 
 
 def test_power_boundary_unknown_certification_fails_closed() -> None:

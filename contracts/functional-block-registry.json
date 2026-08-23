@@ -6,6 +6,7 @@
       "block_id": "safety_power_boundary",
       "title": "Safety power boundary",
       "description": "Constrains the declared voltage, current, hazard, certification, and intended-use boundary.",
+      "allowed_change_dimensions": [],
       "mandatory": true,
       "required_predicates": ["power_boundary"]
     },
@@ -13,6 +14,7 @@
       "block_id": "usb_c_cc_termination",
       "title": "USB-C CC termination",
       "description": "Fixes the USB-C sink CC1 and CC2 termination topology and resistor values.",
+      "allowed_change_dimensions": [],
       "mandatory": false,
       "required_predicates": ["usb_cc"]
     },
@@ -20,6 +22,7 @@
       "block_id": "i2c_bus_pullup",
       "title": "I2C bus pull-up",
       "description": "Fixes the I2C SDA and SCL pull-up topology and resistor values.",
+      "allowed_change_dimensions": [],
       "mandatory": false,
       "required_predicates": ["i2c_pullup"]
     },
@@ -27,6 +30,7 @@
       "block_id": "esp32c3_strapping_boot",
       "title": "ESP32-C3 strapping boot",
       "description": "Fixes the ESP32-C3 strapping-pin, boot-button, and firmware assignment topology.",
+      "allowed_change_dimensions": [],
       "mandatory": false,
       "required_predicates": ["strapping_pin"]
     },
@@ -34,6 +38,7 @@
       "block_id": "firmware_pin_map",
       "title": "Firmware pin map",
       "description": "Fixes every declared firmware GPIO assignment against the MCU electrical pad map.",
+      "allowed_change_dimensions": [],
       "mandatory": false,
       "required_predicates": ["pin_firmware_alignment"]
     },
@@ -41,6 +46,9 @@
       "block_id": "single_ldo_power_tree",
       "title": "Single LDO power tree",
       "description": "Fixes the single-LDO rail topology, capacitor values, and pinned decoupling distances.",
+      "allowed_change_dimensions": [
+        "component_placement_xy"
+      ],
       "mandatory": false,
       "required_predicates": ["power_decoupling"]
     }
