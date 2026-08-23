@@ -23,7 +23,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from dataclasses import replace
+import multiprocessing
+import os
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, cast
 
@@ -44,6 +47,239 @@ SILK_TEXT_ADVANCE_RATIO = 0.95
 SILK_TEXT_ATTRIBUTION_MARGIN_STROKE_WIDTHS = 1.0
 SILK_TEXT_DESCENDER_CHARS = frozenset("gjpqy")
 SILK_TEXT_DESCENDER_HEIGHT_RATIO = 1.45
+
+
+@dataclass(frozen=True)
+class _ContextGridBundle:
+    """Shared context for one text's grid evaluation."""
+
+    text: SilkTextView
+    outline: tuple[float, float, float, float]
+    pads: tuple[dict[str, Any], ...]
+    masks: tuple[dict[str, Any], ...]
+    mask_openings: tuple[object, ...]
+    existing: tuple[dict[str, Any], ...]
+    fixed: tuple[dict[str, Any], ...]
+    bodies: tuple[dict[str, Any], ...]
+    courtyards: tuple[dict[str, Any], ...]
+    dynamic_silk: tuple[dict[str, Any], ...]
+    target: tuple[float, float, float, float] | None
+    center: tuple[float, float]
+    reference: str | None
+
+
+@dataclass(frozen=True)
+class _ContextGridColumn:
+    """Describe one rotation and x-column grid partition."""
+
+    rotation: float
+    x: float
+    width: float
+    height: float
+    measured_width: float
+    measured_height: float
+
+
+@dataclass(frozen=True)
+class _ContextGridChunk:
+    """Group grid columns so each process task reuses one context bundle."""
+
+    bundle: _ContextGridBundle
+    columns: tuple[_ContextGridColumn, ...]
+
+
+def _context_bbox(
+    item: dict[str, Any], key: str = "bbox_mm"
+) -> tuple[float, float, float, float]:
+    value = item.get(key)
+    if not isinstance(value, list) or len(value) != 4:
+        raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+    parts = tuple(float(part) for part in value)
+    if len(parts) != 4:
+        raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
+    return (parts[0], parts[1], parts[2], parts[3])
+
+
+def _context_distance(
+    left: tuple[float, float, float, float],
+    right: tuple[float, float, float, float],
+) -> float:
+    dx = max(right[0] - left[2], left[0] - right[2], 0.0)
+    dy = max(right[1] - left[3], left[1] - right[3], 0.0)
+    return (dx * dx + dy * dy) ** 0.5
+
+
+def _evaluate_context_grid_partition(
+    bundle: _ContextGridBundle,
+    column: _ContextGridColumn,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    """Evaluate one rotation and x-column partition in declaration order."""
+    text = bundle.text
+    candidates: list[dict[str, object]] = []
+    rejected: list[dict[str, object]] = []
+    y = bundle.outline[1] + column.height / 2
+    while y <= bundle.outline[3] - column.height / 2 + 1e-9:
+        candidate_bbox = (
+            column.x - column.width / 2,
+            y - column.height / 2,
+            column.x + column.width / 2,
+            y + column.height / 2,
+        )
+        attribution_bbox = (
+            column.x - column.measured_width / 2,
+            y - column.measured_height / 2,
+            column.x + column.measured_width / 2,
+            y + column.measured_height / 2,
+        )
+        candidate = {
+            "x_mm": round(column.x, 9),
+            "y_mm": round(y, 9),
+            "rotation_deg": column.rotation,
+            "layer": text.layer,
+            "bbox_mm": list(candidate_bbox),
+        }
+        reason: str | None = None
+        margin = text.board_edge_margin_mm
+        if (
+            candidate_bbox[0] < bundle.outline[0] + margin
+            or candidate_bbox[1] < bundle.outline[1] + margin
+            or candidate_bbox[2] > bundle.outline[2] - margin
+            or candidate_bbox[3] > bundle.outline[3] - margin
+        ):
+            reason = "board_edge_margin"
+        else:
+            for item in bundle.pads:
+                layers = item.get("layers")
+                if not isinstance(layers, list):
+                    raise GraphExtractionError("silkscreen context pad layers are missing")
+                if text.layer.replace("SilkS", "Cu") in layers and _rects_overlap(
+                    candidate_bbox, _context_bbox(item)
+                ):
+                    reason = "pad_bboxes_mm"
+                    break
+        if reason is None:
+            mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
+            for item in bundle.masks:
+                if item.get("layer") == mask_layer and _rects_overlap(
+                    candidate_bbox, _context_bbox(item)
+                ):
+                    reason = "mask_opening_bboxes_mm"
+                    break
+        if reason is None:
+            mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
+            for item in bundle.mask_openings:
+                if isinstance(item, dict):
+                    if item.get("layer") != mask_layer:
+                        continue
+                    item_bbox = item.get("bbox_mm")
+                    if not isinstance(item_bbox, list):
+                        raise GraphExtractionError(
+                            "silkscreen context mask_opening_bboxes_mm contains malformed bbox"
+                        )
+                elif isinstance(item, list):
+                    item_bbox = item
+                else:
+                    raise GraphExtractionError(
+                        "silkscreen context mask_opening_bboxes_mm contains malformed bbox"
+                    )
+                if len(item_bbox) != 4:
+                    raise GraphExtractionError(
+                        "silkscreen context mask_opening_bboxes_mm contains malformed bbox"
+                    )
+                if _rects_overlap(
+                    candidate_bbox,
+                    tuple(float(part) for part in item_bbox),
+                ):
+                    reason = "mask_opening_bboxes_mm"
+                    break
+        if reason is None:
+            for source, item in (
+                [("existing_silk_objects", item) for item in bundle.existing]
+                + [("fixed_silk_objects", item) for item in bundle.fixed]
+            ):
+                if item.get("layer") == text.layer and _rects_overlap(
+                    candidate_bbox, _context_bbox(item)
+                ):
+                    reason = source
+                    break
+        if reason is None:
+            for item in bundle.dynamic_silk:
+                if item.get("layer") == text.layer and _rects_overlap(
+                    candidate_bbox, _context_bbox(item)
+                ):
+                    reason = "placed_declaration"
+                    break
+        if reason is None:
+            copper_layer = text.layer.replace("SilkS", "Cu")
+            for item in bundle.bodies + bundle.courtyards:
+                if item.get("layer") == copper_layer and _rects_overlap(
+                    candidate_bbox, _context_bbox(item)
+                ):
+                    reason = (
+                        "body_bboxes_mm"
+                        if item in bundle.bodies
+                        else "courtyard_bboxes_mm"
+                    )
+                    break
+        if reason is None and bundle.reference is not None:
+            component_distances: dict[str, float] = {}
+            for item in bundle.bodies + bundle.courtyards:
+                refdes = item.get("refdes")
+                if (
+                    isinstance(refdes, str)
+                    and item.get("layer") == text.layer.replace("SilkS", "Cu")
+                ):
+                    component_distances[refdes] = min(
+                        component_distances.get(refdes, float("inf")),
+                        _context_distance(attribution_bbox, _context_bbox(item)),
+                    )
+            nearest = (
+                min(component_distances.items(), key=lambda item: (item[1], item[0]))
+                if component_distances
+                else None
+            )
+            if nearest is not None and nearest[0] != bundle.reference:
+                reason = "nearest_component_mismatch"
+        if reason is None:
+            candidate["distance_mm"] = (
+                _context_distance(candidate_bbox, bundle.target)
+                if bundle.target is not None
+                else _context_distance(
+                    candidate_bbox,
+                    (
+                        bundle.center[0],
+                        bundle.center[1],
+                        bundle.center[0],
+                        bundle.center[1],
+                    ),
+                )
+            )
+            candidates.append(candidate)
+        else:
+            rejected.append({**candidate, "reason": reason})
+        y = round(y + text.placement_offset_step_mm, 9)
+    return candidates, rejected
+
+
+def _evaluate_context_grid_chunk(
+    chunk: _ContextGridChunk,
+) -> tuple[
+    tuple[list[dict[str, object]], list[dict[str, object]]],
+    ...,
+]:
+    """Evaluate a declaration-ordered chunk of grid columns."""
+    return tuple(
+        _evaluate_context_grid_partition(chunk.bundle, column)
+        for column in chunk.columns
+    )
+
+
+def _resolve_single_text_for_order(
+    item: tuple[SilkscreenLane, dict[str, Any]],
+) -> tuple[dict[str, object], ...]:
+    """Resolve one text for candidate-count ordering without nested parallelism."""
+    lane, context = item
+    return _resolve_from_context_impl(lane, context, False, None, 1)
 
 
 def _text_size(
@@ -630,10 +866,12 @@ def resolve_from_context_offsets(
     return tuple(results)
 
 
-def resolve_from_context(
+def _resolve_from_context_impl(
     lane: SilkscreenLane,
     context: dict[str, Any],
     _compute_order: bool = True,
+    executor: ProcessPoolExecutor | None = None,
+    workers: int = 1,
 ) -> tuple[dict[str, object], ...]:
     """Search the complete board grid using only measured context."""
     outline_raw = context.get("board_outline_bbox_mm")
@@ -706,14 +944,6 @@ def resolve_from_context(
             raise GraphExtractionError(f"silkscreen context {key} contains malformed bbox")
         return (parts[0], parts[1], parts[2], parts[3])
 
-    def distance(
-        left: tuple[float, float, float, float],
-        right: tuple[float, float, float, float],
-    ) -> float:
-        dx = max(right[0] - left[2], left[0] - right[2], 0.0)
-        dy = max(right[1] - left[3], left[1] - right[3], 0.0)
-        return (dx * dx + dy * dy) ** 0.5
-
     known_refs = {
         str(item.get("refdes"))
         for item in bodies + courtyards
@@ -722,22 +952,30 @@ def resolve_from_context(
     results_by_id: dict[str, dict[str, object]] = {}
     dynamic_silk: list[dict[str, Any]] = []
     if _compute_order and len(lane.texts) > 1:
-        candidate_counts: dict[str, int] = {}
-        for text in lane.texts:
-            single_result = resolve_from_context(
-                SilkscreenLane(lane.board_node_id, (text,), ()),
-                context,
-                False,
+        order_inputs = tuple(
+            (SilkscreenLane(lane.board_node_id, (text,), ()), context)
+            for text in lane.texts
+        )
+        if executor is None:
+            order_results = tuple(
+                _resolve_single_text_for_order(item) for item in order_inputs
             )
-            candidate_counts[text.node_id] = len(
-                cast(list[object], single_result[0].get("candidates", []))
+        else:
+            order_results = tuple(
+                executor.map(_resolve_single_text_for_order, order_inputs)
             )
+        candidate_counts = {
+            text.node_id: len(cast(list[object], result[0].get("candidates", [])))
+            for text, result in zip(lane.texts, order_results, strict=True)
+        }
         ordered_texts = sorted(
             lane.texts,
             key=lambda text: (candidate_counts[text.node_id], text.node_id),
         )
     else:
         ordered_texts = list(lane.texts)
+    # Main-pass texts remain sequential because accepted placements update
+    # dynamic_silk and become obstacles for later texts.
     for text in ordered_texts:
         if text.height_mm < min_height or text.stroke_width_mm < min_width:
             raise GraphExtractionError(
@@ -765,6 +1003,7 @@ def resolve_from_context(
             raise GraphExtractionError("silkscreen context grid step is invalid")
         candidates: list[dict[str, object]] = []
         rejected: list[dict[str, object]] = []
+        columns: list[_ContextGridColumn] = []
         for rotation in text.placement_rotation_degrees:
             base_size = declaration_sizes.get(text.node_id)
             if base_size is None:
@@ -785,152 +1024,66 @@ def resolve_from_context(
             height = max(height, measured_height + text.stroke_width_mm)
             x = outline[0] + width / 2
             while x <= outline[2] - width / 2 + 1e-9:
-                y = outline[1] + height / 2
-                while y <= outline[3] - height / 2 + 1e-9:
-                    candidate_bbox = (
-                        x - width / 2,
-                        y - height / 2,
-                        x + width / 2,
-                        y + height / 2,
+                columns.append(
+                    _ContextGridColumn(
+                        rotation=rotation,
+                        x=x,
+                        width=width,
+                        height=height,
+                        measured_width=measured_width,
+                        measured_height=measured_height,
                     )
-                    attribution_bbox = (
-                        x - measured_width / 2,
-                        y - measured_height / 2,
-                        x + measured_width / 2,
-                        y + measured_height / 2,
-                    )
-                    candidate = {
-                        "x_mm": round(x, 9),
-                        "y_mm": round(y, 9),
-                        "rotation_deg": rotation,
-                        "layer": text.layer,
-                        "bbox_mm": list(candidate_bbox),
-                    }
-                    reason: str | None = None
-                    margin = text.board_edge_margin_mm
-                    if (
-                        candidate_bbox[0] < outline[0] + margin
-                        or candidate_bbox[1] < outline[1] + margin
-                        or candidate_bbox[2] > outline[2] - margin
-                        or candidate_bbox[3] > outline[3] - margin
-                    ):
-                        reason = "board_edge_margin"
-                    else:
-                        for item in pads:
-                            layers = item.get("layers")
-                            if not isinstance(layers, list):
-                                raise GraphExtractionError(
-                                    "silkscreen context pad layers are missing"
-                                )
-                            if text.layer.replace("SilkS", "Cu") in layers and _rects_overlap(
-                                candidate_bbox, bbox(item)
-                            ):
-                                reason = "pad_bboxes_mm"
-                                break
-                        if reason is None:
-                            mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
-                            for item in masks:
-                                if item.get("layer") == mask_layer and _rects_overlap(
-                                    candidate_bbox, bbox(item)
-                                ):
-                                    reason = "mask_opening_bboxes_mm"
-                                    break
-                        if reason is None:
-                            mask_layer = "F.Mask" if text.layer == "F.SilkS" else "B.Mask"
-                            for item in mask_openings:
-                                if isinstance(item, dict):
-                                    if item.get("layer") != mask_layer:
-                                        continue
-                                    item_bbox = item.get("bbox_mm")
-                                    if not isinstance(item_bbox, list):
-                                        raise GraphExtractionError(
-                                            "silkscreen context mask_opening_bboxes_mm "
-                                            "contains malformed bbox"
-                                        )
-                                elif isinstance(item, list):
-                                    item_bbox = item
-                                else:
-                                    raise GraphExtractionError(
-                                        "silkscreen context mask_opening_bboxes_mm "
-                                        "contains malformed bbox"
-                                    )
-                                if len(item_bbox) != 4:
-                                    raise GraphExtractionError(
-                                        "silkscreen context mask_opening_bboxes_mm "
-                                        "contains malformed bbox"
-                                    )
-                                if _rects_overlap(
-                                    candidate_bbox,
-                                    tuple(float(part) for part in item_bbox),
-                                ):
-                                    reason = "mask_opening_bboxes_mm"
-                                    break
-                        if reason is None:
-                            for source, item in (
-                                [("existing_silk_objects", item) for item in existing]
-                                + [("fixed_silk_objects", item) for item in fixed]
-                            ):
-                                if item.get("layer") == text.layer and _rects_overlap(
-                                    candidate_bbox, bbox(item)
-                                ):
-                                    reason = source
-                                    break
-                        if reason is None:
-                            for item in dynamic_silk:
-                                if item.get("layer") == text.layer and _rects_overlap(
-                                    candidate_bbox, bbox(item)
-                                ):
-                                    reason = "placed_declaration"
-                                    break
-                        if reason is None:
-                            copper_layer = text.layer.replace("SilkS", "Cu")
-                            for item in bodies + courtyards:
-                                if (
-                                    item.get("layer") == copper_layer
-                                    and _rects_overlap(candidate_bbox, bbox(item))
-                                ):
-                                    reason = (
-                                        "body_bboxes_mm"
-                                        if item in bodies
-                                        else "courtyard_bboxes_mm"
-                                    )
-                                    break
-                        if reason is None and reference is not None:
-                            component_distances: dict[str, float] = {}
-                            for item in bodies + courtyards:
-                                refdes = item.get("refdes")
-                                if (
-                                    isinstance(refdes, str)
-                                    and item.get("layer") == text.layer.replace("SilkS", "Cu")
-                                ):
-                                    component_distances[refdes] = min(
-                                        component_distances.get(refdes, float("inf")),
-                                        distance(attribution_bbox, bbox(item)),
-                                    )
-                            nearest = (
-                                min(
-                                    component_distances.items(),
-                                    key=lambda item: (item[1], item[0]),
-                                )
-                                if component_distances
-                                else None
-                            )
-                            if nearest is not None and nearest[0] != reference:
-                                reason = "nearest_component_mismatch"
-                    if reason is None:
-                        candidate["distance_mm"] = (
-                            distance(candidate_bbox, target)
-                            if target is not None
-                            else distance(
-                                candidate_bbox,
-                                (center[0], center[1], center[0], center[1]),
-                            )
-                        )
-                        candidates.append(candidate)
-                    else:
-                        rejected.append({**candidate, "reason": reason})
-                    y = round(y + step, 9)
+                )
                 x = round(x + step, 9)
+        bundle = _ContextGridBundle(
+            text=text,
+            outline=outline,
+            pads=tuple(pads),
+            masks=tuple(masks),
+            mask_openings=tuple(mask_openings),
+            existing=tuple(existing),
+            fixed=tuple(fixed),
+            bodies=tuple(bodies),
+            courtyards=tuple(courtyards),
+            dynamic_silk=tuple(dynamic_silk),
+            target=target,
+            center=center,
+            reference=reference,
+        )
+        if not columns:
+            chunk_results: tuple[
+                tuple[
+                    tuple[list[dict[str, object]], list[dict[str, object]]],
+                    ...,
+                ],
+                ...,
+            ] = ()
+        else:
+            chunk_count = (
+                1
+                if executor is None
+                else min(len(columns), max(workers * 4, 1))
+            )
+            chunk_size = math.ceil(len(columns) / chunk_count)
+            chunks = tuple(
+                _ContextGridChunk(
+                    bundle=bundle,
+                    columns=tuple(columns[index : index + chunk_size]),
+                )
+                for index in range(0, len(columns), chunk_size)
+            )
+            if executor is None:
+                chunk_results = tuple(
+                    _evaluate_context_grid_chunk(chunk) for chunk in chunks
+                )
+            else:
+                chunk_results = tuple(
+                    executor.map(_evaluate_context_grid_chunk, chunks)
+                )
+        for chunk_result in chunk_results:
+            for partition_candidates, partition_rejected in chunk_result:
+                candidates.extend(partition_candidates)
+                rejected.extend(partition_rejected)
         if not candidates:
             results_by_id[text.node_id] = {
                 "node_id": text.node_id,
@@ -973,10 +1126,53 @@ def resolve_from_context(
     )
 
 
+def resolve_from_context(
+    lane: SilkscreenLane,
+    context: dict[str, Any],
+    _compute_order: bool = True,
+    *,
+    workers: int = 1,
+) -> tuple[dict[str, object], ...]:
+    """Search the complete board grid using only measured context."""
+    if workers < 1:
+        raise ValueError("workers must be at least 1")
+    if workers == 1:
+        return _resolve_from_context_impl(lane, context, _compute_order, None, workers)
+    # Context search is pure Python and does not inherit native-extension state,
+    # so it explicitly uses fork; the CAD path uses spawn for OCP/build123d.
+    fork_context = multiprocessing.get_context("fork")
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        mp_context=fork_context,
+    ) as executor:
+        return _resolve_from_context_impl(
+            lane,
+            context,
+            _compute_order,
+            executor,
+            workers,
+        )
+
+
+def _positive_workers(value: str) -> int:
+    try:
+        workers = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("workers must be an integer") from exc
+    if workers < 1:
+        raise argparse.ArgumentTypeError("workers must be at least 1")
+    return workers
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--workers",
+        type=_positive_workers,
+        default=min(os.cpu_count() or 1, 4),
+    )
     args = parser.parse_args()
     try:
         payload = json.loads(args.input.read_text(encoding="utf-8"))
@@ -984,7 +1180,11 @@ def main() -> int:
             raise GraphExtractionError("silkscreen input must be a JSON object")
         lane = _lane_from_json(payload.get("lane"))
         if "context" in payload:
-            candidates = resolve_from_context(lane, _mapping(payload.get("context"), "context"))
+            candidates = resolve_from_context(
+                lane,
+                _mapping(payload.get("context"), "context"),
+                workers=args.workers,
+            )
             result = {"candidates": list(candidates)}
         else:
             board = _board_from_json(payload.get("board"))

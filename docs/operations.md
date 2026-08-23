@@ -220,6 +220,27 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    検査するが、最終合否はauthoritative projectionと独立測定ゲートが判定する。基板pipelineは
    `scripts/run_gd1_pipeline.py`、筐体pipelineは
    `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
+   未解決シルクの候補評価を個別に実行する場合は、Skill scriptへworker数を明示できる。
+
+   ```bash
+   uv run --script plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py \
+     --input silkscreen-input.json \
+     --output silkscreen-output.json \
+     --workers 4
+   ```
+
+   `--workers`の既定値は`min(os.cpu_count() or 1, 4)`であり、`--workers 1`はpoolを
+   作らず完全逐次になる。text単位の候補数前パスと、1 text内のrotation×x-column列を
+   共有context bundle付きchunkへまとめてProcessPoolExecutorで評価し、結果はチャンク内・
+   チャンク間とも宣言順に戻す。main passは
+   `dynamic_silk`が後続textの障害物になるため逐次である。worker数によって候補、
+   rejection、fail-closed結果、output JSONのbyte列、hash、Evidence、provenance、
+   summaryは変化しない。SkillはACD本体からimportせず、常にsubprocess境界で実行する。
+   2コアVMのhost provisionalでは、同一の未解決6 text入力に対するSkill直接実行が
+   `--workers 1`で49.075秒、`--workers 2`で29.245秒、`--workers 4`で29.722秒となり、
+   各output JSON（63,900,205 bytes）はbyte一致した。
+   `placement_search.py`はwarm状態で1.44秒（interpreter起動込み）、実処理がサブ秒
+   だったため、今回の並列化対象に含めていない。
    基板pipelineの独立したPython stageは既定のCPU数（最大4）を使って実行する。筐体pipelineは
    `--pipeline-workers N`でworker数を指定でき、既定は`--pipeline-workers 1`（逐次）である。
    `--pipeline-workers N`を明示すればCAD stageの並列実行をopt-inできる。
@@ -279,6 +300,13 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    KiCad UUIDによる既存のrun-to-run差分を許容し、完全なhash一致は要求しない。
    会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを
    応答へ明記させる。
+
+   なお、2コアVMのhost provisional測定では、GD1 fixtureのsilkscreenがpinnedのため
+   通常のresolverから探索Skillは呼ばれず、resolve全体は12.0秒、Skill呼び出しは0回
+   だった。未解決化した6 textでは、探索Skillの1回の呼び出しが47.77秒、resolve全体が
+   63.29秒で、純Pythonの候補評価が支配項になった。worker=1/2/4の比較結果は同一入力
+   のoutput byte列、候補・rejection順序、判定、fail-closed結果とともにhost
+   provisionalとして記録し、authoritativeな判断はdigest固定containerのCIで行う。
 
 ### 発注前最終ゲートの再実行とcheck-only
 
