@@ -47,7 +47,10 @@ class EspIdfBuilder:
         return [
             "bash",
             "-c",
-            f". {shlex.quote(str(self._export))} >/dev/null && exec idf.py {quoted}",
+            "mkdir -p /tmp/acd-ccache && "
+            f". {shlex.quote(str(self._export))} >/dev/null && "
+            "export CCACHE_DIR=/tmp/acd-ccache && "
+            f"exec idf.py {quoted}",
         ]
 
     def _probe_version(self) -> str:

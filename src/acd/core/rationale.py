@@ -59,8 +59,10 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "placement_y_mm",
             "placement_rotation_deg",
             "radio_module",
+            "library_ref",
         }
     ),
+    "electrical.placement_group": frozenset(),
     "electrical.net": frozenset(
         {
             "width_basis",
@@ -181,6 +183,24 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
 }
 
 RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
+    "electrical.placement_group": {
+        "primary_refdes": (
+            "Placement group membership is an L2 search constraint; "
+            "L1 gates remain authoritative."
+        ),
+        "coupled_refdes": (
+            "Placement group membership is an L2 search constraint; "
+            "L1 gates remain authoritative."
+        ),
+        "max_distance_mm": (
+            "Placement coupling is a bounded L2 search input; "
+            "the decoupling-distance gate remains authoritative."
+        ),
+        "move_together": (
+            "Move-together semantics steer candidate generation and do not "
+            "grant pass authority."
+        ),
+    },
     "design.functional_block": {
         "block_id": (
             "This declaration is a requirement-derived selection of the applicable "
@@ -254,6 +274,11 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
     },
     "electrical.component": {
+        "library_ref": "inline library reference provenance.",
+        "package": "catalog package selection provenance.",
+        "part_number": "catalog part-number selection provenance.",
+        "parts_catalog_id": "catalog identity is provenance metadata.",
+        "parts_catalog_sha256": "catalog hash is provenance metadata.",
         "certification_checked_at": (
             "Certification check time records external verification provenance."
         ),

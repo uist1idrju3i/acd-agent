@@ -45,7 +45,7 @@ def test_parallel_lanes_wait_for_resolver(
 
     assert calls[0] == resolver
     assert set(calls[1:]) == {spec.command for spec in run_gd1_lanes.LANE_COMMANDS[1:]}
-    assert "[1/4] PASS" in capsys.readouterr().out
+    assert "[1/5] PASS" in capsys.readouterr().out
 
 
 def test_sequential_lanes_keep_declared_order(
@@ -90,5 +90,5 @@ def test_parallel_lanes_report_all_failures(
 
     output = capsys.readouterr().out
     assert output.count("FAIL (exit=5)") == 2
-    assert "[2/4] FAIL (exit=5)" in output
-    assert "[4/4] FAIL (exit=5)" in output
+    assert "[2/5] FAIL (exit=5)" in output
+    assert "[4/5] FAIL (exit=5)" in output

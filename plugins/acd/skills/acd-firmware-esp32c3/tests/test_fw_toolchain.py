@@ -8,6 +8,7 @@ they are unavailable so the skill stays testable on a bare machine.
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -33,6 +34,30 @@ def test_builder_fails_when_export_script_missing(
     monkeypatch.setenv("IDF_PATH", str(tmp_path))
     with pytest.raises(ToolchainUnavailableError, match="export script missing"):
         EspIdfBuilder()
+
+
+def test_idf_command_uses_writable_ccache_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    export_script = tmp_path / "export.sh"
+    export_script.write_text("#!/bin/sh\n", encoding="utf-8")
+    monkeypatch.setenv("IDF_PATH", str(tmp_path))
+
+    calls: list[list[str]] = []
+
+    def fake_run(
+        command: list[str], **_: object
+    ) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, "v5.0.0\n", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    EspIdfBuilder()
+
+    command = calls[0]
+    assert command[:2] == ["bash", "-c"]
+    assert "mkdir -p /tmp/acd-ccache" in command[2]
+    assert "export CCACHE_DIR=/tmp/acd-ccache" in command[2]
 
 
 def test_qemu_fails_when_binary_missing() -> None:

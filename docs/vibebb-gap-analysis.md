@@ -139,9 +139,9 @@ cloneして立ち上げた。現在のDocker workspace経路は
 
 | # | 改善提案 | 現状と理由 |
 |---|---|---|
-| G-1 | `/acd:init` command（または[`acd-install-doctor` Skill](../plugins/acd/skills/acd-install-doctor/SKILL.md)の拡張）を追加し、workspace作成→clone／submodule取得→`uv sync`→plugin読み込み確認→`/acd:doctor`までを1経路にまとめる | 各段の失敗はfail-closedにする |
-| G-2 | [`/acd:doctor`](../plugins/acd/commands/doctor.md)にworkspace健全性検査を追加する | 現行doctorはplugin資材・runtime・Docker・host EDA能力を見るが、workspaceにrepositoryが存在しない状態を検出しない。submodule初期化、`uv.lock`との同期、lock digestのpull可否も対象にする |
-| G-3 | 会話開始時のbootstrap経路（対象repo revisionとlock digestを記録してworkspaceを用意する）を用意する | VibeBBの「語るだけで始まる」入口として必要 |
+| G-1 | `/acd:init` commandと`init_workspace.py`を追加し、workspace作成→clone／clean checkout再利用→submodule取得→`uv sync`→plugin読み込み確認→`/acd:doctor`までを1経路にまとめる | 達成。各段の失敗はfail-closed JSONで停止する |
+| G-2 | [`/acd:doctor`](../plugins/acd/commands/doctor.md)にworkspace健全性検査を追加する | 達成。repository、submodule、`uv.lock`同期、lock digestのローカルinspect、ESP-IDF／QEMU／CMakeを検査する。検証不能な必須項目はunknownとして停止する |
+| G-3 | 会話開始時のbootstrap経路（対象repo revisionとlock digestを記録してworkspaceを用意する）を用意する | 達成。`acd_bootstrap_workspace`と`.openhands/bootstrap-record.json`を提供する。記録はL3観測であり合否権限を持たない |
 
 ## 実測したfail-closed結果とEvidence境界
 
@@ -303,16 +303,16 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | I-4 | GD1以外の設計は発注可否判定に到達できない |
 | I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
 | B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
-| G-1／G-2 | workspaceが空のままで開始できない。今回は私がcloneして初期化した |
+| G-1／G-2 | 達成。`/acd:init`とworkspace指定doctorがcloneから健全性検査までをfail-closedに実行する |
 
 ## 優先順位（VibeBB単体成立に効く順）
 
 1. H-1／H-5（Skill scriptのacd版skew）。現在FW laneが常に失敗しており、設計内容によらず回避できない。最小のコストで最大の停止要因を除ける。
-2. I-2／A-2／A-3（任意graphと要件差分compiler）。J-1／J-2は14.2で解消したが、契約registryへ新しい宣言を自動反映する入口がまだ必要である。
+2. I-2／A-2／A-3（任意graphと要件差分compiler）。14.5で要件document、任意fixture builder、compiler、agent tool入口を接続し、手編集依存を解消した。registry entryは14.2の達成済み機能である。
 3. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。K-3はB-3の利用者向け表現として同時に扱う。
-4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
-5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
-6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
-7. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
+4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。14.5で達成済み。部品catalogとトポロジtemplateを追加して新規設計の入口を宣言経由へ移した。
+5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。達成済み。SkillはL2の候補生成に限定し、L1ゲートの権限とfail-closed条件は維持する。
+6. E-1〜E-4／K-1／K-2／K-4（並列化・cache・orchestrator・再開・timing）。14.7で達成済み。resumeはartifactだけを復元し、L1ゲートを省略しない。
+7. G-1〜G-3（workspace初期化とbootstrap）。達成済み。`/acd:init`または`acd_bootstrap_workspace`から、対象revisionを宣言して会話開始用workspaceを準備できる。
 8. I-3〜I-5／E-5、C-2／C-3、D-1〜D-3は14.6で達成した。実supplier接続はprovider境界の後続作業として残る。
 9. F-1〜F-4（image publishとdigest lock更新）、H-2〜H-4／K-4（skew検出と計測）。運用の再現性と回帰防止を強化する。

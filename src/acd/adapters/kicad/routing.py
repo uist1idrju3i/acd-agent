@@ -74,6 +74,14 @@ def _stitch_candidate_report(
     exclusion_counts: dict[str, int],
     exclusion_combinations: dict[str, int],
     candidate_reasons: dict[tuple[float, float], tuple[str, ...]],
+    fallback_used: bool = False,
+    fallback_candidates: Sequence[tuple[float, float]] = (),
+    fallback_selected_candidates: Sequence[tuple[float, float]] = (),
+    fallback_excluded_candidates: Sequence[
+        tuple[tuple[float, float], tuple[str, ...]]
+    ] = (),
+    fallback_region_reports: Sequence[dict[str, object]] = (),
+    fallback_scope: str = "none",
 ) -> dict[str, object]:
     selected_set = set(selected)
     return {
@@ -83,6 +91,24 @@ def _stitch_candidate_report(
         "exclusion_combinations": exclusion_combinations,
         "board_edge_inset_basis": _BOARD_EDGE_INSET_BASIS,
         "footprint_clearance_method": _FOOTPRINT_CLEARANCE_METHOD,
+        "fallback_used": fallback_used,
+        "fallback_candidates": [
+            [round(point[0], 6), round(point[1], 6)]
+            for point in fallback_candidates
+        ],
+        "fallback_selected_candidates": [
+            [round(point[0], 6), round(point[1], 6)]
+            for point in fallback_selected_candidates
+        ],
+        "fallback_excluded_candidates": [
+            {
+                "position_mm": [round(point[0], 6), round(point[1], 6)],
+                "exclusion_reasons": list(reasons),
+            }
+            for point, reasons in fallback_excluded_candidates
+        ],
+        "fallback_region_reports": list(fallback_region_reports),
+        "fallback_scope": fallback_scope,
         "candidates": [
             {
                 "position_mm": [round(point[0], 6), round(point[1], 6)],
@@ -111,8 +137,16 @@ def inject_stitch_vias(
     via_diameter_mm: float,
     via_drill_mm: float,
     allowed_points: Sequence[tuple[float, float]] | None = None,
+    fallback_regions: Sequence[
+        tuple[str, tuple[float, float, float, float]]
+    ] = (),
 ) -> tuple[str, tuple[tuple[float, float], ...], dict[str, object]]:
     """Add deterministic GND stitching vias outside occupied geometry."""
+    if allowed_points is not None and fallback_regions:
+        raise RouteInjectionError(
+            "allowed stitch points and fallback regions are mutually exclusive "
+            "(fail-closed)"
+        )
     empty_report = _stitch_candidate_report(
         candidates=(),
         selected=(),
@@ -284,6 +318,180 @@ def inject_stitch_vias(
             continue
         candidate_reasons[point] = ()
         selected_points.append(point)
+    fallback_used = allowed_points is None and not selected_points
+    fallback_candidates: list[tuple[float, float]] = []
+    fallback_excluded_candidates: list[tuple[tuple[float, float], tuple[str, ...]]] = []
+    fallback_selected_candidates: list[tuple[float, float]] = []
+    fallback_region_reports: list[dict[str, object]] = []
+    fallback_scope = "none"
+    if fallback_regions:
+        fallback_used = True
+        fallback_scope = "uncovered_conductor_regions"
+        normalized_regions = sorted(set(fallback_regions), key=lambda region: region)
+        for layer, region_bbox in normalized_regions:
+            if layer not in _LAYERS:
+                raise RouteInjectionError(
+                    f"unknown fallback region layer {layer!r} (fail-closed)"
+                )
+            x1, y1, x2, y2 = region_bbox
+            if (
+                not all(math.isfinite(value) for value in region_bbox)
+                or x1 > x2
+                or y1 > y2
+            ):
+                raise RouteInjectionError(
+                    f"malformed fallback region bbox {region_bbox!r} (fail-closed)"
+                )
+            lower_x = max(inset + radius, x1)
+            upper_x = min(model.width_mm - inset - radius, x2)
+            lower_y = max(inset + radius, y1)
+            upper_y = min(model.height_mm - inset - radius, y2)
+            region_candidates: list[tuple[float, float]] = []
+
+            def add_region_candidate(
+                point: tuple[float, float],
+                *,
+                lower_x: float = lower_x,
+                upper_x: float = upper_x,
+                lower_y: float = lower_y,
+                upper_y: float = upper_y,
+                region_candidates: list[tuple[float, float]] = region_candidates,
+            ) -> None:
+                if (
+                    lower_x <= point[0] <= upper_x
+                    and lower_y <= point[1] <= upper_y
+                    and point not in region_candidates
+                ):
+                    region_candidates.append(point)
+
+            phase_offsets = (
+                (pitch_mm / 2.0, 0.0),
+                (0.0, pitch_mm / 2.0),
+                (pitch_mm / 2.0, pitch_mm / 2.0),
+            )
+            for offset_x, offset_y in phase_offsets:
+                x = lower_x + offset_x
+                while x <= upper_x + 1e-9:
+                    y = lower_y + offset_y
+                    while y <= upper_y + 1e-9:
+                        add_region_candidate((x, y))
+                        y += pitch_mm
+                    x += pitch_mm
+            interior: list[tuple[float, float]] = []
+            x = lower_x + pitch_mm / 2.0
+            while x <= upper_x + 1e-9:
+                y = lower_y + pitch_mm / 2.0
+                while y <= upper_y + 1e-9:
+                    point = (x, y)
+                    if point not in region_candidates:
+                        interior.append(point)
+                    y += pitch_mm
+                x += pitch_mm
+            center = ((lower_x + upper_x) / 2.0, (lower_y + upper_y) / 2.0)
+            if lower_x <= upper_x and lower_y <= upper_y:
+                interior.append(center)
+            region_candidates.extend(
+                sorted(
+                    set(interior),
+                    key=lambda point: (
+                        math.hypot(point[0] - center[0], point[1] - center[1]),
+                        point[0],
+                        point[1],
+                    ),
+                )
+            )
+            region_excluded: list[tuple[tuple[float, float], tuple[str, ...]]] = []
+            region_selected: list[tuple[float, float]] = []
+            for point in region_candidates:
+                reasons = occupied_reasons(point)
+                if reasons:
+                    region_excluded.append((point, reasons))
+                    continue
+                if any(
+                    math.hypot(point[0] - other[0], point[1] - other[1])
+                    <= via_diameter_mm + clearance
+                    for other in selected_points
+                ):
+                    region_excluded.append((point, ("inter_via_spacing",)))
+                    continue
+                selected_points.append(point)
+                region_selected.append(point)
+            fallback_candidates.extend(region_candidates)
+            fallback_selected_candidates.extend(region_selected)
+            fallback_excluded_candidates.extend(region_excluded)
+            fallback_region_reports.append(
+                {
+                    "layer": layer,
+                    "bbox_mm": [round(value, 6) for value in region_bbox],
+                    "candidates": [
+                        [round(point[0], 6), round(point[1], 6)]
+                        for point in region_candidates
+                    ],
+                    "selected_candidates": [
+                        [round(point[0], 6), round(point[1], 6)]
+                        for point in region_selected
+                    ],
+                    "excluded_candidates": [
+                        {
+                            "position_mm": [round(point[0], 6), round(point[1], 6)],
+                            "exclusion_reasons": list(reasons),
+                        }
+                        for point, reasons in region_excluded
+                    ],
+                }
+            )
+    elif fallback_used:
+        fallback_scope = "exhausted_primary_candidate_pool"
+        phase_offsets = (
+            (pitch_mm / 2.0, 0.0),
+            (0.0, pitch_mm / 2.0),
+            (pitch_mm / 2.0, pitch_mm / 2.0),
+        )
+        for offset_x, offset_y in phase_offsets:
+            x = inset + radius + pitch_mm + offset_x
+            while x <= model.width_mm - inset - radius + 1e-9:
+                y = inset + radius + pitch_mm + offset_y
+                while y <= model.height_mm - inset - radius + 1e-9:
+                    add_point = (x, y)
+                    if add_point not in fallback_candidates:
+                        fallback_candidates.append(add_point)
+                    y += pitch_mm
+                x += pitch_mm
+        centroid = (model.width_mm / 2.0, model.height_mm / 2.0)
+        interior: list[tuple[float, float]] = []
+        x = inset + radius + pitch_mm / 2.0
+        while x <= model.width_mm - inset - radius + 1e-9:
+            y = inset + radius + pitch_mm / 2.0
+            while y <= model.height_mm - inset - radius + 1e-9:
+                point = (x, y)
+                if point not in fallback_candidates:
+                    interior.append(point)
+                y += pitch_mm
+            x += pitch_mm
+        fallback_candidates.extend(
+            sorted(
+                interior,
+                key=lambda point: (
+                    math.hypot(point[0] - centroid[0], point[1] - centroid[1]),
+                    point[0],
+                    point[1],
+                ),
+            )
+        )
+        for point in fallback_candidates:
+            reasons = occupied_reasons(point)
+            if reasons:
+                fallback_excluded_candidates.append((point, reasons))
+                continue
+            if any(
+                math.hypot(point[0] - other[0], point[1] - other[1])
+                <= via_diameter_mm + clearance
+                for other in selected_points
+            ):
+                fallback_excluded_candidates.append((point, ("inter_via_spacing",)))
+                continue
+            selected_points.append(point)
+            fallback_selected_candidates.append(point)
     selected = tuple(selected_points)
     if allowed_points is not None:
         selected = tuple(dict.fromkeys(allowed_points))
@@ -293,6 +501,12 @@ def inject_stitch_vias(
         exclusion_counts,
         exclusion_combinations,
         candidate_reasons,
+        fallback_used=fallback_used,
+        fallback_candidates=fallback_candidates,
+        fallback_selected_candidates=fallback_selected_candidates,
+        fallback_excluded_candidates=fallback_excluded_candidates,
+        fallback_region_reports=fallback_region_reports,
+        fallback_scope=fallback_scope,
     )
     report["allowed_points_override"] = allowed_points is not None
     lines = [

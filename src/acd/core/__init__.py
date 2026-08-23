@@ -28,6 +28,10 @@ from acd.core.firmware_consistency import (
     check_firmware_graph_consistency,
     evaluate_firmware_graph_consistency,
 )
+from acd.core.functional_block_entry import (
+    FunctionalBlockEntryResult,
+    register_functional_block_contract,
+)
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
@@ -96,6 +100,7 @@ __all__ = [
     "FirmwareConsistencyReport",
     "FixtureQuoteProvider",
     "FunctionalBlockContractError",
+    "FunctionalBlockEntryResult",
     "FunctionalBlockRegistry",
     "FunctionalRunError",
     "JournalOrderReconstruction",
@@ -141,6 +146,7 @@ __all__ = [
     "reconcile_files",
     "reconcile_receipt",
     "reconstruct_order",
+    "register_functional_block_contract",
     "required_predicate_names",
     "resolve_fab_profile_path",
     "resolve_order_provider",

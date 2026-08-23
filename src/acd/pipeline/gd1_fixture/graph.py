@@ -497,6 +497,19 @@ def build_graph() -> DesignGraph:
             )
     nodes.append(
         GraphNode(
+            id="electrical.placement_group.u3-decoupling",
+            kind="electrical.placement_group",
+            attrs={
+                "primary_refdes": "U3",
+                "coupled_refdes": ["C5", "R4"],
+                "max_distance_mm": 3.0,
+                "move_together": True,
+            },
+            depends_on=["comp.u3", "comp.c5", "comp.r4"],
+        )
+    )
+    nodes.append(
+        GraphNode(
             id="board.gd1",
             kind="electrical.board",
             attrs=dict(BOARD_ATTRS),

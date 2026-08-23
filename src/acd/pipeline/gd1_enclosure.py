@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import inspect
 import json
 import sys
 from datetime import UTC, datetime
@@ -22,6 +23,7 @@ from acd.adapters.cad.visual_projection import generate_mechanical_visual_projec
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.naming import evidence_id, subject_node_id
 from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
+from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
@@ -52,9 +54,15 @@ def run_pipeline(
     out_dir: Path,
     *,
     pipeline_workers: int = DEFAULT_CAD_STAGE_WORKERS,
+    timing_recorder: TimingRecorder | None = None,
 ) -> dict[str, object]:
     with PipelineStageRunner(pipeline_workers) as runner:
-        return _run_pipeline(fixture_dir, out_dir, runner=runner)
+        return _run_pipeline(
+            fixture_dir,
+            out_dir,
+            runner=runner,
+            timing_recorder=timing_recorder,
+        )
 
 
 def _run_pipeline(
@@ -62,6 +70,7 @@ def _run_pipeline(
     out_dir: Path,
     *,
     runner: PipelineStageRunner,
+    timing_recorder: TimingRecorder | None = None,
 ) -> dict[str, object]:
     runner.warm_up(("build123d",))
     graph_path = fixture_dir / "graph.json"
@@ -69,11 +78,25 @@ def _run_pipeline(
         json.loads(graph_path.read_text(encoding="utf-8"))
     )
     out_dir.mkdir(parents=True, exist_ok=True)
+    stage_number = 0
+    if timing_recorder is not None:
+        timing_recorder.start("enclosure[0/5]")
+
+    def mark_stage(number: int) -> None:
+        nonlocal stage_number
+        if timing_recorder is None or number == stage_number:
+            return
+        timing_recorder.finish(f"enclosure[{stage_number}/5]")
+        stage_number = number
+        timing_recorder.start(f"enclosure[{stage_number}/5]")
+
     validate_and_project_rationale(graph, fixture_dir, out_dir)
     print("[0/5] rationale coverage passed")
+    mark_stage(1)
     lane = extract_mechanical_lane(graph)
     subject_node = subject_node_id(graph, "mechanical.enclosure")
     print("[1/5] mechanical lane extracted")
+    mark_stage(2)
 
     projection = project_enclosure(
         lane,
@@ -88,6 +111,7 @@ def _run_pipeline(
         f"lid={projection.lid_step_path}, "
         f"assembly={projection.assembly_step_path}"
     )
+    mark_stage(3)
 
     runner.wait_for_warm_up()
     gate_future = runner.submit_stage(partial(_stage_mechanical_gates, projection, lane))
@@ -128,10 +152,12 @@ def _run_pipeline(
         f"minimum wall={gate_report.measured_min_wall_mm:.3f} mm, "
         f"minimum clearance={gate_report.measured_min_clearance_mm:.3f} mm"
     )
+    mark_stage(4)
     print(
         "[4/5] mechanical visual cross-check recorded: "
         f"{out_dir / 'visual-crosscheck-mechanical.json'}"
     )
+    mark_stage(5)
     artifact_manifest = json.loads(
         projection.artifact_manifest_path.read_text(encoding="utf-8")
     )
@@ -255,6 +281,8 @@ def _run_pipeline(
         "visual_crosscheck_canonical_hash": visual_crosscheck.canonical_hash,
     }
     print(f"[5/5] mechanical evidence recorded: {evidence_path}")
+    if timing_recorder is not None:
+        timing_recorder.finish("enclosure[5/5]")
     return summary
 
 
@@ -270,15 +298,20 @@ def main() -> int:
     )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
+    timing = TimingRecorder()
+    timing.start("gd1-enclosure-pipeline")
     try:
-        summary = run_pipeline(
-            args.fixture,
-            args.out,
-            pipeline_workers=args.pipeline_workers,
-        )
+        parameters = inspect.signature(run_pipeline).parameters
+        kwargs: dict[str, object] = {"pipeline_workers": args.pipeline_workers}
+        if "timing_recorder" in parameters:
+            kwargs["timing_recorder"] = timing
+        summary = run_pipeline(args.fixture, args.out, **kwargs)  # type: ignore[arg-type]
     except Exception as exc:
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1
+    finally:
+        timing.finish_open()
+        write_timing_record(args.out, timing)
     (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     if summary["authoritative"]:
         print("PIPELINE PASSED (authoritative container execution)")

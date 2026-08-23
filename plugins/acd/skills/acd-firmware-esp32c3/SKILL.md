@@ -34,7 +34,7 @@ Reference implementations in `scripts/`, reusable as-is or as a starting point:
 
 ```bash
 # Full reference pipeline (needs ESP-IDF and qemu-system-riscv32).
-uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+uv run --with cmake==3.31.6 --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
     --fixture fixtures/golden-design-1 --out out/gd1-fw
 
 # Firmware lane extraction and checks:
@@ -45,6 +45,8 @@ uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py
 uv run pytest plugins/acd/skills/acd-firmware-esp32c3 -q
 ```
 
+The standard `uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py`
+form is extended with the pinned CMake package above because ESP-IDF requires CMake on `PATH`.
 `--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
 開発する場合は、従来どおり`uv run python <path>`を使用します。
 

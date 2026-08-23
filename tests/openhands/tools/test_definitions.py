@@ -13,10 +13,15 @@ from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
 import acd.openhands.tools.definitions as sdk_tools
 from acd.openhands.tools.definitions import (
+    AcdBootstrapWorkspace,
+    AcdBootstrapWorkspaceAction,
+    AcdBootstrapWorkspaceObservation,
     AcdObservation,
     AcdProbeTools,
     AcdProbeToolsAction,
     AcdProbeToolsObservation,
+    AcdRegisterFunctionalBlock,
+    AcdRegisterFunctionalBlockAction,
     AcdRunBoardPipeline,
     AcdRunBoardPipelineAction,
     AcdRunBoardPipelineObservation,
@@ -33,6 +38,45 @@ def _execute(tool: Any, action: Any) -> AcdObservation:
     executor = tool.executor
     assert executor is not None
     return executor(action)
+
+
+def test_bootstrap_workspace_propagates_record_and_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    report = {
+        "ok": True,
+        "failure_reason": None,
+        "bootstrap_record_path": str(tmp_path / ".openhands/bootstrap-record.json"),
+        "_returncode": 0,
+    }
+
+    def fake_bootstrap(
+        repo_url: str,
+        revision: str,
+        workspace: Path,
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        del repo_url, revision, workspace
+        return report, {
+            "script": "init_workspace.py",
+            "script_sha256": "sha256:" + "a" * 64,
+        }
+
+    monkeypatch.setattr(sdk_tools, "run_bootstrap", fake_bootstrap)
+    tool = AcdBootstrapWorkspace.create()[0]
+    result = _execute(
+        tool,
+        AcdBootstrapWorkspaceAction(
+            repo_url="https://example.test/acd.git",
+            revision="a" * 40,
+            workspace=str(tmp_path / "workspace"),
+        ),
+    )
+    assert isinstance(result, AcdBootstrapWorkspaceObservation)
+    assert result.ok is True
+    assert result.fail_closed is False
+    assert result.bootstrap_record_path == report["bootstrap_record_path"]
+    assert result.provenance is not None
 
 
 def test_probe_tools_shape_and_unknown_is_fail_closed() -> None:
@@ -142,6 +186,54 @@ def test_acd_tools_declare_shared_resources_and_probe_is_read_only(
         f"file:{graph.resolve()}",
         f"acd-out:{enclosure_out.resolve()}",
     )
+
+
+def test_register_functional_block_declares_registry_and_contract_resources(
+    tmp_path: Path,
+) -> None:
+    contract = tmp_path / "contract.json"
+    registry = tmp_path / "registry.json"
+    contract.write_text("{}", encoding="utf-8")
+    action = AcdRegisterFunctionalBlockAction(
+        contract=str(contract),
+        registry=str(registry),
+    )
+    resources = AcdRegisterFunctionalBlock.create()[0].declared_resources(action)
+    assert resources.declared is True
+    assert resources.keys == (
+        f"file:{contract.resolve()}",
+        f"file:{registry.resolve()}",
+    )
+
+
+def test_register_functional_block_tool_reports_hashes_and_dry_run(
+    tmp_path: Path,
+) -> None:
+    source = Path(__file__).parents[3] / "contracts" / "functional-block-registry.json"
+    registry = tmp_path / "registry.json"
+    registry.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    action = AcdRegisterFunctionalBlockAction(
+        contract=json.dumps(
+            {
+                "block_id": "tool_declared_block",
+                "title": "Tool declared block",
+                "description": "A declaration entered through the agent tool.",
+                "required_predicates": ["i2c_pullup", "power_boundary"],
+                "allowed_change_dimensions": [],
+            }
+        ),
+        registry=str(registry),
+        dry_run=True,
+    )
+    result = _execute(AcdRegisterFunctionalBlock.create()[0], action)
+    assert result.ok is True
+    assert result.fail_closed is False
+    assert result.prior_registry_hash is not None
+    assert result.new_registry_hash is not None
+    assert result.prior_registry_hash != result.new_registry_hash
+    assert result.written is False
+    assert result.to_llm_content[0].text.find("not gate evidence") >= 0
+    assert "tool_declared_block" not in registry.read_text(encoding="utf-8")
 
 
 def test_acd_tool_resource_resolution_failure_serializes() -> None:
@@ -290,6 +382,7 @@ def test_registration_is_idempotent_and_tool_schemas_are_exposed() -> None:
     assert {
         "acd_probe_tools",
         "acd_validate_design_graph",
+        "acd_register_functional_block",
         "acd_run_board_pipeline",
         "acd_run_enclosure_pipeline",
     }.issubset(set(list_registered_tools()))

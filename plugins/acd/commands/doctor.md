@@ -14,6 +14,10 @@ inventing, weakening, or replacing any gate:
 - Development checkout path: `plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`
 
 Use `python3 <resolved-path>`. Preserve the JSON fields and status exactly.
+When diagnosing a prepared workspace, pass `--workspace <workspace-path>` to
+also check its Git repository, submodule, lock synchronization, locked image
+availability, and firmware host prerequisites. These workspace checks are
+required and fail closed when unknown; they never attempt a network image pull.
 An `unknown` result in a required check is fail-closed and means the diagnosis
 is `failed`. The required install-location check reports a development
 checkout as valid, but fails a store path other than the direct

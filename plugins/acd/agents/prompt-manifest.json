@@ -1,8 +1,8 @@
 {
-  "canonical_hash": "sha256:f092255dec5e5c4e328f49a4a3d2a6f01e5ef898b65cf22da72aeeff3e8ca553",
+  "canonical_hash": "sha256:e68b238bcc109b90ef6f8e28c2846d361020bcafe2f7757d3528351a150938a5",
   "entries": [
     {
-      "asset_hash": "sha256:1c7b14d60a98f38b67f86355cd9e9b9a6f1ca4e358c5cfe0c076f36fd4ad932e",
+      "asset_hash": "sha256:2c0907e1617556f54dd3d40ae4b3d194398958515623d923b4acc6d8e7936676",
       "asset_path": "plugins/acd/agents/acd-electrical.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:dbda15444e526420e18b57e8ec0bf0ba52b6e479836806e6503c0beb7ccbc3fe",
@@ -10,7 +10,7 @@
       "section_name": "acd.role.acd-electrical"
     },
     {
-      "asset_hash": "sha256:ccdcca396bac189edfd185c8e07e6ff7b41b669932c42d377ea647dd3fdfd029",
+      "asset_hash": "sha256:3acf85191ca5060d8b78eac11ff83c6d378113aad1777554451ae54ea9f8c41a",
       "asset_path": "plugins/acd/agents/acd-firmware.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:d7a281354c3153bae3e1e43f60b554132e78bf60501cba6963e5bae3b60539d7",
@@ -26,7 +26,7 @@
       "section_name": "acd.role.acd-mechanical"
     },
     {
-      "asset_hash": "sha256:974c3950cf4ef007060587c61d5e43147081f47b8a40ec2f90c25719f1cc772e",
+      "asset_hash": "sha256:83697a005ccba60eef7f766fc6a251b0c7884d3acb7374bc5ecd6cb4b5427b66",
       "asset_path": "plugins/acd/agents/acd-reviewer.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:40cb6baef9d25751d307ca0a1598e167b5cc7b6b842a520154971125c8354746",
@@ -34,7 +34,7 @@
       "section_name": "acd.role.acd-reviewer"
     },
     {
-      "asset_hash": "sha256:e56584d1142b4ca6abae2a2294482b6a0c645a14c13df7eb42b8da0561fe76f6",
+      "asset_hash": "sha256:ff8cb7f08a1bc93a47c20f134c7e7fbbf00826f728fd9e4005aeb6dce95d2df7",
       "asset_path": "plugins/acd/agents/acd-search.md",
       "cache_tier": "static",
       "prompt_hash": "sha256:756c1058819759361d1ba1661c93145eb655a2bdc34effe925e03c19bbeaa11e",

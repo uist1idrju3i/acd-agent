@@ -46,6 +46,7 @@ _BLOCK_OMIT_KINDS = frozenset(
         "requirement",
         # Functional-block declarations select contracts but are not system blocks.
         "design.functional_block",
+        "electrical.placement_group",
         "fab.order_intent",
         "fab.process_allowance",
         # Mechanical geometry and graphics belong to mechanical projections.
