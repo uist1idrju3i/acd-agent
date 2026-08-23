@@ -43,6 +43,12 @@ Dockerfileでは次を固定または検証する。
   vendored SDKを`/opt/acd`へ同梱し、authoritative実行時のリポジトリcloneを不要にする
 - Python依存のprebake: `/opt/acd`でbuild時に`uv sync --frozen --compile-bytecode`を
   実行し、実行時の依存解決とダウンロードを不要にする。`UV_FROZEN=1`をimageで宣言する
+- PEP 723依存のprebake: 同梱する全acd-importing Skill scriptと
+  `scripts/probe_pinned_acd_graph.py`のmetadata blockが同一であることをbuild時に検証し、
+  probeをonlineで1回、`uv --offline`で1回実行する。これによりpinned `acd`とその
+  isolated environmentをimage build時にcacheへ導入し、FW laneの実行時git・ネットワーク
+  依存を除く。追加容量はuv cacheを含むため、build後に`docker image inspect`で測定する
+  （環境差を除いた見積りは約250 MB）。
 - bytecodeキャッシュ: `PYTHONPYCACHEPREFIX=/tmp/acd-pycache`をimageで宣言する。
   `/opt/acd/src`配下へ`__pycache__`が書かれるとeditable installが無効化され、
   実行時にビルドバックエンドのダウンロード（ネットワーク）が発生するため、

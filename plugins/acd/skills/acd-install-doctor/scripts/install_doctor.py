@@ -372,8 +372,29 @@ def _metadata_body(source: str) -> tuple[str, str]:
     return body, "\n".join(lines[end + 1 :])
 
 
+def _acd_symbols(source: str, filename: str) -> tuple[set[str], str | None]:
+    try:
+        tree = ast.parse(source, filename=filename)
+    except SyntaxError as exc:
+        return set(), str(exc)
+    symbols: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "acd" or alias.name.startswith("acd."):
+                    symbols.add(alias.name)
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module
+            if module is None or not (module == "acd" or module.startswith("acd.")):
+                continue
+            for alias in node.names:
+                symbols.add(module if alias.name == "*" else f"{module}.{alias.name}")
+    return symbols, None
+
+
 def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
     ref_path = plugin_root / "skills" / "acd-package-ref.txt"
+    contract_path = plugin_root / "skills" / "acd-package-contract.json"
     try:
         lines = ref_path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError) as exc:
@@ -389,54 +410,137 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
         )
     errors: list[str] = []
     importing_scripts = 0
+    imported_script_data: dict[str, tuple[str, set[str]]] = {}
     expected_dependency = f"acd @ git+https://github.com/uist1idrju3i/acd-agent@{ref}"
     for script in sorted((plugin_root / "skills").glob("*/scripts/*.py")):
         try:
             source = script.read_text(encoding="utf-8")
-            tree = ast.parse(source, filename=str(script))
+            symbols, parse_error = _acd_symbols(source, str(script))
         except (OSError, UnicodeDecodeError, SyntaxError) as exc:
             errors.append(f"{_relative(script, plugin_root)} cannot be parsed: {exc}")
             continue
-        imports_acd = any(
-            (
-                isinstance(node, ast.Import)
-                and any(
-                    alias.name == "acd" or alias.name.startswith("acd.")
-                    for alias in node.names
-                )
-            )
-            or (
-                isinstance(node, ast.ImportFrom)
-                and node.module is not None
-                and (node.module == "acd" or node.module.startswith("acd."))
-            )
-            for node in ast.walk(tree)
-        )
-        if not imports_acd:
+        if parse_error is not None:
+            errors.append(f"{_relative(script, plugin_root)} cannot be parsed: {parse_error}")
+            continue
+        if not symbols:
             continue
         importing_scripts += 1
+        relative_script = _relative(script, plugin_root)
+        imported_script_data[relative_script] = (
+            hashlib.sha256(source.encode("utf-8")).hexdigest(),
+            symbols,
+        )
         try:
             metadata, _ = _metadata_body(source)
         except ValueError as exc:
-            errors.append(f"{_relative(script, plugin_root)}: {exc}")
+            errors.append(f"{relative_script}: {exc}")
             continue
         requires = re.findall(r'(?m)^requires-python\s*=\s*"([^"]+)"\s*$', metadata)
         dependencies = re.findall(r'(?m)^\s*"([^"]+)"\s*,?\s*$', metadata)
         if len(requires) != 1 or len(dependencies) != 1:
-            errors.append(f"{_relative(script, plugin_root)}: invalid PEP 723 dependency metadata")
+            errors.append(f"{relative_script}: invalid PEP 723 dependency metadata")
         elif dependencies[0] != expected_dependency:
             errors.append(
-                f"{_relative(script, plugin_root)}: dependency does not match package ref"
+                f"{relative_script}: dependency does not match package ref"
             )
     if importing_scripts == 0:
         errors.append("no Skill script importing acd was found")
+    try:
+        contract = _read_json(contract_path)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return _check(
+            "Skill package reference",
+            True,
+            "fail",
+            f"contract is missing or cannot be parsed: {exc}",
+            ref,
+        )
+    if not isinstance(contract, dict):
+        return _check(
+            "Skill package reference",
+            True,
+            "fail",
+            "contract root is not an object",
+            ref,
+        )
+    contract = cast(dict[str, Any], contract)
+    if contract.get("ref") != ref:
+        errors.append("contract.ref does not match the package ref")
+    entries = contract.get("scripts")
+    entry_map: dict[str, dict[str, Any]] = {}
+    if not isinstance(entries, list):
+        errors.append("contract.scripts is not a list")
+        contract_entries: list[Any] = []
+    else:
+        contract_entries = cast(list[Any], entries)
+    for index, entry in enumerate(contract_entries):
+        if not isinstance(entry, dict):
+            errors.append(f"contract.scripts[{index}] is not an object")
+            continue
+        entry = cast(dict[str, Any], entry)  # pyright: ignore[reportUnnecessaryCast]
+        path = entry.get("path")
+        if not isinstance(path, str):
+            errors.append(f"contract.scripts[{index}].path is not a string")
+            continue
+        entry_map[path] = entry
+    for relative, (digest, symbols) in imported_script_data.items():
+        entry = entry_map.get(f"plugins/acd/{relative}")
+        if entry is None:
+            errors.append(f"{relative}: missing contract script entry")
+            continue
+        if entry.get("sha256") != digest:
+            errors.append(f"{relative}: script sha256 does not match contract")
+        contract_symbols = entry.get("acd_symbols")
+        contract_symbol_items = (
+            cast(list[Any], contract_symbols)
+            if isinstance(contract_symbols, list)
+            else []
+        )
+        if not isinstance(contract_symbols, list) or not all(
+            isinstance(item, str) for item in contract_symbol_items
+        ):
+            errors.append(f"{relative}: contract acd_symbols is invalid")
+        elif not symbols.issubset(
+            set(cast(list[str], contract_symbol_items))
+        ):
+            errors.append(f"{relative}: imported acd symbols exceed contract symbols")
+    node_kinds_value = contract.get("node_kinds")
+    edge_kinds_value = contract.get("edge_kinds")
+    fixture_kinds_value = contract.get("fixture_kinds")
+    lists_valid = all(
+        isinstance(value, list)
+        and all(isinstance(item, str) for item in cast(list[Any], value))
+        for value in (node_kinds_value, edge_kinds_value, fixture_kinds_value)
+    )
+    if not lists_valid:
+        errors.append("contract kind lists are invalid")
+    node_kinds = cast(list[str], node_kinds_value) if lists_valid else []
+    edge_kinds = cast(list[str], edge_kinds_value) if lists_valid else []
+    fixture_kinds = cast(list[str], fixture_kinds_value) if lists_valid else []
+    missing_kinds = sorted(
+        set(fixture_kinds) - (set(node_kinds) | set(edge_kinds))
+    )
+    if missing_kinds:
+        errors.append("contract fixture kinds are absent from schema: " + ", ".join(missing_kinds))
+    counts = (
+        f"scripts={importing_scripts};contract_scripts={len(contract_entries)};"
+        f"fixture_kinds={len(fixture_kinds)};"
+        f"node_kinds={len(node_kinds)};"
+        f"edge_kinds={len(edge_kinds)}"
+    )
     if errors:
-        return _check("Skill package reference", True, "fail", "; ".join(errors), ref)
+        return _check(
+            "Skill package reference",
+            True,
+            "fail",
+            f"{counts};errors=" + "; ".join(errors),
+            ref,
+        )
     return _check(
         "Skill package reference",
         True,
         "pass",
-        f"{importing_scripts} acd-importing Skill script(s) match the pinned ref",
+        counts,
         ref,
     )
 

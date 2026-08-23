@@ -590,7 +590,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 
 | 順 | フェーズ | 内容 |
 |---|---|---|
-| 14.1 | Skill package refのskew解消（H-1〜H-5） | refの陳腐化をCIと`/acd:doctor`で検出し、pinned `acd`をlocked imageへ事前導入して実行時のgit・ネットワーク依存を除く。CIでSkill scriptをfixtureに対し実行し、pinned `acd`でgraphが読めることを検査する。現状はFW laneがGD1 fixtureでも停止する |
+| 14.1 | Skill package refのskew解消（H-1〜H-5） | refの陳腐化をCIと`/acd:doctor`で検出し、pinned `acd`をlocked imageへ事前導入して実行時のgit・ネットワーク依存を除く。CIでSkill scriptをfixtureに対し実行し、pinned `acd`でgraphが読めることを検査する。達成 |
 | 14.2 | 設計述語の適用条件宣言と機能ブロック契約registry（J-1〜J-3） | 宣言された機能ブロックに対応する述語だけを必須にし、新トポロジの追加を述語コード改変ではなく契約追加で行えるようにする。fab profileを複数持てるようにする。fail-closed境界は維持し、「検証不能」と「機能を持たない」を区別する |
 | 14.3 | 失敗理由の構造化とゲートの前倒し評価（B-3、B-4、K-3） | 未配線netとpad対などの失敗理由を機械可読Evidenceとして返し、配置のみで判定できる述語をrouter実行前に評価する。利用者向けに変更可能な次元と現在の余裕を含む形で提示する |
 | 14.4 | 物理設計の自律探索loop（B-1、B-2、B-5〜B-9） | 部品配置・回転とGPIO割当の探索、機能グループの結合制約、機構寸法の単一datum化、stitch via候補が全滅した島のfallback、探索対象とする設計自由度の宣言、`stitch_candidate_report`の常時保存 |
@@ -604,7 +604,17 @@ C-1〜C-4（筐体の干渉解決探索、FWのgraph駆動化、FW整合gate、C
 fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
 
-14.1〜14.9は計画であり、14.1・14.2が他フェーズの前提である。
+### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `acd-package-ref.txt`、pinned commitのschema/API、`fixtures/**/graph.json`、全acd-importing Skill scriptとGD1 probeのPEP 723 metadata |
+| 実装 | canonical package contract、git/API/schema/kind checker、ref updater、offline doctor判定、pinned-acd graph probe、CI auto-PR、image prebakeを追加した |
+| 正常系 | current refでcontractが一致し、GD1 graphをpinned `acd`で検証してFW `extract_firmware_lane`が実行できる。image buildでもonline warm後のoffline probeが成功する |
+| negative・fail-closed | 非ancestor・未解決・shallow ref、schema/API/kind不一致、contract drift、script hash/symbol drift、contract欠落・parse不能を不合格にする |
+| 再現性 | ref、schema tree SHA、AST-derived API/kind、script SHA-256を契約へ固定し、standard CI、doctor、digest固定imageのoffline実行で同一判定を再現する |
+
+14.1は達成済みであり、14.2以降は計画である。
 
 ## マイルストーン15: 運用と文書の整備
 

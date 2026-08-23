@@ -25,6 +25,22 @@ def _relative(path: Path, repository: Path) -> str:
     return path.relative_to(repository).as_posix()
 
 
+def metadata_body(source: str) -> tuple[str | None, list[str], str | None]:
+    return _metadata_body(source)
+
+
+def read_ref(repository: Path, errors: list[str]) -> str | None:
+    return _read_ref(repository, errors)
+
+
+def read_requires_python(repository: Path, errors: list[str]) -> str | None:
+    return _read_requires_python(repository, errors)
+
+
+def relative(path: Path, repository: Path) -> str:
+    return _relative(path, repository)
+
+
 def _metadata_body(source: str) -> tuple[str | None, list[str], str | None]:
     start = SCRIPT_START_RE.match(source)
     if start is None:

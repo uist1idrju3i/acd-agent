@@ -60,6 +60,9 @@ PEP 723メタデータを付与し、事前の`uv pip install`を不要にする
 - 初回実行時はネットワークアクセスとgit取得・依存build（`cadquery-ocp`等の
   大型依存を含む）が発生する。オフライン環境では初回実行が失敗する
   （fail-closed）。2回目以降はuvのcacheが使われる。
+- package refのschema/API skew検出、doctorのoffline互換性判定、imageの事前導入は
+  [`ADR-0042`](ADR-0042-skill-package-ref-skew.md)で定める。ref更新のfollow-up変更は
+  同ADRの自動PRで実行される。
 - refはリリース（mainへのmerge）後に存在するcommitを指す必要があるため、
   `acd`本体を変更した場合のref更新は後続の変更で行う。更新手順は
   `docs/operations.md`に記す。ref file・script metadata・SKILL.mdの整合は

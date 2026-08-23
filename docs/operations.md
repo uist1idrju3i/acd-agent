@@ -345,12 +345,21 @@ command未実行をsuccessとして記録する経路はない。command形式�
 初回実行が失敗する。開発checkoutのローカル変更を使う場合は`uv run python <path>`を
 使用する。
 
-package refを更新する場合は、`plugins/acd/skills/acd-package-ref.txt`を編集し、
-`acd`をimportする対象scriptすべてのPEP 723ヘッダーを同じrefへ更新する。対象scriptは
-`scripts/verify_skill_metadata.py`が`plugins/acd/skills/*/scripts/*.py`から`acd` importで
-判定する。その後、
-`uv run python scripts/verify_skill_metadata.py`で整合性を検証する。refはリリース後の
-commitまたはsemver tagを指定し、scriptとref fileはpluginのリリースと一緒に更新する。
+package refは契約ファイルと一緒に更新する。手動更新は、対象commitがローカルにあり
+`HEAD`の祖先であることを確認したうえで、次を実行する。
+
+```bash
+uv run python scripts/update_skill_package_ref.py --ref <40桁commit SHA>
+uv run python scripts/verify_skill_package_ref.py --check
+```
+
+updaterは`acd-package-ref.txt`、`acd`をimportする全Skill scriptと
+`scripts/probe_pinned_acd_graph.py`のPEP 723ヘッダー、生成済み
+`acd-package-contract.json`を同時に更新する。checkerはrefのlocal commit解決・祖先性、
+schema tree、API surface、fixture kind coverage、script hashと契約driftを
+fail-closedで検査する。既存の`verify_skill_metadata.py`は従来のmetadata契約を検査し、
+checkerは`verify_all.py`のstandard stageにも含まれる。refはリリース後のcommitまたは
+semver tagを指定し、scriptとref fileはpluginのリリースと一緒に更新する。
 この自己解決経路はローカルSkill実行だけを扱い、ゲート実行の正であるdigest固定imageと
 authoritative Evidenceの契約は変更しない。
 
@@ -360,6 +369,16 @@ authoritative Evidenceの契約は変更しない。
 `scripts/verify_skill_metadata.py`と`/acd:doctor`の`_package_ref_check`はref書式と
 script metadataの一致を検査するが、ref自体の陳腐化は検出しない。詳細な観測と改善提案は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のH節を参照する。
+mainへのschema・API・fixture・Skill変更後は
+`.github/workflows/update-skill-package-ref.yml`がcheckerを実行し、skew時だけ
+merge commitへ再固定するPRを作成する。一致時は何もしないため、auto-PRのmergeによる
+再trigger loopは発生しない。ただし`GITHUB_TOKEN`で作成したPRはGitHub ActionsのCIを
+起動しないため、必要ならPRを更新する主体または手動runでCIを起動する。
+
+locked tools imageは同じPEP 723 metadataを持つ全acd-importing scriptの依存をbuild時に
+解決し、GD1のpinned-acd probeを実行してからofflineで再実行する。したがってimage内の
+FW Skill laneは実行時のgit・ネットワークへ依存しない。imageの事前導入内容と容量差は
+[`docker/README.md`](../docker/README.md)に記録する。
 
 ### アップデート
 
