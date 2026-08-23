@@ -226,7 +226,28 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    経路の既定を逐次にし、CAD stage実処理がworker起動コストを上回る大規模設計や多コア環境では
    `--pipeline-workers N`を明示して並列化する。host実行はprovisionalでauthoritative Evidenceの
    合否根拠には使わない。
-   CPL／BOM chain、E-2のlane／run並列化、E-4のstage cacheは引き続き逐次または未実装である。
+   GD1の基板・筐体・pytest subsetをまとめて検証する場合は、resolverのfixture書き換えを
+   barrierとして先に完了させるlane orchestratorを使う。
+
+   ```bash
+   uv run python scripts/run_gd1_lanes.py
+   uv run python scripts/run_gd1_lanes.py --jobs 1
+   uv run python scripts/run_gd1_lanes.py --list
+   ```
+
+   `--jobs`の既定値は`min(os.cpu_count() or 1, 4)`である。`--jobs 1`はresolver、
+   基板lane、筐体lane、pytest subsetを宣言順に実行し、最初の失敗で停止する。
+   それより大きい値ではresolverを単独実行した後、基板lane（`out/gd1`）、筐体lane
+   （`out/gd1-enclosure`）、pytest subsetを並列実行し、出力は宣言順に戻して失敗を
+   すべて報告する。`--list`は各commandとbarrier属性をJSONで表示する。
+   `container-gates` jobも、digest固定imageのDockerWorkspace内で`uv sync && uv run
+   python scripts/run_gd1_lanes.py`を実行し、完了後にhost側でauthoritative Evidenceを
+   検証する。CPL／BOM chainとE-4のstage cacheは引き続き逐次または未実装である。
+   host provisionalでのlane全体の測定は、基板laneが`freerouting` executable不在で
+   fail-closedとなったため完了していない。失敗までのwall clockは`--jobs 1`が
+   15.902秒、既定並列が29.331秒であり、成功時の短縮比較には使わない。外部ツールを
+   含むauthoritativeな測定はdigest固定imageのCI `container-gates`で行い、短縮しない
+   場合もその実測値を記録する。
    並列実行のhash差分を逐次2回と比較するintegration testは既定ではskipされる。
    ロック済みcontainerで`ACD_PIPELINE_PARALLEL_TEST=1`、`kicad-cli`、`freerouting`を
    揃えた場合だけ有効になる。逐次A／逐次B／並列Cの3回を実行し、A/BとA/Cで

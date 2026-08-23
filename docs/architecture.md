@@ -104,6 +104,18 @@ hash、Evidence、provenanceへ含めない。
 同一fixtureのhost provisional測定は、`--pipeline-workers 1`が8.309秒、
 `--pipeline-workers 4`が26.492秒であり、この規模では並列短縮を確認できなかった。
 
+GD1のlane実行では、`scripts/run_gd1_lanes.py`がsilkscreen resolverをbarrierとして
+単独実行する。resolverは解決結果をfixtureの`graph.json`へ書き戻すため、基板lane、
+筐体lane、pytest subsetが更新途中のfixtureを読むことを防ぐ必要がある。resolver完了後は
+基板lane（`out/gd1`）、筐体lane（`out/gd1-enclosure`）、pytest subsetを独立した
+並列batchとして宣言順に実行し、いずれかが失敗した場合はfail-closedで非零終了する。
+laneの出力先は分離され、並列度はhash、Evidence、provenance、summaryへ含めない。
+host provisionalではresolver、筐体lane、pytest subsetまで実行できたが、基板laneは
+`freerouting` executable不在によりfail-closedで停止した。したがってhostでのlane全体の
+短縮は未測定であり、CIのdigest固定container gateをauthoritativeな測定経路とする。
+失敗までのwall clockは`--jobs 1`が15.902秒、既定並列が29.331秒だったが、これは
+成功完了の比較値ではない。
+
 ## OpenHands plugin
 
 ```text

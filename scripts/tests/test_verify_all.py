@@ -9,6 +9,8 @@ from pathlib import Path
 import pytest
 from scripts import verify_all
 
+from acd.core import command_runner
+
 
 def test_list_matches_stage_definitions(capsys: pytest.CaptureFixture[str]) -> None:
     assert verify_all.main(["--list"]) == 0
@@ -52,16 +54,16 @@ def test_failed_command_stops_stage(
 
     def fake_run(
         command: Sequence[str], check: bool, **kwargs: object
-    ) -> verify_all.subprocess.CompletedProcess[str]:
+    ) -> command_runner.subprocess.CompletedProcess[str]:
         assert check is False
         assert kwargs == {}
         calls.append(tuple(command))
         print(f"child {command[0]}")
-        return verify_all.subprocess.CompletedProcess(
+        return command_runner.subprocess.CompletedProcess(
             command, 7 if len(calls) == 2 else 0
         )
 
-    monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
     assert verify_all.run_stage((("first",), ("second",), ("third",))) == 7
     assert calls == [("first",), ("second",)]
     output = capsys.readouterr().out
@@ -76,11 +78,11 @@ def test_success_output_is_identical_for_sequential_and_parallel_runs(
     commands = (("first",), ("second",), ("third",))
 
     def fake_run(command: Sequence[str], **kwargs: object) -> object:
-        return verify_all.subprocess.CompletedProcess(
+        return command_runner.subprocess.CompletedProcess(
             command, 0, stdout=f"{command[0]} output\n", stderr=""
         )
 
-    monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
     assert verify_all.run_stage(commands, jobs=1) == 0
     sequential = capsys.readouterr()
     assert verify_all.run_stage(commands, jobs=4) == 0
@@ -106,14 +108,14 @@ def test_parallel_stage_reports_all_failures(
     commands = (("sync",), ("bad-first",), ("ok",), ("bad-second",))
 
     def fake_run(command: Sequence[str], **kwargs: object) -> object:
-        return verify_all.subprocess.CompletedProcess(
+        return command_runner.subprocess.CompletedProcess(
             command,
             9 if command[0].startswith("bad") else 0,
             stdout="",
             stderr="",
         )
 
-    monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
     assert verify_all.run_stage(commands, jobs=4) == 9
     output = capsys.readouterr().out
     assert output.count("FAIL (exit=9)") == 2
@@ -133,9 +135,11 @@ def test_parallel_commands_wait_for_sync(
             sync_finished = True
         else:
             assert sync_finished
-        return verify_all.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        return command_runner.subprocess.CompletedProcess(
+            command, 0, stdout="", stderr=""
+        )
 
-    monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
     assert verify_all.run_stage(commands, jobs=4) == 0
 
 
@@ -153,7 +157,9 @@ def test_barriers_flush_parallel_batches(
         else:
             running.add(command_tuple)
             running.remove(command_tuple)
-        return verify_all.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        return command_runner.subprocess.CompletedProcess(
+            command, 0, stdout="", stderr=""
+        )
 
     commands = (
         verify_all.CommandSpec(("first",)),
@@ -161,7 +167,7 @@ def test_barriers_flush_parallel_batches(
         verify_all.CommandSpec(("barrier",), barrier=True),
         verify_all.CommandSpec(("third",)),
     )
-    monkeypatch.setattr(verify_all.subprocess, "run", fake_run)
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
     assert verify_all.run_stage(commands, jobs=4) == 0
     assert set(calls[:2]) == {("first",), ("second",)}
     assert calls[2:] == [("barrier",), ("third",)]
