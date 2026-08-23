@@ -504,7 +504,12 @@ def build_graph() -> DesignGraph:
         )
     )
     functional_blocks = (
-        ("fb.safety-power-boundary", "safety_power_boundary", "req.gd1-req-004"),
+        (
+            "fb.safety-power-boundary",
+            "safety_power_boundary",
+            "req.gd1-req-004",
+            "req.gd1-req-005",
+        ),
         ("fb.usb-c-cc-termination", "usb_c_cc_termination", "req.gd1-req-006"),
         ("fb.i2c-bus-pullup", "i2c_bus_pullup", "req.gd1-req-011"),
         ("fb.esp32c3-strapping-boot", "esp32c3_strapping_boot", "req.gd1-req-010"),
@@ -516,9 +521,9 @@ def build_graph() -> DesignGraph:
             id=node_id,
             kind="design.functional_block",
             attrs={"block_id": block_id},
-            depends_on=[requirement_id],
+            depends_on=list(requirement_ids),
         )
-        for node_id, block_id, requirement_id in functional_blocks
+        for node_id, block_id, *requirement_ids in functional_blocks
     )
     nodes.append(
         GraphNode(

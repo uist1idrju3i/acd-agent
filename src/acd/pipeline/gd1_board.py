@@ -298,8 +298,8 @@ def build_electrical_evidence(
     dfm_status: object,
     order_readiness_status: object,
     design_predicates: object,
-    functional_block_contract: object = None,
-    declared_blocks: object = None,
+    functional_block_contract: object,
+    declared_blocks: object,
 ) -> Evidence:
     """Build electrical Evidence from completed deterministic gate results."""
     if not subject_node:

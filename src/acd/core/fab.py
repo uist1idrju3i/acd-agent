@@ -14,6 +14,7 @@ from acd.schema import (
     FabProfileDocument,
     FabProfileRegistryDocument,
     GraphNode,
+    canonical_json_sha256,
 )
 
 
@@ -69,8 +70,6 @@ def load_fab_profile_registry(path: Path | None = None) -> FabProfileRegistry:
         document = FabProfileRegistryDocument.model_validate(data)
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
         raise ValueError(f"fab profile registry is invalid: {registry_path}: {exc}") from exc
-    from acd.schema.common import canonical_json_sha256
-
     return FabProfileRegistry(
         document=document,
         registry_hash=canonical_json_sha256(document.model_dump(mode="json")),

@@ -679,6 +679,17 @@ def evaluate_power_boundary(graph: DesignGraph, lane: ElectricalLane) -> SafetyB
     )
 
 
+def _evaluate_power_boundary_predicate(
+    graph: DesignGraph, lane: ElectricalLane
+) -> PredicateResult:
+    safety = evaluate_power_boundary(graph, lane)
+    return _result(
+        "power_boundary",
+        safety.status,
+        "; ".join(item.detail for item in safety.predicates),
+    )
+
+
 def evaluate_design_predicates(
     graph: DesignGraph,
     lane: ElectricalLane,
@@ -690,18 +701,13 @@ def evaluate_design_predicates(
     validate_predicate_coverage(PREDICATE_CATALOG, loaded)
     declared = declared_functional_blocks(graph, loaded)
     required = required_predicate_names(declared, loaded)
-    safety = evaluate_power_boundary(graph, lane) if "power_boundary" in required else None
     evaluators = {
         "usb_cc": lambda: evaluate_usb_cc(graph, lane),
         "i2c_pullup": lambda: evaluate_i2c_pullup(graph, lane),
         "strapping_pin": lambda: evaluate_strapping_pin(graph, lane),
         "pin_firmware_alignment": lambda: evaluate_pin_firmware_alignment(graph, lane),
         "power_decoupling": lambda: evaluate_power_decoupling(graph, lane, fixture_dir),
-        "power_boundary": lambda: _result(
-            "power_boundary",
-            safety.status if safety is not None else "unknown",
-            "; ".join(item.detail for item in safety.predicates) if safety is not None else "",
-        ),
+        "power_boundary": lambda: _evaluate_power_boundary_predicate(graph, lane),
     }
     declared_text = ", ".join(declared)
     return tuple(

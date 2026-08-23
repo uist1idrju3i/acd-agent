@@ -3146,7 +3146,8 @@
         "block_id": "safety_power_boundary"
       },
       "depends_on": [
-        "req.gd1-req-004"
+        "req.gd1-req-004",
+        "req.gd1-req-005"
       ],
       "id": "fb.safety-power-boundary",
       "kind": "design.functional_block"

@@ -9,6 +9,7 @@ from typing import Literal
 
 import pytest
 
+from acd.adapters.kicad.gates import GateError
 from acd.core.design_predicates import PredicateResult
 from acd.core.functional_blocks import load_functional_block_registry
 from acd.pipeline.gd1_board import build_electrical_evidence
@@ -195,6 +196,44 @@ def test_design_predicate_claims_are_recorded_in_fixed_order() -> None:
         predicate.name for predicate in predicates
     ]
     assert all(claim.value == "pass" and claim.verified for claim in evidence.claims[-6:])
+
+
+@pytest.mark.parametrize("status", ["unknown", "fail"])
+def test_nonpassing_design_predicate_status_fails_closed(
+    status: Literal["unknown", "fail"],
+) -> None:
+    predicates = tuple(
+        PredicateResult(
+            name=name,
+            status=status if name == "i2c_pullup" else "pass",
+            detail="not verified" if name == "i2c_pullup" else "ok",
+        )
+        for name in (
+            "usb_cc",
+            "i2c_pullup",
+            "strapping_pin",
+            "pin_firmware_alignment",
+            "power_decoupling",
+            "power_boundary",
+        )
+    )
+    with pytest.raises(GateError, match="i2c_pullup"):
+        build_electrical_evidence(
+            revision="r3",
+            subject_node="board.gd1",
+            envelope=_envelope(),
+            erc_errors=0,
+            erc_unconnected=0,
+            routing_converged=True,
+            drc_errors=0,
+            drc_unconnected=0,
+            silkscreen_status="measured_pass",
+            dfm_status="pass",
+            order_readiness_status="ready",
+            design_predicates=predicates,
+            functional_block_contract=_contract_claim(),
+            declared_blocks=_declared_blocks(),
+        )
 
 
 def test_not_applicable_predicates_are_omitted_from_verified_claims() -> None:

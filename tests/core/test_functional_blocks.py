@@ -16,7 +16,7 @@ from acd.core.functional_blocks import (
     load_functional_block_registry,
     validate_predicate_coverage,
 )
-from acd.schema import DesignGraph
+from acd.schema import DesignGraph, FunctionalBlockContract
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_DIR = ROOT / "fixtures" / "golden-design-1"
@@ -53,12 +53,14 @@ def _without_all_functional_blocks(graph: DesignGraph) -> DesignGraph:
 
 
 def _replace_i2c_block_id(graph: DesignGraph) -> DesignGraph:
+    return _replace_block_id(graph, "unknown_block")
+
+
+def _replace_block_id(graph: DesignGraph, block_id: str) -> DesignGraph:
     return graph.model_copy(
         update={
             "nodes": [
-                node.model_copy(
-                    update={"attrs": {**node.attrs, "block_id": "unknown_block"}}
-                )
+                node.model_copy(update={"attrs": {**node.attrs, "block_id": block_id}})
                 if node.kind == "design.functional_block"
                 and node.attrs.get("block_id") == "i2c_bus_pullup"
                 else node
@@ -164,3 +166,35 @@ def test_topology_without_usb_and_i2c_blocks_uses_other_contracts() -> None:
         result.status == "pass"
         for result in results[2:]
     )
+
+
+def test_new_topology_contract_extends_applicability_without_predicate_changes(
+    tmp_path: Path,
+) -> None:
+    registry = load_functional_block_registry()
+    extended = registry.document.model_copy(
+        update={
+            "contracts": [
+                *registry.document.contracts,
+                FunctionalBlockContract(
+                    block_id="alternate_i2c_bus_pullup",
+                    title="Alternate I2C bus pull-up",
+                    description="Applies the existing I2C pull-up predicate to another topology.",
+                    required_predicates=["i2c_pullup"],
+                ),
+            ]
+        }
+    )
+    registry_path = tmp_path / "registry.json"
+    registry_path.write_text(extended.model_dump_json(), encoding="utf-8")
+    alternate_registry = load_functional_block_registry(registry_path)
+    graph = _replace_block_id(_graph(), "alternate_i2c_bus_pullup")
+    lane = extract_electrical_lane(graph)
+    results = evaluate_design_predicates(
+        graph,
+        lane,
+        FIXTURE_DIR,
+        alternate_registry,
+    )
+    assert results[1].name == "i2c_pullup"
+    assert results[1].status == "pass"

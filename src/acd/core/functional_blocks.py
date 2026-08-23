@@ -9,7 +9,10 @@ from pathlib import Path
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
-from acd.schema.functional_block import FunctionalBlockRegistryDocument
+from acd.schema.functional_block import (
+    FunctionalBlockContract,
+    FunctionalBlockRegistryDocument,
+)
 
 
 class FunctionalBlockContractError(ValueError):
@@ -27,7 +30,7 @@ class FunctionalBlockRegistry:
         return self.document.registry_id
 
     @property
-    def contracts(self):
+    def contracts(self) -> list[FunctionalBlockContract]:
         return self.document.contracts
 
 
