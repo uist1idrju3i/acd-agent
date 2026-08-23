@@ -320,13 +320,25 @@ parse不能、stale、unknown、または要件未達なら0.0とし、全要件
 
 ## 探索並列化境界
 
-GD1基板pipelineでは、独立したKiCad width positive-controlの2 armだけを
-thread poolで並列実行できる。結果はarm-a、arm-bの固定順で集約し、並列度1は
-逐次経路と同一である。worker数を変えた検証では、出力パスとKiCad DRC日時を除いた
-arm summaryの正規化結果が一致し、worker例外はfail-closedで伝播する。`hashes.json`
-は既存pipelineのKiCad UUIDとDRC日時による非決定性のため一致しない。この是正は
-現行の決定論的探索契約の範囲外である。greedy配置探索とsilkscreen探索は状態依存の
-ため並列化しない。
+GD1基板pipelineでは、独立したKiCad width positive-controlの2 armをthread poolで、
+rationale／設計predicate、独立reload、fab測定、Gerber gate、visual projectionの
+独立したPython stageを`--pipeline-workers`指定のProcessPoolExecutorで並列実行できる。
+結果は宣言順で集約し、並列度1は逐次経路と同一である。worker例外はfail-closedで
+伝播する。FreeRoutingのroute→SES import→route injection→DRC、zone refill、
+CPL／BOM chainは逐次のままである。
+
+ロック済みcontainerでの3回比較では、逐次A（worker=1）が145.1秒、逐次B（worker=1）が
+152.0秒、並列C（worker=4）が144.0秒だった。外部のkicad-cli／FreeRouting subprocess
+が支配的であり、worker=4による測定可能なwall-clock短縮は確認できなかった。A/Bと
+A/Cの`hashes.json`差分キーは同じ2つ（post-`refill_zones`の
+`routed/golden-design-1.kicad_pcb`と、その`filled_board_hash`を持つ
+`fab/fab-package.json`）だった。FreeRoutingのSESとrefill前のinjected boardは3回とも
+byte-identicalで、post-`refill_zones` boardだけが異なった。fab gate blockと
+electrical Evidenceのclaims、status、revisionは一致した。このため、差分は既存の
+KiCad zone-fillによるUUID再生成（および既存のDRC日時由来の非決定性）であり、Python
+stageのworker数による成果物差分ではない。`hashes.json`の完全一致を要求することは
+できず、この是正は現行の決定論的探索契約の範囲外である。greedy配置探索とsilkscreen
+探索は状態依存のため並列化しない。
 
 `acd-search` AgentDefinitionは冗長な探索出力を主会話から分離するだけで、候補と
 Skill名・script SHA-256 provenanceを返す。候補、Skill、agentの出力は合否権限を持たず、

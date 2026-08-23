@@ -19,12 +19,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import shutil
 import sys
-from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from collections.abc import Callable, Sequence
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 from typing import Literal, cast
 
@@ -75,7 +77,7 @@ from acd.adapters.svg import (
     generate_layout_visual_projections,
     generate_system_visual_projections,
 )
-from acd.core.board_model import NetClass
+from acd.core.board_model import BoardModel, NetClass
 from acd.core.design_predicates import PredicateResult, evaluate_gd1_predicates
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.fab import extract_fab_intent, load_fab_profile
@@ -94,10 +96,14 @@ from acd.pipeline.visual_projection import (
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 from acd.schema.tool_envelope import ToolEnvelope
+from acd.schema.visual_crosscheck import VisualCrosscheckReport
 from acd.schema.visual_projection import (
     ElectricalVisualProjectionGates,
     ElectricalVisualProjectionPredicate,
+    VisualProjectionSet,
 )
+
+DEFAULT_PIPELINE_WORKERS = min(os.cpu_count() or 1, 4)
 
 GERBER_LAYERS = [
     "F.Cu",
@@ -149,6 +155,85 @@ def _run_ordered_arms(
             ]
             results = [future.result() for future in futures]
     return results[0], results[1]
+
+
+def _run_ordered_stages(
+    stages: Sequence[tuple[str, Callable[[], object]]],
+    workers: int,
+) -> list[object]:
+    """Run independent stages concurrently while preserving declared order."""
+    if workers < 1:
+        raise ValueError("pipeline worker count must be at least 1")
+    if workers == 1 or len(stages) < 2:
+        return [stage() for _, stage in stages]
+    with ProcessPoolExecutor(max_workers=min(workers, len(stages))) as executor:
+        futures = [executor.submit(stage) for _, stage in stages]
+        return [future.result() for future in futures]
+
+
+def _stage_electrical_visual_projections(
+    *,
+    project_name: str,
+    out_dir: Path,
+    source_revision: str,
+    schematic: Path,
+    routed_board: Path,
+    lane: ElectricalLane,
+    board: BoardModel,
+    gates: ElectricalVisualProjectionGates,
+) -> tuple[VisualProjectionSet, VisualCrosscheckReport]:
+    visual_projection_set = generate_electrical_visual_projections(
+        project_name=project_name,
+        out_dir=out_dir,
+        source_revision=source_revision,
+        schematic=schematic,
+        routed_board=routed_board,
+        lane=lane,
+        board=board,
+        gates=gates,
+    )
+    visual_crosscheck = crosscheck_electrical_visual_projections(
+        project_name=project_name,
+        source_revision=source_revision,
+        visual_projection_set=visual_projection_set,
+        lane=lane,
+        board=board,
+        base_dir=out_dir,
+        machine_inputs=(schematic, routed_board),
+    )
+    return visual_projection_set, visual_crosscheck
+
+
+def _stage_firmware_visual_projections(
+    *,
+    project_name: str,
+    out_dir: Path,
+    source_revision: str,
+    graph: DesignGraph,
+    graph_input: Path,
+    input_base_dir: Path,
+) -> tuple[VisualProjectionSet, VisualCrosscheckReport]:
+    firmware_lane = extract_firmware_lane(graph)
+    projection_ids = (f"{project_name}-firmware-state", f"{project_name}-firmware-sequence")
+    firmware_projection_set = generate_firmware_visual_projections(
+        project_name=project_name,
+        out_dir=out_dir,
+        source_revision=source_revision,
+        lane=firmware_lane,
+        authoritative_inputs=(graph_input,),
+        input_base_dir=input_base_dir,
+        projection_ids=projection_ids,
+    )
+    firmware_crosscheck = crosscheck_firmware_visual_projections(
+        source_revision=source_revision,
+        visual_projection_set=firmware_projection_set,
+        lane=firmware_lane,
+        graph_input=graph_input,
+        base_dir=out_dir,
+        input_base_dir=input_base_dir,
+        projection_ids=projection_ids,
+    )
+    return firmware_projection_set, firmware_crosscheck
 
 
 def _summarize_width_violations(
@@ -449,7 +534,11 @@ def _run_kicad_netclass_positive_control(
         report_path = arm_dir / "positive-control.drc.json"
         result = kicad.drc(arm_board, report_path, revision)
         assert_rule_check_input_matches(f"DRC {name}", result, [arm_board])
-        summary = _summarize_width_violations(result, net_name, report_path)
+        summary = _summarize_width_violations(
+            result,
+            net_name,
+            report_path.relative_to(out_dir),
+        )
         summary.update(
             {
                 "class_track_width_mm": inflated_width_mm,
@@ -574,17 +663,33 @@ def run_pipeline(
     max_passes: int,
     fab_profile_path: Path,
     width_control_workers: int = 2,
+    pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
 ) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     out_dir = out_dir.resolve()
-    validate_and_project_rationale(graph, fixture_dir, out_dir)
+    lane = extract_electrical_lane(graph)
+    group0_results = _run_ordered_stages(
+        (
+            (
+                "rationale",
+                partial(validate_and_project_rationale, graph, fixture_dir, out_dir),
+            ),
+            (
+                "design-predicates",
+                partial(evaluate_gd1_predicates, graph, lane, fixture_dir),
+            ),
+        ),
+        pipeline_workers,
+    )
     print("[0/12] rationale coverage passed")
     revision = graph.revision
-    lane = extract_electrical_lane(graph)
-    design_predicates = evaluate_gd1_predicates(graph, lane, fixture_dir)
+    design_predicates = cast(
+        tuple[PredicateResult, ...],
+        group0_results[1],
+    )
     for predicate in design_predicates:
         if predicate.status != "pass":
             raise GateError(f"{predicate.name}: status={predicate.status!r} ({predicate.detail})")
@@ -794,13 +899,23 @@ def run_pipeline(
 
     expected_nets = set(project.board_projection.net_numbers)
     expected_refdes = {c.refdes for c in lane.components}
-    verify_schematic(project.schematic, expected_refdes)
-    verify_board(routed_path, expected_nets, expected_refdes)
+    reload_stages: list[tuple[str, Callable[[], object]]] = [
+        ("schematic", partial(verify_schematic, project.schematic, expected_refdes)),
+        ("board", partial(verify_board, routed_path, expected_nets, expected_refdes)),
+    ]
     for layer, path in zip(GERBER_LAYERS, gerber_paths, strict=True):
         # Bottom-side legend may be legitimately empty on a top-assembly board.
-        verify_gerber(path, min_objects=0 if layer == "B.SilkS" else 1)
-    for path in drill_paths:
-        verify_drill(path)
+        reload_stages.append(
+            (
+                f"gerber-{layer}",
+                partial(verify_gerber, path, min_objects=0 if layer == "B.SilkS" else 1),
+            )
+        )
+    reload_stages.extend(
+        (f"drill-{index}", partial(verify_drill, path))
+        for index, path in enumerate(drill_paths)
+    )
+    _run_ordered_stages(reload_stages, pipeline_workers)
     print("[7/12] independent reload passed (sexpdata + gerbonara)")
 
     fab_dir = out_dir / "fab"
@@ -824,44 +939,64 @@ def run_pipeline(
         measurement.net_name_source,
         measurement.segments,
     )
-    silk_evidence = measure_silkscreen(
-        {
-            "F.SilkS": gerber_paths[GERBER_LAYERS.index("F.SilkS")],
-            "B.SilkS": gerber_paths[GERBER_LAYERS.index("B.SilkS")],
-        },
-        {
-            "F.Mask": gerber_paths[GERBER_LAYERS.index("F.Mask")],
-            "B.Mask": gerber_paths[GERBER_LAYERS.index("B.Mask")],
-        },
-        gerber_paths[GERBER_LAYERS.index("Edge.Cuts")],
-        measurement,
-        silkscreen,
-        profile,
-        {
-            graphic.node_id: resolve_repository_file(graphic.source_path)
-            for graphic in silkscreen.graphics
-            if graphic.source_path is not None
-        },
-    )
     profile_minimum = float(profile.data["capabilities"]["min_track_width"]["value"])
     width_requirements = derive_net_widths(lane, profile_minimum)
     if lane.board.width_measurement_tolerance_mm is None:
         raise ValueError("width measurement tolerance is missing (fail-closed)")
-    width_evidence = measure_net_track_widths(
-        {
-            "F.Cu": gerber_paths[GERBER_LAYERS.index("F.Cu")],
-            "B.Cu": gerber_paths[GERBER_LAYERS.index("B.Cu")],
-        },
-        measurement,
-        width_requirements,
-        lane.board.width_measurement_tolerance_mm,
+    measurement_stages = _run_ordered_stages(
+        (
+            (
+                "silkscreen",
+                partial(
+                    measure_silkscreen,
+                    {
+                        "F.SilkS": gerber_paths[GERBER_LAYERS.index("F.SilkS")],
+                        "B.SilkS": gerber_paths[GERBER_LAYERS.index("B.SilkS")],
+                    },
+                    {
+                        "F.Mask": gerber_paths[GERBER_LAYERS.index("F.Mask")],
+                        "B.Mask": gerber_paths[GERBER_LAYERS.index("B.Mask")],
+                    },
+                    gerber_paths[GERBER_LAYERS.index("Edge.Cuts")],
+                    measurement,
+                    silkscreen,
+                    profile,
+                    {
+                        graphic.node_id: resolve_repository_file(graphic.source_path)
+                        for graphic in silkscreen.graphics
+                        if graphic.source_path is not None
+                    },
+                ),
+            ),
+            (
+                "net-track-widths",
+                partial(
+                    measure_net_track_widths,
+                    {
+                        "F.Cu": gerber_paths[GERBER_LAYERS.index("F.Cu")],
+                        "B.Cu": gerber_paths[GERBER_LAYERS.index("B.Cu")],
+                    },
+                    measurement,
+                    width_requirements,
+                    lane.board.width_measurement_tolerance_mm,
+                ),
+            ),
+            (
+                "net-path-resistance",
+                partial(
+                    measure_net_path_resistance,
+                    measurement,
+                    width_requirements,
+                    routes.vias,
+                    (lane.board.outer_copper_thickness_um or 0.0) / 1000.0,
+                ),
+            ),
+        ),
+        pipeline_workers,
     )
-    path_evidence = measure_net_path_resistance(
-        measurement,
-        width_requirements,
-        routes.vias,
-        (lane.board.outer_copper_thickness_um or 0.0) / 1000.0,
-    )
+    silk_evidence = cast(dict[str, object], measurement_stages[0])
+    width_evidence = cast(dict[str, object], measurement_stages[1])
+    path_evidence = cast(dict[str, object], measurement_stages[2])
     net_evidence = cast(dict[str, object], width_evidence["nets"])
     for _net_name, raw in net_evidence.items():
         item = cast(dict[str, object], raw)
@@ -918,14 +1053,31 @@ def run_pipeline(
             "netclass_patterns_positive_control": kicad_positive_control,
         },
     }
-    verify_smd_pad_centers_in_gerber(gerber_paths[GERBER_LAYERS.index("F.Cu")], measurement)
-    plane_measurement = verify_ground_plane_gerbers(
-        gerber_paths[GERBER_LAYERS.index("F.Cu")],
-        gerber_paths[GERBER_LAYERS.index("B.Cu")],
-        project.board_projection.model,
-        stitch_vias,
-        routes,
+    measurement_gate_results = _run_ordered_stages(
+        (
+            (
+                "smd-pad-centers",
+                partial(
+                    verify_smd_pad_centers_in_gerber,
+                    gerber_paths[GERBER_LAYERS.index("F.Cu")],
+                    measurement,
+                ),
+            ),
+            (
+                "ground-plane-gerbers",
+                partial(
+                    verify_ground_plane_gerbers,
+                    gerber_paths[GERBER_LAYERS.index("F.Cu")],
+                    gerber_paths[GERBER_LAYERS.index("B.Cu")],
+                    project.board_projection.model,
+                    stitch_vias,
+                    routes,
+                ),
+            ),
+        ),
+        pipeline_workers,
     )
+    plane_measurement = cast(dict[str, object], measurement_gate_results[1])
     plane_measurement["stitch_via_candidates"] = stitch_candidate_report
     edge_overhang_declarations = {
         str(node.attrs["component_refdes"]): float(str(node.attrs["overhang_mm"]))
@@ -1213,43 +1365,92 @@ def run_pipeline(
     evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
     print(f"[10/12] electrical evidence recorded: {evidence_path}")
 
-    visual_projection_set = generate_electrical_visual_projections(
-        project_name=name,
-        out_dir=out_dir,
-        source_revision=revision,
-        schematic=project.schematic,
-        routed_board=routed_path,
-        lane=lane,
-        board=project.board_projection.model,
-        gates=ElectricalVisualProjectionGates(
-            erc_errors=erc.error_count,
-            erc_unconnected=len(erc.unconnected_items),
-            routing_converged=route_run.envelope.convergence_state == "converged",
-            drc_errors=drc.error_count,
-            drc_unconnected=len(drc.unconnected_items),
-            independent_reload=True,
-            silkscreen_status=_visual_silkscreen_status(silk_evidence.get("status")),
-            dfm_status=_visual_dfm_status(dfm_report.get("status")),
-            design_predicates=tuple(
-                ElectricalVisualProjectionPredicate.model_validate(
-                    predicate.model_dump(mode="json")
-                )
-                for predicate in design_predicates
+    electrical_gates = ElectricalVisualProjectionGates(
+        erc_errors=erc.error_count,
+        erc_unconnected=len(erc.unconnected_items),
+        routing_converged=route_run.envelope.convergence_state == "converged",
+        drc_errors=drc.error_count,
+        drc_unconnected=len(drc.unconnected_items),
+        independent_reload=True,
+        silkscreen_status=_visual_silkscreen_status(silk_evidence.get("status")),
+        dfm_status=_visual_dfm_status(dfm_report.get("status")),
+        design_predicates=tuple(
+            ElectricalVisualProjectionPredicate.model_validate(
+                predicate.model_dump(mode="json")
+            )
+            for predicate in design_predicates
+        ),
+    )
+    visual_stage_results = _run_ordered_stages(
+        (
+            (
+                "electrical-visual-projections",
+                partial(
+                    _stage_electrical_visual_projections,
+                    project_name=name,
+                    out_dir=out_dir,
+                    source_revision=revision,
+                    schematic=project.schematic,
+                    routed_board=routed_path,
+                    lane=lane,
+                    board=project.board_projection.model,
+                    gates=electrical_gates,
+                ),
+            ),
+            (
+                "layout-visual-projections",
+                partial(
+                    generate_layout_visual_projections,
+                    project_name=name,
+                    out_dir=out_dir,
+                    source_revision=revision,
+                    board=project.board_projection.model,
+                    board_view=lane.board,
+                    authoritative_inputs=(fixture_dir / "graph.json",),
+                    input_base_dir=repository_root(),
+                ),
+            ),
+            (
+                "system-visual-projections",
+                partial(
+                    generate_system_visual_projections,
+                    project_name=name,
+                    out_dir=out_dir,
+                    source_revision=revision,
+                    graph=graph,
+                    lane=lane,
+                    authoritative_inputs=(fixture_dir / "graph.json",),
+                    input_base_dir=repository_root(),
+                ),
+            ),
+            (
+                "firmware-visual-projections",
+                partial(
+                    _stage_firmware_visual_projections,
+                    project_name=name,
+                    out_dir=out_dir,
+                    source_revision=revision,
+                    graph=graph,
+                    graph_input=fixture_dir / "graph.json",
+                    input_base_dir=repository_root(),
+                ),
             ),
         ),
+        pipeline_workers,
+    )
+    _visual_projection_set, visual_crosscheck = cast(
+        tuple[VisualProjectionSet, VisualCrosscheckReport],
+        visual_stage_results[0],
+    )
+    layout_projection_set = cast(VisualProjectionSet, visual_stage_results[1])
+    system_projection_set = cast(VisualProjectionSet, visual_stage_results[2])
+    firmware_projection_set, firmware_crosscheck = cast(
+        tuple[VisualProjectionSet, VisualCrosscheckReport],
+        visual_stage_results[3],
     )
     print(
         "[10/12] electrical visual projections recorded: "
         f"{out_dir / 'visual-projections-electrical.json'}"
-    )
-    visual_crosscheck = crosscheck_electrical_visual_projections(
-        project_name=name,
-        source_revision=revision,
-        visual_projection_set=visual_projection_set,
-        lane=lane,
-        board=project.board_projection.model,
-        base_dir=out_dir,
-        machine_inputs=(project.schematic, routed_path),
     )
     if visual_crosscheck.status != "match":
         raise RuntimeError("electrical visual cross-check did not match (fail-closed)")
@@ -1257,29 +1458,11 @@ def run_pipeline(
         "[10/12] electrical visual cross-check recorded: "
         f"{out_dir / 'visual-crosscheck-electrical.json'}"
     )
-    layout_projection_set = generate_layout_visual_projections(
-        project_name=name,
-        out_dir=out_dir,
-        source_revision=revision,
-        board=project.board_projection.model,
-        board_view=lane.board,
-        authoritative_inputs=(fixture_dir / "graph.json",),
-        input_base_dir=repository_root(),
-    )
     print(
         "[10/12] layout visual projections recorded: "
         f"{out_dir / 'visual-projections-layout.json'} "
         f"(identity_hash={layout_projection_set.identity_hash}; "
         f"canonical_hash={layout_projection_set.canonical_hash})"
-    )
-    system_projection_set = generate_system_visual_projections(
-        project_name=name,
-        out_dir=out_dir,
-        source_revision=revision,
-        graph=graph,
-        lane=lane,
-        authoritative_inputs=(fixture_dir / "graph.json",),
-        input_base_dir=repository_root(),
     )
     print(
         "[10/12] system visual projections recorded: "
@@ -1287,30 +1470,11 @@ def run_pipeline(
         f"(identity_hash={system_projection_set.identity_hash}; "
         f"canonical_hash={system_projection_set.canonical_hash})"
     )
-    firmware_lane = extract_firmware_lane(graph)
-    firmware_projection_set = generate_firmware_visual_projections(
-        project_name=name,
-        out_dir=out_dir,
-        source_revision=revision,
-        lane=firmware_lane,
-        authoritative_inputs=(fixture_dir / "graph.json",),
-        input_base_dir=repository_root(),
-        projection_ids=(f"{name}-firmware-state", f"{name}-firmware-sequence"),
-    )
     print(
         "[11/12] firmware visual projections recorded: "
         f"{out_dir / 'visual-projections-firmware.json'} "
         f"(identity_hash={firmware_projection_set.identity_hash}; "
         f"canonical_hash={firmware_projection_set.canonical_hash})"
-    )
-    firmware_crosscheck = crosscheck_firmware_visual_projections(
-        source_revision=revision,
-        visual_projection_set=firmware_projection_set,
-        lane=firmware_lane,
-        graph_input=fixture_dir / "graph.json",
-        base_dir=out_dir,
-        input_base_dir=repository_root(),
-        projection_ids=(f"{name}-firmware-state", f"{name}-firmware-sequence"),
     )
     if firmware_crosscheck.status != "match":
         raise RuntimeError("firmware visual cross-check did not match (fail-closed)")
@@ -1371,6 +1535,12 @@ def main() -> int:
         help="parallel workers for independent width positive-control arms",
     )
     parser.add_argument(
+        "--pipeline-workers",
+        type=int,
+        default=DEFAULT_PIPELINE_WORKERS,
+        help="parallel workers for independent Python pipeline stages",
+    )
+    parser.add_argument(
         "--fab-profile",
         type=Path,
         default=Path("profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"),
@@ -1384,6 +1554,7 @@ def main() -> int:
             args.max_passes,
             args.fab_profile,
             args.width_control_workers,
+            args.pipeline_workers,
         )
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)

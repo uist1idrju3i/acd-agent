@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -53,19 +54,21 @@ class KicadVisualRenderer:
         layer: str | None,
     ) -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
-        svg_before: set[Path] = set()
+        export_dir: Path | None = None
         if projection_type == "schematic_view":
-            svg_before = set(output.parent.glob("*.svg"))
-            generated_output = output.parent / f"{source.stem}.svg"
-            if generated_output.exists():
-                generated_output.unlink()
+            # Isolate KiCad sheet output from sibling visual exports.
+            export_dir = output.parent / f".{output.stem}.kicad-export"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            for existing_output in export_dir.glob("*.svg"):
+                existing_output.unlink()
+            generated_output = export_dir / f"{source.stem}.svg"
             command = [
                 self.kicad.executable,
                 "sch",
                 "export",
                 "svg",
                 "-o",
-                str(output.parent),
+                str(export_dir),
                 str(source),
             ]
         else:
@@ -83,32 +86,34 @@ class KicadVisualRenderer:
                 str(output),
                 str(source),
             ]
-        run_tool(
-            tool_name="kicad-cli",
-            tool_version=self.kicad.version(),
-            format_version="SVG",
-            command=command,
-            input_paths=[source],
-            output_paths=[generated_output],
-            envelope_path=envelope,
-            target_revision=target_revision,
-            measurement_conditions="single SVG export; measured root dimensions",
-        )
-        if projection_type == "schematic_view":
-            unexpected_outputs = set(output.parent.glob("*.svg")) - svg_before - {
-                generated_output
-            }
-            if unexpected_outputs:
-                raise ExternalToolError(
-                    "kicad-cli schematic export produced multiple SVG outputs"
-                )
-        if generated_output != output:
-            try:
-                generated_output.replace(output)
-            except OSError as exc:
-                raise ExternalToolError(
-                    "kicad-cli schematic SVG output could not be normalized to target path"
-                ) from exc
+        try:
+            run_tool(
+                tool_name="kicad-cli",
+                tool_version=self.kicad.version(),
+                format_version="SVG",
+                command=command,
+                input_paths=[source],
+                output_paths=[generated_output],
+                envelope_path=envelope,
+                target_revision=target_revision,
+                measurement_conditions="single SVG export; measured root dimensions",
+            )
+            if projection_type == "schematic_view":
+                assert export_dir is not None
+                unexpected_outputs = set(export_dir.glob("*.svg")) - {generated_output}
+                if unexpected_outputs:
+                    raise ExternalToolError(
+                        "kicad-cli schematic export produced multiple SVG outputs"
+                    )
+                try:
+                    generated_output.replace(output)
+                except OSError as exc:
+                    raise ExternalToolError(
+                        "kicad-cli schematic SVG output could not be normalized to target path"
+                    ) from exc
+        finally:
+            if export_dir is not None:
+                shutil.rmtree(export_dir)
 
     @staticmethod
     def _resolve_within_base(path: Path, base_dir: Path, field_name: str) -> Path:
