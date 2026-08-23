@@ -225,7 +225,7 @@
         "acd.core.silkscreen.SilkscreenLane"
       ],
       "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
-      "sha256": "c50cfc42a7c4dba72ebd4ec118c8052fdda952a0bf2d1a23f98044db1223191e"
+      "sha256": "d62adeae1ef444445f87df52710a94e5ace2caccc8daca2ac71ec01b08ad53ab"
     },
     {
       "acd_symbols": [

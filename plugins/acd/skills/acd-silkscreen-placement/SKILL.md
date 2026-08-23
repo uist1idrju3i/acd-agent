@@ -22,7 +22,10 @@ ACD gates (DRC and independent reload) decide acceptance.
 
 - `scripts/silkscreen_search.py` scans around the declared datum (the board
   outline or a referenced footprint) using the declared order, step, and
-  limit. It considers 0/90/180/270-degree rotations.
+  limit. It considers 0/90/180/270-degree rotations and accepts an optional
+  `--workers N` argument. The default is
+  `min(os.cpu_count() or 1, 4)`; use `--workers 1` for fully sequential
+  evaluation.
 - It uses measured context values and rejects candidates that overlap pads,
   mask openings, existing footprint silk, fixed silk, same-side body or
   courtyard geometry, or the board-edge margin. A candidate is also rejected
@@ -47,13 +50,18 @@ import sys
 
 sys.path.insert(0, "plugins/acd/skills/acd-silkscreen-placement/scripts")
 
-uv run --script plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py --input silkscreen-input.json --output silkscreen-output.json
+uv run --script plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py --input silkscreen-input.json --output silkscreen-output.json --workers 1
 
 resolved = resolve_silkscreen_placements(lane, board_projection.model)
 ```
 
 `--script` resolves dependencies from the PEP 723 metadata. Use
 `uv run --script <path>` for PEP 723 scripts, including local checkouts.
+
+Candidate evaluation can use `--workers N` for explicit process-based
+parallelism. `--workers 1` does not create a process pool. Candidate and
+rejection ordering, fail-closed results, and output meaning remain unchanged
+for every worker count; worker count is not included in output or provenance.
 
 `lane` is the result of `extract_silkscreen_lane()`, and
 `board_projection.model` is the `BoardModel` after placement resolution. The
