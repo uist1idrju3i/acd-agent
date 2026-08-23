@@ -60,7 +60,7 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 
 | # | 不足機能 | 現状 | 実測根拠 |
 |---|---|---|---|
-| E-1 | pipeline stageの並列化 | `--pipeline-workers`により、rationale／設計predicate、独立reload、fab測定、Gerber gate、visual projectionの独立stageをProcessPoolExecutorで並列化済み。CPL／BOM chainは逐次のまま、E-2のlane／run並列化とE-4のstage cacheは未実装 | 実行中のプロセス観察でPython stageが単一コア律速 |
+| E-1 | pipeline stageの並列化 | `--pipeline-workers`により、rationale／設計predicate、独立reload、fab測定、Gerber gate、visual projectionの独立stageをProcessPoolExecutorで並列化済み。CPL／BOM chainは逐次のまま、E-2のlane／run並列化とE-4のstage cacheは未実装 | ロック済みcontainerの3回比較は、逐次A（worker=1）145.1秒、逐次B（worker=1）152.0秒、並列C（worker=4）144.0秒。A/BとA/Cの差分hashキー集合は一致し、SESとrefill前boardも一致した。外部kicad-cli／FreeRoutingが支配的で、測定可能な短縮は未確認 |
 | E-2 | lane・runの並列実行 | 4点証拠のためGD1再生成が毎回必要だが、variantとGD1のrunを直列で回している | GD1再生成とvariant生成を順に実行した |
 | E-3 | JVM／containerの資源宣言 | FreeRoutingへ`-mp 99999`を渡す一方でJVM thread・heap指定とcontainerの`--cpus`指定が無い | routerが実行時間の支配項 |
 | E-4 | 入力hash単位のstage cache | 配置だけ変えた再試行でもDSN exportからやり直す | 候補ごとに全stageを再実行した |

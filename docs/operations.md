@@ -199,8 +199,11 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    基板pipelineの独立したPython stageは、既定のCPU数（最大4）を使って実行する。
    `--pipeline-workers N`でworker数を指定でき、`--pipeline-workers 1`は逐次実行になる。
    CPL／BOM chain、E-2のlane／run並列化、E-4のstage cacheは引き続き逐次または未実装である。
-   並列実行のhash一致integration testは既定ではskipされる。ロック済みcontainerで
-   `ACD_PIPELINE_PARALLEL_TEST=1`、`kicad-cli`、`freerouting`を揃えた場合だけ有効になる。
+   並列実行のhash差分を逐次2回と比較するintegration testは既定ではskipされる。
+   ロック済みcontainerで`ACD_PIPELINE_PARALLEL_TEST=1`、`kicad-cli`、`freerouting`を
+   揃えた場合だけ有効になる。逐次A／逐次B／並列Cの3回を実行し、A/BとA/Cで
+   差分となるhashキー集合が一致することを確認する。`refill_zones`が再生成する
+   KiCad UUIDによる既存のrun-to-run差分を許容し、完全なhash一致は要求しない。
    会話から実行する場合も、ゲートの段階、使用したfixture、入力・出力Evidenceのパスを
    応答へ明記させる。
 
