@@ -19,11 +19,11 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 
 | # | 不足機能 | 現状 | 実測根拠 |
 |---|---|---|---|
-| A-1 | 会話→要件レコードの変換 | [`README.md`](../README.md)は「対話を検証可能な要件へ変換する」を掲げるが、実装は`req.*` nodeの手書き。要件文は自由文で、ゲートと機械的に結び付いていない | 変更したREQ-010／REQ-011の文面は手作業更新であり、GPIO変更との整合を機械検査できなかった |
-| A-2 | 任意設計向けfixtureビルダー | [`src/acd/pipeline/gd1_fixture/`](../src/acd/pipeline/gd1_fixture/)はGD1専用。新規設計はGD1のgraphを複製して手編集するしかない | 変異fixtureは自作スクリプトでGD1 graphを書き換えて生成した。acd-agent内には該当機能が無い |
-| A-3 | 要件差分→graph差分のコンパイラ | 「LEDをIO6へ」という要件変更に対し、`pin.*`接続、`fw.pin.*`、テストポイント名、シルク文字、rationaleを同時に更新する経路が無い | 上記4箇所をすべて手で書き換えた。1箇所落とすとresolverかrationale coverageで落ちる |
-| A-4 | 部品選定とlibrary provenanceの自動化 | 部品・footprint・provenanceはGD1 fixtureに固定。カタログ検索や代替品選定の機構が無い | 部品点数を変えない要件に限定したため回避したが、部品を増やす要件は現状扱えない |
-| A-5 | 回路トポロジ合成 | net構成はGD1のコピーが前提。機能ブロックからnetlistを合成する層が無い | I2C・LED以外の構成変更は検討不能だった |
+| A-1 | 会話→要件レコードの変換 | `RequirementRecord`／`RequirementDocument`が要件文と機能ブロック、graph nodeを機械的にリンクし、`req.*` nodeとの双方向整合性をfail-closedで検査する。達成 | 要件文、期待値、対象nodeをcanonical hash付きrequirements documentへ保存する |
+| A-2 | 任意設計向けfixtureビルダー | [`src/acd/pipeline/fixture_builder.py`](../src/acd/pipeline/fixture_builder.py)がPydantic specから決定論的にgraph、requirements、rationaleを生成する。達成 | `scripts/build_design_fixture.py`と部分選定catalog requestを追加した |
+| A-3 | 要件差分→graph差分のコンパイラ | 要件変更compilerがGPIO、FW pin、test point、silk、`req.*`、rationaleを一括更新し、atomic rollbackとbefore/after hashを返す。達成 | unknown／ambiguous／未対応expectationはfail-closedで停止する |
+| A-4 | 部品選定とlibrary provenanceの自動化 | [`contracts/parts-catalog.json`](../contracts/parts-catalog.json)を宣言source of truthとし、kind／value／package／preferred part numberから一意選択し、pinned library provenanceを返す。達成 | ネットワークを使わず、欠落・曖昧・不一致はfail-closedとする |
+| A-5 | 回路トポロジ合成 | 機能ブロックregistryのblock_idに対する明示的templateから、component request、net、制約のfixture fragmentを決定論的に合成する。達成 | unknown blockとtemplate欠落（検証不能）は、機能を持たない状態と区別してfail-closedとする |
 
 ## B. 物理設計の自律探索（今回の直接のfailure源）
 
@@ -33,9 +33,9 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 | B-2 | GPIO割当solver | strapping pin制約と配線可能性を同時に満たすGPIO割当を探索する機構が無い | pad 6/16案・pad 18/20/21案が未配線で却下され、最終的に「LEDを隣のpadへ1つ動かすだけ」まで人間が縮退させた |
 | B-3 | 却下理由の構造化Evidence | routerログには未配線netとpad対が出るが、gateは`router convergence_state='not_converged'`の文字列で停止し、機械可読な失敗理由を返さない | 次候補の立案は毎回ログの目視解析に依存した |
 | B-4 | gateの依存順・前倒し評価 | 配置だけで判定できる述語（デカップリング距離など）がrouter実行後に評価される | `C5 distance 3.319 mm exceeds 3.0 mm`がrouter完走後に判明し、1候補あたり数十分を無駄にした |
-| B-5 | 結合制約（機能グループ）の表現 | U3を動かすとC5・R4も動かす必要があるという結合がgraphに無い | U3のみ移動した候補がデカップリング距離で却下された |
-| B-6 | 単一datum化されていない機構寸法 | 取付穴がoutline宣言と`comp.h*`配置の二重定義 | 34 mm化の際に両方を手で合わせる必要があった |
-| B-7 | stitch via候補が全滅した島のfallback | `inject_stitch_vias`の候補は原点固定グリッドで、配線が0.043 mm近接するだけで島にGND接続点が無くなりfail-closed | `Conductor region lacks a GND connection point`。島内の唯一の候補(21.698,18.684)が+3V3配線2本で除外されていた |
+| B-5 | 結合制約（機能グループ）の表現 | `electrical.placement_group`がprimaryとcoupled member、距離／move-togetherを宣言し、placement Skillが既配置memberからの距離を制約する | L1のデカップリング距離predicateは変更せず、未知member・重複group・不正距離はfail-closed |
+| B-6 | 単一datum化されていない機構寸法 | 機械outlineのmount-hole座標を単一datumとし、`comp.h*` body位置を決定論的に導出する | outlineとbodyの二重編集を除去し、既存GD1座標を維持 |
+| B-7 | stitch via候補が全滅した島のfallback | 原点固定primary gridが全滅した候補集合に対し、phase-shifted／interior候補を同じ除外規則で追加し、なお空ならfail-closed | fallback使用、生成候補、除外理由をreportへ保存し、primary gridが足りる基板の選択は変更しない |
 | B-8 | 探索用の設計自由度の宣言 | 線幅・層数・clearance・via規則・router pass上限は固定値で、要件に応じた探索対象になっていない | 収束しない候補に対して打てる手が配置しか無かった |
 | B-9 | `stitch_candidate_report`の常時保存 | 呼び出し側が明示的に渡した場合のみ生成され、Evidenceに残らない | 事後解析のためホスト側で独自のKiCad s-expression parserを書く必要があった（provisional） |
 
@@ -54,9 +54,9 @@ Gerber検査はrouting結果に依存するため、従来どおりrouter後に�
 |---|---|---|
 | B-3 | 達成。述語失敗のmeasurement／subjectとrouterの未接続net・pad対を決定論的な診断Evidenceへ保存 | 解決済み |
 | B-4 | 達成。述語catalogの評価段階を宣言し、6述語の`pre_router`被覆と既存評価順を回帰固定 | 解決済み |
-| B-1 | 未着手。候補生成・探索loopは14.4の範囲 | 14.4 |
-| B-2 | 未着手。候補の反復評価は14.4の範囲 | 14.4 |
-| B-5〜B-7 | 未着手。結合制約、datum化、stitch via fallbackは14.4の範囲 | 14.4 |
+| B-1 | 達成。配置・回転Skillをsubprocess境界で呼び出し、設計自由度を検査するbounded候補探索loopを追加 | 解決済み |
+| B-2 | 達成。graph宣言MCU padからGPIO割当を決定論的に列挙し、strapping pinをpre_routerで除外する探索loopを追加 | 解決済み |
+| B-5〜B-7 | 達成。placement group制約、outline単一datumからのmount-hole body導出、stitch via fallbackを実装 | 解決済み |
 | B-8・B-9 | 「Bの一部解決（マイルストーン14.4 第1セッション）」を参照 | 14.4 第1セッション |
 
 ### Bの一部解決（マイルストーン14.4 第1セッション）
@@ -78,8 +78,8 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 |---|---|---|
 | B-8 | 達成。9次元の設計自由度宣言、出所・bound basis・gate authority、探索可否、registry整合検査を追加 | 解決済み |
 | B-9 | 達成。初回・refill反復の候補reportとGND島未被覆測定を常時保存し、DFMにはbounded summaryを埋め込む | 解決済み |
-| B-1・B-2 | 未着手。宣言した自由度を使う候補生成・探索loopは後続セッション | 14.4 |
-| B-5〜B-7 | 未着手。結合制約、単一datum化、stitch via fallbackは後続セッション | 14.4 |
+| B-1・B-2 | 達成。配置・回転SkillとGPIO solverをsubprocess／決定論的列挙で接続し、候補ごとにpre_routerと既存gateを評価するbounded loopを追加 | 解決済み |
+| B-5〜B-7 | 達成。placement coupling、単一datum化、stitch via fallbackを実装 | 解決済み |
 
 ## C. 筐体・FW lane
 
@@ -105,7 +105,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 | E-1 | pipeline stageの並列化 | 基板pipelineでは`--pipeline-workers`により、rationale／設計predicate、独立reload、fab測定、Gerber gate、visual projectionの独立stageをProcessPoolExecutorで並列化済み。筐体pipelineではCAD専用spawn runnerをpipeline全体で再利用し、worker数分のmodule warm-up jobをBarrierで待ち合わせ、rationale／lane抽出／筐体投影中にimportを重ね、機械gate／artifact測定／断面・干渉visual projectionを同じrunnerへsubmitする。warm-up失敗・timeoutは最適化の警告として判定を変えずに続行する。2コアVMでCAD経路の既定を逐次（worker=1）とし、並列はopt-inにした。CPL／BOM chainは逐次のまま、E-2のlane／run並列化とE-4のstage cacheは未実装 | 基板のロック済みcontainerの3回比較は、逐次A（worker=1）145.1秒、逐次B（worker=1）152.0秒、並列C（worker=4）144.0秒。筐体は2コアVMの同一fixtureで`--pipeline-workers 1`が8.309秒、`--pipeline-workers 4`が26.492秒（現在の実装によるhostのprovisional測定）。4 workerのspawn＋`build123d` warm-up待ちは4.870秒（1 workerあたりの測定値）、shutdownは0.915秒で、逐次区間との重複後も2コア環境ではCAD stageのCPU競合が支配的となり短縮しなかった。Linux既定forkでOCP状態を継承すると停止するためCAD経路だけspawnを明示し、worker起動をpipelineごとに1回へ抑える。CAD stage実処理がworker起動コストを上回る大規模設計や多コア環境では明示指定で並列化できる。基板のA/BとA/Cの差分hashキー集合は一致し、SESとrefill前boardも一致した。外部CAD kernel／kicad-cli／FreeRoutingが支配的で、短縮幅は実行環境に依存する |
 | E-2 | lane・runの並列実行 | `scripts/run_gd1_lanes.py`でsilkscreen resolverをbarrierとして先に実行し、fixtureの`graph.json`更新完了後に、出力先を分離したGD1基板lane、GD1筐体lane、pytest subsetを独立batchとして並列実行する。`--jobs 1`は宣言順の逐次経路、複数jobは宣言順の出力とfail-closedの全件失敗報告を使う。laneの並列度は成果物、hash、Evidence、provenance、summaryへ含めない | 実装済み。host provisionalは基板laneの`freerouting` executable不在でfail-closedとなり、lane全体の成功・短縮は未実測（失敗までのwall clockは`--jobs 1` 15.902秒、既定並列29.331秒で、成功比較値ではない）。digest固定imageのDockerWorkspaceを使うCI `container-gates`をauthoritativeな測定経路とし、短縮が得られない場合も実測値を記録する |
 | E-3 | silkscreen探索候補評価の並列化 | `acd-silkscreen-placement`の`resolve_from_context`で、texts>1の候補数前パスをtext単位、1 text内のrotation×x-column列を共有context bundle付きchunk単位で`ProcessPoolExecutor`並列化した。チャンク内・チャンク間の結果をrotation宣言順・x昇順で連結し、main passは`dynamic_silk`が後続textの障害物になるため逐次のままとした。`--workers 1`はpoolなしの完全逐次で、worker数は出力、hash、Evidence、provenance、summaryへ含めない。placement search Skillは1.44秒（warm状態、interpreter起動込み）で実処理がサブ秒のため変更していない | 2コアVMのGD1 fixtureではpinned silkscreenにより通常のresolverで探索Skillは0回（resolve全体12.0秒）。未解決化した6 textではSkill 1回が47.77秒、resolve全体が63.29秒で、候補評価が支配項となった。抽出した同一入力を現在のSkillへ直接与えたhost provisional比較では、`--workers 1`が49.075秒、`--workers 2`が29.245秒、`--workers 4`が29.722秒で、全実行が成功しoutput JSON（各63,900,205 bytes）はbyte一致した。chunk化後も並列化によりこの入力では短縮したが、2コアVMのhost測定であり、authoritativeな判定はcontainer gateに委ねる |
-| E-4 | 入力hash単位のstage cache | 配置だけ変えた再試行でもDSN exportからやり直す | 候補ごとに全stageを再実行した |
+| E-4 | 入力hash単位のstage cache | 達成。graph revision、board projection、routing設定、FreeRouting versionをcanonical hashへ含め、DSN／SES生成物だけを検証付きcacheへ保存する。hitでもL1ゲートとEvidenceを再実行し、破損・hash不一致は無視して再生成する。cache reportはL3であり、worker数・wall time・絶対path・判定・Evidenceはkey／cache内容へ含めない | 同一入力のkey安定性、入力変更miss、破損entry再生成、hit後のゲート再実行をunit testで固定 |
 | E-5 | output prefix／`subject_node`のgd1固定 | graph_id由来にすべき。ファイル名で設計同一性を判断できない | variant成果物も`gd1-*`名で出力される |
 | E-6 | 検証段階の並列実行 | pytestは`-n auto --dist loadgroup`、`verify_all.py`は`--jobs N`（既定はCPU数と4の小さい方）でbarrierのない連続コマンドを並列実行する。standardとfullの`uv sync`およびfullの後続pipelineはbarrierとして単独実行する。docs stageは文書検証3本を環境同期なしで並列実行する。`--jobs 1`は最初の失敗で停止して子プロセス出力を直接流し、並列時は開始行を出して起動済みコマンドを完走させ、失敗をすべて報告する | 2コアVMの同一入力でpytestは195.13秒（逐次）から108.73秒（自動並列）、standard検証は141.21秒（`--jobs 1`）から126.66秒（既定並列）になった。各条件1回（詳細は[`docs/operations.md`](operations.md)） |
 
@@ -224,7 +224,7 @@ authoritative Evidenceのdigest固定条件は緩めない。
 | # | 不足機能 | 現状 |
 |---|---|---|
 | I-1 | VibeBB loopのcommand | [`plugins/acd/commands/`](../plugins/acd/commands/)は`ask`／`doctor`／`gates`の3つで、設計・生成・発注を進めるcommandが無い。会話から進める手段が「shellで各scriptを叩く」に落ちる |
-| I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)が公開するのはtool probe、graph validate、GD1基板pipeline、GD1筐体pipelineの4つのみ。FW pipeline、fixture編集、発注、失敗診断のtoolが無く、それらは生JSON編集と生shellになる。今回私が座標とGPIOを手で書いたのはこの欠落の帰結である |
+| I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)へFW pipeline、要件compiler、fixture builder、bounded探索、失敗診断、発注readinessの6 toolを追加した。すべて既存SDKのAction／Observation／Executor境界を使い、L1 Evidenceを生成・昇格しない。達成 |
 | I-3 | workspace既定値のgd1固定 | [`src/acd/openhands/workspace.py`](../src/acd/openhands/workspace.py)の`DEFAULT_COMMAND`と期待Evidenceパスが`out/gd1`・`out/gd1-enclosure`固定 |
 | I-4 | 発注可否判定のsubject固定 | [`src/acd/schema/order_policy.py`](../src/acd/schema/order_policy.py)の必須evidence anchorが`evidence.gd1.electrical`／`evidence.gd1.mechanical`固定であり、GD1以外の設計は原理的にorder-readyにならない。E-5より重い（成果物名の問題ではなく、発注laneが別設計に到達できない） |
 | I-5 | 生成物名のgd1固定 | KiCad projectの既定名が`gd1`（[`adapters/kicad/schematic.py`](../src/acd/adapters/kicad/schematic.py)）、筐体の`part_number`が`gd1-enclosure*`（[`adapters/cad/project.py`](../src/acd/adapters/cad/project.py)）。製造データの部品番号が別設計でもGD1名になる |
@@ -273,10 +273,10 @@ fail-closedで停止する。
 
 | # | 不足機能 | 現状 |
 |---|---|---|
-| K-1 | 単一のorchestrator | silkscreen resolver→基板pipeline→筐体pipeline→FW pipelineを別CLIで順に実行する必要があり（[`docs/operations.md`](operations.md)）、順序と前提は文書側にしか無い。resolverを飛ばすとsilkscreenゲートで落ちる |
-| K-2 | 失敗からの再開 | stage cacheが無く（E-4）、途中失敗は毎回全stage再実行になる。1候補あたり数十分のためVibeBBの対話速度に乗らない |
+| K-1 | 単一のorchestrator | 達成。`scripts/run_gd1_lanes.py`がsilkscreen barrier後に基板、筐体、FW、既存controlを宣言順に実行し、既存のlane parallelismとfail-closed失敗報告を維持する |
+| K-2 | 失敗からの再開 | 達成。`--resume`は入力hash一致のDSN／SES生成物だけをcacheから復元する。判定、Evidence、timingは復元せず、全L1ゲートを再実行する |
 | K-3 | 失敗メッセージのremediation | ゲートは値と座標を返すが、次に動かしてよい次元（許可された変更次元）を返さない。専門家か汎用エージェントが居ないと次の一手が決まらない。B-3の構造化Evidenceを、利用者向けの「変更可能な次元と現在の余裕」を含む形にする提案である |
-| K-4 | stageごとの所要時間記録 | 基板pipelineは`[0/12]`〜`[12/12]`の進捗を出すが、stage時間を記録しないため、律速stageの特定を実行中の外部観察に頼る（E-1〜E-3の裏取りが手作業になる） |
+| K-4 | stageごとの所要時間記録 | 達成。orchestratorのsilkscreen／lane／FW／batchと基板・筐体pipeline invocationを、`timing-record.json`のL3 canonical JSONへ固定精度で記録する。timingはEvidence、artifact hash、authority、cache keyから除外する |
 
 ### K-3の解決（マイルストーン14.3）
 
@@ -302,17 +302,17 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | J-1／J-2 | 契約registryへの機能ブロック追加は可能になった。任意graphの生成・差分反映はI-2／A-2／A-3が未達だと生JSON編集になる |
 | I-4 | GD1以外の設計は発注可否判定に到達できない |
 | I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
-| B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
+| B-1／B-2／B-3 | B-1／B-2のbounded候補探索とB-3の構造化診断を接続した。候補の予算超過や診断不能はfail-closedで記録し、L1 gateの合否権限は変更しない |
 | G-1／G-2 | 達成。`/acd:init`とworkspace指定doctorがcloneから健全性検査までをfail-closedに実行する |
 
 ## 優先順位（VibeBB単体成立に効く順）
 
 1. H-1／H-5（Skill scriptのacd版skew）。現在FW laneが常に失敗しており、設計内容によらず回避できない。最小のコストで最大の停止要因を除ける。
-2. I-2／A-2／A-3（任意graphと要件差分compiler）。J-1／J-2は14.2で解消したが、契約registryへ新しい宣言を自動反映する入口がまだ必要である。
+2. I-2／A-2／A-3（任意graphと要件差分compiler）。14.5で要件document、任意fixture builder、compiler、agent tool入口を接続し、手編集依存を解消した。registry entryは14.2の達成済み機能である。
 3. B-3（構造化失敗理由）→ B-4（前倒し評価）→ B-1／B-2（探索loop）。この3点が揃わない限り、候補生成は必ず人間側に残る。今回の作業がまさにその状態だった。K-3はB-3の利用者向け表現として同時に扱う。
-4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。無いと新規設計の入口が手編集になる。
-5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
-6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
+4. A-2／A-3（任意fixtureと要件差分compiler）、I-2（agent向けtoolの網羅）。14.5で達成済み。部品catalogとトポロジtemplateを追加して新規設計の入口を宣言経由へ移した。
+5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。達成済み。SkillはL2の候補生成に限定し、L1ゲートの権限とfail-closed条件は維持する。
+6. E-1〜E-4／K-1／K-2／K-4（並列化・cache・orchestrator・再開・timing）。14.7で達成済み。resumeはartifactだけを復元し、L1ゲートを省略しない。
 7. G-1〜G-3（workspace初期化とbootstrap）。達成済み。`/acd:init`または`acd_bootstrap_workspace`から、対象revisionを宣言して会話開始用workspaceを準備できる。
 8. I-3〜I-5／E-5（gd1固定の解消）、C-2／C-3（FWのgraph駆動と整合gate）、D-1〜D-3（loopの閉じと発注）。I-4は発注laneへ進む前に必要になる。
-9. F-1〜F-4（image publishとdigest lock更新）、H-2〜H-4／K-4（skew検出と計測）。運用の再現性と回帰防止を強化する。
+9. F-1〜F-4（image publishとdigest lock更新）、H-2〜H-4（skew検出）。運用の再現性と回帰防止を強化する。

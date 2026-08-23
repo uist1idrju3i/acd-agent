@@ -1,14 +1,15 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@b821b5466e2feee0783f2f819d8c4105ccf77eb8",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@a8d9c2bda3fecc3e2d80cbdc6b5ff4872e56d357",
 # ]
 # ///
 """Golden Design #1 firmware pipeline: graph -> ESP-IDF build -> QEMU.
 
 Single command:
 
-    uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
+    uv run --with cmake==3.31.6 --script \
+        plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
         --out out/gd1-fw
 
 Stages: graph load/validation -> firmware and electrical lane extraction ->

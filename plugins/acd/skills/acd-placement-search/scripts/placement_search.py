@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@b821b5466e2feee0783f2f819d8c4105ccf77eb8",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@a8d9c2bda3fecc3e2d80cbdc6b5ff4872e56d357",
 # ]
 # ///
 """Deterministic component placement search (skill asset, not an ACD gate).
@@ -44,6 +44,10 @@ from acd.core.electrical import (
     extract_electrical_lane,
 )
 from acd.core.fab import load_fab_profile
+from acd.core.placement_constraints import (
+    PlacementCouplingConstraint,
+    load_placement_coupling_constraints,
+)
 from acd.schema.design_graph import DesignGraph
 
 _GRID_MM = 0.25
@@ -95,6 +99,7 @@ def compute_placements(
     pins: tuple[PinView, ...] = (),
     nets: tuple[NetView, ...] = (),
     seeds: tuple[Placement, ...] = (),
+    coupling_groups: tuple[PlacementCouplingConstraint, ...] = (),
 ) -> tuple[Placement, ...]:
     """Place components deterministically.
 
@@ -105,6 +110,15 @@ def compute_placements(
     placements: list[Placement] = []
     occupied: list[Rect] = list(keepouts)
     center_x = board.width_mm / 2.0
+    component_refs = {component.refdes for component in components}
+    group_for_ref: dict[str, PlacementCouplingConstraint] = {}
+    for group in coupling_groups:
+        members = (group.primary_refdes, *group.coupled_refdes)
+        if any(member not in component_refs for member in members):
+            raise PlacementError(f"coupling group {group.group_id} has unknown member")
+        if any(member in group_for_ref for member in members):
+            raise PlacementError("coupling groups overlap (fail-closed)")
+        group_for_ref.update({member: group for member in members})
 
     ordered = sorted(components, key=lambda c: c.refdes)
     pinned = {seed.refdes: seed for seed in seeds}
@@ -240,7 +254,28 @@ def compute_placements(
                     target_pad,
                     cap_pad,
                 )
-            spot = _best_fit(board, footprint, occupied, spacing, anchors, target)
+            group = group_for_ref.get(comp.refdes)
+            coupled_positions = (
+                (placed_at[group.primary_refdes],)
+                if group is not None
+                and comp.refdes != group.primary_refdes
+                and group.primary_refdes in placed_at
+                else ()
+            )
+            spot = _best_fit(
+                board,
+                footprint,
+                occupied,
+                spacing,
+                anchors,
+                target,
+                coupled_positions=coupled_positions,
+                max_coupling_distance=(
+                    group.max_distance_mm
+                    if group is not None
+                    else None
+                ),
+            )
             if spot is not None:
                 break
         if spot is None:
@@ -313,6 +348,7 @@ def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement,
         net_refdes,
         lane.pins,
         lane.nets,
+        coupling_groups=load_placement_coupling_constraints(graph),
     )
 
 
@@ -323,6 +359,8 @@ def _best_fit(
     spacing: float,
     anchors: tuple[tuple[float, float], ...],
     target: tuple[tuple[float, float], FootprintShape, str, str] | None = None,
+    coupled_positions: tuple[tuple[float, float], ...] = (),
+    max_coupling_distance: float | None = None,
 ) -> tuple[float, float, float] | None:
     """Deterministic candidate scan; among all fitting spots pick the one that
     minimises the summed distance to connected, already-placed components so
@@ -343,6 +381,13 @@ def _best_fit(
                     x + x1 - spacing, y + y1 - spacing, x + x2 + spacing, y + y2 + spacing
                 )
                 if not any(candidate.overlaps(rect) for rect in occupied):
+                    if max_coupling_distance is not None and any(
+                        abs(x - coupled_x) + abs(y - coupled_y)
+                        > max_coupling_distance + 1e-9
+                        for coupled_x, coupled_y in coupled_positions
+                    ):
+                        x += _GRID_MM
+                        continue
                     if target is None:
                         cost = sum(abs(x - ax) + abs(y - ay) for ax, ay in anchors)
                     else:

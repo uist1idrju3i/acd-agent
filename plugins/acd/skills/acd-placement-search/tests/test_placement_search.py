@@ -12,6 +12,7 @@ from acd.adapters.kicad.placement import (
 )
 from acd.core.board_model import FootprintShape, PadShape
 from acd.core.electrical import BoardView, ComponentView, LibraryPin
+from acd.core.placement_constraints import PlacementCouplingConstraint
 from placement_search import compute_placements
 
 
@@ -214,3 +215,30 @@ def test_seeded_component_violating_edge_clearance_fails_closed() -> None:
         compute_placements(
             _board(), components, footprints, (), seeds=(Placement("R1", 0.05, 0.05, 0.0),)
         )
+
+
+def test_coupling_group_keeps_members_within_declared_distance() -> None:
+    components = tuple(_component(f"R{i}") for i in range(1, 4))
+    footprints = {c.refdes: _footprint() for c in components}
+    group = PlacementCouplingConstraint(
+        group_id="group",
+        primary_refdes="R1",
+        coupled_refdes=("R2", "R3"),
+        max_distance_mm=4.0,
+        move_together=True,
+    )
+    placements = {
+        item.refdes: item
+        for item in compute_placements(
+            _board(),
+            components,
+            footprints,
+            (),
+            coupling_groups=(group,),
+        )
+    }
+    for member in ("R2", "R3"):
+        distance = abs(placements["R1"].x_mm - placements[member].x_mm) + abs(
+            placements["R1"].y_mm - placements[member].y_mm
+        )
+        assert distance <= 4.0 + 1e-9

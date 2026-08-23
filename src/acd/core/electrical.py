@@ -349,6 +349,8 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
             )
             if components[-1].assembly not in {"fitted", "not_fitted"}:
                 raise GraphExtractionError(f"node {node.id!r}: invalid assembly")
+        elif node.kind == "electrical.placement_group":
+            continue
         elif node.kind == "electrical.net":
             voltage = node.attrs.get("voltage_nominal_v")
             nets.append(

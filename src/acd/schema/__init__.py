@@ -23,6 +23,13 @@ from acd.schema.context import (
     EventViewProjection,
     MemoryContextObservation,
 )
+from acd.schema.design_fixture import (
+    DesignFixtureSpec,
+    FixtureComponentSpec,
+    FixtureFirmwarePinSpec,
+    FixtureFunctionalBlockSpec,
+    FixtureNetSpec,
+)
 from acd.schema.design_freedom import (
     DESIGN_FREEDOM_DIMENSION_IDS,
     DesignFreedomDeclarationDocument,
@@ -97,6 +104,12 @@ from acd.schema.order_total import (
     OrderTotalDocument,
     QuoteCanonicalHashDocument,
 )
+from acd.schema.parts_catalog import (
+    ComponentPartRequest,
+    PartCatalogEntry,
+    PartLibraryRef,
+    PartsCatalogDocument,
+)
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -130,6 +143,7 @@ from acd.schema.receipt import (
     ReconciliationStatus,
     ShipmentManifestReference,
 )
+from acd.schema.requirement import RequirementDocument, RequirementRecord
 from acd.schema.side_effect_journal import (
     ExecutionMode,
     JournalEntryBody,
@@ -179,11 +193,13 @@ __all__ = [
     "AcdSettingsReport",
     "AcdSettingsStatus",
     "AppliedFeedbackValidationReport",
+    "ComponentPartRequest",
     "ContextSource",
     "ConvergenceState",
     "CrosscheckAspect",
     "CrosscheckStatus",
     "DecisionKind",
+    "DesignFixtureSpec",
     "DesignFreedomDeclarationDocument",
     "DesignFreedomDimension",
     "DesignGraph",
@@ -208,6 +224,10 @@ __all__ = [
     "FeedbackRule",
     "FeedbackRuleKind",
     "FeedbackValidationStatus",
+    "FixtureComponentSpec",
+    "FixtureFirmwarePinSpec",
+    "FixtureFunctionalBlockSpec",
+    "FixtureNetSpec",
     "FunctionalArtifact",
     "FunctionalBlockContract",
     "FunctionalBlockRegistryDocument",
@@ -242,6 +262,9 @@ __all__ = [
     "OrderScope",
     "OrderSubtotalDocument",
     "OrderTotalDocument",
+    "PartCatalogEntry",
+    "PartLibraryRef",
+    "PartsCatalogDocument",
     "PhysicalEvidence",
     "PostOrderJournalEntry",
     "PostOrderJournalEntryBody",
@@ -276,6 +299,8 @@ __all__ = [
     "ReconciliationReport",
     "ReconciliationStatus",
     "RejectedAlternative",
+    "RequirementDocument",
+    "RequirementRecord",
     "ReviewVerification",
     "RolePromptManifest",
     "RolePromptManifestEntry",

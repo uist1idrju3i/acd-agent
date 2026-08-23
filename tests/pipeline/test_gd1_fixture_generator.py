@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from acd.core.rationale import subject_hash_for
 from acd.pipeline.gd1_fixture import mechanical_nodes, silkscreen_nodes
-from acd.pipeline.gd1_fixture.graph import check_rationale_hashes
+from acd.pipeline.gd1_fixture.graph import build_graph, check_rationale_hashes
 from acd.pipeline.placement_evidence import summarize_placement_evidence
 from acd.schema import DesignGraph, RationaleDocument
+from acd.schema.common import canonical_json_sha256
 
 # pyright: reportMissingTypeStubs=false
 
@@ -41,6 +43,22 @@ def test_generator_mechanical_nodes_match_fixture_without_kicad() -> None:
                 ):
                     node["attrs"].pop(key, None)
     assert actual == expected
+
+
+def test_gd1_builder_graph_matches_committed_fixture(tmp_path: Path) -> None:
+    committed = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    try:
+        generated = build_graph().model_dump(mode="json")
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        pytest.skip(f"GD1 external Skill is unavailable in unit tests: {exc}")
+    generated_path = tmp_path / "graph.json"
+    generated_path.write_text(
+        json.dumps(generated, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    assert canonical_json_sha256(json.loads(generated_path.read_text(encoding="utf-8"))) == (
+        canonical_json_sha256(committed)
+    )
 
 
 def test_generator_refuses_stale_rationale_hashes(tmp_path: Path) -> None:

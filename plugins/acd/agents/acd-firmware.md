@@ -3,7 +3,11 @@ name: acd-firmware
 description: USE THIS when developing, building, checking, or virtually running ESP32-C3 firmware for an ACD design.
 model: inherit
 tools:
+  - acd_run_firmware_pipeline
   - acd_bootstrap_workspace
+  - acd_compile_requirement_change
+  - acd_build_design_fixture
+  - acd_explore_board_candidates
   - terminal
   - file_editor
   - grep
