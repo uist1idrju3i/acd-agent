@@ -196,8 +196,25 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    検査するが、最終合否はauthoritative projectionと独立測定ゲートが判定する。基板pipelineは
    `scripts/run_gd1_pipeline.py`、筐体pipelineは
    `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
-   基板pipelineの独立したPython stageは、既定のCPU数（最大4）を使って実行する。
+   基板・筐体pipelineの独立したPython stageは、既定のCPU数（最大4）を使って実行する。
    `--pipeline-workers N`でworker数を指定でき、`--pipeline-workers 1`は逐次実行になる。
+   筐体pipelineでは、rationale／lane抽出／筐体投影を逐次実行した後、機械ゲートと
+   shell・lid・assemblyのartifact測定を独立stageとして実行する。ゲート後の断面・干渉
+   visual projectionも独立stageである。`--pipeline-workers N`はこれらのOCP/build123d
+   処理を`ProcessPoolExecutor`で実行し、結果を宣言順またはprojection ID順に戻す。
+   逐次確認やデバッグには次を使う。
+
+   ```bash
+   uv run python scripts/run_gd1_enclosure_pipeline.py \
+     --out out/gd1-enclosure \
+     --pipeline-workers 1
+   ```
+
+   2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
+   `--pipeline-workers 1`で`8.010`秒、既定並列で`22.095`秒だった。spawnによる
+   CADプロセスの起動が加わるため、このfixtureでは並列化による短縮は確認できず、
+   外部CAD kernelの起動・STEP再読込が支配的なため、短縮幅は実行環境に依存する。
+   host実行はprovisionalであり、authoritative Evidenceの合否根拠には使わない。
    CPL／BOM chain、E-2のlane／run並列化、E-4のstage cacheは引き続き逐次または未実装である。
    並列実行のhash差分を逐次2回と比較するintegration testは既定ではskipされる。
    ロック済みcontainerで`ACD_PIPELINE_PARALLEL_TEST=1`、`kicad-cli`、`freerouting`を

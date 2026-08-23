@@ -19,12 +19,11 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
 import re
 import shutil
 import sys
-from collections.abc import Callable, Sequence
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
@@ -86,6 +85,8 @@ from acd.core.naming import output_prefix, subject_node_id
 from acd.core.process import execution_provenance
 from acd.core.routing_width import derive_net_widths
 from acd.core.silkscreen import extract_silkscreen_lane
+from acd.pipeline.parallel import DEFAULT_PIPELINE_WORKERS
+from acd.pipeline.parallel import run_ordered_stages as _run_ordered_stages
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.repository import repository_root, resolve_repository_file
 from acd.pipeline.visual_projection import (
@@ -102,8 +103,6 @@ from acd.schema.visual_projection import (
     ElectricalVisualProjectionPredicate,
     VisualProjectionSet,
 )
-
-DEFAULT_PIPELINE_WORKERS = min(os.cpu_count() or 1, 4)
 
 GERBER_LAYERS = [
     "F.Cu",
@@ -155,20 +154,6 @@ def _run_ordered_arms(
             ]
             results = [future.result() for future in futures]
     return results[0], results[1]
-
-
-def _run_ordered_stages(
-    stages: Sequence[tuple[str, Callable[[], object]]],
-    workers: int,
-) -> list[object]:
-    """Run independent stages concurrently while preserving declared order."""
-    if workers < 1:
-        raise ValueError("pipeline worker count must be at least 1")
-    if workers == 1 or len(stages) < 2:
-        return [stage() for _, stage in stages]
-    with ProcessPoolExecutor(max_workers=min(workers, len(stages))) as executor:
-        futures = [executor.submit(stage) for _, stage in stages]
-        return [future.result() for future in futures]
 
 
 def _stage_electrical_visual_projections(

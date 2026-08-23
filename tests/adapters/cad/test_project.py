@@ -55,6 +55,7 @@ def test_projection_exports_separated_solids_and_assembly(tmp_path: Path) -> Non
         shell_step_path=projection.shell_step_path,
         lid_step_path=projection.lid_step_path,
         assembly_step_path=projection.assembly_step_path,
+        workers=4,
     )
     build123d = importlib.import_module("build123d")
     assert report.shell_volume_mm3 == pytest.approx(4567.86193, abs=1e-3)
@@ -69,6 +70,36 @@ def test_projection_exports_separated_solids_and_assembly(tmp_path: Path) -> Non
     assert len(build123d.import_step(projection.assembly_step_path).solids()) == 2
     assert report.shell_bbox_mm != report.assembly_bbox_mm
     assert report.lid_bbox_mm != report.assembly_bbox_mm
+
+
+def test_artifact_measurement_is_stable_across_worker_counts(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    lane = extract_mechanical_lane(graph)
+    serial_projection = project_enclosure(
+        lane,
+        graph_path=FIXTURE,
+        out_dir=tmp_path / "serial",
+        target_revision=graph.revision,
+    )
+    parallel_projection = project_enclosure(
+        lane,
+        graph_path=FIXTURE,
+        out_dir=tmp_path / "parallel",
+        target_revision=graph.revision,
+    )
+    serial = measure_enclosure_artifacts(
+        shell_step_path=serial_projection.shell_step_path,
+        lid_step_path=serial_projection.lid_step_path,
+        assembly_step_path=serial_projection.assembly_step_path,
+        workers=1,
+    )
+    parallel = measure_enclosure_artifacts(
+        shell_step_path=parallel_projection.shell_step_path,
+        lid_step_path=parallel_projection.lid_step_path,
+        assembly_step_path=parallel_projection.assembly_step_path,
+        workers=4,
+    )
+    assert parallel == serial
 
 
 def test_projection_rejects_fused_part_artifact(tmp_path: Path) -> None:
@@ -86,4 +117,5 @@ def test_projection_rejects_fused_part_artifact(tmp_path: Path) -> None:
             shell_step_path=projection.shell_step_path,
             lid_step_path=projection.lid_step_path,
             assembly_step_path=projection.assembly_step_path,
+            workers=4,
         )

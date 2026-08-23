@@ -7,24 +7,57 @@ import hashlib
 import json
 import sys
 from datetime import UTC, datetime
+from functools import partial
 from pathlib import Path
 
 from acd.adapters.cad.mechanical import (
+    EnclosureArtifactReport,
+    MechanicalGateReport,
     measure_enclosure_artifacts,
     run_mechanical_gates,
 )
-from acd.adapters.cad.project import project_enclosure
+from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.naming import subject_node_id
 from acd.openhands.tools.probe import probe_cad_kernel
+from acd.pipeline.parallel import DEFAULT_PIPELINE_WORKERS
+from acd.pipeline.parallel import run_ordered_stages as _run_ordered_stages
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
 
 
-def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
+def _stage_mechanical_gates(
+    projection: CadProjection,
+    lane: MechanicalLane,
+) -> MechanicalGateReport:
+    probe = probe_cad_kernel()
+    return run_mechanical_gates(
+        step_path=projection.assembly_step_path,
+        lane=lane,
+        kernel_probe=probe,
+    )
+
+
+def _stage_measure_enclosure_artifacts(
+    projection: CadProjection,
+) -> EnclosureArtifactReport:
+    return measure_enclosure_artifacts(
+        shell_step_path=projection.shell_step_path,
+        lid_step_path=projection.lid_step_path,
+        assembly_step_path=projection.assembly_step_path,
+        workers=1,
+    )
+
+
+def run_pipeline(
+    fixture_dir: Path,
+    out_dir: Path,
+    *,
+    pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
+) -> dict[str, object]:
     graph_path = fixture_dir / "graph.json"
     graph = DesignGraph.model_validate(
         json.loads(graph_path.read_text(encoding="utf-8"))
@@ -49,23 +82,37 @@ def run_pipeline(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
         f"assembly={projection.assembly_step_path}"
     )
 
-    probe = probe_cad_kernel()
-    gate_report = run_mechanical_gates(
-        step_path=projection.assembly_step_path,
-        lane=lane,
-        kernel_probe=probe,
+    gate_and_artifact_results = _run_ordered_stages(
+        (
+            (
+                "mechanical-gates",
+                partial(_stage_mechanical_gates, projection, lane),
+            ),
+            (
+                "enclosure-artifacts",
+                partial(
+                    _stage_measure_enclosure_artifacts,
+                    projection,
+                ),
+            ),
+        ),
+        pipeline_workers,
     )
-    artifact_report = measure_enclosure_artifacts(
-        shell_step_path=projection.shell_step_path,
-        lid_step_path=projection.lid_step_path,
-        assembly_step_path=projection.assembly_step_path,
-    )
+    if len(gate_and_artifact_results) != 2:
+        raise RuntimeError("mechanical pipeline stage results are incomplete (fail-closed)")
+    gate_report = gate_and_artifact_results[0]
+    artifact_report = gate_and_artifact_results[1]
+    if not isinstance(gate_report, MechanicalGateReport) or not isinstance(
+        artifact_report, EnclosureArtifactReport
+    ):
+        raise RuntimeError("mechanical pipeline stage results are unknown (fail-closed)")
     visual_projections = generate_mechanical_visual_projections(
         projection=projection,
         lane=lane,
         target_revision=graph.revision,
         gate_report=gate_report,
         out_dir=out_dir,
+        workers=pipeline_workers,
     )
     visual_crosscheck = crosscheck_mechanical_visual_projections(
         source_revision=graph.revision,
@@ -217,10 +264,20 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
     parser.add_argument("--out", type=Path, default=Path("out/gd1-enclosure"))
+    parser.add_argument(
+        "--pipeline-workers",
+        type=int,
+        default=DEFAULT_PIPELINE_WORKERS,
+        help="parallel workers for independent Python pipeline stages",
+    )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     try:
-        summary = run_pipeline(args.fixture, args.out)
+        summary = run_pipeline(
+            args.fixture,
+            args.out,
+            pipeline_workers=args.pipeline_workers,
+        )
     except Exception as exc:
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1

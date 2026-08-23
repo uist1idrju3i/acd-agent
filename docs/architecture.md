@@ -86,6 +86,17 @@ src/acd/
 ゲートを実行する。adaptersは外部ツールとの形式・process境界を担当し、設計の合否を
 独自に決めない。`acd.openhands`のSDK toolは既存の決定論的入口を公開するだけである。
 
+GD1筐体pipelineは、rationale検証、lane抽出、筐体投影を依存順に逐次実行した後、
+機械ゲート（CAD kernel probe → mechanical gates）と筐体artifact再読込測定を
+独立stageとして`ProcessPoolExecutor`で並列実行する。機械ゲート内のprobeと判定、
+artifact測定helperはshell／lid／assembly再読込をrole単位で並列化できる。
+筐体pipelineの外側stageが既にprocessを分けている場合はnested poolを避けるため
+artifact helperをそのstage内で逐次実行し、直接呼び出す経路ではrole並列を利用する。
+ゲート完了後の断面投影と干渉投影も独立stageとして並列化するが、結果はprojection ID順に
+reduceする。OCP/build123dの計算とSTEP再読込はPythonプロセス間で実行し、GILとCAD
+native拡張の共有状態をstage間で持ち込まない。`--pipeline-workers 1`は同じ依存境界を
+逐次実行し、worker数はhash、Evidence、provenanceへ含めない。
+
 ## OpenHands plugin
 
 ```text
