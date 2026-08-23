@@ -24,10 +24,10 @@ Dockerfileでは次を固定または検証する。
 - KiCad CLI: KiCad 10.0 PPAの10系をインストールし、build時に10系であることを検証
 - FreeRouting: 2.3.0、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
   wrapperからPATH上で実行できることを検証
-- OpenJDK: Ubuntu 26.04の`openjdk-25-jre-headless`（25 LTS）
+- OpenJDK: Ubuntu 26.04の`openjdk-26-jre-headless`
 - ngspice: Ubuntu 26.04の45.2パッケージと`ngspice --version`を検証
 - Python: Ubuntu 26.04のsystem Python 3.14（`python3.14`、`python3.14-venv`）
-- uv: 0.12.3、配布tarballのSHA-256を検証
+- uv: 0.12.5、配布tarballのSHA-256を検証
 - git: revision解決と差分確認のためUbuntu 26.04のパッケージを利用
 - CJKフォント: `fonts-noto-cjk`を同梱し、`fc-list`でNoto Sans CJKの存在を検証
 - ccache: ESP-IDF再ビルド高速化のため同梱し、`ccache --version`を検証。`CCACHE_DIR`と
@@ -35,10 +35,10 @@ Dockerfileでは次を固定または検証する。
 - QEMU: Espressif QEMU 9.2.2（`esp-develop-9.2.2-20260417`のriscv32 softmmu tarball）を
   SHA-256検証のうえ`/opt/qemu-esp`へ展開し、`qemu-system-riscv32 --version`が9.2.2で
   あることを検証。`libslirp0`とSDL2共有ライブラリの解決も検証する
-- ESP-IDF: v5.3.1をsubmodule込みでcloneし、esp32c3向けtoolchainとPython環境を
+- ESP-IDF: v6.0.2をsubmodule込みでcloneし、esp32c3向けtoolchainとPython環境を
   build時に導入する。ESP-IDFのPython環境はuvが導入した3.12を使い、ACD本体が使う
   system Python 3.14とは分離する。`export.sh`経由の`idf.py --version`が
-  `v5.3.1`であることを検証する
+  `v6.0.2`であることを検証する
 - ACD本体: `pyproject.toml`、`uv.lock`、`src`、`scripts`、`fixtures`、`plugins`、
   vendored SDKを`/opt/acd`へ同梱し、authoritative実行時のリポジトリcloneを不要にする
 - Python依存のprebake: `/opt/acd`でbuild時に`uv sync --frozen --compile-bytecode`を

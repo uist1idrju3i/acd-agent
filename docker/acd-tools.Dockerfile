@@ -2,12 +2,12 @@ FROM ubuntu:26.04
 
 ARG FREEROUTING_VERSION=2.3.0
 ARG FREEROUTING_SHA256=3cf18d608437740bc497db6b8ef5888e2e60a08de0def20691d1bad0c0e0ee24
-ARG UV_VERSION=0.12.3
-ARG UV_SHA256=600cf9a742aca00d292673b16b5acffaa7b8c269a364ad0c2e79498dcb1fe101
+ARG UV_VERSION=0.12.5
+ARG UV_SHA256=68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
 ARG QEMU_ESP_ARCHIVE=qemu-riscv32-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz
 ARG QEMU_ESP_SHA256=547f03e04701a92cbb699f7f7d015adc1f5b5ef93cbb94c0dd9b7107e2d84e77
-ARG ESP_IDF_VERSION=v5.3.1
+ARG ESP_IDF_VERSION=v6.0.2
 ARG ESP_IDF_PYTHON_VERSION=3.12
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -32,7 +32,7 @@ RUN apt-get update \
         curl \
         git \
         software-properties-common \
-        openjdk-25-jre-headless \
+        openjdk-26-jre-headless \
         ngspice \
         python3.14 \
         python3.14-venv \
@@ -95,10 +95,11 @@ RUN git clone --depth 1 --branch "${ESP_IDF_VERSION}" --recursive \
     && uv python install "${ESP_IDF_PYTHON_VERSION}" \
     && IDF_PYTHON="$(uv python find "${ESP_IDF_PYTHON_VERSION}")" \
     && "${IDF_PYTHON}" "${IDF_PATH}/tools/idf_tools.py" install --targets=esp32c3 \
+    && mkdir -p "${IDF_PYTHON_ENV_PATH}" \
     && "${IDF_PYTHON}" "${IDF_PATH}/tools/idf_tools.py" install-python-env \
     && test -x "${IDF_PYTHON_ENV_PATH}/bin/python" \
     && bash -c '. "${IDF_PATH}/export.sh" >/dev/null 2>&1 && idf.py --version' \
-        | grep -E "^ESP-IDF v5\.3\.1" \
+        | grep -E "^ESP-IDF v6\.0\.2" \
     && rm -rf "${IDF_TOOLS_PATH}/dist" /root/.cache/pip
 
 # ACD source, pipeline scripts and fixtures, so that authoritative runs need no
