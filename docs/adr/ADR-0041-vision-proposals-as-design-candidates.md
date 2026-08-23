@@ -53,6 +53,29 @@
    「領域・keepout・占有矩形・許可回転」抽象で実装し、電気laneはfootprint幾何、
    機械laneは筐体内寸とcomponent bodyから同じ抽象を構成する。
 
+## 追補: 配線候補（2026-08-23）
+
+配置・回転に続き、配線も同じ枠組みで受け入れる。決定は次のとおりで、上記1〜8をそのまま継承する。
+
+1. **配線提案は`artifact_kind="vision_route_proposal"`、`pass_evidence=false`固定とする。**
+   受け取るのはnet名、銅層（`F.Cu`／`B.Cu`）、経路点の数値だけである。線幅、netclass、
+   clearanceはビジョン応答から読まず、graphの`width_basis`とfab profileの最小値から
+   決定論的に導出する（`acd.core.routing_width`）。
+2. **legalizationは決定論的な幾何整合化とする。** 経路点をrelaxation profileの格子へsnapし、
+   両端を実pad位置へ固定し、基板領域から線幅の半分を内側へ寄せ、区間ごとに45度倍数へ
+   分解する。他netのpadや既に整合化済みの同一層配線とclearanceが取れない区間は、同じ格子上の
+   決定論的な迂回探索（8方向、A*、node上限あり）で修復し、修復量を代理指標として記録する。
+3. **判定は従来のゲートだけが行う。** 候補報告は`artifact_kind="vision_route_candidates"`、
+   `pass_evidence=false`であり、ACD側の`acd.core.route_candidates`がprovenance、revision一致、
+   既知net、銅層、宣言最小幅、有限座標を検査してからtool中立の`RoutedDesign`へ変換する。
+   合否は基板投影後のDRCとGerber独立再読込が判定する。候補と代理指標を`hashes.json`や
+   fab claimsへ書かない。
+4. **既定の自由度を変えない。** 円弧配線と非45度配線は既定で拒否し、relaxation profileが
+   実測Evidenceつきで緩和を宣言しない限り受け付けない。arc宣言のあるprofileは現時点では
+   実装がないためfail-closedとする。FreeRoutingの既定配線規則も変更しない。
+5. **viaは未対応としてfail-closedにする。** 宣言層が2pad netの片面接続だけを扱える現状では、
+   両padが宣言層に無いnetを候補にせず停止する。via候補の生成は別途ADRで受入条件を定める。
+
 ## 検討した代替案
 
 | 代替案 | 却下理由 |
@@ -63,6 +86,9 @@
 | ビジョン提案をEvidenceの一部として記録する | 画像由来の所見は合否権威を持たない（ADR-0023のL2/L3非対称性） |
 | 連続角度・円弧配線を既定にする | 投影geometryは90度倍数のみ対応で、CPL回転規約は`estimated`、実装機精度と検査性は未実測 |
 | 代理指標の順位を採否の決定とする | 代理指標は概算であり、実配線可能性と実測を代替しない |
+| ビジョン応答の線幅・clearance値をそのまま使う | 線幅は電流・銅厚・温度上昇の宣言から導出する量であり、画像所見は根拠にならない |
+| 配線候補をSESとして書き出しrouterの出力に見せる | 出所が混ざり、routerのEvidenceとビジョン由来候補の区別が失われる |
+| via候補も同時に生成する | via配置は層割当と網の分割を伴い、現在の宣言層契約では受入条件を定義できない |
 
 ## 影響
 
@@ -80,3 +106,6 @@
 - VLMの空間精度は未評価であり、legalizationが大きな変位を伴う場合は提案の意図が失われる。
   変位量は代理指標として記録するが、意図の保存を保証しない。
 - 機械laneの代理指標（干渉余裕、変位）は実測と相関を取っていない。
+- 配線候補の迂回探索は格子上の最短経路であり、実際の配線可能性（DRC通過、製造性）を保証しない。
+  判定はDRCとGerber独立再読込に依存する。
+- 配線候補は2pad netの単層経路に限られる。多pad netとvia必須netは未対応で停止する。
