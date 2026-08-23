@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Protocol, cast
 
 from pydantic import ValidationError
 
@@ -20,6 +20,48 @@ from acd.schema.quote import QuoteLineItem, QuoteRecord
 
 class QuoteReadError(ValueError):
     """Raised when a quote cannot produce a complete deterministic fee set."""
+
+
+class QuoteProvider(Protocol):
+    """Boundary for deterministic quote sources."""
+
+    provider_id: str
+
+    def fetch(
+        self,
+        *,
+        configuration: dict[str, object],
+        evaluated_at: Timestamp,
+        target_revision: Revision,
+    ) -> QuoteRecord: ...
+
+
+class FixtureQuoteProvider:
+    provider_id = "fixture"
+
+    def fetch(
+        self,
+        *,
+        configuration: dict[str, object],
+        evaluated_at: Timestamp,
+        target_revision: Revision,
+    ) -> QuoteRecord:
+        path = configuration.get("path")
+        if not isinstance(path, str) or not path:
+            raise QuoteReadError("fixture quote provider requires a path")
+        try:
+            value = json.loads(Path(path).read_text(encoding="utf-8"))
+            record = QuoteRecord.model_validate(value)
+        except (OSError, json.JSONDecodeError, TypeError, ValueError, ValidationError) as exc:
+            raise QuoteReadError("fixture quote record is malformed") from exc
+        read_quote(record, evaluated_at=evaluated_at, target_revision=target_revision)
+        return record
+
+
+def quote_provider_from_config(configuration: dict[str, object]) -> QuoteProvider:
+    if configuration.get("provider") != "fixture":
+        raise QuoteReadError("unknown quote provider")
+    return FixtureQuoteProvider()
 
 
 @dataclass(frozen=True)

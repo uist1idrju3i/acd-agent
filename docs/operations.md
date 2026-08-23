@@ -376,8 +376,10 @@ uv run python scripts/order_execution.py \
 
 出力payloadはpackage hash、宛先、対象revision、総額、許可hashだけから作られ、
 secret値、Evidence内容、時刻を含めない。journalには`dry_run`のpre/post組を記録するが、
-これは実発注完了として扱えない。`--real`は実providerへ送信せず、「real provider order
-execution is not enabled」として非ゼロ終了する。confirmation policyのskip、必須hook不在、
+これは実発注完了として扱えない。`--real`は明示provider設定とcredential環境変数が無ければ
+fail-closedで停止し、設定が揃っても実supplierへ送信せずprovider境界で非ゼロ終了する。
+submission record（`record_class=L3`、`pass_evidence=false`、`content_sha256`）とjournalの
+pre/post rejected組を残す。confirmation policyのskip、必須hook不在、
 credential参照名のallowlist外、上限額override、冪等key再送、provider scriptの非ゼロ終了、
 post記録失敗は停止条件である。実providerへの送信は本マイルストーンの範囲外であり、
 credentialの値を引数・journal・ログ・stdoutへ渡してはならない。`--command`は必須で、
@@ -974,6 +976,23 @@ fail-closedとなり、CLIはtracebackを出さずexit code 2と`status="unknown
 適用を行う場合は人または別の明示的工程が入力graphを更新し、
 `validate_applied_feedback`でproposalに宣言されたnode／属性以外の差分がないことを
 検査する。提案生成と適用後検証はいずれも入力を書き換えない。
+
+policy付き適用を行う場合は次を使う。whitelist外、bounds/tolerance外、graph／revision不一致、
+malformed proposalは検証不能として停止する。`--dry-run`ではhashとL3 recordだけを生成し、
+通常実行ではpolicyのinput pathsを一括stagingして失敗時に全ファイルをrollbackする。
+
+```bash
+uv run python scripts/apply_input_feedback.py \
+  --proposal out/input-feedback-proposal.json \
+  --policy fixtures/feedback/apply-policy.json \
+  --repo-root . \
+  --record out/input-feedback-application.json \
+  --dry-run
+```
+
+見積取得は`QuoteProvider`境界を通るfixture providerを使用する。`scripts/fetch_quote.py`で
+provider設定を選び、期限切れ・malformed・未知providerは検証不能として停止する。実supplier
+adapterはこの境界へ追加する後続作業である。
 
 ## Role prompt manifest
 

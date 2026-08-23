@@ -72,13 +72,48 @@ def test_order_execution_cli_defaults_to_dry_run(
 def test_order_execution_cli_real_flag_refuses(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    permit = tmp_path / "permit.json"
+    journal = tmp_path / "journal.jsonl"
+    _permit(permit)
+
+    monkeypatch.setenv("ACD_ORDER_TOKEN", "fixture-only-secret")
+    record = tmp_path / "submission.json"
+    config = tmp_path / "provider.json"
+    config.write_text(
+        json.dumps({"provider": "boundary", "credential_env": "ACD_ORDER_TOKEN"}),
+        encoding="utf-8",
+    )
+    result = order_execution.main(
+        [
+            *_args(permit, journal),
+            "--real",
+            "--provider-config",
+            str(config),
+            "--submission-record",
+            str(record),
+        ]
+    )
+    assert result == 2
+    assert "provider boundary" in capsys.readouterr().err
+    assert journal.exists()
+    submission = json.loads(record.read_text(encoding="utf-8"))
+    assert submission["record_class"] == "L3"
+    assert submission["pass_evidence"] is False
+    assert submission["content_sha256"].startswith("sha256:")
+
+
+def test_order_execution_cli_real_flag_requires_provider(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     permit = tmp_path / "permit.json"
     journal = tmp_path / "journal.jsonl"
     _permit(permit)
 
     assert order_execution.main([*_args(permit, journal), "--real"]) == 2
-    assert "not enabled" in capsys.readouterr().err
+    assert "no order provider is configured" in capsys.readouterr().err
     assert not journal.exists()
 
 

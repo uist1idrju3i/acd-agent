@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from collections.abc import Iterable
+from contextlib import suppress
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from acd.core.rationale import (
     RATIONALE_EXEMPT_ATTRS,
@@ -15,6 +20,7 @@ from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.evidence import PhysicalEvidence
 from acd.schema.feedback import (
     AppliedFeedbackValidationReport,
+    FeedbackApplyPolicy,
     FeedbackPolicy,
     FeedbackProposal,
     FeedbackProposalItem,
@@ -24,6 +30,124 @@ from acd.schema.rationale import RationaleDocument
 
 class FeedbackError(ValueError):
     """Raised when feedback inputs cannot produce a fail-closed proposal."""
+
+
+def apply_input_feedback(
+    proposal: FeedbackProposal,
+    policy: FeedbackApplyPolicy,
+    *,
+    repository: Path,
+    dry_run: bool = False,
+    record_path: Path | None = None,
+) -> dict[str, object]:
+    """Apply a validated proposal atomically, never granting gate authority."""
+    if proposal.status != "pass" or not proposal.applicable:
+        raise FeedbackError("feedback proposal is not applicable")
+    if proposal.graph_id != policy.graph_id or proposal.revision != policy.revision:
+        raise FeedbackError("feedback proposal and apply policy do not match")
+    policy_rules = {(rule.node_id, rule.attr): rule for rule in policy.rules}
+    changed = [item for item in proposal.items if item.status == "proposed"]
+    if any((item.node_id, item.attr) not in policy_rules for item in changed):
+        raise FeedbackError("feedback proposal target is outside apply whitelist")
+    paths = [(repository / path).resolve() for path in policy.input_paths]
+    if not paths:
+        raise FeedbackError("feedback apply policy has no input paths")
+    originals: dict[Path, bytes] = {}
+    documents: dict[Path, dict[str, object]] = {}
+    graph_path = next((path for path in paths if path.name == "graph.json"), None)
+    if graph_path is None:
+        raise FeedbackError("feedback apply policy must include graph.json")
+    try:
+        for path in paths:
+            data = path.read_bytes()
+            originals[path] = data
+            value = json.loads(data)
+            if not isinstance(value, dict):
+                raise ValueError("input JSON root must be an object")
+            documents[path] = value
+        graph = DesignGraph.model_validate(documents[graph_path])
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise FeedbackError("feedback input files are malformed") from exc
+    if graph.graph_id != policy.graph_id or graph.revision != policy.revision:
+        raise FeedbackError("feedback graph and apply policy do not match")
+    nodes = {node.id: node for node in graph.nodes}
+    graph_value = graph.model_dump(mode="json")
+    graph_nodes = {node["id"]: node for node in graph_value["nodes"]}
+    for item in changed:
+        rule = policy_rules[(item.node_id, item.attr)]
+        if item.difference < -rule.tolerance or item.difference > rule.tolerance:
+            raise FeedbackError(f"feedback delta exceeds tolerance: {item.node_id}.{item.attr}")
+        if not isinstance(item.proposed_value, (int, float)) or isinstance(
+            item.proposed_value, bool
+        ):
+            raise FeedbackError("feedback proposed value is not numeric")
+        value = float(item.proposed_value)
+        if rule.minimum is not None and value < rule.minimum:
+            raise FeedbackError(f"feedback value is below bound: {item.node_id}.{item.attr}")
+        if rule.maximum is not None and value > rule.maximum:
+            raise FeedbackError(f"feedback value exceeds bound: {item.node_id}.{item.attr}")
+        if item.node_id not in nodes:
+            raise FeedbackError("feedback target node is missing")
+        attrs = graph_nodes[item.node_id]["attrs"]
+        if item.attr not in attrs or attrs[item.attr] != item.current_value:
+            raise FeedbackError("feedback current value does not match input")
+        attrs[item.attr] = item.proposed_value
+    updated_bytes = (
+        json.dumps(graph_value, ensure_ascii=False, indent=2, sort_keys=True).encode()
+        + b"\n"
+    )
+    before_hashes = {
+        str(path): "sha256:" + hashlib.sha256(data).hexdigest()
+        for path, data in originals.items()
+    }
+    after_hashes = dict(before_hashes)
+    after_hashes[str(graph_path)] = "sha256:" + hashlib.sha256(updated_bytes).hexdigest()
+    record: dict[str, object] = {
+        "schema_version": 1,
+        "record_class": "L3",
+        "pass_evidence": False,
+        "dry_run": dry_run,
+        "graph_id": policy.graph_id,
+        "revision": policy.revision,
+        "before_sha256": before_hashes,
+        "after_sha256": after_hashes,
+        "changed_targets": [f"{item.node_id}.{item.attr}" for item in changed],
+    }
+    record["content_sha256"] = canonical_json_sha256(record)
+    if not dry_run:
+        staged: dict[Path, Path] = {}
+        replaced: list[Path] = []
+        try:
+            for path, original in originals.items():
+                content = updated_bytes if path == graph_path else original
+                with NamedTemporaryFile("wb", dir=path.parent, delete=False) as temp:
+                    temp.write(content)
+                    temp.flush()
+                    staged[path] = Path(temp.name)
+            for path in paths:
+                staged[path].replace(path)
+                replaced.append(path)
+        except (OSError, ValueError) as exc:
+            for path in replaced:
+                try:
+                    with NamedTemporaryFile("wb", dir=path.parent, delete=False) as temp:
+                        temp.write(originals[path])
+                        temp.flush()
+                        Path(temp.name).replace(path)
+                except OSError:
+                    pass
+            raise FeedbackError("feedback update rolled back") from exc
+        finally:
+            for temporary in staged.values():
+                with suppress(OSError):
+                    temporary.unlink()
+    if record_path is not None:
+        record_path.parent.mkdir(parents=True, exist_ok=True)
+        record_path.write_text(
+            json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    return record
 
 
 def _unknown_proposal(reason: str) -> FeedbackProposal:

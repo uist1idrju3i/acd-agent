@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 from collections.abc import Callable, Sequence
@@ -17,6 +18,10 @@ from openhands.sdk.security.confirmation_policy import (
 from openhands.sdk.security.risk import SecurityRisk
 
 from acd.core.order_execution import build_dry_run_order_payload
+from acd.core.order_submission import (
+    build_order_submission_record,
+    resolve_order_provider,
+)
 from acd.core.side_effect_journal import (
     SideEffectJournalError,
     append_post_order,
@@ -190,6 +195,8 @@ def execute_order(
     hook_config: HookConfig | None,
     occurred_at: Timestamp,
     execution_mode: ExecutionMode = "dry_run",
+    provider_config: dict[str, object] | None = None,
+    submission_record_path: Path | None = None,
     runtime_upper_limit: QuoteAmount | None = None,
     command: Sequence[str],
     run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
@@ -198,8 +205,55 @@ def execute_order(
     if execution_mode not in ("dry_run", "real"):
         raise OrderExecutionError("unsupported order execution mode")
     if execution_mode == "real":
+        try:
+            provider_id = resolve_order_provider(provider_config or {})
+        except ValueError as exc:
+                raise OrderExecutionError(
+                    f"real order submission is not enabled: {exc}"
+                ) from exc
+        if authorization.target_revision != target_revision:
+            raise OrderExecutionError("authorization revision does not match order revision")
+        payload = build_dry_run_order_payload(
+            authorization=authorization,
+            package_hash=package_hash,
+            destination=destination,
+        )
+        try:
+            planned = append_pre_order(
+                journal_path,
+                authorization=authorization,
+                execution_mode="real",
+                package_hash=package_hash,
+                destination=destination,
+                idempotency_key=idempotency_key,
+                occurred_at=occurred_at,
+            )
+            receipt_hash = dry_run_payload_hash(payload)
+            result = append_post_order(
+                journal_path,
+                planned=planned,
+                execution_mode="real",
+                result_status="rejected",
+                receipt_id="provider-boundary",
+                receipt_hash=receipt_hash,
+                occurred_at=occurred_at,
+            )
+            record = build_order_submission_record(
+                provider_id=provider_id,
+                target_revision=target_revision,
+                package_hash=package_hash,
+                destination=destination,
+            )
+            if submission_record_path is not None:
+                submission_record_path.parent.mkdir(parents=True, exist_ok=True)
+                submission_record_path.write_text(
+                    json.dumps(record, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+        except (OSError, SideEffectJournalError, ValueError) as exc:
+            raise OrderExecutionError("real order submission record failed") from exc
         raise OrderExecutionError(
-            "real provider order execution is not enabled in this milestone"
+            "real order provider boundary reached; no supplier adapter is configured"
         )
     if authorization.target_revision != target_revision:
         raise OrderExecutionError("authorization revision does not match order revision")

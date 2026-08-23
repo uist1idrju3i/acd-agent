@@ -23,6 +23,11 @@ from acd.core.firmware import (
     evaluate_functional_run,
     load_and_evaluate_functional_run,
 )
+from acd.core.firmware_consistency import (
+    FirmwareConsistencyReport,
+    check_firmware_graph_consistency,
+    evaluate_firmware_graph_consistency,
+)
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
@@ -32,6 +37,12 @@ from acd.core.functional_blocks import (
     validate_predicate_coverage,
 )
 from acd.core.order_execution import build_dry_run_order_payload
+from acd.core.order_submission import (
+    DeclaredProviderUnavailable,
+    OrderSubmissionProvider,
+    build_order_submission_record,
+    resolve_order_provider,
+)
 from acd.core.order_total import (
     OrderSubtotal,
     OrderTotalError,
@@ -42,7 +53,15 @@ from acd.core.order_total import (
     order_total_result_from_document,
     order_total_result_to_document,
 )
-from acd.core.quote import QuoteFeeSet, QuoteReadError, load_quote, read_quote
+from acd.core.quote import (
+    FixtureQuoteProvider,
+    QuoteFeeSet,
+    QuoteProvider,
+    QuoteReadError,
+    load_quote,
+    quote_provider_from_config,
+    read_quote,
+)
 from acd.core.rationale import (
     RATIONALE_EXEMPT_ATTRS,
     REQUIRED_RATIONALE_ATTRS,
@@ -69,20 +88,25 @@ __all__ = [
     "RATIONALE_EXEMPT_ATTRS",
     "REQUIRED_RATIONALE_ATTRS",
     "CadNormalizationError",
+    "DeclaredProviderUnavailable",
     "FabOrderIntentView",
     "FabProfile",
     "FabProfileRegistry",
     "FeedbackError",
+    "FirmwareConsistencyReport",
+    "FixtureQuoteProvider",
     "FunctionalBlockContractError",
     "FunctionalBlockRegistry",
     "FunctionalRunError",
     "JournalOrderReconstruction",
+    "OrderSubmissionProvider",
     "OrderSubtotal",
     "OrderTotalError",
     "OrderTotalResult",
     "ProcessAllowanceView",
     "QuoteCanonicalHash",
     "QuoteFeeSet",
+    "QuoteProvider",
     "QuoteReadError",
     "ReceiptReconciliationError",
     "ReconciliationReport",
@@ -91,9 +115,12 @@ __all__ = [
     "append_post_order",
     "append_pre_order",
     "build_dry_run_order_payload",
+    "build_order_submission_record",
     "build_receipt_evidence",
+    "check_firmware_graph_consistency",
     "check_rationale_coverage",
     "declared_functional_blocks",
+    "evaluate_firmware_graph_consistency",
     "evaluate_functional_run",
     "extract_fab_intent",
     "load_and_evaluate_functional_run",
@@ -108,6 +135,7 @@ __all__ = [
     "order_total_result_from_document",
     "order_total_result_to_document",
     "propose_input_feedback",
+    "quote_provider_from_config",
     "read_journal",
     "read_quote",
     "reconcile_files",
@@ -115,6 +143,7 @@ __all__ = [
     "reconstruct_order",
     "required_predicate_names",
     "resolve_fab_profile_path",
+    "resolve_order_provider",
     "subject_hash_for",
     "validate_allowances_against_profile",
     "validate_applied_feedback",

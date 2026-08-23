@@ -58,6 +58,36 @@ class FeedbackPolicy(AcdModel):
         return self
 
 
+class FeedbackApplyRule(AcdModel):
+    node_id: NodeId
+    attr: NonEmptyStr
+    minimum: float | None = None
+    maximum: float | None = None
+    tolerance: float = Field(ge=0)
+
+
+class FeedbackApplyPolicy(AcdModel):
+    schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
+    graph_id: NonEmptyStr
+    revision: Revision
+    rules: list[FeedbackApplyRule] = Field(min_length=1)
+    input_paths: list[NonEmptyStr] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_apply_rules(self) -> FeedbackApplyPolicy:
+        targets = [(rule.node_id, rule.attr) for rule in self.rules]
+        if len(targets) != len(set(targets)):
+            raise ValueError("feedback apply rule targets must be unique")
+        for rule in self.rules:
+            if (
+                rule.minimum is not None
+                and rule.maximum is not None
+                and rule.minimum > rule.maximum
+            ):
+                raise ValueError("feedback apply minimum must not exceed maximum")
+        return self
+
+
 class FeedbackProposalItem(AcdModel):
     rule_id: NonEmptyStr
     status: FeedbackItemStatus

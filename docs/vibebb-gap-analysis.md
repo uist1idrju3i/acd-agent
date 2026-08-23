@@ -86,17 +86,17 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 | # | 不足機能 | 現状 |
 |---|---|---|
 | C-1 | 開口・締結の自動生成と干渉解決探索 | 筐体は宣言寸法から生成するのみで、干渉時に寸法を探索して収束させる機構が無い |
-| C-2 | FWのgraph駆動化 | timer周期・ログ文字列がGD1ハードコードで、「FW周期・ログ挙動を変える」という要件が成果物へ反映されない |
-| C-3 | FW側の整合gate | [`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)／[`ADR-0009`](adr/ADR-0009-openhands-delegation-and-skills.md)によりFW検査はOpenHands側の責務で、ACD本体にFW gateが無い。自律loopではpin割当整合の破れをacd-agent側で止められない |
+| C-2 | FWのgraph駆動化 | 達成。`firmware.module`の任意宣言からtimer周期・ログ文字列を生成し、未宣言時は既存GD1既定値を維持する。宣言値のmalformedは検証不能として停止する |
+| C-3 | FW側の整合gate | 達成。Skill subprocessが出力したpin/config reportをACD側でgraphと再照合するL1 gateを追加した。欠落・parse失敗・不一致はfail-closed |
 | C-4 | CPL orientation期待値のfixture非依存化 | 期待値がGD1固定 |
 
 ## D. 実機フィードバックと発注（VibeBBの後半loop）
 
 | # | 不足機能 | 現状 |
 |---|---|---|
-| D-1 | 測定結果の入力反映 | [`propose_input_feedback.py`](../scripts/propose_input_feedback.py)の提案止まりで、適用は人手または別工程。loopが閉じていない（設計判断としては妥当だが、単体自律にはpolicy付き適用経路が必要） |
-| D-2 | 見積の自動取得 | 価格・在庫・納期・実装可否は期限付き手入力fixture。供給者からの自動取得は将来範囲 |
-| D-3 | 実発注 | 実providerへの送信と発注完了は未実装（dry-runまで）。「語れば試作が届く」の最後の一手が欠けている |
+| D-1 | 測定結果の入力反映 | 達成。宣言apply policyのwhitelist・bounds・toleranceを検査し、dry-run、hash、multi-file rollback付きL3適用経路を追加した。適用後も全L1 gateを再実行する |
+| D-2 | 見積の自動取得 | 境界を達成。期限付きfixtureを選択する`QuoteProvider`とCLIを追加した。実supplier接続はprovider境界へ接続する後続作業 |
+| D-3 | 実発注 | 境界を達成。dry-run既定を維持し、明示providerと環境credentialがある場合だけsubmission recordとjournalを作成してprovider境界で停止する。実supplier接続は後続作業 |
 
 ## E. 実行基盤・性能
 
@@ -106,7 +106,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 | E-2 | lane・runの並列実行 | `scripts/run_gd1_lanes.py`でsilkscreen resolverをbarrierとして先に実行し、fixtureの`graph.json`更新完了後に、出力先を分離したGD1基板lane、GD1筐体lane、pytest subsetを独立batchとして並列実行する。`--jobs 1`は宣言順の逐次経路、複数jobは宣言順の出力とfail-closedの全件失敗報告を使う。laneの並列度は成果物、hash、Evidence、provenance、summaryへ含めない | 実装済み。host provisionalは基板laneの`freerouting` executable不在でfail-closedとなり、lane全体の成功・短縮は未実測（失敗までのwall clockは`--jobs 1` 15.902秒、既定並列29.331秒で、成功比較値ではない）。digest固定imageのDockerWorkspaceを使うCI `container-gates`をauthoritativeな測定経路とし、短縮が得られない場合も実測値を記録する |
 | E-3 | silkscreen探索候補評価の並列化 | `acd-silkscreen-placement`の`resolve_from_context`で、texts>1の候補数前パスをtext単位、1 text内のrotation×x-column列を共有context bundle付きchunk単位で`ProcessPoolExecutor`並列化した。チャンク内・チャンク間の結果をrotation宣言順・x昇順で連結し、main passは`dynamic_silk`が後続textの障害物になるため逐次のままとした。`--workers 1`はpoolなしの完全逐次で、worker数は出力、hash、Evidence、provenance、summaryへ含めない。placement search Skillは1.44秒（warm状態、interpreter起動込み）で実処理がサブ秒のため変更していない | 2コアVMのGD1 fixtureではpinned silkscreenにより通常のresolverで探索Skillは0回（resolve全体12.0秒）。未解決化した6 textではSkill 1回が47.77秒、resolve全体が63.29秒で、候補評価が支配項となった。抽出した同一入力を現在のSkillへ直接与えたhost provisional比較では、`--workers 1`が49.075秒、`--workers 2`が29.245秒、`--workers 4`が29.722秒で、全実行が成功しoutput JSON（各63,900,205 bytes）はbyte一致した。chunk化後も並列化によりこの入力では短縮したが、2コアVMのhost測定であり、authoritativeな判定はcontainer gateに委ねる |
 | E-4 | 入力hash単位のstage cache | 配置だけ変えた再試行でもDSN exportからやり直す | 候補ごとに全stageを再実行した |
-| E-5 | output prefix／`subject_node`のgd1固定 | graph_id由来にすべき。ファイル名で設計同一性を判断できない | variant成果物も`gd1-*`名で出力される |
+| E-5 | output prefix／`subject_node`のgd1固定 | 達成。graph_id由来のprefixとgraph nodeからsubjectを導出し、GD1互換aliasを明示した | variant成果物も`gd1-*`名で出力される |
 | E-6 | 検証段階の並列実行 | pytestは`-n auto --dist loadgroup`、`verify_all.py`は`--jobs N`（既定はCPU数と4の小さい方）でbarrierのない連続コマンドを並列実行する。standardとfullの`uv sync`およびfullの後続pipelineはbarrierとして単独実行する。docs stageは文書検証3本を環境同期なしで並列実行する。`--jobs 1`は最初の失敗で停止して子プロセス出力を直接流し、並列時は開始行を出して起動済みコマンドを完走させ、失敗をすべて報告する | 2コアVMの同一入力でpytestは195.13秒（逐次）から108.73秒（自動並列）、standard検証は141.21秒（`--jobs 1`）から126.66秒（既定並列）になった。各条件1回（詳細は[`docs/operations.md`](operations.md)） |
 
 ## F. image publishとlock更新の自動化
@@ -225,9 +225,9 @@ authoritative Evidenceのdigest固定条件は緩めない。
 |---|---|---|
 | I-1 | VibeBB loopのcommand | [`plugins/acd/commands/`](../plugins/acd/commands/)は`ask`／`doctor`／`gates`の3つで、設計・生成・発注を進めるcommandが無い。会話から進める手段が「shellで各scriptを叩く」に落ちる |
 | I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)が公開するのはtool probe、graph validate、GD1基板pipeline、GD1筐体pipelineの4つのみ。FW pipeline、fixture編集、発注、失敗診断のtoolが無く、それらは生JSON編集と生shellになる。今回私が座標とGPIOを手で書いたのはこの欠落の帰結である |
-| I-3 | workspace既定値のgd1固定 | [`src/acd/openhands/workspace.py`](../src/acd/openhands/workspace.py)の`DEFAULT_COMMAND`と期待Evidenceパスが`out/gd1`・`out/gd1-enclosure`固定 |
-| I-4 | 発注可否判定のsubject固定 | [`src/acd/schema/order_policy.py`](../src/acd/schema/order_policy.py)の必須evidence anchorが`evidence.gd1.electrical`／`evidence.gd1.mechanical`固定であり、GD1以外の設計は原理的にorder-readyにならない。E-5より重い（成果物名の問題ではなく、発注laneが別設計に到達できない） |
-| I-5 | 生成物名のgd1固定 | KiCad projectの既定名が`gd1`（[`adapters/kicad/schematic.py`](../src/acd/adapters/kicad/schematic.py)）、筐体の`part_number`が`gd1-enclosure*`（[`adapters/cad/project.py`](../src/acd/adapters/cad/project.py)）。製造データの部品番号が別設計でもGD1名になる |
+| I-3 | workspace既定値のgd1固定 | 達成。対象graphのgraph_idからcommand、Evidence path、required anchorを決定論的に導出する |
+| I-4 | 発注可否判定のsubject固定 | 達成。order policyを対象graphと照合し、graph-scoped Evidence anchorの欠落をfail-closedにする |
+| I-5 | 生成物名のgd1固定 | 達成。KiCad、筐体part number、visual projection、CPL pathをgraph_id由来にし、既存GD1互換prefixを保持する |
 
 ## J. ゲート契約がGD1のトポロジ族しか受け付けない（最も根本的な制約）
 
@@ -314,5 +314,5 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 5. B-5／B-6／B-7（結合制約・単一datum・島fallback）。探索が空回りする原因を潰す。
 6. E-1〜E-4／K-1／K-2（並列化・cache・orchestrator・再開）。1候補あたりの時間が探索の実現可能性を決める。
 7. G-1〜G-3（workspace初期化とbootstrap）。体験の入口としてAと同程度に重要だが、設計探索loopより下位に置く。
-8. I-3〜I-5／E-5（gd1固定の解消）、C-2／C-3（FWのgraph駆動と整合gate）、D-1〜D-3（loopの閉じと発注）。I-4は発注laneへ進む前に必要になる。
+8. I-3〜I-5／E-5、C-2／C-3、D-1〜D-3は14.6で達成した。実supplier接続はprovider境界の後続作業として残る。
 9. F-1〜F-4（image publishとdigest lock更新）、H-2〜H-4／K-4（skew検出と計測）。運用の再現性と回帰防止を強化する。
