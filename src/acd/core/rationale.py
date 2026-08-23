@@ -179,6 +179,13 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
 }
 
 RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
+    "design.functional_block": {
+        "block_id": (
+            "This declaration is a requirement-derived selection of the applicable "
+            "predicate contract rather than a physical design parameter; rationale "
+            "records are held by the nets and components forming the topology."
+        )
+    },
     "electrical.board": {
         "copper_thickness_source": (
             "Manufacturing copper thickness is sourced from the fab "

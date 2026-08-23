@@ -4,9 +4,13 @@ from acd.core.cad_normalize import CadNormalizationError, normalize_3mf, normali
 from acd.core.fab import (
     FabOrderIntentView,
     FabProfile,
+    FabProfileRegistry,
     ProcessAllowanceView,
     extract_fab_intent,
     load_fab_profile,
+    load_fab_profile_by_id,
+    load_fab_profile_registry,
+    resolve_fab_profile_path,
     validate_allowances_against_profile,
 )
 from acd.core.feedback import (
@@ -18,6 +22,14 @@ from acd.core.firmware import (
     FunctionalRunError,
     evaluate_functional_run,
     load_and_evaluate_functional_run,
+)
+from acd.core.functional_blocks import (
+    FunctionalBlockContractError,
+    FunctionalBlockRegistry,
+    declared_functional_blocks,
+    load_functional_block_registry,
+    required_predicate_names,
+    validate_predicate_coverage,
 )
 from acd.core.order_execution import build_dry_run_order_payload
 from acd.core.order_total import (
@@ -59,7 +71,10 @@ __all__ = [
     "CadNormalizationError",
     "FabOrderIntentView",
     "FabProfile",
+    "FabProfileRegistry",
     "FeedbackError",
+    "FunctionalBlockContractError",
+    "FunctionalBlockRegistry",
     "FunctionalRunError",
     "JournalOrderReconstruction",
     "OrderSubtotal",
@@ -78,10 +93,14 @@ __all__ = [
     "build_dry_run_order_payload",
     "build_receipt_evidence",
     "check_rationale_coverage",
+    "declared_functional_blocks",
     "evaluate_functional_run",
     "extract_fab_intent",
     "load_and_evaluate_functional_run",
     "load_fab_profile",
+    "load_fab_profile_by_id",
+    "load_fab_profile_registry",
+    "load_functional_block_registry",
     "load_quote",
     "normalize_3mf",
     "normalize_step",
@@ -94,7 +113,10 @@ __all__ = [
     "reconcile_files",
     "reconcile_receipt",
     "reconstruct_order",
+    "required_predicate_names",
+    "resolve_fab_profile_path",
     "subject_hash_for",
     "validate_allowances_against_profile",
     "validate_applied_feedback",
+    "validate_predicate_coverage",
 ]

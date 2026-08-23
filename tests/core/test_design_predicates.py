@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from acd.core.design_predicates import (
-    evaluate_gd1_predicates,
+    evaluate_design_predicates,
     evaluate_i2c_pullup,
     evaluate_pin_firmware_alignment,
     evaluate_power_boundary,
@@ -59,7 +59,7 @@ def test_gd1_predicates_pass_on_fixture() -> None:
     graph = _graph()
     _skip_if_gd1_geometry_library_is_missing(graph)
     lane = extract_electrical_lane(graph)
-    results = evaluate_gd1_predicates(graph, lane, FIXTURE_DIR)
+    results = evaluate_design_predicates(graph, lane, FIXTURE_DIR)
     assert [result.name for result in results] == [
         "usb_cc",
         "i2c_pullup",

@@ -77,10 +77,23 @@ from acd.adapters.svg import (
     generate_system_visual_projections,
 )
 from acd.core.board_model import BoardModel, NetClass
-from acd.core.design_predicates import PredicateResult, evaluate_gd1_predicates
+from acd.core.design_predicates import (
+    PREDICATE_CATALOG,
+    PredicateResult,
+    evaluate_design_predicates,
+)
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
-from acd.core.fab import extract_fab_intent, load_fab_profile
+from acd.core.fab import (
+    extract_fab_intent,
+    load_fab_profile,
+    load_fab_profile_registry,
+    resolve_fab_profile_path,
+)
 from acd.core.firmware_lane import extract_firmware_lane
+from acd.core.functional_blocks import (
+    declared_functional_blocks,
+    load_functional_block_registry,
+)
 from acd.core.naming import output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
@@ -270,6 +283,8 @@ def build_electrical_evidence(
     dfm_status: object,
     order_readiness_status: object,
     design_predicates: object,
+    functional_block_contract: object,
+    declared_blocks: object,
 ) -> Evidence:
     """Build electrical Evidence from completed deterministic gate results."""
     if not subject_node:
@@ -296,11 +311,22 @@ def build_electrical_evidence(
     if not all(isinstance(item, PredicateResult) for item in candidate_predicates):
         raise ValueError("electrical design predicates are unknown (fail-closed)")
     typed_predicates = cast(tuple[PredicateResult, ...], design_predicates)
-    if len(typed_predicates) != 6:
+    names = tuple(predicate.name for predicate in typed_predicates)
+    if len(names) != len(set(names)) or set(names) != set(PREDICATE_CATALOG):
         raise ValueError("electrical design predicate set is incomplete (fail-closed)")
     for predicate in typed_predicates:
-        if predicate.status != "pass":
+        if predicate.status not in {"pass", "not_applicable"}:
             raise GateError(f"{predicate.name}: status={predicate.status!r} ({predicate.detail})")
+    candidate_blocks = cast(tuple[object, ...], declared_blocks)
+    if (
+        not isinstance(functional_block_contract, str)
+        or not functional_block_contract
+        or not isinstance(declared_blocks, tuple)
+        or not declared_blocks
+        or not all(isinstance(item, str) and item for item in candidate_blocks)
+    ):
+        raise ValueError("functional block evidence claims are unknown (fail-closed)")
+    typed_declared_blocks = cast(tuple[str, ...], candidate_blocks)
     if envelope.target_revision != revision:
         raise ValueError("electrical evidence envelope revision mismatch (fail-closed)")
     if (
@@ -322,6 +348,7 @@ def build_electrical_evidence(
             verified=predicate.status == "pass",
         )
         for predicate in typed_predicates
+        if predicate.status != "not_applicable"
     ]
     return Evidence(
         evidence_id="evidence.gd1.electrical",
@@ -333,6 +360,18 @@ def build_electrical_evidence(
                 subject_node=subject_node,
                 property="erc_error_count",
                 value=erc_errors,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node=subject_node,
+                property="functional_block_contract",
+                value=functional_block_contract,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node=subject_node,
+                property="declared_functional_blocks",
+                value=",".join(sorted(typed_declared_blocks)),
                 verified=True,
             ),
             EvidenceClaim(
@@ -646,9 +685,10 @@ def run_pipeline(
     fixture_dir: Path,
     out_dir: Path,
     max_passes: int,
-    fab_profile_path: Path,
+    fab_profile_path: Path | None = None,
     width_control_workers: int = 2,
     pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
+    fab_profile_id: str | None = None,
 ) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -664,7 +704,7 @@ def run_pipeline(
             ),
             (
                 "design-predicates",
-                partial(evaluate_gd1_predicates, graph, lane, fixture_dir),
+                partial(evaluate_design_predicates, graph, lane, fixture_dir),
             ),
         ),
         pipeline_workers,
@@ -676,12 +716,26 @@ def run_pipeline(
         group0_results[1],
     )
     for predicate in design_predicates:
-        if predicate.status != "pass":
+        if predicate.status not in {"pass", "not_applicable"}:
             raise GateError(f"{predicate.name}: status={predicate.status!r} ({predicate.detail})")
-    print("[0/12] GD1 design predicates passed")
+    applicable_count = sum(predicate.status != "not_applicable" for predicate in design_predicates)
+    print(
+        f"[0/12] design predicates passed "
+        f"(applicable={applicable_count}, "
+        f"not_applicable={len(design_predicates) - applicable_count})"
+    )
     silkscreen = extract_silkscreen_lane(graph)
     intent, allowances = extract_fab_intent(graph)
-    profile = load_fab_profile(fab_profile_path)
+    if fab_profile_path is not None and fab_profile_id is not None:
+        raise ValueError("fab profile path and profile id are mutually exclusive")
+    if fab_profile_path is not None:
+        profile = load_fab_profile(fab_profile_path)
+        resolved_fab_profile_path = fab_profile_path
+    else:
+        resolved_fab_profile_path = resolve_fab_profile_path(
+            fab_profile_id or intent.fab_profile, load_fab_profile_registry()
+        )
+        profile = load_fab_profile(resolved_fab_profile_path)
     if intent.fab_profile != profile.profile_id:
         raise ValueError(
             f"graph fab profile {intent.fab_profile!r} differs from loaded profile "
@@ -1230,7 +1284,7 @@ def run_pipeline(
     package_members = [*gerber_paths, *drill_paths]
     zip_path = fab_dir / f"{name}-gerbers.zip"
     deterministic_zip(zip_path, package_members, gerber_dir)
-    profile_hash = normalized_hash(fab_profile_path)
+    profile_hash = normalized_hash(resolved_fab_profile_path)
     manifest: dict[str, object] = {
         "schema_version": "0.1",
         "status": "not_order_ready",
@@ -1332,6 +1386,8 @@ def run_pipeline(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     )
     print("[10/12] manufacturing package written")
+    functional_registry = load_functional_block_registry()
+    declared_blocks = declared_functional_blocks(graph, functional_registry)
     evidence = build_electrical_evidence(
         revision=revision,
         subject_node=subject_node_id(graph, "electrical.board"),
@@ -1345,6 +1401,10 @@ def run_pipeline(
         dfm_status=dfm_report.get("status"),
         order_readiness_status=order_readiness.get("status"),
         design_predicates=design_predicates,
+        functional_block_contract=(
+            f"{functional_registry.registry_id}:{functional_registry.registry_hash}"
+        ),
+        declared_blocks=declared_blocks,
     )
     evidence_path = out_dir / "evidence-electrical.json"
     evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n", encoding="utf-8")
@@ -1364,6 +1424,7 @@ def run_pipeline(
                 predicate.model_dump(mode="json")
             )
             for predicate in design_predicates
+            if predicate.status != "not_applicable"
         ),
     )
     visual_stage_results = _run_ordered_stages(
@@ -1525,12 +1586,8 @@ def main() -> int:
         default=DEFAULT_PIPELINE_WORKERS,
         help="parallel workers for independent Python pipeline stages",
     )
-    parser.add_argument(
-        "--fab-profile",
-        type=Path,
-        default=Path("profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"),
-        help="versioned fab profile",
-    )
+    parser.add_argument("--fab-profile", type=Path, default=None, help="versioned fab profile")
+    parser.add_argument("--fab-profile-id", default=None, help="registered fab profile id")
     args = parser.parse_args()
     try:
         run_pipeline(
@@ -1540,6 +1597,7 @@ def main() -> int:
             args.fab_profile,
             args.width_control_workers,
             args.pipeline_workers,
+            args.fab_profile_id,
         )
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)

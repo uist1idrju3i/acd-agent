@@ -35,6 +35,7 @@ NodeKind = Literal[
     "firmware.state_transition",
     "firmware.sequence_step",
     "firmware.pin_assignment",
+    "design.functional_block",
     "safety.boundary",
     "evidence.anchor",
 ]
@@ -52,6 +53,8 @@ class GraphNode(AcdModel):
     def _unique_depends_on(self) -> GraphNode:
         if len(set(self.depends_on)) != len(self.depends_on):
             raise ValueError("depends_on entries must be unique")
+        if self.kind == "design.functional_block" and set(self.attrs) != {"block_id"}:
+            raise ValueError("design.functional_block attrs must contain only block_id")
         return self
 
 

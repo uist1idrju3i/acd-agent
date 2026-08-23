@@ -33,7 +33,7 @@ from acd.schema.evidence import (
     MeasurementInstrument,
     PhysicalEvidence,
 )
-from acd.schema.fab_profile import FabProfileDocument
+from acd.schema.fab_profile import FabProfileDocument, FabProfileRegistryDocument
 from acd.schema.feedback import (
     AppliedFeedbackValidationReport,
     FeedbackItemStatus,
@@ -44,6 +44,10 @@ from acd.schema.feedback import (
     FeedbackRule,
     FeedbackRuleKind,
     FeedbackValidationStatus,
+)
+from acd.schema.functional_block import (
+    FunctionalBlockContract,
+    FunctionalBlockRegistryDocument,
 )
 from acd.schema.functional_run import (
     FunctionalArtifact,
@@ -187,6 +191,7 @@ __all__ = [
     "EvidenceStatus",
     "ExecutionMode",
     "FabProfileDocument",
+    "FabProfileRegistryDocument",
     "FeedbackItemStatus",
     "FeedbackPolicy",
     "FeedbackProposal",
@@ -196,6 +201,8 @@ __all__ = [
     "FeedbackRuleKind",
     "FeedbackValidationStatus",
     "FunctionalArtifact",
+    "FunctionalBlockContract",
+    "FunctionalBlockRegistryDocument",
     "FunctionalCheckReport",
     "FunctionalCheckStatus",
     "FunctionalExpectations",

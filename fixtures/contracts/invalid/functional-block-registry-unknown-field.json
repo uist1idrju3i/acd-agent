@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "registry_id": "invalid-functional-blocks",
+  "unexpected": true,
+  "contracts": [
+    {
+      "block_id": "valid_block",
+      "title": "Valid",
+      "description": "Valid contract.",
+      "required_predicates": ["power_boundary"]
+    }
+  ]
+}

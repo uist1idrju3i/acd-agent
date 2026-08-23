@@ -15,6 +15,30 @@ agent-serverはACDの対象外であり、採用する場合は新規ADRで受�
 `LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
 host経路はprovisional専用であり、authoritative Evidenceを生成しない。
 
+## fab profile registry
+
+利用可能なfab profileは[`../profiles/fab-profile-registry.json`](../profiles/fab-profile-registry.json)
+で管理する。registryの各項目はprofile ID、相対パス、fab名、process名を持ち、参照先の
+profile本体にも同じID・metadataが必要である。新しいprofileを追加するときは、一次情報を
+`sources`へ記録したprofile JSONを作成し、registryへ登録してから、ID一致、path実在、
+fab・process metadata一致を検証する。出所のないcapability値を追加してはならない。
+
+基板pipelineとsilkscreen resolverのprofile解決順序は次のとおり。
+
+1. `--fab-profile`が指定された場合は明示パスを使用する。
+2. `--fab-profile-id`が指定された場合は、そのIDをregistryで解決する。
+3. どちらも無い場合はgraphの`fab.order_intent.fab_profile`をIDとしてregistryで解決する。
+
+例:
+
+```bash
+uv run python scripts/run_gd1_pipeline.py --fab-profile-id jlcpcb-fr4-2l-1oz
+uv run python scripts/resolve_gd1_silkscreen.py --fab-profile-id jlcpcb-fr4-2l-1oz
+```
+
+未知ID、path欠落、profile本体とのID不一致、registry metadata不一致はfail-closedで停止
+する。明示パスを使う場合もgraphのprofile IDとの一致検査は省略しない。
+
 ## cloneと依存関係
 
 ```bash

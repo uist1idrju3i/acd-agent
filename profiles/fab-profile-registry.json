@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "registry_id": "acd-fab-profiles-14.2",
+  "profiles": [
+    {
+      "profile_id": "jlcpcb-fr4-2l-1oz",
+      "path": "jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json",
+      "fab": "JLCPCB",
+      "process": "rigid-fr4"
+    }
+  ]
+}
