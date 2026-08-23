@@ -218,7 +218,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    ```
 
    2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
-   `--pipeline-workers 1`で`7.734`秒、`--pipeline-workers 4`で`22.094`秒だった。
+   `--pipeline-workers 1`で`8.309`秒、`--pipeline-workers 4`で`26.492`秒だった。
    4 workerのspawnと`build123d` warm-upだけを分離測定すると、runner生成は`0.001`秒、
    warm-up待ちは`4.870`秒（1 workerあたりの測定値）、shutdownは`0.915`秒だった。warm-upは逐次の
    rationale／lane抽出／筐体投影と重ねられるが、2コア環境ではCAD stageの並列処理と4 workerの

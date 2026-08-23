@@ -9,6 +9,7 @@ import sys
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
+from typing import TypeGuard
 
 from acd.adapters.cad.mechanical import (
     EnclosureArtifactReport,
@@ -38,6 +39,12 @@ def _stage_mechanical_gates(
         lane=lane,
         kernel_probe=probe,
     )
+
+
+def _is_enclosure_artifact_report(
+    value: object,
+) -> TypeGuard[EnclosureArtifactReport]:
+    return isinstance(value, EnclosureArtifactReport)
 
 
 def run_pipeline(
@@ -83,20 +90,16 @@ def _run_pipeline(
 
     runner.wait_for_warm_up()
     gate_future = runner.submit_stage(partial(_stage_mechanical_gates, projection, lane))
-    artifact_report = measure_enclosure_artifacts(
+    artifact_report: object = measure_enclosure_artifacts(
         shell_step_path=projection.shell_step_path,
         lid_step_path=projection.lid_step_path,
         assembly_step_path=projection.assembly_step_path,
         runner=runner,
     )
-    gate_and_artifact_results = [gate_future.result(), artifact_report]
-    if len(gate_and_artifact_results) != 2:
-        raise RuntimeError("mechanical pipeline stage results are incomplete (fail-closed)")
-    gate_report = gate_and_artifact_results[0]
-    artifact_report = gate_and_artifact_results[1]
-    if not isinstance(gate_report, MechanicalGateReport) or not isinstance(
-        artifact_report, EnclosureArtifactReport
-    ):
+    gate_report = gate_future.result()
+    if not isinstance(gate_report, MechanicalGateReport):
+        raise RuntimeError("mechanical pipeline stage results are unknown (fail-closed)")
+    if not _is_enclosure_artifact_report(artifact_report):
         raise RuntimeError("mechanical pipeline stage results are unknown (fail-closed)")
     visual_projections = generate_mechanical_visual_projections(
         projection=projection,

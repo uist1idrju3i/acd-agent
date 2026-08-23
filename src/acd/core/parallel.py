@@ -41,11 +41,11 @@ def _warm_up_worker(
     try:
         for module_name in module_names:
             importlib.import_module(module_name)
-    except BaseException as exc:
+    except Exception as exc:
         failure = f"{type(exc).__name__}: {exc}"
     try:
         barrier.wait(timeout=timeout)
-    except BaseException as exc:
+    except Exception as exc:
         if failure is None:
             failure = f"barrier {type(exc).__name__}: {exc}"
     return failure
@@ -68,7 +68,7 @@ class PipelineStageRunner:
                     max_workers=workers,
                     mp_context=context,
                 )
-            except BaseException:
+            except Exception:
                 self._manager.shutdown()
                 self._manager = None
                 raise
@@ -106,7 +106,7 @@ class PipelineStageRunner:
         for future in self._warmup_futures:
             try:
                 failure = future.result()
-            except BaseException as exc:
+            except Exception as exc:
                 failures.append(f"{type(exc).__name__}: {exc}")
             else:
                 if failure is not None:
@@ -125,7 +125,7 @@ class PipelineStageRunner:
         future: Future[object] = Future()
         try:
             future.set_result(stage())
-        except BaseException as exc:
+        except Exception as exc:
             future.set_exception(exc)
         return future
 

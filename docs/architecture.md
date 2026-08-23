@@ -101,6 +101,8 @@ Manager由来のBarrierで待ち合わせ、import失敗やtimeoutは最適化�
 逐次実行する。2コアVMではCAD stageの実処理よりspawnとOCP importのコストが大きかったため、
 筐体経路の既定worker数は1とし、並列は明示指定時だけ有効にする。worker数とstart methodは
 hash、Evidence、provenanceへ含めない。
+同一fixtureのhost provisional測定は、`--pipeline-workers 1`が8.309秒、
+`--pipeline-workers 4`が26.492秒であり、この規模では並列短縮を確認できなかった。
 
 ## OpenHands plugin
 
