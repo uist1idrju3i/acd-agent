@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 from pathlib import Path
@@ -489,6 +490,10 @@ def test_register_parts_catalog_tool_reports_hashes_and_dry_run(tmp_path: Path) 
         (root / "contracts/parts-catalog.json").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
+    symbol = tmp_path / "Device.kicad_sym"
+    footprint = tmp_path / "R_0603_1608Metric.kicad_mod"
+    symbol.write_text("test symbol", encoding="utf-8")
+    footprint.write_text("test footprint", encoding="utf-8")
     entry = {
         "part_number": "TOOL-22K",
         "kind": "resistor",
@@ -496,21 +501,18 @@ def test_register_parts_catalog_tool_reports_hashes_and_dry_run(tmp_path: Path) 
         "package": "R_0603_1608Metric",
         "library_ref": {
             "symbol": "Device:R",
-            "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
-            "symbol_source": "kicad-official",
-            "symbol_source_ref": "10.0.5",
+            "symbol_file": str(symbol),
+            "symbol_source": "test-library",
+            "symbol_source_ref": "test-1",
             "symbol_sha256": (
-                "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a"
+                "sha256:" + hashlib.sha256(symbol.read_bytes()).hexdigest()
             ),
             "footprint": "Resistor_SMD:R_0603_1608Metric",
-            "footprint_file": (
-                "/usr/share/kicad/footprints/Resistor_SMD.pretty/"
-                "R_0603_1608Metric.kicad_mod"
-            ),
-            "footprint_source": "kicad-official",
-            "footprint_source_ref": "10.0.5",
+            "footprint_file": str(footprint),
+            "footprint_source": "test-library",
+            "footprint_source_ref": "test-1",
             "footprint_sha256": (
-                "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23"
+                "sha256:" + hashlib.sha256(footprint.read_bytes()).hexdigest()
             ),
         },
     }
