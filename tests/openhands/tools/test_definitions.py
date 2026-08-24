@@ -153,8 +153,11 @@ def test_design_loop_tool_preserves_fail_closed_observation(
         "results": [],
     }
 
+    captured: dict[str, Any] = {}
+
     def fake_run_design_loop(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        del args, kwargs
+        del args
+        captured.update(kwargs)
         return expected
 
     monkeypatch.setattr(
@@ -172,6 +175,21 @@ def test_design_loop_tool_preserves_fail_closed_observation(
     assert result.fail_closed is True
     assert result.pass_evidence is False
     assert result.summary == expected
+    assert captured["cache_dir"] is None
+    assert captured["resume"] is False
+    assert captured["jobs"] >= 1
+
+
+def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
+    action = AcdRunDesignLoopAction(order_total="order-total.json")
+    assert action.cache_dir is None
+    assert action.resume is False
+    assert action.jobs >= 1
+    with pytest.raises(ValueError):
+        AcdRunDesignLoopAction(order_total="order-total.json", jobs=0)
+    schema = AcdRunDesignLoop.create()[0].action_type.model_json_schema()
+    assert {"cache_dir", "resume", "jobs"} <= set(schema["properties"])
+    assert schema["properties"]["jobs"]["minimum"] == 1
 
 
 def test_enclosure_exploration_tool_preserves_l2_observation(

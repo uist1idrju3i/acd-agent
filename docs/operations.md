@@ -386,6 +386,26 @@ uv run python scripts/run_design_loop.py \
   --evaluated-at 2026-08-14T00:00:00Z
 ```
 
+cache・resume・lane並列を有効にする場合は、次のように指定する。
+
+```bash
+uv run python scripts/run_design_loop.py \
+  --fixture fixtures/golden-design-1 \
+  --out-root out \
+  --order-total out/order-total.json \
+  --policy plugins/acd/hooks/order-policy.json \
+  --cache-dir out/.stage-cache \
+  --resume \
+  --jobs 3 \
+  --evaluated-at 2026-08-14T00:00:00Z
+```
+
+`--resume`で`--cache-dir`を省略すると`out-root/.stage-cache`を使う。cacheは
+入力hashが一致する決定論的なDSN／SES生成物だけを再利用し、判定、verdict、
+Evidenceは毎回再実行する。`--jobs 1`はsilkscreen barrier後のlaneを逐次実行し、
+既定値は`min(cpu_count, 3)`である。timing recordとcache reportはL3観測であり、
+記録失敗は結果へ理由を記録するが、合否を変更しない。
+
 `acd_run_design_loop`も同じin-code orchestratorを呼び出す。gate、閾値、期待値、
 revision一致、authoritative Evidenceの規則は変更しない。Skill出力、AI review、host上の
 provisional実行、loopの成功観測は合格Evidenceではなく、実発注もこの入口では行わない。

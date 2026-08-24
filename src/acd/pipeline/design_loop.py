@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +15,7 @@ from typing import Any
 
 from acd.core.naming import artifact_prefix, output_prefix
 from acd.core.order_total import order_total_result_from_document
+from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
 from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
@@ -26,6 +29,12 @@ DESIGN_LOOP_STAGE_IDS: tuple[str, ...] = (
     "firmware-pipeline",
     "order-readiness",
 )
+DESIGN_LOOP_LANE_IDS: tuple[str, ...] = (
+    "board-pipeline",
+    "enclosure-pipeline",
+    "firmware-pipeline",
+)
+DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 
 StageRunner = Callable[["DesignLoopConfig"], Any]
 
@@ -48,6 +57,10 @@ class DesignLoopConfig:
     max_silkscreen_iterations: int
     run_seconds: int
     evaluated_at: datetime
+    cache_dir: Path | None = None
+    resume: bool = False
+    jobs: int = DEFAULT_DESIGN_LOOP_JOBS
+    timing_recorder: TimingRecorder | None = None
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -102,13 +115,19 @@ def _run_board(config: DesignLoopConfig) -> dict[str, Any]:
         config.max_passes,
         config.fab_profile,
         fab_profile_id=config.fab_profile_id,
+        cache_dir=config.cache_dir,
+        timing_recorder=config.timing_recorder,
     )
     return _success("board-pipeline", output_path=str(output), summary=result)
 
 
 def _run_enclosure(config: DesignLoopConfig) -> dict[str, Any]:
     output = config.out_root / f"{config.artifact_prefix}-enclosure"
-    result = run_enclosure_pipeline(config.fixture_dir, output)
+    result = run_enclosure_pipeline(
+        config.fixture_dir,
+        output,
+        timing_recorder=config.timing_recorder,
+    )
     return _success("enclosure-pipeline", output_path=str(output), summary=result)
 
 
@@ -237,13 +256,41 @@ def run_design_loop(
     max_silkscreen_iterations: int = 5,
     run_seconds: int = 15,
     evaluated_at: datetime | None = None,
+    cache_dir: Path | None = None,
+    resume: bool = False,
+    jobs: int = DEFAULT_DESIGN_LOOP_JOBS,
 ) -> dict[str, Any]:
     """Run all design stages in their fixed fail-closed order."""
+    timing = TimingRecorder()
+    result: dict[str, Any] = {
+        "ok": False,
+        "fail_closed": True,
+        "pass_evidence": False,
+        "cache_dir": (
+            str(cache_dir if cache_dir is not None else out_root / ".stage-cache")
+            if resume
+            else (str(cache_dir) if cache_dir is not None else None)
+        ),
+        "resume": resume,
+        "jobs": jobs,
+        "results": [],
+    }
+    timing_record: Path | None = None
+    timing_record_error: str | None = None
+    config: DesignLoopConfig | None = None
     try:
+        out_root.mkdir(parents=True, exist_ok=True)
         graph_id = _graph_id(fixture_dir)
         prefix = output_prefix(graph_id)
         artifact = artifact_prefix(graph_id)
         evaluated = _resolve_evaluated_at(evaluated_at)
+        if jobs < 1:
+            raise ValueError("jobs must be a positive integer")
+        resolved_cache_dir = (
+            cache_dir if cache_dir is not None else out_root / ".stage-cache"
+        ) if resume else cache_dir
+        if resolved_cache_dir is not None:
+            resolved_cache_dir.mkdir(parents=True, exist_ok=True)
         config = DesignLoopConfig(
             fixture_dir=fixture_dir,
             out_root=out_root,
@@ -259,59 +306,172 @@ def run_design_loop(
             max_silkscreen_iterations=max_silkscreen_iterations,
             run_seconds=run_seconds,
             evaluated_at=evaluated,
+            cache_dir=resolved_cache_dir,
+            resume=resume,
+            jobs=jobs,
+            timing_recorder=timing,
         )
-    except Exception as exc:
-        return {
-            "ok": False,
-            "fail_closed": True,
-            "pass_evidence": False,
-            "failed_stage": "input",
-            "failure_reason": f"{type(exc).__name__}: {exc}",
-            "results": [],
-        }
-    try:
-        out_root.mkdir(parents=True, exist_ok=True)
-    except OSError as exc:
-        return {
-            "ok": False,
-            "fail_closed": True,
-            "pass_evidence": False,
-            "graph_id": graph_id,
-            "output_prefix": prefix,
-            "artifact_prefix": artifact,
-            "failed_stage": "input",
-            "failure_reason": f"output root is not usable: {exc}",
-            "results": [],
-        }
-    results: list[dict[str, Any]] = []
-    for stage_id in DESIGN_LOOP_STAGE_IDS:
-        try:
-            result = DEFAULT_STAGE_RUNNERS[stage_id](config)
-        except Exception as exc:
-            result = _failure(stage_id, f"{type(exc).__name__}: {exc}")
-        if not isinstance(result, dict):
-            result = _failure(stage_id, "stage runner returned a non-object result")
-        else:
-            result = {**result, "pass_evidence": False}
-        results.append(result)
-        if not result.get("ok") or result.get("fail_closed"):
-            return {
-                "ok": False,
-                "fail_closed": True,
-                "pass_evidence": False,
+        result.update(
+            {
                 "graph_id": graph_id,
                 "output_prefix": prefix,
                 "artifact_prefix": artifact,
-                "failed_stage": stage_id,
-                "failure_reason": result.get("failure_reason", "stage failed"),
-                "results": results,
+                "cache_dir": (
+                    str(resolved_cache_dir) if resolved_cache_dir is not None else None
+                ),
             }
-    return {
-        "ok": True,
-        "fail_closed": False,
-        "pass_evidence": False,
-        "graph_id": graph_id,
-        "output_prefix": prefix,
-        "artifact_prefix": artifact,
-        "results": results,
-    }
+        )
+    except Exception as exc:
+        result.update(
+            {
+                "failed_stage": "input",
+                "failure_reason": f"{type(exc).__name__}: {exc}",
+            }
+        )
+    else:
+        assert config is not None
+        results: list[dict[str, Any]] = []
+
+        def run_stage(stage_id: str) -> dict[str, Any]:
+            timing_error: str | None = None
+            started = False
+            try:
+                timing.start(f"design-loop/{stage_id}")
+                started = True
+            except Exception as exc:
+                timing_error = f"{type(exc).__name__}: {exc}"
+            try:
+                stage_result = DEFAULT_STAGE_RUNNERS[stage_id](config)
+            except Exception as exc:
+                stage_result = _failure(stage_id, f"{type(exc).__name__}: {exc}")
+            finally:
+                if started:
+                    try:
+                        timing.finish(f"design-loop/{stage_id}")
+                    except Exception as exc:
+                        timing_error = f"{type(exc).__name__}: {exc}"
+            if not isinstance(stage_result, dict):
+                stage_result = _failure(
+                    stage_id, "stage runner returned a non-object result"
+                )
+            normalized = {**stage_result, "pass_evidence": False}
+            if timing_error is not None:
+                normalized["timing_error"] = timing_error
+            return normalized
+
+        silkscreen = run_stage("silkscreen-resolve")
+        results.append(silkscreen)
+        if not silkscreen.get("ok") or silkscreen.get("fail_closed"):
+            result.update(
+                {
+                    "failed_stage": "silkscreen-resolve",
+                    "failure_reason": silkscreen.get(
+                        "failure_reason", "stage failed"
+                    ),
+                    "results": results,
+                }
+            )
+        elif jobs == 1:
+            for stage_id in DESIGN_LOOP_LANE_IDS:
+                stage_result = run_stage(stage_id)
+                results.append(stage_result)
+                if not stage_result.get("ok") or stage_result.get("fail_closed"):
+                    result.update(
+                        {
+                            "failed_stage": stage_id,
+                            "failure_reason": stage_result.get(
+                                "failure_reason", "stage failed"
+                            ),
+                            "results": results,
+                        }
+                    )
+                    break
+            else:
+                order_result = run_stage("order-readiness")
+                results.append(order_result)
+                if not order_result.get("ok") or order_result.get("fail_closed"):
+                    result.update(
+                        {
+                            "failed_stage": "order-readiness",
+                            "failure_reason": order_result.get(
+                                "failure_reason", "stage failed"
+                            ),
+                            "results": results,
+                        }
+                    )
+                else:
+                    result.update(
+                        {
+                            "ok": True,
+                            "fail_closed": False,
+                            "results": results,
+                        }
+                    )
+        else:
+            with ThreadPoolExecutor(
+                max_workers=min(jobs, len(DESIGN_LOOP_LANE_IDS))
+            ) as executor:
+                futures = {
+                    stage_id: executor.submit(run_stage, stage_id)
+                    for stage_id in DESIGN_LOOP_LANE_IDS
+                }
+                lane_results = [
+                    futures[stage_id].result() for stage_id in DESIGN_LOOP_LANE_IDS
+                ]
+            results.extend(lane_results)
+            failed = next(
+                (
+                    stage_result
+                    for stage_result in lane_results
+                    if not stage_result.get("ok") or stage_result.get("fail_closed")
+                ),
+                None,
+            )
+            if failed is not None:
+                result.update(
+                    {
+                        "failed_stage": str(failed.get("stage_id", "unknown")),
+                        "failure_reason": failed.get("failure_reason", "stage failed"),
+                        "results": results,
+                    }
+                )
+            else:
+                order_result = run_stage("order-readiness")
+                results.append(order_result)
+                if not order_result.get("ok") or order_result.get("fail_closed"):
+                    result.update(
+                        {
+                            "failed_stage": "order-readiness",
+                            "failure_reason": order_result.get(
+                                "failure_reason", "stage failed"
+                            ),
+                            "results": results,
+                        }
+                    )
+                else:
+                    result.update(
+                        {
+                            "ok": True,
+                            "fail_closed": False,
+                            "results": results,
+                        }
+                    )
+    finally:
+        try:
+            timing.finish_open()
+        except Exception as exc:
+            timing_record_error = f"{type(exc).__name__}: {exc}"
+        try:
+            timing_record = write_timing_record(out_root, timing)
+        except Exception as exc:
+            write_error = f"{type(exc).__name__}: {exc}"
+            timing_record_error = (
+                f"{timing_record_error}; {write_error}"
+                if timing_record_error is not None
+                else write_error
+            )
+        if timing_record is not None:
+            result["timing_record"] = str(timing_record)
+        if timing_record_error is not None:
+            result["timing_record_error"] = timing_record_error
+    return result

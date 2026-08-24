@@ -105,7 +105,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 | E-1 | pipeline stageの並列化 | 基板pipelineでは`--pipeline-workers`により、rationale／設計predicate、独立reload、fab測定、Gerber gate、visual projectionの独立stageをProcessPoolExecutorで並列化済み。筐体pipelineではCAD専用spawn runnerをpipeline全体で再利用し、worker数分のmodule warm-up jobをBarrierで待ち合わせ、rationale／lane抽出／筐体投影中にimportを重ね、機械gate／artifact測定／断面・干渉visual projectionを同じrunnerへsubmitする。warm-up失敗・timeoutは最適化の警告として判定を変えずに続行する。2コアVMでCAD経路の既定を逐次（worker=1）とし、並列はopt-inにした。CPL／BOM chainは逐次のまま、E-2のlane／run並列化とE-4のstage cacheは未実装 | 基板のロック済みcontainerの3回比較は、逐次A（worker=1）145.1秒、逐次B（worker=1）152.0秒、並列C（worker=4）144.0秒。筐体は2コアVMの同一fixtureで`--pipeline-workers 1`が8.309秒、`--pipeline-workers 4`が26.492秒（現在の実装によるhostのprovisional測定）。4 workerのspawn＋`build123d` warm-up待ちは4.870秒（1 workerあたりの測定値）、shutdownは0.915秒で、逐次区間との重複後も2コア環境ではCAD stageのCPU競合が支配的となり短縮しなかった。Linux既定forkでOCP状態を継承すると停止するためCAD経路だけspawnを明示し、worker起動をpipelineごとに1回へ抑える。CAD stage実処理がworker起動コストを上回る大規模設計や多コア環境では明示指定で並列化できる。基板のA/BとA/Cの差分hashキー集合は一致し、SESとrefill前boardも一致した。外部CAD kernel／kicad-cli／FreeRoutingが支配的で、短縮幅は実行環境に依存する |
 | E-2 | lane・runの並列実行 | `scripts/run_gd1_lanes.py`でsilkscreen resolverをbarrierとして先に実行し、fixtureの`graph.json`更新完了後に、出力先を分離したGD1基板lane、GD1筐体lane、pytest subsetを独立batchとして並列実行する。`--jobs 1`は宣言順の逐次経路、複数jobは宣言順の出力とfail-closedの全件失敗報告を使う。laneの並列度は成果物、hash、Evidence、provenance、summaryへ含めない | 実装済み。host provisionalは基板laneの`freerouting` executable不在でfail-closedとなり、lane全体の成功・短縮は未実測（失敗までのwall clockは`--jobs 1` 15.902秒、既定並列29.331秒で、成功比較値ではない）。digest固定imageのDockerWorkspaceを使うCI `container-gates`をauthoritativeな測定経路とし、短縮が得られない場合も実測値を記録する |
 | E-3 | silkscreen探索候補評価の並列化 | `acd-silkscreen-placement`の`resolve_from_context`で、texts>1の候補数前パスをtext単位、1 text内のrotation×x-column列を共有context bundle付きchunk単位で`ProcessPoolExecutor`並列化した。チャンク内・チャンク間の結果をrotation宣言順・x昇順で連結し、main passは`dynamic_silk`が後続textの障害物になるため逐次のままとした。`--workers 1`はpoolなしの完全逐次で、worker数は出力、hash、Evidence、provenance、summaryへ含めない。placement search Skillは1.44秒（warm状態、interpreter起動込み）で実処理がサブ秒のため変更していない | 2コアVMのGD1 fixtureではpinned silkscreenにより通常のresolverで探索Skillは0回（resolve全体12.0秒）。未解決化した6 textではSkill 1回が47.77秒、resolve全体が63.29秒で、候補評価が支配項となった。抽出した同一入力を現在のSkillへ直接与えたhost provisional比較では、`--workers 1`が49.075秒、`--workers 2`が29.245秒、`--workers 4`が29.722秒で、全実行が成功しoutput JSON（各63,900,205 bytes）はbyte一致した。chunk化後も並列化によりこの入力では短縮したが、2コアVMのhost測定であり、authoritativeな判定はcontainer gateに委ねる |
-| E-4 | 入力hash単位のstage cache | 配置だけ変えた再試行でもDSN exportからやり直す | 候補ごとに全stageを再実行した |
+| E-4 | 入力hash単位のstage cache | `run_design_loop`へ接続済み。基板pipelineのDSN／SES生成物を入力hash一致時だけ再利用し、判定とEvidenceは毎回実行する | 会話経路の実pipeline測定はcontainer gateで確認する |
 | E-5 | output prefix／`subject_node`のgd1固定 | 達成。graph_id由来のprefixとgraph nodeからsubjectを導出し、GD1互換aliasを明示した | variant成果物も`gd1-*`名で出力される |
 | E-6 | 検証段階の並列実行 | pytestは`-n auto --dist loadgroup`、`verify_all.py`は`--jobs N`（既定はCPU数と4の小さい方）でbarrierのない連続コマンドを並列実行する。standardとfullの`uv sync`およびfullの後続pipelineはbarrierとして単独実行する。docs stageは文書検証3本を環境同期なしで並列実行する。`--jobs 1`は最初の失敗で停止して子プロセス出力を直接流し、並列時は開始行を出して起動済みコマンドを完走させ、失敗をすべて報告する | 2コアVMの同一入力でpytestは195.13秒（逐次）から108.73秒（自動並列）、standard検証は141.21秒（`--jobs 1`）から126.66秒（既定並列）になった。各条件1回（詳細は[`docs/operations.md`](operations.md)） |
 
@@ -273,10 +273,10 @@ fail-closedで停止する。
 
 | # | 不足機能 | 現状 |
 |---|---|---|
-| K-1 | 単一のorchestrator | 達成（14.7、14.10）。`scripts/run_gd1_lanes.py`と`run_design_loop`でsilkscreen resolver→基板pipeline→筐体pipeline→FW pipeline→発注可否の順序を固定した。ただしcache・resume・timing・lane並列を会話経路へ接続していない点はL-1として残る |
-| K-2 | 失敗からの再開 | 達成（14.7）。`scripts/run_gd1_lanes.py`に入力hash単位のstage cacheと失敗からのresumeを追加した。ただし会話経路（`/acd:vibebb-loop`）から未接続である点はL-1として残る |
+| K-1 | 単一のorchestrator | 達成（14.7、14.10、本PR）。`run_design_loop`へcache・resume・timing・lane並列を接続した。orchestratorのlane定義二重化解消は次PRで扱う |
+| K-2 | 失敗からの再開 | 達成（14.7、本PR）。会話経路の`run_design_loop`へ入力hash単位のstage cacheとresumeを接続した。cacheは決定論的生成物だけを復元し、判定とEvidenceは毎回再実行する |
 | K-3 | 失敗メッセージのremediation | ゲートは値と座標を返すが、次に動かしてよい次元（許可された変更次元）を返さない。専門家か汎用エージェントが居ないと次の一手が決まらない。B-3の構造化Evidenceを、利用者向けの「変更可能な次元と現在の余裕」を含む形にする提案である |
-| K-4 | stageごとの所要時間記録 | 達成（14.7）。stageごとの所要時間を記録する機能を追加した。ただし会話経路（`/acd:vibebb-loop`）から未接続である点はL-1として残る |
+| K-4 | stageごとの所要時間記録 | 達成（14.7、本PR）。会話経路の`run_design_loop`でも全stageの所要時間をL3 timing recordへ記録し、失敗時もopen stageを閉じて書き出す |
 
 ### K-3の解決（マイルストーン14.3）
 
@@ -298,7 +298,7 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 
 | # | 不足機能 | 現状 | 優先度 |
 |---|---|---|---|
-| L-1 | orchestratorの二重化解消 | `/acd:vibebb-loop`が呼ぶ`run_design_loop`は、入力hash単位のstage cache（E-4）、失敗からの再開（K-2）、stageごとの所要時間記録（K-4）、lane並列（E-2）を使わない。これらを持つ`scripts/run_gd1_lanes.py`は出力先が`out/gd1`・`out/gd1-enclosure`・`out/gd1-fw`のGD1固定で、FW整合gate後の発注可否段を持たない。結果として会話経路からはcacheと再開が使えない | 高 |
+| L-1 | orchestratorの二重化解消 | 前半達成（本PR）。`/acd:vibebb-loop`が呼ぶ`run_design_loop`へ入力hash単位のstage cache、失敗からのresume、L3 timing record、silkscreen barrier後のboard／enclosure／firmware lane並列を接続した。cacheは判定とEvidenceを復元しない。残るorchestratorのlane定義二重化解消は次PRで扱う | 高 |
 | L-2 | 却下後の候補探索の自動連結 | board段が却下された際に`explore_board_candidates`（B-1／B-2）へ接続する経路がloopに無く、次候補の起動が会話側のtool呼び出しに依存する。探索はL2の操舵に留め、L1ゲートの権限と閾値は変更しない | 高 |
 | L-3 | 要件→graph段のloop内取り込み | `scripts/compile_requirement_change.py`と`scripts/build_design_fixture.py`（A-1〜A-3）はloopの外にあり、要件revisionと対象graph revisionの整合をloop入口で検査していない | 中 |
 | L-4 | order-total生成経路の欠落 | `aggregate_order_total`にCLIもtool入口も無く、`out/order-total.json`の生成手順は[`operations.md`](operations.md)にも無い。発注可否段は既存fileを前提とするため、会話からは発注可否判定へ到達できない | 高 |

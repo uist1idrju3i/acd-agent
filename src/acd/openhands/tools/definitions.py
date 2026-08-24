@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -307,6 +308,19 @@ class AcdRunDesignLoopAction(Action):
     max_silkscreen_iterations: int = Field(default=5, ge=1)
     run_seconds: int = Field(default=15, ge=1)
     evaluated_at: str | None = None
+    cache_dir: str | None = Field(
+        default=None,
+        description="Optional content-addressed cache directory for deterministic artifacts.",
+    )
+    resume: bool = Field(
+        default=False,
+        description="Reuse valid matching artifacts without restoring verdicts or Evidence.",
+    )
+    jobs: int = Field(
+        default=min(os.cpu_count() or 1, 3),
+        ge=1,
+        description="Maximum parallel board, enclosure, and firmware lanes.",
+    )
 
 
 class AcdProbeToolsObservation(AcdObservation):
@@ -930,6 +944,9 @@ class AcdRunDesignLoopExecutor(
                 max_silkscreen_iterations=action.max_silkscreen_iterations,
                 run_seconds=action.run_seconds,
                 evaluated_at=evaluated_at,
+                cache_dir=Path(action.cache_dir) if action.cache_dir else None,
+                resume=action.resume,
+                jobs=action.jobs,
             )
             return AcdRunDesignLoopObservation(
                 ok=bool(result.get("ok")),
@@ -1347,12 +1364,16 @@ class AcdRunDesignLoop(
         if not isinstance(action, AcdRunDesignLoopAction):
             return DeclaredResources(keys=(), declared=False)
         root = Path(action.repository)
+        cache_resource = (
+            (("acd-cache", Path(action.cache_dir)),) if action.cache_dir else ()
+        )
         return _resources(
             ("file", Path(action.fixture) / "graph.json"),
             ("file", Path(action.order_total)),
             ("file", Path(action.policy)),
             ("file", root / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"),
             ("acd-out", Path(action.out_root)),
+            *cache_resource,
         )
 
     @classmethod
@@ -1366,7 +1387,9 @@ class AcdRunDesignLoop(
                 observation_type=AcdRunDesignLoopObservation,
                 description=(
                     "Run the fixed graph-driven VibeBB design loop through "
-                    "deterministic stages."
+                    "deterministic stages, with optional artifact cache/resume, "
+                    "stage timing, and bounded lane parallelism. Cache reuse never "
+                    "restores verdicts or Evidence."
                 ),
                 annotations=ToolAnnotations(
                     title="acd_run_design_loop",

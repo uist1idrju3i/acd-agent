@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -14,7 +15,9 @@ import pytest
 import acd.pipeline.design_loop as design_loop  # pyright: ignore[reportMissingTypeStubs]
 from acd.core.naming import artifact_prefix, output_prefix
 from acd.pipeline.design_loop import (  # pyright: ignore[reportMissingTypeStubs]
+    DEFAULT_DESIGN_LOOP_JOBS,
     DEFAULT_STAGE_RUNNERS,
+    DESIGN_LOOP_LANE_IDS,
     DESIGN_LOOP_STAGE_IDS,
     DesignLoopConfig,
     run_design_loop,
@@ -73,6 +76,7 @@ def test_design_loop_keeps_fixed_stage_order_and_graph_derived_names(
         tmp_path / "artifacts",
         order_total=tmp_path / "order-total.json",
         policy=tmp_path / "policy.json",
+        jobs=1,
     )
 
     assert result["ok"] is True
@@ -111,6 +115,7 @@ def test_design_loop_stops_after_first_failed_stage(
         tmp_path / "artifacts",
         order_total=tmp_path / "order-total.json",
         policy=tmp_path / "policy.json",
+        jobs=1,
     )
 
     assert result["ok"] is False
@@ -143,6 +148,7 @@ def test_missing_firmware_skill_fails_closed_without_running_order_gate(
         order_total=tmp_path / "order-total.json",
         policy=tmp_path / "policy.json",
         repository=tmp_path / "repository",
+        jobs=1,
     )
 
     assert result["ok"] is False
@@ -300,3 +306,215 @@ def test_unsafe_graph_id_fails_closed(tmp_path: Path) -> None:
     assert result["fail_closed"] is True
     assert result["failed_stage"] == "input"
     assert "output prefix" in result["failure_reason"]
+
+
+def test_design_loop_default_jobs_is_bounded() -> None:
+    assert min(os.cpu_count() or 1, 3) == DEFAULT_DESIGN_LOOP_JOBS
+
+
+def test_design_loop_parallel_lanes_preserve_result_order_and_hashes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def runner(stage_id: str) -> Callable[[DesignLoopConfig], dict[str, Any]]:
+        def run(config: DesignLoopConfig) -> dict[str, Any]:
+            del config
+            return {
+                "stage_id": stage_id,
+                "ok": True,
+                "fail_closed": False,
+                "pass_evidence": False,
+                "normalized_hash": f"sha256:{stage_id}",
+            }
+
+        return run
+
+    runners = {stage_id: runner(stage_id) for stage_id in DESIGN_LOOP_STAGE_IDS}
+    _patch_runners(monkeypatch, runners)
+    sequential = run_design_loop(
+        FIXTURE,
+        tmp_path / "sequential",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+    parallel = run_design_loop(
+        FIXTURE,
+        tmp_path / "parallel",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=3,
+    )
+
+    assert sequential["ok"] is True
+    assert parallel["ok"] is True
+    assert [item["stage_id"] for item in sequential["results"]] == list(
+        DESIGN_LOOP_STAGE_IDS
+    )
+    assert [item["stage_id"] for item in parallel["results"]] == list(
+        DESIGN_LOOP_STAGE_IDS
+    )
+    assert [
+        item["normalized_hash"] for item in sequential["results"]
+    ] == [item["normalized_hash"] for item in parallel["results"]]
+
+
+def test_design_loop_resume_reexecutes_gate_stages_and_uses_default_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[tuple[str, Path | None]] = []
+
+    def runner(stage_id: str) -> Callable[[DesignLoopConfig], dict[str, Any]]:
+        def run(config: DesignLoopConfig) -> dict[str, Any]:
+            seen.append((stage_id, config.cache_dir))
+            return {
+                "stage_id": stage_id,
+                "ok": True,
+                "fail_closed": False,
+                "pass_evidence": False,
+                "verdict": "valid",
+                "evidence": {"restored": False},
+            }
+
+        return run
+
+    _patch_runners(
+        monkeypatch,
+        {stage_id: runner(stage_id) for stage_id in DESIGN_LOOP_STAGE_IDS},
+    )
+    out_root = tmp_path / "artifacts"
+    result = run_design_loop(
+        FIXTURE,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        resume=True,
+        jobs=1,
+    )
+
+    assert result["ok"] is True
+    assert result["cache_dir"] == str(out_root / ".stage-cache")
+    assert [stage_id for stage_id, _cache in seen] == list(DESIGN_LOOP_STAGE_IDS)
+    assert all(cache == out_root / ".stage-cache" for _stage, cache in seen)
+    assert all(item["pass_evidence"] is False for item in result["results"])
+
+
+def test_design_loop_parallel_failure_reports_all_started_lanes_without_order_gate(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+
+    def runner(stage_id: str) -> Callable[[DesignLoopConfig], dict[str, Any]]:
+        def run(config: DesignLoopConfig) -> dict[str, Any]:
+            del config
+            seen.append(stage_id)
+            if stage_id in {"board-pipeline", "firmware-pipeline"}:
+                return {
+                    "stage_id": stage_id,
+                    "ok": False,
+                    "fail_closed": True,
+                    "pass_evidence": False,
+                    "failure_reason": stage_id,
+                }
+            return {
+                "stage_id": stage_id,
+                "ok": True,
+                "fail_closed": False,
+                "pass_evidence": False,
+            }
+
+        return run
+
+    _patch_runners(
+        monkeypatch,
+        {stage_id: runner(stage_id) for stage_id in DESIGN_LOOP_STAGE_IDS},
+    )
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=3,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "board-pipeline"
+    assert set(seen) == set(DESIGN_LOOP_LANE_IDS) | {"silkscreen-resolve"}
+    assert [item["stage_id"] for item in result["results"]] == [
+        "silkscreen-resolve",
+        "board-pipeline",
+        "enclosure-pipeline",
+        "firmware-pipeline",
+    ]
+
+
+def test_design_loop_records_timing_write_failure_without_changing_verdict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    def fail_write(*args: Any, **kwargs: Any) -> Path:
+        del args, kwargs
+        raise OSError("timing destination is unavailable")
+
+    monkeypatch.setattr(design_loop, "write_timing_record", fail_write)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is True
+    assert "timing destination is unavailable" in result["timing_record_error"]
+
+
+def test_design_loop_rejects_unusable_cache_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+    cache_file = tmp_path / "cache-file"
+    cache_file.write_text("not a directory", encoding="utf-8")
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        cache_dir=cache_file,
+        jobs=1,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "input"
+    assert "FileExistsError" in result["failure_reason"]
+
+
+def test_design_loop_rejects_non_positive_jobs(tmp_path: Path) -> None:
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=0,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "input"
+    assert result["failure_reason"] == "ValueError: jobs must be a positive integer"

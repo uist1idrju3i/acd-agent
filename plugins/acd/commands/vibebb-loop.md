@@ -1,6 +1,6 @@
 ---
 description: 要件から設計反復と発注可否までを固定順序で実行するVibeBB loop。
-argument-hint: "--fixture PATH --order-total PATH [--policy PATH] [--out-root PATH]"
+argument-hint: "--fixture PATH --order-total PATH [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N]"
 allowed-tools:
   - acd_compile_requirement_change
   - acd_build_design_fixture
@@ -30,6 +30,13 @@ allowed-tools:
    修正後はgraph検証からloopを再実行する。
 5. 発注可否はloopが返すorder-readiness結果と、必要なら
    `acd_check_order_readiness`で確認する。発注実行はこのcommandの責務ではない。
+
+`acd_run_design_loop`は、必要に応じて入力hash単位のstage cache（`cache_dir`）、
+失敗からのresume（`resume`）、stageごとの所要時間記録、基板・筐体・FW laneの
+bounded並列（`jobs`）を利用できる。`resume`で`cache_dir`を省略した場合は
+`out_root/.stage-cache`を使う。cacheから復元するのは決定論的な生成物だけであり、
+判定、verdict、Evidenceは復元せず毎回再実行する。timing recordとcache reportは
+L3観測であり、合否を変更しない。
 
 各段はfail-closedであり、`ok: false`、`fail_closed: true`、失敗段ID、そこまでの
 段結果を含むJSONを返す。段を黙って省略したり順序を入れ替えたりしてはならない。

@@ -4,12 +4,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 from acd.core.timestamps import parse_evaluated_at
 from acd.pipeline.design_loop import run_design_loop
+
+
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("jobs must be a positive integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("jobs must be a positive integer")
+    return parsed
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -29,6 +40,23 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-silkscreen-iterations", type=int, default=5)
     parser.add_argument("--run-seconds", type=int, default=15)
     parser.add_argument("--evaluated-at", default=None)
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="opt-in content-addressed cache directory for deterministic artifacts",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="reuse only valid matching artifact-cache entries; never restore verdicts",
+    )
+    parser.add_argument(
+        "--jobs",
+        type=_positive_int,
+        default=min(os.cpu_count() or 1, 3),
+        help="maximum parallel board, enclosure, and firmware lanes",
+    )
     return parser
 
 
@@ -50,6 +78,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_silkscreen_iterations=args.max_silkscreen_iterations,
             run_seconds=args.run_seconds,
             evaluated_at=evaluated_at,
+            cache_dir=args.cache_dir,
+            resume=args.resume,
+            jobs=args.jobs,
         )
     except Exception as exc:
         result = {
