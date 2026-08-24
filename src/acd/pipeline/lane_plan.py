@@ -157,6 +157,16 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         lane_runner=True,
     ),
     _StageDefinition(
+        "order-total-aggregation",
+        None,
+        barrier=True,
+        cacheable=False,
+        command_kind=None,
+        design_loop=False,
+        lane_runner=False,
+        conditional=True,
+    ),
+    _StageDefinition(
         "order-readiness",
         None,
         barrier=False,
@@ -222,7 +232,11 @@ def build_lane_plan(graph_id: str, out_root: Path) -> LanePlan:
                     else f"{resolved_artifact_prefix}{definition.output_suffix}"
                 )
                 if definition.output_suffix is not None
-                else None
+                else (
+                    out_root / "order-total.json"
+                    if definition.stage_id == "order-total-aggregation"
+                    else None
+                )
             ),
             cacheable=definition.cacheable,
             command_kind=definition.command_kind,

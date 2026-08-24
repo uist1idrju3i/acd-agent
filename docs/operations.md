@@ -358,6 +358,29 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 見つからない場合も、ゲート未実行として停止する。このCLIはjournal書込み、送信、実発注を
 行わない。
 
+### quoteからorder-totalを生成する
+
+見積record、発注範囲、基板製造プロファイルから、既存の決定論的集計を呼び出して
+`OrderTotalDocument`を生成できる。各quote recordは対象revision、supplier、
+counterparty、通貨、必須category、明細合計を満たし、OrderScopeとFabProfileDocument
+のID・revision・通貨契約に一致していなければならない。`--quote-record`は複数回
+指定する。
+
+```bash
+uv run python scripts/aggregate_order_total.py \
+  --quote-record fixtures/contracts/valid/quote-order.json \
+  --order-scope fixtures/contracts/valid/order-scope.json \
+  --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
+  --target-revision r12 \
+  --evaluated-at 2026-08-14T00:00:00Z \
+  --output out/order-total.json
+```
+
+集計が成功したら、生成されたJSONを既存の発注前ゲートへ渡す。parse失敗、missing、
+revision・supplier・counterparty・通貨・category不一致、明細合計やbreakdown hashの
+不一致はすべて非ゼロ終了で停止する。集計結果はL1合格権限やauthoritative Evidence
+ではなく、発注可否は既存のpre-order gateだけが判定する。
+
 ### VibeBB設計loopの実行
 
 会話から要件をgraphへ反映し、設計反復と発注可否を一つの決定論的loopで進める入口は
@@ -370,7 +393,8 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 3. 要件入口整合検査（常時）
 4. silkscreen resolver（基板pipelineの前提となるbarrier）
 5. 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
-6. 発注可否のpre-order gate
+6. order-total集計（quote record、OrderScope、FabProfileDocument指定時のみ）
+7. 発注可否のpre-order gate
 
 コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
 出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`
@@ -387,6 +411,25 @@ uv run python scripts/run_design_loop.py \
   --requirement out/requirement-update.json \
   --evaluated-at 2026-08-14T00:00:00Z
 ```
+
+既存のorder-total documentを使う場合は`--order-total`を指定する。quoteからloop内で
+生成する場合は、次のaggregation modeを使う。二つのmodeを同時に指定することはできず、
+fab profileを含む全入力が揃わない場合もfail-closedになる。
+
+```bash
+uv run python scripts/run_design_loop.py \
+  --fixture fixtures/golden-design-1 \
+  --out-root out \
+  --quote-record fixtures/contracts/valid/quote-order.json \
+  --order-scope fixtures/contracts/valid/order-scope.json \
+  --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
+  --policy plugins/acd/hooks/order-policy.json \
+  --evaluated-at 2026-08-14T00:00:00Z
+```
+
+この場合、lane planから導出した`out/order-total.json`へ集計結果を書き、直後の
+order-readinessがそのdocumentを読み込む。集計はL2の決定論的処理であり、合格判定や
+authoritative Evidenceを生成しない。quote取得と実発注はこのloopの責務ではない。
 
 新規fixtureをspecから生成する場合は、`--fixture-spec`を追加する。fixtureに既存の
 `graph.json`がある場合は上書きせずfail-closedで停止する。

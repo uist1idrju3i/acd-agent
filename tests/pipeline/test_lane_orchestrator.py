@@ -87,6 +87,7 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
         "board-pipeline",
         "enclosure-pipeline",
         "firmware-pipeline",
+        "order-total-aggregation",
         "order-readiness",
         "pytest-subset",
         "board-exploration",

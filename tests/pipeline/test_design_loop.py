@@ -178,6 +178,161 @@ def test_design_loop_stage_set_and_order_are_fixed() -> None:
     assert tuple(DEFAULT_STAGE_RUNNERS) == DESIGN_LOOP_STAGE_IDS
 
 
+def test_order_total_aggregation_runs_before_order_readiness(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+
+    def aggregate(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        seen.append("order-total-aggregation")
+        return {
+            "stage_id": "order-total-aggregation",
+            "ok": True,
+            "fail_closed": False,
+            "pass_evidence": False,
+            "record_class": "L2",
+        }
+
+    monkeypatch.setattr(design_loop, "_run_order_total_aggregation", aggregate)
+    _patch_runners(monkeypatch, runners)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        fab_profile=tmp_path / "fab-profile.json",
+        quote_records=[tmp_path / "quote.json"],
+        order_scope=tmp_path / "scope.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is True
+    assert seen[-2:] == ["order-total-aggregation", "order-readiness"]
+    assert [item["stage_id"] for item in result["results"]][-2:] == [
+        "order-total-aggregation",
+        "order-readiness",
+    ]
+
+
+def test_order_total_aggregation_generates_plan_output(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[2]
+    seen: list[str] = []
+    quote = tmp_path / "quote-order.json"
+    scope = tmp_path / "order-scope.json"
+    quote.write_text(
+        (root / "fixtures/contracts/valid/quote-order.json")
+        .read_text(encoding="utf-8")
+        .replace('"r12"', '"r1"'),
+        encoding="utf-8",
+    )
+    scope.write_text(
+        (root / "fixtures/contracts/valid/order-scope.json")
+        .read_text(encoding="utf-8")
+        .replace('"r12"', '"r1"'),
+        encoding="utf-8",
+    )
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    _patch_runners(monkeypatch, runners)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        fab_profile=root / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json",
+        quote_records=[quote],
+        order_scope=scope,
+        evaluated_at=datetime.fromisoformat("2025-01-11T00:00:00+00:00"),
+        jobs=1,
+    )
+
+    assert result["ok"] is True
+    output = tmp_path / "artifacts" / "order-total.json"
+    assert output.is_file()
+    aggregation = next(
+        item for item in result["results"] if item["stage_id"] == "order-total-aggregation"
+    )
+    assert aggregation["output_path"] == str(output)
+    assert aggregation["quote_count"] == 1
+
+
+def test_order_total_aggregation_failure_skips_order_readiness(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+
+    def aggregate(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        seen.append("order-total-aggregation")
+        return {
+            "stage_id": "order-total-aggregation",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "invalid quote",
+        }
+
+    monkeypatch.setattr(design_loop, "_run_order_total_aggregation", aggregate)
+    _patch_runners(monkeypatch, runners)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        fab_profile=tmp_path / "fab-profile.json",
+        quote_records=[tmp_path / "quote.json"],
+        order_scope=tmp_path / "scope.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "order-total-aggregation"
+    assert "order-readiness" not in seen
+
+
+def test_order_total_modes_are_mutually_exclusive(tmp_path: Path) -> None:
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        quote_records=[tmp_path / "quote.json"],
+        order_scope=tmp_path / "scope.json",
+        fab_profile=tmp_path / "fab-profile.json",
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "input"
+    assert "mutually exclusive" in result["failure_reason"]
+
+
+def test_order_total_aggregation_requires_fab_profile(tmp_path: Path) -> None:
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        quote_records=[tmp_path / "quote.json"],
+        order_scope=tmp_path / "scope.json",
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "input"
+    assert "fab profile" in result["failure_reason"]
+
+
 def test_design_loop_rejects_naive_evaluated_at(tmp_path: Path) -> None:
     result = run_design_loop(
         FIXTURE,

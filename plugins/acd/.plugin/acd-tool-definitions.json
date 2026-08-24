@@ -3,6 +3,10 @@
   "entry_point": "acd.openhands.tools.definitions.register_acd_tools",
   "tools": [
     {
+      "tool_name": "acd_aggregate_order_total",
+      "definition_class": "AcdAggregateOrderTotal"
+    },
+    {
       "tool_name": "acd_bootstrap_workspace",
       "definition_class": "AcdBootstrapWorkspace"
     },
@@ -59,5 +63,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:4e30ff068b501f9762fb691cef56c5df41bc57cefd0ceeed9421393b9eda07b4"
+  "canonical_hash": "sha256:e87bf838798d9abd5e6693e1d77cebad0b60a27816d7ed20949c844fdbe8b16c"
 }

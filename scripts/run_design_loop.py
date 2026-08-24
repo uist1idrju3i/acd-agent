@@ -27,7 +27,22 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
     parser.add_argument("--out-root", type=Path, default=Path("out"))
-    parser.add_argument("--order-total", type=Path, required=True)
+    parser.add_argument("--order-total", type=Path, default=None)
+    parser.add_argument(
+        "--quote-record",
+        "--quote",
+        dest="quote_records",
+        type=Path,
+        action="append",
+        default=None,
+        help="quote record JSON path; repeat for aggregation mode",
+    )
+    parser.add_argument(
+        "--order-scope",
+        type=Path,
+        default=None,
+        help="OrderScope JSON path for aggregation mode",
+    )
     parser.add_argument(
         "--policy",
         type=Path,
@@ -101,6 +116,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.fixture,
             args.out_root,
             order_total=args.order_total,
+            quote_records=args.quote_records,
+            order_scope=args.order_scope,
             policy=args.policy,
             repository=args.repository,
             fab_profile=args.fab_profile,

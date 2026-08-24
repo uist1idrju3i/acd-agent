@@ -47,3 +47,37 @@ def test_requirement_inputs_are_forwarded(monkeypatch: pytest.MonkeyPatch) -> No
     )
     assert captured["requirement"] == run_design_loop.Path("update.json")
     assert captured["fixture_spec"] == run_design_loop.Path("fixture-spec.json")
+
+
+def test_order_total_aggregation_inputs_are_forwarded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run_design_loop(*args: object, **kwargs: object) -> dict[str, object]:
+        del args
+        captured.update(kwargs)
+        return {"ok": True}
+
+    monkeypatch.setattr(run_design_loop, "run_design_loop", fake_run_design_loop)
+    assert (
+        run_design_loop.main(
+            [
+                "--quote-record",
+                "quote-a.json",
+                "--quote-record",
+                "quote-b.json",
+                "--order-scope",
+                "scope.json",
+                "--fab-profile",
+                "profile.json",
+            ]
+        )
+        == 0
+    )
+    assert captured["order_total"] is None
+    assert captured["quote_records"] == [
+        run_design_loop.Path("quote-a.json"),
+        run_design_loop.Path("quote-b.json"),
+    ]
+    assert captured["order_scope"] == run_design_loop.Path("scope.json")

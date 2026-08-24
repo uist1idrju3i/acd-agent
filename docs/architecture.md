@@ -262,6 +262,20 @@ parse失敗、unknown、未回答、不一致はfail-closedでsilkscreen以降�
 L1ゲートやauthoritative Evidenceの代替ではなく、合否を変更しない観測分類のL3でもない。
 compileのreport分類はL2で、両stageとも`pass_evidence: false`とする。
 
+### order-total-aggregation stage
+
+`order-total-aggregation`は、設計laneのjoin後かつ`order-readiness`直前にだけ実行する
+条件付きの直列stageである。quote record群、`OrderScope`、`FabProfileDocument`が
+明示された場合に既存の`aggregate_order_total`を呼び出し、lane planから導出した
+`out/order-total.json`へ検証済み`OrderTotalDocument`を書き出す。既存documentを読む
+legacy modeとaggregation modeの同時指定はfail-closedで拒否する。
+
+このstageは決定論的なL2集計であり、supplierやrevision、通貨、必須category、料金処理、
+declared total、canonical breakdown hashを既存core契約に従って検査する。ただし集計結果
+はL1合格権限もauthoritative Evidence生成権限も持たない。発注可否は生成documentを読む
+既存の`order-readiness`とそのL1 gateだけが扱う。入力のmissing、parse失敗、契約不一致は
+後続のorder-readinessを実行せずfail-closedにする。
+
 ### board候補探索の条件付きstage
 
 `run_design_loop`のboard-pipelineがfail-closedで却下された場合に限り、

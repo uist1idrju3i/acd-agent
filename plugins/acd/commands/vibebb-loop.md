@@ -1,7 +1,8 @@
 ---
 description: 要件から設計反復と発注可否までを固定順序で実行するVibeBB loop。
-argument-hint: "--fixture PATH --order-total PATH [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--explore-board --max-exploration-candidates N --max-exploration-rounds N]"
+argument-hint: "--fixture PATH [--order-total PATH | --quote-record PATH... --order-scope PATH --fab-profile PATH] [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--explore-board --max-exploration-candidates N --max-exploration-rounds N]"
 allowed-tools:
+  - acd_aggregate_order_total
   - acd_compile_requirement_change
   - acd_build_design_fixture
   - acd_validate_design_graph
@@ -24,6 +25,7 @@ allowed-tools:
    - 要件入口整合検査（常時のdesign-loop stage）
    - silkscreen resolver（基板pipelineの前提となるbarrier）
    - 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
+   - order-total集計（quote record、scope、fab profile指定時のみ）
    - 発注可否のpre-order gate
 3. 失敗した場合は後続段を実行せず、`acd_diagnose_gate_failure`で出力を調べる。
    `explore_board`を明示した場合、board-pipelineのfail-closed却下に限ってloopが
@@ -49,7 +51,9 @@ graphのIDとrevisionが探索前と一致し、正規化content hashが変化�
 Evidenceを毎回生成する。
 入口整合検査のmissing、parse失敗、graph IDまたはrevision不一致、graph-anchored要件の
 text不一致はfail-closedで停止する。unknownや未回答の要件は推測しない。この入口検査は
-L1ゲートやauthoritative Evidenceの代替ではない。
+L1ゲートやauthoritative Evidenceの代替ではない。order-total集計は決定論的なL2
+集計であり、既存の`--order-total` document modeと同時に指定してはならない。
+集計結果はL1合格権限もauthoritative Evidenceも持たない。
 
 各段はfail-closedであり、`ok: false`、`fail_closed: true`、失敗段ID、そこまでの
 段結果を含むJSONを返す。段を黙って省略したり順序を入れ替えたりしてはならない。

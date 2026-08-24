@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, cast
 
@@ -262,6 +264,15 @@ class AcdBuildDesignFixtureAction(Action):
     out: str
 
 
+class AcdAggregateOrderTotalAction(Action):
+    quote_records: list[str] = Field(min_length=1)
+    order_scope: str
+    fab_profile: str
+    target_revision: str
+    evaluated_at: str
+    output: str
+
+
 class AcdExploreBoardCandidatesAction(Action):
     graph: str
     fixture_dir: str
@@ -298,7 +309,7 @@ class AcdRunDesignLoopAction(Action):
 
     fixture: str = Field(default="fixtures/golden-design-1")
     out_root: str = Field(default="out")
-    order_total: str
+    order_total: str | None = None
     policy: str = "plugins/acd/hooks/order-policy.json"
     repository: str = "."
     fab_profile: str | None = None
@@ -341,6 +352,15 @@ class AcdRunDesignLoopAction(Action):
     fixture_spec: str | None = Field(
         default=None,
         description="Optional design fixture specification to generate before the loop.",
+    )
+    quote_records: list[str] | None = Field(
+        default=None,
+        min_length=1,
+        description="Optional quote records for order-total aggregation mode.",
+    )
+    order_scope: str | None = Field(
+        default=None,
+        description="Optional OrderScope JSON path for aggregation mode.",
     )
 
 
@@ -388,6 +408,10 @@ class AcdCompileRequirementChangeObservation(AcdObservation):
 
 class AcdBuildDesignFixtureObservation(AcdObservation):
     """Observation returned by the arbitrary fixture builder."""
+
+
+class AcdAggregateOrderTotalObservation(AcdObservation):
+    """Observation returned by deterministic order-total aggregation."""
 
 
 class AcdExploreBoardCandidatesObservation(AcdObservation):
@@ -798,6 +822,79 @@ class AcdBuildDesignFixtureExecutor(ToolExecutor[AcdBuildDesignFixtureAction, Ac
             )
 
 
+class AcdAggregateOrderTotalExecutor(
+    ToolExecutor[AcdAggregateOrderTotalAction, AcdObservation]
+):
+    def __call__(
+        self,
+        action: AcdAggregateOrderTotalAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.core.order_total import (
+                aggregate_order_total,
+                order_total_result_to_document,
+            )
+            from acd.core.timestamps import parse_evaluated_at
+            from acd.schema import FabProfileDocument, OrderScope, QuoteRecord
+
+            records = [
+                QuoteRecord.model_validate_json(
+                    Path(path).read_text(encoding="utf-8")
+                )
+                for path in action.quote_records
+            ]
+            scope = OrderScope.model_validate_json(
+                Path(action.order_scope).read_text(encoding="utf-8")
+            )
+            fab_profile = FabProfileDocument.model_validate_json(
+                Path(action.fab_profile).read_text(encoding="utf-8")
+            )
+            result = aggregate_order_total(
+                records,
+                scope,
+                fab_profile=fab_profile,
+                evaluated_at=parse_evaluated_at(action.evaluated_at),
+                target_revision=action.target_revision,
+            )
+            document = order_total_result_to_document(result)
+            output_path = Path(action.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary_path: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    "w",
+                    encoding="utf-8",
+                    dir=output_path.parent,
+                    prefix=f".{output_path.name}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as temporary:
+                    temporary.write(document.model_dump_json(indent=2) + "\n")
+                    temporary_path = Path(temporary.name)
+                os.replace(temporary_path, output_path)
+            finally:
+                if temporary_path is not None:
+                    temporary_path.unlink(missing_ok=True)
+            return AcdAggregateOrderTotalObservation(
+                ok=True,
+                operation="aggregate_order_total",
+                report={
+                    "quote_count": len(records),
+                    "target_revision": result.target_revision,
+                    "breakdown_hash": result.breakdown_hash,
+                    "pass_evidence": False,
+                },
+                output_path=str(output_path),
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdAggregateOrderTotalObservation(
+                **_error(str(exc), operation="aggregate_order_total")
+            )
+
+
 class AcdExploreBoardCandidatesExecutor(
     ToolExecutor[AcdExploreBoardCandidatesAction, AcdObservation]
 ):
@@ -956,7 +1053,7 @@ class AcdRunDesignLoopExecutor(
             result = run_design_loop(
                 Path(action.fixture),
                 Path(action.out_root),
-                order_total=Path(action.order_total),
+                order_total=Path(action.order_total) if action.order_total else None,
                 policy=Path(action.policy),
                 repository=Path(action.repository),
                 fab_profile=Path(action.fab_profile) if action.fab_profile else None,
@@ -973,6 +1070,12 @@ class AcdRunDesignLoopExecutor(
                 max_exploration_rounds=action.max_exploration_rounds,
                 requirement=Path(action.requirement) if action.requirement else None,
                 fixture_spec=Path(action.fixture_spec) if action.fixture_spec else None,
+                quote_records=(
+                    [Path(path) for path in action.quote_records]
+                    if action.quote_records
+                    else None
+                ),
+                order_scope=Path(action.order_scope) if action.order_scope else None,
             )
             return AcdRunDesignLoopObservation(
                 ok=bool(result.get("ok")),
@@ -1245,6 +1348,44 @@ class AcdBuildDesignFixture(
         ]
 
 
+class AcdAggregateOrderTotal(
+    ToolDefinition[AcdAggregateOrderTotalAction, AcdAggregateOrderTotalObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdAggregateOrderTotalAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(
+            *[("file", Path(path)) for path in action.quote_records],
+            ("file", Path(action.order_scope)),
+            ("file", Path(action.fab_profile)),
+            ("acd-out", Path(action.output)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_aggregate_order_total does not accept parameters")
+        return [
+            cls(
+                action_type=AcdAggregateOrderTotalAction,
+                observation_type=AcdAggregateOrderTotalObservation,
+                description=(
+                    "Aggregate validated quote records into an order-total document "
+                    "without granting L1 authority or creating authoritative Evidence."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_aggregate_order_total",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdAggregateOrderTotalExecutor(),
+            )
+        ]
+
+
 class AcdExploreBoardCandidates(
     ToolDefinition[AcdExploreBoardCandidatesAction, AcdExploreBoardCandidatesObservation]
 ):
@@ -1396,8 +1537,14 @@ class AcdRunDesignLoop(
         return _resources(
             ("file", Path(action.fixture) / "graph.json"),
             ("file", Path(action.fixture) / "requirements.json"),
-            ("file", Path(action.order_total)),
+            *((("file", Path(action.order_total)),) if action.order_total else ()),
             ("file", Path(action.policy)),
+            *((("file", Path(action.fab_profile)),) if action.fab_profile else ()),
+            *(
+                ("file", Path(path))
+                for path in action.quote_records or []
+            ),
+            *((("file", Path(action.order_scope)),) if action.order_scope else ()),
             *((("file", Path(action.requirement)),) if action.requirement else ()),
             *((("file", Path(action.fixture_spec)),) if action.fixture_spec else ()),
             ("file", root / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"),
@@ -1526,6 +1673,7 @@ ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_run_firmware_pipeline", AcdRunFirmwarePipeline),
     ("acd_compile_requirement_change", AcdCompileRequirementChange),
     ("acd_build_design_fixture", AcdBuildDesignFixture),
+    ("acd_aggregate_order_total", AcdAggregateOrderTotal),
     ("acd_explore_board_candidates", AcdExploreBoardCandidates),
     ("acd_explore_enclosure_candidates", AcdExploreEnclosureCandidates),
     ("acd_diagnose_gate_failure", AcdDiagnoseGateFailure),

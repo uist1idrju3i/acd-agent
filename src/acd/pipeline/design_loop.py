@@ -6,7 +6,8 @@ import hashlib
 import json
 import os
 import subprocess
-from collections.abc import Callable
+import tempfile
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -14,7 +15,11 @@ from pathlib import Path
 from typing import Any, cast
 
 from acd.core.exploration import explore_board_candidates
-from acd.core.order_total import order_total_result_from_document
+from acd.core.order_total import (
+    aggregate_order_total,
+    order_total_result_from_document,
+    order_total_result_to_document,
+)
 from acd.core.requirement_compiler import compile_requirement_change
 from acd.core.requirements import (
     default_requirements_path,
@@ -33,7 +38,15 @@ from acd.pipeline.lane_plan import (
     build_lane_plan,
 )
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
-from acd.schema import DesignFixtureSpec, DesignGraph, OrderPolicy, OrderTotalDocument
+from acd.schema import (
+    DesignFixtureSpec,
+    DesignGraph,
+    FabProfileDocument,
+    OrderPolicy,
+    OrderScope,
+    OrderTotalDocument,
+    QuoteRecord,
+)
 from acd.schema.common import canonical_json_sha256
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
@@ -69,6 +82,8 @@ class DesignLoopConfig:
     max_exploration_rounds: int = 1
     requirement: Path | None = None
     fixture_spec: Path | None = None
+    quote_records: tuple[Path, ...] = ()
+    order_scope: Path | None = None
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -240,6 +255,80 @@ def _run_order_readiness(config: DesignLoopConfig) -> dict[str, Any]:
     )
 
 
+def _run_order_total_aggregation(config: DesignLoopConfig) -> dict[str, Any]:
+    """Aggregate quote records without producing order-readiness evidence."""
+    output_path = config.lane_plan.stage("order-total-aggregation").output_path
+    if output_path is None:
+        return _failure(
+            "order-total-aggregation",
+            "order-total aggregation output path is undeclared (fail-closed)",
+            record_class="L2",
+        )
+    if not config.quote_records or config.order_scope is None:
+        return _failure(
+            "order-total-aggregation",
+            "quote records and order scope are required for aggregation",
+            record_class="L2",
+        )
+    if config.fab_profile is None:
+        return _failure(
+            "order-total-aggregation",
+            "fab profile is required for aggregation",
+            record_class="L2",
+        )
+    try:
+        records = [
+            QuoteRecord.model_validate_json(path.read_text(encoding="utf-8"))
+            for path in (
+                _repository_path(config, quote_path)
+                for quote_path in config.quote_records
+            )
+        ]
+        scope = OrderScope.model_validate_json(
+            _repository_path(config, config.order_scope).read_text(encoding="utf-8")
+        )
+        fab_profile = FabProfileDocument.model_validate_json(
+            _repository_path(config, config.fab_profile).read_text(encoding="utf-8")
+        )
+        graph = _load_graph(config.fixture_dir)
+        result = aggregate_order_total(
+            records,
+            scope,
+            fab_profile=fab_profile,
+            evaluated_at=config.evaluated_at,
+            target_revision=graph.revision,
+        )
+        document = order_total_result_to_document(result)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=output_path.parent,
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary.write(document.model_dump_json(indent=2) + "\n")
+            temporary_path = Path(temporary.name)
+        os.replace(temporary_path, output_path)
+    except Exception as exc:
+        return _failure(
+            "order-total-aggregation",
+            f"{type(exc).__name__}: {exc}",
+            record_class="L2",
+            output_path=str(output_path),
+        )
+    return _success(
+        "order-total-aggregation",
+        record_class="L2",
+        output_path=str(output_path),
+        quote_count=len(records),
+        target_revision=result.target_revision,
+        evaluated_at=config.evaluated_at.isoformat(),
+        breakdown_hash=result.breakdown_hash,
+    )
+
+
 def _graph_id(fixture_dir: Path) -> str:
     graph_path = fixture_dir / "graph.json"
     graph = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
@@ -250,6 +339,10 @@ def _load_graph(fixture_dir: Path) -> DesignGraph:
     return DesignGraph.model_validate_json(
         (fixture_dir / "graph.json").read_text(encoding="utf-8")
     )
+
+
+def _repository_path(config: DesignLoopConfig, path: Path) -> Path:
+    return path if path.is_absolute() else config.repository / path
 
 
 def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
@@ -363,7 +456,7 @@ def run_design_loop(
     fixture_dir: Path,
     out_root: Path,
     *,
-    order_total: Path,
+    order_total: Path | None = None,
     policy: Path,
     repository: Path | None = None,
     fab_profile: Path | None = None,
@@ -380,6 +473,8 @@ def run_design_loop(
     max_exploration_rounds: int = 1,
     requirement: Path | None = None,
     fixture_spec: Path | None = None,
+    quote_records: Sequence[Path] | None = None,
+    order_scope: Path | None = None,
 ) -> dict[str, Any]:
     """Run all design stages in their fixed fail-closed order."""
     timing = TimingRecorder()
@@ -414,6 +509,32 @@ def run_design_loop(
         else:
             graph_id = _graph_id(fixture_dir)
         plan = build_lane_plan(graph_id, out_root)
+        aggregation_requested = (
+            quote_records is not None or order_scope is not None
+        )
+        if aggregation_requested:
+            if order_total is not None:
+                raise ValueError(
+                    "order-total document and aggregation inputs are mutually exclusive"
+                )
+            if not quote_records or order_scope is None:
+                raise ValueError(
+                    "aggregation mode requires quote records and order scope"
+                )
+            if fab_profile is None:
+                raise ValueError("aggregation mode requires a fab profile")
+            aggregation_output = plan.stage(
+                "order-total-aggregation"
+            ).output_path
+            if aggregation_output is None:
+                raise ValueError("order-total aggregation output is undeclared")
+            resolved_order_total = aggregation_output
+        else:
+            if order_total is None:
+                raise ValueError(
+                    "order-total document is required when aggregation is disabled"
+                )
+            resolved_order_total = order_total
         prefix = plan.output_prefix
         artifact = plan.artifact_prefix
         evaluated = _resolve_evaluated_at(evaluated_at)
@@ -428,7 +549,7 @@ def run_design_loop(
         config = DesignLoopConfig(
             fixture_dir=fixture_dir,
             out_root=out_root,
-            order_total=order_total,
+            order_total=resolved_order_total,
             policy=policy,
             repository=(repository or Path.cwd()).resolve(),
             graph_id=graph_id,
@@ -449,6 +570,8 @@ def run_design_loop(
             max_exploration_rounds=max_exploration_rounds,
             requirement=requirement,
             fixture_spec=fixture_spec,
+            quote_records=tuple(quote_records or ()),
+            order_scope=order_scope,
         )
         result.update(
             {
@@ -460,6 +583,8 @@ def run_design_loop(
                 ),
             }
         )
+        if aggregation_requested:
+            result["order_total_mode"] = "aggregation"
     except Exception as exc:
         failure_stage = "fixture-generation" if fixture_spec is not None else "input"
         failure = _failure(
@@ -577,6 +702,14 @@ def run_design_loop(
             if failed is not None:
                 return once_results, failed
 
+            order_result = run_stage(
+                "order-total-aggregation",
+                runner=_run_order_total_aggregation,
+            ) if active_config.quote_records else None
+            if order_result is not None:
+                once_results.append(order_result)
+                if not order_result.get("ok") or order_result.get("fail_closed"):
+                    return once_results, order_result
             order_result = run_stage(
                 "order-readiness",
                 timing_prefix=timing_prefix,

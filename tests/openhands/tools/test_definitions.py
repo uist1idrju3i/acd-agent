@@ -13,6 +13,9 @@ from openhands.sdk.tool import ToolDefinition, list_registered_tools
 
 import acd.openhands.tools.definitions as sdk_tools
 from acd.openhands.tools.definitions import (
+    AcdAggregateOrderTotal,
+    AcdAggregateOrderTotalAction,
+    AcdAggregateOrderTotalObservation,
     AcdBootstrapWorkspace,
     AcdBootstrapWorkspaceAction,
     AcdBootstrapWorkspaceObservation,
@@ -207,11 +210,57 @@ def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
         "max_exploration_rounds",
         "requirement",
         "fixture_spec",
+        "quote_records",
+        "order_scope",
     } <= set(schema["properties"])
     assert schema["properties"]["jobs"]["default"] == 1
     assert schema["properties"]["jobs"]["minimum"] == 1
     assert schema["properties"]["max_exploration_candidates"]["minimum"] == 1
     assert schema["properties"]["max_exploration_rounds"]["minimum"] == 1
+
+
+def test_aggregate_order_total_tool_writes_non_evidence_document(
+    tmp_path: Path,
+) -> None:
+    root = Path(__file__).resolve().parents[3]
+    output = tmp_path / "order-total.json"
+    action = AcdAggregateOrderTotalAction(
+        quote_records=[str(root / "fixtures/contracts/valid/quote-order.json")],
+        order_scope=str(root / "fixtures/contracts/valid/order-scope.json"),
+        fab_profile=str(
+            root / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
+        ),
+        target_revision="r12",
+        evaluated_at="2025-01-11T00:00:00Z",
+        output=str(output),
+    )
+    tool = AcdAggregateOrderTotal.create()[0]
+    result = _execute(tool, action)
+
+    assert isinstance(result, AcdAggregateOrderTotalObservation)
+    assert result.ok is True
+    assert result.pass_evidence is False
+    assert result.output_path == str(output)
+    assert output.is_file()
+
+
+def test_aggregate_order_total_tool_declares_all_resources(tmp_path: Path) -> None:
+    action = AcdAggregateOrderTotalAction(
+        quote_records=[str(tmp_path / "quote.json")],
+        order_scope=str(tmp_path / "scope.json"),
+        fab_profile=str(tmp_path / "profile.json"),
+        target_revision="r12",
+        evaluated_at="2026-08-14T00:00:00Z",
+        output=str(tmp_path / "order-total.json"),
+    )
+    resources = AcdAggregateOrderTotal.create()[0].declared_resources(action)
+
+    assert resources.declared is True
+    assert f"file:{(tmp_path / 'quote.json').resolve()}" in resources.keys
+    assert f"file:{(tmp_path / 'scope.json').resolve()}" in resources.keys
+    assert f"file:{(tmp_path / 'profile.json').resolve()}" in resources.keys
+    assert f"acd-out:{(tmp_path / 'order-total.json').resolve()}" in resources.keys
+    assert "authoritative Evidence" in AcdAggregateOrderTotal.create()[0].description
 
 
 def test_design_loop_tool_declares_cache_as_output_resource(
