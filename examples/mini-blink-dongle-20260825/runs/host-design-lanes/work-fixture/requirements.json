@@ -1,0 +1,113 @@
+{
+  "graph_id": "mini-blink-dongle",
+  "records": [
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-001",
+      "statement": "USB-Cバスパワーで動く ESP32-C3 の最小状態表示ドングル MINI BLINK DONGLE"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-002",
+      "statement": "電源はUSB-C VBUS 5 Vのみとし、バッテリ、充電回路、USB PDネゴシエーションを持たない"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-003",
+      "statement": "最大ネット電圧は5 V、最大電流は500 mA未満とする"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "usb_c_cc_termination"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-004",
+      "statement": "USB-Cは電力シンク専用とし、CC1/CC2にそれぞれ5.1 kΩのプルダウンを置く"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "single_ldo_power_tree"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-005",
+      "statement": "3.3 VはAMS1117-3.3で生成し、入力・出力に10 µFと100 nFを置く"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "firmware_pin_map"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-006",
+      "statement": "MCUはESP32-C3-MINI-1-N4とし、IO18/IO19の内蔵USBを使用する"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "esp32c3_strapping_boot"
+      ],
+      "expectation": {
+        "gpio": 3,
+        "kind": "gpio_assignment",
+        "net": "LED"
+      },
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-007",
+      "statement": "LEDはIO3に4.7 kΩを直列接続し、IO2、IO8、IO9をLEDへ割り当てない"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-008",
+      "statement": "基板は2層FR-4、板厚1.6 mm、HASL、片面実装、外形およそ20 × 15 mmとする"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-009",
+      "statement": "M2取付穴を2箇所設ける"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "mbd-req-010",
+      "statement": "アンテナを基板端からはみ出させ、アンテナ直下・周囲に銅箔、GND、部品、シルクを置かない"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

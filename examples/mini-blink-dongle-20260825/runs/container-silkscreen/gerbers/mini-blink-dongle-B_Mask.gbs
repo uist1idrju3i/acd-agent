@@ -1,0 +1,29 @@
+G04 #@! TF.GenerationSoftware,KiCad,Pcbnew,10.0.5-10.0.5~ubuntu26.04.1*
+G04 #@! TF.CreationDate,2026-08-24T17:00:14+00:00*
+G04 #@! TF.ProjectId,mini-blink-dongle,6d696e69-2d62-46c6-996e-6b2d646f6e67,rev?*
+G04 #@! TF.SameCoordinates,Original*
+G04 #@! TF.FileFunction,Soldermask,Bot*
+G04 #@! TF.FilePolarity,Negative*
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 10.0.5-10.0.5~ubuntu26.04.1) date 2026-08-24 17:00:14*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+%ADD10C,0.650000*%
+%ADD11O,1.000000X2.100000*%
+%ADD12O,1.000000X1.600000*%
+G04 APERTURE END LIST*
+D10*
+X7110000Y-9400000D03*
+X12890000Y-9400000D03*
+D11*
+X5680000Y-8870000D03*
+D12*
+X5680000Y-13050000D03*
+D11*
+X14320000Y-8870000D03*
+D12*
+X14320000Y-13050000D03*
+M02*

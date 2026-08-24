@@ -1,0 +1,24 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:9ee7e6c1725c5b7ceb5ff96394dfb655acff0975ea652db0d902ad372046492b",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "stages": [
+    {
+      "duration_seconds": 0.032321,
+      "name": "gd1-board-pipeline",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.029161,
+      "name": "board[0/12]",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 0.00117,
+      "name": "board[1/12]",
+      "start_order": 2
+    }
+  ]
+}

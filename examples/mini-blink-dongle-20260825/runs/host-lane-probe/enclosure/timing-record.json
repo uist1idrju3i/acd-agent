@@ -1,0 +1,24 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:ff5a51f252fe5c55715babffe1226c79e89ab3c17c8e9676eaac4c404810d295",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "stages": [
+    {
+      "duration_seconds": 0.005599,
+      "name": "gd1-enclosure-pipeline",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.003081,
+      "name": "enclosure[0/5]",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 0.000879,
+      "name": "enclosure[1/5]",
+      "start_order": 2
+    }
+  ]
+}

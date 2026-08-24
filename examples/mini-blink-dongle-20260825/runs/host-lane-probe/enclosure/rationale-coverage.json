@@ -1,0 +1,17 @@
+{
+  "status": "pass",
+  "graph_id": "mini-blink-dongle",
+  "revision": "r1",
+  "graph_id_match": true,
+  "revision_match": true,
+  "missing": [],
+  "stale": [],
+  "unknown_provenance": [],
+  "orphan": [],
+  "untraceable": [],
+  "conflicting": [],
+  "unclassified": [],
+  "required_count": 152,
+  "covered_count": 152,
+  "record_count": 25
+}

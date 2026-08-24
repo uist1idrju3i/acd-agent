@@ -1,0 +1,577 @@
+{
+  "design_name": "MINI BLINK DONGLE",
+  "graph_id": "mini-blink-dongle",
+  "revision": "r1",
+  "board_attrs": {
+    "unit": "mm",
+    "origin": "board_upper_left",
+    "y_axis": "down",
+    "layers": 2,
+    "material": "FR-4",
+    "thickness_mm": 1.6,
+    "copper_oz": 1,
+    "finish": "HASL",
+    "width_mm": 20.0,
+    "height_mm": 15.0,
+    "assembly_side": "top",
+    "antenna_keepout": true,
+    "min_track_mm": 0.15,
+    "min_clearance_mm": 0.15,
+    "edge_copper_clearance_mm": 0.3,
+    "via_diameter_mm": 0.6,
+    "via_drill_mm": 0.3,
+    "allowable_temperature_rise_k": 10.0,
+    "width_basis_equation": "ipc2221_external_current_capacity",
+    "width_measurement_tolerance_mm": 0.01,
+    "ground_plane_net": "GND",
+    "ground_plane_layers": ["F.Cu", "B.Cu"],
+    "ground_plane_min_island_area_mm2": 1.0,
+    "stitch_via_wavelength_fraction": 0.05,
+    "stitch_via_max_frequency_hz": 2400000000.0,
+    "stitch_via_refill_max_iterations": 3,
+    "outer_copper_thickness_um": 35.0,
+    "copper_thickness_source": "JLCPCB 1 oz copper capability declaration: 35 µm nominal outer-layer copper",
+    "width_basis_source": "IPC-2221 current-capacity equation: A = (I / (k * ΔT^b))^(1/c), width = A / thickness; IPC-2221, external/internal conductor current-capacity method."
+  },
+  "components": [
+    {
+      "refdes": "J1",
+      "part_request": {
+        "kind": "connector",
+        "value": "TYPE-C-31-M-12",
+        "package": "USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+      },
+      "pads": {
+        "A1": "net.gnd",
+        "A12": "net.gnd",
+        "A4": "net.vbus_5v",
+        "A5": "net.cc1",
+        "A6": "net.usb_dp",
+        "A7": "net.usb_dn",
+        "A9": "net.vbus_5v",
+        "B1": "net.gnd",
+        "B12": "net.gnd",
+        "B4": "net.vbus_5v",
+        "B5": "net.cc2",
+        "B6": "net.usb_dp",
+        "B7": "net.usb_dn",
+        "B9": "net.vbus_5v",
+        "1": null,
+        "2": null,
+        "3": null,
+        "4": null
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "TYPE-C-31-M-12",
+        "lcsc": "C165948",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 10.0,
+        "placement_y_mm": 12.0,
+        "placement_rotation_deg": 0.0
+      }
+    },
+    {
+      "refdes": "U1",
+      "part_request": {
+        "kind": "ic",
+        "value": "ESP32-C3-MINI-1-N4",
+        "package": "ESP32-C3-MINI-1"
+      },
+      "pads": {
+        "1": "net.gnd",
+        "2": "net.gnd",
+        "3": "net.p3v3",
+        "4": null,
+        "5": null,
+        "6": null,
+        "7": null,
+        "8": null,
+        "9": null,
+        "10": null,
+        "11": "net.gnd",
+        "12": null,
+        "13": null,
+        "14": "net.gnd",
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": "net.usb_dp",
+        "19": "net.usb_dn",
+        "20": null,
+        "21": "net.led",
+        "22": null,
+        "23": "net.boot",
+        "24": null,
+        "25": null,
+        "26": null,
+        "27": null,
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": "net.gnd",
+        "37": "net.gnd",
+        "38": "net.gnd",
+        "39": "net.gnd",
+        "40": "net.gnd",
+        "41": "net.gnd",
+        "42": "net.gnd",
+        "43": "net.gnd",
+        "44": "net.gnd",
+        "45": "net.gnd",
+        "46": "net.gnd",
+        "47": "net.gnd",
+        "48": "net.gnd",
+        "49": "net.gnd",
+        "50": "net.gnd",
+        "51": "net.gnd",
+        "52": "net.gnd",
+        "53": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "ESP32-C3-MINI-1-N4",
+        "lcsc": "C2838502",
+        "jlcpcb_class": "extended",
+        "radio_module": true,
+        "placement_x_mm": 10.0,
+        "placement_y_mm": 2.0,
+        "placement_rotation_deg": 0.0,
+        "certification_ids": [
+          "FCC:2AC7Z-ESPC3MINI1",
+          "IC:21098-ESPC3MINI1"
+        ],
+        "certification_hvin": "ESP32-C3-MINI-1",
+        "certification_grant_dates": [
+          "FCC:2021-06-16",
+          "IC:2024-07-24"
+        ],
+        "certification_document_refs": [
+          "https://documentation.espressif.com/ESP32-C3-MINI-1%20FCC%20Certification.pdf",
+          "https://documentation.espressif.com/ESP32-C3-MINI-1%20IC%20Certification_0.pdf"
+        ],
+        "certification_source": "Espressif Systems published module certification documents",
+        "certification_source_ref": "https://www.espressif.com/en/support/documents/certificates",
+        "certification_checked_at": "2026-08-18T00:00:00Z"
+      }
+    },
+    {
+      "refdes": "U2",
+      "part_request": {
+        "kind": "ic",
+        "value": "AMS1117-3.3",
+        "package": "SOT-223-3_TabPin2"
+      },
+      "pads": {
+        "1": "net.gnd",
+        "2": "net.p3v3",
+        "3": "net.vbus_5v"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "AMS1117-3.3",
+        "lcsc": "C6186",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 3.5,
+        "placement_y_mm": 9.0,
+        "placement_rotation_deg": 90.0
+      }
+    },
+    {
+      "refdes": "D1",
+      "part_request": {
+        "kind": "led",
+        "value": "KT-0603R",
+        "package": "LED_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.led",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "KT-0603R",
+        "lcsc": "C2286",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 15.0,
+        "placement_y_mm": 8.0,
+        "placement_rotation_deg": 0.0
+      }
+    },
+    {
+      "refdes": "SW2",
+      "pads": {
+        "1": "net.boot",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "TS-1088-AR02016",
+        "lcsc": "C720477",
+        "jlcpcb_class": "basic",
+        "value": "BOOT",
+        "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
+        "symbol": "Switch:SW_Push",
+        "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.5",
+        "symbol_sha256": "sha256:b1c7bbbbea22dcf723430c11f6a841620108b3449bd8e5339fa6ebe083f91e63",
+        "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.5",
+        "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
+        "placement_x_mm": 4.0,
+        "placement_y_mm": 5.5,
+        "placement_rotation_deg": 0.0
+      }
+    },
+    {
+      "refdes": "R1",
+      "part_request": {
+        "kind": "resistor",
+        "value": "5.1k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.cc1",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF5101T5E",
+        "lcsc": "C23186",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 7.0,
+        "placement_y_mm": 11.5,
+        "placement_rotation_deg": 0.0
+      }
+    },
+    {
+      "refdes": "R2",
+      "part_request": {
+        "kind": "resistor",
+        "value": "5.1k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.cc2",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF5101T5E",
+        "lcsc": "C23186",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 13.0,
+        "placement_y_mm": 11.5,
+        "placement_rotation_deg": 0.0
+      }
+    },
+    {
+      "refdes": "R3",
+      "part_request": {
+        "kind": "resistor",
+        "value": "4.7k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.led",
+        "2": "net.p3v3"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF4701T5E",
+        "lcsc": "C23162",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 13.0,
+        "placement_y_mm": 6.5,
+        "placement_rotation_deg": 90.0
+      }
+    },
+    {
+      "refdes": "C1",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "10uF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.vbus_5v",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10A106MQ8NNNC",
+        "lcsc": "C1691",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 6.0,
+        "placement_y_mm": 10.5,
+        "placement_rotation_deg": 0.0
+      }
+    },
+    {
+      "refdes": "C2",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "100nF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.vbus_5v",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 14.0,
+        "placement_y_mm": 10.5,
+        "placement_rotation_deg": 0.0
+      }
+    },
+    {
+      "refdes": "C3",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "10uF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.p3v3",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10A106MQ8NNNC",
+        "lcsc": "C1691",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 6.0,
+        "placement_y_mm": 7.5,
+        "placement_rotation_deg": 0.0,
+        "decoupling_target": "U2"
+      }
+    },
+    {
+      "refdes": "C4",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "100nF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.p3v3",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 14.0,
+        "placement_y_mm": 7.5,
+        "placement_rotation_deg": 0.0,
+        "decoupling_target": "U1"
+      }
+    }
+  ],
+  "nets": [
+    {
+      "net_id": "net.vbus_5v",
+      "attrs": {
+        "name": "VBUS_5V",
+        "voltage_nominal_v": 5.0,
+        "current_max_a": 0.5,
+        "width_basis": "current_ipc2221",
+        "power_rail": true,
+        "power_source_pin": "J1.A4"
+      }
+    },
+    {
+      "net_id": "net.p3v3",
+      "attrs": {
+        "name": "+3V3",
+        "voltage_nominal_v": 3.3,
+        "current_max_a": 0.5,
+        "width_basis": "current_ipc2221",
+        "power_rail": true,
+        "power_source_pin": "U2.2"
+      }
+    },
+    {
+      "net_id": "net.gnd",
+      "attrs": {
+        "name": "GND",
+        "voltage_nominal_v": 0.0,
+        "current_max_a": 0.5,
+        "width_basis": "current_ipc2221",
+        "power_rail": true,
+        "power_source_pin": "J1.A1"
+      }
+    },
+    {
+      "net_id": "net.cc1",
+      "attrs": {
+        "name": "CC1",
+        "voltage_nominal_v": 5.0,
+        "width_basis": "manufacturing_minimum"
+      }
+    },
+    {
+      "net_id": "net.cc2",
+      "attrs": {
+        "name": "CC2",
+        "voltage_nominal_v": 5.0,
+        "width_basis": "manufacturing_minimum"
+      }
+    },
+    {
+      "net_id": "net.usb_dp",
+      "attrs": {
+        "name": "USB_D+",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum"
+      }
+    },
+    {
+      "net_id": "net.usb_dn",
+      "attrs": {
+        "name": "USB_D-",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum"
+      }
+    },
+    {
+      "net_id": "net.boot",
+      "attrs": {
+        "name": "BOOT",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum"
+      }
+    },
+    {
+      "net_id": "net.led",
+      "attrs": {
+        "name": "LED",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum"
+      }
+    }
+  ],
+  "firmware_pin_assignments": [
+    {
+      "pin_id": "fw.pin.led",
+      "net": "net.led",
+      "gpio": 3
+    },
+    {
+      "pin_id": "fw.pin.boot",
+      "net": "net.boot",
+      "gpio": 9
+    }
+  ],
+  "requirements": [
+    {
+      "requirement_id": "mbd-req-001",
+      "statement": "USB-Cバスパワーで動く ESP32-C3 の最小状態表示ドングル MINI BLINK DONGLE",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "mbd-req-002",
+      "statement": "電源はUSB-C VBUS 5 Vのみとし、バッテリ、充電回路、USB PDネゴシエーションを持たない",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": ["safety_power_boundary"]
+    },
+    {
+      "requirement_id": "mbd-req-003",
+      "statement": "最大ネット電圧は5 V、最大電流は500 mA未満とする",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": ["safety_power_boundary"]
+    },
+    {
+      "requirement_id": "mbd-req-004",
+      "statement": "USB-Cは電力シンク専用とし、CC1/CC2にそれぞれ5.1 kΩのプルダウンを置く",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": ["usb_c_cc_termination"]
+    },
+    {
+      "requirement_id": "mbd-req-005",
+      "statement": "3.3 VはAMS1117-3.3で生成し、入力・出力に10 µFと100 nFを置く",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": ["single_ldo_power_tree"]
+    },
+    {
+      "requirement_id": "mbd-req-006",
+      "statement": "MCUはESP32-C3-MINI-1-N4とし、IO18/IO19の内蔵USBを使用する",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": ["firmware_pin_map"]
+    },
+    {
+      "requirement_id": "mbd-req-007",
+      "statement": "LEDはIO3に4.7 kΩを直列接続し、IO2、IO8、IO9をLEDへ割り当てない",
+      "graph_anchored": true,
+      "expectation": {
+        "kind": "gpio_assignment",
+        "gpio": 3,
+        "net": "LED"
+      },
+      "drives_functional_blocks": ["esp32c3_strapping_boot"]
+    },
+    {
+      "requirement_id": "mbd-req-008",
+      "statement": "基板は2層FR-4、板厚1.6 mm、HASL、片面実装、外形およそ20 × 15 mmとする",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "mbd-req-009",
+      "statement": "M2取付穴を2箇所設ける",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "mbd-req-010",
+      "statement": "アンテナを基板端からはみ出させ、アンテナ直下・周囲に銅箔、GND、部品、シルクを置かない",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    }
+  ],
+  "functional_blocks": [
+    {
+      "block_id": "safety_power_boundary",
+      "requirement_ids": ["mbd-req-002", "mbd-req-003"]
+    },
+    {
+      "block_id": "usb_c_cc_termination",
+      "requirement_ids": ["mbd-req-004"]
+    },
+    {
+      "block_id": "single_ldo_power_tree",
+      "requirement_ids": ["mbd-req-005"]
+    },
+    {
+      "block_id": "firmware_pin_map",
+      "requirement_ids": ["mbd-req-006"]
+    },
+    {
+      "block_id": "esp32c3_strapping_boot",
+      "requirement_ids": ["mbd-req-007"]
+    }
+  ],
+  "fab_profile_id": "jlcpcb-fr4-2l-1oz"
+}

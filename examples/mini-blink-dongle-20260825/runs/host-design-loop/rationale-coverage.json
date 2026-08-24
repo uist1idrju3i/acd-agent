@@ -1,0 +1,242 @@
+{
+  "status": "fail",
+  "graph_id": "mini-blink-dongle",
+  "revision": "r1",
+  "graph_id_match": true,
+  "revision_match": true,
+  "missing": [
+    {
+      "node_id": "fab.order_intent.mini-blink-dongle",
+      "attr": "assembly_sides"
+    },
+    {
+      "node_id": "fab.order_intent.mini-blink-dongle",
+      "attr": "delivery_format"
+    },
+    {
+      "node_id": "fab.order_intent.mini-blink-dongle",
+      "attr": "pcba_class_target"
+    },
+    {
+      "node_id": "fab.order_intent.mini-blink-dongle",
+      "attr": "quantity_pcs"
+    },
+    {
+      "node_id": "fab.order_intent.mini-blink-dongle",
+      "attr": "soldermask_color"
+    },
+    {
+      "node_id": "fab.order_intent.mini-blink-dongle",
+      "attr": "surface_finish"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "board_edge_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "height_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "layer"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "placement_offset_step_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "placement_safety_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "placement_search_limit_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "placement_search_order"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "rotation_deg"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "stroke_width_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.d1",
+      "attr": "text"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "board_edge_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "height_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "layer"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "placement_offset_step_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "placement_safety_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "placement_search_limit_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "placement_search_order"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "rotation_deg"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "stroke_width_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.boot",
+      "attr": "text"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "board_edge_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "height_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "layer"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "placement_offset_step_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "placement_safety_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "placement_search_limit_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "placement_search_order"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "rotation_deg"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "stroke_width_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.usb",
+      "attr": "text"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "board_edge_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "height_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "layer"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "placement_offset_step_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "placement_safety_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "placement_search_limit_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "placement_search_order"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "rotation_deg"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "stroke_width_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_type",
+      "attr": "text"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "board_edge_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "height_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "layer"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "placement_offset_step_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "placement_safety_margin_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "placement_search_limit_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "placement_search_order"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "rotation_deg"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "stroke_width_mm"
+    },
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attr": "text"
+    }
+  ],
+  "stale": [],
+  "unknown_provenance": [],
+  "orphan": [],
+  "untraceable": [],
+  "conflicting": [],
+  "unclassified": [],
+  "required_count": 208,
+  "covered_count": 152,
+  "record_count": 25
+}

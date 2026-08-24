@@ -1,0 +1,12 @@
+{
+  "cache_dir": null,
+  "fail_closed": true,
+  "failed_stage": "input",
+  "failure_reason": "ValueError: order-total document is required when aggregation is disabled",
+  "jobs": 1,
+  "ok": false,
+  "pass_evidence": false,
+  "results": [],
+  "resume": false,
+  "timing_record": "out/mini-blink-dongle/timing-record.json"
+}

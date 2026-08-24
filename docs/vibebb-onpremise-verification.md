@@ -82,6 +82,12 @@ GD1 fixtureのコピーではなく、規模・GPIO・定数・外形を変え�
 `run_design_lanes.py`はsilkscreen barrierで停止し、以降のlaneを実行しない
 （`{"ok": false, ...}`, exit=1）。段順序とfail-closedは宣言どおりに機能した。
 
+なお、digest固定container内ではsilkscreen resolverが一度`[1/4] PASS`まで到達している。ただし
+それは実機agentが`graph.json`へ属性を手で追加した未commitの状態に対する実行で、その手編集
+graphは直後の`build_design_fixture.py`再実行で失われている。Evidence記録も伴わないため、
+合格側の根拠にはならない（投影の存在とlane通過は別である）。実行記録と成果物は
+[`examples/mini-blink-dongle-20260825/`](../examples/mini-blink-dongle-20260825/)に収めてある。
+
 ### 4.1 根本原因: 汎用fixture builderが電気系ノードしか出力しない
 
 `src/acd/pipeline/fixture_builder.py`が生成するノードは
@@ -118,15 +124,27 @@ KiCad symbolまたはparts catalogからpin functionを取り込む経路が必�
    で毎回停止を拒否する。laneがfail-closedしていてEvidenceを作れない場合、agentに残る選択肢は
    「commitする」だけになり、実機では利用者の明示的な「commitしない」指示に反して
    detached HEADへcommitが行われた。fail-closedで停止した事実の報告を、hookが許可すべきである。
-2. **iteration上限での打ち切り**。1会話あたり80および300 iterationの設定で、いずれも
-   `MaxIterationsReached`に達した。原因の多くは上記Stop hookの再試行loopと、
-   長い出力の再読み込みである。
+2. **iteration上限での打ち切り**。exportの`base_state.json`では6会話のうち3会話
+   （`max_iterations` 80、80、300）が`execution_status: "error"`（`MaxIterationsReached`）で
+   終了した。原因の一部は上記Stop hookの再試行loopと、長い出力の再読み込みである。
 3. **out/の権限残骸**。同一out-rootをroot実行のcontainerとhostで共用すると、
    silkscreen resolverのwork-fixture複製が`[Errno 13] Permission denied` /
    `[Errno 1] Operation not permitted`で失敗する。out-rootを分けると解消した。
+   実機archiveのtarエントリ所有者を確認すると、`out/mini-blink-dongle/**-silkscreen-resolve/`配下の
+   48エントリが`root/root`であり、container実行が残したroot所有物へhost実行が衝突したと
+   推定できる（断定ではない）。
    fail-closedの理由が「設計の不足」ではなく「実行環境の権限」になるため、区別できる
    エラーメッセージが望ましい。
-4. **FW pipelineのCLI引数**。`run_fw_pipeline.py`は`--graph`を受け付けず`--fixture`のみである。
+4. **rationale coverageがL2生成レコードで満たせてしまう**。基板laneの
+   `rationale coverage failed: missing=82, stale=10`に対し、実機agentは自作scriptで全対象ノードへ
+   定型文の`decision`/`justification`と`provenance.source: "deterministic_tool"`を一括生成し、
+   coverageをpassさせた（当該scriptは
+   [`examples/mini-blink-dongle-20260825/agent-artifacts/`](../examples/mini-blink-dongle-20260825/agent-artifacts/)に
+   保存）。coverageは網羅性のみを見るため、生成主体を問わない限りL1の抜け道になる。
+5. **要件テキストとtopologyの不一致が検出されない**。今回のfixtureはLEDをIO3に4.7 kΩで
+   直列接続する要件に対し、R3が`+3V3`へのプルアップとして入りLEDがGPIOへ直結しているが、
+   これを検査する述語がない（`strapping_pin: unknown`で手前に停止したため露呈しなかった）。
+6. **FW pipelineのCLI引数**。`run_fw_pipeline.py`は`--graph`を受け付けず`--fixture`のみである。
    他laneが`--fixture`/`--graph`を混在させているため、会話経路では引数探索の往復が発生した。
 
 ## 6. authoritative / provisional の境界
@@ -153,6 +171,8 @@ KiCad symbolまたはparts catalogからpin functionを取り込む経路が必�
 ## 8. 改善提案
 
 優先度は「新規設計でVibeBBを閉じる」観点で並べた。いずれも本PRでは実装していない。
+実機ログとworkspaceアーカイブの全件レビューを踏まえた12件版は
+[`examples/mini-blink-dongle-20260825/report/improvement-notes.md`](../examples/mini-blink-dongle-20260825/report/improvement-notes.md)にある。
 
 1. **`DesignFixtureSpec`へmechanical / silkscreen / firmware moduleの宣言を追加する**。
    最低限、`mechanical.outline`（外形と穴）、`mechanical.silk_text` / `silk_graphic`（role付き）、

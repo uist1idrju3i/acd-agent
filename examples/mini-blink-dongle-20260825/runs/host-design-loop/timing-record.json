@@ -1,0 +1,14 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:c75b8e7732510c437168825713453aabc36b3decc4c7fd79fa004f6f8e9f680b",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "stages": [
+    {
+      "duration_seconds": 1.012839,
+      "name": "command-1:uv run python scripts/resolve_gd1_silkscreen.py --fixture fixtures/mini-blink-dongle --out out/mini-blink-dongle/mini-blink-dongle-silkscreen-resolve",
+      "start_order": 0
+    }
+  ]
+}
