@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from acd.core.part_selection import PartSelectionError, select_part
-from acd.schema import ComponentPartRequest
+from acd.schema import ComponentPartRequest, PartsCatalogDocument
 
 CATALOG = Path("contracts/parts-catalog.json")
 
@@ -44,3 +44,38 @@ def test_catalog_missing_and_ambiguous_fail_closed(tmp_path: Path) -> None:
     path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(PartSelectionError, match="ambiguous"):
         select_part(request, path)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("basis", "untrusted"),
+        ("offset_deg", "not-a-number"),
+        ("evidence_revision", "unknown"),
+    ),
+)
+def test_catalog_rejects_malformed_cpl_orientation(
+    field: str,
+    value: object,
+) -> None:
+    data = json.loads(CATALOG.read_text(encoding="utf-8"))
+    orientation = next(
+        entry["cpl_orientation"]
+        for entry in data["entries"]
+        if "cpl_orientation" in entry
+    )
+    orientation[field] = value
+    with pytest.raises(ValueError):
+        PartsCatalogDocument.model_validate(data)
+
+
+def test_catalog_rejects_geometry_evidence_source_without_graph_placeholders() -> None:
+    data = json.loads(CATALOG.read_text(encoding="utf-8"))
+    orientation = next(
+        entry["cpl_orientation"]
+        for entry in data["entries"]
+        if entry.get("part_number") == "TYPE-C-31-M-12"
+    )
+    orientation["geometry_exception_source"] = "evidence/gd1-cpl-orientation/J1.json"
+    with pytest.raises(ValueError, match="artifact_prefix"):
+        PartsCatalogDocument.model_validate(data)

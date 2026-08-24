@@ -16,10 +16,14 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from acd.core.cpl_orientation import cpl_orientation_attrs
+from acd.core.part_selection import load_parts_catalog
 from acd.core.rationale import subject_hash_for
+from acd.schema.design_fixture import FixtureCplOrientationEvidence
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 from acd.schema.rationale import RationaleDocument
 
@@ -40,6 +44,19 @@ from .components import (
 )
 from .mechanical import mechanical_nodes
 from .silkscreen import silkscreen_nodes
+
+GD1_CPL_ORIENTATION_EVIDENCE = FixtureCplOrientationEvidence(
+    evidence_at=datetime(2026, 8, 11, tzinfo=UTC),
+    evidence_method=(
+        "component-part-number rotation declaration cross-checked against "
+        "the generated KiCad placement"
+    ),
+    evidence_basis="confirmed",
+    evidence_note=(
+        "GD1 preserves the declared component rotation in the generated "
+        "assembly placement with a zero-degree centroid offset."
+    ),
+)
 
 
 def _paths() -> tuple[Path, Path, Path, Path, Path]:
@@ -221,6 +238,10 @@ def lib_attrs(lib: LibraryRef) -> dict[str, AttrValue]:
 
 def build_graph() -> DesignGraph:
     _, _, placement_skill, _, _ = _paths()
+    catalog, _ = load_parts_catalog()
+    entries_by_part_number = catalog.entries_by_part_number
+    graph_id = "golden-design-1"
+    revision = "r1"
     nodes: list[GraphNode] = []
     for req_id, text in sorted(REQUIREMENTS.items()):
         nodes.append(GraphNode(id=f"req.{req_id}", kind="requirement", attrs={"text": text}))
@@ -255,6 +276,19 @@ def build_graph() -> DesignGraph:
             }
         )
         attrs.update(lib_attrs(spec["lib"]))
+        if spec["assembly"] == "fitted":
+            entry = entries_by_part_number.get(spec["mpn"])
+            if entry is None:
+                raise ValueError(f"GD1 part is absent from parts catalog: {spec['mpn']}")
+            attrs.update(
+                cpl_orientation_attrs(
+                    entry.cpl_orientation,
+                    GD1_CPL_ORIENTATION_EVIDENCE,
+                    graph_id,
+                    revision,
+                    spec["refdes"],
+                )
+            )
         if spec["refdes"] == "U1":
             attrs.update(
                 {
@@ -300,176 +334,6 @@ def build_graph() -> DesignGraph:
                     ),
                 }
             )
-        if spec["assembly"] == "fitted":
-            attrs.update(
-                {
-                    "cpl_rotation_basis": "component_part_number",
-                    "cpl_rotation_source_url": (
-                        "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly"
-                    ),
-                    "cpl_rotation_evidence_at": "2026-08-11T00:00:00Z",
-                    "cpl_rotation_evidence_method": (
-                        "component-part-number rotation declaration cross-checked against "
-                        "the generated KiCad placement"
-                    ),
-                    "cpl_rotation_evidence_revision": "golden-design-1-r1",
-                    "cpl_rotation_evidence_basis": "confirmed",
-                    "cpl_rotation_evidence_note": (
-                        "GD1 preserves the declared component rotation in the generated "
-                        "assembly placement with a zero-degree centroid offset."
-                    ),
-                    "cpl_rotation_offset_deg": 180.0 if spec["refdes"] == "U2" else 0.0,
-                    "cpl_rotation_polarized": spec["refdes"] in {"U1", "J1", "U2", "U3", "D1"},
-                }
-            )
-            if spec["refdes"] == "J1":
-                attrs.update(
-                    {
-                        "cpl_rotation_geometry_exception": True,
-                        "cpl_rotation_geometry_exception_reason": (
-                            "archived LCSC package geometry is the orientation evidence for GD1"
-                        ),
-                        "cpl_rotation_geometry_exception_source": (
-                            "evidence/gd1-cpl-orientation/J1.json"
-                        ),
-                    }
-                )
-                attrs["cpl_rotation_pin_functions"] = [
-                    "A1=GND",
-                    "A12=GND",
-                    "B1=GND",
-                    "B12=GND",
-                    "A4=VBUS",
-                    "A9=VBUS",
-                    "B4=VBUS",
-                    "B9=VBUS",
-                    "A5=CC1",
-                    "B5=CC2",
-                    "A6=DP1",
-                    "B6=DP2",
-                    "A7=DN1",
-                    "B7=DN2",
-                    "A8=SBU1",
-                    "B8=SBU2",
-                    "1=EH",
-                    "2=EH",
-                    "3=EH",
-                    "4=EH",
-                ]
-                attrs["cpl_rotation_pin_aliases"] = [
-                    "DP1=D+",
-                    "DP2=D+",
-                    "DN1=D-",
-                    "DN2=D-",
-                ]
-                attrs["cpl_rotation_unverified_pads"] = ["1", "2", "3", "4"]
-                attrs["cpl_rotation_unverified_pad_reason"] = (
-                    "USB-C shield padsはKiCad symbolのSHピンに直接対応せず、"
-                    "極性判定に影響しない機械シールドである。"
-                )
-                attrs["cpl_rotation_unverified_pad_source"] = (
-                    "KiCad USB_C_Receptacle_HRO_TYPE-C-31-M-12、LCSC C165948 Evidence、"
-                    "USB Type-C仕様のシールド端子定義"
-                )
-            if spec["refdes"] == "U2":
-                attrs["cpl_rotation_pin_functions"] = [
-                    "1=GND",
-                    "2=VO",
-                    "3=VI",
-                ]
-                attrs["cpl_rotation_pin_aliases"] = ["VO=VOUT", "VI=VIN"]
-            elif spec["refdes"] == "U1":
-                attrs["cpl_rotation_pin_functions"] = [
-                    "1=GND",
-                    "2=GND",
-                    "3=3V3",
-                    "4=NC",
-                    "5=IO2",
-                    "6=IO3",
-                    "7=NC",
-                    "8=EN",
-                    "9=NC",
-                    "10=NC",
-                    "11=GND",
-                    "12=IO0",
-                    "13=IO1",
-                    "14=GND",
-                    "15=NC",
-                    "16=IO10",
-                    "17=NC",
-                    "18=IO4",
-                    "19=IO5",
-                    "20=IO6",
-                    "21=IO7",
-                    "22=IO8",
-                    "23=IO9",
-                    "24=NC",
-                    "25=NC",
-                    "26=IO18",
-                    "27=IO19",
-                    "28=NC",
-                    "29=NC",
-                    "30=RXD0",
-                    "31=TXD0",
-                    "32=NC",
-                    "33=NC",
-                    "34=NC",
-                    "35=NC",
-                    "36=GND",
-                    "37=GND",
-                    "38=GND",
-                    "39=GND",
-                    "40=GND",
-                    "41=GND",
-                    "42=GND",
-                    "43=GND",
-                    "44=GND",
-                    "45=GND",
-                    "46=GND",
-                    "47=GND",
-                    "48=GND",
-                    "50=GND",
-                    "51=GND",
-                    "52=GND",
-                    "53=GND",
-                ]
-                attrs["cpl_rotation_pin_aliases"] = [
-                    "GPIO2/ADC1_CH2=IO2",
-                    "GPIO3/ADC1_CH3=IO3",
-                    "EN/CHIP_PU=EN",
-                    "GPIO0/ADC1_CH0/XTAL_32K_P=IO0",
-                    "GPIO1/ADC1_CH1/XTAL_32K_N=IO1",
-                    "GPIO10=IO10",
-                    "GPIO4/ADC1_CH4=IO4",
-                    "GPIO5/ADC2_CH0=IO5",
-                    "GPIO6=IO6",
-                    "GPIO7=IO7",
-                    "GPIO8=IO8",
-                    "GPIO9=IO9",
-                    "GPIO18/USB_D-=IO18",
-                    "GPIO19/USB_D+=IO19",
-                    "GPIO20/U0RXD=RXD0",
-                    "GPIO21/U0TXD=TXD0",
-                ]
-            elif spec["refdes"] == "U3":
-                attrs["cpl_rotation_pin_functions"] = [
-                    "1=SDA",
-                    "2=SCL",
-                    "3=VDD",
-                    "4=VSS",
-                    "5=EP",
-                ]
-                attrs["cpl_rotation_unverified_pads"] = ["5"]
-                attrs["cpl_rotation_unverified_pad_reason"] = (
-                    "U3のEP (露出パッド) はKiCad symbolに対応する番号付きピンがなく、"
-                    "温度・機械的接地用で極性判定に影響しない。"
-                )
-                attrs["cpl_rotation_unverified_pad_source"] = (
-                    "KiCad SHT40-AD1B-R3 footprint/symbol、LCSC C2848306 Evidence、"
-                    "Sensirion SHT40 datasheetの露出パッド定義"
-                )
-            elif spec["refdes"] == "D1":
-                attrs["cpl_rotation_pin_functions"] = ["1=K", "2=A"]
         overlay_file = spec.get("overlay_file")
         overlay_sha256 = spec.get("overlay_sha256")
         if overlay_file is not None and overlay_sha256 is not None:
@@ -582,8 +446,6 @@ def build_graph() -> DesignGraph:
             },
         )
     )
-    graph_id = "golden-design-1"
-    revision = "r1"
     nodes.extend(silkscreen_nodes(graph_id, revision))
     return _resolve_skill_inputs(DesignGraph(graph_id=graph_id, revision=revision, nodes=nodes))
 

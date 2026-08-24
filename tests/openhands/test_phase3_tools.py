@@ -19,6 +19,7 @@ def test_phase3_tools_are_registered_in_code_contract() -> None:
         "acd_compile_requirement_change",
         "acd_build_design_fixture",
         "acd_explore_board_candidates",
+        "acd_explore_enclosure_candidates",
         "acd_diagnose_gate_failure",
         "acd_check_order_readiness",
     } <= names

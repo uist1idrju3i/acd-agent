@@ -271,6 +271,16 @@ class AcdExploreBoardCandidatesAction(Action):
     dry_run: bool = False
 
 
+class AcdExploreEnclosureCandidatesAction(Action):
+    graph: str
+    fixture_dir: str
+    out: str
+    max_candidates: int = Field(ge=1)
+    dimensions: list[str] = Field(default_factory=list)
+    jobs: int = Field(default=1, ge=1)
+    sampling_points: int = Field(default=3, ge=2)
+
+
 class AcdDiagnoseGateFailureAction(Action):
     out_dir: str
 
@@ -281,6 +291,22 @@ class AcdCheckOrderReadinessAction(Action):
     order_total: str
     evidence: list[str] = Field(default_factory=list)
     evaluated_at: str
+
+
+class AcdRunDesignLoopAction(Action):
+    """Run the fixed graph-driven VibeBB design loop."""
+
+    fixture: str = Field(default="fixtures/golden-design-1")
+    out_root: str = Field(default="out")
+    order_total: str
+    policy: str = "plugins/acd/hooks/order-policy.json"
+    repository: str = "."
+    fab_profile: str | None = None
+    fab_profile_id: str | None = None
+    max_passes: int = Field(default=3, ge=1)
+    max_silkscreen_iterations: int = Field(default=5, ge=1)
+    run_seconds: int = Field(default=15, ge=1)
+    evaluated_at: str | None = None
 
 
 class AcdProbeToolsObservation(AcdObservation):
@@ -333,12 +359,20 @@ class AcdExploreBoardCandidatesObservation(AcdObservation):
     """Observation returned by the bounded exploration loop."""
 
 
+class AcdExploreEnclosureCandidatesObservation(AcdObservation):
+    """Observation returned by bounded enclosure exploration."""
+
+
 class AcdDiagnoseGateFailureObservation(AcdObservation):
     """Observation returned by the read-only gate diagnosis."""
 
 
 class AcdCheckOrderReadinessObservation(AcdObservation):
     """Observation returned by the read-only pre-order check."""
+
+
+class AcdRunDesignLoopObservation(AcdObservation):
+    """Observation returned by the graph-driven VibeBB design loop."""
 
 
 class AcdProbeToolsExecutor(ToolExecutor[AcdProbeToolsAction, AcdObservation]):
@@ -763,6 +797,41 @@ class AcdExploreBoardCandidatesExecutor(
             )
 
 
+class AcdExploreEnclosureCandidatesExecutor(
+    ToolExecutor[AcdExploreEnclosureCandidatesAction, AcdObservation]
+):
+    def __call__(
+        self,
+        action: AcdExploreEnclosureCandidatesAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.core.enclosure_exploration import explore_enclosure_candidates
+
+            result = explore_enclosure_candidates(
+                Path(action.graph),
+                Path(action.fixture_dir),
+                Path(action.out),
+                action.max_candidates,
+                dimensions=action.dimensions or None,
+                jobs=action.jobs,
+                sampling_points=action.sampling_points,
+            )
+            return AcdExploreEnclosureCandidatesObservation(
+                ok=True,
+                operation="explore_enclosure_candidates",
+                report=result.report,
+                output_path=str(result.report_path),
+                pass_evidence=False,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdExploreEnclosureCandidatesObservation(
+                **_error(str(exc), operation="explore_enclosure_candidates")
+            )
+
+
 class AcdDiagnoseGateFailureExecutor(ToolExecutor[AcdDiagnoseGateFailureAction, AcdObservation]):
     def __call__(
         self,
@@ -828,6 +897,54 @@ class AcdCheckOrderReadinessExecutor(ToolExecutor[AcdCheckOrderReadinessAction, 
         except Exception as exc:
             return AcdCheckOrderReadinessObservation(
                 **_error(str(exc), operation="check_order_readiness")
+            )
+
+
+class AcdRunDesignLoopExecutor(
+    ToolExecutor[AcdRunDesignLoopAction, AcdRunDesignLoopObservation]
+):
+    def __call__(
+        self,
+        action: AcdRunDesignLoopAction,
+        conversation: Any = None,
+    ) -> AcdRunDesignLoopObservation:
+        del conversation
+        try:
+            from acd.core.timestamps import parse_evaluated_at
+            from acd.pipeline.design_loop import run_design_loop
+
+            evaluated_at = (
+                parse_evaluated_at(action.evaluated_at)
+                if action.evaluated_at
+                else None
+            )
+            result = run_design_loop(
+                Path(action.fixture),
+                Path(action.out_root),
+                order_total=Path(action.order_total),
+                policy=Path(action.policy),
+                repository=Path(action.repository),
+                fab_profile=Path(action.fab_profile) if action.fab_profile else None,
+                fab_profile_id=action.fab_profile_id,
+                max_passes=action.max_passes,
+                max_silkscreen_iterations=action.max_silkscreen_iterations,
+                run_seconds=action.run_seconds,
+                evaluated_at=evaluated_at,
+            )
+            return AcdRunDesignLoopObservation(
+                ok=bool(result.get("ok")),
+                operation="run_design_loop",
+                graph_id=result.get("graph_id"),
+                summary=result,
+                output_path=action.out_root,
+                failure_reason=result.get("failure_reason"),
+                fail_closed=bool(result.get("fail_closed", True)),
+                pass_evidence=False,
+            )
+        except Exception as exc:
+            return AcdRunDesignLoopObservation(
+                **_error(str(exc), operation="run_design_loop"),
+                output_path=action.out_root,
             )
 
 
@@ -1119,6 +1236,45 @@ class AcdExploreBoardCandidates(
         ]
 
 
+class AcdExploreEnclosureCandidates(
+    ToolDefinition[
+        AcdExploreEnclosureCandidatesAction, AcdExploreEnclosureCandidatesObservation
+    ]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdExploreEnclosureCandidatesAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(
+            ("file", Path(action.graph)),
+            ("acd-out", Path(action.fixture_dir)),
+            ("acd-out", Path(action.out)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_explore_enclosure_candidates does not accept parameters")
+        return [
+            cls(
+                action_type=AcdExploreEnclosureCandidatesAction,
+                observation_type=AcdExploreEnclosureCandidatesObservation,
+                description=(
+                    "Explore bounded enclosure candidates under deterministic "
+                    "mechanical gates."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_explore_enclosure_candidates",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdExploreEnclosureCandidatesExecutor(),
+            )
+        ]
+
+
 class AcdDiagnoseGateFailure(
     ToolDefinition[AcdDiagnoseGateFailureAction, AcdDiagnoseGateFailureObservation]
 ):
@@ -1180,6 +1336,46 @@ class AcdCheckOrderReadiness(
                     openWorldHint=False,
                 ),
                 executor=AcdCheckOrderReadinessExecutor(),
+            )
+        ]
+
+
+class AcdRunDesignLoop(
+    ToolDefinition[AcdRunDesignLoopAction, AcdRunDesignLoopObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRunDesignLoopAction):
+            return DeclaredResources(keys=(), declared=False)
+        root = Path(action.repository)
+        return _resources(
+            ("file", Path(action.fixture) / "graph.json"),
+            ("file", Path(action.order_total)),
+            ("file", Path(action.policy)),
+            ("file", root / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"),
+            ("acd-out", Path(action.out_root)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_run_design_loop does not accept parameters")
+        return [
+            cls(
+                action_type=AcdRunDesignLoopAction,
+                observation_type=AcdRunDesignLoopObservation,
+                description=(
+                    "Run the fixed graph-driven VibeBB design loop through "
+                    "deterministic stages."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_run_design_loop",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdRunDesignLoopExecutor(),
             )
         ]
 
@@ -1278,8 +1474,10 @@ ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_compile_requirement_change", AcdCompileRequirementChange),
     ("acd_build_design_fixture", AcdBuildDesignFixture),
     ("acd_explore_board_candidates", AcdExploreBoardCandidates),
+    ("acd_explore_enclosure_candidates", AcdExploreEnclosureCandidates),
     ("acd_diagnose_gate_failure", AcdDiagnoseGateFailure),
     ("acd_check_order_readiness", AcdCheckOrderReadiness),
+    ("acd_run_design_loop", AcdRunDesignLoop),
 )
 
 

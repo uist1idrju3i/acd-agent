@@ -26,6 +26,7 @@ from acd.schema.context import (
 from acd.schema.design_fixture import (
     DesignFixtureSpec,
     FixtureComponentSpec,
+    FixtureCplOrientationEvidence,
     FixtureFirmwarePinSpec,
     FixtureFunctionalBlockSpec,
     FixtureNetSpec,
@@ -109,6 +110,7 @@ from acd.schema.order_total import (
 from acd.schema.parts_catalog import (
     ComponentPartRequest,
     PartCatalogEntry,
+    PartCplOrientation,
     PartLibraryRef,
     PartsCatalogDocument,
 )
@@ -228,6 +230,7 @@ __all__ = [
     "FeedbackRuleKind",
     "FeedbackValidationStatus",
     "FixtureComponentSpec",
+    "FixtureCplOrientationEvidence",
     "FixtureFirmwarePinSpec",
     "FixtureFunctionalBlockSpec",
     "FixtureNetSpec",
@@ -266,6 +269,7 @@ __all__ = [
     "OrderSubtotalDocument",
     "OrderTotalDocument",
     "PartCatalogEntry",
+    "PartCplOrientation",
     "PartLibraryRef",
     "PartsCatalogDocument",
     "PhysicalEvidence",

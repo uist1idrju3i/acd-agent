@@ -17,7 +17,13 @@
       },
       "package": "R_0603_1608Metric",
       "part_number": "0603WAF1001T5E",
-      "value": "1k"
+      "value": "1k",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "resistor",
@@ -35,7 +41,13 @@
       },
       "package": "R_0603_1608Metric",
       "part_number": "0603WAF1002T5E",
-      "value": "10k"
+      "value": "10k",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "resistor",
@@ -53,7 +65,13 @@
       },
       "package": "R_0603_1608Metric",
       "part_number": "0603WAF4701T5E",
-      "value": "4.7k"
+      "value": "4.7k",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "resistor",
@@ -71,7 +89,13 @@
       },
       "package": "R_0603_1608Metric",
       "part_number": "0603WAF5101T5E",
-      "value": "5.1k"
+      "value": "5.1k",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "ic",
@@ -89,7 +113,22 @@
       },
       "package": "SOT-223-3_TabPin2",
       "part_number": "AMS1117-3.3",
-      "value": "AMS1117-3.3"
+      "value": "AMS1117-3.3",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 180.0,
+        "polarized": true,
+        "pin_functions": [
+          "1=GND",
+          "2=VO",
+          "3=VI"
+        ],
+        "pin_aliases": [
+          "VO=VOUT",
+          "VI=VIN"
+        ]
+      }
     },
     {
       "kind": "capacitor",
@@ -107,7 +146,13 @@
       },
       "package": "C_0603_1608Metric",
       "part_number": "CL10A105KB8NNNC",
-      "value": "1uF"
+      "value": "1uF",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "capacitor",
@@ -125,7 +170,13 @@
       },
       "package": "C_0603_1608Metric",
       "part_number": "CL10A106MQ8NNNC",
-      "value": "10uF"
+      "value": "10uF",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "capacitor",
@@ -143,7 +194,13 @@
       },
       "package": "C_0603_1608Metric",
       "part_number": "CL10B104KB8NNNC",
-      "value": "100nF"
+      "value": "100nF",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "ic",
@@ -161,7 +218,85 @@
       },
       "package": "ESP32-C3-MINI-1",
       "part_number": "ESP32-C3-MINI-1-N4",
-      "value": "ESP32-C3-MINI-1-N4"
+      "value": "ESP32-C3-MINI-1-N4",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": true,
+        "pin_functions": [
+          "1=GND",
+          "2=GND",
+          "3=3V3",
+          "4=NC",
+          "5=IO2",
+          "6=IO3",
+          "7=NC",
+          "8=EN",
+          "9=NC",
+          "10=NC",
+          "11=GND",
+          "12=IO0",
+          "13=IO1",
+          "14=GND",
+          "15=NC",
+          "16=IO10",
+          "17=NC",
+          "18=IO4",
+          "19=IO5",
+          "20=IO6",
+          "21=IO7",
+          "22=IO8",
+          "23=IO9",
+          "24=NC",
+          "25=NC",
+          "26=IO18",
+          "27=IO19",
+          "28=NC",
+          "29=NC",
+          "30=RXD0",
+          "31=TXD0",
+          "32=NC",
+          "33=NC",
+          "34=NC",
+          "35=NC",
+          "36=GND",
+          "37=GND",
+          "38=GND",
+          "39=GND",
+          "40=GND",
+          "41=GND",
+          "42=GND",
+          "43=GND",
+          "44=GND",
+          "45=GND",
+          "46=GND",
+          "47=GND",
+          "48=GND",
+          "50=GND",
+          "51=GND",
+          "52=GND",
+          "53=GND"
+        ],
+        "pin_aliases": [
+          "GPIO2/ADC1_CH2=IO2",
+          "GPIO3/ADC1_CH3=IO3",
+          "EN/CHIP_PU=EN",
+          "GPIO0/ADC1_CH0/XTAL_32K_P=IO0",
+          "GPIO1/ADC1_CH1/XTAL_32K_N=IO1",
+          "GPIO10=IO10",
+          "GPIO4/ADC1_CH4=IO4",
+          "GPIO5/ADC2_CH0=IO5",
+          "GPIO6=IO6",
+          "GPIO7=IO7",
+          "GPIO8=IO8",
+          "GPIO9=IO9",
+          "GPIO18/USB_D-=IO18",
+          "GPIO19/USB_D+=IO19",
+          "GPIO20/U0RXD=RXD0",
+          "GPIO21/U0TXD=TXD0"
+        ]
+      }
     },
     {
       "kind": "mounting_hole",
@@ -377,7 +512,17 @@
       },
       "package": "LED_0603_1608Metric",
       "part_number": "KT-0603R",
-      "value": "KT-0603R"
+      "value": "KT-0603R",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": true,
+        "pin_functions": [
+          "1=K",
+          "2=A"
+        ]
+      }
     },
     {
       "kind": "ic",
@@ -395,7 +540,25 @@
       },
       "package": "Sensirion_DFN-4_1.5x1.5mm_P0.8mm_SHT4x_NoCentralPad",
       "part_number": "SHT40-AD1B-R3",
-      "value": "SHT40-AD1B-R3"
+      "value": "SHT40-AD1B-R3",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": true,
+        "pin_functions": [
+          "1=SDA",
+          "2=SCL",
+          "3=VDD",
+          "4=VSS",
+          "5=EP"
+        ],
+        "unverified_pads": [
+          "5"
+        ],
+        "unverified_pad_reason": "U3のEP (露出パッド) はKiCad symbolに対応する番号付きピンがなく、温度・機械的接地用で極性判定に影響しない。",
+        "unverified_pad_source": "KiCad SHT40-AD1B-R3 footprint/symbol、LCSC C2848306 Evidence、Sensirion SHT40 datasheetの露出パッド定義"
+      }
     },
     {
       "kind": "switch",
@@ -413,7 +576,13 @@
       },
       "package": "SW_SPST_TS-1088-xR020",
       "part_number": "TS-1088-AR02016",
-      "value": "RESET"
+      "value": "RESET",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": false
+      }
     },
     {
       "kind": "connector",
@@ -431,7 +600,52 @@
       },
       "package": "USB_C_Receptacle_HRO_TYPE-C-31-M-12",
       "part_number": "TYPE-C-31-M-12",
-      "value": "TYPE-C-31-M-12"
+      "value": "TYPE-C-31-M-12",
+      "cpl_orientation": {
+        "basis": "component_part_number",
+        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "offset_deg": 0.0,
+        "polarized": true,
+        "pin_functions": [
+          "A1=GND",
+          "A12=GND",
+          "B1=GND",
+          "B12=GND",
+          "A4=VBUS",
+          "A9=VBUS",
+          "B4=VBUS",
+          "B9=VBUS",
+          "A5=CC1",
+          "B5=CC2",
+          "A6=DP1",
+          "B6=DP2",
+          "A7=DN1",
+          "B7=DN2",
+          "A8=SBU1",
+          "B8=SBU2",
+          "1=EH",
+          "2=EH",
+          "3=EH",
+          "4=EH"
+        ],
+        "pin_aliases": [
+          "DP1=D+",
+          "DP2=D+",
+          "DN1=D-",
+          "DN2=D-"
+        ],
+        "unverified_pads": [
+          "1",
+          "2",
+          "3",
+          "4"
+        ],
+        "unverified_pad_reason": "USB-C shield padsはKiCad symbolのSHピンに直接対応せず、極性判定に影響しない機械シールドである。",
+        "unverified_pad_source": "KiCad USB_C_Receptacle_HRO_TYPE-C-31-M-12、LCSC C165948 Evidence、USB Type-C仕様のシールド端子定義",
+        "geometry_exception": true,
+        "geometry_exception_reason": "archived LCSC package geometry is the orientation evidence for GD1",
+        "geometry_exception_source": "evidence/{artifact_prefix}-cpl-orientation/{refdes}.json"
+      }
     }
   ],
   "schema_version": "0.1"

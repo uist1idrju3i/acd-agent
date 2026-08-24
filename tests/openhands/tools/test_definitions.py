@@ -16,6 +16,9 @@ from acd.openhands.tools.definitions import (
     AcdBootstrapWorkspace,
     AcdBootstrapWorkspaceAction,
     AcdBootstrapWorkspaceObservation,
+    AcdExploreEnclosureCandidates,
+    AcdExploreEnclosureCandidatesAction,
+    AcdExploreEnclosureCandidatesObservation,
     AcdObservation,
     AcdProbeTools,
     AcdProbeToolsAction,
@@ -25,6 +28,9 @@ from acd.openhands.tools.definitions import (
     AcdRunBoardPipeline,
     AcdRunBoardPipelineAction,
     AcdRunBoardPipelineObservation,
+    AcdRunDesignLoop,
+    AcdRunDesignLoopAction,
+    AcdRunDesignLoopObservation,
     AcdRunEnclosurePipeline,
     AcdRunEnclosurePipelineAction,
     AcdValidateDesignGraph,
@@ -131,6 +137,101 @@ def test_pipeline_success_llm_content_lists_output_facts() -> None:
     assert "output_path=out/gd1" in text
     assert "envelopes=1" in text
     assert "summary_keys=alpha, zeta" in text
+
+
+def test_design_loop_tool_preserves_fail_closed_observation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    expected: dict[str, Any] = {
+        "ok": False,
+        "fail_closed": True,
+        "pass_evidence": False,
+        "graph_id": "example",
+        "failed_stage": "board-pipeline",
+        "failure_reason": "intentional failure",
+        "results": [],
+    }
+
+    def fake_run_design_loop(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        del args, kwargs
+        return expected
+
+    monkeypatch.setattr(
+        "acd.pipeline.design_loop.run_design_loop",
+        fake_run_design_loop,
+    )
+    tool = AcdRunDesignLoop.create()[0]
+    result = _execute(
+        tool,
+        AcdRunDesignLoopAction(order_total=str(tmp_path / "order-total.json")),
+    )
+
+    assert isinstance(result, AcdRunDesignLoopObservation)
+    assert result.ok is False
+    assert result.fail_closed is True
+    assert result.pass_evidence is False
+    assert result.summary == expected
+
+
+def test_enclosure_exploration_tool_preserves_l2_observation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    expected = {
+        "schema_version": "0.1",
+        "artifact_kind": "enclosure_exploration_report",
+        "pass_evidence": False,
+    }
+
+    def fake_explore(*args: Any, **kwargs: Any) -> Any:
+        del args, kwargs
+        return type(
+            "Result",
+            (),
+            {"report": expected, "report_path": tmp_path / "report.json"},
+        )()
+
+    monkeypatch.setattr(
+        "acd.core.enclosure_exploration.explore_enclosure_candidates",
+        fake_explore,
+    )
+    tool = AcdExploreEnclosureCandidates.create()[0]
+    result = _execute(
+        tool,
+        AcdExploreEnclosureCandidatesAction(
+            graph=str(tmp_path / "graph.json"),
+            fixture_dir=str(tmp_path / "fixture"),
+            out=str(tmp_path / "out"),
+            max_candidates=1,
+        ),
+    )
+
+    assert isinstance(result, AcdExploreEnclosureCandidatesObservation)
+    assert result.ok is True
+    assert result.fail_closed is False
+    assert result.pass_evidence is False
+    assert result.report == expected
+
+
+def test_design_loop_tool_declares_graph_policy_skill_and_output_resources(
+    tmp_path: Path,
+) -> None:
+    action = AcdRunDesignLoopAction(
+        fixture=str(tmp_path / "fixture"),
+        order_total=str(tmp_path / "order-total.json"),
+        policy=str(tmp_path / "policy.json"),
+        repository=str(tmp_path),
+        out_root=str(tmp_path / "out"),
+    )
+    resources = AcdRunDesignLoop.create()[0].declared_resources(action)
+
+    assert resources.declared is True
+    assert f"file:{(tmp_path / 'fixture' / 'graph.json').resolve()}" in resources.keys
+    assert f"file:{(tmp_path / 'order-total.json').resolve()}" in resources.keys
+    assert f"file:{(tmp_path / 'policy.json').resolve()}" in resources.keys
+    assert any(key.startswith("file:") and "run_fw_pipeline.py" in key for key in resources.keys)
+    assert f"acd-out:{(tmp_path / 'out').resolve()}" in resources.keys
 
 
 def test_validate_design_graph_missing_path_is_fail_closed(tmp_path: Path) -> None:

@@ -13,6 +13,7 @@ tools:
   - acd_explore_board_candidates
   - acd_diagnose_gate_failure
   - acd_check_order_readiness
+  - acd_run_design_loop
   - terminal
   - file_editor
   - grep

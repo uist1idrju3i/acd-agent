@@ -6,6 +6,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from acd.core.cpl_orientation import cpl_orientation_attrs
 from acd.core.functional_blocks import load_functional_block_registry
 from acd.core.part_selection import PartSelectionError, select_part
 from acd.core.rationale import (
@@ -92,6 +93,15 @@ def build_graph(spec: DesignFixtureSpec) -> DesignGraph:
                     "parts_catalog_id": selection.catalog_id,
                     "parts_catalog_sha256": selection.catalog_hash,
                 }
+            )
+            component_attrs.update(
+                cpl_orientation_attrs(
+                    entry.cpl_orientation,
+                    component.cpl_orientation_evidence,
+                    graph_id,
+                    spec.revision,
+                    component.refdes,
+                )
             )
         if component.library_ref is not None:
             component_attrs["library_ref"] = component.library_ref

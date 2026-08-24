@@ -314,6 +314,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 [`SECURITY.md`](../SECURITY.md)の「AIエージェント特有の前提」、
 発注ガードの縮約は[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)、
 製造データと`unknown`境界は[`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を正とする。
+C-4（CPL orientation期待値のfixture非依存化）は、部品catalog宣言と設計fixture側の
+placement確認宣言、graph_id由来のEvidence pathを使う実装として本マイルストーンの
+範囲で達成した。設計確認の無い場合はCPL属性を補わず、既存gateでfail-closedとする。
 
 ### 7.1 期限付き見積入力の取得契約（達成）
 
@@ -525,8 +528,9 @@ GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへ�
 | 11.2 | 可動干渉チェック | 可動範囲のスイープ干渉を決定論的ゲートとして追加する（開閉・押下ストローク） |
 | 11.3 | 製造性チェック拡張 | 3Dプリント／射出成形向けのDFM（最小肉厚、抜き勾配、オーバーハング）を機械laneゲートへ追加する |
 | 11.4 | 部品込み3D統合 | KiCad 3Dモデルの選択的同梱と連携し、基板＋部品＋筐体の統合干渉チェックと組立図投影を生成する。選択的同梱にはimageサイズ増加、publish時間の増加、digestの再lock、ADR-0028のprovenance更新が伴う |
+| 11.5 | 筐体の干渉解決探索（C-1） | 達成。宣言された筐体寸法のbounded候補を決定論的に列挙し、候補ごとに筐体pipelineの機械gateを評価してL2 reportへ記録する。探索結果はgraphへ自動確定せず、L1 gateとEvidenceの権限を変更しない |
 
-11.1〜11.4は計画である。
+11.1〜11.4は計画であり、11.5は達成済みである。
 
 ## マイルストーン12: 設計ナレッジQA
 
@@ -611,10 +615,12 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.7 | 実行時間と再開性（E-1〜E-4、E-6、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録を達成した。検証段階の並列実行（E-6）は既存の`pytest -n auto --dist loadgroup`と`verify_all.py --jobs N`を維持し、`uv sync`とfullの後続pipelineはbarrierとして単独実行する。新しいcacheはDSN／SESの生成物だけを対象とし、ゲートとEvidenceは毎回再実行する |
 | 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する。達成 |
 | 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合。達成 |
+| 14.10 | VibeBB loopのcommand（I-1） | `/acd:vibebb-loop`とgraph駆動の単一orchestratorを追加し、要件からgraph検証、silkscreen barrier、基板・筐体・FW、発注可否までを固定順序でfail-closed実行する。達成 |
+| 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。C-1（筐体の干渉解決探索）はマイルストーン11.5で達成済み、C-4（CPL orientation期待値のfixture非依存化）はマイルストーン7の範囲で達成済みである。計画 |
 
-C-1〜C-4（筐体の干渉解決探索、FWのgraph駆動化、FW整合gate、CPL orientation期待値の
-fixture非依存化）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
+C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
+マイルストーン14.10後の会話駆動loopの残存不足は、L-1〜L-7として14.11で扱う。
 
 ### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
 

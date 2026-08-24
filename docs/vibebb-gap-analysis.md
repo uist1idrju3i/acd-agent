@@ -19,11 +19,11 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 
 | # | 不足機能 | 現状 | 実測根拠 |
 |---|---|---|---|
-| A-1 | 会話→要件レコードの変換 | [`README.md`](../README.md)は「対話を検証可能な要件へ変換する」を掲げるが、実装は`req.*` nodeの手書き。要件文は自由文で、ゲートと機械的に結び付いていない | 変更したREQ-010／REQ-011の文面は手作業更新であり、GPIO変更との整合を機械検査できなかった |
-| A-2 | 任意設計向けfixtureビルダー | [`src/acd/pipeline/gd1_fixture/`](../src/acd/pipeline/gd1_fixture/)はGD1専用。新規設計はGD1のgraphを複製して手編集するしかない | 変異fixtureは自作スクリプトでGD1 graphを書き換えて生成した。acd-agent内には該当機能が無い |
-| A-3 | 要件差分→graph差分のコンパイラ | 「LEDをIO6へ」という要件変更に対し、`pin.*`接続、`fw.pin.*`、テストポイント名、シルク文字、rationaleを同時に更新する経路が無い | 上記4箇所をすべて手で書き換えた。1箇所落とすとresolverかrationale coverageで落ちる |
-| A-4 | 部品選定とlibrary provenanceの自動化 | 部品・footprint・provenanceはGD1 fixtureに固定。カタログ検索や代替品選定の機構が無い | 部品点数を変えない要件に限定したため回避したが、部品を増やす要件は現状扱えない |
-| A-5 | 回路トポロジ合成 | net構成はGD1のコピーが前提。機能ブロックからnetlistを合成する層が無い | I2C・LED以外の構成変更は検討不能だった |
+| A-1 | 会話→要件レコードの変換 | 達成（14.5）。要件レコード化と要件差分compilerを追加し、会話由来の要件をgraph変更へ接続できる。ただし要件→graph段のloop内取り込みはL-3として残る | 変更したREQ-010／REQ-011の文面は手作業更新であり、GPIO変更との整合を機械検査できなかった |
+| A-2 | 任意設計向けfixtureビルダー | 達成（14.5）。任意設計向けfixture builderを追加した。ただし要件→graph段のloop内取り込みはL-3として残る | 変異fixtureは自作スクリプトでGD1 graphを書き換えて生成した。acd-agent内には該当機能が無い |
+| A-3 | 要件差分→graph差分のコンパイラ | 達成（14.5）。要件差分compilerが接続・FWピン・テストポイント・シルク文字・rationaleを同時に更新する。ただしloop内取り込みはL-3として残る | 上記4箇所をすべて手で書き換えた。1箇所落とすとresolverかrationale coverageで落ちる |
+| A-4 | 部品選定とlibrary provenanceの自動化 | 達成（14.5）。部品選定とlibrary provenanceを追加した。ただし契約registryとparts catalogの被覆はL-6として残る | 部品点数を変えない要件に限定したため回避したが、部品を増やす要件は現状扱えない |
+| A-5 | 回路トポロジ合成 | 達成（14.5）。機能ブロックから回路トポロジを合成する経路を追加した。ただし契約registryとparts catalogの被覆はL-6として残る | I2C・LED以外の構成変更は検討不能だった |
 
 ## B. 物理設計の自律探索（今回の直接のfailure源）
 
@@ -85,10 +85,10 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 
 | # | 不足機能 | 現状 |
 |---|---|---|
-| C-1 | 開口・締結の自動生成と干渉解決探索 | 筐体は宣言寸法から生成するのみで、干渉時に寸法を探索して収束させる機構が無い |
+| C-1 | 開口・締結の自動生成と干渉解決探索 | 達成。宣言された内部clearance・壁厚・standoff寸法をboundedに候補列挙し、筐体pipelineの機械gate結果をL2探索reportへ記録する。候補はgraphへ自動確定せず、`pass_evidence`も生成しない |
 | C-2 | FWのgraph駆動化 | 達成。`firmware.module`の任意宣言からtimer周期・ログ文字列を生成し、未宣言時は既存GD1既定値を維持する。宣言値のmalformedは検証不能として停止する |
 | C-3 | FW側の整合gate | 達成。Skill subprocessが出力したpin/config reportをACD側でgraphと再照合するL1 gateを追加した。欠落・parse失敗・不一致はfail-closed |
-| C-4 | CPL orientation期待値のfixture非依存化 | 期待値がGD1固定 |
+| C-4 | CPL orientation期待値のfixture非依存化 | 達成。部品catalogの任意orientation宣言と設計fixture側のplacement確認宣言から汎用fixture builderが`cpl_rotation_*`属性とgraph_id由来のEvidence pathを生成し、設計確認が無い場合は属性を補わず既存CPL gateでfail-closedとする。GD1もcatalog由来へ移行した |
 
 ## D. 実機フィードバックと発注（VibeBBの後半loop）
 
@@ -129,11 +129,11 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 
 ## G. ワークスペース初期化の自動化
 
-OpenHands側のworkspaceは現在ユーザーが手で`mkdir`→`git init`／`clone`して用意しており、
-acd-agent側に初期化経路が無い。[`plugins/acd/commands/ask.md`](../plugins/acd/commands/ask.md)、
-[`doctor.md`](../plugins/acd/commands/doctor.md)、[`gates.md`](../plugins/acd/commands/gates.md)の
-3 commandは存在するが、初期化commandは存在しない。今回の作業でもworkspaceが空で、こちらで
-cloneして立ち上げた。現在のDocker workspace経路は
+OpenHands側のworkspaceは`/acd:init`（G-1）で初期化でき、repositoryのcloneまたはclean
+checkout再利用、submodule取得、`uv sync`、plugin読み込み確認、doctorまでを一経路で実行する。
+[`plugins/acd/commands/ask.md`](../plugins/acd/commands/ask.md)、
+[`doctor.md`](../plugins/acd/commands/doctor.md)、[`gates.md`](../plugins/acd/commands/gates.md)に
+加えて初期化commandも提供している。現在のDocker workspace経路は
 [`docs/operations.md`](operations.md)に記載された
 [`scripts/run_in_workspace.py`](../scripts/run_in_workspace.py)への手順依存である。
 
@@ -223,8 +223,8 @@ authoritative Evidenceのdigest固定条件は緩めない。
 
 | # | 不足機能 | 現状 |
 |---|---|---|
-| I-1 | VibeBB loopのcommand | [`plugins/acd/commands/`](../plugins/acd/commands/)は`ask`／`doctor`／`gates`の3つで、設計・生成・発注を進めるcommandが無い。会話から進める手段が「shellで各scriptを叩く」に落ちる |
-| I-2 | agent向けtoolの網羅 | [`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)が公開するのはtool probe、graph validate、GD1基板pipeline、GD1筐体pipelineの4つのみ。FW pipeline、fixture編集、発注、失敗診断のtoolが無く、それらは生JSON編集と生shellになる。今回私が座標とGPIOを手で書いたのはこの欠落の帰結である |
+| I-1 | VibeBB loopのcommand | 達成。`/acd:vibebb-loop`が要件、graph検証、silkscreen barrier、基板・筐体・FW、発注可否を固定順序のfail-closed loopとして実行する |
+| I-2 | agent向けtoolの網羅 | 達成。[`src/acd/openhands/tools/definitions.py`](../src/acd/openhands/tools/definitions.py)にFW pipeline、fixture編集、発注可否、失敗診断、候補探索、design loopを含む13本のtoolを登録済み |
 | I-3 | workspace既定値のgd1固定 | 達成。対象graphのgraph_idからcommand、Evidence path、required anchorを決定論的に導出する |
 | I-4 | 発注可否判定のsubject固定 | 達成。order policyを対象graphと照合し、graph-scoped Evidence anchorの欠落をfail-closedにする |
 | I-5 | 生成物名のgd1固定 | 達成。KiCad、筐体part number、visual projection、CPL pathをgraph_id由来にし、既存GD1互換prefixを保持する |
@@ -273,10 +273,10 @@ fail-closedで停止する。
 
 | # | 不足機能 | 現状 |
 |---|---|---|
-| K-1 | 単一のorchestrator | silkscreen resolver→基板pipeline→筐体pipeline→FW pipelineを別CLIで順に実行する必要があり（[`docs/operations.md`](operations.md)）、順序と前提は文書側にしか無い。resolverを飛ばすとsilkscreenゲートで落ちる |
-| K-2 | 失敗からの再開 | stage cacheが無く（E-4）、途中失敗は毎回全stage再実行になる。1候補あたり数十分のためVibeBBの対話速度に乗らない |
+| K-1 | 単一のorchestrator | 達成（14.7、14.10）。`scripts/run_gd1_lanes.py`と`run_design_loop`でsilkscreen resolver→基板pipeline→筐体pipeline→FW pipeline→発注可否の順序を固定した。ただしcache・resume・timing・lane並列を会話経路へ接続していない点はL-1として残る |
+| K-2 | 失敗からの再開 | 達成（14.7）。`scripts/run_gd1_lanes.py`に入力hash単位のstage cacheと失敗からのresumeを追加した。ただし会話経路（`/acd:vibebb-loop`）から未接続である点はL-1として残る |
 | K-3 | 失敗メッセージのremediation | ゲートは値と座標を返すが、次に動かしてよい次元（許可された変更次元）を返さない。専門家か汎用エージェントが居ないと次の一手が決まらない。B-3の構造化Evidenceを、利用者向けの「変更可能な次元と現在の余裕」を含む形にする提案である |
-| K-4 | stageごとの所要時間記録 | 基板pipelineは`[0/12]`〜`[12/12]`の進捗を出すが、stage時間を記録しないため、律速stageの特定を実行中の外部観察に頼る（E-1〜E-3の裏取りが手作業になる） |
+| K-4 | stageごとの所要時間記録 | 達成（14.7）。stageごとの所要時間を記録する機能を追加した。ただし会話経路（`/acd:vibebb-loop`）から未接続である点はL-1として残る |
 
 ### K-3の解決（マイルストーン14.3）
 
@@ -290,6 +290,21 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 | 項目 | 14.3後の状態 | 優先度 |
 |---|---|---|
 | K-3 | 達成。registry由来の許可変更次元と現在の余裕を述語失敗へ表示 | 解決済み |
+
+## L. マイルストーン14.10後に残る会話駆動loopの不足
+
+本節はマイルストーン14.10（I-1）の完了後に、コードベースを横断して再確認した結果である。
+既存の閾値、ゲート挙動、fail-closed境界、L1権限を変更する提案は含まない。
+
+| # | 不足機能 | 現状 | 優先度 |
+|---|---|---|---|
+| L-1 | orchestratorの二重化解消 | `/acd:vibebb-loop`が呼ぶ`run_design_loop`は、入力hash単位のstage cache（E-4）、失敗からの再開（K-2）、stageごとの所要時間記録（K-4）、lane並列（E-2）を使わない。これらを持つ`scripts/run_gd1_lanes.py`は出力先が`out/gd1`・`out/gd1-enclosure`・`out/gd1-fw`のGD1固定で、FW整合gate後の発注可否段を持たない。結果として会話経路からはcacheと再開が使えない | 高 |
+| L-2 | 却下後の候補探索の自動連結 | board段が却下された際に`explore_board_candidates`（B-1／B-2）へ接続する経路がloopに無く、次候補の起動が会話側のtool呼び出しに依存する。探索はL2の操舵に留め、L1ゲートの権限と閾値は変更しない | 高 |
+| L-3 | 要件→graph段のloop内取り込み | `scripts/compile_requirement_change.py`と`scripts/build_design_fixture.py`（A-1〜A-3）はloopの外にあり、要件revisionと対象graph revisionの整合をloop入口で検査していない | 中 |
+| L-4 | order-total生成経路の欠落 | `aggregate_order_total`にCLIもtool入口も無く、`out/order-total.json`の生成手順は[`operations.md`](operations.md)にも無い。発注可否段は既存fileを前提とするため、会話からは発注可否判定へ到達できない | 高 |
+| L-5 | 生成物既定値のgd1残留 | `DEFAULT_PROJECT_NAME = "gd1"`、`src/acd/openhands/workspace.py`の既定evidence path、agent toolの既定出力`out/gd1-*`、FW既定の`boot_log_message`のGD1文字列が残る。いずれも宣言で上書きできるが、任意graphでは既定値が誤誘導になる | 中 |
+| L-6 | 契約registryとcatalogのトポロジ被覆 | `contracts/functional-block-registry.json`はGD1系の6契約、`contracts/parts-catalog.json`は24 entryのみで、USB-Cを持たない設計や電池駆動設計は契約・catalog追加が前提となり会話からは到達できない（マイルストーン16.2・16.3に依存） | 中 |
+| L-7 | 本書の「現状」列の陳腐化 | 解決済み。A節・K節・G節の「現状」列が14.5・14.7・14.8の達成後も更新されておらず実装状態と齟齬があったため、本節の追加と同じ変更で更新した。実測根拠の観測記録は変更しない | 低 |
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
@@ -316,3 +331,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 7. G-1〜G-3（workspace初期化とbootstrap）。達成済み。`/acd:init`または`acd_bootstrap_workspace`から、対象revisionを宣言して会話開始用workspaceを準備できる。
 8. I-3〜I-5／E-5、C-2／C-3、D-1〜D-3は14.6で達成した。実supplier接続はprovider境界の後続作業として残る。
 9. F-1〜F-4（image publishとdigest lock更新）。達成済み。digest lockとregistry manifestの照合、配布文書の整合を含む。残存するH-2〜H-4／K-4（skew検出と計測）は運用の再現性と回帰防止を強化する。
+10. L-1〜L-7（マイルストーン14.10後に残る会話駆動loopの不足）。会話経路へのcache・resume・timing・lane並列の接続、候補探索と要件→graphのloop内取り込み、order-total生成、gd1既定値、契約registry・catalog被覆、本書の現状列更新を扱う。

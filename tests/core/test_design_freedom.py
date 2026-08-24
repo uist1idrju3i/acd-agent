@@ -24,11 +24,15 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_real_design_freedom_declaration_loads_and_is_deterministic() -> None:
     declaration = load_design_freedom_declaration()
-    assert len(declaration.document.dimensions) == 9
+    assert len(declaration.document.dimensions) == 14
     assert searchable_dimensions(declaration) == (
         "clearance_mm",
         "component_placement_xy",
         "component_rotation_deg",
+        "enclosure_internal_clearance_mm",
+        "enclosure_standoff_height_mm",
+        "enclosure_standoff_radius_mm",
+        "enclosure_wall_thickness_mm",
         "gpio_assignment",
         "router_max_passes",
         "track_width_mm",
