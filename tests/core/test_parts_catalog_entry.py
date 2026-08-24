@@ -75,6 +75,18 @@ def test_registers_entry_atomically_and_selects_it(tmp_path: Path) -> None:
     assert selected.pass_evidence is False
 
 
+def test_registration_preserves_existing_entry_serialization(tmp_path: Path) -> None:
+    catalog = _catalog_copy(tmp_path)
+    before = catalog.read_text(encoding="utf-8")
+    first_start = before.index("    {\n", before.index('"entries"'))
+    second_start = before.index("    {\n", first_start + 1)
+
+    register_parts_catalog_entry(_entry(tmp_path), catalog)
+
+    after = catalog.read_text(encoding="utf-8")
+    assert after[first_start:second_start] == before[first_start:second_start]
+
+
 @pytest.mark.parametrize("field", ["symbol_sha256", "footprint_sha256"])
 def test_provenance_hash_mismatch_fails_closed(tmp_path: Path, field: str) -> None:
     catalog = _catalog_copy(tmp_path)

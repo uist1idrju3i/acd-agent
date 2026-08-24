@@ -1,5 +1,10 @@
 {
   "schema_version": "0.1",
+  "shared_nets": [
+    {"net_id": "net.vbus_5v", "attrs": {"name": "VBUS_5V"}},
+    {"net_id": "net.p3v3", "attrs": {"name": "+3V3"}},
+    {"net_id": "net.gnd", "attrs": {"name": "GND"}}
+  ],
   "templates": [
     {
       "template_id": "esp32c3-strapping-boot",
@@ -118,11 +123,7 @@
           "attrs": {"value": "100nF"}
         }
       ],
-      "nets": [
-        {"net_id": "net.vbus_5v", "attrs": {"name": "VBUS_5V"}},
-        {"net_id": "net.p3v3", "attrs": {"name": "+3V3"}},
-        {"net_id": "net.gnd", "attrs": {"name": "GND"}}
-      ]
+      "nets": []
     },
     {
       "template_id": "usb-c-cc-termination",

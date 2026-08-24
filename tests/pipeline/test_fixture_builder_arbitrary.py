@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from datetime import UTC, datetime
@@ -95,25 +96,37 @@ def test_fixture_builder_resolves_catalog_component(tmp_path: Path) -> None:
     assert component["attrs"]["cpl_rotation_offset_deg"] == 0.0
 
 
-def test_non_usb_and_battery_declarations_use_catalog_without_battery_contract(
+def test_battery_fixture_uses_test_provenance_without_battery_contract(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     catalog_data = json.loads(
         Path("contracts/parts-catalog.json").read_text(encoding="utf-8")
     )
-    source_entry = next(
-        entry for entry in catalog_data["entries"] if entry["part_number"] == "0603WAF1001T5E"
-    )
-    battery_entry = json.loads(json.dumps(source_entry))
-    battery_entry.update(
-        {
-            "part_number": "BATTERY-CELL-3V7",
-            "kind": "battery_cell",
-            "value": "3.7V",
-            "package": "18650",
-        }
-    )
+    symbol = tmp_path / "battery-test-symbol.kicad_sym"
+    footprint = tmp_path / "battery-test-footprint.kicad_mod"
+    symbol.write_text("battery test symbol", encoding="utf-8")
+    footprint.write_text("battery test footprint", encoding="utf-8")
+    # These files are test scaffolding, not a normative battery part declaration.
+    battery_entry = {
+        "part_number": "BATTERY-CELL-3V7",
+        "kind": "battery_cell",
+        "value": "3.7V",
+        "package": "18650",
+        "library_ref": {
+            "symbol": "Test:BatteryCell",
+            "symbol_file": str(symbol),
+            "symbol_source": "test-scaffolding",
+            "symbol_source_ref": "fixture",
+            "symbol_sha256": "sha256:" + hashlib.sha256(symbol.read_bytes()).hexdigest(),
+            "footprint": "Test:BatteryCell",
+            "footprint_file": str(footprint),
+            "footprint_source": "test-scaffolding",
+            "footprint_source_ref": "fixture",
+            "footprint_sha256": "sha256:"
+            + hashlib.sha256(footprint.read_bytes()).hexdigest(),
+        },
+    }
     catalog_path = tmp_path / "parts-catalog.json"
     catalog_path.write_text(json.dumps(catalog_data), encoding="utf-8")
     register_parts_catalog_entry(battery_entry, catalog_path)

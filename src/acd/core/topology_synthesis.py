@@ -79,6 +79,10 @@ def synthesize_topology(
         )
     components: dict[str, FixtureComponentSpec] = {}
     nets: dict[str, FixtureNetSpec] = {}
+    shared_nets = {
+        net.net_id: FixtureNetSpec(net_id=net.net_id, attrs=net.attrs)
+        for net in templates.shared_nets
+    }
     constraints: set[str] = set()
     for block_id in sorted(requested):
         template = by_block_id[block_id]
@@ -102,11 +106,6 @@ def synthesize_topology(
                 raise TopologySynthesisError(f"topology templates conflict for net: {net.net_id}")
             nets[net.net_id] = net
         constraints.update(template.constraints)
-    all_nets = {
-        net.net_id: FixtureNetSpec(net_id=net.net_id, attrs=net.attrs)
-        for template in templates.templates
-        for net in template.nets
-    }
     referenced_nets = {
         net_id
         for component in components.values()
@@ -114,7 +113,12 @@ def synthesize_topology(
         if net_id is not None
     }
     for net_id in sorted(referenced_nets - set(nets)):
-        nets[net_id] = all_nets[net_id]
+        shared = shared_nets.get(net_id)
+        if shared is None:
+            raise TopologySynthesisError(
+                f"topology template references unavailable shared net: {net_id}"
+            )
+        nets[net_id] = shared
     return TopologyFragment(
         components=tuple(components[key] for key in sorted(components)),
         nets=tuple(nets[key] for key in sorted(nets)),

@@ -254,9 +254,12 @@ Evidenceを生成・昇格せず、ToolDefinitionとSkillへ合否権限を与�
 
 トポロジfragmentは`contracts/topology-templates.json`を正とするdata契約であり、
 Pythonへ電気的既定値を持たない。Pydanticはtemplate／registry blockの対応、部品要求、
-refdes、net ID、net参照の閉包を検証し、未知block、重複宣言、template欠落、parse不能を
-検証不能としてfail-closedにする。合成後のcomponent、net、constraintの順序と正規化は
-従来どおり決定論的である。
+template内のrefdes／local net ID、document-levelの`shared_nets`、pad参照の閉包を
+検証する。template間のrefdes／local net ID重複は代替blockのため許可する一方、
+template固有netとshared netの衝突、未知block、重複宣言、template欠落、parse不能は
+検証不能としてfail-closedにする。padは自templateのlocal netまたは`shared_nets`だけを
+参照できる。合成後のcomponent、net、constraintの順序と正規化は従来どおり決定論的で、
+選択templateのlocal netと実際に参照されたshared netだけを出力する。
 
 部品entryは`register_part_catalog_entry.py`または
 `acd_register_parts_catalog_entry`から追加する。両経路はsymbol／footprintの実file
@@ -264,6 +267,8 @@ refdes、net ID、net参照の閉包を検証し、未知block、重複宣言、
 `kind`＋`value`＋`package`の衝突を拒否して`select_part`の曖昧性を増やさない。
 dry-run、canonical catalog hash、原子的書き込みを提供するが、登録は宣言操作であり
 L1判定権限もauthoritative Evidence権限も持たず、`pass_evidence`はfalseである。
+catalog書き出しでは既存entryのテキスト表現（field order、indent、既定値の省略）を
+保持し、新規entryだけを既存の整形規則で追記する。
 
 USB-Cを宣言しない設計と電池給電設計は、既存の機能block・predicateとcatalog entryを
 fixtureへ宣言して到達できる。電池については`power_boundary`等の既存範囲だけを扱い、

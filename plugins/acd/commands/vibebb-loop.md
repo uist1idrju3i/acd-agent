@@ -69,6 +69,9 @@ FW boot logの既定文言もgraph_idから導出する（規範は
 
 機能blockのトポロジは`contracts/topology-templates.json`から検証・合成され、部品の
 追加は`acd_register_parts_catalog_entry`でlibrary provenanceを検証してから行う。
-catalog登録は宣言操作であり、合否やEvidenceを与えない。USB-Cを宣言しない設計は
+共通railは`shared_nets`へ宣言し、template-localなrefdes／net IDと分離する。template
+間の重複は代替blockのため許可するが、pad参照は自templateのlocal netまたはshared net
+に閉じ、同時選択時の異なる定義はfail-closedにする。catalog登録は宣言操作であり、
+合否やEvidenceを与えない。USB-Cを宣言しない設計は
 `usb_cc`をnot_applicableとして扱えるが、電池の充電・保護回路を暗黙に規範化しない。
 その範囲はロードマップ16.2／16.3へ委譲する。

@@ -119,8 +119,106 @@ def _validate_new_entry(entry: PartCatalogEntry, document: PartsCatalogDocument)
         )
 
 
-def _write_catalog(path: Path, document: PartsCatalogDocument) -> None:
-    payload = document.model_dump_json(indent=2) + "\n"
+def _catalog_entry_payload(entry: PartCatalogEntry) -> dict[str, Any]:
+    library_values = entry.library_ref.model_dump(mode="json")
+    library_ref = {
+        key: library_values[key]
+        for key in (
+            "footprint",
+            "footprint_file",
+            "footprint_sha256",
+            "footprint_source",
+            "footprint_source_ref",
+            "symbol",
+            "symbol_file",
+            "symbol_sha256",
+            "symbol_source",
+            "symbol_source_ref",
+        )
+    }
+    payload: dict[str, Any] = {
+        "kind": entry.kind,
+        "library_ref": library_ref,
+        "package": entry.package,
+        "part_number": entry.part_number,
+        "value": entry.value,
+    }
+    if entry.cpl_orientation is not None:
+        orientation_values = entry.cpl_orientation.model_dump(
+            mode="json",
+            exclude_defaults=True,
+            exclude_none=True,
+        )
+        orientation = {
+            key: orientation_values[key]
+            for key in (
+                "basis",
+                "source_url",
+                "offset_deg",
+                "polarized",
+                "pin_functions",
+                "pin_aliases",
+                "unverified_pads",
+                "unverified_pad_reason",
+                "unverified_pad_source",
+                "geometry_exception",
+                "geometry_exception_reason",
+                "geometry_exception_source",
+            )
+            if key in orientation_values
+        }
+        payload["cpl_orientation"] = orientation
+    return payload
+
+
+def _catalog_json(existing: str, entry: PartCatalogEntry) -> str:
+    entries_key = existing.find('"entries"')
+    opening = existing.find("[", entries_key)
+    if entries_key < 0 or opening < 0:
+        raise PartsCatalogEntryError(
+            "parts catalog has no recognized entries array representation"
+        )
+    depth = 0
+    in_string = False
+    escaped = False
+    closing = -1
+    for index in range(opening, len(existing)):
+        character = existing[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character == "[":
+            depth += 1
+        elif character == "]":
+            depth -= 1
+            if depth == 0:
+                closing = index
+                break
+    if closing < 0:
+        raise PartsCatalogEntryError(
+            "parts catalog has no recognized entries array representation"
+        )
+    serialized = json.dumps(
+        _catalog_entry_payload(entry),
+        ensure_ascii=False,
+        indent=2,
+    )
+    indented = "\n".join("    " + line for line in serialized.splitlines())
+    prefix = existing[:closing]
+    content = prefix.rstrip()
+    whitespace = prefix[len(content) :]
+    return content + ",\n" + indented + whitespace + existing[closing:]
+
+
+def _write_catalog(path: Path, existing: str, entry: PartCatalogEntry) -> None:
+    payload = _catalog_json(existing, entry)
     temporary_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -155,6 +253,12 @@ def register_parts_catalog_entry(
     proposed, detected_source = _read_entry_input(entry)
     path = catalog_path or default_parts_catalog_path()
     try:
+        existing_catalog = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise PartsCatalogEntryError(
+            f"parts catalog is invalid or unreadable: {path}: {exc}"
+        ) from exc
+    try:
         document, prior_hash = load_parts_catalog(path)
     except ValueError as exc:
         raise PartsCatalogEntryError(str(exc)) from exc
@@ -162,7 +266,7 @@ def register_parts_catalog_entry(
     updated_document = document.model_copy(update={"entries": [*document.entries, proposed]})
     new_hash = canonical_json_sha256(updated_document.model_dump(mode="json"))
     if not dry_run:
-        _write_catalog(path, updated_document)
+        _write_catalog(path, existing_catalog, proposed)
     return PartsCatalogEntryResult(
         catalog_id=document.catalog_id,
         prior_catalog_hash=prior_hash,

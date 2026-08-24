@@ -435,8 +435,10 @@ authoritative Evidenceを生成しない。quote取得と実発注はこのloop�
 
 トポロジtemplateは`contracts/topology-templates.json`へ追加する。`template_id`と
 registryの`block_id`を対応させ、部品要求の`kind`、`value`、`package`、padのnet参照を
-宣言する。Pydantic検証は未知block、重複refdes／net、未宣言net、template欠落を
-fail-closedにする。
+宣言する。共通railはdocument-levelの`shared_nets`へ宣言し、その他はtemplate-local
+netとする。Pydantic検証はtemplate内の重複refdes／local net、shared netとの衝突、
+未知block、未宣言net、template欠落をfail-closedにする。template間の重複は代替block
+のため許可し、padは自templateのlocal netまたはshared netだけを参照できる。
 
 部品entryは次のCLIでdry-run検証してからcatalogへ原子的に追加する。
 
@@ -454,8 +456,8 @@ entryには`part_number`、`kind`、`value`、`package`と、symbol／footprint�
 file、source、source_ref、`sha256:<64 hex>`を必須で宣言する。CLIは両fileを実際に
 読み、宣言SHA-256と一致しない場合やfileが存在しない場合は非ゼロ終了でfail-closedに
 する。既存`part_number`または同じ選択key（`kind`＋`value`＋`package`）との衝突は、
-`select_part`の曖昧な結果を増やすため拒否する。dry-runはcatalog hashの変更予定を
-報告するが書き込まない。
+`select_part`の曖昧な結果を増やすため拒否する。既存entryのテキスト表現は保持し、
+新規entryだけを追記する。dry-runはcatalog hashの変更予定を報告するが書き込まない。
 
 同じ操作は会話経路の`acd_register_parts_catalog_entry`でも行える。これは入力
 catalog／entryを資源宣言し、登録結果とcanonical catalog hashを観測するだけで、
