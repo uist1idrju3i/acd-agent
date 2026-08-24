@@ -178,6 +178,9 @@ def test_design_loop_tool_preserves_fail_closed_observation(
     assert captured["cache_dir"] is None
     assert captured["resume"] is False
     assert captured["jobs"] == 1
+    assert captured["explore_board"] is False
+    assert captured["max_exploration_candidates"] == 3
+    assert captured["max_exploration_rounds"] == 1
 
 
 def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
@@ -185,12 +188,24 @@ def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
     assert action.cache_dir is None
     assert action.resume is False
     assert action.jobs == 1
+    assert action.explore_board is False
+    assert action.max_exploration_candidates == 3
+    assert action.max_exploration_rounds == 1
     with pytest.raises(ValueError):
         AcdRunDesignLoopAction(order_total="order-total.json", jobs=0)
     schema = AcdRunDesignLoop.create()[0].action_type.model_json_schema()
-    assert {"cache_dir", "resume", "jobs"} <= set(schema["properties"])
+    assert {
+        "cache_dir",
+        "resume",
+        "jobs",
+        "explore_board",
+        "max_exploration_candidates",
+        "max_exploration_rounds",
+    } <= set(schema["properties"])
     assert schema["properties"]["jobs"]["default"] == 1
     assert schema["properties"]["jobs"]["minimum"] == 1
+    assert schema["properties"]["max_exploration_candidates"]["minimum"] == 1
+    assert schema["properties"]["max_exploration_rounds"]["minimum"] == 1
 
 
 def test_design_loop_tool_declares_cache_as_output_resource(

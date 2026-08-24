@@ -320,6 +320,20 @@ class AcdRunDesignLoopAction(Action):
         ge=1,
         description="Maximum parallel board, enclosure, and firmware lanes.",
     )
+    explore_board: bool = Field(
+        default=False,
+        description="Explore board candidates after a fail-closed board rejection.",
+    )
+    max_exploration_candidates: int = Field(
+        default=3,
+        ge=1,
+        description="Maximum candidates evaluated in each board exploration round.",
+    )
+    max_exploration_rounds: int = Field(
+        default=1,
+        ge=1,
+        description="Maximum board exploration and loop rerun rounds.",
+    )
 
 
 class AcdProbeToolsObservation(AcdObservation):
@@ -946,6 +960,9 @@ class AcdRunDesignLoopExecutor(
                 cache_dir=Path(action.cache_dir) if action.cache_dir else None,
                 resume=action.resume,
                 jobs=action.jobs,
+                explore_board=action.explore_board,
+                max_exploration_candidates=action.max_exploration_candidates,
+                max_exploration_rounds=action.max_exploration_rounds,
             )
             return AcdRunDesignLoopObservation(
                 ok=bool(result.get("ok")),
@@ -1387,8 +1404,9 @@ class AcdRunDesignLoop(
                 description=(
                     "Run the fixed graph-driven VibeBB design loop through "
                     "deterministic stages, with optional artifact cache/resume, "
-                    "stage timing, and bounded lane parallelism. Cache reuse never "
-                    "restores verdicts or Evidence."
+                    "stage timing, bounded lane parallelism, and opt-in bounded "
+                    "board exploration after board rejection. Cache reuse and "
+                    "exploration never restore verdicts or Evidence."
                 ),
                 annotations=ToolAnnotations(
                     title="acd_run_design_loop",

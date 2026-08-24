@@ -407,6 +407,28 @@ CLIの既定値は`min(os.cpu_count() or 1, 3)`である。tool経路の`jobs`�
 並列化は明示指定時だけ有効になる。timing recordとcache reportはL3観測であり、
 記録失敗は結果へ理由を記録するが、合否を変更しない。
 
+board-pipelineのfail-closed却下後に候補探索をloopへ自動連結する場合は、探索を明示的に
+有効化し、候補予算とround上限を正整数で指定する。
+
+```bash
+uv run python scripts/run_design_loop.py \
+  --fixture fixtures/golden-design-1 \
+  --out-root out \
+  --order-total out/order-total.json \
+  --policy plugins/acd/hooks/order-policy.json \
+  --explore-board \
+  --max-exploration-candidates 3 \
+  --max-exploration-rounds 2 \
+  --evaluated-at 2026-08-14T00:00:00Z
+```
+
+自動探索はboard-pipelineの却下後、全laneのjoin後に直列で実行する。候補が見つかった場合も
+graphの妥当性、graph IDの一致、revisionの変更を検査してからsilkscreenを含むloop全体を
+再実行する。enclosure、FW、silkscreenの失敗では自動探索せず、探索の`candidate_found`
+reportもL1合格Evidenceではない。`exhausted`、`stopped`、不正report、graph検証失敗、
+round上限到達は元のboard失敗理由を保持してfail-closedで停止する。自動連結を使わない場合や
+診断次元を指定して手動評価する場合は`acd_explore_board_candidates`を使用する。
+
 `acd_run_design_loop`も同じin-code orchestratorを呼び出す。gate、閾値、期待値、
 revision一致、authoritative Evidenceの規則は変更しない。Skill出力、AI review、host上の
 provisional実行、loopの成功観測は合格Evidenceではなく、実発注もこの入口では行わない。

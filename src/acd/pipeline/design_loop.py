@@ -8,11 +8,12 @@ import os
 import subprocess
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from acd.core.exploration import explore_board_candidates
 from acd.core.order_total import order_total_result_from_document
 from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.order_gate import evaluate_pre_order_gate
@@ -56,6 +57,8 @@ class DesignLoopConfig:
     resume: bool = False
     jobs: int = DEFAULT_DESIGN_LOOP_JOBS
     timing_recorder: TimingRecorder | None = None
+    max_exploration_candidates: int = 3
+    max_exploration_rounds: int = 1
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -233,6 +236,12 @@ def _graph_id(fixture_dir: Path) -> str:
     return graph.graph_id
 
 
+def _load_graph(fixture_dir: Path) -> DesignGraph:
+    return DesignGraph.model_validate_json(
+        (fixture_dir / "graph.json").read_text(encoding="utf-8")
+    )
+
+
 def _resolve_evaluated_at(value: datetime | None) -> datetime:
     if value is None:
         return datetime.now(UTC)
@@ -266,6 +275,9 @@ def run_design_loop(
     cache_dir: Path | None = None,
     resume: bool = False,
     jobs: int = DEFAULT_DESIGN_LOOP_JOBS,
+    explore_board: bool = False,
+    max_exploration_candidates: int = 3,
+    max_exploration_rounds: int = 1,
 ) -> dict[str, Any]:
     """Run all design stages in their fixed fail-closed order."""
     timing = TimingRecorder()
@@ -281,6 +293,8 @@ def run_design_loop(
         "jobs": jobs,
         "results": [],
     }
+    if explore_board:
+        result["explore_board"] = True
     timing_record: Path | None = None
     timing_record_error: str | None = None
     config: DesignLoopConfig | None = None
@@ -293,6 +307,10 @@ def run_design_loop(
         evaluated = _resolve_evaluated_at(evaluated_at)
         if jobs < 1:
             raise ValueError("jobs must be a positive integer")
+        if max_exploration_candidates < 1:
+            raise ValueError("max_exploration_candidates must be a positive integer")
+        if max_exploration_rounds < 1:
+            raise ValueError("max_exploration_rounds must be a positive integer")
         if resolved_cache_dir is not None:
             resolved_cache_dir.mkdir(parents=True, exist_ok=True)
         config = DesignLoopConfig(
@@ -315,6 +333,8 @@ def run_design_loop(
             resume=resume,
             jobs=jobs,
             timing_recorder=timing,
+            max_exploration_candidates=max_exploration_candidates,
+            max_exploration_rounds=max_exploration_rounds,
         )
         result.update(
             {
@@ -336,7 +356,12 @@ def run_design_loop(
     else:
         results: list[dict[str, Any]] = []
 
-        def run_stage(stage_id: str) -> dict[str, Any]:
+        active_config = config
+
+        def run_stage(
+            stage_id: str,
+            runner: StageRunner | None = None,
+        ) -> dict[str, Any]:
             timing_error: str | None = None
             started = False
             try:
@@ -345,7 +370,9 @@ def run_design_loop(
             except Exception as exc:
                 timing_error = f"{type(exc).__name__}: {exc}"
             try:
-                stage_result = DEFAULT_STAGE_RUNNERS[stage_id](config)
+                stage_result = (runner or DEFAULT_STAGE_RUNNERS[stage_id])(
+                    active_config
+                )
             except Exception as exc:
                 stage_result = _failure(stage_id, f"{type(exc).__name__}: {exc}")
             finally:
@@ -381,21 +408,15 @@ def run_design_loop(
                 }
                 return [futures[stage_id].result() for stage_id in DESIGN_LOOP_LANE_IDS]
 
-        silkscreen = run_stage("silkscreen-resolve")
-        results.append(silkscreen)
-        if not silkscreen.get("ok") or silkscreen.get("fail_closed"):
-            result.update(
-                {
-                    "failed_stage": "silkscreen-resolve",
-                    "failure_reason": silkscreen.get(
-                        "failure_reason", "stage failed"
-                    ),
-                    "results": results,
-                }
-            )
-        else:
+        def execute_once() -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+            once_results: list[dict[str, Any]] = []
+            silkscreen = run_stage("silkscreen-resolve")
+            once_results.append(silkscreen)
+            if not silkscreen.get("ok") or silkscreen.get("fail_closed"):
+                return once_results, silkscreen
+
             lane_results = run_lanes()
-            results.extend(lane_results)
+            once_results.extend(lane_results)
             failed = next(
                 (
                     stage_result
@@ -405,34 +426,228 @@ def run_design_loop(
                 None,
             )
             if failed is not None:
-                result.update(
-                    {
-                        "failed_stage": str(failed.get("stage_id", "unknown")),
-                        "failure_reason": failed.get("failure_reason", "stage failed"),
-                        "results": results,
-                    }
+                return once_results, failed
+
+            order_result = run_stage("order-readiness")
+            once_results.append(order_result)
+            if not order_result.get("ok") or order_result.get("fail_closed"):
+                return once_results, order_result
+            return once_results, None
+
+        def exploration_stage(round_number: int) -> dict[str, Any]:
+            stage = active_config.lane_plan.stage("board-exploration")
+            if stage.output_path is None:
+                return _failure(
+                    "board-exploration",
+                    "board exploration output path is undeclared (fail-closed)",
                 )
-            else:
-                order_result = run_stage("order-readiness")
-                results.append(order_result)
-                if not order_result.get("ok") or order_result.get("fail_closed"):
-                    result.update(
-                        {
-                            "failed_stage": "order-readiness",
-                            "failure_reason": order_result.get(
-                                "failure_reason", "stage failed"
-                            ),
-                            "results": results,
-                        }
+            round_out = stage.output_path / f"round-{round_number}"
+
+            def pipeline_runner(working_fixture: Path, candidate_out: Path) -> object:
+                return run_board_pipeline(
+                    working_fixture,
+                    candidate_out,
+                    active_config.max_passes,
+                    active_config.fab_profile,
+                    fab_profile_id=active_config.fab_profile_id,
+                    cache_dir=active_config.cache_dir,
+                    timing_recorder=active_config.timing_recorder,
+                )
+
+            try:
+                exploration = explore_board_candidates(
+                    active_config.fixture_dir / "graph.json",
+                    active_config.fixture_dir,
+                    round_out,
+                    active_config.max_exploration_candidates,
+                    max_passes=active_config.max_passes,
+                    dry_run=False,
+                    pipeline_runner=pipeline_runner,
+                )
+            except Exception as exc:
+                return _failure(
+                    "board-exploration",
+                    f"{type(exc).__name__}: {exc}",
+                    record_class="L3",
+                    report_status="unknown",
+                    report_path=str(round_out / "exploration-report.json"),
+                    evaluated_candidates=0,
+                    diagnostic_dimensions=[],
+                )
+            report = exploration.report
+            diagnostic_dimensions_set: set[str] = set()
+            candidates = report.get("candidates", [])
+            if isinstance(candidates, list):
+                for candidate in cast(list[object], candidates):
+                    if not isinstance(candidate, dict):
+                        continue
+                    candidate_body = cast(dict[str, Any], candidate)
+                    outcome = candidate_body.get("outcome")
+                    if not isinstance(outcome, dict):
+                        continue
+                    dimensions = cast(dict[str, Any], outcome).get(
+                        "diagnostic_dimensions", []
                     )
-                else:
-                    result.update(
-                        {
-                            "ok": True,
-                            "fail_closed": False,
-                            "results": results,
-                        }
-                    )
+                    if isinstance(dimensions, list):
+                        diagnostic_dimensions_set.update(
+                            dimension
+                            for dimension in cast(list[object], dimensions)
+                            if isinstance(dimension, str)
+                        )
+            status = report.get("status", "unknown")
+            fields = {
+                "record_class": "L3",
+                "report_path": str(exploration.report_path),
+                "report_status": status,
+                "evaluated_candidates": report.get("evaluated_candidates", 0),
+                "diagnostic_dimensions": sorted(diagnostic_dimensions_set),
+                "winner_written": report.get("winner_written", False),
+            }
+            if status != "candidate_found" or fields["winner_written"] is not True:
+                return _failure(
+                    "board-exploration",
+                    (
+                        f"exploration did not produce a writable candidate: "
+                        f"status={status!r}"
+                    ),
+                    **fields,
+                )
+            return _success("board-exploration", **fields)
+
+        def board_rejection(stage_result: dict[str, Any] | None) -> bool:
+            return bool(
+                stage_result is not None
+                and stage_result.get("stage_id") == "board-pipeline"
+                and not stage_result.get("ok")
+                and stage_result.get("fail_closed")
+            )
+
+        first_results, failed = execute_once()
+        results.extend(first_results)
+        exploration_rounds: list[dict[str, Any]] = []
+        round_number = 0
+        while (
+            explore_board
+            and board_rejection(failed)
+            and round_number < max_exploration_rounds
+        ):
+            round_number += 1
+            if failed is None:
+                break
+            board_failure = failed
+            before_graph = _load_graph(active_config.fixture_dir)
+            exploration_result = exploration_stage(round_number)
+            results.append(exploration_result)
+            exploration_rounds.append(
+                {
+                    "round": round_number,
+                    "status": exploration_result.get("report_status", "unknown"),
+                    "report_path": exploration_result.get("report_path"),
+                    "evaluated_candidates": exploration_result.get(
+                        "evaluated_candidates", 0
+                    ),
+                    "diagnostic_dimensions": exploration_result.get(
+                        "diagnostic_dimensions", []
+                    ),
+                }
+            )
+            if not exploration_result.get("ok"):
+                failed = {
+                    **board_failure,
+                    "failure_reason": (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        f"board exploration failed: "
+                        f"{exploration_result.get('failure_reason', 'unknown error')}"
+                    ),
+                }
+                break
+            if (
+                exploration_result.get("report_status") != "candidate_found"
+                or exploration_result.get("winner_written") is not True
+            ):
+                failed = {
+                    **board_failure,
+                    "failure_reason": (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        f"board exploration "
+                        f"{exploration_result.get('report_status', 'unknown')}"
+                    ),
+                }
+                break
+            try:
+                after_graph = _load_graph(active_config.fixture_dir)
+            except Exception as exc:
+                failed = _failure(
+                    "board-exploration",
+                    (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        f"updated graph is invalid (fail-closed): {exc}"
+                    ),
+                    report_path=exploration_result.get("report_path"),
+                    report_status=exploration_result.get("report_status"),
+                )
+                results[-1] = failed
+                break
+            if after_graph.graph_id != before_graph.graph_id:
+                failed = _failure(
+                    "board-exploration",
+                    (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        "updated graph ID does not match the explored graph "
+                        "(fail-closed)"
+                    ),
+                    report_path=exploration_result.get("report_path"),
+                    report_status=exploration_result.get("report_status"),
+                )
+                results[-1] = failed
+                break
+            if after_graph.revision == before_graph.revision:
+                failed = _failure(
+                    "board-exploration",
+                    (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        "updated graph revision did not change (fail-closed)"
+                    ),
+                    report_path=exploration_result.get("report_path"),
+                    report_status=exploration_result.get("report_status"),
+                )
+                results[-1] = failed
+                break
+            new_plan = build_lane_plan(after_graph.graph_id, active_config.out_root)
+            active_config = replace(
+                active_config,
+                graph_id=after_graph.graph_id,
+                output_prefix=new_plan.output_prefix,
+                artifact_prefix=new_plan.artifact_prefix,
+                lane_plan=new_plan,
+            )
+            rerun_results, failed = execute_once()
+            results.extend(rerun_results)
+
+        if explore_board:
+            result["exploration_rounds"] = exploration_rounds
+            if (
+                failed is not None
+                and board_rejection(failed)
+                and round_number >= max_exploration_rounds
+            ):
+                result["exploration_termination"] = "max_rounds_reached"
+        if failed is not None:
+            result.update(
+                {
+                    "failed_stage": str(failed.get("stage_id", "unknown")),
+                    "failure_reason": failed.get("failure_reason", "stage failed"),
+                    "results": results,
+                }
+            )
+        else:
+            result.update(
+                {
+                    "ok": True,
+                    "fail_closed": False,
+                    "results": results,
+                }
+            )
     finally:
         try:
             timing.finish_open()

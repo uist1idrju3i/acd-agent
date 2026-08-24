@@ -250,6 +250,14 @@ Evidenceを生成・昇格せず、ToolDefinitionとSkillへ合否権限を与�
 ゲートは生成後の成果物を独立parser・測定器で確認し、Skillの代理指標や自然文を
 合格根拠にしない。
 
+### board候補探索の条件付きstage
+
+`run_design_loop`のboard-pipelineがfail-closedで却下された場合に限り、
+`explore_board`の明示指定で、全laneのjoin後に`explore_board_candidates`を直列実行できる。
+候補探索はL2の操舵とL3観測であり、silkscreen、enclosure、FWの失敗では起動しない。
+候補が見つかってもgraphのrevisionとIDを検証してからloop全体をboundedに再実行し、
+L1ゲートとauthoritative Evidenceを毎回生成する。探索reportは合格権限を持たない。
+
 GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして
 Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上界モデルもゲート側を単一の

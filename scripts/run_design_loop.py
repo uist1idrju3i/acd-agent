@@ -17,9 +17,9 @@ def _positive_int(value: str) -> int:
     try:
         parsed = int(value)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("jobs must be a positive integer") from exc
+        raise argparse.ArgumentTypeError("value must be a positive integer") from exc
     if parsed < 1:
-        raise argparse.ArgumentTypeError("jobs must be a positive integer")
+        raise argparse.ArgumentTypeError("value must be a positive integer")
     return parsed
 
 
@@ -57,6 +57,25 @@ def _parser() -> argparse.ArgumentParser:
         default=min(os.cpu_count() or 1, 3),
         help="maximum parallel board, enclosure, and firmware lanes",
     )
+    parser.add_argument(
+        "--explore-board",
+        "--explore-board-candidates",
+        dest="explore_board",
+        action="store_true",
+        help="explore board candidates after a fail-closed board rejection",
+    )
+    parser.add_argument(
+        "--max-exploration-candidates",
+        type=_positive_int,
+        default=3,
+        help="maximum candidates evaluated in each board exploration round",
+    )
+    parser.add_argument(
+        "--max-exploration-rounds",
+        type=_positive_int,
+        default=1,
+        help="maximum board exploration and loop rerun rounds",
+    )
     return parser
 
 
@@ -81,6 +100,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             cache_dir=args.cache_dir,
             resume=args.resume,
             jobs=args.jobs,
+            explore_board=args.explore_board,
+            max_exploration_candidates=args.max_exploration_candidates,
+            max_exploration_rounds=args.max_exploration_rounds,
         )
     except Exception as exc:
         result = {

@@ -86,6 +86,7 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
         "firmware-pipeline",
         "order-readiness",
         "pytest-subset",
+        "board-exploration",
     ]
     assert [stage.stage_id for stage in plan.design_loop_lanes] == [
         "board-pipeline",
@@ -126,6 +127,10 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
     assert plan.stage("enclosure-pipeline").output_path == tmp_path / "gd1-enclosure"
     assert plan.stage("firmware-pipeline").output_path == tmp_path / "gd1-fw"
     assert plan.stage("order-readiness").output_path is None
+    assert (
+        plan.stage("board-exploration").output_path
+        == tmp_path / "gd1-board-exploration"
+    )
 
     arbitrary_plan = build_lane_plan("custom-design", tmp_path)
     assert arbitrary_plan.lane_runner_stage_ids == (

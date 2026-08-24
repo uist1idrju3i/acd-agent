@@ -512,3 +512,466 @@ def test_design_loop_rejects_non_positive_jobs(tmp_path: Path) -> None:
     assert result["ok"] is False
     assert result["failed_stage"] == "input"
     assert result["failure_reason"] == "ValueError: jobs must be a positive integer"
+
+
+def _copied_fixture(tmp_path: Path) -> Path:
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    (fixture / "graph.json").write_text(
+        (FIXTURE / "graph.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    return fixture
+
+
+def test_board_exploration_is_disabled_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    def unexpected_exploration(*args: Any, **kwargs: Any) -> Any:
+        del args, kwargs
+        raise AssertionError("exploration must be opt-in")
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", unexpected_exploration)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+    )
+
+    assert result["ok"] is True
+    assert "exploration_rounds" not in result
+
+
+def test_board_rejection_explores_with_loop_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    captured: dict[str, Any] = {}
+
+    def failing_board(config: DesignLoopConfig) -> dict[str, Any]:
+        seen.append(config.graph_id)
+        return {
+            "stage_id": "board-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "board rejected",
+        }
+
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = failing_board
+    _patch_runners(monkeypatch, runners)
+    fab_profile = tmp_path / "fab-profile.json"
+    cache_dir = tmp_path / "cache"
+
+    def fake_explore(
+        graph_path: Path,
+        fixture_dir: Path,
+        out_dir: Path,
+        max_candidates: int,
+        *,
+        max_passes: int,
+        dry_run: bool,
+        pipeline_runner: Callable[[Path, Path], object],
+    ) -> Any:
+        captured.update(
+            {
+                "graph_path": graph_path,
+                "fixture_dir": fixture_dir,
+                "out_dir": out_dir,
+                "max_candidates": max_candidates,
+                "max_passes": max_passes,
+                "dry_run": dry_run,
+            }
+        )
+        return SimpleNamespace(
+            report={
+                "status": "exhausted",
+                "winner_written": False,
+                "evaluated_candidates": 2,
+                "candidates": [],
+            },
+            report_path=out_dir / "exploration-report.json",
+        )
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        fab_profile=fab_profile,
+        fab_profile_id="profile-1",
+        max_passes=7,
+        cache_dir=cache_dir,
+        explore_board=True,
+        max_exploration_candidates=2,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "board-pipeline"
+    assert "board rejected" in result["failure_reason"]
+    assert "exhausted" in result["failure_reason"]
+    assert captured["max_candidates"] == 2
+    assert captured["max_passes"] == 7
+    assert captured["dry_run"] is False
+    assert captured["out_dir"].name == "round-1"
+    assert result["exploration_rounds"][0]["status"] == "exhausted"
+    assert seen == ["golden-design-1"]
+
+
+def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    seen: list[str] = []
+    runner_calls: list[tuple[Path, Path, int, Path | None, str | None, Path | None]] = []
+
+    def board_runner(config: DesignLoopConfig) -> dict[str, Any]:
+        seen.append(f"board:{config.graph_id}")
+        if len([item for item in seen if item.startswith("board:")]) == 1:
+            return {
+                "stage_id": "board-pipeline",
+                "ok": False,
+                "fail_closed": True,
+                "pass_evidence": False,
+                "failure_reason": "initial board rejection",
+            }
+        return _successful_runner("board-pipeline", seen)(config)
+
+    runners = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = board_runner
+    _patch_runners(monkeypatch, runners)
+
+    def fake_board_pipeline(
+        working: Path,
+        output: Path,
+        max_passes: int,
+        fab_profile: Path | None,
+        *,
+        fab_profile_id: str | None,
+        cache_dir: Path | None,
+        timing_recorder: Any,
+    ) -> dict[str, str]:
+        del timing_recorder
+        runner_calls.append(
+            (working, output, max_passes, fab_profile, fab_profile_id, cache_dir)
+        )
+        return {}
+
+    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_board_pipeline)
+
+    def fake_explore(
+        graph_path: Path,
+        fixture_dir: Path,
+        out_dir: Path,
+        max_candidates: int,
+        *,
+        max_passes: int,
+        dry_run: bool,
+        pipeline_runner: Callable[[Path, Path], object],
+    ) -> Any:
+        del graph_path, max_candidates, max_passes, dry_run
+        pipeline_runner(fixture_dir, out_dir)
+        body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+        body["revision"] = "r2"
+        (fixture_dir / "graph.json").write_text(
+            json.dumps(body), encoding="utf-8"
+        )
+        return SimpleNamespace(
+            report={
+                "status": "candidate_found",
+                "winner_written": True,
+                "evaluated_candidates": 1,
+                "candidates": [],
+            },
+            report_path=out_dir / "exploration-report.json",
+        )
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    fab_profile = tmp_path / "fab-profile.json"
+    cache_dir = tmp_path / "cache"
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        fab_profile=fab_profile,
+        fab_profile_id="profile-1",
+        max_passes=7,
+        cache_dir=cache_dir,
+        explore_board=True,
+    )
+
+    assert result["ok"] is True
+    assert result["graph_id"] == "golden-design-1"
+    assert seen.count("silkscreen-resolve") == 2
+    assert seen.count("board:golden-design-1") == 2
+    assert len(runner_calls) == 1
+    assert runner_calls[0][2:] == (
+        7,
+        fab_profile,
+        "profile-1",
+        cache_dir,
+    )
+    assert result["exploration_rounds"][0]["status"] == "candidate_found"
+    assert any(
+        item["stage_id"] == "board-exploration" for item in result["results"]
+    )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("graph_id", "updated graph ID"),
+        ("revision_same", "updated graph revision"),
+    ],
+)
+def test_candidate_found_requires_graph_identity_and_revision_change(
+    mutation: str,
+    message: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = lambda config: {
+        "stage_id": "board-pipeline",
+        "ok": False,
+        "fail_closed": True,
+        "pass_evidence": False,
+        "failure_reason": "board rejected",
+    }
+    _patch_runners(monkeypatch, runners)
+
+    def fake_explore(
+        graph_path: Path,
+        fixture_dir: Path,
+        out_dir: Path,
+        max_candidates: int,
+        *,
+        max_passes: int,
+        dry_run: bool,
+        pipeline_runner: Callable[[Path, Path], object],
+    ) -> Any:
+        del graph_path, max_candidates, max_passes, dry_run, pipeline_runner
+        body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+        if mutation == "graph_id":
+            body["graph_id"] = "custom-design"
+        if mutation == "revision_same":
+            body["revision"] = "r1"
+        (fixture_dir / "graph.json").write_text(json.dumps(body), encoding="utf-8")
+        return SimpleNamespace(
+            report={
+                "status": "candidate_found",
+                "winner_written": True,
+                "evaluated_candidates": 1,
+                "candidates": [],
+            },
+            report_path=out_dir / "exploration-report.json",
+        )
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        explore_board=True,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "board-exploration"
+    assert message in result["failure_reason"]
+    assert result["results"][-1]["pass_evidence"] is False
+
+
+def test_exploration_round_limit_is_fail_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    exploration_calls = 0
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = lambda config: {
+        "stage_id": "board-pipeline",
+        "ok": False,
+        "fail_closed": True,
+        "pass_evidence": False,
+        "failure_reason": "board rejected",
+    }
+    _patch_runners(monkeypatch, runners)
+
+    def fake_explore(
+        graph_path: Path,
+        fixture_dir: Path,
+        out_dir: Path,
+        max_candidates: int,
+        *,
+        max_passes: int,
+        dry_run: bool,
+        pipeline_runner: Callable[[Path, Path], object],
+    ) -> Any:
+        del graph_path, max_candidates, max_passes, dry_run, pipeline_runner
+        nonlocal exploration_calls
+        exploration_calls += 1
+        body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+        body["revision"] = f"r{exploration_calls + 1}"
+        (fixture_dir / "graph.json").write_text(json.dumps(body), encoding="utf-8")
+        return SimpleNamespace(
+            report={
+                "status": "candidate_found",
+                "winner_written": True,
+                "evaluated_candidates": 1,
+                "candidates": [],
+            },
+            report_path=out_dir / "exploration-report.json",
+        )
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        explore_board=True,
+        max_exploration_rounds=2,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "board-pipeline"
+    assert result["exploration_termination"] == "max_rounds_reached"
+    assert exploration_calls == 2
+    assert [item["round"] for item in result["exploration_rounds"]] == [1, 2]
+
+
+def test_parallel_lane_join_precedes_board_exploration(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    completed: set[str] = set()
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {}
+    for stage_id in DESIGN_LOOP_STAGE_IDS:
+        if stage_id == "board-pipeline":
+            def board(config: DesignLoopConfig) -> dict[str, Any]:
+                del config
+                completed.add("board-pipeline")
+                return {
+                    "stage_id": "board-pipeline",
+                    "ok": False,
+                    "fail_closed": True,
+                    "pass_evidence": False,
+                    "failure_reason": "board rejected",
+                }
+
+            runners[stage_id] = board
+        elif stage_id in DESIGN_LOOP_LANE_IDS:
+            def lane(config: DesignLoopConfig, lane_id: str = stage_id) -> dict[str, Any]:
+                del config
+                completed.add(lane_id)
+                return {
+                    "stage_id": lane_id,
+                    "ok": True,
+                    "fail_closed": False,
+                    "pass_evidence": False,
+                }
+
+            runners[stage_id] = lane
+        else:
+            runners[stage_id] = _successful_runner(stage_id, [])
+    _patch_runners(monkeypatch, runners)
+
+    def fake_explore(*args: Any, **kwargs: Any) -> Any:
+        del args, kwargs
+        assert completed == set(DESIGN_LOOP_LANE_IDS)
+        return SimpleNamespace(
+            report={
+                "status": "stopped",
+                "winner_written": False,
+                "evaluated_candidates": 0,
+                "candidates": [],
+            },
+            report_path=tmp_path / "exploration-report.json",
+        )
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        explore_board=True,
+        jobs=3,
+    )
+
+    assert result["ok"] is False
+    assert result["exploration_rounds"][0]["status"] == "stopped"
+
+
+@pytest.mark.parametrize("failed_stage", ["enclosure-pipeline", "firmware-pipeline"])
+def test_non_board_lane_failure_does_not_trigger_exploration(
+    failed_stage: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {}
+    for stage_id in DESIGN_LOOP_STAGE_IDS:
+        if stage_id == failed_stage:
+            def fail(config: DesignLoopConfig, stage: str = stage_id) -> dict[str, Any]:
+                del config
+                seen.append(stage)
+                return {
+                    "stage_id": stage,
+                    "ok": False,
+                    "fail_closed": True,
+                    "pass_evidence": False,
+                    "failure_reason": f"{stage} rejected",
+                }
+
+            runners[stage_id] = fail
+        else:
+            runners[stage_id] = _successful_runner(stage_id, seen)
+    _patch_runners(monkeypatch, runners)
+
+    def unexpected_exploration(*args: Any, **kwargs: Any) -> Any:
+        del args, kwargs
+        raise AssertionError("only board rejection may trigger exploration")
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", unexpected_exploration)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        explore_board=True,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == failed_stage
+    assert "exploration_rounds" in result
+    assert result["exploration_rounds"] == []

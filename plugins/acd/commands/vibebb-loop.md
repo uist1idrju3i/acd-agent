@@ -1,6 +1,6 @@
 ---
 description: 要件から設計反復と発注可否までを固定順序で実行するVibeBB loop。
-argument-hint: "--fixture PATH --order-total PATH [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N]"
+argument-hint: "--fixture PATH --order-total PATH [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--explore-board --max-exploration-candidates N --max-exploration-rounds N]"
 allowed-tools:
   - acd_compile_requirement_change
   - acd_build_design_fixture
@@ -26,8 +26,11 @@ allowed-tools:
    - FW pipeline（Skill CLI subprocess）
    - 発注可否のpre-order gate
 4. 失敗した場合は後続段を実行せず、`acd_diagnose_gate_failure`で出力を調べる。
-   基板候補を探索する必要がある場合だけ`acd_explore_board_candidates`を使い、
-   修正後はgraph検証からloopを再実行する。
+   `explore_board`を明示した場合、board-pipelineのfail-closed却下に限ってloopが
+   `explore_board_candidates`を自動実行し、候補予算とround上限の範囲でgraph検証から
+   loopを再実行する。enclosure、FW、silkscreenの失敗では自動探索しない。
+   自動探索を使わない場合、または探索結果の診断が必要な場合は
+   `acd_explore_board_candidates`を手動で使い、修正後はgraph検証からloopを再実行する。
 5. 発注可否はloopが返すorder-readiness結果と、必要なら
    `acd_check_order_readiness`で確認する。発注実行はこのcommandの責務ではない。
 
@@ -38,6 +41,10 @@ bounded並列（`jobs`）を利用できる。`resume`で`cache_dir`を省略し
 判定、verdict、Evidenceは復元せず毎回再実行する。timing recordとcache reportは
 L3観測であり、合否を変更しない。tool経路の`jobs`既定値は1であり、並列化は
 明示指定時だけ有効になる。CLIの既定値は`min(os.cpu_count() or 1, 3)`である。
+`explore_board`は既定で無効であり、`max_exploration_candidates`と
+`max_exploration_rounds`を正整数で明示する。探索はL2の操舵とL3の観測であり、
+候補report、L1閾値、判定権限、authoritative Evidenceを変更しない。候補が見つかっても
+graphのrevision更新と再検証を経てloopを再実行し、L1ゲートとEvidenceを毎回生成する。
 
 各段はfail-closedであり、`ok: false`、`fail_closed: true`、失敗段ID、そこまでの
 段結果を含むJSONを返す。段を黙って省略したり順序を入れ替えたりしてはならない。

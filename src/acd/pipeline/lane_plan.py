@@ -4,6 +4,8 @@ The design loop owns order-readiness, while the command-line lane runner owns
 the silkscreen barrier, design lanes, and pytest subset validation lane.
 The pytest subset is declared only for the GD1 artifact prefix; a
 design-specific validation lane for arbitrary graphs is not yet available.
+Board exploration is a conditional stage that runs only after an eligible
+board rejection when explicitly enabled.
 """
 
 from __future__ import annotations
@@ -139,6 +141,15 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         design_loop=False,
         lane_runner=True,
         gd1_only=True,
+    ),
+    _StageDefinition(
+        "board-exploration",
+        "-board-exploration",
+        barrier=False,
+        cacheable=False,
+        command_kind=None,
+        design_loop=False,
+        lane_runner=False,
     ),
 )
 
