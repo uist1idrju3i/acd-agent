@@ -51,7 +51,8 @@ packages = ["src/acd"]
 line-length = 100
 target-version = "py312"
 src = ["src", "scripts", "plugins/acd/skills/*/scripts", "plugins/acd/hooks/scripts"]
-extend-exclude = ["vendor"]
+# agent-artifacts holds verbatim scripts recorded from real-machine runs; keep them unmodified.
+extend-exclude = ["vendor", "examples/*/agent-artifacts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
