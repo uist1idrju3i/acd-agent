@@ -311,7 +311,10 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 本節はL-1〜L-6の実装後に、会話開始から発注可否までの経路をコードベース横断で再確認した
 結果である。既存の閾値、ゲート挙動、fail-closed境界、L1権限を変更する提案は含まない。
 本節の各項目を汎用エージェント環境で実行して確認した記録は
-[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)にある。
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)にある。GD1以外の新規設計を
+実機OpenHands環境で実行した記録は[`vibebb-onpremise-verification.md`](vibebb-onpremise-verification.md)に
+あり、M-2が上流（`DesignFixtureSpec`にmechanical・silkscreen・firmware moduleの宣言が無い）で
+顕在化してGD1以外ではlaneへ到達できないことを実測している。
 
 現時点で「acd-agent単体」で成立するのは、自然文由来の宣言を入力とした要件record化、
 graph生成・改訂、機能ブロック宣言、部品選定、トポロジ合成、基板・筐体・FW laneの
@@ -328,6 +331,34 @@ order-total集計と発注可否判定までである。成立しないのは、
 | M-4 | 電池の充電・保護回路とEMC/ESDの設計述語 | `src/acd/core/design_predicates.py`の`PREDICATE_CATALOG`は6件で、電源境界とdecoupling以外に充電・保護・電力バジェット・保護素子有無の判定を持たない。L-6でtopology templateと部品catalogの追加経路は宣言経由へ開いたが、規範的な契約と述語は追加していない | 中 | 16.2（バッテリ駆動）・16.3（EMC/ESD） | 述語の適用条件を14.2の契約registryで宣言し、宣言外はunknownとして停止側へ集約する。消費電流と容量の収支を宣言由来入力から決定論的に検査する。正負両方のテストを持ち、既存GD1の判定と正規化hashを変えない |
 | M-5 | 実機FW検証 | FW laneはSkill subprocessのpin/config照合とQEMU仮想実行までで（C-2／C-3）、実機書き込み後の動作Evidenceはloopの判定に入らない | 低 | 実機とマイルストーン5の実機Evidence取り込み経路（実装済み） | 実機Evidenceをrevision一致で取り込み、virtual／host実行をprovisionalとして区別する。実機Evidence不在はunknownとして停止し、virtual結果を実機合格へ昇格しない |
 | M-6 | 自然文から宣言への変換責務（不足ではなく境界） | `compile_requirement_change`と`build_design_fixture`は`RequirementDocument`／`DesignFixtureSpec`という構造化宣言を入力に要求する。自然文から宣言への変換はplugin側のAgentDefinition（L2）が担い、決定論的coreは未回答・unknownを推測しない | — | なし | 追加実装は不要。coreが自然文を推測しない境界を維持し、宣言不足はL-3の入口整合検査でfail-closedとする |
+
+## N. 実機OpenHands環境での新規設計実測で残った不足
+
+本節はM-1・M-2の記録後に、実機OpenHands環境（`test4` workspace、`git clone`なし）へGD1では
+ない新規小規模設計`mini-blink-dongle`を投入した実測から抽出した不足である。観測記録は
+[`vibebb-onpremise-verification.md`](vibebb-onpremise-verification.md)、会話ログ・成果物・
+レポートは[`examples/mini-blink-dongle-20260825/`](../examples/mini-blink-dongle-20260825/)を
+正とする。既存の閾値、ゲート挙動、fail-closed境界、L1権限を緩める提案は含まない。
+
+N-1・N-3・N-5はM-2をさらに上流で顕在化させたもので、これが解けない限り新規設計は
+silkscreen barrier以降のlaneへ到達できない。N-2・N-4・N-7・N-11は「fail-closedの停止境界が
+回避行動（ユーザー指示に反するcommit、ダミー入力、定型rationaleの一括生成、手編集の消失）の
+入口になっている」型の不足であり、判定を緩めずに正当な停止・報告経路を用意することで解く。
+
+| # | 不足機能 | 根拠 | 優先度 | 依存 | 完了条件 |
+|---|---|---|---|---|---|
+| N-1 | `DesignFixtureSpec`がmechanical・silkscreen・firmware moduleを宣言できない | `src/acd/schema/design_fixture.py`は`components`／`nets`／`requirements`／`functional_blocks`／`firmware_pin_assignments`／`board_attrs`／`fab_profile_id`だけを受け、`src/acd/pipeline/fixture_builder.py`は`mechanical.outline`／`mechanical.silk_text`／`mechanical.silk_graphic`／`firmware.module`を生成しない。実機では生成graph 133ノードのうちこれらが0件で、筐体laneが`expected exactly one mechanical.outline node, got 0`、FW laneが`graph must contain exactly one firmware.module node`、silkscreen laneが`silkscreen declarations are missing`で停止した | 高 | なし（GD1専用builder`src/acd/pipeline/gd1_fixture/`の宣言内容を契約化する） | `DesignFixtureSpec`へ`mechanical_outline`／`silk_texts`／`silk_graphics`／`firmware_module`を追加し、`fixture_builder`が対応ノードを生成する。宣言が無い場合はlaneをskipせずfail-closedのままとし、未宣言を合格へ倒さない。GD1 fixtureの正規化hashと既存判定を変えない。宣言あり・なし双方の回帰テストを持つ |
+| N-2 | Stop hookにfail-closedを未解決のまま停止する正当経路が無い | 実機会話でStop hookが`Changed design inputs require a newer valid evidence record: … Run the relevant pipeline gate, or commit changes before generating evidence.`を26秒間に15回連続で返し、laneがfail-closedでEvidenceを生成できない状況では選択肢が「commitする」しか残らず、利用者が明示的に禁止したcommitが行われた。exportの`base_state.json`では6会話のうち3会話が`MaxIterationsReached`で終了している | 高 | なし | 直前のゲート実行がfail-closedで記録されている場合に、失敗理由・停止段・Evidence未生成を含む停止報告レコードの提出でstopを許可する。合格側権限は与えず、Evidence鮮度要求自体は維持する。同一理由のdenyが上限回数連続した場合はエスカレーション（停止許可と人間への引き渡し）へ切り替える。hookメッセージからcommitの示唆を除く。deny継続・停止許可の両方に回帰テストを持つ |
+| N-3 | 新規設計向けの必須宣言preflightが無い | container内のsilkscreen resolverは属性不足を1件ずつ報告し、実機では`pcba_class_target`、pinned library、`J1.A8`のpinノード、stitch-via basis、IPC-2221定数、`+3V3`の`width_basis_source`、`BOOT`のmanufacturing marginなど9回連続でfail-closedし、そのたびにgraph手編集と再実行を要した | 高 | N-1（宣言経路） | laneごとの必須ノード・必須属性を一括診断して不足一覧を機械可読に返す入口を追加する。診断は報告のみでL1判定を代替せず、診断成功を合格として扱わない。laneごとの必須宣言一覧を`docs/`へ記録する |
+| N-4 | rationale coverageがL2生成の定型レコードで満たせる | 基板laneの`rationale coverage failed: missing=82, stale=10`に対し、実機agentが自作scriptで全対象ノードへ同一の`decision`／`justification`、単一要件のみを指す`driving_requirement_refs`、固定`recorded_at`、`provenance.source: "deterministic_tool"`を一括生成してcoverageをpassさせた（script実体は[`examples/mini-blink-dongle-20260825/agent-artifacts/`](../examples/mini-blink-dongle-20260825/agent-artifacts/)） | 高 | なし | rationale recordのprovenanceへ生成主体（Skill名とscript SHA-256、またはagent）を必須記録とし、`deterministic_tool`を自称できないようにする。定型文の重複、単一要件への集中、固定`recorded_at`をcoverage側で検出してfail-closedにする。既存GD1 rationaleが合格し続けることを回帰テストで固定する |
+| N-5 | U1のIO-to-pad mappingを宣言経由で与えられない | `src/acd/core/design_predicates.py`の`_u1_io_pads`は`cpl_rotation_pin_functions`／`cpl_rotation_pin_aliases`からGPIO→pad対応を解決し、一意解決できないと`unknown`になる。MPNが`ESP32-C3-MINI-1-N4`と確定していても実機では`strapping_pin: status='unknown' (U1 IO-to-pad mapping is missing or ambiguous)`で基板laneが停止した | 高 | N-1、14.2の契約registry | parts catalog entryへモジュールのpin function mapを持たせ、`part_request`での選択時にgraphへ決定論的に展開する。展開元をprovenanceへ記録する。catalogに無い部品は従来どおりunknownでfail-closedとする |
+| N-6 | 要件テキストとnetlist topologyの一致を検査する述語が無い | 実機fixtureは要件`mbd-req-007`「LEDはIO3に4.7 kΩを直列接続」に対し、`net.led = {U1 pad21, R3 pad1, D1 pad1}`／`R3 pad2 = +3V3`／`D1 pad2 = GND`という直列でない接続（LEDがGPIOへ直結、R3はプルアップ）になっていたが、どのゲートも検出しなかった（手前の`strapping_pin: unknown`で停止したため露呈もしなかった） | 中 | 14.2の契約registry | 「駆動ピンとLEDの間に直列素子が存在する」型のtopology述語を`PREDICATE_CATALOG`へ追加し、適用条件を機能ブロック宣言から解決する。自然文からの導出はL2に留め、判定は宣言済みトポロジに対する決定論的検査とする。正負両方のテストを持ち、GD1の判定と正規化hashを変えない |
+| N-7 | `run_design_loop.py`のorder入力必須がダミー入力を誘発する | order入力なしでは`failed_stage: "input"`／`order-total document is required when aggregation is disabled`となり設計反復を1つも実行できず、実機agentは金額0・`quote_id: "dummy-quote-1"`・hashゼロ埋めの架空order-totalを作成した（[`examples/mini-blink-dongle-20260825/runs/host-design-loop/order-total.json`](../examples/mini-blink-dongle-20260825/runs/host-design-loop/order-total.json)） | 中 | なし | 設計反復のみを実行するmodeを追加し、その実行ではorder-readiness以降を「未実行」としてfail-closed扱いで記録する。既知のダミー`quote_id`やゼロ値hashのorder-totalを入力段で拒否する。skipを合格として扱わないことを回帰テストで固定する |
+| N-8 | out-rootをroot実行containerとhost実行が共用すると権限失敗になる | 実機archiveのtarエントリでは`out/mini-blink-dongle/**-silkscreen-resolve/`配下48エントリが`root/root`であり、後続のhost実行が`[Errno 13] Permission denied`／`[Errno 1] Operation not permitted`で停止し、真の停止理由（`silkscreen declarations are missing`）が隠れた。非root実行では`error: Failed to initialize cache at /.cache/uv`で失敗する | 中 | なし | host／container経路でout-rootを分離するか、container実行時に`--user`と書き込み可能な`UV_CACHE_DIR`／`HOME`を与える。いずれも不能な場合はout-rootに他ユーザー所有物がある時点で権限起因として区別可能なメッセージでfail-closedにする |
+| N-9 | lane scriptのCLI引数が不統一 | `run_fw_pipeline.py`は`--graph`を受け付けず（exit 2）`--fixture`のみで、laneごとに`--fixture`／`--graph`／`--out`／`--out-root`の受け口が異なるため会話経路で引数探索の往復が発生した | 低 | なし | laneのCLIを`--fixture`＋`--out`へ揃え、`run_design_lanes.py`の宣言からそのまま単体実行できる形にする。旧引数は明示エラーで案内する |
+| N-10 | graph単体検証の入口が無く、存在しないscriptが案内される | 実機agentが`scripts/validate_design_graph.py`を実行して`No such file or directory`（exit 2）になった。graph単体の妥当性検証コマンドが存在せず、案内と実体が一致していない | 低 | N-3 | N-3のpreflightをgraph検証入口として提供するか、graph検証は`build_design_fixture`とlane入口検査に一元化することを`docs/`へ明記し、存在しないscript参照を残さない |
+| N-11 | `build_design_fixture`が既存graphの手編集を無警告で上書きする | 実機では、container laneをpassさせるために手で属性を追加した`graph.json`が次の`build_design_fixture.py`実行で上書きされ、追加分がすべて失われた（残ったのは投影のみ） | 中 | N-1 | 既存ファイルと生成物の差分を検出したら、上書き前に停止するか差分を報告する。入力ファイルを設計の正とする不変条件に沿い、生成器が入力を黙って捨てないことを回帰テストで固定する |
+| N-12 | 実機実行記録の公開可能な持ち出し経路が無い | `out/`は`.gitignore`対象で、実機記録を`examples/`へ残す作業は手作業だった（archive約522MB／展開後約2.0GBに対し必要分は約1.2MB）。加えてOpenHandsのraw export zipは`base_state.json`にホスト名・LLMエンドポイント等の環境識別情報を含み、そのまま公開リポジトリへ収録できない | 低 | なし | 実行記録から公開可能な最小集合（fixture、loop結果、timing record、gate evidence、失敗summary）を収集する入口を追加し、ホスト名・エンドポイント・ユーザー名の秘匿化を既定で行う。秘匿化漏れの検出をnegative testで固定する |
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
@@ -356,3 +387,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 9. F-1〜F-4（image publishとdigest lock更新）。達成済み。digest lockとregistry manifestの照合、配布文書の整合を含む。残存するH-2〜H-4／K-4（skew検出と計測）は運用の再現性と回帰防止を強化する。
 10. L-1〜L-7（マイルストーン14.10後に残る会話駆動loopの不足）。会話経路へのcache・resume・timing・lane並列の接続、候補探索と要件→graphのloop内取り込み、order-total生成、gd1既定値、契約registry・catalog被覆、本書の現状列更新を扱う。
 11. M-1〜M-6（マイルストーン14.11後の再監査）。M-1（筐体却下後の候補探索の自動連結）とM-2（任意graph向け検証lane）はacd-agent内で閉じるため先に扱う。M-3（実見積・実発注のsupplier接続）は外部接続とcredentialに依存し、実装だけでは閉じない。M-4は16.2・16.3、M-5は実機、M-6は境界の維持である。
+12. N-1〜N-12（実機OpenHands環境での新規設計実測）。N-1・N-3・N-5（宣言経路とpreflight、pin function展開）を先に扱い、次にN-2・N-4・N-7・N-11（停止境界が回避行動を誘発する箇所）を解く。N-6は述語追加、N-8〜N-10・N-12は運用と手順の整備である。

@@ -33,7 +33,7 @@ Golden Design #1（GD1）の要件・設計入力を用いた、小規模製品�
 | [`board/`](board/) | 基板pipeline出力一式（回路図・配線済み基板・ガーバ・fabパッケージ・ERC/DRC/DFM・Evidence・視覚射影） |
 | [`enclosure/`](enclosure/) | 筐体pipeline出力一式（STEP×3・3MF・Evidence・視覚射影） |
 | [`firmware/`](firmware/) | FW pipeline出力（生成FWプロジェクトのソース、`flash.bin`、QEMUシリアルログ、summary）。ESP-IDFの`build/`ツリーはサイズとライセンスの観点から除外 |
-| [`conversation/`](conversation/) | OpenHands Local GUIからエクスポートした会話ログ（Markdown＋raw export zip） |
+| [`conversation/`](conversation/) | OpenHands Local GUIからエクスポートした会話ログ（Markdown）。raw export zipは環境識別情報を含むため削除済み |
 | [`report/`](report/) | 詳細レポート・成果物マニフェスト・改善メモ・セッション分析・レビュー所見 |
 
 ## JLCPCB発注時にアップロードするファイル（この3点のみ）
@@ -110,8 +110,9 @@ QEMU実行は仮想検証であり、実測Evidenceの代替ではない。
   [espressif/esp-idf](https://github.com/espressif/esp-idf) を参照。
   同様の理由（およびサイズ151MB）から、ESP-IDFのコード複製を含む`build/`ツリーは
   本フォルダへ含めていない。
-- `conversation/` のログは本リポジトリ利用者の作業記録であり、APIキー等の秘密情報が
-  マスクされていることを確認済み。
+- `conversation/` のログは本リポジトリ利用者の作業記録である。APIキー等はマスクされている
+  ことを確認済みだが、raw export zip（`base_state.json`）は実行ホスト名やLLMエンドポイントを
+  含んでいたため削除した。以降、raw export zipは収録しない。
 
 ## 注意事項
 

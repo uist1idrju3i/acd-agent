@@ -645,6 +645,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.10 | VibeBB loopのcommand（I-1） | `/acd:vibebb-loop`とgraph駆動の単一orchestratorを追加し、要件からgraph検証、silkscreen barrier、基板・筐体・FW、発注可否までを固定順序でfail-closed実行する。達成 |
 | 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。L-1〜L-6を達成し、topology templateのdata化（`shared_nets`とscope-awareな一意性）、部品catalogの追加経路、USB-C非搭載／電池給電fixtureの到達性まで実装した。電池の充電・保護回路の規範的契約とpredicateは16.2・16.3依存として本範囲外に置く。L-7の再監査を実施し、残る不足を[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のM節（M-1〜M-6）へ根拠・優先度・依存・完了条件付きで記録した。M-1・M-2は14.12、M-3はマイルストーン7のprovider境界の後続、M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当てる。C-1（筐体の干渉解決探索）はマイルストーン11.5で達成済み、C-4（CPL orientation期待値のfixture非依存化）はマイルストーン7の範囲で達成済みである。達成 |
 | 14.12 | 再監査で残った会話駆動loopの不足（M-1・M-2） | 筐体pipelineのfail-closed却下を引き金とした`explore_enclosure_candidates`のloop内自動連結（M-1）と、任意graph向け設計固有検証laneの宣言由来化（M-2）を扱う。探索reportはL2操舵・L3観測のままとし、候補予算とround上限、graph ID・revisionの一致と正規化content hashの変化検査、未宣言を合格としない境界を維持する |
+| 14.13 | 実機実測で残った新規設計の不足（N-1〜N-7、N-11） | 実機OpenHands環境でGD1以外の新規設計を投入した実測で残った不足を扱う。`DesignFixtureSpec`へmechanical・silkscreen・firmware moduleの宣言を追加（N-1）、必須宣言のpreflight（N-3）、parts catalog由来のpin function展開（N-5）、Stop hookのfail-closed停止経路（N-2）、rationale coverageの生成主体検査（N-4）、要件↔topology述語（N-6）、設計反復のみのmode（N-7）、生成器による手編集上書きの防止（N-11）。判定と閾値は緩めず、未宣言・unknownを合格へ倒さない |
 
 C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
@@ -652,6 +653,10 @@ C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映�
 14.11後の再監査（L-7）で残ったM-1・M-2は14.12で扱い、M-3はマイルストーン7のprovider境界、
 M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当てる。M-6は境界の維持であり
 追加実装を要しない。
+実機OpenHands環境での新規設計実測（[`vibebb-onpremise-verification.md`](vibebb-onpremise-verification.md)、
+[`examples/mini-blink-dongle-20260825/`](../examples/mini-blink-dongle-20260825/)）で残った
+N-1〜N-12のうち、acd-agent内で閉じるN-1〜N-7とN-11は14.13で扱い、運用・手順側のN-8〜N-10と
+N-12はマイルストーン15.10〜15.13へ割り当てる。
 
 ### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
 
@@ -683,6 +688,16 @@ M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当て
 | negative・fail-closed | SES欠落・parse失敗は`unavailable`へ記録して従来gateへ委ねる。Evidence失敗で合格を不合格へ変えず、既存のGateError、閾値、停止位置を変更しない。未知の変更次元とcatalog被覆漏れは停止側へ倒す |
 | 再現性 | Evidenceはソート済みキー、固定座標丸め、canonical JSON SHA-256を使い、同一入力から同一バイト列を生成する |
 
+### 14.13 実機実測で残った新規設計の不足（N-1〜N-7、N-11）
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `DesignFixtureSpec`、`fixture_builder`、`design_predicates`の`PREDICATE_CATALOG`、rationale coverage、parts catalog、`plugins/acd/hooks`のstop policy、実機実測記録（[`vibebb-onpremise-verification.md`](vibebb-onpremise-verification.md)、[`examples/mini-blink-dongle-20260825/`](../examples/mini-blink-dongle-20260825/)） |
+| 実装 | mechanical・silkscreen・firmware moduleの宣言追加（N-1）、lane別必須宣言の一括preflight（N-3）、parts catalog由来のpin function展開（N-5）、fail-closed停止報告によるstop許可とdeny連続時のエスカレーション（N-2）、rationale provenanceの生成主体必須化と定型レコード検出（N-4）、要件↔topologyの直列素子述語（N-6）、設計反復のみのmodeとダミーorder-total拒否（N-7）、生成器による既存入力上書きの停止（N-11） |
+| 正常系 | 宣言を備えた新規設計がsilkscreen barrierを越え、基板・筐体・FW laneをdigest固定containerで実行してrevision一致のauthoritative Evidenceを生成する。GD1の判定、Evidence、正規化hashは変化しない |
+| negative・fail-closed | 宣言不足・preflight不足・pin function未解決はunknownで停止する。定型rationaleと`deterministic_tool`の自称、ダミーorder-total、要件と不一致なtopology、既存入力の暗黙上書きを不合格にする。停止報告は合格側権限を持たず、laneのskipを合格として扱わない |
+| 再現性 | 宣言・catalog・preflight結果の正規化hashとprovenance（Skill名、script SHA-256）を記録し、`--jobs 1`と並列で収集件数・判定・正規化hashを一致させる |
+
 14.1〜14.3、14.4、14.5、14.6、14.7、14.8および14.9は達成済みである。14.4では、
 配置・回転、GPIO割当、placement coupling、単一datum、stitch via fallbackを含むbounded
 探索loopへ接続した。14.5では、要件から任意fixture、部品選定、トポロジ合成、決定論的
@@ -713,8 +728,13 @@ authoritative Evidenceが唯一の合否根拠である。実測値と運用上�
 | 15.7 | SKILL triggerとToolDefinition登録条件のdoctor診断 | `ToolRegistrationManifest`契約と`scripts/verify_acd_tool_registration.py`で登録面を固定し、trigger不一致・未登録tool・登録条件不成立を`/acd:doctor`から診断する |
 | 15.8 | host EDA不在時の推奨経路への誘導 | host EDA（kicad-cli等）が無い環境では、digest固定locked imageと`DockerWorkspace`経路をdoctorから提示する。host経路をprovisional専用とする境界は変更しない |
 | 15.9 | FW実行のhost前提とlocked image同梱のdocs化 | ESP-IDF、Espressif QEMU、`libslirp0`、SDL2系共有ライブラリ、PATH解決の前提を運用手順へ記録し、locked tools imageへの同梱状況を明記する |
+| 15.10 | out-rootのhost／container分離と権限起因失敗の区別（N-8） | root実行containerとhost実行が同一out-rootを共用した際の`Permission denied`を、設計起因のfail-closedと区別可能な形で扱う。out-rootの分離、または`--user`と書き込み可能な`UV_CACHE_DIR`／`HOME`の付与を既定にする |
+| 15.11 | lane scriptのCLI引数統一（N-9） | `run_fw_pipeline.py`が`--graph`を受け付けない等の不統一を解消し、`--fixture`＋`--out`へ揃える。旧引数は明示エラーで案内する |
+| 15.12 | graph単体検証入口の明確化（N-10） | 存在しない`scripts/validate_design_graph.py`への案内を解消し、graph検証の正規経路（preflightまたはlane入口検査）を`docs/`へ明記する |
+| 15.13 | 実機実行記録の持ち出し経路（N-12） | 実行記録から公開可能な最小集合を収集する入口を用意し、ホスト名・エンドポイント・ユーザー名の秘匿化を既定にする。秘匿化漏れの検出をnegative testで固定する |
 
-15.1〜15.5は計画であり、15.6〜15.9は達成済みである。15.6〜15.9は
+15.1〜15.5と15.10〜15.13は計画であり、15.6〜15.9は達成済みである。15.10〜15.13は
+実機OpenHands環境での新規設計実測（N-8〜N-10、N-12）を出所とする。15.6〜15.9は
 [`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)と
 [`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)の運用改善項目を
 出所とし、いずれも既存の閾値、ゲート挙動、fail-closed境界を変更していない。
@@ -969,7 +989,9 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 
 旧3バックログ節の全項目を、次のマイルストーンへ移した。実行例・レビュー由来の
 改善バックログは[`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)
-と[`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)を出所として保持し、
+と[`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)、および実機実測の
+[`improvement-notes.md`](../examples/mini-blink-dongle-20260825/report/improvement-notes.md)を
+出所として保持し、
 追加SKILL候補8項目と拡張候補A〜Eの13項目を含め、移行漏れがないことを照合している。
 
 | 旧バックログ項目 | 反映先 |
@@ -1015,6 +1037,18 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （レビュー）SKILL triggerとToolDefinition登録条件のdoctor診断 | 15.7（達成） |
 | （レビュー）hook遮断理由の要約自動集計 | 15.6（達成） |
 | （レビュー）DFMの未実装チェック一覧の明示 | 9.3 |
+| （実機実測）N-1 `DesignFixtureSpec`のmechanical・silkscreen・firmware module宣言 | 14.13 |
+| （実機実測）N-2 Stop hookのfail-closed停止経路 | 14.13 |
+| （実機実測）N-3 必須宣言のpreflight | 14.13 |
+| （実機実測）N-4 rationale coverageの生成主体検査 | 14.13 |
+| （実機実測）N-5 parts catalog由来のpin function展開 | 14.13 |
+| （実機実測）N-6 要件↔topologyの直列素子述語 | 14.13（16.2・16.3の述語拡張と同じ契約registryを使う） |
+| （実機実測）N-7 設計反復のみのmodeとダミーorder-total拒否 | 14.13 |
+| （実機実測）N-8 out-rootのhost／container分離と権限起因失敗の区別 | 15.10 |
+| （実機実測）N-9 lane scriptのCLI引数統一 | 15.11 |
+| （実機実測）N-10 graph単体検証入口の明確化 | 15.12 |
+| （実機実測）N-11 生成器による既存入力上書きの防止 | 14.13 |
+| （実機実測）N-12 実機実行記録の持ち出し経路と秘匿化 | 15.13 |
 
 ## 将来構想
 

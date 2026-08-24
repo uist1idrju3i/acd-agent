@@ -1,0 +1,82 @@
+{
+  "content_sha256": "sha256:142ed3edc60f183f7f5464617de772e6a930ce26ed15ebecc3d0c01015d35f29",
+  "gate": "design_predicates",
+  "message": "design predicate diagnostic observations; not gate authority",
+  "observation": {
+    "evaluation_stages": {
+      "i2c_pullup": "pre_router",
+      "pin_firmware_alignment": "pre_router",
+      "power_boundary": "pre_router",
+      "power_decoupling": "pre_router",
+      "strapping_pin": "pre_router",
+      "usb_cc": "pre_router"
+    },
+    "predicates": [
+      {
+        "detail": "No declared functional block requires i2c_pullup; declared functional blocks: esp32c3_strapping_boot, firmware_pin_map, safety_power_boundary, single_ldo_power_tree, usb_c_cc_termination",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "i2c_pullup",
+        "remediation": null,
+        "status": "not_applicable",
+        "subjects": []
+      },
+      {
+        "detail": "U1 IO-to-pad mapping is missing",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "pin_firmware_alignment",
+        "remediation": null,
+        "status": "unknown",
+        "subjects": []
+      },
+      {
+        "detail": "maximum declared net voltage is 5 V; maximum declared net voltage is 5 V; maximum declared power-boundary net current is 0.5 A; safety boundary certification state is not certified; safety boundary node is missing or ambiguous; safety boundary node is missing or ambiguous",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "power_boundary",
+        "remediation": null,
+        "status": "unknown",
+        "subjects": []
+      },
+      {
+        "detail": "C3 geometry is unresolved: pinned library file missing: /usr/share/kicad/footprints/Capacitor_SMD.pretty/C_0603_1608Metric.kicad_mod",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "power_decoupling",
+        "remediation": null,
+        "status": "unknown",
+        "subjects": [
+          {
+            "net": null,
+            "pad": null,
+            "refdes": "C3",
+            "target_pad": null,
+            "target_refdes": "U2"
+          }
+        ]
+      },
+      {
+        "detail": "U1 IO-to-pad mapping is missing or ambiguous",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "strapping_pin",
+        "remediation": null,
+        "status": "unknown",
+        "subjects": []
+      },
+      {
+        "detail": "usb_cc topology and values match the GD1 contract",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "usb_cc",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      }
+    ]
+  },
+  "schema_version": "0.1",
+  "status": "unknown",
+  "target_revision": "r1"
+}

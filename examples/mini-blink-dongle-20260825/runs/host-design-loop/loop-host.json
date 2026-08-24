@@ -1,0 +1,22 @@
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.43.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+{
+  "cache_dir": null,
+  "fail_closed": true,
+  "failed_stage": "input",
+  "failure_reason": "ValueError: order-total document is required when aggregation is disabled",
+  "jobs": 1,
+  "ok": false,
+  "pass_evidence": false,
+  "results": [],
+  "resume": false,
+  "timing_record": "out/mini-blink-dongle/timing-record.json"
+}

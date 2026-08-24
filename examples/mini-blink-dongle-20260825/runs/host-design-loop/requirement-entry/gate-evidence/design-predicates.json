@@ -1,0 +1,109 @@
+{
+  "content_sha256": "sha256:cf05def21be0b0d406def6be60602a81ae417960d59de628e481143114c369c4",
+  "gate": "design_predicates",
+  "message": "design predicate diagnostic observations; not gate authority",
+  "observation": {
+    "evaluation_stages": {
+      "i2c_pullup": "pre_router",
+      "pin_firmware_alignment": "pre_router",
+      "power_boundary": "pre_router",
+      "power_decoupling": "pre_router",
+      "strapping_pin": "pre_router",
+      "usb_cc": "pre_router"
+    },
+    "predicates": [
+      {
+        "detail": "No declared functional block requires i2c_pullup; declared functional blocks: esp32c3_strapping_boot, firmware_pin_map, safety_power_boundary, single_ldo_power_tree, usb_c_cc_termination",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "i2c_pullup",
+        "remediation": null,
+        "status": "not_applicable",
+        "subjects": []
+      },
+      {
+        "detail": "firmware pin assignments match the U1 electrical pads",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "pin_firmware_alignment",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      },
+      {
+        "detail": "maximum declared net voltage is 5 V; maximum declared net voltage is 5 V; maximum declared power-boundary net current is 1 A; safety boundary certification state is not certified; safety boundary node is missing or ambiguous; safety boundary node is missing or ambiguous",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "power_boundary",
+        "remediation": null,
+        "status": "unknown",
+        "subjects": []
+      },
+      {
+        "detail": "C4 distance 10.503 mm exceeds 3.0 mm",
+        "evaluation_stage": "pre_router",
+        "measurements": [
+          {
+            "comparison": "<=",
+            "excess": 7.50264847550369,
+            "limit": 3.0,
+            "margin": -7.50264847550369,
+            "measured": 10.50264847550369,
+            "quantity": "pad_distance_mm",
+            "subject": {
+              "net": "+3V3",
+              "pad": "1",
+              "refdes": "C4",
+              "target_pad": "3",
+              "target_refdes": "U1"
+            },
+            "unit": "mm"
+          }
+        ],
+        "name": "power_decoupling",
+        "remediation": {
+          "change_dimensions": [
+            "component_placement_xy"
+          ],
+          "dimensions_source": "registry",
+          "excess": 7.50264847550369,
+          "margin": -7.50264847550369,
+          "message": "move C4 within 3.000 mm of U1; measured 10.503 mm, exceeds by 7.503 mm",
+          "source_block_ids": [
+            "single_ldo_power_tree"
+          ],
+          "subject": {
+            "net": "+3V3",
+            "pad": "1",
+            "refdes": "C4",
+            "target_pad": "3",
+            "target_refdes": "U1"
+          }
+        },
+        "status": "fail",
+        "subjects": []
+      },
+      {
+        "detail": "IO2/IO8/IO9 preserve the permitted GD1 boot topology",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "strapping_pin",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      },
+      {
+        "detail": "usb_cc topology and values match the GD1 contract",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "usb_cc",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      }
+    ]
+  },
+  "schema_version": "0.1",
+  "status": "unknown",
+  "target_revision": "r1"
+}

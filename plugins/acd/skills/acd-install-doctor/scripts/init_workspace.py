@@ -88,11 +88,15 @@ def _run(
     )
 
 
+STREAM_REPORT_LIMIT = 4000
+
+
 def _command_result(
     command: Sequence[str],
     *,
     cwd: Path | None,
     runner: Runner,
+    stdout_limit: int | None = STREAM_REPORT_LIMIT,
 ) -> dict[str, Any]:
     try:
         result = _run(command, cwd=cwd, runner=runner)
@@ -103,12 +107,13 @@ def _command_result(
             "returncode": None,
             "detail": str(exc),
         }
+    stdout = result.stdout.strip()
     return {
         "command": list(command),
         "status": "pass" if result.returncode == 0 else "fail",
         "returncode": result.returncode,
-        "stdout": result.stdout.strip()[-4000:],
-        "stderr": result.stderr.strip()[-4000:],
+        "stdout": stdout if stdout_limit is None else stdout[-stdout_limit:],
+        "stderr": result.stderr.strip()[-STREAM_REPORT_LIMIT:],
     }
 
 
@@ -122,11 +127,29 @@ def _workspace_state(workspace: Path, repo_url: str, runner: Runner) -> str:
     if not entries:
         return "empty"
     top = _git_value(workspace, ["rev-parse", "--show-toplevel"], runner)
-    remote = _git_value(workspace, ["config", "--get", "remote.origin.url"], runner)
-    if top is None or remote is None:
+    if top is None:
         raise ValueError("workspace is non-empty but is not a Git checkout")
     if Path(top).resolve() != workspace.resolve():
         raise ValueError("workspace Git root does not match the requested workspace path")
+    remote = _git_value(workspace, ["config", "--get", "remote.origin.url"], runner)
+    if remote is None:
+        if _git_value(workspace, ["rev-parse", "--verify", "HEAD"], runner) is not None:
+            raise ValueError(
+                "workspace is a Git checkout with commits but without an origin remote"
+            )
+        status = _command_result(
+            ["git", "status", "--porcelain"], cwd=workspace, runner=runner
+        )
+        if status["status"] != "pass" or status["stdout"]:
+            raise ValueError("workspace is dirty; refusing to reuse it")
+        added = _command_result(
+            ["git", "remote", "add", "origin", repo_url], cwd=workspace, runner=runner
+        )
+        if added["status"] != "pass":
+            raise ValueError(
+                "workspace has no commit and no origin remote, and origin could not be added"
+            )
+        return "initialized"
     if _normalize_repo_url(remote) != _normalize_repo_url(repo_url):
         raise ValueError(f"workspace origin does not match requested repository: {remote}")
     status = _command_result(["git", "status", "--porcelain"], cwd=workspace, runner=runner)
@@ -144,6 +167,7 @@ def _clone_or_reuse(
 ) -> dict[str, Any]:
     state = _workspace_state(workspace, repo_url, runner)
     if state == "empty":
+        # An empty directory is cloned; an empty Git repository is fetched into.
         result = _command_result(
             ["git", "clone", repo_url, str(workspace)],
             cwd=None,
@@ -202,20 +226,22 @@ def _doctor(
     command = [python_executable, str(script)]
     if include_workspace:
         command.extend(["--workspace", str(workspace)])
-    result = _command_result(command, cwd=workspace, runner=runner)
+    result = _command_result(command, cwd=workspace, runner=runner, stdout_limit=None)
     if result["status"] == "unknown":
         return result
+    stdout = str(result.get("stdout", ""))
+    truncated = {**result, "stdout": stdout[-STREAM_REPORT_LIMIT:]}
     try:
-        report = cast(dict[str, Any], json.loads(result.get("stdout", "")))
+        report = cast(dict[str, Any], json.loads(stdout))
     except json.JSONDecodeError:
         return {
-            **result,
+            **truncated,
             "status": "unknown",
             "detail": "install doctor did not emit valid JSON",
         }
     status = "pass" if result["returncode"] == 0 and report.get("status") != "failed" else "fail"
     return {
-        **result,
+        **truncated,
         "status": status,
         "report": report,
     }
