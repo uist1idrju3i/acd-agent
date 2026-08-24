@@ -173,6 +173,8 @@ KiCad symbolまたはparts catalogからpin functionを取り込む経路が必�
 優先度は「新規設計でVibeBBを閉じる」観点で並べた。いずれも本PRでは実装していない。
 実機ログとworkspaceアーカイブの全件レビューを踏まえた12件版は
 [`examples/mini-blink-dongle-20260825/report/improvement-notes.md`](../examples/mini-blink-dongle-20260825/report/improvement-notes.md)にある。
+各項目は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のN節（N-1〜N-12）と
+[`roadmap.md`](roadmap.md)の14.13・15.10〜15.13へ反映済みである。
 
 1. **`DesignFixtureSpec`へmechanical / silkscreen / firmware moduleの宣言を追加する**。
    最低限、`mechanical.outline`（外形と穴）、`mechanical.silk_text` / `silk_graphic`（role付き）、

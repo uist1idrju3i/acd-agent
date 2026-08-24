@@ -191,7 +191,10 @@ without doing it - the stop hook is a hard system constraint.
 
 ## 10. 改善提案
 
-12件を[`improvement-notes.md`](improvement-notes.md)に分離して記載した。優先度上位は次の3件である。
+12件を[`improvement-notes.md`](improvement-notes.md)に分離して記載し、根拠・依存・完了条件を
+[`vibebb-gap-analysis.md`](../../../docs/vibebb-gap-analysis.md)のN節（N-1〜N-12）へ、実装計画を
+[`roadmap.md`](../../../docs/roadmap.md)の14.13および15.10〜15.13へ反映した。
+優先度上位は次の3件である。
 
 1. `DesignFixtureSpec`へmechanical／silkscreen／firmware moduleの宣言能力とU1 IO-to-pad
    mappingを追加する（P-1、P-5）。これが無い限り新規設計はlaneの入口に到達しない。
