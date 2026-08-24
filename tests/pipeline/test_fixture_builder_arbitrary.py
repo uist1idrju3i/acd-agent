@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -29,7 +30,7 @@ from acd.schema.requirement import RequirementDocument
 
 def _cpl_evidence() -> FixtureCplOrientationEvidence:
     return FixtureCplOrientationEvidence(
-        evidence_at="2026-08-11T00:00:00Z",
+        evidence_at=datetime(2026, 8, 11, tzinfo=UTC),
         evidence_method="fixture placement cross-check",
         evidence_basis="confirmed",
         evidence_note="Declared rotation matches this design placement.",

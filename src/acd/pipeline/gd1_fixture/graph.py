@@ -16,6 +16,7 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +46,7 @@ from .mechanical import mechanical_nodes
 from .silkscreen import silkscreen_nodes
 
 GD1_CPL_ORIENTATION_EVIDENCE = FixtureCplOrientationEvidence(
-    evidence_at="2026-08-11T00:00:00Z",
+    evidence_at=datetime(2026, 8, 11, tzinfo=UTC),
     evidence_method=(
         "component-part-number rotation declaration cross-checked against "
         "the generated KiCad placement"
