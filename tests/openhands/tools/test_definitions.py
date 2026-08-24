@@ -554,9 +554,20 @@ def test_pipeline_output_defaults_fail_closed_for_invalid_fixture(tmp_path: Path
     fixture = tmp_path / "fixture"
     fixture.mkdir()
     (fixture / "graph.json").write_text("{", encoding="utf-8")
-    action = AcdRunBoardPipelineAction(fixture=str(fixture))
-    resources = AcdRunBoardPipeline.create()[0].declared_resources(action)
-    assert resources.declared is False
+    cases = (
+        (AcdRunBoardPipeline.create()[0], AcdRunBoardPipelineAction),
+        (AcdRunEnclosurePipeline.create()[0], AcdRunEnclosurePipelineAction),
+        (AcdRunFirmwarePipeline.create()[0], AcdRunFirmwarePipelineAction),
+    )
+    for tool, action_type in cases:
+        action = action_type(fixture=str(fixture))
+        resources = tool.declared_resources(action)
+        assert resources.declared is False
+        result = _execute(tool, action)
+        assert result.ok is False
+        assert result.fail_closed is True
+        assert result.output_path is None
+        assert result.envelopes is None
 
 
 def test_same_output_resource_is_serialized_by_parallel_executor(
@@ -658,7 +669,7 @@ def test_pipeline_tools_validate_inputs_fail_closed(tmp_path: Path) -> None:
     assert board.fail_closed is True
 
 
-def test_pipeline_exception_keeps_output_and_envelopes(
+def test_pipeline_exception_does_not_fabricate_output_or_envelopes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -683,9 +694,8 @@ def test_pipeline_exception_keeps_output_and_envelopes(
     )
     assert result.ok is False
     assert result.fail_closed is True
-    assert result.output_path == str(out)
-    assert result.envelopes is not None
-    assert result.envelopes[0]["path"] == str(out / "envelope.json")
+    assert result.output_path is None
+    assert result.envelopes is None
 
 
 def _raise_pipeline(*args: object, **kwargs: object) -> dict[str, object]:

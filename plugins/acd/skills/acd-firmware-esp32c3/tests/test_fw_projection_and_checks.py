@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+import fw_project
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.schema.design_graph import DesignGraph
 from fw_checks import (
@@ -23,6 +24,7 @@ from fw_graph import (
     FirmwareExtractionError,
     FirmwareLane,
     FirmwarePinView,
+    FirmwareSettings,
     extract_firmware_lane,
     extract_firmware_settings,
 )
@@ -180,6 +182,59 @@ def test_malformed_firmware_settings_fail_closed(graph: DesignGraph) -> None:
         extract_firmware_settings(broken)
 
 
+@pytest.mark.parametrize(
+    "boot_log_message",
+    [
+        "",
+        "boot",
+        'boot "quoted" %s',
+        r"boot \\path %s",
+        "boot\n%s",
+        "boot %d %s",
+        "boot %% %s",
+        "boot %s%",
+        "boot %s %s",
+    ],
+)
+def test_malformed_boot_log_message_fails_closed(
+    graph: DesignGraph, boot_log_message: str
+) -> None:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    broken = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={
+                        "attrs": {
+                            **node.attrs,
+                            "boot_log_message": boot_log_message,
+                        }
+                    }
+                )
+                if node.id == module.id
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    with pytest.raises(FirmwareExtractionError, match="C string literal template"):
+        extract_firmware_settings(broken)
+
+
+def test_missing_boot_log_placeholder_fails_closed(
+    fw_lane: FirmwareLane, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(fw_project, "_MAIN_C", "void app_main(void) {}")
+    with pytest.raises(FirmwareProjectionError, match="placeholder"):
+        write_firmware_project(
+            fw_lane,
+            "r1",
+            tmp_path,
+            "custom-design",
+            FirmwareSettings(boot_log_message="boot %s"),
+        )
+
+
 def test_project_name_is_derived_from_the_graph_id(
     fw_lane: FirmwareLane, tmp_path: Path
 ) -> None:
@@ -200,11 +255,18 @@ def test_unusable_graph_id_fails_closed(graph_id: str) -> None:
 
 
 def test_generated_header_matches_lane(fw_lane: FirmwareLane) -> None:
-    assert_header_matches_lane(render_pins_header(fw_lane, "r1"), fw_lane)
+    assert_header_matches_lane(
+        render_pins_header(
+            fw_lane, "r1", FirmwareSettings(boot_log_message="test %s")
+        ),
+        fw_lane,
+    )
 
 
 def test_header_check_rejects_tampered_gpio(fw_lane: FirmwareLane) -> None:
-    header = render_pins_header(fw_lane, "r1").replace("ACD_PIN_LED 7", "ACD_PIN_LED 6")
+    header = render_pins_header(
+        fw_lane, "r1", FirmwareSettings(boot_log_message="test %s")
+    ).replace("ACD_PIN_LED 7", "ACD_PIN_LED 6")
     with pytest.raises(PinConsistencyError, match="ACD_PIN_LED"):
         assert_header_matches_lane(header, fw_lane)
 
@@ -249,4 +311,6 @@ def test_pin_check_rejects_unknown_module(
 def test_render_header_fails_closed_on_missing_net() -> None:
     lane = FirmwareLane(pins=(FirmwarePinView(node_id="fw.pin.led", gpio=7, net_id="net.led"),))
     with pytest.raises(Exception, match=r"net\.i2c_sda"):
-        render_pins_header(lane, "r1")
+        render_pins_header(
+            lane, "r1", FirmwareSettings(boot_log_message="test %s")
+        )

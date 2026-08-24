@@ -131,7 +131,7 @@ def run_command_in_workspace(
     image: str,
     command: str,
     repository: Path,
-    download_files: tuple[str, ...] = (),
+    download_files: tuple[str, ...],
     workspace_factory: Callable[..., Any] | None = None,
     source: WorkspaceSource = "mounted",
 ) -> WorkspaceResult:

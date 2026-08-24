@@ -22,6 +22,26 @@ class FirmwareConsistencyReport:
         return self.status == "pass"
 
 
+def _validate_boot_log_message(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("boot_log_message must be a string")
+    if (
+        not value
+        or value.count("%s") != 1
+        or any(character in value for character in ('"', "\\", "\r", "\n"))
+        or any(
+            character == "%"
+            and value[index : index + 2] != "%s"
+            for index, character in enumerate(value)
+        )
+    ):
+        raise ValueError(
+            "boot_log_message must be a C string literal template with exactly "
+            "one %s and no quotes, backslashes, newlines, or other percent directives"
+        )
+    return value
+
+
 def _expected_settings(graph: DesignGraph) -> dict[str, object]:
     modules = [node for node in graph.nodes if node.kind == "firmware.module"]
     if len(modules) != 1:
@@ -38,12 +58,8 @@ def _expected_settings(graph: DesignGraph) -> dict[str, object]:
             if key.endswith("_ms"):
                 if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                     raise ValueError(f"malformed firmware setting: {key}")
-            elif (
-                not isinstance(value, str)
-                or not value
-                or "%s" not in value
-            ):
-                raise ValueError(f"malformed firmware setting: {key}")
+            elif key == "boot_log_message":
+                value = _validate_boot_log_message(value)
             defaults[key] = value
     return defaults
 

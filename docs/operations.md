@@ -1283,8 +1283,9 @@ graphを特定できない運用ではdownload pathを明示する。
 
 生成物の既定pathとFW boot logはgraph_id由来であり、GD1 fixtureだけが互換値
 （`out/gd1-*`および`ACD GD1 fw boot target_revision=%s`）を明示属性または
-compatibility aliasで再現する。FW boot-log導出規則の規範は
-[`architecture.md`](architecture.md)に集約し、coreとSkillは独立実装する。
+compatibility aliasで再現する。boot log messageのC string literal安全条件を含む
+FW boot-log導出規則の規範は[`architecture.md`](architecture.md)に集約し、
+coreとSkillは独立実装する。
 
 imageへ同梱したACD本体・pipeline scripts・fixtureだけで実行する場合は`--source bundled`を
 使う。この経路はリポジトリをマウントせず、image内`/opt/acd`のprebake済み環境で実行する。

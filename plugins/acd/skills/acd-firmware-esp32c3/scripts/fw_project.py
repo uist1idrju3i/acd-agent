@@ -38,6 +38,26 @@ class FirmwareProjectionError(ValueError):
     """Raised when the firmware project cannot be projected (fail-closed)."""
 
 
+def _validate_boot_log_message(value: object) -> str:
+    if not isinstance(value, str):
+        raise FirmwareProjectionError("boot_log_message must be a string")
+    if (
+        not value
+        or value.count("%s") != 1
+        or any(character in value for character in ('"', "\\", "\r", "\n"))
+        or any(
+            character == "%"
+            and value[index : index + 2] != "%s"
+            for index, character in enumerate(value)
+        )
+    ):
+        raise FirmwareProjectionError(
+            "boot_log_message must be a C string literal template with exactly "
+            "one %s and no quotes, backslashes, newlines, or other percent directives"
+        )
+    return value
+
+
 @dataclass(frozen=True)
 class FirmwareProject:
     name: str
@@ -71,9 +91,8 @@ def _macro_name(net_id: str) -> str:
 
 
 def render_pins_header(
-    lane: FirmwareLane, target_revision: str, settings: FirmwareSettings | None = None
+    lane: FirmwareLane, target_revision: str, settings: FirmwareSettings
 ) -> str:
-    settings = settings or FirmwareSettings()
     lines = [
         "/* Generated from the design graph. Do not edit: the graph is canonical. */",
         "#pragma once",
@@ -97,10 +116,11 @@ def render_pins_header(
     return "\n".join(lines)
 
 
-# The C template is written verbatim except for this log-tag placeholder.
+# The C template is written verbatim except for these named placeholders.
 _LOG_TAG_PLACEHOLDER = "__ACD_LOG_TAG__"
+_BOOT_LOG_MESSAGE_PLACEHOLDER = "__ACD_BOOT_LOG_MESSAGE__"
 
-_MAIN_C = """\
+_main_c_prefix = """\
 /* Golden Design #1 firmware: 1 Hz LED blink + SHT40 temperature/humidity log.
  * Pin assignments come exclusively from the generated acd_pins.h projection.
  */
@@ -139,7 +159,11 @@ static void sht40_log_once(void)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "__ACD_BOOT_LOG_MESSAGE__", ACD_TARGET_REVISION);
+"""
+_main_c_boot = _main_c_prefix + (
+    f'    ESP_LOGI(TAG, "{_BOOT_LOG_MESSAGE_PLACEHOLDER}", ACD_TARGET_REVISION);\n'
+)
+_main_c_suffix = """\
     ESP_LOGI(TAG, "pins led=%d sda=%d scl=%d", ACD_PIN_LED, ACD_PIN_I2C_SDA, ACD_PIN_I2C_SCL);
 
     gpio_config_t led_cfg = {
@@ -181,6 +205,8 @@ void app_main(void)
 }
 """
 
+_MAIN_C = _main_c_boot + _main_c_suffix
+
 _ROOT_CMAKE = """\
 cmake_minimum_required(VERSION 3.16)
 include($ENV{{IDF_PATH}}/tools/cmake/project.cmake)
@@ -208,6 +234,7 @@ def write_firmware_project(
         settings = FirmwareSettings(
             boot_log_message=f"ACD {graph_id} fw boot target_revision=%s"
         )
+    _validate_boot_log_message(settings.boot_log_message)
     name = firmware_project_name(graph_id)
     root = out_dir.resolve() / name
     main_dir = root / "main"
@@ -220,7 +247,17 @@ def write_firmware_project(
     pins_header.write_text(render_pins_header(lane, target_revision, settings))
     main_source = main_dir / "acd_main.c"
     source = _MAIN_C.replace(_LOG_TAG_PLACEHOLDER, log_tag(graph_id))
-    source = source.replace("__ACD_BOOT_LOG_MESSAGE__", settings.boot_log_message)
+    if _BOOT_LOG_MESSAGE_PLACEHOLDER not in source:
+        raise FirmwareProjectionError(
+            "firmware template is missing the boot log message placeholder"
+        )
+    source = source.replace(
+        _BOOT_LOG_MESSAGE_PLACEHOLDER, settings.boot_log_message
+    )
+    if _BOOT_LOG_MESSAGE_PLACEHOLDER in source:
+        raise FirmwareProjectionError(
+            "firmware template boot log message placeholder was not replaced"
+        )
     main_source.write_text(source)
     return FirmwareProject(
         name=name, root=root, pins_header=pins_header, main_source=main_source

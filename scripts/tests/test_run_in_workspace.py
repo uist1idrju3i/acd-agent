@@ -88,6 +88,7 @@ def test_unresolved_digest_does_not_start_workspace(
             image="acd:local",
             command="true",
             repository=tmp_path,
+            download_files=(),
             workspace_factory=factory,
         )
     assert started is False
@@ -207,7 +208,7 @@ def test_cli_local_provisional_is_explicit_opt_in(
                 "--repo",
                 str(tmp_path),
                 "--download",
-                "unused",
+                "out/gd1/evidence-electrical.json",
                 "echo ok",
             ]
         )

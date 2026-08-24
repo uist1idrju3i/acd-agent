@@ -116,7 +116,10 @@ laneの出力先は分離され、並列度はhash、Evidence、provenance、sum
 `artifact_prefix`または`output_prefix`で導出する。GD1だけは互換aliasにより従来の
 `gd1` pathを再現し、graphを読み取れない場合は既定値へfallbackせずfail-closedにする。
 FW boot logの既定文言は`ACD {graph_id} fw boot target_revision=%s`とする。
-この規則はcoreとSkillがそれぞれ独立実装し、Skill moduleをcoreへimportしない。
+明示またはgraphから導出する文言は、C string literalへ安全に埋め込める
+非空文字列で、`%s`をちょうど1個だけ含み、`"`、`\`、改行、復帰文字、
+その他の`%` directiveを含めてはならない。この規則はcoreとSkillがそれぞれ独立実装し、
+Skill moduleをcoreへimportしない。
 host provisionalではresolver、筐体lane、pytest subsetまで実行できたが、基板laneは
 `freerouting` executable不在によりfail-closedで停止した。したがってhostでのlane全体の
 短縮は未測定であり、CIのdigest固定container gateをauthoritativeな測定経路とする。

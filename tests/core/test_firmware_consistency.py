@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from acd.core.firmware_consistency import check_firmware_graph_consistency
 from acd.schema.design_graph import DesignGraph
 
@@ -100,3 +102,49 @@ def test_missing_or_malformed_firmware_report_fails_closed(tmp_path: Path) -> No
 
     assert missing.status == "unknown"
     assert malformed.status == "unknown"
+
+
+@pytest.mark.parametrize(
+    "boot_log_message",
+    [
+        "",
+        "boot",
+        'boot "quoted" %s',
+        r"boot \\path %s",
+        "boot\n%s",
+        "boot %d %s",
+        "boot %% %s",
+        "boot %s%",
+        "boot %s %s",
+    ],
+)
+def test_malformed_boot_log_message_fails_closed(
+    boot_log_message: str, tmp_path: Path
+) -> None:
+    graph = _graph()
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    broken = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={
+                        "attrs": {
+                            **node.attrs,
+                            "boot_log_message": boot_log_message,
+                        }
+                    }
+                )
+                if node.id == module.id
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    report = tmp_path / "firmware-config-report.json"
+    report.write_text(json.dumps(_report(broken)), encoding="utf-8")
+
+    result = check_firmware_graph_consistency(broken, report)
+
+    assert result.status == "unknown"
+    assert result.reason is not None
+    assert "C string literal template" in result.reason

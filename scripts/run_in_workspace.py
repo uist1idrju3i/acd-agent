@@ -78,7 +78,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "download files must be explicit when the design graph is unknown"
                 )
         else:
-            assert defaults is not None
+            if defaults is None:
+                raise ValueError(
+                    "workspace defaults could not be derived from the design graph"
+                )
             command = defaults.command
             download_files = tuple(args.download_files or defaults.download_files)
         if args.local_provisional:

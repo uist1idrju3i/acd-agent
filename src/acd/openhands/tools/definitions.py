@@ -115,6 +115,14 @@ def _fixture_output_path(fixture: str, suffix: str) -> Path:
     return Path("out") / f"{artifact_prefix(graph.graph_id)}{suffix}"
 
 
+def _pipeline_output_path(
+    fixture: str, explicit_out: str | None, suffix: str
+) -> Path:
+    if explicit_out is not None:
+        return Path(explicit_out)
+    return _fixture_output_path(fixture, suffix)
+
+
 class AcdObservation(Observation):
     """Common typed result fields for ACD deterministic tools."""
 
@@ -505,13 +513,16 @@ class AcdRunBoardPipelineExecutor(ToolExecutor[AcdRunBoardPipelineAction, AcdObs
         del conversation
         fixture_path = Path(action.fixture)
         profile_path = Path(action.fab_profile) if action.fab_profile is not None else None
-        out_path = Path(action.out) if action.out is not None else Path("out")
         try:
-            out_path = (
-                Path(action.out)
-                if action.out is not None
-                else _fixture_output_path(action.fixture, "-mcp")
+            out_path = _pipeline_output_path(action.fixture, action.out, "-mcp")
+        except Exception as exc:
+            return AcdRunBoardPipelineObservation(
+                **_error(
+                    f"cannot resolve board pipeline output path: {exc}",
+                    operation="run_board_pipeline",
+                )
             )
+        try:
             if not (fixture_path / "graph.json").is_file():
                 return AcdRunBoardPipelineObservation(
                     **_error(
@@ -551,8 +562,6 @@ class AcdRunBoardPipelineExecutor(ToolExecutor[AcdRunBoardPipelineAction, AcdObs
         except Exception as exc:
             return AcdRunBoardPipelineObservation(
                 **_error(str(exc), operation="run_board_pipeline"),
-                output_path=str(out_path),
-                envelopes=_envelopes(out_path),
             )
 
 
@@ -564,13 +573,18 @@ class AcdRunEnclosurePipelineExecutor(ToolExecutor[AcdRunEnclosurePipelineAction
     ) -> AcdObservation:
         del conversation
         fixture_path = Path(action.fixture)
-        out_path = Path(action.out) if action.out is not None else Path("out")
         try:
-            out_path = (
-                Path(action.out)
-                if action.out is not None
-                else _fixture_output_path(action.fixture, "-enclosure-mcp")
+            out_path = _pipeline_output_path(
+                action.fixture, action.out, "-enclosure-mcp"
             )
+        except Exception as exc:
+            return AcdRunEnclosurePipelineObservation(
+                **_error(
+                    f"cannot resolve enclosure pipeline output path: {exc}",
+                    operation="run_enclosure_pipeline",
+                )
+            )
+        try:
             if not (fixture_path / "graph.json").is_file():
                 return AcdRunEnclosurePipelineObservation(
                     **_error(
@@ -590,8 +604,6 @@ class AcdRunEnclosurePipelineExecutor(ToolExecutor[AcdRunEnclosurePipelineAction
         except Exception as exc:
             return AcdRunEnclosurePipelineObservation(
                 **_error(str(exc), operation="run_enclosure_pipeline"),
-                output_path=str(out_path),
-                envelopes=_envelopes(out_path),
             )
 
 
@@ -713,7 +725,6 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
         conversation: Any = None,
     ) -> AcdObservation:
         del conversation
-        out_path = Path(action.out) if action.out is not None else Path("out")
         try:
             from acd.pipeline.repository import repository_root
 
@@ -730,11 +741,7 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
                 return AcdRunFirmwarePipelineObservation(
                     **_error("run_seconds must be positive", operation="run_firmware_pipeline")
                 )
-            out_path = (
-                Path(action.out)
-                if action.out is not None
-                else _fixture_output_path(action.fixture, "-fw")
-            )
+            out_path = _pipeline_output_path(action.fixture, action.out, "-fw")
             command = [
                 "uv",
                 "run",
@@ -778,7 +785,6 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
         except Exception as exc:
             return AcdRunFirmwarePipelineObservation(
                 **_error(str(exc), operation="run_firmware_pipeline"),
-                output_path=str(out_path),
             )
 
 
@@ -1195,10 +1201,8 @@ class AcdRunBoardPipeline(
             return DeclaredResources(keys=(), declared=False)
         graph_path = _resolved_resource_path(str(Path(action.fixture) / "graph.json"))
         try:
-            out_raw = (
-                action.out
-                if action.out is not None
-                else str(_fixture_output_path(action.fixture, "-mcp"))
+            out_raw = str(
+                _pipeline_output_path(action.fixture, action.out, "-mcp")
             )
         except (OSError, UnicodeError, ValueError):
             return DeclaredResources(keys=(), declared=False)
@@ -1244,10 +1248,10 @@ class AcdRunEnclosurePipeline(
             return DeclaredResources(keys=(), declared=False)
         graph_path = _resolved_resource_path(str(Path(action.fixture) / "graph.json"))
         try:
-            out_raw = (
-                action.out
-                if action.out is not None
-                else str(_fixture_output_path(action.fixture, "-enclosure-mcp"))
+            out_raw = str(
+                _pipeline_output_path(
+                    action.fixture, action.out, "-enclosure-mcp"
+                )
             )
         except (OSError, UnicodeError, ValueError):
             return DeclaredResources(keys=(), declared=False)
@@ -1292,11 +1296,7 @@ class AcdRunFirmwarePipeline(
         if not isinstance(action, AcdRunFirmwarePipelineAction):
             return DeclaredResources(keys=(), declared=False)
         try:
-            out_raw = (
-                action.out
-                if action.out is not None
-                else str(_fixture_output_path(action.fixture, "-fw"))
-            )
+            out_raw = str(_pipeline_output_path(action.fixture, action.out, "-fw"))
         except (OSError, UnicodeError, ValueError):
             return DeclaredResources(keys=(), declared=False)
         return _resources(
