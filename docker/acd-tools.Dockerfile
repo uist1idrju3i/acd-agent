@@ -108,6 +108,7 @@ COPY pyproject.toml uv.lock README.md AGENTS.md LICENSE ${ACD_HOME}/
 COPY src ${ACD_HOME}/src
 COPY scripts ${ACD_HOME}/scripts
 COPY fixtures ${ACD_HOME}/fixtures
+COPY contracts ${ACD_HOME}/contracts
 COPY profiles ${ACD_HOME}/profiles
 COPY assets ${ACD_HOME}/assets
 COPY evidence ${ACD_HOME}/evidence

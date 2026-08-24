@@ -139,8 +139,9 @@ def run_command_in_workspace(
 
     With ``source="mounted"`` the host repository is mounted read-only and
     copied into the container worktree. With ``source="bundled"`` the ACD
-    source, pipeline scripts and fixtures baked into the locked image are used
-    and no repository is mounted; a missing or incomplete bundle stops the run.
+    source, pipeline scripts, fixtures, and contracts baked into the locked
+    image are used and no repository is mounted; a missing or incomplete bundle
+    stops the run.
     """
     if not image.strip():
         raise ValueError("server image must not be empty")
@@ -175,6 +176,7 @@ def run_command_in_workspace(
                     f"test -d {CONTAINER_BUNDLE / 'src' / 'acd'} && "
                     f"test -d {CONTAINER_BUNDLE / 'scripts'} && "
                     f"test -d {CONTAINER_BUNDLE / 'fixtures'} && "
+                    f"test -d {CONTAINER_BUNDLE / 'contracts'} && "
                     f"test -d {CONTAINER_BUNDLE / '.venv'} && "
                     f"cd {CONTAINER_BUNDLE} && "
                 )

@@ -256,6 +256,7 @@ def test_bundled_source_runs_image_bundle_without_repository_mount(
     assert "test -f /opt/acd/pyproject.toml" in command
     assert "test -d /opt/acd/.venv" in command
     assert "test -d /opt/acd/fixtures" in command
+    assert "test -d /opt/acd/contracts" in command
     assert "cd /opt/acd" in command
     assert instance.downloads == [
         (
@@ -264,6 +265,42 @@ def test_bundled_source_runs_image_bundle_without_repository_mount(
         )
     ]
     assert result.exit_code == 0
+
+
+def test_bundled_source_stops_when_contracts_are_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _FakeWorkspace.instances.clear()
+
+    def resolve(_image: str) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "d" * 64, "RepoDigests")
+
+    class _MissingContractsWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            if "test -d /opt/acd/contracts" in command:
+                return SimpleNamespace(
+                    exit_code=1,
+                    stdout="",
+                    stderr="contracts missing",
+                )
+            return SimpleNamespace(exit_code=0, stdout="ok\n", stderr="")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-server:local",
+        command="uv run python scripts/run_gd1_pipeline.py",
+        repository=tmp_path,
+        download_files=("out/gd1/evidence-electrical.json",),
+        workspace_factory=_MissingContractsWorkspace,
+        source="bundled",
+    )
+
+    assert result.exit_code == 1
+    assert result.downloaded_files == ()
+    assert _MissingContractsWorkspace.instances[0].downloads == []
 
 
 def test_runner_rejects_unknown_workspace_source(
