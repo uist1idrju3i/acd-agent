@@ -53,7 +53,7 @@ class FirmwareSettings:
     log_period_ms: int = 2000
 
 
-def _validate_boot_log_message(value: object) -> str:
+def validate_boot_log_message(value: object) -> str:
     if not isinstance(value, str):
         raise FirmwareExtractionError("boot_log_message must be a string")
     if (
@@ -89,7 +89,7 @@ def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
     ):
         value = attrs.get(name, default)
         if name == "boot_log_message":
-            value = _validate_boot_log_message(value)
+            value = validate_boot_log_message(value)
         else:
             if isinstance(value, bool) or not isinstance(value, type(default)):
                 raise FirmwareExtractionError(
