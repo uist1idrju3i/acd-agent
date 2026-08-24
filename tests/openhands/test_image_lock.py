@@ -43,21 +43,24 @@ def _patch_packaged_resource(monkeypatch: pytest.MonkeyPatch, payload: str | Exc
     monkeypatch.setattr(image_lock.resources, "files", fake_files)
 
 
+def _locked_digest(entry: str) -> str:
+    payload = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
+    digest = payload[entry]["digest"]
+    assert isinstance(digest, str)
+    return digest
+
+
 def test_valid_lock_loads_and_is_pinned() -> None:
+    digest = _locked_digest("acd_tools")
     lock = load_image_lock(LOCK_PATH)
-    assert lock.acd_tools.digest == (
-        "sha256:c08d5e405332ca9a4b6289bf9fb76d21774c03cc7e0e206c4adf89dbe11efe02"
-    )
-    assert pinned_reference(lock.acd_tools) == (
-        "ghcr.io/uist1idrju3i/acd-tools@"
-        "sha256:c08d5e405332ca9a4b6289bf9fb76d21774c03cc7e0e206c4adf89dbe11efe02"
-    )
+    assert lock.acd_tools.digest == digest
+    assert pinned_reference(lock.acd_tools) == f"ghcr.io/uist1idrju3i/acd-tools@{digest}"
 
 
 def test_packaged_lock_loads_without_repository_path(monkeypatch: pytest.MonkeyPatch) -> None:
     _patch_packaged_resource(monkeypatch, LOCK_PATH.read_text(encoding="utf-8"))
     lock = load_image_lock()
-    assert lock.acd_tools.digest.endswith("e11efe02")
+    assert lock.acd_tools.digest == _locked_digest("acd_tools")
 
 
 def test_packaged_lock_missing_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -134,8 +137,7 @@ def test_print_locked_image_returns_pinned_server_reference() -> None:
     )
     assert result.returncode == 0
     assert result.stdout.strip() == (
-        "ghcr.io/uist1idrju3i/acd-server@"
-        "sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a"
+        f"ghcr.io/uist1idrju3i/acd-server@{_locked_digest('acd_server')}"
     )
 
 
