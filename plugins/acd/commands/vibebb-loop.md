@@ -44,7 +44,9 @@ L3観測であり、合否を変更しない。tool経路の`jobs`既定値は1�
 `explore_board`は既定で無効であり、`max_exploration_candidates`と
 `max_exploration_rounds`を正整数で明示する。探索はL2の操舵とL3の観測であり、
 候補report、L1閾値、判定権限、authoritative Evidenceを変更しない。候補が見つかっても
-graphのrevision更新と再検証を経てloopを再実行し、L1ゲートとEvidenceを毎回生成する。
+graphのIDとrevisionが探索前と一致し、正規化content hashが変化したこと、および探索reportの
+`target_revision`がgraph revisionと一致することを検証してからloopを再実行し、L1ゲートと
+Evidenceを毎回生成する。
 
 各段はfail-closedであり、`ok: false`、`fail_closed: true`、失敗段ID、そこまでの
 段結果を含むJSONを返す。段を黙って省略したり順序を入れ替えたりしてはならない。

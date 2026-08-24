@@ -16,6 +16,7 @@ from acd.core.exploration import (
     enumerate_gpio_assignment_candidates,
     explore_board_candidates,
 )
+from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 FIXTURE_DIR = Path("fixtures/golden-design-1")
@@ -224,6 +225,41 @@ def test_successful_candidate_is_observation_and_writes_only_final_winner(
         candidate["provenance"]["pass_evidence"] is False
         for candidate in result.report["candidates"]
     )
+
+
+def test_successful_candidate_preserves_revision_and_changes_graph_content(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture = tmp_path / "fixture"
+    shutil.copytree(FIXTURE_DIR, source_fixture)
+    source_graph = source_fixture / "graph.json"
+    source_graph.write_text(GRAPH_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    before = DesignGraph.model_validate_json(source_graph.read_text(encoding="utf-8"))
+    before_hash = canonical_json_sha256(before.model_dump(mode="json"))
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args: (_placement_candidate(graph),),
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=1,
+        pipeline_runner=lambda _fixture, _out: {"gate": "completed"},
+    )
+
+    after = DesignGraph.model_validate_json(source_graph.read_text(encoding="utf-8"))
+    after_hash = canonical_json_sha256(after.model_dump(mode="json"))
+    assert result.report["status"] == "candidate_found"
+    assert result.report["winner_written"] is True
+    assert after.graph_id == before.graph_id
+    assert after.revision == before.revision
+    assert after_hash != before_hash
+    assert result.report["target_revision"] == after.revision
 
 
 def test_malformed_gate_evidence_stops_exploration(

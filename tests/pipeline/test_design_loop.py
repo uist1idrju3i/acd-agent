@@ -693,7 +693,8 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
         del graph_path, max_candidates, max_passes, dry_run
         pipeline_runner(fixture_dir, out_dir)
         body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
-        body["revision"] = "r2"
+        target_revision = body["revision"]
+        body["nodes"][0]["attrs"]["text"] += " candidate"
         (fixture_dir / "graph.json").write_text(
             json.dumps(body), encoding="utf-8"
         )
@@ -701,6 +702,7 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
             report={
                 "status": "candidate_found",
                 "winner_written": True,
+                "target_revision": target_revision,
                 "evaluated_candidates": 1,
                 "candidates": [],
             },
@@ -753,10 +755,12 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
     ("mutation", "message"),
     [
         ("graph_id", "updated graph ID"),
-        ("revision_same", "updated graph revision"),
+        ("revision_changed", "updated graph revision changed"),
+        ("content_same", "updated graph content hash did not change"),
+        ("target_revision", "target_revision does not match"),
     ],
 )
-def test_candidate_found_requires_graph_identity_and_revision_change(
+def test_candidate_found_requires_graph_identity_and_content_change(
     mutation: str,
     message: str,
     monkeypatch: pytest.MonkeyPatch,
@@ -788,15 +792,20 @@ def test_candidate_found_requires_graph_identity_and_revision_change(
     ) -> Any:
         del graph_path, max_candidates, max_passes, dry_run, pipeline_runner
         body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+        target_revision = body["revision"]
         if mutation == "graph_id":
             body["graph_id"] = "custom-design"
-        if mutation == "revision_same":
-            body["revision"] = "r1"
+        if mutation == "revision_changed":
+            body["revision"] = "r2"
+        if mutation == "target_revision":
+            body["nodes"][0]["attrs"]["text"] += " candidate"
+            target_revision = "r2"
         (fixture_dir / "graph.json").write_text(json.dumps(body), encoding="utf-8")
         return SimpleNamespace(
             report={
                 "status": "candidate_found",
                 "winner_written": True,
+                "target_revision": target_revision,
                 "evaluated_candidates": 1,
                 "candidates": [],
             },
@@ -855,12 +864,14 @@ def test_exploration_round_limit_is_fail_closed(
         nonlocal exploration_calls
         exploration_calls += 1
         body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
-        body["revision"] = f"r{exploration_calls + 1}"
+        target_revision = body["revision"]
+        body["nodes"][0]["attrs"]["text"] += f" candidate-{exploration_calls}"
         (fixture_dir / "graph.json").write_text(json.dumps(body), encoding="utf-8")
         return SimpleNamespace(
             report={
                 "status": "candidate_found",
                 "winner_written": True,
+                "target_revision": target_revision,
                 "evaluated_candidates": 1,
                 "candidates": [],
             },

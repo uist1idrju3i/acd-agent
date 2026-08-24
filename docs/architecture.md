@@ -255,8 +255,10 @@ Evidenceを生成・昇格せず、ToolDefinitionとSkillへ合否権限を与�
 `run_design_loop`のboard-pipelineがfail-closedで却下された場合に限り、
 `explore_board`の明示指定で、全laneのjoin後に`explore_board_candidates`を直列実行できる。
 候補探索はL2の操舵とL3観測であり、silkscreen、enclosure、FWの失敗では起動しない。
-候補が見つかってもgraphのrevisionとIDを検証してからloop全体をboundedに再実行し、
-L1ゲートとauthoritative Evidenceを毎回生成する。探索reportは合格権限を持たない。
+候補が見つかってもgraphのrevisionとIDが探索前と一致し、正規化content hashが変化した
+ことを検証してからloop全体をboundedに再実行する。探索reportのtarget_revisionもgraphの
+revisionと一致していなければfail-closedとし、L1ゲートとauthoritative Evidenceを毎回
+生成する。探索reportは合格権限を持たない。
 
 GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして

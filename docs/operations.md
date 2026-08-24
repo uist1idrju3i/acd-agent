@@ -423,9 +423,11 @@ uv run python scripts/run_design_loop.py \
 ```
 
 自動探索はboard-pipelineの却下後、全laneのjoin後に直列で実行する。候補が見つかった場合も
-graphの妥当性、graph IDの一致、revisionの変更を検査してからsilkscreenを含むloop全体を
-再実行する。enclosure、FW、silkscreenの失敗では自動探索せず、探索の`candidate_found`
-reportもL1合格Evidenceではない。`exhausted`、`stopped`、不正report、graph検証失敗、
+graphの妥当性、graph IDとrevisionの探索前との一致、正規化content hashの変化、
+探索reportの`target_revision`とgraph revisionの一致を検査してからsilkscreenを含む
+loop全体を再実行する。enclosure、FW、silkscreenの失敗では自動探索せず、探索の
+`candidate_found` reportもL1合格Evidenceではない。`exhausted`、`stopped`、不正report、
+graph検証失敗、
 round上限到達は元のboard失敗理由を保持してfail-closedで停止する。自動連結を使わない場合や
 診断次元を指定して手動評価する場合は`acd_explore_board_candidates`を使用する。
 

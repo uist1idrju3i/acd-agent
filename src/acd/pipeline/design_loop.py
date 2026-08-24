@@ -27,6 +27,7 @@ from acd.pipeline.lane_plan import (
 )
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
 from acd.schema import DesignGraph, OrderPolicy, OrderTotalDocument
+from acd.schema.common import canonical_json_sha256
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
@@ -534,6 +535,7 @@ def run_design_loop(
                     "record_class": "L3",
                     "report_path": str(exploration.report_path),
                     "report_status": status,
+                    "target_revision": report.get("target_revision"),
                     "evaluated_candidates": report.get("evaluated_candidates", 0),
                     "diagnostic_dimensions": sorted(diagnostic_dimensions_set),
                     "winner_written": report.get("winner_written", False),
@@ -577,6 +579,9 @@ def run_design_loop(
                 break
             board_failure = failed
             before_graph = _load_graph(active_config.fixture_dir)
+            before_graph_hash = canonical_json_sha256(
+                before_graph.model_dump(mode="json")
+            )
             exploration_result = exploration_stage(round_number)
             results.append(exploration_result)
             exploration_rounds.append(
@@ -584,6 +589,7 @@ def run_design_loop(
                     "round": round_number,
                     "status": exploration_result.get("report_status", "unknown"),
                     "report_path": exploration_result.get("report_path"),
+                    "target_revision": exploration_result.get("target_revision"),
                     "evaluated_candidates": exploration_result.get(
                         "evaluated_candidates", 0
                     ),
@@ -618,9 +624,10 @@ def run_design_loop(
                         f"{board_failure.get('failure_reason', 'board stage failed')}; "
                         f"updated graph is invalid (fail-closed): {exc}"
                     ),
-                    report_path=exploration_result.get("report_path"),
-                    report_status=exploration_result.get("report_status"),
-                )
+                        report_path=exploration_result.get("report_path"),
+                        report_status=exploration_result.get("report_status"),
+                        target_revision=exploration_result.get("target_revision"),
+                    )
                 results.append(failed)
                 result["exploration_termination"] = "graph_validation_failed"
                 break
@@ -634,19 +641,56 @@ def run_design_loop(
                     ),
                     report_path=exploration_result.get("report_path"),
                     report_status=exploration_result.get("report_status"),
+                    target_revision=exploration_result.get("target_revision"),
                 )
                 results.append(failed)
                 result["exploration_termination"] = "graph_validation_failed"
                 break
-            if after_graph.revision == before_graph.revision:
+            if after_graph.revision != before_graph.revision:
                 failed = _failure(
                     "board-exploration",
                     (
                         f"{board_failure.get('failure_reason', 'board stage failed')}; "
-                        "updated graph revision did not change (fail-closed)"
+                        "updated graph revision changed from "
+                        f"{before_graph.revision!r} to {after_graph.revision!r} "
+                        "(fail-closed)"
                     ),
                     report_path=exploration_result.get("report_path"),
                     report_status=exploration_result.get("report_status"),
+                    target_revision=exploration_result.get("target_revision"),
+                )
+                results.append(failed)
+                result["exploration_termination"] = "graph_validation_failed"
+                break
+            after_graph_hash = canonical_json_sha256(
+                after_graph.model_dump(mode="json")
+            )
+            if after_graph_hash == before_graph_hash:
+                failed = _failure(
+                    "board-exploration",
+                    (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        "updated graph content hash did not change (fail-closed)"
+                    ),
+                    report_path=exploration_result.get("report_path"),
+                    report_status=exploration_result.get("report_status"),
+                    target_revision=exploration_result.get("target_revision"),
+                )
+                results.append(failed)
+                result["exploration_termination"] = "graph_validation_failed"
+                break
+            if exploration_result.get("target_revision") != after_graph.revision:
+                failed = _failure(
+                    "board-exploration",
+                    (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        "exploration report target_revision does not match "
+                        f"updated graph revision {after_graph.revision!r} "
+                        "(fail-closed)"
+                    ),
+                    report_path=exploration_result.get("report_path"),
+                    report_status=exploration_result.get("report_status"),
+                    target_revision=exploration_result.get("target_revision"),
                 )
                 results.append(failed)
                 result["exploration_termination"] = "graph_validation_failed"
