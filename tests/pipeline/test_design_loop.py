@@ -631,6 +631,7 @@ def test_board_rejection_explores_with_loop_configuration(
     assert captured["dry_run"] is False
     assert captured["out_dir"].name == "round-1"
     assert result["exploration_rounds"][0]["status"] == "exhausted"
+    assert result["exploration_termination"] == "exhausted"
     assert seen == ["golden-design-1"]
 
 
@@ -736,6 +737,16 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
     assert any(
         item["stage_id"] == "board-exploration" for item in result["results"]
     )
+    timing = json.loads(
+        (tmp_path / "artifacts" / "timing-record.json").read_text(encoding="utf-8")
+    )
+    timing_names = [stage["name"] for stage in timing["stages"]]
+    assert "design-loop/silkscreen-resolve" in timing_names
+    assert "design-loop/board-pipeline" in timing_names
+    assert "design-loop/round-1/board-exploration" in timing_names
+    assert "design-loop/round-2/silkscreen-resolve" in timing_names
+    assert "design-loop/round-2/board-pipeline" in timing_names
+    assert len(timing_names) == len(set(timing_names))
 
 
 @pytest.mark.parametrize(
@@ -804,7 +815,11 @@ def test_candidate_found_requires_graph_identity_and_revision_change(
     assert result["ok"] is False
     assert result["failed_stage"] == "board-exploration"
     assert message in result["failure_reason"]
+    assert result["results"][-2]["report_status"] == "candidate_found"
+    assert result["results"][-2]["report_path"].endswith("exploration-report.json")
+    assert result["results"][-1]["failure_reason"].endswith("(fail-closed)")
     assert result["results"][-1]["pass_evidence"] is False
+    assert result["exploration_rounds"][0]["status"] == "candidate_found"
 
 
 def test_exploration_round_limit_is_fail_closed(
@@ -930,6 +945,47 @@ def test_parallel_lane_join_precedes_board_exploration(
 
     assert result["ok"] is False
     assert result["exploration_rounds"][0]["status"] == "stopped"
+    assert result["exploration_termination"] == "stopped"
+
+
+def test_exploration_exception_has_error_termination(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = lambda config: {
+        "stage_id": "board-pipeline",
+        "ok": False,
+        "fail_closed": True,
+        "pass_evidence": False,
+        "failure_reason": "board rejected",
+    }
+    _patch_runners(monkeypatch, runners)
+
+    def failing_exploration(*args: Any, **kwargs: Any) -> Any:
+        del args, kwargs
+        raise RuntimeError("exploration unavailable")
+
+    monkeypatch.setattr(
+        design_loop,
+        "explore_board_candidates",
+        failing_exploration,
+    )
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        explore_board=True,
+    )
+
+    assert result["ok"] is False
+    assert result["exploration_termination"] == "error"
+    assert result["exploration_rounds"][0]["status"] == "unknown"
+    assert "exploration unavailable" in result["failure_reason"]
 
 
 @pytest.mark.parametrize("failed_stage", ["enclosure-pipeline", "firmware-pipeline"])
