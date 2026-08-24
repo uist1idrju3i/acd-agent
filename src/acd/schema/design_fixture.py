@@ -2,18 +2,28 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field
 
-from acd.schema.common import AcdModel, NonEmptyStr, Revision
+from acd.schema.common import AcdModel, NonEmptyStr, Revision, Timestamp
 from acd.schema.design_graph import AttrValue
 from acd.schema.parts_catalog import ComponentPartRequest
 from acd.schema.requirement import RequirementRecord
+
+
+class FixtureCplOrientationEvidence(AcdModel):
+    evidence_at: Timestamp
+    evidence_method: NonEmptyStr
+    evidence_basis: Literal["estimated", "confirmed"]
+    evidence_note: NonEmptyStr
 
 
 class FixtureComponentSpec(AcdModel):
     refdes: NonEmptyStr
     library_ref: NonEmptyStr | None = None
     part_request: ComponentPartRequest | None = None
+    cpl_orientation_evidence: FixtureCplOrientationEvidence | None = None
     attrs: dict[str, AttrValue] = Field(default_factory=dict)
     pads: dict[str, NonEmptyStr | None] = Field(default_factory=dict)
 
@@ -57,6 +67,7 @@ class DesignFixtureSpec(AcdModel):
 __all__ = [
     "DesignFixtureSpec",
     "FixtureComponentSpec",
+    "FixtureCplOrientationEvidence",
     "FixtureFirmwarePinSpec",
     "FixtureFunctionalBlockSpec",
     "FixtureNetSpec",

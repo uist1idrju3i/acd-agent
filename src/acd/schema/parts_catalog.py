@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import AnyUrl, Field, FiniteFloat, model_validator
 
-from acd.schema.common import AcdModel, NonEmptyStr, SchemaVersion, Sha256, Timestamp
+from acd.schema.common import AcdModel, NonEmptyStr, SchemaVersion, Sha256
 
 
 class PartLibraryRef(AcdModel):
@@ -25,11 +25,6 @@ class PartLibraryRef(AcdModel):
 class PartCplOrientation(AcdModel):
     basis: Literal["component_part_number"]
     source_url: AnyUrl
-    evidence_at: Timestamp
-    evidence_method: NonEmptyStr
-    evidence_revision: NonEmptyStr
-    evidence_basis: Literal["estimated", "confirmed"]
-    evidence_note: NonEmptyStr
     offset_deg: FiniteFloat
     polarized: bool
     pin_functions: list[NonEmptyStr] = Field(default_factory=list)
@@ -43,8 +38,6 @@ class PartCplOrientation(AcdModel):
 
     @model_validator(mode="after")
     def _validate_conditional_provenance(self) -> PartCplOrientation:
-        if self.evidence_revision == "unknown":
-            raise ValueError("evidence revision must be declared")
         if bool(self.unverified_pads) and (
             self.unverified_pad_reason is None or self.unverified_pad_source is None
         ):

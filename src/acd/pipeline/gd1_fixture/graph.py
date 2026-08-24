@@ -19,9 +19,10 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from acd.core.naming import artifact_prefix
+from acd.core.cpl_orientation import cpl_orientation_attrs
 from acd.core.part_selection import load_parts_catalog
 from acd.core.rationale import subject_hash_for
+from acd.schema.design_fixture import FixtureCplOrientationEvidence
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 from acd.schema.rationale import RationaleDocument
 
@@ -42,6 +43,19 @@ from .components import (
 )
 from .mechanical import mechanical_nodes
 from .silkscreen import silkscreen_nodes
+
+GD1_CPL_ORIENTATION_EVIDENCE = FixtureCplOrientationEvidence(
+    evidence_at="2026-08-11T00:00:00Z",
+    evidence_method=(
+        "component-part-number rotation declaration cross-checked against "
+        "the generated KiCad placement"
+    ),
+    evidence_basis="confirmed",
+    evidence_note=(
+        "GD1 preserves the declared component rotation in the generated "
+        "assembly placement with a zero-degree centroid offset."
+    ),
+)
 
 
 def _paths() -> tuple[Path, Path, Path, Path, Path]:
@@ -225,6 +239,8 @@ def build_graph() -> DesignGraph:
     _, _, placement_skill, _, _ = _paths()
     catalog, _ = load_parts_catalog()
     entries_by_part_number = catalog.entries_by_part_number
+    graph_id = "golden-design-1"
+    revision = "r1"
     nodes: list[GraphNode] = []
     for req_id, text in sorted(REQUIREMENTS.items()):
         nodes.append(GraphNode(id=f"req.{req_id}", kind="requirement", attrs={"text": text}))
@@ -263,22 +279,15 @@ def build_graph() -> DesignGraph:
             entry = entries_by_part_number.get(spec["mpn"])
             if entry is None:
                 raise ValueError(f"GD1 part is absent from parts catalog: {spec['mpn']}")
-            if entry.cpl_orientation is not None:
-                orientation = entry.cpl_orientation.model_dump(
-                    mode="json", exclude_defaults=True
+            attrs.update(
+                cpl_orientation_attrs(
+                    entry.cpl_orientation,
+                    GD1_CPL_ORIENTATION_EVIDENCE,
+                    graph_id,
+                    revision,
+                    spec["refdes"],
                 )
-                source = orientation.get("geometry_exception_source")
-                if isinstance(source, str):
-                    orientation["geometry_exception_source"] = source.format(
-                        artifact_prefix=artifact_prefix("golden-design-1"),
-                        refdes=spec["refdes"],
-                    )
-                attrs.update(
-                    {
-                        "cpl_rotation_" + key: value
-                        for key, value in orientation.items()
-                    }
-                )
+            )
         if spec["refdes"] == "U1":
             attrs.update(
                 {
@@ -436,8 +445,6 @@ def build_graph() -> DesignGraph:
             },
         )
     )
-    graph_id = "golden-design-1"
-    revision = "r1"
     nodes.extend(silkscreen_nodes(graph_id, revision))
     return _resolve_skill_inputs(DesignGraph(graph_id=graph_id, revision=revision, nodes=nodes))
 

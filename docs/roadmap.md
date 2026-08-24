@@ -314,8 +314,9 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 [`SECURITY.md`](../SECURITY.md)の「AIエージェント特有の前提」、
 発注ガードの縮約は[`ADR-0008`](adr/ADR-0008-minimal-vibebb-scope.md)、
 製造データと`unknown`境界は[`ADR-0005`](adr/ADR-0005-jlcpcb-pcba-preparation-contract.md)を正とする。
-C-4（CPL orientation期待値のfixture非依存化）は、部品catalog宣言と
-graph_id由来のEvidence pathを使う実装として本マイルストーンの範囲で達成した。
+C-4（CPL orientation期待値のfixture非依存化）は、部品catalog宣言と設計fixture側の
+placement確認宣言、graph_id由来のEvidence pathを使う実装として本マイルストーンの
+範囲で達成した。設計確認の無い場合はCPL属性を補わず、既存gateでfail-closedとする。
 
 ### 7.1 期限付き見積入力の取得契約（達成）
 

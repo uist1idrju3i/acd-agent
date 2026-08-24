@@ -26,6 +26,7 @@ from acd.schema.context import (
 from acd.schema.design_fixture import (
     DesignFixtureSpec,
     FixtureComponentSpec,
+    FixtureCplOrientationEvidence,
     FixtureFirmwarePinSpec,
     FixtureFunctionalBlockSpec,
     FixtureNetSpec,
@@ -229,6 +230,7 @@ __all__ = [
     "FeedbackRuleKind",
     "FeedbackValidationStatus",
     "FixtureComponentSpec",
+    "FixtureCplOrientationEvidence",
     "FixtureFirmwarePinSpec",
     "FixtureFunctionalBlockSpec",
     "FixtureNetSpec",

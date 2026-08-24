@@ -15,6 +15,7 @@ from acd.pipeline.gd1_fixture.graph import build_graph as build_gd1_graph
 from acd.schema import (
     DesignFixtureSpec,
     FixtureComponentSpec,
+    FixtureCplOrientationEvidence,
     FixtureFunctionalBlockSpec,
     FixtureNetSpec,
     RequirementRecord,
@@ -24,6 +25,15 @@ from acd.schema.design_graph import DesignGraph
 from acd.schema.parts_catalog import ComponentPartRequest
 from acd.schema.rationale import RationaleDocument
 from acd.schema.requirement import RequirementDocument
+
+
+def _cpl_evidence() -> FixtureCplOrientationEvidence:
+    return FixtureCplOrientationEvidence(
+        evidence_at="2026-08-11T00:00:00Z",
+        evidence_method="fixture placement cross-check",
+        evidence_basis="confirmed",
+        evidence_note="Declared rotation matches this design placement.",
+    )
 
 
 def test_fixture_builder_is_deterministic(tmp_path: Path) -> None:
@@ -61,6 +71,7 @@ def test_fixture_builder_resolves_catalog_component(tmp_path: Path) -> None:
                     value="4.7k",
                     package="R_0603_1608Metric",
                 ),
+                cpl_orientation_evidence=_cpl_evidence(),
             )
         ],
         requirements=[
@@ -93,6 +104,7 @@ def test_fixture_builder_derives_cpl_evidence_path_from_graph_id(tmp_path: Path)
                     value="TYPE-C-31-M-12",
                     package="USB_C_Receptacle_HRO_TYPE-C-31-M-12",
                 ),
+                cpl_orientation_evidence=_cpl_evidence(),
             )
         ],
         requirements=[
@@ -110,6 +122,32 @@ def test_fixture_builder_derives_cpl_evidence_path_from_graph_id(tmp_path: Path)
     component = next(node for node in graph["nodes"] if node["id"] == "comp.j1")
     assert component["attrs"]["cpl_rotation_geometry_exception_source"] == (
         "evidence/custom-orientation-cpl-orientation/J1.json"
+    )
+    assert {
+        key.removeprefix("cpl_rotation_")
+        for key in component["attrs"]
+        if key.startswith("cpl_rotation_")
+    } == {
+        "basis",
+        "source_url",
+        "evidence_at",
+        "evidence_method",
+        "evidence_revision",
+        "evidence_basis",
+        "evidence_note",
+        "offset_deg",
+        "polarized",
+        "pin_functions",
+        "pin_aliases",
+        "unverified_pads",
+        "unverified_pad_reason",
+        "unverified_pad_source",
+        "geometry_exception",
+        "geometry_exception_reason",
+        "geometry_exception_source",
+    }
+    assert component["attrs"]["cpl_rotation_evidence_revision"] == (
+        "custom-orientation-r1"
     )
 
 
@@ -130,6 +168,37 @@ def test_fixture_builder_does_not_default_missing_cpl_orientation(
     )
     spec = DesignFixtureSpec(
         design_name="without-orientation",
+        components=[
+            FixtureComponentSpec(
+                refdes="R1",
+                part_request=ComponentPartRequest(
+                    kind="resistor",
+                    value="1k",
+                    package="R_0603_1608Metric",
+                ),
+            )
+        ],
+        requirements=[
+            RequirementRecord(
+                requirement_id="r1",
+                statement="Use the selected resistor.",
+                constrains_node_ids=["comp.r1"],
+            )
+        ],
+    )
+    build_design_fixture(spec, tmp_path / "fixture")
+    graph = json.loads(
+        (tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8")
+    )
+    component = next(node for node in graph["nodes"] if node["id"] == "comp.r1")
+    assert "cpl_rotation_basis" not in component["attrs"]
+
+
+def test_fixture_builder_requires_design_cpl_provenance(
+    tmp_path: Path,
+) -> None:
+    spec = DesignFixtureSpec(
+        design_name="without-design-evidence",
         components=[
             FixtureComponentSpec(
                 refdes="R1",

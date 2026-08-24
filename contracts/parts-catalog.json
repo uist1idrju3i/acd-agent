@@ -21,11 +21,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -50,11 +45,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -79,11 +69,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -108,11 +93,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -137,11 +117,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 180.0,
         "polarized": true,
         "pin_functions": [
@@ -175,11 +150,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -204,11 +174,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -233,11 +198,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -262,11 +222,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": true,
         "pin_functions": [
@@ -561,11 +516,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": true,
         "pin_functions": [
@@ -594,11 +544,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": true,
         "pin_functions": [
@@ -635,11 +580,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": false
       }
@@ -664,11 +604,6 @@
       "cpl_orientation": {
         "basis": "component_part_number",
         "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
-        "evidence_at": "2026-08-11T00:00:00Z",
-        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
-        "evidence_revision": "golden-design-1-r1",
-        "evidence_basis": "confirmed",
-        "evidence_note": "GD1 preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
         "offset_deg": 0.0,
         "polarized": true,
         "pin_functions": [
