@@ -2,9 +2,9 @@
   "acd_tools": {
     "image": "ghcr.io/uist1idrju3i/acd-tools",
     "tag": "latest",
-    "digest": "sha256:c08d5e405332ca9a4b6289bf9fb76d21774c03cc7e0e206c4adf89dbe11efe02",
-    "published_at": "2026-08-24T03:23:58Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32686275806",
+    "digest": "sha256:ca4fe287f14e5cb02c185590aab214aea3d79e51057de52e6dd1905e679407ec",
+    "published_at": "2026-08-24T10:11:56Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32715089923",
     "dockerfile": "docker/acd-tools.Dockerfile",
     "tools": {
       "kicad-cli": "10.0.5",
