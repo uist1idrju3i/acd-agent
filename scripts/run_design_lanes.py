@@ -1,4 +1,4 @@
-"""Run the independent Golden Design #1 lanes after silkscreen resolution."""
+"""Run independent design lanes after silkscreen resolution."""
 
 from __future__ import annotations
 
@@ -11,49 +11,14 @@ from pathlib import Path
 
 from acd.core.command_runner import CommandResult, CommandSpec, run_stage
 from acd.core.runtime_records import TimingRecorder, write_timing_record
+from acd.pipeline.lane_plan import LanePlan, LaneStage, build_lane_plan
+from acd.schema import DesignGraph
 
-LANE_COMMANDS: tuple[CommandSpec, ...] = (
-    CommandSpec(
-        ("uv", "run", "python", "scripts/resolve_gd1_silkscreen.py"),
-        barrier=True,
-    ),
-    CommandSpec(
-        ("uv", "run", "python", "scripts/run_gd1_pipeline.py", "--out", "out/gd1")
-    ),
-    CommandSpec(
-        (
-            "uv",
-            "run",
-            "python",
-            "scripts/run_gd1_enclosure_pipeline.py",
-            "--out",
-            "out/gd1-enclosure",
-        )
-    ),
-    CommandSpec(
-        (
-            "uv",
-            "run",
-            "--with",
-            "cmake==3.31.6",
-            "--script",
-            "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
-            "--out",
-            "out/gd1-fw",
-        )
-    ),
-    CommandSpec(
-        (
-            "uv",
-            "run",
-            "pytest",
-            "-q",
-            "tests/core/test_design_predicates.py::test_gd1_predicates_pass_on_fixture",
-            "tests/core/test_design_predicates.py::test_power_decoupling_distant_capacitor_fails",
-            "tests/pipeline/test_gd1_silkscreen_pinning.py::test_final_silkscreen_coordinates_are_pinned",
-            "tests/pipeline/test_gd1_negative_fixtures.py",
-        )
-    ),
+PYTEST_SUBSET: tuple[str, ...] = (
+    "tests/core/test_design_predicates.py::test_gd1_predicates_pass_on_fixture",
+    "tests/core/test_design_predicates.py::test_power_decoupling_distant_capacitor_fails",
+    "tests/pipeline/test_gd1_silkscreen_pinning.py::test_final_silkscreen_coordinates_are_pinned",
+    "tests/pipeline/test_gd1_negative_fixtures.py",
 )
 
 
@@ -71,7 +36,7 @@ def _positive_int(value: str) -> int:
 def _parser() -> argparse.ArgumentParser:
     """Build the lane runner command-line parser."""
     parser = argparse.ArgumentParser(
-        description="Run the GD1 silkscreen resolver and independent design lanes."
+        description="Run the silkscreen resolver and independent design lanes."
     )
     parser.add_argument(
         "--list",
@@ -95,6 +60,12 @@ def _parser() -> argparse.ArgumentParser:
         help="root directory for lane outputs and L3 runtime records",
     )
     parser.add_argument(
+        "--fixture",
+        type=Path,
+        default=Path("fixtures/golden-design-1"),
+        help="fixture directory containing graph.json",
+    )
+    parser.add_argument(
         "--cache-dir",
         type=Path,
         default=None,
@@ -108,7 +79,85 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _list_lanes() -> None:
+def _graph_id(fixture: Path) -> str:
+    """Read and validate the graph ID used to build the lane plan."""
+    return DesignGraph.model_validate_json(
+        (fixture / "graph.json").read_text(encoding="utf-8")
+    ).graph_id
+
+
+def _command_for_stage(stage: LaneStage, fixture: Path) -> tuple[str, ...]:
+    """Build the subprocess command for one declared lane stage."""
+    output = stage.output_path
+    if stage.command_kind in {"silkscreen", "board", "enclosure", "firmware"} and output is None:
+        raise ValueError(f"{stage.stage_id} stage has no output path")
+    if stage.command_kind == "silkscreen":
+        return (
+            "uv",
+            "run",
+            "python",
+            "scripts/resolve_gd1_silkscreen.py",
+            "--fixture",
+            str(fixture),
+            "--out",
+            str(output),
+        )
+    if stage.command_kind == "board":
+        return (
+            "uv",
+            "run",
+            "python",
+            "scripts/run_gd1_pipeline.py",
+            "--fixture",
+            str(fixture),
+            "--out",
+            str(output),
+        )
+    if stage.command_kind == "enclosure":
+        return (
+            "uv",
+            "run",
+            "python",
+            "scripts/run_gd1_enclosure_pipeline.py",
+            "--fixture",
+            str(fixture),
+            "--out",
+            str(output),
+        )
+    if stage.command_kind == "firmware":
+        return (
+            "uv",
+            "run",
+            "--with",
+            "cmake==3.31.6",
+            "--script",
+            "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
+            "--fixture",
+            str(fixture),
+            "--out",
+            str(output),
+        )
+    if stage.command_kind == "pytest":
+        return ("uv", "run", "pytest", "-q", *PYTEST_SUBSET)
+    raise ValueError(f"stage {stage.stage_id!r} has no lane command")
+
+
+def build_lane_commands(
+    plan: LanePlan,
+    fixture: Path,
+    cache_dir: Path | None = None,
+) -> tuple[CommandSpec, ...]:
+    """Build subprocess command specs from the canonical lane plan."""
+    commands: list[CommandSpec] = []
+    for stage in plan.lane_runner_stages:
+        command = list(_command_for_stage(stage, fixture))
+        if stage.cacheable and cache_dir is not None:
+            command.extend(["--cache-dir", str(cache_dir)])
+        commands.append(CommandSpec(tuple(command), barrier=stage.barrier))
+    return tuple(commands)
+
+
+def _list_lanes(commands: Sequence[CommandSpec]) -> None:
     """Print the lane definitions in machine-readable form."""
     print(
         json.dumps(
@@ -117,7 +166,7 @@ def _list_lanes() -> None:
                     "command": list(spec.command),
                     "barrier": spec.barrier,
                 }
-                for spec in LANE_COMMANDS
+                for spec in commands
             ],
             ensure_ascii=False,
             indent=2,
@@ -128,34 +177,18 @@ def _list_lanes() -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the GD1 lanes."""
     args = _parser().parse_args(argv)
-    if args.list:
-        _list_lanes()
-        return 0
+    fixture = args.fixture
+    graph_id = _graph_id(fixture)
     out_root = args.out_root
     out_root.mkdir(parents=True, exist_ok=True)
     cache_dir = args.cache_dir
     if args.resume and cache_dir is None:
         cache_dir = out_root / ".stage-cache"
-
-    rewrite_outputs = out_root != Path("out")
-    commands: list[CommandSpec] = []
-    for index, spec in enumerate(LANE_COMMANDS):
-        command = list(spec.command)
-        if rewrite_outputs:
-            while "--out" in command:
-                out_index = command.index("--out")
-                del command[out_index : out_index + 2]
-            if index == 0:
-                command.extend(["--out", str(out_root / "gd1-silkscreen-resolve")])
-            elif index == 1:
-                command.extend(["--out", str(out_root / "gd1")])
-            elif index == 2:
-                command.extend(["--out", str(out_root / "gd1-enclosure")])
-            elif index == 3:
-                command.extend(["--out", str(out_root / "gd1-fw")])
-        if index == 1 and cache_dir is not None:
-            command.extend(["--cache-dir", str(cache_dir)])
-        commands.append(CommandSpec(tuple(command), barrier=spec.barrier))
+    plan = build_lane_plan(graph_id, out_root)
+    commands = build_lane_commands(plan, fixture, cache_dir)
+    if args.list:
+        _list_lanes(commands)
+        return 0
 
     timing = TimingRecorder()
     command_results: list[tuple[CommandSpec, CommandResult]] = []

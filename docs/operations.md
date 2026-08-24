@@ -279,9 +279,9 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    barrierとして先に完了させるlane orchestratorを使う。
 
    ```bash
-   uv run python scripts/run_gd1_lanes.py
-   uv run python scripts/run_gd1_lanes.py --jobs 1
-   uv run python scripts/run_gd1_lanes.py --list
+   uv run python scripts/run_design_lanes.py
+   uv run python scripts/run_design_lanes.py --jobs 1
+   uv run python scripts/run_design_lanes.py --list
    ```
 
    `--jobs`の既定値は`min(os.cpu_count() or 1, 4)`である。`--jobs 1`はresolver、
@@ -295,7 +295,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    保存できる。例えば途中失敗後の再開は次のように実行する。
 
    ```bash
-   uv run python scripts/run_gd1_lanes.py --resume --cache-dir out/.stage-cache
+   uv run python scripts/run_design_lanes.py --resume --cache-dir out/.stage-cache
    ```
 
    `--resume`は有効な入力hash一致の生成物だけを復元し、判定、Evidence、timingを復元
@@ -303,7 +303,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    L1 gateは必ず再実行し、Evidenceも新規生成する。破損またはhash不一致のentryは
    無視して再生成する。cache reportはL3観測であり、合否authorityではない。
    `container-gates` jobも、digest固定imageのDockerWorkspace内で`uv sync && uv run
-   python scripts/run_gd1_lanes.py`を実行し、完了後にhost側でauthoritative Evidenceを
+   python scripts/run_design_lanes.py`を実行し、完了後にhost側でauthoritative Evidenceを
    検証する。CPL／BOM chainは逐次のままだが、E-4のDSN／SES stage cacheは
    `--cache-dir`または`--resume`で明示的に利用できる。
    host provisionalでのlane全体の測定は、基板laneが`freerouting` executable不在で

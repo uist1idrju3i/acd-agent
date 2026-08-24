@@ -13,28 +13,22 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from acd.core.naming import artifact_prefix, output_prefix
 from acd.core.order_total import order_total_result_from_document
 from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.order_gate import evaluate_pre_order_gate
+from acd.pipeline import lane_plan
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
 from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
+from acd.pipeline.lane_plan import (
+    DESIGN_LOOP_LANE_IDS,
+    LanePlan,
+    build_lane_plan,
+)
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
 from acd.schema import DesignGraph, OrderPolicy, OrderTotalDocument
 
-DESIGN_LOOP_STAGE_IDS: tuple[str, ...] = (
-    "silkscreen-resolve",
-    "board-pipeline",
-    "enclosure-pipeline",
-    "firmware-pipeline",
-    "order-readiness",
-)
-DESIGN_LOOP_LANE_IDS: tuple[str, ...] = (
-    "board-pipeline",
-    "enclosure-pipeline",
-    "firmware-pipeline",
-)
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
+DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
 
 StageRunner = Callable[["DesignLoopConfig"], Any]
 
@@ -51,6 +45,7 @@ class DesignLoopConfig:
     graph_id: str
     output_prefix: str
     artifact_prefix: str
+    lane_plan: LanePlan
     fab_profile: Path | None
     fab_profile_id: str | None
     max_passes: int
@@ -96,7 +91,9 @@ def _file_sha256(path: Path) -> str:
 
 
 def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
-    output = config.out_root / f"{config.artifact_prefix}-silkscreen"
+    output = config.lane_plan.stage("silkscreen-resolve").output_path
+    if output is None:
+        raise ValueError("silkscreen stage has no output path")
     result = resolve_silkscreen(
         config.fixture_dir,
         output,
@@ -108,21 +105,29 @@ def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
 
 
 def _run_board(config: DesignLoopConfig) -> dict[str, Any]:
-    output = config.out_root / config.artifact_prefix
+    output = config.lane_plan.stage("board-pipeline").output_path
+    if output is None:
+        raise ValueError("board stage has no output path")
     result = run_board_pipeline(
         config.fixture_dir,
         output,
         config.max_passes,
         config.fab_profile,
         fab_profile_id=config.fab_profile_id,
-        cache_dir=config.cache_dir,
+        cache_dir=(
+            config.cache_dir
+            if config.lane_plan.stage("board-pipeline").cacheable
+            else None
+        ),
         timing_recorder=config.timing_recorder,
     )
     return _success("board-pipeline", output_path=str(output), summary=result)
 
 
 def _run_enclosure(config: DesignLoopConfig) -> dict[str, Any]:
-    output = config.out_root / f"{config.artifact_prefix}-enclosure"
+    output = config.lane_plan.stage("enclosure-pipeline").output_path
+    if output is None:
+        raise ValueError("enclosure stage has no output path")
     result = run_enclosure_pipeline(
         config.fixture_dir,
         output,
@@ -133,7 +138,9 @@ def _run_enclosure(config: DesignLoopConfig) -> dict[str, Any]:
 
 def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
     script = _firmware_script(config.repository)
-    output = config.out_root / f"{config.artifact_prefix}-fw"
+    output = config.lane_plan.stage("firmware-pipeline").output_path
+    if output is None:
+        raise ValueError("firmware stage has no output path")
     if not script.is_file():
         return _failure("firmware-pipeline", f"firmware Skill script is missing: {script}")
     if config.run_seconds <= 0:
@@ -280,8 +287,9 @@ def run_design_loop(
     try:
         out_root.mkdir(parents=True, exist_ok=True)
         graph_id = _graph_id(fixture_dir)
-        prefix = output_prefix(graph_id)
-        artifact = artifact_prefix(graph_id)
+        plan = build_lane_plan(graph_id, out_root)
+        prefix = plan.output_prefix
+        artifact = plan.artifact_prefix
         evaluated = _resolve_evaluated_at(evaluated_at)
         if jobs < 1:
             raise ValueError("jobs must be a positive integer")
@@ -296,6 +304,7 @@ def run_design_loop(
             graph_id=graph_id,
             output_prefix=prefix,
             artifact_prefix=artifact,
+            lane_plan=plan,
             fab_profile=fab_profile,
             fab_profile_id=fab_profile_id,
             max_passes=max_passes,
