@@ -100,7 +100,12 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
 
     log = result.log_path.read_text(errors="replace")
     led_gpio = fw_lane.gpio_for_net("net.led")
-    assert_virtual_log_ok(log, target_revision=revision, led_gpio=led_gpio)
+    assert_virtual_log_ok(
+        log,
+        target_revision=revision,
+        led_gpio=led_gpio,
+        boot_log_message=fw_settings.boot_log_message,
+    )
     print("[5/5] virtual log check passed")
     print("NOTE: real-device flashing/LED measurement unavailable (no debug probe attached)")
 

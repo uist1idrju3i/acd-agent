@@ -36,6 +36,8 @@ from acd.openhands.tools.definitions import (
     AcdRunDesignLoopObservation,
     AcdRunEnclosurePipeline,
     AcdRunEnclosurePipelineAction,
+    AcdRunFirmwarePipeline,
+    AcdRunFirmwarePipelineAction,
     AcdValidateDesignGraph,
     AcdValidateDesignGraphAction,
     AcdValidateDesignGraphObservation,
@@ -480,6 +482,80 @@ def test_register_functional_block_tool_reports_hashes_and_dry_run(
 def test_acd_tool_resource_resolution_failure_serializes() -> None:
     action = AcdValidateDesignGraphAction(path="\x00")
     resources = AcdValidateDesignGraph.create()[0].declared_resources(action)
+    assert resources.declared is False
+
+
+def test_pipeline_output_defaults_follow_fixture_graph_id(tmp_path: Path) -> None:
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    (fixture / "graph.json").write_text(
+        json.dumps({"graph_id": "custom-design", "revision": "r1", "nodes": []}),
+        encoding="utf-8",
+    )
+    board_action = AcdRunBoardPipelineAction(fixture=str(fixture))
+    enclosure_action = AcdRunEnclosurePipelineAction(fixture=str(fixture))
+    firmware_action = AcdRunFirmwarePipelineAction(fixture=str(fixture))
+
+    board_resources = AcdRunBoardPipeline.create()[0].declared_resources(board_action)
+    enclosure_resources = AcdRunEnclosurePipeline.create()[0].declared_resources(
+        enclosure_action
+    )
+    firmware_resources = AcdRunFirmwarePipeline.create()[0].declared_resources(
+        firmware_action
+    )
+
+    assert board_resources.declared is True
+    assert f"acd-out:{Path('out/custom-design-mcp').resolve()}" in board_resources.keys
+    assert enclosure_resources.declared is True
+    assert (
+        f"acd-out:{Path('out/custom-design-enclosure-mcp').resolve()}"
+        in enclosure_resources.keys
+    )
+    assert firmware_resources.declared is True
+    assert f"acd-out:{Path('out/custom-design-fw').resolve()}" in firmware_resources.keys
+
+
+def test_pipeline_executors_use_graph_derived_output_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    (fixture / "graph.json").write_text(
+        json.dumps({"graph_id": "custom-design", "revision": "r1", "nodes": []}),
+        encoding="utf-8",
+    )
+    def fake_run_board(*args: object) -> dict[str, str]:
+        del args
+        return {"status": "pass"}
+
+    def fake_run_enclosure(*args: object) -> dict[str, str]:
+        del args
+        return {"status": "pass"}
+
+    monkeypatch.setattr(sdk_tools, "run_board", fake_run_board)
+    monkeypatch.setattr(sdk_tools, "run_enclosure", fake_run_enclosure)
+
+    board = _execute(
+        AcdRunBoardPipeline.create()[0],
+        AcdRunBoardPipelineAction(fixture=str(fixture)),
+    )
+    enclosure = _execute(
+        AcdRunEnclosurePipeline.create()[0],
+        AcdRunEnclosurePipelineAction(fixture=str(fixture)),
+    )
+
+    assert board.ok is True
+    assert board.output_path == "out/custom-design-mcp"
+    assert enclosure.ok is True
+    assert enclosure.output_path == "out/custom-design-enclosure-mcp"
+
+
+def test_pipeline_output_defaults_fail_closed_for_invalid_fixture(tmp_path: Path) -> None:
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    (fixture / "graph.json").write_text("{", encoding="utf-8")
+    action = AcdRunBoardPipelineAction(fixture=str(fixture))
+    resources = AcdRunBoardPipeline.create()[0].declared_resources(action)
     assert resources.declared is False
 
 

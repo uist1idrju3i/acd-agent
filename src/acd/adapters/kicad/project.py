@@ -130,7 +130,7 @@ def write_project(
     out_dir: Path,
     profile: FabProfile,
     placements: tuple[Placement, ...],
-    name: str = "gd1",
+    name: str,
     silkscreen: SilkscreenLane | None = None,
 ) -> ProjectFiles:
     out_dir.mkdir(parents=True, exist_ok=True)

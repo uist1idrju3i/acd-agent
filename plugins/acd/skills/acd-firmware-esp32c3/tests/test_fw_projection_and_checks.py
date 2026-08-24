@@ -76,20 +76,34 @@ def test_lane_extraction_fails_closed_on_duplicate_gpio() -> None:
 
 
 def test_pins_header_is_deterministic(fw_lane: FirmwareLane, tmp_path: Path) -> None:
-    first = write_firmware_project(fw_lane, "r1", tmp_path / "a", "golden-design-1")
-    second = write_firmware_project(fw_lane, "r1", tmp_path / "b", "golden-design-1")
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    settings = extract_firmware_settings(graph)
+    first = write_firmware_project(
+        fw_lane, "r1", tmp_path / "a", "golden-design-1", settings
+    )
+    second = write_firmware_project(
+        fw_lane, "r1", tmp_path / "b", "golden-design-1", settings
+    )
     assert first.pins_header.read_bytes() == second.pins_header.read_bytes()
     assert first.main_source.read_bytes() == second.main_source.read_bytes()
     header = first.pins_header.read_text(encoding="utf-8")
     assert "#define ACD_PIN_LED 7" in header
     assert "#define ACD_SHT40_I2C_ADDRESS 0x44" in header
     assert 'ACD_TARGET_REVISION "r1"' in header
+    assert "ACD GD1 fw boot target_revision=%s" in (
+        first.main_source.read_text(encoding="utf-8")
+    )
 
 
 def test_firmware_settings_default_and_declared_values(graph: DesignGraph) -> None:
     defaults = extract_firmware_settings(graph)
     assert defaults.led_blink_period_ms == 1000
     assert defaults.log_period_ms == 2000
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    assert defaults.boot_log_message == module.attrs.get(
+        "boot_log_message",
+        f"ACD {graph.graph_id} fw boot target_revision=%s",
+    )
     changed = next(node for node in graph.nodes if node.kind == "firmware.module")
     declared = graph.model_copy(
         update={
@@ -114,6 +128,38 @@ def test_firmware_settings_default_and_declared_values(graph: DesignGraph) -> No
     assert settings.led_blink_period_ms == 250
     assert settings.log_period_ms == 750
     assert settings.boot_log_message == "boot %s"
+
+
+def test_firmware_settings_default_is_graph_derived(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    nodes = [
+        node.model_copy(
+            update={
+                "attrs": {
+                    key: value
+                    for key, value in node.attrs.items()
+                    if key != "boot_log_message"
+                }
+            }
+        )
+        if node.id == module.id
+        else node
+        for node in graph.nodes
+    ]
+    arbitrary = graph.model_copy(update={"graph_id": "custom-design", "nodes": nodes})
+    settings = extract_firmware_settings(arbitrary)
+    assert settings.boot_log_message == "ACD custom-design fw boot target_revision=%s"
+    project = write_firmware_project(
+        extract_firmware_lane(arbitrary),
+        "r1",
+        tmp_path,
+        arbitrary.graph_id,
+    )
+    assert "ACD custom-design fw boot target_revision=%s" in project.main_source.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_malformed_firmware_settings_fail_closed(graph: DesignGraph) -> None:

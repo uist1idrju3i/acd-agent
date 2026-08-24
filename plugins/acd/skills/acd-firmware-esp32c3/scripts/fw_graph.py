@@ -48,9 +48,9 @@ class FirmwareLane:
 
 @dataclass(frozen=True)
 class FirmwareSettings:
+    boot_log_message: str = "ACD graph fw boot target_revision=%s"
     led_blink_period_ms: int = 1000
     log_period_ms: int = 2000
-    boot_log_message: str = "ACD GD1 fw boot target_revision=%s"
 
 
 def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
@@ -62,7 +62,7 @@ def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
     for name, default in (
         ("led_blink_period_ms", 1000),
         ("log_period_ms", 2000),
-        ("boot_log_message", "ACD GD1 fw boot target_revision=%s"),
+        ("boot_log_message", f"ACD {graph.graph_id} fw boot target_revision=%s"),
     ):
         value = attrs.get(name, default)
         if isinstance(value, bool) or not isinstance(value, type(default)):
@@ -73,7 +73,7 @@ def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
             raise FirmwareExtractionError(
                 f"node {modules[0].id!r}: attr {name!r} must be positive"
             )
-        if isinstance(value, str) and not value:
+        if isinstance(value, str) and (not value or "%s" not in value):
             raise FirmwareExtractionError(
                 f"node {modules[0].id!r}: attr {name!r} must not be empty"
             )

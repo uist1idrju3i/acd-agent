@@ -104,7 +104,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
-      "sha256": "b597186a4d0b6f29cd99054b3b76c76a8efe658d55ca8c7a3433b01d6b4f6fa5"
+      "sha256": "749a99ca1490ac6c1a510dc395802e826987cf2384ba5cb1a6e6a6478df3ba87"
     },
     {
       "acd_symbols": [
@@ -112,7 +112,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
-      "sha256": "3dac7a02c683fb509b521d7664169de02b98afbcbd36f0002d9f60ca886e5a5d"
+      "sha256": "181a7927016a2224c189c132d47b4761a1e2f3c2ce662dfea9b23dffefa010ac"
     },
     {
       "acd_symbols": [

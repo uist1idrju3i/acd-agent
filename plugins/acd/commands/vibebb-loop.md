@@ -61,3 +61,7 @@ gate、閾値、期待値、revision一致、authoritative Evidenceの規則を�
 Skill出力、AI review、host上のprovisional実行、会話上の判断は合格Evidenceではない。
 ESP-IDF、QEMU、外部toolの不在や検証不能は「問題なし」ではなくfail-closedとして報告する。
 生成物の出力先とprefixはgraph_idから導出され、GD1の既存互換名以外を新たに固定しない。
+FW boot logの既定文言もgraph_idから導出する（規範は
+[`docs/architecture.md`](../../../docs/architecture.md)）。GD1の従来文言はfixtureの
+`firmware.module.boot_log_message`明示属性で再現する。graphが不明な場合は既定値を
+推測せずfail-closedにする。

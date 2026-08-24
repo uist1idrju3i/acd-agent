@@ -54,6 +54,10 @@ def test_runner_uses_read_only_mount_and_downloads_evidence(
         image="acd-tools-gates:local",
         command="uv run python scripts/run_gd1_pipeline.py",
         repository=tmp_path,
+        download_files=(
+            "out/gd1/evidence-electrical.json",
+            "out/gd1-enclosure/evidence-mechanical.json",
+        ),
         workspace_factory=_FakeWorkspace,
     )
 
@@ -157,6 +161,7 @@ def test_runner_fails_when_evidence_download_fails(
             image="acd-server:local",
             command="true",
             repository=tmp_path,
+            download_files=("out/gd1/evidence-electrical.json",),
             workspace_factory=_DownloadFailingWorkspace,
         )
 

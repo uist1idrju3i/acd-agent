@@ -17,11 +17,6 @@ from openhands.workspace import DockerWorkspace
 from acd.core.naming import artifact_prefix, required_evidence_ids
 from acd.schema.design_graph import DesignGraph
 
-DEFAULT_COMMAND = "uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure"
-DEFAULT_DOWNLOAD_FILES = (
-    "out/gd1/evidence-electrical.json",
-    "out/gd1-enclosure/evidence-mechanical.json",
-)
 CONTAINER_REPOSITORY = Path("/acd-src")
 CONTAINER_WORKTREE = Path("/workspace/acd")
 CONTAINER_BUNDLE = Path("/opt/acd")
@@ -136,7 +131,7 @@ def run_command_in_workspace(
     image: str,
     command: str,
     repository: Path,
-    download_files: tuple[str, ...] = DEFAULT_DOWNLOAD_FILES,
+    download_files: tuple[str, ...] = (),
     workspace_factory: Callable[..., Any] | None = None,
     source: WorkspaceSource = "mounted",
 ) -> WorkspaceResult:

@@ -86,7 +86,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 | # | 不足機能 | 現状 |
 |---|---|---|
 | C-1 | 開口・締結の自動生成と干渉解決探索 | 達成。宣言された内部clearance・壁厚・standoff寸法をboundedに候補列挙し、筐体pipelineの機械gate結果をL2探索reportへ記録する。候補はgraphへ自動確定せず、`pass_evidence`も生成しない |
-| C-2 | FWのgraph駆動化 | 達成。`firmware.module`の任意宣言からtimer周期・ログ文字列を生成し、未宣言時は既存GD1既定値を維持する。宣言値のmalformedは検証不能として停止する |
+| C-2 | FWのgraph駆動化 | 達成。`firmware.module`の任意宣言からtimer周期・ログ文字列を生成し、未宣言時も`graph_id`由来の中立値を導出する。GD1は`boot_log_message`明示属性で従来文字列を再現し、宣言値のmalformedは検証不能として停止する |
 | C-3 | FW側の整合gate | 達成。Skill subprocessが出力したpin/config reportをACD側でgraphと再照合するL1 gateを追加した。欠落・parse失敗・不一致はfail-closed |
 | C-4 | CPL orientation期待値のfixture非依存化 | 達成。部品catalogの任意orientation宣言と設計fixture側のplacement確認宣言から汎用fixture builderが`cpl_rotation_*`属性とgraph_id由来のEvidence pathを生成し、設計確認が無い場合は属性を補わず既存CPL gateでfail-closedとする。GD1もcatalog由来へ移行した |
 
@@ -302,7 +302,7 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 | L-2 | 却下後の候補探索の自動連結 | 達成。`run_design_loop`は`explore_board`の明示指定時、board-pipelineのfail-closed却下後かつ全lane join後に、候補予算・round上限付きで`explore_board_candidates`を自動連結する。candidate_foundでもgraph IDとrevisionが探索前と一致し、正規化content hashが変化し、探索reportの`target_revision`がgraph revisionと一致することを検証してloopを再実行し、L1ゲートとEvidenceを毎回生成する。探索reportはL2の操舵・L3観測で合格権限を持たず、exhausted／stopped／不正report／上限到達は元のboard失敗理由を保持してfail-closedとなる。任意graphでは探索次元が設計自由度宣言と既存候補生成器の範囲に限られる | 高 |
 | L-3 | 要件→graph段のloop内取り込み | 達成。`fixture_spec`指定時のfixture生成、`requirement`指定時の既存compiler接続、常時の`requirements.json`入口整合検査をloop前段へ追加した。入口検査をdesign-loop stageとして宣言し、graph ID・revision、constrains node、node kind、graph-anchored text、functional block registryを既存validatorで検査する。missing／parse失敗／不一致はsilkscreen以降をfail-closedで停止する。compile reportはL2だが、入口検査は合否を変更しないL3観測ではなく、L1ゲートやEvidenceの代替でもない。残る限界は要件変更の候補生成や任意graph固有の妥当性を自動推論せず、unknown／未回答を推測しない点である | 中 |
 | L-4 | order-total生成経路の欠落 | 達成。`scripts/aggregate_order_total.py`と`acd_aggregate_order_total`を追加し、複数quote record、OrderScope、FabProfileDocumentから検証済み`OrderTotalDocument`を生成できる。`run_design_loop`にも条件付き`order-total-aggregation` stageを接続し、生成物をorder-readinessへ渡す。legacy `--order-total` document modeとの同時指定はfail-closedで拒否する。集計は決定論的なL2経路であり、L1合格権限やauthoritative Evidenceを持たない。残る限界はquote取得、supplier選択、実発注を行わず、入力recordの妥当性と既存scope契約に依存する点である | 高 |
-| L-5 | 生成物既定値のgd1残留 | `DEFAULT_PROJECT_NAME = "gd1"`、`src/acd/openhands/workspace.py`の既定evidence path、agent toolの既定出力`out/gd1-*`、FW既定の`boot_log_message`のGD1文字列が残る。いずれも宣言で上書きできるが、任意graphでは既定値が誤誘導になる | 中 |
+| L-5 | 生成物既定値のgd1残留 | 達成。KiCad project name、workspace command/download path、OpenHands tool output path、FW boot logの既定値をgraph_idから導出し、graph不明時はGD1へfallbackせずfail-closedにした。GD1 fixtureは明示`boot_log_message`属性と互換prefixで従来path・文字列を再現する。残る限界は任意graphのゲートregistry・部品catalog被覆（L-6）と実機FW検証である | 中 |
 | L-6 | 契約registryとcatalogのトポロジ被覆 | `contracts/functional-block-registry.json`はGD1系の6契約、`contracts/parts-catalog.json`は24 entryのみで、USB-Cを持たない設計や電池駆動設計は契約・catalog追加が前提となり会話からは到達できない（マイルストーン16.2・16.3に依存） | 中 |
 | L-7 | 本書の「現状」列の陳腐化 | 解決済み。A節・K節・G節の「現状」列が14.5・14.7・14.8の達成後も更新されておらず実装状態と齟齬があったため、本節の追加と同じ変更で更新した。実測根拠の観測記録は変更しない | 低 |
 

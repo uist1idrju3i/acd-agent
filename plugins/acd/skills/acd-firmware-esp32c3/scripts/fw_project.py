@@ -139,7 +139,7 @@ static void sht40_log_once(void)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "ACD GD1 fw boot target_revision=%s", ACD_TARGET_REVISION);
+    ESP_LOGI(TAG, "__ACD_BOOT_LOG_MESSAGE__", ACD_TARGET_REVISION);
     ESP_LOGI(TAG, "pins led=%d sda=%d scl=%d", ACD_PIN_LED, ACD_PIN_I2C_SDA, ACD_PIN_I2C_SCL);
 
     gpio_config_t led_cfg = {
@@ -204,7 +204,10 @@ def write_firmware_project(
     graph_id: str,
     settings: FirmwareSettings | None = None,
 ) -> FirmwareProject:
-    settings = settings or FirmwareSettings()
+    if settings is None:
+        settings = FirmwareSettings(
+            boot_log_message=f"ACD {graph_id} fw boot target_revision=%s"
+        )
     name = firmware_project_name(graph_id)
     root = out_dir.resolve() / name
     main_dir = root / "main"
@@ -217,7 +220,7 @@ def write_firmware_project(
     pins_header.write_text(render_pins_header(lane, target_revision, settings))
     main_source = main_dir / "acd_main.c"
     source = _MAIN_C.replace(_LOG_TAG_PLACEHOLDER, log_tag(graph_id))
-    source = source.replace("ACD GD1 fw boot target_revision=%s", settings.boot_log_message)
+    source = source.replace("__ACD_BOOT_LOG_MESSAGE__", settings.boot_log_message)
     main_source.write_text(source)
     return FirmwareProject(
         name=name, root=root, pins_header=pins_header, main_source=main_source

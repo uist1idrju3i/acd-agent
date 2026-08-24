@@ -14,6 +14,11 @@ def _graph() -> DesignGraph:
 
 
 def _report(graph: DesignGraph) -> dict[str, object]:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    boot_log_message = module.attrs.get(
+        "boot_log_message",
+        f"ACD {graph.graph_id} fw boot target_revision=%s",
+    )
     pins = sorted(
         (
             {"node_id": node.id, "gpio": node.attrs["gpio"], "net": node.attrs["net"]}
@@ -30,7 +35,7 @@ def _report(graph: DesignGraph) -> dict[str, object]:
         "settings": {
             "led_blink_period_ms": 1000,
             "log_period_ms": 2000,
-            "boot_log_message": "ACD GD1 fw boot target_revision=%s",
+            "boot_log_message": boot_log_message,
         },
     }
 
@@ -44,6 +49,31 @@ def test_matching_firmware_report_passes(tmp_path: Path) -> None:
 
     assert result.passed
     assert result.report_hash is not None
+
+
+def test_unconfigured_boot_message_is_graph_derived(tmp_path: Path) -> None:
+    graph = _graph().model_copy(
+        update={
+            "nodes": [
+                node.model_copy(update={"attrs": dict(node.attrs)})
+                if node.kind != "firmware.module"
+                else node.model_copy(
+                    update={
+                        "attrs": {
+                            key: value
+                            for key, value in node.attrs.items()
+                            if key != "boot_log_message"
+                        }
+                    }
+                )
+                for node in _graph().nodes
+            ]
+        }
+    )
+    report = tmp_path / "firmware-config-report.json"
+    report.write_text(json.dumps(_report(graph)), encoding="utf-8")
+    result = check_firmware_graph_consistency(graph, report)
+    assert result.passed
 
 
 def test_firmware_report_mismatch_fails_closed(tmp_path: Path) -> None:

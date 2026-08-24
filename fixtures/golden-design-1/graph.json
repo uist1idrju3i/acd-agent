@@ -3997,11 +3997,6 @@
       "kind": "mechanical.board_edge_overhang"
     },
     {
-      "attrs": {
-        "entry_state": "fw.state.boot",
-        "mcu_component": "comp.u1",
-        "module_name": "Main firmware"
-      },
       "depends_on": [
         "comp.u1",
         "fw.state.boot",
@@ -4011,6 +4006,12 @@
         "fw.state.sensor_init"
       ],
       "id": "fw.module.main",
+      "attrs": {
+        "boot_log_message": "ACD GD1 fw boot target_revision=%s",
+        "entry_state": "fw.state.boot",
+        "mcu_component": "comp.u1",
+        "module_name": "Main firmware"
+      },
       "kind": "firmware.module"
     },
     {

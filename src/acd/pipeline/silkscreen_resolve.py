@@ -25,6 +25,7 @@ from acd.core.fab import (
     load_fab_profile_registry,
     resolve_fab_profile_path,
 )
+from acd.core.naming import output_prefix
 from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
 from acd.schema.design_graph import DesignGraph
 
@@ -68,6 +69,7 @@ def measure_silkscreen(
         out_dir,
         profile=profile,
         placements=placements_from_graph(graph, lane),
+        name=output_prefix(graph.graph_id),
         silkscreen=projection_silkscreen,
     )
     kicad = KicadCli()

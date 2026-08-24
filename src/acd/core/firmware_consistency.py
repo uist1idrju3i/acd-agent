@@ -30,7 +30,7 @@ def _expected_settings(graph: DesignGraph) -> dict[str, object]:
     defaults: dict[str, object] = {
         "led_blink_period_ms": 1000,
         "log_period_ms": 2000,
-        "boot_log_message": "ACD GD1 fw boot target_revision=%s",
+        "boot_log_message": f"ACD {graph.graph_id} fw boot target_revision=%s",
     }
     for key in defaults:
         if key in attrs:
@@ -38,7 +38,11 @@ def _expected_settings(graph: DesignGraph) -> dict[str, object]:
             if key.endswith("_ms"):
                 if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                     raise ValueError(f"malformed firmware setting: {key}")
-            elif not isinstance(value, str) or not value:
+            elif (
+                not isinstance(value, str)
+                or not value
+                or "%s" not in value
+            ):
                 raise ValueError(f"malformed firmware setting: {key}")
             defaults[key] = value
     return defaults

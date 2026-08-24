@@ -9,7 +9,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from acd.openhands.workspace import (
-    DEFAULT_DOWNLOAD_FILES,
     ProvisionalWorkspaceResult,
     load_workspace_graph,
     run_command_in_local_workspace,
@@ -64,12 +63,22 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
     try:
-        if args.command:
-            command = " ".join(args.command).strip()
-            download_files = tuple(args.download_files or DEFAULT_DOWNLOAD_FILES)
-        else:
+        defaults = None
+        if not args.download_files or not args.command:
             graph_path = args.graph if args.graph.is_absolute() else args.repo / args.graph
             defaults = workspace_defaults(load_workspace_graph(graph_path).graph_id)
+        if args.command:
+            command = " ".join(args.command).strip()
+            if args.download_files:
+                download_files = tuple(args.download_files)
+            elif defaults is not None:
+                download_files = defaults.download_files
+            else:
+                raise ValueError(
+                    "download files must be explicit when the design graph is unknown"
+                )
+        else:
+            assert defaults is not None
             command = defaults.command
             download_files = tuple(args.download_files or defaults.download_files)
         if args.local_provisional:

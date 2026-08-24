@@ -112,6 +112,11 @@ lane実行のstage ID、順序、barrier、出力先、cache対象は
 基板lane（`out/gd1`）、筐体lane（`out/gd1-enclosure`）、pytest subsetを独立した
 並列batchとして宣言順に実行し、いずれかが失敗した場合はfail-closedで非零終了する。
 laneの出力先は分離され、並列度はhash、Evidence、provenance、summaryへ含めない。
+生成物の既定出力先とproject名は、常に入力Design Graphの`graph_id`から
+`artifact_prefix`または`output_prefix`で導出する。GD1だけは互換aliasにより従来の
+`gd1` pathを再現し、graphを読み取れない場合は既定値へfallbackせずfail-closedにする。
+FW boot logの既定文言は`ACD {graph_id} fw boot target_revision=%s`とする。
+この規則はcoreとSkillがそれぞれ独立実装し、Skill moduleをcoreへimportしない。
 host provisionalではresolver、筐体lane、pytest subsetまで実行できたが、基板laneは
 `freerouting` executable不在によりfail-closedで停止した。したがってhostでのlane全体の
 短縮は未測定であり、CIのdigest固定container gateをauthoritativeな測定経路とする。
