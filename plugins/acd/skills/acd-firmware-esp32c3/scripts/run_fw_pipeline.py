@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@f8b07a47513df1baad615dd1710d629b85810914",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@ddd072b89064f3a16e48f5bfe7ec94c59c80bb7f",
 # ]
 # ///
 """Golden Design #1 firmware pipeline: graph -> ESP-IDF build -> QEMU.
