@@ -86,6 +86,7 @@ class _StageDefinition:
     command_kind: str | None
     design_loop: bool
     lane_runner: bool
+    output_filename: str | None = None
     gd1_only: bool = False
     conditional: bool = False
 
@@ -164,6 +165,7 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         command_kind=None,
         design_loop=False,
         lane_runner=False,
+        output_filename="order-total.json",
         conditional=True,
     ),
     _StageDefinition(
@@ -226,17 +228,16 @@ def build_lane_plan(graph_id: str, out_root: Path) -> LanePlan:
             barrier=definition.barrier,
             output_path=(
                 out_root
+                / definition.output_filename
+                if definition.output_filename is not None
+                else out_root
                 / (
                     resolved_artifact_prefix
                     if definition.output_suffix == ""
                     else f"{resolved_artifact_prefix}{definition.output_suffix}"
                 )
                 if definition.output_suffix is not None
-                else (
-                    out_root / "order-total.json"
-                    if definition.stage_id == "order-total-aggregation"
-                    else None
-                )
+                else None
             ),
             cacheable=definition.cacheable,
             command_kind=definition.command_kind,

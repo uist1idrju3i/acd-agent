@@ -131,6 +131,10 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
     assert plan.stage("board-pipeline").output_path == tmp_path / "gd1"
     assert plan.stage("enclosure-pipeline").output_path == tmp_path / "gd1-enclosure"
     assert plan.stage("firmware-pipeline").output_path == tmp_path / "gd1-fw"
+    assert (
+        plan.stage("order-total-aggregation").output_path
+        == tmp_path / "order-total.json"
+    )
     assert plan.stage("order-readiness").output_path is None
     assert (
         plan.stage("board-exploration").output_path

@@ -1063,6 +1063,7 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
 ) -> None:
     fixture = _copied_fixture(tmp_path)
     seen: list[str] = []
+    aggregation_calls: list[int] = []
     runner_calls: list[tuple[Path, Path, int, Path | None, str | None, Path | None]] = []
 
     def board_runner(config: DesignLoopConfig) -> dict[str, Any]:
@@ -1083,6 +1084,21 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
     }
     runners["board-pipeline"] = board_runner
     _patch_runners(monkeypatch, runners)
+
+    def aggregate_runner(config: DesignLoopConfig) -> dict[str, Any]:
+        aggregation_calls.append(config.max_passes)
+        return {
+            "stage_id": "order-total-aggregation",
+            "ok": True,
+            "fail_closed": False,
+            "pass_evidence": False,
+        }
+
+    monkeypatch.setattr(
+        design_loop,
+        "_run_order_total_aggregation",
+        aggregate_runner,
+    )
 
     def fake_board_pipeline(
         working: Path,
@@ -1142,13 +1158,14 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
     result = run_design_loop(
         fixture,
         tmp_path / "artifacts",
-        order_total=tmp_path / "order-total.json",
         policy=tmp_path / "policy.json",
         fab_profile=fab_profile,
         fab_profile_id="profile-1",
         max_passes=7,
         cache_dir=cache_dir,
         explore_board=True,
+        quote_records=[tmp_path / "quote.json"],
+        order_scope=tmp_path / "scope.json",
     )
 
     assert result["ok"] is True
@@ -1156,6 +1173,7 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
     assert seen.count("silkscreen-resolve") == 2
     assert seen.count("board:golden-design-1") == 2
     assert len(runner_calls) == 1
+    assert aggregation_calls == [7]
     assert runner_calls[0][2:] == (
         7,
         fab_profile,
@@ -1181,6 +1199,7 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
     assert "design-loop/round-2/silkscreen-resolve" in timing_names
     assert "design-loop/round-2/board-pipeline" in timing_names
     assert "design-loop/round-2/requirement-entry-validation" in timing_names
+    assert "design-loop/round-2/order-total-aggregation" in timing_names
     assert len(timing_names) == len(set(timing_names))
 
 

@@ -256,7 +256,7 @@ def _run_order_readiness(config: DesignLoopConfig) -> dict[str, Any]:
 
 
 def _run_order_total_aggregation(config: DesignLoopConfig) -> dict[str, Any]:
-    """Aggregate quote records without producing order-readiness evidence."""
+    """Aggregate caller-provided quote paths without producing readiness evidence."""
     output_path = config.lane_plan.stage("order-total-aggregation").output_path
     if output_path is None:
         return _failure(
@@ -278,17 +278,16 @@ def _run_order_total_aggregation(config: DesignLoopConfig) -> dict[str, Any]:
         )
     try:
         records = [
-            QuoteRecord.model_validate_json(path.read_text(encoding="utf-8"))
-            for path in (
-                _repository_path(config, quote_path)
-                for quote_path in config.quote_records
+            QuoteRecord.model_validate_json(
+                quote_path.read_text(encoding="utf-8")
             )
+            for quote_path in config.quote_records
         ]
         scope = OrderScope.model_validate_json(
-            _repository_path(config, config.order_scope).read_text(encoding="utf-8")
+            config.order_scope.read_text(encoding="utf-8")
         )
         fab_profile = FabProfileDocument.model_validate_json(
-            _repository_path(config, config.fab_profile).read_text(encoding="utf-8")
+            config.fab_profile.read_text(encoding="utf-8")
         )
         graph = _load_graph(config.fixture_dir)
         result = aggregate_order_total(
@@ -339,10 +338,6 @@ def _load_graph(fixture_dir: Path) -> DesignGraph:
     return DesignGraph.model_validate_json(
         (fixture_dir / "graph.json").read_text(encoding="utf-8")
     )
-
-
-def _repository_path(config: DesignLoopConfig, path: Path) -> Path:
-    return path if path.is_absolute() else config.repository / path
 
 
 def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
@@ -702,21 +697,27 @@ def run_design_loop(
             if failed is not None:
                 return once_results, failed
 
-            order_result = run_stage(
-                "order-total-aggregation",
-                runner=_run_order_total_aggregation,
-            ) if active_config.quote_records else None
-            if order_result is not None:
-                once_results.append(order_result)
-                if not order_result.get("ok") or order_result.get("fail_closed"):
-                    return once_results, order_result
-            order_result = run_stage(
+            aggregation_result: dict[str, Any] | None = None
+            if active_config.quote_records:
+                aggregation_result = run_stage(
+                    "order-total-aggregation",
+                    runner=_run_order_total_aggregation,
+                    timing_prefix=timing_prefix,
+                )
+                once_results.append(aggregation_result)
+                if not aggregation_result.get("ok") or aggregation_result.get(
+                    "fail_closed"
+                ):
+                    return once_results, aggregation_result
+            order_readiness_result = run_stage(
                 "order-readiness",
                 timing_prefix=timing_prefix,
             )
-            once_results.append(order_result)
-            if not order_result.get("ok") or order_result.get("fail_closed"):
-                return once_results, order_result
+            once_results.append(order_readiness_result)
+            if not order_readiness_result.get("ok") or order_readiness_result.get(
+                "fail_closed"
+            ):
+                return once_results, order_readiness_result
             return once_results, None
 
         def exploration_stage(round_number: int) -> dict[str, Any]:
