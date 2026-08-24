@@ -311,7 +311,10 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 本節はL-1〜L-6の実装後に、会話開始から発注可否までの経路をコードベース横断で再確認した
 結果である。既存の閾値、ゲート挙動、fail-closed境界、L1権限を変更する提案は含まない。
 本節の各項目を汎用エージェント環境で実行して確認した記録は
-[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)にある。
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)にある。GD1以外の新規設計を
+実機OpenHands環境で実行した記録は[`vibebb-onpremise-verification.md`](vibebb-onpremise-verification.md)に
+あり、M-2が上流（`DesignFixtureSpec`にmechanical・silkscreen・firmware moduleの宣言が無い）で
+顕在化してGD1以外ではlaneへ到達できないことを実測している。
 
 現時点で「acd-agent単体」で成立するのは、自然文由来の宣言を入力とした要件record化、
 graph生成・改訂、機能ブロック宣言、部品選定、トポロジ合成、基板・筐体・FW laneの
