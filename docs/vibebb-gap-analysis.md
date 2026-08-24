@@ -306,6 +306,27 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 | L-6 | 契約registryとcatalogのトポロジ被覆 | 達成部分あり。`contracts/topology-templates.json`をPydanticでfail-closedに検証し、document-levelの`shared_nets`とtemplate-localなrefdes／net IDのscopeで代替blockを許可しつつ、registryへ対応するtemplateを持つblockをPython変更なしで合成できる。`register_part_catalog_entry.py`／`acd_register_parts_catalog_entry`はlibrary fileの存在・SHA-256・source宣言を検査し、曖昧な選択keyを増やさず、既存entryのテキスト整形を保持して原子的に追加する。USB-Cを持たないfixtureと電池給電fixtureの回帰テストで到達性を示した。一方、電池の充電・保護回路の規範的契約やpredicateは追加していないため、その判定は未対応であり16.2・16.3に依存する | 中 |
 | L-7 | 本書の「現状」列の陳腐化 | 解決済み。A節・K節・G節の「現状」列が14.5・14.7・14.8の達成後も更新されておらず実装状態と齟齬があったため、本節の追加と同じ変更で更新した。実測根拠の観測記録は変更しない | 低 |
 
+## M. マイルストーン14.11後のVibeBB単体成立再監査
+
+本節はL-1〜L-6の実装後に、会話開始から発注可否までの経路をコードベース横断で再確認した
+結果である。既存の閾値、ゲート挙動、fail-closed境界、L1権限を変更する提案は含まない。
+
+現時点で「acd-agent単体」で成立するのは、自然文由来の宣言を入力とした要件record化、
+graph生成・改訂、機能ブロック宣言、部品選定、トポロジ合成、基板・筐体・FW laneの
+決定論的ゲート実行、却下後の基板候補探索、stage cache・resume・timing、
+order-total集計と発注可否判定までである。成立しないのは、供給者からの実見積取得と
+実発注送信（M-3）であり、これは外部接続とcredentialに依存するため実装だけでは閉じない。
+残りのM-1・M-2はacd-agent内で閉じる不足、M-4・M-5は設計能力・実機検証の拡張である。
+
+| # | 不足機能 | 根拠 | 優先度 | 依存 | 完了条件 |
+|---|---|---|---|---|---|
+| M-1 | 筐体却下後の候補探索がloopへ自動連結されていない | `run_design_loop`は`explore_board`だけを受け取り、`src/acd/core/enclosure_exploration.py`の`explore_enclosure_candidates`は[`vibebb-loop.md`](../plugins/acd/commands/vibebb-loop.md)で手動実行として案内している。基板だけがL-2で自動連結され、筐体干渉の却下後は会話側の手作業に戻る | 高 | なし（L-2の連結構造と`enclosure_exploration`を再利用する） | 筐体pipelineのfail-closed却下時に限り、全lane join後へ候補予算とround上限付きで連結する。graph IDとrevisionが探索前と一致し、正規化content hashが変化し、探索reportの`target_revision`がgraph revisionと一致することを検証してからloopを再実行する。基板・FW・silkscreenの失敗では起動しない。timing名をround修飾する。探索reportはEvidence権限を持たず、exhausted／stopped／不正report／上限到達は元の筐体失敗理由を保持する。起動条件と非起動条件の両方に回帰テストを持つ |
+| M-2 | 任意graph向けの設計固有検証laneが無い | `src/acd/pipeline/lane_plan.py`のpytest subsetは`gd1_only=True`で宣言され、`artifact_prefix == "gd1"`のときだけlaneへ現れる。GD1以外の設計はlane runnerから設計固有の回帰検証を受けられない | 中 | A-2／A-3の宣言経路（達成済み） | 検証lane対象を設計側の宣言（fixture spec等）から導出する。宣言が無い設計ではlaneを宣言せず、未宣言を合格として扱わない。GD1の現行subsetは不変とし、`--jobs 1`と並列で収集件数・判定・正規化hashが一致することを固定する |
+| M-3 | 見積取得と実発注のsupplier接続 | D-2／D-3はprovider境界で停止し、L-4の`aggregate_order_total`はquote recordを入力として要求する。会話からは実価格・在庫・納期・実装可否を取得できず、発注可否判定は与えられたrecordの範囲に閉じる | 高 | 外部supplier APIとcredential（環境側の秘密情報）。acd-agentの実装だけでは閉じない | providerを`QuoteProvider`／発注provider境界の実装として接続する。期限切れ、通貨不一致、在庫・実装可否のunknownはfail-closedとする。dry-runを既定に保ち、credential不在時は停止する。送信recordとjournalへ入力hashと出力hashを記録し、実発注結果をL1合格権限へ昇格しない |
+| M-4 | 電池の充電・保護回路とEMC/ESDの設計述語 | `src/acd/core/design_predicates.py`の`PREDICATE_CATALOG`は6件で、電源境界とdecoupling以外に充電・保護・電力バジェット・保護素子有無の判定を持たない。L-6でtopology templateと部品catalogの追加経路は宣言経由へ開いたが、規範的な契約と述語は追加していない | 中 | 16.2（バッテリ駆動）・16.3（EMC/ESD） | 述語の適用条件を14.2の契約registryで宣言し、宣言外はunknownとして停止側へ集約する。消費電流と容量の収支を宣言由来入力から決定論的に検査する。正負両方のテストを持ち、既存GD1の判定と正規化hashを変えない |
+| M-5 | 実機FW検証 | FW laneはSkill subprocessのpin/config照合とQEMU仮想実行までで（C-2／C-3）、実機書き込み後の動作Evidenceはloopの判定に入らない | 低 | 実機とマイルストーン5の実機Evidence取り込み経路（実装済み） | 実機Evidenceをrevision一致で取り込み、virtual／host実行をprovisionalとして区別する。実機Evidence不在はunknownとして停止し、virtual結果を実機合格へ昇格しない |
+| M-6 | 自然文から宣言への変換責務（不足ではなく境界） | `compile_requirement_change`と`build_design_fixture`は`RequirementDocument`／`DesignFixtureSpec`という構造化宣言を入力に要求する。自然文から宣言への変換はplugin側のAgentDefinition（L2）が担い、決定論的coreは未回答・unknownを推測しない | — | なし | 追加実装は不要。coreが自然文を推測しない境界を維持し、宣言不足はL-3の入口整合検査でfail-closedとする |
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -332,3 +353,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 8. I-3〜I-5／E-5、C-2／C-3、D-1〜D-3は14.6で達成した。実supplier接続はprovider境界の後続作業として残る。
 9. F-1〜F-4（image publishとdigest lock更新）。達成済み。digest lockとregistry manifestの照合、配布文書の整合を含む。残存するH-2〜H-4／K-4（skew検出と計測）は運用の再現性と回帰防止を強化する。
 10. L-1〜L-7（マイルストーン14.10後に残る会話駆動loopの不足）。会話経路へのcache・resume・timing・lane並列の接続、候補探索と要件→graphのloop内取り込み、order-total生成、gd1既定値、契約registry・catalog被覆、本書の現状列更新を扱う。
+11. M-1〜M-6（マイルストーン14.11後の再監査）。M-1（筐体却下後の候補探索の自動連結）とM-2（任意graph向け検証lane）はacd-agent内で閉じるため先に扱う。M-3（実見積・実発注のsupplier接続）は外部接続とcredentialに依存し、実装だけでは閉じない。M-4は16.2・16.3、M-5は実機、M-6は境界の維持である。

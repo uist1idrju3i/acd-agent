@@ -616,11 +616,15 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する。達成 |
 | 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合。達成 |
 | 14.10 | VibeBB loopのcommand（I-1） | `/acd:vibebb-loop`とgraph駆動の単一orchestratorを追加し、要件からgraph検証、silkscreen barrier、基板・筐体・FW、発注可否までを固定順序でfail-closed実行する。達成 |
-| 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。L-1〜L-6のdata/template・`shared_nets`を含むscope-awareなtopology・catalog追加経路・USB-C非搭載／電池給電fixture到達部分は実装済みだが、電池の充電・保護回路の規範的契約とpredicateは未実装で16.2・16.3に依存するため、L-6を全面完了とは扱わない。C-1（筐体の干渉解決探索）はマイルストーン11.5で達成済み、C-4（CPL orientation期待値のfixture非依存化）はマイルストーン7の範囲で達成済みである。計画 |
+| 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。L-1〜L-6を達成し、topology templateのdata化（`shared_nets`とscope-awareな一意性）、部品catalogの追加経路、USB-C非搭載／電池給電fixtureの到達性まで実装した。電池の充電・保護回路の規範的契約とpredicateは16.2・16.3依存として本範囲外に置く。L-7の再監査を実施し、残る不足を[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のM節（M-1〜M-6）へ根拠・優先度・依存・完了条件付きで記録した。M-1・M-2は14.12、M-3はマイルストーン7のprovider境界の後続、M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当てる。C-1（筐体の干渉解決探索）はマイルストーン11.5で達成済み、C-4（CPL orientation期待値のfixture非依存化）はマイルストーン7の範囲で達成済みである。達成 |
+| 14.12 | 再監査で残った会話駆動loopの不足（M-1・M-2） | 筐体pipelineのfail-closed却下を引き金とした`explore_enclosure_candidates`のloop内自動連結（M-1）と、任意graph向け設計固有検証laneの宣言由来化（M-2）を扱う。探索reportはL2操舵・L3観測のままとし、候補予算とround上限、graph ID・revisionの一致と正規化content hashの変化検査、未宣言を合格としない境界を維持する |
 
 C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
 マイルストーン14.10後の会話駆動loopの残存不足は、L-1〜L-7として14.11で扱う。
+14.11後の再監査（L-7）で残ったM-1・M-2は14.12で扱い、M-3はマイルストーン7のprovider境界、
+M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当てる。M-6は境界の維持であり
+追加実装を要しない。
 
 ### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
 
