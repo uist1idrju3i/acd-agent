@@ -177,7 +177,7 @@ def run_command_in_workspace(
                     f"test -d {CONTAINER_BUNDLE / 'scripts'} && "
                     f"test -d {CONTAINER_BUNDLE / 'fixtures'} && "
                     f"test -d {CONTAINER_BUNDLE / 'contracts'} && "
-                        f"test -d {CONTAINER_BUNDLE / '.venv'} && "
+                    f"test -d {CONTAINER_BUNDLE / '.venv'} && "
                     f"cd {CONTAINER_BUNDLE} && "
                 )
             else:
