@@ -21,7 +21,7 @@ allowed-tools:
 2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
    - fixture生成（spec指定時のみ）
    - 要件compile（更新record指定時のみ）
-   - 要件入口整合検査（常時）
+   - 要件入口整合検査（常時のdesign-loop stage）
    - silkscreen resolver（基板pipelineの前提となるbarrier）
    - 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
    - 発注可否のpre-order gate

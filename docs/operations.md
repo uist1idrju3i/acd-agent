@@ -415,8 +415,8 @@ CLIの既定値は`min(os.cpu_count() or 1, 3)`である。tool経路の`jobs`�
 要件入口整合検査は`requirements.json`を必須入力としてparseし、graph ID、revision、
 constrains node、node kind、graph-anchored requirement nodeのtext、functional block
 registryを既存validatorで検査する。missing、parse失敗、不一致、unknownや未回答の
-要件は推測せずfail-closedとし、silkscreen以降を実行しない。この検査はL1ゲートや
-authoritative Evidenceの代替ではない。
+要件は推測せずfail-closedとし、silkscreen以降を実行しない。この常時stageはL1ゲートや
+authoritative Evidenceの代替ではなく、合否を変更しないL3観測として分類しない。
 
 board-pipelineのfail-closed却下後に候補探索をloopへ自動連結する場合は、探索を明示的に
 有効化し、候補予算とround上限を正整数で指定する。

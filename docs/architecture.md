@@ -250,16 +250,17 @@ Evidenceを生成・昇格せず、ToolDefinitionとSkillへ合否権限を与�
 ゲートは生成後の成果物を独立parser・測定器で確認し、Skillの代理指標や自然文を
 合格根拠にしない。
 
-### 要件入力の条件付きstage
+### 要件入力stage
 
-`run_design_loop`は、`fixture_spec`指定時だけfixture生成を、`requirement`指定時だけ
-要件compileを、loop前段の直列stageとして実行する。既存のbuilderとcompilerを再実装せず、
-fixtureの`graph.json`を無条件に上書きしない。続く要件入口整合検査は常時実行し、
+`run_design_loop`は、要件入口整合検査を常時のdesign-loop stageとして、
+`fixture_spec`指定時だけfixture生成を、`requirement`指定時だけ要件compileを、
+loop前段の直列stageとして実行する。既存のbuilderとcompilerを再実装せず、
+fixtureの`graph.json`を無条件に上書きしない。
 `requirements.json`を既存の`load_requirements`と`validate_requirements`でgraph ID、
 revision、node、graph-anchored text、functional block registryまで検査する。missing、
 parse失敗、unknown、未回答、不一致はfail-closedでsilkscreen以降を停止する。このstageは
-L1ゲートやauthoritative Evidenceの代替ではなく、compile観測はL2、入口検査観測はL3で
-`pass_evidence: false`とする。
+L1ゲートやauthoritative Evidenceの代替ではなく、合否を変更しない観測分類のL3でもない。
+compileのreport分類はL2で、両stageとも`pass_evidence: false`とする。
 
 ### board候補探索の条件付きstage
 

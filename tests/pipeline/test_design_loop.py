@@ -120,7 +120,11 @@ def test_design_loop_stops_after_first_failed_stage(
     assert result["fail_closed"] is True
     assert result["failed_stage"] == "board-pipeline"
     assert result["failure_reason"] == "intentional test failure"
-    assert seen == ["silkscreen-resolve", "board-pipeline"]
+    assert seen == [
+        "requirement-entry-validation",
+        "silkscreen-resolve",
+        "board-pipeline",
+    ]
     assert [item["stage_id"] for item in result["results"]] == [
         "requirement-entry-validation",
         "silkscreen-resolve",
@@ -154,11 +158,17 @@ def test_missing_firmware_skill_fails_closed_without_running_order_gate(
     assert result["fail_closed"] is True
     assert result["failed_stage"] == "firmware-pipeline"
     assert "Skill script is missing" in result["failure_reason"]
-    assert seen == ["silkscreen-resolve", "board-pipeline", "enclosure-pipeline"]
+    assert seen == [
+        "requirement-entry-validation",
+        "silkscreen-resolve",
+        "board-pipeline",
+        "enclosure-pipeline",
+    ]
 
 
 def test_design_loop_stage_set_and_order_are_fixed() -> None:
     assert DESIGN_LOOP_STAGE_IDS == (
+        "requirement-entry-validation",
         "silkscreen-resolve",
         "board-pipeline",
         "enclosure-pipeline",
@@ -344,10 +354,10 @@ def test_design_loop_parallel_lanes_preserve_result_order_and_hashes(
     assert sequential["ok"] is True
     assert parallel["ok"] is True
     assert [item["stage_id"] for item in sequential["results"]] == list(
-        ("requirement-entry-validation", *DESIGN_LOOP_STAGE_IDS)
+        DESIGN_LOOP_STAGE_IDS
     )
     assert [item["stage_id"] for item in parallel["results"]] == list(
-        ("requirement-entry-validation", *DESIGN_LOOP_STAGE_IDS)
+        DESIGN_LOOP_STAGE_IDS
     )
     assert [
         item["normalized_hash"]
@@ -442,7 +452,10 @@ def test_design_loop_parallel_failure_reports_all_started_lanes_without_order_ga
 
     assert result["ok"] is False
     assert result["failed_stage"] == "board-pipeline"
-    assert set(seen) == set(DESIGN_LOOP_LANE_IDS) | {"silkscreen-resolve"}
+    assert set(seen) == set(DESIGN_LOOP_LANE_IDS) | {
+        "requirement-entry-validation",
+        "silkscreen-resolve",
+    }
     assert [item["stage_id"] for item in result["results"]] == [
         "requirement-entry-validation",
         "silkscreen-resolve",
@@ -456,13 +469,14 @@ def test_design_loop_records_timing_write_failure_without_changing_verdict(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    _patch_runners(
-        monkeypatch,
-        {
-            stage_id: _successful_runner(stage_id, [])
-            for stage_id in DESIGN_LOOP_STAGE_IDS
-        },
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["requirement-entry-validation"] = (
+        design_loop._run_requirement_entry_validation  # pyright: ignore[reportPrivateUsage]
     )
+    _patch_runners(monkeypatch, runners)
 
     def fail_write(*args: Any, **kwargs: Any) -> Path:
         del args, kwargs
@@ -570,13 +584,14 @@ def test_requirement_entry_validation_records_input_facts(
     tmp_path: Path,
 ) -> None:
     fixture = _copied_fixture(tmp_path)
-    _patch_runners(
-        monkeypatch,
-        {
-            stage_id: _successful_runner(stage_id, [])
-            for stage_id in DESIGN_LOOP_STAGE_IDS
-        },
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["requirement-entry-validation"] = (
+        design_loop._run_requirement_entry_validation  # pyright: ignore[reportPrivateUsage]
     )
+    _patch_runners(monkeypatch, runners)
 
     result = run_design_loop(
         fixture,
@@ -588,7 +603,7 @@ def test_requirement_entry_validation_records_input_facts(
     entry = result["results"][0]
     assert result["ok"] is True
     assert entry["stage_id"] == "requirement-entry-validation"
-    assert entry["record_class"] == "L3"
+    assert "record_class" not in entry
     assert entry["requirements_sha256"].startswith("sha256:")
     assert entry["graph_id"] == "golden-design-1"
     assert entry["revision"] == "r1"
@@ -770,6 +785,38 @@ def test_fixture_generation_parse_failure_is_recorded_as_stage_failure(
     assert result["failed_stage"] == "fixture-generation"
     assert result["results"][0]["stage_id"] == "fixture-generation"
     assert "ValidationError" in result["results"][0]["failure_reason"]
+
+
+def test_fixture_generation_uses_declared_graph_id_for_initial_plan(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    spec = tmp_path / "misleading-file-name.json"
+    spec.write_text(
+        json.dumps({"design_name": "declared-design", "graph_id": "declared-id"}),
+        encoding="utf-8",
+    )
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    result = run_design_loop(
+        tmp_path / "fixture",
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        fixture_spec=spec,
+    )
+
+    assert result["ok"] is True
+    assert result["graph_id"] == "declared-id"
+    assert result["output_prefix"] == output_prefix("declared-id")
+    assert result["artifact_prefix"] == artifact_prefix("declared-id")
+    assert result["results"][0]["graph_id"] == "declared-id"
 
 
 def test_board_rejection_explores_with_loop_configuration(

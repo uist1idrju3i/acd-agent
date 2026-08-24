@@ -97,6 +97,7 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
         "firmware-pipeline",
     ]
     assert plan.design_loop_stage_ids == (
+        "requirement-entry-validation",
         "silkscreen-resolve",
         "board-pipeline",
         "enclosure-pipeline",

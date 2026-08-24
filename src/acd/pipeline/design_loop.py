@@ -329,12 +329,10 @@ def _run_requirement_entry_validation(config: DesignLoopConfig) -> dict[str, Any
         return _failure(
             "requirement-entry-validation",
             f"{type(exc).__name__}: {exc}",
-            record_class="L3",
             requirements_path=str(requirements_path),
         )
     return _success(
         "requirement-entry-validation",
-        record_class="L3",
         requirements_path=str(requirements_path),
         requirements_sha256=loaded.document_hash,
         graph_id=graph.graph_id,
@@ -352,6 +350,7 @@ def _resolve_evaluated_at(value: datetime | None) -> datetime:
 
 
 DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
+    "requirement-entry-validation": _run_requirement_entry_validation,
     "silkscreen-resolve": _run_silkscreen,
     "board-pipeline": _run_board,
     "enclosure-pipeline": _run_enclosure,
@@ -407,11 +406,13 @@ def run_design_loop(
     config: DesignLoopConfig | None = None
     try:
         out_root.mkdir(parents=True, exist_ok=True)
-        graph_id = (
-            fixture_spec.stem
-            if fixture_spec is not None
-            else _graph_id(fixture_dir)
-        )
+        if fixture_spec is not None:
+            spec = DesignFixtureSpec.model_validate_json(
+                fixture_spec.read_text(encoding="utf-8")
+            )
+            graph_id = spec.graph_id or spec.design_name
+        else:
+            graph_id = _graph_id(fixture_dir)
         plan = build_lane_plan(graph_id, out_root)
         prefix = plan.output_prefix
         artifact = plan.artifact_prefix
@@ -460,9 +461,15 @@ def run_design_loop(
             }
         )
     except Exception as exc:
+        failure_stage = "fixture-generation" if fixture_spec is not None else "input"
+        failure = _failure(
+            failure_stage,
+            f"{type(exc).__name__}: {exc}",
+        )
+        result["results"] = [failure] if fixture_spec is not None else []
         result.update(
             {
-                "failed_stage": "input",
+                "failed_stage": failure_stage,
                 "failure_reason": f"{type(exc).__name__}: {exc}",
             }
         )
@@ -544,7 +551,6 @@ def run_design_loop(
             )
             requirement_entry = run_stage(
                 "requirement-entry-validation",
-                runner=_run_requirement_entry_validation,
                 timing_prefix=timing_prefix,
             )
             once_results.append(requirement_entry)
