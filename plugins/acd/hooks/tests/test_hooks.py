@@ -23,10 +23,11 @@ def run(
     tool_name: str = "file_editor",
     root: Path = ROOT,
     extra_env: dict[str, str] | None = None,
+    script_root: Path = SCRIPTS,
 ) -> tuple[int, dict[str, Any]]:
     payload = {"tool_name": tool_name, "tool_input": tool_input, "working_dir": str(root)}
     completed = subprocess.run(
-        ["python", str(SCRIPTS / name)], input=json.dumps(payload), text=True,
+        ["python", str(script_root / name)], input=json.dumps(payload), text=True,
         capture_output=True,
         cwd=root,
         env={
@@ -215,24 +216,33 @@ def test_order_with_dirty_design_input_remains_denied(tmp_path: Path) -> None:
     assert output["decision"] == "deny"
 
 
-def test_order_policy_missing_or_malformed_is_denied() -> None:
-    policy = ROOT / "plugins/acd/hooks/order-policy.json"
-    original = policy.read_text(encoding="utf-8")
-    try:
-        policy.unlink()
-        code, output = run("order_policy.py", {"command": "scripts/order"}, "terminal")
-        assert code == 2
-        assert "policy" in output["reason"].lower()
-    finally:
-        policy.write_text(original, encoding="utf-8")
+def test_order_policy_missing_or_malformed_is_denied(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugin"
+    shutil.copytree(ROOT / "plugins/acd/hooks", plugin_root / "hooks")
+    policy = plugin_root / "hooks/order-policy.json"
+    script_root = plugin_root / "hooks/scripts"
+    policy.unlink()
 
-    try:
-        policy.write_text("{", encoding="utf-8")
-        code, output = run("order_policy.py", {"command": "scripts/order"}, "terminal")
-        assert code == 2
-        assert "policy" in output["reason"].lower()
-    finally:
-        policy.write_text(original, encoding="utf-8")
+    code, output = run(
+        "order_policy.py",
+        {"command": "scripts/order"},
+        "terminal",
+        tmp_path,
+        script_root=script_root,
+    )
+    assert code == 2
+    assert "policy" in output["reason"].lower()
+
+    policy.write_text("{", encoding="utf-8")
+    code, output = run(
+        "order_policy.py",
+        {"command": "scripts/order"},
+        "terminal",
+        tmp_path,
+        script_root=script_root,
+    )
+    assert code == 2
+    assert "policy" in output["reason"].lower()
 
 
 def test_session_start_never_blocks() -> None:
