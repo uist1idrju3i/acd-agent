@@ -36,7 +36,8 @@ allowed-tools:
 bounded並列（`jobs`）を利用できる。`resume`で`cache_dir`を省略した場合は
 `out_root/.stage-cache`を使う。cacheから復元するのは決定論的な生成物だけであり、
 判定、verdict、Evidenceは復元せず毎回再実行する。timing recordとcache reportは
-L3観測であり、合否を変更しない。
+L3観測であり、合否を変更しない。tool経路の`jobs`既定値は1であり、並列化は
+明示指定時だけ有効になる。CLIの既定値は`min(os.cpu_count() or 1, 3)`である。
 
 各段はfail-closedであり、`ok: false`、`fail_closed: true`、失敗段ID、そこまでの
 段結果を含むJSONを返す。段を黙って省略したり順序を入れ替えたりしてはならない。

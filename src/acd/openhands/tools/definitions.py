@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -317,7 +316,7 @@ class AcdRunDesignLoopAction(Action):
         description="Reuse valid matching artifacts without restoring verdicts or Evidence.",
     )
     jobs: int = Field(
-        default=min(os.cpu_count() or 1, 3),
+        default=1,
         ge=1,
         description="Maximum parallel board, enclosure, and firmware lanes.",
     )
@@ -1365,7 +1364,7 @@ class AcdRunDesignLoop(
             return DeclaredResources(keys=(), declared=False)
         root = Path(action.repository)
         cache_resource = (
-            (("acd-cache", Path(action.cache_dir)),) if action.cache_dir else ()
+            (("acd-out", Path(action.cache_dir)),) if action.cache_dir else ()
         )
         return _resources(
             ("file", Path(action.fixture) / "graph.json"),

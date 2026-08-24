@@ -177,19 +177,38 @@ def test_design_loop_tool_preserves_fail_closed_observation(
     assert result.summary == expected
     assert captured["cache_dir"] is None
     assert captured["resume"] is False
-    assert captured["jobs"] >= 1
+    assert captured["jobs"] == 1
 
 
 def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
     action = AcdRunDesignLoopAction(order_total="order-total.json")
     assert action.cache_dir is None
     assert action.resume is False
-    assert action.jobs >= 1
+    assert action.jobs == 1
     with pytest.raises(ValueError):
         AcdRunDesignLoopAction(order_total="order-total.json", jobs=0)
     schema = AcdRunDesignLoop.create()[0].action_type.model_json_schema()
     assert {"cache_dir", "resume", "jobs"} <= set(schema["properties"])
+    assert schema["properties"]["jobs"]["default"] == 1
     assert schema["properties"]["jobs"]["minimum"] == 1
+
+
+def test_design_loop_tool_declares_cache_as_output_resource(
+    tmp_path: Path,
+) -> None:
+    action = AcdRunDesignLoopAction(
+        fixture=str(tmp_path / "fixture"),
+        order_total=str(tmp_path / "order-total.json"),
+        policy=str(tmp_path / "policy.json"),
+        repository=str(tmp_path),
+        out_root=str(tmp_path / "out"),
+        cache_dir=str(tmp_path / "cache"),
+    )
+    resources = AcdRunDesignLoop.create()[0].declared_resources(action)
+
+    assert resources.declared is True
+    assert f"acd-out:{(tmp_path / 'cache').resolve()}" in resources.keys
+    assert not any(key.startswith("acd-cache:") for key in resources.keys)
 
 
 def test_enclosure_exploration_tool_preserves_l2_observation(

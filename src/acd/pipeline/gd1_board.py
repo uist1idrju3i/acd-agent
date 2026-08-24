@@ -1913,7 +1913,6 @@ def run_pipeline(
     mark_stage(12)
     if timing_recorder is not None:
         timing_recorder.finish("board[12/12]")
-    cache_report_error: str | None = None
     if cache is not None:
         cache_report: dict[str, object] = {
             "schema_version": "0.1",
@@ -1921,20 +1920,14 @@ def run_pipeline(
             "pass_evidence": False,
             "events": cache_events,
         }
-        try:
-            cache_report["content_sha256"] = canonical_json_sha256(cache_report)
-            (out_dir / "cache-report.json").write_text(
-                json.dumps(cache_report, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-        except Exception as exc:
-            cache_report_error = f"{type(exc).__name__}: {exc}"
-            print(f"cache report write failed (non-authoritative): {cache_report_error}")
+        cache_report["content_sha256"] = canonical_json_sha256(cache_report)
+        (out_dir / "cache-report.json").write_text(
+            json.dumps(cache_report, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     if order_readiness["status"] != "ready":
         print("製造データは生成済み、発注は不可: order-readiness gate failed")
         raise ValueError(f"Order readiness gate failed: {order_readiness_path}")
-    if cache_report_error is not None:
-        hashes["cache_report_error"] = cache_report_error
     return hashes
 
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -15,7 +14,6 @@ import pytest
 import acd.pipeline.design_loop as design_loop  # pyright: ignore[reportMissingTypeStubs]
 from acd.core.naming import artifact_prefix, output_prefix
 from acd.pipeline.design_loop import (  # pyright: ignore[reportMissingTypeStubs]
-    DEFAULT_DESIGN_LOOP_JOBS,
     DEFAULT_STAGE_RUNNERS,
     DESIGN_LOOP_LANE_IDS,
     DESIGN_LOOP_STAGE_IDS,
@@ -306,10 +304,6 @@ def test_unsafe_graph_id_fails_closed(tmp_path: Path) -> None:
     assert result["fail_closed"] is True
     assert result["failed_stage"] == "input"
     assert "output prefix" in result["failure_reason"]
-
-
-def test_design_loop_default_jobs_is_bounded() -> None:
-    assert min(os.cpu_count() or 1, 3) == DEFAULT_DESIGN_LOOP_JOBS
 
 
 def test_design_loop_parallel_lanes_preserve_result_order_and_hashes(

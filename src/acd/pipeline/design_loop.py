@@ -262,15 +262,14 @@ def run_design_loop(
 ) -> dict[str, Any]:
     """Run all design stages in their fixed fail-closed order."""
     timing = TimingRecorder()
+    resolved_cache_dir = cache_dir
+    if resume and resolved_cache_dir is None:
+        resolved_cache_dir = out_root / ".stage-cache"
     result: dict[str, Any] = {
         "ok": False,
         "fail_closed": True,
         "pass_evidence": False,
-        "cache_dir": (
-            str(cache_dir if cache_dir is not None else out_root / ".stage-cache")
-            if resume
-            else (str(cache_dir) if cache_dir is not None else None)
-        ),
+        "cache_dir": str(resolved_cache_dir) if resolved_cache_dir is not None else None,
         "resume": resume,
         "jobs": jobs,
         "results": [],
@@ -286,9 +285,6 @@ def run_design_loop(
         evaluated = _resolve_evaluated_at(evaluated_at)
         if jobs < 1:
             raise ValueError("jobs must be a positive integer")
-        resolved_cache_dir = (
-            cache_dir if cache_dir is not None else out_root / ".stage-cache"
-        ) if resume else cache_dir
         if resolved_cache_dir is not None:
             resolved_cache_dir.mkdir(parents=True, exist_ok=True)
         config = DesignLoopConfig(
@@ -329,7 +325,6 @@ def run_design_loop(
             }
         )
     else:
-        assert config is not None
         results: list[dict[str, Any]] = []
 
         def run_stage(stage_id: str) -> dict[str, Any]:
@@ -359,6 +354,24 @@ def run_design_loop(
                 normalized["timing_error"] = timing_error
             return normalized
 
+        def run_lanes() -> list[dict[str, Any]]:
+            if jobs == 1:
+                lane_results: list[dict[str, Any]] = []
+                for stage_id in DESIGN_LOOP_LANE_IDS:
+                    stage_result = run_stage(stage_id)
+                    lane_results.append(stage_result)
+                    if not stage_result.get("ok") or stage_result.get("fail_closed"):
+                        break
+                return lane_results
+            with ThreadPoolExecutor(
+                max_workers=min(jobs, len(DESIGN_LOOP_LANE_IDS))
+            ) as executor:
+                futures = {
+                    stage_id: executor.submit(run_stage, stage_id)
+                    for stage_id in DESIGN_LOOP_LANE_IDS
+                }
+                return [futures[stage_id].result() for stage_id in DESIGN_LOOP_LANE_IDS]
+
         silkscreen = run_stage("silkscreen-resolve")
         results.append(silkscreen)
         if not silkscreen.get("ok") or silkscreen.get("fail_closed"):
@@ -371,53 +384,8 @@ def run_design_loop(
                     "results": results,
                 }
             )
-        elif jobs == 1:
-            for stage_id in DESIGN_LOOP_LANE_IDS:
-                stage_result = run_stage(stage_id)
-                results.append(stage_result)
-                if not stage_result.get("ok") or stage_result.get("fail_closed"):
-                    result.update(
-                        {
-                            "failed_stage": stage_id,
-                            "failure_reason": stage_result.get(
-                                "failure_reason", "stage failed"
-                            ),
-                            "results": results,
-                        }
-                    )
-                    break
-            else:
-                order_result = run_stage("order-readiness")
-                results.append(order_result)
-                if not order_result.get("ok") or order_result.get("fail_closed"):
-                    result.update(
-                        {
-                            "failed_stage": "order-readiness",
-                            "failure_reason": order_result.get(
-                                "failure_reason", "stage failed"
-                            ),
-                            "results": results,
-                        }
-                    )
-                else:
-                    result.update(
-                        {
-                            "ok": True,
-                            "fail_closed": False,
-                            "results": results,
-                        }
-                    )
         else:
-            with ThreadPoolExecutor(
-                max_workers=min(jobs, len(DESIGN_LOOP_LANE_IDS))
-            ) as executor:
-                futures = {
-                    stage_id: executor.submit(run_stage, stage_id)
-                    for stage_id in DESIGN_LOOP_LANE_IDS
-                }
-                lane_results = [
-                    futures[stage_id].result() for stage_id in DESIGN_LOOP_LANE_IDS
-                ]
+            lane_results = run_lanes()
             results.extend(lane_results)
             failed = next(
                 (

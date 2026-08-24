@@ -403,7 +403,8 @@ uv run python scripts/run_design_loop.py \
 `--resume`で`--cache-dir`を省略すると`out-root/.stage-cache`を使う。cacheは
 入力hashが一致する決定論的なDSN／SES生成物だけを再利用し、判定、verdict、
 Evidenceは毎回再実行する。`--jobs 1`はsilkscreen barrier後のlaneを逐次実行し、
-既定値は`min(cpu_count, 3)`である。timing recordとcache reportはL3観測であり、
+CLIの既定値は`min(os.cpu_count() or 1, 3)`である。tool経路の`jobs`既定値は1で、
+並列化は明示指定時だけ有効になる。timing recordとcache reportはL3観測であり、
 記録失敗は結果へ理由を記録するが、合否を変更しない。
 
 `acd_run_design_loop`も同じin-code orchestratorを呼び出す。gate、閾値、期待値、
