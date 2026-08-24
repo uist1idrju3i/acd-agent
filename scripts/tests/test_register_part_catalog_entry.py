@@ -6,10 +6,14 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
 from scripts import register_part_catalog_entry
 
 
-def test_cli_dry_run_reports_success_without_writing(tmp_path: Path, capsys) -> None:
+def test_cli_dry_run_reports_success_without_writing(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     root = Path(__file__).parents[2]
     catalog = tmp_path / "catalog.json"
     catalog.write_text(
