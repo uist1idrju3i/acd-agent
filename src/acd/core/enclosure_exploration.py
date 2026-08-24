@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 import tempfile
+import threading
 from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -18,29 +19,20 @@ from acd.core.design_freedom import (
     design_freedom_dimension,
     load_design_freedom_declaration,
 )
-from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 
 ENCLOSURE_EXPLORATION_ARTIFACT_KIND = "enclosure_exploration_report"
 DEFAULT_MAX_CANDIDATES = 12
 DEFAULT_JOBS = 1
-_CANDIDATE_POINTS = 3
+DEFAULT_SAMPLING_POINTS = 3
 _DIMENSION_ATTRS: dict[str, str] = {
     "enclosure_wall_thickness_mm": "wall_thickness_mm",
     "enclosure_internal_clearance_mm": "internal_clearance_mm",
     "enclosure_standoff_height_mm": "standoff_height_mm",
     "enclosure_standoff_radius_mm": "standoff_radius_mm",
 }
-_MECHANICAL_DIMENSIONS = frozenset(
-    {
-        "enclosure_wall_thickness_mm",
-        "enclosure_internal_clearance_mm",
-        "enclosure_standoff_height_mm",
-        "enclosure_standoff_radius_mm",
-        "enclosure_lid_fit_gap_mm",
-    }
-)
+_DEFAULT_PIPELINE_LOCK = threading.Lock()
 
 
 class EnclosureExplorationError(ValueError):
@@ -78,7 +70,7 @@ def _load_graph(path: Path) -> DesignGraph:
 
 
 def _script_hash() -> str:
-    path = repository_root() / "src/acd/core/enclosure_exploration.py"
+    path = Path(__file__).resolve()
     try:
         return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
     except OSError as exc:
@@ -124,7 +116,9 @@ def validate_enclosure_dimensions(
         raise EnclosureExplorationError(
             "candidate references unknown change dimensions: " + ", ".join(unknown)
         )
-    non_mechanical = sorted(set(requested) - _MECHANICAL_DIMENSIONS)
+    non_mechanical = sorted(
+        dimension for dimension in requested if declared[dimension].lane != "mechanical"
+    )
     if non_mechanical:
         raise EnclosureExplorationError(
             "candidate references non-mechanical change dimensions: "
@@ -141,7 +135,7 @@ def validate_enclosure_dimensions(
     unsupported = sorted(set(requested) - set(_DIMENSION_ATTRS))
     if unsupported:
         raise EnclosureExplorationError(
-            "candidate references unsupported change dimensions: "
+            "searchable mechanical dimensions have no graph attribute mapping: "
             + ", ".join(unsupported)
         )
     return requested
@@ -151,7 +145,10 @@ def _candidate_values(
     node: GraphNode,
     dimension_id: str,
     declaration: DesignFreedomDeclaration,
+    sampling_points: int,
 ) -> tuple[float, ...]:
+    if sampling_points < 2:
+        raise EnclosureExplorationError("sampling_points must be at least 2")
     dimension = design_freedom_dimension(dimension_id, declaration)
     if dimension.minimum is None or dimension.maximum is None:
         raise EnclosureExplorationError(
@@ -165,12 +162,9 @@ def _candidate_values(
         raise EnclosureExplorationError(
             f"{dimension_id}: graph value is outside declared bounds"
         )
-    values = {
-        minimum,
-        maximum,
-        current_value,
-        minimum + (maximum - minimum) / (_CANDIDATE_POINTS - 1),
-    }
+    step = (maximum - minimum) / (sampling_points - 1)
+    values = {minimum + step * index for index in range(sampling_points)}
+    values.add(current_value)
     return tuple(sorted(values))
 
 
@@ -178,8 +172,16 @@ def enumerate_enclosure_candidates(
     graph: DesignGraph,
     dimensions: Sequence[str] | None = None,
     declaration: DesignFreedomDeclaration | None = None,
+    *,
+    sampling_points: int = DEFAULT_SAMPLING_POINTS,
 ) -> tuple[EnclosureExplorationCandidate, ...]:
-    """Enumerate bounded enclosure values in stable dimension/value order."""
+    """Enumerate bounded values by minimum current-value change.
+
+    For every selected dimension, the boundary values, current graph value, and
+    ``sampling_points`` equally spaced values including both boundaries are
+    considered. The current value is omitted as a no-op. Candidates are sorted
+    by absolute deviation from the current value, then value and dimension ID.
+    """
     loaded = declaration or load_design_freedom_declaration()
     selected = validate_enclosure_dimensions(
         dimensions
@@ -196,28 +198,53 @@ def enumerate_enclosure_candidates(
             "no searchable mechanical enclosure dimensions are declared"
         )
     node = _enclosure_node(graph)
+    pending: list[tuple[str, float]] = []
+    current_values: dict[str, float] = {}
+    for dimension_id in selected:
+        attr = _DIMENSION_ATTRS.get(dimension_id)
+        if attr is None:
+            raise EnclosureExplorationError(
+                f"{dimension_id}: searchable mechanical dimension has no graph "
+                "attribute mapping"
+            )
+        current_values[dimension_id] = _numeric_attr(node, attr)
+        pending.extend(
+            (dimension_id, value)
+            for value in _candidate_values(
+                node,
+                dimension_id,
+                loaded,
+                sampling_points,
+            )
+        )
+    pending.sort(
+        key=lambda item: (
+            abs(item[1] - current_values[item[0]]),
+            item[1],
+            item[0],
+        )
+    )
     candidates: list[EnclosureExplorationCandidate] = []
     ordinal = 1
-    for dimension_id in selected:
-        for value in _candidate_values(node, dimension_id, loaded):
-            if _numeric_attr(node, _DIMENSION_ATTRS[dimension_id]) == value:
-                continue
-            candidates.append(
-                EnclosureExplorationCandidate(
-                    candidate_id=f"enclosure-{ordinal:04d}",
-                    dimensions=(dimension_id,),
-                    changes={dimension_id: value},
-                    provenance={
-                        "declaration_id": loaded.declaration_id,
-                        "declaration_hash": loaded.declaration_hash,
-                        "graph_revision": graph.revision,
-                        "script_name": "src/acd/core/enclosure_exploration.py",
-                        "script_sha256": _script_hash(),
-                        "pass_evidence": False,
-                    },
-                )
+    for dimension_id, value in pending:
+        if current_values[dimension_id] == value:
+            continue
+        candidates.append(
+            EnclosureExplorationCandidate(
+                candidate_id=f"enclosure-{ordinal:04d}",
+                dimensions=(dimension_id,),
+                changes={dimension_id: value},
+                provenance={
+                    "declaration_id": loaded.declaration_id,
+                    "declaration_hash": loaded.declaration_hash,
+                    "graph_revision": graph.revision,
+                    "script_name": "src/acd/core/enclosure_exploration.py",
+                    "script_sha256": _script_hash(),
+                    "pass_evidence": False,
+                },
             )
-            ordinal += 1
+        )
+        ordinal += 1
     return tuple(candidates)
 
 
@@ -258,13 +285,17 @@ def _evaluate_candidate(
     candidate_out: Path,
     temporary_root: Path,
     pipeline_runner: PipelineRunner,
+    pipeline_lock: threading.Lock | None = None,
 ) -> dict[str, Any]:
     working_fixture = temporary_root / candidate.candidate_id
     shutil.copytree(source_fixture, working_fixture)
     _copy_graph(working_fixture / "graph.json", _apply_candidate(graph, candidate))
     try:
-        pipeline_result = pipeline_runner(working_fixture, candidate_out)
-        (candidate_out / "evidence-mechanical.json").unlink(missing_ok=True)
+        if pipeline_lock is None:
+            pipeline_result = pipeline_runner(working_fixture, candidate_out)
+        else:
+            with pipeline_lock:
+                pipeline_result = pipeline_runner(working_fixture, candidate_out)
     except MechanicalGateError as exc:
         return {
             "status": "gate_rejected",
@@ -277,6 +308,8 @@ def _evaluate_candidate(
             "reasons": [f"pipeline execution failed (fail-closed): {exc}"],
             "pass_evidence": False,
         }
+    finally:
+        (candidate_out / "evidence-mechanical.json").unlink(missing_ok=True)
     outcome: dict[str, Any] = {
         "status": "candidate_survived_gates",
         "reasons": [],
@@ -305,6 +338,7 @@ def explore_enclosure_candidates(
     dimensions: Sequence[str] | None = None,
     jobs: int = DEFAULT_JOBS,
     pipeline_runner: PipelineRunner | None = None,
+    sampling_points: int = DEFAULT_SAMPLING_POINTS,
 ) -> EnclosureExplorationResult:
     """Explore bounded enclosure candidates without granting pass authority."""
     if max_candidates < 1:
@@ -315,12 +349,19 @@ def explore_enclosure_candidates(
     if not fixture_dir.is_dir():
         raise EnclosureExplorationError(f"fixture directory is missing: {fixture_dir}")
     declaration = load_design_freedom_declaration()
-    candidates = enumerate_enclosure_candidates(graph, dimensions, declaration)
+    candidates = enumerate_enclosure_candidates(
+        graph,
+        dimensions,
+        declaration,
+        sampling_points=sampling_points,
+    )
     pending = candidates[:max_candidates]
+    pipeline_lock: threading.Lock | None = None
     if pipeline_runner is None:
         from acd.pipeline.gd1_enclosure import run_pipeline
 
         pipeline_runner = run_pipeline
+        pipeline_lock = _DEFAULT_PIPELINE_LOCK
     source_fixture = fixture_dir.resolve()
     candidate_out_root = out_dir / "candidates"
 
@@ -332,6 +373,7 @@ def explore_enclosure_candidates(
             candidate_out_root / candidate.candidate_id,
             temporary_root,
             pipeline_runner,
+            pipeline_lock,
         )
 
     with tempfile.TemporaryDirectory(prefix="acd-enclosure-exploration-") as temporary:
@@ -398,6 +440,7 @@ def explore_enclosure_candidates(
 __all__ = [
     "DEFAULT_JOBS",
     "DEFAULT_MAX_CANDIDATES",
+    "DEFAULT_SAMPLING_POINTS",
     "ENCLOSURE_EXPLORATION_ARTIFACT_KIND",
     "EnclosureExplorationCandidate",
     "EnclosureExplorationError",

@@ -254,6 +254,10 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    OCP状態を継承すると停止するため、CAD経路だけspawnを明示し、基板pipelineの既定contextは
    変更しない。warm-upのimport失敗やtimeoutは最適化の失敗として警告し、判定を変えずに
    通常経路を続行する。artifact測定とvisual projectionはこのrunnerへsubmitし、nested poolを作らない。
+   筐体候補探索の`--jobs N`は候補fixtureと出力先を分離するが、既定runnerでは
+   `pipeline-workers=1`のCAD経路をプロセス内lockで直列化し、OCP/build123dのnested並列と
+   oversubscriptionを避ける。カスタムrunnerで内部CAD並列を有効にする場合は、候補側の`--jobs 1`
+   を使い、共有native状態を同時に扱わない。
    逐次確認やデバッグには次を使う。
 
    ```bash

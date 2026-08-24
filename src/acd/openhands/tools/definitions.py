@@ -278,6 +278,7 @@ class AcdExploreEnclosureCandidatesAction(Action):
     max_candidates: int = Field(ge=1)
     dimensions: list[str] = Field(default_factory=list)
     jobs: int = Field(default=1, ge=1)
+    sampling_points: int = Field(default=3, ge=2)
 
 
 class AcdDiagnoseGateFailureAction(Action):
@@ -815,6 +816,7 @@ class AcdExploreEnclosureCandidatesExecutor(
                 action.max_candidates,
                 dimensions=action.dimensions or None,
                 jobs=action.jobs,
+                sampling_points=action.sampling_points,
             )
             return AcdExploreEnclosureCandidatesObservation(
                 ok=True,

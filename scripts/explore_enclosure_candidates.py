@@ -10,6 +10,7 @@ from pathlib import Path
 from acd.core.enclosure_exploration import (
     DEFAULT_JOBS,
     DEFAULT_MAX_CANDIDATES,
+    DEFAULT_SAMPLING_POINTS,
     EnclosureExplorationError,
     explore_enclosure_candidates,
 )
@@ -22,6 +23,13 @@ def _positive_int(value: str) -> int:
         raise argparse.ArgumentTypeError("value must be a positive integer") from exc
     if parsed < 1:
         raise argparse.ArgumentTypeError("value must be a positive integer")
+    return parsed
+
+
+def _sampling_points(value: str) -> int:
+    parsed = _positive_int(value)
+    if parsed < 2:
+        raise argparse.ArgumentTypeError("sampling-points must be at least 2")
     return parsed
 
 
@@ -63,6 +71,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         default=DEFAULT_JOBS,
         help="number of independent candidate evaluations",
     )
+    parser.add_argument(
+        "--sampling-points",
+        type=_sampling_points,
+        default=DEFAULT_SAMPLING_POINTS,
+        help="number of equally spaced values including both boundaries",
+    )
     args = parser.parse_args(argv)
     try:
         result = explore_enclosure_candidates(
@@ -72,6 +86,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.max_candidates,
             dimensions=args.dimensions,
             jobs=args.jobs,
+            sampling_points=args.sampling_points,
         )
     except (EnclosureExplorationError, OSError, ValueError) as exc:
         print(
