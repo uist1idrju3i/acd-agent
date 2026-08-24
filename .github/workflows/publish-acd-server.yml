@@ -36,7 +36,10 @@ jobs:
           TOOLS_REF=$(uv run python scripts/print_locked_image.py --entry acd-tools)
           printf 'TOOLS_REF=%s\n' "$TOOLS_REF" >> "$GITHUB_ENV"
       - name: Pull locked tools image
-        run: docker pull "$TOOLS_REF"
+        run: |
+          uv run python scripts/pull_locked_image.py \
+            --entry acd-tools \
+            --record out/container/pull-acd-tools.json
       - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io

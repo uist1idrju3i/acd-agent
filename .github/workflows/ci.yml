@@ -100,7 +100,10 @@ jobs:
           SERVER_REF=$(uv run python scripts/print_locked_image.py --entry acd-server)
           printf 'SERVER_REF=%s\n' "$SERVER_REF" >> "$GITHUB_ENV"
       - name: Pull locked agent-server image
-        run: docker pull "$SERVER_REF"
+        run: |
+          uv run python scripts/pull_locked_image.py \
+            --entry acd-server \
+            --record out/container/pull-acd-server.json
       - name: Verify registry image digest lock
         run: uv run python scripts/verify_image_digest_lock.py
       - name: Run deterministic gates in DockerWorkspace

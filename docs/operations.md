@@ -778,8 +778,7 @@ lockと`latest`が食い違い続けることを防ぐ。build入力を変更し
 成功後にserver publishが`workflow_run`で連鎖する。lockの検証は次のように行う。
 
 ```bash
-TOOLS_REF="$(uv run python scripts/print_locked_image.py --entry acd-tools)"
-docker pull "$TOOLS_REF"
+TOOLS_REF="$(uv run python scripts/pull_locked_image.py --entry acd-tools)"
 docker run --rm \
   -v "$PWD:/acd-src:ro" \
   -w /tmp \
@@ -1305,10 +1304,28 @@ uv run python scripts/probe_tools.py
 Docker workspace経路（ゲート実行の正）:
 
 ```bash
-SERVER_REF="$(uv run python scripts/print_locked_image.py --entry acd-server)"
-docker pull "$SERVER_REF"
+SERVER_REF="$(uv run python scripts/pull_locked_image.py --entry acd-server \
+  --record out/container/pull-acd-server.json)"
 uv run python scripts/run_in_workspace.py --image "$SERVER_REF"
 ```
+
+`scripts/pull_locked_image.py`はlock済みdigestのpull入口の正である。`docker/image-digests.json`の
+lock entryだけを受け付け、`image@sha256:...`のimmutable referenceでpullし、pull後に
+localのdigestがlock値と一致することを`docker image inspect`で確認する。全体timeout
+（既定900s）、有限回のbackoff retry（既定3回）、docker版・attempt・timeout・取得時刻を含む
+provenanceの`--record`出力を持つ。pull失敗、retry上限到達、digest不一致、docker CLI
+timeout、lock未設定はいずれもexit=2でfail-closedとし、Evidenceを生成しない。
+
+container実行のtimeout境界は`run_in_workspace.py`の引数で明示する。既定値は
+`--health-check-timeout 300`、`--command-timeout 3600`、`--docker-cli-timeout 300`、
+`--memory-limit 8g`、`--platform linux/amd64`である。ACDは`DockerWorkspace`のlifecycleが
+呼ぶdocker CLI（`docker version`、`docker run`、`docker inspect`、`docker logs`、
+`docker stop`）へ同じdocker CLI timeoutとmemory上限（`--memory`／`--memory-swap`）を与え、
+`resolve_image_digest()`の`docker image inspect`にも明示timeoutを与える。container起動が
+失敗した場合は観測したcontainerを`docker stop`で後始末し、停止できないcontainer IDを
+エラーへ含める。`WorkspaceResult`は失敗種別（`timeout`、`transport`、`command`）を保持し、
+runnerは失敗種別を出力して非ゼロ終了する。retryはdigest固定pullとfile downloadに限り、
+gate実行とEvidence生成は再試行しない。
 
 `--graph`で指定したDesign Graphから、未指定のcommandとdownload pathを導出する。
 graphのmissing、parse failure、または不正な`graph_id`ではGD1へfallbackせず停止する。

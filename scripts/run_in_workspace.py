@@ -8,8 +8,18 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from acd.openhands.container_runtime import (
+    DEFAULT_COMMAND_TIMEOUT,
+    DEFAULT_DOCKER_CLI_TIMEOUT,
+    DEFAULT_HEALTH_CHECK_TIMEOUT,
+    DEFAULT_MEMORY_LIMIT,
+    DEFAULT_PLATFORM,
+    ContainerRuntimeConfig,
+)
 from acd.openhands.workspace import (
     ProvisionalWorkspaceResult,
+    WorkspaceStartupError,
+    WorkspaceTransportError,
     load_workspace_graph,
     run_command_in_local_workspace,
     run_command_in_workspace,
@@ -48,6 +58,34 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         action="append",
         metavar="PATH",
         help="Evidence-relative file to download after a successful run.",
+    )
+    parser.add_argument(
+        "--health-check-timeout",
+        type=float,
+        default=DEFAULT_HEALTH_CHECK_TIMEOUT,
+        help="Seconds to wait for the container health check.",
+    )
+    parser.add_argument(
+        "--command-timeout",
+        type=float,
+        default=DEFAULT_COMMAND_TIMEOUT,
+        help="Seconds allowed for the in-container command.",
+    )
+    parser.add_argument(
+        "--docker-cli-timeout",
+        type=float,
+        default=DEFAULT_DOCKER_CLI_TIMEOUT,
+        help="Seconds allowed for each docker CLI call.",
+    )
+    parser.add_argument(
+        "--memory-limit",
+        default=DEFAULT_MEMORY_LIMIT,
+        help="Container memory limit, for example '8g'.",
+    )
+    parser.add_argument(
+        "--platform",
+        default=DEFAULT_PLATFORM,
+        help="Explicit docker platform for the container.",
     )
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args(argv)
@@ -96,7 +134,17 @@ def main(argv: Sequence[str] | None = None) -> int:
                 repository=args.repo,
                 download_files=download_files,
                 source=args.source,
+                runtime=ContainerRuntimeConfig(
+                    health_check_timeout=args.health_check_timeout,
+                    command_timeout=args.command_timeout,
+                    docker_cli_timeout=args.docker_cli_timeout,
+                    memory_limit=args.memory_limit,
+                    platform=args.platform,
+                ),
             )
+    except (WorkspaceStartupError, WorkspaceTransportError) as exc:
+        print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
+        return 2
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
@@ -112,6 +160,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not isinstance(result, ProvisionalWorkspaceResult):
         for path in result.downloaded_files:
             print(f"downloaded: {path}")
+        if result.failure_kind is not None:
+            print(f"failure kind: {result.failure_kind}", file=sys.stderr)
+            return result.exit_code if result.exit_code > 0 else 2
     return result.exit_code
 
 
