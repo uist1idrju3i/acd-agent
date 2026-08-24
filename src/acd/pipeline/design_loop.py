@@ -615,85 +615,56 @@ def run_design_loop(
                     ),
                 }
                 break
+
+            def graph_validation_failure(
+                detail: str,
+                board_failure: dict[str, Any] = board_failure,
+                exploration_result: dict[str, Any] = exploration_result,
+            ) -> dict[str, Any]:
+                record = _failure(
+                    "board-exploration",
+                    (
+                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
+                        f"{detail}"
+                    ),
+                    report_path=exploration_result.get("report_path"),
+                    report_status=exploration_result.get("report_status"),
+                    target_revision=exploration_result.get("target_revision"),
+                )
+                results.append(record)
+                result["exploration_termination"] = "graph_validation_failed"
+                return record
+
             try:
                 after_graph = _load_graph(active_config.fixture_dir)
             except Exception as exc:
-                failed = _failure(
-                    "board-exploration",
-                    (
-                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
-                        f"updated graph is invalid (fail-closed): {exc}"
-                    ),
-                        report_path=exploration_result.get("report_path"),
-                        report_status=exploration_result.get("report_status"),
-                        target_revision=exploration_result.get("target_revision"),
-                    )
-                results.append(failed)
-                result["exploration_termination"] = "graph_validation_failed"
-                break
-            if after_graph.graph_id != before_graph.graph_id:
-                failed = _failure(
-                    "board-exploration",
-                    (
-                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
-                        "updated graph ID does not match the explored graph "
-                        "(fail-closed)"
-                    ),
-                    report_path=exploration_result.get("report_path"),
-                    report_status=exploration_result.get("report_status"),
-                    target_revision=exploration_result.get("target_revision"),
+                failed = graph_validation_failure(
+                    f"updated graph is invalid (fail-closed): {exc}"
                 )
-                results.append(failed)
-                result["exploration_termination"] = "graph_validation_failed"
+                break
+            after_graph_hash = canonical_json_sha256(after_graph.model_dump(mode="json"))
+            if after_graph.graph_id != before_graph.graph_id:
+                failed = graph_validation_failure(
+                    "updated graph ID does not match the explored graph (fail-closed)"
+                )
                 break
             if after_graph.revision != before_graph.revision:
-                failed = _failure(
-                    "board-exploration",
-                    (
-                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
-                        "updated graph revision changed from "
-                        f"{before_graph.revision!r} to {after_graph.revision!r} "
-                        "(fail-closed)"
-                    ),
-                    report_path=exploration_result.get("report_path"),
-                    report_status=exploration_result.get("report_status"),
-                    target_revision=exploration_result.get("target_revision"),
+                failed = graph_validation_failure(
+                    "updated graph revision changed from "
+                    f"{before_graph.revision!r} to {after_graph.revision!r} "
+                    "(fail-closed)"
                 )
-                results.append(failed)
-                result["exploration_termination"] = "graph_validation_failed"
                 break
-            after_graph_hash = canonical_json_sha256(
-                after_graph.model_dump(mode="json")
-            )
             if after_graph_hash == before_graph_hash:
-                failed = _failure(
-                    "board-exploration",
-                    (
-                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
-                        "updated graph content hash did not change (fail-closed)"
-                    ),
-                    report_path=exploration_result.get("report_path"),
-                    report_status=exploration_result.get("report_status"),
-                    target_revision=exploration_result.get("target_revision"),
+                failed = graph_validation_failure(
+                    "updated graph content hash did not change (fail-closed)"
                 )
-                results.append(failed)
-                result["exploration_termination"] = "graph_validation_failed"
                 break
             if exploration_result.get("target_revision") != after_graph.revision:
-                failed = _failure(
-                    "board-exploration",
-                    (
-                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
-                        "exploration report target_revision does not match "
-                        f"updated graph revision {after_graph.revision!r} "
-                        "(fail-closed)"
-                    ),
-                    report_path=exploration_result.get("report_path"),
-                    report_status=exploration_result.get("report_status"),
-                    target_revision=exploration_result.get("target_revision"),
+                failed = graph_validation_failure(
+                    "exploration report target_revision does not match "
+                    f"updated graph revision {after_graph.revision!r} (fail-closed)"
                 )
-                results.append(failed)
-                result["exploration_termination"] = "graph_validation_failed"
                 break
             new_plan = build_lane_plan(after_graph.graph_id, active_config.out_root)
             active_config = replace(
