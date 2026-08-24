@@ -42,8 +42,9 @@ Dockerfileでは次を固定または検証する。
   build時に導入する。ESP-IDFのPython環境はuvが導入した3.12を使い、ACD本体が使う
   system Python 3.14とは分離する。`export.sh`経由の`idf.py --version`が
   `v6.0.2`であることを検証する
-- ACD本体: `pyproject.toml`、`uv.lock`、`src`、`scripts`、`fixtures`、`plugins`、
-  vendored SDKを`/opt/acd`へ同梱し、authoritative実行時のリポジトリcloneを不要にする
+- ACD本体: `pyproject.toml`、`uv.lock`、`src`、`scripts`、`fixtures`、`contracts`、
+  `plugins`、vendored SDKを`/opt/acd`へ同梱し、authoritative実行時のリポジトリcloneを
+  不要にする
 - Python依存のprebake: `/opt/acd`でbuild時に`uv sync --frozen --compile-bytecode`を
   実行し、実行時の依存解決とダウンロードを不要にする。`UV_FROZEN=1`をimageで宣言する
 - PEP 723依存のprebake: 同梱する全acd-importing Skill scriptと
@@ -98,8 +99,9 @@ ACD_CONTAINER_IMAGE=ghcr.io/uist1idrju3i/acd-server@sha256:<digest> \
 ```
 
 `--source bundled`は`/opt/acd`の`pyproject.toml`、`uv.lock`、`src/acd`、`scripts`、
-`fixtures`、prebake済み`.venv`の存在を実行前に検査し、いずれかが欠ける場合は
-fail-closedで停止する。開発中の変更を実行する場合は既定の`--source mounted`を使う。
+`fixtures`、`contracts`、prebake済み`.venv`の存在を実行前に検査し、いずれかが欠ける
+場合はfail-closedで停止する。開発中の変更を実行する場合は既定の`--source mounted`を
+使う。
 同梱資材を持つimageがpublishされてlockへ記録されるまで、CIとrunnerの既定経路は
 マウント方式のままとする。
 
