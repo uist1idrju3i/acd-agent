@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 from acd.core.functional_blocks import (
     FunctionalBlockRegistry,
     load_functional_block_registry,
 )
-from acd.schema import (
-    FixtureComponentSpec,
-    FixtureNetSpec,
-)
-from acd.schema.parts_catalog import ComponentPartRequest
+from acd.pipeline.repository import repository_root
+from acd.schema import FixtureComponentSpec, FixtureNetSpec, TopologyTemplatesDocument
 
 
 class TopologySynthesisError(ValueError):
@@ -27,190 +24,101 @@ class TopologyFragment:
     constraints: tuple[str, ...] = ()
 
 
-def _part(
-    refdes: str,
-    kind: str,
-    value: str,
-    package: str,
-    pads: dict[str, str | None],
-) -> FixtureComponentSpec:
-    return FixtureComponentSpec(
-        refdes=refdes,
-        part_request=ComponentPartRequest(
-            kind=kind,
-            value=value,
-            package=package,
-        ),
-        pads=pads,
-        attrs={"value": value},
-    )
+def default_topology_templates_path() -> Path:
+    return repository_root() / "contracts" / "topology-templates.json"
 
 
-def _net(net_id: str, name: str) -> FixtureNetSpec:
-    return FixtureNetSpec(net_id=net_id, attrs={"name": name})
+def load_topology_templates(
+    path: Path | None = None,
+) -> TopologyTemplatesDocument:
+    template_path = path or default_topology_templates_path()
+    try:
+        document = TopologyTemplatesDocument.model_validate_json(
+            template_path.read_text(encoding="utf-8")
+        )
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise TopologySynthesisError(
+            f"topology templates are invalid or unreadable: {template_path}: {exc}"
+        ) from exc
+    return document
 
 
-def _usb() -> TopologyFragment:
-    return TopologyFragment(
-        components=(
-            _part("R1", "resistor", "5.1k", "R_0603_1608Metric", {"1": "net.cc1", "2": "net.gnd"}),
-            _part("R2", "resistor", "5.1k", "R_0603_1608Metric", {"1": "net.cc2", "2": "net.gnd"}),
-        ),
-        nets=(
-            _net("net.cc1", "CC1"),
-            _net("net.cc2", "CC2"),
-        ),
-    )
-
-
-def _i2c() -> TopologyFragment:
-    return TopologyFragment(
-        components=(
-            _part(
-                "R4",
-                "resistor",
-                "4.7k",
-                "R_0603_1608Metric",
-                {"1": "net.p3v3", "2": "net.i2c_sda"},
-            ),
-            _part(
-                "R5",
-                "resistor",
-                "4.7k",
-                "R_0603_1608Metric",
-                {"1": "net.p3v3", "2": "net.i2c_scl"},
-            ),
-        ),
-        nets=(
-            _net("net.i2c_sda", "I2C_SDA"),
-            _net("net.i2c_scl", "I2C_SCL"),
-        ),
-    )
-
-
-def _ldo() -> TopologyFragment:
-    return TopologyFragment(
-        components=(
-            _part(
-                "U2",
-                "ic",
-                "AMS1117-3.3",
-                "SOT-223-3_TabPin2",
-                {"1": "net.gnd", "2": "net.p3v3", "3": "net.vbus_5v"},
-            ),
-            _part(
-                "C1",
-                "capacitor",
-                "10uF",
-                "C_0603_1608Metric",
-                {"1": "net.vbus_5v", "2": "net.gnd"},
-            ),
-            _part(
-                "C2",
-                "capacitor",
-                "100nF",
-                "C_0603_1608Metric",
-                {"1": "net.vbus_5v", "2": "net.gnd"},
-            ),
-            _part(
-                "C3",
-                "capacitor",
-                "10uF",
-                "C_0603_1608Metric",
-                {"1": "net.p3v3", "2": "net.gnd"},
-            ),
-            _part(
-                "C4",
-                "capacitor",
-                "100nF",
-                "C_0603_1608Metric",
-                {"1": "net.p3v3", "2": "net.gnd"},
-            ),
-        ),
-        nets=(
-            _net("net.vbus_5v", "VBUS_5V"),
-            _net("net.p3v3", "+3V3"),
-            _net("net.gnd", "GND"),
-        ),
-    )
-
-
-def _strapping() -> TopologyFragment:
-    return TopologyFragment(
-        components=(
-            _part(
-                "SW2",
-                "switch",
-                "BOOT",
-                "SW_SPST_TS-1088-xR020",
-                {"1": "net.boot", "2": "net.gnd"},
-            ),
-        ),
-        nets=(_net("net.boot", "BOOT"),),
-        constraints=("ESP32-C3 strapping and boot-button assignments",),
-    )
-
-
-def _firmware() -> TopologyFragment:
-    return TopologyFragment(
-        components=(),
-        nets=(),
-        constraints=("firmware GPIO assignments must match declared electrical pads",),
-    )
-
-
-def _safety() -> TopologyFragment:
-    return TopologyFragment(
-        components=(),
-        nets=(),
-        constraints=("declared voltage, current, hazard, and certification boundary",),
-    )
-
-
-_TEMPLATES: dict[str, Callable[[], TopologyFragment]] = {
-    "esp32c3_strapping_boot": _strapping,
-    "firmware_pin_map": _firmware,
-    "i2c_bus_pullup": _i2c,
-    "safety_power_boundary": _safety,
-    "single_ldo_power_tree": _ldo,
-    "usb_c_cc_termination": _usb,
-}
+def _validate_registry_coverage(
+    document: TopologyTemplatesDocument,
+    registry: FunctionalBlockRegistry,
+) -> None:
+    known = {contract.block_id for contract in registry.contracts}
+    unknown = sorted({template.block_id for template in document.templates} - known)
+    if unknown:
+        raise TopologySynthesisError(
+            "topology template references unknown functional block: " + ", ".join(unknown)
+        )
 
 
 def synthesize_topology(
     block_ids: tuple[str, ...] | list[str],
     *,
     registry: FunctionalBlockRegistry | None = None,
+    templates_path: Path | None = None,
 ) -> TopologyFragment:
     """Return the deterministic fixture fragment for declared blocks."""
     loaded = registry or load_functional_block_registry()
+    templates = load_topology_templates(templates_path)
+    _validate_registry_coverage(templates, loaded)
     known = {contract.block_id for contract in loaded.contracts}
-    unknown = sorted(set(block_ids) - known)
+    requested = set(block_ids)
+    unknown = sorted(requested - known)
     if unknown:
         raise TopologySynthesisError("unknown functional block: " + ", ".join(unknown))
-    missing_templates = sorted(set(block_ids) - set(_TEMPLATES))
+    by_block_id = {template.block_id: template for template in templates.templates}
+    missing_templates = sorted(requested - set(by_block_id))
     if missing_templates:
         raise TopologySynthesisError(
-            "functional block has no topology template (検証不能): " + ", ".join(missing_templates)
+            "functional block has no topology template (検証不能): "
+            + ", ".join(missing_templates)
         )
     components: dict[str, FixtureComponentSpec] = {}
     nets: dict[str, FixtureNetSpec] = {}
+    shared_nets = {
+        net.net_id: FixtureNetSpec(net_id=net.net_id, attrs=net.attrs)
+        for net in templates.shared_nets
+    }
     constraints: set[str] = set()
-    for block_id in sorted(set(block_ids)):
-        fragment = _TEMPLATES[block_id]()
-        for component in fragment.components:
+    for block_id in sorted(requested):
+        template = by_block_id[block_id]
+        for declared in template.components:
+            component = FixtureComponentSpec(
+                refdes=declared.refdes,
+                part_request=declared.part_request,
+                pads=declared.pads,
+                attrs=declared.attrs,
+            )
             previous = components.get(component.refdes)
             if previous is not None and previous != component:
                 raise TopologySynthesisError(
                     f"topology templates conflict for component: {component.refdes}"
                 )
             components[component.refdes] = component
-        for net in fragment.nets:
+        for declared in template.nets:
+            net = FixtureNetSpec(net_id=declared.net_id, attrs=declared.attrs)
             previous = nets.get(net.net_id)
             if previous is not None and previous != net:
                 raise TopologySynthesisError(f"topology templates conflict for net: {net.net_id}")
             nets[net.net_id] = net
-        constraints.update(fragment.constraints)
+        constraints.update(template.constraints)
+    referenced_nets = {
+        net_id
+        for component in components.values()
+        for net_id in component.pads.values()
+        if net_id is not None
+    }
+    for net_id in sorted(referenced_nets - set(nets)):
+        shared = shared_nets.get(net_id)
+        if shared is None:
+            raise TopologySynthesisError(
+                f"topology template references unavailable shared net: {net_id}"
+            )
+        nets[net_id] = shared
     return TopologyFragment(
         components=tuple(components[key] for key in sorted(components)),
         nets=tuple(nets[key] for key in sorted(nets)),
@@ -218,4 +126,10 @@ def synthesize_topology(
     )
 
 
-__all__ = ["TopologyFragment", "TopologySynthesisError", "synthesize_topology"]
+__all__ = [
+    "TopologyFragment",
+    "TopologySynthesisError",
+    "default_topology_templates_path",
+    "load_topology_templates",
+    "synthesize_topology",
+]

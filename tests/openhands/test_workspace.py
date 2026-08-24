@@ -54,6 +54,10 @@ def test_runner_uses_read_only_mount_and_downloads_evidence(
         image="acd-tools-gates:local",
         command="uv run python scripts/run_gd1_pipeline.py",
         repository=tmp_path,
+        download_files=(
+            "out/gd1/evidence-electrical.json",
+            "out/gd1-enclosure/evidence-mechanical.json",
+        ),
         workspace_factory=_FakeWorkspace,
     )
 
@@ -97,6 +101,7 @@ def test_runner_refuses_unresolved_digest(tmp_path: Path, monkeypatch: pytest.Mo
             image="missing:local",
             command="true",
             repository=tmp_path,
+            download_files=(),
             workspace_factory=_FakeWorkspace,
         )
 
@@ -113,6 +118,7 @@ def test_runner_refuses_empty_server_image(
             image=" \t",
             command="true",
             repository=tmp_path,
+            download_files=(),
             workspace_factory=_FakeWorkspace,
         )
 
@@ -135,6 +141,7 @@ def test_runner_does_not_download_after_command_failure(
         image="acd-tools-gates:local",
         command="false",
         repository=tmp_path,
+        download_files=(),
         workspace_factory=_FailingWorkspace,
     )
     assert result.downloaded_files == ()
@@ -157,6 +164,7 @@ def test_runner_fails_when_evidence_download_fails(
             image="acd-server:local",
             command="true",
             repository=tmp_path,
+            download_files=("out/gd1/evidence-electrical.json",),
             workspace_factory=_DownloadFailingWorkspace,
         )
 
@@ -270,6 +278,7 @@ def test_runner_rejects_unknown_workspace_source(
             image="acd-server:local",
             command="true",
             repository=tmp_path,
+            download_files=(),
             workspace_factory=_FakeWorkspace,
             source="image",  # type: ignore[arg-type]
         )

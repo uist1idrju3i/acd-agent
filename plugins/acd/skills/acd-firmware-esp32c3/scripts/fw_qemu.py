@@ -91,8 +91,15 @@ class QemuRunner:
         return VirtualRunResult(record=record, log_path=log_path)
 
 
-def assert_virtual_log_ok(log: str, *, target_revision: str, led_gpio: int) -> None:
-    if f"ACD GD1 fw boot target_revision={target_revision}" not in log:
+def assert_virtual_log_ok(
+    log: str,
+    *,
+    target_revision: str,
+    led_gpio: int,
+    boot_log_message: str,
+) -> None:
+    expected_boot_line = boot_log_message.replace("%s", target_revision)
+    if expected_boot_line not in log:
         raise VirtualRunCheckError("boot line with matching target revision not found")
     toggles = re.findall(rf"LED gpio={led_gpio} state=([01])", log)
     if len(toggles) < 2 or {"0", "1"} != set(toggles):

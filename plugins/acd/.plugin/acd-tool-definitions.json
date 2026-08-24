@@ -3,6 +3,10 @@
   "entry_point": "acd.openhands.tools.definitions.register_acd_tools",
   "tools": [
     {
+      "tool_name": "acd_aggregate_order_total",
+      "definition_class": "AcdAggregateOrderTotal"
+    },
+    {
       "tool_name": "acd_bootstrap_workspace",
       "definition_class": "AcdBootstrapWorkspace"
     },
@@ -39,6 +43,10 @@
       "definition_class": "AcdRegisterFunctionalBlock"
     },
     {
+      "tool_name": "acd_register_parts_catalog_entry",
+      "definition_class": "AcdRegisterPartsCatalogEntry"
+    },
+    {
       "tool_name": "acd_run_board_pipeline",
       "definition_class": "AcdRunBoardPipeline"
     },
@@ -59,5 +67,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:4e30ff068b501f9762fb691cef56c5df41bc57cefd0ceeed9421393b9eda07b4"
+  "canonical_hash": "sha256:67a273e3e4b20fa7167d1c1e473ce8f3f47f02c50eda0db3cb77162147b2773e"
 }

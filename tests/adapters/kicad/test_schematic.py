@@ -36,6 +36,7 @@ def _schematic() -> str:
         library,
         FIXTURE_DIR,
         pwr_flag,
+        project_name="gd1",
     )
 
 

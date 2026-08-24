@@ -108,7 +108,7 @@ jobs:
           uv run python scripts/run_in_workspace.py \
             --image "$SERVER_REF" \
             --repo "$GITHUB_WORKSPACE" \
-            'uv sync && uv run python scripts/run_gd1_lanes.py'
+            'uv sync && uv run python scripts/run_design_lanes.py'
           uv run python scripts/verify_authoritative_evidence.py \
             --revision-from fixtures/golden-design-1/graph.json \
             out/gd1/evidence-electrical.json \

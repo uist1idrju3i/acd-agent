@@ -22,7 +22,6 @@ from acd.core.sexpr import Quoted, SExpr, Sym, dumps
 
 SCH_VERSION = "20250114"
 SCH_FORMAT_NAME = "kicad_sch"
-DEFAULT_PROJECT_NAME = "gd1"
 
 _GRID = 1.27  # KiCad schematic grid in mm
 _COLS = 6
@@ -213,7 +212,7 @@ def generate_schematic(
     symbol_library: SymbolLibrary,
     fixture_dir: Path,
     pwr_flag_symbol: ParsedSymbol,
-    project_name: str = DEFAULT_PROJECT_NAME,
+    project_name: str,
 ) -> str:
     """Render the schematic file content for the electrical lane."""
     if not project_name:

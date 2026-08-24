@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -12,11 +13,36 @@ from acd.core.timestamps import parse_evaluated_at
 from acd.pipeline.design_loop import run_design_loop
 
 
+def _positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("value must be a positive integer") from exc
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("value must be a positive integer")
+    return parsed
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
     parser.add_argument("--out-root", type=Path, default=Path("out"))
-    parser.add_argument("--order-total", type=Path, required=True)
+    parser.add_argument("--order-total", type=Path, default=None)
+    parser.add_argument(
+        "--quote-record",
+        "--quote",
+        dest="quote_records",
+        type=Path,
+        action="append",
+        default=None,
+        help="quote record JSON path; repeat for aggregation mode",
+    )
+    parser.add_argument(
+        "--order-scope",
+        type=Path,
+        default=None,
+        help="OrderScope JSON path for aggregation mode",
+    )
     parser.add_argument(
         "--policy",
         type=Path,
@@ -29,6 +55,54 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-silkscreen-iterations", type=int, default=5)
     parser.add_argument("--run-seconds", type=int, default=15)
     parser.add_argument("--evaluated-at", default=None)
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="opt-in content-addressed cache directory for deterministic artifacts",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="reuse only valid matching artifact-cache entries; never restore verdicts",
+    )
+    parser.add_argument(
+        "--jobs",
+        type=_positive_int,
+        default=min(os.cpu_count() or 1, 3),
+        help="maximum parallel board, enclosure, and firmware lanes",
+    )
+    parser.add_argument(
+        "--explore-board",
+        "--explore-board-candidates",
+        dest="explore_board",
+        action="store_true",
+        help="explore board candidates after a fail-closed board rejection",
+    )
+    parser.add_argument(
+        "--max-exploration-candidates",
+        type=_positive_int,
+        default=3,
+        help="maximum candidates evaluated in each board exploration round",
+    )
+    parser.add_argument(
+        "--max-exploration-rounds",
+        type=_positive_int,
+        default=1,
+        help="maximum board exploration and loop rerun rounds",
+    )
+    parser.add_argument(
+        "--requirement",
+        type=Path,
+        default=None,
+        help="optional updated requirement record to compile before the loop",
+    )
+    parser.add_argument(
+        "--fixture-spec",
+        type=Path,
+        default=None,
+        help="optional design fixture specification to generate before the loop",
+    )
     return parser
 
 
@@ -42,6 +116,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.fixture,
             args.out_root,
             order_total=args.order_total,
+            quote_records=args.quote_records,
+            order_scope=args.order_scope,
             policy=args.policy,
             repository=args.repository,
             fab_profile=args.fab_profile,
@@ -50,6 +126,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_silkscreen_iterations=args.max_silkscreen_iterations,
             run_seconds=args.run_seconds,
             evaluated_at=evaluated_at,
+            cache_dir=args.cache_dir,
+            resume=args.resume,
+            jobs=args.jobs,
+            explore_board=args.explore_board,
+            max_exploration_candidates=args.max_exploration_candidates,
+            max_exploration_rounds=args.max_exploration_rounds,
+            requirement=args.requirement,
+            fixture_spec=args.fixture_spec,
         )
     except Exception as exc:
         result = {

@@ -88,6 +88,7 @@ def test_unresolved_digest_does_not_start_workspace(
             image="acd:local",
             command="true",
             repository=tmp_path,
+            download_files=(),
             workspace_factory=factory,
         )
     assert started is False
@@ -174,7 +175,15 @@ def test_cli_preserves_command_failure_exit_code(
     )
     assert (
         runner_script.main(
-            ["--image", "acd-server:local", "--repo", str(tmp_path), "false"]
+            [
+                "--image",
+                "acd-server:local",
+                "--repo",
+                str(tmp_path),
+                "--download",
+                "out/gd1/evidence-electrical.json",
+                "false",
+            ]
         )
         == 7
     )
@@ -194,7 +203,14 @@ def test_cli_local_provisional_is_explicit_opt_in(
     monkeypatch.setattr(runner_script, "run_command_in_local_workspace", fake_run)
     assert (
         runner_script.main(
-            ["--local-provisional", "--repo", str(tmp_path), "echo ok"]
+            [
+                "--local-provisional",
+                "--repo",
+                str(tmp_path),
+                "--download",
+                "out/gd1/evidence-electrical.json",
+                "echo ok",
+            ]
         )
         == 0
     )
@@ -226,7 +242,17 @@ def test_cli_forwards_bundled_source(
 
     monkeypatch.setattr(runner_script, "run_command_in_workspace", fake_run_command)
     exit_code = runner_script.main(
-        ["--image", "acd-server:local", "--source", "bundled", "--repo", str(tmp_path), "true"]
+        [
+            "--image",
+            "acd-server:local",
+            "--source",
+            "bundled",
+            "--repo",
+            str(tmp_path),
+            "--download",
+            "out/gd1/evidence-electrical.json",
+            "true",
+        ]
     )
     assert exit_code == 0
     assert captured["source"] == "bundled"

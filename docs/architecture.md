@@ -104,12 +104,22 @@ hash、Evidence、provenanceへ含めない。
 同一fixtureのhost provisional測定は、`--pipeline-workers 1`が8.309秒、
 `--pipeline-workers 4`が26.492秒であり、この規模では並列短縮を確認できなかった。
 
-GD1のlane実行では、`scripts/run_gd1_lanes.py`がsilkscreen resolverをbarrierとして
+lane実行のstage ID、順序、barrier、出力先、cache対象は
+`src/acd/pipeline/lane_plan.py`を単一sourceとする。GD1のlane実行では、
+`scripts/run_design_lanes.py`がsilkscreen resolverをbarrierとして
 単独実行する。resolverは解決結果をfixtureの`graph.json`へ書き戻すため、基板lane、
 筐体lane、pytest subsetが更新途中のfixtureを読むことを防ぐ必要がある。resolver完了後は
 基板lane（`out/gd1`）、筐体lane（`out/gd1-enclosure`）、pytest subsetを独立した
 並列batchとして宣言順に実行し、いずれかが失敗した場合はfail-closedで非零終了する。
 laneの出力先は分離され、並列度はhash、Evidence、provenance、summaryへ含めない。
+生成物の既定出力先とproject名は、常に入力Design Graphの`graph_id`から
+`artifact_prefix`または`output_prefix`で導出する。GD1だけは互換aliasにより従来の
+`gd1` pathを再現し、graphを読み取れない場合は既定値へfallbackせずfail-closedにする。
+FW boot logの既定文言は`ACD {graph_id} fw boot target_revision=%s`とする。
+明示またはgraphから導出する文言は、C string literalへ安全に埋め込める
+非空文字列で、`%s`をちょうど1個だけ含み、`"`、`\`、改行、復帰文字、
+その他の`%` directiveを含めてはならない。この規則はcoreとSkillがそれぞれ独立実装し、
+Skill moduleをcoreへimportしない。
 host provisionalではresolver、筐体lane、pytest subsetまで実行できたが、基板laneは
 `freerouting` executable不在によりfail-closedで停止した。したがってhostでのlane全体の
 短縮は未測定であり、CIのdigest固定container gateをauthoritativeな測定経路とする。
@@ -213,6 +223,7 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 - `acd_probe_tools`
 - `acd_validate_design_graph`
 - `acd_register_functional_block`
+- `acd_register_parts_catalog_entry`
 - `acd_run_board_pipeline`
 - `acd_run_enclosure_pipeline`
 - `acd_run_firmware_pipeline`
@@ -241,12 +252,71 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 診断する。registration reportはL3観測（`pass_evidence: false`）であり、
 Evidenceを生成・昇格せず、ToolDefinitionとSkillへ合否権限を与えない。
 
+トポロジfragmentは`contracts/topology-templates.json`を正とするdata契約であり、
+Pythonへ電気的既定値を持たない。Pydanticはtemplate／registry blockの対応、部品要求、
+template内のrefdes／local net ID、document-levelの`shared_nets`、pad参照の閉包を
+検証する。template間のrefdes／local net ID重複は代替blockのため許可する一方、
+template固有netとshared netの衝突、未知block、重複宣言、template欠落、parse不能は
+検証不能としてfail-closedにする。padは自templateのlocal netまたは`shared_nets`だけを
+参照できる。合成後のcomponent、net、constraintの順序と正規化は従来どおり決定論的で、
+選択templateのlocal netと実際に参照されたshared netだけを出力する。
+
+部品entryは`register_part_catalog_entry.py`または
+`acd_register_parts_catalog_entry`から追加する。両経路はsymbol／footprintの実file
+存在、SHA-256、source宣言を検証し、既存`part_number`または
+`kind`＋`value`＋`package`の衝突を拒否して`select_part`の曖昧性を増やさない。
+dry-run、canonical catalog hash、原子的書き込みを提供するが、登録は宣言操作であり
+L1判定権限もauthoritative Evidence権限も持たず、`pass_evidence`はfalseである。
+catalog書き出しでは既存entryのテキスト表現（field order、indent、既定値の省略）を
+保持し、新規entryだけを既存の整形規則で追記する。
+
+USB-Cを宣言しない設計と電池給電設計は、既存の機能block・predicateとcatalog entryを
+fixtureへ宣言して到達できる。電池については`power_boundary`等の既存範囲だけを扱い、
+充電・保護回路の規範的契約やpredicateは出荷しない。これはロードマップ16.2／16.3の
+依存である。
+
 ## 生成と判定の分離
 
 配置、回転、シルク候補、FW作業、QC・信頼性レビューはOpenHands Skillまたはagentが
 提案・実行する。ACDは候補を入力ファイルへ確定した後、投影と決定論的ゲートを行う。
 ゲートは生成後の成果物を独立parser・測定器で確認し、Skillの代理指標や自然文を
 合格根拠にしない。
+
+### 要件入力stage
+
+`run_design_loop`は、要件入口整合検査を常時のdesign-loop stageとして、
+`fixture_spec`指定時だけfixture生成を、`requirement`指定時だけ要件compileを、
+loop前段の直列stageとして実行する。既存のbuilderとcompilerを再実装せず、
+fixtureの`graph.json`を無条件に上書きしない。
+`requirements.json`を既存の`load_requirements`と`validate_requirements`でgraph ID、
+revision、node、graph-anchored text、functional block registryまで検査する。missing、
+parse失敗、unknown、未回答、不一致はfail-closedでsilkscreen以降を停止する。このstageは
+L1ゲートやauthoritative Evidenceの代替ではなく、合否を変更しない観測分類のL3でもない。
+compileのreport分類はL2で、両stageとも`pass_evidence: false`とする。
+
+### order-total-aggregation stage
+
+`order-total-aggregation`は、設計laneのjoin後かつ`order-readiness`直前にだけ実行する
+条件付きの直列stageである。quote record群、`OrderScope`、`FabProfileDocument`が
+明示された場合に既存の`aggregate_order_total`を呼び出し、lane planから導出した
+`out/order-total.json`へ検証済み`OrderTotalDocument`を書き出す。既存documentを読む
+legacy modeとaggregation modeの同時指定はfail-closedで拒否する。
+
+このstageは決定論的なL2集計であり、supplierやrevision、通貨、必須category、料金処理、
+declared total、canonical breakdown hashを既存core契約に従って検査する。ただし集計結果
+はL1合格権限もauthoritative Evidence生成権限も持たない。発注可否は生成documentを読む
+既存の`order-readiness`とそのL1 gateだけが扱う。入力のmissing、parse失敗、契約不一致は
+後続のorder-readinessを実行せずfail-closedにする。
+
+### board候補探索の条件付きstage
+
+`run_design_loop`のboard-pipelineがfail-closedで却下された場合に限り、
+`explore_board`の明示指定で、全laneのjoin後に`explore_board_candidates`を直列実行できる。
+候補探索はL2の操舵とL3観測であり、silkscreen、enclosure、FWの失敗では起動しない。
+候補が見つかってもgraphのrevisionとIDが探索前と一致し、正規化content hashが変化した
+ことを検証してからloop全体をboundedに再実行する。探索reportのtarget_revisionもgraphの
+revisionと一致していなければfail-closedとし、L1ゲートとauthoritative Evidenceを毎回
+生成する。探索reportは合格権限を持たない。
 
 GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして

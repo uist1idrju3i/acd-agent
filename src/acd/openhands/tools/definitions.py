@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self, cast
 
@@ -23,6 +25,8 @@ from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportU
 from pydantic import Field
 
 from acd.core.functional_block_entry import register_functional_block_contract
+from acd.core.naming import artifact_prefix
+from acd.core.parts_catalog_entry import register_parts_catalog_entry
 from acd.openhands.tools.probe import probe_all
 from acd.schema.design_graph import DesignGraph
 
@@ -106,6 +110,20 @@ def _resources(*paths: tuple[str, Path]) -> DeclaredResources:
     return DeclaredResources(keys=tuple(resolved), declared=True)
 
 
+def _fixture_output_path(fixture: str, suffix: str) -> Path:
+    graph_path = Path(fixture) / "graph.json"
+    graph = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
+    return Path("out") / f"{artifact_prefix(graph.graph_id)}{suffix}"
+
+
+def _pipeline_output_path(
+    fixture: str, explicit_out: str | None, suffix: str
+) -> Path:
+    if explicit_out is not None:
+        return Path(explicit_out)
+    return _fixture_output_path(fixture, suffix)
+
+
 class AcdObservation(Observation):
     """Common typed result fields for ACD deterministic tools."""
 
@@ -134,6 +152,11 @@ class AcdObservation(Observation):
     contract_source: str | None = None
     contract: dict[str, Any] | None = None
     written: bool | None = None
+    catalog_id: str | None = None
+    prior_catalog_hash: str | None = None
+    new_catalog_hash: str | None = None
+    entry_source: str | None = None
+    entry: dict[str, Any] | None = None
 
     @property
     def to_llm_content(self) -> list[TextContent]:
@@ -174,6 +197,13 @@ class AcdObservation(Observation):
                 f"new_registry_hash={self.new_registry_hash}, "
                 f"written={self.written}. This is a declaration, not gate evidence."
             )
+        elif self.operation == "register_parts_catalog_entry":
+            text = (
+                f"{self.operation}: catalog_id={self.catalog_id}, "
+                f"prior_catalog_hash={self.prior_catalog_hash}, "
+                f"new_catalog_hash={self.new_catalog_hash}, "
+                f"written={self.written}. This is a declaration, not gate evidence."
+            )
         elif self.failure_reason:
             text = f"{self.operation}: {self.failure_reason}"
         else:
@@ -192,15 +222,15 @@ class AcdValidateDesignGraphAction(Action):
 
 
 class AcdRunBoardPipelineAction(Action):
-    """Run the deterministic GD1 board pipeline."""
+    """Run the deterministic board pipeline."""
 
     fixture: str = Field(
         default="fixtures/golden-design-1",
         description="Fixture directory containing graph.json.",
     )
-    out: str = Field(
-        default="out/gd1-mcp",
-        description="Output directory for generated board artifacts.",
+    out: str | None = Field(
+        default=None,
+        description="Output directory; derived from fixture graph when omitted.",
     )
     fab_profile: str | None = Field(default=None, description="Fabrication profile JSON path.")
     fab_profile_id: str | None = Field(
@@ -213,15 +243,15 @@ class AcdRunBoardPipelineAction(Action):
 
 
 class AcdRunEnclosurePipelineAction(Action):
-    """Run the deterministic GD1 enclosure pipeline."""
+    """Run the deterministic enclosure pipeline."""
 
     fixture: str = Field(
         default="fixtures/golden-design-1",
         description="Fixture directory containing graph.json.",
     )
-    out: str = Field(
-        default="out/gd1-enclosure-mcp",
-        description="Output directory for generated enclosure artifacts.",
+    out: str | None = Field(
+        default=None,
+        description="Output directory; derived from fixture graph when omitted.",
     )
 
 
@@ -241,9 +271,26 @@ class AcdRegisterFunctionalBlockAction(Action):
     )
 
 
+class AcdRegisterPartsCatalogEntryAction(Action):
+    """Validate and append one parts-catalog entry declaration."""
+
+    entry: str = Field(description="PartCatalogEntry JSON path or inline JSON object.")
+    catalog: str = Field(
+        default="contracts/parts-catalog.json",
+        description="Parts catalog JSON path.",
+    )
+    dry_run: bool = Field(
+        default=False,
+        description="Validate without writing the catalog.",
+    )
+
+
 class AcdRunFirmwarePipelineAction(Action):
     fixture: str = Field(default="fixtures/golden-design-1")
-    out: str = Field(default="out/gd1-fw")
+    out: str | None = Field(
+        default=None,
+        description="Output directory; derived from fixture graph when omitted.",
+    )
     run_seconds: int = Field(
         default=15,
         ge=1,
@@ -260,6 +307,15 @@ class AcdCompileRequirementChangeAction(Action):
 class AcdBuildDesignFixtureAction(Action):
     spec: str
     out: str
+
+
+class AcdAggregateOrderTotalAction(Action):
+    quote_records: list[str] = Field(min_length=1)
+    order_scope: str
+    fab_profile: str
+    target_revision: str
+    evaluated_at: str
+    output: str
 
 
 class AcdExploreBoardCandidatesAction(Action):
@@ -298,7 +354,7 @@ class AcdRunDesignLoopAction(Action):
 
     fixture: str = Field(default="fixtures/golden-design-1")
     out_root: str = Field(default="out")
-    order_total: str
+    order_total: str | None = None
     policy: str = "plugins/acd/hooks/order-policy.json"
     repository: str = "."
     fab_profile: str | None = None
@@ -307,6 +363,50 @@ class AcdRunDesignLoopAction(Action):
     max_silkscreen_iterations: int = Field(default=5, ge=1)
     run_seconds: int = Field(default=15, ge=1)
     evaluated_at: str | None = None
+    cache_dir: str | None = Field(
+        default=None,
+        description="Optional content-addressed cache directory for deterministic artifacts.",
+    )
+    resume: bool = Field(
+        default=False,
+        description="Reuse valid matching artifacts without restoring verdicts or Evidence.",
+    )
+    jobs: int = Field(
+        default=1,
+        ge=1,
+        description="Maximum parallel board, enclosure, and firmware lanes.",
+    )
+    explore_board: bool = Field(
+        default=False,
+        description="Explore board candidates after a fail-closed board rejection.",
+    )
+    max_exploration_candidates: int = Field(
+        default=3,
+        ge=1,
+        description="Maximum candidates evaluated in each board exploration round.",
+    )
+    max_exploration_rounds: int = Field(
+        default=1,
+        ge=1,
+        description="Maximum board exploration and loop rerun rounds.",
+    )
+    requirement: str | None = Field(
+        default=None,
+        description="Optional updated requirement record to compile before the loop.",
+    )
+    fixture_spec: str | None = Field(
+        default=None,
+        description="Optional design fixture specification to generate before the loop.",
+    )
+    quote_records: list[str] | None = Field(
+        default=None,
+        min_length=1,
+        description="Optional quote records for order-total aggregation mode.",
+    )
+    order_scope: str | None = Field(
+        default=None,
+        description="Optional OrderScope JSON path for aggregation mode.",
+    )
 
 
 class AcdProbeToolsObservation(AcdObservation):
@@ -343,6 +443,10 @@ class AcdRegisterFunctionalBlockObservation(AcdObservation):
     """Observation returned by functional-block contract registration."""
 
 
+class AcdRegisterPartsCatalogEntryObservation(AcdObservation):
+    """Observation returned by parts-catalog entry registration."""
+
+
 class AcdRunFirmwarePipelineObservation(AcdObservation):
     """Observation returned by the firmware Skill subprocess."""
 
@@ -353,6 +457,10 @@ class AcdCompileRequirementChangeObservation(AcdObservation):
 
 class AcdBuildDesignFixtureObservation(AcdObservation):
     """Observation returned by the arbitrary fixture builder."""
+
+
+class AcdAggregateOrderTotalObservation(AcdObservation):
+    """Observation returned by deterministic order-total aggregation."""
 
 
 class AcdExploreBoardCandidatesObservation(AcdObservation):
@@ -435,8 +543,16 @@ class AcdRunBoardPipelineExecutor(ToolExecutor[AcdRunBoardPipelineAction, AcdObs
     ) -> AcdObservation:
         del conversation
         fixture_path = Path(action.fixture)
-        out_path = Path(action.out)
         profile_path = Path(action.fab_profile) if action.fab_profile is not None else None
+        try:
+            out_path = _pipeline_output_path(action.fixture, action.out, "-mcp")
+        except Exception as exc:
+            return AcdRunBoardPipelineObservation(
+                **_error(
+                    f"cannot resolve board pipeline output path: {exc}",
+                    operation="run_board_pipeline",
+                )
+            )
         try:
             if not (fixture_path / "graph.json").is_file():
                 return AcdRunBoardPipelineObservation(
@@ -477,8 +593,6 @@ class AcdRunBoardPipelineExecutor(ToolExecutor[AcdRunBoardPipelineAction, AcdObs
         except Exception as exc:
             return AcdRunBoardPipelineObservation(
                 **_error(str(exc), operation="run_board_pipeline"),
-                output_path=action.out,
-                envelopes=_envelopes(out_path),
             )
 
 
@@ -490,7 +604,17 @@ class AcdRunEnclosurePipelineExecutor(ToolExecutor[AcdRunEnclosurePipelineAction
     ) -> AcdObservation:
         del conversation
         fixture_path = Path(action.fixture)
-        out_path = Path(action.out)
+        try:
+            out_path = _pipeline_output_path(
+                action.fixture, action.out, "-enclosure-mcp"
+            )
+        except Exception as exc:
+            return AcdRunEnclosurePipelineObservation(
+                **_error(
+                    f"cannot resolve enclosure pipeline output path: {exc}",
+                    operation="run_enclosure_pipeline",
+                )
+            )
         try:
             if not (fixture_path / "graph.json").is_file():
                 return AcdRunEnclosurePipelineObservation(
@@ -511,8 +635,6 @@ class AcdRunEnclosurePipelineExecutor(ToolExecutor[AcdRunEnclosurePipelineAction
         except Exception as exc:
             return AcdRunEnclosurePipelineObservation(
                 **_error(str(exc), operation="run_enclosure_pipeline"),
-                output_path=action.out,
-                envelopes=_envelopes(out_path),
             )
 
 
@@ -545,6 +667,41 @@ class AcdRegisterFunctionalBlockExecutor(
         except Exception as exc:
             return AcdRegisterFunctionalBlockObservation(
                 **_error(str(exc), operation="register_functional_block")
+            )
+
+
+class AcdRegisterPartsCatalogEntryExecutor(
+    ToolExecutor[
+        AcdRegisterPartsCatalogEntryAction,
+        AcdRegisterPartsCatalogEntryObservation,
+    ]
+):
+    def __call__(
+        self,
+        action: AcdRegisterPartsCatalogEntryAction,
+        conversation: Any = None,
+    ) -> AcdRegisterPartsCatalogEntryObservation:
+        del conversation
+        try:
+            result = register_parts_catalog_entry(
+                action.entry,
+                Path(action.catalog),
+                dry_run=action.dry_run,
+            )
+            return AcdRegisterPartsCatalogEntryObservation(
+                ok=True,
+                operation="register_parts_catalog_entry",
+                catalog_id=result.catalog_id,
+                prior_catalog_hash=result.prior_catalog_hash,
+                new_catalog_hash=result.new_catalog_hash,
+                entry_source=result.entry_source,
+                entry=result.entry.model_dump(mode="json"),
+                written=result.written,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdRegisterPartsCatalogEntryObservation(
+                **_error(str(exc), operation="register_parts_catalog_entry")
             )
 
 
@@ -650,7 +807,7 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
                 return AcdRunFirmwarePipelineObservation(
                     **_error("run_seconds must be positive", operation="run_firmware_pipeline")
                 )
-            out_path = Path(action.out)
+            out_path = _pipeline_output_path(action.fixture, action.out, "-fw")
             command = [
                 "uv",
                 "run",
@@ -659,7 +816,7 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
                 "--fixture",
                 action.fixture,
                 "--out",
-                action.out,
+                str(out_path),
                 "--run-seconds",
                 str(action.run_seconds),
             ]
@@ -672,7 +829,7 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
                         completed.stderr.strip() or f"firmware Skill exited {completed.returncode}",
                         operation="run_firmware_pipeline",
                     ),
-                    output_path=action.out,
+                    output_path=str(out_path),
                 )
             summary_path = out_path / "summary.json"
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
@@ -682,7 +839,7 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
                 ok=True,
                 operation="run_firmware_pipeline",
                 summary=cast(dict[str, Any], summary),
-                output_path=action.out,
+                output_path=str(out_path),
                 provenance={
                     "skill_name": "acd-firmware-esp32c3",
                     "script_name": str(script.relative_to(root)),
@@ -694,7 +851,6 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
         except Exception as exc:
             return AcdRunFirmwarePipelineObservation(
                 **_error(str(exc), operation="run_firmware_pipeline"),
-                output_path=action.out,
             )
 
 
@@ -760,6 +916,79 @@ class AcdBuildDesignFixtureExecutor(ToolExecutor[AcdBuildDesignFixtureAction, Ac
         except Exception as exc:
             return AcdBuildDesignFixtureObservation(
                 **_error(str(exc), operation="build_design_fixture")
+            )
+
+
+class AcdAggregateOrderTotalExecutor(
+    ToolExecutor[AcdAggregateOrderTotalAction, AcdObservation]
+):
+    def __call__(
+        self,
+        action: AcdAggregateOrderTotalAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.core.order_total import (
+                aggregate_order_total,
+                order_total_result_to_document,
+            )
+            from acd.core.timestamps import parse_evaluated_at
+            from acd.schema import FabProfileDocument, OrderScope, QuoteRecord
+
+            records = [
+                QuoteRecord.model_validate_json(
+                    Path(path).read_text(encoding="utf-8")
+                )
+                for path in action.quote_records
+            ]
+            scope = OrderScope.model_validate_json(
+                Path(action.order_scope).read_text(encoding="utf-8")
+            )
+            fab_profile = FabProfileDocument.model_validate_json(
+                Path(action.fab_profile).read_text(encoding="utf-8")
+            )
+            result = aggregate_order_total(
+                records,
+                scope,
+                fab_profile=fab_profile,
+                evaluated_at=parse_evaluated_at(action.evaluated_at),
+                target_revision=action.target_revision,
+            )
+            document = order_total_result_to_document(result)
+            output_path = Path(action.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary_path: Path | None = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    "w",
+                    encoding="utf-8",
+                    dir=output_path.parent,
+                    prefix=f".{output_path.name}.",
+                    suffix=".tmp",
+                    delete=False,
+                ) as temporary:
+                    temporary.write(document.model_dump_json(indent=2) + "\n")
+                    temporary_path = Path(temporary.name)
+                os.replace(temporary_path, output_path)
+            finally:
+                if temporary_path is not None:
+                    temporary_path.unlink(missing_ok=True)
+            return AcdAggregateOrderTotalObservation(
+                ok=True,
+                operation="aggregate_order_total",
+                report={
+                    "quote_count": len(records),
+                    "target_revision": result.target_revision,
+                    "breakdown_hash": result.breakdown_hash,
+                    "pass_evidence": False,
+                },
+                output_path=str(output_path),
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdAggregateOrderTotalObservation(
+                **_error(str(exc), operation="aggregate_order_total")
             )
 
 
@@ -921,7 +1150,7 @@ class AcdRunDesignLoopExecutor(
             result = run_design_loop(
                 Path(action.fixture),
                 Path(action.out_root),
-                order_total=Path(action.order_total),
+                order_total=Path(action.order_total) if action.order_total else None,
                 policy=Path(action.policy),
                 repository=Path(action.repository),
                 fab_profile=Path(action.fab_profile) if action.fab_profile else None,
@@ -930,6 +1159,20 @@ class AcdRunDesignLoopExecutor(
                 max_silkscreen_iterations=action.max_silkscreen_iterations,
                 run_seconds=action.run_seconds,
                 evaluated_at=evaluated_at,
+                cache_dir=Path(action.cache_dir) if action.cache_dir else None,
+                resume=action.resume,
+                jobs=action.jobs,
+                explore_board=action.explore_board,
+                max_exploration_candidates=action.max_exploration_candidates,
+                max_exploration_rounds=action.max_exploration_rounds,
+                requirement=Path(action.requirement) if action.requirement else None,
+                fixture_spec=Path(action.fixture_spec) if action.fixture_spec else None,
+                quote_records=(
+                    [Path(path) for path in action.quote_records]
+                    if action.quote_records
+                    else None
+                ),
+                order_scope=Path(action.order_scope) if action.order_scope else None,
             )
             return AcdRunDesignLoopObservation(
                 ok=bool(result.get("ok")),
@@ -1023,7 +1266,13 @@ class AcdRunBoardPipeline(
         if not isinstance(action, AcdRunBoardPipelineAction):
             return DeclaredResources(keys=(), declared=False)
         graph_path = _resolved_resource_path(str(Path(action.fixture) / "graph.json"))
-        out_path = _resolved_resource_path(action.out)
+        try:
+            out_raw = str(
+                _pipeline_output_path(action.fixture, action.out, "-mcp")
+            )
+        except (OSError, UnicodeError, ValueError):
+            return DeclaredResources(keys=(), declared=False)
+        out_path = _resolved_resource_path(out_raw)
         if graph_path is None or out_path is None:
             return DeclaredResources(keys=(), declared=False)
         return DeclaredResources(
@@ -1044,7 +1293,7 @@ class AcdRunBoardPipeline(
             cls(
                 action_type=AcdRunBoardPipelineAction,
                 observation_type=AcdRunBoardPipelineObservation,
-                description="Run the deterministic GD1 board pipeline.",
+                description="Run the deterministic board pipeline.",
                 annotations=ToolAnnotations(
                     title="acd_run_board_pipeline",
                     readOnlyHint=False,
@@ -1064,7 +1313,15 @@ class AcdRunEnclosurePipeline(
         if not isinstance(action, AcdRunEnclosurePipelineAction):
             return DeclaredResources(keys=(), declared=False)
         graph_path = _resolved_resource_path(str(Path(action.fixture) / "graph.json"))
-        out_path = _resolved_resource_path(action.out)
+        try:
+            out_raw = str(
+                _pipeline_output_path(
+                    action.fixture, action.out, "-enclosure-mcp"
+                )
+            )
+        except (OSError, UnicodeError, ValueError):
+            return DeclaredResources(keys=(), declared=False)
+        out_path = _resolved_resource_path(out_raw)
         if graph_path is None or out_path is None:
             return DeclaredResources(keys=(), declared=False)
         return DeclaredResources(
@@ -1085,7 +1342,7 @@ class AcdRunEnclosurePipeline(
             cls(
                 action_type=AcdRunEnclosurePipelineAction,
                 observation_type=AcdRunEnclosurePipelineObservation,
-                description="Run the deterministic GD1 enclosure pipeline.",
+                description="Run the deterministic enclosure pipeline.",
                 annotations=ToolAnnotations(
                     title="acd_run_enclosure_pipeline",
                     readOnlyHint=False,
@@ -1104,9 +1361,13 @@ class AcdRunFirmwarePipeline(
     def declared_resources(self, action: Action) -> DeclaredResources:
         if not isinstance(action, AcdRunFirmwarePipelineAction):
             return DeclaredResources(keys=(), declared=False)
+        try:
+            out_raw = str(_pipeline_output_path(action.fixture, action.out, "-fw"))
+        except (OSError, UnicodeError, ValueError):
+            return DeclaredResources(keys=(), declared=False)
         return _resources(
             ("file", Path(action.fixture) / "graph.json"),
-            ("acd-out", Path(action.out)),
+            ("acd-out", Path(out_raw)),
             (
                 "file",
                 Path(__file__).parents[4]
@@ -1198,6 +1459,44 @@ class AcdBuildDesignFixture(
                     openWorldHint=False,
                 ),
                 executor=AcdBuildDesignFixtureExecutor(),
+            )
+        ]
+
+
+class AcdAggregateOrderTotal(
+    ToolDefinition[AcdAggregateOrderTotalAction, AcdAggregateOrderTotalObservation]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdAggregateOrderTotalAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(
+            *[("file", Path(path)) for path in action.quote_records],
+            ("file", Path(action.order_scope)),
+            ("file", Path(action.fab_profile)),
+            ("acd-out", Path(action.output)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_aggregate_order_total does not accept parameters")
+        return [
+            cls(
+                action_type=AcdAggregateOrderTotalAction,
+                observation_type=AcdAggregateOrderTotalObservation,
+                description=(
+                    "Aggregate validated quote records into an order-total document "
+                    "without granting L1 authority or creating authoritative Evidence."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_aggregate_order_total",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdAggregateOrderTotalExecutor(),
             )
         ]
 
@@ -1347,12 +1646,25 @@ class AcdRunDesignLoop(
         if not isinstance(action, AcdRunDesignLoopAction):
             return DeclaredResources(keys=(), declared=False)
         root = Path(action.repository)
+        cache_resource = (
+            (("acd-out", Path(action.cache_dir)),) if action.cache_dir else ()
+        )
         return _resources(
             ("file", Path(action.fixture) / "graph.json"),
-            ("file", Path(action.order_total)),
+            ("file", Path(action.fixture) / "requirements.json"),
+            *((("file", Path(action.order_total)),) if action.order_total else ()),
             ("file", Path(action.policy)),
+            *((("file", Path(action.fab_profile)),) if action.fab_profile else ()),
+            *(
+                ("file", Path(path))
+                for path in action.quote_records or []
+            ),
+            *((("file", Path(action.order_scope)),) if action.order_scope else ()),
+            *((("file", Path(action.requirement)),) if action.requirement else ()),
+            *((("file", Path(action.fixture_spec)),) if action.fixture_spec else ()),
             ("file", root / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"),
             ("acd-out", Path(action.out_root)),
+            *cache_resource,
         )
 
     @classmethod
@@ -1366,7 +1678,10 @@ class AcdRunDesignLoop(
                 observation_type=AcdRunDesignLoopObservation,
                 description=(
                     "Run the fixed graph-driven VibeBB design loop through "
-                    "deterministic stages."
+                    "deterministic stages, with optional artifact cache/resume, "
+                    "stage timing, bounded lane parallelism, and opt-in bounded "
+                    "board exploration after board rejection. Cache reuse and "
+                    "exploration never restore verdicts or Evidence."
                 ),
                 annotations=ToolAnnotations(
                     title="acd_run_design_loop",
@@ -1463,16 +1778,61 @@ class AcdRegisterFunctionalBlock(
         ]
 
 
+class AcdRegisterPartsCatalogEntry(
+    ToolDefinition[
+        AcdRegisterPartsCatalogEntryAction,
+        AcdRegisterPartsCatalogEntryObservation,
+    ]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRegisterPartsCatalogEntryAction):
+            return DeclaredResources(keys=(), declared=False)
+        catalog_path = _resolved_resource_path(action.catalog)
+        if catalog_path is None:
+            return DeclaredResources(keys=(), declared=False)
+        keys = [f"file:{catalog_path}"]
+        entry_path = _resolved_resource_path(action.entry)
+        if entry_path is not None and entry_path.is_file():
+            keys.insert(0, f"file:{entry_path}")
+        return DeclaredResources(keys=tuple(keys), declared=True)
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_register_parts_catalog_entry does not accept parameters")
+        return [
+            cls(
+                action_type=AcdRegisterPartsCatalogEntryAction,
+                observation_type=AcdRegisterPartsCatalogEntryObservation,
+                description=(
+                    "Validate and register one parts-catalog entry declaration "
+                    "without granting L1 authority or creating Evidence."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_register_parts_catalog_entry",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=False,
+                    openWorldHint=False,
+                ),
+                executor=AcdRegisterPartsCatalogEntryExecutor(),
+            )
+        ]
+
+
 ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_probe_tools", AcdProbeTools),
     ("acd_validate_design_graph", AcdValidateDesignGraph),
     ("acd_run_board_pipeline", AcdRunBoardPipeline),
     ("acd_run_enclosure_pipeline", AcdRunEnclosurePipeline),
     ("acd_register_functional_block", AcdRegisterFunctionalBlock),
+    ("acd_register_parts_catalog_entry", AcdRegisterPartsCatalogEntry),
     ("acd_bootstrap_workspace", AcdBootstrapWorkspace),
     ("acd_run_firmware_pipeline", AcdRunFirmwarePipeline),
     ("acd_compile_requirement_change", AcdCompileRequirementChange),
     ("acd_build_design_fixture", AcdBuildDesignFixture),
+    ("acd_aggregate_order_total", AcdAggregateOrderTotal),
     ("acd_explore_board_candidates", AcdExploreBoardCandidates),
     ("acd_explore_enclosure_candidates", AcdExploreEnclosureCandidates),
     ("acd_diagnose_gate_failure", AcdDiagnoseGateFailure),

@@ -12,7 +12,12 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from fw_graph import FirmwareLane, FirmwareSettings
+from fw_graph import (
+    FirmwareExtractionError,
+    FirmwareLane,
+    FirmwareSettings,
+    validate_boot_log_message,
+)
 
 _SEPARATOR_PATTERN = re.compile(r"[^a-z0-9]+")
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -71,9 +76,8 @@ def _macro_name(net_id: str) -> str:
 
 
 def render_pins_header(
-    lane: FirmwareLane, target_revision: str, settings: FirmwareSettings | None = None
+    lane: FirmwareLane, target_revision: str, settings: FirmwareSettings
 ) -> str:
-    settings = settings or FirmwareSettings()
     lines = [
         "/* Generated from the design graph. Do not edit: the graph is canonical. */",
         "#pragma once",
@@ -97,8 +101,9 @@ def render_pins_header(
     return "\n".join(lines)
 
 
-# The C template is written verbatim except for this log-tag placeholder.
+# The C template is written verbatim except for these named placeholders.
 _LOG_TAG_PLACEHOLDER = "__ACD_LOG_TAG__"
+_BOOT_LOG_MESSAGE_PLACEHOLDER = "__ACD_BOOT_LOG_MESSAGE__"
 
 _MAIN_C = """\
 /* Golden Design #1 firmware: 1 Hz LED blink + SHT40 temperature/humidity log.
@@ -139,7 +144,7 @@ static void sht40_log_once(void)
 
 void app_main(void)
 {
-    ESP_LOGI(TAG, "ACD GD1 fw boot target_revision=%s", ACD_TARGET_REVISION);
+    ESP_LOGI(TAG, "__ACD_BOOT_LOG_MESSAGE__", ACD_TARGET_REVISION);
     ESP_LOGI(TAG, "pins led=%d sda=%d scl=%d", ACD_PIN_LED, ACD_PIN_I2C_SDA, ACD_PIN_I2C_SCL);
 
     gpio_config_t led_cfg = {
@@ -180,6 +185,10 @@ void app_main(void)
     }
 }
 """
+if _BOOT_LOG_MESSAGE_PLACEHOLDER not in _MAIN_C:
+    raise FirmwareProjectionError(
+        "firmware template is missing the boot log message placeholder"
+    )
 
 _ROOT_CMAKE = """\
 cmake_minimum_required(VERSION 3.16)
@@ -204,7 +213,14 @@ def write_firmware_project(
     graph_id: str,
     settings: FirmwareSettings | None = None,
 ) -> FirmwareProject:
-    settings = settings or FirmwareSettings()
+    if settings is None:
+        settings = FirmwareSettings(
+            boot_log_message=f"ACD {graph_id} fw boot target_revision=%s"
+        )
+    try:
+        validate_boot_log_message(settings.boot_log_message)
+    except FirmwareExtractionError as exc:
+        raise FirmwareProjectionError(str(exc)) from exc
     name = firmware_project_name(graph_id)
     root = out_dir.resolve() / name
     main_dir = root / "main"
@@ -217,7 +233,17 @@ def write_firmware_project(
     pins_header.write_text(render_pins_header(lane, target_revision, settings))
     main_source = main_dir / "acd_main.c"
     source = _MAIN_C.replace(_LOG_TAG_PLACEHOLDER, log_tag(graph_id))
-    source = source.replace("ACD GD1 fw boot target_revision=%s", settings.boot_log_message)
+    if _BOOT_LOG_MESSAGE_PLACEHOLDER not in source:
+        raise FirmwareProjectionError(
+            "firmware template is missing the boot log message placeholder"
+        )
+    source = source.replace(
+        _BOOT_LOG_MESSAGE_PLACEHOLDER, settings.boot_log_message
+    )
+    if _BOOT_LOG_MESSAGE_PLACEHOLDER in source:
+        raise FirmwareProjectionError(
+            "firmware template boot log message placeholder was not replaced"
+        )
     main_source.write_text(source)
     return FirmwareProject(
         name=name, root=root, pins_header=pins_header, main_source=main_source

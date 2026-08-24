@@ -57,6 +57,7 @@ GD1_CPL_ORIENTATION_EVIDENCE = FixtureCplOrientationEvidence(
         "assembly placement with a zero-degree centroid offset."
     ),
 )
+GD1_BOOT_LOG_MESSAGE = "ACD GD1 fw boot target_revision=%s"
 
 
 def _paths() -> tuple[Path, Path, Path, Path, Path]:

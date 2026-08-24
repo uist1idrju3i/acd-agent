@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@f8b07a47513df1baad615dd1710d629b85810914",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@3153a012e008621e8f30711ed54cddf97f6b21ca",
 # ]
 # ///
 """Golden Design #1 firmware pipeline: graph -> ESP-IDF build -> QEMU.
@@ -100,7 +100,12 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
 
     log = result.log_path.read_text(errors="replace")
     led_gpio = fw_lane.gpio_for_net("net.led")
-    assert_virtual_log_ok(log, target_revision=revision, led_gpio=led_gpio)
+    assert_virtual_log_ok(
+        log,
+        target_revision=revision,
+        led_gpio=led_gpio,
+        boot_log_message=fw_settings.boot_log_message,
+    )
     print("[5/5] virtual log check passed")
     print("NOTE: real-device flashing/LED measurement unavailable (no debug probe attached)")
 

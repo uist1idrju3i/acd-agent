@@ -3144,9 +3144,10 @@
       ],
       "subject_attrs": [
         "mcu_component",
-        "entry_state"
+        "entry_state",
+        "boot_log_message"
       ],
-      "subject_hash": "sha256:86fac89d302d074b2adf97687c3ea9d3681880acc6affb2125e0e19c6950d5df",
+      "subject_hash": "sha256:e68b3eb2a6bd8fd5695251ee192722137077ba08bc6bb97ac9ff7b22b4dca575",
       "decision": "Declare the GD1 main firmware module, MCU component, and entry state.",
       "justification": "§9.1の機能範囲をDesign Graphから決定論的に抽出するため、MCUと初期状態の関係を機械可読に宣言する。状態遷移・シーケンス投影は非権威のL3観測であり、Evidenceやゲート判定の根拠にはしない。",
       "driving_requirements": [

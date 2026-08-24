@@ -279,9 +279,9 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    barrierとして先に完了させるlane orchestratorを使う。
 
    ```bash
-   uv run python scripts/run_gd1_lanes.py
-   uv run python scripts/run_gd1_lanes.py --jobs 1
-   uv run python scripts/run_gd1_lanes.py --list
+   uv run python scripts/run_design_lanes.py
+   uv run python scripts/run_design_lanes.py --jobs 1
+   uv run python scripts/run_design_lanes.py --list
    ```
 
    `--jobs`の既定値は`min(os.cpu_count() or 1, 4)`である。`--jobs 1`はresolver、
@@ -295,7 +295,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    保存できる。例えば途中失敗後の再開は次のように実行する。
 
    ```bash
-   uv run python scripts/run_gd1_lanes.py --resume --cache-dir out/.stage-cache
+   uv run python scripts/run_design_lanes.py --resume --cache-dir out/.stage-cache
    ```
 
    `--resume`は有効な入力hash一致の生成物だけを復元し、判定、Evidence、timingを復元
@@ -303,7 +303,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    L1 gateは必ず再実行し、Evidenceも新規生成する。破損またはhash不一致のentryは
    無視して再生成する。cache reportはL3観測であり、合否authorityではない。
    `container-gates` jobも、digest固定imageのDockerWorkspace内で`uv sync && uv run
-   python scripts/run_gd1_lanes.py`を実行し、完了後にhost側でauthoritative Evidenceを
+   python scripts/run_design_lanes.py`を実行し、完了後にhost側でauthoritative Evidenceを
    検証する。CPL／BOM chainは逐次のままだが、E-4のDSN／SES stage cacheは
    `--cache-dir`または`--resume`で明示的に利用できる。
    host provisionalでのlane全体の測定は、基板laneが`freerouting` executable不在で
@@ -358,18 +358,43 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 見つからない場合も、ゲート未実行として停止する。このCLIはjournal書込み、送信、実発注を
 行わない。
 
+### quoteからorder-totalを生成する
+
+見積record、発注範囲、基板製造プロファイルから、既存の決定論的集計を呼び出して
+`OrderTotalDocument`を生成できる。各quote recordは対象revision、supplier、
+counterparty、通貨、必須category、明細合計を満たし、OrderScopeとFabProfileDocument
+のID・revision・通貨契約に一致していなければならない。`--quote-record`は複数回
+指定する。
+
+```bash
+uv run python scripts/aggregate_order_total.py \
+  --quote-record fixtures/contracts/valid/quote-order.json \
+  --order-scope fixtures/contracts/valid/order-scope.json \
+  --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
+  --target-revision r12 \
+  --evaluated-at 2026-08-14T00:00:00Z \
+  --output out/order-total.json
+```
+
+集計が成功したら、生成されたJSONを既存の発注前ゲートへ渡す。parse失敗、missing、
+revision・supplier・counterparty・通貨・category不一致、明細合計やbreakdown hashの
+不一致はすべて非ゼロ終了で停止する。集計結果はL1合格権限やauthoritative Evidence
+ではなく、発注可否は既存のpre-order gateだけが判定する。
+
 ### VibeBB設計loopの実行
 
 会話から要件をgraphへ反映し、設計反復と発注可否を一つの決定論的loopで進める入口は
-`/acd:vibebb-loop`である。要件差分は`acd_compile_requirement_change`、新規fixtureは
-`acd_build_design_fixture`、graphの編集後は`acd_validate_design_graph`を使う。loop本体は
-次の順序をコード側で固定する。
+`/acd:vibebb-loop`である。要件差分は`--requirement`、新規fixtureのspecは
+`--fixture-spec`でloopへ渡せる。単独の`acd_compile_requirement_change`と
+`acd_build_design_fixture`も引き続き利用できる。loop本体は次の順序をコード側で固定する。
 
-1. silkscreen resolver（基板pipelineの前提となるbarrier）
-2. 基板pipeline
-3. 筐体pipeline
-4. FW pipeline（Skill CLI subprocess）
-5. 発注可否のpre-order gate
+1. fixture生成（`--fixture-spec`指定時のみ）
+2. 要件compile（`--requirement`指定時のみ）
+3. 要件入口整合検査（常時）
+4. silkscreen resolver（基板pipelineの前提となるbarrier）
+5. 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
+6. order-total集計（quote record、OrderScope、FabProfileDocument指定時のみ）
+7. 発注可否のpre-order gate
 
 コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
 出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`
@@ -383,8 +408,116 @@ uv run python scripts/run_design_loop.py \
   --out-root out \
   --order-total out/order-total.json \
   --policy plugins/acd/hooks/order-policy.json \
+  --requirement out/requirement-update.json \
   --evaluated-at 2026-08-14T00:00:00Z
 ```
+
+既存のorder-total documentを使う場合は`--order-total`を指定する。quoteからloop内で
+生成する場合は、次のaggregation modeを使う。二つのmodeを同時に指定することはできず、
+fab profileを含む全入力が揃わない場合もfail-closedになる。
+
+```bash
+uv run python scripts/run_design_loop.py \
+  --fixture fixtures/golden-design-1 \
+  --out-root out \
+  --quote-record fixtures/contracts/valid/quote-order.json \
+  --order-scope fixtures/contracts/valid/order-scope.json \
+  --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
+  --policy plugins/acd/hooks/order-policy.json \
+  --evaluated-at 2026-08-14T00:00:00Z
+```
+
+この場合、lane planから導出した`out/order-total.json`へ集計結果を書き、直後の
+order-readinessがそのdocumentを読み込む。集計はL2の決定論的処理であり、合格判定や
+authoritative Evidenceを生成しない。quote取得と実発注はこのloopの責務ではない。
+
+### 契約registryとparts catalogの追加
+
+トポロジtemplateは`contracts/topology-templates.json`へ追加する。`template_id`と
+registryの`block_id`を対応させ、部品要求の`kind`、`value`、`package`、padのnet参照を
+宣言する。共通railはdocument-levelの`shared_nets`へ宣言し、その他はtemplate-local
+netとする。Pydantic検証はtemplate内の重複refdes／local net、shared netとの衝突、
+未知block、未宣言net、template欠落をfail-closedにする。template間の重複は代替block
+のため許可し、padは自templateのlocal netまたはshared netだけを参照できる。
+
+部品entryは次のCLIでdry-run検証してからcatalogへ原子的に追加する。
+
+```bash
+uv run python scripts/register_part_catalog_entry.py \
+  --entry fixtures/contracts/valid/part-entry.json \
+  --catalog contracts/parts-catalog.json \
+  --dry-run
+uv run python scripts/register_part_catalog_entry.py \
+  --entry fixtures/contracts/valid/part-entry.json \
+  --catalog contracts/parts-catalog.json
+```
+
+entryには`part_number`、`kind`、`value`、`package`と、symbol／footprintの名前、
+file、source、source_ref、`sha256:<64 hex>`を必須で宣言する。CLIは両fileを実際に
+読み、宣言SHA-256と一致しない場合やfileが存在しない場合は非ゼロ終了でfail-closedに
+する。既存`part_number`または同じ選択key（`kind`＋`value`＋`package`）との衝突は、
+`select_part`の曖昧な結果を増やすため拒否する。既存entryのテキスト表現は保持し、
+新規entryだけを追記する。dry-runはcatalog hashの変更予定を報告するが書き込まない。
+
+同じ操作は会話経路の`acd_register_parts_catalog_entry`でも行える。これは入力
+catalog／entryを資源宣言し、登録結果とcanonical catalog hashを観測するだけで、
+L1合格やauthoritative Evidenceを生成しない。USB-Cを持たないfixtureや電池給電
+fixtureの回帰例は、既存predicateだけを使う。充電・保護回路の妥当性はこの経路で
+判定せず、規範的な電池契約はロードマップ16.2／16.3を待つ。
+
+新規fixtureをspecから生成する場合は、`--fixture-spec`を追加する。fixtureに既存の
+`graph.json`がある場合は上書きせずfail-closedで停止する。
+
+cache・resume・lane並列を有効にする場合は、次のように指定する。
+
+```bash
+uv run python scripts/run_design_loop.py \
+  --fixture fixtures/golden-design-1 \
+  --out-root out \
+  --order-total out/order-total.json \
+  --policy plugins/acd/hooks/order-policy.json \
+  --cache-dir out/.stage-cache \
+  --resume \
+  --jobs 3 \
+  --evaluated-at 2026-08-14T00:00:00Z
+```
+
+`--resume`で`--cache-dir`を省略すると`out-root/.stage-cache`を使う。cacheは
+入力hashが一致する決定論的なDSN／SES生成物だけを再利用し、判定、verdict、
+Evidenceは毎回再実行する。`--jobs 1`はsilkscreen barrier後のlaneを逐次実行し、
+CLIの既定値は`min(os.cpu_count() or 1, 3)`である。tool経路の`jobs`既定値は1で、
+並列化は明示指定時だけ有効になる。timing recordとcache reportはL3観測であり、
+記録失敗は結果へ理由を記録するが、合否を変更しない。
+
+要件入口整合検査は`requirements.json`を必須入力としてparseし、graph ID、revision、
+constrains node、node kind、graph-anchored requirement nodeのtext、functional block
+registryを既存validatorで検査する。missing、parse失敗、不一致、unknownや未回答の
+要件は推測せずfail-closedとし、silkscreen以降を実行しない。この常時stageはL1ゲートや
+authoritative Evidenceの代替ではなく、合否を変更しないL3観測として分類しない。
+
+board-pipelineのfail-closed却下後に候補探索をloopへ自動連結する場合は、探索を明示的に
+有効化し、候補予算とround上限を正整数で指定する。
+
+```bash
+uv run python scripts/run_design_loop.py \
+  --fixture fixtures/golden-design-1 \
+  --out-root out \
+  --order-total out/order-total.json \
+  --policy plugins/acd/hooks/order-policy.json \
+  --explore-board \
+  --max-exploration-candidates 3 \
+  --max-exploration-rounds 2 \
+  --evaluated-at 2026-08-14T00:00:00Z
+```
+
+自動探索はboard-pipelineの却下後、全laneのjoin後に直列で実行する。候補が見つかった場合も
+graphの妥当性、graph IDとrevisionの探索前との一致、正規化content hashの変化、
+探索reportの`target_revision`とgraph revisionの一致を検査してからsilkscreenを含む
+loop全体を再実行する。enclosure、FW、silkscreenの失敗では自動探索せず、探索の
+`candidate_found` reportもL1合格Evidenceではない。`exhausted`、`stopped`、不正report、
+graph検証失敗、
+round上限到達は元のboard失敗理由を保持してfail-closedで停止する。自動連結を使わない場合や
+診断次元を指定して手動評価する場合は`acd_explore_board_candidates`を使用する。
 
 `acd_run_design_loop`も同じin-code orchestratorを呼び出す。gate、閾値、期待値、
 revision一致、authoritative Evidenceの規則は変更しない。Skill出力、AI review、host上の
@@ -1176,6 +1309,17 @@ SERVER_REF="$(uv run python scripts/print_locked_image.py --entry acd-server)"
 docker pull "$SERVER_REF"
 uv run python scripts/run_in_workspace.py --image "$SERVER_REF"
 ```
+
+`--graph`で指定したDesign Graphから、未指定のcommandとdownload pathを導出する。
+graphのmissing、parse failure、または不正な`graph_id`ではGD1へfallbackせず停止する。
+commandを明示する場合もdownload path未指定なら同じgraph-derived defaultsを使うため、
+graphを特定できない運用ではdownload pathを明示する。
+
+生成物の既定pathとFW boot logはgraph_id由来であり、GD1 fixtureだけが互換値
+（`out/gd1-*`および`ACD GD1 fw boot target_revision=%s`）を明示属性または
+compatibility aliasで再現する。boot log messageのC string literal安全条件を含む
+FW boot-log導出規則の規範は[`architecture.md`](architecture.md)に集約し、
+coreとSkillは独立実装する。
 
 imageへ同梱したACD本体・pipeline scripts・fixtureだけで実行する場合は`--source bundled`を
 使う。この経路はリポジトリをマウントせず、image内`/opt/acd`のprebake済み環境で実行する。

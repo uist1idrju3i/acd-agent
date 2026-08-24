@@ -1913,9 +1913,6 @@ def run_pipeline(
     mark_stage(12)
     if timing_recorder is not None:
         timing_recorder.finish("board[12/12]")
-    if order_readiness["status"] != "ready":
-        print("製造データは生成済み、発注は不可: order-readiness gate failed")
-        raise ValueError(f"Order readiness gate failed: {order_readiness_path}")
     if cache is not None:
         cache_report: dict[str, object] = {
             "schema_version": "0.1",
@@ -1928,6 +1925,9 @@ def run_pipeline(
             json.dumps(cache_report, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+    if order_readiness["status"] != "ready":
+        print("製造データは生成済み、発注は不可: order-readiness gate failed")
+        raise ValueError(f"Order readiness gate failed: {order_readiness_path}")
     return hashes
 
 
