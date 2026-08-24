@@ -111,6 +111,75 @@
       "gate_authority": ["mechanical_projection", "mechanical_interference"],
       "search_enabled": false,
       "search_disabled_reason": "The mechanical outline mount-hole declaration is the single datum; component-body positions are derived deterministically from it. B-6 does not enable datum search."
+    },
+    {
+      "dimension_id": "enclosure_wall_thickness_mm",
+      "title": "Enclosure wall thickness",
+      "description": "Search the declared enclosure wall thickness within a bounded mechanical envelope.",
+      "lane": "mechanical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.wall_thickness_mm",
+      "bound_basis": "The lower bound is the declared minimum wall thickness; the upper bound is the bounded C-1 search envelope. The mechanical projection and interference gates remain authoritative.",
+      "minimum": 1.2,
+      "maximum": 4.0,
+      "gate_authority": ["mechanical_projection", "mechanical_interference"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "enclosure_internal_clearance_mm",
+      "title": "Enclosure internal clearance",
+      "description": "Search the declared clearance between component bodies and the enclosure.",
+      "lane": "mechanical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.internal_clearance_mm",
+      "bound_basis": "The lower bound is the declared clearance requirement; the upper bound is the bounded C-1 search envelope. The mechanical projection and interference gates remain authoritative.",
+      "minimum": 1.0,
+      "maximum": 4.0,
+      "gate_authority": ["mechanical_projection", "mechanical_interference"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "enclosure_standoff_height_mm",
+      "title": "Enclosure standoff height",
+      "description": "Search the declared mounting standoff height.",
+      "lane": "mechanical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.standoff_height_mm",
+      "bound_basis": "The lower and upper values are the bounded C-1 standoff envelope; the mechanical projection and interference gates remain authoritative.",
+      "minimum": 2.0,
+      "maximum": 8.0,
+      "gate_authority": ["mechanical_projection", "mechanical_interference"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "enclosure_standoff_radius_mm",
+      "title": "Enclosure standoff radius",
+      "description": "Search the declared mounting standoff radius.",
+      "lane": "mechanical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.standoff_radius_mm",
+      "bound_basis": "The lower and upper values are the bounded C-1 standoff envelope; the mechanical projection and interference gates remain authoritative.",
+      "minimum": 1.0,
+      "maximum": 3.0,
+      "gate_authority": ["mechanical_projection", "mechanical_interference"],
+      "search_enabled": true
+    },
+    {
+      "dimension_id": "enclosure_lid_fit_gap_mm",
+      "title": "Enclosure lid fit gap",
+      "description": "The deterministic mating gap for the enclosure lid.",
+      "lane": "mechanical",
+      "kind": "continuous",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.lid_fit_gap_mm",
+      "bound_basis": "The lid mating gap is a fit declaration rather than an interference search degree of freedom; the mechanical projection and interference gates remain authoritative.",
+      "gate_authority": ["mechanical_projection", "mechanical_interference"],
+      "search_enabled": false,
+      "search_disabled_reason": "The lid fit gap is a deterministic mating/interface declaration. C-1 does not alter fit geometry while searching enclosure body clearance and standoff dimensions."
     }
   ]
 }

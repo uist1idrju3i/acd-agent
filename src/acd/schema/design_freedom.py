@@ -18,6 +18,11 @@ DesignFreedomDimensionId = Literal[
     "via_rule",
     "router_max_passes",
     "mechanical_datum",
+    "enclosure_wall_thickness_mm",
+    "enclosure_internal_clearance_mm",
+    "enclosure_standoff_height_mm",
+    "enclosure_standoff_radius_mm",
+    "enclosure_lid_fit_gap_mm",
 ]
 DesignFreedomLane = Literal["electrical", "mechanical", "firmware"]
 DesignFreedomKind = Literal["continuous", "integer_range", "discrete_set", "categorical"]
@@ -33,6 +38,11 @@ DESIGN_FREEDOM_DIMENSION_IDS = frozenset(
         "via_rule",
         "router_max_passes",
         "mechanical_datum",
+        "enclosure_wall_thickness_mm",
+        "enclosure_internal_clearance_mm",
+        "enclosure_standoff_height_mm",
+        "enclosure_standoff_radius_mm",
+        "enclosure_lid_fit_gap_mm",
     }
 )
 

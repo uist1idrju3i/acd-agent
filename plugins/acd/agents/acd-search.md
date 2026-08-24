@@ -4,6 +4,7 @@ description: USE THIS when running deterministic ACD placement or electrical sea
 model: inherit
 tools:
   - acd_explore_board_candidates
+  - acd_explore_enclosure_candidates
   - acd_build_design_fixture
   - acd_explore_board_candidates
   - acd_build_design_fixture

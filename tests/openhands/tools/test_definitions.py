@@ -16,6 +16,9 @@ from acd.openhands.tools.definitions import (
     AcdBootstrapWorkspace,
     AcdBootstrapWorkspaceAction,
     AcdBootstrapWorkspaceObservation,
+    AcdExploreEnclosureCandidates,
+    AcdExploreEnclosureCandidatesAction,
+    AcdExploreEnclosureCandidatesObservation,
     AcdObservation,
     AcdProbeTools,
     AcdProbeToolsAction,
@@ -169,6 +172,46 @@ def test_design_loop_tool_preserves_fail_closed_observation(
     assert result.fail_closed is True
     assert result.pass_evidence is False
     assert result.summary == expected
+
+
+def test_enclosure_exploration_tool_preserves_l2_observation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    expected = {
+        "schema_version": "0.1",
+        "artifact_kind": "enclosure_exploration_report",
+        "pass_evidence": False,
+    }
+
+    def fake_explore(*args: Any, **kwargs: Any) -> Any:
+        del args, kwargs
+        return type(
+            "Result",
+            (),
+            {"report": expected, "report_path": tmp_path / "report.json"},
+        )()
+
+    monkeypatch.setattr(
+        "acd.core.enclosure_exploration.explore_enclosure_candidates",
+        fake_explore,
+    )
+    tool = AcdExploreEnclosureCandidates.create()[0]
+    result = _execute(
+        tool,
+        AcdExploreEnclosureCandidatesAction(
+            graph=str(tmp_path / "graph.json"),
+            fixture_dir=str(tmp_path / "fixture"),
+            out=str(tmp_path / "out"),
+            max_candidates=1,
+        ),
+    )
+
+    assert isinstance(result, AcdExploreEnclosureCandidatesObservation)
+    assert result.ok is True
+    assert result.fail_closed is False
+    assert result.pass_evidence is False
+    assert result.report == expected
 
 
 def test_design_loop_tool_declares_graph_policy_skill_and_output_resources(

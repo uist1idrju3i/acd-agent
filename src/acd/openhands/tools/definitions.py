@@ -271,6 +271,15 @@ class AcdExploreBoardCandidatesAction(Action):
     dry_run: bool = False
 
 
+class AcdExploreEnclosureCandidatesAction(Action):
+    graph: str
+    fixture_dir: str
+    out: str
+    max_candidates: int = Field(ge=1)
+    dimensions: list[str] = Field(default_factory=list)
+    jobs: int = Field(default=1, ge=1)
+
+
 class AcdDiagnoseGateFailureAction(Action):
     out_dir: str
 
@@ -347,6 +356,10 @@ class AcdBuildDesignFixtureObservation(AcdObservation):
 
 class AcdExploreBoardCandidatesObservation(AcdObservation):
     """Observation returned by the bounded exploration loop."""
+
+
+class AcdExploreEnclosureCandidatesObservation(AcdObservation):
+    """Observation returned by bounded enclosure exploration."""
 
 
 class AcdDiagnoseGateFailureObservation(AcdObservation):
@@ -783,6 +796,40 @@ class AcdExploreBoardCandidatesExecutor(
             )
 
 
+class AcdExploreEnclosureCandidatesExecutor(
+    ToolExecutor[AcdExploreEnclosureCandidatesAction, AcdObservation]
+):
+    def __call__(
+        self,
+        action: AcdExploreEnclosureCandidatesAction,
+        conversation: Any = None,
+    ) -> AcdObservation:
+        del conversation
+        try:
+            from acd.core.enclosure_exploration import explore_enclosure_candidates
+
+            result = explore_enclosure_candidates(
+                Path(action.graph),
+                Path(action.fixture_dir),
+                Path(action.out),
+                action.max_candidates,
+                dimensions=action.dimensions or None,
+                jobs=action.jobs,
+            )
+            return AcdExploreEnclosureCandidatesObservation(
+                ok=True,
+                operation="explore_enclosure_candidates",
+                report=result.report,
+                output_path=str(result.report_path),
+                pass_evidence=False,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdExploreEnclosureCandidatesObservation(
+                **_error(str(exc), operation="explore_enclosure_candidates")
+            )
+
+
 class AcdDiagnoseGateFailureExecutor(ToolExecutor[AcdDiagnoseGateFailureAction, AcdObservation]):
     def __call__(
         self,
@@ -1187,6 +1234,45 @@ class AcdExploreBoardCandidates(
         ]
 
 
+class AcdExploreEnclosureCandidates(
+    ToolDefinition[
+        AcdExploreEnclosureCandidatesAction, AcdExploreEnclosureCandidatesObservation
+    ]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdExploreEnclosureCandidatesAction):
+            return DeclaredResources(keys=(), declared=False)
+        return _resources(
+            ("file", Path(action.graph)),
+            ("acd-out", Path(action.fixture_dir)),
+            ("acd-out", Path(action.out)),
+        )
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_explore_enclosure_candidates does not accept parameters")
+        return [
+            cls(
+                action_type=AcdExploreEnclosureCandidatesAction,
+                observation_type=AcdExploreEnclosureCandidatesObservation,
+                description=(
+                    "Explore bounded enclosure candidates under deterministic "
+                    "mechanical gates."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_explore_enclosure_candidates",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=True,
+                    openWorldHint=False,
+                ),
+                executor=AcdExploreEnclosureCandidatesExecutor(),
+            )
+        ]
+
+
 class AcdDiagnoseGateFailure(
     ToolDefinition[AcdDiagnoseGateFailureAction, AcdDiagnoseGateFailureObservation]
 ):
@@ -1386,6 +1472,7 @@ ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_compile_requirement_change", AcdCompileRequirementChange),
     ("acd_build_design_fixture", AcdBuildDesignFixture),
     ("acd_explore_board_candidates", AcdExploreBoardCandidates),
+    ("acd_explore_enclosure_candidates", AcdExploreEnclosureCandidates),
     ("acd_diagnose_gate_failure", AcdDiagnoseGateFailure),
     ("acd_check_order_readiness", AcdCheckOrderReadiness),
     ("acd_run_design_loop", AcdRunDesignLoop),

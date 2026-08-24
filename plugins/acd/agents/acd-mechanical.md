@@ -6,6 +6,7 @@ tools:
   - acd_probe_tools
   - acd_validate_design_graph
   - acd_run_enclosure_pipeline
+  - acd_explore_enclosure_candidates
   - terminal
   - file_editor
   - grep
