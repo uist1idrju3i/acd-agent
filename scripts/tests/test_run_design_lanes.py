@@ -34,6 +34,13 @@ def test_list_is_machine_readable(capsys: pytest.CaptureFixture[str]) -> None:
     ]
 
 
+def test_list_does_not_create_output_root(tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+
+    assert run_design_lanes.main(["--list", "--out-root", str(out_root)]) == 0
+    assert not out_root.exists()
+
+
 def test_parallel_lanes_wait_for_resolver(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -112,7 +119,7 @@ def test_commands_use_plan_outputs_and_cache_target(tmp_path: Path) -> None:
         tmp_path / "cache",
     )
 
-    assert str(tmp_path / "gd1-silkscreen") in commands[0].command
+    assert str(tmp_path / "gd1-silkscreen-resolve") in commands[0].command
     assert str(tmp_path / "gd1") in commands[1].command
     assert str(tmp_path / "gd1-enclosure") in commands[2].command
     assert str(tmp_path / "gd1-fw") in commands[3].command

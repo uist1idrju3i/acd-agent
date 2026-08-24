@@ -175,12 +175,11 @@ def _list_lanes(commands: Sequence[CommandSpec]) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the GD1 lanes."""
+    """Run the declared design lanes."""
     args = _parser().parse_args(argv)
     fixture = args.fixture
     graph_id = _graph_id(fixture)
     out_root = args.out_root
-    out_root.mkdir(parents=True, exist_ok=True)
     cache_dir = args.cache_dir
     if args.resume and cache_dir is None:
         cache_dir = out_root / ".stage-cache"
@@ -190,6 +189,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         _list_lanes(commands)
         return 0
 
+    out_root.mkdir(parents=True, exist_ok=True)
     timing = TimingRecorder()
     command_results: list[tuple[CommandSpec, CommandResult]] = []
     returncode = 1

@@ -2,6 +2,8 @@
 
 The design loop owns order-readiness, while the command-line lane runner owns
 the silkscreen barrier, design lanes, and pytest subset validation lane.
+The pytest subset is declared only for the GD1 artifact prefix; a
+design-specific validation lane for arbitrary graphs is not yet available.
 """
 
 from __future__ import annotations
@@ -79,12 +81,13 @@ class _StageDefinition:
     command_kind: str | None
     design_loop: bool
     lane_runner: bool
+    gd1_only: bool = False
 
 
 _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
     _StageDefinition(
         "silkscreen-resolve",
-        "-silkscreen",
+        "-silkscreen-resolve",
         barrier=True,
         cacheable=False,
         command_kind="silkscreen",
@@ -135,6 +138,7 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         command_kind="pytest",
         design_loop=False,
         lane_runner=True,
+        gd1_only=True,
     ),
 )
 
@@ -178,7 +182,13 @@ def build_lane_plan(graph_id: str, out_root: Path) -> LanePlan:
             cacheable=definition.cacheable,
             command_kind=definition.command_kind,
             design_loop=definition.design_loop,
-            lane_runner=definition.lane_runner,
+            lane_runner=(
+                definition.lane_runner
+                and (
+                    not definition.gd1_only
+                    or resolved_artifact_prefix == "gd1"
+                )
+            ),
         )
         for definition in _STAGE_DEFINITIONS
     )

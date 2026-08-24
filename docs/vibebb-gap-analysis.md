@@ -298,7 +298,7 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 
 | # | 不足機能 | 現状 | 優先度 |
 |---|---|---|---|
-| L-1 | orchestratorの二重化解消 | 達成（前半＝#186、後半＝本PR）。`/acd:vibebb-loop`が呼ぶ`run_design_loop`への入力hash単位stage cache、失敗からのresume、L3 timing record、silkscreen barrier後のboard／enclosure／firmware lane並列に加え、`src/acd/pipeline/lane_plan.py`を単一sourceとしてlaneのstage ID、順序、barrier、出力パス、cache適用可否を共有した。`scripts/run_design_lanes.py`は同じplanからsilkscreen barrier、設計lane、pytest subset検証laneを導出する。order-readinessは`run_design_loop`側だけが担当し、lane runnerは要求しない。cacheは判定とEvidenceを復元しない | 高 |
+| L-1 | orchestratorの二重化解消 | 達成（前半＝#186、後半＝本PR）。`/acd:vibebb-loop`が呼ぶ`run_design_loop`への入力hash単位stage cache、失敗からのresume、L3 timing record、silkscreen barrier後のboard／enclosure／firmware lane並列に加え、`src/acd/pipeline/lane_plan.py`を単一sourceとしてlaneのstage ID、順序、barrier、出力パス、cache適用可否を共有した。`scripts/run_design_lanes.py`は同じplanからsilkscreen barrier、設計lane、pytest subset検証laneを導出する。pytest subsetはGD1（`artifact_prefix=gd1`）だけに宣言され、任意graph向けの設計固有検証laneは未整備である。order-readinessは`run_design_loop`側だけが担当し、lane runnerは要求しない。cacheは判定とEvidenceを復元しない | 高 |
 | L-2 | 却下後の候補探索の自動連結 | board段が却下された際に`explore_board_candidates`（B-1／B-2）へ接続する経路がloopに無く、次候補の起動が会話側のtool呼び出しに依存する。探索はL2の操舵に留め、L1ゲートの権限と閾値は変更しない | 高 |
 | L-3 | 要件→graph段のloop内取り込み | `scripts/compile_requirement_change.py`と`scripts/build_design_fixture.py`（A-1〜A-3）はloopの外にあり、要件revisionと対象graph revisionの整合をloop入口で検査していない | 中 |
 | L-4 | order-total生成経路の欠落 | `aggregate_order_total`にCLIもtool入口も無く、`out/order-total.json`の生成手順は[`operations.md`](operations.md)にも無い。発注可否段は既存fileを前提とするため、会話からは発注可否判定へ到達できない | 高 |

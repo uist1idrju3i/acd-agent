@@ -118,8 +118,19 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
         for stage in plan.stages
         if stage.stage_id != "board-pipeline"
     )
-    assert plan.stage("silkscreen-resolve").output_path == tmp_path / "gd1-silkscreen"
+    assert (
+        plan.stage("silkscreen-resolve").output_path
+        == tmp_path / "gd1-silkscreen-resolve"
+    )
     assert plan.stage("board-pipeline").output_path == tmp_path / "gd1"
     assert plan.stage("enclosure-pipeline").output_path == tmp_path / "gd1-enclosure"
     assert plan.stage("firmware-pipeline").output_path == tmp_path / "gd1-fw"
     assert plan.stage("order-readiness").output_path is None
+
+    arbitrary_plan = build_lane_plan("custom-design", tmp_path)
+    assert arbitrary_plan.lane_runner_stage_ids == (
+        "silkscreen-resolve",
+        "board-pipeline",
+        "enclosure-pipeline",
+        "firmware-pipeline",
+    )
