@@ -122,6 +122,7 @@ def test_design_loop_stops_after_first_failed_stage(
     assert result["failure_reason"] == "intentional test failure"
     assert seen == ["silkscreen-resolve", "board-pipeline"]
     assert [item["stage_id"] for item in result["results"]] == [
+        "requirement-entry-validation",
         "silkscreen-resolve",
         "board-pipeline",
     ]
@@ -343,14 +344,20 @@ def test_design_loop_parallel_lanes_preserve_result_order_and_hashes(
     assert sequential["ok"] is True
     assert parallel["ok"] is True
     assert [item["stage_id"] for item in sequential["results"]] == list(
-        DESIGN_LOOP_STAGE_IDS
+        ("requirement-entry-validation", *DESIGN_LOOP_STAGE_IDS)
     )
     assert [item["stage_id"] for item in parallel["results"]] == list(
-        DESIGN_LOOP_STAGE_IDS
+        ("requirement-entry-validation", *DESIGN_LOOP_STAGE_IDS)
     )
     assert [
-        item["normalized_hash"] for item in sequential["results"]
-    ] == [item["normalized_hash"] for item in parallel["results"]]
+        item["normalized_hash"]
+        for item in sequential["results"]
+        if "normalized_hash" in item
+    ] == [
+        item["normalized_hash"]
+        for item in parallel["results"]
+        if "normalized_hash" in item
+    ]
 
 
 def test_design_loop_resume_reexecutes_gate_stages_and_uses_default_cache(
@@ -437,6 +444,7 @@ def test_design_loop_parallel_failure_reports_all_started_lanes_without_order_ga
     assert result["failed_stage"] == "board-pipeline"
     assert set(seen) == set(DESIGN_LOOP_LANE_IDS) | {"silkscreen-resolve"}
     assert [item["stage_id"] for item in result["results"]] == [
+        "requirement-entry-validation",
         "silkscreen-resolve",
         "board-pipeline",
         "enclosure-pipeline",
@@ -521,6 +529,11 @@ def _copied_fixture(tmp_path: Path) -> Path:
         (FIXTURE / "graph.json").read_text(encoding="utf-8"),
         encoding="utf-8",
     )
+    for name in ("requirements.json", "rationale.json"):
+        (fixture / name).write_text(
+            (FIXTURE / name).read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
     return fixture
 
 
@@ -550,6 +563,213 @@ def test_board_exploration_is_disabled_by_default(
 
     assert result["ok"] is True
     assert "exploration_rounds" not in result
+
+
+def test_requirement_entry_validation_records_input_facts(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+    )
+
+    entry = result["results"][0]
+    assert result["ok"] is True
+    assert entry["stage_id"] == "requirement-entry-validation"
+    assert entry["record_class"] == "L3"
+    assert entry["requirements_sha256"].startswith("sha256:")
+    assert entry["graph_id"] == "golden-design-1"
+    assert entry["revision"] == "r1"
+    assert entry["requirement_count"] == 11
+    assert entry["pass_evidence"] is False
+
+
+@pytest.mark.parametrize("mutation", ["missing", "malformed", "graph_id", "revision", "text"])
+def test_requirement_entry_validation_fails_closed_before_silkscreen(
+    mutation: str,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    requirements_path = fixture / "requirements.json"
+    if mutation == "missing":
+        requirements_path.unlink()
+    elif mutation == "malformed":
+        requirements_path.write_text("{", encoding="utf-8")
+    else:
+        document = json.loads(requirements_path.read_text(encoding="utf-8"))
+        if mutation == "graph_id":
+            document["graph_id"] = "other-design"
+        elif mutation == "revision":
+            document["revision"] = "r2"
+        else:
+            document["records"][0]["statement"] = "inconsistent"
+        requirements_path.write_text(json.dumps(document), encoding="utf-8")
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "requirement-entry-validation"
+    assert [item["stage_id"] for item in result["results"]] == [
+        "requirement-entry-validation"
+    ]
+    assert result["results"][0]["pass_evidence"] is False
+
+
+def test_requirement_compile_is_opt_in_and_records_l2_report(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    update = tmp_path / "requirement-update.json"
+    update.write_text("{}", encoding="utf-8")
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    def fake_compile(
+        fixture_dir: Path,
+        requirement_path: Path,
+        *,
+        dry_run: bool,
+    ) -> Any:
+        assert fixture_dir == fixture
+        assert requirement_path == update
+        assert dry_run is False
+        return SimpleNamespace(
+            report={
+                "changed_node_ids": ["req.gd1-req-001"],
+                "before_graph_sha256": "sha256:" + "a" * 64,
+                "after_graph_sha256": "sha256:" + "b" * 64,
+            }
+        )
+
+    monkeypatch.setattr(design_loop, "compile_requirement_change", fake_compile)
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        requirement=update,
+    )
+
+    compile_record = result["results"][0]
+    assert result["ok"] is True
+    assert compile_record["stage_id"] == "requirement-compile"
+    assert compile_record["record_class"] == "L2"
+    assert compile_record["pass_evidence"] is False
+    assert compile_record["changed_node_ids"] == ["req.gd1-req-001"]
+    assert compile_record["before_graph_sha256"].startswith("sha256:")
+    assert compile_record["after_graph_sha256"].startswith("sha256:")
+    assert result["results"][1]["stage_id"] == "requirement-entry-validation"
+
+
+def test_requirement_compile_rejects_graph_id_change(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    update = tmp_path / "requirement-update.json"
+    update.write_text("{}", encoding="utf-8")
+
+    def fake_compile(
+        fixture_dir: Path,
+        requirement_path: Path,
+        *,
+        dry_run: bool,
+    ) -> Any:
+        del requirement_path, dry_run
+        document = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
+        document["graph_id"] = "other-design"
+        (fixture_dir / "graph.json").write_text(json.dumps(document), encoding="utf-8")
+        return SimpleNamespace(report={})
+
+    monkeypatch.setattr(design_loop, "compile_requirement_change", fake_compile)
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        requirement=update,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "requirement-compile"
+    assert "graph ID changed" in result["failure_reason"]
+    assert [item["stage_id"] for item in result["results"]] == [
+        "requirement-compile"
+    ]
+
+
+def test_fixture_generation_is_opt_in_and_refuses_existing_graph(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    spec = tmp_path / "fixture-spec.json"
+    spec.write_text('{"design_name":"generated"}', encoding="utf-8")
+
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        fixture_spec=spec,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "fixture-generation"
+    assert "already contains graph.json" in result["failure_reason"]
+    assert [item["stage_id"] for item in result["results"]] == [
+        "fixture-generation"
+    ]
+
+
+def test_fixture_generation_parse_failure_is_recorded_as_stage_failure(
+    tmp_path: Path,
+) -> None:
+    spec = tmp_path / "fixture-spec.json"
+    spec.write_text("{", encoding="utf-8")
+
+    result = run_design_loop(
+        tmp_path / "fixture",
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        fixture_spec=spec,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "fixture-generation"
+    assert result["results"][0]["stage_id"] == "fixture-generation"
+    assert "ValidationError" in result["results"][0]["failure_reason"]
 
 
 def test_board_rejection_explores_with_loop_configuration(
@@ -694,7 +914,12 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
         pipeline_runner(fixture_dir, out_dir)
         body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
         target_revision = body["revision"]
-        body["nodes"][0]["attrs"]["text"] += " candidate"
+        candidate_node = next(
+            node
+            for node in body["nodes"]
+            if node["id"] == "mechanical.silk_graphic.vibebb"
+        )
+        candidate_node["attrs"]["candidate_marker"] = "candidate"
         (fixture_dir / "graph.json").write_text(
             json.dumps(body), encoding="utf-8"
         )
@@ -736,6 +961,11 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
         cache_dir,
     )
     assert result["exploration_rounds"][0]["status"] == "candidate_found"
+    assert [
+        item["stage_id"]
+        for item in result["results"]
+        if item["stage_id"] == "requirement-entry-validation"
+    ] == ["requirement-entry-validation", "requirement-entry-validation"]
     assert any(
         item["stage_id"] == "board-exploration" for item in result["results"]
     )
@@ -748,6 +978,7 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
     assert "design-loop/round-1/board-exploration" in timing_names
     assert "design-loop/round-2/silkscreen-resolve" in timing_names
     assert "design-loop/round-2/board-pipeline" in timing_names
+    assert "design-loop/round-2/requirement-entry-validation" in timing_names
     assert len(timing_names) == len(set(timing_names))
 
 
@@ -865,7 +1096,12 @@ def test_exploration_round_limit_is_fail_closed(
         exploration_calls += 1
         body = json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
         target_revision = body["revision"]
-        body["nodes"][0]["attrs"]["text"] += f" candidate-{exploration_calls}"
+        candidate_node = next(
+            node
+            for node in body["nodes"]
+            if node["id"] == "mechanical.silk_graphic.vibebb"
+        )
+        candidate_node["attrs"]["candidate_marker"] = f"candidate-{exploration_calls}"
         (fixture_dir / "graph.json").write_text(json.dumps(body), encoding="utf-8")
         return SimpleNamespace(
             report={

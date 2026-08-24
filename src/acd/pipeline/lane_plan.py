@@ -84,9 +84,40 @@ class _StageDefinition:
     design_loop: bool
     lane_runner: bool
     gd1_only: bool = False
+    conditional: bool = False
 
 
 _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
+    _StageDefinition(
+        "fixture-generation",
+        None,
+        barrier=True,
+        cacheable=False,
+        command_kind=None,
+        design_loop=False,
+        lane_runner=False,
+        conditional=True,
+    ),
+    _StageDefinition(
+        "requirement-compile",
+        None,
+        barrier=True,
+        cacheable=False,
+        command_kind=None,
+        design_loop=False,
+        lane_runner=False,
+        conditional=True,
+    ),
+    _StageDefinition(
+        "requirement-entry-validation",
+        None,
+        barrier=True,
+        cacheable=False,
+        command_kind=None,
+        design_loop=False,
+        lane_runner=False,
+        conditional=True,
+    ),
     _StageDefinition(
         "silkscreen-resolve",
         "-silkscreen-resolve",
@@ -150,6 +181,7 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         command_kind=None,
         design_loop=False,
         lane_runner=False,
+        conditional=True,
     ),
 )
 

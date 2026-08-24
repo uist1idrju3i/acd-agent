@@ -76,6 +76,18 @@ def _parser() -> argparse.ArgumentParser:
         default=1,
         help="maximum board exploration and loop rerun rounds",
     )
+    parser.add_argument(
+        "--requirement",
+        type=Path,
+        default=None,
+        help="optional updated requirement record to compile before the loop",
+    )
+    parser.add_argument(
+        "--fixture-spec",
+        type=Path,
+        default=None,
+        help="optional design fixture specification to generate before the loop",
+    )
     return parser
 
 
@@ -103,6 +115,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             explore_board=args.explore_board,
             max_exploration_candidates=args.max_exploration_candidates,
             max_exploration_rounds=args.max_exploration_rounds,
+            requirement=args.requirement,
+            fixture_spec=args.fixture_spec,
         )
     except Exception as exc:
         result = {

@@ -15,9 +15,16 @@ from typing import Any, cast
 
 from acd.core.exploration import explore_board_candidates
 from acd.core.order_total import order_total_result_from_document
+from acd.core.requirement_compiler import compile_requirement_change
+from acd.core.requirements import (
+    default_requirements_path,
+    load_requirements,
+    validate_requirements,
+)
 from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
+from acd.pipeline.fixture_builder import build_design_fixture
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
 from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
 from acd.pipeline.lane_plan import (
@@ -26,7 +33,7 @@ from acd.pipeline.lane_plan import (
     build_lane_plan,
 )
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
-from acd.schema import DesignGraph, OrderPolicy, OrderTotalDocument
+from acd.schema import DesignFixtureSpec, DesignGraph, OrderPolicy, OrderTotalDocument
 from acd.schema.common import canonical_json_sha256
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
@@ -60,6 +67,8 @@ class DesignLoopConfig:
     timing_recorder: TimingRecorder | None = None
     max_exploration_candidates: int = 3
     max_exploration_rounds: int = 1
+    requirement: Path | None = None
+    fixture_spec: Path | None = None
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -243,6 +252,97 @@ def _load_graph(fixture_dir: Path) -> DesignGraph:
     )
 
 
+def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
+    if config.fixture_spec is None:
+        raise ValueError("fixture spec is not configured")
+    graph_path = config.fixture_dir / "graph.json"
+    if graph_path.exists():
+        return _failure(
+            "fixture-generation",
+            "fixture directory already contains graph.json (fail-closed)",
+        )
+    try:
+        spec = DesignFixtureSpec.model_validate_json(
+            config.fixture_spec.read_text(encoding="utf-8")
+        )
+        graph = build_design_fixture(spec, config.fixture_dir)
+    except Exception as exc:
+        return _failure("fixture-generation", f"{type(exc).__name__}: {exc}")
+    return _success(
+        "fixture-generation",
+        graph_id=graph.graph_id,
+        revision=graph.revision,
+        output_path=str(config.fixture_dir),
+    )
+
+
+def _run_requirement_compile(config: DesignLoopConfig) -> dict[str, Any]:
+    if config.requirement is None:
+        raise ValueError("requirement update is not configured")
+    try:
+        before_graph = _load_graph(config.fixture_dir)
+        compilation = compile_requirement_change(
+            config.fixture_dir,
+            config.requirement,
+            dry_run=False,
+        )
+        after_graph = _load_graph(config.fixture_dir)
+    except Exception as exc:
+        return _failure(
+            "requirement-compile",
+            f"{type(exc).__name__}: {exc}",
+            record_class="L2",
+        )
+    if after_graph.graph_id != before_graph.graph_id:
+        return _failure(
+            "requirement-compile",
+            "compiled graph ID changed (fail-closed)",
+            record_class="L2",
+            before_graph_sha256=canonical_json_sha256(
+                before_graph.model_dump(mode="json")
+            ),
+            after_graph_sha256=canonical_json_sha256(
+                after_graph.model_dump(mode="json")
+            ),
+        )
+    report = dict(compilation.report)
+    report.update(
+        {
+            "stage_id": "requirement-compile",
+            "ok": True,
+            "fail_closed": False,
+            "pass_evidence": False,
+            "record_class": "L2",
+        }
+    )
+    return report
+
+
+def _run_requirement_entry_validation(config: DesignLoopConfig) -> dict[str, Any]:
+    """Validate loop inputs before L1 stages; never replace gates or Evidence."""
+    requirements_path = default_requirements_path(config.fixture_dir)
+    try:
+        loaded = load_requirements(requirements_path)
+        graph = _load_graph(config.fixture_dir)
+        validate_requirements(loaded.document, graph)
+    except Exception as exc:
+        return _failure(
+            "requirement-entry-validation",
+            f"{type(exc).__name__}: {exc}",
+            record_class="L3",
+            requirements_path=str(requirements_path),
+        )
+    return _success(
+        "requirement-entry-validation",
+        record_class="L3",
+        requirements_path=str(requirements_path),
+        requirements_sha256=loaded.document_hash,
+        graph_id=graph.graph_id,
+        revision=graph.revision,
+        requirement_count=len(loaded.document.records),
+    )
+
+
 def _resolve_evaluated_at(value: datetime | None) -> datetime:
     if value is None:
         return datetime.now(UTC)
@@ -279,6 +379,8 @@ def run_design_loop(
     explore_board: bool = False,
     max_exploration_candidates: int = 3,
     max_exploration_rounds: int = 1,
+    requirement: Path | None = None,
+    fixture_spec: Path | None = None,
 ) -> dict[str, Any]:
     """Run all design stages in their fixed fail-closed order."""
     timing = TimingRecorder()
@@ -296,12 +398,20 @@ def run_design_loop(
     }
     if explore_board:
         result["explore_board"] = True
+    if requirement is not None:
+        result["requirement"] = str(requirement)
+    if fixture_spec is not None:
+        result["fixture_spec"] = str(fixture_spec)
     timing_record: Path | None = None
     timing_record_error: str | None = None
     config: DesignLoopConfig | None = None
     try:
         out_root.mkdir(parents=True, exist_ok=True)
-        graph_id = _graph_id(fixture_dir)
+        graph_id = (
+            fixture_spec.stem
+            if fixture_spec is not None
+            else _graph_id(fixture_dir)
+        )
         plan = build_lane_plan(graph_id, out_root)
         prefix = plan.output_prefix
         artifact = plan.artifact_prefix
@@ -336,6 +446,8 @@ def run_design_loop(
             timing_recorder=timing,
             max_exploration_candidates=max_exploration_candidates,
             max_exploration_rounds=max_exploration_rounds,
+            requirement=requirement,
+            fixture_spec=fixture_spec,
         )
         result.update(
             {
@@ -355,8 +467,6 @@ def run_design_loop(
             }
         )
     else:
-        results: list[dict[str, Any]] = []
-
         active_config = config
 
         def run_stage(
@@ -432,6 +542,14 @@ def run_design_loop(
             timing_prefix = (
                 f"round-{execution_round}" if execution_round > 1 else None
             )
+            requirement_entry = run_stage(
+                "requirement-entry-validation",
+                runner=_run_requirement_entry_validation,
+                timing_prefix=timing_prefix,
+            )
+            once_results.append(requirement_entry)
+            if not requirement_entry.get("ok") or requirement_entry.get("fail_closed"):
+                return once_results, requirement_entry
             silkscreen = run_stage(
                 "silkscreen-resolve",
                 timing_prefix=timing_prefix,
@@ -565,8 +683,47 @@ def run_design_loop(
                 and stage_result.get("fail_closed")
             )
 
-        first_results, failed = execute_once()
-        results.extend(first_results)
+        results: list[dict[str, Any]] = []
+        failed: dict[str, Any] | None = None
+        if fixture_spec is not None:
+            fixture_result = run_stage(
+                "fixture-generation",
+                runner=_run_fixture_generation,
+            )
+            results.append(fixture_result)
+            if not fixture_result.get("ok") or fixture_result.get("fail_closed"):
+                failed = fixture_result
+            else:
+                generated_graph = _load_graph(fixture_dir)
+                generated_plan = build_lane_plan(
+                    generated_graph.graph_id,
+                    out_root,
+                )
+                active_config = replace(
+                    active_config,
+                    graph_id=generated_graph.graph_id,
+                    output_prefix=generated_plan.output_prefix,
+                    artifact_prefix=generated_plan.artifact_prefix,
+                    lane_plan=generated_plan,
+                )
+                result.update(
+                    {
+                        "graph_id": generated_graph.graph_id,
+                        "output_prefix": generated_plan.output_prefix,
+                        "artifact_prefix": generated_plan.artifact_prefix,
+                    }
+                )
+        if failed is None and requirement is not None:
+            compile_result = run_stage(
+                "requirement-compile",
+                runner=_run_requirement_compile,
+            )
+            results.append(compile_result)
+            if not compile_result.get("ok") or compile_result.get("fail_closed"):
+                failed = compile_result
+        if failed is None:
+            first_results, failed = execute_once()
+            results.extend(first_results)
         exploration_rounds: list[dict[str, Any]] = []
         round_number = 0
         while (

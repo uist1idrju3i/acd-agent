@@ -334,6 +334,14 @@ class AcdRunDesignLoopAction(Action):
         ge=1,
         description="Maximum board exploration and loop rerun rounds.",
     )
+    requirement: str | None = Field(
+        default=None,
+        description="Optional updated requirement record to compile before the loop.",
+    )
+    fixture_spec: str | None = Field(
+        default=None,
+        description="Optional design fixture specification to generate before the loop.",
+    )
 
 
 class AcdProbeToolsObservation(AcdObservation):
@@ -963,6 +971,8 @@ class AcdRunDesignLoopExecutor(
                 explore_board=action.explore_board,
                 max_exploration_candidates=action.max_exploration_candidates,
                 max_exploration_rounds=action.max_exploration_rounds,
+                requirement=Path(action.requirement) if action.requirement else None,
+                fixture_spec=Path(action.fixture_spec) if action.fixture_spec else None,
             )
             return AcdRunDesignLoopObservation(
                 ok=bool(result.get("ok")),
@@ -1385,8 +1395,11 @@ class AcdRunDesignLoop(
         )
         return _resources(
             ("file", Path(action.fixture) / "graph.json"),
+            ("file", Path(action.fixture) / "requirements.json"),
             ("file", Path(action.order_total)),
             ("file", Path(action.policy)),
+            *((("file", Path(action.requirement)),) if action.requirement else ()),
+            *((("file", Path(action.fixture_spec)),) if action.fixture_spec else ()),
             ("file", root / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"),
             ("acd-out", Path(action.out_root)),
             *cache_resource,

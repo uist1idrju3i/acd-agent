@@ -361,15 +361,16 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 ### VibeBB設計loopの実行
 
 会話から要件をgraphへ反映し、設計反復と発注可否を一つの決定論的loopで進める入口は
-`/acd:vibebb-loop`である。要件差分は`acd_compile_requirement_change`、新規fixtureは
-`acd_build_design_fixture`、graphの編集後は`acd_validate_design_graph`を使う。loop本体は
-次の順序をコード側で固定する。
+`/acd:vibebb-loop`である。要件差分は`--requirement`、新規fixtureのspecは
+`--fixture-spec`でloopへ渡せる。単独の`acd_compile_requirement_change`と
+`acd_build_design_fixture`も引き続き利用できる。loop本体は次の順序をコード側で固定する。
 
-1. silkscreen resolver（基板pipelineの前提となるbarrier）
-2. 基板pipeline
-3. 筐体pipeline
-4. FW pipeline（Skill CLI subprocess）
-5. 発注可否のpre-order gate
+1. fixture生成（`--fixture-spec`指定時のみ）
+2. 要件compile（`--requirement`指定時のみ）
+3. 要件入口整合検査（常時）
+4. silkscreen resolver（基板pipelineの前提となるbarrier）
+5. 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
+6. 発注可否のpre-order gate
 
 コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
 出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`
@@ -383,8 +384,12 @@ uv run python scripts/run_design_loop.py \
   --out-root out \
   --order-total out/order-total.json \
   --policy plugins/acd/hooks/order-policy.json \
+  --requirement out/requirement-update.json \
   --evaluated-at 2026-08-14T00:00:00Z
 ```
+
+新規fixtureをspecから生成する場合は、`--fixture-spec`を追加する。fixtureに既存の
+`graph.json`がある場合は上書きせずfail-closedで停止する。
 
 cache・resume・lane並列を有効にする場合は、次のように指定する。
 
@@ -406,6 +411,12 @@ Evidenceは毎回再実行する。`--jobs 1`はsilkscreen barrier後のlaneを�
 CLIの既定値は`min(os.cpu_count() or 1, 3)`である。tool経路の`jobs`既定値は1で、
 並列化は明示指定時だけ有効になる。timing recordとcache reportはL3観測であり、
 記録失敗は結果へ理由を記録するが、合否を変更しない。
+
+要件入口整合検査は`requirements.json`を必須入力としてparseし、graph ID、revision、
+constrains node、node kind、graph-anchored requirement nodeのtext、functional block
+registryを既存validatorで検査する。missing、parse失敗、不一致、unknownや未回答の
+要件は推測せずfail-closedとし、silkscreen以降を実行しない。この検査はL1ゲートや
+authoritative Evidenceの代替ではない。
 
 board-pipelineのfail-closed却下後に候補探索をloopへ自動連結する場合は、探索を明示的に
 有効化し、候補予算とround上限を正整数で指定する。

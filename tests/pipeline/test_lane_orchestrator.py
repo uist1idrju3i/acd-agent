@@ -80,6 +80,9 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
     plan = build_lane_plan("golden-design-1", tmp_path)
 
     assert [stage.stage_id for stage in plan.stages] == [
+        "fixture-generation",
+        "requirement-compile",
+        "requirement-entry-validation",
         "silkscreen-resolve",
         "board-pipeline",
         "enclosure-pipeline",

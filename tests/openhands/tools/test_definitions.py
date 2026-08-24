@@ -181,6 +181,8 @@ def test_design_loop_tool_preserves_fail_closed_observation(
     assert captured["explore_board"] is False
     assert captured["max_exploration_candidates"] == 3
     assert captured["max_exploration_rounds"] == 1
+    assert captured["requirement"] is None
+    assert captured["fixture_spec"] is None
 
 
 def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
@@ -191,6 +193,8 @@ def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
     assert action.explore_board is False
     assert action.max_exploration_candidates == 3
     assert action.max_exploration_rounds == 1
+    assert action.requirement is None
+    assert action.fixture_spec is None
     with pytest.raises(ValueError):
         AcdRunDesignLoopAction(order_total="order-total.json", jobs=0)
     schema = AcdRunDesignLoop.create()[0].action_type.model_json_schema()
@@ -201,6 +205,8 @@ def test_design_loop_tool_exposes_cache_resume_and_jobs_contract() -> None:
         "explore_board",
         "max_exploration_candidates",
         "max_exploration_rounds",
+        "requirement",
+        "fixture_spec",
     } <= set(schema["properties"])
     assert schema["properties"]["jobs"]["default"] == 1
     assert schema["properties"]["jobs"]["minimum"] == 1
@@ -224,6 +230,38 @@ def test_design_loop_tool_declares_cache_as_output_resource(
     assert resources.declared is True
     assert f"acd-out:{(tmp_path / 'cache').resolve()}" in resources.keys
     assert not any(key.startswith("acd-cache:") for key in resources.keys)
+
+
+def test_design_loop_tool_propagates_requirement_inputs_and_resources(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_run_design_loop(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        del args
+        captured.update(kwargs)
+        return {"ok": True, "graph_id": "example", "results": []}
+
+    monkeypatch.setattr(
+        "acd.pipeline.design_loop.run_design_loop",
+        fake_run_design_loop,
+    )
+    requirement = tmp_path / "update.json"
+    fixture_spec = tmp_path / "fixture-spec.json"
+    action = AcdRunDesignLoopAction(
+        order_total=str(tmp_path / "order-total.json"),
+        requirement=str(requirement),
+        fixture_spec=str(fixture_spec),
+    )
+    result = _execute(AcdRunDesignLoop.create()[0], action)
+
+    assert result.ok is True
+    assert captured["requirement"] == requirement
+    assert captured["fixture_spec"] == fixture_spec
+    resources = AcdRunDesignLoop.create()[0].declared_resources(action)
+    assert f"file:{requirement.resolve()}" in resources.keys
+    assert f"file:{fixture_spec.resolve()}" in resources.keys
 
 
 def test_enclosure_exploration_tool_preserves_l2_observation(
@@ -282,6 +320,7 @@ def test_design_loop_tool_declares_graph_policy_skill_and_output_resources(
     assert f"file:{(tmp_path / 'fixture' / 'graph.json').resolve()}" in resources.keys
     assert f"file:{(tmp_path / 'order-total.json').resolve()}" in resources.keys
     assert f"file:{(tmp_path / 'policy.json').resolve()}" in resources.keys
+    assert f"file:{(tmp_path / 'fixture' / 'requirements.json').resolve()}" in resources.keys
     assert any(key.startswith("file:") and "run_fw_pipeline.py" in key for key in resources.keys)
     assert f"acd-out:{(tmp_path / 'out').resolve()}" in resources.keys
 

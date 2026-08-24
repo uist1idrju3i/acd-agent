@@ -1,6 +1,6 @@
 ---
 description: 要件から設計反復と発注可否までを固定順序で実行するVibeBB loop。
-argument-hint: "--fixture PATH --order-total PATH [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--explore-board --max-exploration-candidates N --max-exploration-rounds N]"
+argument-hint: "--fixture PATH --order-total PATH [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--explore-board --max-exploration-candidates N --max-exploration-rounds N]"
 allowed-tools:
   - acd_compile_requirement_change
   - acd_build_design_fixture
@@ -16,16 +16,16 @@ allowed-tools:
 会話で受け取った要件を、次の順序で設計入力へ反映してから実行する。
 生のshellや任意のPython moduleを使わず、宣言された`acd_*` toolだけを使う。
 
-1. `acd_compile_requirement_change`で要件と変更対象を記録し、必要なら
-   `acd_build_design_fixture`でgraphとfixtureを生成する。
-2. graphを編集または生成した後、`acd_validate_design_graph`でcanonical graphを検証する。
-3. `acd_run_design_loop`を実行する。このtoolは次の段を必ずこの順序で実行する。
+1. 要件差分は`acd_run_design_loop`の`requirement`へ渡す。新規fixtureは
+   `fixture_spec`へ渡す。どちらも省略した場合は既存fixtureを使う。
+2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
+   - fixture生成（spec指定時のみ）
+   - 要件compile（更新record指定時のみ）
+   - 要件入口整合検査（常時）
    - silkscreen resolver（基板pipelineの前提となるbarrier）
-   - 基板pipeline
-   - 筐体pipeline
-   - FW pipeline（Skill CLI subprocess）
+   - 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
    - 発注可否のpre-order gate
-4. 失敗した場合は後続段を実行せず、`acd_diagnose_gate_failure`で出力を調べる。
+3. 失敗した場合は後続段を実行せず、`acd_diagnose_gate_failure`で出力を調べる。
    `explore_board`を明示した場合、board-pipelineのfail-closed却下に限ってloopが
    `explore_board_candidates`を自動実行し、候補予算とround上限の範囲でgraph検証から
    loopを再実行する。enclosure、FW、silkscreenの失敗では自動探索しない。
@@ -47,6 +47,9 @@ L3観測であり、合否を変更しない。tool経路の`jobs`既定値は1�
 graphのIDとrevisionが探索前と一致し、正規化content hashが変化したこと、および探索reportの
 `target_revision`がgraph revisionと一致することを検証してからloopを再実行し、L1ゲートと
 Evidenceを毎回生成する。
+入口整合検査のmissing、parse失敗、graph IDまたはrevision不一致、graph-anchored要件の
+text不一致はfail-closedで停止する。unknownや未回答の要件は推測しない。この入口検査は
+L1ゲートやauthoritative Evidenceの代替ではない。
 
 各段はfail-closedであり、`ok: false`、`fail_closed: true`、失敗段ID、そこまでの
 段結果を含むJSONを返す。段を黙って省略したり順序を入れ替えたりしてはならない。

@@ -19,9 +19,9 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 
 | # | 不足機能 | 現状 | 実測根拠 |
 |---|---|---|---|
-| A-1 | 会話→要件レコードの変換 | 達成（14.5）。要件レコード化と要件差分compilerを追加し、会話由来の要件をgraph変更へ接続できる。ただし要件→graph段のloop内取り込みはL-3として残る | 変更したREQ-010／REQ-011の文面は手作業更新であり、GPIO変更との整合を機械検査できなかった |
-| A-2 | 任意設計向けfixtureビルダー | 達成（14.5）。任意設計向けfixture builderを追加した。ただし要件→graph段のloop内取り込みはL-3として残る | 変異fixtureは自作スクリプトでGD1 graphを書き換えて生成した。acd-agent内には該当機能が無い |
-| A-3 | 要件差分→graph差分のコンパイラ | 達成（14.5）。要件差分compilerが接続・FWピン・テストポイント・シルク文字・rationaleを同時に更新する。ただしloop内取り込みはL-3として残る | 上記4箇所をすべて手で書き換えた。1箇所落とすとresolverかrationale coverageで落ちる |
+| A-1 | 会話→要件レコードの変換 | 達成（14.5）。要件レコード化と要件差分compilerを追加し、会話由来の要件をgraph変更へ接続できる | 変更したREQ-010／REQ-011の文面は手作業更新であり、GPIO変更との整合を機械検査できなかった |
+| A-2 | 任意設計向けfixtureビルダー | 達成（14.5）。任意設計向けfixture builderを追加した | 変異fixtureは自作スクリプトでGD1 graphを書き換えて生成した。acd-agent内には該当機能が無い |
+| A-3 | 要件差分→graph差分のコンパイラ | 達成（14.5）。要件差分compilerが接続・FWピン・テストポイント・シルク文字・rationaleを同時に更新する | 上記4箇所をすべて手で書き換えた。1箇所落とすとresolverかrationale coverageで落ちる |
 | A-4 | 部品選定とlibrary provenanceの自動化 | 達成（14.5）。部品選定とlibrary provenanceを追加した。ただし契約registryとparts catalogの被覆はL-6として残る | 部品点数を変えない要件に限定したため回避したが、部品を増やす要件は現状扱えない |
 | A-5 | 回路トポロジ合成 | 達成（14.5）。機能ブロックから回路トポロジを合成する経路を追加した。ただし契約registryとparts catalogの被覆はL-6として残る | I2C・LED以外の構成変更は検討不能だった |
 
@@ -300,7 +300,7 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 |---|---|---|---|
 | L-1 | orchestratorの二重化解消 | 達成（前半＝#186、後半＝本PR）。`/acd:vibebb-loop`が呼ぶ`run_design_loop`への入力hash単位stage cache、失敗からのresume、L3 timing record、silkscreen barrier後のboard／enclosure／firmware lane並列に加え、`src/acd/pipeline/lane_plan.py`を単一sourceとしてlaneのstage ID、順序、barrier、出力パス、cache適用可否を共有した。`scripts/run_design_lanes.py`は同じplanからsilkscreen barrier、設計lane、pytest subset検証laneを導出する。pytest subsetはGD1（`artifact_prefix=gd1`）だけに宣言され、任意graph向けの設計固有検証laneは未整備である。order-readinessは`run_design_loop`側だけが担当し、lane runnerは要求しない。cacheは判定とEvidenceを復元しない | 高 |
 | L-2 | 却下後の候補探索の自動連結 | 達成。`run_design_loop`は`explore_board`の明示指定時、board-pipelineのfail-closed却下後かつ全lane join後に、候補予算・round上限付きで`explore_board_candidates`を自動連結する。candidate_foundでもgraph IDとrevisionが探索前と一致し、正規化content hashが変化し、探索reportの`target_revision`がgraph revisionと一致することを検証してloopを再実行し、L1ゲートとEvidenceを毎回生成する。探索reportはL2の操舵・L3観測で合格権限を持たず、exhausted／stopped／不正report／上限到達は元のboard失敗理由を保持してfail-closedとなる。任意graphでは探索次元が設計自由度宣言と既存候補生成器の範囲に限られる | 高 |
-| L-3 | 要件→graph段のloop内取り込み | `scripts/compile_requirement_change.py`と`scripts/build_design_fixture.py`（A-1〜A-3）はloopの外にあり、要件revisionと対象graph revisionの整合をloop入口で検査していない | 中 |
+| L-3 | 要件→graph段のloop内取り込み | 達成。`fixture_spec`指定時のfixture生成、`requirement`指定時の既存compiler接続、常時の`requirements.json`入口整合検査をloop前段へ追加した。graph ID・revision、constrains node、node kind、graph-anchored text、functional block registryを既存validatorで検査し、missing／parse失敗／不一致はsilkscreen以降をfail-closedで停止する。compileはL2、入口検査はL3で、L1ゲートやEvidenceの代替ではない。残る限界は要件変更の候補生成や任意graph固有の妥当性を自動推論せず、unknown／未回答を推測しない点である | 中 |
 | L-4 | order-total生成経路の欠落 | `aggregate_order_total`にCLIもtool入口も無く、`out/order-total.json`の生成手順は[`operations.md`](operations.md)にも無い。発注可否段は既存fileを前提とするため、会話からは発注可否判定へ到達できない | 高 |
 | L-5 | 生成物既定値のgd1残留 | `DEFAULT_PROJECT_NAME = "gd1"`、`src/acd/openhands/workspace.py`の既定evidence path、agent toolの既定出力`out/gd1-*`、FW既定の`boot_log_message`のGD1文字列が残る。いずれも宣言で上書きできるが、任意graphでは既定値が誤誘導になる | 中 |
 | L-6 | 契約registryとcatalogのトポロジ被覆 | `contracts/functional-block-registry.json`はGD1系の6契約、`contracts/parts-catalog.json`は24 entryのみで、USB-Cを持たない設計や電池駆動設計は契約・catalog追加が前提となり会話からは到達できない（マイルストーン16.2・16.3に依存） | 中 |
