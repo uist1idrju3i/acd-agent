@@ -114,12 +114,6 @@ from acd.schema.parts_catalog import (
     PartLibraryRef,
     PartsCatalogDocument,
 )
-from acd.schema.topology_template import (
-    TopologyTemplate,
-    TopologyTemplateComponent,
-    TopologyTemplateNet,
-    TopologyTemplatesDocument,
-)
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -165,6 +159,12 @@ from acd.schema.side_effect_journal import (
     PreOrderJournalEntryBody,
 )
 from acd.schema.tool_envelope import ConvergenceState, ToolEnvelope
+from acd.schema.topology_template import (
+    TopologyTemplate,
+    TopologyTemplateComponent,
+    TopologyTemplateNet,
+    TopologyTemplatesDocument,
+)
 from acd.schema.visual_crosscheck import (
     CrosscheckAspect,
     CrosscheckStatus,
@@ -278,10 +278,6 @@ __all__ = [
     "PartCplOrientation",
     "PartLibraryRef",
     "PartsCatalogDocument",
-    "TopologyTemplate",
-    "TopologyTemplateComponent",
-    "TopologyTemplateNet",
-    "TopologyTemplatesDocument",
     "PhysicalEvidence",
     "PostOrderJournalEntry",
     "PostOrderJournalEntryBody",
@@ -326,6 +322,10 @@ __all__ = [
     "SerialExpectation",
     "ShipmentManifestReference",
     "ToolEnvelope",
+    "TopologyTemplate",
+    "TopologyTemplateComponent",
+    "TopologyTemplateNet",
+    "TopologyTemplatesDocument",
     "VisualCrosscheckItem",
     "VisualCrosscheckReport",
     "VisualProjectionCrosscheck",
