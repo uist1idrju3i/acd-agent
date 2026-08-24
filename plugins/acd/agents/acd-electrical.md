@@ -6,6 +6,7 @@ tools:
   - acd_probe_tools
   - acd_validate_design_graph
   - acd_register_functional_block
+  - acd_register_parts_catalog_entry
   - acd_run_board_pipeline
   - acd_bootstrap_workspace
   - acd_compile_requirement_change

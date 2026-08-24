@@ -43,6 +43,10 @@
       "definition_class": "AcdRegisterFunctionalBlock"
     },
     {
+      "tool_name": "acd_register_parts_catalog_entry",
+      "definition_class": "AcdRegisterPartsCatalogEntry"
+    },
+    {
       "tool_name": "acd_run_board_pipeline",
       "definition_class": "AcdRunBoardPipeline"
     },
@@ -63,5 +67,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:e87bf838798d9abd5e6693e1d77cebad0b60a27816d7ed20949c844fdbe8b16c"
+  "canonical_hash": "sha256:67a273e3e4b20fa7167d1c1e473ce8f3f47f02c50eda0db3cb77162147b2773e"
 }

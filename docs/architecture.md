@@ -223,6 +223,7 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 - `acd_probe_tools`
 - `acd_validate_design_graph`
 - `acd_register_functional_block`
+- `acd_register_parts_catalog_entry`
 - `acd_run_board_pipeline`
 - `acd_run_enclosure_pipeline`
 - `acd_run_firmware_pipeline`
@@ -250,6 +251,24 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 `acd-install-doctor`は同じmanifest資材を標準ライブラリだけで読み、宣言漏れと未登録名を
 診断する。registration reportはL3観測（`pass_evidence: false`）であり、
 Evidenceを生成・昇格せず、ToolDefinitionとSkillへ合否権限を与えない。
+
+トポロジfragmentは`contracts/topology-templates.json`を正とするdata契約であり、
+Pythonへ電気的既定値を持たない。Pydanticはtemplate／registry blockの対応、部品要求、
+refdes、net ID、net参照の閉包を検証し、未知block、重複宣言、template欠落、parse不能を
+検証不能としてfail-closedにする。合成後のcomponent、net、constraintの順序と正規化は
+従来どおり決定論的である。
+
+部品entryは`register_part_catalog_entry.py`または
+`acd_register_parts_catalog_entry`から追加する。両経路はsymbol／footprintの実file
+存在、SHA-256、source宣言を検証し、既存`part_number`または
+`kind`＋`value`＋`package`の衝突を拒否して`select_part`の曖昧性を増やさない。
+dry-run、canonical catalog hash、原子的書き込みを提供するが、登録は宣言操作であり
+L1判定権限もauthoritative Evidence権限も持たず、`pass_evidence`はfalseである。
+
+USB-Cを宣言しない設計と電池給電設計は、既存の機能block・predicateとcatalog entryを
+fixtureへ宣言して到達できる。電池については`power_boundary`等の既存範囲だけを扱い、
+充電・保護回路の規範的契約やpredicateは出荷しない。これはロードマップ16.2／16.3の
+依存である。
 
 ## 生成と判定の分離
 

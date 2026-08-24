@@ -26,6 +26,7 @@ from pydantic import Field
 
 from acd.core.functional_block_entry import register_functional_block_contract
 from acd.core.naming import artifact_prefix
+from acd.core.parts_catalog_entry import register_parts_catalog_entry
 from acd.openhands.tools.probe import probe_all
 from acd.schema.design_graph import DesignGraph
 
@@ -151,6 +152,11 @@ class AcdObservation(Observation):
     contract_source: str | None = None
     contract: dict[str, Any] | None = None
     written: bool | None = None
+    catalog_id: str | None = None
+    prior_catalog_hash: str | None = None
+    new_catalog_hash: str | None = None
+    entry_source: str | None = None
+    entry: dict[str, Any] | None = None
 
     @property
     def to_llm_content(self) -> list[TextContent]:
@@ -189,6 +195,13 @@ class AcdObservation(Observation):
                 f"{self.operation}: registry_id={self.registry_id}, "
                 f"prior_registry_hash={self.prior_registry_hash}, "
                 f"new_registry_hash={self.new_registry_hash}, "
+                f"written={self.written}. This is a declaration, not gate evidence."
+            )
+        elif self.operation == "register_parts_catalog_entry":
+            text = (
+                f"{self.operation}: catalog_id={self.catalog_id}, "
+                f"prior_catalog_hash={self.prior_catalog_hash}, "
+                f"new_catalog_hash={self.new_catalog_hash}, "
                 f"written={self.written}. This is a declaration, not gate evidence."
             )
         elif self.failure_reason:
@@ -255,6 +268,20 @@ class AcdRegisterFunctionalBlockAction(Action):
     dry_run: bool = Field(
         default=False,
         description="Validate without writing the registry.",
+    )
+
+
+class AcdRegisterPartsCatalogEntryAction(Action):
+    """Validate and append one parts-catalog entry declaration."""
+
+    entry: str = Field(description="PartCatalogEntry JSON path or inline JSON object.")
+    catalog: str = Field(
+        default="contracts/parts-catalog.json",
+        description="Parts catalog JSON path.",
+    )
+    dry_run: bool = Field(
+        default=False,
+        description="Validate without writing the catalog.",
     )
 
 
@@ -414,6 +441,10 @@ class AcdBootstrapWorkspaceObservation(AcdObservation):
 
 class AcdRegisterFunctionalBlockObservation(AcdObservation):
     """Observation returned by functional-block contract registration."""
+
+
+class AcdRegisterPartsCatalogEntryObservation(AcdObservation):
+    """Observation returned by parts-catalog entry registration."""
 
 
 class AcdRunFirmwarePipelineObservation(AcdObservation):
@@ -636,6 +667,41 @@ class AcdRegisterFunctionalBlockExecutor(
         except Exception as exc:
             return AcdRegisterFunctionalBlockObservation(
                 **_error(str(exc), operation="register_functional_block")
+            )
+
+
+class AcdRegisterPartsCatalogEntryExecutor(
+    ToolExecutor[
+        AcdRegisterPartsCatalogEntryAction,
+        AcdRegisterPartsCatalogEntryObservation,
+    ]
+):
+    def __call__(
+        self,
+        action: AcdRegisterPartsCatalogEntryAction,
+        conversation: Any = None,
+    ) -> AcdRegisterPartsCatalogEntryObservation:
+        del conversation
+        try:
+            result = register_parts_catalog_entry(
+                action.entry,
+                Path(action.catalog),
+                dry_run=action.dry_run,
+            )
+            return AcdRegisterPartsCatalogEntryObservation(
+                ok=True,
+                operation="register_parts_catalog_entry",
+                catalog_id=result.catalog_id,
+                prior_catalog_hash=result.prior_catalog_hash,
+                new_catalog_hash=result.new_catalog_hash,
+                entry_source=result.entry_source,
+                entry=result.entry.model_dump(mode="json"),
+                written=result.written,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdRegisterPartsCatalogEntryObservation(
+                **_error(str(exc), operation="register_parts_catalog_entry")
             )
 
 
@@ -1712,12 +1778,56 @@ class AcdRegisterFunctionalBlock(
         ]
 
 
+class AcdRegisterPartsCatalogEntry(
+    ToolDefinition[
+        AcdRegisterPartsCatalogEntryAction,
+        AcdRegisterPartsCatalogEntryObservation,
+    ]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRegisterPartsCatalogEntryAction):
+            return DeclaredResources(keys=(), declared=False)
+        catalog_path = _resolved_resource_path(action.catalog)
+        if catalog_path is None:
+            return DeclaredResources(keys=(), declared=False)
+        keys = [f"file:{catalog_path}"]
+        entry_path = _resolved_resource_path(action.entry)
+        if entry_path is not None and entry_path.is_file():
+            keys.insert(0, f"file:{entry_path}")
+        return DeclaredResources(keys=tuple(keys), declared=True)
+
+    @classmethod
+    def create(cls, conv_state: ConversationState | None = None, **params: Any) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError("acd_register_parts_catalog_entry does not accept parameters")
+        return [
+            cls(
+                action_type=AcdRegisterPartsCatalogEntryAction,
+                observation_type=AcdRegisterPartsCatalogEntryObservation,
+                description=(
+                    "Validate and register one parts-catalog entry declaration "
+                    "without granting L1 authority or creating Evidence."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_register_parts_catalog_entry",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=False,
+                    openWorldHint=False,
+                ),
+                executor=AcdRegisterPartsCatalogEntryExecutor(),
+            )
+        ]
+
+
 ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_probe_tools", AcdProbeTools),
     ("acd_validate_design_graph", AcdValidateDesignGraph),
     ("acd_run_board_pipeline", AcdRunBoardPipeline),
     ("acd_run_enclosure_pipeline", AcdRunEnclosurePipeline),
     ("acd_register_functional_block", AcdRegisterFunctionalBlock),
+    ("acd_register_parts_catalog_entry", AcdRegisterPartsCatalogEntry),
     ("acd_bootstrap_workspace", AcdBootstrapWorkspace),
     ("acd_run_firmware_pipeline", AcdRunFirmwarePipeline),
     ("acd_compile_requirement_change", AcdCompileRequirementChange),

@@ -28,6 +28,9 @@ from acd.openhands.tools.definitions import (
     AcdProbeToolsObservation,
     AcdRegisterFunctionalBlock,
     AcdRegisterFunctionalBlockAction,
+    AcdRegisterPartsCatalogEntry,
+    AcdRegisterPartsCatalogEntryAction,
+    AcdRegisterPartsCatalogEntryObservation,
     AcdRunBoardPipeline,
     AcdRunBoardPipelineAction,
     AcdRunBoardPipelineObservation,
@@ -479,6 +482,70 @@ def test_register_functional_block_tool_reports_hashes_and_dry_run(
     assert "tool_declared_block" not in registry.read_text(encoding="utf-8")
 
 
+def test_register_parts_catalog_tool_reports_hashes_and_dry_run(tmp_path: Path) -> None:
+    root = Path(__file__).parents[3]
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        (root / "contracts/parts-catalog.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    entry = {
+        "part_number": "TOOL-22K",
+        "kind": "resistor",
+        "value": "22k",
+        "package": "R_0603_1608Metric",
+        "library_ref": {
+            "symbol": "Device:R",
+            "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+            "symbol_source": "kicad-official",
+            "symbol_source_ref": "10.0.5",
+            "symbol_sha256": (
+                "sha256:af613124472cc646e2b272d6cd9d0de4f6defa40c2d107251f00f48665666d9a"
+            ),
+            "footprint": "Resistor_SMD:R_0603_1608Metric",
+            "footprint_file": (
+                "/usr/share/kicad/footprints/Resistor_SMD.pretty/"
+                "R_0603_1608Metric.kicad_mod"
+            ),
+            "footprint_source": "kicad-official",
+            "footprint_source_ref": "10.0.5",
+            "footprint_sha256": (
+                "sha256:7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23"
+            ),
+        },
+    }
+    action = AcdRegisterPartsCatalogEntryAction(
+        entry=json.dumps(entry),
+        catalog=str(catalog),
+        dry_run=True,
+    )
+    result = _execute(AcdRegisterPartsCatalogEntry.create()[0], action)
+    assert isinstance(result, AcdRegisterPartsCatalogEntryObservation)
+    assert result.ok is True
+    assert result.pass_evidence is False
+    assert result.written is False
+    assert result.prior_catalog_hash != result.new_catalog_hash
+    assert "TOOL-22K" not in catalog.read_text(encoding="utf-8")
+
+
+def test_register_parts_catalog_declares_entry_and_catalog_resources(tmp_path: Path) -> None:
+    entry = tmp_path / "entry.json"
+    catalog = tmp_path / "catalog.json"
+    entry.write_text("{}", encoding="utf-8")
+    catalog.write_text("{}", encoding="utf-8")
+    resources = AcdRegisterPartsCatalogEntry.create()[0].declared_resources(
+        AcdRegisterPartsCatalogEntryAction(
+            entry=str(entry),
+            catalog=str(catalog),
+        )
+    )
+    assert resources.declared is True
+    assert resources.keys == (
+        f"file:{entry.resolve()}",
+        f"file:{catalog.resolve()}",
+    )
+
+
 def test_acd_tool_resource_resolution_failure_serializes() -> None:
     action = AcdValidateDesignGraphAction(path="\x00")
     resources = AcdValidateDesignGraph.create()[0].declared_resources(action)
@@ -710,6 +777,7 @@ def test_registration_is_idempotent_and_tool_schemas_are_exposed() -> None:
         "acd_probe_tools",
         "acd_validate_design_graph",
         "acd_register_functional_block",
+        "acd_register_parts_catalog_entry",
         "acd_run_board_pipeline",
         "acd_run_enclosure_pipeline",
     }.issubset(set(list_registered_tools()))

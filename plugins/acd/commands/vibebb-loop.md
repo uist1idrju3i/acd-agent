@@ -3,6 +3,7 @@ description: 要件から設計反復と発注可否までを固定順序で実�
 argument-hint: "--fixture PATH [--order-total PATH | --quote-record PATH... --order-scope PATH --fab-profile PATH] [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--explore-board --max-exploration-candidates N --max-exploration-rounds N]"
 allowed-tools:
   - acd_aggregate_order_total
+  - acd_register_parts_catalog_entry
   - acd_compile_requirement_change
   - acd_build_design_fixture
   - acd_validate_design_graph
@@ -65,3 +66,9 @@ FW boot logの既定文言もgraph_idから導出する（規範は
 [`docs/architecture.md`](../../../docs/architecture.md)）。GD1の従来文言はfixtureの
 `firmware.module.boot_log_message`明示属性で再現する。graphが不明な場合は既定値を
 推測せずfail-closedにする。
+
+機能blockのトポロジは`contracts/topology-templates.json`から検証・合成され、部品の
+追加は`acd_register_parts_catalog_entry`でlibrary provenanceを検証してから行う。
+catalog登録は宣言操作であり、合否やEvidenceを与えない。USB-Cを宣言しない設計は
+`usb_cc`をnot_applicableとして扱えるが、電池の充電・保護回路を暗黙に規範化しない。
+その範囲はロードマップ16.2／16.3へ委譲する。

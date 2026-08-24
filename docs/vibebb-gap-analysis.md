@@ -22,8 +22,8 @@ A〜Gは設計演習で直接詰まった箇所、H〜Kは演習後に文書と�
 | A-1 | 会話→要件レコードの変換 | 達成（14.5）。要件レコード化と要件差分compilerを追加し、会話由来の要件をgraph変更へ接続できる | 変更したREQ-010／REQ-011の文面は手作業更新であり、GPIO変更との整合を機械検査できなかった |
 | A-2 | 任意設計向けfixtureビルダー | 達成（14.5）。任意設計向けfixture builderを追加した | 変異fixtureは自作スクリプトでGD1 graphを書き換えて生成した。acd-agent内には該当機能が無い |
 | A-3 | 要件差分→graph差分のコンパイラ | 達成（14.5）。要件差分compilerが接続・FWピン・テストポイント・シルク文字・rationaleを同時に更新する | 上記4箇所をすべて手で書き換えた。1箇所落とすとresolverかrationale coverageで落ちる |
-| A-4 | 部品選定とlibrary provenanceの自動化 | 達成（14.5）。部品選定とlibrary provenanceを追加した。ただし契約registryとparts catalogの被覆はL-6として残る | 部品点数を変えない要件に限定したため回避したが、部品を増やす要件は現状扱えない |
-| A-5 | 回路トポロジ合成 | 達成（14.5）。機能ブロックから回路トポロジを合成する経路を追加した。ただし契約registryとparts catalogの被覆はL-6として残る | I2C・LED以外の構成変更は検討不能だった |
+| A-4 | 部品選定とlibrary provenanceの自動化 | 達成（14.5、L-6）。`register_part_catalog_entry.py`と`acd_register_parts_catalog_entry`で、実file SHA-256を含むprovenance検証と原子的catalog追記を提供した。選択keyの曖昧性を増すentryは拒否する | 規範的な部品妥当性は既存predicateとcatalogの範囲に限られ、未登録の選択keyは引き続きfail-closed |
+| A-5 | 回路トポロジ合成 | 達成（14.5、L-6）。`contracts/topology-templates.json`を正とするPydantic検証済みdata templateから、registryの宣言blockをPython変更なしで合成できる | 未宣言block、template欠落、閉じていないnet参照は検証不能として停止する |
 
 ## B. 物理設計の自律探索（今回の直接のfailure源）
 
@@ -303,7 +303,7 @@ K-3は、機能ブロックregistryに許可された変更次元を宣言し、
 | L-3 | 要件→graph段のloop内取り込み | 達成。`fixture_spec`指定時のfixture生成、`requirement`指定時の既存compiler接続、常時の`requirements.json`入口整合検査をloop前段へ追加した。入口検査をdesign-loop stageとして宣言し、graph ID・revision、constrains node、node kind、graph-anchored text、functional block registryを既存validatorで検査する。missing／parse失敗／不一致はsilkscreen以降をfail-closedで停止する。compile reportはL2だが、入口検査は合否を変更しないL3観測ではなく、L1ゲートやEvidenceの代替でもない。残る限界は要件変更の候補生成や任意graph固有の妥当性を自動推論せず、unknown／未回答を推測しない点である | 中 |
 | L-4 | order-total生成経路の欠落 | 達成。`scripts/aggregate_order_total.py`と`acd_aggregate_order_total`を追加し、複数quote record、OrderScope、FabProfileDocumentから検証済み`OrderTotalDocument`を生成できる。`run_design_loop`にも条件付き`order-total-aggregation` stageを接続し、生成物をorder-readinessへ渡す。legacy `--order-total` document modeとの同時指定はfail-closedで拒否する。集計は決定論的なL2経路であり、L1合格権限やauthoritative Evidenceを持たない。残る限界はquote取得、supplier選択、実発注を行わず、入力recordの妥当性と既存scope契約に依存する点である | 高 |
 | L-5 | 生成物既定値のgd1残留 | 達成。KiCad project name、workspace command/download path、OpenHands tool output path、FW boot logの既定値をgraph_idから導出し、graph不明時はGD1へfallbackせずfail-closedにした。GD1 fixtureは明示`boot_log_message`属性と互換prefixで従来path・文字列を再現する。残る限界は任意graphのゲートregistry・部品catalog被覆（L-6）と実機FW検証である | 中 |
-| L-6 | 契約registryとcatalogのトポロジ被覆 | `contracts/functional-block-registry.json`はGD1系の6契約、`contracts/parts-catalog.json`は24 entryのみで、USB-Cを持たない設計や電池駆動設計は契約・catalog追加が前提となり会話からは到達できない（マイルストーン16.2・16.3に依存） | 中 |
+| L-6 | 契約registryとcatalogのトポロジ被覆 | 達成部分あり。`contracts/topology-templates.json`をPydanticでfail-closedに検証し、registryへ対応するtemplateを持つblockをPython変更なしで合成できる。`register_part_catalog_entry.py`／`acd_register_parts_catalog_entry`はlibrary fileの存在・SHA-256・source宣言を検査し、曖昧な選択keyを増やさず原子的に追加する。USB-Cを持たないfixtureと電池給電fixtureの回帰テストで到達性を示した。一方、電池の充電・保護回路の規範的契約やpredicateは追加していないため、その判定は未対応であり16.2・16.3に依存する | 中 |
 | L-7 | 本書の「現状」列の陳腐化 | 解決済み。A節・K節・G節の「現状」列が14.5・14.7・14.8の達成後も更新されておらず実装状態と齟齬があったため、本節の追加と同じ変更で更新した。実測根拠の観測記録は変更しない | 低 |
 
 ## Devinのような汎用エージェントが不在なら止まる項目

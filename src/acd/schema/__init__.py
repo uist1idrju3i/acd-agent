@@ -114,6 +114,12 @@ from acd.schema.parts_catalog import (
     PartLibraryRef,
     PartsCatalogDocument,
 )
+from acd.schema.topology_template import (
+    TopologyTemplate,
+    TopologyTemplateComponent,
+    TopologyTemplateNet,
+    TopologyTemplatesDocument,
+)
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
     PromptDriftReport,
@@ -272,6 +278,10 @@ __all__ = [
     "PartCplOrientation",
     "PartLibraryRef",
     "PartsCatalogDocument",
+    "TopologyTemplate",
+    "TopologyTemplateComponent",
+    "TopologyTemplateNet",
+    "TopologyTemplatesDocument",
     "PhysicalEvidence",
     "PostOrderJournalEntry",
     "PostOrderJournalEntryBody",

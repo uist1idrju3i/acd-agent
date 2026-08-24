@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from acd.core.parts_catalog_entry import register_parts_catalog_entry
 from acd.pipeline.fixture_builder import build_design_fixture
 from acd.pipeline.gd1_fixture.graph import build_graph as build_gd1_graph
 from acd.schema import (
@@ -92,6 +93,73 @@ def test_fixture_builder_resolves_catalog_component(tmp_path: Path) -> None:
     assert component["attrs"]["parts_catalog_id"] == "acd-parts-gd1-14.5"
     assert component["attrs"]["cpl_rotation_basis"] == "component_part_number"
     assert component["attrs"]["cpl_rotation_offset_deg"] == 0.0
+
+
+def test_non_usb_and_battery_declarations_use_catalog_without_battery_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog_data = json.loads(
+        Path("contracts/parts-catalog.json").read_text(encoding="utf-8")
+    )
+    source_entry = next(
+        entry for entry in catalog_data["entries"] if entry["part_number"] == "0603WAF1001T5E"
+    )
+    battery_entry = json.loads(json.dumps(source_entry))
+    battery_entry.update(
+        {
+            "part_number": "BATTERY-CELL-3V7",
+            "kind": "battery_cell",
+            "value": "3.7V",
+            "package": "18650",
+        }
+    )
+    catalog_path = tmp_path / "parts-catalog.json"
+    catalog_path.write_text(json.dumps(catalog_data), encoding="utf-8")
+    register_parts_catalog_entry(battery_entry, catalog_path)
+    monkeypatch.setattr(
+        "acd.core.part_selection.default_parts_catalog_path",
+        lambda: catalog_path,
+    )
+    spec = DesignFixtureSpec(
+        design_name="battery-demo",
+        components=[
+            FixtureComponentSpec(
+                refdes="BT1",
+                part_request=ComponentPartRequest(
+                    kind="battery_cell",
+                    value="3.7V",
+                    package="18650",
+                ),
+            )
+        ],
+        requirements=[
+            RequirementRecord(
+                requirement_id="battery",
+                statement="電池給電の試作設計として扱う",
+                constrains_node_ids=["comp.bt1"],
+            )
+        ],
+        functional_blocks=[
+            FixtureFunctionalBlockSpec(
+                block_id="safety_power_boundary",
+                requirement_ids=["battery"],
+            )
+        ],
+    )
+    build_design_fixture(spec, tmp_path / "fixture")
+    graph = json.loads(
+        (tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8")
+    )
+    block_ids = {
+        node["attrs"]["block_id"]
+        for node in graph["nodes"]
+        if node["kind"] == "design.functional_block"
+    }
+    battery = next(node for node in graph["nodes"] if node["id"] == "comp.bt1")
+    assert "usb_c_cc_termination" not in block_ids
+    assert "safety_power_boundary" in block_ids
+    assert battery["attrs"]["part_number"] == "BATTERY-CELL-3V7"
 
 
 def test_fixture_builder_derives_cpl_evidence_path_from_graph_id(tmp_path: Path) -> None:

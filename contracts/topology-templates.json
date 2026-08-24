@@ -1,0 +1,158 @@
+{
+  "schema_version": "0.1",
+  "templates": [
+    {
+      "template_id": "esp32c3-strapping-boot",
+      "block_id": "esp32c3_strapping_boot",
+      "components": [
+        {
+          "refdes": "SW2",
+          "part_request": {
+            "kind": "switch",
+            "value": "BOOT",
+            "package": "SW_SPST_TS-1088-xR020"
+          },
+          "pads": {"1": "net.boot", "2": "net.gnd"},
+          "attrs": {"value": "BOOT"}
+        }
+      ],
+      "nets": [{"net_id": "net.boot", "attrs": {"name": "BOOT"}}],
+      "constraints": ["ESP32-C3 strapping and boot-button assignments"]
+    },
+    {
+      "template_id": "firmware-pin-map",
+      "block_id": "firmware_pin_map",
+      "constraints": ["firmware GPIO assignments must match declared electrical pads"]
+    },
+    {
+      "template_id": "i2c-bus-pullup",
+      "block_id": "i2c_bus_pullup",
+      "components": [
+        {
+          "refdes": "R4",
+          "part_request": {
+            "kind": "resistor",
+            "value": "4.7k",
+            "package": "R_0603_1608Metric"
+          },
+          "pads": {"1": "net.p3v3", "2": "net.i2c_sda"},
+          "attrs": {"value": "4.7k"}
+        },
+        {
+          "refdes": "R5",
+          "part_request": {
+            "kind": "resistor",
+            "value": "4.7k",
+            "package": "R_0603_1608Metric"
+          },
+          "pads": {"1": "net.p3v3", "2": "net.i2c_scl"},
+          "attrs": {"value": "4.7k"}
+        }
+      ],
+      "nets": [
+        {"net_id": "net.i2c_sda", "attrs": {"name": "I2C_SDA"}},
+        {"net_id": "net.i2c_scl", "attrs": {"name": "I2C_SCL"}}
+      ]
+    },
+    {
+      "template_id": "safety-power-boundary",
+      "block_id": "safety_power_boundary",
+      "constraints": ["declared voltage, current, hazard, and certification boundary"]
+    },
+    {
+      "template_id": "single-ldo-power-tree",
+      "block_id": "single_ldo_power_tree",
+      "components": [
+        {
+          "refdes": "U2",
+          "part_request": {
+            "kind": "ic",
+            "value": "AMS1117-3.3",
+            "package": "SOT-223-3_TabPin2"
+          },
+          "pads": {
+            "1": "net.gnd",
+            "2": "net.p3v3",
+            "3": "net.vbus_5v"
+          },
+          "attrs": {"value": "AMS1117-3.3"}
+        },
+        {
+          "refdes": "C1",
+          "part_request": {
+            "kind": "capacitor",
+            "value": "10uF",
+            "package": "C_0603_1608Metric"
+          },
+          "pads": {"1": "net.vbus_5v", "2": "net.gnd"},
+          "attrs": {"value": "10uF"}
+        },
+        {
+          "refdes": "C2",
+          "part_request": {
+            "kind": "capacitor",
+            "value": "100nF",
+            "package": "C_0603_1608Metric"
+          },
+          "pads": {"1": "net.vbus_5v", "2": "net.gnd"},
+          "attrs": {"value": "100nF"}
+        },
+        {
+          "refdes": "C3",
+          "part_request": {
+            "kind": "capacitor",
+            "value": "10uF",
+            "package": "C_0603_1608Metric"
+          },
+          "pads": {"1": "net.p3v3", "2": "net.gnd"},
+          "attrs": {"value": "10uF"}
+        },
+        {
+          "refdes": "C4",
+          "part_request": {
+            "kind": "capacitor",
+            "value": "100nF",
+            "package": "C_0603_1608Metric"
+          },
+          "pads": {"1": "net.p3v3", "2": "net.gnd"},
+          "attrs": {"value": "100nF"}
+        }
+      ],
+      "nets": [
+        {"net_id": "net.vbus_5v", "attrs": {"name": "VBUS_5V"}},
+        {"net_id": "net.p3v3", "attrs": {"name": "+3V3"}},
+        {"net_id": "net.gnd", "attrs": {"name": "GND"}}
+      ]
+    },
+    {
+      "template_id": "usb-c-cc-termination",
+      "block_id": "usb_c_cc_termination",
+      "components": [
+        {
+          "refdes": "R1",
+          "part_request": {
+            "kind": "resistor",
+            "value": "5.1k",
+            "package": "R_0603_1608Metric"
+          },
+          "pads": {"1": "net.cc1", "2": "net.gnd"},
+          "attrs": {"value": "5.1k"}
+        },
+        {
+          "refdes": "R2",
+          "part_request": {
+            "kind": "resistor",
+            "value": "5.1k",
+            "package": "R_0603_1608Metric"
+          },
+          "pads": {"1": "net.cc2", "2": "net.gnd"},
+          "attrs": {"value": "5.1k"}
+        }
+      ],
+      "nets": [
+        {"net_id": "net.cc1", "attrs": {"name": "CC1"}},
+        {"net_id": "net.cc2", "attrs": {"name": "CC2"}}
+      ]
+    }
+  ]
+}
