@@ -62,6 +62,10 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 ゲートに到達できない（14.2）。また、Skill scriptのpinned refが実装より古く、
 FW laneはGD1 fixtureでも停止する（14.1）。
 
+container経路のpull入口とtimeout境界は未整備である。lock済みdigestのpullは
+CIと運用手順にしか入口がなく、SDKの`DockerWorkspace`が呼ぶdocker CLIには
+timeoutが無い（6.6）。
+
 ## 現行実装計画
 
 | 順 | マイルストーン | 達成条件 | 現状 |
@@ -77,7 +81,7 @@ FW laneはGD1 fixtureでも停止する（14.1）。
 | 4.4 | SDK機能移譲 | SDKのcontext、routing、保存、観測、設定、credential、profile、workspaceへ責務を段階移譲する | 達成（hostは`LocalWorkspace`によるprovisional専用、authoritative経路はdigest固定`DockerWorkspace`） |
 | 4.5 | 能力カタログ検査の強化 | 採用行の代表APIまたはドメインがACDコード・plugin資材・テストのどこで使われているかを参照検査し、間接利用とテスト利用の参照先を種別付きで宣言してdriftをfail-closedで検出する | 達成 |
 | 5 | 実機フィードバック | 製造・組立・測定結果をEvidenceとして取り込み、次の入力へ反映する | 5.1〜5.4実装（GD1実機measured Evidence未取得） |
-| 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み） |
+| 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.5完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み）、6.6計画 |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 7.5 dry-run・拒否境界まで達成（実発注は本範囲外） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.6実装済み、8.5はFW lane照合まで実装済み |
 | 9 | 生成文書lane | 設計入力、投影、ゲート結果、Evidenceから再現可能な製品・品質・レビュー文書を生成する | 9.1〜9.2実装済み（9.3〜9.5は計画） |
@@ -253,6 +257,9 @@ derived server digestはpublish実行後にlockへ記録済みである。base t
 [`ADR-0028`](adr/ADR-0028-execution-provenance.md)の実行provenanceを正とする。
 フェーズは6.1から順に依存する。
 
+6.6は、pull入口とcontainer起動・実行のtimeout境界を決定論的に扱うフェーズであり、
+6.3〜6.5の経路を前提に追加する。
+
 agent-server packageの直接API、REST/WebSocket経路、server側のresume/forkは本
 マイルストーンに含めない。conversation persistenceは`LocalConversation`の
 `persistence_dir`範囲に限り、再開結果をauthoritative Evidenceへ昇格しない。
@@ -306,6 +313,26 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 | 正常系 | authoritative Evidenceの生成経路が`DockerWorkspace`だけになり、文書の記述と一致する |
 | negative/fail-closed | host Evidenceの合格側昇格、旧dev workspace残存参照、経路unknownを拒否する |
 | 再現性 | 移行後のCIとローカル実行の双方で同一のEvidence provenanceを再生成できる |
+
+### 6.6 container実行のtimeout境界とpull入口
+
+pinned SDK v1.43.1の`DockerWorkspace`は`execute_command()`へtimeoutを渡さないため、
+`docker version`、image不在時の暗黙pullを含む`docker run`、`docker inspect`、
+`docker logs`、`cleanup()`の`docker stop`が無期限にブロックしうる。ACD側の
+`resolve_image_digest()`の`docker image inspect`も同様である。lock済みdigestをpullする
+決定論的入口は`.github/workflows/ci.yml`と[`operations.md`](operations.md)の手順にしかなく、
+standalone実行ではpullがtimeout・retry・provenanceの管理外になる。あわせて、
+`health_check_timeout`は既定120sのまま、`platform`は`linux/amd64`固定、
+`detach_logs`は既定有効、remote commandのpollingは0.1s間隔である。実機検証では
+locked image pull完了後に会話が無応答となった（原因はOOM未確認）。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `docker/image-digests.json`のlock entry、`src/acd/openhands/workspace.py`、pinned SDKの`DockerWorkspace`と`execute_command()`実装、[`ADR-0028`](adr/ADR-0028-execution-provenance.md)の実行provenance契約 |
+| 実装 | lock entry指定でimageをpullする決定論的入口を追加し、全体timeout、有限回backoff retry、pull後のdigest一致確認、provenance記録を持たせる。ACD側のdocker CLI呼出しへ明示timeoutを与え、`workspace_factory`経由で`health_check_timeout`、`platform`、`detach_logs`、memory上限、docker CLI timeoutを明示した`DockerWorkspace`構成を渡す。`WorkspaceResult`へ失敗種別（timeout、通信失敗、command非ゼロ）を保持し、起動失敗時のcontainer後始末を明示する |
+| 正常系 | image不在の状態からpull入口を実行してlock digestと一致するimageがlocalへ入り、`run_in_workspace.py`がcontainer経路でゲートを実行してauthoritative Evidenceを生成する |
+| negative/fail-closed | pull失敗、retry上限到達、digest不一致、health timeout、docker CLI timeoutをいずれも非ゼロ終了かつEvidence非生成とする。retryはdigest固定pullとfile downloadに限り、gate実行とEvidence生成の再試行で合格側へ昇格しない |
+| 再現性 | 同一lockと同一digestの再実行で同一Evidence hashになること、timeout値とretry上限が文書と実装で一致することを検査する |
 
 ## マイルストーン7: 発注前最終ゲートと自働発注
 
