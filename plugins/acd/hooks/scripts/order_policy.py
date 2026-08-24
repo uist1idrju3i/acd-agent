@@ -16,7 +16,12 @@ from common import event, project_dir, result, revision
 def main() -> int:
     payload = event()
     root = project_dir(payload)
-    policy_path = Path(__file__).resolve().parents[1] / "order-policy.json"
+    plugin_root = os.environ.get("ACD_PLUGIN_ROOT")
+    policy_path = (
+        Path(plugin_root) / "hooks/order-policy.json"
+        if plugin_root
+        else Path(__file__).resolve().parents[1] / "order-policy.json"
+    )
     try:
         policy = json.loads(policy_path.read_text(encoding="utf-8"))
         transmission = policy["transmission_commands"]

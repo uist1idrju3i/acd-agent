@@ -215,24 +215,32 @@ def test_order_with_dirty_design_input_remains_denied(tmp_path: Path) -> None:
     assert output["decision"] == "deny"
 
 
-def test_order_policy_missing_or_malformed_is_denied() -> None:
-    policy = ROOT / "plugins/acd/hooks/order-policy.json"
-    original = policy.read_text(encoding="utf-8")
-    try:
-        policy.unlink()
-        code, output = run("order_policy.py", {"command": "scripts/order"}, "terminal")
-        assert code == 2
-        assert "policy" in output["reason"].lower()
-    finally:
-        policy.write_text(original, encoding="utf-8")
+def test_order_policy_missing_or_malformed_is_denied(tmp_path: Path) -> None:
+    plugin_root = tmp_path / "plugin"
+    policy = plugin_root / "hooks/order-policy.json"
+    environment = {"ACD_PLUGIN_ROOT": str(plugin_root)}
 
-    try:
-        policy.write_text("{", encoding="utf-8")
-        code, output = run("order_policy.py", {"command": "scripts/order"}, "terminal")
-        assert code == 2
-        assert "policy" in output["reason"].lower()
-    finally:
-        policy.write_text(original, encoding="utf-8")
+    code, output = run(
+        "order_policy.py",
+        {"command": "scripts/order"},
+        "terminal",
+        tmp_path,
+        environment,
+    )
+    assert code == 2
+    assert "policy" in output["reason"].lower()
+
+    policy.parent.mkdir(parents=True)
+    policy.write_text("{", encoding="utf-8")
+    code, output = run(
+        "order_policy.py",
+        {"command": "scripts/order"},
+        "terminal",
+        tmp_path,
+        environment,
+    )
+    assert code == 2
+    assert "policy" in output["reason"].lower()
 
 
 def test_session_start_never_blocks() -> None:
