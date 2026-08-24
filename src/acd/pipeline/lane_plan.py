@@ -218,6 +218,17 @@ LANE_RUNNER_STAGE_IDS: tuple[str, ...] = tuple(
 )
 
 
+def _stage_output_path(
+    definition: _StageDefinition, out_root: Path, artifact: str
+) -> Path | None:
+    """Resolve the declared output path of a stage, if it declares one."""
+    if definition.output_filename is not None:
+        return out_root / definition.output_filename
+    if definition.output_suffix is None:
+        return None
+    return out_root / f"{artifact}{definition.output_suffix}"
+
+
 def build_lane_plan(graph_id: str, out_root: Path) -> LanePlan:
     """Build the canonical lane plan for a graph and output root."""
     resolved_output_prefix = output_prefix(graph_id)
@@ -226,18 +237,8 @@ def build_lane_plan(graph_id: str, out_root: Path) -> LanePlan:
         LaneStage(
             stage_id=definition.stage_id,
             barrier=definition.barrier,
-            output_path=(
-                out_root
-                / definition.output_filename
-                if definition.output_filename is not None
-                else out_root
-                / (
-                    resolved_artifact_prefix
-                    if definition.output_suffix == ""
-                    else f"{resolved_artifact_prefix}{definition.output_suffix}"
-                )
-                if definition.output_suffix is not None
-                else None
+            output_path=_stage_output_path(
+                definition, out_root, resolved_artifact_prefix
             ),
             cacheable=definition.cacheable,
             command_kind=definition.command_kind,
