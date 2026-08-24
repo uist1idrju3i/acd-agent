@@ -217,8 +217,25 @@ def _catalog_json(existing: str, entry: PartCatalogEntry) -> str:
     return content + ",\n" + indented + whitespace + existing[closing:]
 
 
-def _write_catalog(path: Path, existing: str, entry: PartCatalogEntry) -> None:
+def _write_catalog(
+    path: Path,
+    existing: str,
+    entry: PartCatalogEntry,
+    expected_catalog_hash: str,
+) -> None:
     payload = _catalog_json(existing, entry)
+    try:
+        written_document = PartsCatalogDocument.model_validate_json(payload)
+    except ValueError as exc:
+        raise PartsCatalogEntryError(
+            f"parts catalog generated payload is invalid: {exc}"
+        ) from exc
+    written_hash = canonical_json_sha256(written_document.model_dump(mode="json"))
+    if written_hash != expected_catalog_hash:
+        raise PartsCatalogEntryError(
+            "parts catalog generated payload hash mismatch: "
+            f"expected {expected_catalog_hash}, got {written_hash}"
+        )
     temporary_path: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
@@ -266,7 +283,7 @@ def register_parts_catalog_entry(
     updated_document = document.model_copy(update={"entries": [*document.entries, proposed]})
     new_hash = canonical_json_sha256(updated_document.model_dump(mode="json"))
     if not dry_run:
-        _write_catalog(path, existing_catalog, proposed)
+        _write_catalog(path, existing_catalog, proposed, new_hash)
     return PartsCatalogEntryResult(
         catalog_id=document.catalog_id,
         prior_catalog_hash=prior_hash,

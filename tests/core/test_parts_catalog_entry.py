@@ -1,5 +1,7 @@
 """Tests for parts-catalog declaration registration."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 import hashlib
@@ -7,12 +9,14 @@ from pathlib import Path
 
 import pytest
 
+from acd.core import parts_catalog_entry as parts_catalog_entry_module
 from acd.core.part_selection import select_part
 from acd.core.parts_catalog_entry import (
     PartsCatalogEntryError,
     register_parts_catalog_entry,
 )
-from acd.schema import ComponentPartRequest
+from acd.schema import ComponentPartRequest, PartCatalogEntry, PartsCatalogDocument
+from acd.schema.common import canonical_json_sha256
 
 
 def _library_files(tmp_path: Path) -> tuple[Path, Path]:
@@ -67,6 +71,13 @@ def test_registers_entry_atomically_and_selects_it(tmp_path: Path) -> None:
     result = register_parts_catalog_entry(entry, catalog)
     assert result.written is True
     assert result.new_catalog_hash == dry_run.new_catalog_hash
+    document = PartsCatalogDocument.model_validate_json(
+        catalog.read_text(encoding="utf-8")
+    )
+    file_hash = canonical_json_sha256(
+        document.model_dump(mode="json")
+    )
+    assert file_hash == result.new_catalog_hash
     selected = select_part(
         ComponentPartRequest(kind="resistor", value="22k", package="R_0603_1608Metric"),
         catalog,
@@ -85,6 +96,34 @@ def test_registration_preserves_existing_entry_serialization(tmp_path: Path) -> 
 
     after = catalog.read_text(encoding="utf-8")
     assert after[first_start:second_start] == before[first_start:second_start]
+
+
+def test_payload_field_loss_fails_closed_without_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    catalog = _catalog_copy(tmp_path)
+    entry = _entry(tmp_path)
+    before = catalog.read_bytes()
+    original_payload = parts_catalog_entry_module._catalog_entry_payload
+
+    def drop_library_field(proposed: PartCatalogEntry) -> dict[str, object]:
+        payload = original_payload(proposed)
+        library_ref = payload["library_ref"]
+        assert isinstance(library_ref, dict)
+        del library_ref["symbol_sha256"]
+        return payload
+
+    monkeypatch.setattr(
+        parts_catalog_entry_module,
+        "_catalog_entry_payload",
+        drop_library_field,
+    )
+    with pytest.raises(PartsCatalogEntryError, match="generated payload"):
+        register_parts_catalog_entry(entry, catalog)
+
+    assert catalog.read_bytes() == before
+    assert not list(tmp_path.glob(f".{catalog.name}.*.tmp"))
 
 
 @pytest.mark.parametrize("field", ["symbol_sha256", "footprint_sha256"])
