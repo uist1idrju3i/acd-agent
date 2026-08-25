@@ -75,9 +75,10 @@ APT由来のパッケージはUbuntuのrepository snapshotを別途固定しな�
 Dockerfileでも再解決される可能性がある。完全な再現性にはimage digestとAPT
 repositoryの固定が必要である。
 
-`docker/**`（lock fileの`docker/image-digests.json`とこのREADMEを除く）をmainへ
-変更すると、`.github/workflows/publish-acd-tools.yml`がtools imageをpublishし、
-成功後に`.github/workflows/publish-acd-server.yml`がagent-server imageをpublishする。
+`docker/**`（lock fileの`docker/image-digests.json`とこのREADMEを除く）または
+build contextを決める`.dockerignore`をmainへ変更すると、
+`.github/workflows/publish-acd-tools.yml`がtools imageをpublishし、成功後に
+`.github/workflows/publish-acd-server.yml`がagent-server imageをpublishする。
 各workflowはpublish結果を`docker/image-digests.json`へ記録する更新PRを作成する。
 lock更新PRはpublish triggerの対象外であり、digest lockと`latest`が再帰的に更新されることはない。
 
