@@ -249,9 +249,9 @@ unclassified属性、policy不整合はfail-closedでstatusを`unknown`とする
 6.3ではrunnerを事前build済みserver imageの`DockerWorkspace(server_image=...)`へ切り替え、
 6.4ではCIをlock解決とpullへ移行し、6.5では旧dev workspace経路を撤去した。
 derived server digestはpublish実行後にlockへ記録済みである。base tools digest
-`sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`と、
+`sha256:901ffd495c4876d3c02ff9c3303c67a6ee0d2c54b39460bb370a2c8260bb602c`と、
 そこからderiveしたserver digest
-`sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a`は
+`sha256:b5afc5daadf801f62d7bcb3f8229fe417e0e658b7ab1a660bf737f105f18c968`は
 独立した値として保持する。受入条件は
 [`ADR-0026`](adr/ADR-0026-openhands-delegation-contract.md)の入口と実行形、
 [`ADR-0028`](adr/ADR-0028-execution-provenance.md)の実行provenanceを正とする。
