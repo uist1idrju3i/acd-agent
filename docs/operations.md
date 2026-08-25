@@ -821,10 +821,10 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 `publish-acd-server.yml`は`workflow_dispatch`またはtools publish成功後の`workflow_run`で起動し、
 lockから解決したACD tools digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、
 GHCRへpublishする。publish後はderived digestとtagをlock更新PRへ記録する。
-現行のbase tools digestは、acd本体・scripts・fixture・ESP-IDF・QEMU・CJKフォント・ccacheを
-同梱した`sha256:be0d3c30817e482110195a756c088c67c0e2ad98f212612c7af23bbeef2fee49`である。
+現行のbase tools digestは、Semeru／OpenJ9 JREとbuild時生成SCCを同梱した
+`sha256:901ffd495c4876d3c02ff9c3303c67a6ee0d2c54b39460bb370a2c8260bb602c`である。
 lockに記録済みのserver image
-`sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a`は、
+`sha256:b5afc5daadf801f62d7bcb3f8229fe417e0e658b7ab1a660bf737f105f18c968`は、
 現行base tools digestからderiveした値である。
 toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
 更新する。手動起動はlockからbase toolsを解決するため、この更新はlockへ新しいtools digestを
@@ -945,8 +945,10 @@ fieldがなく、現在のworkspace境界からcontainer資源を宣言できな
 COPYするため、`.dockerignore`はこの1ファイルだけを例外として残す。
 publish job summaryのGHCR digestを確認してから
 `docker/image-digests.json`へ転記し、lockのdigestを推測・手書きしてはならない。
-JRE移行後もlockのdigestと`java`ツール版文字列はpublish完了まで旧HotSpot imageの値の
-ままである。
+JRE移行のpublishは完了しており、lockの両entryは`java`ツール版文字列として
+`openjdk 26.0.2 2026-07-21 (IBM Semeru Runtime Open Edition 26.0.2.0, Eclipse OpenJ9 0.60.0)`を
+記録する。この文字列はpublish済みimageをdigest指定でpullし、`java -version`の出力から
+転記した値であり、他のツール版はJRE移行で変化しなかった。
 
 ### FW pipelineのhost実行とToolEnvelopeの注記
 
