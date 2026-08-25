@@ -16,6 +16,7 @@ from acd.openhands.container_runtime import (
     DEFAULT_PLATFORM,
     ContainerRuntimeConfig,
 )
+from acd.openhands.execution_failure import classify_execution_failure
 from acd.openhands.workspace import (
     ProvisionalWorkspaceResult,
     WorkspaceStartupError,
@@ -153,6 +154,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         print(f"image digest: {result.digest} ({result.source})")
     print(f"exit code: {result.exit_code}")
+    classification = classify_execution_failure(
+        result.exit_code, f"{result.stdout}\n{result.stderr}"
+    )
+    if classification != "none":
+        print(f"failure classification: {classification}")
     print("stdout:")
     print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
     print("stderr:")

@@ -45,6 +45,60 @@ class FixtureFunctionalBlockSpec(AcdModel):
     requirement_ids: list[NonEmptyStr] = Field(default_factory=list[NonEmptyStr])
 
 
+class FixtureMechanicalOutlineSpec(AcdModel):
+    """Declared board outline. Attributes are taken from the design input only."""
+
+    node_id: NonEmptyStr | None = None
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureSilkTextSpec(AcdModel):
+    """Declared silkscreen text. Placement resolvers may refine the attributes."""
+
+    node_id: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+    depends_on: list[NonEmptyStr] = Field(default_factory=list[NonEmptyStr])
+
+
+class FixtureSilkGraphicSpec(AcdModel):
+    """Declared silkscreen graphic. Artwork sources stay in the design input."""
+
+    node_id: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+    depends_on: list[NonEmptyStr] = Field(default_factory=list[NonEmptyStr])
+
+
+class FixtureFirmwareStateSpec(AcdModel):
+    node_id: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureFirmwareTransitionSpec(AcdModel):
+    node_id: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureFirmwareSequenceStepSpec(AcdModel):
+    node_id: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureFirmwareModuleSpec(AcdModel):
+    """Declared firmware module together with its declared state machine."""
+
+    node_id: NonEmptyStr | None = None
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+    states: list[FixtureFirmwareStateSpec] = Field(
+        default_factory=list[FixtureFirmwareStateSpec]
+    )
+    transitions: list[FixtureFirmwareTransitionSpec] = Field(
+        default_factory=list[FixtureFirmwareTransitionSpec]
+    )
+    sequence_steps: list[FixtureFirmwareSequenceStepSpec] = Field(
+        default_factory=list[FixtureFirmwareSequenceStepSpec]
+    )
+
+
 class DesignFixtureSpec(AcdModel):
     design_name: NonEmptyStr
     revision: Revision = "r1"
@@ -61,14 +115,30 @@ class DesignFixtureSpec(AcdModel):
     functional_blocks: list[FixtureFunctionalBlockSpec] = Field(
         default_factory=list[FixtureFunctionalBlockSpec]
     )
+    mechanical_outline: FixtureMechanicalOutlineSpec | None = None
+    silk_texts: list[FixtureSilkTextSpec] = Field(
+        default_factory=list[FixtureSilkTextSpec]
+    )
+    silk_graphics: list[FixtureSilkGraphicSpec] = Field(
+        default_factory=list[FixtureSilkGraphicSpec]
+    )
+    firmware_module: FixtureFirmwareModuleSpec | None = None
     fab_profile_id: NonEmptyStr | None = None
+    rationale_recorded_at: Timestamp | None = None
 
 
 __all__ = [
     "DesignFixtureSpec",
     "FixtureComponentSpec",
     "FixtureCplOrientationEvidence",
+    "FixtureFirmwareModuleSpec",
     "FixtureFirmwarePinSpec",
+    "FixtureFirmwareSequenceStepSpec",
+    "FixtureFirmwareStateSpec",
+    "FixtureFirmwareTransitionSpec",
     "FixtureFunctionalBlockSpec",
+    "FixtureMechanicalOutlineSpec",
     "FixtureNetSpec",
+    "FixtureSilkGraphicSpec",
+    "FixtureSilkTextSpec",
 ]

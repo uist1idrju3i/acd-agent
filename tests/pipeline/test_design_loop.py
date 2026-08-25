@@ -1499,3 +1499,63 @@ def test_non_board_lane_failure_does_not_trigger_exploration(
     assert result["failed_stage"] == failed_stage
     assert "exploration_rounds" in result
     assert result["exploration_rounds"] == []
+
+
+def test_design_only_mode_iterates_design_stages_without_order_execution(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+
+    def unexpected_order(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        raise AssertionError("design-only mode must not execute the order gate")
+
+    runners["order-readiness"] = unexpected_order
+    _patch_runners(monkeypatch, runners)
+
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        design_only=True,
+        jobs=1,
+    )
+
+    assert result["design_only"] is True
+    assert result["ok"] is False
+    assert result["fail_closed"] is True
+    assert result["pass_evidence"] is False
+    assert result["failed_stage"] == "order-readiness"
+    assert "order-readiness" not in seen
+    assert seen == [
+        stage_id for stage_id in DESIGN_LOOP_STAGE_IDS if stage_id != "order-readiness"
+    ]
+    order_result = result["results"][-1]
+    assert order_result["stage_id"] == "order-readiness"
+    assert order_result["ok"] is False
+    assert order_result["execution_status"] == "not_executed"
+    assert order_result["order_readiness_status"] == "not_executed"
+    assert order_result["design_only"] is True
+    assert "order_total" not in order_result
+    assert "quote_id" not in json.dumps(order_result)
+
+
+def test_design_only_mode_rejects_order_aggregation_inputs(tmp_path: Path) -> None:
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        design_only=True,
+        quote_records=[tmp_path / "quote.json"],
+        order_scope=tmp_path / "scope.json",
+    )
+
+    assert result["ok"] is False
+    assert result["fail_closed"] is True
+    assert result["failed_stage"] == "input"
+    assert "order aggregation inputs" in result["failure_reason"]

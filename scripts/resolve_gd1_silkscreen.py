@@ -7,6 +7,7 @@ import json
 import sys
 from pathlib import Path
 
+from acd.core.lane_cli import add_lane_io_arguments
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -14,8 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
-    parser.add_argument("--out", type=Path, default=Path("out/gd1-silkscreen-resolve"))
+    add_lane_io_arguments(parser, out_default=Path("out/gd1-silkscreen-resolve"))
     parser.add_argument("--fab-profile", type=Path, default=None)
     parser.add_argument("--fab-profile-id", default=None)
     parser.add_argument("--max-iterations", type=int, default=5)

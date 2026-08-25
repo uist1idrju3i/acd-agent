@@ -10,6 +10,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from acd.core.command_runner import CommandResult, CommandSpec, run_stage
+from acd.core.lane_cli import LEGACY_FIXTURE_FLAGS, add_legacy_flags
+from acd.core.log_summary import DEFAULT_TAIL_LINES, summarize_log
 from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.pipeline.lane_plan import LanePlan, LaneStage, build_lane_plan
 from acd.schema import DesignGraph
@@ -76,6 +78,21 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="reuse only valid matching artifact-cache entries; never restore verdicts",
     )
+    parser.add_argument(
+        "--log-tail-lines",
+        type=_positive_int,
+        default=DEFAULT_TAIL_LINES,
+        help=(
+            "lines of each failing command log kept in the JSON summary "
+            "(the full log is written under the out root)"
+        ),
+    )
+    parser.add_argument(
+        "--full-logs",
+        action="store_true",
+        help="include the complete failing command logs in the JSON summary",
+    )
+    add_legacy_flags(parser, LEGACY_FIXTURE_FLAGS, "--fixture")
     return parser
 
 
@@ -174,6 +191,18 @@ def _list_lanes(commands: Sequence[CommandSpec]) -> None:
     )
 
 
+def _write_full_log(log_root: Path, index: int, result: CommandResult) -> Path:
+    """Write one failing command's complete log next to the lane outputs."""
+    log_root.mkdir(parents=True, exist_ok=True)
+    path = log_root / f"command-{index:02d}.log"
+    path.write_text(
+        f"exit={result.returncode}\n--- stdout ---\n{result.stdout}"
+        f"\n--- stderr ---\n{result.stderr}",
+        encoding="utf-8",
+    )
+    return path
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the declared design lanes."""
     args = _parser().parse_args(argv)
@@ -205,21 +234,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         runtime_error = f"{type(exc).__name__}: {exc}"
     finally:
         timing_path = write_timing_record(out_root, timing)
-        failures = [
-            {
+        log_root = out_root / "lane-logs"
+        failures: list[dict[str, object]] = []
+        for index, (spec, result) in enumerate(command_results, start=1):
+            if result.returncode == 0:
+                continue
+            log_path = _write_full_log(log_root, index, result)
+            failure: dict[str, object] = {
                 "command": list(spec.command),
                 "returncode": result.returncode,
-                "stderr": result.stderr,
+                "log_path": str(log_path),
             }
-            for spec, result in command_results
-            if result.returncode != 0
-        ]
+            if args.full_logs:
+                failure["stderr"] = result.stderr
+            else:
+                summary = summarize_log(result.stderr, tail_lines=args.log_tail_lines)
+                failure["stderr_tail"] = summary.text
+                failure["stderr_dropped_lines"] = summary.dropped_lines
+            failures.append(failure)
         if runtime_error is not None:
             failures.append(
                 {
                     "command": [],
                     "returncode": returncode,
                     "stderr": runtime_error,
+                    "log_path": None,
                 }
             )
         summary = {

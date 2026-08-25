@@ -18,6 +18,7 @@ from acd.core.design_predicates import (
     _minimum_pad_pair,
     evaluate_design_predicates,
     evaluate_i2c_pullup,
+    evaluate_led_series_element,
     evaluate_pin_firmware_alignment,
     evaluate_power_boundary,
     evaluate_power_decoupling,
@@ -76,6 +77,7 @@ def test_gd1_predicates_pass_on_fixture() -> None:
         "pin_firmware_alignment",
         "power_decoupling",
         "power_boundary",
+        "led_series_element",
     ]
     assert [result.status for result in results] == [
         "pass",
@@ -84,6 +86,7 @@ def test_gd1_predicates_pass_on_fixture() -> None:
         "pass",
         "pass",
         "pass",
+        "not_applicable",
     ]
 
 
@@ -233,3 +236,66 @@ def test_power_boundary_unknown_certification_fails_closed() -> None:
     graph = _update_node_attrs(_graph(), "sb.gd1", module_certified="unknown")
     lane = extract_electrical_lane(graph)
     assert evaluate_power_boundary(graph, lane).status == "unknown"
+
+
+def _drop_nodes(graph: DesignGraph, node_ids: set[str]) -> DesignGraph:
+    return graph.model_copy(
+        update={"nodes": [node for node in graph.nodes if node.id not in node_ids]}
+    )
+
+
+def _led_declared_graph() -> DesignGraph:
+    return _update_node_attrs(
+        _graph(),
+        "comp.d1",
+        led_indicator=True,
+        led_drive_net="net.led",
+        led_series_net="net.led_a",
+    )
+
+
+def test_led_series_element_accepts_the_declared_gd1_topology() -> None:
+    graph = _led_declared_graph()
+    lane = extract_electrical_lane(graph)
+    result = evaluate_led_series_element(graph, lane)
+    assert result.status == "pass"
+    assert [subject.refdes for subject in result.subjects] == ["R6"]
+
+
+def test_led_series_element_is_unknown_without_declarations() -> None:
+    graph = _graph()
+    lane = extract_electrical_lane(graph)
+    assert evaluate_led_series_element(graph, lane).status == "unknown"
+
+
+def test_led_series_element_is_unknown_for_partial_declarations() -> None:
+    graph = _update_node_attrs(_graph(), "comp.d1", led_indicator=True)
+    lane = extract_electrical_lane(graph)
+    assert evaluate_led_series_element(graph, lane).status == "unknown"
+
+
+def test_led_series_element_rejects_a_missing_series_element() -> None:
+    graph = _drop_nodes(_led_declared_graph(), {"comp.r6", "pin.r6.1", "pin.r6.2"})
+    lane = extract_electrical_lane(graph)
+    result = evaluate_led_series_element(graph, lane)
+    assert result.status == "fail"
+    assert "0 series elements" in result.detail
+
+
+def test_led_series_element_rejects_a_direct_drive_connection() -> None:
+    graph = _update_node_attrs(
+        _led_declared_graph(), "comp.d1", led_series_net="net.led"
+    )
+    graph = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(update={"attrs": {**node.attrs, "net": "net.led"}})
+                if node.id == "pin.d1.2"
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    lane = extract_electrical_lane(graph)
+    result = evaluate_led_series_element(graph, lane)
+    assert result.status == "fail"

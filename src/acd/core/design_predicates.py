@@ -35,6 +35,7 @@ PREDICATE_CATALOG = (
     "pin_firmware_alignment",
     "power_decoupling",
     "power_boundary",
+    "led_series_element",
 )
 
 PREDICATE_EVALUATION_STAGE: dict[str, str] = {
@@ -432,6 +433,92 @@ def evaluate_pin_firmware_alignment(graph: DesignGraph, lane: ElectricalLane) ->
         return _result("pin_firmware_alignment", "fail", "; ".join(failures))
     return _result(
         "pin_firmware_alignment", "pass", "firmware pin assignments match the U1 electrical pads"
+    )
+
+
+def _series_element_between(
+    lane: ElectricalLane, first_net: str, second_net: str
+) -> tuple[ComponentView, ...]:
+    """Return two-terminal components bridging exactly the two declared nets."""
+    matches: list[ComponentView] = []
+    for component in lane.components:
+        pins = lane.pins_of_component(component.node_id)
+        connected = {pin.net_id for pin in pins if pin.net_id is not None}
+        if connected == {first_net, second_net} and len(pins) == 2:
+            matches.append(component)
+    return tuple(matches)
+
+
+def evaluate_led_series_element(
+    graph: DesignGraph, lane: ElectricalLane
+) -> PredicateResult:
+    """Check a series element between the declared LED drive pin and the LED.
+
+    The natural-language requirement "limit the LED current" is L2 guidance. This
+    L1 predicate only inspects declared graph topology: for every declared LED
+    indicator it requires a two-terminal series element between the driven net of
+    the MCU pad and the LED anode net. Missing or ambiguous declarations are
+    unknown, never a pass.
+    """
+    name = "led_series_element"
+    indicators = [
+        node
+        for node in _nodes(graph, "electrical.component")
+        if node.attrs.get("led_indicator") is True
+    ]
+    if not indicators:
+        return _result(name, "unknown", "no declared LED indicator component")
+    failures: list[str] = []
+    subjects: list[PredicateSubject] = []
+    for node in indicators:
+        drive_net = node.attrs.get("led_drive_net")
+        led_net = node.attrs.get("led_series_net")
+        if not isinstance(drive_net, str) or not isinstance(led_net, str):
+            return _result(
+                name,
+                "unknown",
+                f"{node.id} does not declare led_drive_net and led_series_net",
+            )
+        known = {net.node_id for net in lane.nets}
+        if drive_net not in known or led_net not in known:
+            return _result(
+                name, "unknown", f"{node.id} declares nets that the graph does not define"
+            )
+        led_component = next(
+            (
+                component
+                for component in lane.components
+                if component.node_id == node.id
+            ),
+            None,
+        )
+        if led_component is None:
+            return _result(name, "unknown", f"{node.id} is not an extractable component")
+        led_nets = _component_net_ids(lane, led_component)
+        if led_net not in led_nets:
+            failures.append(f"{led_component.refdes} is not connected to {led_net}")
+            continue
+        series = _series_element_between(lane, drive_net, led_net)
+        if len(series) != 1:
+            failures.append(
+                f"{led_component.refdes} has {len(series)} series elements between "
+                f"{drive_net} and {led_net}"
+            )
+            continue
+        subjects.append(
+            PredicateSubject(
+                refdes=series[0].refdes,
+                target_refdes=led_component.refdes,
+                net=led_net,
+            )
+        )
+    if failures:
+        return _result(name, "fail", "; ".join(failures))
+    return _result(
+        name,
+        "pass",
+        "every declared LED indicator has one series element on its drive path",
+        subjects=tuple(subjects),
     )
 
 
@@ -877,6 +964,7 @@ def evaluate_design_predicates(
         "pin_firmware_alignment": lambda: evaluate_pin_firmware_alignment(graph, lane),
         "power_decoupling": lambda: evaluate_power_decoupling(graph, lane, fixture_dir),
         "power_boundary": lambda: _evaluate_power_boundary_predicate(graph, lane),
+        "led_series_element": lambda: evaluate_led_series_element(graph, lane),
     }
     declared_text = ", ".join(declared)
     results = tuple(
@@ -953,6 +1041,7 @@ __all__ = [
     "SafetyBoundaryResult",
     "evaluate_design_predicates",
     "evaluate_i2c_pullup",
+    "evaluate_led_series_element",
     "evaluate_pin_firmware_alignment",
     "evaluate_power_boundary",
     "evaluate_power_decoupling",

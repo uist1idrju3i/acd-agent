@@ -742,7 +742,12 @@ authoritative Evidenceが唯一の合否根拠である。実測値と運用上�
 | 15.12 | graph単体検証入口の明確化（N-10） | 存在しない`scripts/validate_design_graph.py`への案内を解消し、graph検証の正規経路（preflightまたはlane入口検査）を`docs/`へ明記する |
 | 15.13 | 実機実行記録の持ち出し経路（N-12） | 実行記録から公開可能な最小集合を収集する入口を用意し、ホスト名・エンドポイント・ユーザー名の秘匿化を既定にする。秘匿化漏れの検出をnegative testで固定する |
 
-15.1〜15.5と15.10〜15.13は計画であり、15.6〜15.9は達成済みである。15.10〜15.13は
+15.1〜15.13は達成済みである。15.1〜15.4と15.12は運用手順・設計文書側の明記で完了し、
+15.5はlane runnerのログ要約（既定tailと完全ログの別途保存）、15.10は
+container出力の`out/container/`分離と権限・環境起因失敗の分類、15.11は`--fixture`＋
+`--out`へ統一したlane CLI（旧引数は明示エラー）、15.13は
+`scripts/export_execution_records.py`のallowlist抽出・秘匿化・漏洩検出で完了した。
+いずれも合否権限を変更せず、fail-closed境界を維持する。15.10〜15.13は
 実機OpenHands環境での新規設計実測（N-8〜N-10、N-12）を出所とする。15.6〜15.9は
 [`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)と
 [`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)の運用改善項目を

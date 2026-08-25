@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Annotated, ClassVar, Literal, cast
+import re
+from typing import Annotated, ClassVar, Final, Literal, cast
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
 
@@ -47,6 +48,53 @@ def contains_unknown(value: object) -> bool:
         items = cast(list[object], value)
         return any(contains_unknown(item) for item in items)
     return False
+
+
+# A digest whose body is a single repeated character carries no content and is a
+# placeholder rather than a measured hash.
+_PLACEHOLDER_HASH = re.compile(r"^sha256:([0-9a-f])\1{63}$")
+
+# Identifier substrings that mark synthesized order records. Such records must
+# never stand in for a real counterparty quote.
+PLACEHOLDER_ID_MARKERS: Final[tuple[str, ...]] = (
+    "dummy",
+    "placeholder",
+    "sample",
+    "example",
+    "fake",
+    "todo",
+    "tbd",
+    "test-quote",
+)
+
+
+def is_placeholder_hash(value: str) -> bool:
+    """Return True when a digest string is a content-free placeholder."""
+    return _PLACEHOLDER_HASH.match(value) is not None
+
+
+def contains_placeholder_hash(value: object) -> bool:
+    """Return True when a nested JSON-compatible value holds a placeholder digest."""
+    if isinstance(value, str):
+        return is_placeholder_hash(value)
+    if isinstance(value, dict):
+        mapping = cast(dict[object, object], value)
+        return any(contains_placeholder_hash(item) for item in mapping.values())
+    if isinstance(value, list):
+        items = cast(list[object], value)
+        return any(contains_placeholder_hash(item) for item in items)
+    return False
+
+
+def is_placeholder_identifier(value: str) -> bool:
+    """Return True when an identifier is marked as synthesized or placeholder."""
+    lowered = value.strip().lower()
+    if not lowered:
+        return True
+    if any(marker in lowered for marker in PLACEHOLDER_ID_MARKERS):
+        return True
+    stripped = re.sub(r"[^a-z0-9]", "", lowered)
+    return bool(stripped) and set(stripped) <= {"0"}
 
 
 def canonical_json_sha256(value: object) -> Sha256:

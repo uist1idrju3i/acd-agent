@@ -20,6 +20,7 @@ from acd.adapters.cad.mechanical import (
 )
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
+from acd.core.lane_cli import add_lane_io_arguments
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.naming import evidence_id, subject_node_id
 from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
@@ -288,8 +289,7 @@ def _run_pipeline(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
-    parser.add_argument("--out", type=Path, default=Path("out/gd1-enclosure"))
+    add_lane_io_arguments(parser, out_default=Path("out/gd1-enclosure"))
     parser.add_argument(
         "--pipeline-workers",
         type=int,

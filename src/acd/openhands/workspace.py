@@ -26,6 +26,8 @@ from acd.openhands.container_runtime import (
 from acd.schema.design_graph import DesignGraph
 
 CONTAINER_REPOSITORY = Path("/acd-src")
+HOST_OUT_ROOT = Path("out")
+CONTAINER_OUT_ROOT = Path("out/container")
 CONTAINER_WORKTREE = Path("/workspace/acd")
 CONTAINER_BUNDLE = Path("/opt/acd")
 _DIGEST = re.compile(r"sha256:[0-9a-fA-F]{64}\Z")
@@ -69,6 +71,22 @@ def load_workspace_graph(path: Path) -> DesignGraph:
 class ImageReference:
     digest: str
     source: str
+
+
+def container_download_destination(repository: Path, relative: str) -> Path:
+    """Map a container output path into the host container-execution out root.
+
+    Container and host executions never share one output root: container results
+    are downloaded under ``out/container/`` so a host run cannot overwrite them
+    and a root-owned container artifact cannot make a host run fail with a
+    permission error that looks like a design rejection.
+    """
+    path = Path(relative)
+    if path.is_absolute():
+        raise ValueError(f"download path must be repository-relative: {relative}")
+    if path.parts[:1] == (HOST_OUT_ROOT.name,):
+        return repository / CONTAINER_OUT_ROOT / Path(*path.parts[1:])
+    return repository / path
 
 
 @dataclass(frozen=True)
@@ -338,7 +356,8 @@ def _execute_and_download(
         )
         if result.exit_code == 0:
             for relative in download_files:
-                destination = repository / relative
+                destination = container_download_destination(repository, relative)
+                destination.parent.mkdir(parents=True, exist_ok=True)
                 _download_with_retry(
                     workspace,
                     remote=str(worktree / relative),

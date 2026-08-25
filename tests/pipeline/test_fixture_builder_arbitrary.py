@@ -55,6 +55,9 @@ def test_fixture_builder_is_deterministic(tmp_path: Path) -> None:
         functional_blocks=[
             FixtureFunctionalBlockSpec(block_id="esp32c3_strapping_boot", requirement_ids=["led"])
         ],
+        # A declared recording time keeps regeneration byte-identical. Without it
+        # the builder records the real generation time.
+        rationale_recorded_at=datetime(2026, 8, 11, tzinfo=UTC),
     )
     first = build_design_fixture(spec, tmp_path / "one")
     second = build_design_fixture(spec, tmp_path / "two")

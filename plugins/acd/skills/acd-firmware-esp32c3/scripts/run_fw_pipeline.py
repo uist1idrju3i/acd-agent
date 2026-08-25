@@ -49,6 +49,30 @@ from fw_qemu import (
 )
 
 
+class _LegacyFlag(argparse.Action):
+    """Reject a historic lane flag with the canonical replacement."""
+
+    def __init__(self, option_strings: list[str], dest: str, **kwargs: object) -> None:
+        replacement = kwargs.pop("replacement")
+        if not isinstance(replacement, str):
+            raise TypeError("replacement must be a string")
+        self.replacement = replacement
+        super().__init__(option_strings, dest, nargs=None, default=None)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: str | None = None,
+    ) -> None:
+        del namespace, values
+        parser.error(
+            f"{option_string} is not accepted; use {self.replacement} instead "
+            "(every lane entry point takes --fixture and --out)"
+        )
+
+
 def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -123,9 +147,27 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
+    parser.add_argument(
+        "--fixture",
+        type=Path,
+        default=Path("fixtures/golden-design-1"),
+        help="design input directory containing graph.json",
+    )
     parser.add_argument("--out", type=Path, default=Path("out/gd1-fw"))
     parser.add_argument("--run-seconds", type=int, default=15)
+    for legacy, replacement in (
+        ("--graph", "--fixture"),
+        ("--graph-dir", "--fixture"),
+        ("--fixture-dir", "--fixture"),
+        ("--out-dir", "--out"),
+        ("--output", "--out"),
+    ):
+        parser.add_argument(
+            legacy,
+            action=_LegacyFlag,
+            replacement=replacement,
+            help=argparse.SUPPRESS,
+        )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     try:

@@ -11,14 +11,35 @@ from acd.schema import (
     DesignGraph,
     RationaleCoverageReport,
     RationaleDocument,
+    RationaleGeneratorViolation,
     RationaleOrphan,
+    RationaleRecord,
     RationaleRecordSubject,
     RationaleSubject,
+    RationaleTemplated,
     RationaleUnclassified,
     RationaleUnknownProvenance,
     RationaleUntraceable,
 )
 from acd.schema.common import Sha256
+
+# Deterministic generators allowed to declare deterministic_tool provenance.
+# Self-declared provenance from an unknown generator is rejected fail-closed.
+KNOWN_DETERMINISTIC_GENERATORS: Final[frozenset[str]] = frozenset(
+    {"acd.pipeline.fixture_builder"}
+)
+
+# A document that repeats one decision/justification pair beyond this limit is a
+# template rather than a set of per-decision records.
+MAX_IDENTICAL_TEXT_RECORDS: Final = 2
+
+# Bulk heuristics only apply once a document is large enough for repetition to be
+# a template signature rather than a coincidence.
+BULK_RECORD_MIN: Final = 8
+
+# Minimum share of distinct decision/justification pairs required inside a
+# single-timestamp source group.
+MIN_TEXT_DIVERSITY_RATIO: Final = 0.5
 
 REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
     "electrical.board": frozenset(
@@ -60,6 +81,9 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "placement_rotation_deg",
             "radio_module",
             "library_ref",
+            "led_indicator",
+            "led_drive_net",
+            "led_series_net",
         }
     ),
     "electrical.placement_group": frozenset(),
@@ -368,6 +392,12 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "jlcpcb_class": "JLCPCB class is a supplier availability fact.",
         "overlay_file": "Overlay file metadata identifies the project-local library artifact.",
         "overlay_sha256": "Overlay hash is provenance metadata for the library artifact.",
+        "pin_function_source": (
+            "Pin function source identifies the catalog that declares the pin map."
+        ),
+        "pin_function_source_ref": (
+            "Pin function source reference identifies the catalog identity and hash."
+        ),
         "placement_source": "Placement source identifies the deterministic placement procedure.",
         "placement_source_ref": (
             "Placement source reference identifies the placement "
@@ -529,6 +559,89 @@ def _subject(node_id: str, attr: str) -> RationaleSubject:
     return RationaleSubject(node_id=node_id, attr=attr)
 
 
+def _generator_violations(
+    records: list[RationaleRecord],
+) -> list[RationaleGeneratorViolation]:
+    """Reject provenance that does not identify a verifiable generator."""
+    violations: list[RationaleGeneratorViolation] = []
+    for record in records:
+        provenance = record.provenance
+        if provenance.source != "deterministic_tool":
+            continue
+        if provenance.tool_name not in KNOWN_DETERMINISTIC_GENERATORS:
+            violations.append(
+                RationaleGeneratorViolation(
+                    rationale_id=record.rationale_id,
+                    reason=(
+                        "deterministic_tool provenance does not identify a known "
+                        "ACD generator"
+                    ),
+                )
+            )
+    return violations
+
+
+def _text_key(record: RationaleRecord) -> tuple[str, str]:
+    return (record.decision.strip(), record.justification.strip())
+
+
+def _requirement_key(record: RationaleRecord) -> tuple[str, ...]:
+    return tuple(
+        sorted([*record.driving_requirements, *record.driving_requirement_refs])
+    )
+
+
+def _templated(
+    graph: DesignGraph, records: list[RationaleRecord]
+) -> list[RationaleTemplated]:
+    """Detect template records that carry no decision-specific content."""
+    flagged: dict[str, str] = {}
+    text_groups: dict[tuple[str, str], list[RationaleRecord]] = defaultdict(list)
+    for record in records:
+        text_groups[_text_key(record)].append(record)
+    for group in text_groups.values():
+        if len(group) <= MAX_IDENTICAL_TEXT_RECORDS:
+            continue
+        for record in group:
+            flagged.setdefault(
+                record.rationale_id,
+                "identical decision and justification text is repeated by "
+                f"{len(group)} records",
+            )
+    requirement_nodes = sum(1 for node in graph.nodes if node.kind == "requirement")
+    if len(records) >= BULK_RECORD_MIN and requirement_nodes >= 2:
+        requirement_keys = {_requirement_key(record) for record in records}
+        if len(requirement_keys) == 1 and len(next(iter(requirement_keys))) == 1:
+            for record in records:
+                flagged.setdefault(
+                    record.rationale_id,
+                    "every record is attributed to a single requirement while the "
+                    "design declares multiple requirements",
+                )
+    source_groups: dict[str, list[RationaleRecord]] = defaultdict(list)
+    for record in records:
+        source_groups[record.provenance.source].append(record)
+    for group in source_groups.values():
+        if len(group) < BULK_RECORD_MIN:
+            continue
+        timestamps = {record.provenance.recorded_at for record in group}
+        distinct_texts = {_text_key(record) for record in group}
+        if len(timestamps) != 1:
+            continue
+        if len(distinct_texts) >= MIN_TEXT_DIVERSITY_RATIO * len(group):
+            continue
+        for record in group:
+            flagged.setdefault(
+                record.rationale_id,
+                "records share one recorded_at timestamp without distinct "
+                "decision text",
+            )
+    return [
+        RationaleTemplated(rationale_id=rationale_id, reason=reason)
+        for rationale_id, reason in sorted(flagged.items())
+    ]
+
+
 def check_rationale_coverage(
     graph: DesignGraph, document: RationaleDocument
 ) -> RationaleCoverageReport:
@@ -554,6 +667,11 @@ def check_rationale_coverage(
         if attr not in REQUIRED_RATIONALE_ATTRS.get(node.kind, frozenset())
         and attr not in RATIONALE_EXEMPT_ATTRS.get(node.kind, {})
     ]
+    templated = _templated(graph, document.records)
+    generator_violations = _generator_violations(document.records)
+    rejected_ids = {item.rationale_id for item in templated} | {
+        item.rationale_id for item in generator_violations
+    }
     covered: dict[tuple[str, str], list[str]] = defaultdict(list)
     stale: list[RationaleRecordSubject] = []
     unknown: list[RationaleUnknownProvenance] = []
@@ -628,6 +746,7 @@ def check_rationale_coverage(
             and not record_orphan
             and hash_matches
             and record.provenance.script_hash != "unknown"
+            and record.rationale_id not in rejected_ids
         ):
             for subject in record_subjects:
                 covered[subject].append(record.rationale_id)
@@ -647,7 +766,7 @@ def check_rationale_coverage(
         not graph_id_match
         or not revision_match
         or bool(missing or stale or unknown or orphan or untraceable or conflicting)
-        or bool(unclassified)
+        or bool(unclassified or templated or generator_violations)
     )
     return RationaleCoverageReport(
         status="fail" if failed else "pass",
@@ -662,6 +781,8 @@ def check_rationale_coverage(
         untraceable=untraceable,
         conflicting=conflicting,
         unclassified=unclassified,
+        templated=templated,
+        generator_violations=generator_violations,
         required_count=len(required_set),
         covered_count=sum(1 for subject in required_set if covered[subject]),
         record_count=len(document.records),

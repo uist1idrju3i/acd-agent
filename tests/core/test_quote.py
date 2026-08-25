@@ -147,3 +147,27 @@ def test_mechanical_quote_item_requires_inventory_fields() -> None:
 
     with pytest.raises(ValidationError, match="mechanical"):
         QuoteRecord.model_validate(value)
+
+
+@pytest.mark.parametrize(
+    "quote_id",
+    ["dummy-quote-1", "PLACEHOLDER", "example-quote", "0000", "quote-tbd"],
+)
+def test_placeholder_quote_id_is_rejected(quote_id: str) -> None:
+    value = load_quote_value()
+    value["quote_id"] = quote_id
+    with pytest.raises(ValidationError, match="placeholder"):
+        QuoteRecord.model_validate(value)
+
+
+def test_zero_filled_digest_is_rejected() -> None:
+    value = load_quote_value()
+    items = cast(list[dict[str, object]], value["items"])
+    items[0] = {**items[0], "note": "sha256:" + "0" * 64}
+    with pytest.raises(ValidationError, match="placeholder digests"):
+        QuoteRecord.model_validate(value)
+
+
+def test_real_quote_identifier_and_digest_are_accepted() -> None:
+    record = QuoteRecord.model_validate(load_quote_value())
+    assert record.quote_id

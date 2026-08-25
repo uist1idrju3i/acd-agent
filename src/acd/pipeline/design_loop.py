@@ -61,7 +61,7 @@ class DesignLoopConfig:
 
     fixture_dir: Path
     out_root: Path
-    order_total: Path
+    order_total: Path | None
     policy: Path
     repository: Path
     graph_id: str
@@ -84,6 +84,7 @@ class DesignLoopConfig:
     fixture_spec: Path | None = None
     quote_records: tuple[Path, ...] = ()
     order_scope: Path | None = None
+    design_only: bool = False
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -219,7 +220,30 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
     )
 
 
+def _order_readiness_not_executed(config: DesignLoopConfig) -> dict[str, Any]:
+    """Record that order readiness was never executed in design-only mode.
+
+    Design-only mode iterates the design stages without any order path. The
+    absence of an executed order gate is a failure, never a pass: no order
+    result is synthesized here.
+    """
+    return _failure(
+        "order-readiness",
+        "order readiness was not executed in design-only mode",
+        execution_status="not_executed",
+        order_readiness_status="not_executed",
+        design_only=True,
+    )
+
+
 def _run_order_readiness(config: DesignLoopConfig) -> dict[str, Any]:
+    if config.order_total is None:
+        return _failure(
+            "order-readiness",
+            "order-total document is undeclared (fail-closed)",
+            execution_status="not_executed",
+            order_readiness_status="not_executed",
+        )
     try:
         policy_path = (
             config.policy
@@ -464,6 +488,7 @@ def run_design_loop(
     resume: bool = False,
     jobs: int = DEFAULT_DESIGN_LOOP_JOBS,
     explore_board: bool = False,
+    design_only: bool = False,
     max_exploration_candidates: int = 3,
     max_exploration_rounds: int = 1,
     requirement: Path | None = None,
@@ -487,6 +512,8 @@ def run_design_loop(
     }
     if explore_board:
         result["explore_board"] = True
+    if design_only:
+        result["design_only"] = True
     if requirement is not None:
         result["requirement"] = str(requirement)
     if fixture_spec is not None:
@@ -507,7 +534,11 @@ def run_design_loop(
         aggregation_requested = (
             quote_records is not None or order_scope is not None
         )
-        if aggregation_requested:
+        if design_only and aggregation_requested:
+            raise ValueError("design-only mode does not accept order aggregation inputs")
+        if design_only:
+            resolved_order_total = order_total
+        elif aggregation_requested:
             if order_total is not None:
                 raise ValueError(
                     "order-total document and aggregation inputs are mutually exclusive"
@@ -567,6 +598,7 @@ def run_design_loop(
             fixture_spec=fixture_spec,
             quote_records=tuple(quote_records or ()),
             order_scope=order_scope,
+            design_only=design_only,
         )
         result.update(
             {
@@ -711,6 +743,11 @@ def run_design_loop(
                     return once_results, aggregation_result
             order_readiness_result = run_stage(
                 "order-readiness",
+                runner=(
+                    _order_readiness_not_executed
+                    if active_config.design_only
+                    else None
+                ),
                 timing_prefix=timing_prefix,
             )
             once_results.append(order_readiness_result)

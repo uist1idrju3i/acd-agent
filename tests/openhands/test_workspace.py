@@ -77,17 +77,17 @@ def test_runner_uses_read_only_mount_and_downloads_evidence(
     assert "tar -C /acd-src" in command
     assert "cd /workspace/acd" in command
     assert result.downloaded_files == (
-        tmp_path / "out/gd1/evidence-electrical.json",
-        tmp_path / "out/gd1-enclosure/evidence-mechanical.json",
+        tmp_path / "out/container/gd1/evidence-electrical.json",
+        tmp_path / "out/container/gd1-enclosure/evidence-mechanical.json",
     )
     assert instance.downloads == [
         (
             "/workspace/acd/out/gd1/evidence-electrical.json",
-            tmp_path / "out/gd1/evidence-electrical.json",
+            tmp_path / "out/container/gd1/evidence-electrical.json",
         ),
         (
             "/workspace/acd/out/gd1-enclosure/evidence-mechanical.json",
-            tmp_path / "out/gd1-enclosure/evidence-mechanical.json",
+            tmp_path / "out/container/gd1-enclosure/evidence-mechanical.json",
         ),
     ]
     assert "ACD_CONTAINER_IMAGE_DIGEST" not in workspace_module.os.environ
@@ -268,7 +268,7 @@ def test_bundled_source_runs_image_bundle_without_repository_mount(
     assert instance.downloads == [
         (
             "/opt/acd/out/gd1/evidence-electrical.json",
-            tmp_path / "out/gd1/evidence-electrical.json",
+            tmp_path / "out/container/gd1/evidence-electrical.json",
         )
     ]
     assert result.exit_code == 0
