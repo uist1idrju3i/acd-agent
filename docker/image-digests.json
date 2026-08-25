@@ -22,10 +22,10 @@
   },
   "acd_server": {
     "image": "ghcr.io/uist1idrju3i/acd-server",
-    "tag": "824cc9fdb02e11c35d82b2339e9e41785ce08ba9-latest-source",
-    "digest": "sha256:a5e6a2328a1533b03a527a5f89d35271b08b074b5106974d6f801313448bbedd",
-    "published_at": "2026-08-25T03:19:31Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32804270594",
+    "tag": "2dce6b5d5f0780be55c62bb81d7bad45b7792387-latest-source",
+    "digest": "sha256:b5afc5daadf801f62d7bcb3f8229fe417e0e658b7ab1a660bf737f105f18c968",
+    "published_at": "2026-08-25T23:22:11Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/32909622709",
     "dockerfile": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/Dockerfile",
     "tools": {
       "kicad-cli": "10.0.5",
