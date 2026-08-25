@@ -239,3 +239,6 @@ def test_acknowledged_overwrite_reports_the_dropped_manual_data(tmp_path: Path) 
         (out_dir / "graph-overwrite-report.json").read_text(encoding="utf-8")
     )
     assert report["conflicts"]
+    backup = json.loads(Path(report["backup_path"]).read_text(encoding="utf-8"))
+    assert any(node["id"] == "mechanical.mount.manual" for node in backup["nodes"])
+    assert report["existing_content_hash"].startswith("sha256:")

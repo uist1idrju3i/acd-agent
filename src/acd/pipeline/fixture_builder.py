@@ -444,18 +444,24 @@ def _guard_manual_graph(
     conflicts = _overwrite_conflicts(existing, generated)
     if not conflicts:
         return
+    existing_text = graph_path.read_text(encoding="utf-8")
+    report: dict[str, object] = {
+        "graph_path": str(graph_path),
+        "graph_id": existing.graph_id,
+        "revision": existing.revision,
+        "existing_content_hash": "sha256:"
+        + hashlib.sha256(existing_text.encode("utf-8")).hexdigest(),
+        "conflicts": [item.model_dump(mode="json") for item in conflicts],
+    }
+    if overwrite:
+        # Explicit overwrite never destroys manually written data: the graph is
+        # preserved verbatim next to the report so the dropped declarations stay
+        # reviewable and the overwrite stays reversible.
+        backup_path = out_dir / "graph.overwritten.json"
+        _write_atomic(backup_path, existing_text)
+        report["backup_path"] = str(backup_path)
     report_path = out_dir / "graph-overwrite-report.json"
-    _write_atomic(
-        report_path,
-        _canonical(
-            {
-                "graph_path": str(graph_path),
-                "graph_id": existing.graph_id,
-                "revision": existing.revision,
-                "conflicts": [item.model_dump(mode="json") for item in conflicts],
-            }
-        ),
-    )
+    _write_atomic(report_path, _canonical(report))
     if not overwrite:
         raise FixtureBuilderError(
             f"existing graph at {graph_path} contains data that the design input "
