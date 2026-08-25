@@ -852,11 +852,17 @@ command -v freerouting
 
 FreeRouting 2.3.0の`--help`と同梱公式文書
 （`command_line_arguments.md`および`docs/settings.md`）では、`-mt`を省略した場合の
-既定値が論理CPU数−1である。この値を機械から暗黙に継承すると、同じ入力でも実行環境の
-CPU数でrouter条件が変わるため、GD1基板pipelineは`-mt 1`を既定として常にcommandへ
-含める。`scripts/run_gd1_pipeline.py --freerouting-threads N`で明示的に変更でき、
-選択値はToolEnvelopeの`config_hash`と`measurement_conditions`へ記録される。これは
-高速化のためではなく、authoritative Evidenceの実行条件を機械非依存にするための設定である。
+既定値が論理CPU数−1である。GD1基板pipelineはこの暗黙継承を採用し、`-mt`を
+commandへ含めない（[`adr/ADR-0045-openj9-freerouting-runtime.md`](adr/ADR-0045-openj9-freerouting-runtime.md)）。
+`scripts/run_gd1_pipeline.py --freerouting-threads N`で正のintを明示すれば従来どおり
+固定できる。以前は`-mt 1`を常に明示していたが、`-mt 0/1/2/4`のSES SHA-256が一致する
+実測に基づき、多コアVPSでCPUを使えるよう暗黙継承へ変更した。
+
+Evidenceの機械非依存性は、実行環境のCPU数を記録しないことで保つ。暗黙継承時の
+ToolEnvelopeの`measurement_conditions`は固定文字列
+`"implicit router threads (cpu_count-1)"`であり、`routing_config.freerouting_threads`は
+JSON `null`として残る。したがって`config_hash`は実行機のCPU数で変動しない。明示値を
+渡した場合は従来どおり`max {N} router threads`を記録する。
 
 2コアVM上のdigest固定image
 `ghcr.io/uist1idrju3i/acd-tools@sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`
@@ -865,27 +871,77 @@ CPU数でrouter条件が変わるため、GD1基板pipelineは`-mt 1`を既定�
 `45d620d0d86c05e860724fb1e0df49c6cda34b00c9dc921b552d2a0f071ddff0`で一致した。
 wall timeはそれぞれ93.5/93.0/92.5秒で、差は測定誤差の範囲だった。Optimization stageは
 約73.05秒の経過時間に対し約70.01 CPU秒であり、この規模のrouterは実質single-threaded
-である。`-mt 4`を2コアcontainerへ渡すと2へcapするwarningが出る。
-`feature_flags.multi_threading`の既定値はfalseで、実験的機能は有効化しない。
+である。`-mt 4`を2コアcontainerへ渡すと2へcapするwarningが出る。この出力非依存性は
+GD1 DSN・FreeRouting 2.3.0の事例であり、他の入力や版でSES SHA-256が一致しない場合は
+`-mt`固定へ戻す。`feature_flags.multi_threading`の既定値はfalseで、実験的機能は
+有効化しない。
 
-同じ測定で観測したpeak heapは約630 MBだった。wrapper
-[`docker/freerouting`](../docker/freerouting)はJVM最大heapを既定`-Xmx2g`として明示する。
-active processor countは既定では宣言せず、必要な場合だけ
-`FREEROUTING_ACTIVE_PROCESSORS`で`-XX:ActiveProcessorCount=`を追加する。
-`FREEROUTING_MAX_HEAP`でheapを上下できるが、通常はmachine-dependentな既定へ戻さない。
-JVMのCPU認識を既定で1へ制限するとGC／JITとFreeRoutingのCPU検出まで制限するため、
-決定論にはFreeRouting commandの`-mt` pinだけを用いる。SDK `DockerWorkspace`にはCPU／memory resource
+### FreeRouting実行JREとJVMオプション
+
+acd-tools imageのFreeRouting実行JREはIBM Semeru Open JRE 26.0.2.0
+（Eclipse OpenJ9 0.60.0、2026-07-30公開）である。tarballはversionとSHA-256
+（`3c08554784ff610cb21d35e3dbeb8f6d87498d234ea8ae062e488c7a1d3b11ac`）でpinし、
+`/opt/jre`へ展開する。build時に`java -version`がEclipse OpenJ9とSemeru 26.0.2.0を
+示すことを検査する。aptの`openjdk-26-jre-headless`（HotSpot）は同梱しない。
+
+wrapper [`docker/freerouting`](../docker/freerouting)が宣言する既定は次のとおりで、
+いずれもenvで上書きできる。
+
+| option | 既定 | env |
+|--------|------|-----|
+| 最大heap | `-Xmx2g` | `FREEROUTING_MAX_HEAP` |
+| JVM tuning | `-Xtune:footprint` | `FREEROUTING_JVM_TUNING` |
+| SCC | `-Xshareclasses:name=fr_scc,cacheDir=/opt/scc,readonly` | `FREEROUTING_SCC_NAME`／`FREEROUTING_SCC_DIR` |
+| container検出 | `-XX:+UseContainerSupport` | なし |
+| GCスレッド自動調整 | `-XX:+AdaptiveGCThreading` | なし |
+| active processor count | 宣言しない | `FREEROUTING_ACTIVE_PROCESSORS` |
+
+shared class cache（SCC）とAOTはimage build時に生成し、runtimeはreadonlyで再利用する。
+コンテナではSCCが既定で無効化されるため明示有効化が必要で、build時生成にすることで
+container再作成でもcacheが消えない。`nonfatal`は付けない。SCC不在時は`readonly`／
+`readonly,fatal`のいずれでも`JVMSHRC226E`／`JVMSHRC336E`／`JVMSHRC337E`／
+`JVMSHRC840E`で起動失敗し、終了statusが非0になるため、追加optionなしでfail-closedを
+満たす。`-Xsoftmx`は設定しない。2コア環境では`-Xsoftmx1g`併用が僅かに速いが
+（1.6秒、2%）、より大きな基板でheapを`-Xmx`まで伸ばせなくなる副作用を避ける。
+JVMのCPU認識は制限しない。既定で1へ制限するとGC／JITとFreeRoutingのCPU検出まで
+制限するため、`-XX:ActiveProcessorCount`は`FREEROUTING_ACTIVE_PROCESSORS`が明示された
+場合だけ付与する。
+
+2コアVM、digest固定image
+`ghcr.io/uist1idrju3i/acd-tools@sha256:35313c1ddd1954122ad3f173ca557993e6ca0dc892c3f052521f83c8e4c5e36c`
+へSemeru JREをmountし、同じGD1 DSNを`-mp 10`・`-mt`暗黙で実行した3回反復の平均は
+次のとおりである。全構成でSES SHA-256は
+`45d620d0d86c05e860724fb1e0df49c6cda34b00c9dc921b552d2a0f071ddff0`に一致した。
+
+| 構成 | wall（平均/最小〜最大） | peak RSS | peak heap |
+|------|------------------------|----------|-----------|
+| HotSpot `-Xmx2g` `-mt 1`（baseline） | 98.3秒 / 96.4〜99.6 | 1139.9 MB | 425.9 MB |
+| OpenJ9 `gencon` + SCC | 91.1秒 / 87.7〜95.9 | 622.9 MB | 330.1 MB |
+| OpenJ9 `-Xtune:virtualized` + SCC | 94.2秒 / 88.5〜101.6 | 566.7 MB | 317.2 MB |
+| OpenJ9 `-Xtune:footprint` + SCC | 77.3秒 / 76.1〜78.7 | 357.9 MB | 148.3 MB |
+| OpenJ9 `-Xtune:footprint -Xsoftmx1g` + SCC | 75.7秒 / 74.6〜76.7 | 324.0 MB | 110.1 MB |
+
+単発測定（n=1）では`gencon`（SCC無し）98.5秒、`-Xquickstart`+SCC 113.6秒、
+`optthruput`+SCC 107.6秒、`balanced -Xnuma:none`+SCC 113.4秒／RSS 1333.6 MB、
+`-Xtune:throughput`+SCC 104.0秒であり、いずれも`-Xtune:footprint`より遅い。出荷する
+wrapperと同一のoption列での確認実行は76.2秒／RSS 344.9 MB／peak heap 99.9 MBで、
+unrecognized option警告は無く、SES hashも一致した。baseline比でwallは約22%短縮、
+peak RSSは約70%削減である。
+
+多コア・大RAMのVPS相当環境は未測定である。この節の測定はすべて2コア・7GBのVMで
+取得した。`-Xtune:footprint`はメモリ使用量最小化を優先する設定であるため、高性能VPSへ
+移行する場合は`FREEROUTING_JVM_TUNING`の再評価が必要になり得る。CPU数・RAMの増加には
+`-mt`暗黙継承、`UseContainerSupport`、`AdaptiveGCThreading`、`FREEROUTING_MAX_HEAP`で
+追従する。
+
+SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
 `tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する
 既存契約を維持する。wrapper変更はimage変更なので、mainの`docker/**`変更で
 `publish-acd-tools.yml`が実行される。publish job summaryのGHCR digestを確認してから
 `docker/image-digests.json`へ転記し、lockのdigestを推測・手書きしてはならない。
-
-変更後wrapperを同じdigest固定tools imageへmountし、同じGD1 DSNを`-mp 10 -mt 1`で
-一度実行したhost provisional測定はwall 94.3秒、Optimization stageのpeak heap
-451.3 MBだった。wrapper変更前に同条件で取得したbaseline 93.5秒より0.8秒遅く、
-この1回の測定では短縮を主張しない。既定値を速度に合わせて変更せず、`-mt`の固定と
-heap上限の明示を優先する。
+JRE移行後もlockのdigestと`java`ツール版文字列はpublish完了まで旧HotSpot imageの値の
+ままである。
 
 ### FW pipelineのhost実行とToolEnvelopeの注記
 

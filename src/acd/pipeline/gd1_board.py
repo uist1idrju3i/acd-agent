@@ -713,7 +713,7 @@ def run_pipeline(
     width_control_workers: int = 2,
     pipeline_workers: int = DEFAULT_PIPELINE_WORKERS,
     fab_profile_id: str | None = None,
-    freerouting_threads: int = DEFAULT_FREEROUTING_THREADS,
+    freerouting_threads: int | None = DEFAULT_FREEROUTING_THREADS,
     cache_dir: Path | None = None,
     timing_recorder: TimingRecorder | None = None,
 ) -> dict[str, str]:
@@ -1950,7 +1950,7 @@ def main() -> int:
         "--freerouting-threads",
         type=_positive_int,
         default=DEFAULT_FREEROUTING_THREADS,
-        help="explicit FreeRouting router thread count",
+        help="FreeRouting router thread count (inherited from FreeRouting's default when omitted)",
     )
     parser.add_argument(
         "--width-control-workers",

@@ -29,6 +29,36 @@ _SES = """
 """
 
 
+def _fake_router(tmp_path: Path) -> tuple[FreeroutingRunner, Path, Path]:
+    executable = tmp_path / "freerouting"
+    executable.write_text(
+        """#!/bin/sh
+if [ -n "$FREEROUTING_ARGS_FILE" ]; then
+  printf '%s\\n' "$@" > "$FREEROUTING_ARGS_FILE"
+fi
+if [ "$1" = "--version" ]; then
+  printf 'Freerouting v2.3.0\\n'
+  exit 0
+fi
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = "-do" ]; then
+    shift
+    printf '(session "x" (routes (resolution um 10) (network_out)))\\n' > "$1"
+    printf '(0 unrouted and 0 violations)\\n'
+    exit 0
+  fi
+  shift
+done
+exit 2
+"""
+    )
+    executable.chmod(0o755)
+    dsn_path = tmp_path / "input.dsn"
+    dsn_path.write_text("(pcb x)")
+    ses_path = tmp_path / "output.ses"
+    return FreeroutingRunner(executable=str(executable)), dsn_path, ses_path
+
+
 def test_parse_ses_converts_um_to_mm_y_flip() -> None:
     routed = parse_ses(_SES)
     assert len(routed.wires) == 1
@@ -84,33 +114,10 @@ def test_router_absent_fails_closed(tmp_path: object) -> None:
 
 
 def test_router_declares_thread_count_in_command_and_conditions(tmp_path: Path) -> None:
-    executable = tmp_path / "freerouting"
-    executable.write_text(
-        """#!/bin/sh
-if [ "$1" = "--version" ]; then
-  printf 'Freerouting v2.3.0\\n'
-  exit 0
-fi
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = "-do" ]; then
-    shift
-    printf '(session "x" (routes (resolution um 10) (network_out)))\\n' > "$1"
-    printf '(0 unrouted and 0 violations)\\n'
-    exit 0
-  fi
-  shift
-done
-exit 2
-"""
-    )
-    executable.chmod(0o755)
-    dsn_path = tmp_path / "input.dsn"
-    dsn_path.write_text("(pcb x)")
-    ses_path = tmp_path / "output.ses"
-    runner = FreeroutingRunner(executable=str(executable))
+    runner, dsn_path, ses_path = _fake_router(tmp_path)
 
     with pytest.raises(ValueError, match="must be positive"):
-        runner.route(dsn_path, ses_path, "r1", freerouting_threads=0)
+        runner.route(dsn_path, ses_path, "r1", freerouting_threads=-1)
 
     run = runner.route(
         dsn_path,
@@ -121,7 +128,7 @@ exit 2
     )
 
     command = [
-        str(executable),
+        str(tmp_path / "freerouting"),
         "-de",
         str(dsn_path),
         "-do",
@@ -135,6 +142,20 @@ exit 2
     assert (
         run.envelope.measurement_conditions
         == "headless; max 10 passes; max 2 router threads"
+    )
+
+
+def test_router_inherits_default_threads(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    runner, dsn_path, ses_path = _fake_router(tmp_path)
+    args_path = tmp_path / "router-args"
+    monkeypatch.setenv("FREEROUTING_ARGS_FILE", str(args_path))
+
+    run = runner.route(dsn_path, ses_path, "r1", max_passes=10)
+
+    assert "-mt" not in args_path.read_text().splitlines()
+    assert (
+        "implicit router threads (cpu_count-1)"
+        in run.envelope.measurement_conditions
     )
 
 
