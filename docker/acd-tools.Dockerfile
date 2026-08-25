@@ -2,6 +2,8 @@ FROM ubuntu:26.04
 
 ARG FREEROUTING_VERSION=2.3.0
 ARG FREEROUTING_SHA256=3cf18d608437740bc497db6b8ef5888e2e60a08de0def20691d1bad0c0e0ee24
+ARG SEMERU_JRE_VERSION=26.0.2.0
+ARG SEMERU_JRE_SHA256=3c08554784ff610cb21d35e3dbeb8f6d87498d234ea8ae062e488c7a1d3b11ac
 ARG UV_VERSION=0.12.5
 ARG UV_SHA256=68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
@@ -19,6 +21,12 @@ ENV IDF_TOOLS_PATH=/opt/esp-idf-tools
 ENV IDF_PYTHON_ENV_PATH=/opt/esp-idf-tools/python_env/acd_idf_env
 ENV CCACHE_DIR=/opt/ccache
 ENV IDF_CCACHE_ENABLE=1
+ENV JAVA_HOME=/opt/jre
+ENV FREEROUTING_SCC_DIR=/opt/scc
+ENV FREEROUTING_SCC_NAME=fr_scc
+# PLACEHOLDER: replace with the measured OpenJ9 tuning winner.
+ENV FREEROUTING_JVM_TUNING="-Xgcpolicy:gencon"
+ENV PATH="/opt/jre/bin:/usr/local/bin:${PATH}"
 # Keep runtime bytecode caches out of the bundled source tree: writes inside
 # ${ACD_HOME}/src invalidate the editable install and make uv rebuild the
 # package, which would require network access at run time.
@@ -32,7 +40,6 @@ RUN apt-get update \
         curl \
         git \
         software-properties-common \
-        openjdk-26-jre-headless \
         ngspice \
         python3.14 \
         python3.14-venv \
@@ -59,11 +66,20 @@ RUN apt-get update \
     && fc-list | grep -qi 'Noto Sans CJK' \
     && ccache --version \
     && curl --fail --location --silent --show-error \
+        --output /tmp/semeru-jre.tar.gz \
+        "https://github.com/ibmruntimes/semeru26-binaries/releases/download/jdk-${SEMERU_JRE_VERSION}/ibm-semeru-open-jre_x64_linux_${SEMERU_JRE_VERSION}.tar.gz" \
+    && echo "${SEMERU_JRE_SHA256}  /tmp/semeru-jre.tar.gz" | sha256sum --check \
+    && mkdir -p /opt/jre \
+    && tar -xzf /tmp/semeru-jre.tar.gz -C /opt/jre --strip-components=1 \
+    && rm -f /tmp/semeru-jre.tar.gz \
+    && command -v java | grep -E '^/opt/jre/bin/java$' \
+    && java -version 2>&1 | grep -q 'Eclipse OpenJ9 VM' \
+    && java -version 2>&1 | grep -E 'IBM Semeru Runtime Open Edition 26\.0\.2\.0' \
+    && curl --fail --location --silent --show-error \
         --output /opt/freerouting.jar \
         "https://github.com/freerouting/freerouting/releases/download/v${FREEROUTING_VERSION}/freerouting-${FREEROUTING_VERSION}.jar" \
     && echo "${FREEROUTING_SHA256}  /opt/freerouting.jar" | sha256sum --check \
     && chmod 0755 /usr/local/bin/freerouting \
-    && freerouting --version 2>&1 || test $? -eq 1 \
     && ngspice --version \
     && git --version \
     && python3.14 --version | grep -E '^Python 3\.14\.' \
@@ -116,6 +132,21 @@ COPY plugins ${ACD_HOME}/plugins
 COPY docker/image-digests.json ${ACD_HOME}/docker/image-digests.json
 COPY vendor/software-agent-sdk ${ACD_HOME}/vendor/software-agent-sdk
 
+COPY examples/sensor-node-20260820/board/gd1.dsn /tmp/scc-warm.dsn
+
+RUN mkdir -p "${FREEROUTING_SCC_DIR}" \
+    && java ${FREEROUTING_JVM_TUNING} -Xmx2g \
+        -Xshareclasses:name=${FREEROUTING_SCC_NAME},cacheDir=${FREEROUTING_SCC_DIR} \
+        -Xscmx120m \
+        -jar /opt/freerouting.jar \
+        -de /tmp/scc-warm.dsn \
+        -do /tmp/scc-warm.ses \
+        -mp 1 \
+    && java -Xshareclasses:name=${FREEROUTING_SCC_NAME},cacheDir=${FREEROUTING_SCC_DIR},printStats 2>&1 \
+        | grep -E 'ROMClass|AOT' \
+    && (freerouting --version 2>&1 || test $? -eq 1) \
+    && rm -f /tmp/scc-warm.dsn /tmp/scc-warm.ses
+
 # Prebaked Python environment: the locked dependency set is resolved at build
 # time so container runs neither resolve nor download dependencies.
 RUN cd "${ACD_HOME}" \
@@ -133,6 +164,5 @@ RUN cd "${ACD_HOME}" \
     && uv run --offline --script scripts/probe_pinned_acd_graph.py \
         --fixture fixtures/golden-design-1
 
-ENV PATH="/usr/local/bin:${PATH}"
 ENV UV_FROZEN=1
 WORKDIR /workspace

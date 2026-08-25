@@ -24,10 +24,14 @@ Dockerfileでは次を固定または検証する。
 - KiCad CLI: KiCad 10.0 PPAの10系をインストールし、build時に10系であることを検証
 - FreeRouting: 2.3.0、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
   wrapperからPATH上で実行できることを検証
-- FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示する。active processor
-  countは既定では宣言せず、必要な場合だけ`FREEROUTING_ACTIVE_PROCESSORS`で
-  `-XX:ActiveProcessorCount=`を追加できる。heapは`FREEROUTING_MAX_HEAP`で上書きできる
-- OpenJDK: Ubuntu 26.04の`openjdk-26-jre-headless`
+- FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示し、
+  `FREEROUTING_MAX_HEAP`で上書きできる。active processor countは既定では宣言せず、
+  必要な場合だけ`FREEROUTING_ACTIVE_PROCESSORS`で`-XX:ActiveProcessorCount=`を
+  追加できる。OpenJ9のJVM tuningは`FREEROUTING_JVM_TUNING`で上書きできる
+- Java: IBM Semeru Runtime Open Edition 26.0.2.0（Eclipse OpenJ9 0.60.0）を
+  `/opt/jre`へ展開し、`JAVA_HOME=/opt/jre`とPATH上の`java`をbuild時に検証する。
+  FreeRoutingの共有class cache（SCC+AOT）は`/opt/scc`へbuild時に生成し、実行時は
+  read-onlyで再利用する
 - ngspice: Ubuntu 26.04の45.2パッケージと`ngspice --version`を検証
 - Python: Ubuntu 26.04のsystem Python 3.14（`python3.14`、`python3.14-venv`）
 - uv: 0.12.5、配布tarballのSHA-256を検証
@@ -138,7 +142,8 @@ KiCad（GPLv3）とFreeRouting（GPLv3）のソースおよび対応するソー
 - KiCad: GPLv3、sourceと対応するソースは<https://www.kicad.org/>で提供
 - FreeRouting: GPLv3、sourceと対応するソースは<https://github.com/freerouting/freerouting>で提供
 - ngspice: BSD系ライセンス、<https://ngspice.sourceforge.io/>
-- OpenJDK: GPLv2 with Classpath Exception、<https://openjdk.org/>
+- IBM Semeru/OpenJ9: GPLv2 with Classpath Exception、<https://www.ibm.com/semeru-runtimes/>
+  および<https://openj9.org/>
 - Python: PSF License、<https://www.python.org/>
 - uv: MIT License、<https://github.com/astral-sh/uv>
 
@@ -147,7 +152,7 @@ KiCad（GPLv3）とFreeRouting（GPLv3）のソースおよび対応するソー
 ```bash
 docker image inspect --format='{{json .RepoDigests}}' acd-tools-gates:local
 docker run --rm acd-tools-gates:local sh -lc \
-  'kicad-cli --version && freerouting --version && ngspice --version && git --version && uv --version && python3.14 --version'
+  'command -v java && java -version 2>&1 && ls -l /opt/scc && freerouting --version && ngspice --version && git --version && uv --version && python3.14 --version'
 ACD_CONTAINER_IMAGE=acd-tools-gates:local \
   uv run python scripts/run_in_workspace.py
 ```
