@@ -31,20 +31,35 @@ jobs:
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
       - name: Sync workspace
         run: uv sync
-      - name: Resolve locked tools image
-        run: |
-          TOOLS_REF=$(uv run python scripts/print_locked_image.py --entry acd-tools)
-          printf 'TOOLS_REF=%s\n' "$TOOLS_REF" >> "$GITHUB_ENV"
-      - name: Pull locked tools image
-        run: |
-          uv run python scripts/pull_locked_image.py \
-            --entry acd-tools \
-            --record out/container/pull-acd-tools.json
       - uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve base tools image
+        env:
+          UPSTREAM_PUBLISH: ${{ github.event_name == 'workflow_run' && 'true' || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ "$UPSTREAM_PUBLISH" = true ]; then
+            digest=$(docker buildx imagetools inspect \
+              --format '{{json .Manifest.Digest}}' \
+              "ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-tools:latest" | tr -d '"')
+            case "$digest" in
+              sha256:*) ;;
+              *)
+                echo "unresolved acd-tools digest: $digest" >&2
+                exit 1
+                ;;
+            esac
+            TOOLS_REF="ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-tools@${digest}"
+          else
+            TOOLS_REF=$(uv run python scripts/print_locked_image.py --entry acd-tools)
+            uv run python scripts/pull_locked_image.py \
+              --entry acd-tools \
+              --record out/container/pull-acd-tools.json
+          fi
+          printf 'TOOLS_REF=%s\n' "$TOOLS_REF" >> "$GITHUB_ENV"
       - name: Build and publish
         env:
           CUSTOM_TAGS: latest
