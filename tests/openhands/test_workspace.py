@@ -486,7 +486,9 @@ def test_runner_retries_evidence_download_before_failing(
         sleep=lambda _seconds: None,
     )
 
-    assert result.downloaded_files == (tmp_path / "out/gd1/evidence-electrical.json",)
+    assert result.downloaded_files == (
+        tmp_path / "out/container/gd1/evidence-electrical.json",
+    )
 
 
 def test_runner_does_not_retry_command_execution(
