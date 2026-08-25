@@ -86,7 +86,10 @@ lock更新PRはpublish triggerの対象外であり、digest lockと`latest`が�
 
 `docker/image-digests.json`に記録したACD tools image digestをbaseとして、
 `vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/build.py`
-がagent-server imageを生成する。publishは`publish-acd-server.yml`の手動起動だけで行い、
+がagent-server imageを生成する。ただしtools publish成功で連鎖起動された場合は、lockの
+更新PRがまだmerge前でlockが1世代前を指すため、`acd-tools:latest`の現digestを解決して
+baseにする。解決できない場合はfail-closedで停止する。手動起動ではlockのdigestをbaseにする。
+publishは`publish-acd-server.yml`の手動起動だけで行い、
 job summaryへbase digestとderived server digestを別々に記録する。derived imageが
 publishされるまでlockの`acd_server` entryは未設定であり、未設定のimageをpullしてはならない。
 

@@ -827,8 +827,10 @@ lockに記録済みのserver image
 `sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a`は、
 現行base tools digestからderiveした値である。
 toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
-更新する。この更新はlockへ新しいtools digestを記録した後に行う。workflowはlockから
-base toolsを解決するため、lock更新前に起動すると旧baseのserver imageをbuildしてしまう。
+更新する。手動起動はlockからbase toolsを解決するため、この更新はlockへ新しいtools digestを
+記録した後に行う。tools publish成功による`workflow_run`連鎖では、lock更新PRがmerge前で
+lockが1世代前を指すため、`acd-tools:latest`の現digestを解決してbaseにする。digestが
+解決できない場合はfail-closedで停止し、baseはjob summaryへ記録する。
 baseとderivedは独立に記録し、
 toolsとserverのdigestは同一とは扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
 
