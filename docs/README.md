@@ -53,5 +53,6 @@
 | [0042](adr/ADR-0042-skill-package-ref-skew.md) | Skill package refのskew検出と事前導入 |
 | [0043](adr/ADR-0043-functional-block-contract-registry.md) | 機能ブロック契約registryによる設計述語の適用条件 |
 | [0044](adr/ADR-0044-design-freedom-declaration.md) | 探索対象とする設計自由度の宣言とstitch候補Evidence |
+| [0045](adr/ADR-0045-openj9-freerouting-runtime.md) | FreeRouting実行JREのOpenJ9移行と`-mt`暗黙継承 |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。

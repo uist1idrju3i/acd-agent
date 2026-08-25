@@ -3,7 +3,7 @@
 # The SCC is generated at image build time and reused read-only at runtime.
 # A missing cache is a startup failure by design.
 FREEROUTING_MAX_HEAP="${FREEROUTING_MAX_HEAP:-2g}"
-FREEROUTING_JVM_TUNING="${FREEROUTING_JVM_TUNING:--Xgcpolicy:gencon}"
+FREEROUTING_JVM_TUNING="${FREEROUTING_JVM_TUNING:--Xtune:footprint}"
 FREEROUTING_SCC_NAME="${FREEROUTING_SCC_NAME:-fr_scc}"
 FREEROUTING_SCC_DIR="${FREEROUTING_SCC_DIR:-/opt/scc}"
 FREEROUTING_CONTAINER_SUPPORT="-XX:+UseContainerSupport"

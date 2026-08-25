@@ -27,7 +27,9 @@ Dockerfileでは次を固定または検証する。
 - FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示し、
   `FREEROUTING_MAX_HEAP`で上書きできる。active processor countは既定では宣言せず、
   必要な場合だけ`FREEROUTING_ACTIVE_PROCESSORS`で`-XX:ActiveProcessorCount=`を
-  追加できる。OpenJ9のJVM tuningは`FREEROUTING_JVM_TUNING`で上書きできる
+  追加できる。OpenJ9のJVM tuningは既定`-Xtune:footprint`で、
+  `FREEROUTING_JVM_TUNING`で上書きできる（選定根拠は
+  [`../docs/adr/ADR-0045-openj9-freerouting-runtime.md`](../docs/adr/ADR-0045-openj9-freerouting-runtime.md)）
 - Java: IBM Semeru Runtime Open Edition 26.0.2.0（Eclipse OpenJ9 0.60.0）を
   `/opt/jre`へ展開し、`JAVA_HOME=/opt/jre`とPATH上の`java`をbuild時に検証する。
   FreeRoutingの共有class cache（SCC+AOT）は`/opt/scc`へbuild時に生成し、実行時は

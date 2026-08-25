@@ -24,8 +24,9 @@ ENV IDF_CCACHE_ENABLE=1
 ENV JAVA_HOME=/opt/jre
 ENV FREEROUTING_SCC_DIR=/opt/scc
 ENV FREEROUTING_SCC_NAME=fr_scc
-# PLACEHOLDER: replace with the measured OpenJ9 tuning winner.
-ENV FREEROUTING_JVM_TUNING="-Xgcpolicy:gencon"
+# Measured winner on the 2-core reference VPS (see docs/operations.md).
+# -Xsoftmx is intentionally left unset so larger boards can still grow to -Xmx.
+ENV FREEROUTING_JVM_TUNING="-Xtune:footprint"
 ENV PATH="/opt/jre/bin:/usr/local/bin:${PATH}"
 # Keep runtime bytecode caches out of the bundled source tree: writes inside
 # ${ACD_HOME}/src invalidate the editable install and make uv rebuild the
