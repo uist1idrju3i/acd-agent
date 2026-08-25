@@ -377,7 +377,7 @@ uv run python scripts/pre_order_gate.py \
   --order-total out/order-total.json \
   --evaluated-at 2026-08-14T00:00:00Z \
   --rerun-authoritative \
-  --image ghcr.io/uist1idrju3i/acd-server@sha256:d055bfc34a205cc618bdd86879ac81e9efd10913161076927c5b951f5035410a
+  --image ghcr.io/uist1idrju3i/acd-server@sha256:b5afc5daadf801f62d7bcb3f8229fe417e0e658b7ab1a660bf737f105f18c968
 ```
 
 `--local-provisional`はこのCLIの選択肢ではなく、hostの`LocalWorkspace`結果は
