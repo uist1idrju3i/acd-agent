@@ -22,7 +22,7 @@ class RouterUnavailableError(ExternalToolError):
 
 
 _VERSION_PATTERN = re.compile(r"Freerouting v([0-9]+\.[0-9]+\.?[0-9]*)")
-DEFAULT_FREEROUTING_THREADS = 1
+DEFAULT_FREEROUTING_THREADS: int | None = None
 
 
 class FreeroutingRunner:
@@ -59,12 +59,13 @@ class FreeroutingRunner:
         ses_path: Path,
         target_revision: str,
         max_passes: int = 100,
-        freerouting_threads: int = DEFAULT_FREEROUTING_THREADS,
+        freerouting_threads: int | None = DEFAULT_FREEROUTING_THREADS,
     ) -> ToolRun:
-        if freerouting_threads < 1:
+        if freerouting_threads is not None and freerouting_threads < 1:
             raise ValueError("freerouting thread count must be positive")
         version = self.version()
-        # Pin the thread count instead of inheriting host CPU count for machine-independent runs.
+        # Inherit FreeRouting's default because SES output is thread-count independent; keep
+        # the recorded condition machine-independent.
         command = [
             self.executable,
             "-de",
@@ -73,9 +74,18 @@ class FreeroutingRunner:
             str(ses_path),
             "-mp",
             str(max_passes),
-            "-mt",
-            str(freerouting_threads),
         ]
+        if freerouting_threads is not None:
+            command.extend(["-mt", str(freerouting_threads)])
+        measurement_conditions = (
+            f"headless; max {max_passes} passes; "
+            "implicit router threads (cpu_count-1)"
+            if freerouting_threads is None
+            else (
+                f"headless; max {max_passes} passes; "
+                f"max {freerouting_threads} router threads"
+            )
+        )
         run = run_tool(
             tool_name="freerouting",
             tool_version=version,
@@ -85,10 +95,7 @@ class FreeroutingRunner:
             output_paths=[ses_path],
             envelope_path=ses_path.with_suffix(ses_path.suffix + ".envelope.json"),
             target_revision=target_revision,
-            measurement_conditions=(
-                f"headless; max {max_passes} passes; "
-                f"max {freerouting_threads} router threads"
-            ),
+            measurement_conditions=measurement_conditions,
             convergence_state="unknown",
         )
         convergence = _convergence_from_log(run.stdout + run.stderr)
