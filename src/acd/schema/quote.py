@@ -13,7 +13,9 @@ from acd.schema.common import (
     Revision,
     SchemaVersion,
     Timestamp,
+    contains_placeholder_hash,
     contains_unknown,
+    is_placeholder_identifier,
 )
 from acd.schema.fab_profile import Basis, FabSource
 
@@ -31,8 +33,11 @@ QuoteCategory = Literal[
 class QuoteModel(AcdModel):
     @model_validator(mode="after")
     def reject_unknown_values(self) -> Self:
-        if contains_unknown(self.model_dump(mode="json")):
+        body = self.model_dump(mode="json")
+        if contains_unknown(body):
             raise ValueError("quote values must not contain unknown")
+        if contains_placeholder_hash(body):
+            raise ValueError("quote values must not contain placeholder digests")
         return self
 
 
@@ -94,6 +99,8 @@ class QuoteRecord(QuoteModel):
 
     @model_validator(mode="after")
     def validate_record(self) -> QuoteRecord:
+        if is_placeholder_identifier(self.quote_id):
+            raise ValueError("quote_id must identify a real quote, not a placeholder")
         if not self.fetched_at <= self.recorded_at:
             raise ValueError("quote timestamps must satisfy fetched_at <= recorded_at")
         if not self.valid_until > self.fetched_at:

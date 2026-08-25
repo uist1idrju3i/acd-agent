@@ -51,6 +51,14 @@
       ],
       "mandatory": false,
       "required_predicates": ["power_decoupling"]
+    },
+    {
+      "block_id": "led_current_limit",
+      "title": "LED current limit",
+      "description": "Requires a declared series element between the LED drive pin net and the LED anode net.",
+      "allowed_change_dimensions": [],
+      "mandatory": false,
+      "required_predicates": ["led_series_element"]
     }
   ]
 }

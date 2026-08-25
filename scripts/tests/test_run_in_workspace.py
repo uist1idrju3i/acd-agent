@@ -69,7 +69,7 @@ def test_resolve_digest_fails_when_docker_is_unavailable() -> None:
 def test_unresolved_digest_does_not_start_workspace(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    def resolve_none(_image: str) -> ImageReference | None:
+    def resolve_none(_image: str, **_kwargs: object) -> ImageReference | None:
         return None
 
     monkeypatch.setattr(
@@ -99,7 +99,7 @@ def test_digest_is_forwarded_to_workspace(
 ) -> None:
     reference = ImageReference("sha256:" + "c" * 64, "image ID")
 
-    def resolve_reference(_image: str) -> ImageReference:
+    def resolve_reference(_image: str, **_kwargs: object) -> ImageReference:
         return reference
 
     monkeypatch.setattr(
@@ -126,7 +126,12 @@ def test_digest_is_forwarded_to_workspace(
             return type(
                 "Result",
                 (),
-                {"exit_code": 0, "stdout": "ok\n", "stderr": ""},
+                {
+                    "exit_code": 0,
+                    "stdout": "ok\n",
+                    "stderr": "",
+                    "timeout_occurred": False,
+                },
             )()
 
     def factory(**kwargs: Any) -> Workspace:

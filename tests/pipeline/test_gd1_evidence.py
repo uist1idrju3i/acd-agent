@@ -85,6 +85,7 @@ def _passing_predicates() -> tuple[PredicateResult, ...]:
             "pin_firmware_alignment",
             "power_decoupling",
             "power_boundary",
+            "led_series_element",
         )
     )
 
@@ -174,6 +175,7 @@ def test_design_predicate_claims_are_recorded_in_fixed_order() -> None:
             "pin_firmware_alignment",
             "power_decoupling",
             "power_boundary",
+            "led_series_element",
         )
     )
     evidence = build_electrical_evidence(
@@ -192,10 +194,13 @@ def test_design_predicate_claims_are_recorded_in_fixed_order() -> None:
         functional_block_contract=_contract_claim(),
         declared_blocks=_declared_blocks(),
     )
-    assert [claim.property for claim in evidence.claims[-6:]] == [
+    count = len(predicates)
+    assert [claim.property for claim in evidence.claims[-count:]] == [
         predicate.name for predicate in predicates
     ]
-    assert all(claim.value == "pass" and claim.verified for claim in evidence.claims[-6:])
+    assert all(
+        claim.value == "pass" and claim.verified for claim in evidence.claims[-count:]
+    )
 
 
 @pytest.mark.parametrize("status", ["unknown", "fail"])
@@ -215,6 +220,7 @@ def test_nonpassing_design_predicate_status_fails_closed(
             "pin_firmware_alignment",
             "power_decoupling",
             "power_boundary",
+            "led_series_element",
         )
     )
     with pytest.raises(GateError, match="i2c_pullup"):
@@ -250,6 +256,7 @@ def test_not_applicable_predicates_are_omitted_from_verified_claims() -> None:
             "pin_firmware_alignment",
             "power_decoupling",
             "power_boundary",
+            "led_series_element",
         )
     )
     evidence = build_electrical_evidence(

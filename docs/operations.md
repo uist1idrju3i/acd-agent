@@ -326,6 +326,33 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    のoutput byte列、候補・rejection順序、判定、fail-closed結果とともにhost
    provisionalとして記録し、authoritativeな判断はdigest固定containerのCIで行う。
 
+### Local GUI APIの認証とトンネル越しの検証
+
+Local GUIをSSHポート転送だけで参照する構成では、リモートでのコマンド実行はできず、
+`http://127.0.0.1:8000/`のGUI操作だけが到達経路である。この状態で`/api/conversations`
+などのAPIへ直接curlすると、GUIが保持する認証情報を伴わないため
+`{"detail":"Unauthorized"}`が返る。トンネルの疎通確認とAPIの認証は別問題であり、
+ルートへのHTTP 200をAPI到達性の根拠にしない。
+
+APIをscriptから叩く場合は、GUIのブラウザsessionが実際に送信している認証情報を取得して
+同じ資格情報で呼び出す。
+
+1. ブラウザで`http://127.0.0.1:8000/`を開き、GUIへログインした状態にする。
+2. devtoolsのNetworkタブでGUI自身が発行している`/api/...`リクエストを1件選び、
+   その`Authorization`ヘッダまたはsession cookieを確認する。
+3. 同じヘッダ・cookieを付けてcurlを実行し、認証が通ることを確認する。
+
+   ```bash
+   curl -sS -H "Authorization: $OPENHANDS_LOCAL_TOKEN" http://127.0.0.1:8000/api/conversations
+   ```
+
+4. 取得した値は環境変数などで一時的に保持し、リポジトリ、PR本文、コミット、ログ、
+   実行記録へ書かない。持ち出す実行記録は`scripts/export_execution_records.py`の
+   秘匿化経路を通す。
+
+認証情報を取得できない場合、API経路での自動化は「未実行」であり、GUI操作による確認結果を
+API検証の合格根拠へ昇格させない。未検証はfail-closedとして扱う。
+
 ### 発注前最終ゲートの再実行とcheck-only
 
 発注前の判定には7.2の`OrderTotalResult` JSON、policy、判定時刻を渡す。
@@ -778,8 +805,7 @@ lockと`latest`が食い違い続けることを防ぐ。build入力を変更し
 成功後にserver publishが`workflow_run`で連鎖する。lockの検証は次のように行う。
 
 ```bash
-TOOLS_REF="$(uv run python scripts/print_locked_image.py --entry acd-tools)"
-docker pull "$TOOLS_REF"
+TOOLS_REF="$(uv run python scripts/pull_locked_image.py --entry acd-tools)"
 docker run --rm \
   -v "$PWD:/acd-src:ro" \
   -w /tmp \
@@ -1305,10 +1331,28 @@ uv run python scripts/probe_tools.py
 Docker workspace経路（ゲート実行の正）:
 
 ```bash
-SERVER_REF="$(uv run python scripts/print_locked_image.py --entry acd-server)"
-docker pull "$SERVER_REF"
+SERVER_REF="$(uv run python scripts/pull_locked_image.py --entry acd-server \
+  --record out/container/pull-acd-server.json)"
 uv run python scripts/run_in_workspace.py --image "$SERVER_REF"
 ```
+
+`scripts/pull_locked_image.py`はlock済みdigestのpull入口の正である。`docker/image-digests.json`の
+lock entryだけを受け付け、`image@sha256:...`のimmutable referenceでpullし、pull後に
+localのdigestがlock値と一致することを`docker image inspect`で確認する。全体timeout
+（既定900s）、有限回のbackoff retry（既定3回）、docker版・attempt・timeout・取得時刻を含む
+provenanceの`--record`出力を持つ。pull失敗、retry上限到達、digest不一致、docker CLI
+timeout、lock未設定はいずれもexit=2でfail-closedとし、Evidenceを生成しない。
+
+container実行のtimeout境界は`run_in_workspace.py`の引数で明示する。既定値は
+`--health-check-timeout 300`、`--command-timeout 3600`、`--docker-cli-timeout 300`、
+`--memory-limit 8g`、`--platform linux/amd64`である。ACDは`DockerWorkspace`のlifecycleが
+呼ぶdocker CLI（`docker version`、`docker run`、`docker inspect`、`docker logs`、
+`docker stop`）へ同じdocker CLI timeoutとmemory上限（`--memory`／`--memory-swap`）を与え、
+`resolve_image_digest()`の`docker image inspect`にも明示timeoutを与える。container起動が
+失敗した場合は観測したcontainerを`docker stop`で後始末し、停止できないcontainer IDを
+エラーへ含める。`WorkspaceResult`は失敗種別（`timeout`、`transport`、`command`）を保持し、
+runnerは失敗種別を出力して非ゼロ終了する。retryはdigest固定pullとfile downloadに限り、
+gate実行とEvidence生成は再試行しない。
 
 `--graph`で指定したDesign Graphから、未指定のcommandとdownload pathを導出する。
 graphのmissing、parse failure、または不正な`graph_id`ではGD1へfallbackせず停止する。
@@ -1404,6 +1448,75 @@ plugin = acd_plugin_source("v1.2.3")
 
 `ref=None`、branch名、短縮SHA、空文字、不正なtagはfail-closedで拒否される。
 開発checkoutでは`build_acd_conversation()`の既定local pathを使用できる。
+
+## graph単体検証の正規経路
+
+graph単体の妥当性検証は`scripts/validate_graph.py`だけを正規入口とする。過去に案内された
+`scripts/validate_design_graph.py`は存在せず、参照してはならない。
+
+```bash
+uv run python scripts/validate_graph.py --fixture fixtures/golden-design-1
+```
+
+この入口はgraphのparse、requirement documentの検証、rationale coverage、laneごとの
+決定論的preflight（必須node・属性の宣言欠落集約）をまとめて実行する。parse失敗、
+入力欠落、宣言欠落はすべてfail-closedであり、成功扱いにしない。preflightは診断であって
+L1ゲート判定ではなく、検証成功は設計成功を意味しない。合否権限は引き続きlaneの決定論的
+ゲートとrevision一致のauthoritative Evidenceだけが持つ。laneを限定する場合は`--lane`を
+繰り返し指定する。
+
+## laneのCLI引数
+
+lane入口は`--fixture`（`graph.json`を含む設計入力ディレクトリ）と`--out`（lane出力先）に
+統一する。`scripts/run_design_lanes.py --list`が出力する各laneコマンドは、そのまま単体
+実行できる。
+
+| 入口 | 用途 |
+|---|---|
+| `scripts/resolve_gd1_silkscreen.py` | シルク解決lane |
+| `scripts/run_gd1_pipeline.py` | 基板lane |
+| `scripts/run_gd1_enclosure_pipeline.py` | 筐体lane |
+| `plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py` | FW lane |
+| `scripts/validate_graph.py` | graph単体検証 |
+
+旧引数（`--graph`、`--graph-dir`、`--fixture-dir`、`--out-dir`、`--output`）は受け付けず、
+置き換え先を示す明示エラーで停止する。`scripts/run_in_workspace.py`はlane入口ではなく
+workspace実行wrapperであり、既定コマンドとEvidenceパスの導出に使うgraphファイルを
+`--graph`で受け取る点が異なる。
+
+## out-rootのhost／container分離
+
+container実行のEvidenceは`out/container/`配下へdownloadし、host実行の`out/`と共有しない。
+root実行containerとhost実行が同一out-rootを共用すると`Permission denied`が発生し、
+設計起因のfail-closedと区別できなくなるためである。CIの`container-gates`は
+`out/container/gd1/evidence-electrical.json`と
+`out/container/gd1-enclosure/evidence-mechanical.json`を検証する。
+
+`scripts/run_in_workspace.py`は失敗時に`failure classification`を出力する。`permission`と
+`environment`は環境起因であり、ゲート判定が得られていない状態としてfail-closedに留まる。
+`design`は設計起因の失敗、`unknown`は出力が無く分類できない失敗である。いずれも合格側へ
+昇格しない。
+
+## pipelineログの要約
+
+`scripts/run_design_lanes.py`はJSON要約へ失敗コマンドのログ末尾だけを載せる。完全な
+ログは`<out-root>/lane-logs/command-NN.log`へ書き出し、要約には省略行数と保存先を含める。
+末尾行数は`--log-tail-lines`、完全なログの埋め込みは`--full-logs`で指定する。要約はL3観測
+であり、コマンドの判定を変更しない。
+
+## 実行記録の持ち出し
+
+実機実行記録を外部公開する場合は、公開可能な最小集合だけを収集する入口を使う。
+
+```bash
+uv run python scripts/export_execution_records.py out/records --out out/public/records.json
+```
+
+許可fieldのallowlistだけを残し、それ以外のfieldは落とす。残ったテキストからは
+エンドポイント、ホスト名、IPアドレス、`/home/<user>`等のパス、アカウント名を既定で
+秘匿化する。秘匿化後も漏洩パターンが残る場合は出力せずエラーで停止する（fail-closed）。
+秘匿化漏れの検出は`tests/core/test_execution_export.py`と
+`scripts/tests/test_export_execution_records.py`のnegative testで固定する。
 
 ## トラブル時
 

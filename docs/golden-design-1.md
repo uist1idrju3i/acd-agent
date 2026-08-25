@@ -382,6 +382,11 @@ U1/J1のpad bbox中心を基準として宣言した。これは独立実測と�
 KiCad symbolのpathとsha256を独立検証した。これはメーカーのtape&reel図そのものでは
 なく、`fab_library_footprint`由来の再現可能な照合Evidenceである。製造データ生成と発注
 可否は分離し、全位置・回転Evidenceが揃ったGD1の`order-readiness.json`は`ready`となる。
+ここでの`ready`は、CPLのposition basisとrotation basisについてfab側の目視確認
+（`fab_side_preview`等の確認手段と確認日を伴う`confirmed`）を前提とする状態であり、
+ACD内部の投影と独立測定だけで成立する状態ではない。fab側確認を伴わないbasisは
+`unknown`として扱い、`ready`へ昇格させない。`ready`は製造データの投入可否を示すに留まり、
+実装結果の正しさを保証しない。
 `evidence/gd1-cpl-orientation/`自体が無い場合は製造データ生成をfail-closedで停止し、
 個別部品のEvidence欠落は`order-readiness.json`の回転unknownとして扱う。
 

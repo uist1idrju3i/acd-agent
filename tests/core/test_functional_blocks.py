@@ -58,6 +58,11 @@ def _skip_if_gd1_geometry_library_is_missing(graph: DesignGraph) -> None:
             pytest.skip(f"pinned KiCad library not present in this environment: {path}")
 
 
+# GD1 does not declare the led_current_limit functional block, so its predicate
+# is not applicable to the GD1 graph.
+UNDECLARED_GD1_PREDICATES = ("led_series_element",)
+
+
 def _assert_predicates_pass(results: Iterable[PredicateResult]) -> None:
     failures = [
         f"{result.name}: status={result.status!r}, detail={result.detail}"
@@ -126,7 +131,11 @@ def test_removing_i2c_declaration_is_not_applicable_only_for_i2c() -> None:
     lane = extract_electrical_lane(graph)
     results = evaluate_design_predicates(graph, lane, FIXTURE_DIR)
     assert results[1].status == "not_applicable"
-    _assert_predicates_pass(result for result in results if result.name != "i2c_pullup")
+    _assert_predicates_pass(
+        result
+        for result in results
+        if result.name not in ("i2c_pullup", *UNDECLARED_GD1_PREDICATES)
+    )
 
 
 def test_i2c_declaration_with_missing_net_remains_unknown() -> None:
@@ -187,7 +196,9 @@ def test_topology_without_usb_and_i2c_blocks_uses_other_contracts() -> None:
     results = evaluate_design_predicates(graph, lane, FIXTURE_DIR)
     assert results[0].status == "not_applicable"
     assert results[1].status == "not_applicable"
-    _assert_predicates_pass(results[2:])
+    _assert_predicates_pass(
+        result for result in results[2:] if result.name not in UNDECLARED_GD1_PREDICATES
+    )
 
 
 def test_new_topology_contract_extends_applicability_without_predicate_changes(

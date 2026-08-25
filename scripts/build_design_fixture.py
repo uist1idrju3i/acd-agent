@@ -15,12 +15,20 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help=(
+            "acknowledge dropping graph data that the design input does not "
+            "declare; a difference report is written in either case"
+        ),
+    )
     args = parser.parse_args()
     try:
         spec = DesignFixtureSpec.model_validate(
             json.loads(args.spec.read_text(encoding="utf-8"))
         )
-        graph = build_design_fixture(spec, args.out)
+        graph = build_design_fixture(spec, args.out, overwrite=args.overwrite)
     except (OSError, json.JSONDecodeError, TypeError, ValueError, FixtureBuilderError) as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False))
         return 2

@@ -126,3 +126,55 @@ def test_commands_use_plan_outputs_and_cache_target(tmp_path: Path) -> None:
     assert "--cache-dir" in commands[1].command
     assert "--cache-dir" not in commands[0].command
     assert all("--cache-dir" not in command.command for command in commands[2:])
+
+
+def test_failure_logs_are_summarized_with_a_full_log_file(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    noisy = "\n".join(f"line {index}" for index in range(200))
+
+    def fake_run(command: Sequence[str], **kwargs: object) -> object:
+        return command_runner.subprocess.CompletedProcess(
+            command, 7, stdout="", stderr=noisy
+        )
+
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
+
+    assert (
+        run_design_lanes.main(
+            ["--jobs", "3", "--out-root", str(tmp_path), "--log-tail-lines", "5"]
+        )
+        == 7
+    )
+
+    summary = json.loads(capsys.readouterr().out.splitlines()[-1])
+    failure = summary["failures"][0]
+    assert failure["stderr_dropped_lines"] == 195
+    assert "line 199" in failure["stderr_tail"]
+    assert "line 0" not in failure["stderr_tail"]
+    log_path = Path(failure["log_path"])
+    assert log_path.is_relative_to(tmp_path)
+    assert noisy in log_path.read_text(encoding="utf-8")
+
+
+def test_full_logs_flag_keeps_the_whole_failure_log(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    noisy = "\n".join(f"line {index}" for index in range(60))
+
+    def fake_run(command: Sequence[str], **kwargs: object) -> object:
+        return command_runner.subprocess.CompletedProcess(
+            command, 3, stdout="", stderr=noisy
+        )
+
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
+
+    assert (
+        run_design_lanes.main(
+            ["--jobs", "3", "--out-root", str(tmp_path), "--full-logs"]
+        )
+        == 3
+    )
+
+    summary = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert summary["failures"][0]["stderr"] == noisy

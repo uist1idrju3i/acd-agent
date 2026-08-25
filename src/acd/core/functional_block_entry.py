@@ -136,19 +136,24 @@ def _registry_json(document: FunctionalBlockRegistryDocument) -> str:
     return "\n".join(lines) + "\n"
 
 
+def predicate_catalog() -> tuple[str, ...]:
+    """Return the predicate catalog without importing it at module import time."""
+    from acd.core.design_predicates import PREDICATE_CATALOG
+
+    return PREDICATE_CATALOG
+
+
 def _validate_new_contract(
     contract: FunctionalBlockContract,
     registry: FunctionalBlockRegistry,
 ) -> None:
-    from acd.core.design_predicates import PREDICATE_CATALOG
-
     existing_ids = {item.block_id for item in registry.contracts}
     if contract.block_id in existing_ids:
         raise FunctionalBlockContractError(
             f"functional block block_id is already registered: {contract.block_id!r}"
         )
 
-    catalog = set(PREDICATE_CATALOG)
+    catalog = set(predicate_catalog())
     unknown_predicates = sorted(set(contract.required_predicates) - catalog)
     if unknown_predicates:
         raise FunctionalBlockContractError(
@@ -176,8 +181,6 @@ def _validate_new_contract(
             "functional block contract references non-explorable change dimensions: "
             + ", ".join(disabled_dimensions)
         )
-
-    validate_predicate_coverage(PREDICATE_CATALOG, registry)
 
 
 def _write_registry(path: Path, document: FunctionalBlockRegistryDocument) -> None:
@@ -224,6 +227,10 @@ def register_functional_block_contract(
         registry_hash=canonical_json_sha256(updated_document.model_dump(mode="json")),
         path=registry.path,
     )
+    # Coverage is checked against the updated registry so a declaration that
+    # covers a newly added catalog predicate is accepted, while any predicate
+    # left uncovered after the append still fails closed.
+    validate_predicate_coverage(predicate_catalog(), updated_registry)
     if not dry_run:
         _write_registry(registry.path, updated_document)
     return FunctionalBlockEntryResult(

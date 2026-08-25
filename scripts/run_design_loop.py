@@ -80,6 +80,14 @@ def _parser() -> argparse.ArgumentParser:
         help="explore board candidates after a fail-closed board rejection",
     )
     parser.add_argument(
+        "--design-only",
+        action="store_true",
+        help=(
+            "iterate the design stages only; order readiness is recorded as "
+            "not executed and the loop stays fail-closed"
+        ),
+    )
+    parser.add_argument(
         "--max-exploration-candidates",
         type=_positive_int,
         default=3,
@@ -130,6 +138,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             resume=args.resume,
             jobs=args.jobs,
             explore_board=args.explore_board,
+            design_only=args.design_only,
             max_exploration_candidates=args.max_exploration_candidates,
             max_exploration_rounds=args.max_exploration_rounds,
             requirement=args.requirement,

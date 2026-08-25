@@ -46,14 +46,31 @@ class RationaleProvenance(AcdModel):
     script_hash: HashOrUnknown | None = None
     agent_model: NonEmptyStr | None = None
     conversation_event_ref: NonEmptyStr | None = None
+    tool_name: NonEmptyStr | None = None
+    tool_version: NonEmptyStr | None = None
     recorded_at: Timestamp
 
     @model_validator(mode="after")
-    def _skill_provenance(self) -> RationaleProvenance:
+    def _generator_provenance(self) -> RationaleProvenance:
         if self.source == "acd_skill" and (
             self.skill_name is None or self.script_hash is None
         ):
             raise ValueError("acd_skill provenance requires skill_name and script_hash")
+        if self.source == "openhands_agent" and (
+            self.agent_model is None or self.conversation_event_ref is None
+        ):
+            raise ValueError(
+                "openhands_agent provenance requires agent_model and conversation_event_ref"
+            )
+        if self.source == "deterministic_tool" and (
+            self.tool_name is None
+            or self.tool_version is None
+            or self.script_hash is None
+        ):
+            raise ValueError(
+                "deterministic_tool provenance requires tool_name, tool_version, "
+                "and script_hash"
+            )
         return self
 
 
@@ -151,6 +168,16 @@ class RationaleUntraceable(AcdModel):
     subject: RationaleSubject
 
 
+class RationaleTemplated(AcdModel):
+    rationale_id: NonEmptyStr
+    reason: NonEmptyStr
+
+
+class RationaleGeneratorViolation(AcdModel):
+    rationale_id: NonEmptyStr
+    reason: NonEmptyStr
+
+
 class RationaleUnclassified(AcdModel):
     node_id: NodeId
     node_kind: NonEmptyStr
@@ -180,6 +207,10 @@ class RationaleCoverageReport(AcdModel):
     )
     unclassified: list[RationaleUnclassified] = Field(
         default_factory=list[RationaleUnclassified]
+    )
+    templated: list[RationaleTemplated] = Field(default_factory=list[RationaleTemplated])
+    generator_violations: list[RationaleGeneratorViolation] = Field(
+        default_factory=list[RationaleGeneratorViolation]
     )
     required_count: int = 0
     covered_count: int = 0

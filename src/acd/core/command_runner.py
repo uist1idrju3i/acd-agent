@@ -127,6 +127,8 @@ def run_stage(
                 result = _run_command(spec, capture_output=True)
                 if timing is not None:
                     timing.finish(batch_name)
+                if results is not None:
+                    results.append((spec, result))
                 _emit_result(next_index + 1, total, spec, result)
                 next_index += 1
                 if result.returncode != 0:

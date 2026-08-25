@@ -104,6 +104,7 @@ from acd.core.functional_blocks import (
     declared_functional_blocks,
     load_functional_block_registry,
 )
+from acd.core.lane_cli import add_lane_io_arguments
 from acd.core.naming import artifact_prefix, evidence_id, output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
@@ -1943,13 +1944,7 @@ def _positive_int(value: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--fixture",
-        type=Path,
-        default=Path("fixtures/golden-design-1"),
-        help="fixture directory containing graph.json",
-    )
-    parser.add_argument("--out", type=Path, default=Path("out/gd1"), help="output directory")
+    add_lane_io_arguments(parser, out_default=Path("out/gd1"))
     parser.add_argument("--max-passes", type=int, default=99999, help="router pass budget")
     parser.add_argument(
         "--freerouting-threads",
