@@ -360,6 +360,32 @@ silkscreen barrier以降のlaneへ到達できない。N-2・N-4・N-7・N-11は
 | N-11 | `build_design_fixture`が既存graphの手編集を無警告で上書きする | 実機では、container laneをpassさせるために手で属性を追加した`graph.json`が次の`build_design_fixture.py`実行で上書きされ、追加分がすべて失われた（残ったのは投影のみ） | 中 | N-1 | 既存ファイルと生成物の差分を検出したら、上書き前に停止するか差分を報告する。入力ファイルを設計の正とする不変条件に沿い、生成器が入力を黙って捨てないことを回帰テストで固定する |
 | N-12 | 実機実行記録の公開可能な持ち出し経路が無い | `out/`は`.gitignore`対象で、実機記録を`examples/`へ残す作業は手作業だった（archive約522MB／展開後約2.0GBに対し必要分は約1.2MB）。加えてOpenHandsのraw export zipは`base_state.json`にホスト名・LLMエンドポイント等の環境識別情報を含み、そのまま公開リポジトリへ収録できない | 低 | なし | 実行記録から公開可能な最小集合（fixture、loop結果、timing record、gate evidence、失敗summary）を収集する入口を追加し、ホスト名・エンドポイント・ユーザー名の秘匿化を既定で行う。秘匿化漏れの検出をnegative testで固定する |
 
+## O. 宣言経路解消後の実機実測（`test5`／pulse-check-tag）で残った不足
+
+本節はN-1・N-5の解消後に、実機OpenHands環境（workspace `test5`、`/acd:init`で初期化）へ
+GD1ではない新規小規模設計`pulse-check-tag`（MCUのみGD1と同一、部品10点前後、22 × 16 mm 2層）を
+投入した実測から抽出した不足である。観測記録とレポートは
+[`examples/pulse-check-tag-20260825/`](../examples/pulse-check-tag-20260825/)を正とする。
+既存の閾値、ゲート挙動、fail-closed境界、L1権限を緩める提案は含まない。
+
+本検証では、宣言経路（N-1）とpin function展開（N-5）の解消により、新規設計でも
+silkscreen laneがdigest固定container内で`status: "resolved"`まで到達した。一方、
+基板laneはFreeRoutingのtimeoutで停止し、authoritative Evidenceは1件も成立していない。
+O-1・O-9は「設計内容に依らず基板lane以降へ到達できない」直接原因、O-2は実行基盤側の律速であり、O-4・O-5は
+N-3の未解消部分、O-3・O-6〜O-8は運用と手順の不足である。
+
+| # | 不足機能 | 根拠 | 優先度 | 依存 | 完了条件 |
+|---|---|---|---|---|---|
+| O-1 | `run_tool`のsubprocess timeoutが定数で、routerのpass予算既定と組み合わせると必ずtimeoutする | `src/acd/core/process.py`の`run_tool`は`subprocess.run(..., timeout=600)`を定数で持ち、`src/acd/pipeline/gd1_board.py`のCLIは`--max-passes`の既定を`99999`とする。実機では10部品・22 × 16 mm・2層の最小規模でも`--max-passes 99999`と`--max-passes 10`の両方で`timed out after 600 seconds`となり基板laneがfail-closedした | 高 | なし | `run_tool`へ`timeout`引数を追加してlaneから明示的に渡す（既定は600秒を維持）。timeout時のEvidenceは`unknown`と区別できる収束状態として記録し、いずれも不合格のまま扱う。routerのpass進捗（unrouted数の推移）をL3 recordへ残す。GD1の判定と正規化hashを変えない |
+| O-2 | container起動がホスト資源を検査しない | `src/acd/openhands/container_runtime.py`の`DEFAULT_MEMORY_LIMIT`は`"8g"`で、`--memory=8g --memory-swap=8g`を付けて`docker run`する。ホスト実装容量（前回実測で約1.6 GB）との整合は検査していない。実機ではcontainer gate実行中に`A restart occurred while this tool was in progress. This may indicate a fatal memory error or system crash.`が4回以上発生し、sshd不応答を経てOpenHandsサーバプロセスが停止した | 高 | なし | container起動前にホストの`MemTotal`／`MemAvailable`／ディスク空きと要求上限を比較し、超過時は起動せず理由付きでfail-closedにする。`/acd:doctor`へ同項目を追加する。最小ホスト要件を`docs/`へ記録する |
+| O-3 | 長時間laneのbackground実行が手順として規定されていない | container laneをOpenHandsのtool呼び出しでforeground実行すると、O-2の再起動でtool結果ごと失われ停止理由が判別できない。実機では`nohup ... > logs/<lane>.log 2>&1 &`へ切り替えて初めて、再起動後もexit code・image digest・fail-closed理由をlogから復元できた | 中 | O-2 | `docs/operations.md`へ長時間laneのbackground＋log運用（同時1本、確認はtail／grep）を明記する。`scripts/run_in_workspace.py`へlog出力先の指定を追加し、log先頭へimage digest・revision・コマンドを必ず記録する |
+| O-4 | preflightの`ready`表示が実ゲート結果と乖離する | 実機のpreflightは`board-pipeline: ready`／`firmware-pipeline: ready`／`silkscreen-resolve: ready`／`rationale coverage: pass`を返したが、その後の実ゲートで11件のfail-closedが順に発生した。診断のみという契約自体は守られているが、語彙が「laneが通る」と誤読される | 中 | N-3 | preflightの語彙を観測内容に限定し、「診断のみでL1判定を代替しない」を機械可読フィールドとして出力する。preflightの述語集合とlane入口検査の述語集合の差分を`docs/`へ列挙する |
+| O-5 | 必須属性不足が1件1往復で報告される（N-3の未解消部分） | 実機では`rotation_deg`、`pcba_class_target`、`C1`のplacement、pinned library、outer copper thickness、stitch-via basis、IPC-2221定数、`CC1`のmanufacturing margin、`fb.esp32c3_strapping_boot`のdriving requirement、`power_boundary: unknown`、silk textのposition宣言の11件が1件ずつfail-closedし、そのたびにcontainer起動を伴う往復が発生した | 高 | N-3 | lane別の必須ノード・属性・rationaleを一括診断して不足一覧を機械可読に返す。診断はlane入口検査と同一述語を再利用し、O-4の乖離を構造的に防ぐ。診断成功を合格として扱わない |
+| O-6 | doctorがhost前提とcontainer前提を同じ失敗欄に混ぜる | lock済みimageのpull後もdoctorは`IDF_PATH=unset, qemu-system-riscv32=unavailable, cmake=unavailable`をfailとして報告し続ける。これはhost provisional経路の前提であり、authoritative経路（digest固定container）の充足判断と混在する | 中 | なし | doctor出力を`authoritative-path`（image digest一致、docker実行可否、ホスト資源）と`provisional-path`（host toolchain）へ明示分離する。分離は表示の分類に留め、fail-closedの範囲を変えない |
+| O-7 | lock済みimage未取得時に次手順が提示されない | doctorはネットワークpullを行わないため新規workspaceでは必ず未取得でfail-closedするが、`docker pull <image>@<digest>`に相当する次手順は出力されない | 低 | なし | 失敗メッセージへ`docker/image-digests.json`から生成したdigest固定のpullコマンド行を出力する（実行はしない）。opt-inのpullを設ける場合もdigest固定参照のみ許可する |
+| O-8 | 実行記録の収集入口がlane logと実機workspaceを対象にしていない | N-12に対して追加された`scripts/export_execution_records.py`はexecution record JSONのallowlist抽出と秘匿化を行うが、本検証で唯一の記録だったbackground実行laneの`logs/*.log`（exit code、image digest、fail-closed理由）は入力に含まれず、実機workspaceからの取得も1件ずつの手作業になった | 低 | N-12 | 収集入口の入力へlane logを加え、log先頭のimage digest・revision・コマンド行を構造化して取り込む。リモートworkspaceからの取得手順を`docs/operations.md`へ明記する。既存の秘匿化と漏洩検出をそのまま適用する |
+| O-9 | `--max-passes`の既定値がlayerごとに異なる | `src/acd/adapters/freerouting/router.py`の`route()`は`max_passes: int = 100`、`src/acd/pipeline/gd1_board.py`のCLIは`default=99999`で、同一概念の既定値が桁違いに異なる | 中 | O-1 | 既定値を単一定数へ集約し、laneのCLIはその定数を参照する。値の根拠（実測の収束pass数）を`docs/`へ記録する |
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -388,3 +414,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 10. L-1〜L-7（マイルストーン14.10後に残る会話駆動loopの不足）。会話経路へのcache・resume・timing・lane並列の接続、候補探索と要件→graphのloop内取り込み、order-total生成、gd1既定値、契約registry・catalog被覆、本書の現状列更新を扱う。
 11. M-1〜M-6（マイルストーン14.11後の再監査）。M-1（筐体却下後の候補探索の自動連結）とM-2（任意graph向け検証lane）はacd-agent内で閉じるため先に扱う。M-3（実見積・実発注のsupplier接続）は外部接続とcredentialに依存し、実装だけでは閉じない。M-4は16.2・16.3、M-5は実機、M-6は境界の維持である。
 12. N-1〜N-12（実機OpenHands環境での新規設計実測）。N-1・N-3・N-5（宣言経路とpreflight、pin function展開）を先に扱い、次にN-2・N-4・N-7・N-11（停止境界が回避行動を誘発する箇所）を解く。N-6は述語追加、N-8〜N-10・N-12は運用と手順の整備である。
+13. O-1〜O-9（宣言経路解消後の`test5`実測）。O-1（`run_tool`のtimeout引数化）とO-9（pass予算既定の単一化）は基板lane到達の前提であり最優先。次にO-2（container起動前のホスト資源検査）、O-5・O-4（一括preflightと語彙の是正）を扱う。O-3・O-6〜O-8は運用と手順の整備である。

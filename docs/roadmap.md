@@ -655,6 +655,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。L-1〜L-6を達成し、topology templateのdata化（`shared_nets`とscope-awareな一意性）、部品catalogの追加経路、USB-C非搭載／電池給電fixtureの到達性まで実装した。電池の充電・保護回路の規範的契約とpredicateは16.2・16.3依存として本範囲外に置く。L-7の再監査を実施し、残る不足を[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のM節（M-1〜M-6）へ根拠・優先度・依存・完了条件付きで記録した。M-1・M-2は14.12、M-3はマイルストーン7のprovider境界の後続、M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当てる。C-1（筐体の干渉解決探索）はマイルストーン11.5で達成済み、C-4（CPL orientation期待値のfixture非依存化）はマイルストーン7の範囲で達成済みである。達成 |
 | 14.12 | 再監査で残った会話駆動loopの不足（M-1・M-2） | 筐体pipelineのfail-closed却下を引き金とした`explore_enclosure_candidates`のloop内自動連結（M-1）と、任意graph向け設計固有検証laneの宣言由来化（M-2）を扱う。探索reportはL2操舵・L3観測のままとし、候補予算とround上限、graph ID・revisionの一致と正規化content hashの変化検査、未宣言を合格としない境界を維持する |
 | 14.13 | 実機実測で残った新規設計の不足（N-1〜N-7、N-11） | 実機OpenHands環境でGD1以外の新規設計を投入した実測で残った不足を扱う。`DesignFixtureSpec`へmechanical・silkscreen・firmware moduleの宣言を追加（N-1）、必須宣言のpreflight（N-3）、parts catalog由来のpin function展開（N-5）、Stop hookのfail-closed停止経路（N-2）、rationale coverageの生成主体検査（N-4）、要件↔topology述語（N-6）、設計反復のみのmode（N-7）、生成器による手編集上書きの防止（N-11）。判定と閾値は緩めず、未宣言・unknownを合格へ倒さない |
+| 14.14 | 宣言経路解消後の実機実測で残った不足（O-1、O-2、O-4、O-5、O-9） | N-1・N-5の解消後に実機OpenHands（workspace `test5`）へ新規小規模設計`pulse-check-tag`を投入した実測で残った不足を扱う。`run_tool`のtimeout引数化とtimeout収束状態の区別（O-1）、routerのpass予算既定の単一定数化（O-9）、container起動前のホスト資源検査とdoctor項目追加（O-2）、lane別必須宣言の一括preflightをlane入口と同一述語で提供（O-5）、preflight語彙と診断限定の機械可読表明（O-4）。判定と閾値は緩めず、timeout・unknown・未宣言を合格へ倒さない |
 
 C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
@@ -666,6 +667,9 @@ M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当て
 [`examples/mini-blink-dongle-20260825/`](../examples/mini-blink-dongle-20260825/)）で残った
 N-1〜N-12のうち、acd-agent内で閉じるN-1〜N-7とN-11は14.13で扱い、運用・手順側のN-8〜N-10と
 N-12はマイルストーン15.10〜15.13へ割り当てる。
+N-1・N-5の解消後の実機実測（[`examples/pulse-check-tag-20260825/`](../examples/pulse-check-tag-20260825/)）で
+残ったO-1〜O-9のうち、acd-agent内で閉じるO-1・O-2・O-4・O-5・O-9は14.14で扱い、
+運用・手順側のO-3・O-6〜O-8はマイルストーン15.14〜15.16へ割り当てる。
 
 ### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
 
@@ -741,8 +745,11 @@ authoritative Evidenceが唯一の合否根拠である。実測値と運用上�
 | 15.11 | lane scriptのCLI引数統一（N-9） | `run_fw_pipeline.py`が`--graph`を受け付けない等の不統一を解消し、`--fixture`＋`--out`へ揃える。旧引数は明示エラーで案内する |
 | 15.12 | graph単体検証入口の明確化（N-10） | 存在しない`scripts/validate_design_graph.py`への案内を解消し、graph検証の正規経路（preflightまたはlane入口検査）を`docs/`へ明記する |
 | 15.13 | 実機実行記録の持ち出し経路（N-12） | 実行記録から公開可能な最小集合を収集する入口を用意し、ホスト名・エンドポイント・ユーザー名の秘匿化を既定にする。秘匿化漏れの検出をnegative testで固定する |
+| 15.14 | 長時間laneのbackground実行手順とlog契約（O-3） | 長時間laneをbackground＋logで実行し、同時に1本だけ起動してtail／grepで確認する手順を`docs/operations.md`へ明記する。log先頭へimage digest・revision・コマンド行を必ず記録する |
+| 15.15 | doctor出力のauthoritative／provisional分離と次手順提示（O-6・O-7） | doctor出力をauthoritative経路（image digest一致、docker実行可否、ホスト資源）とprovisional経路（host toolchain）へ分離し、lock済みimage未取得時にdigest固定のpullコマンド行を提示する（実行はしない）。分離は表示の分類に留め、fail-closedの範囲を変えない |
+| 15.16 | 収集入口へのlane log取り込み（O-8） | `scripts/export_execution_records.py`の入力へlane logを加え、log先頭のimage digest・revision・コマンド行とexit codeを構造化して取り込む。既存の秘匿化と漏洩検出をそのまま適用し、リモートworkspaceからの取得手順を`docs/operations.md`へ明記する |
 
-15.1〜15.13は達成済みである。15.1〜15.4と15.12は運用手順・設計文書側の明記で完了し、
+15.1〜15.13は達成済みであり、15.14〜15.16は未着手である。15.1〜15.4と15.12は運用手順・設計文書側の明記で完了し、
 15.5はlane runnerのログ要約（既定tailと完全ログの別途保存）、15.10は
 container出力の`out/container/`分離と権限・環境起因失敗の分類、15.11は`--fixture`＋
 `--out`へ統一したlane CLI（旧引数は明示エラー）、15.13は
@@ -1063,6 +1070,15 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （実機実測）N-10 graph単体検証入口の明確化 | 15.12 |
 | （実機実測）N-11 生成器による既存入力上書きの防止 | 14.13 |
 | （実機実測）N-12 実機実行記録の持ち出し経路と秘匿化 | 15.13 |
+| （実機実測）O-1 `run_tool`のtimeout引数化とtimeout収束状態の区別 | 14.14 |
+| （実機実測）O-2 container起動前のホスト資源検査 | 14.14 |
+| （実機実測）O-3 長時間laneのbackground実行手順とlog契約 | 15.14 |
+| （実機実測）O-4 preflight語彙と診断限定の表明 | 14.14 |
+| （実機実測）O-5 lane別必須宣言の一括preflight | 14.14 |
+| （実機実測）O-6 doctor出力のauthoritative／provisional分離 | 15.15 |
+| （実機実測）O-7 lock済みimage未取得時のpullコマンド提示 | 15.15 |
+| （実機実測）O-8 収集入口へのlane log取り込み | 15.16 |
+| （実機実測）O-9 router pass予算既定の単一定数化 | 14.14 |
 
 ## 将来構想
 
