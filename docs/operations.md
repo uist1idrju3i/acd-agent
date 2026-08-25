@@ -938,7 +938,10 @@ SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
 `tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する
 既存契約を維持する。wrapper変更はimage変更なので、mainの`docker/**`変更で
-`publish-acd-tools.yml`が実行される。publish job summaryのGHCR digestを確認してから
+`publish-acd-tools.yml`が実行される。build contextを決める`.dockerignore`も
+同じtriggerに含める。SCC warm-upが`examples/sensor-node-20260820/board/gd1.dsn`を
+COPYするため、`.dockerignore`はこの1ファイルだけを例外として残す。
+publish job summaryのGHCR digestを確認してから
 `docker/image-digests.json`へ転記し、lockのdigestを推測・手書きしてはならない。
 JRE移行後もlockのdigestと`java`ツール版文字列はpublish完了まで旧HotSpot imageの値の
 ままである。

@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "docker/**"
+      - ".dockerignore"
       - "plugins/acd/skills/**"
       - "scripts/probe_pinned_acd_graph.py"
       - "!docker/image-digests.json"
