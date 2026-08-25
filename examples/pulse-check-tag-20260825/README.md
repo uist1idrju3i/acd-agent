@@ -22,8 +22,11 @@ tact switch 1個、22 × 16 mm 2層、部品10点前後）で、MCUのみGD1と�
 - **基板lane以降は未通過。** FreeRoutingが`--max-passes 99999`（CLI既定）でも
   `--max-passes 10`でも600秒のsubprocess timeoutに達してfail-closedした。
   `convergence_state = converged`の記録は存在しない。
-- **FW lane、筐体lane、order-total集約、pre-orderゲートは未実行**である（実機OpenHandsの
-  クラッシュにより到達しなかった）。
+- **FW lane、筐体lane、order-total集約、pre-orderゲートはいずれも合格していない。** FW laneは
+  `no firmware pin assignment for net 'net.i2c_sda'`（lane実装がGD1のnet集合を固定）、
+  筐体laneは入口の`rationale coverage failed: missing=94`（entrypointがGD1固定）、
+  order-total集約は必須入力`QuoteRecord`／`OrderScope`の不在、pre-orderゲートは
+  order-total未生成でfail-closedした。発注policy自体もGD1固定である。
 - **実発注、見積取得、supplier API呼び出し、決済、注文確定は一切行っていない。**
   実発注はユーザーが実施する。
 - 実行環境の識別情報（ホスト名、ドメイン、エンドポイント、ユーザー名、鍵、token、API key）は

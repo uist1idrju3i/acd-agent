@@ -32,14 +32,23 @@ VibeBB（Vibe BreadBoarding）が成立するかを検証した結果の報告�
 3. **基板lane以降は通過していない。** digest固定container内のFreeRoutingが、pass予算
    `--max-passes 99999`（CLI既定）でも`--max-passes 10`でも`run_tool`の固定600秒timeoutに達し、
    fail-closedで停止した。`convergence_state`が`converged`になった証拠は存在しない。
-4. **authoritative Evidenceは1件も成立していない。** silkscreen laneはdigest固定container内で
+4. **筐体lane・order-total・pre-orderゲートも、いずれも合格に到達しない。** 筐体laneは
+   entrypointが`scripts/run_gd1_enclosure_pipeline.py`固定で、`pulse-check-tag`には
+   `mechanical.enclosure`／`mechanical.component_body`ノードが無く、入口の
+   `validate_and_project_rationale`で`rationale coverage failed: missing=94`となった。
+   order-total集約は必須入力`--quote-record`（`QuoteRecord`）と`OrderScope`が
+   fixtureに存在せず実行できない。pre-orderゲートはorder-totalが無いため入力欠損で停止し、
+   `plugins/acd/hooks/order-policy.json`の`required_evidence_ids`と`design_graph_paths`も
+   GD1固定である（§4-2、Q-12）。
+5. **authoritative Evidenceは1件も成立していない。** silkscreen laneはdigest固定container内で
    `status: "resolved"`まで到達したが、これはresolverの出力であってrevision一致・
    `status="valid"`のauthoritative Evidence（`evidence-electrical.json`／
-   `evidence-mechanical.json`相当）ではない。order-total集約とpre-orderゲートは未実行である。
-5. **fail-closedは全段で正しく働いた。** 属性不足、`unknown`、library不足、timeoutのいずれも
+   `evidence-mechanical.json`相当）ではない。したがって「acd-agent単体でVibeBBを実現できた」とは
+   結論できない。
+6. **fail-closedは全段で正しく働いた。** 属性不足、`unknown`、library不足、timeoutのいずれも
    合格側へ倒れず、11件の設計不足を順に検出した（§5）。本検証で閾値・期待値・evidence規則を
    緩めた箇所は無い。
-6. **実機側の実行基盤も律速である。** container gate実行中にOpenHands側で
+7. **実機側の実行基盤も律速である。** container gate実行中にOpenHands側で
    `A restart occurred while this tool was in progress`（fatal memory error / system crash）が
    4回以上発生し、そのたびにSSHが数分〜数十分不応答となり、最終的にOpenHandsサーバプロセス
    自体が停止した。container既定メモリ上限8 GiBに対しホスト実装容量が足りていない
@@ -91,15 +100,31 @@ doctorが自動pullしない挙動、および未取得を`unknown`扱いでfail
 | lane | 実行経路 | 結果 | 分類 |
 |---|---|---|---|
 | fixture生成 | host（`build_design_fixture.py`） | 初回は`comp.d1`の`value`欠落で停止、宣言修正後に生成成功 | provisional（生成物であり判定ではない） |
-| preflight | host | `board-pipeline: ready`／`firmware-pipeline: ready`／`silkscreen-resolve: ready`／`rationale coverage: pass` | diagnostic observation（L1判定ではない） |
+| preflight | host | `board-pipeline: ready`／`firmware-pipeline: ready`／`silkscreen-resolve: ready`／`rationale coverage: pass` | diagnostic observation（L1判定ではない。なお`rationale coverage`はhook側の固定パス判定であり対象設計を見ていない。Q-13） |
 | silkscreen resolve | digest固定container | `status: "resolved"`（11件のfail-closedを解消した後） | container実行の成功。authoritative Evidenceそのものではない |
 | 基板 | digest固定container（`--max-passes 99999`＝CLI既定） | `PIPELINE FAILED (fail-closed)`: FreeRoutingが600秒でtimeout | fail-closed（未合格） |
 | 基板 | digest固定container（`--max-passes 10`） | 同じく600秒でtimeout、exit code 1 | fail-closed（未合格） |
 | FW | digest固定container（`--memory-limit 1g`） | `PIPELINE FAILED: node 'comp.c1': attr 'mpn' missing or not a string`（宣言不足）。MPNとrationaleを補った後は`PIPELINE FAILED: no firmware pin assignment for net 'net.i2c_sda'` | fail-closed（未合格。後者はlane実装側のGD1固定が原因、Q-10） |
-| 筐体 | digest固定container | **未実行** | 未検証 |
-| order-total集約 | — | **未実行** | 未検証 |
-| pre-orderゲート／order readiness | — | **未実行** | 未検証 |
+| 筐体 | digest固定container（`--memory-limit 1g`） | `PIPELINE FAILED (fail-closed): rationale coverage failed: missing=94, stale=0, orphan=0, conflicting=0, unknown_provenance=0, untraceable=0, unclassified=0`、exit code 1 | fail-closed（未合格。entrypointがGD1固定、Q-12） |
+| order-total集約 | host（`aggregate_order_total.py`） | 必須引数`--quote-record`の不足で実行拒否、exit code 2 | fail-closed（未合格。入力`QuoteRecord`／`OrderScope`が存在しない） |
+| pre-orderゲート／order readiness | host（`pre_order_gate.py --check-only`） | `could not parse order total`、exit code 2 | fail-closed（未合格。order-total未生成、policyもGD1固定） |
 | 実発注・見積・supplier API・決済 | — | **未実施**（ユーザーが実施予定） | 対象外 |
+
+## 4-2. 筐体・order-total・pre-orderの実行結果
+
+基板・FW laneに続き、残る3段をdigest固定container（筐体）とhost（集約・ゲート）で実行した。
+いずれも合格しておらず、Evidenceも生成されていない。
+
+| 段 | 到達stage | fail-closedメッセージ | 直接原因 |
+|---|---|---|---|
+| 筐体lane | `validate_and_project_rationale`（`[0/5]`の前） | `rationale coverage failed: missing=94, stale=0, orphan=0, conflicting=0, unknown_provenance=0, untraceable=0, unclassified=0` | `scripts/run_design_lanes.py`は`enclosure`に対し`scripts/run_gd1_enclosure_pipeline.py`（docstringは`Golden Design #1 mechanical pipeline`）を固定で呼ぶ。`pulse-check-tag`には`mechanical.enclosure`・`mechanical.component_body`ノードが無く、`mechanical.outline`にも`mount_hole_count`が無い。加えてgraph全体で94件のrationaleが不足している |
+| order-total集約 | なし（引数検証） | `aggregate_order_total.py: error: the following arguments are required: --quote-record/--quote` | 必須入力の`QuoteRecord`（部品原価、PCB／PCBA見積、筐体費用）と`OrderScope`が`fixtures/pulse-check-tag`配下・`evidence/`・`out/`のいずれにも存在しない。実見積を取得しない条件では生成経路が無い |
+| pre-orderゲート | なし（order-total読込） | `could not parse order total` | order-totalが無い。さらに`plugins/acd/hooks/order-policy.json`は`required_evidence_ids`を`["evidence.gd1.electrical", "evidence.gd1.mechanical"]`、`design_graph_paths`を`["fixtures/golden-design-1/graph.json"]`で固定しており、GD1以外の設計は発注可否判定の対象にならない |
+
+筐体laneの不足を埋めるには機械設計ノードと94件のrationaleを新規宣言する必要があるが、
+部品寸法・筐体構成の実データが無い状態でこれを埋めることは架空宣言の追加になるため行わなかった。
+またorder-total集約はダミー値を作らず未生成のまま記録した（ゲート側は不正な入力を
+`could not parse order total`で正しく拒否した）。
 
 ## 5. fail-closedの検出列（設計入力の不足）
 
@@ -220,14 +245,14 @@ hook scriptへ直接payloadを与えた検査（host実行、参考値）では�
 - 新規設計のauthoritative Evidence生成（基板・筐体・FWのいずれも未成立）。
 - FreeRoutingの収束実測（`-mp 1`直接実行による所要時間とunrouted数の推移は未取得）。
 - FW laneのビルドとQEMU仮想実行（`[1/5]`にも到達しておらず、`[2/5]`〜`[5/5]`は未実行）。
-- 筐体laneの実行。
-- order-total集約とpre-orderゲート／order readiness判定。
+- 筐体laneの`[1/5]`以降（入口のrationale被覆で停止）。
+- order readinessの判定表示（order-totalが生成できないため、判定そのものを表示できていない）。
 - 実発注、見積取得、supplier接続、決済（ユーザーが実施予定であり、本検証では対象外）。
 - 自然文要件から`DesignFixtureSpec`への変換の決定論的検証（この工程は現状L2に依存する）。
 
 ## 10. 改善提案
 
-11件を[`improvement-notes.md`](improvement-notes.md)へQ-1〜Q-11として整理した。優先度上位は次の5件。
+13件を[`improvement-notes.md`](improvement-notes.md)へQ-1〜Q-13として整理した。優先度上位は次の6件。
 
 1. `run_tool`のtimeoutを引数化し、`--max-passes`の既定値を単一定数へ集約する（Q-1、Q-9）。
    現状の既定値では基板laneが規模に依らずtimeoutする。
@@ -238,5 +263,8 @@ hook scriptへ直接payloadを与えた検査（host実行、参考値）では�
 4. projection guardの対象を生成物への書き込みに限定し、laneの出力先指定と
    `out/stop-report.json`の記録を許可する（Q-11）。現状は規定の停止経路が塞がれ、
    引用を変えると迂回できる。
-5. lane必須宣言の一括preflightを、各laneの入口検査と同一述語で提供する（Q-4、Q-5）。
+5. 筐体lane entrypointと発注policyのGD1固定を解消し、order-totalの入力（`QuoteRecord`／
+   `OrderScope`）を設計から導出できるようにする（Q-12）。現状はGD1以外の設計が
+   order readiness判定に到達できない。
+6. lane必須宣言の一括preflightを、各laneの入口検査と同一述語で提供する（Q-4、Q-5）。
    現状は11往復のcontainer起動を要し、Q-2のクラッシュリスクを往復ごとに引く。

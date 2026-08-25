@@ -6,10 +6,10 @@
 前回検証（`mini-blink-dongle`、workspace `test4`）で挙げたN-1〜N-12のうち、
 宣言経路（N-1）とpin function展開（N-5）は解消済みであることを本検証で確認した
 （silkscreen laneがcontainer内でauthoritative候補として`resolved`まで到達した）。
-本書のQ-1〜Q-11は、その先で新たに顕在化した課題である。同じ内容を根拠・依存・完了条件付きで
-[`docs/vibebb-gap-analysis.md`](../../../docs/vibebb-gap-analysis.md)のO節（O-1〜O-11）へ記録し、
+本書のQ-1〜Q-13は、その先で新たに顕在化した課題である。同じ内容を根拠・依存・完了条件付きで
+[`docs/vibebb-gap-analysis.md`](../../../docs/vibebb-gap-analysis.md)のO節（O-1〜O-13）へ記録し、
 実装計画としては[`docs/roadmap.md`](../../../docs/roadmap.md)の14.14と15.14〜15.16へ割り当てた。
-対応は Q-1→O-1、Q-2→O-2、Q-3→O-3、Q-4→O-4、Q-5→O-5、Q-6→O-6、Q-7→O-7、Q-8→O-8、Q-9→O-9、Q-10→O-10、Q-11→O-11 である。
+対応は Q-1→O-1、Q-2→O-2、Q-3→O-3、Q-4→O-4、Q-5→O-5、Q-6→O-6、Q-7→O-7、Q-8→O-8、Q-9→O-9、Q-10→O-10、Q-11→O-11、Q-12→O-12、Q-13→O-13 である。
 いずれも既存の閾値、ゲート挙動、fail-closed境界、L1の合否権限を緩める提案は含まない。
 
 | 本書 | 種別 | 影響 |
@@ -25,6 +25,8 @@
 | Q-9 | 契約 | `--max-passes`の既定値がlayerごとに異なる |
 | Q-10 | ゲート実装 | FW laneがGD1のnet集合とGD1のapplication codeを定数で持ち、他設計では通らない |
 | Q-11 | hook契約 | projection guardがlane起動コマンドとstop reportの記録をdenyし、引用を変えると通る |
+| Q-12 | ゲート実装 | 筐体lane entrypointと発注policyがGD1固定で、GD1以外はorder readiness判定に到達できない |
+| Q-13 | 診断 | stop hookのrationale被覆検査がGD1固定パスだけを見て、対象設計と無関係に`pass`を表示する |
 
 ## Q-1 FreeRoutingの固定600秒timeoutとpass予算の既定値の組み合わせ（最優先）
 
@@ -296,3 +298,67 @@ denyする。このため次の2つが同時に起きる。
   同じ判定に落ちるようにする（少なくとも「解析不能なら保守的にdeny」へ倒す）。
 - 2つのhookの契約が矛盾していないことを、`out/stop-report.json`書き込みとlane起動形の
   両方について回帰テストで固定する。
+
+## Q-12 筐体lane entrypointと発注policyがGD1固定で、GD1以外は発注可否判定に到達できない（最優先）
+
+`scripts/run_design_lanes.py`は`enclosure`に対して`scripts/run_gd1_enclosure_pipeline.py`
+（docstringは`Golden Design #1 mechanical pipeline`）を固定で呼び、実装も
+`src/acd/pipeline/gd1_enclosure.py`である。実機では`pulse-check-tag`に対し、入口の
+`validate_and_project_rationale`で次のようにfail-closedした。
+
+```text
+PIPELINE FAILED (fail-closed): rationale coverage failed: missing=94, stale=0, orphan=0,
+conflicting=0, unknown_provenance=0, untraceable=0, unclassified=0
+```
+
+`pulse-check-tag`のgraphには`mechanical.enclosure`・`mechanical.component_body`ノードが無く、
+`mechanical.outline`にも`mount_hole_count`が無い。加えてgraph全体で94件のrationaleが不足する。
+部品寸法・筐体構成の実データが無い状態でこれらを宣言することは架空宣言の追加になるため行わなかった。
+
+発注側も同様にGD1固定である。
+
+- `scripts/aggregate_order_total.py`は`--quote-record`（`QuoteRecord`）を必須引数とし、
+  `OrderScope`も要求するが、いずれも設計fixtureから導出する経路が無い。実機では
+  `error: the following arguments are required: --quote-record/--quote`で停止した。
+- `scripts/pre_order_gate.py`はorder-totalを入力に取るため、上記が無いと
+  `could not parse order total`で停止する。
+- `plugins/acd/hooks/order-policy.json`は`required_evidence_ids`を
+  `["evidence.gd1.electrical", "evidence.gd1.mechanical"]`、`design_graph_paths`を
+  `["fixtures/golden-design-1/graph.json"]`で固定している。GD1以外の設計は、
+  Evidenceが揃ったとしてもこのpolicyの対象にならない。
+
+提案:
+
+- 筐体laneのentrypointを設計非依存にし、必要な機械設計ノード・属性・rationaleの集合を
+  graph宣言（機械ブロック宣言と部品body宣言）から導出する。
+- 不足時は1件ずつではなく、必要ノード・属性・rationaleの不足一覧を機械可読に返す（Q-5と同じ入口）。
+- `QuoteRecord`と`OrderScope`を設計fixtureとfab profileから生成する決定論的経路を用意する。
+  見積の実値が無い場合はfail-closedのままにし、dummy値の生成は許可しない。
+- `order-policy.json`の`design_graph_paths`と`required_evidence_ids`を対象設計から解決する
+  形式へ変更する（設計IDごとのEvidence ID規則を宣言する）。既定の禁止範囲・上限額・
+  transmission検査は変えない。
+- GD1以外の設計でorder readiness判定（合格・不合格のいずれでも）が表示されることを回帰テストで固定する。
+
+## Q-13 stop hookのrationale被覆検査がGD1固定パスだけを見て、対象設計と無関係に`pass`を表示する
+
+`plugins/acd/hooks/scripts/check_rationale.py`は検査対象を
+
+```python
+GRAPH_PATH = "fixtures/golden-design-1/graph.json"
+RATIONALE_PATH = "fixtures/golden-design-1/rationale.json"
+```
+
+で固定しており、`scripts/check_rationale.py`の既定値も同じGD1パスである。このため
+`pulse-check-tag`を対象に作業している間も、hookは`Rationale coverage: pass`を出力し続けた。
+一方で同じ設計に対する筐体laneの入口検査は`missing=94`でfail-closedしている。
+hookはL2の停止側検査なので合否権限は無いが、対象設計を見ていない`pass`表示は
+「rationaleは足りている」という誤読を生む（Q-4と同種の語彙問題であり、今回はより強い形で現れた）。
+
+提案:
+
+- hookの検査対象を、会話で宣言された対象設計（workspaceの対象fixture）から解決する。
+  解決できない場合は`not_applicable`と明示し、`pass`という語を使わない。
+- 出力へ検査対象graphのパスとrevisionを必ず含める。
+- GD1固定パスの既定値に依存した`pass`表示が発生しないことをnegative testで固定する
+  （対象設計のrationaleが不足しているとき、hookが`pass`を出さないこと）。
+- 停止権限とfail-closed境界は変えない。hookは引き続き合格側へ作用しない。
