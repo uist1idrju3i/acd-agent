@@ -5,5 +5,12 @@ out
 .pytest_cache
 .ruff_cache
 examples
+# The acd-tools image warms the FreeRouting shared class cache with the GD1 DSN
+# at build time, so that single file has to stay in the build context. Every
+# parent directory needs its own exception for the walker to reach it.
+!examples/
+!examples/sensor-node-20260820/
+!examples/sensor-node-20260820/board/
+!examples/sensor-node-20260820/board/gd1.dsn
 docs
 tests
