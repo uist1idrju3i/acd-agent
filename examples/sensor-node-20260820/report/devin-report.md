@@ -119,8 +119,11 @@ OpenHands Local GUIの使用量表示:
 - ピン整合: LED=IO7(pad21)、SDA=IO4(pad18)、SCL=IO5(pad19)、BOOT=IO9(pad23)、
   UART TX=IO21(pad31)/RX=IO20(pad30)、USB D-=IO18(pad26)/D+=IO19(pad27)
 - ESP-IDF v5.3.1 ビルド成功: `acd_gd1_fw.bin`（0x30600 bytes、パーティション81% free）
-- QEMU 9.2.2（esp_develop_9.2.2_20260417）で15秒実行: IO7 LED heartbeat 500ms周期を確認。
+- QEMU 9.2.2（esp_develop_9.2.2_20260417）で15秒実行: IO7 LED heartbeat 1Hz（1秒周期）を確認。
   SHT40のI2CエラーはQEMUにセンサモデルが無いための期待動作
+- 実機動作確認（2026-08-30）: esptool v5.3.1で実機ESP32-C3 (rev v0.4) へ`flash.bin`を書き込み、
+  `verify-flash`でdigest一致を確認。IO7 LED 1Hz heartbeatとSHT40実測（~31.9°C / ~47.2% RH、
+  2秒周期）をシリアルログで確認。実機観測は参考観測でありauthoritative Evidence経路の生成物ではない
 - `summary.json`: `target_revision=r1`、`source_hash`・`artifact_hash`記録済み
 
 ### Evidence検証
@@ -136,9 +139,17 @@ revision一致（r1）・`status="valid"`・既知のcontainer provenance・dige
 - 出力ファイル名prefixが`gd1`固定であり、evidenceの`subject_node`も
   `electrical.board.gd1`ハードコード（graph実ノードは`board.sensor-node`）。
   ゲート判定には影響しないがprovenance上紛らわしい（改善提案に記載）。
-- 実機書き込み・LED/センサ実測は未実施（デバッグプローブ不在）。QEMU結果は
-  仮想検証でありEvidenceの代替ではない。
+- 実機書き込み・LED/センサ実測は2026-08-30に実施した（§5 FW節に記録）。QEMU結果は
+  仮想検証でありEvidenceの代替ではないが、実機観測も参考観測扱いである。
 - FW成果物ディレクトリ名も`acd_gd1_fw`固定。
+- 筐体設計不具合（2026-08-30実機組み付けで確認）:
+  - **アンテナ干渉**: ESP32-C3-MINI-1アンテナ（5.4mm突出）が筐体シェル壁と干渉し組み付け不可。
+    根因は`extract_mechanical_lane()`が`mechanical.board_edge_overhang`ノードを未消費で、
+    `_build_shapes()`が単純箱型シェルを生成するため。干渉ゲートもoverhangを3D固体として
+    評価しないため0.0mm³でpassしてしまう。
+  - **ネジ穴欠落**: スタンドオフが貫通穴のない固体円柱で、リッドも平板のため締結不可。
+    推奨方針は熱圧入インサート（M2）。詳細は`review-notes.md` §4.7/4.8 および
+    `improvement-notes.md`の筐体pipeline節を参照。コード修正は別タスク。
 
 ## 7. 気づき・改善提案
 

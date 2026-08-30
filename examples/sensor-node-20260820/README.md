@@ -57,7 +57,7 @@ Golden Design #1（GD1）の要件・設計入力を用いた、小規模製品�
   normalized hashes 4/4 verified
 - FW: ピン整合 全pass（LED=IO7、SDA=IO4、SCL=IO5、BOOT=IO9、UART TX=IO21/RX=IO20、
   USB D-=IO18/D+=IO19）/ ESP-IDF v5.3.1 ビルド成功 / QEMU（Espressif fork 9.2.2）実行で
-  IO7 LED heartbeat（500ms周期）を確認
+  IO7 LED heartbeat（1Hz・1秒周期）を確認
 
 authoritative Evidence: `board/evidence-electrical.json`・`enclosure/evidence-mechanical.json`
 （`scripts/verify_authoritative_evidence.py`でrevision一致・valid・container provenanceを検証済み）。
@@ -114,9 +114,73 @@ QEMU実行は仮想検証であり、実測Evidenceの代替ではない。
   ことを確認済みだが、raw export zip（`base_state.json`）は実行ホスト名やLLMエンドポイントを
   含んでいたため削除した。以降、raw export zipは収録しない。
 
+## 実機動作確認（2026-08-30）
+
+QEMU仮想検証に加え、実機ESP32-C3へ`flash.bin`を書き込んで動作確認した。
+
+| 項目 | 値 |
+|---|---|
+| 書き込み対象 | ESP32-C3 (QFN32, rev v0.4, Embedded Flash 4MB XMC, MAC `e8:3d:c1:21:39:34`) |
+| 接続 | USB JTAG/serial debug unit @ `/dev/cu.usbmodem124101` |
+| ツール | esptool v5.3.1（Homebrew）、GPL-2.0-or-later（ホストツールとして使用、ACDへはimportしない） |
+| 書き込み | `esptool --chip esp32c3 -b 460800 write-flash 0x0 flash.bin`（4MB、5.3秒、`Hash of data verified`） |
+| 読み戻し照合 | `verify-flash` で `Verification successful (digest matched)` |
+| LED | IO7 で 1Hz（1秒周期）のheartbeat点滅を確認。FW定義 `ACD_LED_BLINK_PERIOD_MS 1000` と一致 |
+| SHT40 | 実センサ読み取り ~31.9°C / ~47.2% RH を2秒周期で取得（QEMUログの「no SHT40 attached」とは異なり実機にはSHT40が実装） |
+
+実機シリアルログの抜粋:
+
+```
+I (29504) acd_gd1: LED gpio=7 state=1
+I (30004) acd_gd1: LED gpio=7 state=0        ← 1Hz（1秒周期）のheartbeat
+I (30514) acd_gd1: SHT40 temp_c=31.89 rh=47.40
+I (32524) acd_gd1: SHT40 temp_c=31.91 rh=47.18   ← 2秒周期のセンサ読み取り
+```
+
+注記: 実機観測（LED・SHT40実測値）は参考観測であり、authoritative Evidence経路
+（digest固定container）で生成されたものではない。QEMU仮想検証Evidenceを実機Evidenceへ
+昇格させるものではない。esptoolはGPL-2.0-or-laterのホストツールであり、ACDコードへは
+import結合しない（AGENTS.mdのGPL/AGPL import不変条件に抵触しない）。
+
+## 筐体設計上の既知の問題
+
+実機への組み付けを試みた結果、筐体（`enclosure/`）に2つの設計不具合があることを確認した。
+いずれもenclosure pipelineコードの不具合に起因する。生成物（STEP/3MF）は変更せず、
+問題の記録と推奨修正方針を本節に残す。コード修正は別タスクで扱う。
+
+### アンテナ干渉
+
+ESP32-C3-MINI-1のアンテナは基板端から5.4mm突出する（`mechanical.board_edge_overhang.u1`、
+GD1-REQ-015）。しかし生成された筐体シェルは単純箱型で、アンテナ突出部を考慮した切欠きがなく、
+シェル壁がアンテナ領域と物理干渉するため組み付けられない。
+
+根因: `fixture/graph.json`に`mechanical.board_edge_overhang`ノードが定義されているが、
+`extract_mechanical_lane()`（`src/acd/core/mechanical.py`）がこのノードを抽出せず、
+`_build_shapes()`（`src/acd/adapters/cad/project.py`）が単純箱型シェルを生成する。
+また`run_mechanical_gates()`の干渉検査がoverhangを3D固体としてモデル化しないため、
+干渉ゲートが0.0mm³でpassしてしまう。`enclosure/rationale.md`にはoverhang設計判断が
+記録されているのに、コードがそれを実装していない。
+
+推奨修正方針: アンテナ突出領域に対応するシェル切欠きを`_build_shapes()`へ追加し、
+`extract_mechanical_lane()`で`board_edge_overhang`ノードを消費する。干渉ゲートへ
+overhang由来の3D固体を含める。
+
+### ネジ穴欠落
+
+基板にはM2取付穴×4（graph.json: `mounting_hole_m2_count: 4`）があるが、生成された
+スタンドオフは貫通穴のない固体円柱で、リッドも平板であり、リッドをシェルへ固定する
+手段がない。
+
+根因: `_build_shapes()`がスタンドオフを固体円柱（`Cylinder`）として生成し、貫通穴を
+開けない。リッドも平板（`Box`）でネジ穴がない。
+
+推奨ネジ穴方式: **熱圧入インサート（M2）**。PETGは比較的柔らかくタップ穴ではネジ山が
+ストリップしやすいため、熱圧入インサートが最も強固。スタンドオフにインサート用穴
+（φ3.5mm程度）、リッドにM2通し穴（φ2.2mm）、ネジはリッド側から締める構造を推奨する。
+
 ## 注意事項
 
 - JLCPCBへの発注送信は行っていない（価格・在庫・総発注額はunknown）。
-- 実機への書き込み・LED/センサの実測は未実施（QEMU仮想検証のみ）。
+- 実機への書き込み・LED/センサの実測は2026-08-30に実施した（上記「実機動作確認」節）。
 - 本フォルダは生成物の凍結スナップショットであり、設計入力へ逆流させない
   （投影を入力へ逆流させないというリポジトリ不変条件に従う）。

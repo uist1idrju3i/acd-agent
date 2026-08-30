@@ -12,7 +12,7 @@
 - **DFM**: status=pass、findings 0件。配線幅は全ネット0.15mmでDSNクラス投影と一致、via 24個、GNDプレーン連結成分1（分断なし）。
 - **rationale coverage**: 669/669（missing/stale/orphan/unclassified 0）— board・enclosure両laneでgraph_id/revision一致。
 - **BOM/CPL**: 13行のBOM全行にLCSC部品番号あり。設計意図と一致（CC=5.1kΩ×2、I2Cプルアップ4.7kΩ×2、EN=10k、LED=1k、SHT40 DFN-4、ESP32-C3-MINI-1、AMS1117）。CPLは19部品全てTop、回転値も整然。
-- **FWとgraphのピン整合**: `acd_pins.h`（LED=7, SDA=4, SCL=5, UART=21/20, BOOT=9, USB=18/19, SHT40=0x44）が設計graphと一致。QEMUログでLEDハートビート動作を確認（SHT40エラーは仮想環境で期待どおり）。
+- **FWとgraphのピン整合**: `acd_pins.h`（LED=7, SDA=4, SCL=5, UART=21/20, BOOT=9, USB=18/19, SHT40=0x44）が設計graphと一致。QEMUログでLEDハートビート動作を確認（SHT40エラーは仮想環境で期待どおり）。2026-08-30に実機ESP32-C3へ書き込み、IO7 LED 1Hz（1秒周期）とSHT40実測（~31.9°C / ~47.2% RH）を確認した。
 - **Evidence**: electrical/mechanicalともdigest固定container（cc605baf…）でstatus=valid、revision r1一致。
 
 ## 3. FWコード品質（良好）
@@ -42,6 +42,22 @@ DFMは14ルールが `checks_not_implemented`（pad-to-track、slot類、solderm
 
 ### 4.6 既知の命名不整合
 出力prefixとevidence subject_nodeが `gd1` 固定（設計はsensor-node）。改善メモ記載済み。graph_idから導出するのが望ましい。
+
+### 4.7 筐体アンテナ干渉（重要・実機組み付けで確認 2026-08-30）
+
+ESP32-C3-MINI-1のアンテナは基板端から5.4mm突出する（`mechanical.board_edge_overhang.u1`、GD1-REQ-015）が、生成された筐体シェルは単純箱型でアンテナ突出部の切欠きがなく、シェル壁がアンテナ領域と物理干渉するため組み付けられない。
+
+根因: `fixture/graph.json`に`mechanical.board_edge_overhang`ノード（edge="top", overhang_mm=5.4）が定義されているが、`extract_mechanical_lane()`（`src/acd/core/mechanical.py`）がこのノードを抽出しない。`_build_shapes()`（`src/acd/adapters/cad/project.py` L35-91）は単純箱型シェルを生成し、アンテナ突出部を考慮しない。`run_mechanical_gates()`（`src/acd/adapters/cad/mechanical.py` L201-289）の干渉検査はcomponent_bodyのみ対象で、overhangを3D固体としてモデル化しないため、干渉ゲートが0.0mm³でpassしてしまう。`enclosure/rationale.md` L232-243にはoverhang設計判断が記録されているのに、コードがそれを実装していない。
+
+→ 改善: `extract_mechanical_lane()`で`board_edge_overhang`ノードを消費し、`_build_shapes()`へアンテナ突出領域のシェル切欠きを追加する。干渉ゲートへoverhang由来の3D固体を含める。これは決定論的ゲートが実機の物理干渉を見逃した事例であり、ゲートの信頼性に関わる重要な修正である。
+
+### 4.8 筐体ネジ穴欠落（重要・実機組み付けで確認 2026-08-30）
+
+基板にはM2取付穴×4（graph.json: `mounting_hole_m2_count: 4`、位置 (1.5,1.5),(28.5,1.5),(1.5,23.5),(28.5,23.5)）があるが、生成されたスタンドオフは貫通穴のない固体円柱（`Cylinder` r=2.0mm, h=4.0mm）で、リッドも平板（`Box`）のため、リッドをシェルへ固定する手段がない。
+
+根因: `_build_shapes()`（`src/acd/adapters/cad/project.py` L66-90）がスタンドオフを固体円柱として生成し貫通穴を開けない。リッドも平板でネジ穴がない。`outline.mount_holes`の座標はスタンドオフ位置決めに使われるが、穴として消費されない。
+
+→ 改善: 推奨方式は**熱圧入インサート（M2）**。PETGは比較的柔らかくタップ穴ではネジ山がストリップしやすいため、熱圧入インサートが最も強固。スタンドオフにインサート用穴（φ3.5mm程度）、リッドにM2通し穴（φ2.2mm）、ネジはリッド側から締める構造を推奨する。コード修正は別タスク。
 
 ## 5. 会話履歴レビュー（1,288イベント / 08:49–13:00 UTC）
 
