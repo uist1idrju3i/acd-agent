@@ -3,7 +3,8 @@
 The preflight reports every missing required node and attribute of every lane in
 one pass, so a design iteration does not have to discover the declarations one
 failure at a time. The result is diagnostic: it carries no gate authority, and a
-`ready` status only means the declarations exist, not that the design passes.
+`declarations_complete` status only means the declarations exist; it does not
+mean that the lane gates pass or that the design is ready for ordering.
 """
 
 from __future__ import annotations
@@ -142,6 +143,19 @@ LANE_REQUIREMENTS: Final[dict[str, tuple[LaneNodeRequirement, ...]]] = {
 }
 
 LANE_IDS: Final[tuple[str, ...]] = tuple(sorted(LANE_REQUIREMENTS))
+PREFLIGHT_CHECKED_PREDICATES: Final[tuple[str, ...]] = (
+    "node.declared",
+    "attribute.declared",
+)
+PREFLIGHT_UNCHECKED_PREDICATES: Final[tuple[str, ...]] = (
+    "attribute.type",
+    "attribute.value",
+    "reference.resolved",
+    "rationale.coverage",
+    "tool.available",
+    "gate.executed",
+    "evidence.authoritative",
+)
 
 
 def _lane_report(
@@ -175,7 +189,11 @@ def _lane_report(
                         reason=f"lane {lane} reads this attribute from the graph",
                     )
                 )
-    status = "ready" if not missing_nodes and not missing_attrs else "incomplete"
+    status = (
+        "declarations_complete"
+        if not missing_nodes and not missing_attrs
+        else "declarations_incomplete"
+    )
     return LanePreflightLaneReport(
         lane=lane,
         status=status,
@@ -196,16 +214,25 @@ def run_lane_preflight(
         _lane_report(graph, lane, LANE_REQUIREMENTS[lane]) for lane in selected
     ]
     status = (
-        "ready"
-        if all(report.status == "ready" for report in reports)
-        else "incomplete"
+        "declarations_complete"
+        if all(report.status == "declarations_complete" for report in reports)
+        else "declarations_incomplete"
     )
     return LanePreflightReport(
         graph_id=graph.graph_id,
         revision=graph.revision,
         status=status,
+        checked_predicates=list(PREFLIGHT_CHECKED_PREDICATES),
+        unchecked_predicates=list(PREFLIGHT_UNCHECKED_PREDICATES),
         lanes=reports,
     )
 
 
-__all__ = ["LANE_IDS", "LANE_REQUIREMENTS", "LaneNodeRequirement", "run_lane_preflight"]
+__all__ = [
+    "LANE_IDS",
+    "LANE_REQUIREMENTS",
+    "PREFLIGHT_CHECKED_PREDICATES",
+    "PREFLIGHT_UNCHECKED_PREDICATES",
+    "LaneNodeRequirement",
+    "run_lane_preflight",
+]

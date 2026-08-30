@@ -25,5 +25,7 @@ uv run pytest tests/schema -q
 Validate rationale coverage with:
 
 ```bash
-uv run python scripts/check_rationale.py
+uv run python scripts/check_rationale.py \
+  --graph fixtures/<design>/graph.json \
+  --rationale fixtures/<design>/rationale.json
 ```

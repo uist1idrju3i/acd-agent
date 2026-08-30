@@ -252,6 +252,11 @@ preflightが検査するのは宣言の有無、値の型、mount hole count由�
 参照解決、および抽出失敗だけである。幾何と設計妥当性の判定は
 `run_mechanical_gates`等の決定論的ゲートが担い、preflightで二重実装しない。
 
+lane preflightの状態語彙は`declarations_complete`／`declarations_incomplete`である。
+`declarations_complete`は宣言が揃ったことだけを示し、L1 gate passやorder readinessを
+意味しない。preflight reportは`record_class: "L3"`と`diagnostic_only: true`を持ち、
+L1の合否権限は決定論的lane gateとrevision一致のauthoritative Evidenceだけが持つ。
+
 返り値のキー、ToolEnvelopeの列挙、入力妥当性、fail-closed契約は旧公開方式から
 不変である。MCP client互換層は提供しない。
 

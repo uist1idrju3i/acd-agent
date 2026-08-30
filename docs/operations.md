@@ -282,6 +282,21 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    幾何と設計妥当性の判定は決定論的な機械ゲートが担う。
    preflightは診断専用であり、pass結果だけではauthoritative EvidenceやL1合格を確立しない。
 
+   preflightの述語スコープは次の固定表で管理する。表の述語IDは
+   `PREFLIGHT_CHECKED_PREDICATES`と`PREFLIGHT_UNCHECKED_PREDICATES`に一致する。
+
+   | Predicate | Classification | Evaluation owner |
+   |---|---|---|
+   | `node.declared` | checked | lane preflight |
+   | `attribute.declared` | checked | lane preflight |
+   | `attribute.type` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
+   | `attribute.value` | unchecked | `extract_*_lane`／決定論的ゲート |
+   | `reference.resolved` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
+   | `rationale.coverage` | unchecked | `check_rationale_coverage` |
+   | `tool.available` | unchecked | lane入口／tool probe |
+   | `gate.executed` | unchecked | laneゲート |
+   | `evidence.authoritative` | unchecked | Evidence validation |
+
    2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
    `--pipeline-workers 1`で`8.309`秒、`--pipeline-workers 4`で`26.492`秒だった。
    4 workerのspawnと`build123d` warm-upだけを分離測定すると、runner生成は`0.001`秒、
@@ -1676,6 +1691,10 @@ uv run python scripts/validate_graph.py --fixture fixtures/golden-design-1
 L1ゲート判定ではなく、検証成功は設計成功を意味しない。合否権限は引き続きlaneの決定論的
 ゲートとrevision一致のauthoritative Evidenceだけが持つ。laneを限定する場合は`--lane`を
 繰り返し指定する。
+
+この入口の報告statusは`declarations_complete`、`declarations_incomplete`、`error`である。
+`declarations_complete`は宣言の完全性だけを示し、lane gate passやorder readinessを
+意味しない。
 
 ## laneのCLI引数
 

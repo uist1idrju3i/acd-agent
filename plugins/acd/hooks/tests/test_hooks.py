@@ -587,16 +587,40 @@ def _rationale_inputs(root: Path) -> None:
     fixtures.mkdir(parents=True)
     (fixtures / "graph.json").write_text("{}", encoding="utf-8")
     (fixtures / "rationale.json").write_text("{}", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "fixtures"], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "rationale inputs",
+        ],
+        cwd=root,
+        check=True,
+    )
 
 
-def _run_rationale_hook(root: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
+def _run_rationale_hook(
+    root: Path,
+    *arguments: str,
+    extra_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["python", str(SCRIPTS / "check_rationale.py"), *arguments],
         input=json.dumps({"working_dir": str(root)}),
         text=True,
         capture_output=True,
         cwd=root,
-        env={**os.environ, "OPENHANDS_PROJECT_DIR": str(root)},
+        env={
+            **os.environ,
+            "OPENHANDS_PROJECT_DIR": str(root),
+            **(extra_env or {}),
+        },
         check=False,
     )
 
@@ -604,7 +628,8 @@ def _run_rationale_hook(root: Path, *arguments: str) -> subprocess.CompletedProc
 def test_rationale_hook_is_not_applicable_without_workspace_inputs(tmp_path: Path) -> None:
     completed = _run_rationale_hook(tmp_path)
     assert completed.returncode == 0
-    assert "not applicable" in completed.stdout
+    assert "not_applicable" in completed.stdout
+    assert "pass" not in completed.stdout.lower()
 
 
 def test_rationale_hook_denies_present_inputs_without_the_validator(tmp_path: Path) -> None:
@@ -618,6 +643,141 @@ def test_rationale_hook_denies_present_inputs_without_the_validator(tmp_path: Pa
 def test_rationale_hook_warn_only_never_blocks(tmp_path: Path) -> None:
     _rationale_inputs(tmp_path)
     assert _run_rationale_hook(tmp_path, "--warn-only").returncode == 0
+
+
+def _install_rationale_validator_runner(root: Path) -> Path:
+    validator = root / "scripts/check_rationale.py"
+    validator.parent.mkdir(parents=True)
+    shutil.copyfile(ROOT / "scripts/check_rationale.py", validator)
+    fake_bin = root / "bin"
+    fake_bin.mkdir()
+    uv = fake_bin / "uv"
+    uv.write_text(
+        f"""#!/usr/bin/env python3
+import os
+import subprocess
+import sys
+
+arguments = sys.argv[1:]
+project = arguments[arguments.index("--project") + 1]
+python_index = arguments.index("python")
+command = [sys.executable, *arguments[python_index + 1:]]
+environment = os.environ.copy()
+environment["PYTHONPATH"] = {str(ROOT / "src")!r}
+raise SystemExit(subprocess.run(
+    command,
+    cwd=project,
+    env=environment,
+    check=False,
+).returncode)
+""",
+        encoding="utf-8",
+    )
+    uv.chmod(0o755)
+    return fake_bin
+
+
+def test_rationale_hook_denies_incomplete_target_without_pass(
+    tmp_path: Path,
+) -> None:
+    root = _clean_hook_repo(tmp_path)
+    rationale = json.loads(
+        (ROOT / "fixtures/golden-design-1/rationale.json").read_text(encoding="utf-8")
+    )
+    rationale["records"] = []
+    rationale_path = root / "fixtures/golden-design-1/rationale.json"
+    rationale_path.write_text(json.dumps(rationale), encoding="utf-8")
+    subprocess.run(["git", "add", "fixtures/golden-design-1/rationale.json"], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "incomplete rationale",
+        ],
+        cwd=root,
+        check=True,
+    )
+    fake_bin = _install_rationale_validator_runner(root)
+    completed = _run_rationale_hook(
+        root,
+        extra_env={"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    assert completed.returncode != 0
+    assert "Rationale coverage: fail" in completed.stdout
+    assert "pass" not in completed.stdout.lower()
+
+
+def test_rationale_hook_reports_not_applicable_for_multiple_clean_designs(
+    tmp_path: Path,
+) -> None:
+    root = _multi_design_hook_repo(tmp_path)
+    completed = _run_rationale_hook(root)
+
+    assert completed.returncode == 0
+    payload = json.loads(completed.stdout)
+    assert payload["status"] == "not_applicable"
+    assert "pass" not in completed.stdout.lower()
+    assert "golden-design-1" in payload["reason"]
+    assert "led-only-tag" in payload["reason"]
+
+
+def test_rationale_hook_uses_only_changed_design_fixture(tmp_path: Path) -> None:
+    root = _multi_design_hook_repo(tmp_path)
+    rationale = ROOT / "fixtures/golden-design-1/rationale.json"
+    (root / "fixtures/led-only-tag/rationale.json").write_text(
+        rationale.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    subprocess.run(
+        ["git", "add", "fixtures/led-only-tag/rationale.json"],
+        cwd=root,
+        check=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "rationale for second design",
+        ],
+        cwd=root,
+        check=True,
+    )
+    graph = root / "fixtures/led-only-tag/graph.json"
+    graph.write_text(graph.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    fake_bin = _install_rationale_validator_runner(root)
+    completed = _run_rationale_hook(
+        root,
+        extra_env={"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    assert completed.returncode != 0
+    assert "fixtures/led-only-tag/graph.json" in completed.stdout
+    assert "fixtures/golden-design-1/graph.json" not in completed.stdout
+
+
+def test_rationale_hook_denies_unresolvable_declared_target(
+    tmp_path: Path,
+) -> None:
+    root = _clean_hook_repo(tmp_path)
+    completed = _run_rationale_hook(
+        root,
+        extra_env={"ACD_TARGET_DESIGN": "fixtures/missing"},
+    )
+
+    assert completed.returncode == 2
+    assert "decision" in completed.stdout
+    assert "pass" not in completed.stdout.lower()
 
 
 def test_fail_closed_hooks_are_registered_for_sdk_events() -> None:

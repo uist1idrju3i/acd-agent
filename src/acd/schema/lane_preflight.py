@@ -1,7 +1,7 @@
 """Schema for the diagnostic lane preflight report.
 
-The preflight report is diagnostic only. It never replaces an L1 gate judgment
-and a `ready` preflight status is not design success.
+The preflight report is diagnostic only. It never replaces an L1 gate judgment,
+and `declarations_complete` is not design success.
 """
 
 from __future__ import annotations
@@ -12,7 +12,10 @@ from pydantic import Field
 
 from acd.schema.common import AcdModel, NonEmptyStr, Revision
 
-LanePreflightStatus = Literal["ready", "incomplete"]
+LanePreflightStatus = Literal[
+    "declarations_complete",
+    "declarations_incomplete",
+]
 
 
 class LanePreflightMissingNode(AcdModel):
@@ -46,6 +49,9 @@ class LanePreflightReport(AcdModel):
     status: LanePreflightStatus
     # Restated in the artifact so a reader cannot mistake it for a gate result.
     diagnostic_only: Literal[True] = True
+    record_class: Literal["L3"] = "L3"
+    checked_predicates: list[str]
+    unchecked_predicates: list[str]
     lanes: list[LanePreflightLaneReport] = Field(
         default_factory=list[LanePreflightLaneReport]
     )

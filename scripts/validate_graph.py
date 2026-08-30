@@ -74,9 +74,12 @@ def main() -> int:
         return 2
     report = {
         "status": (
-            "ok"
-            if preflight.status == "ready" and coverage.status == "pass"
-            else "incomplete"
+            "declarations_complete"
+            if (
+                preflight.status == "declarations_complete"
+                and coverage.status == "pass"
+            )
+            else "declarations_incomplete"
         ),
         "graph_id": graph.graph_id,
         "revision": graph.revision,
@@ -90,7 +93,7 @@ def main() -> int:
             encoding="utf-8",
         )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
-    return 0 if report["status"] == "ok" else 1
+    return 0 if report["status"] == "declarations_complete" else 1
 
 
 if __name__ == "__main__":
