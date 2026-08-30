@@ -11,11 +11,10 @@ from collections.abc import Sequence
 from acd.core.command_runner import CommandSpec, run_stage
 
 SYNC_COMMAND = CommandSpec(("uv", "sync"), barrier=True)
-STANDARD_COMMANDS: tuple[CommandSpec, ...] = (
+FAST_COMMANDS: tuple[CommandSpec, ...] = (
     SYNC_COMMAND,
     CommandSpec(("uv", "run", "ruff", "check")),
     CommandSpec(("uv", "run", "pyright")),
-    CommandSpec(("uv", "run", "pytest")),
     CommandSpec(("uv", "run", "python", "scripts/verify_docs.py")),
     CommandSpec(("uv", "run", "python", "scripts/verify_skill_metadata.py")),
     CommandSpec(("uv", "run", "python", "scripts/verify_skill_package_ref.py", "--check")),
@@ -27,6 +26,7 @@ STANDARD_COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(("uv", "run", "python", "scripts/verify_context_view.py", "--check")),
     CommandSpec(("git", "diff", "--check")),
 )
+STANDARD_COMMANDS = (*FAST_COMMANDS, CommandSpec(("uv", "run", "pytest")))
 
 STAGES: dict[str, tuple[CommandSpec, ...]] = {
     "docs": (
@@ -34,6 +34,7 @@ STAGES: dict[str, tuple[CommandSpec, ...]] = {
         CommandSpec(("uv", "run", "python", "scripts/verify_sdk_capabilities.py", "--check")),
         CommandSpec(("git", "diff", "--check")),
     ),
+    "fast": FAST_COMMANDS,
     "standard": STANDARD_COMMANDS,
     "full": (
         *STANDARD_COMMANDS,

@@ -1264,7 +1264,7 @@ source種別をprovenanceの`excluded_source_kinds`へ明記する。FAQは`out/
 ## 検証
 
 検証段階とコマンド列は`uv run python scripts/verify_all.py --list`で確認できる
-`verify_all.py`を正とする。文書のみ、通常、フルの段階を次で実行する。
+`verify_all.py`を正とする。検証段階はdocs、fast、standard、fullの4段階である。
 
 ### 実行例の取り込み
 
@@ -1279,12 +1279,13 @@ docsのMarkdownは引き続き検査対象であり、リンク、fence、見出
 
 ```bash
 uv run python scripts/verify_all.py --stage docs
+uv run python scripts/verify_all.py --stage fast
 uv run python scripts/verify_all.py --stage standard
 uv run python scripts/verify_all.py --stage full
 ```
 
 barrier付きコマンドは単独実行し、barrierのない連続コマンドを独立バッチとして並列実行
-する。standardとfullの`uv sync`はbarrierとして先頭に置かれ、docs stageは文書検証の
+する。fast、standard、fullの`uv sync`はbarrierとして先頭に置かれ、docs stageは文書検証の
 3コマンドを環境同期なしで並列実行する。既定の並列度は
 `min(os.cpu_count() or 1, 4)`で、`--jobs N`で上書きできる。`--jobs 1`はコマンドを宣言順に
 逐次実行して最初の失敗で停止し、子プロセスの出力を直接流す（pytest自体の
@@ -1303,6 +1304,12 @@ pytestは既定で`-n auto --dist loadgroup`を使うため、`uv run pytest`は
 含む。authoritative container gateはCI固有の`container-gates` jobで実行するため、
 `verify_all.py`には含めない。
 
+DevinがPR作成前に実施する既定検証は`--stage fast`とする。
+`src/acd/core`・`src/acd/pipeline`・`scripts`の判定ロジック変更時は
+`--stage standard`、main merge前は`--stage full`を実施する。PRのCIは変更scopeに応じて
+`fast`または`standard`を実行する。`skills` jobはpushまたはplugin変更時に実行し、
+`container-gates`、`pinned-acd-probe`、pipeline実行、host probeはmain pushで実行する。
+
 2コアVMで同一入力を測定した結果は、pytestの逐次（`-n 0`）195.13秒、
 自動並列（`-n auto`）108.73秒だった。`verify_all.py --stage standard`
 は`--jobs 1` 141.21秒、既定並列 126.66秒だった。
@@ -1311,10 +1318,11 @@ pytestは既定で`-n auto --dist loadgroup`を使うため、`uv run pytest`は
 mainのCI run `32909530356`をbaselineとして、`verify`は262秒（うちStandard verification
 222秒）、`skills`は102秒、`pinned-acd-probe`は28秒、`container-gates`は451秒
 （locked agent-server imageのpull 178秒、決定論的gateの実行245秒）だった。
-`.md`ファイルだけの変更では`changes` jobがcode変更なしと判定し、重い4 jobを
-conditional skipして`docs-verify`だけを実行するfast pathを使う。skipされたjobは
-conditional skipとして必須checkを満たすが、`container-gates`は通常の変更で引き続き
-合否を決めるゲートである。
+PRでは`.md`ファイルだけの変更なら`changes` jobがcode変更なしと判定し、
+`docs-verify`だけを実行する。code変更がある場合、core変更なら`verify`がstandard、
+それ以外はfastを実行する。`skills`はplugin変更時またはpush時に実行し、
+`pinned-acd-probe`と`container-gates`の重いstep、pipeline実行、host probeはPRでは
+deferred to main pushを表示して終了し、main pushで実行する。
 
 `container-gates`ではcheckout直後にlock済みserver imageのdigest固定refをbackgroundで
 warm pullし、setup-uv、workspace sync、digest解決と重ね合わせる。その後のauthoritative
