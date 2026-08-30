@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@8bdcc7d276a07899539101721258b643bb7f4cde",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@d4b0323c346f34c4562a811ed95373f9ad4637fb",
 # ]
 # ///
 """Deterministic component placement search (skill asset, not an ACD gate).
