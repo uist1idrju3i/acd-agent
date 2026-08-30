@@ -33,6 +33,13 @@ HOOK_PLUGIN_PATH_RE = re.compile(r"\$\{[^}]+\}(/[^\s'\";]+\.py)")
 HOOK_PATH_RE = re.compile(r"(?:^|\s)([A-Za-z0-9_.-]+/(?:[A-Za-z0-9_.-]+/)*[A-Za-z0-9_.-]+\.py)")
 LIST_ITEM_RE = re.compile(r"^\s+-\s*(\S+)\s*$")
 HOOK_INTERPRETER_RE = re.compile(r"(?:uv run python|python3?)\s+[\"']?$")
+HOST_MEMORY_LIMIT_BYTES = 8 * 1024 * 1024 * 1024
+HOST_MEMORY_HEADROOM_BYTES = 512 * 1024 * 1024
+HOST_JVM_MAX_HEAP_BYTES = 2 * 1024 * 1024 * 1024
+HOST_JVM_NON_HEAP_RESERVE_BYTES = 1024 * 1024 * 1024
+HOST_MIN_CPU_COUNT = 2
+HOST_MIN_DISK_FREE_BYTES = 8 * 1024 * 1024 * 1024
+MIB = 1024 * 1024
 
 
 def _check(
@@ -707,6 +714,148 @@ def _eda_check() -> dict[str, Any]:
     return _check("host EDA capabilities", False, result, detail, observed_version)
 
 
+def _resource_mib(value: int | None) -> str:
+    return "unknown" if value is None else f"{value / MIB:.2f} MiB"
+
+
+def _read_host_meminfo() -> dict[str, int]:
+    values: dict[str, int] = {}
+    try:
+        lines = Path("/proc/meminfo").read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError):
+        return values
+    for line in lines:
+        name, separator, raw = line.partition(":")
+        if not separator:
+            continue
+        fields = raw.strip().split()
+        if len(fields) not in (1, 2) or not fields[0].isdigit():
+            continue
+        if len(fields) == 2 and fields[1].lower() != "kb":
+            continue
+        values[name] = int(fields[0]) * (1024 if len(fields) == 2 else 1)
+    return values
+
+
+def _host_resource_check() -> dict[str, Any]:
+    """Check optional host prerequisites without importing the ACD package."""
+    meminfo = _read_host_meminfo()
+    total = meminfo.get("MemTotal")
+    available = meminfo.get("MemAvailable")
+    swap_total = meminfo.get("SwapTotal")
+    swap_free = meminfo.get("SwapFree")
+    findings: list[tuple[str, str]] = []
+    if total is None or available is None:
+        findings.append(
+            (
+                "host.memory.unknown",
+                (
+                    f"host memory could not be parsed; observed total={_resource_mib(total)}, "
+                    f"available={_resource_mib(available)}; requested "
+                    f"--memory-limit={_resource_mib(HOST_MEMORY_LIMIT_BYTES)}"
+                ),
+            )
+        )
+    else:
+        usable_total = total - HOST_MEMORY_HEADROOM_BYTES
+        if usable_total < HOST_MEMORY_LIMIT_BYTES:
+            findings.append(
+                (
+                    "host.memory.total_insufficient",
+                    (
+                        f"MemTotal={_resource_mib(total)} minus headroom="
+                        f"{_resource_mib(HOST_MEMORY_HEADROOM_BYTES)} leaves "
+                        f"{_resource_mib(usable_total)}; requested "
+                        f"--memory-limit={_resource_mib(HOST_MEMORY_LIMIT_BYTES)} exceeds "
+                        f"this limit, lower --memory-limit to at most "
+                        f"{_resource_mib(usable_total)}"
+                    ),
+                )
+            )
+        if available < HOST_MEMORY_LIMIT_BYTES:
+            findings.append(
+                (
+                    "host.memory.available_insufficient",
+                    (
+                        f"MemAvailable={_resource_mib(available)}; requested "
+                        f"--memory-limit={_resource_mib(HOST_MEMORY_LIMIT_BYTES)} exceeds "
+                        f"available memory, lower --memory-limit to at most "
+                        f"{_resource_mib(available)}"
+                    ),
+                )
+            )
+    if swap_total is None or swap_free is None:
+        findings.append(
+            (
+                "host.swap.unknown",
+                (
+                    f"SwapTotal={_resource_mib(swap_total)}, SwapFree={_resource_mib(swap_free)} "
+                    "could not be observed; swap is not added to the memory limit "
+                    f"requirement of {_resource_mib(HOST_MEMORY_LIMIT_BYTES)}"
+                ),
+            )
+        )
+    cpu_count = os.cpu_count()
+    if cpu_count is None:
+        findings.append(
+            (
+                "host.cpu.unknown",
+                f"host CPU count is unknown; required at least {HOST_MIN_CPU_COUNT} cores",
+            )
+        )
+    elif cpu_count < HOST_MIN_CPU_COUNT:
+        findings.append(
+            (
+                "host.cpu.insufficient",
+                f"observed CPU count={cpu_count}; required at least {HOST_MIN_CPU_COUNT} cores",
+            )
+        )
+    try:
+        disk_free = shutil.disk_usage(Path.cwd()).free
+    except OSError:
+        disk_free = None
+    if disk_free is None:
+        findings.append(
+            (
+                "host.disk.unknown",
+                f"free disk space at {Path.cwd()} is unknown; required at least "
+                f"{_resource_mib(HOST_MIN_DISK_FREE_BYTES)}",
+            )
+        )
+    elif disk_free < HOST_MIN_DISK_FREE_BYTES:
+        findings.append(
+            (
+                "host.disk.insufficient",
+                f"observed free disk={_resource_mib(disk_free)}; required at least "
+                f"{_resource_mib(HOST_MIN_DISK_FREE_BYTES)}",
+            )
+        )
+    if HOST_JVM_MAX_HEAP_BYTES + HOST_JVM_NON_HEAP_RESERVE_BYTES > HOST_MEMORY_LIMIT_BYTES:
+        findings.append(
+            (
+                "runtime.jvm_heap.exceeds_container_limit",
+                (
+                    f"declared JVM max heap={_resource_mib(HOST_JVM_MAX_HEAP_BYTES)} "
+                    f"plus non-heap reserve={_resource_mib(HOST_JVM_NON_HEAP_RESERVE_BYTES)} "
+                    f"exceeds container --memory-limit={_resource_mib(HOST_MEMORY_LIMIT_BYTES)}; "
+                    "lower --jvm-max-heap or raise --memory-limit"
+                ),
+            )
+        )
+    findings.sort()
+    if not findings:
+        return _check(
+            "host resource preflight",
+            False,
+            "pass",
+            "host resource limits satisfy the optional 8 GiB container profile",
+            "8g memory / 2g JVM heap",
+        )
+    result = "unknown" if any(code.endswith(".unknown") for code, _ in findings) else "fail"
+    detail = "; ".join(f"{code}: {message}" for code, message in findings)
+    return _check("host resource preflight", False, result, detail)
+
+
 def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
     hooks_path = plugin_root / "hooks" / "hooks.json"
     try:
@@ -1275,6 +1424,7 @@ def diagnose(workspace: Path | None = None) -> dict[str, Any]:
         _runtime_check(),
         _docker_check(),
         _eda_check(),
+        _host_resource_check(),
         _hook_root_resolution_check(plugin_root),
         _hook_invocability_check(plugin_root),
         _store_check(plugin_root),

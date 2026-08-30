@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Final
 
 from acd.core.process import (
     DEFAULT_TOOL_TIMEOUT_S,
@@ -29,6 +30,7 @@ class RouterUnavailableError(ExternalToolError):
 _VERSION_PATTERN = re.compile(r"Freerouting v([0-9]+\.[0-9]+\.?[0-9]*)")
 DEFAULT_FREEROUTING_THREADS: int | None = None
 DEFAULT_ROUTER_MAX_PASSES = 100
+DEFAULT_FREEROUTING_MAX_HEAP: Final = "2g"
 
 
 class FreeroutingRunner:
@@ -67,6 +69,7 @@ class FreeroutingRunner:
         max_passes: int = DEFAULT_ROUTER_MAX_PASSES,
         freerouting_threads: int | None = DEFAULT_FREEROUTING_THREADS,
         timeout_s: float = DEFAULT_TOOL_TIMEOUT_S,
+        max_heap: str = DEFAULT_FREEROUTING_MAX_HEAP,
     ) -> ToolRun:
         if freerouting_threads is not None and freerouting_threads < 1:
             raise ValueError("freerouting thread count must be positive")
@@ -86,11 +89,11 @@ class FreeroutingRunner:
             command.extend(["-mt", str(freerouting_threads)])
         measurement_conditions = (
             f"headless; max {max_passes} passes; "
-            "implicit router threads (cpu_count-1)"
+            f"max heap {max_heap}; implicit router threads (cpu_count-1)"
             if freerouting_threads is None
             else (
                 f"headless; max {max_passes} passes; "
-                f"max {freerouting_threads} router threads"
+                f"max {freerouting_threads} router threads; max heap {max_heap}"
             )
         )
         run = run_tool(
@@ -105,6 +108,10 @@ class FreeroutingRunner:
             measurement_conditions=measurement_conditions,
             convergence_state="unknown",
             timeout_s=timeout_s,
+            env={
+                "FREEROUTING_MAX_HEAP": max_heap,
+                "JDK_JAVA_OPTIONS": f"-Xmx{max_heap}",
+            },
         )
         convergence = _convergence_from_log(run.stdout + run.stderr)
         envelope = run.envelope.model_copy(update={"convergence_state": convergence})

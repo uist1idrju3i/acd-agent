@@ -1009,6 +1009,26 @@ peak RSSは約70%削減である。
 `-mt`暗黙継承、`UseContainerSupport`、`AdaptiveGCThreading`、`FREEROUTING_MAX_HEAP`で
 追従する。
 
+#### 最小ホスト要件（O-2）
+
+container実行は、起動前にホスト資源をfail-closedで検査する。既定の
+`--memory-limit 8g`は、物理メモリの`MemTotal - 512 MiB`以下でなければならず、
+`MemAvailable`も8 GiB以上でなければならない。swapは
+`--memory-swap == --memory`として設定されるため、物理メモリ上限の裏打ちには使わない。
+CPUは2コア以上、作業repositoryの空きディスクは8 GiB以上を要求する。
+FreeRoutingの既定JVM最大heapは`2g`であり、heapに加えてmetaspace・code cache・thread
+stack用の1 GiB reserveを確保するため、`jvm_max_heap + 1 GiB <= --memory-limit`を満たす
+必要がある。`--memory-limit`を下げる場合は`--jvm-max-heap`も同時に下げ、JVM heapと
+reserveの合計がcontainer上限を超えないようにする。上限を引き上げる場合も、物理メモリ
+から512 MiBを差し引いた値以下でなければならない。
+
+O-2の実機では、MemTotal 1641 MiB、swap 5116 MiB、CPU 3コアのホストで8 GiBを要求した。
+swapを上限の根拠にしたためcontainer gate中にglobal OOMが発生し、FreeRoutingのJVM
+2プロセスがkillされ、host側processも巻き込まれた。現在はcontainer起動前に
+`host.memory.total_insufficient`等のfindingを出して起動を拒否する。資源reportの
+`pass`はcontainer起動前提を満たしたことだけを示し、lane gate passやauthoritative
+Evidenceを意味しない。
+
 SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
 `tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する

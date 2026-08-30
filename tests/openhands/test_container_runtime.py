@@ -66,7 +66,16 @@ def test_docker_cli_bounds_adds_timeout_and_memory_limit(
         _call_sdk_docker(["docker", "version"])
 
     assert calls[0] == (
-        ["docker", "run", "--memory=512m", "--memory-swap=512m", "-d", "image"],
+        [
+            "docker",
+            "run",
+            "--memory=512m",
+            "--memory-swap=512m",
+            "--env",
+            "FREEROUTING_MAX_HEAP=2g",
+            "-d",
+            "image",
+        ],
         7.0,
     )
     assert calls[1] == (["docker", "version"], 7.0)

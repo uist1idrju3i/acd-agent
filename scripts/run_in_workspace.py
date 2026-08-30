@@ -11,6 +11,7 @@ from pathlib import Path
 from acd.openhands.container_runtime import (
     DEFAULT_COMMAND_TIMEOUT,
     DEFAULT_DOCKER_CLI_TIMEOUT,
+    DEFAULT_FREEROUTING_MAX_HEAP,
     DEFAULT_HEALTH_CHECK_TIMEOUT,
     DEFAULT_MEMORY_LIMIT,
     DEFAULT_PLATFORM,
@@ -26,6 +27,7 @@ from acd.openhands.workspace import (
     run_command_in_workspace,
     workspace_defaults,
 )
+from acd.schema.host_resources import HostResourceReport
 
 
 def _prepare_cache_dir(cache_dir: Path) -> None:
@@ -33,6 +35,15 @@ def _prepare_cache_dir(cache_dir: Path) -> None:
     for path in (cache_dir, cache_dir / "uv", cache_dir / "ccache"):
         path.mkdir(exist_ok=True)
         path.chmod(0o777)
+
+
+def _write_host_resource_report(
+    path: Path | None, report: HostResourceReport | None
+) -> None:
+    if path is None or report is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
 
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -97,6 +108,17 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Container memory limit, for example '8g'.",
     )
     parser.add_argument(
+        "--jvm-max-heap",
+        default=DEFAULT_FREEROUTING_MAX_HEAP,
+        help="FreeRouting JVM maximum heap, for example '2g'.",
+    )
+    parser.add_argument(
+        "--host-resource-report",
+        type=Path,
+        default=None,
+        help="Write the host resource preflight report to this path.",
+    )
+    parser.add_argument(
         "--platform",
         default=DEFAULT_PLATFORM,
         help="Explicit docker platform for the container.",
@@ -109,6 +131,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error("--source cannot be used with --local-provisional")
     if args.local_provisional and args.cache_dir:
         parser.error("--cache-dir cannot be used with --local-provisional")
+    if args.local_provisional and args.host_resource_report:
+        parser.error("--host-resource-report cannot be used with --local-provisional")
     if not args.local_provisional and not args.image:
         parser.error("--image or ACD_CONTAINER_IMAGE is required")
     return args
@@ -158,10 +182,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                     command_timeout=args.command_timeout,
                     docker_cli_timeout=args.docker_cli_timeout,
                     memory_limit=args.memory_limit,
+                    jvm_max_heap=args.jvm_max_heap,
                     platform=args.platform,
                 ),
             )
-    except (WorkspaceStartupError, WorkspaceTransportError) as exc:
+    except WorkspaceStartupError as exc:
+        _write_host_resource_report(args.host_resource_report, exc.host_resource_report)
+        if exc.host_resource_report is not None:
+            for finding in exc.host_resource_report.findings:
+                print(f"{finding.code}: {finding.detail}", file=sys.stderr)
+        print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
+        return 2
+    except WorkspaceTransportError as exc:
         print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
         return 2
     except ValueError as exc:
@@ -171,6 +203,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("execution context: host (provisional)")
     else:
         print(f"image digest: {result.digest} ({result.source})")
+    _write_host_resource_report(
+        args.host_resource_report,
+        (
+            None
+            if isinstance(result, ProvisionalWorkspaceResult)
+            else result.host_resource_report
+        ),
+    )
     print(f"exit code: {result.exit_code}")
     classification = classify_execution_failure(
         result.exit_code, f"{result.stdout}\n{result.stderr}"

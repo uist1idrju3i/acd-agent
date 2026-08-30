@@ -22,6 +22,7 @@ from openhands.workspace.docker import workspace as sdk_docker_workspace
 DEFAULT_HEALTH_CHECK_TIMEOUT: Final = 300.0
 DEFAULT_COMMAND_TIMEOUT: Final = 3600.0
 DEFAULT_DOCKER_CLI_TIMEOUT: Final = 300.0
+DEFAULT_FREEROUTING_MAX_HEAP: Final = "2g"
 DEFAULT_MEMORY_LIMIT: Final = "8g"
 DEFAULT_PLATFORM: Final = "linux/amd64"
 DEFAULT_STOP_TIMEOUT: Final = 60.0
@@ -31,7 +32,7 @@ _MEMORY_LIMIT: Final = re.compile(r"^[1-9][0-9]*[bkmg]$")
 _TIMEOUT_EXIT_CODE: Final = -1
 _HEALTH_TIMEOUT_MARKERS: Final = ("failed to become healthy",)
 
-FailureKind = Literal["timeout", "transport", "command"]
+FailureKind = Literal["timeout", "transport", "command", "resources"]
 DockerCliRunner = Callable[..., subprocess.CompletedProcess[str]]
 
 
@@ -43,6 +44,7 @@ class ContainerRuntimeConfig:
     command_timeout: float = DEFAULT_COMMAND_TIMEOUT
     docker_cli_timeout: float = DEFAULT_DOCKER_CLI_TIMEOUT
     memory_limit: str = DEFAULT_MEMORY_LIMIT
+    jvm_max_heap: str = DEFAULT_FREEROUTING_MAX_HEAP
     platform: str = DEFAULT_PLATFORM
     detach_logs: bool = False
 
@@ -56,6 +58,8 @@ class ContainerRuntimeConfig:
                 raise ValueError(f"{name} must be a positive number of seconds")
         if not _MEMORY_LIMIT.fullmatch(self.memory_limit.strip().lower()):
             raise ValueError("memory limit must look like '8g', '512m', or '1024k'")
+        if not _MEMORY_LIMIT.fullmatch(self.jvm_max_heap.strip().lower()):
+            raise ValueError("JVM max heap must look like '2g', '512m', or '1024k'")
         if not self.platform.strip():
             raise ValueError("platform must be an explicit docker platform")
 
@@ -85,15 +89,21 @@ def _memory_flags(memory_limit: str) -> list[str]:
     return [f"--memory={limit}", f"--memory-swap={limit}"]
 
 
-def _with_memory_limit(
-    command: Sequence[str] | str, memory_limit: str
+def _with_runtime_flags(
+    command: Sequence[str] | str, memory_limit: str, jvm_max_heap: str
 ) -> list[str] | str:
     if isinstance(command, str):
         return command
     arguments = list(command)
     if arguments[:2] != ["docker", "run"]:
         return arguments
-    return [*arguments[:2], *_memory_flags(memory_limit), *arguments[2:]]
+    return [
+        *arguments[:2],
+        *_memory_flags(memory_limit),
+        "--env",
+        f"FREEROUTING_MAX_HEAP={jvm_max_heap.strip().lower()}",
+        *arguments[2:],
+    ]
 
 
 def _record_observation(
@@ -132,7 +142,9 @@ def docker_cli_bounds(
     def guarded(
         command: Sequence[str] | str, *args: Any, **kwargs: Any
     ) -> subprocess.CompletedProcess[str]:
-        bounded = _with_memory_limit(command, config.memory_limit)
+        bounded = _with_runtime_flags(
+            command, config.memory_limit, config.jvm_max_heap
+        )
         if len(args) < 3 and "timeout" not in kwargs:
             kwargs["timeout"] = config.docker_cli_timeout
         completed = original(bounded, *args, **kwargs)

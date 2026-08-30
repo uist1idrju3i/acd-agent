@@ -142,7 +142,7 @@ def test_router_declares_thread_count_in_command_and_conditions(tmp_path: Path) 
     assert run.envelope.config_hash == sha256_bytes("\x00".join(command).encode())
     assert (
         run.envelope.measurement_conditions
-        == "headless; max 10 passes; max 2 router threads"
+        == "headless; max 10 passes; max 2 router threads; max heap 2g"
     )
 
 

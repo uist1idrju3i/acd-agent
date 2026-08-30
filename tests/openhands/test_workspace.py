@@ -10,6 +10,29 @@ import pytest
 
 from acd.openhands import container_runtime
 from acd.openhands import workspace as workspace_module
+from acd.schema.host_resources import HostResourceFinding, HostResourceReport
+
+
+@pytest.fixture(autouse=True)
+def pass_host_resource_preflight(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:  # pyright: ignore[reportUnusedFunction]
+    report = HostResourceReport(
+        status="pass",
+        mem_total_bytes=16 * 1024**3,
+        mem_available_bytes=16 * 1024**3,
+        swap_total_bytes=0,
+        swap_free_bytes=0,
+        cpu_count=4,
+        disk_free_bytes=16 * 1024**3,
+        requested_memory_limit_bytes=8 * 1024**3,
+        declared_jvm_max_heap="2g",
+        findings=[],
+    )
+    def check_resources(*_args: object, **_kwargs: object) -> HostResourceReport:
+        return report
+
+    monkeypatch.setattr(workspace_module, "check_host_resources", check_resources)
 
 
 class _FakeWorkspace:
@@ -208,6 +231,56 @@ def test_runner_fails_when_evidence_download_fails(
             download_files=("out/gd1/evidence-electrical.json",),
             workspace_factory=_DownloadFailingWorkspace,
         )
+
+
+def test_runner_rejects_host_resource_failure_before_docker_start(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    report = HostResourceReport(
+        status="fail",
+        mem_total_bytes=1024,
+        mem_available_bytes=512,
+        swap_total_bytes=0,
+        swap_free_bytes=0,
+        cpu_count=1,
+        disk_free_bytes=1,
+        requested_memory_limit_bytes=8 * 1024**3,
+        declared_jvm_max_heap="2g",
+        findings=[
+            HostResourceFinding(
+                code="host.memory.total_insufficient",
+                detail="lower --memory-limit to at most 0.00 MiB",
+            )
+        ],
+    )
+    calls: list[str] = []
+
+    def check_resources(*_args: object, **_kwargs: object) -> HostResourceReport:
+        return report
+
+    monkeypatch.setattr(workspace_module, "check_host_resources", check_resources)
+
+    def resolve_image(*_args: object, **_kwargs: object) -> None:
+        calls.append("docker")
+        return None
+
+    monkeypatch.setattr(
+        workspace_module,
+        "resolve_image_digest",
+        resolve_image,
+    )
+    with pytest.raises(workspace_module.WorkspaceStartupError) as caught:
+        workspace_module.run_command_in_workspace(
+            image="acd:local",
+            command="true",
+            repository=tmp_path,
+            download_files=(),
+            workspace_factory=_FakeWorkspace,
+        )
+
+    assert caught.value.failure_kind == "resources"
+    assert caught.value.host_resource_report == report
+    assert calls == []
 
 
 def test_local_runner_uses_local_workspace_as_provisional(

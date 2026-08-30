@@ -38,3 +38,10 @@ interpreters and therefore do not depend on hook script executable bits or
 shebangs. This L3 observation does not grant acceptance authority and does not
 produce authoritative Evidence. Report the result as observed; do not turn
 host or Skill observations into a passing gate or authoritative Evidence.
+
+The optional host resource preflight check reports MemTotal, MemAvailable, swap,
+CPU count, and free disk using the fixed container profile of 8 GiB memory,
+512 MiB headroom, 2 CPU cores, 8 GiB free disk, and 2 GiB FreeRouting JVM heap.
+Its findings use the same resource vocabulary as container startup. A degraded
+or unknown result is an L3 observation only; it does not grant lane-gate or
+authoritative Evidence acceptance.
