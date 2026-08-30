@@ -848,13 +848,13 @@ runnerは実行対象であるderived server imageのcontent addressを
 pipelineを実行したserver imageのidentityを表す。base tools digestとは別の値であり、
 両者を同一とは扱わない。
 
-`publish-acd-tools.yml`はjob summaryへindex digestを記録し、同じdigest、image metadata、
-workflow runを更新PRへ渡す。`publish-acd-server.yml`もderived digestとtagを同じ経路で
-更新する。未publishのentryやplaceholder digestは作成せず、lockに記録されていないimageを
-pullするfallbackも禁止する。lock fileと`docker/README.md`はpublish trigger
-（`publish-acd-tools.yml`の`paths`）から除外しており、digest更新PR自体が再publishを起こして
-lockと`latest`が食い違い続けることを防ぐ。build入力を変更した場合だけtools publishが走り、
-成功後にserver publishが`workflow_run`で連鎖する。lockの検証は次のように行う。
+`publish-acd-images.yml`はtoolsとserverを同一jobで直列にpublishし、job summaryへ両方の
+digest、image metadata、workflow runを記録する。未publishのentryやplaceholder digestは
+作成せず、lockに記録されていないimageをpullするfallbackも禁止する。lock fileと
+`docker/README.md`はpublish trigger（`publish-acd-images.yml`の`paths`）から除外しており、
+digest更新PR自体が再publishを起こしてlockと`latest`が食い違い続けることを防ぐ。`skip_tools`
+指定時はtoolsを再buildせず、lock済みtools imageをbaseにserverだけを再buildする。lockの
+検証は次のように行う。
 
 ```bash
 TOOLS_REF="$(uv run python scripts/pull_locked_image.py --entry acd-tools)"
@@ -870,30 +870,24 @@ parse失敗はfail-closedとする。FreeRoutingとuvはDockerfileでSHA-256を�
 KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。したがって再buildを
 同一性の根拠にせず、publish済みimage digestをidentity authorityとして扱う。
 
-`publish-acd-server.yml`は`workflow_dispatch`またはtools publish成功後の`workflow_run`で起動し、
+`publish-acd-images.yml`は`workflow_dispatch`またはmainのbuild入力変更で起動し、
 lockから解決したACD tools digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、
-GHCRへpublishする。publish後はderived digestとtagをlock更新PRへ記録する。
+GHCRへpublishする。publish後はtools（buildした場合）とderived serverのdigestとtagを
+1つのlock更新PRへ記録する。
 現行のbase tools digestは、Semeru／OpenJ9 JREとbuild時生成SCCを同梱した
 `sha256:901ffd495c4876d3c02ff9c3303c67a6ee0d2c54b39460bb370a2c8260bb602c`である。
 lockに記録済みのserver image
 `sha256:b5afc5daadf801f62d7bcb3f8229fe417e0e658b7ab1a660bf737f105f18c968`は、
 現行base tools digestからderiveした値である。
-toolsを再同梱した場合は`publish-acd-server.yml`を再`workflow_dispatch`してderived digestを
-更新する。手動起動はlockからbase toolsを解決するため、この更新はlockへ新しいtools digestを
-記録した後に行う。tools publish成功による`workflow_run`連鎖では、lock更新PRがmerge前で
-lockが1世代前を指すため、`acd-tools:latest`の現digestを解決してbaseにする。digestが
-解決できない場合はfail-closedで停止し、baseはjob summaryへ記録する。
+toolsを再同梱した場合は`publish-acd-images.yml`を再`workflow_dispatch`する。`skip_tools`指定時
+はtoolsを再buildせず、lockからbase toolsを解決する。digestが解決できない場合はfail-closedで
+停止し、baseはjob summaryへ記録する。
 baseとderivedは独立に記録し、
 toolsとserverのdigestは同一とは扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
 
-`build.py`はimage tagを`SDK_SHA`→`GITHUB_SHA`→`git rev-parse HEAD`の優先順で決めるため、
-`workflow_run`起動では`GITHUB_SHA`がworkflow定義側のcommitを指し、checkoutした
-`workflow_run.head_sha`とtagが食い違う。2026-08-30のrun 33305827733と33305891477では
-buildは成功したがalias stepが存在しないtagを参照し、
-`ghcr.io/uist1idrju3i/acd-server:<head_sha>-latest-source: not found`で失敗して
-server digest lock更新PRが生成されなかった。以後は`git rev-parse HEAD`で解決した
-`SERVER_SHA`をbuild step（`SDK_SHA`）とalias／tag解決step双方へ渡し、
-publishしたsourceとtagを一致させる。
+`build.py`はimage tagを`SDK_SHA`→`GITHUB_SHA`→`git rev-parse HEAD`の優先順で決める。
+publish workflowでは`git rev-parse HEAD`で解決した`SERVER_SHA`をbuild step（`SDK_SHA`）と
+alias／tag解決step双方へ渡し、publishしたsourceとtagを一致させる。
 
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
 Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
@@ -1050,7 +1044,7 @@ SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
 `tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する
 既存契約を維持する。wrapper変更はimage変更なので、mainの`docker/**`変更で
-`publish-acd-tools.yml`が実行される。build contextを決める`.dockerignore`も
+`publish-acd-images.yml`が実行される。build contextを決める`.dockerignore`も
 同じtriggerに含める。SCC warm-upが`examples/sensor-node-20260820/board/gd1.dsn`を
 COPYするため、`.dockerignore`はこの1ファイルだけを例外として残す。
 過去の手動運用ではpublish job summaryのGHCR digestを確認してから

@@ -170,10 +170,10 @@ GD1基板pipeline、GD1筐体pipelineをcontainer内で実行する。その後�
 `scripts/verify_authoritative_evidence.py`で両laneのEvidenceがrevision一致、
 `status="valid"`、既知のcontainer provenance、digestを持つことを決定論的に検査する。
 host実行のEvidenceはprovisionalであり、合格側へ昇格しない。image publishは
-`.github/workflows/publish-acd-tools.yml`の手動起動またはmainの`docker/**`変更（lock file
+`.github/workflows/publish-acd-images.yml`の手動起動またはmainの`docker/**`変更（lock file
 `docker/image-digests.json`と`docker/README.md`は除外）と`.dockerignore`変更で行い、
-GHCR digestをjob summaryから運用記録へ転記する。publish済みdigestが無い間はlock fileの
-placeholderを作らない。
+toolsとserverを同一jobで直列にpublishしてGHCR digestを1つのlock更新PRへまとめる。
+publish済みdigestが無い間はlock fileのplaceholderを作らない。
 
 CIはPRで変更scopeに応じて`fast`または`standard`を実行し、
 `container-gates`、`pinned-acd-probe`、pipeline実行、host probeはmain pushで実行する。

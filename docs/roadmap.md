@@ -318,7 +318,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `docker/acd-tools.Dockerfile`、pinned SDK版、`publish-acd-tools.yml`のjob summaryのGHCR digest |
+| 入力と出所 | `docker/acd-tools.Dockerfile`、pinned SDK版、`publish-acd-images.yml`のjob summaryのGHCR digest |
 | 実装 | publish済みdigestと外部ツール版を運用記録へ転記し、参照refとdigestを対応付ける |
 | 正常系 | 記録したdigestをpullして`probe_tools.py`が既知の外部ツール版を報告する |
 | negative/fail-closed | placeholder digest、未publish状態でのlock作成、digest未解決のpullを禁止する |
@@ -699,8 +699,8 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.5 | 要件→graphの変換と任意設計fixture（A-1〜A-5、I-2） | 会話由来の要件レコード化、任意設計向けfixtureビルダー、要件差分からgraph差分（接続・FWピン・テストポイント・シルク・rationale）を同時更新するcompiler、部品選定とlibrary provenance、回路トポロジ合成、agent向けtool（FW pipeline、fixture編集、発注、失敗診断）の網羅。機能ブロック契約registryへの宣言入口も追加した。達成 |
 | 14.6 | gd1固定の解消と発注laneの汎用化（I-3〜I-5、E-5、C-2〜C-3、D-1〜D-3） | workspace既定値、生成物名・`part_number`、`order_policy`の必須evidence anchor、FW設定をgraph_id・graph宣言由来にする。測定feedback適用、見積provider境界、実発注provider境界までを追加し、GD1以外の設計も同じlaneで扱えるようにする。達成（実supplier接続は境界の後続作業） |
 | 14.7 | 実行時間と再開性（E-1〜E-4、E-6、K-1、K-2、K-4） | stage並列化、run並列、JVM・containerの資源宣言、入力hash単位のstage cache、単一orchestrator、途中失敗からの再開、stageごとの所要時間記録を達成した。検証段階の並列実行（E-6）は既存の`pytest -n auto --dist loadgroup`と`verify_all.py --jobs N`を維持し、`uv sync`とfullの後続pipelineはbarrierとして単独実行する。新しいcacheはDSN／SESの生成物だけを対象とし、ゲートとEvidenceは毎回再実行する |
-| 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からclone・submodule取得・`uv sync`・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なhost前提）を追加し、会話開始時のbootstrap経路を用意する。達成 |
-| 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | main mergeでのtools publish起動と`workflow_run`による`acd-server` publishの連鎖、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合。達成 |
+| 14.8 | workspace初期化とbootstrap（G-1〜G-3） | workspace作成からshallow clone・shallow submodule取得・plugin読み込み確認・`/acd:doctor`までを1経路にまとめ、host `uv sync`を廃止した。doctorへworkspace健全性検査（repository不在、submodule初期化、`uv.lock`同期、lock digestのpull可否、FW実行に必要なimage前提）を追加し、会話開始時のbootstrap経路を用意する。達成 |
+| 14.9 | image publishとdigest lock更新の自動化（F-1〜F-4） | `publish-acd-images.yml`でtoolsと`acd-server`を単一jobで直列publishし、`skip_tools`によるserver単独再build、lock更新PRの自動作成、lock digestとregistry現行manifestの一致検査、`docker/README.md`の配布記述と実運用の整合を実現する。達成 |
 | 14.10 | VibeBB loopのcommand（I-1） | `/acd:vibebb-loop`とgraph駆動の単一orchestratorを追加し、要件からgraph検証、silkscreen barrier、基板・筐体・FW、発注可否までを固定順序でfail-closed実行する。達成 |
 | 14.11 | 会話駆動loopの残存不足（L-1〜L-7） | orchestratorの二重化解消（cache・resume・timing・lane並列を会話経路へ接続）、却下後の候補探索の自動連結、要件→graph段のloop内取り込み、order-total生成経路の追加、gd1既定値の残存解消、契約registry・catalogの被覆整理を扱う。L-1〜L-6を達成し、topology templateのdata化（`shared_nets`とscope-awareな一意性）、部品catalogの追加経路、USB-C非搭載／電池給電fixtureの到達性まで実装した。電池の充電・保護回路の規範的契約とpredicateは16.2・16.3依存として本範囲外に置く。L-7の再監査を実施し、残る不足を[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のM節（M-1〜M-6）へ根拠・優先度・依存・完了条件付きで記録した。M-1・M-2は14.12、M-3はマイルストーン7のprovider境界の後続、M-4は16.2・16.3、M-5はマイルストーン5の実機Evidenceへ割り当てる。C-1（筐体の干渉解決探索）はマイルストーン11.5で達成済み、C-4（CPL orientation期待値のfixture非依存化）はマイルストーン7の範囲で達成済みである。達成 |
 | 14.12 | 再監査で残った会話駆動loopの不足（M-1・M-2） | 筐体pipelineのfail-closed却下を引き金とした`explore_enclosure_candidates`のloop内自動連結（M-1）と、任意graph向け設計固有検証laneの宣言由来化（M-2）を扱う。探索reportはL2操舵・L3観測のままとし、候補予算とround上限、graph ID・revisionの一致と正規化content hashの変化検査、未宣言を合格としない境界を維持する |
@@ -770,8 +770,8 @@ FW設定、feedback適用、quote/order provider境界をgraph・policy駆動へ
 各laneのL3 timing recordを追加した。14.8では、`/acd:init`と`acd_bootstrap_workspace`を
 単一のfail-closed初期化経路として追加し、workspace健全性doctorとL3 bootstrap recordを
 提供した。cache hitでもL1ゲートとEvidenceは再実行され、resumeは判定を保存・復元しない。
-生成物、compiler、Skill結果はpass authorityを持たず、14.9ではpublish workflowの連鎖、
-digest lock更新PR、registry manifest照合、配布文書の整合を追加した。L1決定論的ゲートとrevision一致した
+生成物、compiler、Skill結果はpass authorityを持たず、14.9では単一publish workflowによる
+tools/serverの直列publish、digest lock更新PR、registry manifest照合、配布文書の整合を追加した。L1決定論的ゲートとrevision一致した
 authoritative Evidenceが唯一の合否根拠である。実測値と運用上の注意事項は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)と[`operations.md`](operations.md)を正とする。
 

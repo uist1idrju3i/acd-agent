@@ -32,13 +32,17 @@ authoritative経路として既に採用している。imageに同梱されたbu
    digestはdoctorでは検査しない。
 5. authoritative Evidenceの実行経路は`--source mounted`のまま維持する。bundledを
    authoritativeにしない。initializeのclone軽量化とsession start hookは後続変更で扱う。
-6. initializeはrepository clone、revision fetch、recursive submoduleをshallow
-   (`--depth 1`)で取得する。ホストの`uv sync`は行わず、doctorがpullするlocked
-   server imageの依存とEDA/FWツールを使用する。bootstrap recordには
-   `source: "mounted"`と`server_image_digest`を記録する。
-7. SessionStart hookはprojectのlockから解決したserver imageをpullせずに
-   `docker run --rm --entrypoint "" ... sh -lc`でprobeする。4ツールの版をすべて取得
-   できない場合はhost probeへfallbackせず、fail-closed contextをL3観測として注入する。
+6. tools imageとserver imageのpublishは`.github/workflows/publish-acd-images.yml`の
+   単一jobで直列に実行し、digest lock更新を1 commit・1 PRへまとめる。`skip_tools`指定時は
+   lock済みtools imageをbaseにserverだけを再buildする経路を維持し、lock fileとDocker README
+   をtriggerから除外してdigest更新PRによるpublish再帰を防ぐ。
+7. initializeはrepository clone、revision fetch、recursive submoduleをshallow
+    (`--depth 1`)で取得する。ホストの`uv sync`は行わず、doctorがpullするlocked
+    server imageの依存とEDA/FWツールを使用する。bootstrap recordには
+    `source: "mounted"`と`server_image_digest`を記録する。
+8. SessionStart hookはprojectのlockから解決したserver imageをpullせずに
+    `docker run --rm --entrypoint "" ... sh -lc`でprobeする。4ツールの版をすべて取得
+    できない場合はhost probeへfallbackせず、fail-closed contextをL3観測として注入する。
 
 ## 結果
 
