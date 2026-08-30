@@ -24,6 +24,8 @@ ROOT = Path(__file__).parents[2]
 GRAPH = ROOT / "fixtures/golden-design-1/graph.json"
 POLICY = ROOT / "fixtures/contracts/valid/order-policy.json"
 EVIDENCE = ROOT / "fixtures/contracts/valid/evidence.json"
+
+
 def _repository(tmp_path: Path) -> Path:
     graph = tmp_path / "fixtures/golden-design-1/graph.json"
     graph.parent.mkdir(parents=True)
@@ -111,6 +113,8 @@ def _args(
         str(POLICY),
         "--order-total",
         str(order_total),
+        "--design-graph",
+        str(repository / "fixtures/golden-design-1/graph.json"),
         "--evidence",
         str(evidence_paths[0]),
         "--evidence",
@@ -142,7 +146,15 @@ def test_rerun_cli_uses_explicit_authoritative_path(
     order_total, evidence_paths = _inputs(tmp_path)
     calls: list[tuple[Path, str]] = []
 
-    def fake_rerun(*, repository: Path, image: str) -> None:
+    def fake_rerun(
+        *,
+        repository: Path,
+        image: str,
+        design_graph_path: Path,
+        out_root: Path,
+    ) -> None:
+        assert design_graph_path == repository / "fixtures/golden-design-1/graph.json"
+        assert out_root == repository / "out"
         calls.append((repository, image))
 
     monkeypatch.setattr(pre_order_gate, "_rerun_authoritative", fake_rerun)
@@ -158,3 +170,64 @@ def test_rerun_cli_uses_explicit_authoritative_path(
         == 0
     )
     assert calls == [(repository.resolve(), "acd:locked")]
+
+
+@pytest.mark.parametrize(
+    ("design_graph_path", "out_root", "expected_fixture", "expected_board"),
+    [
+        (
+            Path("fixtures/golden-design-1/graph.json"),
+            Path("out"),
+            "fixtures/golden-design-1",
+            "out/gd1",
+        ),
+        (
+            Path("/repository/fixtures/golden-design-1/graph.json"),
+            Path("/repository/out"),
+            "fixtures/golden-design-1",
+            "out/gd1",
+        ),
+    ],
+)
+def test_authoritative_commands_resolve_relative_and_absolute_paths(
+    tmp_path: Path,
+    design_graph_path: Path,
+    out_root: Path,
+    expected_fixture: str,
+    expected_board: str,
+) -> None:
+    repository = _repository(tmp_path)
+    if design_graph_path.is_absolute():
+        design_graph_path = repository / design_graph_path.relative_to(
+            Path("/repository")
+        )
+        out_root = repository / out_root.relative_to(Path("/repository"))
+    commands = pre_order_gate.authoritative_commands(
+        repository=repository,
+        design_graph_path=design_graph_path,
+        out_root=out_root,
+    )
+    assert commands == (
+        (
+            "uv run python scripts/run_gd1_pipeline.py "
+            f"--fixture {expected_fixture} --out {expected_board}",
+            (f"{expected_board}/evidence-electrical.json",),
+        ),
+        (
+            "uv run python scripts/run_gd1_enclosure_pipeline.py "
+            f"--fixture {expected_fixture} --out {expected_board}-enclosure",
+            (f"{expected_board}-enclosure/evidence-mechanical.json",),
+        ),
+    )
+
+
+def test_authoritative_commands_reject_absolute_path_outside_repository(
+    tmp_path: Path,
+) -> None:
+    repository = _repository(tmp_path)
+    with pytest.raises(ValueError, match="outside repository"):
+        pre_order_gate.authoritative_commands(
+            repository=repository,
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
+            out_root=tmp_path.parent / "out",
+        )

@@ -45,7 +45,7 @@ def check_evidence_with_git(
         return {"passed": False, "reason": f"git evidence check failed: {exc}"}
 
 
-def _is_design_input(path: str) -> bool:
+def is_design_input(path: str) -> bool:
     return (
         (path.startswith("fixtures/") and path.endswith("/graph.json"))
         or path.startswith("profiles/")
@@ -63,7 +63,7 @@ def design_input_changes(
         sorted(
             str(change.path)
             for change in changes
-            if _is_design_input(str(change.path))
+            if is_design_input(str(change.path))
         )
     )
 

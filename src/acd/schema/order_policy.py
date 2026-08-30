@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
@@ -19,6 +19,8 @@ from acd.schema.common import (
 )
 from acd.schema.quote import QuoteAmount
 
+EvidenceLane = Literal["electrical", "mechanical"]
+
 
 class OrderPolicy(AcdModel):
     schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
@@ -26,8 +28,8 @@ class OrderPolicy(AcdModel):
     artifact_paths: list[NonEmptyStr] = Field(min_length=1)
     order_commands: list[NonEmptyStr] = Field(min_length=1)
     evidence_paths: NonEmptyStr
-    design_graph_paths: list[NonEmptyStr] = Field(min_length=1)
-    required_evidence_ids: list[NonEmptyStr] = Field(min_length=2)
+    design_graph_roots: list[NonEmptyStr] = Field(min_length=1)
+    required_evidence_lanes: list[EvidenceLane] = Field(min_length=2)
     order_total_limit: QuoteAmount
 
     @model_validator(mode="after")
@@ -38,23 +40,43 @@ class OrderPolicy(AcdModel):
             ("transmission_commands", self.transmission_commands),
             ("artifact_paths", self.artifact_paths),
             ("order_commands", self.order_commands),
-            ("design_graph_paths", self.design_graph_paths),
-            ("required_evidence_ids", self.required_evidence_ids),
+            ("design_graph_roots", self.design_graph_roots),
+            ("required_evidence_lanes", self.required_evidence_lanes),
         ):
             if len(values) != len(set(values)):
                 raise ValueError(f"order policy {name} entries must be unique")
+        for root in self.design_graph_roots:
+            if (
+                root.startswith("/")
+                or root.endswith("/")
+                or "\\" in root
+                or ".." in root.split("/")
+                or any(not part for part in root.split("/"))
+            ):
+                raise ValueError(
+                    "order policy design_graph_roots must be relative POSIX paths"
+                )
         return self
 
 
 def validate_order_policy_for_graph(policy: OrderPolicy, graph_id: str) -> None:
     """Validate graph-specific Evidence coverage at a graph-aware boundary."""
-    from acd.core.naming import required_evidence_ids
-
-    required = required_evidence_ids(graph_id)
-    declared = frozenset(policy.required_evidence_ids)
+    required = required_order_evidence_ids(graph_id)
+    declared = resolve_required_evidence_ids(policy, graph_id)
     if not required.issubset(declared):
         missing = ", ".join(sorted(required - declared))
         raise ValueError(f"order policy is missing required Evidence: {missing}")
+
+
+def resolve_required_evidence_ids(
+    policy: OrderPolicy, graph_id: str
+) -> frozenset[str]:
+    """Resolve declared Evidence lanes to graph-scoped Evidence identifiers."""
+    from acd.core.naming import evidence_id
+
+    return frozenset(
+        evidence_id(graph_id, lane) for lane in policy.required_evidence_lanes
+    )
 
 
 def required_order_evidence_ids(graph_id: str) -> frozenset[str]:

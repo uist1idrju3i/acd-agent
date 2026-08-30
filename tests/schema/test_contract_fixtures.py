@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 from conftest import fixture_obj, load_fixture
@@ -124,6 +125,29 @@ def test_design_freedom_contract() -> None:
 def test_invalid_contract_fixtures(model: type[AcdModel], name: str) -> None:
     with pytest.raises(ValidationError):
         model.model_validate(load_fixture("invalid", name))
+
+
+@pytest.mark.parametrize(
+    "roots",
+    [
+        ["/fixtures"],
+        ["fixtures/../other"],
+        ["fixtures/"],
+        ["fixtures", "fixtures"],
+    ],
+)
+def test_order_policy_rejects_invalid_graph_roots(roots: list[str]) -> None:
+    value = cast(dict[str, object], load_fixture("valid", "order-policy.json"))
+    value["design_graph_roots"] = roots
+    with pytest.raises(ValidationError):
+        OrderPolicy.model_validate(value)
+
+
+def test_order_policy_rejects_duplicate_evidence_lanes() -> None:
+    value = cast(dict[str, object], load_fixture("valid", "order-policy.json"))
+    value["required_evidence_lanes"] = ["electrical", "electrical"]
+    with pytest.raises(ValidationError):
+        OrderPolicy.model_validate(value)
 
 
 def test_rationale_requires_alternative_decision_record() -> None:

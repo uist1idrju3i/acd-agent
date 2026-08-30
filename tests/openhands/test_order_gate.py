@@ -49,6 +49,38 @@ def _repository(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def _repository_with_graph(
+    tmp_path: Path,
+    *,
+    graph_id: str,
+    relative_path: str,
+) -> Path:
+    repository = _repository(tmp_path)
+    source = repository / "fixtures/golden-design-1/graph.json"
+    target = repository / relative_path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    graph = json.loads(source.read_text(encoding="utf-8"))
+    graph["graph_id"] = graph_id
+    target.write_text(json.dumps(graph), encoding="utf-8")
+    source.unlink()
+    subprocess.run(["git", "add", "."], cwd=repository, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "test graph",
+        ],
+        cwd=repository,
+        check=True,
+    )
+    return repository
+
+
 def _policy() -> OrderPolicy:
     return OrderPolicy.model_validate_json(POLICY.read_text(encoding="utf-8"))
 
@@ -108,6 +140,7 @@ def test_pre_order_gate_allows_equal_limit_and_is_reproducible(
     first = evaluate_pre_order_gate(
         repository=repository,
         policy=policy,
+        design_graph_path=repository / "fixtures/golden-design-1/graph.json",
         order_total=order_total,
         evidence_paths=paths,
         evaluated_at=EVALUATED_AT,
@@ -115,6 +148,7 @@ def test_pre_order_gate_allows_equal_limit_and_is_reproducible(
     second = evaluate_pre_order_gate(
         repository=repository,
         policy=policy,
+        design_graph_path=repository / "fixtures/golden-design-1/graph.json",
         order_total=order_total,
         evidence_paths=list(reversed(paths)),
         evaluated_at=EVALUATED_AT,
@@ -131,9 +165,11 @@ def test_pre_order_gate_allows_equal_limit_and_is_reproducible(
 def test_pre_order_gate_authorization_hash_accepts_non_utc_timestamp(
     tmp_path: Path,
 ) -> None:
+    repository = _repository(tmp_path)
     record = evaluate_pre_order_gate(
-        repository=_repository(tmp_path),
+        repository=repository,
         policy=_policy(),
+        design_graph_path=repository / "fixtures/golden-design-1/graph.json",
         order_total=_order_total(),
         evidence_paths=_evidence_paths(tmp_path / "evidence"),
         evaluated_at=datetime(
@@ -150,10 +186,12 @@ def test_pre_order_gate_authorization_hash_accepts_non_utc_timestamp(
 
 
 def test_pre_order_gate_rejects_total_over_limit(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
     with pytest.raises(PreOrderGateError, match="exceeds"):
         evaluate_pre_order_gate(
-            repository=_repository(tmp_path),
+            repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(10001),
             evidence_paths=_evidence_paths(tmp_path),
             evaluated_at=EVALUATED_AT,
@@ -169,6 +207,7 @@ def test_pre_order_gate_rejects_missing_or_duplicate_evidence(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=paths[:1],
             evaluated_at=EVALUATED_AT,
@@ -177,6 +216,7 @@ def test_pre_order_gate_rejects_missing_or_duplicate_evidence(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=[paths[0], paths[0], paths[1]],
             evaluated_at=EVALUATED_AT,
@@ -228,6 +268,7 @@ def test_pre_order_gate_rejects_non_authoritative_or_unknown_claims(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=paths,
             evaluated_at=EVALUATED_AT,
@@ -244,6 +285,7 @@ def test_pre_order_gate_rejects_dirty_design_input_and_revision_mismatch(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=graph,
             order_total=_order_total(),
             evidence_paths=_evidence_paths(tmp_path),
             evaluated_at=EVALUATED_AT,
@@ -272,6 +314,7 @@ def test_pre_order_gate_wraps_git_observation_failure(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=_evidence_paths(tmp_path / "evidence"),
             evaluated_at=EVALUATED_AT,
@@ -282,30 +325,120 @@ def test_pre_order_gate_rejects_graph_declaration_errors(tmp_path: Path) -> None
     repository = _repository(tmp_path)
     paths = _evidence_paths(tmp_path)
     policy = _policy().model_copy(
-        update={"design_graph_paths": ["fixtures/missing/graph.json"]}
+        update={"design_graph_roots": ["fixtures/missing"]}
     )
     with pytest.raises(PreOrderGateError, match="design graph"):
         evaluate_pre_order_gate(
             repository=repository,
             policy=policy,
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=paths,
             evaluated_at=EVALUATED_AT,
         )
-    policy = _policy().model_copy(
-        update={
-            "design_graph_paths": [
-                "fixtures/golden-design-1/graph.json",
-                "fixtures/golden-design-1/graph.json",
-            ]
-        }
+def test_pre_order_gate_allows_non_gd1_graph(tmp_path: Path) -> None:
+    repository = _repository_with_graph(
+        tmp_path,
+        graph_id="led-only-tag",
+        relative_path="fixtures/led-only-tag/graph.json",
     )
-    with pytest.raises(PreOrderGateError, match="design graph"):
+    paths = [
+        _evidence(tmp_path, "evidence.led-only-tag.electrical"),
+        _evidence(tmp_path, "evidence.led-only-tag.mechanical"),
+    ]
+    record = evaluate_pre_order_gate(
+        repository=repository,
+        policy=_policy(),
+        design_graph_path=repository / "fixtures/led-only-tag/graph.json",
+        order_total=_order_total(),
+        evidence_paths=paths,
+        evaluated_at=EVALUATED_AT,
+    )
+    assert [item.evidence_id for item in record.evidence] == [
+        "evidence.led-only-tag.electrical",
+        "evidence.led-only-tag.mechanical",
+    ]
+
+
+def test_pre_order_gate_rejects_graph_outside_declared_root(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    graph = repository / "other/graph.json"
+    graph.parent.mkdir()
+    shutil.copyfile(GRAPH, graph)
+    with pytest.raises(PreOrderGateError, match="outside declared"):
         evaluate_pre_order_gate(
             repository=repository,
-            policy=policy,
+            policy=_policy(),
+            design_graph_path=graph,
             order_total=_order_total(),
-            evidence_paths=paths,
+            evidence_paths=_evidence_paths(tmp_path),
+            evaluated_at=EVALUATED_AT,
+        )
+
+
+def test_pre_order_gate_rejects_non_design_input_path(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    path = repository / "fixtures/x/other.json"
+    path.parent.mkdir()
+    shutil.copyfile(GRAPH, path)
+    with pytest.raises(PreOrderGateError, match="not a design input"):
+        evaluate_pre_order_gate(
+            repository=repository,
+            policy=_policy(),
+            design_graph_path=path,
+            order_total=_order_total(),
+            evidence_paths=_evidence_paths(tmp_path),
+            evaluated_at=EVALUATED_AT,
+        )
+
+
+def test_pre_order_gate_rejects_graph_outside_repository(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    outside = tmp_path.parent / f"{tmp_path.name}-outside-graph.json"
+    shutil.copyfile(GRAPH, outside)
+    with pytest.raises(PreOrderGateError, match="within repository"):
+        evaluate_pre_order_gate(
+            repository=repository,
+            policy=_policy(),
+            design_graph_path=outside,
+            order_total=_order_total(),
+            evidence_paths=_evidence_paths(tmp_path),
+            evaluated_at=EVALUATED_AT,
+        )
+
+
+def test_pre_order_gate_rejects_graph_symlink_escape(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    outside = tmp_path.parent / f"{tmp_path.name}-symlink-target.json"
+    shutil.copyfile(GRAPH, outside)
+    escaped = repository / "fixtures/escape/graph.json"
+    escaped.parent.mkdir(parents=True)
+    try:
+        escaped.symlink_to(outside)
+    except OSError as exc:
+        pytest.skip(f"symlink unavailable: {exc}")
+    with pytest.raises(PreOrderGateError, match="within repository"):
+        evaluate_pre_order_gate(
+            repository=repository,
+            policy=_policy(),
+            design_graph_path=escaped,
+            order_total=_order_total(),
+            evidence_paths=_evidence_paths(tmp_path),
+            evaluated_at=EVALUATED_AT,
+        )
+
+
+def test_pre_order_gate_rejects_malformed_graph(tmp_path: Path) -> None:
+    repository = _repository(tmp_path)
+    graph = repository / "fixtures/golden-design-1/graph.json"
+    graph.write_text("{", encoding="utf-8")
+    with pytest.raises(PreOrderGateError, match="design graph policy validation"):
+        evaluate_pre_order_gate(
+            repository=repository,
+            policy=_policy(),
+            design_graph_path=graph,
+            order_total=_order_total(),
+            evidence_paths=_evidence_paths(tmp_path),
             evaluated_at=EVALUATED_AT,
         )
 
@@ -321,6 +454,7 @@ def test_pre_order_gate_rejects_malformed_evidence_and_amount_units(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=[malformed, paths[1]],
             evaluated_at=EVALUATED_AT,
@@ -341,6 +475,7 @@ def test_pre_order_gate_rejects_unknown_or_missing_container_digest(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=paths,
             evaluated_at=EVALUATED_AT,
@@ -355,6 +490,7 @@ def test_pre_order_gate_rejects_unknown_or_missing_container_digest(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=_order_total(),
             evidence_paths=paths,
             evaluated_at=EVALUATED_AT,
@@ -363,6 +499,7 @@ def test_pre_order_gate_rejects_unknown_or_missing_container_digest(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=OrderTotalResult(
                 subtotals=(),
                 total=QuoteAmount(
@@ -381,6 +518,7 @@ def test_pre_order_gate_rejects_unknown_or_missing_container_digest(
         evaluate_pre_order_gate(
             repository=repository,
             policy=_policy(),
+            design_graph_path=repository / "fixtures/golden-design-1/graph.json",
             order_total=OrderTotalResult(
                 subtotals=(),
                 total=QuoteAmount(
@@ -401,6 +539,7 @@ def test_pre_order_gate_rejects_unknown_or_missing_container_digest(
         evaluate_pre_order_gate(
             repository=clean_repository,
             policy=_policy(),
+            design_graph_path=clean_repository / "fixtures/golden-design-1/graph.json",
             order_total=OrderTotalResult(
                 subtotals=(),
                 total=_order_total().total,
