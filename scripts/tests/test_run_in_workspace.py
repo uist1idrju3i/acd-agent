@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -300,6 +301,54 @@ def test_cli_forwards_cache_directory_and_creates_subdirectories(
         == 0
     )
     assert captured["cache_dir"] == cache_dir
+    assert (cache_dir / "uv").is_dir()
+    assert (cache_dir / "ccache").is_dir()
+
+
+def _prepare_cache_dir(cache_dir: Path) -> None:
+    runner_script._prepare_cache_dir(cache_dir)  # pyright: ignore[reportPrivateUsage]
+
+
+def test_prepare_cache_dir_normalizes_nested_permissions(tmp_path: Path) -> None:
+    cache_dir = tmp_path / "cache"
+    nested_dir = cache_dir / "uv" / "sdists-v9" / "nested"
+    nested_dir.mkdir(parents=True)
+    nested_file = nested_dir / "archive"
+    nested_file.write_text("cache", encoding="utf-8")
+    nested_dir.chmod(0o700)
+    nested_file.chmod(0o600)
+
+    _prepare_cache_dir(cache_dir)
+
+    assert nested_dir.stat().st_mode & stat.S_IRWXO == stat.S_IRWXO
+    assert nested_file.stat().st_mode & (stat.S_IROTH | stat.S_IWOTH) == (
+        stat.S_IROTH | stat.S_IWOTH
+    )
+
+
+def test_prepare_cache_dir_skips_symlink_targets(tmp_path: Path) -> None:
+    cache_dir = tmp_path / "cache"
+    cache_dir.mkdir()
+    target = tmp_path / "target"
+    target.write_text("cache", encoding="utf-8")
+    target.chmod(0o600)
+    link = cache_dir / "link"
+    link.symlink_to(target)
+
+    _prepare_cache_dir(cache_dir)
+
+    assert link.is_symlink()
+    assert target.stat().st_mode & 0o777 == 0o600
+
+
+def test_prepare_cache_dir_creates_top_level_cache_directories(
+    tmp_path: Path,
+) -> None:
+    cache_dir = tmp_path / "cache"
+
+    _prepare_cache_dir(cache_dir)
+
+    assert cache_dir.is_dir()
     assert (cache_dir / "uv").is_dir()
     assert (cache_dir / "ccache").is_dir()
 

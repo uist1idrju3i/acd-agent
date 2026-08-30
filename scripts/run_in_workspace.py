@@ -31,10 +31,43 @@ from acd.schema.host_resources import HostResourceReport
 
 
 def _prepare_cache_dir(cache_dir: Path) -> None:
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return
     for path in (cache_dir, cache_dir / "uv", cache_dir / "ccache"):
-        path.mkdir(exist_ok=True)
-        path.chmod(0o777)
+        try:
+            path.mkdir(exist_ok=True)
+        except OSError:
+            continue
+        try:
+            if not path.is_symlink():
+                path.chmod(0o777)
+        except OSError:
+            continue
+    for root, dirnames, filenames in os.walk(
+        cache_dir,
+        followlinks=False,
+        onerror=lambda _error: None,
+    ):
+        root_path = Path(root)
+        dirnames[:] = [
+            name for name in dirnames if not (root_path / name).is_symlink()
+        ]
+        for name in dirnames:
+            try:
+                (root_path / name).chmod(0o777)
+            except OSError:
+                continue
+        for name in filenames:
+            path = root_path / name
+            try:
+                if path.is_symlink() or not path.is_file():
+                    continue
+                mode = path.stat().st_mode
+                path.chmod(0o666 | (mode & 0o111))
+            except OSError:
+                continue
 
 
 def _write_host_resource_report(
