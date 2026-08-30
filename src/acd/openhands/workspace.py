@@ -263,10 +263,9 @@ def run_command_in_workspace(
     host_resource_report = check_host_resources(
         ResourceRequirement(
             memory_limit_bytes=parse_memory_bytes(config.memory_limit),
-            jvm_max_heap_bytes=parse_memory_bytes(config.jvm_max_heap),
+            jvm_max_heap=config.jvm_max_heap,
         ),
         disk_path=repository,
-        declared_jvm_max_heap=config.jvm_max_heap,
     )
     if host_resource_report.status != "pass":
         findings = "; ".join(

@@ -146,25 +146,15 @@ def run_tool(
 
     started_at = datetime.now(UTC)
     try:
-        if env is None:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                cwd=cwd,
-                check=False,
-                timeout=timeout_s,
-            )
-        else:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                cwd=cwd,
-                check=False,
-                timeout=timeout_s,
-                env={**os.environ, **env},
-            )
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            check=False,
+            timeout=timeout_s,
+            env={**os.environ, **env} if env is not None else None,
+        )
     except subprocess.TimeoutExpired as exc:
         finished_at = datetime.now(UTC)
         stdout = _decode_timeout_output(exc.stdout)

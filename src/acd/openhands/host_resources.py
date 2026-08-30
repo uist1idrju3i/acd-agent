@@ -7,7 +7,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, cast
+from typing import Final
 
 from acd.schema.host_resources import (
     HostResourceCode,
@@ -25,11 +25,15 @@ _GIB = 1024 * _MIB
 @dataclass(frozen=True)
 class ResourceRequirement:
     memory_limit_bytes: int
-    jvm_max_heap_bytes: int
+    jvm_max_heap: str
     host_memory_headroom_bytes: int = 512 * _MIB
     jvm_non_heap_reserve_bytes: int = 1024 * _MIB
     min_cpu_count: int = 2
     min_disk_free_bytes: int = 8 * _GIB
+
+    @property
+    def jvm_max_heap_bytes(self) -> int:
+        return parse_memory_bytes(self.jvm_max_heap)
 
 
 def parse_memory_bytes(value: str) -> int:
@@ -50,8 +54,8 @@ def _mib(value: int | None) -> str:
     return "unknown" if value is None else f"{value / _MIB:.2f} MiB"
 
 
-def _finding(code: str, detail: str) -> HostResourceFinding:
-    return HostResourceFinding(code=cast(HostResourceCode, code), detail=detail)
+def _finding(code: HostResourceCode, detail: str) -> HostResourceFinding:
+    return HostResourceFinding(code=code, detail=detail)
 
 
 def _read_meminfo(path: Path) -> dict[str, int]:
@@ -80,7 +84,6 @@ def check_host_resources(
     meminfo_path: Path = Path("/proc/meminfo"),
     disk_path: Path = Path("."),
     cpu_count: int | None = None,
-    declared_jvm_max_heap: str = DEFAULT_FREEROUTING_MAX_HEAP,
 ) -> HostResourceReport:
     """Return all host resource findings without raising on probe failures."""
     meminfo = _read_meminfo(meminfo_path)
@@ -217,7 +220,7 @@ def check_host_resources(
         cpu_count=observed_cpu,
         disk_free_bytes=disk_free,
         requested_memory_limit_bytes=requirement.memory_limit_bytes,
-        declared_jvm_max_heap=declared_jvm_max_heap,
+        declared_jvm_max_heap=requirement.jvm_max_heap,
         findings=findings,
     )
 

@@ -119,7 +119,7 @@ def test_run_tool_omits_environment_override_when_unspecified(
         target_revision="r1",
         measurement_conditions="test",
     )
-    assert "env" not in captured
+    assert captured["env"] is None
 
 
 def test_run_tool_fails_closed_on_missing_input(tmp_path: Path) -> None:

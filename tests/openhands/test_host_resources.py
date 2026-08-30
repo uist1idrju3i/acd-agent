@@ -39,13 +39,15 @@ def _meminfo(
     )
 
 
-def _requirements(**overrides: int) -> ResourceRequirement:
-    values = {
-        "memory_limit_bytes": 8 * GIB,
-        "jvm_max_heap_bytes": 2 * GIB,
-    }
-    values.update(overrides)
-    return ResourceRequirement(**values)
+def _requirements(
+    *,
+    memory_limit_bytes: int = 8 * GIB,
+    jvm_max_heap: str = "2g",
+) -> ResourceRequirement:
+    return ResourceRequirement(
+        memory_limit_bytes=memory_limit_bytes,
+        jvm_max_heap=jvm_max_heap,
+    )
 
 
 def _disk(monkeypatch: pytest.MonkeyPatch, free: int = 16 * GIB) -> None:
@@ -76,46 +78,59 @@ def test_host_resource_preflight_passes(tmp_path: Path, monkeypatch: pytest.Monk
 
 
 @pytest.mark.parametrize(
-    ("code", "requirements", "meminfo_kwargs", "disk_free", "cpu_count"),
+    (
+        "code",
+        "memory_limit_bytes",
+        "jvm_max_heap",
+        "meminfo_kwargs",
+        "disk_free",
+        "cpu_count",
+    ),
     [
         (
             "host.memory.total_insufficient",
-            {},
+            8 * GIB,
+            "2g",
             {"total_mib": 4096},
             16 * GIB,
             4,
         ),
         (
             "host.memory.available_insufficient",
-            {},
+            8 * GIB,
+            "2g",
             {"available_mib": 4096},
             16 * GIB,
             4,
         ),
         (
             "host.swap.unknown",
-            {},
+            8 * GIB,
+            "2g",
             {"swap_total_mib": None},
             16 * GIB,
             4,
         ),
         (
             "host.cpu.insufficient",
-            {},
+            8 * GIB,
+            "2g",
             {},
             16 * GIB,
             1,
         ),
         (
             "host.disk.insufficient",
-            {},
+            8 * GIB,
+            "2g",
             {},
             4 * GIB,
             4,
         ),
         (
             "runtime.jvm_heap.exceeds_container_limit",
-            {"memory_limit_bytes": 2 * GIB, "jvm_max_heap_bytes": 2 * GIB},
+            2 * GIB,
+            "2g",
             {},
             16 * GIB,
             4,
@@ -126,7 +141,8 @@ def test_host_resource_preflight_reports_each_insufficient_code(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     code: str,
-    requirements: dict[str, int],
+    memory_limit_bytes: int,
+    jvm_max_heap: str,
     meminfo_kwargs: dict[str, int | None],
     disk_free: int,
     cpu_count: int,
@@ -144,7 +160,12 @@ def test_host_resource_preflight_reports_each_insufficient_code(
     monkeypatch.setattr("acd.openhands.host_resources.os.cpu_count", observed_cpu_count)
 
     report = check_host_resources(
-        _requirements(**requirements), meminfo_path=meminfo, disk_path=tmp_path
+        _requirements(
+            memory_limit_bytes=memory_limit_bytes,
+            jvm_max_heap=jvm_max_heap,
+        ),
+        meminfo_path=meminfo,
+        disk_path=tmp_path,
     )
 
     assert code in {finding.code for finding in report.findings}

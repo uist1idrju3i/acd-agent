@@ -253,6 +253,18 @@ def test_cli_rejects_local_provisional_with_image(tmp_path: Path) -> None:
         )
 
 
+def test_cli_rejects_local_provisional_with_host_resource_report(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        runner_script.main(
+            [
+                "--local-provisional",
+                "--host-resource-report",
+                str(tmp_path / "host.json"),
+                "true",
+            ]
+        )
+
+
 def test_cli_forwards_cache_directory_and_creates_subdirectories(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

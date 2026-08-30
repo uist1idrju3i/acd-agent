@@ -27,6 +27,7 @@ from acd.openhands.workspace import (
     run_command_in_workspace,
     workspace_defaults,
 )
+from acd.schema.host_resources import HostResourceReport
 
 
 def _prepare_cache_dir(cache_dir: Path) -> None:
@@ -34,6 +35,15 @@ def _prepare_cache_dir(cache_dir: Path) -> None:
     for path in (cache_dir, cache_dir / "uv", cache_dir / "ccache"):
         path.mkdir(exist_ok=True)
         path.chmod(0o777)
+
+
+def _write_host_resource_report(
+    path: Path | None, report: HostResourceReport | None
+) -> None:
+    if path is None or report is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(report.model_dump_json(indent=2) + "\n", encoding="utf-8")
 
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
@@ -121,6 +131,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error("--source cannot be used with --local-provisional")
     if args.local_provisional and args.cache_dir:
         parser.error("--cache-dir cannot be used with --local-provisional")
+    if args.local_provisional and args.host_resource_report:
+        parser.error("--host-resource-report cannot be used with --local-provisional")
     if not args.local_provisional and not args.image:
         parser.error("--image or ACD_CONTAINER_IMAGE is required")
     return args
@@ -175,12 +187,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 ),
             )
     except WorkspaceStartupError as exc:
-        if args.host_resource_report is not None and exc.host_resource_report is not None:
-            args.host_resource_report.parent.mkdir(parents=True, exist_ok=True)
-            args.host_resource_report.write_text(
-                exc.host_resource_report.model_dump_json(indent=2) + "\n",
-                encoding="utf-8",
-            )
+        _write_host_resource_report(args.host_resource_report, exc.host_resource_report)
         if exc.host_resource_report is not None:
             for finding in exc.host_resource_report.findings:
                 print(f"{finding.code}: {finding.detail}", file=sys.stderr)
@@ -196,12 +203,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("execution context: host (provisional)")
     else:
         print(f"image digest: {result.digest} ({result.source})")
-        if args.host_resource_report is not None and result.host_resource_report is not None:
-            args.host_resource_report.parent.mkdir(parents=True, exist_ok=True)
-            args.host_resource_report.write_text(
-                result.host_resource_report.model_dump_json(indent=2) + "\n",
-                encoding="utf-8",
-            )
+    _write_host_resource_report(
+        args.host_resource_report,
+        (
+            None
+            if isinstance(result, ProvisionalWorkspaceResult)
+            else result.host_resource_report
+        ),
+    )
     print(f"exit code: {result.exit_code}")
     classification = classify_execution_failure(
         result.exit_code, f"{result.stdout}\n{result.stderr}"

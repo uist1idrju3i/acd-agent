@@ -189,11 +189,20 @@ jobs:
             --image "$SERVER_REF" \
             --repo "$GITHUB_WORKSPACE" \
             --cache-dir "${{ runner.temp }}/acd-cache" \
+            --host-resource-report out/host-resources.json \
             'uv sync && uv run python scripts/run_design_lanes.py'
           uv run python scripts/verify_authoritative_evidence.py \
             --revision-from fixtures/golden-design-1/graph.json \
             out/container/gd1/evidence-electrical.json \
             out/container/gd1-enclosure/evidence-mechanical.json
+      - name: Report host resource preflight
+        if: always()
+        run: |
+          if [ -f out/host-resources.json ]; then
+            cat out/host-resources.json
+          else
+            echo "host resource report was not produced"
+          fi
 
   docs-verify:
     needs: changes
