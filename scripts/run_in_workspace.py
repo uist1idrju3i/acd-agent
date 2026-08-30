@@ -6,7 +6,6 @@ import argparse
 import os
 import sys
 from collections.abc import Sequence
-from contextlib import suppress
 from pathlib import Path
 
 from acd.openhands.container_runtime import (
@@ -33,10 +32,7 @@ def _prepare_cache_dir(cache_dir: Path) -> None:
     cache_dir.mkdir(parents=True, exist_ok=True)
     for path in (cache_dir, cache_dir / "uv", cache_dir / "ccache"):
         path.mkdir(exist_ok=True)
-    for path in cache_dir.rglob("*"):
-        if path.is_dir() and not path.is_symlink():
-            with suppress(PermissionError):
-                path.chmod(0o777)
+        path.chmod(0o777)
 
 
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:

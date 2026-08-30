@@ -154,7 +154,7 @@ jobs:
       - name: Restore ACD workspace caches
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: .acd-cache
+          path: ${{ runner.temp }}/acd-cache
           key: acd-cache-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
             acd-cache-${{ runner.os }}-
@@ -188,7 +188,7 @@ jobs:
           uv run python scripts/run_in_workspace.py \
             --image "$SERVER_REF" \
             --repo "$GITHUB_WORKSPACE" \
-            --cache-dir "$GITHUB_WORKSPACE/.acd-cache" \
+            --cache-dir "${{ runner.temp }}/acd-cache" \
             'uv sync && uv run python scripts/run_design_lanes.py'
           uv run python scripts/verify_authoritative_evidence.py \
             --revision-from fixtures/golden-design-1/graph.json \

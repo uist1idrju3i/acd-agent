@@ -36,10 +36,11 @@ def test_repository_root_uses_explicit_environment_root(
     explicit_root.mkdir()
     (explicit_root / "AGENTS.md").write_text("", encoding="utf-8")
     (explicit_root / "pyproject.toml").write_text("", encoding="utf-8")
-    monkeypatch.setenv("ACD_REPOSITORY_ROOT", str(explicit_root))
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("ACD_REPOSITORY_ROOT", "repository")
     repository_root.cache_clear()
     try:
-        assert repository_root() == explicit_root
+        assert repository_root() == explicit_root.resolve()
     finally:
         repository_root.cache_clear()
 

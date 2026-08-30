@@ -11,7 +11,7 @@ from pathlib import Path
 def repository_root() -> Path:
     configured_root = os.environ.get("ACD_REPOSITORY_ROOT")
     root = (
-        Path(configured_root)
+        Path(configured_root).resolve()
         if configured_root is not None
         else Path(__file__).resolve().parents[3]
     )
