@@ -193,18 +193,16 @@ jobs:
           git commit -m "ACD image digest lockを更新"
           git push --set-upstream origin "$branch"
           if [ "${SKIP_TOOLS:-false}" = true ]; then
-            body="Publish workflowでacd-server image digest lockを更新しました。
-
-server: ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-server@${SERVER_DIGEST}
-tools: locked image (not rebuilt)
-workflow run: ${workflow_run}"
+            tools_line="tools: locked image (not rebuilt)"
           else
-            body="Publish workflowでacd-toolsとacd-serverのimage digest lockを更新しました。
-
-tools: ${TOOLS_REF}
-server: ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-server@${SERVER_DIGEST}
-workflow run: ${workflow_run}"
+            tools_line="tools: ${TOOLS_REF}"
           fi
+          body=$(printf '%s\n' \
+            "Publish workflowでACD image digest lockを更新しました。" \
+            "" \
+            "$tools_line" \
+            "server: ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-server@${SERVER_DIGEST}" \
+            "workflow run: ${workflow_run}")
           gh pr create \
             --repo "$GITHUB_REPOSITORY" \
             --base main \
