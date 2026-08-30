@@ -67,10 +67,10 @@ CPUを使えない制約だけが残る状態だった。
 単発測定（n=1）では`gencon`（SCC無し）98.5秒、`-Xquickstart`+SCC 113.6秒、
 `optthruput`+SCC 107.6秒、`balanced -Xnuma:none`+SCC 113.4秒／RSS 1333.6 MB、
 `-Xtune:throughput`+SCC 104.0秒だった。いずれも`-Xtune:footprint`より遅い。
-出荷するwrapperと同一のoption列（`-Xmx2g -Xtune:footprint -Djava.awt.headless=true` +
-readonly SCC + `-XX:+UseContainerSupport -XX:+AdaptiveGCThreading`、`-mt`暗黙）での確認実行は
+当時出荷していたwrapperと同一のoption列（`-Xmx2g -Xtune:footprint` + readonly SCC +
+`-XX:+UseContainerSupport -XX:+AdaptiveGCThreading`、`-mt`暗黙）での確認実行は
 76.2秒／RSS 344.9 MB／peak heap 99.9 MBで、unrecognized option警告は出ず、
-SES SHA-256も一致した。
+SES SHA-256も一致した。この測定は`-Djava.awt.headless=true`追加前のものである。
 
 SCC不在時の挙動も確認した。`readonly`および`readonly,fatal`のいずれでも
 `JVMSHRC226E`／`JVMSHRC336E`／`JVMSHRC337E`／`JVMSHRC840E`で起動失敗し、
