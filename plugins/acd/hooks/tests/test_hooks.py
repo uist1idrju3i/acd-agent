@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, cast
 
@@ -15,6 +17,7 @@ from openhands.sdk.hooks.types import HookEventType
 ROOT = Path(__file__).parents[4]
 SCRIPTS = ROOT / "plugins/acd/hooks/scripts"
 HOOKS_PATH = Path(__file__).parents[1] / "hooks.json"
+SERVER_DIGEST = "sha256:" + "a" * 64
 
 
 def run(
@@ -40,6 +43,44 @@ def run(
     if not isinstance(output, dict):
         output = {}
     return completed.returncode, cast(dict[str, Any], output)
+
+
+def _write_server_lock(root: Path, *, valid: bool = True) -> None:
+    lock = root / "docker/image-digests.json"
+    lock.parent.mkdir(parents=True)
+    document = {
+        "acd_server": {
+            "image": "example.test/acd-server",
+            "digest": SERVER_DIGEST if valid else "not-a-digest",
+        }
+    }
+    lock.write_text(json.dumps(document), encoding="utf-8")
+
+
+def _write_fake_docker(directory: Path, body: str) -> None:
+    docker = directory / "docker"
+    docker.write_text(f"#!/bin/sh\n{body}\n", encoding="utf-8")
+    docker.chmod(0o755)
+
+
+def _python_path() -> str:
+    executable = shutil.which("python")
+    assert executable is not None
+    return str(Path(executable).resolve().parent)
+
+
+def _load_session_start_module() -> Any:
+    sys.path.insert(0, str(SCRIPTS))
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "session_start_test", SCRIPTS / "session_start.py"
+        )
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.pop(0)
 
 
 def test_projection_write_and_parent_escape_are_denied() -> None:
@@ -505,6 +546,88 @@ def test_session_start_never_blocks() -> None:
     code, output = run("session_start.py", {}, "session_start")
     assert code == 0
     assert "additionalContext" in output
+
+
+def test_session_start_observes_all_tools_inside_locked_image(
+    tmp_path: Path,
+) -> None:
+    _write_server_lock(tmp_path)
+    docker_dir = tmp_path / "bin"
+    docker_dir.mkdir()
+    _write_fake_docker(
+        docker_dir,
+        """
+[ "$1" = "run" ] && [ "$4" = "" ] || exit 88
+printf '%s\\n' '=== kicad-cli ===' '10.0.6'
+printf '%s\\n' '=== freerouting ===' 'Freerouting v2.3.0'
+printf '%s\\n' '=== qemu-system-riscv32 ===' 'QEMU emulator version 9.2.2'
+printf '%s\\n' '=== cmake ===' 'cmake version 4.2.3'
+""",
+    )
+    code, output = run(
+        "session_start.py",
+        {},
+        root=tmp_path,
+        extra_env={
+            "PATH": f"{docker_dir}:{os.environ['PATH']}",
+        },
+    )
+    assert code == 0
+    context = output["additionalContext"]
+    assert "kicad-cli=10.0.6" in context
+    assert "freerouting=2.3.0" in context
+    assert "qemu-system-riscv32=9.2.2" in context
+    assert "cmake=4.2.3" in context
+
+
+def test_session_start_docker_absence_and_invalid_lock_fail_closed(
+    tmp_path: Path,
+) -> None:
+    _write_server_lock(tmp_path)
+    code, output = run(
+        "session_start.py",
+        {},
+        root=tmp_path,
+        extra_env={"PATH": _python_path()},
+    )
+    assert code == 0
+    assert "Authoritative tools are unavailable inside the locked image" in output[
+        "additionalContext"
+    ]
+
+    invalid_root = tmp_path / "invalid"
+    invalid_root.mkdir()
+    _write_server_lock(invalid_root, valid=False)
+    code, output = run(
+        "session_start.py",
+        {},
+        root=invalid_root,
+        extra_env={"PATH": _python_path()},
+    )
+    assert code == 0
+    assert "Authoritative tools are unavailable inside the locked image" in output[
+        "additionalContext"
+    ]
+
+
+def test_session_start_timeout_fails_closed(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    _write_server_lock(tmp_path)
+    module = _load_session_start_module()
+
+    def docker_path(_name: str) -> str:
+        return "/usr/bin/docker"
+
+    monkeypatch.setattr(module.shutil, "which", docker_path)
+
+    def timeout(*args: Any, **kwargs: Any) -> None:
+        del kwargs
+        raise subprocess.TimeoutExpired(args, 60)
+
+    monkeypatch.setattr(module.subprocess, "run", timeout)
+    assert module._probe(tmp_path) is None
 
 
 def test_stop_denies_changed_design_input(tmp_path: Path) -> None:

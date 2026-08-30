@@ -55,6 +55,15 @@ git submodule status
 
 `vendor/software-agent-sdk`がv1.44.1のcommitを指していることを確認する。
 
+`/acd:init`で会話用workspaceを初期化する場合は、cloneとrecursive submoduleを
+それぞれ`--depth 1`で取得する。`pyproject.toml`がvendor submoduleのeditable pathを
+参照するため、submodule自体は省略しない。初期化スクリプトはホストで`uv sync`を実行
+せず、依存とEDA/FWツールはdoctorがpullするdigest固定server image内のものを使用する。
+成功時の`.openhands/bootstrap-record.json`には`source: "mounted"`と
+`server_image_digest`を記録する。authoritative Evidenceは従来どおりホストcheckoutを
+mountする`--source mounted`経路で生成し、bootstrap recordやdoctorのL3観測を合格側へ
+昇格しない。
+
 ## OpenHandsへのインストール（SDK標準ルート）
 
 配布版をOpenHands環境へ導入する場合は、repositoryをcloneせず、pluginを
@@ -206,6 +215,10 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    pullせず、local image不在を`failed`とする。container modeではDocker-in-Dockerを
    要求せずPATH上のツールを観測する。doctorのL3観測をauthoritative Evidenceやゲート
    合格へ昇格させない。
+   SessionStart hookもホストの`uv run python scripts/probe_tools.py`を実行せず、
+   projectのlockにあるdigest固定server imageを`--entrypoint ""`付きの`docker run`で
+   1回だけprobeする。4ツールすべての版を抽出できない場合はホストprobeへ戻らず、
+   fail-closed contextを注入する（hook自体はL3観測としてexit 0）。
 
 2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは
    doctorのmanifest／Skill資材検査をGUIのロード結果でも確認する手順であり、
@@ -1564,9 +1577,11 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 - Python依存は`pyproject.toml`とlockを正とし、既定値・公開API・破壊的変更を確認して
   `docs/openhands-sdk-capabilities.json`の採否へ反映する。Markdown表は
   `scripts/verify_sdk_capabilities.py`で生成し、採否enumと代表APIの検査を通す。
-- KiCad CLI、Java、FreeRouting等の外部ツールは`command -v`と
-  `uv run python scripts/probe_tools.py`で版と能力を記録する。版不明、未実行、
-  出力不整合はゲートを緩めずfail-closedとする。
+- KiCad CLI、FreeRouting、QEMU、CMake、ESP-IDF等の外部ツールは、doctorと
+  SessionStart hookではdigest固定server image内だけを観測する。image内で版不明、
+  未実行、出力不整合があればゲートを緩めずfail-closedとする。`probe_tools.py`は
+  hostのprovisionalな開発観測に限り、doctorやhookのauthoritativeな観測経路では
+  使用しない。
 - SDKのdev workspace経路からDockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
   ホスト実行の結果を合格側Evidenceへ昇格しない。
 - container toolchainの今回更新では、Semeru 26.0.2.10（OpenJ9 0.61.0、新機能追加なし）、
@@ -1789,6 +1804,7 @@ uv run python scripts/export_execution_records.py out/records --out out/public/r
 ## トラブル時
 
 - `uv sync`が失敗する場合はsubmoduleが初期化されているか確認する。
-- 外部ツールが見つからない場合は`probe_tools.py`の結果を確認する。
+- 外部ツールが見つからない場合は、doctorのserver image checkとimage内probeの結果を
+  確認する。hostの`probe_tools.py`結果をauthoritativeな可否判断へ使わない。
 - graphやfixtureが不正な場合は入力を修正し、エラーを成功扱いにしない。
 - 秘密情報をログ、fixture、graph、commitへ書かない。

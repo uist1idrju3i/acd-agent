@@ -36,6 +36,13 @@ authoritative経路として既に採用している。imageに同梱されたbu
    単一jobで直列に実行し、digest lock更新を1 commit・1 PRへまとめる。`skip_tools`指定時は
    lock済みtools imageをbaseにserverだけを再buildする経路を維持し、lock fileとDocker README
    をtriggerから除外してdigest更新PRによるpublish再帰を防ぐ。
+7. initializeはrepository clone、revision fetch、recursive submoduleをshallow
+    (`--depth 1`)で取得する。ホストの`uv sync`は行わず、doctorがpullするlocked
+    server imageの依存とEDA/FWツールを使用する。bootstrap recordには
+    `source: "mounted"`と`server_image_digest`を記録する。
+8. SessionStart hookはprojectのlockから解決したserver imageをpullせずに
+    `docker run --rm --entrypoint "" ... sh -lc`でprobeする。4ツールの版をすべて取得
+    できない場合はhost probeへfallbackせず、fail-closed contextをL3観測として注入する。
 
 ## 結果
 
@@ -43,3 +50,6 @@ doctorのツール観測対象とauthoritative gateのruntimeがdigest固定serv
 ホストEDA/FW環境の差による誤った診断を防止できる。image内EDA欠落はoptional観測として
 報告される一方、Docker、server image、firmware前提はfail-closedで扱われる。
 doctorは引き続きL3 observationであり、authoritative Evidenceやゲート合格を生成・昇格しない。
+initializeとSessionStart hookもこの境界を維持し、初期化記録やツール版のcontextを
+authoritative Evidenceへ昇格しない。image未取得時のpullはdoctorの責務とし、hookは
+独立したpullやhost依存解決を行わない。

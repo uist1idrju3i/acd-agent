@@ -64,11 +64,20 @@ def _run(
     return completed, json.loads(completed.stdout)
 
 
+def _assert_no_required_failures(report: dict[str, Any]) -> None:
+    assert report["status"] != "failed"
+    assert not [
+        check
+        for check in report["checks"]
+        if check["required"] and check["result"] in {"fail", "unknown"}
+    ]
+
+
 def test_development_tree_is_diagnosable_without_host_tools(tmp_path: Path) -> None:
     copied, script = _copy_plugin(tmp_path)
     completed, report = _run(script, tmp_path)
     assert completed.returncode == 0
-    assert report["status"] == "degraded"
+    _assert_no_required_failures(report)
     assert report["plugin_root"] == str(copied)
     assert any(
         check["name"] == "docker capability" and check["result"] == "pass"
@@ -97,7 +106,7 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
     )
 
     assert completed.returncode == 0
-    assert report["status"] == "degraded"
+    _assert_no_required_failures(report)
     eda_check = next(
         check for check in report["checks"] if check["name"] == "EDA capabilities"
     )
@@ -112,6 +121,7 @@ def test_missing_image_eda_tool_is_degraded(tmp_path: Path) -> None:
         check for check in report["checks"] if check["name"] == "EDA capabilities"
     )
     assert report["status"] == "degraded"
+    _assert_no_required_failures(report)
     assert eda_check["result"] == "fail"
     assert "missing: kicad-cli" in eda_check["detail"]
 
@@ -196,7 +206,7 @@ def test_container_mode_does_not_require_docker_cli(tmp_path: Path) -> None:
         extra_env={"ACD_HOME": "/opt/acd", "IDF_PATH": str(idf)},
     )
     assert completed.returncode == 0
-    assert report["status"] == "degraded"
+    _assert_no_required_failures(report)
     assert all(
         check["result"] == "pass"
         for check in report["checks"]
@@ -524,7 +534,7 @@ def test_install_location_distinguishes_development_and_store_layouts(
         home,
     )
     assert completed.returncode == 0
-    assert development_report["status"] == "degraded"
+    _assert_no_required_failures(development_report)
     development_check = next(
         check
         for check in development_report["checks"]
@@ -608,7 +618,7 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
         home,
     )
     assert completed.returncode == 0
-    assert report["status"] == "degraded"
+    _assert_no_required_failures(report)
     hook_check = next(
         check for check in report["checks"] if check["name"] == "hook invocability"
     )
@@ -627,6 +637,7 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
     )
     assert completed.returncode == 0
     assert fixed_report["status"] == "degraded"
+    _assert_no_required_failures(fixed_report)
     fixed_hook_check = next(
         check for check in fixed_report["checks"] if check["name"] == "hook invocability"
     )
@@ -642,7 +653,7 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
         home,
     )
     assert completed.returncode == 0
-    assert invocable_report["status"] == "degraded"
+    _assert_no_required_failures(invocable_report)
     invocable_hook_check = next(
         check
         for check in invocable_report["checks"]
