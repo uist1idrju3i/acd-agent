@@ -49,7 +49,7 @@ def _without_attr(graph: DesignGraph, kind: str, attr: str) -> DesignGraph:
     return graph.model_copy(update={"nodes": nodes})
 
 
-def test_declared_gd1_graph_is_ready_for_every_lane() -> None:
+def test_declared_gd1_graph_has_complete_declarations_for_every_lane() -> None:
     report = run_lane_preflight(_graph())
     assert report.status == "declarations_complete"
     assert report.diagnostic_only is True

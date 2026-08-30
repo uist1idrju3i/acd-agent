@@ -14,11 +14,21 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from common import event, project_dir, result
 
 VALIDATOR_PATH = "scripts/check_rationale.py"
+ResolutionKind = Literal["resolved", "not_applicable", "deny"]
+
+
+@dataclass(frozen=True)
+class TargetResolution:
+    kind: ResolutionKind
+    target: Path | None = None
+    reason: str = ""
 
 
 def _not_applicable(reason: str) -> int:
@@ -38,25 +48,37 @@ def _relative_path(root: Path, path: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
-def _target_from_environment(root: Path) -> tuple[Path | None, str | None]:
+def _target_from_environment(root: Path) -> TargetResolution | None:
     raw = os.environ.get("ACD_TARGET_DESIGN")
     if raw is None:
-        return None, None
+        return None
     candidate = Path(raw)
     if candidate.is_absolute() or ".." in candidate.parts:
-        return None, (
-            f"declared target: ACD_TARGET_DESIGN is not a "
-            f"repository-relative fixture: {raw!r}"
+        return TargetResolution(
+            kind="deny",
+            reason=(
+                f"ACD_TARGET_DESIGN is not a repository-relative fixture: "
+                f"{raw!r}"
+            ),
         )
     target = root / candidate
     try:
         if not target.resolve().is_relative_to(root.resolve()):
-            return None, f"declared target: ACD_TARGET_DESIGN escapes the repository: {raw!r}"
+            return TargetResolution(
+                kind="deny",
+                reason=f"ACD_TARGET_DESIGN escapes the repository: {raw!r}",
+            )
     except OSError as exc:
-        return None, f"declared target: ACD_TARGET_DESIGN could not be resolved: {exc}"
+        return TargetResolution(
+            kind="deny",
+            reason=f"ACD_TARGET_DESIGN could not be resolved: {exc}",
+        )
     if not (target / "graph.json").is_file():
-        return None, f"declared target: ACD_TARGET_DESIGN has no graph.json: {raw!r}"
-    return target, None
+        return TargetResolution(
+            kind="deny",
+            reason=f"ACD_TARGET_DESIGN has no graph.json: {raw!r}",
+        )
+    return TargetResolution(kind="resolved", target=target)
 
 
 def _changed_fixture_dirs(root: Path) -> tuple[set[Path] | None, str | None]:
@@ -75,6 +97,8 @@ def _changed_fixture_dirs(root: Path) -> tuple[set[Path] | None, str | None]:
             continue
         path = line[3:]
         relative = Path(path)
+        if " -> " in path:
+            relative = Path(path.rsplit(" -> ", 1)[1])
         if not relative.as_posix().startswith("fixtures/"):
             continue
         if relative.name not in {"graph.json", "rationale.json"}:
@@ -83,44 +107,57 @@ def _changed_fixture_dirs(root: Path) -> tuple[set[Path] | None, str | None]:
     return candidates, None
 
 
-def _resolve_target(root: Path) -> tuple[Path | None, str | None]:
-    target, error = _target_from_environment(root)
-    if target is not None or error is not None:
-        return target, error
+def _resolve_target(root: Path) -> TargetResolution:
+    environment_resolution = _target_from_environment(root)
+    if environment_resolution is not None:
+        return environment_resolution
 
     changed, error = _changed_fixture_dirs(root)
     if error is not None:
-        return None, error
-    assert changed is not None
+        return TargetResolution(kind="not_applicable", reason=error)
+    if changed is None:
+        return TargetResolution(
+            kind="not_applicable",
+            reason="git status returned no fixture paths",
+        )
     if len(changed) == 1:
-        return next(iter(changed)), None
+        return TargetResolution(kind="resolved", target=next(iter(changed)))
     if len(changed) > 1:
         listed = ", ".join(sorted(_relative_path(root, path) for path in changed))
-        return None, f"not applicable: target design is ambiguous; candidates: {listed}"
+        return TargetResolution(
+            kind="not_applicable",
+            reason=f"target design is ambiguous; candidates: {listed}",
+        )
 
     graphs = sorted(root.glob("fixtures/**/graph.json"))
     if len(graphs) == 1:
-        return graphs[0].parent, None
+        return TargetResolution(kind="resolved", target=graphs[0].parent)
     listed = ", ".join(
         _relative_path(root, graph.parent) for graph in graphs
     )
-    return None, (
-        f"not applicable: target design could not be resolved; "
-        f"candidates: {listed or '(none)'}"
+    return TargetResolution(
+        kind="not_applicable",
+        reason=(
+            f"target design could not be resolved; "
+            f"candidates: {listed or '(none)'}"
+        ),
     )
 
 
 def main(argv: list[str]) -> int:
     warn_only = "--warn-only" in argv
     root = project_dir(event())
-    target, target_error = _resolve_target(root)
-    if target_error is not None:
-        if "git status could not be obtained" in target_error:
-            return _not_applicable(target_error)
-        if target_error.startswith("not applicable:"):
-            return _not_applicable(target_error)
-        return _deny(target_error, warn_only=warn_only)
-    assert target is not None
+    resolution = _resolve_target(root)
+    if resolution.kind == "not_applicable":
+        return _not_applicable(resolution.reason)
+    if resolution.kind == "deny":
+        return _deny(resolution.reason, warn_only=warn_only)
+    target = resolution.target
+    if target is None:
+        return _deny(
+            "resolved target design has no target path",
+            warn_only=warn_only,
+        )
     graph_path = target / "graph.json"
     rationale_path = target / "rationale.json"
     if not graph_path.is_file():
@@ -161,7 +198,7 @@ def main(argv: list[str]) -> int:
     except OSError as exc:
         reason = f"Rationale validation could not be executed: {exc}."
         return _deny(reason, warn_only=warn_only)
-    return completed.returncode
+    return 0 if warn_only else completed.returncode
 
 
 if __name__ == "__main__":

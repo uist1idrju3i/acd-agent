@@ -645,6 +645,41 @@ def test_rationale_hook_warn_only_never_blocks(tmp_path: Path) -> None:
     assert _run_rationale_hook(tmp_path, "--warn-only").returncode == 0
 
 
+def test_rationale_hook_warn_only_never_blocks_validator_failure(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path
+    _rationale_inputs(root)
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    uv = fake_bin / "uv"
+    uv.write_text("#!/bin/sh\nexit 17\n", encoding="utf-8")
+    uv.chmod(0o755)
+    completed = _run_rationale_hook(
+        root,
+        "--warn-only",
+        extra_env={"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
+    )
+
+    assert completed.returncode == 0
+
+
+def test_rationale_hook_uses_renamed_fixture_path(tmp_path: Path) -> None:
+    root = tmp_path
+    _rationale_inputs(root)
+    subprocess.run(
+        ["git", "mv", "fixtures/golden-design-1", "fixtures/renamed-design"],
+        cwd=root,
+        check=True,
+    )
+
+    completed = _run_rationale_hook(root)
+
+    assert completed.returncode == 2
+    assert "fixtures/renamed-design/graph.json" in completed.stdout
+    assert "fixtures/golden-design-1/graph.json" not in completed.stdout
+
+
 def _install_rationale_validator_runner(root: Path) -> Path:
     validator = root / "scripts/check_rationale.py"
     validator.parent.mkdir(parents=True)
