@@ -67,6 +67,11 @@ from acd.schema.feedback import (
     FeedbackRuleKind,
     FeedbackValidationStatus,
 )
+from acd.schema.firmware_capability import (
+    FirmwareCapabilityContract,
+    FirmwareCapabilityRegistryDocument,
+    FirmwareDeviceContract,
+)
 from acd.schema.functional_block import (
     FunctionalBlockContract,
     FunctionalBlockRegistryDocument,
@@ -244,6 +249,9 @@ __all__ = [
     "FeedbackRule",
     "FeedbackRuleKind",
     "FeedbackValidationStatus",
+    "FirmwareCapabilityContract",
+    "FirmwareCapabilityRegistryDocument",
+    "FirmwareDeviceContract",
     "FixtureComponentSpec",
     "FixtureCplOrientationEvidence",
     "FixtureFirmwareModuleSpec",

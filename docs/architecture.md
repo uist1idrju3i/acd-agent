@@ -261,6 +261,10 @@ template固有netとshared netの衝突、未知block、重複宣言、template�
 参照できる。合成後のcomponent、net、constraintの順序と正規化は従来どおり決定論的で、
 選択templateのlocal netと実際に参照されたshared netだけを出力する。
 
+FW capability registryは`contracts/firmware-capability-registry.json`を正とし、
+firmware sequenceのaction、pin role、device parameterから生成対象を解決する。未宣言の
+peripheralは投影せず、registryの欠落・schema違反・解決不能はfail-closedにする。
+
 部品entryは`register_part_catalog_entry.py`または
 `acd_register_parts_catalog_entry`から追加する。両経路はsymbol／footprintの実file
 存在、SHA-256、source宣言を検証し、既存`part_number`または

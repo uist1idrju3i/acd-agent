@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@626b72aa7217d24d9c32361a65cc66d998eb2616",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@25d07aa0869c1469628468b485ae9157855860f6",
 # ]
 # ///
 """Typed extraction of the firmware lane from a design graph.
@@ -12,9 +12,15 @@ consume these views; missing or malformed attributes fail closed.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
+from acd.core.firmware_capability import (
+    FirmwareCapabilityRegistry,
+    load_firmware_capability_registry,
+)
 from acd.schema.design_graph import DesignGraph
 
 
@@ -27,6 +33,32 @@ class FirmwarePinView:
     node_id: str
     gpio: int
     net_id: str
+    role: str
+
+
+@dataclass(frozen=True)
+class FirmwareDeviceView:
+    mpn: str
+    driver_id: str
+    i2c_address: int
+    measurement_command: int
+
+
+@dataclass(frozen=True)
+class FirmwareCapabilityStep:
+    capability_id: str
+    action: str
+    step_index: int
+    device: FirmwareDeviceView | None = None
+
+
+@dataclass(frozen=True)
+class FirmwareCapabilityPlan:
+    steps: tuple[FirmwareCapabilityStep, ...]
+    pin_role_order: tuple[str, ...]
+    required_pin_roles: tuple[str, ...]
+    registry_hash: str
+    registry_path: str
 
 
 @dataclass(frozen=True)
@@ -44,6 +76,12 @@ class FirmwareLane:
             if pin.net_id == net_id:
                 return pin.gpio
         raise FirmwareExtractionError(f"no firmware pin assignment for net {net_id!r}")
+
+    def gpio_for_role(self, role: str) -> int:
+        for pin in self.pins:
+            if pin.role == role:
+                return pin.gpio
+        raise FirmwareExtractionError(f"no firmware pin assignment for role {role!r}")
 
 
 @dataclass(frozen=True)
@@ -118,7 +156,14 @@ def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:
             raise FirmwareExtractionError(f"node {node.id!r}: attr 'gpio' missing or not an int")
         if not isinstance(net, str) or not net:
             raise FirmwareExtractionError(f"node {node.id!r}: attr 'net' missing or not a string")
-        pins.append(FirmwarePinView(node_id=node.id, gpio=gpio, net_id=net))
+        pins.append(
+            FirmwarePinView(
+                node_id=node.id,
+                gpio=gpio,
+                net_id=net,
+                role=net.removeprefix("net."),
+            )
+        )
     if not pins:
         raise FirmwareExtractionError("graph has no firmware.pin_assignment nodes")
     gpios = [pin.gpio for pin in pins]
@@ -128,3 +173,129 @@ def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:
     if len(set(nets)) != len(nets):
         raise FirmwareExtractionError("duplicate net in firmware pin assignments")
     return FirmwareLane(pins=tuple(sorted(pins, key=lambda p: p.node_id)))
+
+
+def resolve_firmware_capability_plan(
+    graph: DesignGraph,
+    lane: FirmwareLane,
+    registry: FirmwareCapabilityRegistry | None = None,
+) -> FirmwareCapabilityPlan:
+    registry = registry or load_firmware_capability_registry()
+    capabilities = {
+        action: capability
+        for capability in registry.capabilities
+        for action in capability.actions
+    }
+    devices = {device.mpn: device for device in registry.devices}
+    nodes = {node.id: node for node in graph.nodes}
+    raw_steps = [
+        node for node in graph.nodes if node.kind == "firmware.sequence_step"
+    ]
+    seen_indexes: set[int] = set()
+    steps: list[FirmwareCapabilityStep] = []
+    for node in raw_steps:
+        step_index = node.attrs.get("step_index")
+        if isinstance(step_index, bool) or not isinstance(step_index, int) or step_index <= 0:
+            raise FirmwareExtractionError(
+                f"firmware sequence step {node.id!r} has an invalid step_index"
+            )
+        if step_index in seen_indexes:
+            raise FirmwareExtractionError(
+                f"duplicate firmware sequence step index: {step_index}"
+            )
+        seen_indexes.add(step_index)
+        action = node.attrs.get("action")
+        if not isinstance(action, str) or not action:
+            raise FirmwareExtractionError(
+                f"firmware sequence step {node.id!r} has no action"
+            )
+        capability = capabilities.get(action)
+        if capability is None:
+            raise FirmwareExtractionError(
+                f"firmware action {action!r} is not registered in "
+                f"{registry.path}"
+            )
+        missing_roles = sorted(
+            role
+            for role in capability.required_pin_roles
+            if not any(pin.role == role for pin in lane.pins)
+        )
+        if missing_roles:
+            raise FirmwareExtractionError(
+                f"firmware action {action!r} capability {capability.capability_id!r} "
+                f"is missing pin roles: {', '.join(missing_roles)}"
+            )
+        device: FirmwareDeviceView | None = None
+        if capability.requires_device:
+            target = node.attrs.get("target")
+            if not isinstance(target, str) or not target:
+                raise FirmwareExtractionError(
+                    f"firmware action {action!r} capability "
+                    f"{capability.capability_id!r} requires a target device"
+                )
+            target_node = nodes.get(target)
+            if target_node is None or target_node.kind != "electrical.component":
+                raise FirmwareExtractionError(
+                    f"firmware action {action!r} target {target!r} is not an "
+                    "electrical component"
+                )
+            mpn = target_node.attrs.get("mpn")
+            if not isinstance(mpn, str) or not mpn:
+                raise FirmwareExtractionError(
+                    f"firmware action {action!r} target {target!r} has no mpn"
+                )
+            registered = devices.get(mpn)
+            if registered is None:
+                raise FirmwareExtractionError(
+                    f"firmware device {mpn!r} is not registered in {registry.path}"
+                )
+            device = FirmwareDeviceView(
+                mpn=registered.mpn,
+                driver_id=registered.driver_id,
+                i2c_address=registered.i2c_address,
+                measurement_command=registered.measurement_command,
+            )
+        steps.append(
+            FirmwareCapabilityStep(
+                capability_id=capability.capability_id,
+                action=action,
+                step_index=step_index,
+                device=device,
+            )
+        )
+    if not steps:
+        raise FirmwareExtractionError("graph has no firmware.sequence_step nodes")
+    ordered_steps = tuple(sorted(steps, key=lambda step: step.step_index))
+    expected_indexes = list(range(1, len(ordered_steps) + 1))
+    if [step.step_index for step in ordered_steps] != expected_indexes:
+        raise FirmwareExtractionError(
+            "firmware sequence step_index must be a contiguous 1-based sequence"
+        )
+    capability_by_id = {
+        capability.capability_id: capability for capability in registry.capabilities
+    }
+    required_roles = {
+        role
+        for step in ordered_steps
+        for role in capability_by_id[step.capability_id].required_pin_roles
+    }
+    role_order = {
+        role: index for index, role in enumerate(registry.document.pin_role_order)
+    }
+    required_pin_roles = tuple(
+        sorted(
+            required_roles,
+            key=lambda role: (role_order.get(role, len(role_order)), role),
+        )
+    )
+    return FirmwareCapabilityPlan(
+        steps=ordered_steps,
+        pin_role_order=tuple(registry.document.pin_role_order),
+        required_pin_roles=required_pin_roles,
+        registry_hash=registry.registry_hash,
+        registry_path=Path(
+            os.path.relpath(
+                registry.path.resolve(), Path(__file__).resolve().parents[5]
+            )
+        ).as_posix(),
+    )

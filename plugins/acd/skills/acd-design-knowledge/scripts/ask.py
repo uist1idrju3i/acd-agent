@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@626b72aa7217d24d9c32361a65cc66d998eb2616",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@25d07aa0869c1469628468b485ae9157855860f6",
 # ]
 # ///
 """Answer a design question from the indexed knowledge sources.

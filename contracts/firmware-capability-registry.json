@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "registry_id": "acd-firmware-capabilities-14.14",
+  "pin_role_order": [
+    "led",
+    "i2c_sda",
+    "i2c_scl",
+    "uart_tx",
+    "uart_rx",
+    "boot",
+    "usb_dn",
+    "usb_dp"
+  ],
+  "capabilities": [
+    {
+      "capability_id": "firmware_init",
+      "actions": ["initialize_firmware"],
+      "required_pin_roles": [],
+      "requires_device": false
+    },
+    {
+      "capability_id": "led_blink",
+      "actions": ["toggle_led"],
+      "required_pin_roles": ["led"],
+      "requires_device": false
+    },
+    {
+      "capability_id": "i2c_sensor_init",
+      "actions": ["initialize_sht40"],
+      "required_pin_roles": ["i2c_sda", "i2c_scl"],
+      "requires_device": true
+    },
+    {
+      "capability_id": "i2c_sensor_read",
+      "actions": ["read_temperature_humidity"],
+      "required_pin_roles": ["i2c_sda", "i2c_scl"],
+      "requires_device": true
+    },
+    {
+      "capability_id": "serial_log",
+      "actions": ["write_serial_log"],
+      "required_pin_roles": [],
+      "requires_device": false
+    }
+  ],
+  "devices": [
+    {
+      "mpn": "SHT40-AD1B-R3",
+      "driver_id": "sht40",
+      "i2c_address": 68,
+      "measurement_command": 253,
+      "source_url": "https://sensirion.com/media/documents/33FD6951/6A7C10A0/HT_DS_Datasheet_SHT4x_V7.3.pdf",
+      "source_ref": "Sensirion SHT4x Datasheet V7.3, Section 1 Quick Start Guide"
+    }
+  ]
+}

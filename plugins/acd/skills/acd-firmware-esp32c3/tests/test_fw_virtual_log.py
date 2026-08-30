@@ -4,24 +4,57 @@ from __future__ import annotations
 
 import pytest
 
-from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
+from fw_graph import (
+    FirmwareCapabilityPlan,
+    FirmwareCapabilityStep,
+    FirmwareDeviceView,
+    FirmwareLane,
+    FirmwarePinView,
+)
+from fw_qemu import (
+    VirtualRunCheckError,
+    assert_virtual_log_ok,
+    measurement_conditions_for_plan,
+)
 
 GOOD_LOG = """\
 I (100) acd_gd1: ACD GD1 fw boot target_revision=r1
-I (110) acd_gd1: pins led=7 sda=4 scl=5
+I (110) acd_gd1: pins led=7 i2c_sda=4 i2c_scl=5
 I (120) acd_gd1: LED gpio=7 state=1
 W (130) acd_gd1: SHT40 read failed: ESP_ERR_TIMEOUT
 I (620) acd_gd1: LED gpio=7 state=0
 I (1120) acd_gd1: LED gpio=7 state=1
 """
 
+GD1_LANE = FirmwareLane(
+    pins=(
+        FirmwarePinView("led", 7, "net.led", "led"),
+        FirmwarePinView("sda", 4, "net.i2c_sda", "i2c_sda"),
+        FirmwarePinView("scl", 5, "net.i2c_scl", "i2c_scl"),
+    )
+)
+GD1_DEVICE = FirmwareDeviceView("SHT40-AD1B-R3", "sht40", 68, 253)
+GD1_PLAN = FirmwareCapabilityPlan(
+    steps=(
+        FirmwareCapabilityStep("firmware_init", "initialize_firmware", 1),
+        FirmwareCapabilityStep("i2c_sensor_init", "initialize_sht40", 2, GD1_DEVICE),
+        FirmwareCapabilityStep("led_blink", "toggle_led", 3),
+        FirmwareCapabilityStep("i2c_sensor_read", "read_temperature_humidity", 4, GD1_DEVICE),
+    ),
+    pin_role_order=("led", "i2c_sda", "i2c_scl"),
+    required_pin_roles=("led", "i2c_sda", "i2c_scl"),
+    registry_hash="sha256:" + "0" * 64,
+    registry_path="registry.json",
+)
+
 
 def test_good_virtual_log_passes() -> None:
     assert_virtual_log_ok(
         GOOD_LOG,
         target_revision="r1",
-        led_gpio=7,
         boot_log_message="ACD GD1 fw boot target_revision=%s",
+        lane=GD1_LANE,
+        plan=GD1_PLAN,
     )
 
 
@@ -31,8 +64,9 @@ def test_missing_boot_line_fails() -> None:
         assert_virtual_log_ok(
             log,
             target_revision="r1",
-            led_gpio=7,
             boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=GD1_LANE,
+            plan=GD1_PLAN,
         )
 
 
@@ -41,8 +75,9 @@ def test_revision_mismatch_fails() -> None:
         assert_virtual_log_ok(
             GOOD_LOG,
             target_revision="r2",
-            led_gpio=7,
             boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=GD1_LANE,
+            plan=GD1_PLAN,
         )
 
 
@@ -51,8 +86,11 @@ def test_wrong_led_gpio_fails() -> None:
         assert_virtual_log_ok(
             GOOD_LOG,
             target_revision="r1",
-            led_gpio=6,
             boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=FirmwareLane(
+                pins=(FirmwarePinView("led", 6, "net.led", "led"),)
+            ),
+            plan=GD1_PLAN,
         )
 
 
@@ -62,8 +100,9 @@ def test_led_stuck_in_one_state_fails() -> None:
         assert_virtual_log_ok(
             log,
             target_revision="r1",
-            led_gpio=7,
             boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=GD1_LANE,
+            plan=GD1_PLAN,
         )
 
 
@@ -73,6 +112,41 @@ def test_missing_sensor_attempt_fails() -> None:
         assert_virtual_log_ok(
             log,
             target_revision="r1",
-            led_gpio=7,
             boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=GD1_LANE,
+            plan=GD1_PLAN,
         )
+
+
+def test_sensor_check_requires_measurement_or_read_failure_line() -> None:
+    log = GOOD_LOG.replace("SHT40 read failed", "sensor read failed")
+    with pytest.raises(VirtualRunCheckError, match="measurement result"):
+        assert_virtual_log_ok(
+            log,
+            target_revision="r1",
+            boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=GD1_LANE,
+            plan=GD1_PLAN,
+        )
+
+
+def test_measurement_conditions_keep_virtual_disclaimer_without_devices() -> None:
+    plan = FirmwareCapabilityPlan(
+        steps=(
+            FirmwareCapabilityStep("firmware_init", "initialize_firmware", 1),
+        ),
+        pin_role_order=("led",),
+        required_pin_roles=(),
+        registry_hash="sha256:" + "0" * 64,
+        registry_path="registry.json",
+    )
+    conditions = measurement_conditions_for_plan(plan)
+    assert "no external device attached" in conditions
+    assert "virtual verification only, not real-device evidence" in conditions
+
+
+def test_measurement_conditions_match_gd1_contract() -> None:
+    assert measurement_conditions_for_plan(GD1_PLAN) == (
+        "virtual device (QEMU esp32c3); no SHT40 attached; "
+        "virtual verification only, not real-device evidence"
+    )

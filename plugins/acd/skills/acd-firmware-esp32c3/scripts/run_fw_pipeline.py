@@ -1,10 +1,10 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@626b72aa7217d24d9c32361a65cc66d998eb2616",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@25d07aa0869c1469628468b485ae9157855860f6",
 # ]
 # ///
-"""Golden Design #1 firmware pipeline: graph -> ESP-IDF build -> QEMU.
+"""Graph-driven firmware pipeline: graph -> ESP-IDF build -> QEMU.
 
 Single command:
 
@@ -40,12 +40,16 @@ from fw_checks import (
     assert_header_matches_lane,
     assert_pin_assignments_consistent,
 )
-from fw_graph import extract_firmware_lane, extract_firmware_settings
+from fw_graph import (
+    extract_firmware_lane,
+    extract_firmware_settings,
+    resolve_firmware_capability_plan,
+)
 from fw_project import write_firmware_project
 from fw_qemu import (
-    VIRTUAL_MEASUREMENT_CONDITIONS,
     QemuRunner,
     assert_virtual_log_ok,
+    measurement_conditions_for_plan,
 )
 
 
@@ -73,18 +77,49 @@ class _LegacyFlag(argparse.Action):
         )
 
 
+def resolve_mcu_refdes(graph: DesignGraph) -> str:
+    """Resolve the firmware module MCU component reference designator."""
+    modules = [node for node in graph.nodes if node.kind == "firmware.module"]
+    if len(modules) != 1:
+        raise ValueError("graph must contain exactly one firmware.module node")
+    component_id = modules[0].attrs.get("mcu_component")
+    if not isinstance(component_id, str) or not component_id:
+        raise ValueError("firmware.module mcu_component is missing")
+    try:
+        component = graph.node_by_id(component_id)
+    except KeyError as exc:
+        raise ValueError(
+            f"firmware.module mcu_component {component_id!r} does not resolve to a component"
+        ) from exc
+    if component.kind != "electrical.component":
+        raise ValueError(
+            f"firmware.module mcu_component {component_id!r} does not resolve to a component"
+        )
+    refdes = component.attrs.get("refdes")
+    if not isinstance(refdes, str) or not refdes:
+        raise ValueError("firmware MCU component has no refdes")
+    return refdes
+
+
 def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
     revision = graph.revision
     fw_lane = extract_firmware_lane(graph)
+    plan = resolve_firmware_capability_plan(graph, fw_lane)
     fw_settings = extract_firmware_settings(graph)
     electrical = extract_electrical_lane(graph)
 
     project = write_firmware_project(
-        fw_lane, revision, out_dir, graph.graph_id, fw_settings
+        fw_lane,
+        revision,
+        out_dir,
+        graph.graph_id,
+        fw_settings,
+        plan=plan,
     )
+    mcu_refdes = resolve_mcu_refdes(graph)
     config_report = {
         "schema_version": 1,
         "graph_id": graph.graph_id,
@@ -98,6 +133,27 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
             "log_period_ms": fw_settings.log_period_ms,
             "boot_log_message": fw_settings.boot_log_message,
         },
+        "provenance": {
+            "registry_path": plan.registry_path,
+            "registry_hash": plan.registry_hash,
+            "capabilities": [
+                {
+                    "capability_id": step.capability_id,
+                    "action": step.action,
+                    "step_index": step.step_index,
+                }
+                for step in plan.steps
+            ],
+            "devices": [
+                {
+                    "mpn": step.device.mpn,
+                    "driver_id": step.device.driver_id,
+                    "i2c_address": step.device.i2c_address,
+                }
+                for step in plan.steps
+                if step.device is not None
+            ],
+        },
     }
     (out_dir / "firmware-config-report.json").write_text(
         json.dumps(config_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -107,7 +163,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
 
     assert_header_matches_lane(project.pins_header.read_text(encoding="utf-8"), fw_lane)
     assert_pin_assignments_consistent(
-        fw_lane, electrical, "U1", ESP32_C3_MINI_1_PAD_TO_GPIO
+        fw_lane, electrical, mcu_refdes, ESP32_C3_MINI_1_PAD_TO_GPIO
     )
     print("[2/5] pin-consistency check passed (graph/electrical/datasheet)")
 
@@ -123,12 +179,12 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
     print(f"[4/5] QEMU virtual run finished (version {qemu.version()}): {result.log_path}")
 
     log = result.log_path.read_text(errors="replace")
-    led_gpio = fw_lane.gpio_for_net("net.led")
     assert_virtual_log_ok(
         log,
         target_revision=revision,
-        led_gpio=led_gpio,
         boot_log_message=fw_settings.boot_log_message,
+        lane=fw_lane,
+        plan=plan,
     )
     print("[5/5] virtual log check passed")
     print("NOTE: real-device flashing/LED measurement unavailable (no debug probe attached)")
@@ -139,7 +195,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
         "source_hash": build.source_hash,
         "artifact_hash": build.artifact_hash,
         "qemu_version": qemu.version(),
-        "measurement_conditions": VIRTUAL_MEASUREMENT_CONDITIONS,
+        "measurement_conditions": measurement_conditions_for_plan(plan),
         "virtual_log": str(result.log_path),
         "config_report": str(out_dir / "firmware-config-report.json"),
     }
