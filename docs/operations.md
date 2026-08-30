@@ -1371,6 +1371,11 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
   これらで既存のfail-closed hook/security policy、L1の決定論的判定、authoritative
   Evidenceの規則を置換・緩和しない。Agent Pluginsのmanifest loaderもSDKの公開追加
   surfaceとして記録するが、既存のACD plugin format採用範囲を拡大しない。
+- 同更新で、resume時のclient tool再登録、Conversation errorのstructured event、
+  active LLM profile解決、terminal executable prefix重複防止、browser-useの自動
+  Chromium install削除、v1 skills migration修正が行われた。ACDの既存利用箇所では
+  公開APIのimportとsignatureに互換性問題はなく、追加された既定動作は既存の安全境界を
+  変更しない。
 - v1.43.1からv1.44.1への更新では、別LLM profile`oracle`へ第二意見を照会する`ask_oracle`
   toolがtoolsへ追加され、structured builtin tool specのremote解決、`AsyncExecutor.close()`の
   上限時間、subscription LLMでのcondenser有効化、workspace git cloneのprovider host尊重、
@@ -1380,11 +1385,6 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 - 同更新のagent-server側変更（ACP providerのbuild argとlayer分離、conversation単位の
   lifecycle lock、streaming deltaの配信範囲修正、crash recovery、canvas extension manifest、
   ACP agentへのworkspace project skills注入禁止）はACDの対象外であり、採用しない。
-- 同更新で、resume時のclient tool再登録、Conversation errorのstructured event、
-  active LLM profile解決、terminal executable prefix重複防止、browser-useの自動
-  Chromium install削除、v1 skills migration修正が行われた。ACDの既存利用箇所では
-  公開APIのimportとsignatureに互換性問題はなく、追加された既定動作は既存の安全境界を
-  変更しない。
 - Python依存は`pyproject.toml`とlockを正とし、既定値・公開API・破壊的変更を確認して
   `docs/openhands-sdk-capabilities.json`の採否へ反映する。Markdown表は
   `scripts/verify_sdk_capabilities.py`で生成し、採否enumと代表APIの検査を通す。
