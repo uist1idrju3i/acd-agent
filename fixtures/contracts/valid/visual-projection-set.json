@@ -21,7 +21,7 @@
       "renderer": {
         "renderer_type": "kicad-cli",
         "tool_name": "kicad-cli",
-        "tool_version": "10.0.5",
+        "tool_version": "10.0.6",
         "output_width": null
       },
       "media_type": "image/svg+xml",
@@ -52,6 +52,6 @@
       "interference_region_present": null
     }
   ],
-  "identity_hash": "sha256:0b698ed07c237fe6896b6bd6ed2416ceb6f30971fbbdb72b8bbddc0de991151c",
-  "canonical_hash": "sha256:b723b86d75bd3696a2e3d3829bd6c01c0a81d11351dcc149694d287cfcfc9894"
+  "identity_hash": "sha256:c5c32eee999feca4ba4ac74f8f5f3d9e57f0f7a3781cb724db844d8e1fcf3dc1",
+  "canonical_hash": "sha256:509cccbf1b4a637e49100ac14f28e69e9d66119ce2327bcb09c5ad02aead2253"
 }
