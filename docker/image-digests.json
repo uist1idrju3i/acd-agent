@@ -24,10 +24,10 @@
   },
   "acd_server": {
     "image": "ghcr.io/uist1idrju3i/acd-server",
-    "tag": "3e9a946ab68a63920037c0b7853bbd4f547f6c5f-latest-source",
-    "digest": "sha256:da680f20c82df4a0cb071cb5fede3e43e13bd521a72c4dfa3760385dc85449e2",
-    "published_at": "2026-08-30T12:04:22Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/33310110921",
+    "tag": "9f82ea2c4b89dcaa41bee2adbe6545d1381f2926-latest-source",
+    "digest": "sha256:28020ced60bf3606a36b05b2bff9e39bd892f422aaeddc0b21fb7fbab4a531dd",
+    "published_at": "2026-08-30T13:08:55Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/33312816072",
     "dockerfile": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
