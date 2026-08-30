@@ -82,7 +82,7 @@ jobs:
           TOOLS_REF: ${{ env.TOOLS_REF }}
         run: |
           set -euo pipefail
-          python scripts/measure_image_tools.py \
+          uv run python scripts/measure_image_tools.py \
             --image-ref "$TOOLS_REF" \
             --out "$RUNNER_TEMP/acd-tools-tools.json"
       - name: Resolve source commit
