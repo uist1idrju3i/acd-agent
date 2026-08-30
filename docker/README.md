@@ -81,20 +81,20 @@ repositoryの固定が必要である。
 
 `docker/**`（lock fileの`docker/image-digests.json`とこのREADMEを除く）または
 build contextを決める`.dockerignore`をmainへ変更すると、
-`.github/workflows/publish-acd-tools.yml`がtools imageをpublishし、成功後に
-`.github/workflows/publish-acd-server.yml`がagent-server imageをpublishする。
-各workflowはpublish結果を`docker/image-digests.json`へ記録する更新PRを作成する。
+`.github/workflows/publish-acd-images.yml`がtools imageとagent-server imageを同一jobで
+直列にpublishする。publish結果は`docker/image-digests.json`へ1つの更新PRとして記録する。
 lock更新PRはpublish triggerの対象外であり、digest lockと`latest`が再帰的に更新されることはない。
 
 ## 事前build済みagent-server image
 
 `docker/image-digests.json`に記録したACD tools image digestをbaseとして、
 `vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/build.py`
-がagent-server imageを生成する。ただしtools publish成功で連鎖起動された場合は、lockの
-更新PRがまだmerge前でlockが1世代前を指すため、`acd-tools:latest`の現digestを解決して
-baseにする。解決できない場合はfail-closedで停止する。手動起動ではlockのdigestをbaseにする。
-publishは`publish-acd-server.yml`の手動起動だけで行い、
-job summaryへbase digestとderived server digestを別々に記録する。derived imageが
+がagent-server imageを生成する。toolsを同一jobで再buildした場合も、lock更新PRがまだ
+merge前でlockが1世代前を指すため、publish直後の`acd-tools:latest`のdigestをbaseにする。
+解決できない場合はfail-closedで停止する。`skip_tools`指定時はlockのdigestをbaseにする。
+publishは`publish-acd-images.yml`の手動起動で行い、`skip_tools`を指定した場合はtools imageを
+再buildせず、lock済みtools imageをbaseにserverだけを再buildする。job summaryへbase digestと
+derived server digestを別々に記録する。derived imageが
 publishされるまでlockの`acd_server` entryは未設定であり、未設定のimageをpullしてはならない。
 
 ## OpenHands SDKからの利用

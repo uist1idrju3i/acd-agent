@@ -32,6 +32,10 @@ authoritative経路として既に採用している。imageに同梱されたbu
    digestはdoctorでは検査しない。
 5. authoritative Evidenceの実行経路は`--source mounted`のまま維持する。bundledを
    authoritativeにしない。initializeのclone軽量化とsession start hookは後続変更で扱う。
+6. tools imageとserver imageのpublishは`.github/workflows/publish-acd-images.yml`の
+   単一jobで直列に実行し、digest lock更新を1 commit・1 PRへまとめる。`skip_tools`指定時は
+   lock済みtools imageをbaseにserverだけを再buildする経路を維持し、lock fileとDocker README
+   をtriggerから除外してdigest更新PRによるpublish再帰を防ぐ。
 
 ## 結果
 
