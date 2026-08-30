@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import sys
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, Callable, cast
 
 import pytest
 
+from acd.core import process as process_module
 from acd.core.process import (
     ExternalToolError,
     ToolTimeoutError,
@@ -60,6 +63,62 @@ def test_run_tool_records_envelope_and_reruns_every_time(tmp_path: Path) -> None
     src.write_text("different payload")
     third = run_tool(**kwargs)  # type: ignore[arg-type]
     assert third.envelope.input_hash != first.envelope.input_hash
+
+
+def test_run_tool_forwards_explicit_environment(tmp_path: Path) -> None:
+    source = tmp_path / "in.txt"
+    source.write_text("payload")
+    output = tmp_path / "env.txt"
+    run_tool(
+        tool_name="envtool",
+        tool_version="1.0",
+        format_version="txt",
+        command=[
+            sys.executable,
+            "-c",
+            (
+                "import os,pathlib;"
+                f"pathlib.Path({str(output)!r}).write_text(os.environ['ACD_TEST_ENV'])"
+            ),
+        ],
+        input_paths=[source],
+        output_paths=[output],
+        envelope_path=tmp_path / "env.envelope.json",
+        target_revision="r1",
+        measurement_conditions="test",
+        env={"ACD_TEST_ENV": "forwarded"},
+    )
+    assert output.read_text() == "forwarded"
+
+
+def test_run_tool_omits_environment_override_when_unspecified(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "in.txt"
+    source.write_text("payload")
+    output = tmp_path / "out.txt"
+    captured: dict[str, object] = {}
+    original_run = cast(
+        Callable[..., subprocess.CompletedProcess[str]], process_module.subprocess.run
+    )
+
+    def wrapped_run(*args: Any, **kwargs: Any) -> Any:
+        captured.update(kwargs)
+        return original_run(*args, **kwargs)
+
+    monkeypatch.setattr(process_module.subprocess, "run", wrapped_run)
+    run_tool(
+        tool_name="envtool",
+        tool_version="1.0",
+        format_version="txt",
+        command=[sys.executable, "-c", f"open({str(output)!r}, 'w').write('ok')"],
+        input_paths=[source],
+        output_paths=[output],
+        envelope_path=tmp_path / "out.envelope.json",
+        target_revision="r1",
+        measurement_conditions="test",
+    )
+    assert "env" not in captured
 
 
 def test_run_tool_fails_closed_on_missing_input(tmp_path: Path) -> None:

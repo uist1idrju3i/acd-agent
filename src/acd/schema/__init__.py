@@ -87,6 +87,11 @@ from acd.schema.functional_run import (
     LedExpectation,
     SerialExpectation,
 )
+from acd.schema.host_resources import (
+    HostResourceCode,
+    HostResourceFinding,
+    HostResourceReport,
+)
 from acd.schema.model_routing import (
     ModelRoutingBinding,
     ModelRoutingObservation,
@@ -277,6 +282,9 @@ __all__ = [
     "FunctionalLogReference",
     "FunctionalRunRecord",
     "FunctionalRunReport",
+    "HostResourceCode",
+    "HostResourceFinding",
+    "HostResourceReport",
     "GraphNode",
     "InspectionReportReference",
     "JournalEntryBody",

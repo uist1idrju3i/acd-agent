@@ -11,6 +11,7 @@ from pathlib import Path
 from acd.openhands.container_runtime import (
     DEFAULT_COMMAND_TIMEOUT,
     DEFAULT_DOCKER_CLI_TIMEOUT,
+    DEFAULT_FREEROUTING_MAX_HEAP,
     DEFAULT_HEALTH_CHECK_TIMEOUT,
     DEFAULT_MEMORY_LIMIT,
     DEFAULT_PLATFORM,
@@ -97,6 +98,17 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Container memory limit, for example '8g'.",
     )
     parser.add_argument(
+        "--jvm-max-heap",
+        default=DEFAULT_FREEROUTING_MAX_HEAP,
+        help="FreeRouting JVM maximum heap, for example '2g'.",
+    )
+    parser.add_argument(
+        "--host-resource-report",
+        type=Path,
+        default=None,
+        help="Write the host resource preflight report to this path.",
+    )
+    parser.add_argument(
         "--platform",
         default=DEFAULT_PLATFORM,
         help="Explicit docker platform for the container.",
@@ -158,10 +170,23 @@ def main(argv: Sequence[str] | None = None) -> int:
                     command_timeout=args.command_timeout,
                     docker_cli_timeout=args.docker_cli_timeout,
                     memory_limit=args.memory_limit,
+                    jvm_max_heap=args.jvm_max_heap,
                     platform=args.platform,
                 ),
             )
-    except (WorkspaceStartupError, WorkspaceTransportError) as exc:
+    except WorkspaceStartupError as exc:
+        if args.host_resource_report is not None and exc.host_resource_report is not None:
+            args.host_resource_report.parent.mkdir(parents=True, exist_ok=True)
+            args.host_resource_report.write_text(
+                exc.host_resource_report.model_dump_json(indent=2) + "\n",
+                encoding="utf-8",
+            )
+        if exc.host_resource_report is not None:
+            for finding in exc.host_resource_report.findings:
+                print(f"{finding.code}: {finding.detail}", file=sys.stderr)
+        print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
+        return 2
+    except WorkspaceTransportError as exc:
         print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
         return 2
     except ValueError as exc:
@@ -171,6 +196,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("execution context: host (provisional)")
     else:
         print(f"image digest: {result.digest} ({result.source})")
+        if args.host_resource_report is not None and result.host_resource_report is not None:
+            args.host_resource_report.parent.mkdir(parents=True, exist_ok=True)
+            args.host_resource_report.write_text(
+                result.host_resource_report.model_dump_json(indent=2) + "\n",
+                encoding="utf-8",
+            )
     print(f"exit code: {result.exit_code}")
     classification = classify_execution_failure(
         result.exit_code, f"{result.stdout}\n{result.stderr}"

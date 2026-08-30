@@ -13,7 +13,7 @@ import os
 import platform
 import re
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -129,6 +129,7 @@ def run_tool(
     allowed_exit_codes: frozenset[int] = frozenset({0}),
     cwd: Path | None = None,
     timeout_s: float = DEFAULT_TOOL_TIMEOUT_S,
+    env: Mapping[str, str] | None = None,
 ) -> ToolRun:
     """Run ``command`` and envelope the run."""
     try:
@@ -145,14 +146,25 @@ def run_tool(
 
     started_at = datetime.now(UTC)
     try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            cwd=cwd,
-            check=False,
-            timeout=timeout_s,
-        )
+        if env is None:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                check=False,
+                timeout=timeout_s,
+            )
+        else:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                check=False,
+                timeout=timeout_s,
+                env={**os.environ, **env},
+            )
     except subprocess.TimeoutExpired as exc:
         finished_at = datetime.now(UTC)
         stdout = _decode_timeout_output(exc.stdout)

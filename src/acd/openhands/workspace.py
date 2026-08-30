@@ -23,7 +23,13 @@ from acd.openhands.container_runtime import (
     startup_failure_kind,
     stop_containers,
 )
+from acd.openhands.host_resources import (
+    ResourceRequirement,
+    check_host_resources,
+    parse_memory_bytes,
+)
 from acd.schema.design_graph import DesignGraph
+from acd.schema.host_resources import HostResourceReport
 
 CONTAINER_REPOSITORY = Path("/acd-src")
 HOST_OUT_ROOT = Path("out")
@@ -98,14 +104,22 @@ class WorkspaceResult:
     stderr: str
     downloaded_files: tuple[Path, ...]
     failure_kind: FailureKind | None = None
+    host_resource_report: HostResourceReport | None = None
 
 
 class WorkspaceStartupError(RuntimeError):
     """A digest-pinned workspace could not be started."""
 
-    def __init__(self, message: str, *, failure_kind: FailureKind) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        failure_kind: FailureKind,
+        host_resource_report: HostResourceReport | None = None,
+    ) -> None:
         super().__init__(message)
         self.failure_kind = failure_kind
+        self.host_resource_report = host_resource_report
 
 
 class WorkspaceTransportError(RuntimeError):
@@ -246,6 +260,24 @@ def run_command_in_workspace(
     if source not in ("mounted", "bundled"):
         raise ValueError(f"unknown workspace source: {source!r}")
     config = runtime or ContainerRuntimeConfig()
+    host_resource_report = check_host_resources(
+        ResourceRequirement(
+            memory_limit_bytes=parse_memory_bytes(config.memory_limit),
+            jvm_max_heap_bytes=parse_memory_bytes(config.jvm_max_heap),
+        ),
+        disk_path=repository,
+        declared_jvm_max_heap=config.jvm_max_heap,
+    )
+    if host_resource_report.status != "pass":
+        findings = "; ".join(
+            f"{finding.code}: {finding.detail}"
+            for finding in host_resource_report.findings
+        )
+        raise WorkspaceStartupError(
+            f"host resource preflight failed: {findings}",
+            failure_kind="resources",
+            host_resource_report=host_resource_report,
+        )
     reference = resolve_image_digest(image, timeout=config.docker_cli_timeout)
     if reference is None:
         raise ValueError("server image digest could not be resolved; refusing to execute")
@@ -336,6 +368,7 @@ def run_command_in_workspace(
         failure_kind=_command_failure_kind(
             result.exit_code, bool(result.timeout_occurred)
         ),
+        host_resource_report=host_resource_report,
     )
 
 

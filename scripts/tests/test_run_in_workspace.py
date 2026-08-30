@@ -10,6 +10,7 @@ from typing import Any
 import pytest
 import scripts.run_in_workspace as runner_script
 
+from acd.openhands import workspace as workspace_module
 from acd.openhands.workspace import (
     ImageReference,
     ProvisionalWorkspaceResult,
@@ -17,6 +18,29 @@ from acd.openhands.workspace import (
     resolve_image_digest,
     run_command_in_workspace,
 )
+from acd.schema.host_resources import HostResourceReport
+
+
+@pytest.fixture(autouse=True)
+def pass_host_resource_preflight(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:  # pyright: ignore[reportUnusedFunction]
+    report = HostResourceReport(
+        status="pass",
+        mem_total_bytes=16 * 1024**3,
+        mem_available_bytes=16 * 1024**3,
+        swap_total_bytes=0,
+        swap_free_bytes=0,
+        cpu_count=4,
+        disk_free_bytes=16 * 1024**3,
+        requested_memory_limit_bytes=8 * 1024**3,
+        declared_jvm_max_heap="2g",
+        findings=[],
+    )
+    def check_resources(*_args: object, **_kwargs: object) -> HostResourceReport:
+        return report
+
+    monkeypatch.setattr(workspace_module, "check_host_resources", check_resources)
 
 
 def _completed(stdout: str, returncode: int = 0) -> subprocess.CompletedProcess[str]:
@@ -266,6 +290,55 @@ def test_cli_forwards_cache_directory_and_creates_subdirectories(
     assert captured["cache_dir"] == cache_dir
     assert (cache_dir / "uv").is_dir()
     assert (cache_dir / "ccache").is_dir()
+
+
+def test_cli_writes_host_resource_report(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    report = HostResourceReport(
+        status="pass",
+        mem_total_bytes=16 * 1024**3,
+        mem_available_bytes=16 * 1024**3,
+        swap_total_bytes=0,
+        swap_free_bytes=0,
+        cpu_count=4,
+        disk_free_bytes=16 * 1024**3,
+        requested_memory_limit_bytes=8 * 1024**3,
+        declared_jvm_max_heap="2g",
+        findings=[],
+    )
+    result = WorkspaceResult(
+        digest="sha256:" + "a" * 64,
+        source="image ID",
+        exit_code=0,
+        stdout="",
+        stderr="",
+        downloaded_files=(),
+        host_resource_report=report,
+    )
+
+    def run_workspace(**_kwargs: object) -> WorkspaceResult:
+        return result
+
+    monkeypatch.setattr(runner_script, "run_command_in_workspace", run_workspace)
+    report_path = tmp_path / "reports" / "host.json"
+    assert (
+        runner_script.main(
+            [
+                "--image",
+                "acd-server:local",
+                "--repo",
+                str(tmp_path),
+                "--host-resource-report",
+                str(report_path),
+                "--download",
+                "out/gd1/evidence-electrical.json",
+                "true",
+            ]
+        )
+        == 0
+    )
+    assert HostResourceReport.model_validate_json(report_path.read_text()) == report
 
 
 def test_cli_rejects_cache_directory_for_local_provisional(
