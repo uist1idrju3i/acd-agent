@@ -105,7 +105,7 @@ def _mounting_hole_body(
         height_mm=0.0,
         body_type="none",
         source="KiCad MountingHole_2.2mm_M2 has no component body",
-        source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.5/MountingHole.pretty",
+        source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.6/MountingHole.pretty",
     )
 
 
@@ -127,8 +127,8 @@ MECHANICAL_COMPONENT_BODIES: tuple[tuple[str, dict[str, AttrValue]], ...] = (
         width_mm=9.0,
         depth_mm=7.0,
         height_mm=3.2,
-        source="KiCad official footprint library, package version 10.0.5",
-        source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.5/Connector_USB.pretty",
+        source="KiCad official footprint library, package version 10.0.6",
+        source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_USB.pretty",
     ),
     _body(
         "comp.u2",
@@ -204,7 +204,7 @@ MECHANICAL_COMPONENT_BODIES: tuple[tuple[str, dict[str, AttrValue]], ...] = (
             height_mm=0.0,
             body_type="none",
             source="KiCad TestPoint_Pad_D1.5mm has no declared component body",
-            source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.5/TestPoint.pretty",
+            source_ref="https://github.com/KiCad/kicad-footprints/tree/10.0.6/TestPoint.pretty",
         )
         for index in range(1, 8)
     ),
@@ -261,9 +261,9 @@ def mechanical_nodes() -> list[GraphNode]:
                 "width_mm": 8.0,
                 "height_mm": 5.0,
                 "margin_mm": 0.5,
-                "dimensions_source": ("KiCad official footprint library, package version 10.0.5"),
+                "dimensions_source": ("KiCad official footprint library, package version 10.0.6"),
                 "dimensions_source_ref": (
-                    "https://github.com/KiCad/kicad-footprints/tree/10.0.5/Connector_USB.pretty"
+                    "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_USB.pretty"
                 ),
                 "dimensions_checked_at": "2026-08-11T00:00:00Z",
             },

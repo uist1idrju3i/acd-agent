@@ -84,7 +84,7 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
         script,
         tmp_path,
         {
-            "kicad-cli": 'printf "10.0.5\\n"',
+            "kicad-cli": 'printf "10.0.6\\n"',
             "freerouting": 'printf "INFO Freerouting v2.3.0\\n"; exit 1',
         },
     )
@@ -95,7 +95,7 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
         check for check in report["checks"] if check["name"] == "host EDA capabilities"
     )
     assert eda_check["result"] == "pass"
-    assert eda_check["observed_version"] == "kicad-cli=10.0.5, freerouting=2.3.0"
+    assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.3.0"
 
 
 def test_missing_host_eda_tool_points_at_the_container_route(tmp_path: Path) -> None:

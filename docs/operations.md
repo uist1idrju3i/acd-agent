@@ -983,6 +983,16 @@ hostのprovisional経路では、従来どおり`run_design_lanes.py`が
 `uv run --with cmake==3.31.6`でCMakeを注入する。これはhost側の実行環境を補うためのもので、
 container経路の自己完結したCMake／Ninja同梱を置き換えない。
 
+KiCad公式PPAが10.0.5を配布しなくなり、次の環境では10.0.6だけが解決されるため、
+GD1の現行library pinを10.0.5から10.0.6へ更新した。公式libraryのうち
+`Device.kicad_sym`、`Regulator_Linear.kicad_sym`、`Switch.kicad_sym`の3ファイルの内容が
+変わっていたため、pinは実ファイルをSHA-256計算して更新した。参照した15ファイルは
+ホストとlocked `acd-server` containerの双方でhashを計算し、全件一致を確認している。
+fixture全体の再生成は、mainから存在するsilkscreen resolverの不整合
+（`mechanical.silk_text.dev_board`が有効な配置を得られないfail-closedエラー）のため
+実行できなかった。この不具合はKiCad pin更新とは独立しており、歴史的な配置や生成物を
+書き換えず、今回の変更ではgraphのlibrary pin属性だけを実ファイルから決定論的に更新した。
+
 ```bash
 command -v qemu-system-riscv32
 ```
@@ -1423,6 +1433,12 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
   でcontainer FW laneが失敗していたため、今回imageへ同梱した。host provisional経路は
   `uv run --with cmake==3.31.6`によるCMake注入を維持する。FreeRouting 2.3.0と
   QEMU 9.2.2は据え置きである。lock値`docker/image-digests.json`はpublish後に別変更で更新する。
+- KiCad 10.0.5は公式PPAから配布されなくなったため、現行環境を10.0.6へ追従させた。
+  公式libraryでは`Device.kicad_sym`、`Regulator_Linear.kicad_sym`、
+  `Switch.kicad_sym`の3ファイルの内容が変わり、実ファイルから再計算したpinを
+  `graph.json`とparts catalogへ反映した。ホストとlocked containerで参照15ファイルの
+  hashは全件一致した。fixture generator全体はmain由来のsilkscreen resolver不整合で
+  再生成できなかったため、今回の変更はlibrary pin属性に限定し、歴史的記録は変更していない。
 
 版と能力は次で記録する。
 

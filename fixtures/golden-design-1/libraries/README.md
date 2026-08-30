@@ -14,6 +14,6 @@
   - `Espressif.pretty/ESP32-C3-MINI-1.kicad_mod`: 対応するfootprint（無改変）。
 
 KiCad公式ライブラリ由来の部品（抵抗、コンデンサ、USB-C、AMS1117、SHT4x等）は
-本ディレクトリへ複製せず、kicadパッケージ（10.0.5）同梱の
+本ディレクトリへ複製せず、kicadパッケージ（10.0.6）同梱の
 `/usr/share/kicad/symbols`・`/usr/share/kicad/footprints`をファイルhash付きで
 pinして参照する（`graph.json`の各`electrical.component`ノード属性）。

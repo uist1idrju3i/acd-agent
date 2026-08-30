@@ -20,7 +20,7 @@ KICAD_SYMBOLS = Path("/usr/share/kicad/symbols")
 KICAD_FOOTPRINTS = Path("/usr/share/kicad/footprints")
 
 
-KICAD_PACKAGE_VERSION = "10.0.5"
+KICAD_PACKAGE_VERSION = "10.0.6"
 
 
 KICAD_LIB_SOURCE = "kicad-official (ppa:kicad/kicad-10.0-releases)"
