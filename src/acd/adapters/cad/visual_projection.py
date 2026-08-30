@@ -14,6 +14,7 @@ from typing import Any
 from acd.adapters.cad.mechanical import (
     MechanicalGateError,
     MechanicalGateReport,
+    board_plane_z,
     build_component_body_shape,
 )
 from acd.adapters.cad.project import CadProjection, cad_tool_version
@@ -163,6 +164,99 @@ def _close(left: float, right: float) -> bool:
     return math.isclose(left, right, rel_tol=0.0, abs_tol=1e-6)
 
 
+def _merge_aperture_intervals(
+    intervals: list[tuple[float, float]],
+) -> list[tuple[float, float]]:
+    ordered = sorted(intervals)
+    merged: list[tuple[float, float]] = []
+    for start, end in ordered:
+        if not math.isfinite(start) or not math.isfinite(end) or start > end:
+            raise MechanicalVisualProjectionError(
+                "mechanical section aperture interval is invalid"
+            )
+        if not merged or (
+            start > merged[-1][1] and not _close(start, merged[-1][1])
+        ):
+            merged.append((start, end))
+        else:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+    return merged
+
+
+def _expected_aperture_intervals(
+    lane: MechanicalLane,
+    section_offset_mm: float,
+) -> dict[str, list[tuple[float, float]]]:
+    intervals: dict[str, list[tuple[float, float]]] = {"front": [], "back": []}
+    for opening in lane.connector_openings:
+        if opening.face not in intervals:
+            raise MechanicalVisualProjectionError(
+                "mechanical section connector opening face is unsupported"
+            )
+        opening_min_z = opening.center_y_mm - (
+            opening.height_mm / 2 + opening.margin_mm
+        )
+        opening_max_z = opening.center_y_mm + (
+            opening.height_mm / 2 + opening.margin_mm
+        )
+        if opening_min_z < section_offset_mm < opening_max_z:
+            center_x = opening.center_x_mm - lane.outline.width_mm / 2
+            half_width = (opening.width_mm + 2 * opening.margin_mm) / 2
+            intervals[opening.face].append(
+                (center_x - half_width, center_x + half_width)
+            )
+    for overhang in lane.board_edge_overhangs:
+        face = {"top": "front", "bottom": "back"}.get(overhang.edge)
+        if face is None:
+            continue
+        body = lane.body_for_component(overhang.component_id)
+        overhang_min_z = board_plane_z(lane.enclosure)
+        overhang_max_z = overhang_min_z + body.height_mm
+        if overhang_min_z < section_offset_mm < overhang_max_z:
+            center_x = body.x_mm - lane.outline.width_mm / 2
+            half_width = body.width_mm / 2 + lane.enclosure.internal_clearance_mm
+            intervals[face].append((center_x - half_width, center_x + half_width))
+    return {
+        face: _merge_aperture_intervals(face_intervals)
+        for face, face_intervals in intervals.items()
+    }
+
+
+def _section_aperture_boundary_xs(
+    geometry: _SectionGeometry,
+    *,
+    face: str,
+    outer_width: float,
+    outer_depth: float,
+) -> list[float]:
+    face_y = -outer_depth / 2 if face == "front" else outer_depth / 2
+    boundary_xs: list[float] = []
+    for edge in geometry.edges:
+        if not _edge_is(edge, "LINE"):
+            continue
+        try:
+            bbox = edge.bounding_box()
+            min_x = float(bbox.min.X)
+            max_x = float(bbox.max.X)
+            min_y = float(bbox.min.Y)
+            max_y = float(bbox.max.Y)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise MechanicalVisualProjectionError(
+                "mechanical section aperture boundary geometry is unreadable"
+            ) from exc
+        if not _close(min_x, max_x):
+            continue
+        if _close(abs(min_x), outer_width / 2):
+            continue
+        if face == "front":
+            on_face = _close(min_y, face_y) and max_y > face_y
+        else:
+            on_face = _close(max_y, face_y) and min_y < face_y
+        if on_face:
+            boundary_xs.append(min_x)
+    return sorted(boundary_xs)
+
+
 def _validate_section_features(
     geometry: _SectionGeometry,
     lane: MechanicalLane,
@@ -170,39 +264,58 @@ def _validate_section_features(
 ) -> None:
     circles = [edge for edge in geometry.edges if _edge_is(edge, "CIRCLE")]
     holes = lane.outline.mount_holes
-    if len(circles) != len(holes):
+    if not circles and holes:
         raise MechanicalVisualProjectionError(
             "mechanical section is missing declared standoff features"
         )
-    unmatched = list(circles)
-    for hole in holes:
-        expected_x = hole.x_mm - lane.outline.width_mm / 2
-        expected_y = hole.y_mm - lane.outline.depth_mm / 2
-        expected_radius = lane.enclosure.standoff_radius_mm
-        match = next(
-            (
-                edge
-                for edge in unmatched
-                if _close(
-                    float(edge.bounding_box().min.X + edge.bounding_box().max.X) / 2,
-                    expected_x,
-                )
-                and _close(
-                    float(edge.bounding_box().min.Y + edge.bounding_box().max.Y) / 2,
-                    expected_y,
-                )
-                and _close(
-                    float(edge.bounding_box().max.X - edge.bounding_box().min.X) / 2,
-                    expected_radius,
-                )
-            ),
-            None,
+    expected_features = [
+        (
+            hole.x_mm - lane.outline.width_mm / 2,
+            hole.y_mm - lane.outline.depth_mm / 2,
+            radius,
         )
-        if match is None:
+        for hole in holes
+        for radius in (
+            lane.enclosure.standoff_radius_mm,
+            lane.enclosure.standoff_pilot_hole_diameter_mm / 2,
+        )
+    ]
+    measured_features: list[tuple[float, float, float]] = []
+    for edge in circles:
+        try:
+            radius = float(edge.radius)
+            center = edge.arc_center
+            center_x = float(center.X)
+            center_y = float(center.Y)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise MechanicalVisualProjectionError(
+                "mechanical section circular edge geometry is unreadable"
+            ) from exc
+        if not all(math.isfinite(value) for value in (center_x, center_y, radius)):
+            raise MechanicalVisualProjectionError(
+                "mechanical section circular edge geometry is non-finite"
+            )
+        measured_features.append((center_x, center_y, radius))
+    for expected_x, expected_y, expected_radius in expected_features:
+        if not any(
+            _close(center_x, expected_x)
+            and _close(center_y, expected_y)
+            and _close(radius, expected_radius)
+            for center_x, center_y, radius in measured_features
+        ):
             raise MechanicalVisualProjectionError(
                 "mechanical section standoff geometry does not match MechanicalLane"
             )
-        unmatched.remove(match)
+    for center_x, center_y, radius in measured_features:
+        if not any(
+            _close(center_x, expected_x)
+            and _close(center_y, expected_y)
+            and _close(radius, expected_radius)
+            for expected_x, expected_y, expected_radius in expected_features
+        ):
+            raise MechanicalVisualProjectionError(
+                "mechanical section contains an undeclared circular feature"
+            )
 
     inner_width = lane.outline.width_mm + 2 * lane.enclosure.internal_clearance_mm
     inner_depth = lane.outline.depth_mm + 2 * lane.enclosure.internal_clearance_mm
@@ -237,37 +350,37 @@ def _validate_section_features(
             "mechanical section is missing the declared enclosure cavity"
         )
 
-    _, outer_depth = _expected_view_dimensions(lane)
-    front_y = -outer_depth / 2
-    for opening in lane.connector_openings:
-        if opening.face != "front":
+    outer_width, outer_depth = _expected_view_dimensions(lane)
+    expected_intervals = _expected_aperture_intervals(lane, section_offset_mm)
+    for face, intervals in expected_intervals.items():
+        expected_boundaries = [
+            boundary
+            for interval in intervals
+            for boundary in interval
+        ]
+        actual_boundaries = _section_aperture_boundary_xs(
+            geometry,
+            face=face,
+            outer_width=outer_width,
+            outer_depth=outer_depth,
+        )
+        missing_boundaries = [
+            boundary
+            for boundary in expected_boundaries
+            if not any(_close(boundary, actual) for actual in actual_boundaries)
+        ]
+        if missing_boundaries:
             raise MechanicalVisualProjectionError(
-                "mechanical section connector opening face is unsupported"
+                f"mechanical section {face} aperture is missing a declared boundary"
             )
-        center_x = opening.center_x_mm - lane.outline.width_mm / 2
-        half_width = (opening.width_mm + 2 * opening.margin_mm) / 2
-        boundaries = (center_x - half_width, center_x + half_width)
-        opening_min_z = opening.center_y_mm - (
-            opening.height_mm / 2 + opening.margin_mm
-        )
-        opening_max_z = opening.center_y_mm + (
-            opening.height_mm / 2 + opening.margin_mm
-        )
-        section_contains_opening = opening_min_z < section_offset_mm < opening_max_z
-        has_opening = all(
-            any(
-                _edge_is(edge, "LINE")
-                and _close(float(edge.bounding_box().min.X), boundary)
-                and _close(float(edge.bounding_box().max.X), boundary)
-                and _close(float(edge.bounding_box().min.Y), front_y)
-                and float(edge.bounding_box().max.Y) > front_y
-                for edge in geometry.edges
-            )
-            for boundary in boundaries
-        )
-        if has_opening != section_contains_opening:
+        unexpected_boundaries = [
+            boundary
+            for boundary in actual_boundaries
+            if not any(_close(boundary, expected) for expected in expected_boundaries)
+        ]
+        if unexpected_boundaries:
             raise MechanicalVisualProjectionError(
-                "mechanical section connector opening does not match its declared Z range"
+                f"mechanical section {face} aperture contains an undeclared boundary"
             )
 
 

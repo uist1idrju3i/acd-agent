@@ -60,8 +60,8 @@ def test_projection_exports_separated_solids_and_assembly(tmp_path: Path) -> Non
             runner=runner,
         )
     build123d = importlib.import_module("build123d")
-    assert report.shell_volume_mm3 == pytest.approx(4567.86193, abs=1e-3)
-    assert report.lid_volume_mm3 == pytest.approx(2232.0, abs=1e-3)
+    assert report.shell_volume_mm3 == pytest.approx(4493.532021, abs=1e-3)
+    assert report.lid_volume_mm3 == pytest.approx(2201.589383, abs=1e-3)
     assert report.assembly_volume_mm3 == pytest.approx(
         report.shell_volume_mm3 + report.lid_volume_mm3, abs=1e-3
     )

@@ -133,6 +133,9 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "standoff_height_mm",
             "standoff_radius_mm",
             "lid_fit_gap_mm",
+            "fastener_method",
+            "standoff_pilot_hole_diameter_mm",
+            "lid_screw_hole_diameter_mm",
             "tolerance_mm",
             "interference_tolerance_mm3",
         }

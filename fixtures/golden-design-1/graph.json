@@ -3933,12 +3933,15 @@
     },
     {
       "attrs": {
+        "fastener_method": "self_tapping_screw_m2",
         "interference_tolerance_mm3": 0.01,
         "internal_clearance_mm": 1.0,
         "lid_fit_gap_mm": 0.2,
-        "material": "PETG",
+        "lid_screw_hole_diameter_mm": 2.2,
+        "material": "PA12-HP nylon",
         "min_wall_thickness_mm": 1.2,
         "standoff_height_mm": 4.0,
+        "standoff_pilot_hole_diameter_mm": 1.6,
         "standoff_radius_mm": 2.0,
         "tolerance_mm": 0.05,
         "tolerance_source": "golden-design-1 mechanical gate declaration",
