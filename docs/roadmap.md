@@ -706,6 +706,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.12 | 再監査で残った会話駆動loopの不足（M-1・M-2） | 筐体pipelineのfail-closed却下を引き金とした`explore_enclosure_candidates`のloop内自動連結（M-1）と、任意graph向け設計固有検証laneの宣言由来化（M-2）を扱う。探索reportはL2操舵・L3観測のままとし、候補予算とround上限、graph ID・revisionの一致と正規化content hashの変化検査、未宣言を合格としない境界を維持する |
 | 14.13 | 実機実測で残った新規設計の不足（N-1〜N-7、N-11） | 実機OpenHands環境でGD1以外の新規設計を投入した実測で残った不足を扱う。`DesignFixtureSpec`へmechanical・silkscreen・firmware moduleの宣言を追加（N-1）、必須宣言のpreflight（N-3）、parts catalog由来のpin function展開（N-5）、Stop hookのfail-closed停止経路（N-2）、rationale coverageの生成主体検査（N-4）、要件↔topology述語（N-6）、設計反復のみのmode（N-7）、生成器による手編集上書きの防止（N-11）。判定と閾値は緩めず、未宣言・unknownを合格へ倒さない |
 | 14.14 | 宣言経路解消後の実機実測で残った不足（O-1、O-2、O-4、O-5、O-9〜O-13） | O-1、O-2、O-4、O-5、O-9、O-10、O-11、O-12、O-13を達成。FWはcapability／device registryとgraph sequenceからpinとcodeを導出し、未宣言peripheralを生成しない。筐体laneは設計非依存entrypointと機械preflightを備え、機械ノード・属性・参照・rationale coverageを一括診断する。lane preflightは`declarations_complete`／`declarations_incomplete`とL3診断契約、checked／unchecked predicate集合を記録し、rationale stop hookは対象設計を決定論的に解決する。container起動前は物理メモリ（swapを加算しない）、MemAvailable、CPU、disk、JVM heapをfail-closedで検査し、FreeRoutingの最大heapをhost／container両経路で明示する。残るのはO-12の`QuoteRecord`／`OrderScope`導出、およびO-3、O-6〜O-8の運用整備。判定と閾値は緩めず、timeout・unknown・未宣言を合格へ倒さない |
+| 14.15 | Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10） | 多コアVPS実測（2026-08-30）とその後の復帰経路のコード監査で残った不足を扱う。却下後に設計入力を決定論的に修正して反復する経路をend-to-endで閉じることが本フェーズの目的であり、Q-4（探索後のrationale更新）とQ-5（宣言された上書きによるfixture再生成）を前提として、Q-2・Q-3（会話経路からの起動とremediation由来の候補生成）、Q-1・Q-8（laneごとの復帰次元の宣言）、Q-6・Q-7・Q-9・Q-10（要件差分の拡張、bounded反復harnessの接続、診断入力の拡張、firmware capability registryへの宣言追加経路）へ広げる。設計側の不足としてP-2（初期配置のdecoupling制約）、観測側としてP-3（QEMU打ち切り表示）とP-4（FW laneのauthoritative Evidence）を含む。L1権限、閾値、fail-closed境界は変更しない |
 
 C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
@@ -720,6 +721,11 @@ N-12はマイルストーン15.10〜15.13へ割り当てる。
 N-1・N-5の解消後の実機実測（[`examples/pulse-check-tag-20260825/`](../examples/pulse-check-tag-20260825/)）で
 残ったO-1〜O-13のうち、acd-agent内で閉じるO-1・O-2・O-4・O-5・O-9〜O-13は14.14で扱い、
 運用・手順側のO-3・O-6〜O-8はマイルストーン15.14〜15.16へ割り当てる。
+多コアVPS（CPU 8コア／MemTotal 15.0 GiB）での実測（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)）と、
+その実測を受けた復帰・反復経路のコード監査で残ったP-2〜P-4とQ-1〜Q-10は14.15で扱う。
+P-1（install doctorのESP-IDF判定）は解消済みで、実機VPSのGUIから`/acd:init`がdoctorを
+通過し`bootstrap-record.json`が生成されることを確認した。資源要件の実測値と最低・推奨
+スペックは[`operations.md`](operations.md)を正とする。
 
 ### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
 
@@ -760,6 +766,26 @@ N-1・N-5の解消後の実機実測（[`examples/pulse-check-tag-20260825/`](..
 | 正常系 | 宣言を備えた新規設計がsilkscreen barrierを越え、基板・筐体・FW laneをdigest固定containerで実行してrevision一致のauthoritative Evidenceを生成する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | 宣言不足・preflight不足・pin function未解決はunknownで停止する。定型rationaleと`deterministic_tool`の自称、ダミーorder-total、要件と不一致なtopology、既存入力の暗黙上書きを不合格にする。停止報告は合格側権限を持たず、laneのskipを合格として扱わない |
 | 再現性 | 宣言・catalog・preflight結果の正規化hashとprovenance（Skill名、script SHA-256）を記録し、`--jobs 1`と並列で収集件数・判定・正規化hashを一致させる |
+
+### 14.15 Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10）
+
+汎用エージェント（Devin）が不在でも、OpenHands（L2）とacd-agentの決定論的経路だけで
+新規設計を要件から発注可否まで1周させることを目的とするフェーズである。今回の実測では
+新規設計`vibebb-sensor-node`が基板laneのpre-router段で`power_decoupling`（C4-U1のpad距離
+15.838 mm > 3.0 mm）とrationale coverage不足によりfail-closedし、そこから先へ進む復帰経路が
+起動しなかった。さらに同じfixtureへ`--explore-board`を明示したdigest固定container実行
+（9.7節のRun B）では探索段が起動したものの、`evaluated_candidates=1`、`status='stopped'`、
+`diagnostic_dimensions=[]`、`winner_written=false`で終わり、基板laneは復帰しなかった。
+すなわち不足は「探索の起動」だけでなく「却下理由に基づく候補生成と、候補確定時の
+rationale整合」である。ゲートは正しく閉じており、緩和ではなく復帰経路の実装で解く。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `run_design_loop`（復帰判定`board_rejection`と探索round）、`explore_board_candidates`、`explore_enclosure_candidates`、`compile_requirement_change`の`_refresh_rationale`、`build_design_fixture`と手編集ガード、`check_rationale_coverage`の必須属性、`diagnose_gate_failure`、`run_acd_goal`、`plugins/acd/commands/vibebb-loop.md`、多コアVPS実測記録（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)）と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のP節・Q節 |
+| 実装 | 探索が設計入力を確定する際のrationale決定論的更新（Q-4）、宣言された上書きによるfixture再生成経路（Q-5）、却下時に機械可読な再実行引数を返し設計反復modeで探索を起動する経路（Q-2）、却下predicateのremediationを入力とする候補生成（Q-3）、laneごとの復帰可能な変更次元の宣言と筐体・silkscreen・FWへの連結（Q-1、Q-8、M-1の後続）、要件の追加・削除とgraph差分の同一transaction反映（Q-6）、bounded反復harnessの会話経路への接続（Q-7）、診断入力へのrationale coverageとlane preflightの取り込み（Q-9）、firmware capability registryへのaction／capability fragment宣言追加経路（Q-10）、初期配置のdecoupling距離制約（P-2）、QEMU打ち切りの正常終了明示（P-3）、FW laneのauthoritative Evidence生成（P-4） |
+| 正常系 | 会話由来のspecから生成した新規設計が、pre-router却下を含む1回以上の却下から探索・修正・再実行を経て基板・筐体・FW laneを通過し、digest固定containerでrevision一致のauthoritative Evidenceを生成して発注可否判定へ到達する。GD1の判定、Evidence、正規化hashは変化しない |
+| negative・fail-closed | 候補予算・round上限の超過、graph ID／revisionの不一致、正規化content hashの不変、rationale更新不能、宣言されていない上書き、復帰次元が宣言されていないlaneの却下、remediationを持たない却下はいずれもfail-closedで停止する。探索report、診断、goal評決、L2の合意はpass authorityを持たず、`pass_evidence`はL1ゲート由来に限る |
+| 再現性 | 探索round、候補ID、変更subject、rationale更新結果、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰経路を含む実行のwall-clockと資源使用を[`operations.md`](operations.md)の実測へ追記する |
 
 14.1〜14.3、14.4、14.5、14.6、14.7、14.8および14.9は達成済みである。14.4では、
 配置・回転、GPIO割当、placement coupling、単一datum、stitch via fallbackを含むbounded
@@ -1133,6 +1159,20 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （達成）O-11 projection guardの判定を書き込み対象で行いlane起動とstop reportを許可 | 14.14 |
 | （実機実測）O-12 筐体lane entrypointと発注policyのGD1固定解消 | 14.14 |
 | （達成）O-13 rationale被覆検査の対象解決 | 14.14 |
+| （達成）P-1 install doctorのESP-IDF判定の読み取り可能性統一 | 14.14 |
+| （多コアVPS実測）P-2 初期配置のdecoupling距離制約 | 14.15 |
+| （多コアVPS実測）P-3 QEMU打ち切りの正常終了明示 | 14.15 |
+| （多コアVPS実測）P-4 FW laneのauthoritative Evidence生成 | 14.15 |
+| （コード監査）Q-1 却下後の自動復帰の全laneへの連結 | 14.15 |
+| （多コアVPS実測）Q-2 会話経路からの復帰起動 | 14.15 |
+| （多コアVPS実測）Q-3 remediation由来の候補生成 | 14.15 |
+| （コード監査）Q-4 探索確定時のrationale決定論的更新 | 14.15 |
+| （コード監査）Q-5 宣言された上書きによるfixture再生成 | 14.15 |
+| （コード監査）Q-6 要件の追加・削除とgraph差分の同一transaction反映 | 14.15 |
+| （コード監査）Q-7 bounded反復harnessの会話経路への接続 | 14.15 |
+| （コード監査）Q-8 lane別の復帰次元宣言（silkscreen・FW） | 14.15 |
+| （コード監査）Q-9 診断入力へのrationale coverageとlane preflight取り込み | 14.15 |
+| （多コアVPS実測）Q-10 firmware capability registryへの宣言追加経路 | 14.15 |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |
 | （実機組み付け）筐体ネジ穴欠落（スタンドオフが固体円柱・リッドが平板） | 3.1 |
 
