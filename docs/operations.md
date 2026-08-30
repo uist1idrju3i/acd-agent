@@ -974,6 +974,17 @@ publish job summaryのGHCR digestを確認してから
 転記した値であり、他のツール版は旧JRE移行で変化しなかった。今回更新後のlock値は
 publish後に`docker/image-digests.json`へ別変更として転記する。
 
+toolchain更新（Semeru 26.0.2.10／OpenJ9 0.61.0、uv 0.12.7、ESP-IDF v6.1、KiCad 10.0.6、
+CMake／Ninja同梱）後にpublishしたacd-tools image
+`sha256:6bb87bd720117b6179f35da36e3fe417d35d6da243459be2da8e337883462930`については、
+digest指定でpullして各ツールの版出力を実測し、lockの`acd_tools.tools`へ転記した。
+`cmake`と`ninja`はこのimageから同梱されたためkeyを追加した。`java`は既存entryと同じ
+1行形式へ整形しており、実測の生出力は
+`openjdk version "26.0.2.1" 2026-08-18` / `IBM Semeru Runtime Open Edition 26.0.2.10 (build 26.0.2.1+1)` /
+`Eclipse OpenJ9 VM 26.0.2.10 (build 26.0.2.1+1-openj9-0.61.0, ...)`である。
+`acd_server.tools`はlockが指すdigestが更新前のimageのままなので変更しない。
+server imageのpublishとlock更新が済んだ時点で、同じ手順で実測して別変更として転記する。
+
 ### FW pipelineのhost実行とToolEnvelopeの注記
 
 FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
