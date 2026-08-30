@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import math
 from collections import defaultdict
 from pathlib import Path
 from typing import Literal
@@ -23,6 +22,7 @@ RequirementCode = Literal[
     "mechanical.attribute.missing",
     "mechanical.attribute.invalid",
     "mechanical.reference.unresolved",
+    "mechanical.extraction.failed",
     "rationale.coverage.missing",
     "rationale.coverage.stale",
     "rationale.coverage.orphan",
@@ -105,14 +105,14 @@ def _rationale_findings(
     if not report.graph_id_match:
         findings.append(
             _finding(
-                "rationale.coverage.orphan",
+                "rationale.coverage.unknown_provenance",
                 f"rationale graph_id {document.graph_id!r} does not match {graph.graph_id!r}",
             )
         )
     if not report.revision_match:
         findings.append(
             _finding(
-                "rationale.coverage.stale",
+                "rationale.coverage.unknown_provenance",
                 f"rationale revision {document.revision!r} does not match {graph.revision!r}",
             )
         )
@@ -217,28 +217,6 @@ def _attribute_kind_valid(attribute: str, value: object) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
 
 
-def _attribute_value_invalid(attribute: str, value: object) -> bool:
-    if attribute == "mount_hole_count":
-        return isinstance(value, int) and not isinstance(value, bool) and value < 1
-    if isinstance(value, int | float) and not isinstance(value, bool):
-        if not math.isfinite(float(value)):
-            return True
-        if attribute in {
-            "overhang_mm",
-            "standoff_pilot_hole_diameter_mm",
-            "lid_screw_hole_diameter_mm",
-            "standoff_radius_mm",
-        }:
-            return float(value) <= 0
-    if attribute == "edge":
-        return value not in {"top", "bottom", "left", "right"}
-    if attribute == "body_type":
-        return value not in {"solid", "none"}
-    if attribute == "fastener_method":
-        return value != "self_tapping_screw_m2"
-    return False
-
-
 def _mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
     findings: list[RequirementFinding] = []
     seen: set[tuple[str, str, str, str, str]] = set()
@@ -269,7 +247,7 @@ def _mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
         )
         add(
             _finding(
-                "mechanical.reference.unresolved",
+                "mechanical.extraction.failed",
                 f"electrical lane could not be extracted: {exc}",
             )
         )
@@ -404,17 +382,11 @@ def _mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
                 )
                 continue
             value = node.attrs[attribute]
-            if not _attribute_kind_valid(attribute, value):
-                add(
-                    _finding(
-                        "mechanical.attribute.missing",
-                        f"required attribute {attribute!r} has the wrong type",
-                        node_kind=node.kind,
-                        node_id=node.id,
-                        attribute=attribute,
-                    )
-                )
-            elif _attribute_value_invalid(attribute, value):
+            if attribute == "mount_hole_count" and (
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value < 1
+            ):
                 add(
                     _finding(
                         "mechanical.attribute.invalid",
@@ -424,74 +396,22 @@ def _mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
                         attribute=attribute,
                     )
                 )
-
-        if node.kind == "mechanical.component_body":
-            body_type = node.attrs.get("body_type")
-            height = node.attrs.get("height_mm")
-            if (
-                isinstance(height, int | float)
-                and not isinstance(height, bool)
-                and (
-                    (body_type == "solid" and height <= 0)
-                    or (body_type == "none" and height != 0)
-                )
-            ):
+            elif not _attribute_kind_valid(attribute, value):
                 add(
                     _finding(
-                        "mechanical.attribute.invalid",
-                        "height_mm is inconsistent with body_type",
+                        "mechanical.attribute.missing",
+                        f"required attribute {attribute!r} has the wrong type",
                         node_kind=node.kind,
                         node_id=node.id,
-                        attribute="height_mm",
+                        attribute=attribute,
                     )
                 )
-
-        if node.kind == "mechanical.enclosure":
-            pilot = node.attrs.get("standoff_pilot_hole_diameter_mm")
-            lid = node.attrs.get("lid_screw_hole_diameter_mm")
-            radius = node.attrs.get("standoff_radius_mm")
-            minimum_wall = node.attrs.get("min_wall_thickness_mm")
-            if (
-                isinstance(pilot, int | float)
-                and not isinstance(pilot, bool)
-                and isinstance(radius, int | float)
-                and not isinstance(radius, bool)
-                and isinstance(minimum_wall, int | float)
-                and not isinstance(minimum_wall, bool)
-                and radius - pilot / 2 < minimum_wall
-            ):
-                add(
-                    _finding(
-                        "mechanical.attribute.invalid",
-                        "standoff pilot hole leaves less than min_wall_thickness_mm",
-                        node_kind=node.kind,
-                        node_id=node.id,
-                        attribute="standoff_pilot_hole_diameter_mm",
-                    )
-                )
-            if (
-                isinstance(pilot, int | float)
-                and not isinstance(pilot, bool)
-                and isinstance(lid, int | float)
-                and not isinstance(lid, bool)
-                and lid < pilot
-            ):
-                add(
-                    _finding(
-                        "mechanical.attribute.invalid",
-                        "lid screw hole diameter is smaller than pilot diameter",
-                        node_kind=node.kind,
-                        node_id=node.id,
-                        attribute="lid_screw_hole_diameter_mm",
-                    )
-                )
-
     try:
         extract_mechanical_lane(graph)
     except GraphExtractionError as exc:
         add(
             _finding(
-                "mechanical.reference.unresolved",
+                "mechanical.extraction.failed",
                 f"mechanical lane could not be extracted: {exc}",
             )
         )

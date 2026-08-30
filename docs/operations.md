@@ -271,6 +271,15 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    参照、電気laneとの対応、rationale coverageの不足は全件を
    `preflight-mechanical.json`へ機械可読に出力し、code別件数を表示して非zero終了する。
    preflightがpassの場合はこのファイルを生成せず、既存のGD1成果物集合とhashを変えない。
+   preflightのcode語彙はO-5と共有し、`mechanical.node.missing`、
+   `mechanical.node.duplicated`、`mechanical.attribute.missing`、
+   `mechanical.attribute.invalid`、`mechanical.reference.unresolved`、
+   `mechanical.extraction.failed`、`rationale.coverage.missing`、
+   `rationale.coverage.stale`、`rationale.coverage.orphan`、
+   `rationale.coverage.conflicting`、`rationale.coverage.unknown_provenance`、
+   `rationale.coverage.untraceable`、`rationale.coverage.unclassified`に固定する。
+   preflightは宣言の有無・値の型・count由来の属性展開・参照解決だけを検査し、
+   幾何と設計妥当性の判定は決定論的な機械ゲートが担う。
    preflightは診断専用であり、pass結果だけではauthoritative EvidenceやL1合格を確立しない。
 
    2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
@@ -1660,7 +1669,9 @@ uv run python scripts/validate_graph.py --fixture fixtures/golden-design-1
 ```
 
 この入口はgraphのparse、requirement documentの検証、rationale coverage、laneごとの
-決定論的preflight（必須node・属性の宣言欠落集約）をまとめて実行する。parse失敗、
+決定論的preflight（必須node・属性の宣言欠落集約）をまとめて実行する。preflightは
+宣言の有無・値の型・count由来の属性展開・参照解決だけを検査し、幾何と設計妥当性は
+決定論的ゲートへ委譲する。parse失敗、
 入力欠落、宣言欠落はすべてfail-closedであり、成功扱いにしない。preflightは診断であって
 L1ゲート判定ではなく、検証成功は設計成功を意味しない。合否権限は引き続きlaneの決定論的
 ゲートとrevision一致のauthoritative Evidenceだけが持つ。laneを限定する場合は`--lane`を
