@@ -55,7 +55,7 @@ jobs:
           IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
         run: |
           set -euo pipefail
-          uv run python scripts/measure_image_tools.py \
+          python scripts/measure_image_tools.py \
             --image-ref "ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-tools@${IMAGE_DIGEST}" \
             --out "$RUNNER_TEMP/acd-tools-tools.json"
       - name: Open digest lock update PR

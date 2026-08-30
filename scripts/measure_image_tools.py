@@ -7,8 +7,8 @@ import argparse
 import json
 import re
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 _IMAGE_REF = re.compile(r"[^@\s]+@sha256:[0-9a-f]{64}\Z")
 _Runner = Callable[[list[str]], str]
@@ -34,7 +34,12 @@ _COMMANDS: dict[str, list[str]] = {
 }
 
 
-def _docker_run(command: list[str]) -> str:
+def _docker_prefix(image_ref: str) -> list[str]:
+    # The server image sets an agent-server ENTRYPOINT, so it is bypassed here.
+    return ["docker", "run", "--rm", "--entrypoint", "", image_ref]
+
+
+def _docker_run(command: list[str], argv: list[str]) -> str:
     result = subprocess.run(
         command,
         capture_output=True,
@@ -43,20 +48,18 @@ def _docker_run(command: list[str]) -> str:
     )
     output = result.stdout + result.stderr
     if result.returncode != 0:
-        if (
-            command[-2:] == ["freerouting", "--version"]
-            and re.search(r"Freerouting v[0-9]+\.[0-9]+\.[0-9]+", output)
+        # freerouting --version prints a valid banner and then exits nonzero.
+        if argv == ["freerouting", "--version"] and re.search(
+            r"Freerouting v[0-9]+\.[0-9]+\.[0-9]+", output
         ):
             return output
-        raise RuntimeError(f"command failed: {' '.join(command[4:])}")
+        raise RuntimeError(f"command failed: {' '.join(argv)}")
     return output
 
 
 def _runner_for_image(image_ref: str) -> _Runner:
     def run(argv: list[str]) -> str:
-        return _docker_run(
-            ["docker", "run", "--rm", "--entrypoint", "", image_ref, *argv]
-        )
+        return _docker_run([*_docker_prefix(image_ref), *argv], argv)
 
     return run
 
