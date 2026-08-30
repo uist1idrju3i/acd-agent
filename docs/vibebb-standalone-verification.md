@@ -95,7 +95,7 @@ ESP-IDF v6.0.2ビルドとQEMU 9.2.2実行まで到達し、`measurement_conditi
 |---|---|
 | `scripts/resolve_gd1_silkscreen.py` | `status: resolved`（silkscreen `measured_pass`） |
 | `scripts/run_gd1_pipeline.py` | exit=0、`evidence-electrical.json`が`status=valid`、routing wire 188 / via 24 |
-| `scripts/run_gd1_enclosure_pipeline.py` | exit=0、`evidence-mechanical.json`が`status=valid`、干渉0.0mm³ / 最小クリアランス1.0mm / 最小肉厚2.0mm |
+| `scripts/run_enclosure_pipeline.py` | exit=0、`evidence-mechanical.json`が`status=valid`、干渉0.0mm³ / 最小クリアランス1.0mm / 最小肉厚2.0mm |
 
 host実行はprovisionalであり合格側Evidenceにならない。これは文書上の宣言だけでなく実測でも
 確認した。host Evidenceを`scripts/verify_authoritative_evidence.py`へ渡すと

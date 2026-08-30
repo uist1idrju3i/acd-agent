@@ -48,7 +48,7 @@ jobs:
       - name: Standard verification
         run: uv run python scripts/verify_all.py --stage standard
       - name: Golden mechanical task
-        run: uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
+        run: uv run python scripts/run_enclosure_pipeline.py --fixture fixtures/golden-design-1 --out out/gd1-enclosure
       - name: Probe external tools (informational)
         run: uv run python scripts/probe_tools.py
       - name: Whitespace check

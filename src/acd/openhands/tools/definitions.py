@@ -56,7 +56,7 @@ def run_board(
 
 def run_enclosure(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     """Run the enclosure pipeline without importing it during package initialization."""
-    from acd.pipeline.gd1_enclosure import run_pipeline
+    from acd.pipeline.enclosure import run_pipeline
 
     return run_pipeline(fixture_dir, out_dir)
 
@@ -345,6 +345,9 @@ class AcdDiagnoseGateFailureAction(Action):
 class AcdCheckOrderReadinessAction(Action):
     repository: str = "."
     policy: str = "plugins/acd/hooks/order-policy.json"
+    design_graph_path: str = Field(
+        description="Repository-relative path to the design graph being evaluated."
+    )
     order_total: str
     evidence: list[str] = Field(default_factory=list)
     evaluated_at: str
@@ -1114,6 +1117,7 @@ class AcdCheckOrderReadinessExecutor(ToolExecutor[AcdCheckOrderReadinessAction, 
             record = evaluate_pre_order_gate(
                 repository=repository,
                 policy=policy,
+                design_graph_path=Path(action.design_graph_path),
                 order_total=order_total,
                 evidence_paths=evidence,
                 evaluated_at=evaluated_at,
@@ -1613,6 +1617,7 @@ class AcdCheckOrderReadiness(
             return DeclaredResources(keys=(), declared=False)
         paths = [
             ("file", Path(action.policy)),
+            ("file", Path(action.design_graph_path)),
             ("file", Path(action.order_total)),
             *[("file", Path(path)) for path in action.evidence],
         ]

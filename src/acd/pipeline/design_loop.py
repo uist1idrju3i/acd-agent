@@ -30,9 +30,9 @@ from acd.core.requirements import (
 from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
+from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
 from acd.pipeline.fixture_builder import build_design_fixture
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
-from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
 from acd.pipeline.lane_plan import (
     DESIGN_LOOP_LANE_IDS,
     LanePlan,
@@ -267,6 +267,7 @@ def _run_order_readiness(config: DesignLoopConfig) -> dict[str, Any]:
         record = evaluate_pre_order_gate(
             repository=config.repository,
             policy=policy,
+            design_graph_path=config.fixture_dir / "graph.json",
             order_total=order_total,
             evidence_paths=sorted(config.repository.glob(policy.evidence_paths)),
             evaluated_at=config.evaluated_at,

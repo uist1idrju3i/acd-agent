@@ -8,6 +8,70 @@ from dataclasses import dataclass
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
 from acd.schema.design_graph import DesignGraph, GraphNode
 
+REQUIRED_MECHANICAL_ATTRS: dict[str, tuple[str, ...]] = {
+    "mechanical.outline": (
+        "width_mm",
+        "depth_mm",
+        "thickness_mm",
+        "corner_radius_mm",
+        "mount_hole_count",
+        "unit",
+        "origin",
+        "y_axis",
+        "position_source",
+        "position_source_ref",
+    ),
+    "mechanical.component_body": (
+        "body_type",
+        "height_mm",
+        "x_mm",
+        "y_mm",
+        "width_mm",
+        "depth_mm",
+        "mounting_side",
+        "rotation_deg",
+        "position_source",
+        "position_source_ref",
+        "dimensions_source",
+        "dimensions_source_ref",
+        "dimensions_checked_at",
+    ),
+    "mechanical.connector_opening": (
+        "face",
+        "center_x_mm",
+        "center_y_mm",
+        "width_mm",
+        "height_mm",
+        "margin_mm",
+        "dimensions_source",
+        "dimensions_source_ref",
+        "dimensions_checked_at",
+    ),
+    "mechanical.board_edge_overhang": (
+        "component_refdes",
+        "edge",
+        "overhang_mm",
+        "requirement_id",
+    ),
+    "mechanical.enclosure": (
+        "wall_thickness_mm",
+        "min_wall_thickness_mm",
+        "internal_clearance_mm",
+        "lid_fit_gap_mm",
+        "standoff_height_mm",
+        "standoff_radius_mm",
+        "fastener_method",
+        "standoff_pilot_hole_diameter_mm",
+        "lid_screw_hole_diameter_mm",
+        "material",
+        "unit",
+        "tolerance_mm",
+        "interference_tolerance_mm3",
+        "tolerance_source",
+        "tolerance_source_ref",
+    ),
+}
+
 
 @dataclass(frozen=True)
 class MountHoleView:

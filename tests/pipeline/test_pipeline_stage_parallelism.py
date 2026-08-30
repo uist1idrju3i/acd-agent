@@ -20,6 +20,7 @@ from acd.core.parallel import (
     PipelineStageRunner,
     _warm_up_worker,
 )
+from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
 from acd.pipeline.gd1_board import (
     _parse_cached_router_record,
     _positive_int,
@@ -27,7 +28,6 @@ from acd.pipeline.gd1_board import (
     _write_router_pass_progression,
     run_pipeline,
 )
-from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
 
 
 def _stage_pid() -> int:
@@ -170,6 +170,8 @@ def test_enclosure_pipeline_outputs_are_stable_across_worker_counts(
         parallel_dir,
         pipeline_workers=4,
     )
+    assert not (serial_dir / "preflight-mechanical.json").exists()
+    assert not (parallel_dir / "preflight-mechanical.json").exists()
 
     for key in (
         "normalized_output_hash",

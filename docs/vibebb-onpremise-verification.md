@@ -75,7 +75,7 @@ GD1 fixtureのコピーではなく、規模・GPIO・定数・外形を変え�
 |---|---|---|---|
 | silkscreen barrier | `resolve_gd1_silkscreen.py` | fail-closed | `RESOLUTION FAILED (fail-closed): silkscreen declarations are missing (fail-closed)` |
 | 基板 | `run_gd1_pipeline.py` | fail-closed | `strapping_pin: status='unknown' (U1 IO-to-pad mapping is missing or ambiguous)` |
-| 筐体 | `run_gd1_enclosure_pipeline.py` | fail-closed | `expected exactly one mechanical.outline node, got 0` |
+| 筐体 | `run_enclosure_pipeline.py` | fail-closed | `expected exactly one mechanical.outline node, got 0` |
 | FW | `run_fw_pipeline.py` | fail-closed | `PIPELINE FAILED: graph must contain exactly one firmware.module node` |
 | order-total / 発注可否 | `run_design_loop.py` | 未到達 | 前段でfail-closed（加えてorder入力なしでは`order-total document is required when aggregation is disabled`） |
 
@@ -188,7 +188,7 @@ KiCad symbolまたはparts catalogからpin functionを取り込む経路が必�
    fail-closedで記録されている場合は、design入力の変更があってもcommitを要求せずに終了を許す。
    現状はhookが利用者指示に反するcommitを誘発する。
 4. **lane scriptの引数と命名の統一**。`resolve_gd1_silkscreen.py`、`run_gd1_pipeline.py`、
-   `run_gd1_enclosure_pipeline.py`はGD1以外にも使うため、`gd1`を含まない名前へ改称し、
+   `run_enclosure_pipeline.py`はGD1以外にも使うため、`gd1`を含まない名前へ改称し、
    `--fixture`/`--graph`/`--out`の受け口を揃える。
 5. **out-rootの権限起因失敗を分類する**。work-fixture複製失敗時に`PermissionError`を
    「環境起因（設計判定ではない）」として区別し、同一out-rootをroot実行と共用した場合の

@@ -18,7 +18,8 @@ from acd.core.order_total import (
 from acd.core.timestamps import parse_evaluated_at
 from acd.openhands.order_gate import PreOrderGateError, evaluate_pre_order_gate
 from acd.openhands.workspace import run_command_in_workspace
-from acd.schema import OrderPolicy, OrderTotalDocument
+from acd.pipeline.lane_plan import build_lane_plan
+from acd.schema import DesignGraph, OrderPolicy, OrderTotalDocument
 
 
 def _load_order_total(path: Path) -> OrderTotalResult:
@@ -42,22 +43,67 @@ def _evaluated_at(value: str) -> datetime:
     return parse_evaluated_at(value)
 
 
+def _repository_relative_path(path: Path, repository: Path) -> str:
+    if not path.is_absolute():
+        return path.as_posix()
+    try:
+        return path.resolve().relative_to(repository.resolve()).as_posix()
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"path is outside repository: {path}") from exc
+
+
+def authoritative_commands(
+    *,
+    repository: Path,
+    design_graph_path: Path,
+    out_root: Path,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    graph = DesignGraph.model_validate_json(
+        design_graph_path.read_text(encoding="utf-8")
+    )
+    plan = build_lane_plan(graph.graph_id, out_root)
+    board_output = plan.stage("board-pipeline").output_path
+    enclosure_output = plan.stage("enclosure-pipeline").output_path
+    if board_output is None or enclosure_output is None:
+        raise ValueError("authoritative lane output path is undeclared")
+    board_output_relative = _repository_relative_path(board_output, repository)
+    enclosure_output_relative = _repository_relative_path(
+        enclosure_output, repository
+    )
+    fixture_relative = _repository_relative_path(
+        design_graph_path.parent, repository
+    )
+    return (
+        (
+            "uv run python scripts/run_gd1_pipeline.py "
+            f"--fixture {fixture_relative} --out {board_output_relative}",
+            (f"{board_output_relative}/evidence-electrical.json",),
+        ),
+        (
+            "uv run python scripts/run_enclosure_pipeline.py "
+            f"--fixture {fixture_relative} --out {enclosure_output_relative}",
+            (f"{enclosure_output_relative}/evidence-mechanical.json",),
+        ),
+    )
+
+
 def _rerun_authoritative(
     *,
     repository: Path,
     image: str,
+    design_graph_path: Path,
+    out_root: Path,
 ) -> None:
-    commands = (
-        (
-            "uv run python scripts/run_gd1_pipeline.py --out out/gd1",
-            ("out/gd1/evidence-electrical.json",),
-        ),
-        (
-            "uv run python scripts/run_gd1_enclosure_pipeline.py "
-            "--out out/gd1-enclosure",
-            ("out/gd1-enclosure/evidence-mechanical.json",),
-        ),
-    )
+    try:
+        commands = authoritative_commands(
+            repository=repository,
+            design_graph_path=design_graph_path,
+            out_root=out_root,
+        )
+    except (OSError, ValueError) as exc:
+        raise PreOrderGateError(
+            f"could not resolve authoritative lane outputs: {exc}"
+        ) from exc
     for command, download_files in commands:
         result = run_command_in_workspace(
             image=image,
@@ -82,6 +128,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         default=Path("plugins/acd/hooks/order-policy.json"),
     )
     parser.add_argument("--order-total", type=Path, required=True)
+    parser.add_argument("--design-graph", type=Path, required=True)
+    parser.add_argument("--out-root", type=Path, default=Path("out"))
     parser.add_argument("--evidence", type=Path, action="append")
     parser.add_argument("--evaluated-at", required=True)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -122,7 +170,21 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ValueError(
                     "--image or ACD_CONTAINER_IMAGE is required for authoritative rerun"
                 )
-            _rerun_authoritative(repository=repository, image=args.image)
+            design_graph_path = args.design_graph
+            if not design_graph_path.is_absolute():
+                design_graph_path = repository / design_graph_path
+            out_root = args.out_root
+            if not out_root.is_absolute():
+                out_root = repository / out_root
+            _rerun_authoritative(
+                repository=repository,
+                image=args.image,
+                design_graph_path=design_graph_path,
+                out_root=out_root,
+            )
+        design_graph_path = args.design_graph
+        if not design_graph_path.is_absolute():
+            design_graph_path = repository / design_graph_path
         evidence_paths = args.evidence
         if evidence_paths is None:
             evidence_paths = sorted(
@@ -136,6 +198,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         record = evaluate_pre_order_gate(
             repository=repository,
             policy=policy,
+            design_graph_path=design_graph_path,
             order_total=order_total,
             evidence_paths=evidence_paths,
             evaluated_at=evaluated_at,

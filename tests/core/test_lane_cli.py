@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 LANE_ENTRYPOINTS = (
     ("scripts/resolve_gd1_silkscreen.py",),
     ("scripts/run_gd1_pipeline.py",),
-    ("scripts/run_gd1_enclosure_pipeline.py",),
+    ("scripts/run_enclosure_pipeline.py",),
 )
 
 
