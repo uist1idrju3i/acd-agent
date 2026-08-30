@@ -834,6 +834,15 @@ lockが1世代前を指すため、`acd-tools:latest`の現digestを解決して
 baseとderivedは独立に記録し、
 toolsとserverのdigestは同一とは扱わず、CIとrunnerはlock済みserver digestをpullして実行する。
 
+`build.py`はimage tagを`SDK_SHA`→`GITHUB_SHA`→`git rev-parse HEAD`の優先順で決めるため、
+`workflow_run`起動では`GITHUB_SHA`がworkflow定義側のcommitを指し、checkoutした
+`workflow_run.head_sha`とtagが食い違う。2026-08-30のrun 33305827733と33305891477では
+buildは成功したがalias stepが存在しないtagを参照し、
+`ghcr.io/uist1idrju3i/acd-server:<head_sha>-latest-source: not found`で失敗して
+server digest lock更新PRが生成されなかった。以後は`git rev-parse HEAD`で解決した
+`SERVER_SHA`をbuild step（`SDK_SHA`）とalias／tag解決step双方へ渡し、
+publishしたsourceとtagを一致させる。
+
 browser_useは`build_acd_conversation(enable_browser=True)`を明示したL2探索時だけ使用する。
 Chromiumが利用できない場合は例外で停止し、browser由来の観測はEvidenceへ昇格させない。
 EasyEDA APIの決定論的取得経路は維持し、設計入力へ確定する資材は既存経路で再取得して

@@ -60,9 +60,17 @@ jobs:
               --record out/container/pull-acd-tools.json
           fi
           printf 'TOOLS_REF=%s\n' "$TOOLS_REF" >> "$GITHUB_ENV"
+      - name: Resolve source commit
+        run: |
+          set -euo pipefail
+          printf 'SERVER_SHA=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Build and publish
         env:
           CUSTOM_TAGS: latest
+          # build.py derives image tags from SDK_SHA/GITHUB_SHA. On workflow_run
+          # events GITHUB_SHA is the workflow file's commit, not the checked out
+          # source, so the published tags would not match the built source.
+          SDK_SHA: ${{ env.SERVER_SHA }}
         run: |
           uv run python vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/build.py \
             --base-image "$TOOLS_REF" \
@@ -72,14 +80,19 @@ jobs:
             --push \
             --sdk-project-root "$GITHUB_WORKSPACE/vendor/software-agent-sdk"
       - name: Publish latest alias
+        env:
+          SERVER_SHA: ${{ env.SERVER_SHA }}
         run: |
-          REPO_SHA=$(git rev-parse HEAD)
+          set -euo pipefail
           docker buildx imagetools create \
             --tag ghcr.io/uist1idrju3i/acd-server:latest \
-            "ghcr.io/uist1idrju3i/acd-server:${REPO_SHA}-latest-source"
+            "ghcr.io/uist1idrju3i/acd-server:${SERVER_SHA}-latest-source"
       - name: Resolve published server tag
+        env:
+          SERVER_SHA: ${{ env.SERVER_SHA }}
         run: |
-          printf 'SERVER_TAG=%s-latest-source\n' "$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          set -euo pipefail
+          printf 'SERVER_TAG=%s-latest-source\n' "$SERVER_SHA" >> "$GITHUB_ENV"
       - name: Record base and derived digests
         env:
           SERVER_TAG: ${{ env.SERVER_TAG }}
