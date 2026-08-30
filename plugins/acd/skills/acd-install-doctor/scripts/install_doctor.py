@@ -1561,7 +1561,8 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
             )
         script = (
             "printf '%s\\n' '=== IDF_PATH/export.sh ==='; "
-            "if test -n \"${IDF_PATH:-}\" && test -x \"$IDF_PATH/export.sh\"; "
+            "if test -n \"${IDF_PATH:-}\" && test -f \"$IDF_PATH/export.sh\" "
+            "&& test -r \"$IDF_PATH/export.sh\"; "
             "then printf '%s\\n' present; else printf '%s\\n' missing; fi; "
             "printf '%s\\n' '=== qemu-system-riscv32 ==='; "
             "qemu-system-riscv32 --version 2>&1 || true; "
@@ -1613,7 +1614,10 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
             observed,
         )
     idf_path = os.environ.get("IDF_PATH")
-    idf_ok = bool(idf_path and (Path(idf_path) / "export.sh").is_file())
+    idf_export = Path(idf_path) / "export.sh" if idf_path else None
+    idf_ok = bool(
+        idf_export and idf_export.is_file() and os.access(idf_export, os.R_OK)
+    )
     qemu = _resolve_firmware_tool("qemu-system-riscv32")
     cmake = shutil.which("cmake")
     missing = [

@@ -1042,6 +1042,55 @@ swapを上限の根拠にしたためcontainer gate中にglobal OOMが発生し�
 `pass`はcontainer起動前提を満たしたことだけを示し、lane gate passやauthoritative
 Evidenceを意味しない。
 
+#### 多コアVPSでの資源実測と推奨スペック（2026-08-30）
+
+CPU 8コア／MemTotal 15.0 GiB（swap 22 GiB）／Docker 29.1.3／Ubuntu 26.04のVPSで、
+digest固定server imageを`scripts/run_in_workspace.py`（`DockerWorkspace`）経由で実行し、
+silkscreen resolver・GD1基板pipeline・GD1筐体pipelineを1回の測定単位として実測した。
+サンプリングは1秒間隔で、ホストの`/proc/stat`・`/proc/meminfo`、OpenHands常駐process群、
+ACD host process群、Docker cgroup（`memory.current`／`memory.peak`／`memory.stat`／
+`cpu.stat`）を記録した。CPU数を絞る測定はホスト側のCPU offlineで行い、測定後に8コアへ戻した。
+
+| 条件（container上限／`--jobs`／CPU） | 結果 | wall | ホストCPU peak | ホストmem used peak | ホストmem available min | Docker mem peak | swap |
+|---|---|---|---|---|---|---|---|
+| idle（実行なし） | — | 179秒 | 0.04コア | 1.86 GiB | 13.26 GiB | 0 | 0 |
+| 8 GiB／4／8コア（n=2） | pass | 220〜225秒 | 7.98コア | 4.18 GiB | 10.93 GiB | 5.36 GiB | 0 |
+| 8 GiB／1／8コア | pass | 304秒 | 8.00コア | 3.57 GiB | 11.54 GiB | 4.06 GiB | 0 |
+| 4 GiB／4／8コア | pass | 226秒 | 7.99コア | 4.02 GiB | 11.09 GiB | 4.00 GiB（上限到達） | 0 |
+| 8 GiB／4／4コア | pass | 250秒 | 4.00コア | 4.18 GiB | 10.93 GiB | 4.97 GiB | 0 |
+| 8 GiB／2／2コア | pass | 321秒 | 2.00コア | 3.61 GiB | 11.50 GiB | 4.40 GiB | 0 |
+| 4 GiB／2／2コア | pass | 331秒 | 2.00コア | 3.82 GiB | 11.29 GiB | 4.00 GiB（上限到達） | 0 |
+| 2 GiB／4／8コア | fail-closed | 6秒 | 1.04コア | 2.29 GiB | 12.82 GiB | 0（container未起動） | 0 |
+
+8 GiB／`--jobs 4`のcontainer内訳は、anon 1.98 GiB、page cache 3.51 GiB、slab 0.17 GiBで
+あり、`memory.peak`の大半はfile cacheである。process単位のpeak RSSはPython系合計3.13 GiB、
+FreeRoutingのJVM 0.81 GiB、`cc1`（ESP-IDFビルド）0.81 GiB、`kicad-cli` 0.44 GiB、
+QEMU 0.05 GiBで、単一processの最大は0.85 GiBだった。OpenHands常駐processはlane実行中も
+1.19〜1.20 GiBのRSSと0.05コア未満で、laneの資源消費とは独立している。全条件でswap使用は
+0であり、`--memory-swap == --memory`の契約に反する挙動は観測されていない。
+
+2 GiBはlane実行前に資源preflightが拒否した。停止理由は
+`runtime.jvm_heap.exceeds_container_limit`（既定`--jvm-max-heap 2g`と非heap reserve 1 GiBの
+合計がcontainer上限を超える）であり、OOM killではない。4 GiBはGD1では完走したが
+`memory.current`が上限へ張り付くため、cacheを削って動作している状態であり常用値にしない。
+
+以上から、最小と推奨は次のとおりとする。measured floorはGD1 fixtureで完走を確認した
+下限であって、他設計・他fixtureでの完走を保証しない。
+
+| 区分 | CPU | 物理RAM | container上限 | `--jobs` | 根拠 |
+|---|---|---|---|---|---|
+| 契約上の最小（preflight） | 2コア | container上限 + 512 MiB | 8 GiB（既定） | 1 | `ResourceRequirement`の既定値 |
+| GD1で完走を確認した下限 | 2コア | 4 GiB + ホスト常駐分 | 4 GiB（`--jvm-max-heap`は据え置き可） | 2 | 上表の4 GiB／2／2コア（331秒、上限到達） |
+| 推奨（余裕を持った常用値） | 4コア以上 | 12 GiB以上（OpenHands同居時は16 GiB） | 8 GiB | 4 | 上表の8 GiB／4（220〜250秒、available 10.9 GiB以上、swap 0） |
+
+`--jobs`を1から4へ上げるとwallは304秒から220〜225秒へ短縮する（約27%）。CPUを8→4コアへ
+落とすと250秒、2コアでは321秒であり、4コアでほぼ飽和する。8コア以上を割り当てても
+lane実行は外部ツールの直列区間が支配的で、CPU平均使用は2.5コア程度にとどまる。
+OpenHandsを同一ホストへ同居させる場合は、常駐RSS約1.2 GiBとGUI由来のagent処理分を
+container上限とは別枠で確保する。物理RAMは`--memory-limit`＋512 MiBがpreflightの下限であり、
+container上限8 GiBならMemTotal 8.5 GiB超が必須になる。実測でlane中のホストmem usedが
+4.2 GiBまで上がるため、12 GiB以上を推奨値とする。
+
 SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
 `tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する

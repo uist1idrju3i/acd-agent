@@ -390,6 +390,23 @@ N-3の未解消部分、O-3・O-6〜O-8は運用と手順の不足である。
 | O-12 | 筐体laneのentrypointと発注policyがGD1固定で、GD1以外の設計がorder readiness判定に到達できない | 発注pathと筐体lane entrypointの汎用化を達成。`OrderPolicy`が固定graph path／Evidence IDではなく許可graph rootとEvidence laneを宣言し、pre-order gateが呼び出し側の対象graph pathをrepository境界・design input・parse・revision一致まで検証し、graph IDから必要Evidence IDを導出する。`scripts/run_enclosure_pipeline.py`はfixture／outを必須引数とし、機械preflightが必要ノード・属性・参照とrationale coverageを一括で機械可読に診断する | 高 | I-4 | 達成。筐体laneのentrypoint汎用化と機械宣言不足の一括診断を実装した。`QuoteRecord`と`OrderScope`を設計fixtureとfab profileから生成する決定論的経路は未着手で、見積実値が無い場合はdummy値を生成しない |
 | O-13 | stop hookのrationale被覆検査がGD1固定パスだけを見て、対象設計と無関係に`pass`を表示する | 達成。core CLIはgraph／rationaleを必須指定とし、対象graph pathとrevisionを出力する。stop hookは`ACD_TARGET_DESIGN`、変更fixture、単一fixtureの優先順で対象を解決し、複数・不明状態を`not_applicable`、rationale欠落とcoverage失敗をdenyとして扱う | 中 | O-4 | 達成。対象設計を決定論的に解決し、未解決時に`pass`を表示せず、対象rationale不足をfail-closedで停止する |
 
+## P. 多コアVPS実測（2026-08-30）で残った不足
+
+本節はO節の実装後に、CPU 8コア／MemTotal 15.0 GiBのVPSと実機OpenHands（workspace
+`test260830`）でGD1と新規設計`vibebb-sensor-node`を実行した実測から抽出した不足である。
+観測記録は[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)の9節を正とする。
+既存の閾値、ゲート挙動、fail-closed境界、L1権限を緩める提案は含まない。
+
+P-1は現行の公開imageで`/acd:init`が必ず停止する直接原因であり、同じ変更で解消した。
+P-2は新規設計の1周目が基板pre-router段で止まる主因、P-3・P-4は診断表示と検査対象の不足である。
+
+| # | 不足機能 | 根拠 | 優先度 | 依存 | 完了条件 |
+|---|---|---|---|---|---|
+| P-1 | install doctorのESP-IDF判定が実行ビットを要求して偽陰性になる | lock済みserver imageの`/opt/esp-idf/export.sh`は`-rw-r--r--`で、sourceすると`idf.py`が解決できるにもかかわらず、`install_doctor.py`のprobeが`test -x`で判定して`missing: IDF_PATH/export.sh`を報告し、GUIからの`/acd:init`がdoctor段でfail-closedした（`bootstrap-record.json`未生成） | 高 | なし | 達成。image probeを`test -f`かつ`test -r`、container判定を`Path.is_file()`かつ`os.access(..., R_OK)`へ変更し、実行ビットのないreadableな`export.sh`をpassとする回帰テストを追加した。fail-closed境界と他checkの判定は変えない |
+| P-2 | `build_design_fixture`の初期配置がdecoupling距離制約を満たさない | 新規設計`vibebb-sensor-node`では基板laneのpre-router段で`power_decoupling`が`C4`とU1のpad距離15.838 mm（上限3.0 mm）で不合格になり、remediationが`component_placement_xy`の変更を提示した。生成直後のfixtureが必ず1回以上の配置修正反復を要する | 中 | N-1 | 初期配置生成時にdecoupling対象コンデンサをbypass対象pad近傍へ配置する制約を入れる。制約を満たせない場合はfixture生成段で不足として報告し、合格側へ倒さない。GD1 fixtureの正規化hashと既存判定を変えない |
+| P-3 | FW laneのQEMU打ち切りがログ上で失敗と誤読される | 成功実行でも`qemu-system-riscv32: terminating on signal 15 from pid … (timeout)`がログへ残り、その後pipelineはbuild・QEMU仮想実行・log検査をpassとしてexit=0で終える。意図した時間打ち切りである旨がログから判別できない | 低 | なし | 仮想実行の打ち切りが正常終了条件であることをlog行として明示する。envelopeの`measurement_conditions`と整合させ、判定と閾値は変えない |
+| P-4 | FW laneのauthoritative Evidenceが生成されず決定論的検査の対象外になる | container実行後の`out/container/`には基板・筐体のEvidence 2件のみが生成され、`scripts/verify_authoritative_evidence.py`もこの2件を検査する。FW laneはvirtual実行の成否がloop出力にしか残らない | 中 | O-10 | FW laneのcontainer実行結果をrevision一致のEvidence recordとして生成し、virtual実行である旨を明示したまま決定論的検査の対象へ加える。実機Evidenceへ昇格させない（M-5） |
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -419,3 +436,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 11. M-1〜M-6（マイルストーン14.11後の再監査）。M-1（筐体却下後の候補探索の自動連結）とM-2（任意graph向け検証lane）はacd-agent内で閉じるため先に扱う。M-3（実見積・実発注のsupplier接続）は外部接続とcredentialに依存し、実装だけでは閉じない。M-4は16.2・16.3、M-5は実機、M-6は境界の維持である。
 12. N-1〜N-12（実機OpenHands環境での新規設計実測）。N-1・N-3・N-5（宣言経路とpreflight、pin function展開）を先に扱い、次にN-2・N-4・N-7・N-11（停止境界が回避行動を誘発する箇所）を解く。N-6は述語追加、N-8〜N-10・N-12は運用と手順の整備である。
 13. O-1〜O-13（宣言経路解消後の`test5`実測）。O-1（`run_tool`のtimeout引数化）とO-9（pass予算既定の単一化）は基板lane到達の前提であり最優先。O-10（FW laneのGD1固定解消）とO-11（projection guardの誤検出と迂回）も同順位で扱う。次にO-2（container起動前のホスト資源検査）、O-5・O-4（一括preflightと語彙の是正）を扱う。O-3・O-6〜O-8は運用と手順の整備である。O-12（筐体laneと発注policyのGD1固定解消）はO-10と同順位で扱い、O-13（rationale検査の対象解決）はO-4と同時に扱う。
+14. P-1〜P-4（多コアVPS実測）。P-1（install doctorのESP-IDF判定）は本変更で解消済み。次にP-2（初期配置のdecoupling制約）を扱い、P-4（FW laneのEvidence生成）はO-10の後続、P-3は表示の是正である。
