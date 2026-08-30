@@ -6,10 +6,10 @@
 ## コンテキスト
 
 これまでのインストールは`git clone --recurse-submodules`と`uv sync`を前提とし、
-利用者のOpenHands環境へACDを導入する手順が重かった。pinned SDK v1.43.1は拡張の
+利用者のOpenHands環境へACDを導入する手順が重かった。pinned SDK v1.44.1は拡張の
 標準配布機構として、`PluginSource`／`Plugin.fetch()`によるgit取得（resolved commit
 SHAへのピン留めと`~/.openhands/cache/plugins/`へのキャッシュ）を提供する。また
-`openhands-sdk`、`openhands-tools`、`openhands-workspace`のv1.43.1はPyPIへ公開済み
+`openhands-sdk`、`openhands-tools`、`openhands-workspace`のv1.44.1はPyPIへ公開済み
 である。ACD側には既に`acd_plugin_source(ref)`と`validate_pinned_ref()`（40桁SHAまたは
 `v<semver>` tagのみ許可）が存在する。
 
@@ -37,8 +37,8 @@ SHAへのピン留めと`~/.openhands/cache/plugins/`へのキャッシュ）を
 
 これを成立させるため、次を実施する。
 
-- `pyproject.toml`の`[project.dependencies]`で`openhands-sdk==1.43.1`、
-  `openhands-tools==1.43.1`、`openhands-workspace==1.43.1`をPyPI版へピン留めする。
+- `pyproject.toml`の`[project.dependencies]`で`openhands-sdk==1.44.1`、
+  `openhands-tools==1.44.1`、`openhands-workspace==1.44.1`をPyPI版へピン留めする。
   開発checkoutでは`[tool.uv.sources]`のvendored submodule pathが引き続き優先され、
   submoduleが開発時の正であることは変わらない。pip/uvのgit installでは
   `tool.uv.sources`が適用されないため、PyPIのpinned版で解決される。
@@ -60,7 +60,7 @@ SHAへのピン留めと`~/.openhands/cache/plugins/`へのキャッシュ）を
   （ADR-0026／ADR-0028）は変更しない。本ADRは配布・インストール経路だけを扱う。
 - plugin refの可変ref（branch名、短縮SHA、空文字）は引き続き拒否される。
   fetchのresolved SHAはconversation persistenceの再現に使われる。
-- SDK submodule版とPyPI pinの版は同一（v1.43.1）でなければならない。submodule更新時は
+- SDK submodule版とPyPI pinの版は同一（v1.44.1）でなければならない。submodule更新時は
   `pyproject.toml`のpinを同じ変更で更新する。
 - wheel内lockはbuild時点のsnapshotである。lock更新後に配布物を使う場合は
   再installが必要であり、runnerのdigest検証がfail-closedの最終防衛線となる。

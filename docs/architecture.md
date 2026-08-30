@@ -1,7 +1,7 @@
 # アーキテクチャ
 
 > ステータス: Accepted
-> 対象: OpenHands Software Agent SDK v1.43.1、Python 3.12+
+> 対象: OpenHands Software Agent SDK v1.44.1、Python 3.12+
 
 本書は境界説明の単一の正であり、入力ファイルを正とするACDの実装境界を定める。
 SDK機能の採否は[`openhands-sdk-capabilities.json`](openhands-sdk-capabilities.json)を正とし、
@@ -506,7 +506,7 @@ fork/resume後も決定論的ゲートを再実行して合否を決める。SDK
 
 ## agent-server運用境界
 
-OpenHands SDK v1.43.1のagent-serverはACDの対象外である。serverの採用を検討する場合は、
+OpenHands SDK v1.44.1のagent-serverはACDの対象外である。serverの採用を検討する場合は、
 認証、権限、Evidence境界、起動・保存・resume/forkの受入条件を定義する新規ADRを先に
 起票する。現行の合否はCIまたは`run_in_workspace`の決定論的pipelineとgateが決める。
 

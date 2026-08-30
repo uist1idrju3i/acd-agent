@@ -321,7 +321,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | 6.1のACD tools image digestとpinned SDK v1.43.1のagent-server構成 |
+| 入力と出所 | 6.1のACD tools image digestとpinned SDK v1.44.1のagent-server構成 |
 | 実装 | server実行資材を含むimageを事前buildしてpublishし、derived digestを独立に記録する |
 | 正常系 | publish済みserver imageのdigestを指定してworkspaceが起動し、command実行が成功する |
 | negative/fail-closed | base imageとderived imageのdigestを同一と主張する記述、digest不明起動を拒否する |
@@ -359,7 +359,7 @@ agent-server packageの直接API、REST/WebSocket経路、server側のresume/for
 
 ### 6.6 container実行のtimeout境界とpull入口（達成）
 
-pinned SDK v1.43.1の`DockerWorkspace`は`execute_command()`へtimeoutを渡さないため、
+pinned SDK v1.44.1の`DockerWorkspace`は`execute_command()`へtimeoutを渡さないため、
 `docker version`、image不在時の暗黙pullを含む`docker run`、`docker inspect`、
 `docker logs`、`cleanup()`の`docker stop`が無期限にブロックしうる。ACD側の
 `resolve_image_digest()`の`docker image inspect`も同様である。lock済みdigestをpullする

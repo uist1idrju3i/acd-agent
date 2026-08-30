@@ -1,14 +1,14 @@
 # VibeBB単体成立性の検証記録（2026-08-24, Devin環境）
 
 > ステータス: Accepted
-> 対象: OpenHands Software Agent SDK v1.43.1
+> 対象: OpenHands Software Agent SDK v1.44.1
 
 本書は、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のM節（M-1〜M-6）が示す
 「acd-agent単体でVibeBBが成立するか」を、汎用エージェント環境（Devin）で実行可能な範囲まで
 実際に走らせて確認した記録である。既存の閾値、ゲート挙動、fail-closed境界、L1権限、dry-run既定は
 変更していない。ツール不在や検証不能は「問題なし」ではなく「fail-closed／未検証」として記録する。
 
-- 対象revision: main `775e889`（`vendor/software-agent-sdk` v1.43.1 / `ddac556`）
+- 対象revision: main `775e889`（`vendor/software-agent-sdk` v1.44.1 / `9d143aac`）
 - 実行環境: Ubuntu 22.04, x86_64, 2 vCPU, Docker利用可
 - 実行内容: 既存script・pipeline・ゲートの実行のみ。設計判断（座標・GPIO・寸法・トポロジ）の
   人手による再決定は行っていない。

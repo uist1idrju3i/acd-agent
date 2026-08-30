@@ -1,6 +1,6 @@
 # エージェント作業契約
 
-> 対象: OpenHands Software Agent SDK v1.43.1、Python 3.12+
+> 対象: OpenHands Software Agent SDK v1.44.1、Python 3.12+
 
 本書は本リポジトリでの実装・検証・文書化の作業契約である。READMEは製品概要、
 `docs/`は仕様と運用方針、`docs/adr/`は設計決定、Pydanticモデルは契約の正とする。
@@ -35,10 +35,10 @@ plugins/acd/
 ├── commands/
 ├── hooks/
 └── .plugin/plugin.json
-vendor/software-agent-sdk/       # OpenHands SDK v1.43.1のみ
+vendor/software-agent-sdk/       # OpenHands SDK v1.44.1のみ
 ```
 
-本リポジトリはOpenHands Software Agent SDK v1.43.1専用拡張であり、機能採否は
+本リポジトリはOpenHands Software Agent SDK v1.44.1専用拡張であり、機能採否は
 `docs/openhands-sdk-capabilities.json`を契約の正として管理する。Markdown表は
 `scripts/verify_sdk_capabilities.py`で機械生成し、driftを検査する。
 Accepted ADRの索引は`docs/README.md`を正とし、Superseded ADRは統合先を示すpointerだけを残す。

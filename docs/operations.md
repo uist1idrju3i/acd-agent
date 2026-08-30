@@ -9,8 +9,8 @@
 - JavaとFreeRouting
 - Docker（ゲート実行の正）
 
-OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.43.1
-（commit `ddac55697c5d15cf8a34495b5ed6d46c86db092a`）をworkspace sourceとして使用する。
+OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.44.1
+（commit `9d143aac35c2dcec9cbb046ff9f35ac5eb072f6a`）をworkspace sourceとして使用する。
 agent-serverはACDの対象外であり、採用する場合は新規ADRで受入条件を定義する。実行形は
 `LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
 host経路はprovisional専用であり、authoritative Evidenceを生成しない。
@@ -53,7 +53,7 @@ submoduleの確認:
 git submodule status
 ```
 
-`vendor/software-agent-sdk`がv1.43.1のcommitを指していることを確認する。
+`vendor/software-agent-sdk`がv1.44.1のcommitを指していることを確認する。
 
 ## OpenHandsへのインストール（SDK標準ルート）
 
@@ -1359,8 +1359,8 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、
 採否を本節へ追記する。現行の基準は次のとおりである。
 
-- SDKは`vendor/software-agent-sdk`のv1.43.1、commit
-  `ddac55697c5d15cf8a34495b5ed6d46c86db092a`に固定する。更新前にpinned checkoutの
+- SDKは`vendor/software-agent-sdk`のv1.44.1、commit
+  `9d143aac35c2dcec9cbb046ff9f35ac5eb072f6a`に固定する。更新前にpinned checkoutの
   API、上流release tag、CHANGELOGまたは一次リリース情報を確認する。
 - v1.42.1からv1.43.1への更新では、Agent Pluginsのmanifest loaderとclosed
   `plugin.json` schema、structured task outcome preset、shell semanticsの
@@ -1371,6 +1371,15 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
   これらで既存のfail-closed hook/security policy、L1の決定論的判定、authoritative
   Evidenceの規則を置換・緩和しない。Agent Pluginsのmanifest loaderもSDKの公開追加
   surfaceとして記録するが、既存のACD plugin format採用範囲を拡大しない。
+- v1.43.1からv1.44.1への更新では、別LLM profile`oracle`へ第二意見を照会する`ask_oracle`
+  toolがtoolsへ追加され、structured builtin tool specのremote解決、`AsyncExecutor.close()`の
+  上限時間、subscription LLMでのcondenser有効化、workspace git cloneのprovider host尊重、
+  conversationごとのbrowser `user_data_dir`分離が修正された。ACDは`ask_oracle`を不採用とし、
+  非決定論的な助言経路を合否・Evidenceへ関与させない。browserの`user_data_dir`分離は明示
+  有効時のSingletonLock衝突を避ける既定改善であり、既存のL2探索補助の境界を変更しない。
+- 同更新のagent-server側変更（ACP providerのbuild argとlayer分離、conversation単位の
+  lifecycle lock、streaming deltaの配信範囲修正、crash recovery、canvas extension manifest、
+  ACP agentへのworkspace project skills注入禁止）はACDの対象外であり、採用しない。
 - 同更新で、resume時のclient tool再登録、Conversation errorのstructured event、
   active LLM profile解決、terminal executable prefix重複防止、browser-useの自動
   Chromium install削除、v1 skills migration修正が行われた。ACDの既存利用箇所では
