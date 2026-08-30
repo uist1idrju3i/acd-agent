@@ -106,6 +106,17 @@ jobs:
             echo "- **base**: \`$TOOLS_REF\`"
             echo "- **derived**: \`ghcr.io/uist1idrju3i/acd-server:$SERVER_TAG@$DERIVED_DIGEST\`"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Measure published image tools
+        env:
+          SERVER_TAG: ${{ env.SERVER_TAG }}
+        run: |
+          set -euo pipefail
+          digest=$(docker buildx imagetools inspect \
+            --format '{{json .Manifest.Digest}}' \
+            "ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-server:$SERVER_TAG" | tr -d '"')
+          uv run python scripts/measure_image_tools.py \
+            --image-ref "ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-server@${digest}" \
+            --out "$RUNNER_TEMP/acd-server-tools.json"
       - name: Open digest lock update PR
         env:
           GH_TOKEN: ${{ github.token }}
@@ -124,7 +135,8 @@ jobs:
             --digest "$digest" \
             --tag "$SERVER_TAG" \
             --published-at "$published_at" \
-            --workflow-run "$workflow_run"
+            --workflow-run "$workflow_run" \
+            --tools-json "$RUNNER_TEMP/acd-server-tools.json"
           if git diff --quiet -- docker/image-digests.json; then
             exit 0
           fi
@@ -142,3 +154,5 @@ jobs:
             --head "$branch" \
             --title "acd-server image digest lockを更新" \
             --body "Publish workflowで観測したacd-server image digestをlockへ記録しました。"
+          gh pr merge --repo "$GITHUB_REPOSITORY" --squash --auto "$branch" \
+            || echo "auto-merge unavailable; merge the lock PR manually" >> "$GITHUB_STEP_SUMMARY"

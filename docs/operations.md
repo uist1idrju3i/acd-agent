@@ -981,8 +981,8 @@ fieldがなく、現在のworkspace境界からcontainer資源を宣言できな
 `publish-acd-tools.yml`が実行される。build contextを決める`.dockerignore`も
 同じtriggerに含める。SCC warm-upが`examples/sensor-node-20260820/board/gd1.dsn`を
 COPYするため、`.dockerignore`はこの1ファイルだけを例外として残す。
-publish job summaryのGHCR digestを確認してから
-`docker/image-digests.json`へ転記し、lockのdigestを推測・手書きしてはならない。
+過去の手動運用ではpublish job summaryのGHCR digestを確認してから
+`docker/image-digests.json`へ転記していた。lockのdigestを推測・手書きしてはならない。
 旧JRE移行のpublish済みimageについては、lockの両entryに`java`ツール版文字列として
 `openjdk 26.0.2 2026-07-21 (IBM Semeru Runtime Open Edition 26.0.2.0, Eclipse OpenJ9 0.60.0)`を
 記録している。この文字列はpublish済みimageをdigest指定でpullし、`java -version`の出力から
@@ -998,7 +998,18 @@ digest指定でpullして各ツールの版出力を実測し、lockの`acd_tool
 `openjdk version "26.0.2.1" 2026-08-18` / `IBM Semeru Runtime Open Edition 26.0.2.10 (build 26.0.2.1+1)` /
 `Eclipse OpenJ9 VM 26.0.2.10 (build 26.0.2.1+1-openj9-0.61.0, ...)`である。
 `acd_server.tools`はlockが指すdigestが更新前のimageのままなので変更しない。
-server imageのpublishとlock更新が済んだ時点で、同じ手順で実測して別変更として転記する。
+過去のserver imageでは、publishとlock更新が済んだ時点で同じ手順で実測し、
+別変更として転記していた。
+現在のpublish workflowは、tools／serverのpublish完了後にdigest固定imageを
+`scripts/measure_image_tools.py`で実測し、そのJSONを同じdigest lock更新PRへ渡す。
+実測コマンドの失敗、版出力のparse失敗、digest非固定refはfail-closedで扱い、
+tools欄を不完全なままlock PRを作成しない。過去の手動転記記録はhistoryとして残すが、
+新しいpublishでは手動転記は不要である。
+
+digest lock更新PRは作成直後にauto-mergeを有効化する。repositoryでauto-mergeが
+利用できない場合はworkflow summaryへ手動mergeが必要であることを記録する。
+ただし、PRのCI、特にlock済みserver imageを実行する`container-gates`は引き続き
+合否を決めるゲートであり、auto-mergeは検証を置き換えない。
 
 ### FW pipelineのhost実行とToolEnvelopeの注記
 

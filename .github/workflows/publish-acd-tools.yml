@@ -50,6 +50,14 @@ jobs:
             echo
             echo "\`$IMAGE_DIGEST\`"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Measure published image tools
+        env:
+          IMAGE_DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          set -euo pipefail
+          uv run python scripts/measure_image_tools.py \
+            --image-ref "ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-tools@${IMAGE_DIGEST}" \
+            --out "$RUNNER_TEMP/acd-tools-tools.json"
       - name: Open digest lock update PR
         env:
           GH_TOKEN: ${{ github.token }}
@@ -65,7 +73,8 @@ jobs:
             --tag latest \
             --digest "$IMAGE_DIGEST" \
             --published-at "$published_at" \
-            --workflow-run "$workflow_run"
+            --workflow-run "$workflow_run" \
+            --tools-json "$RUNNER_TEMP/acd-tools-tools.json"
           if git diff --quiet -- docker/image-digests.json; then
             exit 0
           fi
@@ -83,3 +92,5 @@ jobs:
             --head "$branch" \
             --title "acd-tools image digest lockを更新" \
             --body "Publish workflowで観測したacd-tools image digestをlockへ記録しました。"
+          gh pr merge --repo "$GITHUB_REPOSITORY" --squash --auto "$branch" \
+            || echo "auto-merge unavailable; merge the lock PR manually" >> "$GITHUB_STEP_SUMMARY"
