@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
 
 @lru_cache(maxsize=1)
 def repository_root() -> Path:
-    root = Path(__file__).resolve().parents[3]
+    configured_root = os.environ.get("ACD_REPOSITORY_ROOT")
+    root = (
+        Path(configured_root)
+        if configured_root is not None
+        else Path(__file__).resolve().parents[3]
+    )
     required_markers = (root / "AGENTS.md", root / "pyproject.toml")
     missing = [str(path) for path in required_markers if not path.is_file()]
     if missing:

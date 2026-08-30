@@ -4,6 +4,7 @@
 #     "acd @ git+https://github.com/uist1idrju3i/acd-agent@25d07aa0869c1469628468b485ae9157855860f6",
 # ]
 # ///
+# The PEP 723 git pin remains for standalone runs; project execution uses the checkout directly.
 """Graph-driven firmware pipeline: graph -> ESP-IDF build -> QEMU.
 
 Single command:
@@ -27,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -202,6 +204,8 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
 
 
 def main() -> int:
+    if "ACD_REPOSITORY_ROOT" not in os.environ:
+        os.environ["ACD_REPOSITORY_ROOT"] = str(Path(__file__).resolve().parents[5])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--fixture",

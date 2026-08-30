@@ -145,9 +145,7 @@ def _command_for_stage(stage: LaneStage, fixture: Path) -> tuple[str, ...]:
         return (
             "uv",
             "run",
-            "--with",
-            "cmake==3.31.6",
-            "--script",
+            "python",
             "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
             "--fixture",
             str(fixture),

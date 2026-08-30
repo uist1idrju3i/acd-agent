@@ -38,6 +38,9 @@ def test_orchestrator_declares_firmware_after_barrier_and_before_controls(
     assert any("run_gd1_pipeline.py" in item for item in commands[1].command)
     assert any("run_gd1_enclosure_pipeline.py" in item for item in commands[2].command)
     assert any("run_fw_pipeline.py" in item for item in commands[3].command)
+    assert commands[3].command[:3] == ("uv", "run", "python")
+    assert "--script" not in commands[3].command
+    assert "--with" not in commands[3].command
     assert commands[4].command[2] == "pytest"
     summary = json.loads(capsys.readouterr().out.splitlines()[-1])
     assert summary["ok"] is True
