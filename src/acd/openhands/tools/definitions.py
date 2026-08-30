@@ -239,7 +239,7 @@ class AcdRunBoardPipelineAction(Action):
     )
     max_passes: int = Field(
         default=DEFAULT_ROUTER_MAX_PASSES,
-        description="Maximum number of deterministic pipeline passes.",
+        description="Bounded router pass budget for the board lane.",
     )
 
 

@@ -39,6 +39,8 @@ SEARCHABLE_DIMENSIONS = frozenset(
         "gpio_assignment",
     }
 )
+
+
 class ExplorationError(ValueError):
     """Raised when an exploration request cannot be evaluated safely."""
 
