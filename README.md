@@ -22,8 +22,9 @@ AIファーストCADです。AIとSkillは候補を提案し、ERC/DRC、独立�
    required checkが`failed`となるため、指定のsourceとpathで再インストールします。
    prompt manifestのcanonical hashと資材hashも確認されます。hookはinterpreter経由で
    起動されるため、commit済みscriptの実行権限・shebang不足はstatusを下げません。
-   `degraded`はDocker到達不能など、実行環境のoptional capability不足を示します。
-   ホストEDAツールの不在は観測情報でありstatusを下げません。
+   `degraded`はimage内のoptionalなEDA capability不足を示します。Dockerと
+   digest固定server image、image内のFW前提はrequiredです。ホストのKiCad、
+   FreeRouting、ESP-IDF、QEMU、CMakeはdoctorの観測対象ではありません。
 
 最新化（default branchの先頭への更新）も、同じPlugins画面の「更新」ボタンだけで完了します。
 アンインストールは不要で、有効・無効の状態も維持されます。
@@ -41,7 +42,7 @@ installすると、次のslash commandが会話から使えます。
 | コマンド | 意味 | 使い方例 |
 | --- | --- | --- |
 | `/acd:gates [--fixture PATH] [--out PATH]` | 決定論的な基板・筐体ゲートを既存のCLI入口で実行し、段階、ツール版、入出力Evidenceのパス、失敗理由を報告します。ツール不在・parse失敗・未検証はfail-closedです。 | `/acd:gates --fixture fixtures/golden-design-1 --out out/gd1` |
-| `/acd:doctor` | pluginのインストール位置・資材・prompt manifest、Skill依存ref、Python／uv、Docker・hook・ホストEDA能力を自己診断します。L3観測であり合否権限を持ちません。 | `/acd:doctor` |
+| `/acd:doctor` | pluginのインストール位置・資材・prompt manifest、Skill依存ref、Python／uv、Docker・digest固定server image・image内ツールを自己診断します。L3観測であり合否権限を持ちません。 | `/acd:doctor [--no-pull]` |
 | `/acd:init` | 指定repository・revision・workspaceについてclone／再利用、submodule、`uv sync`、plugin確認、workspace doctorを順に実行し、bootstrap recordを生成します。 | `/acd:init --repo-url URL --revision SHA --workspace PATH` |
 
 あわせて、会話から使えるACD toolが登録されます。名前を指定せずに自然言語で頼めば、

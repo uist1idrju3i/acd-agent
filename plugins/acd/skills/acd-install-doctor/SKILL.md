@@ -25,8 +25,9 @@ python3 plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py
 For a prepared workspace, add `--workspace <workspace-path>`. This enables
 required fail-closed checks for the Git repository, initialized
 `vendor/software-agent-sdk` submodule, `uv.lock` synchronization, the locally
-available digest-pinned tools image, and ESP-IDF/QEMU/CMake prerequisites. The
-digest check never attempts a network pull. Initialize a workspace with:
+available digest-pinned server image, and ESP-IDF/QEMU/CMake prerequisites
+observed inside that image. Doctor pulls the locked server image by default;
+pass `--no-pull` to forbid a network pull. Initialize a workspace with:
 
 ```bash
 python3 plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py \
@@ -48,11 +49,14 @@ canonical manifest hash and byte-exact asset hashes; SDK-normalized
 `prompt_hash` values remain authoritative in
 `scripts/verify_agent_prompts.py --check`.
 
-Optional capability checks observe Docker, host EDA tools, and direct hook
-invocability. Host EDA absence is observational and does not lower the
-status. Docker unavailability can produce `degraded`. Plugin hooks are invoked
-through interpreters, so committed hook scripts do not depend on executable
-permissions or shebangs; a zero direct-invocation reference count is reported
-as such.
-Host EDA execution remains provisional and cannot be reported as authoritative
+Docker and the locked server image are required checks. EDA capabilities and
+firmware prerequisites are observed only inside the digest-pinned server image;
+host KiCad, FreeRouting, ESP-IDF, QEMU, and CMake are not observed. Missing
+image EDA tools is an optional `degraded` result, while Docker or required
+firmware tool failure is `failed`. When doctor runs inside the locked image,
+container mode probes PATH directly and does not require Docker-in-Docker.
+Plugin hooks are invoked through interpreters, so committed hook scripts do not
+depend on executable permissions or shebangs; a zero direct-invocation
+reference count is reported as such.
+Doctor remains an L3 observation and cannot be reported as authoritative
 Evidence.

@@ -199,9 +199,13 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    `plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`を使用する。
    JSONの`status`、required check、plugin rootをそのまま確認する。hookはinterpreter経由で
    起動されるため、commit済みscriptの実行可能権限・shebang不足はstatusを下げない。
-   Dockerが到達不能な場合は`degraded`となる。ホストEDAツールの不在はhost executionの
-   観測情報として記録されるだけでstatusを下げず、
-   doctorのL3観測をauthoritative Evidenceやゲート合格へ昇格させない。
+   Dockerとdigest固定server imageはrequired checkであり、到達不能または取得不能なら
+   `failed`となる。EDAとFWのツールはserver image内だけを観測し、ホストのKiCad、
+   FreeRouting、ESP-IDF、QEMU、CMakeは観測しない。EDA capabilityの欠落はoptionalな
+   `degraded`となる。imageが未取得の場合は既定でpullするが、`--no-pull`を指定すると
+   pullせず、local image不在を`failed`とする。container modeではDocker-in-Dockerを
+   要求せずPATH上のツールを観測する。doctorのL3観測をauthoritative Evidenceやゲート
+   合格へ昇格させない。
 
 2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは
    doctorのmanifest／Skill資材検査をGUIのロード結果でも確認する手順であり、

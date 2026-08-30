@@ -55,5 +55,6 @@
 | [0044](adr/ADR-0044-design-freedom-declaration.md) | 探索対象とする設計自由度の宣言とstitch候補Evidence |
 | [0045](adr/ADR-0045-openj9-freerouting-runtime.md) | FreeRouting実行JREのOpenJ9移行と`-mt`暗黙継承 |
 | [0046](adr/ADR-0046-host-resource-preflight.md) | container起動前のホスト資源検査とJVM heap宣言 |
+| [0047](adr/ADR-0047-docker-only-tooling.md) | install doctorのdigest固定server image前提 |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。
