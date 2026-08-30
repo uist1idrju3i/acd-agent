@@ -246,3 +246,64 @@ rationale coverage）を直接読んで確認した内容に限る。会話1回�
 5. 資源preflightの停止理由は`--jvm-max-heap`とcontainer上限の関係に依存する。4 GiB以下で
    運用する場合は`--jvm-max-heap`の同時引き下げが必要である旨が、CLIの停止メッセージから
    一段で分かるようになっている（今回の2 GiB試験で確認した）。
+
+### 9.6 修正後pluginでの`/acd:init`再検証（実機VPS）
+
+9.4の修正がmergeされた後、実機VPSのinstalled plugin storeを正規のinstall経路
+（agent-serverの`POST /api/plugins/install`、`force=true`）でmain先端
+`5a553d3ffc19995a4a62465255dc5b55e9eb2ce6`へ更新し（更新前`63a567d…`、`git ls-remote origin main`と
+40桁一致）、GUIのworkspace `test260830`から`/acd:init`を実行した。既存成果物を保護するため
+`--workspace acd-workspace-verify`で分離した。
+
+| 確認項目 | 結果 |
+|---|---|
+| hook | `SessionStart ok` / `PreToolUse (terminal) ok` / `Stop ok`（blockedなし） |
+| `/acd:init` | `ok: true`、`fail_closed: false`、`failed_step: null`。`workspace_dir`／`repository`／`submodules`／`plugin_load`／`doctor`／`bootstrap_record`がpass |
+| doctor `workspace firmware prerequisites` | `pass`。`IDF_PATH/export.sh=present, qemu-system-riscv32=9.2.2, cmake=4.2.3`（server image `sha256:52042766…`） |
+| `bootstrap-record.json` | 生成。`requested_revision`＝`resolved_revision`＝`5a553d3f…`、`lock_digest`＝`sha256:582af334…`、`pass_evidence: false`、`record_class: "L3"` |
+| 対照 | 同imageの`/opt/esp-idf/export.sh`は`-rw-r--r--`で、旧判定`test -x`は`missing`、新判定`test -f`かつ`test -r`は`present` |
+
+`bootstrap-record.json`はhost側でread-onlyに直読して確認しており、GUI表示に依存しない。
+本recordはL3であり合否権限を持たない。
+
+### 9.7 `--explore-board`による復帰の実測（探索なし／あり）
+
+「pre-router段で止まったときにOpenHands自身の力で復帰できるか」を確かめるため、
+新規設計`vibebb-sensor-node`のfixtureをdigest固定server image
+（`sha256:52042766…`）内で`--design-only --jobs 4 --memory-limit 8g`で2回実行した。
+Run Aは探索なし、Run Bは`--explore-board --max-exploration-candidates 3
+--max-exploration-rounds 2`を明示した。
+
+| 項目 | Run A（探索なし） | Run B（探索あり） |
+|---|---|---|
+| rc | 1 | 1 |
+| wall-clock | 48.9秒 | 54.9秒 |
+| `failed_stage` | `board-pipeline` | `board-pipeline` |
+| 停止理由 | rationale coverage失敗（`missing=12, stale=12`） | 同左＋`board exploration failed: exploration did not produce a writable candidate: status='stopped'` |
+| 探索round | なし | 1（`status: stopped`、`termination_reason: fail_closed_stop`） |
+| `evaluated_candidates` | — | 1 |
+| `winner_candidate_id` | — | なし（`winner_written: false`） |
+| `diagnostic_dimensions` | — | `[]` |
+| `command-timeout 5400` | 未到達 | 未到達 |
+
+両runで筐体laneは`mechanical preflight failed:
+rationale.coverage.missing=12, rationale.coverage.stale=12`で拒否され、FW laneは
+`firmware action 'read_sensor' is not registered in
+contracts/firmware-capability-registry.json`で停止した。
+
+要点は次の3つである。
+
+1. `--explore-board`を明示すると基板laneのfail-closed却下後に探索段が起動する。
+   これは9.3のGUI実行では起動していなかった経路である。
+2. しかし探索は候補1件を評価しただけで`stopped`となり、書き込み可能な候補を生成せず、
+   基板laneは復帰しなかった。`diagnostic_dimensions`が空であり、却下predicateの
+   remediationが探索の入力になっていないことと整合する。
+3. 今回のfixture状態では基板laneがrationale coverage不足で止まるため、
+   `power_decoupling`（9.3）より前段で停止する。すなわち復帰に必要なのは配置候補だけでなく、
+   rationaleとgraphを同一transactionで整合させる経路である。
+
+探索が候補を書き込む前に停止したため、「配置書き換え後のrerunがrationale staleで止まる」
+という連鎖は実機では未確認である。この連鎖自体は、GD1 fixtureで`placement_x_mm`を0.5 mm
+動かすと`check_rationale_coverage`が`fail`（stale: `comp.u1`の`placement_x_mm`／
+`placement_y_mm`／`placement_rotation_deg`）になることをローカルで確認している。
+Run A／Bはいずれもhost資源reportを指定しておらず、本節に資源実測値は含まない。

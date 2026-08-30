@@ -407,6 +407,30 @@ P-2は新規設計の1周目が基板pre-router段で止まる主因、P-3・P-4
 | P-3 | FW laneのQEMU打ち切りがログ上で失敗と誤読される | 成功実行でも`qemu-system-riscv32: terminating on signal 15 from pid … (timeout)`がログへ残り、その後pipelineはbuild・QEMU仮想実行・log検査をpassとしてexit=0で終える。意図した時間打ち切りである旨がログから判別できない | 低 | なし | 仮想実行の打ち切りが正常終了条件であることをlog行として明示する。envelopeの`measurement_conditions`と整合させ、判定と閾値は変えない |
 | P-4 | FW laneのauthoritative Evidenceが生成されず決定論的検査の対象外になる | container実行後の`out/container/`には基板・筐体のEvidence 2件のみが生成され、`scripts/verify_authoritative_evidence.py`もこの2件を検査する。FW laneはvirtual実行の成否がloop出力にしか残らない | 中 | O-10 | FW laneのcontainer実行結果をrevision一致のEvidence recordとして生成し、virtual実行である旨を明示したまま決定論的検査の対象へ加える。実機Evidenceへ昇格させない（M-5） |
 
+## Q. 却下からの復帰・反復経路のコード監査（2026-08-30）
+
+本節はP節の実測を受けて、「pre-router段で止まったときにOpenHands自身の力で復帰・反復
+できるか」を基板laneに限らず全laneについてコードで確認した結果である。根拠は現行mainの
+実装と、`--explore-board`を明示したdigest固定container実行の実測
+（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)の9.7節）である。閾値、ゲート挙動、fail-closed境界、L1権限を緩める提案は含まない。
+
+前提として、L2（OpenHands、Skill、critic）は操舵と停止にだけ作用でき、決定論的ゲートの
+却下をL2の判断で通過させることはできない。ここで言う「復帰」は、却下理由から設計入力を
+決定論的に修正し、L1ゲートを毎回再実行して合否を取り直す反復のことである。
+
+| # | 不足機能 | 根拠 | 優先度 | 依存 | 完了条件 |
+|---|---|---|---|---|---|
+| Q-1 | 却下後の自動復帰が基板laneにしか連結されていない | `run_design_loop`の復帰判定は`board_rejection()`で`stage_id == "board-pipeline"`のfail-closed却下だけを対象とし、要件入口検査、silkscreen resolve、筐体lane、FW lane、order-total集計、pre-order gateの却下では探索段へ進まずそのまま停止する。`/acd:vibebb-loop`のcommand契約にも「enclosure、FW、silkscreenの失敗では自動探索しない」と明記されている | 高 | M-1 | 筐体（M-1の`explore_enclosure_candidates`連結）を先に接続し、laneごとに「復帰可能な変更次元があるか」を宣言由来で解決してから探索段へ連結する。次元宣言が無いlaneは探索せずfail-closedのまま停止し、その旨をL3診断として記録する |
+| Q-2 | 復帰経路が既定で無効で、会話経路から起動されない | `explore_board`は既定`False`であり、GUI会話の`/acd:vibebb-loop`で明示されない限り探索段は起動しない。9.3のGUI実行では探索段が起動せず却下のまま停止し、同じfixtureへ`--explore-board`を明示した9.7のRun Bでは探索段が起動した（起動の有無は指定の有無だけで決まる） | 高 | Q-1 | 設計反復modeでは探索を既定で有効にするか、却下時の応答へ「探索付き再実行の具体的な引数」を機械可読に含める。探索有効時も候補予算とround上限を必須の明示値として保持する |
+| Q-3 | 候補生成が却下predicateのremediationに基づかない | `explore_board_candidates`は失敗理由を受け取らず、配置Skillの一括提案（`placement-0001`の1件）とGPIO割当の列挙を先に作り、以後は`diagnostic_dimensions`が交差する候補を再キューするだけである。`power_decoupling`のように特定pad対の距離を詰めれば済む却下でも、狙い撃ちの候補を生成できない。9.7のRun Bでは探索段が起動しても`evaluated_candidates=1`、`status='stopped'`、`termination_reason='fail_closed_stop'`、`diagnostic_dimensions=[]`、`winner_written=false`で終わり、基板laneは復帰しなかった | 高 | B-3 | 却下predicateの`remediation`（対象subjectと変更次元）を探索の入力として渡し、対象部品に限定した候補を生成する。生成できない場合は候補予算を消費せずunknownとして停止する |
+| Q-4 | 探索がgraphのplacementを書き換えてもrationaleを更新せず、後続laneがstaleで停止する | `explore_board_candidates`はcandidate採用時に`graph.json`へ配置を書き戻すが、`rationale.json`の`subject_hash`と`target_revision`を更新しない。`placement_x_mm`／`placement_y_mm`／`placement_rotation_deg`はrationale必須属性のため、配置が動くとrationale recordはstaleになる。GD1 fixtureで`placement_x_mm`を0.5 mm動かすと`check_rationale_coverage`が`fail`（stale: `comp.u1`の`placement_x_mm`／`placement_y_mm`／`placement_rotation_deg`）になることを確認した。筐体laneは`check_mechanical_preflight`内でrationale coverageを検査するため、探索が基板laneを通過させても筐体laneがstaleで停止する。要件compile経路には`_refresh_rationale`があるのに探索経路には無い非対称である。9.7では候補書き込み前に探索が停止したため、この連鎖の後半（書き換え後のrerunがstaleで止まる）は実機では未確認である | 高 | Q-1 | 探索が設計入力を確定する際に、変更subjectのrationale recordを決定論的に更新する（要件compilerと同じ更新規則を共有する）。更新できない場合は候補を採用せずfail-closedにする。rationaleの生成主体と`script_hash`のprovenance検査（N-4）は維持する |
+| Q-5 | spec駆動の作り直しが2周目以降できない | `run_design_loop`のfixture生成段は`graph.json`が既に存在すると即fail-closedし、tool `acd_build_design_fixture`は`overwrite`引数を持たない（`build_design_fixture(spec, out)`固定）。commandは生shellと任意Python moduleの使用を禁じているため、「fixture specを直して作り直す」反復を宣言tool経路から実行できない | 高 | N-11 | 上書きの明示宣言（既存graphの差分報告とbackup、N-11のガードを維持）をtoolとloopの引数として公開し、宣言された上書きだけを許可する。暗黙の上書きと手編集の消失は引き続き停止側へ倒す |
+| Q-6 | 要件更新経路が既存requirement_idのtext更新に限られる | `compile_requirement_change`は`requirement_id`が1件に一致することを要求し、要件の追加・削除、部品追加、配置変更を反映できない。rationaleの更新はこの経路にしか無い | 中 | Q-5 | 要件の追加・削除と、それに伴うgraph差分（部品・net・宣言）を同じtransactionで反映する。曖昧な対応付けと未宣言の変更はfail-closedにする |
+| Q-7 | bounded反復のharnessがplugin経路から使われていない | `run_acd_goal`（`GoalController`＋gate evaluatorでmax_iterations付きの反復を回し、gate結果とauthoritative性を分離して返す）は実装・テスト済みだが、`plugins/acd`のcommand・agent、`scripts/`のどこからも呼ばれていない。GUI会話にはbounded self-recoveryの入口が無く、反復はagentの自由記述に委ねられる | 中 | Q-1 | 設計反復向けの入口（commandまたはtool）から`run_acd_goal`相当のbounded反復を起動し、iteration上限、停止条件、gate評決の非昇格（`pass_evidence`をL1ゲート由来に限る）を契約として固定する |
+| Q-8 | silkscreenとFW laneには復帰用の候補生成・診断入口が無い | silkscreen resolveは内部の`max_iterations`反復のみで、上限超過時は`max_iterations_exceeded`を返すだけで入力側の修正提案を持たない。FW laneには探索toolも候補生成も存在しない（tool一覧に該当なし） | 中 | Q-1 | laneごとに「変更可能な次元」と「却下時に提示する次手」を宣言由来で定義する。次元が無いlaneでは探索を主張せず、不足宣言をL3診断として返す |
+| Q-9 | 失敗診断が出力ディレクトリ配下のEvidenceしか見ない | `diagnose_gate_failure`は`out_dir`配下の`gate-evidence/*.json`、exploration report、stitch reportだけを読み、fixture側の不足（rationale stale、宣言不足、spec↔graphの不一致）は診断対象外である。今回の実測でも、rationale coverage不足は別経路（`validate_graph`／機械preflight）で判明した | 低 | Q-4 | 診断入力へ対象fixtureのrationale coverageとlane preflight結果を加え、L2が次手を選べる形（失敗subject、変更次元、必要な宣言）で返す。診断はL3観測であり合否権限を持たない |
+| Q-10 | 会話由来設計のFW stepが未登録actionを参照すると宣言経路から復帰できない | 9.7の両runでFW laneが`firmware action 'read_sensor' is not registered in contracts/firmware-capability-registry.json`で停止した。停止自体はO-10の意図どおりだが、機能ブロックとparts catalogには宣言追加tool（`acd_register_functional_block`、`acd_register_parts_catalog_entry`）があるのに対し、firmware capability registryへaction・capability fragmentを宣言追加する経路はtool一覧に無く、会話からは復帰できない | 中 | O-10 | capability registryへのaction／capability fragment追加を、provenance検証付きの原子的追記として宣言tool経路へ公開する。未宣言actionのcode生成は引き続き行わず、曖昧な追加は拒否する |
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -420,6 +444,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | I-2／A-2／A-3 | 要件変更をgraphへ落とす作業が生JSON編集になる。今回はこれを私が代行した |
 | B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
 | G-1／G-2 | 達成。`/acd:init`とworkspace指定doctorがcloneから健全性検査までをfail-closedに実行する |
+| Q-4／Q-5 | 却下後に設計入力を作り直す手段が宣言tool経路に無く、rationaleの整合回復とfixtureの再生成が生JSON編集かファイル削除になる。今回のVPS実測でも新規設計の2周目は宣言経路から開始できなかった |
 
 ## 優先順位（VibeBB単体成立に効く順）
 
@@ -437,3 +462,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 12. N-1〜N-12（実機OpenHands環境での新規設計実測）。N-1・N-3・N-5（宣言経路とpreflight、pin function展開）を先に扱い、次にN-2・N-4・N-7・N-11（停止境界が回避行動を誘発する箇所）を解く。N-6は述語追加、N-8〜N-10・N-12は運用と手順の整備である。
 13. O-1〜O-13（宣言経路解消後の`test5`実測）。O-1（`run_tool`のtimeout引数化）とO-9（pass予算既定の単一化）は基板lane到達の前提であり最優先。O-10（FW laneのGD1固定解消）とO-11（projection guardの誤検出と迂回）も同順位で扱う。次にO-2（container起動前のホスト資源検査）、O-5・O-4（一括preflightと語彙の是正）を扱う。O-3・O-6〜O-8は運用と手順の整備である。O-12（筐体laneと発注policyのGD1固定解消）はO-10と同順位で扱い、O-13（rationale検査の対象解決）はO-4と同時に扱う。
 14. P-1〜P-4（多コアVPS実測）。P-1（install doctorのESP-IDF判定）は本変更で解消済み。次にP-2（初期配置のdecoupling制約）を扱い、P-4（FW laneのEvidence生成）はO-10の後続、P-3は表示の是正である。
+15. Q-1〜Q-10（却下からの復帰・反復経路）。Q-4（探索後のrationale更新）とQ-5（spec駆動の作り直し）は、復帰経路をend-to-endで閉じるための前提であり最優先。次にQ-3（remediation由来の候補生成）とQ-2（会話経路からの起動）を扱う。実測では探索段を起動しても候補が書き込みに至らないため、起動の既定化より候補生成の是正が先である。Q-1（laneへの連結）はM-1の後続として広げ、Q-10（capability registryの宣言追加）はO-10の後続として扱う。Q-6・Q-7・Q-8は反復入口の整備、Q-9は診断の拡張である。
