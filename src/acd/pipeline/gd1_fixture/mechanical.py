@@ -292,7 +292,7 @@ def mechanical_nodes() -> list[GraphNode]:
                     "requirement_id": "req.gd1-req-015",
                     "edge": "top",
                 },
-                depends_on=["comp.u1"],
+                depends_on=["comp.u1", "req.gd1-req-015"],
             ),
         ]
     )

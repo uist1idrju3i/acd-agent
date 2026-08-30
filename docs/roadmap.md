@@ -155,7 +155,7 @@ KiCadライブラリを要するNEG-002およびライブラリhash不一致の�
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `mechanical.board_edge_overhang`ノードを持つgraph（GD1 fixture）、`outline.mount_holes`、`enclosure/rationale.md`のoverhang設計判断、実機組み付け記録（[`examples/sensor-node-20260820/README.md`](../examples/sensor-node-20260820/README.md)の筐体設計上の既知の問題節） |
+| 入力と出所 | `mechanical.board_edge_overhang`ノードを持つgraph（GD1 fixture）、`outline.mount_holes`、`enclosure/rationale.md`のoverhang設計判断、実機組み付け記録（[`examples/sensor-node-20260820/README.md`](../examples/sensor-node-20260820/README.md)の筐体設計上の既知の問題節。凍結済み`examples/sensor-node-20260820/`は変更せず、修正版成果物は新設する別の`examples/`ディレクトリへ保存） |
 | 実装 | `extract_mechanical_lane()`へ`board_edge_overhang`ノードの抽出を追加し、`_build_shapes()`へアンテナ突出領域のシェル切欠きを実装した。`run_mechanical_gates()`の干渉検査へoverhang由来の3D固体を含めた。スタンドオフへφ1.6 mmパイロット穴、リッドへφ2.2 mm M2通し穴を追加し、`MechanicalLane`へoverhang viewを追加、`EnclosureView`へfastener方式と穴径宣言を追加した。 |
 | 正常系 | GD1 fixtureから生成した筐体STEPがアンテナ突出部と干渉せず、スタンドオフとリッドにネジ穴がある。干渉ゲートがoverhang固体を含めて0.0mm³でpassし、実機組み付けが可能になる。既存の筐体artifact測定（volume・bbox・normalized hash）は形状変更に伴って更新される |
 | negative/fail-closed | `board_edge_overhang`ノード欠落時の単純箱型生成、overhang宣言とシェル形状の不一致、ネジ穴位置と`mount_holes`座標の不一致、干渉ゲートがoverhang固体を無視してpassする従来挙動をnegative testで検出する。overhangノード未宣言はunknownとして停止し、推定で切欠き寸法を補完しない |
@@ -165,7 +165,7 @@ KiCadライブラリを要するNEG-002およびライブラリhash不一致の�
 物理干渉を見逃した事例の修正である。`board_edge_overhang`ノードの未消費はgraph入力へ
 逆流させる変更ではなく、graph入力に既に存在する宣言をpipelineコードが正しく消費する
 ようにする修正である。生成物（STEP/3MF）の形状が変わるため、`examples/`配下の凍結
-スナップショットは別途更新する。
+スナップショットは変更せず、修正版成果物は新設する別の`examples/`ディレクトリへ配置する。
 
 なお、既存のboard plane高さの不整合（top-mounted bodyを
 `wall_thickness + internal_clearance`へ置き、スタンドオフ頂部と一致しない問題）は、

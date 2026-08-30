@@ -20,6 +20,31 @@ from acd.schema.common import canonical_json_sha256
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1" / "graph.json"
 
 
+def test_generator_mechanical_nodes_match_fixture_byte_for_byte() -> None:
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    actual = [
+        node.model_dump(mode="json")
+        for node in mechanical_nodes()
+    ]
+    actual_kinds = {node["kind"] for node in actual}
+    expected = [
+        node for node in fixture["nodes"] if node["kind"] in actual_kinds
+    ]
+    actual = sorted(actual, key=lambda node: node["id"])
+    expected = sorted(expected, key=lambda node: node["id"])
+    assert actual == expected
+    enclosure = next(node for node in actual if node["kind"] == "mechanical.enclosure")
+    assert {
+        "fastener_method",
+        "standoff_pilot_hole_diameter_mm",
+        "lid_screw_hole_diameter_mm",
+    } <= enclosure["attrs"].keys()
+    overhang = next(
+        node for node in actual if node["kind"] == "mechanical.board_edge_overhang"
+    )
+    assert overhang["depends_on"] == ["comp.u1", "req.gd1-req-015"]
+
+
 def test_generator_mechanical_nodes_match_fixture_without_kicad() -> None:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     expected = [node for node in fixture["nodes"] if node["kind"].startswith("mechanical.")]

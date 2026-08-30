@@ -3993,7 +3993,8 @@
         "requirement_id": "req.gd1-req-015"
       },
       "depends_on": [
-        "comp.u1"
+        "comp.u1",
+        "req.gd1-req-015"
       ],
       "id": "mechanical.board_edge_overhang.u1",
       "kind": "mechanical.board_edge_overhang"

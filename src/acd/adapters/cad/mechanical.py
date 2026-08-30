@@ -186,42 +186,58 @@ def build_board_edge_overhang_shape(
     board_width_mm: float,
     board_depth_mm: float,
     board_plane_z_mm: float,
+    lateral_margin_mm: float = 0.0,
+    top_margin_mm: float = 0.0,
+    outward_extension_mm: float = 0.0,
 ) -> Any:
     build123d: Any = importlib.import_module("build123d")
     if overhang.edge not in {"top", "bottom", "left", "right"}:
         raise ValueError(f"unsupported board edge overhang edge: {overhang.edge}")
+    if any(
+        not math.isfinite(value) or value < 0
+        for value in (lateral_margin_mm, top_margin_mm, outward_extension_mm)
+    ):
+        raise ValueError("overhang margins must be finite and non-negative")
     x_center = body.x_mm - board_width_mm / 2
     y_center = body.y_mm - board_depth_mm / 2
     if overhang.edge in {"top", "bottom"}:
-        x_min = x_center - body.width_mm / 2
-        x_max = x_center + body.width_mm / 2
+        x_min = x_center - body.width_mm / 2 - lateral_margin_mm
+        x_max = x_center + body.width_mm / 2 + lateral_margin_mm
         y_min = -board_depth_mm / 2 - overhang.overhang_mm
         y_max = -board_depth_mm / 2
         if overhang.edge == "bottom":
             y_min, y_max = board_depth_mm / 2, board_depth_mm / 2 + overhang.overhang_mm
+        if overhang.edge == "top":
+            y_min -= outward_extension_mm
+        else:
+            y_max += outward_extension_mm
         return build123d.Pos(
             (x_min + x_max) / 2,
             (y_min + y_max) / 2,
-            board_plane_z_mm + body.height_mm / 2,
+            board_plane_z_mm + (body.height_mm + top_margin_mm) / 2,
         ) * build123d.Box(
             x_max - x_min,
             y_max - y_min,
-            body.height_mm,
+            body.height_mm + top_margin_mm,
         )
-    y_min = y_center - body.depth_mm / 2
-    y_max = y_center + body.depth_mm / 2
+    y_min = y_center - body.depth_mm / 2 - lateral_margin_mm
+    y_max = y_center + body.depth_mm / 2 + lateral_margin_mm
     x_min = -board_width_mm / 2 - overhang.overhang_mm
     x_max = -board_width_mm / 2
     if overhang.edge == "right":
         x_min, x_max = board_width_mm / 2, board_width_mm / 2 + overhang.overhang_mm
+    if overhang.edge == "left":
+        x_min -= outward_extension_mm
+    else:
+        x_max += outward_extension_mm
     return build123d.Pos(
         (x_min + x_max) / 2,
         (y_min + y_max) / 2,
-        board_plane_z_mm + body.height_mm / 2,
+        board_plane_z_mm + (body.height_mm + top_margin_mm) / 2,
     ) * build123d.Box(
         x_max - x_min,
         y_max - y_min,
-        body.height_mm,
+        body.height_mm + top_margin_mm,
     )
 
 
@@ -299,7 +315,7 @@ def run_mechanical_gates(
             continue
         body_shape = build_component_body_shape(
             body,
-            enclosure.wall_thickness_mm + enclosure.internal_clearance_mm,
+            board_plane_z(enclosure),
             lane.outline.width_mm,
             lane.outline.depth_mm,
         )

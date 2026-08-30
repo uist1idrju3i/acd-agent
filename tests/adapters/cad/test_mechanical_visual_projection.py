@@ -127,6 +127,71 @@ def test_mechanical_visual_generation_is_stable_across_worker_counts(
     ]
 
 
+def test_mechanical_section_accepts_separate_connector_and_overhang_apertures(
+    tmp_path: Path,
+) -> None:
+    graph, graph_path = _fixture()
+    lane = extract_mechanical_lane(graph)
+    separated_lane = replace(
+        lane,
+        component_bodies=tuple(
+            replace(body, x_mm=22.0, width_mm=5.0)
+            if body.component_id == "comp.u1"
+            else body
+            for body in lane.component_bodies
+        ),
+    )
+    projection = project_enclosure(
+        separated_lane,
+        graph_path=graph_path,
+        out_dir=tmp_path / "separated",
+        target_revision=graph.revision,
+    )
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / "separated")
+    record = renderer.render_section(
+        projection=projection,
+        lane=separated_lane,
+        target_revision=graph.revision,
+        output_path=tmp_path / "separated/section.svg",
+        section_plane_id="xy",
+    )
+    assert record.section_plane_id == "xy"
+
+
+def test_mechanical_section_rejects_aperture_declaration_mismatch(
+    tmp_path: Path,
+) -> None:
+    graph, graph_path = _fixture()
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane,
+        graph_path=graph_path,
+        out_dir=tmp_path / "mismatch",
+        target_revision=graph.revision,
+    )
+    mismatched_lane = replace(
+        lane,
+        component_bodies=tuple(
+            replace(body, x_mm=22.0, width_mm=5.0)
+            if body.component_id == "comp.u1"
+            else body
+            for body in lane.component_bodies
+        ),
+    )
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / "mismatch")
+    with pytest.raises(
+        MechanicalVisualProjectionError,
+        match=r"aperture .*boundary",
+    ):
+        renderer.render_section(
+            projection=projection,
+            lane=mismatched_lane,
+            target_revision=graph.revision,
+            output_path=tmp_path / "mismatch.svg",
+            section_plane_id="xy",
+        )
+
+
 def test_mechanical_renderer_rejects_unsupported_section_plane(
     tmp_path: Path,
 ) -> None:
