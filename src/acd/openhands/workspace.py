@@ -222,6 +222,7 @@ def run_command_in_workspace(
     command: str,
     repository: Path,
     download_files: tuple[str, ...],
+    cache_dir: Path | None = None,
     workspace_factory: Callable[..., Any] | None = None,
     source: WorkspaceSource = "mounted",
     runtime: ContainerRuntimeConfig | None = None,
@@ -252,8 +253,18 @@ def run_command_in_workspace(
     factory = workspace_factory or DockerWorkspace
     previous_digest = os.environ.get("ACD_CONTAINER_IMAGE_DIGEST")
     previous_marker = os.environ.get("ACD_IN_CONTAINER")
+    cache_environment = {
+        "UV_CACHE_DIR": "/opt/acd-cache/uv",
+        "CCACHE_DIR": "/opt/acd-cache/ccache",
+    }
+    previous_cache_environment = {
+        name: os.environ.get(name) for name in cache_environment
+    }
     os.environ["ACD_CONTAINER_IMAGE_DIGEST"] = reference.digest
     os.environ["ACD_IN_CONTAINER"] = "1"
+    if cache_dir is not None:
+        for name, value in cache_environment.items():
+            os.environ[name] = value
     downloaded: list[Path] = []
     worktree = CONTAINER_BUNDLE if source == "bundled" else CONTAINER_WORKTREE
     try:
@@ -262,10 +273,17 @@ def run_command_in_workspace(
             "forward_env": ["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
             **config.workspace_kwargs(),
         }
+        volumes: list[str] = []
         if source == "mounted":
-            constructor_kwargs["volumes"] = [
-                f"{repository.resolve()}:{CONTAINER_REPOSITORY}:ro"
+            volumes.append(f"{repository.resolve()}:{CONTAINER_REPOSITORY}:ro")
+        if cache_dir is not None:
+            volumes.append(f"{cache_dir.resolve()}:/opt/acd-cache")
+            constructor_kwargs["forward_env"] = [
+                *constructor_kwargs["forward_env"],
+                *cache_environment,
             ]
+        if volumes:
+            constructor_kwargs["volumes"] = volumes
         with docker_cli_bounds(config) as observations:
             try:
                 workspace = factory(**constructor_kwargs)
@@ -303,6 +321,11 @@ def run_command_in_workspace(
             os.environ.pop("ACD_IN_CONTAINER", None)
         else:
             os.environ["ACD_IN_CONTAINER"] = previous_marker
+        for name, previous in previous_cache_environment.items():
+            if previous is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = previous
     return WorkspaceResult(
         digest=reference.digest,
         source=reference.source,

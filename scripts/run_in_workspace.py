@@ -28,6 +28,13 @@ from acd.openhands.workspace import (
 )
 
 
+def _prepare_cache_dir(cache_dir: Path) -> None:
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    for path in (cache_dir, cache_dir / "uv", cache_dir / "ccache"):
+        path.mkdir(exist_ok=True)
+        path.chmod(0o777)
+
+
 def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -39,6 +46,12 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         "--local-provisional",
         action="store_true",
         help="Run through SDK LocalWorkspace as host-only provisional output.",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=None,
+        help="opt-in host directory for forwarded uv and ccache caches",
     )
     parser.add_argument(
         "--source",
@@ -94,6 +107,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error("--image cannot be used with --local-provisional")
     if args.local_provisional and args.source != "mounted":
         parser.error("--source cannot be used with --local-provisional")
+    if args.local_provisional and args.cache_dir:
+        parser.error("--cache-dir cannot be used with --local-provisional")
     if not args.local_provisional and not args.image:
         parser.error("--image or ACD_CONTAINER_IMAGE is required")
     return args
@@ -101,6 +116,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
+    if args.cache_dir is not None:
+        _prepare_cache_dir(args.cache_dir)
     try:
         defaults = None
         if not args.download_files or not args.command:
@@ -134,6 +151,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 command=command,
                 repository=args.repo,
                 download_files=download_files,
+                cache_dir=args.cache_dir,
                 source=args.source,
                 runtime=ContainerRuntimeConfig(
                     health_check_timeout=args.health_check_timeout,

@@ -1302,6 +1302,17 @@ pullとdigest検証、決定論的gateの順序およびfail-closed挙動は変�
 失敗は無視してauthoritative経路へ任せる。fast pathとwarm pullによる短縮幅は、merge後の
 CI runを実測して別途記録する。
 
+mainのmerge後CI run `33308459120`では、`container-gates`が374秒で全体の支配項だった。
+同runの内訳は`verify` 248秒、`skills` 108秒、`pinned-acd-probe` 37秒、
+`changes` 7秒であり、docs fast pathとlocked imageのwarm pullはすでに適用済みである。
+このrunではFW laneがPEP 723のstandalone実行により別uv環境を構築し、repository rootを
+解決できず失敗した。FW laneをproject環境から実行し、`ACD_REPOSITORY_ROOT`でcheckout
+rootを明示することで、重複環境構築と誤ったroot解決をなくす。さらにDockerWorkspaceへ
+opt-inのuv／ccache cache directoryをread-writeで持ち回り、CIの`actions/cache`で
+`uv.lock` hashをkeyに保存・復元する。cacheはL3の高速化手段であり、image digest検証、
+authoritative Evidence、決定論的gateの条件とfail-closed挙動は変更しない。
+今回の変更による実測短縮幅は、merge後のrunで別途記録する。
+
 GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを
 緩めずfail-closedとして状態をそのまま記録する。
