@@ -29,7 +29,9 @@ Dockerfileでは次を固定または検証する。
   必要な場合だけ`FREEROUTING_ACTIVE_PROCESSORS`で`-XX:ActiveProcessorCount=`を
   追加できる。OpenJ9のJVM tuningは既定`-Xtune:footprint`で、
   `FREEROUTING_JVM_TUNING`で上書きできる（選定根拠は
-  [`../docs/adr/ADR-0045-openj9-freerouting-runtime.md`](../docs/adr/ADR-0045-openj9-freerouting-runtime.md)）
+  [`../docs/adr/ADR-0045-openj9-freerouting-runtime.md`](../docs/adr/ADR-0045-openj9-freerouting-runtime.md)）。
+  AWTは`-Djava.awt.headless=true`をwrapperへ固定し、ambientな`DISPLAY`やX serverの
+  有無にFreeRoutingの実行結果を依存させない
 - Java: IBM Semeru Runtime Open Edition 26.0.2.10（Eclipse OpenJ9 0.61.0）を
   `/opt/jre`へ展開し、`JAVA_HOME=/opt/jre`とPATH上の`java`をbuild時に検証する。
   FreeRoutingの共有class cache（SCC+AOT）は`/opt/scc`へbuild時に生成し、実行時は

@@ -15,6 +15,7 @@ if [ "${FREEROUTING_ACTIVE_PROCESSORS+x}" = x ]; then
   exec java \
     "-Xmx${FREEROUTING_MAX_HEAP}" \
     ${FREEROUTING_JVM_TUNING} \
+    "-Djava.awt.headless=true" \
     "-Xshareclasses:name=${FREEROUTING_SCC_NAME},cacheDir=${FREEROUTING_SCC_DIR},readonly" \
     "${FREEROUTING_CONTAINER_SUPPORT}" \
     "${FREEROUTING_ADAPTIVE_GC_THREADING}" \
@@ -28,6 +29,7 @@ fi
 exec java \
   "-Xmx${FREEROUTING_MAX_HEAP}" \
   ${FREEROUTING_JVM_TUNING} \
+  "-Djava.awt.headless=true" \
   "-Xshareclasses:name=${FREEROUTING_SCC_NAME},cacheDir=${FREEROUTING_SCC_DIR},readonly" \
   "${FREEROUTING_CONTAINER_SUPPORT}" \
   "${FREEROUTING_ADAPTIVE_GC_THREADING}" \

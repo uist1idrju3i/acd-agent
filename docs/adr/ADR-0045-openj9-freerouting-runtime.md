@@ -34,8 +34,10 @@ CPUを使えない制約だけが残る状態だった。
    コンテナではSCCが既定で無効化されるため、明示有効化が必須である。
 4. `-XX:+UseContainerSupport`と`-XX:+AdaptiveGCThreading`をwrapperで明示する。
    どちらも既定有効だが、両VPS形状で意図した挙動を固定するために明示する。
-   JVMのCPU認識は制限せず、`-XX:ActiveProcessorCount`は
-   `FREEROUTING_ACTIVE_PROCESSORS`が明示された場合だけ付与する。
+   AWTは`-Djava.awt.headless=true`をwrapperへ固定し、ambientな`DISPLAY`やX serverの
+   有無にFreeRoutingの実行結果を依存させない。JVMのCPU認識は制限せず、
+   `-XX:ActiveProcessorCount`は`FREEROUTING_ACTIVE_PROCESSORS`が明示された場合だけ
+   付与する。
 5. FreeRoutingの`-mt`をF-5の決定から部分的に撤回し、暗黙継承（FreeRouting既定の
    論理CPU数−1）へ変更する。`DEFAULT_FREEROUTING_THREADS`は`None`とし、
    `None`のときは`-mt`をcommandへ含めない。明示値は正のintだけを受け、
@@ -65,10 +67,10 @@ CPUを使えない制約だけが残る状態だった。
 単発測定（n=1）では`gencon`（SCC無し）98.5秒、`-Xquickstart`+SCC 113.6秒、
 `optthruput`+SCC 107.6秒、`balanced -Xnuma:none`+SCC 113.4秒／RSS 1333.6 MB、
 `-Xtune:throughput`+SCC 104.0秒だった。いずれも`-Xtune:footprint`より遅い。
-出荷するwrapperと同一のoption列（`-Xmx2g -Xtune:footprint` + readonly SCC +
+当時出荷していたwrapperと同一のoption列（`-Xmx2g -Xtune:footprint` + readonly SCC +
 `-XX:+UseContainerSupport -XX:+AdaptiveGCThreading`、`-mt`暗黙）での確認実行は
 76.2秒／RSS 344.9 MB／peak heap 99.9 MBで、unrecognized option警告は出ず、
-SES SHA-256も一致した。
+SES SHA-256も一致した。この測定は`-Djava.awt.headless=true`追加前のものである。
 
 SCC不在時の挙動も確認した。`readonly`および`readonly,fatal`のいずれでも
 `JVMSHRC226E`／`JVMSHRC336E`／`JVMSHRC337E`／`JVMSHRC840E`で起動失敗し、
