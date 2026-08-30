@@ -519,7 +519,9 @@ OpenHands SDK v1.44.1のagent-serverはACDの対象外である。serverの採�
 書き込み系commandのtargetを判定する。laneの出力先optionと`out/stop-report.json`の
 規定記録は許可し、読み取り専用操作と書き込みpatternのない未知commandは停止させない。
 保護対象への書き込みtargetを解決できない場合、nested shellの深さ超過、または解析不能時は
-fail-closedにする。hookは既存のPydantic契約と決定論的ゲートを呼ぶだけで、新しい閾値を持たない。
+fail-closedにする。`&`・改行によるcommand分割、command substitution等の解析対象外構文、
+`xargs`や`find`の書き込みprimaryも同じ保守的な判定へ落とす。hookは既存のPydantic契約と
+決定論的ゲートを呼ぶだけで、新しい閾値を持たない。
 SDK hookのDENYはagent経路にしか効かないため、CI側の検証も二重に保持する。
 
 発注・外部送信のorderガードは、(1) transmission commandがリポジトリ内の`out/`または

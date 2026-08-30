@@ -30,9 +30,10 @@ WRITE_COMMANDS = frozenset(
 SHELL_COMMANDS = frozenset({"bash", "sh", "zsh", "dash"})
 INLINE_INTERPRETERS = frozenset({"python", "python3", "perl", "node", "ruby"})
 REDIRECTS = frozenset({">", ">>", "2>", "&>", ">|"})
-SEPARATORS = frozenset({";", "&&", "||", "|"})
+SEPARATORS = frozenset({";", "&&", "||", "|", "&"})
 MAX_NESTING_DEPTH = 4
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+_UNSUPPORTED_SYNTAX = re.compile(r"\$\(|`|<\(|>\(|[(){}]")
 _INLINE_PATH = re.compile(
     r"(?<![\w-])"
     r"(?:(?:[A-Za-z0-9_.-]+/)*(?:out|evidence)(?:/[A-Za-z0-9_.-]+)+|"
@@ -90,25 +91,6 @@ def _protected_write(value: str, root: Path, *, allow_stop_report: bool = True) 
     return is_protected and not (allow_stop_report and _allowed_path(value, root))
 
 
-def path_mentions(value: str, root: Path, *, command: bool = False) -> tuple[bool, bool]:
-    """Retain the legacy helper contract for callers and focused tests."""
-    if "\x00" in value:
-        return True, False
-    tokens = [value]
-    if command:
-        try:
-            tokens = shlex.split(value)
-        except ValueError:
-            return True, False
-    mentioned = False
-    resolvable = True
-    for token in tokens:
-        found, can_resolve, _ = _path_status(token, root)
-        mentioned |= found
-        resolvable &= can_resolve
-    return mentioned, resolvable
-
-
 def input_paths(tool_input: Any, tool: str) -> list[str]:
     if tool == "terminal":
         if not isinstance(tool_input, dict):
@@ -132,8 +114,28 @@ def input_paths(tool_input: Any, tool: str) -> list[str]:
 def _tokenize(command: str) -> list[str] | None:
     if "\x00" in command:
         return None
+    normalized: list[str] = []
+    quote: str | None = None
+    escaped = False
+    for character in command:
+        if escaped:
+            normalized.append(character)
+            escaped = False
+            continue
+        if character == "\\":
+            normalized.append(character)
+            escaped = True
+            continue
+        if quote is None and character in {"'", '"'}:
+            quote = character
+        elif quote == character:
+            quote = None
+        if character == "\n" and quote is None:
+            normalized.append(";")
+        else:
+            normalized.append(character)
     try:
-        lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
+        lexer = shlex.shlex("".join(normalized), posix=True, punctuation_chars=";&|<>")
         lexer.whitespace_split = True
         lexer.commenters = ""
         return list(lexer)
@@ -304,7 +306,17 @@ def _write_targets(tokens: list[str], command: str) -> list[str]:
     if command == "tee":
         return _non_option_values(tokens, skip_value_options=frozenset())
     if command == "sed":
-        if not any(value == "-i" or value.startswith("-i") for value in tokens):
+        options_ended = False
+        in_place = False
+        for value in tokens:
+            if value == "--":
+                options_ended = True
+                continue
+            if options_ended:
+                continue
+            in_place |= value == "--in-place" or value.startswith("--in-place=")
+            in_place |= value.startswith("-") and not value.startswith("--") and "i" in value[1:]
+        if not in_place:
             return []
         return _non_option_values(tokens, skip_value_options=frozenset())
     if command == "unzip":
@@ -332,6 +344,58 @@ def _write_targets(tokens: list[str], command: str) -> list[str]:
     return []
 
 
+def _protected_references(value: str, root: Path) -> bool:
+    return any(
+        _protected_write(match.group(0), root)
+        for match in _INLINE_PATH.finditer(value)
+    )
+
+
+def _xargs_command(tokens: list[str]) -> list[str]:
+    value_options = frozenset(
+        {
+            "-a", "-d", "-E", "-I", "-J", "-L", "-n", "-P", "-s",
+            "--arg-file", "--delimiter", "--eof", "--max-args",
+            "--max-lines", "--max-procs", "--replace",
+        }
+    )
+    index = 0
+    while index < len(tokens) and tokens[index].startswith("-"):
+        index = _skip_option(tokens, index, value_options=value_options)
+    return tokens[index:]
+
+
+def _find_write_targets(tokens: list[str]) -> tuple[list[str], list[list[str]]]:
+    roots: list[str] = []
+    inner_commands: list[list[str]] = []
+    index = 0
+    while index < len(tokens) and not tokens[index].startswith("-"):
+        roots.append(tokens[index])
+        index += 1
+    while index < len(tokens):
+        token = tokens[index]
+        if token in {"-delete", "-fprint", "-fprint0", "-fls", "-fprintf"}:
+            if token != "-delete" and index + 1 < len(tokens):
+                roots.append(tokens[index + 1])
+                index += 2
+            else:
+                index += 1
+            continue
+        if token in {"-exec", "-execdir", "-ok", "-okdir"}:
+            index += 1
+            inner: list[str] = []
+            while index < len(tokens) and tokens[index] not in {";", "+"}:
+                inner.append(tokens[index])
+                index += 1
+            if inner:
+                inner_commands.append(inner)
+            if index < len(tokens):
+                index += 1
+            continue
+        index += 1
+    return roots, inner_commands
+
+
 def _nested_script(tokens: list[str], index: int) -> str | None:
     if index >= len(tokens) or Path(tokens[index]).name not in SHELL_COMMANDS:
         return None
@@ -351,10 +415,7 @@ def _inline_code(tokens: list[str], index: int) -> str | None:
 
 
 def _check_inline_code(code: str, root: Path) -> bool:
-    for match in _INLINE_PATH.finditer(code):
-        if _protected_write(match.group(0), root, allow_stop_report=True):
-            return False
-    return True
+    return not _protected_references(code, root)
 
 
 def _check_simple(tokens: list[str], root: Path, depth: int) -> bool:
@@ -381,6 +442,29 @@ def _check_simple(tokens: list[str], root: Path, depth: int) -> bool:
     if code is not None and not _check_inline_code(code, root):
         return False
     command = Path(tokens[index]).name
+    if command == "xargs":
+        return not _protected_references(" ".join(tokens), root) and (
+            not _xargs_command(tokens[index + 1:])
+            or _check_simple(_xargs_command(tokens[index + 1:]), root, depth)
+        )
+    if command == "find":
+        roots, inner_commands = _find_write_targets(tokens[index + 1:])
+        has_write_primary = any(
+            value in {"-delete", "-fprint", "-fprint0", "-fls", "-fprintf", "-exec",
+                      "-execdir", "-ok", "-okdir"}
+            for value in tokens[index + 1:]
+        )
+        if not has_write_primary:
+            return True
+        if any(_protected_write(value, root) for value in roots):
+            return False
+        return all(_check_simple(inner, root, depth) for inner in inner_commands)
+    if command == "eval" and _protected_references(" ".join(tokens[index + 1:]), root):
+        return False
+    if _UNSUPPORTED_SYNTAX.search(" ".join(tokens)) and _protected_references(
+        " ".join(tokens), root
+    ):
+        return False
     if command not in WRITE_COMMANDS:
         return True
     return not any(
@@ -392,6 +476,12 @@ def _check_simple(tokens: list[str], root: Path, depth: int) -> bool:
 def _terminal_allowed(command: str, root: Path) -> bool:
     tokens = _tokenize(command)
     commands = _simple_commands(tokens) if tokens is not None else None
+    if commands is not None and any(
+        _command_index(item) < len(item)
+        and Path(item[_command_index(item)]).name == "xargs"
+        for item in commands
+    ) and _protected_references(command, root):
+        return False
     return commands is not None and all(_check_simple(item, root, 0) for item in commands)
 
 

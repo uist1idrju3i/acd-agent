@@ -116,6 +116,22 @@ def test_projection_guard_allows_pipeline_output_and_stop_report_writes() -> Non
         )[0]
         == 0
     )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": f'bash -c "{lane} && echo done"'},
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "find out -name '*.kicad_pcb'"},
+            "terminal",
+        )[0]
+        == 0
+    )
 
 
 def test_projection_guard_denies_write_targets_and_nested_bypasses() -> None:
@@ -126,6 +142,14 @@ def test_projection_guard_denies_write_targets_and_nested_bypasses() -> None:
         "cp fixtures/x out/board.kicad_pcb",
         "tee out/board.kicad_pcb",
         "python3 -c \"open('out/board.kicad_pcb','w')\"",
+        "echo x & rm out/board.kicad_pcb",
+        "echo x\nrm out/board.kicad_pcb",
+        "echo $(rm out/board.kicad_pcb)",
+        "echo `rm out/board.kicad_pcb`",
+        "echo out/board.kicad_pcb | xargs rm",
+        "find out -delete",
+        "find out -exec rm {} +",
+        "sed -ni s/a/b/ out/board.kicad_pcb",
     )
     for command in commands:
         assert run("protect_projections.py", {"command": command}, "terminal")[0] == 2
