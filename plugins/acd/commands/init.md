@@ -15,13 +15,16 @@ python3 plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py \
   --repo-url <repo-url> --revision <commit-or-ref> --workspace <workspace-path>
 ```
 
-The script performs workspace creation, repository clone or clean-checkout
-reuse, recursive submodule initialization, `uv sync`, plugin manifest/assets
-verification, and the workspace-aware install doctor. It writes
+The script performs workspace creation, shallow repository clone or
+clean-checkout reuse, shallow recursive submodule initialization, plugin
+manifest/assets verification, and the workspace-aware install doctor. It does
+not run host `uv sync`; dependencies and EDA/FW tools are provided by the
+locked server image. Doctor pulls that image when needed. It writes
 `.openhands/bootstrap-record.json` only after every step succeeds.
 
 Preserve the emitted JSON exactly. Any failed or unknown step is fail-closed
 with `ok: false`, `fail_closed: true`, `failure_reason`, `failed_step`, and
-the preceding step results. The bootstrap record is an L3 observation and
-contains `pass_evidence: false`; it does not grant gate acceptance or preserve
-any verdict.
+the preceding step results. The bootstrap record records
+`source: "mounted"` and the locked server image digest when available. It is
+an L3 observation with `pass_evidence: false`; it does not grant gate
+acceptance or preserve any verdict.

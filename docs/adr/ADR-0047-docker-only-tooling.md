@@ -32,6 +32,13 @@ authoritative経路として既に採用している。imageに同梱されたbu
    digestはdoctorでは検査しない。
 5. authoritative Evidenceの実行経路は`--source mounted`のまま維持する。bundledを
    authoritativeにしない。initializeのclone軽量化とsession start hookは後続変更で扱う。
+6. initializeはrepository clone、revision fetch、recursive submoduleをshallow
+   (`--depth 1`)で取得する。ホストの`uv sync`は行わず、doctorがpullするlocked
+   server imageの依存とEDA/FWツールを使用する。bootstrap recordには
+   `source: "mounted"`と`server_image_digest`を記録する。
+7. SessionStart hookはprojectのlockから解決したserver imageをpullせずに
+   `docker run --rm --entrypoint "" ... sh -lc`でprobeする。4ツールの版をすべて取得
+   できない場合はhost probeへfallbackせず、fail-closed contextをL3観測として注入する。
 
 ## 結果
 
@@ -39,3 +46,6 @@ doctorのツール観測対象とauthoritative gateのruntimeがdigest固定serv
 ホストEDA/FW環境の差による誤った診断を防止できる。image内EDA欠落はoptional観測として
 報告される一方、Docker、server image、firmware前提はfail-closedで扱われる。
 doctorは引き続きL3 observationであり、authoritative Evidenceやゲート合格を生成・昇格しない。
+initializeとSessionStart hookもこの境界を維持し、初期化記録やツール版のcontextを
+authoritative Evidenceへ昇格しない。image未取得時のpullはdoctorの責務とし、hookは
+独立したpullやhost依存解決を行わない。
