@@ -85,6 +85,7 @@ def required_order_evidence_ids(graph_id: str) -> frozenset[str]:
 
     return required_evidence_ids(graph_id)
 
+
 class EvidenceReference(AcdModel):
     evidence_id: NonEmptyStr
     canonical_hash: Sha256
