@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import sys
 import subprocess
+import sys
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 import pytest
 
