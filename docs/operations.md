@@ -886,13 +886,27 @@ acd-tools imageのFreeRouting実行JREはIBM Semeru Open JRE 26.0.2.10
 `/opt/jre`へ展開する。build時に`java -version`がEclipse OpenJ9とSemeru 26.0.2.10を
 示すことを検査する。aptの`openjdk-26-jre-headless`（HotSpot）は同梱しない。
 
+以前のcontainer-gatesでは、acd-server imageが`DISPLAY=:1`を設定している一方でX serverを
+提供しないため、FreeRoutingがversion bannerを出力する前にAWTを初期化し、
+`java.awt.AWTError: Can't connect to X11 window server using ':1' as the value of the DISPLAY
+variable`で終了した。結果として`FreeroutingRunner.version()`が
+`router version banner unparsable (fail-closed)`を返し、routing前に停止した。この事象は
+mainのcontainer-gates（run
+<https://github.com/uist1idrju3i/acd-agent/actions/runs/33302135950>、head
+`a73a27335d4d7a03bba5f2030c5bea96fbd2db67`）で発生した。Semeru／OpenJ9
+0.60.0と0.61.0の両imageで再現し、旧Ubuntu OpenJDK 26.0.1 imageでは再現しなかった。
+FreeRouting jarと`/tmp/freerouting`の状態は比較imageで同一だった。wrapperは
+`-Djava.awt.headless=true`を固定し、build時にも`DISPLAY=:99`でversion bannerが残ることを
+検査することで、ambientなDISPLAYに依存しない。
+
 wrapper [`docker/freerouting`](../docker/freerouting)が宣言する既定は次のとおりで、
-いずれもenvで上書きできる。
+env欄に記載したものだけenvで上書きできる。
 
 | option | 既定 | env |
 |--------|------|-----|
 | 最大heap | `-Xmx2g` | `FREEROUTING_MAX_HEAP` |
 | JVM tuning | `-Xtune:footprint` | `FREEROUTING_JVM_TUNING` |
+| AWT | `-Djava.awt.headless=true` | なし |
 | SCC | `-Xshareclasses:name=fr_scc,cacheDir=/opt/scc,readonly` | `FREEROUTING_SCC_NAME`／`FREEROUTING_SCC_DIR` |
 | container検出 | `-XX:+UseContainerSupport` | なし |
 | GCスレッド自動調整 | `-XX:+AdaptiveGCThreading` | なし |

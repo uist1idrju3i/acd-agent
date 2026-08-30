@@ -150,6 +150,7 @@ RUN mkdir -p "${FREEROUTING_SCC_DIR}" \
     && java -Xshareclasses:name=${FREEROUTING_SCC_NAME},cacheDir=${FREEROUTING_SCC_DIR},printStats 2>&1 \
         | grep -E 'ROMClass|AOT' \
     && (freerouting --version 2>&1 || test $? -eq 1) \
+    && DISPLAY=:99 freerouting --version 2>&1 | grep -E 'Freerouting v2\.3\.0' \
     && rm -f /tmp/scc-warm.dsn /tmp/scc-warm.ses
 
 # Prebaked Python environment: the locked dependency set is resolved at build
