@@ -16,6 +16,7 @@ from fw_run import CommandRecord, resolve_tool, run_command
 
 FLASH_SIZE_BYTES = 4 * 1024 * 1024
 
+
 class QemuUnavailableError(RuntimeError):
     """Raised when the QEMU binary cannot be verified."""
 
@@ -111,9 +112,14 @@ def assert_virtual_log_ok(
         )
         if sensor_step.device is None:
             raise VirtualRunCheckError("sensor read capability has no resolved device")
-        if sensor_step.device.driver_id.upper() not in log:
+        driver_tag = re.escape(sensor_step.device.driver_id.upper())
+        if not re.search(
+            rf"{driver_tag} temp_c=|{driver_tag} read failed",
+            log,
+        ):
             raise VirtualRunCheckError(
-                f"no {sensor_step.device.driver_id.upper()} read attempt found in virtual log"
+                f"no {sensor_step.device.driver_id.upper()} measurement result found "
+                "in virtual log"
             )
 
 
@@ -125,13 +131,11 @@ def measurement_conditions_for_plan(plan: FirmwareCapabilityPlan) -> str:
             if step.device is not None
         }
     )
-    if drivers == ["SHT40"]:
+    if not drivers:
         return (
-            "virtual device (QEMU esp32c3); no SHT40 attached; "
+            "virtual device (QEMU esp32c3); no external device attached; "
             "virtual verification only, not real-device evidence"
         )
-    if not drivers:
-        return "virtual device (QEMU esp32c3); no external device attached"
     return (
         f"virtual device (QEMU esp32c3); no {', '.join(drivers)} attached; "
         "virtual verification only, not real-device evidence"

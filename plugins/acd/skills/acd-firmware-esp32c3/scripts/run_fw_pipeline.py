@@ -4,7 +4,7 @@
 #     "acd @ git+https://github.com/uist1idrju3i/acd-agent@499081a6840154ba990fcc71f70958505456899a",
 # ]
 # ///
-"""Golden Design #1 firmware pipeline: graph -> ESP-IDF build -> QEMU.
+"""Graph-driven firmware pipeline: graph -> ESP-IDF build -> QEMU.
 
 Single command:
 
@@ -112,7 +112,12 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
     electrical = extract_electrical_lane(graph)
 
     project = write_firmware_project(
-        fw_lane, revision, out_dir, graph.graph_id, fw_settings, plan
+        fw_lane,
+        revision,
+        out_dir,
+        graph.graph_id,
+        fw_settings,
+        plan=plan,
     )
     mcu_refdes = resolve_mcu_refdes(graph)
     config_report = {

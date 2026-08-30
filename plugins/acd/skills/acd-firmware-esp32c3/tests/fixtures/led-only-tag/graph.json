@@ -63,7 +63,7 @@
       "attrs": {
         "action": "initialize_firmware",
         "actor": "firmware.module.main",
-        "step_index": 10,
+        "step_index": 1,
         "target": "comp.u1"
       },
       "depends_on": ["firmware.module.main", "comp.u1"]
@@ -74,7 +74,7 @@
       "attrs": {
         "action": "toggle_led",
         "actor": "firmware.module.main",
-        "step_index": 20,
+        "step_index": 2,
         "target": "comp.u1"
       },
       "depends_on": ["firmware.module.main", "comp.u1"]

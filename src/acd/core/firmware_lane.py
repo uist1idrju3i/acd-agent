@@ -261,6 +261,11 @@ def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:
             )
         )
     sequence_steps.sort(key=lambda step: step.step_index)
+    expected_indexes = list(range(1, len(sequence_steps) + 1))
+    if [step.step_index for step in sequence_steps] != expected_indexes:
+        raise GraphExtractionError(
+            "firmware sequence step_index must be a contiguous 1-based sequence"
+        )
 
     pin_nodes = sorted(
         (node for node in graph.nodes if node.kind == "firmware.pin_assignment"),

@@ -12,7 +12,9 @@ consume these views; missing or malformed attributes fail closed.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import cast
 
 from acd.core.firmware_capability import (
@@ -31,11 +33,7 @@ class FirmwarePinView:
     node_id: str
     gpio: int
     net_id: str
-    role: str = ""
-
-    def __post_init__(self) -> None:
-        if not self.role:
-            object.__setattr__(self, "role", self.net_id.removeprefix("net."))
+    role: str
 
 
 @dataclass(frozen=True)
@@ -58,6 +56,7 @@ class FirmwareCapabilityStep:
 class FirmwareCapabilityPlan:
     steps: tuple[FirmwareCapabilityStep, ...]
     pin_role_order: tuple[str, ...]
+    required_pin_roles: tuple[str, ...]
     registry_hash: str
     registry_path: str
 
@@ -266,9 +265,37 @@ def resolve_firmware_capability_plan(
         )
     if not steps:
         raise FirmwareExtractionError("graph has no firmware.sequence_step nodes")
+    ordered_steps = tuple(sorted(steps, key=lambda step: step.step_index))
+    expected_indexes = list(range(1, len(ordered_steps) + 1))
+    if [step.step_index for step in ordered_steps] != expected_indexes:
+        raise FirmwareExtractionError(
+            "firmware sequence step_index must be a contiguous 1-based sequence"
+        )
+    capability_by_id = {
+        capability.capability_id: capability for capability in registry.capabilities
+    }
+    required_roles = {
+        role
+        for step in ordered_steps
+        for role in capability_by_id[step.capability_id].required_pin_roles
+    }
+    role_order = {
+        role: index for index, role in enumerate(registry.document.pin_role_order)
+    }
+    required_pin_roles = tuple(
+        sorted(
+            required_roles,
+            key=lambda role: (role_order.get(role, len(role_order)), role),
+        )
+    )
     return FirmwareCapabilityPlan(
-        steps=tuple(sorted(steps, key=lambda step: step.step_index)),
+        steps=ordered_steps,
         pin_role_order=tuple(registry.document.pin_role_order),
+        required_pin_roles=required_pin_roles,
         registry_hash=registry.registry_hash,
-        registry_path=str(registry.path),
+        registry_path=Path(
+            os.path.relpath(
+                registry.path.resolve(), Path(__file__).resolve().parents[5]
+            )
+        ).as_posix(),
     )

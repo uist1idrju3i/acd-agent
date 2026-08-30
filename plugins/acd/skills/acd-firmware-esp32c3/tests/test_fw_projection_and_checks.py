@@ -99,20 +99,38 @@ def test_pins_header_is_deterministic(
     graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
     settings = extract_firmware_settings(graph)
     first = write_firmware_project(
-        fw_lane, "r1", tmp_path / "a", "golden-design-1", settings, plan
+        fw_lane,
+        "r1",
+        tmp_path / "a",
+        "golden-design-1",
+        settings,
+        plan=plan,
     )
     second = write_firmware_project(
-        fw_lane, "r1", tmp_path / "b", "golden-design-1", settings, plan
+        fw_lane,
+        "r1",
+        tmp_path / "b",
+        "golden-design-1",
+        settings,
+        plan=plan,
     )
     assert first.pins_header.read_bytes() == second.pins_header.read_bytes()
     assert first.main_source.read_bytes() == second.main_source.read_bytes()
     header = first.pins_header.read_text(encoding="utf-8")
+    source = first.main_source.read_text(encoding="utf-8")
     assert "#define ACD_PIN_LED 7" in header
     assert "#define ACD_SHT40_I2C_ADDRESS 0x44" in header
     assert 'ACD_TARGET_REVISION "r1"' in header
-    assert "ACD GD1 fw boot target_revision=%s" in (
-        first.main_source.read_text(encoding="utf-8")
-    )
+    assert "ACD GD1 fw boot target_revision=%s" in source
+    assert 'pins led=%d i2c_sda=%d i2c_scl=%d' in source
+    assert "\n\n\n" not in source
+    assert "static i2c_master_dev_handle_t s_sht40;" in source
+
+
+def test_registry_provenance_path_is_repository_relative(
+    plan: FirmwareCapabilityPlan,
+) -> None:
+    assert plan.registry_path == "contracts/firmware-capability-registry.json"
 
 
 def test_firmware_settings_default_and_declared_values(graph: DesignGraph) -> None:
@@ -255,7 +273,7 @@ def test_missing_boot_log_placeholder_fails_closed(
             tmp_path,
             "custom-design",
             FirmwareSettings(boot_log_message="boot"),
-            plan,
+            plan=plan,
         )
 
 
@@ -314,7 +332,12 @@ def test_pin_check_rejects_deliberate_pin_shift(
     """Negative test: shifting the LED assignment to another GPIO must fail."""
     shifted = FirmwareLane(
         pins=tuple(
-            FirmwarePinView(node_id=p.node_id, gpio=6, net_id=p.net_id)
+            FirmwarePinView(
+                node_id=p.node_id,
+                gpio=6,
+                net_id=p.net_id,
+                role=p.role,
+            )
             if p.net_id == "net.led"
             else p
             for p in fw_lane.pins
@@ -340,7 +363,13 @@ def test_pin_check_rejects_unknown_module(
 
 
 def test_render_header_only_emits_declared_pins() -> None:
-    lane = FirmwareLane(pins=(FirmwarePinView(node_id="fw.pin.led", gpio=7, net_id="net.led"),))
+    lane = FirmwareLane(
+        pins=(
+            FirmwarePinView(
+                node_id="fw.pin.led", gpio=7, net_id="net.led", role="led"
+            ),
+        )
+    )
     graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
     plan = resolve_firmware_capability_plan(graph, extract_firmware_lane(graph))
     header = render_pins_header(lane, "r1", FirmwareSettings(boot_log_message="test %s"), plan)
@@ -354,8 +383,12 @@ def test_led_only_graph_projects_without_sensor_code(tmp_path: Path) -> None:
     lane = extract_firmware_lane(graph)
     plan = resolve_firmware_capability_plan(graph, lane)
     project = write_firmware_project(
-        lane, graph.revision, tmp_path, graph.graph_id,
-        extract_firmware_settings(graph), plan,
+        lane,
+        graph.revision,
+        tmp_path,
+        graph.graph_id,
+        extract_firmware_settings(graph),
+        plan=plan,
     )
     header = project.pins_header.read_text(encoding="utf-8")
     source = project.main_source.read_text(encoding="utf-8")
@@ -364,6 +397,7 @@ def test_led_only_graph_projects_without_sensor_code(tmp_path: Path) -> None:
     assert "driver/i2c_master.h" not in source
     assert "SHT40" not in source
     assert "ACD_LOG_PERIOD_MS" not in source
+    assert "\n\n\n" not in source
     assert_header_matches_lane(header, lane)
     assert_virtual_log_ok(
         """I (1) acd_led_only_tag: ACD led-only-tag fw boot target_revision=r1
@@ -462,6 +496,16 @@ def test_capability_plan_rejects_duplicate_step_index(
 ) -> None:
     broken = _graph_with_step_change(graph, "fw.sequence.004", step_index=3)
     with pytest.raises(FirmwareExtractionError, match="duplicate"):
+        resolve_firmware_capability_plan(broken, fw_lane)
+
+
+def test_capability_plan_rejects_non_contiguous_step_index(
+    graph: DesignGraph, fw_lane: FirmwareLane
+) -> None:
+    broken = _graph_with_step_change(graph, "fw.sequence.003", step_index=9)
+    with pytest.raises(
+        FirmwareExtractionError, match="contiguous 1-based"
+    ):
         resolve_firmware_capability_plan(broken, fw_lane)
 
 

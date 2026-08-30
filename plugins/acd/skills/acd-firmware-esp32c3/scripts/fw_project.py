@@ -27,6 +27,7 @@ _CAPABILITY_PROVIDERS = frozenset(
 )
 _DEVICE_PROVIDERS = frozenset({"sht40"})
 
+
 class FirmwareProjectionError(ValueError):
     """Raised when the firmware project cannot be projected (fail-closed)."""
 
@@ -150,23 +151,34 @@ def _render_main_source(
     }
     include_lines = [f"#include {item}" for item in sorted(includes, key=include_order.__getitem__)]
     statics = ['static const char *TAG = "__ACD_LOG_TAG__";']
+    init_devices = [
+        step.device
+        for step in plan.steps
+        if step.capability_id == "i2c_sensor_init" and step.device is not None
+    ]
     if "i2c_sensor_init" in capability_ids:
-        statics.append("static i2c_master_dev_handle_t s_sht40;")
+        if not init_devices:
+            raise FirmwareProjectionError(
+                "i2c sensor initialization has no resolved device"
+            )
+        statics.append(f"static i2c_master_dev_handle_t s_{init_devices[0].driver_id};")
     helpers: list[str] = []
     if "i2c_sensor_read" in capability_ids:
         device = next(
-            step.device for step in plan.steps
+            step.device
+            for step in plan.steps
             if step.capability_id == "i2c_sensor_read" and step.device is not None
         )
+        device_handle = f"s_{init_devices[0].driver_id}"
         helpers.append(
             f"""static void {device.driver_id}_log_once(void)
 {{
     const uint8_t measure_cmd = 0x{device.measurement_command:02X};
     uint8_t raw[6] = {{0}};
-    esp_err_t err = i2c_master_transmit(s_sht40, &measure_cmd, 1, 100);
+    esp_err_t err = i2c_master_transmit({device_handle}, &measure_cmd, 1, 100);
     if (err == ESP_OK) {{
         vTaskDelay(pdMS_TO_TICKS(10));
-        err = i2c_master_receive(s_sht40, raw, sizeof(raw), 100);
+        err = i2c_master_receive({device_handle}, raw, sizeof(raw), 100);
     }}
     if (err != ESP_OK) {{
         ESP_LOGW(TAG, "{device.driver_id.upper()} read failed: %s", esp_err_to_name(err));
@@ -179,8 +191,13 @@ def _render_main_source(
     ESP_LOGI(TAG, "{device.driver_id.upper()} temp_c=%.2f rh=%.2f", (double)temp_c, (double)rh);
 }}"""
         )
-    log_pins = [pin for pin in lane.pins if pin.role in {"led", "i2c_sda", "i2c_scl"}]
-    pin_log = ", ".join(f"{pin.role}=%d" for pin in log_pins)
+    pins_by_role = {pin.role: pin for pin in lane.pins}
+    log_pins = [
+        pins_by_role[role]
+        for role in plan.required_pin_roles
+        if role in pins_by_role
+    ]
+    pin_log = " ".join(f"{pin.role}=%d" for pin in log_pins)
     pin_args = ", ".join(f"ACD_PIN_{pin.role.upper()}" for pin in log_pins)
     initialization: list[str] = []
     for step in plan.steps:
@@ -223,7 +240,8 @@ def _render_main_source(
                     f"        .device_address = ACD_{device.driver_id.upper()}_I2C_ADDRESS,",
                     "        .scl_speed_hz = 100000,",
                     "    };",
-                    "    ESP_ERROR_CHECK(i2c_master_bus_add_device(bus, &dev_cfg, &s_sht40));",
+                    "    ESP_ERROR_CHECK(i2c_master_bus_add_device("
+                    f"bus, &dev_cfg, &s_{device.driver_id}));",
                 ]
             )
     loop: list[str] = []
@@ -278,20 +296,29 @@ def _render_main_source(
             "        vTaskDelay(pdMS_TO_TICKS(ACD_LOG_PERIOD_MS));",
             "    }",
         ]
-    sections = [
-        f"/* Firmware projection for {graph_id}; capabilities are graph declarations. */",
-        *include_lines,
-        "",
-        *statics,
-        "",
-        "\n\n".join(helpers) if helpers else "",
-        "void app_main(void)",
-        "{",
-        *initialization,
-        *loop,
-        "}",
+    app_body = ["void app_main(void)", "{"]
+    app_body.extend(initialization)
+    if initialization and loop:
+        app_body.append("")
+    app_body.extend(loop)
+    app_body.append("}")
+    section_blocks = [
+        "\n".join(
+            [
+                f"/* Firmware projection for {graph_id}; capabilities are graph declarations. */",
+                *include_lines,
+            ]
+        ),
+        "\n".join(statics),
+        "\n\n".join(helpers),
+        "\n".join(app_body),
     ]
-    return "\n".join(sections).replace("__ACD_LOG_TAG__", log_tag(graph_id)) + "\n"
+    return (
+        "\n\n".join(block for block in section_blocks if block)
+        .replace("__ACD_LOG_TAG__", log_tag(graph_id))
+        + "\n"
+    )
+
 
 _ROOT_CMAKE = """\
 cmake_minimum_required(VERSION 3.16)
@@ -315,14 +342,13 @@ def write_firmware_project(
     out_dir: Path,
     graph_id: str,
     settings: FirmwareSettings | None = None,
-    plan: FirmwareCapabilityPlan | None = None,
+    *,
+    plan: FirmwareCapabilityPlan,
 ) -> FirmwareProject:
     if settings is None:
         settings = FirmwareSettings(
             boot_log_message=f"ACD {graph_id} fw boot target_revision=%s"
         )
-    if plan is None:
-        raise FirmwareProjectionError("firmware capability plan is required")
     try:
         validate_boot_log_message(settings.boot_log_message)
     except FirmwareExtractionError as exc:
