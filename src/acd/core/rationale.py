@@ -465,18 +465,6 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "dimensions_source_ref": "Opening dimensions source reference identifies the evidence.",
     },
     "mechanical.enclosure": {
-        "fastener_method": (
-            "The selected M2 self-tapping screw method determines the printed "
-            "fastening interface."
-        ),
-        "lid_screw_hole_diameter_mm": (
-            "The lid clearance-hole diameter is a declared manufacturing "
-            "dimension for the M2 screw."
-        ),
-        "standoff_pilot_hole_diameter_mm": (
-            "The standoff pilot-hole diameter is a declared manufacturing "
-            "dimension for the M2 self-tapping screw."
-        ),
         "tolerance_source": "Enclosure tolerance source identifies the manufacturing or CAD basis.",
         "tolerance_source_ref": "Enclosure tolerance source reference identifies the evidence.",
         "unit": "Unit is the graph coordinate convention.",
