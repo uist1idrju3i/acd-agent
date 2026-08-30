@@ -54,7 +54,9 @@ def _docker_run(command: list[str]) -> str:
 
 def _runner_for_image(image_ref: str) -> _Runner:
     def run(argv: list[str]) -> str:
-        return _docker_run(["docker", "run", "--rm", image_ref, *argv])
+        return _docker_run(
+            ["docker", "run", "--rm", "--entrypoint", "", image_ref, *argv]
+        )
 
     return run
 
