@@ -80,7 +80,7 @@ def authoritative_commands(
             (f"{board_output_relative}/evidence-electrical.json",),
         ),
         (
-            "uv run python scripts/run_gd1_enclosure_pipeline.py "
+            "uv run python scripts/run_enclosure_pipeline.py "
             f"--fixture {fixture_relative} --out {enclosure_output_relative}",
             (f"{enclosure_output_relative}/evidence-mechanical.json",),
         ),

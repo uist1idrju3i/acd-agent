@@ -109,7 +109,7 @@ host経路はprovisional専用であり、合格側Evidenceを生成しない。
 ```bash
 ACD_CONTAINER_IMAGE=ghcr.io/uist1idrju3i/acd-server@sha256:<digest> \
   uv run python scripts/run_in_workspace.py --source bundled \
-  uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure
+  uv run python scripts/run_enclosure_pipeline.py --fixture fixtures/golden-design-1 --out out/gd1-enclosure
 ```
 
 `--source bundled`は`/opt/acd`の`pyproject.toml`、`uv.lock`、`src/acd`、`scripts`、
@@ -128,7 +128,8 @@ with DockerWorkspace(
     forward_env=["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
 ) as workspace:
     result = workspace.execute_command(
-        "cd /workspace/acd && uv run python scripts/run_gd1_enclosure_pipeline.py "
+        "cd /workspace/acd && uv run python scripts/run_enclosure_pipeline.py "
+        "--fixture fixtures/golden-design-1 "
         "--out out/gd1-enclosure",
         cwd="/workspace",
     )

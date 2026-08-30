@@ -45,6 +45,12 @@ from acd.core.functional_blocks import (
     required_predicate_names,
     validate_predicate_coverage,
 )
+from acd.core.mechanical import REQUIRED_MECHANICAL_ATTRS
+from acd.core.mechanical_preflight import (
+    MechanicalPreflightReport,
+    RequirementFinding,
+    check_mechanical_preflight,
+)
 from acd.core.order_execution import build_dry_run_order_payload
 from acd.core.order_submission import (
     DeclaredProviderUnavailable,
@@ -95,6 +101,7 @@ from acd.core.side_effect_journal import (
 
 __all__ = [
     "RATIONALE_EXEMPT_ATTRS",
+    "REQUIRED_MECHANICAL_ATTRS",
     "REQUIRED_RATIONALE_ATTRS",
     "CadNormalizationError",
     "DeclaredProviderUnavailable",
@@ -111,6 +118,7 @@ __all__ = [
     "FunctionalBlockRegistry",
     "FunctionalRunError",
     "JournalOrderReconstruction",
+    "MechanicalPreflightReport",
     "OrderSubmissionProvider",
     "OrderSubtotal",
     "OrderTotalError",
@@ -122,6 +130,7 @@ __all__ = [
     "QuoteReadError",
     "ReceiptReconciliationError",
     "ReconciliationReport",
+    "RequirementFinding",
     "SideEffectJournalError",
     "aggregate_order_total",
     "append_post_order",
@@ -130,6 +139,7 @@ __all__ = [
     "build_order_submission_record",
     "build_receipt_evidence",
     "check_firmware_graph_consistency",
+    "check_mechanical_preflight",
     "check_rationale_coverage",
     "declared_functional_blocks",
     "evaluate_firmware_graph_consistency",

@@ -135,7 +135,7 @@ def _command_for_stage(stage: LaneStage, fixture: Path) -> tuple[str, ...]:
             "uv",
             "run",
             "python",
-            "scripts/run_gd1_enclosure_pipeline.py",
+            "scripts/run_enclosure_pipeline.py",
             "--fixture",
             str(fixture),
             "--out",

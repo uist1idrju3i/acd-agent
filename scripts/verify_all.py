@@ -51,7 +51,7 @@ STAGES: dict[str, tuple[CommandSpec, ...]] = {
                 "uv",
                 "run",
                 "python",
-                "scripts/run_gd1_enclosure_pipeline.py",
+                "scripts/run_enclosure_pipeline.py",
                 "--out",
                 "out/gd1-enclosure",
             ),

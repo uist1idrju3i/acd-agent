@@ -1,4 +1,4 @@
-"""Golden Design #1 mechanical pipeline: graph -> CAD projection -> gates."""
+"""Project a design graph's mechanical lane into CAD and execute its gates."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
 from acd.core.lane_cli import add_lane_io_arguments
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
+from acd.core.mechanical_preflight import check_mechanical_preflight
 from acd.core.naming import evidence_id, subject_node_id
 from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
 from acd.core.runtime_records import TimingRecorder, write_timing_record
@@ -91,6 +92,20 @@ def _run_pipeline(
         stage_number = number
         timing_recorder.start(f"enclosure[{stage_number}/5]")
 
+    preflight = check_mechanical_preflight(graph, fixture_dir)
+    if preflight.status != "pass":
+        preflight_path = out_dir / "preflight-mechanical.json"
+        preflight_path.write_text(
+            preflight.model_dump_json(indent=2) + "\n",
+            encoding="utf-8",
+        )
+        counts: dict[str, int] = {}
+        for finding in preflight.findings:
+            counts[finding.code] = counts.get(finding.code, 0) + 1
+        error_summary = ", ".join(
+            f"{code}={counts[code]}" for code in sorted(counts)
+        )
+        raise ValueError(f"mechanical preflight failed: {error_summary}")
     validate_and_project_rationale(graph, fixture_dir, out_dir)
     print("[0/5] rationale coverage passed")
     mark_stage(1)
@@ -289,7 +304,11 @@ def _run_pipeline(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    add_lane_io_arguments(parser, out_default=Path("out/gd1-enclosure"))
+    add_lane_io_arguments(
+        parser,
+        fixture_default=None,
+        out_default=None,
+    )
     parser.add_argument(
         "--pipeline-workers",
         type=int,
@@ -299,7 +318,7 @@ def main() -> int:
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     timing = TimingRecorder()
-    timing.start("gd1-enclosure-pipeline")
+    timing.start("enclosure-pipeline")
     try:
         parameters = inspect.signature(run_pipeline).parameters
         kwargs: dict[str, object] = {"pipeline_workers": args.pipeline_workers}
