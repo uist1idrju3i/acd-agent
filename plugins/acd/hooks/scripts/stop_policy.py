@@ -17,9 +17,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, cast
 
-from common import event, project_dir, result
+from common import STOP_REPORT_PATH, event, project_dir, result
 
-STOP_REPORT_PATH = "out/stop-report.json"
 DENIAL_STATE_PATH = "out/stop-denials.json"
 REPEATED_DENIAL_LIMIT = 3
 REQUIRED_REPORT_FIELDS = ("failure_reason", "failed_stage")
