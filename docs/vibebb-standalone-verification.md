@@ -23,7 +23,7 @@
 | freerouting | あり | 2.3.0 | `/usr/local/bin/freerouting`（version検出はexit=1だが版取得可） |
 | cad-kernel | あり | build123d 0.11.1 / cadquery-ocp 7.9.3.1.1 | Python distribution |
 | java (JRE) | あり | OpenJDK 25.0.3 | freerouting実行に使用 |
-| ESP-IDF | あり | v6.1 | 既定でPATHに無く`export.sh`が必要 |
+| ESP-IDF | あり | v6.0.2 | 既定でPATHに無く`export.sh`が必要 |
 | qemu-system-riscv32 | あり | 9.2.2 (esp_develop_9.2.2_20250817) | 同上 |
 | Docker | あり | — | digest固定imageのpullと実行が可能 |
 | ngspice | なし | — | hostへ導入せず、digest固定containerの45.2を正とする |
@@ -72,7 +72,7 @@ fail-closed契約がテストレベルで担保されていることを確認し
 
 段の順序は宣言どおり（要件入口整合検査 → silkscreen barrier → 基板／筐体／FW lane →
 order-total集計 → 発注可否）であり、失敗段以降は実行されずfail-closedで停止した。FW laneは
-ESP-IDF v6.1ビルドとQEMU 9.2.2実行まで到達し、`measurement_conditions`へ
+ESP-IDF v6.0.2ビルドとQEMU 9.2.2実行まで到達し、`measurement_conditions`へ
 `virtual verification only, not real-device evidence`を明記していた。
 
 実測で判明した運用上の注意は次の2点である。ゲートは緩めずそのまま記録する。
