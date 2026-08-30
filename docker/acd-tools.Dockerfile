@@ -2,14 +2,14 @@ FROM ubuntu:26.04
 
 ARG FREEROUTING_VERSION=2.3.0
 ARG FREEROUTING_SHA256=3cf18d608437740bc497db6b8ef5888e2e60a08de0def20691d1bad0c0e0ee24
-ARG SEMERU_JRE_VERSION=26.0.2.0
-ARG SEMERU_JRE_SHA256=3c08554784ff610cb21d35e3dbeb8f6d87498d234ea8ae062e488c7a1d3b11ac
-ARG UV_VERSION=0.12.5
-ARG UV_SHA256=68a509da24b06b4223a1c0175fb5eb5bc79342b76cbeff0cfe51ac3f5b17b6b2
+ARG SEMERU_JRE_VERSION=26.0.2.10
+ARG SEMERU_JRE_SHA256=0de86d8ed8d1a764cfa5839bef0283c562f30fd902a01ec406f01143e5bec1aa
+ARG UV_VERSION=0.12.7
+ARG UV_SHA256=788f18abea7c5f55d6216e4f5613fd89d4d59b631efeec117b2b07fe72f1da21
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
 ARG QEMU_ESP_ARCHIVE=qemu-riscv32-softmmu-esp_develop_9.2.2_20260417-x86_64-linux-gnu.tar.xz
 ARG QEMU_ESP_SHA256=547f03e04701a92cbb699f7f7d015adc1f5b5ef93cbb94c0dd9b7107e2d84e77
-ARG ESP_IDF_VERSION=v6.0.2
+ARG ESP_IDF_VERSION=v6.1
 ARG ESP_IDF_PYTHON_VERSION=3.12
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -75,7 +75,7 @@ RUN apt-get update \
     && rm -f /tmp/semeru-jre.tar.gz \
     && command -v java | grep -E '^/opt/jre/bin/java$' \
     && java -version 2>&1 | grep -q 'Eclipse OpenJ9 VM' \
-    && java -version 2>&1 | grep -E 'IBM Semeru Runtime Open Edition 26\.0\.2\.0' \
+    && java -version 2>&1 | grep -E 'IBM Semeru Runtime Open Edition 26\.0\.2\.10' \
     && curl --fail --location --silent --show-error \
         --output /opt/freerouting.jar \
         "https://github.com/freerouting/freerouting/releases/download/v${FREEROUTING_VERSION}/freerouting-${FREEROUTING_VERSION}.jar" \
@@ -116,7 +116,7 @@ RUN git clone --depth 1 --branch "${ESP_IDF_VERSION}" --recursive \
     && "${IDF_PYTHON}" "${IDF_PATH}/tools/idf_tools.py" install-python-env \
     && test -x "${IDF_PYTHON_ENV_PATH}/bin/python" \
     && bash -c '. "${IDF_PATH}/export.sh" >/dev/null 2>&1 && idf.py --version' \
-        | grep -E "^ESP-IDF v6\.0\.2" \
+        | grep -E "^ESP-IDF v6\.1" \
     && rm -rf "${IDF_TOOLS_PATH}/dist" /root/.cache/pip
 
 # ACD source, pipeline scripts and fixtures, so that authoritative runs need no

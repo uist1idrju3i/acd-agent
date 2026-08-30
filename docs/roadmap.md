@@ -41,7 +41,7 @@ digest固定`DockerWorkspace`だけが担う。
 （用紙余白の除去）は未実装である。8.5の電気視覚照合が図枠のtitle blockをツール生成の
 根拠として読むため、`--exclude-drawing-sheet`と`--page-size-mode`を使わない現行exportを
 維持しており、極小表示の所見は20.4の可読性検査で扱う。locked tools imageはacd本体、
-pipeline scripts、fixture、profile、ESP-IDF v6.0.2、Espressif QEMU 9.2.2、CJKフォント、
+pipeline scripts、fixture、profile、ESP-IDF v6.1、Espressif QEMU 9.2.2、CJKフォント、
 ccache、事前解決したPython依存を同梱し、authoritative経路はcloneなしで実行できる。
 回路図投影は機能ブロック配置と主要配線またはネットラベル接続方式を注記し、可読性向上を
 実装済みである。運用面では、host EDA不在時のdoctor誘導、FW出力命名のgraph_id由来化、

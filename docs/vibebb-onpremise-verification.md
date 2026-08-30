@@ -23,7 +23,7 @@
 | Docker | あり | digest固定imageのpull可 |
 | kicad-cli | なし | digest固定container（KiCad 10.0.5）側に存在 |
 | freerouting / java | なし | 同上（FreeRouting 2.3.0 / OpenJDK 26.0.1） |
-| idf.py（ESP-IDF） | なし | 同上（ESP-IDF 6.0.2 / QEMU RISC-V 9.2.2） |
+| idf.py（ESP-IDF） | なし | 同上（ESP-IDF 6.1 / QEMU RISC-V 9.2.2） |
 
 host側は電気・機械・FWの外部ツールを持たないため、host実行は**provisional**にすらならない段が
 存在する。authoritative Evidenceはlock済み

@@ -880,10 +880,10 @@ GD1 DSN・FreeRouting 2.3.0の事例であり、他の入力や版でSES SHA-256
 
 ### FreeRouting実行JREとJVMオプション
 
-acd-tools imageのFreeRouting実行JREはIBM Semeru Open JRE 26.0.2.0
-（Eclipse OpenJ9 0.60.0、2026-07-30公開）である。tarballはversionとSHA-256
-（`3c08554784ff610cb21d35e3dbeb8f6d87498d234ea8ae062e488c7a1d3b11ac`）でpinし、
-`/opt/jre`へ展開する。build時に`java -version`がEclipse OpenJ9とSemeru 26.0.2.0を
+acd-tools imageのFreeRouting実行JREはIBM Semeru Open JRE 26.0.2.10
+（Eclipse OpenJ9 0.61.0、2026-08-18公開）である。tarballはversionとSHA-256
+（`0de86d8ed8d1a764cfa5839bef0283c562f30fd902a01ec406f01143e5bec1aa`）でpinし、
+`/opt/jre`へ展開する。build時に`java -version`がEclipse OpenJ9とSemeru 26.0.2.10を
 示すことを検査する。aptの`openjdk-26-jre-headless`（HotSpot）は同梱しない。
 
 wrapper [`docker/freerouting`](../docker/freerouting)が宣言する既定は次のとおりで、
@@ -945,17 +945,18 @@ fieldがなく、現在のworkspace境界からcontainer資源を宣言できな
 COPYするため、`.dockerignore`はこの1ファイルだけを例外として残す。
 publish job summaryのGHCR digestを確認してから
 `docker/image-digests.json`へ転記し、lockのdigestを推測・手書きしてはならない。
-JRE移行のpublishは完了しており、lockの両entryは`java`ツール版文字列として
+旧JRE移行のpublish済みimageについては、lockの両entryに`java`ツール版文字列として
 `openjdk 26.0.2 2026-07-21 (IBM Semeru Runtime Open Edition 26.0.2.0, Eclipse OpenJ9 0.60.0)`を
-記録する。この文字列はpublish済みimageをdigest指定でpullし、`java -version`の出力から
-転記した値であり、他のツール版はJRE移行で変化しなかった。
+記録している。この文字列はpublish済みimageをdigest指定でpullし、`java -version`の出力から
+転記した値であり、他のツール版は旧JRE移行で変化しなかった。今回更新後のlock値は
+publish後に`docker/image-digests.json`へ別変更として転記する。
 
 ### FW pipelineのhost実行とToolEnvelopeの注記
 
 FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
 `libslirp0`およびSDL2系共有ライブラリが必要である。QEMUをtarball等から配置した場合は、
 `qemu-system-riscv32`のあるディレクトリをPATHへ追加してから実行し、次で解決できることを
-確認する。ESP-IDF v6.0.2、Espressif QEMU 9.2.2、`libslirp0`、SDL2系ライブラリ、ccache、
+確認する。ESP-IDF v6.1、Espressif QEMU 9.2.2、`libslirp0`、SDL2系ライブラリ、ccache、
 CJKフォントはacd-tools imageへ同梱しており、container経路ではhost側の準備を必要としない
 （`IDF_PATH`、`IDF_TOOLS_PATH`、`IDF_PYTHON_ENV_PATH`、`CCACHE_DIR`、
 `IDF_CCACHE_ENABLE`はimageで宣言する）。同梱内容と検証項目は
@@ -1393,6 +1394,10 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
   出力不整合はゲートを緩めずfail-closedとする。
 - SDKのdev workspace経路からDockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
   ホスト実行の結果を合格側Evidenceへ昇格しない。
+- container toolchainの今回更新では、Semeru 26.0.2.10（OpenJ9 0.61.0、新機能追加なし）、
+  uv 0.12.7、ESP-IDF v6.1（GD1 FWが使うGPIO／I2C／FreeRTOS APIは破壊的変更の対象外）、
+  KiCad 10.0.6（PPA追従、pinしない）へ更新した。FreeRouting 2.3.0とQEMU 9.2.2は
+  据え置きである。lock値`docker/image-digests.json`はpublish後に別変更で更新する。
 
 版と能力は次で記録する。
 

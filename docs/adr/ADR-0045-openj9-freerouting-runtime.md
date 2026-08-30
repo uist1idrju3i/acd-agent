@@ -19,10 +19,10 @@ CPUを使えない制約だけが残る状態だった。
 
 ## 決定
 
-1. acd-tools imageのFreeRouting実行JREをIBM Semeru Open JRE 26.0.2.0
-   （Eclipse OpenJ9 0.60.0）へ置き換える。tarballはversionとSHA-256でpinし、
+1. acd-tools imageのFreeRouting実行JREをIBM Semeru Open JRE 26.0.2.10
+   （Eclipse OpenJ9 0.61.0）へ置き換える。tarballはversionとSHA-256でpinし、
    `/opt/jre`へ展開して`JAVA_HOME`と`PATH`で解決させる。build時に
-   `java -version`がEclipse OpenJ9とSemeru 26.0.2.0を示すことを検査する。
+   `java -version`がEclipse OpenJ9とSemeru 26.0.2.10を示すことを検査する。
    aptの`openjdk-26-jre-headless`は削除する。
 2. JVM tuningの既定は`-Xtune:footprint`とし、`FREEROUTING_JVM_TUNING`で上書き可能に
    する。`-Xsoftmx`は設定しない。2コア環境では`-Xsoftmx1g`併用が僅かに速いが
