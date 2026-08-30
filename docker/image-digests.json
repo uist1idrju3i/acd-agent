@@ -2,9 +2,9 @@
   "acd_tools": {
     "image": "ghcr.io/uist1idrju3i/acd-tools",
     "tag": "latest",
-    "digest": "sha256:a8cfb6e4e5f0f747c7b578f151a4ed2d3684d1c541913b7b2ffb8cdb318978a7",
-    "published_at": "2026-08-30T11:27:30Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/33308459121",
+    "digest": "sha256:8d4191cfbf41d99397ecdc8035e8f00a942131dc740b5774a8dd61f47218406d",
+    "published_at": "2026-08-30T11:54:32Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/33309642137",
     "dockerfile": "docker/acd-tools.Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
