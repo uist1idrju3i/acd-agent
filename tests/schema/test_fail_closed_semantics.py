@@ -34,7 +34,7 @@ def test_envelope_unknown_version_is_flagged() -> None:
 
 
 def test_timed_out_envelope_is_distinct_but_cannot_support_pass() -> None:
-    envelope = _envelope(convergence_state="timed_out", exit_code=None)
+    envelope = _envelope(convergence_state="timed_out")
     assert not envelope.has_unknown()
     assert envelope.convergence_state == "timed_out"
     evidence_data = fixture_obj(load_fixture("valid", "evidence.json"))

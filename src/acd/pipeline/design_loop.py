@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.core.exploration import explore_board_candidates
 from acd.core.order_total import (
     aggregate_order_total,
@@ -27,7 +28,6 @@ from acd.core.requirements import (
     validate_requirements,
 )
 from acd.core.runtime_records import TimingRecorder, write_timing_record
-from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
 from acd.pipeline.fixture_builder import build_design_fixture
