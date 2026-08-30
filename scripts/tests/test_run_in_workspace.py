@@ -229,6 +229,59 @@ def test_cli_rejects_local_provisional_with_image(tmp_path: Path) -> None:
         )
 
 
+def test_cli_forwards_cache_directory_and_creates_subdirectories(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured: dict[str, Any] = {}
+    cache_dir = tmp_path / "cache"
+
+    def fake_run_command(**kwargs: Any) -> WorkspaceResult:
+        captured.update(kwargs)
+        return WorkspaceResult(
+            digest="sha256:" + "a" * 64,
+            source="image ID",
+            exit_code=0,
+            stdout="",
+            stderr="",
+            downloaded_files=(),
+        )
+
+    monkeypatch.setattr(runner_script, "run_command_in_workspace", fake_run_command)
+    assert (
+        runner_script.main(
+            [
+                "--image",
+                "acd-server:local",
+                "--repo",
+                str(tmp_path),
+                "--cache-dir",
+                str(cache_dir),
+                "--download",
+                "out/gd1/evidence-electrical.json",
+                "true",
+            ]
+        )
+        == 0
+    )
+    assert captured["cache_dir"] == cache_dir
+    assert (cache_dir / "uv").is_dir()
+    assert (cache_dir / "ccache").is_dir()
+
+
+def test_cli_rejects_cache_directory_for_local_provisional(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        runner_script.main(
+            [
+                "--local-provisional",
+                "--cache-dir",
+                str(tmp_path / "cache"),
+                "true",
+            ]
+        )
+
+
 def test_cli_forwards_bundled_source(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

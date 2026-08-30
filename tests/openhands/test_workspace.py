@@ -94,6 +94,42 @@ def test_runner_uses_read_only_mount_and_downloads_evidence(
     assert "ACD_IN_CONTAINER" not in workspace_module.os.environ
 
 
+def test_runner_forwards_opt_in_cache_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _FakeWorkspace.instances.clear()
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "1" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    monkeypatch.setenv("UV_CACHE_DIR", "previous-uv-cache")
+    monkeypatch.setenv("CCACHE_DIR", "previous-ccache")
+    cache_dir = tmp_path / "cache"
+    workspace_module.run_command_in_workspace(
+        image="acd-server:local",
+        command="true",
+        repository=tmp_path,
+        download_files=(),
+        cache_dir=cache_dir,
+        workspace_factory=_FakeWorkspace,
+    )
+
+    instance = _FakeWorkspace.instances[0]
+    assert instance.kwargs["volumes"] == [
+        f"{tmp_path.resolve()}:/acd-src:ro",
+        f"{cache_dir.resolve()}:/opt/acd-cache",
+    ]
+    assert instance.kwargs["forward_env"] == [
+        "ACD_CONTAINER_IMAGE_DIGEST",
+        "ACD_IN_CONTAINER",
+        "UV_CACHE_DIR",
+        "CCACHE_DIR",
+    ]
+    assert workspace_module.os.environ["UV_CACHE_DIR"] == "previous-uv-cache"
+    assert workspace_module.os.environ["CCACHE_DIR"] == "previous-ccache"
+
+
 def test_runner_refuses_unresolved_digest(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def resolve(_image: str, **_kwargs: object) -> None:
         return None
