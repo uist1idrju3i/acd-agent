@@ -716,7 +716,7 @@ def _docker_image_command(
     return output, None
 
 
-def _docker_probe_timeout() -> float:
+def _pull_timeout() -> float:
     raw = os.environ.get("ACD_DOCTOR_PULL_TIMEOUT_SECONDS", "3600")
     try:
         value = float(raw)
@@ -827,7 +827,7 @@ def _server_image_check(
             [docker, "pull", reference],
             capture_output=True,
             text=True,
-            timeout=_docker_probe_timeout(),
+            timeout=_pull_timeout(),
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
