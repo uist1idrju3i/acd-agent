@@ -957,10 +957,17 @@ FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
 `libslirp0`およびSDL2系共有ライブラリが必要である。QEMUをtarball等から配置した場合は、
 `qemu-system-riscv32`のあるディレクトリをPATHへ追加してから実行し、次で解決できることを
 確認する。ESP-IDF v6.1、Espressif QEMU 9.2.2、`libslirp0`、SDL2系ライブラリ、ccache、
-CJKフォントはacd-tools imageへ同梱しており、container経路ではhost側の準備を必要としない
-（`IDF_PATH`、`IDF_TOOLS_PATH`、`IDF_PYTHON_ENV_PATH`、`CCACHE_DIR`、
-`IDF_CCACHE_ENABLE`はimageで宣言する）。同梱内容と検証項目は
+CJKフォント、CMake 4.2.3、Ninja 1.13.2はacd-tools imageへ同梱しており、
+container経路ではhost側の準備を必要としない（`IDF_PATH`、`IDF_TOOLS_PATH`、
+`IDF_PYTHON_ENV_PATH`、`CCACHE_DIR`、`IDF_CCACHE_ENABLE`はimageで宣言する）。
+以前のimage（ESP-IDF v6.0.2のimageを含む）はCMakeとNinjaのいずれも同梱しておらず、
+container内のFW laneは`To use idf.py, either the 'ninja' or 'GNU make' build tool must be
+available in the PATH`で失敗していた。同梱内容と検証項目は
 [`docker/README.md`](../docker/README.md)を参照する。
+
+hostのprovisional経路では、従来どおり`run_design_lanes.py`が
+`uv run --with cmake==3.31.6`でCMakeを注入する。これはhost側の実行環境を補うためのもので、
+container経路の自己完結したCMake／Ninja同梱を置き換えない。
 
 ```bash
 command -v qemu-system-riscv32
@@ -1396,8 +1403,12 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
   ホスト実行の結果を合格側Evidenceへ昇格しない。
 - container toolchainの今回更新では、Semeru 26.0.2.10（OpenJ9 0.61.0、新機能追加なし）、
   uv 0.12.7、ESP-IDF v6.1（GD1 FWが使うGPIO／I2C／FreeRTOS APIは破壊的変更の対象外）、
-  KiCad 10.0.6（PPA追従、pinしない）へ更新した。FreeRouting 2.3.0とQEMU 9.2.2は
-  据え置きである。lock値`docker/image-digests.json`はpublish後に別変更で更新する。
+  KiCad 10.0.6（PPA追従、pinしない）、CMake 4.2.3、Ninja 1.13.2へ更新した。
+  以前のimage（ESP-IDF v6.0.2のimageを含む）はCMakeとNinjaを欠き、
+  `To use idf.py, either the 'ninja' or 'GNU make' build tool must be available in the PATH`
+  でcontainer FW laneが失敗していたため、今回imageへ同梱した。host provisional経路は
+  `uv run --with cmake==3.31.6`によるCMake注入を維持する。FreeRouting 2.3.0と
+  QEMU 9.2.2は据え置きである。lock値`docker/image-digests.json`はpublish後に別変更で更新する。
 
 版と能力は次で記録する。
 

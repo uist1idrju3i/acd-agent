@@ -41,6 +41,8 @@ Dockerfileでは次を固定または検証する。
 - CJKフォント: `fonts-noto-cjk`を同梱し、`fc-list`でNoto Sans CJKの存在を検証
 - ccache: ESP-IDF再ビルド高速化のため同梱し、`ccache --version`を検証。`CCACHE_DIR`と
   `IDF_CCACHE_ENABLE`をimageで宣言する
+- FW build tool: Ubuntu 26.04のCMake 4.2.3（`cmake --version`）とNinja 1.13.2
+  （`ninja --version`）を同梱し、container経路でhost側のbuild tool準備を不要にする
 - QEMU: Espressif QEMU 9.2.2（`esp-develop-9.2.2-20260417`のriscv32 softmmu tarball）を
   SHA-256検証のうえ`/opt/qemu-esp`へ展開し、`qemu-system-riscv32 --version`が9.2.2で
   あることを検証。`libslirp0`とSDL2共有ライブラリの解決も検証する
