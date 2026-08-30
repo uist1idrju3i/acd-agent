@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
@@ -13,6 +14,7 @@ from pathlib import Path
 from typing import Any, cast
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
+HASH_RE = re.compile(r"sha256:[0-9a-f]{64}")
 
 
 def _canonical_hash(value: dict[str, Any]) -> str:
@@ -169,7 +171,7 @@ def _clone_or_reuse(
     if state == "empty":
         # An empty directory is cloned; an empty Git repository is fetched into.
         result = _command_result(
-            ["git", "clone", repo_url, str(workspace)],
+            ["git", "clone", "--depth", "1", repo_url, str(workspace)],
             cwd=None,
             runner=runner,
         )
@@ -178,7 +180,7 @@ def _clone_or_reuse(
     current = _git_value(workspace, ["rev-parse", "HEAD"], runner)
     if current != revision:
         fetch = _command_result(
-            ["git", "fetch", "origin", revision],
+            ["git", "fetch", "--depth", "1", "origin", revision],
             cwd=workspace,
             runner=runner,
         )
@@ -200,14 +202,31 @@ def _clone_or_reuse(
     return {"status": "pass", "resolved_revision": resolved, "state": state}
 
 
-def _load_lock_digest(workspace: Path) -> str | None:
+def _load_lock_digests(workspace: Path) -> tuple[str | None, str | None]:
     path = workspace / "docker" / "image-digests.json"
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
-        value = document["acd_tools"]["digest"]
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
-        return None
-    return value if isinstance(value, str) else None
+        return None, None
+    if not isinstance(document, dict):
+        return None, None
+    document_dict = cast(dict[str, object], document)
+    tools_value: object = document_dict.get("acd_tools")
+    server_value: object = document_dict.get("acd_server")
+    tools: dict[str, Any] = (
+        cast(dict[str, Any], tools_value) if isinstance(tools_value, dict) else {}
+    )
+    server: dict[str, Any] = (
+        cast(dict[str, Any], server_value) if isinstance(server_value, dict) else {}
+    )
+    tools_digest = tools.get("digest")
+    server_digest = server.get("digest")
+    return (
+        tools_digest if isinstance(tools_digest, str) else None,
+        server_digest
+        if isinstance(server_digest, str) and HASH_RE.fullmatch(server_digest)
+        else None,
+    )
 
 
 def _doctor(
@@ -284,7 +303,7 @@ def initialize(
     steps.append(repository_step)
 
     submodules = _command_result(
-        ["git", "submodule", "update", "--init", "--recursive"],
+        ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
         cwd=workspace,
         runner=runner,
     )
@@ -292,12 +311,6 @@ def initialize(
     if submodules["status"] != "pass":
         return fail("submodules", "submodule initialization failed", submodules)
     steps.append(submodules)
-
-    sync = _command_result(["uv", "sync"], cwd=workspace, runner=runner)
-    sync["name"] = "uv_sync"
-    if sync["status"] != "pass":
-        return fail("uv_sync", "uv sync failed", sync)
-    steps.append(sync)
 
     plugin = _doctor(
         workspace,
@@ -322,13 +335,16 @@ def initialize(
     steps.append(doctor)
 
     resolved_revision = str(repository_step["resolved_revision"])
+    lock_digest, server_image_digest = _load_lock_digests(workspace)
     record = {
         "schema_version": "0.1",
         "workspace_path": str(workspace.resolve()),
         "repo_url": repo_url,
         "requested_revision": revision,
         "resolved_revision": resolved_revision,
-        "lock_digest": _load_lock_digest(workspace),
+        "source": "mounted",
+        "lock_digest": lock_digest,
+        "server_image_digest": server_image_digest,
         "pass_evidence": False,
         "record_class": "L3",
         "content_sha256": "unknown",

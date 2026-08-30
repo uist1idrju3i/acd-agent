@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -95,7 +96,6 @@ def test_command_result_reports_subprocess_failure(
     ("failed_step", "failed_command"),
     [
         ("submodules", "submodule"),
-        ("uv_sync", "sync"),
     ],
 )
 def test_init_stops_on_step_failure(
@@ -128,6 +128,123 @@ def test_init_stops_on_step_failure(
     assert report["ok"] is False
     assert report["fail_closed"] is True
     assert report["failed_step"] == failed_step
+
+
+def test_initialize_uses_shallow_commands_and_records_image_source(
+    init_module: Any,
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    lock_path = workspace / "docker/image-digests.json"
+    lock_path.parent.mkdir()
+    lock_path.write_text(
+        json.dumps(
+            {
+                "acd_tools": {"digest": "sha256:" + "a" * 64},
+                "acd_server": {"digest": "sha256:" + "b" * 64},
+            }
+        ),
+        encoding="utf-8",
+    )
+    commands: list[list[str]] = []
+
+    def clone_or_reuse(*args: object, **kwargs: object) -> dict[str, object]:
+        del args, kwargs
+        return {"status": "pass", "resolved_revision": "c" * 40, "state": "checkout"}
+
+    def doctor(*args: object, **kwargs: object) -> dict[str, object]:
+        del args, kwargs
+        return {"status": "pass", "report": {"status": "ok"}}
+
+    def runner(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        del kwargs
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    init_module._clone_or_reuse = clone_or_reuse
+    init_module._doctor = doctor
+    report = init_module.initialize(
+        repo_url="https://example.test/acd.git",
+        revision="c" * 40,
+        workspace=workspace,
+        runner=runner,
+    )
+
+    assert report["ok"] is True
+    assert commands == [
+        ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"]
+    ]
+    record = report["bootstrap_record"]
+    assert record["source"] == "mounted"
+    assert record["lock_digest"] == "sha256:" + "a" * 64
+    assert record["server_image_digest"] == "sha256:" + "b" * 64
+    assert record["content_sha256"] == init_module._canonical_hash(record)
+
+
+def test_clone_and_revision_fetch_are_shallow(
+    init_module: Any,
+    tmp_path: Path,
+) -> None:
+    revision = "d" * 40
+    clone_workspace = tmp_path / "clone"
+    clone_commands: list[list[str]] = []
+
+    def clone_runner(
+        command: list[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        del kwargs
+        clone_commands.append(command)
+        return subprocess.CompletedProcess(command, 0, revision, "")
+
+    cloned = init_module._clone_or_reuse(
+        clone_workspace,
+        "https://example.test/acd.git",
+        revision,
+        runner=clone_runner,
+    )
+    assert cloned["status"] == "pass"
+    assert clone_commands[0] == [
+        "git",
+        "clone",
+        "--depth",
+        "1",
+        "https://example.test/acd.git",
+        str(clone_workspace),
+    ]
+
+    fetch_workspace = tmp_path / "fetch"
+    fetch_workspace.mkdir()
+    fetch_commands: list[list[str]] = []
+    old_revision = "e" * 40
+
+    def fetch_runner(
+        command: list[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        del kwargs
+        fetch_commands.append(command)
+        args = command[1:]
+        if args == ["rev-parse", "--show-toplevel"]:
+            return subprocess.CompletedProcess(command, 0, str(fetch_workspace), "")
+        if args == ["config", "--get", "remote.origin.url"]:
+            return subprocess.CompletedProcess(
+                command, 0, "https://example.test/acd.git", ""
+            )
+        if args == ["status", "--porcelain"]:
+            return subprocess.CompletedProcess(command, 0, "", "")
+        if args == ["rev-parse", "HEAD"]:
+            return subprocess.CompletedProcess(command, 0, old_revision, "")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    fetched = init_module._clone_or_reuse(
+        fetch_workspace,
+        "https://example.test/acd.git",
+        revision,
+        runner=fetch_runner,
+    )
+    assert fetched["status"] == "pass"
+    assert ["git", "fetch", "--depth", "1", "origin", revision] in fetch_commands
+    assert ["git", "checkout", "--detach", revision] in fetch_commands
 
 
 @pytest.mark.parametrize("failed_step", ["plugin_load", "doctor"])

@@ -43,7 +43,7 @@ installすると、次のslash commandが会話から使えます。
 | --- | --- | --- |
 | `/acd:gates [--fixture PATH] [--out PATH]` | 決定論的な基板・筐体ゲートを既存のCLI入口で実行し、段階、ツール版、入出力Evidenceのパス、失敗理由を報告します。ツール不在・parse失敗・未検証はfail-closedです。 | `/acd:gates --fixture fixtures/golden-design-1 --out out/gd1` |
 | `/acd:doctor` | pluginのインストール位置・資材・prompt manifest、Skill依存ref、Python／uv、Docker・digest固定server image・image内ツールを自己診断します。L3観測であり合否権限を持ちません。 | `/acd:doctor [--no-pull]` |
-| `/acd:init` | 指定repository・revision・workspaceについてclone／再利用、submodule、`uv sync`、plugin確認、workspace doctorを順に実行し、bootstrap recordを生成します。 | `/acd:init --repo-url URL --revision SHA --workspace PATH` |
+| `/acd:init` | 指定repository・revision・workspaceについてshallow clone／再利用、shallow submodule、plugin確認、workspace doctorを順に実行し、bootstrap recordを生成します。ホストでは`uv sync`を実行せず、依存とEDA/FWツールはlocked server imageを使用します。 | `/acd:init --repo-url URL --revision SHA --workspace PATH` |
 
 あわせて、会話から使えるACD toolが登録されます。名前を指定せずに自然言語で頼めば、
 必要なものがAgentDefinition経由で呼ばれます。
