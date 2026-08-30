@@ -1017,6 +1017,12 @@ server digest `sha256:c0144f8b52deecbc46d442be140724685d0aef13b314777a69172298b3
 `scripts/measure_image_tools.py`が実測結果を同じlock更新PRへ自動転記するため、
 人手による転記は不要である。
 
+`acd_tools`のdigestは、run 33306849852でpublishされた
+`sha256:ce6e853fa8a80a7b8a081f738a4677df064671ed0a4a9783f812e407b038ff6a`へ更新した。
+このimageのbot lock PRはmergeされずcloseされたため、lockが指すdigestとregistryの
+`latest`が乖離し、`scripts/verify_image_digest_lock.py`が不一致で失敗していた。
+新digestを実測した結果は`acd_tools.tools`と完全一致したため、tools欄は変更していない。
+
 ### FW pipelineのhost実行とToolEnvelopeの注記
 
 FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
