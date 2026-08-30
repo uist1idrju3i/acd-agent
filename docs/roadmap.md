@@ -17,7 +17,8 @@ ID別negative testで整備済みである。DRC結果のToolEnvelope input hash
 記録し、電気laneではゲート通過後の既定生成配線まで実装済みである。機械laneの
 断面・干渉ビューrenderer、AI受け渡しと機械可読電気・機械lane投影との照合、レビュー観点記録まで
 実装済みである。
-SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過する。
+SDK hooksによるfail-closed境界も提供する。筐体pipelineは決定論的ゲートを通過するが、
+実機組み付け（2026-08-30）でアンテナ干渉とネジ穴欠落が判明し、マイルストーン3.1で修正する。
 実機Evidenceのschema契約と分類、実機の受領取り込み、FW書き込み・機能測定は実装済みである。
 マイルストーン5.4の測定結果反映はproposal生成まで実装済みであるが、proposalから設計入力への
 自動逆流は設計上行わない。GD1実機の`measured` Evidenceは未取得で、検証はfixtureベースである。
@@ -60,7 +61,9 @@ Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gate�
 
 設計述語の契約が特定のnet名・refdesを前提としているため、GD1以外のトポロジは現状の
 ゲートに到達できない（14.2）。また、Skill scriptのpinned refが実装より古く、
-FW laneはGD1 fixtureでも停止する（14.1）。
+FW laneはGD1 fixtureでも停止する（14.1）。筐体pipelineは`mechanical.board_edge_overhang`
+ノードを消費せず、スタンドオフにネジ穴がないため、実機でアンテナ干渉とリッド締結不可が
+発生する（3.1）。
 
 container経路のpull入口とtimeout境界は6.6で決定論的入口へ集約した。lock済みdigestの
 pullは`scripts/pull_locked_image.py`が正であり、SDKの`DockerWorkspace`が呼ぶdocker CLIへは
@@ -73,7 +76,7 @@ ACD側から明示timeoutとmemory上限を与える。
 | 1 | 契約と再現可能な投影 | graphをPydanticで検証し、同一入力から投影・provenance・hashを再生成できる | 達成 |
 | 2 | 電気レーンの独立検証 | ERC、routing収束、SES import、DRC、Gerber/drill生成、独立再読込、silkscreenゲートを通す | 達成 |
 | 2.1 | 設計述語ゲートと負例 | USB CC、strapping pin、I2C pull-up、電源デカップリング、電源境界（`SafetyBoundaryResult`）、ピン・FW整合の6ゲートを実装し、GD1-NEG-001〜008とsilkscreen座標表のpinning testを整備する | 達成 |
-| 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成 |
+| 3 | 機械レーンの決定論的検証 | STEP/3MF生成、CAD再読込、干渉・clearance・肉厚を通す | 達成（3.1で実機組み付け発見の不具合を修正） |
 | 4 | plugin委譲とSDK tool境界 | Skill/agent/command/toolをSDKでloadし、既存gateをfail-closedで公開する | 達成 |
 | 4.1 | SDK hooks境界 | 投影保護、Evidence発注ガード、Stop、probe、文書検証を既存判定の呼出しとして実装する | 達成 |
 | 4.2 | 決定論的gate critic | Design Graph revision、Evidence、製造manifestだけで二値criticを評価し、SDK反復を操舵する | 達成 |
@@ -121,6 +124,46 @@ KiCadライブラリを要するNEG-002およびライブラリhash不一致の�
 ライブラリのない`verify` jobでは前提不足としてskipし、KiCad有効な
 `container-gates`で実行する。ローカルの`--stage standard`ではライブラリがある場合に
 実行し、ない場合は同じ条件でskipする。
+
+### 3.1 筐体pipelineのアンテナ干渉・ネジ穴欠落修正
+
+実機組み付け（2026-08-30、[`examples/sensor-node-20260820/`](../examples/sensor-node-20260820/)）
+で、筐体シェルがESP32-C3-MINI-1のアンテナ突出部と物理干渉し、スタンドオフにネジ穴が
+ないためリッドを締結できないことが判明した。決定論的干渉ゲートが0.0mm³でpassしていた
+にもかかわらず実機で物理干渉が発生した事例であり、ゲートの信頼性に関わる修正である。
+
+根因は次の2点である。
+
+1. **アンテナ干渉**: `fixture/graph.json`に`mechanical.board_edge_overhang`ノード
+   （edge="top", overhang_mm=5.4）が定義されているが、`extract_mechanical_lane()`
+   （`src/acd/core/mechanical.py`）がこのノードを抽出しない。`_build_shapes()`
+   （`src/acd/adapters/cad/project.py`）は単純箱型シェルを生成し、アンテナ突出部を
+   考慮しない。`run_mechanical_gates()`（`src/acd/adapters/cad/mechanical.py`）の
+   干渉検査はcomponent_bodyのみ対象で、overhangを3D固体としてモデル化しないため、
+   干渉ゲートが0.0mm³でpassしてしまう。`enclosure/rationale.md`にはoverhang設計判断が
+   記録されているのに、コードがそれを実装していない。
+
+2. **ネジ穴欠落**: `_build_shapes()`がスタンドオフを固体円柱（`Cylinder`）として生成し、
+   貫通穴を開けない。リッドも平板（`Box`）でネジ穴がない。`outline.mount_holes`の座標は
+   スタンドオフ位置決めに使われるが、穴として消費されない。
+
+推奨ネジ穴方式は**熱圧入インサート（M2）**である。PETGは比較的柔らかくタップ穴では
+ネジ山がストリップしやすいため、熱圧入インサートが最も強固。スタンドオフにインサート用穴
+（φ3.5mm程度）、リッドにM2通し穴（φ2.2mm）、ネジはリッド側から締める構造を推奨する。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `mechanical.board_edge_overhang`ノードを持つgraph（GD1 fixture）、`outline.mount_holes`、`enclosure/rationale.md`のoverhang設計判断、実機組み付け記録（[`examples/sensor-node-20260820/README.md`](../examples/sensor-node-20260820/README.md)の筐体設計上の既知の問題節） |
+| 実装 | `extract_mechanical_lane()`へ`board_edge_overhang`ノードの抽出を追加し、`_build_shapes()`へアンテナ突出領域のシェル切欠きを実装する。`run_mechanical_gates()`の干渉検査へoverhang由来の3D固体を含める。スタンドオフへ貫通穴（熱圧入インサート用φ3.5mm）を追加し、リッドへM2通し穴（φ2.2mm）を開ける。`MechanicalLane`へoverhang viewを追加し、`EnclosureView`へfastener方式宣言を追加する |
+| 正常系 | GD1 fixtureから生成した筐体STEPがアンテナ突出部と干渉せず、スタンドオフとリッドにネジ穴がある。干渉ゲートがoverhang固体を含めて0.0mm³でpassし、実機組み付けが可能になる。既存の筐体artifact測定（volume・bbox・normalized hash）は形状変更に伴って更新される |
+| negative/fail-closed | `board_edge_overhang`ノード欠落時の単純箱型生成、overhang宣言とシェル形状の不一致、ネジ穴位置と`mount_holes`座標の不一致、干渉ゲートがoverhang固体を無視してpassする従来挙動をnegative testで検出する。overhangノード未宣言はunknownとして停止し、推定で切欠き寸法を補完しない |
+| 再現性 | 同一graphから同一のシェル切欠き形状・ネジ穴位置を再生成し、干渉ゲート結果とartifact hashを固定する。`--jobs 1`と並列で正規化hashと判定が一致することを回帰テストで固定する |
+
+本フェーズは既存の閾値、ゲート挙動、fail-closed境界を緩めず、決定論的ゲートが実機の
+物理干渉を見逃した事例の修正である。`board_edge_overhang`ノードの未消費はgraph入力へ
+逆流させる変更ではなく、graph入力に既に存在する宣言をpipelineコードが正しく消費する
+ようにする修正である。生成物（STEP/3MF）の形状が変わるため、`examples/`配下の凍結
+スナップショットは別途更新する。
 
 ## マイルストーン4.4: SDK機能移譲
 
@@ -1083,6 +1126,8 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （実機実測）O-11 projection guardの判定を書き込み対象で行いlane起動とstop reportを許可 | 14.14 |
 | （実機実測）O-12 筐体lane entrypointと発注policyのGD1固定解消 | 14.14 |
 | （実機実測）O-13 rationale被覆検査の対象解決 | 14.14 |
+| （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |
+| （実機組み付け）筐体ネジ穴欠落（スタンドオフが固体円柱・リッドが平板） | 3.1 |
 
 ## 将来構想
 
