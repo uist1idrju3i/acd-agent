@@ -228,3 +228,39 @@ hook invocability は shebang のみ／exec bit のみ欠けたコピーで両�
 ## Devin Secrets Needed
 
 なし（public repo の匿名 clone とローカルツールのみで完結する）。
+
+## ambient installed plugin をGUI越しに最新へ更新する（実機VPSで確認）
+
+GUIの「プラグイン」ボタンは会話へ追加する公開plugin一覧であり、ambient install
+（`~/.openhands/plugins/installed/acd`）の更新導線ではない。tunnel越しでも
+agent-serverのinstall APIを直接叩けば正規経路で更新できる。
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/api/plugins/install \
+  -H 'content-type: application/json' \
+  -d '{"source":"github:uist1idrju3i/acd-agent","ref":"main","repo_path":"plugins/acd","force":true}'
+```
+
+- 更新後は `resolved_ref` を `git ls-remote origin main` と40桁照合する。
+- store配下のファイルを手で書き換えてはならない（検証の証拠にならない）。
+
+## doctor JSON全文はevent logから取るのが確実
+
+GUIの折り畳みを展開せずに、会話のevent JSONを直接grepする。
+
+```bash
+sudo grep -l "workspace firmware prerequisites" \
+  /home/openhands/.openhands/agent-canvas/dev_conversations/<conv-id>/events/event-*.json
+```
+
+## 既存成果物を壊さないための workspace 分離
+
+`/acd:init` は `--workspace <名前>` を受けるので、検証では既存の `acd-workspace` を
+避けて別名（例 `acd-workspace-verify`）を使い、既存workspaceのmtimeが変化しないことを
+確認する。GUI右パネルのファイルツリーは新規workspaceを即時表示しないことがあるため、
+実体の有無は read-only の `sudo ls` で確認する。
+
+## 期待digestは作業ツリーではなく origin/main から取る
+
+`docker/image-digests.json` は作業ツリー側が古いことがある。検証対象revisionの期待値は
+`git show origin/main:docker/image-digests.json` から取得する。
