@@ -49,6 +49,13 @@ jobs:
           python-version: "3.12"
           enable-cache: true
           cache-dependency-glob: uv.lock
+      - name: Lint GitHub Actions workflows
+        run: |
+          set -euo pipefail
+          curl -sSL \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz \
+            | tar xz -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/*.yml
       - name: Fast or standard verification
         env:
           CORE_CHANGED: ${{ needs.changes.outputs.core }}

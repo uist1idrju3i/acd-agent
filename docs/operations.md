@@ -874,6 +874,8 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 lockから解決したACD tools digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、
 GHCRへpublishする。publish後はtools（buildした場合）とderived serverのdigestとtagを
 1つのlock更新PRへ記録する。
+workflowを変更した場合は、CIの`verify` jobがactionlintで`.github/workflows`全体の
+構文を検査する。
 現行のbase tools digestは、Semeru／OpenJ9 JREとbuild時生成SCCを同梱した
 `sha256:901ffd495c4876d3c02ff9c3303c67a6ee0d2c54b39460bb370a2c8260bb602c`である。
 lockに記録済みのserver image
