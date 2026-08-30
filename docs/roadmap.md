@@ -446,7 +446,7 @@ placement確認宣言、graph_id由来のEvidence pathを使う実装として�
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 現行git revisionの設計入力、authoritative Evidence、7.2の総額、宣言された上限額 |
-| 実装 | 発注直前に全決定論的ゲートを現revisionで再実行し、上限額とゲート通過の2条件を判定する。order policyの`required_evidence_ids`へ電気laneの`evidence.gd1.electrical`を追加し、両laneのauthoritative Evidence一致を要求する |
+| 実装 | 発注直前に全決定論的ゲートを現revisionで再実行し、上限額とゲート通過の2条件を判定する。対象graph pathを検証し、order policyのEvidence lane宣言とgraph IDから両laneのEvidence IDを導出してauthoritative Evidence一致を要求する |
 | 正常系 | 全ゲートがrevision一致のauthoritative Evidenceで通り、総額が上限内のときだけ許可を返す |
 | negative/fail-closed | ゲート未実行、provisional Evidence、revision不一致、dirty入力、上限超過、判定unknownで却下する |
 | 再現性 | 同一revisionと同一入力で同一判定になり、各却下条件のnegative testを回帰へ含める |

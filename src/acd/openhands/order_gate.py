@@ -7,9 +7,8 @@ from pathlib import Path
 
 from openhands.sdk.git.exceptions import GitError
 
-from acd.core.naming import required_evidence_ids
 from acd.core.order_total import OrderTotalResult
-from acd.openhands.evidence.git import design_input_changes
+from acd.openhands.evidence.git import design_input_changes, is_design_input
 from acd.openhands.evidence.revision import resolve
 from acd.schema import (
     DesignGraph,
@@ -19,7 +18,10 @@ from acd.schema import (
     PreOrderGateRecord,
 )
 from acd.schema.common import Timestamp, canonical_sha256, contains_unknown
-from acd.schema.order_policy import validate_order_policy_for_graph
+from acd.schema.order_policy import (
+    resolve_required_evidence_ids,
+    validate_order_policy_for_graph,
+)
 
 
 class PreOrderGateError(ValueError):
@@ -30,24 +32,44 @@ def evaluate_pre_order_gate(
     *,
     repository: Path,
     policy: OrderPolicy,
+    design_graph_path: Path,
     order_total: OrderTotalResult,
     evidence_paths: Sequence[Path],
     evaluated_at: Timestamp,
 ) -> PreOrderGateRecord:
     """Validate authoritative Evidence and the 7.2 total without side effects."""
-    graph_paths = [
-        repository / path for path in policy.design_graph_paths
-    ]
-    if len(graph_paths) != 1:
-        raise PreOrderGateError("order policy must target exactly one design graph")
+    try:
+        repository_root = repository.resolve()
+    except OSError as exc:
+        raise PreOrderGateError(
+            f"repository path could not be resolved: {repository}"
+        ) from exc
+    candidate = (
+        design_graph_path
+        if design_graph_path.is_absolute()
+        else repository / design_graph_path
+    )
+    try:
+        graph_path = candidate.resolve()
+        relative_path = graph_path.relative_to(repository_root).as_posix()
+    except (OSError, ValueError) as exc:
+        raise PreOrderGateError(
+            f"design graph path must remain within repository: {design_graph_path}"
+        ) from exc
+    if not any(
+        relative_path.startswith(f"{root}/") for root in policy.design_graph_roots
+    ):
+        raise PreOrderGateError("design graph path is outside declared policy roots")
+    if not is_design_input(relative_path):
+        raise PreOrderGateError("design graph path is not a design input")
     try:
         graph = DesignGraph.model_validate_json(
-            graph_paths[0].read_text(encoding="utf-8")
+            graph_path.read_text(encoding="utf-8")
         )
         validate_order_policy_for_graph(policy, graph.graph_id)
     except (OSError, ValueError) as exc:
         raise PreOrderGateError(f"design graph policy validation failed: {exc}") from exc
-    current_revision = resolve(graph_paths)
+    current_revision = resolve([graph_path])
     if current_revision is None:
         raise PreOrderGateError(
             "design graph paths must resolve exactly one valid revision"
@@ -80,7 +102,9 @@ def evaluate_pre_order_gate(
         evidence_by_id[evidence.evidence_id] = evidence
 
     references: list[EvidenceReference] = []
-    for evidence_id in sorted(required_evidence_ids(graph.graph_id)):
+    for evidence_id in sorted(
+        resolve_required_evidence_ids(policy, graph.graph_id)
+    ):
         evidence = evidence_by_id.get(evidence_id)
         if evidence is None:
             raise PreOrderGateError(f"required Evidence is missing: {evidence_id}")

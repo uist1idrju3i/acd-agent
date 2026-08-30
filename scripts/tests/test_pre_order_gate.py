@@ -24,6 +24,8 @@ ROOT = Path(__file__).parents[2]
 GRAPH = ROOT / "fixtures/golden-design-1/graph.json"
 POLICY = ROOT / "fixtures/contracts/valid/order-policy.json"
 EVIDENCE = ROOT / "fixtures/contracts/valid/evidence.json"
+
+
 def _repository(tmp_path: Path) -> Path:
     graph = tmp_path / "fixtures/golden-design-1/graph.json"
     graph.parent.mkdir(parents=True)
@@ -111,6 +113,8 @@ def _args(
         str(POLICY),
         "--order-total",
         str(order_total),
+        "--design-graph",
+        str(repository / "fixtures/golden-design-1/graph.json"),
         "--evidence",
         str(evidence_paths[0]),
         "--evidence",
@@ -142,7 +146,15 @@ def test_rerun_cli_uses_explicit_authoritative_path(
     order_total, evidence_paths = _inputs(tmp_path)
     calls: list[tuple[Path, str]] = []
 
-    def fake_rerun(*, repository: Path, image: str) -> None:
+    def fake_rerun(
+        *,
+        repository: Path,
+        image: str,
+        design_graph_path: Path,
+        out_root: Path,
+    ) -> None:
+        assert design_graph_path == repository / "fixtures/golden-design-1/graph.json"
+        assert out_root == repository / "out"
         calls.append((repository, image))
 
     monkeypatch.setattr(pre_order_gate, "_rerun_authoritative", fake_rerun)

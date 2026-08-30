@@ -267,6 +267,7 @@ def _run_order_readiness(config: DesignLoopConfig) -> dict[str, Any]:
         record = evaluate_pre_order_gate(
             repository=config.repository,
             policy=policy,
+            design_graph_path=config.fixture_dir / "graph.json",
             order_total=order_total,
             evidence_paths=sorted(config.repository.glob(policy.evidence_paths)),
             evaluated_at=config.evaluated_at,

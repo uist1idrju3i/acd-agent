@@ -533,13 +533,15 @@ policyのartifact globに一致する製造成果物に触れる、または(2)�
 である場合だけEvidenceを要求する。コマンドは実行ファイルのtoken単位で検出し、
 URLは成果物として扱わないため、通常の`git push`、文書取得の`curl`、供給者データの
 取得は対象外である。policyのEvidence globで解決した各ファイルをCLIへ複数渡し、
-`required_evidence_ids`の各IDについて現revisionに一致する
-`supports_authoritative_pass()`が必要である。
+対象graph pathは呼び出し側が明示し、order policyは許可する相対graph rootと
+必要なEvidence laneを宣言する。gateは対象graphのgraph IDと宣言laneから
+Evidence IDを導出し、各IDについて現revisionに一致する
+`supports_authoritative_pass()`を要求する。
 GD1基板pipelineは`build_electrical_evidence()`で電気Evidenceを生成し、
 `out/gd1/evidence-electrical.json`へ書き出す。基板fabrication成果物の送信が
-fail-closedになるのは、order policyの`required_evidence_ids`に含まれる両laneの
-Evidenceについて、現revision一致かつauthoritative passを確認できない場合である。
-現行policyは`evidence.gd1.electrical`と`evidence.gd1.mechanical`の両方を要求する。
+fail-closedになるのは、order policyが宣言した両laneのEvidenceについて、現revision
+一致かつauthoritative passを確認できない場合である。現行policyはgraph IDから
+`evidence.<graph-prefix>.electrical`と`evidence.<graph-prefix>.mechanical`を導出する。
 
 Stopガードはorderガードより弱く、order policyのEvidence globで解決したファイルのうち、
 dirtyな設計入力より新しいmtimeのvalidかつunknownなしEvidenceが存在する場合に限り

@@ -362,6 +362,8 @@ API検証の合格根拠へ昇格させない。未検証はfail-closedとして
 
 ```bash
 uv run python scripts/pre_order_gate.py \
+  --design-graph fixtures/golden-design-1/graph.json \
+  --out-root out \
   --order-total out/order-total.json \
   --evidence out/gd1/evidence-electrical.json \
   --evidence out/gd1-enclosure/evidence-mechanical.json \
@@ -374,6 +376,8 @@ uv run python scripts/pre_order_gate.py \
 
 ```bash
 uv run python scripts/pre_order_gate.py \
+  --design-graph fixtures/golden-design-1/graph.json \
+  --out-root out \
   --order-total out/order-total.json \
   --evaluated-at 2026-08-14T00:00:00Z \
   --rerun-authoritative \

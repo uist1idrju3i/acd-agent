@@ -103,11 +103,14 @@ from acd.schema.order_execution import (
     dry_run_payload_hash,
 )
 from acd.schema.order_policy import (
+    EvidenceLane,
     EvidenceReference,
     OrderPolicy,
     PreOrderGateRecord,
     PreOrderGateRecordBody,
     required_order_evidence_ids,
+    resolve_required_evidence_ids,
+    validate_order_policy_for_graph,
 )
 from acd.schema.order_scope import (
     MechanicalTreatment,
@@ -234,6 +237,7 @@ __all__ = [
     "EventViewProjection",
     "Evidence",
     "EvidenceClaim",
+    "EvidenceLane",
     "EvidenceReference",
     "EvidenceStatus",
     "ExecutionMode",
@@ -373,4 +377,6 @@ __all__ = [
     "dry_run_payload_hash",
     "is_unknown",
     "required_order_evidence_ids",
+    "resolve_required_evidence_ids",
+    "validate_order_policy_for_graph",
 ]
