@@ -55,11 +55,15 @@ RUN apt-get update \
         fonts-dejavu-core \
         fonts-noto-cjk \
         ccache \
+        cmake \
+        ninja-build \
         xz-utils \
         libslirp0 \
         libsdl2-2.0-0 \
         libusb-1.0-0 \
     && kicad-cli --version | grep -E '^10\.' \
+    && cmake --version | grep -E '^cmake version 4\.' \
+    && ninja --version \
     && ldconfig -p | grep -q 'libcairo\.so\.2' \
     && ldconfig -p | grep -q 'libslirp\.so\.0' \
     && ldconfig -p | grep -q 'libSDL2-2\.0\.so\.0' \
