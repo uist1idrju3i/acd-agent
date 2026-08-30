@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -187,12 +188,58 @@ def test_image_firmware_tool_absence_fails_required_checks(tmp_path: Path) -> No
     assert "qemu-system-riscv32" in firmware_check["detail"]
 
 
+def test_image_firmware_probe_accepts_readable_non_executable_export(
+    tmp_path: Path,
+) -> None:
+    _, script = _copy_plugin(tmp_path)
+    idf = tmp_path / "esp-idf"
+    idf.mkdir()
+    export = idf / "export.sh"
+    export.write_text("#!/bin/sh\n", encoding="utf-8")
+    export.chmod(0o644)
+    tool_dir = tmp_path / "tools"
+    tool_dir.mkdir()
+    for name, output in {
+        "kicad-cli": "10.0.6",
+        "freerouting": "Freerouting v2.3.0",
+        "qemu-system-riscv32": "QEMU emulator version 9.2.2",
+        "cmake": "cmake version 4.2.3",
+    }.items():
+        tool = tool_dir / name
+        tool.write_text(f"#!/bin/sh\nprintf '%s\\n' '{output}'\n", encoding="utf-8")
+        tool.chmod(0o755)
+    completed, report = _run(
+        script,
+        tmp_path,
+        {
+            "docker": _docker_readable_firmware_stub(idf, tool_dir),
+            "git": (
+                'if [ "$1" = "rev-parse" ]; then '
+                'printf "%s\\n" "$PWD"; '
+                'elif [ "$1" = "submodule" ]; then '
+                'printf " 1234567 vendor/software-agent-sdk\\n"; '
+                "else exit 0; fi"
+            ),
+        },
+        doctor_args=["--workspace", str(ROOT)],
+    )
+
+    assert completed.returncode == 0
+    firmware_check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "workspace firmware prerequisites"
+    )
+    assert firmware_check["result"] == "pass"
+    assert "IDF_PATH/export.sh=present" in firmware_check["detail"]
+
+
 def test_container_mode_does_not_require_docker_cli(tmp_path: Path) -> None:
     _, script = _copy_plugin(tmp_path)
     idf = tmp_path / "esp-idf"
     idf.mkdir()
     (idf / "export.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-    (idf / "export.sh").chmod(0o755)
+    (idf / "export.sh").chmod(0o644)
     completed, report = _run(
         script,
         tmp_path,
@@ -517,6 +564,19 @@ def _docker_missing_firmware_stub() -> str:
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
         '=== qemu-system-riscv32 ===\\nmissing\\n'
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
+        "else exit 0; fi"
+    )
+
+
+def _docker_readable_firmware_stub(idf: Path, tool_dir: Path) -> str:
+    return (
+        'if [ "$1" = "--version" ]; then '
+        'printf "Docker version 27.4.1, build test\\n"; '
+        'elif [ "$1" = "run" ]; then '
+        '[ "$4" = "" ] || exit 88; '
+        f'export IDF_PATH={shlex.quote(str(idf))}; '
+        f'export PATH={shlex.quote(str(tool_dir))}:$PATH; '
+        '/bin/sh -c "$8"; '
         "else exit 0; fi"
     )
 
