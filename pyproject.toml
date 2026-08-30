@@ -9,9 +9,9 @@ dependencies = [
     "gerbonara>=1.6.3",
     "build123d==0.11.1",
     "cadquery-ocp==7.9.3.1.1",
-    "openhands-sdk==1.43.1",
-    "openhands-tools==1.43.1",
-    "openhands-workspace==1.43.1",
+    "openhands-sdk==1.44.1",
+    "openhands-tools==1.44.1",
+    "openhands-workspace==1.44.1",
     "cairosvg==2.9.0",
 ]
 

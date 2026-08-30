@@ -1,6 +1,6 @@
 """Explicit runtime bounds for digest-pinned container execution.
 
-Pinned SDK v1.43.1 runs every docker CLI call of ``DockerWorkspace`` through the
+Pinned SDK v1.44.1 runs every docker CLI call of ``DockerWorkspace`` through the
 module-level ``execute_command`` helper without a timeout, so ``docker version``,
 ``docker run``, ``docker inspect``, ``docker logs``, and ``docker stop`` can block
 without bound. The helpers here bound those calls, add an explicit container
