@@ -11,15 +11,10 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from fw_graph import FirmwareCapabilityPlan, FirmwareLane
 from fw_run import CommandRecord, resolve_tool, run_command
 
 FLASH_SIZE_BYTES = 4 * 1024 * 1024
-
-VIRTUAL_MEASUREMENT_CONDITIONS = (
-    "virtual device (QEMU esp32c3); no SHT40 attached; "
-    "virtual verification only, not real-device evidence"
-)
-
 
 class QemuUnavailableError(RuntimeError):
     """Raised when the QEMU binary cannot be verified."""
@@ -95,14 +90,49 @@ def assert_virtual_log_ok(
     log: str,
     *,
     target_revision: str,
-    led_gpio: int,
     boot_log_message: str,
+    lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
 ) -> None:
     expected_boot_line = boot_log_message.replace("%s", target_revision)
     if expected_boot_line not in log:
         raise VirtualRunCheckError("boot line with matching target revision not found")
-    toggles = re.findall(rf"LED gpio={led_gpio} state=([01])", log)
-    if len(toggles) < 2 or {"0", "1"} != set(toggles):
-        raise VirtualRunCheckError(f"expected LED toggles in both states, got {toggles[:4]}")
-    if "SHT40" not in log:
-        raise VirtualRunCheckError("no SHT40 read attempt found in virtual log")
+    capability_ids = {step.capability_id for step in plan.steps}
+    if "led_blink" in capability_ids:
+        led_gpio = lane.gpio_for_role("led")
+        toggles = re.findall(rf"LED gpio={led_gpio} state=([01])", log)
+        if len(toggles) < 2 or {"0", "1"} != set(toggles):
+            raise VirtualRunCheckError(
+                f"expected LED toggles in both states, got {toggles[:4]}"
+            )
+    if "i2c_sensor_read" in capability_ids:
+        sensor_step = next(
+            step for step in plan.steps if step.capability_id == "i2c_sensor_read"
+        )
+        if sensor_step.device is None:
+            raise VirtualRunCheckError("sensor read capability has no resolved device")
+        if sensor_step.device.driver_id.upper() not in log:
+            raise VirtualRunCheckError(
+                f"no {sensor_step.device.driver_id.upper()} read attempt found in virtual log"
+            )
+
+
+def measurement_conditions_for_plan(plan: FirmwareCapabilityPlan) -> str:
+    drivers = sorted(
+        {
+            step.device.driver_id.upper()
+            for step in plan.steps
+            if step.device is not None
+        }
+    )
+    if drivers == ["SHT40"]:
+        return (
+            "virtual device (QEMU esp32c3); no SHT40 attached; "
+            "virtual verification only, not real-device evidence"
+        )
+    if not drivers:
+        return "virtual device (QEMU esp32c3); no external device attached"
+    return (
+        f"virtual device (QEMU esp32c3); no {', '.join(drivers)} attached; "
+        "virtual verification only, not real-device evidence"
+    )

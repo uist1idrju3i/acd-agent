@@ -1,0 +1,89 @@
+{
+  "schema_version": "0.1",
+  "graph_id": "led-only-tag",
+  "revision": "r1",
+  "nodes": [
+    {
+      "id": "comp.u1",
+      "kind": "electrical.component",
+      "attrs": {"refdes": "U1", "mpn": "ESP32-C3-MINI-1-N4"},
+      "depends_on": []
+    },
+    {
+      "id": "net.led",
+      "kind": "electrical.net",
+      "attrs": {},
+      "depends_on": []
+    },
+    {
+      "id": "firmware.module.main",
+      "kind": "firmware.module",
+      "attrs": {
+        "module_name": "LED firmware",
+        "mcu_component": "comp.u1",
+        "entry_state": "fw.state.boot"
+      },
+      "depends_on": ["comp.u1", "fw.state.boot", "fw.state.loop"]
+    },
+    {
+      "id": "fw.state.boot",
+      "kind": "firmware.state",
+      "attrs": {"state_name": "boot", "initial": true},
+      "depends_on": ["firmware.module.main"]
+    },
+    {
+      "id": "fw.state.loop",
+      "kind": "firmware.state",
+      "attrs": {"state_name": "loop", "initial": false},
+      "depends_on": ["firmware.module.main"]
+    },
+    {
+      "id": "fw.transition.boot_loop",
+      "kind": "firmware.state_transition",
+      "attrs": {
+        "from_state": "fw.state.boot",
+        "to_state": "fw.state.loop",
+        "trigger": "boot_complete"
+      },
+      "depends_on": ["fw.state.boot", "fw.state.loop"]
+    },
+    {
+      "id": "fw.transition.loop_boot",
+      "kind": "firmware.state_transition",
+      "attrs": {
+        "from_state": "fw.state.loop",
+        "to_state": "fw.state.boot",
+        "trigger": "reset"
+      },
+      "depends_on": ["fw.state.loop", "fw.state.boot"]
+    },
+    {
+      "id": "fw.sequence.001",
+      "kind": "firmware.sequence_step",
+      "attrs": {
+        "action": "initialize_firmware",
+        "actor": "firmware.module.main",
+        "step_index": 10,
+        "target": "comp.u1"
+      },
+      "depends_on": ["firmware.module.main", "comp.u1"]
+    },
+    {
+      "id": "fw.sequence.002",
+      "kind": "firmware.sequence_step",
+      "attrs": {
+        "action": "toggle_led",
+        "actor": "firmware.module.main",
+        "step_index": 20,
+        "target": "comp.u1"
+      },
+      "depends_on": ["firmware.module.main", "comp.u1"]
+    },
+    {
+      "id": "fw.pin.led",
+      "kind": "firmware.pin_assignment",
+      "attrs": {"gpio": 7, "net": "net.led"},
+      "depends_on": ["net.led"]
+    }
+  ]
+}

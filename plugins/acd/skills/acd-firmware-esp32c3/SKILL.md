@@ -24,16 +24,16 @@ Reference implementations in `scripts/`, reusable as-is or as a starting point:
 
 | File | Purpose |
 |---|---|
-| `fw_project.py` | Projects an ESP-IDF project from the design graph firmware lane; pin macros are generated into `acd_pins.h`, so the graph stays the only source of pin assignments. |
+| `fw_project.py` | Projects an ESP-IDF project from the graph-driven firmware capability plan; declared pin roles and capability fragments are generated into the project, so undeclared peripherals produce no code. |
 | `fw_build.py` | Runs `idf.py build` / `merge-bin` through the pinned `IDF_PYTHON_ENV_PATH` interpreter and reports toolchain version plus source/artifact hashes. |
 | `fw_checks.py` | Cross-checks graph GPIO assignments against the electrical lane pads via a pinned module pad map, and checks the generated header against the graph. |
-| `fw_qemu.py` | Builds a flash image, runs QEMU esp32c3 for a bounded time, captures the serial log, and checks boot line, LED toggles and sensor read attempt. |
-| `run_fw_pipeline.py` | Runs the whole sequence for Golden Design #1. |
+| `fw_qemu.py` | Builds a flash image, runs QEMU esp32c3 for a bounded time, captures the serial log, and checks only the boot line and behaviors declared by the graph. |
+| `run_fw_pipeline.py` | Runs the graph-driven firmware sequence for a design fixture, including registry provenance. |
 
 ## Usage
 
 ```bash
-# Full reference pipeline (needs ESP-IDF and qemu-system-riscv32).
+# Full firmware pipeline (needs ESP-IDF and qemu-system-riscv32).
 uv run --with cmake==3.31.6 --script plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py \
     --fixture fixtures/golden-design-1 --out out/gd1-fw
 
@@ -58,6 +58,9 @@ when a tool is missing; tests that need the tools skip instead.
 
 - The design graph is the only source of pin assignments. Never edit
   `acd_pins.h` by hand: change the graph and re-project.
+- Firmware capability, pin-role ordering, and device parameters come from
+  `contracts/firmware-capability-registry.json` plus graph sequence steps.
+  A peripheral absent from the graph declaration is not projected.
 - A QEMU log is virtual verification. It never counts as real-device
   measurement evidence; state real-device measurement as unavailable when no
   probe is attached.

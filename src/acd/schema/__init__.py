@@ -71,6 +71,11 @@ from acd.schema.functional_block import (
     FunctionalBlockContract,
     FunctionalBlockRegistryDocument,
 )
+from acd.schema.firmware_capability import (
+    FirmwareCapabilityContract,
+    FirmwareCapabilityRegistryDocument,
+    FirmwareDeviceContract,
+)
 from acd.schema.functional_run import (
     FunctionalArtifact,
     FunctionalCheckReport,

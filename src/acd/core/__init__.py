@@ -28,6 +28,11 @@ from acd.core.firmware_consistency import (
     check_firmware_graph_consistency,
     evaluate_firmware_graph_consistency,
 )
+from acd.core.firmware_capability import (
+    FirmwareCapabilityContractError,
+    FirmwareCapabilityRegistry,
+    load_firmware_capability_registry,
+)
 from acd.core.functional_block_entry import (
     FunctionalBlockEntryResult,
     register_functional_block_contract,
@@ -103,6 +108,8 @@ __all__ = [
     "FunctionalBlockEntryResult",
     "FunctionalBlockRegistry",
     "FunctionalRunError",
+    "FirmwareCapabilityContractError",
+    "FirmwareCapabilityRegistry",
     "JournalOrderReconstruction",
     "OrderSubmissionProvider",
     "OrderSubtotal",
@@ -118,6 +125,7 @@ __all__ = [
     "SideEffectJournalError",
     "aggregate_order_total",
     "append_post_order",
+    "load_firmware_capability_registry",
     "append_pre_order",
     "build_dry_run_order_payload",
     "build_order_submission_record",

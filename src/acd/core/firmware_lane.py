@@ -230,7 +230,6 @@ def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:
             "firmware lane requires at least one sequence step"
         )
     sequence_steps: list[FirmwareSequenceStepView] = []
-    indexes: list[int] = []
     sequence_ids: set[int] = set()
     for node in sequence_nodes:
         step_index = _int_attr(node, "step_index")
@@ -252,7 +251,6 @@ def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:
                 f"node reference target={target!r} has an unsupported kind"
             )
         _require_dependency_set(node, {actor, target}, "sequence step")
-        indexes.append(step_index)
         sequence_steps.append(
             FirmwareSequenceStepView(
                 node_id=node.id,
@@ -261,11 +259,6 @@ def extract_firmware_lane(graph: DesignGraph) -> FirmwareLane:
                 target=target,
                 action=_str_attr(node, "action"),
             )
-        )
-    expected_indexes = list(range(1, len(sequence_steps) + 1))
-    if sorted(indexes) != expected_indexes:
-        raise GraphExtractionError(
-            "firmware sequence step_index must be a contiguous 1-based sequence"
         )
     sequence_steps.sort(key=lambda step: step.step_index)
 
