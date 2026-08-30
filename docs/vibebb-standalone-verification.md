@@ -1,4 +1,4 @@
-# VibeBB単体成立性の検証記録（2026-08-24, Devin環境）
+# VibeBB単体成立性の検証記録（2026-08-24 Devin環境／2026-08-30 多コアVPS）
 
 > ステータス: Accepted
 > 対象: OpenHands Software Agent SDK v1.44.1
@@ -7,6 +7,9 @@
 「acd-agent単体でVibeBBが成立するか」を、汎用エージェント環境（Devin）で実行可能な範囲まで
 実際に走らせて確認した記録である。既存の閾値、ゲート挙動、fail-closed境界、L1権限、dry-run既定は
 変更していない。ツール不在や検証不能は「問題なし」ではなく「fail-closed／未検証」として記録する。
+
+第1回（1〜8節）は2026-08-24のDevin環境での記録、9節は2026-08-30の多コアVPSと
+実機OpenHandsでの記録である。
 
 - 対象revision: main `775e889`（`vendor/software-agent-sdk` v1.44.1 / `9d143aac`）
 - 実行環境: Ubuntu 22.04, x86_64, 2 vCPU, Docker利用可
@@ -145,3 +148,101 @@ lane並列（`--jobs 3`）、段順序のfail-closed、authoritative Evidence生
 4. 実機FW（M-5）とL2会話段（M-6）はDevin環境では検証できない。virtual結果を実機合格へ
    昇格させる経路は存在せず、区別は保たれていた。
 5. acd-agent内で閉じる残存不足はM-1とM-2である。
+
+## 9. 第2回検証（2026-08-30, 多コアVPS + 実機OpenHands）
+
+第1回はDevin環境（2 vCPU）でのscript実行が中心で、OpenHandsのGUI会話経路と多コア環境での
+資源特性が未検証だった。第2回は検証用VPSと利用者のOpenHands常駐サーバを使い、
+GUI会話からの経路と資源消費を実測した。
+
+- 対象revision: plugin installed store `63a567d`（remote mainと一致、`plugins/acd`、plugin版0.0.2）
+- 実行環境: Ubuntu 26.04、x86_64、CPU 8コア、MemTotal 15.0 GiB（swap 22 GiB）、Docker 29.1.3
+- OpenHands: host常駐process（ingress `*:8000`、SSH tunnel経由でLocal GUIへ到達）、
+  workspace `test260830`（`/home/openhands/repos/test260830`、初期状態は空のgit repository）
+- 資源計測: 1秒間隔でホスト`/proc`、OpenHands常駐process群、ACD host process群、
+  Docker cgroupを記録。計測経路はauthoritative Evidenceを生成しない観測（L3）である。
+
+### 9.1 決定論的laneの再現（authoritative）
+
+VPS上の独立checkoutで、digest固定server imageを`scripts/run_in_workspace.py`
+（`DockerWorkspace`）経由で実行した。silkscreen resolver、GD1基板pipeline、GD1筐体pipelineは
+container上限8 GiB／`--jobs 4`でexit=0となり、
+`scripts/verify_authoritative_evidence.py`は`OK: 2 authoritative Evidence file(s) verified`
+（exit=0）を返した。生成Evidenceは`execution_context: container`、`status: valid`、
+revision一致であり、第1回（2 vCPU）と同じ判定である。
+
+FW laneはESP-IDFビルドとQEMU仮想実行まで到達したが、`out/container/`にFWの
+authoritative Evidence JSONは生成されない。実機書き込みとLED実測は実施していない（M-5）。
+見積取得・決済・実発注は実行していない（M-3）。
+
+### 9.2 資源消費と最低・推奨スペック
+
+実測値と条件別の表は[`operations.md`](operations.md)の
+「多コアVPSでの資源実測と推奨スペック（2026-08-30）」に記録した。要点は次のとおりである。
+
+1. 8 GiB／`--jobs 4`ではホストCPU peak 7.98コア（平均2.5コア）、ホストmem used peak
+   4.18 GiB、Docker `memory.peak` 5.36 GiB、swap使用0で、wallは220〜225秒だった。
+2. `--jobs 1`は304秒、`--jobs 4`は220〜225秒で約27%短縮する。CPUは4コアでほぼ飽和し
+   （250秒）、2コアでも321秒で完走する。
+3. container上限4 GiBはGD1では完走するが`memory.current`が上限へ張り付く。2 GiBは
+   `runtime.jvm_heap.exceeds_container_limit`でlane実行前にfail-closedする（OOMではない）。
+4. 推奨は4コア以上／物理RAM 12 GiB以上（OpenHands同居なら16 GiB）／container上限8 GiB／
+   `--jobs 4`とする。GD1で完走を確認した下限は2コア／container 4 GiBであり、他設計での
+   完走は保証しない。
+
+### 9.3 GUI会話からの経路（L2、観測のみ）
+
+workspace `test260830`のLocal GUIで`/acd:init`と`/acd:vibebb-loop`を会話から実行した。
+
+| 手順 | 結果 |
+|---|---|
+| plugin活性化 | installed store `acd` 0.0.2（`github:uist1idrju3i/acd-agent`）がrevision `63a567d`で解決済み。GUIのSkill一覧にACD Skillsが表示された |
+| `/acd:init --repo-url … --revision 63a567d… --workspace acd-workspace` | clone、submodule、plugin検査はpass。doctor段でfail-closedし`bootstrap-record.json`は生成されない（9.4の欠陥） |
+| `/acd:vibebb-loop`（GD1のコピーでない新規設計を自然文要件から生成） | fixture（`spec.json`／`requirements.json`／`graph.json`／`rationale.json`／library）を生成し、要件入口整合検査pass、silkscreen-resolve pass（2.95秒、iteration 2回）、基板pipelineのpre-router述語段で停止 |
+
+新規設計（`vibebb-sensor-node`: USB-C bus power、3.3V LDO、ESP32-C3-MINI-1、SHT40、状態LED、
+2層40×30mm）でGD1以外のgraphが固定順序loopへ入り、silkscreen barrierまで通過することを
+実測できた。停止はゲートの正常動作であり、内訳は次の2点である。
+
+1. `power_decoupling`が`C4`とU1のpad距離15.838 mm（上限3.0 mm）で不合格。remediationは
+   `component_placement_xy`の変更を提示した。`power_boundary`は安全境界nodeが未特定のため
+   `unknown`であり、fail-closedとして扱われた。
+2. rationale coverageが`fail`（`required_count` 318 / `covered_count` 302）。`comp.c3`の
+   `footprint`・`mpn`・`lcsc`・`assembly`・`placement_rotation_deg`が`missing`かつ既存
+   rationaleが`stale`である。
+
+GUIの進行表示、L2 agentの説明、Skill出力はいずれも観測であり、合格側Evidenceではない。
+本節の判定は生成ファイル（`out/vibebb-sensor-node/**`のtiming record、gate evidence、
+rationale coverage）を直接読んで確認した内容に限る。会話1回で新規設計をVibeBB loopの
+末端（発注可否）まで通すことは今回到達していない。
+
+### 9.4 欠陥（install doctorのESP-IDF判定）
+
+`/acd:init`のdoctor段が、lock済みserver image内で
+`missing: IDF_PATH/export.sh`を報告してfail-closedした。digest固定imageを直接調べると
+`IDF_PATH=/opt/esp-idf`、`/opt/esp-idf/export.sh`は存在し（`-rw-r--r--`）、sourceすると
+`idf.py`が解決できる。原因は`install_doctor.py`のprobeが`test -x`で実行ビットを要求して
+いたことであり、実際の利用側はすべて`.`（source）で読むだけである。現行の公開imageでは
+`/acd:init`が常にdoctor段で停止する偽陰性であった。
+
+判定を「読み取り可能な通常ファイル」（`test -f` かつ `test -r`、container判定は
+`Path.is_file()` かつ `os.access(..., R_OK)`）へ統一し、実行ビットのないreadableな
+`export.sh`を`pass`とする回帰テストを追加した。fail-closed境界と閾値は緩めていない。
+
+### 9.5 気づきと改善提案
+
+1. doctor判定は「ツールをどう使うか」と一致させる。sourceする資材へ`test -x`を課すと
+   image側の権限変更で偽陰性になる。他のprobeにも同種の前提がないか点検する余地がある。
+2. 新規設計の1周目は、部品配置（`power_decoupling`）とrationale coverageで止まりやすい。
+   `build_design_fixture`が生成する初期配置はdecoupling距離制約を考慮しないため、
+   loopが配置修正へ収束する前提の反復回数が増える。初期配置生成時にdecoupling距離を
+   満たす配置制約を入れる、または不足rationaleを`missing`一覧として先に提示する改善が有効である。
+3. FW laneはQEMU実行終了時に`terminating on signal 15 from pid … (timeout)`をログへ残すが、
+   pipelineはbuild・QEMU仮想実行・log検査をpassとしてexit=0で終える。これは想定した
+   時間打ち切りであり外側commandのtimeoutではないが、ログだけを見ると失敗と誤読しやすい。
+   意図的な打ち切りである旨をログへ明示する改善が有効である。
+4. FW laneのauthoritative Evidence JSONが`out/container/`へ生成されないため、
+   基板・筐体と同じ決定論的検査（`verify_authoritative_evidence.py`）の対象にできない。
+5. 資源preflightの停止理由は`--jvm-max-heap`とcontainer上限の関係に依存する。4 GiB以下で
+   運用する場合は`--jvm-max-heap`の同時引き下げが必要である旨が、CLIの停止メッセージから
+   一段で分かるようになっている（今回の2 GiB試験で確認した）。
