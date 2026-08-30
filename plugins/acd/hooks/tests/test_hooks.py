@@ -72,6 +72,167 @@ def test_unknown_protected_terminal_command_is_denied() -> None:
     assert output["decision"] == "deny"
 
 
+def test_projection_guard_allows_pipeline_output_and_stop_report_writes() -> None:
+    lane = (
+        "uv run --script "
+        "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py "
+        "--fixture fixtures/golden-design-1 --out out/gd1-fw"
+    )
+    assert run("protect_projections.py", {"command": lane}, "terminal")[0] == 0
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": lane.replace("--out out/gd1-fw", "--out=out/gd1-fw")},
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": f'bash -c "{lane}"'},
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "printf '{}' > out/stop-report.json"},
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {
+                "command": (
+                    "python3 -c "
+                    '"open(\'out/stop-report.json\',\'w\').write(\'{}\')"'
+                )
+            },
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": f'bash -c "{lane} && echo done"'},
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "find out -name '*.kicad_pcb'"},
+            "terminal",
+        )[0]
+        == 0
+    )
+
+
+def test_projection_guard_denies_write_targets_and_nested_bypasses() -> None:
+    commands = (
+        "bash -c \"rm -rf out/gd1-board\"",
+        "echo x > out/board.kicad_pcb",
+        "sed -i s/a/b/ out/board.kicad_pcb",
+        "cp fixtures/x out/board.kicad_pcb",
+        "tee out/board.kicad_pcb",
+        "python3 -c \"open('out/board.kicad_pcb','w')\"",
+        "echo x & rm out/board.kicad_pcb",
+        "echo x\nrm out/board.kicad_pcb",
+        "echo $(rm out/board.kicad_pcb)",
+        "echo `rm out/board.kicad_pcb`",
+        "echo out/board.kicad_pcb | xargs rm",
+        "find out -delete",
+        "find out -exec rm {} +",
+        "sed -ni s/a/b/ out/board.kicad_pcb",
+    )
+    for command in commands:
+        assert run("protect_projections.py", {"command": command}, "terminal")[0] == 2
+
+
+def test_projection_guard_editor_and_patch_contracts() -> None:
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "view", "path": "out/result.zip"},
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "str_replace", "path": "out/board.kicad_pcb"},
+        )[0]
+        == 2
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: out/board.kicad_pcb\n"
+                    "@@\n"
+                    "-old\n"
+                    "+new\n"
+                    "*** End Patch\n"
+                ),
+            },
+            "apply_patch",
+        )[0]
+        == 2
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: out/stop-report.json\n"
+                    "@@\n"
+                    "-old\n"
+                    "+new\n"
+                    "*** End Patch\n"
+                ),
+            },
+            "apply_patch",
+        )[0]
+        == 0
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"patch": "*** Begin Patch\n@@\n+no header\n*** End Patch\n"},
+            "apply_patch",
+        )[0]
+        == 2
+    )
+
+
+def test_projection_guard_parse_failures_are_denied() -> None:
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "bash -c \"rm out/result.zip"},
+            "terminal",
+        )[0]
+        == 2
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "cat \x00out/result.zip"},
+            "terminal",
+        )[0]
+        == 2
+    )
+
+
 def _clean_hook_repo(tmp_path: Path) -> Path:
     graph = tmp_path / "fixtures/golden-design-1/graph.json"
     graph.parent.mkdir(parents=True)

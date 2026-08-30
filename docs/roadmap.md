@@ -1130,7 +1130,7 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （実機実測）O-8 収集入口へのlane log取り込み | 15.16 |
 | （実機実測）O-9 router pass予算既定の単一定数化 | 14.14 |
 | （実機実測）O-10 FW laneの必要netと生成codeのGD1固定解消 | 14.14 |
-| （実機実測）O-11 projection guardの判定を書き込み対象で行いlane起動とstop reportを許可 | 14.14 |
+| （達成）O-11 projection guardの判定を書き込み対象で行いlane起動とstop reportを許可 | 14.14 |
 | （実機実測）O-12 筐体lane entrypointと発注policyのGD1固定解消 | 14.14 |
 | （実機実測）O-13 rationale被覆検査の対象解決 | 14.14 |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |
