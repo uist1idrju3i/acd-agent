@@ -181,7 +181,7 @@ def test_missing_firmware_declarations_keep_the_lane_incomplete() -> None:
         )
     )
     report = run_lane_preflight(graph, ("firmware-pipeline",))
-    assert report.status == "incomplete"
+    assert report.status == "declarations_incomplete"
     assert {item.kind for item in report.lanes[0].missing_nodes} >= {"firmware.module"}
 
 

@@ -62,12 +62,16 @@ rationale coverage hook（Stop・PostToolUse）はACD checkoutの
 `plugins/acd/hooks/scripts/check_rationale.py`へ移し、上記の3候補解決を通す。同梱script
 は次の意味論を持つ。
 
-- rationale入力（`fixtures/golden-design-1/graph.json`と`rationale.json`）が無い場合は
-  not applicableとしてexit code 0。従来の`--if-present`と同じ。
+- 対象設計は`ACD_TARGET_DESIGN`、変更されたfixture、単一fixtureの順に解決する。
+  複数または0件、git状態の取得不能は`not_applicable`としてexit code 0とし、
+  `pass`を表示しない。
+- 解決した対象の`graph.json`と`rationale.json`が無い場合は、warn-onlyでなければ
+  denyでexit code 2としてfail-closedにする。rationale入力はGD1に固定しない。
 - 入力があるがworkspaceに`scripts/check_rationale.py`が無い場合は、warn-onlyでなければ
   denyでexit code 2としてfail-closedにする。
 - 入力とvalidatorが揃う場合はworkspaceのvalidatorを`uv run --project <workspace>`で実行し、
-  その終了コードを返す。warn-only（PostToolUse）は従来どおりblockしない。
+  `--graph`と`--rationale`へ解決済みpathを渡し、その終了コードを返す。
+  warn-only（PostToolUse）は従来どおりblockしない。
 
 ## 影響
 
