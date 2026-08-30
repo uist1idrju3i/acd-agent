@@ -115,6 +115,11 @@ def test_gate_stops_on_unconnected_items() -> None:
 
 def test_convergence_gate_fails_closed() -> None:
     assert_converged("converged")
-    for state in ("not_converged", "unknown", "not_applicable"):
+    for state in ("not_converged", "unknown", "not_applicable", "timed_out"):
         with pytest.raises(GateError):
             assert_converged(state)
+
+
+def test_convergence_gate_reports_timeout() -> None:
+    with pytest.raises(GateError, match="timed out"):
+        assert_converged("timed_out")

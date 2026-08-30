@@ -8,6 +8,7 @@ performs no gate judgment.
 from __future__ import annotations
 
 import hashlib
+import math
 import os
 import platform
 import re
@@ -25,6 +26,27 @@ from acd.schema.tool_envelope import ConvergenceState
 
 class ExternalToolError(RuntimeError):
     """Raised when an external tool run cannot be trusted (fail-closed)."""
+
+
+DEFAULT_TOOL_TIMEOUT_S: float = 600.0
+
+
+class ToolTimeoutError(ExternalToolError):
+    """Raised when an external tool exceeds its configured timeout."""
+
+    def __init__(
+        self,
+        *,
+        tool_name: str,
+        timeout_s: float,
+        stdout: str,
+        stderr: str,
+    ) -> None:
+        self.tool_name = tool_name
+        self.timeout_s = timeout_s
+        self.stdout = stdout
+        self.stderr = stderr
+        super().__init__(f"{tool_name} timed out after {timeout_s} seconds (fail-closed)")
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -106,8 +128,15 @@ def run_tool(
     convergence_state: ConvergenceState = "not_applicable",
     allowed_exit_codes: frozenset[int] = frozenset({0}),
     cwd: Path | None = None,
+    timeout_s: float = DEFAULT_TOOL_TIMEOUT_S,
 ) -> ToolRun:
     """Run ``command`` and envelope the run."""
+    try:
+        valid_timeout = math.isfinite(timeout_s) and timeout_s > 0
+    except (TypeError, ValueError):
+        valid_timeout = False
+    if not valid_timeout:
+        raise ExternalToolError("tool timeout must be finite and positive")
     for path in input_paths:
         if not path.is_file():
             raise ExternalToolError(f"{tool_name}: input file missing: {path}")
@@ -115,14 +144,48 @@ def run_tool(
     config_hash = sha256_bytes("\x00".join(command).encode())
 
     started_at = datetime.now(UTC)
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        cwd=cwd,
-        check=False,
-        timeout=600,
-    )
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            check=False,
+            timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired as exc:
+        finished_at = datetime.now(UTC)
+        stdout = _decode_timeout_output(exc.stdout)
+        stderr = _decode_timeout_output(exc.stderr)
+        context, digest = execution_provenance()
+        envelope = ToolEnvelope(
+            tool_name=tool_name,
+            tool_version=tool_version,
+            format_version=format_version,
+            config_hash=config_hash,
+            input_hash=input_hash,
+            output_hash="unknown",
+            execution_env=execution_env(),
+            execution_context=context,
+            container_image_digest=digest,
+            measurement_conditions=measurement_conditions,
+            convergence_state="timed_out",
+            target_revision=target_revision,
+            started_at=started_at,
+            finished_at=finished_at,
+            exit_code=None,
+            uncertainty=(
+                f"tool timed out after {timeout_s} seconds; outputs not produced"
+            ),
+        )
+        envelope_path.parent.mkdir(parents=True, exist_ok=True)
+        envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
+        raise ToolTimeoutError(
+            tool_name=tool_name,
+            timeout_s=timeout_s,
+            stdout=stdout,
+            stderr=stderr,
+        ) from exc
     finished_at = datetime.now(UTC)
     if result.returncode not in allowed_exit_codes:
         raise ExternalToolError(
@@ -154,6 +217,14 @@ def run_tool(
     envelope_path.parent.mkdir(parents=True, exist_ok=True)
     envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
     return ToolRun(envelope=envelope, stdout=result.stdout, stderr=result.stderr)
+
+
+def _decode_timeout_output(value: bytes | str | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
 
 
 def run_in_process(

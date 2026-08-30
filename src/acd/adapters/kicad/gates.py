@@ -44,4 +44,6 @@ def assert_rule_check_passed(
 
 def assert_converged(convergence_state: str) -> None:
     if convergence_state != "converged":
+        if convergence_state == "timed_out":
+            raise GateError("router timed out before convergence (fail-closed)")
         raise GateError(f"router convergence_state={convergence_state!r} (fail-closed)")

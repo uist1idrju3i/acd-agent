@@ -13,7 +13,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from acd.core.process import ExternalToolError, ToolRun, run_tool
+from acd.core.process import DEFAULT_TOOL_TIMEOUT_S, ExternalToolError, ToolRun, run_tool
 
 _EXIT_OK_OR_VIOLATIONS = frozenset({0, 5})
 
@@ -83,6 +83,7 @@ class KicadCli:
             target_revision=target_revision,
             measurement_conditions="single run; project-local library tables",
             allowed_exit_codes=_EXIT_OK_OR_VIOLATIONS,
+            timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
         report = json.loads(report_path.read_text())
         # DRC reports carry violations at top level; ERC nests them per sheet.
@@ -131,6 +132,7 @@ class KicadCli:
                 "zone refill; save-board; sibling project file and project-local "
                 "library tables"
             ),
+            timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
 
     def export_netlist(self, schematic: Path, out_path: Path, target_revision: str) -> ToolRun:
@@ -155,6 +157,7 @@ class KicadCli:
             envelope_path=out_path.with_suffix(out_path.suffix + ".envelope.json"),
             target_revision=target_revision,
             measurement_conditions="single run; project-local library tables",
+            timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
 
     def export_gerbers(
@@ -189,6 +192,7 @@ class KicadCli:
             envelope_path=out_dir / "gerbers.envelope.json",
             target_revision=target_revision,
             measurement_conditions="single run; no X2 attributes",
+            timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
         return run, expected
 
@@ -222,6 +226,7 @@ class KicadCli:
             envelope_path=out_dir / "drill.envelope.json",
             target_revision=target_revision,
             measurement_conditions="single run; mm decimal excellon",
+            timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
         return run, expected
 
@@ -252,6 +257,7 @@ class KicadCli:
             envelope_path=out_path.with_suffix(out_path.suffix + ".envelope.json"),
             target_revision=target_revision,
             measurement_conditions="csv; mm; both sides; exclude DNP; shared board origin",
+            timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
 
 

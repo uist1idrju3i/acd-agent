@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.core.design_freedom import load_design_freedom_declaration
 from acd.core.design_predicates import evaluate_design_predicates, evaluate_strapping_pin
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
@@ -38,7 +39,6 @@ SEARCHABLE_DIMENSIONS = frozenset(
         "gpio_assignment",
     }
 )
-DEFAULT_MAX_PASSES = 3
 
 
 class ExplorationError(ValueError):
@@ -564,7 +564,7 @@ def explore_board_candidates(
     out_dir: Path,
     max_candidates: int,
     *,
-    max_passes: int = DEFAULT_MAX_PASSES,
+    max_passes: int = DEFAULT_ROUTER_MAX_PASSES,
     dry_run: bool = False,
     pipeline_runner: PipelineRunner | None = None,
 ) -> ExplorationResult:

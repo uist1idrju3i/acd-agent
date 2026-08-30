@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.core.timestamps import parse_evaluated_at
 from acd.pipeline.design_loop import run_design_loop
 
@@ -51,7 +52,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--fab-profile", type=Path, default=None)
     parser.add_argument("--fab-profile-id", default=None)
-    parser.add_argument("--max-passes", type=int, default=3)
+    parser.add_argument("--max-passes", type=int, default=DEFAULT_ROUTER_MAX_PASSES)
     parser.add_argument("--max-silkscreen-iterations", type=int, default=5)
     parser.add_argument("--run-seconds", type=int, default=15)
     parser.add_argument("--evaluated-at", default=None)

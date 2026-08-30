@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.core.exploration import explore_board_candidates
 from acd.core.order_total import (
     aggregate_order_total,
@@ -480,7 +481,7 @@ def run_design_loop(
     repository: Path | None = None,
     fab_profile: Path | None = None,
     fab_profile_id: str | None = None,
-    max_passes: int = 3,
+    max_passes: int = DEFAULT_ROUTER_MAX_PASSES,
     max_silkscreen_iterations: int = 5,
     run_seconds: int = 15,
     evaluated_at: datetime | None = None,

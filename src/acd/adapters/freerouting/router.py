@@ -13,7 +13,12 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from acd.core.process import ExternalToolError, ToolRun, run_tool
+from acd.core.process import (
+    DEFAULT_TOOL_TIMEOUT_S,
+    ExternalToolError,
+    ToolRun,
+    run_tool,
+)
 from acd.schema.tool_envelope import ConvergenceState
 
 
@@ -23,6 +28,7 @@ class RouterUnavailableError(ExternalToolError):
 
 _VERSION_PATTERN = re.compile(r"Freerouting v([0-9]+\.[0-9]+\.?[0-9]*)")
 DEFAULT_FREEROUTING_THREADS: int | None = None
+DEFAULT_ROUTER_MAX_PASSES = 100
 
 
 class FreeroutingRunner:
@@ -58,8 +64,9 @@ class FreeroutingRunner:
         dsn_path: Path,
         ses_path: Path,
         target_revision: str,
-        max_passes: int = 100,
+        max_passes: int = DEFAULT_ROUTER_MAX_PASSES,
         freerouting_threads: int | None = DEFAULT_FREEROUTING_THREADS,
+        timeout_s: float = DEFAULT_TOOL_TIMEOUT_S,
     ) -> ToolRun:
         if freerouting_threads is not None and freerouting_threads < 1:
             raise ValueError("freerouting thread count must be positive")
@@ -97,6 +104,7 @@ class FreeroutingRunner:
             target_revision=target_revision,
             measurement_conditions=measurement_conditions,
             convergence_state="unknown",
+            timeout_s=timeout_s,
         )
         convergence = _convergence_from_log(run.stdout + run.stderr)
         envelope = run.envelope.model_copy(update={"convergence_state": convergence})
@@ -106,7 +114,12 @@ class FreeroutingRunner:
 
 
 def _convergence_from_log(log: str) -> ConvergenceState:
-    matches = re.findall(r"\(([0-9]+) unrouted", log)
+    matches = router_pass_progression(log)
     if not matches:
         return "unknown"
     return "converged" if int(matches[-1]) == 0 else "not_converged"
+
+
+def router_pass_progression(log: str) -> tuple[int, ...]:
+    """Return every router completion-report unrouted count in log order."""
+    return tuple(int(value) for value in re.findall(r"\(([0-9]+) unrouted", log))

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@ba8e90b14ebf71464fc4579461a67650716b82be",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@626b72aa7217d24d9c32361a65cc66d998eb2616",
 # ]
 # ///
 """Typed extraction of the firmware lane from a design graph.

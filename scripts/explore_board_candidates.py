@@ -8,8 +8,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.core.exploration import (
-    DEFAULT_MAX_PASSES,
     ExplorationError,
     explore_board_candidates,
 )
@@ -54,7 +54,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--max-passes",
         type=_positive_int,
-        default=DEFAULT_MAX_PASSES,
+        default=DEFAULT_ROUTER_MAX_PASSES,
         help="bounded router pass budget per candidate",
     )
     parser.add_argument("--dry-run", action="store_true", help="do not write a confirmed winner")

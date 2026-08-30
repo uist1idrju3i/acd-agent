@@ -18,7 +18,9 @@ from acd.schema.common import (
     VersionOrUnknown,
 )
 
-ConvergenceState = Literal["converged", "not_converged", "not_applicable", "unknown"]
+ConvergenceState = Literal[
+    "converged", "not_converged", "not_applicable", "unknown", "timed_out"
+]
 
 
 class ToolEnvelope(AcdModel):
