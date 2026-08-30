@@ -43,30 +43,37 @@ def _evaluated_at(value: str) -> datetime:
     return parse_evaluated_at(value)
 
 
-def _rerun_authoritative(
+def _repository_relative_path(path: Path, repository: Path) -> str:
+    if not path.is_absolute():
+        return path.as_posix()
+    try:
+        return path.resolve().relative_to(repository.resolve()).as_posix()
+    except (OSError, ValueError) as exc:
+        raise ValueError(f"path is outside repository: {path}") from exc
+
+
+def authoritative_commands(
     *,
     repository: Path,
-    image: str,
     design_graph_path: Path,
     out_root: Path,
-) -> None:
-    try:
-        graph = DesignGraph.model_validate_json(
-            design_graph_path.read_text(encoding="utf-8")
-        )
-        plan = build_lane_plan(graph.graph_id, out_root)
-        board_output = plan.stage("board-pipeline").output_path
-        enclosure_output = plan.stage("enclosure-pipeline").output_path
-        if board_output is None or enclosure_output is None:
-            raise ValueError("authoritative lane output path is undeclared")
-        board_output_relative = board_output.relative_to(repository).as_posix()
-        enclosure_output_relative = enclosure_output.relative_to(repository).as_posix()
-        fixture_relative = design_graph_path.parent.relative_to(repository).as_posix()
-    except (OSError, ValueError) as exc:
-        raise PreOrderGateError(
-            f"could not resolve authoritative lane outputs: {exc}"
-        ) from exc
-    commands = (
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    graph = DesignGraph.model_validate_json(
+        design_graph_path.read_text(encoding="utf-8")
+    )
+    plan = build_lane_plan(graph.graph_id, out_root)
+    board_output = plan.stage("board-pipeline").output_path
+    enclosure_output = plan.stage("enclosure-pipeline").output_path
+    if board_output is None or enclosure_output is None:
+        raise ValueError("authoritative lane output path is undeclared")
+    board_output_relative = _repository_relative_path(board_output, repository)
+    enclosure_output_relative = _repository_relative_path(
+        enclosure_output, repository
+    )
+    fixture_relative = _repository_relative_path(
+        design_graph_path.parent, repository
+    )
+    return (
         (
             "uv run python scripts/run_gd1_pipeline.py "
             f"--fixture {fixture_relative} --out {board_output_relative}",
@@ -78,6 +85,25 @@ def _rerun_authoritative(
             (f"{enclosure_output_relative}/evidence-mechanical.json",),
         ),
     )
+
+
+def _rerun_authoritative(
+    *,
+    repository: Path,
+    image: str,
+    design_graph_path: Path,
+    out_root: Path,
+) -> None:
+    try:
+        commands = authoritative_commands(
+            repository=repository,
+            design_graph_path=design_graph_path,
+            out_root=out_root,
+        )
+    except (OSError, ValueError) as exc:
+        raise PreOrderGateError(
+            f"could not resolve authoritative lane outputs: {exc}"
+        ) from exc
     for command, download_files in commands:
         result = run_command_in_workspace(
             image=image,

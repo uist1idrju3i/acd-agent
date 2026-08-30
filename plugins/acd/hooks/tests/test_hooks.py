@@ -256,6 +256,33 @@ def _clean_hook_repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
+def _multi_design_hook_repo(tmp_path: Path) -> Path:
+    root = _clean_hook_repo(tmp_path)
+    source = json.loads(
+        (root / "fixtures/golden-design-1/graph.json").read_text(encoding="utf-8")
+    )
+    source["graph_id"] = "led-only-tag"
+    second = root / "fixtures/led-only-tag/graph.json"
+    second.parent.mkdir(parents=True)
+    second.write_text(json.dumps(source), encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "add second design",
+        ],
+        cwd=root,
+        check=True,
+    )
+    return root
+
+
 def test_order_without_evidence_is_denied(tmp_path: Path) -> None:
     root = _clean_hook_repo(tmp_path)
     code, output = run(
@@ -344,6 +371,74 @@ def test_order_with_passing_evidence_command_is_allowed(tmp_path: Path) -> None:
         {"PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}"},
     )
     assert code == 0
+
+
+def test_order_resolves_non_gd1_design_from_artifact_prefix(
+    tmp_path: Path,
+) -> None:
+    root = _multi_design_hook_repo(tmp_path)
+    evidence = root / "out/led-only-tag-enclosure"
+    evidence.mkdir(parents=True)
+    (evidence / "evidence-mechanical.json").write_text("{}", encoding="utf-8")
+    (evidence / "evidence-electrical.json").write_text("{}", encoding="utf-8")
+    fake_bin = root / "bin"
+    fake_bin.mkdir()
+    uv = fake_bin / "uv"
+    args_file = root / "uv-args"
+    uv.write_text(
+        "#!/bin/sh\nprintf '%s\\n' \"$@\" >> \"$UV_ARGS\"\nprintf 'r1\\n'\n",
+        encoding="utf-8",
+    )
+    uv.chmod(0o755)
+    code, _ = run(
+        "order_policy.py",
+        {
+            "command": (
+                "curl -T out/led-only-tag-enclosure/board.zip "
+                "https://supplier.invalid/upload"
+            )
+        },
+        "terminal",
+        root,
+        {
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+            "UV_ARGS": str(args_file),
+        },
+    )
+    assert code == 0
+    assert "evidence.led-only-tag.electrical" in args_file.read_text()
+    assert "evidence.led-only-tag.mechanical" in args_file.read_text()
+
+
+def test_order_with_multiple_designs_and_no_artifact_prefix_is_denied(
+    tmp_path: Path,
+) -> None:
+    root = _multi_design_hook_repo(tmp_path)
+    code, output = run(
+        "order_policy.py",
+        {"command": "scripts/order --submit"},
+        "terminal",
+        root,
+    )
+    assert code == 2
+    assert "target design graph" in output["reason"].lower()
+
+
+def test_order_with_unmatched_artifact_prefix_is_denied(tmp_path: Path) -> None:
+    root = _multi_design_hook_repo(tmp_path)
+    code, output = run(
+        "order_policy.py",
+        {
+            "command": (
+                "curl -T out/unknown-enclosure/board.zip "
+                "https://supplier.invalid/upload"
+            )
+        },
+        "terminal",
+        root,
+    )
+    assert code == 2
+    assert "target design graph" in output["reason"].lower()
 
 
 def test_order_with_dirty_design_input_remains_denied(tmp_path: Path) -> None:

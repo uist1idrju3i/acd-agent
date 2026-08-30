@@ -13,6 +13,14 @@ from typing import Any, cast
 
 from common import event, project_dir, result, revision
 
+_OUTPUT_SUFFIXES = (
+    "-enclosure",
+    "-fw",
+    "-silkscreen-resolve",
+    "-board-exploration",
+    "",
+)
+
 
 def main() -> int:
     payload = event()
@@ -103,20 +111,32 @@ def main() -> int:
     )
     if not is_order and not (is_transmission and artifact):
         return 0
-    graph_paths = _graph_paths(root, graph_roots)
-    if len(graph_paths) != 1:
+    graph_records = _graph_records(root, graph_roots)
+    if graph_records is None:
         result(
             decision="deny",
-            reason="A single design graph under the policy roots is required.",
+            reason="Unable to resolve target design graph.",
         )
         return 2
-    graph_id = _graph_id(root / graph_paths[0])
-    if graph_id is None:
+    candidate_prefixes = _artifact_prefixes(root, tokens)
+    if candidate_prefixes:
+        matches = [
+            record
+            for record in graph_records
+            if record[1] in candidate_prefixes
+        ]
+    elif len(graph_records) == 1:
+        matches = graph_records
+    else:
+        matches = []
+    if len(matches) != 1:
         result(
             decision="deny",
-            reason="The design graph under the policy roots is invalid.",
+            reason="Unable to resolve target design graph.",
         )
         return 2
+    graph_paths = [matches[0][0]]
+    graph_id = matches[0][2]
     required_ids = [
         _evidence_id(graph_id, lane)
         for lane in required_lanes
@@ -160,7 +180,9 @@ def main() -> int:
     return 0
 
 
-def _graph_paths(root: Path, graph_roots: list[str]) -> list[str]:
+def _graph_records(
+    root: Path, graph_roots: list[str]
+) -> list[tuple[str, str, str]] | None:
     paths: set[str] = set()
     for graph_root in graph_roots:
         root_path = root / graph_root
@@ -171,7 +193,40 @@ def _graph_paths(root: Path, graph_roots: list[str]) -> list[str]:
                 continue
             if _is_design_input(relative):
                 paths.add(relative)
-    return sorted(paths)
+    records: list[tuple[str, str, str]] = []
+    for path in sorted(paths):
+        graph_id = _graph_id(root / path)
+        if graph_id is None:
+            return None
+        records.append((path, _artifact_prefix(graph_id), graph_id))
+    return records
+
+
+def _artifact_prefixes(root: Path, tokens: list[str]) -> set[str]:
+    prefixes: set[str] = set()
+    for token in tokens:
+        try:
+            candidate = Path(token)
+            if not candidate.is_absolute():
+                candidate = root / candidate
+            relative = candidate.resolve(strict=False).relative_to(root.resolve())
+        except (OSError, ValueError):
+            continue
+        if len(relative.parts) < 2 or relative.parts[0] != "out":
+            continue
+        output_name = relative.parts[1]
+        if "." in output_name:
+            continue
+        for suffix in _OUTPUT_SUFFIXES:
+            if output_name.endswith(suffix) and len(output_name) > len(suffix):
+                prefixes.add(output_name[: -len(suffix)] if suffix else output_name)
+                break
+    return prefixes
+
+
+def _artifact_prefix(graph_id: str) -> str:
+    normalized = re.sub(r"[^a-z0-9]+", "-", graph_id.strip().lower()).strip("-")
+    return "gd1" if normalized == "golden-design-1" else normalized
 
 
 def _graph_id(path: Path) -> str | None:

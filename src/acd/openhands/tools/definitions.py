@@ -345,7 +345,9 @@ class AcdDiagnoseGateFailureAction(Action):
 class AcdCheckOrderReadinessAction(Action):
     repository: str = "."
     policy: str = "plugins/acd/hooks/order-policy.json"
-    design_graph_path: str = "fixtures/golden-design-1/graph.json"
+    design_graph_path: str = Field(
+        description="Repository-relative path to the design graph being evaluated."
+    )
     order_total: str
     evidence: list[str] = Field(default_factory=list)
     evaluated_at: str
@@ -1615,6 +1617,7 @@ class AcdCheckOrderReadiness(
             return DeclaredResources(keys=(), declared=False)
         paths = [
             ("file", Path(action.policy)),
+            ("file", Path(action.design_graph_path)),
             ("file", Path(action.order_total)),
             *[("file", Path(path)) for path in action.evidence],
         ]
