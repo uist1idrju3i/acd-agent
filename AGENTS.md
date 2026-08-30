@@ -131,10 +131,11 @@ SDK機能の採否は`docs/openhands-sdk-capabilities.json`を単一の正とし
 uv run python scripts/verify_all.py --list
 ```
 
-で機械可読に列挙できる。文書のみ、通常、フルの3段階を次で実行する。
+で機械可読に列挙できる。検証段階はdocs、fast、standard、fullの4段階である。
 
 ```bash
 uv run python scripts/verify_all.py --stage docs
+uv run python scripts/verify_all.py --stage fast
 uv run python scripts/verify_all.py --stage standard
 uv run python scripts/verify_all.py --stage full
 ```
@@ -153,6 +154,9 @@ installed plugin storeの共有状態を避け、独立化できない共有資�
 正規化hashを一致させ、短縮を記録する場合は同一入力のwall-clockを比較する。
 
 Markdownのみの変更で実装資材を変更していない場合は`--stage docs`に絞ってよい。
+DevinがPR作成前に実施する既定検証は`--stage fast`とする。
+`src/acd/core`・`src/acd/pipeline`・`scripts`の判定ロジック変更時は
+`--stage standard`、main merge前は`--stage full`を実施する。
 GD1のゲート実行とEvidence生成はdigest固定containerを
 正とし、ホスト実行は参考実行で合格側Evidenceを生成しない。runnerは
 事前build済みdigest固定server imageを`DockerWorkspace`で実行する。
@@ -170,6 +174,9 @@ host実行のEvidenceはprovisionalであり、合格側へ昇格しない。ima
 `docker/image-digests.json`と`docker/README.md`は除外）と`.dockerignore`変更で行い、
 GHCR digestをjob summaryから運用記録へ転記する。publish済みdigestが無い間はlock fileの
 placeholderを作らない。
+
+CIはPRで変更scopeに応じて`fast`または`standard`を実行し、
+`container-gates`、`pinned-acd-probe`、pipeline実行、host probeはmain pushで実行する。
 
 graphへ設計判断属性を追加する機能変更では、同じ変更で属性を
 `REQUIRED_RATIONALE_ATTRS`または`RATIONALE_EXEMPT_ATTRS`へ分類する。必須属性には

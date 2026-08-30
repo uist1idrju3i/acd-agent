@@ -30,13 +30,56 @@ def test_markdown_only_change_skips_code_jobs(
 ) -> None:
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("README.md\ndocs/operations.md\n")) == 0
-    assert output.read_text(encoding="utf-8") == "code=false\n"
+    assert output.read_text(encoding="utf-8") == (
+        "code=false\ncore=false\nplugins=false\n"
+    )
 
 
-def test_mixed_change_runs_code_jobs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "changed_path",
+    ("src/acd/core/model.py", "tests/test_model.py", "scripts/check.py"),
+)
+def test_core_change_runs_core_jobs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, changed_path: str
+) -> None:
     output = _set_revisions(monkeypatch, tmp_path)
-    assert main(run=_run_with("docs/operations.md\nsrc/acd/core/model.py\n")) == 0
-    assert output.read_text(encoding="utf-8") == "code=true\n"
+    assert main(run=_run_with(f"docs/operations.md\n{changed_path}\n")) == 0
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=true\nplugins=false\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "changed_path", ("pyproject.toml", "uv.lock", ".github/workflows/ci.yml")
+)
+def test_core_configuration_change_runs_core_jobs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, changed_path: str
+) -> None:
+    output = _set_revisions(monkeypatch, tmp_path)
+    assert main(run=_run_with(changed_path + "\n")) == 0
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=true\nplugins=false\n"
+    )
+
+
+def test_plugin_only_change_runs_plugin_jobs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = _set_revisions(monkeypatch, tmp_path)
+    assert main(run=_run_with("plugins/acd/agent.py\n")) == 0
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=false\nplugins=true\n"
+    )
+
+
+def test_mixed_core_and_plugin_change_runs_both_jobs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = _set_revisions(monkeypatch, tmp_path)
+    assert main(run=_run_with("src/acd/core/model.py\nplugins/acd/README.md\n")) == 0
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=true\nplugins=true\n"
+    )
 
 
 def test_non_markdown_docs_change_runs_code_jobs(
@@ -44,7 +87,9 @@ def test_non_markdown_docs_change_runs_code_jobs(
 ) -> None:
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("docs/openhands-sdk-capabilities.json\n")) == 0
-    assert output.read_text(encoding="utf-8") == "code=true\n"
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=false\nplugins=false\n"
+    )
 
 
 def test_git_failure_runs_code_jobs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -54,13 +99,17 @@ def test_git_failure_runs_code_jobs(monkeypatch: pytest.MonkeyPatch, tmp_path: P
         raise RuntimeError("git failed")
 
     assert main(run=failing_run) == 0
-    assert output.read_text(encoding="utf-8") == "code=true\n"
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=true\nplugins=true\n"
+    )
 
 
 def test_empty_diff_runs_code_jobs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("")) == 0
-    assert output.read_text(encoding="utf-8") == "code=true\n"
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=true\nplugins=true\n"
+    )
 
 
 def test_missing_revision_runs_code_jobs(
@@ -69,4 +118,6 @@ def test_missing_revision_runs_code_jobs(
     output = _set_revisions(monkeypatch, tmp_path)
     monkeypatch.delenv("BASE_SHA")
     assert main(run=_run_with("README.md\n")) == 0
-    assert output.read_text(encoding="utf-8") == "code=true\n"
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=true\nplugins=true\n"
+    )
