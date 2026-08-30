@@ -91,7 +91,7 @@ def resolve_mcu_refdes(graph: DesignGraph) -> str:
         raise ValueError(
             f"firmware.module mcu_component {component_id!r} does not resolve to a component"
         ) from exc
-    if component is None or component.kind != "electrical.component":
+    if component.kind != "electrical.component":
         raise ValueError(
             f"firmware.module mcu_component {component_id!r} does not resolve to a component"
         )

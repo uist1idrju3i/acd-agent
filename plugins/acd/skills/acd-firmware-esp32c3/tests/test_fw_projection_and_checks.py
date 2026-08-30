@@ -11,14 +11,13 @@ from pathlib import Path
 
 import pytest
 
-import fw_project
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
 from acd.core.firmware_capability import (
     FirmwareCapabilityContractError,
     FirmwareCapabilityRegistry,
     load_firmware_capability_registry,
 )
-from acd.schema.design_graph import DesignGraph
+from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.firmware_capability import (
     FirmwareCapabilityContract,
     FirmwareCapabilityRegistryDocument,
@@ -30,6 +29,7 @@ from fw_checks import (
     assert_pin_assignments_consistent,
 )
 from fw_graph import (
+    FirmwareCapabilityPlan,
     FirmwareExtractionError,
     FirmwareLane,
     FirmwarePinView,
@@ -38,13 +38,13 @@ from fw_graph import (
     extract_firmware_settings,
     resolve_firmware_capability_plan,
 )
-from fw_qemu import assert_virtual_log_ok
 from fw_project import (
     FirmwareProjectionError,
     firmware_project_name,
     render_pins_header,
     write_firmware_project,
 )
+from fw_qemu import assert_virtual_log_ok
 
 FIXTURE = Path(__file__).resolve().parents[5] / "fixtures" / "golden-design-1" / "graph.json"
 
@@ -65,7 +65,7 @@ def electrical(graph: DesignGraph) -> ElectricalLane:
 
 
 @pytest.fixture(scope="module")
-def plan(graph: DesignGraph, fw_lane: FirmwareLane):
+def plan(graph: DesignGraph, fw_lane: FirmwareLane) -> FirmwareCapabilityPlan:
     return resolve_firmware_capability_plan(graph, fw_lane)
 
 
@@ -94,7 +94,7 @@ def test_lane_extraction_fails_closed_on_duplicate_gpio() -> None:
 
 
 def test_pins_header_is_deterministic(
-    fw_lane: FirmwareLane, plan, tmp_path: Path
+    fw_lane: FirmwareLane, plan: FirmwareCapabilityPlan, tmp_path: Path
 ) -> None:
     graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
     settings = extract_firmware_settings(graph)
@@ -244,7 +244,7 @@ def test_malformed_boot_log_message_fails_closed(
 
 def test_missing_boot_log_placeholder_fails_closed(
     fw_lane: FirmwareLane,
-    plan,
+    plan: FirmwareCapabilityPlan,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -281,7 +281,9 @@ def test_unusable_graph_id_fails_closed(graph_id: str) -> None:
         firmware_project_name(graph_id)
 
 
-def test_generated_header_matches_lane(fw_lane: FirmwareLane, plan) -> None:
+def test_generated_header_matches_lane(
+    fw_lane: FirmwareLane, plan: FirmwareCapabilityPlan
+) -> None:
     assert_header_matches_lane(
         render_pins_header(
             fw_lane, "r1", FirmwareSettings(boot_log_message="test %s"), plan
@@ -290,7 +292,9 @@ def test_generated_header_matches_lane(fw_lane: FirmwareLane, plan) -> None:
     )
 
 
-def test_header_check_rejects_tampered_gpio(fw_lane: FirmwareLane, plan) -> None:
+def test_header_check_rejects_tampered_gpio(
+    fw_lane: FirmwareLane, plan: FirmwareCapabilityPlan
+) -> None:
     header = render_pins_header(
         fw_lane, "r1", FirmwareSettings(boot_log_message="test %s"), plan
     ).replace("ACD_PIN_LED 7", "ACD_PIN_LED 6")
@@ -387,9 +391,11 @@ def _graph_with_step_change(graph: DesignGraph, step_id: str, **changes: object)
     )
 
 
-def test_capability_plan_rejects_unregistered_action(graph: DesignGraph, fw_lane: FirmwareLane) -> None:
+def test_capability_plan_rejects_unregistered_action(
+    graph: DesignGraph, fw_lane: FirmwareLane
+) -> None:
     broken = _graph_with_step_change(graph, "fw.sequence.003", action="not_registered")
-    with pytest.raises(FirmwareExtractionError, match="not_registered.*registry"):
+    with pytest.raises(FirmwareExtractionError, match=r"not_registered.*registry"):
         resolve_firmware_capability_plan(broken, fw_lane)
 
 
@@ -400,7 +406,9 @@ def test_capability_plan_rejects_missing_required_role(
         update={"nodes": [node for node in graph.nodes if node.id != "fw.pin.i2c_scl"]}
     )
     broken_lane = extract_firmware_lane(broken)
-    with pytest.raises(FirmwareExtractionError, match="initialize_sht40.*i2c_scl"):
+    with pytest.raises(
+        FirmwareExtractionError, match=r"initialize_sht40.*i2c_scl"
+    ):
         resolve_firmware_capability_plan(broken, broken_lane)
 
 
@@ -419,7 +427,7 @@ def test_capability_plan_rejects_bad_device_resolution(
     attrs: dict[str, object],
     message: str,
 ) -> None:
-    nodes = []
+    nodes: list[GraphNode] = []
     for node in graph.nodes:
         if node.id == "comp.u3":
             if attrs == {"target": "comp.u3"}:

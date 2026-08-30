@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import pytest
 
-from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
 from fw_graph import (
     FirmwareCapabilityPlan,
     FirmwareCapabilityStep,
@@ -12,6 +11,7 @@ from fw_graph import (
     FirmwareLane,
     FirmwarePinView,
 )
+from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
 
 GOOD_LOG = """\
 I (100) acd_gd1: ACD GD1 fw boot target_revision=r1

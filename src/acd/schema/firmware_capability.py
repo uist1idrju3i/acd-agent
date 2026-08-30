@@ -31,12 +31,18 @@ class FirmwareDeviceContract(AcdModel):
     source_ref: NonEmptyStr
 
 
+def _empty_firmware_devices() -> list[FirmwareDeviceContract]:
+    return []
+
+
 class FirmwareCapabilityRegistryDocument(AcdModel):
     schema_version: SchemaVersion
     registry_id: NonEmptyStr
     pin_role_order: list[NonEmptyStr] = Field(min_length=1)
     capabilities: list[FirmwareCapabilityContract] = Field(min_length=1)
-    devices: list[FirmwareDeviceContract] = Field(default_factory=list)
+    devices: list[FirmwareDeviceContract] = Field(
+        default_factory=_empty_firmware_devices
+    )
 
     @model_validator(mode="after")
     def _unique_registry_values(self) -> FirmwareCapabilityRegistryDocument:

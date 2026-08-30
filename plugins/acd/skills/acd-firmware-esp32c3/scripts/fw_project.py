@@ -243,7 +243,12 @@ def _render_main_source(
             ]
         )
         if "i2c_sensor_read" in capability_ids:
-            device = next(step.device for step in plan.steps if step.capability_id == "i2c_sensor_read" and step.device is not None)
+            device = next(
+                step.device
+                for step in plan.steps
+                if step.capability_id == "i2c_sensor_read"
+                and step.device is not None
+            )
             loop.extend(
                 [
                     "        if (since_log_ms >= ACD_LOG_PERIOD_MS) {",
@@ -261,7 +266,12 @@ def _render_main_source(
             loop.append("        since_log_ms += ACD_LED_BLINK_PERIOD_MS / 2;")
         loop.append("    }")
     elif "i2c_sensor_read" in capability_ids:
-        device = next(step.device for step in plan.steps if step.capability_id == "i2c_sensor_read" and step.device is not None)
+        device = next(
+            step.device
+            for step in plan.steps
+            if step.capability_id == "i2c_sensor_read"
+            and step.device is not None
+        )
         loop = [
             "    for (;;) {",
             f"        {device.driver_id}_log_once();",
