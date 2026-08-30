@@ -1253,6 +1253,20 @@ pytestは既定で`-n auto --dist loadgroup`を使うため、`uv run pytest`は
 は`--jobs 1` 141.21秒、既定並列 126.66秒だった。
 測定は各条件1回で、外部ツールを含まないstandard段階の比較である。
 
+mainのCI run `32909530356`をbaselineとして、`verify`は262秒（うちStandard verification
+222秒）、`skills`は102秒、`pinned-acd-probe`は28秒、`container-gates`は451秒
+（locked agent-server imageのpull 178秒、決定論的gateの実行245秒）だった。
+`.md`ファイルだけの変更では`changes` jobがcode変更なしと判定し、重い4 jobを
+conditional skipして`docs-verify`だけを実行するfast pathを使う。skipされたjobは
+conditional skipとして必須checkを満たすが、`container-gates`は通常の変更で引き続き
+合否を決めるゲートである。
+
+`container-gates`ではcheckout直後にlock済みserver imageのdigest固定refをbackgroundで
+warm pullし、setup-uv、workspace sync、digest解決と重ね合わせる。その後のauthoritative
+pullとdigest検証、決定論的gateの順序およびfail-closed挙動は変更しない。warm pullの
+失敗は無視してauthoritative経路へ任せる。fast pathとwarm pullによる短縮幅は、merge後の
+CI runを実測して別途記録する。
+
 GD1基板pipelineはERC、routing、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。外部ツールや入力が不正な場合は、ゲートを
 緩めずfail-closedとして状態をそのまま記録する。

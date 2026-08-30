@@ -13,7 +13,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      code: ${{ steps.scope.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Classify changed scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: python3 scripts/ci_changed_scope.py
+
   verify:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -35,6 +55,8 @@ jobs:
         run: git diff --check
 
   skills:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -65,6 +87,8 @@ jobs:
         run: uv run pytest plugins -q
 
   pinned-acd-probe:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -80,6 +104,8 @@ jobs:
         run: uv run --script scripts/probe_pinned_acd_graph.py --fixture fixtures/golden-design-1
 
   container-gates:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -90,6 +116,38 @@ jobs:
         with:
           submodules: true
           persist-credentials: false
+      - name: Start locked image warm pull
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          from pathlib import Path
+
+          lock = json.loads(Path("docker/image-digests.json").read_text(encoding="utf-8"))
+          entry = lock.get("acd_server")
+          if not isinstance(entry, dict):
+              raise SystemExit("acd_server lock entry is malformed")
+          image = entry.get("image")
+          digest = entry.get("digest")
+          if not isinstance(image, str) or not isinstance(digest, str):
+              raise SystemExit("acd_server image lock is malformed")
+          image_ref = f"{image}@{digest}"
+          if re.fullmatch(r"[^@\s]+@sha256:[0-9a-f]{64}", image_ref) is None:
+              raise SystemExit("acd_server image ref must be digest-pinned")
+          runner_temp = Path(os.environ["RUNNER_TEMP"])
+          log_path = runner_temp / "acd-server-warm-pull.log"
+          pid_path = runner_temp / "acd-server-warm-pull.pid"
+          with log_path.open("w", encoding="utf-8") as log:
+              process = subprocess.Popen(
+                  ["docker", "pull", image_ref],
+                  stdout=log,
+                  stderr=subprocess.STDOUT,
+              )
+          pid_path.write_text(str(process.pid), encoding="utf-8")
+          PY
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: "3.12"
@@ -99,6 +157,18 @@ jobs:
         run: |
           SERVER_REF=$(uv run python scripts/print_locked_image.py --entry acd-server)
           printf 'SERVER_REF=%s\n' "$SERVER_REF" >> "$GITHUB_ENV"
+      - name: Wait for warm pull
+        run: |
+          set -euo pipefail
+          pid_file="$RUNNER_TEMP/acd-server-warm-pull.pid"
+          if [ ! -s "$pid_file" ]; then
+            exit 0
+          fi
+          pid=$(cat "$pid_file")
+          # Warm-pull failure is ignored; the authoritative pull and digest verification remain below.
+          while kill -0 "$pid" 2>/dev/null; do
+            sleep 1
+          done
       - name: Pull locked agent-server image
         run: |
           uv run python scripts/pull_locked_image.py \
@@ -116,3 +186,22 @@ jobs:
             --revision-from fixtures/golden-design-1/graph.json \
             out/container/gd1/evidence-electrical.json \
             out/container/gd1-enclosure/evidence-mechanical.json
+
+  docs-verify:
+    needs: changes
+    if: needs.changes.outputs.code == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Documentation verification
+        run: |
+          uv run python scripts/verify_all.py --stage docs
+          git diff --check
