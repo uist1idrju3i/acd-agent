@@ -22,6 +22,9 @@ def _copy_plugin(tmp_path: Path) -> tuple[Path, Path]:
     tmp_path.mkdir(parents=True, exist_ok=True)
     installed = tmp_path / "installed" / "acd"
     shutil.copytree(PLUGIN_ROOT, installed)
+    lock_path = tmp_path / "docker" / "image-digests.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy(ROOT / "docker" / "image-digests.json", lock_path)
     return installed, installed / "skills/acd-install-doctor/scripts/install_doctor.py"
 
 
@@ -30,21 +33,29 @@ def _run(
     tmp_path: Path,
     tool_scripts: dict[str, str] | None = None,
     home: Path | None = None,
+    *,
+    include_docker: bool = True,
+    extra_env: dict[str, str] | None = None,
+    doctor_args: list[str] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(parents=True)
     uv = shutil.which("uv")
     assert uv is not None
     (bin_dir / "uv").symlink_to(uv)
-    for name, body in (tool_scripts or {}).items():
+    scripts = dict(tool_scripts or {})
+    if include_docker and "docker" not in scripts:
+        scripts["docker"] = _docker_stub()
+    for name, body in scripts.items():
         tool = bin_dir / name
         tool.write_text(f"#!/bin/sh\n{body}\n", encoding="utf-8")
         tool.chmod(0o755)
     environment = {**os.environ, "PATH": str(bin_dir)}
     if home is not None:
         environment["HOME"] = str(home)
+    environment.update(extra_env or {})
     completed = subprocess.run(
-        [sys.executable, str(script)],
+        [sys.executable, str(script), *(doctor_args or [])],
         capture_output=True,
         text=True,
         env=environment,
@@ -60,16 +71,15 @@ def test_development_tree_is_diagnosable_without_host_tools(tmp_path: Path) -> N
     assert report["status"] == "degraded"
     assert report["plugin_root"] == str(copied)
     assert any(
-        check["name"] == "docker capability" and check["result"] == "fail"
+        check["name"] == "docker capability" and check["result"] == "pass"
         for check in report["checks"]
     )
     eda_check = next(
-        check for check in report["checks"] if check["name"] == "host EDA capabilities"
+        check for check in report["checks"] if check["name"] == "EDA capabilities"
     )
     assert eda_check["result"] == "pass"
-    assert "missing: kicad-cli, freerouting" in eda_check["detail"]
-    assert "build123d / cadquery-ocp are not probed" in eda_check["detail"]
-    assert eda_check["observed_version"] == "kicad-cli=unavailable, freerouting=unavailable"
+    assert "observed inside" in eda_check["detail"]
+    assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.3.0"
     install_check = next(
         check for check in report["checks"] if check["name"] == "plugin install location"
     )
@@ -83,32 +93,121 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
     completed, report = _run(
         script,
         tmp_path,
-        {
-            "kicad-cli": 'printf "10.0.6\\n"',
-            "freerouting": 'printf "INFO Freerouting v2.3.0\\n"; exit 1',
-        },
+        {"docker": _docker_probe_stub()},
     )
 
     assert completed.returncode == 0
     assert report["status"] == "degraded"
     eda_check = next(
-        check for check in report["checks"] if check["name"] == "host EDA capabilities"
+        check for check in report["checks"] if check["name"] == "EDA capabilities"
     )
     assert eda_check["result"] == "pass"
     assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.3.0"
 
 
-def test_missing_host_eda_tool_points_at_the_container_route(tmp_path: Path) -> None:
+def test_missing_image_eda_tool_is_degraded(tmp_path: Path) -> None:
     _, script = _copy_plugin(tmp_path)
-    _, report = _run(script, tmp_path)
+    _, report = _run(script, tmp_path, {"docker": _docker_missing_kicad_stub()})
     eda_check = next(
-        check for check in report["checks"] if check["name"] == "host EDA capabilities"
+        check for check in report["checks"] if check["name"] == "EDA capabilities"
     )
-    detail = eda_check["detail"]
-    assert "locked image" in detail
-    assert "docker/image-digests.json" in detail
-    assert "--source bundled" in detail
-    assert "docs/operations.md" in detail
+    assert report["status"] == "degraded"
+    assert eda_check["result"] == "fail"
+    assert "missing: kicad-cli" in eda_check["detail"]
+
+
+def test_host_without_docker_cli_fails_required_checks(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    completed, report = _run(script, tmp_path, include_docker=False)
+    assert completed.returncode == 1
+    assert report["status"] == "failed"
+    docker_check = next(
+        check for check in report["checks"] if check["name"] == "docker capability"
+    )
+    assert docker_check["required"] is True
+    assert docker_check["result"] == "fail"
+
+
+def test_server_image_pull_failure_fails_closed(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    completed, report = _run(
+        script, tmp_path, {"docker": _docker_pull_failure_stub()}
+    )
+    assert completed.returncode == 1
+    assert report["status"] == "failed"
+    image_check = next(
+        check for check in report["checks"] if check["name"] == "locked ACD server image"
+    )
+    assert image_check["result"] == "fail"
+    assert "pull failed" in image_check["detail"]
+
+
+def test_no_pull_with_missing_server_image_fails(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    completed, report = _run(
+        script,
+        tmp_path,
+        {"docker": _docker_pull_failure_stub()},
+        doctor_args=["--no-pull"],
+    )
+    assert completed.returncode == 1
+    image_check = next(
+        check for check in report["checks"] if check["name"] == "locked ACD server image"
+    )
+    assert image_check["result"] == "fail"
+    assert "--no-pull" in image_check["detail"]
+
+
+def test_image_firmware_tool_absence_fails_required_checks(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    completed, report = _run(
+        script,
+        tmp_path,
+        {"docker": _docker_missing_firmware_stub()},
+        doctor_args=["--workspace", str(ROOT)],
+    )
+    assert completed.returncode == 1
+    assert report["status"] == "failed"
+    firmware_check = next(
+        check
+        for check in report["checks"]
+        if check["name"] == "workspace firmware prerequisites"
+    )
+    assert firmware_check["result"] == "fail"
+    assert "qemu-system-riscv32" in firmware_check["detail"]
+
+
+def test_container_mode_does_not_require_docker_cli(tmp_path: Path) -> None:
+    _, script = _copy_plugin(tmp_path)
+    idf = tmp_path / "esp-idf"
+    idf.mkdir()
+    (idf / "export.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    (idf / "export.sh").chmod(0o755)
+    completed, report = _run(
+        script,
+        tmp_path,
+        {
+            "kicad-cli": 'printf "10.0.6\\n"',
+            "freerouting": 'printf "Freerouting v2.3.0\\n"',
+            "qemu-system-riscv32": 'printf "QEMU emulator version 9.2.2\\n"',
+            "cmake": 'printf "cmake version 4.2.3\\n"',
+        },
+        include_docker=False,
+        extra_env={"ACD_HOME": "/opt/acd", "IDF_PATH": str(idf)},
+    )
+    assert completed.returncode == 0
+    assert report["status"] == "degraded"
+    assert all(
+        check["result"] == "pass"
+        for check in report["checks"]
+        if check["required"]
+        and check["name"]
+        in {
+            "docker capability",
+            "locked ACD server image",
+            "workspace firmware prerequisites",
+        }
+    )
 
 
 def test_tool_registration_check_reports_declared_and_registered_names(
@@ -345,6 +444,69 @@ def _docker_stub() -> str:
     return (
         'if [ "$1" = "--version" ]; then '
         'printf "Docker version 27.4.1, build test\\n"; '
+        'elif [ "$1" = "run" ]; then '
+        '[ "$4" = "" ] || exit 88; '
+        'printf "=== kicad-cli ===\\n10.0.6\\n'
+        '=== freerouting ===\\nFreerouting v2.3.0\\n"; '
+        'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
+        '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
+        '=== cmake ===\\ncmake version 4.2.3\\n"; '
+        "else exit 0; fi"
+    )
+
+
+def _docker_probe_stub() -> str:
+    return (
+        'if [ "$1" = "--version" ]; then '
+        'printf "Docker version 27.4.1, build test\\n"; '
+        'elif [ "$1" = "run" ]; then '
+        '[ "$4" = "" ] || exit 88; '
+        'printf "=== kicad-cli ===\\n10.0.6\\n'
+        '=== freerouting ===\\nINFO Freerouting v2.3.0\\n"; '
+        'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
+        '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
+        '=== cmake ===\\ncmake version 4.2.3\\n"; '
+        "else exit 0; fi"
+    )
+
+
+def _docker_missing_kicad_stub() -> str:
+    return (
+        'if [ "$1" = "--version" ]; then '
+        'printf "Docker version 27.4.1, build test\\n"; '
+        'elif [ "$1" = "run" ]; then '
+        '[ "$4" = "" ] || exit 88; '
+        'printf "=== kicad-cli ===\\ncommand not found\\n'
+        '=== freerouting ===\\nFreerouting v2.3.0\\n"; '
+        'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
+        '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
+        '=== cmake ===\\ncmake version 4.2.3\\n"; '
+        "else exit 0; fi"
+    )
+
+
+def _docker_pull_failure_stub() -> str:
+    return (
+        'if [ "$1" = "--version" ]; then '
+        'printf "Docker version 27.4.1, build test\\n"; '
+        'elif [ "$1" = "info" ]; then exit 0; '
+        'elif [ "$1" = "image" ]; then exit 1; '
+        'elif [ "$1" = "pull" ]; then printf "pull failed\\n" >&2; exit 1; '
+        "else exit 0; fi"
+    )
+
+
+def _docker_missing_firmware_stub() -> str:
+    return (
+        'if [ "$1" = "--version" ]; then '
+        'printf "Docker version 27.4.1, build test\\n"; '
+        'elif [ "$1" = "run" ]; then '
+        '[ "$4" = "" ] || exit 88; '
+        'printf "=== kicad-cli ===\\n10.0.6\\n'
+        '=== freerouting ===\\nFreerouting v2.3.0\\n"; '
+        'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
+        '=== qemu-system-riscv32 ===\\nmissing\\n'
+        '=== cmake ===\\ncmake version 4.2.3\\n"; '
         "else exit 0; fi"
     )
 
@@ -362,7 +524,7 @@ def test_install_location_distinguishes_development_and_store_layouts(
         home,
     )
     assert completed.returncode == 0
-    assert development_report["status"] == "ok"
+    assert development_report["status"] == "degraded"
     development_check = next(
         check
         for check in development_report["checks"]
@@ -374,6 +536,9 @@ def test_install_location_distinguishes_development_and_store_layouts(
     correct_root = home / ".openhands" / "plugins" / "installed" / "acd"
     correct_root.parent.mkdir(parents=True)
     shutil.copytree(PLUGIN_ROOT, correct_root)
+    installed_lock = home / ".openhands" / "plugins" / "docker" / "image-digests.json"
+    installed_lock.parent.mkdir(parents=True)
+    shutil.copy(ROOT / "docker" / "image-digests.json", installed_lock)
     completed, correct_report = _run(
         correct_root / "skills/acd-install-doctor/scripts/install_doctor.py",
         tmp_path / "correct-run",
@@ -443,7 +608,7 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
         home,
     )
     assert completed.returncode == 0
-    assert report["status"] == "ok"
+    assert report["status"] == "degraded"
     hook_check = next(
         check for check in report["checks"] if check["name"] == "hook invocability"
     )
@@ -477,7 +642,7 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
         home,
     )
     assert completed.returncode == 0
-    assert invocable_report["status"] == "ok"
+    assert invocable_report["status"] == "degraded"
     invocable_hook_check = next(
         check
         for check in invocable_report["checks"]
@@ -538,7 +703,7 @@ def test_workspace_lock_out_of_sync_fails_closed(
     assert result["result"] == "fail"
 
 
-def test_workspace_missing_digest_is_unknown_without_pull(
+def test_workspace_missing_server_image_fails_without_pull(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -549,8 +714,8 @@ def test_workspace_missing_digest_is_unknown_without_pull(
     (digest_path / "image-digests.json").write_text(
         json.dumps(
             {
-                "acd_tools": {
-                    "image": "example/acd-tools",
+                "acd_server": {
+                    "image": "example/acd-server",
                     "digest": "sha256:" + "a" * 64,
                 }
             }
@@ -572,5 +737,5 @@ def test_workspace_missing_digest_is_unknown_without_pull(
 
     monkeypatch.setattr(module.subprocess, "run", run)
     result = module._workspace_digest_check(tmp_path)
-    assert result["result"] == "unknown"
+    assert result["result"] == "fail"
     assert "pull" in result["detail"]

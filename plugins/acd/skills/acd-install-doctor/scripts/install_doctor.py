@@ -632,12 +632,113 @@ def _run_version(
     return match.group(1)
 
 
+def _in_container() -> bool:
+    return Path("/.dockerenv").exists() or bool(os.environ.get("ACD_HOME"))
+
+
+def _locked_server_image(workspace: Path | None) -> tuple[str | None, str | None]:
+    plugin_root = Path(__file__).resolve().parents[3]
+    candidates: list[Path] = []
+    if workspace is not None:
+        candidates.append(workspace / "docker" / "image-digests.json")
+    candidates.extend(
+        (
+            plugin_root.parents[1] / "docker" / "image-digests.json",
+            Path("/opt/acd/docker/image-digests.json"),
+        )
+    )
+    seen: set[Path] = set()
+    for path in candidates:
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if not resolved.is_file():
+            continue
+        try:
+            document = _read_json(resolved)
+            server = document["acd_server"]
+            image = server["image"]
+            digest = server["digest"]
+            if (
+                not isinstance(image, str)
+                or not image
+                or any(character.isspace() for character in image)
+                or "@" in image
+                or not isinstance(digest, str)
+            ):
+                raise ValueError("acd_server image or digest is invalid")
+            if HASH_RE.fullmatch(digest) is None:
+                raise ValueError(f"invalid image digest: {digest!r}")
+        except (
+            OSError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            KeyError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            return None, f"{resolved} could not be inspected: {exc}"
+        return f"{image}@{digest}", None
+    searched = ", ".join(str(path) for path in candidates)
+    return None, f"locked server image manifest was not found; searched: {searched}"
+
+
+def _docker_image_command(
+    reference: str, script: str, *, timeout: float
+) -> tuple[str | None, str | None]:
+    docker = shutil.which("docker")
+    if docker is None:
+        return None, "docker CLI is absent"
+    try:
+        completed = subprocess.run(
+            [
+                docker,
+                "run",
+                "--rm",
+                "--entrypoint",
+                "",
+                reference,
+                "sh",
+                "-lc",
+                script,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return None, f"docker run failed: {exc}"
+    output = f"{completed.stdout}\n{completed.stderr}".strip()
+    if completed.returncode != 0:
+        return None, output or f"docker run exited with {completed.returncode}"
+    return output, None
+
+
+def _pull_timeout() -> float:
+    raw = os.environ.get("ACD_DOCTOR_PULL_TIMEOUT_SECONDS", "3600")
+    try:
+        value = float(raw)
+    except ValueError:
+        return 3600
+    return value if value > 0 else 3600
+
+
 def _docker_check() -> dict[str, Any]:
+    if _in_container():
+        return _check(
+            "docker capability",
+            True,
+            "pass",
+            "running inside the locked ACD image; docker-in-docker is not required",
+            "container runtime",
+        )
     docker = shutil.which("docker")
     if docker is None:
         return _check(
             "docker capability",
-            False,
+            True,
             "fail",
             "docker CLI is absent; authoritative Evidence from a digest-fixed container "
             "cannot be generated. Host execution must not be used as a passing substitute.",
@@ -657,7 +758,7 @@ def _docker_check() -> dict[str, Any]:
     if completed is None or completed.returncode != 0:
         return _check(
             "docker capability",
-            False,
+            True,
             "fail",
             "docker info is not reachable; authoritative Evidence from a digest-fixed "
             "container cannot be generated. Host execution must not be used as a "
@@ -666,52 +767,142 @@ def _docker_check() -> dict[str, Any]:
         )
     return _check(
         "docker capability",
-        False,
+        True,
         "pass",
         "docker CLI and docker info are reachable; this does not itself run a gate",
         version,
     )
 
 
-CONTAINER_ROUTE_GUIDANCE = (
-    "Run gates through the locked image instead: resolve the digest from "
-    "docker/image-digests.json and execute 'uv run python scripts/run_in_workspace.py "
-    '--image <digest-pinned-ref> --source bundled "uv run python '
-    "scripts/run_gd1_pipeline.py\"'. See docs/operations.md and docker/README.md for the "
-    "DockerWorkspace route."
-)
+def _server_image_check(
+    workspace: Path | None, *, pull: bool
+) -> dict[str, Any]:
+    if _in_container():
+        return _check(
+            "locked ACD server image",
+            True,
+            "pass",
+            "running inside the locked ACD server image",
+        )
+    reference, error = _locked_server_image(workspace)
+    if reference is None:
+        return _check("locked ACD server image", True, "unknown", error or "unknown")
+    docker = shutil.which("docker")
+    if docker is None:
+        return _check(
+            "locked ACD server image",
+            True,
+            "fail",
+            f"docker CLI is absent; cannot inspect {reference}",
+            reference,
+        )
+    try:
+        inspected = subprocess.run(
+            [docker, "image", "inspect", reference],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _check("locked ACD server image", True, "fail", str(exc), reference)
+    if inspected.returncode == 0:
+        return _check(
+            "locked ACD server image",
+            True,
+            "pass",
+            f"locked server image is available locally: {reference}",
+            reference,
+        )
+    if not pull:
+        return _check(
+            "locked ACD server image",
+            True,
+            "fail",
+            f"{reference} is not available locally and --no-pull was requested",
+            reference,
+        )
+    try:
+        pulled = subprocess.run(
+            [docker, "pull", reference],
+            capture_output=True,
+            text=True,
+            timeout=_pull_timeout(),
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _check("locked ACD server image", True, "fail", str(exc), reference)
+    if pulled.returncode != 0:
+        detail = pulled.stderr.strip() or pulled.stdout.strip() or "docker pull failed"
+        return _check("locked ACD server image", True, "fail", detail, reference)
+    return _check(
+        "locked ACD server image",
+        True,
+        "pass",
+        f"pulled locked server image: {reference}",
+        reference,
+    )
 
 
-def _eda_check() -> dict[str, Any]:
+def _image_section(output: str, name: str) -> str:
+    match = re.search(
+        rf"^=== {re.escape(name)} ===\n(.*?)(?=^=== |\Z)",
+        output,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    return match.group(1).strip() if match else ""
+
+
+def _eda_check(workspace: Path | None = None) -> dict[str, Any]:
     probes = {
         "kicad-cli": (["version"], r"([0-9]+\.[0-9]+\.[0-9]+)", False),
         "freerouting": (["--version"], r"Freerouting v([0-9]+\.[0-9]+\.?[0-9]*)", True),
     }
-    observations = {
-        tool: _run_version(tool, args, pattern, allow_nonzero_exit=allow_nonzero)
-        for tool, (args, pattern, allow_nonzero) in probes.items()
-    }
+    if _in_container():
+        observations = {
+            tool: _run_version(tool, args, pattern, allow_nonzero_exit=allow_nonzero)
+            for tool, (args, pattern, allow_nonzero) in probes.items()
+        }
+        detail_prefix = "EDA capabilities are observed from the locked ACD image"
+    else:
+        reference, error = _locked_server_image(workspace)
+        if reference is None:
+            return _check("EDA capabilities", False, "fail", error or "unknown")
+        script = (
+            "printf '%s\\n' '=== kicad-cli ==='; "
+            "kicad-cli version 2>&1 || true; "
+            "printf '%s\\n' '=== freerouting ==='; "
+            "freerouting --version 2>&1 || true"
+        )
+        output, error = _docker_image_command(reference, script, timeout=30)
+        if output is None:
+            return _check("EDA capabilities", False, "fail", error or "docker probe failed")
+        observations = {}
+        for tool, (_, pattern, _) in probes.items():
+            match = re.search(pattern, _image_section(output, tool))
+            observations[tool] = match.group(1) if match else None
+        detail_prefix = f"EDA capabilities observed inside {reference}"
     present = [
-        f"{tool}={version}" for tool, version in observations.items() if version is not None
+        f"{tool}={version}"
+        for tool, version in observations.items()
+        if version not in (None, "unknown")
     ]
-    missing = [tool for tool, version in observations.items() if version is None]
+    missing = [
+        tool
+        for tool, version in observations.items()
+        if version in (None, "unknown")
+    ]
     detail = (
         f"present: {', '.join(present) if present else 'none'}; "
-        f"missing: {', '.join(missing) if missing else 'none'}. "
-        "Host EDA execution is provisional only and cannot produce authoritative Evidence. "
-        "build123d / cadquery-ocp are not probed from this isolated script; "
-        "scripts/probe_tools.py is authoritative for the application tool probe."
+        f"missing: {', '.join(missing) if missing else 'none'}. {detail_prefix}."
     )
     if missing:
-        detail += (
-            " A missing host EDA tool stops the host lane fail-closed. "
-            f"{CONTAINER_ROUTE_GUIDANCE}"
-        )
-    result = "pass"
+        detail += " One or more image tools could not be observed."
+    result = "fail" if missing else "pass"
     observed_version = ", ".join(
         f"{tool}={version or 'unavailable'}" for tool, version in observations.items()
     )
-    return _check("host EDA capabilities", False, result, detail, observed_version)
+    return _check("EDA capabilities", False, result, detail, observed_version)
 
 
 def _resource_mib(value: int | None) -> str:
@@ -1280,35 +1471,26 @@ def _workspace_lock_check(workspace: Path) -> dict[str, Any]:
 
 
 def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
-    path = workspace / "docker" / "image-digests.json"
-    try:
-        document = _read_json(path)
-        tools = document["acd_tools"]
-        image = tools["image"]
-        digest = tools["digest"]
-        if not isinstance(image, str) or not isinstance(digest, str):
-            raise ValueError("acd_tools image or digest is invalid")
-        if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
-            raise ValueError(f"invalid image digest: {digest!r}")
-    except (
-        OSError,
-        UnicodeDecodeError,
-        json.JSONDecodeError,
-        KeyError,
-        TypeError,
-        ValueError,
-    ) as exc:
-        return _check("workspace lock digest", True, "unknown", str(exc))
+    if _in_container():
+        return _check(
+            "workspace lock digest",
+            True,
+            "pass",
+            "running inside the locked ACD server image",
+        )
+    reference, error = _locked_server_image(workspace)
+    if reference is None:
+        return _check("workspace lock digest", True, "unknown", error or "unknown")
+    digest = reference.rsplit("@", 1)[-1]
     docker = shutil.which("docker")
     if docker is None:
         return _check(
             "workspace lock digest",
             True,
-            "unknown",
-            f"docker is unavailable; cannot inspect {image}@{digest} without pulling",
+            "fail",
+            f"docker is unavailable; cannot inspect {reference}",
             digest,
         )
-    reference = f"{image}@{digest}"
     try:
         completed = subprocess.run(
             [docker, "image", "inspect", reference],
@@ -1317,13 +1499,16 @@ def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
             timeout=30,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return _check("workspace lock digest", True, "unknown", str(exc), digest)
+    except (
+        OSError,
+        subprocess.TimeoutExpired,
+    ) as exc:
+        return _check("workspace lock digest", True, "fail", str(exc), digest)
     if completed.returncode != 0:
         return _check(
             "workspace lock digest",
             True,
-            "unknown",
+            "fail",
             f"{reference} is not available locally; network pull is not attempted",
             digest,
         )
@@ -1365,7 +1550,68 @@ def _resolve_firmware_tool(binary: str) -> str | None:
 
 
 def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
-    del workspace
+    if not _in_container():
+        reference, error = _locked_server_image(workspace)
+        if reference is None:
+            return _check(
+                "workspace firmware prerequisites",
+                True,
+                "fail",
+                error or "locked server image is unavailable",
+            )
+        script = (
+            "printf '%s\\n' '=== IDF_PATH/export.sh ==='; "
+            "if test -n \"${IDF_PATH:-}\" && test -x \"$IDF_PATH/export.sh\"; "
+            "then printf '%s\\n' present; else printf '%s\\n' missing; fi; "
+            "printf '%s\\n' '=== qemu-system-riscv32 ==='; "
+            "qemu-system-riscv32 --version 2>&1 || true; "
+            "printf '%s\\n' '=== cmake ==='; "
+            "cmake --version 2>&1 || true"
+        )
+        output, error = _docker_image_command(reference, script, timeout=30)
+        if output is None:
+            return _check(
+                "workspace firmware prerequisites",
+                True,
+                "fail",
+                error or "docker probe failed",
+                reference,
+            )
+        idf_output = _image_section(output, "IDF_PATH/export.sh")
+        qemu_output = _image_section(output, "qemu-system-riscv32")
+        cmake_output = _image_section(output, "cmake")
+        idf_ok = "present" in idf_output.split()
+        qemu_match = re.search(r"QEMU emulator version ([^\s]+)", qemu_output)
+        cmake_match = re.search(r"cmake version ([^\s]+)", cmake_output)
+        missing = [
+            name
+            for name, present in (
+                ("IDF_PATH/export.sh", idf_ok),
+                ("qemu-system-riscv32", qemu_match is not None),
+                ("cmake", cmake_match is not None),
+            )
+            if not present
+        ]
+        observed = (
+            f"IDF_PATH/export.sh={'present' if idf_ok else 'missing'}, "
+            f"qemu-system-riscv32={qemu_match.group(1) if qemu_match else 'unavailable'}, "
+            f"cmake={cmake_match.group(1) if cmake_match else 'unavailable'}"
+        )
+        if missing:
+            return _check(
+                "workspace firmware prerequisites",
+                True,
+                "fail",
+                f"missing: {', '.join(missing)}; observed inside {reference}: {observed}",
+                observed,
+            )
+        return _check(
+            "workspace firmware prerequisites",
+            True,
+            "pass",
+            f"ESP-IDF export, QEMU, and CMake are available inside {reference}: {observed}",
+            observed,
+        )
     idf_path = os.environ.get("IDF_PATH")
     idf_ok = bool(idf_path and (Path(idf_path) / "export.sh").is_file())
     qemu = _resolve_firmware_tool("qemu-system-riscv32")
@@ -1410,7 +1656,7 @@ def _workspace_checks(workspace: Path) -> list[dict[str, Any]]:
     ]
 
 
-def diagnose(workspace: Path | None = None) -> dict[str, Any]:
+def diagnose(workspace: Path | None = None, *, pull: bool = True) -> dict[str, Any]:
     """Return the machine-readable doctor report for this plugin root."""
     plugin_root = Path(__file__).resolve().parents[3]
     checks = [
@@ -1423,7 +1669,8 @@ def diagnose(workspace: Path | None = None) -> dict[str, Any]:
         _package_ref_check(plugin_root),
         _runtime_check(),
         _docker_check(),
-        _eda_check(),
+        _server_image_check(workspace, pull=pull),
+        _eda_check(workspace),
         _host_resource_check(),
         _hook_root_resolution_check(plugin_root),
         _hook_invocability_check(plugin_root),
@@ -1455,9 +1702,14 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="workspace checkout to inspect in addition to plugin capabilities",
     )
+    parser.add_argument(
+        "--no-pull",
+        action="store_true",
+        help="do not pull the locked server image when it is absent locally",
+    )
     try:
         args = parser.parse_args(argv)
-        report = diagnose(args.workspace)
+        report = diagnose(args.workspace, pull=not args.no_pull)
     except Exception as exc:
         report = {
             "status": "failed",

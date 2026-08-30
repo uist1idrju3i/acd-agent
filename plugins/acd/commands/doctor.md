@@ -16,8 +16,11 @@ inventing, weakening, or replacing any gate:
 Use `python3 <resolved-path>`. Preserve the JSON fields and status exactly.
 When diagnosing a prepared workspace, pass `--workspace <workspace-path>` to
 also check its Git repository, submodule, lock synchronization, locked image
-availability, and firmware host prerequisites. These workspace checks are
-required and fail closed when unknown; they never attempt a network image pull.
+availability, and firmware prerequisites inside the locked server image. These
+workspace checks are required and fail closed when unknown. By default doctor
+pulls the locked server image when it is not available locally; pass
+`--no-pull` to forbid network pulls. The workspace digest check only verifies
+local availability after the server image check.
 An `unknown` result in a required check is fail-closed and means the diagnosis
 is `failed`. The required install-location check reports a development
 checkout as valid, but fails a store path other than the direct
@@ -31,13 +34,17 @@ the contract ref, imported-script hashes and symbols, and fixture kinds must
 remain compatible with the pinned ACD schema. A missing or malformed contract
 is a required failure.
 
-Optional host capabilities may produce `degraded` with exit code 0. Host EDA
-absence is observational and does not itself lower the status. Docker
-unavailability can produce `degraded`. Plugin hooks are invoked through
-interpreters and therefore do not depend on hook script executable bits or
-shebangs. This L3 observation does not grant acceptance authority and does not
-produce authoritative Evidence. Report the result as observed; do not turn
-host or Skill observations into a passing gate or authoritative Evidence.
+Docker and the locked server image are required checks. EDA capabilities and
+firmware prerequisites are observed inside that digest-pinned image; doctor
+does not observe host KiCad, FreeRouting, ESP-IDF, QEMU, or CMake. Missing image
+EDA tools produce `degraded` because that check remains optional, while missing
+required firmware tools or unavailable Docker produce `failed`. When running
+inside the locked image, container mode probes PATH directly and does not
+require Docker-in-Docker. Plugin hooks are invoked through interpreters and
+therefore do not depend on hook script executable bits or shebangs. This L3
+observation does not grant acceptance authority and does not produce
+authoritative Evidence. Report the result as observed; do not turn host or
+Skill observations into a passing gate or authoritative Evidence.
 
 The optional host resource preflight check reports MemTotal, MemAvailable, swap,
 CPU count, and free disk using the fixed container profile of 8 GiB memory,
