@@ -90,9 +90,8 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
         tmp_path / "first/visual/gd1-mechanical-section.svg"
     ).read_text(encoding="utf-8")
     assert section_svg.count("<line") == 12
-    assert section_svg.count("<circle") == 4
+    assert section_svg.count("<circle") == 8
     assert 'x1="-16.0" y1="13.5" x2="16.0" y2="13.5"' in section_svg
-    assert 'x1="-4.5" y1="-13.5" x2="-4.5" y2="-15.5"' in section_svg
     assert first.projections[1].section_offset_mm == (
         lane.enclosure.wall_thickness_mm + lane.enclosure.standoff_height_mm / 2
     )

@@ -756,18 +756,19 @@
         "mechanical.enclosure.gd1"
       ],
       "subject_attrs": [
+        "fastener_method",
         "material",
         "wall_thickness_mm"
       ],
-      "subject_hash": "sha256:5bbafe91f12f31e48548824f691d34b6a088860cb750673213e93b99534005f8",
-      "decision": "Use PETG with a 2.0 mm wall.",
-      "justification": "GD1-REQ-014 requires a board/enclosure shared hole interface; the mechanical lane declares PETG, 2.0 mm wall, and the corresponding clearance/fit gate, so the enclosure projection remains tied to the board interface.",
+      "subject_hash": "sha256:4c685c18bbd468ef76848e926bcd9a7310aa1cd3d19d100efbcae87cde2324b5",
+      "decision": "Use PA12-HP nylon with a 2.0 mm wall and M2 self-tapping screws.",
+      "justification": "GD1-REQ-014 requires a board/enclosure shared hole interface; the mechanical lane declares PA12-HP nylon, a 2.0 mm wall, and self-tapping M2 fastening so the enclosure projection remains tied to the board interface without post-processing.",
       "driving_requirements": [
         "req.gd1-req-014"
       ],
       "driving_requirement_refs": [],
       "rejected_alternatives": [],
-      "no_alternatives_reason": "`req.gd1-req-014` and the GD1 mechanical declaration fix the shared enclosure interface and PETG/2.0 mm lane for this fixture.",
+      "no_alternatives_reason": "The GD1 mechanical declaration fixes the shared enclosure interface, PA12-HP nylon, and self-tapping M2 fastening for this fixture.",
       "assumptions": [
         "The graph and revision remain the declared GD1 input."
       ],
@@ -792,17 +793,19 @@
         "mechanical.enclosure.gd1"
       ],
       "subject_attrs": [
-        "min_wall_thickness_mm",
+        "interference_tolerance_mm3",
         "internal_clearance_mm",
-        "standoff_height_mm",
-        "standoff_radius_mm",
         "lid_fit_gap_mm",
-        "tolerance_mm",
-        "interference_tolerance_mm3"
+        "lid_screw_hole_diameter_mm",
+        "min_wall_thickness_mm",
+        "standoff_height_mm",
+        "standoff_pilot_hole_diameter_mm",
+        "standoff_radius_mm",
+        "tolerance_mm"
       ],
-      "subject_hash": "sha256:54361c3fc38681abd44e58f3bcc1d3a7b0385693375a84f59f25f486d1d3a29d",
-      "decision": "Use 1.2 mm minimum wall, 1.0 mm internal clearance, 4.0 mm standoff height with 2.0 mm radius, 0.2 mm lid gap, 0.05 mm tolerance, and 0.01 mm3 interference limit.",
-      "justification": "§8.1/§9 define 1.2 mm minimum wall, 1.0 mm component clearance, 4.0 mm standoff height with 2.0 mm radius, 0.2 mm lid gap, 0.05 mm CAD tolerance, and 0.01 mm3 interference threshold. These values leave measurable assembly room while still failing actual collision.",
+      "subject_hash": "sha256:e4e5e971e0c3eaa5d4b3770dbb36f4040ee4d56ee9fd673e6ba8b1f7084a0c65",
+      "decision": "Use 1.2 mm minimum wall, 1.0 mm internal clearance, 4.0 mm standoff height with 2.0 mm radius, 1.6 mm pilot holes, 2.2 mm lid holes, 0.2 mm lid gap, 0.05 mm tolerance, and 0.01 mm3 interference limit.",
+      "justification": "§8.1/§9 define the minimum wall, component clearance, standoff geometry, M2 pilot and lid hole diameters, lid gap, CAD tolerance, and interference threshold. These values leave measurable assembly room while preserving the declared self-tapping fastening interface.",
       "driving_requirements": [
         "req.gd1-req-014"
       ],
@@ -822,7 +825,7 @@
         "The CAD kernel remains deterministic for the declared dimensions."
       ],
       "risks": [
-        "Manufactured PETG shrinkage and physical fit remain to be confirmed."
+        "Manufactured PA12-HP nylon shrinkage and physical fit remain to be confirmed."
       ],
       "provenance": {
         "source": "human",

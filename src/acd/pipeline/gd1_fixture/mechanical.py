@@ -222,7 +222,10 @@ MECHANICAL_ENCLOSURE_ATTRS: dict[str, AttrValue] = {
     "lid_fit_gap_mm": 0.2,
     "standoff_height_mm": 4.0,
     "standoff_radius_mm": 2.0,
-    "material": "PETG",
+    "material": "PA12-HP nylon",
+    "fastener_method": "self_tapping_screw_m2",
+    "standoff_pilot_hole_diameter_mm": 1.6,
+    "lid_screw_hole_diameter_mm": 2.2,
     "unit": "mm",
     "tolerance_mm": 0.05,
     "interference_tolerance_mm3": 0.01,
@@ -289,7 +292,7 @@ def mechanical_nodes() -> list[GraphNode]:
                     "requirement_id": "req.gd1-req-015",
                     "edge": "top",
                 },
-                depends_on=["comp.u1", "req.gd1-req-015"],
+                depends_on=["comp.u1"],
             ),
         ]
     )

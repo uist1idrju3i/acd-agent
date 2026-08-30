@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
@@ -66,6 +67,16 @@ class ConnectorOpeningView:
 
 
 @dataclass(frozen=True)
+class BoardEdgeOverhangView:
+    node_id: str
+    component_id: str
+    component_refdes: str
+    edge: str
+    overhang_mm: float
+    requirement_id: str
+
+
+@dataclass(frozen=True)
 class EnclosureView:
     node_id: str
     wall_thickness_mm: float
@@ -74,6 +85,9 @@ class EnclosureView:
     lid_fit_gap_mm: float
     standoff_height_mm: float
     standoff_radius_mm: float
+    fastener_method: str
+    standoff_pilot_hole_diameter_mm: float
+    lid_screw_hole_diameter_mm: float
     material: str
     unit: str
     tolerance_mm: float
@@ -87,6 +101,7 @@ class MechanicalLane:
     outline: OutlineView
     component_bodies: tuple[ComponentBodyView, ...]
     connector_openings: tuple[ConnectorOpeningView, ...]
+    board_edge_overhangs: tuple[BoardEdgeOverhangView, ...]
     enclosure: EnclosureView
 
     def body_for_component(self, component_id: str) -> ComponentBodyView:
@@ -133,6 +148,7 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
     outlines: list[OutlineView] = []
     bodies: list[ComponentBodyView] = []
     openings: list[ConnectorOpeningView] = []
+    overhangs: list[BoardEdgeOverhangView] = []
     enclosures: list[EnclosureView] = []
 
     for node in graph.nodes:
@@ -237,7 +253,66 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     dimensions_checked_at=_str_attr(node, "dimensions_checked_at"),
                 )
             )
+        elif node.kind == "mechanical.board_edge_overhang":
+            component_ids = [dep for dep in node.depends_on if dep in components]
+            if len(component_ids) != 1:
+                raise GraphExtractionError(
+                    f"node {node.id!r} must depend on exactly one electrical component"
+                )
+            component = electrical.component_by_id(component_ids[0])
+            component_refdes = _str_attr(node, "component_refdes")
+            if component_refdes != component.refdes:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: component_refdes does not match depended component"
+                )
+            edge = _str_attr(node, "edge")
+            if edge not in {"top", "bottom", "left", "right"}:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: edge must be top, bottom, left, or right"
+                )
+            overhang_mm = _float_attr(node, "overhang_mm")
+            if not math.isfinite(overhang_mm) or overhang_mm <= 0:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: overhang_mm must be finite and positive"
+                )
+            requirement_id = _str_attr(node, "requirement_id")
+            overhangs.append(
+                BoardEdgeOverhangView(
+                    node_id=node.id,
+                    component_id=component_ids[0],
+                    component_refdes=component_refdes,
+                    edge=edge,
+                    overhang_mm=overhang_mm,
+                    requirement_id=requirement_id,
+                )
+            )
         elif node.kind == "mechanical.enclosure":
+            fastener_method = _str_attr(node, "fastener_method")
+            if fastener_method != "self_tapping_screw_m2":
+                raise GraphExtractionError(
+                    f"node {node.id!r}: fastener_method must be 'self_tapping_screw_m2'"
+                )
+            pilot_diameter = _float_attr(node, "standoff_pilot_hole_diameter_mm")
+            if not math.isfinite(pilot_diameter) or pilot_diameter <= 0:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: standoff_pilot_hole_diameter_mm must be finite and positive"
+                )
+            lid_diameter = _float_attr(node, "lid_screw_hole_diameter_mm")
+            if not math.isfinite(lid_diameter) or lid_diameter <= 0:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: lid_screw_hole_diameter_mm must be finite and positive"
+                )
+            standoff_radius = _float_attr(node, "standoff_radius_mm")
+            if standoff_radius - pilot_diameter / 2 < _float_attr(
+                node, "min_wall_thickness_mm"
+            ):
+                raise GraphExtractionError(
+                    f"node {node.id!r}: standoff pilot hole leaves less than min_wall_thickness_mm"
+                )
+            if lid_diameter < pilot_diameter:
+                raise GraphExtractionError(
+                    f"node {node.id!r}: lid screw hole diameter must be at least the pilot diameter"
+                )
             enclosures.append(
                 EnclosureView(
                     node_id=node.id,
@@ -246,7 +321,10 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                     internal_clearance_mm=_float_attr(node, "internal_clearance_mm"),
                     lid_fit_gap_mm=_float_attr(node, "lid_fit_gap_mm"),
                     standoff_height_mm=_float_attr(node, "standoff_height_mm"),
-                    standoff_radius_mm=_float_attr(node, "standoff_radius_mm"),
+                    standoff_radius_mm=standoff_radius,
+                    fastener_method=fastener_method,
+                    standoff_pilot_hole_diameter_mm=pilot_diameter,
+                    lid_screw_hole_diameter_mm=lid_diameter,
                     material=_str_attr(node, "material"),
                     unit=_str_attr(node, "unit"),
                     tolerance_mm=_float_attr(node, "tolerance_mm"),
@@ -273,9 +351,34 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
             "missing mechanical.component_body nodes for electrical components: "
             + ", ".join(missing_body_components)
         )
+    for overhang in overhangs:
+        matching_bodies = [body for body in bodies if body.component_id == overhang.component_id]
+        if not matching_bodies:
+            raise GraphExtractionError(
+                f"node {overhang.node_id!r}: depended component has no mechanical.component_body"
+            )
+        body = matching_bodies[0]
+        if body.body_type != "solid":
+            raise GraphExtractionError(
+                f"node {overhang.node_id!r}: overhang component body must be solid"
+            )
+        if body.rotation_deg != 0:
+            raise GraphExtractionError(
+                f"node {overhang.node_id!r}: overhang component body rotation_deg must be 0"
+            )
+    seen_overhangs: set[tuple[str, str]] = set()
+    for overhang in overhangs:
+        key = (overhang.component_id, overhang.edge)
+        if key in seen_overhangs:
+            raise GraphExtractionError(
+                "duplicate board edge overhang declaration for "
+                f"component {overhang.component_id!r} edge {overhang.edge!r}"
+            )
+        seen_overhangs.add(key)
     return MechanicalLane(
         outline=outlines[0],
         component_bodies=tuple(bodies),
         connector_openings=tuple(openings),
+        board_edge_overhangs=tuple(sorted(overhangs, key=lambda item: item.node_id)),
         enclosure=enclosures[0],
     )

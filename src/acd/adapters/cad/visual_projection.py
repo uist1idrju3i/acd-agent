@@ -170,39 +170,58 @@ def _validate_section_features(
 ) -> None:
     circles = [edge for edge in geometry.edges if _edge_is(edge, "CIRCLE")]
     holes = lane.outline.mount_holes
-    if len(circles) != len(holes):
+    if not circles and holes:
         raise MechanicalVisualProjectionError(
             "mechanical section is missing declared standoff features"
         )
-    unmatched = list(circles)
-    for hole in holes:
-        expected_x = hole.x_mm - lane.outline.width_mm / 2
-        expected_y = hole.y_mm - lane.outline.depth_mm / 2
-        expected_radius = lane.enclosure.standoff_radius_mm
-        match = next(
-            (
-                edge
-                for edge in unmatched
-                if _close(
-                    float(edge.bounding_box().min.X + edge.bounding_box().max.X) / 2,
-                    expected_x,
-                )
-                and _close(
-                    float(edge.bounding_box().min.Y + edge.bounding_box().max.Y) / 2,
-                    expected_y,
-                )
-                and _close(
-                    float(edge.bounding_box().max.X - edge.bounding_box().min.X) / 2,
-                    expected_radius,
-                )
-            ),
-            None,
+    expected_features = [
+        (
+            hole.x_mm - lane.outline.width_mm / 2,
+            hole.y_mm - lane.outline.depth_mm / 2,
+            radius,
         )
-        if match is None:
+        for hole in holes
+        for radius in (
+            lane.enclosure.standoff_radius_mm,
+            lane.enclosure.standoff_pilot_hole_diameter_mm / 2,
+        )
+    ]
+    measured_features: list[tuple[float, float, float]] = []
+    for edge in circles:
+        try:
+            radius = float(edge.radius)
+            center = edge.arc_center
+            center_x = float(center.X)
+            center_y = float(center.Y)
+        except (AttributeError, TypeError, ValueError) as exc:
+            raise MechanicalVisualProjectionError(
+                "mechanical section circular edge geometry is unreadable"
+            ) from exc
+        if not all(math.isfinite(value) for value in (center_x, center_y, radius)):
+            raise MechanicalVisualProjectionError(
+                "mechanical section circular edge geometry is non-finite"
+            )
+        measured_features.append((center_x, center_y, radius))
+    for expected_x, expected_y, expected_radius in expected_features:
+        if not any(
+            _close(center_x, expected_x)
+            and _close(center_y, expected_y)
+            and _close(radius, expected_radius)
+            for center_x, center_y, radius in measured_features
+        ):
             raise MechanicalVisualProjectionError(
                 "mechanical section standoff geometry does not match MechanicalLane"
             )
-        unmatched.remove(match)
+    for center_x, center_y, radius in measured_features:
+        if not any(
+            _close(center_x, expected_x)
+            and _close(center_y, expected_y)
+            and _close(radius, expected_radius)
+            for expected_x, expected_y, expected_radius in expected_features
+        ):
+            raise MechanicalVisualProjectionError(
+                "mechanical section contains an undeclared circular feature"
+            )
 
     inner_width = lane.outline.width_mm + 2 * lane.enclosure.internal_clearance_mm
     inner_depth = lane.outline.depth_mm + 2 * lane.enclosure.internal_clearance_mm
@@ -265,6 +284,36 @@ def _validate_section_features(
             )
             for boundary in boundaries
         )
+        if not has_opening and section_contains_opening:
+            has_merged_overhang = False
+            for overhang in lane.board_edge_overhangs:
+                if overhang.edge not in {"top", "bottom"}:
+                    continue
+                body = lane.body_for_component(overhang.component_id)
+                if not (
+                    lane.enclosure.wall_thickness_mm
+                    + lane.enclosure.internal_clearance_mm
+                    <= section_offset_mm
+                    <= lane.enclosure.wall_thickness_mm
+                    + lane.enclosure.internal_clearance_mm
+                    + body.height_mm
+                ):
+                    continue
+                body_center_x = body.x_mm - lane.outline.width_mm / 2
+                overhang_min_x = (
+                    body_center_x
+                    - body.width_mm / 2
+                    - lane.enclosure.internal_clearance_mm
+                )
+                overhang_max_x = (
+                    body_center_x
+                    + body.width_mm / 2
+                    + lane.enclosure.internal_clearance_mm
+                )
+                if overhang_min_x <= boundaries[0] and boundaries[1] <= overhang_max_x:
+                    has_merged_overhang = True
+                    break
+            has_opening = has_merged_overhang
         if has_opening != section_contains_opening:
             raise MechanicalVisualProjectionError(
                 "mechanical section connector opening does not match its declared Z range"

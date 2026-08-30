@@ -9,6 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from acd.adapters.cad.mechanical import (
+    board_plane_z,
+    build_board_edge_overhang_shape,
+)
 from acd.core.cad_normalize import normalize_3mf, normalize_step
 from acd.core.mechanical import MechanicalLane
 from acd.core.naming import artifact_prefix
@@ -70,6 +74,71 @@ def _build_shapes(lane: MechanicalLane) -> tuple[Any, Any]:
             x, y, enclosure.wall_thickness_mm + enclosure.standoff_height_mm / 2
         ) * build123d.Cylinder(enclosure.standoff_radius_mm, enclosure.standoff_height_mm)
         shell = shell + standoff
+        pilot = build123d.Pos(
+            x,
+            y,
+            enclosure.wall_thickness_mm + enclosure.standoff_height_mm / 2,
+        ) * build123d.Cylinder(
+            enclosure.standoff_pilot_hole_diameter_mm / 2,
+            enclosure.standoff_height_mm,
+        )
+        shell = shell - pilot
+
+    for overhang in lane.board_edge_overhangs:
+        body = lane.body_for_component(overhang.component_id)
+        build_board_edge_overhang_shape(
+            overhang,
+            body,
+            outline.width_mm,
+            outline.depth_mm,
+            board_plane_z(enclosure),
+        )
+        edge_clearance = enclosure.internal_clearance_mm
+        if overhang.edge in {"top", "bottom"}:
+            edge_y = (
+                -outline.depth_mm / 2
+                if overhang.edge == "top"
+                else outline.depth_mm / 2
+            )
+            cutter = build123d.Pos(
+                float(body.x_mm - outline.width_mm / 2),
+                edge_y
+                + (
+                    -1 if overhang.edge == "top" else 1
+                )
+                * (overhang.overhang_mm + enclosure.wall_thickness_mm * 3) / 2,
+                board_plane_z(enclosure)
+                + body.height_mm / 2
+                + edge_clearance / 2,
+            ) * build123d.Box(
+                body.width_mm + 2 * edge_clearance,
+                overhang.overhang_mm + enclosure.wall_thickness_mm * 3,
+                body.height_mm + edge_clearance,
+            )
+        elif overhang.edge in {"left", "right"}:
+            edge_x = (
+                -outline.width_mm / 2
+                if overhang.edge == "left"
+                else outline.width_mm / 2
+            )
+            cutter = build123d.Pos(
+                edge_x
+                + (
+                    -1 if overhang.edge == "left" else 1
+                )
+                * (overhang.overhang_mm + enclosure.wall_thickness_mm * 3) / 2,
+                float(body.y_mm - outline.depth_mm / 2),
+                board_plane_z(enclosure)
+                + body.height_mm / 2
+                + edge_clearance / 2,
+            ) * build123d.Box(
+                overhang.overhang_mm + enclosure.wall_thickness_mm * 3,
+                body.depth_mm + 2 * edge_clearance,
+                body.height_mm + edge_clearance,
+            )
+        else:
+            raise ValueError(f"unsupported board edge overhang edge: {overhang.edge}")
+        shell = shell - cutter
 
     for opening in lane.connector_openings:
         if opening.face != "front":
@@ -88,6 +157,20 @@ def _build_shapes(lane: MechanicalLane) -> tuple[Any, Any]:
         0,
         shell_height + enclosure.lid_fit_gap_mm + enclosure.wall_thickness_mm / 2,
     ) * build123d.Box(outer_width, outer_depth, enclosure.wall_thickness_mm)
+    for hole in outline.mount_holes:
+        x = hole.x_mm - outline.width_mm / 2
+        y = hole.y_mm - outline.depth_mm / 2
+        cutter = build123d.Pos(
+            x,
+            y,
+            shell_height
+            + enclosure.lid_fit_gap_mm
+            + enclosure.wall_thickness_mm / 2,
+        ) * build123d.Cylinder(
+            enclosure.lid_screw_hole_diameter_mm / 2,
+            enclosure.wall_thickness_mm,
+        )
+        lid = lid - cutter
     return shell, lid
 
 
@@ -116,7 +199,7 @@ def project_enclosure(
     envelope_path = out_dir / "envelope-cad.json"
     config = json.dumps(
         {
-            "adapter_revision": "p3-5-v3",
+            "adapter_revision": "p3-5-v4",
             "format": "step-parts+assembly+3mf+manifest",
             "linear_deflection": 0.01,
             "angular_deflection": 0.1,
@@ -206,6 +289,7 @@ def project_enclosure(
         target_revision=target_revision,
         measurement_conditions=(
             "build123d box shell/lid, independent STEP parts, assembly STEP, "
+            "antenna overhang cutout, standoff pilot holes, lid screw holes, "
             "Mesher 3MF, normalized artifact manifest and output hash"
         ),
         runner=runner,

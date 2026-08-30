@@ -9,7 +9,12 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
-from acd.core.mechanical import ComponentBodyView, MechanicalLane
+from acd.core.mechanical import (
+    BoardEdgeOverhangView,
+    ComponentBodyView,
+    EnclosureView,
+    MechanicalLane,
+)
 from acd.core.parallel import PipelineStageRunner
 
 
@@ -171,6 +176,55 @@ def build_component_body_shape(
     )
 
 
+def board_plane_z(enclosure: EnclosureView) -> float:
+    return enclosure.wall_thickness_mm + enclosure.internal_clearance_mm
+
+
+def build_board_edge_overhang_shape(
+    overhang: BoardEdgeOverhangView,
+    body: ComponentBodyView,
+    board_width_mm: float,
+    board_depth_mm: float,
+    board_plane_z_mm: float,
+) -> Any:
+    build123d: Any = importlib.import_module("build123d")
+    if overhang.edge not in {"top", "bottom", "left", "right"}:
+        raise ValueError(f"unsupported board edge overhang edge: {overhang.edge}")
+    x_center = body.x_mm - board_width_mm / 2
+    y_center = body.y_mm - board_depth_mm / 2
+    if overhang.edge in {"top", "bottom"}:
+        x_min = x_center - body.width_mm / 2
+        x_max = x_center + body.width_mm / 2
+        y_min = -board_depth_mm / 2 - overhang.overhang_mm
+        y_max = -board_depth_mm / 2
+        if overhang.edge == "bottom":
+            y_min, y_max = board_depth_mm / 2, board_depth_mm / 2 + overhang.overhang_mm
+        return build123d.Pos(
+            (x_min + x_max) / 2,
+            (y_min + y_max) / 2,
+            board_plane_z_mm + body.height_mm / 2,
+        ) * build123d.Box(
+            x_max - x_min,
+            y_max - y_min,
+            body.height_mm,
+        )
+    y_min = y_center - body.depth_mm / 2
+    y_max = y_center + body.depth_mm / 2
+    x_min = -board_width_mm / 2 - overhang.overhang_mm
+    x_max = -board_width_mm / 2
+    if overhang.edge == "right":
+        x_min, x_max = board_width_mm / 2, board_width_mm / 2 + overhang.overhang_mm
+    return build123d.Pos(
+        (x_min + x_max) / 2,
+        (y_min + y_max) / 2,
+        board_plane_z_mm + body.height_mm / 2,
+    ) * build123d.Box(
+        x_max - x_min,
+        y_max - y_min,
+        body.height_mm,
+    )
+
+
 def _measured_wall_thickness(shape: Any, tolerance_mm: float) -> float:
     """Measure the closest opposing planar faces of the reloaded shell."""
     faces = [
@@ -225,17 +279,11 @@ def run_mechanical_gates(
     clearance = True
     measured_min_clearance = float("inf")
     measured_max_interference_volume = 0.0
-    for body in lane.component_bodies:
-        if body.body_type == "none":
-            continue
-        body_shape = build_component_body_shape(
-            body,
-            enclosure.wall_thickness_mm + enclosure.internal_clearance_mm,
-            lane.outline.width_mm,
-            lane.outline.depth_mm,
-        )
+
+    def check_interference(candidate: Any) -> None:
+        nonlocal interference, measured_max_interference_volume
         for solid in solids:
-            intersection = solid & body_shape
+            intersection = solid & candidate
             intersection_volume = 0.0 if intersection is None else float(intersection.volume)
             measured_max_interference_volume = max(
                 measured_max_interference_volume, intersection_volume
@@ -245,6 +293,18 @@ def run_mechanical_gates(
                 and intersection_volume > enclosure.interference_tolerance_mm3
             ):
                 interference = False
+
+    for body in lane.component_bodies:
+        if body.body_type == "none":
+            continue
+        body_shape = build_component_body_shape(
+            body,
+            enclosure.wall_thickness_mm + enclosure.internal_clearance_mm,
+            lane.outline.width_mm,
+            lane.outline.depth_mm,
+        )
+        check_interference(body_shape)
+        for solid in solids:
             standoff_area = math.pi * enclosure.standoff_radius_mm**2
             wall_faces = [
                 face
@@ -259,6 +319,17 @@ def run_mechanical_gates(
             measured_min_clearance = min(measured_min_clearance, measured_clearance)
             if measured_clearance < enclosure.internal_clearance_mm - enclosure.tolerance_mm:
                 clearance = False
+
+    for overhang in lane.board_edge_overhangs:
+        body = lane.body_for_component(overhang.component_id)
+        overhang_shape = build_board_edge_overhang_shape(
+            overhang,
+            body,
+            lane.outline.width_mm,
+            lane.outline.depth_mm,
+            board_plane_z(enclosure),
+        )
+        check_interference(overhang_shape)
 
     measured_wall = min(
         _measured_wall_thickness(solid, enclosure.tolerance_mm) for solid in solids
