@@ -56,7 +56,7 @@ def run_board(
 
 def run_enclosure(fixture_dir: Path, out_dir: Path) -> dict[str, object]:
     """Run the enclosure pipeline without importing it during package initialization."""
-    from acd.pipeline.gd1_enclosure import run_pipeline
+    from acd.pipeline.enclosure import run_pipeline
 
     return run_pipeline(fixture_dir, out_dir)
 

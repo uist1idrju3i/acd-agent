@@ -358,7 +358,7 @@ def explore_enclosure_candidates(
     pending = candidates[:max_candidates]
     pipeline_lock: threading.Lock | None = None
     if pipeline_runner is None:
-        from acd.pipeline.gd1_enclosure import run_pipeline
+        from acd.pipeline.enclosure import run_pipeline
 
         pipeline_runner = run_pipeline
         pipeline_lock = _DEFAULT_PIPELINE_LOCK

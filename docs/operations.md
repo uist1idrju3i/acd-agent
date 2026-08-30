@@ -219,7 +219,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    mask開口、既存／固定シルク、同じ面のbody/courtyard、最近傍部品帰属を候補段階で
    検査するが、最終合否はauthoritative projectionと独立測定ゲートが判定する。基板pipelineは
    `scripts/run_gd1_pipeline.py`、筐体pipelineは
-   `scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure`がCLI入口である。
+   `scripts/run_enclosure_pipeline.py --fixture fixtures/golden-design-1 --out out/gd1-enclosure`がCLI入口である。
    未解決シルクの候補評価を個別に実行する場合は、Skill scriptへworker数を明示できる。
 
    ```bash
@@ -261,10 +261,17 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    逐次確認やデバッグには次を使う。
 
    ```bash
-   uv run python scripts/run_gd1_enclosure_pipeline.py \
+   uv run python scripts/run_enclosure_pipeline.py \
+     --fixture fixtures/golden-design-1 \
      --out out/gd1-enclosure \
      --pipeline-workers 1
    ```
+
+   筐体laneはrationale投影より前に機械preflightを実行する。必須機械ノード・属性・
+   参照、電気laneとの対応、rationale coverageの不足は全件を
+   `preflight-mechanical.json`へ機械可読に出力し、code別件数を表示して非zero終了する。
+   preflightがpassの場合はこのファイルを生成せず、既存のGD1成果物集合とhashを変えない。
+   preflightは診断専用であり、pass結果だけではauthoritative EvidenceやL1合格を確立しない。
 
    2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
    `--pipeline-workers 1`で`8.309`秒、`--pipeline-workers 4`で`26.492`秒だった。
@@ -1564,7 +1571,7 @@ imageへ同梱したACD本体・pipeline scripts・fixtureだけで実行する�
 
 ```bash
 uv run python scripts/run_in_workspace.py --image "$SERVER_REF" --source bundled \
-  "uv run python scripts/run_gd1_enclosure_pipeline.py --out out/gd1-enclosure"
+  "uv run python scripts/run_enclosure_pipeline.py --fixture fixtures/golden-design-1 --out out/gd1-enclosure"
 ```
 
 `--source bundled`は実行前に`/opt/acd`の`pyproject.toml`、`uv.lock`、`src/acd`、
@@ -1669,7 +1676,7 @@ lane入口は`--fixture`（`graph.json`を含む設計入力ディレクトリ�
 |---|---|
 | `scripts/resolve_gd1_silkscreen.py` | シルク解決lane |
 | `scripts/run_gd1_pipeline.py` | 基板lane |
-| `scripts/run_gd1_enclosure_pipeline.py` | 筐体lane |
+| `scripts/run_enclosure_pipeline.py` | 筐体lane |
 | `plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py` | FW lane |
 | `scripts/validate_graph.py` | graph単体検証 |
 

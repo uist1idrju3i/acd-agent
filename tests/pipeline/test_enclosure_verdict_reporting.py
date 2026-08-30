@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from acd.pipeline import gd1_enclosure
+from acd.pipeline import enclosure
 
 
 def _run_main(
@@ -27,12 +27,18 @@ def _run_main(
         assert pipeline_workers > 0
         return summary
 
-    monkeypatch.setattr(gd1_enclosure, "run_pipeline", _fake_run_pipeline)
+    monkeypatch.setattr(enclosure, "run_pipeline", _fake_run_pipeline)
     monkeypatch.setattr(
         "sys.argv",
-        ["run_gd1_enclosure_pipeline.py", "--out", str(tmp_path)],
+        [
+            "run_enclosure_pipeline.py",
+            "--fixture",
+            "fixtures/golden-design-1",
+            "--out",
+            str(tmp_path),
+        ],
     )
-    assert gd1_enclosure.main() == 0
+    assert enclosure.main() == 0
 
 
 def test_missing_authoritative_provenance_is_reported_as_provisional(

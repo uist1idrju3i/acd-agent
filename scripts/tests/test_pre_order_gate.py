@@ -214,7 +214,7 @@ def test_authoritative_commands_resolve_relative_and_absolute_paths(
             (f"{expected_board}/evidence-electrical.json",),
         ),
         (
-            "uv run python scripts/run_gd1_enclosure_pipeline.py "
+            "uv run python scripts/run_enclosure_pipeline.py "
             f"--fixture {expected_fixture} --out {expected_board}-enclosure",
             (f"{expected_board}-enclosure/evidence-mechanical.json",),
         ),

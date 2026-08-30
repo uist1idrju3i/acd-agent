@@ -234,6 +234,13 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 - `acd_diagnose_gate_failure`
 - `acd_check_order_readiness`
 
+機械系laneの入口は`src/acd/pipeline/enclosure.py`と
+`scripts/run_enclosure_pipeline.py`である。`--fixture`と`--out`は必須で、GD1を
+暗黙の対象にしない。entrypointは`check_mechanical_preflight()`をrationale投影より
+前に実行し、機械ノード・属性・参照とrationale coverageの不足を
+`preflight-mechanical.json`へ固定語彙で一括記録する。O-5と共有するこの診断は
+合格判定を代替せず、findingが一つでもあればfail-closedで停止する。
+
 返り値のキー、ToolEnvelopeの列挙、入力妥当性、fail-closed契約は旧公開方式から
 不変である。MCP client互換層は提供しない。
 
