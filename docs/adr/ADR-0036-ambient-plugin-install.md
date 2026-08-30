@@ -6,7 +6,7 @@
 ## コンテキスト
 
 ADR-0035はclone不要のSDK標準配布（pip git install＋`Plugin.fetch()`）を定めたが、
-利用者は依然として設定コードでpluginを明示ロードする必要がある。pinned SDK v1.43.1は
+利用者は依然として設定コードでpluginを明示ロードする必要がある。pinned SDK v1.44.1は
 拡張の標準インストール機構として、installed plugin store
 （`install_plugin()`／`~/.openhands/plugins/installed`）と、`LocalConversation`が
 起動時に行うambient自動読み込み（installed・user・project pluginの自動merge）を提供する。

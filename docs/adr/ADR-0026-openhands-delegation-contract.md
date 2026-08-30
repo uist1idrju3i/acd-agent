@@ -1,11 +1,11 @@
 # ADR-0026: OpenHands委譲契約
 
 > ステータス: Accepted
-> 対象: OpenHands Software Agent SDK v1.43.1
+> 対象: OpenHands Software Agent SDK v1.44.1
 
 ## コンテキスト
 
-ACDはOpenHands Software Agent SDK v1.43.1（pinned checkout）に固有契約を追加する。
+ACDはOpenHands Software Agent SDK v1.44.1（pinned checkout）に固有契約を追加する。
 SDKの実行・対話・配布・観測を活用し、ACDの設計契約と決定論的合否を重複実装しない。
 
 ## 責務分割
@@ -44,7 +44,7 @@ fail-closedで停止する。
 ## Agent安全境界
 
 ACDのagent経路に必要な確認、secret注入、Skill資材配布、停滞検知は、独自基盤を追加せず
-pinned OpenHands SDK v1.43.1のL2機能へ委譲する。`AcdSecurityAnalyzer`とSDKの
+pinned OpenHands SDK v1.44.1のL2機能へ委譲する。`AcdSecurityAnalyzer`とSDKの
 `PatternSecurityAnalyzer`を`EnsembleSecurityAnalyzer`へ渡し、`LLMSecurityAnalyzer`、
 `ToolShieldLLMSecurityAnalyzer`、`GraySwanAnalyzer`は採用しない。Conversationには
 `ConfirmRisky(threshold=SecurityRisk.MEDIUM)`を設定し、HIGHとMEDIUMは確認し、LOWは

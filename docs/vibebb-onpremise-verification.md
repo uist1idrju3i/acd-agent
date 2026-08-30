@@ -1,7 +1,7 @@
 # VibeBB単体成立性の実機検証記録（2026-08-25, 実機OpenHands環境 / 新規設計）
 
 > ステータス: Accepted
-> 対象: OpenHands Software Agent SDK v1.43.1
+> 対象: OpenHands Software Agent SDK v1.44.1
 
 本書は、[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)がGD1（既存fixture）で
 確認した範囲を、**利用者の実機OpenHands環境**と**GD1ではない新規設計**へ広げて実測した記録である。

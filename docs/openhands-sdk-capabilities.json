@@ -1,6 +1,6 @@
 {
-  "sdk_version": "1.43.1",
-  "submodule_commit": "ddac55697c5d15cf8a34495b5ed6d46c86db092a",
+  "sdk_version": "1.44.1",
+  "submodule_commit": "9d143aac35c2dcec9cbb046ff9f35ac5eb072f6a",
   "scanned_packages": [
     {
       "prefix": "sdk",
@@ -955,6 +955,15 @@
       "use": "patch編集",
       "adoption": "不採用",
       "rationale": "ACDの明示的tool集合と保護hookを単一化する",
+      "verification": "pinned API確認、採用しない"
+    },
+    {
+      "domain": "tools.ask_oracle",
+      "modules": ["tools.ask_oracle", "tools.ask_oracle.*"],
+      "representative_apis": ["AskOracleTool"],
+      "use": "別LLM profileへの助言照会",
+      "adoption": "不採用",
+      "rationale": "`oracle` profileの応答は非決定論的なL2助言であり、tom_consultと同じく合否へ関与しない経路を増やさない",
       "verification": "pinned API確認、採用しない"
     },
     {
