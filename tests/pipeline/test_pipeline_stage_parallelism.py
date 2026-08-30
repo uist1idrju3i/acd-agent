@@ -20,7 +20,13 @@ from acd.core.parallel import (
     PipelineStageRunner,
     _warm_up_worker,
 )
-from acd.pipeline.gd1_board import _positive_int, _run_ordered_stages, run_pipeline
+from acd.pipeline.gd1_board import (
+    _parse_cached_router_record,
+    _positive_int,
+    _run_ordered_stages,
+    _write_router_pass_progression,
+    run_pipeline,
+)
 from acd.pipeline.gd1_enclosure import run_pipeline as run_enclosure_pipeline
 
 
@@ -34,6 +40,24 @@ def _stage_value(value: str) -> str:
 
 def _stage_failure() -> None:
     raise ValueError("stage failed")
+
+
+def test_cached_timed_out_router_record_is_ignored() -> None:
+    record = json.dumps({"ses": "(session)", "convergence_state": "timed_out"}).encode()
+    assert _parse_cached_router_record(record) is None
+
+
+def test_router_pass_progression_is_l3_only(tmp_path: Path) -> None:
+    _write_router_pass_progression(tmp_path, "r1", "timed_out", (8, 3))
+    report = json.loads((tmp_path / "l3" / "router-pass-progress.json").read_text())
+    assert report == {
+        "authority": "L3 observation; not gate authority",
+        "convergence_state": "timed_out",
+        "target_revision": "r1",
+        "tool_name": "freerouting",
+        "unrouted": [8, 3],
+    }
+    assert not (tmp_path / "hashes.json").exists()
 
 
 def test_ordered_stages_keep_declared_order() -> None:

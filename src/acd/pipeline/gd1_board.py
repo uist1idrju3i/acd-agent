@@ -33,7 +33,9 @@ from typing import Literal, cast
 from acd.adapters.freerouting.dsn import export_dsn
 from acd.adapters.freerouting.router import (
     DEFAULT_FREEROUTING_THREADS,
+    DEFAULT_ROUTER_MAX_PASSES,
     FreeroutingRunner,
+    router_pass_progression,
 )
 from acd.adapters.freerouting.ses import parse_ses
 from acd.adapters.kicad.cli import KicadCli, RuleCheckResult
@@ -108,7 +110,11 @@ from acd.core.lane_cli import add_lane_io_arguments
 from acd.core.naming import artifact_prefix, evidence_id, output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
-from acd.core.process import execution_provenance
+from acd.core.process import (
+    DEFAULT_TOOL_TIMEOUT_S,
+    ToolTimeoutError,
+    execution_provenance,
+)
 from acd.core.routing_width import derive_net_widths
 from acd.core.runtime_records import StageArtifactCache, TimingRecorder, write_timing_record
 from acd.core.silkscreen import extract_silkscreen_lane
@@ -705,6 +711,44 @@ def placements_from_graph(graph: DesignGraph, lane: ElectricalLane) -> tuple[Pla
     return tuple(placements)
 
 
+def _write_router_pass_progression(
+    out_dir: Path,
+    target_revision: str,
+    convergence_state: str,
+    progression: tuple[int, ...],
+) -> None:
+    path = out_dir / "l3" / "router-pass-progress.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "tool_name": "freerouting",
+                "target_revision": target_revision,
+                "unrouted": list(progression),
+                "convergence_state": convergence_state,
+                "authority": "L3 observation; not gate authority",
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _parse_cached_router_record(cached_ses: bytes) -> tuple[bytes, str] | None:
+    try:
+        cached_record = json.loads(cached_ses.decode("utf-8"))
+        ses_bytes = str(cached_record["ses"]).encode("utf-8")
+        convergence_state = str(cached_record["convergence_state"])
+        if convergence_state not in {"converged", "not_converged", "unknown"}:
+            raise ValueError("cached router convergence state is invalid")
+    except (UnicodeDecodeError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+    return ses_bytes, convergence_state
+
+
 def run_pipeline(
     fixture_dir: Path,
     out_dir: Path,
@@ -716,6 +760,7 @@ def run_pipeline(
     freerouting_threads: int | None = DEFAULT_FREEROUTING_THREADS,
     cache_dir: Path | None = None,
     timing_recorder: TimingRecorder | None = None,
+    router_timeout_s: float = DEFAULT_TOOL_TIMEOUT_S,
 ) -> dict[str, str]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
@@ -888,14 +933,10 @@ def run_pipeline(
     )
     route_convergence_state = "unknown"
     ses_bytes = b""
+    router_log = ""
     if cached_ses is not None:
-        try:
-            cached_record = json.loads(cached_ses.decode("utf-8"))
-            ses_bytes = str(cached_record["ses"]).encode("utf-8")
-            route_convergence_state = str(cached_record["convergence_state"])
-            if route_convergence_state not in {"converged", "not_converged", "unknown"}:
-                raise ValueError("cached router convergence state is invalid")
-        except (UnicodeDecodeError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        cached_record = _parse_cached_router_record(cached_ses)
+        if cached_record is None:
             cache_events.append(
                 {
                     "stage": "freerouting-ses",
@@ -905,6 +946,8 @@ def run_pipeline(
                 }
             )
             cached_ses = None
+        else:
+            ses_bytes, route_convergence_state = cached_record
     if cached_ses is not None:
         ses_path.write_bytes(ses_bytes)
     else:
@@ -916,8 +959,10 @@ def run_pipeline(
                 revision,
                 max_passes=max_passes,
                 freerouting_threads=freerouting_threads,
+                timeout_s=router_timeout_s,
             )
             route_convergence_state = route_run.envelope.convergence_state
+            router_log = route_run.stdout + route_run.stderr
             if cache is not None:
                 cache.put(
                     "freerouting-ses",
@@ -933,6 +978,18 @@ def run_pipeline(
                         separators=(",", ":"),
                     ).encode("utf-8"),
                 )
+        except ToolTimeoutError as exc:
+            route_convergence_state = "timed_out"
+            router_log = exc.stdout + exc.stderr
+            write_gate_evidence_or_unavailable(
+                out_dir,
+                "routing-connectivity.json",
+                target_revision=revision,
+                gate="routing_connectivity",
+                message="routing connectivity diagnostic unavailable; not gate authority",
+                write_evidence=None,
+                failure=exc,
+            )
         except Exception as exc:
             write_gate_evidence_or_unavailable(
                 out_dir,
@@ -944,53 +1001,60 @@ def run_pipeline(
                 failure=exc,
             )
             raise
+    _write_router_pass_progression(
+        out_dir,
+        revision,
+        route_convergence_state,
+        router_pass_progression(router_log),
+    )
     parsed_routes = None
-    try:
-        parsed_routes = parse_ses(
-            ses_path.read_text(),
-            minimum_width_mm=lane.board.min_track_mm,
-        )
-    except Exception as exc:
-        write_gate_evidence_or_unavailable(
-            out_dir,
-            "routing-connectivity.json",
-            target_revision=revision,
-            gate="routing_connectivity",
-            message="routing connectivity diagnostic unavailable; not gate authority",
-            write_evidence=None,
-            failure=exc,
-        )
-    else:
-        assert parsed_routes is not None
-
-        def write_connectivity_evidence() -> Path:
-            connectivity = measure_routing_connectivity(
-                project.board_projection.model,
-                parsed_routes,
+    if route_convergence_state != "timed_out":
+        try:
+            parsed_routes = parse_ses(
+                ses_path.read_text(),
+                minimum_width_mm=lane.board.min_track_mm,
             )
-            connectivity["router_convergence_state"] = route_convergence_state
-            connectivity["router_measurement_mismatch"] = (
-                route_convergence_state == "converged"
-                and connectivity["status"] != "pass"
-            )
-            return write_gate_evidence(
+        except Exception as exc:
+            write_gate_evidence_or_unavailable(
                 out_dir,
                 "routing-connectivity.json",
                 target_revision=revision,
                 gate="routing_connectivity",
-                status=str(connectivity["status"]),
-                message="routing connectivity diagnostic observation; not gate authority",
-                observation=connectivity,
+                message="routing connectivity diagnostic unavailable; not gate authority",
+                write_evidence=None,
+                failure=exc,
             )
+        else:
+            assert parsed_routes is not None
 
-        write_gate_evidence_or_unavailable(
-            out_dir,
-            "routing-connectivity.json",
-            target_revision=revision,
-            gate="routing_connectivity",
-            message="routing connectivity diagnostic observation; not gate authority",
-            write_evidence=write_connectivity_evidence,
-        )
+            def write_connectivity_evidence() -> Path:
+                connectivity = measure_routing_connectivity(
+                    project.board_projection.model,
+                    parsed_routes,
+                )
+                connectivity["router_convergence_state"] = route_convergence_state
+                connectivity["router_measurement_mismatch"] = (
+                    route_convergence_state == "converged"
+                    and connectivity["status"] != "pass"
+                )
+                return write_gate_evidence(
+                    out_dir,
+                    "routing-connectivity.json",
+                    target_revision=revision,
+                    gate="routing_connectivity",
+                    status=str(connectivity["status"]),
+                    message="routing connectivity diagnostic observation; not gate authority",
+                    observation=connectivity,
+                )
+
+            write_gate_evidence_or_unavailable(
+                out_dir,
+                "routing-connectivity.json",
+                target_revision=revision,
+                gate="routing_connectivity",
+                message="routing connectivity diagnostic observation; not gate authority",
+                write_evidence=write_connectivity_evidence,
+            )
     assert_converged(route_convergence_state)
     print("[3/12] routing converged")
     mark_stage(4)
@@ -1945,7 +2009,18 @@ def _positive_int(value: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     add_lane_io_arguments(parser, out_default=Path("out/gd1"))
-    parser.add_argument("--max-passes", type=int, default=99999, help="router pass budget")
+    parser.add_argument(
+        "--max-passes",
+        type=int,
+        default=DEFAULT_ROUTER_MAX_PASSES,
+        help="router pass budget",
+    )
+    parser.add_argument(
+        "--router-timeout-s",
+        type=float,
+        default=DEFAULT_TOOL_TIMEOUT_S,
+        help="router execution timeout in seconds",
+    )
     parser.add_argument(
         "--freerouting-threads",
         type=_positive_int,
@@ -1987,6 +2062,7 @@ def main() -> int:
             args.freerouting_threads,
             args.cache_dir,
             timing_recorder=timing,
+            router_timeout_s=args.router_timeout_s,
         )
     except Exception as exc:  # fail-closed: any unhandled state stops with nonzero exit
         print(f"PIPELINE FAILED (fail-closed): {exc}", file=sys.stderr)

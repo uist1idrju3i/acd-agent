@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from acd.adapters.kicad.cli import KicadCli
-from acd.core.process import ExternalToolError, run_tool, sha256_bytes
+from acd.core.process import DEFAULT_TOOL_TIMEOUT_S, ExternalToolError, run_tool, sha256_bytes
 from acd.core.visual_projection import (
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
     SVG_TITLE_NORMALIZATION_RULE_ID,
@@ -97,6 +97,7 @@ class KicadVisualRenderer:
                 envelope_path=envelope,
                 target_revision=target_revision,
                 measurement_conditions="single SVG export; measured root dimensions",
+                timeout_s=DEFAULT_TOOL_TIMEOUT_S,
             )
             if projection_type == "schematic_view":
                 assert export_dir is not None

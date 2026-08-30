@@ -10,6 +10,7 @@ import pytest
 
 from acd.core.process import (
     ExternalToolError,
+    ToolTimeoutError,
     execution_env,
     execution_provenance,
     run_in_process,
@@ -74,6 +75,72 @@ def test_run_tool_fails_closed_on_missing_input(tmp_path: Path) -> None:
             target_revision="r1",
             measurement_conditions="test",
         )
+
+
+@pytest.mark.parametrize("timeout_s", [0, -1, float("inf"), float("nan")])
+def test_run_tool_rejects_invalid_timeout_without_running(
+    tmp_path: Path, timeout_s: float
+) -> None:
+    source = tmp_path / "in.txt"
+    source.write_text("x")
+    marker = tmp_path / "ran"
+    command = [
+        sys.executable,
+        "-c",
+        f"import pathlib; pathlib.Path({str(marker)!r}).write_text('ran')",
+    ]
+    with pytest.raises(ExternalToolError, match="finite and positive"):
+        run_tool(
+            tool_name="invalid-timeout",
+            tool_version="1.0",
+            format_version="txt",
+            command=command,
+            input_paths=[source],
+            output_paths=[],
+            envelope_path=tmp_path / "e.json",
+            target_revision="r1",
+            measurement_conditions="test",
+            timeout_s=timeout_s,
+        )
+    assert not marker.exists()
+
+
+def test_run_tool_timeout_records_envelope_and_partial_output(tmp_path: Path) -> None:
+    source = tmp_path / "in.txt"
+    source.write_text("x")
+    envelope_path = tmp_path / "nested" / "timeout.envelope.json"
+    timeout_s = 0.05
+    command = [
+        sys.executable,
+        "-c",
+        "import sys,time; print('partial stdout', flush=True); "
+        "print('partial stderr', file=sys.stderr, flush=True); time.sleep(1)",
+    ]
+    with pytest.raises(ToolTimeoutError) as caught:
+        run_tool(
+            tool_name="timeout-tool",
+            tool_version="1.0",
+            format_version="txt",
+            command=command,
+            input_paths=[source],
+            output_paths=[tmp_path / "partial-output.txt"],
+            envelope_path=envelope_path,
+            target_revision="r1",
+            measurement_conditions="test",
+            timeout_s=timeout_s,
+        )
+    error = caught.value
+    assert error.tool_name == "timeout-tool"
+    assert error.timeout_s == timeout_s
+    assert "partial stdout" in error.stdout
+    assert "partial stderr" in error.stderr
+    assert not (tmp_path / "partial-output.txt").exists()
+    envelope = ToolEnvelope.model_validate_json(envelope_path.read_text())
+    assert envelope.convergence_state == "timed_out"
+    assert envelope.output_hash == "unknown"
+    assert envelope.exit_code is None
+    assert "0.05" in (envelope.uncertainty or "")
+    assert "outputs not produced" in (envelope.uncertainty or "")
 
 
 def test_run_tool_fails_closed_on_bad_exit_code(tmp_path: Path) -> None:

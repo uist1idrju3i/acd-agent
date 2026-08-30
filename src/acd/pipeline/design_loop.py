@@ -27,6 +27,7 @@ from acd.core.requirements import (
     validate_requirements,
 )
 from acd.core.runtime_records import TimingRecorder, write_timing_record
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
 from acd.pipeline.fixture_builder import build_design_fixture
@@ -480,7 +481,7 @@ def run_design_loop(
     repository: Path | None = None,
     fab_profile: Path | None = None,
     fab_profile_id: str | None = None,
-    max_passes: int = 3,
+    max_passes: int = DEFAULT_ROUTER_MAX_PASSES,
     max_silkscreen_iterations: int = 5,
     run_seconds: int = 15,
     evaluated_at: datetime | None = None,

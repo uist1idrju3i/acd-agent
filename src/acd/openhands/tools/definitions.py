@@ -24,6 +24,7 @@ from openhands.sdk.tool import (
 from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportUnknownVariableType]
 from pydantic import Field
 
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.core.functional_block_entry import register_functional_block_contract
 from acd.core.naming import artifact_prefix
 from acd.core.parts_catalog_entry import register_parts_catalog_entry
@@ -237,7 +238,7 @@ class AcdRunBoardPipelineAction(Action):
         default=None, description="Registered fabrication profile id."
     )
     max_passes: int = Field(
-        default=3,
+        default=DEFAULT_ROUTER_MAX_PASSES,
         description="Maximum number of deterministic pipeline passes.",
     )
 
@@ -323,7 +324,7 @@ class AcdExploreBoardCandidatesAction(Action):
     fixture_dir: str
     out: str
     max_candidates: int = Field(ge=1)
-    max_passes: int = Field(default=3, ge=1)
+    max_passes: int = Field(default=DEFAULT_ROUTER_MAX_PASSES, ge=1)
     dry_run: bool = False
 
 
@@ -359,7 +360,7 @@ class AcdRunDesignLoopAction(Action):
     repository: str = "."
     fab_profile: str | None = None
     fab_profile_id: str | None = None
-    max_passes: int = Field(default=3, ge=1)
+    max_passes: int = Field(default=DEFAULT_ROUTER_MAX_PASSES, ge=1)
     max_silkscreen_iterations: int = Field(default=5, ge=1)
     run_seconds: int = Field(default=15, ge=1)
     evaluated_at: str | None = None

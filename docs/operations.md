@@ -866,6 +866,21 @@ ToolEnvelopeの`measurement_conditions`は固定文字列
 JSON `null`として残る。したがって`config_hash`は実行機のCPU数で変動しない。明示値を
 渡した場合は従来どおり`max {N} router threads`を記録する。
 
+routerの`-mp` pass budgetの単一既定値は`DEFAULT_ROUTER_MAX_PASSES = 100`である。
+これはlock済み`acd-tools` container
+（`ghcr.io/uist1idrju3i/acd-tools@sha256:d29bf726396b507014319ea8ba7c1e53200a37eb49930dfde6add8d8c69f396a`）
+内のGD1 fixture測定を根拠とする。旧CLI既定の99999と明示100を比較した結果、
+両方のSES SHA-256は
+`808ee9658df69b3f6aeddb827caf885d6592dd0afa6e8a2b01579bce715897d9`で一致し、
+`convergence_state=converged`、`PIPELINE PASSED`、layout
+`identity_hash=sha256:6882a9acd3b8cc0c7ffb18072e2376923e7a22a5fb36bfc788746d793667923c`
+も一致した。wall timeは旧既定93秒、100 passes 92秒だった。このため既定値を100へ
+統一し、凍結済みexample内の既存`max 99999 passes`記録は変更しない。
+
+外部ツールのtimeout既定値は`DEFAULT_TOOL_TIMEOUT_S = 600.0`秒である。timeout時は
+`timed_out`を独立した収束状態としてenvelopeへ記録する。これは`unknown`とは異なるが、
+どちらも`converged`ではないため合格を支えず、部分出力も成果物として扱わない。
+
 2コアVM上のdigest固定image
 `ghcr.io/uist1idrju3i/acd-tools@sha256:044a024c9f56e7ab9f60eef34431bd52a1d3dedb1861a2764263a0200f20e9a1`
 で、`examples/sensor-node-20260820/board/gd1.dsn`を`-mp 10`で実行した測定では、

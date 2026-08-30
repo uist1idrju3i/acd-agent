@@ -10,6 +10,7 @@ from acd.adapters.freerouting.router import (
     FreeroutingRunner,
     RouterUnavailableError,
     _convergence_from_log,  # pyright: ignore[reportPrivateUsage]
+    router_pass_progression,
 )
 from acd.adapters.freerouting.ses import SesImportError, parse_ses
 from acd.core.process import sha256_bytes
@@ -167,3 +168,7 @@ def test_convergence_parsing() -> None:
         _convergence_from_log("(2 unrouted and 0 violations)\n(0 unrouted and 0 violations)")
         == "converged"
     )
+    assert router_pass_progression(
+        "(8 unrouted and 0 violations)\n(2 unrouted and 0 violations)\n"
+        "(0 unrouted and 0 violations)"
+    ) == (8, 2, 0)

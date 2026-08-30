@@ -33,6 +33,16 @@ def test_envelope_unknown_version_is_flagged() -> None:
     assert _envelope(convergence_state="unknown").has_unknown()
 
 
+def test_timed_out_envelope_is_distinct_but_cannot_support_pass() -> None:
+    envelope = _envelope(convergence_state="timed_out", exit_code=None)
+    assert not envelope.has_unknown()
+    assert envelope.convergence_state == "timed_out"
+    evidence_data = fixture_obj(load_fixture("valid", "evidence.json"))
+    evidence_data["envelope"] = envelope.model_dump(mode="json")
+    evidence = Evidence.model_validate(evidence_data)
+    assert not evidence.supports_pass("r3")
+
+
 def test_valid_evidence_supports_pass_only_on_matching_revision() -> None:
     evidence = Evidence.model_validate(load_fixture("valid", "evidence.json"))
     assert evidence.supports_pass("r3")

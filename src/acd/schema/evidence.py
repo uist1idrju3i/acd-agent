@@ -47,6 +47,7 @@ class Evidence(AcdModel):
             self.status == "valid"
             and self.target_revision == current_revision
             and self.envelope.target_revision == current_revision
+            and self.envelope.convergence_state not in {"unknown", "timed_out"}
             and not self.envelope.has_unknown()
         )
 
