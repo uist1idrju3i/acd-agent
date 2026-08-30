@@ -30,17 +30,19 @@
     "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/33306817672",
     "dockerfile": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/Dockerfile",
     "tools": {
-      "kicad-cli": "10.0.5",
+      "kicad-cli": "10.0.6",
       "freerouting": "2.3.0",
       "ngspice": "45.2",
       "python3.14": "Python 3.14.4",
-      "uv": "uv 0.12.5 (x86_64-unknown-linux-gnu)",
-      "java": "openjdk 26.0.2 2026-07-21 (IBM Semeru Runtime Open Edition 26.0.2.0, Eclipse OpenJ9 0.60.0)",
+      "uv": "uv 0.12.7 (x86_64-unknown-linux-gnu)",
+      "java": "openjdk 26.0.2.1 2026-08-18 (IBM Semeru Runtime Open Edition 26.0.2.10, Eclipse OpenJ9 0.61.0)",
       "git": "git version 2.53.0",
       "libcairo2": "1.18.4-3",
-      "esp-idf": "ESP-IDF v6.0.2",
+      "esp-idf": "ESP-IDF v6.1",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
-      "ccache": "ccache version 4.12.3"
+      "ccache": "ccache version 4.12.3",
+      "cmake": "cmake version 4.2.3",
+      "ninja": "1.13.2"
     }
   }
 }

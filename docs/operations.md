@@ -1011,6 +1011,12 @@ digest lock更新PRは作成直後にauto-mergeを有効化する。repository�
 ただし、PRのCI、特にlock済みserver imageを実行する`container-gates`は引き続き
 合否を決めるゲートであり、auto-mergeは検証を置き換えない。
 
+server digest `sha256:c0144f8b52deecbc46d442be140724685d0aef13b314777a69172298b3b48c19`
+については、digest固定imageの実測値を`acd_server.tools`へ転記した。これはpublish後の
+手動実測・転記としては最後の記録であり、以降のpublishでは
+`scripts/measure_image_tools.py`が実測結果を同じlock更新PRへ自動転記するため、
+人手による転記は不要である。
+
 ### FW pipelineのhost実行とToolEnvelopeの注記
 
 FW pipelineをhostで参考実行する場合は、ESP-IDFとQEMUに加えて
