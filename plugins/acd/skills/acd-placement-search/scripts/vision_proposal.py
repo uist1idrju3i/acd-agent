@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@8b7b3e3cd476fc90f3bdc183dd4c21472305e1fc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@c95e346c9446ca89b5a5ee9fee0483cb4153de2d",
 # ]
 # ///
 """Accept vision-derived placement proposals as search input (skill asset).
