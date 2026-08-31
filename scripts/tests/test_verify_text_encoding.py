@@ -56,6 +56,7 @@ open("b.txt", "rb")
 Path("binary.txt").open("rb")
 Path("c.txt").read_text(encoding="utf-8-sig")
 Path("d.txt").write_bytes(b"x")
+Path("strict.txt").read_text(encoding="ascii")
 subprocess.run(["tool"], text=True, encoding="utf-8")
 subprocess.Popen(["tool"], universal_newlines=True, encoding="utf-8-sig")
 io.TextIOWrapper(stream, encoding="utf-8")
@@ -72,9 +73,13 @@ from pathlib import Path
 mode = "w"
 open("a.txt", mode)
 Path("b.txt").write_text("x", encoding="ascii")
+Path("c.txt").write_text("x", encoding="latin-1")
 """,
     )
-    assert rules == ["open-encoding", "text-method-encoding"]
+    assert rules == [
+        "open-encoding",
+        "text-method-encoding",
+    ]
 
 
 def test_exemption_requires_reason_and_is_local_to_call(tmp_path: Path) -> None:

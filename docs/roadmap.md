@@ -956,7 +956,8 @@ T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論�
 
 U-1は、`src/acd/**/*.py`、`scripts/**/*.py`（`scripts/tests/**`を除く）、
 `plugins/**/scripts/**/*.py`をASTで走査し、text modeの`open`、`read_text`／`write_text`、
-`subprocess`、`io.TextIOWrapper`に`encoding="utf-8"`または`"utf-8-sig"`が明示されていることを
+`subprocess`、`io.TextIOWrapper`に`encoding="utf-8"`、`"utf-8-sig"`、または厳格な
+`"ascii"`が明示されていることを
 検査するguardをfast段へ追加したことで解消済みである。非literal mode／encodingもfail-closedで
 扱い、例外は呼出し行の`# encoding-exempt: <英語の理由>`だけ（空理由は違反）とする。
 reloadに加え、fabのBOM／CPL・fab-package・gbrjob／ZIP、筐体のSTEP／3MF／STL・manifest、

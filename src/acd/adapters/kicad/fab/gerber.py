@@ -144,7 +144,7 @@ def verify_ground_plane_gerbers(
 
     def read_regions(path: Path) -> tuple[GerberRegionRecord, ...]:
         try:
-            text = path.read_text(encoding="utf-8")
+            text = path.read_text(encoding="ascii")
         except Exception as exc:
             raise FabOutputError(f"{path.name}: copper Gerber parse failed: {exc}") from exc
         fs_match = re.search(r"%FSLAX(\d)(\d)Y(\d)(\d)\*%", text)

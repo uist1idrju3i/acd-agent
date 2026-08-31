@@ -9,8 +9,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ALLOWED_ENCODINGS = {"utf-8", "utf-8-sig"}
+# ASCII is stricter than UTF-8 and intentionally fails closed on non-ASCII Gerber data.
+ALLOWED_ENCODINGS = {"ascii", "utf-8", "utf-8-sig"}
 EXEMPTION_PREFIX = "# encoding-exempt:"
+# Gerbonara parser classmethods are constructors, not filesystem text I/O.
+NON_FILE_OPEN_OWNERS = {"GerberFile", "ExcellonFile"}
 
 
 @dataclass(frozen=True)
@@ -107,7 +110,7 @@ class _EncodingVisitor(ast.NodeVisitor):
         call = node
         name, owner = _call_name(call)
         if name == "open":
-            if _contains_name(call.func, {"GerberFile", "ExcellonFile"}):
+            if _contains_name(call.func, NON_FILE_OPEN_OWNERS):
                 self.generic_visit(call)
                 return
             if isinstance(call.func, ast.Name):
