@@ -829,6 +829,29 @@ FW固有のremediation（未登録action、pin function不整合、capability宣
 | negative・fail-closed | FW固有remediationが無い却下、宣言されていない次元の候補、capability registryに無いactionを前提とする候補、virtual logを欠くEvidence、revision不一致はいずれもfail-closedで停止する。QEMU由来のEvidenceを実機測定として扱わず、探索reportと診断はpass authorityを持たない。環境非依存化したテストは、libraryの有無で判定が変わる経路をskipで隠さず、containerで実行する対象として明示する |
 | 再現性 | FW候補の列挙順、候補ID、変更subject、再実行stageを宣言順で固定し、`--jobs 1`と並列で収集件数・判定・正規化hashを一致させる。footprint library非依存fixtureのpad座標と期待距離を固定値として記録し、container側テストと同じ解になることを確認する |
 
+### 14.17 復帰経路と新規設計入口の是正（S-1〜S-5）
+
+14.15の実装後に同じ8コアVPSで実測した結果（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 10節）、
+宣言由来のlane復帰planは機能し（`recovery_supported: true`、`recovery_explorer: board`、
+`remediation_dimensions: ["component_placement_xy"]`）、生成された候補は`power_decoupling`を
+満たす配置へ到達していた。しかし候補の評価がrationale更新前のgraphで行われるため
+`rationale coverage failed: missing=18, stale=18`で却下され、`winner_written=false`、
+`termination_reason=fail_closed_stop`で復帰が成立しない。さらに新規specからのfixture生成は
+部品catalogのlibrary資材宣言と生成fixtureの不一致により最初のstageで停止し、GUI配布形態では
+`acd_*` ToolDefinitionが会話へ登録されないためcommandの宣言toolへ到達できない。ゲートは
+いずれも正しく閉じており、緩和ではなく経路の是正で解くフェーズである。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `exploration`の候補評価経路、`commit_candidate_graph`と`refresh_rationale_document`、`check_rationale_coverage`、`fixture_builder`の`_normalize_decoupling_placement`、`gd1_fixture/components.py`のlibrary宣言、`resolve_fixture_path`、`register_acd_tools()`と`build_acd_conversation()`、ADR-0036のambient install経路、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のS節 |
+| 実装 | 候補評価入力へ確定経路と同一のrationale更新を適用する（S-1）、候補固有の却下では残予算で次候補を評価し予算をL3へ明示する（S-2）、ambient install経路の会話へACD tool入口を登録するか宣言toolの不在をfail-closedに検出する（S-3）、catalogのlibrary資材宣言を生成fixtureへの同梱かcontainer内絶対pathへ統一し宣言と生成の両側を検査する（S-4）、L3 timing recordとexploration reportを会話へ返す進行表示（S-5） |
+| 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。新規specからのfixture生成がlibrary資材を解決して基板laneへ到達する。GD1の判定、Evidence、正規化hashは変化しない |
+| negative・fail-closed | rationale更新不能、graph ID／revisionの不一致、正規化hashの不変、候補予算・round上限の超過、宣言と生成が食い違うlibrary資材、宣言toolの不在はいずれもfail-closedで停止する。候補report、進行表示、GUI観測はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
+| 再現性 | 候補ごとの評価入力hash、rationale更新結果、予算消費、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
+
+S-1とS-4は単体成立の前提であり先に扱う。S-3は配布・登録経路の定義であり、実装だけでは
+閉じない。S-2とS-5は予算と進行の可視化である。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、

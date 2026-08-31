@@ -307,3 +307,175 @@ contracts/firmware-capability-registry.json`で停止した。
 動かすと`check_rationale_coverage`が`fail`（stale: `comp.u1`の`placement_x_mm`／
 `placement_y_mm`／`placement_rotation_deg`）になることをローカルで確認している。
 Run A／Bはいずれもhost資源reportを指定しておらず、本節に資源実測値は含まない。
+
+## 10. 第3回検証（2026-08-31, 14.15実装後の復帰経路）
+
+14.15（PR #281）で追加された復帰経路を、同じ8コア／16 GiB VPS上の実機OpenHandsと
+digest固定container（`ghcr.io/uist1idrju3i/acd-server@sha256:040ff332…`、
+`origin/main` = `dca3890…`）で実測した。pluginは正規のinstall API（`force=true`）で
+`5a553d3f…`から`dca3890…`へ更新し、`git ls-remote origin main`と40桁一致を確認した。
+OpenHandsのworkspaceは新規に`test260831/acd-ws-260831`を作成し、`/acd:init`は
+`ok: true`、`bootstrap-record.json`（`resolved_revision` = `dca3890…`、
+`server_image_digest` = `sha256:040ff332…`、`record_class: "L3"`）を生成した。
+
+### 10.1 新規fixtureはfixture-generation段で停止する（Run A）
+
+会話由来の新規設計spec（`examples/mini-blink-dongle-20260825/fixture/spec.json`）から
+`--design-only --jobs 4 --memory-limit 8g`で生成を試みた結果、`loop_rc=1`、
+`failed_stage=fixture-generation`、`fail_closed=true`で停止した。
+
+```text
+FixtureBuilderError: decoupling placement could not be resolved:
+pinned library file missing: /workspace/acd/libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod
+```
+
+原因は部品catalogのESP32-C3-MINI-1がlibrary資材をfixture相対path
+（`libraries/Espressif.kicad_sym`／`libraries/Espressif.pretty/...`）で宣言する一方、
+`build_design_fixture`が生成する新規fixture配下へ当該資材が置かれず、
+`resolve_fixture_path()`はfixture dirとrepository rootだけを探索するためである。
+資材自体は`examples/mini-blink-dongle-20260825/fixture/libraries/`と
+`fixtures/golden-design-1/libraries/`に存在するが、repository root直下には`libraries/`が無い。
+GD1は同じ資材を絶対path（`/usr/share/kicad/...`）で宣言するため、この停止はGD1では露出しない。
+14.15で追加した初期配置のdecoupling解決（P-2）は`decoupling_target`宣言のあるfixtureで
+必ず実行されるため、Espressif資材を参照する新規設計は現状かならずここで止まる（S-4）。
+
+| 項目 | 値 |
+|---|---|
+| `loop_rc` | 1 |
+| wall-clock | 49秒 |
+| `failed_stage` | `fixture-generation` |
+| 到達lane | なし（silkscreen・基板・筐体・FWいずれも未実行） |
+| host CPU peak / mean | 4.64 / 1.46 cores |
+| host RAM peak | 3.16 GiB |
+| container cgroup peak | 3.12 GiB |
+| swap | 0 GiB |
+
+### 10.2 復帰経路の実測（Run B、GD1を摂動した内部整合fixture）
+
+Run Aが基板laneへ到達しないため、GD1（`fixtures/golden-design-1`）から内部整合を保った
+劣化fixtureを作って復帰経路を測った。摂動は同一footprint・同一sha256のC4（`decoupling_target: U1`）
+とC2（decoupling宣言なし）の`placement_x_mm`／`placement_y_mm`／`placement_rotation_deg`を
+入れ替えるだけで、幾何は衝突フリーのまま`power_decoupling`のみが違反する。摂動は
+`commit_candidate_graph()`でgraphとrationaleを原子的に確定した（`rationale_records=70`、
+`target_revision: r1`）。実行は同じdigest固定container内で次のとおりである。
+
+```text
+uv run python scripts/run_design_loop.py --fixture fixtures/verify-runb \
+  --out-root out/runB3 --design-only --jobs 4 --recover-lanes \
+  --max-exploration-candidates 3 --max-exploration-rounds 2
+```
+
+| stage | `ok` |
+|---|---|
+| `requirement-entry-validation` | true |
+| `silkscreen-resolve` | true |
+| `board-pipeline` | false（`power_decoupling`: C4距離19.224 mm > 3.0 mm） |
+| `enclosure-pipeline` | true |
+| `firmware-pipeline` | true |
+| `board-exploration` | false（`exploration did not produce a writable candidate: status='stopped'`） |
+
+復帰planの解決は宣言どおり機能した。
+
+| 項目 | 値 |
+|---|---|
+| `recovery_supported` | true |
+| `recovery_explorer` | `board` |
+| `recovery_dimensions` | `component_placement_xy`／`component_rotation_deg`／`gpio_assignment` |
+| `lane_id` | `board-pipeline` |
+| `declaration_hash` | `sha256:9705d366…` |
+| `remediation_dimensions` | `["component_placement_xy"]` |
+| `report_status` / `termination_reason` | `stopped` / `fail_closed_stop` |
+| `max_candidates` / `evaluated_candidates` | 3 / 1 |
+| `max_exploration_rounds` / 実行round | 2 / 1 |
+| `winner_candidate_id` / `winner_written` | null / false |
+| `diagnostic_dimensions` | `[]` |
+
+生成された候補`placement-0001`（`skill_name: acd-placement-search`、
+`script_sha256: sha256:be894760…`）はC4とC2の配置を摂動前の位置へ戻す内容であり、
+`power_decoupling`を満たす配置に到達していた。にもかかわらず却下されている。
+
+```text
+deterministic pipeline rejected candidate: rationale coverage failed:
+missing=18, stale=18, orphan=0, conflicting=0, unknown_provenance=0, untraceable=0, unclassified=0
+```
+
+すなわち14.15のQ-4（`commit_candidate_graph`によるrationale更新）はwinner確定時にしか
+適用されず、候補の評価はrationaleを更新しないまま決定論的pipelineへ渡される。配置を
+1点でも動かせば`check_rationale_coverage`はstaleになるため、placement次元の候補は
+構造的に必ず`gate_rejected`となり、復帰は成立しない（S-1）。また候補予算3・round上限2を
+指定しても、最初の却下で`fail_closed_stop`となり2件目以降は評価されない（S-2）。
+
+graphとrationaleの整合は保たれていた。
+
+| 項目 | 摂動前 | 摂動後（Run B入力） |
+|---|---|---|
+| `graph_id` | `golden-design-1` | `golden-design-1`（保持） |
+| `revision` | `r1` | `r1` |
+| canonical graph hash | `sha256:f5818022…` | `sha256:cd971025…`（変化） |
+| rationale record数 | 70 | 70 |
+| C4 placement recordの`subject_hash` | — | `expected_subject_hash`と一致（`matches: true`） |
+
+`winner_written=false`のためRun B後のgraphは入力と同一であり、L1判定・Evidenceは
+変化していない。摂動scriptは検証専用でrepositoryへcommitしていない。
+
+### 10.3 資源実測（復帰経路を含む実行）
+
+| 項目 | Run B（`--recover-lanes`、`--jobs 4`、container上限8 GiB） |
+|---|---|
+| wall-clock | 147秒 |
+| host CPU peak / mean | 7.94 / 2.35 cores |
+| host RAM peak | 4.32 GiB（利用可能最小 10.79 GiB） |
+| container cgroup peak | 5.05 GiB |
+| swap peak | 0 GiB |
+| host資源preflight | `pass`（要求上限8 GiB、JVM max heap 2 GiB） |
+
+9.2で定めた最低・推奨スペック（最低2コア・container 4 GiB、推奨4コア以上・物理RAM
+12 GiB以上／OpenHands同居16 GiB・container上限8 GiB・`--jobs 4`）はそのまま成立する。
+探索段を含めても上限8 GiBに対しピークは5.05 GiBで収まり、swapは発生しない。一方で
+CPUは`--jobs 4`でもピークが7.94 coresに達しており、4コア機ではwall-clockが伸びる。
+
+### 10.4 GUI会話からの経路（L2、観測のみ）
+
+新規workspaceの会話へ、新規設計（USB-C給電のESP32-C3＋SHT40、status LED 1個、筐体とFW込み）で
+`/acd:vibebb-loop`を実行し、却下時は`/acd:vibebb-recover`で`recover_lanes`・候補上限3・
+round上限2を使うよう指示した。plugin hookは正常（`SessionStart`／`PreToolUse`ともblockedなし）で、
+command自体は解決される。しかし会話のtool setは次の5つだけであり、`acd_*`の
+ToolDefinitionは登録されていない（`base_state.json`の`agent.tools`を直読）。
+
+```text
+terminal, file_editor, task_tracker, canvas_ui_control, launch_child_conversation
+```
+
+`plugins/acd/commands/vibebb-loop.md`が`allowed-tools`として宣言する
+`acd_build_design_fixture`、`acd_run_design_loop`、`acd_diagnose_gate_failure`、
+`acd_explore_board_candidates`、`acd_check_order_readiness`などは、この配布形態
+（agent-server＋agent-canvas、ADR-0036のambient install経路）では存在しない。
+`register_acd_tools()`は`build_acd_conversation()`経路にしかないため、GUI会話は
+commandを読んでも宣言された入口を呼べない（S-3）。
+
+結果としてagentはterminalで代替を試み、既存exampleのgraph・spec・source codeを
+読み解いて生JSONのfixtureを手組みし、`scripts/run_design_loop.py`をhostから直接
+実行する行動へ移った。620 event・約2時間の時点でVibeBBは完走せず、host実行の結果は
+provisionalであり合格側Evidenceにならない。会話経路で「acd-agent単体でVibeBBが成立する」
+状態にはなっていない。
+
+### 10.5 気づきと改善提案
+
+1. 復帰が成立しない実体は「候補生成」ではなく「候補評価の順序」である。候補評価の前に
+   winner確定と同じrationale更新（`refresh_rationale_document`）を適用しないかぎり、
+   placement次元の候補は必ずrationale staleで却下される。閾値は緩めず、評価入力の整合を
+   確定経路と一致させるのが正しい解である。
+2. 候補上限とround上限が実効になっていない。最初の却下で停止するため、`--max-exploration-candidates 3`
+   は利用者から見て「3回試す」と読めるのに1件しか試されない。fail-closedは維持したまま、
+   却下理由が候補固有である場合は残予算で次候補へ進む挙動と、`evaluated_candidates`／
+   `remaining_budget`の明示が必要である。
+3. GUIでは失敗が「どのlaneのどの述語で、何mm超過し、次に何をすべきか」まで一段で
+   読めない。`failure_reason`にはremediationとevidence pathが入っているのに、
+   会話側にはtoolが無いため到達しない。GUI経路にACD tool入口を登録する配布形態
+   （またはcommandが呼ぶCLIをcontainer実行に固定するwrapper）が要る。
+4. 新規設計のlibrary資材の扱いが宣言と生成で食い違っている。catalog entryがfixture相対pathを
+   宣言するなら、`build_design_fixture`が資材を同梱するか、catalogがcontainer内の絶対pathを
+   宣言するかのどちらかへ寄せる必要がある。現状は新規設計が最初のstageで必ず止まる。
+5. 長時間stageの進行が見えない。基板laneは147秒中の大半を占めるが、GUI側には残り時間・
+   試行回数・現在のlaneが出ない。L3 timing recordは生成されているので、これを会話へ
+   返す表示があると待ちの体験が大きく変わる。
