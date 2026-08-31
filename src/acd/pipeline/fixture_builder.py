@@ -513,7 +513,9 @@ def _normalize_decoupling_placement(
             for item in report.deficiencies
         )
         raise FixtureBuilderError(
-            "declared decoupling placement is not satisfiable: " + reasons
+            "declared decoupling placement is not satisfiable: "
+            + reasons
+            + f"; see {out_dir / 'decoupling-placement-report.json'}"
         )
     return apply_decoupling_placements(graph, report)
 

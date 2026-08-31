@@ -949,10 +949,10 @@ T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論�
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 第5回実機実測のRun F／H／I／J／K、生成されたGerber・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・筐体STEP／3MF／STL、`vibebb-gap-analysis.md`のU節 |
-| 実装 | 生成物のUTF-8明示読書きと非UTF-8 locale回帰（U-1、解消済み）、筐体STL出力とSTEP／3MF同等の検査（U-2）、quote／order例のrevision整合（U-3、GD1整合fixtureと回帰testで解消済み）、decoupling制約を含む配置探索（U-4）、製造提出データの必須成果物・独立reload・正規化hash・DFM・幾何・profile整合・revision整合・Evidence妥当性をまとめた単一の独立L1判定（U-5、解消済み）を追加する |
-| 正常系 | 同一の生成物がlocaleに依存せず独立reloadを通過し、筐体STEP／3MF／STLを含む必須成果物を生成する。quote／order scopeを与えた場合だけ整合した任意段を実行し、製造提出データの品質判定を発注実行から独立して読める |
+| 実装 | 生成物のUTF-8明示読書きと非UTF-8 locale回帰（U-1、解消済み）、筐体STL出力とSTEP／3MF同等の検査（U-2）、quote／order例のrevision整合（U-3、GD1整合fixtureと回帰testで解消済み）、decoupling制約を含む決定論的な配置順序・回転探索（U-4、解消済み）、製造提出データの必須成果物・独立reload・正規化hash・DFM・幾何・profile整合・revision整合・Evidence妥当性をまとめた単一の独立L1判定（U-5、解消済み）を追加する。U-4では電気laneに宣言されたside／layer次元がないため、面配置は実装せず利用不可として記録する |
+| 正常系 | 同一の生成物がlocaleに依存せず独立reloadを通過し、筐体STEP／3MF／STLを含む必須成果物を生成する。decoupling配置は既存探索、宣言rotation、決定論的配置順序の順に再試行し、宣言limitとcourtyard clearanceを維持する。quote／order scopeを与えた場合だけ整合した任意段を実行し、製造提出データの品質判定を発注実行から独立して読める |
 | negative・fail-closed | UTF-8でない生成物、欠落・破損した必須成果物、独立reload・hash・DFM・幾何・profile整合の失敗、revision不一致、decoupling制約を満たせない配置、order scopeの不整合はfail-closedとする。自動発注や実機測定の未実行を合格へ倒さず、QEMUのvirtual Evidenceをphysical Evidenceへ昇格させない |
-| 再現性 | 同一digest・同一入力から同一成果物hash、独立検査結果、U-1〜U-5の診断を再生成し、locale・revision・欠落成果物・配置制約のnegative caseを固定する |
+| 再現性 | 同一digest・同一入力から同一成果物hash、独立検査結果、U-1〜U-5の診断を再生成し、locale・revision・欠落成果物・配置制約のnegative caseを固定する。decouplingの不足量、blocking refdes、探索次元、面配置 unavailable、変更可能次元はL3 reportとして決定論的に記録する |
 
 U-1はreload経路を解消済みであり、残り作業として筐体・FW・fab出力などreload経路以外の生成物読み書きにも
 非UTF-8 locale下の回帰を広げ、新規コードがencodingを明示しないことを検出する静的guardを検証段へ追加する。
@@ -965,7 +965,9 @@ U-5は、Gerber一式、drill、gbrjob、ZIP、BOM／CPL、fab-package manifest�
 筐体STEP／3MF／STLを必須成果物として列挙し、独立reload、正規化hash、DFM、幾何、
 fab profile、revision、Evidence妥当性を単一のL1 verdictへ統合したことで解消済みである。
 `order-readiness.json`は状態を記録するだけで、quote集計・発注実行は判定scopeから除外する。
-U-1の残作業とU-4は未了である。
+U-1の残作業は継続中である。U-4は、既存のorigin探索を維持したうえでrotationと配置順序を追加し、
+不足量と変更可能次元をL3 reportへ記録したことで解消済みである。面配置（side）は電気laneの宣言に
+存在しないため実装せず、利用不可の次元として記録する。
 
 ## マイルストーン15: 運用と文書の整備
 
