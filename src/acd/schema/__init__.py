@@ -17,11 +17,6 @@ from acd.schema.common import (
     contains_unknown,
     is_unknown,
 )
-from acd.schema.manufacturing_submission import (
-    ManufacturingSubmissionArtifact,
-    ManufacturingSubmissionCheck,
-    ManufacturingSubmissionVerdict,
-)
 from acd.schema.context import (
     ContextSource,
     EventViewEntry,
@@ -101,6 +96,11 @@ from acd.schema.lane_recovery import (
     RECOVERY_LANE_IDS,
     LaneRecoveryDeclaration,
     LaneRecoveryDeclarationDocument,
+)
+from acd.schema.manufacturing_submission import (
+    ManufacturingSubmissionArtifact,
+    ManufacturingSubmissionCheck,
+    ManufacturingSubmissionVerdict,
 )
 from acd.schema.model_routing import (
     ModelRoutingBinding,
@@ -304,6 +304,9 @@ __all__ = [
     "LaneRecoveryDeclaration",
     "LaneRecoveryDeclarationDocument",
     "LedExpectation",
+    "ManufacturingSubmissionArtifact",
+    "ManufacturingSubmissionCheck",
+    "ManufacturingSubmissionVerdict",
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",

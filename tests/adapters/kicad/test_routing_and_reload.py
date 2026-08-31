@@ -607,7 +607,7 @@ def test_normalized_hash_ignores_gbrjob_creation_date_without_rewriting_source(
 ) -> None:
     a = tmp_path / "a.gbrjob"
     b = tmp_path / "b.gbrjob"
-    payload = {
+    payload: dict[str, Any] = {
         "Header": {"CreationDate": "2026-01-01T00:00:00+00:00", "GenerationSoftware": "KiCad"},
         "FilesAttributes": [{"Path": "board-F_Cu.gtl"}],
     }
