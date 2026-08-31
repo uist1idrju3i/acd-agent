@@ -450,6 +450,23 @@ coverage・lane preflight・必要宣言を含む診断拡張、Q-10は
 capability宣言追記で解消した。いずれも閾値、ゲート挙動、fail-closed境界、L1権限を変更せず、
 探索report、診断、goal評決はpass authorityを持たない。
 
+## R. 14.15実装後の実機実測（2026-08-31）で残った不足
+
+14.15の復帰経路実装後、同じ8コアVPSでplugin更新・新規workspace作成・digest固定container実行を
+行った実測（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 10節）で
+判明した不足である。ゲートはいずれも正しく閉じており、緩和ではなく経路の是正で解く。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| R-1 | 候補の評価がrationale更新前のgraphで行われ、placement次元の復帰が構造的に成立しない | `recover_lanes`で生成された候補`placement-0001`は`power_decoupling`を満たす配置へ戻していたが、`deterministic pipeline rejected candidate: rationale coverage failed: missing=18, stale=18`で`gate_rejected`。`commit_candidate_graph`のrationale更新はwinner確定時にしか適用されない | 高 | Q-3、Q-4 | 候補評価の入力生成に確定経路と同一の`refresh_rationale_document`を適用し、評価対象graphとrationaleを同一transactionで整合させる。閾値とcoverage要件は変更しない |
+| R-2 | 候補予算とround上限が実効にならない | `--max-exploration-candidates 3 --max-exploration-rounds 2`を指定しても`evaluated_candidates=1`、round=1、`termination_reason=fail_closed_stop`で終了する | 中 | R-1 | 却下が候補固有である場合は残予算で次候補を評価し、予算消費と`remaining_budget`をL3記録へ明示する。fail-closedの停止条件そのものは維持する |
+| R-3 | GUI配布形態ではACD toolが会話へ登録されず、command宣言が満たされない | 新規workspaceの`base_state.json`の`agent.tools`は`terminal`／`file_editor`／`task_tracker`／`canvas_ui_control`／`launch_child_conversation`のみで、`/acd:vibebb-loop`が`allowed-tools`として宣言する`acd_*`が存在しない。`register_acd_tools()`は`build_acd_conversation()`経路にしかない | 高 | ADR-0036 | ambient install経路の会話へACD ToolDefinitionを登録する配布経路を定義する。登録できない形態ではcommandが宣言toolの不在をfail-closedに検出し、代替手順を返す |
+| R-4 | 部品catalogのlibrary資材宣言と新規fixture生成が食い違う | 新規specからの生成が`FixtureBuilderError: decoupling placement could not be resolved: pinned library file missing: /workspace/acd/libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod`でfail-closed。catalogはfixture相対`libraries/...`を宣言するが、生成fixtureへ資材が置かれず`resolve_fixture_path()`はfixture dirとrepository rootだけを探索する | 高 | P-2、A-2 | catalog entryの資材宣言を、生成fixtureへの同梱かcontainer内絶対pathのどちらかへ統一し、宣言と生成の両側を同じ契約で検査する |
+| R-5 | 長時間laneの進行と試行状況が会話へ返らない | 基板laneは147秒の実行の大半を占めるが、GUI側には現在のlane、経過、試行回数、残予算が出ない。L3 timing recordとexploration reportは生成されている | 低 | Q-2 | 既存のL3 timing record・exploration reportを会話へ返す表示経路を定義する。表示はL3観測であり合否権限を持たない |
+
+R-1とR-4は、それぞれ復帰経路と新規設計入口の最初の停止点であり、単体成立の前提である。
+R-3はGUI配布形態そのものの不足であり、実装ではなく配布・登録経路で解く。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -482,3 +499,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 13. O-1〜O-13（宣言経路解消後の`test5`実測）。O-1（`run_tool`のtimeout引数化）とO-9（pass予算既定の単一化）は基板lane到達の前提であり最優先。O-10（FW laneのGD1固定解消）とO-11（projection guardの誤検出と迂回）も同順位で扱う。次にO-2（container起動前のホスト資源検査）、O-5・O-4（一括preflightと語彙の是正）を扱う。O-3・O-6〜O-8は運用と手順の整備である。O-12（筐体laneと発注policyのGD1固定解消）はO-10と同順位で扱い、O-13（rationale検査の対象解決）はO-4と同時に扱う。
 14. P-1〜P-4（多コアVPS実測）。P-1（install doctorのESP-IDF判定）は本変更で解消済み。次にP-2（初期配置のdecoupling制約）を扱い、P-4（FW laneのEvidence生成）はO-10の後続、P-3は表示の是正である。
 15. Q-1〜Q-10（却下からの復帰・反復経路）。Q-4（探索後のrationale更新）とQ-5（spec駆動の作り直し）は、復帰経路をend-to-endで閉じるための前提であり最優先。次にQ-3（remediation由来の候補生成）とQ-2（会話経路からの起動）を扱う。実測では探索段を起動しても候補が書き込みに至らないため、起動の既定化より候補生成の是正が先である。Q-1（laneへの連結）はM-1の後続として広げ、Q-10（capability registryの宣言追加）はO-10の後続として扱う。Q-6・Q-7・Q-8は反復入口の整備、Q-9は診断の拡張である。
+16. R-1〜R-5（14.15実装後の実機実測）。R-1（候補評価前のrationale更新）は復帰経路が候補を1件も確定できない直接原因であり最優先。次にR-4（catalogのlibrary資材宣言）で新規設計の入口を通し、R-3（GUI配布形態へのtool登録）で会話経路を宣言どおりにする。R-2は予算の実効化、R-5は進行表示である。
