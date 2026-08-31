@@ -159,6 +159,27 @@ def check_tool_registration(
                 else "agent definitions declare ACD tools that are never registered"
             ),
         )
+    from acd.openhands.tools.ambient import (
+        AmbientToolError,
+        check_ambient_registration_drift,
+    )
+
+    try:
+        ambient_drift = check_ambient_registration_drift()
+    except AmbientToolError as exc:
+        return ToolRegistrationReport(
+            status="unknown",
+            manifest_hash=expected.canonical_hash,
+            registered_tools=sorted(expected_names),
+            reason=str(exc),
+        )
+    if ambient_drift:
+        return ToolRegistrationReport(
+            status="fail",
+            manifest_hash=expected.canonical_hash,
+            registered_tools=sorted(expected_names),
+            reason="ambient tool registration drift: " + "; ".join(ambient_drift),
+        )
     return ToolRegistrationReport(
         status="pass",
         manifest_hash=expected.canonical_hash,

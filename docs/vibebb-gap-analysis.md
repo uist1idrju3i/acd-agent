@@ -503,7 +503,7 @@ S-1（候補評価前のrationale更新）は解消を確認できた一方、�
 |---|---|---|---|---|---|
 | T-1 | 候補評価が親laneと同一の`TimingRecorder`を共有し、L3観測の衝突で候補が却下される（独立recorderと観測失敗の`stopped`化により解消済み） | 候補`placement-0001`が`deterministic pipeline rejected candidate: timing stage already started: board[1/12]`で`gate_rejected`。親の基板pipelineはpre-router却下で`board[1/12]`を`finish`せず中断するため、`design_loop`の`pipeline_runner`が`timing_recorder=config.timing_recorder`を渡す候補側で必ず同名stageの再開始になる。復帰は基板却下後にしか起動しないので衝突は常に起きる。現在は候補ごとに独立したL3 timing recordを書き、観測失敗を`stopped`としてL1型の却下から分離する | 高 | S-1、Q-3 | 候補評価では親と独立した`TimingRecorder`を用いる（または候補IDでstage名をnamespaceする）。観測起因の例外は`gate_rejected`ではなく`stopped`として区別し、L3の失敗をL1判定へ持ち込まない。閾値とゲート条件は変更しない |
 | T-2 | 候補生成が次元あたり1件しか返さず、候補予算とround上限が実行として行使されない（宣言順のspacing preference variantと候補診断の記録により解消済み） | `--max-exploration-candidates 3 --max-exploration-rounds 2`に対し`generated_candidates=1`、`consumed_budget=1`、`remaining_budget=2`、`termination_reason=candidate_pool_exhausted`。記録面のS-2は解消しているが、母集団が1件のため予算に意味がない。現在はplacement Skillのspacing preference variantから候補を宣言順に生成し、各候補のprovenanceを保持し、利用不能または重複したvariantを`candidate_generation`へ記録する | 中 | S-2、Q-3 | remediation次元ごとに複数候補（spacing preferenceを段階的に変えた配置）を宣言順で列挙し、`generated_candidates`が上限へ届く生成側を用意する。候補の由来（Skill名・script sha256・proposal hash）とvariantを記録し、利用不能・重複は`candidate_generation`へ記録する |
-| T-3 | ambient install経路の会話へACD toolが登録されない状態が継続している | 新規workspaceの会話が露出するtoolは`terminal`／`file_editor`／`task_tracker`／`finish`／`think`／`switch_llm_profile`／`invoke_skill`の7つで、`acd_*`は存在しない。`/acd:init`はSkillが決定論的CLIをterminalから実行する手順を持つため成立する | 高 | S-3、ADR-0036 | S-3の未了部分と同一。ambient install経路の会話へACD ToolDefinitionを登録する配布形態を定義し、登録できない形態ではcommandが宣言toolの不在をfail-closedに検出して代替CLI手順を返す |
+| T-3（解消済み） | ambient install経路の会話へACD toolが登録されない | 新規workspaceの会話が露出するtoolは`terminal`／`file_editor`／`task_tracker`／`finish`／`think`／`switch_llm_profile`／`invoke_skill`の7つで、`acd_*`は存在しない。pinned SDK v1.44.1のplugin形式（根拠: `vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）にはToolDefinition登録面がないため、ambient経路での登録は主張しない | 高 | S-3、ADR-0036 | commandが宣言toolの不在をfail-closedに検出し、決定論的CLI fallbackへ倒す。CLI入口を持たない3 toolの段は実行せず不成立として報告する。drift guardをfast段で実行し、この判定はL3観測でauthoritative Evidenceを生成しない |
 | T-4 | 失敗理由と進行の表示は改善したが、1画面で読める形になっていない（loop summaryとL3 digestの統合により解消済み） | loop summaryへ`failure_reason`と`next_step_action`が入り、`report_progress.py`は`status: "pass"`でtiming recordと探索reportを返す。一方で両者は別出力であり、GUIから「どのlaneが、なぜ止まり、次に何をするか」を一度に読めない。現在は各loopがcanonical hash付き`loop-summary.json`を保存し、digestが`ok`、失敗lane、理由、次手順、roundを同一行で返す | 低 | S-5 | `report_progress.py`のdigestへ`failure_reason`と`next_step_action`を取り込み、lane・経過・試行・残予算・次手順を単一のL3出力にまとめる。表示はL3観測であり合否権限を持たない |
 | T-5 | download対象が欠落したとき、runnerがcommandのstdout／stderrを出さずにtransport失敗で終了する（command出力保持により解消済み） | 探索の出力先を`out/runD`にした実行で、graph由来の既定download path（`out/gd1/evidence-electrical.json`）が存在せず`failed to download workspace file … after 3 attempts`で終了し、container内で得られていたlane結果と探索reportが読めなかった。`_execute_and_download()`は`exit_code == 0`のときだけdownloadするため、commandが成功扱いで終わると欠落が例外になり、`run_in_workspace.py`はstdout出力前に`return 2`する。現在はtransport errorへcommandのexit code・stdout・stderr・部分downloadを保持し、出力してから非ゼロ終了する | 低 | O-2 | Evidence欠落をfail-closedに保ったまま、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する。download pathの導出規則（graph由来の既定と明示指定）は変更しない |
 
@@ -511,7 +511,11 @@ T-1は復帰経路の唯一の停止点であり、L1の判定内容ではなく
 T-2はT-1の解消後に予算を意味あるものにするための前提である。
 T-5は判定ではなく検証作業の可読性に関わる項目で、fail-closed境界は変えない。
 
-T-1、T-2、T-4、T-5は上記の実装により解消済みである。T-3は未了であり、
+T-1〜T-5は上記の実装により解消済みである。T-3では、pinned SDK v1.44.1のplugin形式に
+ToolDefinition登録面が無い事実を踏まえ、ambient経路でのtool登録を主張せず、commandの
+宣言tool不在をfail-closedに検出して決定論的CLIへ倒す経路とdrift guardを実装した。
+CLI入口を持たない3 toolの段は実行せず不成立として報告する。この判定はL3観測であり、
+authoritative Evidenceを生成しない。
 実機で成功した復帰runのwall-clock記録も未取得である。いずれのL3 recordも
 `pass_evidence: false`であり、L1の合否権限とfail-closed境界は変更していない。
 
