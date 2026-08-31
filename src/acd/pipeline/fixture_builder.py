@@ -10,6 +10,13 @@ from pathlib import Path
 from typing import Final
 
 from acd.core.cpl_orientation import cpl_orientation_attrs
+from acd.core.decoupling_placement import (
+    DecouplingPlacementError,
+    DecouplingPlacementReport,
+    apply_decoupling_placements,
+    solve_decoupling_placements,
+)
+from acd.core.electrical import GraphExtractionError
 from acd.core.functional_blocks import load_functional_block_registry
 from acd.core.part_selection import PartSelectionError, select_part
 from acd.core.pin_functions import pin_function_attrs
@@ -469,6 +476,51 @@ def _guard_manual_graph(
         )
 
 
+def _normalize_decoupling_placement(
+    graph: DesignGraph, out_dir: Path
+) -> DesignGraph:
+    """Place declared decoupling capacitors inside their pinned distance limits.
+
+    The solver keeps a satisfied design input unchanged, so an existing fixture
+    keeps its normalized graph hash. An unsatisfiable pair is reported and the
+    build stops fail-closed rather than emitting a placement that the
+    authoritative ``power_decoupling`` predicate rejects.
+    """
+    declared = any(
+        node.kind == "electrical.component"
+        and isinstance(node.attrs.get("decoupling_target"), str)
+        for node in graph.nodes
+    )
+    if not declared:
+        return graph
+    try:
+        report = solve_decoupling_placements(graph, out_dir)
+    except (DecouplingPlacementError, GraphExtractionError, OSError, ValueError) as exc:
+        raise FixtureBuilderError(
+            f"decoupling placement could not be resolved: {exc}"
+        ) from exc
+    if not report.placements and not report.deficiencies:
+        return graph
+    _write_decoupling_report(out_dir, report)
+    if report.deficiencies:
+        reasons = "; ".join(
+            f"{item.refdes}->{item.target_refdes}: {item.reason}"
+            for item in report.deficiencies
+        )
+        raise FixtureBuilderError(
+            "declared decoupling placement is not satisfiable: " + reasons
+        )
+    return apply_decoupling_placements(graph, report)
+
+
+def _write_decoupling_report(out_dir: Path, report: DecouplingPlacementReport) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    _write_atomic(
+        out_dir / "decoupling-placement-report.json",
+        _canonical(report.as_payload()),
+    )
+
+
 def build_design_fixture(
     spec: DesignFixtureSpec,
     out_dir: Path,
@@ -485,7 +537,7 @@ def build_design_fixture(
         raise FixtureBuilderError(
             "unknown functional blocks: " + ", ".join(unknown_blocks)
         )
-    graph = build_graph(spec)
+    graph = _normalize_decoupling_placement(build_graph(spec), out_dir)
     requirements = RequirementDocument(
         graph_id=graph.graph_id,
         revision=graph.revision,
@@ -513,6 +565,7 @@ def build_design_fixture(
 
 __all__ = [
     "GENERATOR_NAME",
+    "DecouplingPlacementReport",
     "FixtureBuilderError",
     "GraphOverwriteConflict",
     "build_design_fixture",

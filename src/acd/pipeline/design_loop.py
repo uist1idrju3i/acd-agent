@@ -15,7 +15,24 @@ from pathlib import Path
 from typing import Any, cast
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
-from acd.core.exploration import explore_board_candidates
+from acd.core.enclosure_exploration import (
+    EnclosureExplorationResult,
+    explore_enclosure_candidates,
+)
+from acd.core.exploration import (
+    ExplorationResult,
+    RemediationRequest,
+    explore_board_candidates,
+    explore_firmware_candidates,
+    load_remediation_requests,
+)
+from acd.core.lane_recovery import (
+    LaneRecoveryDeclarationError,
+    LaneRecoveryDeclarations,
+    LaneRecoveryPlan,
+    load_lane_recovery_declarations,
+    resolve_lane_recovery,
+)
 from acd.core.order_total import (
     aggregate_order_total,
     order_total_result_from_document,
@@ -31,10 +48,12 @@ from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
 from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
+from acd.pipeline.firmware_evidence import write_firmware_evidence
 from acd.pipeline.fixture_builder import build_design_fixture
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
 from acd.pipeline.lane_plan import (
     DESIGN_LOOP_LANE_IDS,
+    RECOVERY_EXPLORATION_STAGE_IDS,
     LanePlan,
     build_lane_plan,
 )
@@ -86,6 +105,7 @@ class DesignLoopConfig:
     quote_records: tuple[Path, ...] = ()
     order_scope: Path | None = None
     design_only: bool = False
+    fixture_overwrite: bool = False
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -175,6 +195,7 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
         return _failure("firmware-pipeline", f"firmware Skill script is missing: {script}")
     if config.run_seconds <= 0:
         return _failure("firmware-pipeline", "run_seconds must be positive")
+    started_at = datetime.now(UTC)
     completed = subprocess.run(
         [
             "uv",
@@ -208,14 +229,37 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
         return _failure("firmware-pipeline", f"firmware Skill summary is invalid: {exc}")
     if not isinstance(summary, dict):
         return _failure("firmware-pipeline", "firmware Skill summary must be an object")
+    script_sha256 = _file_sha256(script)
+    try:
+        graph = DesignGraph.model_validate_json(
+            (config.fixture_dir / "graph.json").read_text(encoding="utf-8")
+        )
+        evidence_path, evidence = write_firmware_evidence(
+            graph,
+            cast(dict[str, Any], summary),
+            output,
+            script_sha256=script_sha256,
+            started_at=started_at,
+            finished_at=datetime.now(UTC),
+        )
+    except (OSError, ValueError) as exc:
+        return _failure(
+            "firmware-pipeline",
+            f"firmware Evidence could not be recorded: {exc}",
+            output_path=str(output),
+        )
     return _success(
         "firmware-pipeline",
         output_path=str(output),
         summary=summary,
+        evidence_path=str(evidence_path),
+        evidence_authoritative=evidence.supports_authoritative_pass(graph.revision),
+        evidence_provisional=evidence.is_provisional(),
+        measurement_class="virtual",
         provenance={
             "skill_name": "acd-firmware-esp32c3",
             "script_name": str(script.relative_to(config.repository)),
-            "script_sha256": _file_sha256(script),
+            "script_sha256": script_sha256,
             "pass_evidence": False,
         },
     )
@@ -370,22 +414,26 @@ def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
     if config.fixture_spec is None:
         raise ValueError("fixture spec is not configured")
     graph_path = config.fixture_dir / "graph.json"
-    if graph_path.exists():
+    if graph_path.exists() and not config.fixture_overwrite:
         return _failure(
             "fixture-generation",
-            "fixture directory already contains graph.json (fail-closed)",
+            "fixture directory already contains graph.json (fail-closed); "
+            "declare an explicit overwrite to regenerate it",
         )
     try:
         spec = DesignFixtureSpec.model_validate_json(
             config.fixture_spec.read_text(encoding="utf-8")
         )
-        graph = build_design_fixture(spec, config.fixture_dir)
+        graph = build_design_fixture(
+            spec, config.fixture_dir, overwrite=config.fixture_overwrite
+        )
     except Exception as exc:
         return _failure("fixture-generation", f"{type(exc).__name__}: {exc}")
     return _success(
         "fixture-generation",
         graph_id=graph.graph_id,
         revision=graph.revision,
+        overwrite=config.fixture_overwrite,
         output_path=str(config.fixture_dir),
     )
 
@@ -473,6 +521,152 @@ DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
 }
 
 
+def _recovery_fields(plan: LaneRecoveryPlan) -> dict[str, Any]:
+    """Return the L3 recovery diagnostic as stage-record fields."""
+    fields = plan.as_diagnostic()
+    fields.pop("pass_evidence", None)
+    fields.pop("record_class", None)
+    fields["recovery_lane_id"] = fields.pop("lane_id")
+    return fields
+
+
+def _recovery_rerun_arguments(
+    failed: dict[str, Any], max_candidates: int, max_rounds: int
+) -> dict[str, Any] | None:
+    """Return machine-readable rerun arguments for a recoverable rejection.
+
+    A rejection that a declared recovery path could explore reports how to rerun
+    with recovery enabled, so a conversation does not have to guess the bounded
+    budget arguments. A declared lane without an explorer reports its next-step
+    action instead. The rejection itself stays fail-closed.
+    """
+    lane_id = failed.get("stage_id")
+    if not isinstance(lane_id, str):
+        return None
+    try:
+        declarations = load_lane_recovery_declarations()
+        if declarations.lane(lane_id) is None:
+            return None
+        plan = resolve_lane_recovery(lane_id, declarations=declarations)
+    except LaneRecoveryDeclarationError:
+        return None
+    if not plan.supported or lane_id not in RECOVERY_EXPLORATION_STAGE_IDS:
+        return {
+            "record_class": "L3",
+            "pass_evidence": False,
+            "lane_id": lane_id,
+            "recovery_supported": False,
+            "next_step_action": plan.next_step_action,
+            "recovery_unsupported_reason": plan.reason,
+        }
+    return {
+        "record_class": "L3",
+        "pass_evidence": False,
+        "lane_id": lane_id,
+        "recovery_supported": True,
+        "recovery_explorer": plan.explorer,
+        "recovery_dimensions": list(plan.dimensions),
+        "next_step_action": plan.next_step_action,
+        "arguments": {
+            "--recover-lanes": True,
+            "--max-exploration-candidates": max_candidates,
+            "--max-exploration-rounds": max_rounds,
+        },
+    }
+
+
+def _lane_remediation(
+    config: DesignLoopConfig, lane_id: str, target_revision: str
+) -> tuple[RemediationRequest, ...]:
+    """Load declared remediation requests from one lane's gate evidence."""
+    lane_output = config.lane_plan.stage(lane_id).output_path
+    if lane_output is None:
+        raise ValueError(f"{lane_id} has no declared output path (fail-closed)")
+    evidence = lane_output / "gate-evidence" / "design-predicates.json"
+    if not evidence.is_file():
+        raise ValueError(
+            f"{lane_id} rejection has no predicate evidence at {evidence}; "
+            "recovery has no declared remediation to explore (fail-closed)"
+        )
+    return load_remediation_requests(evidence, target_revision)
+
+
+def _run_lane_exploration(
+    config: DesignLoopConfig,
+    plan: LaneRecoveryPlan,
+    round_out: Path,
+    *,
+    board_pipeline_runner: Callable[[Path, Path], object],
+    enclosure_pipeline_runner: Callable[[Path, Path], object],
+    remediation_driven: bool,
+) -> ExplorationResult | EnclosureExplorationResult:
+    """Run the declared explorer of one rejected lane.
+
+    Declaration-driven lane recovery only explores candidates that a declared
+    remediation subject supports, so a rejection without remediation stops
+    fail-closed instead of consuming the candidate budget. The explicit
+    board-only exploration path keeps its existing bounded broad search.
+    """
+    graph_path = config.fixture_dir / "graph.json"
+    if not remediation_driven:
+        if plan.explorer != "board":
+            raise ValueError(
+                "explicit board exploration cannot run the "
+                f"{plan.explorer} explorer of {plan.lane_id}"
+            )
+        return explore_board_candidates(
+            graph_path,
+            config.fixture_dir,
+            round_out,
+            config.max_exploration_candidates,
+            max_passes=config.max_passes,
+            dry_run=False,
+            pipeline_runner=board_pipeline_runner,
+        )
+    if plan.explorer == "enclosure":
+        return explore_enclosure_candidates(
+            graph_path,
+            config.fixture_dir,
+            round_out,
+            config.max_exploration_candidates,
+            dimensions=plan.dimensions,
+            jobs=config.jobs,
+            pipeline_runner=enclosure_pipeline_runner,
+            commit=True,
+        )
+    graph = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
+    remediation = _lane_remediation(config, plan.lane_id, graph.revision)
+    if not remediation:
+        raise ValueError(
+            f"{plan.lane_id} rejection declares no remediation; "
+            "recovery cannot derive a candidate (fail-closed)"
+        )
+    if plan.explorer == "firmware":
+        return explore_firmware_candidates(
+            graph_path,
+            config.fixture_dir,
+            round_out,
+            config.max_exploration_candidates,
+            dry_run=False,
+            pipeline_runner=board_pipeline_runner,
+            remediation=remediation,
+        )
+    if plan.explorer != "board":
+        raise ValueError(
+            f"{plan.lane_id} declares an unsupported recovery explorer: {plan.explorer}"
+        )
+    return explore_board_candidates(
+        graph_path,
+        config.fixture_dir,
+        round_out,
+        config.max_exploration_candidates,
+        max_passes=config.max_passes,
+        dry_run=False,
+        pipeline_runner=board_pipeline_runner,
+        remediation=remediation,
+    )
+
+
 def run_design_loop(
     fixture_dir: Path,
     out_root: Path,
@@ -490,6 +684,8 @@ def run_design_loop(
     resume: bool = False,
     jobs: int = DEFAULT_DESIGN_LOOP_JOBS,
     explore_board: bool = False,
+    recover_lanes: bool = False,
+    fixture_overwrite: bool = False,
     design_only: bool = False,
     max_exploration_candidates: int = 3,
     max_exploration_rounds: int = 1,
@@ -512,8 +708,14 @@ def run_design_loop(
         "jobs": jobs,
         "results": [],
     }
+    recovery_enabled = explore_board or recover_lanes
+    recovery_declarations: LaneRecoveryDeclarations | None = None
     if explore_board:
         result["explore_board"] = True
+    if recover_lanes:
+        result["recover_lanes"] = True
+    if fixture_overwrite:
+        result["fixture_overwrite"] = True
     if design_only:
         result["design_only"] = True
     if requirement is not None:
@@ -601,7 +803,10 @@ def run_design_loop(
             quote_records=tuple(quote_records or ()),
             order_scope=order_scope,
             design_only=design_only,
+            fixture_overwrite=fixture_overwrite,
         )
+        if recovery_enabled:
+            recovery_declarations = load_lane_recovery_declarations()
         result.update(
             {
                 "graph_id": graph_id,
@@ -759,8 +964,11 @@ def run_design_loop(
                 return once_results, order_readiness_result
             return once_results, None
 
-        def exploration_stage(round_number: int) -> dict[str, Any]:
-            stage = active_config.lane_plan.stage("board-exploration")
+        def exploration_stage(
+            round_number: int, plan: LaneRecoveryPlan
+        ) -> dict[str, Any]:
+            stage_id = RECOVERY_EXPLORATION_STAGE_IDS[plan.lane_id]
+            stage = active_config.lane_plan.stage(stage_id)
             round_out = (
                 stage.output_path / f"round-{round_number}"
                 if stage.output_path is not None
@@ -770,8 +978,8 @@ def run_design_loop(
             def runner(config: DesignLoopConfig) -> dict[str, Any]:
                 if round_out is None:
                     return _failure(
-                        "board-exploration",
-                        "board exploration output path is undeclared (fail-closed)",
+                        stage_id,
+                        f"{stage_id} output path is undeclared (fail-closed)",
                     )
 
                 def pipeline_runner(
@@ -787,25 +995,30 @@ def run_design_loop(
                         timing_recorder=config.timing_recorder,
                     )
 
+                def enclosure_pipeline_runner(
+                    working_fixture: Path, candidate_out: Path
+                ) -> object:
+                    return run_enclosure_pipeline(working_fixture, candidate_out)
+
                 try:
-                    exploration = explore_board_candidates(
-                        config.fixture_dir / "graph.json",
-                        config.fixture_dir,
+                    exploration = _run_lane_exploration(
+                        config,
+                        plan,
                         round_out,
-                        config.max_exploration_candidates,
-                        max_passes=config.max_passes,
-                        dry_run=False,
-                        pipeline_runner=pipeline_runner,
+                        board_pipeline_runner=pipeline_runner,
+                        enclosure_pipeline_runner=enclosure_pipeline_runner,
+                        remediation_driven=recover_lanes,
                     )
                 except Exception as exc:
                     return _failure(
-                        "board-exploration",
+                        stage_id,
                         f"{type(exc).__name__}: {exc}",
                         record_class="L3",
                         report_status="unknown",
                         report_path=str(round_out / "exploration-report.json"),
                         evaluated_candidates=0,
                         diagnostic_dimensions=[],
+                        **_recovery_fields(plan),
                     )
                 report = exploration.report
                 diagnostic_dimensions_set: set[str] = set()
@@ -836,31 +1049,39 @@ def run_design_loop(
                     "evaluated_candidates": report.get("evaluated_candidates", 0),
                     "diagnostic_dimensions": sorted(diagnostic_dimensions_set),
                     "winner_written": report.get("winner_written", False),
+                    **_recovery_fields(plan),
                 }
                 if status != "candidate_found" or fields["winner_written"] is not True:
                     return _failure(
-                        "board-exploration",
+                        stage_id,
                         (
                             f"exploration did not produce a writable candidate: "
                             f"status={status!r}"
                         ),
                         **fields,
                     )
-                return _success("board-exploration", **fields)
+                return _success(stage_id, **fields)
 
             return run_stage(
-                "board-exploration",
+                stage_id,
                 runner=runner,
                 timing_prefix=f"round-{round_number}",
             )
 
-        def board_rejection(stage_result: dict[str, Any] | None) -> bool:
-            return bool(
-                stage_result is not None
-                and stage_result.get("stage_id") == "board-pipeline"
-                and not stage_result.get("ok")
-                and stage_result.get("fail_closed")
-            )
+        def rejected_recovery_lane(stage_result: dict[str, Any] | None) -> str | None:
+            """Return the rejected lane ID that recovery may explore, if any."""
+            if stage_result is None:
+                return None
+            if stage_result.get("ok") and not stage_result.get("fail_closed"):
+                return None
+            stage_id = stage_result.get("stage_id")
+            if not isinstance(stage_id, str):
+                return None
+            if stage_id not in RECOVERY_EXPLORATION_STAGE_IDS:
+                return None
+            if not recover_lanes and stage_id != "board-pipeline":
+                return None
+            return stage_id
 
         results: list[dict[str, Any]] = []
         failed: dict[str, Any] | None = None
@@ -906,23 +1127,60 @@ def run_design_loop(
         exploration_rounds: list[dict[str, Any]] = []
         round_number = 0
         while (
-            explore_board
-            and board_rejection(failed)
+            recovery_enabled
+            and rejected_recovery_lane(failed) is not None
             and round_number < max_exploration_rounds
         ):
             round_number += 1
             if failed is None:
                 break
             board_failure = failed
+            lane_id = cast(str, rejected_recovery_lane(failed))
+            try:
+                recovery_plan = resolve_lane_recovery(
+                    lane_id, declarations=recovery_declarations
+                )
+            except Exception as exc:
+                record = _failure(
+                    lane_id,
+                    (
+                        f"{board_failure.get('failure_reason', 'stage failed')}; "
+                        f"lane recovery declarations are unusable: "
+                        f"{type(exc).__name__}: {exc}"
+                    ),
+                    record_class="L3",
+                )
+                results.append(record)
+                result["exploration_termination"] = "recovery_declaration_invalid"
+                failed = record
+                break
+            if not recovery_plan.supported:
+                record = _failure(
+                    lane_id,
+                    (
+                        f"{board_failure.get('failure_reason', 'stage failed')}; "
+                        f"lane recovery is not declared for {lane_id}: "
+                        f"{recovery_plan.reason or 'undeclared'}"
+                    ),
+                    record_class="L3",
+                    **_recovery_fields(recovery_plan),
+                )
+                results.append(record)
+                result["exploration_termination"] = "recovery_not_declared"
+                failed = record
+                break
             before_graph = _load_graph(active_config.fixture_dir)
             before_graph_hash = canonical_json_sha256(
                 before_graph.model_dump(mode="json")
             )
-            exploration_result = exploration_stage(round_number)
+            exploration_result = exploration_stage(round_number, recovery_plan)
             results.append(exploration_result)
             exploration_rounds.append(
                 {
                     "round": round_number,
+                    "lane_id": lane_id,
+                    "recovery_explorer": recovery_plan.explorer,
+                    "recovery_dimensions": list(recovery_plan.dimensions),
                     "status": exploration_result.get("report_status", "unknown"),
                     "report_path": exploration_result.get("report_path"),
                     "target_revision": exploration_result.get("target_revision"),
@@ -945,8 +1203,8 @@ def run_design_loop(
                 failed = {
                     **board_failure,
                     "failure_reason": (
-                        f"{board_failure.get('failure_reason', 'board stage failed')}; "
-                        f"board exploration failed: "
+                        f"{board_failure.get('failure_reason', 'stage failed')}; "
+                        f"{lane_id} recovery exploration failed: "
                         f"{exploration_result.get('failure_reason', 'unknown error')}"
                     ),
                 }
@@ -956,9 +1214,10 @@ def run_design_loop(
                 detail: str,
                 board_failure: dict[str, Any] = board_failure,
                 exploration_result: dict[str, Any] = exploration_result,
+                stage_id: str = RECOVERY_EXPLORATION_STAGE_IDS[lane_id],
             ) -> dict[str, Any]:
                 record = _failure(
-                    "board-exploration",
+                    stage_id,
                     (
                         f"{board_failure.get('failure_reason', 'board stage failed')}; "
                         f"{detail}"
@@ -1013,11 +1272,11 @@ def run_design_loop(
             rerun_results, failed = execute_once(round_number + 1)
             results.extend(rerun_results)
 
-        if explore_board:
+        if recovery_enabled:
             result["exploration_rounds"] = exploration_rounds
             if (
                 failed is not None
-                and board_rejection(failed)
+                and rejected_recovery_lane(failed) is not None
                 and round_number >= max_exploration_rounds
                 and "exploration_termination" not in result
             ):
@@ -1030,6 +1289,12 @@ def run_design_loop(
                     "results": results,
                 }
             )
+            if not recovery_enabled:
+                rerun = _recovery_rerun_arguments(
+                    failed, max_exploration_candidates, max_exploration_rounds
+                )
+                if rerun is not None:
+                    result["recovery_rerun"] = rerun
         else:
             result.update(
                 {

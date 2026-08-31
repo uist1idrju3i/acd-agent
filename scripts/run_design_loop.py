@@ -81,6 +81,22 @@ def _parser() -> argparse.ArgumentParser:
         help="explore board candidates after a fail-closed board rejection",
     )
     parser.add_argument(
+        "--recover-lanes",
+        action="store_true",
+        help=(
+            "explore declared recovery dimensions of any rejected lane; "
+            "a lane without a declared recoverable dimension stays rejected"
+        ),
+    )
+    parser.add_argument(
+        "--fixture-overwrite",
+        action="store_true",
+        help=(
+            "regenerate the fixture even when it already contains a graph; "
+            "the existing graph is backed up next to the overwrite report"
+        ),
+    )
+    parser.add_argument(
         "--design-only",
         action="store_true",
         help=(
@@ -139,6 +155,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             resume=args.resume,
             jobs=args.jobs,
             explore_board=args.explore_board,
+            recover_lanes=args.recover_lanes,
+            fixture_overwrite=args.fixture_overwrite,
             design_only=args.design_only,
             max_exploration_candidates=args.max_exploration_candidates,
             max_exploration_rounds=args.max_exploration_rounds,

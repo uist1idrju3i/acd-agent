@@ -41,7 +41,7 @@ def artifact_prefix(graph_id: str) -> str:
 
 
 def evidence_id(graph_id: str, lane: str) -> str:
-    if lane not in {"electrical", "mechanical"}:
+    if lane not in {"electrical", "mechanical", "firmware-virtual"}:
         raise ValueError(f"unsupported Evidence lane: {lane!r}")
     return f"evidence.{artifact_prefix(graph_id)}.{lane}"
 

@@ -92,6 +92,11 @@ from acd.schema.host_resources import (
     HostResourceFinding,
     HostResourceReport,
 )
+from acd.schema.lane_recovery import (
+    RECOVERY_LANE_IDS,
+    LaneRecoveryDeclaration,
+    LaneRecoveryDeclarationDocument,
+)
 from acd.schema.model_routing import (
     ModelRoutingBinding,
     ModelRoutingObservation,
@@ -215,6 +220,7 @@ from acd.schema.visual_projection import (
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "DESIGN_FREEDOM_DIMENSION_IDS",
+    "RECOVERY_LANE_IDS",
     "UNKNOWN",
     "AcdCredentialReference",
     "AcdModel",
@@ -290,6 +296,8 @@ __all__ = [
     "JournalEntryBody",
     "JournalEntryType",
     "JournalResultStatus",
+    "LaneRecoveryDeclaration",
+    "LaneRecoveryDeclarationDocument",
     "LedExpectation",
     "MeasuredQuantity",
     "MeasurementClass",

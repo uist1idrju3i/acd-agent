@@ -767,7 +767,7 @@ P-1（install doctorのESP-IDF判定）は解消済みで、実機VPSのGUIか�
 | negative・fail-closed | 宣言不足・preflight不足・pin function未解決はunknownで停止する。定型rationaleと`deterministic_tool`の自称、ダミーorder-total、要件と不一致なtopology、既存入力の暗黙上書きを不合格にする。停止報告は合格側権限を持たず、laneのskipを合格として扱わない |
 | 再現性 | 宣言・catalog・preflight結果の正規化hashとprovenance（Skill名、script SHA-256）を記録し、`--jobs 1`と並列で収集件数・判定・正規化hashを一致させる |
 
-### 14.15 Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10）
+### 14.15 Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10）（達成）
 
 汎用エージェント（Devin）が不在でも、OpenHands（L2）とacd-agentの決定論的経路だけで
 新規設計を要件から発注可否まで1周させることを目的とするフェーズである。今回の実測では
@@ -786,6 +786,16 @@ rationale整合」である。ゲートは正しく閉じており、緩和で�
 | 正常系 | 会話由来のspecから生成した新規設計が、pre-router却下を含む1回以上の却下から探索・修正・再実行を経て基板・筐体・FW laneを通過し、digest固定containerでrevision一致のauthoritative Evidenceを生成して発注可否判定へ到達する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | 候補予算・round上限の超過、graph ID／revisionの不一致、正規化content hashの不変、rationale更新不能、宣言されていない上書き、復帰次元が宣言されていないlaneの却下、remediationを持たない却下はいずれもfail-closedで停止する。探索report、診断、goal評決、L2の合意はpass authorityを持たず、`pass_evidence`はL1ゲート由来に限る |
 | 再現性 | 探索round、候補ID、変更subject、rationale更新結果、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰経路を含む実行のwall-clockと資源使用を[`operations.md`](operations.md)の実測へ追記する |
+
+14.15では、宣言由来のlane復帰plan（`contracts/lane-recovery-declaration.json`）、却下応答の
+機械可読な再実行引数、却下predicateのremediationに限定した候補生成、候補確定時の
+rationale決定論的更新と原子的commit、宣言された`fixture_overwrite`、要件の追加・削除、
+診断の拡張（失敗subject、変更次元、rationale coverage、lane preflight、必要宣言）、
+firmware capability registryへの原子的な宣言追記、初期配置のdecoupling距離解決、QEMU打ち切りの
+正常終了明示、FW laneのrevision一致Evidence（virtual実行明示）を追加した。会話経路の入口は
+`/acd:vibebb-loop`の`recover_lanes`・`fixture_overwrite`と`/acd:vibebb-recover`であり、
+bounded反復harnessは`scripts/run_acd_goal.py`である。探索report、診断、goal評決は
+pass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る。
 
 14.1〜14.3、14.4、14.5、14.6、14.7、14.8および14.9は達成済みである。14.4では、
 配置・回転、GPIO割当、placement coupling、単一datum、stitch via fallbackを含むbounded

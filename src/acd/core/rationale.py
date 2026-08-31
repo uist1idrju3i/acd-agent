@@ -558,6 +558,46 @@ def subject_hash_for(
     return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
+class RationaleRefreshError(ValueError):
+    """Raised when rationale records cannot be refreshed for a changed graph."""
+
+
+def refresh_rationale_document(
+    graph: DesignGraph, document: RationaleDocument
+) -> RationaleDocument:
+    """Recompute subject hashes and target revisions against a changed graph.
+
+    Requirement compilation and candidate exploration share this single update
+    rule, so a graph change never leaves stale rationale behind. A record whose
+    subject no longer exists is rejected fail-closed instead of being dropped.
+    """
+    refreshed: list[RationaleRecord] = []
+    for record in document.records:
+        try:
+            expected_hash = subject_hash_for(
+                graph, record.subject_nodes, record.subject_attrs
+            )
+        except KeyError as exc:
+            raise RationaleRefreshError(
+                f"rationale references missing graph subject: {record.rationale_id}"
+            ) from exc
+        refreshed.append(
+            record.model_copy(
+                update={
+                    "subject_hash": expected_hash,
+                    "target_revision": graph.revision,
+                }
+            )
+        )
+    return document.model_copy(
+        update={
+            "graph_id": graph.graph_id,
+            "revision": graph.revision,
+            "records": refreshed,
+        }
+    )
+
+
 def _subject(node_id: str, attr: str) -> RationaleSubject:
     return RationaleSubject(node_id=node_id, attr=attr)
 

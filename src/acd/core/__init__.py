@@ -80,7 +80,9 @@ from acd.core.quote import (
 from acd.core.rationale import (
     RATIONALE_EXEMPT_ATTRS,
     REQUIRED_RATIONALE_ATTRS,
+    RationaleRefreshError,
     check_rationale_coverage,
+    refresh_rationale_document,
     subject_hash_for,
 )
 from acd.core.receipt import (
@@ -128,6 +130,7 @@ __all__ = [
     "QuoteFeeSet",
     "QuoteProvider",
     "QuoteReadError",
+    "RationaleRefreshError",
     "ReceiptReconciliationError",
     "ReconciliationReport",
     "RequirementFinding",
@@ -164,6 +167,7 @@ __all__ = [
     "reconcile_files",
     "reconcile_receipt",
     "reconstruct_order",
+    "refresh_rationale_document",
     "register_functional_block_contract",
     "required_predicate_names",
     "resolve_fab_profile_path",

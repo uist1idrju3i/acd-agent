@@ -8,8 +8,9 @@ import os
 import subprocess
 import sys
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self, cast
+from typing import TYPE_CHECKING, Any, Literal, Self, cast
 
 from openhands.sdk.llm import TextContent
 from openhands.sdk.tool import (
@@ -25,6 +26,7 @@ from openhands.sdk.tool.registry import register_tool  # pyright: ignore[reportU
 from pydantic import Field
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
+from acd.core.firmware_capability_entry import register_firmware_capability
 from acd.core.functional_block_entry import register_functional_block_contract
 from acd.core.naming import artifact_prefix
 from acd.core.parts_catalog_entry import register_parts_catalog_entry
@@ -158,6 +160,7 @@ class AcdObservation(Observation):
     new_catalog_hash: str | None = None
     entry_source: str | None = None
     entry: dict[str, Any] | None = None
+    evidence_path: str | None = None
 
     @property
     def to_llm_content(self) -> list[TextContent]:
@@ -191,7 +194,10 @@ class AcdObservation(Observation):
             )
         elif self.report is not None:
             text = f"{self.operation}: report_keys={', '.join(sorted(self.report))}."
-        elif self.operation == "register_functional_block":
+        elif self.operation in {
+            "register_functional_block",
+            "register_firmware_capability",
+        }:
             text = (
                 f"{self.operation}: registry_id={self.registry_id}, "
                 f"prior_registry_hash={self.prior_registry_hash}, "
@@ -272,6 +278,22 @@ class AcdRegisterFunctionalBlockAction(Action):
     )
 
 
+class AcdRegisterFirmwareCapabilityAction(Action):
+    """Validate and append one firmware capability declaration."""
+
+    capability: str = Field(
+        description="FirmwareCapabilityContract JSON path or inline JSON object."
+    )
+    registry: str = Field(
+        default="contracts/firmware-capability-registry.json",
+        description="Firmware capability registry JSON path.",
+    )
+    dry_run: bool = Field(
+        default=False,
+        description="Validate without writing the registry.",
+    )
+
+
 class AcdRegisterPartsCatalogEntryAction(Action):
     """Validate and append one parts-catalog entry declaration."""
 
@@ -303,11 +325,27 @@ class AcdCompileRequirementChangeAction(Action):
     fixture_dir: str
     requirement: str
     dry_run: bool = False
+    mode: Literal["update", "add", "delete"] = Field(
+        default="update",
+        description=(
+            "Whether the declared record updates an existing requirement, adds "
+            "a new one, or deletes one. Graph, requirements, and rationale are "
+            "written in one transaction in every mode."
+        ),
+    )
 
 
 class AcdBuildDesignFixtureAction(Action):
     spec: str
     out: str
+    overwrite: bool = Field(
+        default=False,
+        description=(
+            "Regenerate an existing fixture graph. The existing graph is "
+            "preserved next to the overwrite report; implicit overwrite stays "
+            "fail-closed."
+        ),
+    )
 
 
 class AcdAggregateOrderTotalAction(Action):
@@ -340,6 +378,20 @@ class AcdExploreEnclosureCandidatesAction(Action):
 
 class AcdDiagnoseGateFailureAction(Action):
     out_dir: str
+    fixture: str | None = Field(
+        default=None,
+        description=(
+            "Fixture directory whose rationale coverage and lane preflight "
+            "declarations are reported alongside the failed predicates."
+        ),
+    )
+    lane_id: str | None = Field(
+        default=None,
+        description=(
+            "Lane whose declared recovery dimensions and required declarations "
+            "are reported. An undeclared lane is reported as unsupported."
+        ),
+    )
 
 
 class AcdCheckOrderReadinessAction(Action):
@@ -383,6 +435,20 @@ class AcdRunDesignLoopAction(Action):
     explore_board: bool = Field(
         default=False,
         description="Explore board candidates after a fail-closed board rejection.",
+    )
+    recover_lanes: bool = Field(
+        default=False,
+        description=(
+            "Explore the declared recovery dimensions of any rejected lane. "
+            "A lane without a declared recoverable dimension stays rejected."
+        ),
+    )
+    fixture_overwrite: bool = Field(
+        default=False,
+        description=(
+            "Regenerate the fixture even when it already holds a graph. "
+            "The existing graph is preserved next to the overwrite report."
+        ),
     )
     max_exploration_candidates: int = Field(
         default=3,
@@ -445,6 +511,10 @@ class AcdBootstrapWorkspaceObservation(AcdObservation):
 
 class AcdRegisterFunctionalBlockObservation(AcdObservation):
     """Observation returned by functional-block contract registration."""
+
+
+class AcdRegisterFirmwareCapabilityObservation(AcdObservation):
+    """Observation returned by firmware capability registration."""
 
 
 class AcdRegisterPartsCatalogEntryObservation(AcdObservation):
@@ -674,6 +744,41 @@ class AcdRegisterFunctionalBlockExecutor(
             )
 
 
+class AcdRegisterFirmwareCapabilityExecutor(
+    ToolExecutor[
+        AcdRegisterFirmwareCapabilityAction,
+        AcdRegisterFirmwareCapabilityObservation,
+    ]
+):
+    def __call__(
+        self,
+        action: AcdRegisterFirmwareCapabilityAction,
+        conversation: Any = None,
+    ) -> AcdRegisterFirmwareCapabilityObservation:
+        del conversation
+        try:
+            result = register_firmware_capability(
+                action.capability,
+                Path(action.registry),
+                dry_run=action.dry_run,
+            )
+            return AcdRegisterFirmwareCapabilityObservation(
+                ok=True,
+                operation="register_firmware_capability",
+                registry_id=result.registry_id,
+                prior_registry_hash=result.prior_registry_hash,
+                new_registry_hash=result.new_registry_hash,
+                contract_source=result.capability_source,
+                contract=result.capability.model_dump(mode="json"),
+                written=result.written,
+                fail_closed=False,
+            )
+        except Exception as exc:
+            return AcdRegisterFirmwareCapabilityObservation(
+                **_error(str(exc), operation="register_firmware_capability")
+            )
+
+
 class AcdRegisterPartsCatalogEntryExecutor(
     ToolExecutor[
         AcdRegisterPartsCatalogEntryAction,
@@ -824,6 +929,7 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
                 "--run-seconds",
                 str(action.run_seconds),
             ]
+            started_at = datetime.now(UTC)
             completed = subprocess.run(
                 command, cwd=root, capture_output=True, text=True, check=False
             )
@@ -839,15 +945,36 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
             summary = json.loads(summary_path.read_text(encoding="utf-8"))
             if not isinstance(summary, dict):
                 raise ValueError("firmware Skill summary must be an object")
+            from acd.pipeline.firmware_evidence import write_firmware_evidence
+
+            script_sha256 = _file_sha256(script)
+            graph = DesignGraph.model_validate_json(
+                (Path(action.fixture) / "graph.json").read_text(encoding="utf-8")
+            )
+            evidence_path, evidence = write_firmware_evidence(
+                graph,
+                cast(dict[str, Any], summary),
+                out_path,
+                script_sha256=script_sha256,
+                started_at=started_at,
+                finished_at=datetime.now(UTC),
+            )
             return AcdRunFirmwarePipelineObservation(
                 ok=True,
                 operation="run_firmware_pipeline",
                 summary=cast(dict[str, Any], summary),
                 output_path=str(out_path),
+                evidence_path=str(evidence_path),
+                revision=graph.revision,
                 provenance={
                     "skill_name": "acd-firmware-esp32c3",
                     "script_name": str(script.relative_to(root)),
-                    "script_sha256": _file_sha256(script),
+                    "script_sha256": script_sha256,
+                    "measurement_class": "virtual",
+                    "evidence_authoritative": evidence.supports_authoritative_pass(
+                        graph.revision
+                    ),
+                    "evidence_provisional": evidence.is_provisional(),
                     "pass_evidence": False,
                 },
                 fail_closed=False,
@@ -874,6 +1001,7 @@ class AcdCompileRequirementChangeExecutor(
                 Path(action.fixture_dir),
                 Path(action.requirement),
                 dry_run=action.dry_run,
+                mode=action.mode,
             )
             report = result.report
             return AcdCompileRequirementChangeObservation(
@@ -907,7 +1035,9 @@ class AcdBuildDesignFixtureExecutor(ToolExecutor[AcdBuildDesignFixtureAction, Ac
             spec = DesignFixtureSpec.model_validate_json(
                 Path(action.spec).read_text(encoding="utf-8")
             )
-            graph = build_design_fixture(spec, Path(action.out))
+            graph = build_design_fixture(
+                spec, Path(action.out), overwrite=action.overwrite
+            )
             return AcdBuildDesignFixtureObservation(
                 ok=True,
                 operation="build_design_fixture",
@@ -1075,7 +1205,11 @@ class AcdDiagnoseGateFailureExecutor(ToolExecutor[AcdDiagnoseGateFailureAction, 
         try:
             from acd.core.gate_diagnosis import diagnose_gate_failure
 
-            report = diagnose_gate_failure(Path(action.out_dir))
+            report = diagnose_gate_failure(
+                Path(action.out_dir),
+                Path(action.fixture) if action.fixture is not None else None,
+                action.lane_id,
+            )
             return AcdDiagnoseGateFailureObservation(
                 ok=True,
                 operation="diagnose_gate_failure",
@@ -1168,6 +1302,8 @@ class AcdRunDesignLoopExecutor(
                 resume=action.resume,
                 jobs=action.jobs,
                 explore_board=action.explore_board,
+                recover_lanes=action.recover_lanes,
+                fixture_overwrite=action.fixture_overwrite,
                 max_exploration_candidates=action.max_exploration_candidates,
                 max_exploration_rounds=action.max_exploration_rounds,
                 requirement=Path(action.requirement) if action.requirement else None,
@@ -1784,6 +1920,55 @@ class AcdRegisterFunctionalBlock(
         ]
 
 
+class AcdRegisterFirmwareCapability(
+    ToolDefinition[
+        AcdRegisterFirmwareCapabilityAction,
+        AcdRegisterFirmwareCapabilityObservation,
+    ]
+):
+    def declared_resources(self, action: Action) -> DeclaredResources:
+        if not isinstance(action, AcdRegisterFirmwareCapabilityAction):
+            return DeclaredResources(keys=(), declared=False)
+        registry_path = _resolved_resource_path(action.registry)
+        if registry_path is None:
+            return DeclaredResources(keys=(), declared=False)
+        keys = [f"file:{registry_path}"]
+        capability_path = _resolved_resource_path(action.capability)
+        if capability_path is not None and capability_path.is_file():
+            keys.insert(0, f"file:{capability_path}")
+        return DeclaredResources(keys=tuple(keys), declared=True)
+
+    @classmethod
+    def create(
+        cls,
+        conv_state: ConversationState | None = None,
+        **params: Any,
+    ) -> list[Self]:
+        del conv_state
+        if params:
+            raise ValueError(
+                "acd_register_firmware_capability does not accept parameters"
+            )
+        return [
+            cls(
+                action_type=AcdRegisterFirmwareCapabilityAction,
+                observation_type=AcdRegisterFirmwareCapabilityObservation,
+                description=(
+                    "Validate and register one firmware capability declaration. "
+                    "This is a declaration path, not gate evidence."
+                ),
+                annotations=ToolAnnotations(
+                    title="acd_register_firmware_capability",
+                    readOnlyHint=False,
+                    destructiveHint=False,
+                    idempotentHint=False,
+                    openWorldHint=False,
+                ),
+                executor=AcdRegisterFirmwareCapabilityExecutor(),
+            )
+        ]
+
+
 class AcdRegisterPartsCatalogEntry(
     ToolDefinition[
         AcdRegisterPartsCatalogEntryAction,
@@ -1833,6 +2018,7 @@ ACD_TOOL_DEFINITIONS: tuple[tuple[str, type[ToolDefinition[Any, Any]]], ...] = (
     ("acd_run_board_pipeline", AcdRunBoardPipeline),
     ("acd_run_enclosure_pipeline", AcdRunEnclosurePipeline),
     ("acd_register_functional_block", AcdRegisterFunctionalBlock),
+    ("acd_register_firmware_capability", AcdRegisterFirmwareCapability),
     ("acd_register_parts_catalog_entry", AcdRegisterPartsCatalogEntry),
     ("acd_bootstrap_workspace", AcdBootstrapWorkspace),
     ("acd_run_firmware_pipeline", AcdRunFirmwarePipeline),

@@ -431,6 +431,25 @@ P-2は新規設計の1周目が基板pre-router段で止まる主因、P-3・P-4
 | Q-9 | 失敗診断が出力ディレクトリ配下のEvidenceしか見ない | `diagnose_gate_failure`は`out_dir`配下の`gate-evidence/*.json`、exploration report、stitch reportだけを読み、fixture側の不足（rationale stale、宣言不足、spec↔graphの不一致）は診断対象外である。今回の実測でも、rationale coverage不足は別経路（`validate_graph`／機械preflight）で判明した | 低 | Q-4 | 診断入力へ対象fixtureのrationale coverageとlane preflight結果を加え、L2が次手を選べる形（失敗subject、変更次元、必要な宣言）で返す。診断はL3観測であり合否権限を持たない |
 | Q-10 | 会話由来設計のFW stepが未登録actionを参照すると宣言経路から復帰できない | 9.7の両runでFW laneが`firmware action 'read_sensor' is not registered in contracts/firmware-capability-registry.json`で停止した。停止自体はO-10の意図どおりだが、機能ブロックとparts catalogには宣言追加tool（`acd_register_functional_block`、`acd_register_parts_catalog_entry`）があるのに対し、firmware capability registryへaction・capability fragmentを宣言追加する経路はtool一覧に無く、会話からは復帰できない | 中 | O-10 | capability registryへのaction／capability fragment追加を、provenance検証付きの原子的追記として宣言tool経路へ公開する。未宣言actionのcode生成は引き続き行わず、曖昧な追加は拒否する |
 
+P-2〜P-4とQ-1〜Q-10はマイルストーン14.15で解消した。P-2は`solve_decoupling_placements`に
+よる初期配置のdecoupling距離解決（`decoupling_target`宣言のあるfixtureに限定し、不足は
+L3 reportとfail-closedで報告）、P-3は意図した打ち切り（exit code 124）を正常終了として
+`termination_condition`と`measurement_conditions`へ明示、P-4は`build_firmware_evidence`／
+`write_firmware_evidence`によるrevision一致のFW lane Evidence（virtual実行を明示し、
+host実行はprovisionalのまま）で解消した。Q-1・Q-8は
+`contracts/lane-recovery-declaration.json`とlane復帰planによる基板・筐体・FW・silkscreen・
+order-readinessの宣言（次元が無いlaneは`explorer="none"`と次手をL3で返す）、Q-2は却下応答の
+`recovery_rerun`（機械可読な再実行引数）と`recover_lanes`、Q-3は却下predicateの
+`remediation`由来の候補生成（remediation不在では予算を消費せず停止）、Q-4は
+`refresh_rationale_document`をrequirement compilerと共有する`commit_candidate_graph`の原子的
+確定、Q-5は`fixture_overwrite`（backupと差分report付き、暗黙上書きはfail-closed）、Q-6は
+要件の追加・削除を含む同一transaction反映、Q-7は`/acd:vibebb-recover`と
+`scripts/run_acd_goal.py`のbounded反復入口、Q-9は失敗subject・変更次元・rationale
+coverage・lane preflight・必要宣言を含む診断拡張、Q-10は
+`acd_register_firmware_capability`と`scripts/register_firmware_capability.py`による原子的な
+capability宣言追記で解消した。いずれも閾値、ゲート挙動、fail-closed境界、L1権限を変更せず、
+探索report、診断、goal評決はpass authorityを持たない。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が

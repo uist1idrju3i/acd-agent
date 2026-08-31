@@ -20,6 +20,11 @@ from pathlib import Path
 from typing import Any, cast
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
+from acd.core.candidate_commit import CandidateCommitError, commit_candidate_graph
+from acd.core.decoupling_placement import (
+    DecouplingPlacementError,
+    solve_decoupling_placements,
+)
 from acd.core.design_freedom import load_design_freedom_declaration
 from acd.core.design_predicates import evaluate_design_predicates, evaluate_strapping_pin
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
@@ -28,6 +33,8 @@ from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 EXPLORATION_ARTIFACT_KIND = "board_exploration_report"
+FIRMWARE_EXPLORATION_ARTIFACT_KIND = "firmware_exploration_report"
+DECOUPLING_SOLVER_NAME = "acd-core-deterministic-decoupling"
 PLACEMENT_SKILL_NAME = "acd-placement-search"
 PLACEMENT_SCRIPT = (
     "plugins/acd/skills/acd-placement-search/scripts/placement_search.py"
@@ -54,6 +61,17 @@ class ExplorationCandidate:
     dimensions: tuple[str, ...]
     changes: dict[str, Any]
     provenance: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class RemediationRequest:
+    """One declared remediation request extracted from a rejected predicate."""
+
+    predicate: str
+    change_dimensions: tuple[str, ...]
+    refdes: str | None = None
+    target_refdes: str | None = None
+    net: str | None = None
 
 
 @dataclass(frozen=True)
@@ -392,9 +410,210 @@ def enumerate_gpio_assignment_candidates(
     return tuple(candidates)
 
 
+def _validated_evidence_payload(
+    path: Path, target_revision: str | None
+) -> dict[str, Any]:
+    """Read hashed structured gate evidence, rejecting unverifiable payloads."""
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ExplorationError(f"structured gate evidence is unreadable: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ExplorationError("structured gate evidence is not an object")
+    body = cast(dict[str, Any], payload)
+    if target_revision is not None and body.get("target_revision") != target_revision:
+        raise ExplorationError(
+            "structured gate evidence revision does not match the explored graph"
+        )
+    content_sha256 = body.get("content_sha256")
+    if not isinstance(content_sha256, str):
+        raise ExplorationError("structured gate evidence content hash is missing")
+    unhashed = {key: value for key, value in body.items() if key != "content_sha256"}
+    if canonical_json_sha256(unhashed) != content_sha256:
+        raise ExplorationError("structured gate evidence content hash is invalid")
+    return body
+
+
+def load_remediation_requests(
+    evidence_path: Path, target_revision: str | None = None
+) -> tuple[RemediationRequest, ...]:
+    """Extract declared remediation requests from hashed predicate evidence.
+
+    Candidate generation is only allowed to act on remediation that a rejected
+    deterministic predicate declared. Malformed or revision-mismatched evidence
+    is rejected fail-closed instead of being treated as "no remediation".
+    """
+    if not evidence_path.is_file():
+        raise ExplorationError(
+            f"structured gate evidence is missing: {evidence_path}"
+        )
+    payload = _validated_evidence_payload(evidence_path, target_revision)
+    if payload.get("gate") != "design_predicates":
+        raise ExplorationError(
+            "structured gate evidence gate is not design_predicates"
+        )
+    observation = payload.get("observation")
+    if not isinstance(observation, dict):
+        raise ExplorationError("structured gate evidence observation is not an object")
+    predicates = cast(dict[str, Any], observation).get("predicates", [])
+    if not isinstance(predicates, list):
+        raise ExplorationError("structured gate evidence predicates is not an array")
+    requests: list[RemediationRequest] = []
+    for item in cast(list[object], predicates):
+        if not isinstance(item, dict):
+            raise ExplorationError("structured gate evidence predicate is not an object")
+        predicate = cast(dict[str, Any], item)
+        remediation = predicate.get("remediation")
+        if not isinstance(remediation, dict):
+            continue
+        body = cast(dict[str, Any], remediation)
+        dimensions = body.get("change_dimensions", [])
+        if not isinstance(dimensions, list) or not all(
+            isinstance(value, str) for value in cast(list[object], dimensions)
+        ):
+            raise ExplorationError(
+                "structured gate evidence remediation dimensions are malformed"
+            )
+        subject = body.get("subject")
+        subject_body = cast(dict[str, Any], subject) if isinstance(subject, dict) else {}
+        name = predicate.get("name")
+        requests.append(
+            RemediationRequest(
+                predicate=name if isinstance(name, str) else "unknown",
+                change_dimensions=tuple(
+                    sorted(cast(list[str], dimensions))
+                ),
+                refdes=_optional_str(subject_body.get("refdes")),
+                target_refdes=_optional_str(subject_body.get("target_refdes")),
+                net=_optional_str(subject_body.get("net")),
+            )
+        )
+    return tuple(requests)
+
+
+def _optional_str(value: object) -> str | None:
+    return value if isinstance(value, str) else None
+
+
+def _decoupling_placement_candidates(
+    graph: DesignGraph,
+    fixture_dir: Path,
+    remediation: Sequence[RemediationRequest],
+) -> tuple[ExplorationCandidate, ...]:
+    """Derive targeted capacitor placements from declared remediation subjects."""
+    subjects = {
+        request.refdes
+        for request in remediation
+        if request.refdes is not None
+        and "component_placement_xy" in request.change_dimensions
+    }
+    if not subjects:
+        return ()
+    try:
+        report = solve_decoupling_placements(graph, fixture_dir)
+    except (DecouplingPlacementError, OSError, ValueError) as exc:
+        raise ExplorationError(
+            f"decoupling remediation could not be solved: {exc}"
+        ) from exc
+    placements = {
+        item.refdes: item
+        for item in report.placements
+        if item.changed and item.refdes in subjects
+    }
+    if not placements:
+        return ()
+    return (
+        ExplorationCandidate(
+            candidate_id="decoupling-0001",
+            kind="decoupling_placement",
+            dimensions=("component_placement_xy",),
+            changes={
+                "placements": {
+                    refdes: {
+                        "x_mm": item.placement_x_mm,
+                        "y_mm": item.placement_y_mm,
+                        "target_refdes": item.target_refdes,
+                        "limit_mm": item.limit_mm,
+                    }
+                    for refdes, item in sorted(placements.items())
+                }
+            },
+            provenance={
+                "solver": DECOUPLING_SOLVER_NAME,
+                "script_name": "src/acd/core/decoupling_placement.py",
+                "script_sha256": _sha256(
+                    repository_root() / "src/acd/core/decoupling_placement.py"
+                ),
+                "graph_revision": graph.revision,
+                "remediation_subjects": sorted(subjects),
+                "pass_evidence": False,
+            },
+        ),
+    )
+
+
+def _remediation_dimensions(
+    remediation: Sequence[RemediationRequest],
+) -> tuple[str, ...]:
+    return tuple(
+        sorted(
+            {
+                dimension
+                for request in remediation
+                for dimension in request.change_dimensions
+            }
+            & SEARCHABLE_DIMENSIONS
+        )
+    )
+
+
+def _remediation_candidates(
+    graph_path: Path,
+    fixture_dir: Path,
+    out_dir: Path,
+    graph: DesignGraph,
+    remediation: Sequence[RemediationRequest],
+) -> tuple[ExplorationCandidate, ...]:
+    """Generate only candidates that a declared remediation dimension supports."""
+    dimensions = _remediation_dimensions(remediation)
+    candidates: list[ExplorationCandidate] = []
+    if "component_placement_xy" in dimensions:
+        candidates.extend(
+            _decoupling_placement_candidates(graph, fixture_dir, remediation)
+        )
+        candidates.extend(
+            _placement_candidates(graph_path, fixture_dir, out_dir, graph)
+        )
+    if "gpio_assignment" in dimensions:
+        candidates.extend(enumerate_gpio_assignment_candidates(graph))
+    return tuple(candidates)
+
+
 def _apply_candidate(graph: DesignGraph, candidate: ExplorationCandidate) -> DesignGraph:
-    if candidate.kind == "placement":
+    if candidate.kind == "decoupling_placement":
         updates: dict[str, dict[str, Any]] = {}
+        for node in graph.nodes:
+            if node.kind != "electrical.component":
+                continue
+            placement = candidate.changes["placements"].get(str(node.attrs.get("refdes")))
+            if placement is None:
+                continue
+            updates[node.id] = {
+                "placement_x_mm": placement["x_mm"],
+                "placement_y_mm": placement["y_mm"],
+                "placement_source": DECOUPLING_SOLVER_NAME,
+                "placement_source_ref": (
+                    f"decoupling_target={placement['target_refdes']};"
+                    f"limit_mm={placement['limit_mm']}"
+                ),
+            }
+        if not updates:
+            raise ExplorationError(
+                "decoupling candidate references unknown components (fail-closed)"
+            )
+        return _replace_node_attrs(graph, updates)
+    if candidate.kind == "placement":
+        updates = {}
         for node in graph.nodes:
             if node.kind != "electrical.component":
                 continue
@@ -558,6 +777,17 @@ def _candidate_outcome(
     )
 
 
+def _commit_candidate(
+    working_fixture: Path, source_graph: Path, source_fixture: Path
+) -> dict[str, Any]:
+    try:
+        return commit_candidate_graph(
+            _load_graph(working_fixture / "graph.json"), source_graph, source_fixture
+        )
+    except CandidateCommitError as exc:
+        raise ExplorationError(str(exc)) from exc
+
+
 def explore_board_candidates(
     graph_path: Path,
     fixture_dir: Path,
@@ -567,8 +797,16 @@ def explore_board_candidates(
     max_passes: int = DEFAULT_ROUTER_MAX_PASSES,
     dry_run: bool = False,
     pipeline_runner: PipelineRunner | None = None,
+    remediation: Sequence[RemediationRequest] | None = None,
+    lane_id: str = "board-pipeline",
+    artifact_kind: str = EXPLORATION_ARTIFACT_KIND,
 ) -> ExplorationResult:
-    """Explore bounded placement and GPIO proposals without pass authority."""
+    """Explore bounded placement and GPIO proposals without pass authority.
+
+    When ``remediation`` is given, only candidates derived from those declared
+    remediation dimensions are generated. Remediation-free rejection stops as
+    unknown without consuming candidate budget.
+    """
     if max_candidates < 1:
         raise ExplorationError("max_candidates must be positive")
     if max_passes < 1:
@@ -582,9 +820,16 @@ def explore_board_candidates(
     dimension_map = {
         item.dimension_id: item.search_enabled for item in declarations.dimensions
     }
-    placement = _placement_candidates(graph_path, fixture_dir, out_dir, graph)
-    gpio = enumerate_gpio_assignment_candidates(graph)
-    candidates = placement + gpio
+    remediation_dimensions: tuple[str, ...] = ()
+    if remediation is None:
+        placement = _placement_candidates(graph_path, fixture_dir, out_dir, graph)
+        gpio = enumerate_gpio_assignment_candidates(graph)
+        candidates = placement + gpio
+    else:
+        remediation_dimensions = _remediation_dimensions(remediation)
+        candidates = _remediation_candidates(
+            graph_path, fixture_dir, out_dir, graph, remediation
+        )
     for candidate in candidates:
         _validate_dimensions(candidate.dimensions, dimension_map)
     pending = list(candidates[:max_candidates])
@@ -597,6 +842,8 @@ def explore_board_candidates(
         pipeline_runner = default_pipeline_runner
     candidate_records: list[dict[str, Any]] = []
     winner: str | None = None
+    commit: dict[str, Any] | None = None
+    commit_error: str | None = None
     with tempfile.TemporaryDirectory(prefix="acd-exploration-") as temporary:
         working_fixture = Path(temporary) / "fixture"
         shutil.copytree(source_fixture, working_fixture)
@@ -629,9 +876,25 @@ def explore_board_candidates(
             if outcome["status"] == "stopped":
                 pending = []
             if survived:
+                if dry_run:
+                    winner = candidate.candidate_id
+                    break
+                try:
+                    commit = _commit_candidate(
+                        working_fixture, source_graph, source_fixture
+                    )
+                except ExplorationError as exc:
+                    commit_error = str(exc)
+                    candidate_records[-1]["outcome"] = {
+                        **candidate_records[-1]["outcome"],
+                        "status": "stopped",
+                        "reasons": [
+                            *candidate_records[-1]["outcome"]["reasons"],
+                            commit_error,
+                        ],
+                    }
+                    break
                 winner = candidate.candidate_id
-                if not dry_run:
-                    shutil.copyfile(working_fixture / "graph.json", source_graph)
                 break
             if dimensions:
                 pending.extend(
@@ -655,7 +918,8 @@ def explore_board_candidates(
     body = _report_with_hash(
         {
             "schema_version": "0.1",
-            "artifact_kind": EXPLORATION_ARTIFACT_KIND,
+            "artifact_kind": artifact_kind,
+            "lane_id": lane_id,
             "status": status,
             "termination_reason": {
                 "candidate_found": "candidate_survived_gates",
@@ -672,6 +936,10 @@ def explore_board_candidates(
             "evaluated_candidates": len(candidate_records),
             "winner_candidate_id": winner,
             "winner_written": winner is not None and not dry_run,
+            "winner_commit": commit,
+            "commit_error": commit_error,
+            "remediation_dimensions": list(remediation_dimensions),
+            "remediation_driven": remediation is not None,
             "candidates": candidate_records,
             "provenance": {
                 "source_graph": str(source_graph),
@@ -687,12 +955,40 @@ def explore_board_candidates(
     return ExplorationResult(report=body, report_path=report_path)
 
 
+def explore_firmware_candidates(
+    graph_path: Path,
+    fixture_dir: Path,
+    out_dir: Path,
+    max_candidates: int,
+    *,
+    dry_run: bool = False,
+    pipeline_runner: PipelineRunner,
+    remediation: Sequence[RemediationRequest],
+) -> ExplorationResult:
+    """Explore declared firmware GPIO alternatives without pass authority."""
+    return explore_board_candidates(
+        graph_path,
+        fixture_dir,
+        out_dir,
+        max_candidates,
+        dry_run=dry_run,
+        pipeline_runner=pipeline_runner,
+        remediation=remediation,
+        lane_id="firmware-pipeline",
+        artifact_kind=FIRMWARE_EXPLORATION_ARTIFACT_KIND,
+    )
+
+
 __all__ = [
     "EXPLORATION_ARTIFACT_KIND",
+    "FIRMWARE_EXPLORATION_ARTIFACT_KIND",
     "ExplorationCandidate",
     "ExplorationError",
     "ExplorationResult",
+    "RemediationRequest",
     "enumerate_gpio_assignment_candidates",
     "explore_board_candidates",
+    "explore_firmware_candidates",
+    "load_remediation_requests",
     "validate_candidate_dimensions",
 ]
