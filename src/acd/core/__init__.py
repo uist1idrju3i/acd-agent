@@ -56,10 +56,6 @@ from acd.core.mechanical_preflight import (
     RequirementFinding,
     check_mechanical_preflight,
 )
-from acd.core.manufacturing_submission import (
-    ManufacturingSubmissionError,
-    evaluate_manufacturing_submission,
-)
 from acd.core.order_execution import build_dry_run_order_payload
 from acd.core.order_submission import (
     DeclaredProviderUnavailable,
@@ -187,3 +183,17 @@ __all__ = [
     "validate_applied_feedback",
     "validate_predicate_coverage",
 ]
+
+
+def __getattr__(name: str) -> object:
+    if name in {"ManufacturingSubmissionError", "evaluate_manufacturing_submission"}:
+        from acd.core.manufacturing_submission import (
+            ManufacturingSubmissionError,
+            evaluate_manufacturing_submission,
+        )
+
+        return {
+            "ManufacturingSubmissionError": ManufacturingSubmissionError,
+            "evaluate_manufacturing_submission": evaluate_manufacturing_submission,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
