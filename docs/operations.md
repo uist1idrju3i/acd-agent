@@ -351,8 +351,8 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    L1 gateは必ず再実行し、Evidenceも新規生成する。破損またはhash不一致のentryは
    無視して再生成する。cache reportはL3観測であり、合否authorityではない。
    `container-gates` jobも、digest固定imageのDockerWorkspace内で`uv sync && uv run
-   python scripts/run_design_lanes.py`を実行し、完了後にhost側でauthoritative Evidenceを
-   検証する。CPL／BOM chainは逐次のままだが、E-4のDSN／SES stage cacheは
+   python scripts/run_design_lanes.py`と製造提出データのL1判定を実行し、Evidenceとverdictを
+   downloadした後にhost側でauthoritative Evidenceとverdictを再検査する。CPL／BOM chainは逐次のままだが、E-4のDSN／SES stage cacheは
    `--cache-dir`または`--resume`で明示的に利用できる。
    host provisionalでのlane全体の測定は、基板laneが`freerouting` executable不在で
    fail-closedとなったため完了していない。失敗までのwall clockは`--jobs 1`が
@@ -728,6 +728,9 @@ command未実行をsuccessとして記録する経路はない。command形式�
    authoritative Evidenceを必須にするCI相当の検査では
    `--require-authoritative`を追加する。判定は必須成果物、独立reload、正規化hash、
    DFM、幾何、fab profile、revision、Evidence妥当性を一括で検査する。
+   CIではこの判定をcontainer内で実行して`out/manufacturing-submission.json`だけをdownloadし、
+   hostで`--verdict`とgraphを用いてcontent hash、status、graph identity、authoritative条件を
+   決定論的に再検査する。hostで判定を再実行してfab成果物を再取得することはしない。
    `order-readiness.json`の`ready`／`not_order_ready`は観測された状態として記録するだけで、
    quote集計・発注実行は判定へ影響しない。発注を行わない場合も、提出品質の要件は下がらない。
 
@@ -866,11 +869,13 @@ hostの参考実行を明示する場合だけ、SDK公開入口の`LocalWorkspa
 
 CIでは`container-gates` jobがlock済みserver imageをpullし、SDKの
 `DockerWorkspace`を経由する`scripts/run_in_workspace.py`でresolver、基板pipeline、
-筐体pipelineを実行する。agent-serverの`/workspace`を占有させるため、host repositoryは
-`/acd-src:ro`へmountし、container内の`/workspace/acd`へ複製する。container内で生成された
-`out/gd1/evidence-electrical.json`と`out/gd1-enclosure/evidence-mechanical.json`は、
-SDKの`RemoteWorkspace.file_download()`でhostへ取り出してから
-`verify_authoritative_evidence.py`へ渡す。revision不一致、host実行、digest不在、
+筐体pipeline、製造提出データのL1判定を実行する。agent-serverの`/workspace`を占有させるため、
+host repositoryは`/acd-src:ro`へmountし、container内の`/workspace/acd`へ複製する。container内で
+生成された`out/gd1/evidence-electrical.json`、`out/gd1-enclosure/evidence-mechanical.json`、
+`out/manufacturing-submission.json`は、SDKの`RemoteWorkspace.file_download()`でhostへ取り出して
+から、Evidenceを`verify_authoritative_evidence.py`で、verdictを
+`verify_manufacturing_submission.py --verdict`で再検査する。製造提出データの判定自体はcontainer内で
+完了させ、hostへfab成果物一式を再ダウンロードしない。revision不一致、host実行、digest不在、
 unknown、parse失敗、file不在はすべて非ゼロ終了となる。
 
 runnerは実行対象であるderived server imageのcontent addressを
@@ -1855,11 +1860,12 @@ workspace実行wrapperであり、既定コマンドとEvidenceパスの導出�
 
 ## out-rootのhost／container分離
 
-container実行のEvidenceは`out/container/`配下へdownloadし、host実行の`out/`と共有しない。
+container実行のEvidenceとverdictは`out/container/`配下へdownloadし、host実行の`out/`と共有しない。
 root実行containerとhost実行が同一out-rootを共用すると`Permission denied`が発生し、
 設計起因のfail-closedと区別できなくなるためである。CIの`container-gates`は
-`out/container/gd1/evidence-electrical.json`と
-`out/container/gd1-enclosure/evidence-mechanical.json`を検証する。
+`out/container/gd1/evidence-electrical.json`、
+`out/container/gd1-enclosure/evidence-mechanical.json`、および
+`out/container/manufacturing-submission.json`を検証する。
 
 `scripts/run_in_workspace.py`は失敗時に`failure classification`を出力する。`permission`と
 `environment`は環境起因であり、ゲート判定が得られていない状態としてfail-closedに留まる。

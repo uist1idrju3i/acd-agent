@@ -7,7 +7,7 @@ import hashlib
 import json
 import math
 import zipfile
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
@@ -41,6 +41,15 @@ from acd.schema.manufacturing_submission import (
 
 class ManufacturingSubmissionError(ValueError):
     """Raised when the submission evaluator cannot construct a fail-closed verdict."""
+
+
+def manufacturing_submission_content_hash_payload(
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Return the verdict payload covered by content_sha256."""
+    unhashed = dict(payload)
+    unhashed.pop("content_sha256", None)
+    return unhashed
 
 
 _CHECK_IDS = (
@@ -615,5 +624,7 @@ def evaluate_manufacturing_submission(
         "order_readiness_status": readiness_status,
         "excluded_scope": ["quote_aggregation", "order_execution"],
     }
-    payload["content_sha256"] = canonical_json_sha256(payload)
+    payload["content_sha256"] = canonical_json_sha256(
+        manufacturing_submission_content_hash_payload(payload)
+    )
     return ManufacturingSubmissionVerdict.model_validate(payload)

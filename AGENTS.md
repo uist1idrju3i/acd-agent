@@ -168,6 +168,7 @@ resolverと基板pipelineを実行して確認する。
 CIの`container-gates` jobはlock済みserver imageをpullし、
 `scripts/run_in_workspace.py`（SDKの`DockerWorkspace`）経由でsilkscreen resolver、
 GD1基板pipeline、GD1筐体pipelineをcontainer内で実行する。その後、
+container内で製造提出verdictも生成してdownloadし、hostの`--verdict`再検査と
 `scripts/verify_authoritative_evidence.py`で両laneのEvidenceがrevision一致、
 `status="valid"`、既知のcontainer provenance、digestを持つことを決定論的に検査する。
 host実行のEvidenceはprovisionalであり、合格側へ昇格しない。image publishは
