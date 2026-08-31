@@ -101,7 +101,11 @@ def render(events_dir: Path, out_path: Path, title: str, conversation_id: str) -
             if summary:
                 lines.append(f"*{redact(summary)}*\n")
             if reasoning:
-                lines.append("<details><summary>推論</summary>\n\n" + clip(reasoning) + "\n\n</details>\n")
+                lines.append(
+                    "<details><summary>推論</summary>\n\n"
+                    + clip(reasoning)
+                    + "\n\n</details>\n"
+                )
             if thought:
                 lines.append(clip(thought) + "\n")
             arguments = (event.get("tool_call") or {}).get("arguments")
@@ -112,14 +116,19 @@ def render(events_dir: Path, out_path: Path, title: str, conversation_id: str) -
         if kind == "ObservationEvent":
             observation = event.get("observation", {}) or {}
             content = join_content(observation.get("content"))
-            lines.append(f"<details><summary>結果: <code>{event.get('tool_name')}</code></summary>\n")
+            lines.append(
+                f"<details><summary>結果: <code>{event.get('tool_name')}</code></summary>\n"
+            )
             lines.append(f"<sub>{stamp}</sub>\n")
             lines.append(fence(clip(content)) + "\n")
             lines.append("</details>\n")
             continue
 
         if kind == "UserRejectObservation":
-            lines.append(f"> **拒否 ({event.get('rejection_source')})**: {redact(event.get('rejection_reason', ''))}\n")
+            lines.append(
+                f"> **拒否 ({event.get('rejection_source')})**: "
+                f"{redact(event.get('rejection_reason', ''))}\n"
+            )
             lines.append(f"<sub>{stamp} / tool: {event.get('tool_name')}</sub>\n")
             continue
 

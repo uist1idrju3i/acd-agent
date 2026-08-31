@@ -995,3 +995,16 @@ GUI会話（会話ID `469844e5-415a-44d2-ae0f-7b4ce47a7594`、331 event）はMar
 Run Oは13.5（V-5）のとおりfail-closed時にdownloadが行われないため、container側commandの末尾で
 tarを作って`exit 0`させ、loop本体のexit codeをstdoutへ残す回避策で成果物を回収した。
 この回避策は失敗を成功として読ませうるため、`run_in_workspace.py`側の対応（V-5）が必要である。
+
+### 13.11 ロードマップへの反映
+
+13.9のV-1〜V-6と、成果物回収で判明したV-7〜V-10（
+[`improvement-notes.md`](../examples/golden-design-1-vps-20260901/report/improvement-notes.md)の
+D-1〜D-4に対応）は、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節へ不足として記録し、
+[`roadmap.md`](roadmap.md)の14.20（V-1、V-3、V-5〜V-7、V-9）と15.17〜15.19（V-4、V-8、V-10）へ
+割り当てた。V-2はOpenHands GUI側の課題として記録だけを残す。
+
+GD1固定の解消については、GD1をregressionのpositive controlとして維持したまま、
+GD1以外の設計だけでVibeBBが1周する状態の達成条件をW-1〜W-4として
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のW節と[`roadmap.md`](roadmap.md) 14.21へ
+定義した。本回の実測時点で全laneを通過した設計はGD1だけであり、W-1の前提はV-6の解消である。

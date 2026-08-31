@@ -59,6 +59,14 @@ agent-server package、REST/WebSocket API、server側のresume/forkは
 採用する場合は認証・権限・Evidence境界の受入条件を定義した新規ADRを起票する。
 Conversationは現行の`DockerWorkspace`経路で検証し、決定論的gateの代替にはしない。
 
+第6回実機実測（2026-08-31、新規VPS・新規OpenHands workspace、
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 13節、
+[`examples/golden-design-1-vps-20260901/`](../examples/golden-design-1-vps-20260901/)）では、
+GD1に限れば要件検証から製造提出判定・authoritative Evidence検証まで決定論的経路が
+端から端まで通過した。一方、新規specは`silkscreen`宣言の不足でfail-closedし、GUI会話は
+`acd_*` tool未登録のまま決定論的CLIへ倒れ、会話の最終報告がL3記録だけで合格を述べた。
+これらはV-1〜V-10として14.20・14.21・15.17〜15.19で扱う。
+
 設計述語の契約が特定のnet名・refdesを前提としているため、GD1以外のトポロジは現状の
 ゲートに到達できない（14.2）。また、Skill scriptのpinned refが実装より古く、
 FW laneはGD1 fixtureでも停止する（14.1）。筐体pipelineは`mechanical.board_edge_overhang`
@@ -92,7 +100,7 @@ ACD側から明示timeoutとmemory上限を与える。
 | 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 計画 |
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 12.1〜12.5達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
-| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 計画 |
+| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.19の個別実装は達成だが、GD1以外の設計によるend-to-endの成立は未実証。残関門は14.20・14.21） |
 | 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.6〜15.9達成（15.1〜15.5は計画） |
 | 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 計画 |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
@@ -724,6 +732,12 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.13 | 実機実測で残った新規設計の不足（N-1〜N-7、N-11） | 実機OpenHands環境でGD1以外の新規設計を投入した実測で残った不足を扱う。`DesignFixtureSpec`へmechanical・silkscreen・firmware moduleの宣言を追加（N-1）、必須宣言のpreflight（N-3）、parts catalog由来のpin function展開（N-5）、Stop hookのfail-closed停止経路（N-2）、rationale coverageの生成主体検査（N-4）、要件↔topology述語（N-6）、設計反復のみのmode（N-7）、生成器による手編集上書きの防止（N-11）。判定と閾値は緩めず、未宣言・unknownを合格へ倒さない |
 | 14.14 | 宣言経路解消後の実機実測で残った不足（O-1、O-2、O-4、O-5、O-9〜O-13） | O-1、O-2、O-4、O-5、O-9、O-10、O-11、O-12、O-13を達成。FWはcapability／device registryとgraph sequenceからpinとcodeを導出し、未宣言peripheralを生成しない。筐体laneは設計非依存entrypointと機械preflightを備え、機械ノード・属性・参照・rationale coverageを一括診断する。lane preflightは`declarations_complete`／`declarations_incomplete`とL3診断契約、checked／unchecked predicate集合を記録し、rationale stop hookは対象設計を決定論的に解決する。container起動前は物理メモリ（swapを加算しない）、MemAvailable、CPU、disk、JVM heapをfail-closedで検査し、FreeRoutingの最大heapをhost／container両経路で明示する。残るのはO-12の`QuoteRecord`／`OrderScope`導出、およびO-3、O-6〜O-8の運用整備。判定と閾値は緩めず、timeout・unknown・未宣言を合格へ倒さない |
 | 14.15 | Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10） | 多コアVPS実測（2026-08-30）とその後の復帰経路のコード監査で残った不足を扱う。却下後に設計入力を決定論的に修正して反復する経路をend-to-endで閉じることが本フェーズの目的であり、Q-4（探索後のrationale更新）とQ-5（宣言された上書きによるfixture再生成）を前提として、Q-2・Q-3（会話経路からの起動とremediation由来の候補生成）、Q-1・Q-8（laneごとの復帰次元の宣言）、Q-6・Q-7・Q-9・Q-10（要件差分の拡張、bounded反復harnessの接続、診断入力の拡張、firmware capability registryへの宣言追加経路）へ広げる。設計側の不足としてP-2（初期配置のdecoupling制約）、観測側としてP-3（QEMU打ち切り表示）とP-4（FW laneのauthoritative Evidence）を含む。L1権限、閾値、fail-closed境界は変更しない |
+| 14.16 | FW lane専用の候補生成と配置テストの環境依存解消（R-1〜R-3） | FW固有remediationだけを入力とする候補生成器、footprint library非依存の配置回帰、FW復帰の実測記録を扱う |
+| 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、宣言toolの不在検出、library資材宣言の統一、進行表示を扱う。S-3の配布形態と復帰成立実行の実測は未了 |
+| 14.18 | 復帰候補評価からL3観測の混入を除く（T-1〜T-5） | 候補評価の独立timing記録、複数候補の列挙、宣言tool不在のdrift guard、L3 digestの統合、transport失敗時の出力保持を扱う。T-1〜T-5は実装済みで、復帰成立runの実測記録は未取得 |
+| 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
+| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | 第6回実機実測で残った不足を扱う。新規specの宣言不足をfixture生成段で列挙して具体名で返す（V-6）、container由来資材のhost混入検出（V-1）、L3記録だけで合格を述べさせない報告契約（V-3）、失敗時も判定を変えずに成果物を回収できるdownload経路（V-5）、timing recordへのwall-clock明示（V-7）、宣言tool不在の機械可読記録（V-9） |
+| 14.21 | GD1非依存の達成判定（W-1〜W-4） | GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
 
 C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
@@ -743,6 +757,10 @@ N-1・N-5の解消後の実機実測（[`examples/pulse-check-tag-20260825/`](..
 P-1（install doctorのESP-IDF判定）は解消済みで、実機VPSのGUIから`/acd:init`がdoctorを
 通過し`bootstrap-record.json`が生成されることを確認した。資源要件の実測値と最低・推奨
 スペックは[`operations.md`](operations.md)を正とする。
+第6回実機実測（2026-08-31、新規VPS・新規workspace）で残ったV-1〜V-10のうち、
+acd-agent内で閉じるV-1、V-3、V-5〜V-7、V-9は14.20で扱い、運用・手順側のV-4、V-8、V-10は
+マイルストーン15.17〜15.19へ割り当てる。V-2はOpenHands GUIのplugin picker側の課題であり、
+本リポジトリの実装対象外として記録だけを残す。GD1非依存の達成条件はW-1〜W-4として14.21で扱う。
 第5回実機実測（2026-08-31）で残ったU-1〜U-5は14.19で扱う。自動発注と実機測定は
 将来機能・非対象として必須段から外すが、製造提出データの生成・独立検査・品質判定は
 現行必須scopeとして維持する。
@@ -979,6 +997,51 @@ U-1〜U-5の残作業は解消済みである。U-4は、既存のorigin探索�
 不足量と変更可能次元をL3 reportへ記録したことで解消済みである。面配置（side）は電気laneの宣言に
 存在しないため実装せず、利用不可の次元として記録する。
 
+### 14.20 Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9）
+
+第6回実機実測（2026-08-31、新規VPS・新規workspace、
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 13節）で、GD1は
+決定論的経路で端から端まで通過した。残る停止点は新規設計側にある。新規specからのfixture生成は
+成功するが、`silkscreen-resolve`が`GraphExtractionError: silkscreen declarations are missing`で
+fail-closedし、返る`next_step_action`は「graphを調整して再実行せよ」であって、
+specへ何を追記すればよいかを示さない。宣言の受け口自体は
+`DesignFixtureSpec.silk_texts`／`silk_graphics`として存在し、必要属性も
+`lane_preflight`の`LANE_REQUIREMENTS["silkscreen-resolve"]`に宣言済みだが、loopはこの
+preflightを実行しないため、不足は実行の途中でしか判明しない。ゲートは正しく閉じており、
+緩和ではなく不足宣言の提示で解くフェーズである。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `src/acd/core/silkscreen.py`の`GraphExtractionError`、`src/acd/core/lane_preflight.py`の`LANE_REQUIREMENTS`と`run_lane_preflight`、`src/acd/pipeline/fixture_builder.py`の`silk_texts`／`silk_graphics`投影、`scripts/run_design_loop.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、`src/acd/core/runtime_records.py`の`TimingRecorder`、`scripts/verify_acd_tool_registration.py`、`plugins/acd/commands/vibebb-loop.md`、`plugins/acd/hooks`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節、[`examples/golden-design-1-vps-20260901/report/improvement-notes.md`](../examples/golden-design-1-vps-20260901/report/improvement-notes.md)（同メモのD-1〜D-4はV-7〜V-10と読み替える） |
+| 実装 | fixture生成とloop入口で実行予定laneの`run_lane_preflight`を評価し、不足するnode kind・node数・属性名を列挙して`next_step_action`へ「specへ追加すべき宣言」を具体名で返す（V-6）。silkscreen laneでは`mechanical.silk_text`の`layer`／`role`／`text`／`stroke_width_mm`／`height_mm`／`placement_basis`／`placement_search_order`／`placement_reference`を名指しする。宣言の自動補完は行わない。containerからhostへEDA資材を取り出す操作をhookで拒否するか、host実行時にcontainer由来資材の混在を検出してprovisional扱いを記録する（V-1）。commandの報告契約へauthoritative Evidence検証の実行と結果提示を必須項目として書き、`report_progress.py`のdigestへEvidence未検証を明示する行を持たせる（V-3）。`_execute_and_download()`が非ゼロ終了時も宣言済みdownloadを試み、判定はcontainerのexit codeで維持する（V-5）。timing recordへstage duration合計と区別できる`wall_clock_seconds`を持たせる（V-7）。`verify_acd_tool_registration.py --command`の結果を機械可読JSONとしてworkspaceへ保存する（V-9） |
+| 正常系 | silkscreen宣言を備えた新規specが、fixture生成からsilkscreen barrierを越えて基板laneへ到達する。宣言が欠けたspecは実行前に`declarations_incomplete`で停止し、不足宣言名と追記先を返す。fail-closedで終わったcontainer実行からも成果物を回収でき、runnerのexit codeは非ゼロのままである。GD1の判定、Evidence、正規化hashは変化しない |
+| negative・fail-closed | 不足宣言の列挙、進行表示、tool登録記録はいずれもL3観測であり合格側権限を持たない。preflightの`declarations_complete`はlane通過を意味しない。downloadの成功をcommand成功として扱わず、部分downloadを合格へ倒さない。container由来資材が混在したhost実行のEvidenceをauthoritativeへ昇格しない。宣言の自動補完、既定値の暗黙適用、閾値・ゲート条件の緩和は行わない |
+| 再現性 | preflight結果、不足宣言名、download結果、wall-clockとstage duration合計、tool登録差分をL3記録として保存し、同一入力での再実行で一致することを回帰テストで固定する。fail-closed runからの成果物回収を、tarとexit 0による回避策なしで再現する |
+
+V-6は新規設計入口の唯一の停止点であり最優先で扱う。V-3とV-9は、会話経路がL3記録だけで
+合格を述べないための報告契約と一次資料であり同順で扱う。V-5とV-7は検証可能性、
+V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の課題であり、本リポジトリの
+実装対象外として記録だけを残す。V-4、V-8、V-10は運用・手順の整備として15.17〜15.19で扱う。
+
+### 14.21 GD1非依存の達成判定（W-1〜W-4）
+
+GD1は回帰のpositive controlとして今後も維持する。本フェーズの目的はGD1の削除ではなく、
+「GD1だけが全ゲートを通る設計である」状態の解消を判定可能にすることである。14.6でGD1固定の
+命名・FW設定・policy参照は宣言由来へ一般化し、14.2で述語の適用条件を機能ブロック宣言へ
+移したが、実測で全laneを通過した設計は依然GD1だけである。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `fixtures/golden-design-1/`、`src/acd/pipeline/gd1_fixture/`、`scripts/build_gd1_fixture.py`、`scripts/run_gd1_pipeline.py`、`src/acd/core/naming.py`、`src/acd/core/design_predicates.py`の`PREDICATE_CATALOG`と適用条件宣言、`plugins/acd/hooks/order-policy.json`、`.github/workflows`の`container-gates`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のW節 |
+| 実装 | GD1以外の設計を1件、宣言完備のfixtureとして追加し、要件検証からsilkscreen、基板、筐体、FW、製造提出判定までをdigest固定containerで通す（W-1）。既定fixture・既定出力名・既定policyがGD1へ解決される経路を洗い出し、graph_idと宣言由来へ置換する。positive control用途で残す参照は用途を明示宣言する（W-2）。設計述語の適用条件が機能ブロック宣言だけで決まり、GD1固有のnet名・refdesを前提とする分岐が残っていないことを検査する（W-3）。CIの`container-gates`へ非GD1設計のlaneを追加し、GD1と同じ判定基準でauthoritative Evidenceを検証する（W-4） |
+| 正常系 | 非GD1設計だけでVibeBBの1周（要件→設計→ゲート→製造提出判定→authoritative Evidence）が成立し、GD1固有の既定値へfallbackせずに完了する。GD1のlaneも従来どおり通過し、判定・Evidence・正規化hashは変化しない |
+| negative・fail-closed | 非GD1設計の宣言不足はfail-closedで停止し、GD1の既定値・既定fixture・既定命名へ暗黙にfallbackしない。GD1固有の前提を残す述語分岐、用途宣言のないGD1参照、非GD1 laneを持たないCI構成はいずれも未達として扱う。positive controlの通過をもって非GD1設計の合格としない |
+| 再現性 | 非GD1設計のwall-clockと資源使用を[`operations.md`](operations.md)へ記録し、CIで両設計の判定と正規化hashを固定する。GD1参照の棚卸し結果を機械可読な一覧として保存し、追加参照をdriftとして検出する |
+
+W-1は14.20のV-6解消を前提とし、W-3は14.2、W-4は6.4のCI移行を前提とする。W-1〜W-4を
+満たした時点で「GD1が無くても新規設計をVibeBBできる」状態に到達したと判定する。GD1 fixtureは
+その後もregression用のpositive controlとして維持し、削除は行わない。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、
@@ -1002,8 +1065,11 @@ U-1〜U-5の残作業は解消済みである。U-4は、既存のorigin探索�
 | 15.14 | 長時間laneのbackground実行手順とlog契約（O-3） | 長時間laneをbackground＋logで実行し、同時に1本だけ起動してtail／grepで確認する手順を`docs/operations.md`へ明記する。log先頭へimage digest・revision・コマンド行を必ず記録する |
 | 15.15 | doctor出力のauthoritative／provisional分離と次手順提示（O-6・O-7） | doctor出力をauthoritative経路（image digest一致、docker実行可否、ホスト資源）とprovisional経路（host toolchain）へ分離し、lock済みimage未取得時にdigest固定のpullコマンド行を提示する（実行はしない）。分離は表示の分類に留め、fail-closedの範囲を変えない |
 | 15.16 | 収集入口へのlane log取り込み（O-8） | `scripts/export_execution_records.py`の入力へlane logを加え、log先頭のimage digest・revision・コマンド行とexit codeを構造化して取り込む。既存の秘匿化と漏洩検出をそのまま適用し、リモートworkspaceからの取得手順を`docs/operations.md`へ明記する |
+| 15.17 | 例示commandとfixture有効期間の整合検査（V-4） | `docs/operations.md`のGD1発注集計例の`--evaluated-at`を対象quoteの有効期間内へ揃え、例示とfixtureの期限整合をdocs検証で機械的に固定する。quoteの有効期限や期限検査の閾値は緩めない |
+| 15.18 | 資源計測ラッパのscript化（V-8） | 検証のたびに使い捨てのshell scriptを書く状態を解消し、checkout path、image digest、download対象、計測間隔を引数で受ける計測wrapperをrepository内へ置く。計測結果はL3観測であり合否権限を持たない |
+| 15.19 | 成果物の最小収録集合の宣言（V-10） | FW laneのESP-IDF buildツリーのように再生成可能で大きい出力を区別し、lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言する。成果物の必須性判定（U-5）は変更しない |
 
-15.1〜15.13は達成済みであり、15.14〜15.16は未着手である。15.1〜15.4と15.12は運用手順・設計文書側の明記で完了し、
+15.1〜15.13は達成済みであり、15.14〜15.19は未着手である。15.1〜15.4と15.12は運用手順・設計文書側の明記で完了し、
 15.5はlane runnerのログ要約（既定tailと完全ログの別途保存）、15.10は
 container出力の`out/container/`分離と権限・環境起因失敗の分類、15.11は`--fixture`＋
 `--out`へ統一したlane CLI（旧引数は明示エラー）、15.13は
@@ -1012,7 +1078,9 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 実機OpenHands環境での新規設計実測（N-8〜N-10、N-12）を出所とする。15.6〜15.9は
 [`improvement-notes.md`](../examples/sensor-node-20260820/report/improvement-notes.md)と
 [`review-notes.md`](../examples/sensor-node-20260820/report/review-notes.md)の運用改善項目を
-出所とし、いずれも既存の閾値、ゲート挙動、fail-closed境界を変更していない。
+出所とし、いずれも既存の閾値、ゲート挙動、fail-closed境界を変更していない。15.17〜15.19は
+第6回実機実測と成果物回収（V-4、V-8、V-10）を出所とし、例示・計測・収録の手順側だけを
+整備する項目であり、判定と閾値には触れない。
 
 ## マイルストーン16: 設計能力の拡張
 
