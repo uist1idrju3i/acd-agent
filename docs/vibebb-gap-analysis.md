@@ -492,6 +492,23 @@ S-3はGUI配布形態そのものの不足であり、実装ではなく配布�
 
 いずれの表示・診断もL3観測であり、`pass_evidence`と合否権限を持たない。
 
+## T. 14.17実装後の実機実測（2026-08-31）で残った不足
+
+14.17の是正後、同じ8コアVPSでplugin更新（`fb286380…`）・新規workspace作成・digest固定
+container実行を行った実測（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 11節）で
+判明した不足である。ロードマップ上は[`roadmap.md`](roadmap.md)の14.18に位置付ける。
+S-1（候補評価前のrationale更新）は解消を確認できた一方、復帰は別の理由で成立していない。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| T-1 | 候補評価が親laneと同一の`TimingRecorder`を共有し、L3観測の衝突で候補が却下される | 候補`placement-0001`が`deterministic pipeline rejected candidate: timing stage already started: board[1/12]`で`gate_rejected`。親の基板pipelineはpre-router却下で`board[1/12]`を`finish`せず中断するため、`design_loop`の`pipeline_runner`が`timing_recorder=config.timing_recorder`を渡す候補側で必ず同名stageの再開始になる。復帰は基板却下後にしか起動しないので衝突は常に起きる | 高 | S-1、Q-3 | 候補評価では親と独立した`TimingRecorder`を用いる（または候補IDでstage名をnamespaceする）。観測起因の例外は`gate_rejected`ではなく`stopped`として区別し、L3の失敗をL1判定へ持ち込まない。閾値とゲート条件は変更しない |
+| T-2 | 候補生成が次元あたり1件しか返さず、候補予算とround上限が実行として行使されない | `--max-exploration-candidates 3 --max-exploration-rounds 2`に対し`generated_candidates=1`、`consumed_budget=1`、`remaining_budget=2`、`termination_reason=candidate_pool_exhausted`。記録面のS-2は解消しているが、母集団が1件のため予算に意味がない | 中 | S-2、Q-3 | remediation次元ごとに複数候補（距離目標を段階的に変えた配置など）を宣言順で列挙し、`generated_candidates`が上限へ届く生成側を用意する。候補の由来（Skill名・script sha256・proposal hash）の記録は現状を維持する |
+| T-3 | ambient install経路の会話へACD toolが登録されない状態が継続している | 新規workspaceの会話が露出するtoolは`terminal`／`file_editor`／`task_tracker`／`finish`／`think`／`switch_llm_profile`／`invoke_skill`の7つで、`acd_*`は存在しない。`/acd:init`はSkillが決定論的CLIをterminalから実行する手順を持つため成立する | 高 | S-3、ADR-0036 | S-3の未了部分と同一。ambient install経路の会話へACD ToolDefinitionを登録する配布形態を定義し、登録できない形態ではcommandが宣言toolの不在をfail-closedに検出して代替CLI手順を返す |
+| T-4 | 失敗理由と進行の表示は改善したが、1画面で読める形になっていない | loop summaryへ`failure_reason`と`next_step_action`が入り、`report_progress.py`は`status: "pass"`でtiming recordと探索reportを返す。一方で両者は別出力であり、GUIから「どのlaneが、なぜ止まり、次に何をするか」を一度に読めない | 低 | S-5 | `report_progress.py`のdigestへ`failure_reason`と`next_step_action`を取り込み、lane・経過・試行・残予算・次手順を単一のL3出力にまとめる。表示はL3観測であり合否権限を持たない |
+
+T-1は復帰経路の唯一の停止点であり、L1の判定内容ではなくL3観測の混入である。
+T-2はT-1の解消後に予算を意味あるものにするための前提である。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -526,3 +543,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 15. Q-1〜Q-10（却下からの復帰・反復経路）。Q-4（探索後のrationale更新）とQ-5（spec駆動の作り直し）は、復帰経路をend-to-endで閉じるための前提であり最優先。次にQ-3（remediation由来の候補生成）とQ-2（会話経路からの起動）を扱う。実測では探索段を起動しても候補が書き込みに至らないため、起動の既定化より候補生成の是正が先である。Q-1（laneへの連結）はM-1の後続として広げ、Q-10（capability registryの宣言追加）はO-10の後続として扱う。Q-6・Q-7・Q-8は反復入口の整備、Q-9は診断の拡張である。
 16. R-1〜R-3（14.15実装後に残るFW lane候補生成と配置テスト）。R-1（FW専用の候補生成器）はFW laneの復帰を宣言された次元だけで閉じるために先に扱う。R-2（配置テストの環境非依存化）はP-2の回帰検出を開発ホストへ戻す。R-3はFW復帰の実測記録である。
 17. S-1〜S-5（14.15実装後の実機実測）。S-1（候補評価前のrationale更新）は復帰経路が候補を1件も確定できない直接原因であり最優先。次にS-4（catalogのlibrary資材宣言）で新規設計の入口を通し、S-3（GUI配布形態へのtool登録）で会話経路を宣言どおりにする。S-2は予算の実効化、S-5は進行表示である。
+18. T-1〜T-4（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3の未了部分と同一の配布形態の論点、T-4は表示の統合である。

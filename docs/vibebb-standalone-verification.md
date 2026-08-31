@@ -481,3 +481,151 @@ provisionalであり合格側Evidenceにならない。会話経路で「acd-age
 5. 長時間stageの進行が見えない。基板laneは147秒中の大半を占めるが、GUI側には残り時間・
    試行回数・現在のlaneが出ない。L3 timing recordは生成されているので、これを会話へ
    返す表示があると待ちの体験が大きく変わる。
+
+## 11. 第4回検証（2026-08-31, 14.17実装後の復帰経路）
+
+14.17（S-1〜S-5）の実装後、同じ8コア／16 GiB VPSで再実測した。pluginは正規のinstall API
+（`force=true`）で`dca3890…`から`fb286380e1912033198a9430cc4c273b3c7c99e7`へ更新し、
+`git ls-remote origin refs/heads/main`と40桁一致を確認した。server imageはlock済みの
+`ghcr.io/uist1idrju3i/acd-server@sha256:d683f14b906ae8304c4484b8702145711ce20b63abbf2c9656c381af5b2368ec`
+である。OpenHandsのworkspaceは新規に`test260901/acd-ws-260901`を作成した。
+
+### 11.1 新規workspaceと`/acd:init`
+
+`/acd:init --repo-url … --revision main --workspace acd-ws-260901`はdoctorを通過し、
+`bootstrap-record.json`を生成した。
+
+| 項目 | 値 |
+|---|---|
+| `requested_revision` / `resolved_revision` | `main` / `fb286380…` |
+| `server_image_digest` | `sha256:d683f14b…` |
+| `source` | `mounted` |
+| `workspace_path` | `/home/openhands/repos/test260901/acd-ws-260901` |
+| `record_class` / `pass_evidence` | `L3` / false |
+
+会話へ登録されたtoolは次の7つで、`acd_*`のToolDefinitionは依然として存在しない
+（`SystemPromptEvent`のtool定義を直読）。
+
+```text
+terminal, file_editor, task_tracker, finish, think, switch_llm_profile, invoke_skill
+```
+
+`/acd:init`が成立したのは、Skillが決定論的CLIをterminalから実行する手順を持つためである。
+ambient install経路（ADR-0036）でACD tool入口が登録されない状態は14.17でも未了であり、
+command宣言の`allowed-tools`はこの配布形態で満たされない（S-3、T-3）。
+
+### 11.2 復帰経路の実測（Run E）
+
+Run Bと同じ摂動fixture（GD1のC4とC2の配置交換、内部整合を保ち`power_decoupling`のみ違反）を
+`fixtures/verify-rune`として生成し、同じdigest固定container内で実行した。
+
+```text
+uv run python scripts/run_design_loop.py --fixture fixtures/verify-rune \
+  --out-root out/runE --design-only --jobs 4 --recover-lanes \
+  --max-exploration-candidates 3 --max-exploration-rounds 2
+```
+
+| stage | `ok` |
+|---|---|
+| `requirement-entry-validation` | true |
+| `silkscreen-resolve` | true |
+| `board-pipeline` | false（`power_decoupling`: C4距離19.224 mm > 3.0 mm） |
+| `enclosure-pipeline` | true |
+| `firmware-pipeline` | true（`measurement_class: virtual`、QEMU 9.2.2、15秒上限による正常打ち切り） |
+| `board-exploration` | false（`exploration did not produce a writable candidate: status='exhausted'`） |
+
+S-1（候補評価前のrationale更新）は解消を確認できた。候補はrationale coverageで却下されず、
+決定論的pipelineの実行まで到達している。しかしその実行が別の理由で失敗する。
+
+| 項目 | 値 |
+|---|---|
+| `remediation_driven` / `remediation_dimensions` | true / `["component_placement_xy"]` |
+| `recovery_explorer` / `lane_id` | `board` / `board-pipeline` |
+| `declaration_hash` | `sha256:9705d366…` |
+| `generated_candidates` / `evaluated_candidates` / `max_candidates` | 1 / 1 / 3 |
+| `consumed_budget` / `remaining_budget` | 1 / 2 |
+| `report_status` / `termination_reason` | `exhausted` / `candidate_pool_exhausted` |
+| `winner_candidate_id` / `winner_written` | null / false |
+| 候補`placement-0001`の`outcome.status` | `gate_rejected` |
+
+却下理由は設計上の判定ではない。
+
+```text
+deterministic pipeline rejected candidate: timing stage already started: board[1/12]
+```
+
+`TimingRecorder.start()`は同名stageの二重開始をValueErrorにする（`src/acd/core/runtime_records.py`）。
+親の基板pipelineはpre-routerで却下されるため`board[1/12]`を`finish`せずに中断し、stage名が
+`_started`へ残る。復帰の候補評価は`src/acd/pipeline/design_loop.py`の`pipeline_runner`が
+`timing_recorder=config.timing_recorder`として親と同一のrecorderを渡すため、候補側の
+`mark_stage(1)`が同じstage名を再開始してValueErrorになる。復帰は基板laneの却下後にしか
+起動しないので、この衝突は条件付きではなく常に起きる。したがってplacement次元の復帰は
+14.17後も構造的に成立しない（T-1）。候補側のstage記録が親のL3 timing recordへ混入する点、
+候補を並列評価した場合も同名衝突が起きる点も同じ原因である。
+
+S-2（予算の実効化）は記録面では解消しており、`max_candidates`・`consumed_budget`・
+`remaining_budget`・`termination_reason`がreportへ出る。ただし候補生成が1件しか返さないため
+（`generated_candidates=1`）、上限3・round上限2は実行として行使されず、`remaining_budget=2`を
+残して`candidate_pool_exhausted`で終わる。予算を実効化するには、remediation次元ごとに
+複数候補を列挙する生成側の是正が必要である（T-2）。
+
+`winner_written=false`のためRun E後のgraphは入力と同一であり、L1判定とEvidenceは変化していない。
+摂動scriptと生成fixtureは検証専用でrepositoryへcommitしていない。
+
+### 11.3 会話へ返る失敗理由と進行（S-5の効果）
+
+loop summaryのlane結果に`failure_reason`と`next_step_action`が入るようになった。
+
+```text
+failure_reason: exploration did not produce a writable candidate: status='exhausted'
+next_step_action: Explore declared placement and GPIO candidates from the rejected
+  predicate remediation, then rerun every deterministic stage.
+```
+
+`scripts/report_progress.py --out out/runE --json`は`status: "pass"`でtiming recordと
+探索reportをL3 digestとして返し、laneごとの経過と試行が読める。これは待ちの体験に対する
+実質的な改善である。いずれもL3観測であり合否権限を持たない（T-4）。
+
+### 11.4 資源実測
+
+| 項目 | Run E（`--recover-lanes`、`--jobs 4`、container上限8 GiB） |
+|---|---|
+| wall-clock | 125秒 |
+| host CPU peak / mean | 7.98 / 2.60 cores |
+| host RAM peak | 4.13 GiB（利用可能最小 10.98 GiB） |
+| container cgroup peak | 4.23 GiB（現在値ピーク4.01 GiB） |
+| swap peak | 0 GiB |
+| tool別peak RSS | python 2.92 GiB、cc1 0.76 GiB、uv 0.27 GiB、kicad 0.17 GiB |
+
+9.2で定めた最低・推奨スペック（最低2コア・container 4 GiB、推奨4コア以上・物理RAM
+12 GiB以上／OpenHands同居16 GiB・container上限8 GiB・`--jobs 4`）はそのまま成立する。
+Run Bの5.05 GiBに対しRun Eは4.23 GiBで、探索段を含めても上限8 GiBに収まりswapは発生しない。
+CPUはピーク7.98 coresで、4コア機ではwall-clockが伸びる点も変わらない。
+
+### 11.5 結論（第4回）
+
+acd-agent単体でのVibeBBは未達である。決定論的lane（silkscreen・筐体・FW仮想）は通過し、
+基板laneの却下も正しくfail-closedしているが、却下からの復帰は候補評価のtiming stage衝突
+（T-1）で必ず失敗するため、`winner_written=true`と復帰後の基板lane再通過は今回も観測できていない。
+GUI会話側は`acd_*` tool未登録（T-3）のままで、command宣言の入口へは到達できない。
+新規specからのfixture生成（S-4）は本回の実行対象に含めていないため、この回の未検証範囲として残る。
+
+### 11.6 気づきと改善提案
+
+1. 復帰の失敗理由がL3の計測記録に由来している。`TimingRecorder`は観測目的の器であり、
+   その衝突で候補が`gate_rejected`になるのは権限境界の観点でも不適切である。候補評価では
+   親と独立したrecorderを使い（または候補IDでstage名をnamespaceする）、観測の失敗を
+   判定へ持ち込まない構造にすべきである。あわせて、観測起因の例外を`gate_rejected`ではなく
+   `stopped`として区別すると、L3の不具合とL1の却下が混ざらない。
+2. 候補生成が1件しか返さない限り、予算とround上限は利用者から見て意味を持たない。
+   remediation次元ごとに複数候補（距離目標を段階的に変えた配置など）を列挙し、
+   `generated_candidates`が上限に届く状態を先に作るのが、予算の実効化より先である。
+3. `failure_reason`と`next_step_action`の追加は体験に効いている。次は同じ情報を
+   `report_progress.py`のdigestへも入れ、GUIが1画面で「どのlaneが、なぜ止まり、次に何をするか」を
+   読めるようにするとよい。
+4. plugin更新（`force=true`）とworkspace新規作成は正規APIだけで完結し、bootstrap recordから
+   revisionとserver digestを機械的に照合できた。この経路は検証手順として安定しており、
+   `testing-acd-plugin-install` skillの手順で再現できる。
+5. 復帰が成立したときにL1で何が変わるべきか（graph IDとrevisionの保持、正規化hashの変化、
+   rationaleの同一transaction更新、基板laneの再実行）を、負の側だけでなく正の側の回帰として
+   固定しておくと、T-1のような観測層の混入を検出できる。

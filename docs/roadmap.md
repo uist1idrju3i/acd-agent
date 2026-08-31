@@ -887,6 +887,29 @@ silkscreen search）を`acd-firmware-esp32c3`と同じ規約で自身のreposito
 統一した。repository checkoutを伴わないpackaged plugin単体ではcanonical storeが存在せず
 fail-closedになる。この配布形態の扱いはS-3の未了項目と同じ論点として残る。
 
+### 14.18 復帰候補評価からL3観測の混入を除く（T-1〜T-4）
+
+14.17の実装後に同じ8コアVPSでplugin（`fb286380…`）とlock済みserver image
+（`sha256:d683f14b…`）で実測した結果（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 11節）、
+S-1は解消し候補はrationale coverageで却下されず決定論的pipelineへ到達した。しかし候補評価が
+親laneと同一の`TimingRecorder`を共有するため、pre-router却下で`finish`されずに残った
+`board[1/12]`と衝突し、候補はtiming stageの二重開始（`timing stage already started`）を理由に
+`gate_rejected`となる。復帰は基板却下後にしか起動しないため衝突は常に
+発生し、`winner_written=false`のまま`candidate_pool_exhausted`で終わる。加えて候補生成が1件
+（`generated_candidates=1`）しか返さないため候補上限3・round上限2は行使されない。L3観測の失敗を
+L1判定へ持ち込まないための是正フェーズである。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `src/acd/core/runtime_records.py`の`TimingRecorder`、`src/acd/pipeline/design_loop.py`の候補`pipeline_runner`、`src/acd/core/exploration.py`の候補評価と`_refill_pending`、`plugins/acd/skills/acd-placement-search`の候補生成、`scripts/report_progress.py`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のT節 |
+| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、ambient install経路への配布形態はS-3の未了部分として継続（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4） |
+| 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し（`winner_written=true`）、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。候補生成は上限まで候補を返し、`consumed_budget`と`remaining_budget`が実行と一致する。GD1の判定、Evidence、正規化hashは変化しない |
+| negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
+| 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
+
+T-1は復帰経路の唯一の停止点であり先に扱う。T-2はT-1解消後に予算を意味あるものにする前提、
+T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論点である。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、
@@ -1259,6 +1282,10 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （コード監査）Q-8 lane別の復帰次元宣言（silkscreen・FW） | 14.15 |
 | （コード監査）Q-9 診断入力へのrationale coverageとlane preflight取り込み | 14.15 |
 | （多コアVPS実測）Q-10 firmware capability registryへの宣言追加経路 | 14.15 |
+| （多コアVPS実測）T-1 候補評価と親laneのTimingRecorder分離 | 14.18 |
+| （多コアVPS実測）T-2 remediation次元ごとの複数候補生成 | 14.18 |
+| （多コアVPS実測）T-3 ambient install経路へのACD tool登録 | 14.18 |
+| （多コアVPS実測）T-4 失敗理由と進行のL3 digest統合 | 14.18 |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |
 | （実機組み付け）筐体ネジ穴欠落（スタンドオフが固体円柱・リッドが平板） | 3.1 |
 
