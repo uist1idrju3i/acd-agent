@@ -811,7 +811,25 @@ tools/serverの直列publish、digest lock更新PR、registry manifest照合、�
 authoritative Evidenceが唯一の合否根拠である。実測値と運用上の注意事項は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)と[`operations.md`](operations.md)を正とする。
 
-### 14.16 復帰経路と新規設計入口の是正（R-1〜R-5）
+### 14.16 FW lane専用の候補生成と配置テストの環境依存解消（R-1〜R-3）
+
+14.15で復帰経路は全laneへ連結したが、FW laneの候補生成は基板向け探索の流用であり、
+初期配置の決定論的テストはホスト側のKiCad footprint libraryに依存する。本フェーズは
+acd-agent単体でのVibeBB 1周を、FW laneと配置解決の両方で回帰可能にすることを目的とする。
+`explore_firmware_candidates(...)`は現在`explore_board_candidates(...)`へ委譲しており、
+候補評価は基板pipelineの前提（配置・回転次元、基板側remediation）を共有する。そのため
+FW固有のremediation（未登録action、pin function不整合、capability宣言不足、QEMU実行の
+前提不足）に対して候補を絞り込めず、`gpio_assignment`以外の次元を扱えない。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `explore_firmware_candidates`（現在は`explore_board_candidates`への委譲）、`enumerate_gpio_assignment_candidates`、`contracts/firmware-capability-registry.json`、`contracts/lane-recovery-declaration.json`、`firmware_evidence`のvirtual log検査、`tests/core/test_decoupling_placement.py`のfootprint library skip条件、`docker/image-digests.json`のtools image |
+| 実装 | FW lane専用の候補生成器（R-1）: FW pipelineの却下predicateとcapability registryの宣言だけを入力に、`gpio_assignment`とFW設定次元の候補を列挙し、基板側の配置・回転次元を候補に含めない。未登録actionや宣言不足は候補生成ではなく必要宣言のL3提示へ倒す。決定論的配置テストの環境非依存化（R-2）: 初期配置の解と距離判定を、pinned footprint libraryが無いホストでも実行できる固定fixture（pad座標を宣言した最小graph）で回帰させ、実libraryを要するcaseはdigest固定container jobで実行する。FW復帰の実測記録（R-3）: FW laneの却下から復帰までをdigest固定containerで実測し、`vibebb-standalone-verification.md`へround、候補ID、変更subject、再実行laneを追記する |
+| 正常系 | FW lane却下（未登録action以外の、宣言済みGPIO代替で解ける却下）から、FW専用候補生成が宣言された次元だけで候補を出し、採用候補に対してFW laneのdeterministic stageを再実行してrevision一致のauthoritative Evidenceを生成する。基板・筐体laneの判定、GD1の判定、正規化hashは変化しない |
+| negative・fail-closed | FW固有remediationが無い却下、宣言されていない次元の候補、capability registryに無いactionを前提とする候補、virtual logを欠くEvidence、revision不一致はいずれもfail-closedで停止する。QEMU由来のEvidenceを実機測定として扱わず、探索reportと診断はpass authorityを持たない。環境非依存化したテストは、libraryの有無で判定が変わる経路をskipで隠さず、containerで実行する対象として明示する |
+| 再現性 | FW候補の列挙順、候補ID、変更subject、再実行stageを宣言順で固定し、`--jobs 1`と並列で収集件数・判定・正規化hashを一致させる。footprint library非依存fixtureのpad座標と期待距離を固定値として記録し、container側テストと同じ解になることを確認する |
+
+### 14.17 復帰経路と新規設計入口の是正（S-1〜S-5）
 
 14.15の実装後に同じ8コアVPSで実測した結果（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 10節）、
 宣言由来のlane復帰planは機能し（`recovery_supported: true`、`recovery_explorer: board`、
@@ -825,14 +843,14 @@ authoritative Evidenceが唯一の合否根拠である。実測値と運用上�
 
 | 要素 | 完了条件 |
 |---|---|
-| 入力と出所 | `exploration`の候補評価経路、`commit_candidate_graph`と`refresh_rationale_document`、`check_rationale_coverage`、`fixture_builder`の`_normalize_decoupling_placement`、`gd1_fixture/components.py`のlibrary宣言、`resolve_fixture_path`、`register_acd_tools()`と`build_acd_conversation()`、ADR-0036のambient install経路、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のR節 |
-| 実装 | 候補評価入力へ確定経路と同一のrationale更新を適用する（R-1）、候補固有の却下では残予算で次候補を評価し予算をL3へ明示する（R-2）、ambient install経路の会話へACD tool入口を登録するか宣言toolの不在をfail-closedに検出する（R-3）、catalogのlibrary資材宣言を生成fixtureへの同梱かcontainer内絶対pathへ統一し宣言と生成の両側を検査する（R-4）、L3 timing recordとexploration reportを会話へ返す進行表示（R-5） |
+| 入力と出所 | `exploration`の候補評価経路、`commit_candidate_graph`と`refresh_rationale_document`、`check_rationale_coverage`、`fixture_builder`の`_normalize_decoupling_placement`、`gd1_fixture/components.py`のlibrary宣言、`resolve_fixture_path`、`register_acd_tools()`と`build_acd_conversation()`、ADR-0036のambient install経路、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のS節 |
+| 実装 | 候補評価入力へ確定経路と同一のrationale更新を適用する（S-1）、候補固有の却下では残予算で次候補を評価し予算をL3へ明示する（S-2）、ambient install経路の会話へACD tool入口を登録するか宣言toolの不在をfail-closedに検出する（S-3）、catalogのlibrary資材宣言を生成fixtureへの同梱かcontainer内絶対pathへ統一し宣言と生成の両側を検査する（S-4）、L3 timing recordとexploration reportを会話へ返す進行表示（S-5） |
 | 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。新規specからのfixture生成がlibrary資材を解決して基板laneへ到達する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | rationale更新不能、graph ID／revisionの不一致、正規化hashの不変、候補予算・round上限の超過、宣言と生成が食い違うlibrary資材、宣言toolの不在はいずれもfail-closedで停止する。候補report、進行表示、GUI観測はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
 | 再現性 | 候補ごとの評価入力hash、rationale更新結果、予算消費、再実行したlaneをL3記録として保存し、同一入力での再実行で判定と正規化hashが一致することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
 
-R-1とR-4は単体成立の前提であり先に扱う。R-3は配布・登録経路の定義であり、実装だけでは
-閉じない。R-2とR-5は予算と進行の可視化である。
+S-1とS-4は単体成立の前提であり先に扱う。S-3は配布・登録経路の定義であり、実装だけでは
+閉じない。S-2とS-5は予算と進行の可視化である。
 
 ## マイルストーン15: 運用と文書の整備
 

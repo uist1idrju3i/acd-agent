@@ -337,7 +337,7 @@ pinned library file missing: /workspace/acd/libraries/Espressif.pretty/ESP32-C3-
 `fixtures/golden-design-1/libraries/`に存在するが、repository root直下には`libraries/`が無い。
 GD1は同じ資材を絶対path（`/usr/share/kicad/...`）で宣言するため、この停止はGD1では露出しない。
 14.15で追加した初期配置のdecoupling解決（P-2）は`decoupling_target`宣言のあるfixtureで
-必ず実行されるため、Espressif資材を参照する新規設計は現状かならずここで止まる（R-4）。
+必ず実行されるため、Espressif資材を参照する新規設計は現状かならずここで止まる（S-4）。
 
 | 項目 | 値 |
 |---|---|
@@ -402,8 +402,8 @@ missing=18, stale=18, orphan=0, conflicting=0, unknown_provenance=0, untraceable
 すなわち14.15のQ-4（`commit_candidate_graph`によるrationale更新）はwinner確定時にしか
 適用されず、候補の評価はrationaleを更新しないまま決定論的pipelineへ渡される。配置を
 1点でも動かせば`check_rationale_coverage`はstaleになるため、placement次元の候補は
-構造的に必ず`gate_rejected`となり、復帰は成立しない（R-1）。また候補予算3・round上限2を
-指定しても、最初の却下で`fail_closed_stop`となり2件目以降は評価されない（R-2）。
+構造的に必ず`gate_rejected`となり、復帰は成立しない（S-1）。また候補予算3・round上限2を
+指定しても、最初の却下で`fail_closed_stop`となり2件目以降は評価されない（S-2）。
 
 graphとrationaleの整合は保たれていた。
 
@@ -451,7 +451,7 @@ terminal, file_editor, task_tracker, canvas_ui_control, launch_child_conversatio
 `acd_explore_board_candidates`、`acd_check_order_readiness`などは、この配布形態
 （agent-server＋agent-canvas、ADR-0036のambient install経路）では存在しない。
 `register_acd_tools()`は`build_acd_conversation()`経路にしかないため、GUI会話は
-commandを読んでも宣言された入口を呼べない（R-3）。
+commandを読んでも宣言された入口を呼べない（S-3）。
 
 結果としてagentはterminalで代替を試み、既存exampleのgraph・spec・source codeを
 読み解いて生JSONのfixtureを手組みし、`scripts/run_design_loop.py`をhostから直接
