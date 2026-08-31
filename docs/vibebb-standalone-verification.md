@@ -701,7 +701,7 @@ profile整合検査を行う必要があるが、Run Hではorder集計停止と
 |---|---:|---:|---:|---:|---:|
 | Run F | 223秒 | 7.97 cores | 4.46 GiB | 4.66 GiB | 0 |
 | Run H | 236秒 | 7.97 cores（mean 2.28） | 4.30 GiB（available min 10.81 GiB） | 現在値peak 4.74 GiB／peak記録 5.00 GiB | 0 |
-| Run K | 42秒 | 4.22 cores | フィールドなし | 2.66 GiB | 0 |
+| Run K | 42秒 | 4.22 cores | 2.94 GiB | 2.66 GiB | 0 |
 
 Run Hのtool別peak RSSはpython 4.83 GiB、java 0.88 GiB、cc1 0.78 GiB、kicad 0.44 GiB、
 qemu 0.05 GiBである。9.2の最低・推奨スペックは変更しない。Run Hのcontainer peak
