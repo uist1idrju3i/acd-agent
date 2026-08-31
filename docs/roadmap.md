@@ -1326,9 +1326,9 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （多コアVPS実測）T-3 ambient install経路へのACD tool登録 | 14.18 |
 | （多コアVPS実測）T-4 失敗理由と進行のL3 digest統合 | 14.18 |
 | （多コアVPS実測）T-5 transport失敗時のcommand出力保持 | 14.18 |
-| （多コアVPS実測）U-1 生成物の読み書きのUTF-8明示と非UTF-8 locale回帰（達成） | 14.19 |
+| （多コアVPS実測・達成）U-1 生成物の読み書きのUTF-8明示と非UTF-8 locale回帰 | 14.19 |
 | （多コアVPS実測）U-2 筐体STL出力とSTEP／3MF同等の検査 | 14.19 |
-| （多コアVPS実測）U-3 例示commandのquote／order入力のrevision整合（達成） | 14.19 |
+| （多コアVPS実測・達成）U-3 例示commandのquote／order入力のrevision整合 | 14.19 |
 | （多コアVPS実測）U-4 decoupling制約を満たすfixture配置探索 | 14.19 |
 | （多コアVPS実測）U-5 製造提出データの独立L1品質判定 | 14.19 |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |

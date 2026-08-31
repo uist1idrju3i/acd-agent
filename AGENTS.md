@@ -52,7 +52,7 @@ agent-serverは対象外であり、採用する場合は新規ADRを起票す�
 - L2とL3は停止側にだけ作用でき、合格側へ作用させない。
 - ツール不在、parse失敗、ゲート未実行、unknown、未検証はfail-closedにする。
 - 閾値、期待値、evidence規則を成功のために緩めない。
-- 生成物・reportのテキスト読み書き経路における`encoding="utf-8"`明示と既定encoding（locale）非依存化。
+- 生成物とreportをテキストで読み書きする経路では`encoding="utf-8"`を明示し、既定encodingに依存させない。
 - SkillのPython moduleをACD本体からimportしない。必要なCLIはsubprocessで実行する。
 - 探索結果を設計入力へ確定した場合、Skill名とscript sha256をprovenanceへ記録する。
 - evidence／provenanceには、出所、取得時点、版、入力hash、出力hash、ツール名・版を記録する。
