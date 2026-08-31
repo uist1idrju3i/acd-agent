@@ -19,7 +19,12 @@ def main() -> int:
     try:
         completed = subprocess.run(
             ["uv", "run", "--project", str(root), "python", "scripts/verify_docs.py"],
-            cwd=root, text=True, capture_output=True, timeout=120, env=os.environ.copy(),
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            timeout=120,
+            env=os.environ.copy(),
         )
         detail = (completed.stdout + completed.stderr).strip()[-2000:]
         result(

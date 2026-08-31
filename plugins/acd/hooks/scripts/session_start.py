@@ -87,6 +87,7 @@ def _probe(root: Path) -> str | None:
             ],
             cwd=root,
             text=True,
+            encoding="utf-8",
             capture_output=True,
             timeout=60,
             check=False,

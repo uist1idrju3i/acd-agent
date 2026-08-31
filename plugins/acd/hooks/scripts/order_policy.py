@@ -167,7 +167,12 @@ def main() -> int:
                 *[argument for path in evidence for argument in ("--evidence", str(path))],
                 *required_args,
             ],
-            cwd=root, text=True, capture_output=True, timeout=120, env=os.environ.copy(),
+            cwd=root,
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            timeout=120,
+            env=os.environ.copy(),
         )
     except (OSError, subprocess.TimeoutExpired):
         completed = None

@@ -119,6 +119,7 @@ class AcdGateCritic(CriticBase):
                 cwd=self.repo_root,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 check=False,
             )
             if status.returncode != 0:

@@ -212,6 +212,7 @@ def _submodule_commit() -> str:
         ["git", "-C", str(VENDOR_ROOT), "rev-parse", "HEAD"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     commit = completed.stdout.strip()

@@ -49,6 +49,7 @@ def _run_version_command(
             [executable, *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=30,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:

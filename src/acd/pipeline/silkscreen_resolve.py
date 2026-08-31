@@ -239,6 +239,7 @@ def resolve_silkscreen(
                 cwd=root,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
             )
             skill_result = cast(
                 dict[str, Any], json.loads(output_path.read_text(encoding="utf-8"))

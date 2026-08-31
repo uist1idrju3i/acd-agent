@@ -44,6 +44,7 @@ def _docker_run(command: list[str], argv: list[str]) -> str:
         command,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     output = result.stdout + result.stderr

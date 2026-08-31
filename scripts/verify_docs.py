@@ -69,6 +69,7 @@ def list_markdown_files() -> list[Path]:
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
     )
     files: list[Path] = []
@@ -254,7 +255,13 @@ def glossary_terms(md: MarkdownFile) -> tuple[set[str], list[str]]:
 def check_git_diff() -> list[str]:
     errors: list[str] = []
     for args in (["git", "diff", "--check"], ["git", "diff", "--cached", "--check"]):
-        result = subprocess.run(args, cwd=REPO_ROOT, capture_output=True, text=True)
+        result = subprocess.run(
+            args,
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
         if result.returncode != 0:
             errors.extend(f"git diff --check: {line}" for line in result.stdout.splitlines())
     return errors

@@ -54,6 +54,7 @@ def revision(root: Path, graph_paths: list[str]) -> str | None:
             ["git", "status", "--porcelain", "--untracked-files=all"],
             cwd=root,
             text=True,
+            encoding="utf-8",
         )
         if any(_is_design_input(line[3:]) for line in changed.splitlines() if len(line) > 3):
             return None
@@ -72,6 +73,7 @@ def revision(root: Path, graph_paths: list[str]) -> str | None:
             cwd=root,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=False,
         )
         revision = validated.stdout.strip()

@@ -580,6 +580,7 @@ def _runtime_check() -> dict[str, Any]:
                 [uv_path, "--version"],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 timeout=5,
                 check=False,
             )
@@ -620,6 +621,7 @@ def _run_version(
             [path, *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=5,
             check=False,
         )
@@ -705,6 +707,7 @@ def _docker_image_command(
             ],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=timeout,
             check=False,
         )
@@ -750,6 +753,7 @@ def _docker_check() -> dict[str, Any]:
             [docker, "info"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=10,
             check=False,
         )
@@ -801,6 +805,7 @@ def _server_image_check(
             [docker, "image", "inspect", reference],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=30,
             check=False,
         )
@@ -827,6 +832,7 @@ def _server_image_check(
             [docker, "pull", reference],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=_pull_timeout(),
             check=False,
         )
@@ -1364,6 +1370,7 @@ def _workspace_repository_check(workspace: Path) -> dict[str, Any]:
             cwd=workspace,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=30,
             check=False,
         )
@@ -1406,6 +1413,7 @@ def _workspace_submodule_check(workspace: Path) -> dict[str, Any]:
             cwd=workspace,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=30,
             check=False,
         )
@@ -1450,6 +1458,7 @@ def _workspace_lock_check(workspace: Path) -> dict[str, Any]:
             cwd=workspace,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=120,
             check=False,
         )
@@ -1496,6 +1505,7 @@ def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
             [docker, "image", "inspect", reference],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=30,
             check=False,
         )
@@ -1540,6 +1550,7 @@ def _resolve_firmware_tool(binary: str) -> str | None:
             ],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=300,
             check=False,
         )

@@ -954,8 +954,13 @@ T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論�
 | negative・fail-closed | UTF-8でない生成物、欠落・破損した必須成果物、独立reload・hash・DFM・幾何・profile整合の失敗、revision不一致、decoupling制約を満たせない配置、order scopeの不整合はfail-closedとする。自動発注や実機測定の未実行を合格へ倒さず、QEMUのvirtual Evidenceをphysical Evidenceへ昇格させない |
 | 再現性 | 同一digest・同一入力から同一成果物hash、独立検査結果、U-1〜U-5の診断を再生成し、locale・revision・欠落成果物・配置制約のnegative caseを固定する。decouplingの不足量、blocking refdes、探索次元、面配置 unavailable、変更可能次元はL3 reportとして決定論的に記録する |
 
-U-1はreload経路を解消済みであり、残り作業として筐体・FW・fab出力などreload経路以外の生成物読み書きにも
-非UTF-8 locale下の回帰を広げ、新規コードがencodingを明示しないことを検出する静的guardを検証段へ追加する。
+U-1は、`src/acd/**/*.py`、`scripts/**/*.py`（`scripts/tests/**`を除く）、
+`plugins/**/scripts/**/*.py`をASTで走査し、text modeの`open`、`read_text`／`write_text`、
+`subprocess`、`io.TextIOWrapper`に`encoding="utf-8"`または`"utf-8-sig"`が明示されていることを
+検査するguardをfast段へ追加したことで解消済みである。非literal mode／encodingもfail-closedで
+扱い、例外は呼出し行の`# encoding-exempt: <英語の理由>`だけ（空理由は違反）とする。
+reloadに加え、fabのBOM／CPL・fab-package・gbrjob／ZIP、筐体のSTEP／3MF／STL・manifest、
+FWのsummary／serial log／Evidenceの非UTF-8 locale回帰を共有child-process helperで固定した。
 
 U-2は筐体projectionへASCII STL出力を追加し、STLを正規化、provenance／manifestへ登録し、
 正規化hashをEvidenceへ含め、3MFとともに独立reloadして部品数、bbox、三角形数、体積を検査したことで
@@ -965,7 +970,7 @@ U-5は、Gerber一式、drill、gbrjob、ZIP、BOM／CPL、fab-package manifest�
 筐体STEP／3MF／STLを必須成果物として列挙し、独立reload、正規化hash、DFM、幾何、
 fab profile、revision、Evidence妥当性を単一のL1 verdictへ統合したことで解消済みである。
 `order-readiness.json`は状態を記録するだけで、quote集計・発注実行は判定scopeから除外する。
-U-1の残作業は継続中である。U-4は、既存のorigin探索を維持したうえでrotationと配置順序を追加し、
+U-1〜U-5の残作業は解消済みである。U-4は、既存のorigin探索を維持したうえでrotationと配置順序を追加し、
 不足量と変更可能次元をL3 reportへ記録したことで解消済みである。面配置（side）は電気laneの宣言に
 存在しないため実装せず、利用不可の次元として記録する。
 

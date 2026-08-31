@@ -235,6 +235,7 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
         cwd=config.repository,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
         timeout=3600,
     )

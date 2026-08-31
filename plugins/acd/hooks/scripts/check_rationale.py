@@ -87,6 +87,7 @@ def _changed_fixture_dirs(root: Path) -> tuple[set[Path] | None, str | None]:
             ["git", "status", "--porcelain", "--untracked-files=all"],
             cwd=root,
             text=True,
+            encoding="utf-8",
             stderr=subprocess.DEVNULL,
         )
     except (OSError, subprocess.CalledProcessError) as exc:

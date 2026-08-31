@@ -28,7 +28,10 @@ def main() -> int:
     root = project_dir(event())
     try:
         changed = subprocess.check_output(
-            ["git", "status", "--porcelain", "--untracked-files=all"], cwd=root, text=True
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=root,
+            text=True,
+            encoding="utf-8",
         )
     except (OSError, subprocess.CalledProcessError):
         return _deny(
