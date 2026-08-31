@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import os
 import stat
+import time
 import zipfile
 from pathlib import Path
 
@@ -159,3 +160,31 @@ def test_stl_normalization_ignores_name_line_endings_and_trailing_whitespace() -
 def test_stl_normalization_fails_closed(data: bytes) -> None:
     with pytest.raises(CadNormalizationError):
         normalize_stl(data)
+
+
+def _synthetic_stl(facet_count: int) -> bytes:
+    facet = (
+        b" facet normal 0 0 1\n"
+        b"  outer loop\n"
+        b"   vertex 0 0 0\n"
+        b"   vertex 1 0 0\n"
+        b"   vertex 0 1 0\n"
+        b"  endloop\n"
+        b" endfacet\n"
+    )
+    return b"solid synthetic\n" + facet * facet_count + b"endsolid synthetic\n"
+
+
+def test_stl_normalization_scales_linearly_for_large_meshes() -> None:
+    small = _synthetic_stl(5_000)
+    large = _synthetic_stl(20_000)
+    normalize_stl(small)
+
+    def elapsed(data: bytes) -> float:
+        start = time.perf_counter()
+        normalize_stl(data)
+        return time.perf_counter() - start
+
+    small_seconds = min(elapsed(small) for _ in range(2))
+    large_seconds = min(elapsed(large) for _ in range(2))
+    assert large_seconds / max(small_seconds, 1e-6) < 10

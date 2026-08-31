@@ -9,6 +9,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from acd.adapters.cad.constants import (
+    CAD_ANGULAR_DEFLECTION_DEG,
+    CAD_LINEAR_DEFLECTION_MM,
+)
 from acd.adapters.cad.mechanical import (
     board_plane_z,
     build_board_edge_overhang_shape,
@@ -161,8 +165,8 @@ def project_enclosure(
         {
             "adapter_revision": "p3-5-v5",
             "format": "step-parts+assembly+3mf+stl+manifest",
-            "linear_deflection": 0.01,
-            "angular_deflection": 0.1,
+            "linear_deflection": CAD_LINEAR_DEFLECTION_MM,
+            "angular_deflection": CAD_ANGULAR_DEFLECTION_DEG,
             "part_number": f"{prefix}-enclosure",
         },
         sort_keys=True,
@@ -178,21 +182,21 @@ def project_enclosure(
         build123d.export_stl(
             shell + lid,
             mesh_stl_path,
-            tolerance=0.01,
-            angular_tolerance=0.1,
+            tolerance=CAD_LINEAR_DEFLECTION_MM,
+            angular_tolerance=CAD_ANGULAR_DEFLECTION_DEG,
             ascii_format=True,
         )
         mesher = build123d.Mesher()
         mesher.add_shape(
             shell,
-            linear_deflection=0.01,
-            angular_deflection=0.1,
+            linear_deflection=CAD_LINEAR_DEFLECTION_MM,
+            angular_deflection=CAD_ANGULAR_DEFLECTION_DEG,
             part_number=f"{prefix}-enclosure-shell",
         )
         mesher.add_shape(
             lid,
-            linear_deflection=0.01,
-            angular_deflection=0.1,
+            linear_deflection=CAD_LINEAR_DEFLECTION_MM,
+            angular_deflection=CAD_ANGULAR_DEFLECTION_DEG,
             part_number=f"{prefix}-enclosure-lid",
         )
         mesher.write(model_path)

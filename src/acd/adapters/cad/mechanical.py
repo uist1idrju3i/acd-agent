@@ -9,7 +9,8 @@ from functools import partial
 from pathlib import Path
 from typing import Any, cast
 
-from acd.core.cad_normalize import normalize_stl
+from acd.adapters.cad.constants import CAD_LINEAR_DEFLECTION_MM
+from acd.core.cad_normalize import parse_stl
 from acd.core.mechanical import (
     BoardEdgeOverhangView,
     ComponentBodyView,
@@ -55,7 +56,7 @@ class EnclosureMeshReport:
 
 
 # Mesh bbox tolerance is five times the export deflection; volume tolerance is 1%.
-MESH_BBOX_ABS_TOL_MM = 5 * 0.01
+MESH_BBOX_ABS_TOL_MM = 5 * CAD_LINEAR_DEFLECTION_MM
 MESH_VOLUME_REL_TOL = 0.01
 
 
@@ -211,12 +212,7 @@ def _measure_stl_mesh(
     try:
         build123d: Any = importlib.import_module("build123d")
         data = path.read_bytes()
-        normalized = normalize_stl(data)
-        facet_count = sum(
-            1
-            for line in normalized.decode("utf-8").splitlines()
-            if line.lstrip().startswith("facet normal ")
-        )
+        _, facet_count, _, _ = parse_stl(data)
         face = build123d.import_stl(path)
         solid = build123d.Solid(build123d.Shell(face))
         bbox = _shape_bbox(solid)
