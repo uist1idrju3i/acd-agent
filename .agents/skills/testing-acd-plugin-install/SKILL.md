@@ -123,6 +123,96 @@ plugin 詳細モーダルの下部には `更新` / `アンインストール` /
 ref 照合だけを行う回は `会話を開始` を押さないこと（LLM 課金が発生する）。
 会話を作っていないことは、サイドバーの会話一覧件数が検証前後で不変であることで確認する。
 
+## PR head を store へ入れる（branchが未pushでも可）
+
+作業branchが `origin` に無い場合でも、GitHub は `refs/pull/<N>/head` を公開する。
+`git ls-remote origin refs/pull/<N>/head` で 40 桁 SHA を取り、その SHA を `ref` に渡せば
+GUI 相当の install が通る（`~/.openhands` が空の初回 install は cache stale の心配が無い）。
+install 後は `resolved_ref` と `git rev-parse HEAD` の一致を必ず確認する。
+
+## store install の doctor は `locked ACD server image` で `failed` になり得る
+
+`docker/image-digests.json` は `plugins/acd/` の外にあり GUI install には同梱されないため、
+store 実行の doctor は `locked ACD server image` を required の `unknown`、
+`EDA capabilities` を optional の `fail` として `status=failed`（exit 1）になる。
+これは lock file を repo から供給できない install 形態の既存挙動であり、
+検証対象PRの回帰と混同しないこと。切り分けは開発checkout側の doctor
+（`python3 plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`）を併走させ、
+そちらが `degraded`（optional の host resource preflight だけ fail）に留まることを見る。
+doctor が探す path は `<HOME>/.openhands/plugins/docker/image-digests.json` と
+`/opt/acd/docker/image-digests.json` なので、GUI install 経路で required を満たしたい場合は
+どちらかへ lock file を配置する必要がある。
+
+## host に kicad が無いときは locked acd-tools image で参考実行する
+
+`fixtures/golden-design-1` の宣言は `/usr/share/kicad/**` を pinned 参照するため、
+kicad 未導入の host では `build_design_fixture.py` も探索も pinned library missing で落ちる。
+`docker/image-digests.json` の `acd_tools` digest を pull すれば kicad-cli 10.0.6 と
+freerouting を持つ環境で working tree をそのまま実行できる（L3 参考実行。authoritative
+Evidence は container gate 経路のみ）。
+
+```bash
+docker run --rm -u "$(id -u):$(id -g)" \
+  -v /home/ubuntu/repos/acd-agent:/w -v /tmp:/hosttmp -w /w \
+  -e HOME=/hosttmp/h -e UV_PROJECT_ENVIRONMENT=/hosttmp/h/venv -e UV_CACHE_DIR=/hosttmp/h/uvcache \
+  ghcr.io/uist1idrju3i/acd-tools@sha256:<digest> \
+  bash -lc "uv sync --python 3.12 --frozen -q && uv run --no-sync python scripts/<script>.py ..."
+```
+
+**`-u $(id -u):$(id -g)` と `UV_PROJECT_ENVIRONMENT` / `UV_CACHE_DIR` を必ず repo 外へ向ける。**
+省略すると container 内の `uv` が repo 直下の `.venv` を root 所有で作り直し、
+以後の host 側 `uv run` が `failed to remove directory .venv/lib64: Permission denied` で
+使えなくなる。壊した場合は同じ image を使って `rm -rf /w/.venv` してから host で
+`uv sync --frozen` し直す。pipeline 系 script は cwd へ `*-drc.rpt` などを書くので、
+実行後に repo 直下の生成物（root 所有）も同様に container 経由で削除する。
+
+## 相対 library 宣言は「fixture 同梱」と「repo store」で解決先が違う
+
+`libraries/...` のような相対宣言は、`scripts/verify_library_assets.py` が
+canonical store（repo 直下 `libraries/`）へ fallback して `store_verified` で通す一方、
+実際の pipeline 経路（`adapters/kicad/board.py` / `schematic.py` / `project.py` の
+`fixture_dir / path`）は fixture 直下だけを見る。つまり **verifier が pass でも
+探索・基板 pipeline は `LibraryPinError: pinned library file missing: <fixture>/libraries/...`
+で fail-closed し、exploration report が1件も書かれない**ことが起こり得る。
+library 資材を移動する変更を検証するときは、verifier の exit code だけを根拠にせず、
+必ず container 内で `explore_board_candidates.py` を既定 fixture に対して実行して
+report が生成されるかを見る。回避して探索本体（S-1/S-2 等）を検証したいときは
+
+```bash
+cp -a fixtures/golden-design-1 /tmp/gd1copy && cp -a libraries /tmp/gd1copy/libraries
+# container 内で
+uv run --no-sync python scripts/explore_board_candidates.py \
+  --graph /hosttmp/gd1copy/graph.json --fixture-dir /hosttmp/gd1copy \
+  --out /hosttmp/expl --max-candidates 2 --dry-run
+```
+
+のように **自己完結 fixture の copy** を使う（2候補 dry-run で 3〜6 分）。
+
+## build_design_fixture の spec は decoupling で落ちやすい
+
+`examples/mini-blink-dongle-20260825/fixture/spec.json` をそのまま使うと
+`declared decoupling placement is not satisfiable: C4->U1 ...` で停止する（既知 gap P-2、
+基板を広げても再現する）。library 資材の実体化だけを見たい場合は spec の copy から
+`decoupling_target` 属性を落とすと `status: written` まで到達し、生成 fixture 直下に
+`libraries/Espressif.kicad_sym` と `libraries/Espressif.pretty/*.kicad_mod` が実体化される。
+
+## ambient 会話の generic tool 一覧は LLM 課金なしで取れる
+
+`scripts/verify_acd_tool_registration.py --command <command.md> --available ...` に
+実在の tool 一覧を渡したいときは、SDK 既定 tool 登録だけを走らせればよい。
+
+```bash
+uv run python -c "
+from openhands.tools.preset.default import register_default_tools
+from openhands.sdk.tool import list_registered_tools
+register_default_tools(enable_browser=False)
+print(' '.join(sorted(list_registered_tools())))"
+```
+
+v1.44.1 では `ask_oracle file_editor task task_tool_set task_tracker terminal workflow
+workflow_tool_set` が返る（`acd_*` は1つも含まれない）。これを `--available` へ渡すと
+ambient install 会話の fail-closed 判定（exit 2 と per-tool CLI fallback）を実機の値で再現できる。
+
 ## 落とし穴: installed plugin store が pytest に混ざる
 
 `~/.openhands/plugins/installed/acd/` が存在すると SDK の ambient plugin 読み込みが
