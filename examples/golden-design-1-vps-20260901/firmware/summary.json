@@ -1,0 +1,14 @@
+{
+  "target_revision": "r1",
+  "toolchain_version": "esp-idf v6.1",
+  "source_hash": "sha256:d05faa6f6ada9724f5767b226dde08eae78ef3fa07327fa4ad295220e840e755",
+  "artifact_hash": "sha256:45d395d062b114b976eb8186661dade634da79b731ee7e826b77459e46c697d0",
+  "qemu_version": "9.2.2 (esp_develop_9.2.2_20260417)",
+  "measurement_conditions": "virtual device (QEMU esp32c3); no SHT40 attached; virtual verification only, not real-device evidence",
+  "virtual_run_seconds": 15,
+  "virtual_run_exit_code": 124,
+  "virtual_run_termination": "stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+  "virtual_run_stopped_by_intended_timeout": true,
+  "virtual_log": "out/gd1-fw/qemu-serial.log",
+  "config_report": "out/gd1-fw/firmware-config-report.json"
+}

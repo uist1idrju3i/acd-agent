@@ -1,0 +1,53 @@
+{
+  "schema_version": "0.1",
+  "status": "pass",
+  "out_dir": "out",
+  "records": [
+    {
+      "kind": "design_loop_summary",
+      "path": "out/loop-summary.json",
+      "status": "read",
+      "record_ok": true,
+      "record_status": null,
+      "termination_reason": null,
+      "failed_stage": null,
+      "failure_reason": null,
+      "next_step_action": null,
+      "exploration_rounds": null,
+      "target_revision": null,
+      "evaluated_candidates": null,
+      "remaining_budget": null,
+      "winner_candidate_id": null,
+      "winner_written": null,
+      "stage_count": null,
+      "duration_seconds": null,
+      "reason": null,
+      "pass_evidence": false
+    },
+    {
+      "kind": "timing_record",
+      "path": "out/timing-record.json",
+      "status": "read",
+      "record_ok": null,
+      "record_status": null,
+      "termination_reason": null,
+      "failed_stage": null,
+      "failure_reason": null,
+      "next_step_action": null,
+      "exploration_rounds": null,
+      "target_revision": null,
+      "evaluated_candidates": null,
+      "remaining_budget": null,
+      "winner_candidate_id": null,
+      "winner_written": null,
+      "stage_count": 26,
+      "duration_seconds": 473.420337,
+      "reason": null,
+      "pass_evidence": false
+    }
+  ],
+  "unreadable_records": 0,
+  "reason": null,
+  "record_class": "L3",
+  "pass_evidence": false
+}

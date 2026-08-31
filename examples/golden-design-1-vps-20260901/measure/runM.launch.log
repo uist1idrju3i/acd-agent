@@ -1,0 +1,12 @@
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.44.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+server_ref=ghcr.io/uist1idrju3i/acd-server@sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104
+runM rc=9 wall_s=45 memory_limit=8g

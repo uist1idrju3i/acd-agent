@@ -1,0 +1,84 @@
+{
+  "content_sha256": "sha256:8e5271e77c69c88593a7613daed9aef0e12adc620c9edd3f6216e5ffafa2c86e",
+  "gate": "design_predicates",
+  "message": "design predicate diagnostic observations; not gate authority",
+  "observation": {
+    "evaluation_stages": {
+      "i2c_pullup": "pre_router",
+      "led_series_element": "pre_router",
+      "pin_firmware_alignment": "pre_router",
+      "power_boundary": "pre_router",
+      "power_decoupling": "pre_router",
+      "strapping_pin": "pre_router",
+      "usb_cc": "pre_router"
+    },
+    "predicates": [
+      {
+        "detail": "i2c_pullup topology and values match the GD1 contract",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "i2c_pullup",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      },
+      {
+        "detail": "No declared functional block requires led_series_element; declared functional blocks: esp32c3_strapping_boot, firmware_pin_map, i2c_bus_pullup, safety_power_boundary, single_ldo_power_tree, usb_c_cc_termination",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "led_series_element",
+        "remediation": null,
+        "status": "not_applicable",
+        "subjects": []
+      },
+      {
+        "detail": "firmware pin assignments match the U1 electrical pads",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "pin_firmware_alignment",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      },
+      {
+        "detail": "maximum declared net voltage is 5 V; maximum declared net voltage is 5 V; maximum declared power-boundary net current is 0.5 A; radio-module certification provenance is complete; hazardous energy categories are excluded; intended use is author_prototype",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "power_boundary",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      },
+      {
+        "detail": "LDO rail capacitors and pinned decoupling distances pass",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "power_decoupling",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      },
+      {
+        "detail": "IO2/IO8/IO9 preserve the permitted GD1 boot topology",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "strapping_pin",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      },
+      {
+        "detail": "usb_cc topology and values match the GD1 contract",
+        "evaluation_stage": "pre_router",
+        "measurements": [],
+        "name": "usb_cc",
+        "remediation": null,
+        "status": "pass",
+        "subjects": []
+      }
+    ]
+  },
+  "schema_version": "0.1",
+  "status": "pass",
+  "target_revision": "r1"
+}

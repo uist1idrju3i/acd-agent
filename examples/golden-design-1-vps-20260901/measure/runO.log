@@ -1,0 +1,227 @@
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.44.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+[08/31/26 23:21:56] INFO     $ docker version                      command.py:80
+Client:
+ Version:           29.1.3
+ API version:       1.52
+ Go version:        go1.24.13
+ Git commit:        29.1.3-0ubuntu4.1
+ Built:             Wed Apr 29 16:40:20 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server:
+ Engine:
+  Version:          29.1.3
+  API version:      1.52 (minimum version 1.44)
+  Go version:       go1.24.13
+  Git commit:       29.1.3-0ubuntu4.1
+  Built:            Wed Apr 29 16:40:20 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          2.2.2
+  GitCommit:        
+ runc:
+  Version:          1.4.0-0ubuntu1
+  GitCommit:        
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        
+[08/31/26 23:21:56] INFO     Adding volume mount:               workspace.py:220
+                             /home/openhands/repos/test260901b/                 
+                             acd-ws:/acd-src:ro                                 
+[08/31/26 23:21:56] INFO     Adding volume mount:               workspace.py:220
+                             /home/devin/acd-cache:/opt/acd-cac                 
+                             he                                                 
+[08/31/26 23:21:56] INFO     $ docker run --memory=8g              command.py:80
+                             --memory-swap=8g --env                             
+                             FREEROUTING_MAX_HEAP=2g -d --platform              
+                             linux/amd64 --rm --ulimit                          
+                             nofile=65536:65536 --name                          
+                             agent-server-2a8fc826-d171-45ba-aee1-              
+                             7424701ec936 -e                                    
+                             ACD_CONTAINER_IMAGE_DIGEST=sha256:208              
+                             28162dc33b5832c551cfee0a8c634fe17533a              
+                             3daf78a96b2f7c52ba707104 -e                        
+                             ACD_IN_CONTAINER=1 -e                              
+                             UV_CACHE_DIR=/opt/acd-cache/uv -e                  
+                             CCACHE_DIR=/opt/acd-cache/ccache -v                
+                             /home/openhands/repos/test260901b/acd              
+                             -ws:/acd-src:ro -v                                 
+                             /home/devin/acd-cache:/opt/acd-cache               
+                             -p 38955:8000                                      
+                             ghcr.io/uist1idrju3i/acd-server@sha25              
+                             6:20828162dc33b5832c551cfee0a8c634fe1              
+                             7533a3daf78a96b2f7c52ba707104 --host               
+                             0.0.0.0 --port 8000                                
+6f7b260204851b59a04cbf624730e42aebe0d55d571e5c840315168bec87fb4f
+[08/31/26 23:21:56] INFO     Started container:                 workspace.py:264
+                             6f7b260204851b59a04cbf624730e42aeb                 
+                             e0d55d571e5c840315168bec87fb4f                     
+[08/31/26 23:21:56] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:21:57] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:21:58] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:21:59] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:00] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:01] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:02] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:03] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:04] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:05] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:06] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:07] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+true
+[08/31/26 23:22:08] INFO     Docker workspace is ready at       workspace.py:282
+                             http://127.0.0.1:38955                             
+[08/31/26 23:22:26] INFO     Stopping container:                workspace.py:376
+                             6f7b260204851b59a04cbf624730e42aeb                 
+                             e0d55d571e5c840315168bec87fb4f                     
+[08/31/26 23:22:26] INFO     $ docker stop                         command.py:80
+                             6f7b260204851b59a04cbf624730e42aebe0d              
+                             55d571e5c840315168bec87fb4f                        
+6f7b260204851b59a04cbf624730e42aebe0d55d571e5c840315168bec87fb4f
+image digest: sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104 (RepoDigests)
+exit code: 0
+stdout:
+{
+  "artifact_prefix": "mini-blink-dongle",
+  "cache_dir": null,
+  "design_only": true,
+  "fail_closed": true,
+  "failed_stage": "silkscreen-resolve",
+  "failure_reason": "GraphExtractionError: silkscreen declarations are missing (fail-closed)",
+  "fixture_spec": "examples/mini-blink-dongle-20260825/fixture/spec.json",
+  "graph_id": "mini-blink-dongle",
+  "jobs": 4,
+  "loop_summary": "out/newspec/loop-summary.json",
+  "next_step_action": "Adjust the declared silkscreen inputs or fab profile in the graph and rerun the loop; no candidate generator is declared for this lane.",
+  "ok": false,
+  "output_prefix": "mini-blink-dongle",
+  "pass_evidence": false,
+  "recovery_rerun": {
+    "lane_id": "silkscreen-resolve",
+    "next_step_action": "Adjust the declared silkscreen inputs or fab profile in the graph and rerun the loop; no candidate generator is declared for this lane.",
+    "pass_evidence": false,
+    "record_class": "L3",
+    "recovery_supported": false,
+    "recovery_unsupported_reason": "The silkscreen resolver owns its own bounded iteration over declared reference-designator placement, and no design-freedom dimension declares silkscreen geometry as searchable."
+  },
+  "results": [
+    {
+      "fail_closed": false,
+      "graph_id": "mini-blink-dongle",
+      "ok": true,
+      "output_path": "out/newspec/fixture",
+      "overwrite": false,
+      "pass_evidence": false,
+      "revision": "r1",
+      "stage_id": "fixture-generation"
+    },
+    {
+      "fail_closed": false,
+      "graph_id": "mini-blink-dongle",
+      "ok": true,
+      "pass_evidence": false,
+      "requirement_count": 10,
+      "requirements_path": "out/newspec/fixture/requirements.json",
+      "requirements_sha256": "sha256:4b038c90287ddcdb89739801d7d64c3b4a784a919499e1814b3132a04fe4998e",
+      "revision": "r1",
+      "stage_id": "requirement-entry-validation"
+    },
+    {
+      "fail_closed": true,
+      "failure_reason": "GraphExtractionError: silkscreen declarations are missing (fail-closed)",
+      "ok": false,
+      "pass_evidence": false,
+      "stage_id": "silkscreen-resolve"
+    }
+  ],
+  "resume": false,
+  "timing_record": "out/newspec/timing-record.json"
+}
+newspec_rc=1
+-rw-r--r-- 1 openhands openhands 32548 Aug 31 23:22 out/newspec-artifacts.tar.gz
+stderr:
+Using CPython 3.12.14
+Creating virtual environment at: .venv
+   Building openhands-sdk @ file:///workspace/acd/vendor/software-agent-sdk/openhands-sdk
+   Building openhands-tools @ file:///workspace/acd/vendor/software-agent-sdk/openhands-tools
+   Building acd @ file:///workspace/acd
+   Building openhands-workspace @ file:///workspace/acd/vendor/software-agent-sdk/openhands-workspace
+   Building openhands-agent-server @ file:///workspace/acd/vendor/software-agent-sdk/openhands-agent-server
+      Built acd @ file:///workspace/acd
+      Built openhands-workspace @ file:///workspace/acd/vendor/software-agent-sdk/openhands-workspace
+      Built openhands-tools @ file:///workspace/acd/vendor/software-agent-sdk/openhands-tools
+      Built openhands-agent-server @ file:///workspace/acd/vendor/software-agent-sdk/openhands-agent-server
+      Built openhands-sdk @ file:///workspace/acd/vendor/software-agent-sdk/openhands-sdk
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 255 packages in 6.00s
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.44.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+downloaded: /home/openhands/repos/test260901b/acd-ws/out/container/newspec-artifacts.tar.gz

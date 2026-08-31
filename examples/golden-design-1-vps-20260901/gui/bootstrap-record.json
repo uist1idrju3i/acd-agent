@@ -1,0 +1,13 @@
+{
+  "content_sha256": "sha256:55e45e022423e8d94bc97e1509f4213933b997c6e8c83f9c08b778e6c80859c5",
+  "lock_digest": "sha256:cf052c775c3a33af7a46972b3070b8817a19da578f96af4c8a63bb41bfc24a22",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "repo_url": "https://github.com/uist1idrju3i/acd-agent",
+  "requested_revision": "5c8c7b245809edb4ce25d35a5f126e13365e2cc7",
+  "resolved_revision": "5c8c7b245809edb4ce25d35a5f126e13365e2cc7",
+  "schema_version": "0.1",
+  "server_image_digest": "sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+  "source": "mounted",
+  "workspace_path": "/home/openhands/repos/test260901b/acd-ws"
+}

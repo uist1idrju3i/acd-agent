@@ -1,0 +1,275 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_crosscheck_report",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "visual_projection_set_identity_hash": "sha256:6ae7bb9e12ebd1409def3edd285ebda23728962ab76e72890d07dc0ae93fbf43",
+  "machine_input_files": [
+    {
+      "path": "golden-design-1.kicad_sch",
+      "content_hash": "sha256:96ba3bb9138a237c93bedb69a0f473197b5edb6c61e89df0c63bc7b0505f4df4"
+    },
+    {
+      "path": "routed/golden-design-1.kicad_pcb",
+      "content_hash": "sha256:844965efc6f7a0eed926932bd1cce4ba73ce462fa384d95e77c50e5d3dbe654d"
+    }
+  ],
+  "set_items": [
+    {
+      "check_id": "projection-coverage",
+      "description": "Projection set contains exactly the declared electrical views",
+      "status": "match",
+      "expected": "schematic=1; layers=F.Cu,B.Cu",
+      "actual": "schematic=1; layered=golden-design-1-b-cu,golden-design-1-f-cu",
+      "machine_field": "ElectricalLane.board.layers"
+    }
+  ],
+  "crosschecks": [
+    {
+      "projection_id": "golden-design-1-b-cu",
+      "source_revision": "r1",
+      "image_hash": "sha256:866aefd5126b48f856c7093588bbe6b4c6d17b669ac0d3fa7fb1803cf61a3374",
+      "items": [
+        {
+          "check_id": "svg-units",
+          "description": "SVG width and height use the declared board unit",
+          "status": "match",
+          "expected": "declared_unit=mm; width=mm; height=mm",
+          "actual": "width=mm; height=mm",
+          "machine_field": "ElectricalLane.board.unit"
+        },
+        {
+          "check_id": "svg-origin",
+          "description": "SVG origin and y-axis match the declared board coordinate system",
+          "status": "match",
+          "expected": "origin=board_upper_left; y_axis=down",
+          "actual": "viewBox_origin=0.0000 0.0000; y_axis=down",
+          "machine_field": "ElectricalLane.board.origin; ElectricalLane.board.y_axis"
+        },
+        {
+          "check_id": "svg-viewbox",
+          "description": "SVG viewBox dimensions are self-consistent with the SVG root",
+          "status": "match",
+          "expected": "297.0022 210.0072",
+          "actual": "297.0022 210.0072",
+          "machine_field": "SVG.root.width/height; SVG.root.viewBox"
+        },
+        {
+          "check_id": "svg-input-file",
+          "description": "SVG title block names the projection input file",
+          "status": "match",
+          "expected": "golden-design-1.kicad_pcb",
+          "actual": "golden-design-1.kicad_pcb,golden-design-1.kicad_pcb",
+          "machine_field": "VisualProjectionRecord.input_files[0].path"
+        },
+        {
+          "check_id": "svg-renderer-version",
+          "description": "SVG records the renderer version",
+          "status": "match",
+          "expected": "10.0.6",
+          "actual": "10.0.6,10.0.6",
+          "machine_field": "VisualProjectionRecord.renderer.tool_version"
+        },
+        {
+          "check_id": "svg-image-hash",
+          "description": "SVG normalized image hash matches the projection record",
+          "status": "match",
+          "expected": "sha256:866aefd5126b48f856c7093588bbe6b4c6d17b669ac0d3fa7fb1803cf61a3374",
+          "actual": "sha256:866aefd5126b48f856c7093588bbe6b4c6d17b669ac0d3fa7fb1803cf61a3374",
+          "machine_field": "VisualProjectionRecord.image_hash"
+        }
+      ],
+      "status": "match"
+    },
+    {
+      "projection_id": "golden-design-1-f-cu",
+      "source_revision": "r1",
+      "image_hash": "sha256:e680a20ecc7b0b9ab7c4146cae0f2f6fb929c4e4c99890a84f534625d82cfabd",
+      "items": [
+        {
+          "check_id": "svg-units",
+          "description": "SVG width and height use the declared board unit",
+          "status": "match",
+          "expected": "declared_unit=mm; width=mm; height=mm",
+          "actual": "width=mm; height=mm",
+          "machine_field": "ElectricalLane.board.unit"
+        },
+        {
+          "check_id": "svg-origin",
+          "description": "SVG origin and y-axis match the declared board coordinate system",
+          "status": "match",
+          "expected": "origin=board_upper_left; y_axis=down",
+          "actual": "viewBox_origin=0.0000 0.0000; y_axis=down",
+          "machine_field": "ElectricalLane.board.origin; ElectricalLane.board.y_axis"
+        },
+        {
+          "check_id": "svg-viewbox",
+          "description": "SVG viewBox dimensions are self-consistent with the SVG root",
+          "status": "match",
+          "expected": "297.0022 210.0072",
+          "actual": "297.0022 210.0072",
+          "machine_field": "SVG.root.width/height; SVG.root.viewBox"
+        },
+        {
+          "check_id": "svg-input-file",
+          "description": "SVG title block names the projection input file",
+          "status": "match",
+          "expected": "golden-design-1.kicad_pcb",
+          "actual": "golden-design-1.kicad_pcb,golden-design-1.kicad_pcb",
+          "machine_field": "VisualProjectionRecord.input_files[0].path"
+        },
+        {
+          "check_id": "svg-renderer-version",
+          "description": "SVG records the renderer version",
+          "status": "match",
+          "expected": "10.0.6",
+          "actual": "10.0.6,10.0.6",
+          "machine_field": "VisualProjectionRecord.renderer.tool_version"
+        },
+        {
+          "check_id": "svg-image-hash",
+          "description": "SVG normalized image hash matches the projection record",
+          "status": "match",
+          "expected": "sha256:e680a20ecc7b0b9ab7c4146cae0f2f6fb929c4e4c99890a84f534625d82cfabd",
+          "actual": "sha256:e680a20ecc7b0b9ab7c4146cae0f2f6fb929c4e4c99890a84f534625d82cfabd",
+          "machine_field": "VisualProjectionRecord.image_hash"
+        }
+      ],
+      "status": "match"
+    },
+    {
+      "projection_id": "golden-design-1-schematic",
+      "source_revision": "r1",
+      "image_hash": "sha256:6241555616e3f588b208830896b2d553fedbc5877c2e8718328a5677106d226d",
+      "items": [
+        {
+          "check_id": "svg-units",
+          "description": "SVG width and height use the declared board unit",
+          "status": "match",
+          "expected": "declared_unit=mm; width=mm; height=mm",
+          "actual": "width=mm; height=mm",
+          "machine_field": "ElectricalLane.board.unit"
+        },
+        {
+          "check_id": "svg-origin",
+          "description": "SVG origin and y-axis match the declared board coordinate system",
+          "status": "match",
+          "expected": "origin=board_upper_left; y_axis=down",
+          "actual": "viewBox_origin=0.0000 0.0000; y_axis=down",
+          "machine_field": "ElectricalLane.board.origin; ElectricalLane.board.y_axis"
+        },
+        {
+          "check_id": "svg-viewbox",
+          "description": "SVG viewBox dimensions are self-consistent with the SVG root",
+          "status": "match",
+          "expected": "594.0044 419.9890",
+          "actual": "594.0044 419.9890",
+          "machine_field": "SVG.root.width/height; SVG.root.viewBox"
+        },
+        {
+          "check_id": "svg-input-file",
+          "description": "SVG title block names the projection input file",
+          "status": "match",
+          "expected": "golden-design-1.kicad_sch",
+          "actual": "golden-design-1.kicad_sch,golden-design-1.kicad_sch",
+          "machine_field": "VisualProjectionRecord.input_files[0].path"
+        },
+        {
+          "check_id": "svg-renderer-version",
+          "description": "SVG records the renderer version",
+          "status": "match",
+          "expected": "10.0.6",
+          "actual": "10.0.6,10.0.6",
+          "machine_field": "VisualProjectionRecord.renderer.tool_version"
+        },
+        {
+          "check_id": "svg-image-hash",
+          "description": "SVG normalized image hash matches the projection record",
+          "status": "match",
+          "expected": "sha256:6241555616e3f588b208830896b2d553fedbc5877c2e8718328a5677106d226d",
+          "actual": "sha256:6241555616e3f588b208830896b2d553fedbc5877c2e8718328a5677106d226d",
+          "machine_field": "VisualProjectionRecord.image_hash"
+        },
+        {
+          "check_id": "schematic-refdes",
+          "description": "All electrical component reference designators are present",
+          "status": "match",
+          "expected": "U1,J1,U2,U3,D1,SW1,SW2,R1,R2,R3,R4,R5,R6,C1,C2,C3,C4,C5,C6,TP1,TP2,TP3,TP4,TP5,TP6,TP7,H1,H2,H3,H4",
+          "actual": "all present",
+          "machine_field": "ElectricalLane.components[*].refdes"
+        }
+      ],
+      "status": "match"
+    }
+  ],
+  "review_items": [
+    {
+      "item_id": "review-readability",
+      "aspect": "readability",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "SVG text and geometry cannot deterministically establish readability.",
+      "observation": null
+    },
+    {
+      "item_id": "review-design-intent",
+      "aspect": "design_intent",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "SVG bytes cannot deterministically establish design-intent fidelity.",
+      "observation": null
+    },
+    {
+      "item_id": "review-annotations",
+      "aspect": "annotations",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Annotation legibility requires visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-units",
+      "aspect": "units",
+      "verification": "deterministic",
+      "status": "match",
+      "basis": "SVG root width and height unit checks.",
+      "observation": null
+    },
+    {
+      "item_id": "review-axis",
+      "aspect": "axis",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Axis orientation beyond the SVG origin is not encoded deterministically.",
+      "observation": null
+    },
+    {
+      "item_id": "review-origin",
+      "aspect": "origin",
+      "verification": "deterministic",
+      "status": "match",
+      "basis": "SVG viewBox origin check.",
+      "observation": null
+    },
+    {
+      "item_id": "review-occlusion",
+      "aspect": "occlusion",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Overlapping or hidden visual elements require visual observation.",
+      "observation": null
+    },
+    {
+      "item_id": "review-signal-power",
+      "aspect": "signal_power",
+      "verification": "observation_required",
+      "status": "unknown",
+      "basis": "Signal and power-system readability requires visual observation.",
+      "observation": null
+    }
+  ],
+  "status": "match",
+  "canonical_hash": "sha256:1e5a4683b1ed511ca54fb0dd80b2d6bdb08f582d3d58887006b28a35b47ec0d0",
+  "identity_hash": "sha256:cc85f35aa0dc632755a840e33d18ada0adb6b26bbcc9feef22fafd778c2db525",
+  "generated_at": "2026-08-31T23:19:57.323329Z"
+}

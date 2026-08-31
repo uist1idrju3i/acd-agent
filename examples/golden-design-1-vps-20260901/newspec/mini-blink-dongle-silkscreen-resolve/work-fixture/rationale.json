@@ -1,0 +1,1184 @@
+{
+  "graph_id": "mini-blink-dongle",
+  "records": [
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.boot: voltage_nominal_v=3.3, width_basis=\"manufacturing_minimum\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.boot; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.boot.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.boot",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:2f145e61633fa0a33f92b2f43927f1e197b55ecaa329e47c7e1657cc3d782bab",
+      "subject_nodes": [
+        "net.boot"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.cc1: voltage_nominal_v=5.0, width_basis=\"manufacturing_minimum\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.cc1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.cc1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.cc1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:fad376de2a55f89e74bec5b6b0836e48a915c4412a4e821a76b71d3e82ad182a",
+      "subject_nodes": [
+        "net.cc1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.cc2: voltage_nominal_v=5.0, width_basis=\"manufacturing_minimum\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.cc2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.cc2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.cc2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:d56cddb4b52ca00483dd9a7e13986a0d3e13b43b1ac715fd629c90e0e8d4da5c",
+      "subject_nodes": [
+        "net.cc2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.gnd: current_max_a=0.5, power_rail=true, power_source_pin=\"J1.A1\", voltage_nominal_v=0.0, width_basis=\"current_ipc2221\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.gnd; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.gnd.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.gnd",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "current_max_a",
+        "power_rail",
+        "power_source_pin",
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:14cdff1e1d5226d64e170747d98ec2907b51e25ad1bbeb9a242dc58c220da17e",
+      "subject_nodes": [
+        "net.gnd"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.led: voltage_nominal_v=3.3, width_basis=\"manufacturing_minimum\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.led; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.led.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.led",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:c7363871d9d8ff7ed3925f8d2d13b176e56dcc321fc0290a308a3ed3932a175c",
+      "subject_nodes": [
+        "net.led"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.p3v3: current_max_a=0.5, power_rail=true, power_source_pin=\"U2.2\", voltage_nominal_v=3.3, width_basis=\"current_ipc2221\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.p3v3; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.p3v3.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.p3v3",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "current_max_a",
+        "power_rail",
+        "power_source_pin",
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:3a866bd9e8f6c6615126f6ae0745582476822d66515da10ab41206a78b877471",
+      "subject_nodes": [
+        "net.p3v3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.usb_dn: voltage_nominal_v=3.3, width_basis=\"manufacturing_minimum\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.usb_dn; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.usb_dn.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.usb_dn",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:4a3cc5982d729be9d139aff6c72fe210b973c1414eb054c47727921596fe631c",
+      "subject_nodes": [
+        "net.usb_dn"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.usb_dp: voltage_nominal_v=3.3, width_basis=\"manufacturing_minimum\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.usb_dp; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.usb_dp.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.usb_dp",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:53d4e66ddd4619af1798d5b06f502b0363e07841c36ea4284e91ab94cfd220c7",
+      "subject_nodes": [
+        "net.usb_dp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.net values for net.vbus_5v: current_max_a=0.5, power_rail=true, power_source_pin=\"J1.A4\", voltage_nominal_v=5.0, width_basis=\"current_ipc2221\"",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.net values for net.vbus_5v; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.net option for net.vbus_5v.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-net.vbus_5v",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "current_max_a",
+        "power_rail",
+        "power_source_pin",
+        "voltage_nominal_v",
+        "width_basis"
+      ],
+      "subject_hash": "sha256:6f5c387f3e7182e2ef2d41a1867007120fbf8027715442ef6f70d39db47121ed",
+      "subject_nodes": [
+        "net.vbus_5v"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c1: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C1691\", mpn=\"CL10A106MQ8NNNC\", placement_rotation_deg=0.0, placement_x_mm=6.0, placement_y_mm=10.5, value=\"10uF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:552376134b31b52925040d874d7cc0fed8dba41dcebc3a9646d11e551e90b92e",
+      "subject_nodes": [
+        "comp.c1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c2: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C1591\", mpn=\"CL10B104KB8NNNC\", placement_rotation_deg=0.0, placement_x_mm=14.0, placement_y_mm=10.5, value=\"100nF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:0cb375ce3fb2ae2bcbf72c0987dd361eeeb757441f8e73adc227f427eba14194",
+      "subject_nodes": [
+        "comp.c2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c3: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C1691\", mpn=\"CL10A106MQ8NNNC\", placement_rotation_deg=0.0, placement_x_mm=6.0, placement_y_mm=7.5, value=\"10uF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c3; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c3.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c3",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:4f2e8902d609c1d3c6b208b757bb1a3f824d33a49ae86e313bbc3312871b638c",
+      "subject_nodes": [
+        "comp.c3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c4: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C1591\", mpn=\"CL10B104KB8NNNC\", placement_rotation_deg=90.0, placement_x_mm=1.7, placement_y_mm=1.525, value=\"100nF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c4; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c4.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c4",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:21149e2b00227f956e0c9d4a4fb9fbc1e9f2264e925923c5eb31cf665353d3d6",
+      "subject_nodes": [
+        "comp.c4"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.d1: assembly=\"fitted\", footprint=\"LED_SMD:LED_0603_1608Metric\", lcsc=\"C2286\", mpn=\"KT-0603R\", placement_rotation_deg=0.0, placement_x_mm=15.0, placement_y_mm=8.0, value=\"KT-0603R\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.d1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.d1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.d1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:eb43e8179784f1bd26a4b031ea62443ca3d00afe0148c1c7af3bea0670f52255",
+      "subject_nodes": [
+        "comp.d1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.j1: assembly=\"fitted\", footprint=\"Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12\", lcsc=\"C165948\", mpn=\"TYPE-C-31-M-12\", placement_rotation_deg=0.0, placement_x_mm=10.0, placement_y_mm=12.0, value=\"TYPE-C-31-M-12\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.j1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.j1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.j1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:f92f2fb28d7a1e59cdcd3c0a94afdfabe048cb2ddd27d79bc06a8faf7b22ea31",
+      "subject_nodes": [
+        "comp.j1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r1: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C23186\", mpn=\"0603WAF5101T5E\", placement_rotation_deg=0.0, placement_x_mm=7.0, placement_y_mm=11.5, value=\"5.1k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:a3ce5a6323c62b6fbff0c4eef8a1493c6b063b3ad2b17e9993ae827ca497dd3f",
+      "subject_nodes": [
+        "comp.r1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r2: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C23186\", mpn=\"0603WAF5101T5E\", placement_rotation_deg=0.0, placement_x_mm=13.0, placement_y_mm=11.5, value=\"5.1k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:ec2a25b4283fee92b5747ccd9432c708986eeebca8ca9beb1c51cd3bd50a3927",
+      "subject_nodes": [
+        "comp.r2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r3: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C23162\", mpn=\"0603WAF4701T5E\", placement_rotation_deg=90.0, placement_x_mm=13.0, placement_y_mm=6.5, value=\"4.7k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r3; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r3.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r3",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:c99f1cebdd98bf5f0779e3db7cdf23c8ec1abd55fa90bf7ca9b8d12d38a90b22",
+      "subject_nodes": [
+        "comp.r3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.sw2: assembly=\"fitted\", footprint=\"Button_Switch_SMD:SW_SPST_TS-1088-xR020\", lcsc=\"C720477\", mpn=\"TS-1088-AR02016\", placement_rotation_deg=0.0, placement_x_mm=4.0, placement_y_mm=5.5, value=\"BOOT\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.sw2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.sw2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.sw2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:409b0a4dc38188d764c76e874f5543e1850bc94925126a7985ec33d6b5e69dca",
+      "subject_nodes": [
+        "comp.sw2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.u1: assembly=\"fitted\", footprint=\"Espressif:ESP32-C3-MINI-1\", lcsc=\"C2838502\", mpn=\"ESP32-C3-MINI-1-N4\", placement_rotation_deg=0.0, placement_x_mm=10.0, placement_y_mm=2.0, radio_module=true, value=\"ESP32-C3-MINI-1-N4\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.u1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.u1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.u1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "radio_module",
+        "value"
+      ],
+      "subject_hash": "sha256:8928023d15eba471cf94c46049843938bb1b25ed7fa22e92bd646e9ede15203f",
+      "subject_nodes": [
+        "comp.u1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.u2: assembly=\"fitted\", footprint=\"Package_TO_SOT_SMD:SOT-223-3_TabPin2\", lcsc=\"C6186\", mpn=\"AMS1117-3.3\", placement_rotation_deg=90.0, placement_x_mm=3.5, placement_y_mm=9.0, value=\"AMS1117-3.3\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.u2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.u2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.u2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:5489809f8f3b9903aa69a62d944bce4dc5092a5b8165fab046b4950b9cea2a06",
+      "subject_nodes": [
+        "comp.u2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.board values for board.mini-blink-dongle: allowable_temperature_rise_k=10.0, antenna_keepout=true, assembly_side=\"top\", copper_oz=1, edge_copper_clearance_mm=0.3, finish=\"HASL\", ground_plane_layers=[\"F.Cu\", \"B.Cu\"], ground_plane_min_island_area_mm2=1.0, ground_plane_net=\"GND\", height_mm=15.0, layers=2, material=\"FR-4\", min_clearance_mm=0.15, min_track_mm=0.15, stitch_via_max_frequency_hz=2400000000.0, stitch_via_refill_max_iterations=3, stitch_via_wavelength_fraction=0.05, thickness_mm=1.6, via_diameter_mm=0.6, via_drill_mm=0.3, width_basis_equation=\"ipc2221_external_current_capacity\", width_measurement_tolerance_mm=0.01, width_mm=20.0",
+      "decision_kind": "stackup",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these electrical.board values for board.mini-blink-dongle; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.board option for board.mini-blink-dongle.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-board.mini-blink-dongle",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "allowable_temperature_rise_k",
+        "antenna_keepout",
+        "assembly_side",
+        "copper_oz",
+        "edge_copper_clearance_mm",
+        "finish",
+        "ground_plane_layers",
+        "ground_plane_min_island_area_mm2",
+        "ground_plane_net",
+        "height_mm",
+        "layers",
+        "material",
+        "min_clearance_mm",
+        "min_track_mm",
+        "stitch_via_max_frequency_hz",
+        "stitch_via_refill_max_iterations",
+        "stitch_via_wavelength_fraction",
+        "thickness_mm",
+        "via_diameter_mm",
+        "via_drill_mm",
+        "width_basis_equation",
+        "width_measurement_tolerance_mm",
+        "width_mm"
+      ],
+      "subject_hash": "sha256:c3c0e696b61f987df211293d8628af79e473d9b0f0036b64df372e68c2a2aae2",
+      "subject_nodes": [
+        "board.mini-blink-dongle"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.boot: gpio=9, net=\"net.boot\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.boot; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.boot.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.boot",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:ad722af146a1c612886b0d4d5e4127b37b3fa34d153236af4a4387a88c2db178",
+      "subject_nodes": [
+        "fw.pin.boot"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.led: gpio=3, net=\"net.led\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.led; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.led.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.led",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:9a4da61938ca017e2308cf44475003486a790b0cee024231704e78f2c0dfd279",
+      "subject_nodes": [
+        "fw.pin.led"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared fab.order_intent values for fab.order_intent.mini-blink-dongle: fab_profile=\"jlcpcb-fr4-2l-1oz\"",
+      "decision_kind": "fab_process",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.mbd-req-001",
+        "req.mbd-req-002",
+        "req.mbd-req-003",
+        "req.mbd-req-004",
+        "req.mbd-req-005",
+        "req.mbd-req-006",
+        "req.mbd-req-007",
+        "req.mbd-req-008",
+        "req.mbd-req-009",
+        "req.mbd-req-010"
+      ],
+      "justification": "The design input declares these fab.order_intent values for fab.order_intent.mini-blink-dongle; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single fab.order_intent option for fab.order_intent.mini-blink-dongle.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-08-31T23:22:25.131616Z",
+        "script_hash": "sha256:03c5eeff2c32b5d0e2cab2d53db636eb1e8b967393c03a11411decf4e2db3957",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fab.order_intent.mini-blink-dongle",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "fab_profile"
+      ],
+      "subject_hash": "sha256:df7fe0ca1c4e0c5a49e47846b8f627204b07ae68724cfa407d06f903380ce03f",
+      "subject_nodes": [
+        "fab.order_intent.mini-blink-dongle"
+      ],
+      "target_revision": "r1"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

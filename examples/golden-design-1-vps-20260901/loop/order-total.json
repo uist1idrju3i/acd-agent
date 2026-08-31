@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.1",
+  "subtotals": [
+    {
+      "category": "assembly",
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      }
+    },
+    {
+      "category": "board",
+      "amount": {
+        "amount_minor": 2500,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      }
+    },
+    {
+      "category": "components",
+      "amount": {
+        "amount_minor": 4200,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      }
+    },
+    {
+      "category": "mechanical",
+      "amount": {
+        "amount_minor": 800,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      }
+    }
+  ],
+  "total": {
+    "amount_minor": 9300,
+    "currency": "USD",
+    "minor_unit_digits": 2
+  },
+  "target_revision": "r1",
+  "quote_hashes": [
+    {
+      "quote_id": "quote-golden-design-1-order-001",
+      "canonical_hash": "sha256:79b9ac487954f56c3a1a791d01ea66865ae34a25a2314571ac4f94a7779ccc4f"
+    }
+  ],
+  "breakdown_hash": "sha256:7317c16433b63dc3469076e936db02e032591817243a0bcc74cb03383f16c7ca"
+}

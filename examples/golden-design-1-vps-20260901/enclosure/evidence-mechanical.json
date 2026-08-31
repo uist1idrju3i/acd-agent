@@ -1,0 +1,137 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "evidence.gd1.mechanical",
+  "target_revision": "r1",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "cad-kernel",
+    "tool_version": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+    "format_version": "STEP parts+assembly+3MF+STL+manifest",
+    "config_hash": "sha256:a84b064d15fbdece0fa93c6b2c94b677012de90b53b4abc7786dda78b19dd243",
+    "input_hash": "sha256:2c4162f242a7e73a6185554237abb2dec6868cb443679eba2ef6bee52292811a",
+    "output_hash": "sha256:0b79008f77046aa8bce2b06fa05ce8e76a255b46c65ce49a6c1cb2e837abe15a",
+    "execution_env": "linux-x86_64; container=sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+    "execution_context": "container",
+    "container_image_digest": "sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+    "measurement_conditions": "build123d box shell/lid, independent STEP parts, assembly STEP, antenna overhang cutout, standoff pilot holes, lid screw holes, Mesher 3MF, ASCII STL mesh export, normalized artifact manifest and output hash",
+    "convergence_state": "converged",
+    "target_revision": "r1",
+    "started_at": "2026-08-31T23:16:59.428226Z",
+    "finished_at": "2026-08-31T23:17:11.169430Z",
+    "exit_code": 0,
+    "idempotency_key": null,
+    "uncertainty": null
+  },
+  "claims": [
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "cad_kernel_valid",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "interference_free",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "maximum_interference_volume_mm3",
+      "value": 0.0,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "internal_clearance_passed",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "measured_min_clearance_mm",
+      "value": 0.9999999999999996,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "minimum_wall_thickness_mm",
+      "value": 2.0,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "shell_measured_volume_mm3",
+      "value": 4493.532021056995,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "lid_measured_volume_mm3",
+      "value": 2201.5893831132507,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "assembly_measured_volume_mm3",
+      "value": 6695.121404170246,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "stl_measured_volume_mm3",
+      "value": 6695.063989557966,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "stl_triangle_count",
+      "value": 6156,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "model_part_count",
+      "value": 2,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "cad_artifact_manifest_hash",
+      "value": "sha256:8e017c1205a65649230281860594735010546e0d06563a7a73d044cdf2b0bff6",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "enclosure_assembly_normalized_sha256",
+      "value": "sha256:c65d7763f06b43efef2a65c45c744cb084e8770feb82eea20714af4330e0b9e5",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "enclosure_lid_normalized_sha256",
+      "value": "sha256:1e7578731289f8310dba3192e19316972a144d10ded244a35ef2aa4ae4d0da0f",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "enclosure_mesh_stl_normalized_sha256",
+      "value": "sha256:022339f5639a9bd9f3a47a570ff7b27b0e2667205a5385d7a4ce2380d96e0c24",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "enclosure_model_normalized_sha256",
+      "value": "sha256:9795e153e70474abb286073c857c96298735e1b03b23ecfe77c5e5229783daa6",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.gd1",
+      "property": "enclosure_shell_normalized_sha256",
+      "value": "sha256:222d42cc17057cd7fbb2e798bc69a2b2abb5a7d1ccd9b65c767459acfc86f284",
+      "verified": true
+    }
+  ],
+  "created_at": "2026-08-31T23:17:15.207819Z"
+}

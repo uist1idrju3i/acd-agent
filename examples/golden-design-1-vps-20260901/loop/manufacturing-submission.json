@@ -1,0 +1,232 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "manufacturing_submission_verdict",
+  "record_class": "L1",
+  "status": "pass",
+  "graph_id": "golden-design-1",
+  "target_revision": "r1",
+  "artifacts": [
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-F_Cu.gtl",
+      "format": "GTL",
+      "normalized_sha256": "sha256:3220377a29a9560ae0e69971ae39d61324773955216c007fc5f57cd824e6a8b3",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-B_Cu.gbl",
+      "format": "GBL",
+      "normalized_sha256": "sha256:56151ef7963c0a7225e072a9f24e193fc0c26691d1cdefdc73d630922cf3c42c",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-F_Mask.gts",
+      "format": "GTS",
+      "normalized_sha256": "sha256:1cb8609238c50d89b3fa5ea11382ae8872c657a09d0eb50d2dadca7e9bb5525c",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-B_Mask.gbs",
+      "format": "GBS",
+      "normalized_sha256": "sha256:ccad0ebf4c88ebea73e9cf3ac8a9871f3a47291a3ddcf632ca7f76890505b51e",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-F_Silkscreen.gto",
+      "format": "GTO",
+      "normalized_sha256": "sha256:dc79b76a810b4869040df4d3be0eb68e79aa18addb228185519ab2367e263c1f",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-B_Silkscreen.gbo",
+      "format": "GBO",
+      "normalized_sha256": "sha256:8013b2766e942336d124c8bcfe97f4d7fb3a418e71b0379636b845c6117874b5",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-F_Paste.gtp",
+      "format": "GTP",
+      "normalized_sha256": "sha256:08f1848e0cc8cd0f94b3c28524b8aa0f129909eb3ee38692520082f28aa8a375",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/golden-design-1-Edge_Cuts.gm1",
+      "format": "GM1",
+      "normalized_sha256": "sha256:2ce87bc81a435b59666bfb37170384cfb267d733ef355ae14e61aaf6cf81a58d",
+      "present": true
+    },
+    {
+      "role": "drill",
+      "path": "gerbers/golden-design-1.drl",
+      "format": "DRILL",
+      "normalized_sha256": "sha256:ccd91981f76137de843266fe43228810aba557ef3f7c328392035da154adc4ea",
+      "present": true
+    },
+    {
+      "role": "gerber_zip",
+      "path": "fab/golden-design-1-gerbers.zip",
+      "format": "ZIP",
+      "normalized_sha256": "sha256:a935a8cc7c9dfa6c028c0b230cf16b459d95e61a106f4df9968d84e5199988c9",
+      "present": true
+    },
+    {
+      "role": "bom",
+      "path": "fab/golden-design-1-bom-jlcpcb.csv",
+      "format": "CSV",
+      "normalized_sha256": "sha256:9394fc0a25ba87d44af57ecd68da3ceda76af9213ca11a7c82b751734fce89fb",
+      "present": true
+    },
+    {
+      "role": "cpl",
+      "path": "fab/golden-design-1-cpl-jlcpcb.csv",
+      "format": "CSV",
+      "normalized_sha256": "sha256:e7cbec56954fa2e4820cd750f9a07258826120adf81a68aba9b24d3685aed66a",
+      "present": true
+    },
+    {
+      "role": "position",
+      "path": "fab/golden-design-1.pos.csv",
+      "format": "CSV",
+      "normalized_sha256": "sha256:36ce752ad1762a5cfd57c863eaf46fd5a11837d93e7ca673ae6f8e95dbe2477e",
+      "present": true
+    },
+    {
+      "role": "dfm_report",
+      "path": "fab/dfm-report.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:68a4c395e8772b38a1ab2b6bf452b9ce09687956eca03b0394acaabd43ad6714",
+      "present": true
+    },
+    {
+      "role": "gbrjob",
+      "path": "gerbers/golden-design-1-job.gbrjob",
+      "format": "GBRJOB",
+      "normalized_sha256": "sha256:98c3e330dabc52fa12a15222863de02f2f8c89109ece42b808738cf2f24bb01d",
+      "present": true
+    },
+    {
+      "role": "cpl_basis",
+      "path": "fab/cpl-basis-report.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:c8383fb9a40527ae4f58f0dd5f0d954e77f9591f49295840dfcc8985a76a7ad2",
+      "present": true
+    },
+    {
+      "role": "order_readiness",
+      "path": "fab/order-readiness.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:d4cd87e3d0625b74bcbb0c0feb79b9a4a7be94ed416fe36c548a5383c8c15b4a",
+      "present": true
+    },
+    {
+      "role": "enclosure_shell",
+      "path": "enclosure-shell.step",
+      "format": "STEP",
+      "normalized_sha256": "sha256:222d42cc17057cd7fbb2e798bc69a2b2abb5a7d1ccd9b65c767459acfc86f284",
+      "present": true
+    },
+    {
+      "role": "enclosure_lid",
+      "path": "enclosure-lid.step",
+      "format": "STEP",
+      "normalized_sha256": "sha256:1e7578731289f8310dba3192e19316972a144d10ded244a35ef2aa4ae4d0da0f",
+      "present": true
+    },
+    {
+      "role": "enclosure_assembly",
+      "path": "enclosure-assembly.step",
+      "format": "STEP",
+      "normalized_sha256": "sha256:c65d7763f06b43efef2a65c45c744cb084e8770feb82eea20714af4330e0b9e5",
+      "present": true
+    },
+    {
+      "role": "enclosure_model",
+      "path": "enclosure.3mf",
+      "format": "3MF",
+      "normalized_sha256": "sha256:9795e153e70474abb286073c857c96298735e1b03b23ecfe77c5e5229783daa6",
+      "present": true
+    },
+    {
+      "role": "enclosure_mesh_stl",
+      "path": "enclosure.stl",
+      "format": "STL",
+      "normalized_sha256": "sha256:022339f5639a9bd9f3a47a570ff7b27b0e2667205a5385d7a4ce2380d96e0c24",
+      "present": true
+    },
+    {
+      "role": "enclosure_manifest",
+      "path": "enclosure-artifacts.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:8e017c1205a65649230281860594735010546e0d06563a7a73d044cdf2b0bff6",
+      "present": true
+    },
+    {
+      "role": "enclosure_manifest",
+      "path": "envelope-cad.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:d2fe095aaf3974b8cbd481bd36f6c15f61294de5e9f1dd5aaccd51a81a49c309",
+      "present": true
+    }
+  ],
+  "checks": [
+    {
+      "check_id": "required_artifacts",
+      "status": "pass",
+      "detail": "all declared board and enclosure artifacts are present"
+    },
+    {
+      "check_id": "independent_reload",
+      "status": "pass",
+      "detail": "Gerber, drill, gbrjob, ZIP, BOM/CPL, and enclosure reload passed"
+    },
+    {
+      "check_id": "normalized_hashes",
+      "status": "pass",
+      "detail": "all manifest normalized hashes match"
+    },
+    {
+      "check_id": "dfm",
+      "status": "pass",
+      "detail": "DFM report status is pass"
+    },
+    {
+      "check_id": "geometry",
+      "status": "pass",
+      "detail": "Edge.Cuts bbox matches graph and gbrjob dimensions"
+    },
+    {
+      "check_id": "fab_profile_consistency",
+      "status": "pass",
+      "detail": "fab profile id and normalized hash match graph"
+    },
+    {
+      "check_id": "revision_consistency",
+      "status": "pass",
+      "detail": "all graph, envelope, manifest, and Evidence revisions match"
+    },
+    {
+      "check_id": "evidence_validity",
+      "status": "pass",
+      "detail": "Evidence validity passed (electrical=authoritative, mechanical=authoritative)"
+    }
+  ],
+  "reasons": [],
+  "authoritative": true,
+  "evidence_class": {
+    "electrical": "authoritative",
+    "mechanical": "authoritative"
+  },
+  "order_readiness_status": "ready",
+  "excluded_scope": [
+    "quote_aggregation",
+    "order_execution"
+  ],
+  "content_sha256": "sha256:a19ff0028b534149e6c00c610872ad454853da70daf7007608d52c1442f1d6ae"
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "tool_name": "kicad-cli",
+  "tool_version": "10.0.6",
+  "format_version": "RS-274X",
+  "config_hash": "sha256:d102c2c3aa014b4438ff81d18dfe53edd9274a1e6cdd43e973c75c0891bc66ee",
+  "input_hash": "sha256:944f67ec7a296fc8e153d42bcce0429a054c643239fe6836f7fa4274dffd76d3",
+  "output_hash": "sha256:b5018dd94fc445060c4bafb4decc2a219ba5a3dcb442b7b55377336855e5f1fd",
+  "execution_env": "linux-x86_64; container=sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+  "execution_context": "container",
+  "container_image_digest": "sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+  "measurement_conditions": "single run; no X2 attributes",
+  "convergence_state": "not_applicable",
+  "target_revision": "r1",
+  "started_at": "2026-08-31T23:19:44.757971Z",
+  "finished_at": "2026-08-31T23:19:45.127060Z",
+  "exit_code": 0,
+  "idempotency_key": null,
+  "uncertainty": null
+}
