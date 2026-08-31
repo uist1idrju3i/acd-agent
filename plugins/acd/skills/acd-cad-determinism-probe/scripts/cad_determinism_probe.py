@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@c95e346c9446ca89b5a5ee9fee0483cb4153de2d",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e7f190ddba142ea6500ac14ed201a8b40c9156e8",
 # ]
 # ///
 """Measure CAD export determinism for STEP and 3MF.
