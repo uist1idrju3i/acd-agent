@@ -450,6 +450,18 @@ coverage・lane preflight・必要宣言を含む診断拡張、Q-10は
 capability宣言追記で解消した。いずれも閾値、ゲート挙動、fail-closed境界、L1権限を変更せず、
 探索report、診断、goal評決はpass authorityを持たない。
 
+## R. 14.15実装後に残るFW lane候補生成と配置テストの不足
+
+本節はQ節の実装（マイルストーン14.15）後にコードを再確認した結果であり、実測ではなく
+実装由来の不足である。ロードマップ上は[`roadmap.md`](roadmap.md)の14.16に位置付ける。
+既存の閾値、ゲート挙動、fail-closed境界、L1権限を緩める提案は含まない。
+
+| # | 不足機能 | 根拠 | 優先度 | 依存 | 完了条件 |
+|---|---|---|---|---|---|
+| R-1 | FW laneの候補生成が基板向け探索の流用である | `explore_firmware_candidates(...)`は`explore_board_candidates(...)`へlane_idとartifact_kindだけを差し替えて委譲しており、候補次元も評価前提も基板pipeline側と共有する。FW固有のremediation（未登録action、pin function不整合、capability宣言不足）に対して候補を絞り込めない | 中 | Q-3、Q-8 | FW pipelineの却下predicateとcapability registryの宣言だけを入力とするFW専用生成器を設け、宣言された次元（`gpio_assignment`とFW設定次元）に限って候補を列挙する。基板側の配置・回転次元を候補へ含めず、宣言不足は候補生成ではなく必要宣言のL3提示として返す |
+| R-2 | 初期配置の決定論的テストがホストのKiCad footprint libraryへ依存する | `tests/core/test_decoupling_placement.py`はpinned footprint libraryが無い環境で全caseをskipし、開発ホストではP-2の回帰が検出されない | 中 | P-2 | pad座標を宣言した最小fixtureで配置解と距離判定を回帰させ、実libraryを要するcaseはdigest固定container jobで実行する。libraryの有無で判定が変わる経路をskipで隠さない |
+| R-3 | FW laneの却下から復帰までの実測記録が無い | 14.15はFW laneの復帰宣言とEvidence生成を追加したが、[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)にFW却下からの復帰実測が無い | 低 | R-1 | FW laneの却下から復帰までをdigest固定containerで実測し、round、候補ID、変更subject、再実行laneを追記する |
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -482,3 +494,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 13. O-1〜O-13（宣言経路解消後の`test5`実測）。O-1（`run_tool`のtimeout引数化）とO-9（pass予算既定の単一化）は基板lane到達の前提であり最優先。O-10（FW laneのGD1固定解消）とO-11（projection guardの誤検出と迂回）も同順位で扱う。次にO-2（container起動前のホスト資源検査）、O-5・O-4（一括preflightと語彙の是正）を扱う。O-3・O-6〜O-8は運用と手順の整備である。O-12（筐体laneと発注policyのGD1固定解消）はO-10と同順位で扱い、O-13（rationale検査の対象解決）はO-4と同時に扱う。
 14. P-1〜P-4（多コアVPS実測）。P-1（install doctorのESP-IDF判定）は本変更で解消済み。次にP-2（初期配置のdecoupling制約）を扱い、P-4（FW laneのEvidence生成）はO-10の後続、P-3は表示の是正である。
 15. Q-1〜Q-10（却下からの復帰・反復経路）。Q-4（探索後のrationale更新）とQ-5（spec駆動の作り直し）は、復帰経路をend-to-endで閉じるための前提であり最優先。次にQ-3（remediation由来の候補生成）とQ-2（会話経路からの起動）を扱う。実測では探索段を起動しても候補が書き込みに至らないため、起動の既定化より候補生成の是正が先である。Q-1（laneへの連結）はM-1の後続として広げ、Q-10（capability registryの宣言追加）はO-10の後続として扱う。Q-6・Q-7・Q-8は反復入口の整備、Q-9は診断の拡張である。
+16. R-1〜R-3（14.15実装後に残るFW lane候補生成と配置テスト）。R-1（FW専用の候補生成器）はFW laneの復帰を宣言された次元だけで閉じるために先に扱う。R-2（配置テストの環境非依存化）はP-2の回帰検出を開発ホストへ戻す。R-3はFW復帰の実測記録である。
