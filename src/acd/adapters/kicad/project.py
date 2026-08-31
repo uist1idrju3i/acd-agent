@@ -185,16 +185,20 @@ def write_project(
     width_requirements = derive_net_widths(lane, profile_minimum)
     netclasses = group_netclasses(width_requirements)
     settings = _project_settings(project.name, lane.board, profile, netclasses)
-    project.write_text(json.dumps(settings, sort_keys=True) + "\n")
+    project.write_text(json.dumps(settings, sort_keys=True) + "\n", encoding="utf-8")
     custom_rules = _custom_rules(profile)
     dru_path = out_dir / f"{name}.kicad_dru"
     if custom_rules:
-        dru_path.write_text(custom_rules)
+        dru_path.write_text(custom_rules, encoding="utf-8")
     elif dru_path.exists():
         dru_path.unlink()
-    (out_dir / "sym-lib-table").write_text(_lib_table("sym", symbol_libs))
-    (out_dir / "fp-lib-table").write_text(_lib_table("fp", footprint_libs))
-    bom.write_text(bom_csv(lane))
+    (out_dir / "sym-lib-table").write_text(
+        _lib_table("sym", symbol_libs), encoding="utf-8"
+    )
+    (out_dir / "fp-lib-table").write_text(
+        _lib_table("fp", footprint_libs), encoding="utf-8"
+    )
+    bom.write_text(bom_csv(lane), encoding="utf-8")
 
     return ProjectFiles(
         root=out_dir,

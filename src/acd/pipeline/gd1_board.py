@@ -1011,7 +1011,7 @@ def run_pipeline(
     if route_convergence_state != "timed_out":
         try:
             parsed_routes = parse_ses(
-                ses_path.read_text(),
+                ses_path.read_text(encoding="utf-8"),
                 minimum_width_mm=lane.board.min_track_mm,
             )
         except Exception as exc:
@@ -1060,7 +1060,7 @@ def run_pipeline(
     mark_stage(4)
 
     routes = parsed_routes or parse_ses(
-        ses_path.read_text(),
+        ses_path.read_text(encoding="utf-8"),
         minimum_width_mm=lane.board.min_track_mm,
     )
     routing_summary_path = out_dir / "routing-summary.json"
@@ -1078,10 +1078,11 @@ def run_pipeline(
             indent=2,
             sort_keys=True,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     routed_board = inject_routes(
-        project.board.read_text(),
+        project.board.read_text(encoding="utf-8"),
         routes,
         project.board_projection.net_numbers,
         lane.board.via_diameter_mm,
@@ -1116,8 +1117,11 @@ def run_pipeline(
     converged_iteration: int | None = None
     for iteration in range(1, max_iterations + 1):
         iteration_board = iteration_dir / f"{name}-{iteration}.kicad_pcb"
-        iteration_board.write_text(routed_board)
-        (iteration_dir / f"{name}-{iteration}.kicad_pro").write_text(project.project.read_text())
+        iteration_board.write_text(routed_board, encoding="utf-8")
+        (iteration_dir / f"{name}-{iteration}.kicad_pro").write_text(
+            project.project.read_text(encoding="utf-8"),
+            encoding="utf-8",
+        )
         if dru_source.is_file():
             (iteration_dir / f"{name}-{iteration}.kicad_dru").write_text(
                 dru_source.read_text(encoding="utf-8"),
@@ -1299,8 +1303,11 @@ def run_pipeline(
     routed_dir = out_dir / "routed"
     routed_dir.mkdir(parents=True, exist_ok=True)
     routed_path = routed_dir / f"{name}.kicad_pcb"
-    routed_path.write_text(routed_board)
-    (routed_dir / f"{name}.kicad_pro").write_text(project.project.read_text())
+    routed_path.write_text(routed_board, encoding="utf-8")
+    (routed_dir / f"{name}.kicad_pro").write_text(
+        project.project.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
     if dru_source.is_file():
         (routed_dir / f"{name}.kicad_dru").write_text(
             dru_source.read_text(encoding="utf-8"),
@@ -1543,7 +1550,8 @@ def run_pipeline(
     except CplBasisError as exc:
         cpl_basis_report = exc.report
         cpl_basis_path.write_text(
-            json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
         )
         unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
         dfm_report = run_dfm(
@@ -1565,7 +1573,8 @@ def run_pipeline(
         dfm_report["status"] = "fail"
         dfm_path = fab_dir / "dfm-report.json"
         dfm_path.write_text(
-            json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
         )
         failure_package: dict[str, object] = {
             "schema_version": "0.1",
@@ -1581,7 +1590,8 @@ def run_pipeline(
             "unknowns": unknowns,
         }
         (fab_dir / "fab-package.json").write_text(
-            json.dumps(failure_package, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            json.dumps(failure_package, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
         )
         raise
     cpl_path.write_text(jlcpcb_cpl_csv(resolved_pos_rows, fitted), encoding="utf-8")
@@ -1596,7 +1606,8 @@ def run_pipeline(
         set(existing_rotation_unknowns).union(rotation_unknowns)
     )
     cpl_basis_path.write_text(
-        json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        json.dumps(cpl_basis_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
     cross_validate_cpl(
         cpl_path,
@@ -1684,7 +1695,10 @@ def run_pipeline(
     }
     dfm_report["routing_width"] = width_evidence
     dfm_path = fab_dir / "dfm-report.json"
-    dfm_path.write_text(json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    dfm_path.write_text(
+        json.dumps(dfm_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     print(
         f"[9/12] DFM report written ({dfm_report['status']}; "
         f"{len(cast(list[object], dfm_report['findings']))} findings)"
@@ -1778,7 +1792,8 @@ def run_pipeline(
     }
     order_readiness_path = fab_dir / "order-readiness.json"
     order_readiness_path.write_text(
-        json.dumps(order_readiness, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        json.dumps(order_readiness, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
     manifest["status"] = order_readiness["status"]
     cast(dict[str, object], manifest["gates"])["order_readiness"] = order_readiness["status"]
@@ -1793,7 +1808,8 @@ def run_pipeline(
     )
     package_path = fab_dir / "fab-package.json"
     package_path.write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
     print("[10/12] manufacturing package written")
     mark_stage(11)
@@ -1973,7 +1989,9 @@ def run_pipeline(
             else normalized_hash(path)
         )
     manifest_path = out_dir / "hashes.json"
-    manifest_path.write_text(json.dumps(hashes, indent=2, sort_keys=True) + "\n")
+    manifest_path.write_text(
+        json.dumps(hashes, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(f"[12/12] hash manifest: {manifest_path}")
     mark_stage(12)
     if timing_recorder is not None:

@@ -447,10 +447,10 @@ counterparty、通貨、必須category、明細合計を満たし、OrderScope�
 
 ```bash
 uv run python scripts/aggregate_order_total.py \
-  --quote-record fixtures/contracts/valid/quote-order.json \
-  --order-scope fixtures/contracts/valid/order-scope.json \
+  --quote-record fixtures/contracts/valid/quote-order-golden-design-1.json \
+  --order-scope fixtures/contracts/valid/order-scope-golden-design-1.json \
   --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
-  --target-revision r12 \
+  --target-revision r1 \
   --evaluated-at 2026-08-14T00:00:00Z \
   --output out/order-total.json
 ```
@@ -504,8 +504,8 @@ fab profileを含む全入力が揃わない場合もfail-closedになる。
 uv run python scripts/run_design_loop.py \
   --fixture fixtures/golden-design-1 \
   --out-root out \
-  --quote-record fixtures/contracts/valid/quote-order.json \
-  --order-scope fixtures/contracts/valid/order-scope.json \
+  --quote-record fixtures/contracts/valid/quote-order-golden-design-1.json \
+  --order-scope fixtures/contracts/valid/order-scope-golden-design-1.json \
   --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
   --policy plugins/acd/hooks/order-policy.json \
   --evaluated-at 2026-08-14T00:00:00Z
@@ -514,10 +514,11 @@ uv run python scripts/run_design_loop.py \
 この場合、lane planから導出した`out/order-total.json`へ集計結果を書き、直後の
 order-readinessがそのdocumentを読み込む。集計はL2の決定論的処理であり、合格判定や
 authoritative Evidenceを生成しない。quote取得と実発注はこのloopの責務ではない。
-なお、`fixtures/contracts/valid/order-scope.json`と`quote-order.json`の`target_revision`は
-`r12`、GD1の`graph.json`は`r1`であるため、この例をそのまま実行すると
-`OrderTotalError: order scope target revision does not match`でfail-closedする。入力を
-対象graphのrevisionへ整合させてから、order-total集計とpre-order gateを任意段として実行する。
+この例はGD1の`graph.json`と整合する`target_revision: r1`のfixtureを使用する。
+`fixtures/contracts/valid/order-scope.json`と`quote-order.json`はcontract schema向けの
+`r12`例であり、GD1整合ではない。対象graphと異なるrevisionの入力は
+`OrderTotalError: order scope target revision does not match`でfail-closedする。この検査は
+緩めず、order-total集計とpre-order gateはquote／order scope入力時のみの任意段として実行する。
 
 ### 契約registryとparts catalogの追加
 

@@ -183,7 +183,7 @@ def run_pipeline(
     print(f"[4/5] QEMU virtual run finished (version {qemu.version()}): {result.log_path}")
     print(f"       bounded virtual run {result.termination_condition()}")
 
-    log = result.log_path.read_text(errors="replace")
+    log = result.log_path.read_text(encoding="utf-8", errors="replace")
     assert_virtual_log_ok(
         log,
         target_revision=revision,
@@ -242,7 +242,9 @@ def main() -> int:
     except Exception as exc:
         print(f"PIPELINE FAILED: {exc}", file=sys.stderr)
         return 1
-    (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (args.out / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
     print("PIPELINE PASSED")
     return 0
 

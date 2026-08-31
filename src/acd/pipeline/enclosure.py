@@ -264,7 +264,9 @@ def _run_pipeline(
         created_at=datetime.now(UTC),
     )
     evidence_path = out_dir / "evidence-mechanical.json"
-    evidence_path.write_text(evidence.model_dump_json(indent=2) + "\n")
+    evidence_path.write_text(
+        evidence.model_dump_json(indent=2) + "\n", encoding="utf-8"
+    )
     summary: dict[str, object] = {
         "step_path": str(projection.shell_step_path),
         "shell_step_path": str(projection.shell_step_path),
@@ -331,7 +333,9 @@ def main() -> int:
     finally:
         timing.finish_open()
         write_timing_record(args.out, timing)
-    (args.out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+    (args.out / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
     if summary["authoritative"]:
         print("PIPELINE PASSED (authoritative container execution)")
     else:

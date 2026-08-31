@@ -85,10 +85,11 @@ ESP-IDF v6.0.2ビルドとQEMU 9.2.2実行まで到達し、`measurement_conditi
    `not_converged`でfail-closedになる（envelopeの`measurement_conditions`は
    `headless; max 3 passes; max 1 router threads`）。ゲートの誤りではなく既定値の差であり、
    loop経路から発注可否へ到達させる場合はrouter pass budgetを明示する必要がある。
-2. order-total集計へ渡せる現行revision向けquote recordが存在しない。
+2. order-total集計へ渡せる現行revision向けquote recordが存在しなかった。
    `fixtures/contracts/valid/order-scope.json`は`target_revision`が`r12`、GD1 graphは`r1`で
-   あるため契約不一致でfail-closedになる。実revisionのquote recordはsupplier接続なしには
-   得られない（M-3）。ダミーquoteは作成していない。
+   あるため契約不一致でfail-closedになった。この記録を受け、GD1向けの`r1`整合fixtureを
+   追加し、例示commandと回帰testを更新した。contract schema向けの既存`r12` fixtureは変更せず、
+   対象graphと異なるrevisionの入力をfail-closedする検査も維持している。
 
 ## 5. GD1 pipelineのhost実行（provisional）
 
@@ -711,18 +712,19 @@ qemu 0.05 GiBである。9.2の最低・推奨スペックは変更しない。R
 
 acd-agent単体でのVibeBBは未達である。ただし、自動発注と実機測定はscope上の将来機能・
 非対象であり、実発注未実行や実機measured Evidence未取得は未達理由に含めない。今回の
-未達理由は、U-1の生成物reload停止、U-3のrevision不整合によるorder-total停止、
-U-4の新規spec入口停止、GUI会話がT-3のままであることである。T-1が未解消のため復帰の
+未達理由は、実測時点ではU-1の生成物reload停止とU-3のrevision不整合によるorder-total停止が
+あったが、今回の実装でU-1／U-3は解消済みである。残る理由はU-4の新規spec入口停止、
+GUI会話がT-3のままであることなどである。T-1が未解消のため復帰の
 勝者確定と復帰後の基板lane通過は今回の対象外であり、製造提出データの品質判定もU-5として残る。
 QEMUのFW実行はvalidation laneとして維持し、physical Evidenceへ昇格させない。
 
 ### 12.6 気づきと改善提案
 
 1. 生成物の読み書きは環境のlocaleに依存させず、生成物を読み書きする経路で
-   `encoding="utf-8"`を明示すべきである（U-1）。
+   `encoding="utf-8"`を明示する必要があり、U-1で実装済みである。
 2. 提出可能品質の判定を発注集計から切り離すと、発注しない利用者にも「工場へ出せる状態か」を
    1つの判定で読める（U-5）。
 3. 新規specの入口はdecoupling制約を満たす配置生成が実質の関門で、ここが通らない限り
    会話からの新規設計は始まらない（U-4／P-2）。
 4. 例示commandは対象graphのrevisionと整合した入力に揃え、そのまま実行できる状態を
-   保つべきである（U-3）。
+   保つ必要があり、GD1向けfixtureと回帰testでU-3を解消した。

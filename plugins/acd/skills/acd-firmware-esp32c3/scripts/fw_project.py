@@ -358,14 +358,19 @@ def write_firmware_project(
     main_dir = root / "main"
     main_dir.mkdir(parents=True, exist_ok=True)
 
-    (root / "CMakeLists.txt").write_text(_ROOT_CMAKE.format(name=name))
-    (root / "sdkconfig.defaults").write_text(_SDKCONFIG_DEFAULTS)
-    (main_dir / "CMakeLists.txt").write_text(_MAIN_CMAKE)
+    (root / "CMakeLists.txt").write_text(
+        _ROOT_CMAKE.format(name=name), encoding="utf-8"
+    )
+    (root / "sdkconfig.defaults").write_text(_SDKCONFIG_DEFAULTS, encoding="utf-8")
+    (main_dir / "CMakeLists.txt").write_text(_MAIN_CMAKE, encoding="utf-8")
     pins_header = main_dir / "acd_pins.h"
-    pins_header.write_text(render_pins_header(lane, target_revision, settings, plan))
+    pins_header.write_text(
+        render_pins_header(lane, target_revision, settings, plan),
+        encoding="utf-8",
+    )
     main_source = main_dir / "acd_main.c"
     source = _render_main_source(lane, settings, plan, graph_id)
-    main_source.write_text(source)
+    main_source.write_text(source, encoding="utf-8")
     return FirmwareProject(
         name=name, root=root, pins_header=pins_header, main_source=main_source
     )
