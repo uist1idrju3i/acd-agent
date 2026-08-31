@@ -536,6 +536,55 @@ authoritative Evidenceを生成しない。
 自動発注と実機測定は将来機能・非対象であり、未実行をVibeBB未達の理由にしない。一方、
 製造提出データの生成と品質判定は現行必須で、L1の決定論的検査として維持する。
 
+## V. 第6回実機実測（2026-08-31、新規VPS・新規workspace）で残った不足
+
+新規VPS（8コア／16GB）へ新規OpenHands workspaceを作成し、GUI会話から`/acd:init`と
+`/acd:vibebb-loop`を実行したうえで、digest固定containerでGD1フルloopと新規spec生成を
+実行した実測（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 13節、
+[`examples/golden-design-1-vps-20260901/`](../examples/golden-design-1-vps-20260901/)）で
+判明した不足である。GD1は要件検証から製造提出判定・authoritative Evidence検証まで
+端から端まで通過した一方、新規設計は最初のlaneで止まった。V-7〜V-10は
+[`improvement-notes.md`](../examples/golden-design-1-vps-20260901/report/improvement-notes.md)の
+D-1〜D-4に対応する。ロードマップ上はV-1、V-3、V-5〜V-7、V-9を[`roadmap.md`](roadmap.md)の
+14.20、V-4、V-8、V-10を15.17〜15.19に位置付ける。V-2はOpenHands GUI側の課題であり、
+本リポジトリの実装対象外として記録だけを残す。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| V-1 | container内のEDA資材をhostへ持ち出す操作がhookで止まらない | GUI会話はhostにKiCad symbolが無い状態を回避するため、locked container内の`/usr/share/kicad/symbols`・`footprints`をtarでhostの`/tmp`へ取り出し、成功した。host実行はprovisionalという別の防御でEvidence権限は守られたが、持ち出し自体は`PreToolUse` hookを通過した | 中 | 4.1、6.4 | container→hostのEDA資材持ち出しをhookで拒否するか、host実行時にcontainer由来資材の混在を検出してprovisional理由へ記録する。authoritative経路の定義は変えない |
+| V-2 | GUIのplugin追加pickerがinstalled storeを反映しない | installed APIは`acd`（`enabled=true`、revision一致）を返すのに、GUIの追加pickerは`No available plugins.`を表示する。導入確認と再導入がGUIから不可視で、検証のたびにAPI直叩きになる | 低 | ADR-0036 | OpenHands側の課題として記録する。本リポジトリでは`/acd:init`のbootstrap recordを一次資料として扱い、GUI表示に依存しない |
+| V-3 | 会話の最終報告がL3記録だけで合格を述べる | GUI会話の最終報告は`pass_evidence: false`のL3記録（loop summary、timing record）だけを根拠に、発注可能な状態であると述べた。authoritative Evidence検証は会話内で実行されていない | 高 | S-5、T-4 | commandの報告契約へauthoritative Evidence検証の実行と結果提示を必須項目として書き、`report_progress.py`のdigestへEvidence未検証を明示する行を持たせる。未検証時に合格側の語を使わせない文面規則をcommandへ置く |
+| V-4 | 例示commandが必ずquote期限切れになる | `docs/operations.md`のGD1発注集計例は7か所すべて`--evaluated-at 2026-08-14T00:00:00Z`だが、GD1のquote fixtureは`valid_until: 2025-01-17T09:00:00Z`であり、文書どおりに実行すると`QuoteReadError: quote has expired`で必ず停止する（実測2回とも同一） | 中 | U-3 | 例示`--evaluated-at`をquoteの有効期間内へ揃え、例示とfixtureの期限整合をdocs検証で機械的に固定する。quote有効期限と期限検査の閾値は緩めない |
+| V-5 | 部分失敗時にcontainer成果物を回収できない | `scripts/run_in_workspace.py`の`_execute_and_download()`はcontainer commandがexit 0のときだけdownloadする。loopが途中でfail-closedすると生成済みEvidenceと製造データがhostへ降りず、`verify_authoritative_evidence.py`にかけられない。本実測では、container側commandの末尾でtarを作り`exit 0`させ、内側のexit codeをstdoutへ`newspec_rc=1`として残す回避策を取った。この回避策は失敗を成功として読ませうるため、定着させてはならない | 中 | T-5、O-2 | 非ゼロ終了時も宣言済みdownloadを試み、判定はcontainerのexit codeで維持する経路を`run_in_workspace.py`へ設ける。部分downloadを合格側へ昇格しない |
+| V-6 | 新規specはsilkscreen宣言の不足で止まり、次に何を宣言すべきか分からない | 新規spec（`examples/mini-blink-dongle-20260825/fixture/spec.json`）はfixture生成とdecoupling配置まで成功したのち、`silkscreen-resolve`で`GraphExtractionError: silkscreen declarations are missing (fail-closed)`となった。`next_step_action`は「graphを調整して再実行せよ」であり、`mechanical.silk_text`の必須属性名を返さない。受け口（`DesignFixtureSpec.silk_texts`／`silk_graphics`）と必須属性宣言（`lane_preflight`の`LANE_REQUIREMENTS`）は既に存在するが、loopはpreflightを実行しない | 高 | J-2、A-2、Q-4 | fixture生成とloop入口で実行予定laneの`run_lane_preflight`を評価し、不足するnode kind・数・属性名を列挙して`next_step_action`へspecへ追記すべき宣言を具体名で返す。宣言の自動補完は行わず、silkscreenゲートの閾値と必須性は変更しない |
+| V-7 | `timing-record.json`の`duration_seconds`をwall-clockとして読むと誤る | `duration_seconds`は26 stageの合計であり、lane並列のためwall-clock（Run N 259秒）より大きい（Run N 473.4秒）。13.7は当初この合計をGUI経路のwall-clockとしてCLIの248秒と比較し、「GUI経路は約2倍遅い」という誤った読みになっていた | 低 | O-5 | timing recordへ`wall_clock_seconds`（loop全体の開始・終了時刻）を明示的に持たせ、stage duration合計と区別する。いずれもL3観測であり合否権限を持たない |
+| V-8 | 資源計測wrapperが特定checkout前提で固定されている | 計測wrapperはcheckoutパス、download対象、image指定が固定で、別workspaceでの再実行にコピー改変が必要だった | 低 | 15.13 | checkout path、image digest、download対象、計測間隔を引数で受ける計測wrapperをrepository内へ置く。使い捨てshell scriptを書く状態を解消し、実測条件の再現性を上げる |
+| V-9 | 会話exportから`acd_*` tool未登録の判定材料が読み取りづらい | 会話exportには登録tool一覧（`ConversationStateUpdateEvent`の`value.tools`）が含まれるが、それがACD toolの不在を意味するかの判断にACD側の知識が要る | 低 | T-3、S-3 | `verify_acd_tool_registration.py --command`の結果を機械可読JSONとしてworkspaceへ保存し、第三者が一次資料から入口の不成立を確認できるようにする |
+| V-10 | ESP-IDF buildツリーが成果物回収の大半を占める | FW laneの出力は約207 MiBで、その大半（約203 MiB）は再生成可能なESP-IDF buildツリーである。収録では`flash.bin`、`qemu-serial.log`、Evidence、プロジェクト入力だけを残した | 低 | U-5 | lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言し、回収・配布時に何を残すかを決定論的に決められるようにする。成果物の必須性判定は変更しない |
+
+V-6は新規設計の唯一の停止点であり、Devin不在でVibeBBを1周させるうえで最優先である。
+V-3とV-9は、会話経路がL3記録だけで合格を述べないための報告契約と一次資料である。
+V-1、V-5、V-7、V-8、V-10は防御の深さと検証可能性の項目であり、いずれも
+閾値、ゲート条件、fail-closed境界を変更しない。
+
+## W. GD1非依存の達成条件
+
+「GD1が無くても新規設計をVibeBBできるか」を判定可能にするための条件である。GD1 fixtureは
+regressionのpositive controlとして維持し、削除は目的にしない。解消すべきはGD1が
+「唯一全ゲートを通る設計」である状態である。ロードマップ上は[`roadmap.md`](roadmap.md)の
+14.21で扱う。
+
+| 項目 | 内容 | 現状 | 依存 | 達成条件 |
+|---|---|---|---|---|
+| W-1 | GD1以外の設計が全laneを通過する | 実測で全laneを通過した設計はGD1だけである。新規specはsilkscreen宣言不足で停止する（V-6） | V-6、J-2 | 宣言完備の非GD1 fixtureを1件追加し、要件検証→silkscreen→基板→筐体→FW→製造提出判定→authoritative Evidence検証をdigest固定containerで通す |
+| W-2 | 既定値・既定fixture・既定命名のGD1固定が残っていない | 14.6で命名・FW設定・policy参照は宣言由来へ一般化した。GD1固定の残存箇所は棚卸しされていない | 14.6 | GD1へ解決される既定経路を洗い出してgraph_idと宣言由来へ置換し、positive control用途で残す参照は用途を明示宣言する |
+| W-3 | 設計述語の適用条件が機能ブロック宣言だけで決まる | 14.2で契約registryへの機能ブロック追加は可能になったが、GD1固有のnet名・refdesを前提とする分岐が残っていないことは検査されていない | 14.2 | 適用条件が宣言由来であることを機械的に検査し、GD1前提の分岐をdriftとして検出する |
+| W-4 | CIのauthoritative gateがGD1だけに依存しない | `container-gates`はGD1のlaneとEvidenceだけを検証する | 6.4、W-1 | 非GD1設計のlaneを`container-gates`へ追加し、GD1と同じ判定基準でauthoritative Evidenceを検証する |
+
+W-1〜W-4を満たした時点で、GD1はVibeBB成立の必要条件ではなくなる。その後もGD1は
+positive controlとして維持し、GD1の判定・Evidence・正規化hashが変化しないことを
+非GD1設計の追加によって壊さないことを回帰の条件とする。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -550,6 +599,9 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
 | G-1／G-2 | 達成。`/acd:init`とworkspace指定doctorがcloneから健全性検査までをfail-closedに実行する |
 | Q-4／Q-5 | 却下後に設計入力を作り直す手段が宣言tool経路に無く、rationaleの整合回復とfixtureの再生成が生JSON編集かファイル削除になる。今回のVPS実測でも新規設計の2周目は宣言経路から開始できなかった |
+| V-6 | 新規specはsilkscreen宣言不足で最初のlaneで停止し、不足宣言の特定とspecへの追記が人手になる。第6回実測でも新規設計はsilkscreen barrierを越えられなかった |
+| V-3／T-3 | GUI会話に`acd_*` toolが登録されず、決定論的CLIへの倒し方とauthoritative Evidence検証の実行判断が人手になる。報告契約が無いため、会話はL3記録だけで合格を述べ得る |
+| V-5 | fail-closedしたrunからの成果物回収が、人手のwrapper回避策になる。回避策は失敗を成功として読ませうる |
 
 ## 優先順位（VibeBB単体成立に効く順）
 
@@ -571,3 +623,5 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 16. R-1〜R-3（14.15実装後に残るFW lane候補生成と配置テスト）。R-1（FW専用の候補生成器）はFW laneの復帰を宣言された次元だけで閉じるために先に扱う。R-2（配置テストの環境非依存化）はP-2の回帰検出を開発ホストへ戻す。R-3はFW復帰の実測記録である。
 17. S-1〜S-5（14.15実装後の実機実測）。S-1（候補評価前のrationale更新）は復帰経路が候補を1件も確定できない直接原因であり最優先。次にS-4（catalogのlibrary資材宣言）で新規設計の入口を通し、S-3（GUI配布形態へのtool登録）で会話経路を宣言どおりにする。S-2は予算の実効化、S-5は進行表示である。
 18. T-1〜T-5（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3の未了部分と同一の配布形態の論点、T-4は表示の統合、T-5はtransport失敗時の出力保持である。
+19. V-1〜V-10（第6回実機実測）。V-6（不足宣言の列挙）はDevin不在で新規設計を1周させるための唯一の停止点であり最優先。次にV-3（報告契約）とV-9（tool登録の一次資料）を同順で扱い、会話経路がL3記録だけで合格を述べないようにする。V-5（失敗時の回収）とV-7（wall-clock明示）は検証可能性、V-1は防御の深さ、V-4・V-8・V-10は運用と手順の整備である。V-2はOpenHands側の課題として記録に留める。
+20. W-1〜W-4（GD1非依存の達成条件）。W-1（非GD1設計の全lane通過）はV-6の解消を前提とし、次にW-2（既定値のGD1固定の棚卸し）とW-3（述語適用条件の宣言化検査）を扱う。W-4（CIへの非GD1 lane追加）はW-1の後続であり、達成後もGD1はpositive controlとして維持する。
