@@ -10,7 +10,12 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.cad_normalize import CadNormalizationError, normalize_3mf, normalize_step
+from acd.core.cad_normalize import (
+    CadNormalizationError,
+    normalize_3mf,
+    normalize_step,
+    normalize_stl,
+)
 from acd.openhands.tools.probe import probe_all, probe_executable
 
 
@@ -111,3 +116,46 @@ def test_3mf_normalization_fails_closed_without_model_entry() -> None:
         archive.writestr("not-a-model.txt", b"unexpected")
     with pytest.raises(CadNormalizationError):
         normalize_3mf(output.getvalue())
+
+
+def test_stl_normalization_ignores_name_line_endings_and_trailing_whitespace() -> None:
+    first = (
+        b"solid first\r\n"
+        b"facet normal 0 0 1  \r\n"
+        b"outer loop\r\n"
+        b"vertex 0 0 0\r\n"
+        b"vertex 1 0 0\r\n"
+        b"vertex 0 1 0\r\n"
+        b"endloop\r\n"
+        b"endfacet\r\n"
+        b"endsolid first\r\n"
+    )
+    second = (
+        b"solid second\n"
+        b"facet normal 0 0 1\n"
+        b"outer loop\n"
+        b"vertex 0 0 0\n"
+        b"vertex 1 0 0\n"
+        b"vertex 0 1 0\n"
+        b"endloop\n"
+        b"endfacet\n"
+        b"endsolid second\n"
+    )
+    assert first != second
+    assert normalize_stl(first) == normalize_stl(second)
+    assert normalize_stl(first).startswith(b"solid acd\n")
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        b"\x00" * 80,
+        b"solid acd\nfacet normal 0 0 1\nendsolid acd\n",
+        b"solid acd\nfacet normal 0 0 1\nouter loop\n"
+        b"vertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\n"
+        b"endloop\nendfacet\n",
+    ],
+)
+def test_stl_normalization_fails_closed(data: bytes) -> None:
+    with pytest.raises(CadNormalizationError):
+        normalize_stl(data)

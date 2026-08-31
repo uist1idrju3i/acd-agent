@@ -957,6 +957,10 @@ T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論�
 U-1はreload経路を解消済みであり、残り作業として筐体・FW・fab出力などreload経路以外の生成物読み書きにも
 非UTF-8 locale下の回帰を広げ、新規コードがencodingを明示しないことを検出する静的guardを検証段へ追加する。
 
+U-2は筐体projectionへASCII STL出力を追加し、STLを正規化、provenance／manifestへ登録し、
+正規化hashをEvidenceへ含め、3MFとともに独立reloadして部品数、bbox、三角形数、体積を検査したことで
+解消済みである。既存のSTEP部品・組立検査は維持している。U-1の残作業、U-4、U-5は未了である。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、
@@ -1335,7 +1339,7 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （多コアVPS実測）T-4 失敗理由と進行のL3 digest統合 | 14.18 |
 | （多コアVPS実測）T-5 transport失敗時のcommand出力保持 | 14.18 |
 | （多コアVPS実測・達成）U-1 生成物の読み書きのUTF-8明示と非UTF-8 locale回帰 | 14.19 |
-| （多コアVPS実測）U-2 筐体STL出力とSTEP／3MF同等の検査 | 14.19 |
+| （多コアVPS実測・達成）U-2 筐体STL出力とSTEP／3MF同等の検査 | 14.19 |
 | （多コアVPS実測・達成）U-3 例示commandのquote／order入力のrevision整合 | 14.19 |
 | （多コアVPS実測）U-4 decoupling制約を満たすfixture配置探索 | 14.19 |
 | （多コアVPS実測）U-5 製造提出データの独立L1品質判定 | 14.19 |

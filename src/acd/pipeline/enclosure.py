@@ -16,6 +16,7 @@ from acd.adapters.cad.mechanical import (
     EnclosureArtifactReport,
     MechanicalGateReport,
     measure_enclosure_artifacts,
+    measure_enclosure_mesh_artifacts,
     run_mechanical_gates,
 )
 from acd.adapters.cad.project import CadProjection, project_enclosure
@@ -142,6 +143,12 @@ def _run_pipeline(
         raise RuntimeError("mechanical pipeline stage results are unknown (fail-closed)")
     if not _is_enclosure_artifact_report(artifact_report):
         raise RuntimeError("mechanical pipeline stage results are unknown (fail-closed)")
+    mesh_report = measure_enclosure_mesh_artifacts(
+        model_3mf_path=projection.model_path,
+        mesh_stl_path=projection.mesh_stl_path,
+        assembly_report=artifact_report,
+        runner=runner,
+    )
     visual_projections = generate_mechanical_visual_projections(
         projection=projection,
         lane=lane,
@@ -247,6 +254,24 @@ def _run_pipeline(
             ),
             EvidenceClaim(
                 subject_node=subject_node,
+                property="stl_measured_volume_mm3",
+                value=mesh_report.stl_volume_mm3,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node=subject_node,
+                property="stl_triangle_count",
+                value=mesh_report.stl_triangle_count,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node=subject_node,
+                property="model_part_count",
+                value=mesh_report.model_part_count,
+                verified=True,
+            ),
+            EvidenceClaim(
+                subject_node=subject_node,
                 property="cad_artifact_manifest_hash",
                 value=manifest_hash,
                 verified=True,
@@ -273,6 +298,7 @@ def _run_pipeline(
         "lid_step_path": str(projection.lid_step_path),
         "assembly_step_path": str(projection.assembly_step_path),
         "model_path": str(projection.model_path),
+        "mesh_stl_path": str(projection.mesh_stl_path),
         "artifact_manifest_path": str(projection.artifact_manifest_path),
         "artifacts": artifact_manifest["artifacts"],
         "normalized_output_hash": projection.envelope.output_hash,
@@ -291,6 +317,11 @@ def _run_pipeline(
         "shell_bbox_mm": artifact_report.shell_bbox_mm,
         "lid_bbox_mm": artifact_report.lid_bbox_mm,
         "assembly_bbox_mm": artifact_report.assembly_bbox_mm,
+        "stl_measured_volume_mm3": mesh_report.stl_volume_mm3,
+        "stl_triangle_count": mesh_report.stl_triangle_count,
+        "model_bbox_mm": mesh_report.model_bbox_mm,
+        "stl_bbox_mm": mesh_report.stl_bbox_mm,
+        "model_part_count": mesh_report.model_part_count,
         "visual_projections": "visual-projections-mechanical.json",
         "visual_projection_identity_hash": visual_projections.identity_hash,
         "visual_projection_canonical_hash": visual_projections.canonical_hash,

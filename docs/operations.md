@@ -705,11 +705,15 @@ command未実行をsuccessとして記録する経路はない。command形式�
    `out/gd1-enclosure/enclosure-shell.step`と
    `out/gd1-enclosure/enclosure-lid.step`、組立確認専用の統合STEPとして
    `out/gd1-enclosure/enclosure-assembly.step`、2オブジェクトを保持する
-   `out/gd1-enclosure/enclosure.3mf`、全構成物の正規化hash一覧
+   `out/gd1-enclosure/enclosure.3mf`、ASCIIの
+   `out/gd1-enclosure/enclosure.stl`、全構成物の正規化hash一覧
    `out/gd1-enclosure/enclosure-artifacts.json`、および
-   `out/gd1-enclosure/evidence-mechanical.json`が生成される。部品STEPはshellまたは
+   `out/gd1-enclosure/evidence-mechanical.json`が生成される。STLは3MFとともに独立reloadされ、
+   2部品、bbox、三角形数、体積を検査する。部品STEPはshellまたは
    lidの単独ソリッドだけを含み、統合STEPは組立確認用であり、製造部品ファイルの
-   代用にはしない。構成物一覧が欠落または期待ファイルと不一致の場合はfail-closedで停止する。
+   代用にはしない。筐体projectionのadapter revisionは`p3-5-v5`、
+   formatは`STEP parts+assembly+3MF+STL+manifest`で固定する。構成物一覧が欠落または
+   期待ファイルと不一致の場合はfail-closedで停止する。
 
 6. FW Skillは会話に`firmware`、`ESP32-C3`、`ESP-IDF`、`QEMU`、`GPIO`のいずれかを
    含めて起動し、次の入口を実行させる。

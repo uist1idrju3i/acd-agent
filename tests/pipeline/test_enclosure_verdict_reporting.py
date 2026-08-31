@@ -67,3 +67,31 @@ def test_authoritative_provenance_is_reported_as_authoritative(
         {"provisional": False, "authoritative": True},
     )
     assert "authoritative container execution" in capsys.readouterr().out
+
+
+def test_enclosure_pipeline_records_mesh_artifacts(
+    tmp_path: Path,
+) -> None:
+    summary = enclosure.run_pipeline(
+        Path("fixtures/golden-design-1"),
+        tmp_path,
+        pipeline_workers=1,
+    )
+    assert str(summary["mesh_stl_path"]).endswith("enclosure.stl")
+    assert summary["stl_triangle_count"] == 6156
+    assert summary["model_part_count"] == 2
+    manifest = json.loads(
+        (tmp_path / "enclosure-artifacts.json").read_text(encoding="utf-8")
+    )
+    stl = next(
+        item for item in manifest["artifacts"] if item["role"] == "enclosure_mesh_stl"
+    )
+    evidence = json.loads(
+        (tmp_path / "evidence-mechanical.json").read_text(encoding="utf-8")
+    )
+    assert any(
+        claim["property"] == "enclosure_mesh_stl_normalized_sha256"
+        and claim["value"] == stl["normalized_sha256"]
+        for claim in evidence["claims"]
+    )
+    assert summary["stl_measured_volume_mm3"] == pytest.approx(6695.063990, abs=1e-3)
