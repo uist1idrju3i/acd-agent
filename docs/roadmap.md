@@ -811,6 +811,24 @@ tools/serverの直列publish、digest lock更新PR、registry manifest照合、�
 authoritative Evidenceが唯一の合否根拠である。実測値と運用上の注意事項は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)と[`operations.md`](operations.md)を正とする。
 
+### 14.16 FW lane専用の候補生成と配置テストの環境依存解消（R-1〜R-3）
+
+14.15で復帰経路は全laneへ連結したが、FW laneの候補生成は基板向け探索の流用であり、
+初期配置の決定論的テストはホスト側のKiCad footprint libraryに依存する。本フェーズは
+acd-agent単体でのVibeBB 1周を、FW laneと配置解決の両方で回帰可能にすることを目的とする。
+`explore_firmware_candidates(...)`は現在`explore_board_candidates(...)`へ委譲しており、
+候補評価は基板pipelineの前提（配置・回転次元、基板側remediation）を共有する。そのため
+FW固有のremediation（未登録action、pin function不整合、capability宣言不足、QEMU実行の
+前提不足）に対して候補を絞り込めず、`gpio_assignment`以外の次元を扱えない。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `explore_firmware_candidates`（現在は`explore_board_candidates`への委譲）、`enumerate_gpio_assignment_candidates`、`contracts/firmware-capability-registry.json`、`contracts/lane-recovery-declaration.json`、`firmware_evidence`のvirtual log検査、`tests/core/test_decoupling_placement.py`のfootprint library skip条件、`docker/image-digests.json`のtools image |
+| 実装 | FW lane専用の候補生成器（R-1）: FW pipelineの却下predicateとcapability registryの宣言だけを入力に、`gpio_assignment`とFW設定次元の候補を列挙し、基板側の配置・回転次元を候補に含めない。未登録actionや宣言不足は候補生成ではなく必要宣言のL3提示へ倒す。決定論的配置テストの環境非依存化（R-2）: 初期配置の解と距離判定を、pinned footprint libraryが無いホストでも実行できる固定fixture（pad座標を宣言した最小graph）で回帰させ、実libraryを要するcaseはdigest固定container jobで実行する。FW復帰の実測記録（R-3）: FW laneの却下から復帰までをdigest固定containerで実測し、`vibebb-standalone-verification.md`へround、候補ID、変更subject、再実行laneを追記する |
+| 正常系 | FW lane却下（未登録action以外の、宣言済みGPIO代替で解ける却下）から、FW専用候補生成が宣言された次元だけで候補を出し、採用候補に対してFW laneのdeterministic stageを再実行してrevision一致のauthoritative Evidenceを生成する。基板・筐体laneの判定、GD1の判定、正規化hashは変化しない |
+| negative・fail-closed | FW固有remediationが無い却下、宣言されていない次元の候補、capability registryに無いactionを前提とする候補、virtual logを欠くEvidence、revision不一致はいずれもfail-closedで停止する。QEMU由来のEvidenceを実機測定として扱わず、探索reportと診断はpass authorityを持たない。環境非依存化したテストは、libraryの有無で判定が変わる経路をskipで隠さず、containerで実行する対象として明示する |
+| 再現性 | FW候補の列挙順、候補ID、変更subject、再実行stageを宣言順で固定し、`--jobs 1`と並列で収集件数・判定・正規化hashを一致させる。footprint library非依存fixtureのpad座標と期待距離を固定値として記録し、container側テストと同じ解になることを確認する |
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、
