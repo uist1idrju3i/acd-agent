@@ -511,6 +511,23 @@ T-1は復帰経路の唯一の停止点であり、L1の判定内容ではなく
 T-2はT-1の解消後に予算を意味あるものにするための前提である。
 T-5は判定ではなく検証作業の可読性に関わる項目で、fail-closed境界は変えない。
 
+## U. scope改定と第5回実機実測（2026-08-31）で残った不足
+
+2026-08-31のscope改定により、自動発注と実機測定は将来機能・非対象とし、既存コードは
+残置したまま決定論的loopの必須段から外す。製造提出データの品質と独立検査は現行必須であり、
+本節の不足はロードマップ上の[`roadmap.md`](roadmap.md) 14.19で扱う。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| U-1 | 生成物の再読込がlocale／既定encodingに依存し、非UTF-8既定ではreloadがfail-closedする | Run Fは独立reload段で`ReloadError: golden-design-1.kicad_sch: unparsable s-expression: 'ascii' codec can't decode byte 0xc2 in position 29115: ordinal not in range(128)`となった。当該バイト列はparts catalog由来の`Bluetooth®`である。Run Hは`PYTHONUTF8=1`でreloadを通過したが、Run I／Jのmain process・既定process pool・spawn pool・build123d import後のprobeではlocale変更主体の再現に至らなかった | 高 | S-4、O-4 | 生成物を読み書きする経路で`encoding="utf-8"`を明示する。`src/acd/adapters/kicad/reload.py`を含むencoding未指定の`read_text()` 22箇所を対象にし、非UTF-8 locale（例`LC_ALL=C`）でreloadを通過する回帰testを固定する。locale変更主体の特定は未解決の事実として残し、ゲート条件・閾値・fail-closed境界は変更しない |
+| U-2 | 筐体出力にSTLがなく、3D印刷サービスへそのまま提出できる形式が不足する | Run Hで確認できた筐体出力はSTEP 3点と3MFであり、STLは存在しなかった。コード検索でも`stl`／`STL`文字列は`src`／`plugins`／`scripts`に存在しない | 中 | 11.4 | 筐体laneにSTL出力を追加し、STEP／3MFと同じ正規化hash・provenance・独立reload検査の対象にする |
+| U-3 | 文書化されたquote／order付きloop例が対象graphとrevision整合しない | Run Hはlaneを通過した後、`OrderTotalError: order scope target revision does not match`でfail-closedした。`fixtures/contracts/valid/order-scope.json`と`quote-order.json`は`r12`、`fixtures/golden-design-1/graph.json`は`r1`である | 中 | O-12 | 例の入力をrevision整合させる、またはO-12の`QuoteRecord`／`OrderScope`導出へ接続する。order集計とpre-order gateはquote／order scope入力時のみの任意段と明記し、fail-closed自体とrevision検査は緩めない |
+| U-4 | 新規specからのfixture生成が、decoupling制約とcourtyard非重複を同時に満たせず停止する | Run Kは`FixtureBuilderError: declared decoupling placement is not satisfiable: C4->U1: no candidate placement satisfies the declared decoupling distance limit without overlapping another courtyard`でfixture-generation段に停止した。library資材解決（S-4）は通過し、生成fixtureに`libraries/`と`decoupling-placement-report.json`が生成された | 中 | P-2、A-2 | fixture builderの配置探索をdecoupling目標込みに拡張し、配置順序・回転・部品の面配置を考慮する。満たせない場合は不足量と変更可能次元を機械可読に返し、宣言された距離制約は緩めない |
+| U-5 | 製造提出データの「提出可能品質」の合格条件が単一の宣言としてまとまっていない | Run Hは製造データを生成した一方、提出可否をまとめた判定がorder集計段の停止と混ざり、発注実行を行わない現行scopeでは製造データだけの合否を独立に読めなかった | 中 | O-12、ADR-0005 | Gerber一式・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・筐体STEP／3MF／STLの必須成果物一覧と、独立reload・正規化hash・DFM・幾何・profile整合検査を1つのL1判定へまとめる。order集計・発注実行から独立させ、発注しない場合も品質要件を下げない |
+
+自動発注と実機測定は将来機能・非対象であり、未実行をVibeBB未達の理由にしない。一方、
+製造提出データの生成と品質判定は現行必須で、L1の決定論的検査として維持する。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が

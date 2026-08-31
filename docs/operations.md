@@ -462,6 +462,11 @@ revision・supplier・counterparty・通貨・category不一致、明細合計�
 
 ### VibeBB設計loopの実行
 
+order-total集計とpre-order gateは、quote／order scope入力が与えられた場合のみ実行する
+任意段である。実発注と実機測定は将来機能・非対象であり、決定論的loopの必須段には含めない。
+一方、Gerber一式・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・筐体
+STEP／3MF／STLの製造提出データ出力と、その独立reload・hash・DFM・幾何検査は現行必須である。
+
 会話から要件をgraphへ反映し、設計反復と発注可否を一つの決定論的loopで進める入口は
 `/acd:vibebb-loop`である。要件差分は`--requirement`、新規fixtureのspecは
 `--fixture-spec`でloopへ渡せる。単独の`acd_compile_requirement_change`と
@@ -485,12 +490,12 @@ revision・supplier・counterparty・通貨・category不一致、明細合計�
 uv run python scripts/run_design_loop.py \
   --fixture fixtures/golden-design-1 \
   --out-root out \
-  --order-total out/order-total.json \
-  --policy plugins/acd/hooks/order-policy.json \
-  --requirement out/requirement-update.json \
+  --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
+  --jobs 4 \
   --evaluated-at 2026-08-14T00:00:00Z
 ```
 
+この主例はquote／order入力を与えず、製造提出データを含む設計・検証段までを実行する。
 既存のorder-total documentを使う場合は`--order-total`を指定する。quoteからloop内で
 生成する場合は、次のaggregation modeを使う。二つのmodeを同時に指定することはできず、
 fab profileを含む全入力が揃わない場合もfail-closedになる。
@@ -509,6 +514,10 @@ uv run python scripts/run_design_loop.py \
 この場合、lane planから導出した`out/order-total.json`へ集計結果を書き、直後の
 order-readinessがそのdocumentを読み込む。集計はL2の決定論的処理であり、合格判定や
 authoritative Evidenceを生成しない。quote取得と実発注はこのloopの責務ではない。
+なお、`fixtures/contracts/valid/order-scope.json`と`quote-order.json`の`target_revision`は
+`r12`、GD1の`graph.json`は`r1`であるため、この例をそのまま実行すると
+`OrderTotalError: order scope target revision does not match`でfail-closedする。入力を
+対象graphのrevisionへ整合させてから、order-total集計とpre-order gateを任意段として実行する。
 
 ### 契約registryとparts catalogの追加
 
@@ -1090,6 +1099,11 @@ OpenHandsを同一ホストへ同居させる場合は、常駐RSS約1.2 GiBとG
 container上限とは別枠で確保する。物理RAMは`--memory-limit`＋512 MiBがpreflightの下限であり、
 container上限8 GiBならMemTotal 8.5 GiB超が必須になる。実測でlane中のホストmem usedが
 4.2 GiBまで上がるため、12 GiB以上を推奨値とする。
+
+2026-08-31の全lane実測（Run H）はwall 236秒、host CPU peak 7.97 cores、
+host mem used peak 4.30 GiB、container peak 5.00 GiB、swap 0であった。fixture生成のみの
+Run Kはwall 42秒、container peak 2.66 GiB、swap 0であった。既存の最低・推奨スペック表は
+変更せず、これらの実測を追加の運用根拠とする。
 
 SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、

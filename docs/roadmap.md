@@ -247,6 +247,12 @@ catalogの更新運用も本フェーズの成果物とする。SDK版更新時�
 GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-1.md)の
 9章を正とする。
 
+### scope（2026-08-31）
+
+実機測定は将来機能・非対象とし、実機書き込み・機能測定を含む既存コードは残置するが、
+決定論的loopの必須段には含めない。GD1の実機measured Evidence未取得は不足として扱わず、
+仮想FW実行（QEMU）はvalidation laneとして維持するが、物理Evidenceへ昇格させない。
+
 ### 5.1 実機Evidence契約と分類
 
 | 要素 | 完了条件 |
@@ -403,6 +409,17 @@ retryはdigest固定pullとfile downloadに限り、gate実行とEvidence生成�
 C-4（CPL orientation期待値のfixture非依存化）は、部品catalog宣言と設計fixture側の
 placement確認宣言、graph_id由来のEvidence pathを使う実装として本マイルストーンの
 範囲で達成した。設計確認の無い場合はCPL属性を補わず、既存gateでfail-closedとする。
+
+### scope（2026-08-31）
+
+自動発注は将来機能・非対象とし、dry-run／real送信経路のコードは残置するが、
+決定論的loopの必須段から外す。order-total集計とpre-order gateはquote／order scope入力が
+与えられた場合のみの任意段として維持し、外部への発注副作用を持たない「ユーザーが発注判断に
+使う決定論的成果物」と位置付ける。
+
+現行必須scopeは、Gerber一式・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・
+筐体STEP／3MF／STLの製造提出データと、それらの独立reload・hash・DFM・幾何検査である。
+実発注を行わないことはこれらのファイル品質要件を下げない。
 
 ### 7.1 期限付き見積入力の取得契約（達成）
 
@@ -707,6 +724,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.13 | 実機実測で残った新規設計の不足（N-1〜N-7、N-11） | 実機OpenHands環境でGD1以外の新規設計を投入した実測で残った不足を扱う。`DesignFixtureSpec`へmechanical・silkscreen・firmware moduleの宣言を追加（N-1）、必須宣言のpreflight（N-3）、parts catalog由来のpin function展開（N-5）、Stop hookのfail-closed停止経路（N-2）、rationale coverageの生成主体検査（N-4）、要件↔topology述語（N-6）、設計反復のみのmode（N-7）、生成器による手編集上書きの防止（N-11）。判定と閾値は緩めず、未宣言・unknownを合格へ倒さない |
 | 14.14 | 宣言経路解消後の実機実測で残った不足（O-1、O-2、O-4、O-5、O-9〜O-13） | O-1、O-2、O-4、O-5、O-9、O-10、O-11、O-12、O-13を達成。FWはcapability／device registryとgraph sequenceからpinとcodeを導出し、未宣言peripheralを生成しない。筐体laneは設計非依存entrypointと機械preflightを備え、機械ノード・属性・参照・rationale coverageを一括診断する。lane preflightは`declarations_complete`／`declarations_incomplete`とL3診断契約、checked／unchecked predicate集合を記録し、rationale stop hookは対象設計を決定論的に解決する。container起動前は物理メモリ（swapを加算しない）、MemAvailable、CPU、disk、JVM heapをfail-closedで検査し、FreeRoutingの最大heapをhost／container両経路で明示する。残るのはO-12の`QuoteRecord`／`OrderScope`導出、およびO-3、O-6〜O-8の運用整備。判定と閾値は緩めず、timeout・unknown・未宣言を合格へ倒さない |
 | 14.15 | Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10） | 多コアVPS実測（2026-08-30）とその後の復帰経路のコード監査で残った不足を扱う。却下後に設計入力を決定論的に修正して反復する経路をend-to-endで閉じることが本フェーズの目的であり、Q-4（探索後のrationale更新）とQ-5（宣言された上書きによるfixture再生成）を前提として、Q-2・Q-3（会話経路からの起動とremediation由来の候補生成）、Q-1・Q-8（laneごとの復帰次元の宣言）、Q-6・Q-7・Q-9・Q-10（要件差分の拡張、bounded反復harnessの接続、診断入力の拡張、firmware capability registryへの宣言追加経路）へ広げる。設計側の不足としてP-2（初期配置のdecoupling制約）、観測側としてP-3（QEMU打ち切り表示）とP-4（FW laneのauthoritative Evidence）を含む。L1権限、閾値、fail-closed境界は変更しない |
+| 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | 第5回実機実測（2026-08-31）で確認した生成物reload、筐体出力、quote／order例、新規spec入口、製造提出データ判定の不足を扱う。自動発注と実機測定は将来機能・非対象とし、製造提出データの品質検査は現行必須として維持する |
 
 C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
 マイルストーン11・5・7の範囲で扱う。
@@ -726,6 +744,9 @@ N-1・N-5の解消後の実機実測（[`examples/pulse-check-tag-20260825/`](..
 P-1（install doctorのESP-IDF判定）は解消済みで、実機VPSのGUIから`/acd:init`がdoctorを
 通過し`bootstrap-record.json`が生成されることを確認した。資源要件の実測値と最低・推奨
 スペックは[`operations.md`](operations.md)を正とする。
+第5回実機実測（2026-08-31）で残ったU-1〜U-5は14.19で扱う。自動発注と実機測定は
+将来機能・非対象として必須段から外すが、製造提出データの生成・独立検査・品質判定は
+現行必須scopeとして維持する。
 
 ### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
 
@@ -910,6 +931,21 @@ L1判定へ持ち込まないための是正フェーズである。
 T-1は復帰経路の唯一の停止点であり先に扱う。T-2はT-1解消後に予算を意味あるものにする前提、
 T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論点、T-5は検証作業の可読性である。
 いずれもEvidenceの合否権限とfail-closed境界を変更しない。
+
+### 14.19 製造提出データの完備とscope改定後の残タスク（U-1〜U-5）
+
+第5回実機実測（2026-08-31）で残ったU-1〜U-5を、製造提出データの品質を現行必須として
+扱うフェーズである。自動発注と実機測定は将来機能・非対象であり、既存コードを削除せず、
+決定論的loopの必須段にも含めない。L1権限、既存の閾値、ゲート条件、fail-closed境界は
+変更しない。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | 第5回実機実測のRun F／H／I／J／K、生成されたGerber・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・筐体STEP／3MF／STL、`vibebb-gap-analysis.md`のU節 |
+| 実装 | 生成物のUTF-8明示読書きと非UTF-8 locale回帰（U-1）、筐体STL出力とSTEP／3MF同等の検査（U-2）、quote／order例のrevision整合（U-3）、decoupling制約を含む配置探索（U-4）、製造提出データの必須成果物・reload・hash・DFM・幾何・profile整合をまとめた独立L1判定（U-5）を追加する |
+| 正常系 | 同一の生成物がlocaleに依存せず独立reloadを通過し、筐体STEP／3MF／STLを含む必須成果物を生成する。quote／order scopeを与えた場合だけ整合した任意段を実行し、製造提出データの品質判定を発注実行から独立して読める |
+| negative・fail-closed | UTF-8でない生成物、欠落・破損した必須成果物、独立reload・hash・DFM・幾何・profile整合の失敗、revision不一致、decoupling制約を満たせない配置、order scopeの不整合はfail-closedとする。自動発注や実機測定の未実行を合格へ倒さず、QEMUのvirtual Evidenceをphysical Evidenceへ昇格させない |
+| 再現性 | 同一digest・同一入力から同一成果物hash、独立検査結果、U-1〜U-5の診断を再生成し、locale・revision・欠落成果物・配置制約のnegative caseを固定する |
 
 ## マイルストーン15: 運用と文書の整備
 

@@ -636,3 +636,93 @@ GUI会話側は`acd_*` tool未登録（T-3）のままで、command宣言の入�
 5. 復帰が成立したときにL1で何が変わるべきか（graph IDとrevisionの保持、正規化hashの変化、
    rationaleの同一transaction更新、基板laneの再実行）を、負の側だけでなく正の側の回帰として
    固定しておくと、T-1のような観測層の混入を検出できる。
+
+## 12. 第5回実機実測（2026-08-31、全lane・製造データ・新規spec）
+
+2026-08-31のscope改定により、自動発注と実機測定は将来機能・非対象とする。既存の発注実行・
+実機Evidence取得・実機書き込み／機能測定コードは残置するが、決定論的loopの必須段には含めず、
+GD1の実機measured Evidence未取得や実発注未実行をVibeBB未達の理由にはしない。一方、
+製造提出データの生成と独立した品質検査は現行必須であり、実発注を行わないことは要件を下げない。
+
+### 12.1 条件
+
+| 項目 | 値 |
+|---|---|
+| plugin revision | `fb286380e1912033198a9430cc4c273b3c7c99e7` |
+| server image | `ghcr.io/uist1idrju3i/acd-server@sha256:d683f14b906ae8304c4484b8702145711ce20b63abbf2c9656c381af5b2368ec` |
+| workspace | `test260901/acd-ws-260901` |
+| host | 8コア／MemTotal 15.0 GiB |
+| container上限／`--jobs` | 8 GiB／4 |
+| quote／order入力 | 指定あり（fab profile／policyを含む） |
+
+### 12.2 lane結果
+
+Run Fは`PYTHONUTF8`未設定で全lane commandを実行した。基板pipelineの独立reload段で
+次のエラーとなり、exit非零・`fail_closed=true`で停止した。
+
+```text
+ReloadError: golden-design-1.kicad_sch: unparsable s-expression: 'ascii' codec can't decode byte 0xc2 in position 29115: ordinal not in range(128)
+```
+
+当該`0xc2`はparts catalog由来文字列`Bluetooth®`のUTF-8表現である。Run HはRun Fと同一
+commandに`PYTHONUTF8=1`を付け、reloadを通過した。silkscreen resolve、基板pipeline 12/12、
+筐体pipeline、FW（QEMU仮想・bounded）まで到達したが、最終のorder-total集計段で次のエラーとなり、
+exit非零・`fail_closed=true`で停止した。
+
+```text
+OrderTotalError: order scope target revision does not match
+```
+
+Run Kは新規spec（`examples/mini-blink-dongle-20260825/fixture/spec.json`）から
+`--design-only`でfixtureを生成した。library資材の解決は通過したが、fixture-generation段で
+次のエラーとなり、exit非零・`fail_closed=true`で停止した。
+
+```text
+FixtureBuilderError: declared decoupling placement is not satisfiable: C4->U1: no candidate placement satisfies the declared decoupling distance limit without overlapping another courtyard
+```
+
+Run I／Jのencoding probeでは、`LANG=LC_ALL=C.UTF-8`のmain process・既定process pool・spawn
+pool、build123d import後のいずれもUTF-8で読み込めた。locale／既定encodingを変更した主体は
+このprobeでは特定できていない。
+
+### 12.3 生成された製造提出データ
+
+Run Hで停止前に生成された成果物は、`out/gd1/gerbers/*.gbr`、`*.drl`、
+`out/gd1/fab/golden-design-1-gerbers.zip`、`golden-design-1-bom-jlcpcb.csv`、
+`golden-design-1-cpl-jlcpcb.csv`、`order-readiness.json`、筐体の
+`enclosure-shell.step`、`enclosure-lid.step`、`enclosure-assembly.step`、
+`enclosure.3mf`である。STLは存在しなかった。現行必須scopeではこれらに加えてgbrjobと
+fab-package manifest、筐体STLを提出データとして扱い、独立reload・正規化hash・DFM・幾何・
+profile整合検査を行う必要があるが、Run Hではorder集計停止と分離した単一判定として読めなかった。
+
+### 12.4 資源実測
+
+| run | wall-clock | host CPU peak | host mem used peak | Docker cgroup peak | swap |
+|---|---:|---:|---:|---:|---:|
+| Run F | 223秒 | 7.97 cores | 4.46 GiB | 4.66 GiB | 0 |
+| Run H | 236秒 | 7.97 cores（mean 2.28） | 4.30 GiB（available min 10.81 GiB） | 現在値peak 4.74 GiB／peak記録 5.00 GiB | 0 |
+| Run K | 42秒 | 4.22 cores | フィールドなし | 2.66 GiB | 0 |
+
+Run Hのtool別peak RSSはpython 4.83 GiB、java 0.88 GiB、cc1 0.78 GiB、kicad 0.44 GiB、
+qemu 0.05 GiBである。9.2の最低・推奨スペックは変更しない。Run Hのcontainer peak
+5.00 GiBは上限8 GiBに収まり、swapは発生しなかった。
+
+### 12.5 結論
+
+acd-agent単体でのVibeBBは未達である。ただし、自動発注と実機測定はscope上の将来機能・
+非対象であり、実発注未実行や実機measured Evidence未取得は未達理由に含めない。今回の
+未達理由は、U-1の生成物reload停止、U-3のrevision不整合によるorder-total停止、
+U-4の新規spec入口停止、GUI会話がT-3のままであることである。T-1が未解消のため復帰の
+勝者確定と復帰後の基板lane通過は今回の対象外であり、製造提出データの品質判定もU-5として残る。
+QEMUのFW実行はvalidation laneとして維持し、physical Evidenceへ昇格させない。
+
+### 12.6 気づきと改善提案
+
+1. 生成物の読み書きは環境のlocaleに依存させず、生成物を読み書きする経路で
+   `encoding="utf-8"`を明示すべきである（U-1）。
+2. 提出可能品質の判定を発注集計から切り離すと、発注しない利用者にも「工場へ出せる状態か」を
+   1つの判定で読める（U-5）。
+3. 新規specの入口はdecoupling制約を満たす配置生成が実質の関門で、ここが通らない限り
+   会話からの新規設計は始まらない（U-4／P-2）。
+4. 例示commandは対象graphのrevisionと整合した入力に揃え、そのまま実行できる状態を
+   保つべきである（U-3）。
