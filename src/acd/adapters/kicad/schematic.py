@@ -18,6 +18,7 @@ from pathlib import Path
 from acd.adapters.kicad.emit import det_uuid, fmt, requote
 from acd.adapters.kicad.library import ParsedSymbol, SymbolLibrary, SymbolPin
 from acd.core.electrical import ComponentView, ElectricalLane, LibraryPin
+from acd.core.library_assets import resolve_fixture_library_path
 from acd.core.sexpr import Quoted, SExpr, Sym, dumps
 
 SCH_VERSION = "20250114"
@@ -220,9 +221,7 @@ def generate_schematic(
     symbols: dict[str, ParsedSymbol] = {}
     lib_symbols: dict[str, ParsedSymbol] = {}
     for comp in lane.components:
-        path = Path(comp.library.symbol_file)
-        if not path.is_absolute():
-            path = fixture_dir / path
+        path = resolve_fixture_library_path(comp.library.symbol_file, fixture_dir)
         parsed = symbol_library.load(comp.library.symbol, path, comp.library.symbol_sha256)
         symbols[comp.refdes] = parsed
         lib_symbols.setdefault(parsed.lib_id, parsed)

@@ -21,6 +21,10 @@ from pathlib import Path
 from typing import Any
 
 from acd.core.cpl_orientation import cpl_orientation_attrs
+from acd.core.library_assets import (
+    resolve_library_asset,
+    verify_fixture_library_assets,
+)
 from acd.core.part_selection import load_parts_catalog
 from acd.core.rationale import subject_hash_for
 from acd.schema.design_fixture import FixtureCplOrientationEvidence
@@ -216,12 +220,8 @@ def _resolve_skill_inputs(graph: DesignGraph) -> DesignGraph:
 
 
 def lib_attrs(lib: LibraryRef) -> dict[str, AttrValue]:
-    fixture_dir = _paths()[1]
     def file_hash(rel_or_abs: str) -> str:
-        path = Path(rel_or_abs)
-        if not path.is_absolute():
-            path = fixture_dir / path
-        return sha256_of(path)
+        return sha256_of(resolve_library_asset(rel_or_abs))
 
     return {
         "symbol": lib["symbol"],
@@ -531,6 +531,7 @@ def main() -> int:
     payload = graph.model_dump(mode="json")
     out = fixture_dir / "graph.json"
     out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    verify_fixture_library_assets(graph, fixture_dir)
     print(f"wrote {out} ({len(graph.nodes)} nodes)")
     return 0
 

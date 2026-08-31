@@ -71,6 +71,23 @@ def resolve_library_asset(declared_path: str) -> Path:
     return resolved
 
 
+def resolve_fixture_library_path(declared_path: str, fixture_dir: Path) -> Path:
+    """Resolve one declared library path as one fixture resolves it.
+
+    A fixture materialized from the canonical store carries its own copy, which
+    keeps the fixture resolvable after it is copied elsewhere. A fixture that
+    only declares the asset resolves it in the canonical store instead, so both
+    forms answer the same declaration.
+    """
+    path = Path(declared_path)
+    if path.is_absolute():
+        return path
+    candidate = fixture_dir / path
+    if candidate.is_file():
+        return candidate
+    return resolve_library_asset(declared_path)
+
+
 def verify_library_asset(asset: LibraryAsset) -> Path:
     """Resolve one declared asset and verify its declared content hash."""
     resolved = resolve_library_asset(asset.declared_path)
@@ -154,8 +171,8 @@ def verify_fixture_library_asset(asset: LibraryAsset, fixture_dir: Path) -> Path
     The fixture-local copy is preferred, exactly as the deterministic predicate
     path resolves it, and the canonical store is the declared fallback.
     """
-    candidate = fixture_dir / asset.declared_path
-    if not asset.relative or not candidate.is_file():
+    candidate = resolve_fixture_library_path(asset.declared_path, fixture_dir)
+    if not asset.relative or not candidate.is_relative_to(fixture_dir):
         return verify_library_asset(asset)
     actual = _sha256(candidate)
     if actual != asset.sha256:
@@ -207,6 +224,7 @@ __all__ = [
     "graph_library_assets",
     "library_asset_store",
     "materialize_library_assets",
+    "resolve_fixture_library_path",
     "resolve_library_asset",
     "verify_fixture_library_asset",
     "verify_fixture_library_assets",

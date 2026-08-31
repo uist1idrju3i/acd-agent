@@ -867,6 +867,15 @@ S-3は`scripts/verify_acd_tool_registration.py --command`で、commandが宣言�
 `pass_evidence`を与えない。S-3の配布形態そのもの（ambient install経路への登録）と、
 復帰成立実行の実測記録は引き続き未了である。
 
+S-4の初回実装では、Espressif資材を`libraries/`（canonical store）へ移した一方で、
+基板・回路図・project・CPL経路の相対library宣言はfixture dir基準でしか解決しなかったため、
+commit済みGD1 fixtureに対する探索とcontainerのゲート実行が
+`pinned library file missing: fixtures/golden-design-1/libraries/...`でfail-closed停止し、
+`scripts/verify_library_assets.py --check`だけが同じ宣言を`store_verified`として通す非対称が
+生じていた。解決は`acd.core.library_assets.resolve_fixture_library_path()`に統一し、
+fixture同梱copyを優先してcanonical storeへfallbackする。生成fixtureは従来どおり資材を同梱し、
+storeの外を指す相対宣言はfail-closedのままである。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、

@@ -486,7 +486,7 @@ S-3はGUI配布形態そのものの不足であり、実装ではなく配布�
 |---|---|---|
 | S-1 | 解消 | 候補評価が一時fixtureへ`refresh_rationale_document`を適用する（`src/acd/core/exploration.py`、`src/acd/core/enclosure_exploration.py`）。却下候補で元のgraphとrationaleは変更されず、rationaleの欠落・破損はfail-closed |
 | S-2 | 解消 | 候補固有の却下は`gate_rejected`として残予算で次候補を評価し、予算内訳と`termination_reason`をreportへ記録する。fail-closedの停止は即時打ち切りを維持 |
-| S-4 | 解消 | `src/acd/core/library_assets.py`をcatalogと生成fixtureの共通契約とし、相対宣言の資材を生成fixtureへ同梱してhashを両側で検査する。`scripts/verify_library_assets.py`をfast段へ追加 |
+| S-4 | 解消 | `src/acd/core/library_assets.py`をcatalogと生成fixtureの共通契約とし、相対宣言の資材を生成fixtureへ同梱してhashを両側で検査する。`scripts/verify_library_assets.py`をfast段へ追加。canonical store `libraries/`への移動でcommit済みGD1 fixtureの相対宣言が解決できなくなった問題は、基板・回路図・project・CPL経路の解決を`resolve_fixture_library_path()`（fixture同梱copy優先、canonical storeへfallback）へ統一して解消した |
 | S-5 | 解消 | `scripts/report_progress.py`がtiming recordと探索reportをL3 digestとして会話へ返す。読めないrecordは`unknown`で非零終了 |
 | S-3 | 部分 | `scripts/verify_acd_tool_registration.py --command`が宣言toolの不在をfail-closedに検出し、不足toolごとに決定論的CLI入口またはCLI入口が無い理由を返す。ambient install経路の会話へACD ToolDefinitionを登録する配布形態自体は未了 |
 
