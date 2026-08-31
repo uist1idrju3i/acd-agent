@@ -480,6 +480,18 @@ capability宣言追記で解消した。いずれも閾値、ゲート挙動、f
 S-1とS-4は、それぞれ復帰経路と新規設計入口の最初の停止点であり、単体成立の前提である。
 S-3はGUI配布形態そのものの不足であり、実装ではなく配布・登録経路で解く。
 
+### S節の実装状況
+
+| 項目 | 状況 | 実装 |
+|---|---|---|
+| S-1 | 解消 | 候補評価が一時fixtureへ`refresh_rationale_document`を適用する（`src/acd/core/exploration.py`、`src/acd/core/enclosure_exploration.py`）。却下候補で元のgraphとrationaleは変更されず、rationaleの欠落・破損はfail-closed |
+| S-2 | 解消 | 候補固有の却下は`gate_rejected`として残予算で次候補を評価し、予算内訳と`termination_reason`をreportへ記録する。fail-closedの停止は即時打ち切りを維持 |
+| S-4 | 解消 | `src/acd/core/library_assets.py`をcatalogと生成fixtureの共通契約とし、相対宣言の資材を生成fixtureへ同梱してhashを両側で検査する。`scripts/verify_library_assets.py`をfast段へ追加 |
+| S-5 | 解消 | `scripts/report_progress.py`がtiming recordと探索reportをL3 digestとして会話へ返す。読めないrecordは`unknown`で非零終了 |
+| S-3 | 部分 | `scripts/verify_acd_tool_registration.py --command`が宣言toolの不在をfail-closedに検出し、不足toolごとに決定論的CLI入口またはCLI入口が無い理由を返す。ambient install経路の会話へACD ToolDefinitionを登録する配布形態自体は未了 |
+
+いずれの表示・診断もL3観測であり、`pass_evidence`と合否権限を持たない。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が

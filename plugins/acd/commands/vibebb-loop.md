@@ -18,6 +18,17 @@ allowed-tools:
 会話で受け取った要件を、次の順序で設計入力へ反映してから実行する。
 生のshellや任意のPython moduleを使わず、宣言された`acd_*` toolだけを使う。
 
+0. 宣言された`acd_*` toolがこの会話に無い場合（ambient install経路など）は、
+   任意のshell作業へ退避せず、次のcommandで不在をfail-closedに確認する。
+
+   ```bash
+   uv run python scripts/verify_acd_tool_registration.py \
+       --command plugins/acd/commands/vibebb-loop.md --available <この会話のtool名>...
+   ```
+
+   `status`が`pass`でない場合、報告された`fallbacks`の決定論的CLI入口だけを使い、
+   CLI入口を持たないtoolの段は実行せずfail-closedとして報告する。この判定はL3観測であり、
+   合否権限もauthoritative Evidenceも持たない。
 1. 要件差分は`acd_run_design_loop`の`requirement`へ渡す。新規fixtureは
    `fixture_spec`へ渡す。どちらも省略した場合は既存fixtureを使う。
 2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
@@ -41,6 +52,15 @@ allowed-tools:
    場合に有効になり、詳細な手順は`/acd:vibebb-recover`を使う。
 5. 発注可否はloopが返すorder-readiness結果と、必要なら
    `acd_check_order_readiness`で確認する。発注実行はこのcommandの責務ではない。
+6. 各roundの終了後、run出力のL3 recordを会話へ返して進行を可視化する。
+
+   ```bash
+   uv run python scripts/report_progress.py --out <out_root>
+   ```
+
+   digestはtiming recordと探索reportの`status`、`termination_reason`、
+   評価候補数、残予算、勝者候補を返す。読めないrecordは`unknown`として報告され、
+   digestは非零終了する。digestはL3観測であり、合否やEvidenceを変更しない。
 
 `acd_run_design_loop`は、必要に応じて入力hash単位のstage cache（`cache_dir`）、
 失敗からのresume（`resume`）、stageごとの所要時間記録、基板・筐体・FW laneの

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import tempfile
@@ -12,6 +11,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from acd.core.library_assets import (
+    LibraryAsset,
+    LibraryAssetError,
+    verify_library_asset,
+)
 from acd.core.part_selection import default_parts_catalog_path, load_parts_catalog
 from acd.schema import PartCatalogEntry, PartsCatalogDocument
 from acd.schema.common import canonical_json_sha256
@@ -79,17 +83,10 @@ def _read_entry_input(
 
 
 def _verify_library_file(path_value: str, expected: str, label: str) -> None:
-    path = Path(path_value).expanduser()
     try:
-        actual = f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
-    except OSError as exc:
-        raise PartsCatalogEntryError(
-            f"{label} library file is unavailable: {path}: {exc}"
-        ) from exc
-    if actual != expected:
-        raise PartsCatalogEntryError(
-            f"{label} library file sha256 does not match declaration: {path}"
-        )
+        verify_library_asset(LibraryAsset(declared_path=path_value, sha256=expected))
+    except LibraryAssetError as exc:
+        raise PartsCatalogEntryError(f"{label} library file: {exc}") from exc
 
 
 def _validate_library_provenance(entry: PartCatalogEntry) -> None:

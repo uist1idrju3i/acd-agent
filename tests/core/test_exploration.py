@@ -16,6 +16,7 @@ from acd.core.exploration import (
     enumerate_gpio_assignment_candidates,
     explore_board_candidates,
 )
+from acd.core.rationale import RationaleDocument, check_rationale_coverage
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
 
@@ -292,6 +293,191 @@ def test_malformed_gate_evidence_stops_exploration(
 
     assert result.report["status"] == "stopped"
     assert result.report["candidates"][0]["outcome"]["status"] == "stopped"
+
+
+def _shifted_placement_candidate(
+    graph: DesignGraph, candidate_id: str, offset_mm: float
+) -> ExplorationCandidate:
+    candidate = _placement_candidate(graph)
+    placements = {
+        refdes: {**values, "x_mm": values["x_mm"] + offset_mm}
+        for refdes, values in candidate.changes["placements"].items()
+    }
+    return ExplorationCandidate(
+        candidate_id=candidate_id,
+        kind=candidate.kind,
+        dimensions=candidate.dimensions,
+        changes={"placements": placements},
+        provenance=candidate.provenance,
+    )
+
+
+def _source_fixture(tmp_path: Path) -> tuple[Path, Path]:
+    source_fixture = tmp_path / "fixture"
+    shutil.copytree(FIXTURE_DIR, source_fixture)
+    source_graph = source_fixture / "graph.json"
+    source_graph.write_text(GRAPH_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    return source_fixture, source_graph
+
+
+def test_candidate_evaluation_refreshes_rationale_before_gates(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture, source_graph = _source_fixture(tmp_path)
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args: (_shifted_placement_candidate(graph, "placement-0001", 0.5),),
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+    observed: list[str] = []
+
+    def runner(working_fixture: Path, _out: Path) -> object:
+        working_graph = DesignGraph.model_validate_json(
+            (working_fixture / "graph.json").read_text(encoding="utf-8")
+        )
+        document = RationaleDocument.model_validate_json(
+            (working_fixture / "rationale.json").read_text(encoding="utf-8")
+        )
+        observed.append(check_rationale_coverage(working_graph, document).status)
+        return {}
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=1,
+        pipeline_runner=runner,
+    )
+
+    assert observed == ["pass"]
+    assert result.report["status"] == "candidate_found"
+
+
+def test_candidate_specific_rejection_evaluates_remaining_budget(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture, source_graph = _source_fixture(tmp_path)
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args: (
+            _shifted_placement_candidate(graph, "placement-0001", 0.5),
+            _shifted_placement_candidate(graph, "placement-0002", 1.0),
+        ),
+    )
+    monkeypatch.setattr(
+        exploration, "enumerate_gpio_assignment_candidates", lambda *_args: ()
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+    evaluated: list[Path] = []
+
+    def reject_first(working_fixture: Path, _out: Path) -> object:
+        evaluated.append(working_fixture)
+        if len(evaluated) == 1:
+            raise RuntimeError("router rejected candidate")
+        return {}
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=3,
+        pipeline_runner=reject_first,
+    )
+
+    assert result.report["status"] == "candidate_found"
+    assert result.report["winner_candidate_id"] == "placement-0002"
+    assert result.report["evaluated_candidates"] == 2
+    assert result.report["consumed_budget"] == 2
+    assert result.report["remaining_budget"] == 1
+
+
+def test_exhausted_candidate_pool_reports_remaining_budget(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture, source_graph = _source_fixture(tmp_path)
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args: (
+            _shifted_placement_candidate(graph, "placement-0001", 0.5),
+            _shifted_placement_candidate(graph, "placement-0002", 1.0),
+        ),
+    )
+    monkeypatch.setattr(
+        exploration, "enumerate_gpio_assignment_candidates", lambda *_args: ()
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+
+    def reject(_fixture: Path, _out: Path) -> None:
+        raise RuntimeError("router rejected candidate")
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=3,
+        pipeline_runner=reject,
+    )
+
+    assert result.report["status"] == "exhausted"
+    assert result.report["termination_reason"] == "candidate_pool_exhausted"
+    assert result.report["evaluated_candidates"] == 2
+    assert result.report["remaining_budget"] == 1
+
+
+def test_fail_closed_stop_abandons_remaining_budget(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture, source_graph = _source_fixture(tmp_path)
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args: (
+            _shifted_placement_candidate(graph, "placement-0001", 0.5),
+            _shifted_placement_candidate(graph, "placement-0002", 1.0),
+        ),
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+
+    def reject_with_bad_evidence(_fixture: Path, output: Path) -> None:
+        evidence = output / "gate-evidence" / "design-predicates.json"
+        evidence.parent.mkdir(parents=True)
+        evidence.write_text("[", encoding="utf-8")
+        raise RuntimeError("gate rejected candidate")
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=3,
+        pipeline_runner=reject_with_bad_evidence,
+    )
+
+    assert result.report["status"] == "stopped"
+    assert result.report["termination_reason"] == "fail_closed_stop"
+    assert result.report["evaluated_candidates"] == 1
+    assert result.report["remaining_budget"] == 2
+
+
+def test_missing_rationale_document_fails_closed(tmp_path: Path) -> None:
+    source_fixture, source_graph = _source_fixture(tmp_path)
+    (source_fixture / "rationale.json").unlink()
+
+    with pytest.raises(ExplorationError, match="rationale document is invalid"):
+        explore_board_candidates(
+            source_graph,
+            source_fixture,
+            tmp_path / "out",
+            max_candidates=1,
+            pipeline_runner=lambda _fixture, _out: {},
+        )
+
 
 def _remediation_evidence(
     tmp_path: Path,
