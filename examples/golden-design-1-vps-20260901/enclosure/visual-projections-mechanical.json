@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-mechanical-interference",
+      "projection_type": "mechanical_interference_view",
+      "domain": "mechanical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "enclosure-assembly.step",
+          "content_hash": "sha256:c65d7763f06b43efef2a65c45c744cb084e8770feb82eea20714af4330e0b9e5"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "build123d",
+        "tool_name": "build123d",
+        "tool_version": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "36.0mm",
+        "height": "31.0mm",
+        "view_box": [
+          -18.0,
+          -15.5,
+          36.0,
+          31.0
+        ]
+      },
+      "normalization_rule_id": "build123d-svg-v1",
+      "normalization_rule_description": "Build123d ExportSVG with millimeter units, fixed precision, zero margin, and fit_to_stroke disabled.",
+      "image_hash": "sha256:f105afbb751f8cecb45d39ebd3386ea235cd41a2e73852396b4aa38b3f5e6413",
+      "generated_at": "2026-08-31T23:17:15.189384Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:f105afbb751f8cecb45d39ebd3386ea235cd41a2e73852396b4aa38b3f5e6413",
+        "second_image_hash": "sha256:f105afbb751f8cecb45d39ebd3386ea235cd41a2e73852396b4aa38b3f5e6413",
+        "reason": null
+      },
+      "image_path": "visual/gd1-mechanical-interference.svg",
+      "section_plane_id": "xy",
+      "section_offset_mm": 4.0,
+      "interference_volume_mm3": 0.0,
+      "interference_region_present": false
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "gd1-mechanical-section",
+      "projection_type": "mechanical_section_view",
+      "domain": "mechanical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "enclosure-assembly.step",
+          "content_hash": "sha256:c65d7763f06b43efef2a65c45c744cb084e8770feb82eea20714af4330e0b9e5"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "build123d",
+        "tool_name": "build123d",
+        "tool_version": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "36.0mm",
+        "height": "31.0mm",
+        "view_box": [
+          -18.0,
+          -15.5,
+          36.0,
+          31.0
+        ]
+      },
+      "normalization_rule_id": "build123d-svg-v1",
+      "normalization_rule_description": "Build123d ExportSVG with millimeter units, fixed precision, zero margin, and fit_to_stroke disabled.",
+      "image_hash": "sha256:35b41da2e259bdc923d4e9381ca86d8b620ffff8003d548f5dbe4caa4ca7a8ce",
+      "generated_at": "2026-08-31T23:17:14.978841Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:35b41da2e259bdc923d4e9381ca86d8b620ffff8003d548f5dbe4caa4ca7a8ce",
+        "second_image_hash": "sha256:35b41da2e259bdc923d4e9381ca86d8b620ffff8003d548f5dbe4caa4ca7a8ce",
+        "reason": null
+      },
+      "image_path": "visual/gd1-mechanical-section.svg",
+      "section_plane_id": "xy",
+      "section_offset_mm": 4.0,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:28f20c4ce6d466c00d67005228e3dc4b582d686f37e240d2f589407dbccc3c68",
+  "canonical_hash": "sha256:46c677f863b5f76fa88e322f2d7acbcc9aff87f7748e254a390ffc32f5ef46df"
+}

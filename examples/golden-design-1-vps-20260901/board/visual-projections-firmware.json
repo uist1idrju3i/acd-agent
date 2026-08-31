@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "golden-design-1-firmware-sequence",
+      "projection_type": "firmware_sequence_view",
+      "domain": "firmware",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/golden-design-1/graph.json",
+          "content_hash": "sha256:bc85c03de817f9ef3b96d258e844d679055d8e5bbd30554c059a7f9aa509e472"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.1.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "175mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          175.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:bd9acb8c07e160043905b2261c5e9b78483eb938649511cc13488e306ab77c76",
+      "generated_at": "2026-08-31T23:19:55.130279Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:bd9acb8c07e160043905b2261c5e9b78483eb938649511cc13488e306ab77c76",
+        "second_image_hash": "sha256:bd9acb8c07e160043905b2261c5e9b78483eb938649511cc13488e306ab77c76",
+        "reason": null
+      },
+      "image_path": "visual/golden-design-1-firmware-sequence.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "golden-design-1-firmware-state",
+      "projection_type": "firmware_state_view",
+      "domain": "firmware",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/golden-design-1/graph.json",
+          "content_hash": "sha256:bc85c03de817f9ef3b96d258e844d679055d8e5bbd30554c059a7f9aa509e472"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.1.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "134mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          134.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:1254b2bb12e9a227295e558cd2a12807a7cfa5df800b9e6459cad8905a09988c",
+      "generated_at": "2026-08-31T23:19:55.128663Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:1254b2bb12e9a227295e558cd2a12807a7cfa5df800b9e6459cad8905a09988c",
+        "second_image_hash": "sha256:1254b2bb12e9a227295e558cd2a12807a7cfa5df800b9e6459cad8905a09988c",
+        "reason": null
+      },
+      "image_path": "visual/golden-design-1-firmware-state.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:4f7ff9ba5b93136a5b616566cdf70b5b1ba8efba46f3198df9b725e6ec626c51",
+  "canonical_hash": "sha256:fe73051199e0e920000bf5dfa893ededf42a3da8dbfee8f30c1e1573e69b7615"
+}

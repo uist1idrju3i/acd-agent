@@ -1,0 +1,102 @@
+{
+  "graph_id": "golden-design-1",
+  "records": [
+    {
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-001",
+      "statement": "作者自身が試作し、USB-Cから給電して実機の赤色LEDを1 Hzで点滅させる"
+    },
+    {
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-004",
+      "statement": "電源はUSB-C VBUS 5 Vのみとし、バッテリ、充電回路、USB PDネゴシエーションを持たない"
+    },
+    {
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-005",
+      "statement": "最大ネット電圧は5 V、最大電流は500 mA未満とする"
+    },
+    {
+      "drives_functional_blocks": [
+        "usb_c_cc_termination"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-006",
+      "statement": "USB-Cは電力シンク専用とし、CC1/CC2にそれぞれ5.1 kΩのプルダウンを置く"
+    },
+    {
+      "drives_functional_blocks": [
+        "single_ldo_power_tree"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-007",
+      "statement": "3.3 VはAMS1117-3.3で生成し、入力・出力に10 µFと100 nFを置く"
+    },
+    {
+      "drives_functional_blocks": [
+        "firmware_pin_map"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-008",
+      "statement": "MCUはESP32-C3-MINI-1-N4とし、IO18/IO19の内蔵USBを使用する"
+    },
+    {
+      "drives_functional_blocks": [
+        "esp32c3_strapping_boot"
+      ],
+      "expectation": {
+        "gpio": 7,
+        "kind": "gpio_assignment",
+        "net": "LED"
+      },
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-010",
+      "statement": "LEDはIO7に1 kΩを直列接続し、IO2、IO8、IO9をLEDへ割り当てない"
+    },
+    {
+      "drives_functional_blocks": [
+        "i2c_bus_pullup"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-011",
+      "statement": "I2CはIO4=SDA、IO5=SCL、アドレス0x44のSHT40とし、各線に4.7 kΩを置く"
+    },
+    {
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-013",
+      "statement": "基板は2層FR-4、板厚1.6 mm、HASL、片面実装、外形およそ30 × 25 mmとする"
+    },
+    {
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-014",
+      "statement": "M2取付穴を4箇所設け、第2マイルストーンの筐体と共用する"
+    },
+    {
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "gd1-req-015",
+      "statement": "アンテナを基板端からはみ出させ、アンテナ直下・周囲に銅箔、GND、部品、シルクを置かない"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

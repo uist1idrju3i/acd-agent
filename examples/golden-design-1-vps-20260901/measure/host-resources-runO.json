@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "status": "pass",
+  "mem_total_bytes": 16225341440,
+  "mem_available_bytes": 13229613056,
+  "swap_total_bytes": 24692912128,
+  "swap_free_bytes": 24692875264,
+  "cpu_count": 8,
+  "disk_free_bytes": 784079642624,
+  "requested_memory_limit_bytes": 8589934592,
+  "declared_jvm_max_heap": "2g",
+  "findings": []
+}

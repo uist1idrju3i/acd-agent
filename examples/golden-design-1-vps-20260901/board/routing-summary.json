@@ -1,0 +1,9 @@
+{
+  "minimum_width_mm": 0.15,
+  "normalized_wire_count": 0,
+  "observed_min_wire_width_mm": 0.15,
+  "schema_version": "0.1",
+  "target_revision": "r1",
+  "via_count": 24,
+  "wire_count": 188
+}

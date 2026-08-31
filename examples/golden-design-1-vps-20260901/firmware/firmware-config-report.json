@@ -1,0 +1,95 @@
+{
+  "graph_id": "golden-design-1",
+  "pins": [
+    {
+      "gpio": 9,
+      "net": "net.boot",
+      "node_id": "fw.pin.boot"
+    },
+    {
+      "gpio": 5,
+      "net": "net.i2c_scl",
+      "node_id": "fw.pin.i2c_scl"
+    },
+    {
+      "gpio": 4,
+      "net": "net.i2c_sda",
+      "node_id": "fw.pin.i2c_sda"
+    },
+    {
+      "gpio": 7,
+      "net": "net.led",
+      "node_id": "fw.pin.led"
+    },
+    {
+      "gpio": 20,
+      "net": "net.uart_rx",
+      "node_id": "fw.pin.uart_rx"
+    },
+    {
+      "gpio": 21,
+      "net": "net.uart_tx",
+      "node_id": "fw.pin.uart_tx"
+    },
+    {
+      "gpio": 18,
+      "net": "net.usb_dn",
+      "node_id": "fw.pin.usb_dn"
+    },
+    {
+      "gpio": 19,
+      "net": "net.usb_dp",
+      "node_id": "fw.pin.usb_dp"
+    }
+  ],
+  "provenance": {
+    "capabilities": [
+      {
+        "action": "initialize_firmware",
+        "capability_id": "firmware_init",
+        "step_index": 1
+      },
+      {
+        "action": "initialize_sht40",
+        "capability_id": "i2c_sensor_init",
+        "step_index": 2
+      },
+      {
+        "action": "toggle_led",
+        "capability_id": "led_blink",
+        "step_index": 3
+      },
+      {
+        "action": "read_temperature_humidity",
+        "capability_id": "i2c_sensor_read",
+        "step_index": 4
+      },
+      {
+        "action": "write_serial_log",
+        "capability_id": "serial_log",
+        "step_index": 5
+      }
+    ],
+    "devices": [
+      {
+        "driver_id": "sht40",
+        "i2c_address": 68,
+        "mpn": "SHT40-AD1B-R3"
+      },
+      {
+        "driver_id": "sht40",
+        "i2c_address": 68,
+        "mpn": "SHT40-AD1B-R3"
+      }
+    ],
+    "registry_hash": "sha256:c277b9e3a83dfe0d963856ad30ae390f60070ce96d66c95b84641f630788bfad",
+    "registry_path": "contracts/firmware-capability-registry.json"
+  },
+  "schema_version": 1,
+  "settings": {
+    "boot_log_message": "ACD GD1 fw boot target_revision=%s",
+    "led_blink_period_ms": 1000,
+    "log_period_ms": 2000
+  },
+  "target_revision": "r1"
+}

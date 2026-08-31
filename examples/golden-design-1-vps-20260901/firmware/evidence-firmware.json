@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "evidence.gd1.firmware-virtual",
+  "target_revision": "r1",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "acd-firmware-esp32c3",
+    "tool_version": "9.2.2 (esp_develop_9.2.2_20260417)",
+    "format_version": "0.1",
+    "config_hash": "sha256:02c87ece49145bb236020d70f3a360a678c8973519e987c8f0221037a2006402",
+    "input_hash": "unknown",
+    "output_hash": "sha256:8df8bd902dd8acef913fa9403f09b757dac8b8bf50bc6297e8fb4c2a8db187af",
+    "execution_env": "linux-x86_64; container=sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+    "execution_context": "container",
+    "container_image_digest": "sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+    "measurement_conditions": "virtual device (QEMU esp32c3); no SHT40 attached; virtual verification only, not real-device evidence; virtual run stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+    "convergence_state": "converged",
+    "target_revision": "r1",
+    "started_at": "2026-08-31T23:16:59.380013Z",
+    "finished_at": "2026-08-31T23:18:15.303494Z",
+    "exit_code": 0,
+    "idempotency_key": null,
+    "uncertainty": null
+  },
+  "claims": [
+    {
+      "subject_node": "fw.module.main",
+      "property": "measurement_class",
+      "value": "virtual",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "real_device_measurement",
+      "value": false,
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "virtual_target",
+      "value": "qemu-esp32c3",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "virtual_run_termination",
+      "value": "stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "toolchain_version",
+      "value": "esp-idf v6.1",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_source_hash",
+      "value": "sha256:d05faa6f6ada9724f5767b226dde08eae78ef3fa07327fa4ad295220e840e755",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_artifact_hash",
+      "value": "sha256:45d395d062b114b976eb8186661dade634da79b731ee7e826b77459e46c697d0",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_skill_script_sha256",
+      "value": "sha256:8cbd827023fe75ca64c29c55ad155f1bcaf5780208e870282f25c4c377a09867",
+      "verified": true
+    }
+  ],
+  "created_at": "2026-08-31T23:18:15.304066Z"
+}

@@ -1,0 +1,125 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "evidence.gd1.electrical",
+  "target_revision": "r1",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "kicad-cli",
+    "tool_version": "10.0.6",
+    "format_version": "10.0.6",
+    "config_hash": "sha256:80564149b04be7ced73f09ad91e7b63728d782ba85d883223832d78368cb2392",
+    "input_hash": "sha256:944f67ec7a296fc8e153d42bcce0429a054c643239fe6836f7fa4274dffd76d3",
+    "output_hash": "sha256:86e30c0e978b24dd7b6445cc0b0db7c417ef006b1b28d4a48fb25324720b1848",
+    "execution_env": "linux-x86_64; container=sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+    "execution_context": "container",
+    "container_image_digest": "sha256:20828162dc33b5832c551cfee0a8c634fe17533a3daf78a96b2f7c52ba707104",
+    "measurement_conditions": "single run; project-local library tables",
+    "convergence_state": "not_applicable",
+    "target_revision": "r1",
+    "started_at": "2026-08-31T23:19:43.337565Z",
+    "finished_at": "2026-08-31T23:19:44.052931Z",
+    "exit_code": 5,
+    "idempotency_key": null,
+    "uncertainty": null
+  },
+  "claims": [
+    {
+      "subject_node": "board.gd1",
+      "property": "erc_error_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "functional_block_contract",
+      "value": "acd-functional-blocks-14.2:sha256:a8b6542cda566a525c249ad37ec3e89e165027af6aea1187856de81a4dfe2abd",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "declared_functional_blocks",
+      "value": "esp32c3_strapping_boot,firmware_pin_map,i2c_bus_pullup,safety_power_boundary,single_ldo_power_tree,usb_c_cc_termination",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "erc_unconnected_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "routing_converged",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "drc_error_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "drc_unconnected_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "silkscreen_status",
+      "value": "measured_pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "dfm_status",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "order_readiness_status",
+      "value": "ready",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "usb_cc",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "i2c_pullup",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "strapping_pin",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "pin_firmware_alignment",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "power_decoupling",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.gd1",
+      "property": "power_boundary",
+      "value": "pass",
+      "verified": true
+    }
+  ],
+  "created_at": "2026-08-31T23:19:55.047222Z"
+}

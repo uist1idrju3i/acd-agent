@@ -1,0 +1,16 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "content_sha256": "sha256:becf2772a0c13dedfb953763f0bba1b41f910e5f3ee5ce67646e819642b3275c",
+  "exploration_rounds": null,
+  "failed_stage": "silkscreen-resolve",
+  "failure_reason": "GraphExtractionError: silkscreen declarations are missing (fail-closed)",
+  "graph_id": "mini-blink-dongle",
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": "Adjust the declared silkscreen inputs or fab profile in the graph and rerun the loop; no candidate generator is declared for this lane.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "timing_record": "out/newspec/timing-record.json"
+}

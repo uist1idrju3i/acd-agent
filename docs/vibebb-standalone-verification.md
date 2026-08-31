@@ -913,9 +913,13 @@ GraphExtractionError: silkscreen declarations are missing (fail-closed)
 | Run M（新規spec、design-only） | 45秒 | 3.79 / 1.34 cores | 3.13 GiB | 3.59 GiB | 0 |
 
 利用可能メモリの最小値はRun L3で10.13 GiBであり、9.2の最低・推奨スペックは変更しない。
-container上限8 GiBに対しピークは5.95 GiBで、swapは発生しなかった。GUI会話のcontainer実行は
-495.2秒で、同一laneをCLIから直接実行した248秒より長い。会話往復とcontainer初期化の
-オーバーヘッドが上乗せされるため、GUI経路の体感時間はCLI実測値より大きく見積もる必要がある。
+container上限8 GiBに対しピークは5.95 GiBで、swapは発生しなかった。
+
+所要時間の比較には指標を揃える必要がある。`timing-record.json`の`duration_seconds`は
+26 stageの合計であり、lane並列のためwall-clockより大きい。同じ指標で並べると、
+GUI会話のcontainer実行は495.2秒、同一laneをCLIから直接実行したRun N（13.10）は473.4秒で、
+差は約4.6%である。wall-clockはRun L3が248秒、Run Nが259秒であった。GUI経路には会話往復と
+container初期化が上乗せされるが、container内のloop実行時間そのものはCLI経路と同程度である。
 
 ### 13.8 結論（第6回）
 
@@ -953,3 +957,41 @@ acd-agent単体でのVibeBB成立は、それでもなお未達である。理�
    「specへ追加すべき宣言」を具体名で返すと、会話から埋められる（V-6）。
 6. GUIのplugin追加ピッカーがinstalled storeを反映しない点は、検証のたびにAPI直叩きでの
    確認を強いる。導入済みpluginの一覧と再導入をGUIから行えるようにするのが望ましい（V-2）。
+
+### 13.10 成果物の収録（Run N／Run O）
+
+13.2〜13.6の観測を第三者が追検証できるよう、同一workspace
+`/home/openhands/repos/test260901b/acd-ws`で成果物回収用の再実行を行い、
+出力一式を`examples/golden-design-1-vps-20260901/`へ収録した。revisionとlock image、
+`--evaluated-at`、container上限、`--jobs`は13.1と同一である。
+
+| run | 対象 | 結果 | wall-clock |
+|---|---|---|---:|
+| Run N | GD1全lane＋製造提出判定 | 全26 stage通過、提出判定`status: "pass"`／`authoritative: true`、発注USD 93.00、pre-order gate `ready` | 259秒 |
+| Run O | 新規spec（`--design-only`） | `silkscreen-resolve`でfail-closed（`GraphExtractionError: silkscreen declarations are missing`） | 45秒 |
+
+| run | host CPU peak / mean | host mem peak | Docker mem peak | swap |
+|---|---:|---:|---:|---:|
+| Run N | 7.97 / 2.17 cores | 4.77 GiB | 5.97 GiB | 0 |
+| Run O | 3.90 / 1.33 cores | 3.50 GiB | 3.16 GiB | 0 |
+
+Run Nのauthoritative Evidence（基板・筐体・FW）はいずれも`execution_context: "container"`、
+`container_image_digest`がlock一致、`target_revision: "r1"`、`status: "valid"`であり、
+収録後のhost側再検証も通る。
+
+```text
+$ uv run python scripts/verify_authoritative_evidence.py \
+    --revision-from fixtures/golden-design-1/graph.json \
+    examples/golden-design-1-vps-20260901/board/evidence-electrical.json \
+    examples/golden-design-1-vps-20260901/enclosure/evidence-mechanical.json
+OK: 2 authoritative Evidence file(s) verified
+```
+
+GUI会話（会話ID `469844e5-415a-44d2-ae0f-7b4ce47a7594`、331 event）はMarkdown化して
+`examples/golden-design-1-vps-20260901/conversation/`へ収録した。raw exportは
+`base_state.json`にhostとLLM endpointの情報を含むため収録していない。分析結果と改善提案は
+同ディレクトリの`report/`にある。
+
+Run Oは13.5（V-5）のとおりfail-closed時にdownloadが行われないため、container側commandの末尾で
+tarを作って`exit 0`させ、loop本体のexit codeをstdoutへ残す回避策で成果物を回収した。
+この回避策は失敗を成功として読ませうるため、`run_in_workspace.py`側の対応（V-5）が必要である。
