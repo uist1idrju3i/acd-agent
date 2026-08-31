@@ -19,6 +19,7 @@ from acd.adapters.kicad.schematic import PWR_FLAG_LIB_ID, generate_schematic
 from acd.core.bom import bom_csv
 from acd.core.electrical import BoardView, ElectricalLane
 from acd.core.fab import FabProfile
+from acd.core.library_assets import resolve_fixture_library_path
 from acd.core.routing_width import derive_net_widths, group_netclasses
 from acd.core.silkscreen import SilkscreenLane
 
@@ -45,10 +46,7 @@ def _lib_table(kind: str, entries: dict[str, Path]) -> str:
 
 
 def _resolve(path_text: str, fixture_dir: Path) -> Path:
-    path = Path(path_text)
-    if not path.is_absolute():
-        path = fixture_dir / path
-    return path.resolve()
+    return resolve_fixture_library_path(path_text, fixture_dir).resolve()
 
 
 def _project_settings(

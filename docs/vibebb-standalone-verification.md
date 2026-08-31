@@ -333,8 +333,10 @@ pinned library file missing: /workspace/acd/libraries/Espressif.pretty/ESP32-C3-
 （`libraries/Espressif.kicad_sym`／`libraries/Espressif.pretty/...`）で宣言する一方、
 `build_design_fixture`が生成する新規fixture配下へ当該資材が置かれず、
 `resolve_fixture_path()`はfixture dirとrepository rootだけを探索するためである。
-資材自体は`examples/mini-blink-dongle-20260825/fixture/libraries/`と
-`fixtures/golden-design-1/libraries/`に存在するが、repository root直下には`libraries/`が無い。
+当時の資材は`examples/mini-blink-dongle-20260825/fixture/libraries/`と
+`fixtures/golden-design-1/libraries/`にしか存在せず、repository root直下に`libraries/`が無かった
+（14.17で資材をcanonical store `libraries/`へ移し、解決を
+`resolve_fixture_library_path()`へ統一した）。
 GD1は同じ資材を絶対path（`/usr/share/kicad/...`）で宣言するため、この停止はGD1では露出しない。
 14.15で追加した初期配置のdecoupling解決（P-2）は`decoupling_target`宣言のあるfixtureで
 必ず実行されるため、Espressif資材を参照する新規設計は現状かならずここで止まる（S-4）。

@@ -38,6 +38,7 @@ from acd.adapters.kicad.placement import rotate_point
 from acd.core.board_model import BoardModel, RoutedDesign, RoutedVia
 from acd.core.bom import refdes_key
 from acd.core.electrical import ComponentView, ElectricalLane
+from acd.core.library_assets import resolve_fixture_library_path
 from acd.core.fab import (
     FabOrderIntentView,
     FabProfile,
@@ -457,9 +458,7 @@ def verify_cpl_pin_function_declaration(
     """Verify graph CPL pin functions against the pinned KiCad symbol."""
     if not component.cpl_rotation_pin_functions:
         return "no pin-function declaration"
-    symbol_path = Path(component.library.symbol_file)
-    if not symbol_path.is_absolute():
-        symbol_path = fixture_dir / symbol_path
+    symbol_path = resolve_fixture_library_path(component.library.symbol_file, fixture_dir)
     parsed = SymbolLibrary().load(
         component.library.symbol,
         symbol_path,

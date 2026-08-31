@@ -28,6 +28,7 @@ from acd.core.board_model import (
 )
 from acd.core.electrical import BoardView, ElectricalLane
 from acd.core.fab import FabProfile
+from acd.core.library_assets import resolve_fixture_library_path
 from acd.core.routing_width import derive_net_widths, group_netclasses
 from acd.core.sexpr import Quoted, SExpr, Sym, dumps
 from acd.core.silkscreen import (
@@ -499,9 +500,7 @@ def load_board_footprints(
     raw_footprints: dict[str, list[SExpr]] = {}
     overlay_records: list[dict[str, str]] = []
     for comp in lane.components:
-        path = Path(comp.library.footprint_file)
-        if not path.is_absolute():
-            path = fixture_dir / path
+        path = resolve_fixture_library_path(comp.library.footprint_file, fixture_dir)
         if comp.overlay_file is None:
             footprints[comp.refdes] = footprint_library.load(
                 comp.library.footprint, path, comp.library.footprint_sha256
