@@ -87,3 +87,33 @@ def test_digest_reports_unknown_artifact_kind(tmp_path: Path) -> None:
     report = collect_progress_digest(tmp_path)
     assert report.status == "unknown"
     assert report.records[0].reason is not None
+
+
+def test_digest_renders_design_loop_summary(tmp_path: Path) -> None:
+    body: dict[str, object] = {
+        "schema_version": "0.1",
+        "artifact_kind": "design_loop_summary",
+        "record_class": "L3",
+        "pass_evidence": False,
+        "ok": False,
+        "failed_stage": "board-pipeline",
+        "failure_reason": "router rejected candidate",
+        "next_step_action": "rerun with recovery",
+        "exploration_rounds": 1,
+        "max_exploration_candidates": 3,
+        "max_exploration_rounds": 1,
+        "graph_id": "gd1",
+        "timing_record": "timing-record.json",
+    }
+    body["content_sha256"] = canonical_json_sha256(body)
+    _write(tmp_path / "loop-summary.json", body)
+
+    report = collect_progress_digest(tmp_path)
+    assert report.status == "pass"
+    summary = report.records[0]
+    assert summary.kind == "design_loop_summary"
+    assert summary.record_ok is False
+    assert summary.failure_reason == "router rejected candidate"
+    assert summary.next_step_action == "rerun with recovery"
+    assert "router rejected candidate" in render_progress_digest(report)
+    assert "rerun with recovery" in render_progress_digest(report)

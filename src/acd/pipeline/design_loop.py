@@ -44,7 +44,12 @@ from acd.core.requirements import (
     load_requirements,
     validate_requirements,
 )
-from acd.core.runtime_records import TimingRecorder, write_timing_record
+from acd.core.runtime_records import (
+    RuntimeObservationError,
+    TimingRecorder,
+    write_loop_summary_record,
+    write_timing_record,
+)
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
 from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
@@ -138,6 +143,24 @@ def _firmware_script(repository: Path) -> Path:
 
 def _file_sha256(path: Path) -> str:
     return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+
+
+def _write_candidate_timing_record(
+    recorder: TimingRecorder, candidate_out: Path, *, lane_id: str
+) -> None:
+    try:
+        recorder.finish_open()
+        write_timing_record(
+            candidate_out,
+            recorder,
+            owner=f"candidate/{lane_id}/{candidate_out.name}",
+        )
+    except RuntimeObservationError:
+        raise
+    except Exception as exc:
+        raise RuntimeObservationError(
+            f"candidate timing record could not be written: {exc}"
+        ) from exc
 
 
 def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
@@ -985,20 +1008,66 @@ def run_design_loop(
                 def pipeline_runner(
                     working_fixture: Path, candidate_out: Path
                 ) -> object:
-                    return run_board_pipeline(
-                        working_fixture,
+                    candidate_timing = TimingRecorder()
+                    try:
+                        result = run_board_pipeline(
+                            working_fixture,
+                            candidate_out,
+                            config.max_passes,
+                            config.fab_profile,
+                            fab_profile_id=config.fab_profile_id,
+                            cache_dir=config.cache_dir,
+                            timing_recorder=candidate_timing,
+                        )
+                    except Exception as exc:
+                        try:
+                            _write_candidate_timing_record(
+                                candidate_timing,
+                                candidate_out,
+                                lane_id="board-pipeline",
+                            )
+                        except Exception as write_exc:
+                            raise RuntimeObservationError(
+                                "candidate timing record could not be written: "
+                                f"{write_exc}; pipeline error: {exc}"
+                            ) from exc
+                        raise
+                    _write_candidate_timing_record(
+                        candidate_timing,
                         candidate_out,
-                        config.max_passes,
-                        config.fab_profile,
-                        fab_profile_id=config.fab_profile_id,
-                        cache_dir=config.cache_dir,
-                        timing_recorder=config.timing_recorder,
+                        lane_id="board-pipeline",
                     )
+                    return result
 
                 def enclosure_pipeline_runner(
                     working_fixture: Path, candidate_out: Path
                 ) -> object:
-                    return run_enclosure_pipeline(working_fixture, candidate_out)
+                    candidate_timing = TimingRecorder()
+                    try:
+                        result = run_enclosure_pipeline(
+                            working_fixture,
+                            candidate_out,
+                            timing_recorder=candidate_timing,
+                        )
+                    except Exception as exc:
+                        try:
+                            _write_candidate_timing_record(
+                                candidate_timing,
+                                candidate_out,
+                                lane_id="enclosure-pipeline",
+                            )
+                        except Exception as write_exc:
+                            raise RuntimeObservationError(
+                                "candidate timing record could not be written: "
+                                f"{write_exc}; pipeline error: {exc}"
+                            ) from exc
+                        raise
+                    _write_candidate_timing_record(
+                        candidate_timing,
+                        candidate_out,
+                        lane_id="enclosure-pipeline",
+                    )
+                    return result
 
                 try:
                     exploration = _run_lane_exploration(
@@ -1289,11 +1358,13 @@ def run_design_loop(
                     "results": results,
                 }
             )
-            if not recovery_enabled:
-                rerun = _recovery_rerun_arguments(
-                    failed, max_exploration_candidates, max_exploration_rounds
-                )
-                if rerun is not None:
+            rerun = _recovery_rerun_arguments(
+                failed, max_exploration_candidates, max_exploration_rounds
+            )
+            if rerun is not None:
+                if "next_step_action" in rerun:
+                    result["next_step_action"] = rerun["next_step_action"]
+                if not recovery_enabled:
                     result["recovery_rerun"] = rerun
         else:
             result.update(
@@ -1321,4 +1392,33 @@ def run_design_loop(
             result["timing_record"] = str(timing_record)
         if timing_record_error is not None:
             result["timing_record_error"] = timing_record_error
+        try:
+            loop_summary = write_loop_summary_record(
+                out_root,
+                {
+                    "schema_version": "0.1",
+                    "artifact_kind": "design_loop_summary",
+                    "record_class": "L3",
+                    "pass_evidence": False,
+                    "ok": bool(result.get("ok", False)),
+                    "failed_stage": result.get("failed_stage"),
+                    "failure_reason": result.get("failure_reason"),
+                    "next_step_action": result.get("next_step_action"),
+                    "exploration_rounds": (
+                        len(result.get("exploration_rounds", []))
+                        if recovery_enabled
+                        else None
+                    ),
+                    "max_exploration_candidates": max_exploration_candidates,
+                    "max_exploration_rounds": max_exploration_rounds,
+                    "graph_id": result.get("graph_id"),
+                    "timing_record": (
+                        str(timing_record) if timing_record is not None else None
+                    ),
+                },
+            )
+        except Exception as exc:
+            result["loop_summary_error"] = f"{type(exc).__name__}: {exc}"
+        else:
+            result["loop_summary"] = str(loop_summary)
     return result

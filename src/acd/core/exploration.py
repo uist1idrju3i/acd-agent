@@ -33,6 +33,7 @@ from acd.core.rationale import (
     RationaleRefreshError,
     refresh_rationale_document,
 )
+from acd.core.runtime_records import RuntimeObservationError
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
@@ -775,6 +776,16 @@ def _candidate_outcome(
         )
     try:
         pipeline_runner(working_fixture, candidate_out)
+    except RuntimeObservationError as exc:
+        return (
+            {
+                "status": "stopped",
+                "reasons": [f"candidate evaluation observation failed: {exc}"],
+                "observation_failure": True,
+            },
+            False,
+            (),
+        )
     except Exception as exc:
         dimensions, diagnostic_error = _diagnostic_dimensions(
             candidate_out / "gate-evidence" / "design-predicates.json",

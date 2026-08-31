@@ -23,6 +23,7 @@ from acd.schema.progress_digest import (
 )
 
 TIMING_RECORD_NAME = "timing-record.json"
+LOOP_SUMMARY_NAME = "loop-summary.json"
 EXPLORATION_REPORT_SUFFIX = "exploration-report.json"
 EXPLORATION_KINDS: frozenset[str] = frozenset(
     {
@@ -106,6 +107,19 @@ def _exploration_record(
     )
 
 
+def _loop_summary_record(path: Path, document: Mapping[str, Any]) -> ProgressRecord:
+    return ProgressRecord(
+        kind="design_loop_summary",
+        path=str(path),
+        status="read",
+        record_ok=_optional_bool(document, "ok"),
+        failed_stage=_optional_str(document, "failed_stage"),
+        failure_reason=_optional_str(document, "failure_reason"),
+        next_step_action=_optional_str(document, "next_step_action"),
+        exploration_rounds=_optional_int(document, "exploration_rounds"),
+    )
+
+
 def _record(path: Path) -> ProgressRecord:
     document, error = _load(path)
     if document is None:
@@ -117,6 +131,8 @@ def _record(path: Path) -> ProgressRecord:
         )
     if path.name == TIMING_RECORD_NAME:
         return _timing_record(path, document)
+    if path.name == LOOP_SUMMARY_NAME:
+        return _loop_summary_record(path, document)
     artifact_kind = _optional_str(document, "artifact_kind")
     if artifact_kind in EXPLORATION_KINDS:
         return _exploration_record(path, document, artifact_kind)  # pyright: ignore[reportArgumentType]
@@ -139,6 +155,7 @@ def collect_progress_digest(out_dir: Path) -> ProgressDigestReport:
     paths = sorted(
         {
             *out_dir.rglob(TIMING_RECORD_NAME),
+            *out_dir.rglob(LOOP_SUMMARY_NAME),
             *out_dir.rglob(f"*{EXPLORATION_REPORT_SUFFIX}"),
         },
         key=str,
@@ -174,6 +191,15 @@ def render_progress_digest(report: ProgressDigestReport) -> str:
             lines.append(
                 f"- {record.path}: {record.stage_count} stage(s), "
                 f"{record.duration_seconds:.3f}s total"
+            )
+            continue
+        if record.kind == "design_loop_summary":
+            lines.append(
+                f"- {record.path}: ok={record.record_ok}"
+                f", failed_stage={record.failed_stage}"
+                f", failure_reason={record.failure_reason}"
+                f", next_step={record.next_step_action}"
+                f", rounds={record.exploration_rounds}"
             )
             continue
         lines.append(

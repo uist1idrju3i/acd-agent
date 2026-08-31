@@ -16,6 +16,7 @@ from acd.openhands.workspace import (
     ImageReference,
     ProvisionalWorkspaceResult,
     WorkspaceResult,
+    WorkspaceTransportError,
     resolve_image_digest,
     run_command_in_workspace,
 )
@@ -217,6 +218,43 @@ def test_cli_preserves_command_failure_exit_code(
         )
         == 7
     )
+
+
+def test_cli_preserves_command_output_on_transport_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    error = WorkspaceTransportError(
+        "missing evidence",
+        exit_code=0,
+        stdout="lane output\n",
+        stderr="lane warning\n",
+        downloaded_files=(tmp_path / "out/container/partial.json",),
+    )
+
+    def fail_run_command(**_kwargs: Any) -> WorkspaceResult:
+        raise error
+
+    monkeypatch.setattr(runner_script, "run_command_in_workspace", fail_run_command)
+    assert (
+        runner_script.main(
+            [
+                "--image",
+                "acd-server:local",
+                "--repo",
+                str(tmp_path),
+                "--download",
+                "out/gd1/evidence-electrical.json",
+                "true",
+            ]
+        )
+        == 2
+    )
+    captured = capsys.readouterr()
+    assert "exit code: 0" in captured.out
+    assert "stdout:\nlane output\n" in captured.out
+    assert "stderr:\nlane warning\n" in captured.out
+    assert f"downloaded: {tmp_path / 'out/container/partial.json'}" in captured.out
+    assert "workspace failure (transport): missing evidence" in captured.err
 
 
 def test_cli_local_provisional_is_explicit_opt_in(

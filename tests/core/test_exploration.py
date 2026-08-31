@@ -17,6 +17,7 @@ from acd.core.exploration import (
     explore_board_candidates,
 )
 from acd.core.rationale import RationaleDocument, check_rationale_coverage
+from acd.core.runtime_records import RuntimeObservationError
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
 
@@ -293,6 +294,41 @@ def test_malformed_gate_evidence_stops_exploration(
 
     assert result.report["status"] == "stopped"
     assert result.report["candidates"][0]["outcome"]["status"] == "stopped"
+
+
+def test_runtime_observation_failure_stops_without_gate_rejection(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture = tmp_path / "fixture"
+    shutil.copytree(FIXTURE_DIR, source_fixture)
+    source_graph = source_fixture / "graph.json"
+    source_graph.write_text(GRAPH_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args: (_placement_candidate(graph),),
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+
+    def observation_failure(_fixture: Path, _out: Path) -> None:
+        raise RuntimeObservationError("candidate timing is unavailable")
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=1,
+        pipeline_runner=observation_failure,
+    )
+
+    outcome = result.report["candidates"][0]["outcome"]
+    assert outcome["status"] == "stopped"
+    assert outcome["observation_failure"] is True
+    assert all(
+        candidate["outcome"]["status"] != "gate_rejected"
+        for candidate in result.report["candidates"]
+    )
 
 
 def _shifted_placement_candidate(

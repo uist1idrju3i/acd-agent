@@ -927,6 +927,13 @@ L1判定へ持ち込まないための是正フェーズである。
 | negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
 | 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
 
+T-1、T-4、T-5は実装済みである。候補評価は親laneと独立したtiming recorderを使い、
+観測失敗を`stopped`として扱う。各design loopはcanonical hash付きの
+`loop-summary.json`をL3へ保存し、`report_progress.py`が失敗lane・理由・次の手順を表示する。
+workspaceのdownloadが失敗した場合もcommandのexit code・stdout・stderr・部分downloadを出力したうえで
+fail-closedに終了する。T-2（remediation次元ごとの複数候補生成）とT-3（ambient install経路への
+tool登録）は未了であり、実機で成功した復帰runのwall-clock記録も未取得である。
+
 T-1は復帰経路の唯一の停止点であり先に扱う。T-2はT-1解消後に予算を意味あるものにする前提、
 T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論点、T-5は検証作業の可読性である。
 いずれもEvidenceの合否権限とfail-closed境界を変更しない。

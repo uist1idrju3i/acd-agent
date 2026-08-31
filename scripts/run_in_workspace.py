@@ -227,6 +227,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
         return 2
     except WorkspaceTransportError as exc:
+        print(f"exit code: {exc.exit_code}")
+        print("stdout:")
+        print(exc.stdout, end="" if exc.stdout.endswith("\n") else "\n")
+        print("stderr:")
+        print(exc.stderr, end="" if exc.stderr.endswith("\n") else "\n")
+        for path in exc.downloaded_files:
+            print(f"downloaded: {path}")
         print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
         return 2
     except ValueError as exc:

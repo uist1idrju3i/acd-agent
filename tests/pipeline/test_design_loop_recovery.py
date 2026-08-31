@@ -298,6 +298,103 @@ def test_declared_remediation_targets_the_board_explorer(
     assert result["exploration_rounds"][0]["lane_id"] == "board-pipeline"
 
 
+def test_candidate_timing_isolated_from_open_parent_lane_stage(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    out_root = tmp_path / "artifacts"
+    graph = json.loads((fixture / "graph.json").read_text(encoding="utf-8"))
+    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
+
+    def failing_board(config: DesignLoopConfig) -> dict[str, Any]:
+        assert config.timing_recorder is not None
+        config.timing_recorder.start("board[1/12]")
+        lane_out = config.lane_plan.stage("board-pipeline").output_path
+        assert lane_out is not None
+        _write_remediation_evidence(lane_out, graph["revision"])
+        return {
+            "stage_id": "board-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "lane rejected",
+        }
+
+    runners = _runners("board-pipeline")
+    runners["board-pipeline"] = failing_board
+    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", runners)
+
+    def candidate_pipeline(
+        _fixture: Path,
+        _output: Path,
+        _max_passes: int,
+        _fab_profile: Path | None,
+        *,
+        fab_profile_id: str | None,
+        cache_dir: Path | None,
+        timing_recorder: design_loop.TimingRecorder | None,
+    ) -> dict[str, str]:
+        del fab_profile_id, cache_dir
+        assert timing_recorder is not None
+        timing_recorder.start("board[1/12]")
+        timing_recorder.finish("board[1/12]")
+        return {"gate": "completed"}
+
+    monkeypatch.setattr(design_loop, "run_board_pipeline", candidate_pipeline)
+
+    def fake_explore_board(
+        _graph_path: Path,
+        _fixture_dir: Path,
+        out_dir: Path,
+        _max_candidates: int,
+        *,
+        max_passes: int,
+        dry_run: bool,
+        pipeline_runner: Callable[[Path, Path], object],
+        remediation: tuple[Any, ...],
+    ) -> Any:
+        del max_passes, dry_run, remediation
+        candidate_out = out_dir / "candidates" / "candidate-1"
+        pipeline_runner(fixture, candidate_out)
+        return SimpleNamespace(
+            report={
+                "status": "exhausted",
+                "winner_written": False,
+                "evaluated_candidates": 1,
+                "candidates": [
+                    {
+                        "candidate_id": "candidate-1",
+                        "outcome": {"status": "candidate_survived_gates"},
+                    }
+                ],
+            },
+            report_path=out_dir / "exploration-report.json",
+        )
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore_board)
+
+    result = run_design_loop(
+        fixture,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        recover_lanes=True,
+    )
+
+    assert result["ok"] is False
+    timing_path = (
+        out_root
+        / "gd1-board-exploration"
+        / "round-1"
+        / "candidates"
+        / "candidate-1"
+        / "timing-record.json"
+    )
+    timing = json.loads(timing_path.read_text(encoding="utf-8"))
+    assert timing["owner"] == "candidate/board-pipeline/candidate-1"
+
+
 def test_invalid_recovery_declaration_stops_before_any_stage(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

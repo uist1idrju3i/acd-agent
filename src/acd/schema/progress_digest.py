@@ -18,6 +18,7 @@ ProgressRecordKind = Literal[
     "board_exploration_report",
     "enclosure_exploration_report",
     "firmware_exploration_report",
+    "design_loop_summary",
     "unknown",
 ]
 ProgressRecordStatus = Literal["read", "unknown"]
@@ -30,9 +31,14 @@ class ProgressRecord(AcdModel):
     kind: ProgressRecordKind
     path: NonEmptyStr
     status: ProgressRecordStatus
+    record_ok: bool | None = None
     # Status reported by the record itself, such as an exploration termination.
     record_status: NonEmptyStr | None = None
     termination_reason: NonEmptyStr | None = None
+    failed_stage: NonEmptyStr | None = None
+    failure_reason: NonEmptyStr | None = None
+    next_step_action: NonEmptyStr | None = None
+    exploration_rounds: int | None = Field(default=None, ge=0)
     target_revision: NonEmptyStr | None = None
     evaluated_candidates: int | None = Field(default=None, ge=0)
     remaining_budget: int | None = Field(default=None, ge=0)

@@ -4,10 +4,12 @@ from pathlib import Path
 import pytest
 
 from acd.core.runtime_records import (
+    RuntimeObservationError,
     StageArtifactCache,
     TimingRecorder,
     write_timing_record,
 )
+from acd.schema.common import canonical_json_sha256
 
 
 def test_timing_record_is_l3_with_stable_shape(
@@ -29,8 +31,6 @@ def test_timing_record_is_l3_with_stable_shape(
         {"name": "second", "duration_seconds": 0.5, "start_order": 1},
     ]
     content_hash = body.pop("content_sha256")
-    from acd.schema.common import canonical_json_sha256
-
     assert content_hash == canonical_json_sha256(body)
 
 
@@ -54,3 +54,33 @@ def test_stage_cache_key_changes_with_inputs() -> None:
     second = StageArtifactCache.key("stage", {"revision": "b"})
     assert first == StageArtifactCache.key("stage", {"revision": "a"})
     assert first != second
+
+
+def test_timing_recorder_uses_runtime_observation_errors() -> None:
+    recorder = TimingRecorder()
+    recorder.start("stage")
+    with pytest.raises(RuntimeObservationError, match="already started"):
+        recorder.start("stage")
+    with pytest.raises(RuntimeObservationError, match="unfinished stages"):
+        recorder.stages()
+    recorder.finish("stage")
+    with pytest.raises(RuntimeObservationError, match="was not started"):
+        recorder.finish("stage")
+
+
+def test_timing_record_owner_is_hashed_and_optional(tmp_path: Path) -> None:
+    owned = TimingRecorder()
+    owned.start("stage")
+    owned.finish("stage")
+    owned_path = write_timing_record(tmp_path / "owned", owned, owner="candidate/board/1")
+    owned_body = json.loads(owned_path.read_text(encoding="utf-8"))
+    assert owned_body["owner"] == "candidate/board/1"
+    owned_hash = owned_body.pop("content_sha256")
+    assert owned_hash == canonical_json_sha256(owned_body)
+
+    unowned = TimingRecorder()
+    unowned.start("stage")
+    unowned.finish("stage")
+    unowned_path = write_timing_record(tmp_path / "unowned", unowned)
+    unowned_body = json.loads(unowned_path.read_text(encoding="utf-8"))
+    assert "owner" not in unowned_body
