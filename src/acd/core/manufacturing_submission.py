@@ -17,6 +17,8 @@ from acd.adapters.cad.mechanical import (
     measure_enclosure_artifacts,
     measure_enclosure_mesh_artifacts,
 )
+from acd.adapters.kicad.board import EDGE_CUTS_STROKE_WIDTH_MM
+from acd.adapters.kicad.cli import gerber_file_suffix
 from acd.adapters.kicad.fab.archive import zip_content_hash
 from acd.adapters.kicad.reload import (
     ReloadError,
@@ -51,20 +53,61 @@ _CHECK_IDS = (
     "revision_consistency",
     "evidence_validity",
 )
-_REQUIRED_LAYERS = (
-    "F.Cu",
-    "B.Cu",
-    "F.Mask",
-    "B.Mask",
-    "F.SilkS",
-    "B.SilkS",
-    "F.Paste",
-    "Edge.Cuts",
-)
 _GERBER_SUFFIXES = frozenset(
     {".gtl", ".gbl", ".gts", ".gbs", ".gto", ".gbo", ".gtp", ".gbp", ".gm1", ".gbr"}
 )
-_BOARD_OUTLINE_TOLERANCE_MM = 0.2
+
+
+def _required_layers(package: dict[str, Any]) -> tuple[str, ...]:
+    value = cast(object, package.get("required_layers"))
+    if not isinstance(value, list) or not value:
+        raise ManufacturingSubmissionError("fab-package required_layers is missing")
+    layers = cast(list[Any], value)
+    if any(not isinstance(item, str) or not item for item in layers):
+        raise ManufacturingSubmissionError("fab-package required_layers is malformed")
+    return tuple(cast(list[str], layers))
+
+
+def _layer_gerbers(layers: tuple[str, ...], paths: dict[str, Path]) -> dict[str, Path]:
+    mapping: dict[str, Path] = {}
+    for layer in layers:
+        suffix = gerber_file_suffix(layer)
+        matches = sorted(
+            (path for name, path in paths.items() if Path(name).name.endswith(suffix)),
+            key=lambda path: path.name,
+        )
+        if len(matches) != 1:
+            raise ManufacturingSubmissionError(
+                f"declared layer {layer} has {len(matches)} Gerber files"
+            )
+        mapping[layer] = matches[0]
+    return mapping
+
+
+def _board_role(path: Path) -> str:
+    name = path.name
+    suffix = path.suffix.lower()
+    if suffix == ".zip":
+        return "gerber_zip"
+    if suffix == ".gbrjob":
+        return "gbrjob"
+    if suffix in {".drl", ".xln"}:
+        return "drill"
+    if name.endswith("-bom-jlcpcb.csv"):
+        return "bom"
+    if name.endswith("-cpl-jlcpcb.csv"):
+        return "cpl"
+    if name.endswith(".pos.csv"):
+        return "position"
+    if name == "dfm-report.json":
+        return "dfm_report"
+    if name == "cpl-basis-report.json":
+        return "cpl_basis"
+    if name == "order-readiness.json":
+        return "order_readiness"
+    if suffix in _GERBER_SUFFIXES:
+        return "gerber"
+    return "board_artifact"
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -250,7 +293,7 @@ def evaluate_manufacturing_submission(
         "-cpl-jlcpcb.csv",
         ".pos.csv",
         "dfm-report.json",
-        "cpl-basis.json",
+        "cpl-basis-report.json",
     )
     artifact_records: list[ManufacturingSubmissionArtifact] = []
     empty_hash = "sha256:" + hashlib.sha256(b"").hexdigest()
@@ -261,7 +304,7 @@ def evaluate_manufacturing_submission(
         fmt = _format_for(path) if path is not None else "FILE"
         artifact_records.append(
             ManufacturingSubmissionArtifact(
-                role="board_artifact",
+                role=_board_role(Path(str(entry.get("path", "")))),
                 path=str(entry.get("path", "")),
                 format=fmt,
                 normalized_sha256=(
@@ -327,9 +370,16 @@ def evaluate_manufacturing_submission(
             name for name in required_enclosure_names
             if name not in declared_enclosure_names
         )
-        required_layers = package.get("required_layers")
-        if required_layers != list(_REQUIRED_LAYERS):
-            missing.append("required_layers")
+        try:
+            layer_gerbers = _layer_gerbers(_required_layers(package), paths)
+        except ManufacturingSubmissionError as exc:
+            missing.append(str(exc))
+        else:
+            missing.extend(
+                f"{layer}:{path.name}"
+                for layer, path in layer_gerbers.items()
+                if not path.is_file() or path.stat().st_size == 0
+            )
         for suffix in required_board_suffixes:
             if not any(Path(name).name.endswith(suffix) for name in paths):
                 missing.append(suffix)
@@ -353,9 +403,12 @@ def evaluate_manufacturing_submission(
     pos_paths = [path for path in paths.values() if path.name.endswith(".pos.csv")]
 
     def independent_reload() -> str:
-        for path in gerber_paths:
-            layer = "B.SilkS" if path.name.endswith("-B_Silkscreen.gbo") else "other"
+        layer_gerbers = _layer_gerbers(_required_layers(package), paths)
+        for layer, path in layer_gerbers.items():
             verify_gerber(path, min_objects=0 if layer == "B.SilkS" else 1)
+        for path in gerber_paths:
+            if path not in layer_gerbers.values():
+                verify_gerber(path, min_objects=1)
         for path in drill_paths:
             verify_drill(path)
         if len(gbrjob_paths) != 1:
@@ -369,18 +422,15 @@ def evaluate_manufacturing_submission(
                 raise ReloadError(f"gbrjob file is missing: {name}")
         if not zip_paths:
             raise ReloadError("gerbers.zip is missing")
-        declared = set(path_entries) - {
-            name for name in path_entries if Path(name).name == Path(zip_paths[0]).name
-        }
-        declared = {
-            name for name in declared if Path(name).name != "order-readiness.json"
+        declared_sources = {
+            path.name: path for path in (*gerber_paths, *drill_paths, *gbrjob_paths)
         }
         with zipfile.ZipFile(zip_paths[0]) as archive:
             members = set(archive.namelist())
-            if members != declared:
-                raise ReloadError("zip member set differs from declared manufacturing artifacts")
-            for member in members:
-                source = board_dir / member
+            if members != set(declared_sources):
+                raise ReloadError("zip member set differs from declared Gerber, drill, and gbrjob")
+            for member in sorted(members):
+                source = declared_sources[member]
                 if not source.is_file() or archive.read(member) != source.read_bytes():
                     raise ReloadError(f"zip member differs from source: {member}")
         if len(bom_paths) != 1 or len(cpl_paths) != 1 or len(pos_paths) != 1:
@@ -440,12 +490,21 @@ def evaluate_manufacturing_submission(
         height = board.attrs.get("height_mm")
         if not isinstance(width, (int, float)) or not isinstance(height, (int, float)):
             raise ManufacturingSubmissionError("graph board dimensions are missing")
+        tolerance_obj = board.attrs.get("width_measurement_tolerance_mm")
+        if not isinstance(tolerance_obj, (int, float)) or float(tolerance_obj) <= 0:
+            raise ManufacturingSubmissionError(
+                "graph board width measurement tolerance is missing"
+            )
+        tolerance = float(tolerance_obj)
         measured = (bbox[2] - bbox[0], bbox[3] - bbox[1])
+        # The existing board export draws this centred stroke around the nominal outline.
+        expected = (
+            float(width) + EDGE_CUTS_STROKE_WIDTH_MM,
+            float(height) + EDGE_CUTS_STROKE_WIDTH_MM,
+        )
         if not math.isclose(
-            measured[0], float(width), abs_tol=_BOARD_OUTLINE_TOLERANCE_MM
-        ) or not math.isclose(
-            measured[1], float(height), abs_tol=_BOARD_OUTLINE_TOLERANCE_MM
-        ):
+            measured[0], expected[0], abs_tol=tolerance
+        ) or not math.isclose(measured[1], expected[1], abs_tol=tolerance):
             raise ManufacturingSubmissionError("Edge.Cuts bbox differs from graph board dimensions")
         if len(gbrjob_paths) != 1:
             raise ManufacturingSubmissionError("gbrjob is missing")
@@ -458,10 +517,8 @@ def evaluate_manufacturing_submission(
             raise ManufacturingSubmissionError("gbrjob GeneralSpecs.Size is missing")
         size = cast(dict[str, Any], specs["Size"])
         if not math.isclose(
-            measured[0], float(size["X"]), abs_tol=_BOARD_OUTLINE_TOLERANCE_MM
-        ) or not math.isclose(
-            measured[1], float(size["Y"]), abs_tol=_BOARD_OUTLINE_TOLERANCE_MM
-        ):
+            measured[0], float(size["X"]), abs_tol=tolerance
+        ) or not math.isclose(measured[1], float(size["Y"]), abs_tol=tolerance):
             raise ManufacturingSubmissionError(
                 "Edge.Cuts bbox differs from gbrjob GeneralSpecs.Size"
             )

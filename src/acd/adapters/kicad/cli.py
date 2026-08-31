@@ -179,8 +179,7 @@ class KicadCli:
             str(board),
         ]
         expected = [
-            out_dir / f"{board.stem}-{_gerber_stem(layer)}.{_gerber_ext(layer)}"
-            for layer in layers
+            out_dir / f"{board.stem}{gerber_file_suffix(layer)}" for layer in layers
         ]
         run = run_tool(
             tool_name="kicad-cli",
@@ -272,6 +271,11 @@ _GERBER_FILES = {
     "B.Paste": ("B_Paste", "gbp"),
     "Edge.Cuts": ("Edge_Cuts", "gm1"),
 }
+
+
+def gerber_file_suffix(layer: str) -> str:
+    """File-name suffix kicad-cli appends for a board layer (e.g. "-F_Cu.gtl")."""
+    return f"-{_gerber_stem(layer)}.{_gerber_ext(layer)}"
 
 
 def _gerber_stem(layer: str) -> str:

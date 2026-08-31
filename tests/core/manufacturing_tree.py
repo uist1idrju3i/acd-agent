@@ -191,18 +191,24 @@ def _manifest_files(board_dir: Path, members: list[Path], readiness: Path, zip_p
     return entries
 
 
-def _package_members(board_dir: Path) -> list[Path]:
+def _zip_members(board_dir: Path) -> list[Path]:
     gerber_dir = board_dir / "gerbers"
-    fab_dir = board_dir / "fab"
     return [
         *(gerber_dir / name for name in _gerber_names()),
         gerber_dir / f"{BOARD_NAME}.drl",
         gerber_dir / f"{BOARD_NAME}-job.gbrjob",
+    ]
+
+
+def _package_members(board_dir: Path) -> list[Path]:
+    fab_dir = board_dir / "fab"
+    return [
+        *_zip_members(board_dir),
         fab_dir / f"{BOARD_NAME}-bom-jlcpcb.csv",
         fab_dir / f"{BOARD_NAME}-cpl-jlcpcb.csv",
         fab_dir / f"{BOARD_NAME}.pos.csv",
         fab_dir / "dfm-report.json",
-        fab_dir / "cpl-basis.json",
+        fab_dir / "cpl-basis-report.json",
     ]
 
 
@@ -211,7 +217,7 @@ def refresh_board_manifest(board_dir: Path) -> None:
     fab_dir = board_dir / "fab"
     zip_path = fab_dir / f"{BOARD_NAME}-gerbers.zip"
     members = _package_members(board_dir)
-    deterministic_zip(zip_path, members, board_dir)
+    deterministic_zip(zip_path, _zip_members(board_dir), board_dir / "gerbers")
     package_path = fab_dir / "fab-package.json"
     package = json.loads(package_path.read_text(encoding="utf-8"))
     package["files"] = _manifest_files(
@@ -264,7 +270,7 @@ def build_board_tree(board_dir: Path, *, revision: str, profile_id: str) -> None
         + "\n",
         encoding="utf-8",
     )
-    (fab_dir / "cpl-basis.json").write_text(
+    (fab_dir / "cpl-basis-report.json").write_text(
         json.dumps(
             {
                 "position_bases": {"R1": "measured", "C1": "measured"},

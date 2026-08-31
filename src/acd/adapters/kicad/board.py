@@ -40,6 +40,8 @@ from acd.core.silkscreen import (
 
 PCB_VERSION = "20241229"
 
+EDGE_CUTS_STROKE_WIDTH_MM = 0.1
+
 _ANTENNA_KEEPOUT_HALF_WIDTH_MM = 7.0
 _ANTENNA_KEEPOUT_DEPTH_MM = 4.6
 _ANTENNA_KEEPOUT_PAD_CLEARANCE_MM = 0.3
@@ -106,7 +108,11 @@ def _edge_lines(width: float, height: float) -> list[list[SExpr]]:
                 Sym("gr_line"),
                 [Sym("start"), fmt(sx), fmt(sy)],
                 [Sym("end"), fmt(ex), fmt(ey)],
-                [Sym("stroke"), [Sym("width"), "0.1"], [Sym("type"), Sym("solid")]],
+                [
+                    Sym("stroke"),
+                    [Sym("width"), fmt(EDGE_CUTS_STROKE_WIDTH_MM)],
+                    [Sym("type"), Sym("solid")],
+                ],
                 [Sym("layer"), Quoted("Edge.Cuts")],
                 [Sym("uuid"), Quoted(det_uuid("edge", str(index)))],
             ]

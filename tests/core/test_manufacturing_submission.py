@@ -150,8 +150,8 @@ def test_zip_member_substitution_fails_independent_reload(
     zip_path = board_dir / "fab" / f"{BOARD_NAME}-gerbers.zip"
     with zipfile.ZipFile(zip_path) as archive:
         members = {name: archive.read(name) for name in archive.namelist()}
-    victim = f"gerbers/{BOARD_NAME}-F_Paste.gtp"
-    members[f"gerbers/{BOARD_NAME}-unexpected.gtp"] = members.pop(victim)
+    victim = f"{BOARD_NAME}-F_Paste.gtp"
+    members[f"{BOARD_NAME}-unexpected.gtp"] = members.pop(victim)
     with zipfile.ZipFile(zip_path, "w") as archive:
         for name, data in sorted(members.items()):
             archive.writestr(name, data)

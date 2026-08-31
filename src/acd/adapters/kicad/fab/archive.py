@@ -19,8 +19,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from acd.adapters.kicad.reload import normalize_member
-
 import sexpdata  # pyright: ignore[reportMissingTypeStubs]
 from gerbonara.apertures import (  # pyright: ignore[reportMissingTypeStubs]
     CircleAperture,
@@ -37,6 +35,7 @@ from gerbonara.graphic_objects import (  # pyright: ignore[reportMissingTypeStub
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
 from acd.adapters.kicad.library import SymbolLibrary
+from acd.adapters.kicad.reload import normalize_member
 from acd.adapters.kicad.placement import rotate_point
 from acd.core.board_model import BoardModel, RoutedDesign, RoutedVia
 from acd.core.bom import refdes_key

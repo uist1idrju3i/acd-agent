@@ -1539,7 +1539,7 @@ def run_pipeline(
         for node in graph.nodes
         if node.kind == "mechanical.board_edge_overhang"
     }
-    cpl_basis_path = fab_dir / "cpl-basis.json"
+    cpl_basis_path = fab_dir / "cpl-basis-report.json"
     lcsc_evidence_dir = (
         repository_root() / f"evidence/{artifact_prefix(graph.graph_id)}-cpl-orientation"
     )
@@ -1708,18 +1708,9 @@ def run_pipeline(
     )
     mark_stage(10)
 
-    package_members = [
-        *gerber_paths,
-        *drill_paths,
-        gbrjob_path,
-        bom_path,
-        cpl_path,
-        pos_path,
-        dfm_path,
-        cpl_basis_path,
-    ]
+    package_members = [*gerber_paths, *drill_paths, gbrjob_path]
     zip_path = fab_dir / f"{name}-gerbers.zip"
-    deterministic_zip(zip_path, package_members, out_dir)
+    deterministic_zip(zip_path, package_members, gerber_dir)
     profile_hash = normalized_hash(resolved_fab_profile_path)
     manifest: dict[str, object] = {
         "schema_version": "0.1",
