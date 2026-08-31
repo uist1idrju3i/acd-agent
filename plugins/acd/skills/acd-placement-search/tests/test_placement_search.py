@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from acd.adapters.kicad.placement import (
@@ -13,7 +16,10 @@ from acd.adapters.kicad.placement import (
 from acd.core.board_model import FootprintShape, PadShape
 from acd.core.electrical import BoardView, ComponentView, LibraryPin
 from acd.core.placement_constraints import PlacementCouplingConstraint
-from placement_search import compute_placements
+from placement_search import (
+    compute_placements,
+    compute_placements_from_json,
+)
 
 
 def _board(width: float = 20.0, height: float = 15.0) -> BoardView:
@@ -86,6 +92,48 @@ def test_compute_placements_is_deterministic() -> None:
     first = compute_placements(_board(), components, footprints, (), nets)
     second = compute_placements(_board(), components, footprints, (), nets)
     assert first == second
+
+
+def test_spacing_variant_zero_preserves_default_output() -> None:
+    components = tuple(_component(f"R{i}") for i in range(1, 6))
+    footprints = {c.refdes: _footprint() for c in components}
+    assert compute_placements(_board(), components, footprints, ()) == compute_placements(
+        _board(), components, footprints, (), spacing_variant=0
+    )
+
+
+@pytest.mark.skipif(
+    not Path(
+        "/usr/share/kicad/footprints/Connector_USB.pretty/"
+        "USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod"
+    ).is_file(),
+    reason="GD1 pinned KiCad libraries are unavailable",
+)
+def test_spacing_variants_change_gd1_placements() -> None:
+    root = Path(__file__).resolve().parents[5]
+    graph = json.loads(
+        (root / "fixtures/golden-design-1/graph.json").read_text(encoding="utf-8")
+    )
+    payload = {
+        "graph": graph,
+        "fixture_dir": str(root / "fixtures/golden-design-1"),
+        "fab_profile": str(root / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"),
+    }
+    default = compute_placements_from_json(payload)
+    variant_one = compute_placements_from_json({**payload, "spacing_variant": 1})
+    variant_two = compute_placements_from_json({**payload, "spacing_variant": 2})
+    assert variant_one != default
+    assert variant_two != default
+
+
+@pytest.mark.parametrize("spacing_variant", [-1, 3])
+def test_spacing_variant_out_of_range_fails_closed(spacing_variant: int) -> None:
+    components = (_component("R1"),)
+    footprints = {"R1": _footprint()}
+    with pytest.raises(PlacementError, match="invalid spacing variant"):
+        compute_placements(
+            _board(), components, footprints, (), spacing_variant=spacing_variant
+        )
 
 
 def test_connected_components_placed_near_each_other() -> None:
