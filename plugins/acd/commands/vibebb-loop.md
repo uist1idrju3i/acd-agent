@@ -1,6 +1,6 @@
 ---
 description: 要件から設計反復と発注可否までを固定順序で実行するVibeBB loop。
-argument-hint: "--fixture PATH [--order-total PATH | --quote-record PATH... --order-scope PATH --fab-profile PATH] [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--explore-board --max-exploration-candidates N --max-exploration-rounds N]"
+argument-hint: "--fixture PATH [--order-total PATH | --quote-record PATH... --order-scope PATH --fab-profile PATH] [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--fixture-overwrite] [--explore-board | --recover-lanes] [--max-exploration-candidates N] [--max-exploration-rounds N]"
 allowed-tools:
   - acd_aggregate_order_total
   - acd_register_parts_catalog_entry
@@ -28,12 +28,17 @@ allowed-tools:
    - 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
    - order-total集計（quote record、scope、fab profile指定時のみ）
    - 発注可否のpre-order gate
-3. 失敗した場合は後続段を実行せず、`acd_diagnose_gate_failure`で出力を調べる。
+3. 既存fixtureをspecから作り直す場合は`fixture_overwrite`を明示する。既存graphは
+   backupと差分reportを残し、暗黙の上書きはfail-closedである。
+4. 失敗した場合は後続段を実行せず、`acd_diagnose_gate_failure`で出力を調べる。
    `explore_board`を明示した場合、board-pipelineのfail-closed却下に限ってloopが
    `explore_board_candidates`を自動実行し、候補予算とround上限の範囲でgraph検証から
    loopを再実行する。enclosure、FW、silkscreenの失敗では自動探索しない。
    自動探索を使わない場合、または探索結果の診断が必要な場合は
    `acd_explore_board_candidates`を手動で使い、修正後はgraph検証からloopを再実行する。
+   却下応答には`recovery_rerun`として機械可読な再実行引数、宣言された復帰次元、
+   復帰不能laneの次手が含まれる。laneごとの宣言由来復帰は`recover_lanes`を明示した
+   場合に有効になり、詳細な手順は`/acd:vibebb-recover`を使う。
 5. 発注可否はloopが返すorder-readiness結果と、必要なら
    `acd_check_order_readiness`で確認する。発注実行はこのcommandの責務ではない。
 

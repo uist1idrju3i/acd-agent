@@ -7,8 +7,9 @@ silkscreen barrier; fixture generation and requirement compilation remain
 conditional stages.
 The pytest subset is declared only for the GD1 artifact prefix; a
 design-specific validation lane for arbitrary graphs is not yet available.
-Board exploration is a conditional stage that runs only after an eligible
-board rejection when explicitly enabled.
+Lane exploration stages are conditional stages that run only after an eligible
+lane rejection when recovery is explicitly enabled and the lane declares a
+recoverable dimension.
 """
 
 from __future__ import annotations
@@ -197,7 +198,33 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         lane_runner=False,
         conditional=True,
     ),
+    _StageDefinition(
+        "enclosure-exploration",
+        "-enclosure-exploration",
+        barrier=False,
+        cacheable=False,
+        command_kind=None,
+        design_loop=False,
+        lane_runner=False,
+        conditional=True,
+    ),
+    _StageDefinition(
+        "firmware-exploration",
+        "-firmware-exploration",
+        barrier=False,
+        cacheable=False,
+        command_kind=None,
+        design_loop=False,
+        lane_runner=False,
+        conditional=True,
+    ),
 )
+
+RECOVERY_EXPLORATION_STAGE_IDS: dict[str, str] = {
+    "board-pipeline": "board-exploration",
+    "enclosure-pipeline": "enclosure-exploration",
+    "firmware-pipeline": "firmware-exploration",
+}
 
 DESIGN_LOOP_STAGE_IDS: tuple[str, ...] = tuple(
     definition.stage_id

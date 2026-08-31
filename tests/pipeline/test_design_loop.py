@@ -922,6 +922,44 @@ def test_fixture_generation_is_opt_in_and_refuses_existing_graph(
     ]
 
 
+def test_declared_fixture_overwrite_regenerates_the_graph_with_a_backup(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    spec = tmp_path / "fixture-spec.json"
+    spec.write_text(
+        json.dumps({"design_name": "regenerated", "graph_id": "regenerated"}),
+        encoding="utf-8",
+    )
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        fixture_spec=spec,
+        fixture_overwrite=True,
+    )
+
+    assert result["ok"] is True
+    assert result["fixture_overwrite"] is True
+    assert result["graph_id"] == "regenerated"
+    assert result["results"][0]["overwrite"] is True
+    report = json.loads(
+        (fixture / "graph-overwrite-report.json").read_text(encoding="utf-8")
+    )
+    backup = json.loads(Path(report["backup_path"]).read_text(encoding="utf-8"))
+    assert backup["graph_id"] == "golden-design-1"
+
+
 def test_fixture_generation_parse_failure_is_recorded_as_stage_failure(
     tmp_path: Path,
 ) -> None:

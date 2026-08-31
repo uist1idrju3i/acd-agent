@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@d4b0323c346f34c4562a811ed95373f9ad4637fb",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@cd255e3d8776ec3371c7289c29b1c38298420fbb",
 # ]
 # ///
 # The PEP 723 git pin remains for standalone runs; project execution uses the checkout directly.
@@ -103,7 +103,9 @@ def resolve_mcu_refdes(graph: DesignGraph) -> str:
     return refdes
 
 
-def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str, str]:
+def run_pipeline(
+    fixture_dir: Path, out_dir: Path, run_seconds: int
+) -> dict[str, object]:
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
@@ -179,6 +181,7 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
     flash = qemu.make_flash_image(merged, out_dir / "flash.bin")
     result = qemu.run(flash, out_dir / "qemu-serial.log", run_seconds=run_seconds)
     print(f"[4/5] QEMU virtual run finished (version {qemu.version()}): {result.log_path}")
+    print(f"       bounded virtual run {result.termination_condition()}")
 
     log = result.log_path.read_text(errors="replace")
     assert_virtual_log_ok(
@@ -198,6 +201,10 @@ def run_pipeline(fixture_dir: Path, out_dir: Path, run_seconds: int) -> dict[str
         "artifact_hash": build.artifact_hash,
         "qemu_version": qemu.version(),
         "measurement_conditions": measurement_conditions_for_plan(plan),
+        "virtual_run_seconds": run_seconds,
+        "virtual_run_exit_code": result.record.exit_code,
+        "virtual_run_termination": result.termination_condition(),
+        "virtual_run_stopped_by_intended_timeout": result.stopped_by_intended_timeout,
         "virtual_log": str(result.log_path),
         "config_report": str(out_dir / "firmware-config-report.json"),
     }

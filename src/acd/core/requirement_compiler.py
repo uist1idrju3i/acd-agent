@@ -6,10 +6,13 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from acd.core.gpio import GpioAssignmentError, apply_gpio_assignment
-from acd.core.rationale import subject_hash_for
+from acd.core.rationale import (
+    RationaleRefreshError,
+    refresh_rationale_document,
+)
 from acd.core.requirements import (
     RequirementError,
     load_requirements,
@@ -19,7 +22,6 @@ from acd.schema import (
     DesignGraph,
     GraphNode,
     RationaleDocument,
-    RationaleRecord,
     RequirementRecord,
 )
 from acd.schema.common import canonical_json_sha256
@@ -136,22 +138,61 @@ def _old_gpio(graph: DesignGraph, net_id: str) -> int:
 def _refresh_rationale(
     graph: DesignGraph, document: RationaleDocument
 ) -> RationaleDocument:
-    refreshed: list[RationaleRecord] = []
-    for record in document.records:
-        try:
-            expected_hash = subject_hash_for(
-                graph, record.subject_nodes, record.subject_attrs
-            )
-        except KeyError as exc:
-            raise RequirementCompilationError(
-                f"rationale references missing graph subject: {record.rationale_id}"
-            ) from exc
-        refreshed.append(
-            record.model_copy(
-                update={"subject_hash": expected_hash, "target_revision": graph.revision}
-            )
+    try:
+        return refresh_rationale_document(graph, document)
+    except RationaleRefreshError as exc:
+        raise RequirementCompilationError(str(exc)) from exc
+
+
+def _add_requirement_node(
+    graph: DesignGraph, requirement_id: str, statement: str
+) -> tuple[DesignGraph, tuple[str, ...]]:
+    node_id = f"req.{requirement_id}"
+    if any(node.id == node_id for node in graph.nodes):
+        raise RequirementCompilationError(
+            f"requirement graph node already exists: {node_id}"
         )
-    return document.model_copy(update={"records": refreshed})
+    node = GraphNode.model_validate(
+        {
+            "id": node_id,
+            "kind": "requirement",
+            "attrs": {"text": statement},
+            "depends_on": [],
+        }
+    )
+    last_requirement = max(
+        (
+            index
+            for index, item in enumerate(graph.nodes)
+            if item.kind == "requirement"
+        ),
+        default=len(graph.nodes) - 1,
+    )
+    nodes = list(graph.nodes)
+    nodes.insert(last_requirement + 1, node)
+    return graph.model_copy(update={"nodes": nodes}), (node_id,)
+
+
+def _delete_requirement_node(
+    graph: DesignGraph, requirement_id: str
+) -> tuple[DesignGraph, tuple[str, ...]]:
+    node_id = f"req.{requirement_id}"
+    try:
+        graph.node_by_id(node_id)
+    except KeyError as exc:
+        raise RequirementCompilationError(
+            f"requirement graph node is missing: {node_id}"
+        ) from exc
+    dependents = sorted(
+        node.id for node in graph.nodes if node_id in node.depends_on
+    )
+    if dependents:
+        raise RequirementCompilationError(
+            f"requirement graph node {node_id} is still referenced by: "
+            + ", ".join(dependents)
+        )
+    nodes = [node for node in graph.nodes if node.id != node_id]
+    return graph.model_copy(update={"nodes": nodes}), (node_id,)
 
 
 def _write_transaction(contents: dict[Path, str]) -> None:
@@ -189,8 +230,15 @@ def compile_requirement_change(
     requirement_path: Path,
     *,
     dry_run: bool = False,
+    mode: Literal["update", "add", "delete"] = "update",
 ) -> RequirementCompilationResult:
-    """Compile one requirement update and atomically write all coupled inputs."""
+    """Compile one requirement change and atomically write all coupled inputs.
+
+    ``mode`` selects whether the declared record updates an existing
+    requirement, adds a new one, or deletes one. Every mode writes the graph,
+    the requirement document, and the refreshed rationale in one transaction, so
+    a rejected or failed change leaves all three inputs untouched.
+    """
     graph_path = fixture_dir / "graph.json"
     requirements_path = fixture_dir / "requirements.json"
     rationale_path = fixture_dir / "rationale.json"
@@ -208,14 +256,23 @@ def compile_requirement_change(
         for record in loaded.document.records
         if record.requirement_id == updated.requirement_id
     ]
-    if len(existing) != 1:
+    if mode == "add":
+        if existing:
+            raise RequirementCompilationError(
+                f"requirement_id already exists: {updated.requirement_id}"
+            )
+    elif len(existing) != 1:
         raise RequirementCompilationError(
             f"requirement_id is missing or ambiguous: {updated.requirement_id}"
         )
     before_graph_hash = canonical_json_sha256(graph.model_dump(mode="json"))
     gpio_changed: tuple[str, ...] = ()
     label_changed: tuple[str, ...] = ()
-    expectation = updated.expectation or existing[0].expectation
+    expectation = (
+        None
+        if mode == "delete"
+        else updated.expectation or (existing[0].expectation if existing else None)
+    )
     if expectation is not None:
         kind = expectation.get("kind")
         if kind != "gpio_assignment":
@@ -239,13 +296,28 @@ def compile_requirement_change(
         graph, label_changed = _update_coupled_labels(
             graph, net_id, old_gpio, gpio
         )
-    graph, requirement_changed = _update_requirement_nodes(
-        graph, updated.requirement_id, updated.statement
-    )
-    records = [
-        updated if record.requirement_id == updated.requirement_id else record
-        for record in loaded.document.records
-    ]
+    if mode == "add":
+        graph, requirement_changed = _add_requirement_node(
+            graph, updated.requirement_id, updated.statement
+        )
+        records = [*loaded.document.records, updated]
+    elif mode == "delete":
+        graph, requirement_changed = _delete_requirement_node(
+            graph, updated.requirement_id
+        )
+        records = [
+            record
+            for record in loaded.document.records
+            if record.requirement_id != updated.requirement_id
+        ]
+    else:
+        graph, requirement_changed = _update_requirement_nodes(
+            graph, updated.requirement_id, updated.statement
+        )
+        records = [
+            updated if record.requirement_id == updated.requirement_id else record
+            for record in loaded.document.records
+        ]
     updated_requirements = loaded.document.model_copy(update={"records": records})
     validate_requirements(updated_requirements, graph)
     try:
@@ -284,6 +356,7 @@ def compile_requirement_change(
     after_graph_hash = canonical_json_sha256(graph.model_dump(mode="json"))
     report = {
         "status": "dry_run" if dry_run else "written",
+        "mode": mode,
         "requirement_id": updated.requirement_id,
         "changed_node_ids": list(changed_node_ids),
         "before_graph_sha256": before_graph_hash,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import signal
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from types import FrameType
@@ -26,6 +26,8 @@ from acd.openhands.session.observation_store import (
 )
 from acd.openhands.session.rejection_summary import write_rejection_summary
 from acd.openhands.session.routing import create_fixed_role_router
+from acd.schema.design_graph import DesignGraph
+from acd.schema.evidence import Evidence
 from acd.schema.model_routing import ModelRoutingPolicy
 
 GateEvaluator = Callable[[BaseConversation], tuple[bool, bool]]
@@ -54,6 +56,39 @@ def _evaluate_gate(
         return False, False
     gate_passed = bool(gate_passed)
     return gate_passed, bool(authoritative and gate_passed)
+
+
+def build_evidence_gate_evaluator(
+    graph_path: Path, evidence_paths: Sequence[Path]
+) -> GateEvaluator:
+    """Build a gate evaluator backed only by deterministic L1 Evidence.
+
+    The goal loop itself never decides a verdict: the returned evaluator reports
+    a pass only when every declared Evidence record is valid and authoritative
+    for the current graph revision. Missing, malformed, stale, or provisional
+    Evidence fails closed.
+    """
+    if not evidence_paths:
+        raise ValueError("gate evaluation requires at least one Evidence path")
+
+    def evaluate(conversation: BaseConversation) -> tuple[bool, bool]:
+        del conversation
+        try:
+            graph = DesignGraph.model_validate_json(
+                graph_path.read_text(encoding="utf-8")
+            )
+            records = [
+                Evidence.model_validate_json(path.read_text(encoding="utf-8"))
+                for path in evidence_paths
+            ]
+        except (OSError, ValueError):
+            return False, False
+        authoritative = all(
+            record.supports_authoritative_pass(graph.revision) for record in records
+        )
+        return authoritative, authoritative
+
+    return evaluate
 
 
 def run_acd_goal(

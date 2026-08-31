@@ -292,3 +292,98 @@ def test_malformed_gate_evidence_stops_exploration(
 
     assert result.report["status"] == "stopped"
     assert result.report["candidates"][0]["outcome"]["status"] == "stopped"
+
+def _remediation_evidence(
+    tmp_path: Path,
+    *,
+    revision: str = "r1",
+    predicates: list[dict[str, object]] | None = None,
+    valid_hash: bool = True,
+) -> Path:
+    payload: dict[str, object] = {
+        "artifact_kind": "design_predicate_report",
+        "gate": "design_predicates",
+        "target_revision": revision,
+        "observation": {
+            "predicates": predicates
+            if predicates is not None
+            else [
+                {
+                    "name": "power_decoupling",
+                    "status": "fail",
+                    "remediation": {
+                        "change_dimensions": ["component_placement_xy"],
+                        "subject": {"refdes": "C5", "target_refdes": "U1"},
+                    },
+                }
+            ]
+        },
+    }
+    path = tmp_path / "design-predicates.json"
+    path.write_text(
+        json.dumps(
+            {
+                **payload,
+                "content_sha256": canonical_json_sha256(payload)
+                if valid_hash
+                else "sha256:" + "0" * 64,
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def test_declared_remediation_is_extracted_from_hashed_evidence(tmp_path: Path) -> None:
+    requests = exploration.load_remediation_requests(
+        _remediation_evidence(tmp_path), "r1"
+    )
+
+    assert [item.predicate for item in requests] == ["power_decoupling"]
+    assert requests[0].change_dimensions == ("component_placement_xy",)
+    assert requests[0].refdes == "C5"
+    assert requests[0].target_refdes == "U1"
+
+
+def test_predicates_without_remediation_declare_no_requests(tmp_path: Path) -> None:
+    evidence = _remediation_evidence(
+        tmp_path,
+        predicates=[{"name": "power_decoupling", "status": "fail"}],
+    )
+
+    assert exploration.load_remediation_requests(evidence, "r1") == ()
+
+
+def test_missing_remediation_evidence_fails_closed(tmp_path: Path) -> None:
+    with pytest.raises(ExplorationError, match="is missing"):
+        exploration.load_remediation_requests(tmp_path / "absent.json", "r1")
+
+
+def test_remediation_evidence_revision_mismatch_fails_closed(tmp_path: Path) -> None:
+    evidence = _remediation_evidence(tmp_path, revision="r1")
+
+    with pytest.raises(ExplorationError, match="revision does not match"):
+        exploration.load_remediation_requests(evidence, "r2")
+
+
+def test_remediation_evidence_hash_mismatch_fails_closed(tmp_path: Path) -> None:
+    evidence = _remediation_evidence(tmp_path, valid_hash=False)
+
+    with pytest.raises(ExplorationError, match="content hash is invalid"):
+        exploration.load_remediation_requests(evidence, "r1")
+
+
+def test_malformed_remediation_dimensions_fail_closed(tmp_path: Path) -> None:
+    evidence = _remediation_evidence(
+        tmp_path,
+        predicates=[
+            {
+                "name": "power_decoupling",
+                "status": "fail",
+                "remediation": {"change_dimensions": [3], "subject": {"refdes": "C5"}},
+            }
+        ],
+    )
+
+    with pytest.raises(ExplorationError, match="dimensions are malformed"):
+        exploration.load_remediation_requests(evidence, "r1")

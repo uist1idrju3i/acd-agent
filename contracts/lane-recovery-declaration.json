@@ -1,0 +1,52 @@
+{
+  "declaration_id": "acd-lane-recovery-v1",
+  "lanes": [
+    {
+      "explorer": "board",
+      "lane_id": "board-pipeline",
+      "next_step_action": "Explore declared placement and GPIO candidates from the rejected predicate remediation, then rerun every deterministic stage.",
+      "recovery_dimensions": [
+        "component_placement_xy",
+        "component_rotation_deg",
+        "gpio_assignment"
+      ],
+      "title": "Board lane recovery"
+    },
+    {
+      "explorer": "enclosure",
+      "lane_id": "enclosure-pipeline",
+      "next_step_action": "Explore declared enclosure dimensions within their declared bounds, then rerun every deterministic stage.",
+      "recovery_dimensions": [
+        "enclosure_wall_thickness_mm",
+        "enclosure_internal_clearance_mm",
+        "enclosure_standoff_height_mm",
+        "enclosure_standoff_radius_mm"
+      ],
+      "title": "Enclosure lane recovery"
+    },
+    {
+      "explorer": "firmware",
+      "lane_id": "firmware-pipeline",
+      "next_step_action": "Explore declared GPIO assignment alternatives, then rerun every deterministic stage including the firmware lane.",
+      "recovery_dimensions": [
+        "gpio_assignment"
+      ],
+      "title": "Firmware lane recovery"
+    },
+    {
+      "explorer": "none",
+      "lane_id": "silkscreen-resolve",
+      "next_step_action": "Adjust the declared silkscreen inputs or fab profile in the graph and rerun the loop; no candidate generator is declared for this lane.",
+      "title": "Silkscreen resolution recovery",
+      "unsupported_reason": "The silkscreen resolver owns its own bounded iteration over declared reference-designator placement, and no design-freedom dimension declares silkscreen geometry as searchable."
+    },
+    {
+      "explorer": "none",
+      "lane_id": "order-readiness",
+      "next_step_action": "Provide the missing declared order inputs, quotes, or authoritative Evidence and rerun the loop; order readiness is never recovered by design search.",
+      "title": "Order readiness recovery",
+      "unsupported_reason": "Order readiness depends on declared order policy inputs and authoritative Evidence rather than on any searchable design-freedom dimension."
+    }
+  ],
+  "schema_version": "0.1"
+}

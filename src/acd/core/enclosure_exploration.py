@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from acd.adapters.cad.mechanical import MechanicalGateError
+from acd.core.candidate_commit import CandidateCommitError, commit_candidate_graph
 from acd.core.design_freedom import (
     DesignFreedomDeclaration,
     design_freedom_dimension,
@@ -339,8 +340,14 @@ def explore_enclosure_candidates(
     jobs: int = DEFAULT_JOBS,
     pipeline_runner: PipelineRunner | None = None,
     sampling_points: int = DEFAULT_SAMPLING_POINTS,
+    commit: bool = False,
 ) -> EnclosureExplorationResult:
-    """Explore bounded enclosure candidates without granting pass authority."""
+    """Explore bounded enclosure candidates without granting pass authority.
+
+    With ``commit`` the surviving candidate is written back into the declared
+    graph together with refreshed rationale, so the caller can rerun every
+    deterministic stage against the recovered design input.
+    """
     if max_candidates < 1:
         raise EnclosureExplorationError("max_candidates must be positive")
     if jobs < 1:
@@ -402,6 +409,20 @@ def explore_enclosure_candidates(
     stopped = any(record["outcome"]["status"] == "stopped" for record in records)
     if stopped:
         winner = None
+    commit_result: dict[str, Any] | None = None
+    commit_error: str | None = None
+    if winner is not None and commit:
+        winning = next(item for item in pending if item.candidate_id == winner)
+        try:
+            commit_result = commit_candidate_graph(
+                _apply_candidate(graph, winning),
+                graph_path.resolve(),
+                source_fixture,
+            )
+        except CandidateCommitError as exc:
+            commit_error = str(exc)
+            winner = None
+            stopped = True
     status = "stopped" if stopped else "candidate_found" if winner else "exhausted"
     report = {
         "schema_version": "0.1",
@@ -420,7 +441,9 @@ def explore_enclosure_candidates(
         "max_candidates": max_candidates,
         "evaluated_candidates": len(records),
         "winner_candidate_id": winner,
-        "winner_written": False,
+        "winner_written": winner is not None and commit,
+        "winner_commit": commit_result,
+        "commit_error": commit_error,
         "candidates": records,
         "provenance": {
             "source_graph": str(graph_path.resolve()),

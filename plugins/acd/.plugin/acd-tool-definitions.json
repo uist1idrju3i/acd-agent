@@ -39,6 +39,10 @@
       "definition_class": "AcdProbeTools"
     },
     {
+      "tool_name": "acd_register_firmware_capability",
+      "definition_class": "AcdRegisterFirmwareCapability"
+    },
+    {
       "tool_name": "acd_register_functional_block",
       "definition_class": "AcdRegisterFunctionalBlock"
     },
@@ -67,5 +71,5 @@
       "definition_class": "AcdValidateDesignGraph"
     }
   ],
-  "canonical_hash": "sha256:67a273e3e4b20fa7167d1c1e473ce8f3f47f02c50eda0db3cb77162147b2773e"
+  "canonical_hash": "sha256:9480d453f2513a73af7537a283e097f928db404476349e94d8deb1a666f26280"
 }

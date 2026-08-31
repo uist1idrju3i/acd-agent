@@ -119,3 +119,139 @@ def test_text_only_requirement_update_uses_existing_expectation(tmp_path: Path) 
     update.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     result = compile_requirement_change(fixture, update, dry_run=True)
     assert result.report["status"] == "dry_run"
+
+
+def _record(tmp_path: Path, **overrides: object) -> Path:
+    payload: dict[str, object] = {
+        "requirement_id": "gd1-req-020",
+        "statement": "追加要件のテキスト",
+        "drives_functional_blocks": [],
+        "constrains_node_ids": [],
+        "constrains_node_kinds": [],
+        "expectation": None,
+        "graph_anchored": True,
+    }
+    payload.update(overrides)
+    path = tmp_path / "requirement-change.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def _fixture_bytes(fixture: Path) -> dict[str, bytes]:
+    return {
+        name: (fixture / name).read_bytes()
+        for name in ("graph.json", "requirements.json", "rationale.json")
+    }
+
+
+def test_requirement_addition_writes_graph_node_and_record(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    result = compile_requirement_change(
+        fixture, _record(tmp_path), mode="add"
+    )
+    graph = json.loads((fixture / "graph.json").read_text(encoding="utf-8"))
+    requirements = json.loads(
+        (fixture / "requirements.json").read_text(encoding="utf-8")
+    )
+    rationale = json.loads((fixture / "rationale.json").read_text(encoding="utf-8"))
+    assert result.report["mode"] == "add"
+    assert result.report["changed_node_ids"] == ["req.gd1-req-020"]
+    node = next(item for item in graph["nodes"] if item["id"] == "req.gd1-req-020")
+    assert node["kind"] == "requirement"
+    assert node["attrs"]["text"] == "追加要件のテキスト"
+    assert "gd1-req-020" in {
+        record["requirement_id"] for record in requirements["records"]
+    }
+    assert rationale["revision"] == graph["revision"]
+
+
+def test_duplicate_requirement_addition_is_rejected(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    before = _fixture_bytes(fixture)
+    with pytest.raises(RequirementCompilationError, match="already exists"):
+        compile_requirement_change(
+            fixture,
+            _record(tmp_path, requirement_id="gd1-req-001"),
+            mode="add",
+        )
+    assert _fixture_bytes(fixture) == before
+
+
+def test_requirement_deletion_removes_node_and_record(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    result = compile_requirement_change(
+        fixture, _record(tmp_path, requirement_id="gd1-req-014"), mode="delete"
+    )
+    graph = json.loads((fixture / "graph.json").read_text(encoding="utf-8"))
+    requirements = json.loads(
+        (fixture / "requirements.json").read_text(encoding="utf-8")
+    )
+    assert result.report["mode"] == "delete"
+    assert not any(item["id"] == "req.gd1-req-014" for item in graph["nodes"])
+    assert "gd1-req-014" not in {
+        record["requirement_id"] for record in requirements["records"]
+    }
+    assert result.report["before_graph_sha256"] != result.report["after_graph_sha256"]
+
+
+def test_deletion_keeps_unrelated_requirement_nodes(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    before = json.loads((fixture / "graph.json").read_text(encoding="utf-8"))
+    compile_requirement_change(
+        fixture, _record(tmp_path, requirement_id="gd1-req-014"), mode="delete"
+    )
+    after = json.loads((fixture / "graph.json").read_text(encoding="utf-8"))
+    removed = {node["id"] for node in before["nodes"]} - {
+        node["id"] for node in after["nodes"]
+    }
+    assert removed == {"req.gd1-req-014"}
+
+
+def test_missing_requirement_deletion_is_rejected(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    before = _fixture_bytes(fixture)
+    with pytest.raises(RequirementCompilationError, match="missing or ambiguous"):
+        compile_requirement_change(
+            fixture,
+            _record(tmp_path, requirement_id="gd1-req-999"),
+            mode="delete",
+        )
+    assert _fixture_bytes(fixture) == before
+
+
+def test_referenced_requirement_deletion_is_rejected(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    graph_path = fixture / "graph.json"
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    for node in graph["nodes"]:
+        if node["kind"] == "electrical.net":
+            node["depends_on"] = [*node["depends_on"], "req.gd1-req-014"]
+            break
+    graph_path.write_text(json.dumps(graph, ensure_ascii=False), encoding="utf-8")
+    before = _fixture_bytes(fixture)
+    with pytest.raises(RequirementCompilationError, match="still referenced by"):
+        compile_requirement_change(
+            fixture,
+            _record(tmp_path, requirement_id="gd1-req-014"),
+            mode="delete",
+        )
+    assert _fixture_bytes(fixture) == before
+
+
+def test_malformed_rationale_rolls_back_the_whole_transaction(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    (fixture / "rationale.json").write_text("{", encoding="utf-8")
+    before = _fixture_bytes(fixture)
+    with pytest.raises(RequirementCompilationError, match="rationale document"):
+        compile_requirement_change(fixture, _record(tmp_path), mode="add")
+    assert _fixture_bytes(fixture) == before
+
+
+def test_addition_dry_run_writes_nothing(tmp_path: Path) -> None:
+    fixture = _copy_fixture(tmp_path)
+    before = _fixture_bytes(fixture)
+    result = compile_requirement_change(
+        fixture, _record(tmp_path), mode="add", dry_run=True
+    )
+    assert result.report["status"] == "dry_run"
+    assert _fixture_bytes(fixture) == before

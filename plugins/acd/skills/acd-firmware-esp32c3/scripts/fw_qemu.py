@@ -15,6 +15,7 @@ from fw_graph import FirmwareCapabilityPlan, FirmwareLane
 from fw_run import CommandRecord, resolve_tool, run_command
 
 FLASH_SIZE_BYTES = 4 * 1024 * 1024
+INTENDED_TIMEOUT_EXIT_CODE = 124
 
 
 class QemuUnavailableError(RuntimeError):
@@ -29,6 +30,31 @@ class VirtualRunCheckError(RuntimeError):
 class VirtualRunResult:
     record: CommandRecord
     log_path: Path
+    run_seconds: int
+
+    @property
+    def stopped_by_intended_timeout(self) -> bool:
+        """Whether the bounded run was stopped by its own intended timeout."""
+        return self.record.exit_code == INTENDED_TIMEOUT_EXIT_CODE
+
+    def termination_condition(self) -> str:
+        """Describe how the bounded virtual run ended.
+
+        The bounded QEMU run has no self-terminating end state, so the
+        intended timeout is the normal completion condition of this virtual
+        run and not a failure. This wording matches the
+        ``measurement_conditions`` recorded in the firmware ToolEnvelope.
+        """
+        if self.stopped_by_intended_timeout:
+            return (
+                f"stopped by the intended {self.run_seconds}s bound "
+                f"(exit code {INTENDED_TIMEOUT_EXIT_CODE}); this is the normal "
+                "completion condition of the bounded virtual run, not a failure"
+            )
+        return (
+            f"exited on its own before the {self.run_seconds}s bound "
+            f"(exit code {self.record.exit_code})"
+        )
 
 
 class QemuRunner:
@@ -82,9 +108,11 @@ class QemuRunner:
             tool_version=self._version,
             input_paths=[flash_path],
             output_paths=[log_path],
-            allowed_exit_codes=frozenset({0, 124}),
+            allowed_exit_codes=frozenset({0, INTENDED_TIMEOUT_EXIT_CODE}),
         )
-        return VirtualRunResult(record=record, log_path=log_path)
+        return VirtualRunResult(
+            record=record, log_path=log_path, run_seconds=run_seconds
+        )
 
 
 def assert_virtual_log_ok(

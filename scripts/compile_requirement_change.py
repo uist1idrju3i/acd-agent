@@ -18,10 +18,16 @@ def main() -> int:
     parser.add_argument("--fixture-dir", type=Path, required=True)
     parser.add_argument("--requirement", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--mode",
+        choices=("update", "add", "delete"),
+        default="update",
+        help="Whether to update, add, or delete the declared requirement.",
+    )
     args = parser.parse_args()
     try:
         result = compile_requirement_change(
-            args.fixture_dir, args.requirement, dry_run=args.dry_run
+            args.fixture_dir, args.requirement, dry_run=args.dry_run, mode=args.mode
         )
     except RequirementCompilationError as exc:
         print(

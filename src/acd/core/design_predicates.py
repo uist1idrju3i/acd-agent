@@ -618,6 +618,53 @@ def _minimum_pad_pair(
     return min(candidates, key=lambda item: (item[0], item[1], item[2]))
 
 
+def resolve_fixture_path(path_value: str, fixture_dir: Path) -> Path:
+    """Resolve a declared relative artifact path against a fixture directory."""
+    return _resolve_path(path_value, fixture_dir)
+
+
+def component_net_pad_positions(
+    graph: DesignGraph,
+    lane: ElectricalLane,
+    component: ComponentView,
+    net_id: str,
+    fixture_dir: Path,
+    library: FootprintLibrary | None = None,
+) -> tuple[tuple[str, tuple[float, float]], ...]:
+    """Return placed pad coordinates of one component on one net."""
+    return _component_pad_positions(
+        graph, lane, component, net_id, fixture_dir, library or FootprintLibrary()
+    )
+
+
+def decoupling_distance_limit(capacitance_uf: float) -> float:
+    """Return the pinned decoupling distance limit for one capacitance."""
+    return SMALL_CAP_DISTANCE_MM if capacitance_uf <= 1.0 else LARGE_CAP_DISTANCE_MM
+
+
+def parse_capacitance_uf(value: str) -> float | None:
+    """Parse a declared capacitor value into microfarads."""
+    return _parse_capacitance(value)
+
+
+def resolve_decoupling_pair(
+    graph: DesignGraph, lane: ElectricalLane, capacitor: ComponentView
+) -> tuple[ComponentView, str] | None:
+    """Resolve the declared bypass target and shared power net of a capacitor."""
+    if capacitor.decoupling_target is None:
+        return None
+    target = _component_by_refdes(lane, capacitor.decoupling_target)
+    if target is None:
+        return None
+    ground_net = _net_id(graph, "GND")
+    shared = _component_net_ids(lane, capacitor) & _component_net_ids(lane, target)
+    if ground_net is not None:
+        shared -= {ground_net}
+    if len(shared) != 1:
+        return None
+    return target, next(iter(shared))
+
+
 def _net_name(graph: DesignGraph, net_id: str) -> str:
     for node in _nodes(graph, "electrical.net"):
         if node.id == net_id and isinstance(node.attrs.get("name"), str):
