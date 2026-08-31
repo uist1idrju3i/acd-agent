@@ -28,6 +28,11 @@ from acd.core.decoupling_placement import (
 from acd.core.design_freedom import load_design_freedom_declaration
 from acd.core.design_predicates import evaluate_design_predicates, evaluate_strapping_pin
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.rationale import (
+    RationaleDocument,
+    RationaleRefreshError,
+    refresh_rationale_document,
+)
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
@@ -97,6 +102,15 @@ def _load_graph(path: Path) -> DesignGraph:
         return DesignGraph.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise ExplorationError(f"graph is invalid or unreadable: {path}: {exc}") from exc
+
+
+def _load_rationale(path: Path) -> RationaleDocument:
+    try:
+        return RationaleDocument.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise ExplorationError(
+            f"rationale document is invalid or unreadable: {path}: {exc}"
+        ) from exc
 
 
 def _write_json(path: Path, body: Mapping[str, Any]) -> None:
@@ -694,9 +708,29 @@ def _diagnostic_dimensions(
     return tuple(sorted(dimensions)), None
 
 
+def _refresh_working_rationale(
+    graph: DesignGraph, source: RationaleDocument, working_fixture: Path
+) -> None:
+    """Write the candidate graph's refreshed rationale into the working fixture.
+
+    Candidate evaluation and the accepted-candidate commit share one refresh
+    rule, so a deterministic gate never rejects a candidate for rationale that
+    the exploration itself left stale. The refresh always starts from the source
+    document, so a rejected candidate cannot accumulate state.
+    """
+    try:
+        refreshed = refresh_rationale_document(graph, source)
+    except RationaleRefreshError as exc:
+        raise ExplorationError(
+            f"candidate rationale could not be refreshed: {exc}"
+        ) from exc
+    _write_json(working_fixture / "rationale.json", refreshed.model_dump(mode="json"))
+
+
 def _candidate_outcome(
     candidate: ExplorationCandidate,
     graph: DesignGraph,
+    rationale: RationaleDocument,
     working_fixture: Path,
     candidate_out: Path,
     pipeline_runner: PipelineRunner,
@@ -704,6 +738,7 @@ def _candidate_outcome(
     updated = _apply_candidate(graph, candidate)
     working_graph = working_fixture / "graph.json"
     _copy_graph_to_working(updated, working_graph)
+    _refresh_working_rationale(updated, rationale, working_fixture)
     lane = extract_electrical_lane(updated)
     pre_router = evaluate_design_predicates(updated, lane, working_fixture)
     failed = tuple(
@@ -777,6 +812,36 @@ def _candidate_outcome(
     )
 
 
+def _refill_pending(
+    candidates: Sequence[ExplorationCandidate],
+    pending: Sequence[ExplorationCandidate],
+    candidate_records: Sequence[Mapping[str, Any]],
+    dimensions: Sequence[str],
+    max_candidates: int,
+) -> list[ExplorationCandidate]:
+    """Return the next candidates to evaluate inside the remaining budget.
+
+    A candidate-specific rejection keeps the declared budget usable: candidates
+    that share a diagnosed remediation dimension are evaluated first, and the
+    remaining generated candidates follow in their deterministic generation
+    order. The budget itself is never exceeded.
+    """
+    remaining = max_candidates - len(candidate_records)
+    if remaining <= 0:
+        return []
+    evaluated = {str(record["candidate_id"]) for record in candidate_records}
+    queued = {item.candidate_id for item in pending}
+    diagnosed = set(dimensions)
+    available = [
+        item
+        for item in candidates
+        if item.candidate_id not in evaluated and item.candidate_id not in queued
+    ]
+    preferred = [item for item in available if set(item.dimensions) & diagnosed]
+    others = [item for item in available if not set(item.dimensions) & diagnosed]
+    return [*pending, *preferred, *others][:remaining]
+
+
 def _commit_candidate(
     working_fixture: Path, source_graph: Path, source_fixture: Path
 ) -> dict[str, Any]:
@@ -814,6 +879,7 @@ def explore_board_candidates(
     graph = _load_graph(graph_path)
     if not fixture_dir.is_dir():
         raise ExplorationError(f"fixture directory is missing: {fixture_dir}")
+    rationale = _load_rationale(fixture_dir / "rationale.json")
     source_fixture = fixture_dir.resolve()
     source_graph = graph_path.resolve()
     declarations = load_design_freedom_declaration()
@@ -854,6 +920,7 @@ def explore_board_candidates(
                 outcome, survived, dimensions = _candidate_outcome(
                     candidate,
                     graph,
+                    rationale,
                     working_fixture,
                     candidate_out,
                     pipeline_runner,
@@ -874,6 +941,9 @@ def explore_board_candidates(
                 }
             )
             if outcome["status"] == "stopped":
+                # Only a fail-closed stop abandons the remaining budget. A
+                # candidate-specific rejection keeps exploring, because the
+                # rejection describes that candidate and not the search.
                 pending = []
             if survived:
                 if dry_run:
@@ -896,36 +966,38 @@ def explore_board_candidates(
                     break
                 winner = candidate.candidate_id
                 break
-            if dimensions:
-                pending.extend(
-                    item
-                    for item in candidates
-                    if item.candidate_id
-                    not in {record["candidate_id"] for record in candidate_records}
-                    and set(item.dimensions) & set(dimensions)
-                    and item.candidate_id not in {entry.candidate_id for entry in pending}
+            if outcome["status"] != "stopped":
+                pending = _refill_pending(
+                    candidates,
+                    pending,
+                    candidate_records,
+                    dimensions,
+                    max_candidates,
                 )
-                pending = pending[: max_candidates - len(candidate_records)]
     stopped = any(record["outcome"]["status"] == "stopped" for record in candidate_records)
+    remaining_budget = max(max_candidates - len(candidate_records), 0)
     if winner is not None:
         status = "candidate_found"
+        termination_reason = "candidate_survived_gates"
     elif stopped:
         status = "stopped"
-    elif len(candidate_records) >= max_candidates:
-        status = "exhausted"
-    else:
+        termination_reason = "fail_closed_stop"
+    elif not candidate_records:
         status = "stopped"
+        termination_reason = "no_candidate_generated"
+    elif remaining_budget == 0:
+        status = "exhausted"
+        termination_reason = "candidate_budget_exhausted"
+    else:
+        status = "exhausted"
+        termination_reason = "candidate_pool_exhausted"
     body = _report_with_hash(
         {
             "schema_version": "0.1",
             "artifact_kind": artifact_kind,
             "lane_id": lane_id,
             "status": status,
-            "termination_reason": {
-                "candidate_found": "candidate_survived_gates",
-                "exhausted": "candidate_budget_exhausted",
-                "stopped": "fail_closed_stop",
-            }[status],
+            "termination_reason": termination_reason,
             "pass_evidence": False,
             "record_class": "L3",
             "l3_statement": "This is an L3 exploration record, not gate Evidence.",
@@ -934,6 +1006,9 @@ def explore_board_candidates(
             "max_candidates": max_candidates,
             "max_passes": max_passes,
             "evaluated_candidates": len(candidate_records),
+            "generated_candidates": len(candidates),
+            "consumed_budget": len(candidate_records),
+            "remaining_budget": remaining_budget,
             "winner_candidate_id": winner,
             "winner_written": winner is not None and not dry_run,
             "winner_commit": commit,

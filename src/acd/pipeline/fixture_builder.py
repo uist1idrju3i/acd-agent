@@ -18,6 +18,11 @@ from acd.core.decoupling_placement import (
 )
 from acd.core.electrical import GraphExtractionError
 from acd.core.functional_blocks import load_functional_block_registry
+from acd.core.library_assets import (
+    LibraryAssetError,
+    materialize_library_assets,
+    verify_materialized_library_assets,
+)
 from acd.core.part_selection import PartSelectionError, select_part
 from acd.core.pin_functions import pin_function_attrs
 from acd.core.rationale import (
@@ -537,7 +542,15 @@ def build_design_fixture(
         raise FixtureBuilderError(
             "unknown functional blocks: " + ", ".join(unknown_blocks)
         )
-    graph = _normalize_decoupling_placement(build_graph(spec), out_dir)
+    graph = build_graph(spec)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        materialize_library_assets(graph, out_dir)
+    except LibraryAssetError as exc:
+        raise FixtureBuilderError(
+            f"declared library assets could not be materialized: {exc}"
+        ) from exc
+    graph = _normalize_decoupling_placement(graph, out_dir)
     requirements = RequirementDocument(
         graph_id=graph.graph_id,
         revision=graph.revision,
@@ -560,6 +573,12 @@ def build_design_fixture(
     _write_atomic(out_dir / "graph.json", graph_content)
     _write_atomic(out_dir / "requirements.json", requirements_content)
     _write_atomic(out_dir / "rationale.json", rationale_content)
+    try:
+        verify_materialized_library_assets(graph, out_dir)
+    except LibraryAssetError as exc:
+        raise FixtureBuilderError(
+            f"generated fixture library assets are inconsistent: {exc}"
+        ) from exc
     return graph
 
 

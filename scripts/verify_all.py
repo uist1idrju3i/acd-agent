@@ -24,6 +24,7 @@ FAST_COMMANDS: tuple[CommandSpec, ...] = (
     CommandSpec(("uv", "run", "python", "scripts/verify_model_policy.py", "--check")),
     CommandSpec(("uv", "run", "python", "scripts/verify_agent_settings.py", "--check")),
     CommandSpec(("uv", "run", "python", "scripts/verify_context_view.py", "--check")),
+    CommandSpec(("uv", "run", "python", "scripts/verify_library_assets.py", "--check")),
     CommandSpec(("git", "diff", "--check")),
 )
 STANDARD_COMMANDS = (*FAST_COMMANDS, CommandSpec(("uv", "run", "pytest")))

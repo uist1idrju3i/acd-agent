@@ -852,6 +852,21 @@ FW固有のremediation（未登録action、pin function不整合、capability宣
 S-1とS-4は単体成立の前提であり先に扱う。S-3は配布・登録経路の定義であり、実装だけでは
 閉じない。S-2とS-5は予算と進行の可視化である。
 
+実装済みの是正は次のとおりである。S-1は`exploration`と`enclosure_exploration`の候補評価が
+確定経路と同一の`refresh_rationale_document`を一時fixtureへ適用する。元のgraphとrationaleは
+却下候補で変更されず、rationaleの欠落・破損はfail-closedである。S-2は候補固有の却下を
+`gate_rejected`として扱い、残予算がある限り宣言順で次候補を評価し、`max_candidates`、
+`generated_candidates`、`evaluated_candidates`、`consumed_budget`、`remaining_budget`、
+`termination_reason`をreportへ記録する。fail-closedの停止は従来どおり即時に打ち切る。
+S-3は`scripts/verify_acd_tool_registration.py --command`で、commandが宣言する`acd_*`と
+会話が露出するtoolの差分を検出し、不足toolごとに決定論的CLI入口またはCLI入口が無い理由を
+返す。S-4は`src/acd/core/library_assets.py`をcatalogと生成fixtureの共通契約とし、相対宣言の
+資材を生成fixtureへ同梱してhashを両側で検査し、`scripts/verify_library_assets.py`をfast段へ
+追加する。S-5は`scripts/report_progress.py`がrun出力のtiming recordと探索reportをL3 digestと
+して会話へ返し、読めないrecordを`unknown`として非零終了する。いずれの表示・診断も
+`pass_evidence`を与えない。S-3の配布形態そのもの（ambient install経路への登録）と、
+復帰成立実行の実測記録は引き続き未了である。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、

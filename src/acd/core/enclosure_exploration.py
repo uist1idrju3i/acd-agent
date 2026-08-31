@@ -20,6 +20,11 @@ from acd.core.design_freedom import (
     design_freedom_dimension,
     load_design_freedom_declaration,
 )
+from acd.core.rationale import (
+    RationaleDocument,
+    RationaleRefreshError,
+    refresh_rationale_document,
+)
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 
@@ -279,9 +284,38 @@ def _copy_graph(path: Path, graph: DesignGraph) -> None:
     path.write_text(graph.model_dump_json(indent=2) + "\n", encoding="utf-8")
 
 
+def _load_rationale(path: Path) -> RationaleDocument:
+    try:
+        return RationaleDocument.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise EnclosureExplorationError(
+            f"rationale document is invalid or unreadable: {path}: {exc}"
+        ) from exc
+
+
+def _refresh_working_rationale(
+    graph: DesignGraph, source: RationaleDocument, working_fixture: Path
+) -> None:
+    """Write the candidate graph's refreshed rationale into the working fixture.
+
+    Candidate evaluation shares the accepted-candidate refresh rule, so a
+    deterministic gate never rejects a candidate for rationale that the
+    exploration itself left stale.
+    """
+    try:
+        refreshed = refresh_rationale_document(graph, source)
+    except RationaleRefreshError as exc:
+        raise EnclosureExplorationError(
+            f"candidate rationale could not be refreshed: {exc}"
+        ) from exc
+    path = working_fixture / "rationale.json"
+    path.write_text(refreshed.model_dump_json(indent=2) + "\n", encoding="utf-8")
+
+
 def _evaluate_candidate(
     candidate: EnclosureExplorationCandidate,
     graph: DesignGraph,
+    rationale: RationaleDocument,
     source_fixture: Path,
     candidate_out: Path,
     temporary_root: Path,
@@ -290,7 +324,16 @@ def _evaluate_candidate(
 ) -> dict[str, Any]:
     working_fixture = temporary_root / candidate.candidate_id
     shutil.copytree(source_fixture, working_fixture)
-    _copy_graph(working_fixture / "graph.json", _apply_candidate(graph, candidate))
+    updated = _apply_candidate(graph, candidate)
+    _copy_graph(working_fixture / "graph.json", updated)
+    try:
+        _refresh_working_rationale(updated, rationale, working_fixture)
+    except EnclosureExplorationError as exc:
+        return {
+            "status": "stopped",
+            "reasons": [str(exc)],
+            "pass_evidence": False,
+        }
     try:
         if pipeline_lock is None:
             pipeline_result = pipeline_runner(working_fixture, candidate_out)
@@ -355,6 +398,7 @@ def explore_enclosure_candidates(
     graph = _load_graph(graph_path)
     if not fixture_dir.is_dir():
         raise EnclosureExplorationError(f"fixture directory is missing: {fixture_dir}")
+    rationale = _load_rationale(fixture_dir / "rationale.json")
     declaration = load_design_freedom_declaration()
     candidates = enumerate_enclosure_candidates(
         graph,
@@ -376,6 +420,7 @@ def explore_enclosure_candidates(
         return _evaluate_candidate(
             candidate,
             graph,
+            rationale,
             source_fixture,
             candidate_out_root / candidate.candidate_id,
             temporary_root,
