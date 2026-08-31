@@ -114,7 +114,7 @@ def test_spacing_variants_change_gd1_placements() -> None:
     graph = json.loads(
         (root / "fixtures/golden-design-1/graph.json").read_text(encoding="utf-8")
     )
-    payload = {
+    payload: dict[str, object] = {
         "graph": graph,
         "fixture_dir": str(root / "fixtures/golden-design-1"),
         "fab_profile": str(root / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"),

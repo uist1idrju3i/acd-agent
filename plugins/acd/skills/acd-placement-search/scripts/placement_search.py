@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@5552a10dd05a462ad2f711017ac59cce43f1d1ea",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@4267064d7cbc39113cd30bbf3a477b3b96f6231b",
 # ]
 # ///
 """Deterministic component placement search (skill asset, not an ACD gate).
@@ -110,11 +110,7 @@ def compute_placements(
     subset (for example a legalized proposal) and let the search fill the rest
     around it. Seeds are still checked against the board edge clearance.
     """
-    if (
-        isinstance(spacing_variant, bool)
-        or not isinstance(spacing_variant, int)
-        or not 0 <= spacing_variant < len(_SPACING_STEPS_MM)
-    ):
+    if type(spacing_variant) is not int or not 0 <= spacing_variant < len(_SPACING_STEPS_MM):
         raise PlacementError(f"invalid spacing variant: {spacing_variant!r}")
     placements: list[Placement] = []
     occupied: list[Rect] = list(keepouts)
@@ -349,7 +345,7 @@ def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement,
     fixture_dir = Path(str(payload["fixture_dir"]))
     profile = load_fab_profile(Path(str(payload["fab_profile"])))
     spacing_variant = payload.get("spacing_variant", 0)
-    if isinstance(spacing_variant, bool) or not isinstance(spacing_variant, int):
+    if type(spacing_variant) is not int:
         raise PlacementError(f"invalid spacing variant: {spacing_variant!r}")
     footprints = load_board_footprints(lane, FootprintLibrary(), fixture_dir, profile).shapes
     keepouts = tuple(
