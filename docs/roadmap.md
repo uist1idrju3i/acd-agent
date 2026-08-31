@@ -922,10 +922,22 @@ L1判定へ持ち込まないための是正フェーズである。
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `src/acd/core/runtime_records.py`の`TimingRecorder`、`src/acd/pipeline/design_loop.py`の候補`pipeline_runner`、`src/acd/core/exploration.py`の候補評価と`_refill_pending`、`plugins/acd/skills/acd-placement-search`の候補生成、`scripts/report_progress.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のT節 |
-| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、ambient install経路への配布形態はS-3の未了部分として継続（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
+| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、pinned SDK v1.44.1のplugin形式（`vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）にToolDefinition登録面がないため、ambient経路ではcommandが宣言toolの不在をfail-closedに検出し決定論的CLIへ倒すdrift guardをfast段で実行する（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
 | 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し（`winner_written=true`）、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。候補生成は上限まで候補を返し、`consumed_budget`と`remaining_budget`が実行と一致する。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
 | 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
+
+T-1、T-2、T-4、T-5は実装済みである。候補評価は親laneと独立したtiming recorderを使い、
+観測失敗を`stopped`として扱う。各design loopはcanonical hash付きの
+`loop-summary.json`をL3へ保存し、`report_progress.py`が失敗lane・理由・次の手順を表示する。
+workspaceのdownloadが失敗した場合もcommandのexit code・stdout・stderr・部分downloadを出力したうえで
+fail-closedに終了する。T-2ではremediation次元ごとにspacing preferenceの候補を宣言順で生成し、
+候補予算まで評価できるようにした。T-3は、pinned SDK v1.44.1のplugin形式に
+ToolDefinition登録面が無い（根拠: `vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）ため、
+ambient経路でのtool登録を主張せず、commandが宣言toolの不在をfail-closedに検出して
+決定論的CLIへ倒す経路とdrift guardを実装した。CLI入口を持たない3 toolの段は実行せず不成立として報告し、
+この判定はL3観測でauthoritative Evidenceを生成しない。
+実機で成功した復帰runのwall-clock記録も未取得である。
 
 T-1は復帰経路の唯一の停止点であり先に扱う。T-2はT-1解消後に予算を意味あるものにする前提、
 T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論点、T-5は検証作業の可読性である。
@@ -941,13 +953,31 @@ T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論�
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | 第5回実機実測のRun F／H／I／J／K、生成されたGerber・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・筐体STEP／3MF／STL、`vibebb-gap-analysis.md`のU節 |
-| 実装 | 生成物のUTF-8明示読書きと非UTF-8 locale回帰（U-1、解消済み）、筐体STL出力とSTEP／3MF同等の検査（U-2）、quote／order例のrevision整合（U-3、GD1整合fixtureと回帰testで解消済み）、decoupling制約を含む配置探索（U-4）、製造提出データの必須成果物・reload・hash・DFM・幾何・profile整合をまとめた独立L1判定（U-5）を追加する |
-| 正常系 | 同一の生成物がlocaleに依存せず独立reloadを通過し、筐体STEP／3MF／STLを含む必須成果物を生成する。quote／order scopeを与えた場合だけ整合した任意段を実行し、製造提出データの品質判定を発注実行から独立して読める |
+| 実装 | 生成物のUTF-8明示読書きと非UTF-8 locale回帰（U-1、解消済み）、筐体STL出力とSTEP／3MF同等の検査（U-2）、quote／order例のrevision整合（U-3、GD1整合fixtureと回帰testで解消済み）、decoupling制約を含む決定論的な配置順序・回転探索（U-4、解消済み）、製造提出データの必須成果物・独立reload・正規化hash・DFM・幾何・profile整合・revision整合・Evidence妥当性をまとめた単一の独立L1判定（U-5、解消済み）を追加する。U-4では電気laneに宣言されたside／layer次元がないため、面配置は実装せず利用不可として記録する |
+| 正常系 | 同一の生成物がlocaleに依存せず独立reloadを通過し、筐体STEP／3MF／STLを含む必須成果物を生成する。decoupling配置は既存探索、宣言rotation、決定論的配置順序の順に再試行し、宣言limitとcourtyard clearanceを維持する。quote／order scopeを与えた場合だけ整合した任意段を実行し、製造提出データの品質判定を発注実行から独立して読める |
 | negative・fail-closed | UTF-8でない生成物、欠落・破損した必須成果物、独立reload・hash・DFM・幾何・profile整合の失敗、revision不一致、decoupling制約を満たせない配置、order scopeの不整合はfail-closedとする。自動発注や実機測定の未実行を合格へ倒さず、QEMUのvirtual Evidenceをphysical Evidenceへ昇格させない |
-| 再現性 | 同一digest・同一入力から同一成果物hash、独立検査結果、U-1〜U-5の診断を再生成し、locale・revision・欠落成果物・配置制約のnegative caseを固定する |
+| 再現性 | 同一digest・同一入力から同一成果物hash、独立検査結果、U-1〜U-5の診断を再生成し、locale・revision・欠落成果物・配置制約のnegative caseを固定する。decouplingの不足量、blocking refdes、探索次元、面配置 unavailable、変更可能次元はL3 reportとして決定論的に記録する |
 
-U-1はreload経路を解消済みであり、残り作業として筐体・FW・fab出力などreload経路以外の生成物読み書きにも
-非UTF-8 locale下の回帰を広げ、新規コードがencodingを明示しないことを検出する静的guardを検証段へ追加する。
+U-1は、`src/acd/**/*.py`、`scripts/**/*.py`（`scripts/tests/**`を除く）、
+`plugins/**/scripts/**/*.py`をASTで走査し、text modeの`open`、`read_text`／`write_text`、
+`subprocess`、`io.TextIOWrapper`に`encoding="utf-8"`、`"utf-8-sig"`、または厳格な
+`"ascii"`が明示されていることを
+検査するguardをfast段へ追加したことで解消済みである。非literal mode／encodingもfail-closedで
+扱い、例外は呼出し行の`# encoding-exempt: <英語の理由>`だけ（空理由は違反）とする。
+reloadに加え、fabのBOM／CPL・fab-package・gbrjob／ZIP、筐体のSTEP／3MF／STL・manifest、
+FWのsummary／serial log／Evidenceの非UTF-8 locale回帰を共有child-process helperで固定した。
+
+U-2は筐体projectionへASCII STL出力を追加し、STLを正規化、provenance／manifestへ登録し、
+正規化hashをEvidenceへ含め、3MFとともに独立reloadして部品数、bbox、三角形数、体積を検査したことで
+解消済みである。既存のSTEP部品・組立検査は維持している。
+
+U-5は、Gerber一式、drill、gbrjob、ZIP、BOM／CPL、fab-package manifest、
+筐体STEP／3MF／STLを必須成果物として列挙し、独立reload、正規化hash、DFM、幾何、
+fab profile、revision、Evidence妥当性を単一のL1 verdictへ統合したことで解消済みである。
+`order-readiness.json`は状態を記録するだけで、quote集計・発注実行は判定scopeから除外する。
+U-1〜U-5の残作業は解消済みである。U-4は、既存のorigin探索を維持したうえでrotationと配置順序を追加し、
+不足量と変更可能次元をL3 reportへ記録したことで解消済みである。面配置（side）は電気laneの宣言に
+存在しないため実装せず、利用不可の次元として記録する。
 
 ## マイルストーン15: 運用と文書の整備
 
@@ -1327,7 +1357,7 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （多コアVPS実測）T-4 失敗理由と進行のL3 digest統合 | 14.18 |
 | （多コアVPS実測）T-5 transport失敗時のcommand出力保持 | 14.18 |
 | （多コアVPS実測・達成）U-1 生成物の読み書きのUTF-8明示と非UTF-8 locale回帰 | 14.19 |
-| （多コアVPS実測）U-2 筐体STL出力とSTEP／3MF同等の検査 | 14.19 |
+| （多コアVPS実測・達成）U-2 筐体STL出力とSTEP／3MF同等の検査 | 14.19 |
 | （多コアVPS実測・達成）U-3 例示commandのquote／order入力のrevision整合 | 14.19 |
 | （多コアVPS実測）U-4 decoupling制約を満たすfixture配置探索 | 14.19 |
 | （多コアVPS実測）U-5 製造提出データの独立L1品質判定 | 14.19 |

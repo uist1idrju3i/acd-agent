@@ -541,10 +541,11 @@ STEP部品を融合して1ファイルにすることはしない。
 | `out/gd1-enclosure/enclosure-lid.step` | lid製造部品 | lidソリッドのみ |
 | `out/gd1-enclosure/enclosure-assembly.step` | 組立確認 | shellとlidの統合STEP |
 | `out/gd1-enclosure/enclosure.3mf` | 3Dプリント確認 | `gd1-enclosure-shell`と`gd1-enclosure-lid`の2オブジェクト |
+| `out/gd1-enclosure/enclosure.stl` | 3Dプリント提出 | ASCII STLとして正規化・hash・独立reload検査 |
 | `out/gd1-enclosure/enclosure-artifacts.json` | 構成物provenance | 各成果物の役割・形式・正規化SHA-256 |
 
 部品別STEPは独立再読込でソリッド数、体積、bboxを確認し、統合STEPとの差異も検証する。
-Evidenceのenvelopeは部品別STEP、統合STEP、3MF、構成物manifestをすべてhash対象に含める。
+Evidenceのenvelopeは部品別STEP、統合STEP、3MF、STL、構成物manifestをすべてhash対象に含める。
 ねじ、ボス、スナップ等の新しい締結機構はこの出力分割では追加しない。パイロット穴、
 リッド穴、アンテナ切欠きは各STEP部品へ反映する。
 

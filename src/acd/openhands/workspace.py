@@ -127,6 +127,21 @@ class WorkspaceTransportError(RuntimeError):
 
     failure_kind: FailureKind = "transport"
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        exit_code: int | None = None,
+        stdout: str = "",
+        stderr: str = "",
+        downloaded_files: tuple[Path, ...] = (),
+    ) -> None:
+        super().__init__(message)
+        self.exit_code = exit_code
+        self.stdout = stdout
+        self.stderr = stderr
+        self.downloaded_files = downloaded_files
+
 
 @dataclass(frozen=True)
 class ProvisionalWorkspaceResult:
@@ -410,19 +425,28 @@ def _execute_and_download(
             timeout=config.command_timeout,
         )
         if result.exit_code == 0:
-            for relative in download_files:
-                destination = container_download_destination(repository, relative)
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                _download_with_retry(
-                    workspace,
-                    remote=str(worktree / relative),
-                    destination=destination,
-                    relative=relative,
-                    max_attempts=DOWNLOAD_MAX_ATTEMPTS,
-                    backoff_seconds=DOWNLOAD_BACKOFF_SECONDS,
-                    sleep=sleep,
-                )
-                downloaded.append(destination)
+            try:
+                for relative in download_files:
+                    destination = container_download_destination(repository, relative)
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    _download_with_retry(
+                        workspace,
+                        remote=str(worktree / relative),
+                        destination=destination,
+                        relative=relative,
+                        max_attempts=DOWNLOAD_MAX_ATTEMPTS,
+                        backoff_seconds=DOWNLOAD_BACKOFF_SECONDS,
+                        sleep=sleep,
+                    )
+                    downloaded.append(destination)
+            except WorkspaceTransportError as exc:
+                raise WorkspaceTransportError(
+                    str(exc),
+                    exit_code=result.exit_code,
+                    stdout=result.stdout or "",
+                    stderr=result.stderr or "",
+                    downloaded_files=tuple(downloaded),
+                ) from exc
     return result
 
 

@@ -73,6 +73,9 @@ ADR-0035はclone不要のSDK標準配布（pip git install＋`Plugin.fetch()`）
 - installの`ref`には不変ref（tagまたは40桁SHA）を推奨するが、ambient経路では
   強制しない。強制が必要な用途は従来の明示ロード経路を使う。
 - installed-plugin経路は、将来のGUIからのMarketplace installが到達する同じSDK機構でもある。
+- pinned SDK v1.44.1のplugin形式（`vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）
+  にはToolDefinition登録面がないため、ambient経路でACD tool登録を主張しない。commandの宣言tool不在は
+  fail-closedに検出し、決定論的CLI fallbackへ倒す。
 
 ## 検証
 

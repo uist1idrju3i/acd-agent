@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import importlib
 import json
+import re
 import shutil
 from pathlib import Path
 
 import pytest
 
-from acd.adapters.cad.mechanical import MechanicalGateError, measure_enclosure_artifacts
+from acd.adapters.cad.mechanical import (
+    MechanicalGateError,
+    measure_enclosure_artifacts,
+    measure_enclosure_mesh_artifacts,
+)
 from acd.adapters.cad.project import project_enclosure
 from acd.core.mechanical import extract_mechanical_lane
 from acd.core.parallel import PipelineStageRunner
@@ -40,6 +45,7 @@ def test_projection_rerun_matches_normalized_hash(tmp_path: Path) -> None:
     assert first.lid_step_path.is_file()
     assert first.assembly_step_path.is_file()
     assert first.model_path.is_file()
+    assert first.mesh_stl_path.is_file()
     assert first.artifact_manifest_path.is_file()
 
 
@@ -70,6 +76,16 @@ def test_projection_exports_separated_solids_and_assembly(tmp_path: Path) -> Non
     assert len(build123d.import_step(projection.shell_step_path).solids()) == 1
     assert len(build123d.import_step(projection.lid_step_path).solids()) == 1
     assert len(build123d.import_step(projection.assembly_step_path).solids()) == 2
+    mesh_report = measure_enclosure_mesh_artifacts(
+        model_3mf_path=projection.model_path,
+        mesh_stl_path=projection.mesh_stl_path,
+        assembly_report=report,
+    )
+    assert mesh_report.model_part_count == 2
+    assert mesh_report.stl_triangle_count == 6156
+    assert mesh_report.stl_volume_mm3 == pytest.approx(6695.063990, abs=1e-3)
+    manifest = json.loads(projection.artifact_manifest_path.read_text(encoding="utf-8"))
+    assert manifest["artifacts"][-1]["role"] == "enclosure_mesh_stl"
     assert report.shell_bbox_mm != report.assembly_bbox_mm
     assert report.lid_bbox_mm != report.assembly_bbox_mm
 
@@ -123,4 +139,96 @@ def test_projection_rejects_fused_part_artifact(tmp_path: Path) -> None:
             lid_step_path=projection.lid_step_path,
             assembly_step_path=projection.assembly_step_path,
             runner=runner,
+        )
+
+
+def test_mesh_measurement_rejects_missing_stl(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane, graph_path=FIXTURE, out_dir=tmp_path, target_revision=graph.revision
+    )
+    report = measure_enclosure_artifacts(
+        shell_step_path=projection.shell_step_path,
+        lid_step_path=projection.lid_step_path,
+        assembly_step_path=projection.assembly_step_path,
+    )
+    projection.mesh_stl_path.unlink()
+    with pytest.raises(MechanicalGateError, match="STL is missing"):
+        measure_enclosure_mesh_artifacts(
+            model_3mf_path=projection.model_path,
+            mesh_stl_path=projection.mesh_stl_path,
+            assembly_report=report,
+        )
+
+
+def test_mesh_measurement_rejects_truncated_stl(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane, graph_path=FIXTURE, out_dir=tmp_path, target_revision=graph.revision
+    )
+    report = measure_enclosure_artifacts(
+        shell_step_path=projection.shell_step_path,
+        lid_step_path=projection.lid_step_path,
+        assembly_step_path=projection.assembly_step_path,
+    )
+    projection.mesh_stl_path.write_bytes(projection.mesh_stl_path.read_bytes()[:100])
+    with pytest.raises(MechanicalGateError, match="STL cannot be reloaded"):
+        measure_enclosure_mesh_artifacts(
+            model_3mf_path=projection.model_path,
+            mesh_stl_path=projection.mesh_stl_path,
+            assembly_report=report,
+        )
+
+
+def test_mesh_measurement_rejects_shifted_stl_bbox(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane, graph_path=FIXTURE, out_dir=tmp_path, target_revision=graph.revision
+    )
+    report = measure_enclosure_artifacts(
+        shell_step_path=projection.shell_step_path,
+        lid_step_path=projection.lid_step_path,
+        assembly_step_path=projection.assembly_step_path,
+    )
+    shifted = re.sub(
+        rb"(?m)^(\s*vertex )([-+0-9.eE]+)(\s+[-+0-9.eE]+\s+[-+0-9.eE]+)",
+        lambda match: (
+            match.group(1)
+            + f"{float(match.group(2)) + 1.0:g}".encode()
+            + match.group(3)
+        ),
+        projection.mesh_stl_path.read_bytes(),
+    )
+    projection.mesh_stl_path.write_bytes(shifted)
+    with pytest.raises(MechanicalGateError, match="STL bbox"):
+        measure_enclosure_mesh_artifacts(
+            model_3mf_path=projection.model_path,
+            mesh_stl_path=projection.mesh_stl_path,
+            assembly_report=report,
+        )
+
+
+def test_mesh_measurement_rejects_wrong_3mf_part_count(tmp_path: Path) -> None:
+    graph = DesignGraph.model_validate(json.loads(FIXTURE.read_text(encoding="utf-8")))
+    lane = extract_mechanical_lane(graph)
+    projection = project_enclosure(
+        lane, graph_path=FIXTURE, out_dir=tmp_path, target_revision=graph.revision
+    )
+    report = measure_enclosure_artifacts(
+        shell_step_path=projection.shell_step_path,
+        lid_step_path=projection.lid_step_path,
+        assembly_step_path=projection.assembly_step_path,
+    )
+    build123d = importlib.import_module("build123d")
+    mesher = build123d.Mesher()
+    mesher.add_shape(build123d.Box(1, 1, 1), part_number="wrong-count")
+    mesher.write(projection.model_path)
+    with pytest.raises(MechanicalGateError, match="exactly two parts"):
+        measure_enclosure_mesh_artifacts(
+            model_3mf_path=projection.model_path,
+            mesh_stl_path=projection.mesh_stl_path,
+            assembly_report=report,
         )

@@ -7,8 +7,10 @@ import math
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from acd.adapters.cad.constants import CAD_LINEAR_DEFLECTION_MM
+from acd.core.cad_normalize import parse_stl
 from acd.core.mechanical import (
     BoardEdgeOverhangView,
     ComponentBodyView,
@@ -42,6 +44,20 @@ class EnclosureArtifactReport:
     shell_bbox_mm: tuple[float, float, float, float, float, float]
     lid_bbox_mm: tuple[float, float, float, float, float, float]
     assembly_bbox_mm: tuple[float, float, float, float, float, float]
+
+
+@dataclass(frozen=True)
+class EnclosureMeshReport:
+    model_part_count: int
+    model_bbox_mm: tuple[float, float, float, float, float, float]
+    stl_triangle_count: int
+    stl_bbox_mm: tuple[float, float, float, float, float, float]
+    stl_volume_mm3: float
+
+
+# Mesh bbox tolerance is five times the export deflection; volume tolerance is 1%.
+MESH_BBOX_ABS_TOL_MM = 5 * CAD_LINEAR_DEFLECTION_MM
+MESH_VOLUME_REL_TOL = 0.01
 
 
 @dataclass(frozen=True)
@@ -159,6 +175,108 @@ def measure_enclosure_artifacts(
         shell_bbox_mm=shell_bbox,
         lid_bbox_mm=lid_bbox,
         assembly_bbox_mm=assembly_bbox,
+    )
+
+
+def _measure_3mf_mesh(path: Path) -> tuple[int, tuple[float, float, float, float, float, float]]:
+    if not path.is_file():
+        raise MechanicalGateError(f"enclosure 3MF is missing: {path}")
+    try:
+        build123d: Any = importlib.import_module("build123d")
+        shapes = build123d.Mesher().read(path)
+        bboxes = [_shape_bbox(shape) for shape in shapes]
+    except Exception as exc:
+        raise MechanicalGateError(f"enclosure 3MF cannot be reloaded: {path}") from exc
+    if len(bboxes) != 2:
+        raise MechanicalGateError(
+            f"enclosure 3MF must contain exactly two parts, got {len(bboxes)}"
+        )
+    return (
+        len(bboxes),
+        (
+            min(bbox[0] for bbox in bboxes),
+            min(bbox[1] for bbox in bboxes),
+            min(bbox[2] for bbox in bboxes),
+            max(bbox[3] for bbox in bboxes),
+            max(bbox[4] for bbox in bboxes),
+            max(bbox[5] for bbox in bboxes),
+        ),
+    )
+
+
+def _measure_stl_mesh(
+    path: Path,
+) -> tuple[int, tuple[float, float, float, float, float, float], float]:
+    if not path.is_file():
+        raise MechanicalGateError(f"enclosure STL is missing: {path}")
+    try:
+        build123d: Any = importlib.import_module("build123d")
+        data = path.read_bytes()
+        _, facet_count, _, _ = parse_stl(data)
+        face = build123d.import_stl(path)
+        solid = build123d.Solid(build123d.Shell(face))
+        bbox = _shape_bbox(solid)
+        volume = float(solid.volume)
+    except Exception as exc:
+        raise MechanicalGateError(f"enclosure STL cannot be reloaded: {path}") from exc
+    if facet_count < 1:
+        raise MechanicalGateError("enclosure STL must contain at least one triangle")
+    return facet_count, bbox, volume
+
+
+def measure_enclosure_mesh_artifacts(
+    *,
+    model_3mf_path: Path,
+    mesh_stl_path: Path,
+    assembly_report: EnclosureArtifactReport,
+    runner: PipelineStageRunner | None = None,
+) -> EnclosureMeshReport:
+    """Reload and validate the independent 3MF and ASCII STL mesh artifacts."""
+    stages = (
+        ("3mf", partial(_measure_3mf_mesh, model_3mf_path)),
+        ("stl", partial(_measure_stl_mesh, mesh_stl_path)),
+    )
+    measurements = (
+        runner.run_ordered_stages(stages)
+        if runner is not None
+        else [stage() for _, stage in stages]
+    )
+    try:
+        model_part_count, model_bbox = cast(
+            tuple[int, tuple[float, float, float, float, float, float]],
+            measurements[0],
+        )
+        triangle_count, stl_bbox, stl_volume = cast(
+            tuple[int, tuple[float, float, float, float, float, float], float],
+            measurements[1],
+        )
+    except (IndexError, TypeError, ValueError) as exc:
+        raise MechanicalGateError("enclosure mesh measurements are unknown") from exc
+    if not _bboxes_close(
+        model_bbox,
+        assembly_report.assembly_bbox_mm,
+        abs_tol=MESH_BBOX_ABS_TOL_MM,
+    ):
+        raise MechanicalGateError("enclosure 3MF bbox does not match assembly STEP bbox")
+    if not _bboxes_close(
+        stl_bbox,
+        assembly_report.assembly_bbox_mm,
+        abs_tol=MESH_BBOX_ABS_TOL_MM,
+    ):
+        raise MechanicalGateError("enclosure STL bbox does not match assembly STEP bbox")
+    if not math.isclose(
+        stl_volume,
+        assembly_report.assembly_volume_mm3,
+        rel_tol=MESH_VOLUME_REL_TOL,
+        abs_tol=0.0,
+    ):
+        raise MechanicalGateError("enclosure STL volume does not match assembly STEP volume")
+    return EnclosureMeshReport(
+        model_part_count=model_part_count,
+        model_bbox_mm=model_bbox,
+        stl_triangle_count=triangle_count,
+        stl_bbox_mm=stl_bbox,
+        stl_volume_mm3=stl_volume,
     )
 
 

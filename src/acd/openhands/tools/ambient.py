@@ -14,7 +14,7 @@ and an undiagnosable state is reported as ``unknown`` rather than as available.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Final
 
@@ -26,6 +26,8 @@ from acd.schema.tool_registration import AmbientToolAvailabilityReport, ToolFall
 
 ALLOWED_TOOLS_KEY: Final[str] = "allowed-tools"
 _LIST_ITEM = re.compile(r"^\s+-\s*(\S+)\s*$")
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
+DEFAULT_COMMAND_DIR = PROJECT_ROOT / "plugins" / "acd" / "commands"
 
 # Deterministic CLI entry point that replaces each declared tool when the
 # conversation does not expose it. A tool without a CLI equivalent must fail
@@ -103,6 +105,69 @@ def declared_command_tools(command_path: Path) -> tuple[str, ...]:
             f"command declares duplicate allowed tools: {command_path}"
         )
     return tuple(unique)
+
+
+def check_ambient_registration_drift(
+    *,
+    commands_dir: Path = DEFAULT_COMMAND_DIR,
+    repo_root: Path = PROJECT_ROOT,
+    tool_definitions: Iterable[str] | None = None,
+    cli_fallbacks: Mapping[str, Sequence[str]] | None = None,
+    no_cli_fallback: Mapping[str, str] | None = None,
+) -> tuple[str, ...]:
+    """Return deterministic drift diagnostics for ambient command fallbacks."""
+    definitions = set(
+        tool_definitions
+        if tool_definitions is not None
+        else (name for name, _definition in ACD_TOOL_DEFINITIONS)
+    )
+    fallbacks = TOOL_CLI_FALLBACKS if cli_fallbacks is None else cli_fallbacks
+    unavailable = NO_CLI_FALLBACK if no_cli_fallback is None else no_cli_fallback
+    diagnostics: list[str] = []
+    try:
+        if not commands_dir.is_dir():
+            raise AmbientToolError(f"command directory not found: {commands_dir}")
+        for command_path in sorted(commands_dir.glob("*.md")):
+            text = command_path.read_text(encoding="utf-8")
+            declared = declared_command_tools(command_path)
+            if any(name.startswith("acd_") for name in declared):
+                flattened = " ".join(text.split())
+                expected = command_path.relative_to(repo_root).as_posix()
+                matches = re.findall(
+                    r"scripts/verify_acd_tool_registration\.py\s+(?:\\\s+)?"
+                    r"--command\s+(\S+)",
+                    flattened,
+                )
+                if not matches or any(match != expected for match in matches):
+                    diagnostics.append(
+                        f"{command_path}: ACD command must verify itself with "
+                        f"scripts/verify_acd_tool_registration.py --command {expected}"
+                    )
+        for name in sorted(definitions):
+            in_cli = name in fallbacks
+            in_unavailable = name in unavailable
+            if in_cli == in_unavailable:
+                diagnostics.append(
+                    f"{name}: must appear in exactly one ambient fallback table"
+                )
+        for name in sorted((set(fallbacks) | set(unavailable)) - definitions):
+            diagnostics.append(
+                f"{name}: ambient fallback table declares an unknown ACD tool"
+            )
+        for name, command in sorted(fallbacks.items()):
+            if not command:
+                diagnostics.append(f"{name}: CLI fallback command is empty")
+            elif not (repo_root / command[0]).is_file():
+                diagnostics.append(
+                    f"{name}: CLI fallback script does not exist: {command[0]}"
+                )
+    except AmbientToolError:
+        raise
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        raise AmbientToolError(
+            f"ambient tool registration drift cannot be determined: {exc}"
+        ) from exc
+    return tuple(sorted(diagnostics))
 
 
 def _fallback(tool_name: str) -> ToolFallback:
@@ -189,6 +254,7 @@ __all__ = [
     "NO_CLI_FALLBACK",
     "TOOL_CLI_FALLBACKS",
     "AmbientToolError",
+    "check_ambient_registration_drift",
     "check_ambient_tool_availability",
     "declared_command_tools",
     "ensure_ambient_acd_tools",

@@ -10,6 +10,7 @@ from acd.openhands.tools.ambient import (
     NO_CLI_FALLBACK,
     TOOL_CLI_FALLBACKS,
     AmbientToolError,
+    check_ambient_registration_drift,
     check_ambient_tool_availability,
     declared_command_tools,
     ensure_ambient_acd_tools,
@@ -32,6 +33,8 @@ def _command(tmp_path: Path, tools: list[str]) -> Path:
 
 
 def test_every_declared_tool_has_a_declared_fallback() -> None:
+    diagnostics = check_ambient_registration_drift()
+    assert diagnostics == ()
     for name, _definition in ACD_TOOL_DEFINITIONS:
         assert name in TOOL_CLI_FALLBACKS or name in NO_CLI_FALLBACK
     overlap = set(TOOL_CLI_FALLBACKS) & set(NO_CLI_FALLBACK)
@@ -75,6 +78,94 @@ def test_tool_without_cli_reports_its_reason(tmp_path: Path) -> None:
     assert report.status == "fail"
     assert report.fallbacks[0].command == []
     assert report.fallbacks[0].reason is not None
+
+
+def test_command_declaring_acd_tools_must_check_ambient_availability(
+    tmp_path: Path,
+) -> None:
+    script = tmp_path / "scripts" / "run_design_loop.py"
+    script.parent.mkdir()
+    script.write_text("", encoding="utf-8")
+    command = _command(tmp_path, ["acd_run_design_loop"])
+    diagnostics = check_ambient_registration_drift(
+        commands_dir=tmp_path,
+        repo_root=tmp_path,
+        tool_definitions=["acd_run_design_loop"],
+        cli_fallbacks={"acd_run_design_loop": ("scripts/run_design_loop.py",)},
+        no_cli_fallback={},
+    )
+    assert "must verify itself" in diagnostics[0]
+    command.write_text(
+        command.read_text(encoding="utf-8")
+        + (
+            "\nuv run python scripts/verify_acd_tool_registration.py "
+            "--command command.md\n"
+        ),
+        encoding="utf-8",
+    )
+    assert check_ambient_registration_drift(
+        commands_dir=tmp_path,
+        repo_root=tmp_path,
+        tool_definitions=["acd_run_design_loop"],
+        cli_fallbacks={"acd_run_design_loop": ("scripts/run_design_loop.py",)},
+        no_cli_fallback={},
+    ) == ()
+
+
+def test_command_ambient_check_must_point_to_itself(tmp_path: Path) -> None:
+    command = _command(tmp_path, ["acd_run_design_loop"])
+    command.write_text(
+        command.read_text(encoding="utf-8")
+        + (
+            "\nuv run python scripts/verify_acd_tool_registration.py "
+            "--command other.md\n"
+        ),
+        encoding="utf-8",
+    )
+    diagnostics = check_ambient_registration_drift(
+        commands_dir=tmp_path,
+        repo_root=tmp_path,
+        tool_definitions=["acd_run_design_loop"],
+        cli_fallbacks={"acd_run_design_loop": ("scripts/run_design_loop.py",)},
+        no_cli_fallback={},
+    )
+    assert "must verify itself" in diagnostics[0]
+
+
+def test_fallback_tables_must_cover_each_tool_once(tmp_path: Path) -> None:
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "one.py").write_text("", encoding="utf-8")
+    (scripts / "two.py").write_text("", encoding="utf-8")
+    diagnostics = check_ambient_registration_drift(
+        commands_dir=tmp_path,
+        repo_root=tmp_path,
+        tool_definitions=["acd_one", "acd_two"],
+        cli_fallbacks={"acd_one": ("scripts/one.py",), "acd_two": ("scripts/two.py",)},
+        no_cli_fallback={"acd_two": "no CLI"},
+    )
+    assert diagnostics == ("acd_two: must appear in exactly one ambient fallback table",)
+    missing = check_ambient_registration_drift(
+        commands_dir=tmp_path,
+        repo_root=tmp_path,
+        tool_definitions=["acd_one", "acd_two"],
+        cli_fallbacks={"acd_one": ("scripts/one.py",)},
+        no_cli_fallback={},
+    )
+    assert missing == ("acd_two: must appear in exactly one ambient fallback table",)
+
+
+def test_fallback_scripts_must_exist(tmp_path: Path) -> None:
+    diagnostics = check_ambient_registration_drift(
+        commands_dir=tmp_path,
+        repo_root=tmp_path,
+        tool_definitions=["acd_one"],
+        cli_fallbacks={"acd_one": ("scripts/missing.py",)},
+        no_cli_fallback={},
+    )
+    assert diagnostics == (
+        "acd_one: CLI fallback script does not exist: scripts/missing.py",
+    )
 
 
 def test_undeclared_tool_is_unknown(tmp_path: Path) -> None:

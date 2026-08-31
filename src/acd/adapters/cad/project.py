@@ -9,11 +9,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from acd.adapters.cad.constants import (
+    CAD_ANGULAR_DEFLECTION_DEG,
+    CAD_LINEAR_DEFLECTION_MM,
+)
 from acd.adapters.cad.mechanical import (
     board_plane_z,
     build_board_edge_overhang_shape,
 )
-from acd.core.cad_normalize import normalize_3mf, normalize_step
+from acd.core.cad_normalize import normalize_3mf, normalize_step, normalize_stl
 from acd.core.mechanical import MechanicalLane
 from acd.core.naming import artifact_prefix
 from acd.core.process import ToolRun, run_in_process
@@ -26,6 +30,7 @@ class CadProjection:
     lid_step_path: Path
     assembly_step_path: Path
     model_path: Path
+    mesh_stl_path: Path
     artifact_manifest_path: Path
     envelope: Any
 
@@ -153,14 +158,15 @@ def project_enclosure(
     lid_step_path = out_dir / "enclosure-lid.step"
     assembly_step_path = out_dir / "enclosure-assembly.step"
     model_path = out_dir / "enclosure.3mf"
+    mesh_stl_path = out_dir / "enclosure.stl"
     artifact_manifest_path = out_dir / "enclosure-artifacts.json"
     envelope_path = out_dir / "envelope-cad.json"
     config = json.dumps(
         {
-            "adapter_revision": "p3-5-v4",
-            "format": "step-parts+assembly+3mf+manifest",
-            "linear_deflection": 0.01,
-            "angular_deflection": 0.1,
+            "adapter_revision": "p3-5-v5",
+            "format": "step-parts+assembly+3mf+stl+manifest",
+            "linear_deflection": CAD_LINEAR_DEFLECTION_MM,
+            "angular_deflection": CAD_ANGULAR_DEFLECTION_DEG,
             "part_number": f"{prefix}-enclosure",
         },
         sort_keys=True,
@@ -173,17 +179,24 @@ def project_enclosure(
         build123d.export_step(shell, shell_step_path)
         build123d.export_step(lid, lid_step_path)
         build123d.export_step(shell + lid, assembly_step_path)
+        build123d.export_stl(
+            shell + lid,
+            mesh_stl_path,
+            tolerance=CAD_LINEAR_DEFLECTION_MM,
+            angular_tolerance=CAD_ANGULAR_DEFLECTION_DEG,
+            ascii_format=True,
+        )
         mesher = build123d.Mesher()
         mesher.add_shape(
             shell,
-            linear_deflection=0.01,
-            angular_deflection=0.1,
+            linear_deflection=CAD_LINEAR_DEFLECTION_MM,
+            angular_deflection=CAD_ANGULAR_DEFLECTION_DEG,
             part_number=f"{prefix}-enclosure-shell",
         )
         mesher.add_shape(
             lid,
-            linear_deflection=0.01,
-            angular_deflection=0.1,
+            linear_deflection=CAD_LINEAR_DEFLECTION_MM,
+            angular_deflection=CAD_ANGULAR_DEFLECTION_DEG,
             part_number=f"{prefix}-enclosure-lid",
         )
         mesher.write(model_path)
@@ -214,6 +227,12 @@ def project_enclosure(
                     "format": "3MF",
                     "normalized_sha256": _normalized_sha256(model_path),
                 },
+                {
+                    "path": mesh_stl_path.name,
+                    "role": "enclosure_mesh_stl",
+                    "format": "STL",
+                    "normalized_sha256": _normalized_sha256(mesh_stl_path),
+                },
             ],
         }
         artifact_manifest_path.write_text(
@@ -227,6 +246,8 @@ def project_enclosure(
             return normalize_step(data)
         if path.suffix == ".3mf":
             return normalize_3mf(data)
+        if path.suffix == ".stl":
+            return normalize_stl(data)
         if path.suffix == ".json":
             return data
         raise ValueError(f"unsupported CAD output: {path}")
@@ -234,13 +255,14 @@ def project_enclosure(
     run: ToolRun = run_in_process(
         tool_name="cad-kernel",
         tool_version=cad_tool_version(),
-        format_version="STEP parts+assembly+3MF+manifest",
+        format_version="STEP parts+assembly+3MF+STL+manifest",
         input_paths=[graph_path],
         output_paths=[
             shell_step_path,
             lid_step_path,
             assembly_step_path,
             model_path,
+            mesh_stl_path,
             artifact_manifest_path,
         ],
         envelope_path=envelope_path,
@@ -248,7 +270,8 @@ def project_enclosure(
         measurement_conditions=(
             "build123d box shell/lid, independent STEP parts, assembly STEP, "
             "antenna overhang cutout, standoff pilot holes, lid screw holes, "
-            "Mesher 3MF, normalized artifact manifest and output hash"
+            "Mesher 3MF, ASCII STL mesh export, normalized artifact manifest "
+            "and output hash"
         ),
         runner=runner,
         config=config,
@@ -259,13 +282,19 @@ def project_enclosure(
         lid_step_path=lid_step_path,
         assembly_step_path=assembly_step_path,
         model_path=model_path,
+        mesh_stl_path=mesh_stl_path,
         artifact_manifest_path=artifact_manifest_path,
         envelope=run.envelope,
     )
 
 
 def _normalized_sha256(path: Path) -> str:
-    normalized = normalize_step(path.read_bytes()) if path.suffix == ".step" else normalize_3mf(
-        path.read_bytes()
-    )
+    if path.suffix == ".step":
+        normalized = normalize_step(path.read_bytes())
+    elif path.suffix == ".3mf":
+        normalized = normalize_3mf(path.read_bytes())
+    elif path.suffix == ".stl":
+        normalized = normalize_stl(path.read_bytes())
+    else:
+        raise ValueError(f"unsupported CAD output: {path}")
     return "sha256:" + hashlib.sha256(normalized).hexdigest()

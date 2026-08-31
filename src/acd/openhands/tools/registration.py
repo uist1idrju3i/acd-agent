@@ -17,6 +17,10 @@ from openhands.sdk.tool import list_registered_tools
 from pydantic import ValidationError
 from yaml import YAMLError
 
+from acd.openhands.tools.ambient import (
+    AmbientToolError,
+    check_ambient_registration_drift,
+)
 from acd.openhands.tools.definitions import ACD_TOOL_DEFINITIONS, register_acd_tools
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.tool_registration import (
@@ -158,6 +162,22 @@ def check_tool_registration(
                 if missing
                 else "agent definitions declare ACD tools that are never registered"
             ),
+        )
+    try:
+        ambient_drift = check_ambient_registration_drift()
+    except AmbientToolError as exc:
+        return ToolRegistrationReport(
+            status="unknown",
+            manifest_hash=expected.canonical_hash,
+            registered_tools=sorted(expected_names),
+            reason=str(exc),
+        )
+    if ambient_drift:
+        return ToolRegistrationReport(
+            status="fail",
+            manifest_hash=expected.canonical_hash,
+            registered_tools=sorted(expected_names),
+            reason="ambient tool registration drift: " + "; ".join(ambient_drift),
         )
     return ToolRegistrationReport(
         status="pass",

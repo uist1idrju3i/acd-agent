@@ -21,6 +21,10 @@ class TimingStage:
     start_order: int
 
 
+class RuntimeObservationError(ValueError):
+    """An L3 timing observation could not be recorded."""
+
+
 class TimingRecorder:
     """Collect wall-clock stage durations for an L3 observation."""
 
@@ -34,7 +38,7 @@ class TimingRecorder:
         """Start a uniquely named stage."""
         with self._lock:
             if name in self._started:
-                raise ValueError(f"timing stage already started: {name}")
+                raise RuntimeObservationError(f"timing stage already started: {name}")
             self._started[name] = (self._next_order, time.perf_counter())
             self._next_order += 1
 
@@ -43,7 +47,7 @@ class TimingRecorder:
         with self._lock:
             started = self._started.pop(name, None)
             if started is None:
-                raise ValueError(f"timing stage was not started: {name}")
+                raise RuntimeObservationError(f"timing stage was not started: {name}")
             order, started_at = started
             self._stages.append(
                 TimingStage(
@@ -57,7 +61,7 @@ class TimingRecorder:
         """Return completed stages in start order."""
         with self._lock:
             if self._started:
-                raise ValueError(
+                raise RuntimeObservationError(
                     "timing record has unfinished stages: "
                     + ", ".join(sorted(self._started))
                 )
@@ -77,6 +81,7 @@ def write_timing_record(
     *,
     cache_events: tuple[dict[str, object], ...] = (),
     target_revision: str | None = None,
+    owner: str | None = None,
 ) -> Path:
     """Write a canonical, non-authoritative timing observation."""
     stages = [
@@ -96,11 +101,26 @@ def write_timing_record(
     }
     if target_revision is not None:
         body["target_revision"] = target_revision
+    if owner is not None:
+        body["owner"] = owner
     body["content_sha256"] = canonical_json_sha256(body)
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / "timing-record.json"
     path.write_text(
         json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def write_loop_summary_record(out_dir: Path, body: dict[str, object]) -> Path:
+    """Write a canonical, non-authoritative design-loop summary."""
+    record = dict(body)
+    record["content_sha256"] = canonical_json_sha256(record)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / "loop-summary.json"
+    path.write_text(
+        json.dumps(record, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
     return path

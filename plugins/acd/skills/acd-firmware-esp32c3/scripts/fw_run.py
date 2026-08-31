@@ -40,6 +40,7 @@ def resolve_tool(binary: str) -> str | None:
         ["bash", "-c", f". {shlex.quote(str(export))} >/dev/null && command -v {binary}"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
         timeout=300,
     )

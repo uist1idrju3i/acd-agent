@@ -10,6 +10,7 @@ import pytest
 
 from acd.openhands import container_runtime
 from acd.openhands import workspace as workspace_module
+from acd.openhands.workspace import WorkspaceTransportError
 from acd.schema.host_resources import HostResourceFinding, HostResourceReport
 
 
@@ -223,7 +224,9 @@ def test_runner_fails_when_evidence_download_fails(
         return workspace_module.ImageReference("sha256:" + "d" * 64, "image ID")
 
     monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
-    with pytest.raises(RuntimeError, match="failed to download workspace file"):
+    with pytest.raises(
+        WorkspaceTransportError, match="failed to download workspace file"
+    ) as error:
         workspace_module.run_command_in_workspace(
             image="acd-server:local",
             command="true",
@@ -231,6 +234,10 @@ def test_runner_fails_when_evidence_download_fails(
             download_files=("out/gd1/evidence-electrical.json",),
             workspace_factory=_DownloadFailingWorkspace,
         )
+    assert error.value.exit_code == 0
+    assert error.value.stdout == "ok\n"
+    assert error.value.stderr == ""
+    assert error.value.downloaded_files == ()
 
 
 def test_runner_rejects_host_resource_failure_before_docker_start(

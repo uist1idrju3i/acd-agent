@@ -2,8 +2,10 @@ from __future__ import annotations
 
 # pyright: reportPrivateUsage=false,reportUnknownArgumentType=false,reportUnknownLambdaType=false,reportUnknownVariableType=false,reportUnknownMemberType=false
 import json
+import re
 import shutil
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -17,6 +19,7 @@ from acd.core.exploration import (
     explore_board_candidates,
 )
 from acd.core.rationale import RationaleDocument, check_rationale_coverage
+from acd.core.runtime_records import RuntimeObservationError
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
 
@@ -33,6 +36,16 @@ def _number_attr(node: GraphNode, key: str) -> float:
     value = attrs[key]
     assert isinstance(value, int | float) and not isinstance(value, bool)
     return float(value)
+
+
+def test_placement_variant_count_matches_skill_contract() -> None:
+    script = Path("plugins/acd/skills/acd-placement-search/scripts/placement_search.py")
+    source = script.read_text(encoding="utf-8")
+    match = re.search(r"_SPACING_STEPS_MM\s*=\s*\(([^)]*)\)", source)
+    assert match is not None
+    assert len([item for item in match.group(1).split(",") if item.strip()]) == (
+        exploration.PLACEMENT_SPACING_VARIANTS
+    )
 
 
 def _passing_pre_router(
@@ -100,13 +113,195 @@ def test_malformed_skill_output_fails_closed(
     def fake_run(*args: object, **kwargs: object) -> object:
         command = args[0]
         assert isinstance(command, tuple)
-        Path(str(command[-1])).parent.mkdir(parents=True, exist_ok=True)
-        Path(str(command[-1])).write_text("{}", encoding="utf-8")
+        output = Path(str(command[command.index("--output") + 1]))
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text("{}", encoding="utf-8")
         return type("Completed", (), {"returncode": 0, "stderr": ""})()
 
     monkeypatch.setattr(exploration.subprocess, "run", fake_run)
     with pytest.raises(ExplorationError, match="must be an array"):
         exploration._placement_candidates(GRAPH_PATH, FIXTURE_DIR, tmp_path, graph)
+
+
+def test_placement_variants_are_ordered_and_provenanced(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    placements = _placement_candidate(graph).changes["placements"]
+    calls: list[int] = []
+
+    def fake_run(*args: object, **kwargs: object) -> object:
+        command = args[0]
+        assert isinstance(command, tuple)
+        variant = int(command[command.index("--spacing-variant") + 1])
+        output = Path(str(command[command.index("--output") + 1]))
+        output.parent.mkdir(parents=True, exist_ok=True)
+        payload = [
+            {
+                "refdes": refdes,
+                "x_mm": values["x_mm"] + variant,
+                "y_mm": values["y_mm"],
+                "rotation_deg": values["rotation_deg"],
+            }
+            for refdes, values in placements.items()
+        ]
+        output.write_text(json.dumps(payload), encoding="utf-8")
+        calls.append(variant)
+        return type("Completed", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(exploration.subprocess, "run", fake_run)
+    candidates = exploration._placement_candidates(
+        GRAPH_PATH, FIXTURE_DIR, tmp_path, graph, max_variants=3
+    )
+
+    assert calls == [0, 1, 2]
+    assert [candidate.candidate_id for candidate in candidates] == [
+        "placement-0001",
+        "placement-0002",
+        "placement-0003",
+    ]
+    assert [
+        candidate.provenance["spacing_variant"] for candidate in candidates
+    ] == [0, 1, 2]
+    assert len({candidate.provenance["proposal_sha256"] for candidate in candidates}) == 3
+
+
+def test_unavailable_and_duplicate_placement_variants_are_diagnosed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    placements = _placement_candidate(graph).changes["placements"]
+
+    def fake_run(*args: object, **kwargs: object) -> object:
+        command = args[0]
+        assert isinstance(command, tuple)
+        variant = int(command[command.index("--spacing-variant") + 1])
+        if variant == 2:
+            return type(
+                "Completed",
+                (),
+                {"returncode": 1, "stderr": "component C5 could not be placed\n"},
+            )()
+        output = Path(str(command[command.index("--output") + 1]))
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps(
+                [
+                    {
+                        "refdes": refdes,
+                        "x_mm": values["x_mm"],
+                        "y_mm": values["y_mm"],
+                        "rotation_deg": values["rotation_deg"],
+                    }
+                    for refdes, values in placements.items()
+                ]
+            ),
+            encoding="utf-8",
+        )
+        return type("Completed", (), {"returncode": 0, "stderr": ""})()
+
+    diagnostics: list[dict[str, Any]] = []
+    monkeypatch.setattr(exploration.subprocess, "run", fake_run)
+    candidates = exploration._placement_candidates(
+        GRAPH_PATH,
+        FIXTURE_DIR,
+        tmp_path,
+        graph,
+        max_variants=3,
+        diagnostics=diagnostics,
+    )
+
+    assert [candidate.candidate_id for candidate in candidates] == ["placement-0001"]
+    assert diagnostics == [
+        {
+            "generator": "placement",
+            "variant": 1,
+            "status": "duplicate",
+            "reason": "placements match an earlier variant",
+        },
+        {
+            "generator": "placement",
+            "variant": 2,
+            "status": "unavailable",
+            "reason": "component C5 could not be placed",
+        },
+    ]
+
+
+def test_generation_diagnostics_are_written_to_exploration_report(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture, source_graph = _source_fixture(tmp_path)
+    placements = _placement_candidate(graph).changes["placements"]
+
+    def fake_run(*args: object, **kwargs: object) -> object:
+        command = args[0]
+        assert isinstance(command, tuple)
+        variant = int(command[command.index("--spacing-variant") + 1])
+        if variant == 2:
+            return type("Completed", (), {"returncode": 1, "stderr": "too tight"})()
+        output = Path(str(command[command.index("--output") + 1]))
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            json.dumps(
+                [
+                    {
+                        "refdes": refdes,
+                        "x_mm": values["x_mm"],
+                        "y_mm": values["y_mm"],
+                        "rotation_deg": values["rotation_deg"],
+                    }
+                    for refdes, values in placements.items()
+                ]
+            ),
+            encoding="utf-8",
+        )
+        return type("Completed", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(exploration.subprocess, "run", fake_run)
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+    monkeypatch.setattr(
+        exploration, "enumerate_gpio_assignment_candidates", lambda *_args: ()
+    )
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=3,
+        dry_run=True,
+        pipeline_runner=lambda _fixture, _out: {},
+    )
+
+    assert result.report["candidate_generation"] == [
+        {
+            "generator": "placement",
+            "variant": 1,
+            "status": "duplicate",
+            "reason": "placements match an earlier variant",
+        },
+        {
+            "generator": "placement",
+            "variant": 2,
+            "status": "unavailable",
+            "reason": "too tight",
+        },
+    ]
+
+
+def test_variant_zero_failure_remains_fail_closed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+
+    def fake_run(*args: object, **kwargs: object) -> object:
+        return type("Completed", (), {"returncode": 1, "stderr": "placement failed"})()
+
+    monkeypatch.setattr(exploration.subprocess, "run", fake_run)
+    with pytest.raises(ExplorationError, match="placement skill failed"):
+        exploration._placement_candidates(
+            GRAPH_PATH, FIXTURE_DIR, tmp_path, graph, max_variants=3
+        )
 
 
 def test_missing_skill_script_fails_closed(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -128,7 +323,7 @@ def test_budget_exhaustion_is_fail_closed_and_preserves_source(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (_placement_candidate(graph),),
+        lambda *_args, **_kwargs: (_placement_candidate(graph),),
     )
 
     def reject(_fixture: Path, _out: Path) -> None:
@@ -159,7 +354,7 @@ def test_max_passes_is_forwarded_to_default_pipeline_runner(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (_placement_candidate(graph),),
+        lambda *_args, **_kwargs: (_placement_candidate(graph),),
     )
     monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
     calls: list[int] = []
@@ -206,7 +401,7 @@ def test_successful_candidate_is_observation_and_writes_only_final_winner(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (_placement_candidate(graph),),
+        lambda *_args, **_kwargs: (_placement_candidate(graph),),
     )
     monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
 
@@ -241,7 +436,7 @@ def test_successful_candidate_preserves_revision_and_changes_graph_content(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (_placement_candidate(graph),),
+        lambda *_args, **_kwargs: (_placement_candidate(graph),),
     )
     monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
 
@@ -273,7 +468,7 @@ def test_malformed_gate_evidence_stops_exploration(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (_placement_candidate(graph),),
+        lambda *_args, **_kwargs: (_placement_candidate(graph),),
     )
     monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
 
@@ -293,6 +488,41 @@ def test_malformed_gate_evidence_stops_exploration(
 
     assert result.report["status"] == "stopped"
     assert result.report["candidates"][0]["outcome"]["status"] == "stopped"
+
+
+def test_runtime_observation_failure_stops_without_gate_rejection(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture = tmp_path / "fixture"
+    shutil.copytree(FIXTURE_DIR, source_fixture)
+    source_graph = source_fixture / "graph.json"
+    source_graph.write_text(GRAPH_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args, **_kwargs: (_placement_candidate(graph),),
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+
+    def observation_failure(_fixture: Path, _out: Path) -> None:
+        raise RuntimeObservationError("candidate timing is unavailable")
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=1,
+        pipeline_runner=observation_failure,
+    )
+
+    outcome = result.report["candidates"][0]["outcome"]
+    assert outcome["status"] == "stopped"
+    assert outcome["observation_failure"] is True
+    assert all(
+        candidate["outcome"]["status"] != "gate_rejected"
+        for candidate in result.report["candidates"]
+    )
 
 
 def _shifted_placement_candidate(
@@ -328,7 +558,9 @@ def test_candidate_evaluation_refreshes_rationale_before_gates(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (_shifted_placement_candidate(graph, "placement-0001", 0.5),),
+        lambda *_args, **_kwargs: (
+            _shifted_placement_candidate(graph, "placement-0001", 0.5),
+        ),
     )
     monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
     observed: list[str] = []
@@ -363,7 +595,7 @@ def test_candidate_specific_rejection_evaluates_remaining_budget(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (
+        lambda *_args, **_kwargs: (
             _shifted_placement_candidate(graph, "placement-0001", 0.5),
             _shifted_placement_candidate(graph, "placement-0002", 1.0),
         ),
@@ -403,7 +635,7 @@ def test_exhausted_candidate_pool_reports_remaining_budget(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (
+        lambda *_args, **_kwargs: (
             _shifted_placement_candidate(graph, "placement-0001", 0.5),
             _shifted_placement_candidate(graph, "placement-0002", 1.0),
         ),
@@ -430,6 +662,42 @@ def test_exhausted_candidate_pool_reports_remaining_budget(
     assert result.report["remaining_budget"] == 1
 
 
+def test_multi_candidate_pool_exhausts_declared_budget(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    graph = _graph()
+    source_fixture, source_graph = _source_fixture(tmp_path)
+    monkeypatch.setattr(
+        exploration,
+        "_placement_candidates",
+        lambda *_args, **_kwargs: (
+            _shifted_placement_candidate(graph, "placement-0001", 0.5),
+            _shifted_placement_candidate(graph, "placement-0002", 1.0),
+            _shifted_placement_candidate(graph, "placement-0003", 1.5),
+        ),
+    )
+    monkeypatch.setattr(
+        exploration, "enumerate_gpio_assignment_candidates", lambda *_args: ()
+    )
+    monkeypatch.setattr(exploration, "evaluate_design_predicates", _passing_pre_router)
+
+    def reject(_fixture: Path, _out: Path) -> None:
+        raise RuntimeError("router rejected candidate")
+
+    result = explore_board_candidates(
+        source_graph,
+        source_fixture,
+        tmp_path / "out",
+        max_candidates=3,
+        pipeline_runner=reject,
+    )
+
+    assert result.report["evaluated_candidates"] == 3
+    assert result.report["consumed_budget"] == 3
+    assert result.report["remaining_budget"] == 0
+    assert result.report["termination_reason"] == "candidate_budget_exhausted"
+
+
 def test_fail_closed_stop_abandons_remaining_budget(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -438,7 +706,7 @@ def test_fail_closed_stop_abandons_remaining_budget(
     monkeypatch.setattr(
         exploration,
         "_placement_candidates",
-        lambda *_args: (
+        lambda *_args, **_kwargs: (
             _shifted_placement_candidate(graph, "placement-0001", 0.5),
             _shifted_placement_candidate(graph, "placement-0002", 1.0),
         ),

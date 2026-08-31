@@ -840,6 +840,7 @@ def run_bootstrap(
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
         timeout=3600,
     )
@@ -931,7 +932,12 @@ class AcdRunFirmwarePipelineExecutor(ToolExecutor[AcdRunFirmwarePipelineAction, 
             ]
             started_at = datetime.now(UTC)
             completed = subprocess.run(
-                command, cwd=root, capture_output=True, text=True, check=False
+                command,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
             )
             if completed.returncode != 0:
                 return AcdRunFirmwarePipelineObservation(

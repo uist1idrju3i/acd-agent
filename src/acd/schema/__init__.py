@@ -97,6 +97,11 @@ from acd.schema.lane_recovery import (
     LaneRecoveryDeclaration,
     LaneRecoveryDeclarationDocument,
 )
+from acd.schema.manufacturing_submission import (
+    ManufacturingSubmissionArtifact,
+    ManufacturingSubmissionCheck,
+    ManufacturingSubmissionVerdict,
+)
 from acd.schema.model_routing import (
     ModelRoutingBinding,
     ModelRoutingObservation,
@@ -299,6 +304,9 @@ __all__ = [
     "LaneRecoveryDeclaration",
     "LaneRecoveryDeclarationDocument",
     "LedExpectation",
+    "ManufacturingSubmissionArtifact",
+    "ManufacturingSubmissionCheck",
+    "ManufacturingSubmissionVerdict",
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",

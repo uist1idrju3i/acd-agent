@@ -705,13 +705,33 @@ command未実行をsuccessとして記録する経路はない。command形式�
    `out/gd1-enclosure/enclosure-shell.step`と
    `out/gd1-enclosure/enclosure-lid.step`、組立確認専用の統合STEPとして
    `out/gd1-enclosure/enclosure-assembly.step`、2オブジェクトを保持する
-   `out/gd1-enclosure/enclosure.3mf`、全構成物の正規化hash一覧
+   `out/gd1-enclosure/enclosure.3mf`、ASCIIの
+   `out/gd1-enclosure/enclosure.stl`、全構成物の正規化hash一覧
    `out/gd1-enclosure/enclosure-artifacts.json`、および
-   `out/gd1-enclosure/evidence-mechanical.json`が生成される。部品STEPはshellまたは
+   `out/gd1-enclosure/evidence-mechanical.json`が生成される。STLは3MFとともに独立reloadされ、
+   2部品、bbox、三角形数、体積を検査する。部品STEPはshellまたは
    lidの単独ソリッドだけを含み、統合STEPは組立確認用であり、製造部品ファイルの
-   代用にはしない。構成物一覧が欠落または期待ファイルと不一致の場合はfail-closedで停止する。
+   代用にはしない。筐体projectionのadapter revisionは`p3-5-v5`、
+   formatは`STEP parts+assembly+3MF+STL+manifest`で固定する。構成物一覧が欠落または
+   期待ファイルと不一致の場合はfail-closedで停止する。
 
-6. FW Skillは会話に`firmware`、`ESP32-C3`、`ESP-IDF`、`QEMU`、`GPIO`のいずれかを
+6. 製造提出データの品質は、発注処理とは独立したL1判定で検証する。
+
+   ```bash
+   uv run python scripts/verify_manufacturing_submission.py \
+     --board-out out/gd1 \
+     --enclosure-out out/gd1-enclosure \
+     --graph fixtures/golden-design-1/graph.json \
+     --out out/manufacturing-submission.json
+   ```
+
+   authoritative Evidenceを必須にするCI相当の検査では
+   `--require-authoritative`を追加する。判定は必須成果物、独立reload、正規化hash、
+   DFM、幾何、fab profile、revision、Evidence妥当性を一括で検査する。
+   `order-readiness.json`の`ready`／`not_order_ready`は観測された状態として記録するだけで、
+   quote集計・発注実行は判定へ影響しない。発注を行わない場合も、提出品質の要件は下がらない。
+
+7. FW Skillは会話に`firmware`、`ESP32-C3`、`ESP-IDF`、`QEMU`、`GPIO`のいずれかを
    含めて起動し、次の入口を実行させる。
 
    ```bash

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@2fe3e338ec000830d2e14f80980a6592964e9ad7",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e7f190ddba142ea6500ac14ed201a8b40c9156e8",
 # ]
 # ///
 """Deterministic component placement search (skill asset, not an ACD gate).
@@ -101,6 +101,8 @@ def compute_placements(
     nets: tuple[NetView, ...] = (),
     seeds: tuple[Placement, ...] = (),
     coupling_groups: tuple[PlacementCouplingConstraint, ...] = (),
+    *,
+    spacing_variant: int = 0,
 ) -> tuple[Placement, ...]:
     """Place components deterministically.
 
@@ -108,6 +110,8 @@ def compute_placements(
     subset (for example a legalized proposal) and let the search fill the rest
     around it. Seeds are still checked against the board edge clearance.
     """
+    if type(spacing_variant) is not int or not 0 <= spacing_variant < len(_SPACING_STEPS_MM):
+        raise PlacementError(f"invalid spacing variant: {spacing_variant!r}")
     placements: list[Placement] = []
     occupied: list[Rect] = list(keepouts)
     center_x = board.width_mm / 2.0
@@ -244,7 +248,11 @@ def compute_placements(
             placed_at[ref] for ref in sorted(neighbours.get(comp.refdes, ())) if ref in placed_at
         )
         spot = None
-        spacing_steps = (0.0,) if comp.refdes in decoupling else _SPACING_STEPS_MM
+        spacing_steps = (
+            (0.0,)
+            if comp.refdes in decoupling
+            else _SPACING_STEPS_MM[spacing_variant:]
+        )
         for spacing in spacing_steps:
             target = None
             if comp.refdes in decoupling:
@@ -299,6 +307,7 @@ def main() -> int:
     parser.add_argument("--fixture-dir", type=Path, required=True)
     parser.add_argument("--fab-profile", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--spacing-variant", type=int, default=0)
     args = parser.parse_args()
     graph = json.loads(args.input.read_text(encoding="utf-8"))
     placements = compute_placements_from_json(
@@ -306,6 +315,7 @@ def main() -> int:
             "graph": graph,
             "fixture_dir": str(args.fixture_dir),
             "fab_profile": str(args.fab_profile),
+            "spacing_variant": args.spacing_variant,
         }
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -334,6 +344,9 @@ def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement,
     lane = extract_electrical_lane(graph)
     fixture_dir = Path(str(payload["fixture_dir"]))
     profile = load_fab_profile(Path(str(payload["fab_profile"])))
+    spacing_variant = payload.get("spacing_variant", 0)
+    if type(spacing_variant) is not int:
+        raise PlacementError(f"invalid spacing variant: {spacing_variant!r}")
     footprints = load_board_footprints(lane, FootprintLibrary(), fixture_dir, profile).shapes
     keepouts = tuple(
         Rect(item.x1_mm, item.y1_mm, item.x2_mm, item.y2_mm)
@@ -352,6 +365,7 @@ def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement,
         lane.pins,
         lane.nets,
         coupling_groups=load_placement_coupling_constraints(graph),
+        spacing_variant=spacing_variant,
     )
 
 

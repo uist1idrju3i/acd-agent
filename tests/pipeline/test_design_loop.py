@@ -20,6 +20,7 @@ from acd.pipeline.design_loop import (  # pyright: ignore[reportMissingTypeStubs
     DesignLoopConfig,
     run_design_loop,
 )
+from acd.schema.common import canonical_json_sha256
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1"
 
@@ -131,6 +132,51 @@ def test_design_loop_stops_after_first_failed_stage(
         "board-pipeline",
     ]
     assert all(item["pass_evidence"] is False for item in result["results"])
+
+
+def test_design_loop_writes_hashed_l3_loop_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def failing_board(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        return {
+            "stage_id": "board-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "intentional summary failure",
+        }
+
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = failing_board
+    _patch_runners(monkeypatch, runners)
+    out_root = tmp_path / "artifacts"
+
+    result = run_design_loop(
+        FIXTURE,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    summary_path = out_root / "loop-summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    body = {key: value for key, value in summary.items() if key != "content_sha256"}
+    assert result["loop_summary"] == str(summary_path)
+    assert summary["artifact_kind"] == "design_loop_summary"
+    assert summary["record_class"] == "L3"
+    assert summary["pass_evidence"] is False
+    assert summary["ok"] is False
+    assert summary["failed_stage"] == "board-pipeline"
+    assert summary["failure_reason"] == "intentional summary failure"
+    assert summary["next_step_action"]
+    assert summary["exploration_rounds"] is None
+    assert summary["content_sha256"] == canonical_json_sha256(body)
 
 
 def test_missing_firmware_skill_fails_closed_without_running_order_gate(

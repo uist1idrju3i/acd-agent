@@ -13,6 +13,7 @@ from acd.adapters.kicad.fab import (
     PadMeasurement,
     ViaMeasurement,
     deterministic_zip,
+    zip_content_hash,
 )
 from acd.core.electrical import (
     BoardView,
@@ -29,6 +30,35 @@ ROOT = Path(__file__).parents[3]
 
 
 PROFILE = load_fab_profile(ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json")
+
+
+def test_zip_content_hash_normalizes_gbrjob_creation_date(tmp_path: Path) -> None:
+    root = tmp_path / "members"
+    root.mkdir()
+    member = root / "board-job.gbrjob"
+    member.write_text(
+        json.dumps(
+            {
+                "Header": {"CreationDate": "2026-01-01T00:00:00+00:00"},
+                "FilesAttributes": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    first = tmp_path / "first.zip"
+    deterministic_zip(first, [member], root)
+    member.write_text(
+        json.dumps(
+            {
+                "Header": {"CreationDate": "2030-12-31T00:00:00+00:00"},
+                "FilesAttributes": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    second = tmp_path / "second.zip"
+    deterministic_zip(second, [member], root)
+    assert zip_content_hash(first) == zip_content_hash(second)
 
 
 def _bom_lane(*components: ComponentView) -> ElectricalLane:

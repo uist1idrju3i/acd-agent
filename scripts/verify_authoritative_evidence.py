@@ -41,6 +41,7 @@ def _revision(value: str | None, revision_from: Path | None) -> str:
         ["git", "rev-parse", "HEAD"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     revision = result.stdout.strip()

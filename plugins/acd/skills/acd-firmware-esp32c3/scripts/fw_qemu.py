@@ -64,7 +64,12 @@ class QemuRunner:
             raise QemuUnavailableError(f"{binary} not found on PATH or in the ESP-IDF tools")
         self._binary = resolved
         result = subprocess.run(
-            [resolved, "--version"], capture_output=True, text=True, check=False, timeout=60
+            [resolved, "--version"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+            timeout=60,
         )
         match = re.search(r"version ([^\s]+(?: \([^)]*\))?)", result.stdout)
         if result.returncode != 0 or match is None:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 # pyright: reportMissingTypeStubs=false, reportPrivateImportUsage=false, reportPrivateUsage=false, reportUnknownMemberType=false, reportUnknownLambdaType=false
+import json
 from pathlib import Path
 from typing import Any, cast
 
@@ -16,7 +17,11 @@ from acd.adapters.kicad.fab import (
 from acd.adapters.kicad.fab.gerber import (
     _gerber_to_board_point,  # pyright: ignore[reportPrivateUsage]
 )
-from acd.adapters.kicad.reload import ReloadError, normalized_hash, verify_board
+from acd.adapters.kicad.reload import (
+    ReloadError,
+    normalized_hash,
+    verify_board,
+)
 from acd.adapters.kicad.routing import (
     RouteInjectionError,
     inject_routes,
@@ -595,3 +600,34 @@ def test_normalized_hash_ignores_comment_timestamps(tmp_path: Path) -> None:
     c = tmp_path / "c.gbr"
     c.write_text("G04 created 2026-01-01*\n%FSLAX46Y46*%\nX1Y0D02*\n")
     assert normalized_hash(a) != normalized_hash(c)
+
+
+def test_normalized_hash_ignores_gbrjob_creation_date_without_rewriting_source(
+    tmp_path: Path,
+) -> None:
+    a = tmp_path / "a.gbrjob"
+    b = tmp_path / "b.gbrjob"
+    payload: dict[str, Any] = {
+        "Header": {"CreationDate": "2026-01-01T00:00:00+00:00", "GenerationSoftware": "KiCad"},
+        "FilesAttributes": [{"Path": "board-F_Cu.gtl"}],
+    }
+    a.write_text(json.dumps(payload), encoding="utf-8")
+    payload["Header"]["CreationDate"] = "2030-12-31T00:00:00+00:00"
+    b.write_text(json.dumps(payload), encoding="utf-8")
+    original = a.read_bytes()
+    assert normalized_hash(a) == normalized_hash(b)
+    assert a.read_bytes() == original
+
+
+def test_normalized_hash_rejects_invalid_gbrjob(tmp_path: Path) -> None:
+    path = tmp_path / "broken.gbrjob"
+    path.write_text("{not-json", encoding="utf-8")
+    with pytest.raises(ReloadError, match="invalid gbrjob JSON"):
+        normalized_hash(path)
+
+
+def test_normalized_hash_rejects_gbrjob_without_header(tmp_path: Path) -> None:
+    path = tmp_path / "missing-header.gbrjob"
+    path.write_text(json.dumps({"FilesAttributes": []}), encoding="utf-8")
+    with pytest.raises(ReloadError, match="Header is missing"):
+        normalized_hash(path)

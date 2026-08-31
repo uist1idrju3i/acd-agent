@@ -33,6 +33,7 @@ from acd.core.rationale import (
     RationaleRefreshError,
     refresh_rationale_document,
 )
+from acd.core.runtime_records import RuntimeObservationError
 from acd.pipeline.repository import repository_root
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph, GraphNode
@@ -44,6 +45,7 @@ PLACEMENT_SKILL_NAME = "acd-placement-search"
 PLACEMENT_SCRIPT = (
     "plugins/acd/skills/acd-placement-search/scripts/placement_search.py"
 )
+PLACEMENT_SPACING_VARIANTS = 3
 SEARCHABLE_DIMENSIONS = frozenset(
     {
         "component_placement_xy",
@@ -169,6 +171,9 @@ def _placement_candidates(
     fixture_dir: Path,
     out_dir: Path,
     graph: DesignGraph,
+    *,
+    max_variants: int = 1,
+    diagnostics: list[dict[str, Any]] | None = None,
 ) -> tuple[ExplorationCandidate, ...]:
     root = repository_root()
     script = root / PLACEMENT_SCRIPT
@@ -186,89 +191,123 @@ def _placement_candidates(
     from acd.core.fab import load_fab_profile_registry, resolve_fab_profile_path
 
     profile = resolve_fab_profile_path(profile_id, load_fab_profile_registry())
-    skill_output = out_dir / "skill" / "placements.json"
-    command = (
-        "uv",
-        "run",
-        "--script",
-        str(script),
-        "--input",
-        str(graph_path),
-        "--fixture-dir",
-        str(fixture_dir),
-        "--fab-profile",
-        str(profile),
-        "--output",
-        str(skill_output),
-    )
-    try:
-        completed = subprocess.run(
-            command,
-            cwd=root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    except OSError as exc:
-        raise ExplorationError(f"placement skill could not start: {exc}") from exc
-    if completed.returncode != 0:
-        raise ExplorationError(
-            "placement skill failed (fail-closed): "
-            + (completed.stderr.strip() or f"exit {completed.returncode}")
-        )
-    try:
-        payload = json.loads(skill_output.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ExplorationError(f"placement skill output is invalid: {exc}") from exc
-    if not isinstance(payload, list):
-        raise ExplorationError("placement skill output must be an array (fail-closed)")
     refs = {
         str(node.attrs["refdes"])
         for node in graph.nodes
         if node.kind == "electrical.component" and "refdes" in node.attrs
     }
-    placements: dict[str, dict[str, float]] = {}
-    for item in cast(list[object], payload):
-        if not isinstance(item, dict):
-            raise ExplorationError("placement candidate must be an object (fail-closed)")
-        refdes = item.get("refdes")
-        values = {key: item.get(key) for key in ("x_mm", "y_mm", "rotation_deg")}
-        if (
-            not isinstance(refdes, str)
-            or refdes not in refs
-            or any(
-                isinstance(value, bool)
-                or not isinstance(value, int | float)
-                or not math.isfinite(float(value))
-                for value in values.values()
+    candidates: list[ExplorationCandidate] = []
+    accepted_placements: list[dict[str, dict[str, float]]] = []
+    for variant in range(min(max_variants, PLACEMENT_SPACING_VARIANTS)):
+        skill_output = out_dir / "skill" / f"placements-{variant:02d}.json"
+        command = (
+            "uv",
+            "run",
+            "--script",
+            str(script),
+            "--input",
+            str(graph_path),
+            "--fixture-dir",
+            str(fixture_dir),
+            "--fab-profile",
+            str(profile),
+            "--output",
+            str(skill_output),
+            "--spacing-variant",
+            str(variant),
+        )
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                check=False,
             )
-        ):
-            raise ExplorationError("placement candidate has malformed fields (fail-closed)")
-        if refdes in placements:
-            raise ExplorationError(f"duplicate placement for {refdes!r} (fail-closed)")
-        placements[refdes] = {
-            key: float(cast(int | float, value)) for key, value in values.items()
-        }
-    if set(placements) != refs:
-        raise ExplorationError("placement skill omitted one or more components (fail-closed)")
-    graph_revision = graph.revision
-    provenance = {
-        "skill_name": PLACEMENT_SKILL_NAME,
-        "script_name": PLACEMENT_SCRIPT,
-        "script_sha256": _sha256(script),
-        "proposal_sha256": _sha256(skill_output),
-        "graph_revision": graph_revision,
-        "pass_evidence": False,
-    }
-    return (
-        ExplorationCandidate(
-            candidate_id="placement-0001",
-            kind="placement",
-            dimensions=("component_placement_xy", "component_rotation_deg"),
-            changes={"placements": placements},
-            provenance=provenance,
-        ),
-    )
+        except OSError as exc:
+            raise ExplorationError(f"placement skill could not start: {exc}") from exc
+        if completed.returncode != 0:
+            reason = (
+                completed.stderr.strip().splitlines()[-1]
+                if completed.stderr.strip()
+                else f"exit {completed.returncode}"
+            )
+            if variant > 0:
+                if diagnostics is not None:
+                    diagnostics.append(
+                        {
+                            "generator": "placement",
+                            "variant": variant,
+                            "status": "unavailable",
+                            "reason": reason,
+                        }
+                    )
+                continue
+            raise ExplorationError(
+                "placement skill failed (fail-closed): "
+                + (completed.stderr.strip() or f"exit {completed.returncode}")
+            )
+        try:
+            payload = json.loads(skill_output.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ExplorationError(f"placement skill output is invalid: {exc}") from exc
+        if not isinstance(payload, list):
+            raise ExplorationError("placement skill output must be an array (fail-closed)")
+        placements: dict[str, dict[str, float]] = {}
+        for item in cast(list[object], payload):
+            if not isinstance(item, dict):
+                raise ExplorationError("placement candidate must be an object (fail-closed)")
+            refdes = item.get("refdes")
+            values = {key: item.get(key) for key in ("x_mm", "y_mm", "rotation_deg")}
+            if (
+                not isinstance(refdes, str)
+                or refdes not in refs
+                or any(
+                    isinstance(value, bool)
+                    or not isinstance(value, int | float)
+                    or not math.isfinite(float(value))
+                    for value in values.values()
+                )
+            ):
+                raise ExplorationError("placement candidate has malformed fields (fail-closed)")
+            if refdes in placements:
+                raise ExplorationError(f"duplicate placement for {refdes!r} (fail-closed)")
+            placements[refdes] = {
+                key: float(cast(int | float, value)) for key, value in values.items()
+            }
+        if set(placements) != refs:
+            raise ExplorationError("placement skill omitted one or more components (fail-closed)")
+        if placements in accepted_placements:
+            if diagnostics is not None:
+                diagnostics.append(
+                    {
+                        "generator": "placement",
+                        "variant": variant,
+                        "status": "duplicate",
+                        "reason": "placements match an earlier variant",
+                    }
+                )
+            continue
+        accepted_placements.append(placements)
+        candidates.append(
+            ExplorationCandidate(
+                candidate_id=f"placement-{variant + 1:04d}",
+                kind="placement",
+                dimensions=("component_placement_xy", "component_rotation_deg"),
+                changes={"placements": placements},
+                provenance={
+                    "skill_name": PLACEMENT_SKILL_NAME,
+                    "script_name": PLACEMENT_SCRIPT,
+                    "script_sha256": _sha256(script),
+                    "proposal_sha256": _sha256(skill_output),
+                    "graph_revision": graph.revision,
+                    "spacing_variant": variant,
+                    "pass_evidence": False,
+                },
+            )
+        )
+    return tuple(candidates)
 
 
 def _u1_gpio_pads(graph: DesignGraph, lane: ElectricalLane) -> dict[int, str]:
@@ -587,6 +626,9 @@ def _remediation_candidates(
     out_dir: Path,
     graph: DesignGraph,
     remediation: Sequence[RemediationRequest],
+    *,
+    max_variants: int = 1,
+    diagnostics: list[dict[str, Any]] | None = None,
 ) -> tuple[ExplorationCandidate, ...]:
     """Generate only candidates that a declared remediation dimension supports."""
     dimensions = _remediation_dimensions(remediation)
@@ -596,7 +638,14 @@ def _remediation_candidates(
             _decoupling_placement_candidates(graph, fixture_dir, remediation)
         )
         candidates.extend(
-            _placement_candidates(graph_path, fixture_dir, out_dir, graph)
+            _placement_candidates(
+                graph_path,
+                fixture_dir,
+                out_dir,
+                graph,
+                max_variants=max_variants,
+                diagnostics=diagnostics,
+            )
         )
     if "gpio_assignment" in dimensions:
         candidates.extend(enumerate_gpio_assignment_candidates(graph))
@@ -775,6 +824,16 @@ def _candidate_outcome(
         )
     try:
         pipeline_runner(working_fixture, candidate_out)
+    except RuntimeObservationError as exc:
+        return (
+            {
+                "status": "stopped",
+                "reasons": [f"candidate evaluation observation failed: {exc}"],
+                "observation_failure": True,
+            },
+            False,
+            (),
+        )
     except Exception as exc:
         dimensions, diagnostic_error = _diagnostic_dimensions(
             candidate_out / "gate-evidence" / "design-predicates.json",
@@ -887,14 +946,28 @@ def explore_board_candidates(
         item.dimension_id: item.search_enabled for item in declarations.dimensions
     }
     remediation_dimensions: tuple[str, ...] = ()
+    generation_diagnostics: list[dict[str, Any]] = []
     if remediation is None:
-        placement = _placement_candidates(graph_path, fixture_dir, out_dir, graph)
+        placement = _placement_candidates(
+            graph_path,
+            fixture_dir,
+            out_dir,
+            graph,
+            max_variants=max_candidates,
+            diagnostics=generation_diagnostics,
+        )
         gpio = enumerate_gpio_assignment_candidates(graph)
         candidates = placement + gpio
     else:
         remediation_dimensions = _remediation_dimensions(remediation)
         candidates = _remediation_candidates(
-            graph_path, fixture_dir, out_dir, graph, remediation
+            graph_path,
+            fixture_dir,
+            out_dir,
+            graph,
+            remediation,
+            max_variants=max_candidates,
+            diagnostics=generation_diagnostics,
         )
     for candidate in candidates:
         _validate_dimensions(candidate.dimensions, dimension_map)
@@ -1015,6 +1088,7 @@ def explore_board_candidates(
             "commit_error": commit_error,
             "remediation_dimensions": list(remediation_dimensions),
             "remediation_driven": remediation is not None,
+            "candidate_generation": generation_diagnostics,
             "candidates": candidate_records,
             "provenance": {
                 "source_graph": str(source_graph),

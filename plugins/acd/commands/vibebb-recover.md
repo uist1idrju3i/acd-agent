@@ -19,6 +19,18 @@ allowed-tools:
 経路である。生のshellや任意のPython moduleを使わず、宣言された`acd_*` toolだけを使う。
 反復回数は必ず明示上限で囲み、上限に達したら停止して不足を報告する。
 
+0. 宣言された`acd_*` toolがこの会話に無い場合（ambient install経路など）は、
+   任意のshell作業へ退避せず、次のcommandで不在をfail-closedに確認する。
+
+   ```bash
+   uv run python scripts/verify_acd_tool_registration.py \
+       --command plugins/acd/commands/vibebb-recover.md --available <この会話のtool名>...
+   ```
+
+   `status`が`pass`でない場合、報告された`fallbacks`の決定論的CLI入口だけを使い、
+   CLI入口を持たないtoolの段は実行せずfail-closedとして報告する。この判定はL3観測であり、
+   合否権限もauthoritative Evidenceも持たない。
+
 1. `acd_diagnose_gate_failure`で失敗laneの診断を取る。診断は失敗述語、機械可読な
    失敗subject、変更次元、rationale coverage、lane preflight、必要な宣言、
    復帰可能性（`contracts/lane-recovery-declaration.json`由来）を返す。

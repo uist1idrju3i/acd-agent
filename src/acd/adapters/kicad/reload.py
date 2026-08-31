@@ -9,6 +9,7 @@ hash identically across reruns.
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 from typing import cast
 
@@ -137,16 +138,43 @@ def verify_drill(path: Path, min_holes: int = 1) -> None:
 
 
 def normalized_hash(path: Path) -> str:
-    """Hash file content with generator comment/timestamp lines removed.
+    """Hash file content using its format-aware normalization.
 
     Gerber ``G04`` comments and Excellon ``;`` comments carry creation
-    timestamps; everything else must be byte-identical across reruns.
+    timestamps; gbrjob ``Header.CreationDate`` is runtime metadata.
     """
-    digest = hashlib.sha256()
-    for line in path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if stripped.startswith("G04") or stripped.startswith(";"):
-            continue
-        digest.update(line.encode("utf-8"))
-        digest.update(b"\n")
-    return "sha256:" + digest.hexdigest()
+    digest = hashlib.sha256(normalize_member(path.read_bytes(), path.name)).hexdigest()
+    return "sha256:" + digest
+
+
+def normalize_member(data: bytes, name: str) -> bytes:
+    """Normalize a Gerber, drill, or gbrjob member without changing its source."""
+    if name.lower().endswith(".gbrjob"):
+        try:
+            value = cast(object, json.loads(data.decode("utf-8")))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ReloadError(f"{name}: invalid gbrjob JSON") from exc
+        if not isinstance(value, dict):
+            raise ReloadError(f"{name}: gbrjob root is not an object")
+        value_mapping = cast(dict[str, object], value)
+        if not isinstance(value_mapping.get("Header"), dict):
+            raise ReloadError(f"{name}: gbrjob Header is missing")
+        normalized = dict(value_mapping)
+        header = dict(cast(dict[str, object], value_mapping["Header"]))
+        header.pop("CreationDate", None)
+        normalized["Header"] = header
+        return (
+            json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            + "\n"
+        ).encode("utf-8")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ReloadError(f"{name}: member is not valid UTF-8") from exc
+    return (
+        "\n".join(
+            line for line in text.splitlines()
+            if not line.strip().startswith(("G04", ";"))
+        )
+        + "\n"
+    ).encode("utf-8")

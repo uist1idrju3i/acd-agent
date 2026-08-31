@@ -24,6 +24,7 @@ def _git_diff(command: list[str]) -> str:
         capture_output=True,
         check=True,
         text=True,
+        encoding="utf-8",
     )
     return result.stdout
 

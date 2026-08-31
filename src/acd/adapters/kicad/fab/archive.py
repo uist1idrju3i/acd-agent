@@ -35,6 +35,7 @@ from gerbonara.graphic_objects import (  # pyright: ignore[reportMissingTypeStub
 from gerbonara.rs274x import GerberFile  # pyright: ignore[reportMissingTypeStubs]
 
 from acd.adapters.kicad.library import SymbolLibrary
+from acd.adapters.kicad.reload import normalize_member
 from acd.adapters.kicad.placement import rotate_point
 from acd.core.board_model import BoardModel, RoutedDesign, RoutedVia
 from acd.core.bom import refdes_key
@@ -72,13 +73,6 @@ def zip_content_hash(path: Path) -> str:
     entries: list[str] = []
     with zipfile.ZipFile(path) as archive:
         for name in sorted(archive.namelist()):
-            data = (
-                b"\n".join(
-                    line
-                    for line in archive.read(name).splitlines()
-                    if not line.lstrip().startswith((b"G04", b";"))
-                )
-                + b"\n"
-            )
+            data = normalize_member(archive.read(name), name)
             entries.append(f"{name}:sha256:{hashlib.sha256(data).hexdigest()}")
     return "sha256:" + hashlib.sha256("\n".join(entries).encode()).hexdigest()

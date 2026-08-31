@@ -1,6 +1,11 @@
 """Core CAD, electrical, and manufacturing operations."""
 
-from acd.core.cad_normalize import CadNormalizationError, normalize_3mf, normalize_step
+from acd.core.cad_normalize import (
+    CadNormalizationError,
+    normalize_3mf,
+    normalize_step,
+    normalize_stl,
+)
 from acd.core.fab import (
     FabOrderIntentView,
     FabProfile,
@@ -157,6 +162,7 @@ __all__ = [
     "load_quote",
     "normalize_3mf",
     "normalize_step",
+    "normalize_stl",
     "order_total_breakdown_hash",
     "order_total_result_from_document",
     "order_total_result_to_document",
@@ -177,3 +183,17 @@ __all__ = [
     "validate_applied_feedback",
     "validate_predicate_coverage",
 ]
+
+
+def __getattr__(name: str) -> object:
+    if name in {"ManufacturingSubmissionError", "evaluate_manufacturing_submission"}:
+        from acd.core.manufacturing_submission import (
+            ManufacturingSubmissionError,
+            evaluate_manufacturing_submission,
+        )
+
+        return {
+            "ManufacturingSubmissionError": ManufacturingSubmissionError,
+            "evaluate_manufacturing_submission": evaluate_manufacturing_submission,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
