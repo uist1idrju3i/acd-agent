@@ -85,10 +85,11 @@ ESP-IDF v6.0.2ビルドとQEMU 9.2.2実行まで到達し、`measurement_conditi
    `not_converged`でfail-closedになる（envelopeの`measurement_conditions`は
    `headless; max 3 passes; max 1 router threads`）。ゲートの誤りではなく既定値の差であり、
    loop経路から発注可否へ到達させる場合はrouter pass budgetを明示する必要がある。
-2. order-total集計へ渡せる現行revision向けquote recordが存在しない。
+2. order-total集計へ渡せる現行revision向けquote recordが存在しなかった。
    `fixtures/contracts/valid/order-scope.json`は`target_revision`が`r12`、GD1 graphは`r1`で
-   あるため契約不一致でfail-closedになる。実revisionのquote recordはsupplier接続なしには
-   得られない（M-3）。ダミーquoteは作成していない。
+   あるため契約不一致でfail-closedになった。この記録を受け、GD1向けの`r1`整合fixtureを
+   追加し、例示commandと回帰testを更新した。contract schema向けの既存`r12` fixtureは変更せず、
+   対象graphと異なるrevisionの入力をfail-closedする検査も維持している。
 
 ## 5. GD1 pipelineのhost実行（provisional）
 
@@ -481,3 +482,249 @@ provisionalであり合格側Evidenceにならない。会話経路で「acd-age
 5. 長時間stageの進行が見えない。基板laneは147秒中の大半を占めるが、GUI側には残り時間・
    試行回数・現在のlaneが出ない。L3 timing recordは生成されているので、これを会話へ
    返す表示があると待ちの体験が大きく変わる。
+
+## 11. 第4回検証（2026-08-31, 14.17実装後の復帰経路）
+
+14.17（S-1〜S-5）の実装後、同じ8コア／16 GiB VPSで再実測した。pluginは正規のinstall API
+（`force=true`）で`dca3890…`から`fb286380e1912033198a9430cc4c273b3c7c99e7`へ更新し、
+`git ls-remote origin refs/heads/main`と40桁一致を確認した。server imageはlock済みの
+`ghcr.io/uist1idrju3i/acd-server@sha256:d683f14b906ae8304c4484b8702145711ce20b63abbf2c9656c381af5b2368ec`
+である。OpenHandsのworkspaceは新規に`test260901/acd-ws-260901`を作成した。
+
+### 11.1 新規workspaceと`/acd:init`
+
+`/acd:init --repo-url … --revision main --workspace acd-ws-260901`はdoctorを通過し、
+`bootstrap-record.json`を生成した。
+
+| 項目 | 値 |
+|---|---|
+| `requested_revision` / `resolved_revision` | `main` / `fb286380…` |
+| `server_image_digest` | `sha256:d683f14b…` |
+| `source` | `mounted` |
+| `workspace_path` | `/home/openhands/repos/test260901/acd-ws-260901` |
+| `record_class` / `pass_evidence` | `L3` / false |
+
+会話へ登録されたtoolは次の7つで、`acd_*`のToolDefinitionは依然として存在しない
+（`SystemPromptEvent`のtool定義を直読）。
+
+```text
+terminal, file_editor, task_tracker, finish, think, switch_llm_profile, invoke_skill
+```
+
+`/acd:init`が成立したのは、Skillが決定論的CLIをterminalから実行する手順を持つためである。
+ambient install経路（ADR-0036）でACD tool入口が登録されない状態は14.17でも未了であり、
+command宣言の`allowed-tools`はこの配布形態で満たされない（S-3、T-3）。
+
+### 11.2 復帰経路の実測（Run E）
+
+Run Bと同じ摂動fixture（GD1のC4とC2の配置交換、内部整合を保ち`power_decoupling`のみ違反）を
+`fixtures/verify-rune`として生成し、同じdigest固定container内で実行した。
+
+```text
+uv run python scripts/run_design_loop.py --fixture fixtures/verify-rune \
+  --out-root out/runE --design-only --jobs 4 --recover-lanes \
+  --max-exploration-candidates 3 --max-exploration-rounds 2
+```
+
+| stage | `ok` |
+|---|---|
+| `requirement-entry-validation` | true |
+| `silkscreen-resolve` | true |
+| `board-pipeline` | false（`power_decoupling`: C4距離19.224 mm > 3.0 mm） |
+| `enclosure-pipeline` | true |
+| `firmware-pipeline` | true（`measurement_class: virtual`、QEMU 9.2.2、15秒上限による正常打ち切り） |
+| `board-exploration` | false（`exploration did not produce a writable candidate: status='exhausted'`） |
+
+S-1（候補評価前のrationale更新）は解消を確認できた。候補はrationale coverageで却下されず、
+決定論的pipelineの実行まで到達している。しかしその実行が別の理由で失敗する。
+
+| 項目 | 値 |
+|---|---|
+| `remediation_driven` / `remediation_dimensions` | true / `["component_placement_xy"]` |
+| `recovery_explorer` / `lane_id` | `board` / `board-pipeline` |
+| `declaration_hash` | `sha256:9705d366…` |
+| `generated_candidates` / `evaluated_candidates` / `max_candidates` | 1 / 1 / 3 |
+| `consumed_budget` / `remaining_budget` | 1 / 2 |
+| `report_status` / `termination_reason` | `exhausted` / `candidate_pool_exhausted` |
+| `winner_candidate_id` / `winner_written` | null / false |
+| 候補`placement-0001`の`outcome.status` | `gate_rejected` |
+
+却下理由は設計上の判定ではない。
+
+```text
+deterministic pipeline rejected candidate: timing stage already started: board[1/12]
+```
+
+`TimingRecorder.start()`は同名stageの二重開始をValueErrorにする（`src/acd/core/runtime_records.py`）。
+親の基板pipelineはpre-routerで却下されるため`board[1/12]`を`finish`せずに中断し、stage名が
+`_started`へ残る。復帰の候補評価は`src/acd/pipeline/design_loop.py`の`pipeline_runner`が
+`timing_recorder=config.timing_recorder`として親と同一のrecorderを渡すため、候補側の
+`mark_stage(1)`が同じstage名を再開始してValueErrorになる。復帰は基板laneの却下後にしか
+起動しないので、この衝突は条件付きではなく常に起きる。したがってplacement次元の復帰は
+14.17後も構造的に成立しない（T-1）。候補側のstage記録が親のL3 timing recordへ混入する点、
+候補を並列評価した場合も同名衝突が起きる点も同じ原因である。
+
+S-2（予算の実効化）は記録面では解消しており、`max_candidates`・`consumed_budget`・
+`remaining_budget`・`termination_reason`がreportへ出る。ただし候補生成が1件しか返さないため
+（`generated_candidates=1`）、上限3・round上限2は実行として行使されず、`remaining_budget=2`を
+残して`candidate_pool_exhausted`で終わる。予算を実効化するには、remediation次元ごとに
+複数候補を列挙する生成側の是正が必要である（T-2）。
+
+Run Eの前に同じ構成で行った実行では、探索の出力先を`out/runD`にしたためgraph由来の既定
+download path（`out/gd1/evidence-electrical.json`）が存在せず、download失敗（3回試行後の
+transport失敗）で終了した。`_execute_and_download()`は`exit_code == 0`のときだけ
+downloadするので、commandが成功扱いで終わると欠落が例外になり、runnerはstdoutを出力する前に
+非ゼロ終了する。Evidence欠落をfail-closedに扱うこと自体は正しいが、container内で得られていた
+lane結果と探索reportが読めなくなる（T-5）。Run Eでは出力先を明示して回避した。
+
+`winner_written=false`のためRun E後のgraphは入力と同一であり、L1判定とEvidenceは変化していない。
+摂動scriptと生成fixtureは検証専用でrepositoryへcommitしていない。
+
+### 11.3 会話へ返る失敗理由と進行（S-5の効果）
+
+loop summaryのlane結果に`failure_reason`と`next_step_action`が入るようになった。
+
+```text
+failure_reason: exploration did not produce a writable candidate: status='exhausted'
+next_step_action: Explore declared placement and GPIO candidates from the rejected
+  predicate remediation, then rerun every deterministic stage.
+```
+
+`scripts/report_progress.py --out out/runE --json`は`status: "pass"`でtiming recordと
+探索reportをL3 digestとして返し、laneごとの経過と試行が読める。これは待ちの体験に対する
+実質的な改善である。いずれもL3観測であり合否権限を持たない（T-4）。
+
+### 11.4 資源実測
+
+| 項目 | Run E（`--recover-lanes`、`--jobs 4`、container上限8 GiB） |
+|---|---|
+| wall-clock | 125秒 |
+| host CPU peak / mean | 7.98 / 2.60 cores |
+| host RAM peak | 4.13 GiB（利用可能最小 10.98 GiB） |
+| container cgroup peak | 4.23 GiB（現在値ピーク4.01 GiB） |
+| swap peak | 0 GiB |
+| tool別peak RSS | python 2.92 GiB、cc1 0.76 GiB、uv 0.27 GiB、kicad 0.17 GiB |
+
+9.2で定めた最低・推奨スペック（最低2コア・container 4 GiB、推奨4コア以上・物理RAM
+12 GiB以上／OpenHands同居16 GiB・container上限8 GiB・`--jobs 4`）はそのまま成立する。
+Run Bの5.05 GiBに対しRun Eは4.23 GiBで、探索段を含めても上限8 GiBに収まりswapは発生しない。
+CPUはピーク7.98 coresで、4コア機ではwall-clockが伸びる点も変わらない。
+
+### 11.5 結論（第4回）
+
+acd-agent単体でのVibeBBは未達である。決定論的lane（silkscreen・筐体・FW仮想）は通過し、
+基板laneの却下も正しくfail-closedしているが、却下からの復帰は候補評価のtiming stage衝突
+（T-1）で必ず失敗するため、`winner_written=true`と復帰後の基板lane再通過は今回も観測できていない。
+GUI会話側は`acd_*` tool未登録（T-3）のままで、command宣言の入口へは到達できない。
+新規specからのfixture生成（S-4）は本回の実行対象に含めていないため、この回の未検証範囲として残る。
+
+### 11.6 気づきと改善提案
+
+1. 復帰の失敗理由がL3の計測記録に由来している。`TimingRecorder`は観測目的の器であり、
+   その衝突で候補が`gate_rejected`になるのは権限境界の観点でも不適切である。候補評価では
+   親と独立したrecorderを使い（または候補IDでstage名をnamespaceする）、観測の失敗を
+   判定へ持ち込まない構造にすべきである。あわせて、観測起因の例外を`gate_rejected`ではなく
+   `stopped`として区別すると、L3の不具合とL1の却下が混ざらない。
+2. 候補生成が1件しか返さない限り、予算とround上限は利用者から見て意味を持たない。
+   remediation次元ごとに複数候補（距離目標を段階的に変えた配置など）を列挙し、
+   `generated_candidates`が上限に届く状態を先に作るのが、予算の実効化より先である。
+3. `failure_reason`と`next_step_action`の追加は体験に効いている。次は同じ情報を
+   `report_progress.py`のdigestへも入れ、GUIが1画面で「どのlaneが、なぜ止まり、次に何をするか」を
+   読めるようにするとよい。
+4. plugin更新（`force=true`）とworkspace新規作成は正規APIだけで完結し、bootstrap recordから
+   revisionとserver digestを機械的に照合できた。この経路は検証手順として安定しており、
+   `testing-acd-plugin-install` skillの手順で再現できる。
+5. 復帰が成立したときにL1で何が変わるべきか（graph IDとrevisionの保持、正規化hashの変化、
+   rationaleの同一transaction更新、基板laneの再実行）を、負の側だけでなく正の側の回帰として
+   固定しておくと、T-1のような観測層の混入を検出できる。
+
+## 12. 第5回実機実測（2026-08-31、全lane・製造データ・新規spec）
+
+2026-08-31のscope改定により、自動発注と実機測定は将来機能・非対象とする。既存の発注実行・
+実機Evidence取得・実機書き込み／機能測定コードは残置するが、決定論的loopの必須段には含めず、
+GD1の実機measured Evidence未取得や実発注未実行をVibeBB未達の理由にはしない。一方、
+製造提出データの生成と独立した品質検査は現行必須であり、実発注を行わないことは要件を下げない。
+
+### 12.1 条件
+
+| 項目 | 値 |
+|---|---|
+| plugin revision | `fb286380e1912033198a9430cc4c273b3c7c99e7` |
+| server image | `ghcr.io/uist1idrju3i/acd-server@sha256:d683f14b906ae8304c4484b8702145711ce20b63abbf2c9656c381af5b2368ec` |
+| workspace | `test260901/acd-ws-260901` |
+| host | 8コア／MemTotal 15.0 GiB |
+| container上限／`--jobs` | 8 GiB／4 |
+| quote／order入力 | 指定あり（fab profile／policyを含む） |
+
+### 12.2 lane結果
+
+Run Fは`PYTHONUTF8`未設定で全lane commandを実行した。基板pipelineの独立reload段で
+次のエラーとなり、exit非零・`fail_closed=true`で停止した。
+
+```text
+ReloadError: golden-design-1.kicad_sch: unparsable s-expression: 'ascii' codec can't decode byte 0xc2 in position 29115: ordinal not in range(128)
+```
+
+当該`0xc2`はparts catalog由来文字列`Bluetooth®`のUTF-8表現である。Run HはRun Fと同一
+commandに`PYTHONUTF8=1`を付け、reloadを通過した。silkscreen resolve、基板pipeline 12/12、
+筐体pipeline、FW（QEMU仮想・bounded）まで到達したが、最終のorder-total集計段で次のエラーとなり、
+exit非零・`fail_closed=true`で停止した。
+
+```text
+OrderTotalError: order scope target revision does not match
+```
+
+Run Kは新規spec（`examples/mini-blink-dongle-20260825/fixture/spec.json`）から
+`--design-only`でfixtureを生成した。library資材の解決は通過したが、fixture-generation段で
+次のエラーとなり、exit非零・`fail_closed=true`で停止した。
+
+```text
+FixtureBuilderError: declared decoupling placement is not satisfiable: C4->U1: no candidate placement satisfies the declared decoupling distance limit without overlapping another courtyard
+```
+
+Run I／Jのencoding probeでは、`LANG=LC_ALL=C.UTF-8`のmain process・既定process pool・spawn
+pool、build123d import後のいずれもUTF-8で読み込めた。locale／既定encodingを変更した主体は
+このprobeでは特定できていない。
+
+### 12.3 生成された製造提出データ
+
+Run Hで停止前に生成された成果物は、`out/gd1/gerbers/*.gbr`、`*.drl`、
+`out/gd1/fab/golden-design-1-gerbers.zip`、`golden-design-1-bom-jlcpcb.csv`、
+`golden-design-1-cpl-jlcpcb.csv`、`order-readiness.json`、筐体の
+`enclosure-shell.step`、`enclosure-lid.step`、`enclosure-assembly.step`、
+`enclosure.3mf`である。STLは存在しなかった。現行必須scopeではこれらに加えてgbrjobと
+fab-package manifest、筐体STLを提出データとして扱い、独立reload・正規化hash・DFM・幾何・
+profile整合検査を行う必要があるが、Run Hではorder集計停止と分離した単一判定として読めなかった。
+
+### 12.4 資源実測
+
+| run | wall-clock | host CPU peak | host mem used peak | Docker cgroup peak | swap |
+|---|---:|---:|---:|---:|---:|
+| Run F | 223秒 | 7.97 cores | 4.46 GiB | 4.66 GiB | 0 |
+| Run H | 236秒 | 7.97 cores（mean 2.28） | 4.30 GiB（available min 10.81 GiB） | 現在値peak 4.74 GiB／peak記録 5.00 GiB | 0 |
+| Run K | 42秒 | 4.22 cores | 2.94 GiB | 2.66 GiB | 0 |
+
+Run Hのtool別peak RSSはpython 4.83 GiB、java 0.88 GiB、cc1 0.78 GiB、kicad 0.44 GiB、
+qemu 0.05 GiBである。9.2の最低・推奨スペックは変更しない。Run Hのcontainer peak
+5.00 GiBは上限8 GiBに収まり、swapは発生しなかった。
+
+### 12.5 結論
+
+acd-agent単体でのVibeBBは未達である。ただし、自動発注と実機測定はscope上の将来機能・
+非対象であり、実発注未実行や実機measured Evidence未取得は未達理由に含めない。今回の
+未達理由は、実測時点ではU-1の生成物reload停止とU-3のrevision不整合によるorder-total停止が
+あったが、今回の実装でU-1／U-3は解消済みである。残る理由はU-4の新規spec入口停止、
+GUI会話がT-3のままであることなどである。T-1が未解消のため復帰の
+勝者確定と復帰後の基板lane通過は今回の対象外であり、製造提出データの品質判定もU-5として残る。
+QEMUのFW実行はvalidation laneとして維持し、physical Evidenceへ昇格させない。
+
+### 12.6 気づきと改善提案
+
+1. 生成物の読み書きは環境のlocaleに依存させず、生成物を読み書きする経路で
+   `encoding="utf-8"`を明示する必要があり、U-1で実装済みである。
+2. 提出可能品質の判定を発注集計から切り離すと、発注しない利用者にも「工場へ出せる状態か」を
+   1つの判定で読める（U-5）。
+3. 新規specの入口はdecoupling制約を満たす配置生成が実質の関門で、ここが通らない限り
+   会話からの新規設計は始まらない（U-4／P-2）。
+4. 例示commandは対象graphのrevisionと整合した入力に揃え、そのまま実行できる状態を
+   保つ必要があり、GD1向けfixtureと回帰testでU-3を解消した。

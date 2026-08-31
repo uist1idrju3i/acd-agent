@@ -247,6 +247,12 @@ catalogの更新運用も本フェーズの成果物とする。SDK版更新時�
 GD1の実機Evidence 4件と分類規則は[`golden-design-1.md`](golden-design-1.md)の
 9章を正とする。
 
+### scope（2026-08-31）
+
+実機測定は将来機能・非対象とし、実機書き込み・機能測定を含む既存コードは残置するが、
+決定論的loopの必須段には含めない。GD1の実機measured Evidence未取得は不足として扱わず、
+仮想FW実行（QEMU）はvalidation laneとして維持するが、物理Evidenceへ昇格させない。
+
 ### 5.1 実機Evidence契約と分類
 
 | 要素 | 完了条件 |
@@ -403,6 +409,17 @@ retryはdigest固定pullとfile downloadに限り、gate実行とEvidence生成�
 C-4（CPL orientation期待値のfixture非依存化）は、部品catalog宣言と設計fixture側の
 placement確認宣言、graph_id由来のEvidence pathを使う実装として本マイルストーンの
 範囲で達成した。設計確認の無い場合はCPL属性を補わず、既存gateでfail-closedとする。
+
+### scope（2026-08-31）
+
+自動発注は将来機能・非対象とし、dry-run／real送信経路のコードは残置するが、
+決定論的loopの必須段から外す。order-total集計とpre-order gateはquote／order scope入力が
+与えられた場合のみの任意段として維持し、外部への発注副作用を持たない「ユーザーが発注判断に
+使う決定論的成果物」と位置付ける。
+
+現行必須scopeは、Gerber一式・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・
+筐体STEP／3MF／STLの製造提出データと、それらの独立reload・hash・DFM・幾何検査である。
+実発注を行わないことはこれらのファイル品質要件を下げない。
 
 ### 7.1 期限付き見積入力の取得契約（達成）
 
@@ -726,6 +743,9 @@ N-1・N-5の解消後の実機実測（[`examples/pulse-check-tag-20260825/`](..
 P-1（install doctorのESP-IDF判定）は解消済みで、実機VPSのGUIから`/acd:init`がdoctorを
 通過し`bootstrap-record.json`が生成されることを確認した。資源要件の実測値と最低・推奨
 スペックは[`operations.md`](operations.md)を正とする。
+第5回実機実測（2026-08-31）で残ったU-1〜U-5は14.19で扱う。自動発注と実機測定は
+将来機能・非対象として必須段から外すが、製造提出データの生成・独立検査・品質判定は
+現行必須scopeとして維持する。
 
 ### 14.1 Skill package refのskew解消（H-1〜H-5）（達成）
 
@@ -886,6 +906,45 @@ library資材を解決するSkill script（placement search、vision proposal、
 silkscreen search）を`acd-firmware-esp32c3`と同じ規約で自身のrepository rootを設定する形へ
 統一した。repository checkoutを伴わないpackaged plugin単体ではcanonical storeが存在せず
 fail-closedになる。この配布形態の扱いはS-3の未了項目と同じ論点として残る。
+
+### 14.18 復帰候補評価からL3観測の混入を除く（T-1〜T-5）
+
+14.17の実装後に同じ8コアVPSでplugin（`fb286380…`）とlock済みserver image
+（`sha256:d683f14b…`）で実測した結果（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 11節）、
+S-1は解消し候補はrationale coverageで却下されず決定論的pipelineへ到達した。しかし候補評価が
+親laneと同一の`TimingRecorder`を共有するため、pre-router却下で`finish`されずに残った
+`board[1/12]`と衝突し、候補はtiming stageの二重開始（`timing stage already started`）を理由に
+`gate_rejected`となる。復帰は基板却下後にしか起動しないため衝突は常に
+発生し、`winner_written=false`のまま`candidate_pool_exhausted`で終わる。加えて候補生成が1件
+（`generated_candidates=1`）しか返さないため候補上限3・round上限2は行使されない。L3観測の失敗を
+L1判定へ持ち込まないための是正フェーズである。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `src/acd/core/runtime_records.py`の`TimingRecorder`、`src/acd/pipeline/design_loop.py`の候補`pipeline_runner`、`src/acd/core/exploration.py`の候補評価と`_refill_pending`、`plugins/acd/skills/acd-placement-search`の候補生成、`scripts/report_progress.py`、`src/acd/openhands/workspace.py`の`_execute_and_download()`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のT節 |
+| 実装 | 候補評価へ親と独立したtiming記録（または候補IDでnamespaceしたstage名）を与える（T-1）、観測起因の例外を`gate_rejected`と区別する（T-1）、remediation次元ごとに複数候補を宣言順で列挙する（T-2）、ambient install経路への配布形態はS-3の未了部分として継続（T-3）、`failure_reason`と`next_step_action`をL3 digestへ取り込む（T-4）、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する（T-5） |
+| 正常系 | GD1を摂動した内部整合fixtureに対し`recover_lanes`が候補を確定し（`winner_written=true`）、graph IDとrevisionを保持したまま正規化content hashが変化し、rationaleが同一transactionで更新され、基板laneの再実行がL1ゲートを通過する。候補生成は上限まで候補を返し、`consumed_budget`と`remaining_budget`が実行と一致する。GD1の判定、Evidence、正規化hashは変化しない |
+| negative・fail-closed | timing記録の破損・欠落、候補評価の例外、graph ID／revisionの不一致、正規化hashの不変、予算・round上限の超過はいずれもfail-closedで停止する。観測層（timing、digest、探索report）の成功はpass authorityを持たず、`pass_evidence`はrevision一致したL1ゲート由来に限る |
+| 再現性 | 候補ごとの評価入力hash、timing記録の帰属、予算消費、再実行したlaneをL3記録として保存し、親laneが却下で中断した後に候補評価が成立することを回帰テストで固定する。復帰が成立した実行のwall-clockと資源使用を[`operations.md`](operations.md)へ追記する |
+
+T-1は復帰経路の唯一の停止点であり先に扱う。T-2はT-1解消後に予算を意味あるものにする前提、
+T-4は表示の統合、T-3はS-3の未了部分と同一の配布形態の論点、T-5は検証作業の可読性である。
+いずれもEvidenceの合否権限とfail-closed境界を変更しない。
+
+### 14.19 製造提出データの完備とscope改定後の残タスク（U-1〜U-5）
+
+第5回実機実測（2026-08-31）で残ったU-1〜U-5を、製造提出データの品質を現行必須として
+扱うフェーズである。自動発注と実機測定は将来機能・非対象であり、既存コードを削除せず、
+決定論的loopの必須段にも含めない。L1権限、既存の閾値、ゲート条件、fail-closed境界は
+変更しない。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | 第5回実機実測のRun F／H／I／J／K、生成されたGerber・drill・gbrjob・gerbers.zip・BOM・CPL・fab-package manifest・筐体STEP／3MF／STL、`vibebb-gap-analysis.md`のU節 |
+| 実装 | 生成物のUTF-8明示読書きと非UTF-8 locale回帰（U-1、解消済み）、筐体STL出力とSTEP／3MF同等の検査（U-2）、quote／order例のrevision整合（U-3、GD1整合fixtureと回帰testで解消済み）、decoupling制約を含む配置探索（U-4）、製造提出データの必須成果物・reload・hash・DFM・幾何・profile整合をまとめた独立L1判定（U-5）を追加する |
+| 正常系 | 同一の生成物がlocaleに依存せず独立reloadを通過し、筐体STEP／3MF／STLを含む必須成果物を生成する。quote／order scopeを与えた場合だけ整合した任意段を実行し、製造提出データの品質判定を発注実行から独立して読める |
+| negative・fail-closed | UTF-8でない生成物、欠落・破損した必須成果物、独立reload・hash・DFM・幾何・profile整合の失敗、revision不一致、decoupling制約を満たせない配置、order scopeの不整合はfail-closedとする。自動発注や実機測定の未実行を合格へ倒さず、QEMUのvirtual Evidenceをphysical Evidenceへ昇格させない |
+| 再現性 | 同一digest・同一入力から同一成果物hash、独立検査結果、U-1〜U-5の診断を再生成し、locale・revision・欠落成果物・配置制約のnegative caseを固定する |
 
 ## マイルストーン15: 運用と文書の整備
 
@@ -1259,6 +1318,11 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | （コード監査）Q-8 lane別の復帰次元宣言（silkscreen・FW） | 14.15 |
 | （コード監査）Q-9 診断入力へのrationale coverageとlane preflight取り込み | 14.15 |
 | （多コアVPS実測）Q-10 firmware capability registryへの宣言追加経路 | 14.15 |
+| （多コアVPS実測）T-1 候補評価と親laneのTimingRecorder分離 | 14.18 |
+| （多コアVPS実測）T-2 remediation次元ごとの複数候補生成 | 14.18 |
+| （多コアVPS実測）T-3 ambient install経路へのACD tool登録 | 14.18 |
+| （多コアVPS実測）T-4 失敗理由と進行のL3 digest統合 | 14.18 |
+| （多コアVPS実測）T-5 transport失敗時のcommand出力保持 | 14.18 |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |
 | （実機組み付け）筐体ネジ穴欠落（スタンドオフが固体円柱・リッドが平板） | 3.1 |
 

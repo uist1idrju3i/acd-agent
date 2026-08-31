@@ -530,7 +530,10 @@ def main() -> int:
         return rationale_status
     payload = graph.model_dump(mode="json")
     out = fixture_dir / "graph.json"
-    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    out.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     verify_fixture_library_assets(graph, fixture_dir)
     print(f"wrote {out} ({len(graph.nodes)} nodes)")
     return 0

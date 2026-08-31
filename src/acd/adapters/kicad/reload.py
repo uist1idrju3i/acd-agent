@@ -37,7 +37,7 @@ def _load_sexpr(path: Path) -> list[object]:
     try:
         parsed = cast(
             object,
-            sexpdata.loads(path.read_text()),  # pyright: ignore[reportUnknownMemberType]
+            sexpdata.loads(path.read_text(encoding="utf-8")),  # pyright: ignore[reportUnknownMemberType]
         )
     except Exception as exc:  # sexpdata raises assorted exception types
         raise ReloadError(f"{path.name}: unparsable s-expression: {exc}") from exc
@@ -143,10 +143,10 @@ def normalized_hash(path: Path) -> str:
     timestamps; everything else must be byte-identical across reruns.
     """
     digest = hashlib.sha256()
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if stripped.startswith("G04") or stripped.startswith(";"):
             continue
-        digest.update(line.encode())
+        digest.update(line.encode("utf-8"))
         digest.update(b"\n")
     return "sha256:" + digest.hexdigest()

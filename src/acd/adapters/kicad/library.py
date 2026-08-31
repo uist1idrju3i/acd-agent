@@ -284,7 +284,7 @@ class FootprintLibrary:
 
     def raw(self, path: Path) -> list[SExpr]:
         if path not in self._cache:
-            node = parse_one(path.read_text())
+            node = parse_one(path.read_text(encoding="utf-8"))
             if not isinstance(node, list):
                 raise LibraryPinError(f"invalid footprint file: {path}")
             self._cache[path] = node

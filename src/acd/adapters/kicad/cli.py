@@ -85,7 +85,7 @@ class KicadCli:
             allowed_exit_codes=_EXIT_OK_OR_VIOLATIONS,
             timeout_s=DEFAULT_TOOL_TIMEOUT_S,
         )
-        report = json.loads(report_path.read_text())
+        report = json.loads(report_path.read_text(encoding="utf-8"))
         # DRC reports carry violations at top level; ERC nests them per sheet.
         collected: list[dict[str, object]] = list(report.get("violations", []))
         for sheet in report.get("sheets", []):

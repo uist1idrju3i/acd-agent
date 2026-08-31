@@ -1,0 +1,88 @@
+{
+  "schema_version": "0.1",
+  "quote_id": "quote-golden-design-1-order-001",
+  "counterparty_type": "fab",
+  "supplier_name": "Example Fab",
+  "target_revision": "r1",
+  "sources": [
+    {
+      "url": "https://example.com/quotes/gd1-order-001",
+      "fetched_at": "2025-01-10T09:00:00Z",
+      "title": "GD1 order total quote"
+    }
+  ],
+  "items": [
+    {
+      "item_id": "board",
+      "category": "board",
+      "amount": {
+        "amount_minor": 2500,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      },
+      "quantity": 5,
+      "stock_quantity": 100,
+      "lead_time_days": 10,
+      "assembly_capable": null,
+      "source_index": 0,
+      "basis": "primary",
+      "note": "Five bare boards"
+    },
+    {
+      "item_id": "components",
+      "category": "components",
+      "amount": {
+        "amount_minor": 4200,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      },
+      "quantity": 5,
+      "stock_quantity": 50,
+      "lead_time_days": 7,
+      "assembly_capable": null,
+      "source_index": 0,
+      "basis": "primary",
+      "note": "Component kit for five boards"
+    },
+    {
+      "item_id": "assembly",
+      "category": "assembly",
+      "amount": {
+        "amount_minor": 1800,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      },
+      "quantity": 5,
+      "stock_quantity": null,
+      "lead_time_days": 4,
+      "assembly_capable": true,
+      "source_index": 0,
+      "basis": "primary",
+      "note": "Top-side assembly available"
+    },
+    {
+      "item_id": "mechanical-enclosure",
+      "category": "mechanical",
+      "amount": {
+        "amount_minor": 800,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      },
+      "quantity": 1,
+      "stock_quantity": 3,
+      "lead_time_days": 14,
+      "assembly_capable": null,
+      "source_index": 0,
+      "basis": "primary",
+      "note": "GD1 enclosure"
+    }
+  ],
+  "declared_total": {
+    "amount_minor": 9300,
+    "currency": "USD",
+    "minor_unit_digits": 2
+  },
+  "fetched_at": "2025-01-10T09:00:00Z",
+  "valid_until": "2025-01-17T09:00:00Z",
+  "recorded_at": "2025-01-10T09:05:00Z"
+}

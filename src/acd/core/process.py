@@ -181,7 +181,9 @@ def run_tool(
             ),
         )
         envelope_path.parent.mkdir(parents=True, exist_ok=True)
-        envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
+        envelope_path.write_text(
+            envelope.model_dump_json(indent=2) + "\n", encoding="utf-8"
+        )
         raise ToolTimeoutError(
             tool_name=tool_name,
             timeout_s=timeout_s,
@@ -217,7 +219,9 @@ def run_tool(
         exit_code=result.returncode,
     )
     envelope_path.parent.mkdir(parents=True, exist_ok=True)
-    envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
+    envelope_path.write_text(
+        envelope.model_dump_json(indent=2) + "\n", encoding="utf-8"
+    )
     return ToolRun(envelope=envelope, stdout=result.stdout, stderr=result.stderr)
 
 
@@ -274,5 +278,7 @@ def run_in_process(
         exit_code=0,
     )
     envelope_path.parent.mkdir(parents=True, exist_ok=True)
-    envelope_path.write_text(envelope.model_dump_json(indent=2) + "\n")
+    envelope_path.write_text(
+        envelope.model_dump_json(indent=2) + "\n", encoding="utf-8"
+    )
     return ToolRun(envelope=envelope, stdout="", stderr="")
