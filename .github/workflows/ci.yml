@@ -234,6 +234,12 @@ jobs:
             --revision-from fixtures/golden-design-1/graph.json \
             out/container/gd1/evidence-electrical.json \
             out/container/gd1-enclosure/evidence-mechanical.json
+          uv run python scripts/verify_manufacturing_submission.py \
+            --board-out out/container/gd1 \
+            --enclosure-out out/container/gd1-enclosure \
+            --graph fixtures/golden-design-1/graph.json \
+            --require-authoritative \
+            --out out/container/manufacturing-submission.json
       - name: Report host resource preflight
         if: github.event_name == 'push' && always()
         run: |

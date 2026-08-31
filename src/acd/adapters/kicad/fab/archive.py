@@ -19,6 +19,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from acd.adapters.kicad.reload import normalize_member
+
 import sexpdata  # pyright: ignore[reportMissingTypeStubs]
 from gerbonara.apertures import (  # pyright: ignore[reportMissingTypeStubs]
     CircleAperture,
@@ -72,13 +74,6 @@ def zip_content_hash(path: Path) -> str:
     entries: list[str] = []
     with zipfile.ZipFile(path) as archive:
         for name in sorted(archive.namelist()):
-            data = (
-                b"\n".join(
-                    line
-                    for line in archive.read(name).splitlines()
-                    if not line.lstrip().startswith((b"G04", b";"))
-                )
-                + b"\n"
-            )
+            data = normalize_member(archive.read(name), name)
             entries.append(f"{name}:sha256:{hashlib.sha256(data).hexdigest()}")
     return "sha256:" + hashlib.sha256("\n".join(entries).encode()).hexdigest()

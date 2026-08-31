@@ -56,6 +56,10 @@ from acd.core.mechanical_preflight import (
     RequirementFinding,
     check_mechanical_preflight,
 )
+from acd.core.manufacturing_submission import (
+    ManufacturingSubmissionError,
+    evaluate_manufacturing_submission,
+)
 from acd.core.order_execution import build_dry_run_order_payload
 from acd.core.order_submission import (
     DeclaredProviderUnavailable,

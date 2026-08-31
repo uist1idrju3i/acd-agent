@@ -1343,6 +1343,9 @@ def run_pipeline(
         routed_path, gerber_dir, GERBER_LAYERS, revision
     )
     _drill_run, drill_paths = kicad.export_drill(routed_path, gerber_dir, revision)
+    gbrjob_path = gerber_dir / f"{routed_path.stem}-job.gbrjob"
+    if not gbrjob_path.is_file() or gbrjob_path.stat().st_size == 0:
+        raise GateError(f"KiCad gbrjob output is missing: {gbrjob_path}")
     print(f"[6/12] fabrication outputs: {len(gerber_paths)} gerbers, {len(drill_paths)} drill")
     mark_stage(7)
 
@@ -1536,7 +1539,7 @@ def run_pipeline(
         for node in graph.nodes
         if node.kind == "mechanical.board_edge_overhang"
     }
-    cpl_basis_path = fab_dir / "cpl-basis-report.json"
+    cpl_basis_path = fab_dir / "cpl-basis.json"
     lcsc_evidence_dir = (
         repository_root() / f"evidence/{artifact_prefix(graph.graph_id)}-cpl-orientation"
     )
@@ -1705,9 +1708,18 @@ def run_pipeline(
     )
     mark_stage(10)
 
-    package_members = [*gerber_paths, *drill_paths]
+    package_members = [
+        *gerber_paths,
+        *drill_paths,
+        gbrjob_path,
+        bom_path,
+        cpl_path,
+        pos_path,
+        dfm_path,
+        cpl_basis_path,
+    ]
     zip_path = fab_dir / f"{name}-gerbers.zip"
-    deterministic_zip(zip_path, package_members, gerber_dir)
+    deterministic_zip(zip_path, package_members, out_dir)
     profile_hash = normalized_hash(resolved_fab_profile_path)
     manifest: dict[str, object] = {
         "schema_version": "0.1",
@@ -1720,6 +1732,7 @@ def run_pipeline(
             "hash": profile_hash,
         },
         "overlays": list(project.board_projection.overlays),
+        "required_layers": list(GERBER_LAYERS),
         "files": [
             {
                 "path": str(path.relative_to(out_dir)),
@@ -1735,6 +1748,8 @@ def run_pipeline(
                 cpl_path,
                 pos_path,
                 dfm_path,
+                gbrjob_path,
+                cpl_basis_path,
             ]
         ],
         "content_hash": zip_content_hash(zip_path),
@@ -1981,6 +1996,8 @@ def run_pipeline(
         zip_path,
         *gerber_paths,
         *drill_paths,
+        gbrjob_path,
+        cpl_basis_path,
     ]
     for path in hash_paths:
         hashes[str(path.relative_to(out_dir))] = (

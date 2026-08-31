@@ -17,6 +17,11 @@ from acd.schema.common import (
     contains_unknown,
     is_unknown,
 )
+from acd.schema.manufacturing_submission import (
+    ManufacturingSubmissionArtifact,
+    ManufacturingSubmissionCheck,
+    ManufacturingSubmissionVerdict,
+)
 from acd.schema.context import (
     ContextSource,
     EventViewEntry,
