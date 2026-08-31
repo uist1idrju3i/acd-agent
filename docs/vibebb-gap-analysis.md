@@ -505,9 +505,11 @@ S-1（候補評価前のrationale更新）は解消を確認できた一方、�
 | T-2 | 候補生成が次元あたり1件しか返さず、候補予算とround上限が実行として行使されない | `--max-exploration-candidates 3 --max-exploration-rounds 2`に対し`generated_candidates=1`、`consumed_budget=1`、`remaining_budget=2`、`termination_reason=candidate_pool_exhausted`。記録面のS-2は解消しているが、母集団が1件のため予算に意味がない | 中 | S-2、Q-3 | remediation次元ごとに複数候補（距離目標を段階的に変えた配置など）を宣言順で列挙し、`generated_candidates`が上限へ届く生成側を用意する。候補の由来（Skill名・script sha256・proposal hash）の記録は現状を維持する |
 | T-3 | ambient install経路の会話へACD toolが登録されない状態が継続している | 新規workspaceの会話が露出するtoolは`terminal`／`file_editor`／`task_tracker`／`finish`／`think`／`switch_llm_profile`／`invoke_skill`の7つで、`acd_*`は存在しない。`/acd:init`はSkillが決定論的CLIをterminalから実行する手順を持つため成立する | 高 | S-3、ADR-0036 | S-3の未了部分と同一。ambient install経路の会話へACD ToolDefinitionを登録する配布形態を定義し、登録できない形態ではcommandが宣言toolの不在をfail-closedに検出して代替CLI手順を返す |
 | T-4 | 失敗理由と進行の表示は改善したが、1画面で読める形になっていない | loop summaryへ`failure_reason`と`next_step_action`が入り、`report_progress.py`は`status: "pass"`でtiming recordと探索reportを返す。一方で両者は別出力であり、GUIから「どのlaneが、なぜ止まり、次に何をするか」を一度に読めない | 低 | S-5 | `report_progress.py`のdigestへ`failure_reason`と`next_step_action`を取り込み、lane・経過・試行・残予算・次手順を単一のL3出力にまとめる。表示はL3観測であり合否権限を持たない |
+| T-5 | download対象が欠落したとき、runnerがcommandのstdout／stderrを出さずにtransport失敗で終了する | 探索の出力先を`out/runD`にした実行で、graph由来の既定download path（`out/gd1/evidence-electrical.json`）が存在せず`failed to download workspace file … after 3 attempts`で終了し、container内で得られていたlane結果と探索reportが読めなかった。`_execute_and_download()`は`exit_code == 0`のときだけdownloadするため、commandが成功扱いで終わると欠落が例外になり、`run_in_workspace.py`はstdout出力前に`return 2`する | 低 | O-2 | Evidence欠落をfail-closedに保ったまま、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する。download pathの導出規則（graph由来の既定と明示指定）は変更しない |
 
 T-1は復帰経路の唯一の停止点であり、L1の判定内容ではなくL3観測の混入である。
 T-2はT-1の解消後に予算を意味あるものにするための前提である。
+T-5は判定ではなく検証作業の可読性に関わる項目で、fail-closed境界は変えない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
@@ -543,4 +545,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 15. Q-1〜Q-10（却下からの復帰・反復経路）。Q-4（探索後のrationale更新）とQ-5（spec駆動の作り直し）は、復帰経路をend-to-endで閉じるための前提であり最優先。次にQ-3（remediation由来の候補生成）とQ-2（会話経路からの起動）を扱う。実測では探索段を起動しても候補が書き込みに至らないため、起動の既定化より候補生成の是正が先である。Q-1（laneへの連結）はM-1の後続として広げ、Q-10（capability registryの宣言追加）はO-10の後続として扱う。Q-6・Q-7・Q-8は反復入口の整備、Q-9は診断の拡張である。
 16. R-1〜R-3（14.15実装後に残るFW lane候補生成と配置テスト）。R-1（FW専用の候補生成器）はFW laneの復帰を宣言された次元だけで閉じるために先に扱う。R-2（配置テストの環境非依存化）はP-2の回帰検出を開発ホストへ戻す。R-3はFW復帰の実測記録である。
 17. S-1〜S-5（14.15実装後の実機実測）。S-1（候補評価前のrationale更新）は復帰経路が候補を1件も確定できない直接原因であり最優先。次にS-4（catalogのlibrary資材宣言）で新規設計の入口を通し、S-3（GUI配布形態へのtool登録）で会話経路を宣言どおりにする。S-2は予算の実効化、S-5は進行表示である。
-18. T-1〜T-4（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3の未了部分と同一の配布形態の論点、T-4は表示の統合である。
+18. T-1〜T-5（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3の未了部分と同一の配布形態の論点、T-4は表示の統合、T-5はtransport失敗時の出力保持である。

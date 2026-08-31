@@ -569,6 +569,13 @@ S-2（予算の実効化）は記録面では解消しており、`max_candidate
 残して`candidate_pool_exhausted`で終わる。予算を実効化するには、remediation次元ごとに
 複数候補を列挙する生成側の是正が必要である（T-2）。
 
+Run Eの前に同じ構成で行った実行では、探索の出力先を`out/runD`にしたためgraph由来の既定
+download path（`out/gd1/evidence-electrical.json`）が存在せず、download失敗（3回試行後の
+transport失敗）で終了した。`_execute_and_download()`は`exit_code == 0`のときだけ
+downloadするので、commandが成功扱いで終わると欠落が例外になり、runnerはstdoutを出力する前に
+非ゼロ終了する。Evidence欠落をfail-closedに扱うこと自体は正しいが、container内で得られていた
+lane結果と探索reportが読めなくなる（T-5）。Run Eでは出力先を明示して回避した。
+
 `winner_written=false`のためRun E後のgraphは入力と同一であり、L1判定とEvidenceは変化していない。
 摂動scriptと生成fixtureは検証専用でrepositoryへcommitしていない。
 
