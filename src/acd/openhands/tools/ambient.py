@@ -68,6 +68,45 @@ class AmbientToolError(ValueError):
     """Raised when declared ACD tools are unavailable or undiagnosable."""
 
 
+def declared_command_tools(command_path: Path) -> tuple[str, ...]:
+    """Return the ``allowed-tools`` names declared by a command file."""
+    try:
+        text = command_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise AmbientToolError(f"command file is unreadable: {command_path}") from exc
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        raise AmbientToolError(f"command front-matter is missing: {command_path}")
+    try:
+        end = lines.index("---", 1)
+    except ValueError as exc:
+        raise AmbientToolError(
+            f"command front-matter is unterminated: {command_path}"
+        ) from exc
+    names: list[str] = []
+    collecting = False
+    for line in lines[1:end]:
+        if line.startswith(f"{ALLOWED_TOOLS_KEY}:"):
+            collecting = True
+            continue
+        if collecting:
+            item = _LIST_ITEM.match(line)
+            if item is None:
+                collecting = False
+                continue
+            names.append(item.group(1))
+    if not names:
+        raise AmbientToolError(
+            f"command declares no allowed tools: {command_path}"
+        )
+    unique = sorted(set(names))
+    if len(unique) != len(names):
+        raise AmbientToolError(
+            f"command declares duplicate allowed tools: {command_path}"
+        )
+    return tuple(unique)
+
+
 def check_ambient_registration_drift(
     *,
     commands_dir: Path = DEFAULT_COMMAND_DIR,
@@ -129,45 +168,6 @@ def check_ambient_registration_drift(
             f"ambient tool registration drift cannot be determined: {exc}"
         ) from exc
     return tuple(sorted(diagnostics))
-
-
-def declared_command_tools(command_path: Path) -> tuple[str, ...]:
-    """Return the ``allowed-tools`` names declared by a command file."""
-    try:
-        text = command_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        raise AmbientToolError(f"command file is unreadable: {command_path}") from exc
-    lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
-        raise AmbientToolError(f"command front-matter is missing: {command_path}")
-    try:
-        end = lines.index("---", 1)
-    except ValueError as exc:
-        raise AmbientToolError(
-            f"command front-matter is unterminated: {command_path}"
-        ) from exc
-    names: list[str] = []
-    collecting = False
-    for line in lines[1:end]:
-        if line.startswith(f"{ALLOWED_TOOLS_KEY}:"):
-            collecting = True
-            continue
-        if collecting:
-            item = _LIST_ITEM.match(line)
-            if item is None:
-                collecting = False
-                continue
-            names.append(item.group(1))
-    if not names:
-        raise AmbientToolError(
-            f"command declares no allowed tools: {command_path}"
-        )
-    unique = sorted(set(names))
-    if len(unique) != len(names):
-        raise AmbientToolError(
-            f"command declares duplicate allowed tools: {command_path}"
-        )
-    return tuple(unique)
 
 
 def _fallback(tool_name: str) -> ToolFallback:
