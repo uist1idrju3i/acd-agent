@@ -876,6 +876,17 @@ commit済みGD1 fixtureに対する探索とcontainerのゲート実行が
 fixture同梱copyを優先してcanonical storeへfallbackする。生成fixtureは従来どおり資材を同梱し、
 storeの外を指す相対宣言はfail-closedのままである。
 
+ただし本体の修正だけでは出荷経路に届かなかった。Skill scriptはPEP723で
+`acd @ git+…@<pinned sha>`を宣言するため、`plugins/acd/skills/acd-package-ref.txt`と
+`acd-package-contract.json`を更新するまでsubprocessは旧コードで動き、GD1既定fixtureの探索は
+同じ`pinned library file missing`で停止しexploration reportも書かれない。さらに隔離環境では
+`repository_root()`がinstalled packageのpathをrootとみなしmarker検証で落ちるため、
+store fallbackには`ACD_REPOSITORY_ROOT`が必要である。よってpinned refを修正commitへ上げ、
+library資材を解決するSkill script（placement search、vision proposal、vision route proposal、
+silkscreen search）を`acd-firmware-esp32c3`と同じ規約で自身のrepository rootを設定する形へ
+統一した。repository checkoutを伴わないpackaged plugin単体ではcanonical storeが存在せず
+fail-closedになる。この配布形態の扱いはS-3の未了項目と同じ論点として残る。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、

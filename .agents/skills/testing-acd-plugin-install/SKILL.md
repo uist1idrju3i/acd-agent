@@ -354,3 +354,50 @@ sudo grep -l "workspace firmware prerequisites" \
 
 `docker/image-digests.json` は作業ツリー側が古いことがある。検証対象revisionの期待値は
 `git show origin/main:docker/image-digests.json` から取得する。
+
+## Skill subprocess は「pinned package ref」で動く（本体の修正が届かない罠）
+
+`plugins/acd/skills/*/scripts/*.py` はPEP723ヘッダで
+`acd @ git+https://github.com/uist1idrju3i/acd-agent@<pinned sha>` を宣言し、
+`plugins/acd/skills/acd-package-ref.txt` と `acd-package-contract.json` が同じshaを持つ。
+つまり `src/acd/**` を直したbranchで探索・pipelineを走らせても、Skill subprocess内では
+**pinned shaの旧コード**が使われ、修正が反映されない。検証時は必ず
+
+```bash
+cat plugins/acd/skills/acd-package-ref.txt
+git log --oneline -1 <その sha>
+```
+
+でpinned refが修正commitを含むか確認する。含まない場合、
+作業ツリーの修正を検証したいなら repoのcopyを作り、Skill scriptのPEP723依存を
+ローカルpath（例 `acd @ /hosttmp/repo`）へ置換して実行する（これは足場であり、
+出荷状態の証拠ではない旨を必ず報告に書く）。
+
+## canonical `libraries/` store の解決には ACD_REPOSITORY_ROOT が必要
+
+`acd.core.library_assets` のstore fallbackは `repository_root()` を使い、これは
+`AGENTS.md` と `pyproject.toml` の存在で検証する。Skillのようにacdをpackageとして
+隔離環境へ入れて実行する経路では、`ACD_REPOSITORY_ROOT` を渡さないと
+
+```text
+RuntimeError: repository root validation failed: .../lib/python3.12 is missing required marker(s)
+```
+
+でfail-closedする（`acd-firmware-esp32c3` だけが自前で環境変数を設定している）。
+相対library宣言（`libraries/...`）をstore fallbackで解決させる検証では
+`-e ACD_REPOSITORY_ROOT=<repo>` を付ける。付けずに落ちた場合は、
+「packaged plugin単体（repo checkoutなし）では store の資材が存在しない」という
+設計上の論点として報告する。
+
+## S-5 progress digest の確認手順
+
+```bash
+uv run python scripts/report_progress.py --out <run out dir>          # exit 0 / status pass
+uv run python scripts/report_progress.py --out <copy> --json
+```
+
+改ざん検知は2種類とも確認する。JSONを壊す（`record is unreadable: ...`）と、
+JSONとして妥当なまま値を書き換える（`record content hash does not match its contents`）。
+どちらも `status=unknown`、`unreadable_records>=1`、exit 1 になる。
+`examples/mini-blink-dongle-20260825/runs/host-design-loop` は timing-record 経路の
+既存サンプルとして使える。
