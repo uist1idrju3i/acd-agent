@@ -361,9 +361,9 @@ def evaluate_manufacturing_submission(
         if len(gbrjob_paths) != 1:
             raise ReloadError("exactly one gbrjob is required")
         job_names, _job = _gbrjob_files(gbrjob_paths[0])
-        exported_names = {path.name for path in (*gerber_paths, *drill_paths)}
+        exported_names = {path.name for path in gerber_paths}
         if job_names != exported_names:
-            raise ReloadError("gbrjob FilesAttributes does not match Gerber/drill files")
+            raise ReloadError("gbrjob FilesAttributes does not match Gerber files")
         for name in job_names:
             if not (gbrjob_paths[0].parent / name).is_file():
                 raise ReloadError(f"gbrjob file is missing: {name}")

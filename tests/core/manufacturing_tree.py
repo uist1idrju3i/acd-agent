@@ -240,7 +240,7 @@ def build_board_tree(board_dir: Path, *, revision: str, profile_id: str) -> None
         },
         "GeneralSpecs": {"Size": {"X": 30.1, "Y": 25.1}, "ProjectId": {"Name": BOARD_NAME}},
         "FilesAttributes": [
-            {"Path": name} for name in [*_gerber_names(), f"{BOARD_NAME}.drl"]
+            {"Path": name} for name in _gerber_names()
         ],
     }
     (gerber_dir / f"{BOARD_NAME}-job.gbrjob").write_text(
