@@ -839,11 +839,55 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 [`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。
 
+#### 2026-09 更新記録
+
+- **FreeRouting v2.4.1**（一次情報: [v2.4.1 release](https://github.com/freerouting/freerouting/releases/tag/v2.4.1)、[`command_line_arguments.md`](https://github.com/freerouting/freerouting/blob/v2.4.1/docs/command_line_arguments.md)）。Java 25 build baseline、routing pipeline統合、`.frb`廃止、DSN隣接`.rules`自動探索が変更・追加された。ACD adapterが使う`-de`、`-do`、`-mp`、`-mt`は不変。ACDは`.rules`を書き出さず、KiCadの`.kicad_dru`を生成するため、`.rules`自動探索の影響はない。採否: 採用。
+- **uv 0.12.10**（一次情報: [0.12.10 release](https://github.com/astral-sh/uv/releases/tag/0.12.10)）。trusted publishing tokenの失効処理、lock/treeの改善、性能向上とバグ修正が含まれ、現行利用方法に対する破壊的変更はない。採否: 採用。
+- **IBM Semeru 27**（一次情報: [semeru27-binaries releases](https://github.com/ibmruntimes/semeru27-binaries/releases)）。GA releaseがなくprereleaseのみのため、Semeru 26からの更新は保留。checkerもGA releaseがあるmajorだけを更新候補とし、prerelease-only majorは注記に留める。
+- **ツール上流版**（ngspice、cmake、ccache、git、python3.14）。Ubuntu 26.04のapt/PPA由来で、Ubuntu repository版に従い個別更新はしない。image再publish時に自動追従するため、採否: 保留。
+
+Docker ARG（FreeRouting 2.4.1、uv 0.12.10、Semeru 27）の判断は本節の該当項目で扱う。
+
 ```bash
 uv run python scripts/check_dependency_updates.py --markdown out/dependency-updates.md
 ```
 
 SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajorに対応するrepositoryと新しいmajorの有無を確認する。apt/PPA由来のツールはinstall済みversionを`docker/image-digests.json`の`tools`へpublish時に記録し、KiCad（kicad-source-mirror tag）、ngspice（SourceForge best release）、cmake、ninja、ccache、git、Python（cpython tag）の上流版と照合する。versionを記録しないaptパッケージ（fonts、`libcairo2`等）は個別確認せず、Ubuntu base imageの確認に従う。ESP-IDFの`idf_tools.py`が解決するtoolchain binaryはESP-IDF tagで固定されるため個別確認しない。Skill scriptのPEP 723 `acd @ git+…@<sha>` refは`update-skill-package-ref.yml`が管理するため対象外とし、vendor内SDKのagent-server base imageも対象外とする。新しいimage toolを`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へ上流取得元を追加する。更新候補が無くなると、対応するIssueはworkflowが自動でcloseする。自動更新PRは作成せず、更新時は本書と`AGENTS.md`の手順に従う。
+
+#### 2026-09 更新記録
+
+- **pydantic 2.13.5**
+  - 一次情報: [Pydantic v2.13.5 release](https://github.com/pydantic/pydantic/releases/tag/v2.13.5)
+  - 破壊的変更/新機能: validator再利用、`pydantic-core`のGC traversal、smart unionの修正。破壊的変更は確認されなかった。
+  - 採否: 採用。修正のみで、Pydanticモデル契約への変更はない。
+- **ruff 0.16.6**
+  - 一次情報: [Ruff 0.16.6 release](https://github.com/astral-sh/ruff/releases/tag/0.16.6)
+  - 破壊的変更/新機能: preview rule分類、`PT020` autofix、`I001` pragma除外等。新しいMarkdown fenced Python code block format機能は、略記snippetを含む文書を変更するため不採用とした。
+  - 採否: 採用。`pyproject.toml`の`include`をPythonと`pyproject.toml`に限定し、Markdownはformat対象外とする。
+- **actions/cache v6.1.0**
+  - 一次情報: [actions/cache v6.1.0 release](https://github.com/actions/cache/releases/tag/v6.1.0)、[README](https://github.com/actions/cache/blob/v6.1.0/README.md)
+  - 破壊的変更/新機能: v5からNode 24 runtime、Actions Runner 2.327.1以上。v6はESM移行、v6.1.0はread-only cache access対応を含む。
+  - 採否: 採用。GitHub-hosted runnerのためNode 24/runner 2.327.1以上の要件は充足する。
+- **actionlint v1.7.12**
+  - 一次情報: [actionlint v1.7.12 release](https://github.com/rhysd/actionlint/releases/tag/v1.7.12)
+  - 破壊的変更/新機能: `on.schedule.timezone`のIANA timezone検証、environment deployment、macOS 26 Intel runner label対応。Go 1.24対応は終了した。
+  - 採否: 採用。現行workflowはtimezone等を使わず、検査への影響はない。
+- **uv.lock間接依存**
+  - 一次情報: `uv lock --upgrade --dry-run`および各PyPI metadata。
+  - 破壊的変更/新機能: 多数の更新に加え、fastmcp 4、mcp 2、protobuf 7のmajor候補がある。
+  - 採否: 更新は採用するが、fastmcp/mcp/protobuf majorはOpenHands SDK 1.44.1がそれぞれ3/1系でリリースされMCP経路を検証していないため、`[tool.uv] constraint-dependencies`（`mcp<2`、`protobuf<7`）で保留する。fastmcp 4はmcp 2系を前提とするため`mcp<2`により3系に留まる。
+- **cadquery-ocp 8.x**
+  - 一次情報: [build123d PyPI metadata](https://pypi.org/pypi/build123d/json)、[cadquery-ocp PyPI metadata](https://pypi.org/pypi/cadquery-ocp/json)
+  - 破壊的変更/新機能: build123d 0.11.1が`cadquery-ocp-novtk<8.0`を要求する。
+  - 採否: 保留。build123d側に8.xを許可する新しいpre-releaseがないため、cadquery-ocpだけを8.xへ更新しない。
+- **Python 3.14**
+  - 一次情報: [CPython releases](https://github.com/python/cpython/tags)
+  - 破壊的変更/新機能: checkerでは新しいminor seriesを検出するが、SDK/pyproject targetはPython 3.12である。DockerのPython 3.14はtools用である。
+  - 採否: 保留。SDKと`pyproject.toml`のtargetを3.14へ変更する別検証が必要。
+- **Ubuntu 26.10**
+  - 一次情報: [Ubuntu Docker tags](https://hub.docker.com/_/ubuntu)
+  - 破壊的変更/新機能: 26.10はLTSではなく、28.04はLTS seriesである。
+  - 採否: 不採用。リポジトリ標準をLTSに限定し、checkerも偶数年の`YY.04`だけを比較する。
 
 ### リリース手順
 
@@ -961,7 +1005,7 @@ command -v freerouting
 
 ### FreeRoutingの資源宣言
 
-FreeRouting 2.3.0の`--help`と同梱公式文書
+FreeRouting 2.4.1の`--help`と同梱公式文書
 （`command_line_arguments.md`および`docs/settings.md`）では、`-mt`を省略した場合の
 既定値が論理CPU数−1である。GD1基板pipelineはこの暗黙継承を採用し、`-mt`を
 commandへ含めない（[`adr/ADR-0045-openj9-freerouting-runtime.md`](adr/ADR-0045-openj9-freerouting-runtime.md)）。
@@ -1163,7 +1207,7 @@ COPYするため、`.dockerignore`はこの1ファイルだけを例外として
 転記した値であり、他のツール版は旧JRE移行で変化しなかった。今回更新後のlock値は
 publish後に`docker/image-digests.json`へ別変更として転記する。
 
-toolchain更新（Semeru 26.0.2.10／OpenJ9 0.61.0、uv 0.12.7、ESP-IDF v6.1、KiCad 10.0.6、
+toolchain更新（Semeru 26.0.2.10／OpenJ9 0.61.0、uv 0.12.10、ESP-IDF v6.1、KiCad 10.0.6、
 CMake／Ninja同梱）後にpublishしたacd-tools image
 `sha256:6bb87bd720117b6179f35da36e3fe417d35d6da243459be2da8e337883462930`については、
 digest指定でpullして各ツールの版出力を実測し、lockの`acd_tools.tools`へ転記した。
@@ -1695,12 +1739,12 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 - SDKのdev workspace経路からDockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
   ホスト実行の結果を合格側Evidenceへ昇格しない。
 - container toolchainの今回更新では、Semeru 26.0.2.10（OpenJ9 0.61.0、新機能追加なし）、
-  uv 0.12.7、ESP-IDF v6.1（GD1 FWが使うGPIO／I2C／FreeRTOS APIは破壊的変更の対象外）、
+  uv 0.12.10、ESP-IDF v6.1（GD1 FWが使うGPIO／I2C／FreeRTOS APIは破壊的変更の対象外）、
   KiCad 10.0.6（PPA追従、pinしない）、CMake 4.2.3、Ninja 1.13.2へ更新した。
   以前のimage（ESP-IDF v6.0.2のimageを含む）はCMakeとNinjaを欠き、
   `To use idf.py, either the 'ninja' or 'GNU make' build tool must be available in the PATH`
   でcontainer FW laneが失敗していたため、今回imageへ同梱した。host provisional経路は
-  `uv run --with cmake==3.31.6`によるCMake注入を維持する。FreeRouting 2.3.0と
+  `uv run --with cmake==3.31.6`によるCMake注入を維持する。FreeRouting 2.4.1と
   QEMU 9.2.2は据え置きである。lock値`docker/image-digests.json`はpublish後に別変更で更新する。
 - KiCad 10.0.5は公式PPAから配布されなくなったため、現行環境を10.0.6へ追従させた。
   公式libraryでは`Device.kicad_sym`、`Regulator_Linear.kicad_sym`、

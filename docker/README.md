@@ -22,7 +22,7 @@ Dockerfileでは次を固定または検証する。
 
 - Ubuntu: `ubuntu:26.04`
 - KiCad CLI: KiCad 10.0 PPAの10系をインストールし、build時に10系であることを検証
-- FreeRouting: 2.3.0、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
+- FreeRouting: 2.4.1、GitHub release URL、SHA-256を検証し、`/usr/local/bin/freerouting`
   wrapperからPATH上で実行できることを検証
 - FreeRouting wrapperはJVM最大heapを既定`-Xmx2g`として明示し、
   `FREEROUTING_MAX_HEAP`で上書きできる。active processor countは既定では宣言せず、
@@ -38,7 +38,7 @@ Dockerfileでは次を固定または検証する。
   read-onlyで再利用する
 - ngspice: Ubuntu 26.04の45.2パッケージと`ngspice --version`を検証
 - Python: Ubuntu 26.04のsystem Python 3.14（`python3.14`、`python3.14-venv`）
-- uv: 0.12.7、配布tarballのSHA-256を検証
+- uv: 0.12.10、配布tarballのSHA-256を検証
 - git: revision解決と差分確認のためUbuntu 26.04のパッケージを利用
 - CJKフォント: `fonts-noto-cjk`を同梱し、`fc-list`でNoto Sans CJKの存在を検証
 - ccache: ESP-IDF再ビルド高速化のため同梱し、`ccache --version`を検証。`CCACHE_DIR`と

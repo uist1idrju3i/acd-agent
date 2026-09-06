@@ -95,8 +95,8 @@ def test_docker_args_check_semeru_and_qemu_ordering(tmp_path: Path) -> None:
     docker.mkdir()
     (docker / "acd-tools.Dockerfile").write_text(
         """\
-ARG FREEROUTING_VERSION=2.3.0
-ARG UV_VERSION=0.12.7
+ARG FREEROUTING_VERSION=2.4.1
+ARG UV_VERSION=0.12.10
 ARG ESP_IDF_VERSION=v6.1
 ARG QEMU_ESP_TAG=esp-develop-9.2.2-20260417
 ARG SEMERU_JRE_VERSION=26.0.2.10
@@ -106,8 +106,8 @@ ARG SEMERU_JRE_VERSION=26.0.2.10
 
     def tags(url: str) -> list[str]:
         return {
-            "https://github.com/freerouting/freerouting": ["v2.3.0"],
-            "https://github.com/astral-sh/uv": ["0.12.7"],
+            "https://github.com/freerouting/freerouting": ["v2.4.1"],
+            "https://github.com/astral-sh/uv": ["0.12.10"],
             "https://github.com/espressif/esp-idf": ["v6.1"],
             "https://github.com/espressif/qemu": [
                 "esp-develop-9.2.2-20260417",
@@ -237,7 +237,7 @@ def test_docker_base_paginates_and_uses_only_yy_mm_tags(tmp_path: Path) -> None:
             "next": "https://example.invalid/page2",
         },
         "https://example.invalid/page2": {
-            "results": [{"name": "25.10"}, {"name": "26.99.0"}],
+            "results": [{"name": "25.10"}, {"name": "26.10"}, {"name": "26.99.0"}],
             "next": None,
         },
     }
@@ -247,6 +247,23 @@ def test_docker_base_paginates_and_uses_only_yy_mm_tags(tmp_path: Path) -> None:
             "docker-base", "ubuntu", "26.04", "26.04", "docker/acd-tools.Dockerfile", False
         )
     ]
+
+
+def test_docker_base_reports_newer_lts(tmp_path: Path) -> None:
+    docker = tmp_path / "docker"
+    docker.mkdir()
+    (docker / "acd-tools.Dockerfile").write_text("FROM ubuntu:26.04\n", encoding="utf-8")
+    responses = {
+        "https://hub.docker.com/v2/repositories/library/ubuntu/tags?page_size=100": {
+            "results": [{"name": "26.10"}, {"name": "28.04"}],
+            "next": None,
+        },
+    }
+
+    statuses = check_docker_base(tmp_path, fetch_json=responses.__getitem__)
+
+    assert statuses[0].latest == "28.04"
+    assert statuses[0].outdated is True
 
 
 def test_tool_upstream_excludes_kicad_development_and_parses_ngspice(tmp_path: Path) -> None:
@@ -305,12 +322,45 @@ def test_semeru_newer_major_paginates_until_empty(tmp_path: Path) -> None:
 
     def fetch(url: str) -> object:
         calls.append(url)
+        if "/releases?" in url:
+            return [{"prerelease": False, "draft": False}]
         return pages[int(url.rsplit("page=", 1)[1])]
 
     statuses = check_semeru_majors(tmp_path, fetch_json=fetch)
-    assert calls[-1].endswith("page=2")
+    assert any(call.endswith("page=2") for call in calls)
     assert statuses[0].latest == "27"
     assert "semeru27-binaries" in statuses[0].note
+
+
+def test_semeru_prerelease_only_major_is_not_outdated(tmp_path: Path) -> None:
+    docker = tmp_path / "docker"
+    docker.mkdir()
+    (docker / "acd-tools.Dockerfile").write_text(
+        "ARG SEMERU_JRE_VERSION=26.0.2.10\n", encoding="utf-8"
+    )
+
+    def fetch(url: str) -> object:
+        if url.endswith("page=1"):
+            return [{"name": "semeru27-binaries"}]
+        if url.endswith("page=2"):
+            return []
+        if "/releases?" in url:
+            return [{"prerelease": True, "draft": False}]
+        raise AssertionError(url)
+
+    statuses = check_semeru_majors(tmp_path, fetch_json=fetch)
+
+    assert statuses == [
+        DependencyStatus(
+            "docker-arg",
+            "SEMERU_JRE_VERSION (major)",
+            "26",
+            "27",
+            "docker/acd-tools.Dockerfile",
+            False,
+            "27 is prerelease only",
+        )
+    ]
 
 
 def test_release_download_parsing(tmp_path: Path) -> None:

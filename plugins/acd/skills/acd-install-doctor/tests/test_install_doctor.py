@@ -89,7 +89,7 @@ def test_development_tree_is_diagnosable_without_host_tools(tmp_path: Path) -> N
     )
     assert eda_check["result"] == "pass"
     assert "observed inside" in eda_check["detail"]
-    assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.3.0"
+    assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.4.1"
     install_check = next(
         check for check in report["checks"] if check["name"] == "plugin install location"
     )
@@ -112,7 +112,7 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
         check for check in report["checks"] if check["name"] == "EDA capabilities"
     )
     assert eda_check["result"] == "pass"
-    assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.3.0"
+    assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.4.1"
 
 
 def test_missing_image_eda_tool_is_degraded(tmp_path: Path) -> None:
@@ -201,7 +201,7 @@ def test_image_firmware_probe_accepts_readable_non_executable_export(
     tool_dir.mkdir()
     for name, output in {
         "kicad-cli": "10.0.6",
-        "freerouting": "Freerouting v2.3.0",
+        "freerouting": "Freerouting v2.4.1",
         "qemu-system-riscv32": "QEMU emulator version 9.2.2",
         "cmake": "cmake version 4.2.3",
     }.items():
@@ -245,7 +245,7 @@ def test_container_mode_does_not_require_docker_cli(tmp_path: Path) -> None:
         tmp_path,
         {
             "kicad-cli": 'printf "10.0.6\\n"',
-            "freerouting": 'printf "Freerouting v2.3.0\\n"',
+            "freerouting": 'printf "Freerouting v2.4.1\\n"',
             "qemu-system-riscv32": 'printf "QEMU emulator version 9.2.2\\n"',
             "cmake": 'printf "cmake version 4.2.3\\n"',
         },
@@ -504,7 +504,7 @@ def _docker_stub() -> str:
         'elif [ "$1" = "run" ]; then '
         '[ "$4" = "" ] || exit 88; '
         'printf "=== kicad-cli ===\\n10.0.6\\n'
-        '=== freerouting ===\\nFreerouting v2.3.0\\n"; '
+        '=== freerouting ===\\nFreerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
         '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
@@ -519,7 +519,7 @@ def _docker_probe_stub() -> str:
         'elif [ "$1" = "run" ]; then '
         '[ "$4" = "" ] || exit 88; '
         'printf "=== kicad-cli ===\\n10.0.6\\n'
-        '=== freerouting ===\\nINFO Freerouting v2.3.0\\n"; '
+        '=== freerouting ===\\nINFO Freerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
         '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
@@ -534,7 +534,7 @@ def _docker_missing_kicad_stub() -> str:
         'elif [ "$1" = "run" ]; then '
         '[ "$4" = "" ] || exit 88; '
         'printf "=== kicad-cli ===\\ncommand not found\\n'
-        '=== freerouting ===\\nFreerouting v2.3.0\\n"; '
+        '=== freerouting ===\\nFreerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
         '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
@@ -560,7 +560,7 @@ def _docker_missing_firmware_stub() -> str:
         'elif [ "$1" = "run" ]; then '
         '[ "$4" = "" ] || exit 88; '
         'printf "=== kicad-cli ===\\n10.0.6\\n'
-        '=== freerouting ===\\nFreerouting v2.3.0\\n"; '
+        '=== freerouting ===\\nFreerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
         '=== qemu-system-riscv32 ===\\nmissing\\n'
         '=== cmake ===\\ncmake version 4.2.3\\n"; '

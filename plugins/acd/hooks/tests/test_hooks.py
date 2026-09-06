@@ -559,7 +559,7 @@ def test_session_start_observes_all_tools_inside_locked_image(
         """
 [ "$1" = "run" ] && [ "$4" = "" ] || exit 88
 printf '%s\\n' '=== kicad-cli ===' '10.0.6'
-printf '%s\\n' '=== freerouting ===' 'Freerouting v2.3.0'
+printf '%s\\n' '=== freerouting ===' 'Freerouting v2.4.1'
 printf '%s\\n' '=== qemu-system-riscv32 ===' 'QEMU emulator version 9.2.2'
 printf '%s\\n' '=== cmake ===' 'cmake version 4.2.3'
 """,
@@ -575,7 +575,7 @@ printf '%s\\n' '=== cmake ===' 'cmake version 4.2.3'
     assert code == 0
     context = output["additionalContext"]
     assert "kicad-cli=10.0.6" in context
-    assert "freerouting=2.3.0" in context
+    assert "freerouting=2.4.1" in context
     assert "qemu-system-riscv32=9.2.2" in context
     assert "cmake=4.2.3" in context
 
