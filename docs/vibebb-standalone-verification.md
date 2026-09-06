@@ -1297,7 +1297,7 @@ TerminalAction（実行中processのpoll）はprojection保護hookに誤って�
 aggregation is disabled`、対照B（agentの捏造documentを付与）は`board-pipeline`で
 `GateError: router convergence_state='not_converged'`とenclosure laneの
 `unsupported connector opening face: right`で停止した。すなわちpristine mainは**同一の壁**
-を再現し、OpenHands会話でagentが行った`src/`改変（rationale豁免・fixture debug・
+を再現し、OpenHands会話でagentが行った`src/`改変（rationale免除・fixture debug・
 strapping変更）は最終失敗に対して荷重を持たなかった。pristineでは最終specがcanonical名を
 使ったためrationale coverageは通過している。
 
