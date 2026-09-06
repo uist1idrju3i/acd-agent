@@ -90,10 +90,10 @@
     },
     {
       "table": "Batteries",
-      "part_number": "BAT_VARTA_CR2032",
-      "lib_symbol": "Batteries:Battery No Pin",
-      "kind": "battery",
-      "value": "CR2032"
+      "part_number": "BATH_RENATA_SMTU2032-LF",
+      "lib_symbol": "Batteries:Battery Holder 2 Pin",
+      "kind": "battery_holder",
+      "value": "SMTU2032-LF"
     }
   ]
 }

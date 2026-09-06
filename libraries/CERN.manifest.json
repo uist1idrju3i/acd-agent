@@ -182,16 +182,16 @@
       "table": "Analog & Interface"
     },
     {
-      "description": "20x3.2mm Lithium Coin Cells Type CR2032",
-      "footprint": "CERN:BAT_VARTA_CR2032",
-      "footprint_sha256": "sha256:17f4d5cc2a67cb3be9d94ff97a040f3fe3e14b25b5a5312b1529632f2f4d1177",
+      "description": "SMD Battery Holder for CR2032 Coin Cells",
+      "footprint": "CERN:BATH_RENATA_SMTU2032",
+      "footprint_sha256": "sha256:e62a5713a184399f5f3172f72c6f0399d6295e29c9adf404b235da7771931b80",
       "footprint_source_lib": "PcbLib/Batteries.pretty",
-      "footprint_source_md5": "9ca99a5ef4461b8fd028025c29a249a0",
-      "manufacturer": "VARTA",
-      "manufacturer_part_number": "6032101501",
-      "part_number": "BAT_VARTA_CR2032",
+      "footprint_source_md5": "0b592d0c1fda1badb014bc7e1c1a1ca9",
+      "manufacturer": "RENATA",
+      "manufacturer_part_number": "SMTU2032-LF",
+      "part_number": "BATH_RENATA_SMTU2032-LF",
       "status": null,
-      "symbol": "CERN:Battery No Pin",
+      "symbol": "CERN:Battery Holder 2 Pin",
       "symbol_source_lib": "SchLib/Batteries.kicad_sym",
       "symbol_source_md5": "6bdbd943dd985d6169a2fb6d66d2a567",
       "table": "Batteries"
@@ -200,5 +200,5 @@
   "retrieved_at": "2026-09-06",
   "source_commit": "9f654ec4b274ca67960426e157a73103918d462b",
   "source_url": "https://gitlab.com/ohwr/cern-kicad-libs",
-  "symbol_file_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08"
+  "symbol_file_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98"
 }

@@ -657,7 +657,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:Diode Schottky",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -675,7 +675,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:2N7002CK",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -693,7 +693,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:Connector 4 Male",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -711,31 +711,13 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:Connector 2 Male",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
       "package": "MOLEX_53261-0271",
       "part_number": "53261-0271",
       "value": "MOLEX_53261-0271"
-    },
-    {
-      "kind": "battery",
-      "library_ref": {
-        "footprint": "CERN:BAT_VARTA_CR2032",
-        "footprint_file": "libraries/CERN.pretty/BAT_VARTA_CR2032.kicad_mod",
-        "footprint_sha256": "sha256:17f4d5cc2a67cb3be9d94ff97a040f3fe3e14b25b5a5312b1529632f2f4d1177",
-        "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
-        "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Battery No Pin",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
-        "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
-        "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
-      },
-      "package": "BAT_VARTA_CR2032",
-      "part_number": "6032101501",
-      "value": "CR2032"
     },
     {
       "kind": "ic",
@@ -747,7 +729,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:AP2112K",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -765,7 +747,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:CDSOD323-TXX",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -783,7 +765,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:CP2102N-A02-GQFN28",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -801,7 +783,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:P-MOSFET-D 1G 2S 3D",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -819,7 +801,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:Operational Amplifier x2 Type1",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -837,7 +819,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:Inductor With Magnetic core",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -855,13 +837,31 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:Fuse",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
       "package": "FUSR_BOURNS_MF-MSMF_STYLE1(H85)",
       "part_number": "MF-MSMF075",
       "value": "MF-MSMF075"
+    },
+    {
+      "kind": "battery_holder",
+      "library_ref": {
+        "footprint": "CERN:BATH_RENATA_SMTU2032",
+        "footprint_file": "libraries/CERN.pretty/BATH_RENATA_SMTU2032.kicad_mod",
+        "footprint_sha256": "sha256:e62a5713a184399f5f3172f72c6f0399d6295e29c9adf404b235da7771931b80",
+        "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
+        "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
+        "symbol": "CERN:Battery Holder 2 Pin",
+        "symbol_file": "libraries/CERN.kicad_sym",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
+        "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
+      },
+      "package": "BATH_RENATA_SMTU2032",
+      "part_number": "SMTU2032-LF",
+      "value": "SMTU2032-LF"
     },
     {
       "kind": "switch",
@@ -873,7 +873,7 @@
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
         "symbol": "CERN:PB SPST 12NO-34NO",
         "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:abd7af92fb3fcd1939e43eacee2c33909136bbf56f842e0b1ab1a7413610ed08",
+        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },

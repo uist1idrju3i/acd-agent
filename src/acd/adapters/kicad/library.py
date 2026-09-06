@@ -168,7 +168,7 @@ class SymbolLibrary:
         symbol_name = lib_id.split(":", 1)[1]
         flattened = _flatten(root, symbol_name)
         pins = _extract_pins(flattened)
-        if not pins and symbol_name not in {"MountingHole", "Battery No Pin"}:
+        if not pins and symbol_name != "MountingHole":
             raise LibraryPinError(f"symbol {lib_id!r} has no pins")
         embedded = list(flattened)
         embedded[1] = lib_id

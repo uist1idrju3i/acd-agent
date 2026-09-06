@@ -1283,7 +1283,7 @@ fixture全体の再生成は、mainから存在するsilkscreen resolverの不�
 CERN-OHL-P-2.0（permissive、Copyright 2024-2025 CERN）であり、抽出対象は
 AP2112K-3.3、CDSOD323-T12、1PS76SB10、MF-MSMF075、2N7002CK、
 DMP2066LSN-7、LQH32CN100K23、53261-0271、53047-0410、TL3315NF100Q、
-LM358BID、CP2102N-A02-GQFN28、6032101501である。抽出は
+LM358BID、CP2102N-A02-GQFN28、SMTU2032-LFである。抽出は
 `scripts/extract_cern_library_parts.py`で再現し、同scriptの`--check`で
 committed storeとのdriftを検査する。
 
