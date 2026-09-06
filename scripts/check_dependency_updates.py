@@ -988,28 +988,43 @@ def check_git_pin(
     list_remote_head: ListRemoteHead = _default_list_remote_head,
 ) -> list[DependencyStatus]:
     text = (repo_root / "libraries" / "README.md").read_text(encoding="utf-8")
-    url_match = re.search(r"- 取得元URL:\s*`([^`]+)`", text)
-    commit_match = re.search(r"- 取得commit:\s*`([^`]+)`", text)
-    if url_match is None or commit_match is None:
-        raise ValueError("libraries/README.md is missing URL or commit pin")
-    url = url_match.group(1)
-    current = commit_match.group(1)
-    if not GIT_SHA_RE.fullmatch(current):
-        raise ValueError("libraries/README.md has an invalid commit pin")
-    latest_full = list_remote_head(url)
-    if not GIT_SHA_RE.fullmatch(latest_full):
-        raise ValueError(f"invalid remote HEAD SHA for {url}")
-    return [
-        DependencyStatus(
-            "git-pin",
-            "espressif/kicad-libraries",
-            current,
-            latest_full[:12],
-            "libraries/README.md",
-            current.lower() != latest_full.lower(),
-            "default branch HEAD",
+    urls = list(re.finditer(r"- 取得元URL:\s*`([^`]+)`", text))
+    commits = list(re.finditer(r"- 取得commit:\s*`([^`]+)`", text))
+    if len(urls) != len(commits) or not urls:
+        raise ValueError("libraries/README.md has mismatched URL and commit pins")
+    statuses: list[DependencyStatus] = []
+    for index, url_match in enumerate(urls):
+        commit_match = commits[index]
+        next_url = urls[index + 1] if index + 1 < len(urls) else None
+        if commit_match.start() < url_match.end() or (
+            next_url is not None and commit_match.start() > next_url.start()
+        ):
+            raise ValueError("libraries/README.md URL and commit pins are not paired")
+        url = url_match.group(1)
+        current = commit_match.group(1)
+        if not GIT_SHA_RE.fullmatch(current):
+            raise ValueError("libraries/README.md has an invalid commit pin")
+        parsed = urlsplit(url)
+        name = parsed.path.strip("/")
+        if name.endswith(".git"):
+            name = name[:-4]
+        if not parsed.netloc or not name or "/" not in name:
+            raise ValueError(f"libraries/README.md has an invalid source URL: {url}")
+        latest_full = list_remote_head(url)
+        if not GIT_SHA_RE.fullmatch(latest_full):
+            raise ValueError(f"invalid remote HEAD SHA for {url}")
+        statuses.append(
+            DependencyStatus(
+                "git-pin",
+                name,
+                current,
+                latest_full[:12],
+                "libraries/README.md",
+                current.lower() != latest_full.lower(),
+                "default branch HEAD",
+            )
         )
-    ]
+    return statuses
 
 
 def _python_minor(value: str, source: str) -> tuple[int, int]:

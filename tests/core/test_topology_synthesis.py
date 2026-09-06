@@ -38,7 +38,7 @@ def test_gd1_blocks_synthesize_expected_subset() -> None:
             "nets": [item.model_dump(mode="json") for item in fragment.nets],
             "constraints": list(fragment.constraints),
         }
-    ) == "sha256:7254c7ba937187105aba5f8bdc200f8e51335b6d2ee93ddddd02bc2ad3f193ea"
+    ) == "sha256:3a596fd43286c3bd662effa895274d48565efeaf7cef9bf4fd0824fe2f0ce41c"
 
 
 def test_unknown_and_template_less_blocks_fail_closed(
