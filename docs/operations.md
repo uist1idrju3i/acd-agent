@@ -843,7 +843,7 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 uv run python scripts/check_dependency_updates.py --markdown out/dependency-updates.md
 ```
 
-SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajorに対応するrepositoryと新しいmajorの有無を確認する。KiCad、ngspice、Ubuntu base imageなどapt/PPA由来でversionを記録しないパッケージ（fontsを含む）は確認対象外であり、`libcairo2`はUbuntu base imageに従う。これらはpublish時のtools情報またはUbuntu base imageとして記録する。ESP-IDFの`idf_tools.py`が解決するtoolchain binaryはESP-IDF tagで固定されるため個別確認しない。Skill scriptのPEP 723 `acd @ git+…@<sha>` refは`update-skill-package-ref.yml`が管理するため対象外とし、vendor内SDKのagent-server base imageも対象外とする。新しいimage toolを`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へ上流取得元を追加する。更新候補が無くなると、対応するIssueはworkflowが自動でcloseする。自動更新PRは作成せず、更新時は本書と`AGENTS.md`の手順に従う。
+SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajorに対応するrepositoryと新しいmajorの有無を確認する。apt/PPA由来のツールはinstall済みversionを`docker/image-digests.json`の`tools`へpublish時に記録し、KiCad（kicad-source-mirror tag）、ngspice（SourceForge best release）、cmake、ninja、ccache、git、Python（cpython tag）の上流版と照合する。versionを記録しないaptパッケージ（fonts、`libcairo2`等）は個別確認せず、Ubuntu base imageの確認に従う。ESP-IDFの`idf_tools.py`が解決するtoolchain binaryはESP-IDF tagで固定されるため個別確認しない。Skill scriptのPEP 723 `acd @ git+…@<sha>` refは`update-skill-package-ref.yml`が管理するため対象外とし、vendor内SDKのagent-server base imageも対象外とする。新しいimage toolを`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へ上流取得元を追加する。更新候補が無くなると、対応するIssueはworkflowが自動でcloseする。自動更新PRは作成せず、更新時は本書と`AGENTS.md`の手順に従う。
 
 ### リリース手順
 
