@@ -209,5 +209,16 @@ jobs:
             --head "$branch" \
             --title "ACD image digest lockを更新" \
             --body "$body"
-          gh pr merge --repo "$GITHUB_REPOSITORY" --squash --auto "$branch" \
-            || echo "auto-merge unavailable; merge the lock PR manually" >> "$GITHUB_STEP_SUMMARY"
+          # Merging before the pull_request CI run starts leaves a job-less
+          # failed run behind, so wait for the checks to be reported and pass.
+          for _ in $(seq 1 30); do
+            if [ "$(gh pr checks --repo "$GITHUB_REPOSITORY" "$branch" --json name --jq 'length' 2>/dev/null || echo 0)" -gt 0 ]; then
+              break
+            fi
+            sleep 10
+          done
+          if ! gh pr checks --repo "$GITHUB_REPOSITORY" "$branch" --watch; then
+            echo "lock PR checks failed; the lock PR was left open for manual review" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          gh pr merge --repo "$GITHUB_REPOSITORY" --squash --delete-branch "$branch"
