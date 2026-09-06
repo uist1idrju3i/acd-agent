@@ -58,6 +58,7 @@ def build_firmware_evidence(
     summary: dict[str, Any],
     out_dir: Path,
     *,
+    graph_path: Path,
     script_sha256: str,
     started_at: datetime,
     finished_at: datetime,
@@ -80,7 +81,8 @@ def build_firmware_evidence(
     summary_path = out_dir / "summary.json"
     if not summary_path.is_file():
         raise FirmwareEvidenceError(f"firmware Skill summary is missing: {summary_path}")
-    graph_path = out_dir.parent / "graph.json"
+    if not graph_path.is_file():
+        raise FirmwareEvidenceError(f"design graph input is missing: {graph_path}")
     conditions = _required_text(summary, "measurement_conditions")
     termination = _required_text(summary, "virtual_run_termination")
     context, digest = execution_provenance()
@@ -89,9 +91,7 @@ def build_firmware_evidence(
         tool_version=_required_text(summary, "qemu_version"),
         format_version="0.1",
         config_hash=sha256_bytes(script_sha256.encode()),
-        input_hash=(
-            sha256_paths([graph_path]) if graph_path.is_file() else "unknown"
-        ),
+        input_hash=sha256_paths([graph_path]),
         output_hash=sha256_paths([summary_path, virtual_log]),
         execution_env=execution_env(),
         execution_context=context,
@@ -169,6 +169,7 @@ def write_firmware_evidence(
     summary: dict[str, Any],
     out_dir: Path,
     *,
+    graph_path: Path,
     script_sha256: str,
     started_at: datetime,
     finished_at: datetime,
@@ -178,6 +179,7 @@ def write_firmware_evidence(
         graph,
         summary,
         out_dir,
+        graph_path=graph_path,
         script_sha256=script_sha256,
         started_at=started_at,
         finished_at=finished_at,

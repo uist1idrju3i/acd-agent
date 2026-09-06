@@ -51,6 +51,7 @@ def _result(root: Path) -> dict[str, object]:
         graph,
         summary,
         out_dir,
+        graph_path=root / "graph.json",
         script_sha256=SCRIPT_SHA256,
         started_at=STARTED_AT,
         finished_at=STARTED_AT,
@@ -80,6 +81,7 @@ out_dir = root / "firmware"
 summary = json.loads((out_dir / "summary.json").read_text(encoding="utf-8"))
 path, evidence = write_firmware_evidence(
     graph, summary, out_dir,
+    graph_path=root / "graph.json",
     script_sha256="sha256:" + "d" * 64,
     started_at=__import__("datetime").datetime(2026, 1, 1, tzinfo=__import__("datetime").UTC),
     finished_at=__import__("datetime").datetime(2026, 1, 1, tzinfo=__import__("datetime").UTC),
