@@ -839,6 +839,15 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 [`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。
 
+#### 2026-09 更新記録
+
+- **FreeRouting v2.4.1**（一次情報: [v2.4.1 release](https://github.com/freerouting/freerouting/releases/tag/v2.4.1)、[`command_line_arguments.md`](https://github.com/freerouting/freerouting/blob/v2.4.1/docs/command_line_arguments.md)）。Java 25 build baseline、routing pipeline統合、`.frb`廃止、DSN隣接`.rules`自動探索が変更・追加された。ACD adapterが使う`-de`、`-do`、`-mp`、`-mt`は不変。ACDは`.rules`を書き出さず、KiCadの`.kicad_dru`を生成するため、`.rules`自動探索の影響はない。採否: 採用。
+- **uv 0.12.10**（一次情報: [0.12.10 release](https://github.com/astral-sh/uv/releases/tag/0.12.10)）。trusted publishing tokenの失効処理、lock/treeの改善、性能向上とバグ修正が含まれ、現行利用方法に対する破壊的変更はない。採否: 採用。
+- **IBM Semeru 27**（一次情報: [semeru27-binaries releases](https://github.com/ibmruntimes/semeru27-binaries/releases)）。GA releaseがなくprereleaseのみのため、Semeru 26からの更新は保留。checkerもGA releaseがあるmajorだけを更新候補とし、prerelease-only majorは注記に留める。
+- **ツール上流版**（ngspice、cmake、ccache、git、python3.14）。Ubuntu 26.04のapt/PPA由来で、Ubuntu repository版に従い個別更新はしない。image再publish時に自動追従するため、採否: 保留。
+
+Docker ARG（FreeRouting 2.4.1、uv 0.12.10、Semeru 27）の判断は本節の該当項目で扱う。
+
 ```bash
 uv run python scripts/check_dependency_updates.py --markdown out/dependency-updates.md
 ```
@@ -961,7 +970,7 @@ command -v freerouting
 
 ### FreeRoutingの資源宣言
 
-FreeRouting 2.3.0の`--help`と同梱公式文書
+FreeRouting 2.4.1の`--help`と同梱公式文書
 （`command_line_arguments.md`および`docs/settings.md`）では、`-mt`を省略した場合の
 既定値が論理CPU数−1である。GD1基板pipelineはこの暗黙継承を採用し、`-mt`を
 commandへ含めない（[`adr/ADR-0045-openj9-freerouting-runtime.md`](adr/ADR-0045-openj9-freerouting-runtime.md)）。
@@ -1163,7 +1172,7 @@ COPYするため、`.dockerignore`はこの1ファイルだけを例外として
 転記した値であり、他のツール版は旧JRE移行で変化しなかった。今回更新後のlock値は
 publish後に`docker/image-digests.json`へ別変更として転記する。
 
-toolchain更新（Semeru 26.0.2.10／OpenJ9 0.61.0、uv 0.12.7、ESP-IDF v6.1、KiCad 10.0.6、
+toolchain更新（Semeru 26.0.2.10／OpenJ9 0.61.0、uv 0.12.10、ESP-IDF v6.1、KiCad 10.0.6、
 CMake／Ninja同梱）後にpublishしたacd-tools image
 `sha256:6bb87bd720117b6179f35da36e3fe417d35d6da243459be2da8e337883462930`については、
 digest指定でpullして各ツールの版出力を実測し、lockの`acd_tools.tools`へ転記した。
@@ -1695,12 +1704,12 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 - SDKのdev workspace経路からDockerWorkspaceへ移行する際はimage digest、Dockerfile、外部ツール版を同時に記録し、
   ホスト実行の結果を合格側Evidenceへ昇格しない。
 - container toolchainの今回更新では、Semeru 26.0.2.10（OpenJ9 0.61.0、新機能追加なし）、
-  uv 0.12.7、ESP-IDF v6.1（GD1 FWが使うGPIO／I2C／FreeRTOS APIは破壊的変更の対象外）、
+  uv 0.12.10、ESP-IDF v6.1（GD1 FWが使うGPIO／I2C／FreeRTOS APIは破壊的変更の対象外）、
   KiCad 10.0.6（PPA追従、pinしない）、CMake 4.2.3、Ninja 1.13.2へ更新した。
   以前のimage（ESP-IDF v6.0.2のimageを含む）はCMakeとNinjaを欠き、
   `To use idf.py, either the 'ninja' or 'GNU make' build tool must be available in the PATH`
   でcontainer FW laneが失敗していたため、今回imageへ同梱した。host provisional経路は
-  `uv run --with cmake==3.31.6`によるCMake注入を維持する。FreeRouting 2.3.0と
+  `uv run --with cmake==3.31.6`によるCMake注入を維持する。FreeRouting 2.4.1と
   QEMU 9.2.2は据え置きである。lock値`docker/image-digests.json`はpublish後に別変更で更新する。
 - KiCad 10.0.5は公式PPAから配布されなくなったため、現行環境を10.0.6へ追従させた。
   公式libraryでは`Device.kicad_sym`、`Regulator_Linear.kicad_sym`、

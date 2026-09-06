@@ -798,9 +798,51 @@ def check_semeru_majors(
                     majors.append(int(repo_match.group(1)))
     else:
         raise ValueError("GitHub repository pagination exceeded 10 pages")
-    if not majors or max(majors) <= current_major:
+    newer_majors = sorted({major for major in majors if major > current_major})
+    if not newer_majors:
         return []
-    latest = max(majors)
+    ga_majors: list[int] = []
+    prerelease_only_majors: list[int] = []
+    no_release_majors: list[int] = []
+    for major in newer_majors:
+        releases_url = (
+            f"https://api.github.com/repos/ibmruntimes/"
+            f"semeru{major}-binaries/releases?per_page=100"
+        )
+        releases = fetch_json(releases_url)
+        if not isinstance(releases, list):
+            raise ValueError(f"GitHub releases response is not an array: {releases_url}")
+        has_ga = False
+        has_prerelease = False
+        for release in cast(list[Any], releases):
+            release_data = _dict(release, "GitHub release entry is malformed")
+            prerelease = release_data.get("prerelease")
+            draft = release_data.get("draft")
+            if not isinstance(prerelease, bool) or not isinstance(draft, bool):
+                raise ValueError("GitHub release entry has invalid prerelease or draft field")
+            if draft:
+                continue
+            if prerelease:
+                has_prerelease = True
+            else:
+                has_ga = True
+        if has_ga:
+            ga_majors.append(major)
+        elif has_prerelease:
+            prerelease_only_majors.append(major)
+        else:
+            no_release_majors.append(major)
+    if ga_majors:
+        latest = max(ga_majors)
+        note = f"newer Java major available in ibmruntimes/semeru{latest}-binaries"
+        outdated = True
+    else:
+        latest = max(newer_majors)
+        if prerelease_only_majors:
+            note = f"{latest} is prerelease only"
+        else:
+            note = f"{latest} has no GA release"
+        outdated = False
     return [
         DependencyStatus(
             "docker-arg",
@@ -808,8 +850,8 @@ def check_semeru_majors(
             str(current_major),
             str(latest),
             "docker/acd-tools.Dockerfile",
-            True,
-            f"newer Java major available in ibmruntimes/semeru{latest}-binaries",
+            outdated,
+            note,
         )
     ]
 

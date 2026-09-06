@@ -19,7 +19,7 @@ def _outputs() -> dict[tuple[str, ...], str]:
             "-lc",
             '. "${IDF_PATH}/export.sh" >/dev/null 2>&1 && idf.py --version',
         ): "ESP-IDF v6.1\n",
-        ("freerouting", "--version"): "INFO Freerouting v2.3.0 (build-date: 2026-08-07)\n",
+        ("freerouting", "--version"): "INFO Freerouting v2.4.1 (build-date: 2026-09-03)\n",
         ("git", "--version"): "git version 2.53.0\n",
         (
             "java",
@@ -39,7 +39,7 @@ def _outputs() -> dict[tuple[str, ...], str]:
             "qemu-system-riscv32",
             "--version",
         ): "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)\n",
-        ("uv", "--version"): "uv 0.12.7 (x86_64-unknown-linux-gnu)\n",
+        ("uv", "--version"): "uv 0.12.10 (x86_64-unknown-linux-gnu)\n",
     }
 
 
@@ -55,7 +55,7 @@ def test_measurement_extracts_expected_versions(tmp_path: Path) -> None:
         "ccache": "ccache version 4.12.3",
         "cmake": "cmake version 4.2.3",
         "esp-idf": "ESP-IDF v6.1",
-        "freerouting": "2.3.0",
+        "freerouting": "2.4.1",
         "git": "git version 2.53.0",
         "java": (
             "openjdk 26.0.2.1 2026-08-18 "
@@ -67,7 +67,7 @@ def test_measurement_extracts_expected_versions(tmp_path: Path) -> None:
         "ninja": "1.13.2",
         "python3.14": "Python 3.14.4",
         "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
-        "uv": "uv 0.12.7 (x86_64-unknown-linux-gnu)",
+        "uv": "uv 0.12.10 (x86_64-unknown-linux-gnu)",
     }
 
 
