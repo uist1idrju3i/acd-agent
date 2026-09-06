@@ -5,13 +5,11 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-from pathlib import Path
 
 from acd.adapters.kicad.library import SymbolLibrary
 from acd.core.library_assets import LibraryAsset, verify_library_asset
 from acd.pipeline.repository import repository_root
 from acd.schema import PartsCatalogDocument
-
 
 ROOT = repository_root()
 SUBMODULE = ROOT / "libraries" / "cern-kicad-libs"
@@ -95,5 +93,9 @@ def test_cern_submodule_is_shallow() -> None:
     assert section is not None
     body = section.group(1)
     assert re.search(r"^\s*path = libraries/cern-kicad-libs\s*$", body, re.MULTILINE)
-    assert re.search(r"^\s*url = https://gitlab\.com/ohwr/cern-kicad-libs\.git\s*$", body, re.MULTILINE)
+    assert re.search(
+        r"^\s*url = https://gitlab\.com/ohwr/cern-kicad-libs\.git\s*$",
+        body,
+        re.MULTILINE,
+    )
     assert re.search(r"^\s*shallow = true\s*$", body, re.MULTILINE)

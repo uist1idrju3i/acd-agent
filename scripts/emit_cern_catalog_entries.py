@@ -35,6 +35,7 @@ def _source_head(source: Path) -> str:
             check=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError) as exc:
         raise EmitError(f"CERN submodule HEAD cannot be read: {source}") from exc
@@ -55,10 +56,13 @@ def _read_spec(path: Path) -> dict[str, Any]:
     if not isinstance(parts, list) or not parts:
         raise EmitError("CERN catalog spec must contain a non-empty parts list")
     required = {"table", "part_number", "lib_symbol", "kind", "value"}
-    for index, raw_part in enumerate(parts):
-        if not isinstance(raw_part, dict) or not required <= raw_part.keys():
+    for index, raw_part in enumerate(cast(list[Any], parts)):
+        if not isinstance(raw_part, dict):
             raise EmitError(f"CERN catalog part {index} is malformed")
-        if not all(isinstance(raw_part[field], str) and raw_part[field] for field in required):
+        part = cast(dict[str, Any], raw_part)
+        if not required <= part.keys():
+            raise EmitError(f"CERN catalog part {index} is malformed")
+        if not all(isinstance(part[field], str) and part[field] for field in required):
             raise EmitError(f"CERN catalog part {index} has an invalid field")
     return spec
 
