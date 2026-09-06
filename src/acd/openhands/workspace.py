@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
 import time
 from collections.abc import Callable
@@ -417,7 +418,7 @@ def _list_download_root_files(
         f"-not -path '{pattern}'" for pattern in DOWNLOAD_ROOT_LISTING_EXCLUDES
     )
     listing = workspace.execute_command(
-        f"cd {worktree} && find {' '.join(download_roots)} -type f "
+        f"cd {worktree} && find {' '.join(shlex.quote(root) for root in download_roots)} -type f "
         f"\\( {names} \\) {excludes} | LC_ALL=C sort",
         cwd="/workspace",
         timeout=config.docker_cli_timeout,
@@ -480,7 +481,8 @@ def _execute_and_download(
         )
         listed: list[str] = []
         listing_error: str | None = None
-        if download_roots:
+        command_completed = result.exit_code != -1 and not bool(result.timeout_occurred)
+        if download_roots and command_completed:
             listed, listing_error = _list_download_root_files(
                 workspace,
                 worktree=worktree,

@@ -9,7 +9,6 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from acd.pipeline.firmware_lane import FirmwareLaneError, run_firmware_lane
-from acd.schema import DesignGraph
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -65,9 +64,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(str(exc), file=sys.stderr)
         return 1
-    graph = DesignGraph.model_validate_json(
-        (args.fixture / "graph.json").read_text(encoding="utf-8")
-    )
     print(
         json.dumps(
             {
@@ -75,7 +71,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "output_path": str(result.output_path),
                 "evidence_path": str(result.evidence_path),
                 "evidence_authoritative": result.evidence.supports_authoritative_pass(
-                    graph.revision
+                    result.graph_revision
                 ),
                 "evidence_provisional": result.evidence.is_provisional(),
             },

@@ -223,7 +223,7 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
         summary=result.summary,
         evidence_path=str(result.evidence_path),
         evidence_authoritative=result.evidence.supports_authoritative_pass(
-            result.evidence.target_revision
+            result.graph_revision
         ),
         evidence_provisional=result.evidence.is_provisional(),
         measurement_class="virtual",

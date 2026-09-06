@@ -42,6 +42,7 @@ class FirmwareLaneResult:
     evidence: Evidence
     script_sha256: str
     script_path: Path
+    graph_revision: str
 
 
 def firmware_script_path(repository: Path) -> Path:
@@ -136,4 +137,5 @@ def run_firmware_lane(
         evidence=evidence,
         script_sha256=script_sha256,
         script_path=script,
+        graph_revision=graph.revision,
     )
