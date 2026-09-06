@@ -21,6 +21,9 @@ def _record() -> dict[str, object]:
     envelope["execution_context"] = "container"
     envelope["container_image_digest"] = "sha256:" + "a" * 64
     envelope["execution_env"] = "linux-x86_64; container=sha256:" + "a" * 64
+    envelope["source_revision"] = "b" * 40
+    envelope["source_tree_state"] = "clean"
+    envelope["source_dirty_digest"] = None
     return record
 
 
@@ -36,17 +39,24 @@ def _verify(
     revision_from: Path | None = None,
     out_roots: tuple[Path, ...] = (),
     require_lanes: tuple[str, ...] = (),
+    source_revision: str | None = None,
 ) -> bool:
     revision_args = (
         ["--revision-from", str(revision_from)]
         if revision_from is not None
         else ["--revision", revision]
     )
+    source_args = (
+        ["--source-revision", source_revision]
+        if source_revision is not None
+        else []
+    )
     result = subprocess.run(
         [
             sys.executable,
             "scripts/verify_authoritative_evidence.py",
             *revision_args,
+            *source_args,
             *(arg for root in out_roots for arg in ("--out-root", str(root))),
             *(arg for lane in require_lanes for arg in ("--require-lane", lane)),
             *(str(path) for path in paths),
@@ -181,3 +191,38 @@ def test_revision_sources_cannot_be_combined(tmp_path: Path) -> None:
         check=False,
     )
     assert result.returncode != 0
+
+
+def test_evidence_without_source_provenance_is_rejected(
+    tmp_path: Path,
+) -> None:
+    record = _record()
+    envelope = record["envelope"]
+    assert isinstance(envelope, dict)
+    envelope.pop("source_revision", None)
+    envelope.pop("source_tree_state", None)
+    envelope.pop("source_dirty_digest", None)
+    assert not _verify(_write(tmp_path, record))
+
+
+def test_dirty_or_unknown_source_tree_is_rejected(tmp_path: Path) -> None:
+    record = _record()
+    envelope = record["envelope"]
+    assert isinstance(envelope, dict)
+    envelope["source_tree_state"] = "dirty"
+    envelope["source_dirty_digest"] = "sha256:" + "c" * 64
+    assert not _verify(_write(tmp_path, record))
+
+    record = _record()
+    envelope = record["envelope"]
+    assert isinstance(envelope, dict)
+    envelope["source_revision"] = "unknown"
+    envelope["source_tree_state"] = "unknown"
+    envelope["source_dirty_digest"] = None
+    assert not _verify(_write(tmp_path, record))
+
+
+def test_source_revision_constraint_is_enforced(tmp_path: Path) -> None:
+    path = _write(tmp_path, _record())
+    assert _verify(path, source_revision="b" * 40)
+    assert not _verify(path, source_revision="d" * 40)

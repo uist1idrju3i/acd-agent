@@ -35,6 +35,18 @@ def pass_host_resource_preflight(
 
     monkeypatch.setattr(workspace_module, "check_host_resources", check_resources)
 
+    clean = workspace_module.SourceProvenance(
+        revision="b" * 40,
+        tree_state="clean",
+        dirty_digest=None,
+        changed_paths=(),
+    )
+
+    def collect(_repo: object, **_kwargs: object) -> object:
+        return clean
+
+    monkeypatch.setattr(workspace_module, "collect_source_provenance", collect)
+
 
 class _FakeWorkspace:
     instances: ClassVar[list[_FakeWorkspace]] = []
@@ -113,6 +125,8 @@ def test_runner_uses_read_only_mount_and_downloads_evidence(
     assert instance.kwargs["forward_env"] == [
         "ACD_CONTAINER_IMAGE_DIGEST",
         "ACD_IN_CONTAINER",
+        "ACD_SOURCE_GIT_SHA",
+        "ACD_SOURCE_TREE_STATE",
     ]
     command, cwd, timeout = instance.commands[0]
     assert cwd == "/workspace"
@@ -166,6 +180,8 @@ def test_runner_forwards_opt_in_cache_directory(
     assert instance.kwargs["forward_env"] == [
         "ACD_CONTAINER_IMAGE_DIGEST",
         "ACD_IN_CONTAINER",
+        "ACD_SOURCE_GIT_SHA",
+        "ACD_SOURCE_TREE_STATE",
         "UV_CACHE_DIR",
         "CCACHE_DIR",
     ]
@@ -866,3 +882,138 @@ def test_runner_rejects_absolute_download_root(
             download_roots=("/out/mbd",),
             workspace_factory=_FakeWorkspace,
         )
+
+
+def test_runner_refuses_dirty_source_tree_before_workspace_start(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def collect(_repo: object, **_kwargs: object) -> object:
+        return workspace_module.SourceProvenance(
+            revision="b" * 40,
+            tree_state="dirty",
+            dirty_digest="sha256:" + "9" * 64,
+            changed_paths=("src/acd/core/x.py", "scripts/y.py"),
+        )
+
+    monkeypatch.setattr(workspace_module, "collect_source_provenance", collect)
+
+    def resolve(_image: str, **_kwargs: object) -> None:
+        raise AssertionError("digest resolution must not run for a dirty tree")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    _FakeWorkspace.instances.clear()
+    with pytest.raises(ValueError, match="source tree is dirty"):
+        workspace_module.run_command_in_workspace(
+            image="acd-server:local",
+            command="true",
+            repository=tmp_path,
+            download_files=(),
+            workspace_factory=_FakeWorkspace,
+        )
+    assert _FakeWorkspace.instances == []
+
+
+def test_runner_refuses_unknown_source_tree_before_workspace_start(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def collect(_repo: object, **_kwargs: object) -> object:
+        return workspace_module.SourceProvenance(
+            revision="unknown",
+            tree_state="unknown",
+            dirty_digest=None,
+            changed_paths=(),
+        )
+
+    monkeypatch.setattr(workspace_module, "collect_source_provenance", collect)
+
+    def resolve(_image: str, **_kwargs: object) -> None:
+        raise AssertionError("digest resolution must not run for unknown provenance")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    _FakeWorkspace.instances.clear()
+    with pytest.raises(ValueError, match="provenance is unknown"):
+        workspace_module.run_command_in_workspace(
+            image="acd-server:local",
+            command="true",
+            repository=tmp_path,
+            download_files=(),
+            workspace_factory=_FakeWorkspace,
+        )
+    assert _FakeWorkspace.instances == []
+
+
+def test_runner_allow_dirty_forwards_provenance_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dirty_digest = "sha256:" + "9" * 64
+
+    def collect(_repo: object, **_kwargs: object) -> object:
+        return workspace_module.SourceProvenance(
+            revision="c" * 40,
+            tree_state="dirty",
+            dirty_digest=dirty_digest,
+            changed_paths=("src/acd/core/x.py",),
+        )
+
+    monkeypatch.setattr(workspace_module, "collect_source_provenance", collect)
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "3" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    _FakeWorkspace.instances.clear()
+    result = workspace_module.run_command_in_workspace(
+        image="acd-server:local",
+        command="true",
+        repository=tmp_path,
+        download_files=(),
+        workspace_factory=_FakeWorkspace,
+        allow_dirty=True,
+    )
+
+    instance = _FakeWorkspace.instances[0]
+    assert instance.kwargs["forward_env"] == [
+        "ACD_CONTAINER_IMAGE_DIGEST",
+        "ACD_IN_CONTAINER",
+        "ACD_SOURCE_GIT_SHA",
+        "ACD_SOURCE_TREE_STATE",
+        "ACD_SOURCE_DIRTY_DIGEST",
+    ]
+    assert result.source_revision == "c" * 40
+    assert result.source_tree_state == "dirty"
+    assert "ACD_SOURCE_GIT_SHA" not in workspace_module.os.environ
+    assert "ACD_SOURCE_TREE_STATE" not in workspace_module.os.environ
+    assert "ACD_SOURCE_DIRTY_DIGEST" not in workspace_module.os.environ
+
+
+def test_bundled_source_records_unknown_provenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def collect(_repo: object, **_kwargs: object) -> object:
+        raise AssertionError("bundled source must not inspect the repository")
+
+    monkeypatch.setattr(workspace_module, "collect_source_provenance", collect)
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "4" * 64, "RepoDigests")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    _FakeWorkspace.instances.clear()
+    result = workspace_module.run_command_in_workspace(
+        image="acd-server:local",
+        command="true",
+        repository=tmp_path,
+        download_files=(),
+        workspace_factory=_FakeWorkspace,
+        source="bundled",
+    )
+
+    instance = _FakeWorkspace.instances[0]
+    assert instance.kwargs["forward_env"] == [
+        "ACD_CONTAINER_IMAGE_DIGEST",
+        "ACD_IN_CONTAINER",
+        "ACD_SOURCE_GIT_SHA",
+        "ACD_SOURCE_TREE_STATE",
+    ]
+    assert result.source_revision == "unknown"
+    assert result.source_tree_state == "unknown"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import model_validator
@@ -21,6 +22,14 @@ from acd.schema.common import (
 ConvergenceState = Literal[
     "converged", "not_converged", "not_applicable", "unknown", "timed_out"
 ]
+
+SourceTreeState = Literal["clean", "dirty", "unknown"]
+
+_GIT_SHA = re.compile(r"[0-9a-fA-F]{40}\Z")
+
+
+def _is_source_revision(value: str) -> bool:
+    return value == "unknown" or _GIT_SHA.fullmatch(value) is not None
 
 
 class ToolEnvelope(AcdModel):
@@ -42,6 +51,9 @@ class ToolEnvelope(AcdModel):
     exit_code: int | None = None
     idempotency_key: IdempotencyKey | None = None
     uncertainty: str | None = None
+    source_revision: NonEmptyStr | None = None
+    source_tree_state: SourceTreeState | None = None
+    source_dirty_digest: HashOrUnknown | None = None
 
     @model_validator(mode="after")
     def validate_execution_provenance(self) -> ToolEnvelope:
@@ -54,6 +66,34 @@ class ToolEnvelope(AcdModel):
             and self.container_image_digest not in {None, "unknown"}
         ):
             raise ValueError("unknown execution context requires unknown or no digest")
+        fields = (
+            self.source_revision,
+            self.source_tree_state,
+            self.source_dirty_digest,
+        )
+        if all(field is None for field in fields):
+            return self
+        if self.source_revision is None or self.source_tree_state is None:
+            raise ValueError(
+                "source provenance requires both source_revision and "
+                "source_tree_state"
+            )
+        if not _is_source_revision(self.source_revision):
+            raise ValueError(
+                "source_revision must be a 40-hex git sha or 'unknown'"
+            )
+        if self.source_tree_state == "dirty":
+            if self.source_dirty_digest is None or not self.source_dirty_digest.startswith(
+                "sha256:"
+            ):
+                raise ValueError("dirty source tree requires a sha256 dirty digest")
+        elif self.source_tree_state == "clean":
+            if self.source_dirty_digest is not None:
+                raise ValueError("clean source tree cannot have a dirty digest")
+        elif self.source_dirty_digest not in {None, "unknown"}:
+            raise ValueError(
+                "unknown source tree state requires unknown or no dirty digest"
+            )
         return self
 
     def has_unknown(self) -> bool:
@@ -70,4 +110,10 @@ class ToolEnvelope(AcdModel):
             or self.convergence_state == "unknown"
             or self.execution_context == "unknown"
             or self.container_image_digest == "unknown"
+            or self.source_revision == "unknown"
+            or self.source_tree_state == "unknown"
         )
+
+    def has_source_provenance(self) -> bool:
+        """True when the envelope carries source-tree provenance fields."""
+        return self.source_tree_state is not None
