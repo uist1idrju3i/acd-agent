@@ -1,0 +1,18 @@
+{
+  "deferrals": [
+    {
+      "surface": "pypi",
+      "name": "cadquery-ocp",
+      "latest": "8.0.1.0.0",
+      "review_by": "2026-12-01",
+      "reason": "build123d 0.11.1 requires cadquery-ocp-novtk<8.0"
+    },
+    {
+      "surface": "python-version",
+      "name": "*",
+      "latest": "3.14",
+      "review_by": "2026-12-01",
+      "reason": "project target stays 3.12 (OpenHands SDK v1.44.1 baseline); 3.14 runtime migration needs separate validation"
+    }
+  ]
+}
