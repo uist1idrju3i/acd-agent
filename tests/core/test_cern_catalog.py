@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -11,7 +12,12 @@ import pytest
 from pydantic import ValidationError
 
 from acd.adapters.kicad.library import LibraryPinError, SymbolLibrary
-from acd.core.cern_catalog import CERN_SUBMODULE, pinned_cern_commit
+from acd.core.cern_catalog import (
+    CERN_SUBMODULE,
+    CernCatalogError,
+    pinned_cern_commit,
+    resolve_cern_part,
+)
 from acd.core.library_assets import LibraryAsset, verify_library_asset
 from acd.core.part_selection import PartSelectionError, select_cern_part, select_part
 from acd.pipeline.repository import repository_root
@@ -24,9 +30,9 @@ SUBMODULE = ROOT / CERN_SUBMODULE
 def _request() -> ComponentPartRequest:
     return ComponentPartRequest(
         kind="ic",
-        value="LM358",
-        package="SOIC-8",
-        preferred_part_number="LM358BID",
+        value="CP2102N-A02-GQFN28",
+        package="QFN-28",
+        preferred_part_number="CP2102N-A02-GQFN28",
         catalog="cern",
     )
 
@@ -34,7 +40,7 @@ def _request() -> ComponentPartRequest:
 def test_cern_part_selection_resolves_and_verifies_assets() -> None:
     result = select_cern_part(_request())
     ref = result.entry.library_ref
-    assert result.entry.part_number == "LM358BID"
+    assert result.entry.part_number == "CP2102N-A02-GQFN28"
     assert ref.symbol_file.startswith("libraries/cern-kicad-libs/SchLib/")
     assert Path(ref.footprint_file).is_file()
     assert result.catalog_id == "cern-kicad-libs"
@@ -50,7 +56,7 @@ def test_cern_part_selection_resolves_and_verifies_assets() -> None:
 
 def test_select_part_dispatches_to_cern() -> None:
     result = select_part(_request())
-    assert result.entry.part_number == "LM358BID"
+    assert result.entry.part_number == "CP2102N-A02-GQFN28"
     assert result.catalog_id == "cern-kicad-libs"
 
 
@@ -59,6 +65,7 @@ def test_select_part_dispatches_to_cern() -> None:
     (
         ("does-not-exist", "has no part"),
         ("SC18IM700IPW", "ambiguous across tables"),
+        ("LM358BID", "conflicting library mappings"),
         ("CERN_OHL_BIS", "footprint file is missing"),
         ("CD4050BPW", "LibFootprint is empty"),
     ),
@@ -127,3 +134,96 @@ def test_cern_catalog_requires_preferred_part_number() -> None:
             package="SOIC-8",
             catalog="cern",
         )
+
+
+def _fake_cern_root(
+    root: Path,
+    rows: list[tuple[str, str, str]],
+) -> Path:
+    libraries = root / "libraries"
+    checkout = libraries / "cern-kicad-libs"
+    (checkout / "SchLib").mkdir(parents=True)
+    (checkout / "PcbLib").mkdir()
+    shutil.copy2(ROOT / "libraries" / "README.md", libraries / "README.md")
+    connection = sqlite3.connect(checkout / "CERN.sqlite")
+    try:
+        connection.execute(
+            'CREATE TABLE "Fake Table" '
+            '("Part Number" TEXT, "LibSymbol" TEXT, "LibFootprint" TEXT)'
+        )
+        connection.executemany(
+            'INSERT INTO "Fake Table" '
+            '("Part Number", "LibSymbol", "LibFootprint") VALUES (?, ?, ?)',
+            rows,
+        )
+        connection.commit()
+    finally:
+        connection.close()
+    return checkout
+
+
+def test_cern_catalog_rejects_conflicting_same_table_mappings(
+    tmp_path: Path,
+) -> None:
+    _fake_cern_root(
+        tmp_path,
+        [
+            (
+                "DUPLICATE",
+                "Operational Amplifiers:Operational Amplifier x2 Type1",
+                "ICs And Semiconductors SMD:SOIC127P600X175-8N",
+            ),
+            (
+                "DUPLICATE",
+                "Operational Amplifiers:Operational Amplifier x2 Type1 [alt]",
+                "ICs And Semiconductors SMD:SOIC127P600X175-8N",
+            ),
+        ],
+    )
+    with pytest.raises(
+        CernCatalogError,
+        match="CERN catalog part 'DUPLICATE' has conflicting library mappings",
+    ):
+        resolve_cern_part(tmp_path, "DUPLICATE")
+
+
+def test_cern_catalog_accepts_identical_same_table_mappings(
+    tmp_path: Path,
+) -> None:
+    checkout = _fake_cern_root(
+        tmp_path,
+        [
+            (
+                "DUPLICATE",
+                "Operational Amplifiers:Operational Amplifier x2 Type1",
+                "ICs And Semiconductors SMD:SOIC127P600X175-8N",
+            ),
+            (
+                "DUPLICATE",
+                "Operational Amplifiers:Operational Amplifier x2 Type1",
+                "ICs And Semiconductors SMD:SOIC127P600X175-8N",
+            ),
+        ],
+    )
+    real_checkout = ROOT / CERN_SUBMODULE
+    symbol = "Operational Amplifiers.kicad_sym"
+    footprint = "SOIC127P600X175-8N.kicad_mod"
+    real_symbol = real_checkout / "SchLib" / symbol
+    real_footprint = (
+        real_checkout
+        / "PcbLib"
+        / "ICs And Semiconductors SMD.pretty"
+        / footprint
+    )
+    shutil.copy2(real_symbol, checkout / "SchLib" / symbol)
+    footprint_dir = (
+        checkout / "PcbLib" / "ICs And Semiconductors SMD.pretty"
+    )
+    footprint_dir.mkdir()
+    shutil.copy2(real_footprint, footprint_dir / footprint)
+
+    resolved = resolve_cern_part(tmp_path, "DUPLICATE")
+    assert resolved.symbol == "Operational Amplifiers:Operational Amplifier x2 Type1"
+    assert resolved.footprint == (
+        "ICs And Semiconductors SMD:SOIC127P600X175-8N"
+    )

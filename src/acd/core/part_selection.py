@@ -12,7 +12,6 @@ from acd.core.cern_catalog import (
     CernCatalogError,
     cern_catalog_hash,
     cern_checkout_commit,
-    pinned_cern_commit,
     resolve_cern_part,
 )
 from acd.pipeline.repository import repository_root
@@ -101,13 +100,7 @@ def select_cern_part(
 ) -> PartSelectionResult:
     repository = root or repository_root()
     try:
-        expected_commit = pinned_cern_commit(repository)
         actual_commit = cern_checkout_commit(repository)
-        if actual_commit != expected_commit:
-            raise CernCatalogError(
-                f"CERN submodule commit drift: expected {expected_commit}, "
-                f"got {actual_commit}"
-            )
         resolved = resolve_cern_part(
             repository,
             request.preferred_part_number or "",

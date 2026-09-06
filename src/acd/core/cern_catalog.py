@@ -138,9 +138,20 @@ def resolve_cern_part(root: Path, part_number: str) -> ResolvedCernPart:
         raise CernCatalogError(
             f"CERN catalog part {part_number!r} is ambiguous across tables: {tables}"
         )
-    rows.sort(key=lambda row: (str(row[1]), str(row[2])))
+    distinct = sorted(
+        {(row[1], row[2]) for row in rows},
+        key=lambda pair: (str(pair[0]), str(pair[1])),
+    )
+    if len(distinct) > 1:
+        mappings = ", ".join(
+            f"({symbol!r}, {footprint!r})" for symbol, footprint in distinct
+        )
+        raise CernCatalogError(
+            f"CERN catalog part {part_number!r} has conflicting library mappings: "
+            f"{mappings}"
+        )
 
-    _, raw_symbol, raw_footprint = rows[0]
+    raw_symbol, raw_footprint = distinct[0]
     symbol_library, _symbol_name = _split_library_ref(raw_symbol, "LibSymbol")
     footprint_library, footprint_name = _split_library_ref(
         raw_footprint, "LibFootprint"
