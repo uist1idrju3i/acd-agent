@@ -609,6 +609,51 @@ def test_git_pin_mismatch(tmp_path: Path) -> None:
     assert status.latest == latest[:12]
 
 
+def test_git_pins_support_multiple_sources(tmp_path: Path) -> None:
+    libraries = tmp_path / "libraries"
+    libraries.mkdir()
+    espressif = "a" * 40
+    cern = "c" * 40
+    latest_espressif = "b" * 40
+    latest_cern = "d" * 40
+    (libraries / "README.md").write_text(
+        f"""\
+## Espressif
+- 取得元URL: `https://github.com/espressif/kicad-libraries`
+- 取得commit: `{espressif}`
+## CERN
+- 取得元URL: `https://gitlab.com/ohwr/cern-kicad-libs`
+- 取得commit: `{cern}`
+""",
+        encoding="utf-8",
+    )
+    latest = {
+        "https://github.com/espressif/kicad-libraries": latest_espressif,
+        "https://gitlab.com/ohwr/cern-kicad-libs": latest_cern,
+    }
+    calls: list[str] = []
+    statuses = check_git_pin(
+        tmp_path,
+        list_remote_head=lambda url: calls.append(url) or latest[url],
+    )
+    assert [status.name for status in statuses] == [
+        "espressif/kicad-libraries",
+        "ohwr/cern-kicad-libs",
+    ]
+    assert calls == list(latest)
+
+
+def test_git_pin_missing_commit_fails_closed(tmp_path: Path) -> None:
+    libraries = tmp_path / "libraries"
+    libraries.mkdir()
+    (libraries / "README.md").write_text(
+        "- 取得元URL: `https://gitlab.com/ohwr/cern-kicad-libs`\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="mismatched URL"):
+        check_git_pin(tmp_path, list_remote_head=lambda _url: "a" * 40)
+
+
 def test_python_version_checks_minor_series(tmp_path: Path) -> None:
     workflow = tmp_path / ".github" / "workflows"
     workflow.mkdir(parents=True)

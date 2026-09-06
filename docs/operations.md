@@ -555,6 +555,11 @@ file、source、source_ref、`sha256:<64 hex>`を必須で宣言する。CLIは�
 `select_part`の曖昧な結果を増やすため拒否する。既存entryのテキスト表現は保持し、
 新規entryだけを追記する。dry-runはcatalog hashの変更予定を報告するが書き込まない。
 
+追加したCERN KiCad Librariesの部品は、`libraries/CERN.parts.json`のspecと
+`scripts/extract_cern_library_parts.py`で固定commitから再現する。抽出済みの
+`CERN.kicad_sym`、`CERN.pretty/`、manifest、licenseはcatalogの相対pathから参照し、
+upstream checkoutを指定した`--check`でdriftを検査する。
+
 同じ操作は会話経路の`acd_register_parts_catalog_entry`でも行える。これは入力
 catalog／entryを資源宣言し、登録結果とcanonical catalog hashを観測するだけで、
 L1合格やauthoritative Evidenceを生成しない。USB-Cを持たないfixtureや電池給電
@@ -836,6 +841,8 @@ pluginとscriptのpackage refはリリース時に整合させる。versionが�
 Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 ### 依存アップデートの確認
+
+`libraries/README.md`のgit pinは、EspressifとCERNを含む全sourceを確認する。
 
 [`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。
 
@@ -1270,6 +1277,15 @@ fixture全体の再生成は、mainから存在するsilkscreen resolverの不�
 （`mechanical.silk_text.dev_board`が有効な配置を得られないfail-closedエラー）のため
 実行できなかった。この不具合はKiCad pin更新とは独立しており、歴史的な配置や生成物を
 書き換えず、今回の変更ではgraphのlibrary pin属性だけを実ファイルから決定論的に更新した。
+
+2026-09-06にCERN KiCad Librariesをcommit
+`9f654ec4b274ca67960426e157a73103918d462b`から追加した。ライセンスは
+CERN-OHL-P-2.0（permissive、Copyright 2024-2025 CERN）であり、抽出対象は
+AP2112K-3.3、CDSOD323-T12、1PS76SB10、MF-MSMF075、2N7002CK、
+DMP2066LSN-7、LQH32CN100K23、53261-0271、53047-0410、TL3315NF100Q、
+LM358BID、CP2102N-A02-GQFN28、6032101501である。抽出は
+`scripts/extract_cern_library_parts.py`で再現し、同scriptの`--check`で
+committed storeとのdriftを検査する。
 
 ```bash
 command -v qemu-system-riscv32
