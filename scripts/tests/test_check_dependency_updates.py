@@ -237,7 +237,7 @@ def test_docker_base_paginates_and_uses_only_yy_mm_tags(tmp_path: Path) -> None:
             "next": "https://example.invalid/page2",
         },
         "https://example.invalid/page2": {
-            "results": [{"name": "25.10"}, {"name": "26.99.0"}],
+            "results": [{"name": "25.10"}, {"name": "26.10"}, {"name": "26.99.0"}],
             "next": None,
         },
     }
@@ -247,6 +247,23 @@ def test_docker_base_paginates_and_uses_only_yy_mm_tags(tmp_path: Path) -> None:
             "docker-base", "ubuntu", "26.04", "26.04", "docker/acd-tools.Dockerfile", False
         )
     ]
+
+
+def test_docker_base_reports_newer_lts(tmp_path: Path) -> None:
+    docker = tmp_path / "docker"
+    docker.mkdir()
+    (docker / "acd-tools.Dockerfile").write_text("FROM ubuntu:26.04\n", encoding="utf-8")
+    responses = {
+        "https://hub.docker.com/v2/repositories/library/ubuntu/tags?page_size=100": {
+            "results": [{"name": "26.10"}, {"name": "28.04"}],
+            "next": None,
+        },
+    }
+
+    statuses = check_docker_base(tmp_path, fetch_json=responses.__getitem__)
+
+    assert statuses[0].latest == "28.04"
+    assert statuses[0].outdated is True
 
 
 def test_tool_upstream_excludes_kicad_development_and_parses_ngspice(tmp_path: Path) -> None:
