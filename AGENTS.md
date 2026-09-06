@@ -117,6 +117,7 @@ CPUバウンドな処理は既定でマルチコアを使う。新規実装で�
 Python依存、submodule、外部ツールを更新する場合は一次情報を確認し、
 使用API、既定値、破壊的変更、採否を`docs/operations.md`へ記録する。
 更新時はリリースノートの新機能・既定値変更を確認し、ACDに有益なものは採用を検討して採否と理由を同じ記録へ残す。
+更新を保留する場合は`scripts/dependency_update_deferrals.json`へ対象版・理由・再確認期限を記録し、期限到来または新版出現で再検討する。
 `vendor/software-agent-sdk`のsubmodule版を更新した場合は本書冒頭も同じ変更で更新する。
 submodule版を更新する場合は、同じ変更で`pyproject.toml`のPyPI pinも同じ版へ更新する。
 SDK機能の採否は`docs/openhands-sdk-capabilities.json`を単一の正とし、

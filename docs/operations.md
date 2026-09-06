@@ -837,14 +837,14 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 ### 依存アップデートの確認
 
-[`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。
+[`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。
 
 #### 2026-09 更新記録
 
 - **FreeRouting v2.4.1**（一次情報: [v2.4.1 release](https://github.com/freerouting/freerouting/releases/tag/v2.4.1)、[`command_line_arguments.md`](https://github.com/freerouting/freerouting/blob/v2.4.1/docs/command_line_arguments.md)）。Java 25 build baseline、routing pipeline統合、`.frb`廃止、DSN隣接`.rules`自動探索が変更・追加された。ACD adapterが使う`-de`、`-do`、`-mp`、`-mt`は不変。ACDは`.rules`を書き出さず、KiCadの`.kicad_dru`を生成するため、`.rules`自動探索の影響はない。採否: 採用。
 - **uv 0.12.10**（一次情報: [0.12.10 release](https://github.com/astral-sh/uv/releases/tag/0.12.10)）。trusted publishing tokenの失効処理、lock/treeの改善、性能向上とバグ修正が含まれ、現行利用方法に対する破壊的変更はない。採否: 採用。
 - **IBM Semeru 27**（一次情報: [semeru27-binaries releases](https://github.com/ibmruntimes/semeru27-binaries/releases)）。GA releaseがなくprereleaseのみのため、Semeru 26からの更新は保留。checkerもGA releaseがあるmajorだけを更新候補とし、prerelease-only majorは注記に留める。
-- **ツール上流版**（ngspice、cmake、ccache、git、python3.14）。Ubuntu 26.04のapt/PPA由来で、Ubuntu repository版に従い個別更新はしない。image再publish時に自動追従するため、採否: 保留。
+- **ツール上流版**（ngspice、cmake、ccache、git、python3.14）。Ubuntu 26.04のapt由来ツールはLaunchpadのUbuntu archive版を比較し、image再publish時に追従する。上流版との差分は注記として確認するため、現行archive版と一致する項目は採否: 最新。
 
 Docker ARG（FreeRouting 2.4.1、uv 0.12.10、Semeru 27）の判断は本節の該当項目で扱う。
 
@@ -852,7 +852,7 @@ Docker ARG（FreeRouting 2.4.1、uv 0.12.10、Semeru 27）の判断は本節の�
 uv run python scripts/check_dependency_updates.py --markdown out/dependency-updates.md
 ```
 
-SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajorに対応するrepositoryと新しいmajorの有無を確認する。apt/PPA由来のツールはinstall済みversionを`docker/image-digests.json`の`tools`へpublish時に記録し、KiCad（kicad-source-mirror tag）、ngspice（SourceForge best release）、cmake、ninja、ccache、git、Python（cpython tag）の上流版と照合する。versionを記録しないaptパッケージ（fonts、`libcairo2`等）は個別確認せず、Ubuntu base imageの確認に従う。ESP-IDFの`idf_tools.py`が解決するtoolchain binaryはESP-IDF tagで固定されるため個別確認しない。Skill scriptのPEP 723 `acd @ git+…@<sha>` refは`update-skill-package-ref.yml`が管理するため対象外とし、vendor内SDKのagent-server base imageも対象外とする。新しいimage toolを`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へ上流取得元を追加する。更新候補が無くなると、対応するIssueはworkflowが自動でcloseする。自動更新PRは作成せず、更新時は本書と`AGENTS.md`の手順に従う。
+SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajorに対応するrepositoryと新しいmajorの有無を確認する。apt由来のツールはinstall済みversionを`docker/image-digests.json`の`tools`へpublish時に記録し、LaunchpadのUbuntu archive版と照合する。KiCad（PPA由来）は`kicad-source-mirror` tag、ngspiceはSourceForge best releaseを上流版として注記する。versionを記録しないaptパッケージ（fonts、`libcairo2`等）は個別確認せず、Ubuntu base imageの確認に従う。ESP-IDFの`idf_tools.py`が解決するtoolchain binaryはESP-IDF tagで固定されるため個別確認しない。Skill scriptのPEP 723 `acd @ git+…@<sha>` refは`update-skill-package-ref.yml`が管理するため対象外とし、vendor内SDKのagent-server base imageも対象外とする。新しいimage toolを`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へ上流取得元を追加する。更新候補が無くなると、対応するIssueはworkflowが自動でcloseする。自動更新PRは作成せず、更新時は本書と`AGENTS.md`の手順に従う。
 
 #### 2026-09 更新記録
 
@@ -879,11 +879,11 @@ SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajor�
 - **cadquery-ocp 8.x**
   - 一次情報: [build123d PyPI metadata](https://pypi.org/pypi/build123d/json)、[cadquery-ocp PyPI metadata](https://pypi.org/pypi/cadquery-ocp/json)
   - 破壊的変更/新機能: build123d 0.11.1が`cadquery-ocp-novtk<8.0`を要求する。
-  - 採否: 保留。build123d側に8.xを許可する新しいpre-releaseがないため、cadquery-ocpだけを8.xへ更新しない。
+  - 採否: 保留。build123d側に8.xを許可する新しいpre-releaseがないため、cadquery-ocpだけを8.xへ更新しない。`scripts/dependency_update_deferrals.json`へ2026-12-01の再確認期限付きで記録する。
 - **Python 3.14**
   - 一次情報: [CPython releases](https://github.com/python/cpython/tags)
   - 破壊的変更/新機能: checkerでは新しいminor seriesを検出するが、SDK/pyproject targetはPython 3.12である。DockerのPython 3.14はtools用である。
-  - 採否: 保留。SDKと`pyproject.toml`のtargetを3.14へ変更する別検証が必要。
+  - 採否: 保留。SDKと`pyproject.toml`のtargetを3.14へ変更する別検証が必要。`scripts/dependency_update_deferrals.json`へ2026-12-01の再確認期限付きで記録する。
 - **Ubuntu 26.10**
   - 一次情報: [Ubuntu Docker tags](https://hub.docker.com/_/ubuntu)
   - 破壊的変更/新機能: 26.10はLTSではなく、28.04はLTS seriesである。

@@ -11,7 +11,8 @@ import subprocess
 import sys
 import tomllib
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+from datetime import date
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -50,6 +51,32 @@ class DependencyStatus:
     source: str
     outdated: bool
     note: str = ""
+    deferred: bool = False
+
+
+@dataclass(frozen=True)
+class DependencyDeferral:
+    surface: str
+    name: str
+    latest: str
+    review_by: date
+    reason: str
+
+
+DEPENDENCY_SURFACES = frozenset(
+    {
+        "pypi",
+        "pypi-lock",
+        "submodule",
+        "github-actions",
+        "github-release-download",
+        "docker-base",
+        "docker-arg",
+        "tool-upstream",
+        "python-version",
+        "git-pin",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -67,6 +94,7 @@ class ToolUpstreamSpec:
     repo_or_url: str
     tag_pattern: str
     exclude: ExcludeTag | None = None
+    apt_package: str | None = None
 
 
 DOCKER_ARG_SPECS = (
@@ -109,6 +137,7 @@ TOOL_UPSTREAM_SPECS = (
         "sourceforge-best-release",
         "https://sourceforge.net/projects/ngspice/best_release.json",
         r"^/ng-spice-rework/(\d+(?:\.\d+)?)/",
+        apt_package="ngspice",
     ),
     ToolUpstreamSpec(
         "cmake",
@@ -116,6 +145,7 @@ TOOL_UPSTREAM_SPECS = (
         "github-tags",
         "Kitware/CMake",
         r"^v(\d+)\.(\d+)\.(\d+)$",
+        apt_package="cmake",
     ),
     ToolUpstreamSpec(
         "ninja",
@@ -123,6 +153,7 @@ TOOL_UPSTREAM_SPECS = (
         "github-tags",
         "ninja-build/ninja",
         r"^v(\d+)\.(\d+)\.(\d+)$",
+        apt_package="ninja-build",
     ),
     ToolUpstreamSpec(
         "ccache",
@@ -130,6 +161,7 @@ TOOL_UPSTREAM_SPECS = (
         "github-tags",
         "ccache/ccache",
         r"^v(\d+)\.(\d+)\.(\d+)$",
+        apt_package="ccache",
     ),
     ToolUpstreamSpec(
         "git",
@@ -137,6 +169,7 @@ TOOL_UPSTREAM_SPECS = (
         "github-tags",
         "git/git",
         r"^v(\d+)\.(\d+)\.(\d+)$",
+        apt_package="git",
     ),
     ToolUpstreamSpec(
         "python3.14",
@@ -144,6 +177,7 @@ TOOL_UPSTREAM_SPECS = (
         "github-tags",
         "python/cpython",
         r"^v(\d+)\.(\d+)\.(\d+)$",
+        apt_package="python3.14",
     ),
 )
 
@@ -696,6 +730,73 @@ def _sourceforge_version(payload: Any, pattern: str) -> tuple[str, tuple[int, ..
     return value, values
 
 
+def _ubuntu_base_version(repo_root: Path) -> str:
+    matches = FROM_RE.findall(
+        (repo_root / "docker" / "acd-tools.Dockerfile").read_text(encoding="utf-8")
+    )
+    if not matches:
+        raise ValueError("Dockerfile has no versioned FROM image")
+    image, version = matches[0]
+    if image != "ubuntu":
+        raise ValueError(f"apt-managed tools require an Ubuntu base image: {image}")
+    if re.fullmatch(r"\d{2}\.\d{2}", version) is None:
+        raise ValueError(f"Ubuntu base image has invalid version: {version}")
+    return version
+
+
+def _ubuntu_series(
+    repo_root: Path,
+    *,
+    fetch_json: FetchJson,
+) -> str:
+    version = _ubuntu_base_version(repo_root)
+    payload = _dict(
+        fetch_json("https://api.launchpad.net/1.0/ubuntu/series"),
+        "Launchpad series response is not an object",
+    )
+    entries = payload.get("entries")
+    if not isinstance(entries, list):
+        raise ValueError("Launchpad series response has no entries")
+    for entry in cast(list[Any], entries):
+        entry_data = _dict(entry, "Launchpad series entry is malformed")
+        if entry_data.get("version") == version:
+            name = entry_data.get("name")
+            if isinstance(name, str) and name:
+                return name
+            raise ValueError(f"Launchpad series entry has no name: {version}")
+    raise ValueError(f"Ubuntu series was not found for {version}")
+
+
+def _launchpad_archive_version(
+    payload: Any,
+    *,
+    pattern: str,
+    package: str,
+) -> tuple[str, tuple[int, ...]]:
+    payload_data = _dict(payload, f"Launchpad archive response is not an object: {package}")
+    entries = payload_data.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError(f"Launchpad archive has no entries for {package}")
+    candidates: list[tuple[tuple[int, ...], str]] = []
+    for entry in cast(list[Any], entries):
+        entry_data = _dict(entry, "Launchpad archive entry is malformed")
+        raw_version = entry_data.get("binary_package_version")
+        if not isinstance(raw_version, str) or not raw_version:
+            raise ValueError(f"Launchpad archive entry has no version for {package}")
+        normalized = re.sub(r"^\d+:", "", raw_version)
+        normalized = re.sub(r"-[^-]*$", "", normalized)
+        normalized = re.sub(r"\+(?:ds|dfsg)[\w.-]*$", "", normalized)
+        try:
+            version, values = _installed_version(normalized, pattern, package)
+        except ValueError as exc:
+            raise ValueError(
+                f"cannot parse Launchpad archive version for {package}: {raw_version}"
+            ) from exc
+        candidates.append((values, version))
+    values, version = max(candidates)
+    return version, values
+
+
 def check_tool_upstream(
     repo_root: Path,
     *,
@@ -704,6 +805,7 @@ def check_tool_upstream(
 ) -> list[DependencyStatus]:
     tools = _tool_lock(repo_root)
     statuses: list[DependencyStatus] = []
+    apt_series: str | None = None
     for spec in TOOL_UPSTREAM_SPECS:
         installed = tools.get(spec.tool_key)
         if installed is None:
@@ -723,15 +825,35 @@ def check_tool_upstream(
                     if (match := PYTHON_TAG_RE.fullmatch(tag))
                     and (int(match.group(1)), int(match.group(2))) == current_values[:2]
                 ]
-            latest_tag, latest_values = _highest_stable_tag(tags, pattern, spec.exclude)
-            latest = latest_tag.removeprefix("v")
+            latest_tag, upstream_values = _highest_stable_tag(tags, pattern, spec.exclude)
+            upstream_latest = latest_tag.removeprefix("v")
         elif spec.kind == "sourceforge-best-release":
-            latest, latest_values = _sourceforge_version(
+            upstream_latest, upstream_values = _sourceforge_version(
                 fetch_json(spec.repo_or_url),
                 spec.tag_pattern,
             )
         else:
             raise ValueError(f"unknown tool upstream kind: {spec.kind}")
+        note = ""
+        if spec.apt_package is not None:
+            if apt_series is None:
+                apt_series = _ubuntu_series(repo_root, fetch_json=fetch_json)
+            archive_url = (
+                "https://api.launchpad.net/1.0/ubuntu/+archive/primary"
+                "?ws.op=getPublishedBinaries"
+                f"&binary_name={spec.apt_package}"
+                "&exact_match=true&status=Published"
+                f"&distro_arch_series=https://api.launchpad.net/1.0/ubuntu/{apt_series}/amd64"
+            )
+            latest, latest_values = _launchpad_archive_version(
+                fetch_json(archive_url),
+                pattern=spec.installed_pattern,
+                package=spec.apt_package,
+            )
+            note = f"apt ubuntu:{_ubuntu_base_version(repo_root)}; upstream {upstream_latest}"
+        else:
+            latest = upstream_latest
+            latest_values = upstream_values
         statuses.append(
             DependencyStatus(
                 "tool-upstream",
@@ -740,6 +862,7 @@ def check_tool_upstream(
                 latest,
                 "docker/image-digests.json",
                 _numeric_greater(latest_values, current_values),
+                note,
             )
         )
     cpython_tags = list_remote_tags("https://github.com/python/cpython")
@@ -810,8 +933,7 @@ def check_semeru_majors(
     no_release_majors: list[int] = []
     for major in newer_majors:
         releases_url = (
-            f"https://api.github.com/repos/ibmruntimes/"
-            f"semeru{major}-binaries/releases?per_page=100"
+            f"https://api.github.com/repos/ibmruntimes/semeru{major}-binaries/releases?per_page=100"
         )
         releases = fetch_json(releases_url)
         if not isinstance(releases, list):
@@ -990,6 +1112,73 @@ def check_dependency_updates(
     ]
 
 
+def load_deferrals(repo_root: Path) -> list[DependencyDeferral]:
+    path = repo_root / "scripts" / "dependency_update_deferrals.json"
+    with path.open(encoding="utf-8") as stream:
+        payload: Any = json.load(stream)
+    root = _dict(payload, "dependency deferrals must be an object")
+    if set(root) != {"deferrals"}:
+        raise ValueError("dependency deferrals have unknown top-level keys")
+    raw_deferrals = root.get("deferrals")
+    if not isinstance(raw_deferrals, list):
+        raise ValueError("dependency deferrals must be an array")
+    deferrals: list[DependencyDeferral] = []
+    required_keys = {"surface", "name", "latest", "review_by", "reason"}
+    for raw_deferral in cast(list[Any], raw_deferrals):
+        data = _dict(raw_deferral, "dependency deferral is not an object")
+        if set(data) != required_keys:
+            raise ValueError("dependency deferral has unknown or missing keys")
+        surface = data["surface"]
+        name = data["name"]
+        latest = data["latest"]
+        review_by = data["review_by"]
+        reason = data["reason"]
+        if (
+            not isinstance(surface, str)
+            or surface not in DEPENDENCY_SURFACES
+            or not isinstance(name, str)
+            or not name
+            or not isinstance(latest, str)
+            or not latest
+            or not isinstance(review_by, str)
+            or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", review_by)
+            or not isinstance(reason, str)
+            or not reason
+        ):
+            raise ValueError("dependency deferral has an invalid field")
+        try:
+            review_date = date.fromisoformat(review_by)
+        except ValueError as exc:
+            raise ValueError(f"dependency deferral has invalid review_by: {review_by}") from exc
+        deferrals.append(DependencyDeferral(surface, name, latest, review_date, reason))
+    return deferrals
+
+
+def apply_deferrals(
+    statuses: list[DependencyStatus],
+    deferrals: list[DependencyDeferral],
+    today: date,
+) -> list[DependencyStatus]:
+    applied: list[DependencyStatus] = []
+    for status in statuses:
+        replacement = status
+        if status.outdated:
+            for deferral in deferrals:
+                if (
+                    deferral.surface == status.surface
+                    and (deferral.name == "*" or deferral.name == status.name)
+                    and deferral.latest == status.latest
+                    and deferral.review_by >= today
+                ):
+                    note = f"deferred until {deferral.review_by.isoformat()}: {deferral.reason}"
+                    if status.note:
+                        note = f"{status.note}; {note}"
+                    replacement = replace(status, outdated=False, note=note, deferred=True)
+                    break
+        applied.append(replacement)
+    return applied
+
+
 def render_markdown(statuses: list[DependencyStatus]) -> str:
     labels = {
         "pypi": "PyPI（直接依存）",
@@ -1023,20 +1212,35 @@ def render_markdown(statuses: list[DependencyStatus]) -> str:
         )
         ordered_statuses = [
             status
-            for outdated in (True, False)
+            for state in ("outdated", "deferred", "current")
             for status in surface_statuses
-            if status.outdated is outdated
+            if (
+                (state == "outdated" and status.outdated)
+                or (state == "deferred" and status.deferred)
+                or (state == "current" and not status.outdated and not status.deferred)
+            )
         ]
         for status in ordered_statuses:
             latest = status.latest
             if status.note:
                 latest = f"{latest} ({status.note})"
-            state = "更新あり" if status.outdated else "最新"
+            if status.outdated:
+                state = "更新あり"
+            elif status.deferred:
+                state = "保留"
+            else:
+                state = "最新"
             lines.append(
                 f"| {status.name} | {status.current} | {latest} | {state} | {status.source} |"
             )
         lines.append("")
     outdated_count = sum(status.outdated for status in statuses)
+    deferred_count = sum(status.deferred for status in statuses)
+    if deferred_count:
+        lines.append(
+            "保留: "
+            f"{deferred_count}件（scripts/dependency_update_deferrals.json、期限到来で再候補化）"
+        )
     lines.append(f"更新候補: {outdated_count}件" if outdated_count else "更新候補はありません。")
     return "\n".join(lines) + "\n"
 
@@ -1048,7 +1252,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", dest="json_path", type=Path)
     args = parser.parse_args(argv)
     try:
-        statuses = check_dependency_updates(args.repo_root.resolve())
+        repo_root = args.repo_root.resolve()
+        statuses = check_dependency_updates(repo_root)
+        statuses = apply_deferrals(statuses, load_deferrals(repo_root), date.today())
         markdown = render_markdown(statuses)
         if args.markdown is not None:
             args.markdown.write_text(markdown, encoding="utf-8")
@@ -1056,6 +1262,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = {
                 "statuses": [asdict(status) for status in statuses],
                 "outdated_count": sum(status.outdated for status in statuses),
+                "deferred_count": sum(status.deferred for status in statuses),
             }
             args.json_path.write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2) + "\n",

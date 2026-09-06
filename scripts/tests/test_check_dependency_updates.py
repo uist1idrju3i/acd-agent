@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 
 import pytest
 from scripts.check_dependency_updates import (
+    DependencyDeferral,
     DependencyStatus,
+    apply_deferrals,
     check_docker_args,
     check_docker_base,
     check_git_pin,
@@ -19,6 +22,7 @@ from scripts.check_dependency_updates import (
     check_semeru_majors,
     check_submodule,
     check_tool_upstream,
+    load_deferrals,
     render_markdown,
 )
 
@@ -199,6 +203,101 @@ def test_markdown_lists_outdated_before_current_items() -> None:
     assert markdown.index(outdated_row) < markdown.index(current_row)
 
 
+def test_markdown_renders_deferred_rows_before_current_rows() -> None:
+    markdown = render_markdown(
+        [
+            DependencyStatus("pypi", "current", "1.0.0", "1.0.0", "pyproject.toml", False),
+            DependencyStatus(
+                "pypi",
+                "deferred",
+                "1.0.0",
+                "2.0.0",
+                "pyproject.toml",
+                False,
+                "deferred until 2026-12-01: compatibility",
+                True,
+            ),
+            DependencyStatus("pypi", "outdated", "1.0.0", "3.0.0", "pyproject.toml", True),
+        ]
+    )
+    deferred_row = "| deferred | 1.0.0 | "
+    deferred_row += "2.0.0 (deferred until 2026-12-01: compatibility) | 保留 |"
+    assert deferred_row in markdown
+    assert "保留: 1件（scripts/dependency_update_deferrals.json、期限到来で再候補化）" in markdown
+    assert markdown.index("| outdated |") < markdown.index("| deferred |")
+    assert markdown.index("| deferred |") < markdown.index("| current |")
+
+
+def test_deferrals_apply_exact_and_wildcard_matches_but_not_changed_or_expired() -> None:
+    statuses = apply_deferrals(
+        [
+            DependencyStatus(
+                "pypi",
+                "cadquery-ocp",
+                "7.9.3",
+                "8.0.1.0.0",
+                "pyproject.toml",
+                True,
+                "compatibility",
+            ),
+            DependencyStatus(
+                "python-version", "Python version (ci.yml)", "3.12", "3.14", "ci.yml", True
+            ),
+            DependencyStatus("pypi", "changed", "1.0.0", "2.0.0", "pyproject.toml", True),
+            DependencyStatus("pypi", "expired", "1.0.0", "2.0.0", "pyproject.toml", True),
+        ],
+        [
+            DependencyDeferral(
+                "pypi",
+                "cadquery-ocp",
+                "8.0.1.0.0",
+                date(2026, 12, 1),
+                "blocked",
+            ),
+            DependencyDeferral(
+                "python-version",
+                "*",
+                "3.14",
+                date(2026, 12, 1),
+                "validation required",
+            ),
+            DependencyDeferral(
+                "pypi",
+                "changed",
+                "2.0.1",
+                date(2026, 12, 1),
+                "old version only",
+            ),
+            DependencyDeferral(
+                "pypi",
+                "expired",
+                "2.0.0",
+                date(2026, 1, 1),
+                "期限切れ",
+            ),
+        ],
+        date(2026, 9, 6),
+    )
+    assert statuses[0].deferred
+    assert not statuses[0].outdated
+    assert statuses[0].note == "compatibility; deferred until 2026-12-01: blocked"
+    assert statuses[1].deferred
+    assert statuses[2].outdated
+    assert statuses[3].outdated
+
+
+def test_load_deferrals_rejects_malformed_file(tmp_path: Path) -> None:
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "dependency_update_deferrals.json").write_text(
+        '{"deferrals": [{"surface": "unknown", "name": "*", "latest": "1", '
+        '"review_by": "2026-12-01", "reason": "invalid", "extra": true}]}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="unknown or missing keys"):
+        load_deferrals(tmp_path)
+
+
 def test_pypi_lock_parses_changes_and_excludes_direct_dependencies(tmp_path: Path) -> None:
     root = _write_repo(
         tmp_path,
@@ -277,6 +376,9 @@ def test_tool_upstream_excludes_kicad_development_and_parses_ngspice(tmp_path: P
         "python3.14": "Python 3.14.4",
     }
     (tmp_path / "docker").mkdir()
+    (tmp_path / "docker" / "acd-tools.Dockerfile").write_text(
+        "FROM ubuntu:26.04\n", encoding="utf-8"
+    )
     (tmp_path / "docker" / "image-digests.json").write_text(
         json.dumps({"acd_tools": {"tools": tools}}), encoding="utf-8"
     )
@@ -293,8 +395,20 @@ def test_tool_upstream_excludes_kicad_development_and_parses_ngspice(tmp_path: P
         return tags[url]
 
     def fetch(url: str) -> object:
-        assert url.endswith("best_release.json")
-        return {"release": {"filename": "/ng-spice-rework/47/ngspice-47_64.7z"}}
+        if url.endswith("best_release.json"):
+            return {"release": {"filename": "/ng-spice-rework/47/ngspice-47_64.7z"}}
+        if url == "https://api.launchpad.net/1.0/ubuntu/series":
+            return {"entries": [{"version": "26.04", "name": "resolute"}]}
+        package = url.split("binary_name=", 1)[1].split("&", 1)[0]
+        versions = {
+            "ngspice": "45.2+ds-1",
+            "cmake": "4.2.3-2ubuntu2",
+            "ninja-build": "1.13.2-1",
+            "ccache": "4.12.3-1",
+            "git": "1:2.53.0-1ubuntu1",
+            "python3.14": "3.14.4-1ubuntu0.1",
+        }
+        return {"entries": [{"binary_package_version": versions[package]}]}
 
     statuses = check_tool_upstream(
         tmp_path,
@@ -303,9 +417,104 @@ def test_tool_upstream_excludes_kicad_development_and_parses_ngspice(tmp_path: P
     )
     by_name = {status.name: status for status in statuses}
     assert by_name["kicad-cli"].latest == "10.0.6"
-    assert by_name["ngspice"].latest == "47"
-    assert by_name["python3.14"].latest == "3.14.5"
+    assert by_name["ngspice"].latest == "45.2"
+    assert not by_name["ngspice"].outdated
+    assert by_name["ngspice"].note == "apt ubuntu:26.04; upstream 47"
+    assert by_name["git"].latest == "2.53.0"
+    assert by_name["python3.14"].latest == "3.14.4"
+    assert by_name["python3.14"].note == "apt ubuntu:26.04; upstream 3.14.5"
     assert by_name["python (minor series)"].latest == "3.15"
+
+
+def test_tool_upstream_reports_newer_apt_archive_version(tmp_path: Path) -> None:
+    tools = {
+        "kicad-cli": "10.0.6",
+        "ngspice": "45.2",
+        "cmake": "4.2.3",
+        "ninja": "1.13.2",
+        "ccache": "4.12.3",
+        "git": "2.53.0",
+        "python3.14": "3.14.4",
+    }
+    docker = tmp_path / "docker"
+    docker.mkdir()
+    (docker / "acd-tools.Dockerfile").write_text("FROM ubuntu:26.04\n", encoding="utf-8")
+    (docker / "image-digests.json").write_text(
+        json.dumps({"acd_tools": {"tools": tools}}), encoding="utf-8"
+    )
+
+    def tags(url: str) -> list[str]:
+        if url.endswith("KiCad/kicad-source-mirror"):
+            return ["10.0.6"]
+        if url.endswith("python/cpython"):
+            return ["v3.14.4"]
+        return ["v4.2.3", "v1.13.2", "v4.12.3", "v2.53.0"]
+
+    def fetch(url: str) -> object:
+        if url.endswith("best_release.json"):
+            return {"release": {"filename": "/ng-spice-rework/47/ngspice-47_64.7z"}}
+        if url.endswith("/series"):
+            return {"entries": [{"version": "26.04", "name": "resolute"}]}
+        package = url.split("binary_name=", 1)[1].split("&", 1)[0]
+        versions = {
+            "ngspice": "47.0+ds-1",
+            "cmake": "4.2.3-2ubuntu2",
+            "ninja-build": "1.13.2-1",
+            "ccache": "4.12.3-1",
+            "git": "1:2.53.0-1ubuntu1",
+            "python3.14": "3.14.4-1ubuntu0.1",
+        }
+        return {"entries": [{"binary_package_version": versions[package]}]}
+
+    statuses = check_tool_upstream(tmp_path, fetch_json=fetch, list_remote_tags=tags)
+    ngspice = next(status for status in statuses if status.name == "ngspice")
+    assert ngspice.latest == "47.0"
+    assert ngspice.outdated
+    assert ngspice.note == "apt ubuntu:26.04; upstream 47"
+
+
+def test_tool_upstream_fails_when_ubuntu_series_is_missing(tmp_path: Path) -> None:
+    docker = tmp_path / "docker"
+    docker.mkdir()
+    (docker / "acd-tools.Dockerfile").write_text("FROM ubuntu:26.04\n", encoding="utf-8")
+    (docker / "image-digests.json").write_text(
+        json.dumps(
+            {
+                "acd_tools": {
+                    "tools": {
+                        "kicad-cli": "10.0.6",
+                        "ngspice": "45.2",
+                        "cmake": "4.2.3",
+                        "ninja": "1.13.2",
+                        "ccache": "4.12.3",
+                        "git": "2.53.0",
+                        "python3.14": "3.14.4",
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def fetch(url: str) -> object:
+        if url.endswith("best_release.json"):
+            return {"release": {"filename": "/ng-spice-rework/47/ngspice-47_64.7z"}}
+        if url.endswith("/series"):
+            return {"entries": [{"version": "25.04", "name": "questing"}]}
+        raise AssertionError(url)
+
+    with pytest.raises(ValueError, match="Ubuntu series was not found"):
+        check_tool_upstream(
+            tmp_path,
+            fetch_json=fetch,
+            list_remote_tags=lambda url: (
+                ["10.0.6"]
+                if url.endswith("KiCad/kicad-source-mirror")
+                else ["v3.14.4"]
+                if url.endswith("python/cpython")
+                else ["v4.2.3", "v1.13.2", "v4.12.3", "v2.53.0"]
+            ),
+        )
 
 
 def test_semeru_newer_major_paginates_until_empty(tmp_path: Path) -> None:
