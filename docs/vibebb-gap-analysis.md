@@ -567,6 +567,17 @@ V-3とV-9は、会話経路がL3記録だけで合格を述べないための報
 V-1、V-5、V-7、V-8、V-10は防御の深さと検証可能性の項目であり、いずれも
 閾値、ゲート条件、fail-closed境界を変更しない。
 
+### V節の実装状況
+
+| 項目 | 状況 | 実装 |
+|---|---|---|
+| V-6 | 解消 | fixture生成（`scripts/build_design_fixture.py`、loopの`fixture-generation`）とloop入口の`lane-preflight` stageで`run_lane_preflight`を評価する。不足はnode kind、必要数・現在数、不足属性名、`DesignFixtureSpec`上の追記先（`silk_texts[].attrs`など）を1回の結果に列挙し、`next_step_action`へ「specへ追加すべき宣言」を具体名で返す。silkscreen laneでは`mechanical.silk_text`の8属性を名指しする。preflightはL3診断であり、`declarations_complete`はゲートを実行させるだけで通過を意味しない。宣言の自動補完は行わない |
+| V-7 | 解消 | `timing-record.json`（schema 0.2）が`stage_duration_sum_seconds`と`wall_clock_seconds`を別値として持つ。wall-clockは`TimingRecorder`生成からrecord書き出しまでの経過時間で、並列laneでは合計がwall-clockを上回りうる。`report_progress.py`のdigestは両値を別々に表示する |
+| V-5 | 解消 | `_execute_and_download()`はcommandが非ゼロで終了した場合も宣言済みdownloadを試み、回収できなかったfileは`download_errors`へ記録する。`exit_code`と`failure_kind="command"`は維持され、download成否は判定に影響しない。transport失敗（`-1`）とtimeoutではdownloadを試みない |
+| V-9 | 解消 | `verify_acd_tool_registration.py --command`が結果を`out/tool-availability/<command名>.json`（`--record`で変更可）へ保存する。判定不能も`status: unknown`として同じ場所へ残し、いずれも`record_class: L3`、`pass_evidence: false` |
+| V-3 | 解消 | `plugins/acd/commands/vibebb-loop.md`が「合格」「発注可」を述べる前に`verify_authoritative_evidence.py`の実行とrevision一致・`status="valid"`・container provenance・order-readiness結果の提示を必須とする。`report_progress.py`のdigestは常に`authoritative_evidence: unverified`と対応する行を含む |
+| V-1 | 未着手 | container→hostのEDA資材持ち出しの検出・拒否は未実装 |
+
 ## W. GD1非依存の達成条件
 
 「GD1が無くても新規設計をVibeBBできるか」を判定可能にするための条件である。GD1 fixtureは
@@ -599,9 +610,9 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 | B-1／B-2／B-3 | 却下後の次候補立案が人手になる。今回8候補の却下はすべて人間側の再立案で進めた |
 | G-1／G-2 | 達成。`/acd:init`とworkspace指定doctorがcloneから健全性検査までをfail-closedに実行する |
 | Q-4／Q-5 | 却下後に設計入力を作り直す手段が宣言tool経路に無く、rationaleの整合回復とfixtureの再生成が生JSON編集かファイル削除になる。今回のVPS実測でも新規設計の2周目は宣言経路から開始できなかった |
-| V-6 | 新規specはsilkscreen宣言不足で最初のlaneで停止し、不足宣言の特定とspecへの追記が人手になる。第6回実測でも新規設計はsilkscreen barrierを越えられなかった |
-| V-3／T-3 | GUI会話に`acd_*` toolが登録されず、決定論的CLIへの倒し方とauthoritative Evidence検証の実行判断が人手になる。報告契約が無いため、会話はL3記録だけで合格を述べ得る |
-| V-5 | fail-closedしたrunからの成果物回収が、人手のwrapper回避策になる。回避策は失敗を成功として読ませうる |
+| V-6 | 解消。fixture生成とloop入口のpreflightが不足宣言名と`DesignFixtureSpec`上の追記先を返す。宣言の追記自体は設計入力側の作業として残る |
+| V-3／T-3 | V-3は解消（報告契約とdigestのEvidence未検証明示）。T-3のambient経路へのToolDefinition登録は未了で、tool不在は`out/tool-availability/`のL3記録から確認する |
+| V-5 | 解消。fail-closedしたrunからも宣言済み成果物を回収し、exit codeは非ゼロのまま維持する |
 
 ## 優先順位（VibeBB単体成立に効く順）
 

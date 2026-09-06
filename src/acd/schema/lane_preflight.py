@@ -32,6 +32,27 @@ class LanePreflightMissingAttr(AcdModel):
     reason: NonEmptyStr
 
 
+class LanePreflightMissingDeclaration(AcdModel):
+    """One declaration set the design input must add for a lane.
+
+    `spec_path` names where the node kind is declared in the design input
+    (DesignFixtureSpec). `missing_count` is the number of nodes still to declare
+    (`present_count` is None when enough nodes exist); `missing_attrs` lists
+    attributes absent from nodes that already exist.
+    """
+
+    lane: NonEmptyStr
+    kind: NonEmptyStr
+    spec_path: NonEmptyStr
+    required_count: int
+    present_count: int | None
+    missing_count: int
+    required_attrs: list[str] = Field(default_factory=list[str])
+    missing_attrs: list[LanePreflightMissingAttr] = Field(
+        default_factory=list[LanePreflightMissingAttr]
+    )
+
+
 class LanePreflightLaneReport(AcdModel):
     lane: NonEmptyStr
     status: LanePreflightStatus
@@ -60,6 +81,7 @@ class LanePreflightReport(AcdModel):
 __all__ = [
     "LanePreflightLaneReport",
     "LanePreflightMissingAttr",
+    "LanePreflightMissingDeclaration",
     "LanePreflightMissingNode",
     "LanePreflightReport",
     "LanePreflightStatus",

@@ -117,3 +117,46 @@ def test_digest_renders_design_loop_summary(tmp_path: Path) -> None:
     assert summary.next_step_action == "rerun with recovery"
     assert "router rejected candidate" in render_progress_digest(report)
     assert "rerun with recovery" in render_progress_digest(report)
+
+
+def test_digest_states_evidence_unverified_and_separates_wall_clock(
+    tmp_path: Path,
+) -> None:
+    _write(
+        tmp_path / "timing-record.json",
+        {
+            "record_class": "L3",
+            "pass_evidence": False,
+            "stages": [
+                {"name": "a", "duration_seconds": 2.0},
+                {"name": "b", "duration_seconds": 2.0},
+            ],
+            "stage_duration_sum_seconds": 4.0,
+            "wall_clock_seconds": 2.5,
+        },
+    )
+    report = collect_progress_digest(tmp_path)
+    assert report.status == "pass"
+    assert report.authoritative_evidence == "unverified"
+    (record,) = report.records
+    assert record.duration_seconds == 4.0
+    assert record.wall_clock_seconds == 2.5
+    text = render_progress_digest(report)
+    assert "authoritative Evidence: unverified" in text
+    assert "verify_authoritative_evidence.py" in text
+    assert "4.000s stage-duration sum, 2.500s wall-clock" in text
+
+
+def test_digest_without_wall_clock_reports_it_unknown(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "timing-record.json",
+        {
+            "record_class": "L3",
+            "pass_evidence": False,
+            "stages": [{"name": "a", "duration_seconds": 1.0}],
+        },
+    )
+    report = collect_progress_digest(tmp_path)
+    (record,) = report.records
+    assert record.wall_clock_seconds is None
+    assert "unknown wall-clock" in render_progress_digest(report)

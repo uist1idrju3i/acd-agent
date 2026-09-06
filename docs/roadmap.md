@@ -231,7 +231,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、宣言toolの不在検出、library資材宣言の統一、進行表示を扱う。S-3の配布形態と復帰成立実行の実測は未了 |
 | 14.18 | 復帰候補評価からL3観測の混入を除く（T-1〜T-5） | 候補評価の独立timing記録、複数候補の列挙、宣言tool不在のdrift guard、L3 digestの統合、transport失敗時の出力保持を扱う。T-1〜T-5は実装済みで、復帰成立runの実測記録は未取得 |
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
-| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | 第6回実機実測で残った不足を扱う。新規specの宣言不足をfixture生成段で列挙して具体名で返す（V-6）、container由来資材のhost混入検出（V-1）、L3記録だけで合格を述べさせない報告契約（V-3）、失敗時も判定を変えずに成果物を回収できるdownload経路（V-5）、timing recordへのwall-clock明示（V-7）、宣言tool不在の機械可読記録（V-9） |
+| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-3、V-5、V-6、V-7、V-9を達成（V-1は未着手）。第6回実機実測で残った不足を扱う。新規specの宣言不足をfixture生成段で列挙して具体名で返す（V-6）、container由来資材のhost混入検出（V-1）、L3記録だけで合格を述べさせない報告契約（V-3）、失敗時も判定を変えずに成果物を回収できるdownload経路（V-5）、timing recordへのwall-clock明示（V-7）、宣言tool不在の機械可読記録（V-9） |
 | 14.21 | GD1非依存の達成判定（W-1〜W-4） | GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
 
 不足項目（C、D、L、M、N、O、P、Q、U、V、W）の各フェーズへの割当経緯と14.1〜14.15・14.19の完了条件は[`roadmap-completed.md`](roadmap-completed.md)を正とする。
@@ -325,6 +325,13 @@ preflightを実行しないため、不足は実行の途中でしか判明し�
 | 正常系 | silkscreen宣言を備えた新規specが、fixture生成からsilkscreen barrierを越えて基板laneへ到達する。宣言が欠けたspecは実行前に`declarations_incomplete`で停止し、不足宣言名と追記先を返す。fail-closedで終わったcontainer実行からも成果物を回収でき、runnerのexit codeは非ゼロのままである。GD1の判定、Evidence、正規化hashは変化しない |
 | negative・fail-closed | 不足宣言の列挙、進行表示、tool登録記録はいずれもL3観測であり合格側権限を持たない。preflightの`declarations_complete`はlane通過を意味しない。downloadの成功をcommand成功として扱わず、部分downloadを合格へ倒さない。container由来資材が混在したhost実行のEvidenceをauthoritativeへ昇格しない。宣言の自動補完、既定値の暗黙適用、閾値・ゲート条件の緩和は行わない |
 | 再現性 | preflight結果、不足宣言名、download結果、wall-clockとstage duration合計、tool登録差分をL3記録として保存し、同一入力での再実行で一致することを回帰テストで固定する。fail-closed runからの成果物回収を、tarとexit 0による回避策なしで再現する |
+
+実装状況: V-6（`lane-preflight` stageと`fixture-generation`のpreflight診断、
+`missing_declarations`と`next_step_action`）、V-7（`wall_clock_seconds`と
+`stage_duration_sum_seconds`の分離）、V-5（非ゼロ終了時のdownload試行と`download_errors`、
+exit code維持）、V-9（`out/tool-availability/<command名>.json`）、V-3（commandの報告契約と
+digestの`authoritative_evidence: unverified`）は達成した。詳細は
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節の実装状況を正とする。V-1は未着手である。
 
 V-6は新規設計入口の唯一の停止点であり最優先で扱う。V-3とV-9は、会話経路がL3記録だけで
 合格を述べないための報告契約と一次資料であり同順で扱う。V-5とV-7は検証可能性、

@@ -264,6 +264,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not isinstance(result, ProvisionalWorkspaceResult):
         for path in result.downloaded_files:
             print(f"downloaded: {path}")
+        for error in result.download_errors:
+            print(f"download not retrieved: {error}", file=sys.stderr)
         if result.failure_kind is not None:
             print(f"failure kind: {result.failure_kind}", file=sys.stderr)
             return result.exit_code if result.exit_code > 0 else 2

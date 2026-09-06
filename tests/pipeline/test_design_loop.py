@@ -123,11 +123,13 @@ def test_design_loop_stops_after_first_failed_stage(
     assert result["failure_reason"] == "intentional test failure"
     assert seen == [
         "requirement-entry-validation",
+        "lane-preflight",
         "silkscreen-resolve",
         "board-pipeline",
     ]
     assert [item["stage_id"] for item in result["results"]] == [
         "requirement-entry-validation",
+        "lane-preflight",
         "silkscreen-resolve",
         "board-pipeline",
     ]
@@ -206,6 +208,7 @@ def test_missing_firmware_skill_fails_closed_without_running_order_gate(
     assert "Skill script is missing" in result["failure_reason"]
     assert seen == [
         "requirement-entry-validation",
+        "lane-preflight",
         "silkscreen-resolve",
         "board-pipeline",
         "enclosure-pipeline",
@@ -215,6 +218,7 @@ def test_missing_firmware_skill_fails_closed_without_running_order_gate(
 def test_design_loop_stage_set_and_order_are_fixed() -> None:
     assert DESIGN_LOOP_STAGE_IDS == (
         "requirement-entry-validation",
+        "lane-preflight",
         "silkscreen-resolve",
         "board-pipeline",
         "enclosure-pipeline",
@@ -655,10 +659,12 @@ def test_design_loop_parallel_failure_reports_all_started_lanes_without_order_ga
     assert result["failed_stage"] == "board-pipeline"
     assert set(seen) == set(DESIGN_LOOP_LANE_IDS) | {
         "requirement-entry-validation",
+        "lane-preflight",
         "silkscreen-resolve",
     }
     assert [item["stage_id"] for item in result["results"]] == [
         "requirement-entry-validation",
+        "lane-preflight",
         "silkscreen-resolve",
         "board-pipeline",
         "enclosure-pipeline",
@@ -1643,3 +1649,114 @@ def test_design_only_mode_rejects_order_aggregation_inputs(tmp_path: Path) -> No
     assert result["fail_closed"] is True
     assert result["failed_stage"] == "input"
     assert "order aggregation inputs" in result["failure_reason"]
+
+
+def test_lane_preflight_stops_before_silkscreen_with_concrete_declarations(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    graph_path = fixture / "graph.json"
+    document = json.loads(graph_path.read_text(encoding="utf-8"))
+    document["nodes"] = [
+        node for node in document["nodes"] if node["kind"] != "mechanical.silk_text"
+    ]
+    graph_path.write_text(json.dumps(document), encoding="utf-8")
+    seen: list[str] = []
+    runners = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["lane-preflight"] = design_loop.run_lane_preflight_stage
+    _patch_runners(monkeypatch, runners)
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "lane-preflight"
+    assert seen == ["requirement-entry-validation"]
+    preflight = result["results"][-1]
+    assert preflight["record_class"] == "L3"
+    assert preflight["pass_evidence"] is False
+    assert preflight["preflight_status"] == "declarations_incomplete"
+    (missing,) = preflight["missing_declarations"]
+    assert missing["kind"] == "mechanical.silk_text"
+    assert missing["spec_path"] == "silk_texts[].attrs"
+    assert missing["missing_count"] == 1
+    assert "mechanical.silk_text.placement_reference" in result["next_step_action"]
+    assert "never auto-completed" in result["next_step_action"]
+    saved = json.loads(Path(preflight["output_path"]).read_text(encoding="utf-8"))
+    assert saved["diagnostic_only"] is True
+    assert saved["status"] == "declarations_incomplete"
+    summary = json.loads(
+        (tmp_path / "artifacts" / "loop-summary.json").read_text(encoding="utf-8")
+    )
+    assert summary["next_step_action"] == result["next_step_action"]
+
+
+def test_lane_preflight_completion_does_not_carry_pass_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    seen: list[str] = []
+    runners = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["lane-preflight"] = design_loop.run_lane_preflight_stage
+    _patch_runners(monkeypatch, runners)
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+    )
+
+    assert result["ok"] is True
+    preflight = result["results"][1]
+    assert preflight["stage_id"] == "lane-preflight"
+    assert preflight["preflight_status"] == "declarations_complete"
+    assert preflight["pass_evidence"] is False
+    assert preflight["record_class"] == "L3"
+    assert "silkscreen-resolve" in seen
+
+
+def test_fixture_generation_reports_missing_declarations_without_completing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    spec = tmp_path / "fixture-spec.json"
+    spec.write_text(
+        json.dumps({"design_name": "bare", "graph_id": "bare"}), encoding="utf-8"
+    )
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    result = run_design_loop(
+        tmp_path / "fixture",
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        fixture_spec=spec,
+    )
+
+    generation = result["results"][0]
+    assert generation["stage_id"] == "fixture-generation"
+    assert generation["lane_preflight_status"] == "declarations_incomplete"
+    kinds = {item["kind"] for item in generation["missing_declarations"]}
+    assert "mechanical.silk_text" in kinds
+    assert "silk_texts[].attrs" in generation["next_step_action"]
+    graph = json.loads((tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8"))
+    assert not [n for n in graph["nodes"] if n["kind"] == "mechanical.silk_text"]

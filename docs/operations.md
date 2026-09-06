@@ -339,6 +339,13 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    出力は宣言順に戻して失敗をすべて報告する。`--list`は各commandとbarrier属性をJSONで
    表示する。全実行のL3観測は`out/timing-record.json`へ保存し、各laneの直接実行も
    lane別`timing-record.json`を出力する。
+   timing record（schema 0.2）の`stages[].duration_seconds`はstage個別の所要時間、
+   `stage_duration_sum_seconds`はその合計、`wall_clock_seconds`は`TimingRecorder`生成から
+   record書き出しまでのrun全体の経過時間である。laneを並列実行すると合計はwall-clockを
+   上回るため、所要時間の報告には`wall_clock_seconds`を使い、合計を経過時間として
+   読まない。`scripts/report_progress.py`のdigestは両値を別々に表示し、常に
+   「authoritative Evidence: unverified」の行を含む。digestやtiming recordを根拠に
+   合格や発注可を述べず、`scripts/verify_authoritative_evidence.py`の結果を提示する。
    基板のDSN exportとFreeRouting SES生成物は、明示した`--cache-dir`へ入力hash単位で
    保存できる。例えば途中失敗後の再開は次のように実行する。
 
@@ -1721,6 +1728,11 @@ container実行のtimeout境界は`run_in_workspace.py`の引数で明示する�
 エラーへ含める。`WorkspaceResult`は失敗種別（`timeout`、`transport`、`command`）を保持し、
 runnerは失敗種別を出力して非ゼロ終了する。retryはdigest固定pullとfile downloadに限り、
 gate実行とEvidence生成は再試行しない。
+commandが非ゼロで終了した場合も、runnerは宣言済み`--download`を1回ずつ試みて回収できた
+成果物をhostへ置き、回収できなかったfileは`download_errors`（stderrの
+`download not retrieved:`）へ記録する。exit codeと失敗種別`command`は維持され、downloadの
+成否は判定へ影響しない。部分的な回収を成功として読まず、tarとexit 0で失敗を包む回避策も
+使わない。transport失敗とtimeoutではdownloadを試みない。
 
 `--graph`で指定したDesign Graphから、未指定のcommandとdownload pathを導出する。
 graphのmissing、parse failure、または不正な`graph_id`ではGD1へfallbackせず停止する。

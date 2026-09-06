@@ -425,8 +425,11 @@ def test_bundled_source_stops_when_contracts_are_missing(
     )
 
     assert result.exit_code == 1
-    assert result.downloaded_files == ()
-    assert _MissingContractsWorkspace.instances[0].downloads == []
+    assert result.failure_kind == "command"
+    assert result.downloaded_files == (
+        tmp_path / "out/container/gd1/evidence-electrical.json",
+    )
+    assert len(_MissingContractsWorkspace.instances[0].downloads) == 1
 
 
 def test_runner_rejects_unknown_workspace_source(
@@ -634,3 +637,68 @@ def test_runner_does_not_retry_command_execution(
 
     assert result.failure_kind == "command"
     assert len(_CountingWorkspace.instances[0].commands) == 1
+
+
+def test_runner_downloads_declared_files_after_command_failure_and_keeps_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _FailingWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            return SimpleNamespace(
+                exit_code=3, stdout="", stderr="gate failed", timeout_occurred=False
+            )
+
+        def file_download(self, source: str, destination: Path) -> SimpleNamespace:
+            self.downloads.append((source, destination))
+            if source.endswith("missing.json"):
+                return SimpleNamespace(success=False, error="no such file")
+            return SimpleNamespace(success=True, error=None)
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "b" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-tools-gates:local",
+        command="false",
+        repository=tmp_path,
+        download_files=("out/gd1/verdict.json", "out/gd1/missing.json"),
+        workspace_factory=_FailingWorkspace,
+        sleep=lambda _seconds: None,
+    )
+    assert result.exit_code == 3
+    assert result.failure_kind == "command"
+    assert result.downloaded_files == (tmp_path / "out/container/gd1/verdict.json",)
+    assert len(result.download_errors) == 1
+    assert "missing.json" in result.download_errors[0]
+
+
+def test_runner_skips_downloads_after_transport_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _TransportWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            return SimpleNamespace(
+                exit_code=-1, stdout="", stderr="lost", timeout_occurred=False
+            )
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "b" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-tools-gates:local",
+        command="true",
+        repository=tmp_path,
+        download_files=("out/gd1/verdict.json",),
+        workspace_factory=_TransportWorkspace,
+    )
+    assert result.failure_kind == "transport"
+    assert result.downloaded_files == ()
+    assert result.download_errors == ()

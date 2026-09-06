@@ -15,7 +15,7 @@ from acd.schema.common import canonical_json_sha256
 def test_timing_record_is_l3_with_stable_shape(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    clock = iter([1.0, 1.25, 2.0, 2.5])
+    clock = iter([0.5, 1.0, 1.25, 2.0, 2.5, 3.0])
     monkeypatch.setattr("acd.core.runtime_records.time.perf_counter", lambda: next(clock))
     recorder = TimingRecorder()
     recorder.start("first")
@@ -30,6 +30,8 @@ def test_timing_record_is_l3_with_stable_shape(
         {"name": "first", "duration_seconds": 0.25, "start_order": 0},
         {"name": "second", "duration_seconds": 0.5, "start_order": 1},
     ]
+    assert body["stage_duration_sum_seconds"] == 0.75
+    assert body["wall_clock_seconds"] == 2.5
     content_hash = body.pop("content_sha256")
     assert content_hash == canonical_json_sha256(body)
 
@@ -84,3 +86,21 @@ def test_timing_record_owner_is_hashed_and_optional(tmp_path: Path) -> None:
     unowned_path = write_timing_record(tmp_path / "unowned", unowned)
     unowned_body = json.loads(unowned_path.read_text(encoding="utf-8"))
     assert "owner" not in unowned_body
+
+
+def test_timing_record_separates_wall_clock_from_stage_duration_sum(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # created, a.start, b.start, a.finish, b.finish, wall clock at write
+    clock = iter([0.0, 1.0, 1.0, 3.0, 3.0, 3.5])
+    monkeypatch.setattr("acd.core.runtime_records.time.perf_counter", lambda: next(clock))
+    recorder = TimingRecorder()
+    recorder.start("a")
+    recorder.start("b")
+    recorder.finish("a")
+    recorder.finish("b")
+    body = json.loads(write_timing_record(tmp_path, recorder).read_text(encoding="utf-8"))
+    assert body["stage_duration_sum_seconds"] == 4.0
+    assert body["wall_clock_seconds"] == 3.5
+    assert body["record_class"] == "L3"
+    assert body["pass_evidence"] is False

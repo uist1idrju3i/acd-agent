@@ -7,6 +7,11 @@ import json
 import sys
 from pathlib import Path
 
+from acd.core.lane_preflight import (
+    missing_declaration_action,
+    missing_declarations,
+    run_lane_preflight,
+)
 from acd.pipeline.fixture_builder import FixtureBuilderError, build_design_fixture
 from acd.schema import DesignFixtureSpec
 
@@ -32,14 +37,24 @@ def main() -> int:
     except (OSError, json.JSONDecodeError, TypeError, ValueError, FixtureBuilderError) as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False))
         return 2
+    # Diagnostic L3 preflight: names the declarations the spec still lacks so
+    # the design input can be completed before the loop stops at its entry.
+    preflight = run_lane_preflight(graph)
+    report: dict[str, object] = {
+        "status": "written",
+        "graph_id": graph.graph_id,
+        "revision": graph.revision,
+        "out": str(args.out),
+        "lane_preflight_status": preflight.status,
+    }
+    if preflight.status != "declarations_complete":
+        report["missing_declarations"] = [
+            item.model_dump(mode="json") for item in missing_declarations(preflight)
+        ]
+        report["next_step_action"] = missing_declaration_action(preflight)
     print(
         json.dumps(
-            {
-                "status": "written",
-                "graph_id": graph.graph_id,
-                "revision": graph.revision,
-                "out": str(args.out),
-            },
+            report,
             ensure_ascii=False,
             sort_keys=True,
         )

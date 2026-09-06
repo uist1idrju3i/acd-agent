@@ -26,6 +26,12 @@ from acd.core.exploration import (
     explore_firmware_candidates,
     load_remediation_requests,
 )
+from acd.core.lane_preflight import (
+    LANE_REQUIREMENTS,
+    missing_declaration_action,
+    missing_declarations,
+    run_lane_preflight,
+)
 from acd.core.lane_recovery import (
     LaneRecoveryDeclarationError,
     LaneRecoveryDeclarations,
@@ -453,12 +459,77 @@ def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
         )
     except Exception as exc:
         return _failure("fixture-generation", f"{type(exc).__name__}: {exc}")
+    # Diagnostic only: the fixture was written, and the loop entry preflight
+    # decides whether the lanes may run. Reporting the gaps here lets a design
+    # input be completed without waiting for that stop.
+    preflight = run_lane_preflight(graph, _preflight_lanes())
+    diagnostics: dict[str, Any] = {"lane_preflight_status": preflight.status}
+    if preflight.status != "declarations_complete":
+        diagnostics["missing_declarations"] = [
+            item.model_dump(mode="json") for item in missing_declarations(preflight)
+        ]
+        diagnostics["next_step_action"] = missing_declaration_action(preflight)
     return _success(
         "fixture-generation",
         graph_id=graph.graph_id,
         revision=graph.revision,
         overwrite=config.fixture_overwrite,
         output_path=str(config.fixture_dir),
+        **diagnostics,
+    )
+
+
+def _preflight_lanes() -> tuple[str, ...]:
+    return tuple(
+        lane
+        for lane in ("silkscreen-resolve", *DESIGN_LOOP_LANE_IDS)
+        if lane in LANE_REQUIREMENTS
+    )
+
+
+def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
+    """Stop before the gates when a planned lane lacks declarations.
+
+    The preflight is an L3 diagnostic: `declarations_complete` only lets the
+    gates run; it never stands in for a gate verdict. An incomplete result fails
+    closed and names the declarations the design input has to add; nothing is
+    auto-completed.
+    """
+    output_path = config.lane_plan.stage("lane-preflight").output_path
+    try:
+        graph = _load_graph(config.fixture_dir)
+        report = run_lane_preflight(graph, _preflight_lanes())
+        if output_path is not None:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(
+                report.model_dump_json(indent=2) + "\n", encoding="utf-8"
+            )
+    except Exception as exc:
+        return _failure(
+            "lane-preflight",
+            f"{type(exc).__name__}: {exc}",
+            record_class="L3",
+        )
+    fields: dict[str, Any] = {
+        "record_class": "L3",
+        "diagnostic_only": True,
+        "graph_id": graph.graph_id,
+        "revision": graph.revision,
+        "preflight_status": report.status,
+        "preflight_lanes": list(_preflight_lanes()),
+        "output_path": str(output_path) if output_path is not None else None,
+    }
+    if report.status == "declarations_complete":
+        return _success("lane-preflight", **fields)
+    action = missing_declaration_action(report)
+    return _failure(
+        "lane-preflight",
+        "lane declarations are missing (fail-closed); see next_step_action",
+        missing_declarations=[
+            item.model_dump(mode="json") for item in missing_declarations(report)
+        ],
+        next_step_action=action,
+        **fields,
     )
 
 
@@ -537,6 +608,7 @@ def _resolve_evaluated_at(value: datetime | None) -> datetime:
 
 DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
     "requirement-entry-validation": _run_requirement_entry_validation,
+    "lane-preflight": run_lane_preflight_stage,
     "silkscreen-resolve": _run_silkscreen,
     "board-pipeline": _run_board,
     "enclosure-pipeline": _run_enclosure,
@@ -939,6 +1011,13 @@ def run_design_loop(
             once_results.append(requirement_entry)
             if not requirement_entry.get("ok") or requirement_entry.get("fail_closed"):
                 return once_results, requirement_entry
+            preflight = run_stage(
+                "lane-preflight",
+                timing_prefix=timing_prefix,
+            )
+            once_results.append(preflight)
+            if not preflight.get("ok") or preflight.get("fail_closed"):
+                return once_results, preflight
             silkscreen = run_stage(
                 "silkscreen-resolve",
                 timing_prefix=timing_prefix,
@@ -1359,6 +1438,8 @@ def run_design_loop(
                     "results": results,
                 }
             )
+            if isinstance(failed.get("next_step_action"), str):
+                result["next_step_action"] = failed["next_step_action"]
             rerun = _recovery_rerun_arguments(
                 failed, max_exploration_candidates, max_exploration_rounds
             )
