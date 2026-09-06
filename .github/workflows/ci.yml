@@ -52,9 +52,13 @@ jobs:
       - name: Lint GitHub Actions workflows
         run: |
           set -euo pipefail
-          curl -sSL \
-            https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_amd64.tar.gz \
-            | tar xz -C "$RUNNER_TEMP" actionlint
+          actionlint_archive="$RUNNER_TEMP/actionlint_1.7.12_linux_amd64.tar.gz"
+          curl -fsSL \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            -o "$actionlint_archive"
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $actionlint_archive" \
+            | sha256sum --check
+          tar xzf "$actionlint_archive" -C "$RUNNER_TEMP" actionlint
           "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= .github/workflows/*.yml
       - name: Fast or standard verification
         env:
@@ -185,7 +189,7 @@ jobs:
           python-version: "3.12"
       - name: Restore ACD workspace caches
         if: github.event_name == 'push'
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/acd-cache
           key: acd-cache-${{ runner.os }}-${{ hashFiles('uv.lock') }}

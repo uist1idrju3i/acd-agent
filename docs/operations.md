@@ -845,6 +845,45 @@ uv run python scripts/check_dependency_updates.py --markdown out/dependency-upda
 
 SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajorに対応するrepositoryと新しいmajorの有無を確認する。apt/PPA由来のツールはinstall済みversionを`docker/image-digests.json`の`tools`へpublish時に記録し、KiCad（kicad-source-mirror tag）、ngspice（SourceForge best release）、cmake、ninja、ccache、git、Python（cpython tag）の上流版と照合する。versionを記録しないaptパッケージ（fonts、`libcairo2`等）は個別確認せず、Ubuntu base imageの確認に従う。ESP-IDFの`idf_tools.py`が解決するtoolchain binaryはESP-IDF tagで固定されるため個別確認しない。Skill scriptのPEP 723 `acd @ git+…@<sha>` refは`update-skill-package-ref.yml`が管理するため対象外とし、vendor内SDKのagent-server base imageも対象外とする。新しいimage toolを`docker/image-digests.json`の`tools`へ記録する場合は`TOOL_UPSTREAM_SPECS`へ上流取得元を追加する。更新候補が無くなると、対応するIssueはworkflowが自動でcloseする。自動更新PRは作成せず、更新時は本書と`AGENTS.md`の手順に従う。
 
+#### 2026-09 更新記録
+
+- **pydantic 2.13.5**
+  - 一次情報: [Pydantic v2.13.5 release](https://github.com/pydantic/pydantic/releases/tag/v2.13.5)
+  - 破壊的変更/新機能: validator再利用、`pydantic-core`のGC traversal、smart unionの修正。破壊的変更は確認されなかった。
+  - 採否: 採用。修正のみで、Pydanticモデル契約への変更はない。
+- **ruff 0.16.6**
+  - 一次情報: [Ruff 0.16.6 release](https://github.com/astral-sh/ruff/releases/tag/0.16.6)
+  - 破壊的変更/新機能: preview rule分類、`PT020` autofix、`I001` pragma除外等。新しいMarkdown fenced Python code block format機能は、略記snippetを含む文書を変更するため不採用とした。
+  - 採否: 採用。`pyproject.toml`の`include`をPythonと`pyproject.toml`に限定し、Markdownはformat対象外とする。
+- **actions/cache v6.1.0**
+  - 一次情報: [actions/cache v6.1.0 release](https://github.com/actions/cache/releases/tag/v6.1.0)、[README](https://github.com/actions/cache/blob/v6.1.0/README.md)
+  - 破壊的変更/新機能: v5からNode 24 runtime、Actions Runner 2.327.1以上。v6はESM移行、v6.1.0はread-only cache access対応を含む。
+  - 採否: 採用。GitHub-hosted runnerのためNode 24/runner 2.327.1以上の要件は充足する。
+- **actionlint v1.7.12**
+  - 一次情報: [actionlint v1.7.12 release](https://github.com/rhysd/actionlint/releases/tag/v1.7.12)
+  - 破壊的変更/新機能: `on.schedule.timezone`のIANA timezone検証、environment deployment、macOS 26 Intel runner label対応。Go 1.24対応は終了した。
+  - 採否: 採用。現行workflowはtimezone等を使わず、検査への影響はない。
+- **uv.lock間接依存**
+  - 一次情報: `uv lock --upgrade --dry-run`および各PyPI metadata。
+  - 破壊的変更/新機能: 多数の更新に加え、fastmcp 4、mcp 2、protobuf 7のmajor候補がある。
+  - 採否: 更新は採用するが、fastmcp/mcp/protobuf majorはOpenHands SDK 1.44.1がそれぞれ3/1系でリリースされMCP経路を検証していないため、`[tool.uv] constraint-dependencies`で保留する。
+- **cadquery-ocp 8.x**
+  - 一次情報: [build123d PyPI metadata](https://pypi.org/pypi/build123d/json)、[cadquery-ocp PyPI metadata](https://pypi.org/pypi/cadquery-ocp/json)
+  - 破壊的変更/新機能: build123d 0.11.1が`cadquery-ocp-novtk<8.0`を要求する。
+  - 採否: 保留。build123d側に8.xを許可する新しいpre-releaseがないため、cadquery-ocpだけを8.xへ更新しない。
+- **Python 3.14**
+  - 一次情報: [CPython releases](https://github.com/python/cpython/tags)
+  - 破壊的変更/新機能: checkerでは新しいminor seriesを検出するが、SDK/pyproject targetはPython 3.12である。DockerのPython 3.14はtools用である。
+  - 採否: 保留。SDKと`pyproject.toml`のtargetを3.14へ変更する別検証が必要。
+- **Ubuntu 26.10**
+  - 一次情報: [Ubuntu Docker tags](https://hub.docker.com/_/ubuntu)
+  - 破壊的変更/新機能: 26.10はLTSではなく、28.04はLTS seriesである。
+  - 採否: 不採用。リポジトリ標準をLTSに限定し、checkerも偶数年の`YY.04`だけを比較する。
+- **Docker ARG**
+  - 一次情報: [FreeRouting v2.4.1](https://github.com/freerouting/freerouting/releases/tag/v2.4.1)、[uv 0.12.10](https://github.com/astral-sh/uv/releases/tag/0.12.10)、[Semeru 27 releases](https://github.com/ibmruntimes/semeru27-binaries/releases)
+  - 破壊的変更/新機能: FreeRoutingはJava 25 build baseline、uvはlock/publish改善、Semeru 27は調査時点でGAなし。
+  - 採否: FreeRouting 2.4.1、uv 0.12.10、Semeru 27のDocker ARG更新は別PRで扱う。
+
 ### リリース手順
 
 リリース前に、対象タグの作成・push権限とrulesetを確認する。タグ作成はrulesetで

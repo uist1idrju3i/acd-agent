@@ -643,7 +643,11 @@ def check_docker_base(
         url = next_url
     else:
         raise ValueError("Docker Hub pagination exceeded 20 pages")
-    latest, latest_values = _highest_stable_tag(tags, re.compile(r"^(\d{2})\.(\d{2})$"))
+    latest, latest_values = _highest_stable_tag(
+        tags,
+        re.compile(r"^(\d{2})\.(\d{2})$"),
+        exclude=lambda _tag, values: values[0] % 2 != 0 or values[1] != 4,
+    )
     return [
         DependencyStatus(
             "docker-base",
