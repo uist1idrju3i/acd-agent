@@ -38,7 +38,7 @@ Strudel（TidalCyclesのJS移植、AGPL-3.0-or-later）、TidalCycles・FoxDot�
 SuperCollider・ChucK（GPL）、Sonic Pi、Gibber・Glicol（MIT）、music21（BSD）、
 mido／pretty_midi、ACE-Step・YuE（Apache-2.0 GPU生成モデル）、MusicGen（重みCC-BY-NC）、
 Stable Audio Open（Community License）を比較した。GPL/AGPLのimport結合禁止、再現性、
-標準ライブラリ完結を満たすのは「Strudelパターン構文のテキスト生成 + 自前MIDI書き出し」
-だけであり、Strudelは結合せず公開構文だけを使う。LLM提案は許可関数・許可音源・
-危険トークンのwhitelist検査で受理判定し、幻覚関数名・未知sample名を停止側へ倒す
-（ADR-0048）。
+標準ライブラリ完結を満たすのは自前MIDI書き出しだけであり、Strudel等の再生環境依存形式は
+生成しない。作曲はLLMが構造化JSON（調・テンポ・音符列・ドラム）で提案し、範囲・識別子・
+時間軸のcontract検査を通った提案だけを決定論的にMIDIへレンダリングする。提案が無い場合は
+graph hashをseedとするcomposerへfallbackする（ADR-0048）。

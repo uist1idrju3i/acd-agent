@@ -1,12 +1,11 @@
 ---
 name: acd-theme-song
-description: Compose a deterministic product theme song (jingle) for a design graph as Strudel pattern text and a Standard MIDI File, and validate agent-proposed Strudel patterns against an allowed surface.
-version: 0.1.0
+description: Compose a product theme song (jingle) for a design graph as a Standard MIDI File. The agent writes a theme song proposal JSON (key, tempo, tracks, notes, drums); the Skill validates it strictly and renders MIDI, falling back to a deterministic graph-derived song when no proposal exists.
+version: 0.2.0
 license: BSD-3-Clause
 triggers:
   - theme song
   - jingle
-  - strudel
   - midi
   - テーマソング
   - ジングル
@@ -15,89 +14,127 @@ triggers:
 
 # ACD theme song
 
-Every product release deserves a theme song. This Skill composes a short
-jingle for a design graph and writes it as Strudel pattern text
-(`theme-song.strudel.js`) and a Standard MIDI File (`theme-song.mid`). The
+Every product release deserves a theme song. This Skill turns a design graph
+into a short jingle written as a Standard MIDI File (`theme-song.mid`). The
 song is an L3 artifact: it presents the design, cannot approve it, never flows
 back into design inputs, and is not Evidence.
 
 The GD1 board pipeline (`src/acd/pipeline/theme_song.py`) runs this CLI as a
 subprocess in its projection stage, checks that two runs reproduce identical
-bytes, and ships `theme-song/theme-song.mid`, `theme-song/theme-song.strudel.js`
-and `theme-song-projection.json` as projection deliverables alongside the
-Gerbers, registered in `hashes.json` but never in Evidence or the fab package.
+bytes, and ships `theme-song/theme-song.mid` and `theme-song-projection.json`
+as projection deliverables alongside the Gerbers, registered in `hashes.json`
+but never in Evidence or the fab package.
 
 | Script | Purpose |
 | --- | --- |
-| `theme_song.py` | Composition library: graph summary, seed, score, Strudel renderer, MIDI writer, validator, provenance. |
-| `compose_theme_song.py` | Deterministic composer CLI (L3). Writes `.strudel.js`, `.mid` and provenance. |
-| `validate_theme_song_proposal.py` | L2 path: checks an agent-proposed Strudel pattern and records it only when accepted. |
+| `theme_song.py` | Composition library: graph summary, deterministic composer, proposal validator, MIDI writer/reader, provenance. |
+| `compose_theme_song.py` | CLI. Renders an agent proposal (`--proposal`) or the deterministic song; writes `.mid` and provenance. |
 
-## Usage
+## Composing as an agent (the expected path)
+
+You, the agent, compose the song. The Skill does not call a model; it validates
+what you write and renders it. Work in three steps:
+
+1. Read the design graph (`graph_id`, `revision`, requirements, components,
+   nets, firmware states) and decide what the product should sound like: mood,
+   key, tempo, motif, arrangement. Write that reasoning into `rationale`.
+2. Optionally start from the deterministic draft to get the contract filled in:
+
+   ```bash
+   uv run python plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py \
+       --graph fixtures/golden-design-1/graph.json \
+       --out-dir out/theme-song-draft \
+       --proposal-out out/theme-song-draft/theme-song.proposal.json
+   ```
+
+   Edit the notes, tracks, tempo and title freely; only the contract below is
+   enforced.
+3. Render and check the proposal. Rejections list every reason and write no
+   artifact; fix the proposal and rerun.
+
+   ```bash
+   uv run python plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py \
+       --graph fixtures/golden-design-1/graph.json \
+       --proposal out/theme-song-draft/theme-song.proposal.json \
+       --out-dir out/theme-song
+   ```
+
+To adopt the song for a design, save the accepted proposal as
+`theme-song.json` next to that design's `graph.json` (for example
+`fixtures/golden-design-1/theme-song.json`). The board pipeline renders that
+file (`source: agent_proposal`) and records its hash in the projection; when
+the file is absent it falls back to the deterministic composer
+(`source: deterministic`). The proposal is a design input in git like any other
+fixture, so changing it changes the projection hash.
+
+### Proposal contract (`theme_song_proposal` 0.1)
+
+```json
+{
+  "artifact_kind": "theme_song_proposal",
+  "schema_version": "0.1",
+  "pass_evidence": false,
+  "graph_id": "golden-design-1",
+  "target_revision": "r1",
+  "title": "Golden Design Fanfare",
+  "rationale": "Why this music represents the product.",
+  "bpm": 120,
+  "bars": 16,
+  "key": "c major",
+  "tracks": [
+    {"name": "Melody", "channel": 0, "program": 80,
+     "notes": [{"bar": 0, "step": 0, "length": 2, "pitch": "c5", "velocity": 96}]}
+  ],
+  "drums": [{"bar": 0, "step": 0, "sound": "bd"}]
+}
+```
+
+- `graph_id` and `target_revision` must equal the graph's; `pass_evidence`
+  must be `false`.
+- `bpm` 92..140; `bars` a multiple of 4 in 4..64; `key` non-empty text.
+- 1..8 tracks with unique names (`[A-Za-z0-9 _-]`, up to 32 chars), unique
+  MIDI `channel` 0..15 excluding 9 (drums), `program` 0..127.
+- Each note: `bar` in `0..bars-1`, `step` 0..15 (16 steps per bar), `length`
+  1..64 steps ending within the song, `pitch` as a MIDI number 0..127 or a
+  name such as `f#4`/`bb3`, `velocity` 1..127. No track may repeat the same
+  pitch at the same step. At least 8 notes in total; at most 4096 events.
+- Drums use channel 9 and the General MIDI names `bd sd hh oh cp rim lt mt
+  ht cr rd`.
+
+Acceptance judges the proposal text only; it never approves the design.
+
+## Deterministic fallback
+
+Without `--proposal` the song is derived from the graph:
+
+- Seed `sha256(canonical_graph_json_hash + "\0" + salt)`; identical graph and
+  salt give byte-identical MIDI, any graph change changes the song.
+- Mode (major/minor), key, tempo (92..140 bpm) and chord progression come from
+  the requirement, component, net and firmware-state counts; the motif from
+  `graph_id`. Sections: intro, verse, lift (transposed a semitone), outro.
+  Rhythms are Euclidean patterns.
 
 ```bash
-# Deterministic jingle for the golden design (16 bars by default).
 uv run python plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py \
-    --graph fixtures/golden-design-1/graph.json \
-    --out-dir out/theme-song
-
-# Variation with the same graph: mix a salt into the seed.
-uv run python plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py \
-    --graph fixtures/golden-design-1/graph.json \
-    --out-dir out/theme-song-v2 --salt v2 --bars 32
-
-# Agent-proposed Strudel pattern (L2). Rejected proposals write nothing.
-uv run python plugins/acd/skills/acd-theme-song/scripts/validate_theme_song_proposal.py \
-    --graph fixtures/golden-design-1/graph.json \
-    --proposal out/theme-song/proposal.strudel.js \
-    --out-dir out/theme-song
-
-# Skill tests (kept separate from the ACD test suite).
+    --graph fixtures/golden-design-1/graph.json --out-dir out/theme-song --salt v2 --bars 32
 uv run pytest plugins/acd/skills/acd-theme-song -q
 ```
 
-Play the result by pasting `theme-song.strudel.js` into <https://strudel.cc>,
-or open `theme-song.mid` in any DAW or MIDI player.
+Open `theme-song.mid` in any DAW or MIDI player.
 
-## How the song is derived
+## MIDI, provenance and fail-closed behaviour
 
-- The seed is `sha256(canonical_graph_json_hash + "\0" + salt)`. The same
-  graph and salt produce byte-identical `.strudel.js` and `.mid`; any graph
-  change changes the song.
-- Mode (major/minor), key, tempo (92..140 bpm) and chord progression come from
-  the graph structure (requirement, component, net and firmware-state counts).
-  The melodic motif is derived from the `graph_id`.
-- Sections: intro (bass and kick), verse, lift (melody transposed a semitone),
-  outro on the tonic. Rhythms are Euclidean patterns.
-- The Strudel output uses only a small documented surface (`setcps`, `stack`,
-  `note`, `s`, `gain`, `lpf`, `room`, ...) and built-in sounds
-  (`triangle`, `sawtooth`, `square`, `bd`, `sd`, `hh`). The MIDI output is
-  format 1, 480 ticks per beat, with melody, chord, bass and drum tracks. The
-  composer re-reads its own MIDI to confirm every note-on has a note-off.
+The MIDI is format 1, 480 ticks per beat, one track per proposal track plus a
+drum track on channel 9. The composer re-reads its own bytes to confirm every
+note-on has a note-off before writing.
 
-## Provenance and fail-closed behaviour
-
-Both scripts write `<artifact>.provenance.json` with `pass_evidence: false`,
-the graph `graph_id`/`revision`, the canonical input hash, the generator script
-hash, every artifact hash, the composition parameters (or proposal hash) and
-the licence (`BSD-3-Clause`, same as the repository).
+`theme-song.provenance.json` records `pass_evidence: false`, `source`
+(`deterministic` or `agent_proposal`), `composer_id`, the graph
+`graph_id`/`revision`, canonical and file hashes of the graph, the proposal
+path and hash when used, the generator script hash, the MIDI hash, the
+composition parameters and the licence (`BSD-3-Clause`).
 
 Generation stops instead of producing a song when the graph is not a JSON
 object, `graph_id`/`revision`/`nodes` are missing, a node lacks `id`/`kind`,
-the bar count is not a multiple of 4 within 4..64, or the self-check of the
-generated Strudel/MIDI fails.
-
-A proposal is rejected (all reasons listed) when it contains executable or
-external-access tokens (`import`, `require`, `fetch`, `eval`, `samples`,
-`${`, ...), calls a function outside the allowed surface, uses a sound outside
-the allowed list, lacks `setcps(...)` or sets a tempo outside 92..140 bpm, has
-unbalanced delimiters, uses mini-notation characters outside the whitelist, or
-produces no `note`/`n`/`s` events. Acceptance is a pattern-text check only; it
-does not approve the design.
-
-## Licence boundary
-
-Strudel (<https://strudel.cc>, AGPL-3.0-or-later) is not imported, bundled or
-executed by this Skill. The Skill generates text in Strudel's public pattern
-syntax, which the user pastes into the Strudel REPL. The generated artifacts
-are original output of this repository and carry the repository licence.
+the bar count is invalid, the proposal violates the contract, or the MIDI
+self-check fails. Only the Python standard library is used.

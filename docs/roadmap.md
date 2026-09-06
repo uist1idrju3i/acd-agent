@@ -102,7 +102,7 @@ wall-clock記録、14.20、14.21、15.14〜15.19、および計画段階のマ�
 | 9.3 | 品質文書生成SKILL | ゲート結果（ERC/DRC/DFM/機械/FW）、rationale coverage、authoritative Evidence、既知の未実装チェック一覧から検査成績書・トレーサビリティレポートを生成する。Evidence欠落・revision不一致は生成失敗として停止する |
 | 9.4 | レビュー資料生成SKILL | レビューチェックリスト、視覚投影一式、前revisionとのgraph差分、DRC/DFM所見の要約を1パッケージへまとめ、`acd-reviewer`agentの入力にする |
 | 9.5 | 多言語出力 | 9.1〜9.4の文書を日本語・英語で再現可能に生成する（テンプレート分離、値の翻訳はしない） |
-| 9.6 | テーマソング生成SKILL | Design Graphから製品専用ジングルを決定論的に作曲し、StrudelパターンテキストとMIDIをprovenance付きで生成する。agent提案のStrudelはwhitelist検査で受理判定する（ADR-0048） |
+| 9.6 | テーマソング生成SKILL | LLM agentが製品専用ジングルを構造化JSONで提案し、Skillが契約検査してMIDIへ決定論的にレンダリングする。提案が無ければgraph由来の決定論composerへfallbackし、provenance付きで生成する（ADR-0048） |
 
 9.1と9.2は`acd-product-docs` Skill、9.6は`acd-theme-song` Skillとして実装済みで、
 9.3〜9.5は計画である。

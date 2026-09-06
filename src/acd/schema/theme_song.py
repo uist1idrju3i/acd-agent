@@ -19,7 +19,8 @@ from acd.schema.common import (
     canonical_json_sha256,
 )
 
-ThemeSongMediaType = Literal["audio/midi", "text/javascript"]
+ThemeSongMediaType = Literal["audio/midi"]
+ThemeSongSource = Literal["deterministic", "agent_proposal"]
 ThemeSongRegenerationStatus = Literal["reproduced", "not_reproduced", "unknown"]
 
 
@@ -88,6 +89,8 @@ class ThemeSongProjection(AcdModel):
     graph_id: NonEmptyStr
     source_revision: Revision
     graph_input: ThemeSongArtifactInput
+    source: ThemeSongSource
+    proposal_input: ThemeSongArtifactInput | None = None
     skill_name: Literal["acd-theme-song"] = "acd-theme-song"
     skill_script_path: NonEmptyStr
     skill_script_sha256: Sha256
@@ -96,7 +99,8 @@ class ThemeSongProjection(AcdModel):
     bpm: int = Field(ge=1)
     bars: int = Field(ge=1)
     key: NonEmptyStr
-    artifacts: list[ThemeSongArtifact] = Field(min_length=2)
+    title: NonEmptyStr
+    artifacts: list[ThemeSongArtifact] = Field(min_length=1)
     regeneration_check: ThemeSongRegenerationCheck
     canonical_hash: HashOrUnknown = "unknown"
 
@@ -112,9 +116,10 @@ class ThemeSongProjection(AcdModel):
             raise ValueError("theme song artifact paths must be unique")
         if paths != sorted(paths):
             raise ValueError("theme song artifacts must be sorted by path")
-        media_types = {artifact.media_type for artifact in self.artifacts}
-        if media_types != {"audio/midi", "text/javascript"}:
-            raise ValueError("theme song projection requires one MIDI and one Strudel artifact")
+        if [artifact.media_type for artifact in self.artifacts] != ["audio/midi"]:
+            raise ValueError("theme song projection requires exactly one MIDI artifact")
+        if (self.source == "agent_proposal") != (self.proposal_input is not None):
+            raise ValueError("proposal_input is required exactly when source is agent_proposal")
         if self.regeneration_check.status != "reproduced":
             raise ValueError("theme song projection requires a reproduced regeneration check")
         if (
