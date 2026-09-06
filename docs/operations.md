@@ -888,10 +888,6 @@ SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajor�
   - 一次情報: [Ubuntu Docker tags](https://hub.docker.com/_/ubuntu)
   - 破壊的変更/新機能: 26.10はLTSではなく、28.04はLTS seriesである。
   - 採否: 不採用。リポジトリ標準をLTSに限定し、checkerも偶数年の`YY.04`だけを比較する。
-- **Docker ARG**
-  - 一次情報: [FreeRouting v2.4.1](https://github.com/freerouting/freerouting/releases/tag/v2.4.1)、[uv 0.12.10](https://github.com/astral-sh/uv/releases/tag/0.12.10)、[Semeru 27 releases](https://github.com/ibmruntimes/semeru27-binaries/releases)
-  - 破壊的変更/新機能: FreeRoutingはJava 25 build baseline、uvはlock/publish改善、Semeru 27は調査時点でGAなし。
-  - 採否: FreeRouting 2.4.1、uv 0.12.10、Semeru 27のDocker ARG更新は別PRで扱う。
 
 ### リリース手順
 
