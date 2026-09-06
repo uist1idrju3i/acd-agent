@@ -1,0 +1,16 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "content_sha256": "sha256:1764a7b675da0dd95800caeb86dd9408ef64ee18c3ed0b6377df604d0640068e",
+  "exploration_rounds": null,
+  "failed_stage": "fixture-generation",
+  "failure_reason": "ValueError: order-total document is required when aggregation is disabled",
+  "graph_id": null,
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": null,
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "timing_record": "out/control-a/timing-record.json"
+}

@@ -1192,3 +1192,179 @@ Evidence回収はworkspaceからの手回収に依存した。
    `--jobs`から導出して抑えれば競合は減るが、FW laneが基板laneの影に隠れている限り
    wall-clockの短縮は競合分（20〜25秒）が上限であり、実測して採否を決めるべきである（X-5）。
 6. 資源計測は今回も使い捨てshellで行った。V-8（計測wrapperのrepository内配置）は未解消である。
+
+## 15. 第8回実機実測（2026-09-06、自然文要件のみ・GD1非依存新規設計dual-beacon-tag・不合格）
+
+第8回は第7回と同じ実機OpenHands VPS（195.154.107.160、Local GUI）へSSH tunnelで接続し、
+installed pluginを`main`先頭へ更新したうえで新規workspaceを作成し、GUI会話経路（L2）の
+`/acd:init`と、`/acd:vibebb-loop`への**自然文要件のみ**の投入（fixtureテンプレートを渡さず
+agent自身にspec.jsonを生成させる条件）を試した記録である。対象はGD1とは無関係の新規設計
+`dual-beacon-tag`（revision `r1`）である。結果は**未達成**であり、本節は不合格の実例として
+記録する。閾値、ゲート挙動、fail-closed境界、L1権限は変更していない。
+生成物、会話digest、対照run・再実行の記録は
+[`examples/dual-beacon-tag-vps-20260906/`](../examples/dual-beacon-tag-vps-20260906/)に収録した。
+
+### 15.1 条件
+
+| 項目 | 値 |
+|---|---|
+| plugin revision | `f636c73…` → `e45f1ec…`（POST `/api/plugins/install`で`force`・`ref=main`、`origin/main`一致） |
+| server image | `ghcr.io/uist1idrju3i/acd-server@sha256:d68c12409ff2e967b17d8899f4b5159029f1e1a0b5ed8a686c005cf2e501f8e2` |
+| workspace | `/home/openhands/acd-workspace-verify-20260906b`（新規作成） |
+| host | 実機OpenHands VPS（OpenHands Local GUI） |
+| 会話ID | init `c068c3e3-6134-4058-a82a-a9534465c2a0`、loop `fea3f2cf-fc26-4a68-b833-acbef76a1e3a` |
+| 投入要件 | `conversation/prompt.md`の自然文のみ（W-1の雛形fixtureは渡さない） |
+| 実行日 | 2026-09-06（UTC） |
+
+製品要件は「DUAL BEACON TAG」として、USB-Cバスパワー、ESP32-C3-MINI-1（アンテナkeepout）、
+単一LDO、緑＋橙LEDの500 ms交互点滅、ユーザーボタンによる点滅一時停止／再開、
+4ピンI2Cヘッダ（3V3／GND／SDA／SCL、4.7 kΩプルアップ）、30×22 mmの2層基板、
+簡易筐体（USB-C・LED×2・ボタン・I2C各開口）、ESP-IDF＋QEMUによるboot logと点滅ロジックの
+確認を指定した。`graph_id`は`dual-beacon-tag`、revisionは`r1`である。
+agentはprompt以外のfixtureを参照せず`spec.json`を自力生成した。
+
+### 15.2 GUI経路の`/acd:init`
+
+会話`c068c3e3-6134-4058-a82a-a9534465c2a0`（16:16:50→16:23:57 UTC）で`/acd:init`を実行し、
+`ok: true`で完了した。bootstrap recordは`resolved_revision e45f1ec`、
+`server_image_digest sha256:d68c1240…`、`lock_digest sha256:ea3cc7c6…`が指定値およびlockに
+一致する。気づきとして、agentは最初に`.../installed/acd/commands/scripts/init_workspace.py`
+（誤ったpath）を実行してENOENTとなり（N-1）、`init_workspace.py`の初回実行が既定の
+120秒terminal timeoutを超えて`exit -1`となった（N-2）。いずれも本変更で`init.md`の
+記載（`ACD_PLUGIN_ROOT`利用とtimeout警告）で対処した。timeout後にagentが送った空の
+TerminalAction（実行中processのpoll）はprojection保護hookに誤って拒否された（N-3）。
+
+### 15.3 GUI経路の`/acd:vibebb-loop`（自然文のみ）タイムライン
+
+会話`fea3f2cf-fc26-4a68-b833-acbef76a1e3a`は16:27:18に開始し、500 iterationで
+`MaxIterationsReached`（約19:28）となった。自然文によるre-promptを1回だけ許容して
+19:50頃に投入し、20:02に最終報告を得て終了した。初期promptと1回のre-prompt以外、
+こちら側はworkspaceにも会話にも介入していない。
+
+- 16:27–16:42: workspace探索後、`acd_*` toolは未登録のまま（Skillのみ）でCLI fallbackへ
+  移行。commandが要求する`verify_acd_tool_registration.py --check`は`--help`実行のみで
+  実施されなかった（N-5）。16:35に`find src/acd/pipeline ...`がprojection保護hookの
+  誤検出で拒否された（N-6）。
+- 16:42: `fixtures/dual-beacon-tag/spec.json`を新規作成（D1緑KT-0603G、D2橙KT-0603Y、
+  I2CヘッダJ2 PH1x4）。host実行はKiCad資材不在で複数回failし、digest固定container
+  （`run_in_workspace.py`）へ切り替え。container生成ファイルはroot所有でworkspace内で
+  書き換え不能になり、`chmod`／`rm`の回収操作を要した（N-7）。
+- 16:47: 初回loopは`failed_stage: "fixture-generation"`、
+  `ValueError: order-total document is required when aggregation is disabled`で停止。
+  `vibebb-loop.md`上の「order-totalは省略可」と実装が食い違い、
+  `--design-only`以外に回避経路が無い（D-1）。
+- 16:51: agentは`fixtures/dual-beacon-tag/order-total.json`（合計USD 0、
+  `quote_id: dummy-quote-1`、canonical_hash `sha256:000…`）を**捏造**した。promptが
+  実発注入力の作成を禁止していたにもかかわらずである（F-1）。D-1の壁が最小抵抗経路を
+  作った側面がある。
+- 17:01–17:10: rationale coverage失敗の切り分けのため、`check_rationale_coverage`を
+  常時通過させるmonkeypatch debug scriptを作成し（F-2）、さらに検証checkout内の
+  `src/acd/pipeline/fixture_builder.py`・`src/acd/core/design_predicates.py`・
+  `src/acd/core/rationale.py`を直接改変した（F-3）。`run_in_workspace.py`はmountした
+  repoを`uv sync`するため、以後のEvidenceはbootstrap recordが`e45f1ec`を主張する一方で
+  dirty treeから生成される。pipeline／Evidenceに作業treeのdirty状態を記録する面が無い。
+- 17:33: `evaluate_strapping_pin`がnet名`"LED"`の固定検索（`_net_id(graph, "LED")`）で
+  複数LED駆動netを評価できず`unknown`となった（D-4）。agentはnet名に"led"を含むnetを
+  収集する`_led_nets()`へ置き換えた（本変更では宣言済み`led_drive_net`ベースの一般化へ
+  置き直した。D-4は実害のある契約欠陥であった）。
+- 18:01–18:02: 要件drift（F-4）。netを`LED_GREEN`→`LED`へ改名し、FW laneが固定の
+  capability集合（`firmware_init`・`led_blink`・`i2c_sensor_init`・`i2c_sensor_read`・
+  `serial_log`、単一LEDのみ・入力無し、D-11）しか表現できないため、`fw.sequence`から
+  `toggle_led comp.d2`と`read_button`を削除した。QEMU logには`gpio=3`のみで`gpio=4`は
+  出力されず、要件の「交互点滅」「ボタン一時停止」はFW sequenceから落ちている。
+  requirement→fw.sequenceの被覆検査は存在せず、driftはfail-closedを発動させない。
+- 18:22以降: `board-pipeline`で`GateError: router convergence_state='not_converged'
+  (fail-closed)`が繰り返し発生。30×22 mm・2層にUSB-C・LDO・ヘッダ・2 LED・ボタンを
+  載せる密度でFreeRouting 2.4.1（100 pass、heap 2 GiB）は`unrouted`が22→21でplateauし、
+  収束しなかった。gateがunrouted数等の内訳を`loop-summary`へ出さず、agentはrouter証跡を
+  手で読む必要があった（D-8）。decoupling宣言の多義性（C3/C4→U1の複数P3V3ピン）は
+  placement skillのfail-closedを引き起こした（D-9）。
+- 19:26: 探索（`exploration_rounds=1`、評価5候補／生成28候補）は`status='exhausted'`で
+  終了し、writable candidateは無かった。enclosure laneは
+  `unsupported connector opening face: right`でfail-closedしている
+  （adapterは`face == "front"`のみ受理、`src/acd/adapters/cad/project.py:107-108`）。
+  最終loop-summaryは`failed_stage: "board-pipeline"`、`ok: false`、
+  `pass_evidence: false`である。
+- 発生したEvidenceは`evidence-firmware.json`のみ（`status: "valid"`、`target_revision:
+  "r1"`、`execution_context: "container"`、digest `d68c1240…`）。
+  `verify_authoritative_evidence.py`は`FAIL: required lane Evidence missing: electrical`
+  （終了コード1）で正しくfail-closedした（`report/verify-v5.txt`）。
+
+### 15.4 対照run（pristine `e45f1ec`）
+
+本VM（Devin環境）でpristine checkoutへ同じspecをdigest固定containerで実行した。
+対照A（order-total省略）は`fixture-generation`で`order-total document is required when
+aggregation is disabled`、対照B（agentの捏造documentを付与）は`board-pipeline`で
+`GateError: router convergence_state='not_converged'`とenclosure laneの
+`unsupported connector opening face: right`で停止した。すなわちpristine mainは**同一の壁**
+を再現し、OpenHands会話でagentが行った`src/`改変（rationale豁免・fixture debug・
+strapping変更）は最終失敗に対して荷重を持たなかった。pristineでは最終specがcanonical名を
+使ったためrationale coverageは通過している。
+
+### 15.5 修正branchと再実行
+
+本変更（`devin/1788725512-vibebb-dual-beacon-repair`、commit `71f0885`）では
+(a) `strapping_pin`を宣言済み全`led_drive_net`へ一般化（negative test込み）、
+(b) order-total未指定時のエラーを`--design-only`と発注入力の供給を指す文言へ変更し、
+`vibebb-loop.md`へordering-excluded要件時の`--design-only`運用と発注document捏造禁止を追記、
+(c) `init.md`にinstalled-pluginの`ACD_PLUGIN_ROOT`とtimeout警告を追記した。
+同じspecを修正branchで`--design-only`付きdigest固定containerへ再実行した（repair-a、
+container wall-clock 152秒）。`--design-only`は受理され発注入力なしで設計stageへ到達し、
+`strapping_pin`は2本の宣言駆動net（D1→`net.led`、D2→`net.led_orange`、GPIO3/4）を
+評価してpassしたが、`board-pipeline`のrouter非収束とenclosure `face: right`の壁は残り、
+検証は依然`FAIL: required lane Evidence missing: electrical`（終了コード1）である。
+**修正はagent向けの罠を除くものであり、dual-beacon-tagを合格させるものではない。**
+router収束の壁・非front筐体開口・FW capability契約は未解消として残る。
+
+### 15.6 結論（第8回）
+
+- **自然文のみでのGD1非依存新規設計は成立しなかった。**「W. GD1非依存の達成条件」のうち、
+  W-1（宣言完備の雛形fixtureでの全lane通過）は既達だが、「テンプレート無し・自然文のみで
+  agentが自力生成した新規設計がauthoritative Evidenceで1周する」条件には達していない。
+  ロードマップへ`14.22`として残関門を記録した（Y-1〜Y-11）。
+- 不合格の直接原因はrepo側の2つの未解消（router非収束＋enclosure face右）であり、
+  agentの検証checkout改変は荷重を持たなかった。
+- agent挙動としてF-1〜F-4（捏造document、gateを迂回するdebug、dirty treeからのEvidence、
+  要件drift）が観測され、いずれも検証境界の外で「最小抵抗経路」として発生した。
+- fail-closedは正しく働いている（fixture-generation、lane-preflight、silkscreen、
+  router、enclosure、Evidence検証）が、「閉じたまま止まる」状態を前に進める仕組みは
+  D-8（loop-summaryへのrouter診断）・D-11（FW capability契約）等に欠ける。
+
+### 15.7 気づきと改善提案
+
+第8回で観測した一次記録は`report/notes.md`のN-1〜N-9・D-1〜D-9・F-1〜F-4である。
+ここでは整理した提案のみを記す（Y節へ対応）。
+
+| 項目 | 内容 | 状況 |
+|---|---|---|
+| Y-1 | `order-total document is required`が`--design-only`を指さず、agentが捏造documentへ倒れる（D-1／F-1） | 本変更で解消（メッセージと`vibebb-loop.md`を修正） |
+| Y-2 | rationale coverage失敗が詳細を返さず、agentがsourceをinstrumentする（D-2／F-2） | 未解消 |
+| Y-3 | library hashのpinを試行錯誤で埋める経路が無い（D-3） | 未解消 |
+| Y-4 | `strapping_pin`がnet名`"LED"`固定で複数LED駆動netを評価できない（D-4） | 本変更で解消（宣言済み`led_drive_net`ベースへ一般化） |
+| Y-5 | 安全境界やenumの許容値がpreflightから見えず、agentがGD1の値を写す（D-5） | 未解消 |
+| Y-6 | FW capability契約が複数LED・入力を表現できず、要件driftがfail-closedにならない（D-6／F-4） | 未解消 |
+| Y-7 | silkscreen resolveが未宣言位置を後段へ流す（D-7） | 未解消 |
+| Y-8 | router非収束時に`loop-summary`へunrouted数・原因が出ない（D-8） | 未解消 |
+| Y-9 | decoupling_targetの多ピン対象の意味が文書化されていない（D-9） | 未解消 |
+| Y-10 | `is_design_input`が`src/`を検出せず、Evidenceにsource-treeのgit SHA／dirty状態が無い（D-10／F-3） | 未解消 |
+| Y-11 | FW capability契約（`firmware_init`・`led_blink`・`i2c_sensor_init`・`i2c_sensor_read`・`serial_log`、単一LED・入力無し）が2LED交互点滅・ボタンを表現できない（D-11） | 未解消 |
+
+併せてhook（projection保護）の誤検出（empty pollや読み取り系commandの拒否、N-3・N-6・
+N-8）、`verify_acd_tool_registration.py --check`が実行されない手順上の不徹底（N-5）、
+container生成物がroot所有でworkspace内書き換えに回収操作を要する（N-7）は運用・手順の
+観測として記録する。
+
+### 15.8 成果物の収録
+
+[`examples/dual-beacon-tag-vps-20260906/`](../examples/dual-beacon-tag-vps-20260906/)へ、
+agent生成の`spec.json`、捏造document（`order-total.rejected.json`、使用禁止のnegative
+artefact）、投入promptとre-prompt、agent最終報告、2会話のevent digest、最終loopの
+summary・timing・探索報告・gate証跡、唯一のEvidence（firmware）、pristine対照runと
+修正branch再実行の記録、観測メモ、workspace差分patchを収録した。第三者資材
+（`libraries/Espressif.pretty`等）は収録せず、Espressif KiCad libraryはpin commit
+`dd76561812ab300351234ba6e0ec1295641796f0`を別途取得する前提をREADMEへ記した。
+
+### 15.9 ロードマップへの反映
+
+[`roadmap.md`](roadmap.md)へ`14.22`を追加した。`vibebb-gap-analysis.md`にはY節を追加し、
+W節へ「自然文のみでの達成は未だ無い」旨を1行追記した。

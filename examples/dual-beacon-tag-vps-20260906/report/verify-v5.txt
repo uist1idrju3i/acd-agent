@@ -1,0 +1,3 @@
+$ uv run python scripts/verify_authoritative_evidence.py --revision r1 --out-root /home/ubuntu/run8/v5/dual-beacon-tag-v5 --require-lane electrical --require-lane mechanical --require-lane firmware
+FAIL: required lane Evidence missing: electrical
+EXIT=1

@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "evidence.dual-beacon-tag.firmware-virtual",
+  "target_revision": "r1",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "acd-firmware-esp32c3",
+    "tool_version": "9.2.2 (esp_develop_9.2.2_20260417)",
+    "format_version": "0.1",
+    "config_hash": "sha256:9f545e34e4819735edab425f72289bf8c837b4367d046a573750f348f6aefa2b",
+    "input_hash": "sha256:aeda2d3c2a511e2cfad21004b04fa9b1669bb58ace06826dc3ee889798d86e8c",
+    "output_hash": "sha256:be15a8448462c733fdcda6e4f1eec842458c4de1bccb4c12de4a306442142e84",
+    "execution_env": "linux-x86_64; container=sha256:d68c12409ff2e967b17d8899f4b5159029f1e1a0b5ed8a686c005cf2e501f8e2",
+    "execution_context": "container",
+    "container_image_digest": "sha256:d68c12409ff2e967b17d8899f4b5159029f1e1a0b5ed8a686c005cf2e501f8e2",
+    "measurement_conditions": "virtual device (QEMU esp32c3); no external device attached; virtual verification only, not real-device evidence; virtual run stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+    "convergence_state": "converged",
+    "target_revision": "r1",
+    "started_at": "2026-09-06T19:27:46.221390Z",
+    "finished_at": "2026-09-06T19:29:56.523089Z",
+    "exit_code": 0,
+    "idempotency_key": null,
+    "uncertainty": null
+  },
+  "claims": [
+    {
+      "subject_node": "fw.module.main",
+      "property": "measurement_class",
+      "value": "virtual",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "real_device_measurement",
+      "value": false,
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "virtual_target",
+      "value": "qemu-esp32c3",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "virtual_run_termination",
+      "value": "stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "toolchain_version",
+      "value": "esp-idf v6.1",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_source_hash",
+      "value": "sha256:681f8f2bfb8503eed5f57710e6322d2fc8e4b054aa2162ba71f7a8aa032cb672",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_artifact_hash",
+      "value": "sha256:1ffd83d9f64d1bd636e1e4aa125bdd6c7b589af7b79a2b3748cec34a7a161aff",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_skill_script_sha256",
+      "value": "sha256:1fb47dabfd97bbc72fc5376501c2ad5c8c2fb95d91689982c65b9c1d33d9619d",
+      "verified": true
+    }
+  ],
+  "created_at": "2026-09-06T19:29:56.524230Z"
+}

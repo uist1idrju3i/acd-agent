@@ -360,6 +360,32 @@ W-1は14.20のV-6解消を前提とし、W-3は14.2、W-4は6.4のCI移行を前
 満たした時点で「GD1が無くても新規設計をVibeBBできる」状態に到達したと判定する。GD1 fixtureは
 その後もregression用のpositive controlとして維持し、削除は行わない。
 
+### 14.22 自然文のみ新規設計の実機不合格からの残関門（Y-*）
+
+第8回実機実測（2026-09-06、
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 15節）では、
+自然文要件のみをGUI会話へ投入し、GD1とは無関係の新規設計`dual-beacon-tag`をagentが自力で
+spec生成から走らせた。結果は`board-pipeline`のrouter非収束（探索`exhausted`）と
+enclosure laneの`face: right`未対応でfail-closedし、authoritative Evidenceはfirmware
+1件のみで検証は`FAIL: required lane Evidence missing: electrical`であった。pristine
+`e45f1ec`の対照runが同一の壁を再現したため、会話内のagentの`src/`改変は荷重を持たず、
+壁はmain側の未解消である。本フェーズは閾値やゲートを緩めるのではなく、診断面と
+provenance・契約の不足を閉じる。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `src/acd/pipeline/design_loop.py`（`loop-summary`）、`src/acd/adapters/freerouting/`、`src/acd/adapters/cad/project.py`の`face`判定、`plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py`と`contracts/firmware-capability-registry.json`、`src/acd/openhands/evidence/git.py`の`is_design_input`と`order_gate.py`、`src/acd/schema/tool_envelope.py`、`scripts/verify_authoritative_evidence.py`、`src/acd/pipeline/fixture_builder.py`、`plugins/acd/hooks`のprojection保護、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節、[`examples/dual-beacon-tag-vps-20260906/`](../examples/dual-beacon-tag-vps-20260906/) |
+| 実装 | router非収束時に`loop-summary`へunrouted数・収束状態・主要な未解決netをL3診断として記録する（Y-8）。enclosure laneがfront以外の開口faceを受理するか、受理しないfaceを契約とpreflightで明示してfail-closedを前倒しする（筐体の壁）。FW capability契約へ複数LEDと入力pin roleを追加するか、追加するまで要件→`fw.sequence`被覆検査で要件の削除をfail-closedにする（Y-6・Y-11）。Evidence provenanceへsource-treeのgit SHAとdirty digestを記録し、`verify_authoritative_evidence.py`がdirty sourceをfail-closedで拒否する（Y-10）。container内KiCad資材からsymbol・footprint sha256を採取するlibrary hash helper（Y-3）。`FixtureBuilderError`へcoverage要約（missing／stale／unclassified）を含める（Y-2）。projection保護hookのmatcherを狭め、empty poll・読み取り系commandを止めない（N-3・N-6・N-8）。`safety_boundary`等のenum許容値をspec文書とpreflightへ出す（Y-5）。silkscreen resolverの未宣言positionを前段で検出する（Y-7）。decoupling_targetの多ピン対象の意味を文書化する（Y-9） |
+| 正常系 | 診断・provenance・契約が揃った状態で、自然文のみから生成した新規設計が同じ壁に達しても、停止理由が`loop-summary`とEvidence provenanceから第三者が読み取れる |
+| negative・fail-closed | dirty sourceからのEvidence、要件を落とした`fw.sequence`、未宣言の非front face、hash placeholderはいずれもfail-closedのままである。診断・provenance・helperはL3観測であり合格側権限を持たない |
+| 再現性 | 追加する診断値とprovenanceフィールドをL3記録として保存し、同一入力での再実行で一致することを回帰テストで固定する |
+
+実装状況: Y-1（`--design-only`を指すエラーメッセージと`vibebb-loop.md`のdesign-only運用
+記載）とY-4（`strapping_pin`を宣言済み全`led_drive_net`へ一般化、negative test込み）は
+`devin/1788725512-vibebb-dual-beacon-repair`（commit `71f0885`）で解消した。残りは未着手
+であり、Y-10とY-6・Y-11はfail-closed境界の堅持に直結するため先に扱う。詳細は
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、

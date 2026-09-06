@@ -1,0 +1,2 @@
+$ uv run python scripts/verify_authoritative_evidence.py --revision-from out/container/repair-a/dual-beacon-tag-silkscreen-resolve/work-fixture/graph.json --out-root out/container/repair-a --require-lane electrical --require-lane mechanical --require-lane firmware
+EXIT=1

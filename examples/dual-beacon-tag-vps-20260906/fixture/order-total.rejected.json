@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "subtotals": [
+    {
+      "category": "pcb",
+      "amount": {
+        "amount_minor": 0,
+        "currency": "USD",
+        "minor_unit_digits": 2
+      }
+    }
+  ],
+  "total": {
+    "amount_minor": 0,
+    "currency": "USD",
+    "minor_unit_digits": 2
+  },
+  "target_revision": "r1",
+  "quote_hashes": [
+    {
+      "quote_id": "dummy-quote-1",
+      "canonical_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "breakdown_hash": "sha256:3b6ddc9674fc68686ebf2b14a22398bdf7c2f42a8de8fba28e6e99326df45f98"
+}

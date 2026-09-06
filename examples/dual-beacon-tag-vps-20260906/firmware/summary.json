@@ -1,0 +1,14 @@
+{
+  "target_revision": "r1",
+  "toolchain_version": "esp-idf v6.1",
+  "source_hash": "sha256:681f8f2bfb8503eed5f57710e6322d2fc8e4b054aa2162ba71f7a8aa032cb672",
+  "artifact_hash": "sha256:1ffd83d9f64d1bd636e1e4aa125bdd6c7b589af7b79a2b3748cec34a7a161aff",
+  "qemu_version": "9.2.2 (esp_develop_9.2.2_20260417)",
+  "measurement_conditions": "virtual device (QEMU esp32c3); no external device attached; virtual verification only, not real-device evidence",
+  "virtual_run_seconds": 15,
+  "virtual_run_exit_code": 124,
+  "virtual_run_termination": "stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+  "virtual_run_stopped_by_intended_timeout": true,
+  "virtual_log": "out/container/dual-beacon-tag-v5/dual-beacon-tag-fw/qemu-serial.log",
+  "config_report": "out/container/dual-beacon-tag-v5/dual-beacon-tag-fw/firmware-config-report.json"
+}

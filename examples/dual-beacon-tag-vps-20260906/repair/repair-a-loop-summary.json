@@ -1,0 +1,16 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "content_sha256": "sha256:4b9df176004418c4b2dadb0a34fb15a783d2c9e5cda6e6e43ff8fe411913c3a9",
+  "exploration_rounds": null,
+  "failed_stage": "board-pipeline",
+  "failure_reason": "GateError: router convergence_state='not_converged' (fail-closed)",
+  "graph_id": "dual-beacon-tag",
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": "Explore declared placement and GPIO candidates from the rejected predicate remediation, then rerun every deterministic stage.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "timing_record": "out/repair-a/timing-record.json"
+}
