@@ -44,15 +44,17 @@ def pass_host_resource_preflight(
         return report
 
     monkeypatch.setattr(workspace_module, "check_host_resources", check_resources)
-    monkeypatch.setattr(
-        workspace_module,
-        "collect_source_provenance",
-        lambda _repo: SourceProvenance(
+
+    def clean_provenance(_repo: Path) -> SourceProvenance:
+        return SourceProvenance(
             revision="b" * 40,
             tree_state="clean",
             dirty_digest=None,
             changed_paths=(),
-        ),
+        )
+
+    monkeypatch.setattr(
+        workspace_module, "collect_source_provenance", clean_provenance
     )
 
 

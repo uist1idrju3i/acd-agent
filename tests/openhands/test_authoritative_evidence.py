@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -197,8 +198,7 @@ def test_evidence_without_source_provenance_is_rejected(
     tmp_path: Path,
 ) -> None:
     record = _record()
-    envelope = record["envelope"]
-    assert isinstance(envelope, dict)
+    envelope = cast(dict[str, object], record["envelope"])
     envelope.pop("source_revision", None)
     envelope.pop("source_tree_state", None)
     envelope.pop("source_dirty_digest", None)
@@ -207,15 +207,13 @@ def test_evidence_without_source_provenance_is_rejected(
 
 def test_dirty_or_unknown_source_tree_is_rejected(tmp_path: Path) -> None:
     record = _record()
-    envelope = record["envelope"]
-    assert isinstance(envelope, dict)
+    envelope = cast(dict[str, object], record["envelope"])
     envelope["source_tree_state"] = "dirty"
     envelope["source_dirty_digest"] = "sha256:" + "c" * 64
     assert not _verify(_write(tmp_path, record))
 
     record = _record()
-    envelope = record["envelope"]
-    assert isinstance(envelope, dict)
+    envelope = cast(dict[str, object], record["envelope"])
     envelope["source_revision"] = "unknown"
     envelope["source_tree_state"] = "unknown"
     envelope["source_dirty_digest"] = None
