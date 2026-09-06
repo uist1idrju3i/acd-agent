@@ -116,7 +116,7 @@ B-9は、stitch via候補を呼び出し側の指定に依存せず常時生成�
 が生成する`acd-server`（agent-server実行層）の2層構成であり、
 `DockerWorkspace(server_image=...)`が使うのは後者である。分離の理由は、SDK版更新と
 ツールチェーン更新を独立にpublishでき、base digestとderived digestを別々に記録して
-同一と主張する記述をfail-closedで拒否できること（[`docs/roadmap.md`](roadmap.md)の6.2）
+同一と主張する記述をfail-closedで拒否できること（[`docs/roadmap-completed.md`](roadmap-completed.md)の6.2）
 である。
 
 | # | 改善提案 | 現状と理由 |
@@ -523,7 +523,7 @@ authoritative Evidenceを生成しない。
 
 2026-08-31のscope改定により、自動発注と実機測定は将来機能・非対象とし、既存コードは
 残置したまま決定論的loopの必須段から外す。製造提出データの品質と独立検査は現行必須であり、
-本節の不足はロードマップ上の[`roadmap.md`](roadmap.md) 14.19で扱う。
+本節の不足はロードマップ上の14.19（[`roadmap-completed.md`](roadmap-completed.md)）で扱う。
 
 | 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
 |---|---|---|---|---|---|
