@@ -1428,6 +1428,46 @@ uv run python plugins/acd/skills/acd-product-docs/scripts/generate_instruction_m
 帰属表記は部品ごとのsymbol／footprintライブラリ出所と参照から生成し、
 外部ライブラリのライセンス表示と帰属を保持する。
 
+## テーマソングlane
+
+`acd-theme-song` Skillは、Design Graphの製品専用ジングルをStandard MIDI File
+（`theme-song.mid`）として生成する（ADR-0048）。作曲の主体はLLM agentであり、
+調・テンポ・題名・トラック・音符列・ドラムを`theme_song_proposal` JSONとして提案する。
+Skillは提案を厳密に検査し（`graph_id`／`target_revision`一致、`pass_evidence=false`、
+bpm 92..140、bars 4..64の4倍数、track 1..8、channel 9はドラム専用、pitch／velocity範囲、
+最終barを超えない音長、8音以上4096イベント以下、既知ドラム名）、受理した提案だけを
+決定論的にMIDIへレンダリングする。不合格は理由を列挙して停止し成果物を書かない。
+提案が無い場合は正規化graph JSONのhashとsaltをseedとする決定論的composerへfallbackする。
+楽曲はL3成果物であり、合否権限を持たず、Evidenceにも製造提出用fab packageにも含めない。
+
+採用した提案は設計ディレクトリの`theme-song.json`（`graph.json`の隣）へ置く。
+GD1基板pipeline（`gd1_board.py`）は視覚投影と同じstageで`theme-song-projection`を実行し、
+`src/acd/pipeline/theme_song.py`が`theme-song.json`の有無で`--proposal`を渡し分けて
+Skill CLIをsubprocessで2回実行し、MIDIのbyte一致（`regeneration_check=reproduced`）、
+provenanceのrevision・`source`・入力hash（graphと提案）・出力hashを照合した上で、
+Gerber等と同様に`out/<board>/theme-song/theme-song.mid`と`theme-song-projection.json`
+（`ThemeSongProjection`、`record_class="L3"`、`pass_evidence=false`、`source`、
+`proposal_input`、Skill script sha256付き）を投影成果物として出力し、`hashes.json`へ登録する。
+MIDIはbinaryのためraw sha256で記録する。Skill不在、非零終了、提案の不合格、2回の不一致、
+provenance不整合はpipelineをfail-closedで停止する。
+
+```bash
+# 決定論的な下書きを提案契約で出力し、agentが編集する
+uv run python plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --out-dir out/theme-song-draft --proposal-out out/theme-song-draft/theme-song.proposal.json
+# agentの提案を検査してMIDIへレンダリングする
+uv run python plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --proposal out/theme-song-draft/theme-song.proposal.json --out-dir out/theme-song
+```
+
+`theme-song.provenance.json`にはgraph_id、対象revision、`source`
+（`deterministic`／`agent_proposal`）、`composer_id`、入力hash（graphと提案）、
+生成scriptのhash、出力hash、作曲パラメータ、`pass_evidence: false`、ライセンスを記録する。
+生成MIDIは独立再読込でnote-on／note-offの対応を確認する。Strudel等の外部再生環境は
+import・bundle・実行せず、再生はMIDIをDAWで開いて行う。
+
 ## 設計知識lane
 
 `acd-design-knowledge` Skillは、Design Graph、設計根拠record、ゲート結果、Evidence、
