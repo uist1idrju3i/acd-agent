@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions:
+      actions: write
       contents: write
       packages: write
       pull-requests: write
@@ -158,6 +159,25 @@ jobs:
           SKIP_TOOLS: ${{ inputs.skip_tools }}
         run: |
           set -euo pipefail
+          dispatch_ci() {
+            # GITHUB_TOKEN-driven push/pull_request events never start workflows, so CI
+            # for the lock branch and for main after the merge is started explicitly.
+            local ref="$1" base_sha="$2" started run_id=""
+            started=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$ref" -f "base_sha=$base_sha"
+            for _ in $(seq 1 30); do
+              sleep 10
+              run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch "$ref" \
+                --event workflow_dispatch --created ">=$started" --json databaseId --jq '.[0].databaseId // empty')
+              [ -n "$run_id" ] && break
+            done
+            if [ -z "$run_id" ]; then
+              echo "CI workflow_dispatch for $ref was not observed" >&2
+              return 1
+            fi
+            echo "CI run for $ref: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+            gh run watch --repo "$GITHUB_REPOSITORY" "$run_id" --exit-status
+          }
           published_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           workflow_run="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           if [ "${SKIP_TOOLS:-false}" != true ]; then
@@ -184,6 +204,7 @@ jobs:
             echo "Image digest lock is unchanged; no pull request is needed."
             exit 0
           fi
+          base_sha=$(git fetch -q origin main && git rev-parse origin/main)
           branch="bot/update-image-digests-${SERVER_DIGEST#sha256:}"
           branch="${branch:0:70}"
           git switch -c "$branch"
@@ -203,22 +224,18 @@ jobs:
             "$tools_line" \
             "server: ghcr.io/${GITHUB_REPOSITORY_OWNER}/acd-server@${SERVER_DIGEST}" \
             "workflow run: ${workflow_run}")
-          gh pr create \
+          pr_url=$(gh pr create \
             --repo "$GITHUB_REPOSITORY" \
             --base main \
             --head "$branch" \
             --title "ACD image digest lockを更新" \
-            --body "$body"
-          # Merging before the pull_request CI run starts leaves a job-less
-          # failed run behind, so wait for the checks to be reported and pass.
-          for _ in $(seq 1 30); do
-            if [ "$(gh pr checks --repo "$GITHUB_REPOSITORY" "$branch" --json name --jq 'length' 2>/dev/null || echo 0)" -gt 0 ]; then
-              break
-            fi
-            sleep 10
-          done
-          if ! gh pr checks --repo "$GITHUB_REPOSITORY" "$branch" --watch; then
+            --body "$body")
+          if ! dispatch_ci "$branch" "$base_sha"; then
             echo "lock PR checks failed; the lock PR was left open for manual review" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          gh pr merge --repo "$GITHUB_REPOSITORY" --squash --delete-branch "$branch"
+          gh pr merge --repo "$GITHUB_REPOSITORY" --squash --delete-branch "$pr_url"
+          if ! dispatch_ci main "$base_sha"; then
+            echo "CI on main after the lock PR merge failed: ${pr_url}" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

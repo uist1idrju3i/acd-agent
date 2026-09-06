@@ -183,6 +183,7 @@ publish済みdigestが無い間はlock fileのplaceholderを作らない。
 
 CIはPRで変更scopeに応じて`fast`または`standard`を実行し、
 `container-gates`、`pinned-acd-probe`、pipeline実行、host probeはmain pushで実行する。
+GITHUB_TOKEN起因のイベントではworkflowが起動しないため、lock更新PRのCIとmerge後のmain CIはpublish workflowが`workflow_dispatch`で起動し、lock更新PRのCI完了を待ってからmergeする。
 
 graphへ設計判断属性を追加する機能変更では、同じ変更で属性を
 `REQUIRED_RATIONALE_ATTRS`または`RATIONALE_EXEMPT_ATTRS`へ分類する。必須属性には

@@ -85,6 +85,7 @@ build contextを決める`.dockerignore`をmainへ変更すると、
 `.github/workflows/publish-acd-images.yml`がtools imageとagent-server imageを同一jobで
 直列にpublishする。publish結果は`docker/image-digests.json`へ1つの更新PRとして記録する。
 lock更新PRはpublish triggerの対象外であり、digest lockと`latest`が再帰的に更新されることはない。
+GITHUB_TOKEN起因のイベントではworkflowが起動しないため、lock更新PRのCIとmerge後のmain CIはpublish workflowが`workflow_dispatch`で起動し、lock更新PRのCI完了を待ってからmergeする。
 
 ## 事前build済みagent-server image
 
