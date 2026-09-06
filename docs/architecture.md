@@ -450,7 +450,14 @@ repoは`volumes`でmountし、`out/`と`evidence/`をホスト側へ残す。CI�
 参考経路であり、host実行の結果はprovisionalで合格側Evidenceへ昇格しない。
 runnerは`docker image inspect`でdigestを解決し、解決できない場合はworkspaceを起動せず
 fail-closedで停止する。解決したdigestと`ACD_IN_CONTAINER`をforwardし、ToolEnvelopeの
-`execution_context`と`container_image_digest`へ型付きで記録する。`execution_env`は
+`execution_context`と`container_image_digest`へ型付きで記録する。さらにrunnerは
+`src`・`scripts`・`plugins`・`contracts`・`libraries`・`docker`・`pyproject.toml`・
+`uv.lock`を対象にsource treeのgit HEAD shaとporcelain由来のdirty digestを採取し、
+`ACD_SOURCE_GIT_SHA`・`ACD_SOURCE_TREE_STATE`・`ACD_SOURCE_DIRTY_DIGEST`をforwardして
+ToolEnvelopeの`source_revision`・`source_tree_state`・`source_dirty_digest`へ記録する。
+dirtyまたは解決不能なsource treeは`--allow-dirty`が無い限りcontainer起動前に拒否し、
+許容してもEvidenceはverifierが`source_tree_state != "clean"`でfail-closedに拒否する。
+`execution_env`は
 host/architectureの説明だけに使い、container identityの判定には使わない。
 
 CIの`container-gates` jobはlock済みserver imageをpullし、SDKの`DockerWorkspace`を使う

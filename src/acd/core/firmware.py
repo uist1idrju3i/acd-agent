@@ -12,6 +12,7 @@ from itertools import pairwise
 from pathlib import Path
 from statistics import fmean
 
+from acd.core.process import source_provenance_fields
 from acd.schema.common import Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, PhysicalEvidence
 from acd.schema.functional_run import (
@@ -387,6 +388,7 @@ def _evidence(
         output_hash=output_hash,
         execution_env="python-3.12; deterministic firmware functional measurement",
         execution_context="host",
+        **source_provenance_fields(),
         measurement_conditions=(
             f"capture_route={run.serial_capture_route}; "
             f"serial_tag={run.serial_log_tag}; "

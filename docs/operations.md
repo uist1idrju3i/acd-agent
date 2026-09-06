@@ -1901,6 +1901,21 @@ uv run python scripts/run_in_workspace.py --image "$SERVER_REF" --source bundled
 `--source bundled`は実行前に`/opt/acd`の`pyproject.toml`、`uv.lock`、`src/acd`、
 `scripts`、`fixtures`、prebake済み`.venv`を検査し、欠落があればコマンドを実行せず停止する。
 同梱資材を持つimageがpublishされてlockへ記録されるまで、既定は`--source mounted`のままとする。
+bundled経路はhostのgit checkoutを持たないためsource provenanceは常に`unknown`と記録され、
+そのEvidenceは`verify_authoritative_evidence.py`を通過できない。image同梱bundleがgit shaを
+記録するまで、bundled実行の生成物はprovisionalとしてのみ使う。
+
+`--source mounted`のrunnerは、container起動前に`--repo`のsource tree
+（`src`・`scripts`・`plugins`・`contracts`・`libraries`・`docker`・`pyproject.toml`・
+`uv.lock`）を`git status --porcelain`で検査し、結果を`ACD_SOURCE_GIT_SHA`・
+`ACD_SOURCE_TREE_STATE`・`ACD_SOURCE_DIRTY_DIGEST`（dirty時のみ）としてcontainerへ
+forwardする。ToolEnvelopeは`source_revision`・`source_tree_state`・`source_dirty_digest`
+へ同じ値を記録する。dirtyまたは非git checkoutは`--allow-dirty`無しではcontainer起動前に
+拒否され、許容してもprovenanceは記録されるため、生成されたEvidenceは
+`verify_authoritative_evidence.py`が`source_tree_state`非clean、provenance欠落、または
+`unknown`としてfail-closedで拒否する。`--source-revision <sha>`を与えると全envelopeの
+`source_revision`一致も要求する。これにより検証checkout内の`src/`改変（dirty treeからの
+Evidence生成）は検証側で必ず検出できる。
 
 server imageがlockに未設定、image digestを解決できない、または経路がunknownの場合、
 runnerはコマンドを実行せず非ゼロ終了する。

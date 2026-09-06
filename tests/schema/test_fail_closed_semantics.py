@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 import pytest
 from conftest import fixture_obj, load_fixture
+from pydantic import ValidationError
 
 from acd.schema import (
     Evidence,
@@ -174,3 +175,76 @@ def test_receipt_timestamps_are_monotonic() -> None:
     value = load_fixture("valid", "receipt.json")
     with pytest.raises(ValueError):
         ReceiptRecord.model_validate({**value, "received_at": "2026-01-01T10:00:00Z"})
+
+
+def _envelope_data(**overrides: object) -> dict[str, object]:
+    data = load_fixture("valid", "tool-envelope.json")
+    assert isinstance(data, dict)
+    return {**data, **overrides}
+
+
+def test_envelope_accepts_clean_source_provenance() -> None:
+    envelope = ToolEnvelope.model_validate(
+        _envelope_data(
+            source_revision="b" * 40,
+            source_tree_state="clean",
+        )
+    )
+    assert envelope.has_source_provenance()
+    assert not envelope.has_unknown()
+
+
+def test_envelope_without_source_provenance_stays_compatible() -> None:
+    envelope = ToolEnvelope.model_validate(_envelope_data())
+    assert not envelope.has_source_provenance()
+    assert not envelope.has_unknown()
+
+
+def test_envelope_rejects_partial_or_inconsistent_source_provenance() -> None:
+    with pytest.raises(ValidationError):
+        ToolEnvelope.model_validate(_envelope_data(source_revision="b" * 40))
+    with pytest.raises(ValidationError):
+        ToolEnvelope.model_validate(
+            _envelope_data(
+                source_revision="b" * 40,
+                source_tree_state="clean",
+                source_dirty_digest="sha256:" + "c" * 64,
+            )
+        )
+    with pytest.raises(ValidationError):
+        ToolEnvelope.model_validate(
+            _envelope_data(
+                source_revision="b" * 40,
+                source_tree_state="dirty",
+            )
+        )
+    with pytest.raises(ValidationError):
+        ToolEnvelope.model_validate(
+            _envelope_data(
+                source_revision="not-a-sha",
+                source_tree_state="clean",
+            )
+        )
+
+
+def test_envelope_unknown_source_provenance_is_flagged() -> None:
+    envelope = ToolEnvelope.model_validate(
+        _envelope_data(
+            source_revision="unknown",
+            source_tree_state="unknown",
+        )
+    )
+    assert envelope.has_source_provenance()
+    assert envelope.has_unknown()
+
+
+def test_envelope_dirty_source_provenance_carries_digest() -> None:
+    envelope = ToolEnvelope.model_validate(
+        _envelope_data(
+            source_revision="b" * 40,
+            source_tree_state="dirty",
+            source_dirty_digest="sha256:" + "c" * 64,
+        )
+    )
+    assert envelope.has_source_provenance()
+    assert not envelope.has_unknown()

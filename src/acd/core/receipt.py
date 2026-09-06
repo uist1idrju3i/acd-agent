@@ -8,6 +8,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.process import source_provenance_fields
 from acd.schema.common import Revision, Sha256, canonical_json_sha256
 from acd.schema.evidence import MeasuredQuantity, MeasurementInstrument, PhysicalEvidence
 from acd.schema.receipt import ReceiptRecord, ReconciliationReport
@@ -220,6 +221,7 @@ def build_receipt_evidence(
         output_hash=output_hash,
         execution_env="python-3.12; deterministic receipt reconciliation",
         execution_context="host",
+        **source_provenance_fields(),
         measurement_conditions="shipment manifest and receipt record reconciliation",
         convergence_state="not_applicable",
         target_revision=revision,

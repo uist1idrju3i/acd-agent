@@ -19,6 +19,8 @@ from acd.core.process import (
     execution_provenance,
     run_in_process,
     run_tool,
+    source_provenance,
+    source_provenance_fields,
 )
 from acd.schema import Evidence, ToolEnvelope
 
@@ -384,3 +386,74 @@ def test_execution_provenance_validator_rejects_contradictions() -> None:
     for update in invalid_values:
         with pytest.raises(ValueError):
             ToolEnvelope.model_validate({**_host_envelope().model_dump(), **update})
+
+
+def _clear_source_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in (
+        "ACD_SOURCE_GIT_SHA",
+        "ACD_SOURCE_TREE_STATE",
+        "ACD_SOURCE_DIRTY_DIGEST",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
+def test_source_provenance_is_unset_on_host_without_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _clear_source_env(monkeypatch)
+    monkeypatch.setattr("acd.core.process._in_container", lambda: False)
+    assert source_provenance() == (None, None, None)
+    assert source_provenance_fields() == {
+        "source_revision": None,
+        "source_tree_state": None,
+        "source_dirty_digest": None,
+    }
+
+
+def test_source_provenance_is_unknown_in_container_without_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _clear_source_env(monkeypatch)
+    monkeypatch.setattr("acd.core.process._in_container", lambda: True)
+    assert source_provenance() == ("unknown", "unknown", None)
+
+
+def test_source_provenance_accepts_valid_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("acd.core.process._in_container", lambda: True)
+    monkeypatch.setenv("ACD_SOURCE_GIT_SHA", "b" * 40)
+    monkeypatch.setenv("ACD_SOURCE_TREE_STATE", "clean")
+    monkeypatch.delenv("ACD_SOURCE_DIRTY_DIGEST", raising=False)
+    assert source_provenance() == ("b" * 40, "clean", None)
+
+
+@pytest.mark.parametrize(
+    ("sha", "state", "digest"),
+    [
+        ("not-a-sha", "clean", None),
+        ("b" * 40, "suspicious", None),
+        ("b" * 40, "dirty", None),
+        ("b" * 40, "dirty", "sha256:" + "c" * 64),
+        ("b" * 40, "clean", "sha256:" + "c" * 64),
+    ],
+)
+def test_source_provenance_env_rules(
+    monkeypatch: pytest.MonkeyPatch,
+    sha: str,
+    state: str,
+    digest: str | None,
+) -> None:
+    monkeypatch.setattr("acd.core.process._in_container", lambda: True)
+    monkeypatch.setenv("ACD_SOURCE_GIT_SHA", sha)
+    monkeypatch.setenv("ACD_SOURCE_TREE_STATE", state)
+    if digest is None:
+        monkeypatch.delenv("ACD_SOURCE_DIRTY_DIGEST", raising=False)
+    else:
+        monkeypatch.setenv("ACD_SOURCE_DIRTY_DIGEST", digest)
+    expected = (
+        (sha, "dirty", digest)
+        if state == "dirty" and digest is not None
+        else ("unknown", "unknown", None)
+    )
+    assert source_provenance() == expected

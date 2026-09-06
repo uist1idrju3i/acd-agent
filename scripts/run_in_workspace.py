@@ -162,6 +162,15 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Write the host resource preflight report to this path.",
     )
     parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help=(
+            "Allow a dirty or unresolvable source tree: provenance is still "
+            "recorded in the envelope, and the authoritative verifier rejects "
+            "the produced Evidence (provisional only)."
+        ),
+    )
+    parser.add_argument(
         "--platform",
         default=DEFAULT_PLATFORM,
         help="Explicit docker platform for the container.",
@@ -178,6 +187,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error("--host-resource-report cannot be used with --local-provisional")
     if args.local_provisional and args.download_roots:
         parser.error("--download-root cannot be used with --local-provisional")
+    if args.local_provisional and args.allow_dirty:
+        parser.error("--allow-dirty cannot be used with --local-provisional")
     if not args.local_provisional and not args.image:
         parser.error("--image or ACD_CONTAINER_IMAGE is required")
     return args
@@ -235,6 +246,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     jvm_max_heap=args.jvm_max_heap,
                     platform=args.platform,
                 ),
+                allow_dirty=args.allow_dirty,
             )
     except WorkspaceStartupError as exc:
         _write_host_resource_report(args.host_resource_report, exc.host_resource_report)
@@ -260,6 +272,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("execution context: host (provisional)")
     else:
         print(f"image digest: {result.digest} ({result.source})")
+        print(
+            f"source provenance: {result.source_revision} "
+            f"{result.source_tree_state}"
+        )
     _write_host_resource_report(
         args.host_resource_report,
         (

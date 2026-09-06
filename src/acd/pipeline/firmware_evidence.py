@@ -21,6 +21,7 @@ from acd.core.process import (
     execution_provenance,
     sha256_bytes,
     sha256_paths,
+    source_provenance_fields,
 )
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
@@ -96,6 +97,7 @@ def build_firmware_evidence(
         execution_env=execution_env(),
         execution_context=context,
         container_image_digest=digest,
+        **source_provenance_fields(),
         measurement_conditions=f"{conditions}; virtual run {termination}",
         convergence_state="converged",
         target_revision=graph.revision,
