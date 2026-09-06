@@ -101,30 +101,33 @@ def resolve_cern_part(root: Path, part_number: str) -> ResolvedCernPart:
         raise CernCatalogError(f"CERN catalog cannot be opened: {database}") from exc
     rows: list[tuple[str, str | None, str | None]] = []
     try:
-        tables = [
-            str(row[0])
-            for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
-        ]
-        for table in tables:
-            quoted_table = _quote_identifier(table)
-            try:
-                matches = connection.execute(
-                    f"SELECT {_quote_identifier('LibSymbol')}, "
-                    f"{_quote_identifier('LibFootprint')} "
-                    f"FROM {quoted_table} "
-                    f"WHERE {_quote_identifier('Part Number')} = ?",
-                    (part_number,),
-                ).fetchall()
-            except sqlite3.Error as exc:
-                raise CernCatalogError(
-                    f"CERN catalog table cannot be queried: {table}"
-                ) from exc
-            rows.extend(
-                (table, row[0], row[1])
-                for row in matches
-            )
+        try:
+            tables = [
+                str(row[0])
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            ]
+            for table in tables:
+                quoted_table = _quote_identifier(table)
+                try:
+                    matches = connection.execute(
+                        f"SELECT {_quote_identifier('LibSymbol')}, "
+                        f"{_quote_identifier('LibFootprint')} "
+                        f"FROM {quoted_table} "
+                        f"WHERE {_quote_identifier('Part Number')} = ?",
+                        (part_number,),
+                    ).fetchall()
+                except sqlite3.Error as exc:
+                    raise CernCatalogError(
+                        f"CERN catalog table cannot be queried: {table}"
+                    ) from exc
+                rows.extend(
+                    (table, row[0], row[1])
+                    for row in matches
+                )
+        except sqlite3.Error as exc:
+            raise CernCatalogError("CERN catalog cannot be queried") from exc
     finally:
         connection.close()
     if not rows:
