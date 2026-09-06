@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@b3e531befab3127b70a455f5ef6b8b22188ae399",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@34dd768c95bd621afe1f574d11c8d084d66b697c",
 # ]
 # ///
 """Firmware pin-consistency check.
