@@ -721,3 +721,148 @@ def test_runner_skips_downloads_after_transport_failure(
     assert result.failure_kind == "transport"
     assert result.downloaded_files == ()
     assert result.download_errors == ()
+
+
+def test_runner_downloads_listed_artifacts_under_download_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _ListingWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            if "find " in command:
+                return SimpleNamespace(
+                    exit_code=0,
+                    stdout=(
+                        "out/mbd/board/evidence-electrical.json\n"
+                        "out/mbd/board/run.log\n"
+                    ),
+                    stderr="",
+                    timeout_occurred=False,
+                )
+            return SimpleNamespace(
+                exit_code=0, stdout="ok\n", stderr="", timeout_occurred=False
+            )
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "4" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-tools-gates:local",
+        command="true",
+        repository=tmp_path,
+        download_files=("out/mbd-fixture/graph.json",),
+        download_roots=("out/mbd",),
+        workspace_factory=_ListingWorkspace,
+    )
+
+    instance = _ListingWorkspace.instances[-1]
+    listing_command, _cwd, listing_timeout = instance.commands[1]
+    assert "find out/mbd -type f" in listing_command
+    assert "-name '*.json'" in listing_command
+    assert "-name '*.log'" in listing_command
+    assert "-not -path '*/.stage-cache/*'" in listing_command
+    assert listing_timeout == container_runtime.DEFAULT_DOCKER_CLI_TIMEOUT
+    assert result.downloaded_files == (
+        tmp_path / "out/container/mbd-fixture/graph.json",
+        tmp_path / "out/container/mbd/board/evidence-electrical.json",
+        tmp_path / "out/container/mbd/board/run.log",
+    )
+    assert (
+        "/workspace/acd/out/mbd/board/run.log",
+        tmp_path / "out/container/mbd/board/run.log",
+    ) in instance.downloads
+
+
+def test_runner_fails_closed_when_download_root_listing_is_empty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _EmptyListingWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            if "find " in command:
+                return SimpleNamespace(
+                    exit_code=0, stdout="", stderr="", timeout_occurred=False
+                )
+            return SimpleNamespace(
+                exit_code=0, stdout="ok\n", stderr="", timeout_occurred=False
+            )
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "5" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    with pytest.raises(
+        WorkspaceTransportError, match="no artifacts found under download roots"
+    ) as error:
+        workspace_module.run_command_in_workspace(
+            image="acd-tools-gates:local",
+            command="true",
+            repository=tmp_path,
+            download_files=(),
+            download_roots=("out/mbd",),
+            workspace_factory=_EmptyListingWorkspace,
+        )
+    assert error.value.exit_code == 0
+
+
+def test_runner_downloads_root_artifacts_after_command_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    class _FailingListingWorkspace(_FakeWorkspace):
+        def execute_command(
+            self, command: str, cwd: str, timeout: float
+        ) -> SimpleNamespace:
+            self.commands.append((command, cwd, timeout))
+            if "find " in command:
+                return SimpleNamespace(
+                    exit_code=0,
+                    stdout="out/mbd/board/evidence-electrical.json\n",
+                    stderr="",
+                    timeout_occurred=False,
+                )
+            return SimpleNamespace(
+                exit_code=3, stdout="", stderr="gate failed", timeout_occurred=False
+            )
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "6" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-tools-gates:local",
+        command="false",
+        repository=tmp_path,
+        download_files=(),
+        download_roots=("out/mbd",),
+        workspace_factory=_FailingListingWorkspace,
+    )
+
+    assert result.exit_code == 3
+    assert result.failure_kind == "command"
+    assert result.downloaded_files == (
+        tmp_path / "out/container/mbd/board/evidence-electrical.json",
+    )
+    assert result.download_errors == ()
+
+
+def test_runner_rejects_absolute_download_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def resolve(_image: str, **_kwargs: object) -> None:
+        raise AssertionError("digest resolution must not run for a bad root")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    with pytest.raises(ValueError, match="repository-relative"):
+        workspace_module.run_command_in_workspace(
+            image="acd-tools-gates:local",
+            command="true",
+            repository=tmp_path,
+            download_files=(),
+            download_roots=("/out/mbd",),
+            workspace_factory=_FakeWorkspace,
+        )

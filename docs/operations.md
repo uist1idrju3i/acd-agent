@@ -358,8 +358,10 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    L1 gateは必ず再実行し、Evidenceも新規生成する。破損またはhash不一致のentryは
    無視して再生成する。cache reportはL3観測であり、合否authorityではない。
    `container-gates` jobも、digest固定imageのDockerWorkspace内で`uv sync && uv run
-   python scripts/run_design_lanes.py`と製造提出データのL1判定を実行し、Evidenceとverdictを
-   downloadした後にhost側でauthoritative Evidenceとverdictを再検査する。CPL／BOM chainは逐次のままだが、E-4のDSN／SES stage cacheは
+   python scripts/run_design_lanes.py`と製造提出データのL1判定を実行する。FW laneは
+   `scripts/run_firmware_lane.py`経由で実行され、`evidence-firmware.json`も生成する。
+   生成物は`--download-root`でout rootごとdownloadし、host側で`--out-root`と
+   `--require-lane`を使い3 lane分のauthoritative Evidenceとverdictを再検査する。CPL／BOM chainは逐次のままだが、E-4のDSN／SES stage cacheは
    `--cache-dir`または`--resume`で明示的に利用できる。
    host provisionalでのlane全体の測定は、基板laneが`freerouting` executable不在で
    fail-closedとなったため完了していない。失敗までのwall clockは`--jobs 1`が
@@ -949,9 +951,13 @@ CIでは`container-gates` jobがlock済みserver imageをpullし、SDKの
 筐体pipeline、製造提出データのL1判定を実行する。agent-serverの`/workspace`を占有させるため、
 host repositoryは`/acd-src:ro`へmountし、container内の`/workspace/acd`へ複製する。container内で
 生成された`out/gd1/evidence-electrical.json`、`out/gd1-enclosure/evidence-mechanical.json`、
-`out/manufacturing-submission.json`は、SDKの`RemoteWorkspace.file_download()`でhostへ取り出して
-から、Evidenceを`verify_authoritative_evidence.py`で、verdictを
-`verify_manufacturing_submission.py --verdict`で再検査する。製造提出データの判定自体はcontainer内で
+`out/gd1-fw/evidence-firmware.json`、`out/manufacturing-submission.json`は、SDKの
+`RemoteWorkspace.file_download()`でhostへ取り出してから、Evidenceを
+`verify_authoritative_evidence.py`で、verdictを`verify_manufacturing_submission.py --verdict`
+で再検査する。非GD1 laneのようにdownload対象が多い場合は、runnerの`--download-root`で
+out root配下の`*.json`と`*.log`を一括回収し、verifierの`--out-root`で再帰的に
+集めて`--require-lane`で3 laneの揃いを検査する。authoritative Evidenceは基板・筐体・
+FWの3 laneすべてが揃うことを必須とする。製造提出データの判定自体はcontainer内で
 完了させ、hostへfab成果物一式を再ダウンロードしない。revision不一致、host実行、digest不在、
 unknown、parse失敗、file不在はすべて非ゼロ終了となる。
 
@@ -1552,9 +1558,11 @@ silkscreen可読性ゲートまで通過する。外部ツールや入力が不�
 緩めずfail-closedとして状態をそのまま記録する。
 
 `verify_authoritative_evidence.py`はLLMやSDKの判定を使わず、
-`Evidence.supports_authoritative_pass()`とその構成要素だけを検査する。引数なし、
-parse失敗、file不在、revision不一致、status不正、host実行、digest不在、unknown混入は
-成功扱いにしない。
+`Evidence.supports_authoritative_pass()`とその構成要素だけを検査する。位置引数の
+明示pathに加え、`--out-root`で配下の`evidence-*.json`を再帰収集（`.stage-cache`は
+除外）し、`--require-lane`で必須laneのEvidence有無を検査する。引数なし、out root不在、
+必須lane欠落、parse失敗、file不在、revision不一致、status不正、host実行、digest不在、
+unknown混入は成功扱いにしない。
 
 ## 製造・組立受領の取り込み
 
@@ -1959,7 +1967,7 @@ lane入口は`--fixture`（`graph.json`を含む設計入力ディレクトリ�
 | `scripts/resolve_gd1_silkscreen.py` | シルク解決lane |
 | `scripts/run_gd1_pipeline.py` | 基板lane |
 | `scripts/run_enclosure_pipeline.py` | 筐体lane |
-| `plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py` | FW lane |
+| `scripts/run_firmware_lane.py` | FW lane（Skillの`run_fw_pipeline.py`をsubprocess実行し`evidence-firmware.json`を書く） |
 | `scripts/validate_graph.py` | graph単体検証 |
 
 旧引数（`--graph`、`--graph-dir`、`--fixture-dir`、`--out-dir`、`--output`）は受け付けず、

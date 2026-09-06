@@ -31,7 +31,11 @@ def _write(tmp_path: Path, record: dict[str, object]) -> Path:
 
 
 def _verify(
-    *paths: Path, revision: str = "r3", revision_from: Path | None = None
+    *paths: Path,
+    revision: str = "r3",
+    revision_from: Path | None = None,
+    out_roots: tuple[Path, ...] = (),
+    require_lanes: tuple[str, ...] = (),
 ) -> bool:
     revision_args = (
         ["--revision-from", str(revision_from)]
@@ -43,6 +47,8 @@ def _verify(
             sys.executable,
             "scripts/verify_authoritative_evidence.py",
             *revision_args,
+            *(arg for root in out_roots for arg in ("--out-root", str(root))),
+            *(arg for lane in require_lanes for arg in ("--require-lane", lane)),
             *(str(path) for path in paths),
         ],
         check=False,
@@ -50,6 +56,13 @@ def _verify(
         text=True,
     )
     return result.returncode == 0
+
+
+def _write_named(directory: Path, name: str, record: dict[str, object]) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / name
+    path.write_text(json.dumps(record), encoding="utf-8")
+    return path
 
 
 def test_authoritative_evidence_is_accepted(tmp_path: Path) -> None:
@@ -107,6 +120,49 @@ def test_invalid_revision_graph_is_rejected(
     graph = tmp_path / "graph.json"
     graph.write_text(graph_content, encoding="utf-8")
     assert not _verify(_write(tmp_path, _record()), revision_from=graph)
+
+
+def test_out_root_collects_nested_lane_evidence(tmp_path: Path) -> None:
+    out_root = tmp_path / "out" / "container"
+    for lane, sub in (
+        ("electrical", "gd1"),
+        ("mechanical", "gd1-enclosure"),
+        ("firmware", "gd1-fw"),
+    ):
+        _write_named(out_root / sub, f"evidence-{lane}.json", _record())
+    assert _verify(
+        out_roots=(out_root,),
+        require_lanes=("electrical", "mechanical", "firmware"),
+    )
+
+
+def test_missing_required_lane_is_rejected(tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    _write_named(out_root / "gd1", "evidence-electrical.json", _record())
+    _write_named(
+        out_root / "gd1-enclosure", "evidence-mechanical.json", _record()
+    )
+    assert not _verify(
+        out_roots=(out_root,),
+        require_lanes=("electrical", "mechanical", "firmware"),
+    )
+
+
+def test_nonexistent_and_empty_out_roots_are_rejected(tmp_path: Path) -> None:
+    assert not _verify(out_roots=(tmp_path / "missing",))
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert not _verify(out_roots=(empty,))
+
+
+def test_stage_cache_evidence_is_ignored(tmp_path: Path) -> None:
+    out_root = tmp_path / "out"
+    _write_named(
+        out_root / ".stage-cache" / "gd1", "evidence-electrical.json", _record()
+    )
+    assert not _verify(out_roots=(out_root,), require_lanes=("electrical",))
+    _write_named(out_root / "gd1", "evidence-electrical.json", _record())
+    assert _verify(out_roots=(out_root,), require_lanes=("electrical",))
 
 
 def test_revision_sources_cannot_be_combined(tmp_path: Path) -> None:

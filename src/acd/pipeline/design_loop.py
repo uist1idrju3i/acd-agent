@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
-import subprocess
 import tempfile
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
@@ -59,7 +56,7 @@ from acd.core.runtime_records import (
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
 from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
-from acd.pipeline.firmware_evidence import write_firmware_evidence
+from acd.pipeline.firmware_lane import FirmwareLaneError, run_firmware_lane
 from acd.pipeline.fixture_builder import build_design_fixture
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
 from acd.pipeline.lane_plan import (
@@ -140,17 +137,6 @@ def _failure(stage_id: str, reason: str, **fields: Any) -> dict[str, Any]:
     }
 
 
-def _firmware_script(repository: Path) -> Path:
-    return (
-        repository
-        / "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py"
-    )
-
-
-def _file_sha256(path: Path) -> str:
-    return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
-
-
 def _write_candidate_timing_record(
     recorder: TimingRecorder, candidate_out: Path, *, lane_id: str
 ) -> None:
@@ -216,81 +202,37 @@ def _run_enclosure(config: DesignLoopConfig) -> dict[str, Any]:
 
 
 def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
-    script = _firmware_script(config.repository)
     output = config.lane_plan.stage("firmware-pipeline").output_path
     if output is None:
         raise ValueError("firmware stage has no output path")
-    if not script.is_file():
-        return _failure("firmware-pipeline", f"firmware Skill script is missing: {script}")
-    if config.run_seconds <= 0:
-        return _failure("firmware-pipeline", "run_seconds must be positive")
-    started_at = datetime.now(UTC)
-    completed = subprocess.run(
-        [
-            "uv",
-            "run",
-            "--script",
-            str(script),
-            "--fixture",
-            str(config.fixture_dir),
-            "--out",
-            str(output),
-            "--run-seconds",
-            str(config.run_seconds),
-        ],
-        cwd=config.repository,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        check=False,
-        timeout=3600,
-    )
-    if completed.returncode != 0:
-        return _failure(
-            "firmware-pipeline",
-            completed.stderr.strip()
-            or f"firmware Skill exited with code {completed.returncode}",
-            output_path=str(output),
-        )
-    summary_path = output / "summary.json"
     try:
-        summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        return _failure("firmware-pipeline", f"firmware Skill summary is invalid: {exc}")
-    if not isinstance(summary, dict):
-        return _failure("firmware-pipeline", "firmware Skill summary must be an object")
-    script_sha256 = _file_sha256(script)
-    try:
-        graph = DesignGraph.model_validate_json(
-            (config.fixture_dir / "graph.json").read_text(encoding="utf-8")
-        )
-        evidence_path, evidence = write_firmware_evidence(
-            graph,
-            cast(dict[str, Any], summary),
+        result = run_firmware_lane(
+            config.repository,
+            config.fixture_dir,
             output,
-            graph_path=config.fixture_dir / "graph.json",
-            script_sha256=script_sha256,
-            started_at=started_at,
-            finished_at=datetime.now(UTC),
+            run_seconds=config.run_seconds,
         )
-    except (OSError, ValueError) as exc:
-        return _failure(
-            "firmware-pipeline",
-            f"firmware Evidence could not be recorded: {exc}",
-            output_path=str(output),
-        )
+    except FirmwareLaneError as exc:
+        fields: dict[str, Any] = {}
+        if exc.output_path is not None:
+            fields["output_path"] = str(exc.output_path)
+        return _failure("firmware-pipeline", str(exc), **fields)
     return _success(
         "firmware-pipeline",
-        output_path=str(output),
-        summary=summary,
-        evidence_path=str(evidence_path),
-        evidence_authoritative=evidence.supports_authoritative_pass(graph.revision),
-        evidence_provisional=evidence.is_provisional(),
+        output_path=str(result.output_path),
+        summary=result.summary,
+        evidence_path=str(result.evidence_path),
+        evidence_authoritative=result.evidence.supports_authoritative_pass(
+            result.evidence.target_revision
+        ),
+        evidence_provisional=result.evidence.is_provisional(),
         measurement_class="virtual",
         provenance={
             "skill_name": "acd-firmware-esp32c3",
-            "script_name": str(script.relative_to(config.repository)),
-            "script_sha256": script_sha256,
+            "script_name": str(
+                result.script_path.relative_to(config.repository)
+            ),
+            "script_sha256": result.script_sha256,
             "pass_evidence": False,
         },
     )
