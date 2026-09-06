@@ -977,7 +977,10 @@ acd-agent単体でのVibeBB成立は、それでもなお未達である。理�
 
 Run Nのauthoritative Evidence（基板・筐体・FW）はいずれも`execution_context: "container"`、
 `container_image_digest`がlock一致、`target_revision: "r1"`、`status: "valid"`であり、
-収録後のhost側再検証も通る。
+基板・筐体は収録後のhost側再検証も通る。ただし収録した
+`firmware/evidence-firmware.json`の`input_hash`は`"unknown"`であり、
+`verify_authoritative_evidence.py`へかけると拒否される。この時点のFW Evidenceは
+権威検証を通過していない（14.4のX-2、生成側は修正済み）。
 
 ```text
 $ uv run python scripts/verify_authoritative_evidence.py \
@@ -1008,3 +1011,184 @@ GD1固定の解消については、GD1をregressionのpositive controlとして
 GD1以外の設計だけでVibeBBが1周する状態の達成条件をW-1〜W-4として
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のW節と[`roadmap.md`](roadmap.md) 14.21へ
 定義した。本回の実測時点で全laneを通過した設計はGD1だけであり、W-1の前提はV-6の解消である。
+
+## 14. 第7回実機実測（2026-09-06、12コアVPS・新規workspace・FW Evidenceのprovenance欠陥）
+
+第7回は12コア／MemTotal 30.2 GiB／Docker 29.1.3の実機OpenHands VPSへSSH tunnelで接続し、
+installed pluginを`main`先頭へ更新したうえで新規workspaceを作成し、GUI会話経路（L2）の
+`/acd:init`と`/acd:vibebb-loop`、digest固定container経路（L1）のGD1全lane、
+1秒間隔の資源計測、FreeRoutingの多コア再評価を行った記録である。閾値、ゲート挙動、
+fail-closed境界、L1権限は変更していない。
+生成物、会話ログ、資源sample、分析レポートは
+[`examples/golden-design-1-vps-20260906/`](../examples/golden-design-1-vps-20260906/)に収録した。
+
+### 14.1 条件
+
+| 項目 | 値 |
+|---|---|
+| plugin revision | `5e852567a93e99b4bae9cb6cfa872f3f2841ff43` → `f636c73dbff64e40a7d87a0aa38c6bea6c9e0ca5`（`force=true`で再install、`origin/main`一致） |
+| server image | `ghcr.io/uist1idrju3i/acd-server@sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae` |
+| tools lock digest | `sha256:95462d76276fe8f39fb3f2ff44252f29f51c82ba66f4ea3c0ee45ef69d70b601` |
+| workspace | `/home/openhands/acd-workspace-verify-20260906`（新規作成、API登録） |
+| host | 12コア／MemTotal 30.2 GiB／Python 3.14.4 |
+| container上限／`--jobs` | 8 GiB／4 |
+| 評価時刻 | `--evaluated-at 2025-01-14T00:00:00Z`（13.5のV-4に従いquote有効期間内） |
+
+installed pluginの`version`は`0.0.2`のまま変わらず、`plugins/acd/skills/acd-package-ref.txt`の
+package pinは`b3e531b…`で本体revisionより古い。GUI経路のSkill subprocessが実行するACD本体が
+plugin revisionと一致することは、この記録では確認していない（X-1）。
+
+### 14.2 GUI経路の`/acd:init`
+
+会話`9b62e53b-66ab-47cd-b00d-01ad973a2577`で`/acd:init --repo-url … --revision f636c73… --workspace …`
+を実行し、`ok: true`、`fail_closed: false`、install doctor 19検査通過で完了した。bootstrap recordは
+`resolved_revision`、`server_image_digest`、`lock_digest`が指定値およびlockに一致し、
+`record_class: "L3"`、`pass_evidence: false`である。初回はimage pullが会話terminalの既定timeoutを
+超えたため、pull完了後に長いtimeoutで再実行して完了した。
+
+### 14.3 GUI経路の`/acd:vibebb-loop`
+
+会話`af617b5d-377c-4cf1-84ef-9068aa453455`で`/acd:vibebb-loop --fixture fixtures/golden-design-1 …`
+を実行した。会話に登録されたtoolは`terminal`、`file_editor`、`invoke_skill`、`finish`だけで、
+command宣言の`acd_*` tool 9件はいずれも未登録であった。agentは契約どおり
+`scripts/verify_acd_tool_registration.py --command plugins/acd/commands/vibebb-loop.md --available …`
+で不在を確認し（`--available`は1件ずつ繰り返し指定する。空白区切りで複数渡すとargparseが拒否する）、
+宣言済みの決定論的CLIへ退避した。第6回のT-3（`acd_*`未登録）は変わらず残る。
+
+host経路の`run_design_loop.py`は第6回と同じく`silkscreen-resolve`の
+`/usr/share/kicad/symbols/power.kicad_sym`不在でfail-closedし、V-1のhookで塞いだ資材持ち出しは
+試行されなかった。agentは`scripts/run_in_workspace.py`でdigest固定containerへ切り替え、
+GD1全laneを完走させた（loop exit 0、`wall_clock_seconds` 233.6秒）。最初のcontainer起動は
+`--repo`にworkspaceではなく`/workspace`を渡して`design graph could not be loaded`で止まり、
+次の起動は`--download`未宣言のためrunner既定の`out/gd1/evidence-electrical.json`を取りに行って
+`404 Not Found`（transport失敗、`exit_code -1`）となった。loop本体は完走していたため、生成物は
+workspace側からtarで回収した。
+
+### 14.4 FW Evidenceのprovenance欠陥（fail-closedの確認）
+
+回収した3 laneのEvidenceを`verify_authoritative_evidence.py`へかけると、基板と筐体は個別に
+通過する一方、FWは
+
+```text
+FAIL: …/gd1-fw/evidence-firmware.json: envelope contains unknown values
+```
+
+で拒否された。`evidence-firmware.json`の`input_hash`が`"unknown"`である。原因は
+`src/acd/pipeline/firmware_evidence.py`が入力graphを`out_dir.parent / "graph.json"`（出力側）から
+推定しており、loopとOpenHands tool双方の呼び出しで存在しないため`"unknown"`へ倒れていたことにある。
+provenance規則（入力hashを記録する）に対して、生成側が常にunknownを書き、検証側がそれを正しく
+拒否していた。つまり第6回13.4／13.10で「基板・筐体・FWともvalid」と述べた点のうちFWは、
+検証commandに含めていなかったために見落としていた誤りであり、GD1のFW laneはこれまで一度も
+authoritative Evidence検証を通過していなかった（X-2）。
+
+修正は`build_firmware_evidence`／`write_firmware_evidence`へkeyword-only引数`graph_path`を追加し、
+呼び出し側（`design_loop.py`、`openhands/tools/definitions.py`）がfixtureの`graph.json`を明示的に
+渡す。graphが無い場合は`FirmwareEvidenceError`でfail-closedし、`"unknown"`への退避は削除した。
+回帰テストはGD1 graphのhash一致と、graph不在時の拒否を固定する。
+
+修正branchをworkspaceへcheckoutし、同じdigest固定containerで同条件のGD1 loopを再実行した
+（Run P、`wall_clock_seconds` 230.6秒、loop exit 0）。3 laneのEvidenceを1回の検証にかけて通過した。
+
+```text
+$ uv run python scripts/verify_authoritative_evidence.py \
+    --revision-from fixtures/golden-design-1/graph.json \
+    out/verify-20260906-fix/gd1/evidence-electrical.json \
+    out/verify-20260906-fix/gd1-enclosure/evidence-mechanical.json \
+    out/verify-20260906-fix/gd1-fw/evidence-firmware.json
+OK: 3 authoritative Evidence file(s) verified
+```
+
+FW Evidenceは`status: "valid"`、`target_revision: "r1"`、`execution_context: "container"`、
+`container_image_digest`がlock一致、`input_hash`が`sha256_paths([fixtures/golden-design-1/graph.json])`
+（`sha256:2c4162f2…`）に一致、`tool_name: "acd-firmware-esp32c3"`、
+`tool_version: "9.2.2 (esp_develop_9.2.2_20260417)"`である。発注集計はUSD 93.00、
+pre-order gateは`ready`、`loop-summary.json`は`ok: true`／`failed_stage: null`／`record_class: "L3"`／
+`pass_evidence: false`である。
+
+### 14.5 所要時間の内訳
+
+`timing-record.json`（schema 0.2）の値である。lane並列のため合計はwall-clockを上回る（V-7）。
+
+| stage | 修正前（GUI起動のcontainer実行） | Run P |
+|---|---:|---:|
+| silkscreen-resolve | 15.0秒 | 14.9秒 |
+| board-pipeline | 218.4秒 | 215.5秒 |
+| うち`board[3/12]`（FreeRouting） | 182.7秒 | 180.2秒 |
+| うち`board[8/12]`（CPL/BOM・Gerber計測） | 15.2秒 | 14.6秒 |
+| enclosure-pipeline | 24.0秒 | 24.2秒 |
+| firmware-pipeline | 117.6秒 | 116.0秒 |
+| stage合計 | 617.5秒 | 610.5秒 |
+| wall-clock | 233.6秒 | 230.6秒 |
+
+wall-clockのcritical pathは`silkscreen-resolve`（barrier）→`board-pipeline`であり、FW laneと筐体lane
+は基板laneの影に完全に隠れる。FreeRoutingだけでwall-clockの78%を占め、残る基板段は
+kicad-cli起動とGerber計測（既にprocess並列）である。第6回の8コアVPS（Run L3 248秒、Run N 259秒）
+に対し12コアで約7%短いが、FreeRoutingが支配項であるためコア数増加の効果は小さい。
+
+### 14.6 資源実測
+
+| 区間 | host CPU peak / mean | host mem peak / mean | Docker CPU peak | Docker mem peak | swap |
+|---|---:|---:|---:|---:|---:|
+| idle（比較用） | 2.07 / 0.47 cores | 2.59 / 2.24 GiB | – | – | 0 |
+| 修正前loop（GUI起動） | 11.97 / 3.35 cores | 4.74 / 3.76 GiB | 11.94 cores | 2.48 GiB | 32 KiB |
+| Run P（修正後） | 11.99 / 2.73 cores | 4.96 / 3.69 GiB | 11.94 cores | 2.86 GiB | 36 KiB |
+
+CPU peakはFreeRoutingの暗黙11 threadsとFW laneのESP-IDF buildが重なる区間で12コアを使い切る。
+平均は3コア前後で、loopの大半はFreeRouting単体のフェーズである。メモリはcontainer上限8 GiBに対し
+peak 2.9 GiB、hostは30 GiBのうち5 GiB未満で、swapは無視できる（数十KiB、idle時からの差分は0に近い）。
+9.2の最低・推奨スペックは変更しない。
+
+### 14.7 FreeRoutingの多コア再評価
+
+`docs/operations.md`の「多コア環境は未測定」に対し、同じcontainerでloopが生成したDSNを単独実行し、
+`-mt`暗黙／`-mt 1`と`-Xtune:footprint`／`-Xtune:virtualized`を比較した（結果表は
+[`operations.md`](operations.md)のFreeRouting JVM節）。4構成すべてでSES SHA-256は一致し、
+wallは156〜163秒で差は4%以内である。loop内の180〜183秒との差は他laneとのCPU競合分である。
+
+### 14.8 最適化の判断
+
+実測から、次の理由でACD本体の速度に関する既定値は変更しない。
+
+1. 支配項はFreeRouting（wall-clockの78%）であり、router threadsとJVM tuningでは短縮しない。
+   短縮できる設定（`-mp`、optimizer閾値）はSES出力＝正規化hashを変えるため速度目的で触らない。
+2. FW・筐体laneは既に基板laneの影に隠れており、lane並列の改善余地はcritical path上に無い。
+3. 基板laneの非routing段（約35秒）はkicad-cli起動とGerber計測で、後者は`ProcessPoolExecutor`で
+   並列化済みである。
+4. 反復（VibeBB loopの2周目以降）については、`--cache-dir`／`--resume`による入力hash単位の
+   DSN／SES cacheが既に実装されており、DSN不変なら`board[3/12]`の約180秒を省ける。GUI会話の
+   fallback commandはこれを指定していなかった。
+
+本回で実装した変更はFW Evidenceのprovenance修正（14.4）だけであり、速度ではなく
+「acd-agent単体でVibeBBの権威検証を3 lane揃って通す」ための修正である。
+
+### 14.9 結論（第7回）
+
+GD1に限れば、修正後のacd-agentはdigest固定containerで要件検証→silkscreen→基板→筐体→FW仮想→
+発注集計→pre-order gateを通過し、3 laneすべてのauthoritative Evidenceが1回の
+`verify_authoritative_evidence.py`で検証できる状態になった。修正前は、FW laneのEvidenceが
+必ずunknownを含むため、acd-agent単体ではVibeBBの権威検証を完結できていなかった。
+
+一方、GUI会話経路は`acd_*` tool未登録のCLI退避のまま（T-3残）であり、会話から
+`run_in_workspace.py`を正しく起動するまでに`--repo`と`--download`の指定ミスを2回経ている。
+Evidence回収はworkspaceからの手回収に依存した。
+
+### 14.10 気づきと改善提案
+
+1. `verify_authoritative_evidence.py`の例示と`container-gates`は基板・筐体の2 Evidenceだけを
+   対象にしており、FW Evidenceの`input_hash: "unknown"`が長期間露出しなかった。CIの
+   `container-gates`と文書の例示をFWを含む3 laneへ広げ、「loopが書いたEvidence全件」を
+   globで検証する形にすべきである（X-2）。
+2. installed pluginの`version`はrevisionが変わっても`0.0.2`のままで、
+   `acd-package-ref.txt`のpackage pinも本体revisionと乖離している。plugin更新時に
+   package pinを同じ変更で更新する検査（docs driftと同様の機械検査）が必要である（X-1）。
+3. GUI会話から`run_in_workspace.py`を呼ぶ際の`--repo`と`--download`の誤りは、command契約に
+   「workspace pathを`--repo`へ渡す」「`--out-root`配下の回収対象を`--download`で宣言する」
+   を具体commandとして書けば防げる。runnerが`--out-root`から回収対象を導出できれば
+   さらに誤りにくい（X-3）。
+4. `run_in_workspace.py --source mounted`は起動ごとにcontainer内で依存同期を行い、
+   loop本体の外側に約10秒台のoverheadが乗る。反復実行ではimage同梱のvenvをそのまま使う経路か、
+   同期結果のcacheを検討できる（X-4、未実測の見積り）。
+5. FreeRoutingのwallは他laneとのCPU競合で約15%伸びる。FW laneのESP-IDF buildの並列度を
+   `--jobs`から導出して抑えれば競合は減るが、FW laneが基板laneの影に隠れている限り
+   wall-clockの短縮は競合分（20〜25秒）が上限であり、実測して採否を決めるべきである（X-5）。
+6. 資源計測は今回も使い捨てshellで行った。V-8（計測wrapperのrepository内配置）は未解消である。

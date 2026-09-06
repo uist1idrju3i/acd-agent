@@ -596,6 +596,25 @@ W-1〜W-4を満たした時点で、GD1はVibeBB成立の必要条件ではな�
 positive controlとして維持し、GD1の判定・Evidence・正規化hashが変化しないことを
 非GD1設計の追加によって壊さないことを回帰の条件とする。
 
+## X. 第7回実機実測（2026-09-06、12コアVPS・新規workspace）で残った不足
+
+12コアVPSへ新規workspaceを作成し、pluginを`main`先頭へ更新してGUI会話の`/acd:init`・
+`/acd:vibebb-loop`とdigest固定containerのGD1全laneを実測した記録
+（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 14節）で判明した不足である。
+FW Evidenceの`input_hash`が常に`"unknown"`になる欠陥は同じ変更で修正し、3 laneのEvidenceが
+1回の`verify_authoritative_evidence.py`で通過することを実機で確認した。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| X-1 | plugin更新でpackage pinとversionが追従しない | installed pluginのrevisionは`f636c73…`へ進んだが`version`は`0.0.2`のまま、`acd-package-ref.txt`は`b3e531b…`で本体より古い。GUI経路のSkill subprocessが実行する本体revisionをこの記録では確認できない | 中 | ADR-0036 | plugin資材の変更時にpackage pinを同じ変更で更新することを機械検査（docs driftと同種）で固定する |
+| X-2 | FW Evidenceの`input_hash`が常に`"unknown"`で、権威検証の対象からも漏れていた | `firmware_evidence.py`が入力graphを出力側`out_dir.parent`から推定して`"unknown"`へ倒れ、`verify_authoritative_evidence.py`は正しく拒否した。一方、文書例示と`container-gates`は基板・筐体の2件だけを検証しており、第6回13.10の「FWもvalid」は誤記であった | 高 | — | 生成側は修正済み（`graph_path`必須、不在はfail-closed）。`container-gates`と文書例示をFWを含む全Evidenceのglob検証へ広げる |
+| X-3 | 会話から`run_in_workspace.py`を起動する際の`--repo`・`--download`誤り | 1回目は`--repo /workspace`でgraph読み込み失敗、2回目は`--download`未宣言で既定の`out/gd1/…`を取りに行きtransport失敗（`exit_code -1`）。loop本体は完走していたが回収は手作業になった | 中 | V-5 | command契約へworkspace pathと`--out-root`配下の回収対象を具体commandで書く。runnerが`--out-root`から回収対象を導出する経路を検討する |
+| X-4 | `--source mounted`の起動overhead | 起動ごとにcontainer内で依存同期が走り、loop外側に10秒台が乗る（見積り、単独計測は未実施） | 低 | — | image同梱venvの再利用または同期結果cacheを実測して採否を決める |
+| X-5 | FreeRoutingと他laneのCPU競合 | 同じDSNの単独実行156〜163秒に対しloop内`board[3/12]`は180〜183秒。router threads・JVM tuningではSES一致のまま短縮しない | 低 | E-2 | FW laneのbuild並列度を`--jobs`から導出して競合を抑える案を実測し、短縮が競合分（20〜25秒）以内に留まる事実も併せて記録する |
+
+X-2以外は閾値、ゲート条件、fail-closed境界を変更しない。X-2の修正も`"unknown"`への退避を
+fail-closedへ置き換えるだけで、合格側の条件は緩めていない。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が

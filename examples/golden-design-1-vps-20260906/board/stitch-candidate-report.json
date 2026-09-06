@@ -1,0 +1,1125 @@
+{
+  "content_sha256": "sha256:d118fef26133707aa8df52ee10dbc29e0bcfe298efe19585806caae6be1e0a21",
+  "coverage_measurements": [
+    {
+      "iteration": 1,
+      "uncovered_count": 0,
+      "uncovered_vias": [],
+      "via_count": 7
+    }
+  ],
+  "final_selected_points": [
+    [
+      21.683528,
+      24.4
+    ],
+    [
+      0.6,
+      6.623865
+    ],
+    [
+      29.4,
+      6.623865
+    ],
+    [
+      0.6,
+      9.635798
+    ],
+    [
+      29.4,
+      9.635798
+    ],
+    [
+      29.4,
+      15.659663
+    ],
+    [
+      29.4,
+      18.671595
+    ]
+  ],
+  "reports": [
+    {
+      "iteration": 0,
+      "phase": "initial",
+      "report": {
+        "allowed_points_override": false,
+        "board_edge_inset_basis": "Candidates are generated inside the board edge inset; no post-generation edge rejection is performed.",
+        "candidate_total": 93,
+        "candidates": [
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              0.6,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [],
+            "position_mm": [
+              0.6,
+              6.623865
+            ],
+            "selected": true
+          },
+          {
+            "exclusion_reasons": [],
+            "position_mm": [
+              0.6,
+              9.635798
+            ],
+            "selected": true
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              0.6,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              0.6,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              0.6,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              3.611933,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              3.611933,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              3.611933,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              3.611933,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              3.611933,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              3.611933,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              3.611933,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              3.611933,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              3.611933,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              6.623865,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              6.623865,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              6.623865,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              6.623865,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              6.623865,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              6.623865,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              6.623865,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              6.623865,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "wire"
+            ],
+            "position_mm": [
+              6.623865,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              9.635798,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              9.635798,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              9.635798,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              9.635798,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "wire"
+            ],
+            "position_mm": [
+              9.635798,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              9.635798,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              9.635798,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              9.635798,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              9.635798,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              12.64773,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              15.659663,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "keepout",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              15.659663,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              18.671595,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              18.671595,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              18.671595,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              18.671595,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              18.671595,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              18.671595,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              18.671595,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              18.671595,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              18.671595,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              21.683528,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              21.683528,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              21.683528,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              21.683528,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              21.683528,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              21.683528,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "wire"
+            ],
+            "position_mm": [
+              21.683528,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              21.683528,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [],
+            "position_mm": [
+              21.683528,
+              24.4
+            ],
+            "selected": true
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              24.69546,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              24.69546,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              24.69546,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "wire"
+            ],
+            "position_mm": [
+              24.69546,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              24.69546,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              24.69546,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "via",
+              "wire"
+            ],
+            "position_mm": [
+              24.69546,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              24.69546,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              24.69546,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              27.707393,
+              0.6
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              27.707393,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              27.707393,
+              6.623865
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              27.707393,
+              9.635798
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              27.707393,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              27.707393,
+              15.659663
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad",
+              "wire"
+            ],
+            "position_mm": [
+              27.707393,
+              18.671595
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard",
+              "pad"
+            ],
+            "position_mm": [
+              27.707393,
+              21.683528
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              27.707393,
+              24.4
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              29.4,
+              3.611933
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [],
+            "position_mm": [
+              29.4,
+              6.623865
+            ],
+            "selected": true
+          },
+          {
+            "exclusion_reasons": [],
+            "position_mm": [
+              29.4,
+              9.635798
+            ],
+            "selected": true
+          },
+          {
+            "exclusion_reasons": [
+              "footprint_body_or_courtyard"
+            ],
+            "position_mm": [
+              29.4,
+              12.64773
+            ],
+            "selected": false
+          },
+          {
+            "exclusion_reasons": [],
+            "position_mm": [
+              29.4,
+              15.659663
+            ],
+            "selected": true
+          },
+          {
+            "exclusion_reasons": [],
+            "position_mm": [
+              29.4,
+              18.671595
+            ],
+            "selected": true
+          }
+        ],
+        "exclusion_combinations": {
+          "footprint_body_or_courtyard": 16,
+          "footprint_body_or_courtyard+keepout+pad+wire": 1,
+          "footprint_body_or_courtyard+pad": 19,
+          "footprint_body_or_courtyard+pad+wire": 28,
+          "footprint_body_or_courtyard+wire": 18,
+          "via+wire": 1,
+          "wire": 3
+        },
+        "exclusion_counts": {
+          "board_edge_inset": 0,
+          "footprint_body_or_courtyard": 82,
+          "inter_via_spacing": 0,
+          "keepout": 1,
+          "pad": 48,
+          "via": 1,
+          "wire": 51
+        },
+        "fallback_candidates": [],
+        "fallback_excluded_candidates": [],
+        "fallback_region_reports": [],
+        "fallback_scope": "none",
+        "fallback_selected_candidates": [],
+        "fallback_used": false,
+        "footprint_clearance_method": "Rotated body/courtyard corners with an axis-aligned bounding box, expanded by via radius plus clearance.",
+        "selected_count": 7,
+        "selected_points": [
+          [
+            21.683528,
+            24.4
+          ],
+          [
+            0.6,
+            6.623865
+          ],
+          [
+            29.4,
+            6.623865
+          ],
+          [
+            0.6,
+            9.635798
+          ],
+          [
+            29.4,
+            9.635798
+          ],
+          [
+            29.4,
+            15.659663
+          ],
+          [
+            29.4,
+            18.671595
+          ]
+        ]
+      }
+    }
+  ],
+  "schema_version": "0.1",
+  "target_revision": "r1"
+}

@@ -9,6 +9,7 @@ from typing import Any
 
 import pytest
 
+from acd.core.process import sha256_paths
 from acd.pipeline.firmware_evidence import (
     FirmwareEvidenceError,
     build_firmware_evidence,
@@ -54,12 +55,18 @@ def _write_summary(out_dir: Path, summary: dict[str, Any]) -> None:
     (out_dir / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
 
 
-def _build(out_dir: Path, summary: dict[str, Any], graph: DesignGraph) -> Any:
+def _build(
+    out_dir: Path,
+    summary: dict[str, Any],
+    graph: DesignGraph,
+    graph_path: Path = GRAPH_PATH,
+) -> Any:
     now = datetime.now(UTC)
     return build_firmware_evidence(
         graph,
         summary,
         out_dir,
+        graph_path=graph_path,
         script_sha256=SCRIPT_SHA256,
         started_at=now,
         finished_at=now,
@@ -117,6 +124,28 @@ def test_evidence_does_not_pass_for_another_revision(tmp_path: Path) -> None:
     assert evidence.supports_authoritative_pass("r-other") is False
 
 
+def test_input_hash_is_the_graph_hash(tmp_path: Path) -> None:
+    graph = _graph()
+    out_dir = _out_dir(tmp_path)
+    summary = _summary(out_dir, graph)
+    _write_summary(out_dir, summary)
+
+    evidence = _build(out_dir, summary, graph)
+
+    assert evidence.envelope.input_hash == sha256_paths([GRAPH_PATH])
+    assert evidence.envelope.input_hash != "unknown"
+
+
+def test_missing_graph_path_fails_closed(tmp_path: Path) -> None:
+    graph = _graph()
+    out_dir = _out_dir(tmp_path)
+    summary = _summary(out_dir, graph)
+    _write_summary(out_dir, summary)
+
+    with pytest.raises(FirmwareEvidenceError, match="design graph input is missing"):
+        _build(out_dir, summary, graph, graph_path=tmp_path / "missing-graph.json")
+
+
 def test_missing_summary_keys_are_rejected(tmp_path: Path) -> None:
     graph = _graph()
     out_dir = _out_dir(tmp_path)
@@ -169,6 +198,7 @@ def test_write_firmware_evidence_persists_record(tmp_path: Path) -> None:
         graph,
         summary,
         out_dir,
+        graph_path=GRAPH_PATH,
         script_sha256=SCRIPT_SHA256,
         started_at=now,
         finished_at=now,

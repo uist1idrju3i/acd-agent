@@ -1,0 +1,146 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:3c8a4715751dce84162b28889297efa1180d78e937104fe17d57249ba07f8749",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 610.507831,
+  "stages": [
+    {
+      "duration_seconds": 0.004048,
+      "name": "design-loop/requirement-entry-validation",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.003712,
+      "name": "design-loop/lane-preflight",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 14.932459,
+      "name": "design-loop/silkscreen-resolve",
+      "start_order": 2
+    },
+    {
+      "duration_seconds": 215.498032,
+      "name": "design-loop/board-pipeline",
+      "start_order": 3
+    },
+    {
+      "duration_seconds": 24.227245,
+      "name": "design-loop/enclosure-pipeline",
+      "start_order": 4
+    },
+    {
+      "duration_seconds": 116.0284,
+      "name": "design-loop/firmware-pipeline",
+      "start_order": 5
+    },
+    {
+      "duration_seconds": 1.50988,
+      "name": "board[0/12]",
+      "start_order": 6
+    },
+    {
+      "duration_seconds": 0.039668,
+      "name": "enclosure[0/5]",
+      "start_order": 7
+    },
+    {
+      "duration_seconds": 0.002,
+      "name": "enclosure[1/5]",
+      "start_order": 8
+    },
+    {
+      "duration_seconds": 16.41442,
+      "name": "enclosure[2/5]",
+      "start_order": 9
+    },
+    {
+      "duration_seconds": 4.731354,
+      "name": "board[1/12]",
+      "start_order": 10
+    },
+    {
+      "duration_seconds": 1.578716,
+      "name": "board[2/12]",
+      "start_order": 11
+    },
+    {
+      "duration_seconds": 180.217277,
+      "name": "board[3/12]",
+      "start_order": 12
+    },
+    {
+      "duration_seconds": 7.756102,
+      "name": "enclosure[3/5]",
+      "start_order": 13
+    },
+    {
+      "duration_seconds": 3.8e-05,
+      "name": "enclosure[4/5]",
+      "start_order": 14
+    },
+    {
+      "duration_seconds": 0.000583,
+      "name": "enclosure[5/5]",
+      "start_order": 15
+    },
+    {
+      "duration_seconds": 3.051902,
+      "name": "board[4/12]",
+      "start_order": 16
+    },
+    {
+      "duration_seconds": 2.914522,
+      "name": "board[5/12]",
+      "start_order": 17
+    },
+    {
+      "duration_seconds": 2.389634,
+      "name": "board[6/12]",
+      "start_order": 18
+    },
+    {
+      "duration_seconds": 0.456495,
+      "name": "board[7/12]",
+      "start_order": 19
+    },
+    {
+      "duration_seconds": 14.627332,
+      "name": "board[8/12]",
+      "start_order": 20
+    },
+    {
+      "duration_seconds": 0.060491,
+      "name": "board[9/12]",
+      "start_order": 21
+    },
+    {
+      "duration_seconds": 0.124363,
+      "name": "board[10/12]",
+      "start_order": 22
+    },
+    {
+      "duration_seconds": 3.82403,
+      "name": "board[11/12]",
+      "start_order": 23
+    },
+    {
+      "duration_seconds": 6e-06,
+      "name": "board[12/12]",
+      "start_order": 24
+    },
+    {
+      "duration_seconds": 0.00897,
+      "name": "design-loop/order-total-aggregation",
+      "start_order": 25
+    },
+    {
+      "duration_seconds": 0.106152,
+      "name": "design-loop/order-readiness",
+      "start_order": 26
+    }
+  ],
+  "wall_clock_seconds": 230.559049
+}

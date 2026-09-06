@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "tool_name": "kicad-cli",
+  "tool_version": "10.0.6",
+  "format_version": "excellon",
+  "config_hash": "sha256:3e10ae4479cce48bf5f77722437290c7c9ed910c16bd82e50559d4fc91fb49e1",
+  "input_hash": "sha256:ad491f1018c218e0eb90bc72543d111c2808dba218d1e6219565d1fa8a9a799e",
+  "output_hash": "sha256:c0136fd6a212a9adec16d43d3654febe066a0171877453fc6029cb19381f68e5",
+  "execution_env": "linux-x86_64; container=sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae",
+  "execution_context": "container",
+  "container_image_digest": "sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae",
+  "measurement_conditions": "single run; mm decimal excellon",
+  "convergence_state": "not_applicable",
+  "target_revision": "r1",
+  "started_at": "2026-09-06T14:12:30.694067Z",
+  "finished_at": "2026-09-06T14:12:31.163438Z",
+  "exit_code": 0,
+  "idempotency_key": null,
+  "uncertainty": null
+}

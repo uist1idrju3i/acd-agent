@@ -1,0 +1,26 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:0a3eca7fd119fef64b71c5f20955ad5ac5c5a6174f61da55ffcaad18bbb31a36",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 0.025076,
+  "stages": [
+    {
+      "duration_seconds": 0.004641,
+      "name": "design-loop/requirement-entry-validation",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.004449,
+      "name": "design-loop/lane-preflight",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 0.015986,
+      "name": "design-loop/silkscreen-resolve",
+      "start_order": 2
+    }
+  ],
+  "wall_clock_seconds": 0.029665
+}

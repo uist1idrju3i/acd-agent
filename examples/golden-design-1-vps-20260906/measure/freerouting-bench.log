@@ -1,0 +1,100 @@
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.44.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+{"asctime": "2026-09-06 13:49:52,979", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker version"}
+Client:
+ Version:           29.1.3
+ API version:       1.52
+ Go version:        go1.24.13
+ Git commit:        29.1.3-0ubuntu4.1
+ Built:             Wed Apr 29 16:40:20 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server:
+ Engine:
+  Version:          29.1.3
+  API version:      1.52 (minimum version 1.44)
+  Go version:       go1.24.13
+  Git commit:       29.1.3-0ubuntu4.1
+  Built:            Wed Apr 29 16:40:20 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          2.2.2
+  GitCommit:        
+ runc:
+  Version:          1.4.0-0ubuntu1
+  GitCommit:        
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        
+{"asctime": "2026-09-06 13:49:53,013", "levelname": "INFO", "name": "openhands.workspace.docker.workspace", "filename": "workspace.py", "lineno": 220, "message": "Adding volume mount: /home/openhands/acd-workspace-verify-20260906:/acd-src:ro"}
+{"asctime": "2026-09-06 13:49:53,014", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker run --memory=8g --memory-swap=8g --env FREEROUTING_MAX_HEAP=2g -d --platform linux/amd64 --rm --ulimit nofile=65536:65536 --name agent-server-78d73fd4-335a-4321-bad3-4d57d1a607e5 -e ACD_CONTAINER_IMAGE_DIGEST=sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae -e ACD_IN_CONTAINER=1 -v /home/openhands/acd-workspace-verify-20260906:/acd-src:ro -p 38596:8000 ghcr.io/uist1idrju3i/acd-server@sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae --host 0.0.0.0 --port 8000"}
+3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016
+{"asctime": "2026-09-06 13:49:53,480", "levelname": "INFO", "name": "openhands.workspace.docker.workspace", "filename": "workspace.py", "lineno": 264, "message": "Started container: 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+{"asctime": "2026-09-06 13:49:53,493", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:49:54,527", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:49:55,563", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:49:56,600", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:49:57,636", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:49:58,672", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:49:59,709", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:00,745", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:01,782", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:02,818", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:03,855", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:04,892", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:05,928", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:06,965", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker inspect -f '{{.State.Running}}' 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+true
+{"asctime": "2026-09-06 13:50:08,006", "levelname": "INFO", "name": "openhands.workspace.docker.workspace", "filename": "workspace.py", "lineno": 282, "message": "Docker workspace is ready at http://127.0.0.1:38596"}
+{"asctime": "2026-09-06 14:00:45,586", "levelname": "ERROR", "name": "openhands.sdk.workspace.remote.remote_workspace_mixin", "filename": "remote_workspace_mixin.py", "lineno": 317, "message": "Remote file download failed: Client error '404 Not Found' for url 'http://127.0.0.1:38596/api/file/download?path=%2Fworkspace%2Facd%2Fout%2Fgd1%2Fevidence-electrical.json'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"}
+{"asctime": "2026-09-06 14:00:46,095", "levelname": "ERROR", "name": "openhands.sdk.workspace.remote.remote_workspace_mixin", "filename": "remote_workspace_mixin.py", "lineno": 317, "message": "Remote file download failed: Client error '404 Not Found' for url 'http://127.0.0.1:38596/api/file/download?path=%2Fworkspace%2Facd%2Fout%2Fgd1%2Fevidence-electrical.json'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"}
+{"asctime": "2026-09-06 14:00:47,104", "levelname": "ERROR", "name": "openhands.sdk.workspace.remote.remote_workspace_mixin", "filename": "remote_workspace_mixin.py", "lineno": 317, "message": "Remote file download failed: Client error '404 Not Found' for url 'http://127.0.0.1:38596/api/file/download?path=%2Fworkspace%2Facd%2Fout%2Fgd1%2Fevidence-electrical.json'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404"}
+{"asctime": "2026-09-06 14:00:47,104", "levelname": "INFO", "name": "openhands.workspace.docker.workspace", "filename": "workspace.py", "lineno": 376, "message": "Stopping container: 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+{"asctime": "2026-09-06 14:00:47,105", "levelname": "INFO", "name": "openhands.sdk.utils.command", "filename": "command.py", "lineno": 80, "message": "$ docker stop 3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016"}
+3c547c2dd35bbbe0f1bb82015846bc3c3c138fa6428ace56970451e26832f016
+workspace failure (transport): failed to download workspace file out/gd1/evidence-electrical.json after 3 attempts: Client error '404 Not Found' for url 'http://127.0.0.1:38596/api/file/download?path=%2Fworkspace%2Facd%2Fout%2Fgd1%2Fevidence-electrical.json'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+exit code: 0
+stdout:
+12
+cfg=implicit-footprint rc=0 wall_ms=157751 ses_sha=808ee9658df69b3f6aeddb827caf885d6592dd0afa6e8a2b01579bce715897d9 unrouted=(0 unrouted
+2026-09-06 13:52:45.543 INFO   [41D84E\41AC33] Optimizer pass #1 on board '829377d67289c822a87fe4c5c07d53e8' was completed in 119.65 seconds with the score of 956.81 (0 unrouted and 19 violations).
+2026-09-06 13:52:45.673 INFO   [41D84E\41AC33] Stopping optimizer because the improvement in this pass (0.0001%) is below the threshold (1.00%).
+2026-09-06 13:52:45.814 INFO   [41D84E\41AC33] Optimization stage completed: started with score 956.81 (0 unrouted and 19 violations), completed in 120.21 seconds, final score: 956.81 (0 unrouted and 
+cfg=mt1-footprint rc=0 wall_ms=156329 ses_sha=808ee9658df69b3f6aeddb827caf885d6592dd0afa6e8a2b01579bce715897d9 unrouted=(0 unrouted
+2026-09-06 13:55:22.025 INFO   [D9A5DA\9F965F] Optimizer pass #1 on board '829377d67289c822a87fe4c5c07d53e8' was completed in 118.90 seconds with the score of 956.81 (0 unrouted and 19 violations).
+2026-09-06 13:55:22.155 INFO   [D9A5DA\9F965F] Stopping optimizer because the improvement in this pass (0.0001%) is below the threshold (1.00%).
+2026-09-06 13:55:22.282 INFO   [D9A5DA\9F965F] Optimization stage completed: started with score 956.81 (0 unrouted and 19 violations), completed in 119.46 seconds, final score: 956.81 (0 unrouted and 
+cfg=implicit-virtualized rc=0 wall_ms=162772 ses_sha=808ee9658df69b3f6aeddb827caf885d6592dd0afa6e8a2b01579bce715897d9 unrouted=(0 unrouted
+2026-09-06 13:58:04.794 INFO   [3B1A7E\ED9E1D] Optimizer pass #1 on board '829377d67289c822a87fe4c5c07d53e8' was completed in 124.95 seconds with the score of 956.81 (0 unrouted and 19 violations).
+2026-09-06 13:58:04.922 INFO   [3B1A7E\ED9E1D] Stopping optimizer because the improvement in this pass (0.0001%) is below the threshold (1.00%).
+2026-09-06 13:58:05.054 INFO   [3B1A7E\ED9E1D] Optimization stage completed: started with score 956.81 (0 unrouted and 19 violations), completed in 125.53 seconds, final score: 956.81 (0 unrouted and 
+cfg=mt1-virtualized rc=0 wall_ms=160207 ses_sha=808ee9658df69b3f6aeddb827caf885d6592dd0afa6e8a2b01579bce715897d9 unrouted=(0 unrouted
+2026-09-06 14:00:44.925 INFO   [6A8BB1\A77C9A] Optimizer pass #1 on board '829377d67289c822a87fe4c5c07d53e8' was completed in 122.65 seconds with the score of 956.81 (0 unrouted and 19 violations).
+2026-09-06 14:00:45.052 INFO   [6A8BB1\A77C9A] Stopping optimizer because the improvement in this pass (0.0001%) is below the threshold (1.00%).
+2026-09-06 14:00:45.183 INFO   [6A8BB1\A77C9A] Optimization stage completed: started with score 956.81 (0 unrouted and 19 violations), completed in 123.22 seconds, final score: 956.81 (0 unrouted and 
+stderr:
+

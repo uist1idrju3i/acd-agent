@@ -268,6 +268,7 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
             graph,
             cast(dict[str, Any], summary),
             output,
+            graph_path=config.fixture_dir / "graph.json",
             script_sha256=script_sha256,
             started_at=started_at,
             finished_at=datetime.now(UTC),
