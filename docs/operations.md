@@ -1180,10 +1180,12 @@ digest指定でpullして各ツールの版出力を実測し、lockの`acd_tool
 tools欄を不完全なままlock PRを作成しない。過去の手動転記記録はhistoryとして残すが、
 新しいpublishでは手動転記は不要である。
 
-digest lock更新PRは作成直後にauto-mergeを有効化する。repositoryでauto-mergeが
-利用できない場合はworkflow summaryへ手動mergeが必要であることを記録する。
-ただし、PRのCI、特にlock済みserver imageを実行する`container-gates`は引き続き
-合否を決めるゲートであり、auto-mergeは検証を置き換えない。
+digest lock更新PRは作成後、publish workflowが`gh pr checks --watch`でPRのCIの
+完了を待ち、全checkが成功した場合のみsquash mergeする。checkが失敗した場合は
+mergeせずPRを開いたまま残し、workflow summaryへ記録してpublish jobを失敗させる。
+PR作成直後にmergeすると`pull_request` CI runがjobを持たないまま失敗として残るため、
+CIの完了前にmergeしてはならない。PRのCI、特にlock済みserver imageを実行する
+`container-gates`は引き続き合否を決めるゲートである。
 
 server digest `sha256:c0144f8b52deecbc46d442be140724685d0aef13b314777a69172298b3b48c19`
 については、digest固定imageの実測値を`acd_server.tools`へ転記した。これはpublish後の
