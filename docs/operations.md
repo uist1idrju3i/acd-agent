@@ -837,7 +837,7 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 ### 依存アップデートの確認
 
-[`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ローカル実行にはネットワークとuvが必要である。
+[`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。
 
 ```bash
 uv run python scripts/check_dependency_updates.py --markdown out/dependency-updates.md

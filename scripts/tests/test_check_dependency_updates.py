@@ -178,8 +178,25 @@ def test_markdown_no_updates() -> None:
         [DependencyStatus("pypi", "pytest", "9.0.0", "9.0.0", "pyproject.toml", False)]
     )
     assert "更新候補はありません。" in markdown
-    assert markdown.count("| 依存 | 現在 | 最新 | 参照 |") == 10
+    assert markdown.count("| 依存 | 現在 | 最新 | 状態 | 参照 |") == 1
+    assert "| pytest | 9.0.0 | 9.0.0 | 最新 | pyproject.toml |" in markdown
+    assert "## PyPI（uv.lock間接依存）\n\n間接依存はdriftのある項目のみ表示" in markdown
+    assert "## submodule\n\n確認対象なし" in markdown
     assert "更新候補: 0件" not in markdown
+
+
+def test_markdown_lists_outdated_before_current_items() -> None:
+    markdown = render_markdown(
+        [
+            DependencyStatus("pypi", "current-package", "1.0.0", "1.0.0", "pyproject.toml", False),
+            DependencyStatus("pypi", "outdated-package", "1.0.0", "2.0.0", "pyproject.toml", True),
+        ]
+    )
+    outdated_row = "| outdated-package | 1.0.0 | 2.0.0 | 更新あり | pyproject.toml |"
+    current_row = "| current-package | 1.0.0 | 1.0.0 | 最新 | pyproject.toml |"
+    assert outdated_row in markdown
+    assert current_row in markdown
+    assert markdown.index(outdated_row) < markdown.index(current_row)
 
 
 def test_pypi_lock_parses_changes_and_excludes_direct_dependencies(tmp_path: Path) -> None:
