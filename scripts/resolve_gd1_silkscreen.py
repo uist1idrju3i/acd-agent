@@ -33,6 +33,12 @@ def main() -> int:
         print(f"RESOLUTION FAILED (fail-closed): {exc}", file=sys.stderr)
         return 1
     print(json.dumps(result, indent=2, sort_keys=True))
+    if result.get("status") != "resolved":
+        print(
+            f"RESOLUTION FAILED (fail-closed): status={result.get('status')}",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

@@ -39,7 +39,7 @@ GD1に限れば要件検証から製造提出判定・authoritative Evidence検�
 端から端まで通過した。一方、新規specは`silkscreen`宣言の不足でfail-closedし、GUI会話は
 `acd_*` tool未登録のまま決定論的CLIへ倒れ、会話の最終報告がL3記録だけで合格を述べた。
 これらはV-1〜V-10として14.20・14.21・15.17〜15.19で扱う。実測で全laneを通過した設計は
-依然GD1だけであり、GD1非依存の達成判定はW-1〜W-4（14.21）で行う。
+GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判定はW-1〜W-4（14.21）で行う。
 
 残る未了は、14.16（FW lane専用の候補生成と配置テストの環境非依存化）、14.17のS-3
 （ambient install経路の配布形態）と復帰成立実行の実測記録、14.18の復帰成立runの
@@ -231,8 +231,8 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、宣言toolの不在検出、library資材宣言の統一、進行表示を扱う。S-3の配布形態と復帰成立実行の実測は未了 |
 | 14.18 | 復帰候補評価からL3観測の混入を除く（T-1〜T-5） | 候補評価の独立timing記録、複数候補の列挙、宣言tool不在のdrift guard、L3 digestの統合、transport失敗時の出力保持を扱う。T-1〜T-5は実装済みで、復帰成立runの実測記録は未取得 |
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
-| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-3、V-5、V-6、V-7、V-9を達成（V-1は未着手）。第6回実機実測で残った不足を扱う。新規specの宣言不足をfixture生成段で列挙して具体名で返す（V-6）、container由来資材のhost混入検出（V-1）、L3記録だけで合格を述べさせない報告契約（V-3）、失敗時も判定を変えずに成果物を回収できるdownload経路（V-5）、timing recordへのwall-clock明示（V-7）、宣言tool不在の機械可読記録（V-9） |
-| 14.21 | GD1非依存の達成判定（W-1〜W-4） | GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
+| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-1、V-3、V-5、V-6、V-7、V-9を達成。第6回実機実測で残った不足を扱う。新規specの宣言不足をfixture生成段で列挙して具体名で返す（V-6）、container由来資材のhost混入検出（V-1）、L3記録だけで合格を述べさせない報告契約（V-3）、失敗時も判定を変えずに成果物を回収できるdownload経路（V-5）、timing recordへのwall-clock明示（V-7）、宣言tool不在の機械可読記録（V-9） |
+| 14.21 | GD1非依存の達成判定（W-1〜W-4） | W-1〜W-4を達成（非GD1 fixture `mini-blink-dongle`がdigest固定containerで全laneとauthoritative Evidence検証を通過）。GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
 
 不足項目（C、D、L、M、N、O、P、Q、U、V、W）の各フェーズへの割当経緯と14.1〜14.15・14.19の完了条件は[`roadmap-completed.md`](roadmap-completed.md)を正とする。
 
@@ -343,7 +343,10 @@ V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の�
 GD1は回帰のpositive controlとして今後も維持する。本フェーズの目的はGD1の削除ではなく、
 「GD1だけが全ゲートを通る設計である」状態の解消を判定可能にすることである。14.6でGD1固定の
 命名・FW設定・policy参照は宣言由来へ一般化し、14.2で述語の適用条件を機能ブロック宣言へ
-移したが、実測で全laneを通過した設計は依然GD1だけである。
+移した。非GD1 fixture `fixtures/mini-blink-dongle/`はdigest固定container（`run_in_workspace.py`）で
+silkscreen、基板、筐体、FW、製造提出判定、`verify_authoritative_evidence.py`を通過し、W-1〜W-4は達成した。
+GD1参照の棚卸しは`contracts/gd1-reference-inventory.json`と`scripts/verify_gd1_references.py --check`で
+driftとして検出する。
 
 | 要素 | 完了条件 |
 |---|---|

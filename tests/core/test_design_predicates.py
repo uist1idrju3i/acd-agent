@@ -299,3 +299,24 @@ def test_led_series_element_rejects_a_direct_drive_connection() -> None:
     lane = extract_electrical_lane(graph)
     result = evaluate_led_series_element(graph, lane)
     assert result.status == "fail"
+
+
+def test_mcu_predicates_do_not_assume_the_gd1_refdes() -> None:
+    graph = _graph()
+    graph = _update_node_attrs(graph, "comp.u1", refdes="IC7")
+    lane = extract_electrical_lane(graph)
+    assert evaluate_strapping_pin(graph, lane).status == "pass"
+    assert evaluate_pin_firmware_alignment(graph, lane).status == "pass"
+
+
+def test_mcu_predicates_are_unknown_when_the_declared_mcu_is_missing() -> None:
+    graph = _update_node_attrs(_graph(), "fw.module.main", mcu_component="comp.missing")
+    lane = extract_electrical_lane(graph)
+    assert evaluate_strapping_pin(graph, lane).status == "unknown"
+    assert evaluate_pin_firmware_alignment(graph, lane).status == "unknown"
+
+
+def test_predicate_source_has_no_literal_refdes_lookup() -> None:
+    source = (ROOT / "src/acd/core/design_predicates.py").read_text(encoding="utf-8")
+    assert '_component_by_refdes(lane, "' not in source
+    assert "GD1" not in source

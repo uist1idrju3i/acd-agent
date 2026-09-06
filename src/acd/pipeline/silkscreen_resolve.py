@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import asdict, replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
@@ -26,8 +27,14 @@ from acd.core.fab import (
     resolve_fab_profile_path,
 )
 from acd.core.naming import output_prefix
+from acd.core.rationale import subject_hash_for
 from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
 from acd.schema.design_graph import DesignGraph
+from acd.schema.rationale import (
+    RationaleDocument,
+    RationaleProvenance,
+    RationaleRecord,
+)
 
 from .gd1_board import placements_from_graph
 from .gd1_fixture.components import sha256_of
@@ -130,9 +137,7 @@ def _restore_unresolved_positions(
         return
     raw_declarations = cast(list[dict[str, object]], raw_value)
     unresolved = {
-        text.node_id
-        for text in declarations.texts
-        if text.x_mm is None or text.y_mm is None
+        text.node_id for text in declarations.texts if text.x_mm is None or text.y_mm is None
     }
     for item in raw_declarations:
         if item.get("node_id") in unresolved:
@@ -162,15 +167,10 @@ def _materialize_unresolved_texts(
 
 
 def _assert_no_unresolved_texts(lane: SilkscreenLane) -> None:
-    unresolved = [
-        text.node_id
-        for text in lane.texts
-        if text.x_mm is None or text.y_mm is None
-    ]
+    unresolved = [text.node_id for text in lane.texts if text.x_mm is None or text.y_mm is None]
     if unresolved:
         raise ValueError(
-            "silkscreen resolution accepted unresolved text coordinates: "
-            + ", ".join(unresolved)
+            "silkscreen resolution accepted unresolved text coordinates: " + ", ".join(unresolved)
         )
 
 
@@ -189,6 +189,7 @@ def resolve_silkscreen(
     work_fixture_dir = out_dir / "work-fixture"
     shutil.copytree(fixture_dir, work_fixture_dir, dirs_exist_ok=True)
     graph_path = work_fixture_dir / "graph.json"
+    rationale_path = work_fixture_dir / "rationale.json"
     iterations: list[dict[str, object]] = []
     for iteration in range(1, max_iterations + 1):
         measured = measure_silkscreen(
@@ -208,10 +209,10 @@ def resolve_silkscreen(
             )
             _assert_no_unresolved_texts(extract_silkscreen_lane(final_graph))
             shutil.copy2(graph_path, fixture_dir / "graph.json")
+            if rationale_path.is_file():
+                shutil.copy2(rationale_path, fixture_dir / "rationale.json")
             return {"status": "resolved", "iterations": iterations, "final": measured}
-        graph = DesignGraph.model_validate(
-            json.loads(graph_path.read_text(encoding="utf-8"))
-        )
+        graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
         lane = extract_silkscreen_lane(graph)
         with tempfile.TemporaryDirectory(prefix="acd-silk-context-") as directory:
             directory_path = Path(directory)
@@ -241,16 +242,11 @@ def resolve_silkscreen(
                 text=True,
                 encoding="utf-8",
             )
-            skill_result = cast(
-                dict[str, Any], json.loads(output_path.read_text(encoding="utf-8"))
-            )
+            skill_result = cast(dict[str, Any], json.loads(output_path.read_text(encoding="utf-8")))
             skill_input_sha256 = sha256_of(input_path)
-        full_evidence_path = (
-            out_dir / f"iteration-{iteration}" / "silkscreen-skill-result.json"
-        )
+        full_evidence_path = out_dir / f"iteration-{iteration}" / "silkscreen-skill-result.json"
         full_evidence_path.write_text(
-            json.dumps(skill_result, ensure_ascii=False, indent=2, sort_keys=True)
-            + "\n",
+            json.dumps(skill_result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
         raw_candidates = skill_result.get("candidates")
@@ -312,9 +308,7 @@ def resolve_silkscreen(
                         "x_mm": float(position[0]),
                         "y_mm": float(position[1]),
                         "rotation_deg": float(item["accepted_rotation_deg"]),
-                        "placement_rotation_deg": float(
-                            item["accepted_rotation_deg"]
-                        ),
+                        "placement_rotation_deg": float(item["accepted_rotation_deg"]),
                         "placement_source": "acd-silkscreen-placement",
                         "placement_source_ref": (
                             "plugins/acd/skills/acd-silkscreen-placement/scripts/"
@@ -324,25 +318,130 @@ def resolve_silkscreen(
                             evidence_summary, ensure_ascii=False, sort_keys=True
                         ),
                         "placement_evidence_input_sha256": skill_input_sha256,
-                        "placement_evidence_output_sha256": sha256_of(
-                            full_evidence_path
-                        ),
+                        "placement_evidence_output_sha256": sha256_of(full_evidence_path),
                     }
                 )
                 updated_nodes.append(node.model_copy(update={"attrs": attrs}))
             else:
                 updated_nodes.append(node)
+        updated_graph = graph.model_copy(update={"nodes": updated_nodes})
         graph_path.write_text(
             json.dumps(
-                graph.model_copy(update={"nodes": updated_nodes}).model_dump(mode="json"),
-                ensure_ascii=False,
-                indent=2,
-                sort_keys=True,
+                updated_graph.model_dump(mode="json"), ensure_ascii=False, indent=2, sort_keys=True
             )
             + "\n",
             encoding="utf-8",
         )
+        if rationale_path.is_file():
+            _record_silkscreen_rationale(
+                updated_graph, rationale_path, accepted, sha256_of(silk_skill)
+            )
     return {"status": "max_iterations_exceeded", "iterations": iterations}
+
+
+SILKSCREEN_SKILL_NAME = "acd-silkscreen-placement"
+_RESOLVED_SILK_ATTRS = ("rotation_deg", "x_mm", "y_mm")
+
+
+def _record_silkscreen_rationale(
+    graph: DesignGraph,
+    rationale_path: Path,
+    accepted: dict[str, dict[str, Any]],
+    skill_hash: str,
+) -> None:
+    """Record the Skill-resolved text placements as ``acd_skill`` rationale.
+
+    The resolver decides ``x_mm``, ``y_mm`` and ``rotation_deg``; any earlier
+    record claiming those attributes for a resolved text is narrowed to the
+    attributes it still describes, and one Skill record per text is written
+    with the Skill name and script hash as provenance.
+    """
+    document = RationaleDocument.model_validate(
+        json.loads(rationale_path.read_text(encoding="utf-8"))
+    )
+    resolved = set(accepted)
+    records: list[RationaleRecord] = []
+    driving: dict[str, list[str]] = {node_id: [] for node_id in resolved}
+    for record in document.records:
+        for node_id in resolved.intersection(record.subject_nodes):
+            driving[node_id] = sorted(set(driving[node_id]) | set(record.driving_requirements))
+        if record.rationale_id.startswith("silkscreen-resolve-") and (
+            record.rationale_id.removeprefix("silkscreen-resolve-") in resolved
+        ):
+            continue
+        if not resolved.intersection(record.subject_nodes):
+            records.append(record)
+            continue
+        attrs = [a for a in record.subject_attrs if a not in _RESOLVED_SILK_ATTRS]
+        if not attrs:
+            continue
+        records.append(
+            record.model_copy(
+                update={
+                    "subject_attrs": attrs,
+                    "subject_hash": subject_hash_for(graph, record.subject_nodes, attrs),
+                    "target_revision": graph.revision,
+                }
+            )
+        )
+    provenance = RationaleProvenance(
+        source="acd_skill",
+        skill_name=SILKSCREEN_SKILL_NAME,
+        script_hash=skill_hash,
+        recorded_at=datetime.now(UTC),
+    )
+    for node_id in sorted(resolved):
+        node = graph.node_by_id(node_id)
+        item = accepted[node_id]
+        rejected = _rejection_counts(item.get("rejected_candidates"))
+        rejected_total = sum(rejected.values())
+        records.append(
+            RationaleRecord(
+                rationale_id=f"silkscreen-resolve-{node_id}",
+                decision_kind="silkscreen",
+                subject_nodes=[node_id],
+                subject_attrs=list(_RESOLVED_SILK_ATTRS),
+                subject_hash=subject_hash_for(graph, [node_id], list(_RESOLVED_SILK_ATTRS)),
+                decision=(
+                    f"Place {node_id} at ({node.attrs['x_mm']}, {node.attrs['y_mm']}) "
+                    f"rotated {node.attrs['rotation_deg']} degrees."
+                ),
+                justification=(
+                    "The silkscreen placement Skill searched the declared order from "
+                    "the declared reference and accepted the first candidate that "
+                    "cleared board-edge, pad, mask, existing-silk, body and courtyard "
+                    f"conflicts; {rejected_total} earlier candidates were rejected "
+                    f"({json.dumps(rejected, sort_keys=True)}). The graph records the "
+                    "Skill input and output hashes as placement evidence."
+                ),
+                driving_requirements=driving[node_id],
+                rejected_alternatives=[],
+                no_alternatives_reason=(
+                    "Rejected candidates are enumerated in the placement evidence "
+                    "referenced by the node rather than duplicated here."
+                ),
+                assumptions=[
+                    "Candidate resolution is not physical acceptance; the routed "
+                    "silkscreen gate remains the L1 check."
+                ],
+                risks=[
+                    "Routing vias and mask openings added later can still reject the "
+                    "accepted candidate."
+                ],
+                provenance=provenance,
+                target_revision=graph.revision,
+            )
+        )
+    rationale_path.write_text(
+        json.dumps(
+            document.model_copy(update={"records": records}).model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def lane_to_json(lane: SilkscreenLane) -> dict[str, object]:

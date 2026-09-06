@@ -241,6 +241,26 @@ jobs:
             --verdict out/container/manufacturing-submission.json \
             --graph fixtures/golden-design-1/graph.json \
             --require-authoritative
+      - name: Run non-GD1 deterministic gates in DockerWorkspace
+        if: github.event_name == 'push'
+        run: |
+          uv run python scripts/run_in_workspace.py \
+            --image "$SERVER_REF" \
+            --repo "$GITHUB_WORKSPACE" \
+            --cache-dir "${{ runner.temp }}/acd-cache" \
+            --download out/mbd-fixture/graph.json \
+            --download out/mbd/mini-blink-dongle/evidence-electrical.json \
+            --download out/mbd/mini-blink-dongle-enclosure/evidence-mechanical.json \
+            --download out/mbd/manufacturing-submission.json \
+            'uv sync && uv run python scripts/build_design_fixture.py --spec fixtures/mini-blink-dongle/spec.json --out out/mbd-fixture && uv run python scripts/run_design_lanes.py --fixture out/mbd-fixture --out-root out/mbd && uv run python scripts/verify_manufacturing_submission.py --board-out out/mbd/mini-blink-dongle --enclosure-out out/mbd/mini-blink-dongle-enclosure --graph out/mbd-fixture/graph.json --require-authoritative --out out/mbd/manufacturing-submission.json'
+          uv run python scripts/verify_authoritative_evidence.py \
+            --revision-from out/container/mbd-fixture/graph.json \
+            out/container/mbd/mini-blink-dongle/evidence-electrical.json \
+            out/container/mbd/mini-blink-dongle-enclosure/evidence-mechanical.json
+          uv run python scripts/verify_manufacturing_submission.py \
+            --verdict out/container/mbd/manufacturing-submission.json \
+            --graph out/container/mbd-fixture/graph.json \
+            --require-authoritative
       - name: Report host resource preflight
         if: github.event_name == 'push' && always()
         run: |

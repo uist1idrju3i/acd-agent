@@ -353,7 +353,9 @@ def measure_net_track_widths(
                     )
                 )
             ]
-            if len(candidates) != 1:
+            # Routers may emit overlapping stubs of one net whose endpoints
+            # coincide within tolerance; attribution stays unique per net.
+            if not candidates or len({candidate.net for candidate in candidates}) != 1:
                 raise FabOutputError(
                     f"{path.name}: conductor line cannot be uniquely matched "
                     f"to saved-board net segment at {start}->{end}"

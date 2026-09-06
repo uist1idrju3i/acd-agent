@@ -55,9 +55,7 @@ def _load_build123d() -> Any:
     try:
         return importlib.import_module("build123d")
     except (ImportError, ModuleNotFoundError) as exc:
-        raise MechanicalVisualProjectionError(
-            "build123d renderer is unavailable"
-        ) from exc
+        raise MechanicalVisualProjectionError("build123d renderer is unavailable") from exc
 
 
 def _relative_path(path: Path, base_dir: Path, field_name: str) -> str:
@@ -96,9 +94,7 @@ def _assembly_input(
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         artifacts = manifest["artifacts"]
-        assembly = next(
-            item for item in artifacts if item["role"] == "enclosure_assembly"
-        )
+        assembly = next(item for item in artifacts if item["role"] == "enclosure_assembly")
         expected_hash = assembly["normalized_sha256"]
     except (KeyError, StopIteration, TypeError, json.JSONDecodeError) as exc:
         raise MechanicalVisualProjectionError(
@@ -141,17 +137,13 @@ def _section_geometry(shape: Any, offset_mm: float, build123d: Any) -> _SectionG
                     if wire_edges:
                         wires.append(wire_edges)
     except (AttributeError, TypeError, ValueError, RuntimeError) as exc:
-        raise MechanicalVisualProjectionError(
-            "section plane could not be evaluated"
-        ) from exc
+        raise MechanicalVisualProjectionError("section plane could not be evaluated") from exc
     if not wires:
         raise MechanicalVisualProjectionError(
             "section plane does not intersect the authoritative shape"
         )
     translation = build123d.Location((0, 0, -offset_mm))
-    translated_wires = tuple(
-        tuple(edge.moved(translation) for edge in wire) for wire in wires
-    )
+    translated_wires = tuple(tuple(edge.moved(translation) for edge in wire) for wire in wires)
     edges = tuple(sorted((edge for wire in translated_wires for edge in wire), key=_edge_sort_key))
     return _SectionGeometry(edges=edges, wires=translated_wires)
 
@@ -171,12 +163,8 @@ def _merge_aperture_intervals(
     merged: list[tuple[float, float]] = []
     for start, end in ordered:
         if not math.isfinite(start) or not math.isfinite(end) or start > end:
-            raise MechanicalVisualProjectionError(
-                "mechanical section aperture interval is invalid"
-            )
-        if not merged or (
-            start > merged[-1][1] and not _close(start, merged[-1][1])
-        ):
+            raise MechanicalVisualProjectionError("mechanical section aperture interval is invalid")
+        if not merged or (start > merged[-1][1] and not _close(start, merged[-1][1])):
             merged.append((start, end))
         else:
             merged[-1] = (merged[-1][0], max(merged[-1][1], end))
@@ -193,18 +181,12 @@ def _expected_aperture_intervals(
             raise MechanicalVisualProjectionError(
                 "mechanical section connector opening face is unsupported"
             )
-        opening_min_z = opening.center_y_mm - (
-            opening.height_mm / 2 + opening.margin_mm
-        )
-        opening_max_z = opening.center_y_mm + (
-            opening.height_mm / 2 + opening.margin_mm
-        )
+        opening_min_z = opening.center_y_mm - (opening.height_mm / 2 + opening.margin_mm)
+        opening_max_z = opening.center_y_mm + (opening.height_mm / 2 + opening.margin_mm)
         if opening_min_z < section_offset_mm < opening_max_z:
             center_x = opening.center_x_mm - lane.outline.width_mm / 2
             half_width = (opening.width_mm + 2 * opening.margin_mm) / 2
-            intervals[opening.face].append(
-                (center_x - half_width, center_x + half_width)
-            )
+            intervals[opening.face].append((center_x - half_width, center_x + half_width))
     for overhang in lane.board_edge_overhangs:
         face = {"top": "front", "bottom": "back"}.get(overhang.edge)
         if face is None:
@@ -337,27 +319,10 @@ def _validate_section_features(
         and _close(float(edge.bounding_box().max.Y), inner_y)
         for edge in geometry.edges
     )
-    has_inner_top = any(
-        _edge_is(edge, "LINE")
-        and _close(float(edge.bounding_box().min.X), -inner_x)
-        and _close(float(edge.bounding_box().max.X), inner_x)
-        and _close(float(edge.bounding_box().min.Y), inner_y)
-        and _close(float(edge.bounding_box().max.Y), inner_y)
-        for edge in geometry.edges
-    )
-    if not (has_inner_left and has_inner_right and has_inner_top):
-        raise MechanicalVisualProjectionError(
-            "mechanical section is missing the declared enclosure cavity"
-        )
-
-    outer_width, outer_depth = _expected_view_dimensions(lane)
     expected_intervals = _expected_aperture_intervals(lane, section_offset_mm)
+    outer_width, outer_depth = _expected_view_dimensions(lane)
     for face, intervals in expected_intervals.items():
-        expected_boundaries = [
-            boundary
-            for interval in intervals
-            for boundary in interval
-        ]
+        expected_boundaries = [boundary for interval in intervals for boundary in interval]
         actual_boundaries = _section_aperture_boundary_xs(
             geometry,
             face=face,
@@ -383,6 +348,53 @@ def _validate_section_features(
                 f"mechanical section {face} aperture contains an undeclared boundary"
             )
 
+    has_inner_back = _inner_wall_is_covered(
+        geometry,
+        wall_y=inner_y,
+        inner_x=inner_x,
+        apertures=expected_intervals["back"],
+    )
+    has_inner_front = _inner_wall_is_covered(
+        geometry,
+        wall_y=-inner_y,
+        inner_x=inner_x,
+        apertures=expected_intervals["front"],
+    )
+    if not (has_inner_left and has_inner_right and has_inner_back and has_inner_front):
+        raise MechanicalVisualProjectionError(
+            "mechanical section is missing the declared enclosure cavity"
+        )
+
+
+def _inner_wall_is_covered(
+    geometry: _SectionGeometry,
+    *,
+    wall_y: float,
+    inner_x: float,
+    apertures: list[tuple[float, float]],
+) -> bool:
+    """Inner wall segments plus declared apertures must span the full cavity width."""
+    segments: list[tuple[float, float]] = []
+    for edge in geometry.edges:
+        if not _edge_is(edge, "LINE"):
+            continue
+        bbox = edge.bounding_box()
+        if not (_close(float(bbox.min.Y), wall_y) and _close(float(bbox.max.Y), wall_y)):
+            continue
+        min_x = max(float(bbox.min.X), -inner_x)
+        max_x = min(float(bbox.max.X), inner_x)
+        if max_x > min_x:
+            segments.append((min_x, max_x))
+    if not segments:
+        return False
+    clipped_apertures = [
+        (max(start, -inner_x), min(end, inner_x))
+        for start, end in apertures
+        if min(end, inner_x) > max(start, -inner_x)
+    ]
+    covered = _merge_aperture_intervals([*segments, *clipped_apertures])
+    return len(covered) == 1 and _close(covered[0][0], -inner_x) and _close(covered[0][1], inner_x)
+
 
 def _declared_section_offset_mm(lane: MechanicalLane) -> float:
     wall_thickness = lane.enclosure.wall_thickness_mm
@@ -393,9 +405,7 @@ def _declared_section_offset_mm(lane: MechanicalLane) -> float:
         or wall_thickness <= 0
         or standoff_height <= 0
     ):
-        raise MechanicalVisualProjectionError(
-            "mechanical section offset declarations are invalid"
-        )
+        raise MechanicalVisualProjectionError("mechanical section offset declarations are invalid")
     return wall_thickness + standoff_height / 2
 
 
@@ -430,9 +440,7 @@ def _image_hash(path: Path) -> str:
     try:
         return sha256_bytes(path.read_bytes())
     except OSError as exc:
-        raise MechanicalVisualProjectionError(
-            f"mechanical SVG could not be read: {path}"
-        ) from exc
+        raise MechanicalVisualProjectionError(f"mechanical SVG could not be read: {path}") from exc
 
 
 def _expected_view_dimensions(lane: MechanicalLane) -> tuple[float, float]:
@@ -550,9 +558,7 @@ class MechanicalVisualRenderer:
         output = output_path.resolve()
         _write_svg(output_path=output, layers=render_layers, build123d=self.build123d)
         first_hash = _image_hash(output)
-        reproduction = output.parent / "reproduction" / (
-            f"{output.stem}.reproduced{output.suffix}"
-        )
+        reproduction = output.parent / "reproduction" / (f"{output.stem}.reproduced{output.suffix}")
         _write_svg(
             output_path=reproduction,
             layers=render_layers,
@@ -586,9 +592,7 @@ class MechanicalVisualRenderer:
         section_plane_id: str,
     ) -> VisualProjectionRecord:
         if section_plane_id != "xy":
-            raise MechanicalVisualProjectionError(
-                "only the declared XY section plane is supported"
-            )
+            raise MechanicalVisualProjectionError("only the declared XY section plane is supported")
         section_offset_mm = _declared_section_offset_mm(lane)
         input_file = _assembly_input(
             projection, base_dir=self.base_dir, target_revision=target_revision
@@ -657,8 +661,7 @@ class MechanicalVisualRenderer:
         if region_present:
             interference = max(intersections, key=lambda item: item[1])[0]
             offset = (
-                float(interference.bounding_box().min.Z)
-                + float(interference.bounding_box().max.Z)
+                float(interference.bounding_box().min.Z) + float(interference.bounding_box().max.Z)
             ) / 2
         else:
             interference = None

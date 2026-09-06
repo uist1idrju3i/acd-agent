@@ -1870,6 +1870,26 @@ lane入口は`--fixture`（`graph.json`を含む設計入力ディレクトリ�
 workspace実行wrapperであり、既定コマンドとEvidenceパスの導出に使うgraphファイルを
 `--graph`で受け取る点が異なる。
 
+## 非GD1 fixture（mini-blink-dongle）の実行記録
+
+`fixtures/mini-blink-dongle/spec.json`は新規specの雛形であり、silkscreen（`silk_texts`）、
+筐体、FW状態機械、stitch via、CPL基準の出所、`overlays/`の足跡overlay、fab発注意図を
+すべて明示宣言する。宣言不足は`build_design_fixture.py`の`lane_preflight_status`と
+`next_step_action`へ具体名で返り、自動補完はしない。
+
+```bash
+uv run python scripts/build_design_fixture.py \
+  --spec fixtures/mini-blink-dongle/spec.json --out out/mbd-fixture
+uv run python scripts/run_design_lanes.py --fixture out/mbd-fixture --out-root out/mbd
+```
+
+authoritative実行は`scripts/run_in_workspace.py`（`DockerWorkspace`、lock済みserver image）で
+行い、CIの`container-gates`と同じcommandを使う。2026-09-06のlocal実測（8 GiB host、
+`--memory-limit 6g`）では、4 laneの`wall_clock_seconds`は135 s（`stage_duration_sum_seconds`
+451 s）で、`verify_authoritative_evidence.py`と`verify_manufacturing_submission.py
+--require-authoritative`はいずれもPASSした。この実測はL3観測であり、合格判定はcontainer内の
+決定論的ゲートとdownloadしたEvidenceの検証結果だけが担う。
+
 ## out-rootのhost／container分離
 
 container実行のEvidenceとverdictは`out/container/`配下へdownloadし、host実行の`out/`と共有しない。

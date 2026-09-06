@@ -83,14 +83,67 @@ class FixtureFirmwareSequenceStepSpec(AcdModel):
     attrs: dict[str, AttrValue] = Field(default_factory=dict)
 
 
+class FixtureComponentBodySpec(AcdModel):
+    """Declared mechanical body of one component, referenced by refdes."""
+
+    node_id: NonEmptyStr
+    refdes: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureConnectorOpeningSpec(AcdModel):
+    """Declared enclosure opening for one connector, referenced by refdes."""
+
+    node_id: NonEmptyStr
+    refdes: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureBoardEdgeOverhangSpec(AcdModel):
+    """Declared board-edge overhang of one component, tied to a requirement."""
+
+    node_id: NonEmptyStr
+    refdes: NonEmptyStr
+    requirement_id: NonEmptyStr
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureEnclosureSpec(AcdModel):
+    """Declared enclosure. It depends on every declared body and opening."""
+
+    node_id: NonEmptyStr | None = None
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureFabOrderIntentSpec(AcdModel):
+    """Declared order intent attached to the fab profile named by ``fab_profile_id``."""
+
+    requirement_id: NonEmptyStr | None = None
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
+class FixtureFabProcessAllowanceSpec(AcdModel):
+    """Declared acceptance of a fab preference-rule finding, traced to a requirement."""
+
+    rule_id: NonEmptyStr
+    requirement_id: NonEmptyStr
+    reason: NonEmptyStr
+    impact_accepted: list[NonEmptyStr]
+
+
+class FixtureSafetyBoundarySpec(AcdModel):
+    """Declared safety boundary read by the power-boundary predicates."""
+
+    node_id: NonEmptyStr | None = None
+    attrs: dict[str, AttrValue] = Field(default_factory=dict)
+
+
 class FixtureFirmwareModuleSpec(AcdModel):
     """Declared firmware module together with its declared state machine."""
 
     node_id: NonEmptyStr | None = None
     attrs: dict[str, AttrValue] = Field(default_factory=dict)
-    states: list[FixtureFirmwareStateSpec] = Field(
-        default_factory=list[FixtureFirmwareStateSpec]
-    )
+    states: list[FixtureFirmwareStateSpec] = Field(default_factory=list[FixtureFirmwareStateSpec])
     transitions: list[FixtureFirmwareTransitionSpec] = Field(
         default_factory=list[FixtureFirmwareTransitionSpec]
     )
@@ -104,9 +157,7 @@ class DesignFixtureSpec(AcdModel):
     revision: Revision = "r1"
     graph_id: NonEmptyStr | None = None
     board_attrs: dict[str, AttrValue] = Field(default_factory=dict)
-    components: list[FixtureComponentSpec] = Field(
-        default_factory=list[FixtureComponentSpec]
-    )
+    components: list[FixtureComponentSpec] = Field(default_factory=list[FixtureComponentSpec])
     nets: list[FixtureNetSpec] = Field(default_factory=list[FixtureNetSpec])
     firmware_pin_assignments: list[FixtureFirmwarePinSpec] = Field(
         default_factory=list[FixtureFirmwarePinSpec]
@@ -116,21 +167,40 @@ class DesignFixtureSpec(AcdModel):
         default_factory=list[FixtureFunctionalBlockSpec]
     )
     mechanical_outline: FixtureMechanicalOutlineSpec | None = None
-    silk_texts: list[FixtureSilkTextSpec] = Field(
-        default_factory=list[FixtureSilkTextSpec]
+    component_bodies: list[FixtureComponentBodySpec] = Field(
+        default_factory=list[FixtureComponentBodySpec]
     )
+    connector_openings: list[FixtureConnectorOpeningSpec] = Field(
+        default_factory=list[FixtureConnectorOpeningSpec]
+    )
+    board_edge_overhangs: list[FixtureBoardEdgeOverhangSpec] = Field(
+        default_factory=list[FixtureBoardEdgeOverhangSpec]
+    )
+    enclosure: FixtureEnclosureSpec | None = None
+    safety_boundary: FixtureSafetyBoundarySpec | None = None
+    silk_texts: list[FixtureSilkTextSpec] = Field(default_factory=list[FixtureSilkTextSpec])
     silk_graphics: list[FixtureSilkGraphicSpec] = Field(
         default_factory=list[FixtureSilkGraphicSpec]
     )
     firmware_module: FixtureFirmwareModuleSpec | None = None
     fab_profile_id: NonEmptyStr | None = None
+    fab_order_intent: FixtureFabOrderIntentSpec | None = None
+    fab_process_allowances: list[FixtureFabProcessAllowanceSpec] = Field(
+        default_factory=list[FixtureFabProcessAllowanceSpec]
+    )
     rationale_recorded_at: Timestamp | None = None
 
 
 __all__ = [
     "DesignFixtureSpec",
+    "FixtureBoardEdgeOverhangSpec",
+    "FixtureComponentBodySpec",
     "FixtureComponentSpec",
+    "FixtureConnectorOpeningSpec",
     "FixtureCplOrientationEvidence",
+    "FixtureEnclosureSpec",
+    "FixtureFabOrderIntentSpec",
+    "FixtureFabProcessAllowanceSpec",
     "FixtureFirmwareModuleSpec",
     "FixtureFirmwarePinSpec",
     "FixtureFirmwareSequenceStepSpec",
@@ -139,6 +209,7 @@ __all__ = [
     "FixtureFunctionalBlockSpec",
     "FixtureMechanicalOutlineSpec",
     "FixtureNetSpec",
+    "FixtureSafetyBoundarySpec",
     "FixtureSilkGraphicSpec",
     "FixtureSilkTextSpec",
 ]

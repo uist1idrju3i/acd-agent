@@ -51,12 +51,13 @@ class WorkspaceDefaults:
     required_evidence_ids: frozenset[str]
 
 
-def workspace_defaults(graph_id: str) -> WorkspaceDefaults:
+def workspace_defaults(graph_id: str, fixture: Path) -> WorkspaceDefaults:
+    """Derive the graph-driven default command and downloads for any fixture."""
     prefix = artifact_prefix(graph_id)
     return WorkspaceDefaults(
         command=(
-            "uv run python scripts/run_"
-            f"{prefix}_enclosure_pipeline.py --out out/{prefix}-enclosure"
+            "uv run python scripts/run_enclosure_pipeline.py "
+            f"--fixture {fixture.as_posix()} --out out/{prefix}-enclosure"
         ),
         download_files=(
             f"out/{prefix}/evidence-electrical.json",

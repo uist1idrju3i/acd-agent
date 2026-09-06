@@ -1003,6 +1003,11 @@ def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
             "tool_input": {"command": "printf ok"},
             "working_dir": str(tmp_path),
         },
+        "refuse-eda-asset-export": {
+            "tool_name": "terminal",
+            "tool_input": {"command": "printf ok"},
+            "working_dir": str(tmp_path),
+        },
         "probe-tools": {"working_dir": str(tmp_path)},
         "require-gate-after-input-change": {"working_dir": str(tmp_path)},
         "verify-markdown": {
@@ -1094,3 +1099,41 @@ def test_plugin_hook_commands_fail_closed_without_a_plugin_root(tmp_path: Path) 
             f"{name} did not fail closed without a plugin root: {completed.stdout}"
         )
         assert "acd plugin root unresolved" in completed.stderr
+
+
+def test_container_eda_asset_export_is_denied() -> None:
+    for command in (
+        "docker cp acd-server:/usr/share/kicad/symbols /tmp/symbols",
+        "docker exec acd tar czf - /usr/share/kicad/footprints > /tmp/footprints.tgz",
+        "uv run python scripts/run_in_workspace.py --download /usr/share/kicad/3dmodels 'true'",
+        "cp -r /usr/share/freerouting /tmp/freerouting",
+        "echo 'unterminated /usr/share/kicad",
+    ):
+        code, output = run("eda_asset_export.py", {"command": command}, "terminal")
+        assert code == 2, command
+        assert output["decision"] == "deny"
+        assert "provisional" in output["reason"]
+
+
+def test_container_eda_asset_read_only_and_unrelated_commands_are_allowed() -> None:
+    for command in (
+        "ls /usr/share/kicad/symbols",
+        "uv run python scripts/run_in_workspace.py --download out/gd1/evidence-electrical.json "
+        "'KICAD9_SYMBOL_DIR=/usr/share/kicad/symbols uv run python scripts/run_design_lanes.py'",
+        "git status",
+        "tar czf out/fab.tgz out/gd1/gerbers",
+    ):
+        code, output = run("eda_asset_export.py", {"command": command}, "terminal")
+        assert code == 0, command
+        assert output == {}
+    assert run("eda_asset_export.py", {"path": "/usr/share/kicad"}, "file_editor")[0] == 0
+
+
+def test_hooks_json_declares_eda_asset_export_hook() -> None:
+    config = HookConfig.load(HOOKS_PATH)
+    names = {
+        hook.name
+        for matcher in config.pre_tool_use
+        for hook in matcher.hooks
+    }
+    assert "refuse-eda-asset-export" in names

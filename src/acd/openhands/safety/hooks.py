@@ -11,6 +11,7 @@ REQUIRED_ACD_HOOK_NAMES = frozenset(
     {
         "protect-derived-projections",
         "require-order-evidence",
+        "refuse-eda-asset-export",
         "require-gate-after-input-change",
     }
 )

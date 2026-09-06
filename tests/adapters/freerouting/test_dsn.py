@@ -74,6 +74,17 @@ def test_export_dsn_emits_hole_keepouts_for_unnumbered_drills() -> None:
     assert "keepout" in dsn
 
 
+def test_export_dsn_hole_keepouts_follow_placement_rotation() -> None:
+    footprint = FootprintShape(library_ref="Lib:H", pads=(_pad("1"), _pad("", x=3.0, drill=2.2)))
+    model = _model(footprint)
+    rotated = replace(model, placements=(replace(model.placements[0], rotation_deg=180.0),))
+    dsn = export_dsn(rotated, "t3r")
+    keepout = next(line for line in dsn.splitlines() if '"hole_R1_1_F.Cu"' in line)
+    # hole at local (3.0, 0.0) rotated 180 deg around (5.0, 2.0) -> (2.0, 2.0) mm.
+    assert "2000 -2000" in keepout
+    assert "8000 -2000" not in keepout
+
+
 def test_export_dsn_disables_vias_on_smd_pads() -> None:
     footprint = FootprintShape(library_ref="Lib:R", pads=(_pad("1"),))
     dsn = export_dsn(_model(footprint), "t4")
@@ -100,9 +111,9 @@ def test_export_dsn_emits_distinct_netclass_rules() -> None:
     )
     dsn = export_dsn(board, "classes")
     assert '(class "ACD_0150um" "" "A"' in dsn
-    assert '(rule (width 150) (clearance 150))' in dsn
+    assert "(rule (width 150) (clearance 150))" in dsn
     assert '(class "ACD_0200um" "" "B"' in dsn
-    assert '(rule (width 200) (clearance 150))' in dsn
+    assert "(rule (width 200) (clearance 150))" in dsn
 
 
 def test_export_dsn_missing_netclass_fails_closed() -> None:

@@ -30,10 +30,10 @@ def main() -> int:
     )
     args = parser.parse_args()
     try:
-        spec = DesignFixtureSpec.model_validate(
-            json.loads(args.spec.read_text(encoding="utf-8"))
+        spec = DesignFixtureSpec.model_validate(json.loads(args.spec.read_text(encoding="utf-8")))
+        graph = build_design_fixture(
+            spec, args.out, overwrite=args.overwrite, spec_dir=args.spec.parent
         )
-        graph = build_design_fixture(spec, args.out, overwrite=args.overwrite)
     except (OSError, json.JSONDecodeError, TypeError, ValueError, FixtureBuilderError) as exc:
         print(json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False))
         return 2
