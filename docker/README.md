@@ -74,6 +74,7 @@ Dockerfileでは次を固定または検証する。
 同梱資材の版はDockerfileの`ARG`で固定し、tarballはSHA-256で検証する。build時の検証に
 失敗した場合はimageを生成しない。ESP-IDFはgit tagで固定するが、Espressifのtoolchain
 downloadはupstreamの配布に依存するため、完全な再現性はimage digestで担保する。
+これらのバージョンARGは[依存更新確認workflow](../.github/workflows/check-dependency-updates.yml)で確認するため、新しいARGを追加した場合は`scripts/check_dependency_updates.py`のARG表にも追加し、image toolsを`docker/image-digests.json`へ記録する場合は`TOOL_UPSTREAM_SPECS`にも追加する。
 
 APT由来のパッケージはUbuntuのrepository snapshotを別途固定しない限り、同じ
 Dockerfileでも再解決される可能性がある。完全な再現性にはimage digestとAPT

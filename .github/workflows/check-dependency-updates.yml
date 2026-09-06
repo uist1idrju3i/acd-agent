@@ -1,0 +1,77 @@
+name: Check dependency updates
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: check-dependency-updates
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Check dependency updates
+        id: report
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPORT_MARKDOWN: ${{ runner.temp }}/report.md
+          REPORT_JSON: ${{ runner.temp }}/report.json
+        run: |
+          set -euo pipefail
+          uv run python scripts/check_dependency_updates.py \
+            --markdown "$REPORT_MARKDOWN" \
+            --json "$REPORT_JSON"
+          cat "$REPORT_MARKDOWN" >> "$GITHUB_STEP_SUMMARY"
+          OUTDATED_COUNT=$(python3 -c \
+            'import json, os; print(json.load(open(os.environ["REPORT_JSON"], encoding="utf-8"))["outdated_count"])')
+          printf 'outdated_count=%s\n' "$OUTDATED_COUNT" >> "$GITHUB_OUTPUT"
+      - name: Report dependency updates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPORT_MARKDOWN: ${{ runner.temp }}/report.md
+          OUTDATED_COUNT: ${{ steps.report.outputs.outdated_count }}
+          ISSUE_TITLE: 依存アップデート確認レポート
+          ACTIONS_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          gh label create dependencies \
+            --description "Dependency update report" \
+            --color 0366d6 \
+            --force
+          ISSUE_NUMBER=$(gh issue list \
+            --state open \
+            --label dependencies \
+            --search "in:title $ISSUE_TITLE" \
+            --json number \
+            --jq '.[0].number')
+          if [ "$OUTDATED_COUNT" -gt 0 ]; then
+            BODY_FILE=$(mktemp)
+            trap 'rm -f "$BODY_FILE"' EXIT
+            cat "$REPORT_MARKDOWN" > "$BODY_FILE"
+            printf '\n---\n実行ログ: %s\n\n更新はAGENTS.md「依存とsubmodule」に従い、一次情報を確認し、docs/operations.mdへ記録し、submoduleとpyprojectのpinを同期してください。\n' \
+              "$ACTIONS_RUN_URL" >> "$BODY_FILE"
+            if [ -n "$ISSUE_NUMBER" ]; then
+              gh issue edit "$ISSUE_NUMBER" --body-file "$BODY_FILE"
+            else
+              gh issue create --title "$ISSUE_TITLE" --label dependencies --body-file "$BODY_FILE"
+            fi
+          elif [ -n "$ISSUE_NUMBER" ]; then
+            gh issue close "$ISSUE_NUMBER" --comment "更新候補が無くなったため自動でcloseしました。"
+          fi
