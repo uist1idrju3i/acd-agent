@@ -17,12 +17,14 @@
 - 取得commit: `9f654ec4b274ca67960426e157a73103918d462b`
 - 取得日: 2026-09-06
 - ライセンス: CERN-OHL-P-2.0（permissive variant、Copyright 2024-2025 CERN）。
-  ライセンス本文は`LICENSES/CERN-OHL-P-2.0.txt`に保存する。
-- シンボルはKiCad 9生成ライブラリから無改変で抜粋し、upstreamと同じく
-  `Footprint` propertyを空のまま保持する。ACDではcatalogでfootprintを対応付ける。
-  upstreamが想定するdatabase-library利用に必要な3D modelとdatasheetは含めない。
-- 抽出は`extract_cern_library_parts.py --spec libraries/CERN.parts.json
-  --source <checkout>`で再現し、`--check`でdriftを検出する。
+  ライセンス本文はsubmodule内の`libraries/cern-kicad-libs/LICENSE`を参照する。
+- upstream全体を`libraries/cern-kicad-libs`へshallow submoduleとして固定する。
+  シンボルとfootprintはupstreamのKiCad 9生成ライブラリを無改変で参照し、
+  `Footprint` propertyもupstreamと同じく空のまま保持する。
+- upstreamが想定するdatabase-library利用に必要な3D modelとdatasheetは、
+  upstreamの構成どおり含まれない。ACDではcatalogでfootprintを対応付ける。
+- catalog entryは`libraries/cern-catalog-parts.json`と
+  `scripts/emit_cern_catalog_entries.py`でsubmodule内のSQLiteから再生成する。
 
 KiCad公式ライブラリ由来の部品（抵抗、コンデンサ、USB-C、AMS1117、SHT4x等）は
 本ディレクトリへ複製せず、kicadパッケージ（10.0.6）同梱の

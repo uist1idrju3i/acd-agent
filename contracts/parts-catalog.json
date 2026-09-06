@@ -650,14 +650,14 @@
     {
       "kind": "diode",
       "library_ref": {
-        "footprint": "CERN:SOD2512X110N",
-        "footprint_file": "libraries/CERN.pretty/SOD2512X110N.kicad_mod",
+        "footprint": "ICs And Semiconductors SMD:SOD2512X110N",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/ICs And Semiconductors SMD.pretty/SOD2512X110N.kicad_mod",
         "footprint_sha256": "sha256:f5ddea516e65d8d49870e15e95ccb5e620f146663179c16b2717a08cbfb87bbf",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Diode Schottky",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Diodes:Diode Schottky",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Diodes.kicad_sym",
+        "symbol_sha256": "sha256:50122e7e1328cf9246bd8ab8ae601bef127e0a45c9542d2ee56b0b8eeda34b9a",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -668,14 +668,14 @@
     {
       "kind": "transistor",
       "library_ref": {
-        "footprint": "CERN:SOT95P230X110-3N",
-        "footprint_file": "libraries/CERN.pretty/SOT95P230X110-3N.kicad_mod",
+        "footprint": "ICs And Semiconductors SMD:SOT95P230X110-3N",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/ICs And Semiconductors SMD.pretty/SOT95P230X110-3N.kicad_mod",
         "footprint_sha256": "sha256:4ae7b4a86a97aff26a2e2e4545c785c21a6176695017e472036d0dfd394aa84a",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:2N7002CK",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Transistors:2N7002CK",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Transistors.kicad_sym",
+        "symbol_sha256": "sha256:5aab301d97a1ececf6e44d646ecc82b2360361f9b52097b1615f8a232f9be41f",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -686,14 +686,14 @@
     {
       "kind": "connector",
       "library_ref": {
-        "footprint": "CERN:MOLEX_53047-0410",
-        "footprint_file": "libraries/CERN.pretty/MOLEX_53047-0410.kicad_mod",
+        "footprint": "MOLEX THD:MOLEX_53047-0410",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/MOLEX THD.pretty/MOLEX_53047-0410.kicad_mod",
         "footprint_sha256": "sha256:5cd4eb84b8df5cdd2fdfed7551e0bbcc70e5e025fa8e7d1ee0205d9521155d81",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Connector 4 Male",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Connectors:Connector 4 Male",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Connectors.kicad_sym",
+        "symbol_sha256": "sha256:0d5ced5c8d72a42ef0a15c97c87a9488bfb24c38004e04638760b83130d6e536",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -704,14 +704,14 @@
     {
       "kind": "connector",
       "library_ref": {
-        "footprint": "CERN:MOLEX_53261-0271",
-        "footprint_file": "libraries/CERN.pretty/MOLEX_53261-0271.kicad_mod",
+        "footprint": "MOLEX SMD:MOLEX_53261-0271",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/MOLEX SMD.pretty/MOLEX_53261-0271.kicad_mod",
         "footprint_sha256": "sha256:8be0d642298a5d819a5591380e0076ace82704429fe363c72e61862f25dfd694",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Connector 2 Male",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Connectors:Connector 2 Male",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Connectors.kicad_sym",
+        "symbol_sha256": "sha256:0d5ced5c8d72a42ef0a15c97c87a9488bfb24c38004e04638760b83130d6e536",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -722,14 +722,14 @@
     {
       "kind": "ic",
       "library_ref": {
-        "footprint": "CERN:SOT95P285X140-5N",
-        "footprint_file": "libraries/CERN.pretty/SOT95P285X140-5N.kicad_mod",
+        "footprint": "ICs And Semiconductors SMD:SOT95P285X140-5N",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/ICs And Semiconductors SMD.pretty/SOT95P285X140-5N.kicad_mod",
         "footprint_sha256": "sha256:74509c4b97c5736d25653004bf151020d624a32e8ccd57204c00e19774f864d1",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:AP2112K",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Regulators:AP2112K",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Regulators.kicad_sym",
+        "symbol_sha256": "sha256:b426ab086592f94861ee3de74dce5247cddb82d4e81e91e396125634cd3c51aa",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -740,14 +740,14 @@
     {
       "kind": "diode",
       "library_ref": {
-        "footprint": "CERN:SOD2513X114N",
-        "footprint_file": "libraries/CERN.pretty/SOD2513X114N.kicad_mod",
+        "footprint": "ICs And Semiconductors SMD:SOD2513X114N",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/ICs And Semiconductors SMD.pretty/SOD2513X114N.kicad_mod",
         "footprint_sha256": "sha256:3eae52865215d21532e9887a368302dafde0ac29a6011fbc33707175de6f69c7",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:CDSOD323-TXX",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Diodes:CDSOD323-TXX",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Diodes.kicad_sym",
+        "symbol_sha256": "sha256:50122e7e1328cf9246bd8ab8ae601bef127e0a45c9542d2ee56b0b8eeda34b9a",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -758,14 +758,14 @@
     {
       "kind": "ic",
       "library_ref": {
-        "footprint": "CERN:QFN50P500X500X80-29N-S335",
-        "footprint_file": "libraries/CERN.pretty/QFN50P500X500X80-29N-S335.kicad_mod",
+        "footprint": "ICs And Semiconductors SMD:QFN50P500X500X80-29N-S335",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/ICs And Semiconductors SMD.pretty/QFN50P500X500X80-29N-S335.kicad_mod",
         "footprint_sha256": "sha256:9f63ff9174fb0c82b0500569505cf1abb81452a94a64ea7cd6bc04970dc50db6",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:CP2102N-A02-GQFN28",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Analog & Interface:CP2102N-A02-GQFN28",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Analog & Interface.kicad_sym",
+        "symbol_sha256": "sha256:8ef4d7e3c29a527a17fa0a8109610ab0a8f29e92d6087e4e3c72db3534f77647",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -776,14 +776,14 @@
     {
       "kind": "transistor",
       "library_ref": {
-        "footprint": "CERN:SOT95P285X140-3N",
-        "footprint_file": "libraries/CERN.pretty/SOT95P285X140-3N.kicad_mod",
+        "footprint": "ICs And Semiconductors SMD:SOT95P285X140-3N",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/ICs And Semiconductors SMD.pretty/SOT95P285X140-3N.kicad_mod",
         "footprint_sha256": "sha256:4b9cd85a530ab03b5486df6d9d9992ddaeb698be6f9a5200a9a970cd9b072ded",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:P-MOSFET-D 1G 2S 3D",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Transistors:P-MOSFET-D 1G 2S 3D",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Transistors.kicad_sym",
+        "symbol_sha256": "sha256:5aab301d97a1ececf6e44d646ecc82b2360361f9b52097b1615f8a232f9be41f",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -794,14 +794,14 @@
     {
       "kind": "ic",
       "library_ref": {
-        "footprint": "CERN:SOIC127P600X175-8N",
-        "footprint_file": "libraries/CERN.pretty/SOIC127P600X175-8N.kicad_mod",
+        "footprint": "ICs And Semiconductors SMD:SOIC127P600X175-8N",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/ICs And Semiconductors SMD.pretty/SOIC127P600X175-8N.kicad_mod",
         "footprint_sha256": "sha256:6f8f599850bff8d3022f55c8d66cc1920b7c79b5e0d4eed8d57bc1db9aa3dbb4",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Operational Amplifier x2 Type1",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Operational Amplifiers:Operational Amplifier x2 Type1",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Operational Amplifiers.kicad_sym",
+        "symbol_sha256": "sha256:cc70faf2cf7befb5d4ca9433bad0dbc5dc53f6aa4b4f608e0a80d7690d97d333",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -812,14 +812,14 @@
     {
       "kind": "inductor",
       "library_ref": {
-        "footprint": "CERN:IND_MURATA_LQH32C",
-        "footprint_file": "libraries/CERN.pretty/IND_MURATA_LQH32C.kicad_mod",
+        "footprint": "Inductors SMD:IND_MURATA_LQH32C",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/Inductors SMD.pretty/IND_MURATA_LQH32C.kicad_mod",
         "footprint_sha256": "sha256:d9590d8ef2b3ed3886206ff386a308f3f8d9ea87d59d8a81099d902e214c88df",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Inductor With Magnetic core",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Inductors & Transformers:Inductor With Magnetic core",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Inductors & Transformers.kicad_sym",
+        "symbol_sha256": "sha256:3c5d65c444446911dc0c937d1975eb8e60c28054ab51f111b297442a218d23ac",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -830,14 +830,14 @@
     {
       "kind": "fuse",
       "library_ref": {
-        "footprint": "CERN:FUSR_BOURNS_MF-MSMF_STYLE1(H85)",
-        "footprint_file": "libraries/CERN.pretty/FUSR_BOURNS_MF-MSMF_STYLE1(H85).kicad_mod",
+        "footprint": "Fuses:FUSR_BOURNS_MF-MSMF_STYLE1(H85)",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/Fuses.pretty/FUSR_BOURNS_MF-MSMF_STYLE1(H85).kicad_mod",
         "footprint_sha256": "sha256:a0b5556ec80bc4f34a2ba06e31dd0d1eea1e2295fa9b67bda6b39dac538e2ff3",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Fuse",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Fuses:Fuse",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Fuses.kicad_sym",
+        "symbol_sha256": "sha256:031781e5d20b31560f4a981f043e78f2a5883c1482e8e7dde49044dcb68396fe",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -848,14 +848,14 @@
     {
       "kind": "battery_holder",
       "library_ref": {
-        "footprint": "CERN:BATH_RENATA_SMTU2032",
-        "footprint_file": "libraries/CERN.pretty/BATH_RENATA_SMTU2032.kicad_mod",
+        "footprint": "Batteries:BATH_RENATA_SMTU2032",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/Batteries.pretty/BATH_RENATA_SMTU2032.kicad_mod",
         "footprint_sha256": "sha256:e62a5713a184399f5f3172f72c6f0399d6295e29c9adf404b235da7771931b80",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:Battery Holder 2 Pin",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Batteries:Battery Holder 2 Pin",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Batteries.kicad_sym",
+        "symbol_sha256": "sha256:9e53e9e39165c1ef370db8edb66944a55be16b70e1da3655a6738dbdfaf40327",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },
@@ -866,14 +866,14 @@
     {
       "kind": "switch",
       "library_ref": {
-        "footprint": "CERN:SW_E-SWITCH_TL3315NF100Q",
-        "footprint_file": "libraries/CERN.pretty/SW_E-SWITCH_TL3315NF100Q.kicad_mod",
+        "footprint": "Switches:SW_E-SWITCH_TL3315NF100Q",
+        "footprint_file": "libraries/cern-kicad-libs/PcbLib/Switches.pretty/SW_E-SWITCH_TL3315NF100Q.kicad_mod",
         "footprint_sha256": "sha256:c28b7439cc3514a9723293a11312e532cda945602dfed02e0adde697970d3e0d",
         "footprint_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "footprint_source_ref": "9f654ec4b274ca67960426e157a73103918d462b",
-        "symbol": "CERN:PB SPST 12NO-34NO",
-        "symbol_file": "libraries/CERN.kicad_sym",
-        "symbol_sha256": "sha256:f98f161a141f49c15aa5e36ef1665f0eac22ec530ee806f6dbb99c0a8db71b98",
+        "symbol": "Switches:PB SPST 12NO-34NO",
+        "symbol_file": "libraries/cern-kicad-libs/SchLib/Switches.kicad_sym",
+        "symbol_sha256": "sha256:90b150e739b3f46bb77466077f25ba46516ee4186768a44d380c0371c822dba8",
         "symbol_source": "https://gitlab.com/ohwr/cern-kicad-libs",
         "symbol_source_ref": "9f654ec4b274ca67960426e157a73103918d462b"
       },

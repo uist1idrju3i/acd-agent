@@ -1,3 +1,7 @@
 [submodule "vendor/software-agent-sdk"]
 	path = vendor/software-agent-sdk
 	url = https://github.com/OpenHands/software-agent-sdk
+[submodule "libraries/cern-kicad-libs"]
+	path = libraries/cern-kicad-libs
+	url = https://gitlab.com/ohwr/cern-kicad-libs.git
+	shallow = true

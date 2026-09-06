@@ -1,8 +1,6 @@
 {
   "source_url": "https://gitlab.com/ohwr/cern-kicad-libs",
   "source_commit": "9f654ec4b274ca67960426e157a73103918d462b",
-  "retrieved_at": "2026-09-06",
-  "license": "CERN-OHL-P-2.0",
   "parts": [
     {
       "table": "Regulators",
