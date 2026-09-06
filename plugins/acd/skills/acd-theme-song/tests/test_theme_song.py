@@ -60,7 +60,7 @@ def test_generated_strudel_passes_validator_and_uses_allowed_surface(tmp_path: P
     source = theme_song.render_strudel(_compose(tmp_path, _graph()))
     assert theme_song.validate_strudel(source) == []
     assert "setcps(" in source
-    assert "https://strudel.cc" in source
+    assert "// Paste into https://strudel.cc to play. Strudel itself is not bundled here." in source
     for name in theme_song.IDENTIFIER_CALL_RE.findall(theme_song.strip_comments(source)):
         assert name in theme_song.ALLOWED_FUNCTIONS
 
