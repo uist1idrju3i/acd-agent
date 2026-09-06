@@ -959,21 +959,36 @@ def render_markdown(statuses: list[DependencyStatus]) -> str:
     }
     lines = ["# 依存アップデート確認レポート", ""]
     for surface, label in labels.items():
+        surface_statuses = [status for status in statuses if status.surface == surface]
+        lines.extend([f"## {label}", ""])
+        if surface == "pypi-lock":
+            lines.append(
+                "間接依存はdriftのある項目のみ表示（`uv lock --upgrade --dry-run`の出力に基づく）"
+            )
+            lines.append("")
+        if not surface_statuses:
+            lines.extend(["確認対象なし", ""])
+            continue
         lines.extend(
             [
-                f"## {label}",
-                "",
-                "| 依存 | 現在 | 最新 | 参照 |",
-                "| --- | --- | --- | --- |",
+                "| 依存 | 現在 | 最新 | 状態 | 参照 |",
+                "| --- | --- | --- | --- | --- |",
             ]
         )
-        for status in statuses:
-            if status.surface != surface or not status.outdated:
-                continue
+        ordered_statuses = [
+            status
+            for outdated in (True, False)
+            for status in surface_statuses
+            if status.outdated is outdated
+        ]
+        for status in ordered_statuses:
             latest = status.latest
             if status.note:
                 latest = f"{latest} ({status.note})"
-            lines.append(f"| {status.name} | {status.current} | {latest} | {status.source} |")
+            state = "更新あり" if status.outdated else "最新"
+            lines.append(
+                f"| {status.name} | {status.current} | {latest} | {state} | {status.source} |"
+            )
         lines.append("")
     outdated_count = sum(status.outdated for status in statuses)
     lines.append(f"更新候補: {outdated_count}件" if outdated_count else "更新候補はありません。")
