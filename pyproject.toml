@@ -22,7 +22,7 @@ acd-evidence-git-check = "acd.openhands.evidence.git:main"
 acd-locked-image = "acd.openhands.locked_image_cli:main"
 
 [tool.uv]
-constraint-dependencies = ["fast\u006dcp<4", "mcp<2", "protobuf<7"]
+constraint-dependencies = ["mcp<2", "protobuf<7"]
 
 [tool.uv.sources]
 openhands-sdk = { path = "vendor/software-agent-sdk/openhands-sdk", editable = true }

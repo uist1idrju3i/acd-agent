@@ -866,7 +866,7 @@ SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajor�
 - **uv.lock間接依存**
   - 一次情報: `uv lock --upgrade --dry-run`および各PyPI metadata。
   - 破壊的変更/新機能: 多数の更新に加え、fastmcp 4、mcp 2、protobuf 7のmajor候補がある。
-  - 採否: 更新は採用するが、fastmcp/mcp/protobuf majorはOpenHands SDK 1.44.1がそれぞれ3/1系でリリースされMCP経路を検証していないため、`[tool.uv] constraint-dependencies`で保留する。
+  - 採否: 更新は採用するが、fastmcp/mcp/protobuf majorはOpenHands SDK 1.44.1がそれぞれ3/1系でリリースされMCP経路を検証していないため、`[tool.uv] constraint-dependencies`（`mcp<2`、`protobuf<7`）で保留する。fastmcp 4はmcp 2系を前提とするため`mcp<2`により3系に留まる。
 - **cadquery-ocp 8.x**
   - 一次情報: [build123d PyPI metadata](https://pypi.org/pypi/build123d/json)、[cadquery-ocp PyPI metadata](https://pypi.org/pypi/cadquery-ocp/json)
   - 破壊的変更/新機能: build123d 0.11.1が`cadquery-ocp-novtk<8.0`を要求する。
