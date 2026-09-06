@@ -16,7 +16,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -29,11 +29,12 @@ jobs:
       - name: Check dependency updates
         id: report
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           REPORT_MARKDOWN: ${{ runner.temp }}/report.md
           REPORT_JSON: ${{ runner.temp }}/report.json
         run: |
           set -euo pipefail
-          uv run --no-project python scripts/check_dependency_updates.py \
+          uv run python scripts/check_dependency_updates.py \
             --markdown "$REPORT_MARKDOWN" \
             --json "$REPORT_JSON"
           cat "$REPORT_MARKDOWN" >> "$GITHUB_STEP_SUMMARY"

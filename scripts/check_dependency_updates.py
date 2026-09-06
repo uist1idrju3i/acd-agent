@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -13,20 +14,31 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
-FetchJson = Callable[[str], dict[str, Any]]
+FetchJson = Callable[[str], Any]
 ListRemoteTags = Callable[[str], list[str]]
+ListRemoteHead = Callable[[str], str]
 RunGit = Callable[[list[str], Path], str]
+RunUv = Callable[[list[str], Path], str]
+ExcludeTag = Callable[[str, tuple[int, ...]], bool]
 
 PACKAGE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*")
 ACTION_RE = re.compile(
     r"uses:\s*([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)(?:/[^@\s]+)?@(\S+)"
     r"(?:\s*#\s*(v?\d[\w.-]*))?"
 )
+RELEASE_DOWNLOAD_RE = re.compile(
+    r"github\.com/([\w.-]+/[\w.-]+)/releases/download/(v?[\d][\w.-]*)/"
+)
 DOCKER_ARG_RE = re.compile(r"^\s*ARG\s+([A-Za-z_][A-Za-z0-9_]*)=(\S+)\s*$", re.MULTILINE)
-STABLE_TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+FROM_RE = re.compile(r"^FROM\s+(\S+):(\S+)", re.MULTILINE)
+PYTHON_WORKFLOW_RE = re.compile(r"^\s*python-version:\s*[\"']?([^\"'\s#]+)", re.MULTILINE)
+PYTHON_TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+STABLE_TAG_RE = PYTHON_TAG_RE
 ACTION_TAG_RE = re.compile(r"^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?$")
+GIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 
 
 @dataclass(frozen=True)
@@ -45,6 +57,16 @@ class DockerArgSpec:
     arg: str
     repo: str
     tag_pattern: str
+
+
+@dataclass(frozen=True)
+class ToolUpstreamSpec:
+    tool_key: str
+    installed_pattern: str
+    kind: str
+    repo_or_url: str
+    tag_pattern: str
+    exclude: ExcludeTag | None = None
 
 
 DOCKER_ARG_SPECS = (
@@ -68,13 +90,73 @@ DOCKER_ARG_SPECS = (
 )
 
 
-def _default_fetch_json(url: str) -> dict[str, Any]:
-    request = Request(url, headers={"Accept": "application/json"})
+def _exclude_kicad_development(_tag: str, values: tuple[int, ...]) -> bool:
+    return len(values) > 1 and values[1] == 99
+
+
+TOOL_UPSTREAM_SPECS = (
+    ToolUpstreamSpec(
+        "kicad-cli",
+        r"^(\d+)\.(\d+)\.(\d+)$",
+        "github-tags",
+        "KiCad/kicad-source-mirror",
+        r"^(\d+)\.(\d+)\.(\d+)$",
+        _exclude_kicad_development,
+    ),
+    ToolUpstreamSpec(
+        "ngspice",
+        r"^(\d+)\.(\d+)$",
+        "sourceforge-best-release",
+        "https://sourceforge.net/projects/ngspice/best_release.json",
+        r"^/ng-spice-rework/(\d+(?:\.\d+)?)/",
+    ),
+    ToolUpstreamSpec(
+        "cmake",
+        r"(\d+)\.(\d+)\.(\d+)",
+        "github-tags",
+        "Kitware/CMake",
+        r"^v(\d+)\.(\d+)\.(\d+)$",
+    ),
+    ToolUpstreamSpec(
+        "ninja",
+        r"^(\d+)\.(\d+)\.(\d+)$",
+        "github-tags",
+        "ninja-build/ninja",
+        r"^v(\d+)\.(\d+)\.(\d+)$",
+    ),
+    ToolUpstreamSpec(
+        "ccache",
+        r"(\d+)\.(\d+)\.(\d+)",
+        "github-tags",
+        "ccache/ccache",
+        r"^v(\d+)\.(\d+)\.(\d+)$",
+    ),
+    ToolUpstreamSpec(
+        "git",
+        r"(\d+)\.(\d+)\.(\d+)",
+        "github-tags",
+        "git/git",
+        r"^v(\d+)\.(\d+)\.(\d+)$",
+    ),
+    ToolUpstreamSpec(
+        "python3.14",
+        r"(\d+)\.(\d+)\.(\d+)",
+        "github-tags",
+        "python/cpython",
+        r"^v(\d+)\.(\d+)\.(\d+)$",
+    ),
+)
+
+
+def _default_fetch_json(url: str) -> Any:
+    headers = {"Accept": "application/json"}
+    if urlsplit(url).netloc == "api.github.com":
+        token = os.environ.get("GITHUB_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+    request = Request(url, headers=headers)
     with urlopen(request, timeout=20) as response:
-        payload: Any = json.loads(response.read().decode("utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"JSON response is not an object: {url}")
-    return cast(dict[str, Any], payload)
+        return json.loads(response.read().decode("utf-8"))
 
 
 def _default_list_remote_tags(url: str) -> list[str]:
@@ -97,6 +179,21 @@ def _default_list_remote_tags(url: str) -> list[str]:
     return tags
 
 
+def _default_list_remote_head(url: str) -> str:
+    result = subprocess.run(
+        ["git", "ls-remote", url, "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=20,
+    )
+    fields = result.stdout.split()
+    if not fields or not GIT_SHA_RE.fullmatch(fields[0]):
+        raise ValueError(f"git ls-remote returned no HEAD SHA for {url}")
+    return fields[0]
+
+
 def _default_run_git(command: list[str], cwd: Path) -> str:
     result = subprocess.run(
         command,
@@ -108,6 +205,23 @@ def _default_run_git(command: list[str], cwd: Path) -> str:
         timeout=20,
     )
     return result.stdout.strip()
+
+
+def _default_run_uv(command: list[str], cwd: Path) -> str:
+    environment = os.environ.copy()
+    environment["UV_NO_PROGRESS"] = "1"
+    result = subprocess.run(
+        command,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        cwd=cwd,
+        env=environment,
+        timeout=600,
+    )
+    return result.stdout
 
 
 def normalize_name(name: str) -> str:
@@ -122,19 +236,15 @@ def _package_name(requirement: str) -> str:
     return normalize_name(match.group(0))
 
 
-def _project_data(repo_root: Path) -> dict[str, Any]:
-    path = repo_root / "pyproject.toml"
-    with path.open("rb") as stream:
-        payload: Any = tomllib.load(stream)
-    if not isinstance(payload, dict):
-        raise ValueError("pyproject.toml is not an object")
-    return cast(dict[str, Any], payload)
-
-
 def _dict(value: Any, message: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(message)
     return cast(dict[str, Any], value)
+
+
+def _project_data(repo_root: Path) -> dict[str, Any]:
+    with (repo_root / "pyproject.toml").open("rb") as stream:
+        return _dict(tomllib.load(stream), "pyproject.toml is not an object")
 
 
 def _dependency_names(data: dict[str, Any]) -> list[str]:
@@ -147,8 +257,7 @@ def _dependency_names(data: dict[str, Any]) -> list[str]:
     if not all(isinstance(dependency, str) for dependency in dependencies):
         raise ValueError("[project].dependencies contains a non-string entry")
     raw_dependencies.extend(cast(str, dependency) for dependency in dependencies)
-    groups = data.get("dependency-groups", {})
-    groups = _dict(groups, "[dependency-groups] is not a table")
+    groups = _dict(data.get("dependency-groups", {}), "[dependency-groups] is not a table")
     for group_name, group in groups.items():
         if not isinstance(group, list):
             raise ValueError(f"[dependency-groups].{group_name} is not an array")
@@ -172,18 +281,14 @@ def _uv_source_names(data: dict[str, Any]) -> set[str]:
 
 
 def _lock_versions(repo_root: Path) -> dict[str, str]:
-    path = repo_root / "uv.lock"
-    with path.open("rb") as stream:
+    with (repo_root / "uv.lock").open("rb") as stream:
         payload: Any = tomllib.load(stream)
     lock_data = _dict(payload, "uv.lock is not an object")
     packages = lock_data.get("package")
     if not isinstance(packages, list):
         raise ValueError("uv.lock has no [[package]] entries")
-    packages = cast(list[Any], packages)
     versions: dict[str, str] = {}
-    for package in packages:
-        if not isinstance(package, dict):
-            raise ValueError("uv.lock contains a malformed package entry")
+    for package in cast(list[Any], packages):
         package_data = _dict(package, "uv.lock contains a malformed package entry")
         name = package_data.get("name")
         version = package_data.get("version")
@@ -207,36 +312,77 @@ def check_pypi(
         current = versions.get(name)
         if current is None:
             raise ValueError(f"uv.lock has no resolved version for {name}")
-        payload = fetch_json(f"https://pypi.org/pypi/{name}/json")
+        payload = _dict(
+            fetch_json(f"https://pypi.org/pypi/{name}/json"),
+            f"PyPI response is invalid for {name}",
+        )
         info = _dict(payload.get("info"), f"PyPI response has no info for {name}")
         latest = info.get("version")
         if not isinstance(latest, str) or not latest:
             raise ValueError(f"PyPI response has no version for {name}")
         statuses.append(
-            DependencyStatus(
-                surface="pypi",
-                name=name,
-                current=current,
-                latest=latest,
-                source="pyproject.toml",
-                outdated=latest != current,
-            )
+            DependencyStatus("pypi", name, current, latest, "pyproject.toml", latest != current)
         )
     return statuses
 
 
-def _highest_stable_tag(tags: list[str], pattern: re.Pattern[str]) -> tuple[str, tuple[int, ...]]:
+def check_pypi_lock(
+    repo_root: Path,
+    direct_names: set[str],
+    *,
+    run_uv: RunUv = _default_run_uv,
+) -> list[DependencyStatus]:
+    output = run_uv(["uv", "lock", "--upgrade", "--dry-run"], repo_root)
+    patterns = (
+        (re.compile(r"^Update (\S+) v(\S+) -> v(\S+)$"), "update"),
+        (re.compile(r"^Add (\S+) v(\S+)$"), "add"),
+        (re.compile(r"^Remove (\S+) v(\S+)$"), "remove"),
+    )
+    statuses: list[DependencyStatus] = []
+    for line in output.splitlines():
+        for pattern, kind in patterns:
+            match = pattern.fullmatch(line)
+            if match is None:
+                continue
+            groups = match.groups()
+            name = groups[0]
+            if normalize_name(name) in direct_names:
+                break
+            if kind == "update":
+                current, latest, note = groups[1], groups[2], ""
+            elif kind == "add":
+                current, latest, note = "-", groups[1], "would be added"
+            else:
+                current, latest, note = groups[1], "-", "would be removed"
+            statuses.append(
+                DependencyStatus("pypi-lock", name, current, latest, "uv.lock", True, note)
+            )
+            break
+    return statuses
+
+
+def _highest_stable_tag(
+    tags: list[str],
+    pattern: re.Pattern[str],
+    exclude: ExcludeTag | None = None,
+) -> tuple[str, tuple[int, ...]]:
     candidates: list[tuple[tuple[int, ...], str]] = []
     for tag in tags:
         match = pattern.fullmatch(tag)
         if match is None:
             continue
         values = tuple(int(group or "0") for group in match.groups())
-        candidates.append((values, tag))
+        if exclude is None or not exclude(tag, values):
+            candidates.append((values, tag))
     if not candidates:
         raise ValueError("no stable remote tags matched the expected pattern")
     values, tag = max(candidates)
     return tag, values
+
+
+def _numeric_greater(left: tuple[int, ...], right: tuple[int, ...]) -> bool:
+    width = max(len(left), len(right))
+    return (left + (0,) * (width - len(left))) > (right + (0,) * (width - len(right)))
 
 
 def _gitmodules_url(repo_root: Path, run_git: RunGit) -> str:
@@ -253,22 +399,27 @@ def _gitmodules_url(repo_root: Path, run_git: RunGit) -> str:
     )
 
 
-def _sdk_pin(data: dict[str, Any]) -> str | None:
+def _sdk_pins(data: dict[str, Any]) -> dict[str, str]:
     project = _dict(data.get("project"), "pyproject.toml has no [project] table")
     dependencies = project.get("dependencies")
     if not isinstance(dependencies, list):
         raise ValueError("[project].dependencies is not an array")
-    dependencies = cast(list[Any], dependencies)
-    for requirement in dependencies:
-        if (
-            isinstance(requirement, str)
-            and normalize_name(_package_name(requirement)) == "openhands-sdk"
-        ):
-            match = re.search(r"==\s*([A-Za-z0-9][A-Za-z0-9._-]*)", requirement)
-            if match is None:
-                raise ValueError("openhands-sdk must have an exact pin")
-            return match.group(1)
-    raise ValueError("pyproject.toml has no openhands-sdk dependency")
+    pins: dict[str, str] = {}
+    for requirement in cast(list[Any], dependencies):
+        if not isinstance(requirement, str):
+            raise ValueError("[project].dependencies contains a non-string entry")
+        name = _package_name(requirement)
+        if name not in {"openhands-sdk", "openhands-tools", "openhands-workspace"}:
+            continue
+        match = re.search(r"==\s*([A-Za-z0-9][A-Za-z0-9._-]*)", requirement)
+        if match is None:
+            raise ValueError(f"{name} must have an exact pin")
+        pins[name] = match.group(1)
+    expected = {"openhands-sdk", "openhands-tools", "openhands-workspace"}
+    missing = expected - pins.keys()
+    if missing:
+        raise ValueError(f"pyproject.toml has no exact pin for {sorted(missing)}")
+    return pins
 
 
 def check_submodule(
@@ -299,31 +450,32 @@ def check_submodule(
     latest, _ = _highest_stable_tag(list_remote_tags(url), STABLE_TAG_RE)
     statuses = [
         DependencyStatus(
-            surface="submodule",
-            name="software-agent-sdk",
-            current=current,
-            latest=latest,
-            source=".gitmodules",
-            outdated=current != latest or bool(note),
-            note=note,
+            "submodule",
+            "software-agent-sdk",
+            current,
+            latest,
+            ".gitmodules",
+            current != latest or bool(note),
+            note,
         )
     ]
-    pin = _sdk_pin(_project_data(repo_root))
-    if pin is None:
-        raise ValueError("pyproject.toml has no openhands-sdk pin")
     submodule_pin = current.removeprefix("v") if STABLE_TAG_RE.fullmatch(current) else None
-    if submodule_pin is not None and pin != submodule_pin:
-        statuses.append(
-            DependencyStatus(
-                surface="submodule",
-                name="openhands-sdk pin",
-                current=pin,
-                latest=submodule_pin,
-                source="pyproject.toml",
-                outdated=True,
-                note="pyproject.toml pin and submodule tag must stay in sync",
-            )
-        )
+    if submodule_pin is not None:
+        pins = _sdk_pins(_project_data(repo_root))
+        for name in ("openhands-sdk", "openhands-tools", "openhands-workspace"):
+            pin = pins[name]
+            if pin != submodule_pin:
+                statuses.append(
+                    DependencyStatus(
+                        "submodule",
+                        f"{name} pin",
+                        pin,
+                        submodule_pin,
+                        "pyproject.toml",
+                        True,
+                        "pyproject.toml pin and submodule tag must stay in sync",
+                    )
+                )
     return statuses
 
 
@@ -335,7 +487,12 @@ def _numeric_version(value: str) -> tuple[int, ...]:
 
 
 def _version_outdated(current: tuple[int, ...], latest: tuple[int, ...]) -> bool:
-    return tuple(latest[: len(current)]) != current
+    width = len(current)
+    return latest[:width] > current
+
+
+def _workflow_files(repo_root: Path) -> list[Path]:
+    return sorted((repo_root / ".github" / "workflows").glob("*.yml"))
 
 
 def check_github_actions(
@@ -344,37 +501,64 @@ def check_github_actions(
     list_remote_tags: ListRemoteTags = _default_list_remote_tags,
 ) -> list[DependencyStatus]:
     found: dict[tuple[str, str], tuple[str, str, str]] = {}
-    workflows = sorted((repo_root / ".github" / "workflows").glob("*.yml"))
-    for workflow in workflows:
+    for workflow in _workflow_files(repo_root):
         for line in workflow.read_text(encoding="utf-8").splitlines():
             match = ACTION_RE.search(line)
             if match is None:
                 continue
             repo, ref, comment_version = match.groups()
-            if repo.startswith("./") or repo.startswith("docker://"):
-                continue
             key = (repo, ref)
             source = str(workflow.relative_to(repo_root))
             if key in found:
-                old_repo, old_ref, old_sources = found[key]
-                found[key] = (old_repo, old_ref, f"{old_sources}, {source}")
+                old_repo, old_current, old_sources = found[key]
+                found[key] = (old_repo, old_current, f"{old_sources}, {source}")
             else:
                 found[key] = (repo, comment_version or ref, source)
     statuses: list[DependencyStatus] = []
-    for (repo, _ref), (_, current, source) in found.items():
+    for repo, current, source in found.values():
         latest, latest_values = _highest_stable_tag(
             list_remote_tags(f"https://github.com/{repo}"),
             ACTION_TAG_RE,
         )
-        current_values = _numeric_version(current)
         statuses.append(
             DependencyStatus(
-                surface="github-actions",
-                name=repo,
-                current=current,
-                latest=latest,
-                source=source,
-                outdated=_version_outdated(current_values, latest_values),
+                "github-actions",
+                repo,
+                current,
+                latest,
+                source,
+                _version_outdated(_numeric_version(current), latest_values),
+            )
+        )
+    return statuses
+
+
+def check_github_release_downloads(
+    repo_root: Path,
+    *,
+    list_remote_tags: ListRemoteTags = _default_list_remote_tags,
+) -> list[DependencyStatus]:
+    found: dict[tuple[str, str], str] = {}
+    for workflow in _workflow_files(repo_root):
+        text = workflow.read_text(encoding="utf-8")
+        for repo, current in RELEASE_DOWNLOAD_RE.findall(text):
+            key = (repo, current)
+            source = str(workflow.relative_to(repo_root))
+            found[key] = f"{found[key]}, {source}" if key in found else source
+    statuses: list[DependencyStatus] = []
+    for (repo, current), source in found.items():
+        latest, latest_values = _highest_stable_tag(
+            list_remote_tags(f"https://github.com/{repo}"),
+            ACTION_TAG_RE,
+        )
+        statuses.append(
+            DependencyStatus(
+                "github-release-download",
+                repo,
+                current,
+                latest,
+                source,
+                _version_outdated(_numeric_version(current), latest_values),
             )
         )
     return statuses
@@ -405,21 +589,323 @@ def check_docker_args(
         if current_match is None:
             raise ValueError(f"Docker ARG {spec.arg} has invalid value: {current}")
         current_values = tuple(int(group or "0") for group in current_match.groups())
-        repo = spec.repo
-        if "{major}" in repo:
-            repo = repo.format(major=current_values[0])
+        repo = spec.repo.format(major=current_values[0]) if "{major}" in spec.repo else spec.repo
         latest, latest_values = _highest_stable_tag(
             list_remote_tags(f"https://github.com/{repo}"),
             pattern,
         )
         statuses.append(
             DependencyStatus(
-                surface="docker-arg",
-                name=spec.arg,
-                current=current,
-                latest=latest,
-                source="docker/acd-tools.Dockerfile",
-                outdated=latest_values > current_values,
+                "docker-arg",
+                spec.arg,
+                current,
+                latest,
+                "docker/acd-tools.Dockerfile",
+                _numeric_greater(latest_values, current_values),
+            )
+        )
+    return statuses
+
+
+def check_docker_base(
+    repo_root: Path,
+    *,
+    fetch_json: FetchJson = _default_fetch_json,
+) -> list[DependencyStatus]:
+    path = repo_root / "docker" / "acd-tools.Dockerfile"
+    matches = FROM_RE.findall(path.read_text(encoding="utf-8"))
+    if not matches:
+        raise ValueError("Dockerfile has no versioned FROM image")
+    image, current = matches[0]
+    if "/" in image:
+        raise ValueError(f"Docker base image is not an official image: {image}")
+    current_match = re.fullmatch(r"(\d{2})\.(\d{2})", current)
+    if current_match is None:
+        raise ValueError(f"Docker base image has invalid YY.MM version: {current}")
+    current_values = tuple(int(group) for group in current_match.groups())
+    url = f"https://hub.docker.com/v2/repositories/library/{image}/tags?page_size=100"
+    tags: list[str] = []
+    for _page in range(20):
+        payload = _dict(fetch_json(url), f"Docker Hub response is invalid: {url}")
+        results = payload.get("results")
+        if not isinstance(results, list):
+            raise ValueError(f"Docker Hub response has no results: {url}")
+        for result in cast(list[Any], results):
+            result_data = _dict(result, "Docker Hub result is malformed")
+            name = result_data.get("name")
+            if isinstance(name, str):
+                tags.append(name)
+        next_url = payload.get("next")
+        if next_url is None:
+            break
+        if not isinstance(next_url, str) or not next_url:
+            raise ValueError("Docker Hub next link is malformed")
+        url = next_url
+    else:
+        raise ValueError("Docker Hub pagination exceeded 20 pages")
+    latest, latest_values = _highest_stable_tag(tags, re.compile(r"^(\d{2})\.(\d{2})$"))
+    return [
+        DependencyStatus(
+            "docker-base",
+            image,
+            current,
+            latest,
+            "docker/acd-tools.Dockerfile",
+            _numeric_greater(latest_values, current_values),
+        )
+    ]
+
+
+def _tool_lock(repo_root: Path) -> dict[str, str]:
+    with (repo_root / "docker" / "image-digests.json").open(encoding="utf-8") as stream:
+        payload: Any = json.load(stream)
+    root = _dict(payload, "image digest lock is not an object")
+    tools_entry = _dict(root.get("acd_tools"), "image lock has no acd_tools")
+    tools = _dict(tools_entry.get("tools"), "image lock has no tools")
+    values: dict[str, str] = {}
+    for name, value in tools.items():
+        if not isinstance(value, str):
+            raise ValueError(f"tool version is not a string: {name}")
+        values[name] = value
+    return values
+
+
+def _installed_version(value: str, pattern: str, name: str) -> tuple[str, tuple[int, ...]]:
+    match = re.search(pattern, value)
+    if match is None:
+        raise ValueError(f"cannot parse installed version for {name}: {value}")
+    groups = tuple(group for group in match.groups() if group is not None)
+    return ".".join(groups), tuple(int(group) for group in groups)
+
+
+def _sourceforge_version(payload: Any, pattern: str) -> tuple[str, tuple[int, ...]]:
+    release = _dict(payload, "SourceForge response is not an object").get("release")
+    release_data = _dict(release, "SourceForge response has no release")
+    filename = release_data.get("filename")
+    if not isinstance(filename, str):
+        raise ValueError("SourceForge release has no filename")
+    match = re.search(pattern, filename)
+    if match is None:
+        raise ValueError(f"cannot parse SourceForge version: {filename}")
+    value = match.group(1)
+    values = tuple(int(part) for part in value.split("."))
+    return value, values
+
+
+def check_tool_upstream(
+    repo_root: Path,
+    *,
+    fetch_json: FetchJson = _default_fetch_json,
+    list_remote_tags: ListRemoteTags = _default_list_remote_tags,
+) -> list[DependencyStatus]:
+    tools = _tool_lock(repo_root)
+    statuses: list[DependencyStatus] = []
+    for spec in TOOL_UPSTREAM_SPECS:
+        installed = tools.get(spec.tool_key)
+        if installed is None:
+            raise ValueError(f"image lock is missing tool {spec.tool_key}")
+        current, current_values = _installed_version(
+            installed,
+            spec.installed_pattern,
+            spec.tool_key,
+        )
+        if spec.kind == "github-tags":
+            tags = list_remote_tags(f"https://github.com/{spec.repo_or_url}")
+            pattern = re.compile(spec.tag_pattern)
+            if spec.tool_key == "python3.14":
+                tags = [
+                    tag
+                    for tag in tags
+                    if (match := PYTHON_TAG_RE.fullmatch(tag))
+                    and (int(match.group(1)), int(match.group(2))) == current_values[:2]
+                ]
+            latest_tag, latest_values = _highest_stable_tag(tags, pattern, spec.exclude)
+            latest = latest_tag.removeprefix("v")
+        elif spec.kind == "sourceforge-best-release":
+            latest, latest_values = _sourceforge_version(
+                fetch_json(spec.repo_or_url),
+                spec.tag_pattern,
+            )
+        else:
+            raise ValueError(f"unknown tool upstream kind: {spec.kind}")
+        statuses.append(
+            DependencyStatus(
+                "tool-upstream",
+                spec.tool_key,
+                current,
+                latest,
+                "docker/image-digests.json",
+                _numeric_greater(latest_values, current_values),
+            )
+        )
+    cpython_tags = list_remote_tags("https://github.com/python/cpython")
+    stable_minors = sorted(
+        {
+            (int(match.group(1)), int(match.group(2)))
+            for tag in cpython_tags
+            if (match := PYTHON_TAG_RE.fullmatch(tag))
+        }
+    )
+    if not stable_minors:
+        raise ValueError("no stable CPython minor series found")
+    python_current = _installed_version(tools["python3.14"], r"(\d+)\.(\d+)\.(\d+)", "python3.14")
+    latest_minor = ".".join(str(part) for part in stable_minors[-1])
+    statuses.append(
+        DependencyStatus(
+            "tool-upstream",
+            "python (minor series)",
+            ".".join(str(part) for part in python_current[1][:2]),
+            latest_minor,
+            "docker/image-digests.json",
+            stable_minors[-1] > python_current[1][:2],
+            "informational",
+        )
+    )
+    return statuses
+
+
+def check_semeru_majors(
+    repo_root: Path,
+    *,
+    fetch_json: FetchJson = _default_fetch_json,
+) -> list[DependencyStatus]:
+    values = dict(
+        DOCKER_ARG_RE.findall(
+            (repo_root / "docker" / "acd-tools.Dockerfile").read_text(encoding="utf-8")
+        )
+    )
+    current = values.get("SEMERU_JRE_VERSION")
+    if current is None:
+        raise ValueError("Dockerfile is missing required ARG SEMERU_JRE_VERSION")
+    match = re.fullmatch(r"(\d+)\.\d+\.\d+\.\d+", current)
+    if match is None:
+        raise ValueError(f"invalid SEMERU_JRE_VERSION: {current}")
+    current_major = int(match.group(1))
+    majors: list[int] = []
+    for page in range(1, 11):
+        url = f"https://api.github.com/orgs/ibmruntimes/repos?per_page=100&page={page}"
+        payload = fetch_json(url)
+        if not isinstance(payload, list):
+            raise ValueError("GitHub repositories response is not an array")
+        if not payload:
+            break
+        for repository in cast(list[Any], payload):
+            repository_data = _dict(repository, "GitHub repository entry is malformed")
+            name = repository_data.get("name")
+            if isinstance(name, str):
+                repo_match = re.fullmatch(r"semeru(\d+)-binaries", name)
+                if repo_match:
+                    majors.append(int(repo_match.group(1)))
+    else:
+        raise ValueError("GitHub repository pagination exceeded 10 pages")
+    if not majors or max(majors) <= current_major:
+        return []
+    latest = max(majors)
+    return [
+        DependencyStatus(
+            "docker-arg",
+            "SEMERU_JRE_VERSION (major)",
+            str(current_major),
+            str(latest),
+            "docker/acd-tools.Dockerfile",
+            True,
+            f"newer Java major available in ibmruntimes/semeru{latest}-binaries",
+        )
+    ]
+
+
+def check_git_pin(
+    repo_root: Path,
+    *,
+    list_remote_head: ListRemoteHead = _default_list_remote_head,
+) -> list[DependencyStatus]:
+    text = (repo_root / "libraries" / "README.md").read_text(encoding="utf-8")
+    url_match = re.search(r"- 取得元URL:\s*`([^`]+)`", text)
+    commit_match = re.search(r"- 取得commit:\s*`([^`]+)`", text)
+    if url_match is None or commit_match is None:
+        raise ValueError("libraries/README.md is missing URL or commit pin")
+    url = url_match.group(1)
+    current = commit_match.group(1)
+    if not GIT_SHA_RE.fullmatch(current):
+        raise ValueError("libraries/README.md has an invalid commit pin")
+    latest_full = list_remote_head(url)
+    if not GIT_SHA_RE.fullmatch(latest_full):
+        raise ValueError(f"invalid remote HEAD SHA for {url}")
+    return [
+        DependencyStatus(
+            "git-pin",
+            "espressif/kicad-libraries",
+            current,
+            latest_full[:12],
+            "libraries/README.md",
+            current.lower() != latest_full.lower(),
+            "default branch HEAD",
+        )
+    ]
+
+
+def _python_minor(value: str, source: str) -> tuple[int, int]:
+    match = re.fullmatch(r"(\d+)\.(\d+)", value)
+    if match is None:
+        raise ValueError(f"invalid Python minor version in {source}: {value}")
+    return int(match.group(1)), int(match.group(2))
+
+
+def check_python_versions(
+    repo_root: Path,
+    *,
+    list_remote_tags: ListRemoteTags = _default_list_remote_tags,
+) -> list[DependencyStatus]:
+    values: list[tuple[str, str]] = []
+    for workflow in _workflow_files(repo_root):
+        text = workflow.read_text(encoding="utf-8")
+        values.extend(
+            (value, str(workflow.relative_to(repo_root)))
+            for value in PYTHON_WORKFLOW_RE.findall(text)
+        )
+    docker_text = (repo_root / "docker" / "acd-tools.Dockerfile").read_text(encoding="utf-8")
+    docker_values = dict(DOCKER_ARG_RE.findall(docker_text))
+    docker_python = docker_values.get("ESP_IDF_PYTHON_VERSION")
+    if docker_python is None:
+        raise ValueError("Dockerfile is missing required ARG ESP_IDF_PYTHON_VERSION")
+    values.append((docker_python, "docker/acd-tools.Dockerfile"))
+    project = _dict(
+        _project_data(repo_root).get("project"), "pyproject.toml has no [project] table"
+    )
+    requires_python = project.get("requires-python")
+    if not isinstance(requires_python, str):
+        raise ValueError("pyproject.toml has no requires-python")
+    requires_match = re.search(r"(\d+)\.(\d+)", requires_python)
+    if requires_match is None:
+        raise ValueError(f"invalid requires-python: {requires_python}")
+    values.append((f"{requires_match.group(1)}.{requires_match.group(2)}", "pyproject.toml"))
+    tags = list_remote_tags("https://github.com/python/cpython")
+    stable_minors = sorted(
+        {
+            (int(match.group(1)), int(match.group(2)))
+            for tag in tags
+            if (match := PYTHON_TAG_RE.fullmatch(tag))
+        }
+    )
+    if not stable_minors:
+        raise ValueError("no stable CPython minor series found")
+    latest = ".".join(str(part) for part in stable_minors[-1])
+    statuses: list[DependencyStatus] = []
+    seen: set[tuple[str, str]] = set()
+    for value, source in values:
+        key = (value, source)
+        if key in seen:
+            continue
+        seen.add(key)
+        current_minor = _python_minor(value, source)
+        statuses.append(
+            DependencyStatus(
+                "python-version",
+                f"Python version ({source})",
+                value,
+                latest,
+                source,
+                current_minor < stable_minors[-1],
             )
         )
     return statuses
@@ -430,40 +916,64 @@ def check_dependency_updates(
     *,
     fetch_json: FetchJson = _default_fetch_json,
     list_remote_tags: ListRemoteTags = _default_list_remote_tags,
+    list_remote_head: ListRemoteHead = _default_list_remote_head,
     run_git: RunGit = _default_run_git,
+    run_uv: RunUv = _default_run_uv,
 ) -> list[DependencyStatus]:
+    tag_cache: dict[str, list[str]] = {}
+
+    def cached_tags(url: str) -> list[str]:
+        if url not in tag_cache:
+            tag_cache[url] = list_remote_tags(url)
+        return tag_cache[url]
+
+    pypi = check_pypi(repo_root, fetch_json=fetch_json)
+    direct_names = {status.name for status in pypi}
     return [
-        *check_pypi(repo_root, fetch_json=fetch_json),
-        *check_submodule(repo_root, list_remote_tags=list_remote_tags, run_git=run_git),
-        *check_github_actions(repo_root, list_remote_tags=list_remote_tags),
-        *check_docker_args(repo_root, list_remote_tags=list_remote_tags),
+        *pypi,
+        *check_pypi_lock(repo_root, direct_names, run_uv=run_uv),
+        *check_submodule(repo_root, list_remote_tags=cached_tags, run_git=run_git),
+        *check_github_actions(repo_root, list_remote_tags=cached_tags),
+        *check_github_release_downloads(repo_root, list_remote_tags=cached_tags),
+        *check_docker_base(repo_root, fetch_json=fetch_json),
+        *check_docker_args(repo_root, list_remote_tags=cached_tags),
+        *check_semeru_majors(repo_root, fetch_json=fetch_json),
+        *check_tool_upstream(repo_root, fetch_json=fetch_json, list_remote_tags=cached_tags),
+        *check_python_versions(repo_root, list_remote_tags=cached_tags),
+        *check_git_pin(repo_root, list_remote_head=list_remote_head),
     ]
 
 
 def render_markdown(statuses: list[DependencyStatus]) -> str:
     labels = {
-        "pypi": "PyPI",
+        "pypi": "PyPI（直接依存）",
+        "pypi-lock": "PyPI（uv.lock間接依存）",
         "submodule": "submodule",
         "github-actions": "GitHub Actions",
+        "github-release-download": "GitHub release download",
+        "docker-base": "Docker base image",
         "docker-arg": "Docker ARG",
+        "tool-upstream": "ツール上流版",
+        "python-version": "Python版",
+        "git-pin": "git pin",
     }
     lines = ["# 依存アップデート確認レポート", ""]
-    for surface in ("pypi", "submodule", "github-actions", "docker-arg"):
+    for surface, label in labels.items():
         lines.extend(
             [
-                f"## {labels[surface]}",
+                f"## {label}",
                 "",
                 "| 依存 | 現在 | 最新 | 参照 |",
                 "| --- | --- | --- | --- |",
             ]
         )
-        rows = [status for status in statuses if status.surface == surface and status.outdated]
-        if rows:
-            for status in rows:
-                latest = status.latest
-                if status.note:
-                    latest = f"{latest} ({status.note})"
-                lines.append(f"| {status.name} | {status.current} | {latest} | {status.source} |")
+        for status in statuses:
+            if status.surface != surface or not status.outdated:
+                continue
+            latest = status.latest
+            if status.note:
+                latest = f"{latest} ({status.note})"
+            lines.append(f"| {status.name} | {status.current} | {latest} | {status.source} |")
         lines.append("")
     outdated_count = sum(status.outdated for status in statuses)
     lines.append(f"更新候補: {outdated_count}件" if outdated_count else "更新候補はありません。")
