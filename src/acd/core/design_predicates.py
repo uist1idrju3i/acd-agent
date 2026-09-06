@@ -348,6 +348,20 @@ def _gpio_value(node: GraphNode) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
+def _led_drive_nets(graph: DesignGraph) -> tuple[str, ...]:
+    """Return every declared LED indicator's drive net, plus the net named LED."""
+    nets: list[str] = []
+    for node in _nodes(graph, "electrical.component"):
+        if node.attrs.get("led_indicator") is True:
+            drive = node.attrs.get("led_drive_net")
+            if isinstance(drive, str) and drive not in nets:
+                nets.append(drive)
+    legacy = _net_id(graph, "LED")
+    if legacy is not None and legacy not in nets:
+        nets.append(legacy)
+    return tuple(nets)
+
+
 def evaluate_strapping_pin(graph: DesignGraph, lane: ElectricalLane) -> PredicateResult:
     """Check IO2/IO8/IO9 boot topology.
 
@@ -362,9 +376,19 @@ def evaluate_strapping_pin(graph: DesignGraph, lane: ElectricalLane) -> Predicat
     boot_net = _net_id(graph, "BOOT")
     ground_net = _net_id(graph, "GND")
     p3v3_net = _net_id(graph, "+3V3", "3V3")
-    led_net = _net_id(graph, "LED")
-    if boot_net is None or ground_net is None or p3v3_net is None or led_net is None:
+    led_nets = _led_drive_nets(graph)
+    if boot_net is None or ground_net is None or p3v3_net is None:
         return _result("strapping_pin", "unknown", "strapping net resolution is incomplete")
+    if not led_nets:
+        return _result("strapping_pin", "unknown", "no LED drive net is declared")
+    known_net_ids = {net.node_id for net in lane.nets}
+    for drive in led_nets:
+        if drive not in known_net_ids:
+            return _result(
+                "strapping_pin",
+                "unknown",
+                f"{drive} is declared as an LED drive net but the graph does not define it",
+            )
 
     failures: list[str] = []
     for gpio in (2, 8):
@@ -419,14 +443,16 @@ def evaluate_strapping_pin(graph: DesignGraph, lane: ElectricalLane) -> Predicat
             failures.append(f"unexpected strapping firmware assignment: {node.id}")
         if gpio == 9 and net == boot_net and node.id != "fw.pin.boot":
             failures.append(f"unexpected BOOT assignment identity: {node.id}")
-    if any(
-        pin.net_id == led_net
+    strapping_pad_nets = {
+        pin.net_id
         for gpio in STRAPPING_GPIOS
         for pad_number in mapping[gpio]
         for pin in lane.pins_of_component(u1.node_id)
         if pin.pad == pad_number
-    ):
-        failures.append("LED net is connected to a strapping pad")
+    }
+    for net_id in led_nets:
+        if net_id in strapping_pad_nets:
+            failures.append(f"LED drive net {net_id} is connected to a strapping pad")
     if failures:
         return _result("strapping_pin", "fail", "; ".join(failures))
     return _result(

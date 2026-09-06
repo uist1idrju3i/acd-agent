@@ -801,7 +801,9 @@ def run_design_loop(
         else:
             if order_total is None:
                 raise ValueError(
-                    "order-total document is required when aggregation is disabled"
+                    "order-total document is required when aggregation is disabled; "
+                    "pass design_only (CLI: --design-only) to run the design stages "
+                    "without order inputs, or supply --order-total / aggregation inputs"
                 )
             resolved_order_total = order_total
         prefix = plan.output_prefix

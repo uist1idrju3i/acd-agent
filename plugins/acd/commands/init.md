@@ -11,9 +11,17 @@ Run the bundled initialization script with explicit repository, revision, and
 workspace arguments:
 
 ```bash
-python3 plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py \
+python3 "${ACD_PLUGIN_ROOT:-plugins/acd}/skills/acd-install-doctor/scripts/init_workspace.py" \
   --repo-url <repo-url> --revision <commit-or-ref> --workspace <workspace-path>
 ```
+
+For an installed plugin the plugin root is
+`~/.openhands/plugins/installed/acd`, so set
+`ACD_PLUGIN_ROOT="$HOME/.openhands/plugins/installed/acd"` there; the
+checkout-relative fallback above covers running from a repository checkout.
+The script can exceed a 120 s terminal timeout (repository clone, recursive
+submodules, and the locked image pull), so invoke it with a longer timeout
+or run it in the background and poll its output.
 
 The script performs workspace creation, shallow repository clone or
 clean-checkout reuse, shallow recursive submodule initialization, plugin
