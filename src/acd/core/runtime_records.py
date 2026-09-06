@@ -29,10 +29,19 @@ class TimingRecorder:
     """Collect wall-clock stage durations for an L3 observation."""
 
     def __init__(self) -> None:
+        self._created_at = time.perf_counter()
         self._started: dict[str, tuple[int, float]] = {}
         self._stages: list[TimingStage] = []
         self._next_order = 0
         self._lock = Lock()
+
+    def wall_clock_seconds(self) -> float:
+        """Elapsed time since the recorder was created.
+
+        Stages may overlap when lanes run in parallel, so this is not the sum of
+        stage durations; it is the run's own start-to-now wall clock.
+        """
+        return round(max(0.0, time.perf_counter() - self._created_at), 6)
 
     def start(self, name: str) -> None:
         """Start a uniquely named stage."""
@@ -93,10 +102,16 @@ def write_timing_record(
         for stage in recorder.stages()
     ]
     body: dict[str, object] = {
-        "schema_version": "0.1",
+        "schema_version": "0.2",
         "record_class": "L3",
         "pass_evidence": False,
         "stages": stages,
+        # Sum of possibly overlapping stage durations; not the run's elapsed time.
+        "stage_duration_sum_seconds": round(
+            sum(stage.duration_seconds for stage in recorder.stages()), 6
+        ),
+        # Elapsed time from recorder creation to this write.
+        "wall_clock_seconds": recorder.wall_clock_seconds(),
         "cache_events": list(cache_events),
     }
     if target_revision is not None:

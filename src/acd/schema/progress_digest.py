@@ -46,6 +46,7 @@ class ProgressRecord(AcdModel):
     winner_written: bool | None = None
     stage_count: int | None = Field(default=None, ge=0)
     duration_seconds: float | None = Field(default=None, ge=0.0)
+    wall_clock_seconds: float | None = Field(default=None, ge=0.0)
     reason: NonEmptyStr | None = None
     pass_evidence: Literal[False] = False
 
@@ -67,6 +68,9 @@ class ProgressDigestReport(AcdModel):
     reason: NonEmptyStr | None = None
     record_class: Literal["L3"] = "L3"
     pass_evidence: Literal[False] = False
+    # The digest reads L3 records only; it never inspects Evidence, so a
+    # reader must not take `status="pass"` as a verified pass or order-ready.
+    authoritative_evidence: Literal["unverified"] = "unverified"
 
     @model_validator(mode="after")
     def validate_status(self) -> ProgressDigestReport:

@@ -187,3 +187,10 @@ def test_malformed_command_front_matter_fails_closed(tmp_path: Path) -> None:
     empty.write_text("---\ndescription: x\n---\n", encoding="utf-8")
     with pytest.raises(AmbientToolError):
         declared_command_tools(empty)
+
+
+def test_vibebb_command_requires_evidence_verification_before_pass_claims() -> None:
+    text = VIBEBB_COMMAND.read_text(encoding="utf-8")
+    assert "scripts/verify_authoritative_evidence.py" in text
+    assert "authoritative Evidence: unverified" in text
+    assert "out/tool-availability/" in text

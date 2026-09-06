@@ -16,6 +16,7 @@ from acd.schema.design_graph import DesignGraph
 from acd.schema.lane_preflight import (
     LanePreflightLaneReport,
     LanePreflightMissingAttr,
+    LanePreflightMissingDeclaration,
     LanePreflightMissingNode,
     LanePreflightReport,
 )
@@ -142,6 +143,28 @@ LANE_REQUIREMENTS: Final[dict[str, tuple[LaneNodeRequirement, ...]]] = {
     ),
 }
 
+# Where each required node kind is declared in the design input
+# (DesignFixtureSpec). The preflight reports these paths so that a missing
+# declaration can be added at its source instead of being invented downstream.
+SPEC_DECLARATION_PATHS: Final[dict[str, str]] = {
+    "electrical.board": "board_attrs",
+    "electrical.component": "components[]",
+    "electrical.net": "nets[]",
+    "electrical.pin": "components[].pads",
+    "mechanical.outline": "mechanical_outline.attrs",
+    "mechanical.silk_text": "silk_texts[].attrs",
+    "mechanical.silk_graphic": "silk_graphics[].attrs",
+    "firmware.module": "firmware_module.attrs",
+    "firmware.state": "firmware_module.states[]",
+    "firmware.state_transition": "firmware_module.transitions[]",
+    "firmware.sequence_step": "firmware_module.sequence_steps[]",
+    "firmware.pin_assignment": "firmware_pin_assignments[]",
+}
+
+# Node kinds without a design-input path cannot be declared through the fixture
+# builder yet; the preflight says so instead of guessing a location.
+UNDECLARABLE_SPEC_PATH: Final[str] = "<no DesignFixtureSpec path; declare in graph.json>"
+
 LANE_IDS: Final[tuple[str, ...]] = tuple(sorted(LANE_REQUIREMENTS))
 PREFLIGHT_CHECKED_PREDICATES: Final[tuple[str, ...]] = (
     "node.declared",
@@ -228,11 +251,89 @@ def run_lane_preflight(
     )
 
 
+def missing_declarations(
+    report: LanePreflightReport,
+) -> list[LanePreflightMissingDeclaration]:
+    """List every declaration the design input must add, grouped per lane/kind.
+
+    Nothing is auto-completed: the list is the exact set of declarations a human
+    or agent has to write into the design input before the lanes can run.
+    """
+    entries: list[LanePreflightMissingDeclaration] = []
+    for lane in report.lanes:
+        if lane.status == "declarations_complete":
+            continue
+        requirements = {item.kind: item for item in LANE_REQUIREMENTS[lane.lane]}
+        kinds = sorted(
+            {node.kind for node in lane.missing_nodes}
+            | {attr.kind for attr in lane.missing_attrs}
+        )
+        for kind in kinds:
+            requirement = requirements[kind]
+            missing_node = next(
+                (node for node in lane.missing_nodes if node.kind == kind), None
+            )
+            required = requirement.minimum_count
+            present_count = (
+                missing_node.present_count if missing_node is not None else None
+            )
+            entries.append(
+                LanePreflightMissingDeclaration(
+                    lane=lane.lane,
+                    kind=kind,
+                    spec_path=SPEC_DECLARATION_PATHS.get(kind, UNDECLARABLE_SPEC_PATH),
+                    required_count=required,
+                    present_count=present_count,
+                    missing_count=(
+                        required - present_count if present_count is not None else 0
+                    ),
+                    required_attrs=list(requirement.attrs),
+                    missing_attrs=[
+                        attr for attr in lane.missing_attrs if attr.kind == kind
+                    ],
+                )
+            )
+    return entries
+
+
+def missing_declaration_action(report: LanePreflightReport) -> str | None:
+    """Render the declarations to add to the design input as one instruction."""
+    entries = missing_declarations(report)
+    if not entries:
+        return None
+    parts: list[str] = []
+    for entry in entries:
+        if entry.missing_count > 0:
+            attrs = ", ".join(f"{entry.kind}.{attr}" for attr in entry.required_attrs)
+            parts.append(
+                f"{entry.lane}: declare {entry.missing_count} more {entry.kind} "
+                f"node(s) under `{entry.spec_path}` with attrs [{attrs}]"
+            )
+        if entry.missing_attrs:
+            names = ", ".join(
+                sorted({f"{entry.kind}.{item.attr}" for item in entry.missing_attrs})
+            )
+            nodes = ", ".join(sorted({item.node_id for item in entry.missing_attrs}))
+            parts.append(
+                f"{entry.lane}: add attrs [{names}] to existing node(s) [{nodes}] "
+                f"under `{entry.spec_path}`"
+            )
+    return (
+        "Add the missing declarations to the design input spec "
+        "(DesignFixtureSpec) and rebuild the fixture; declarations are never "
+        "auto-completed. " + "; ".join(parts)
+    )
+
+
 __all__ = [
     "LANE_IDS",
     "LANE_REQUIREMENTS",
     "PREFLIGHT_CHECKED_PREDICATES",
     "PREFLIGHT_UNCHECKED_PREDICATES",
+    "SPEC_DECLARATION_PATHS",
+    "UNDECLARABLE_SPEC_PATH",
     "LaneNodeRequirement",
+    "missing_declaration_action",
+    "missing_declarations",
     "run_lane_preflight",
 ]

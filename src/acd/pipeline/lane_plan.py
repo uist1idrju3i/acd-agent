@@ -2,9 +2,9 @@
 
 The design loop owns order-readiness, while the command-line lane runner owns
 the silkscreen barrier, design lanes, and pytest subset validation lane.
-Requirement entry validation is an always-on design-loop stage before the
-silkscreen barrier; fixture generation and requirement compilation remain
-conditional stages.
+Requirement entry validation and the diagnostic lane preflight are always-on
+design-loop stages before the silkscreen barrier; fixture generation and
+requirement compilation remain conditional stages.
 The pytest subset is declared only for the GD1 artifact prefix; a
 design-specific validation lane for arbitrary graphs is not yet available.
 Lane exploration stages are conditional stages that run only after an eligible
@@ -116,6 +116,15 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
     _StageDefinition(
         "requirement-entry-validation",
         None,
+        barrier=True,
+        cacheable=False,
+        command_kind=None,
+        design_loop=True,
+        lane_runner=False,
+    ),
+    _StageDefinition(
+        "lane-preflight",
+        "-lane-preflight.json",
         barrier=True,
         cacheable=False,
         command_kind=None,

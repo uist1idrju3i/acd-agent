@@ -28,7 +28,10 @@ allowed-tools:
 
    `status`が`pass`でない場合、報告された`fallbacks`の決定論的CLI入口だけを使い、
    CLI入口を持たないtoolの段は実行せずfail-closedとして報告する。この判定はL3観測であり、
-   合否権限もauthoritative Evidenceも持たない。
+   合否権限もauthoritative Evidenceも持たない。結果は既定で
+   `out/tool-availability/<command名>.json`へ機械可読JSONとして保存され（`--record`で
+   変更可）、判定不能の場合も`status: unknown`として同じ場所へ残す。会話exportに依らず、
+   この一次記録からtool不在を第三者が確認できるようにする。
 1. 要件差分は`acd_run_design_loop`の`requirement`へ渡す。新規fixtureは
    `fixture_spec`へ渡す。どちらも省略した場合は既存fixtureを使う。
 2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
@@ -59,8 +62,27 @@ allowed-tools:
    ```
 
    digestはtiming recordと探索reportの`status`、`termination_reason`、
-   評価候補数、残予算、勝者候補を返す。読めないrecordは`unknown`として報告され、
-   digestは非零終了する。digestはL3観測であり、合否やEvidenceを変更しない。
+   評価候補数、残予算、勝者候補を返す。timing recordではstage duration合計と
+   loop全体の`wall_clock_seconds`を別値として示す（並列laneでは合計がwall-clockを
+   上回りうる）。読めないrecordは`unknown`として報告され、digestは非零終了する。
+   digestはL3観測であり、合否やEvidenceを変更しない。digestは常に
+   「authoritative Evidence: unverified」の行を含み、この行はdigestがEvidenceを
+   検査していないことを示す。
+7. 「合格」「発注可」を会話へ報告する前に、authoritative Evidenceの検証を実行し、
+   その結果を報告へ含める。
+
+   ```bash
+   uv run python scripts/verify_authoritative_evidence.py \
+       --revision-from <fixture>/graph.json <out_root>/**/evidence-*.json
+   ```
+
+   報告には必ず次を含める。(a) 上記コマンドの終了コードと出力、(b) 各Evidenceの
+   `target_revision`がgraph revisionと一致すること、(c) `status="valid"`と
+   container provenance（digest）、(d) order-readiness段の結果。これらのいずれかが
+   欠ける、unknown、または未実行の間は、timing record、loop summary、探索report、
+   進行digest、preflightの`declarations_complete`を根拠に「合格」「order-ready」と
+   述べてはならず、「Evidence未検証」と明記する。host実行のprovisional Evidenceは
+   この検証を通過しない。
 
 `acd_run_design_loop`は、必要に応じて入力hash単位のstage cache（`cache_dir`）、
 失敗からのresume（`resume`）、stageごとの所要時間記録、基板・筐体・FW laneの

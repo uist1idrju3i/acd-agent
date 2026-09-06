@@ -105,6 +105,9 @@ class WorkspaceResult:
     downloaded_files: tuple[Path, ...]
     failure_kind: FailureKind | None = None
     host_resource_report: HostResourceReport | None = None
+    # Declared downloads that could not be retrieved after a failed command.
+    # They are recorded, never treated as success: the exit code stays failed.
+    download_errors: tuple[str, ...] = ()
 
 
 class WorkspaceStartupError(RuntimeError):
@@ -312,6 +315,7 @@ def run_command_in_workspace(
         for name, value in cache_environment.items():
             os.environ[name] = value
     downloaded: list[Path] = []
+    download_errors: list[str] = []
     worktree = CONTAINER_BUNDLE if source == "bundled" else CONTAINER_WORKTREE
     try:
         constructor_kwargs: dict[str, Any] = {
@@ -355,6 +359,7 @@ def run_command_in_workspace(
                 repository=repository,
                 download_files=download_files,
                 downloaded=downloaded,
+                download_errors=download_errors,
                 config=config,
                 sleep=sleep,
             )
@@ -383,6 +388,7 @@ def run_command_in_workspace(
             result.exit_code, bool(result.timeout_occurred)
         ),
         host_resource_report=host_resource_report,
+        download_errors=tuple(download_errors),
     )
 
 
@@ -395,6 +401,7 @@ def _execute_and_download(
     repository: Path,
     download_files: tuple[str, ...],
     downloaded: list[Path],
+    download_errors: list[str],
     config: ContainerRuntimeConfig,
     sleep: Callable[[float], None],
 ) -> Any:
@@ -447,6 +454,28 @@ def _execute_and_download(
                     stderr=result.stderr or "",
                     downloaded_files=tuple(downloaded),
                 ) from exc
+        elif result.exit_code != -1 and not bool(result.timeout_occurred):
+            # The command failed inside the container: still try to retrieve the
+            # declared outputs (partial artifacts, verdicts, logs) so the failure
+            # can be diagnosed on the host. Missing files are recorded, and the
+            # command exit code is preserved as the result.
+            for relative in download_files:
+                destination = container_download_destination(repository, relative)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    _download_with_retry(
+                        workspace,
+                        remote=str(worktree / relative),
+                        destination=destination,
+                        relative=relative,
+                        max_attempts=1,
+                        backoff_seconds=DOWNLOAD_BACKOFF_SECONDS,
+                        sleep=sleep,
+                    )
+                except WorkspaceTransportError as exc:
+                    download_errors.append(str(exc))
+                else:
+                    downloaded.append(destination)
     return result
 
 

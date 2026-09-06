@@ -80,6 +80,7 @@ def _timing_record(path: Path, document: Mapping[str, Any]) -> ProgressRecord:
         if isinstance(duration, bool) or not isinstance(duration, int | float):
             continue
         durations.append(float(duration))
+    wall_clock: object = document.get("wall_clock_seconds")
     return ProgressRecord(
         kind="timing_record",
         path=str(path),
@@ -87,6 +88,13 @@ def _timing_record(path: Path, document: Mapping[str, Any]) -> ProgressRecord:
         target_revision=_optional_str(document, "target_revision"),
         stage_count=len(stage_list),
         duration_seconds=sum(durations),
+        wall_clock_seconds=(
+            float(wall_clock)
+            if isinstance(wall_clock, int | float)
+            and not isinstance(wall_clock, bool)
+            and wall_clock >= 0
+            else None
+        ),
     )
 
 
@@ -144,6 +152,13 @@ def _record(path: Path) -> ProgressRecord:
     )
 
 
+EVIDENCE_UNVERIFIED_LINE = (
+    "authoritative Evidence: unverified by this digest; do not report pass or "
+    "order-ready until scripts/verify_authoritative_evidence.py "
+    "--revision-from <graph.json> <evidence...> passes"
+)
+
+
 def collect_progress_digest(out_dir: Path) -> ProgressDigestReport:
     """Collect the timing and exploration records written under ``out_dir``."""
     if not out_dir.is_dir():
@@ -178,6 +193,7 @@ def render_progress_digest(report: ProgressDigestReport) -> str:
     lines = [
         f"ACD progress digest (L3 observation, not pass evidence): {report.status}",
         f"out_dir: {report.out_dir}",
+        EVIDENCE_UNVERIFIED_LINE,
     ]
     if report.reason is not None:
         lines.append(f"reason: {report.reason}")
@@ -188,9 +204,15 @@ def render_progress_digest(report: ProgressDigestReport) -> str:
             lines.append(f"- {record.path}: unknown ({record.reason})")
             continue
         if record.kind == "timing_record":
+            wall_clock = (
+                f"{record.wall_clock_seconds:.3f}s"
+                if record.wall_clock_seconds is not None
+                else "unknown"
+            )
             lines.append(
                 f"- {record.path}: {record.stage_count} stage(s), "
-                f"{record.duration_seconds:.3f}s total"
+                f"{record.duration_seconds:.3f}s stage-duration sum, "
+                f"{wall_clock} wall-clock"
             )
             continue
         if record.kind == "design_loop_summary":
@@ -214,6 +236,7 @@ def render_progress_digest(report: ProgressDigestReport) -> str:
 
 
 __all__ = [
+    "EVIDENCE_UNVERIFIED_LINE",
     "collect_progress_digest",
     "render_progress_digest",
 ]

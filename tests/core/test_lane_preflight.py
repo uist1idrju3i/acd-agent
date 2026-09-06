@@ -12,6 +12,8 @@ from acd.core.lane_preflight import (
     LANE_IDS,
     PREFLIGHT_CHECKED_PREDICATES,
     PREFLIGHT_UNCHECKED_PREDICATES,
+    missing_declaration_action,
+    missing_declarations,
     run_lane_preflight,
 )
 from acd.schema.design_graph import DesignGraph
@@ -116,3 +118,63 @@ def test_preflight_predicate_documentation_matches_contract() -> None:
     unchecked = tuple(predicate for predicate, kind in rows if kind == "unchecked")
     assert checked == PREFLIGHT_CHECKED_PREDICATES
     assert unchecked == PREFLIGHT_UNCHECKED_PREDICATES
+
+
+def test_missing_declarations_name_spec_path_count_and_attrs() -> None:
+    graph = _without_kind(_graph(), "mechanical.silk_text")
+    report = run_lane_preflight(graph, ("silkscreen-resolve",))
+    entries = missing_declarations(report)
+    assert [entry.model_dump(mode="json") for entry in entries] == [
+        {
+            "lane": "silkscreen-resolve",
+            "kind": "mechanical.silk_text",
+            "spec_path": "silk_texts[].attrs",
+            "required_count": 1,
+            "present_count": 0,
+            "missing_count": 1,
+            "required_attrs": [
+                "layer",
+                "role",
+                "text",
+                "stroke_width_mm",
+                "height_mm",
+                "placement_basis",
+                "placement_search_order",
+                "placement_reference",
+            ],
+            "missing_attrs": [],
+        }
+    ]
+    action = missing_declaration_action(report)
+    assert action is not None
+    assert "never auto-completed" in action
+    assert "`silk_texts[].attrs`" in action
+    for attr in (
+        "layer",
+        "role",
+        "text",
+        "stroke_width_mm",
+        "height_mm",
+        "placement_basis",
+        "placement_search_order",
+        "placement_reference",
+    ):
+        assert f"mechanical.silk_text.{attr}" in action
+
+
+def test_missing_attr_declarations_list_existing_node_ids() -> None:
+    graph = _without_attr(_graph(), "mechanical.silk_text", "placement_reference")
+    report = run_lane_preflight(graph, ("silkscreen-resolve",))
+    (entry,) = missing_declarations(report)
+    assert entry.missing_count == 0
+    assert entry.present_count is None
+    assert {item.attr for item in entry.missing_attrs} == {"placement_reference"}
+    action = missing_declaration_action(report)
+    assert action is not None
+    assert "add attrs [mechanical.silk_text.placement_reference]" in action
+
+
+def test_complete_declarations_have_no_action() -> None:
+    report = run_lane_preflight(_graph())
+    assert missing_declarations(report) == []
+    assert missing_declaration_action(report) is None

@@ -12,6 +12,7 @@ os.environ.setdefault("OPENHANDS_SUPPRESS_BANNER", "1")
 from acd.schema.tool_registration import ToolRegistrationReport
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_AVAILABILITY_RECORD_DIR = REPO_ROOT / "out" / "tool-availability"
 DEFAULT_AGENT_DIR = REPO_ROOT / "plugins" / "acd" / "agents"
 DEFAULT_MANIFEST = REPO_ROOT / "plugins" / "acd" / ".plugin" / "acd-tool-definitions.json"
 
@@ -38,7 +39,30 @@ def _parser() -> argparse.ArgumentParser:
             "Omit to inspect the registration surface of this process instead."
         ),
     )
+    parser.add_argument(
+        "--record",
+        type=Path,
+        default=None,
+        help=(
+            "where to save the --command result as machine-readable JSON "
+            "(default: out/tool-availability/<command stem>.json; L3 record only)"
+        ),
+    )
     return parser
+
+
+def availability_record_path(command: Path, record: Path | None) -> Path:
+    if record is not None:
+        return record
+    return DEFAULT_AVAILABILITY_RECORD_DIR / f"{command.stem}.json"
+
+
+def _write_availability_record(path: Path, body: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(body, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -60,13 +84,30 @@ def main(argv: list[str] | None = None) -> int:
         available = (
             registered_tool_names() if args.available is None else tuple(args.available)
         )
+        record_path = availability_record_path(args.command, args.record)
         try:
             availability = check_ambient_tool_availability(args.command, available)
         except (AmbientToolError, OSError, ValueError) as exc:
+            # Save the undetermined outcome too, so the primary record shows the
+            # entry check itself did not conclude (fail-closed, L3 only).
+            _write_availability_record(
+                record_path,
+                {
+                    "status": "unknown",
+                    "command_path": str(args.command),
+                    "available_tools": sorted(available),
+                    "reason": f"{type(exc).__name__}: {exc}",
+                    "record_class": "L3",
+                    "pass_evidence": False,
+                },
+            )
             print(f"ACD tool availability could not be determined: {exc}")
+            print(f"availability record: {record_path}")
             return 2
+        _write_availability_record(record_path, availability.model_dump(mode="json"))
         print(render_tool_availability(availability))
         print(availability.model_dump_json(indent=2))
+        print(f"availability record: {record_path}")
         return 0 if availability.status == "pass" else 2
     try:
         if args.write:
