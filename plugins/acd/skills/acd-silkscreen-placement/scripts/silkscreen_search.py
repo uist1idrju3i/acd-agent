@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@656ff9f831bb61e3ef4fd3bfa20ab16518c1bb26",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@a74e48d6f3bc6ca1daf8783e4e1c577cfaae9478",
 # ]
 # ///
 """Deterministic silkscreen label placement search (skill asset, not an ACD gate).
