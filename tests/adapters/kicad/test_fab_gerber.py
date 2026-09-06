@@ -264,6 +264,66 @@ def test_net_width_measurement_rejects_unmatched_conductor(
         )
 
 
+def _overlap_measurement(second_net: str) -> BoardMeasurement:
+    return BoardMeasurement(
+        (),
+        (),
+        0.15,
+        None,
+        None,
+        None,
+        (),
+        0,
+        "board_net_declarations",
+        (
+            fab_module.SegmentMeasurement("PWR", "F.Cu", 0.15, (1.0, 1.0), (1.0, 1.05)),
+            fab_module.SegmentMeasurement(second_net, "F.Cu", 0.15, (1.0, 1.0501), (1.0, 1.0)),
+        ),
+    )
+
+
+def test_net_width_measurement_accepts_overlapping_stubs_of_one_net(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Gerber:
+        def __init__(self) -> None:
+            self.objects = [Line(1.0, -1.0, 1.0, -1.05, CircleAperture(0.15))]
+
+    monkeypatch.setattr(  # pyright: ignore[reportUnknownArgumentType]
+        fab_module.GerberFile,  # pyright: ignore[reportPrivateImportUsage]
+        "open",
+        lambda _path: Gerber(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    )
+    result = measure_net_track_widths(
+        {"F.Cu": Path("fixture-F.gbr")},
+        _overlap_measurement("PWR"),
+        (_width_requirement(),),
+        0.01,
+    )
+    assert result["matched_object_count"] == 1
+
+
+def test_net_width_measurement_rejects_overlapping_stubs_of_different_nets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Gerber:
+        def __init__(self) -> None:
+            self.objects = [Line(1.0, -1.0, 1.0, -1.05, CircleAperture(0.15))]
+
+    monkeypatch.setattr(  # pyright: ignore[reportUnknownArgumentType]
+        fab_module.GerberFile,  # pyright: ignore[reportPrivateImportUsage]
+        "open",
+        lambda _path: Gerber(),  # pyright: ignore[reportUnknownLambdaType, reportUnknownArgumentType]
+    )
+    with pytest.raises(FabOutputError, match="cannot be uniquely matched"):
+        measure_net_track_widths(
+            {"F.Cu": Path("fixture-F.gbr")},
+            _overlap_measurement("SIG"),
+            (_width_requirement(),),
+            0.01,
+        )
+
+
 def test_net_width_measurement_rejects_unexpected_conductor_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -256,6 +256,11 @@ hooks:
         - type: command
           name: require-order-evidence
           command: "python3 {hook_root}/order_policy.py"
+    - matcher: terminal
+      hooks:
+        - type: command
+          name: refuse-eda-asset-export
+          command: "python3 {hook_root}/eda_asset_export.py"
   stop:
     - hooks:
         - type: command
@@ -291,6 +296,16 @@ Test agent.
                                 "type": "command",
                                 "name": "require-order-evidence",
                                 "command": f"python3 {hook_root}/order_policy.py",
+                            }
+                        ],
+                    },
+                    {
+                        "matcher": "terminal",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "name": "refuse-eda-asset-export",
+                                "command": f"python3 {hook_root}/eda_asset_export.py",
                             }
                         ],
                     },

@@ -29,7 +29,15 @@ class LaneNodeRequirement:
     kind: str
     minimum_count: int
     attrs: tuple[str, ...]
+    all_or_none_groups: tuple[tuple[str, ...], ...] = ()
 
+
+_STITCH_VIA_BASIS_ATTRS: Final[tuple[str, ...]] = (
+    "stitch_via_max_frequency_hz",
+    "stitch_via_dielectric_constant",
+    "stitch_via_wavelength_fraction",
+    "stitch_via_basis_source",
+)
 
 _BOARD_ATTRS: Final[tuple[str, ...]] = (
     "width_mm",
@@ -45,6 +53,17 @@ _BOARD_ATTRS: Final[tuple[str, ...]] = (
     "via_diameter_mm",
     "edge_copper_clearance_mm",
     "antenna_keepout",
+    "allowable_temperature_rise_k",
+    "width_basis_equation",
+    "width_basis_source",
+    "width_measurement_tolerance_mm",
+    "outer_copper_thickness_um",
+    "ipc2221_external_k",
+    "ipc2221_external_b",
+    "ipc2221_external_c",
+    "ipc2221_internal_k",
+    "ipc2221_internal_b",
+    "ipc2221_internal_c",
 )
 
 _COMPONENT_ATTRS: Final[tuple[str, ...]] = (
@@ -78,6 +97,22 @@ _OUTLINE_ATTRS: Final[tuple[str, ...]] = (
     "position_source_ref",
 )
 
+_COMPONENT_BODY_ATTRS: Final[tuple[str, ...]] = (
+    "body_type",
+    "height_mm",
+    "x_mm",
+    "y_mm",
+    "width_mm",
+    "depth_mm",
+    "mounting_side",
+    "rotation_deg",
+    "position_source",
+    "position_source_ref",
+    "dimensions_source",
+    "dimensions_source_ref",
+    "dimensions_checked_at",
+)
+
 _ENCLOSURE_ATTRS: Final[tuple[str, ...]] = (
     "material",
     "unit",
@@ -96,14 +131,28 @@ _ENCLOSURE_ATTRS: Final[tuple[str, ...]] = (
     "tolerance_source_ref",
 )
 
+_ORDER_INTENT_ATTRS: Final[tuple[str, ...]] = (
+    "fab_profile",
+    "pcba_class_target",
+    "quantity_pcs",
+    "assembly_sides",
+    "delivery_format",
+    "soldermask_color",
+    "surface_finish",
+    "profile_source",
+    "profile_fetched_at",
+)
+
 LANE_REQUIREMENTS: Final[dict[str, tuple[LaneNodeRequirement, ...]]] = {
     "board-pipeline": (
-        LaneNodeRequirement("electrical.board", 1, _BOARD_ATTRS),
+        LaneNodeRequirement("electrical.board", 1, _BOARD_ATTRS, (_STITCH_VIA_BASIS_ATTRS,)),
         LaneNodeRequirement("electrical.component", 1, _COMPONENT_ATTRS),
-        LaneNodeRequirement("electrical.net", 1, ("name", "width_basis")),
+        LaneNodeRequirement("electrical.net", 1, ("name", "width_basis", "width_basis_source")),
         LaneNodeRequirement("electrical.pin", 1, ("component", "pad", "no_connect")),
+        LaneNodeRequirement("fab.order_intent", 1, _ORDER_INTENT_ATTRS),
     ),
     "silkscreen-resolve": (
+        LaneNodeRequirement("fab.order_intent", 1, _ORDER_INTENT_ATTRS),
         LaneNodeRequirement(
             "mechanical.silk_text",
             1,
@@ -116,11 +165,20 @@ LANE_REQUIREMENTS: Final[dict[str, tuple[LaneNodeRequirement, ...]]] = {
                 "placement_basis",
                 "placement_search_order",
                 "placement_reference",
+                # The resolver reads these too; placement_rotation_degrees has
+                # a declared default and stays optional.
+                "rotation_deg",
+                "placement_offset_step_mm",
+                "placement_search_limit_mm",
+                "placement_safety_margin_mm",
+                "board_edge_margin_mm",
+                "board_edge_margin_source",
             ),
         ),
     ),
     "enclosure-pipeline": (
         LaneNodeRequirement("mechanical.outline", 1, _OUTLINE_ATTRS),
+        LaneNodeRequirement("mechanical.component_body", 1, _COMPONENT_BODY_ATTRS),
         LaneNodeRequirement("mechanical.enclosure", 1, _ENCLOSURE_ATTRS),
     ),
     "firmware-pipeline": (
@@ -133,9 +191,7 @@ LANE_REQUIREMENTS: Final[dict[str, tuple[LaneNodeRequirement, ...]]] = {
             ("module_name", "mcu_component", "entry_state"),
         ),
         LaneNodeRequirement("firmware.state", 1, ("state_name", "initial")),
-        LaneNodeRequirement(
-            "firmware.state_transition", 1, ("from_state", "to_state", "trigger")
-        ),
+        LaneNodeRequirement("firmware.state_transition", 1, ("from_state", "to_state", "trigger")),
         LaneNodeRequirement(
             "firmware.sequence_step", 1, ("step_index", "actor", "target", "action")
         ),
@@ -152,6 +208,12 @@ SPEC_DECLARATION_PATHS: Final[dict[str, str]] = {
     "electrical.net": "nets[]",
     "electrical.pin": "components[].pads",
     "mechanical.outline": "mechanical_outline.attrs",
+    "mechanical.component_body": "component_bodies[].attrs",
+    "mechanical.connector_opening": "connector_openings[].attrs",
+    "mechanical.board_edge_overhang": "board_edge_overhangs[].attrs",
+    "mechanical.enclosure": "enclosure.attrs",
+    "safety.boundary": "safety_boundary.attrs",
+    "fab.order_intent": "fab_order_intent.attrs",
     "mechanical.silk_text": "silk_texts[].attrs",
     "mechanical.silk_graphic": "silk_graphics[].attrs",
     "firmware.module": "firmware_module.attrs",
@@ -212,6 +274,24 @@ def _lane_report(
                         reason=f"lane {lane} reads this attribute from the graph",
                     )
                 )
+            for group in requirement.all_or_none_groups:
+                declared = [attr for attr in group if attr in node.attrs]
+                if not declared or len(declared) == len(group):
+                    continue
+                for attr in group:
+                    if attr in node.attrs:
+                        continue
+                    missing_attrs.append(
+                        LanePreflightMissingAttr(
+                            node_id=node.id,
+                            kind=node.kind,
+                            attr=attr,
+                            reason=(
+                                f"lane {lane} requires the whole group "
+                                f"{', '.join(group)} once any member is declared"
+                            ),
+                        )
+                    )
     status = (
         "declarations_complete"
         if not missing_nodes and not missing_attrs
@@ -233,9 +313,7 @@ def run_lane_preflight(
     unknown = [lane for lane in selected if lane not in LANE_REQUIREMENTS]
     if unknown:
         raise ValueError("unknown preflight lanes: " + ", ".join(sorted(unknown)))
-    reports = [
-        _lane_report(graph, lane, LANE_REQUIREMENTS[lane]) for lane in selected
-    ]
+    reports = [_lane_report(graph, lane, LANE_REQUIREMENTS[lane]) for lane in selected]
     status = (
         "declarations_complete"
         if all(report.status == "declarations_complete" for report in reports)
@@ -265,18 +343,13 @@ def missing_declarations(
             continue
         requirements = {item.kind: item for item in LANE_REQUIREMENTS[lane.lane]}
         kinds = sorted(
-            {node.kind for node in lane.missing_nodes}
-            | {attr.kind for attr in lane.missing_attrs}
+            {node.kind for node in lane.missing_nodes} | {attr.kind for attr in lane.missing_attrs}
         )
         for kind in kinds:
             requirement = requirements[kind]
-            missing_node = next(
-                (node for node in lane.missing_nodes if node.kind == kind), None
-            )
+            missing_node = next((node for node in lane.missing_nodes if node.kind == kind), None)
             required = requirement.minimum_count
-            present_count = (
-                missing_node.present_count if missing_node is not None else None
-            )
+            present_count = missing_node.present_count if missing_node is not None else None
             entries.append(
                 LanePreflightMissingDeclaration(
                     lane=lane.lane,
@@ -284,13 +357,9 @@ def missing_declarations(
                     spec_path=SPEC_DECLARATION_PATHS.get(kind, UNDECLARABLE_SPEC_PATH),
                     required_count=required,
                     present_count=present_count,
-                    missing_count=(
-                        required - present_count if present_count is not None else 0
-                    ),
+                    missing_count=(required - present_count if present_count is not None else 0),
                     required_attrs=list(requirement.attrs),
-                    missing_attrs=[
-                        attr for attr in lane.missing_attrs if attr.kind == kind
-                    ],
+                    missing_attrs=[attr for attr in lane.missing_attrs if attr.kind == kind],
                 )
             )
     return entries
@@ -310,9 +379,7 @@ def missing_declaration_action(report: LanePreflightReport) -> str | None:
                 f"node(s) under `{entry.spec_path}` with attrs [{attrs}]"
             )
         if entry.missing_attrs:
-            names = ", ".join(
-                sorted({f"{entry.kind}.{item.attr}" for item in entry.missing_attrs})
-            )
+            names = ", ".join(sorted({f"{entry.kind}.{item.attr}" for item in entry.missing_attrs}))
             nodes = ", ".join(sorted({item.node_id for item in entry.missing_attrs}))
             parts.append(
                 f"{entry.lane}: add attrs [{names}] to existing node(s) [{nodes}] "

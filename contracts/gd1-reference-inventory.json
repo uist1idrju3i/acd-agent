@@ -1,0 +1,218 @@
+{
+  "schema_version": "1.0",
+  "record_class": "L3",
+  "pass_evidence": false,
+  "scan_roots": [
+    "src/acd",
+    "scripts",
+    "plugins/acd/hooks",
+    "plugins/acd/commands",
+    ".github/workflows"
+  ],
+  "entries": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "purpose": "positive_control",
+      "reference_lines": 11,
+      "note": "container-gates GD1 positive-control lane and its Evidence verification, alongside the non-GD1 lane."
+    },
+    {
+      "path": "plugins/acd/commands/vibebb-loop.md",
+      "purpose": "message_text",
+      "reference_lines": 2,
+      "note": "Command text explaining that GD1 wording is fixture-specific."
+    },
+    {
+      "path": "plugins/acd/hooks/scripts/order_policy.py",
+      "purpose": "compatibility_alias",
+      "reference_lines": 2,
+      "note": "Legacy artifact prefix alias golden-design-1 -> gd1 in the order guard."
+    },
+    {
+      "path": "scripts/build_gd1_fixture.py",
+      "purpose": "positive_control",
+      "reference_lines": 1,
+      "note": "GD1 fixture builder entrypoint."
+    },
+    {
+      "path": "scripts/explore_board_candidates.py",
+      "purpose": "default_fallback",
+      "reference_lines": 2,
+      "note": "Exploration CLI graph and fixture defaults."
+    },
+    {
+      "path": "scripts/explore_enclosure_candidates.py",
+      "purpose": "default_fallback",
+      "reference_lines": 2,
+      "note": "Exploration CLI graph and fixture defaults."
+    },
+    {
+      "path": "scripts/pre_order_gate.py",
+      "purpose": "message_text",
+      "reference_lines": 1,
+      "note": "Remediation hint naming the board pipeline script."
+    },
+    {
+      "path": "scripts/resolve_gd1_silkscreen.py",
+      "purpose": "positive_control",
+      "reference_lines": 2,
+      "note": "Silkscreen resolver entrypoint with the historical name and out/gd1-silkscreen-resolve default."
+    },
+    {
+      "path": "scripts/run_design_lanes.py",
+      "purpose": "positive_control",
+      "reference_lines": 6,
+      "note": "Regression pytest subset and pipeline script names for the positive-control lane; fixture default."
+    },
+    {
+      "path": "scripts/run_design_loop.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "Design loop CLI fixture default."
+    },
+    {
+      "path": "scripts/run_gd1_pipeline.py",
+      "purpose": "positive_control",
+      "reference_lines": 1,
+      "note": "Board pipeline entrypoint."
+    },
+    {
+      "path": "scripts/run_in_workspace.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "Workspace runner design graph default."
+    },
+    {
+      "path": "scripts/verify_all.py",
+      "purpose": "positive_control",
+      "reference_lines": 4,
+      "note": "Standard/full verification runs the GD1 positive-control pipelines; fast runs this inventory check."
+    },
+    {
+      "path": "scripts/verify_library_assets.py",
+      "purpose": "positive_control",
+      "reference_lines": 1,
+      "note": "Default fixture set verified for library assets."
+    },
+    {
+      "path": "src/acd/adapters/cad/mechanical.py",
+      "purpose": "message_text",
+      "reference_lines": 2,
+      "note": "Diagnostic text names the stacked GD1 enclosure topology; the check itself is geometry-derived."
+    },
+    {
+      "path": "src/acd/adapters/cad/visual_projection.py",
+      "purpose": "default_fallback",
+      "reference_lines": 3,
+      "note": "graph_id keyword default; callers pass the graph id explicitly."
+    },
+    {
+      "path": "src/acd/core/exploration.py",
+      "purpose": "module_name",
+      "reference_lines": 1,
+      "note": "Imports the board pipeline module that keeps its historical gd1_board name."
+    },
+    {
+      "path": "src/acd/core/lane_cli.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "Shared lane CLI fixture default for positive-control runs; callers may pass None to require --fixture."
+    },
+    {
+      "path": "src/acd/core/naming.py",
+      "purpose": "compatibility_alias",
+      "reference_lines": 2,
+      "note": "Legacy artifact prefix alias golden-design-1 -> gd1 for committed GD1 artifacts."
+    },
+    {
+      "path": "src/acd/openhands/goal_cli.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "Goal CLI fixture default for positive-control runs."
+    },
+    {
+      "path": "src/acd/openhands/session/bootstrap.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "Bootstrap design graph default when no graph is supplied."
+    },
+    {
+      "path": "src/acd/openhands/session/gate_critic.py",
+      "purpose": "default_fallback",
+      "reference_lines": 1,
+      "note": "Gate critic design graph default when no graph is supplied."
+    },
+    {
+      "path": "src/acd/openhands/tools/ambient.py",
+      "purpose": "module_name",
+      "reference_lines": 1,
+      "note": "Maps the board pipeline tool to its historical script name."
+    },
+    {
+      "path": "src/acd/openhands/tools/definitions.py",
+      "purpose": "default_fallback",
+      "reference_lines": 5,
+      "note": "SDK tool fixture defaults for positive-control runs plus the board pipeline module import."
+    },
+    {
+      "path": "src/acd/pipeline/design_loop.py",
+      "purpose": "module_name",
+      "reference_lines": 1,
+      "note": "Imports the board pipeline module that keeps its historical gd1_board name."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_board.py",
+      "purpose": "positive_control",
+      "reference_lines": 4,
+      "note": "Board pipeline module; the historical name and out/gd1 default belong to the positive-control lane."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/components.py",
+      "purpose": "positive_control",
+      "reference_lines": 13,
+      "note": "GD1 fixture builder."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/graph.py",
+      "purpose": "positive_control",
+      "reference_lines": 24,
+      "note": "GD1 fixture builder."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/mechanical.py",
+      "purpose": "positive_control",
+      "reference_lines": 13,
+      "note": "GD1 fixture builder."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/silkscreen.py",
+      "purpose": "positive_control",
+      "reference_lines": 7,
+      "note": "GD1 fixture builder."
+    },
+    {
+      "path": "src/acd/pipeline/gd1_fixture/svg_artwork.py",
+      "purpose": "positive_control",
+      "reference_lines": 1,
+      "note": "GD1 fixture builder."
+    },
+    {
+      "path": "src/acd/pipeline/lane_plan.py",
+      "purpose": "positive_control",
+      "reference_lines": 5,
+      "note": "The pytest regression subset stage is declared only for the gd1 artifact prefix."
+    },
+    {
+      "path": "src/acd/pipeline/silkscreen_resolve.py",
+      "purpose": "module_name",
+      "reference_lines": 4,
+      "note": "Imports placement and hashing helpers from the historically named GD1 modules."
+    },
+    {
+      "path": "src/acd/pipeline/visual_projection.py",
+      "purpose": "default_fallback",
+      "reference_lines": 2,
+      "note": "graph_id keyword default and the GD1 functional-run hold message."
+    }
+  ]
+}

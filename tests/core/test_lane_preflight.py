@@ -26,9 +26,7 @@ def _graph() -> DesignGraph:
 
 
 def _without_kind(graph: DesignGraph, kind: str) -> DesignGraph:
-    return graph.model_copy(
-        update={"nodes": [node for node in graph.nodes if node.kind != kind]}
-    )
+    return graph.model_copy(update={"nodes": [node for node in graph.nodes if node.kind != kind]})
 
 
 def _without_attr(graph: DesignGraph, kind: str, attr: str) -> DesignGraph:
@@ -36,11 +34,7 @@ def _without_attr(graph: DesignGraph, kind: str, attr: str) -> DesignGraph:
         (
             node.model_copy(
                 update={
-                    "attrs": {
-                        name: value
-                        for name, value in node.attrs.items()
-                        if name != attr
-                    }
+                    "attrs": {name: value for name, value in node.attrs.items() if name != attr}
                 }
             )
             if node.kind == kind
@@ -62,9 +56,7 @@ def test_declared_gd1_graph_has_complete_declarations_for_every_lane() -> None:
 
 
 def test_missing_required_node_is_reported_as_incomplete() -> None:
-    report = run_lane_preflight(
-        _without_kind(_graph(), "firmware.module"), ("firmware-pipeline",)
-    )
+    report = run_lane_preflight(_without_kind(_graph(), "firmware.module"), ("firmware-pipeline",))
     assert report.status == "declarations_incomplete"
     lane = report.lanes[0]
     assert lane.status == "declarations_incomplete"
@@ -83,16 +75,28 @@ def test_missing_required_attribute_is_reported_as_incomplete() -> None:
     assert {item.attr for item in missing} == {"placement_basis"}
 
 
-def test_all_lane_gaps_are_collected_in_one_result() -> None:
-    graph = _without_kind(
-        _without_kind(_graph(), "firmware.module"), "mechanical.outline"
-    )
-    report = run_lane_preflight(graph)
-    incomplete = {
-        lane.lane
-        for lane in report.lanes
-        if lane.status == "declarations_incomplete"
+def test_partial_stitch_via_basis_is_reported_as_incomplete() -> None:
+    graph = _graph()
+    for attr in (
+        "stitch_via_max_frequency_hz",
+        "stitch_via_dielectric_constant",
+        "stitch_via_wavelength_fraction",
+        "stitch_via_basis_source",
+    ):
+        graph = _without_attr(graph, "electrical.board", attr)
+    assert run_lane_preflight(graph, ("board-pipeline",)).status == "declarations_complete"
+    partial = _without_attr(_graph(), "electrical.board", "stitch_via_dielectric_constant")
+    report = run_lane_preflight(partial, ("board-pipeline",))
+    assert report.status == "declarations_incomplete"
+    assert {item.attr for item in report.lanes[0].missing_attrs} == {
+        "stitch_via_dielectric_constant"
     }
+
+
+def test_all_lane_gaps_are_collected_in_one_result() -> None:
+    graph = _without_kind(_without_kind(_graph(), "firmware.module"), "mechanical.outline")
+    report = run_lane_preflight(graph)
+    incomplete = {lane.lane for lane in report.lanes if lane.status == "declarations_incomplete"}
     assert incomplete == {"enclosure-pipeline", "firmware-pipeline"}
 
 
@@ -141,6 +145,12 @@ def test_missing_declarations_name_spec_path_count_and_attrs() -> None:
                 "placement_basis",
                 "placement_search_order",
                 "placement_reference",
+                "rotation_deg",
+                "placement_offset_step_mm",
+                "placement_search_limit_mm",
+                "placement_safety_margin_mm",
+                "board_edge_margin_mm",
+                "board_edge_margin_source",
             ],
             "missing_attrs": [],
         }

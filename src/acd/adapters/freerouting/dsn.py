@@ -8,6 +8,7 @@ clearance and final DRC still runs on the exact KiCad geometry.
 
 from __future__ import annotations
 
+from acd.adapters.kicad.placement import rotate_point
 from acd.core.board_model import (
     BoardModel,
     FootprintShape,
@@ -71,9 +72,7 @@ def _padstack_shapes(pad: PadShape) -> list[str]:
             shapes.append(f"(shape (path {layer} {width} {path}))")
         elif pad.shape in ("rect", "roundrect", "custom"):
             hx, hy = size_x / 2.0, size_y / 2.0
-            shapes.append(
-                f"(shape (rect {layer} {_um(-hx)} {_um(-hy)} {_um(hx)} {_um(hy)}))"
-            )
+            shapes.append(f"(shape (rect {layer} {_um(-hx)} {_um(-hy)} {_um(hx)} {_um(hy)}))")
         else:
             raise DsnExportError(f"unsupported pad shape {pad.shape!r} (fail-closed)")
     return shapes
@@ -135,11 +134,11 @@ def _hole_keepouts(board: BoardModel) -> list[str]:
             if pad.number or pad.drill_mm is None:
                 continue
             diameter = (
-                max(pad.size_x_mm, pad.size_y_mm, pad.drill_mm)
-                + 2.0 * board.min_clearance_mm
+                max(pad.size_x_mm, pad.size_y_mm, pad.drill_mm) + 2.0 * board.min_clearance_mm
             )
-            x = placement.x_mm + pad.x_mm
-            y = placement.y_mm + pad.y_mm
+            dx, dy = rotate_point(pad.x_mm, pad.y_mm, placement.rotation_deg)
+            x = placement.x_mm + dx
+            y = placement.y_mm + dy
             for layer in _LAYERS:
                 lines.append(
                     f'(keepout "hole_{placement.refdes}_{index}_{layer}" '
@@ -202,7 +201,7 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
 
     lines: list[str] = [
         f'(pcb "{design_name}"',
-        "  (parser (string_quote \") (space_in_quoted_tokens on)"
+        '  (parser (string_quote ") (space_in_quoted_tokens on)'
         ' (host_cad "acd") (host_version "0.0.1"))',
         "  (resolution um 10)",
         "  (unit um)",
@@ -244,8 +243,7 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
         lines.append(f'    (image "{name}"')
         for pad, pin_id in _pin_ids(footprint):
             lines.append(
-                f'      (pin "{_padstack_name(pad)}" "{pin_id}" '
-                f"{_point(pad.x_mm, pad.y_mm)})"
+                f'      (pin "{_padstack_name(pad)}" "{pin_id}" {_point(pad.x_mm, pad.y_mm)})'
             )
         lines.append("    )")
     for name in sorted(padstacks):
@@ -272,9 +270,7 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
         pin_refs: list[str] = []
         for refdes, pad_number in sorted(net.pads):
             footprint = board.placement_by_refdes(refdes).footprint
-            matches = [
-                pin_id for pad, pin_id in _pin_ids(footprint) if pad.number == pad_number
-            ]
+            matches = [pin_id for pad, pin_id in _pin_ids(footprint) if pad.number == pad_number]
             if not matches:
                 raise DsnExportError(
                     f"net {net.name!r}: pad {refdes}-{pad_number} not routable (fail-closed)"
@@ -285,19 +281,13 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
     if not netclasses:
         raise DsnExportError("netclass declarations are missing (fail-closed)")
     class_names: set[str] = set()
-    netclass_by_net = {
-        net_name: netclass
-        for netclass in netclasses
-        for net_name in netclass.nets
-    }
+    netclass_by_net = {net_name: netclass for netclass in netclasses for net_name in netclass.nets}
     for netclass in netclasses:
         if netclass.name in class_names:
             raise DsnExportError(f"duplicate netclass {netclass.name!r} (fail-closed)")
         class_names.add(netclass.name)
         if netclass.width_mm <= 0:
-            raise DsnExportError(
-                f"netclass {netclass.name!r} has invalid width (fail-closed)"
-            )
+            raise DsnExportError(f"netclass {netclass.name!r} has invalid width (fail-closed)")
     if len(netclass_by_net) != sum(len(netclass.nets) for netclass in netclasses):
         raise DsnExportError("netclass membership is duplicated (fail-closed)")
     if set(net_names) != set(netclass_by_net):
@@ -313,9 +303,7 @@ def export_dsn(board: BoardModel, design_name: str) -> str:
         quoted_nets = " ".join(f'"{name}"' for name in sorted(members))
         lines.append(f'    (class "{netclass.name}" "" {quoted_nets}')
         lines.append(f'      (circuit (use_via "{via_name}"))')
-        lines.append(
-            f"      (rule (width {_um(netclass.width_mm)}) (clearance {clearance_um}))"
-        )
+        lines.append(f"      (rule (width {_um(netclass.width_mm)}) (clearance {clearance_um}))")
         lines.append("    )")
     lines.append("  )")
     lines.append("  (wiring)")

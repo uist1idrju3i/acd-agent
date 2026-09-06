@@ -25,9 +25,7 @@ from acd.schema.common import Sha256
 
 # Deterministic generators allowed to declare deterministic_tool provenance.
 # Self-declared provenance from an unknown generator is rejected fail-closed.
-KNOWN_DETERMINISTIC_GENERATORS: Final[frozenset[str]] = frozenset(
-    {"acd.pipeline.fixture_builder"}
-)
+KNOWN_DETERMINISTIC_GENERATORS: Final[frozenset[str]] = frozenset({"acd.pipeline.fixture_builder"})
 
 # A document that repeats one decision/justification pair beyond this limit is a
 # template rather than a set of per-decision records.
@@ -108,14 +106,13 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "delivery_format",
         }
     ),
-"firmware.module": frozenset(
-    {"mcu_component", "entry_state", "led_blink_period_ms", "log_period_ms", "boot_log_message"}
-),
+    "fab.process_allowance": frozenset({"rule_id", "impact_accepted"}),
+    "firmware.module": frozenset(
+        {"mcu_component", "entry_state", "led_blink_period_ms", "log_period_ms", "boot_log_message"}
+    ),
     "firmware.state": frozenset({"initial"}),
     "firmware.state_transition": frozenset({"from_state", "to_state", "trigger"}),
-    "firmware.sequence_step": frozenset(
-        {"step_index", "actor", "target", "action"}
-    ),
+    "firmware.sequence_step": frozenset({"step_index", "actor", "target", "action"}),
     "firmware.pin_assignment": frozenset({"gpio", "net"}),
     "mechanical.board_edge_overhang": frozenset({"edge", "overhang_mm"}),
     "mechanical.component_body": frozenset(
@@ -212,20 +209,17 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
 RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
     "electrical.placement_group": {
         "primary_refdes": (
-            "Placement group membership is an L2 search constraint; "
-            "L1 gates remain authoritative."
+            "Placement group membership is an L2 search constraint; L1 gates remain authoritative."
         ),
         "coupled_refdes": (
-            "Placement group membership is an L2 search constraint; "
-            "L1 gates remain authoritative."
+            "Placement group membership is an L2 search constraint; L1 gates remain authoritative."
         ),
         "max_distance_mm": (
             "Placement coupling is a bounded L2 search input; "
             "the decoupling-distance gate remains authoritative."
         ),
         "move_together": (
-            "Move-together semantics steer candidate generation and do not "
-            "grant pass authority."
+            "Move-together semantics steer candidate generation and do not grant pass authority."
         ),
     },
     "design.functional_block": {
@@ -237,67 +231,52 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
     },
     "electrical.board": {
         "copper_thickness_source": (
-            "Manufacturing copper thickness is sourced from the fab "
-            "capability declaration."
+            "Manufacturing copper thickness is sourced from the fab capability declaration."
         ),
         "fab_capability_checked_at": (
-            "Fab capability metadata records when the profile was "
-            "checked."
+            "Fab capability metadata records when the profile was checked."
         ),
         "fab_capability_source": (
-            "Fab capability metadata identifies the external "
-            "manufacturing source."
+            "Fab capability metadata identifies the external manufacturing source."
         ),
         "mounting_hole_m2_count": (
-            "M2 hole count is justified by the required outline hole "
-            "dimensions."
+            "M2 hole count is justified by the required outline hole dimensions."
         ),
         "ipc2221_external_b": (
-            "IPC-2221 external-layer constant is a standard-defined "
-            "calculation input."
+            "IPC-2221 external-layer constant is a standard-defined calculation input."
         ),
         "ipc2221_external_c": (
-            "IPC-2221 external-layer constant is a standard-defined "
-            "calculation input."
+            "IPC-2221 external-layer constant is a standard-defined calculation input."
         ),
         "ipc2221_external_k": (
-            "IPC-2221 external-layer constant is a standard-defined "
-            "calculation input."
+            "IPC-2221 external-layer constant is a standard-defined calculation input."
         ),
         "ipc2221_internal_b": (
-            "IPC-2221 internal-layer constant is a standard-defined "
-            "calculation input."
+            "IPC-2221 internal-layer constant is a standard-defined calculation input."
         ),
         "ipc2221_internal_c": (
-            "IPC-2221 internal-layer constant is a standard-defined "
-            "calculation input."
+            "IPC-2221 internal-layer constant is a standard-defined calculation input."
         ),
         "ipc2221_internal_k": (
-            "IPC-2221 internal-layer constant is a standard-defined "
-            "calculation input."
+            "IPC-2221 internal-layer constant is a standard-defined calculation input."
         ),
         "outer_copper_thickness_um": (
-            "Outer copper thickness is a manufacturing capability "
-            "value derived from copper weight."
+            "Outer copper thickness is a manufacturing capability value derived from copper weight."
         ),
         "origin": "Origin is the graph coordinate convention.",
         "unit": "Unit is the graph coordinate convention.",
         "y_axis": "The y-axis direction is the graph coordinate convention.",
         "stitch_via_basis_source": (
-            "Stitch-via basis metadata identifies the source of the "
-            "calculation."
+            "Stitch-via basis metadata identifies the source of the calculation."
         ),
         "stitch_via_cost_note": (
-            "Stitch-via cost metadata records manufacturing context "
-            "rather than a design choice."
+            "Stitch-via cost metadata records manufacturing context rather than a design choice."
         ),
         "stitch_via_dielectric_constant": (
-            "The dielectric constant is a source-model input "
-            "for the stitch-via calculation."
+            "The dielectric constant is a source-model input for the stitch-via calculation."
         ),
         "width_basis_source": (
-            "Trace-width basis metadata identifies the source of the width "
-            "calculation."
+            "Trace-width basis metadata identifies the source of the width calculation."
         ),
     },
     "electrical.component": {
@@ -318,9 +297,7 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "certification_hvin": (
             "Certification HVIN records the externally certified module identifier."
         ),
-        "certification_ids": (
-            "Certification identifiers record external regulatory provenance."
-        ),
+        "certification_ids": ("Certification identifiers record external regulatory provenance."),
         "certification_source": (
             "Certification source identifies the external certification publisher."
         ),
@@ -328,65 +305,53 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
             "Certification source reference identifies the external source location."
         ),
         "cpl_position_basis": (
-            "CPL position basis records the evidence basis for an already "
-            "selected placement."
+            "CPL position basis records the evidence basis for an already selected placement."
         ),
         "cpl_position_evidence_at": "CPL position evidence timestamp is provenance metadata.",
         "cpl_position_evidence_basis": "CPL position evidence describes the verification basis.",
         "cpl_position_evidence_method": "CPL position evidence records the verification method.",
         "cpl_position_evidence_note": "CPL position evidence notes are provenance metadata.",
         "cpl_position_evidence_revision": (
-            "CPL position evidence revision identifies the "
-            "checked graph revision."
+            "CPL position evidence revision identifies the checked graph revision."
         ),
         "cpl_position_source_url": (
-            "CPL position source URL identifies the primary placement "
-            "source."
+            "CPL position source URL identifies the primary placement source."
         ),
         "cpl_rotation_basis": (
-            "CPL rotation basis records the evidence basis for an already "
-            "selected rotation."
+            "CPL rotation basis records the evidence basis for an already selected rotation."
         ),
         "cpl_rotation_evidence_at": "CPL rotation evidence timestamp is provenance metadata.",
         "cpl_rotation_evidence_basis": "CPL rotation evidence describes the verification basis.",
         "cpl_rotation_evidence_method": "CPL rotation evidence records the verification method.",
         "cpl_rotation_evidence_note": "CPL rotation evidence notes are provenance metadata.",
         "cpl_rotation_evidence_revision": (
-            "CPL rotation evidence revision identifies the "
-            "checked graph revision."
+            "CPL rotation evidence revision identifies the checked graph revision."
         ),
         "cpl_rotation_geometry_exception": (
-            "CPL geometry exception records a "
-            "source-footprint geometry fact."
+            "CPL geometry exception records a source-footprint geometry fact."
         ),
         "cpl_rotation_geometry_exception_reason": (
-            "CPL geometry exception reason explains a "
-            "source-footprint fact."
+            "CPL geometry exception reason explains a source-footprint fact."
         ),
         "cpl_rotation_geometry_exception_source": (
-            "CPL geometry exception source identifies "
-            "its evidence."
+            "CPL geometry exception source identifies its evidence."
         ),
         "cpl_rotation_offset_deg": (
-            "CPL rotation offset is a footprint transformation "
-            "metadata value."
+            "CPL rotation offset is a footprint transformation metadata value."
         ),
         "cpl_rotation_pin_aliases": "CPL rotation pin aliases are symbol-library metadata.",
         "cpl_rotation_pin_functions": "CPL rotation pin functions are symbol-library metadata.",
         "cpl_rotation_polarized": "CPL polarization is a footprint fact used during verification.",
         "cpl_rotation_source_url": (
-            "CPL rotation source URL identifies the primary footprint "
-            "source."
+            "CPL rotation source URL identifies the primary footprint source."
         ),
         "cpl_rotation_unverified_pad_reason": (
-            "CPL unverified-pad reason records an evidence "
-            "limitation."
+            "CPL unverified-pad reason records an evidence limitation."
         ),
         "cpl_rotation_unverified_pad_source": "CPL unverified-pad source identifies its evidence.",
         "cpl_rotation_unverified_pads": "CPL unverified-pad data records footprint evidence.",
         "decoupling_target": (
-            "Decoupling target identifies the component relationship "
-            "justified by the power design."
+            "Decoupling target identifies the component relationship justified by the power design."
         ),
         "footprint_file": "Footprint file metadata identifies the library artifact.",
         "footprint_sha256": "Footprint hash is provenance metadata for the library artifact.",
@@ -403,8 +368,7 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
         "placement_source": "Placement source identifies the deterministic placement procedure.",
         "placement_source_ref": (
-            "Placement source reference identifies the placement "
-            "procedure version."
+            "Placement source reference identifies the placement procedure version."
         ),
         "refdes": "Reference designator is an identifier, not an engineering choice.",
         "stock_checked_at": "Stock check timestamp is supplier provenance metadata.",
@@ -417,21 +381,23 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
     "electrical.net": {
         "name": "Net name is an identifier used by the connectivity model.",
         "width_basis_source": (
-            "Trace-width basis metadata identifies the source of the width "
-            "calculation."
+            "Trace-width basis metadata identifies the source of the width calculation."
         ),
     },
     "fab.order_intent": {
         "profile_fetched_at": "Fab profile fetch time is manufacturing-source provenance.",
         "profile_source": "Fab profile source identifies the manufacturing capability declaration.",
     },
+    "fab.process_allowance": {
+        "reason": "Allowance reason is the justification text of the allowance decision itself.",
+        "requirement": "Allowance requirement is a reference to the driving requirement node.",
+    },
     "electrical.pin": {
         "component": "Pin component connectivity is justified by the component and net decisions.",
         "net": "Pin net connectivity is justified by the net and firmware decisions.",
         "pad": "Pad mapping is footprint connectivity metadata.",
         "no_connect": (
-            "No-connect state is connectivity metadata justified by the "
-            "surrounding net design."
+            "No-connect state is connectivity metadata justified by the surrounding net design."
         ),
     },
     "firmware.module": {
@@ -459,8 +425,7 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "connector": "Connector identifier is a mechanical mapping fact.",
         "dimensions_checked_at": "Opening dimension check time is evidence provenance.",
         "dimensions_source": (
-            "Opening dimensions source identifies the datasheet or library "
-            "evidence."
+            "Opening dimensions source identifies the datasheet or library evidence."
         ),
         "dimensions_source_ref": "Opening dimensions source reference identifies the evidence.",
     },
@@ -477,48 +442,40 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "origin": "Origin is the graph coordinate convention.",
         "position_source": "Outline position source identifies the mechanical evidence.",
         "position_source_ref": (
-            "Outline position source reference identifies the mechanical "
-            "evidence."
+            "Outline position source reference identifies the mechanical evidence."
         ),
         "unit": "Unit is the graph coordinate convention.",
         "y_axis": "The y-axis direction is the graph coordinate convention.",
     },
     "mechanical.silk_graphic": {
         "board_edge_margin_source": (
-            "Graphic edge-margin source identifies the manufacturing "
-            "evidence."
+            "Graphic edge-margin source identifies the manufacturing evidence."
         ),
         "placement_basis": "Graphic placement basis records the resolver input provenance.",
         "role": "Graphic role is an identifier for the declared artwork.",
     },
     "mechanical.silk_text": {
         "board_edge_margin_source": (
-            "Text edge-margin source identifies the manufacturing "
-            "evidence."
+            "Text edge-margin source identifies the manufacturing evidence."
         ),
         "placement_basis": "Text placement basis records the resolver input provenance.",
         "placement_evidence": (
-            "Placement evidence records resolver output rather than an "
-            "independent design choice."
+            "Placement evidence records resolver output rather than an independent design choice."
         ),
         "placement_evidence_input_sha256": "Placement evidence input hash is provenance metadata.",
         "placement_evidence_output_sha256": (
-            "Placement evidence output hash is provenance "
-            "metadata."
+            "Placement evidence output hash is provenance metadata."
         ),
         "placement_reference": "Placement reference identifies the associated component.",
         "placement_rotation_deg": (
-            "Silkscreen placement rotation is a derived alias of "
-            "rotation_deg."
+            "Silkscreen placement rotation is a derived alias of rotation_deg."
         ),
         "placement_rotation_degrees": (
-            "Silkscreen placement rotation is a derived alias of "
-            "rotation_deg."
+            "Silkscreen placement rotation is a derived alias of rotation_deg."
         ),
         "placement_source": "Placement source identifies the deterministic silkscreen procedure.",
         "placement_source_ref": (
-            "Placement source reference identifies the silkscreen "
-            "procedure version."
+            "Placement source reference identifies the silkscreen procedure version."
         ),
         "role": "Text role is an identifier for the declared label.",
     },
@@ -527,16 +484,13 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
     },
     "safety.boundary": {
         "battery": (
-            "Battery exclusion is a dependent safety flag justified by the "
-            "safety-scope decision."
+            "Battery exclusion is a dependent safety flag justified by the safety-scope decision."
         ),
         "charger": (
-            "Charger exclusion is a dependent safety flag justified by the "
-            "safety-scope decision."
+            "Charger exclusion is a dependent safety flag justified by the safety-scope decision."
         ),
         "motor_actuator_laser": (
-            "Actuator exclusion is a dependent safety flag justified by "
-            "the safety-scope decision."
+            "Actuator exclusion is a dependent safety flag justified by the safety-scope decision."
         ),
     },
 }
@@ -552,9 +506,9 @@ def subject_hash_for(
             if attr not in node.attrs:
                 raise KeyError(f"node {node_id!r} has no attribute {attr!r}")
             values.append([node_id, attr, node.attrs[attr]])
-    encoded = json.dumps(
-        values, sort_keys=True, ensure_ascii=False, separators=(",", ":")
-    ).encode("utf-8")
+    encoded = json.dumps(values, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
     return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
@@ -574,9 +528,7 @@ def refresh_rationale_document(
     refreshed: list[RationaleRecord] = []
     for record in document.records:
         try:
-            expected_hash = subject_hash_for(
-                graph, record.subject_nodes, record.subject_attrs
-            )
+            expected_hash = subject_hash_for(graph, record.subject_nodes, record.subject_attrs)
         except KeyError as exc:
             raise RationaleRefreshError(
                 f"rationale references missing graph subject: {record.rationale_id}"
@@ -616,8 +568,7 @@ def _generator_violations(
                 RationaleGeneratorViolation(
                     rationale_id=record.rationale_id,
                     reason=(
-                        "deterministic_tool provenance does not identify a known "
-                        "ACD generator"
+                        "deterministic_tool provenance does not identify a known ACD generator"
                     ),
                 )
             )
@@ -629,14 +580,10 @@ def _text_key(record: RationaleRecord) -> tuple[str, str]:
 
 
 def _requirement_key(record: RationaleRecord) -> tuple[str, ...]:
-    return tuple(
-        sorted([*record.driving_requirements, *record.driving_requirement_refs])
-    )
+    return tuple(sorted([*record.driving_requirements, *record.driving_requirement_refs]))
 
 
-def _templated(
-    graph: DesignGraph, records: list[RationaleRecord]
-) -> list[RationaleTemplated]:
+def _templated(graph: DesignGraph, records: list[RationaleRecord]) -> list[RationaleTemplated]:
     """Detect template records that carry no decision-specific content."""
     flagged: dict[str, str] = {}
     text_groups: dict[tuple[str, str], list[RationaleRecord]] = defaultdict(list)
@@ -648,8 +595,7 @@ def _templated(
         for record in group:
             flagged.setdefault(
                 record.rationale_id,
-                "identical decision and justification text is repeated by "
-                f"{len(group)} records",
+                f"identical decision and justification text is repeated by {len(group)} records",
             )
     requirement_nodes = sum(1 for node in graph.nodes if node.kind == "requirement")
     if len(records) >= BULK_RECORD_MIN and requirement_nodes >= 2:
@@ -676,8 +622,7 @@ def _templated(
         for record in group:
             flagged.setdefault(
                 record.rationale_id,
-                "records share one recorded_at timestamp without distinct "
-                "decision text",
+                "records share one recorded_at timestamp without distinct decision text",
             )
     return [
         RationaleTemplated(rationale_id=rationale_id, reason=reason)
@@ -723,9 +668,7 @@ def check_rationale_coverage(
 
     for record in document.records:
         record_subjects = [
-            (node_id, attr)
-            for node_id in record.subject_nodes
-            for attr in record.subject_attrs
+            (node_id, attr) for node_id in record.subject_nodes for attr in record.subject_attrs
         ]
         if not record.driving_requirements and not record.driving_requirement_refs:
             untraceable.extend(
@@ -742,29 +685,37 @@ def check_rationale_coverage(
             subject = _subject(node_id, attr)
             node = nodes.get(node_id)
             if node is None:
-                orphan.append(RationaleOrphan(
-                    rationale_id=record.rationale_id, subject=subject, reason="unknown node"
-                ))
+                orphan.append(
+                    RationaleOrphan(
+                        rationale_id=record.rationale_id, subject=subject, reason="unknown node"
+                    )
+                )
                 record_orphan = True
                 continue
             if attr not in node.attrs:
-                orphan.append(RationaleOrphan(
-                    rationale_id=record.rationale_id, subject=subject, reason="unknown attribute"
-                ))
+                orphan.append(
+                    RationaleOrphan(
+                        rationale_id=record.rationale_id,
+                        subject=subject,
+                        reason="unknown attribute",
+                    )
+                )
                 record_orphan = True
                 continue
             if record_stale:
-                stale.append(RationaleRecordSubject(
-                    rationale_id=record.rationale_id, subject=subject
-                ))
+                stale.append(
+                    RationaleRecordSubject(rationale_id=record.rationale_id, subject=subject)
+                )
         for requirement_id in record.driving_requirements:
             requirement = nodes.get(requirement_id)
             if requirement is None or requirement.kind not in {"requirement", "safety.boundary"}:
-                orphan.append(RationaleOrphan(
-                    rationale_id=record.rationale_id,
-                    subject=_subject(record.subject_nodes[0], record.subject_attrs[0]),
-                    reason=f"invalid driving requirement {requirement_id!r}",
-                ))
+                orphan.append(
+                    RationaleOrphan(
+                        rationale_id=record.rationale_id,
+                        subject=_subject(record.subject_nodes[0], record.subject_attrs[0]),
+                        reason=f"invalid driving requirement {requirement_id!r}",
+                    )
+                )
                 record_orphan = True
         hash_matches = False
         if not record_stale and not record_orphan:
@@ -795,9 +746,7 @@ def check_rationale_coverage(
                 covered[subject].append(record.rationale_id)
 
     missing = [
-        _subject(node_id, attr)
-        for node_id, attr in required
-        if not covered[(node_id, attr)]
+        _subject(node_id, attr) for node_id, attr in required if not covered[(node_id, attr)]
     ]
     conflicting = [
         RationaleRecordSubject(rationale_id=record_id, subject=_subject(*subject))

@@ -30,6 +30,11 @@ hooks:
         - type: command
           name: require-order-evidence
           command: 'p=$(for c in "${ACD_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/acd" "${HOME:-}/.openhands/plugins/installed/acd"; do [ -d "$c/hooks/scripts" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "acd plugin root unresolved: hooks/scripts/order_policy.py" >&2; exit 2; }; exec python3 "${p}/hooks/scripts/order_policy.py"'
+    - matcher: terminal
+      hooks:
+        - type: command
+          name: refuse-eda-asset-export
+          command: 'p=$(for c in "${ACD_PLUGIN_ROOT:-}" "${OPENHANDS_PROJECT_DIR:-.}/plugins/acd" "${HOME:-}/.openhands/plugins/installed/acd"; do [ -d "$c/hooks/scripts" ] && printf %s "$c" && break; done); [ -n "$p" ] || { echo "acd plugin root unresolved: hooks/scripts/eda_asset_export.py" >&2; exit 2; }; exec python3 "${p}/hooks/scripts/eda_asset_export.py"'
   stop:
     - hooks:
         - type: command

@@ -254,7 +254,7 @@ def _evaluate_pullups(
         return _result(name, "unknown", "required net resolution failed: " + ", ".join(unknowns))
     if failures:
         return _result(name, "fail", "; ".join(failures))
-    return _result(name, "pass", f"{name} topology and values match the GD1 contract")
+    return _result(name, "pass", f"{name} topology and values match the declared contract")
 
 
 def evaluate_usb_cc(graph: DesignGraph, lane: ElectricalLane) -> PredicateResult:
@@ -283,8 +283,37 @@ def evaluate_i2c_pullup(graph: DesignGraph, lane: ElectricalLane) -> PredicateRe
     )
 
 
-def _u1_io_pads(lane: ElectricalLane) -> dict[int, tuple[str, ...]] | None:
-    u1 = _component_by_refdes(lane, "U1")
+def _mcu_component(graph: DesignGraph, lane: ElectricalLane) -> ComponentView | None:
+    """Resolve the MCU from declarations rather than a fixed refdes.
+
+    A ``firmware.module`` node names it through ``mcu_component``; without one,
+    the single component whose pad functions include ``IO<n>`` names is used.
+    Ambiguity resolves to ``None`` so the caller reports ``unknown``.
+    """
+    declared: set[str] = set()
+    for node in _nodes(graph, "firmware.module"):
+        mcu_component = node.attrs.get("mcu_component")
+        if isinstance(mcu_component, str):
+            declared.add(mcu_component)
+    if len(declared) > 1:
+        return None
+    if declared:
+        node_id = declared.pop()
+        matches = tuple(c for c in lane.components if c.node_id == node_id)
+        return matches[0] if len(matches) == 1 else None
+    candidates = tuple(
+        component
+        for component in lane.components
+        if any(
+            re.fullmatch(r"IO([0-9]+)", function.strip(), re.IGNORECASE)
+            for function in component.cpl_rotation_pin_functions.values()
+        )
+    )
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def _mcu_io_pads(graph: DesignGraph, lane: ElectricalLane) -> dict[int, tuple[str, ...]] | None:
+    u1 = _mcu_component(graph, lane)
     if u1 is None:
         return None
     resolved: dict[int, list[str]] = {}
@@ -326,15 +355,15 @@ def evaluate_strapping_pin(graph: DesignGraph, lane: ElectricalLane) -> Predicat
     ``1 (Pull-up)`` with an approximately 45 kOhm internal pull-up; an
     external BOOT pull-up is therefore optional.
     """
-    mapping = _u1_io_pads(lane)
-    if mapping is None:
-        return _result("strapping_pin", "unknown", "U1 IO-to-pad mapping is missing or ambiguous")
-    u1 = _component_by_refdes(lane, "U1")
+    mapping = _mcu_io_pads(graph, lane)
+    u1 = _mcu_component(graph, lane)
+    if mapping is None or u1 is None:
+        return _result("strapping_pin", "unknown", "MCU IO-to-pad mapping is missing or ambiguous")
     boot_net = _net_id(graph, "BOOT")
     ground_net = _net_id(graph, "GND")
     p3v3_net = _net_id(graph, "+3V3", "3V3")
     led_net = _net_id(graph, "LED")
-    if u1 is None or boot_net is None or ground_net is None or p3v3_net is None or led_net is None:
+    if boot_net is None or ground_net is None or p3v3_net is None or led_net is None:
         return _result("strapping_pin", "unknown", "strapping net resolution is incomplete")
 
     failures: list[str] = []
@@ -400,15 +429,17 @@ def evaluate_strapping_pin(graph: DesignGraph, lane: ElectricalLane) -> Predicat
         failures.append("LED net is connected to a strapping pad")
     if failures:
         return _result("strapping_pin", "fail", "; ".join(failures))
-    return _result("strapping_pin", "pass", "IO2/IO8/IO9 preserve the permitted GD1 boot topology")
+    return _result(
+        "strapping_pin", "pass", "IO2/IO8/IO9 preserve the permitted ESP32-C3 boot topology"
+    )
 
 
 def evaluate_pin_firmware_alignment(graph: DesignGraph, lane: ElectricalLane) -> PredicateResult:
-    """Check every firmware GPIO assignment against the U1 pad map."""
-    mapping = _u1_io_pads(lane)
-    u1 = _component_by_refdes(lane, "U1")
+    """Check every firmware GPIO assignment against the MCU pad map."""
+    mapping = _mcu_io_pads(graph, lane)
+    u1 = _mcu_component(graph, lane)
     if mapping is None or u1 is None:
-        return _result("pin_firmware_alignment", "unknown", "U1 IO-to-pad mapping is missing")
+        return _result("pin_firmware_alignment", "unknown", "MCU IO-to-pad mapping is missing")
     failures: list[str] = []
     for node in _firmware_nodes(graph):
         gpio = _gpio_value(node)

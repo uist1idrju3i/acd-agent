@@ -27,17 +27,22 @@ class PinConsistencyError(RuntimeError):
     """The firmware and electrical pin assignments are inconsistent."""
 
 
-# ESP32-C3-MINI-1 module pad number -> GPIO number for the pads used by
-# Golden Design #1. Source: Espressif "ESP32-C3-MINI-1 & ESP32-C3-MINI-1U
-# Datasheet" v1.4, section pin definitions.
+# ESP32-C3-MINI-1 module pad number -> GPIO number for every GPIO pad of the
+# module. Source: Espressif "ESP32-C3-MINI-1 & ESP32-C3-MINI-1U Datasheet"
+# v1.4, section pin definitions; cross-checked against the pinned KiCad
+# symbol (pads 4, 7, 9, 10, 15, 17, 24, 25, 28, 29, 32-35 are NC).
 ESP32_C3_MINI_1_PAD_TO_GPIO: dict[str, int] = {
+    "5": 2,
+    "6": 3,
+    "12": 0,
+    "13": 1,
+    "16": 10,
     "18": 4,
     "19": 5,
     "20": 6,
     "21": 7,
     "22": 8,
     "23": 9,
-    "24": 10,
     "26": 18,
     "27": 19,
     "30": 20,

@@ -66,6 +66,25 @@ class _FakeWorkspace:
         return SimpleNamespace(success=True, error=None)
 
 
+def test_workspace_defaults_are_graph_driven_for_any_fixture() -> None:
+    defaults = workspace_module.workspace_defaults(
+        "mini-blink-dongle", Path("fixtures/mini-blink-dongle")
+    )
+    assert defaults.command == (
+        "uv run python scripts/run_enclosure_pipeline.py "
+        "--fixture fixtures/mini-blink-dongle --out out/mini-blink-dongle-enclosure"
+    )
+    assert defaults.download_files == (
+        "out/mini-blink-dongle/evidence-electrical.json",
+        "out/mini-blink-dongle-enclosure/evidence-mechanical.json",
+    )
+    gd1 = workspace_module.workspace_defaults(
+        "golden-design-1", Path("fixtures/golden-design-1")
+    )
+    assert "run_gd1_" not in gd1.command
+    assert gd1.download_files[0] == "out/gd1/evidence-electrical.json"
+
+
 def test_runner_uses_read_only_mount_and_downloads_evidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

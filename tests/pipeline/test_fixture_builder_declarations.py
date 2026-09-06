@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
-from acd.core.lane_preflight import run_lane_preflight
+from acd.core.lane_preflight import missing_declarations, run_lane_preflight
 from acd.pipeline.fixture_builder import (
     FixtureBuilderError,
     build_design_fixture,
@@ -16,7 +17,13 @@ from acd.pipeline.fixture_builder import (
 )
 from acd.schema.design_fixture import (
     DesignFixtureSpec,
+    FixtureBoardEdgeOverhangSpec,
+    FixtureComponentBodySpec,
     FixtureComponentSpec,
+    FixtureConnectorOpeningSpec,
+    FixtureEnclosureSpec,
+    FixtureFabOrderIntentSpec,
+    FixtureFabProcessAllowanceSpec,
     FixtureFirmwareModuleSpec,
     FixtureFirmwarePinSpec,
     FixtureFirmwareSequenceStepSpec,
@@ -24,6 +31,7 @@ from acd.schema.design_fixture import (
     FixtureFirmwareTransitionSpec,
     FixtureMechanicalOutlineSpec,
     FixtureNetSpec,
+    FixtureSafetyBoundarySpec,
     FixtureSilkGraphicSpec,
     FixtureSilkTextSpec,
 )
@@ -40,9 +48,7 @@ def _spec(**overrides: object) -> DesignFixtureSpec:
             FixtureComponentSpec(refdes="U1", attrs={"mpn": "MCU-1"}, pads={"1": "net.io"}),
         ],
         "nets": [FixtureNetSpec(net_id="net.io", attrs={"name": "IO"})],
-        "requirements": [
-            RequirementRecord(requirement_id="io", statement="Drive the IO net.")
-        ],
+        "requirements": [RequirementRecord(requirement_id="io", statement="Drive the IO net.")],
         "rationale_recorded_at": RECORDED_AT,
     }
     base.update(overrides)
@@ -51,12 +57,8 @@ def _spec(**overrides: object) -> DesignFixtureSpec:
 
 def _mechanical_spec() -> DesignFixtureSpec:
     return _spec(
-        mechanical_outline=FixtureMechanicalOutlineSpec(
-            attrs={"width_mm": 30.0, "depth_mm": 25.0}
-        ),
-        silk_texts=[
-            FixtureSilkTextSpec(node_id="mechanical.silk_text.u1", attrs={"text": "U1"})
-        ],
+        mechanical_outline=FixtureMechanicalOutlineSpec(attrs={"width_mm": 30.0, "depth_mm": 25.0}),
+        silk_texts=[FixtureSilkTextSpec(node_id="mechanical.silk_text.u1", attrs={"text": "U1"})],
         silk_graphics=[
             FixtureSilkGraphicSpec(
                 node_id="mechanical.silk_graphic.logo", attrs={"layer": "F.SilkS"}
@@ -174,11 +176,7 @@ def test_firmware_transition_referencing_an_unknown_state_is_rejected() -> None:
 
 def test_missing_firmware_declarations_keep_the_lane_incomplete() -> None:
     graph = build_graph(
-        _spec(
-            firmware_pin_assignments=[
-                FixtureFirmwarePinSpec(pin_id="io", net="net.io", gpio=2)
-            ]
-        )
+        _spec(firmware_pin_assignments=[FixtureFirmwarePinSpec(pin_id="io", net="net.io", gpio=2)])
     )
     report = run_lane_preflight(graph, ("firmware-pipeline",))
     assert report.status == "declarations_incomplete"
@@ -208,12 +206,8 @@ def test_existing_manual_graph_data_is_not_overwritten(tmp_path: Path) -> None:
 
     preserved = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
     assert any(node.id == "mechanical.mount.manual" for node in preserved.nodes)
-    report = json.loads(
-        (out_dir / "graph-overwrite-report.json").read_text(encoding="utf-8")
-    )
-    conflicts = {
-        (item["node_id"], item.get("attr")) for item in report["conflicts"]
-    }
+    report = json.loads((out_dir / "graph-overwrite-report.json").read_text(encoding="utf-8"))
+    conflicts = {(item["node_id"], item.get("attr")) for item in report["conflicts"]}
     assert ("mechanical.mount.manual", None) in conflicts
     assert any(attr == "thickness_mm" for _, attr in conflicts)
 
@@ -235,10 +229,228 @@ def test_acknowledged_overwrite_reports_the_dropped_manual_data(tmp_path: Path) 
     build_design_fixture(_mechanical_spec(), out_dir, overwrite=True)
     rewritten = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
     assert not any(node.id == "mechanical.mount.manual" for node in rewritten.nodes)
-    report = json.loads(
-        (out_dir / "graph-overwrite-report.json").read_text(encoding="utf-8")
-    )
+    report = json.loads((out_dir / "graph-overwrite-report.json").read_text(encoding="utf-8"))
     assert report["conflicts"]
     backup = json.loads(Path(report["backup_path"]).read_text(encoding="utf-8"))
     assert any(node["id"] == "mechanical.mount.manual" for node in backup["nodes"])
     assert report["existing_content_hash"].startswith("sha256:")
+
+
+def _enclosure_spec(**overrides: object) -> DesignFixtureSpec:
+    declarations: dict[str, object] = {
+        "component_bodies": [
+            FixtureComponentBodySpec(
+                node_id="mechanical.component_body.u1",
+                refdes="U1",
+                attrs={"body_type": "solid", "height_mm": 2.4},
+            )
+        ],
+        "connector_openings": [
+            FixtureConnectorOpeningSpec(
+                node_id="mechanical.connector_opening.u1",
+                refdes="U1",
+                attrs={"face": "front"},
+            )
+        ],
+        "board_edge_overhangs": [
+            FixtureBoardEdgeOverhangSpec(
+                node_id="mechanical.board_edge_overhang.u1",
+                refdes="U1",
+                requirement_id="io",
+                attrs={"edge": "top", "overhang_mm": 1.0},
+            )
+        ],
+        "enclosure": FixtureEnclosureSpec(attrs={"material": "PA12"}),
+        "safety_boundary": FixtureSafetyBoundarySpec(attrs={"profile": "hobby"}),
+    }
+    declarations.update(overrides)
+    return _spec(**declarations)
+
+
+def test_declared_enclosure_nodes_are_projected_from_refdes_references() -> None:
+    graph = build_graph(_enclosure_spec())
+    nodes = {node.id: node for node in graph.nodes}
+    body = nodes["mechanical.component_body.u1"]
+    assert body.kind == "mechanical.component_body"
+    assert body.depends_on == ["comp.u1"]
+    opening = nodes["mechanical.connector_opening.u1"]
+    assert opening.attrs["connector"] == "comp.u1"
+    assert opening.depends_on == ["comp.u1"]
+    enclosure = nodes["mechanical.enclosure.declarations"]
+    assert enclosure.kind == "mechanical.enclosure"
+    assert enclosure.attrs == {"material": "PA12"}
+    assert enclosure.depends_on == [
+        "mechanical.component_body.u1",
+        "mechanical.connector_opening.u1",
+    ]
+    overhang = nodes["mechanical.board_edge_overhang.u1"]
+    assert overhang.attrs["component_refdes"] == "U1"
+    assert overhang.attrs["requirement_id"] == "req.io"
+    assert overhang.depends_on == ["comp.u1", "req.io"]
+    boundary = nodes["sb.declarations"]
+    assert boundary.kind == "safety.boundary"
+    assert boundary.attrs == {"profile": "hobby"}
+
+
+def test_enclosure_declarations_referencing_unknown_components_are_rejected() -> None:
+    with pytest.raises(FixtureBuilderError, match="unknown component refdes: U9"):
+        build_graph(
+            _enclosure_spec(
+                component_bodies=[
+                    FixtureComponentBodySpec(node_id="mechanical.component_body.u9", refdes="U9")
+                ]
+            )
+        )
+    with pytest.raises(FixtureBuilderError, match="unknown requirement: nope"):
+        build_graph(
+            _enclosure_spec(
+                board_edge_overhangs=[
+                    FixtureBoardEdgeOverhangSpec(
+                        node_id="mechanical.board_edge_overhang.u1",
+                        refdes="U1",
+                        requirement_id="nope",
+                    )
+                ]
+            )
+        )
+
+
+def test_declared_order_intent_extends_the_fab_profile_node() -> None:
+    graph = build_graph(
+        _spec(
+            fab_profile_id="profile-1",
+            fab_order_intent=FixtureFabOrderIntentSpec(
+                requirement_id="io", attrs={"quantity_pcs": 5, "pcba_class_target": "economic"}
+            ),
+        )
+    )
+    node = next(node for node in graph.nodes if node.kind == "fab.order_intent")
+    assert node.attrs == {
+        "fab_profile": "profile-1",
+        "quantity_pcs": 5,
+        "pcba_class_target": "economic",
+    }
+    assert node.depends_on == ["board.declarations", "req.io"]
+
+
+def test_order_intent_without_a_profile_or_with_an_unknown_requirement_is_rejected() -> None:
+    with pytest.raises(FixtureBuilderError, match="requires fab_profile_id"):
+        build_graph(_spec(fab_order_intent=FixtureFabOrderIntentSpec(attrs={"quantity_pcs": 1})))
+    with pytest.raises(FixtureBuilderError, match="unknown requirement: nope"):
+        build_graph(
+            _spec(
+                fab_profile_id="profile-1",
+                fab_order_intent=FixtureFabOrderIntentSpec(requirement_id="nope"),
+            )
+        )
+
+
+def test_order_intent_preflight_reports_the_declaration_path() -> None:
+    report = run_lane_preflight(build_graph(_spec(fab_profile_id="profile-1")))
+    items = {
+        (item.lane, item.kind): item
+        for item in missing_declarations(report)
+        if item.kind == "fab.order_intent"
+    }
+    for lane in ("board-pipeline", "silkscreen-resolve"):
+        item = items[(lane, "fab.order_intent")]
+        assert item.spec_path == "fab_order_intent.attrs"
+        assert "pcba_class_target" in {attr.attr for attr in item.missing_attrs}
+
+
+def test_enclosure_preflight_reports_component_body_declaration_path() -> None:
+    report = run_lane_preflight(build_graph(_spec()))
+    kinds = {
+        (item.lane, item.kind): item
+        for item in missing_declarations(report)
+        if item.lane == "enclosure-pipeline"
+    }
+    body = kinds[("enclosure-pipeline", "mechanical.component_body")]
+    assert body.spec_path == "component_bodies[].attrs"
+    assert kinds[("enclosure-pipeline", "mechanical.enclosure")].spec_path == "enclosure.attrs"
+
+
+def _allowance(**overrides: object) -> FixtureFabProcessAllowanceSpec:
+    base: dict[str, object] = {
+        "rule_id": "pth-annular-ring-prefer-025",
+        "requirement_id": "io",
+        "reason": "Accepted for the prototype lot.",
+        "impact_accepted": ["quality"],
+    }
+    base.update(overrides)
+    return FixtureFabProcessAllowanceSpec.model_validate(base)
+
+
+def test_declared_process_allowance_is_projected_with_rationale(tmp_path: Path) -> None:
+    spec = _spec(fab_profile_id="profile-1", fab_process_allowances=[_allowance()])
+    graph = build_graph(spec)
+    node = graph.node_by_id("fab.process_allowance.pth-annular-ring-prefer-025")
+    assert node.kind == "fab.process_allowance"
+    assert node.attrs == {
+        "rule_id": "pth-annular-ring-prefer-025",
+        "reason": "Accepted for the prototype lot.",
+        "requirement": "req.io",
+        "impact_accepted": ["quality"],
+    }
+    assert node.depends_on == ["req.io", "board.declarations"]
+    build_design_fixture(spec, tmp_path / "fixture")
+    rationale = json.loads((tmp_path / "fixture" / "rationale.json").read_text(encoding="utf-8"))
+    subjects = {
+        (node_id, attr)
+        for record in rationale["records"]
+        for node_id in record["subject_nodes"]
+        for attr in record["subject_attrs"]
+    }
+    assert ("fab.process_allowance.pth-annular-ring-prefer-025", "rule_id") in subjects
+    assert ("fab.process_allowance.pth-annular-ring-prefer-025", "impact_accepted") in subjects
+
+
+def test_process_allowance_without_profile_or_with_unknown_requirement_is_rejected() -> None:
+    with pytest.raises(FixtureBuilderError, match="require fab_profile_id"):
+        build_graph(_spec(fab_process_allowances=[_allowance()]))
+    with pytest.raises(FixtureBuilderError, match="unknown requirement: nope"):
+        build_graph(
+            _spec(
+                fab_profile_id="profile-1",
+                fab_process_allowances=[_allowance(requirement_id="nope")],
+            )
+        )
+
+
+def _overlay_spec(overlay_sha256: str) -> DesignFixtureSpec:
+    return _spec(
+        components=[
+            FixtureComponentSpec(
+                refdes="U1",
+                attrs={
+                    "mpn": "MCU-1",
+                    "overlay_file": "overlays/u1.json",
+                    "overlay_sha256": overlay_sha256,
+                },
+                pads={"1": "net.io"},
+            )
+        ]
+    )
+
+
+def test_declared_overlay_is_copied_only_when_its_declared_hash_matches(tmp_path: Path) -> None:
+    spec_dir = tmp_path / "spec"
+    (spec_dir / "overlays").mkdir(parents=True)
+    overlay = spec_dir / "overlays" / "u1.json"
+    overlay.write_text('{"ops": []}\n', encoding="utf-8")
+    digest = "sha256:" + hashlib.sha256(overlay.read_bytes()).hexdigest()
+
+    build_design_fixture(_overlay_spec(digest), tmp_path / "ok", spec_dir=spec_dir)
+    assert (tmp_path / "ok" / "overlays" / "u1.json").read_bytes() == overlay.read_bytes()
+
+    with pytest.raises(FixtureBuilderError, match="overlay hash mismatch"):
+        build_design_fixture(
+            _overlay_spec("sha256:" + "0" * 64), tmp_path / "bad-hash", spec_dir=spec_dir
+        )
+    assert not (tmp_path / "bad-hash" / "overlays" / "u1.json").exists()
+    with pytest.raises(FixtureBuilderError, match="requires the design input directory"):
+        build_design_fixture(_overlay_spec(digest), tmp_path / "no-dir")
+    with pytest.raises(FixtureBuilderError, match="overlay file missing"):
+        build_design_fixture(
+            _overlay_spec(digest), tmp_path / "missing", spec_dir=tmp_path / "elsewhere"
+        )

@@ -179,7 +179,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         defaults = None
         if not args.download_files or not args.command:
             graph_path = args.graph if args.graph.is_absolute() else args.repo / args.graph
-            defaults = workspace_defaults(load_workspace_graph(graph_path).graph_id)
+            defaults = workspace_defaults(
+                load_workspace_graph(graph_path).graph_id, args.graph.parent
+            )
         if args.command:
             command = " ".join(args.command).strip()
             if args.download_files:

@@ -576,7 +576,7 @@ V-1、V-5、V-7、V-8、V-10は防御の深さと検証可能性の項目であ�
 | V-5 | 解消 | `_execute_and_download()`はcommandが非ゼロで終了した場合も宣言済みdownloadを試み、回収できなかったfileは`download_errors`へ記録する。`exit_code`と`failure_kind="command"`は維持され、download成否は判定に影響しない。transport失敗（`-1`）とtimeoutではdownloadを試みない |
 | V-9 | 解消 | `verify_acd_tool_registration.py --command`が結果を`out/tool-availability/<command名>.json`（`--record`で変更可）へ保存する。判定不能も`status: unknown`として同じ場所へ残し、いずれも`record_class: L3`、`pass_evidence: false` |
 | V-3 | 解消 | `plugins/acd/commands/vibebb-loop.md`が「合格」「発注可」を述べる前に`verify_authoritative_evidence.py`の実行とrevision一致・`status="valid"`・container provenance・order-readiness結果の提示を必須とする。`report_progress.py`のdigestは常に`authoritative_evidence: unverified`と対応する行を含む |
-| V-1 | 未着手 | container→hostのEDA資材持ち出しの検出・拒否は未実装 |
+| V-1 | 解消 | `plugins/acd/hooks/scripts/eda_asset_export.py`（`refuse-eda-asset-export`）が`PreToolUse`で`docker cp`・`docker exec ... tar`・`cp`・`tar`・`rsync`・`scp`・`cat`・`dd`・`zip`・`install`によるcontainer内EDA資材（`/usr/share/kicad`等）の持ち出しと、EDAパスを対象とする`--download`を拒否する。`ls`等の読み取り検査と通常のworkspace出力downloadは許可する。authoritative経路の定義は変えない |
 
 ## W. GD1非依存の達成条件
 
@@ -587,10 +587,10 @@ regressionのpositive controlとして維持し、削除は目的にしない。
 
 | 項目 | 内容 | 現状 | 依存 | 達成条件 |
 |---|---|---|---|---|
-| W-1 | GD1以外の設計が全laneを通過する | 実測で全laneを通過した設計はGD1だけである。新規specはsilkscreen宣言不足で停止する（V-6） | V-6、J-2 | 宣言完備の非GD1 fixtureを1件追加し、要件検証→silkscreen→基板→筐体→FW→製造提出判定→authoritative Evidence検証をdigest固定containerで通す |
-| W-2 | 既定値・既定fixture・既定命名のGD1固定が残っていない | 14.6で命名・FW設定・policy参照は宣言由来へ一般化した。GD1固定の残存箇所は棚卸しされていない | 14.6 | GD1へ解決される既定経路を洗い出してgraph_idと宣言由来へ置換し、positive control用途で残す参照は用途を明示宣言する |
-| W-3 | 設計述語の適用条件が機能ブロック宣言だけで決まる | 14.2で契約registryへの機能ブロック追加は可能になったが、GD1固有のnet名・refdesを前提とする分岐が残っていないことは検査されていない | 14.2 | 適用条件が宣言由来であることを機械的に検査し、GD1前提の分岐をdriftとして検出する |
-| W-4 | CIのauthoritative gateがGD1だけに依存しない | `container-gates`はGD1のlaneとEvidenceだけを検証する | 6.4、W-1 | 非GD1設計のlaneを`container-gates`へ追加し、GD1と同じ判定基準でauthoritative Evidenceを検証する |
+| W-1 | GD1以外の設計が全laneを通過する | 解消。`fixtures/mini-blink-dongle/spec.json`（silkscreen・筐体・FW・fab宣言を完備した新規spec雛形）がdigest固定containerでsilkscreen→基板→筐体→FW→製造提出判定→`verify_authoritative_evidence.py`を通過した | V-6、J-2 | 宣言完備の非GD1 fixtureを1件追加し、要件検証→silkscreen→基板→筐体→FW→製造提出判定→authoritative Evidence検証をdigest固定containerで通す |
+| W-2 | 既定値・既定fixture・既定命名のGD1固定が残っていない | 解消。残存するGD1参照は`contracts/gd1-reference-inventory.json`へ用途付きで棚卸しし、`scripts/verify_gd1_references.py --check`が追加参照をdriftとして検出する | 14.6 | GD1へ解決される既定経路を洗い出してgraph_idと宣言由来へ置換し、positive control用途で残す参照は用途を明示宣言する |
+| W-3 | 設計述語の適用条件が機能ブロック宣言だけで決まる | 解消。`design_predicates.py`はMCUを`firmware.module`の`mcu_component`宣言またはIO機能宣言から解決し、`U1`固定を持たない。refdesを変えた述語テストと宣言不足のfail-closedテストで固定する | 14.2 | 適用条件が宣言由来であることを機械的に検査し、GD1前提の分岐をdriftとして検出する |
+| W-4 | CIのauthoritative gateがGD1だけに依存しない | 解消。`container-gates`は非GD1 fixtureのbuild・lane実行・製造提出verdictを`DockerWorkspace`で実行し、GD1と同じrevision・`status`・provenance・digest基準で検証する | 6.4、W-1 | 非GD1設計のlaneを`container-gates`へ追加し、GD1と同じ判定基準でauthoritative Evidenceを検証する |
 
 W-1〜W-4を満たした時点で、GD1はVibeBB成立の必要条件ではなくなる。その後もGD1は
 positive controlとして維持し、GD1の判定・Evidence・正規化hashが変化しないことを
