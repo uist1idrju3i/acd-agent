@@ -555,17 +555,19 @@ file、source、source_ref、`sha256:<64 hex>`を必須で宣言する。CLIは�
 `select_part`の曖昧な結果を増やすため拒否する。既存entryのテキスト表現は保持し、
 新規entryだけを追記する。dry-runはcatalog hashの変更予定を報告するが書き込まない。
 
-追加したCERN KiCad Librariesの部品は、`libraries/cern-kicad-libs`のshallow
+追加したCERN KiCad Librariesは、`libraries/cern-kicad-libs`のshallow
 submoduleをcommit固定して参照する。取得時は次を実行する。
 
 ```bash
 git submodule update --init --depth 1 libraries/cern-kicad-libs
 ```
 
-`libraries/cern-catalog-parts.json`のspecと
-`scripts/emit_cern_catalog_entries.py`でsubmodule内の`CERN.sqlite`を照合し、
-catalog entryを再生成する。シンボル、footprint、license本文はsubmodule内の
-upstream資材を直接参照する。
+部品は設計時に`ComponentPartRequest(catalog="cern",
+preferred_part_number=<CERN Part Number>)`として選択する。`CERN.sqlite`のrowから
+symbol／footprintを解決し、submodule commit、実ファイルhash、SQLite hashを
+provenanceへ記録する。pinless・mechanical・graphical symbol、空または欠落した
+symbol／footprint、submodule pin drift、曖昧なPart Numberはすべてfail-closedで拒否する。
+シンボル、footprint、license本文はsubmodule内のupstream資材を直接参照する。
 
 同じ操作は会話経路の`acd_register_parts_catalog_entry`でも行える。これは入力
 catalog／entryを資源宣言し、登録結果とcanonical catalog hashを観測するだけで、
@@ -1287,12 +1289,11 @@ fixture全体の再生成は、mainから存在するsilkscreen resolverの不�
 
 2026-09-06にCERN KiCad Librariesをsubmoduleとしてcommit
 `9f654ec4b274ca67960426e157a73103918d462b`へ固定した。ライセンスは
-CERN-OHL-P-2.0（permissive、Copyright 2024-2025 CERN）であり、catalog対象は
-AP2112K-3.3、CDSOD323-T12、1PS76SB10、MF-MSMF075、2N7002CK、
-DMP2066LSN-7、LQH32CN100K23、53261-0271、53047-0410、TL3315NF100Q、
-LM358BID、CP2102N-A02-GQFN28、SMTU2032-LFである。entry生成は
-`scripts/emit_cern_catalog_entries.py`で行い、symbol/footprintは
-`libraries/cern-kicad-libs`内のupstreamファイルを直接参照する。
+CERN-OHL-P-2.0（permissive、Copyright 2024-2025 CERN）である。部品は
+`ComponentPartRequest(catalog="cern", preferred_part_number=<CERN Part Number>)`
+で設計時に選択し、`CERN.sqlite`からsymbol／footprintを動的に解決する。
+pinless・mechanical・graphical symbol、欠落asset、曖昧なrow、pin driftは
+fail-closedで拒否し、SQLite hashを`parts_catalog_sha256`へ記録する。
 
 ```bash
 command -v qemu-system-riscv32

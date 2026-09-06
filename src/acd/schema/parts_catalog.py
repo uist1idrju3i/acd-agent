@@ -85,6 +85,15 @@ class ComponentPartRequest(AcdModel):
     value: NonEmptyStr
     package: NonEmptyStr
     preferred_part_number: NonEmptyStr | None = None
+    catalog: Literal["local", "cern"] = "local"
+
+    @model_validator(mode="after")
+    def _validate_catalog_selection(self) -> ComponentPartRequest:
+        if self.catalog == "cern" and self.preferred_part_number is None:
+            raise ValueError(
+                "preferred_part_number is required when catalog is 'cern'"
+            )
+        return self
 
 
 __all__ = [

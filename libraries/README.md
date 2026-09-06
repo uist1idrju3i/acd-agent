@@ -23,8 +23,11 @@
   `Footprint` propertyもupstreamと同じく空のまま保持する。
 - upstreamが想定するdatabase-library利用に必要な3D modelとdatasheetは、
   upstreamの構成どおり含まれない。ACDではcatalogでfootprintを対応付ける。
-- catalog entryは`libraries/cern-catalog-parts.json`と
-  `scripts/emit_cern_catalog_entries.py`でsubmodule内のSQLiteから再生成する。
+- 部品は設計時に`ComponentPartRequest(catalog="cern",
+  preferred_part_number=<CERN Part Number>)`で選択する。`CERN.sqlite`のrowから
+  symbol／footprintを解決し、pinless・mechanical・graphical symbolはfail-closedで
+  rejectする。catalog hashには`CERN.sqlite`のSHA-256を使い、
+  `parts_catalog_sha256`へ記録する。
 
 KiCad公式ライブラリ由来の部品（抵抗、コンデンサ、USB-C、AMS1117、SHT4x等）は
 本ディレクトリへ複製せず、kicadパッケージ（10.0.6）同梱の
