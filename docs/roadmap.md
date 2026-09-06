@@ -384,8 +384,12 @@ provenance・契約の不足を閉じる。
 
 実装状況: Y-1（`--design-only`を指すエラーメッセージと`vibebb-loop.md`のdesign-only運用
 記載）とY-4（`strapping_pin`を宣言済み全`led_drive_net`へ一般化、negative test込み）は
-`devin/1788725512-vibebb-dual-beacon-repair`（commit `71f0885`）で解消した。残りは未着手
-であり、Y-10とY-6・Y-11はfail-closed境界の堅持に直結するため先に扱う。詳細は
+`devin/1788725512-vibebb-dual-beacon-repair`（commit `71f0885`）で解消した。Y-6は
+本ブランチで、要件→`fw.sequence`被覆検査（`check_firmware_coverage`、FW lane起動前の
+fail-closed停止と`firmware-coverage.json`／preflight `firmware_coverage`診断、
+registryへの`emits_triggers`追加）として解消した。2LED・入力を表現するcapability本体は
+Y-11に残る。残りは未着手であり、Y-10とY-11はfail-closed境界の堅持に直結するため
+先に扱う。詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
 
 ## マイルストーン15: 運用と文書の整備

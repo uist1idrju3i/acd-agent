@@ -291,6 +291,12 @@ template固有netとshared netの衝突、未知block、重複宣言、template�
 FW capability registryは`contracts/firmware-capability-registry.json`を正とし、
 firmware sequenceのaction、pin role、device parameterから生成対象を解決する。未宣言の
 peripheralは投影せず、registryの欠落・schema違反・解決不能はfail-closedにする。
+capabilityは`emits_triggers`で発火できるstate transition triggerを宣言し、
+`check_firmware_coverage`が要件→`fw.sequence`の被覆をgraphとregistryだけから
+fail-closedで検査する。`led_indicator`部品がsequence stepのtargetでない、sequenceが
+使うcapabilityの`emits_triggers`外のtrigger、登録外pin role、未登録actionはいずれも
+FW laneのSkill起動前に`FirmwareLaneError`で停止し、検査結果は
+`firmware-coverage.json`とpreflightの`firmware_coverage`へL3診断として残る。
 
 部品entryは`register_part_catalog_entry.py`または
 `acd_register_parts_catalog_entry`から追加する。両経路はsymbol／footprintの実file
