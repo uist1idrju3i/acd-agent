@@ -1,6 +1,6 @@
 ---
 description: 要件から設計反復と発注可否までを固定順序で実行するVibeBB loop。
-argument-hint: "--fixture PATH [--order-total PATH | --quote-record PATH... --order-scope PATH --fab-profile PATH] [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--fixture-overwrite] [--explore-board | --recover-lanes] [--max-exploration-candidates N] [--max-exploration-rounds N]"
+argument-hint: "--fixture PATH [--order-total PATH | --quote-record PATH... --order-scope PATH --fab-profile PATH] [--policy PATH] [--out-root PATH] [--cache-dir PATH] [--resume] [--jobs N] [--requirement PATH] [--fixture-spec PATH] [--fixture-overwrite] [--design-only] [--explore-board | --recover-lanes] [--max-exploration-candidates N] [--max-exploration-rounds N]"
 allowed-tools:
   - acd_aggregate_order_total
   - acd_register_parts_catalog_entry
@@ -45,6 +45,10 @@ allowed-tools:
        --download-root <out_root> \
        'uv sync && uv run python scripts/run_design_loop.py --fixture <fixture> --out-root <out_root>'
    ```
+
+   要件が発注入力を含まない場合は`--design-only`を付けて実行する。この場合
+   order-readiness段は未実行として記録されloopはfail-closedのままとなる。
+   不足する発注入力を補うためにorder-totalやquote documentを捏造してはならない。
 1. 要件差分は`acd_run_design_loop`の`requirement`へ渡す。新規fixtureは
    `fixture_spec`へ渡す。どちらも省略した場合は既存fixtureを使う。
 2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
@@ -55,6 +59,10 @@ allowed-tools:
    - 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
    - order-total集計（quote record、scope、fab profile指定時のみ）
    - 発注可否のpre-order gate
+
+   発注入力（order-total documentまたは集計入力）が要件から除外される場合は、
+   `design_only`（CLIの`--design-only`）で実行し、order-readinessは未実行かつ
+   fail-closedとして記録される。order-totalやquote documentを作成して穴埋めしない。
 3. 既存fixtureをspecから作り直す場合は`fixture_overwrite`を明示する。既存graphは
    backupと差分reportを残し、暗黙の上書きはfail-closedである。
 4. 失敗した場合は後続段を実行せず、`acd_diagnose_gate_failure`で出力を調べる。

@@ -369,6 +369,23 @@ def test_order_total_modes_are_mutually_exclusive(tmp_path: Path) -> None:
     assert "mutually exclusive" in result["failure_reason"]
 
 
+def test_omitted_order_total_points_at_design_only(tmp_path: Path) -> None:
+    spec = tmp_path / "fixture-spec.json"
+    spec.write_text('{"design_name":"generated"}', encoding="utf-8")
+
+    result = run_design_loop(
+        tmp_path / "fixture",
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        fixture_spec=spec,
+    )
+
+    assert result["ok"] is False
+    assert result["fail_closed"] is True
+    assert result["failed_stage"] == "fixture-generation"
+    assert "--design-only" in result["failure_reason"]
+
+
 def test_order_total_aggregation_requires_fab_profile(tmp_path: Path) -> None:
     result = run_design_loop(
         FIXTURE,

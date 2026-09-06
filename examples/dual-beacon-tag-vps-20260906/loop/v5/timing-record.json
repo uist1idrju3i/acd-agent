@@ -1,0 +1,86 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:3d08fd76648972eb591b2b362dd2bbef1bfd9d6c15d882284b800077b58f5741",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 2388.15436,
+  "stages": [
+    {
+      "duration_seconds": 0.043884,
+      "name": "design-loop/fixture-generation",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.003591,
+      "name": "design-loop/requirement-entry-validation",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 0.00267,
+      "name": "design-loop/lane-preflight",
+      "start_order": 2
+    },
+    {
+      "duration_seconds": 5.882505,
+      "name": "design-loop/silkscreen-resolve",
+      "start_order": 3
+    },
+    {
+      "duration_seconds": 192.760357,
+      "name": "design-loop/board-pipeline",
+      "start_order": 4
+    },
+    {
+      "duration_seconds": 17.126335,
+      "name": "design-loop/enclosure-pipeline",
+      "start_order": 5
+    },
+    {
+      "duration_seconds": 1.449557,
+      "name": "board[0/12]",
+      "start_order": 6
+    },
+    {
+      "duration_seconds": 130.308072,
+      "name": "design-loop/firmware-pipeline",
+      "start_order": 7
+    },
+    {
+      "duration_seconds": 0.028952,
+      "name": "enclosure[0/5]",
+      "start_order": 8
+    },
+    {
+      "duration_seconds": 0.001406,
+      "name": "enclosure[1/5]",
+      "start_order": 9
+    },
+    {
+      "duration_seconds": 744.896839,
+      "name": "enclosure[2/5]",
+      "start_order": 10
+    },
+    {
+      "duration_seconds": 5.625365,
+      "name": "board[1/12]",
+      "start_order": 11
+    },
+    {
+      "duration_seconds": 1.645833,
+      "name": "board[2/12]",
+      "start_order": 12
+    },
+    {
+      "duration_seconds": 736.212275,
+      "name": "board[3/12]",
+      "start_order": 13
+    },
+    {
+      "duration_seconds": 552.166719,
+      "name": "design-loop/round-1/board-exploration",
+      "start_order": 14
+    }
+  ],
+  "wall_clock_seconds": 750.876137
+}

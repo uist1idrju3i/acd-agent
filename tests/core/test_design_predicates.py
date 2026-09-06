@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -130,6 +131,83 @@ def test_strapping_led_connection_fails() -> None:
     graph = _update_node_attrs(_graph(), "pin.u1.23", net="net.led", no_connect=False)
     lane = extract_electrical_lane(graph)
     assert evaluate_strapping_pin(graph, lane).status == "fail"
+
+
+def _graph_node(node_id: str) -> dict[str, Any]:
+    return next(
+        node for node in _graph().model_dump(mode="json")["nodes"] if node["id"] == node_id
+    )
+
+
+def _d2_node(drive_net: str) -> dict[str, Any]:
+    """Clone comp.d1 into a second declared LED indicator driving ``drive_net``."""
+    node = _graph_node("comp.d1")
+    return {
+        **node,
+        "id": "comp.d2",
+        "attrs": {
+            **node["attrs"],
+            "refdes": "D2",
+            "led_indicator": True,
+            "led_drive_net": drive_net,
+        },
+    }
+
+
+def _two_led_graph(**kwargs: object) -> DesignGraph:
+    """Add a second declared LED indicator with its own drive net to the GD1 graph."""
+    graph = _update_node_attrs(
+        _graph(), "comp.d1", led_indicator=True, led_drive_net="net.led"
+    )
+    nodes = [
+        *graph.model_dump(mode="json")["nodes"],
+        {
+            **_graph_node("net.led"),
+            "id": "net.led_orange",
+            "attrs": {**_graph_node("net.led")["attrs"], "name": "LED_ORANGE"},
+        },
+        _d2_node("net.led_orange"),
+    ]
+    graph = DesignGraph.model_validate(
+        {**graph.model_dump(mode="json"), "nodes": nodes}
+    )
+    if kwargs:
+        graph = _update_node_attrs(graph, "pin.u1.5", **kwargs)
+    return graph
+
+
+def test_strapping_second_led_drive_net_on_strapping_pad_fails() -> None:
+    graph = _two_led_graph(net="net.led_orange", no_connect=False)
+    lane = extract_electrical_lane(graph)
+    result = evaluate_strapping_pin(graph, lane)
+    assert result.status == "fail"
+    assert result.detail is not None
+    assert "net.led_orange" in result.detail
+    assert "LED drive net net.led_orange is connected to a strapping pad" in result.detail
+
+
+def test_strapping_two_led_drive_nets_off_strapping_pads_pass() -> None:
+    graph = _two_led_graph()
+    graph = _update_node_attrs(graph, "pin.u1.24", net="net.led_orange", no_connect=False)
+    lane = extract_electrical_lane(graph)
+    result = evaluate_strapping_pin(graph, lane)
+    assert result.status == "pass"
+
+
+def test_strapping_led_drive_net_undefined_is_unknown() -> None:
+    graph = DesignGraph.model_validate(
+        {
+            **_graph().model_dump(mode="json"),
+            "nodes": [
+                *_graph().model_dump(mode="json")["nodes"],
+                _d2_node("net.led_missing"),
+            ],
+        }
+    )
+    lane = extract_electrical_lane(graph)
+    result = evaluate_strapping_pin(graph, lane)
+    assert result.status == "unknown"
+    assert "net.led_missing" in (result.detail or "")
 
 
 def test_pin_firmware_alignment_wrong_net_fails() -> None:

@@ -1,0 +1,16 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "content_sha256": "sha256:47eea92d0493e22868d766e938105306bf38aa7e6b93988568f3255fce6714ad",
+  "exploration_rounds": 1,
+  "failed_stage": "board-pipeline",
+  "failure_reason": "GateError: router convergence_state='not_converged' (fail-closed); board-pipeline recovery exploration failed: exploration did not produce a writable candidate: status='exhausted'",
+  "graph_id": "dual-beacon-tag",
+  "max_exploration_candidates": 5,
+  "max_exploration_rounds": 3,
+  "next_step_action": "Explore declared placement and GPIO candidates from the rejected predicate remediation, then rerun every deterministic stage.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "timing_record": "out/container/dual-beacon-tag-v5/timing-record.json"
+}

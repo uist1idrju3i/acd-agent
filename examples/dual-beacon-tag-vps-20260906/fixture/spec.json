@@ -1,0 +1,1673 @@
+{
+  "design_name": "DUAL BEACON TAG",
+  "graph_id": "dual-beacon-tag",
+  "revision": "r1",
+  "board_attrs": {
+    "unit": "mm",
+    "origin": "board_upper_left",
+    "y_axis": "down",
+    "layers": 2,
+    "material": "FR-4",
+    "thickness_mm": 1.6,
+    "copper_oz": 1,
+    "finish": "HASL",
+    "width_mm": 30.0,
+    "height_mm": 22.0,
+    "assembly_side": "top",
+    "antenna_keepout": true,
+    "min_track_mm": 0.15,
+    "min_clearance_mm": 0.15,
+    "edge_copper_clearance_mm": 0.3,
+    "via_diameter_mm": 0.6,
+    "via_drill_mm": 0.3,
+    "allowable_temperature_rise_k": 10.0,
+    "width_basis_equation": "ipc2221_external_current_capacity",
+    "width_measurement_tolerance_mm": 0.01,
+    "ground_plane_net": "GND",
+    "ground_plane_layers": [
+      "F.Cu",
+      "B.Cu"
+    ],
+    "ground_plane_min_island_area_mm2": 1.0,
+    "stitch_via_wavelength_fraction": 0.05,
+    "stitch_via_max_frequency_hz": 2400000000.0,
+    "stitch_via_refill_max_iterations": 3,
+    "outer_copper_thickness_um": 35.0,
+    "copper_thickness_source": "JLCPCB 1 oz copper capability declaration: 35 µm nominal outer-layer copper",
+    "width_basis_source": "IPC-2221 current-capacity equation: A = (I / (k * ΔT^b))^(1/c), width = A / thickness; IPC-2221, external/internal conductor current-capacity method.",
+    "mounting_hole_m2_count": 2,
+    "ipc2221_external_k": 0.048,
+    "ipc2221_external_b": 0.44,
+    "ipc2221_external_c": 0.725,
+    "ipc2221_internal_k": 0.024,
+    "ipc2221_internal_b": 0.44,
+    "ipc2221_internal_c": 0.725,
+    "fab_capability_source": "https://jlcpcb.com/capabilities/pcb-capabilities",
+    "fab_capability_checked_at": "2026-09-06T00:00:00Z",
+    "stitch_via_dielectric_constant": 4.3,
+    "stitch_via_basis_source": "IPC-2221A and RF transmission-line wavelength guidance; guided wavelength c/(f*sqrt(er)) with er=4.3 for FR-4 at 2.4 GHz, via pitch limited to the declared wavelength fraction",
+    "stitch_via_cost_note": "Adopted 1/20 guided-wavelength perimeter stitch pitch; through-via and drill counts are recorded against the fab profile as cost drivers. Interior stitch candidates use the same pitch only when an isolated GND island requires a connection."
+  },
+  "components": [
+    {
+      "refdes": "J1",
+      "part_request": {
+        "kind": "connector",
+        "value": "TYPE-C-31-M-12",
+        "package": "USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+      },
+      "pads": {
+        "A1": "net.gnd",
+        "A12": "net.gnd",
+        "A4": "net.vbus_5v",
+        "A5": "net.cc1",
+        "A6": "net.usb_dp",
+        "A7": "net.usb_dn",
+        "A9": "net.vbus_5v",
+        "B1": "net.gnd",
+        "B12": "net.gnd",
+        "B4": "net.vbus_5v",
+        "B5": "net.cc2",
+        "B6": "net.usb_dp",
+        "B7": "net.usb_dn",
+        "B9": "net.vbus_5v",
+        "A8": null,
+        "B8": null,
+        "SH": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "TYPE-C-31-M-12",
+        "lcsc": "C165948",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 15.0,
+        "placement_y_mm": 19.5,
+        "placement_rotation_deg": 180.0,
+        "cpl_position_basis": "pad_bbox_center",
+        "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+        "cpl_position_evidence_at": "2026-09-06T00:00:00Z",
+        "cpl_position_evidence_method": "independent comparison of KiCad footprint geometry and pad-bbox centroid",
+        "cpl_position_evidence_revision": "dual-beacon-tag-r1",
+        "cpl_position_evidence_basis": "confirmed",
+        "cpl_position_evidence_note": "J1 footprint origin and pad-bbox centroid disagree; pad_bbox_center is declared as the JLCPCB centroid basis for this footprint."
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "U1",
+      "part_request": {
+        "kind": "ic",
+        "value": "ESP32-C3-MINI-1-N4",
+        "package": "ESP32-C3-MINI-1"
+      },
+      "pads": {
+        "1": "net.gnd",
+        "2": "net.gnd",
+        "3": "net.p3v3",
+        "4": null,
+        "5": null,
+        "6": "net.led",
+        "7": null,
+        "8": "net.p3v3",
+        "9": null,
+        "10": null,
+        "11": "net.gnd",
+        "12": null,
+        "13": null,
+        "14": "net.gnd",
+        "15": null,
+        "16": null,
+        "17": null,
+        "18": "net.led_orange",
+        "19": "net.user_btn",
+        "20": "net.i2c_sda",
+        "21": "net.i2c_scl",
+        "22": null,
+        "23": "net.boot",
+        "24": null,
+        "25": null,
+        "26": "net.usb_dn",
+        "27": "net.usb_dp",
+        "28": null,
+        "29": null,
+        "30": null,
+        "31": null,
+        "32": null,
+        "33": null,
+        "34": null,
+        "35": null,
+        "36": "net.gnd",
+        "37": "net.gnd",
+        "38": "net.gnd",
+        "39": "net.gnd",
+        "40": "net.gnd",
+        "41": "net.gnd",
+        "42": "net.gnd",
+        "43": "net.gnd",
+        "44": "net.gnd",
+        "45": "net.gnd",
+        "46": "net.gnd",
+        "47": "net.gnd",
+        "48": "net.gnd",
+        "49": "net.gnd",
+        "50": "net.gnd",
+        "51": "net.gnd",
+        "52": "net.gnd",
+        "53": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "ESP32-C3-MINI-1-N4",
+        "lcsc": "C2838502",
+        "jlcpcb_class": "extended",
+        "radio_module": true,
+        "placement_x_mm": 15.0,
+        "placement_y_mm": 8.3,
+        "placement_rotation_deg": 0.0,
+        "certification_ids": [
+          "FCC:2AC7Z-ESPC3MINI1",
+          "IC:21098-ESPC3MINI1"
+        ],
+        "certification_hvin": "ESP32-C3-MINI-1",
+        "certification_grant_dates": [
+          "FCC:2021-06-16",
+          "IC:2024-07-24"
+        ],
+        "certification_document_refs": [
+          "https://documentation.espressif.com/ESP32-C3-MINI-1%20FCC%20Certification.pdf",
+          "https://documentation.espressif.com/ESP32-C3-MINI-1%20IC%20Certification_0.pdf"
+        ],
+        "certification_source": "Espressif Systems published module certification documents",
+        "certification_source_ref": "https://www.espressif.com/en/support/documents/certificates",
+        "certification_checked_at": "2026-08-18T00:00:00Z",
+        "cpl_position_basis": "pad_bbox_center",
+        "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+        "cpl_position_evidence_at": "2026-09-06T00:00:00Z",
+        "cpl_position_evidence_method": "independent comparison of KiCad footprint geometry and pad-bbox centroid",
+        "cpl_position_evidence_revision": "dual-beacon-tag-r1",
+        "cpl_position_evidence_basis": "confirmed",
+        "cpl_position_evidence_note": "U1 footprint origin and pad-bbox centroid disagree; pad_bbox_center is declared as the JLCPCB centroid basis for this footprint."
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "U2",
+      "part_request": {
+        "kind": "ic",
+        "value": "AMS1117-3.3",
+        "package": "SOT-223-3_TabPin2"
+      },
+      "pads": {
+        "1": "net.gnd",
+        "2": "net.p3v3",
+        "3": "net.vbus_5v"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "AMS1117-3.3",
+        "lcsc": "C6186",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 5.3,
+        "placement_y_mm": 10.0,
+        "placement_rotation_deg": 180.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "D1",
+      "pads": {
+        "1": "net.gnd",
+        "2": "net.d1_anode"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "KT-0603G",
+        "lcsc": "C2287",
+        "jlcpcb_class": "basic",
+        "value": "KT-0603G",
+        "footprint": "LED_SMD:LED_0603_1608Metric",
+        "symbol": "Device:LED",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.6",
+        "symbol_sha256": "sha256:f65c9dd13ef986c482165e5c8237ccf4f691bc7321868cf05e01dafbc1326b24",
+        "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.6",
+        "footprint_sha256": "sha256:7931ed1efba34cb13c8d74a60eb1dca4b0be57d950c38e08c3e7f007db500a1c",
+        "placement_x_mm": 22.0,
+        "placement_y_mm": 8.0,
+        "placement_rotation_deg": 270.0,
+        "cpl_rotation_basis": "component_part_number",
+        "cpl_rotation_source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "cpl_rotation_offset_deg": 0.0,
+        "cpl_rotation_polarized": true,
+        "cpl_rotation_evidence_at": "2026-09-06T00:00:00Z",
+        "cpl_rotation_evidence_basis": "confirmed",
+        "cpl_rotation_evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "cpl_rotation_evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
+        "cpl_rotation_evidence_revision": "dual-beacon-tag-r1",
+        "led_indicator": true,
+        "led_drive_net": "net.led",
+        "led_series_net": "net.d1_anode"
+      }
+    },
+    {
+      "refdes": "D2",
+      "pads": {
+        "1": "net.gnd",
+        "2": "net.d2_anode"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "KT-0603Y",
+        "lcsc": "C2288",
+        "jlcpcb_class": "basic",
+        "value": "KT-0603Y",
+        "footprint": "LED_SMD:LED_0603_1608Metric",
+        "symbol": "Device:LED",
+        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.6",
+        "symbol_sha256": "sha256:f65c9dd13ef986c482165e5c8237ccf4f691bc7321868cf05e01dafbc1326b24",
+        "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.6",
+        "footprint_sha256": "sha256:7931ed1efba34cb13c8d74a60eb1dca4b0be57d950c38e08c3e7f007db500a1c",
+        "placement_x_mm": 26.0,
+        "placement_y_mm": 8.0,
+        "placement_rotation_deg": 270.0,
+        "cpl_rotation_basis": "component_part_number",
+        "cpl_rotation_source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "cpl_rotation_offset_deg": 0.0,
+        "cpl_rotation_polarized": true,
+        "cpl_rotation_evidence_at": "2026-09-06T00:00:00Z",
+        "cpl_rotation_evidence_basis": "confirmed",
+        "cpl_rotation_evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "cpl_rotation_evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
+        "cpl_rotation_evidence_revision": "dual-beacon-tag-r1",
+        "led_indicator": true,
+        "led_drive_net": "net.led_orange",
+        "led_series_net": "net.d2_anode"
+      }
+    },
+    {
+      "refdes": "SW1",
+      "pads": {
+        "1": "net.user_btn",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "TS-1088-AR02016",
+        "lcsc": "C720477",
+        "jlcpcb_class": "basic",
+        "value": "USER",
+        "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
+        "symbol": "Switch:SW_Push",
+        "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.6",
+        "symbol_sha256": "sha256:aa97588ceed2c3f1be89c98ec16b3e8ee491e4354e0416c12706fc868df68bc9",
+        "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.6",
+        "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
+        "placement_x_mm": 8.0,
+        "placement_y_mm": 18.0,
+        "placement_rotation_deg": 180.0,
+        "cpl_rotation_basis": "component_part_number",
+        "cpl_rotation_source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "cpl_rotation_offset_deg": 0.0,
+        "cpl_rotation_polarized": false,
+        "cpl_rotation_evidence_at": "2026-09-06T00:00:00Z",
+        "cpl_rotation_evidence_basis": "confirmed",
+        "cpl_rotation_evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "cpl_rotation_evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
+        "cpl_rotation_evidence_revision": "dual-beacon-tag-r1"
+      }
+    },
+    {
+      "refdes": "SW2",
+      "pads": {
+        "1": "net.boot",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "TS-1088-AR02016",
+        "lcsc": "C720477",
+        "jlcpcb_class": "basic",
+        "value": "BOOT",
+        "footprint": "Button_Switch_SMD:SW_SPST_TS-1088-xR020",
+        "symbol": "Switch:SW_Push",
+        "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.6",
+        "symbol_sha256": "sha256:aa97588ceed2c3f1be89c98ec16b3e8ee491e4354e0416c12706fc868df68bc9",
+        "footprint_file": "/usr/share/kicad/footprints/Button_Switch_SMD.pretty/SW_SPST_TS-1088-xR020.kicad_mod",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.6",
+        "footprint_sha256": "sha256:4e1702eb881097d7c7b80a35c685950a3ce7d1b2d8d7169f5a096bacf3ba7a8b",
+        "placement_x_mm": 22.0,
+        "placement_y_mm": 18.0,
+        "placement_rotation_deg": 180.0,
+        "cpl_rotation_basis": "component_part_number",
+        "cpl_rotation_source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "cpl_rotation_offset_deg": 0.0,
+        "cpl_rotation_polarized": false,
+        "cpl_rotation_evidence_at": "2026-09-06T00:00:00Z",
+        "cpl_rotation_evidence_basis": "confirmed",
+        "cpl_rotation_evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "cpl_rotation_evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
+        "cpl_rotation_evidence_revision": "dual-beacon-tag-r1"
+      }
+    },
+    {
+      "refdes": "R1",
+      "part_request": {
+        "kind": "resistor",
+        "value": "5.1k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.cc1",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF5101T5E",
+        "lcsc": "C23186",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 16.25,
+        "placement_y_mm": 10.3,
+        "placement_rotation_deg": 0.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "R2",
+      "part_request": {
+        "kind": "resistor",
+        "value": "5.1k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.cc2",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF5101T5E",
+        "lcsc": "C23186",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 13.25,
+        "placement_y_mm": 10.3,
+        "placement_rotation_deg": 0.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "R3",
+      "part_request": {
+        "kind": "resistor",
+        "value": "1k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.led",
+        "2": "net.d1_anode"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF1001T5E",
+        "lcsc": "C21190",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 19.0,
+        "placement_y_mm": 8.0,
+        "placement_rotation_deg": 270.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "R4",
+      "part_request": {
+        "kind": "resistor",
+        "value": "1k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.led_orange",
+        "2": "net.d2_anode"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF1001T5E",
+        "lcsc": "C21190",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 23.0,
+        "placement_y_mm": 8.0,
+        "placement_rotation_deg": 270.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "R5",
+      "part_request": {
+        "kind": "resistor",
+        "value": "4.7k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.p3v3",
+        "2": "net.i2c_sda"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF4701T5E",
+        "lcsc": "C23162",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 4.0,
+        "placement_y_mm": 16.0,
+        "placement_rotation_deg": 90.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "R6",
+      "part_request": {
+        "kind": "resistor",
+        "value": "4.7k",
+        "package": "R_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.p3v3",
+        "2": "net.i2c_scl"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "0603WAF4701T5E",
+        "lcsc": "C23162",
+        "jlcpcb_class": "basic",
+        "placement_x_mm": 4.0,
+        "placement_y_mm": 19.0,
+        "placement_rotation_deg": 90.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "C1",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "10uF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.vbus_5v",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10A106MQ8NNNC",
+        "lcsc": "C1691",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 1.5,
+        "placement_y_mm": 5.0,
+        "placement_rotation_deg": 90.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "C2",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "100nF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.vbus_5v",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 1.5,
+        "placement_y_mm": 8.2,
+        "placement_rotation_deg": 90.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "C3",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "10uF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.p3v3",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10A106MQ8NNNC",
+        "lcsc": "C1691",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 4.0,
+        "placement_y_mm": 7.0,
+        "placement_rotation_deg": 0.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "C4",
+      "part_request": {
+        "kind": "capacitor",
+        "value": "100nF",
+        "package": "C_0603_1608Metric"
+      },
+      "pads": {
+        "1": "net.p3v3",
+        "2": "net.gnd"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "CL10B104KB8NNNC",
+        "lcsc": "C1591",
+        "jlcpcb_class": "extended",
+        "placement_x_mm": 3.0,
+        "placement_y_mm": 10.0,
+        "placement_rotation_deg": 0.0
+      },
+      "cpl_orientation_evidence": {
+        "evidence_at": "2026-09-06T00:00:00Z",
+        "evidence_basis": "confirmed",
+        "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
+      }
+    },
+    {
+      "refdes": "J2",
+      "pads": {
+        "1": "net.p3v3",
+        "2": "net.gnd",
+        "3": "net.i2c_sda",
+        "4": "net.i2c_scl"
+      },
+      "attrs": {
+        "assembly": "fitted",
+        "mpn": "PH1x4-2.54",
+        "lcsc": "C2884835",
+        "jlcpcb_class": "basic",
+        "value": "I2C_HDR",
+        "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+        "symbol": "Connector_Generic:Conn_01x04",
+        "symbol_file": "/usr/share/kicad/symbols/Connector_Generic.kicad_sym",
+        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "symbol_source_ref": "10.0.6",
+        "symbol_sha256": "sha256:b40057d620867e58e8c3d1be9ab822bba6955e76ccfc566fd0945eedcf527fd3",
+        "footprint_file": "/usr/share/kicad/footprints/Connector_PinHeader_2.54mm.pretty/PinHeader_1x04_P2.54mm_Vertical.kicad_mod",
+        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
+        "footprint_source_ref": "10.0.6",
+        "footprint_sha256": "sha256:571d2d16b49795f8f9a91f96cc83fd2adf49890cd66c377189c44204ebd03c29",
+        "placement_x_mm": 28.0,
+        "placement_y_mm": 16.0,
+        "placement_rotation_deg": 90.0,
+        "cpl_rotation_basis": "component_part_number",
+        "cpl_rotation_source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+        "cpl_rotation_offset_deg": 0.0,
+        "cpl_rotation_polarized": false,
+        "cpl_rotation_evidence_at": "2026-09-06T00:00:00Z",
+        "cpl_rotation_evidence_basis": "confirmed",
+        "cpl_rotation_evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+        "cpl_rotation_evidence_note": "dual-beacon-tag preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
+        "cpl_rotation_evidence_revision": "dual-beacon-tag-r1"
+      }
+    }
+  ],
+  "nets": [
+    {
+      "net_id": "net.vbus_5v",
+      "attrs": {
+        "name": "VBUS_5V",
+        "voltage_nominal_v": 5.0,
+        "current_max_a": 0.5,
+        "width_basis": "current_ipc2221",
+        "power_rail": true,
+        "power_source_pin": "pin.j1.a4",
+        "width_basis_source": "USB VBUS power net; IPC-2221 external-layer current capacity governs the routed conductor."
+      }
+    },
+    {
+      "net_id": "net.p3v3",
+      "attrs": {
+        "name": "+3V3",
+        "voltage_nominal_v": 3.3,
+        "current_max_a": 0.5,
+        "width_basis": "current_ipc2221",
+        "power_rail": true,
+        "power_source_pin": "pin.u2.2",
+        "width_basis_source": "Regulated 3.3 V power net; IPC-2221 external-layer current capacity governs the routed conductor."
+      }
+    },
+    {
+      "net_id": "net.gnd",
+      "attrs": {
+        "name": "GND",
+        "voltage_nominal_v": 0.0,
+        "current_max_a": 0.5,
+        "width_basis": "current_ipc2221",
+        "power_rail": true,
+        "power_source_pin": "pin.j1.a1",
+        "width_basis_source": "GND is a plane plus routed conductors; IPC-2221 external-layer current capacity governs the routed segments."
+      }
+    },
+    {
+      "net_id": "net.cc1",
+      "attrs": {
+        "name": "CC1",
+        "voltage_nominal_v": 5.0,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.cc2",
+      "attrs": {
+        "name": "CC2",
+        "voltage_nominal_v": 5.0,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.usb_dp",
+      "attrs": {
+        "name": "USB_D+",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.usb_dn",
+      "attrs": {
+        "name": "USB_D-",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.boot",
+      "attrs": {
+        "name": "BOOT",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "Boot logic signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.led",
+      "attrs": {
+        "name": "LED",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "LED current is limited by the series resistor; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.led_orange",
+      "attrs": {
+        "name": "LED_ORANGE",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "LED current is limited by the series resistor; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.d1_anode",
+      "attrs": {
+        "name": "D1_ANODE",
+        "voltage_nominal_v": 2.0,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "LED anode net; current is limited by the series resistor; fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.d2_anode",
+      "attrs": {
+        "name": "D2_ANODE",
+        "voltage_nominal_v": 2.0,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "LED anode net; current is limited by the series resistor; fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.user_btn",
+      "attrs": {
+        "name": "USER_BTN",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "Button logic signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.i2c_sda",
+      "attrs": {
+        "name": "I2C_SDA",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "I2C data signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    },
+    {
+      "net_id": "net.i2c_scl",
+      "attrs": {
+        "name": "I2C_SCL",
+        "voltage_nominal_v": 3.3,
+        "width_basis": "manufacturing_minimum",
+        "width_basis_source": "I2C clock signal; current-derived capacity is not the controlling constraint, so the fab minimum width applies.",
+        "manufacturing_margin_mm": 0.0
+      }
+    }
+  ],
+  "firmware_pin_assignments": [
+    {
+      "pin_id": "fw.pin.led",
+      "net": "net.led",
+      "gpio": 3
+    },
+    {
+      "pin_id": "fw.pin.led_orange",
+      "net": "net.led_orange",
+      "gpio": 4
+    },
+    {
+      "pin_id": "fw.pin.user_btn",
+      "net": "net.user_btn",
+      "gpio": 5
+    },
+    {
+      "pin_id": "fw.pin.boot",
+      "net": "net.boot",
+      "gpio": 9
+    },
+    {
+      "pin_id": "fw.pin.i2c_sda",
+      "net": "net.i2c_sda",
+      "gpio": 6
+    },
+    {
+      "pin_id": "fw.pin.i2c_scl",
+      "net": "net.i2c_scl",
+      "gpio": 7
+    }
+  ],
+  "requirements": [
+    {
+      "requirement_id": "dbt-req-001",
+      "statement": "USB-Cバスパワーで動く ESP32-C3 の机上状態表示タグ DUAL BEACON TAG",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "dbt-req-002",
+      "statement": "電源はUSB-C VBUS 5 Vのみとし、バッテリ、充電回路、USB PDネゴシエーションを持たない",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-003",
+      "statement": "最大ネット電圧は5 V、最大電流は500 mA未満とする",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-004",
+      "statement": "USB-Cは電力シンク専用とし、CC1/CC2にそれぞれ5.1 kΩのプルダウンを置く",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": [
+        "usb_c_cc_termination"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-005",
+      "statement": "3.3 VはAMS1117-3.3で生成し、入力・出力に10 µFと100 nFを置く",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": [
+        "single_ldo_power_tree"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-006",
+      "statement": "MCUはESP32-C3-MINI-1-N4とし、IO18/IO19の内蔵USBを使用する",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": [
+        "firmware_pin_map"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-007",
+      "statement": "緑LEDはIO3に1 kΩを直列接続し、橙LEDはIO4に1 kΩを直列接続する",
+      "graph_anchored": true,
+      "expectation": {
+        "kind": "gpio_assignment",
+        "gpio": 3,
+        "net": "LED"
+      },
+      "drives_functional_blocks": [
+        "led_current_limit",
+        "firmware_pin_map"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-008",
+      "statement": "ユーザーボタンはIO5に接続し、押下でLED点滅を一時停止／再開する",
+      "graph_anchored": true,
+      "expectation": {
+        "kind": "gpio_assignment",
+        "gpio": 5,
+        "net": "USER_BTN"
+      },
+      "drives_functional_blocks": [
+        "firmware_pin_map"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-009",
+      "statement": "BOOTボタンはIO9に接続し、ESP32-C3のstrapping規則に従う",
+      "graph_anchored": true,
+      "expectation": {
+        "kind": "gpio_assignment",
+        "gpio": 9,
+        "net": "BOOT"
+      },
+      "drives_functional_blocks": [
+        "esp32c3_strapping_boot",
+        "firmware_pin_map"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-010",
+      "statement": "I2Cヘッダ（SDA/SCL）はIO6/IO7に接続し、4.7 kΩのプルアップを実装する",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": [
+        "i2c_bus_pullup",
+        "firmware_pin_map"
+      ]
+    },
+    {
+      "requirement_id": "dbt-req-011",
+      "statement": "基板は2層FR-4、板厚1.6 mm、HASL、片面実装、外形30 × 22 mmとする",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "dbt-req-012",
+      "statement": "M2取付穴を2箇所設ける",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "dbt-req-013",
+      "statement": "アンテナを基板端からはみ出させ、アンテナ直下・周囲に銅箔、GND、部品、シルクを置かない",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "dbt-req-014",
+      "statement": "USB-Cレセプタクルは筐体嵌合のため基板上端から1.5 mm以内で突出させ、筐体前面に開口を設ける",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "dbt-req-015",
+      "statement": "筐体はPA12ナイロン、壁厚2.0 mm、内部クリアランス1.0 mm、M2セルフタップ蓋固定とし、基板は2本のスタンドオフで支持する",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "dbt-req-016",
+      "statement": "製造はJLCPCB FR-4 2層1 ozプロファイルで5枚、片面実装、緑レジスト、HASL、単品納品とする",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    },
+    {
+      "requirement_id": "dbt-req-017",
+      "statement": "FWは起動時にgraph_id由来のboot logを出力し、QEMU仮想実行で点滅ロジックを確認する",
+      "graph_anchored": true,
+      "expectation": null,
+      "drives_functional_blocks": []
+    }
+  ],
+  "functional_blocks": [
+    {
+      "block_id": "safety_power_boundary",
+      "requirement_ids": [
+        "dbt-req-002",
+        "dbt-req-003"
+      ]
+    },
+    {
+      "block_id": "usb_c_cc_termination",
+      "requirement_ids": [
+        "dbt-req-004"
+      ]
+    },
+    {
+      "block_id": "single_ldo_power_tree",
+      "requirement_ids": [
+        "dbt-req-005"
+      ]
+    },
+    {
+      "block_id": "firmware_pin_map",
+      "requirement_ids": [
+        "dbt-req-006",
+        "dbt-req-007",
+        "dbt-req-008",
+        "dbt-req-009",
+        "dbt-req-010"
+      ]
+    },
+    {
+      "block_id": "esp32c3_strapping_boot",
+      "requirement_ids": [
+        "dbt-req-009"
+      ]
+    },
+    {
+      "block_id": "i2c_bus_pullup",
+      "requirement_ids": [
+        "dbt-req-010"
+      ]
+    },
+    {
+      "block_id": "led_current_limit",
+      "requirement_ids": [
+        "dbt-req-007"
+      ]
+    }
+  ],
+  "mechanical_outline": {
+    "attrs": {
+      "unit": "mm",
+      "origin": "board_upper_left",
+      "y_axis": "down",
+      "width_mm": 30.0,
+      "depth_mm": 22.0,
+      "thickness_mm": 1.6,
+      "corner_radius_mm": 1.0,
+      "mount_hole_count": 2,
+      "mount_hole_1_x_mm": 2.5,
+      "mount_hole_1_y_mm": 11.0,
+      "mount_hole_1_diameter_mm": 2.2,
+      "mount_hole_2_x_mm": 27.5,
+      "mount_hole_2_y_mm": 11.0,
+      "mount_hole_2_diameter_mm": 2.2,
+      "position_source": "dual-beacon-tag mechanical declaration",
+      "position_source_ref": "fixtures/dual-beacon-tag/spec.json"
+    }
+  },
+  "component_bodies": [
+    {
+      "node_id": "mechanical.component_body.u1",
+      "refdes": "U1",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 15.0,
+        "y_mm": 14.0,
+        "rotation_deg": 0.0,
+        "width_mm": 13.2,
+        "depth_mm": 16.6,
+        "height_mm": 2.4,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "Espressif ESP32-C3-MINI-1 datasheet",
+        "dimensions_source_ref": "https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.j1",
+      "refdes": "J1",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 15.0,
+        "y_mm": 3.7,
+        "rotation_deg": 0.0,
+        "width_mm": 8.94,
+        "depth_mm": 7.35,
+        "height_mm": 3.26,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_USB.pretty",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.u2",
+      "refdes": "U2",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 5.3,
+        "y_mm": 10.0,
+        "rotation_deg": 0.0,
+        "width_mm": 6.5,
+        "depth_mm": 3.5,
+        "height_mm": 1.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Package_TO_SOT_SMD.pretty",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.d1",
+      "refdes": "D1",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 22.0,
+        "y_mm": 8.0,
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "depth_mm": 0.8,
+        "height_mm": 0.55,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip LED datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C2287.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.d2",
+      "refdes": "D2",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 26.0,
+        "y_mm": 8.0,
+        "rotation_deg": 0.0,
+        "width_mm": 1.6,
+        "depth_mm": 0.8,
+        "height_mm": 0.55,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip LED datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C2288.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.sw1",
+      "refdes": "SW1",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 8.0,
+        "y_mm": 18.0,
+        "rotation_deg": 0.0,
+        "width_mm": 3.0,
+        "depth_mm": 2.7,
+        "height_mm": 1.6,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "TS-1088 tactile switch datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C720477.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.sw2",
+      "refdes": "SW2",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 22.0,
+        "y_mm": 18.0,
+        "rotation_deg": 0.0,
+        "width_mm": 3.0,
+        "depth_mm": 2.7,
+        "height_mm": 1.6,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "TS-1088 tactile switch datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C720477.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.j2",
+      "refdes": "J2",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 28.0,
+        "y_mm": 16.0,
+        "rotation_deg": 0.0,
+        "width_mm": 2.54,
+        "depth_mm": 10.16,
+        "height_mm": 8.5,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_PinHeader_2.54mm.pretty",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.c1",
+      "refdes": "C1",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 1.5,
+        "y_mm": 5.0,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1691.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.c2",
+      "refdes": "C2",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 1.5,
+        "y_mm": 8.2,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.c3",
+      "refdes": "C3",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 12.0,
+        "y_mm": 17.0,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1691.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.c4",
+      "refdes": "C4",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 2.28,
+        "y_mm": 14.0,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C1591.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.r1",
+      "refdes": "R1",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 16.25,
+        "y_mm": 10.3,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C23186.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.r2",
+      "refdes": "R2",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 13.25,
+        "y_mm": 10.3,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C23186.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.r3",
+      "refdes": "R3",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 19.0,
+        "y_mm": 8.0,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C21190.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.r4",
+      "refdes": "R4",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 23.0,
+        "y_mm": 8.0,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C21190.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.r5",
+      "refdes": "R5",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 4.0,
+        "y_mm": 16.0,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C23162.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.component_body.r6",
+      "refdes": "R6",
+      "attrs": {
+        "body_type": "solid",
+        "mounting_side": "top",
+        "x_mm": 4.0,
+        "y_mm": 19.0,
+        "rotation_deg": 0.0,
+        "width_mm": 0.8,
+        "depth_mm": 0.8,
+        "height_mm": 0.8,
+        "position_source": "dual-beacon-tag mechanical declaration",
+        "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+        "dimensions_source": "LCSC 0603 chip component datasheet",
+        "dimensions_source_ref": "https://www.lcsc.com/datasheet/lcsc_datasheet_C23162.pdf",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    }
+  ],
+  "connector_openings": [
+    {
+      "node_id": "mechanical.connector_opening.j1",
+      "refdes": "J1",
+      "attrs": {
+        "face": "front",
+        "center_x_mm": 15.0,
+        "center_y_mm": 9.23,
+        "width_mm": 9.0,
+        "height_mm": 3.26,
+        "margin_mm": 0.5,
+        "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_USB.pretty",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    },
+    {
+      "node_id": "mechanical.connector_opening.j2",
+      "refdes": "J2",
+      "attrs": {
+        "face": "right",
+        "center_x_mm": 28.0,
+        "center_y_mm": 16.0,
+        "width_mm": 2.54,
+        "height_mm": 10.16,
+        "margin_mm": 0.5,
+        "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+        "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_PinHeader_2.54mm.pretty",
+        "dimensions_checked_at": "2026-09-06T00:00:00Z"
+      }
+    }
+  ],
+  "board_edge_overhangs": [
+    {
+      "node_id": "mechanical.board_edge_overhang.u1",
+      "refdes": "U1",
+      "requirement_id": "dbt-req-013",
+      "attrs": {
+        "edge": "bottom",
+        "overhang_mm": 5.5
+      }
+    },
+    {
+      "node_id": "mechanical.board_edge_overhang.j1",
+      "refdes": "J1",
+      "requirement_id": "dbt-req-014",
+      "attrs": {
+        "edge": "top",
+        "overhang_mm": 1.5
+      }
+    }
+  ],
+  "enclosure": {
+    "attrs": {
+      "unit": "mm",
+      "material": "PA12-HP nylon",
+      "wall_thickness_mm": 2.0,
+      "min_wall_thickness_mm": 1.2,
+      "internal_clearance_mm": 1.0,
+      "lid_fit_gap_mm": 0.2,
+      "standoff_height_mm": 4.0,
+      "standoff_radius_mm": 2.0,
+      "fastener_method": "self_tapping_screw_m2",
+      "standoff_pilot_hole_diameter_mm": 1.6,
+      "lid_screw_hole_diameter_mm": 2.2,
+      "tolerance_mm": 0.05,
+      "interference_tolerance_mm3": 0.01,
+      "tolerance_source": "dual-beacon-tag enclosure declaration (dbt-req-015)",
+      "tolerance_source_ref": "fixtures/dual-beacon-tag/spec.json"
+    }
+  },
+  "safety_boundary": {
+    "attrs": {
+      "max_net_voltage_v": 5.0,
+      "max_current_a": 0.5,
+      "intended_use": "author_prototype",
+      "module_certified": "certified",
+      "profile": "hobby",
+      "battery": false,
+      "charger": false,
+      "motor_actuator_laser": false
+    }
+  },
+  "silk_texts": [
+    {
+      "node_id": "mechanical.silk_text.board_id",
+      "attrs": {
+        "layer": "B.SilkS",
+        "role": "board_part_number",
+        "text": "dual-beacon-tag-r1",
+        "stroke_width_mm": 0.15,
+        "height_mm": 1.0,
+        "rotation_deg": 0.0,
+        "x_mm": 15.0,
+        "y_mm": 12.0,
+        "placement_basis": "graph_id and revision derived part-number placement on the back side after front-side functional-label clearance measurement",
+        "placement_reference": "board.dual-beacon-tag",
+        "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
+        "placement_offset_step_mm": 0.25,
+        "placement_search_limit_mm": 8.0,
+        "placement_safety_margin_mm": 0.15,
+        "board_edge_margin_mm": 0.15,
+        "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm; declared edge keepout equals the profiled minimum silk stroke"
+      }
+    }
+  ],
+  "firmware_module": {
+    "node_id": "fw.module.main",
+    "attrs": {
+      "module_name": "Dual Beacon firmware",
+      "mcu_component": "comp.u1",
+      "entry_state": "fw.state.boot",
+      "led_blink_period_ms": 500,
+      "log_period_ms": 1000,
+      "boot_log_message": "ACD dual-beacon-tag fw boot target_revision=%s"
+    },
+    "states": [
+      {
+        "node_id": "fw.state.boot",
+        "attrs": {
+          "state_name": "boot",
+          "initial": true
+        }
+      },
+      {
+        "node_id": "fw.state.blink",
+        "attrs": {
+          "state_name": "blink",
+          "initial": false
+        }
+      },
+      {
+        "node_id": "fw.state.paused",
+        "attrs": {
+          "state_name": "paused",
+          "initial": false
+        }
+      },
+      {
+        "node_id": "fw.state.fault",
+        "attrs": {
+          "state_name": "fault",
+          "initial": false
+        }
+      }
+    ],
+    "transitions": [
+      {
+        "node_id": "fw.transition.boot_blink",
+        "attrs": {
+          "from_state": "fw.state.boot",
+          "to_state": "fw.state.blink",
+          "trigger": "boot_complete"
+        }
+      },
+      {
+        "node_id": "fw.transition.blink_paused",
+        "attrs": {
+          "from_state": "fw.state.blink",
+          "to_state": "fw.state.paused",
+          "trigger": "button_pressed"
+        }
+      },
+      {
+        "node_id": "fw.transition.paused_blink",
+        "attrs": {
+          "from_state": "fw.state.paused",
+          "to_state": "fw.state.blink",
+          "trigger": "button_pressed"
+        }
+      },
+      {
+        "node_id": "fw.transition.blink_fault",
+        "attrs": {
+          "from_state": "fw.state.blink",
+          "to_state": "fw.state.fault",
+          "trigger": "gpio_configure_failed"
+        }
+      }
+    ],
+    "sequence_steps": [
+      {
+        "node_id": "fw.sequence.001",
+        "attrs": {
+          "step_index": 1,
+          "actor": "fw.module.main",
+          "target": "comp.u1",
+          "action": "initialize_firmware"
+        }
+      },
+      {
+        "node_id": "fw.sequence.002",
+        "attrs": {
+          "step_index": 2,
+          "actor": "fw.module.main",
+          "target": "comp.d1",
+          "action": "toggle_led"
+        }
+      },
+      {
+        "node_id": "fw.sequence.003",
+        "attrs": {
+          "step_index": 3,
+          "actor": "fw.module.main",
+          "target": "comp.u1",
+          "action": "write_serial_log"
+        }
+      }
+    ]
+  },
+  "fab_profile_id": "jlcpcb-fr4-2l-1oz",
+  "fab_order_intent": {
+    "requirement_id": "dbt-req-016",
+    "attrs": {
+      "quantity_pcs": 5,
+      "assembly_sides": "top",
+      "soldermask_color": "green",
+      "surface_finish": "HASL",
+      "delivery_format": "single",
+      "pcba_class_target": "economic",
+      "profile_fetched_at": "2026-09-05T00:00:00Z",
+      "profile_source": "https://jlcpcb.com/capabilities/pcb-capabilities"
+    }
+  },
+  "fab_process_allowances": [],
+  "rationale_recorded_at": null
+}

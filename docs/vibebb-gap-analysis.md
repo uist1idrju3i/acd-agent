@@ -592,7 +592,9 @@ regressionのpositive controlとして維持し、削除は目的にしない。
 | W-3 | 設計述語の適用条件が機能ブロック宣言だけで決まる | 解消。`design_predicates.py`はMCUを`firmware.module`の`mcu_component`宣言またはIO機能宣言から解決し、`U1`固定を持たない。refdesを変えた述語テストと宣言不足のfail-closedテストで固定する | 14.2 | 適用条件が宣言由来であることを機械的に検査し、GD1前提の分岐をdriftとして検出する |
 | W-4 | CIのauthoritative gateがGD1だけに依存しない | 解消。`container-gates`は非GD1 fixtureのbuild・lane実行・製造提出verdictを`DockerWorkspace`で実行し、GD1と同じrevision・`status`・provenance・digest基準で検証する | 6.4、W-1 | 非GD1設計のlaneを`container-gates`へ追加し、GD1と同じ判定基準でauthoritative Evidenceを検証する |
 
-W-1〜W-4を満たした時点で、GD1はVibeBB成立の必要条件ではなくなる。その後もGD1は
+W-1〜W-4を満たした時点で、GD1はVibeBB成立の必要条件ではなくなる。ただし「自然文要件のみで
+agentが自力生成した新規設計がauthoritative Evidenceで1周する」条件には、第8回実機実測
+（dual-beacon-tag、2026-09-06）の時点で達していない（Y節を参照）。その後もGD1は
 positive controlとして維持し、GD1の判定・Evidence・正規化hashが変化しないことを
 非GD1設計の追加によって壊さないことを回帰の条件とする。
 
@@ -614,6 +616,39 @@ FW Evidenceの`input_hash`が常に`"unknown"`になる欠陥は同じ変更で�
 
 X-2以外は閾値、ゲート条件、fail-closed境界を変更しない。X-2の修正も`"unknown"`への退避を
 fail-closedへ置き換えるだけで、合格側の条件は緩めていない。
+
+## Y. 第8回実機実測（2026-09-06、自然文のみ新規設計）で残った不足
+
+自然文要件のみをGUI会話へ投入し、GD1とは無関係の新規設計`dual-beacon-tag`（r1）を
+agentが自力でspec生成から走らせた実測
+（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 15節、
+[`examples/dual-beacon-tag-vps-20260906/`](../examples/dual-beacon-tag-vps-20260906/)）で
+判明した不足である。loopは`board-pipeline`の`router convergence_state='not_converged'`
+（fail-closed、探索は`exhausted`）とenclosure laneの`unsupported connector opening
+face: right`で停止し、authoritative Evidenceはfirmwareの1件のみで、検証は
+`FAIL: required lane Evidence missing: electrical`（終了コード1）であった。
+pristine `e45f1ec`での対照runは同一の壁を再現しており、会話内でのagentの`src/`改変は
+最終失敗に対して荷重を持たなかった。一次記録のN-1〜N-9・D-1〜D-9・F-1〜F-4は
+`examples/dual-beacon-tag-vps-20260906/report/notes.md`を正とし、D-1〜D-11を
+Y-1〜Y-11として整理する。ロードマップ上は[`roadmap.md`](roadmap.md)の14.22で扱う。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| Y-1 | order-total未指定のエラーが回避経路を示さない | `fixture-generation`で`order-total document is required when aggregation is disabled`のみ返り、agentはpromptの禁止に反して`order-total.json`（USD 0、`dummy-quote-1`）を捏造した（F-1） | 高 | — | 解消。メッセージが`--design-only`と発注入力の供給を指し、`vibebb-loop.md`へordering-excluded要件時のdesign-only運用と発注document捏造禁止を記載した |
+| Y-2 | rationale coverage失敗が不足属性名を返さない | メッセージが「fail」だけで、agentは`check_rationale_coverage`をmonkeypatchするdebug scriptと`fixture_builder.py`改変で内訳を覗いた（F-2） | 中 | Q-4 | `FixtureBuilderError`へcoverage reportの要約（missing／stale／unclassified属性名）と`next_step_action`を含める。ゲート条件は変更しない |
+| Y-3 | symbol／footprintのsha256 pinを試行錯誤で埋める経路が無い | agentは`sha256:000…`のplaceholderを置いてfail-closedメッセージの「got」値を転記し、container round-tripごとに60〜90秒を消費した | 中 | V-6 | container内KiCad資材からsymbol・footprintのsha256を採取してspecへ記入する`scripts/pin_library_hashes.py`（またはfixture_builderオプション）を提供する。hash検査自体は緩めない |
+| Y-4 | `strapping_pin`がnet名`"LED"`固定で複数LED駆動netを評価できない | 2LED設計では`unknown`へ倒れ、agentはnet名に"led"を含むnetを集める`_led_nets()`へ改変した（F-3、名前substring heuristic） | 高 | J-2、W-3 | 解消。宣言済み`led_indicator`／`led_drive_net`属性と`LED`名fallbackで全LED駆動netをstrapping padへ照合する形へ一般化し、strapping pad上の第2駆動netを不合格とするnegative testで固定した |
+| Y-5 | `safety_boundary`等のenum許容値がpreflight・文書から見えない | agentは`intended_use`等をGD1 graphのenum値から写した。spec上で許容値を発見する経路が無い | 中 | V-6 | `DesignFixtureSpec`文書と`lane_preflight`のメッセージへenum許容値を列挙する。値の意味と審査基準は変更しない |
+| Y-6 | FW capability契約が2LED交互点滅・ボタン入力を表現できず要件driftが止められない | `fw.sequence`から`toggle_led comp.d2`と`read_button`が削除されFWはD1のみ点滅。requirement→fw.sequenceの被覆検査が無くdriftはfail-closedを発動しない（F-4） | 高 | D-11、Q-10 | 複数LEDと入力を表すcapability／pin roleをregistryへ追加するか、追加するまで要件→fw.sequence被覆検査で要件の削除をfail-closedにする。sequence検査はL1の判定に影響させない |
+| Y-7 | silkscreen resolverが未宣言位置を後段へ流す | resolve stageは通過したのにboard-pipelineが`silkscreen texts … has no declared position`でfail-closedした | 中 | V-6 | resolver stageで未宣言positionを検出して同じfail-closed情報を前段へ出す。判定条件は変更しない |
+| Y-8 | router非収束の内訳が`loop-summary`へ出ない | `unrouted`が22→21でplateauしたが、loop-summaryは`not_converged`のみで、agentはrouter証跡を手で読む必要があった | 中 | B-3 | `loop-summary`へunrouted数・収束状態・主要な未解決netをL3診断として記録する。合格側権限を持たせない |
+| Y-9 | `decoupling_target`の多ピン対象の意味が文書化されていない | C3/C4→U1（複数P3V3ピン）がplacement skillの`ambiguous decoupling declaration`でhard failし、agentは宣言を削除した | 中 | P-2 | spec文書へ多ピン対象の指定方法（pin識別子）を追記し、skillのfail-closed条件を文書と整合させる |
+| Y-10 | Evidenceにsource-treeのgit SHA／dirty状態が無く、`is_design_input`が`src/`を検出しない | `order_gate.py:78-82`のdirty検査は`design_input_changes`経由で、`evidence/git.py:48-52`の`is_design_input`は`fixtures/*/graph.json`と`profiles/*`だけを見る。検証checkout内の`src/`改変は記録されず、Evidenceはbootstrap recordの`e45f1ec`と食い違うdirty treeから生成された（F-3） | 高 | X-2 | ToolEnvelope／Evidence provenanceへsource-treeのgit SHAと`git status --porcelain`由来のdirty digestを記録し、`verify_authoritative_evidence.py`がdirty sourceをfail-closedで拒否する（または`run_in_workspace.py`が`--allow-dirty`無しのdirty `--repo`を拒否する）。provenance面の追加でありゲート閾値は変更しない |
+| Y-11 | FW capability契約（`firmware_init`・`led_blink`・`i2c_sensor_init`・`i2c_sensor_read`・`serial_log`、単一LED・入力pin role無し）が要件を表現できない | `fw_project.py`は1本の`led` roleしか採用せず、button／inputのcapability自体が存在しない | 高 | Y-6、Q-10 | 複数LED（`led2`等の追加role）と入力capability（`button_input`等）をregistryへ追加し、`fw_project.py`が宣言された複数LED交互点滅と入力待ちを射影できるようにする。未対応の間はY-6の被覆検査でfail-closedにする |
+
+Y-1とY-4は本変更で解消した。Y-10はEvidence provenance面の追加であり、合格側権限の
+緩和ではない。N-3・N-6・N-8（hookの誤検出）は運用観測として`notes.md`に留め、
+優先順位の末尾に記録する。
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
@@ -655,3 +690,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 18. T-1〜T-5（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3の未了部分と同一の配布形態の論点、T-4は表示の統合、T-5はtransport失敗時の出力保持である。
 19. V-1〜V-10（第6回実機実測）。V-6（不足宣言の列挙）はDevin不在で新規設計を1周させるための唯一の停止点であり最優先。次にV-3（報告契約）とV-9（tool登録の一次資料）を同順で扱い、会話経路がL3記録だけで合格を述べないようにする。V-5（失敗時の回収）とV-7（wall-clock明示）は検証可能性、V-1は防御の深さ、V-4・V-8・V-10は運用と手順の整備である。V-2はOpenHands側の課題として記録に留める。
 20. W-1〜W-4（GD1非依存の達成条件）。W-1（非GD1設計の全lane通過）はV-6の解消を前提とし、次にW-2（既定値のGD1固定の棚卸し）とW-3（述語適用条件の宣言化検査）を扱う。W-4（CIへの非GD1 lane追加）はW-1の後続であり、達成後もGD1はpositive controlとして維持する。
+21. Y-1〜Y-11（第8回実機実測、自然文のみ新規設計）。Y-1・Y-4は本変更で解消済み。残るうちY-10（source-treeのdirtyをEvidence provenanceへ記録しfail-closedへ）とY-11／Y-6（FW capability契約と要件→fw.sequence被覆検査）はfail-closed境界の堅持に直結し先に扱う。Y-8（router診断を`loop-summary`へ）とY-2（coverage内訳）はagentが止まったまま自力で切り分けるための診断面、Y-3（library hash採取）は反復コスト、Y-5・Y-7・Y-9は宣言と文書の整備である。hook誤検出（N-3・N-6・N-8）は運用観測として別途扱う。

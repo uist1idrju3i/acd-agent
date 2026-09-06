@@ -1,0 +1,430 @@
+{
+  "content_sha256": "sha256:192f2df50d870a90ea2462de317f66a3774c886b2048d952c0b2cc6cbe469344",
+  "gate": "routing_connectivity",
+  "message": "routing connectivity diagnostic observation; not gate authority",
+  "observation": {
+    "coordinate_decimal_places": 6,
+    "coordinate_tolerance_mm": 1e-06,
+    "net_count": 15,
+    "nets": [
+      {
+        "component_count": 1,
+        "net": "+3V3",
+        "pad_count": 8,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "U1",
+            "3"
+          ],
+          [
+            "U1",
+            "8"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "U1",
+              "3"
+            ],
+            [
+              "C3",
+              "1"
+            ]
+          ],
+          [
+            [
+              "U1",
+              "3"
+            ],
+            [
+              "U1",
+              "8"
+            ]
+          ]
+        ],
+        "via_count": 0,
+        "wire_count": 28
+      },
+      {
+        "component_count": 1,
+        "net": "BOOT",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 4
+      },
+      {
+        "component_count": 0,
+        "net": "CC1",
+        "pad_count": 2,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "J1",
+            "A5"
+          ],
+          [
+            "R1",
+            "1"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "J1",
+              "A5"
+            ],
+            [
+              "R1",
+              "1"
+            ]
+          ]
+        ],
+        "via_count": 0,
+        "wire_count": 0
+      },
+      {
+        "component_count": 0,
+        "net": "CC2",
+        "pad_count": 2,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "J1",
+            "B5"
+          ],
+          [
+            "R2",
+            "1"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "J1",
+              "B5"
+            ],
+            [
+              "R2",
+              "1"
+            ]
+          ]
+        ],
+        "via_count": 0,
+        "wire_count": 0
+      },
+      {
+        "component_count": 1,
+        "net": "D1_ANODE",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 4
+      },
+      {
+        "component_count": 1,
+        "net": "D2_ANODE",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 0,
+        "wire_count": 2
+      },
+      {
+        "component_count": 1,
+        "net": "GND",
+        "pad_count": 39,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "J1",
+            "A1"
+          ],
+          [
+            "J1",
+            "A12"
+          ],
+          [
+            "J1",
+            "B1"
+          ],
+          [
+            "J1",
+            "B12"
+          ],
+          [
+            "J2",
+            "2"
+          ],
+          [
+            "U1",
+            "1"
+          ],
+          [
+            "U1",
+            "2"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "J1",
+              "A1"
+            ],
+            [
+              "C1",
+              "2"
+            ]
+          ],
+          [
+            [
+              "J1",
+              "A1"
+            ],
+            [
+              "J1",
+              "A12"
+            ]
+          ]
+        ],
+        "via_count": 1,
+        "wire_count": 83
+      },
+      {
+        "component_count": 1,
+        "net": "I2C_SCL",
+        "pad_count": 3,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "J2",
+            "4"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "J2",
+              "4"
+            ],
+            [
+              "R6",
+              "2"
+            ]
+          ]
+        ],
+        "via_count": 2,
+        "wire_count": 6
+      },
+      {
+        "component_count": 1,
+        "net": "I2C_SDA",
+        "pad_count": 3,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "J2",
+            "3"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "J2",
+              "3"
+            ],
+            [
+              "R5",
+              "2"
+            ]
+          ]
+        ],
+        "via_count": 2,
+        "wire_count": 5
+      },
+      {
+        "component_count": 1,
+        "net": "LED",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 8
+      },
+      {
+        "component_count": 1,
+        "net": "LED_ORANGE",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 5
+      },
+      {
+        "component_count": 0,
+        "net": "USB_D+",
+        "pad_count": 3,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "J1",
+            "A6"
+          ],
+          [
+            "J1",
+            "B6"
+          ],
+          [
+            "U1",
+            "27"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "J1",
+              "A6"
+            ],
+            [
+              "J1",
+              "B6"
+            ]
+          ]
+        ],
+        "via_count": 0,
+        "wire_count": 0
+      },
+      {
+        "component_count": 0,
+        "net": "USB_D-",
+        "pad_count": 3,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "J1",
+            "A7"
+          ],
+          [
+            "J1",
+            "B7"
+          ],
+          [
+            "U1",
+            "26"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "J1",
+              "A7"
+            ],
+            [
+              "J1",
+              "B7"
+            ]
+          ]
+        ],
+        "via_count": 0,
+        "wire_count": 0
+      },
+      {
+        "component_count": 0,
+        "net": "USER_BTN",
+        "pad_count": 2,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "SW1",
+            "1"
+          ],
+          [
+            "U1",
+            "19"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "SW1",
+              "1"
+            ],
+            [
+              "U1",
+              "19"
+            ]
+          ]
+        ],
+        "via_count": 0,
+        "wire_count": 0
+      },
+      {
+        "component_count": 1,
+        "net": "VBUS_5V",
+        "pad_count": 7,
+        "status": "fail",
+        "unattached_pads": [
+          [
+            "C2",
+            "1"
+          ],
+          [
+            "J1",
+            "A4"
+          ],
+          [
+            "J1",
+            "A9"
+          ],
+          [
+            "J1",
+            "B4"
+          ],
+          [
+            "J1",
+            "B9"
+          ]
+        ],
+        "unconnected_pad_pairs": [
+          [
+            [
+              "C2",
+              "1"
+            ],
+            [
+              "C1",
+              "1"
+            ]
+          ],
+          [
+            [
+              "C2",
+              "1"
+            ],
+            [
+              "J1",
+              "A4"
+            ]
+          ]
+        ],
+        "via_count": 2,
+        "wire_count": 7
+      }
+    ],
+    "router_convergence_state": "not_converged",
+    "router_measurement_mismatch": false,
+    "status": "fail"
+  },
+  "schema_version": "0.1",
+  "status": "fail",
+  "target_revision": "r1"
+}
