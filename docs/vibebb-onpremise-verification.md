@@ -174,7 +174,7 @@ KiCad symbolまたはparts catalogからpin functionを取り込む経路が必�
 実機ログとworkspaceアーカイブの全件レビューを踏まえた12件版は
 [`examples/mini-blink-dongle-20260825/report/improvement-notes.md`](../examples/mini-blink-dongle-20260825/report/improvement-notes.md)にある。
 各項目は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のN節（N-1〜N-12）と
-[`roadmap.md`](roadmap.md)の14.13・15.10〜15.13へ反映済みである。
+[`roadmap-completed.md`](roadmap-completed.md)の14.13と[`roadmap.md`](roadmap.md)の15.10〜15.13へ反映済みである。
 
 1. **`DesignFixtureSpec`へmechanical / silkscreen / firmware moduleの宣言を追加する**。
    最低限、`mechanical.outline`（外形と穴）、`mechanical.silk_text` / `silk_graphic`（role付き）、

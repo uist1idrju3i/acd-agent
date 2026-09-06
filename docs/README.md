@@ -19,6 +19,8 @@
 | [`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) | VibeBB単体成立性の検証記録（M節の項目別） |
 | [`vibebb-onpremise-verification.md`](vibebb-onpremise-verification.md) | VibeBB単体成立性の実機検証記録（新規設計・実機OpenHands） |
 | [`roadmap.md`](roadmap.md) | 現在地と計画 |
+| [`roadmap-completed.md`](roadmap-completed.md) | 達成済みフェーズの完了条件と実装記録、バックログ移行履歴 |
+| [`roadmap-future.md`](roadmap-future.md) | マイルストーン化していない将来構想 |
 | [`research/README.md`](research/README.md) | 研究結論 |
 
 ## ADR
