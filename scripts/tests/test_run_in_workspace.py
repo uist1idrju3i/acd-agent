@@ -491,3 +491,54 @@ def test_cli_forwards_bundled_source(
 def test_cli_rejects_bundled_source_for_host_provisional_run() -> None:
     with pytest.raises(SystemExit, match="2"):
         runner_script.main(["--local-provisional", "--source", "bundled", "true"])
+
+
+def test_cli_download_root_satisfies_explicit_download_rule(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_run_command(**kwargs: Any) -> WorkspaceResult:
+        captured.update(kwargs)
+        return WorkspaceResult(
+            digest="sha256:" + "7" * 64,
+            source="image ID",
+            exit_code=0,
+            stdout="",
+            stderr="",
+            downloaded_files=(),
+        )
+
+    monkeypatch.setattr(runner_script, "run_command_in_workspace", fake_run_command)
+    missing_graph = tmp_path / "repo"
+    missing_graph.mkdir()
+    assert (
+        runner_script.main(
+            [
+                "--image",
+                "acd-server:local",
+                "--repo",
+                str(missing_graph),
+                "--download-root",
+                "out/mbd",
+                "true",
+            ]
+        )
+        == 0
+    )
+    assert captured["download_files"] == ()
+    assert captured["download_roots"] == ("out/mbd",)
+
+
+def test_cli_rejects_download_root_for_local_provisional(tmp_path: Path) -> None:
+    with pytest.raises(SystemExit, match="2"):
+        runner_script.main(
+            [
+                "--local-provisional",
+                "--repo",
+                str(tmp_path),
+                "--download-root",
+                "out/mbd",
+                "true",
+            ]
+        )

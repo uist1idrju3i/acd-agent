@@ -50,15 +50,41 @@ def _revision(value: str | None, revision_from: Path | None) -> str:
     return revision
 
 
+def _collect_evidence(paths: Sequence[Path], out_roots: Sequence[Path]) -> list[Path]:
+    """Collect explicit paths plus ``evidence-*.json`` files under out roots."""
+    collected: set[Path] = set(paths)
+    for root in out_roots:
+        for path in root.rglob("evidence-*.json"):
+            if ".stage-cache" in path.parts:
+                continue
+            collected.add(path)
+    return sorted(collected)
+
+
 def verify(
     paths: Sequence[Path],
     revision: str | None = None,
     revision_from: Path | None = None,
+    *,
+    out_roots: Sequence[Path] = (),
+    require_lanes: Sequence[str] = (),
 ) -> bool:
     """Return whether all supplied Evidence records support an authoritative pass."""
+    for root in out_roots:
+        if not root.is_dir():
+            print(f"FAIL: out root is not a directory: {root}", file=sys.stderr)
+            return False
+    paths = _collect_evidence(paths, out_roots)
     if not paths:
         print("FAIL: no Evidence files supplied", file=sys.stderr)
         return False
+    for lane in require_lanes:
+        if not any(path.name == f"evidence-{lane}.json" for path in paths):
+            print(
+                f"FAIL: required lane Evidence missing: {lane}",
+                file=sys.stderr,
+            )
+            return False
     try:
         target_revision = _revision(revision, revision_from)
     except ValueError as exc:
@@ -113,9 +139,39 @@ def main(argv: Sequence[str] | None = None) -> int:
         type=Path,
         help="read the expected revision from a design graph JSON file",
     )
+    parser.add_argument(
+        "--out-root",
+        dest="out_roots",
+        action="append",
+        type=Path,
+        default=[],
+        metavar="DIR",
+        help=(
+            "directory scanned recursively for evidence-*.json files "
+            "(repeatable; .stage-cache entries are ignored)"
+        ),
+    )
+    parser.add_argument(
+        "--require-lane",
+        dest="require_lanes",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help="require at least one evidence-<NAME>.json file (repeatable)",
+    )
     parser.add_argument("evidence", nargs="*", type=Path)
     args = parser.parse_args(argv)
-    return 0 if verify(args.evidence, args.revision, args.revision_from) else 1
+    return (
+        0
+        if verify(
+            args.evidence,
+            args.revision,
+            args.revision_from,
+            out_roots=args.out_roots,
+            require_lanes=args.require_lanes,
+        )
+        else 1
+    )
 
 
 if __name__ == "__main__":

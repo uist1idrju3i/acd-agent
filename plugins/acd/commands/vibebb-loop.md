@@ -32,6 +32,19 @@ allowed-tools:
    `out/tool-availability/<command名>.json`へ機械可読JSONとして保存され（`--record`で
    変更可）、判定不能の場合も`status: unknown`として同じ場所へ残す。会話exportに依らず、
    この一次記録からtool不在を第三者が確認できるようにする。
+
+   この会話からloopをlock済みcontainer内で実行しなければならない場合は、次のcommandを
+   使う。`--repo`には`/workspace`ではなくhostのrepository絶対pathを渡し、回収対象は
+   `--download-root`でout rootごと宣言する。downloadされたfileはhost側の
+   `out/container/<out_root>`配下へ置かれる。
+
+   ```bash
+   uv run python scripts/run_in_workspace.py \
+       --image <lock済みserver image ref> \
+       --repo <この会話のworkspaceの絶対path（/workspaceではなくhostのrepository path）> \
+       --download-root <out_root> \
+       'uv sync && uv run python scripts/run_design_loop.py --fixture <fixture> --out-root <out_root>'
+   ```
 1. 要件差分は`acd_run_design_loop`の`requirement`へ渡す。新規fixtureは
    `fixture_spec`へ渡す。どちらも省略した場合は既存fixtureを使う。
 2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
@@ -73,10 +86,14 @@ allowed-tools:
 
    ```bash
    uv run python scripts/verify_authoritative_evidence.py \
-       --revision-from <fixture>/graph.json <out_root>/**/evidence-*.json
+       --revision-from <fixture>/graph.json --out-root <out_root> \
+       --require-lane electrical --require-lane mechanical --require-lane firmware
    ```
 
-   報告には必ず次を含める。(a) 上記コマンドの終了コードと出力、(b) 各Evidenceの
+   `--out-root`は`evidence-*.json`を再帰的に集め（`.stage-cache`配下は除外）、
+   `--require-lane`は指定laneのEvidenceが1件も無い場合にfail-closedで失敗する。
+   「合格」の報告には基板・筐体・FWの3 laneすべてのEvidenceが必須であり、FW Evidenceが
+   欠けたままの報告は認めない。報告には必ず次を含める。(a) 上記コマンドの終了コードと出力、(b) 各Evidenceの
    `target_revision`がgraph revisionと一致すること、(c) `status="valid"`と
    container provenance（digest）、(d) order-readiness段の結果。これらのいずれかが
    欠ける、unknown、または未実行の間は、timing record、loop summary、探索report、

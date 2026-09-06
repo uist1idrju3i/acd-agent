@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
 import time
 from collections.abc import Callable
@@ -40,6 +41,8 @@ _DIGEST = re.compile(r"sha256:[0-9a-fA-F]{64}\Z")
 DOCKER_INSPECT_TIMEOUT = 60.0
 DOWNLOAD_MAX_ATTEMPTS = 3
 DOWNLOAD_BACKOFF_SECONDS = 0.5
+DOWNLOAD_ROOT_FIND_NAMES = ("*.json", "*.log")
+DOWNLOAD_ROOT_LISTING_EXCLUDES = ("*/.stage-cache/*",)
 
 WorkspaceSource = Literal["mounted", "bundled"]
 
@@ -255,6 +258,7 @@ def run_command_in_workspace(
     command: str,
     repository: Path,
     download_files: tuple[str, ...],
+    download_roots: tuple[str, ...] = (),
     cache_dir: Path | None = None,
     workspace_factory: Callable[..., Any] | None = None,
     source: WorkspaceSource = "mounted",
@@ -278,6 +282,9 @@ def run_command_in_workspace(
         raise ValueError("server image must not be empty")
     if source not in ("mounted", "bundled"):
         raise ValueError(f"unknown workspace source: {source!r}")
+    for root in download_roots:
+        if Path(root).is_absolute():
+            raise ValueError(f"download path must be repository-relative: {root}")
     config = runtime or ContainerRuntimeConfig()
     host_resource_report = check_host_resources(
         ResourceRequirement(
@@ -359,6 +366,7 @@ def run_command_in_workspace(
                 worktree=worktree,
                 repository=repository,
                 download_files=download_files,
+                download_roots=download_roots,
                 downloaded=downloaded,
                 download_errors=download_errors,
                 config=config,
@@ -393,6 +401,44 @@ def run_command_in_workspace(
     )
 
 
+def _list_download_root_files(
+    workspace: Any,
+    *,
+    worktree: Path,
+    download_roots: tuple[str, ...],
+    config: ContainerRuntimeConfig,
+) -> tuple[list[str], str | None]:
+    """List downloadable artifacts under the declared download roots.
+
+    Returns the worktree-relative paths on success, or an error message when
+    the listing failed or found no artifacts (fail-closed).
+    """
+    names = " -o ".join(f"-name '{pattern}'" for pattern in DOWNLOAD_ROOT_FIND_NAMES)
+    excludes = " ".join(
+        f"-not -path '{pattern}'" for pattern in DOWNLOAD_ROOT_LISTING_EXCLUDES
+    )
+    listing = workspace.execute_command(
+        f"cd {worktree} && find {' '.join(shlex.quote(root) for root in download_roots)} -type f "
+        f"\\( {names} \\) {excludes} | LC_ALL=C sort",
+        cwd="/workspace",
+        timeout=config.docker_cli_timeout,
+    )
+    if listing.exit_code != 0 or bool(listing.timeout_occurred):
+        return [], (
+            "no artifacts found under download roots: "
+            f"{', '.join(download_roots)}"
+        )
+    files = [
+        line.strip() for line in (listing.stdout or "").splitlines() if line.strip()
+    ]
+    if not files:
+        return [], (
+            "no artifacts found under download roots: "
+            f"{', '.join(download_roots)}"
+        )
+    return files, None
+
+
 def _execute_and_download(
     workspace: Any,
     *,
@@ -401,6 +447,7 @@ def _execute_and_download(
     worktree: Path,
     repository: Path,
     download_files: tuple[str, ...],
+    download_roots: tuple[str, ...] = (),
     downloaded: list[Path],
     download_errors: list[str],
     config: ContainerRuntimeConfig,
@@ -432,9 +479,25 @@ def _execute_and_download(
             cwd="/workspace",
             timeout=config.command_timeout,
         )
+        listed: list[str] = []
+        listing_error: str | None = None
+        command_completed = result.exit_code != -1 and not bool(result.timeout_occurred)
+        if download_roots and command_completed:
+            listed, listing_error = _list_download_root_files(
+                workspace,
+                worktree=worktree,
+                download_roots=download_roots,
+                config=config,
+            )
+        effective_files = list(download_files)
+        for relative in listed:
+            if relative not in effective_files:
+                effective_files.append(relative)
         if result.exit_code == 0:
             try:
-                for relative in download_files:
+                if listing_error is not None:
+                    raise WorkspaceTransportError(listing_error)
+                for relative in effective_files:
                     destination = container_download_destination(repository, relative)
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     _download_with_retry(
@@ -460,7 +523,9 @@ def _execute_and_download(
             # declared outputs (partial artifacts, verdicts, logs) so the failure
             # can be diagnosed on the host. Missing files are recorded, and the
             # command exit code is preserved as the result.
-            for relative in download_files:
+            if listing_error is not None:
+                download_errors.append(listing_error)
+            for relative in effective_files:
                 destination = container_download_destination(repository, relative)
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 try:

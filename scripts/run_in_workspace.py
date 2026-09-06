@@ -118,6 +118,16 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Evidence-relative file to download after a successful run.",
     )
     parser.add_argument(
+        "--download-root",
+        dest="download_roots",
+        action="append",
+        metavar="PATH",
+        help=(
+            "repository-relative output root whose *.json and *.log artifacts "
+            "are downloaded after the run"
+        ),
+    )
+    parser.add_argument(
         "--health-check-timeout",
         type=float,
         default=DEFAULT_HEALTH_CHECK_TIMEOUT,
@@ -166,6 +176,8 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error("--cache-dir cannot be used with --local-provisional")
     if args.local_provisional and args.host_resource_report:
         parser.error("--host-resource-report cannot be used with --local-provisional")
+    if args.local_provisional and args.download_roots:
+        parser.error("--download-root cannot be used with --local-provisional")
     if not args.local_provisional and not args.image:
         parser.error("--image or ACD_CONTAINER_IMAGE is required")
     return args
@@ -177,7 +189,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         _prepare_cache_dir(args.cache_dir)
     try:
         defaults = None
-        if not args.download_files or not args.command:
+        if not (args.download_files or args.download_roots) or not args.command:
             graph_path = args.graph if args.graph.is_absolute() else args.repo / args.graph
             defaults = workspace_defaults(
                 load_workspace_graph(graph_path).graph_id, args.graph.parent
@@ -188,6 +200,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 download_files = tuple(args.download_files)
             elif defaults is not None:
                 download_files = defaults.download_files
+            elif args.download_roots:
+                download_files = ()
             else:
                 raise ValueError(
                     "download files must be explicit when the design graph is unknown"
@@ -210,6 +224,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 command=command,
                 repository=args.repo,
                 download_files=download_files,
+                download_roots=tuple(args.download_roots or ()),
                 cache_dir=args.cache_dir,
                 source=args.source,
                 runtime=ContainerRuntimeConfig(
