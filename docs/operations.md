@@ -835,6 +835,16 @@ uv pip install --force-reinstall "git+https://github.com/uist1idrju3i/acd-agent@
 pluginとscriptのpackage refはリリース時に整合させる。versionが分かれると、
 Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
+### 依存アップデートの確認
+
+[`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存（`pyproject.toml`と`uv.lock`）、`vendor/software-agent-sdk` submoduleのtag、`.github/workflows/*.yml`の`uses:`、`docker/acd-tools.Dockerfile`のバージョンARGの4面である。ローカルでは次のコマンドを実行する。
+
+```bash
+uv run python scripts/check_dependency_updates.py --markdown out/dependency-updates.md
+```
+
+SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajorに対応するrepositoryだけを確認し、新しいmajorのrepositoryへの移行は検出しない。KiCad、ngspice、Ubuntu base imageなどapt/PPA由来のパッケージは確認対象外であり、publish時のtools情報として`docker/image-digests.json`へ記録する。更新候補が無くなると、対応するIssueはworkflowが自動でcloseする。自動更新PRは作成せず、更新時は本書と`AGENTS.md`の手順に従う。
+
 ### リリース手順
 
 リリース前に、対象タグの作成・push権限とrulesetを確認する。タグ作成はrulesetで

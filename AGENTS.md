@@ -121,6 +121,8 @@ submodule版を更新する場合は、同じ変更で`pyproject.toml`のPyPI pi
 SDK機能の採否は`docs/openhands-sdk-capabilities.json`を単一の正とし、
 `docs/openhands-sdk-capabilities.md`は機械生成ブロックを含む説明文書とする。
 
+依存の更新確認は[`.github/workflows/check-dependency-updates.yml`](.github/workflows/check-dependency-updates.yml)（週次 + 手動）が`scripts/check_dependency_updates.py`で行い、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は`pyproject.toml`の直接依存（`uv.lock`の解決版）、`vendor/software-agent-sdk` submoduleのtag、`.github/workflows/*.yml`の`uses:`、`docker/acd-tools.Dockerfile`のバージョンARG。**依存を追加・削除・移動した場合、Dockerfileへ新しいバージョンARGを追加した場合、新しい外部取得元（PyPI以外、別のGitリポジトリ、apt/PPA等）を使い始めた場合は、同じ変更で`scripts/check_dependency_updates.py`の対象定義（Dockerfile ARG表など）とテスト、`docs/operations.md`の該当節を更新し、`uv run python scripts/check_dependency_updates.py`をローカルで実行して対象が漏れていないことを確認する。** 自動更新PRは作らず、更新は本節の手順に従って人手／Devinが行う。
+
 ファイルを削除・移動するときは、関連文書、索引、相対リンク、参照先を同じ変更で更新し、
 旧パスへの参照を残さない。
 
