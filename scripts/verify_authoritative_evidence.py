@@ -68,6 +68,7 @@ def verify(
     *,
     out_roots: Sequence[Path] = (),
     require_lanes: Sequence[str] = (),
+    source_revision: str | None = None,
 ) -> bool:
     """Return whether all supplied Evidence records support an authoritative pass."""
     for root in out_roots:
@@ -123,6 +124,32 @@ def verify(
         if evidence.envelope.has_unknown():
             print(f"FAIL: {path}: envelope contains unknown values", file=sys.stderr)
             return False
+        if not evidence.envelope.has_source_provenance():
+            print(
+                f"FAIL: {path}: source provenance missing (Evidence predates "
+                "source-tree recording; regenerate in the digest-locked "
+                "container)",
+                file=sys.stderr,
+            )
+            return False
+        if evidence.envelope.source_tree_state != "clean":
+            print(
+                f"FAIL: {path}: source tree "
+                f"state={evidence.envelope.source_tree_state!r}",
+                file=sys.stderr,
+            )
+            return False
+        if (
+            source_revision is not None
+            and evidence.envelope.source_revision != source_revision
+        ):
+            print(
+                f"FAIL: {path}: source revision mismatch "
+                f"(envelope={evidence.envelope.source_revision!r}, "
+                f"expected={source_revision!r})",
+                file=sys.stderr,
+            )
+            return False
         if not evidence.supports_authoritative_pass(target_revision):
             print(f"FAIL: {path}: authoritative pass is not supported", file=sys.stderr)
             return False
@@ -159,6 +186,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         metavar="NAME",
         help="require at least one evidence-<NAME>.json file (repeatable)",
     )
+    parser.add_argument(
+        "--source-revision",
+        dest="source_revision",
+        default=None,
+        metavar="SHA",
+        help=(
+            "when given, every envelope source_revision must equal this "
+            "git sha"
+        ),
+    )
     parser.add_argument("evidence", nargs="*", type=Path)
     args = parser.parse_args(argv)
     return (
@@ -169,6 +206,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.revision_from,
             out_roots=args.out_roots,
             require_lanes=args.require_lanes,
+            source_revision=args.source_revision,
         )
         else 1
     )

@@ -17,6 +17,12 @@ from openhands.sdk.workspace import LocalWorkspace
 from openhands.workspace import DockerWorkspace
 
 from acd.core.naming import artifact_prefix, required_evidence_ids
+from acd.core.source_tree import (
+    SOURCE_TREE_PATHS,
+    SourceProvenance,
+    collect_source_provenance,
+    source_provenance_env,
+)
 from acd.openhands.container_runtime import (
     ContainerRuntimeConfig,
     FailureKind,
@@ -112,6 +118,8 @@ class WorkspaceResult:
     # Declared downloads that could not be retrieved after a failed command.
     # They are recorded, never treated as success: the exit code stays failed.
     download_errors: tuple[str, ...] = ()
+    source_revision: str | None = None
+    source_tree_state: str | None = None
 
 
 class WorkspaceStartupError(RuntimeError):
@@ -264,6 +272,8 @@ def run_command_in_workspace(
     source: WorkspaceSource = "mounted",
     runtime: ContainerRuntimeConfig | None = None,
     sleep: Callable[[float], None] = time.sleep,
+    source_provenance: SourceProvenance | None = None,
+    allow_dirty: bool = False,
 ) -> WorkspaceResult:
     """Run one command in a DockerWorkspace using a resolved server digest.
 
@@ -272,6 +282,16 @@ def run_command_in_workspace(
     source, pipeline scripts, fixtures, and contracts baked into the locked
     image are used and no repository is mounted; a missing or incomplete bundle
     stops the run.
+
+    ``source_provenance`` records which git revision and tree state produced
+    the run; with ``source="mounted"`` it defaults to the observed state of
+    ``repository``. A dirty or unknown source tree is refused before the
+    container starts unless ``allow_dirty`` is given: dirty provenance is
+    recorded in every envelope so the authoritative verifier can reject it,
+    and unknown provenance never passes verification. With
+    ``source="bundled"`` no repository is mounted, so provenance is recorded
+    as unknown and bundled Evidence cannot pass the verifier until the image
+    bundle records its git sha.
 
     ``runtime`` declares the container bounds explicitly: health check timeout,
     platform, log streaming, memory limit, docker CLI timeout, and command
@@ -303,6 +323,37 @@ def run_command_in_workspace(
             failure_kind="resources",
             host_resource_report=host_resource_report,
         )
+    if source == "mounted":
+        if source_provenance is None:
+            source_provenance = collect_source_provenance(repository)
+    else:
+        source_provenance = SourceProvenance(
+            revision="unknown",
+            tree_state="unknown",
+            dirty_digest=None,
+            changed_paths=(),
+        )
+    if (
+        source == "mounted"
+        and source_provenance.tree_state != "clean"
+        and not allow_dirty
+    ):
+        if source_provenance.tree_state == "dirty":
+            detail = (
+                f"{len(source_provenance.changed_paths)} path(s) under "
+                f"{SOURCE_TREE_PATHS}"
+            )
+            preview = ", ".join(source_provenance.changed_paths[:5])
+            raise ValueError(
+                f"source tree is dirty ({detail}); commit the changes or pass "
+                "allow_dirty (CLI: --allow-dirty) to record provisional-only "
+                f"provenance: {preview}"
+            )
+        raise ValueError(
+            "source tree provenance is unknown; run from a git checkout or "
+            "pass allow_dirty (CLI: --allow-dirty) to record provisional-only "
+            "provenance"
+        )
     reference = resolve_image_digest(image, timeout=config.docker_cli_timeout)
     if reference is None:
         raise ValueError("server image digest could not be resolved; refusing to execute")
@@ -317,8 +368,13 @@ def run_command_in_workspace(
     previous_cache_environment = {
         name: os.environ.get(name) for name in cache_environment
     }
+    provenance_env = source_provenance_env(source_provenance)
+    previous_provenance_env = {
+        name: os.environ.get(name) for name in provenance_env
+    }
     os.environ["ACD_CONTAINER_IMAGE_DIGEST"] = reference.digest
     os.environ["ACD_IN_CONTAINER"] = "1"
+    os.environ.update(provenance_env)
     if cache_dir is not None:
         for name, value in cache_environment.items():
             os.environ[name] = value
@@ -328,7 +384,11 @@ def run_command_in_workspace(
     try:
         constructor_kwargs: dict[str, Any] = {
             "server_image": image,
-            "forward_env": ["ACD_CONTAINER_IMAGE_DIGEST", "ACD_IN_CONTAINER"],
+            "forward_env": [
+                "ACD_CONTAINER_IMAGE_DIGEST",
+                "ACD_IN_CONTAINER",
+                *provenance_env,
+            ],
             **config.workspace_kwargs(),
         }
         volumes: list[str] = []
@@ -386,6 +446,11 @@ def run_command_in_workspace(
                 os.environ.pop(name, None)
             else:
                 os.environ[name] = previous
+        for name, previous in previous_provenance_env.items():
+            if previous is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = previous
     return WorkspaceResult(
         digest=reference.digest,
         source=reference.source,
@@ -398,6 +463,8 @@ def run_command_in_workspace(
         ),
         host_resource_report=host_resource_report,
         download_errors=tuple(download_errors),
+        source_revision=source_provenance.revision,
+        source_tree_state=source_provenance.tree_state,
     )
 
 

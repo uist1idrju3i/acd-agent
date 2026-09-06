@@ -11,6 +11,7 @@ from typing import Any
 import pytest
 import scripts.run_in_workspace as runner_script
 
+from acd.core.source_tree import SourceProvenance
 from acd.openhands import workspace as workspace_module
 from acd.openhands.workspace import (
     ImageReference,
@@ -43,6 +44,18 @@ def pass_host_resource_preflight(
         return report
 
     monkeypatch.setattr(workspace_module, "check_host_resources", check_resources)
+
+    def clean_provenance(_repo: Path) -> SourceProvenance:
+        return SourceProvenance(
+            revision="b" * 40,
+            tree_state="clean",
+            dirty_digest=None,
+            changed_paths=(),
+        )
+
+    monkeypatch.setattr(
+        workspace_module, "collect_source_provenance", clean_provenance
+    )
 
 
 def _completed(stdout: str, returncode: int = 0) -> subprocess.CompletedProcess[str]:

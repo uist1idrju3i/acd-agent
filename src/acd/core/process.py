@@ -17,11 +17,11 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TypedDict, cast
 
 from acd.schema import ToolEnvelope
 from acd.schema.common import HashOrUnknown
-from acd.schema.tool_envelope import ConvergenceState
+from acd.schema.tool_envelope import ConvergenceState, SourceTreeState
 
 
 class ExternalToolError(RuntimeError):
@@ -91,6 +91,62 @@ def execution_provenance() -> tuple[Literal["container", "host", "unknown"], Has
             return "container", digest
         return "container", "unknown"
     return "host", None
+
+
+_SOURCE_GIT_SHA = re.compile(r"[0-9a-fA-F]{40}\Z")
+_SOURCE_TREE_STATES = frozenset({"clean", "dirty", "unknown"})
+
+
+def source_provenance() -> tuple[str | None, SourceTreeState | None, str | None]:
+    """Return the source-tree provenance forwarded into this process.
+
+    Inside a container the variables must be present and well formed; a
+    missing or malformed value degrades to ``("unknown", "unknown", None)``
+    so the produced envelope marks the provenance as unknown instead of
+    trusting a silent default. On the host, absent variables leave the fields
+    unset so host envelopes stay free of source claims they cannot back.
+    """
+    revision = os.getenv("ACD_SOURCE_GIT_SHA")
+    state = os.getenv("ACD_SOURCE_TREE_STATE")
+    digest = os.getenv("ACD_SOURCE_DIRTY_DIGEST")
+    if not _in_container():
+        if revision is None and state is None and digest is None:
+            return None, None, None
+        if revision is None or state is None:
+            return "unknown", "unknown", None
+    elif revision is None or state is None:
+        return "unknown", "unknown", None
+    if not _SOURCE_GIT_SHA.fullmatch(revision) and revision != "unknown":
+        return "unknown", "unknown", None
+    if state not in _SOURCE_TREE_STATES:
+        return "unknown", "unknown", None
+    if state == "dirty" and not _CONTAINER_DIGEST.fullmatch(digest or ""):
+        return "unknown", "unknown", None
+    if state == "clean" and digest is not None:
+        return "unknown", "unknown", None
+    if state == "unknown":
+        if digest not in {None, "unknown"}:
+            return "unknown", "unknown", None
+        return "unknown", "unknown", "unknown" if digest == "unknown" else None
+    return revision, cast(SourceTreeState, state), digest
+
+
+class SourceProvenanceFields(TypedDict):
+    """ToolEnvelope kwargs carrying the recorded source provenance."""
+
+    source_revision: str | None
+    source_tree_state: SourceTreeState | None
+    source_dirty_digest: str | None
+
+
+def source_provenance_fields() -> SourceProvenanceFields:
+    """Return the ToolEnvelope kwargs for the current source provenance."""
+    revision, state, digest = source_provenance()
+    return {
+        "source_revision": revision,
+        "source_tree_state": state,
+        "source_dirty_digest": digest,
+    }
 
 
 @dataclass(frozen=True)
@@ -171,6 +227,7 @@ def run_tool(
             execution_env=execution_env(),
             execution_context=context,
             container_image_digest=digest,
+            **source_provenance_fields(),
             measurement_conditions=measurement_conditions,
             convergence_state="timed_out",
             target_revision=target_revision,
@@ -212,6 +269,7 @@ def run_tool(
         execution_env=execution_env(),
         execution_context=context,
         container_image_digest=digest,
+        **source_provenance_fields(),
         measurement_conditions=measurement_conditions,
         convergence_state=convergence_state,
         target_revision=target_revision,
@@ -271,6 +329,7 @@ def run_in_process(
         execution_env=execution_env(),
         execution_context=context,
         container_image_digest=digest,
+        **source_provenance_fields(),
         measurement_conditions=measurement_conditions,
         convergence_state="converged",
         target_revision=target_revision,
