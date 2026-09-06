@@ -1428,6 +1428,44 @@ uv run python plugins/acd/skills/acd-product-docs/scripts/generate_instruction_m
 帰属表記は部品ごとのsymbol／footprintライブラリ出所と参照から生成し、
 外部ライブラリのライセンス表示と帰属を保持する。
 
+## テーマソングlane
+
+`acd-theme-song` Skillは、Design Graphから製品専用ジングルを決定論的に作曲し、
+Strudelパターン記法のテキスト（`theme-song.strudel.js`）とStandard MIDI File
+（`theme-song.mid`）を生成する（ADR-0048）。楽曲はL3成果物であり、合否権限を持たず、
+Evidenceにも製造提出用fab packageにも含めない。
+
+GD1基板pipeline（`gd1_board.py`）は視覚投影と同じstageで`theme-song-projection`を実行する。
+`src/acd/pipeline/theme_song.py`がSkill CLIをsubprocessで2回実行してMIDIとStrudelの
+byte一致（`regeneration_check=reproduced`）を確認し、provenanceのrevision・graph hash・
+出力hashを照合した上で、Gerber等と同様に`out/<board>/theme-song/theme-song.mid`、
+`theme-song/theme-song.strudel.js`と`theme-song-projection.json`（`ThemeSongProjection`、
+`record_class="L3"`、`pass_evidence=false`、Skill script sha256付き）を投影成果物として出力し、
+`hashes.json`へ登録する。MIDIはbinaryのためraw sha256で記録する。Skill不在、非零終了、
+2回の不一致、provenance不整合はpipelineをfail-closedで停止する。
+
+```bash
+uv run python plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --out-dir out/theme-song [--salt <text>] [--bars 16]
+uv run python plugins/acd/skills/acd-theme-song/scripts/validate_theme_song_proposal.py \
+  --graph fixtures/golden-design-1/graph.json \
+  --proposal <agent が提案した .strudel.js> \
+  --out-dir out/theme-song
+```
+
+seedは正規化graph JSONのhashとsaltから導出し、同一入力の再生成はbyte一致する。
+`theme-song.provenance.json`にはgraph_id、対象revision、入力hash、生成scriptのhash、
+出力hash、作曲パラメータ、`pass_evidence: false`、ライセンスを記録する。生成Strudelは
+自身のvalidatorを通し、生成MIDIは独立再読込でnote-on／note-offの対応を確認する。
+
+第2のscriptはL2経路であり、agentが提案したStrudelパターンを許可関数・許可音源・
+mini-notation文字・`setcps`の明示（92..140 bpm）・危険トークン不在・括弧整合で検査する。
+不合格は理由を列挙して停止し成果物を書かない。受理はパターンテキストの判定に限られる。
+
+Strudel本体（AGPL-3.0-or-later）はimport・bundle・実行しない。再生はユーザーが
+<https://strudel.cc>へ貼り付けるか、MIDIをDAWで開いて行う。
+
 ## 設計知識lane
 
 `acd-design-knowledge` Skillは、Design Graph、設計根拠record、ゲート結果、Evidence、

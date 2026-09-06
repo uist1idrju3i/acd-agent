@@ -31,3 +31,14 @@ ERC/DRC、routing、Gerber/drill、BOM/CPLの契約をACD固有の決定論的�
 
 LLMは要求分解、候補生成、観察、修正案に使い、配置・配線候補は幾何合法化とゲートで
 確認する。代理スコアや探索agentの出力だけで合格にしない。
+
+## algorithmic music (theme song)
+
+Strudel（TidalCyclesのJS移植、AGPL-3.0-or-later）、TidalCycles・FoxDot・Sardine・
+SuperCollider・ChucK（GPL）、Sonic Pi、Gibber・Glicol（MIT）、music21（BSD）、
+mido／pretty_midi、ACE-Step・YuE（Apache-2.0 GPU生成モデル）、MusicGen（重みCC-BY-NC）、
+Stable Audio Open（Community License）を比較した。GPL/AGPLのimport結合禁止、再現性、
+標準ライブラリ完結を満たすのは「Strudelパターン構文のテキスト生成 + 自前MIDI書き出し」
+だけであり、Strudelは結合せず公開構文だけを使う。LLM提案は許可関数・許可音源・
+危険トークンのwhitelist検査で受理判定し、幻覚関数名・未知sample名を停止側へ倒す
+（ADR-0048）。

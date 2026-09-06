@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import shutil
@@ -130,6 +131,7 @@ from acd.pipeline.stitch_candidate_evidence import (
     summarize_stitch_candidate_report,
     write_stitch_candidate_report,
 )
+from acd.pipeline.theme_song import generate_theme_song_projection
 from acd.pipeline.visual_projection import (
     crosscheck_electrical_visual_projections,
     crosscheck_firmware_visual_projections,
@@ -138,6 +140,7 @@ from acd.pipeline.visual_projection import (
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
+from acd.schema.theme_song import ThemeSongProjection
 from acd.schema.tool_envelope import ToolEnvelope
 from acd.schema.visual_crosscheck import VisualCrosscheckReport
 from acd.schema.visual_projection import (
@@ -1918,6 +1921,17 @@ def run_pipeline(
                     input_base_dir=repository_root(),
                 ),
             ),
+            (
+                "theme-song-projection",
+                partial(
+                    generate_theme_song_projection,
+                    project_name=name,
+                    repository=repository_root(),
+                    graph_path=fixture_dir / "graph.json",
+                    out_dir=out_dir,
+                    source_revision=revision,
+                ),
+            ),
         ),
         pipeline_workers,
     )
@@ -1930,6 +1944,10 @@ def run_pipeline(
     firmware_projection_set, firmware_crosscheck = cast(
         tuple[VisualProjectionSet, VisualCrosscheckReport],
         visual_stage_results[3],
+    )
+    theme_song_projection_path, theme_song_projection = cast(
+        tuple[Path, ThemeSongProjection],
+        visual_stage_results[4],
     )
     print(
         "[10/12] electrical visual projections recorded: "
@@ -1967,6 +1985,11 @@ def run_pipeline(
         f"(identity_hash={firmware_crosscheck.identity_hash}; "
         f"canonical_hash={firmware_crosscheck.canonical_hash})"
     )
+    print(
+        f"[11/12] theme song projection recorded: {theme_song_projection_path} "
+        f"({theme_song_projection.key}, {theme_song_projection.bpm} bpm; "
+        f"canonical_hash={theme_song_projection.canonical_hash})"
+    )
 
     hashes: dict[str, str] = {}
     hash_paths = [
@@ -1989,13 +2012,17 @@ def run_pipeline(
         *drill_paths,
         gbrjob_path,
         cpl_basis_path,
+        theme_song_projection_path,
+        *(out_dir / artifact.path for artifact in theme_song_projection.artifacts),
     ]
     for path in hash_paths:
-        hashes[str(path.relative_to(out_dir))] = (
-            zip_content_hash(path)
-            if path.suffix == ".zip"
-            else normalized_hash(path)
-        )
+        if path.suffix == ".zip":
+            content_hash = zip_content_hash(path)
+        elif path.suffix == ".mid":
+            content_hash = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+        else:
+            content_hash = normalized_hash(path)
+        hashes[str(path.relative_to(out_dir))] = content_hash
     manifest_path = out_dir / "hashes.json"
     manifest_path.write_text(
         json.dumps(hashes, indent=2, sort_keys=True) + "\n", encoding="utf-8"
