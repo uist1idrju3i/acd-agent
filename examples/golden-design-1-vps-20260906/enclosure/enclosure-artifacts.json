@@ -1,0 +1,35 @@
+{
+  "artifacts": [
+    {
+      "format": "STEP",
+      "normalized_sha256": "sha256:222d42cc17057cd7fbb2e798bc69a2b2abb5a7d1ccd9b65c767459acfc86f284",
+      "path": "enclosure-shell.step",
+      "role": "enclosure_shell"
+    },
+    {
+      "format": "STEP",
+      "normalized_sha256": "sha256:1e7578731289f8310dba3192e19316972a144d10ded244a35ef2aa4ae4d0da0f",
+      "path": "enclosure-lid.step",
+      "role": "enclosure_lid"
+    },
+    {
+      "format": "STEP",
+      "normalized_sha256": "sha256:c65d7763f06b43efef2a65c45c744cb084e8770feb82eea20714af4330e0b9e5",
+      "path": "enclosure-assembly.step",
+      "role": "enclosure_assembly"
+    },
+    {
+      "format": "3MF",
+      "normalized_sha256": "sha256:9795e153e70474abb286073c857c96298735e1b03b23ecfe77c5e5229783daa6",
+      "path": "enclosure.3mf",
+      "role": "enclosure_model"
+    },
+    {
+      "format": "STL",
+      "normalized_sha256": "sha256:022339f5639a9bd9f3a47a570ff7b27b0e2667205a5385d7a4ce2380d96e0c24",
+      "path": "enclosure.stl",
+      "role": "enclosure_mesh_stl"
+    }
+  ],
+  "schema_version": 1
+}

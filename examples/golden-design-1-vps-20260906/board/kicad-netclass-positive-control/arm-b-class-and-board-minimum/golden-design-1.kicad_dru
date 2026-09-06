@@ -1,0 +1,8 @@
+(rule "jlcpcb-via-hole-size"
+  (condition "A.Type == 'Via'")
+  (constraint hole_size (min 0.15mm))
+)
+(rule "jlcpcb-pth-annular-ring"
+  (condition "A.Type == 'Pad' && A.Pad_Type == 'Through-hole'")
+  (constraint annular_width (min 0.18mm))
+)

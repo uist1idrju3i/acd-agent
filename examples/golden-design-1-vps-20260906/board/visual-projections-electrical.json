@@ -1,0 +1,151 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "golden-design-1-b-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/golden-design-1.kicad_pcb",
+          "content_hash": "sha256:8261e3dd07f7857e0a912c6c89ada94227a801a75a8b4f860846e240b545c214"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "297.0022mm",
+        "height": "210.0072mm",
+        "view_box": [
+          0.0,
+          0.0,
+          297.0022,
+          210.0072
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:866aefd5126b48f856c7093588bbe6b4c6d17b669ac0d3fa7fb1803cf61a3374",
+      "generated_at": "2026-09-06T14:12:50.003128Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:866aefd5126b48f856c7093588bbe6b4c6d17b669ac0d3fa7fb1803cf61a3374",
+        "second_image_hash": "sha256:866aefd5126b48f856c7093588bbe6b4c6d17b669ac0d3fa7fb1803cf61a3374",
+        "reason": null
+      },
+      "image_path": "visual/golden-design-1-b-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "golden-design-1-f-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/golden-design-1.kicad_pcb",
+          "content_hash": "sha256:8261e3dd07f7857e0a912c6c89ada94227a801a75a8b4f860846e240b545c214"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "297.0022mm",
+        "height": "210.0072mm",
+        "view_box": [
+          0.0,
+          0.0,
+          297.0022,
+          210.0072
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:e680a20ecc7b0b9ab7c4146cae0f2f6fb929c4e4c99890a84f534625d82cfabd",
+      "generated_at": "2026-09-06T14:12:48.871132Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:e680a20ecc7b0b9ab7c4146cae0f2f6fb929c4e4c99890a84f534625d82cfabd",
+        "second_image_hash": "sha256:e680a20ecc7b0b9ab7c4146cae0f2f6fb929c4e4c99890a84f534625d82cfabd",
+        "reason": null
+      },
+      "image_path": "visual/golden-design-1-f-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "golden-design-1-schematic",
+      "projection_type": "schematic_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "golden-design-1.kicad_sch",
+          "content_hash": "sha256:96ba3bb9138a237c93bedb69a0f473197b5edb6c61e89df0c63bc7b0505f4df4"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "594.0044mm",
+        "height": "419.9890mm",
+        "view_box": [
+          0.0,
+          0.0,
+          594.0044,
+          419.989
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:6241555616e3f588b208830896b2d553fedbc5877c2e8718328a5677106d226d",
+      "generated_at": "2026-09-06T14:12:47.626597Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:6241555616e3f588b208830896b2d553fedbc5877c2e8718328a5677106d226d",
+        "second_image_hash": "sha256:6241555616e3f588b208830896b2d553fedbc5877c2e8718328a5677106d226d",
+        "reason": null
+      },
+      "image_path": "visual/golden-design-1-schematic.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:fbe8b68b3f187f9f87593c49d2f9d9c63fb919b44dcafd7d8c5617b7bcf1e4a2",
+  "canonical_hash": "sha256:2cf5bf14849c5562f5114995db1b5fc1d36a1ccc310933662d5ee273e33f1014"
+}

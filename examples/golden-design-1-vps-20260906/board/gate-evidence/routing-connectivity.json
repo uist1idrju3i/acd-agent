@@ -1,0 +1,168 @@
+{
+  "content_sha256": "sha256:a2c81334fb47816d05c1a566c46426c5ec4d7dd0bfd1a742c95e756b04a2bc32",
+  "gate": "routing_connectivity",
+  "message": "routing connectivity diagnostic observation; not gate authority",
+  "observation": {
+    "coordinate_decimal_places": 6,
+    "coordinate_tolerance_mm": 1e-06,
+    "net_count": 15,
+    "nets": [
+      {
+        "component_count": 1,
+        "net": "+3V3",
+        "pad_count": 10,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 24
+      },
+      {
+        "component_count": 1,
+        "net": "BOOT",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 5
+      },
+      {
+        "component_count": 1,
+        "net": "CC1",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 4
+      },
+      {
+        "component_count": 1,
+        "net": "CC2",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 3
+      },
+      {
+        "component_count": 1,
+        "net": "EN",
+        "pad_count": 4,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 9
+      },
+      {
+        "component_count": 1,
+        "net": "GND",
+        "pad_count": 41,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 1,
+        "wire_count": 90
+      },
+      {
+        "component_count": 1,
+        "net": "I2C_SCL",
+        "pad_count": 4,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 0,
+        "wire_count": 5
+      },
+      {
+        "component_count": 1,
+        "net": "I2C_SDA",
+        "pad_count": 4,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 9
+      },
+      {
+        "component_count": 1,
+        "net": "LED",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 3,
+        "wire_count": 8
+      },
+      {
+        "component_count": 1,
+        "net": "LED_A",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 0,
+        "wire_count": 3
+      },
+      {
+        "component_count": 1,
+        "net": "UART_RX",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 4
+      },
+      {
+        "component_count": 1,
+        "net": "UART_TX",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 3
+      },
+      {
+        "component_count": 1,
+        "net": "USB_D+",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 8
+      },
+      {
+        "component_count": 1,
+        "net": "USB_D-",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 6
+      },
+      {
+        "component_count": 1,
+        "net": "VBUS_5V",
+        "pad_count": 7,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 0,
+        "wire_count": 7
+      }
+    ],
+    "router_convergence_state": "converged",
+    "router_measurement_mismatch": false,
+    "status": "pass"
+  },
+  "schema_version": "0.1",
+  "status": "pass",
+  "target_revision": "r1"
+}

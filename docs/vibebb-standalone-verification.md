@@ -1019,6 +1019,8 @@ installed pluginを`main`先頭へ更新したうえで新規workspaceを作成�
 `/acd:init`と`/acd:vibebb-loop`、digest固定container経路（L1）のGD1全lane、
 1秒間隔の資源計測、FreeRoutingの多コア再評価を行った記録である。閾値、ゲート挙動、
 fail-closed境界、L1権限は変更していない。
+生成物、会話ログ、資源sample、分析レポートは
+[`examples/golden-design-1-vps-20260906/`](../examples/golden-design-1-vps-20260906/)に収録した。
 
 ### 14.1 条件
 

@@ -1,0 +1,16 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "content_sha256": "sha256:f900b2ac7f3feaf86c492dda1b11ca5b8f5c940eda8198e89927220a0c98b1eb",
+  "exploration_rounds": null,
+  "failed_stage": null,
+  "failure_reason": null,
+  "graph_id": "golden-design-1",
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": null,
+  "ok": true,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "timing_record": "out/verify-20260906-fix/timing-record.json"
+}

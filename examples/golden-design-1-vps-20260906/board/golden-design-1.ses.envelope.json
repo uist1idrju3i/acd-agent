@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "tool_name": "freerouting",
+  "tool_version": "2.4.1",
+  "format_version": "specctra-dsn/ses",
+  "config_hash": "sha256:cf7c19fb7b7cd4adddd4fad804cc89793edccbcff2d2892613ab6af0505b69ef",
+  "input_hash": "sha256:b8373026a9ad49545b5aff52db3d973279dc49d14e8ed861c62d4e9eda513118",
+  "output_hash": "sha256:ea004fc125ccf468231bb3cc6a230f0aeedcf89c1370dccfd55c2603901b3982",
+  "execution_env": "linux-x86_64; container=sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae",
+  "execution_context": "container",
+  "container_image_digest": "sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae",
+  "measurement_conditions": "headless; max 100 passes; max heap 2g; implicit router threads (cpu_count-1)",
+  "convergence_state": "converged",
+  "target_revision": "r1",
+  "started_at": "2026-09-06T14:09:24.668200Z",
+  "finished_at": "2026-09-06T14:12:22.785962Z",
+  "exit_code": 0,
+  "idempotency_key": null,
+  "uncertainty": null
+}

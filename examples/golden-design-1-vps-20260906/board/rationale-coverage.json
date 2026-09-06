@@ -1,0 +1,19 @@
+{
+  "status": "pass",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "graph_id_match": true,
+  "revision_match": true,
+  "missing": [],
+  "stale": [],
+  "unknown_provenance": [],
+  "orphan": [],
+  "untraceable": [],
+  "conflicting": [],
+  "unclassified": [],
+  "templated": [],
+  "generator_violations": [],
+  "required_count": 673,
+  "covered_count": 673,
+  "record_count": 70
+}

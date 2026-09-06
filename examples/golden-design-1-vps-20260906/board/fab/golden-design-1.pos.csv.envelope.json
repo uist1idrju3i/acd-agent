@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "tool_name": "kicad-cli",
+  "tool_version": "10.0.6",
+  "format_version": "KiCad position CSV",
+  "config_hash": "sha256:7176aad3dc2722b3dc52ef07ba47c41a3b63d8a412666b6edd4b521e71ad63c0",
+  "input_hash": "sha256:ad491f1018c218e0eb90bc72543d111c2808dba218d1e6219565d1fa8a9a799e",
+  "output_hash": "sha256:0896bb057483ae5e4b548fb2697cab2e965cd921f1df9f30843e0c5277866625",
+  "execution_env": "linux-x86_64; container=sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae",
+  "execution_context": "container",
+  "container_image_digest": "sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae",
+  "measurement_conditions": "csv; mm; both sides; exclude DNP; shared board origin",
+  "convergence_state": "not_applicable",
+  "target_revision": "r1",
+  "started_at": "2026-09-06T14:12:31.623801Z",
+  "finished_at": "2026-09-06T14:12:32.049589Z",
+  "exit_code": 0,
+  "idempotency_key": null,
+  "uncertainty": null
+}
