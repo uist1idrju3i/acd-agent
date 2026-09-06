@@ -1112,11 +1112,28 @@ wrapperと同一のoption列での確認実行は76.2秒／RSS 344.9 MB／peak h
 unrecognized option警告は無く、SES hashも一致した。baseline比でwallは約22%短縮、
 peak RSSは約70%削減である。
 
-多コア・大RAMのVPS相当環境は未測定である。この節の測定はすべて2コア・7GBのVMで
-取得した。`-Xtune:footprint`はメモリ使用量最小化を優先する設定であるため、高性能VPSへ
-移行する場合は`FREEROUTING_JVM_TUNING`の再評価が必要になり得る。CPU数・RAMの増加には
-`-mt`暗黙継承、`UseContainerSupport`、`AdaptiveGCThreading`、`FREEROUTING_MAX_HEAP`で
-追従する。
+上の測定はすべて2コア・7GBのVMで取得した。多コア環境については、12コア／30 GiBの
+実機OpenHands VPS上のdigest固定server image
+`ghcr.io/uist1idrju3i/acd-server@sha256:26ac3a2ee8c7fa3fd8f7e43cba61baefdff72540775d06cc739f1042115251ae`
+で、GD1 loopが生成したDSN（SHA-256 `94b8677d…d181`）を`-mp 100`・`-Xmx2g`で
+再評価した（2026-09-06、各n=1、container内で他laneは走らせない単独実行）。
+全構成でSES SHA-256は`808ee9658df69b3f6aeddb827caf885d6592dd0afa6e8a2b01579bce715897d9`
+に一致し、unrouted 0、optimizerは改善率1%未満で停止した。
+
+| 構成 | wall |
+|------|-----:|
+| `-Xtune:footprint`、`-mt`暗黙（出荷設定） | 157.8秒 |
+| `-Xtune:footprint`、`-mt 1` | 156.3秒 |
+| `-Xtune:virtualized`、`-mt`暗黙 | 162.8秒 |
+| `-Xtune:virtualized`、`-mt 1` | 160.2秒 |
+
+`-mt`の暗黙継承（11 threads）と`-mt 1`の差は1%以内、`-Xtune:virtualized`は3%遅い。
+FreeRoutingのwall-clockはrouter threadsにもJVM tuningにも実質依存せず、出荷設定
+（`-Xtune:footprint`、`-mt`暗黙継承）を多コア環境でも維持する。同じDSNをGD1 loop内で
+FW・筐体laneと同時に実行した`board[3/12]`は180〜183秒であり、単独実行との差
+（約15%）は他laneとのCPU競合による。FreeRoutingの所要時間を短縮するには
+`-mp`やoptimizer閾値のようにSES出力自体を変える設定に触る必要があり、
+それは正規化hashと判定に影響するため速度目的では変更しない。
 
 #### 最小ホスト要件（O-2）
 
