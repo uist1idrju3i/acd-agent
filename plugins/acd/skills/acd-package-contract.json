@@ -97,7 +97,7 @@
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py",
-      "sha256": "28e2ee6bb1be35dca84bfb7243eb7357c594e53889b9b4d62a91ac9f53537707"
+      "sha256": "4590c3980233a828c6862b124992a0134cc27657f5189da787614130d489e4e5"
     },
     {
       "acd_symbols": [
