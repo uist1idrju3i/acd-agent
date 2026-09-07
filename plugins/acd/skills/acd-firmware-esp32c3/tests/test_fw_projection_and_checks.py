@@ -714,6 +714,7 @@ def test_dual_led_button_project_renders(
     assert_header_matches_lane(header, lane)
     assert "GPIO_PULLUP_ENABLE" in source
     assert "gpio_get_level(ACD_PIN_BUTTON)" in source
+    assert "int prev_button = gpio_get_level(ACD_PIN_BUTTON);" in source
     assert "gpio_set_level(ACD_PIN_LED2, !led_state)" in source
     assert 'ESP_LOGI(TAG, "LED2 gpio=%d state=%d"' in source
     assert 'ESP_LOGI(TAG, "button gpio=%d paused=%d"' in source

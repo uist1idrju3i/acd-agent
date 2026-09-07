@@ -290,9 +290,13 @@ def _render_main_source(
             [
                 "    int led_state = 0;",
                 *(
+                    # A held-low input at boot must not read as a press:
+                    # seed prev_button from the pin so only a real
+                    # high-to-low edge toggles paused. QEMU floats the
+                    # input low, so the virtual run never pauses.
                     [
                         "    int paused = 0;",
-                        "    int prev_button = 1;",
+                        "    int prev_button = gpio_get_level(ACD_PIN_BUTTON);",
                     ]
                     if has_button
                     else []
