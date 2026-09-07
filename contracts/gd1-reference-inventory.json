@@ -13,7 +13,7 @@
     {
       "path": ".github/workflows/ci.yml",
       "purpose": "positive_control",
-      "reference_lines": 13,
+      "reference_lines": 12,
       "note": "container-gates GD1 positive-control lane and its Evidence verification, alongside the non-GD1 lane."
     },
     {
