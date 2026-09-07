@@ -29,11 +29,35 @@ WRITE_COMMANDS = frozenset(
 )
 SHELL_COMMANDS = frozenset({"bash", "sh", "zsh", "dash"})
 INLINE_INTERPRETERS = frozenset({"python", "python3", "perl", "node", "ruby"})
+READ_ONLY_COMMANDS = frozenset(
+    {
+        "cat", "grep", "egrep", "fgrep", "rg", "head", "tail", "less",
+        "more", "wc", "ls", "stat", "file", "diff", "cmp", "md5sum",
+        "sha1sum", "sha256sum", "jq", "sort", "uniq", "cut", "tr", "echo",
+        "printf", "test", "[", "true", "false", "du", "tree", "realpath",
+        "readlink", "basename", "dirname", "strings", "hexdump", "xxd",
+        "od", "nl", "tac", "column",
+    }
+)
 REDIRECTS = frozenset({">", ">>", "2>", "&>", ">|"})
 SEPARATORS = frozenset({";", "&&", "||", "|", "&"})
 MAX_NESTING_DEPTH = 4
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _UNSUPPORTED_SYNTAX = re.compile(r"\$\(|`|<\(|>\(|[(){}]")
+_COMMAND_SUBSTITUTION = re.compile(r"\$\(|`|<\(|>\(")
+_HEREDOC = re.compile(
+    r"(?<!<)<<-?(?!<)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1"
+)
+_INLINE_WRITE_INDICATOR = re.compile(
+    r"\b(?:write_text|write_bytes|unlink|rmtree|rename|replace|remove|"
+    r"removedirs|rmdir|mkdir|makedirs|touch|chmod|chown|copy|copy2|copyfile|"
+    r"copytree|move|system|subprocess|popen|Popen|exec|eval|__import__|"
+    r"importlib|truncate|symlink|link|dump|dumps|to_csv|to_json|save|savefig|"
+    r"writeFile|writeFileSync|unlinkSync|renameSync|rmSync|child_process|"
+    r"execSync|spawn)\b"
+    r"|open\([^)]*['\"][rb]*[wax+][rbt+]*['\"]"
+    r"|open\([^)]*\bmode\s*="
+)
 _INLINE_PATH = re.compile(
     r"(?<![\w-])"
     r"(?:(?:[A-Za-z0-9_.-]+/)*(?:out|evidence)(?:/[A-Za-z0-9_.-]+)+|"
@@ -111,6 +135,57 @@ def input_paths(tool_input: Any, tool: str) -> list[str]:
     return values
 
 
+def _split_heredocs(command: str) -> tuple[str, dict[str, str]] | None:
+    """Extract heredoc bodies so they are not parsed as commands.
+
+    Returns the command with each `<<[-]WORD` operator replaced by a
+    `__acd_heredoc_N__` placeholder token and a mapping of placeholder to
+    body text. Returns None on an unterminated heredoc.
+    """
+    if "<<" not in command:
+        return command, {}
+    lines = command.splitlines()
+    output: list[str] = []
+    bodies: dict[str, str] = {}
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        index += 1
+        pending = list(_HEREDOC.finditer(line))
+        if not pending:
+            output.append(line)
+            continue
+        # Rebuild the line with operators replaced by placeholder tokens.
+        rebuilt: list[str] = []
+        cursor = 0
+        operators: list[tuple[str, bool, str]] = []
+        for match in pending:
+            rebuilt.append(line[cursor:match.start()])
+            delimiter = match.group(2)
+            strip_tabs = match.group(0).startswith("<<-")
+            placeholder = f"__acd_heredoc_{len(bodies)}__"
+            rebuilt.append(placeholder)
+            operators.append((delimiter, strip_tabs, placeholder))
+            cursor = match.end()
+        rebuilt.append(line[cursor:])
+        output.append("".join(rebuilt))
+        for delimiter, strip_tabs, placeholder in operators:
+            body: list[str] = []
+            closed = False
+            while index < len(lines):
+                candidate = lines[index]
+                index += 1
+                normalized = candidate.lstrip("\t") if strip_tabs else candidate
+                if normalized == delimiter:
+                    closed = True
+                    break
+                body.append(candidate)
+            if not closed:
+                return None
+            bodies[placeholder] = "\n".join(body)
+    return "\n".join(output), bodies
+
+
 def _tokenize(command: str) -> list[str] | None:
     if "\x00" in command:
         return None
@@ -155,7 +230,9 @@ def _simple_commands(tokens: list[str]) -> list[list[str]] | None:
         else:
             current.append(token)
     if not current:
-        return None
+        # An escaped `;` (e.g. find -exec terminator) loses its escape and
+        # becomes a separator; a trailing separator runs nothing further.
+        return commands if commands else None
     commands.append(current)
     return commands
 
@@ -292,11 +369,21 @@ def _write_targets(tokens: list[str], command: str) -> list[str]:
     if command in {"rm", "rmdir", "touch", "chmod", "chown", "truncate", "patch"}:
         return _non_option_values(tokens, skip_value_options=frozenset())
     if command in {"cp", "mv", "ln", "install"}:
+        targets: list[str] = []
+        for position, token in enumerate(tokens):
+            if token in {"-t", "--target-directory"} and position + 1 < len(tokens):
+                targets.append(tokens[position + 1])
+            elif token.startswith("--target-directory="):
+                targets.append(token.split("=", 1)[1])
         values = _non_option_values(
             tokens,
             skip_value_options=frozenset({"-t", "--target-directory", "-T"}),
         )
-        return values[-1:] if values else []
+        if command == "mv":
+            targets.extend(values)
+        else:
+            targets.extend(values[-1:] if values else [])
+        return targets
     if command == "dd":
         return [
             value.split("=", 1)[1]
@@ -415,10 +502,18 @@ def _inline_code(tokens: list[str], index: int) -> str | None:
 
 
 def _check_inline_code(code: str, root: Path) -> bool:
-    return not _protected_references(code, root)
+    return not (
+        _protected_references(code, root)
+        and _INLINE_WRITE_INDICATOR.search(code) is not None
+    )
 
 
-def _check_simple(tokens: list[str], root: Path, depth: int) -> bool:
+def _check_simple(
+    tokens: list[str],
+    root: Path,
+    depth: int,
+    heredocs: dict[str, str],
+) -> bool:
     redirections = _redirection_targets(tokens)
     if redirections is None:
         return False
@@ -436,16 +531,19 @@ def _check_simple(tokens: list[str], root: Path, depth: int) -> bool:
         nested_tokens = _tokenize(nested)
         nested_commands = _simple_commands(nested_tokens) if nested_tokens is not None else None
         return nested_commands is not None and all(
-            _check_simple(command, root, depth + 1) for command in nested_commands
+            _check_simple(command, root, depth + 1, heredocs)
+            for command in nested_commands
         )
     code = _inline_code(tokens, index)
-    if code is not None and not _check_inline_code(code, root):
-        return False
+    if code is not None:
+        return _check_inline_code(code, root)
     command = Path(tokens[index]).name
     if command == "xargs":
         return not _protected_references(" ".join(tokens), root) and (
             not _xargs_command(tokens[index + 1:])
-            or _check_simple(_xargs_command(tokens[index + 1:]), root, depth)
+            or _check_simple(
+                _xargs_command(tokens[index + 1:]), root, depth, heredocs
+            )
         )
     if command == "find":
         roots, inner_commands = _find_write_targets(tokens[index + 1:])
@@ -458,12 +556,45 @@ def _check_simple(tokens: list[str], root: Path, depth: int) -> bool:
             return True
         if any(_protected_write(value, root) for value in roots):
             return False
-        return all(_check_simple(inner, root, depth) for inner in inner_commands)
+        return all(
+            _check_simple(inner, root, depth, heredocs) for inner in inner_commands
+        )
     if command == "eval" and _protected_references(" ".join(tokens[index + 1:]), root):
         return False
-    if _UNSUPPORTED_SYNTAX.search(" ".join(tokens)) and _protected_references(
-        " ".join(tokens), root
-    ):
+    for position, token in enumerate(tokens):
+        body = heredocs.get(token)
+        if body is None:
+            continue
+        if command in SHELL_COMMANDS:
+            if depth >= MAX_NESTING_DEPTH:
+                return False
+            body_tokens = _tokenize(body)
+            body_commands = (
+                _simple_commands(body_tokens) if body_tokens is not None else None
+            )
+            if body_commands is None or not all(
+                _check_simple(item, root, depth + 1, heredocs)
+                for item in body_commands
+            ):
+                return False
+        elif command in INLINE_INTERPRETERS or command in {"eval", "xargs"}:
+            if not _check_inline_code(body, root):
+                return False
+        tokens[position] = "-"
+    joined = " ".join(tokens)
+    # `<` and `>` are tokenized as separate punctuation, so `<(`/`>(` appear as
+    # a redirect-looking token followed by a `(`-led token rather than one word.
+    has_substitution = _COMMAND_SUBSTITUTION.search(joined) is not None or any(
+        token.endswith(("<", ">"))
+        and position + 1 < len(tokens)
+        and tokens[position + 1].startswith("(")
+        for position, token in enumerate(tokens)
+    )
+    if has_substitution and _protected_references(joined, root):
+        return False
+    if command in READ_ONLY_COMMANDS:
+        return True
+    if _UNSUPPORTED_SYNTAX.search(joined) and _protected_references(joined, root):
         return False
     if command not in WRITE_COMMANDS:
         return True
@@ -474,7 +605,13 @@ def _check_simple(tokens: list[str], root: Path, depth: int) -> bool:
 
 
 def _terminal_allowed(command: str, root: Path) -> bool:
-    tokens = _tokenize(command)
+    if command.strip() == "":
+        return True
+    split = _split_heredocs(command)
+    if split is None:
+        return False
+    text, heredocs = split
+    tokens = _tokenize(text)
     commands = _simple_commands(tokens) if tokens is not None else None
     if commands is not None and any(
         _command_index(item) < len(item)
@@ -482,7 +619,9 @@ def _terminal_allowed(command: str, root: Path) -> bool:
         for item in commands
     ) and _protected_references(command, root):
         return False
-    return commands is not None and all(_check_simple(item, root, 0) for item in commands)
+    return commands is not None and all(
+        _check_simple(item, root, 0, heredocs) for item in commands
+    )
 
 
 def _patch_paths(value: str) -> list[str]:
