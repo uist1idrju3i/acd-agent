@@ -1346,12 +1346,12 @@ router収束の壁とFW capability契約は引き続き残る。）
 | Y-3 | library hashのpinを試行錯誤で埋める経路が無い（D-3） | 解消（`scripts/pin_library_hashes.py`でdigestを採取・specへ記入する後続変更） |
 | Y-4 | `strapping_pin`がnet名`"LED"`固定で複数LED駆動netを評価できない（D-4） | 本変更で解消（宣言済み`led_drive_net`ベースへ一般化） |
 | Y-5 | 安全境界やenumの許容値がpreflightから見えず、agentがGD1の値を写す（D-5） | 解消（`declaration_vocabulary.py`と`lane-preflight`の`unsupported_values` code、および`docs/design-fixture-spec.md`の許容値表による後続変更） |
-| Y-6 | FW capability契約が複数LED・入力を表現できず、要件driftがfail-closedにならない（D-6／F-4） | 未解消 |
+| Y-6 | FW capability契約が複数LED・入力を表現できず、要件driftがfail-closedにならない（D-6／F-4） | 解消（PR #338で`check_firmware_coverage`による被覆検査をfail-closed追加） |
 | Y-7 | silkscreen resolveが未宣言位置を後段へ流す（D-7） | 解消（`resolved`以外のstatusを未解決text名つきでfail-closedへ倒す後続変更） |
-| Y-8 | router非収束時に`loop-summary`へunrouted数・原因が出ない（D-8） | 未解消 |
+| Y-8 | router非収束時に`loop-summary`へunrouted数・原因が出ない（D-8） | 解消（`router_diagnostics`／`candidate_router_diagnostics`のL3診断追加による後続変更） |
 | Y-9 | decoupling_targetの多ピン対象の意味が文書化されていない（D-9） | 解消（自然順最小padへの決定論的解決と`target_pad_candidates`記録、`design-fixture-spec.md`への記載による後続変更） |
-| Y-10 | `is_design_input`が`src/`を検出せず、Evidenceにsource-treeのgit SHA／dirty状態が無い（D-10／F-3） | 未解消 |
-| Y-11 | FW capability契約（`firmware_init`・`led_blink`・`i2c_sensor_init`・`i2c_sensor_read`・`serial_log`、単一LED・入力無し）が2LED交互点滅・ボタンを表現できない（D-11） | 未解消 |
+| Y-10 | `is_design_input`が`src/`を検出せず、Evidenceにsource-treeのgit SHA／dirty状態が無い（D-10／F-3） | 解消（PR #337でsource provenanceをToolEnvelopeへ追加しverifierが拒否） |
+| Y-11 | FW capability契約（`firmware_init`・`led_blink`・`i2c_sensor_init`・`i2c_sensor_read`・`serial_log`、単一LED・入力無し）が2LED交互点滅・ボタンを表現できない（D-11） | 解消（PR #340で`led2_blink`・`button_input` capabilityとpin role `led2`・`button`を追加） |
 
 併せてhook（projection保護）の誤検出（empty pollや読み取り系commandの拒否、N-3・N-6・
 N-8）、`verify_acd_tool_registration.py --check`が実行されない手順上の不徹底（N-5）、
