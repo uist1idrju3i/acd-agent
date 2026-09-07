@@ -1339,7 +1339,7 @@ router収束の壁・非front筐体開口・FW capability契約は未解消と�
 |---|---|---|
 | Y-1 | `order-total document is required`が`--design-only`を指さず、agentが捏造documentへ倒れる（D-1／F-1） | 本変更で解消（メッセージと`vibebb-loop.md`を修正） |
 | Y-2 | rationale coverage失敗が詳細を返さず、agentがsourceをinstrumentする（D-2／F-2） | 未解消 |
-| Y-3 | library hashのpinを試行錯誤で埋める経路が無い（D-3） | 未解消 |
+| Y-3 | library hashのpinを試行錯誤で埋める経路が無い（D-3） | 解消（`scripts/pin_library_hashes.py`でdigestを採取・specへ記入する後続変更） |
 | Y-4 | `strapping_pin`がnet名`"LED"`固定で複数LED駆動netを評価できない（D-4） | 本変更で解消（宣言済み`led_drive_net`ベースへ一般化） |
 | Y-5 | 安全境界やenumの許容値がpreflightから見えず、agentがGD1の値を写す（D-5） | 未解消 |
 | Y-6 | FW capability契約が複数LED・入力を表現できず、要件driftがfail-closedにならない（D-6／F-4） | 未解消 |

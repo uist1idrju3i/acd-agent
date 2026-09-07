@@ -580,6 +580,24 @@ fixtureの回帰例は、既存predicateだけを使う。充電・保護回路�
 新規fixtureをspecから生成する場合は、`--fixture-spec`を追加する。fixtureに既存の
 `graph.json`がある場合は上書きせずfail-closedで停止する。
 
+specの`components[].attrs`でlibrary宣言（`symbol_file`／`footprint_file`）を
+直接pinする場合、`symbol_sha256`／`footprint_sha256`は対象fileのbyte列を
+`sha256:<64 hex>`でhashした値である。digest固定containerのKiCad資材
+（`/usr/share/kicad/symbols`、`/usr/share/kicad/footprints`）への宣言は、
+`scripts/pin_library_hashes.py`をcontainer内で実行して採取・記入する。
+
+```bash
+uv run python scripts/pin_library_hashes.py --spec <spec.json>          # 照合のみ
+uv run python scripts/pin_library_hashes.py --spec <spec.json> --write  # specへ記入
+```
+
+出力は`refdes・kind・file・declared・computed・state`（`match`・`mismatch`・
+`unpinned`・`missing`）の表である。file不在（hostで`/usr/share/kicad`が無い等）は
+`missing`として非ゼロ終了し、lock済みimage内での実行を案内する。`--write`無しで
+`mismatch`・`unpinned`が残る場合も非ゼロ終了とし、`--library-root`で相対宣言の
+解決先を`libraries/`canonical store以外へ切り替えられる。宣言契約とhash検査は
+変更しない。
+
 cache・resume・lane並列を有効にする場合は、次のように指定する。
 
 ```bash
