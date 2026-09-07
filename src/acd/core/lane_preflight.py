@@ -10,7 +10,7 @@ mean that the lane gates pass or that the design is ready for ordering.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final
 
 from acd.core.declaration_vocabulary import (
     NET_WIDTH_BASIS,
@@ -18,6 +18,9 @@ from acd.core.declaration_vocabulary import (
     SAFETY_BOUNDARY_INTENDED_USE,
     SAFETY_BOUNDARY_MODULE_CERTIFIED,
 )
+from acd.core.electrical import GraphExtractionError
+from acd.core.firmware_capability import load_firmware_capability_registry
+from acd.core.firmware_coverage import check_firmware_coverage
 from acd.schema.design_graph import DesignGraph
 from acd.schema.lane_preflight import (
     LanePreflightLaneReport,
@@ -436,7 +439,40 @@ def _lane_report(
         missing_nodes=missing_nodes,
         missing_attrs=missing_attrs,
         unsupported_values=unsupported_values,
+        firmware_coverage=(
+            _firmware_coverage_diagnostic(graph)
+            if lane == "firmware-pipeline"
+            else None
+        ),
     )
+
+
+def _firmware_coverage_diagnostic(graph: DesignGraph) -> dict[str, Any] | None:
+    """Evaluate firmware coverage for the preflight diagnostic surface.
+
+    Only a graph that declares ``firmware.module`` is covered at all; a
+    registry load failure or an extraction failure degrades the entry to
+    ``"unknown"`` — it is never recorded as a pass it did not earn.
+    """
+    if not any(node.kind == "firmware.module" for node in graph.nodes):
+        return None
+    try:
+        registry = load_firmware_capability_registry()
+    except Exception as exc:  # diagnostic degrades to "unknown", never raises
+        return {
+            "status": "unknown",
+            "reason": f"firmware capability registry could not be loaded: {exc}",
+            "findings": [],
+        }
+    try:
+        report = check_firmware_coverage(graph, registry.document)
+    except GraphExtractionError as exc:
+        return {
+            "status": "unknown",
+            "reason": f"firmware lane extraction failed: {exc}",
+            "findings": [],
+        }
+    return report.to_dict()
 
 
 def run_lane_preflight(

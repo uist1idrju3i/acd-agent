@@ -61,6 +61,10 @@ when a tool is missing; tests that need the tools skip instead.
 - Firmware capability, pin-role ordering, and device parameters come from
   `contracts/firmware-capability-registry.json` plus graph sequence steps.
   A peripheral absent from the graph declaration is not projected.
+  The registered pin roles include `led`, `led2`, and `button`; `led2_blink`
+  (`toggle_led2`) drives a second LED in antiphase to `led`, and `button_input`
+  (`read_button`, emitting `button_pressed`) pauses and resumes the blink on
+  an active-low input with the internal pull-up. Both require `led_blink`.
 - A QEMU log is virtual verification. It never counts as real-device
   measurement evidence; state real-device measurement as unavailable when no
   probe is attached.

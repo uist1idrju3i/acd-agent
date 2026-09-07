@@ -247,7 +247,9 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 診断codeの語彙は次の一覧に固定する（O-5と共有する）。
 `mechanical.node.missing`、`mechanical.node.duplicated`、
 `mechanical.attribute.missing`、`mechanical.attribute.invalid`、
-`mechanical.reference.unresolved`、`mechanical.extraction.failed`、
+`mechanical.reference.unresolved`、
+`mechanical.connector_opening.face_unsupported`（`face`が
+`front`・`back`・`left`・`right`以外の値）、`mechanical.extraction.failed`、
 `rationale.coverage.missing`、`rationale.coverage.stale`、
 `rationale.coverage.orphan`、`rationale.coverage.conflicting`、
 `rationale.coverage.unknown_provenance`、`rationale.coverage.untraceable`、
@@ -291,6 +293,19 @@ template固有netとshared netの衝突、未知block、重複宣言、template�
 FW capability registryは`contracts/firmware-capability-registry.json`を正とし、
 firmware sequenceのaction、pin role、device parameterから生成対象を解決する。未宣言の
 peripheralは投影せず、registryの欠落・schema違反・解決不能はfail-closedにする。
+capabilityは`emits_triggers`で発火できるstate transition triggerを宣言し、
+`check_firmware_coverage`が要件→`fw.sequence`の被覆をgraphとregistryだけから
+fail-closedで検査する。`led_indicator`部品がsequence stepのtargetでない、sequenceが
+使うcapabilityの`emits_triggers`外のtrigger、登録外pin role、未登録actionはいずれも
+FW laneのSkill起動前に`FirmwareLaneError`で停止し、検査結果は
+`firmware-coverage.json`とpreflightの`firmware_coverage`へL3診断として残る。
+pin roleは`led`・`led2`・`button`を含み、`led2_blink`（`toggle_led2`）は第2 LEDを
+`led`と逆位相で点滅させ、`button_input`（`read_button`、trigger `button_pressed`を発火）は
+内部pull-up付きactive-low入力を押下検出して点滅をpause／resumeする。どちらも
+`led_blink`を前提とし、LED actionの`target`は`led_drive_net`が対応role（`net.led`／
+`net.led2`）のFW pinへ解決する電気部品でなければfail-closedとなる。QEMU仮想ログ検査は
+`LED2 gpio=… state=`の両状態toggleを要求し、仮想runでbuttonは押されないため
+`paused=1`の出現を拒否する。
 
 部品entryは`register_part_catalog_entry.py`または
 `acd_register_parts_catalog_entry`から追加する。両経路はsymbol／footprintの実file
@@ -348,6 +363,21 @@ declared total、canonical breakdown hashを既存core契約に従って検査�
 ことを検証してからloop全体をboundedに再実行する。探索reportのtarget_revisionもgraphの
 revisionと一致していなければfail-closedとし、L1ゲートとauthoritative Evidenceを毎回
 生成する。探索reportは合格権限を持たない。
+
+connector openingの`face`は`front`・`back`・`left`・`right`の4値のみを受理する。
+`center_x_mm`はfaceの水平軸に沿ってoutline原点から測る（`front`／`back`は
+outline X、`left`／`right`はoutline Y）、`center_y_mm`は基板面からの高さである。
+それ以外の値は`extract_mechanical_lane`の`GraphExtractionError`と機械preflightの
+`mechanical.connector_opening.face_unsupported`の両方でfail-closedにし、
+機械断面検査は4面すべての宣言済みaperture境界と内壁被覆を照合する。
+
+board-pipelineまたはboard-explorationがfail-closedで失敗した場合、
+`read_router_diagnostics`が基板lane出力の`l3/router-pass-progress.json`（`unrouted`
+推移と収束状態）と`gate-evidence/routing-connectivity.json`（fail状態net）を読み、
+`loop-summary.json`へ`router_diagnostics`・`candidate_router_diagnostics`として記録し、
+plateau・減少継続・timeoutに応じた次手を`next_step_action`へ追記する。
+これらは`record_class: "L3"`の観測であり、ゲート、`assert_converged`、閾値、
+passの意味を変更しない。
 
 GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして

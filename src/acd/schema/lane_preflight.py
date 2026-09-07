@@ -6,7 +6,7 @@ and `declarations_complete` is not design success.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -89,6 +89,9 @@ class LanePreflightLaneReport(AcdModel):
     unsupported_values: list[LanePreflightUnsupportedValue] = Field(
         default_factory=list[LanePreflightUnsupportedValue]
     )
+    # Diagnostic firmware coverage verdict for the firmware-pipeline lane;
+    # absent for other lanes, "unknown" when it cannot be evaluated.
+    firmware_coverage: dict[str, Any] | None = None
 
 
 class LanePreflightReport(AcdModel):

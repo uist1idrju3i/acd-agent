@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@ed0572f602303cb8f139d33677973bf972bc87d5",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@0a363fd81eef23d31185ce58d99d3b5d0c33c477",
 # ]
 # ///
 """Typed extraction of the firmware lane from a design graph.
@@ -255,6 +255,44 @@ def resolve_firmware_capability_plan(
                 i2c_address=registered.i2c_address,
                 measurement_command=registered.measurement_command,
             )
+        elif capability.capability_id in {"led_blink", "led2_blink"}:
+            expected_role = capability.required_pin_roles[0]
+            expected_net = f"net.{expected_role}"
+            target = node.attrs.get("target")
+            if not isinstance(target, str) or not target:
+                raise FirmwareExtractionError(
+                    f"firmware action {action!r} requires an LED component "
+                    f"target driven by {expected_net!r}"
+                )
+            target_node = nodes.get(target)
+            if target_node is None or target_node.kind != "electrical.component":
+                raise FirmwareExtractionError(
+                    f"firmware action {action!r} target {target!r} is not an "
+                    "electrical component"
+                )
+            drive_net = target_node.attrs.get("led_drive_net")
+            if not isinstance(drive_net, str) or not drive_net:
+                # Legacy graphs (GD1, led-only-tag) do not declare
+                # led_drive_net; fall back to the net named "LED" and then
+                # to the registered role net itself.
+                drive_net = next(
+                    (
+                        net.id
+                        for net in graph.nodes
+                        if net.kind == "electrical.net"
+                        and net.attrs.get("name") == "LED"
+                    ),
+                    expected_net,
+                )
+            pin = next(
+                (item for item in lane.pins if item.net_id == drive_net), None
+            )
+            if pin is None or pin.role != expected_role:
+                raise FirmwareExtractionError(
+                    f"firmware action {action!r} target {target!r} drive net "
+                    f"{drive_net!r} does not resolve to a firmware pin with "
+                    f"role {expected_role!r}; expected {expected_net!r}"
+                )
         steps.append(
             FirmwareCapabilityStep(
                 capability_id=capability.capability_id,

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from acd.adapters.cad.mechanical import (
     MechanicalGateError,
@@ -19,7 +19,7 @@ from acd.adapters.cad.mechanical import (
 )
 from acd.adapters.cad.project import CadProjection, cad_tool_version
 from acd.core.cad_normalize import normalize_step
-from acd.core.mechanical import MechanicalLane
+from acd.core.mechanical import SUPPORTED_OPENING_FACES, MechanicalLane
 from acd.core.naming import artifact_prefix
 from acd.core.parallel import PipelineStageRunner
 from acd.core.process import ExternalToolError, sha256_bytes
@@ -175,7 +175,9 @@ def _expected_aperture_intervals(
     lane: MechanicalLane,
     section_offset_mm: float,
 ) -> dict[str, list[tuple[float, float]]]:
-    intervals: dict[str, list[tuple[float, float]]] = {"front": [], "back": []}
+    intervals: dict[str, list[tuple[float, float]]] = {
+        face: [] for face in SUPPORTED_OPENING_FACES
+    }
     for opening in lane.connector_openings:
         if opening.face not in intervals:
             raise MechanicalVisualProjectionError(
@@ -184,9 +186,12 @@ def _expected_aperture_intervals(
         opening_min_z = opening.center_y_mm - (opening.height_mm / 2 + opening.margin_mm)
         opening_max_z = opening.center_y_mm + (opening.height_mm / 2 + opening.margin_mm)
         if opening_min_z < section_offset_mm < opening_max_z:
-            center_x = opening.center_x_mm - lane.outline.width_mm / 2
+            if opening.face in {"left", "right"}:
+                center = opening.center_x_mm - lane.outline.depth_mm / 2
+            else:
+                center = opening.center_x_mm - lane.outline.width_mm / 2
             half_width = (opening.width_mm + 2 * opening.margin_mm) / 2
-            intervals[opening.face].append((center_x - half_width, center_x + half_width))
+            intervals[opening.face].append((center - half_width, center + half_width))
     for overhang in lane.board_edge_overhangs:
         face = {"top": "front", "bottom": "back"}.get(overhang.edge)
         if face is None:
@@ -204,15 +209,14 @@ def _expected_aperture_intervals(
     }
 
 
-def _section_aperture_boundary_xs(
+def _section_aperture_boundaries(
     geometry: _SectionGeometry,
     *,
     face: str,
     outer_width: float,
     outer_depth: float,
 ) -> list[float]:
-    face_y = -outer_depth / 2 if face == "front" else outer_depth / 2
-    boundary_xs: list[float] = []
+    boundaries: list[float] = []
     for edge in geometry.edges:
         if not _edge_is(edge, "LINE"):
             continue
@@ -226,17 +230,30 @@ def _section_aperture_boundary_xs(
             raise MechanicalVisualProjectionError(
                 "mechanical section aperture boundary geometry is unreadable"
             ) from exc
-        if not _close(min_x, max_x):
-            continue
-        if _close(abs(min_x), outer_width / 2):
-            continue
-        if face == "front":
-            on_face = _close(min_y, face_y) and max_y > face_y
+        if face in {"left", "right"}:
+            if not _close(min_y, max_y):
+                continue
+            if _close(abs(min_y), outer_depth / 2):
+                continue
+            if face == "left":
+                on_face = _close(min_x, -outer_width / 2) and max_x > -outer_width / 2
+            else:
+                on_face = _close(max_x, outer_width / 2) and min_x < outer_width / 2
+            if on_face:
+                boundaries.append(min_y)
         else:
-            on_face = _close(max_y, face_y) and min_y < face_y
-        if on_face:
-            boundary_xs.append(min_x)
-    return sorted(boundary_xs)
+            face_y = -outer_depth / 2 if face == "front" else outer_depth / 2
+            if not _close(min_x, max_x):
+                continue
+            if _close(abs(min_x), outer_width / 2):
+                continue
+            if face == "front":
+                on_face = _close(min_y, face_y) and max_y > face_y
+            else:
+                on_face = _close(max_y, face_y) and min_y < face_y
+            if on_face:
+                boundaries.append(min_x)
+    return sorted(boundaries)
 
 
 def _validate_section_features(
@@ -303,27 +320,11 @@ def _validate_section_features(
     inner_depth = lane.outline.depth_mm + 2 * lane.enclosure.internal_clearance_mm
     inner_x = inner_width / 2
     inner_y = inner_depth / 2
-    has_inner_left = any(
-        _edge_is(edge, "LINE")
-        and _close(float(edge.bounding_box().min.X), -inner_x)
-        and _close(float(edge.bounding_box().max.X), -inner_x)
-        and _close(float(edge.bounding_box().min.Y), -inner_y)
-        and _close(float(edge.bounding_box().max.Y), inner_y)
-        for edge in geometry.edges
-    )
-    has_inner_right = any(
-        _edge_is(edge, "LINE")
-        and _close(float(edge.bounding_box().min.X), inner_x)
-        and _close(float(edge.bounding_box().max.X), inner_x)
-        and _close(float(edge.bounding_box().min.Y), -inner_y)
-        and _close(float(edge.bounding_box().max.Y), inner_y)
-        for edge in geometry.edges
-    )
     expected_intervals = _expected_aperture_intervals(lane, section_offset_mm)
     outer_width, outer_depth = _expected_view_dimensions(lane)
     for face, intervals in expected_intervals.items():
         expected_boundaries = [boundary for interval in intervals for boundary in interval]
-        actual_boundaries = _section_aperture_boundary_xs(
+        actual_boundaries = _section_aperture_boundaries(
             geometry,
             face=face,
             outer_width=outer_width,
@@ -350,15 +351,31 @@ def _validate_section_features(
 
     has_inner_back = _inner_wall_is_covered(
         geometry,
-        wall_y=inner_y,
-        inner_x=inner_x,
+        axis="y",
+        wall=inner_y,
+        inner_half=inner_x,
         apertures=expected_intervals["back"],
     )
     has_inner_front = _inner_wall_is_covered(
         geometry,
-        wall_y=-inner_y,
-        inner_x=inner_x,
+        axis="y",
+        wall=-inner_y,
+        inner_half=inner_x,
         apertures=expected_intervals["front"],
+    )
+    has_inner_left = _inner_wall_is_covered(
+        geometry,
+        axis="x",
+        wall=-inner_x,
+        inner_half=inner_y,
+        apertures=expected_intervals["left"],
+    )
+    has_inner_right = _inner_wall_is_covered(
+        geometry,
+        axis="x",
+        wall=inner_x,
+        inner_half=inner_y,
+        apertures=expected_intervals["right"],
     )
     if not (has_inner_left and has_inner_right and has_inner_back and has_inner_front):
         raise MechanicalVisualProjectionError(
@@ -369,31 +386,53 @@ def _validate_section_features(
 def _inner_wall_is_covered(
     geometry: _SectionGeometry,
     *,
-    wall_y: float,
-    inner_x: float,
+    axis: Literal["x", "y"],
+    wall: float,
+    inner_half: float,
     apertures: list[tuple[float, float]],
 ) -> bool:
-    """Inner wall segments plus declared apertures must span the full cavity width."""
+    """Inner wall segments plus declared apertures must span the full cavity.
+
+    ``axis="y"`` checks a wall at a fixed Y spanning X; ``axis="x"`` checks a
+    wall at a fixed X spanning Y. ``wall`` is the fixed coordinate and
+    ``inner_half`` is the cavity half-extent along the wall's span axis.
+    """
     segments: list[tuple[float, float]] = []
     for edge in geometry.edges:
         if not _edge_is(edge, "LINE"):
             continue
         bbox = edge.bounding_box()
-        if not (_close(float(bbox.min.Y), wall_y) and _close(float(bbox.max.Y), wall_y)):
-            continue
-        min_x = max(float(bbox.min.X), -inner_x)
-        max_x = min(float(bbox.max.X), inner_x)
-        if max_x > min_x:
-            segments.append((min_x, max_x))
+        if axis == "y":
+            if not (
+                _close(float(bbox.min.Y), wall) and _close(float(bbox.max.Y), wall)
+            ):
+                continue
+            span_min = float(bbox.min.X)
+            span_max = float(bbox.max.X)
+        else:
+            if not (
+                _close(float(bbox.min.X), wall) and _close(float(bbox.max.X), wall)
+            ):
+                continue
+            span_min = float(bbox.min.Y)
+            span_max = float(bbox.max.Y)
+        clip_min = max(span_min, -inner_half)
+        clip_max = min(span_max, inner_half)
+        if clip_max > clip_min:
+            segments.append((clip_min, clip_max))
     if not segments:
         return False
     clipped_apertures = [
-        (max(start, -inner_x), min(end, inner_x))
+        (max(start, -inner_half), min(end, inner_half))
         for start, end in apertures
-        if min(end, inner_x) > max(start, -inner_x)
+        if min(end, inner_half) > max(start, -inner_half)
     ]
     covered = _merge_aperture_intervals([*segments, *clipped_apertures])
-    return len(covered) == 1 and _close(covered[0][0], -inner_x) and _close(covered[0][1], inner_x)
+    return (
+        len(covered) == 1
+        and _close(covered[0][0], -inner_half)
+        and _close(covered[0][1], inner_half)
+    )
 
 
 def _declared_section_offset_mm(lane: MechanicalLane) -> float:

@@ -18,6 +18,10 @@ from acd.core.lane_preflight import (
 )
 from acd.schema.design_graph import DesignGraph
 from acd.schema.lane_preflight import LanePreflightReport
+from acd.schema.lane_preflight import (
+    LanePreflightLaneReport,
+    LanePreflightReport,
+)
 
 FIXTURE = Path("fixtures/golden-design-1/graph.json")
 
@@ -302,3 +306,69 @@ def test_missing_safety_boundary_reports_missing_code_and_node() -> None:
         entry.kind == "safety.boundary" and entry.spec_path == "safety_boundary.attrs"
         for entry in entries
     )
+
+
+def _firmware_lane(report: LanePreflightReport) -> LanePreflightLaneReport:
+    return next(
+        lane for lane in report.lanes if lane.lane == "firmware-pipeline"
+    )
+
+
+def test_firmware_lane_preflight_carries_coverage_pass() -> None:
+    report = run_lane_preflight(_graph(), ("firmware-pipeline",))
+    lane = _firmware_lane(report)
+    assert lane.status == "declarations_complete"
+    assert lane.firmware_coverage is not None
+    assert lane.firmware_coverage["status"] == "pass"
+    assert lane.firmware_coverage["findings"] == []
+
+
+def test_non_firmware_lanes_have_no_coverage_entry() -> None:
+    report = run_lane_preflight(_graph())
+    for lane in report.lanes:
+        if lane.lane == "firmware-pipeline":
+            continue
+        assert lane.firmware_coverage is None
+
+
+def test_firmware_coverage_findings_stay_diagnostic() -> None:
+    graph = _graph()
+    nodes = [
+        (
+            node.model_copy(update={"attrs": {**node.attrs, "trigger": "button_pressed"}})
+            if node.id == "fw.transition.report_measure"
+            else node
+        )
+        for node in graph.nodes
+    ]
+    graph = graph.model_copy(update={"nodes": nodes})
+    report = run_lane_preflight(graph, ("firmware-pipeline",))
+    lane = _firmware_lane(report)
+    # Coverage is diagnostic only: the declarations status is unchanged.
+    assert lane.status == "declarations_complete"
+    assert lane.firmware_coverage is not None
+    assert lane.firmware_coverage["status"] == "fail"
+    codes = {finding["code"] for finding in lane.firmware_coverage["findings"]}
+    assert codes == {"trigger_unemitted"}
+
+
+def test_firmware_coverage_is_unknown_when_registry_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def broken(_path: object = None) -> object:
+        raise ValueError("registry unreadable")
+
+    monkeypatch.setattr(
+        "acd.core.lane_preflight.load_firmware_capability_registry", broken
+    )
+    report = run_lane_preflight(_graph(), ("firmware-pipeline",))
+    lane = _firmware_lane(report)
+    assert lane.firmware_coverage is not None
+    assert lane.firmware_coverage["status"] == "unknown"
+
+
+def test_firmware_coverage_is_absent_without_module() -> None:
+    graph = _without_kind(_graph(), "firmware.module")
+    report = run_lane_preflight(graph, ("firmware-pipeline",))
+    lane = _firmware_lane(report)
+    assert lane.firmware_coverage is None

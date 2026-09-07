@@ -291,6 +291,8 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    preflightのcode語彙はO-5と共有し、`mechanical.node.missing`、
    `mechanical.node.duplicated`、`mechanical.attribute.missing`、
    `mechanical.attribute.invalid`、`mechanical.reference.unresolved`、
+   `mechanical.connector_opening.face_unsupported`（`face`の許容値は
+   `front`・`back`・`left`・`right`）、
    `mechanical.extraction.failed`、`rationale.coverage.missing`、
    `rationale.coverage.stale`、`rationale.coverage.orphan`、
    `rationale.coverage.conflicting`、`rationale.coverage.unknown_provenance`、
@@ -501,6 +503,12 @@ STEP／3MF／STLの製造提出データ出力と、その独立reload・hash・
 6. order-total集計（quote record、OrderScope、FabProfileDocument指定時のみ）
 7. 発注可否のpre-order gate
 
+silkscreen resolver段はresolverの結果statusが`resolved`の場合だけを成功とする。
+`failed_no_candidates`・`max_iterations_exceeded`・status欠落は`ok: false`かつ
+`fail_closed: true`で停止し、失敗理由には未解決の`mechanical.silk_text` node IDを、
+`next_step_action`には`x_mm`/`y_mm`宣言または探索入力の拡大（段summaryの
+`candidate_failures`参照）を含める。判定条件や探索回数は緩めない。
+
 コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
 出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`
 互換名を維持する。各段の失敗は後続段を実行せず、失敗段IDとそれまでの段結果を含む
@@ -591,6 +599,24 @@ fixtureの回帰例は、既存predicateだけを使う。充電・保護回路�
 
 新規fixtureをspecから生成する場合は、`--fixture-spec`を追加する。fixtureに既存の
 `graph.json`がある場合は上書きせずfail-closedで停止する。
+
+specの`components[].attrs`でlibrary宣言（`symbol_file`／`footprint_file`）を
+直接pinする場合、`symbol_sha256`／`footprint_sha256`は対象fileのbyte列を
+`sha256:<64 hex>`でhashした値である。digest固定containerのKiCad資材
+（`/usr/share/kicad/symbols`、`/usr/share/kicad/footprints`）への宣言は、
+`scripts/pin_library_hashes.py`をcontainer内で実行して採取・記入する。
+
+```bash
+uv run python scripts/pin_library_hashes.py --spec <spec.json>          # 照合のみ
+uv run python scripts/pin_library_hashes.py --spec <spec.json> --write  # specへ記入
+```
+
+出力は`refdes・kind・file・declared・computed・state`（`match`・`mismatch`・
+`unpinned`・`missing`）の表である。file不在（hostで`/usr/share/kicad`が無い等）は
+`missing`として非ゼロ終了し、lock済みimage内での実行を案内する。`--write`無しで
+`mismatch`・`unpinned`が残る場合も非ゼロ終了とし、`--library-root`で相対宣言の
+解決先を`libraries/`canonical store以外へ切り替えられる。宣言契約とhash検査は
+変更しない。
 
 cache・resume・lane並列を有効にする場合は、次のように指定する。
 
@@ -2047,7 +2073,11 @@ workspace実行wrapperであり、既定コマンドとEvidenceパスの導出�
 `fixtures/mini-blink-dongle/spec.json`は新規specの雛形であり、silkscreen（`silk_texts`）、
 筐体、FW状態機械、stitch via、CPL基準の出所、`overlays/`の足跡overlay、fab発注意図を
 すべて明示宣言する。宣言不足は`build_design_fixture.py`の`lane_preflight_status`と
-`next_step_action`へ具体名で返り、自動補完はしない。
+`next_step_action`へ具体名で返り、自動補完はしない。rationale coverageの失敗は
+`FixtureBuilderError`へ`summarize_rationale_coverage`の1行要約（status、
+missing／stale／unknown_provenance／orphan／untraceable／conflicting／
+unclassified／templated／generator_violationsの件数と先頭5件の属性名）と
+分類表への案内を含めて返る。判定条件は変更しない。
 
 ```bash
 uv run python scripts/build_design_fixture.py \
