@@ -32,6 +32,9 @@
   設計contractとして扱い、基板設計と同じ決定論的ゲートで検査する
 - 信頼性試験（EMC、環境試験）の設計。試験規格への準拠確認にとどめず、規格が成立した
   背景と規格が模擬している実使用環境まで設計入力として宣言する
+- ASIC製造（MPWシャトル）への対応。OpenSUSI-MPW（TR-1um）やTiny Tapeout等のオープンPDK
+  シャトルへGDSIIを提出できるシリコンlaneと提出先アダプタを、基板laneと同じ決定論的
+  ゲートとOrder Readiness Gateの拡張として扱う
 
 上記のPC側ソフト、サーバ側ソフト、スマホアプリは、いずれもVibeBBが設計するハードウェアと
 組み合わせて動作する周辺ソフトウェアである。生成物はマイルストーン9の文書lane同様の
@@ -87,6 +90,47 @@ EMCと環境試験を、規格の試験項目を満たすかどうかの確認�
 設備・日時・供試体revisionを伴わない結果は受け付けない。規格文書は再配布せず、
 参照は識別子と版のみを記録する。採用する場合は、対応表のcontract境界、背景記述の出所
 要件、gap判定の停止条件、試験Evidenceの境界を新規ADRで定義する。
+
+### ASIC製造（MPWシャトル）
+
+基板・筐体・FWに加えて、設計者自身の集積回路をMPW（Multi-Project Wafer）シャトルで
+製造する経路を取り込む構想である。前提となる調査結論は[`research/README.md`](research/README.md)の
+「MPW shuttle services」に置く。調査の要点は、オープンPDK系シャトル（OpenSUSI-MPW、
+Tiny Tapeout、ChipFoundry chipIgnite、IHP Open-Silicon MPW、wafer.space）の提出インタフェースが
+「テンプレートrepoをfork → `info.yaml`相当の宣言 → GDS/netlistを配置 → GitHub Actionsで
+precheck/DRC/LVS → Webフォームでrepo URLを提出 → 締切まで再提出可」に収斂していること、
+および価格モデル（固定枠・tile課金・面積課金）、公開義務、地理制約、返却形態が提出先ごとに
+異なることである。
+
+取り込む場合は次を宣言contractとして定義する。
+
+- PDK契約。`pdk.repo`、`pdk.ref`（commit hash）、`pdk.dir`（runset）を宣言し、provenanceへ
+  記録する。import対象はApache-2.0等のNDAフリーPDK（TR-1um、SKY130、GF180MCU、
+  IHP SG13G2）に限定し、GPL/AGPL資材はimport結合しない。
+- シリコン設計契約。top cell名、die／ユーザ領域寸法、dbu、pad配置とESD規約、netlist
+  （LVS対象）、デジタルの場合はRTLとハード化flow（LibreLane／OpenROAD）の版を宣言する。
+- 提出先（shuttle）契約。提出先、対応PDK、締切、面積またはtile制約、価格、公開義務、
+  地理制約（OpenSUSIは国内限定）、返却形態（DIP、devkit PCB、bare die、QFN、COB）を
+  宣言し、締切・枠残数・価格が保存済み見積入力（マイルストーン7.1と同型）に無い場合は
+  unknownとして停止側へ集約する。
+
+検査は既存方針と同じく決定論的ゲートで行う。precheck（top cell一致、top-level cellの
+唯一性、dbu、領域内）、DRC clean、LVS一致、antenna/ERC、MDP（Drawing layer→Mask layer）
+変換後GDSのhashを、提出先テンプレートのCIと同じrunsetをdigest固定container内で実行して
+判定する。ツールチェーン（KLayout、Magic／Netgen、xschem、ngspice、LibreLane／OpenROAD、
+IIC-OSIC-TOOLS相当）はADR-0047のdocker-only方針に従いホストへ入れず、ホスト実行は
+provisionalにとどめる。提出先が公開必須の場合は設計repoのライセンス表記と第三者IPの
+帰属を検査し、非公開要件の設計からは公開必須の提出先を候補から除外する。提出repoの生成
+（テンプレート準拠のディレクトリ、`info.yaml`、GDS、netlist）は再現可能な投影として扱い、
+投影を設計入力へ逆流させない。
+
+段階は、第1段でTR-1um（アナログ・小規模、DIP返却で既存基板laneへ接続しやすい）を
+DryRun TEST枠で申込からSubmitまで通し、第2段でTiny Tapeout（デジタルRTL、国際）で
+FW laneのRISC-V資産と接続し、第3段でIHP／GF180（面積課金、bare die／QFN）で基板上への
+実装（COB／QFN footprint）まで電気・機械laneを通す順を想定する。採用する場合は、
+シリコンlaneのcontract境界、PDK版とrunsetの固定方法、提出先アダプタのEvidence境界、
+公開義務とライセンス検査の受入条件を新規ADRで定義し、未定義の項目はunknownとして
+fail-closedにする。
 
 ### OpenBlink
 
