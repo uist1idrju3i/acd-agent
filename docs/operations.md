@@ -1029,7 +1029,15 @@ KiCad、ngspice、Java、Pythonはbuild時のAPT／PPA解決に依存する。�
 `publish-acd-images.yml`は`workflow_dispatch`またはmainのbuild入力変更で起動し、
 lockから解決したACD tools digestをbaseにしてSDKの`build.py`でagent-server imageをbuildし、
 GHCRへpublishする。publish後はtools（buildした場合）とderived serverのdigestとtagを
-1つのlock更新PRへ記録する。
+1つのlock更新PRへ記録する。tools imageは`<source sha>-tools`の不変tagと`latest` aliasの
+両方へpushし、lockには不変tagを記録する。`latest`はlock検証の対象にせず、
+`scripts/verify_image_digest_lock.py`は不変tagがlock digestを指すことだけを検査する。
+これにより、publishからlock PRのmergeまでの間に走るmain CIの`container-gates`が
+`latest`の移動で不一致になる競合（2026-09-07のrun 34079718298・34080622486で再発）を
+構造的に除去する。publish workflowは`concurrency`（`publish-acd-images`、
+cancel-in-progress無し）で直列化し、並走したpublishが同じ`latest`と
+lock branchを取り合って`not mergeable`になる事象（PR #350）を防ぐ。lock branchは
+publish対象commitではなく、PR作成時点の`origin/main`先端から切る。
 workflowを変更した場合は、CIの`verify` jobがactionlintで`.github/workflows`全体の
 構文を検査する。
 現行のbase tools digestは、Semeru／OpenJ9 JREとbuild時生成SCCを同梱した
