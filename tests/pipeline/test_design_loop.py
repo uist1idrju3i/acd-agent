@@ -1777,3 +1777,96 @@ def test_fixture_generation_reports_missing_declarations_without_completing(
     assert "silk_texts[].attrs" in generation["next_step_action"]
     graph = json.loads((tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8"))
     assert not [n for n in graph["nodes"] if n["kind"] == "mechanical.silk_text"]
+
+
+def _unresolved_silk_fixture(tmp_path: Path) -> Path:
+    """Copy the GD1 graph with one silk text position removed."""
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    graph = json.loads((FIXTURE / "graph.json").read_text(encoding="utf-8"))
+    for node in graph["nodes"]:
+        if node["id"] == "mechanical.silk_text.board_id":
+            del node["attrs"]["x_mm"]
+            del node["attrs"]["y_mm"]
+    (fixture / "graph.json").write_text(json.dumps(graph), encoding="utf-8")
+    return fixture
+
+
+@pytest.mark.parametrize(
+    "resolver_status", ["failed_no_candidates", "max_iterations_exceeded"]
+)
+def test_silkscreen_resolve_fails_closed_on_unresolved_status(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    resolver_status: str,
+) -> None:
+    seen: list[str] = []
+    fixture = _unresolved_silk_fixture(tmp_path)
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["silkscreen-resolve"] = DEFAULT_STAGE_RUNNERS["silkscreen-resolve"]
+    _patch_runners(monkeypatch, runners)
+    monkeypatch.setattr(
+        design_loop,
+        "resolve_silkscreen",
+        lambda *args, **kwargs: {
+            "status": resolver_status,
+            "iterations": [],
+            "final": {},
+        },
+    )
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is False
+    assert result["fail_closed"] is True
+    assert result["failed_stage"] == "silkscreen-resolve"
+    assert resolver_status in result["failure_reason"]
+    assert "mechanical.silk_text.board_id" in result["failure_reason"]
+    assert "declare x_mm/y_mm" in result["next_step_action"]
+    assert "board-pipeline" not in seen
+    assert result["loop_summary"]
+    summary = json.loads(
+        Path(result["loop_summary"]).read_text(encoding="utf-8")
+    )
+    assert summary["pass_evidence"] is False
+
+
+def test_silkscreen_resolve_success_keeps_loop_running(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["silkscreen-resolve"] = DEFAULT_STAGE_RUNNERS["silkscreen-resolve"]
+    _patch_runners(monkeypatch, runners)
+    monkeypatch.setattr(
+        design_loop,
+        "resolve_silkscreen",
+        lambda *args, **kwargs: {"status": "resolved", "iterations": []},
+    )
+
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is True
+    assert "board-pipeline" in seen
+    assert [item["stage_id"] for item in result["results"]] == list(
+        DESIGN_LOOP_STAGE_IDS
+    )

@@ -779,3 +779,80 @@ def check_rationale_coverage(
         covered_count=sum(1 for subject in required_set if covered[subject]),
         record_count=len(document.records),
     )
+
+
+def summarize_rationale_coverage(
+    report: RationaleCoverageReport, *, limit: int = 5
+) -> str:
+    """Summarize one coverage report as a single actionable line."""
+
+    def _truncate(items: list[str]) -> str:
+        shown = sorted(items)[:limit]
+        suffix = f" …(+{len(items) - limit} more)" if len(items) > limit else ""
+        return ", ".join(shown) + suffix
+
+    def _subject_text(subject: RationaleSubject) -> str:
+        return f"{subject.node_id}.{subject.attr}"
+
+    def _group(label: str, items: list[str]) -> str:
+        detail = f" [{_truncate(items)}]" if items else ""
+        return f"{label}={len(items)}{detail}"
+
+    return " ".join(
+        [
+            f"status={report.status}",
+            f"graph_id_match={report.graph_id_match}",
+            f"revision_match={report.revision_match}",
+            _group("missing", [_subject_text(item) for item in report.missing]),
+            _group(
+                "stale",
+                [
+                    f"{item.rationale_id}→{_subject_text(item.subject)}"
+                    for item in report.stale
+                ],
+            ),
+            _group(
+                "unknown_provenance",
+                [item.rationale_id for item in report.unknown_provenance],
+            ),
+            _group(
+                "orphan",
+                [
+                    f"{item.rationale_id}→{_subject_text(item.subject)} ({item.reason})"
+                    for item in report.orphan
+                ],
+            ),
+            _group(
+                "untraceable",
+                [
+                    f"{item.rationale_id}→{_subject_text(item.subject)}"
+                    for item in report.untraceable
+                ],
+            ),
+            _group(
+                "conflicting",
+                [
+                    f"{item.rationale_id}→{_subject_text(item.subject)}"
+                    for item in report.conflicting
+                ],
+            ),
+            _group(
+                "unclassified",
+                [
+                    f"{item.node_id}.{item.attr} ({item.reason})"
+                    for item in report.unclassified
+                ],
+            ),
+            _group(
+                "templated",
+                [f"{item.rationale_id} ({item.reason})" for item in report.templated],
+            ),
+            _group(
+                "generator_violations",
+                [
+                    f"{item.rationale_id} ({item.reason})"
+                    for item in report.generator_violations
+                ],
+            ),
+        ]
+    )

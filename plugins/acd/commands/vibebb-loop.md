@@ -55,7 +55,8 @@ allowed-tools:
    - fixture生成（spec指定時のみ）
    - 要件compile（更新record指定時のみ）
    - 要件入口整合検査（常時のdesign-loop stage）
-   - silkscreen resolver（基板pipelineの前提となるbarrier）
+   - silkscreen resolver（基板pipelineの前提となるbarrier。結果statusが
+     `resolved`以外では未解決text名を挙げてfail-closedで停止する）
    - 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
    - order-total集計（quote record、scope、fab profile指定時のみ）
    - 発注可否のpre-order gate

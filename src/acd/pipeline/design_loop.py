@@ -53,6 +53,7 @@ from acd.core.runtime_records import (
     write_loop_summary_record,
     write_timing_record,
 )
+from acd.core.silkscreen import extract_silkscreen_lane
 from acd.openhands.order_gate import evaluate_pre_order_gate
 from acd.pipeline import lane_plan
 from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
@@ -166,7 +167,26 @@ def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
         config.max_silkscreen_iterations,
         config.fab_profile_id,
     )
-    return _success("silkscreen-resolve", output_path=str(output), summary=result)
+    status = result.get("status")
+    if status == "resolved":
+        return _success("silkscreen-resolve", output_path=str(output), summary=result)
+    unresolved = sorted(
+        text.node_id
+        for text in extract_silkscreen_lane(_load_graph(config.fixture_dir)).texts
+        if text.x_mm is None or text.y_mm is None
+    )
+    return _failure(
+        "silkscreen-resolve",
+        f"silkscreen resolution ended with status {status!r}; "
+        f"unresolved silk texts: {', '.join(unresolved) or 'none'}",
+        output_path=str(output),
+        summary=result,
+        next_step_action=(
+            "declare x_mm/y_mm for the listed mechanical.silk_text nodes or widen "
+            "the silkscreen search inputs (see candidate_failures in the stage "
+            "summary); silkscreen gate thresholds are not adjustable"
+        ),
+    )
 
 
 def _run_board(config: DesignLoopConfig) -> dict[str, Any]:
@@ -1390,7 +1410,13 @@ def run_design_loop(
             )
             if rerun is not None:
                 if "next_step_action" in rerun:
-                    result["next_step_action"] = rerun["next_step_action"]
+                    existing_action = result.get("next_step_action")
+                    if isinstance(existing_action, str) and existing_action:
+                        result["next_step_action"] = (
+                            existing_action + "; " + rerun["next_step_action"]
+                        )
+                    else:
+                        result["next_step_action"] = rerun["next_step_action"]
                 if not recovery_enabled:
                     result["recovery_rerun"] = rerun
         else:
