@@ -87,3 +87,34 @@ MDP（Drawing layer→Mask layer変換）を実行する。締切まで何度で
   合わせている。ツールチェーンはADR-0047のdocker-only方針に従いdigest固定containerへ置く。
 - NDA必須の商用・学術ブローカー（Europractice、MOSIS 2.0、Muse、CMC、VDEC、IDEC）は
   PDKを公開できず再現可能なゲートを組めないため、当面の対象外とする。
+
+## GPU acceleration
+
+将来構想「長時間処理のGPU活用」（[`../roadmap-future.md`](../roadmap-future.md)）の前提として、
+実機実測（[`../vibebb-standalone-verification.md`](../vibebb-standalone-verification.md) 14.5〜14.8、
+15.3）で時間を占めた段ごとにGPU化の可否を2026-09-07時点の一次情報で調べた。
+
+| 段（第7回実測） | 所要 | GPU化の候補 | 結論 |
+|---|---:|---|---|
+| `board[3/12]` FreeRouting | 180秒（wall 78%） | OrthoRoute（MIT、CUDA/CuPy、KiCad 9 IPC、headless `.ORP`→`.ORS`、`--cpu-only`、Metal fork） | 唯一の実効候補。Manhattan格子＋blind/buried via前提で多層backplane向き、2層小基板との整合は要実測。VRAMは面積×層÷pitch²（100×100mm・6層・0.4mmで8〜12 GB）。GPU非決定性の再現性検査が必要 |
+| 同（収束の壁） | `not_converged` | OrthoRoute（PathFinder rip-up/reroute）、KiCadRoutingTools（Rust A*、MIT、CPU） | routerアルゴリズムの差し替えで解決し得るが、出力＝正規化hashが変わるためrouter選択を設計入力へ束縛する |
+| firmware-pipeline（ESP-IDF build＋QEMU） | 116秒（影に隠れる） | なし | コンパイルとCPUエミュレーションはGPU対象外。`idf.py --ccache`／`IDF_CCACHE_ENABLE`とcache永続化で扱う |
+| `board[8/12]` CPL/BOM・Gerber計測 | 15秒 | なし | 既にProcessPool並列。kicad-cli起動が支配 |
+| enclosure-pipeline（build123d/OCP） | 24秒 | なし | OCCTカーネルはCPUのみ |
+| silkscreen-resolve | 15秒 | なし | barrier段、純Python |
+| ngspice（電気lane予定） | 未計測 | CUSPICE（ngspice-27系branch、BSIM4v7等の限定素子） | 数千トランジスタ以上でのみ効果、現行回路規模では無効。採用しない |
+| L2探索（placement候補評価、LLM推論） | 第8回で28候補生成 | ローカルLLM／候補並列評価 | L2操舵に限りGPUを使えるが、Evidenceへ昇格しないため合否に影響しない |
+
+結論は次のとおりである。
+
+- GPUで実質的に短縮できるのはrouterだけであり、wall-clockの78%を占めるため効果は大きいが、
+  routerを変えると配線結果と正規化hashが変わる。router選択はrevisionに束縛した設計入力として
+  扱い、速度目的で暗黙に切り替えない。
+- OrthoRouteはKiCad 9 IPC plugin（GUI）を前提とするが、`.ORP`入出力のheadless modeがあり
+  containerでの決定論的実行に載せられる。CUDA runtimeを含むdigest固定imageとGPU runnerが要る。
+- GPU実行は縮約順序・atomicで非決定になり得るため、同一入力の2回実行で出力hash一致を
+  求める再現性検査を契約に含め、一致しないbackendはprovisionalに限定する。
+- クラウドAI router（DeepPCB、KiCad plugin・credit課金）は設計データを外部へ送り、runsetを
+  固定できないためL1の対象にしない。
+- GPUが効かない段はcache（DSN/SES、ccache、venv再利用）と並列度で扱い、短縮を主張する
+  場合は同一入力の実測を記録する。
