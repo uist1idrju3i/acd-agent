@@ -342,6 +342,43 @@ def test_projection_guard_heredoc_bodies_are_data_unless_executed() -> None:
         assert run("protect_projections.py", {"command": command}, "terminal")[0] == 2
 
 
+def test_projection_guard_process_substitution_is_denied_with_protected_ref() -> None:
+    denied = (
+        "cat >(rm out/board.kicad_pcb)",
+        "grep x <(cat out/report.json)",
+        "bash -c \"cat >(rm out/board.kicad_pcb)\"",
+    )
+    for command in denied:
+        assert run("protect_projections.py", {"command": command}, "terminal")[0] == 2
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "cat <(echo hi)"},
+            "terminal",
+        )[0]
+        == 0
+    )
+
+
+def test_projection_guard_target_directory_option_is_checked() -> None:
+    denied = (
+        "mv -t out/gd1-board fixtures/a",
+        "mv --target-directory out/gd1-board fixtures/a",
+        "cp --target-directory=out/gd1-board fixtures/a",
+        "cp -t out/gd1-board fixtures/a",
+    )
+    for command in denied:
+        assert run("protect_projections.py", {"command": command}, "terminal")[0] == 2
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "cp -t /tmp/dir fixtures/a"},
+            "terminal",
+        )[0]
+        == 0
+    )
+
+
 def test_projection_guard_mv_source_into_protected_is_denied() -> None:
     assert (
         run(

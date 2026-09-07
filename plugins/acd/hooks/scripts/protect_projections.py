@@ -44,7 +44,7 @@ SEPARATORS = frozenset({";", "&&", "||", "|", "&"})
 MAX_NESTING_DEPTH = 4
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _UNSUPPORTED_SYNTAX = re.compile(r"\$\(|`|<\(|>\(|[(){}]")
-_COMMAND_SUBSTITUTION = re.compile(r"\$\(|`")
+_COMMAND_SUBSTITUTION = re.compile(r"\$\(|`|<\(|>\(")
 _HEREDOC = re.compile(
     r"(?<!<)<<-?(?!<)\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1"
 )
@@ -368,17 +368,22 @@ def _non_option_values(tokens: list[str], *, skip_value_options: frozenset[str])
 def _write_targets(tokens: list[str], command: str) -> list[str]:
     if command in {"rm", "rmdir", "touch", "chmod", "chown", "truncate", "patch"}:
         return _non_option_values(tokens, skip_value_options=frozenset())
-    if command == "mv":
-        return _non_option_values(
-            tokens,
-            skip_value_options=frozenset({"-t", "--target-directory", "-T"}),
-        )
-    if command in {"cp", "ln", "install"}:
+    if command in {"cp", "mv", "ln", "install"}:
+        targets: list[str] = []
+        for position, token in enumerate(tokens):
+            if token in {"-t", "--target-directory"} and position + 1 < len(tokens):
+                targets.append(tokens[position + 1])
+            elif token.startswith("--target-directory="):
+                targets.append(token.split("=", 1)[1])
         values = _non_option_values(
             tokens,
             skip_value_options=frozenset({"-t", "--target-directory", "-T"}),
         )
-        return values[-1:] if values else []
+        if command == "mv":
+            targets.extend(values)
+        else:
+            targets.extend(values[-1:] if values else [])
+        return targets
     if command == "dd":
         return [
             value.split("=", 1)[1]
@@ -576,15 +581,20 @@ def _check_simple(
             if not _check_inline_code(body, root):
                 return False
         tokens[position] = "-"
-    if _COMMAND_SUBSTITUTION.search(" ".join(tokens)) and _protected_references(
-        " ".join(tokens), root
-    ):
+    joined = " ".join(tokens)
+    # `<` and `>` are tokenized as separate punctuation, so `<(`/`>(` appear as
+    # a redirect-looking token followed by a `(`-led token rather than one word.
+    has_substitution = _COMMAND_SUBSTITUTION.search(joined) is not None or any(
+        token.endswith(("<", ">"))
+        and position + 1 < len(tokens)
+        and tokens[position + 1].startswith("(")
+        for position, token in enumerate(tokens)
+    )
+    if has_substitution and _protected_references(joined, root):
         return False
     if command in READ_ONLY_COMMANDS:
         return True
-    if _UNSUPPORTED_SYNTAX.search(" ".join(tokens)) and _protected_references(
-        " ".join(tokens), root
-    ):
+    if _UNSUPPORTED_SYNTAX.search(joined) and _protected_references(joined, root):
         return False
     if command not in WRITE_COMMANDS:
         return True
