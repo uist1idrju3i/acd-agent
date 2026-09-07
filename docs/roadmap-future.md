@@ -35,6 +35,10 @@
 - ASIC製造（MPWシャトル）への対応。OpenSUSI-MPW（TR-1um）やTiny Tapeout等のオープンPDK
   シャトルへGDSIIを提出できるシリコンlaneと提出先アダプタを、基板laneと同じ決定論的
   ゲートとOrder Readiness Gateの拡張として扱う
+- 長時間処理へのGPU活用。実機実測でwall-clockの78%を占めるFreeRouting（`board[3/12]`）に
+  対し、GPU autorouter（OrthoRoute等）を宣言で選べる代替routerとして追加し、router差し替えを
+  正規化hashと決定論的ゲートの境界内に収める。GPUが効かない段（kicad-cli、ESP-IDF build、QEMU、
+  CAD kernel）はcache・並列度で扱う
 
 上記のPC側ソフト、サーバ側ソフト、スマホアプリは、いずれもVibeBBが設計するハードウェアと
 組み合わせて動作する周辺ソフトウェアである。生成物はマイルストーン9の文書lane同様の
@@ -131,6 +135,71 @@ FW laneのRISC-V資産と接続し、第3段でIHP／GF180（面積課金、bare
 シリコンlaneのcontract境界、PDK版とrunsetの固定方法、提出先アダプタのEvidence境界、
 公開義務とライセンス検査の受入条件を新規ADRで定義し、未定義の項目はunknownとして
 fail-closedにする。
+
+### 長時間処理のGPU活用（GPU autorouterを含む）
+
+第7回実機実測（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 14.5〜14.8）
+では、GD1全lane（26 stage）のwall-clock 230〜234秒のうちFreeRoutingの`board[3/12]`が180秒
+（78%）を占め、critical pathは`silkscreen-resolve`→`board-pipeline`であった。FW lane
+（ESP-IDF build＋QEMU、116秒）と筐体lane（24秒）は基板laneの影に隠れ、基板laneの非routing段
+（kicad-cli起動とGerber計測、約35秒）は既にprocess並列である。FreeRoutingはrouter threads・
+JVM tuningのいずれでも短縮せず（156〜163秒、差4%以内）、12コア化の効果も約7%にとどまった。
+第8回（15.3）では30×22mm・2層の`dual-beacon-tag`でFreeRouting 2.4.1が100 passで
+`unrouted` 22→21にplateauし`not_converged`でfail-closedした。すなわち、短縮対象は
+router単体であり、routerには「時間」と「収束」の2つの壁がある。GPU活用の調査結論は
+[`research/README.md`](research/README.md)の「GPU acceleration」に置く。
+
+調査の要点は次のとおりである。GPUで実質的に効く段はrouterだけである。OrthoRoute（MIT、
+CUDA/CuPy、KiCad 9 IPC plugin、`.ORP`入力→`.ORS`出力のheadless mode、`--cpu-only` fallback、
+Apple Metal fork）はPathFinder（負のcongestion交渉）をManhattan格子上でGPU SSSPにより解き、
+rip-up／rerouteの反復回数で収束させる設計だが、対象は多層backplane・BGA escapeであり、
+層ごとに水平／垂直を固定した格子とblind／buried viaを前提とするため、GD1級の2層・小面積
+基板と一般fab profileには格子前提の整合検査が要る。ESP-IDF build、QEMU、kicad-cli、
+Gerber計測、build123d／OCPはGPUの対象外であり、ngspiceのGPU版（CUSPICE）は数千トランジスタ
+規模以上・ngspice-27系branchに限られ、現行のGD1回路規模では効果が無い。クラウドAI router
+（DeepPCB等）は設計データを外部へ送るうえ再現可能なrunsetを固定できないため、L1の対象に
+しない。
+
+取り込む場合は次を宣言contractとして定義する。
+
+- router契約。`routing_config.router`で`freerouting`（既定）／`orthoroute`／将来のCPU代替
+  （Rust A*系のKiCadRoutingTools等、MIT）を選択し、router名・版・container digest・入力
+  （DSNまたは`.ORP`）hash・出力（SESまたは`.ORS`）hash・反復回数上限をprovenanceへ記録する。
+  routerを変えれば配線結果＝正規化hashは変わるため、router選択は設計入力の一部として
+  revisionに束縛し、速度目的で暗黙に切り替えない。
+- GPU実行環境契約。CUDA／ROCm／Metalのbackend、driver版、GPU名、VRAM、
+  container runtime（`--gpus`／NVIDIA Container Toolkit）を宣言し、起動前preflightで検査する。
+  GPU不在・VRAM不足・driver不整合はunknownとして停止側へ集約し、CPU fallbackへ
+  黙って倒さない（fallbackもrouter契約で明示選択した場合だけ許す）。OrthoRouteの格子
+  VRAMは面積×層数÷pitch²で決まり、100×100mm・6層・0.4mm pitchで8〜12 GBが目安である。
+- 格子・fab整合契約。routerがManhattan格子とblind／buried viaを前提とする場合、fab profile
+  （層数、via種別、最小trace／clearance）と格子pitch・層方向割当の整合を述語として置き、
+  不整合はfail-closedにする。
+
+検査は既存方針と同じく決定論的ゲートで行う。router出力をKiCadへ取り込んだ後のDRC、
+未配線数0、netlist一致（配線後のconnectivity）を合否とし、routerが報告する収束状態は
+参考値にとどめる。GPU実行は浮動小数の縮約順序やatomicの競合で非決定になり得るため、
+router契約に「同一入力を2回実行して出力hashが一致すること」の再現性検査を含め、不一致を
+出すbackendはprovisionalに限定してauthoritative Evidenceを生成しない。ツールはADR-0047の
+docker-only方針に従い、CUDA runtimeを含むdigest固定imageへ置き、ホストGPU実行は
+provisionalにとどめる。routerの反復回数上限・pass数・optimizer閾値は出力＝hashを変えるため、
+速度目的で緩めない。
+
+GPUが効かない段は別手段で扱う。反復（VibeBB loopの2周目以降）はDSN／SES cache
+（`--cache-dir`／`--resume`）で`board[3/12]`を省き、FW laneはESP-IDF `--ccache`
+（`IDF_CCACHE_ENABLE`）とcontainer内cache dirの永続化、`run_in_workspace.py --source mounted`
+の依存同期overhead（約10秒台）はimage同梱venvの再利用で削る。いずれも短縮を主張する場合は
+同一入力の実測を[`operations.md`](operations.md)へ記録する（AGENTS.mdの並列実行規約と同じ）。
+
+段階は、第1段でGD1と`dual-beacon-tag`をOrthoRoute headless（`--cpu-only`とGPU）で
+単独実行し、収束・DRC・所要時間・再現性を実測して採否を決める。OrthoRouteの`.ORP`は現状
+KiCad GUIのIPC経由でplugin側が書き出すため、`.kicad_pcb`から`.ORP`を決定論的に生成する経路
+（またはkicad-cli相当のheadless IPC）が無ければcontainer実行に載らない点をこの段で確認する。
+第2段でrouter契約とGPU
+preflightをpipelineへ入れ、第3段でGPU付きdigest固定imageと`container-gates`のGPU runner
+（self-hosted）を整備する順を想定する。採用する場合は、router差し替えのcontract境界、
+GPU非決定性の扱い、fallback条件、GPU imageのdigest固定とCI runnerの受入条件を新規ADRで
+定義し、未定義の項目はunknownとしてfail-closedにする。
 
 ### OpenBlink
 
