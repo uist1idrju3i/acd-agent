@@ -42,7 +42,7 @@ class LibraryAsset:
         return not Path(self.declared_path).is_absolute()
 
 
-def _sha256(path: Path) -> str:
+def sha256_of_asset(path: Path) -> str:
     try:
         return f"sha256:{hashlib.sha256(path.read_bytes()).hexdigest()}"
     except OSError as exc:
@@ -91,7 +91,7 @@ def resolve_fixture_library_path(declared_path: str, fixture_dir: Path) -> Path:
 def verify_library_asset(asset: LibraryAsset) -> Path:
     """Resolve one declared asset and verify its declared content hash."""
     resolved = resolve_library_asset(asset.declared_path)
-    actual = _sha256(resolved)
+    actual = sha256_of_asset(resolved)
     if actual != asset.sha256:
         raise LibraryAssetError(
             "library asset sha256 does not match declaration: "
@@ -149,7 +149,7 @@ def materialize_library_assets(
             raise LibraryAssetError(
                 f"library asset could not be materialized: {target}: {exc}"
             ) from exc
-        written = _sha256(target)
+        written = sha256_of_asset(target)
         if written != asset.sha256:
             raise LibraryAssetError(
                 "materialized library asset sha256 does not match declaration: "
@@ -174,7 +174,7 @@ def verify_fixture_library_asset(asset: LibraryAsset, fixture_dir: Path) -> Path
     candidate = resolve_fixture_library_path(asset.declared_path, fixture_dir)
     if not asset.relative or not candidate.is_relative_to(fixture_dir):
         return verify_library_asset(asset)
-    actual = _sha256(candidate)
+    actual = sha256_of_asset(candidate)
     if actual != asset.sha256:
         raise LibraryAssetError(
             "fixture library asset sha256 does not match declaration: "
@@ -226,6 +226,7 @@ __all__ = [
     "materialize_library_assets",
     "resolve_fixture_library_path",
     "resolve_library_asset",
+    "sha256_of_asset",
     "verify_fixture_library_asset",
     "verify_fixture_library_assets",
     "verify_library_asset",

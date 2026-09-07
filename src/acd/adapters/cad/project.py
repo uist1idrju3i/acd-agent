@@ -104,15 +104,39 @@ def _build_shapes(lane: MechanicalLane) -> tuple[Any, Any]:
         shell = shell - cutter
 
     for opening in lane.connector_openings:
-        if opening.face != "front":
-            raise ValueError(f"unsupported connector opening face: {opening.face}")
-        x = opening.center_x_mm - outline.width_mm / 2
         z = opening.center_y_mm
-        cutter = build123d.Pos(x, -outer_depth / 2, z) * build123d.Box(
-            opening.width_mm + 2 * opening.margin_mm,
-            enclosure.wall_thickness_mm * 3,
-            opening.height_mm + 2 * opening.margin_mm,
-        )
+        if opening.face == "front":
+            x = opening.center_x_mm - outline.width_mm / 2
+            cutter = build123d.Pos(x, -outer_depth / 2, z) * build123d.Box(
+                opening.width_mm + 2 * opening.margin_mm,
+                enclosure.wall_thickness_mm * 3,
+                opening.height_mm + 2 * opening.margin_mm,
+            )
+        elif opening.face == "back":
+            x = opening.center_x_mm - outline.width_mm / 2
+            cutter = build123d.Pos(x, outer_depth / 2, z) * build123d.Box(
+                opening.width_mm + 2 * opening.margin_mm,
+                enclosure.wall_thickness_mm * 3,
+                opening.height_mm + 2 * opening.margin_mm,
+            )
+        elif opening.face == "left":
+            y = opening.center_x_mm - outline.depth_mm / 2
+            cutter = build123d.Pos(-outer_width / 2, y, z) * build123d.Box(
+                enclosure.wall_thickness_mm * 3,
+                opening.width_mm + 2 * opening.margin_mm,
+                opening.height_mm + 2 * opening.margin_mm,
+            )
+        elif opening.face == "right":
+            y = opening.center_x_mm - outline.depth_mm / 2
+            cutter = build123d.Pos(outer_width / 2, y, z) * build123d.Box(
+                enclosure.wall_thickness_mm * 3,
+                opening.width_mm + 2 * opening.margin_mm,
+                opening.height_mm + 2 * opening.margin_mm,
+            )
+        else:
+            raise ValueError(
+                f"unsupported connector opening face: {opening.face}"
+            )
         shell = shell - cutter
 
     lid = build123d.Pos(

@@ -377,9 +377,9 @@ provenance・契約の不足を閉じる。
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `src/acd/pipeline/design_loop.py`（`loop-summary`）、`src/acd/adapters/freerouting/`、`src/acd/adapters/cad/project.py`の`face`判定、`plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py`と`contracts/firmware-capability-registry.json`、`src/acd/openhands/evidence/git.py`の`is_design_input`と`order_gate.py`、`src/acd/schema/tool_envelope.py`、`scripts/verify_authoritative_evidence.py`、`src/acd/pipeline/fixture_builder.py`、`plugins/acd/hooks`のprojection保護、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節、[`examples/dual-beacon-tag-vps-20260906/`](../examples/dual-beacon-tag-vps-20260906/) |
-| 実装 | router非収束時に`loop-summary`へunrouted数・収束状態・主要な未解決netをL3診断として記録する（Y-8）。enclosure laneがfront以外の開口faceを受理するか、受理しないfaceを契約とpreflightで明示してfail-closedを前倒しする（筐体の壁）。FW capability契約へ複数LEDと入力pin roleを追加するか、追加するまで要件→`fw.sequence`被覆検査で要件の削除をfail-closedにする（Y-6・Y-11）。Evidence provenanceへsource-treeのgit SHAとdirty digestを記録し、`verify_authoritative_evidence.py`がdirty sourceをfail-closedで拒否する（Y-10）。container内KiCad資材からsymbol・footprint sha256を採取するlibrary hash helper（Y-3）。`FixtureBuilderError`へcoverage要約（missing／stale／unclassified）を含める（Y-2）。projection保護hookのmatcherを狭め、empty poll・読み取り系commandを止めない（N-3・N-6・N-8）。`safety_boundary`等のenum許容値をspec文書とpreflightへ出す（Y-5）。silkscreen resolverの未宣言positionを前段で検出する（Y-7）。decoupling_targetの多ピン対象の意味を文書化する（Y-9） |
+| 実装 | router非収束時に`loop-summary`へunrouted数・収束状態・主要な未解決netをL3診断として記録する（Y-8、解消済み。board-pipeline／board-exploration失敗時の`router_diagnostics`と候補別`candidate_router_diagnostics`、plateau・減少継続・timeoutで分岐した`next_step_action`追記）。enclosure laneが`front`・`back`・`left`・`right`の開口faceを受理し、受理しないfaceを契約とpreflight（`mechanical.connector_opening.face_unsupported`）で明示してfail-closedを前倒しする（筐体の壁、解消済み）。FW capability契約へ複数LEDと入力pin roleを追加するか、追加するまで要件→`fw.sequence`被覆検査で要件の削除をfail-closedにする（Y-6・Y-11）。Evidence provenanceへsource-treeのgit SHAとdirty digestを記録し、`verify_authoritative_evidence.py`がdirty sourceをfail-closedで拒否する（Y-10）。container内KiCad資材からsymbol・footprint sha256を採取するlibrary hash helper（Y-3、解消済み。`scripts/pin_library_hashes.py`がspecへdigestを採取・記入する）。`FixtureBuilderError`へcoverage要約（missing／stale／unclassified）を含める（Y-2、解消済み。coverage要約を`FixtureBuilderError`と`rationale coverage failed`へ付与）。projection保護hookのmatcherを狭め、empty poll・読み取り系commandを止めない（N-3・N-6・N-8）。`safety_boundary`等のenum許容値をspec文書とpreflightへ出す（Y-5、解消済み。`src/acd/core/declaration_vocabulary.py`が許容値の単一の正となり、`lane-preflight`が`unsupported_values` codeでfail-closed報告する）。silkscreen resolverの未宣言positionを前段で検出する（Y-7、解消済み。resolver結果が`resolved`以外の場合に未解決text名を挙げてfail-closedとする）。decoupling_targetの多ピン対象の意味を文書化する（Y-9、解消済み。同一電源netを複数padで共有する対象は自然順最小padへ決定論的に解決し、候補を配置出力へ記録する） |
 | 正常系 | 診断・provenance・契約が揃った状態で、自然文のみから生成した新規設計が同じ壁に達しても、停止理由が`loop-summary`とEvidence provenanceから第三者が読み取れる |
-| negative・fail-closed | dirty sourceからのEvidence、要件を落とした`fw.sequence`、未宣言の非front face、hash placeholderはいずれもfail-closedのままである。診断・provenance・helperはL3観測であり合格側権限を持たない |
+| negative・fail-closed | dirty sourceからのEvidence、要件を落とした`fw.sequence`、未宣言の非対応face（`front`・`back`・`left`・`right`以外）、hash placeholderはいずれもfail-closedのままである。診断・provenance・helperはL3観測であり合格側権限を持たない |
 | 再現性 | 追加する診断値とprovenanceフィールドをL3記録として保存し、同一入力での再実行で一致することを回帰テストで固定する |
 
 実装状況: Y-1（`--design-only`を指すエラーメッセージと`vibebb-loop.md`のdesign-only運用
@@ -395,13 +395,27 @@ forwardする。dirty／非gitの`--repo`は`--allow-dirty`無しでcontainer起
 通過できない。Y-6は`devin/1788737805-fw-requirement-coverage`（PR #338）で、
 要件→`fw.sequence`被覆検査（`check_firmware_coverage`、FW lane起動前の
 fail-closed停止と`firmware-coverage.json`／preflight `firmware_coverage`診断、
-registryへの`emits_triggers`追加）として解消した。Y-11は本ブランチで、pin role
+registryへの`emits_triggers`追加）として解消した。Y-11はPR #340で、pin role
 `led2`・`button`と`led2_blink`（第2 LED逆位相点滅）・`button_input`（`button_pressed`発火、
 active-low入力で点滅pause／resume）capabilityの登録と`fw_project.py`の射影として解消した。
+Y-8は本branch（`devin/1788741004-router-diagnostics-loop-summary`）で
+解消し、board-pipeline／board-exploration失敗時に`read_router_diagnostics`が
+`l3/router-pass-progress.json`と`gate-evidence/routing-connectivity.json`を読んで
+`loop-summary`へ`router_diagnostics`（収束状態・`unrouted`推移・plateau pass数・
+fail状態netの一覧）と候補別`candidate_router_diagnostics`をL3記録として載せ、
+plateau・減少継続・timeoutに応じた次手を`next_step_action`へ追記する。
+ゲート・閾値・passの意味は変更していない。
 dual-beacon-tagのend-to-end合格はrouter非収束と筐体faceの壁が残るため未実証である。
-残りは未着手であり、
-着手順はY-8（router診断）→筐体face契約→Y-2・Y-7・Y-3・Y-5・Y-9（診断・helper・文書）
-→hook matcherとする。fail-closed境界の堅持に直結するものを先に扱う。詳細は
+筐体face契約は本branch（`devin/1788741768-enclosure-opening-faces`）で
+`front`・`back`・`left`・`right`の受理と
+`mechanical.connector_opening.face_unsupported`のpreflight前倒しで解消した。
+Y-2（coverage要約）とY-7（silkscreen resolverのfail-closed前倒し）は
+本branch（`devin/1788742972-silk-resolve-fail-closed-coverage-summary`）で解消した。
+Y-3は本branch（`devin/1788743477-pin-library-hashes`）で`scripts/pin_library_hashes.py`として解消した。
+Y-5（宣言語彙の単一の正と`lane-preflight`の`unsupported_values`）と
+Y-9（decoupling多pad対象の決定論的解決）は本branch
+（`devin/1788744113-declaration-vocabulary`）で解消した。
+これで全項目解消であり、残りはhook matcherのみとする。fail-closed境界の堅持に直結するものを先に扱う。詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
 
 ## マイルストーン15: 運用と文書の整備

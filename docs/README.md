@@ -15,6 +15,7 @@
 | [`operations.md`](operations.md) | 運用・インストール |
 | [`golden-design-1.md`](golden-design-1.md) | GD1到達状況 |
 | [`design-requirement-variation.md`](design-requirement-variation.md) | 要件変更の境界と設計動作の確認 |
+| [`design-fixture-spec.md`](design-fixture-spec.md) | DesignFixtureSpec（spec.json）の宣言場所と許容値 |
 | [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md) | VibeBB単体化に向けた機能ギャップと改善提案 |
 | [`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) | VibeBB単体成立性の検証記録（M節の項目別） |
 | [`vibebb-onpremise-verification.md`](vibebb-onpremise-verification.md) | VibeBB単体成立性の実機検証記録（新規設計・実機OpenHands） |

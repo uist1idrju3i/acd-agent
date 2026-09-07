@@ -1777,3 +1777,208 @@ def test_fixture_generation_reports_missing_declarations_without_completing(
     assert "silk_texts[].attrs" in generation["next_step_action"]
     graph = json.loads((tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8"))
     assert not [n for n in graph["nodes"] if n["kind"] == "mechanical.silk_text"]
+
+
+def _unresolved_silk_fixture(tmp_path: Path) -> Path:
+    """Copy the GD1 graph with one silk text position removed."""
+    fixture = tmp_path / "fixture"
+    fixture.mkdir()
+    graph = json.loads((FIXTURE / "graph.json").read_text(encoding="utf-8"))
+    for node in graph["nodes"]:
+        if node["id"] == "mechanical.silk_text.board_id":
+            del node["attrs"]["x_mm"]
+            del node["attrs"]["y_mm"]
+    (fixture / "graph.json").write_text(json.dumps(graph), encoding="utf-8")
+    return fixture
+
+
+@pytest.mark.parametrize(
+    "resolver_status", ["failed_no_candidates", "max_iterations_exceeded"]
+)
+def test_silkscreen_resolve_fails_closed_on_unresolved_status(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    resolver_status: str,
+) -> None:
+    seen: list[str] = []
+    fixture = _unresolved_silk_fixture(tmp_path)
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["silkscreen-resolve"] = DEFAULT_STAGE_RUNNERS["silkscreen-resolve"]
+    _patch_runners(monkeypatch, runners)
+
+    def _stub_resolve(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {
+            "status": resolver_status,
+            "iterations": [],
+            "final": {},
+        }
+
+    monkeypatch.setattr(design_loop, "resolve_silkscreen", _stub_resolve)
+
+    result = run_design_loop(
+        fixture,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is False
+    assert result["fail_closed"] is True
+    assert result["failed_stage"] == "silkscreen-resolve"
+    assert resolver_status in result["failure_reason"]
+    assert "mechanical.silk_text.board_id" in result["failure_reason"]
+    assert "declare x_mm/y_mm" in result["next_step_action"]
+    assert "board-pipeline" not in seen
+    assert result["loop_summary"]
+    summary = json.loads(
+        Path(result["loop_summary"]).read_text(encoding="utf-8")
+    )
+    assert summary["pass_evidence"] is False
+
+
+def test_silkscreen_resolve_success_keeps_loop_running(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["silkscreen-resolve"] = DEFAULT_STAGE_RUNNERS["silkscreen-resolve"]
+    _patch_runners(monkeypatch, runners)
+
+    def _stub_resolve(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {"status": "resolved", "iterations": []}
+
+    monkeypatch.setattr(design_loop, "resolve_silkscreen", _stub_resolve)
+
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is True
+    assert "board-pipeline" in seen
+    assert [item["stage_id"] for item in result["results"]] == list(
+        DESIGN_LOOP_STAGE_IDS
+    )
+
+
+def test_board_failure_surfaces_router_diagnostics_in_loop_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def failing_board(config: DesignLoopConfig) -> dict[str, Any]:
+        output = config.lane_plan.stage("board-pipeline").output_path
+        assert output is not None
+        progress = output / "l3" / "router-pass-progress.json"
+        progress.parent.mkdir(parents=True, exist_ok=True)
+        progress.write_text(
+            json.dumps(
+                {"unrouted": [22, 21, 21, 21, 21], "convergence_state": "not_converged"}
+            ),
+            encoding="utf-8",
+        )
+        connectivity = output / "gate-evidence" / "routing-connectivity.json"
+        connectivity.parent.mkdir(parents=True, exist_ok=True)
+        connectivity.write_text(
+            json.dumps(
+                {
+                    "status": "fail",
+                    "observation": {
+                        "status": "fail",
+                        "nets": [
+                            {"net": "net.sig", "status": "fail"},
+                            {"net": "net.gnd", "status": "pass"},
+                        ],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return {
+            "stage_id": "board-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "router convergence_state='not_converged' (fail-closed)",
+        }
+
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = failing_board
+    _patch_runners(monkeypatch, runners)
+    out_root = tmp_path / "artifacts"
+
+    run_design_loop(
+        FIXTURE,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    summary = json.loads(
+        (out_root / "loop-summary.json").read_text(encoding="utf-8")
+    )
+    diagnostics = summary["router_diagnostics"]
+    assert diagnostics["convergence_state"] == "not_converged"
+    assert diagnostics["final_unrouted"] == 21
+    assert diagnostics["plateau_passes"] == 4
+    assert diagnostics["open_nets"] == ["net.sig"]
+    assert diagnostics["authority"] == "L3 observation; not gate authority"
+    assert summary["pass_evidence"] is False
+    assert "plateaued at 21" in summary["next_step_action"]
+    assert "do not relax DRC or routing rules" in summary["next_step_action"]
+    body = {key: value for key, value in summary.items() if key != "content_sha256"}
+    assert summary["content_sha256"] == canonical_json_sha256(body)
+
+
+def test_non_board_failure_leaves_router_diagnostics_none(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def failing_enclosure(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        return {
+            "stage_id": "enclosure-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "intentional enclosure failure",
+        }
+
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["enclosure-pipeline"] = failing_enclosure
+    _patch_runners(monkeypatch, runners)
+    out_root = tmp_path / "artifacts"
+
+    run_design_loop(
+        FIXTURE,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    summary = json.loads(
+        (out_root / "loop-summary.json").read_text(encoding="utf-8")
+    )
+    assert summary["failed_stage"] == "enclosure-pipeline"
+    assert summary["router_diagnostics"] is None
+    assert summary["candidate_router_diagnostics"] is None
+    body = {key: value for key, value in summary.items() if key != "content_sha256"}
+    assert summary["content_sha256"] == canonical_json_sha256(body)

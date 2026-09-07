@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@f990d29960f9c14d0b2d9229e4c124c9908ec5b5",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@8bb3e7f83b899b2a44b4847e13c495d11d912703",
 # ]
 # ///
 """Deterministic component placement search (skill asset, not an ACD gate).
@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 
 from acd.adapters.kicad.board import board_keepouts, load_board_footprints
@@ -57,6 +58,14 @@ _GRID_MM = 0.25
 # placeable while still fully deterministic.
 _SPACING_STEPS_MM = (0.45, 0.15, 0.0)
 _COMPACTNESS_WEIGHT = 0.05
+
+
+def _natural_pad_key(pad: str) -> tuple[object, ...]:
+    """Sort key ordering pad identifiers digitwise, then lexically."""
+    return tuple(
+        (0, int(part)) if part.isdigit() else (1, part)
+        for part in re.split(r"(\d+)", pad)
+    )
 
 MOUNTING_HOLE_INSET_MM = 3.0
 _EDGE_TOLERANCE_MM = 1e-6
@@ -103,6 +112,7 @@ def compute_placements(
     coupling_groups: tuple[PlacementCouplingConstraint, ...] = (),
     *,
     spacing_variant: int = 0,
+    decoupling_evidence: dict[str, dict[str, object]] | None = None,
 ) -> tuple[Placement, ...]:
     """Place components deterministically.
 
@@ -188,7 +198,7 @@ def compute_placements(
         comp.node_id: tuple(pin for pin in pins if pin.component_id == comp.node_id)
         for comp in components
     }
-    decoupling: dict[str, tuple[str, str, str]] = {}
+    decoupling: dict[str, tuple[str, str, str, tuple[str, ...]]] = {}
     for comp in generic:
         target_ref = comp.decoupling_target
         if target_ref is None:
@@ -215,14 +225,39 @@ def compute_placements(
         shared_target = [
             pin for pin in target_pins if power_cap and pin.net_id == power_cap[0].net_id
         ]
-        if len(power_cap) != 1 or len(ground_cap) != 1 or len(shared_target) != 1:
-            raise PlacementError(f"ambiguous decoupling declaration: {comp.refdes}")
-        decoupling[comp.refdes] = (target_ref, shared_target[0].pad, power_cap[0].pad)
+        if len(power_cap) != 1 or len(ground_cap) != 1:
+            raise PlacementError(
+                f"ambiguous decoupling declaration: {comp.refdes} -> {target_ref}: "
+                f"{len(power_cap)} non-GND pins share a net with the target "
+                f"(need 1), {len(ground_cap)} GND pins (need 1)"
+            )
+        if not shared_target:
+            raise PlacementError(
+                f"ambiguous decoupling declaration: {comp.refdes} -> {target_ref}: "
+                "no target pad shares the power net"
+            )
+        # A multi-pad target shares the same power net on several pads; pick the
+        # smallest pad in natural order so the resolution stays deterministic.
+        target_pad_candidates = tuple(
+            sorted((pin.pad for pin in shared_target), key=_natural_pad_key)
+        )
+        decoupling[comp.refdes] = (
+            target_ref,
+            target_pad_candidates[0],
+            power_cap[0].pad,
+            target_pad_candidates,
+        )
+        if decoupling_evidence is not None:
+            decoupling_evidence[comp.refdes] = {
+                "decoupling_target": target_ref,
+                "target_pad": target_pad_candidates[0],
+                "target_pad_candidates": list(target_pad_candidates),
+            }
 
     active_refs = {
         comp.refdes
         for comp in generic
-        if comp.refdes in {target for target, _, _ in decoupling.values()}
+        if comp.refdes in {item[0] for item in decoupling.values()}
         or comp.library.footprint.startswith(("Espressif:", "Package_TO_SOT", "Sensor_"))
     }
     active = sorted(
@@ -256,7 +291,7 @@ def compute_placements(
         for spacing in spacing_steps:
             target = None
             if comp.refdes in decoupling:
-                target_ref, target_pad, cap_pad = decoupling[comp.refdes]
+                target_ref, target_pad, cap_pad, _candidates = decoupling[comp.refdes]
                 target = (
                     placed_at[target_ref],
                     footprints[target_ref],
@@ -310,13 +345,15 @@ def main() -> int:
     parser.add_argument("--spacing-variant", type=int, default=0)
     args = parser.parse_args()
     graph = json.loads(args.input.read_text(encoding="utf-8"))
+    decoupling_evidence: dict[str, dict[str, object]] = {}
     placements = compute_placements_from_json(
         {
             "graph": graph,
             "fixture_dir": str(args.fixture_dir),
             "fab_profile": str(args.fab_profile),
             "spacing_variant": args.spacing_variant,
-        }
+        },
+        decoupling_evidence=decoupling_evidence,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
@@ -327,6 +364,7 @@ def main() -> int:
                     "x_mm": item.x_mm,
                     "y_mm": item.y_mm,
                     "rotation_deg": item.rotation_deg,
+                    **decoupling_evidence.get(item.refdes, {}),
                 }
                 for item in placements
             ],
@@ -338,7 +376,11 @@ def main() -> int:
     return 0
 
 
-def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement, ...]:
+def compute_placements_from_json(
+    payload: dict[str, object],
+    *,
+    decoupling_evidence: dict[str, dict[str, object]] | None = None,
+) -> tuple[Placement, ...]:
     """Resolve the graph/fixture JSON CLI contract into typed search inputs."""
     graph = DesignGraph.model_validate(payload["graph"])
     lane = extract_electrical_lane(graph)
@@ -366,6 +408,7 @@ def compute_placements_from_json(payload: dict[str, object]) -> tuple[Placement,
         lane.nets,
         coupling_groups=load_placement_coupling_constraints(graph),
         spacing_variant=spacing_variant,
+        decoupling_evidence=decoupling_evidence,
     )
 
 

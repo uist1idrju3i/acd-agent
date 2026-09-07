@@ -12,6 +12,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Final
 
+from acd.core.declaration_vocabulary import (
+    NET_WIDTH_BASIS,
+    SAFETY_BOUNDARY_HAZARD_KEYS,
+    SAFETY_BOUNDARY_INTENDED_USE,
+    SAFETY_BOUNDARY_MODULE_CERTIFIED,
+)
 from acd.core.electrical import GraphExtractionError
 from acd.core.firmware_capability import load_firmware_capability_registry
 from acd.core.firmware_coverage import check_firmware_coverage
@@ -22,6 +28,8 @@ from acd.schema.lane_preflight import (
     LanePreflightMissingDeclaration,
     LanePreflightMissingNode,
     LanePreflightReport,
+    LanePreflightUnsupportedCode,
+    LanePreflightUnsupportedValue,
 )
 
 
@@ -33,6 +41,24 @@ class LaneNodeRequirement:
     minimum_count: int
     attrs: tuple[str, ...]
     all_or_none_groups: tuple[tuple[str, ...], ...] = ()
+
+
+@dataclass(frozen=True)
+class LaneAttrValueRule:
+    """Allowed-value contract for one free-form declared attribute.
+
+    ``boolean`` rules require a bool value; ``allowed`` rules require a string
+    member of the vocabulary. ``required`` rules also fire when the attribute is
+    absent; non-required rules only fire on a present-but-unsupported value
+    (absence is reported through the missing-attribute path instead).
+    """
+
+    kind: str
+    attr: str
+    code: LanePreflightUnsupportedCode
+    allowed: tuple[str, ...] = ()
+    boolean: bool = False
+    required: bool = True
 
 
 _STITCH_VIA_BASIS_ATTRS: Final[tuple[str, ...]] = (
@@ -153,6 +179,9 @@ LANE_REQUIREMENTS: Final[dict[str, tuple[LaneNodeRequirement, ...]]] = {
         LaneNodeRequirement("electrical.net", 1, ("name", "width_basis", "width_basis_source")),
         LaneNodeRequirement("electrical.pin", 1, ("component", "pad", "no_connect")),
         LaneNodeRequirement("fab.order_intent", 1, _ORDER_INTENT_ATTRS),
+        # Values are checked by LANE_VALUE_RULES below, not by the
+        # missing-attribute path.
+        LaneNodeRequirement("safety.boundary", 1, ()),
     ),
     "silkscreen-resolve": (
         LaneNodeRequirement("fab.order_intent", 1, _ORDER_INTENT_ATTRS),
@@ -230,6 +259,50 @@ SPEC_DECLARATION_PATHS: Final[dict[str, str]] = {
 # builder yet; the preflight says so instead of guessing a location.
 UNDECLARABLE_SPEC_PATH: Final[str] = "<no DesignFixtureSpec path; declare in graph.json>"
 
+# Node kinds a lane needs at an exact count; a wrong count is a vocabulary
+# finding (`code`), and an absent kind is additionally a missing node.
+LANE_NODE_EXACT_COUNTS: Final[
+    dict[str, tuple[tuple[str, int, LanePreflightUnsupportedCode], ...]]
+] = {
+    "board-pipeline": (("safety.boundary", 1, "safety.boundary.missing"),),
+}
+
+_SAFETY_BOUNDARY_VALUE_RULES: Final[tuple[LaneAttrValueRule, ...]] = (
+    LaneAttrValueRule(
+        "safety.boundary",
+        "intended_use",
+        "safety.boundary.intended_use_unsupported",
+        allowed=SAFETY_BOUNDARY_INTENDED_USE,
+    ),
+    LaneAttrValueRule(
+        "safety.boundary",
+        "module_certified",
+        "safety.boundary.module_certified_unsupported",
+        allowed=SAFETY_BOUNDARY_MODULE_CERTIFIED,
+    ),
+    *(
+        LaneAttrValueRule(
+            "safety.boundary",
+            key,
+            "safety.boundary.hazard_flag_invalid",
+            boolean=True,
+        )
+        for key in SAFETY_BOUNDARY_HAZARD_KEYS
+    ),
+)
+
+LANE_VALUE_RULES: Final[dict[str, tuple[LaneAttrValueRule, ...]]] = {
+    "board-pipeline": (
+        *_SAFETY_BOUNDARY_VALUE_RULES,
+        LaneAttrValueRule(
+            "electrical.net",
+            "width_basis",
+            "net.width_basis_unsupported",
+            allowed=NET_WIDTH_BASIS,
+        ),
+    ),
+}
+
 LANE_IDS: Final[tuple[str, ...]] = tuple(sorted(LANE_REQUIREMENTS))
 PREFLIGHT_CHECKED_PREDICATES: Final[tuple[str, ...]] = (
     "node.declared",
@@ -251,6 +324,66 @@ def _lane_report(
 ) -> LanePreflightLaneReport:
     missing_nodes: list[LanePreflightMissingNode] = []
     missing_attrs: list[LanePreflightMissingAttr] = []
+    unsupported_values: list[LanePreflightUnsupportedValue] = []
+    for kind, expected, code in LANE_NODE_EXACT_COUNTS.get(lane, ()):
+        nodes = sorted(
+            (node for node in graph.nodes if node.kind == kind),
+            key=lambda item: item.id,
+        )
+        if len(nodes) != expected:
+            unsupported_values.append(
+                LanePreflightUnsupportedValue(
+                    code=code,
+                    node_id=nodes[0].id if nodes else "<undeclared>",
+                    kind=kind,
+                    attr="count",
+                    reason=(
+                        f"lane {lane} requires exactly {expected} {kind} "
+                        f"node(s); {len(nodes)} declared under "
+                        f"`{SPEC_DECLARATION_PATHS.get(kind, UNDECLARABLE_SPEC_PATH)}`"
+                    ),
+                )
+            )
+    for rule in LANE_VALUE_RULES.get(lane, ()):
+        nodes = sorted(
+            (node for node in graph.nodes if node.kind == rule.kind),
+            key=lambda item: item.id,
+        )
+        allowed = ", ".join(rule.allowed)
+        for node in nodes:
+            value = node.attrs.get(rule.attr)
+            if rule.boolean:
+                if isinstance(value, bool):
+                    continue
+                if value is None and not rule.required:
+                    continue
+                reason = (
+                    f"{rule.kind}.{rule.attr} on node {node.id} must be a "
+                    "declared boolean (true or false)"
+                )
+            elif (isinstance(value, str) and value in rule.allowed) or (
+                value is None and not rule.required
+            ):
+                continue
+            elif value is None:
+                reason = (
+                    f"{rule.kind}.{rule.attr} on node {node.id} is not "
+                    f"declared; allowed values: {allowed}"
+                )
+            else:
+                reason = (
+                    f"{rule.kind}.{rule.attr} on node {node.id} has "
+                    f"unsupported value {value!r}; allowed values: {allowed}"
+                )
+            unsupported_values.append(
+                LanePreflightUnsupportedValue(
+                    code=rule.code,
+                    node_id=node.id,
+                    kind=rule.kind,
+                    attr=rule.attr,
+                    reason=reason,
+                )
+            )
     for requirement in requirements:
         nodes = [node for node in graph.nodes if node.kind == requirement.kind]
         if len(nodes) < requirement.minimum_count:
@@ -297,7 +430,7 @@ def _lane_report(
                     )
     status = (
         "declarations_complete"
-        if not missing_nodes and not missing_attrs
+        if not missing_nodes and not missing_attrs and not unsupported_values
         else "declarations_incomplete"
     )
     return LanePreflightLaneReport(
@@ -305,6 +438,7 @@ def _lane_report(
         status=status,
         missing_nodes=missing_nodes,
         missing_attrs=missing_attrs,
+        unsupported_values=unsupported_values,
         firmware_coverage=(
             _firmware_coverage_diagnostic(graph)
             if lane == "firmware-pipeline"
@@ -404,7 +538,12 @@ def missing_declarations(
 def missing_declaration_action(report: LanePreflightReport) -> str | None:
     """Render the declarations to add to the design input as one instruction."""
     entries = missing_declarations(report)
-    if not entries:
+    unsupported_parts: list[str] = [
+        f"{lane_report.lane}: {item.reason} [{item.code}]"
+        for lane_report in report.lanes
+        for item in lane_report.unsupported_values
+    ]
+    if not entries and not unsupported_parts:
         return None
     parts: list[str] = []
     for entry in entries:
@@ -421,20 +560,32 @@ def missing_declaration_action(report: LanePreflightReport) -> str | None:
                 f"{entry.lane}: add attrs [{names}] to existing node(s) [{nodes}] "
                 f"under `{entry.spec_path}`"
             )
-    return (
+    action = (
         "Add the missing declarations to the design input spec "
         "(DesignFixtureSpec) and rebuild the fixture; declarations are never "
         "auto-completed. " + "; ".join(parts)
+    ) if parts else (
+        "Fix the unsupported declaration values in the design input spec "
+        "(DesignFixtureSpec) and rebuild the fixture; declarations are never "
+        "auto-completed."
     )
+    if unsupported_parts:
+        action += (
+            " Unsupported declared values: " + "; ".join(unsupported_parts)
+        )
+    return action
 
 
 __all__ = [
     "LANE_IDS",
+    "LANE_NODE_EXACT_COUNTS",
     "LANE_REQUIREMENTS",
+    "LANE_VALUE_RULES",
     "PREFLIGHT_CHECKED_PREDICATES",
     "PREFLIGHT_UNCHECKED_PREDICATES",
     "SPEC_DECLARATION_PATHS",
     "UNDECLARABLE_SPEC_PATH",
+    "LaneAttrValueRule",
     "LaneNodeRequirement",
     "missing_declaration_action",
     "missing_declarations",

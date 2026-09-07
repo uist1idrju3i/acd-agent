@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,7 @@ from acd.adapters.kicad.placement import (
     placed_rect,
 )
 from acd.core.board_model import FootprintShape, PadShape
-from acd.core.electrical import BoardView, ComponentView, LibraryPin
+from acd.core.electrical import BoardView, ComponentView, LibraryPin, NetView, PinView
 from acd.core.placement_constraints import PlacementCouplingConstraint
 from placement_search import (
     compute_placements,
@@ -290,3 +291,141 @@ def test_coupling_group_keeps_members_within_declared_distance() -> None:
             placements["R1"].y_mm - placements[member].y_mm
         )
         assert distance <= 4.0 + 1e-9
+
+
+def _net(node_id: str, name: str) -> NetView:
+    return NetView(
+        node_id=node_id,
+        name=name,
+        voltage_nominal_v=None,
+        width_basis="manufacturing_minimum",
+        current_max_a=None,
+        width_basis_source=None,
+        manufacturing_minimum_mm=None,
+        manufacturing_margin_mm=None,
+    )
+
+
+def _pin(component: ComponentView, pad: str, net_id: str | None) -> PinView:
+    return PinView(
+        node_id=f"pin-{component.refdes}-{pad}",
+        component_id=component.node_id,
+        pad=pad,
+        net_id=net_id,
+        no_connect=False,
+    )
+
+
+def test_decoupling_target_with_multiple_power_pads_resolves_deterministically() -> None:
+    cap = replace(_component("C1"), decoupling_target="U1")
+    target = _component("U1")
+    components = (cap, target)
+    footprints = {comp.refdes: _footprint() for comp in components}
+    pins = (
+        _pin(cap, "1", "net.pwr"),
+        _pin(cap, "2", "net.gnd"),
+        _pin(target, "3", "net.pwr"),
+        _pin(target, "10", "net.pwr"),
+        _pin(target, "2", "net.pwr"),
+    )
+    nets = (_net("net.pwr", "VCC"), _net("net.gnd", "GND"))
+    evidence: dict[str, dict[str, object]] = {}
+    placements = compute_placements(
+        _board(),
+        components,
+        footprints,
+        (),
+        (),
+        pins,
+        nets,
+        decoupling_evidence=evidence,
+    )
+    assert {item.refdes for item in placements} == {"C1", "U1"}
+    assert evidence["C1"] == {
+        "decoupling_target": "U1",
+        "target_pad": "2",
+        "target_pad_candidates": ["2", "3", "10"],
+    }
+    again: dict[str, dict[str, object]] = {}
+    compute_placements(
+        _board(),
+        components,
+        footprints,
+        (),
+        (),
+        pins,
+        nets,
+        decoupling_evidence=again,
+    )
+    assert again == evidence
+
+
+def test_decoupling_with_two_power_net_pins_fails_with_counts() -> None:
+    cap = replace(_component("C1"), decoupling_target="U1")
+    target = _component("U1")
+    components = (cap, target)
+    footprints = {comp.refdes: _footprint() for comp in components}
+    pins = (
+        _pin(cap, "1", "net.pwr"),
+        _pin(cap, "4", "net.pwr2"),
+        _pin(cap, "2", "net.gnd"),
+        _pin(target, "3", "net.pwr"),
+        _pin(target, "5", "net.pwr2"),
+    )
+    nets = (_net("net.pwr", "VCC"), _net("net.pwr2", "VDD"), _net("net.gnd", "GND"))
+    with pytest.raises(
+        PlacementError,
+        match=(
+            r"ambiguous decoupling declaration: C1 -> U1: "
+            r"2 non-GND pins share a net with the target \(need 1\), "
+            r"1 GND pins \(need 1\)"
+        ),
+    ):
+        compute_placements(_board(), components, footprints, (), (), pins, nets)
+
+
+def test_decoupling_without_shared_power_net_fails_with_counts() -> None:
+    cap = replace(_component("C1"), decoupling_target="U1")
+    target = _component("U1")
+    components = (cap, target)
+    footprints = {comp.refdes: _footprint() for comp in components}
+    pins = (
+        _pin(cap, "1", "net.isolated"),
+        _pin(cap, "2", "net.gnd"),
+        _pin(target, "3", "net.pwr"),
+    )
+    nets = (
+        _net("net.pwr", "VCC"),
+        _net("net.isolated", "NC1"),
+        _net("net.gnd", "GND"),
+    )
+    with pytest.raises(
+        PlacementError,
+        match=(
+            r"ambiguous decoupling declaration: C1 -> U1: "
+            r"0 non-GND pins share a net with the target \(need 1\), "
+            r"1 GND pins \(need 1\)"
+        ),
+    ):
+        compute_placements(_board(), components, footprints, (), (), pins, nets)
+
+
+def test_decoupling_without_ground_pin_fails_with_counts() -> None:
+    cap = replace(_component("C1"), decoupling_target="U1")
+    target = _component("U1")
+    components = (cap, target)
+    footprints = {comp.refdes: _footprint() for comp in components}
+    pins = (
+        _pin(cap, "1", "net.pwr"),
+        _pin(target, "3", "net.pwr"),
+    )
+    nets = (_net("net.pwr", "VCC"), _net("net.gnd", "GND"))
+    with pytest.raises(
+        PlacementError,
+        match=(
+            r"ambiguous decoupling declaration: C1 -> U1: "
+            r"1 non-GND pins share a net with the target \(need 1\), "
+            r"0 GND pins \(need 1\)"
+        ),
+    ):
+        compute_placements(_board(), components, footprints, (), (), pins, nets)

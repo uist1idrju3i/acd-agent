@@ -89,6 +89,7 @@ from acd.core.rationale import (
     check_rationale_coverage,
     refresh_rationale_document,
     subject_hash_for,
+    summarize_rationale_coverage,
 )
 from acd.core.receipt import (
     ReceiptReconciliationError,
@@ -179,6 +180,7 @@ __all__ = [
     "resolve_fab_profile_path",
     "resolve_order_provider",
     "subject_hash_for",
+    "summarize_rationale_coverage",
     "validate_allowances_against_profile",
     "validate_applied_feedback",
     "validate_predicate_coverage",

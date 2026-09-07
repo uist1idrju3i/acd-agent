@@ -6,7 +6,10 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-from acd.core.rationale import check_rationale_coverage
+from acd.core.rationale import (
+    check_rationale_coverage,
+    summarize_rationale_coverage,
+)
 from acd.schema import (
     DesignGraph,
     RationaleCoverageReport,
@@ -34,12 +37,7 @@ def validate_and_project_rationale(
     )
     if report.status != "pass":
         raise ValueError(
-            "rationale coverage failed: "
-            f"missing={len(report.missing)}, stale={len(report.stale)}, "
-            f"orphan={len(report.orphan)}, conflicting={len(report.conflicting)}, "
-            f"unknown_provenance={len(report.unknown_provenance)}, "
-            f"untraceable={len(report.untraceable)}, "
-            f"unclassified={len(report.unclassified)}"
+            "rationale coverage failed: " + summarize_rationale_coverage(report)
         )
     _write_rationale_markdown(document, out_dir / "rationale.md", report)
     return document
