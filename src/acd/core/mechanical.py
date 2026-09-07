@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Final
 
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
 from acd.schema.design_graph import DesignGraph, GraphNode
+
+SUPPORTED_OPENING_FACES: Final[tuple[str, ...]] = ("front", "back", "left", "right")
 
 REQUIRED_MECHANICAL_ATTRS: dict[str, tuple[str, ...]] = {
     "mechanical.outline": (
@@ -117,6 +120,14 @@ class ComponentBodyView:
 
 @dataclass(frozen=True)
 class ConnectorOpeningView:
+    """One connector cutout on a declared enclosure face.
+
+    ``face`` is one of ``SUPPORTED_OPENING_FACES``. ``center_x_mm`` is
+    measured along the face's horizontal axis from the outline origin:
+    outline X for ``front``/``back``, outline Y for ``left``/``right``.
+    ``center_y_mm`` is the height above the board plane.
+    """
+
     node_id: str
     component_id: str
     face: str
@@ -302,11 +313,17 @@ def extract_mechanical_lane(graph: DesignGraph) -> MechanicalLane:
                 raise GraphExtractionError(
                     f"node {node.id!r} must depend on exactly one electrical component"
                 )
+            face = _str_attr(node, "face")
+            if face not in SUPPORTED_OPENING_FACES:
+                raise GraphExtractionError(
+                    f"connector opening {node.id!r} face {face!r} is unsupported; "
+                    f"supported faces: {', '.join(SUPPORTED_OPENING_FACES)}"
+                )
             openings.append(
                 ConnectorOpeningView(
                     node_id=node.id,
                     component_id=component_ids[0],
-                    face=_str_attr(node, "face"),
+                    face=face,
                     center_x_mm=_float_attr(node, "center_x_mm"),
                     center_y_mm=_float_attr(node, "center_y_mm"),
                     width_mm=_float_attr(node, "width_mm"),

@@ -247,7 +247,9 @@ workflowは任意Python scriptがhook境界を外れるため不採用（将来�
 診断codeの語彙は次の一覧に固定する（O-5と共有する）。
 `mechanical.node.missing`、`mechanical.node.duplicated`、
 `mechanical.attribute.missing`、`mechanical.attribute.invalid`、
-`mechanical.reference.unresolved`、`mechanical.extraction.failed`、
+`mechanical.reference.unresolved`、
+`mechanical.connector_opening.face_unsupported`（`face`が
+`front`・`back`・`left`・`right`以外の値）、`mechanical.extraction.failed`、
 `rationale.coverage.missing`、`rationale.coverage.stale`、
 `rationale.coverage.orphan`、`rationale.coverage.conflicting`、
 `rationale.coverage.unknown_provenance`、`rationale.coverage.untraceable`、
@@ -348,6 +350,13 @@ declared total、canonical breakdown hashを既存core契約に従って検査�
 ことを検証してからloop全体をboundedに再実行する。探索reportのtarget_revisionもgraphの
 revisionと一致していなければfail-closedとし、L1ゲートとauthoritative Evidenceを毎回
 生成する。探索reportは合格権限を持たない。
+
+connector openingの`face`は`front`・`back`・`left`・`right`の4値のみを受理する。
+`center_x_mm`はfaceの水平軸に沿ってoutline原点から測る（`front`／`back`は
+outline X、`left`／`right`はoutline Y）、`center_y_mm`は基板面からの高さである。
+それ以外の値は`extract_mechanical_lane`の`GraphExtractionError`と機械preflightの
+`mechanical.connector_opening.face_unsupported`の両方でfail-closedにし、
+機械断面検査は4面すべての宣言済みaperture境界と内壁被覆を照合する。
 
 GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして

@@ -647,7 +647,12 @@ Y-1〜Y-11として整理する。ロードマップ上は[`roadmap.md`](roadmap
 | Y-11 | FW capability契約（`firmware_init`・`led_blink`・`i2c_sensor_init`・`i2c_sensor_read`・`serial_log`、単一LED・入力pin role無し）が要件を表現できない | `fw_project.py`は1本の`led` roleしか採用せず、button／inputのcapability自体が存在しない | 高 | Y-6、Q-10 | 複数LED（`led2`等の追加role）と入力capability（`button_input`等）をregistryへ追加し、`fw_project.py`が宣言された複数LED交互点滅と入力待ちを射影できるようにする。未対応の間はY-6の被覆検査でfail-closedにする |
 
 Y-1・Y-4・Y-10はそれぞれの変更で解消した。Y-10はEvidence provenance面の追加であり、合格側権限の
-緩和ではない。N-3・N-6・N-8（hookの誤検出）は運用観測として`notes.md`に留め、
+緩和ではない。enclosure laneの`face: right`壁も解消し、`mechanical.connector_opening`の
+`face`は`front`・`back`・`left`・`right`を受理する（`center_x_mm`は`front`／`back`では
+outline X、`left`／`right`ではoutline Yに沿って測る）。それ以外のface値は
+`extract_mechanical_lane`の`GraphExtractionError`と機械preflightの
+`mechanical.connector_opening.face_unsupported`でfail-closedにする。
+N-3・N-6・N-8（hookの誤検出）は運用観測として`notes.md`に留め、
 優先順位の末尾に記録する。
 
 ## Devinのような汎用エージェントが不在なら止まる項目

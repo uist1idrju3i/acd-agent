@@ -291,6 +291,8 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    preflightのcode語彙はO-5と共有し、`mechanical.node.missing`、
    `mechanical.node.duplicated`、`mechanical.attribute.missing`、
    `mechanical.attribute.invalid`、`mechanical.reference.unresolved`、
+   `mechanical.connector_opening.face_unsupported`（`face`の許容値は
+   `front`・`back`・`left`・`right`）、
    `mechanical.extraction.failed`、`rationale.coverage.missing`、
    `rationale.coverage.stale`、`rationale.coverage.orphan`、
    `rationale.coverage.conflicting`、`rationale.coverage.unknown_provenance`、
