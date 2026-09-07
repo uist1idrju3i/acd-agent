@@ -142,6 +142,7 @@ def _surface_router_diagnostics(
                         }
                     )
             if entries:
+                entries.sort(key=lambda entry: (entry["round"], entry["candidate_id"]))
                 candidate_diagnostics = entries[:_CANDIDATE_DIAGNOSTICS_LIMIT]
     result["router_diagnostics"] = router_diagnostics
     result["candidate_router_diagnostics"] = candidate_diagnostics
