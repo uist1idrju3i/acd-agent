@@ -1613,6 +1613,15 @@ DevinがPR作成前に実施する既定検証は`--stage fast`とする。
 は`--jobs 1` 141.21秒、既定並列 126.66秒だった。
 測定は各条件1回で、外部ツールを含まないstandard段階の比較である。
 
+`scripts/tests/test_verify_{agent_settings,agent_prompts,context_view,model_policy}.py`は
+assertごとに`sys.executable`でCLIを起動しており、1起動あたりOpenHands SDKとlitellmの
+importで約4〜5秒を消費していた（`-X importtime`で確認）。CLIごとにsubprocessの
+smoke testを1件残し、残りは`scripts/tests/cli_runner.py`の`run_main`で`main(argv)`を
+in-process実行する形へ寄せた結果、同一2コアVMでpytest全体（`-n auto`）は
+270.65秒から159.67秒へ短縮した。repoには`xdist_group`の指定が無く`loadgroup`は
+`load`と等価で、`--dist worksteal`との比較（157.45秒対161.64秒、各1回）でも差は
+なかったため、分散方式は変更していない。
+
 mainのCI run `32909530356`をbaselineとして、`verify`は262秒（うちStandard verification
 222秒）、`skills`は102秒、`pinned-acd-probe`は28秒、`container-gates`は451秒
 （locked agent-server imageのpull 178秒、決定論的gateの実行245秒）だった。
