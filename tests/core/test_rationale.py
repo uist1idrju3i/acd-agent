@@ -8,8 +8,17 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.rationale import check_rationale_coverage, subject_hash_for
-from acd.schema import DesignGraph, RationaleDocument
+from acd.core.rationale import (
+    check_rationale_coverage,
+    subject_hash_for,
+    summarize_rationale_coverage,
+)
+from acd.schema import (
+    DesignGraph,
+    RationaleCoverageReport,
+    RationaleDocument,
+)
+from acd.schema.design_fixture import DesignFixtureSpec
 
 
 def test_gd1_rationale_decisions_and_justifications_are_unique() -> None:
@@ -235,3 +244,123 @@ def test_coverage_failures(change: str) -> None:
     if change == "untraceable":
         assert len(report.untraceable) == 5
         assert {item.rationale_id for item in report.untraceable} == {"rat-1"}
+
+
+def test_summarize_rationale_coverage_reports_pass() -> None:
+    graph = _graph()
+    report = check_rationale_coverage(graph, _document(graph))
+
+    summary = summarize_rationale_coverage(report)
+
+    assert summary.startswith(
+        "status=pass graph_id_match=True revision_match=True"
+    )
+    assert "missing=0 " in summary
+    assert "templated=0" in summary
+    assert "[" not in summary
+
+
+def test_summarize_rationale_coverage_formats_every_category() -> None:
+    subject = {"node_id": "comp.u1", "attr": "x_mm"}
+    report = RationaleCoverageReport.model_validate(
+        {
+            "status": "fail",
+            "graph_id": "g",
+            "revision": "r1",
+            "graph_id_match": True,
+            "revision_match": False,
+            "missing": [subject],
+            "stale": [{"rationale_id": "r-1", "subject": subject}],
+            "unknown_provenance": [{"rationale_id": "r-2"}],
+            "orphan": [
+                {
+                    "rationale_id": "r-3",
+                    "subject": subject,
+                    "reason": "unknown node",
+                }
+            ],
+            "untraceable": [{"rationale_id": "r-4", "subject": subject}],
+            "conflicting": [{"rationale_id": "r-5", "subject": subject}],
+            "unclassified": [
+                {
+                    "node_id": "comp.u1",
+                    "node_kind": "electrical.component",
+                    "attr": "future_choice",
+                    "reason": "unclassified attr",
+                }
+            ],
+            "templated": [{"rationale_id": "r-6", "reason": "template text"}],
+            "generator_violations": [
+                {"rationale_id": "r-7", "reason": "self-declared"}
+            ],
+        }
+    )
+
+    summary = summarize_rationale_coverage(report)
+
+    assert "revision_match=False" in summary
+    assert "missing=1 [comp.u1.x_mm]" in summary
+    assert "stale=1 [r-1→comp.u1.x_mm]" in summary
+    assert "unknown_provenance=1 [r-2]" in summary
+    assert "orphan=1 [r-3→comp.u1.x_mm (unknown node)]" in summary
+    assert "untraceable=1 [r-4→comp.u1.x_mm]" in summary
+    assert "conflicting=1 [r-5→comp.u1.x_mm]" in summary
+    assert "unclassified=1 [comp.u1.future_choice (unclassified attr)]" in summary
+    assert "templated=1 [r-6 (template text)]" in summary
+    assert "generator_violations=1 [r-7 (self-declared)]" in summary
+
+
+def test_summarize_rationale_coverage_truncates_in_stable_order() -> None:
+    report = RationaleCoverageReport.model_validate(
+        {
+            "status": "fail",
+            "graph_id": "g",
+            "revision": "r1",
+            "graph_id_match": True,
+            "revision_match": True,
+            "missing": [
+                {"node_id": f"comp.u{index}", "attr": "x_mm"}
+                for index in range(7, 0, -1)
+            ],
+        }
+    )
+
+    summary = summarize_rationale_coverage(report, limit=5)
+
+    assert "missing=7 [comp.u1.x_mm" in summary
+    assert "comp.u7" not in summary
+    assert "…(+2 more)" in summary
+
+
+def test_summarize_rationale_coverage_is_used_by_fixture_builder(
+    tmp_path: Path,
+) -> None:
+    spec = DesignFixtureSpec.model_validate(
+        {
+            "design_name": "coverage-message",
+            "components": [
+                {
+                    "refdes": "U1",
+                    "attrs": {"mpn": "MCU-1", "future_choice": "x"},
+                    "pads": {"1": "net.io"},
+                }
+            ],
+            "nets": [{"net_id": "net.io", "attrs": {"name": "IO"}}],
+            "requirements": [
+                {"requirement_id": "io", "statement": "Drive the IO net."}
+            ],
+        }
+    )
+
+    from acd.pipeline.fixture_builder import (
+        FixtureBuilderError,
+        build_design_fixture,
+    )
+
+    with pytest.raises(FixtureBuilderError) as excinfo:
+        build_design_fixture(spec, tmp_path / "fixture")
+
+    message = str(excinfo.value)
+    assert "rationale coverage failed while building fixture" in message
+    assert "unclassified=1 [comp.u1.future_choice" in message
+    assert "REQUIRED_RATIONALE_ATTRS" in message

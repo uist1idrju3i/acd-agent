@@ -205,3 +205,28 @@ def test_mechanical_lane_rejects_lid_hole_smaller_than_pilot() -> None:
     ]
     with pytest.raises(GraphExtractionError, match="at least the pilot"):
         extract_mechanical_lane(graph.model_copy(update={"nodes": nodes}))
+
+
+@pytest.mark.parametrize("face", ["front", "back", "left", "right"])
+def test_mechanical_lane_accepts_supported_opening_faces(face: str) -> None:
+    graph = _graph()
+    nodes = [
+        node.model_copy(update={"attrs": {**node.attrs, "face": face}})
+        if node.kind == "mechanical.connector_opening"
+        else node
+        for node in graph.nodes
+    ]
+    lane = extract_mechanical_lane(graph.model_copy(update={"nodes": nodes}))
+    assert lane.connector_openings[0].face == face
+
+
+def test_mechanical_lane_rejects_unsupported_opening_face() -> None:
+    graph = _graph()
+    nodes = [
+        node.model_copy(update={"attrs": {**node.attrs, "face": "top"}})
+        if node.kind == "mechanical.connector_opening"
+        else node
+        for node in graph.nodes
+    ]
+    with pytest.raises(GraphExtractionError, match="supported faces: front, back, left, right"):
+        extract_mechanical_lane(graph.model_copy(update={"nodes": nodes}))

@@ -1316,6 +1316,10 @@ container wall-clock 152秒）。`--design-only`は受理され発注入力な�
 **修正はagent向けの罠を除くものであり、dual-beacon-tagを合格させるものではない。**
 router収束の壁・非front筐体開口・FW capability契約は未解消として残る。
 
+（後続: 筐体開口の`face`契約は`front`・`back`・`left`・`right`の受理と
+`mechanical.connector_opening.face_unsupported`のpreflight前倒しで解消済み。
+router収束の壁とFW capability契約は引き続き残る。）
+
 ### 15.6 結論（第8回）
 
 - **自然文のみでのGD1非依存新規設計は成立しなかった。**「W. GD1非依存の達成条件」のうち、
@@ -1338,12 +1342,12 @@ router収束の壁・非front筐体開口・FW capability契約は未解消と�
 | 項目 | 内容 | 状況 |
 |---|---|---|
 | Y-1 | `order-total document is required`が`--design-only`を指さず、agentが捏造documentへ倒れる（D-1／F-1） | 本変更で解消（メッセージと`vibebb-loop.md`を修正） |
-| Y-2 | rationale coverage失敗が詳細を返さず、agentがsourceをinstrumentする（D-2／F-2） | 未解消 |
+| Y-2 | rationale coverage失敗が詳細を返さず、agentがsourceをinstrumentする（D-2／F-2） | 解消（coverage要約`summarize_rationale_coverage`を失敗メッセージへ含めた後続変更） |
 | Y-3 | library hashのpinを試行錯誤で埋める経路が無い（D-3） | 解消（`scripts/pin_library_hashes.py`でdigestを採取・specへ記入する後続変更） |
 | Y-4 | `strapping_pin`がnet名`"LED"`固定で複数LED駆動netを評価できない（D-4） | 本変更で解消（宣言済み`led_drive_net`ベースへ一般化） |
 | Y-5 | 安全境界やenumの許容値がpreflightから見えず、agentがGD1の値を写す（D-5） | 未解消 |
 | Y-6 | FW capability契約が複数LED・入力を表現できず、要件driftがfail-closedにならない（D-6／F-4） | 未解消 |
-| Y-7 | silkscreen resolveが未宣言位置を後段へ流す（D-7） | 未解消 |
+| Y-7 | silkscreen resolveが未宣言位置を後段へ流す（D-7） | 解消（`resolved`以外のstatusを未解決text名つきでfail-closedへ倒す後続変更） |
 | Y-8 | router非収束時に`loop-summary`へunrouted数・原因が出ない（D-8） | 未解消 |
 | Y-9 | decoupling_targetの多ピン対象の意味が文書化されていない（D-9） | 未解消 |
 | Y-10 | `is_design_input`が`src/`を検出せず、Evidenceにsource-treeのgit SHA／dirty状態が無い（D-10／F-3） | 未解消 |

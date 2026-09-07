@@ -30,6 +30,7 @@ from acd.core.rationale import (
     REQUIRED_RATIONALE_ATTRS,
     check_rationale_coverage,
     subject_hash_for,
+    summarize_rationale_coverage,
 )
 from acd.core.requirements import validate_requirements
 from acd.schema import (
@@ -701,7 +702,11 @@ def build_design_fixture(
     coverage = check_rationale_coverage(graph, rationale)
     if coverage.status != "pass":
         raise FixtureBuilderError(
-            "rationale coverage failed while building fixture: " + coverage.status
+            "rationale coverage failed while building fixture: "
+            + summarize_rationale_coverage(coverage)
+            + "; next step: add rationale records for missing/stale subjects or "
+            "classify new attrs in REQUIRED_RATIONALE_ATTRS/"
+            "RATIONALE_EXEMPT_ATTRS (see docs)"
         )
     graph_content = _canonical(graph.model_dump(mode="json"))
     requirements_content = _canonical(requirements.model_dump(mode="json"))

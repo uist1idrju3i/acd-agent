@@ -225,3 +225,26 @@ def test_enclosure_cli_writes_mechanical_preflight_report(
         and finding["node_kind"] == "mechanical.enclosure"
         for finding in report["findings"]
     )
+
+
+def test_connector_opening_unsupported_face_has_dedicated_finding() -> None:
+    graph = _graph()
+    nodes = [
+        node.model_copy(update={"attrs": {**node.attrs, "face": "top"}})
+        if node.kind == "mechanical.connector_opening"
+        else node
+        for node in graph.nodes
+    ]
+    report = check_mechanical_preflight(
+        graph.model_copy(update={"nodes": nodes}), GRAPH_PATH.parent
+    )
+    face_findings = [
+        finding
+        for finding in report.findings
+        if finding.code == "mechanical.connector_opening.face_unsupported"
+    ]
+    assert report.status == "fail"
+    assert len(face_findings) == 1
+    assert face_findings[0].attribute == "face"
+    assert "front, back, left, right" in face_findings[0].detail
+    assert "'top'" in face_findings[0].detail

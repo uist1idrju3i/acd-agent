@@ -23,7 +23,10 @@
 - **authoritative（L1）**: 存在しない。`board-pipeline`が
   `GateError: router convergence_state='not_converged' (fail-closed)`で停止し、
   探索は`status='exhausted'`（評価5候補／生成28候補、writable candidateなし）で終了した。
-  筐体laneも`unsupported connector opening face: right`でfail-closedしている。
+  筐体laneも`unsupported connector opening face: right`でfail-closedしている
+  （当時の記録。現在は`face`の`front`・`back`・`left`・`right`を受理し、
+  それ以外はpreflightの`mechanical.connector_opening.face_unsupported`で
+  fail-closedとなる）。
 - **唯一存在するEvidence（合格を意味しない）**: `firmware/evidence-firmware.json`は
   `status: "valid"`、`target_revision: "r1"`、`container_image_digest`が上記lockと一致する
   QEMU仮想実行の記録である。単独ではauthoritative passを構成しない。
