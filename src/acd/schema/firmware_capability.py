@@ -11,6 +11,7 @@ class FirmwareCapabilityContract(AcdModel):
     capability_id: NonEmptyStr
     actions: list[NonEmptyStr] = Field(min_length=1)
     required_pin_roles: list[NonEmptyStr] = Field(default_factory=list)
+    emits_triggers: list[NonEmptyStr] = Field(default_factory=list)
     requires_device: bool = False
 
     @model_validator(mode="after")
@@ -19,6 +20,8 @@ class FirmwareCapabilityContract(AcdModel):
             raise ValueError("firmware capability actions must be unique")
         if len(self.required_pin_roles) != len(set(self.required_pin_roles)):
             raise ValueError("firmware capability pin roles must be unique")
+        if len(self.emits_triggers) != len(set(self.emits_triggers)):
+            raise ValueError("firmware capability emits_triggers must be unique")
         return self
 
 

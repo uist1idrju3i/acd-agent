@@ -139,6 +139,20 @@ FW boot logの既定文言もgraph_idから導出する（規範は
 `firmware.module.boot_log_message`明示属性で再現する。graphが不明な場合は既定値を
 推測せずfail-closedにする。
 
+FW laneは`firmware.sequence_step`・`firmware.state_transition`・`firmware.pin_assignment`と
+capability registry（`contracts/firmware-capability-registry.json`）の被覆検査を、
+Skill起動前にfail-closedで行う。`led_indicator: true`を宣言した電気部品はいずれかの
+`firmware.sequence_step`の`target`でなければならず、sequence stepの`action`は登録済み
+capabilityの`actions`に含まれていなければならない。`firmware.state_transition`の
+`trigger`は、sequenceが使うcapabilityの`emits_triggers`のいずれかで発火できなければ
+ならない。`firmware.pin_assignment`のnet（`net.`接頭辞を除くrole）は`pin_role_order`か
+使用capabilityの`required_pin_roles`に含まれていなければならない。違反時は
+`firmware coverage failed`で停止し、修正はsequence stepの追加、
+`acd-firmware-capability-entry`（`scripts/register_firmware_capability.py`）での
+capability登録（`emits_triggers`宣言付き）、または登録済みpin roleへのnet改名で行う。
+宣言を削って検査を回避しない。検査結果はlane出力の`firmware-coverage.json`と
+preflightの`firmware_coverage`へL3診断として残る。
+
 機能blockのトポロジは`contracts/topology-templates.json`から検証・合成され、部品の
 追加は`acd_register_parts_catalog_entry`でlibrary provenanceを検証してから行う。
 共通railは`shared_nets`へ宣言し、template-localなrefdes／net IDと分離する。template
