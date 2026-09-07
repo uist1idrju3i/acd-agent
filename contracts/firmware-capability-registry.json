@@ -3,6 +3,8 @@
   "registry_id": "acd-firmware-capabilities-14.14",
   "pin_role_order": [
     "led",
+    "led2",
+    "button",
     "i2c_sda",
     "i2c_scl",
     "uart_tx",
@@ -16,30 +18,51 @@
       "capability_id": "firmware_init",
       "actions": ["initialize_firmware"],
       "required_pin_roles": [],
+      "emits_triggers": ["boot_complete", "gpio_configure_failed"],
       "requires_device": false
     },
     {
       "capability_id": "led_blink",
       "actions": ["toggle_led"],
       "required_pin_roles": ["led"],
+      "emits_triggers": [],
       "requires_device": false
+    },
+    {
+      "capability_id": "led2_blink",
+      "actions": ["toggle_led2"],
+      "required_pin_roles": ["led2"],
+      "emits_triggers": [],
+      "requires_device": false,
+      "description": "Second LED toggled in antiphase to the led pin."
+    },
+    {
+      "capability_id": "button_input",
+      "actions": ["read_button"],
+      "required_pin_roles": ["button"],
+      "emits_triggers": ["button_pressed"],
+      "requires_device": false,
+      "description": "Active-low momentary input with internal pull-up."
     },
     {
       "capability_id": "i2c_sensor_init",
       "actions": ["initialize_sht40"],
       "required_pin_roles": ["i2c_sda", "i2c_scl"],
+      "emits_triggers": ["sensor_init_complete", "sensor_init_failed"],
       "requires_device": true
     },
     {
       "capability_id": "i2c_sensor_read",
       "actions": ["read_temperature_humidity"],
       "required_pin_roles": ["i2c_sda", "i2c_scl"],
+      "emits_triggers": ["measurement_ready", "sensor_read_failed"],
       "requires_device": true
     },
     {
       "capability_id": "serial_log",
       "actions": ["write_serial_log"],
       "required_pin_roles": [],
+      "emits_triggers": ["report_complete"],
       "requires_device": false
     }
   ],

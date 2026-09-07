@@ -80,6 +80,7 @@ from acd.schema import (
     QuoteRecord,
 )
 from acd.schema.common import canonical_json_sha256
+from acd.schema.lane_preflight import LanePreflightReport
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
@@ -472,6 +473,7 @@ def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
     # input be completed without waiting for that stop.
     preflight = run_lane_preflight(graph, _preflight_lanes())
     diagnostics: dict[str, Any] = {"lane_preflight_status": preflight.status}
+    diagnostics.update(_firmware_coverage_diagnostics(preflight))
     if preflight.status != "declarations_complete":
         diagnostics["missing_declarations"] = [
             item.model_dump(mode="json") for item in missing_declarations(preflight)
@@ -493,6 +495,23 @@ def _preflight_lanes() -> tuple[str, ...]:
         for lane in ("silkscreen-resolve", *DESIGN_LOOP_LANE_IDS)
         if lane in LANE_REQUIREMENTS
     )
+
+
+def _firmware_coverage_diagnostics(
+    report: LanePreflightReport,
+) -> dict[str, Any]:
+    """Surface a non-pass firmware coverage verdict next to the declarations.
+
+    The entry stays diagnostic: a ``fail`` or ``unknown`` coverage status is
+    reported so the design input can be fixed early, but it does not change
+    the preflight's own declarations status.
+    """
+    for lane in report.lanes:
+        if lane.lane != "firmware-pipeline" or lane.firmware_coverage is None:
+            continue
+        if lane.firmware_coverage.get("status") != "pass":
+            return {"firmware_coverage": lane.firmware_coverage}
+    return {}
 
 
 def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
@@ -526,6 +545,7 @@ def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
         "preflight_status": report.status,
         "preflight_lanes": list(_preflight_lanes()),
         "output_path": str(output_path) if output_path is not None else None,
+        **_firmware_coverage_diagnostics(report),
     }
     if report.status == "declarations_complete":
         return _success("lane-preflight", **fields)

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@cf6e2da33a842258e73c34daacc4c13e93b1c09e",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@f990d29960f9c14d0b2d9229e4c124c9908ec5b5",
 # ]
 # ///
 """Validate a fixture with the pinned ACD package and exercise the FW Skill."""
