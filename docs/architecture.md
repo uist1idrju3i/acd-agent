@@ -349,6 +349,14 @@ declared total、canonical breakdown hashを既存core契約に従って検査�
 revisionと一致していなければfail-closedとし、L1ゲートとauthoritative Evidenceを毎回
 生成する。探索reportは合格権限を持たない。
 
+board-pipelineまたはboard-explorationがfail-closedで失敗した場合、
+`read_router_diagnostics`が基板lane出力の`l3/router-pass-progress.json`（`unrouted`
+推移と収束状態）と`gate-evidence/routing-connectivity.json`（fail状態net）を読み、
+`loop-summary.json`へ`router_diagnostics`・`candidate_router_diagnostics`として記録し、
+plateau・減少継続・timeoutに応じた次手を`next_step_action`へ追記する。
+これらは`record_class: "L3"`の観測であり、ゲート、`assert_converged`、閾値、
+passの意味を変更しない。
+
 GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして
 Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上界モデルもゲート側を単一の

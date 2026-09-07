@@ -377,7 +377,7 @@ provenance・契約の不足を閉じる。
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `src/acd/pipeline/design_loop.py`（`loop-summary`）、`src/acd/adapters/freerouting/`、`src/acd/adapters/cad/project.py`の`face`判定、`plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py`と`contracts/firmware-capability-registry.json`、`src/acd/openhands/evidence/git.py`の`is_design_input`と`order_gate.py`、`src/acd/schema/tool_envelope.py`、`scripts/verify_authoritative_evidence.py`、`src/acd/pipeline/fixture_builder.py`、`plugins/acd/hooks`のprojection保護、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節、[`examples/dual-beacon-tag-vps-20260906/`](../examples/dual-beacon-tag-vps-20260906/) |
-| 実装 | router非収束時に`loop-summary`へunrouted数・収束状態・主要な未解決netをL3診断として記録する（Y-8）。enclosure laneがfront以外の開口faceを受理するか、受理しないfaceを契約とpreflightで明示してfail-closedを前倒しする（筐体の壁）。FW capability契約へ複数LEDと入力pin roleを追加するか、追加するまで要件→`fw.sequence`被覆検査で要件の削除をfail-closedにする（Y-6・Y-11）。Evidence provenanceへsource-treeのgit SHAとdirty digestを記録し、`verify_authoritative_evidence.py`がdirty sourceをfail-closedで拒否する（Y-10）。container内KiCad資材からsymbol・footprint sha256を採取するlibrary hash helper（Y-3）。`FixtureBuilderError`へcoverage要約（missing／stale／unclassified）を含める（Y-2）。projection保護hookのmatcherを狭め、empty poll・読み取り系commandを止めない（N-3・N-6・N-8）。`safety_boundary`等のenum許容値をspec文書とpreflightへ出す（Y-5）。silkscreen resolverの未宣言positionを前段で検出する（Y-7）。decoupling_targetの多ピン対象の意味を文書化する（Y-9）。router壁そのもの（30×22 mm・2層で`unrouted`が21本で停滞、候補探索`exhausted`）は診断（Y-8）が揃った後に、探索候補の生成軸（外形拡大・部品再配置・track/clearance ruleの許容範囲内での変更）を広げるか設計入力側の制約として明示するかを判断する。閾値・DRC規則は緩めない |
+| 実装 | router非収束時に`loop-summary`へunrouted数・収束状態・主要な未解決netをL3診断として記録する（Y-8、解消済み。board-pipeline／board-exploration失敗時の`router_diagnostics`と候補別`candidate_router_diagnostics`、plateau・減少継続・timeoutで分岐した`next_step_action`追記）。enclosure laneがfront以外の開口faceを受理するか、受理しないfaceを契約とpreflightで明示してfail-closedを前倒しする（筐体の壁）。FW capability契約へ複数LEDと入力pin roleを追加するか、追加するまで要件→`fw.sequence`被覆検査で要件の削除をfail-closedにする（Y-6・Y-11）。Evidence provenanceへsource-treeのgit SHAとdirty digestを記録し、`verify_authoritative_evidence.py`がdirty sourceをfail-closedで拒否する（Y-10）。container内KiCad資材からsymbol・footprint sha256を採取するlibrary hash helper（Y-3）。`FixtureBuilderError`へcoverage要約（missing／stale／unclassified）を含める（Y-2）。projection保護hookのmatcherを狭め、empty poll・読み取り系commandを止めない（N-3・N-6・N-8）。`safety_boundary`等のenum許容値をspec文書とpreflightへ出す（Y-5）。silkscreen resolverの未宣言positionを前段で検出する（Y-7）。decoupling_targetの多ピン対象の意味を文書化する（Y-9）。router壁そのもの（30×22 mm・2層で`unrouted`が21本で停滞、候補探索`exhausted`）は診断（Y-8）が揃った後に、探索候補の生成軸（外形拡大・部品再配置・track/clearance ruleの許容範囲内での変更）を広げるか設計入力側の制約として明示するかを判断する。閾値・DRC規則は緩めない |
 | 正常系 | 診断・provenance・契約が揃った状態で、自然文のみから生成した新規設計が同じ壁に達しても、停止理由が`loop-summary`とEvidence provenanceから第三者が読み取れる |
 | negative・fail-closed | dirty sourceからのEvidence、要件を落とした`fw.sequence`、未宣言の非front face、hash placeholderはいずれもfail-closedのままである。診断・provenance・helperはL3観測であり合格側権限を持たない |
 | 再現性 | 追加する診断値とprovenanceフィールドをL3記録として保存し、同一入力での再実行で一致することを回帰テストで固定する |
@@ -392,9 +392,15 @@ source tree（`src`・`scripts`・`plugins`・`contracts`・`libraries`・`docke
 forwardする。dirty／非gitの`--repo`は`--allow-dirty`無しでcontainer起動前に拒否し、
 `verify_authoritative_evidence.py`はprovenance欠落・`unknown`・非`clean`をfail-closedで
 拒否する。`--source bundled`はprovenanceが`unknown`となりそのEvidenceはverifierを
-通過できない。残りは未着手
-であり、着手順はY-6・Y-11（要件被覆のfail-closed）→Y-8（router診断）
-→筐体face契約→Y-2・Y-7・Y-3・Y-5・Y-9（診断・helper・文書）→hook matcherとする。
+通過できない。Y-8は本branch（`devin/1788741004-router-diagnostics-loop-summary`）で
+解消し、board-pipeline／board-exploration失敗時に`read_router_diagnostics`が
+`l3/router-pass-progress.json`と`gate-evidence/routing-connectivity.json`を読んで
+`loop-summary`へ`router_diagnostics`（収束状態・`unrouted`推移・plateau pass数・
+fail状態netの一覧）と候補別`candidate_router_diagnostics`をL3記録として載せ、
+plateau・減少継続・timeoutに応じた次手を`next_step_action`へ追記する。
+ゲート・閾値・passの意味は変更していない。残りは未着手
+であり、着手順はY-6・Y-11（要件被覆のfail-closed）→筐体face契約
+→Y-2・Y-7・Y-3・Y-5・Y-9（診断・helper・文書）→hook matcherとする。
 fail-closed境界の堅持に直結するものを先に扱う。詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
 

@@ -47,6 +47,10 @@ from acd.core.requirements import (
     load_requirements,
     validate_requirements,
 )
+from acd.core.router_diagnostics import (
+    read_router_diagnostics,
+    router_diagnostics_hint,
+)
 from acd.core.runtime_records import (
     RuntimeObservationError,
     TimingRecorder,
@@ -81,6 +85,66 @@ DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
 
 StageRunner = Callable[["DesignLoopConfig"], Any]
+
+_CANDIDATE_DIAGNOSTICS_LIMIT = 12
+
+
+def _surface_router_diagnostics(
+    result: dict[str, Any], config: DesignLoopConfig | None
+) -> None:
+    """Attach board-output router diagnostics to the loop result (L3 only)."""
+    router_diagnostics: dict[str, Any] | None = None
+    candidate_diagnostics: list[dict[str, Any]] | None = None
+    failed_stage = result.get("failed_stage")
+    board_stage_ids = {
+        "board-pipeline",
+        RECOVERY_EXPLORATION_STAGE_IDS["board-pipeline"],
+    }
+    if (
+        config is not None
+        and isinstance(failed_stage, str)
+        and failed_stage in board_stage_ids
+    ):
+        board_output = config.lane_plan.stage("board-pipeline").output_path
+        if board_output is not None:
+            diagnostics = read_router_diagnostics(board_output)
+            router_diagnostics = diagnostics.to_dict()
+            hint = router_diagnostics_hint(diagnostics)
+            if hint is not None:
+                existing = result.get("next_step_action")
+                result["next_step_action"] = (
+                    f"{existing}; {hint}" if isinstance(existing, str) else hint
+                )
+        exploration_output = config.lane_plan.stage(
+            RECOVERY_EXPLORATION_STAGE_IDS["board-pipeline"]
+        ).output_path
+        if exploration_output is not None and exploration_output.is_dir():
+            entries: list[dict[str, Any]] = []
+            for round_dir in sorted(exploration_output.glob("round-*")):
+                if not round_dir.is_dir():
+                    continue
+                try:
+                    round_number = int(round_dir.name.removeprefix("round-"))
+                except ValueError:
+                    continue
+                candidates_dir = round_dir / "candidates"
+                if not candidates_dir.is_dir():
+                    continue
+                for candidate_dir in sorted(candidates_dir.iterdir()):
+                    if not candidate_dir.is_dir():
+                        continue
+                    candidate_diag = read_router_diagnostics(candidate_dir)
+                    entries.append(
+                        {
+                            "round": round_number,
+                            "candidate_id": candidate_dir.name,
+                            **candidate_diag.to_dict(),
+                        }
+                    )
+            if entries:
+                candidate_diagnostics = entries[:_CANDIDATE_DIAGNOSTICS_LIMIT]
+    result["router_diagnostics"] = router_diagnostics
+    result["candidate_router_diagnostics"] = candidate_diagnostics
 
 
 @dataclass(frozen=True)
@@ -764,6 +828,7 @@ def run_design_loop(
     timing_record: Path | None = None
     timing_record_error: str | None = None
     config: DesignLoopConfig | None = None
+    diagnostics_config: DesignLoopConfig | None = None
     try:
         out_root.mkdir(parents=True, exist_ok=True)
         if fixture_spec is not None:
@@ -875,7 +940,6 @@ def run_design_loop(
         )
     else:
         active_config = config
-
         def run_stage(
             stage_id: str,
             runner: StageRunner | None = None,
@@ -1401,6 +1465,7 @@ def run_design_loop(
                     "results": results,
                 }
             )
+        diagnostics_config = active_config
     finally:
         try:
             timing.finish_open()
@@ -1419,6 +1484,10 @@ def run_design_loop(
             result["timing_record"] = str(timing_record)
         if timing_record_error is not None:
             result["timing_record_error"] = timing_record_error
+        try:
+            _surface_router_diagnostics(result, diagnostics_config or config)
+        except Exception as exc:
+            result["router_diagnostics_error"] = f"{type(exc).__name__}: {exc}"
         try:
             loop_summary = write_loop_summary_record(
                 out_root,
@@ -1439,6 +1508,10 @@ def run_design_loop(
                     "max_exploration_candidates": max_exploration_candidates,
                     "max_exploration_rounds": max_exploration_rounds,
                     "graph_id": result.get("graph_id"),
+                    "router_diagnostics": result.get("router_diagnostics"),
+                    "candidate_router_diagnostics": result.get(
+                        "candidate_router_diagnostics"
+                    ),
                     "timing_record": (
                         str(timing_record) if timing_record is not None else None
                     ),

@@ -74,6 +74,16 @@ allowed-tools:
    却下応答には`recovery_rerun`として機械可読な再実行引数、宣言された復帰次元、
    復帰不能laneの次手が含まれる。laneごとの宣言由来復帰は`recover_lanes`を明示した
    場合に有効になり、詳細な手順は`/acd:vibebb-recover`を使う。
+   board-pipelineまたはboard-explorationで失敗した場合、`loop-summary.json`の
+   `router_diagnostics`にrouterの収束状態、`unrouted`数のpassごとの推移、最終
+   未配線数、plateau pass数、`status: "fail"`のnet一覧（10件上限）がL3診断として
+   記録される。探索候補を評価したroundがある場合は候補ごとの
+   `candidate_router_diagnostics`も記録される（12件上限）。plateau（末尾3 pass以上
+   同一値）なら宣言済み制約内で候補軸（外形サイズ、層数、部品間隔・配置）を広げるか
+   設計入力へ制約を明示し、減少継続なら`--max-passes`を先に引き上げ、timeoutなら
+   `--router-timeout-s`を引き上げるか配線負荷を下げる。いずれもDRCや配線規則を
+   緩めない。これらの診断と`next_step_action`へのhint追記はL3観測であり、
+   合否権限を持たない。
 5. 発注可否はloopが返すorder-readiness結果と、必要なら
    `acd_check_order_readiness`で確認する。発注実行はこのcommandの責務ではない。
 6. 各roundの終了後、run出力のL3 recordを会話へ返して進行を可視化する。
