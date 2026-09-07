@@ -2,9 +2,9 @@
   "acd_tools": {
     "image": "ghcr.io/uist1idrju3i/acd-tools",
     "tag": "latest",
-    "digest": "sha256:5993ea8fc1e0c39ab11133611b42c67910c34305c7d9ba53878372b8e9ec3655",
-    "published_at": "2026-09-06T23:57:07Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34067615503",
+    "digest": "sha256:ea0feafb74440f59aee6fce93e40dfcdc9b0dd748b01ef258674644bfe1681db",
+    "published_at": "2026-09-07T03:17:46Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34078307985",
     "dockerfile": "docker/acd-tools.Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
@@ -24,10 +24,10 @@
   },
   "acd_server": {
     "image": "ghcr.io/uist1idrju3i/acd-server",
-    "tag": "0154671dd8d9597ab64d4f150dbed9ae32142552-latest-source",
-    "digest": "sha256:ac1c0b87b7a2751451a544de449e150285e13a0bd9d145b8350f660eb50daa2b",
-    "published_at": "2026-09-06T23:57:07Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34067615503",
+    "tag": "8594578d5f0fa713456fac4c256c38c6ec65e822-latest-source",
+    "digest": "sha256:1634a7ad6c9fd272e9cdee5ca1644357d5e9bb301ccfde82daa6eead05535619",
+    "published_at": "2026-09-07T03:17:46Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34078307985",
     "dockerfile": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
