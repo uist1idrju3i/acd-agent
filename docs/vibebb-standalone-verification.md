@@ -1316,6 +1316,10 @@ container wall-clock 152秒）。`--design-only`は受理され発注入力な�
 **修正はagent向けの罠を除くものであり、dual-beacon-tagを合格させるものではない。**
 router収束の壁・非front筐体開口・FW capability契約は未解消として残る。
 
+（後続: 筐体開口の`face`契約は`front`・`back`・`left`・`right`の受理と
+`mechanical.connector_opening.face_unsupported`のpreflight前倒しで解消済み。
+router収束の壁とFW capability契約は引き続き残る。）
+
 ### 15.6 結論（第8回）
 
 - **自然文のみでのGD1非依存新規設計は成立しなかった。**「W. GD1非依存の達成条件」のうち、

@@ -17,6 +17,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from acd.core.firmware_capability import load_firmware_capability_registry
+from acd.core.firmware_coverage import check_firmware_coverage
 from acd.pipeline.firmware_evidence import write_firmware_evidence
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence
@@ -43,6 +45,40 @@ class FirmwareLaneResult:
     script_sha256: str
     script_path: Path
     graph_revision: str
+
+
+def _check_firmware_coverage(
+    repository: Path, fixture_dir: Path, output: Path
+) -> None:
+    """Fail closed on firmware coverage gaps before the Skill runs.
+
+    The report is always written to ``output/firmware-coverage.json`` as an
+    L3 diagnostic so a rejected design keeps an inspectable record; it is
+    never an Evidence document.
+    """
+    try:
+        graph = DesignGraph.model_validate_json(
+            (fixture_dir / "graph.json").read_text(encoding="utf-8")
+        )
+        registry = load_firmware_capability_registry(
+            repository / "contracts" / "firmware-capability-registry.json"
+        )
+        report = check_firmware_coverage(graph, registry.document)
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise FirmwareLaneError(
+            f"firmware coverage could not be evaluated: {exc}",
+            output_path=output,
+        ) from exc
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "firmware-coverage.json").write_text(
+        json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8"
+    )
+    if report.status == "fail":
+        raise FirmwareLaneError(
+            "firmware coverage failed: "
+            + "; ".join(finding.message for finding in report.findings),
+            output_path=output,
+        )
 
 
 def firmware_script_path(repository: Path) -> Path:
@@ -75,6 +111,7 @@ def run_firmware_lane(
         raise FirmwareLaneError(f"firmware Skill script is missing: {script}")
     if run_seconds <= 0:
         raise FirmwareLaneError("run_seconds must be positive")
+    _check_firmware_coverage(repository, fixture_dir, output)
     started_at = datetime.now(UTC)
     completed = subprocess.run(
         [

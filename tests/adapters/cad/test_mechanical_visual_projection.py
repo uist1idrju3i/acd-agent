@@ -377,3 +377,96 @@ def test_mechanical_visual_generation_requires_passing_gate(tmp_path: Path) -> N
             gate_report=failing,
             out_dir=tmp_path / "blocked",
         )
+
+
+@pytest.mark.parametrize(
+    ("face", "center_x_mm"),
+    [
+        ("front", 15.0),
+        ("back", 15.0),
+        ("left", 12.5),
+        ("right", 12.5),
+    ],
+)
+def test_mechanical_section_validates_declared_opening_on_each_supported_face(
+    tmp_path: Path, face: str, center_x_mm: float
+) -> None:
+    graph, graph_path = _fixture()
+    lane = extract_mechanical_lane(graph)
+    faced_lane = replace(
+        lane,
+        connector_openings=tuple(
+            replace(opening, face=face, center_x_mm=center_x_mm)
+            for opening in lane.connector_openings
+        ),
+    )
+    projection = project_enclosure(
+        faced_lane,
+        graph_path=graph_path,
+        out_dir=tmp_path / face,
+        target_revision=graph.revision,
+    )
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / face)
+    record = renderer.render_section(
+        projection=projection,
+        lane=faced_lane,
+        target_revision=graph.revision,
+        output_path=tmp_path / f"{face}/section.svg",
+        section_plane_id="xy",
+    )
+    assert record.section_plane_id == "xy"
+
+
+def test_mechanical_section_rejects_side_face_declaration_mismatch(
+    tmp_path: Path,
+) -> None:
+    graph, graph_path = _fixture()
+    lane = extract_mechanical_lane(graph)
+
+    def faced(value: str):
+        return replace(
+            lane,
+            connector_openings=tuple(
+                replace(opening, face=value, center_x_mm=12.5)
+                for opening in lane.connector_openings
+            ),
+        )
+
+    right_lane = faced("right")
+    projection = project_enclosure(
+        right_lane,
+        graph_path=graph_path,
+        out_dir=tmp_path / "side-mismatch",
+        target_revision=graph.revision,
+    )
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / "side-mismatch")
+    with pytest.raises(
+        MechanicalVisualProjectionError,
+        match=r"left aperture is missing a declared boundary",
+    ):
+        renderer.render_section(
+            projection=projection,
+            lane=faced("left"),
+            target_revision=graph.revision,
+            output_path=tmp_path / "side-mismatch/section.svg",
+            section_plane_id="xy",
+        )
+
+    left_projection = project_enclosure(
+        faced("left"),
+        graph_path=graph_path,
+        out_dir=tmp_path / "side-mismatch-flip",
+        target_revision=graph.revision,
+    )
+    renderer = MechanicalVisualRenderer(base_dir=tmp_path / "side-mismatch-flip")
+    with pytest.raises(
+        MechanicalVisualProjectionError,
+        match=r"left aperture contains an undeclared boundary",
+    ):
+        renderer.render_section(
+            projection=left_projection,
+            lane=right_lane,
+            target_revision=graph.revision,
+            output_path=tmp_path / "side-mismatch-flip/section.svg",
+            section_plane_id="xy",
+        )

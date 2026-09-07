@@ -1870,3 +1870,115 @@ def test_silkscreen_resolve_success_keeps_loop_running(
     assert [item["stage_id"] for item in result["results"]] == list(
         DESIGN_LOOP_STAGE_IDS
     )
+
+
+def test_board_failure_surfaces_router_diagnostics_in_loop_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def failing_board(config: DesignLoopConfig) -> dict[str, Any]:
+        output = config.lane_plan.stage("board-pipeline").output_path
+        assert output is not None
+        progress = output / "l3" / "router-pass-progress.json"
+        progress.parent.mkdir(parents=True, exist_ok=True)
+        progress.write_text(
+            json.dumps(
+                {"unrouted": [22, 21, 21, 21, 21], "convergence_state": "not_converged"}
+            ),
+            encoding="utf-8",
+        )
+        connectivity = output / "gate-evidence" / "routing-connectivity.json"
+        connectivity.parent.mkdir(parents=True, exist_ok=True)
+        connectivity.write_text(
+            json.dumps(
+                {
+                    "status": "fail",
+                    "observation": {
+                        "status": "fail",
+                        "nets": [
+                            {"net": "net.sig", "status": "fail"},
+                            {"net": "net.gnd", "status": "pass"},
+                        ],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        return {
+            "stage_id": "board-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "router convergence_state='not_converged' (fail-closed)",
+        }
+
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["board-pipeline"] = failing_board
+    _patch_runners(monkeypatch, runners)
+    out_root = tmp_path / "artifacts"
+
+    run_design_loop(
+        FIXTURE,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    summary = json.loads(
+        (out_root / "loop-summary.json").read_text(encoding="utf-8")
+    )
+    diagnostics = summary["router_diagnostics"]
+    assert diagnostics["convergence_state"] == "not_converged"
+    assert diagnostics["final_unrouted"] == 21
+    assert diagnostics["plateau_passes"] == 4
+    assert diagnostics["open_nets"] == ["net.sig"]
+    assert diagnostics["authority"] == "L3 observation; not gate authority"
+    assert summary["pass_evidence"] is False
+    assert "plateaued at 21" in summary["next_step_action"]
+    assert "do not relax DRC or routing rules" in summary["next_step_action"]
+    body = {key: value for key, value in summary.items() if key != "content_sha256"}
+    assert summary["content_sha256"] == canonical_json_sha256(body)
+
+
+def test_non_board_failure_leaves_router_diagnostics_none(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def failing_enclosure(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        return {
+            "stage_id": "enclosure-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "intentional enclosure failure",
+        }
+
+    runners = {
+        stage_id: _successful_runner(stage_id, [])
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+    runners["enclosure-pipeline"] = failing_enclosure
+    _patch_runners(monkeypatch, runners)
+    out_root = tmp_path / "artifacts"
+
+    run_design_loop(
+        FIXTURE,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    summary = json.loads(
+        (out_root / "loop-summary.json").read_text(encoding="utf-8")
+    )
+    assert summary["failed_stage"] == "enclosure-pipeline"
+    assert summary["router_diagnostics"] is None
+    assert summary["candidate_router_diagnostics"] is None
+    body = {key: value for key, value in summary.items() if key != "content_sha256"}
+    assert summary["content_sha256"] == canonical_json_sha256(body)

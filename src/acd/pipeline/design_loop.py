@@ -47,6 +47,10 @@ from acd.core.requirements import (
     load_requirements,
     validate_requirements,
 )
+from acd.core.router_diagnostics import (
+    read_router_diagnostics,
+    router_diagnostics_hint,
+)
 from acd.core.runtime_records import (
     RuntimeObservationError,
     TimingRecorder,
@@ -77,11 +81,73 @@ from acd.schema import (
     QuoteRecord,
 )
 from acd.schema.common import canonical_json_sha256
+from acd.schema.lane_preflight import LanePreflightReport
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
 
 StageRunner = Callable[["DesignLoopConfig"], Any]
+
+_CANDIDATE_DIAGNOSTICS_LIMIT = 12
+
+
+def _surface_router_diagnostics(
+    result: dict[str, Any], config: DesignLoopConfig | None
+) -> None:
+    """Attach board-output router diagnostics to the loop result (L3 only)."""
+    router_diagnostics: dict[str, Any] | None = None
+    candidate_diagnostics: list[dict[str, Any]] | None = None
+    failed_stage = result.get("failed_stage")
+    board_stage_ids = {
+        "board-pipeline",
+        RECOVERY_EXPLORATION_STAGE_IDS["board-pipeline"],
+    }
+    if (
+        config is not None
+        and isinstance(failed_stage, str)
+        and failed_stage in board_stage_ids
+    ):
+        board_output = config.lane_plan.stage("board-pipeline").output_path
+        if board_output is not None:
+            diagnostics = read_router_diagnostics(board_output)
+            router_diagnostics = diagnostics.to_dict()
+            hint = router_diagnostics_hint(diagnostics)
+            if hint is not None:
+                existing = result.get("next_step_action")
+                result["next_step_action"] = (
+                    f"{existing}; {hint}" if isinstance(existing, str) else hint
+                )
+        exploration_output = config.lane_plan.stage(
+            RECOVERY_EXPLORATION_STAGE_IDS["board-pipeline"]
+        ).output_path
+        if exploration_output is not None and exploration_output.is_dir():
+            entries: list[dict[str, Any]] = []
+            for round_dir in sorted(exploration_output.glob("round-*")):
+                if not round_dir.is_dir():
+                    continue
+                try:
+                    round_number = int(round_dir.name.removeprefix("round-"))
+                except ValueError:
+                    continue
+                candidates_dir = round_dir / "candidates"
+                if not candidates_dir.is_dir():
+                    continue
+                for candidate_dir in sorted(candidates_dir.iterdir()):
+                    if not candidate_dir.is_dir():
+                        continue
+                    candidate_diag = read_router_diagnostics(candidate_dir)
+                    entries.append(
+                        {
+                            "round": round_number,
+                            "candidate_id": candidate_dir.name,
+                            **candidate_diag.to_dict(),
+                        }
+                    )
+            if entries:
+                entries.sort(key=lambda entry: (entry["round"], entry["candidate_id"]))
+                candidate_diagnostics = entries[:_CANDIDATE_DIAGNOSTICS_LIMIT]
+    result["router_diagnostics"] = router_diagnostics
+    result["candidate_router_diagnostics"] = candidate_diagnostics
 
 
 @dataclass(frozen=True)
@@ -427,6 +493,7 @@ def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
     # input be completed without waiting for that stop.
     preflight = run_lane_preflight(graph, _preflight_lanes())
     diagnostics: dict[str, Any] = {"lane_preflight_status": preflight.status}
+    diagnostics.update(_firmware_coverage_diagnostics(preflight))
     if preflight.status != "declarations_complete":
         diagnostics["missing_declarations"] = [
             item.model_dump(mode="json") for item in missing_declarations(preflight)
@@ -448,6 +515,23 @@ def _preflight_lanes() -> tuple[str, ...]:
         for lane in ("silkscreen-resolve", *DESIGN_LOOP_LANE_IDS)
         if lane in LANE_REQUIREMENTS
     )
+
+
+def _firmware_coverage_diagnostics(
+    report: LanePreflightReport,
+) -> dict[str, Any]:
+    """Surface a non-pass firmware coverage verdict next to the declarations.
+
+    The entry stays diagnostic: a ``fail`` or ``unknown`` coverage status is
+    reported so the design input can be fixed early, but it does not change
+    the preflight's own declarations status.
+    """
+    for lane in report.lanes:
+        if lane.lane != "firmware-pipeline" or lane.firmware_coverage is None:
+            continue
+        if lane.firmware_coverage.get("status") != "pass":
+            return {"firmware_coverage": lane.firmware_coverage}
+    return {}
 
 
 def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
@@ -481,6 +565,7 @@ def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
         "preflight_status": report.status,
         "preflight_lanes": list(_preflight_lanes()),
         "output_path": str(output_path) if output_path is not None else None,
+        **_firmware_coverage_diagnostics(report),
     }
     if report.status == "declarations_complete":
         return _success("lane-preflight", **fields)
@@ -784,6 +869,7 @@ def run_design_loop(
     timing_record: Path | None = None
     timing_record_error: str | None = None
     config: DesignLoopConfig | None = None
+    diagnostics_config: DesignLoopConfig | None = None
     try:
         out_root.mkdir(parents=True, exist_ok=True)
         if fixture_spec is not None:
@@ -895,7 +981,6 @@ def run_design_loop(
         )
     else:
         active_config = config
-
         def run_stage(
             stage_id: str,
             runner: StageRunner | None = None,
@@ -1427,6 +1512,7 @@ def run_design_loop(
                     "results": results,
                 }
             )
+        diagnostics_config = active_config
     finally:
         try:
             timing.finish_open()
@@ -1445,6 +1531,10 @@ def run_design_loop(
             result["timing_record"] = str(timing_record)
         if timing_record_error is not None:
             result["timing_record_error"] = timing_record_error
+        try:
+            _surface_router_diagnostics(result, diagnostics_config or config)
+        except Exception as exc:
+            result["router_diagnostics_error"] = f"{type(exc).__name__}: {exc}"
         try:
             loop_summary = write_loop_summary_record(
                 out_root,
@@ -1465,6 +1555,10 @@ def run_design_loop(
                     "max_exploration_candidates": max_exploration_candidates,
                     "max_exploration_rounds": max_exploration_rounds,
                     "graph_id": result.get("graph_id"),
+                    "router_diagnostics": result.get("router_diagnostics"),
+                    "candidate_router_diagnostics": result.get(
+                        "candidate_router_diagnostics"
+                    ),
                     "timing_record": (
                         str(timing_record) if timing_record is not None else None
                     ),

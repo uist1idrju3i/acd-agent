@@ -10,7 +10,11 @@ from typing import Literal
 from pydantic import ValidationError
 
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
-from acd.core.mechanical import REQUIRED_MECHANICAL_ATTRS, extract_mechanical_lane
+from acd.core.mechanical import (
+    REQUIRED_MECHANICAL_ATTRS,
+    SUPPORTED_OPENING_FACES,
+    extract_mechanical_lane,
+)
 from acd.core.rationale import check_rationale_coverage
 from acd.schema.common import CURRENT_SCHEMA_VERSION, AcdModel, NonEmptyStr, Revision, SchemaVersion
 from acd.schema.design_graph import DesignGraph, GraphNode
@@ -22,6 +26,7 @@ RequirementCode = Literal[
     "mechanical.attribute.missing",
     "mechanical.attribute.invalid",
     "mechanical.reference.unresolved",
+    "mechanical.connector_opening.face_unsupported",
     "mechanical.extraction.failed",
     "rationale.coverage.missing",
     "rationale.coverage.stale",
@@ -352,6 +357,23 @@ def _mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
                         node_id=node.id,
                     )
                 )
+            if node.kind == "mechanical.connector_opening":
+                face = node.attrs.get("face")
+                if (
+                    isinstance(face, str)
+                    and face
+                    and face not in SUPPORTED_OPENING_FACES
+                ):
+                    add(
+                        _finding(
+                            "mechanical.connector_opening.face_unsupported",
+                            f"connector opening face {face!r} is unsupported; "
+                            f"supported faces: {', '.join(SUPPORTED_OPENING_FACES)}",
+                            node_kind=node.kind,
+                            node_id=node.id,
+                            attribute="face",
+                        )
+                    )
 
     for node in graph.nodes:
         required = REQUIRED_MECHANICAL_ATTRS.get(node.kind)
