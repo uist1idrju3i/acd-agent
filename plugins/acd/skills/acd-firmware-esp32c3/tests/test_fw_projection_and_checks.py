@@ -17,6 +17,7 @@ from acd.core.firmware_capability import (
     FirmwareCapabilityRegistry,
     load_firmware_capability_registry,
 )
+from acd.core.firmware_coverage import check_firmware_coverage
 from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.firmware_capability import (
     FirmwareCapabilityContract,
@@ -44,7 +45,7 @@ from fw_project import (
     render_pins_header,
     write_firmware_project,
 )
-from fw_qemu import assert_virtual_log_ok
+from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
 
 FIXTURE = Path(__file__).resolve().parents[5] / "fixtures" / "golden-design-1" / "graph.json"
 
@@ -568,3 +569,272 @@ def test_mcu_component_resolution_fails_closed(graph: DesignGraph) -> None:
     )
     with pytest.raises(ValueError, match="does not resolve"):
         resolve_mcu_refdes(broken)
+
+
+def _dual_led_button_graph(graph: DesignGraph) -> DesignGraph:
+    """GD1 plus a second LED, a button input, and their sequence steps."""
+    extra = [
+        GraphNode(
+            id="net.led2",
+            kind="electrical.net",
+            attrs={"name": "LED2"},
+        ),
+        GraphNode(
+            id="net.button",
+            kind="electrical.net",
+            attrs={"name": "BUTTON"},
+        ),
+        GraphNode(
+            id="comp.d2",
+            kind="electrical.component",
+            attrs={
+                "refdes": "D2",
+                "led_indicator": True,
+                "led_drive_net": "net.led2",
+            },
+            depends_on=["net.led2"],
+        ),
+        GraphNode(
+            id="fw.pin.led2",
+            kind="firmware.pin_assignment",
+            attrs={"gpio": 3, "net": "net.led2"},
+            depends_on=["net.led2"],
+        ),
+        GraphNode(
+            id="fw.pin.button",
+            kind="firmware.pin_assignment",
+            attrs={"gpio": 6, "net": "net.button"},
+            depends_on=["net.button"],
+        ),
+        GraphNode(
+            id="fw.state.blink",
+            kind="firmware.state",
+            attrs={"state_name": "blink", "initial": False},
+            depends_on=["fw.module.main"],
+        ),
+        GraphNode(
+            id="fw.state.paused",
+            kind="firmware.state",
+            attrs={"state_name": "paused", "initial": False},
+            depends_on=["fw.module.main"],
+        ),
+        GraphNode(
+            id="fw.transition.boot_blink",
+            kind="firmware.state_transition",
+            attrs={
+                "from_state": "fw.state.boot",
+                "to_state": "fw.state.blink",
+                "trigger": "boot_complete",
+            },
+            depends_on=["fw.state.boot", "fw.state.blink"],
+        ),
+        GraphNode(
+            id="fw.transition.blink_paused",
+            kind="firmware.state_transition",
+            attrs={
+                "from_state": "fw.state.blink",
+                "to_state": "fw.state.paused",
+                "trigger": "button_pressed",
+            },
+            depends_on=["fw.state.blink", "fw.state.paused"],
+        ),
+        GraphNode(
+            id="fw.transition.paused_blink",
+            kind="firmware.state_transition",
+            attrs={
+                "from_state": "fw.state.paused",
+                "to_state": "fw.state.blink",
+                "trigger": "button_pressed",
+            },
+            depends_on=["fw.state.blink", "fw.state.paused"],
+        ),
+        GraphNode(
+            id="fw.sequence.006",
+            kind="firmware.sequence_step",
+            attrs={
+                "step_index": 6,
+                "actor": "fw.module.main",
+                "target": "comp.d2",
+                "action": "toggle_led2",
+            },
+            depends_on=["fw.module.main", "comp.d2"],
+        ),
+        GraphNode(
+            id="fw.sequence.007",
+            kind="firmware.sequence_step",
+            attrs={
+                "step_index": 7,
+                "actor": "fw.module.main",
+                "target": "comp.u1",
+                "action": "read_button",
+            },
+            depends_on=["fw.module.main", "comp.u1"],
+        ),
+    ]
+    nodes = [
+        node.model_copy(
+            update={"depends_on": [*node.depends_on, "fw.state.blink", "fw.state.paused"]}
+        )
+        if node.id == "fw.module.main"
+        else node
+        for node in graph.nodes
+    ]
+    return graph.model_copy(update={"nodes": [*nodes, *extra]})
+
+
+def _dual_led_plan(graph: DesignGraph) -> tuple[DesignGraph, FirmwareLane, FirmwareCapabilityPlan]:
+    dual = _dual_led_button_graph(graph)
+    lane = extract_firmware_lane(dual)
+    return dual, lane, resolve_firmware_capability_plan(dual, lane)
+
+
+def test_dual_led_button_plan_resolves(graph: DesignGraph) -> None:
+    _, lane, plan = _dual_led_plan(graph)
+    capability_ids = [step.capability_id for step in plan.steps]
+    assert "led2_blink" in capability_ids
+    assert "button_input" in capability_ids
+    assert lane.gpio_for_role("led2") == 3
+    assert lane.gpio_for_role("button") == 6
+    assert list(plan.required_pin_roles[:3]) == ["led", "led2", "button"]
+
+
+def test_dual_led_button_project_renders(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    dual, lane, plan = _dual_led_plan(graph)
+    settings = extract_firmware_settings(dual)
+    project = write_firmware_project(
+        lane, "r1", tmp_path, dual.graph_id, settings, plan=plan
+    )
+    header = project.pins_header.read_text(encoding="utf-8")
+    source = project.main_source.read_text(encoding="utf-8")
+    assert "#define ACD_PIN_LED2 3" in header
+    assert "#define ACD_PIN_BUTTON 6" in header
+    assert "ACD_LED_BLINK_PERIOD_MS" in header
+    assert_header_matches_lane(header, lane)
+    assert "GPIO_PULLUP_ENABLE" in source
+    assert "gpio_get_level(ACD_PIN_BUTTON)" in source
+    assert "gpio_set_level(ACD_PIN_LED2, !led_state)" in source
+    assert 'ESP_LOGI(TAG, "LED2 gpio=%d state=%d"' in source
+    assert 'ESP_LOGI(TAG, "button gpio=%d paused=%d"' in source
+    assert "gpio_set_level(ACD_PIN_LED, 0);" in source
+    assert '"driver/gpio.h"' in source
+
+
+def test_dual_led_button_coverage_passes(graph: DesignGraph) -> None:
+    dual, _, _ = _dual_led_plan(graph)
+    report = check_firmware_coverage(
+        dual, load_firmware_capability_registry().document
+    )
+    assert report.status == "pass"
+
+
+def test_toggle_led2_rejects_wrong_drive_net(graph: DesignGraph) -> None:
+    dual, lane, _ = _dual_led_plan(graph)
+    broken = dual.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={"attrs": {**node.attrs, "led_drive_net": "net.led"}}
+                )
+                if node.id == "comp.d2"
+                else node
+                for node in dual.nodes
+            ]
+        }
+    )
+    with pytest.raises(FirmwareExtractionError, match=r"net\.led2"):
+        resolve_firmware_capability_plan(broken, lane)
+
+
+def test_toggle_led_step_requires_led_component_target(graph: DesignGraph) -> None:
+    broken = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={"attrs": {**node.attrs, "target": "net.led"}}
+                )
+                if node.id == "fw.sequence.003"
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    with pytest.raises(FirmwareExtractionError, match="not an electrical component"):
+        resolve_firmware_capability_plan(broken, extract_firmware_lane(broken))
+
+
+def test_led2_blink_without_led_blink_fails_closed(graph: DesignGraph, tmp_path: Path) -> None:
+    dual, lane, _ = _dual_led_plan(graph)
+    nodes = [
+        node.model_copy(
+            update={
+                "attrs": {**node.attrs, "action": "toggle_led2", "target": "comp.d2"}
+            }
+        )
+        if node.id == "fw.sequence.003"
+        else node
+        for node in dual.nodes
+    ]
+    broken = dual.model_copy(update={"nodes": nodes})
+    plan = resolve_firmware_capability_plan(broken, lane)
+    with pytest.raises(FirmwareProjectionError, match="without led_blink"):
+        write_firmware_project(
+            lane, "r1", tmp_path, broken.graph_id, plan=plan
+        )
+
+
+def test_button_input_without_led_blink_fails_closed(graph: DesignGraph, tmp_path: Path) -> None:
+    dual, lane, _ = _dual_led_plan(graph)
+    nodes = [
+        node.model_copy(
+            update={
+                "attrs": {**node.attrs, "action": "read_button", "target": "comp.u1"}
+            }
+        )
+        if node.id == "fw.sequence.003"
+        else node
+        for node in dual.nodes
+    ]
+    broken = dual.model_copy(update={"nodes": nodes})
+    plan = resolve_firmware_capability_plan(broken, lane)
+    with pytest.raises(FirmwareProjectionError, match="without led_blink"):
+        write_firmware_project(
+            lane, "r1", tmp_path, broken.graph_id, plan=plan
+        )
+
+
+def test_dual_led_virtual_log_checks(graph: DesignGraph) -> None:
+    _, lane, plan = _dual_led_plan(graph)
+    boot = "ACD GD1 fw boot target_revision=r1"
+    good_log = (
+        f"{boot}\n"
+        "LED gpio=7 state=1\n"
+        "LED2 gpio=3 state=0\n"
+        "LED gpio=7 state=0\n"
+        "LED2 gpio=3 state=1\n"
+        "SHT40 temp_c=25.00 rh=50.00\n"
+    )
+    assert_virtual_log_ok(
+        good_log,
+        target_revision="r1",
+        boot_log_message="ACD GD1 fw boot target_revision=%s",
+        lane=lane,
+        plan=plan,
+    )
+    with pytest.raises(VirtualRunCheckError, match="LED2"):
+        assert_virtual_log_ok(
+            good_log.replace('LED2 gpio=3 state=1\n', ""),
+            target_revision="r1",
+            boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=lane,
+            plan=plan,
+        )
+    with pytest.raises(VirtualRunCheckError, match="paused=1"):
+        assert_virtual_log_ok(
+            good_log + "button gpio=6 paused=1\n",
+            target_revision="r1",
+            boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=lane,
+            plan=plan,
+        )

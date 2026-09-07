@@ -16,10 +16,7 @@ from acd.core.firmware_coverage import (
 from acd.pipeline.fixture_builder import build_design_fixture
 from acd.schema import DesignFixtureSpec
 from acd.schema.design_graph import DesignGraph, GraphNode
-from acd.schema.firmware_capability import (
-    FirmwareCapabilityContract,
-    FirmwareCapabilityRegistryDocument,
-)
+from acd.schema.firmware_capability import FirmwareCapabilityRegistryDocument
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GD1_FIXTURE = REPO_ROOT / "fixtures" / "golden-design-1" / "graph.json"
@@ -89,33 +86,22 @@ def test_untargeted_led_indicator_fails_closed() -> None:
 
 def test_unemitted_trigger_fails_closed() -> None:
     graph = _replace_attrs(
-        _graph(), "fw.transition.report_measure", trigger="button_pressed"
+        _graph(), "fw.transition.report_measure", trigger="unregistered_trigger"
     )
     report = check_firmware_coverage(graph, _registry_document())
     assert report.status == "fail"
     assert _codes(report) == [("trigger_unemitted", "fw.transition.report_measure")]
     message = report.findings[0].message
-    assert "'button_pressed'" in message
+    assert "'unregistered_trigger'" in message
     assert "'fw.transition.report_measure'" in message
     assert "no registered capability emits this trigger" in message
 
 
 def test_unemitted_trigger_names_registered_emitters() -> None:
-    registry = _registry_document()
-    emitter = FirmwareCapabilityContract(
-        capability_id="button_input",
-        actions=["read_button"],
-        required_pin_roles=[],
-        emits_triggers=["button_pressed"],
-        requires_device=False,
-    )
-    document = registry.model_copy(
-        update={"capabilities": [*registry.capabilities, emitter]}
-    )
     graph = _replace_attrs(
         _graph(), "fw.transition.report_measure", trigger="button_pressed"
     )
-    report = check_firmware_coverage(graph, document)
+    report = check_firmware_coverage(graph, _registry_document())
     assert report.status == "fail"
     message = report.findings[0].message
     assert "registered emitters: button_input" in message
@@ -147,6 +133,8 @@ def test_unconsumed_pin_role_fails_closed() -> None:
     assert "'fw.pin.user_btn'" in message
     assert "'user_btn'" in message
     assert "registered:" in message
+    assert "led2" in message
+    assert "button" in message
 
 
 def test_unregistered_action_fails_closed() -> None:

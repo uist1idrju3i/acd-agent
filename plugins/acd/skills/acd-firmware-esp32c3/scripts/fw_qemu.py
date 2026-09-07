@@ -139,6 +139,18 @@ def assert_virtual_log_ok(
             raise VirtualRunCheckError(
                 f"expected LED toggles in both states, got {toggles[:4]}"
             )
+    if "led2_blink" in capability_ids:
+        led2_gpio = lane.gpio_for_role("led2")
+        toggles = re.findall(rf"LED2 gpio={led2_gpio} state=([01])", log)
+        if len(toggles) < 2 or {"0", "1"} != set(toggles):
+            raise VirtualRunCheckError(
+                f"expected LED2 toggles in both states, got {toggles[:4]}"
+            )
+    if "button_input" in capability_ids and re.search(r"paused=1", log):
+        raise VirtualRunCheckError(
+            "virtual run must not show a button pause; QEMU never presses "
+            "the button but the log contains paused=1"
+        )
     if "i2c_sensor_read" in capability_ids:
         sensor_step = next(
             step for step in plan.steps if step.capability_id == "i2c_sensor_read"

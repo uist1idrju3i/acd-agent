@@ -23,7 +23,15 @@ from fw_graph import (
 _SEPARATOR_PATTERN = re.compile(r"[^a-z0-9]+")
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 _CAPABILITY_PROVIDERS = frozenset(
-    {"firmware_init", "led_blink", "i2c_sensor_init", "i2c_sensor_read", "serial_log"}
+    {
+        "firmware_init",
+        "led_blink",
+        "led2_blink",
+        "button_input",
+        "i2c_sensor_init",
+        "i2c_sensor_read",
+        "serial_log",
+    }
 )
 _DEVICE_PROVIDERS = frozenset({"sht40"})
 
@@ -124,6 +132,15 @@ def _render_main_source(
         raise FirmwareProjectionError(
             "no fragment provider for i2c sensor read without initialization"
         )
+    if "led2_blink" in capability_ids and "led_blink" not in capability_ids:
+        raise FirmwareProjectionError(
+            "no fragment provider for a second LED blink without led_blink"
+        )
+    if "button_input" in capability_ids and "led_blink" not in capability_ids:
+        raise FirmwareProjectionError(
+            "no fragment provider for button input without led_blink; "
+            "the button only pauses the blink"
+        )
     for step in plan.steps:
         if (
             step.capability_id in {"i2c_sensor_init", "i2c_sensor_read"}
@@ -134,7 +151,7 @@ def _render_main_source(
                 f"no fragment provider for device driver {step.device.driver_id!r}"
             )
     includes = {"<stdio.h>", '"acd_pins.h"', '"esp_log.h"'}
-    if "led_blink" in capability_ids:
+    if capability_ids & {"led_blink", "led2_blink", "button_input"}:
         includes.add('"driver/gpio.h"')
     if {"i2c_sensor_init", "i2c_sensor_read"} & capability_ids:
         includes.add('"driver/i2c_master.h"')
@@ -217,6 +234,27 @@ def _render_main_source(
                     "    ESP_ERROR_CHECK(gpio_config(&led_cfg));",
                 ]
             )
+        elif step.capability_id == "led2_blink":
+            initialization.extend(
+                [
+                    "    gpio_config_t led2_cfg = {",
+                    "        .pin_bit_mask = 1ULL << ACD_PIN_LED2,",
+                    "        .mode = GPIO_MODE_OUTPUT,",
+                    "    };",
+                    "    ESP_ERROR_CHECK(gpio_config(&led2_cfg));",
+                ]
+            )
+        elif step.capability_id == "button_input":
+            initialization.extend(
+                [
+                    "    gpio_config_t button_cfg = {",
+                    "        .pin_bit_mask = 1ULL << ACD_PIN_BUTTON,",
+                    "        .mode = GPIO_MODE_INPUT,",
+                    "        .pull_up_en = GPIO_PULLUP_ENABLE,",
+                    "    };",
+                    "    ESP_ERROR_CHECK(gpio_config(&button_cfg));",
+                ]
+            )
         elif step.capability_id == "i2c_sensor_init":
             device = step.device
             if device is None:
@@ -246,20 +284,69 @@ def _render_main_source(
             )
     loop: list[str] = []
     if "led_blink" in capability_ids:
+        has_led2 = "led2_blink" in capability_ids
+        has_button = "button_input" in capability_ids
         loop.extend(
             [
                 "    int led_state = 0;",
+                *(
+                    [
+                        "    int paused = 0;",
+                        "    int prev_button = 1;",
+                    ]
+                    if has_button
+                    else []
+                ),
                 *(
                     ["    int since_log_ms = ACD_LOG_PERIOD_MS;"]
                     if "i2c_sensor_read" in capability_ids
                     else []
                 ),
                 "    for (;;) {",
-                "        led_state = !led_state;",
-                "        gpio_set_level(ACD_PIN_LED, led_state);",
-                '        ESP_LOGI(TAG, "LED gpio=%d state=%d", ACD_PIN_LED, led_state);',
             ]
         )
+        if has_button:
+            loop.extend(
+                [
+                    "        int button = gpio_get_level(ACD_PIN_BUTTON);",
+                    "        if (prev_button && !button) {",
+                    "            paused = !paused;",
+                    '            ESP_LOGI(TAG, "button gpio=%d paused=%d", '
+                    "ACD_PIN_BUTTON, paused);",
+                    "        }",
+                    "        prev_button = button;",
+                    "        if (paused) {",
+                    "            gpio_set_level(ACD_PIN_LED, 0);",
+                    *(
+                        ["            gpio_set_level(ACD_PIN_LED2, 0);"]
+                        if has_led2
+                        else []
+                    ),
+                    "        } else {",
+                ]
+            )
+            indent = "            "
+        else:
+            indent = "        "
+        loop.extend(
+            [
+                f"{indent}led_state = !led_state;",
+                f"{indent}gpio_set_level(ACD_PIN_LED, led_state);",
+                f'{indent}ESP_LOGI(TAG, "LED gpio=%d state=%d", '
+                "ACD_PIN_LED, led_state);",
+                *(
+                    [
+                        f"{indent}gpio_set_level(ACD_PIN_LED2, !led_state);",
+                        f'{indent}ESP_LOGI(TAG, "LED2 gpio=%d state=%d", '
+                        "ACD_PIN_LED2, !led_state);",
+                    ]
+                    if has_led2
+                    else []
+                ),
+            ]
+        )
+        if has_button:
+            loop.append("        }")
         if "i2c_sensor_read" in capability_ids:
             device = next(
                 step.device

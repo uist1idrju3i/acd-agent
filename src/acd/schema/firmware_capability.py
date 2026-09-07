@@ -13,6 +13,7 @@ class FirmwareCapabilityContract(AcdModel):
     required_pin_roles: list[NonEmptyStr] = Field(default_factory=list)
     emits_triggers: list[NonEmptyStr] = Field(default_factory=list)
     requires_device: bool = False
+    description: NonEmptyStr | None = None
 
     @model_validator(mode="after")
     def _unique_values(self) -> FirmwareCapabilityContract:
