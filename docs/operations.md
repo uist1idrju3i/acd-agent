@@ -2027,6 +2027,33 @@ plugin = acd_plugin_source("v1.2.3")
 `ref=None`、branch名、短縮SHA、空文字、不正なtagはfail-closedで拒否される。
 開発checkoutでは`build_acd_conversation()`の既定local pathを使用できる。
 
+### projection guardのmatcher規則
+
+`plugins/acd/hooks/scripts/protect_projections.py`がterminal commandに対して行う
+許可・拒否の規則は以下のとおりである。いずれもL2の操舵境界であり、L1ゲートの
+判定や閾値を変更しない。
+
+許可する:
+
+- 空command（`{"command": ""}`、空白のみ、および`is_input`のempty poll）。
+- 読み取り系commandのallowlist（`cat`・`grep`・`rg`・`head`・`tail`・`ls`・
+  `find`の読み取り形・`jq`・`sha256sum`等。`READ_ONLY_COMMANDS`を正とする）。
+- 保護path（`out/`・`evidence/`・生成物拡張子）を参照しないinline code
+  （`python -c`・`node -e`等）、および保護pathを読むだけのinline code。
+- heredocのdata本文（`cat > /tmp/x << EOF`等、stdinとして消費される本文は
+  commandとして解析しない）。
+
+拒否する（fail-closed）:
+
+- 保護pathへのredirection・書き込み系commandのtarget、および`mv`の元path
+  （source・destinationの両方を検査する）。
+- 保護pathへの参照と書き込み指標（`open(..., 'w')`や`mode=`、`unlink`・
+  `rmtree`・`subprocess`・`os.system`等）の両方を含むinline code。
+- `bash`/`sh`等のshell heredoc本文（本文をnested scriptとして再帰検査する）、
+  interpreter heredoc本文（inline codeと同じ規則）、および未終端のheredoc。
+- command substitution（`$( )`・バッククォート）内を含む保護pathへの参照、
+  `xargs`・`find`の書き込みprimary、解析不能なcommand、nested shellの深さ超過。
+
 ## graph単体検証の正規経路
 
 graph単体の妥当性検証は`scripts/validate_graph.py`だけを正規入口とする。過去に案内された

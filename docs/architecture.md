@@ -586,9 +586,13 @@ OpenHands SDK v1.44.1のagent-serverはACDの対象外である。serverの採�
 言及全般ではなく、editorの書き込みpath、patch header、shellのredirection・
 書き込み系commandのtargetを判定する。laneの出力先optionと`out/stop-report.json`の
 規定記録は許可し、読み取り専用操作と書き込みpatternのない未知commandは停止させない。
-保護対象への書き込みtargetを解決できない場合、nested shellの深さ超過、または解析不能時は
-fail-closedにする。`&`・改行によるcommand分割、command substitution等の解析対象外構文、
-`xargs`や`find`の書き込みprimaryも同じ保守的な判定へ落とす。hookは既存のPydantic契約と
+空command（terminalのpoll）とread-only commandのallowlistは停止させず、
+inline codeは保護pathへの参照と書き込み指標（`open(..., 'w')`、unlink・rmtree・
+subprocess等）の両方を含む場合だけdenyする。heredocは本文をdataとして除外し、
+shell／interpreterへ渡る本文だけを再帰的に検査し、未終端はdenyする。`mv`は
+元pathも含めて保護対象を拒否する。保護対象への書き込みtargetを解決できない場合、
+nested shellの深さ超過、または解析不能時はfail-closedにする。`&`・改行によるcommand分割、
+command substitution等の解析対象外構文、`xargs`や`find`の書き込みprimaryも同じ保守的な判定へ落とす。hookは既存のPydantic契約と
 決定論的ゲートを呼ぶだけで、新しい閾値を持たない。
 SDK hookのDENYはagent経路にしか効かないため、CI側の検証も二重に保持する。
 

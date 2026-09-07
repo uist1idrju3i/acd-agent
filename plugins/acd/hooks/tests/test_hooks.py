@@ -274,6 +274,101 @@ def test_projection_guard_parse_failures_are_denied() -> None:
     )
 
 
+def test_projection_guard_allows_empty_terminal_poll() -> None:
+    assert run("protect_projections.py", {"command": ""}, "terminal")[0] == 0
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "", "is_input": True},
+            "terminal",
+        )[0]
+        == 0
+    )
+    assert run("protect_projections.py", {"command": "   "}, "terminal")[0] == 0
+
+
+def test_projection_guard_allows_read_only_commands() -> None:
+    commands = (
+        "cat out/gd1-board/board.kicad_pcb | grep status",
+        "find src/acd/pipeline -name '*.py' -exec grep -l 'rationale' {} \\;",
+        "sha256sum out/gd1-board/gerbers.zip",
+        "ls out/gd1-board",
+        "jq '.status' out/x/design-predicates.json",
+    )
+    for command in commands:
+        assert run("protect_projections.py", {"command": command}, "terminal")[0] == 0
+
+
+def test_projection_guard_inline_code_requires_write_indicator() -> None:
+    assert (
+        run(
+            "protect_projections.py",
+            {
+                "command": (
+                    "python3 -c \"import json; "
+                    "print(json.load(open('out/x/design-predicates.json'))['status'])\""
+                )
+            },
+            "terminal",
+        )[0]
+        == 0
+    )
+    denied = (
+        "python3 -c \"open('out/board.kicad_pcb','w')\"",
+        "python3 -c \"import shutil; shutil.rmtree('out/x')\"",
+        "python3 -c \"import os; os.system('rm -rf out')\"",
+        "python3 -c \"open('out/a.json', mode='w')\"",
+    )
+    for command in denied:
+        assert run("protect_projections.py", {"command": command}, "terminal")[0] == 2
+
+
+def test_projection_guard_heredoc_bodies_are_data_unless_executed() -> None:
+    allowed = (
+        "cat > /tmp/fixed_debug.py << EOF\n"
+        "import json\n"
+        "data = json.load(open(\"out/a/b.json\"))\n"
+        "EOF",
+    )
+    for command in allowed:
+        assert run("protect_projections.py", {"command": command}, "terminal")[0] == 0
+    denied = (
+        "bash << EOF\nrm -rf out/gd1-board\nEOF",
+        "python3 << EOF\nimport shutil; shutil.rmtree(\"out/x\")\nEOF",
+        "cat > out/board.kicad_pcb << EOF\nx\nEOF",
+        "bash << EOF\necho x",
+    )
+    for command in denied:
+        assert run("protect_projections.py", {"command": command}, "terminal")[0] == 2
+
+
+def test_projection_guard_mv_source_into_protected_is_denied() -> None:
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "mv out/container/x /tmp/x"},
+            "terminal",
+        )[0]
+        == 2
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "mv /tmp/x out/y"},
+            "terminal",
+        )[0]
+        == 2
+    )
+    assert (
+        run(
+            "protect_projections.py",
+            {"command": "mv fixtures/a fixtures/b"},
+            "terminal",
+        )[0]
+        == 0
+    )
+
+
 def _clean_hook_repo(tmp_path: Path) -> Path:
     graph = tmp_path / "fixtures/golden-design-1/graph.json"
     graph.parent.mkdir(parents=True)

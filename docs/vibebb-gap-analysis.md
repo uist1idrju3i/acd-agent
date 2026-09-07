@@ -659,8 +659,9 @@ outline X、`left`／`right`ではoutline Yに沿って測る）。それ以外�
 `mechanical.connector_opening.face_unsupported`でfail-closedにする。
 Y-5・Y-9は本変更で解消した（宣言語彙の単一の正と多pad decoupling解決
 規則。いずれも診断・文書面の追加であり、合格側権限の緩和ではない）。
-N-3・N-6・N-8（hookの誤検出）は運用観測として`notes.md`に留め、
-優先順位の末尾に記録する。
+N-3・N-6・N-8（hookの誤検出）は本変更で解消した。empty poll・read-only command・
+読み取り系inline code・heredocのdata本文は許可し、`mv`の元pathとshell／interpreter
+heredoc本文・未終端heredocは引き続きfail-closedで拒否する。
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
@@ -702,4 +703,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 18. T-1〜T-5（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3の未了部分と同一の配布形態の論点、T-4は表示の統合、T-5はtransport失敗時の出力保持である。
 19. V-1〜V-10（第6回実機実測）。V-6（不足宣言の列挙）はDevin不在で新規設計を1周させるための唯一の停止点であり最優先。次にV-3（報告契約）とV-9（tool登録の一次資料）を同順で扱い、会話経路がL3記録だけで合格を述べないようにする。V-5（失敗時の回収）とV-7（wall-clock明示）は検証可能性、V-1は防御の深さ、V-4・V-8・V-10は運用と手順の整備である。V-2はOpenHands側の課題として記録に留める。
 20. W-1〜W-4（GD1非依存の達成条件）。W-1（非GD1設計の全lane通過）はV-6の解消を前提とし、次にW-2（既定値のGD1固定の棚卸し）とW-3（述語適用条件の宣言化検査）を扱う。W-4（CIへの非GD1 lane追加）はW-1の後続であり、達成後もGD1はpositive controlとして維持する。
-21. Y-1〜Y-11（第8回実機実測、自然文のみ新規設計）。Y-1・Y-4は解消済み、Y-10（source-treeのdirtyをEvidence provenanceへ記録しfail-closedへ）はPR #337で、Y-6（要件→fw.sequence被覆検査）とY-11（`led2_blink`・`button_input` capability）はPR #338・#340で、Y-8（router診断を`loop-summary`へ）と筐体face契約（`front`・`back`・`left`・`right`受理と`mechanical.connector_opening.face_unsupported`のpreflight前倒し）は解消済み。Y-2（coverage要約）とY-7（silkscreen resolverのfail-closed前倒し）も解消済みで、Y-3（library hash採取）は`scripts/pin_library_hashes.py`で、Y-5・Y-9（宣言語彙とdecoupling多pad解決規則）は本branchで解消済み。残るはhook matcherのみである。hook誤検出（N-3・N-6・N-8）は運用観測として別途扱う。
+21. Y-1〜Y-11（第8回実機実測、自然文のみ新規設計）。Y-1・Y-4は解消済み、Y-10（source-treeのdirtyをEvidence provenanceへ記録しfail-closedへ）はPR #337で、Y-6（要件→fw.sequence被覆検査）とY-11（`led2_blink`・`button_input` capability）はPR #338・#340で、Y-8（router診断を`loop-summary`へ）と筐体face契約（`front`・`back`・`left`・`right`受理と`mechanical.connector_opening.face_unsupported`のpreflight前倒し）は解消済み。Y-2（coverage要約）とY-7（silkscreen resolverのfail-closed前倒し）も解消済みで、Y-3（library hash採取）は`scripts/pin_library_hashes.py`で、Y-5・Y-9（宣言語彙とdecoupling多pad解決規則）は本branchで解消済み。hook matcherの誤検出（N-3・N-6・N-8）も解消済みで、残る未着手項目は無い。
