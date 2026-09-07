@@ -12,6 +12,12 @@ from pydantic import BaseModel, ConfigDict
 
 from acd.adapters.kicad.library import FootprintLibrary
 from acd.adapters.kicad.placement import rotate_point
+from acd.core.declaration_vocabulary import (
+    NET_WIDTH_BASIS,
+    SAFETY_BOUNDARY_HAZARD_KEYS,
+    SAFETY_BOUNDARY_INTENDED_USE,
+    SAFETY_BOUNDARY_MODULE_CERTIFIED,
+)
 from acd.core.electrical import ComponentView, ElectricalLane
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
@@ -925,7 +931,11 @@ def _certification_result(graph: DesignGraph, lane: ElectricalLane) -> Predicate
                 f"{component.refdes} certification timestamp is invalid",
             )
     boundary = _nodes(graph, "safety.boundary")
-    if len(boundary) != 1 or boundary[0].attrs.get("module_certified") != "certified":
+    if (
+        len(boundary) != 1
+        or boundary[0].attrs.get("module_certified")
+        not in SAFETY_BOUNDARY_MODULE_CERTIFIED
+    ):
         return _result(
             "module_certification",
             "unknown",
@@ -966,7 +976,7 @@ def evaluate_power_boundary(graph: DesignGraph, lane: ElectricalLane) -> SafetyB
     unknown_basis = [
         net.name
         for net in nets
-        if net.width_basis not in ("current_ipc2221", "manufacturing_minimum")
+        if net.width_basis not in NET_WIDTH_BASIS
     ]
     if unknown_basis:
         current = _result(
@@ -975,7 +985,9 @@ def evaluate_power_boundary(graph: DesignGraph, lane: ElectricalLane) -> SafetyB
             f"unknown net width basis: {', '.join(unknown_basis)}",
         )
     else:
-        power_nets = [net for net in nets if net.width_basis == "current_ipc2221"]
+        power_nets = [
+            net for net in nets if net.width_basis == NET_WIDTH_BASIS[0]
+        ]
         missing_power_current = [net.name for net in power_nets if net.current_max_a is None]
         if missing_power_current:
             current = _result(
@@ -1013,7 +1025,7 @@ def evaluate_power_boundary(graph: DesignGraph, lane: ElectricalLane) -> SafetyB
         )
     else:
         attrs = boundary[0].attrs
-        hazard_keys = ("battery", "charger", "motor_actuator_laser")
+        hazard_keys = SAFETY_BOUNDARY_HAZARD_KEYS
         if any(key not in attrs or not isinstance(attrs[key], bool) for key in hazard_keys):
             hazard = _result(
                 "hazard_exclusion", "unknown", "hazard exclusion declaration is incomplete"
@@ -1027,8 +1039,10 @@ def evaluate_power_boundary(graph: DesignGraph, lane: ElectricalLane) -> SafetyB
         intended_value = attrs.get("intended_use")
         if not isinstance(intended_value, str):
             intended = _result("intended_use", "unknown", "intended use is missing")
-        elif intended_value == "author_prototype":
-            intended = _result("intended_use", "pass", "intended use is author_prototype")
+        elif intended_value in SAFETY_BOUNDARY_INTENDED_USE:
+            intended = _result(
+                "intended_use", "pass", f"intended use is {intended_value}"
+            )
         else:
             intended = _result(
                 "intended_use", "fail", "intended use is outside the permitted boundary"

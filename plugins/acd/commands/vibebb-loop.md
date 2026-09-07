@@ -51,6 +51,8 @@ allowed-tools:
    不足する発注入力を補うためにorder-totalやquote documentを捏造してはならない。
 1. 要件差分は`acd_run_design_loop`の`requirement`へ渡す。新規fixtureは
    `fixture_spec`へ渡す。どちらも省略した場合は既存fixtureを使う。
+   specの宣言場所と許容値は[design-fixture-spec.md](../../../docs/design-fixture-spec.md)を
+   参照する。
 2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
    - fixture生成（spec指定時のみ）
    - 要件compile（更新record指定時のみ）

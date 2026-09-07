@@ -467,9 +467,14 @@ def run_lane_preflight_stage(config: DesignLoopConfig) -> dict[str, Any]:
     action = missing_declaration_action(report)
     return _failure(
         "lane-preflight",
-        "lane declarations are missing (fail-closed); see next_step_action",
+        "lane declarations are missing or unsupported (fail-closed); see next_step_action",
         missing_declarations=[
             item.model_dump(mode="json") for item in missing_declarations(report)
+        ],
+        unsupported_values=[
+            item.model_dump(mode="json")
+            for lane in report.lanes
+            for item in lane.unsupported_values
         ],
         next_step_action=action,
         **fields,

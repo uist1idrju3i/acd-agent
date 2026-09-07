@@ -53,6 +53,30 @@ class LanePreflightMissingDeclaration(AcdModel):
     )
 
 
+LanePreflightUnsupportedCode = Literal[
+    "safety.boundary.missing",
+    "safety.boundary.intended_use_unsupported",
+    "safety.boundary.module_certified_unsupported",
+    "safety.boundary.hazard_flag_invalid",
+    "net.width_basis_unsupported",
+]
+
+
+class LanePreflightUnsupportedValue(AcdModel):
+    """A declared attribute value outside the allowed vocabulary.
+
+    The value rules are vocabulary checks, not gate judgments: they surface the
+    same constants the lane predicates evaluate against so an unsupported
+    declaration fails closed before the lane runs.
+    """
+
+    code: LanePreflightUnsupportedCode
+    node_id: NonEmptyStr
+    kind: NonEmptyStr
+    attr: NonEmptyStr
+    reason: NonEmptyStr
+
+
 class LanePreflightLaneReport(AcdModel):
     lane: NonEmptyStr
     status: LanePreflightStatus
@@ -61,6 +85,9 @@ class LanePreflightLaneReport(AcdModel):
     )
     missing_attrs: list[LanePreflightMissingAttr] = Field(
         default_factory=list[LanePreflightMissingAttr]
+    )
+    unsupported_values: list[LanePreflightUnsupportedValue] = Field(
+        default_factory=list[LanePreflightUnsupportedValue]
     )
 
 
@@ -85,4 +112,6 @@ __all__ = [
     "LanePreflightMissingNode",
     "LanePreflightReport",
     "LanePreflightStatus",
+    "LanePreflightUnsupportedCode",
+    "LanePreflightUnsupportedValue",
 ]

@@ -314,6 +314,18 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    | `gate.executed` | unchecked | laneゲート |
    | `evidence.authoritative` | unchecked | Evidence validation |
 
+   宣言語彙の前倒し検査として、board-pipeline laneでは自由form属性の許容値を
+   `src/acd/core/declaration_vocabulary.py`の語彙と照合し、違反を
+   `unsupported_values`へ機械可読に記録する。codeは`safety.boundary.missing`
+   （node数が1でない）、`safety.boundary.intended_use_unsupported`、
+   `safety.boundary.module_certified_unsupported`、
+   `safety.boundary.hazard_flag_invalid`（`battery`・`charger`・
+   `motor_actuator_laser`の未宣言または非bool）、
+   `net.width_basis_unsupported`に固定する。これらは既に`unknown`または`fail`へ
+   倒れるpredicateを早く可視化するだけであり、許容値の追加は語彙契約の変更として
+   別途正当化する。specへの記述は[`design-fixture-spec.md`](design-fixture-spec.md)を
+   参照する。
+
    2コアVMで同一fixtureをhost実行した測定では、筐体pipelineのwall clockは
    `--pipeline-workers 1`で`8.309`秒、`--pipeline-workers 4`で`26.492`秒だった。
    4 workerのspawnと`build123d` warm-upだけを分離測定すると、runner生成は`0.001`秒、

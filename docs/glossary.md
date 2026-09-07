@@ -114,7 +114,7 @@
 | TestLLM | 応答・例外を固定するSDKテスト用LLM。実LLMや合否を直接表さない。 |
 | 投影レビューPDCA | 入力と工程を選ぶPlan、投影生成Do、AI所見Check、ゲート確認Actのループ。 |
 | 自動 | 人の操作なしに処理する性質。異常時に安全側へ止まる自働と区別する。 |
-| デカップリング配置段 | `decoupling_target`から対象ICを決め、電源pinまでの距離を目的に配置する段。 |
+| デカップリング配置段 | `decoupling_target`から対象ICを決め、電源pinまでの距離を目的に配置する段。対象が複数padで電源netを共有する場合は自然順最小padへ決定論的に解決し、候補を配置出力へ記録する。capacitor側の共有電源pin・GND pinが各1本でない場合はfail-closedで停止する。 |
 | mechanical section view | ゲート通過後のauthoritative assembly STEPを宣言したXY平面とoffsetで切断し、XY平面へ移して生成する機械laneのL3 SVG観測。 |
 | mechanical interference view | authoritative enclosure STEPとMechanicalLaneのcomponent bodyの交差領域を、存在時は別layerで描き、ゲート実測最大干渉体積と突合するL3 SVG観測。交差なしはprojection recordの体積0・領域なしで表す。 |
 | ワークアラウンド | すでに製造・組立を終えた個体を、基板の再製造なしに追加工とFW修正だけで許容可能な動作へ戻す暫定的な回復手段。設計入力の正を書き換えず、本修正はECOとして別に扱う。 |

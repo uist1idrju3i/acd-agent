@@ -188,3 +188,116 @@ def test_complete_declarations_have_no_action() -> None:
     report = run_lane_preflight(_graph())
     assert missing_declarations(report) == []
     assert missing_declaration_action(report) is None
+
+
+def _with_attr(graph: DesignGraph, kind: str, attr: str, value: object) -> DesignGraph:
+    nodes = [
+        (
+            node.model_copy(update={"attrs": {**node.attrs, attr: value}})
+            if node.kind == kind
+            else node
+        )
+        for node in graph.nodes
+    ]
+    return graph.model_copy(update={"nodes": nodes})
+
+
+def _unsupported_codes(report) -> list[str]:
+    return [item.code for lane in report.lanes for item in lane.unsupported_values]
+
+
+def test_safety_boundary_duplicate_reports_missing_code() -> None:
+    graph = _graph()
+    boundary = next(node for node in graph.nodes if node.kind == "safety.boundary")
+    duplicate = boundary.model_copy(update={"id": "safety.boundary-2"})
+    graph = graph.model_copy(update={"nodes": [*graph.nodes, duplicate]})
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    assert report.status == "declarations_incomplete"
+    (finding,) = report.lanes[0].unsupported_values
+    assert finding.code == "safety.boundary.missing"
+    assert "exactly 1" in finding.reason
+
+
+def test_safety_boundary_intended_use_unsupported() -> None:
+    graph = _with_attr(_graph(), "safety.boundary", "intended_use", "product")
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    assert report.status == "declarations_incomplete"
+    finding = next(
+        item
+        for lane in report.lanes
+        for item in lane.unsupported_values
+        if item.code == "safety.boundary.intended_use_unsupported"
+    )
+    assert "author_prototype" in finding.reason
+    action = missing_declaration_action(report)
+    assert action is not None
+    assert "safety.boundary.intended_use_unsupported" in action
+
+
+def test_safety_boundary_module_certified_unsupported() -> None:
+    graph = _with_attr(_graph(), "safety.boundary", "module_certified", "pending")
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    assert "safety.boundary.module_certified_unsupported" in _unsupported_codes(report)
+    finding = next(
+        item
+        for lane in report.lanes
+        for item in lane.unsupported_values
+        if item.code == "safety.boundary.module_certified_unsupported"
+    )
+    assert "certified" in finding.reason
+
+
+def test_safety_boundary_hazard_flag_non_bool_is_invalid() -> None:
+    graph = _with_attr(_graph(), "safety.boundary", "battery", "no")
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    finding = next(
+        item
+        for lane in report.lanes
+        for item in lane.unsupported_values
+        if item.code == "safety.boundary.hazard_flag_invalid"
+    )
+    assert finding.attr == "battery"
+    assert "boolean" in finding.reason
+
+
+def test_safety_boundary_hazard_flag_missing_is_invalid() -> None:
+    graph = _without_attr(_graph(), "safety.boundary", "charger")
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    finding = next(
+        item
+        for lane in report.lanes
+        for item in lane.unsupported_values
+        if item.code == "safety.boundary.hazard_flag_invalid"
+    )
+    assert finding.attr == "charger"
+
+
+def test_net_width_basis_unsupported() -> None:
+    graph = _with_attr(_graph(), "electrical.net", "width_basis", "hand_wavy")
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    findings = [
+        item
+        for lane in report.lanes
+        for item in lane.unsupported_values
+        if item.code == "net.width_basis_unsupported"
+    ]
+    assert findings
+    assert all(
+        "current_ipc2221" in finding.reason and "manufacturing_minimum" in finding.reason
+        for finding in findings
+    )
+
+
+def test_missing_safety_boundary_reports_missing_code_and_node() -> None:
+    graph = _without_kind(_graph(), "safety.boundary")
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    assert report.status == "declarations_incomplete"
+    assert "safety.boundary.missing" in _unsupported_codes(report)
+    assert any(
+        item.kind == "safety.boundary" for item in report.lanes[0].missing_nodes
+    )
+    entries = missing_declarations(report)
+    assert any(
+        entry.kind == "safety.boundary" and entry.spec_path == "safety_boundary.attrs"
+        for entry in entries
+    )
