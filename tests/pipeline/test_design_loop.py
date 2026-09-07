@@ -1808,15 +1808,15 @@ def test_silkscreen_resolve_fails_closed_on_unresolved_status(
     }
     runners["silkscreen-resolve"] = DEFAULT_STAGE_RUNNERS["silkscreen-resolve"]
     _patch_runners(monkeypatch, runners)
-    monkeypatch.setattr(
-        design_loop,
-        "resolve_silkscreen",
-        lambda *args, **kwargs: {
+
+    def _stub_resolve(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {
             "status": resolver_status,
             "iterations": [],
             "final": {},
-        },
-    )
+        }
+
+    monkeypatch.setattr(design_loop, "resolve_silkscreen", _stub_resolve)
 
     result = run_design_loop(
         fixture,
@@ -1851,11 +1851,11 @@ def test_silkscreen_resolve_success_keeps_loop_running(
     }
     runners["silkscreen-resolve"] = DEFAULT_STAGE_RUNNERS["silkscreen-resolve"]
     _patch_runners(monkeypatch, runners)
-    monkeypatch.setattr(
-        design_loop,
-        "resolve_silkscreen",
-        lambda *args, **kwargs: {"status": "resolved", "iterations": []},
-    )
+
+    def _stub_resolve(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {"status": "resolved", "iterations": []}
+
+    monkeypatch.setattr(design_loop, "resolve_silkscreen", _stub_resolve)
 
     result = run_design_loop(
         FIXTURE,
