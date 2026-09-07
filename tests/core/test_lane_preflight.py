@@ -17,6 +17,7 @@ from acd.core.lane_preflight import (
     run_lane_preflight,
 )
 from acd.schema.design_graph import DesignGraph
+from acd.schema.lane_preflight import LanePreflightReport
 
 FIXTURE = Path("fixtures/golden-design-1/graph.json")
 
@@ -202,7 +203,7 @@ def _with_attr(graph: DesignGraph, kind: str, attr: str, value: object) -> Desig
     return graph.model_copy(update={"nodes": nodes})
 
 
-def _unsupported_codes(report) -> list[str]:
+def _unsupported_codes(report: LanePreflightReport) -> list[str]:
     return [item.code for lane in report.lanes for item in lane.unsupported_values]
 
 
