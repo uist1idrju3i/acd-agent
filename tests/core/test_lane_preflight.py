@@ -17,7 +17,6 @@ from acd.core.lane_preflight import (
     run_lane_preflight,
 )
 from acd.schema.design_graph import DesignGraph
-from acd.schema.lane_preflight import LanePreflightReport
 from acd.schema.lane_preflight import (
     LanePreflightLaneReport,
     LanePreflightReport,
