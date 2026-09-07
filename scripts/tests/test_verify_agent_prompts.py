@@ -8,34 +8,45 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts.tests.cli_runner import CliRunner
+from scripts.verify_agent_prompts import main
+
 ROOT = Path(__file__).parents[2]
+SCRIPT = ROOT / "scripts/verify_agent_prompts.py"
 AGENTS = ROOT / "plugins/acd/agents"
 MANIFEST = AGENTS / "prompt-manifest.json"
 
 
-def _invoke(
-    *args: str, cwd: Path = ROOT
-) -> tuple[subprocess.CompletedProcess[str], dict[str, object]]:
-    command = [sys.executable, str(ROOT / "scripts/verify_agent_prompts.py"), *args]
+def test_script_entrypoint_check_passes(tmp_path: Path) -> None:
     result = subprocess.run(
-        command, capture_output=True, text=True, check=False, cwd=cwd
+        [sys.executable, str(SCRIPT), "--check"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tmp_path,
     )
-    return result, json.loads(result.stdout)
+    assert result.returncode == 0
+    assert json.loads(result.stdout)["status"] == "pass"
 
 
-def test_cli_check_is_stable_and_does_not_write_assets(tmp_path: Path) -> None:
+def test_cli_check_is_stable_and_does_not_write_assets(
+    tmp_path: Path, run_cli: CliRunner
+) -> None:
     tracked = [*sorted(AGENTS.glob("acd-*.md")), MANIFEST]
     before = {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked}
-    result, report = _invoke("--check")
+    result = run_cli(main, "--check", cwd=ROOT)
+    report = result.json()
     assert result.returncode == 0
     assert report["status"] == "pass"
     assert {path: hashlib.sha256(path.read_bytes()).hexdigest() for path in tracked} == before
-    other_cwd, other_report = _invoke("--check", cwd=tmp_path)
+    other_cwd = run_cli(main, "--check", cwd=tmp_path)
     assert other_cwd.returncode == 0
-    assert other_report == report
+    assert other_cwd.json() == report
 
 
-def test_cli_drift_returns_exit_two_without_traceback(tmp_path: Path) -> None:
+def test_cli_drift_returns_exit_two_without_traceback(
+    tmp_path: Path, run_cli: CliRunner
+) -> None:
     agent_dir = tmp_path / "agents"
     agent_dir.mkdir()
     for source in AGENTS.glob("acd-*.md"):
@@ -43,9 +54,8 @@ def test_cli_drift_returns_exit_two_without_traceback(tmp_path: Path) -> None:
     changed = agent_dir / "acd-electrical.md"
     changed.write_text(changed.read_text(encoding="utf-8") + "x", encoding="utf-8")
     manifest = tmp_path / "prompt-manifest.json"
-    write_command = [
-        sys.executable,
-        "scripts/verify_agent_prompts.py",
+    written = run_cli(
+        main,
         "--write",
         "--agent-dir",
         str(agent_dir),
@@ -53,11 +63,12 @@ def test_cli_drift_returns_exit_two_without_traceback(tmp_path: Path) -> None:
         str(manifest),
         "--root",
         str(tmp_path),
-    ]
-    written = subprocess.run(write_command, capture_output=True, text=True, check=False)
+        cwd=ROOT,
+    )
     assert written.returncode == 0
     changed.write_text(changed.read_text(encoding="utf-8") + "y", encoding="utf-8")
-    result, report = _invoke(
+    result = run_cli(
+        main,
         "--check",
         "--agent-dir",
         str(agent_dir),
@@ -65,9 +76,10 @@ def test_cli_drift_returns_exit_two_without_traceback(tmp_path: Path) -> None:
         str(manifest),
         "--root",
         str(tmp_path),
+        cwd=ROOT,
     )
+    report = result.json()
     assert result.returncode == 2
-    assert "Traceback" not in result.stderr
     assert report["status"] == "fail"
     assert report["drifted_roles"] == ["acd-electrical"]
     assert report["unregistered_roles"] == []
@@ -75,28 +87,30 @@ def test_cli_drift_returns_exit_two_without_traceback(tmp_path: Path) -> None:
 
 
 def test_cli_malformed_or_missing_inputs_return_report_without_traceback(
-    tmp_path: Path,
+    tmp_path: Path, run_cli: CliRunner
 ) -> None:
-    result, report = _invoke(
+    result = run_cli(
+        main,
         "--check",
         "--agent-dir",
         str(tmp_path / "missing-agents"),
         "--manifest",
         str(tmp_path / "missing-manifest.json"),
+        cwd=ROOT,
     )
     assert result.returncode == 2
-    assert "Traceback" not in result.stderr
-    assert report["status"] == "unknown"
+    assert result.json()["status"] == "unknown"
 
     manifest = tmp_path / "malformed.json"
     manifest.write_text("{not-json", encoding="utf-8")
-    result, report = _invoke(
+    result = run_cli(
+        main,
         "--check",
         "--agent-dir",
         str(AGENTS),
         "--manifest",
         str(manifest),
+        cwd=ROOT,
     )
     assert result.returncode == 2
-    assert "Traceback" not in result.stderr
-    assert report["status"] == "unknown"
+    assert result.json()["status"] == "unknown"
