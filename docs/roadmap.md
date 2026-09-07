@@ -384,12 +384,24 @@ provenance・契約の不足を閉じる。
 
 実装状況: Y-1（`--design-only`を指すエラーメッセージと`vibebb-loop.md`のdesign-only運用
 記載）とY-4（`strapping_pin`を宣言済み全`led_drive_net`へ一般化、negative test込み）は
-`devin/1788725512-vibebb-dual-beacon-repair`（commit `71f0885`）で解消した。Y-6は
-本ブランチで、要件→`fw.sequence`被覆検査（`check_firmware_coverage`、FW lane起動前の
+`devin/1788725512-vibebb-dual-beacon-repair`（commit `71f0885`）で解消した。Y-10は
+`devin/1788735996-evidence-source-provenance`（PR #337）で解消した。ToolEnvelopeへ
+`source_revision`・`source_tree_state`・`source_dirty_digest`を追加し、runnerは
+source tree（`src`・`scripts`・`plugins`・`contracts`・`libraries`・`docker`・
+`pyproject.toml`・`uv.lock`）のgit provenanceを`ACD_SOURCE_*`環境変数でcontainerへ
+forwardする。dirty／非gitの`--repo`は`--allow-dirty`無しでcontainer起動前に拒否し、
+`verify_authoritative_evidence.py`はprovenance欠落・`unknown`・非`clean`をfail-closedで
+拒否する。`--source bundled`はprovenanceが`unknown`となりそのEvidenceはverifierを
+通過できない。Y-6は`devin/1788737805-fw-requirement-coverage`（PR #338）で、
+要件→`fw.sequence`被覆検査（`check_firmware_coverage`、FW lane起動前の
 fail-closed停止と`firmware-coverage.json`／preflight `firmware_coverage`診断、
-registryへの`emits_triggers`追加）として解消した。2LED・入力を表現するcapability本体は
-Y-11に残る。残りは未着手であり、Y-10とY-11はfail-closed境界の堅持に直結するため
-先に扱う。詳細は
+registryへの`emits_triggers`追加）として解消した。Y-11は本ブランチで、pin role
+`led2`・`button`と`led2_blink`（第2 LED逆位相点滅）・`button_input`（`button_pressed`発火、
+active-low入力で点滅pause／resume）capabilityの登録と`fw_project.py`の射影として解消した。
+dual-beacon-tagのend-to-end合格はrouter非収束と筐体faceの壁が残るため未実証である。
+残りは未着手であり、
+着手順はY-8（router診断）→筐体face契約→Y-2・Y-7・Y-3・Y-5・Y-9（診断・helper・文書）
+→hook matcherとする。fail-closed境界の堅持に直結するものを先に扱う。詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
 
 ## マイルストーン15: 運用と文書の整備

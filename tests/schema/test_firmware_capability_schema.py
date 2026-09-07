@@ -111,3 +111,19 @@ def test_firmware_capability_registry_rejects_duplicate_actions() -> None:
     ]
     with pytest.raises(ValidationError, match="action values"):
         FirmwareCapabilityRegistryDocument.model_validate(payload)
+
+
+def test_committed_registry_declares_led2_and_button() -> None:
+    registry = load_firmware_capability_registry().document
+    order = registry.pin_role_order
+    assert order.index("led2") == order.index("led") + 1
+    assert order.index("button") == order.index("led2") + 1
+    by_id = {item.capability_id: item for item in registry.capabilities}
+    assert by_id["led2_blink"].actions == ["toggle_led2"]
+    assert by_id["led2_blink"].required_pin_roles == ["led2"]
+    assert by_id["led2_blink"].emits_triggers == []
+    assert by_id["button_input"].actions == ["read_button"]
+    assert by_id["button_input"].required_pin_roles == ["button"]
+    assert by_id["button_input"].emits_triggers == ["button_pressed"]
+    assert by_id["led2_blink"].description is not None
+    assert by_id["button_input"].description is not None
