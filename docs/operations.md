@@ -1606,7 +1606,9 @@ DevinがPR作成前に実施する既定検証は`--stage fast`とする。
 `src/acd/core`・`src/acd/pipeline`・`scripts`の判定ロジック変更時は
 `--stage standard`、main merge前は`--stage full`を実施する。PRのCIは変更scopeに応じて
 `fast`または`standard`を実行する。`skills` jobはpushまたはplugin変更時に実行し、
-`container-gates`、`pinned-acd-probe`、pipeline実行、host probeはmain pushで実行する。
+`container-gates`と`pinned-acd-probe`はmain pushで実行する。host側の筐体pipelineと
+`probe_tools.py`はprovisionalでauthoritative Evidenceを生成しないため、main CIの`verify`
+jobからは外し、`container-gates`のcontainer実行だけを正とする。
 
 2コアVMで同一入力を測定した結果は、pytestの逐次（`-n 0`）195.13秒、
 自動並列（`-n auto`）108.73秒だった。`verify_all.py --stage standard`
@@ -1619,8 +1621,10 @@ mainのCI run `32909530356`をbaselineとして、`verify`は262秒（うちStan
 PRでは`.md`ファイルだけの変更なら`changes` jobがcode変更なしと判定し、
 `docs-verify`だけを実行する。code変更がある場合、core変更なら`verify`がstandard、
 それ以外はfastを実行する。`skills`はplugin変更時またはpush時に実行し、
-`pinned-acd-probe`と`container-gates`の重いstep、pipeline実行、host probeはPRでは
-deferred to main pushを表示して終了し、main pushで実行する。
+`pinned-acd-probe`と`container-gates`はjob levelの`if`でmain push以外をskipする
+（skipped jobはGitHubのrequired checkでは合格扱いになり、runnerを確保しない）。
+`skills`はKiCad library packageの.debを`actions/cache`へ保存し、cache hit時はPPA登録と
+apt metadata更新を省く。dpkg版が`10.0.*`であることの検査はcache経路でも毎回行う。
 
 `container-gates`ではcheckout直後にlock済みserver imageのdigest固定refをbackgroundで
 warm pullし、setup-uv、workspace sync、digest解決と重ね合わせる。その後のauthoritative
