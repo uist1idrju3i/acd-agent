@@ -1,0 +1,61 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "candidate_router_diagnostics": [
+    {
+      "authority": "L3 observation; not gate authority",
+      "candidate_id": "placement-0001",
+      "convergence_state": "unknown",
+      "final_unrouted": null,
+      "open_net_count": null,
+      "open_nets": [],
+      "plateau_passes": 0,
+      "read_errors": [
+        "router-pass-progress.json: missing",
+        "routing-connectivity.json: missing"
+      ],
+      "round": 1,
+      "unrouted_progression": []
+    },
+    {
+      "authority": "L3 observation; not gate authority",
+      "candidate_id": "placement-0002",
+      "convergence_state": "unknown",
+      "final_unrouted": null,
+      "open_net_count": null,
+      "open_nets": [],
+      "plateau_passes": 0,
+      "read_errors": [
+        "router-pass-progress.json: missing",
+        "routing-connectivity.json: missing"
+      ],
+      "round": 1,
+      "unrouted_progression": []
+    }
+  ],
+  "content_sha256": "sha256:2ebe0da9bded0d8fe9f3f369d931020cc18f3e8d713cba9ad473460855dc7b5d",
+  "exploration_rounds": 1,
+  "failed_stage": "board-pipeline",
+  "failure_reason": "ValueError: rationale coverage failed: status=fail graph_id_match=True revision_match=True missing=0 stale=0 unknown_provenance=0 orphan=0 untraceable=0 conflicting=0 unclassified=3 [mechanical.outline.dual-beacon-tag.dimensions_checked_at (attribute is absent from both rationale classification tables), mechanical.outline.dual-beacon-tag.dimensions_source (attribute is absent from both rationale classification tables), mechanical.outline.dual-beacon-tag.dimensions_source_ref (attribute is absent from both rationale classification tables)] templated=0 generator_violations=0; board-pipeline recovery exploration failed: exploration did not produce a writable candidate: status='exhausted'",
+  "graph_id": "dual-beacon-tag",
+  "max_exploration_candidates": 2,
+  "max_exploration_rounds": 1,
+  "next_step_action": "Explore declared placement and GPIO candidates from the rejected predicate remediation, then rerun every deterministic stage.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "router_diagnostics": {
+    "authority": "L3 observation; not gate authority",
+    "convergence_state": "unknown",
+    "final_unrouted": null,
+    "open_net_count": null,
+    "open_nets": [],
+    "plateau_passes": 0,
+    "read_errors": [
+      "router-pass-progress.json: missing",
+      "routing-connectivity.json: missing"
+    ],
+    "unrouted_progression": []
+  },
+  "schema_version": "0.1",
+  "timing_record": "out/control-b/timing-record.json"
+}

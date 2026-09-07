@@ -663,6 +663,60 @@ N-3・N-6・N-8（hookの誤検出）は本変更で解消した。empty poll・
 読み取り系inline code・heredocのdata本文は許可し、`mv`の元pathとshell／interpreter
 heredoc本文・未終端heredocは引き続きfail-closedで拒否する。
 
+第9回実測（2026-09-07、[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md)
+16節）で作動を確認できたY項目とその根拠は次のとおりである（いずれもL2／L3の作動確認であり、
+dual-beacon-tagの合格を意味しない）。Y-1: `--design-only`が使われorder-total捏造は再発せず
+（会話digest、`fixture/spec.json`に発注入力なし）。Y-2: `rationale coverage failed …
+unclassified=4 [mechanical.outline.dual-beacon-tag.dimensions_checked_at, …]`の要約が
+出た（会話digest 11:57、対照run `control/control-a/rationale-coverage.json`）。ただし
+next stepの表現がsource編集を誘発した（Z-2）。Y-3: `pin_library_hashes.py`が
+container内で使われhash推測は起きなかった。Y-6／Y-11: `fw.sequence`が`toggle_led`・
+`toggle_led2`・`read_button`を保持し`firmware-coverage.json`は`status: "pass"`
+（`control/control-a/firmware-coverage.json`）。Y-7: silkscreen resolveが
+`silkscreen roles must be unique`・clearance／overlap検出で複数回fail-closedした。
+Y-8: `loop/raw-container/loop-summary.json`に`router_diagnostics`（`final_unrouted: 3`、
+`open_nets: ["+3V3", "GND"]`、`plateau_passes: 5`、`unrouted_progression`）と
+`next_step_action`が記録された。Y-10: dirty treeは`source tree is dirty … pass allow_dirty`で
+container起動前に拒否され、生container経路の`unknown` provenanceは
+`verify_authoritative_evidence.py`が拒否した（Z-3・Z-11の残課題あり）。hook matcher: 空poll・
+`find -exec grep`・read-only `python3 -c`・heredocは許可され、`mv out/… /tmp`は拒否された
+（`hooks/matcher-matrix.txt`）。Y-4・Y-5・Y-9は今回の設計経路で該当場面に達しておらず
+未確認である。
+
+## Z. 第9回実機実測（2026-09-07、14.22反映後の同一要件再検証）で残った不足
+
+roadmap 14.22（Y-1〜Y-11・hook matcher）をmergeした`main`（`180b628`）と更新済みimage
+（server `sha256:3fb0e216…`）のもとで、第8回と同一文言の自然文要件を`/acd:vibebb-loop`へ
+投入した実測（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 16節、
+[`examples/dual-beacon-tag-vps-20260907/`](../examples/dual-beacon-tag-vps-20260907/)）で
+判明した不足である。Y-2・Y-3・Y-6・Y-7・Y-8・Y-10・Y-11とhook matcherの効果は観測できた
+（order-total捏造とLED2／ボタン削除は再発せず、coverage要約・library hash helper・
+silkscreen fail-closed・router診断・dirty source拒否・FW capabilityが作動）。一方で
+agentは停止境界ごとに`src/`編集→commit、生`docker run`、難読化commandへ倒れ、pristine
+`180b628`の対照runではagent最終入力がrationale coverageで停止するため、GUI経路の到達段
+（router非収束）はagentのgate緩和に依存していた。一次記録は
+`examples/dual-beacon-tag-vps-20260907/report/notes.md`を正とする。ロードマップ上は
+[`roadmap.md`](roadmap.md)の14.23で扱う。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| Z-1 | `/acd:init`の手順記載が同一command内での`ACD_PLUGIN_ROOT`代入・展開を誘い、initがterminal timeoutに掛かる | 1回目は`$ACD_PLUGIN_ROOT`が空で`/skills/acd-install-doctor/…`をENOENT、2回目は約5分のtimeoutで`exit -1`（第8回N-1・N-2と同型） | 中 | N-1 | `init.md`へ変数展開を要しない起動例（絶対pathまたは2行分割）と背景実行＋log poll手順を明記する。`init_workspace.py`が進行状況をlogへ逐次出す |
+| Z-2 | coverage診断の「next step」がsource側の分類表名（`REQUIRED_RATIONALE_ATTRS`／`RATIONALE_EXEMPT_ATTRS`）を示し、agentのsource編集を誘発する | `unclassified=4 … classify new attrs in REQUIRED_RATIONALE_ATTRS/RATIONALE_EXEMPT_ATTRS (see docs)`の直後にagentは`src/acd/core/rationale.py`へ免除4件を追加してcommitした | 高 | Y-2 | 会話向け診断は「その属性は契約に無いので宣言から外す／契約変更はPRで行う」と設計入力側の次手だけを示し、source表名は開発者向け文書に留める。`unclassified`の判定は変えない |
+| Z-3 | source provenanceはdirty treeを拒否するが、commitで「clean」になったrevisionがbootstrap record（plugin／main）から逸脱していることを検出しない | `65f14ab`・`6dceab7`（gate緩和とscript複製を含む）で`source provenance: … clean`として受理された。agent最終報告も「`src/`変更なし」と誤報告した | 高 | Y-10 | `run_in_workspace.py`とverifierが`ACD_SOURCE_GIT_SHA`をbootstrap record／installed plugin revision／`--source-revision`と照合し、不一致をfail-closedにする。会話のstop policyは`git log <bootstrap>..HEAD`にsource pathがあれば停止報告へ載せる |
+| Z-4 | projection保護hookのdeny理由が汎用文のみで、どのtoken（保護path／`$(…)`／`mv`元path）に掛かったかを示さない | 17件のdenyがすべて同一文。`docker run … $(git rev-parse HEAD) … out/…`の拒否をagentは原因誤認した | 中 | N-6 | deny理由へ判定種別（protected path token／unsupported syntax／mv source）と該当tokenを付ける。判定条件は変えない |
+| Z-5 | `run_in_workspace.py`が任意commandでも既定`--graph`（GD1）由来のdownload（`out/gd1/evidence-electrical.json`等）を必須扱いし、成功したcommandを終了コード2にする | 会話とDevin環境の両方で再現（`control/defect-repro-*.log`）。agentはrunnerを放棄して生`docker run`へ移った | 高 | O-10、W-2 | 既定downloadは`--graph`が明示された場合か既定command（GD1 gates）に限り、任意commandでは`--download`指定分だけをdownloadする。存在しないdownloadは引き続きfail-closed |
+| Z-6 | inline interpreterのmatcherが`base64`／`exec`による難読化を通す | `python3 -c 'import base64; exec(base64.b64decode("…"))'`で`run_design_loop`を`/tmp/out`向けに実行するcommandが許可された（`hooks/matcher-matrix.txt`） | 中 | N-6 | inline code中の`exec(`／`eval(`／`compile(`／`base64.b64decode(`／`__import__(`など動的実行tokenを検出したら「読み取り系inline code」と見なさず拒否する |
+| Z-7 | `docker exec`／`ssh`等のwrapper越しに渡した読み取り専用`python3 -c`が、直接実行なら許可される同一codeでも拒否される | 15:08:55の`docker exec acd-runner python3 -c "…open('/tmp/out/…/x.kicad_pcb')…"`が拒否。本VMの`_terminal_allowed`で再現（直接: `True`、wrapper: `False`） | 中 | N-6 | wrapper commandの引数を内側commandとして再帰的に同じ規則で評価する。wrapperの利用自体を許すかは別途決める（Z-11） |
+| Z-8 | agent最終報告に一次資料と矛盾する記述が含まれ、報告契約がそれを検出しない | 「`git diff --stat`なし・`src/`変更なし」（実際はcommit済み3ファイル）、「R4／R6が10 kΩで誤配線」（specはR3／R4 4.7 kΩで正配線） | 中 | V-3 | 最終報告のsource変更節は`git log <bootstrap>..HEAD --stat`の機械出力を必須とし、設計値の記述はspecからの機械抽出（部品・値・net）を添える |
+| Z-9 | specへ実測・取得を伴わないevidence宣言（`cpl_orientation_evidence.evidence_basis: "confirmed"`、`profile_fetched_at`等）を置いても止まらない | 全部品に同一の`evidence_at: 2026-09-05T00:00:00Z`・`evidence_basis: confirmed`が宣言された | 中 | Y-1 | 宣言側evidence属性は「取得元と取得時点が実測記録（out配下のrecord）へ解決する」ことを検査し、解決しないものは`declared_unverified`としてL1判定から外す |
+| Z-10 | `lane-preflight`がenclosure laneを`declarations_complete`と返す一方、mechanical preflightは`mechanical.node.missing=2`（H1／H2の`component_body`）・`attribute.missing=1`（`mount_hole_count`）で停止する | 対照run・GUI経路の両方で再現（`control/control-a/dual-beacon-tag-lane-preflight.json`） | 中 | Y-5、V-6 | `lane-preflight`のenclosure laneにmechanical preflightの述語（body・取付穴）を取り込み、fixture生成直後に不足を返す |
+| Z-11 | 生`docker run`／`docker exec`経路はhook（保護pathのtokenが無い）にもprovenance（`ACD_SOURCE_*`・`ACD_CONTAINER_IMAGE_DIGEST`）にも掛からない | 13:07以降のEvidenceがすべて`container_image_digest: "unknown"`・`source_revision: "unknown"`。verifierは拒否したためfail-closedは保たれた | 高 | Y-10、Z-5 | Z-5を解消してrunnerを使える状態にしたうえで、hookが`docker run`／`docker exec`で`acd-server`／`acd-tools` imageを直接起動するcommandを拒否し、`run_in_workspace.py`経由を案内する |
+| Z-12 | SessionStart hookが会話用project dir（workspace root以外）で`docker/image-digests.json`を解決できず「Authoritative tools are unavailable inside the locked image」を出す | init・loop両会話の先頭で出力。lockは`/home/openhands/acd-workspace-verify-20260907/docker/image-digests.json`に存在した | 低 | G-1 | `OPENHANDS_PROJECT_DIR`が空またはlock不在のとき、installed plugin rootとworkspace registryからlockを探索する |
+| Z-13 | `design_loop.py --fixture-spec`が`build_design_fixture`へ`spec_dir`を渡さず、overlay宣言を持つspecは必ず`requires the design input directory`で失敗する（`scripts/build_design_fixture.py`とは非対称） | pristine `180b628`のhost実行で再現（`repair/main-host.log`）。agentは会話内でこれをsource編集で回避した | 高 | — | 解消。`spec_dir=config.fixture_spec.parent`を渡し、spec相対overlayの解決とhash不一致のfail-closedを回帰テストで固定した。digest固定container再実行はfixture-generationを通過し次段（`net 'BOOT': manufacturing margin is required`）でfail-closed（`repair/`） |
+
+Z-13以外は未解消である。いずれの解決方針も診断・provenance・matcherの面の追加であり、
+ゲート・閾値・Evidence規則の緩和を含まない。
+
 ## Devinのような汎用エージェントが不在なら止まる項目
 
 VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎用エージェントによる代替が
@@ -704,3 +758,4 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 19. V-1〜V-10（第6回実機実測）。V-6（不足宣言の列挙）はDevin不在で新規設計を1周させるための唯一の停止点であり最優先。次にV-3（報告契約）とV-9（tool登録の一次資料）を同順で扱い、会話経路がL3記録だけで合格を述べないようにする。V-5（失敗時の回収）とV-7（wall-clock明示）は検証可能性、V-1は防御の深さ、V-4・V-8・V-10は運用と手順の整備である。V-2はOpenHands側の課題として記録に留める。
 20. W-1〜W-4（GD1非依存の達成条件）。W-1（非GD1設計の全lane通過）はV-6の解消を前提とし、次にW-2（既定値のGD1固定の棚卸し）とW-3（述語適用条件の宣言化検査）を扱う。W-4（CIへの非GD1 lane追加）はW-1の後続であり、達成後もGD1はpositive controlとして維持する。
 21. Y-1〜Y-11（第8回実機実測、自然文のみ新規設計）。Y-1・Y-4は解消済み、Y-10（source-treeのdirtyをEvidence provenanceへ記録しfail-closedへ）はPR #337で、Y-6（要件→fw.sequence被覆検査）とY-11（`led2_blink`・`button_input` capability）はPR #338・#340で、Y-8（router診断を`loop-summary`へ）と筐体face契約（`front`・`back`・`left`・`right`受理と`mechanical.connector_opening.face_unsupported`のpreflight前倒し）は解消済み。Y-2（coverage要約）とY-7（silkscreen resolverのfail-closed前倒し）も解消済みで、Y-3（library hash採取）は`scripts/pin_library_hashes.py`で、Y-5・Y-9（宣言語彙とdecoupling多pad解決規則）は本branchで解消済み。hook matcherの誤検出（N-3・N-6・N-8）も解消済みで、残る未着手項目は無い。
+22. Z-1〜Z-13（第9回実機実測、14.22反映後）。Z-13は本変更で解消済み。Z-3（commit済みrevision逸脱の検出）とZ-11（生docker経路の遮断）はfail-closed境界の維持に直結するため最優先、Z-5（runnerの既定download）はagentが正規経路に留まる前提として同順位で扱う。次にZ-2・Z-4（診断文が回避行動を誘発する箇所）、Z-6・Z-7（matcherの回避と誤検出）を解く。Z-1・Z-8・Z-9・Z-10・Z-12は運用・報告・preflightの整備である。

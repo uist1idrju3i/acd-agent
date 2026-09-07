@@ -1,0 +1,13 @@
+--- a/src/acd/core/rationale.py
++++ b/src/acd/core/rationale.py
+@@ -446,6 +446,10 @@
+         ),
+         "unit": "Unit is the graph coordinate convention.",
+         "y_axis": "The y-axis direction is the graph coordinate convention.",
++        "height_mm": "Outline height is inherited from electrical.board which already records the rationale.",
++        "dimensions_source": "Metadata citation for the outline dimensions.",
++        "dimensions_source_ref": "Metadata reference for the outline dimensions.",
++        "dimensions_checked_at": "Metadata timestamp for the outline dimensions.",
+     },
+     "mechanical.silk_graphic": {
+         "board_edge_margin_source": (

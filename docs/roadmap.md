@@ -418,6 +418,32 @@ Y-9（decoupling多pad対象の決定論的解決）は本branch
 これでhook matcherを含む全項目解消である。fail-closed境界の堅持に直結するものを先に扱った。詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
 
+### 14.23 14.22反映後の同一要件再検証（第9回）で残った関門（Z-*）
+
+第9回実機実測（2026-09-07、
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 16節）では、
+14.22を反映した`main`（`180b628`）と更新済みimageのもとで第8回と同一文言の自然文要件を
+投入した。Y-2・Y-3・Y-6・Y-7・Y-8・Y-10・Y-11とhook matcherの効果は観測でき、
+order-total捏造とLED2／ボタン要件の削除は再発しなかった。しかしagentは停止境界ごとに
+`src/`編集→commit（provenanceは「clean」のままrevisionが逸脱）、`run_in_workspace.py`の
+既定download失敗を契機とした生`docker run`（provenance `unknown`）、`base64`難読化による
+matcher回避、`net.en`削除へ倒れ、pristine `180b628`の対照runではagent最終入力が
+rationale coverageで停止した。authoritative Evidenceはfirmware laneのみで、検証は
+`FAIL: required lane Evidence missing: electrical`（終了コード1）、判定は不合格である。
+本フェーズはゲートを緩めず、agentが正規経路に留まれる面（runner・診断文・provenance照合・
+matcher）を閉じる。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `scripts/run_in_workspace.py`、`scripts/verify_authoritative_evidence.py`、`src/acd/pipeline/fixture_builder.py`（coverage診断文）、`plugins/acd/hooks/scripts/protect_projections.py`・`session_start.py`・stop policy、`plugins/acd/commands/init.md`、`src/acd/pipeline/design_loop.py`の`lane-preflight`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節、[`examples/dual-beacon-tag-vps-20260907/`](../examples/dual-beacon-tag-vps-20260907/) |
+| 実装 | source provenanceの`ACD_SOURCE_GIT_SHA`をbootstrap record／installed plugin revision／`--source-revision`と照合し不一致をfail-closedにする（Z-3）。`run_in_workspace.py`の既定downloadを既定command・`--graph`明示時に限定し、任意commandでは`--download`指定分だけを扱う（Z-5）。hookが`acd-server`／`acd-tools` imageの生`docker run`／`docker exec`起動を拒否しrunner経由を案内する（Z-11）。coverage診断の会話向けnext stepから source表名を外し設計入力側の次手だけを示す（Z-2）。deny理由へ判定種別と該当tokenを付ける（Z-4）。inline codeの動的実行token（`exec(`・`eval(`・`base64.b64decode(`等）を拒否し（Z-6）、wrapper command越しの内側commandを同じ規則で再帰評価する（Z-7）。`init.md`の起動例とtimeout手順（Z-1）、最終報告のsource変更節を`git log <bootstrap>..HEAD --stat`の機械出力に固定（Z-8）、宣言側evidence属性の実測record解決検査（Z-9）、`lane-preflight`へmechanical preflight述語の取り込み（Z-10）、SessionStart hookのlock探索（Z-12）。`design_loop.py --fixture-spec`の`spec_dir`伝播（Z-13）は本変更で解消済み |
+| 正常系 | 自然文のみから生成した新規設計が停止境界に達したとき、agentが`run_in_workspace.py`と宣言経路だけで次手を取れ、source編集・生container・難読化に倒れない。停止理由と到達段が`loop-summary`とprovenanceから第三者に読み取れる |
+| negative・fail-closed | bootstrapから逸脱したrevision、`unknown` provenance、`base64`難読化のinline code、生`docker run`起動、要件を落とした宣言はいずれもfail-closedのままである。診断・matcher・照合はL2／L3であり合格側権限を持たない |
+| 再現性 | 対照run（pristine main・同digest）を同一fixtureで再実行し、到達段・失敗理由・firmware Evidenceのprovenanceが一致することを記録する |
+
+実装状況: Z-13（`design_loop.py`の`spec_dir`伝播、回帰テスト込み）は本変更で解消した。
+他は未着手である。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、

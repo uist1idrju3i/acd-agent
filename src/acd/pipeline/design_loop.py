@@ -484,7 +484,10 @@ def _run_fixture_generation(config: DesignLoopConfig) -> dict[str, Any]:
             config.fixture_spec.read_text(encoding="utf-8")
         )
         graph = build_design_fixture(
-            spec, config.fixture_dir, overwrite=config.fixture_overwrite
+            spec,
+            config.fixture_dir,
+            overwrite=config.fixture_overwrite,
+            spec_dir=config.fixture_spec.parent,
         )
     except Exception as exc:
         return _failure("fixture-generation", f"{type(exc).__name__}: {exc}")

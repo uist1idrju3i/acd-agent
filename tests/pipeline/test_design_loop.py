@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable
 from datetime import datetime
@@ -1777,6 +1778,76 @@ def test_fixture_generation_reports_missing_declarations_without_completing(
     assert "silk_texts[].attrs" in generation["next_step_action"]
     graph = json.loads((tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8"))
     assert not [n for n in graph["nodes"] if n["kind"] == "mechanical.silk_text"]
+
+
+def test_fixture_generation_resolves_declared_overlay_relative_to_spec(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    spec_dir = tmp_path / "spec"
+    overlays_dir = spec_dir / "overlays"
+    overlays_dir.mkdir(parents=True)
+    overlay = overlays_dir / "x.json"
+    overlay.write_text('{"ops": []}\n', encoding="utf-8")
+    spec = {
+        "design_name": "overlay-design",
+        "graph_id": "overlay-design",
+        "components": [
+            {
+                "refdes": "U1",
+                "attrs": {
+                    "mpn": "MCU-1",
+                    "overlay_file": "overlays/x.json",
+                    "overlay_sha256": (
+                        "sha256:" + hashlib.sha256(overlay.read_bytes()).hexdigest()
+                    ),
+                },
+                "pads": {"1": "net.io"},
+            }
+        ],
+        "nets": [{"net_id": "net.io", "attrs": {"name": "IO"}}],
+        "requirements": [
+            {"requirement_id": "io", "statement": "Drive the IO net."}
+        ],
+        "rationale_recorded_at": "2026-08-11T00:00:00Z",
+    }
+    spec_path = spec_dir / "spec.json"
+    spec_path.write_text(json.dumps(spec), encoding="utf-8")
+    _patch_runners(
+        monkeypatch,
+        {
+            stage_id: _successful_runner(stage_id, [])
+            for stage_id in DESIGN_LOOP_STAGE_IDS
+        },
+    )
+
+    result = run_design_loop(
+        tmp_path / "fixture",
+        tmp_path / "artifacts",
+        policy=tmp_path / "policy.json",
+        design_only=True,
+        fixture_spec=spec_path,
+    )
+
+    assert result["failed_stage"] != "fixture-generation"
+    assert (
+        tmp_path / "fixture" / "overlays" / "x.json"
+    ).read_bytes() == overlay.read_bytes()
+
+    bad_spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    bad_spec["components"][0]["attrs"]["overlay_sha256"] = "sha256:" + "0" * 64
+    bad_spec_path = spec_dir / "bad-spec.json"
+    bad_spec_path.write_text(json.dumps(bad_spec), encoding="utf-8")
+    bad_result = run_design_loop(
+        tmp_path / "bad-fixture",
+        tmp_path / "bad-artifacts",
+        policy=tmp_path / "bad-policy.json",
+        design_only=True,
+        fixture_spec=bad_spec_path,
+    )
+
+    assert bad_result["failed_stage"] == "fixture-generation"
+    assert "overlay hash mismatch" in bad_result["failure_reason"]
 
 
 def _unresolved_silk_fixture(tmp_path: Path) -> Path:

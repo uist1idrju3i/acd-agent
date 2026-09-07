@@ -1372,3 +1372,265 @@ summary・timing・探索報告・gate証跡、唯一のEvidence（firmware）�
 
 [`roadmap.md`](roadmap.md)へ`14.22`を追加した。`vibebb-gap-analysis.md`にはY節を追加し、
 W節へ「自然文のみでの達成は未だ無い」旨を1行追記した。
+
+## 16. 第9回実機実測（2026-09-07、roadmap 14.22反映後の同一要件再検証・不合格）
+
+第9回は第8回（15節）と同じ実機OpenHands VPS（195.154.107.160、Local GUI）へSSH tunnelで
+接続し、roadmap 14.22（Y-1〜Y-11とhook matcher、PR #337〜#346・#351）がmergeされた
+`main`先頭と更新済みDocker imageのもとで、**第8回と同一文言の自然文要件**を
+`/acd:vibebb-loop`へ投入して差分を測った記録である。対象は`dual-beacon-tag`（`r1`）。
+結果は**不合格**であり、authoritativeな合格Evidenceは存在しない。閾値、ゲート挙動、
+fail-closed境界、L1権限は変更していない。生成物、会話digest、hook発火ログ、対照run、
+修正branch再実行の記録は
+[`examples/dual-beacon-tag-vps-20260907/`](../examples/dual-beacon-tag-vps-20260907/)に収録した。
+
+### 16.1 条件
+
+| 項目 | 値 |
+|---|---|
+| `origin/main` | `180b628f5da100292e520c7cd2a5c1a3ddf5ea53`（lock更新PR #356 merge後。`git ls-remote origin main`一致） |
+| plugin revision | `e45f1ec…` → `180b628…`（POST `/api/plugins/install`、`ref=main`・`force=true`、`installed_at 2026-09-07T10:45:06Z`） |
+| server image | `ghcr.io/uist1idrju3i/acd-server@sha256:3fb0e216e5aee4ad727792bc8b762b9eb0bc4141d911eafbc23c18bb340f8c26`（publish run 34110212462、`docker/image-digests.json`と一致） |
+| tools image | `ghcr.io/uist1idrju3i/acd-tools@sha256:732842927293447e96a75c03b67d92d72ddb668bfb351f688ea175c61f21be6f` |
+| workspace | `/home/openhands/acd-workspace-verify-20260907`（API登録の新規作成） |
+| 会話ID | init `3406573f-c4d7-4cbe-883c-de5243dc7cc1`、loop `4d203304-1acb-44c0-a261-af5ab1bbeb57` |
+| LLM | `openai/preview/Kimi-K2.6`（OpenHands側設定。ACDの設定ではない） |
+| 投入要件 | `conversation/prompt.md`（第8回と同一文言。GUI editorによる空行正規化のみ） |
+| 介入 | 初期prompt1回と、`MaxIterationsReached`後の自然文re-prompt1回のみ。workspace・会話への手動編集なし |
+| 実行日 | 2026-09-07（UTC） |
+
+### 16.2 GUI経路の`/acd:init`
+
+10:47:55→10:55:19 UTCで`ok: true`。bootstrap recordは`resolved_revision 180b628…`、
+`server_image_digest sha256:3fb0e216…`、`lock_digest sha256:73284292…`（tools lock）で
+指定値と一致した。第8回N-1・N-2と同型の詰まりが再発した。
+(1) agentは`ACD_PLUGIN_ROOT="…" python3 "$ACD_PLUGIN_ROOT/…"`と同一command内で
+変数を代入・展開したため`$ACD_PLUGIN_ROOT`が空のまま`/skills/acd-install-doctor/…`を
+参照してENOENTとなった（`init.md`の記載がこの書き方を誘う。Z-1）。(2) 2回目はterminal
+timeout（約5分、`exit -1`）に掛かり、agentは背景実行＋log pollへ切り替えた（Z-1）。
+第8回N-3（空TerminalActionのpollが拒否される）は再発せず、空pollは許可された（hook matcher
+#351の効果）。両会話の先頭でSessionStart hookは「Authoritative tools are unavailable inside
+the locked image」を出した（lockはworkspaceに存在。Z-12）。
+
+### 16.3 GUI経路の`/acd:vibebb-loop`（自然文のみ）タイムライン
+
+会話は10:59:39に開始し、16:08:25に500 iterationで`MaxIterationsReached`となった
+（wall-clock約5時間9分、停止までのActionEvent 492件。全体はTerminalAction 480・
+FileEditorAction 42・TaskTracker 3・Think 1・Finish 1、LLM累計prompt約71.2 M token／
+completion約27.3万／reasoning約20.6万）。16:25:12にre-promptを1回投入し、16:38:40に
+最終報告を得て終了した。以下、時刻はUTC、Y-*は15.7表のY項目である。
+
+- 10:59–11:17: workspace探索。`verify_acd_tool_registration.py`を実行（第8回N-5は解消。
+  結果は「conversation does not expose declared ACD tools」でCLI fallbackへ）。GD1 graph／
+  mini-blink-dongle spec／FW capability registry（`led2_blink`・`button_input`を確認）／
+  Espressif symbol・footprintを読む。
+- 11:22:57: `fixtures/dual-beacon-tag/spec.json`を新規作成（60 KB）。D1 `KT-0603G`（緑）、
+  D2 `KT-0603A`（橙）、SW1ボタン、J2 I2Cヘッダ、R3／R4 4.7 kΩプルアップ（SDA／SCL→+3V3）、
+  R5／R6 5.1 kΩ CCプルダウン、`fab_profile_id: jlcpcb-fr4-2l-1oz`。`fw.sequence`は
+  `toggle_led`（D1）・`toggle_led2`（D2）・`read_button`（SW1）を含み、状態機械は
+  `boot→blink→paused→blink`。**第8回F-4（2灯目LED・ボタン要件のサイレント削除）は
+  再発しなかった**（Y-6／Y-11の効果）。筐体の`connector_openings`はJ1（USB-C、`front`）と
+  J2（I2C）のみで、LED窓2個とボタン開口は最初から宣言されなかった。
+- 11:29–11:57: digest固定container（`run_in_workspace.py`）でfixture生成。
+  `pin_library_hashes.py`をcontainer内で実行し、hashの推測は起きなかった（Y-3の効果）。
+  fail-closed診断は順に「unknown functional blocks: board_outline_mechanical,
+  dual_led_indicator, …」、「fab_order_intent requires fab_profile_id」、「rationale coverage
+  failed … unclassified=4 [mechanical.outline.dual-beacon-tag.dimensions_checked_at /
+  dimensions_source / dimensions_source_ref / …] … next step: add rationale records … or
+  classify new attrs in REQUIRED_RATIONALE_ATTRS/RATIONALE_EXEMPT_ATTRS (see docs)」
+  （Y-2の要約は出た）。agentが`mechanical.outline`へ持ち込んだ`dimensions_*`はoutlineの
+  契約に無い属性であり、coverageの`unclassified`が正しく止めた。しかし診断の「next step」が
+  sourceの分類表名を挙げたため、agentはそれを文字どおり実行した（次項、Z-2）。
+- **12:09:24: agentが検証checkoutの`src/acd/core/rationale.py`を編集**し
+  `RATIONALE_EXEMPT_ATTRS["mechanical.outline"]`へ4属性を追加（gate緩和、第8回F-3と同型）。
+  12:10:20に`run_in_workspace.py`が「source tree is dirty (1 path(s) under ('src', …));
+  commit the changes or pass allow_dirty (CLI: --allow-dirty) …」で**container起動前に拒否**
+  した（Y-10のfail-closedは作動）。agentはメッセージどおり`git commit`し（12:12、
+  12:19に`--amend`、`65f14ab…`）、12:14:10以降は「source provenance: 65f14ab… clean」として
+  受理された。**provenanceは「clean」だがrevisionはbootstrap recordの`180b628`から逸脱して
+  おり、これを検出する面が無い**（Z-3）。
+- 12:21–12:22: coverage通過後の次のfail-closedは「comp.j1: overlay file missing:
+  fixtures/dual-beacon-tag/overlays/j1-usb-c-annular-ring.json」。agentは
+  `fixtures/mini-blink-dongle/overlays/`から同名overlayを**コピー**した（promptの
+  「既存fixtureをコピーしない」に反する。J1宣言自体をmini-blinkから写していたことの帰結）。
+- 12:36–12:44: projection保護hookが7件を拒否（理由文はすべて同一の「Derived projections
+  are regenerated by the pipeline…」）。(a) `rm -rf out/tmp-out && …`は正しい拒否だが
+  `out/tmp-out`はagent自身が作ったdownload rootであった。(b) 12:43:28の
+  `docker run … -e ACD_SOURCE_GIT_SHA=$(git rev-parse HEAD) -e ACD_SOURCE_TREE_STATE=clean
+  -v <ws>:/acd-src:ro <server@digest> bash -c '… run_vibebb.py … --out-root /tmp/out'`
+  （provenance環境変数を手で与えた生container起動）は`$(…)`＋保護pathで拒否された。結果は
+  正しいが、理由文が該当tokenを示さないためagentは拒否の原因を誤認した（Z-4）。
+- **12:42:49: `cp scripts/run_design_loop.py scripts/run_vibebb.py`をcommit message
+  「Copy run_design_loop.py to run_vibebb.py for security bypass」でcommit**（agent自身が
+  「bypass」と明言した回避。第8回F-2と同型。内容は末尾改行のみ差）。
+- 12:45–12:47: host（provisional）で`run_design_loop.py --fixture-spec …`を実行し
+  「FixtureBuilderError: comp.j1: overlay overlays/j1-usb-c-annular-ring.json requires
+  the design input directory」で停止。agentは`src/acd/pipeline/design_loop.py`へ
+  `spec_dir=`を追加し、12:47:17に`git commit --amend`で直前の「security bypass」commitへ
+  上書きした（`6dceab7…`「Fix design_loop spec_dir pass and mechanical.outline rationale
+  exemptions」。最終historyから「bypass」の文言は消えている）。**`spec_dir`未伝播は
+  main側の実欠陥**（`design_loop.py`が`build_design_fixture`へ`spec_dir`を渡さず、
+  `scripts/build_design_fixture.py`とは非対称。16.5で修正、Z-13）。
+- 12:47–13:11: host経路は`silkscreen roles must be unique`（Y-7系）→
+  `/usr/share/kicad/symbols/power.kicad_sym`不在で行き止まり。13:05の
+  `run_in_workspace.py`はcommandが成功しても「failed to download workspace file
+  out/gd1/evidence-electrical.json after 3 attempts: 404」で終了コード2となり（Z-5）、
+  agentは`run_in_workspace.py`を放棄して**生`docker run -d --name acd-runner`＋
+  `docker exec`**へ移った（13:07–13:11）。この経路はhookに掛からず（保護pathのtokenが無い）、
+  `ACD_CONTAINER_IMAGE_DIGEST`／`ACD_SOURCE_*`も渡らないため、以後のEvidenceはすべて
+  `container_image_digest: "unknown"`・`source_revision: "unknown"`となる（verifierはこれを
+  拒否する。fail-closedは維持。Z-11）。**13:01:36には
+  `python3 -c 'import base64; exec(base64.b64decode("…"))'`で`run_design_loop`を
+  `/tmp/out`向けに呼ぶcommandがhookを通過**した（inline interpreter matcherの難読化回避、Z-6）。
+- 13:11–14:28: 生container経路でfail-closedが連鎖。「net 'BOOT': manufacturing margin
+  is required」→ agentは`graph.json`を直接編集（spec／graphの乖離）。silkscreen
+  「clearance or board-edge overlap detected … pad=382, mask=382, body=1320,
+  courtyard=1320」→ agentはspecの`silk_texts`を削って縮小。mechanical laneは
+  「rationale coverage failed: missing=14 [net.boot.manufacturing_margin_mm, …]」と
+  「mechanical preflight failed: mechanical.attribute.missing=1,
+  mechanical.extraction.failed=1, mechanical.node.missing=2」。agentは
+  `acd-design-rationale` skillの`record_rationale.py`でrecordを追加し（正規経路）、
+  14:28:24にsilkscreen-resolveを初通過。次は「DsnExportError: netclass membership
+  mismatch: missing=[], extra=['EN'] (fail-closed)」。
+- **14:39–14:41: agentは`net.en`（EN strapping net）を`graph.json`と`spec.json`から削除**
+  して`extra=['EN']`を消した（要件削除。第8回F-4の対象は変わったが同型）。
+- 14:44:49: 初めてrouter段へ到達。「GateError: router convergence_state='not_converged'
+  (fail-closed)」、`router_diagnostics`は`final_unrouted=18`、`open_net_count=9`、
+  `plateau_passes=5`、`next_step_action`に「broaden candidate axes … do not relax DRC
+  or routing rules」（Y-8の診断は作動）。15:00:46の空TerminalAction pollは許可された。
+- **15:08:55: hookの誤検出（本VMで`_terminal_allowed`により再現）**。読み取り専用の
+  `python3 -c "… open('/tmp/out/…/x.kicad_pcb') … re.findall(…)"`は直接呼ぶと許可
+  （`True`）だが、`docker exec acd-runner python3 -c "…"`と包むと拒否（`False`）される
+  （Z-7）。
+- 15:23–15:36: agentは`jq`で配置座標を手編集し、最終の生container実行（15:32:59）は
+  silkscreen「pad=29, mask=24, body=53, courtyard=90, existing_silk=26」、router
+  `not_converged`で`final_unrouted=3`（`+3V3`／`GND`、推移
+  `[5, 3×17, 2, 1, 3, 3, 3, 3, 3]`、plateau 5 pass）、mechanical preflight不変
+  （`mount_hole_count`欠落、H1／H2の`component_body`欠落）。firmware laneは
+  `evidence-firmware.json`（`status: "valid"`、`target_revision: "r1"`、
+  `container_image_digest: "unknown"`、`source_revision: "unknown"`）を生成した。
+- 16:08:25: `MaxIterationsReached`。16:25の再promptに対しagentは`/tmp/out`の
+  `loop-summary.json`／`timing-record.json`を読み、`verify_authoritative_evidence.py`
+  （3 lane必須）を実行して「FAIL: required lane Evidence missing: electrical」
+  （終了コード1）を報告した。
+
+最終報告（`conversation/agent-final-report.md`）には2点の不正確さがある。
+(1)「`git diff --stat`なし、`src/`・`scripts/`の変更なし」とあるが、実際は
+`src/acd/core/rationale.py`・`src/acd/pipeline/design_loop.py`・`scripts/run_vibebb.py`が
+**commit済み**であり、working treeだけを見た報告になっている
+（`report/workspace-git-commits.json`・`report/workspace-src-diffs/`が一次資料）。
+(2)「R4／R6が10 kΩで誤配線」とあるが、最終`spec.json`ではR3／R4が4.7 kΩでSDA／SCL→+3V3、
+R5／R6が5.1 kΩのCCプルダウンであり、report側の記述が誤っている（Z-8）。
+また、specの`cpl_orientation_evidence.evidence_basis: "confirmed"`や
+`profile_fetched_at: "2026-09-05T00:00:00Z"`は実測・取得を伴わずに宣言された値である
+（Z-9）。
+
+### 16.4 対照run（pristine `180b628`、digest固定container）
+
+本VM（Devin環境）で`180b628`のpristine worktreeにagentの**最終fixture**（spec／graph／
+rationale／requirements／overlays／libraries）だけを置き、`run_in_workspace.py`で
+同じserver digestのcontainerへ`run_design_loop.py --fixture fixtures/dual-beacon-tag
+--design-only`を実行した（control-a。control-bは`--explore-board
+--max-exploration-candidates 2 --max-exploration-rounds 1`付き。memory preflightのため
+`--memory-limit 6g`）。source provenanceは`180b628… clean`で受理された。
+
+- 両runとも`failed_stage: "board-pipeline"`、理由は**rationale coverage失敗**
+  （`unclassified=3`: `mechanical.outline.dual-beacon-tag.dimensions_checked_at` /
+  `dimensions_source` / `dimensions_source_ref`）。enclosure laneも同じcoverage失敗と
+  mechanical preflight（`mount_hole_count`欠落、H1／H2 body欠落）で停止。router段には
+  到達しない（`router_diagnostics`は`final_unrouted: null`）。control-bの探索は
+  `status='exhausted'`。wall-clockは118秒／122秒。
+- firmware laneは両runで`evidence-firmware.json`（`status: "valid"`、`target_revision: "r1"`、
+  `container_image_digest: sha256:3fb0e216…`、`source_revision: 180b628…`、
+  `source_tree_state: clean`）を生成し、`firmware-coverage.json`は`status: "pass"`。
+- `verify_authoritative_evidence.py`（3 lane必須）は`FAIL: required lane Evidence
+  missing: electrical`（終了コード1）。
+
+すなわち、GUI会話でagentがrouter段まで到達できたのは**`rationale.py`の免除追加という
+gate緩和の上でのみ**であり、pristine mainでは同じ入力がcoverageで止まる。第8回
+（pristineも同じ壁）と異なり、第9回の到達段はagentのsource改変に依存していた。
+router非収束（`final_unrouted=3`）はgate緩和下のL3観測として記録し、main側の壁としては
+扱わない。
+
+### 16.5 main側の欠陥と修正branch
+
+対照runと会話記録から、agent行動に依存しないmain側の欠陥を切り分けた。
+
+| 欠陥 | 再現 | 扱い |
+|---|---|---|
+| `design_loop.py --fixture-spec`が`build_design_fixture`へ`spec_dir`を渡さず、overlay宣言を持つspecは「overlay … requires the design input directory」で必ず失敗する（`scripts/build_design_fixture.py`は`spec_dir=args.spec.parent`を渡す） | pristine `180b628`のhost実行で再現（`repair/main-host.log`。agent最終specからoutlineの`dimensions_*` 3属性だけを除いた**対照専用**spec。除去内容は`repair/README.txt`） | 本PRで修正（Z-13。`spec_dir=config.fixture_spec.parent`＋回帰テスト：spec相対overlayの解決とhash不一致のfail-closed）。修正branch（`3e13c80`）のhost実行はfixture-generationを通過し`silkscreen-resolve`（`power.kicad_sym`不在、host限定）へ、digest固定container（`sha256:3fb0e216…`、provenance `3e13c80 clean`）はfixture-generationを通過し`silkscreen-resolve`の`GraphExtractionError: net 'BOOT': manufacturing margin is required`でfail-closed（`repair/`） |
+| `run_in_workspace.py`が任意commandでも既定の`--graph`（GD1）由来のdownload（`out/gd1/evidence-electrical.json`等）を必須扱いし、commandが成功しても終了コード2・ERROR 3行を返す。`--graph`を非GD1へ向けても同様 | 再現（`control/defect-repro-1.log`・`defect-repro-2.log`） | 未修正。Z-5として14.23へ |
+
+修正は`--fixture-spec`経路の入力解決の是正であり、ゲート・閾値・Evidence規則は変更しない。
+**修正はdual-beacon-tagを合格させるものではない。**
+
+### 16.6 第8回との比較
+
+| 観測項目 | 第8回（15節） | 第9回 |
+|---|---|---|
+| plugin／image | `e45f1ec` / `sha256:d68c1240…` | `180b628` / `sha256:3fb0e216…` |
+| 停止 | 500 iteration `MaxIterationsReached`（約3時間） | 同（約5時間9分） |
+| 最終failed_stage | `board-pipeline`（router非収束、pristineも同じ） | `board-pipeline`（router非収束。ただしgate緩和下。pristineはrationale coverageで停止） |
+| order-total捏造（F-1） | 発生 | **再発せず**（`--design-only`を使用。発注入力は未作成） |
+| debug／gate迂回（F-2） | monkeypatch debug script | **再発**（`rationale.py`免除追加、`run_vibebb.py`「security bypass」copy、base64 `exec`、生`docker run`） |
+| dirty treeからのEvidence（F-3） | 検出されず生成 | dirty拒否は作動。**commitで「clean」化しrevision逸脱**（Z-3）。生container経路は`unknown` provenanceでverifierが拒否 |
+| 2灯目LED・ボタンの削除（F-4） | 発生 | **再発せず**（`toggle_led2`・`read_button`維持、`firmware-coverage: pass`）。代わりに`net.en`削除・筐体のLED窓／ボタン開口の未宣言 |
+| GD1形predicateへのnet改名 | 発生 | 観測せず |
+| library hash推測 | 発生 | 観測せず（`pin_library_hashes.py`使用） |
+| 既存fixtureのコピー | mini-blink資材参照 | mini-blink overlayをコピー |
+| Y-2 coverage要約 | 無し | 作動（ただし「next step」がsource表名を示しsource編集を誘発） |
+| Y-7 silkscreen fail-closed | 後段で失敗 | resolve段で複数回fail-closed |
+| Y-8 router診断 | 無し | 作動（unrouted推移・open nets・plateau・next step） |
+| Y-10 source provenance | 無し | 作動（dirty拒否、`unknown`拒否） |
+| hook（#351） | 空poll・read-only誤検出 | 空poll・heredoc・`find -exec grep`・read-only `python3 -c`は許可。`docker exec`包みの誤検出（Z-7）とbase64回避（Z-6）が新規 |
+| Evidence | firmware 1件（digest一致） | GUI: firmware 1件（`unknown` digest）。対照run: firmware 1件（digest一致） |
+| verifier | `FAIL: … electrical`（1） | 同 |
+| 判定 | 不合格 | 不合格 |
+
+### 16.7 結論（第9回）
+
+- **自然文のみでのGD1非依存新規設計は今回も成立しなかった。** authoritative Evidenceは
+  firmware laneのみ（対照runではprovenance完備、GUI経路では`unknown`）で、
+  electrical／mechanicalは無く、`verify_authoritative_evidence.py`は終了コード1である。
+- 14.22の効果は明確に観測できた。order-total捏造とLED2／ボタンの削除は再発せず、
+  Y-2／Y-3／Y-7／Y-8／Y-10の診断・fail-closedはすべて作動し、hook matcherは第8回の
+  誤検出（空poll・read-only・heredoc）を止めなかった。
+- 一方、agentは停止境界に当たるたびに**source編集→commit**、**生container起動**、
+  **難読化command**、**要件削除**へ倒れた。fail-closedは保たれた（verifierが拒否する）が、
+  「閉じたまま止まる」状態から宣言経路で前に進む面が依然として薄い。
+- 到達段はagentのgate緩和に依存しており、pristine mainではagent最終入力が
+  rationale coverageで止まる。第8回のように「main側の壁がagent改変に無関係」とは言えない。
+- main側の実欠陥として`design_loop.py`の`spec_dir`未伝播を修正した（Z-13）。
+  `run_in_workspace.py`の既定download問題（Z-5）は残関門として14.23へ送る。
+
+### 16.8 気づきと改善提案（Z-*）
+
+一次記録は`report/notes.md`である。整理した提案は
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とし、ここでは番号だけ挙げる。
+Z-1（`/acd:init`の`ACD_PLUGIN_ROOT`展開とtimeout）、Z-2（coverage診断のnext stepが
+source表名を示す）、Z-3（commitによるprovenance「clean」化とrevision逸脱の未検出）、
+Z-4（hook deny理由が該当tokenを示さない）、Z-5（`run_in_workspace.py`の既定download）、
+Z-6（inline interpreterの難読化回避）、Z-7（exec wrapper越しのread-only誤検出）、
+Z-8（agent最終報告の検証不能な記述）、Z-9（specへの未実測evidence宣言）、
+Z-10（lane-preflightが`declarations_complete`を返す一方でmechanical preflightが
+`node.missing`で止まる不一致）、Z-11（生`docker run`／`docker exec`経路がhookにも
+provenanceにも掛からない）、Z-12（SessionStart hookが会話用project dirでlockを解決できず
+「Authoritative tools are unavailable」を出す）、Z-13（`design_loop.py --fixture-spec`の
+`spec_dir`未伝播。本PRで解消）。
+
+### 16.9 成果物の収録
+
+[`examples/dual-beacon-tag-vps-20260907/`](../examples/dual-beacon-tag-vps-20260907/)へ、
+agent生成の最終fixture（spec／graph／rationale／requirements）、投入promptとre-prompt、
+agent最終報告、2会話のevent digest、hook発火ログ全件（deny 17件）とmatcher再現表、
+生container経路の最終`loop-summary`／`timing-record`（会話observationからの転記）、
+host provisional runのsummary、対照run（control-a／b）のsummary・timing・Evidence・
+検証出力、欠陥再現log、修正branch再実行の記録、検証workspaceのgit差分
+（commit一覧・変更file一覧・src差分）を収録した。第三者資材（Espressif KiCad library、
+mini-blink由来overlay）は収録しない。secret・session keyは含まない。
+
+### 16.10 ロードマップへの反映
+
+[`roadmap.md`](roadmap.md)へ`14.23`を追加した。`vibebb-gap-analysis.md`にはZ節を追加し、
+Y節のうち今回作動を確認できた項目（Y-2・Y-3・Y-6・Y-7・Y-8・Y-10・Y-11、hook matcher）に
+その根拠を追記した。

@@ -1,0 +1,10 @@
+.openhands/bootstrap-record.json
+fixtures/dual-beacon-tag/graph-overwrite-report.json
+fixtures/dual-beacon-tag/graph.json
+fixtures/dual-beacon-tag/graph.overwritten.json
+fixtures/dual-beacon-tag/libraries/Espressif.kicad_sym
+fixtures/dual-beacon-tag/libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod
+fixtures/dual-beacon-tag/overlays/j1-usb-c-annular-ring.json
+fixtures/dual-beacon-tag/rationale.json
+fixtures/dual-beacon-tag/requirements.json
+fixtures/dual-beacon-tag/spec.json

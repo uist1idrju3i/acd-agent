@@ -1,0 +1,9 @@
+1	True	''
+2	True	"find src/acd/pipeline -name '*.py' -exec grep -l silkscreen {} +"
+3	True	'python3 -c "import json; print(json.load(open(\'out/dual-beacon-tag/loop-summary.json\'))[\'failed_stage\'])"'
+4	True	"cat <<'EOF' > /tmp/x.py\nprint(1)\nEOF"
+5	False	'mv out/dual-beacon-tag/loop-summary.json /tmp/'
+6	True	'cp out/dual-beacon-tag/graph.json /tmp/g.json'
+7	False	'docker exec acd-runner python3 -c "import re\nwith open(\'/tmp/out/x/dual-beacon-tag.kicad_pcb\') as f:\n    c=f.read()\nprint(re.findall(r\'(net\', c)[:3])"'
+8	True	'python3 -c "import base64;exec(base64.b64decode(\'cHJpbnQoMSk=\'))"'
+9	True	"docker run --rm -e ACD_SOURCE_TREE_STATE=clean -v /x:/acd-src:ro img bash -c 'cp -r /acd-src /workspace/acd && cd /workspace/acd && uv run python scripts/run_design_loop.py --out-root /tmp/out'"

@@ -1,0 +1,532 @@
+[09/07/26 17:03:45] INFO     $ docker version                      command.py:80
+Client: Docker Engine - Community
+ Version:           29.7.2
+ API version:       1.55
+ Go version:        go1.26.5
+ Git commit:        a7dcaa6
+ Built:             Wed Aug  5 18:28:48 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.7.2
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.5
+  Git commit:       6a43e3d
+  Built:            Wed Aug  5 18:28:48 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.3.3
+  GitCommit:        aad11006b869517fcd3009450b6f82da282e1a9b
+ runc:
+  Version:          1.4.3
+  GitCommit:        v1.4.3-0-gbb14dabe
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+[09/07/26 17:03:46] INFO     Adding volume mount:               workspace.py:220
+                             /home/ubuntu/repos/acd-agent:/acd-                 
+                             src:ro                                             
+[09/07/26 17:03:46] INFO     $ docker run --memory=6g              command.py:80
+                             --memory-swap=6g --env                             
+                             FREEROUTING_MAX_HEAP=2g -d --platform              
+                             linux/amd64 --rm --ulimit                          
+                             nofile=65536:65536 --name                          
+                             agent-server-db53d25e-362d-48c4-9292-              
+                             801e0ba4f81c -e                                    
+                             ACD_CONTAINER_IMAGE_DIGEST=sha256:3fb              
+                             0e216e5aee4ad727792bc8b762b9eb0bc4141              
+                             d911eafbc23c18bb340f8c26 -e                        
+                             ACD_IN_CONTAINER=1 -e                              
+                             ACD_SOURCE_GIT_SHA=3e13c8014b0184b242              
+                             96bc82998f9fda2f699b08 -e                          
+                             ACD_SOURCE_TREE_STATE=clean -v                     
+                             /home/ubuntu/repos/acd-agent:/acd-src              
+                             :ro -p 32186:8000                                  
+                             ghcr.io/uist1idrju3i/acd-server@sha25              
+                             6:3fb0e216e5aee4ad727792bc8b762b9eb0b              
+                             c4141d911eafbc23c18bb340f8c26 --host               
+                             0.0.0.0 --port 8000                                
+6e6d6775177e17fa80d193b8a65a42b5199e669860a9fc93e7e3c803163aae01
+[09/07/26 17:03:46] INFO     Started container:                 workspace.py:264
+                             6e6d6775177e17fa80d193b8a65a42b519                 
+                             9e669860a9fc93e7e3c803163aae01                     
+[09/07/26 17:03:46] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:47] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:48] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:49] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:50] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:51] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:52] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:53] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+true
+[09/07/26 17:03:54] INFO     Docker workspace is ready at       workspace.py:282
+                             http://127.0.0.1:32186                             
+[09/07/26 17:04:08] INFO     Stopping container:                workspace.py:376
+                             6e6d6775177e17fa80d193b8a65a42b519                 
+                             9e669860a9fc93e7e3c803163aae01                     
+[09/07/26 17:04:08] INFO     $ docker stop                         command.py:80
+                             6e6d6775177e17fa80d193b8a65a42b5199e6              
+                             69860a9fc93e7e3c803163aae01                        
+6e6d6775177e17fa80d193b8a65a42b5199e669860a9fc93e7e3c803163aae01
+failure kind: command
+image digest: sha256:3fb0e216e5aee4ad727792bc8b762b9eb0bc4141d911eafbc23c18bb340f8c26 (RepoDigests)
+source provenance: 3e13c8014b0184b24296bc82998f9fda2f699b08 clean
+exit code: 1
+failure classification: design
+stdout:
+{
+  "cache_dir": null,
+  "candidate_router_diagnostics": null,
+  "design_only": true,
+  "fail_closed": true,
+  "failed_stage": "fixture-generation",
+  "failure_reason": "FileNotFoundError: [Errno 2] No such file or directory: 'out/repair-input/spec.json'",
+  "fixture_spec": "out/repair-input/spec.json",
+  "jobs": 2,
+  "loop_summary": "out/repair-c/loop-summary.json",
+  "ok": false,
+  "pass_evidence": false,
+  "results": [
+    {
+      "fail_closed": true,
+      "failure_reason": "FileNotFoundError: [Errno 2] No such file or directory: 'out/repair-input/spec.json'",
+      "ok": false,
+      "pass_evidence": false,
+      "stage_id": "fixture-generation"
+    }
+  ],
+  "resume": false,
+  "router_diagnostics": null,
+  "timing_record": "out/repair-c/timing-record.json"
+}
+stderr:
+Using CPython 3.12.14
+Creating virtual environment at: .venv
+   Building acd @ file:///workspace/acd
+   Building openhands-sdk @ file:///workspace/acd/vendor/software-agent-sdk/openhands-sdk
+   Building openhands-tools @ file:///workspace/acd/vendor/software-agent-sdk/openhands-tools
+   Building openhands-agent-server @ file:///workspace/acd/vendor/software-agent-sdk/openhands-agent-server
+   Building openhands-workspace @ file:///workspace/acd/vendor/software-agent-sdk/openhands-workspace
+Downloading tokenizers (3.2MiB)
+Downloading reportlab (1.9MiB)
+Downloading beartype (1.3MiB)
+Downloading pygments (1.2MiB)
+Downloading grpcio (6.7MiB)
+Downloading lupa (2.3MiB)
+Downloading tiktoken (1.1MiB)
+Downloading pillow (6.6MiB)
+Downloading scipy (33.7MiB)
+Downloading sympy (6.0MiB)
+Downloading scikit-learn (8.7MiB)
+Downloading gerbonara (1.0MiB)
+Downloading cryptography (4.5MiB)
+Downloading cadquery-ocp (64.7MiB)
+Downloading openai (1.6MiB)
+Downloading sqlalchemy (3.2MiB)
+Downloading aiohttp (1.7MiB)
+Downloading jedi (4.7MiB)
+Downloading kiwisolver (1.4MiB)
+Downloading pydantic-core (2.0MiB)
+Downloading numpy (15.9MiB)
+Downloading pyright (5.9MiB)
+Downloading cadquery-ocp-novtk (64.3MiB)
+Downloading ruff (9.8MiB)
+Downloading fonttools (5.2MiB)
+Downloading lxml (5.0MiB)
+Downloading matplotlib (9.6MiB)
+Downloading vtk (139.3MiB)
+Downloading lib3mf (1.5MiB)
+Downloading litellm (22.9MiB)
+Downloading anthropic (1.1MiB)
+Downloading ezdxf (5.5MiB)
+Downloading botocore (15.0MiB)
+Downloading google-api-python-client (15.3MiB)
+Downloading hf-xet (4.3MiB)
+Downloading lmnr-claude-code-proxy (1.4MiB)
+ Downloaded gerbonara
+ Downloaded anthropic
+ Downloaded pygments
+ Downloaded tiktoken
+ Downloaded beartype
+ Downloaded kiwisolver
+ Downloaded lmnr-claude-code-proxy
+ Downloaded lib3mf
+ Downloaded openai
+ Downloaded aiohttp
+ Downloaded reportlab
+ Downloaded pydantic-core
+ Downloaded lupa
+ Downloaded tokenizers
+ Downloaded sqlalchemy
+ Downloaded hf-xet
+ Downloaded jedi
+ Downloaded cryptography
+ Downloaded lxml
+ Downloaded fonttools
+ Downloaded ezdxf
+ Downloaded pyright
+ Downloaded sympy
+   Building func-timeout==4.3.5
+ Downloaded pillow
+ Downloaded grpcio
+ Downloaded scikit-learn
+ Downloaded matplotlib
+ Downloaded ruff
+ Downloaded botocore
+ Downloaded google-api-python-client
+ Downloaded numpy
+ Downloaded litellm
+ Downloaded scipy
+ Downloaded cadquery-ocp
+ Downloaded cadquery-ocp-novtk
+      Built acd @ file:///workspace/acd
+      Built func-timeout==4.3.5
+ Downloaded vtk
+      Built openhands-tools @ file:///workspace/acd/vendor/software-agent-sdk/openhands-tools
+      Built openhands-agent-server @ file:///workspace/acd/vendor/software-agent-sdk/openhands-agent-server
+      Built openhands-workspace @ file:///workspace/acd/vendor/software-agent-sdk/openhands-workspace
+      Built openhands-sdk @ file:///workspace/acd/vendor/software-agent-sdk/openhands-sdk
+Installed 259 packages in 388ms
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.44.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/loop-summary.json
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/timing-record.json
+
+EXIT_CODE=1
+
+===== RETRY USING MOUNTED /acd-src/out/repair-input COPY =====
+[09/07/26 17:04:45] INFO     $ docker version                      command.py:80
+Client: Docker Engine - Community
+ Version:           29.7.2
+ API version:       1.55
+ Go version:        go1.26.5
+ Git commit:        a7dcaa6
+ Built:             Wed Aug  5 18:28:48 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.7.2
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.5
+  Git commit:       6a43e3d
+  Built:            Wed Aug  5 18:28:48 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.3.3
+  GitCommit:        aad11006b869517fcd3009450b6f82da282e1a9b
+ runc:
+  Version:          1.4.3
+  GitCommit:        v1.4.3-0-gbb14dabe
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+[09/07/26 17:04:45] INFO     Adding volume mount:               workspace.py:220
+                             /home/ubuntu/repos/acd-agent:/acd-                 
+                             src:ro                                             
+[09/07/26 17:04:45] INFO     $ docker run --memory=6g              command.py:80
+                             --memory-swap=6g --env                             
+                             FREEROUTING_MAX_HEAP=2g -d --platform              
+                             linux/amd64 --rm --ulimit                          
+                             nofile=65536:65536 --name                          
+                             agent-server-f9cd0e3c-8598-400a-ac62-              
+                             05e7235ea139 -e                                    
+                             ACD_CONTAINER_IMAGE_DIGEST=sha256:3fb              
+                             0e216e5aee4ad727792bc8b762b9eb0bc4141              
+                             d911eafbc23c18bb340f8c26 -e                        
+                             ACD_IN_CONTAINER=1 -e                              
+                             ACD_SOURCE_GIT_SHA=3e13c8014b0184b242              
+                             96bc82998f9fda2f699b08 -e                          
+                             ACD_SOURCE_TREE_STATE=clean -v                     
+                             /home/ubuntu/repos/acd-agent:/acd-src              
+                             :ro -p 34411:8000                                  
+                             ghcr.io/uist1idrju3i/acd-server@sha25              
+                             6:3fb0e216e5aee4ad727792bc8b762b9eb0b              
+                             c4141d911eafbc23c18bb340f8c26 --host               
+                             0.0.0.0 --port 8000                                
+edfd616b82fc7dd0417d88a6c0df8764ea8f13d66f6a844710b8bc7f7c49548e
+[09/07/26 17:04:45] INFO     Started container:                 workspace.py:264
+                             edfd616b82fc7dd0417d88a6c0df8764ea                 
+                             8f13d66f6a844710b8bc7f7c49548e                     
+[09/07/26 17:04:45] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:46] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:47] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:48] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:49] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:50] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:51] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:52] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+true
+[09/07/26 17:04:53] INFO     Docker workspace is ready at       workspace.py:282
+                             http://127.0.0.1:34411                             
+[09/07/26 17:05:09] INFO     Stopping container:                workspace.py:376
+                             edfd616b82fc7dd0417d88a6c0df8764ea                 
+                             8f13d66f6a844710b8bc7f7c49548e                     
+[09/07/26 17:05:09] INFO     $ docker stop                         command.py:80
+                             edfd616b82fc7dd0417d88a6c0df8764ea8f1              
+                             3d66f6a844710b8bc7f7c49548e                        
+edfd616b82fc7dd0417d88a6c0df8764ea8f13d66f6a844710b8bc7f7c49548e
+failure kind: command
+image digest: sha256:3fb0e216e5aee4ad727792bc8b762b9eb0bc4141d911eafbc23c18bb340f8c26 (RepoDigests)
+source provenance: 3e13c8014b0184b24296bc82998f9fda2f699b08 clean
+exit code: 1
+failure classification: design
+stdout:
+{
+  "artifact_prefix": "dual-beacon-tag",
+  "cache_dir": null,
+  "candidate_router_diagnostics": null,
+  "design_only": true,
+  "fail_closed": true,
+  "failed_stage": "silkscreen-resolve",
+  "failure_reason": "GraphExtractionError: net 'BOOT': manufacturing margin is required",
+  "fixture_spec": "out/repair-input/spec.json",
+  "graph_id": "dual-beacon-tag",
+  "jobs": 2,
+  "loop_summary": "out/repair-c/loop-summary.json",
+  "next_step_action": "Adjust the declared silkscreen inputs or fab profile in the graph and rerun the loop; no candidate generator is declared for this lane.",
+  "ok": false,
+  "output_prefix": "dual-beacon-tag",
+  "pass_evidence": false,
+  "recovery_rerun": {
+    "lane_id": "silkscreen-resolve",
+    "next_step_action": "Adjust the declared silkscreen inputs or fab profile in the graph and rerun the loop; no candidate generator is declared for this lane.",
+    "pass_evidence": false,
+    "record_class": "L3",
+    "recovery_supported": false,
+    "recovery_unsupported_reason": "The silkscreen resolver owns its own bounded iteration over declared reference-designator placement, and no design-freedom dimension declares silkscreen geometry as searchable."
+  },
+  "results": [
+    {
+      "fail_closed": false,
+      "graph_id": "dual-beacon-tag",
+      "lane_preflight_status": "declarations_complete",
+      "ok": true,
+      "output_path": "out/repair-c-fixture",
+      "overwrite": false,
+      "pass_evidence": false,
+      "revision": "r1",
+      "stage_id": "fixture-generation"
+    },
+    {
+      "fail_closed": false,
+      "graph_id": "dual-beacon-tag",
+      "ok": true,
+      "pass_evidence": false,
+      "requirement_count": 12,
+      "requirements_path": "out/repair-c-fixture/requirements.json",
+      "requirements_sha256": "sha256:b309658f0b1070d5b6196c974fdcfdc3f5b9371191e3f307356263e627ec5caf",
+      "revision": "r1",
+      "stage_id": "requirement-entry-validation"
+    },
+    {
+      "diagnostic_only": true,
+      "fail_closed": false,
+      "graph_id": "dual-beacon-tag",
+      "ok": true,
+      "output_path": "out/repair-c/dual-beacon-tag-lane-preflight.json",
+      "pass_evidence": false,
+      "preflight_lanes": [
+        "silkscreen-resolve",
+        "board-pipeline",
+        "enclosure-pipeline",
+        "firmware-pipeline"
+      ],
+      "preflight_status": "declarations_complete",
+      "record_class": "L3",
+      "revision": "r1",
+      "stage_id": "lane-preflight"
+    },
+    {
+      "fail_closed": true,
+      "failure_reason": "GraphExtractionError: net 'BOOT': manufacturing margin is required",
+      "ok": false,
+      "pass_evidence": false,
+      "stage_id": "silkscreen-resolve"
+    }
+  ],
+  "resume": false,
+  "router_diagnostics": null,
+  "timing_record": "out/repair-c/timing-record.json"
+}
+stderr:
+Using CPython 3.12.14
+Creating virtual environment at: .venv
+   Building acd @ file:///workspace/acd
+   Building openhands-sdk @ file:///workspace/acd/vendor/software-agent-sdk/openhands-sdk
+   Building openhands-agent-server @ file:///workspace/acd/vendor/software-agent-sdk/openhands-agent-server
+   Building openhands-tools @ file:///workspace/acd/vendor/software-agent-sdk/openhands-tools
+   Building openhands-workspace @ file:///workspace/acd/vendor/software-agent-sdk/openhands-workspace
+Downloading ruff (9.8MiB)
+Downloading grpcio (6.7MiB)
+Downloading pydantic-core (2.0MiB)
+Downloading matplotlib (9.6MiB)
+Downloading scikit-learn (8.7MiB)
+Downloading numpy (15.9MiB)
+Downloading beartype (1.3MiB)
+Downloading kiwisolver (1.4MiB)
+Downloading pillow (6.6MiB)
+Downloading openai (1.6MiB)
+Downloading pyright (5.9MiB)
+Downloading sqlalchemy (3.2MiB)
+Downloading google-api-python-client (15.3MiB)
+Downloading tokenizers (3.2MiB)
+Downloading botocore (15.0MiB)
+Downloading reportlab (1.9MiB)
+Downloading litellm (22.9MiB)
+Downloading tiktoken (1.1MiB)
+Downloading aiohttp (1.7MiB)
+Downloading sympy (6.0MiB)
+Downloading pygments (1.2MiB)
+Downloading lxml (5.0MiB)
+Downloading anthropic (1.1MiB)
+Downloading jedi (4.7MiB)
+Downloading cryptography (4.5MiB)
+Downloading hf-xet (4.3MiB)
+Downloading scipy (33.7MiB)
+Downloading lib3mf (1.5MiB)
+Downloading fonttools (5.2MiB)
+Downloading ezdxf (5.5MiB)
+Downloading lmnr-claude-code-proxy (1.4MiB)
+Downloading vtk (139.3MiB)
+Downloading gerbonara (1.0MiB)
+Downloading cadquery-ocp-novtk (64.3MiB)
+Downloading lupa (2.3MiB)
+Downloading cadquery-ocp (64.7MiB)
+ Downloaded gerbonara
+ Downloaded anthropic
+ Downloaded tiktoken
+ Downloaded pygments
+ Downloaded beartype
+ Downloaded lmnr-claude-code-proxy
+ Downloaded lib3mf
+ Downloaded kiwisolver
+ Downloaded openai
+ Downloaded aiohttp
+ Downloaded reportlab
+ Downloaded pydantic-core
+ Downloaded lupa
+ Downloaded sqlalchemy
+ Downloaded tokenizers
+ Downloaded hf-xet
+ Downloaded cryptography
+ Downloaded jedi
+ Downloaded lxml
+ Downloaded fonttools
+ Downloaded ezdxf
+ Downloaded pyright
+ Downloaded sympy
+ Downloaded pillow
+ Downloaded grpcio
+ Downloaded scikit-learn
+ Downloaded ruff
+ Downloaded matplotlib
+   Building func-timeout==4.3.5
+ Downloaded botocore
+ Downloaded google-api-python-client
+ Downloaded numpy
+ Downloaded litellm
+ Downloaded scipy
+ Downloaded cadquery-ocp
+ Downloaded cadquery-ocp-novtk
+      Built acd @ file:///workspace/acd
+      Built openhands-agent-server @ file:///workspace/acd/vendor/software-agent-sdk/openhands-agent-server
+      Built openhands-tools @ file:///workspace/acd/vendor/software-agent-sdk/openhands-tools
+ Downloaded vtk
+      Built openhands-workspace @ file:///workspace/acd/vendor/software-agent-sdk/openhands-workspace
+      Built openhands-sdk @ file:///workspace/acd/vendor/software-agent-sdk/openhands-sdk
+      Built func-timeout==4.3.5
+Installed 259 packages in 423ms
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.44.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/dual-beacon-tag-lane-preflight.json
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/dual-beacon-tag-silkscreen-resolve/work-fixture/graph.json
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/dual-beacon-tag-silkscreen-resolve/work-fixture/overlays/j1-usb-c-annular-ring.json
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/dual-beacon-tag-silkscreen-resolve/work-fixture/rationale.json
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/dual-beacon-tag-silkscreen-resolve/work-fixture/requirements.json
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/loop-summary.json
+downloaded: /home/ubuntu/repos/acd-agent/out/container/repair-c/timing-record.json
+RETRY_EXIT_CODE=1

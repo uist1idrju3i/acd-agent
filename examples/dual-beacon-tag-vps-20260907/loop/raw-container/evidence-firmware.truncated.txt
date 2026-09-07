@@ -1,0 +1,40 @@
+{
+    "schema_version": "0.1",
+    "evidence_id": "evidence.dual-beacon-tag.firmware-virtual",
+    "target_revision": "r1",
+    "status": "valid",
+    "envelope": {
+        "schema_version": "0.1",
+        "tool_name": "acd-firmware-esp32c3",
+        "tool_version": "9.2.2 (esp_develop_9.2.2_20260417)",
+        "format_version": "0.1",
+        "config_hash": "sha256:b2e4cd65f9881301e9f91810a33a692781520bb665cf80eb72636635f3aa5f40",
+        "input_hash": "sha256:adffa88c6709613947aa683148ea30aaa77672ad2afbd364af9276810df7b4e9",
+        "output_hash": "sha256:835a5787c0a3517a93d91793f655b94931ef66252dd457f27e17f28531a16fb5",
+        "execution_env": "linux-x86_64; container=unknown",
+        "execution_context": "container",
+        "container_image_digest": "unknown",
+        "measurement_conditions": "virtual device (QEMU esp32c3); no external device attached; virtual verification only, not real-device evidence; virtual run stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+        "convergence_state": "converged",
+        "target_revision": "r1",
+        "started_at": "2026-09-07T15:34:59.502835Z",
+        "finished_at": "2026-09-07T15:36:05.563084Z",
+        "exit_code": 0,
+        "idempotency_key": null,
+        "uncertainty": null,
+        "source_revision": "unknown",
+        "source_tree_state": "unknown",
+        "source_dirty_digest": null
+    },
+    "claims": [
+        {
+            "subject_node": "fw.module.main",
+            "property": "measurement_class",
+            "value": "virtual",
+            "verified": true
+        },
+        {
+            "subject_node": "fw.module.main",
+            "property": "real_device_measurement",
+            "value": false,
+            "verified": true
