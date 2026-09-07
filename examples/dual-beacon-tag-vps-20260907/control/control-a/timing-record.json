@@ -1,0 +1,51 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:68f14376ad4b24de7e002d311a1f6134606cb2fcf57223578e613296d4f9b9fd",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 329.501096,
+  "stages": [
+    {
+      "duration_seconds": 0.001775,
+      "name": "design-loop/requirement-entry-validation",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.001914,
+      "name": "design-loop/lane-preflight",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 12.705742,
+      "name": "design-loop/silkscreen-resolve",
+      "start_order": 2
+    },
+    {
+      "duration_seconds": 0.04668,
+      "name": "design-loop/board-pipeline",
+      "start_order": 3
+    },
+    {
+      "duration_seconds": 0.008269,
+      "name": "design-loop/enclosure-pipeline",
+      "start_order": 4
+    },
+    {
+      "duration_seconds": 105.581022,
+      "name": "enclosure[0/5]",
+      "start_order": 5
+    },
+    {
+      "duration_seconds": 105.58092,
+      "name": "board[0/12]",
+      "start_order": 6
+    },
+    {
+      "duration_seconds": 105.574774,
+      "name": "design-loop/firmware-pipeline",
+      "start_order": 7
+    }
+  ],
+  "wall_clock_seconds": 118.295919
+}

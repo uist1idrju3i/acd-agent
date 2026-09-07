@@ -1,0 +1,9 @@
+# counts (event_type, script, blocked, exit):
+   ('PostToolUse', 'check_rationale.py', False, 0) 1
+   ('PostToolUse', 'verify_markdown.py', False, 0) 1
+   ('PreToolUse', 'eda_asset_export.py', False, 0) 15
+   ('PreToolUse', 'order_policy.py', False, 0) 15
+   ('PreToolUse', 'protect_projections.py', False, 0) 16
+   ('SessionStart', 'session_start.py', False, 0) 1
+   ('Stop', 'check_rationale.py', False, 0) 1
+   ('Stop', 'stop_policy.py', False, 0) 1

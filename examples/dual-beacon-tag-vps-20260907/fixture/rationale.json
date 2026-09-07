@@ -1,0 +1,3815 @@
+{
+  "graph_id": "dual-beacon-tag",
+  "records": [
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c1: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C1691\", mpn=\"CL10A106MQ8NNNC\", placement_rotation_deg=90.0, placement_x_mm=2.0, placement_y_mm=5.0, value=\"10uF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:3f9b88c7f7e91cbdbe211ce913bb1519393a3d51ac71e87ad93bcec339224d0b",
+      "subject_nodes": [
+        "comp.c1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c2: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C1691\", mpn=\"CL10A106MQ8NNNC\", placement_rotation_deg=90.0, placement_x_mm=2.0, placement_y_mm=8.2, value=\"10uF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:4246213ccf428ec73cb76a23404b4a4738a3df3e9f3f5a2a1075b04a5d79079b",
+      "subject_nodes": [
+        "comp.c2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c3: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C28233\", mpn=\"CL10B104KB8NNNC\", placement_rotation_deg=90.0, placement_x_mm=2.0, placement_y_mm=11.4, value=\"100nF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c3; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c3.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c3",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:29f327e88a5cffe5d3d39a2e9b952f6fd18f40c9296c5e3443edb3355fb54a50",
+      "subject_nodes": [
+        "comp.c3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c4: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C28233\", mpn=\"CL10B104KB8NNNC\", placement_rotation_deg=90.0, placement_x_mm=2.0, placement_y_mm=12.6, value=\"100nF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c4; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c4.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c4",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:6268466627dbeea5a5deb5fd50d14b01b90067f919bb53a30bc8a46268a5b8e1",
+      "subject_nodes": [
+        "comp.c4"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.c5: assembly=\"fitted\", footprint=\"Capacitor_SMD:C_0603_1608Metric\", lcsc=\"C28233\", mpn=\"CL10B104KB8NNNC\", placement_rotation_deg=90.0, placement_x_mm=10.0, placement_y_mm=17.0, value=\"100nF\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.c5; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.c5.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.c5",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:78a3a2ae31ac1c8ce2b0485b514d18c6eb9a14f7cb8910503e1a30ba587c3416",
+      "subject_nodes": [
+        "comp.c5"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.d1: assembly=\"fitted\", footprint=\"LED_SMD:LED_0603_1608Metric\", lcsc=\"C965790\", led_drive_net=\"net.led\", led_indicator=true, mpn=\"KT-0603G\", placement_rotation_deg=270.0, placement_x_mm=29.0, placement_y_mm=3.0, value=\"KT-0603G\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.d1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.d1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.d1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "led_drive_net",
+        "led_indicator",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:a1aec4e2ad69adaba5273995a24d731361a72f0effbcc4b4b7e8066b4d884251",
+      "subject_nodes": [
+        "comp.d1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.d2: assembly=\"fitted\", footprint=\"LED_SMD:LED_0603_1608Metric\", lcsc=\"C965788\", led_drive_net=\"net.led2\", led_indicator=true, mpn=\"KT-0603A\", placement_rotation_deg=270.0, placement_x_mm=29.0, placement_y_mm=7.0, value=\"KT-0603A\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.d2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.d2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.d2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "led_drive_net",
+        "led_indicator",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:733cf6162f5e22da3d1fe4048e66800410b55593fad70f845eeca8f66035b679",
+      "subject_nodes": [
+        "comp.d2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.h1: assembly=\"not_fitted\", footprint=\"MountingHole:MountingHole_2.2mm_M2\", lcsc=\"\", mpn=\"\", placement_rotation_deg=0.0, placement_x_mm=3.0, placement_y_mm=3.0, value=\"MountingHole_2.2mm_M2\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.h1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.h1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.h1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:c1097e85f8d2ae3677b52c83a12d0a2b47fa570731274db42f65313f889024c7",
+      "subject_nodes": [
+        "comp.h1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.h2: assembly=\"not_fitted\", footprint=\"MountingHole:MountingHole_2.2mm_M2\", lcsc=\"\", mpn=\"\", placement_rotation_deg=0.0, placement_x_mm=27.0, placement_y_mm=19.0, value=\"MountingHole_2.2mm_M2\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.h2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.h2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.h2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:bffcb14e4a082b3c697d6b445d1f2deb44975f0461ace28cc88c5c1eab50b643",
+      "subject_nodes": [
+        "comp.h2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.j1: assembly=\"fitted\", footprint=\"Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12\", lcsc=\"C165948\", mpn=\"TYPE-C-31-M-12\", placement_rotation_deg=180.0, placement_x_mm=1.0, placement_y_mm=3.7, value=\"TYPE-C-31-M-12\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.j1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.j1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.j1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:deaee838c5c76ce14f1894a543ca93ca79efece0033d97683be672930e924e52",
+      "subject_nodes": [
+        "comp.j1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.j2: assembly=\"fitted\", footprint=\"Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical\", lcsc=\"\", mpn=\"\", placement_rotation_deg=90.0, placement_x_mm=1.0, placement_y_mm=18.0, value=\"Conn_01x04_Pin\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.j2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.j2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.j2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:90b6cc4d9070ae68b243a955afd74f3ce0ed8deae45ed1486574c320ceda2f36",
+      "subject_nodes": [
+        "comp.j2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r1: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C21190\", mpn=\"0603WAF1001T5E\", placement_rotation_deg=0.0, placement_x_mm=7.0, placement_y_mm=14.0, value=\"1k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:4bf51051efe9c8e2907f32143f261cdcbb4c6b2a047b3a81f76b20a48354ab9e",
+      "subject_nodes": [
+        "comp.r1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r2: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C21190\", mpn=\"0603WAF1001T5E\", placement_rotation_deg=0.0, placement_x_mm=23.0, placement_y_mm=14.0, value=\"1k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:44d2725ff3a793b3a9a6611a06cc4da96c7ed18a5d29ebca229e6dd59705295e",
+      "subject_nodes": [
+        "comp.r2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r3: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C23162\", mpn=\"0603WAF4701T5E\", placement_rotation_deg=0.0, placement_x_mm=18.0, placement_y_mm=18.0, value=\"4.7k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r3; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r3.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r3",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:85be33ed977e6bb3952d6fd90d63f7d9e66f4010982b79ca677c38534b8aea42",
+      "subject_nodes": [
+        "comp.r3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r4: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C23162\", mpn=\"0603WAF4701T5E\", placement_rotation_deg=0.0, placement_x_mm=22.0, placement_y_mm=18.0, value=\"4.7k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r4; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r4.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r4",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:f81d44b4cd5bfa9299c69b0fd5f8be24deeccf0da4c4ef6acb18602e283368de",
+      "subject_nodes": [
+        "comp.r4"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r5: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C23186\", mpn=\"0603WAF5101T5E\", placement_rotation_deg=0.0, placement_x_mm=11.25, placement_y_mm=7.0, value=\"5.1k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r5; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r5.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r5",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:327cc870777a2b511fd6727b79e6299e029487e42f263aa51b992adb077d6a83",
+      "subject_nodes": [
+        "comp.r5"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.r6: assembly=\"fitted\", footprint=\"Resistor_SMD:R_0603_1608Metric\", lcsc=\"C23186\", mpn=\"0603WAF5101T5E\", placement_rotation_deg=0.0, placement_x_mm=18.75, placement_y_mm=7.0, value=\"5.1k\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.r6; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.r6.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.r6",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:8a2b04b2ae3dffe3b166a459be89ca1c8ef3d4f8eda3f1a870cddcd26b710685",
+      "subject_nodes": [
+        "comp.r6"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.sw1: assembly=\"fitted\", footprint=\"Button_Switch_SMD:SW_SPST_TS-1088-xR020\", lcsc=\"C720477\", mpn=\"TS-1088-AR02016\", placement_rotation_deg=180.0, placement_x_mm=29.0, placement_y_mm=11.0, value=\"SW_Push\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.sw1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.sw1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.sw1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:671dc49af709b92f749151c33d401edd2df08623903bf83fe110ff77514712de",
+      "subject_nodes": [
+        "comp.sw1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.sw2: assembly=\"fitted\", footprint=\"Button_Switch_SMD:SW_SPST_TS-1088-xR020\", lcsc=\"C720477\", mpn=\"TS-1088-AR02016\", placement_rotation_deg=180.0, placement_x_mm=25.0, placement_y_mm=18.0, value=\"BOOT\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.sw2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.sw2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.sw2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:42efe805d973ae21a3cb12b7c54586e61d4425cec3d026ff9e4828622017a825",
+      "subject_nodes": [
+        "comp.sw2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.u1: assembly=\"fitted\", footprint=\"Espressif:ESP32-C3-MINI-1\", lcsc=\"C2838502\", mpn=\"ESP32-C3-MINI-1-N4\", placement_rotation_deg=180.0, placement_x_mm=15.0, placement_y_mm=11.0, radio_module=true, value=\"ESP32-C3-MINI-1-N4\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.u1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.u1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.u1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "radio_module",
+        "value"
+      ],
+      "subject_hash": "sha256:028d430868327500704c3143e8e77d44b80a110bdda67c047420d7f9c4171a59",
+      "subject_nodes": [
+        "comp.u1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.component values for comp.u2: assembly=\"fitted\", footprint=\"Package_TO_SOT_SMD:SOT-223-3_TabPin2\", lcsc=\"C6186\", mpn=\"AMS1117-3.3\", placement_rotation_deg=180.0, placement_x_mm=5.3, placement_y_mm=10.0, value=\"AMS1117-3.3\"",
+      "decision_kind": "part_selection",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.component values for comp.u2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.component option for comp.u2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-comp.u2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly",
+        "footprint",
+        "lcsc",
+        "mpn",
+        "placement_rotation_deg",
+        "placement_x_mm",
+        "placement_y_mm",
+        "value"
+      ],
+      "subject_hash": "sha256:b152f4b051bce8265c7d2ee7083d05dabb80c32a3b10ddee474526a6dd90ebd8",
+      "subject_nodes": [
+        "comp.u2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared electrical.board values for board.dual-beacon-tag: allowable_temperature_rise_k=10.0, antenna_keepout=true, assembly_side=\"top\", copper_oz=1, edge_copper_clearance_mm=0.3, finish=\"HASL\", ground_plane_layers=[\"F.Cu\", \"B.Cu\"], ground_plane_min_island_area_mm2=1.0, ground_plane_net=\"GND\", height_mm=22.0, layers=2, material=\"FR-4\", min_clearance_mm=0.15, min_track_mm=0.15, stitch_via_max_frequency_hz=2400000000.0, stitch_via_refill_max_iterations=3, stitch_via_wavelength_fraction=0.05, thickness_mm=1.6, via_diameter_mm=0.6, via_drill_mm=0.3, width_basis_equation=\"ipc2221_external_current_capacity\", width_measurement_tolerance_mm=0.01, width_mm=30.0",
+      "decision_kind": "stackup",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these electrical.board values for board.dual-beacon-tag; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single electrical.board option for board.dual-beacon-tag.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-board.dual-beacon-tag",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "allowable_temperature_rise_k",
+        "antenna_keepout",
+        "assembly_side",
+        "copper_oz",
+        "edge_copper_clearance_mm",
+        "finish",
+        "ground_plane_layers",
+        "ground_plane_min_island_area_mm2",
+        "ground_plane_net",
+        "height_mm",
+        "layers",
+        "material",
+        "min_clearance_mm",
+        "min_track_mm",
+        "stitch_via_max_frequency_hz",
+        "stitch_via_refill_max_iterations",
+        "stitch_via_wavelength_fraction",
+        "thickness_mm",
+        "via_diameter_mm",
+        "via_drill_mm",
+        "width_basis_equation",
+        "width_measurement_tolerance_mm",
+        "width_mm"
+      ],
+      "subject_hash": "sha256:d36498f77264c1435d9ff03c7cef955eb380a524e2786266b11f87939248e9ba",
+      "subject_nodes": [
+        "board.dual-beacon-tag"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.boot: gpio=9, net=\"net.boot\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.boot; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.boot.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.boot",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:ad722af146a1c612886b0d4d5e4127b37b3fa34d153236af4a4387a88c2db178",
+      "subject_nodes": [
+        "fw.pin.boot"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.button: gpio=10, net=\"net.button\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.button; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.button.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.button",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:ca4456853a83483ca46ffb47fb103538a4af0acd85750f990925c78835868858",
+      "subject_nodes": [
+        "fw.pin.button"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.i2c_scl: gpio=5, net=\"net.i2c_scl\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.i2c_scl; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.i2c_scl.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.i2c_scl",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:6a303d7e08847ab1252b5a5d98e61cc65996a5c75d5ccd71cc3e2048c3839096",
+      "subject_nodes": [
+        "fw.pin.i2c_scl"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.i2c_sda: gpio=4, net=\"net.i2c_sda\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.i2c_sda; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.i2c_sda.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.i2c_sda",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:c9a1b6a52afd75b09f5908baba863c18cb898713d3f3723f7cc0dc07b9e11ac1",
+      "subject_nodes": [
+        "fw.pin.i2c_sda"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.led: gpio=3, net=\"net.led\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.led; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.led.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.led",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:9a4da61938ca017e2308cf44475003486a790b0cee024231704e78f2c0dfd279",
+      "subject_nodes": [
+        "fw.pin.led"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.led2: gpio=6, net=\"net.led2\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.led2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.led2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.led2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:0e2e72dc1c8ddb846f9de7f4f420c4cae3fc6367a7aca2f00aed09baf82f1593",
+      "subject_nodes": [
+        "fw.pin.led2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.usb_dn: gpio=18, net=\"net.usb_dn\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.usb_dn; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.usb_dn.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.usb_dn",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:dcddc75b80de5b6d30d871a76b1657c71695135680f2c667f8802d05b0c39720",
+      "subject_nodes": [
+        "fw.pin.usb_dn"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.pin_assignment values for fw.pin.usb_dp: gpio=19, net=\"net.usb_dp\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.pin_assignment values for fw.pin.usb_dp; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.pin_assignment option for fw.pin.usb_dp.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.pin.usb_dp",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "gpio",
+        "net"
+      ],
+      "subject_hash": "sha256:6dfc5093155882d3b4fd1900c7a3848d6a50141f970ac827558a4c0746b6fe58",
+      "subject_nodes": [
+        "fw.pin.usb_dp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.outline values for mechanical.outline.dual-beacon-tag: corner_radius_mm=1.0, depth_mm=22.0, thickness_mm=1.6, width_mm=30.0",
+      "decision_kind": "mechanical",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.outline values for mechanical.outline.dual-beacon-tag; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.outline option for mechanical.outline.dual-beacon-tag.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.outline.dual-beacon-tag",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "corner_radius_mm",
+        "depth_mm",
+        "thickness_mm",
+        "width_mm"
+      ],
+      "subject_hash": "sha256:ab6f26a8b502d771db435c45c5210c4a43e815ddd9ea793f423179c54136a0d9",
+      "subject_nodes": [
+        "mechanical.outline.dual-beacon-tag"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.c1: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=2.0, y_mm=5.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.c1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.c1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.c1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:5f58dcb522ddf75c38ac6f2abfd09319562711f1af3481a89e100a58a1f5bdc5",
+      "subject_nodes": [
+        "mechanical.component_body.c1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.c2: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=2.0, y_mm=8.2",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.c2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.c2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.c2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:3c5b9fb365d718c1d19e3a0e3e50e65b700d910de04915957bee1b71aa7ef3f1",
+      "subject_nodes": [
+        "mechanical.component_body.c2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.c3: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=2.0, y_mm=11.4",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.c3; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.c3.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.c3",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:965d4ecdae904339f18557f5531e7f8d440f12372202f54fefa58bb3f015937b",
+      "subject_nodes": [
+        "mechanical.component_body.c3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.c4: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=2.0, y_mm=12.6",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.c4; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.c4.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.c4",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:c80495ae5d1aa648f92fc901fd42e11b3cf179c56728e2a69f48fe47e262d033",
+      "subject_nodes": [
+        "mechanical.component_body.c4"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.c5: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=10.0, y_mm=17.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.c5; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.c5.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.c5",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:6a935643d480e7d55ac18ecdaf540b9797cb234648613ff436cfbd0bfe9cac79",
+      "subject_nodes": [
+        "mechanical.component_body.c5"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.d1: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=7.0, y_mm=10.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.d1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.d1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.d1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:d027f89845e49a6065e2ad8f44c50a64ad2297a477b88d4bc82e185e7b584f69",
+      "subject_nodes": [
+        "mechanical.component_body.d1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.d2: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=23.0, y_mm=10.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.d2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.d2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.d2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:b0817e97a41ef6d0e5c9ae8dbbd1637ae23158e306d35788357108b9a74ba960",
+      "subject_nodes": [
+        "mechanical.component_body.d2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.j1: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=15.0, y_mm=3.7",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.j1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.j1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.j1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:262a1642de52743e781acd507c038cf2fbeca811a42fa6e6881646fefaffa7be",
+      "subject_nodes": [
+        "mechanical.component_body.j1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.j2: body_type=\"solid\", mounting_side=\"top\", rotation_deg=90.0, x_mm=24.0, y_mm=2.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.j2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.j2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.j2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:6518487a9be51a060a06704ef242a7c3d6a1d5bacff344d215499c809aef8402",
+      "subject_nodes": [
+        "mechanical.component_body.j2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.r1: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=7.0, y_mm=14.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.r1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.r1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.r1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:b17175461af81eb35adf5dccc34089ef2cee87743d7090630ab408450475d246",
+      "subject_nodes": [
+        "mechanical.component_body.r1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.r2: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=23.0, y_mm=14.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.r2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.r2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.r2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:99da5644fc294524534c6f74636dd027ac13753848ecc97bcafc760c468f8c89",
+      "subject_nodes": [
+        "mechanical.component_body.r2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.r3: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=18.0, y_mm=18.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.r3; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.r3.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.r3",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:e34862ca68e4e8fe63f83a345d4fd82e607ce5aa7c01afe37dbfde3add34778f",
+      "subject_nodes": [
+        "mechanical.component_body.r3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.r4: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=22.0, y_mm=18.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.r4; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.r4.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.r4",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:a1ed558e4a061d34b51f7e322d2b1683b855ad3a29a210e2a464c0420413acf6",
+      "subject_nodes": [
+        "mechanical.component_body.r4"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.r5: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=11.25, y_mm=7.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.r5; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.r5.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.r5",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:22325593f18f78cd6f1fbf7d7e944b86b4c4cf9b6511113bc9179a6c1ea5bc46",
+      "subject_nodes": [
+        "mechanical.component_body.r5"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.r6: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=18.75, y_mm=7.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.r6; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.r6.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.r6",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:a0b4b8a4db93361ad38d23ed3c932a743813bb6b5e8205c8d94e98e26fbf55ac",
+      "subject_nodes": [
+        "mechanical.component_body.r6"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.sw1: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=15.0, y_mm=10.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.sw1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.sw1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.sw1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:fea5bf4d905f58baf5611814c5753e88fba81ff241ed482a12fbd56d6b621908",
+      "subject_nodes": [
+        "mechanical.component_body.sw1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.sw2: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=25.0, y_mm=18.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.sw2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.sw2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.sw2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:b635766d34ad7031048e95d1c0f0444dc0084cda686591e1ccd25b4f6e663e70",
+      "subject_nodes": [
+        "mechanical.component_body.sw2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.u1: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=15.0, y_mm=15.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.u1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.u1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.u1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:70aca208fccee8764731e38f977647a2abfa5e4a2adb273b1e2736461f75cbb6",
+      "subject_nodes": [
+        "mechanical.component_body.u1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.component_body values for mechanical.component_body.u2: body_type=\"solid\", mounting_side=\"top\", rotation_deg=0.0, x_mm=5.3, y_mm=10.0",
+      "decision_kind": "placement",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.component_body values for mechanical.component_body.u2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.component_body option for mechanical.component_body.u2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.component_body.u2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "body_type",
+        "mounting_side",
+        "rotation_deg",
+        "x_mm",
+        "y_mm"
+      ],
+      "subject_hash": "sha256:ee22d7c5e7d3a887fc4387c84afd932e1955ef9b8dc00d4dfce1b9bdd6172a94",
+      "subject_nodes": [
+        "mechanical.component_body.u2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.connector_opening values for mechanical.connector_opening.j1: center_x_mm=15.0, center_y_mm=9.23, face=\"front\", height_mm=3.26, margin_mm=0.5, width_mm=9.0",
+      "decision_kind": "mechanical",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.connector_opening values for mechanical.connector_opening.j1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.connector_opening option for mechanical.connector_opening.j1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.connector_opening.j1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "center_x_mm",
+        "center_y_mm",
+        "face",
+        "height_mm",
+        "margin_mm",
+        "width_mm"
+      ],
+      "subject_hash": "sha256:5847af7c07991f27f6aabf2fbd1039195a9d2847f31938a36f939831f33c3f74",
+      "subject_nodes": [
+        "mechanical.connector_opening.j1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.connector_opening values for mechanical.connector_opening.j2: center_x_mm=24.0, center_y_mm=3.0, face=\"front\", height_mm=10.16, margin_mm=0.5, width_mm=2.54",
+      "decision_kind": "mechanical",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.connector_opening values for mechanical.connector_opening.j2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.connector_opening option for mechanical.connector_opening.j2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.connector_opening.j2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "center_x_mm",
+        "center_y_mm",
+        "face",
+        "height_mm",
+        "margin_mm",
+        "width_mm"
+      ],
+      "subject_hash": "sha256:8057566a4aa2c2faff23016453c7c5ba29336f181eea9c559e8b60ac4df4becf",
+      "subject_nodes": [
+        "mechanical.connector_opening.j2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.enclosure values for mechanical.enclosure.dual-beacon-tag: fastener_method=\"self_tapping_screw_m2\", interference_tolerance_mm3=0.01, internal_clearance_mm=1.0, lid_fit_gap_mm=0.2, lid_screw_hole_diameter_mm=2.2, material=\"PA12-HP nylon\", min_wall_thickness_mm=1.2, standoff_height_mm=4.0, standoff_pilot_hole_diameter_mm=1.6, standoff_radius_mm=2.0, tolerance_mm=0.05, wall_thickness_mm=2.0",
+      "decision_kind": "mechanical",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.enclosure values for mechanical.enclosure.dual-beacon-tag; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.enclosure option for mechanical.enclosure.dual-beacon-tag.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.enclosure.dual-beacon-tag",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "fastener_method",
+        "interference_tolerance_mm3",
+        "internal_clearance_mm",
+        "lid_fit_gap_mm",
+        "lid_screw_hole_diameter_mm",
+        "material",
+        "min_wall_thickness_mm",
+        "standoff_height_mm",
+        "standoff_pilot_hole_diameter_mm",
+        "standoff_radius_mm",
+        "tolerance_mm",
+        "wall_thickness_mm"
+      ],
+      "subject_hash": "sha256:c9ff207567c19dade7d379625517e50952b132ea029b18e48c4fc0a426af0746",
+      "subject_nodes": [
+        "mechanical.enclosure.dual-beacon-tag"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.board_edge_overhang values for mechanical.board_edge_overhang.j1: edge=\"top\", overhang_mm=1.5",
+      "decision_kind": "mechanical",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.board_edge_overhang values for mechanical.board_edge_overhang.j1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.board_edge_overhang option for mechanical.board_edge_overhang.j1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.board_edge_overhang.j1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "edge",
+        "overhang_mm"
+      ],
+      "subject_hash": "sha256:7d1a0dd12c0aa9815264c912269895b4e31bb3bec7ce7272f569bc92f1fca31d",
+      "subject_nodes": [
+        "mechanical.board_edge_overhang.j1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.board_edge_overhang values for mechanical.board_edge_overhang.j2: edge=\"top\", overhang_mm=0.0",
+      "decision_kind": "mechanical",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.board_edge_overhang values for mechanical.board_edge_overhang.j2; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.board_edge_overhang option for mechanical.board_edge_overhang.j2.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.board_edge_overhang.j2",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "edge",
+        "overhang_mm"
+      ],
+      "subject_hash": "sha256:09f70657f9832660a0a80e414cd6f3b8b2d987bffb3a7a530dcab145f186cc38",
+      "subject_nodes": [
+        "mechanical.board_edge_overhang.j2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared mechanical.board_edge_overhang values for mechanical.board_edge_overhang.u1: edge=\"bottom\", overhang_mm=5.5",
+      "decision_kind": "mechanical",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these mechanical.board_edge_overhang values for mechanical.board_edge_overhang.u1; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single mechanical.board_edge_overhang option for mechanical.board_edge_overhang.u1.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-mechanical.board_edge_overhang.u1",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "edge",
+        "overhang_mm"
+      ],
+      "subject_hash": "sha256:168db3573b4047b9ccc8d0d8a59dda8eccd610066d4a869b83be86273d13354d",
+      "subject_nodes": [
+        "mechanical.board_edge_overhang.u1"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared safety.boundary values for sb.dual-beacon-tag: intended_use=\"author_prototype\", max_current_a=0.5, max_net_voltage_v=5.0, module_certified=\"certified\", profile=\"hobby\"",
+      "decision_kind": "safety_scope",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these safety.boundary values for sb.dual-beacon-tag; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single safety.boundary option for sb.dual-beacon-tag.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-sb.dual-beacon-tag",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "intended_use",
+        "max_current_a",
+        "max_net_voltage_v",
+        "module_certified",
+        "profile"
+      ],
+      "subject_hash": "sha256:ba58e7395b47d631115c3a491c61a344ad345e9caa7602eed479ff136c3d7f07",
+      "subject_nodes": [
+        "sb.dual-beacon-tag"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.module values for fw.module.main: boot_log_message=\"ACD dual-beacon-tag fw boot target_revision=%s\", entry_state=\"fw.state.boot\", led_blink_period_ms=500, log_period_ms=1000, mcu_component=\"comp.u1\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.module values for fw.module.main; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.module option for fw.module.main.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.module.main",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "boot_log_message",
+        "entry_state",
+        "led_blink_period_ms",
+        "log_period_ms",
+        "mcu_component"
+      ],
+      "subject_hash": "sha256:0ae485ea2cbc5948789d96d753e0ebc6b4c1deb23ff18248e976b8577b21efa6",
+      "subject_nodes": [
+        "fw.module.main"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state values for fw.state.blink: initial=false",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state values for fw.state.blink; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state option for fw.state.blink.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.state.blink",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "initial"
+      ],
+      "subject_hash": "sha256:308a16f45d4bd8c15dad4a4e3788d2ad11cfd9fc844ec8558cd07880d4b9408d",
+      "subject_nodes": [
+        "fw.state.blink"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state values for fw.state.boot: initial=true",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state values for fw.state.boot; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state option for fw.state.boot.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.state.boot",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "initial"
+      ],
+      "subject_hash": "sha256:80667c0cbc75ca8d9e41be918bd23c7b38e22079f4b268ad6c49ac3f0415dd3b",
+      "subject_nodes": [
+        "fw.state.boot"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state values for fw.state.fault: initial=false",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state values for fw.state.fault; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state option for fw.state.fault.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.state.fault",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "initial"
+      ],
+      "subject_hash": "sha256:815aa5e1953e3b35d4fdc7f46e89237002ed23bf0028d134f2128ee61650b053",
+      "subject_nodes": [
+        "fw.state.fault"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state values for fw.state.paused: initial=false",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state values for fw.state.paused; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state option for fw.state.paused.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.state.paused",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "initial"
+      ],
+      "subject_hash": "sha256:70a82e74505d060cf3907c66349842ed00bb8bd01ecd48aed11431bb8efbcaf1",
+      "subject_nodes": [
+        "fw.state.paused"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state_transition values for fw.transition.blink_fault: from_state=\"fw.state.blink\", to_state=\"fw.state.fault\", trigger=\"gpio_configure_failed\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state_transition values for fw.transition.blink_fault; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state_transition option for fw.transition.blink_fault.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.transition.blink_fault",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "from_state",
+        "to_state",
+        "trigger"
+      ],
+      "subject_hash": "sha256:fbadc5b0d9fa0030ca74c12cb57e738e8a829f55722c232c042062d8e4b1e484",
+      "subject_nodes": [
+        "fw.transition.blink_fault"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state_transition values for fw.transition.blink_paused: from_state=\"fw.state.blink\", to_state=\"fw.state.paused\", trigger=\"button_pressed\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state_transition values for fw.transition.blink_paused; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state_transition option for fw.transition.blink_paused.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.transition.blink_paused",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "from_state",
+        "to_state",
+        "trigger"
+      ],
+      "subject_hash": "sha256:ee8242e900cacea333206b5743d999df301b6f0a4f44747fe8a11a8c9d51c669",
+      "subject_nodes": [
+        "fw.transition.blink_paused"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state_transition values for fw.transition.boot_blink: from_state=\"fw.state.boot\", to_state=\"fw.state.blink\", trigger=\"boot_complete\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state_transition values for fw.transition.boot_blink; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state_transition option for fw.transition.boot_blink.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.transition.boot_blink",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "from_state",
+        "to_state",
+        "trigger"
+      ],
+      "subject_hash": "sha256:fb88c89b4e305d265b7982f7026d3b36153d81789699ef49c9adaa03a2f5fad8",
+      "subject_nodes": [
+        "fw.transition.boot_blink"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.state_transition values for fw.transition.paused_blink: from_state=\"fw.state.paused\", to_state=\"fw.state.blink\", trigger=\"button_pressed\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.state_transition values for fw.transition.paused_blink; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.state_transition option for fw.transition.paused_blink.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.transition.paused_blink",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "from_state",
+        "to_state",
+        "trigger"
+      ],
+      "subject_hash": "sha256:b7f80855dbce27ab515881a897b4a3c3f7edc2be75d001888d30b3d62aac8b89",
+      "subject_nodes": [
+        "fw.transition.paused_blink"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.sequence_step values for fw.sequence.001: action=\"initialize_firmware\", actor=\"fw.module.main\", step_index=1, target=\"comp.u1\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.sequence_step values for fw.sequence.001; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.sequence_step option for fw.sequence.001.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.sequence.001",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "action",
+        "actor",
+        "step_index",
+        "target"
+      ],
+      "subject_hash": "sha256:2a6b12c1424e54549611c5c7ec9ccef6cba5e05327fdeb2ec869dcc9dee0035d",
+      "subject_nodes": [
+        "fw.sequence.001"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.sequence_step values for fw.sequence.002: action=\"toggle_led\", actor=\"fw.module.main\", step_index=2, target=\"comp.d1\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.sequence_step values for fw.sequence.002; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.sequence_step option for fw.sequence.002.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.sequence.002",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "action",
+        "actor",
+        "step_index",
+        "target"
+      ],
+      "subject_hash": "sha256:561597aa63874afbd1a4e3e538988681179d73660a2bd8aa40c224604aa97143",
+      "subject_nodes": [
+        "fw.sequence.002"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.sequence_step values for fw.sequence.003: action=\"toggle_led2\", actor=\"fw.module.main\", step_index=3, target=\"comp.d2\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.sequence_step values for fw.sequence.003; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.sequence_step option for fw.sequence.003.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.sequence.003",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "action",
+        "actor",
+        "step_index",
+        "target"
+      ],
+      "subject_hash": "sha256:208d7f5bd099f3cbaf0dbac581d394a9006cef2f18079124d41721ff3746bed2",
+      "subject_nodes": [
+        "fw.sequence.003"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared firmware.sequence_step values for fw.sequence.004: action=\"read_button\", actor=\"fw.module.main\", step_index=4, target=\"comp.sw1\"",
+      "decision_kind": "firmware_pin",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these firmware.sequence_step values for fw.sequence.004; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single firmware.sequence_step option for fw.sequence.004.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fw.sequence.004",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "action",
+        "actor",
+        "step_index",
+        "target"
+      ],
+      "subject_hash": "sha256:9a452f22ba7013e5d56b0911152f397128c09e74db7436c5fb06db85bc883b8d",
+      "subject_nodes": [
+        "fw.sequence.004"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Adopt the declared fab.order_intent values for fab.order_intent.dual-beacon-tag: assembly_sides=\"top\", delivery_format=\"single\", fab_profile=\"jlcpcb-fr4-2l-1oz\", pcba_class_target=\"economic\", quantity_pcs=5, soldermask_color=\"green\", surface_finish=\"HASL\"",
+      "decision_kind": "fab_process",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-001",
+        "req.dbt-req-002",
+        "req.dbt-req-003",
+        "req.dbt-req-004",
+        "req.dbt-req-005",
+        "req.dbt-req-006",
+        "req.dbt-req-007",
+        "req.dbt-req-008",
+        "req.dbt-req-009",
+        "req.dbt-req-010",
+        "req.dbt-req-011",
+        "req.dbt-req-012"
+      ],
+      "justification": "The design input declares these fab.order_intent values for fab.order_intent.dual-beacon-tag; the generator projects them without inventing or defaulting any value.",
+      "no_alternatives_reason": "The design input declares a single fab.order_intent option for fab.order_intent.dual-beacon-tag.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T14:03:14.651036Z",
+        "script_hash": "sha256:e147dccf4778330b87985cba916ea02ca71f1f774e921089a34345608c56a43d",
+        "skill_name": null,
+        "source": "deterministic_tool",
+        "tool_name": "acd.pipeline.fixture_builder",
+        "tool_version": "0.0.2"
+      },
+      "rationale_id": "fixture-fab.order_intent.dual-beacon-tag",
+      "rejected_alternatives": [],
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "assembly_sides",
+        "delivery_format",
+        "fab_profile",
+        "pcba_class_target",
+        "quantity_pcs",
+        "soldermask_color",
+        "surface_finish"
+      ],
+      "subject_hash": "sha256:0c6ee040434284bfb846264223bccd9f8c0cfe73a3fb3ef7a0c64aee8a4f0c1f",
+      "subject_nodes": [
+        "fab.order_intent.dual-beacon-tag"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Class BOOT/BUTTON/EN/I2C/LED=3.3 V with 0.00 mm added manufacturing margin.",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-005"
+      ],
+      "justification": "Dual-beacon-tag logic signals operate at 3.3 V with currents limited by pull-ups, LED resistors, or receiver inputs. These logic routes use the manufacturing minimum and no added current-derived margin.",
+      "no_alternatives_reason": "These nets are standard 3.3 V logic signals whose manufacturing margin is determined by the fab minimum width; no alternative classification is applicable.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-net-signal",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "manufacturing_margin_mm"
+      ],
+      "subject_hash": "sha256:6b15347ff5b9c740d65220b06739572c5e1a7822dc9a5830300e369e3c7f6c33",
+      "subject_nodes": [
+        "net.boot",
+        "net.button",
+        "net.i2c_sda",
+        "net.i2c_scl",
+        "net.led",
+        "net.led2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Class CC1/CC2=5.0 V and USB_D-/USB_D+=3.3 V with 0.00 mm added manufacturing margin.",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-003"
+      ],
+      "justification": "Dual-beacon-tag USB-C CC signals and USB data lines operate at logic voltage. These nets are logic/current-minimum routes, so they use no added power-domain margin.",
+      "no_alternatives_reason": "These are USB logic and configuration lines governed by interface geometry and the fab minimum line width; no alternative classification is applicable.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-net-usb",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "manufacturing_margin_mm"
+      ],
+      "subject_hash": "sha256:96a7ab144cab580c7bc6d871efe73398105a123ad60ccb6a3fc22deda64dfd1c",
+      "subject_nodes": [
+        "net.cc1",
+        "net.cc2",
+        "net.usb_dn",
+        "net.usb_dp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Class VBUS=5.0 V/0.5 A, +3V3=3.3 V/0.5 A, GND=return with 0.00 mm added manufacturing margin.",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-002"
+      ],
+      "justification": "Dual-beacon-tag power nets carry the main supply current. The manufacturability is governed by the fab minimum line width; extra current-carrying width margin is reserved for the power domain rather than added to signal traces.",
+      "no_alternatives_reason": "These power nets are classified by their voltage and current ratings as required by the design specification; no alternative net class is applicable.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-net-power",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "voltage_nominal_v",
+        "current_max_a",
+        "manufacturing_margin_mm"
+      ],
+      "subject_hash": "sha256:293ba839e2ddb0b7787c19c7a8426ec17e3746bcf34ae7242d07646e5d79a219",
+      "subject_nodes": [
+        "net.gnd",
+        "net.p3v3",
+        "net.vbus_5v"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Control and sensor nets use the manufacturing minimum width basis.",
+      "decision_kind": "design_rule",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-005"
+      ],
+      "justification": "These are logic signal nets whose current is limited by pull-ups or LED resistors. Their trace width is governed by the fab minimum rather than a current-derived width basis.",
+      "no_alternatives_reason": "The fab minimum width is sufficient for these logic signals; no alternative width basis is required.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-width-signal",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "width_basis"
+      ],
+      "subject_hash": "sha256:cdfb894e0f58d42fa4e4e57fd4f2201a8f5439a8ff9444eee535e5499a1d96c3",
+      "subject_nodes": [
+        "net.boot",
+        "net.button",
+        "net.i2c_sda",
+        "net.i2c_scl",
+        "net.led",
+        "net.led2"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "USB data and CC nets use the manufacturing minimum width basis.",
+      "decision_kind": "design_rule",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-003"
+      ],
+      "justification": "USB data lines and CC configuration signals are logic-level nets with minimal current. Their trace width is governed by the fab minimum.",
+      "no_alternatives_reason": "The fab minimum width is sufficient for USB logic and configuration signals; no alternative width basis is required.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-width-usb",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "width_basis"
+      ],
+      "subject_hash": "sha256:bed5d617e1f4b94fbdf416fbf97e4fb6c79427f78510e386f65830286b2a2f45",
+      "subject_nodes": [
+        "net.cc1",
+        "net.cc2",
+        "net.usb_dn",
+        "net.usb_dp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "Power nets use a width basis derived from the 0.5 A current limit.",
+      "decision_kind": "design_rule",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-002"
+      ],
+      "justification": "VBUS, +3V3, and GND carry the main supply current up to 500 mA. Their trace width basis is derived from the current limit rather than the fab minimum.",
+      "no_alternatives_reason": "Power nets require a current-derived width basis; the fab minimum is insufficient for the rated current.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-width-power",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "width_basis"
+      ],
+      "subject_hash": "sha256:119261bcf443df29ead65e9a635e897333d30cc36ded477a97acbb9924e5dedd",
+      "subject_nodes": [
+        "net.gnd",
+        "net.p3v3",
+        "net.vbus_5v"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "VBUS is declared as a 5.0 V power rail sourced from the USB-C VBUS pin.",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-003"
+      ],
+      "justification": "The USB-C connector delivers 5 V via VBUS pins A4/A9/B4/B9, making VBUS the primary 5 V power rail for the design.",
+      "no_alternatives_reason": "USB-C VBUS is the specified power input; no alternative power source is declared.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-net-vbus-declaration",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "power_rail",
+        "power_source_pin"
+      ],
+      "subject_hash": "sha256:f35c04b2c194744aafc1ccbf734371723b444d616b5f55d8ba2b312390d406f9",
+      "subject_nodes": [
+        "net.vbus_5v"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [],
+      "decision": "+3V3 is declared as a 3.3 V power rail sourced from the AMS1117-3.3 regulator output.",
+      "decision_kind": "net_class",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-005"
+      ],
+      "justification": "The AMS1117-3.3 LDO converts 5 V VBUS to 3.3 V, making +3V3 the regulated power rail for the MCU and peripherals.",
+      "no_alternatives_reason": "The AMS1117-3.3 is the specified regulator; no alternative 3.3 V source is declared.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-net-p3v3-declaration",
+      "risks": [],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "power_rail",
+        "power_source_pin"
+      ],
+      "subject_hash": "sha256:952f6b3f3a317daf7ab2423d375efaaaf0892d975df096862c54750c6257ff89",
+      "subject_nodes": [
+        "net.p3v3"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [
+        "Resolver evidence is supplementary; rendered Gerber measurement remains authoritative."
+      ],
+      "decision": "Use 1.0 mm text height, 0.15 mm stroke, 0.15 mm board-edge margin, 0.25 mm search step, 8.0 mm limit, 0.15 mm safety margin, and top,bottom,right,left,top_right,bottom_right,bottom_left,top_left order.",
+      "decision_kind": "silkscreen",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-011"
+      ],
+      "justification": "The fab profile specifies 1.0 mm minimum text height and 0.15 mm minimum stroke width. The resolver advances in 0.25 mm steps up to 8.0 mm with 0.15 mm edge/safety margin, searching in the declared order to make rejection and acceptance deterministic.",
+      "no_alternatives_reason": null,
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-silk-text-rules",
+      "rejected_alternatives": [
+        {
+          "option": "Use 0.10 mm stroke or 0.5 mm text",
+          "reason": "Both are below the profiled 0.15 mm stroke and 1.0 mm text minima."
+        },
+        {
+          "option": "Use 0.50 mm step or unlimited search",
+          "reason": "The declared 0.25 mm step and 8.0 mm limit provide deterministic resolution and bounded failure."
+        }
+      ],
+      "risks": [
+        "Readability or independent silk measurement may still reject a candidate."
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "layer",
+        "text",
+        "height_mm",
+        "stroke_width_mm",
+        "board_edge_margin_mm",
+        "placement_search_order",
+        "placement_offset_step_mm",
+        "placement_search_limit_mm",
+        "placement_safety_margin_mm"
+      ],
+      "subject_hash": "sha256:89460560f69ebff50c515963f08379b3eb1a6c8eb788d52d6099417c6e4857d4",
+      "subject_nodes": [
+        "mechanical.silk_text.board_id",
+        "mechanical.silk_text.i2c",
+        "mechanical.silk_text.led",
+        "mechanical.silk_text.led2",
+        "mechanical.silk_text.sw1",
+        "mechanical.silk_text.usb"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "assumptions": [
+        "The resolver candidates satisfy the declared silkscreen side and fab minima."
+      ],
+      "decision": "Place silkscreen labels at resolver-accepted positions on F.SilkS.",
+      "decision_kind": "silkscreen",
+      "driving_requirement_refs": [],
+      "driving_requirements": [
+        "req.dbt-req-011"
+      ],
+      "justification": "The silkscreen resolver placed the six functional labels on F.SilkS after excluding board-edge, same-side pad, mask, existing-silk, body/courtyard, and nearest-component conflicts. The accepted positions are BOARD-ID (14.375, 8.95) at 90\u00b0, I2C (2.022, 15.4) at 0\u00b0, LED (27.475, 1.947) at 90\u00b0, LED2 (27.475, 6.3) at 90\u00b0, SW1 (25.803, 13.4) at 0\u00b0, and USB (8.272, 0.9) at 0\u00b0.",
+      "no_alternatives_reason": "The resolver is the designated placement mechanism for silkscreen labels; manual placement is not an alternative.",
+      "provenance": {
+        "agent_model": null,
+        "conversation_event_ref": null,
+        "recorded_at": "2026-09-07T00:00:00Z",
+        "script_hash": null,
+        "skill_name": null,
+        "source": "human"
+      },
+      "rationale_id": "dual-beacon-tag-silk-placements",
+      "rejected_alternatives": [],
+      "risks": [
+        "Placement evidence is a candidate-resolution record, not final physical acceptance; same-side mask/pad and rendered-ink measurements remain required."
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "x_mm",
+        "y_mm",
+        "rotation_deg"
+      ],
+      "subject_hash": "sha256:89f0779b2e77ae2080a22920ee88c86b2401feb8afb6467e573e6f10d98ed6c1",
+      "subject_nodes": [
+        "mechanical.silk_text.board_id",
+        "mechanical.silk_text.i2c",
+        "mechanical.silk_text.led",
+        "mechanical.silk_text.led2",
+        "mechanical.silk_text.sw1",
+        "mechanical.silk_text.usb"
+      ],
+      "target_revision": "r1"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

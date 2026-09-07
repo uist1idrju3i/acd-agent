@@ -1,0 +1,133 @@
+{
+  "graph_id": "dual-beacon-tag",
+  "records": [
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-001",
+      "statement": "机上に置く小型の状態表示タグ。USB Type-Cバスパワー（5V）で動作し、電池は搭載しない"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "safety_power_boundary"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-002",
+      "statement": "最大ネット電圧は5V、最大電流は500mA未満とする"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "usb_c_cc_termination"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-003",
+      "statement": "USB-Cは電力シンク専用とし、CC1/CC2にそれぞれ5.1kΩのプルダウンを置く"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "firmware_pin_map"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-004",
+      "statement": "MCUはESP32-C3-MINI-1-N4とし、IO18/IO19の内蔵USBを使用する。内蔵アンテナを確保し、アンテナ下に銅箔や部品を置かない"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "single_ldo_power_tree"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-005",
+      "statement": "3.3VはAMS1117-3.3で生成し、入力・出力に10µFと100nFを置く"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-006",
+      "statement": "LEDを2個（緑1個、橙1個）実装し、FWは緑と橙を500ms周期で交互に点滅させる"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "esp32c3_strapping_boot"
+      ],
+      "expectation": {
+        "gpio": 10,
+        "kind": "gpio_assignment",
+        "net": "BUTTON"
+      },
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-007",
+      "statement": "ユーザーボタン1個をGPIO入力とし、押下でLEDの点滅を一時停止／再開する。BOOT/ENの起動条件はESP32-C3のstrapping規則に従う"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [
+        "i2c_bus_pullup"
+      ],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-008",
+      "statement": "外部センサ接続用のI2Cヘッダ（4ピン: 3V3, GND, SDA, SCL）を1個設け、SDA/SCLには4.7kΩのプルアップを実装する"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-009",
+      "statement": "基板は2層FR-4、板厚1.6mm、1oz銅、HASL、外形30mm×22mm、M2取付穴を2箇所設ける"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-010",
+      "statement": "基板を収める簡易筐体を設け、USB-Cコネクタ開口、2個のLED窓、ボタン開口、I2Cヘッダ開口を設ける"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-011",
+      "statement": "FWはESP-IDF（ESP32-C3）とし、起動時にgraph_id由来のboot logを出力すること"
+    },
+    {
+      "constrains_node_ids": [],
+      "constrains_node_kinds": [],
+      "drives_functional_blocks": [],
+      "expectation": null,
+      "graph_anchored": true,
+      "requirement_id": "dbt-req-012",
+      "statement": "製造はJLCPCB FR-4 2層1 ozプロファイルで5枚、片面実装、緑レジスト、HASL、単品納品とする"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

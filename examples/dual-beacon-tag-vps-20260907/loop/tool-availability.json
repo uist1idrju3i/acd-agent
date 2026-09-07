@@ -1,0 +1,84 @@
+{
+  "available_tools": [
+    "acd_check_order_readiness",
+    "acd_diagnose_gate_failure",
+    "acd_explore_board_candidates",
+    "acd_run_design_loop"
+  ],
+  "command_path": "plugins/acd/commands/vibebb-loop.md",
+  "declared_tools": [
+    "acd_aggregate_order_total",
+    "acd_build_design_fixture",
+    "acd_check_order_readiness",
+    "acd_compile_requirement_change",
+    "acd_diagnose_gate_failure",
+    "acd_explore_board_candidates",
+    "acd_register_parts_catalog_entry",
+    "acd_run_design_loop",
+    "acd_validate_design_graph"
+  ],
+  "fallbacks": [
+    {
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/aggregate_order_total.py"
+      ],
+      "reason": null,
+      "tool_name": "acd_aggregate_order_total"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/build_design_fixture.py"
+      ],
+      "reason": null,
+      "tool_name": "acd_build_design_fixture"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/compile_requirement_change.py"
+      ],
+      "reason": null,
+      "tool_name": "acd_compile_requirement_change"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/register_part_catalog_entry.py"
+      ],
+      "reason": null,
+      "tool_name": "acd_register_parts_catalog_entry"
+    },
+    {
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/validate_graph.py"
+      ],
+      "reason": null,
+      "tool_name": "acd_validate_design_graph"
+    }
+  ],
+  "missing_tools": [
+    "acd_aggregate_order_total",
+    "acd_build_design_fixture",
+    "acd_compile_requirement_change",
+    "acd_register_parts_catalog_entry",
+    "acd_validate_design_graph"
+  ],
+  "pass_evidence": false,
+  "reason": "conversation does not expose declared ACD tools: acd_aggregate_order_total, acd_build_design_fixture, acd_compile_requirement_change, acd_register_parts_catalog_entry, acd_validate_design_graph",
+  "record_class": "L3",
+  "schema_version": "0.1",
+  "status": "fail"
+}

@@ -1,0 +1,31 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:c4c9e26bdadaf950c08ab90698828b66c3d63bc9be04d7f4981ebbff70aeade7",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 1.823366,
+  "stages": [
+    {
+      "duration_seconds": 0.020732,
+      "name": "design-loop/fixture-generation",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.001586,
+      "name": "design-loop/requirement-entry-validation",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 0.00179,
+      "name": "design-loop/lane-preflight",
+      "start_order": 2
+    },
+    {
+      "duration_seconds": 1.799258,
+      "name": "design-loop/silkscreen-resolve",
+      "start_order": 3
+    }
+  ],
+  "wall_clock_seconds": 1.826384
+}

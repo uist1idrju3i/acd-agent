@@ -1,0 +1,38 @@
+{
+  "status": "fail",
+  "graph_id": "dual-beacon-tag",
+  "revision": "r1",
+  "graph_id_match": true,
+  "revision_match": true,
+  "missing": [],
+  "stale": [],
+  "unknown_provenance": [],
+  "orphan": [],
+  "untraceable": [],
+  "conflicting": [],
+  "unclassified": [
+    {
+      "node_id": "mechanical.outline.dual-beacon-tag",
+      "node_kind": "mechanical.outline",
+      "attr": "dimensions_checked_at",
+      "reason": "attribute is absent from both rationale classification tables"
+    },
+    {
+      "node_id": "mechanical.outline.dual-beacon-tag",
+      "node_kind": "mechanical.outline",
+      "attr": "dimensions_source",
+      "reason": "attribute is absent from both rationale classification tables"
+    },
+    {
+      "node_id": "mechanical.outline.dual-beacon-tag",
+      "node_kind": "mechanical.outline",
+      "attr": "dimensions_source_ref",
+      "reason": "attribute is absent from both rationale classification tables"
+    }
+  ],
+  "templated": [],
+  "generator_violations": [],
+  "required_count": 508,
+  "covered_count": 508,
+  "record_count": 86
+}

@@ -1,0 +1,322 @@
+=== defect-repro-2 no graph/download flags ===
+[09/07/26 16:50:55] INFO     $ docker version                      command.py:80
+Client: Docker Engine - Community
+ Version:           29.7.2
+ API version:       1.55
+ Go version:        go1.26.5
+ Git commit:        a7dcaa6
+ Built:             Wed Aug  5 18:28:48 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.7.2
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.5
+  Git commit:       6a43e3d
+  Built:            Wed Aug  5 18:28:48 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.3.3
+  GitCommit:        aad11006b869517fcd3009450b6f82da282e1a9b
+ runc:
+  Version:          1.4.3
+  GitCommit:        v1.4.3-0-gbb14dabe
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+[09/07/26 16:50:55] INFO     Adding volume mount:               workspace.py:220
+                             /home/ubuntu/control-ws:/acd-src:r                 
+                             o                                                  
+[09/07/26 16:50:55] INFO     $ docker run --memory=6g              command.py:80
+                             --memory-swap=6g --env                             
+                             FREEROUTING_MAX_HEAP=2g -d --platform              
+                             linux/amd64 --rm --ulimit                          
+                             nofile=65536:65536 --name                          
+                             agent-server-f03f1072-f86b-474b-8832-              
+                             1b145bfe64cc -e                                    
+                             ACD_CONTAINER_IMAGE_DIGEST=sha256:3fb              
+                             0e216e5aee4ad727792bc8b762b9eb0bc4141              
+                             d911eafbc23c18bb340f8c26 -e                        
+                             ACD_IN_CONTAINER=1 -e                              
+                             ACD_SOURCE_GIT_SHA=180b628f5da100292e              
+                             520c7cd2a5c1a3ddf5ea53 -e                          
+                             ACD_SOURCE_TREE_STATE=clean -v                     
+                             /home/ubuntu/control-ws:/acd-src:ro                
+                             -p 31615:8000                                      
+                             ghcr.io/uist1idrju3i/acd-server@sha25              
+                             6:3fb0e216e5aee4ad727792bc8b762b9eb0b              
+                             c4141d911eafbc23c18bb340f8c26 --host               
+                             0.0.0.0 --port 8000                                
+e5584f899451ab37530360604a257c77feb467648c452754fc6b8e0c05cf26d8
+[09/07/26 16:50:55] INFO     Started container:                 workspace.py:264
+                             e5584f899451ab37530360604a257c77fe                 
+                             b467648c452754fc6b8e0c05cf26d8                     
+[09/07/26 16:50:55] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:50:56] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:50:57] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:50:58] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:50:59] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:51:00] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:51:01] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:51:02] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:51:03] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+true
+[09/07/26 16:51:04] INFO     Docker workspace is ready at       workspace.py:282
+                             http://127.0.0.1:31615                             
+[09/07/26 16:51:05] ERROR    Remote file download  remote_workspace_mixin.py:317
+                             failed: Client error                               
+                             '404 Not Found' for                                
+                             url                                                
+                             'http://127.0.0.1:316                              
+                             15/api/file/download?                              
+                             path=%2Fworkspace%2Fa                              
+                             cd%2Fout%2Fgd1%2Fevid                              
+                             ence-electrical.json'                              
+                             For more information                               
+                             check:                                             
+                             https://developer.moz                              
+                             illa.org/en-US/docs/W                              
+                             eb/HTTP/Status/404                                 
+[09/07/26 16:51:05] ERROR    Remote file download  remote_workspace_mixin.py:317
+                             failed: Client error                               
+                             '404 Not Found' for                                
+                             url                                                
+                             'http://127.0.0.1:316                              
+                             15/api/file/download?                              
+                             path=%2Fworkspace%2Fa                              
+                             cd%2Fout%2Fgd1%2Fevid                              
+                             ence-electrical.json'                              
+                             For more information                               
+                             check:                                             
+                             https://developer.moz                              
+                             illa.org/en-US/docs/W                              
+                             eb/HTTP/Status/404                                 
+[09/07/26 16:51:06] ERROR    Remote file download  remote_workspace_mixin.py:317
+                             failed: Client error                               
+                             '404 Not Found' for                                
+                             url                                                
+                             'http://127.0.0.1:316                              
+                             15/api/file/download?                              
+                             path=%2Fworkspace%2Fa                              
+                             cd%2Fout%2Fgd1%2Fevid                              
+                             ence-electrical.json'                              
+                             For more information                               
+                             check:                                             
+                             https://developer.moz                              
+                             illa.org/en-US/docs/W                              
+                             eb/HTTP/Status/404                                 
+[09/07/26 16:51:06] INFO     Stopping container:                workspace.py:376
+                             e5584f899451ab37530360604a257c77fe                 
+                             b467648c452754fc6b8e0c05cf26d8                     
+[09/07/26 16:51:06] INFO     $ docker stop                         command.py:80
+                             e5584f899451ab37530360604a257c77feb46              
+                             7648c452754fc6b8e0c05cf26d8                        
+e5584f899451ab37530360604a257c77feb467648c452754fc6b8e0c05cf26d8
+workspace failure (transport): failed to download workspace file out/gd1/evidence-electrical.json after 3 attempts: Client error '404 Not Found' for url 'http://127.0.0.1:31615/api/file/download?path=%2Fworkspace%2Facd%2Fout%2Fgd1%2Fevidence-electrical.json'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+exit code: 0
+stdout:
+control
+stderr:
+
+NO_GRAPH_EXIT_CODE=2
+=== defect-repro-2 with graph ===
+host.memory.available_insufficient: MemAvailable=5712.66 MiB; requested --memory-limit=6144.00 MiB exceeds available memory, lower --memory-limit to at most 5712.66 MiB
+workspace failure (resources): host resource preflight failed: host.memory.available_insufficient: MemAvailable=5712.66 MiB; requested --memory-limit=6144.00 MiB exceeds available memory, lower --memory-limit to at most 5712.66 MiB
+WITH_GRAPH_EXIT_CODE=2
+=== defect-repro-2 with graph retry at --memory-limit 4g ===
+[09/07/26 16:53:40] INFO     $ docker version                      command.py:80
+Client: Docker Engine - Community
+ Version:           29.7.2
+ API version:       1.55
+ Go version:        go1.26.5
+ Git commit:        a7dcaa6
+ Built:             Wed Aug  5 18:28:48 2026
+ OS/Arch:           linux/amd64
+ Context:           default
+
+Server: Docker Engine - Community
+ Engine:
+  Version:          29.7.2
+  API version:      1.55 (minimum version 1.40)
+  Go version:       go1.26.5
+  Git commit:       6a43e3d
+  Built:            Wed Aug  5 18:28:48 2026
+  OS/Arch:          linux/amd64
+  Experimental:     false
+ containerd:
+  Version:          v2.3.3
+  GitCommit:        aad11006b869517fcd3009450b6f82da282e1a9b
+ runc:
+  Version:          1.4.3
+  GitCommit:        v1.4.3-0-gbb14dabe
+ docker-init:
+  Version:          0.19.0
+  GitCommit:        de40ad0
+[09/07/26 16:53:40] INFO     Adding volume mount:               workspace.py:220
+                             /home/ubuntu/control-ws:/acd-src:r                 
+                             o                                                  
+[09/07/26 16:53:40] INFO     $ docker run --memory=4g              command.py:80
+                             --memory-swap=4g --env                             
+                             FREEROUTING_MAX_HEAP=2g -d --platform              
+                             linux/amd64 --rm --ulimit                          
+                             nofile=65536:65536 --name                          
+                             agent-server-c35e44f0-0e0c-4946-b64c-              
+                             7b48384dfb3f -e                                    
+                             ACD_CONTAINER_IMAGE_DIGEST=sha256:3fb              
+                             0e216e5aee4ad727792bc8b762b9eb0bc4141              
+                             d911eafbc23c18bb340f8c26 -e                        
+                             ACD_IN_CONTAINER=1 -e                              
+                             ACD_SOURCE_GIT_SHA=180b628f5da100292e              
+                             520c7cd2a5c1a3ddf5ea53 -e                          
+                             ACD_SOURCE_TREE_STATE=clean -v                     
+                             /home/ubuntu/control-ws:/acd-src:ro                
+                             -p 34263:8000                                      
+                             ghcr.io/uist1idrju3i/acd-server@sha25              
+                             6:3fb0e216e5aee4ad727792bc8b762b9eb0b              
+                             c4141d911eafbc23c18bb340f8c26 --host               
+                             0.0.0.0 --port 8000                                
+46a743294daa642d5eeb9bbe37c9efd6940c0d472ca7f08d6d5413189e39e2a3
+[09/07/26 16:53:41] INFO     Started container:                 workspace.py:264
+                             46a743294daa642d5eeb9bbe37c9efd694                 
+                             0c0d472ca7f08d6d5413189e39e2a3                     
+[09/07/26 16:53:41] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:42] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:43] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:44] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:45] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:46] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:47] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:48] INFO     $ docker inspect -f                   command.py:80
+                             '{{.State.Running}}'                               
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+true
+[09/07/26 16:53:49] INFO     Docker workspace is ready at       workspace.py:282
+                             http://127.0.0.1:34263                             
+[09/07/26 16:53:49] ERROR    Remote file download  remote_workspace_mixin.py:317
+                             failed: Client error                               
+                             '404 Not Found' for                                
+                             url                                                
+                             'http://127.0.0.1:342                              
+                             63/api/file/download?                              
+                             path=%2Fworkspace%2Fa                              
+                             cd%2Fout%2Fdual-beaco                              
+                             n-tag%2Fevidence-elec                              
+                             trical.json'                                       
+                             For more information                               
+                             check:                                             
+                             https://developer.moz                              
+                             illa.org/en-US/docs/W                              
+                             eb/HTTP/Status/404                                 
+[09/07/26 16:53:49] ERROR    Remote file download  remote_workspace_mixin.py:317
+                             failed: Client error                               
+                             '404 Not Found' for                                
+                             url                                                
+                             'http://127.0.0.1:342                              
+                             63/api/file/download?                              
+                             path=%2Fworkspace%2Fa                              
+                             cd%2Fout%2Fdual-beaco                              
+                             n-tag%2Fevidence-elec                              
+                             trical.json'                                       
+                             For more information                               
+                             check:                                             
+                             https://developer.moz                              
+                             illa.org/en-US/docs/W                              
+                             eb/HTTP/Status/404                                 
+[09/07/26 16:53:50] ERROR    Remote file download  remote_workspace_mixin.py:317
+                             failed: Client error                               
+                             '404 Not Found' for                                
+                             url                                                
+                             'http://127.0.0.1:342                              
+                             63/api/file/download?                              
+                             path=%2Fworkspace%2Fa                              
+                             cd%2Fout%2Fdual-beaco                              
+                             n-tag%2Fevidence-elec                              
+                             trical.json'                                       
+                             For more information                               
+                             check:                                             
+                             https://developer.moz                              
+                             illa.org/en-US/docs/W                              
+                             eb/HTTP/Status/404                                 
+[09/07/26 16:53:50] INFO     Stopping container:                workspace.py:376
+                             46a743294daa642d5eeb9bbe37c9efd694                 
+                             0c0d472ca7f08d6d5413189e39e2a3                     
+[09/07/26 16:53:50] INFO     $ docker stop                         command.py:80
+                             46a743294daa642d5eeb9bbe37c9efd6940c0              
+                             d472ca7f08d6d5413189e39e2a3                        
+46a743294daa642d5eeb9bbe37c9efd6940c0d472ca7f08d6d5413189e39e2a3
+workspace failure (transport): failed to download workspace file out/dual-beacon-tag/evidence-electrical.json after 3 attempts: Client error '404 Not Found' for url 'http://127.0.0.1:34263/api/file/download?path=%2Fworkspace%2Facd%2Fout%2Fdual-beacon-tag%2Fevidence-electrical.json'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+exit code: 0
+stdout:
+control
+stderr:
+
+WITH_GRAPH_RETRY_EXIT_CODE=2

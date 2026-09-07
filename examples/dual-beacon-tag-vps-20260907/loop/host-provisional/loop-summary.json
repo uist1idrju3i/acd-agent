@@ -1,0 +1,18 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "candidate_router_diagnostics": null,
+  "content_sha256": "sha256:ba4a96da0fb01a2f4683a90bc73511f4be4a1c7718aac99c64f4e45505e5f470",
+  "exploration_rounds": null,
+  "failed_stage": "silkscreen-resolve",
+  "failure_reason": "FileNotFoundError: [Errno 2] No such file or directory: '/usr/share/kicad/symbols/power.kicad_sym'",
+  "graph_id": "dual-beacon-tag",
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": "Adjust the declared silkscreen inputs or fab profile in the graph and rerun the loop; no candidate generator is declared for this lane.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "router_diagnostics": null,
+  "schema_version": "0.1",
+  "timing_record": "out/dual-beacon-tag/timing-record.json"
+}

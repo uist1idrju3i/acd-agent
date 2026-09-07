@@ -1,0 +1,39 @@
++----------------------------------------------------------------------+
+|  OpenHands SDK v1.44.1                                               |
+|                                                                      |
+|  Report a bug: github.com/OpenHands/software-agent-sdk/issues        |
+|  Get help: openhands.dev/joinslack                                   |
+|  Scale up: openhands.dev/product/sdk                                 |
+|                                                                      |
+|  Set OPENHANDS_SUPPRESS_BANNER=1 to hide this message                |
++----------------------------------------------------------------------+
+
+{
+  "artifact_prefix": "dual-beacon-tag",
+  "cache_dir": null,
+  "candidate_router_diagnostics": null,
+  "design_only": true,
+  "fail_closed": true,
+  "failed_stage": "fixture-generation",
+  "failure_reason": "FixtureBuilderError: comp.j1: overlay overlays/j1-usb-c-annular-ring.json requires the design input directory",
+  "fixture_spec": "/home/ubuntu/run9/repair/spec-input/spec.json",
+  "graph_id": "dual-beacon-tag",
+  "jobs": 2,
+  "loop_summary": "/tmp/repair-main-out/loop-summary.json",
+  "ok": false,
+  "output_prefix": "dual-beacon-tag",
+  "pass_evidence": false,
+  "results": [
+    {
+      "fail_closed": true,
+      "failure_reason": "FixtureBuilderError: comp.j1: overlay overlays/j1-usb-c-annular-ring.json requires the design input directory",
+      "ok": false,
+      "pass_evidence": false,
+      "stage_id": "fixture-generation"
+    }
+  ],
+  "resume": false,
+  "router_diagnostics": null,
+  "timing_record": "/tmp/repair-main-out/timing-record.json"
+}
+EXIT_CODE=1

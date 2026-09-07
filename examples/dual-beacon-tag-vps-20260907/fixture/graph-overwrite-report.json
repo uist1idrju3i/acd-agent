@@ -1,0 +1,79 @@
+{
+  "backup_path": "fixtures/dual-beacon-tag/graph.overwritten.json",
+  "conflicts": [
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.boot",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.button",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.cc1",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.cc2",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.en",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.gnd",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.i2c_scl",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.i2c_sda",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.led",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.led2",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.p3v3",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.usb_dn",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.usb_dp",
+      "reason": "attribute exists in the written graph but not in the design input"
+    },
+    {
+      "attr": "manufacturing_margin_mm",
+      "node_id": "net.vbus_5v",
+      "reason": "attribute exists in the written graph but not in the design input"
+    }
+  ],
+  "existing_content_hash": "sha256:c27a74c5215c93c339d5ae3c08e8f3eb11a28368f30304eadc710120410554fc",
+  "graph_id": "dual-beacon-tag",
+  "graph_path": "fixtures/dual-beacon-tag/graph.json",
+  "revision": "r1"
+}

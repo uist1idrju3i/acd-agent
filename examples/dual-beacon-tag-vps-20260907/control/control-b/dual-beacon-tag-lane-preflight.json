@@ -1,0 +1,57 @@
+{
+  "graph_id": "dual-beacon-tag",
+  "revision": "r1",
+  "status": "declarations_complete",
+  "diagnostic_only": true,
+  "record_class": "L3",
+  "checked_predicates": [
+    "node.declared",
+    "attribute.declared"
+  ],
+  "unchecked_predicates": [
+    "attribute.type",
+    "attribute.value",
+    "reference.resolved",
+    "rationale.coverage",
+    "tool.available",
+    "gate.executed",
+    "evidence.authoritative"
+  ],
+  "lanes": [
+    {
+      "lane": "board-pipeline",
+      "status": "declarations_complete",
+      "missing_nodes": [],
+      "missing_attrs": [],
+      "unsupported_values": [],
+      "firmware_coverage": null
+    },
+    {
+      "lane": "enclosure-pipeline",
+      "status": "declarations_complete",
+      "missing_nodes": [],
+      "missing_attrs": [],
+      "unsupported_values": [],
+      "firmware_coverage": null
+    },
+    {
+      "lane": "firmware-pipeline",
+      "status": "declarations_complete",
+      "missing_nodes": [],
+      "missing_attrs": [],
+      "unsupported_values": [],
+      "firmware_coverage": {
+        "status": "pass",
+        "findings": []
+      }
+    },
+    {
+      "lane": "silkscreen-resolve",
+      "status": "declarations_complete",
+      "missing_nodes": [],
+      "missing_attrs": [],
+      "unsupported_values": [],
+      "firmware_coverage": null
+    }
+  ]
+}
