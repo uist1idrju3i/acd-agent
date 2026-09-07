@@ -74,6 +74,16 @@ allowed-tools:
    却下応答には`recovery_rerun`として機械可読な再実行引数、宣言された復帰次元、
    復帰不能laneの次手が含まれる。laneごとの宣言由来復帰は`recover_lanes`を明示した
    場合に有効になり、詳細な手順は`/acd:vibebb-recover`を使う。
+   board-pipelineまたはboard-explorationで失敗した場合、`loop-summary.json`の
+   `router_diagnostics`にrouterの収束状態、`unrouted`数のpassごとの推移、最終
+   未配線数、plateau pass数、`status: "fail"`のnet一覧（10件上限）がL3診断として
+   記録される。探索候補を評価したroundがある場合は候補ごとの
+   `candidate_router_diagnostics`も記録される（12件上限）。plateau（末尾3 pass以上
+   同一値）なら宣言済み制約内で候補軸（外形サイズ、層数、部品間隔・配置）を広げるか
+   設計入力へ制約を明示し、減少継続なら`--max-passes`を先に引き上げ、timeoutなら
+   `--router-timeout-s`を引き上げるか配線負荷を下げる。いずれもDRCや配線規則を
+   緩めない。これらの診断と`next_step_action`へのhint追記はL3観測であり、
+   合否権限を持たない。
 5. 発注可否はloopが返すorder-readiness結果と、必要なら
    `acd_check_order_readiness`で確認する。発注実行はこのcommandの責務ではない。
 6. 各roundの終了後、run出力のL3 recordを会話へ返して進行を可視化する。
@@ -138,6 +148,30 @@ FW boot logの既定文言もgraph_idから導出する（規範は
 [`docs/architecture.md`](../../../docs/architecture.md)）。GD1の従来文言はfixtureの
 `firmware.module.boot_log_message`明示属性で再現する。graphが不明な場合は既定値を
 推測せずfail-closedにする。
+
+FW laneは`firmware.sequence_step`・`firmware.state_transition`・`firmware.pin_assignment`と
+capability registry（`contracts/firmware-capability-registry.json`）の被覆検査を、
+Skill起動前にfail-closedで行う。`led_indicator: true`を宣言した電気部品はいずれかの
+`firmware.sequence_step`の`target`でなければならず、sequence stepの`action`は登録済み
+capabilityの`actions`に含まれていなければならない。`firmware.state_transition`の
+`trigger`は、sequenceが使うcapabilityの`emits_triggers`のいずれかで発火できなければ
+ならない。`firmware.pin_assignment`のnet（`net.`接頭辞を除くrole）は`pin_role_order`か
+使用capabilityの`required_pin_roles`に含まれていなければならない。違反時は
+`firmware coverage failed`で停止し、修正はsequence stepの追加、
+`acd-firmware-capability-entry`（`scripts/register_firmware_capability.py`）での
+capability登録（`emits_triggers`宣言付き）、または登録済みpin roleへのnet改名で行う。
+宣言を削って検査を回避しない。検査結果はlane出力の`firmware-coverage.json`と
+preflightの`firmware_coverage`へL3診断として残る。
+
+2個目のLEDとボタン入力は登録済みcapabilityで宣言する。第2 LEDはnetを`net.led2`として
+`firmware.pin_assignment`を追加し、部品へ`led_indicator: true`と`led_drive_net: "net.led2"`を
+宣言したうえでsequence stepへ`toggle_led2`（capability `led2_blink`、targetはそのLED部品）を
+追加する。生成FWは`led`と`led2`を交互に点滅させる。ボタン入力はnetを`net.button`として
+pinを割り当て、`read_button`（capability `button_input`）をsequenceへ追加する。
+`button_pressed`は`button_input`の`emits_triggers`に登録済みで、`read_button`がsequenceに
+あるときだけ`button_pressed`をtriggerとする`firmware.state_transition`が被覆検査を通る。
+buttonは内部pull-up付きactive-low入力として射影され、押下で点滅をpause／resumeする。
+どちらのcapabilityも`led_blink`の存在を前提とし、単独では射影できない。
 
 機能blockのトポロジは`contracts/topology-templates.json`から検証・合成され、部品の
 追加は`acd_register_parts_catalog_entry`でlibrary provenanceを検証してから行う。

@@ -293,6 +293,19 @@ template固有netとshared netの衝突、未知block、重複宣言、template�
 FW capability registryは`contracts/firmware-capability-registry.json`を正とし、
 firmware sequenceのaction、pin role、device parameterから生成対象を解決する。未宣言の
 peripheralは投影せず、registryの欠落・schema違反・解決不能はfail-closedにする。
+capabilityは`emits_triggers`で発火できるstate transition triggerを宣言し、
+`check_firmware_coverage`が要件→`fw.sequence`の被覆をgraphとregistryだけから
+fail-closedで検査する。`led_indicator`部品がsequence stepのtargetでない、sequenceが
+使うcapabilityの`emits_triggers`外のtrigger、登録外pin role、未登録actionはいずれも
+FW laneのSkill起動前に`FirmwareLaneError`で停止し、検査結果は
+`firmware-coverage.json`とpreflightの`firmware_coverage`へL3診断として残る。
+pin roleは`led`・`led2`・`button`を含み、`led2_blink`（`toggle_led2`）は第2 LEDを
+`led`と逆位相で点滅させ、`button_input`（`read_button`、trigger `button_pressed`を発火）は
+内部pull-up付きactive-low入力を押下検出して点滅をpause／resumeする。どちらも
+`led_blink`を前提とし、LED actionの`target`は`led_drive_net`が対応role（`net.led`／
+`net.led2`）のFW pinへ解決する電気部品でなければfail-closedとなる。QEMU仮想ログ検査は
+`LED2 gpio=… state=`の両状態toggleを要求し、仮想runでbuttonは押されないため
+`paused=1`の出現を拒否する。
 
 部品entryは`register_part_catalog_entry.py`または
 `acd_register_parts_catalog_entry`から追加する。両経路はsymbol／footprintの実file
@@ -357,6 +370,14 @@ outline X、`left`／`right`はoutline Y）、`center_y_mm`は基板面からの
 それ以外の値は`extract_mechanical_lane`の`GraphExtractionError`と機械preflightの
 `mechanical.connector_opening.face_unsupported`の両方でfail-closedにし、
 機械断面検査は4面すべての宣言済みaperture境界と内壁被覆を照合する。
+
+board-pipelineまたはboard-explorationがfail-closedで失敗した場合、
+`read_router_diagnostics`が基板lane出力の`l3/router-pass-progress.json`（`unrouted`
+推移と収束状態）と`gate-evidence/routing-connectivity.json`（fail状態net）を読み、
+`loop-summary.json`へ`router_diagnostics`・`candidate_router_diagnostics`として記録し、
+plateau・減少継続・timeoutに応じた次手を`next_step_action`へ追記する。
+これらは`record_class: "L3"`の観測であり、ゲート、`assert_converged`、閾値、
+passの意味を変更しない。
 
 GD1では、基板pipelineがERC、routing収束、SES import、DRC、fabrication出力、独立再読込、
 silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾何と判定条件をcontextとして
