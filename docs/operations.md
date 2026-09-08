@@ -2090,6 +2090,34 @@ plugin = acd_plugin_source("v1.2.3")
   interpreter heredoc本文（inline codeと同じ規則）、および未終端のheredoc。
 - command substitution（`$( )`・バッククォート）内を含む保護pathへの参照、
   `xargs`・`find`の書き込みprimary、解析不能なcommand、nested shellの深さ超過。
+- inline code（`-c`・`-e`・interpreter heredoc本文）中の動的実行・復号primitive
+  （`exec(`・`eval(`・`compile(`・`__import__(`・`base64.*decode(`・
+  `codecs.decode(`・`marshal.load*`・`importlib.import_module(`・
+  `zlib.decompress(`・`bytes.fromhex(`）。難読化されたpayloadは検査不能なため、
+  保護path参照の有無に関わらず「読み取り系inline code」とは見なさない。
+- `ssh`・`docker`/`podman`（`exec`・`run`・`create`）・`kubectl exec`・`chroot`・
+  `nsenter`等のwrapper commandは、wrapper自身の引数を従来どおり検査したうえで
+  内側commandを同じ規則で再帰評価する。直接実行なら許可される読み取り系
+  commandはwrapper経由でも許可され、内側の書き込みは同じく拒否される。
+- `docker`/`podman`の`run`/`create`でlock済みACD image（`acd-server*`・
+  `acd-tools*`）を直接起動するcommand、およびcontainerの`exec`/`run`でpipeline
+  入口（`scripts/run_*.py`・`run_design_loop`・`run_design_lanes`・`acd-*` CLI）
+  を呼ぶcommand。これらはprovenanceとdownloadが記録されない正規経路外の実行と
+  して拒否し、`scripts/run_in_workspace.py`経由を案内する。
+
+拒否時の`reason`は固定文の末尾へ`[denied: <kind>: <token>]`を付け、判定種別
+（`protected_path_token`・`unsupported_syntax`・`mv_source`・`redirect_target`・
+`output_option`・`write_target`・`inline_write`・`dynamic_exec`・
+`unparseable_command`・`nesting_depth`・`unterminated_heredoc`・
+`raw_container_image`・`raw_container_pipeline`・`editor_path`・`patch_path`）と
+該当tokenを示す。`raw_container_*`の場合はrunner利用の案内を末尾へ追加する。
+判定条件そのものは上記の追加規則を除き変更しない。
+
+SessionStart hookのserver image lockは、会話project dir直下に限らず次の順で探索し、
+最初の可読かつ有効なlockを採用する: project dir、`bootstrap-record.json`の
+`workspace_path`が指すworkspace、`$ACD_PLUGIN_ROOT`の親checkout、hook script自身を
+含むcheckout、image内`/opt/acd`。すべて解決できない場合はfail-closed contextへ探索
+path列を付記する。
 
 ## graph単体検証の正規経路
 

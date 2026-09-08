@@ -4,10 +4,18 @@ from __future__ import annotations
 
 import re
 import shlex
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from common import REASON, STOP_REPORT_PATH, event, project_dir, result
+from common import (
+    REASON,
+    RUNNER_GUIDANCE,
+    STOP_REPORT_PATH,
+    event,
+    project_dir,
+    result,
+)
 
 PROTECTED = ("out", "evidence")
 GENERATED = {
@@ -42,6 +50,73 @@ READ_ONLY_COMMANDS = frozenset(
 REDIRECTS = frozenset({">", ">>", "2>", "&>", ">|"})
 SEPARATORS = frozenset({";", "&&", "||", "|", "&"})
 MAX_NESTING_DEPTH = 4
+WRAPPER_COMMANDS = frozenset({"ssh", "docker", "podman", "kubectl", "chroot", "nsenter"})
+_SSH_VALUE_OPTIONS = frozenset(
+    {
+        "-p", "-l", "-i", "-F", "-o", "-J", "-L", "-R", "-D", "-W",
+        "-b", "-c", "-m", "-O", "-Q", "-S", "-E", "-e", "-B", "-w",
+    }
+)
+_DOCKER_GLOBAL_VALUE_OPTIONS = frozenset(
+    {"-H", "--host", "--config", "--context", "-D", "--log-level", "-l"}
+)
+_DOCKER_WRAPPER_SUBCOMMANDS = frozenset({"exec", "run", "create"})
+_DOCKER_EXEC_VALUE_OPTIONS = frozenset(
+    {"-e", "--env", "-u", "--user", "-w", "--workdir", "--env-file", "--detach-keys"}
+)
+_DOCKER_RUN_VALUE_OPTIONS = frozenset(
+    {
+        "-e", "--env", "-v", "--volume", "--mount", "-w", "--workdir",
+        "-u", "--user", "--name", "--entrypoint", "-p", "--publish",
+        "--network", "--platform", "-m", "--memory", "--memory-swap",
+        "--cpus", "--label", "-l", "--env-file", "--add-host", "--device",
+        "--gpus", "--shm-size", "--pull", "--restart", "--log-driver",
+        "--log-opt", "--ulimit", "--security-opt", "--cap-add", "--cap-drop",
+        "--tmpfs", "--hostname", "-h", "--pid", "--ipc", "--uts",
+        "--cgroupns", "--stop-timeout", "--health-cmd", "--sysctl", "--dns",
+        "--group-add",
+    }
+)
+_KUBECTL_VALUE_OPTIONS = frozenset({"-n", "--namespace", "-c", "--container"})
+_NSENTER_VALUE_OPTIONS = frozenset({"-t", "--target", "-S", "-G", "-w", "-r"})
+_DYNAMIC_EXEC = re.compile(
+    r"\b(?:exec|eval|compile|__import__)\s*\(|\bbase64\."
+    r"(?:b64decode|b32decode|b16decode|a85decode|b85decode)\s*\(|"
+    r"\bcodecs\.decode\s*\(|\bmarshal\.loads?\s*\(|"
+    r"\bimportlib\.import_module\s*\(|\bzlib\.decompress\s*\(|"
+    r"\bbytes\.fromhex\s*\("
+)
+_PIPELINE_ENTRY = re.compile(
+    r"(?:^|/)scripts/(?:run|resolve)_[a-z0-9_]+\.py$"
+    r"|(?:^|/)scripts/build_design_fixture\.py$"
+    r"|(?:^|/)run_design_(?:loop|lanes)$"
+    r"|(?:^|/)acd-[a-z0-9_-]+$"
+)
+_CONTAINER_IMAGE_PREFIXES = ("acd-server", "acd-tools")
+
+
+@dataclass(frozen=True)
+class Denial:
+    """A projection-protection denial with its judgment kind and token."""
+
+    kind: str
+    token: str
+
+
+@dataclass(frozen=True)
+class WrapperInfo:
+    """Split details of a recognised wrapper command.
+
+    ``inner_index`` is the token index where the inner command begins (equal
+    to ``len(tokens)`` when the wrapper carries none). ``image`` is the
+    image token of a container ``run``/``create``. ``pipeline_check`` marks
+    wrappers whose inner command may invoke pipeline entry points
+    (container ``exec``/``run``).
+    """
+
+    inner_index: int
+    image: str | None
+    pipeline_check: bool
 _ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _UNSUPPORTED_SYNTAX = re.compile(r"\$\(|`|<\(|>\(|[(){}]")
 _COMMAND_SUBSTITUTION = re.compile(r"\$\(|`|<\(|>\(")
@@ -325,26 +400,27 @@ def _command_index(tokens: list[str]) -> int:
     return index
 
 
-def _option_targets(tokens: list[str], root: Path) -> bool:
+def _option_targets(tokens: list[str], root: Path) -> str | None:
+    """Return the offending output-option token, or ``None`` when allowed."""
     index = 0
     while index < len(tokens):
         token = tokens[index]
         if token in OUTPUT_OPTIONS:
             if index + 1 >= len(tokens):
-                return True
+                return token
             value = tokens[index + 1]
             _, resolvable, _ = _path_status(value, root)
             if not resolvable:
-                return True
+                return value
             index += 2
             continue
         if any(token.startswith(option + "=") for option in OUTPUT_OPTIONS):
             value = token.split("=", 1)[1]
             _, resolvable, _ = _path_status(value, root)
             if not value or not resolvable:
-                return True
+                return token
         index += 1
-    return False
+    return None
 
 
 def _non_option_values(tokens: list[str], *, skip_value_options: frozenset[str]) -> list[str]:
@@ -431,11 +507,11 @@ def _write_targets(tokens: list[str], command: str) -> list[str]:
     return []
 
 
-def _protected_references(value: str, root: Path) -> bool:
-    return any(
-        _protected_write(match.group(0), root)
-        for match in _INLINE_PATH.finditer(value)
-    )
+def _first_protected_reference(value: str, root: Path) -> str | None:
+    for match in _INLINE_PATH.finditer(value):
+        if _protected_write(match.group(0), root):
+            return match.group(0)
+    return None
 
 
 def _xargs_command(tokens: list[str]) -> list[str]:
@@ -501,11 +577,183 @@ def _inline_code(tokens: list[str], index: int) -> str | None:
     return None
 
 
-def _check_inline_code(code: str, root: Path) -> bool:
-    return not (
-        _protected_references(code, root)
-        and _INLINE_WRITE_INDICATOR.search(code) is not None
+def _check_inline_code(code: str, root: Path) -> Denial | None:
+    # Dynamic execution and decode primitives cannot be inspected, so they are
+    # denied even without a visible protected reference (they are not
+    # read-only inline code).
+    dynamic = _DYNAMIC_EXEC.search(code)
+    if dynamic is not None:
+        protected = _first_protected_reference(code, root)
+        token = dynamic.group(0)
+        if protected is not None:
+            token = f"{token} {protected}"
+        return Denial("dynamic_exec", token)
+    indicator = _INLINE_WRITE_INDICATOR.search(code)
+    if indicator is not None:
+        protected = _first_protected_reference(code, root)
+        if protected is not None:
+            return Denial("inline_write", f"{indicator.group(0)} {protected}")
+    return None
+
+
+def _unsupported_syntax_denial(tokens: list[str], root: Path) -> Denial | None:
+    joined = " ".join(tokens)
+    # `<` and `>` are tokenized as separate punctuation, so `<(`/`>(` appear as
+    # a redirect-looking token followed by a `(`-led token rather than one word.
+    has_substitution = _COMMAND_SUBSTITUTION.search(joined) is not None or any(
+        token.endswith(("<", ">"))
+        and position + 1 < len(tokens)
+        and tokens[position + 1].startswith("(")
+        for position, token in enumerate(tokens)
     )
+    if has_substitution or _UNSUPPORTED_SYNTAX.search(joined):
+        protected = _first_protected_reference(joined, root)
+        if protected is not None:
+            return Denial("unsupported_syntax", protected)
+    return None
+
+
+def _skip_flag_sequence(
+    tokens: list[str], index: int, *, value_options: frozenset[str]
+) -> int:
+    while index < len(tokens) and tokens[index].startswith("-"):
+        if tokens[index] == "--":
+            return index + 1
+        index = _skip_option(tokens, index, value_options=value_options)
+    return index
+
+
+def _wrapper_inner(
+    tokens: list[str], index: int
+) -> tuple[list[str] | None, WrapperInfo | None]:
+    """Split a recognised wrapper command into its inner command tokens.
+
+    Returns ``(inner, info)`` for a recognised wrapper (``inner`` is ``None``
+    when the wrapper carries no inner command) and ``(None, None)`` when the
+    command is not a recognised wrapper.
+    """
+    if index >= len(tokens):
+        return None, None
+    name = Path(tokens[index]).name
+    if name not in WRAPPER_COMMANDS:
+        return None, None
+    if name == "ssh":
+        cursor = _skip_flag_sequence(
+            tokens, index + 1, value_options=_SSH_VALUE_OPTIONS
+        )
+        if cursor >= len(tokens):
+            return None, WrapperInfo(len(tokens), None, False)
+        inner_index = cursor + 1  # skip the host token
+        inner = tokens[inner_index:]
+        return inner or None, WrapperInfo(inner_index, None, False)
+    if name in {"docker", "podman"}:
+        cursor = _skip_flag_sequence(
+            tokens, index + 1, value_options=_DOCKER_GLOBAL_VALUE_OPTIONS
+        )
+        if cursor >= len(tokens):
+            return None, None
+        subcommand = tokens[cursor]
+        cursor += 1
+        if subcommand == "container" and cursor < len(tokens):
+            subcommand = tokens[cursor]
+            cursor += 1
+        if subcommand not in _DOCKER_WRAPPER_SUBCOMMANDS:
+            return None, None
+        value_options = (
+            _DOCKER_EXEC_VALUE_OPTIONS
+            if subcommand == "exec"
+            else _DOCKER_RUN_VALUE_OPTIONS
+        )
+        cursor = _skip_flag_sequence(tokens, cursor, value_options=value_options)
+        image: str | None = None
+        if subcommand == "exec":
+            inner_index = min(cursor + 1, len(tokens))  # skip the container token
+        else:
+            if cursor < len(tokens):
+                image = tokens[cursor]
+            inner_index = min(cursor + 1, len(tokens))
+        inner = tokens[inner_index:]
+        info = WrapperInfo(
+            inner_index,
+            image if subcommand in {"run", "create"} else None,
+            subcommand in {"exec", "run"},
+        )
+        return inner or None, info
+    if name == "kubectl":
+        cursor = index + 1
+        if cursor >= len(tokens) or tokens[cursor] != "exec":
+            return None, None
+        cursor = _skip_flag_sequence(
+            tokens, cursor + 1, value_options=_KUBECTL_VALUE_OPTIONS
+        )
+        if cursor >= len(tokens):
+            return None, WrapperInfo(len(tokens), None, False)
+        inner_index = cursor + 1  # skip the pod token
+        if inner_index < len(tokens) and tokens[inner_index] == "--":
+            inner_index += 1
+        inner = tokens[inner_index:]
+        return inner or None, WrapperInfo(inner_index, None, False)
+    if name == "chroot":
+        cursor = _skip_flag_sequence(
+            tokens, index + 1, value_options=frozenset()
+        )
+        if cursor >= len(tokens):
+            return None, WrapperInfo(len(tokens), None, False)
+        inner_index = cursor + 1  # skip the newroot token
+        inner = tokens[inner_index:]
+        return inner or None, WrapperInfo(inner_index, None, False)
+    # nsenter
+    inner_index = _skip_flag_sequence(
+        tokens, index + 1, value_options=_NSENTER_VALUE_OPTIONS
+    )
+    inner = tokens[inner_index:]
+    return inner or None, WrapperInfo(inner_index, None, False)
+
+
+def _check_wrapper(
+    tokens: list[str],
+    index: int,
+    inner: list[str] | None,
+    info: WrapperInfo,
+    root: Path,
+    depth: int,
+    heredocs: dict[str, str],
+) -> Denial | None:
+    if info.image is not None:
+        base = info.image.rsplit("/", 1)[-1].split("@", 1)[0].split(":", 1)[0]
+        if base.startswith(_CONTAINER_IMAGE_PREFIXES):
+            return Denial("raw_container_image", info.image)
+    if inner and info.pipeline_check:
+        for token in inner:
+            if _PIPELINE_ENTRY.search(token):
+                return Denial("raw_container_pipeline", token)
+    # The wrapper's own tokens keep the generic shell checks; the inner
+    # command is evaluated recursively below. Wrapper commands are neither
+    # read-only nor write commands, so the substitution and unsupported-syntax
+    # checks both apply to them.
+    denial = _unsupported_syntax_denial(tokens[index : info.inner_index], root)
+    if denial is not None:
+        return denial
+    if not inner:
+        return None
+    if depth >= MAX_NESTING_DEPTH:
+        return Denial("nesting_depth", inner[0])
+    if len(inner) == 1:
+        # A wrapper such as ssh joins its arguments into one remote shell
+        # string, so a single token is re-tokenized as that string.
+        inner_tokens = _tokenize(inner[0])
+        if inner_tokens is None:
+            return Denial("unparseable_command", inner[0])
+    else:
+        inner_tokens = inner
+    inner_commands = _simple_commands(inner_tokens)
+    if inner_commands is None:
+        return Denial("unparseable_command", " ".join(inner)[:120])
+    for item in inner_commands:
+        denial = _check_simple(item, root, depth + 1, heredocs)
+        if denial is not None:
+            return denial
+    return None
 
 
 def _check_simple(
@@ -513,38 +761,47 @@ def _check_simple(
     root: Path,
     depth: int,
     heredocs: dict[str, str],
-) -> bool:
+) -> Denial | None:
     redirections = _redirection_targets(tokens)
     if redirections is None:
-        return False
-    if any(_protected_write(value, root) for value in redirections):
-        return False
-    if _option_targets(tokens, root):
-        return False
+        return Denial("unparseable_command", " ".join(tokens)[:120])
+    for value in redirections:
+        if _protected_write(value, root):
+            return Denial("redirect_target", value)
+    option = _option_targets(tokens, root)
+    if option is not None:
+        return Denial("output_option", option)
     index = _command_index(tokens)
     if index >= len(tokens):
-        return False
+        return Denial("unparseable_command", " ".join(tokens)[:120])
     nested = _nested_script(tokens, index)
     if nested is not None:
         if depth >= MAX_NESTING_DEPTH:
-            return False
+            return Denial("nesting_depth", nested[:120])
         nested_tokens = _tokenize(nested)
         nested_commands = _simple_commands(nested_tokens) if nested_tokens is not None else None
-        return nested_commands is not None and all(
-            _check_simple(command, root, depth + 1, heredocs)
-            for command in nested_commands
-        )
+        if nested_commands is None:
+            return Denial("unparseable_command", nested[:120])
+        for command in nested_commands:
+            denial = _check_simple(command, root, depth + 1, heredocs)
+            if denial is not None:
+                return denial
+        return None
     code = _inline_code(tokens, index)
     if code is not None:
         return _check_inline_code(code, root)
     command = Path(tokens[index]).name
+    inner, wrapper = _wrapper_inner(tokens, index)
+    if wrapper is not None:
+        return _check_wrapper(tokens, index, inner, wrapper, root, depth, heredocs)
     if command == "xargs":
-        return not _protected_references(" ".join(tokens), root) and (
-            not _xargs_command(tokens[index + 1:])
-            or _check_simple(
-                _xargs_command(tokens[index + 1:]), root, depth, heredocs
-            )
-        )
+        protected = _first_protected_reference(" ".join(tokens), root)
+        if protected is not None:
+            return Denial("protected_path_token", protected)
+        inner_command = _xargs_command(tokens[index + 1:])
+        if not inner_command:
+            return None
+        return _check_simple(inner_command, root, depth, heredocs)
     if command == "find":
         roots, inner_commands = _find_write_targets(tokens[index + 1:])
         has_write_primary = any(
@@ -553,33 +810,40 @@ def _check_simple(
             for value in tokens[index + 1:]
         )
         if not has_write_primary:
-            return True
-        if any(_protected_write(value, root) for value in roots):
-            return False
-        return all(
-            _check_simple(inner, root, depth, heredocs) for inner in inner_commands
-        )
-    if command == "eval" and _protected_references(" ".join(tokens[index + 1:]), root):
-        return False
+            return None
+        for value in roots:
+            if _protected_write(value, root):
+                return Denial("write_target", value)
+        for inner_command in inner_commands:
+            denial = _check_simple(inner_command, root, depth, heredocs)
+            if denial is not None:
+                return denial
+        return None
+    if command == "eval":
+        protected = _first_protected_reference(" ".join(tokens[index + 1:]), root)
+        if protected is not None:
+            return Denial("protected_path_token", protected)
     for position, token in enumerate(tokens):
         body = heredocs.get(token)
         if body is None:
             continue
         if command in SHELL_COMMANDS:
             if depth >= MAX_NESTING_DEPTH:
-                return False
+                return Denial("nesting_depth", body[:120])
             body_tokens = _tokenize(body)
             body_commands = (
                 _simple_commands(body_tokens) if body_tokens is not None else None
             )
-            if body_commands is None or not all(
-                _check_simple(item, root, depth + 1, heredocs)
-                for item in body_commands
-            ):
-                return False
+            if body_commands is None:
+                return Denial("unparseable_command", body[:120])
+            for item in body_commands:
+                denial = _check_simple(item, root, depth + 1, heredocs)
+                if denial is not None:
+                    return denial
         elif command in INLINE_INTERPRETERS or command in {"eval", "xargs"}:
-            if not _check_inline_code(body, root):
-                return False
+            denial = _check_inline_code(body, root)
+            if denial is not None:
+                return denial
         tokens[position] = "-"
     joined = " ".join(tokens)
     # `<` and `>` are tokenized as separate punctuation, so `<(`/`>(` appear as
@@ -590,38 +854,64 @@ def _check_simple(
         and tokens[position + 1].startswith("(")
         for position, token in enumerate(tokens)
     )
-    if has_substitution and _protected_references(joined, root):
-        return False
+    if has_substitution:
+        protected = _first_protected_reference(joined, root)
+        if protected is not None:
+            return Denial("unsupported_syntax", protected)
     if command in READ_ONLY_COMMANDS:
-        return True
-    if _UNSUPPORTED_SYNTAX.search(joined) and _protected_references(joined, root):
-        return False
+        return None
+    if _UNSUPPORTED_SYNTAX.search(joined):
+        protected = _first_protected_reference(joined, root)
+        if protected is not None:
+            return Denial("unsupported_syntax", protected)
     if command not in WRITE_COMMANDS:
-        return True
-    return not any(
-        _protected_write(value, root)
-        for value in _write_targets(tokens[index + 1:], command)
-    )
+        return None
+    arguments = tokens[index + 1:]
+    mv_sources: tuple[str, ...] = ()
+    if command == "mv":
+        values = _non_option_values(
+            arguments,
+            skip_value_options=frozenset({"-t", "--target-directory", "-T"}),
+        )
+        mv_sources = tuple(values[:-1]) if values else ()
+    for value in _write_targets(arguments, command):
+        if _protected_write(value, root):
+            kind = "mv_source" if value in mv_sources else "write_target"
+            return Denial(kind, value)
+    return None
 
 
-def _terminal_allowed(command: str, root: Path) -> bool:
+def _terminal_denial(command: str, root: Path) -> Denial | None:
     if command.strip() == "":
-        return True
+        return None
     split = _split_heredocs(command)
     if split is None:
-        return False
+        return Denial("unterminated_heredoc", command.strip()[:120])
     text, heredocs = split
     tokens = _tokenize(text)
     commands = _simple_commands(tokens) if tokens is not None else None
-    if commands is not None and any(
+    if commands is None:
+        return Denial("unparseable_command", command.strip()[:120])
+    if any(
         _command_index(item) < len(item)
         and Path(item[_command_index(item)]).name == "xargs"
         for item in commands
-    ) and _protected_references(command, root):
-        return False
-    return commands is not None and all(
-        _check_simple(item, root, 0, heredocs) for item in commands
-    )
+    ):
+        protected = _first_protected_reference(command, root)
+        if protected is not None:
+            return Denial("protected_path_token", protected)
+    for item in commands:
+        denial = _check_simple(item, root, 0, heredocs)
+        if denial is not None:
+            return denial
+    return None
+
+
+def _terminal_allowed(  # pyright: ignore[reportUnusedFunction]
+    command: str, root: Path
+) -> bool:
+    """Bool compatibility wrapper over :func:`_terminal_denial`."""
+    return _terminal_denial(command, root) is None
 
 
 def _patch_paths(value: str) -> list[str]:
@@ -635,12 +925,12 @@ def _patch_paths(value: str) -> list[str]:
     return paths
 
 
-def _editor_allowed(tool: str, tool_input: Any, root: Path) -> bool:
+def _editor_denial(tool: str, tool_input: Any, root: Path) -> Denial | None:
     if not isinstance(tool_input, dict):
-        return False
+        return Denial("editor_path", tool)
     mapping = cast(dict[str, Any], tool_input)
     if tool == "file_editor" and mapping.get("command") == "view":
-        return True
+        return None
     if tool in {"apply_patch", "patch"}:
         patch = next(
             (
@@ -651,9 +941,23 @@ def _editor_allowed(tool: str, tool_input: Any, root: Path) -> bool:
             None,
         )
         paths = _patch_paths(patch) if isinstance(patch, str) else []
-        return bool(paths) and not any(_protected_write(path, root) for path in paths)
-    values = input_paths(tool_input, tool)
-    return not any(_protected_write(value, root) for value in values)
+        if not paths:
+            return Denial("patch_path", "")
+        for path in paths:
+            if _protected_write(path, root):
+                return Denial("patch_path", path)
+        return None
+    for value in input_paths(tool_input, tool):
+        if _protected_write(value, root):
+            return Denial("editor_path", value)
+    return None
+
+
+def _editor_allowed(  # pyright: ignore[reportUnusedFunction]
+    tool: str, tool_input: Any, root: Path
+) -> bool:
+    """Bool compatibility wrapper over :func:`_editor_denial`."""
+    return _editor_denial(tool, tool_input, root) is None
 
 
 def main() -> int:
@@ -661,20 +965,28 @@ def main() -> int:
     root = project_dir(payload)
     tool = str(payload.get("tool_name", ""))
     tool_input = payload.get("tool_input")
+    denial: Denial | None
     if tool == "terminal":
         command = (
             cast(dict[str, Any], tool_input).get("command")
             if isinstance(tool_input, dict)
             else None
         )
-        allowed = isinstance(command, str) and _terminal_allowed(command, root)
+        denial = (
+            _terminal_denial(command, root)
+            if isinstance(command, str)
+            else Denial("unparseable_command", tool)
+        )
     elif tool in {"file_editor", "apply_patch", "patch"}:
-        allowed = _editor_allowed(tool, tool_input, root)
+        denial = _editor_denial(tool, tool_input, root)
     else:
-        allowed = True
-    if allowed:
+        denial = None
+    if denial is None:
         return 0
-    result(decision="deny", reason=REASON)
+    reason = f"{REASON} [denied: {denial.kind}: {denial.token}]"
+    if denial.kind in {"raw_container_image", "raw_container_pipeline"}:
+        reason = f"{reason} {RUNNER_GUIDANCE}"
+    result(decision="deny", reason=reason)
     return 2
 
 

@@ -15,6 +15,10 @@ REASON = (
     "options and the fail-closed stop report are permitted."
 )
 STOP_REPORT_PATH = "out/stop-report.json"
+RUNNER_GUIDANCE = (
+    "Use scripts/run_in_workspace.py (DockerWorkspace) so provenance and "
+    "downloads are recorded."
+)
 
 
 def event() -> dict[str, Any]:
