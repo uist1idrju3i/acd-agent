@@ -1,0 +1,80 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "evidence.dual-beacon-tag.firmware-virtual",
+  "target_revision": "r1",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "acd-firmware-esp32c3",
+    "tool_version": "9.2.2 (esp_develop_9.2.2_20260417)",
+    "format_version": "0.1",
+    "config_hash": "sha256:e7c4144e507a1afd6bbae9eba14a3a8405780ab7b9c4e5ed5acc55d3a4b1c50b",
+    "input_hash": "sha256:87f3d65c0cf54960bc107a3f8fedb0840c22fb4fb49c68db4be4f8dab436d35d",
+    "output_hash": "sha256:6d4a0144e79feba70ccaf554f18d3e5fca94936ecf839a15ce43fd38998aa3fc",
+    "execution_env": "linux-x86_64; container=sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+    "execution_context": "container",
+    "container_image_digest": "sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+    "measurement_conditions": "virtual device (QEMU esp32c3); no external device attached; virtual verification only, not real-device evidence; virtual run stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+    "convergence_state": "converged",
+    "target_revision": "r1",
+    "started_at": "2026-09-08T15:36:32.596457Z",
+    "finished_at": "2026-09-08T15:38:40.848401Z",
+    "exit_code": 0,
+    "idempotency_key": null,
+    "uncertainty": null,
+    "source_revision": "573379d6f33f41790a49ebfbc4cfe7f8df1857a9",
+    "source_tree_state": "clean",
+    "source_dirty_digest": null
+  },
+  "claims": [
+    {
+      "subject_node": "fw.module.main",
+      "property": "measurement_class",
+      "value": "virtual",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "real_device_measurement",
+      "value": false,
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "virtual_target",
+      "value": "qemu-esp32c3",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "virtual_run_termination",
+      "value": "stopped by the intended 15s bound (exit code 124); this is the normal completion condition of the bounded virtual run, not a failure",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "toolchain_version",
+      "value": "esp-idf v6.1",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_source_hash",
+      "value": "sha256:5e3e828c4e7455c92c0f4fa4c5273163ff650dbbc4ce08e855d7942f87088a87",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_artifact_hash",
+      "value": "sha256:29bbfda998b6ef94acc39247b9309c645c8769bce6902902c2f51861fcb8f161",
+      "verified": true
+    },
+    {
+      "subject_node": "fw.module.main",
+      "property": "firmware_skill_script_sha256",
+      "value": "sha256:07434dc50269663c9cdccd391f1907e8cafb89d99cd1c2ed5b0f2a889083b18a",
+      "verified": true
+    }
+  ],
+  "created_at": "2026-09-08T15:38:40.848886Z"
+}

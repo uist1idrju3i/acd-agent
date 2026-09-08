@@ -1,0 +1,106 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:617b95b1ff1c904e1624d80b6cac2b4d9687594dc89976d7320a325192614020",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 1559.351421,
+  "stages": [
+    {
+      "duration_seconds": 0.002934,
+      "name": "design-loop/requirement-entry-validation",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.006307,
+      "name": "design-loop/lane-preflight",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 42.703131,
+      "name": "design-loop/silkscreen-resolve",
+      "start_order": 2
+    },
+    {
+      "duration_seconds": 500.469705,
+      "name": "design-loop/board-pipeline",
+      "start_order": 3
+    },
+    {
+      "duration_seconds": 15.230391,
+      "name": "design-loop/enclosure-pipeline",
+      "start_order": 4
+    },
+    {
+      "duration_seconds": 0.017644,
+      "name": "enclosure[0/5]",
+      "start_order": 5
+    },
+    {
+      "duration_seconds": 1.820159,
+      "name": "board[0/12]",
+      "start_order": 6
+    },
+    {
+      "duration_seconds": 0.000825,
+      "name": "enclosure[1/5]",
+      "start_order": 7
+    },
+    {
+      "duration_seconds": 13.655982,
+      "name": "enclosure[2/5]",
+      "start_order": 8
+    },
+    {
+      "duration_seconds": 3.175491,
+      "name": "board[1/12]",
+      "start_order": 9
+    },
+    {
+      "duration_seconds": 1.877361,
+      "name": "board[2/12]",
+      "start_order": 10
+    },
+    {
+      "duration_seconds": 483.723232,
+      "name": "board[3/12]",
+      "start_order": 11
+    },
+    {
+      "duration_seconds": 486.791953,
+      "name": "enclosure[3/5]",
+      "start_order": 12
+    },
+    {
+      "duration_seconds": 0.006501,
+      "name": "design-loop/firmware-pipeline",
+      "start_order": 13
+    },
+    {
+      "duration_seconds": 1.67993,
+      "name": "board[4/12]",
+      "start_order": 14
+    },
+    {
+      "duration_seconds": 1.746714,
+      "name": "board[5/12]",
+      "start_order": 15
+    },
+    {
+      "duration_seconds": 1.661531,
+      "name": "board[6/12]",
+      "start_order": 16
+    },
+    {
+      "duration_seconds": 0.156504,
+      "name": "board[7/12]",
+      "start_order": 17
+    },
+    {
+      "duration_seconds": 4.625126,
+      "name": "board[8/12]",
+      "start_order": 18
+    }
+  ],
+  "wall_clock_seconds": 543.187174
+}

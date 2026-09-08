@@ -1,0 +1,140 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "evidence.dual-beacon-tag.mechanical",
+  "target_revision": "r1",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "cad-kernel",
+    "tool_version": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+    "format_version": "STEP parts+assembly+3MF+STL+manifest",
+    "config_hash": "sha256:8ae578cb619ff8cf6a97791f1f6cb67fa6aaf9e219eab4cd1714724e30be4952",
+    "input_hash": "sha256:87f3d65c0cf54960bc107a3f8fedb0840c22fb4fb49c68db4be4f8dab436d35d",
+    "output_hash": "sha256:9baf92108ce7916cac3427cc430e56c8ee981d2ddcd07ff151c5bd128bd1e35a",
+    "execution_env": "linux-x86_64; container=sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+    "execution_context": "container",
+    "container_image_digest": "sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+    "measurement_conditions": "build123d box shell/lid, independent STEP parts, assembly STEP, antenna overhang cutout, standoff pilot holes, lid screw holes, Mesher 3MF, ASCII STL mesh export, normalized artifact manifest and output hash",
+    "convergence_state": "converged",
+    "target_revision": "r1",
+    "started_at": "2026-09-08T15:36:24.001074Z",
+    "finished_at": "2026-09-08T15:36:30.845116Z",
+    "exit_code": 0,
+    "idempotency_key": null,
+    "uncertainty": null,
+    "source_revision": "573379d6f33f41790a49ebfbc4cfe7f8df1857a9",
+    "source_tree_state": "clean",
+    "source_dirty_digest": null
+  },
+  "claims": [
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "cad_kernel_valid",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "interference_free",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "maximum_interference_volume_mm3",
+      "value": 0.0,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "internal_clearance_passed",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "measured_min_clearance_mm",
+      "value": 1.0,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "minimum_wall_thickness_mm",
+      "value": 2.0,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "shell_measured_volume_mm3",
+      "value": 4897.167610528496,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "lid_measured_volume_mm3",
+      "value": 2000.7946915566251,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "assembly_measured_volume_mm3",
+      "value": 6897.962302085121,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "stl_measured_volume_mm3",
+      "value": 6897.93358337081,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "stl_triangle_count",
+      "value": 3148,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "model_part_count",
+      "value": 2,
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "cad_artifact_manifest_hash",
+      "value": "sha256:ef558d473b85f67606b04f231011732bf4027fe1bf8f08d8e006294cf27ba575",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "enclosure_assembly_normalized_sha256",
+      "value": "sha256:3b2ebcd5d41c20390beb33a987011e195c0957614461e51f20d7f348bdd1d75a",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "enclosure_lid_normalized_sha256",
+      "value": "sha256:6533675ce17b3959d1e06647ba4b06d309fb79ac84c79ba1a7608ca4759e6598",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "enclosure_mesh_stl_normalized_sha256",
+      "value": "sha256:f7b7ed0d12e040a46e576c866f00067c0df308562cc117403c478710de9f4253",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "enclosure_model_normalized_sha256",
+      "value": "sha256:e263dd4ab8980bf6fc157370cd503ec09e3f451364c57acd1cf61efaba28ab26",
+      "verified": true
+    },
+    {
+      "subject_node": "mechanical.enclosure.dual-beacon-tag",
+      "property": "enclosure_shell_normalized_sha256",
+      "value": "sha256:77f967752cc0693453be5f8c8940a267a6170da643450784d020500561ac63f3",
+      "verified": true
+    }
+  ],
+  "created_at": "2026-09-08T15:36:32.593778Z"
+}

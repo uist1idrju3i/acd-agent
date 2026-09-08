@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+import json
+import copy
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+SPEC = REPO / "fixtures" / "dual-beacon-tag" / "spec.json"
+MB = REPO / "fixtures" / "mini-blink-dongle" / "spec.json"
+
+def main():
+    with open(SPEC) as f:
+        spec = json.load(f)
+    with open(MB) as f:
+        mb = json.load(f)
+
+    # 1. fab_order_intent
+    spec["fab_order_intent"] = copy.deepcopy(mb["fab_order_intent"])
+
+    # 2. component_bodies: copy from mb where possible, build for new parts
+    mb_bodies = {b["refdes"]: b for b in mb.get("component_bodies", [])}
+    new_bodies = []
+    for b in spec.get("component_bodies", []):
+        rd = b["refdes"]
+        if rd in mb_bodies:
+            nb = copy.deepcopy(mb_bodies[rd])
+            nb["node_id"] = f"mechanical.component_body.{rd.lower()}"
+            new_bodies.append(nb)
+        else:
+            # Build from templates
+            template = None
+            if rd == "D2":
+                template = copy.deepcopy(mb_bodies.get("D1"))
+                if template:
+                    template["attrs"]["x_mm"] = 12.0
+                    template["attrs"]["y_mm"] = 18.0
+            elif rd == "J2":
+                template = copy.deepcopy(mb_bodies.get("SW2"))
+                if template:
+                    template["attrs"]["x_mm"] = 25.0
+                    template["attrs"]["y_mm"] = 5.0
+                    template["attrs"]["width_mm"] = 2.54
+                    template["attrs"]["depth_mm"] = 2.54
+                    template["attrs"]["height_mm"] = 11.0
+            elif rd in ("R5", "R6"):
+                template = copy.deepcopy(mb_bodies.get("R1"))
+            if template:
+                template["refdes"] = rd
+                template["node_id"] = f"mechanical.component_body.{rd.lower()}"
+                new_bodies.append(template)
+    spec["component_bodies"] = new_bodies
+
+    with open(SPEC, "w") as f:
+        json.dump(spec, f, indent=2, ensure_ascii=False)
+    print("spec fixed for preflight")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,16 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:6b8741fb37c22aa90e16c2d1a3c1b62186a97d4ced1cbb83d63d77db03bd4564",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 0.007017,
+  "stages": [
+    {
+      "duration_seconds": 0.007017,
+      "name": "design-loop/fixture-generation",
+      "start_order": 0
+    }
+  ],
+  "wall_clock_seconds": 0.009008
+}

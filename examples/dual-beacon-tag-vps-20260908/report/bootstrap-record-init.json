@@ -1,0 +1,13 @@
+{
+  "content_sha256": "sha256:9084855716633b21f3c0126b8166fe3b207f7c2d26443822e8ae825ed4498438",
+  "lock_digest": "sha256:2a185b14637c34613d6473c665fa39852fe7368570b0a89bbd359f804fd9cf10",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "repo_url": "https://github.com/uist1idrju3i/acd-agent",
+  "requested_revision": "5bf2c90652f9ba5479cae97983446a652fac55ba",
+  "resolved_revision": "5bf2c90652f9ba5479cae97983446a652fac55ba",
+  "schema_version": "0.1",
+  "server_image_digest": "sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+  "source": "mounted",
+  "workspace_path": "/home/openhands/acd-workspace-verify-20260908"
+}

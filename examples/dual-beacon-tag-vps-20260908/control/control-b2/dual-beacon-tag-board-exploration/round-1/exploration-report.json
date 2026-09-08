@@ -1,0 +1,265 @@
+{
+  "artifact_kind": "board_exploration_report",
+  "authority_statement": "L1 deterministic gates retain sole authority.",
+  "candidate_generation": [],
+  "candidates": [
+    {
+      "candidate_id": "placement-0001",
+      "changes": {
+        "placements": {
+          "C1": {
+            "rotation_deg": 90.0,
+            "x_mm": 8.28,
+            "y_mm": 17.28
+          },
+          "C2": {
+            "rotation_deg": 90.0,
+            "x_mm": 6.28,
+            "y_mm": 17.28
+          },
+          "C3": {
+            "rotation_deg": 90.0,
+            "x_mm": 28.78,
+            "y_mm": 16.53
+          },
+          "C4": {
+            "rotation_deg": 90.0,
+            "x_mm": 7.28,
+            "y_mm": 2.53
+          },
+          "D1": {
+            "rotation_deg": 90.0,
+            "x_mm": 27.03,
+            "y_mm": 3.03
+          },
+          "D2": {
+            "rotation_deg": 90.0,
+            "x_mm": 6.78,
+            "y_mm": 8.28
+          },
+          "J1": {
+            "rotation_deg": 0.0,
+            "x_mm": 15.0,
+            "y_mm": 18.35
+          },
+          "J2": {
+            "rotation_deg": 0.0,
+            "x_mm": 24.07,
+            "y_mm": 2.82
+          },
+          "R1": {
+            "rotation_deg": 90.0,
+            "x_mm": 27.03,
+            "y_mm": 6.53
+          },
+          "R2": {
+            "rotation_deg": 90.0,
+            "x_mm": 4.78,
+            "y_mm": 8.28
+          },
+          "R3": {
+            "rotation_deg": 90.0,
+            "x_mm": 27.03,
+            "y_mm": 10.03
+          },
+          "R4": {
+            "rotation_deg": 90.0,
+            "x_mm": 1.28,
+            "y_mm": 2.78
+          },
+          "R5": {
+            "rotation_deg": 0.0,
+            "x_mm": 7.53,
+            "y_mm": 20.03
+          },
+          "R6": {
+            "rotation_deg": 90.0,
+            "x_mm": 4.28,
+            "y_mm": 18.28
+          },
+          "SW1": {
+            "rotation_deg": 90.0,
+            "x_mm": 4.3,
+            "y_mm": 3.3
+          },
+          "U1": {
+            "rotation_deg": 0.0,
+            "x_mm": 15.0,
+            "y_mm": 2.9
+          },
+          "U2": {
+            "rotation_deg": 90.0,
+            "x_mm": 24.4,
+            "y_mm": 17.2
+          }
+        }
+      },
+      "dimensions": [
+        "component_placement_xy",
+        "component_rotation_deg"
+      ],
+      "kind": "placement",
+      "outcome": {
+        "diagnostic_dimensions": [],
+        "pass_evidence": false,
+        "reasons": [
+          "deterministic pipeline rejected candidate: U2: graph CPL rotation offset differs from LCSC Evidence"
+        ],
+        "status": "gate_rejected"
+      },
+      "pass_evidence": false,
+      "provenance": {
+        "graph_revision": "r1",
+        "pass_evidence": false,
+        "proposal_sha256": "sha256:972f0b137ae9a17cb3ac443865a9ac16ba08d78559a728bf10573d33d74d79f5",
+        "script_name": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
+        "script_sha256": "sha256:7382a2f30165f2327abfa6bf62e82063375dba7a81dcf5332b98b887e91f4589",
+        "skill_name": "acd-placement-search",
+        "spacing_variant": 0
+      }
+    },
+    {
+      "candidate_id": "placement-0002",
+      "changes": {
+        "placements": {
+          "C1": {
+            "rotation_deg": 0.0,
+            "x_mm": 6.53,
+            "y_mm": 11.78
+          },
+          "C2": {
+            "rotation_deg": 0.0,
+            "x_mm": 6.53,
+            "y_mm": 10.03
+          },
+          "C3": {
+            "rotation_deg": 90.0,
+            "x_mm": 1.53,
+            "y_mm": 16.53
+          },
+          "C4": {
+            "rotation_deg": 90.0,
+            "x_mm": 7.28,
+            "y_mm": 2.53
+          },
+          "D1": {
+            "rotation_deg": 90.0,
+            "x_mm": 7.28,
+            "y_mm": 5.78
+          },
+          "D2": {
+            "rotation_deg": 90.0,
+            "x_mm": 26.53,
+            "y_mm": 3.03
+          },
+          "J1": {
+            "rotation_deg": 0.0,
+            "x_mm": 15.0,
+            "y_mm": 18.35
+          },
+          "J2": {
+            "rotation_deg": 0.0,
+            "x_mm": 23.82,
+            "y_mm": 2.82
+          },
+          "R1": {
+            "rotation_deg": 0.0,
+            "x_mm": 6.53,
+            "y_mm": 8.28
+          },
+          "R2": {
+            "rotation_deg": 90.0,
+            "x_mm": 28.28,
+            "y_mm": 3.03
+          },
+          "R3": {
+            "rotation_deg": 90.0,
+            "x_mm": 26.53,
+            "y_mm": 6.28
+          },
+          "R4": {
+            "rotation_deg": 90.0,
+            "x_mm": 28.28,
+            "y_mm": 6.28
+          },
+          "R5": {
+            "rotation_deg": 90.0,
+            "x_mm": 21.28,
+            "y_mm": 18.28
+          },
+          "R6": {
+            "rotation_deg": 90.0,
+            "x_mm": 23.03,
+            "y_mm": 18.28
+          },
+          "SW1": {
+            "rotation_deg": 90.0,
+            "x_mm": 4.55,
+            "y_mm": 3.3
+          },
+          "U1": {
+            "rotation_deg": 0.0,
+            "x_mm": 15.0,
+            "y_mm": 2.9
+          },
+          "U2": {
+            "rotation_deg": 90.0,
+            "x_mm": 5.9,
+            "y_mm": 17.2
+          }
+        }
+      },
+      "dimensions": [
+        "component_placement_xy",
+        "component_rotation_deg"
+      ],
+      "kind": "placement",
+      "outcome": {
+        "diagnostic_dimensions": [],
+        "pass_evidence": false,
+        "reasons": [
+          "deterministic pipeline rejected candidate: A process in the process pool was terminated abruptly while the future was running or pending."
+        ],
+        "status": "gate_rejected"
+      },
+      "pass_evidence": false,
+      "provenance": {
+        "graph_revision": "r1",
+        "pass_evidence": false,
+        "proposal_sha256": "sha256:72412ff5c7131213dfa288c363528d54e5efe9a50ad289b3ddbdadfbb7381fef",
+        "script_name": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
+        "script_sha256": "sha256:7382a2f30165f2327abfa6bf62e82063375dba7a81dcf5332b98b887e91f4589",
+        "skill_name": "acd-placement-search",
+        "spacing_variant": 1
+      }
+    }
+  ],
+  "commit_error": null,
+  "consumed_budget": 2,
+  "content_sha256": "sha256:d936d4a2f244609e48b8e1e4a9370a315b3d3554ae900c8e27f0924120b34d72",
+  "evaluated_candidates": 2,
+  "generated_candidates": 22,
+  "l3_statement": "This is an L3 exploration record, not gate Evidence.",
+  "lane_id": "board-pipeline",
+  "max_candidates": 2,
+  "max_passes": 100,
+  "pass_evidence": false,
+  "provenance": {
+    "dry_run": false,
+    "l1_authority": "deterministic pipeline gates",
+    "note": "L3 exploration observation; pass_evidence is always false.",
+    "source_fixture": "/workspace/acd/fixtures/dual-beacon-tag",
+    "source_graph": "/workspace/acd/fixtures/dual-beacon-tag/graph.json"
+  },
+  "record_class": "L3",
+  "remaining_budget": 0,
+  "remediation_dimensions": [],
+  "remediation_driven": false,
+  "schema_version": "0.1",
+  "status": "exhausted",
+  "target_revision": "r1",
+  "termination_reason": "candidate_budget_exhausted",
+  "winner_candidate_id": null,
+  "winner_commit": null,
+  "winner_written": false
+}

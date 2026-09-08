@@ -1,0 +1,41 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "candidate_router_diagnostics": null,
+  "content_sha256": "sha256:1c24acc5869409949d24f9eca5884438d4175aef9a70bccceecb3b65766bd4ba",
+  "exploration_rounds": null,
+  "failed_stage": "board-pipeline",
+  "failure_reason": "ValueError: U2: graph CPL rotation offset differs from LCSC Evidence",
+  "graph_id": "dual-beacon-tag",
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": "Explore declared placement and GPIO candidates from the rejected predicate remediation, then rerun every deterministic stage.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "router_diagnostics": {
+    "authority": "L3 observation; not gate authority",
+    "convergence_state": "converged",
+    "final_unrouted": 0,
+    "open_net_count": 0,
+    "open_nets": [],
+    "plateau_passes": 8,
+    "read_errors": [],
+    "unrouted_progression": [
+      5,
+      2,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "schema_version": "0.1",
+  "timing_record": "out/dual-beacon-tag-loop/timing-record.json"
+}

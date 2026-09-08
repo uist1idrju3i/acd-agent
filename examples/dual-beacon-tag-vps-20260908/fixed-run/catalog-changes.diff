@@ -1,0 +1,89 @@
+--- /tmp/cat-old.json	2026-09-08 14:32:28.138341174 +0000
++++ /home/ubuntu/ctrl/main-5bf2c90-fix/contracts/parts-catalog.json	2026-09-08 13:38:22.629930354 +0000
+@@ -646,6 +646,86 @@
+         "geometry_exception_reason": "archived LCSC package geometry is the orientation evidence for GD1",
+         "geometry_exception_source": "evidence/{artifact_prefix}-cpl-orientation/{refdes}.json"
+       }
++    },
++    {
++      "kind": "led",
++      "library_ref": {
++        "footprint": "LED_SMD:LED_0603_1608Metric",
++        "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
++        "footprint_sha256": "sha256:7931ed1efba34cb13c8d74a60eb1dca4b0be57d950c38e08c3e7f007db500a1c",
++        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
++        "footprint_source_ref": "10.0.6",
++        "symbol": "Device:LED",
++        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
++        "symbol_sha256": "sha256:f65c9dd13ef986c482165e5c8237ccf4f691bc7321868cf05e01dafbc1326b24",
++        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
++        "symbol_source_ref": "10.0.6"
++      },
++      "package": "LED_0603_1608Metric",
++      "part_number": "KT-0603G",
++      "value": "KT-0603G",
++      "cpl_orientation": {
++        "basis": "component_part_number",
++        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
++        "offset_deg": 0.0,
++        "polarized": true,
++        "pin_functions": [
++          "1=K",
++          "2=A"
++        ]
++      }
++    },
++    {
++      "kind": "led",
++      "library_ref": {
++        "footprint": "LED_SMD:LED_0603_1608Metric",
++        "footprint_file": "/usr/share/kicad/footprints/LED_SMD.pretty/LED_0603_1608Metric.kicad_mod",
++        "footprint_sha256": "sha256:7931ed1efba34cb13c8d74a60eb1dca4b0be57d950c38e08c3e7f007db500a1c",
++        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
++        "footprint_source_ref": "10.0.6",
++        "symbol": "Device:LED",
++        "symbol_file": "/usr/share/kicad/symbols/Device.kicad_sym",
++        "symbol_sha256": "sha256:f65c9dd13ef986c482165e5c8237ccf4f691bc7321868cf05e01dafbc1326b24",
++        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
++        "symbol_source_ref": "10.0.6"
++      },
++      "package": "LED_0603_1608Metric",
++      "part_number": "KT-0603A",
++      "value": "KT-0603A",
++      "cpl_orientation": {
++        "basis": "component_part_number",
++        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
++        "offset_deg": 0.0,
++        "polarized": true,
++        "pin_functions": [
++          "1=K",
++          "2=A"
++        ]
++      }
++    },
++    {
++      "kind": "connector",
++      "value": "Conn_01x04_Pin",
++      "package": "PinHeader_1x04_P2.54mm_Vertical",
++      "part_number": "PinHeader_1x04_P2.54mm_Vertical",
++      "library_ref": {
++        "symbol": "Connector:Conn_01x04_Pin",
++        "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
++        "symbol_sha256": "sha256:50b42bf755009d3d459c310182dca1c37e1ff1a01fa6ae23846b416fafffc914",
++        "symbol_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
++        "symbol_source_ref": "10.0.6",
++        "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
++        "footprint_file": "/usr/share/kicad/footprints/Connector_PinHeader_2.54mm.pretty/PinHeader_1x04_P2.54mm_Vertical.kicad_mod",
++        "footprint_sha256": "sha256:571d2d16b49795f8f9a91f96cc83fd2adf49890cd66c377189c44204ebd03c29",
++        "footprint_source": "kicad-official (ppa:kicad/kicad-10.0-releases)",
++        "footprint_source_ref": "10.0.6"
++      },
++      "cpl_orientation": {
++        "basis": "component_part_number",
++        "source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
++        "offset_deg": 0.0,
++        "polarized": false
++      }
+     }
+   ],
+   "schema_version": "0.1"

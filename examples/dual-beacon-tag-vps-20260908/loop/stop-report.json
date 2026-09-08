@@ -1,0 +1,14 @@
+{
+  "graph_id": "dual-beacon-tag",
+  "revision": "r1",
+  "graph_path": "fixtures/dual-beacon-tag/graph.json",
+  "failed_stage": "board-pipeline",
+  "failure_reason": "ValueError: U2: graph CPL rotation offset differs from LCSC Evidence",
+  "evidence_absent": [
+    "electrical",
+    "mechanical",
+    "firmware"
+  ],
+  "record_class": "L3",
+  "note": "Pipeline stopped at CPL rotation validation before authoritative evidence generation. No design changes per user instruction."
+}

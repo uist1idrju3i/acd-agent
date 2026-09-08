@@ -1,0 +1,40 @@
+timestamp	hook_event_type	blocked	exit_code	classification	reason
+2026-09-08T04:14:35.376080	SessionStart	False	0		{"additionalContext": "Authoritative tools are unavailable inside the locked image; relevant gates fail-closed. (image lock not found; searched: /home/openhands/workspace/project/a333c5946a5f4887b7520e229b748357/docker/image-digests.json, /home/openhands/.openhands/plugins/docker/image-digests.json, /opt/acd/docker/image-digests.json)"}  | 
+2026-09-08T04:14:48.664686	PreToolUse	False	0		 | 
+2026-09-08T04:14:48.672923	PreToolUse	False	0		 | 
+2026-09-08T04:14:48.678587	PreToolUse	False	0		 | 
+2026-09-08T04:19:55.018023	PreToolUse	False	0		 | 
+2026-09-08T04:19:55.028083	PreToolUse	False	0		 | 
+2026-09-08T04:19:55.034934	PreToolUse	False	0		 | 
+2026-09-08T04:20:03.448650	PreToolUse	False	0		 | 
+2026-09-08T04:20:03.460358	PreToolUse	False	0		 | 
+2026-09-08T04:20:03.466433	PreToolUse	False	0		 | 
+2026-09-08T04:20:11.949716	PreToolUse	False	0		 | 
+2026-09-08T04:20:11.959652	PreToolUse	False	0		 | 
+2026-09-08T04:20:11.966010	PreToolUse	False	0		 | 
+2026-09-08T04:20:21.514681	PreToolUse	False	0		 | 
+2026-09-08T04:20:21.523336	PreToolUse	False	0		 | 
+2026-09-08T04:20:21.529767	PreToolUse	False	0		 | 
+2026-09-08T04:20:29.775818	PreToolUse	False	0		 | 
+2026-09-08T04:20:29.784684	PreToolUse	False	0		 | 
+2026-09-08T04:20:29.791242	PreToolUse	False	0		 | 
+2026-09-08T04:20:35.613990	PreToolUse	False	0		 | 
+2026-09-08T04:20:35.620772	PreToolUse	False	0		 | 
+2026-09-08T04:20:35.627142	PreToolUse	False	0		 | 
+2026-09-08T04:20:41.237821	PreToolUse	False	0		 | 
+2026-09-08T04:20:41.249004	PreToolUse	False	0		 | 
+2026-09-08T04:20:41.256871	PreToolUse	False	0		 | 
+2026-09-08T04:20:48.499294	PreToolUse	False	0		 | 
+2026-09-08T04:20:48.516824	PreToolUse	False	0		 | 
+2026-09-08T04:20:48.525421	PreToolUse	False	0		 | 
+2026-09-08T04:21:25.295867	PreToolUse	False	0		 | 
+2026-09-08T04:21:25.303599	PreToolUse	False	0		 | 
+2026-09-08T04:21:25.310476	PreToolUse	False	0		 | 
+2026-09-08T04:21:34.500053	PreToolUse	False	0		 | 
+2026-09-08T04:21:34.510240	PreToolUse	False	0		 | 
+2026-09-08T04:21:34.518147	PreToolUse	False	0		 | 
+2026-09-08T04:21:42.573829	PreToolUse	False	0		 | 
+2026-09-08T04:21:42.583847	PreToolUse	False	0		 | 
+2026-09-08T04:21:42.591721	PreToolUse	False	0		 | 
+2026-09-08T04:21:53.923519	Stop	False	0		 | 
+2026-09-08T04:21:53.932200	Stop	False	0		{"status": "not_applicable", "reason": "target design could not be resolved; candidates: (none)"}  | 

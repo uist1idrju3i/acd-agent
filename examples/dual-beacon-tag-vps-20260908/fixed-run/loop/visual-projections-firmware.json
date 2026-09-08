@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-firmware-sequence",
+      "projection_type": "firmware_sequence_view",
+      "domain": "firmware",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/dual-beacon-tag/graph.json",
+          "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.1.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "175mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          175.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:bde4e21e6e3062a840a3825cf47993370b6cd181c30b3208de58a050026bc8a4",
+      "generated_at": "2026-09-08T15:37:21.510498Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:bde4e21e6e3062a840a3825cf47993370b6cd181c30b3208de58a050026bc8a4",
+        "second_image_hash": "sha256:bde4e21e6e3062a840a3825cf47993370b6cd181c30b3208de58a050026bc8a4",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-firmware-sequence.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-firmware-state",
+      "projection_type": "firmware_state_view",
+      "domain": "firmware",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/dual-beacon-tag/graph.json",
+          "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "1.1.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "106mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          106.0
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:a62425690612611712ad3a621b81517fcc2aba75cd71ac1bcbbec805131ca8de",
+      "generated_at": "2026-09-08T15:37:21.509986Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:a62425690612611712ad3a621b81517fcc2aba75cd71ac1bcbbec805131ca8de",
+        "second_image_hash": "sha256:a62425690612611712ad3a621b81517fcc2aba75cd71ac1bcbbec805131ca8de",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-firmware-state.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:03d2ef943372a51e5f3deddf99b8feba91c1c42e2e6667ca68e3d5b67a0b5659",
+  "canonical_hash": "sha256:0b7523cc1c273a796e79e48450129049ed293a75c37a8ebaa62c4b1ea28a7c1b"
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1",
+  "tool_name": "cad-kernel",
+  "tool_version": "build123d=0.11.1;cadquery-ocp=7.9.3.1.1",
+  "format_version": "STEP parts+assembly+3MF+STL+manifest",
+  "config_hash": "sha256:8ae578cb619ff8cf6a97791f1f6cb67fa6aaf9e219eab4cd1714724e30be4952",
+  "input_hash": "sha256:4d94fd6207704f6588696e852c60c199af08b1becfbf9d2f906ff5fabfe8bc29",
+  "output_hash": "sha256:98707a871498fd2d156a9f75198f0965882889c7fd04bd2eaf7f54bf8d232c72",
+  "execution_env": "linux-x86_64; container=sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+  "execution_context": "container",
+  "container_image_digest": "sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+  "measurement_conditions": "build123d box shell/lid, independent STEP parts, assembly STEP, antenna overhang cutout, standoff pilot holes, lid screw holes, Mesher 3MF, ASCII STL mesh export, normalized artifact manifest and output hash",
+  "convergence_state": "converged",
+  "target_revision": "r1",
+  "started_at": "2026-09-08T09:40:55.319760Z",
+  "finished_at": "2026-09-08T09:41:10.542891Z",
+  "exit_code": 0,
+  "idempotency_key": null,
+  "uncertainty": null,
+  "source_revision": "5bf2c90652f9ba5479cae97983446a652fac55ba",
+  "source_tree_state": "dirty",
+  "source_dirty_digest": "sha256:2ed82a409aa61127d9bc2248f41471cfecaac6bbed621f40bca265c7ec769a00"
+}
