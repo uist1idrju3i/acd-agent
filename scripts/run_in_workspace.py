@@ -195,9 +195,11 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         "--allow-dirty",
         action="store_true",
         help=(
-            "Allow a dirty or unresolvable source tree: provenance is still "
-            "recorded in the envelope, and the authoritative verifier rejects "
-            "the produced Evidence (provisional only)."
+            "Allow an unresolvable (non-git) source tree or a source "
+            "revision deviating from the bootstrap record: provenance is "
+            "still recorded in the envelope, and the authoritative verifier "
+            "rejects the produced Evidence (provisional only). A dirty "
+            "source tree is always refused; this flag does not cover it."
         ),
     )
     parser.add_argument(

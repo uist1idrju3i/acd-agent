@@ -479,8 +479,10 @@ fail-closedで停止する。解決したdigestと`ACD_IN_CONTAINER`をforward�
 `uv.lock`を対象にsource treeのgit HEAD shaとporcelain由来のdirty digestを採取し、
 `ACD_SOURCE_GIT_SHA`・`ACD_SOURCE_TREE_STATE`・`ACD_SOURCE_DIRTY_DIGEST`をforwardして
 ToolEnvelopeの`source_revision`・`source_tree_state`・`source_dirty_digest`へ記録する。
-dirtyまたは解決不能なsource treeは`--allow-dirty`が無い限りcontainer起動前に拒否し、
-許容してもEvidenceはverifierが`source_tree_state != "clean"`でfail-closedに拒否する。
+dirtyなsource treeは`--allow-dirty`を与えてもcontainer起動前に常に拒否する（AA-5）。
+`--allow-dirty`が許すのは非git checkout（`unknown`）とbootstrap recordのrevisionからの
+逸脱の記録だけであり、許容してもEvidenceはverifierが`source_tree_state != "clean"`で
+fail-closedに拒否する。
 `execution_env`は
 host/architectureの説明だけに使い、container identityの判定には使わない。
 

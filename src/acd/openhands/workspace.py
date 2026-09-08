@@ -319,10 +319,12 @@ def run_command_in_workspace(
 
     ``source_provenance`` records which git revision and tree state produced
     the run; with ``source="mounted"`` it defaults to the observed state of
-    ``repository``. A dirty or unknown source tree is refused before the
-    container starts unless ``allow_dirty`` is given: dirty provenance is
-    recorded in every envelope so the authoritative verifier can reject it,
-    and unknown provenance never passes verification. With
+    ``repository``. A dirty source tree is always refused before the
+    container starts: source and contract changes must be committed and
+    proposed as a pull request, and ``allow_dirty`` does not cover these
+    paths. ``allow_dirty`` only records provisional-only provenance for an
+    unknown (non-git) tree or for a revision deviating from the bootstrap
+    record; unknown provenance never passes verification. With
     ``source="bundled"`` no repository is mounted, so provenance is recorded
     as unknown and bundled Evidence cannot pass the verifier until the image
     bundle records its git sha.
@@ -375,22 +377,24 @@ def run_command_in_workspace(
             dirty_digest=None,
             changed_paths=(),
         )
+    if source == "mounted" and source_provenance.tree_state == "dirty":
+        detail = (
+            f"{len(source_provenance.changed_paths)} path(s) under "
+            f"{SOURCE_TREE_PATHS}"
+        )
+        preview = ", ".join(source_provenance.changed_paths[:5])
+        raise ValueError(
+            f"source tree is dirty ({detail}); source and contract changes "
+            "must be committed and proposed as a pull request — allow_dirty "
+            "(CLI: --allow-dirty) does not cover these paths (design inputs "
+            "under fixtures/, evidence/, out/ are not source provenance and "
+            f"never block): {preview}"
+        )
     if (
         source == "mounted"
         and source_provenance.tree_state != "clean"
         and not allow_dirty
     ):
-        if source_provenance.tree_state == "dirty":
-            detail = (
-                f"{len(source_provenance.changed_paths)} path(s) under "
-                f"{SOURCE_TREE_PATHS}"
-            )
-            preview = ", ".join(source_provenance.changed_paths[:5])
-            raise ValueError(
-                f"source tree is dirty ({detail}); commit the changes or pass "
-                "allow_dirty (CLI: --allow-dirty) to record provisional-only "
-                f"provenance: {preview}"
-            )
         raise ValueError(
             "source tree provenance is unknown; run from a git checkout or "
             "pass allow_dirty (CLI: --allow-dirty) to record provisional-only "
