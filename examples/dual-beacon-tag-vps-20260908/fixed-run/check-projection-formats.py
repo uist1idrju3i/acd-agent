@@ -108,6 +108,7 @@ CHECKERS = {
     "diff": check_text,
     "txt": check_text,
     "py": check_text,
+    "log": check_text,
 }
 REPORT_NAME = "projection-format-check.txt"
 

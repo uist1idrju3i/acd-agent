@@ -1,0 +1,34 @@
+{
+  "artifact_kind": "generated_document",
+  "document_hash": "sha256:6f6f9864018f5c73370b561f41e65c231e23ad93a4a235c6260f790ff284bc83",
+  "document_kind": "product_readme",
+  "document_path": "out/extra/docs-a/product-readme.md",
+  "generated_at": "2026-09-08T23:49:50.415227+00:00",
+  "generator": {
+    "content_hash": "sha256:c71be3ed68b0a0888ea5dd4e1343302f04745638fd95063ba8ec0173c214617a",
+    "name": "generate_product_readme.py"
+  },
+  "graph_id": "dual-beacon-tag",
+  "inputs": [
+    {
+      "content_hash": "sha256:ba87fdf3884d9f113314c1c87d4530798aa0376dc7329270f896866906458551",
+      "path": "fixtures/dual-beacon-tag/graph.json"
+    },
+    {
+      "content_hash": "sha256:71a54d807cf22c28b651a5060c2f670eca1d6d43723c1b2cc413ad97a8e1199d",
+      "path": "out/fix18/dual-beacon-tag/visual-projections-electrical.json"
+    },
+    {
+      "content_hash": "sha256:87c25572120676b629f7809a6cbc0067ace4e8ce687d441f1025870019a1341c",
+      "path": "out/fix18/dual-beacon-tag/visual-projections-layout.json"
+    },
+    {
+      "content_hash": "sha256:949e1f84ee45a3b26976124d5f7c5edf2d14ccfa52b5340aeeb76476a05518c0",
+      "path": "out/fix18/dual-beacon-tag/visual-projections-system.json"
+    }
+  ],
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "target_revision": "r1",
+  "template_id": "acd-product-readme-ja-v1"
+}

@@ -2,6 +2,9 @@ OK	utf-8 text	README.md
 OK	utf-8 text	catalog-changes.diff
 OK	utf-8 text	check-projection-formats.py
 OK	utf-8 text	design-input-changes.diff
+OK	utf-8 text	docs/instruction-manual.fail-closed.log
+OK	utf-8 text	docs/product-readme.md
+OK	json	docs/product-readme.md.provenance.json
 OK	ISO-10303-21 entities=2714	enclosure/enclosure-assembly.step
 OK	ISO-10303-21 entities=518	enclosure/enclosure-lid.step
 OK	ISO-10303-21 entities=2216	enclosure/enclosure-shell.step
@@ -55,6 +58,8 @@ OK	json	loop/visual-projections-firmware.json
 OK	json	loop/visual-projections-layout.json
 OK	json	loop/visual-projections-mechanical.json
 OK	json	loop/visual-projections-system.json
+OK	utf-8 text	manufacturing-submission.host-verdict-recheck.log
+OK	json	manufacturing-submission.json
 OK	mido+midicsv tracks=5 notes=344 length=40.4s	theme-song/theme-song.mid
 OK	ElementTree svg	visual/dual-beacon-tag-b-cu.svg
 OK	ElementTree svg	visual/dual-beacon-tag-f-cu.svg
@@ -64,4 +69,4 @@ OK	ElementTree svg	visual/dual-beacon-tag-placement.svg
 OK	ElementTree svg	visual/dual-beacon-tag-schematic.svg
 OK	ElementTree svg	visual/dual-beacon-tag-stackup.svg
 OK	ElementTree svg	visual/dual-beacon-tag-system-block.svg
-# files=66 failed_or_unchecked=0
+# files=71 failed_or_unchecked=0

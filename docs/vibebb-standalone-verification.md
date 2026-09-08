@@ -1992,7 +1992,7 @@ host実行のL3観測）。
 | gerber 8層／drill | `%FSLA`／`%MO`指定と`M02*`終端、`M48`〜`M30`と穴数 | OK（87穴） |
 | CSV 3／SVG 8／JSON 34 | 行長一致／XML parse／JSON parse | OK |
 
-66件（検査script自身を含む）すべて`OK`で、`FAIL`／`UNCHECKED`は0件だった。したがって報告された症状は、生成物側の
+71件（検査script・log・追加投影を含む）すべて`OK`で、`FAIL`／`UNCHECKED`は0件だった。したがって報告された症状は、生成物側の
 破損ではなく再生環境側（`.mid`を開けるplayerの有無、添付経路での拡張子関連付け等）の
 可能性が残る。判別のため`timidity`でWAV→MP3へrenderした聴取用ファイルを報告へ添付した
 （pipeline生成物ではないため未収録）。
@@ -2003,3 +2003,30 @@ theme-songのみwriter内部の再読込（`render_checked_midi`）でnote対応
 これをAA-23（投影段直後の独立reader形式検査と`hashes.json`への`format_check`記録、
 parse失敗はその投影をfail-closedで欠落扱い）として`vibebb-gap-analysis.md`と
 roadmap 14.24へ追加した。検査OKをEvidenceへ昇格せず、合格側権限は持たせない。
+
+### 17.14 acd-agentが持つ全投影の追加出力（利用者要望への追跡）
+
+利用者から「acd-agentの持つすべての投影出力を行ってほしい」（取扱説明書投影を含む）との要望を
+受け、repository内の投影生成器を棚卸しし、修正後run fix18の`--design-only` loopが生成しなかった
+ものを同じdigest固定container（server `sha256:fb236ff5…`、`run_in_workspace.py`）で追加実行した
+（[`fixed-run/README.md`](../examples/dual-beacon-tag-vps-20260908/fixed-run/README.md)の
+「追加投影」節）。
+
+| 投影 | 生成器 | loopからの呼出 | fix18 | 追加実行の結果 |
+|---|---|---|---|---|
+| 製品説明README（roadmap 9.1） | `acd-product-docs/scripts/generate_product_readme.py` | 無し | 未生成 | container内で2回実行しbyte一致（`docs/product-readme.md`、provenance付き） |
+| 取扱説明書（roadmap 9.2） | `acd-product-docs/scripts/generate_instruction_manual.py` | 無し | 未生成 | **fail-closed（exit 1）**: `acd_pins.h`にGD1固有の必須macro（`ACD_PIN_UART_*`・`ACD_PIN_USB_*`・`ACD_PIN_BOOT`・`ACD_SHT40_I2C_ADDRESS`・`ACD_LOG_PERIOD_MS`）が無い。回避せず記録 |
+| 製造提出verdict | `scripts/verify_manufacturing_submission.py --require-authoritative` | 無し（CI `container-gates`のみ） | 未生成 | container内で`status: pass`（8検査PASS）、host `--verdict`再検査exit 0 |
+| PNG raster | `derive_png_visual_projections`（`visual_projection.py`） | 無し（testのみ、CLI無し） | 未生成 | CLIが無いため未実行 |
+| order lane（quote・order-total・pre-order） | `fetch_quote.py`等 | `--design-only`では構造的に未実行 | 未生成 | 発注入力を作らない方針のため実行しない |
+| MML楽譜 | 無し（MIDIのみ） | — | — | 利用者要望として計画へ |
+
+fix18はloopが呼べる投影（gerber・drill・CPL/BOM・DFM・fab package・visual SVG・theme-song MIDI・
+筐体STEP/3MF/STL・FW build/QEMU log・3 lane Evidence）をすべて生成していた。一方でloopが呼ばない
+生成器が3種あり、うち取扱説明書はGD1以外の設計で生成できない。これらを
+AA-24（文書lane・製造提出verdict・PNG rasterのloop組み込み）、AA-25（取扱説明書のGD1固有macro
+依存の解消）、AA-26（theme-songのMML投影追加）として`vibebb-gap-analysis.md`とroadmap 14.24へ
+追加した。いずれもL3投影の追加であり、3 lane判定・Evidenceを変えない。
+
+利用者報告の`theme-song.mid`は、Devin環境での`timidity` renderに加え、利用者側でもブラウザ上の
+MIDI playerで再生できることが確認された（QuickTime Player X・SoundFont未設定のVLCでは再生不可）。
