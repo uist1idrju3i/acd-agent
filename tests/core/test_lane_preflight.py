@@ -371,3 +371,53 @@ def test_firmware_coverage_is_absent_without_module() -> None:
     report = run_lane_preflight(graph, ("firmware-pipeline",))
     lane = _firmware_lane(report)
     assert lane.firmware_coverage is None
+
+
+def _enclosure_lane(report: LanePreflightReport) -> LanePreflightLaneReport:
+    return next(
+        lane for lane in report.lanes if lane.lane == "enclosure-pipeline"
+    )
+
+
+def test_enclosure_lane_reports_component_without_component_body() -> None:
+    graph = _graph()
+    body = next(
+        node
+        for node in graph.nodes
+        if node.kind == "mechanical.component_body"
+    )
+    graph = graph.model_copy(
+        update={"nodes": [node for node in graph.nodes if node.id != body.id]}
+    )
+    report = run_lane_preflight(graph, ("enclosure-pipeline",))
+    lane = _enclosure_lane(report)
+    assert lane.status == "declarations_incomplete"
+    missing = [
+        item for item in lane.missing_nodes if item.kind == "mechanical.component_body"
+    ]
+    assert any("has no mechanical.component_body" in item.reason for item in missing)
+    assert all(item.present_count == 0 for item in missing)
+
+
+def test_enclosure_lane_reports_missing_outline_mount_hole_count() -> None:
+    graph = _without_attr(_graph(), "mechanical.outline", "mount_hole_count")
+    report = run_lane_preflight(graph, ("enclosure-pipeline",))
+    lane = _enclosure_lane(report)
+    assert lane.status == "declarations_incomplete"
+    missing = {
+        (item.node_id, item.attr) for item in lane.missing_attrs
+    }
+    outline = next(node for node in graph.nodes if node.kind == "mechanical.outline")
+    assert (outline.id, "mount_hole_count") in missing
+
+
+def test_mechanical_unsupported_findings_surface_as_unsupported_values() -> None:
+    graph = _graph()
+    outline = next(node for node in graph.nodes if node.kind == "mechanical.outline")
+    duplicate = outline.model_copy(update={"id": "mechanical.outline-2"})
+    graph = graph.model_copy(update={"nodes": [*graph.nodes, duplicate]})
+    report = run_lane_preflight(graph, ("enclosure-pipeline",))
+    lane = _enclosure_lane(report)
+    assert lane.status == "declarations_incomplete"
+    codes = {item.code for item in lane.unsupported_values}
+    assert "mechanical.node.duplicated" in codes

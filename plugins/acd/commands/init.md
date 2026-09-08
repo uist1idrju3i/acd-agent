@@ -8,20 +8,40 @@ allowed-tools:
 # ACD workspace initialization
 
 Run the bundled initialization script with explicit repository, revision, and
-workspace arguments:
+workspace arguments. Use the invocation that matches how the plugin is
+installed:
 
 ```bash
-python3 "${ACD_PLUGIN_ROOT:-plugins/acd}/skills/acd-install-doctor/scripts/init_workspace.py" \
+# Installed plugin (absolute path, no variable required):
+python3 "$HOME/.openhands/plugins/installed/acd/skills/acd-install-doctor/scripts/init_workspace.py" \
+  --repo-url <repo-url> --revision <commit-or-ref> --workspace <workspace-path>
+
+# Repository checkout (run from the checkout root):
+python3 plugins/acd/skills/acd-install-doctor/scripts/init_workspace.py \
   --repo-url <repo-url> --revision <commit-or-ref> --workspace <workspace-path>
 ```
 
-For an installed plugin the plugin root is
-`~/.openhands/plugins/installed/acd`, so set
-`ACD_PLUGIN_ROOT="$HOME/.openhands/plugins/installed/acd"` there; the
-checkout-relative fallback above covers running from a repository checkout.
+Do not set `ACD_PLUGIN_ROOT` and use it in the same terminal call — the
+variable must be exported in an earlier call before it can expand. Prefer the
+two explicit forms above so no variable is needed at all.
+
 The script can exceed a 120 s terminal timeout (repository clone, recursive
 submodules, and the locked image pull), so invoke it with a longer timeout
-or run it in the background and poll its output.
+or run it in the background and poll its progress log:
+
+```bash
+nohup python3 "$HOME/.openhands/plugins/installed/acd/skills/acd-install-doctor/scripts/init_workspace.py" \
+  --repo-url <repo-url> --revision <commit-or-ref> --workspace <workspace-path> \
+  > /tmp/acd-init.log 2>&1 &
+# then poll:
+tail -n 20 /tmp/acd-init.log
+```
+
+The script writes `[init] <step>: start` / `[init] <step>: ok|failed (<seconds>s)`
+progress lines to stderr (interleaved into the log above); keep polling
+`tail -n 20 /tmp/acd-init.log` until the final JSON report appears. The JSON
+report is the last block of stdout — everything else in the log is progress.
+The script itself emits only the JSON report on stdout.
 
 The script performs workspace creation, shallow repository clone or
 clean-checkout reuse, shallow recursive submodule initialization, plugin

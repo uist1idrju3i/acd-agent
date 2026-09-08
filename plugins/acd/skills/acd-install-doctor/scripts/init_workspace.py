@@ -9,12 +9,27 @@ import json
 import re
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, cast
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 HASH_RE = re.compile(r"sha256:[0-9a-f]{64}")
+
+
+def _step_start(step: str) -> float:
+    print(f"[init] {step}: start", file=sys.stderr, flush=True)
+    return time.monotonic()
+
+
+def _step_end(step: str, ok: bool, started: float) -> None:
+    status = "ok" if ok else "failed"
+    print(
+        f"[init] {step}: {status} ({time.monotonic() - started:.1f}s)",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def _canonical_hash(value: dict[str, Any]) -> str:
@@ -285,23 +300,31 @@ def initialize(
             "steps": steps + ([detail] if detail is not None else []),
         }
 
+    started = _step_start("workspace_dir")
     try:
         if workspace.exists() and not workspace.is_dir():
             raise ValueError(f"workspace is not a directory: {workspace}")
         workspace.mkdir(parents=True, exist_ok=True)
         steps.append({"name": "workspace_dir", "status": "pass", "path": str(workspace)})
     except (OSError, ValueError) as exc:
+        _step_end("workspace_dir", False, started)
         return fail("workspace_dir", str(exc))
+    _step_end("workspace_dir", True, started)
 
+    started = _step_start("repository")
     try:
         repository = _clone_or_reuse(workspace, repo_url, revision, runner=runner)
     except (OSError, ValueError) as exc:
+        _step_end("repository", False, started)
         return fail("repository", str(exc))
     repository_step = {"name": "repository", **repository}
     if repository_step.get("status") != "pass":
+        _step_end("repository", False, started)
         return fail("repository", "repository clone/reuse failed", repository_step)
     steps.append(repository_step)
+    _step_end("repository", True, started)
 
+    started = _step_start("submodules")
     submodules = _command_result(
         ["git", "submodule", "update", "--init", "--recursive", "--depth", "1"],
         cwd=workspace,
@@ -309,9 +332,12 @@ def initialize(
     )
     submodules["name"] = "submodules"
     if submodules["status"] != "pass":
+        _step_end("submodules", False, started)
         return fail("submodules", "submodule initialization failed", submodules)
     steps.append(submodules)
+    _step_end("submodules", True, started)
 
+    started = _step_start("plugin_load")
     plugin = _doctor(
         workspace,
         runner=runner,
@@ -320,9 +346,12 @@ def initialize(
     )
     plugin["name"] = "plugin_load"
     if plugin["status"] != "pass":
+        _step_end("plugin_load", False, started)
         return fail("plugin_load", "plugin manifest/assets checks failed", plugin)
     steps.append(plugin)
+    _step_end("plugin_load", True, started)
 
+    started = _step_start("doctor")
     doctor = _doctor(
         workspace,
         runner=runner,
@@ -331,8 +360,10 @@ def initialize(
     )
     doctor["name"] = "doctor"
     if doctor["status"] != "pass":
+        _step_end("doctor", False, started)
         return fail("doctor", "workspace doctor failed closed", doctor)
     steps.append(doctor)
+    _step_end("doctor", True, started)
 
     resolved_revision = str(repository_step["resolved_revision"])
     lock_digest, server_image_digest = _load_lock_digests(workspace)
@@ -351,6 +382,7 @@ def initialize(
     }
     record["content_sha256"] = _canonical_hash(record)
     record_path = workspace / ".openhands" / "bootstrap-record.json"
+    started = _step_start("bootstrap_record")
     try:
         record_path.parent.mkdir(parents=True, exist_ok=True)
         record_path.write_text(
@@ -358,8 +390,10 @@ def initialize(
             encoding="utf-8",
         )
     except OSError as exc:
+        _step_end("bootstrap_record", False, started)
         return fail("bootstrap_record", str(exc))
     steps.append({"name": "bootstrap_record", "status": "pass", "path": str(record_path)})
+    _step_end("bootstrap_record", True, started)
     return {
         "ok": True,
         "fail_closed": False,

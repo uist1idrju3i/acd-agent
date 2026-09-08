@@ -62,7 +62,14 @@ git submodule status
 成功時の`.openhands/bootstrap-record.json`には`source: "mounted"`と
 `server_image_digest`を記録する。authoritative Evidenceは従来どおりホストcheckoutを
 mountする`--source mounted`経路で生成し、bootstrap recordやdoctorのL3観測を合格側へ
-昇格しない。
+昇格しない。初期化scriptは各stepの開始・終了を`[init] <step>: start`／
+`[init] <step>: ok|failed (<秒>s)`としてstderrへflush出力し、stdoutのJSON reportは
+変わらず最終出力とする。`/acd:init` commandはinstalled plugin
+（`$HOME/.openhands/plugins/installed/acd/...`の絶対パス）とcheckout
+（`plugins/acd/...`の相対パス）の2形式を明示し、同一terminal呼び出しで
+`ACD_PLUGIN_ROOT`を設定して使わないことと、長時間実行時は
+`nohup ... > /tmp/acd-init.log 2>&1 &`でbackground化して`tail -n 20`で
+進行logをpollingする手順を案内する。
 
 ## OpenHandsへのインストール（SDK標準ルート）
 
@@ -308,6 +315,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    |---|---|---|
    | `node.declared` | checked | lane preflight |
    | `attribute.declared` | checked | lane preflight |
+   | `mechanical.structure` | checked | lane preflight（enclosure-pipeline laneのみ、`collect_mechanical_findings`のgraph-only機械findingを折り込む） |
    | `attribute.type` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
    | `attribute.value` | unchecked | `extract_*_lane`／決定論的ゲート |
    | `reference.resolved` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
@@ -315,6 +323,17 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    | `tool.available` | unchecked | lane入口／tool probe |
    | `gate.executed` | unchecked | laneゲート |
    | `evidence.authoritative` | unchecked | Evidence validation |
+
+   enclosure-pipeline laneでは宣言ループの後に機械preflight
+   （`src/acd/core/mechanical_preflight.py`の`collect_mechanical_findings`、
+   graphのみで評価できるfinding）を折り込む。`mechanical.node.missing`は
+   `missing_nodes`へ、`mechanical.attribute.missing`は`missing_attrs`へ、
+   `mechanical.attribute.invalid`・`mechanical.node.duplicated`・
+   `mechanical.reference.unresolved`などの残りは`unsupported_values`へ写像し、
+   いずれかがあればlaneは`declarations_incomplete`になる。既報告の欠落と
+   重複するfindingは除く。rationale由来のfindingはfixture_dirが必要なため
+   `rationale.coverage`は引き続きuncheckedのままとする。ここでも診断専用で
+   あり、authoritative EvidenceやL1合格は確立しない。
 
    宣言語彙の前倒し検査として、board-pipeline laneでは自由form属性の許容値を
    `src/acd/core/declaration_vocabulary.py`の語彙と照合し、違反を
@@ -2125,7 +2144,11 @@ workspace実行wrapperであり、既定コマンドとEvidenceパスの導出�
 `FixtureBuilderError`へ`summarize_rationale_coverage`の1行要約（status、
 missing／stale／unknown_provenance／orphan／untraceable／conflicting／
 unclassified／templated／generator_violationsの件数と先頭5件の属性名）と
-分類表への案内を含めて返る。判定条件は変更しない。
+分類表への案内を含めて返る。判定条件は変更しない。この会話向けnext stepは
+設計入力側の次手（missing/stale subjectへのrationale record追加、
+unclassified属性はrationale契約外なので設計入力から除くか契約変更を別PRで提案）
+だけを示し、source側の分類表名（`REQUIRED_RATIONALE_ATTRS`／
+`RATIONALE_EXEMPT_ATTRS`）は開発者向け情報としてメッセージへ出さない。
 
 ```bash
 uv run python scripts/build_design_fixture.py \

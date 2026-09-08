@@ -222,7 +222,7 @@ def _attribute_kind_valid(attribute: str, value: object) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
 
 
-def _mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
+def collect_mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
     findings: list[RequirementFinding] = []
     seen: set[tuple[str, str, str, str, str]] = set()
 
@@ -440,11 +440,18 @@ def _mechanical_findings(graph: DesignGraph) -> list[RequirementFinding]:
     return findings
 
 
+# Internal name kept for existing callers within this module.
+_mechanical_findings = collect_mechanical_findings
+
+
 def check_mechanical_preflight(
     graph: DesignGraph, fixture_dir: Path
 ) -> MechanicalPreflightReport:
     """Return all mechanical and rationale preflight findings without raising."""
-    findings = [*_rationale_findings(graph, fixture_dir), *_mechanical_findings(graph)]
+    findings = [
+        *_rationale_findings(graph, fixture_dir),
+        *_mechanical_findings(graph),
+    ]
     findings.sort(
         key=lambda item: (
             item.code,
