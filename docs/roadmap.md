@@ -441,8 +441,13 @@ matcher）を閉じる。
 | negative・fail-closed | bootstrapから逸脱したrevision、`unknown` provenance、`base64`難読化のinline code、生`docker run`起動、要件を落とした宣言はいずれもfail-closedのままである。診断・matcher・照合はL2／L3であり合格側権限を持たない |
 | 再現性 | 対照run（pristine main・同digest）を同一fixtureで再実行し、到達段・失敗理由・firmware Evidenceのprovenanceが一致することを記録する |
 
-実装状況: Z-13（`design_loop.py`の`spec_dir`伝播、回帰テスト込み）は本変更で解消した。
-他は未着手である。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする。
+実装状況: Z-13（`design_loop.py`の`spec_dir`伝播、回帰テスト込み）はPR #359で解消した。
+Z-5・Z-3（runnerの既定download限定、bootstrap revision照合をrunner・verifier・stop policyへ）は
+PR #360、Z-4・Z-6・Z-7・Z-11・Z-12（hookのdeny理由・動的実行拒否・wrapper再帰・raw acd image拒否・
+SessionStart lock探索）はPR #361、Z-1・Z-2・Z-10（init手順と進行log、coverage診断文、
+enclosure lane preflightへのmechanical述語取り込み）はPR #362で実装した。
+Z-8（最終報告のsource変更節の機械出力固定）とZ-9（宣言側evidence属性の実測record解決検査）は
+未着手である。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする。
 
 ## マイルストーン15: 運用と文書の整備
 
