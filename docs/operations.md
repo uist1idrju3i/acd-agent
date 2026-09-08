@@ -402,7 +402,8 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    契約は`src/acd/schema/final_report_basis.py`）の出力を正とする。source変更節は
    `git log --stat --format='%H %s' <bootstrap>..HEAD`とworktreeの
    `git status --porcelain`・`git diff HEAD --stat`のverbatim blockで構成し、
-   commitもworktree変更も無い場合だけ`status: clean`となる（bootstrap revisionが
+   commitもworktree変更も無い場合だけ`status: clean`となる（`.openhands/`配下の
+   worktree entryはstatus判定から除外し、verbatim blockには残す。bootstrap revisionが
    解決不能、HEADのancestorでない、git失敗、明示shaとrecordの不一致は
    `unknown`としてfail-closed）。設計値節は`--design-input`のspec.json
    （`design_name`あり）またはgraph.jsonからrefdes・value・mpn・lcsc・footprint・

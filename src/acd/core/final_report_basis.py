@@ -145,14 +145,31 @@ def collect_source_changes(
         )
     commits = [line for line in commits_result.stdout.splitlines() if line.strip()]
     committed_log = log_result.stdout.strip()
-    status = "clean" if not commits and not worktree_status.strip() else "changed"
+    changed_paths = sorted(_porcelain_paths(worktree_status))
+    status = "clean" if not commits and not changed_paths else "changed"
     return section.model_copy(
         update={
             "status": status,
             "committed_commits": commits,
             "committed_log": committed_log,
+            "worktree_changed_paths": changed_paths,
         }
     )
+
+
+def _porcelain_paths(porcelain: str) -> list[str]:
+    """Status-relevant paths, excluding workspace metadata under .openhands/."""
+    paths: list[str] = []
+    for line in porcelain.splitlines():
+        if len(line) < 4:
+            continue
+        path = line[3:]
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        path = path.strip().strip('"')
+        if path and not path.startswith(".openhands/"):
+            paths.append(path)
+    return paths
 
 
 def _str_attr(attrs: dict[str, Any], key: str) -> str | None:
@@ -313,6 +330,10 @@ def render_final_report_basis(report: FinalReportBasis) -> str:
     lines.append("")
     lines.append("worktree `git status --porcelain`:")
     lines.append(_fence(section.worktree_status))
+    lines.append(
+        "worktree paths counted for status (excluding .openhands/): "
+        f"{len(section.worktree_changed_paths)}"
+    )
     lines.append("")
     lines.append("worktree `git diff HEAD --stat`:")
     lines.append(_fence(section.worktree_diff_stat))

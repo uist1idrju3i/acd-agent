@@ -20,6 +20,7 @@ class SourceChangeSection(AcdModel):
     committed_log: str = ""
     worktree_status: str = ""
     worktree_diff_stat: str = ""
+    worktree_changed_paths: list[str] = Field(default_factory=list[str])
     reason: str | None = None
 
 

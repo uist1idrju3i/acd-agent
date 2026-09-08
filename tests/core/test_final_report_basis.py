@@ -43,9 +43,8 @@ def _repo(tmp_path: Path) -> tuple[Path, str]:
     _git(root, "init", "-q")
     _git(root, "config", "user.email", "test@example.test")
     _git(root, "config", "user.name", "test")
-    (root / ".gitignore").write_text(".openhands/\n", encoding="utf-8")
     (root / "README.md").write_text("x\n", encoding="utf-8")
-    _git(root, "add", ".gitignore", "README.md")
+    _git(root, "add", "README.md")
     _git(root, "commit", "-qm", "initial")
     return root, _git(root, "rev-parse", "HEAD")
 
@@ -82,6 +81,18 @@ def test_clean_tree_at_bootstrap_is_clean(tmp_path: Path) -> None:
     section = collect_source_changes(root)
     assert section.status == "clean"
     assert section.committed_commits == []
+    assert ".openhands/bootstrap-record.json" in section.worktree_status
+    assert section.worktree_changed_paths == []
+
+
+def test_untracked_source_path_is_changed(tmp_path: Path) -> None:
+    root, base = _repo(tmp_path)
+    _write_record(root, base)
+    (root / "src").mkdir()
+    (root / "src" / "new.py").write_text("print('n')\n", encoding="utf-8")
+    section = collect_source_changes(root)
+    assert section.status == "changed"
+    assert section.worktree_changed_paths == ["src/new.py"]
 
 
 def test_bootstrap_not_ancestor_is_unknown(tmp_path: Path) -> None:
@@ -150,6 +161,7 @@ def test_render_contains_unverified_evidence_line(tmp_path: Path) -> None:
     text = render_final_report_basis(report)
     assert "authoritative Evidence: unverified" in text
     assert "status: clean" in text
+    assert "worktree paths counted for status (excluding .openhands/): 0" in text
 
 
 def _load_cli() -> Any:
