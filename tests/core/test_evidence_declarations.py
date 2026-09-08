@@ -7,8 +7,6 @@ import json
 import shutil
 from pathlib import Path
 
-import pytest
-
 from acd.core.evidence_declarations import (
     check_cpl_rotation_record,
     check_fab_profile_declaration,
@@ -16,7 +14,7 @@ from acd.core.evidence_declarations import (
     cpl_rotation_record_path,
 )
 from acd.pipeline.repository import repository_root
-from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.design_graph import AttrValue, DesignGraph, GraphNode
 
 FIXTURE = Path("fixtures/golden-design-1/graph.json")
 PROFILES = Path("profiles")
@@ -33,14 +31,17 @@ def _component(
     basis: str = "confirmed",
     lcsc: str | None = "C9999",
 ) -> GraphNode:
-    attrs: dict[str, object] = {"refdes": refdes, "cpl_rotation_evidence_basis": basis}
+    attrs: dict[str, AttrValue] = {
+        "refdes": refdes,
+        "cpl_rotation_evidence_basis": basis,
+    }
     if lcsc is not None:
         attrs["lcsc"] = lcsc
     return GraphNode(id=node_id, kind="electrical.component", attrs=attrs)
 
 
 def _intent(**attrs: str) -> GraphNode:
-    base = {
+    base: dict[str, AttrValue] = {
         "fab_profile": "jlcpcb-fr4-2l-1oz",
         "profile_source": "https://jlcpcb.com/capabilities/pcb-assembly-capabilities",
         "profile_fetched_at": "2026-08-11T00:00:00Z",

@@ -14,7 +14,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from acd.core.fab import (
     load_fab_profile,
@@ -64,24 +64,25 @@ def check_cpl_rotation_record(
         return f"record is unreadable or not JSON: {exc}"
     if not isinstance(document, dict):
         return "record is not a JSON object"
-    record_refdes = document.get("refdes")
+    record = cast(dict[str, Any], document)
+    record_refdes = record.get("refdes")
     if record_refdes != refdes:
         return f"record refdes {record_refdes!r} does not match declared {refdes!r}"
-    record_lcsc = document.get("lcsc")
+    record_lcsc = record.get("lcsc")
     if lcsc is not None and isinstance(record_lcsc, str) and record_lcsc != lcsc:
         return (
             f"record lcsc {record_lcsc!r} does not match declared {lcsc!r}"
         )
-    response = document.get("response")
+    response = record.get("response")
     if not isinstance(response, dict):
         return "record has no response object"
     canonical = json.dumps(
         response, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
     expected_hash = f"sha256:{hashlib.sha256(canonical).hexdigest()}"
-    if document.get("response_canonical_sha256") != expected_hash:
+    if record.get("response_canonical_sha256") != expected_hash:
         return "response_canonical_sha256 does not match the recomputed hash"
-    retrieved_at = document.get("retrieved_at")
+    retrieved_at = record.get("retrieved_at")
     if not isinstance(retrieved_at, str) or not retrieved_at:
         return "retrieved_at is missing"
     try:
