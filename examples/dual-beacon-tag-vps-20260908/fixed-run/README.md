@@ -124,6 +124,11 @@ J1はgeometry-exception経路で0.0）。
 - 本ディレクトリのbinary投影（gerber/STEP/3MF/MID）は **digest固定containerで
   生成・downloadされたもの**であり、host再生成ではない。
 
+本runでDevinが人手で越えた境界の振り返りと、それをagent単独の到達段へ繋げる
+実装項目（AA-15〜AA-22）は
+[`docs/vibebb-standalone-verification.md` §17.12](../../../docs/vibebb-standalone-verification.md)
+を参照。
+
 ## 収録内容
 
 - `fixture/`: 最終 `spec.json`・resolve後 `graph.json`・`rationale.json`

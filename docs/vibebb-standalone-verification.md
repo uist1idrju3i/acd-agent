@@ -1884,7 +1884,7 @@ AA-4（`PartSelectionError`が要求内容を示さない）、AA-5（`--allow-d
 一致せずfirmware coverageが最後まで`fail`）、AA-8（graphの`parts_catalog_sha256`と
 checkout上のcatalogの不一致を検査しない）、AA-9（既存fixtureからの構造コピー・値転記を
 検出する面が無い）、AA-10（最終報告の説明文が機械出力と矛盾しても検出されない）。
-修正後run（17.11）で観測した宣言〜検証の乖離はAA-11〜AA-14として
+修正後run（17.11〜17.12）で観測した内容はAA-11〜AA-22として
 `vibebb-gap-analysis.md`へ追記した。
 
 ### 17.9 成果物の収録
@@ -1947,3 +1947,31 @@ gateまで未検出、`part_request`無し部品はrevision未注入、silkscree
 未配置テキストデッドロック）。収録物は
 [`examples/dual-beacon-tag-vps-20260908/fixed-run/`](../examples/dual-beacon-tag-vps-20260908/fixed-run/README.md)
 を参照。
+
+### 17.12 Devinが手助けした部分の振り返り（agent単独で到達させるための実装項目）
+
+修正後run（17.11）でDevinが人手で行った作業は、そのまま「agentが単独では越えられなかった
+境界」である。各作業を、agentが自力で越えられなかった理由と、acd-agent側で用意すべき
+経路（診断・宣言経路・Skill手順・照合）へ対応付ける。判定・閾値・Evidence規則は
+いずれも変更しない。番号はAA節（`vibebb-gap-analysis.md`）に続くAA-15〜AA-22とし、
+roadmap 14.24の実装列へ加えた。
+
+| 手助け | Devinが行ったこと（run） | agentが自力で越えられなかった理由 | acd-agent側の実装項目 |
+|---|---|---|---|
+| H-1 CPL evidence basis | `evidence_basis: estimated→confirmed`を全15 fitted部品へ宣言し、宣言lcscでrecordを再fetch（fix2・fix16） | 停止文が「offsetが不一致」としか言わず、`apply_cpl_contract`がbasis≠confirmedの部品offsetを0.0へ強制する機構が読めない。agentはoffset値を疑い、basisと record内容（別部品）を疑えなかった | AA-15: `graph CPL rotation offset differs from LCSC Evidence`の診断へ「宣言offset／有効offset（basis補正後）／実測offset／basis」を併記し、basis≠confirmedなら次手として「recordを確認して`confirmed`を宣言するかlcscを訂正」を示す。AA-12（recordの`Manufacturer Part`と宣言`mpn`の照合）と併せる |
+| H-2 LCSC番号無し部品 | J2（2.54mmヘッダ）を`assembly: not_fitted`・`jlcpcb_class: none`へ（fix3〜4） | `fitted component without LCSC part number`が「不実装にする／LCSC番号を宣言する」の二択と、その宣言先（spec）を示さない | AA-16: `FabOutputError`へ二択の次手と宣言先を添える。`acd-contracts` Skillに手ハンダ部品（ヘッダ・テストポイント）の`not_fitted`宣言例を追加 |
+| H-3 spec先行の再生成 | graph直接編集をやめ、`--fixture-spec --fixture-overwrite`でspecからgraph・rationaleを再生成（fix4以降） | agentは第9回・第10回ともgraph.jsonを直接編集し、rationale recordがstale化する。`vibebb-loop.md`は再生成経路を必須手順として書いていない | AA-17: `vibebb-loop.md`でgraph直接編集を禁止し、設計変更はspec→`--fixture-spec --fixture-overwrite`の再生成に限る。`rationale coverage failed: stale`の診断へ再生成コマンド行を添える |
+| H-4 pin role語彙 | `net.scl/sda→net.i2c_scl/i2c_sda`、`net.boot→net.button`（fix4〜5） | 登録role名の一覧は診断に出るが、BOOT strapping pinとuser buttonが同一netである場合にどのroleを選ぶか（`button`）が読めない | AA-7の拡張: pin roleをgraphの接続（I2C pull-up・strapping template・button capability）から導出し、`net.boot`兼用時に`button` roleを自動採用。導出結果はL2提案として宣言へ反映する |
+| H-5 DFM pad-to-edge | SW1を`placement_y_mm` 3.3→3.6へ（fix5） | 診断にpad座標と閾値はあるが、必要移動量と「回転前のpad半幅で判定する」規則が読めない | AA-18: DFM `pad-to-board-edge-clearance`診断へ違反量と最小移動量（軸・mm）を添える |
+| H-6 GND島（接続子直下） | `stitch_via_wavelength_fraction`・`refill_max_iterations`・TP追加・J1移動・`min_clearance_mm` 0.15→0.12を8 run試行（fix6〜13） | `UncoveredGroundRegionsError`はbboxしか示さず、島がJ1のpad moatに閉じられていること、`min_island_area`宣言がzoneへemitされないこと（AA-11）、有効なレバーが`min_clearance_mm`（fab最小0.1以上）であることが読めない。到達に8 run要した | AA-19: 島診断へ「島を囲むfootprint／track」「候補レバー（`min_clearance_mm`のfab最小内の下限、ground pour設定）」を列挙し、`acd-placement-search` Skillに接続子直下の島解消の探索手順（clearanceをfab profile最小まで段階的に下げ、router収束を確認）を追加。閾値は緩めない |
+| H-7 DRC thermal／courtyard | `min_clearance_mm` 0.12で同時解消（fix9→fix13） | `starved_thermal`・`courtyards_overlap`の診断は座標のみで、原因（追加したTP1がJ1 courtyard内）を示さない | AA-19に含める: DRC違反へ関与footprintの参照子を添える |
+| H-8 シルクラベル | ラベルを`J1`/`D1`/`D2`/`SW1`へ短縮、search limit 12（fix14） | 衝突統計（pad/mask/body/courtyard）は出るが、短縮・探索範囲拡張・撤去のどれが有効か、撤去時のデッドロック（AA-14）が読めない | AA-20: silkscreen resolverの停止診断へ「文字列短縮／`placement_search_limit_mm`拡張」の次手を添え、`acd-silkscreen-placement` Skillへ短縮の優先順位（参照子＞機能名）を書く |
+| H-9 catalog entry追加 | agent由来のKT-0603G／KT-0603A／PinHeader entryを反映し、footprint sha256をcontainer内の実ファイルで検証（catalog commit） | 新規部品はcatalog無しでは`fixture-generation`に戻り、正規の追加経路が無い。第10回のagentは未commit編集を`--allow-dirty`で通した（AA-5・AA-8） | AA-21: catalog entryを追加する宣言経路（`scripts/add_catalog_entry.py`または`acd-contracts` Skill）を用意し、footprint／symbol hashはdigest固定container内で計算、追加は`contracts/`へのcommitとして`report_final_basis.py`に現れる形にする。`--allow-dirty`の範囲限定（AA-5）と両立させる |
+| H-10 evidence revisionの明示 | SW1へ`cpl_rotation_evidence_revision`等を明示（fix18） | AA-13 | AA-13 |
+| H-11 lcsc↔mpnの照合と部品探索 | D1 `C16224→C12624`訂正、D2（`KT-0603A`宣言／`C2290`=白）は正規番号を特定できず未解決 | agentにlcsc番号から品名を確認する手段が無く、typoと色違いが最終gateまで残る。catalogに無い部品（橙LED）を探す経路も無い | AA-12（照合）＋AA-22: LCSC record取得（`fetch_lcsc_footprint_orientation.py`）を宣言直後に実行し`Manufacturer Part`を宣言mpnと照合する手順を`acd-contracts` Skillへ。部品探索はL2に留め、探索結果は宣言＋recordとして残す |
+
+反復回数の観点では、Devinでも18 run（各run約10分）を要し、その多くは診断が示す次手の
+不足に起因する。agentの500 iterationのうち到達段を進めたのは診断が次手を明示していた段
+（rationale coverage・functional block・pin role）に偏っており、次手の無い段（CPL basis・
+GND島・シルク）で停止した。AA-15〜AA-22はいずれも「停止文に有効な次手を添える」か
+「宣言経路をSkill手順として書く」ものであり、合格側権限を持たない。
