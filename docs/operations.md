@@ -1939,9 +1939,13 @@ commandが非ゼロで終了した場合も、runnerは宣言済み`--download`�
 使わない。transport失敗とtimeoutではdownloadを試みない。
 
 `--graph`で指定したDesign Graphから、未指定のcommandとdownload pathを導出する。
+commandを与えない既定実行では`fixtures/golden-design-1/graph.json`（GD1）を使う。
+commandを明示した場合、graph由来の既定downloadが使われるのは`--graph`を明示し、
+かつ`--download`・`--download-root`を指定しないときだけである。`--graph`無しの任意
+commandでは`--download`／`--download-root`で指定したpathだけをdownloadし、指定が
+無ければdownloadは行わない（成功したcommandをdownload不足で失敗扱いしない）。
 graphのmissing、parse failure、または不正な`graph_id`ではGD1へfallbackせず停止する。
-commandを明示する場合もdownload path未指定なら同じgraph-derived defaultsを使うため、
-graphを特定できない運用ではdownload pathを明示する。
+明示したdownload対象がcontainer内に存在しない場合は引き続きfail-closedとする。
 
 生成物の既定pathとFW boot logはgraph_id由来であり、GD1 fixtureだけが互換値
 （`out/gd1-*`および`ACD GD1 fw boot target_revision=%s`）を明示属性または
@@ -1975,6 +1979,18 @@ forwardする。ToolEnvelopeは`source_revision`・`source_tree_state`・`source
 `unknown`としてfail-closedで拒否する。`--source-revision <sha>`を与えると全envelopeの
 `source_revision`一致も要求する。これにより検証checkout内の`src/`改変（dirty treeからの
 Evidence生成）は検証側で必ず検出できる。
+
+runnerとverifierは、観測したsource revisionがbootstrap時のrevisionから逸脱していないかも
+照合する。`run_in_workspace.py --source-revision <sha>`は期待するsource git shaを指定し、
+`--bootstrap-record <path>`はbootstrap record（既定では存在すれば
+`<repo>/.openhands/bootstrap-record.json`）の`resolved_revision`を期待値として読む。
+両方を指定した場合は一致を要求し、明示したrecord pathが存在しない場合は停止する。
+`--source mounted`で観測revisionが期待値と異なる場合、`--allow-dirty`無しではimage digest
+解決の前にcontainer起動を拒否する。`--allow-dirty`を許容した場合もenvelopeには実測
+revisionが記録されるため、`verify_authoritative_evidence.py --source-revision`（または
+`--bootstrap-record`）でfail-closedに拒否される。`--source bundled`では観測できる
+provenanceが無いためこの照合は行わない。`--source-revision`と`--bootstrap-record`は
+`--local-provisional`では使えない。
 
 server imageがlockに未設定、image digestを解決できない、または経路がunknownの場合、
 runnerはコマンドを実行せず非ゼロ終了する。

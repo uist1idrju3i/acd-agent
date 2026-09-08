@@ -83,6 +83,39 @@ def load_workspace_graph(path: Path) -> DesignGraph:
         raise ValueError(f"design graph could not be loaded: {path}") from exc
 
 
+def expected_source_revision(
+    *,
+    source_revision: str | None,
+    bootstrap_record: Path | None,
+) -> str | None:
+    """Resolve the expected source git sha from an explicit sha or a bootstrap record."""
+    recorded: str | None = None
+    if bootstrap_record is not None:
+        try:
+            payload = json.loads(bootstrap_record.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            raise ValueError(
+                f"bootstrap record could not be read: {bootstrap_record}"
+            ) from exc
+        record = cast(dict[str, object], payload) if isinstance(payload, dict) else {}
+        revision = record.get("resolved_revision")
+        if not isinstance(revision, str) or not revision:
+            raise ValueError(
+                f"bootstrap record has no resolved_revision: {bootstrap_record}"
+            )
+        recorded = revision
+    if (
+        source_revision is not None
+        and recorded is not None
+        and source_revision != recorded
+    ):
+        raise ValueError(
+            "--source-revision disagrees with the bootstrap record "
+            f"resolved_revision {recorded}: {source_revision}"
+        )
+    return source_revision if source_revision is not None else recorded
+
+
 @dataclass(frozen=True)
 class ImageReference:
     digest: str
@@ -274,6 +307,7 @@ def run_command_in_workspace(
     sleep: Callable[[float], None] = time.sleep,
     source_provenance: SourceProvenance | None = None,
     allow_dirty: bool = False,
+    expected_source_revision: str | None = None,
 ) -> WorkspaceResult:
     """Run one command in a DockerWorkspace using a resolved server digest.
 
@@ -292,6 +326,14 @@ def run_command_in_workspace(
     ``source="bundled"`` no repository is mounted, so provenance is recorded
     as unknown and bundled Evidence cannot pass the verifier until the image
     bundle records its git sha.
+
+    ``expected_source_revision`` is the source git sha the run is expected to
+    observe, for example the resolved revision recorded by the workspace
+    bootstrap. For ``source="mounted"`` a revision that deviates from it is
+    refused before the image digest is resolved unless ``allow_dirty`` is
+    given; with ``allow_dirty`` the run proceeds and the envelope keeps the
+    actual revision so the verifier can reject it. For ``source="bundled"``
+    the check is skipped because no repository provenance exists.
 
     ``runtime`` declares the container bounds explicitly: health check timeout,
     platform, log streaming, memory limit, docker CLI timeout, and command
@@ -353,6 +395,18 @@ def run_command_in_workspace(
             "source tree provenance is unknown; run from a git checkout or "
             "pass allow_dirty (CLI: --allow-dirty) to record provisional-only "
             "provenance"
+        )
+    if (
+        source == "mounted"
+        and expected_source_revision is not None
+        and source_provenance.revision != expected_source_revision
+        and not allow_dirty
+    ):
+        raise ValueError(
+            f"source revision {source_provenance.revision} deviates from the "
+            f"bootstrap revision {expected_source_revision}; run from the "
+            "bootstrapped revision or pass allow_dirty (CLI: --allow-dirty) "
+            "to record provisional-only provenance"
         )
     reference = resolve_image_digest(image, timeout=config.docker_cli_timeout)
     if reference is None:

@@ -22,12 +22,16 @@ from acd.openhands.workspace import (
     ProvisionalWorkspaceResult,
     WorkspaceStartupError,
     WorkspaceTransportError,
+    expected_source_revision,
     load_workspace_graph,
     run_command_in_local_workspace,
     run_command_in_workspace,
     workspace_defaults,
 )
 from acd.schema.host_resources import HostResourceReport
+
+DEFAULT_GRAPH = Path("fixtures/golden-design-1/graph.json")
+DEFAULT_BOOTSTRAP_RECORD = Path(".openhands/bootstrap-record.json")
 
 
 def _prepare_cache_dir(cache_dir: Path) -> None:
@@ -107,8 +111,14 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "--graph",
         type=Path,
-        default=Path("fixtures/golden-design-1/graph.json"),
-        help="design graph used to derive default command and Evidence paths",
+        default=None,
+        help=(
+            "design graph used to derive default command and Evidence paths; "
+            "an explicit --graph also supplies the default downloads for an "
+            "explicit command, while a command without --graph downloads only "
+            "the --download/--download-root paths (the default graph is used "
+            "only when no command is given)"
+        ),
     )
     parser.add_argument(
         "--download",
@@ -162,6 +172,26 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Write the host resource preflight report to this path.",
     )
     parser.add_argument(
+        "--source-revision",
+        default=None,
+        metavar="SHA",
+        help=(
+            "expected source git sha; a mounted run whose source provenance "
+            "deviates from it is refused before the container starts"
+        ),
+    )
+    parser.add_argument(
+        "--bootstrap-record",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "bootstrap record JSON whose resolved_revision is the expected "
+            "source sha (default: <repo>/.openhands/bootstrap-record.json "
+            "when it exists)"
+        ),
+    )
+    parser.add_argument(
         "--allow-dirty",
         action="store_true",
         help=(
@@ -189,6 +219,10 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         parser.error("--download-root cannot be used with --local-provisional")
     if args.local_provisional and args.allow_dirty:
         parser.error("--allow-dirty cannot be used with --local-provisional")
+    if args.local_provisional and args.source_revision:
+        parser.error("--source-revision cannot be used with --local-provisional")
+    if args.local_provisional and args.bootstrap_record:
+        parser.error("--bootstrap-record cannot be used with --local-provisional")
     if not args.local_provisional and not args.image:
         parser.error("--image or ACD_CONTAINER_IMAGE is required")
     return args
@@ -199,24 +233,38 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.cache_dir is not None:
         _prepare_cache_dir(args.cache_dir)
     try:
+        if args.bootstrap_record is not None:
+            if not args.bootstrap_record.is_file():
+                raise ValueError(
+                    f"bootstrap record not found: {args.bootstrap_record}"
+                )
+            bootstrap_record = args.bootstrap_record
+        else:
+            candidate = args.repo / DEFAULT_BOOTSTRAP_RECORD
+            bootstrap_record = candidate if candidate.is_file() else None
+        expected_revision = expected_source_revision(
+            source_revision=args.source_revision,
+            bootstrap_record=bootstrap_record,
+        )
+        # An explicit --graph with an explicit command keeps the historical
+        # default downloads; a command without --graph downloads only what
+        # --download/--download-root declared.
+        graph_explicit = args.graph is not None
         defaults = None
-        if not (args.download_files or args.download_roots) or not args.command:
-            graph_path = args.graph if args.graph.is_absolute() else args.repo / args.graph
+        if not args.command or (
+            graph_explicit and not (args.download_files or args.download_roots)
+        ):
+            graph = args.graph if graph_explicit else DEFAULT_GRAPH
+            graph_path = graph if graph.is_absolute() else args.repo / graph
             defaults = workspace_defaults(
-                load_workspace_graph(graph_path).graph_id, args.graph.parent
+                load_workspace_graph(graph_path).graph_id, graph.parent
             )
         if args.command:
             command = " ".join(args.command).strip()
-            if args.download_files:
-                download_files = tuple(args.download_files)
-            elif defaults is not None:
-                download_files = defaults.download_files
-            elif args.download_roots:
-                download_files = ()
-            else:
-                raise ValueError(
-                    "download files must be explicit when the design graph is unknown"
-                )
+            download_files = tuple(
+                args.download_files
+                or (defaults.download_files if defaults is not None else ())
+            )
         else:
             if defaults is None:
                 raise ValueError(
@@ -247,6 +295,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     platform=args.platform,
                 ),
                 allow_dirty=args.allow_dirty,
+                expected_source_revision=expected_revision,
             )
     except WorkspaceStartupError as exc:
         _write_host_resource_report(args.host_resource_report, exc.host_resource_report)
@@ -276,6 +325,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"source provenance: {result.source_revision} "
             f"{result.source_tree_state}"
         )
+        if expected_revision is not None:
+            origins: list[str] = []
+            if args.source_revision is not None:
+                origins.append("--source-revision")
+            if bootstrap_record is not None:
+                origins.append(f"bootstrap record {bootstrap_record}")
+            print(
+                f"expected source revision: {expected_revision} "
+                f"({' + '.join(origins)})"
+            )
     _write_host_resource_report(
         args.host_resource_report,
         (

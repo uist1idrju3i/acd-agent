@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any, cast
@@ -22,10 +23,38 @@ from common import STOP_REPORT_PATH, event, project_dir, result
 DENIAL_STATE_PATH = "out/stop-denials.json"
 REPEATED_DENIAL_LIMIT = 3
 REQUIRED_REPORT_FIELDS = ("failure_reason", "failed_stage")
+BOOTSTRAP_RECORD_PATH = ".openhands/bootstrap-record.json"
+DRIFT_LOG_PATHS = ("src", "scripts", "plugins", "pyproject.toml", "uv.lock", "docker")
+DRIFT_LOG_MAX_CHARS = 4000
+_DRIFT_COMMIT_LINE = re.compile(r"^([0-9a-f]{40}) ", re.MULTILINE)
 
 
 def main() -> int:
     root = project_dir(event())
+    drift = _source_drift(root)
+    drift_allowed: tuple[str, str, list[str]] | None = None
+    if drift is not None:
+        record_sha, detail, commit_shas = drift
+        report = _load_stop_report(root)
+        recorded = report.get("source_revision_drift") if report is not None else None
+        if (
+            isinstance(recorded, str)
+            and recorded.strip()
+            and all(sha in recorded for sha in commit_shas)
+        ):
+            drift_allowed = drift
+        else:
+            preview = "\n".join(detail.splitlines()[:5])
+            return _deny(
+                root,
+                (
+                    "Source revision deviates from the bootstrap record "
+                    f"{record_sha}: {preview}. Record the full `git log --stat "
+                    f"{record_sha}..HEAD` output as source_revision_drift in "
+                    f"{STOP_REPORT_PATH} before stopping; the deviation grants "
+                    "no pass authority."
+                ),
+            )
     try:
         changed = subprocess.check_output(
             ["git", "status", "--porcelain", "--untracked-files=all"],
@@ -48,6 +77,16 @@ def main() -> int:
     ]
     if not design_inputs:
         _clear_denials(root)
+        if drift_allowed is not None:
+            record_sha, _detail, commit_shas = drift_allowed
+            result(
+                decision="allow",
+                reason=(
+                    "Stopping with recorded source revision drift from "
+                    f"bootstrap {record_sha}: {len(commit_shas)} commit(s) "
+                    "under source paths. No pass authority is granted."
+                ),
+            )
         return 0
     missing_inputs = [path for path in design_inputs if not path.exists()]
     if missing_inputs:
@@ -85,6 +124,73 @@ def main() -> int:
     )
 
 
+def _load_stop_report(root: Path) -> dict[str, Any] | None:
+    path = root / STOP_REPORT_PATH
+    try:
+        payload: Any = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    return cast(dict[str, Any], payload)
+
+
+def _source_drift(root: Path) -> tuple[str, str, list[str]] | None:
+    """Return (bootstrap sha, git log output, commit shas) when commits under
+    the source paths exist past the bootstrapped revision, else ``None``.
+
+    A missing or unparseable record returns ``None`` (no drift check possible):
+    the run itself is verifier-gated, so the hook does not deny on its own.
+    """
+    record_path = root / BOOTSTRAP_RECORD_PATH
+    try:
+        payload: Any = json.loads(record_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    record = cast(dict[str, Any], payload) if isinstance(payload, dict) else {}
+    revision = record.get("resolved_revision")
+    if not isinstance(revision, str) or not revision:
+        return None
+    try:
+        log = subprocess.run(
+            [
+                "git",
+                "log",
+                "--stat",
+                "--format=%H%x20%s",
+                f"{revision}..HEAD",
+                "--",
+                *DRIFT_LOG_PATHS,
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+    except OSError:
+        return (
+            revision,
+            f"bootstrap revision {revision} is not an ancestor of HEAD",
+            [],
+        )
+    if log.returncode != 0:
+        return (
+            revision,
+            f"bootstrap revision {revision} is not an ancestor of HEAD",
+            [],
+        )
+    output = log.stdout.strip()
+    if not output:
+        return None
+    commit_shas = [
+        match.group(1) for match in _DRIFT_COMMIT_LINE.finditer(output)
+    ]
+    if len(output) > DRIFT_LOG_MAX_CHARS:
+        output = output[:DRIFT_LOG_MAX_CHARS]
+    return revision, output, commit_shas
+
+
 def _stop_report_reason(root: Path, newest_input: float) -> str | None:
     path = root / STOP_REPORT_PATH
     try:
@@ -93,12 +199,11 @@ def _stop_report_reason(root: Path, newest_input: float) -> str | None:
         # timestamp still counts as current.
         if path.stat().st_mtime < newest_input:
             return None
-        payload: Any = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, json.JSONDecodeError):
+    except OSError:
         return None
-    if not isinstance(payload, dict):
+    report = _load_stop_report(root)
+    if report is None:
         return None
-    report = cast(dict[str, Any], payload)
     if report.get("status") not in ("failed", "unknown"):
         return None
     if report.get("evidence_absent") is not True:

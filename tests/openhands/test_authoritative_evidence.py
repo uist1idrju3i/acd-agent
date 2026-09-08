@@ -41,6 +41,7 @@ def _verify(
     out_roots: tuple[Path, ...] = (),
     require_lanes: tuple[str, ...] = (),
     source_revision: str | None = None,
+    bootstrap_record: Path | None = None,
 ) -> bool:
     revision_args = (
         ["--revision-from", str(revision_from)]
@@ -52,12 +53,18 @@ def _verify(
         if source_revision is not None
         else []
     )
+    record_args = (
+        ["--bootstrap-record", str(bootstrap_record)]
+        if bootstrap_record is not None
+        else []
+    )
     result = subprocess.run(
         [
             sys.executable,
             "scripts/verify_authoritative_evidence.py",
             *revision_args,
             *source_args,
+            *record_args,
             *(arg for root in out_roots for arg in ("--out-root", str(root))),
             *(arg for lane in require_lanes for arg in ("--require-lane", lane)),
             *(str(path) for path in paths),
@@ -224,3 +231,26 @@ def test_source_revision_constraint_is_enforced(tmp_path: Path) -> None:
     path = _write(tmp_path, _record())
     assert _verify(path, source_revision="b" * 40)
     assert not _verify(path, source_revision="d" * 40)
+
+
+def _bootstrap_record(tmp_path: Path, revision: str) -> Path:
+    record = tmp_path / "bootstrap-record.json"
+    record.write_text(
+        json.dumps({"resolved_revision": revision}) + "\n", encoding="utf-8"
+    )
+    return record
+
+
+def test_bootstrap_record_source_revision_is_enforced(tmp_path: Path) -> None:
+    path = _write(tmp_path, _record())
+    assert _verify(path, bootstrap_record=_bootstrap_record(tmp_path, "b" * 40))
+    assert not _verify(
+        path, bootstrap_record=_bootstrap_record(tmp_path, "d" * 40)
+    )
+
+
+def test_source_revision_must_agree_with_bootstrap_record(tmp_path: Path) -> None:
+    path = _write(tmp_path, _record())
+    record = _bootstrap_record(tmp_path, "b" * 40)
+    assert _verify(path, source_revision="b" * 40, bootstrap_record=record)
+    assert not _verify(path, source_revision="d" * 40, bootstrap_record=record)
