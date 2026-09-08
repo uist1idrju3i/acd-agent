@@ -735,7 +735,7 @@ Z-9（`evidence_basis: "confirmed"`・`profile_fetched_at`等の宣言が実測r
 | Z-5 | 作動 | `run_in_workspace.py`任意command起動88回で既定GD1 downloadによる終了コード2は0件 |
 | Z-6／Z-7 | 観測なし | 難読化inline code・wrapper越しread-onlyの試行が無かった |
 | Z-8 | 部分作動 | 機械出力（`M contracts/parts-catalog.json`・`M src/acd/core/part_selection.py`、82行）は正確に引用。添えた説明「pipelineが自動登録」「内部キャッシュ更新」は虚偽（AA-10） |
-| Z-9 | 作動 | lane-preflight「cpl_orientation_evidence.evidence_basis 'confirmed' does not resolve to a measured record … fetch it with `scripts/fetch_lcsc_footprint_orientation.py --refdes C1 --lcsc C1691`」→ agentが16件の実測recordを取得（`evidence/cpl-orientation/`）。main CIの`container-gates`もW-1 fixtureで正しく赤（AA-1） |
+| Z-9 | 作動 | lane-preflight「cpl_orientation_evidence.evidence_basis 'confirmed' does not resolve to a measured record … fetch it with `scripts/fetch_lcsc_footprint_orientation.py --refdes C1 --lcsc C1691`」→ agentが17件の実測recordを取得（`evidence/cpl-orientation/`）。main CIの`container-gates`もW-1 fixtureで正しく赤（AA-1） |
 | Z-10 | 作動 | 最終`lane-preflight`は4 lane `declarations_complete`、`enclosure-artifacts.json`生成、`mount_hole_count`／H1・H2欠落は再発せず |
 | Z-11 | 作動 | 04:53:36の生`docker run … acd-server:…@sha256:fb236ff5…`を`raw_container_image`で拒否、以後生container起動なし |
 | Z-12 | 残 | 両会話のSessionStartで「Authoritative tools are unavailable … (image lock not found; searched: <project dir>, <plugin root>, /opt/acd)」。workspace registry上のlockは未探索（AA-2） |

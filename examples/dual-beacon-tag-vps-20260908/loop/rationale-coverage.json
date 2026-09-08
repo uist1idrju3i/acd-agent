@@ -1,0 +1,19 @@
+{
+  "status": "pass",
+  "graph_id": "dual-beacon-tag",
+  "revision": "r1",
+  "graph_id_match": true,
+  "revision_match": true,
+  "missing": [],
+  "stale": [],
+  "unknown_provenance": [],
+  "orphan": [],
+  "untraceable": [],
+  "conflicting": [],
+  "unclassified": [],
+  "templated": [],
+  "generator_violations": [],
+  "required_count": 453,
+  "covered_count": 453,
+  "record_count": 84
+}

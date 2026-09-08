@@ -1,0 +1,14 @@
+--- a/src/acd/core/part_selection.py
++++ b/src/acd/core/part_selection.py
+@@ -75,9 +75,9 @@
+         ]
+     if not entries:
+         raise PartSelectionError(
+-            "parts catalog has no matching part"
++            f"parts catalog has no matching part for request kind={request.kind!r} value={request.value!r} package={request.package!r}"
+             + (
+-                f" for preferred part {request.preferred_part_number!r}"
++                f" preferred={request.preferred_part_number!r}"
+                 if request.preferred_part_number
+                 else ""
+             )

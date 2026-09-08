@@ -1,0 +1,15 @@
+{
+  "status": "fail",
+  "findings": [
+    {
+      "code": "pin_role_unconsumed",
+      "node_id": "fw.pin.scl",
+      "message": "firmware pin 'fw.pin.scl' role 'scl' is not consumed by any firmware capability and is not a registered pin role (registered: boot, button, i2c_scl, i2c_sda, led, led2, uart_rx, uart_tx, usb_dn, usb_dp); rename the net to a registered role or register a capability consuming it via acd-firmware-capability-entry"
+    },
+    {
+      "code": "pin_role_unconsumed",
+      "node_id": "fw.pin.sda",
+      "message": "firmware pin 'fw.pin.sda' role 'sda' is not consumed by any firmware capability and is not a registered pin role (registered: boot, button, i2c_scl, i2c_sda, led, led2, uart_rx, uart_tx, usb_dn, usb_dp); rename the net to a registered role or register a capability consuming it via acd-firmware-capability-entry"
+    }
+  ]
+}

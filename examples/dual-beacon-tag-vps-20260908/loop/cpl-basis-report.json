@@ -1,0 +1,71 @@
+{
+  "errors": [
+    "J1: confirmed CPL position evidence requires method, date, revision, and note",
+    "J2: confirmed CPL position evidence requires method, date, revision, and note",
+    "U1: confirmed CPL position evidence requires method, date, revision, and note"
+  ],
+  "position_bases": {
+    "C1": "pad_bbox_center",
+    "C2": "pad_bbox_center",
+    "C3": "pad_bbox_center",
+    "C4": "pad_bbox_center",
+    "D1": "pad_bbox_center",
+    "D2": "pad_bbox_center",
+    "J1": "pad_bbox_center",
+    "J2": "pad_bbox_center",
+    "R1": "pad_bbox_center",
+    "R2": "pad_bbox_center",
+    "R3": "pad_bbox_center",
+    "R4": "pad_bbox_center",
+    "R5": "pad_bbox_center",
+    "R6": "pad_bbox_center",
+    "SW1": "pad_bbox_center",
+    "U1": "pad_bbox_center",
+    "U2": "pad_bbox_center"
+  },
+  "position_basis": "pad_bbox_center",
+  "rotation_basis": "component_part_number",
+  "rotation_offsets": {
+    "C1": 0.0,
+    "C2": 0.0,
+    "C3": 0.0,
+    "C4": 0.0,
+    "D1": 0.0,
+    "D2": 0.0,
+    "J1": 0.0,
+    "J2": 0.0,
+    "R1": 0.0,
+    "R2": 0.0,
+    "R3": 0.0,
+    "R4": 0.0,
+    "R5": 0.0,
+    "R6": 0.0,
+    "SW1": 0.0,
+    "U1": 0.0,
+    "U2": 0.0
+  },
+  "schema_version": "0.1",
+  "status": "fail",
+  "unknowns": {
+    "cpl_position_basis": [],
+    "cpl_rotation_basis_fab_lcsc": [
+      "C1",
+      "C2",
+      "C3",
+      "C4",
+      "D1",
+      "D2",
+      "J1",
+      "J2",
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "SW1",
+      "U1",
+      "U2"
+    ]
+  }
+}

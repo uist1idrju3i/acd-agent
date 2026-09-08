@@ -1,0 +1,33 @@
+{
+  "artifact_kind": "decoupling_placement_report",
+  "deficiencies": [],
+  "pass_evidence": false,
+  "placements": [
+    {
+      "changed": false,
+      "distance_mm": 5.3344563921734345,
+      "limit_mm": 8.0,
+      "net_id": "net.p3v3",
+      "node_id": "comp.c3",
+      "placement_rotation_deg": 90.0,
+      "placement_x_mm": 28.78,
+      "placement_y_mm": 16.53,
+      "refdes": "C3",
+      "target_refdes": "U2"
+    },
+    {
+      "changed": false,
+      "distance_mm": 1.8230263300347578,
+      "limit_mm": 3.0,
+      "net_id": "net.p3v3",
+      "node_id": "comp.c4",
+      "placement_rotation_deg": 90.0,
+      "placement_x_mm": 7.28,
+      "placement_y_mm": 2.53,
+      "refdes": "C4",
+      "target_refdes": "U1"
+    }
+  ],
+  "record_class": "L3",
+  "status": "satisfied"
+}

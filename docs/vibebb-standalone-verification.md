@@ -1739,7 +1739,7 @@ completion約22.0万／reasoning約13.6万。`conversation/conversation-stats.js
   'confirmed' does not resolve to a measured record (record file is missing: …/C1.json);
   expected evidence/dual-beacon-tag-cpl-orientation/C1.json; fetch it with
   `scripts/fetch_lcsc_footprint_orientation.py --refdes C1 --lcsc C1691 …`」を返し、
-  agentは案内どおり`fetch_lcsc_footprint_orientation.py`で16部品の実測recordを取得した
+  agentは案内どおり`fetch_lcsc_footprint_orientation.py`で17部品の実測recordを取得した
   （`evidence/cpl-orientation/`、09:02–09:04）。09:14には`CplBasisError: J1/J2/U1: confirmed
   CPL position evidence requires method, date, revision, and note`でも止まり、宣言側の
   補完を要求した。
@@ -1890,7 +1890,7 @@ checkout上のcatalogの不一致を検査しない）、AA-9（既存fixtureか
 [`examples/dual-beacon-tag-vps-20260908/`](../examples/dual-beacon-tag-vps-20260908/)へ、
 投入promptとre-prompt、agent最終報告全文、2会話のevent digest、hook発火ログ全件
 （loop 1,549件・deny 10件、init 39件）、有効fixture（spec／graph／rationale／requirements／
-placement report／overlay）とstale graph、実測CPL record 16件、GUI経路最終runの
+placement report／overlay）とstale graph、実測CPL record 17件、GUI経路最終runの
 `loop-summary`／`timing-record`／`lane-preflight`／router・DRC・ERC・CPL・coverage・
 筐体・FW report・`stop-report`、対照run（control-a／b／a2／b2／c）のsummary・timing・
 report・検証出力、bootstrap record、plugin install応答、workspaceのgit差分

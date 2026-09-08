@@ -1,0 +1,21 @@
+{
+  "authority": "L3 observation; not gate authority",
+  "convergence_state": "converged",
+  "target_revision": "r1",
+  "tool_name": "freerouting",
+  "unrouted": [
+    5,
+    2,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ]
+}

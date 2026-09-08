@@ -1,0 +1,30 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "candidate_router_diagnostics": null,
+  "content_sha256": "sha256:07b59e5c096e830eadece76885887503162425d0485a1c5dd8d31487ebc890c4",
+  "exploration_rounds": null,
+  "failed_stage": "board-pipeline",
+  "failure_reason": "GateError: strapping_pin: status='unknown' (strapping net resolution is incomplete); evidence: gate-evidence/design-predicates.json",
+  "graph_id": "dual-beacon-tag",
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": "Explore declared placement and GPIO candidates from the rejected predicate remediation, then rerun every deterministic stage.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "router_diagnostics": {
+    "authority": "L3 observation; not gate authority",
+    "convergence_state": "unknown",
+    "final_unrouted": null,
+    "open_net_count": null,
+    "open_nets": [],
+    "plateau_passes": 0,
+    "read_errors": [
+      "router-pass-progress.json: missing",
+      "routing-connectivity.json: missing"
+    ],
+    "unrouted_progression": []
+  },
+  "schema_version": "0.1",
+  "timing_record": "out/control-a/timing-record.json"
+}

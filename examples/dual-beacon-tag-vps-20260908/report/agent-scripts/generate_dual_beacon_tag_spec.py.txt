@@ -1,0 +1,400 @@
+#!/usr/bin/env python3
+"""Generate dual-beacon-tag spec.json from mini-blink-dongle as structural reference."""
+
+import json
+import copy
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+SRC = REPO / "fixtures" / "mini-blink-dongle" / "spec.json"
+DST_DIR = REPO / "fixtures" / "dual-beacon-tag"
+DST = DST_DIR / "spec.json"
+
+def revise_evidence(comp):
+    c = copy.deepcopy(comp)
+    # Remove evidence_revision keys that are no longer permitted in the schema
+    for key in list(c.get("attrs", {}).keys()):
+        if "evidence_revision" in key:
+            del c["attrs"][key]
+        if key == "cpl_rotation_evidence_basis":
+            c["attrs"][key] = "estimated"
+    if "cpl_orientation_evidence" in c and c["cpl_orientation_evidence"] is not None:
+        c["cpl_orientation_evidence"].pop("evidence_revision", None)
+        c["cpl_orientation_evidence"]["evidence_basis"] = "estimated"
+    return c
+
+def main():
+    DST_DIR.mkdir(parents=True, exist_ok=True)
+    with open(SRC) as f:
+        spec = json.load(f)
+
+    spec["design_name"] = "DUAL BEACON TAG"
+    spec["graph_id"] = "dual-beacon-tag"
+    spec["revision"] = "r1"
+    spec["rationale_recorded_at"] = "2026-09-05T15:28:00Z"
+
+    # Board attrs
+    ba = spec["board_attrs"]
+    ba["width_mm"] = 30.0
+    ba["height_mm"] = 22.0
+    ba["mounting_hole_m2_count"] = 2
+    # Do not add position_source / position_source_ref here; they are not part of the rationale contract
+
+    # Nets
+    nets = {n["net_id"]: n for n in spec["nets"]}
+    keep = ["net.vbus_5v", "net.p3v3", "net.gnd", "net.cc1", "net.cc2", "net.usb_dp", "net.usb_dn"]
+    new_nets = [nets[k] for k in keep if k in nets]
+    new_nets += [
+        {"net_id": "net.led", "attrs": {"name": "LED", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "width_basis_source": "LED current is limited by the series resistor; current-derived capacity is not the controlling constraint.", "manufacturing_margin_mm": 0.0}},
+        {"net_id": "net.led2", "attrs": {"name": "LED2", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "width_basis_source": "LED current is limited by the series resistor; current-derived capacity is not the controlling constraint.", "manufacturing_margin_mm": 0.0}},
+        {"net_id": "net.boot", "attrs": {"name": "BOOT", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "width_basis_source": "ESP32-C3 strapping pin (IO9) internal 45k pull-up; external pull-up optional.", "manufacturing_margin_mm": 0.0}},
+        {"net_id": "net.sda", "attrs": {"name": "SDA", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "width_basis_source": "I2C open-drain data line; pull-up limited current is below fab minimum width concern.", "manufacturing_margin_mm": 0.0}},
+        {"net_id": "net.scl", "attrs": {"name": "SCL", "voltage_nominal_v": 3.3, "width_basis": "manufacturing_minimum", "width_basis_source": "I2C open-drain clock line; pull-up limited current is below fab minimum width concern.", "manufacturing_margin_mm": 0.0}},
+    ]
+    spec["nets"] = new_nets
+
+    comps = {c["refdes"]: c for c in spec["components"]}
+    new_components = []
+
+    def add(comp):
+        new_components.append(comp)
+
+    # J1
+    j1 = revise_evidence(comps["J1"])
+    j1["attrs"]["placement_x_mm"] = 15.0
+    j1["attrs"]["cpl_position_evidence_revision"] = "dual-beacon-tag-r1"
+    j1["attrs"]["cpl_position_evidence_note"] = "J1 footprint origin and pad-bbox centroid disagree; pad_bbox_center is declared as the JLCPCB centroid basis for this footprint."
+    add(j1)
+
+    # U1
+    u1 = revise_evidence(comps["U1"])
+    u1["attrs"]["cpl_position_evidence_revision"] = "dual-beacon-tag-r1"
+    u1["attrs"]["cpl_position_evidence_note"] = "U1 footprint origin and pad-bbox centroid disagree; pad_bbox_center is declared as the JLCPCB centroid basis for this footprint."
+    u1["pads"]["12"] = "net.sda"
+    u1["pads"]["13"] = "net.scl"
+    u1["pads"]["19"] = None
+    u1["pads"]["20"] = "net.led"
+    u1["pads"]["21"] = "net.led2"
+    u1["pads"]["23"] = "net.boot"
+    add(u1)
+
+    # U2
+    u2 = revise_evidence(comps["U2"])
+    u2["attrs"]["cpl_rotation_offset_deg"] = 0.0
+    add(u2)
+
+    # D1 Green LED
+    add({
+        "refdes": "D1",
+        "part_request": {"kind": "led", "value": "KT-0603G", "package": "LED_0603_1608Metric"},
+        "pads": {"1": "net.led", "2": "net.gnd"},
+        "attrs": {
+            "assembly": "fitted", "mpn": "KT-0603G", "lcsc": "C16224", "jlcpcb_class": "basic",
+            "led_indicator": True, "led_drive_net": "net.led",
+            "placement_x_mm": 18.3, "placement_y_mm": 17.0, "placement_rotation_deg": 0.0,
+            "cpl_position_basis": "pad_bbox_center",
+            "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+            "cpl_position_evidence_at": "2026-09-05T00:00:00Z",
+            "cpl_position_evidence_method": "KiCad standard LED_0603_1608Metric footprint pad-bbox centroid",
+            "cpl_position_evidence_revision": "dual-beacon-tag-r1", "cpl_position_evidence_basis": "confirmed"
+        },
+        "cpl_orientation_evidence": {
+            "evidence_at": "2026-09-05T00:00:00Z", "evidence_basis": "estimated",
+            "evidence_method": "Standard 0603 LED orientation with cathode mark aligned to footprint pad 1",
+            "evidence_note": "dual-beacon-tag preserves the standard LED orientation."
+        }
+    })
+
+    # D2 Amber LED
+    add({
+        "refdes": "D2",
+        "part_request": {"kind": "led", "value": "KT-0603A", "package": "LED_0603_1608Metric"},
+        "pads": {"1": "net.led2", "2": "net.gnd"},
+        "attrs": {
+            "assembly": "fitted", "mpn": "KT-0603A", "lcsc": "C2290", "jlcpcb_class": "basic",
+            "led_indicator": True, "led_drive_net": "net.led2",
+            "placement_x_mm": 18.3, "placement_y_mm": 10.5, "placement_rotation_deg": 0.0,
+            "cpl_position_basis": "pad_bbox_center",
+            "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+            "cpl_position_evidence_at": "2026-09-05T00:00:00Z",
+            "cpl_position_evidence_method": "KiCad standard LED_0603_1608Metric footprint pad-bbox centroid",
+            "cpl_position_evidence_revision": "dual-beacon-tag-r1", "cpl_position_evidence_basis": "confirmed"
+        },
+        "cpl_orientation_evidence": {
+            "evidence_at": "2026-09-05T00:00:00Z", "evidence_basis": "estimated",
+            "evidence_method": "Standard 0603 LED orientation with cathode mark aligned to footprint pad 1",
+            "evidence_note": "dual-beacon-tag preserves the standard LED orientation."
+        }
+    })
+
+    # SW1 (renamed from SW2)
+    sw1 = revise_evidence(comps["SW2"])
+    sw1["refdes"] = "SW1"
+    sw1["pads"] = {"1": "net.boot", "2": "net.gnd"}
+    sw1["cpl_orientation_evidence"] = {
+        "evidence_at": "2026-09-05T00:00:00Z", "evidence_basis": "estimated",
+        "evidence_method": "Standard tactile switch orientation with actuator facing up",
+        "evidence_note": "dual-beacon-tag preserves the standard switch orientation."
+    }
+    add(sw1)
+
+    # J2 I2C header
+    add({
+        "refdes": "J2",
+        "part_request": {"kind": "connector", "value": "Conn_01x04_Pin", "package": "PinHeader_1x04_P2.54mm_Vertical"},
+        "pads": {"1": "net.p3v3", "2": "net.sda", "3": "net.scl", "4": "net.gnd"},
+        "attrs": {
+            "assembly": "fitted", "mpn": "PinHeader_1x04_P2.54mm_Vertical", "lcsc": "", "jlcpcb_class": "basic",
+            "placement_x_mm": 25.0, "placement_y_mm": 5.0, "placement_rotation_deg": 0.0,
+            "symbol_file": "/usr/share/kicad/symbols/Connector.kicad_sym",
+            "footprint_file": "/usr/share/kicad/footprints/Connector_PinHeader_2.54mm.pretty/PinHeader_1x04_P2.54mm_Vertical.kicad_mod",
+            "cpl_position_basis": "pad_bbox_center",
+            "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+            "cpl_position_evidence_at": "2026-09-05T00:00:00Z",
+            "cpl_position_evidence_method": "KiCad official footprint library pad-bbox centroid",
+            "cpl_position_evidence_revision": "dual-beacon-tag-r1", "cpl_position_evidence_basis": "confirmed",
+        "cpl_position_evidence_note": "J2 footprint origin and pad-bbox centroid align; pad_bbox_center is declared as the JLCPCB centroid basis for this footprint."
+        },
+        "cpl_orientation_evidence": {
+            "evidence_at": "2026-09-05T00:00:00Z", "evidence_basis": "estimated",
+            "evidence_method": "KiCad official PinHeader_1x04 footprint orientation with pin-1 at top-left",
+            "evidence_note": "dual-beacon-tag preserves the standard pin-header orientation."
+        }
+    })
+
+    # Resistors
+    def make_r(refdes, pad1, pad2, x, y):
+        return {
+            "refdes": refdes,
+            "part_request": {"kind": "resistor", "value": "4.7k", "package": "R_0603_1608Metric"},
+            "pads": {"1": pad1, "2": pad2},
+            "attrs": {
+                "assembly": "fitted", "mpn": "0603WAF4701T5E", "lcsc": "C23162", "jlcpcb_class": "basic",
+                "placement_x_mm": x, "placement_y_mm": y, "placement_rotation_deg": 0.0,
+                "cpl_position_basis": "pad_bbox_center",
+                "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+                "cpl_position_evidence_at": "2026-09-05T00:00:00Z",
+                "cpl_position_evidence_method": "KiCad standard R_0603_1608Metric footprint pad-bbox centroid",
+                "cpl_position_evidence_revision": "dual-beacon-tag-r1", "cpl_position_evidence_basis": "confirmed"
+            },
+            "cpl_orientation_evidence": {
+                "evidence_at": "2026-09-05T00:00:00Z", "evidence_basis": "estimated",
+                "evidence_method": "Standard 0603 resistor orientation is symmetric; zero-degree centroid offset.",
+                "evidence_note": "dual-beacon-tag preserves the standard resistor orientation."
+            }
+        }
+
+    add(make_r("R1", "net.p3v3", "net.led", 6.0, 15.0))
+    add(make_r("R2", "net.p3v3", "net.led2", 14.0, 15.0))
+    add(make_r("R3", "net.p3v3", "net.sda", 24.0, 12.0))
+    add(make_r("R4", "net.p3v3", "net.scl", 27.0, 12.0))
+
+    # R5/R6 CC pull-downs (same as mini-blink R1/R2)
+    r5 = revise_evidence(comps["R1"]); r5["refdes"] = "R5"; add(r5)
+    r6 = revise_evidence(comps["R2"]); r6["refdes"] = "R6"; add(r6)
+
+    # Capacitors
+    for cref in ("C1", "C2", "C3", "C4"):
+        add(revise_evidence(comps[cref]))
+
+    spec["components"] = new_components
+
+    # Apply placement search results
+    with open("out/container/placement-search.json") as f:
+        placements = json.load(f)
+    placement_map = {p["refdes"]: p for p in placements}
+    for c in new_components:
+        rd = c["refdes"]
+        if rd in placement_map:
+            p = placement_map[rd]
+            c["attrs"]["placement_x_mm"] = p["x_mm"]
+            c["attrs"]["placement_y_mm"] = p["y_mm"]
+            c["attrs"]["placement_rotation_deg"] = p["rotation_deg"]
+
+    # Requirements
+    spec["requirements"] = [
+        {"requirement_id": "dbt-req-001", "statement": "USB Type-Cバスパワー（5 V）で動作する小型状態表示タグ DUAL BEACON TAG", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-002", "statement": "電源はUSB-C VBUS 5 Vのみとし、バッテリ、充電回路、USB PDネゴシエーションを持たない", "graph_anchored": True, "expectation": None, "drives_functional_blocks": ["safety_power_boundary"]},
+        {"requirement_id": "dbt-req-003", "statement": "最大ネット電圧は5 V、最大電流は500 mA未満とする", "graph_anchored": True, "expectation": None, "drives_functional_blocks": ["safety_power_boundary"]},
+        {"requirement_id": "dbt-req-004", "statement": "USB-C CC1/CC2には5.1 kΩのプルダウンを配置し、Sourceデバイスへの接続検出を行う", "graph_anchored": True, "expectation": None, "drives_functional_blocks": ["usb_c_cc_termination"]},
+        {"requirement_id": "dbt-req-005", "statement": "3.3 Vは単一LDO（AMS1117-3.3）で生成する", "graph_anchored": True, "expectation": None, "drives_functional_blocks": ["single_ldo_power_tree"]},
+        {"requirement_id": "dbt-req-006", "statement": "MCUはESP32-C3-MINI-1（内蔵アンテナ）を使用し、ファームウェアピン割り当てはグラフに従う", "graph_anchored": True, "expectation": None, "drives_functional_blocks": ["firmware_pin_map"]},
+        {"requirement_id": "dbt-req-007", "statement": "BOOT/ENの起動条件はESP32-C3のstrapping規則に従う（GPIO9内部プルアップにより通常起動）", "graph_anchored": True, "expectation": None, "drives_functional_blocks": ["esp32c3_strapping_boot"]},
+        {"requirement_id": "dbt-req-008", "statement": "緑色LED（D1）をGPIO6で駆動し、500 ms周期で点滅させる", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-009", "statement": "橙色LED（D2）をGPIO7で駆動し、緑色LEDと500 ms周期で交互に点滅させる", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-010", "statement": "ユーザーボタン（SW1）をGPIO5に接続し、内部プルアップ付きactive-low入力とする。押下でLED点滅を一時停止または再開する", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-011", "statement": "外部センサ接続用I2Cヘッダ（4ピン: 3V3, GND, SDA, SCL）を1個配置し、SDA/SCLには4.7 kΩのプルアップを実装する", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-012", "statement": "基板は2層FR-4、1.6 mm、1 oz、HASL、外形30 mm×22 mm、M2取付穴2個とする", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-013", "statement": "筐体は基板を収める簡易構造とし、USB-Cコネクタ開口、2個のLED窓、ボタン開口、I2Cヘッダ開口を設ける", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-014", "statement": "ファームウェアはESP-IDF（ESP32-C3）で構築し、起動時にgraph_id由来のboot logを出力する", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+        {"requirement_id": "dbt-req-015", "statement": "ESP32-C3-MINI-1のアンテナ領域に対してkeepoutを確保する", "graph_anchored": True, "expectation": None, "drives_functional_blocks": []},
+    ]
+
+    spec["functional_blocks"] = [
+        {"block_id": "safety_power_boundary", "requirement_ids": ["dbt-req-002", "dbt-req-003"]},
+        {"block_id": "usb_c_cc_termination", "requirement_ids": ["dbt-req-004"]},
+        {"block_id": "single_ldo_power_tree", "requirement_ids": ["dbt-req-005"]},
+        {"block_id": "firmware_pin_map", "requirement_ids": ["dbt-req-006"]},
+        {"block_id": "esp32c3_strapping_boot", "requirement_ids": ["dbt-req-007"]},
+    ]
+
+    # Firmware module
+    spec["firmware_module"] = {
+        "node_id": "fw.module.main",
+        "attrs": {
+            "module_name": "Dual Beacon Tag firmware",
+            "mcu_component": "comp.u1",
+            "entry_state": "fw.state.boot",
+            "led_blink_period_ms": 500,
+            "log_period_ms": 1000,
+            "boot_log_message": "dual-beacon-tag fw boot target_revision=%s"
+        },
+        "states": [
+            {"node_id": "fw.state.boot", "attrs": {"state_name": "boot", "initial": True}},
+            {"node_id": "fw.state.blink", "attrs": {"state_name": "blink", "initial": False}},
+            {"node_id": "fw.state.paused", "attrs": {"state_name": "paused", "initial": False}},
+            {"node_id": "fw.state.fault", "attrs": {"state_name": "fault", "initial": False}}
+        ],
+        "transitions": [
+            {"node_id": "fw.transition.boot_blink", "attrs": {"from_state": "fw.state.boot", "to_state": "fw.state.blink", "trigger": "boot_complete"}},
+            {"node_id": "fw.transition.blink_paused", "attrs": {"from_state": "fw.state.blink", "to_state": "fw.state.paused", "trigger": "button_pressed"}},
+            {"node_id": "fw.transition.paused_blink", "attrs": {"from_state": "fw.state.paused", "to_state": "fw.state.blink", "trigger": "button_pressed"}},
+            {"node_id": "fw.transition.blink_fault", "attrs": {"from_state": "fw.state.blink", "to_state": "fw.state.fault", "trigger": "gpio_configure_failed"}}
+        ],
+        "sequence_steps": [
+            {"node_id": "fw.sequence.001", "attrs": {"step_index": 1, "actor": "fw.module.main", "target": "comp.u1", "action": "initialize_firmware"}},
+            {"node_id": "fw.sequence.002", "attrs": {"step_index": 2, "actor": "fw.module.main", "target": "comp.d1", "action": "toggle_led"}},
+            {"node_id": "fw.sequence.003", "attrs": {"step_index": 3, "actor": "fw.module.main", "target": "comp.d2", "action": "toggle_led2"}},
+            {"node_id": "fw.sequence.004", "attrs": {"step_index": 4, "actor": "fw.module.main", "target": "comp.sw1", "action": "read_button"}},
+            {"node_id": "fw.sequence.005", "attrs": {"step_index": 5, "actor": "fw.module.main", "target": "comp.u1", "action": "write_serial_log"}}
+        ]
+    }
+
+    spec["firmware_pin_assignments"] = [
+        {"pin_id": "fw.pin.led", "net": "net.led", "gpio": 6},
+        {"pin_id": "fw.pin.led2", "net": "net.led2", "gpio": 7},
+        {"pin_id": "fw.pin.boot", "net": "net.boot", "gpio": 9},
+        {"pin_id": "fw.pin.sda", "net": "net.sda", "gpio": 0},
+        {"pin_id": "fw.pin.scl", "net": "net.scl", "gpio": 1}
+    ]
+
+    # fab_order_intent
+    spec["fab_order_intent"] = {
+        "requirement_id": "dbt-req-012",
+        "attrs": {
+            "fab_profile": "jlcpcb-fr4-2l-1oz",
+            "pcba_class_target": "economic",
+            "quantity_pcs": 5,
+            "assembly_sides": "top",
+            "delivery_format": "single",
+            "soldermask_color": "green",
+            "surface_finish": "HASL",
+            "profile_source": "https://jlcpcb.com/capabilities/pcb-capabilities",
+            "profile_fetched_at": "2026-08-11T00:00:00Z"
+        }
+    }
+
+    # component_bodies
+    spec["component_bodies"] = [
+        {"node_id": "mechanical.component_body.u1", "refdes": "U1", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 10.0, "y_mm": 12.0, "rotation_deg": 0.0, "width_mm": 13.2, "depth_mm": 16.6, "height_mm": 2.4, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "Espressif ESP32-C3-MINI-1 datasheet", "dimensions_source_ref": "https://www.espressif.com/sites/default/files/documentation/esp32-c3-mini-1_datasheet_en.pdf", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.j1", "refdes": "J1", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 10.0, "y_mm": 3.7, "rotation_deg": 0.0, "width_mm": 8.94, "depth_mm": 7.35, "height_mm": 3.26, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_USB.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.u2", "refdes": "U2", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 5.3, "y_mm": 14.8, "rotation_deg": 0.0, "width_mm": 6.5, "depth_mm": 3.5, "height_mm": 1.8, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Package_TO_SOT_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.d1", "refdes": "D1", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 18.3, "y_mm": 17.0, "rotation_deg": 90.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.6, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/LED_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.d2", "refdes": "D2", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 18.3, "y_mm": 10.5, "rotation_deg": 0.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.6, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/LED_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.j2", "refdes": "J2", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 25.0, "y_mm": 5.0, "rotation_deg": 0.0, "width_mm": 2.54, "depth_mm": 10.16, "height_mm": 8.5, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_PinHeader_2.54mm.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.sw1", "refdes": "SW1", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 10.0, "y_mm": 11.5, "rotation_deg": 0.0, "width_mm": 3.9, "depth_mm": 2.9, "height_mm": 2.0, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Button_Switch_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.r1", "refdes": "R1", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 6.0, "y_mm": 15.0, "rotation_deg": 0.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.45, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Resistor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.r2", "refdes": "R2", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 16.5, "y_mm": 12.0, "rotation_deg": 0.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.45, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Resistor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.r3", "refdes": "R3", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 7.27, "y_mm": 5.08, "rotation_deg": 0.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.45, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Resistor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.r4", "refdes": "R4", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 7.27, "y_mm": 7.62, "rotation_deg": 0.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.45, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Resistor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.r5", "refdes": "R5", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 19.3, "y_mm": 7.0, "rotation_deg": 0.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.45, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Resistor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.r6", "refdes": "R6", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 20.6, "y_mm": 7.0, "rotation_deg": 0.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.45, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Resistor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.c1", "refdes": "C1", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 1.5, "y_mm": 5.0, "rotation_deg": 90.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.8, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Capacitor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.c2", "refdes": "C2", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 1.5, "y_mm": 8.2, "rotation_deg": 90.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.8, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Capacitor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.c3", "refdes": "C3", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 16.0, "y_mm": 7.0, "rotation_deg": 90.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.8, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Capacitor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+        {"node_id": "mechanical.component_body.c4", "refdes": "C4", "attrs": {"body_type": "solid", "mounting_side": "top", "x_mm": 15.0, "y_mm": 14.8, "rotation_deg": 90.0, "width_mm": 1.6, "depth_mm": 0.8, "height_mm": 0.8, "position_source": "dual-beacon-tag mechanical declaration", "position_source_ref": "fixtures/dual-beacon-tag/spec.json", "dimensions_source": "KiCad official footprint library, package version 10.0.6", "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Capacitor_SMD.pretty", "dimensions_checked_at": "2026-09-06T00:00:00Z"}},
+    ]
+
+    # Mechanical outline
+    mo = spec["mechanical_outline"]
+    mo["attrs"]["width_mm"] = 30.0
+    mo["attrs"]["depth_mm"] = 22.0
+    mo["attrs"]["mount_hole_1_x_mm"] = 2.0
+    mo["attrs"]["mount_hole_1_y_mm"] = 2.0
+    mo["attrs"]["mount_hole_2_x_mm"] = 28.0
+    mo["attrs"]["mount_hole_2_y_mm"] = 2.0
+    mo["attrs"]["position_source"] = "dual-beacon-tag mechanical declaration"
+    mo["attrs"]["position_source_ref"] = "fixtures/dual-beacon-tag/spec.json"
+
+    # Enclosure
+    encl = spec["enclosure"]
+    encl["attrs"]["tolerance_source"] = "dual-beacon-tag enclosure declaration (dbt-req-013)"
+    encl["attrs"]["tolerance_source_ref"] = "fixtures/dual-beacon-tag/spec.json"
+
+    # Connector openings
+    spec["connector_openings"] = [
+        {
+            "node_id": "mechanical.connector_opening.j1",
+            "refdes": "J1",
+            "attrs": {
+                "face": "front", "center_x_mm": 15.0, "center_y_mm": 9.23, "width_mm": 9.0, "height_mm": 3.26, "margin_mm": 0.5,
+                "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+                "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_USB.pretty",
+                "dimensions_checked_at": "2026-09-05T00:00:00Z"
+            }
+        },
+        {
+            "node_id": "mechanical.connector_opening.j2",
+            "refdes": "J2",
+            "attrs": {
+                "face": "front", "center_x_mm": 25.0, "center_y_mm": 5.0, "width_mm": 2.54, "height_mm": 10.16, "margin_mm": 0.5,
+                "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+                "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_PinHeader_2.54mm.pretty",
+                "dimensions_checked_at": "2026-09-05T00:00:00Z"
+            }
+        }
+    ]
+
+    # Board edge overhangs
+    spec["board_edge_overhangs"] = [
+        {"node_id": "mechanical.board_edge_overhang.u1", "refdes": "U1", "requirement_id": "dbt-req-015", "attrs": {"edge": "bottom", "overhang_mm": 5.5}},
+        {"node_id": "mechanical.board_edge_overhang.j1", "refdes": "J1", "requirement_id": "dbt-req-013", "attrs": {"edge": "top", "overhang_mm": 1.5}}
+    ]
+
+    # Safety boundary
+    spec["safety_boundary"] = {
+        "attrs": {
+            "profile": "hobby", "intended_use": "author_prototype", "max_net_voltage_v": 5.0, "max_current_a": 0.5,
+            "module_certified": "certified", "battery": False, "charger": False, "motor_actuator_laser": False
+        }
+    }
+
+    # Silk texts
+    spec["silk_texts"] = [
+        {"node_id": "mechanical.silk_text.sw1", "attrs": {"layer": "F.SilkS", "role": "functional_label_sw1", "text": "BTN", "stroke_width_mm": 0.15, "height_mm": 1.0, "rotation_deg": 0.0, "placement_basis": "SW1 center; right side preferred", "placement_reference": "SW1", "placement_search_order": "right,bottom,left,top,top_right,bottom_right,bottom_left,top_left", "placement_offset_step_mm": 0.25, "placement_search_limit_mm": 8.0, "placement_safety_margin_mm": 0.15, "board_edge_margin_mm": 0.15, "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm"}},
+        {"node_id": "mechanical.silk_text.led1", "attrs": {"layer": "F.SilkS", "role": "functional_label_d1", "text": "LED1", "stroke_width_mm": 0.15, "height_mm": 1.0, "rotation_deg": 0.0, "placement_basis": "D1 center and surrounding footprint clearance", "placement_reference": "D1", "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left", "placement_offset_step_mm": 0.25, "placement_search_limit_mm": 8.0, "placement_safety_margin_mm": 0.15, "board_edge_margin_mm": 0.15, "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm"}},
+        {"node_id": "mechanical.silk_text.led2", "attrs": {"layer": "F.SilkS", "role": "functional_label_d2", "text": "LED2", "stroke_width_mm": 0.15, "height_mm": 1.0, "rotation_deg": 0.0, "placement_basis": "D2 center and surrounding footprint clearance", "placement_reference": "D2", "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left", "placement_offset_step_mm": 0.25, "placement_search_limit_mm": 8.0, "placement_safety_margin_mm": 0.15, "board_edge_margin_mm": 0.15, "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm"}},
+        {"node_id": "mechanical.silk_text.usb", "attrs": {"layer": "F.SilkS", "role": "connector_identifier", "text": "USB", "stroke_width_mm": 0.15, "height_mm": 1.0, "rotation_deg": 0.0, "placement_basis": "J1 center and connector keepout clearance", "placement_reference": "J1", "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left", "placement_offset_step_mm": 0.25, "placement_search_limit_mm": 8.0, "placement_safety_margin_mm": 0.15, "board_edge_margin_mm": 0.15, "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm"}},
+        {"node_id": "mechanical.silk_text.board_id", "attrs": {"layer": "B.SilkS", "role": "board_part_number", "text": "dual-beacon-tag-r1", "stroke_width_mm": 0.15, "height_mm": 1.0, "rotation_deg": 0.0, "placement_basis": "graph_id and revision derived part-number placement on the back side", "placement_reference": "board.dual-beacon-tag", "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left", "placement_offset_step_mm": 0.25, "placement_search_limit_mm": 8.0, "placement_safety_margin_mm": 0.15, "board_edge_margin_mm": 0.15, "board_edge_margin_source": "fab_profile:jlcpcb-fr4-2l-1oz.min_silk_width=0.15 mm"}}
+    ]
+
+    # Fab
+    spec["fab_profile_id"] = "jlcpcb-fr4-2l-1oz"
+    spec["fab_process_allowances"] = []
+
+    # Component bodies: keep only bodies that already existed in mini-blink-dongle
+    # (D2, J2, R5, R6 bodies are generated by the fixture builder)
+    bodies = {b["refdes"]: b for b in spec.get("component_bodies", [])}
+    new_bodies = []
+    for c in new_components:
+        rd = c["refdes"]
+        if rd in bodies:
+            b = copy.deepcopy(bodies[rd]); b["refdes"] = rd; new_bodies.append(b)
+    spec["component_bodies"] = new_bodies
+
+    with open(DST, "w") as f:
+        json.dump(spec, f, indent=2, ensure_ascii=False)
+    print(f"Spec written to {DST}")
+
+if __name__ == "__main__":
+    main()
