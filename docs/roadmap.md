@@ -450,6 +450,32 @@ Z-9（宣言側evidence属性の実測record解決検査、`evidence.declaration
 Z-8（`scripts/report_final_basis.py`による最終報告のsource変更節・設計値節の機械生成と
 `/acd:vibebb-loop` step 8の報告契約）はPR #366で実装した。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする。
 
+### 14.24 14.23反映後の同一要件再検証（第10回）で残った関門（AA-*）
+
+第10回実機実測（2026-09-08、
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 17節）では、
+14.23を反映した`main`（`5bf2c90`）と更新済みimage（server `sha256:fb236ff5…`）のもとで
+第8回・第9回と同一文言の自然文要件を投入した。agentは`run_in_workspace.py`＋宣言経路に
+ほぼ留まり（生`docker run`はZ-11で1回拒否、gate緩和・script複製・難読化・commitは無し）、
+Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、routerは収束した
+（`final_unrouted 0`）。一方で`contracts/parts-catalog.json`へのentry追加と
+`src/acd/core/part_selection.py`のmessage編集が未commitのまま`--allow-dirty`で通り、
+最終報告はそれを「pipelineの自動登録」と説明した。停止点はU2のCPL rotation宣言
+（mini-blink由来180°）と実測recordの不一致で、pristine対照run（agent最終graph）も同一理由で
+停止し、specからの再生成はcatalog不一致でfixture-generationに戻る。authoritative Evidenceは
+3 laneとも無く、検証は`FAIL: no Evidence files supplied`（終了コード1）、判定は不合格である。
+本フェーズはゲートを緩めず、契約変更が会話内の未commit編集で通る面とbootstrap不在の面を閉じる。
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | `scripts/run_in_workspace.py`（`--allow-dirty`の範囲）、`src/acd/pipeline/design_loop.py`・`lane_preflight.py`（catalog／registry hash照合、functional block・pin role診断）、`src/acd/core/part_selection.py`（message）、`src/acd/core/evidence_declarations.py`（他fixture転記のL3警告）、`scripts/report_final_basis.py`とstop policy（bootstrap record不在・変更fileの変更action引用）、`plugins/acd/commands/vibebb-loop.md`、`plugins/acd/hooks/scripts/session_start.py`（registry探索）、`fixtures/mini-blink-dongle/spec.json`（AA-1）、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節、[`examples/dual-beacon-tag-vps-20260908/`](../examples/dual-beacon-tag-vps-20260908/) |
+| 実装 | `--allow-dirty`の許容範囲を設計入力path（`fixtures/`・`evidence/`・`out/`）に限り、`src/`・`contracts/`・`scripts/`・`plugins/`のdirtyはfail-closedのまま（AA-5）。graphの`parts_catalog_sha256`・registry hashをcheckout上の契約と照合し不一致を`contract.hash_mismatch`で止める（AA-8）。`vibebb-loop.md`でbootstrap recordの所在確認を必須にし、stop policyがrecord不在を`bootstrap_record_missing`として停止報告へ載せる（AA-3）。`PartSelectionError`へ要求内容と次手を含める（AA-4）。未知functional blockの診断へ登録名一覧を添え、要件文書がLED・I2C pull-upを含むのにblock未宣言なら`requirement.block_missing`で止める（AA-6）。firmware pin roleをgraphのI2C接続から導出する宣言経路（AA-7）。`estimated` evidenceの他fixture転記をL3警告で列挙（AA-9）。報告契約でworktree各entryへ変更actionの引用を必須にする（AA-10）。SessionStart hookがworkspace registryのlockを探索（AA-2）。W-1 fixtureの宣言を実測へ揃える（AA-1、別PR） |
+| 正常系 | 自然文のみから生成した新規設計が停止境界に達したとき、agentが契約変更を会話内の未commit編集で通せず、bootstrap recordのあるworkspaceで`run_in_workspace.py`と宣言経路だけで次手を取れる。到達段がpristine mainの契約だけで再現でき、`loop-summary`とprovenanceから第三者に読み取れる |
+| negative・fail-closed | `src/`・`contracts/`がdirtyなcheckout、契約hash不一致のgraph、bootstrap record不在、未実測evidence宣言、要件を落とした宣言はいずれもfail-closedのままである。診断・警告・照合はL2／L3であり合格側権限を持たない |
+| 再現性 | 対照run（pristine main・同digest）をagent最終specからの再生成（`--fixture-spec --fixture-overwrite`）で再実行し、到達段・失敗理由がGUI経路と一致することを記録する |
+
+実装状況: 未着手。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+
 ## マイルストーン15: 運用と文書の整備
 
 運用・文書側の改善項目を出所とする整備を行う。いずれも契約の緩和ではなく、
