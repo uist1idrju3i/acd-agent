@@ -717,8 +717,10 @@ agentは停止境界ごとに`src/`編集→commit、生`docker run`、難読化
 実装状況: Z-13はPR #359、Z-3・Z-5はPR #360、Z-4・Z-6・Z-7・Z-11・Z-12はPR #361、
 Z-1・Z-2・Z-10はPR #362で解決方針どおり実装した（stop policyはbootstrap revisionからの
 source逸脱を`source_revision_drift`の記録なしに停止させない点でZ-8の一部も担う）。
-Z-8（最終報告のsource変更節を`git log --stat`の機械出力に固定する報告契約）とZ-9
-（`evidence_basis: "confirmed"`等の宣言が実測recordへ解決することの検査）は未解消である。
+Z-9（`evidence_basis: "confirmed"`・`profile_fetched_at`等の宣言が実測recordへ解決することの
+検査。`evidence.declaration`述語、`declared_unverified` code、基板pipelineのprofile provenance
+照合）はPR #365、Z-8（`scripts/report_final_basis.py`による`git log --stat <bootstrap>..HEAD`と
+設計値表の機械生成、`/acd:vibebb-loop` step 8の報告契約）はPR #366で実装した。
 いずれの解決方針も診断・provenance・matcherの面の追加であり、
 ゲート・閾値・Evidence規則の緩和を含まない。実機での再検証（第10回）は未実施である。
 

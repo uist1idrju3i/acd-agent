@@ -446,8 +446,9 @@ Z-5・Z-3（runnerの既定download限定、bootstrap revision照合をrunner・
 PR #360、Z-4・Z-6・Z-7・Z-11・Z-12（hookのdeny理由・動的実行拒否・wrapper再帰・raw acd image拒否・
 SessionStart lock探索）はPR #361、Z-1・Z-2・Z-10（init手順と進行log、coverage診断文、
 enclosure lane preflightへのmechanical述語取り込み）はPR #362で実装した。
-Z-8（最終報告のsource変更節の機械出力固定）とZ-9（宣言側evidence属性の実測record解決検査）は
-未着手である。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする。
+Z-9（宣言側evidence属性の実測record解決検査、`evidence.declaration`述語）はPR #365、
+Z-8（`scripts/report_final_basis.py`による最終報告のsource変更節・設計値節の機械生成と
+`/acd:vibebb-loop` step 8の報告契約）はPR #366で実装した。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする。
 
 ## マイルストーン15: 運用と文書の整備
 
