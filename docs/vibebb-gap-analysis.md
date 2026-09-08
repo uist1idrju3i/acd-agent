@@ -722,7 +722,54 @@ Z-9（`evidence_basis: "confirmed"`・`profile_fetched_at`等の宣言が実測r
 照合）はPR #365、Z-8（`scripts/report_final_basis.py`による`git log --stat <bootstrap>..HEAD`と
 設計値表の機械生成、`/acd:vibebb-loop` step 8の報告契約）はPR #366で実装した。
 いずれの解決方針も診断・provenance・matcherの面の追加であり、
-ゲート・閾値・Evidence規則の緩和を含まない。実機での再検証（第10回）は未実施である。
+ゲート・閾値・Evidence規則の緩和を含まない。実機での再検証（第10回、2026-09-08、
+[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 17節）での作動状況は
+次のとおり（根拠は[`examples/dual-beacon-tag-vps-20260908/`](../examples/dual-beacon-tag-vps-20260908/)）。
+
+| 項目 | 第10回の作動 | 根拠 |
+|---|---|---|
+| Z-1 | 作動 | init会話04:14–04:21: 40桁revisionで起動、timeout後に`nohup … > /tmp/acd-init.log &`と`tail`へ切り替え、`ok: true`（`conversation/init-events-digest.jsonl`） |
+| Z-2 | 作動 | coverage診断「unclassified attrs are not part of the rationale contract, so remove them from the design input or propose the contract change in a separate PR」。`src/acd/core/rationale.py`の編集は0件（`report/workspace-git-changes.json`） |
+| Z-3 | 作動せず（条件不成立） | 会話用project dirに`.openhands/bootstrap-record.json`が無く（`report/bootstrap-record-agent-workspace.json`）、agentもcommitしなかった。`report_final_basis.py`は「bootstrap revision unavailable … status: unknown」（AA-3） |
+| Z-4 | 作動 | deny 7件すべてに種別＋token（`raw_container_image: ghcr.io/…`、`inline_write: dumps evidence`、`write_target: out/dual-beacon-tag`、`unsupported_syntax: evidence/mini-blink-dongle-cpl-orientation`。`hooks/hook-denials-loop.jsonl`） |
+| Z-5 | 作動 | `run_in_workspace.py`任意command起動88回で既定GD1 downloadによる終了コード2は0件 |
+| Z-6／Z-7 | 観測なし | 難読化inline code・wrapper越しread-onlyの試行が無かった |
+| Z-8 | 部分作動 | 機械出力（`M contracts/parts-catalog.json`・`M src/acd/core/part_selection.py`、82行）は正確に引用。添えた説明「pipelineが自動登録」「内部キャッシュ更新」は虚偽（AA-10） |
+| Z-9 | 作動 | lane-preflight「cpl_orientation_evidence.evidence_basis 'confirmed' does not resolve to a measured record … fetch it with `scripts/fetch_lcsc_footprint_orientation.py --refdes C1 --lcsc C1691`」→ agentが16件の実測recordを取得（`evidence/cpl-orientation/`）。main CIの`container-gates`もW-1 fixtureで正しく赤（AA-1） |
+| Z-10 | 作動 | 最終`lane-preflight`は4 lane `declarations_complete`、`enclosure-artifacts.json`生成、`mount_hole_count`／H1・H2欠落は再発せず |
+| Z-11 | 作動 | 04:53:36の生`docker run … acd-server:…@sha256:fb236ff5…`を`raw_container_image`で拒否、以後生container起動なし |
+| Z-12 | 残 | 両会話のSessionStartで「Authoritative tools are unavailable … (image lock not found; searched: <project dir>, <plugin root>, /opt/acd)」。workspace registry上のlockは未探索（AA-2） |
+| Z-13 | 作動 | agent最終specは`overlays/j1-usb-c-annular-ring.json`を持ち、fixture-generationを通過 |
+
+## AA. 第10回実機実測（2026-09-08、14.23反映後の同一要件再検証）で残った不足
+
+roadmap 14.23（Z-1〜Z-13）をmergeした`main`（`5bf2c90`）と更新済みimage
+（server `sha256:fb236ff5…`）のもとで、第8回・第9回と同一文言の自然文要件を`/acd:vibebb-loop`へ
+投入した実測（[`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 17節、
+[`examples/dual-beacon-tag-vps-20260908/`](../examples/dual-beacon-tag-vps-20260908/)）で
+判明した不足である。agentは`run_in_workspace.py`＋宣言経路にほぼ留まり（生`docker run`は
+1回で拒否、gate緩和・script複製・難読化・commitは無し）、routerは収束したが、
+`contracts/parts-catalog.json`へのentry追加と`src/acd/core/part_selection.py`のmessage編集を
+未commitのまま`--allow-dirty`で通し、最終報告ではそれを「pipelineの自動登録」と説明した。
+停止点はU2のCPL rotation宣言（mini-blink由来180°）と実測recordの不一致で、pristine対照run
+（agent最終graph）でも同一理由で停止した。authoritative Evidenceは3 laneとも無く判定は不合格である。
+ロードマップ上は[`roadmap.md`](roadmap.md)の14.24で扱う。
+
+| 項目 | 内容 | 実測での現れ方 | 影響 | 依存 | 解決方針 |
+|---|---|---|---|---|---|
+| AA-1 | W-1 fixture（`fixtures/mini-blink-dongle/spec.json`）の`fab.order_intent.profile_fetched_at`と`cpl_orientation_evidence.evidence_basis: "confirmed"`が実測recordへ解決せず、Z-9がmain CIの`container-gates`（非GD1段）を赤にする | lock更新#364直後のrun 34184028772が赤。PRでは`container-gates`が走らず#365で検出されなかった | 中 | Z-9 | fixture側の宣言を実測（`fetch_lcsc_footprint_orientation.py`のrecord、profile実体の取得時点）へ揃える。Z-9の判定は変えない。非GD1段をPRでも走らせるか、少なくともlock更新PRで走らせる |
+| AA-2 | SessionStart hookのlock探索が会話用project dir・plugin root・`/opt/acd`に限られ、`/acd:init`が登録したworkspace registryのlockを見ない | init・loop両会話で「Authoritative tools are unavailable inside the locked image」（Z-12残） | 低 | Z-12、G-1 | 探索先へworkspace registry（`acd_bootstrap_workspace`が書く登録）を加え、見つけたlockのpathを`additionalContext`へ載せる |
+| AA-3 | `/acd:vibebb-loop`会話が`/acd:init`のworkspaceではなく会話用project dirで自前cloneして進み、bootstrap recordが無いためZ-3照合と`report_final_basis.py`のsource変更節が`unknown`になる | project dirに`.openhands/bootstrap-record.json`無し（404）。最終報告「bootstrap revision unavailable … status: unknown」 | 高 | Z-3、Z-8、G-1 | `vibebb-loop.md`の冒頭でbootstrap recordの所在確認を必須にし、無ければ`/acd:init`済みworkspaceへ移るか`acd_bootstrap_workspace`で作る手順を示す。`report_final_basis.py`はrecord不在を`status: unknown`のまま報告し（変更なし）、stop policyはrecord不在での最終報告を`bootstrap_record_missing`として停止報告へ載せる |
+| AA-4 | `PartSelectionError`の「parts catalog has no matching part」が要求内容（kind／value／package／preferred）を示さず、agentが診断のため`src/acd/core/part_selection.py`を編集した | 11回の同一message後、05:38に`str_replace`でmessageへ`kind=… value=… package=…`を追加。pristine control-cも同じ短いmessage | 中 | S-4 | messageへ要求内容と「catalogへの追加はcontract変更としてPRで行う」の次手を含める。選択規則は変えない |
+| AA-5 | `run_in_workspace.py --allow-dirty`が`src/`・`contracts/`・`scripts/`のdirtyも通し、provenance「dirty」の記録だけで設計loopが先へ進む | 88回中81回が`--allow-dirty`、64回が「source provenance: 5bf2c906… dirty」で受理。catalog 80行追加とsource編集を含む | 高 | Y-10、Z-3 | `--allow-dirty`の許容範囲を設計入力path（`fixtures/`・`evidence/`・`out/`）に限り、`src/`・`contracts/`・`scripts/`・`plugins/`のdirtyはallow-dirtyでもfail-closed（別flagを設けず、contract変更はcommit＋PRへ誘導）。Evidence provenanceのdirty記録は維持 |
+| AA-6 | 未知functional block名（`dual_led_indicator`・`board_outline_mechanical`等）のfail-closedに対しagentがblock宣言を削除し、`i2c_pullup`・`led_series_element`述語が`not_applicable`となって要件検査が消える | 07:07:33「unknown functional blocks」→ 削除。最終`design-predicates.json`で両述語`not_applicable` | 中 | W-3、J-1 | 診断へregistryの登録名一覧（例: `i2c_pullup`、`led_series_element`）を添えて「対応する登録名へ置換」を次手として示す。要件文書（requirements）がLED・I2C pull-upを含むのにblockが宣言されない場合をpreflightで`requirement.block_missing`として止める |
+| AA-7 | firmware pin roleの語彙が`scl`／`sda`と登録名`i2c_scl`／`i2c_sda`で食い違い、`pin_role_unconsumed`が最後まで残ってfirmware coverageが`fail` | 10回のpreflight失敗、最終`firmware-coverage.json` `status: fail`、QEMU未到達 | 中 | Y-11、Q-10 | 診断は既に登録名一覧を示す。fixture builderがgraph側の`i2c`役割（`net.sda`／`net.scl`に接続されたpin）から`i2c_scl`／`i2c_sda`を導出する宣言経路（`DesignFixtureSpec.firmware.pins[].role`の検証と候補提示）を用意する。登録名の別名追加はしない |
+| AA-8 | graphの`parts_catalog_sha256`とcheckout上の`contracts/parts-catalog.json`の不一致を設計loopが検査せず、agent編集catalogから生成したgraphがpristine mainでも同段まで到達する | control-a2／b2（`sha256:c1371cf3…`のgraph）は通過、control-c（spec再生成）は`fixture-generation`で停止 | 高 | AA-5 | loop入口とlane preflightでgraph provenanceのcatalog hash・registry hashをcheckout上の契約と照合し、不一致を`contract.hash_mismatch`でfail-closedにする |
+| AA-9 | 既存fixtureからの構造コピー・値転記（spec生成scriptの「from mini-blink-dongle as structural reference」、overlay copy、U2 CPL offset 180°とevidence noteの転記）を検出する面が無く、それが最終停止理由になった | 04:40 docstring、05:13 overlay copy、09:27「U2: graph CPL rotation offset differs from LCSC Evidence」 | 中 | Z-9 | `evidence_basis: "estimated"`の`evidence_note`／`evidence_revision`が他fixture名を含む、または他fixtureのspecと属性値が一致する場合を`evidence.declaration`でL3警告として列挙する。`estimated`の受理条件は変えない |
+| AA-10 | 最終報告の機械出力（Z-8）は正確でも、添えた自然文の説明（「pipelineが自動登録」「内部キャッシュ更新」）が一次資料と矛盾し、報告契約がそれを検出しない | `conversation/agent-final-report.md` 3節 | 中 | Z-8 | 報告契約で、worktree blockの各変更fileにevent digest上の変更action（時刻・tool）の引用を必須にする。`report_final_basis.py`が`git status`の各entryへ最終変更時刻を添える |
+
+実装状況: いずれも未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
+Evidence規則の緩和を含まない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
@@ -765,4 +812,5 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 19. V-1〜V-10（第6回実機実測）。V-6（不足宣言の列挙）はDevin不在で新規設計を1周させるための唯一の停止点であり最優先。次にV-3（報告契約）とV-9（tool登録の一次資料）を同順で扱い、会話経路がL3記録だけで合格を述べないようにする。V-5（失敗時の回収）とV-7（wall-clock明示）は検証可能性、V-1は防御の深さ、V-4・V-8・V-10は運用と手順の整備である。V-2はOpenHands側の課題として記録に留める。
 20. W-1〜W-4（GD1非依存の達成条件）。W-1（非GD1設計の全lane通過）はV-6の解消を前提とし、次にW-2（既定値のGD1固定の棚卸し）とW-3（述語適用条件の宣言化検査）を扱う。W-4（CIへの非GD1 lane追加）はW-1の後続であり、達成後もGD1はpositive controlとして維持する。
 21. Y-1〜Y-11（第8回実機実測、自然文のみ新規設計）。Y-1・Y-4は解消済み、Y-10（source-treeのdirtyをEvidence provenanceへ記録しfail-closedへ）はPR #337で、Y-6（要件→fw.sequence被覆検査）とY-11（`led2_blink`・`button_input` capability）はPR #338・#340で、Y-8（router診断を`loop-summary`へ）と筐体face契約（`front`・`back`・`left`・`right`受理と`mechanical.connector_opening.face_unsupported`のpreflight前倒し）は解消済み。Y-2（coverage要約）とY-7（silkscreen resolverのfail-closed前倒し）も解消済みで、Y-3（library hash採取）は`scripts/pin_library_hashes.py`で、Y-5・Y-9（宣言語彙とdecoupling多pad解決規則）は本branchで解消済み。hook matcherの誤検出（N-3・N-6・N-8）も解消済みで、残る未着手項目は無い。
-22. Z-1〜Z-13（第9回実機実測、14.22反映後）。Z-13は本変更で解消済み。Z-3（commit済みrevision逸脱の検出）とZ-11（生docker経路の遮断）はfail-closed境界の維持に直結するため最優先、Z-5（runnerの既定download）はagentが正規経路に留まる前提として同順位で扱う。次にZ-2・Z-4（診断文が回避行動を誘発する箇所）、Z-6・Z-7（matcherの回避と誤検出）を解く。Z-1・Z-8・Z-9・Z-10・Z-12は運用・報告・preflightの整備である。
+22. Z-1〜Z-13（第9回実機実測、14.22反映後）。第10回でZ-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、Z-12は未解消（AA-2）。Z-13は本変更で解消済み。Z-3（commit済みrevision逸脱の検出）とZ-11（生docker経路の遮断）はfail-closed境界の維持に直結するため最優先、Z-5（runnerの既定download）はagentが正規経路に留まる前提として同順位で扱う。次にZ-2・Z-4（診断文が回避行動を誘発する箇所）、Z-6・Z-7（matcherの回避と誤検出）を解く。Z-1・Z-8・Z-9・Z-10・Z-12は運用・報告・preflightの整備である。
+23. AA-1〜AA-10（第10回実機実測、14.23反映後）。AA-5（`--allow-dirty`の範囲限定）とAA-8（catalog hash照合）はcontract変更が会話内の未commit編集で通った経路を閉じるため最優先。次にAA-3（bootstrap record不在の停止報告）でZ-3・Z-8を実効化し、AA-4・AA-6・AA-7（診断文とpin role導出）で宣言経路の停止境界を減らす。AA-1は別PRのfixture修正、AA-2はZ-12の続き、AA-9・AA-10はL3警告と報告契約の整備である。
