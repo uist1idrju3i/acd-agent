@@ -1,0 +1,18 @@
+{
+  "artifact_kind": "design_loop_summary",
+  "candidate_router_diagnostics": null,
+  "content_sha256": "sha256:c615bad70f56ff6ccd74a03799f387043d3c4920d3828ee9b67959233e0438fb",
+  "exploration_rounds": null,
+  "failed_stage": "order-readiness",
+  "failure_reason": "order readiness was not executed in design-only mode",
+  "graph_id": "dual-beacon-tag",
+  "max_exploration_candidates": 3,
+  "max_exploration_rounds": 1,
+  "next_step_action": "Provide the missing declared order inputs, quotes, or authoritative Evidence and rerun the loop; order readiness is never recovered by design search.",
+  "ok": false,
+  "pass_evidence": false,
+  "record_class": "L3",
+  "router_diagnostics": null,
+  "schema_version": "0.1",
+  "timing_record": "out/fix18/timing-record.json"
+}

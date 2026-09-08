@@ -1,0 +1,146 @@
+{
+  "cache_events": [],
+  "content_sha256": "sha256:5499bdcd0c3557bdacbbfba859a77f1611765f8ee48d105f120fe45ca01675c7",
+  "pass_evidence": false,
+  "record_class": "L3",
+  "schema_version": "0.2",
+  "stage_duration_sum_seconds": 276.224198,
+  "stages": [
+    {
+      "duration_seconds": 0.033019,
+      "name": "design-loop/fixture-generation",
+      "start_order": 0
+    },
+    {
+      "duration_seconds": 0.001758,
+      "name": "design-loop/requirement-entry-validation",
+      "start_order": 1
+    },
+    {
+      "duration_seconds": 0.006197,
+      "name": "design-loop/lane-preflight",
+      "start_order": 2
+    },
+    {
+      "duration_seconds": 12.394201,
+      "name": "design-loop/silkscreen-resolve",
+      "start_order": 3
+    },
+    {
+      "duration_seconds": 59.151449,
+      "name": "design-loop/board-pipeline",
+      "start_order": 4
+    },
+    {
+      "duration_seconds": 8.620594,
+      "name": "design-loop/enclosure-pipeline",
+      "start_order": 5
+    },
+    {
+      "duration_seconds": 0.668824,
+      "name": "board[0/12]",
+      "start_order": 6
+    },
+    {
+      "duration_seconds": 0.020387,
+      "name": "enclosure[0/5]",
+      "start_order": 7
+    },
+    {
+      "duration_seconds": 0.000726,
+      "name": "enclosure[1/5]",
+      "start_order": 8
+    },
+    {
+      "duration_seconds": 6.876063,
+      "name": "enclosure[2/5]",
+      "start_order": 9
+    },
+    {
+      "duration_seconds": 1.703221,
+      "name": "board[1/12]",
+      "start_order": 10
+    },
+    {
+      "duration_seconds": 0.851668,
+      "name": "board[2/12]",
+      "start_order": 11
+    },
+    {
+      "duration_seconds": 48.119419,
+      "name": "board[3/12]",
+      "start_order": 12
+    },
+    {
+      "duration_seconds": 1.718813,
+      "name": "enclosure[3/5]",
+      "start_order": 13
+    },
+    {
+      "duration_seconds": 1.5e-05,
+      "name": "enclosure[4/5]",
+      "start_order": 14
+    },
+    {
+      "duration_seconds": 0.000237,
+      "name": "enclosure[5/5]",
+      "start_order": 15
+    },
+    {
+      "duration_seconds": 128.255145,
+      "name": "design-loop/firmware-pipeline",
+      "start_order": 16
+    },
+    {
+      "duration_seconds": 1.172433,
+      "name": "board[4/12]",
+      "start_order": 17
+    },
+    {
+      "duration_seconds": 1.174532,
+      "name": "board[5/12]",
+      "start_order": 18
+    },
+    {
+      "duration_seconds": 1.124867,
+      "name": "board[6/12]",
+      "start_order": 19
+    },
+    {
+      "duration_seconds": 0.146818,
+      "name": "board[7/12]",
+      "start_order": 20
+    },
+    {
+      "duration_seconds": 2.437151,
+      "name": "board[8/12]",
+      "start_order": 21
+    },
+    {
+      "duration_seconds": 0.013597,
+      "name": "board[9/12]",
+      "start_order": 22
+    },
+    {
+      "duration_seconds": 0.039585,
+      "name": "board[10/12]",
+      "start_order": 23
+    },
+    {
+      "duration_seconds": 1.69347,
+      "name": "board[11/12]",
+      "start_order": 24
+    },
+    {
+      "duration_seconds": 3e-06,
+      "name": "board[12/12]",
+      "start_order": 25
+    },
+    {
+      "duration_seconds": 6e-06,
+      "name": "design-loop/order-readiness",
+      "start_order": 26
+    }
+  ],
+  "wall_clock_seconds": 149.316902
+}

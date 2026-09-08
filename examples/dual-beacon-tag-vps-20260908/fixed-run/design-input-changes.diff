@@ -1,0 +1,473 @@
+--- fixture-effective/spec.json
++++ worktree/spec.json
+@@ -24,7 +24,7 @@
+   "ipc2221_internal_k": 0.024,
+   "layers": 2,
+   "material": "FR-4",
+-  "min_clearance_mm": 0.15,
++  "min_clearance_mm": 0.12,
+   "min_track_mm": 0.15,
+   "mounting_hole_m2_count": 2,
+   "origin": "board_upper_left",
+@@ -33,8 +33,8 @@
+   "stitch_via_cost_note": "Adopted 1/20 guided-wavelength perimeter stitch pitch; through-via and drill counts are recorded against the fab profile as cost drivers. Interior stitch candidates use the same pitch only when an isolated GND island requires a connection.",
+   "stitch_via_dielectric_constant": 4.3,
+   "stitch_via_max_frequency_hz": 2400000000.0,
+-  "stitch_via_refill_max_iterations": 3,
+-  "stitch_via_wavelength_fraction": 0.05,
++  "stitch_via_refill_max_iterations": 5,
++  "stitch_via_wavelength_fraction": 0.025,
+   "thickness_mm": 1.6,
+   "unit": "mm",
+   "via_diameter_mm": 0.6,
+@@ -193,8 +193,8 @@
+     "position_source_ref": "fixtures/dual-beacon-tag/spec.json",
+     "rotation_deg": 0.0,
+     "width_mm": 2.54,
+-    "x_mm": 25.0,
+-    "y_mm": 5.0
++    "x_mm": 24.07,
++    "y_mm": 5.1
+    },
+    "node_id": "mechanical.component_body.j2",
+    "refdes": "J2"
+@@ -412,9 +412,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/J1.json (C165948); 0-degree offset."
+    },
+    "pads": {
+     "A1": "net.gnd",
+@@ -478,16 +478,16 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/U1.json (C2838502); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.gnd",
+     "10": null,
+     "11": "net.gnd",
+-    "12": "net.sda",
+-    "13": "net.scl",
++    "12": "net.i2c_sda",
++    "13": "net.i2c_scl",
+     "14": "net.gnd",
+     "15": null,
+     "16": null,
+@@ -498,7 +498,7 @@
+     "20": "net.led",
+     "21": "net.led2",
+     "22": null,
+-    "23": "net.boot",
++    "23": "net.button",
+     "24": null,
+     "25": null,
+     "26": "net.usb_dn",
+@@ -532,7 +532,7 @@
+     "51": "net.gnd",
+     "52": "net.gnd",
+     "53": "net.gnd",
+-    "6": "net.led",
++    "6": null,
+     "7": null,
+     "8": "net.p3v3",
+     "9": null
+@@ -547,7 +547,7 @@
+   {
+    "attrs": {
+     "assembly": "fitted",
+-    "cpl_rotation_offset_deg": 0.0,
++    "cpl_rotation_offset_deg": 180.0,
+     "jlcpcb_class": "basic",
+     "lcsc": "C6186",
+     "mpn": "AMS1117-3.3",
+@@ -557,9 +557,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/U2.json (C6186); 180-degree offset."
+    },
+    "pads": {
+     "1": "net.gnd",
+@@ -583,7 +583,7 @@
+     "cpl_position_evidence_revision": "dual-beacon-tag-r1",
+     "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+     "jlcpcb_class": "basic",
+-    "lcsc": "C16224",
++    "lcsc": "C12624",
+     "led_drive_net": "net.led",
+     "led_indicator": true,
+     "mpn": "KT-0603G",
+@@ -593,9 +593,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-05T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "Standard 0603 LED orientation with cathode mark aligned to footprint pad 1",
+-    "evidence_note": "dual-beacon-tag preserves the standard LED orientation."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/D1.json (C12624); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.led",
+@@ -628,9 +628,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-05T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "Standard 0603 LED orientation with cathode mark aligned to footprint pad 1",
+-    "evidence_note": "dual-beacon-tag preserves the standard LED orientation."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/D2.json (C2290); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.led2",
+@@ -647,10 +647,11 @@
+    "attrs": {
+     "assembly": "fitted",
+     "cpl_rotation_basis": "component_part_number",
+-    "cpl_rotation_evidence_at": "2026-09-06T00:00:00Z",
+-    "cpl_rotation_evidence_basis": "estimated",
+-    "cpl_rotation_evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "cpl_rotation_evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset.",
++    "cpl_rotation_evidence_at": "2026-09-05T00:00:00Z",
++    "cpl_rotation_evidence_basis": "confirmed",
++    "cpl_rotation_evidence_method": "Standard tactile switch orientation with actuator facing up",
++    "cpl_rotation_evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/SW1.json (C720477); 0-degree offset.",
++    "cpl_rotation_evidence_revision": "dual-beacon-tag-r1",
+     "cpl_rotation_offset_deg": 0.0,
+     "cpl_rotation_polarized": false,
+     "cpl_rotation_source_url": "https://jlcpcb.com/help/article/pick-and-place-file-for-pcb-assembly",
+@@ -664,7 +665,7 @@
+     "mpn": "TS-1088-AR02016",
+     "placement_rotation_deg": 90.0,
+     "placement_x_mm": 4.3,
+-    "placement_y_mm": 3.3,
++    "placement_y_mm": 3.6,
+     "symbol": "Switch:SW_Push",
+     "symbol_file": "/usr/share/kicad/symbols/Switch.kicad_sym",
+     "symbol_sha256": "sha256:aa97588ceed2c3f1be89c98ec16b3e8ee491e4354e0416c12706fc868df68bc9",
+@@ -674,19 +675,19 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-05T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "Standard tactile switch orientation with actuator facing up",
+-    "evidence_note": "dual-beacon-tag preserves the standard switch orientation."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/SW1.json (C720477); 0-degree offset."
+    },
+    "pads": {
+-    "1": "net.boot",
++    "1": "net.button",
+     "2": "net.gnd"
+    },
+    "refdes": "SW1"
+   },
+   {
+    "attrs": {
+-    "assembly": "fitted",
++    "assembly": "not_fitted",
+     "cpl_position_basis": "pad_bbox_center",
+     "cpl_position_evidence_at": "2026-09-05T00:00:00Z",
+     "cpl_position_evidence_basis": "confirmed",
+@@ -695,7 +696,7 @@
+     "cpl_position_evidence_revision": "dual-beacon-tag-r1",
+     "cpl_position_source_url": "https://jlcpcb.com/help/article/how-to-generate-the-bom-and-centroid-file-from-kicad",
+     "footprint_file": "/usr/share/kicad/footprints/Connector_PinHeader_2.54mm.pretty/PinHeader_1x04_P2.54mm_Vertical.kicad_mod",
+-    "jlcpcb_class": "basic",
++    "jlcpcb_class": "none",
+     "lcsc": "",
+     "mpn": "PinHeader_1x04_P2.54mm_Vertical",
+     "placement_rotation_deg": 0.0,
+@@ -711,8 +712,8 @@
+    },
+    "pads": {
+     "1": "net.p3v3",
+-    "2": "net.sda",
+-    "3": "net.scl",
++    "2": "net.i2c_sda",
++    "3": "net.i2c_scl",
+     "4": "net.gnd"
+    },
+    "part_request": {
+@@ -740,9 +741,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-05T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "Standard 0603 resistor orientation is symmetric; zero-degree centroid offset.",
+-    "evidence_note": "dual-beacon-tag preserves the standard resistor orientation."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/R1.json (C23162); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.p3v3",
+@@ -773,9 +774,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-05T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "Standard 0603 resistor orientation is symmetric; zero-degree centroid offset.",
+-    "evidence_note": "dual-beacon-tag preserves the standard resistor orientation."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/R2.json (C23162); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.p3v3",
+@@ -806,13 +807,13 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-05T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "Standard 0603 resistor orientation is symmetric; zero-degree centroid offset.",
+-    "evidence_note": "dual-beacon-tag preserves the standard resistor orientation."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/R3.json (C23162); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.p3v3",
+-    "2": "net.sda"
++    "2": "net.i2c_sda"
+    },
+    "part_request": {
+     "kind": "resistor",
+@@ -839,13 +840,13 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-05T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "Standard 0603 resistor orientation is symmetric; zero-degree centroid offset.",
+-    "evidence_note": "dual-beacon-tag preserves the standard resistor orientation."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/R4.json (C23162); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.p3v3",
+-    "2": "net.scl"
++    "2": "net.i2c_scl"
+    },
+    "part_request": {
+     "kind": "resistor",
+@@ -866,9 +867,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/R5.json (C23186); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.cc1",
+@@ -893,9 +894,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/R6.json (C23186); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.cc2",
+@@ -920,9 +921,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/C1.json (C1691); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.vbus_5v",
+@@ -947,9 +948,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/C2.json (C1591); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.vbus_5v",
+@@ -975,9 +976,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/C3.json (C1691); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.p3v3",
+@@ -1003,9 +1004,9 @@
+    },
+    "cpl_orientation_evidence": {
+     "evidence_at": "2026-09-06T00:00:00Z",
+-    "evidence_basis": "estimated",
++    "evidence_basis": "confirmed",
+     "evidence_method": "component-part-number rotation declaration cross-checked against the generated KiCad placement",
+-    "evidence_note": "mini-blink-dongle preserves the declared component rotation in the generated assembly placement with a zero-degree centroid offset."
++    "evidence_note": "Rotation offset aligned to the LCSC footprint orientation record evidence/dual-beacon-tag-cpl-orientation/C4.json (C1591); 0-degree offset."
+    },
+    "pads": {
+     "1": "net.p3v3",
+@@ -1038,12 +1039,12 @@
+   {
+    "attrs": {
+     "center_x_mm": 25.0,
+-    "center_y_mm": 5.0,
+-    "dimensions_checked_at": "2026-09-05T00:00:00Z",
++    "center_y_mm": 8.0,
++    "dimensions_checked_at": "2026-09-08T00:00:00Z",
+     "dimensions_source": "KiCad official footprint library, package version 10.0.6",
+     "dimensions_source_ref": "https://github.com/KiCad/kicad-footprints/tree/10.0.6/Connector_PinHeader_2.54mm.pretty",
+     "face": "front",
+-    "height_mm": 10.16,
++    "height_mm": 8.5,
+     "margin_mm": 0.5,
+     "width_mm": 2.54
+    },
+@@ -1222,18 +1223,18 @@
+   },
+   {
+    "gpio": 9,
+-   "net": "net.boot",
++   "net": "net.button",
+    "pin_id": "fw.pin.boot"
+   },
+   {
+    "gpio": 0,
+-   "net": "net.sda",
+-   "pin_id": "fw.pin.sda"
++   "net": "net.i2c_sda",
++   "pin_id": "fw.pin.i2c_sda"
+   },
+   {
+    "gpio": 1,
+-   "net": "net.scl",
+-   "pin_id": "fw.pin.scl"
++   "net": "net.i2c_scl",
++   "pin_id": "fw.pin.i2c_scl"
+   }
+  ],
+  "functional_blocks": [
+@@ -1395,7 +1396,7 @@
+     "width_basis": "manufacturing_minimum",
+     "width_basis_source": "ESP32-C3 strapping pin (IO9) internal 45k pull-up; external pull-up optional."
+    },
+-   "net_id": "net.boot"
++   "net_id": "net.button"
+   },
+   {
+    "attrs": {
+@@ -1405,7 +1406,7 @@
+     "width_basis": "manufacturing_minimum",
+     "width_basis_source": "I2C open-drain data line; pull-up limited current is below fab minimum width concern."
+    },
+-   "net_id": "net.sda"
++   "net_id": "net.i2c_sda"
+   },
+   {
+    "attrs": {
+@@ -1415,7 +1416,7 @@
+     "width_basis": "manufacturing_minimum",
+     "width_basis_source": "I2C open-drain clock line; pull-up limited current is below fab minimum width concern."
+    },
+-   "net_id": "net.scl"
++   "net_id": "net.i2c_scl"
+   }
+  ],
+  "rationale_recorded_at": "2026-09-05T15:28:00Z",
+@@ -1562,12 +1563,12 @@
+     "placement_offset_step_mm": 0.25,
+     "placement_reference": "SW1",
+     "placement_safety_margin_mm": 0.15,
+-    "placement_search_limit_mm": 8.0,
++    "placement_search_limit_mm": 12.0,
+     "placement_search_order": "right,bottom,left,top,top_right,bottom_right,bottom_left,top_left",
+     "role": "functional_label_sw1",
+     "rotation_deg": 0.0,
+     "stroke_width_mm": 0.15,
+-    "text": "BTN"
++    "text": "SW1"
+    },
+    "node_id": "mechanical.silk_text.sw1"
+   },
+@@ -1581,12 +1582,12 @@
+     "placement_offset_step_mm": 0.25,
+     "placement_reference": "D1",
+     "placement_safety_margin_mm": 0.15,
+-    "placement_search_limit_mm": 8.0,
++    "placement_search_limit_mm": 12.0,
+     "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
+     "role": "functional_label_d1",
+     "rotation_deg": 0.0,
+     "stroke_width_mm": 0.15,
+-    "text": "LED1"
++    "text": "D1"
+    },
+    "node_id": "mechanical.silk_text.led1"
+   },
+@@ -1600,12 +1601,12 @@
+     "placement_offset_step_mm": 0.25,
+     "placement_reference": "D2",
+     "placement_safety_margin_mm": 0.15,
+-    "placement_search_limit_mm": 8.0,
++    "placement_search_limit_mm": 12.0,
+     "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
+     "role": "functional_label_d2",
+     "rotation_deg": 0.0,
+     "stroke_width_mm": 0.15,
+-    "text": "LED2"
++    "text": "D2"
+    },
+    "node_id": "mechanical.silk_text.led2"
+   },
+@@ -1619,12 +1620,12 @@
+     "placement_offset_step_mm": 0.25,
+     "placement_reference": "J1",
+     "placement_safety_margin_mm": 0.15,
+-    "placement_search_limit_mm": 8.0,
++    "placement_search_limit_mm": 12.0,
+     "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
+     "role": "connector_identifier",
+     "rotation_deg": 0.0,
+     "stroke_width_mm": 0.15,
+-    "text": "USB"
++    "text": "J1"
+    },
+    "node_id": "mechanical.silk_text.usb"
+   },
+@@ -1638,7 +1639,7 @@
+     "placement_offset_step_mm": 0.25,
+     "placement_reference": "board.dual-beacon-tag",
+     "placement_safety_margin_mm": 0.15,
+-    "placement_search_limit_mm": 8.0,
++    "placement_search_limit_mm": 12.0,
+     "placement_search_order": "top,bottom,right,left,top_right,bottom_right,bottom_left,top_left",
+     "role": "board_part_number",
+     "rotation_deg": 0.0,

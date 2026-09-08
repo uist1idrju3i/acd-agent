@@ -1,0 +1,122 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "evidence.dual-beacon-tag.electrical",
+  "target_revision": "r1",
+  "status": "valid",
+  "envelope": {
+    "schema_version": "0.1",
+    "tool_name": "kicad-cli",
+    "tool_version": "10.0.6",
+    "format_version": "10.0.6",
+    "config_hash": "sha256:a66e930221c2263b51e68985aed2add3f16e9c314825608812ed20a2ecfdfc62",
+    "input_hash": "sha256:f8e9874566193b75c46dc9b78875b19b9c836183114475f05c148b42b1e5a6c6",
+    "output_hash": "sha256:150338960e28238bbcfdc42c9741d0467a3cd88cb8206a1777aced29121d0963",
+    "execution_env": "linux-x86_64; container=sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+    "execution_context": "container",
+    "container_image_digest": "sha256:fb236ff5b53dabead1a6f8bd8e32aa6d1e42f140f527d95d2bd72d2ca01a3b9e",
+    "measurement_conditions": "single run; project-local library tables",
+    "convergence_state": "not_applicable",
+    "target_revision": "r1",
+    "started_at": "2026-09-08T15:37:17.131759Z",
+    "finished_at": "2026-09-08T15:37:17.663134Z",
+    "exit_code": 5,
+    "idempotency_key": null,
+    "uncertainty": null,
+    "source_revision": "573379d6f33f41790a49ebfbc4cfe7f8df1857a9",
+    "source_tree_state": "clean",
+    "source_dirty_digest": null
+  },
+  "claims": [
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "erc_error_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "functional_block_contract",
+      "value": "acd-functional-blocks-14.2:sha256:a8b6542cda566a525c249ad37ec3e89e165027af6aea1187856de81a4dfe2abd",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "declared_functional_blocks",
+      "value": "esp32c3_strapping_boot,firmware_pin_map,safety_power_boundary,single_ldo_power_tree,usb_c_cc_termination",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "erc_unconnected_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "routing_converged",
+      "value": true,
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "drc_error_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "drc_unconnected_count",
+      "value": 0,
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "silkscreen_status",
+      "value": "measured_pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "dfm_status",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "order_readiness_status",
+      "value": "ready",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "usb_cc",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "strapping_pin",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "pin_firmware_alignment",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "power_decoupling",
+      "value": "pass",
+      "verified": true
+    },
+    {
+      "subject_node": "board.dual-beacon-tag",
+      "property": "power_boundary",
+      "value": "pass",
+      "verified": true
+    }
+  ],
+  "created_at": "2026-09-08T15:37:21.426318Z"
+}
