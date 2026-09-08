@@ -1975,3 +1975,31 @@ roadmap 14.24の実装列へ加えた。
 （rationale coverage・functional block・pin role）に偏っており、次手の無い段（CPL basis・
 GND島・シルク）で停止した。AA-15〜AA-22はいずれも「停止文に有効な次手を添える」か
 「宣言経路をSkill手順として書く」ものであり、合格側権限を持たない。
+
+### 17.13 投影ファイルの形式検査（利用者報告への追跡）
+
+修正後run（17.11）の`theme-song.mid`について利用者から「ファイルが壊れている」との報告を受け、
+収録した全投影の形式を生成側writerとは独立したreaderで事後検査した
+（[`fixed-run/check-projection-formats.py`](../examples/dual-beacon-tag-vps-20260908/fixed-run/check-projection-formats.py)、
+結果は[`fixed-run/projection-format-check.txt`](../examples/dual-beacon-tag-vps-20260908/fixed-run/projection-format-check.txt)、
+host実行のL3観測）。
+
+| 対象 | 検査 | 結果 |
+|---|---|---|
+| `theme-song.mid` | 利用者受領版・PR収録版・container出力元（`projections-fix18/`）のsha256照合、`mido`（SMF parser）と`midicsv`でchunk長・track数・note_on／note_off対応・EOT位置、`timidity`でrender | 3者とも`4f0a7bcc…1972`（3317 byte）で一致。format 1・5 track・480 tpqn・344 note、全trackでEOTがchunk末尾と一致、約44秒のrender成功。**構造の破損は再現せず** |
+| STEP×3 | `ISO-10303-21;`〜`END-ISO-10303-21;`、`DATA;`／`ENDSEC;`、entity数 | OK（518〜2714 entity） |
+| 3MF | zip CRC（`testzip`）、`3D/*.model`のXML parse、`<object>`数 | OK（object 4） |
+| gerber 8層／drill | `%FSLA`／`%MO`指定と`M02*`終端、`M48`〜`M30`と穴数 | OK（87穴） |
+| CSV 3／SVG 8／JSON 34 | 行長一致／XML parse／JSON parse | OK |
+
+66件（検査script自身を含む）すべて`OK`で、`FAIL`／`UNCHECKED`は0件だった。したがって報告された症状は、生成物側の
+破損ではなく再生環境側（`.mid`を開けるplayerの有無、添付経路での拡張子関連付け等）の
+可能性が残る。判別のため`timidity`でWAV→MP3へrenderした聴取用ファイルを報告へ添付した
+（pipeline生成物ではないため未収録）。
+
+一方で、pipeline自体は各投影を「writerが書けたこと」と`hashes.json`のsha256でしか記録せず、
+theme-songのみwriter内部の再読込（`render_checked_midi`）でnote対応を確認している。
+利用者が受領ファイルを開けないとき、生成不良か再生環境かを生成物側から判別する材料が無い。
+これをAA-23（投影段直後の独立reader形式検査と`hashes.json`への`format_check`記録、
+parse失敗はその投影をfail-closedで欠落扱い）として`vibebb-gap-analysis.md`と
+roadmap 14.24へ追加した。検査OKをEvidenceへ昇格せず、合格側権限は持たせない。
