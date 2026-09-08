@@ -942,17 +942,45 @@ def test_runner_refuses_unknown_source_tree_before_workspace_start(
     assert _FakeWorkspace.instances == []
 
 
-def test_runner_allow_dirty_forwards_provenance_env(
+def test_runner_refuses_dirty_source_tree_even_with_allow_dirty(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    dirty_digest = "sha256:" + "9" * 64
-
     def collect(_repo: object, **_kwargs: object) -> object:
         return workspace_module.SourceProvenance(
-            revision="c" * 40,
+            revision="b" * 40,
             tree_state="dirty",
-            dirty_digest=dirty_digest,
-            changed_paths=("src/acd/core/x.py",),
+            dirty_digest="sha256:" + "9" * 64,
+            changed_paths=("src/acd/core/x.py", "contracts/parts-catalog.json"),
+        )
+
+    monkeypatch.setattr(workspace_module, "collect_source_provenance", collect)
+
+    def resolve(_image: str, **_kwargs: object) -> None:
+        raise AssertionError("digest resolution must not run for a dirty tree")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    _FakeWorkspace.instances.clear()
+    with pytest.raises(ValueError, match="does not cover these paths"):
+        workspace_module.run_command_in_workspace(
+            image="acd-server:local",
+            command="true",
+            repository=tmp_path,
+            download_files=(),
+            workspace_factory=_FakeWorkspace,
+            allow_dirty=True,
+        )
+    assert _FakeWorkspace.instances == []
+
+
+def test_runner_allow_dirty_forwards_unknown_provenance_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def collect(_repo: object, **_kwargs: object) -> object:
+        return workspace_module.SourceProvenance(
+            revision="unknown",
+            tree_state="unknown",
+            dirty_digest=None,
+            changed_paths=(),
         )
 
     monkeypatch.setattr(workspace_module, "collect_source_provenance", collect)
@@ -977,10 +1005,9 @@ def test_runner_allow_dirty_forwards_provenance_env(
         "ACD_IN_CONTAINER",
         "ACD_SOURCE_GIT_SHA",
         "ACD_SOURCE_TREE_STATE",
-        "ACD_SOURCE_DIRTY_DIGEST",
     ]
-    assert result.source_revision == "c" * 40
-    assert result.source_tree_state == "dirty"
+    assert result.source_revision == "unknown"
+    assert result.source_tree_state == "unknown"
     assert "ACD_SOURCE_GIT_SHA" not in workspace_module.os.environ
     assert "ACD_SOURCE_TREE_STATE" not in workspace_module.os.environ
     assert "ACD_SOURCE_DIRTY_DIGEST" not in workspace_module.os.environ
