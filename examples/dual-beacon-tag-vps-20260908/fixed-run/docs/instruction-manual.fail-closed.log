@@ -1,0 +1,4 @@
+command: uv run python plugins/acd/skills/acd-product-docs/scripts/generate_instruction_manual.py --graph fixtures/dual-beacon-tag/graph.json --pins-header out/fix18/dual-beacon-tag-fw/acd_dual_beacon_tag_fw/main/acd_pins.h --out-dir out/extra/docs
+exit code: 1 (fail-closed, as expected — dual-beacon-tag lacks GD1-specific pin macros)
+stderr (verbatim):
+instruction manual generation failed: pin projection out/fix18/dual-beacon-tag-fw/acd_dual_beacon_tag_fw/main/acd_pins.h is missing macros: ACD_LOG_PERIOD_MS, ACD_PIN_BOOT, ACD_PIN_UART_RX, ACD_PIN_UART_TX, ACD_PIN_USB_DN, ACD_PIN_USB_DP, ACD_SHT40_I2C_ADDRESS

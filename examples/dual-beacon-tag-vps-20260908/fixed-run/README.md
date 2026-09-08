@@ -124,6 +124,52 @@ J1はgeometry-exception経路で0.0）。
 - 本ディレクトリのbinary投影（gerber/STEP/3MF/MID）は **digest固定containerで
   生成・downloadされたもの**であり、host再生成ではない。
 
+## 投影形式の独立検証（`projection-format-check.txt`）
+
+利用者から`theme-song.mid`が再生できないとの報告を受け、収録した全投影71件（検査script・log・追加投影を含む）を
+生成側writerとは独立したreaderで検査した（`check-projection-formats.py`、host実行のL3観測）。
+
+- `theme-song.mid`: 収録版・container出力元・利用者受領版の3者はsha256一致
+  （`4f0a7bcc…1972`、3317 byte）。`mido`（SMF parser）と`midicsv`で5 track・344 note、
+  note_on／note_off対応、EOT位置がchunk長と一致、`timidity`で約44秒のrender成功。
+  **ファイル構造の破損は再現できず**、報告された症状は再生環境側（OSに`.mid`の再生handlerが
+  無い等）の可能性が残る。判別のため`timidity`でWAV→MP3へrenderした聴取用ファイルを
+  報告に添付した（生成物ではないため未収録）。
+- STEP×3: `ISO-10303-21;`〜`END-ISO-10303-21;`、entity 518〜2714件。
+- 3MF: zip CRC全件OK、`3D/*.model`をXMLとしてparse、object 4件。
+- gerber 8層: `%FSLA`／`%MO`指定と`M02*`終端、drill: `M48`〜`M30`、87穴。
+- CSV 3件（行長一致）、SVG 8件（XML parse）、JSON 34件。
+
+結果は71件すべて`OK`（`FAIL`／`UNCHECKED` 0件）。ただしこの検査は事後にhostで行ったもので、
+pipeline自体は各投影を「書けたこと」と`hashes.json`のsha256でしか記録していない
+（theme-songのみwriter内部の再読込でnote対応を確認）。writerと独立したreaderによる
+形式検査をpipelineの投影段へ入れる項目をAA-23として
+[`docs/vibebb-gap-analysis.md`](../../../docs/vibebb-gap-analysis.md)とroadmap 14.24へ追加した。
+
+## 追加投影（`docs/`・`manufacturing-submission.json`）
+
+利用者要望「acd-agentの持つすべての投影出力」に対し、loopが呼ばない生成器を同じdigest固定
+container（`run_in_workspace.py`、server `sha256:fb236ff5…`）でfix18の入力から追加実行した。
+loop外の生成器は`out/`を含まないworktree複製で動くため、fix18の`out/`をhostから`/acd-src`経由で
+container内へ持ち込んで入力にした（設計入力・生成器は無変更）。
+
+- `docs/product-readme.md`・`docs/product-readme.md.provenance.json`: 製品説明README
+  （`generate_product_readme.py --graph … --projections visual-projections-{electrical,layout,system}.json`）。
+  2回実行して文書はbyte一致（`6f6f9864…bc83`）。provenanceは`pass_evidence: false`のL3文書。
+- `docs/instruction-manual.fail-closed.log`: 取扱説明書（`generate_instruction_manual.py`）は
+  **fail-closed（exit 1）**。DBTの`acd_pins.h`（`LED`・`LED2`・`BUTTON`・`I2C_SDA`・`I2C_SCL`・
+  `LED_BLINK_PERIOD_MS`）にGD1固有の必須macro（`ACD_PIN_UART_TX/RX`・`ACD_PIN_USB_DP/DN`・
+  `ACD_PIN_BOOT`・`ACD_SHT40_I2C_ADDRESS`・`ACD_LOG_PERIOD_MS`）が無い。回避せずそのまま収録（AA-25）。
+- `manufacturing-submission.json`・`manufacturing-submission.host-verdict-recheck.log`: 製造提出verdict
+  （`verify_manufacturing_submission.py --require-authoritative`、CIの`container-gates`と同じ引数）。
+  container内で`status: pass`（`required_artifacts`〜`evidence_validity`の8検査PASS）、
+  host `--verdict`再検査exit 0。order lane（`order_readiness_status`・見積・order-total）は含まない。
+- 未実行: PNG raster（`derive_png_visual_projections`にCLIが無い）、order lane投影（発注入力を作らない）。
+  MML楽譜投影は未実装で利用者要望として計画へ（AA-26）。
+
+これらがloopから生成されない点をAA-24（loop投影段への組み込み）として
+[`docs/vibebb-gap-analysis.md`](../../../docs/vibebb-gap-analysis.md)とroadmap 14.24へ追加した。
+
 本runでDevinが人手で越えた境界の振り返りと、それをagent単独の到達段へ繋げる
 実装項目（AA-15〜AA-22）は
 [`docs/vibebb-standalone-verification.md` §17.12](../../../docs/vibebb-standalone-verification.md)
@@ -141,4 +187,7 @@ J1はgeometry-exception経路で0.0）。
 - `enclosure/`: STEP×3 + 3MF（いずれも <150 KB）
 - `theme-song/theme-song.mid`
 - `visual/`: 配置・両面Cu・積層・回路図・系統図・機械断面/干渉 SVG
+- `check-projection-formats.py`・`projection-format-check.txt`: 収録投影の独立reader検査（host、L3）
+- `docs/`: 製品説明README＋provenance、取扱説明書のfail-closed log（container追加実行）
+- `manufacturing-submission.json`・`manufacturing-submission.host-verdict-recheck.log`: 製造提出verdict（container）＋host再検査
 - 省略: firmware `.bin`/build tree、`.kicad_pcb` 中間生成物、routed board

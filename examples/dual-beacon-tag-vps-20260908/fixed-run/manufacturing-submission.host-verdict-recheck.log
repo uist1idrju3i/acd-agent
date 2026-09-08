@@ -1,0 +1,8 @@
+PASS: required_artifacts: all declared board and enclosure artifacts are present
+PASS: independent_reload: Gerber, drill, gbrjob, ZIP, BOM/CPL, and enclosure reload passed
+PASS: normalized_hashes: all manifest normalized hashes match
+PASS: dfm: DFM report status is pass
+PASS: geometry: Edge.Cuts bbox matches graph and gbrjob dimensions
+PASS: fab_profile_consistency: fab profile id and normalized hash match graph
+PASS: revision_consistency: all graph, envelope, manifest, and Evidence revisions match
+PASS: evidence_validity: Evidence validity passed (electrical=authoritative, mechanical=authoritative)

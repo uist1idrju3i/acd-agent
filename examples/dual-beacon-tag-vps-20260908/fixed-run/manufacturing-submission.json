@@ -1,0 +1,232 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "manufacturing_submission_verdict",
+  "record_class": "L1",
+  "status": "pass",
+  "graph_id": "dual-beacon-tag",
+  "target_revision": "r1",
+  "artifacts": [
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-F_Cu.gtl",
+      "format": "GTL",
+      "normalized_sha256": "sha256:e3e69a80b9165039a6c867015b49908cc204ece18515feb749a2867a50c8e448",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-B_Cu.gbl",
+      "format": "GBL",
+      "normalized_sha256": "sha256:10ab546df0164d565ec56ab7cc298f4737e30c8b4ace82e55f06d690b67d1130",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-F_Mask.gts",
+      "format": "GTS",
+      "normalized_sha256": "sha256:775d6abb34be9ef05e113803d45a25ac218305bace5926c25cff0f61fe6a57e8",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-B_Mask.gbs",
+      "format": "GBS",
+      "normalized_sha256": "sha256:d8d8a85aa66def692cedff5434df670a7c68336fd03bc2cdb2819289c8811c3a",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-F_Silkscreen.gto",
+      "format": "GTO",
+      "normalized_sha256": "sha256:f52bd1b4552303733cb6c7ea172032ba7bc544c62966249ece05fe1d61a3b6f1",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-B_Silkscreen.gbo",
+      "format": "GBO",
+      "normalized_sha256": "sha256:98d0f920beddfea4111bccbf2b80d6a005bab6c537285c6c89a3aa7ccc2945fb",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-F_Paste.gtp",
+      "format": "GTP",
+      "normalized_sha256": "sha256:baf4c4564f07fd37fe2ef55b8094e935d2f80c6a71360ef5c4bb6b44a359f8df",
+      "present": true
+    },
+    {
+      "role": "gerber",
+      "path": "gerbers/dual-beacon-tag-Edge_Cuts.gm1",
+      "format": "GM1",
+      "normalized_sha256": "sha256:dc5e01cd00dc76257032e03bee4f9dccb15dd3422587b707147825cb32571716",
+      "present": true
+    },
+    {
+      "role": "drill",
+      "path": "gerbers/dual-beacon-tag.drl",
+      "format": "DRILL",
+      "normalized_sha256": "sha256:dad4156f28ee9085fe74ab55621a87c81e05b2bfd622ae59ab558f0f1c10fdc3",
+      "present": true
+    },
+    {
+      "role": "gerber_zip",
+      "path": "fab/dual-beacon-tag-gerbers.zip",
+      "format": "ZIP",
+      "normalized_sha256": "sha256:c684e0468435c7ce26f5e227c3b3a58208e1ff090e5a4ca1c48681b792d5291e",
+      "present": true
+    },
+    {
+      "role": "bom",
+      "path": "fab/dual-beacon-tag-bom-jlcpcb.csv",
+      "format": "CSV",
+      "normalized_sha256": "sha256:15875928817727ab114181dca37f99a21dda2dc3db00dc4cbfea14c4c9cb189e",
+      "present": true
+    },
+    {
+      "role": "cpl",
+      "path": "fab/dual-beacon-tag-cpl-jlcpcb.csv",
+      "format": "CSV",
+      "normalized_sha256": "sha256:8cb6bf2bddd13d7d741f3291b791ebd7b4af25ab1be4cd4e384c9a3499871b8b",
+      "present": true
+    },
+    {
+      "role": "position",
+      "path": "fab/dual-beacon-tag.pos.csv",
+      "format": "CSV",
+      "normalized_sha256": "sha256:351556dc855c9e75952b46469c84c21276dd044e9a1dc339f3f01ec84842ce97",
+      "present": true
+    },
+    {
+      "role": "dfm_report",
+      "path": "fab/dfm-report.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:16ab646f0ee188200041af4737de95175cd1193cfff7ead9eace29095870d417",
+      "present": true
+    },
+    {
+      "role": "gbrjob",
+      "path": "gerbers/dual-beacon-tag-job.gbrjob",
+      "format": "GBRJOB",
+      "normalized_sha256": "sha256:6fbbc1f2419db9b197d881a7f04e62c5a6b1a7a348c104f850ec0490d2cd1787",
+      "present": true
+    },
+    {
+      "role": "cpl_basis",
+      "path": "fab/cpl-basis-report.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:a3a17538878ecb27f1120173d9051fa6e1127bab3e96d7aec5f1c9e807975a22",
+      "present": true
+    },
+    {
+      "role": "order_readiness",
+      "path": "fab/order-readiness.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:d4cd87e3d0625b74bcbb0c0feb79b9a4a7be94ed416fe36c548a5383c8c15b4a",
+      "present": true
+    },
+    {
+      "role": "enclosure_shell",
+      "path": "enclosure-shell.step",
+      "format": "STEP",
+      "normalized_sha256": "sha256:77f967752cc0693453be5f8c8940a267a6170da643450784d020500561ac63f3",
+      "present": true
+    },
+    {
+      "role": "enclosure_lid",
+      "path": "enclosure-lid.step",
+      "format": "STEP",
+      "normalized_sha256": "sha256:6533675ce17b3959d1e06647ba4b06d309fb79ac84c79ba1a7608ca4759e6598",
+      "present": true
+    },
+    {
+      "role": "enclosure_assembly",
+      "path": "enclosure-assembly.step",
+      "format": "STEP",
+      "normalized_sha256": "sha256:3b2ebcd5d41c20390beb33a987011e195c0957614461e51f20d7f348bdd1d75a",
+      "present": true
+    },
+    {
+      "role": "enclosure_model",
+      "path": "enclosure.3mf",
+      "format": "3MF",
+      "normalized_sha256": "sha256:e263dd4ab8980bf6fc157370cd503ec09e3f451364c57acd1cf61efaba28ab26",
+      "present": true
+    },
+    {
+      "role": "enclosure_mesh_stl",
+      "path": "enclosure.stl",
+      "format": "STL",
+      "normalized_sha256": "sha256:f7b7ed0d12e040a46e576c866f00067c0df308562cc117403c478710de9f4253",
+      "present": true
+    },
+    {
+      "role": "enclosure_manifest",
+      "path": "enclosure-artifacts.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:ef558d473b85f67606b04f231011732bf4027fe1bf8f08d8e006294cf27ba575",
+      "present": true
+    },
+    {
+      "role": "enclosure_manifest",
+      "path": "envelope-cad.json",
+      "format": "JSON",
+      "normalized_sha256": "sha256:42166a07919d68b8b99b6cbeb347d7d42402441b523a72802439454c4950562a",
+      "present": true
+    }
+  ],
+  "checks": [
+    {
+      "check_id": "required_artifacts",
+      "status": "pass",
+      "detail": "all declared board and enclosure artifacts are present"
+    },
+    {
+      "check_id": "independent_reload",
+      "status": "pass",
+      "detail": "Gerber, drill, gbrjob, ZIP, BOM/CPL, and enclosure reload passed"
+    },
+    {
+      "check_id": "normalized_hashes",
+      "status": "pass",
+      "detail": "all manifest normalized hashes match"
+    },
+    {
+      "check_id": "dfm",
+      "status": "pass",
+      "detail": "DFM report status is pass"
+    },
+    {
+      "check_id": "geometry",
+      "status": "pass",
+      "detail": "Edge.Cuts bbox matches graph and gbrjob dimensions"
+    },
+    {
+      "check_id": "fab_profile_consistency",
+      "status": "pass",
+      "detail": "fab profile id and normalized hash match graph"
+    },
+    {
+      "check_id": "revision_consistency",
+      "status": "pass",
+      "detail": "all graph, envelope, manifest, and Evidence revisions match"
+    },
+    {
+      "check_id": "evidence_validity",
+      "status": "pass",
+      "detail": "Evidence validity passed (electrical=authoritative, mechanical=authoritative)"
+    }
+  ],
+  "reasons": [],
+  "authoritative": true,
+  "evidence_class": {
+    "electrical": "authoritative",
+    "mechanical": "authoritative"
+  },
+  "order_readiness_status": "ready",
+  "excluded_scope": [
+    "quote_aggregation",
+    "order_execution"
+  ],
+  "content_sha256": "sha256:c3549ca8a0f2e8282df0ab77b20da7604890bfc57d3dd09c334bf330865cf46c"
+}
