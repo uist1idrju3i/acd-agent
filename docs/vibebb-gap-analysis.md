@@ -780,7 +780,9 @@ roadmap 14.23（Z-1〜Z-13）をmergeした`main`（`5bf2c90`）と更新済みi
 | AA-21 | 新規部品のcatalog entry追加に正規経路が無く、agentは`contracts/parts-catalog.json`の未commit編集を`--allow-dirty`で通した。footprint／symbol hashの算出手順も未定義 | 第10回のcatalog編集（AA-5・AA-8）。修正runではagent由来entryをDevinがcontainer内hashで検証しcommit | 高 | AA-5、AA-8 | catalog entry追加の宣言経路（scriptまたは`acd-contracts` Skill）を用意し、hashはdigest固定container内で計算、追加は`contracts/`へのcommitとして`report_final_basis.py`に現れる形にする |
 | AA-22 | agentがlcsc番号から品名・packageを確認する手順を持たず、typo（D1 `C16224`）や色違い（D2 `C2290`=`KT-0603W`）が最終gateまで残る。catalogに無い部品（橙LED）を探す経路も無い | 修正run fix16でD1訂正、D2は正規番号を特定できず未解決 | 中 | AA-12 | 宣言直後に`fetch_lcsc_footprint_orientation.py`でrecordを取得し`Manufacturer Part`を宣言mpnと照合する手順を`acd-contracts` Skillへ。部品探索はL2に留め、結果は宣言＋recordとして残す |
 
-実装状況: いずれも未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
+実装状況: AA-8（graphの`parts_catalog_sha256`をcheckoutの契約と照合し
+`contract.hash_mismatch`で停止）は本変更で実装した。他は未着手。
+解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目

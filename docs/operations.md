@@ -351,6 +351,12 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    L1側では基板pipeline（`src/acd/pipeline/gd1_board.py`）が読み込んだfab profileへ
    解決しない`fab.order_intent` provenanceを`ValueError`で拒否する。CPL側は
    `verify_lcsc_rotation_evidence`が既にrecord欠落をunknownへ倒すため変更不要。
+   また`electrical.component`が記録する`parts_catalog_id`／`parts_catalog_sha256`を
+   checkout上の契約と照合し（`contracts/parts-catalog.json`の正規化hash、
+   CERN catalogは`libraries/cern-kicad-libs/CERN.sqlite`のhash）、不一致は
+   `contract.hash_mismatch`として`unsupported_values`に記録してlaneを
+   `declarations_incomplete`にする（AA-8）。これにより未commitのcatalog編集から
+   生成したgraphが同じ段まで到達しない。
 
    宣言語彙の前倒し検査として、board-pipeline laneでは自由form属性の許容値を
    `src/acd/core/declaration_vocabulary.py`の語彙と照合し、違反を

@@ -66,6 +66,7 @@ LanePreflightUnsupportedCode = Literal[
     "mechanical.extraction.failed",
     "evidence.cpl_rotation.declared_unverified",
     "evidence.fab_profile.declared_unverified",
+    "contract.hash_mismatch",
 ]
 
 
