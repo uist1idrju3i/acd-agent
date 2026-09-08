@@ -66,7 +66,8 @@ OK	ElementTree svg	visual/dual-beacon-tag-f-cu.svg
 OK	ElementTree svg	visual/dual-beacon-tag-mechanical-interference.svg
 OK	ElementTree svg	visual/dual-beacon-tag-mechanical-section.svg
 OK	ElementTree svg	visual/dual-beacon-tag-placement.svg
+OK	ElementTree svg	visual/dual-beacon-tag-power-tree.svg
 OK	ElementTree svg	visual/dual-beacon-tag-schematic.svg
 OK	ElementTree svg	visual/dual-beacon-tag-stackup.svg
 OK	ElementTree svg	visual/dual-beacon-tag-system-block.svg
-# files=71 failed_or_unchecked=0
+# files=72 failed_or_unchecked=0

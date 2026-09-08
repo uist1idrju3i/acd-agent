@@ -126,7 +126,7 @@ J1はgeometry-exception経路で0.0）。
 
 ## 投影形式の独立検証（`projection-format-check.txt`）
 
-利用者から`theme-song.mid`が再生できないとの報告を受け、収録した全投影71件（検査script・log・追加投影を含む）を
+利用者から`theme-song.mid`が再生できないとの報告を受け、収録した全投影72件（検査script・log・追加投影を含む）を
 生成側writerとは独立したreaderで検査した（`check-projection-formats.py`、host実行のL3観測）。
 
 - `theme-song.mid`: 収録版・container出力元・利用者受領版の3者はsha256一致
@@ -138,9 +138,9 @@ J1はgeometry-exception経路で0.0）。
 - STEP×3: `ISO-10303-21;`〜`END-ISO-10303-21;`、entity 518〜2714件。
 - 3MF: zip CRC全件OK、`3D/*.model`をXMLとしてparse、object 4件。
 - gerber 8層: `%FSLA`／`%MO`指定と`M02*`終端、drill: `M48`〜`M30`、87穴。
-- CSV 3件（行長一致）、SVG 8件（XML parse）、JSON 34件。
+- CSV 3件（行長一致）、SVG 9件（XML parse）、JSON 34件。
 
-結果は71件すべて`OK`（`FAIL`／`UNCHECKED` 0件）。ただしこの検査は事後にhostで行ったもので、
+結果は72件すべて`OK`（`FAIL`／`UNCHECKED` 0件）。ただしこの検査は事後にhostで行ったもので、
 pipeline自体は各投影を「書けたこと」と`hashes.json`のsha256でしか記録していない
 （theme-songのみwriter内部の再読込でnote対応を確認）。writerと独立したreaderによる
 形式検査をpipelineの投影段へ入れる項目をAA-23として

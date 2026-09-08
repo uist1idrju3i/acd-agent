@@ -88,49 +88,49 @@
 
 ### レイヤ別配線投影: dual-beacon-tag-b-cu
 
-![dual-beacon-tag-b-cu](../../fix18/dual-beacon-tag/visual/dual-beacon-tag-b-cu.svg)
+![dual-beacon-tag-b-cu](../visual/dual-beacon-tag-b-cu.svg)
 
 - 投影種別: `layered_layout_view`（electrical lane）
 - 画像hash: `sha256:c1da076f7b7b560922de4551c692f0a7108a3b1606654071f75c7edab2937d4b`
 
 ### レイヤ別配線投影: dual-beacon-tag-f-cu
 
-![dual-beacon-tag-f-cu](../../fix18/dual-beacon-tag/visual/dual-beacon-tag-f-cu.svg)
+![dual-beacon-tag-f-cu](../visual/dual-beacon-tag-f-cu.svg)
 
 - 投影種別: `layered_layout_view`（electrical lane）
 - 画像hash: `sha256:3cd7e5afad241cd2ef0680a65da84cda04bb33bb19ceff43acfe84c1f1ca5ab0`
 
 ### 部品配置投影: dual-beacon-tag-placement
 
-![dual-beacon-tag-placement](../../fix18/dual-beacon-tag/visual/dual-beacon-tag-placement.svg)
+![dual-beacon-tag-placement](../visual/dual-beacon-tag-placement.svg)
 
 - 投影種別: `placement_view`（electrical lane）
 - 画像hash: `sha256:598dfa2a2c8746707cb9f1ddfa0fc0195f30078d959d14dc05be4ffc101708fa`
 
 ### 電源ツリー投影: dual-beacon-tag-power-tree
 
-![dual-beacon-tag-power-tree](../../fix18/dual-beacon-tag/visual/dual-beacon-tag-power-tree.svg)
+![dual-beacon-tag-power-tree](../visual/dual-beacon-tag-power-tree.svg)
 
 - 投影種別: `power_tree_view`（system lane）
 - 画像hash: `sha256:1b882d65886b2f60a7b342d7fe7efc03000520a54d75256c54f4d803c43f56ac`
 
 ### 回路図投影: dual-beacon-tag-schematic
 
-![dual-beacon-tag-schematic](../../fix18/dual-beacon-tag/visual/dual-beacon-tag-schematic.svg)
+![dual-beacon-tag-schematic](../visual/dual-beacon-tag-schematic.svg)
 
 - 投影種別: `schematic_view`（electrical lane）
 - 画像hash: `sha256:8d0f5ed634ae8edf5c0aa820103412b3e3549ac23696b375be9621c427fa1d4d`
 
 ### 層構成投影: dual-beacon-tag-stackup
 
-![dual-beacon-tag-stackup](../../fix18/dual-beacon-tag/visual/dual-beacon-tag-stackup.svg)
+![dual-beacon-tag-stackup](../visual/dual-beacon-tag-stackup.svg)
 
 - 投影種別: `stackup_view`（electrical lane）
 - 画像hash: `sha256:a21a6ad2dc51eab2004dbd9616d905253ebe3dd5fd6bd3db6e6360042a97d272`
 
 ### システムブロック投影: dual-beacon-tag-system-block
 
-![dual-beacon-tag-system-block](../../fix18/dual-beacon-tag/visual/dual-beacon-tag-system-block.svg)
+![dual-beacon-tag-system-block](../visual/dual-beacon-tag-system-block.svg)
 
 - 投影種別: `system_block_view`（system lane）
 - 画像hash: `sha256:0dfd99ee1ab38ecc5f7eacfd6ebe8f0d3391465700dea7cc54e222b42ccd3d53`
