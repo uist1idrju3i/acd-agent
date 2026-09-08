@@ -96,3 +96,94 @@ def test_repeated_identical_denial_escalates_to_a_human_handoff(tmp_path: Path) 
     assert payload["decision"] == "allow"
     assert payload["escalation"] == "human_handoff"
     assert "remains failed" in payload["reason"]
+
+
+def _commit_all(root: Path, message: str) -> str:
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            message,
+        ],
+        cwd=root,
+        check=True,
+    )
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip()
+
+
+def _bootstrap_record(root: Path, revision: str) -> None:
+    record = root / ".openhands" / "bootstrap-record.json"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text(
+        json.dumps({"resolved_revision": revision}) + "\n", encoding="utf-8"
+    )
+
+
+def _committed_repository(tmp_path: Path) -> tuple[Path, str]:
+    root = _repository(tmp_path)
+    revision = _commit_all(root, "baseline")
+    return root, revision
+
+
+def test_no_bootstrap_record_keeps_existing_behavior(tmp_path: Path) -> None:
+    root, _ = _committed_repository(tmp_path)
+    code, payload = _run(root)
+    assert code == 0
+    assert payload == {}
+
+
+def test_source_revision_drift_is_denied(tmp_path: Path) -> None:
+    root, revision = _committed_repository(tmp_path)
+    _bootstrap_record(root, revision)
+    (root / "src").mkdir()
+    (root / "src" / "gate.py").write_text("x = 1\n", encoding="utf-8")
+    _commit_all(root, "source change")
+    code, payload = _run(root)
+    assert code == 2
+    assert payload["decision"] == "deny"
+    assert "Source revision deviates" in payload["reason"]
+    assert revision in payload["reason"]
+    assert "source_revision_drift" in payload["reason"]
+
+
+def test_recorded_source_revision_drift_is_allowed(tmp_path: Path) -> None:
+    root, revision = _committed_repository(tmp_path)
+    _bootstrap_record(root, revision)
+    (root / "src").mkdir()
+    (root / "src" / "gate.py").write_text("x = 1\n", encoding="utf-8")
+    drift_sha = _commit_all(root, "source change")
+    report = root / "out/stop-report.json"
+    report.parent.mkdir(parents=True)
+    report.write_text(
+        json.dumps({"source_revision_drift": f"{drift_sha} source change\n"}),
+        encoding="utf-8",
+    )
+    code, payload = _run(root)
+    assert code == 0
+    assert payload["decision"] == "allow"
+    assert "recorded source revision drift" in payload["reason"]
+    assert "No pass authority" in payload["reason"]
+
+
+def test_drift_outside_source_paths_is_not_denied(tmp_path: Path) -> None:
+    root, revision = _committed_repository(tmp_path)
+    _bootstrap_record(root, revision)
+    (root / "docs").mkdir()
+    (root / "docs" / "note.md").write_text("note\n", encoding="utf-8")
+    _commit_all(root, "docs change")
+    code, payload = _run(root)
+    assert code == 0
+    assert payload == {}

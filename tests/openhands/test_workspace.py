@@ -1017,3 +1017,105 @@ def test_bundled_source_records_unknown_provenance(
     ]
     assert result.source_revision == "unknown"
     assert result.source_tree_state == "unknown"
+
+
+def test_expected_source_revision_from_bootstrap_record(tmp_path: Path) -> None:
+    record = tmp_path / "bootstrap-record.json"
+    record.write_text(
+        '{"resolved_revision": "' + "c" * 40 + '"}\n', encoding="utf-8"
+    )
+    assert (
+        workspace_module.expected_source_revision(
+            source_revision=None, bootstrap_record=record
+        )
+        == "c" * 40
+    )
+
+
+def test_expected_source_revision_rejects_record_without_revision(
+    tmp_path: Path,
+) -> None:
+    record = tmp_path / "bootstrap-record.json"
+    record.write_text('{"schema_version": "0.1"}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="no resolved_revision"):
+        workspace_module.expected_source_revision(
+            source_revision=None, bootstrap_record=record
+        )
+
+
+def test_expected_source_revision_is_none_without_inputs() -> None:
+    assert (
+        workspace_module.expected_source_revision(
+            source_revision=None, bootstrap_record=None
+        )
+        is None
+    )
+
+
+def test_expected_source_revision_accepts_agreeing_inputs(tmp_path: Path) -> None:
+    record = tmp_path / "bootstrap-record.json"
+    record.write_text(
+        '{"resolved_revision": "' + "c" * 40 + '"}\n', encoding="utf-8"
+    )
+    assert (
+        workspace_module.expected_source_revision(
+            source_revision="c" * 40, bootstrap_record=record
+        )
+        == "c" * 40
+    )
+
+
+def test_expected_source_revision_rejects_disagreeing_inputs(
+    tmp_path: Path,
+) -> None:
+    record = tmp_path / "bootstrap-record.json"
+    record.write_text(
+        '{"resolved_revision": "' + "c" * 40 + '"}\n', encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="disagrees with the bootstrap record"):
+        workspace_module.expected_source_revision(
+            source_revision="d" * 40, bootstrap_record=record
+        )
+
+
+def test_runner_rejects_source_revision_deviating_from_bootstrap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def resolve(_image: str, **_kwargs: object) -> None:
+        raise AssertionError("digest resolution must not run before the revision check")
+
+    def factory(**_kwargs: object) -> None:
+        raise AssertionError("workspace factory must not run on revision drift")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    with pytest.raises(ValueError, match="deviates from the bootstrap revision"):
+        workspace_module.run_command_in_workspace(
+            image="acd-server:local",
+            command="true",
+            repository=tmp_path,
+            download_files=(),
+            workspace_factory=factory,
+            expected_source_revision="a" * 40,
+        )
+
+
+def test_runner_records_deviating_source_revision_with_allow_dirty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _FakeWorkspace.instances.clear()
+
+    def resolve(_image: str, **_kwargs: object) -> workspace_module.ImageReference:
+        return workspace_module.ImageReference("sha256:" + "2" * 64, "image ID")
+
+    monkeypatch.setattr(workspace_module, "resolve_image_digest", resolve)
+    result = workspace_module.run_command_in_workspace(
+        image="acd-server:local",
+        command="true",
+        repository=tmp_path,
+        download_files=(),
+        workspace_factory=_FakeWorkspace,
+        expected_source_revision="a" * 40,
+        allow_dirty=True,
+    )
+    assert result.exit_code == 0
+    assert result.source_revision == "b" * 40

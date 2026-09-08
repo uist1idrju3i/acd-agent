@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import cast
 
+from acd.openhands.workspace import expected_source_revision
 from acd.schema.evidence import Evidence
 
 
@@ -69,8 +70,24 @@ def verify(
     out_roots: Sequence[Path] = (),
     require_lanes: Sequence[str] = (),
     source_revision: str | None = None,
+    bootstrap_record: Path | None = None,
 ) -> bool:
     """Return whether all supplied Evidence records support an authoritative pass."""
+    if bootstrap_record is not None:
+        try:
+            recorded = expected_source_revision(
+                source_revision=None, bootstrap_record=bootstrap_record
+            )
+        except ValueError as exc:
+            print(f"FAIL: {exc}", file=sys.stderr)
+            return False
+        if source_revision is not None and source_revision != recorded:
+            print(
+                "FAIL: --source-revision disagrees with bootstrap record",
+                file=sys.stderr,
+            )
+            return False
+        source_revision = recorded
     for root in out_roots:
         if not root.is_dir():
             print(f"FAIL: out root is not a directory: {root}", file=sys.stderr)
@@ -196,6 +213,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             "git sha"
         ),
     )
+    parser.add_argument(
+        "--bootstrap-record",
+        dest="bootstrap_record",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "bootstrap record JSON whose resolved_revision is used as the "
+            "expected envelope source_revision"
+        ),
+    )
     parser.add_argument("evidence", nargs="*", type=Path)
     args = parser.parse_args(argv)
     return (
@@ -207,6 +235,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             out_roots=args.out_roots,
             require_lanes=args.require_lanes,
             source_revision=args.source_revision,
+            bootstrap_record=args.bootstrap_record,
         )
         else 1
     )
