@@ -316,6 +316,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    | `node.declared` | checked | lane preflight |
    | `attribute.declared` | checked | lane preflight |
    | `mechanical.structure` | checked | lane preflight（enclosure-pipeline laneのみ、`collect_mechanical_findings`のgraph-only機械findingを折り込む） |
+   | `evidence.declaration` | checked | lane preflight（board-pipeline laneのみ、`collect_evidence_declaration_findings`で宣言evidenceを実測recordへ解決） |
    | `attribute.type` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
    | `attribute.value` | unchecked | `extract_*_lane`／決定論的ゲート |
    | `reference.resolved` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
@@ -334,6 +335,22 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    重複するfindingは除く。rationale由来のfindingはfixture_dirが必要なため
    `rationale.coverage`は引き続きuncheckedのままとする。ここでも診断専用で
    あり、authoritative EvidenceやL1合格は確立しない。
+
+   board-pipeline laneでは宣言されたevidence属性を実測recordへ解決する
+   （`src/acd/core/evidence_declarations.py`）。
+   `electrical.component`の`cpl_rotation_evidence_basis`が`confirmed`の場合、
+   record `evidence/<artifact_prefix>-cpl-orientation/<refdes>.json`の存在、
+   refdes・lcsc一致、`response_canonical_sha256`の再計算一致、ISO-8601の
+   `retrieved_at`を検査する。`fab.order_intent`では`fab_profile`をregistry経由で
+   解決し、`profile_source`と`profile_fetched_at`の組がprofileの`sources`に
+   存在することを照合する。解決不能は`evidence.cpl_rotation.declared_unverified`／
+   `evidence.fab_profile.declared_unverified`として`unsupported_values`に記録し、
+   laneを`declarations_incomplete`にする。修復はlocked container内で
+   `scripts/fetch_lcsc_footprint_orientation.py --refdes <R> --lcsc <C> --out <record>`
+   を実行するか、`evidence_basis`を`estimated`へ戻す（CPLゲートではunknownのまま）。
+   L1側では基板pipeline（`src/acd/pipeline/gd1_board.py`）が読み込んだfab profileへ
+   解決しない`fab.order_intent` provenanceを`ValueError`で拒否する。CPL側は
+   `verify_lcsc_rotation_evidence`が既にrecord欠落をunknownへ倒すため変更不要。
 
    宣言語彙の前倒し検査として、board-pipeline laneでは自由form属性の許容値を
    `src/acd/core/declaration_vocabulary.py`の語彙と照合し、違反を
@@ -379,6 +396,22 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    読まない。`scripts/report_progress.py`のdigestは両値を別々に表示し、常に
    「authoritative Evidence: unverified」の行を含む。digestやtiming recordを根拠に
    合格や発注可を述べず、`scripts/verify_authoritative_evidence.py`の結果を提示する。
+
+   最終報告の機械生成basis（Z-8）: 報告のsource変更節と設計値節は
+   `scripts/report_final_basis.py`（`src/acd/core/final_report_basis.py`、
+   契約は`src/acd/schema/final_report_basis.py`）の出力を正とする。source変更節は
+   `git log --stat --format='%H %s' <bootstrap>..HEAD`とworktreeの
+   `git status --porcelain`・`git diff HEAD --stat`のverbatim blockで構成し、
+   commitもworktree変更も無い場合だけ`status: clean`となる（`.openhands/`配下の
+   worktree entryはstatus判定から除外し、verbatim blockには残す。bootstrap revisionが
+   解決不能、HEADのancestorでない、git失敗、明示shaとrecordの不一致は
+   `unknown`としてfail-closed）。設計値節は`--design-input`のspec.json
+   （`design_name`あり）またはgraph.jsonからrefdes・value・mpn・lcsc・footprint・
+   pad→net対応とnet接続（`refdes.pad`）を抽出する。「source変更なし」は
+   `status: clean`のときだけ記述でき、部品value・net記述は表と一致させる。
+   `/acd:vibebb-loop`のstep 8がこれを必須化する。本basisはL3観測であり、
+   authoritative Evidenceや合格判定を与えない。
+
    基板のDSN exportとFreeRouting SES生成物は、明示した`--cache-dir`へ入力hash単位で
    保存できる。例えば途中失敗後の再開は次のように実行する。
 

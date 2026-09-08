@@ -64,6 +64,8 @@ LanePreflightUnsupportedCode = Literal[
     "mechanical.reference.unresolved",
     "mechanical.connector_opening.face_unsupported",
     "mechanical.extraction.failed",
+    "evidence.cpl_rotation.declared_unverified",
+    "evidence.fab_profile.declared_unverified",
 ]
 
 
