@@ -1884,6 +1884,8 @@ AA-4（`PartSelectionError`が要求内容を示さない）、AA-5（`--allow-d
 一致せずfirmware coverageが最後まで`fail`）、AA-8（graphの`parts_catalog_sha256`と
 checkout上のcatalogの不一致を検査しない）、AA-9（既存fixtureからの構造コピー・値転記を
 検出する面が無い）、AA-10（最終報告の説明文が機械出力と矛盾しても検出されない）。
+修正後run（17.11）で観測した宣言〜検証の乖離はAA-11〜AA-14として
+`vibebb-gap-analysis.md`へ追記した。
 
 ### 17.9 成果物の収録
 
@@ -1903,3 +1905,45 @@ report・検証出力、bootstrap record、plugin install応答、workspaceのgi
 [`roadmap.md`](roadmap.md)へ`14.24`を追加した。`vibebb-gap-analysis.md`にはAA節を追加し、
 Z節のうち今回作動を確認できた項目（Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11）にその根拠を、
 作動を観測できなかった項目（Z-3・Z-6・Z-7）と残った項目（Z-12）にその事実を追記した。
+
+### 17.11 修正後run（Devin修正・第10回結果とは別）
+
+第10回の停止を起点に、Devinが設計入力（fixture spec）のみを修正して同じdigest固定
+container（`sha256:fb236ff5…`）で設計loopを再実行した記録である。**第10回の結果は
+引き続き不合格**であり、本runの投影・Evidenceはエージェント生成設計ではなく
+**Devin修正後設計**のものである。
+
+- 試行はfix1〜fix18の18 run（fix19は未実行。KT-0603Aの正規LCSC番号がLCSC／
+  EasyEDAで特定できず、D2は現状維持の未解決項目）。全て
+  `run_design_loop.py --fixture-spec … --fixture-overwrite --design-only`で、
+  変更は`fixtures/dual-beacon-tag/spec.json`とcatalog entry追加
+  （`contracts/parts-catalog.json`、commit `573379d`、唯一の非fixture変更）に限定した。
+- 最終run（fix18）は**設計側の全12段を通過**: routing収束（`final_unrouted 0`）、
+  ERC・DRC 0、gerber 8枚＋drill、CPL／BOM生成と相互検証、DFM 0 findings、
+  製造パッケージ、全visual投影、theme-song投影（`theme-song/theme-song.mid`生成）、
+  hash manifest、筐体lane（STEP×3・3MF・機械gate全通過）、FW lane（`.bin`生成、
+  QEMU virtual検証）。`evidence-{electrical,mechanical,firmware}.json`の3 laneが
+  `status="valid"`で発行され、`scripts/verify_authoritative_evidence.py`が
+  `OK: 3 authoritative Evidence file(s) verified`（終了コード0）。
+- 唯一の停止は`order-readiness`: **design-onlyモードではorder readinessは構造的に
+  未実行（fail-closedの仕様）**。`order-readiness.json`自体は`status: "ready"`、
+  unknowns空だが、合格には発注入力（`--order-total`・quote record・order scope）が
+  必要であり、設計探索では回復しない。**order-readyの主張は行わない。**
+
+到達に必要だった修正の分類: CPL回転evidence宣言（`evidence_basis`を
+`estimated`から`confirmed`へ、全15 fitted部品＋record参照note。`apply_cpl_contract`は
+basis≠confirmedの部品offsetを0.0へ強制するため、U2はoffset値ではなくbasisが真因、
+実測180.0は`derive_lcsc_rotation_offset`で検証）、J2の`not_fitted`化（手ハンダ付け前提）、
+I2C・buttonのpin role名を登録名へ（`net.scl→net.i2c_scl`、`net.boot→net.button`）、
+DFMのpad-to-board-edge確保（SW1 y 3.3→3.6）、J1直下のGND島解消
+（`min_clearance_mm` 0.15→0.12、JLC最小0.1を尊重）、シルクラベル短縮、
+catalog entry追加、宣言lcscと不一致のrecord 6件の再fetch（D1の`lcsc` typo
+`C16224`→`C12624`を含む）、SW1の`cpl_rotation_evidence_revision`明示
+（`part_request`不在でrevisionが自動注入されない — AA-13）。
+
+観測したコード挙動は`vibebb-gap-analysis.md`へAA-11〜AA-14として記録した
+（`ground_plane_min_island_area_mm2`がKiCad zoneへ未出力、mpn／lcsc不一致が最終
+gateまで未検出、`part_request`無し部品はrevision未注入、silkscreen resolverの
+未配置テキストデッドロック）。収録物は
+[`examples/dual-beacon-tag-vps-20260908/fixed-run/`](../examples/dual-beacon-tag-vps-20260908/fixed-run/README.md)
+を参照。
