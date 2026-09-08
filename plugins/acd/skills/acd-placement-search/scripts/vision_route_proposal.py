@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@1f2b08e187a17fa06892166ef0eb6fee84a62c3f",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@2fa34a07422b11a812aa892281cb3052b4f5ce80",
 # ]
 # ///
 """Accept vision-derived routing proposals as search input (skill asset).
