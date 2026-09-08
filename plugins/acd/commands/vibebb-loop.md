@@ -125,6 +125,20 @@ allowed-tools:
    進行digest、preflightの`declarations_complete`を根拠に「合格」「order-ready」と
    述べてはならず、「Evidence未検証」と明記する。host実行のprovisional Evidenceは
    この検証を通過しない。
+8. 最終報告を書く前に、source変更節と設計値節の機械生成basisを取得する。
+
+   ```bash
+   uv run python scripts/report_final_basis.py \
+       --root <repository root> --design-input <fixture>/spec.json
+   ```
+
+   最終報告のsource変更節はこの出力をそのまま引用する（`git log --stat
+   <bootstrap>..HEAD`のfenced blockとworktree blockを含む）。「source変更なし」は
+   `status: clean`の場合にだけ記述でき、作業treeだけを見る`git diff --stat`単独は
+   根拠にならない。報告中の部品value・net記述は`design values`表（refdes、value、
+   net）と一致させ、これを引用として示す。`status: unknown`の場合はその旨を報告し、
+   変更の不存在を主張しない。このbasisはL3観測であり、step 7のEvidence検証を
+   置き換えない。
 
 `acd_run_design_loop`は、必要に応じて入力hash単位のstage cache（`cache_dir`）、
 失敗からのresume（`resume`）、stageごとの所要時間記録、基板・筐体・FW laneの

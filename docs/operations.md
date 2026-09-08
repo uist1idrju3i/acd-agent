@@ -396,6 +396,21 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    読まない。`scripts/report_progress.py`のdigestは両値を別々に表示し、常に
    「authoritative Evidence: unverified」の行を含む。digestやtiming recordを根拠に
    合格や発注可を述べず、`scripts/verify_authoritative_evidence.py`の結果を提示する。
+
+   最終報告の機械生成basis（Z-8）: 報告のsource変更節と設計値節は
+   `scripts/report_final_basis.py`（`src/acd/core/final_report_basis.py`、
+   契約は`src/acd/schema/final_report_basis.py`）の出力を正とする。source変更節は
+   `git log --stat --format='%H %s' <bootstrap>..HEAD`とworktreeの
+   `git status --porcelain`・`git diff HEAD --stat`のverbatim blockで構成し、
+   commitもworktree変更も無い場合だけ`status: clean`となる（bootstrap revisionが
+   解決不能、HEADのancestorでない、git失敗、明示shaとrecordの不一致は
+   `unknown`としてfail-closed）。設計値節は`--design-input`のspec.json
+   （`design_name`あり）またはgraph.jsonからrefdes・value・mpn・lcsc・footprint・
+   pad→net対応とnet接続（`refdes.pad`）を抽出する。「source変更なし」は
+   `status: clean`のときだけ記述でき、部品value・net記述は表と一致させる。
+   `/acd:vibebb-loop`のstep 8がこれを必須化する。本basisはL3観測であり、
+   authoritative Evidenceや合格判定を与えない。
+
    基板のDSN exportとFreeRouting SES生成物は、明示した`--cache-dir`へ入力hash単位で
    保存できる。例えば途中失敗後の再開は次のように実行する。
 
