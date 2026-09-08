@@ -714,8 +714,13 @@ agentは停止境界ごとに`src/`編集→commit、生`docker run`、難読化
 | Z-12 | SessionStart hookが会話用project dir（workspace root以外）で`docker/image-digests.json`を解決できず「Authoritative tools are unavailable inside the locked image」を出す | init・loop両会話の先頭で出力。lockは`/home/openhands/acd-workspace-verify-20260907/docker/image-digests.json`に存在した | 低 | G-1 | `OPENHANDS_PROJECT_DIR`が空またはlock不在のとき、installed plugin rootとworkspace registryからlockを探索する |
 | Z-13 | `design_loop.py --fixture-spec`が`build_design_fixture`へ`spec_dir`を渡さず、overlay宣言を持つspecは必ず`requires the design input directory`で失敗する（`scripts/build_design_fixture.py`とは非対称） | pristine `180b628`のhost実行で再現（`repair/main-host.log`）。agentは会話内でこれをsource編集で回避した | 高 | — | 解消。`spec_dir=config.fixture_spec.parent`を渡し、spec相対overlayの解決とhash不一致のfail-closedを回帰テストで固定した。digest固定container再実行はfixture-generationを通過し次段（`net 'BOOT': manufacturing margin is required`）でfail-closed（`repair/`） |
 
-Z-13以外は未解消である。いずれの解決方針も診断・provenance・matcherの面の追加であり、
-ゲート・閾値・Evidence規則の緩和を含まない。
+実装状況: Z-13はPR #359、Z-3・Z-5はPR #360、Z-4・Z-6・Z-7・Z-11・Z-12はPR #361、
+Z-1・Z-2・Z-10はPR #362で解決方針どおり実装した（stop policyはbootstrap revisionからの
+source逸脱を`source_revision_drift`の記録なしに停止させない点でZ-8の一部も担う）。
+Z-8（最終報告のsource変更節を`git log --stat`の機械出力に固定する報告契約）とZ-9
+（`evidence_basis: "confirmed"`等の宣言が実測recordへ解決することの検査）は未解消である。
+いずれの解決方針も診断・provenance・matcherの面の追加であり、
+ゲート・閾値・Evidence規則の緩和を含まない。実機での再検証（第10回）は未実施である。
 
 ## Devinのような汎用エージェントが不在なら止まる項目
 
