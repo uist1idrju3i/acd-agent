@@ -8,12 +8,16 @@ structure, unresolved references) so those gaps surface in the same report. The
 result is diagnostic: it carries no gate authority, and a
 `declarations_complete` status only means the declarations exist and the
 mechanical structure checks found no finding; it does not mean that the lane
-gates pass or that the design is ready for ordering.
+gates pass or that the design is ready for ordering. For the board lane the
+preflight additionally resolves declared evidence attributes (confirmed CPL
+rotation records and fab order-intent provenance) against measured records on
+disk; an unresolved declaration is reported as `declared_unverified`.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Final, cast
 
 from acd.core.declaration_vocabulary import (
@@ -23,6 +27,7 @@ from acd.core.declaration_vocabulary import (
     SAFETY_BOUNDARY_MODULE_CERTIFIED,
 )
 from acd.core.electrical import GraphExtractionError
+from acd.core.evidence_declarations import collect_evidence_declaration_findings
 from acd.core.firmware_capability import load_firmware_capability_registry
 from acd.core.firmware_coverage import check_firmware_coverage
 from acd.core.mechanical_preflight import collect_mechanical_findings
@@ -313,6 +318,7 @@ PREFLIGHT_CHECKED_PREDICATES: Final[tuple[str, ...]] = (
     "node.declared",
     "attribute.declared",
     "mechanical.structure",
+    "evidence.declaration",
 )
 PREFLIGHT_UNCHECKED_PREDICATES: Final[tuple[str, ...]] = (
     "attribute.type",
@@ -326,7 +332,10 @@ PREFLIGHT_UNCHECKED_PREDICATES: Final[tuple[str, ...]] = (
 
 
 def _lane_report(
-    graph: DesignGraph, lane: str, requirements: tuple[LaneNodeRequirement, ...]
+    graph: DesignGraph,
+    lane: str,
+    requirements: tuple[LaneNodeRequirement, ...],
+    root: Path | None = None,
 ) -> LanePreflightLaneReport:
     missing_nodes: list[LanePreflightMissingNode] = []
     missing_attrs: list[LanePreflightMissingAttr] = []
@@ -436,6 +445,8 @@ def _lane_report(
                     )
     if lane == "enclosure-pipeline":
         _apply_mechanical_findings(graph, missing_nodes, missing_attrs, unsupported_values)
+    if lane == "board-pipeline":
+        _apply_evidence_declaration_findings(graph, unsupported_values, root)
     status = (
         "declarations_complete"
         if not missing_nodes and not missing_attrs and not unsupported_values
@@ -510,6 +521,29 @@ def _apply_mechanical_findings(
             )
 
 
+def _apply_evidence_declaration_findings(
+    graph: DesignGraph,
+    unsupported_values: list[LanePreflightUnsupportedValue],
+    root: Path | None,
+) -> None:
+    """Fold declared-but-unresolved evidence attributes into the lane report.
+
+    A declared evidence attribute that does not resolve to a measured record
+    surfaces as ``declared_unverified``; the L3 report never grants it
+    confirmed status.
+    """
+    for finding in collect_evidence_declaration_findings(graph, root=root):
+        unsupported_values.append(
+            LanePreflightUnsupportedValue(
+                code=finding.code,
+                node_id=finding.node_id or finding.code,
+                kind=finding.kind or finding.code,
+                attr=finding.attr or finding.code,
+                reason=finding.detail,
+            )
+        )
+
+
 def _firmware_coverage_diagnostic(graph: DesignGraph) -> dict[str, Any] | None:
     """Evaluate firmware coverage for the preflight diagnostic surface.
 
@@ -539,14 +573,20 @@ def _firmware_coverage_diagnostic(graph: DesignGraph) -> dict[str, Any] | None:
 
 
 def run_lane_preflight(
-    graph: DesignGraph, lanes: tuple[str, ...] | None = None
+    graph: DesignGraph,
+    lanes: tuple[str, ...] | None = None,
+    *,
+    root: Path | None = None,
 ) -> LanePreflightReport:
     """Report the declaration gaps of every requested lane in one result."""
     selected = LANE_IDS if lanes is None else tuple(sorted(set(lanes)))
     unknown = [lane for lane in selected if lane not in LANE_REQUIREMENTS]
     if unknown:
         raise ValueError("unknown preflight lanes: " + ", ".join(sorted(unknown)))
-    reports = [_lane_report(graph, lane, LANE_REQUIREMENTS[lane]) for lane in selected]
+    reports = [
+        _lane_report(graph, lane, LANE_REQUIREMENTS[lane], root)
+        for lane in selected
+    ]
     status = (
         "declarations_complete"
         if all(report.status == "declarations_complete" for report in reports)

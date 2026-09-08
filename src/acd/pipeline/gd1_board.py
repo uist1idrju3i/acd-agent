@@ -96,6 +96,7 @@ from acd.core.design_predicates import (
     evaluate_design_predicates,
 )
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.evidence_declarations import check_fab_profile_declaration
 from acd.core.fab import (
     extract_fab_intent,
     load_fab_profile,
@@ -882,6 +883,17 @@ def run_pipeline(
         raise ValueError(
             f"graph fab profile {intent.fab_profile!r} differs from loaded profile "
             f"{profile.profile_id!r}"
+        )
+    provenance_reason = check_fab_profile_declaration(
+        fab_profile=intent.fab_profile,
+        profile_source=intent.profile_source,
+        profile_fetched_at=intent.profile_fetched_at,
+        sources=cast(list[dict[str, object]], profile.data["sources"]),
+    )
+    if provenance_reason is not None:
+        raise ValueError(
+            "fab.order_intent provenance does not resolve to the loaded fab "
+            f"profile: {provenance_reason}"
         )
 
     placements = placements_from_graph(graph, lane)

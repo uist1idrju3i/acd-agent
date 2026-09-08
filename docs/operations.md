@@ -316,6 +316,7 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    | `node.declared` | checked | lane preflight |
    | `attribute.declared` | checked | lane preflight |
    | `mechanical.structure` | checked | lane preflight（enclosure-pipeline laneのみ、`collect_mechanical_findings`のgraph-only機械findingを折り込む） |
+   | `evidence.declaration` | checked | lane preflight（board-pipeline laneのみ、`collect_evidence_declaration_findings`で宣言evidenceを実測recordへ解決） |
    | `attribute.type` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
    | `attribute.value` | unchecked | `extract_*_lane`／決定論的ゲート |
    | `reference.resolved` | unchecked | `extract_*_lane`／`check_mechanical_preflight` |
@@ -334,6 +335,22 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    重複するfindingは除く。rationale由来のfindingはfixture_dirが必要なため
    `rationale.coverage`は引き続きuncheckedのままとする。ここでも診断専用で
    あり、authoritative EvidenceやL1合格は確立しない。
+
+   board-pipeline laneでは宣言されたevidence属性を実測recordへ解決する
+   （`src/acd/core/evidence_declarations.py`）。
+   `electrical.component`の`cpl_rotation_evidence_basis`が`confirmed`の場合、
+   record `evidence/<artifact_prefix>-cpl-orientation/<refdes>.json`の存在、
+   refdes・lcsc一致、`response_canonical_sha256`の再計算一致、ISO-8601の
+   `retrieved_at`を検査する。`fab.order_intent`では`fab_profile`をregistry経由で
+   解決し、`profile_source`と`profile_fetched_at`の組がprofileの`sources`に
+   存在することを照合する。解決不能は`evidence.cpl_rotation.declared_unverified`／
+   `evidence.fab_profile.declared_unverified`として`unsupported_values`に記録し、
+   laneを`declarations_incomplete`にする。修復はlocked container内で
+   `scripts/fetch_lcsc_footprint_orientation.py --refdes <R> --lcsc <C> --out <record>`
+   を実行するか、`evidence_basis`を`estimated`へ戻す（CPLゲートではunknownのまま）。
+   L1側では基板pipeline（`src/acd/pipeline/gd1_board.py`）が読み込んだfab profileへ
+   解決しない`fab.order_intent` provenanceを`ValueError`で拒否する。CPL側は
+   `verify_lcsc_rotation_evidence`が既にrecord欠落をunknownへ倒すため変更不要。
 
    宣言語彙の前倒し検査として、board-pipeline laneでは自由form属性の許容値を
    `src/acd/core/declaration_vocabulary.py`の語彙と照合し、違反を

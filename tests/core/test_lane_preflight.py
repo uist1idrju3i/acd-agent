@@ -421,3 +421,25 @@ def test_mechanical_unsupported_findings_surface_as_unsupported_values() -> None
     assert lane.status == "declarations_incomplete"
     codes = {item.code for item in lane.unsupported_values}
     assert "mechanical.node.duplicated" in codes
+
+
+def _board_lane(report: LanePreflightReport) -> LanePreflightLaneReport:
+    return next(lane for lane in report.lanes if lane.lane == "board-pipeline")
+
+
+def test_evidence_declaration_predicate_is_checked() -> None:
+    assert "evidence.declaration" in PREFLIGHT_CHECKED_PREDICATES
+
+
+def test_board_lane_reports_unverified_confirmed_cpl(tmp_path: Path) -> None:
+    report = run_lane_preflight(_graph(), ("board-pipeline",), root=tmp_path)
+    lane = _board_lane(report)
+    assert lane.status == "declarations_incomplete"
+    codes = {item.code for item in lane.unsupported_values}
+    assert "evidence.cpl_rotation.declared_unverified" in codes
+    assert "evidence.fab_profile.declared_unverified" in codes
+
+
+def test_board_lane_stays_complete_with_repo_records() -> None:
+    report = run_lane_preflight(_graph(), ("board-pipeline",))
+    assert _board_lane(report).status == "declarations_complete"
