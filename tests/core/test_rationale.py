@@ -363,4 +363,5 @@ def test_summarize_rationale_coverage_is_used_by_fixture_builder(
     message = str(excinfo.value)
     assert "rationale coverage failed while building fixture" in message
     assert "unclassified=1 [comp.u1.future_choice" in message
-    assert "REQUIRED_RATIONALE_ATTRS" in message
+    assert "remove them from the design input" in message
+    assert "REQUIRED_RATIONALE_ATTRS" not in message

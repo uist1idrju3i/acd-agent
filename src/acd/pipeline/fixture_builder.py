@@ -704,9 +704,11 @@ def build_design_fixture(
         raise FixtureBuilderError(
             "rationale coverage failed while building fixture: "
             + summarize_rationale_coverage(coverage)
-            + "; next step: add rationale records for missing/stale subjects or "
-            "classify new attrs in REQUIRED_RATIONALE_ATTRS/"
-            "RATIONALE_EXEMPT_ATTRS (see docs)"
+            + "; next step: add rationale records in the design input "
+            "(DesignFixtureSpec) for missing/stale subjects; unclassified attrs "
+            "are not part of the rationale contract, so remove them from the "
+            "design input or propose the contract change in a separate PR "
+            "(see docs/operations.md rationale coverage)"
         )
     graph_content = _canonical(graph.model_dump(mode="json"))
     requirements_content = _canonical(requirements.model_dump(mode="json"))

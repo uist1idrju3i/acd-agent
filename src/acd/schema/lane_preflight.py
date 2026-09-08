@@ -59,6 +59,11 @@ LanePreflightUnsupportedCode = Literal[
     "safety.boundary.module_certified_unsupported",
     "safety.boundary.hazard_flag_invalid",
     "net.width_basis_unsupported",
+    "mechanical.attribute.invalid",
+    "mechanical.node.duplicated",
+    "mechanical.reference.unresolved",
+    "mechanical.connector_opening.face_unsupported",
+    "mechanical.extraction.failed",
 ]
 
 

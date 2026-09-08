@@ -2,15 +2,19 @@
 
 The preflight reports every missing required node and attribute of every lane in
 one pass, so a design iteration does not have to discover the declarations one
-failure at a time. The result is diagnostic: it carries no gate authority, and a
-`declarations_complete` status only means the declarations exist; it does not
-mean that the lane gates pass or that the design is ready for ordering.
+failure at a time. For the enclosure lane the preflight also runs the graph-only
+mechanical structure checks (missing component bodies, outline/enclosure
+structure, unresolved references) so those gaps surface in the same report. The
+result is diagnostic: it carries no gate authority, and a
+`declarations_complete` status only means the declarations exist and the
+mechanical structure checks found no finding; it does not mean that the lane
+gates pass or that the design is ready for ordering.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from acd.core.declaration_vocabulary import (
     NET_WIDTH_BASIS,
@@ -21,6 +25,7 @@ from acd.core.declaration_vocabulary import (
 from acd.core.electrical import GraphExtractionError
 from acd.core.firmware_capability import load_firmware_capability_registry
 from acd.core.firmware_coverage import check_firmware_coverage
+from acd.core.mechanical_preflight import collect_mechanical_findings
 from acd.schema.design_graph import DesignGraph
 from acd.schema.lane_preflight import (
     LanePreflightLaneReport,
@@ -307,6 +312,7 @@ LANE_IDS: Final[tuple[str, ...]] = tuple(sorted(LANE_REQUIREMENTS))
 PREFLIGHT_CHECKED_PREDICATES: Final[tuple[str, ...]] = (
     "node.declared",
     "attribute.declared",
+    "mechanical.structure",
 )
 PREFLIGHT_UNCHECKED_PREDICATES: Final[tuple[str, ...]] = (
     "attribute.type",
@@ -428,6 +434,8 @@ def _lane_report(
                             ),
                         )
                     )
+    if lane == "enclosure-pipeline":
+        _apply_mechanical_findings(graph, missing_nodes, missing_attrs, unsupported_values)
     status = (
         "declarations_complete"
         if not missing_nodes and not missing_attrs and not unsupported_values
@@ -445,6 +453,61 @@ def _lane_report(
             else None
         ),
     )
+
+
+def _apply_mechanical_findings(
+    graph: DesignGraph,
+    missing_nodes: list[LanePreflightMissingNode],
+    missing_attrs: list[LanePreflightMissingAttr],
+    unsupported_values: list[LanePreflightUnsupportedValue],
+) -> None:
+    """Fold the graph-only mechanical structure findings into the lane report.
+
+    Missing nodes/attributes dedupe against declarations already reported by
+    the requirement loop; every other mechanical finding code surfaces as an
+    unsupported value so a structural gap can never pass silently.
+    """
+    reported_nodes = {(item.kind, item.reason) for item in missing_nodes}
+    reported_attrs = {(item.node_id, item.attr) for item in missing_attrs}
+    for finding in collect_mechanical_findings(graph):
+        if finding.code == "mechanical.node.missing":
+            key = (finding.node_kind, finding.detail)
+            if key in reported_nodes:
+                continue
+            reported_nodes.add(key)
+            missing_nodes.append(
+                LanePreflightMissingNode(
+                    kind=finding.node_kind or finding.code,
+                    required_count=1,
+                    present_count=0,
+                    reason=finding.detail,
+                )
+            )
+        elif finding.code == "mechanical.attribute.missing":
+            key = (finding.node_id, finding.attribute)
+            if key in reported_attrs:
+                continue
+            reported_attrs.add(key)
+            missing_attrs.append(
+                LanePreflightMissingAttr(
+                    node_id=finding.node_id or finding.code,
+                    kind=finding.node_kind or finding.code,
+                    attr=finding.attribute or finding.code,
+                    reason=finding.detail,
+                )
+            )
+        else:
+            unsupported_values.append(
+                LanePreflightUnsupportedValue(
+                    # collect_mechanical_findings is graph-only, so only the
+                    # mechanical.* codes reachable here need the cast.
+                    code=cast(LanePreflightUnsupportedCode, finding.code),
+                    node_id=finding.node_id or finding.code,
+                    kind=finding.node_kind or finding.code,
+                    attr=finding.attribute or finding.code,
+                    reason=finding.detail,
+                )
+            )
 
 
 def _firmware_coverage_diagnostic(graph: DesignGraph) -> dict[str, Any] | None:
@@ -516,10 +579,14 @@ def missing_declarations(
             {node.kind for node in lane.missing_nodes} | {attr.kind for attr in lane.missing_attrs}
         )
         for kind in kinds:
-            requirement = requirements[kind]
-            missing_node = next((node for node in lane.missing_nodes if node.kind == kind), None)
-            required = requirement.minimum_count
-            present_count = missing_node.present_count if missing_node is not None else None
+            requirement = requirements.get(kind)
+            missing_node = next(
+                (node for node in lane.missing_nodes if node.kind == kind), None
+            )
+            required = requirement.minimum_count if requirement is not None else 0
+            present_count = (
+                missing_node.present_count if missing_node is not None else None
+            )
             entries.append(
                 LanePreflightMissingDeclaration(
                     lane=lane.lane,
@@ -527,9 +594,15 @@ def missing_declarations(
                     spec_path=SPEC_DECLARATION_PATHS.get(kind, UNDECLARABLE_SPEC_PATH),
                     required_count=required,
                     present_count=present_count,
-                    missing_count=(required - present_count if present_count is not None else 0),
-                    required_attrs=list(requirement.attrs),
-                    missing_attrs=[attr for attr in lane.missing_attrs if attr.kind == kind],
+                    missing_count=(
+                        required - present_count if present_count is not None else 0
+                    ),
+                    required_attrs=(
+                        list(requirement.attrs) if requirement is not None else []
+                    ),
+                    missing_attrs=[
+                        attr for attr in lane.missing_attrs if attr.kind == kind
+                    ],
                 )
             )
     return entries

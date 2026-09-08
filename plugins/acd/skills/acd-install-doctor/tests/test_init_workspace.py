@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -245,6 +246,40 @@ def test_clone_and_revision_fetch_are_shallow(
     assert fetched["status"] == "pass"
     assert ["git", "fetch", "--depth", "1", "origin", revision] in fetch_commands
     assert ["git", "checkout", "--detach", revision] in fetch_commands
+
+
+def test_progress_lines_go_to_stderr_and_stdout_stays_json(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--repo-url",
+            str(tmp_path / "not-a-repository"),
+            "--revision",
+            "0" * 40,
+            "--workspace",
+            str(workspace),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    progress = [
+        line for line in result.stderr.splitlines() if line.startswith("[init] ")
+    ]
+    assert "[init] workspace_dir: start" in progress
+    assert any(
+        line.startswith("[init] workspace_dir: ok (") for line in progress
+    )
+    assert "[init] repository: start" in progress
+    assert any(
+        line.startswith("[init] repository: failed (") for line in progress
+    )
+    report = json.loads(result.stdout)
+    assert report["ok"] is False
+    assert report["failed_step"] == "repository"
 
 
 @pytest.mark.parametrize("failed_step", ["plugin_load", "doctor"])

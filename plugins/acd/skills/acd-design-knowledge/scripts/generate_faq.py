@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@cdae3aa6f7b2a91c859cd3c946d0108ba6b10692",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@75220dca24fb899fe6c2f1031f97c81a28866cd5",
 # ]
 # ///
 """Generate the publishable FAQ document from the indexed design knowledge.
