@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -80,6 +81,17 @@ def test_firmware_projections_are_deterministic_and_crosschecked(
     assert "fw-state-initial-fw-state-boot" in state_svg
     assert "fw-transition-fw-transition-boot-sensor-init" in state_svg
     assert ">boot_complete</text>" in state_svg
+    # BFS order puts the entry state leftmost.
+    box_x = {
+        frag: float(match.group(2))
+        for frag, match in (
+            (m.group(1), m)
+            for m in re.finditer(
+                r'id="fw-state-box-([a-z0-9-]+)" x="([0-9.]+)"', state_svg
+            )
+        )
+    }
+    assert min(box_x, key=box_x.get) == "fw-state-boot"
     # 240 unit wide viewBox * DIAGRAM_FONT_SIZE_RATIO
     assert 'font-size="3"' in state_svg
     assert 'viewBox="0 0 ' in state_svg

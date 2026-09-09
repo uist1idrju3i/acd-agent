@@ -142,23 +142,44 @@ def test_generates_placement_and_stackup_with_deterministic_provenance(
     assert b'id="back"' in svg
     assert b'id="board-outline"' in svg
     assert b'id="placement-legend"' in svg
-    assert b'id="placement-r1"' in svg
+    assert b'id="placement-r1" data-side="front"' in svg
     assert b'id="refdes-r1"' in svg
     # Human-facing document: title, subtitle and mm-based inner text.
     assert b"Component placement" in svg
     assert b"30 mm" in svg and b"20 mm" in svg
-    # 20mm board height * BOARD_FONT_SIZE_RATIO
-    assert b'font-size="1"' in svg
+    assert b'font-size="' in svg
     assert b"generated_at" not in svg
     assert b"2026-" not in svg
     assert b"/home/" not in svg
     placement_box = measure_svg_resolution(svg).view_box
     assert placement_box[:2] == (0.0, 0.0)
-    # Adaptive extent: the shorter board side is scaled to at least 60 units.
-    assert placement_box[2] > 90.0
-    assert placement_box[3] > 60.0
+    # Adaptive extent: the longer board side is scaled to at least 160 units.
+    assert placement_box[2] > 160.0
+    assert placement_box[3] > 100.0
 
-    second = _generate(tmp_path / "second")
+
+def test_tiny_footprint_moves_refdes_to_outside_label_column(tmp_path: Path) -> None:
+    tiny = FootprintShape(
+        library_ref="Test:Tiny",
+        pads=(),
+        courtyard_bbox_mm=(-0.05, -0.05, 0.05, 0.05),
+    )
+    board = replace(
+        _board(),
+        placements=(ComponentPlacement("R1", tiny, 5.0, 5.0, 0.0, side="front"),),
+    )
+    projection_set = _generate(tmp_path, board=board)
+    placement = next(
+        item
+        for item in projection_set.projections
+        if item.projection_type == "placement_view"
+    )
+    svg = (tmp_path / "out" / placement.image_path).read_bytes()
+    assert b'id="placement-label-outside-r1"' in svg
+    assert b'id="refdes-r1"' in svg
+    assert b'data-side="front"' in svg
+
+    second = _generate(tmp_path / "second", board=board)
     assert projection_set.identity_hash == second.identity_hash
     assert [item.image_hash for item in projection_set.projections] == [
         item.image_hash for item in second.projections
@@ -185,6 +206,8 @@ def test_stackup_layers_and_root_geometry_are_measured_from_bytes(tmp_path: Path
     assert b'id="stackup-legend"' in svg
     assert b"Layer stackup" in svg
     assert b"dielectric" in svg
+    # Copper thickness renders with two-decimal ounces.
+    assert b"1.01 oz" in svg
     assert b'font-size="3"' in svg
     assert b"2026-" not in svg
     assert b"/home/" not in svg

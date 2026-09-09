@@ -56,18 +56,40 @@ _LIFELINE_FILL = KIND_FILL["electrical.component"]
 _LIFELINE_STROKE = KIND_STROKE["electrical.component"]
 
 
+def _state_order(lane: FirmwareLane) -> list[str]:
+    """Deterministic BFS of state ids starting at the module entry state.
+
+    Neighbours are visited sorted by transition node_id; states unreachable
+    from the entry state are appended sorted by node_id.
+    """
+    transitions = sorted(lane.transitions, key=lambda item: item.node_id)
+    state_ids = {state.node_id for state in lane.states}
+    for transition in transitions:
+        for endpoint in (transition.from_state, transition.to_state):
+            if endpoint not in state_ids:
+                raise SvgVisualProjectionError(
+                    "firmware transition references an undeclared state"
+                )
+    adjacency: dict[str, list[str]] = {}
+    for transition in transitions:
+        adjacency.setdefault(transition.from_state, []).append(transition.to_state)
+    order: list[str] = []
+    seen = {lane.module.entry_state}
+    queue = [lane.module.entry_state]
+    while queue:
+        node = queue.pop(0)
+        order.append(node)
+        for neighbour in adjacency.get(node, []):
+            if neighbour not in seen:
+                seen.add(neighbour)
+                queue.append(neighbour)
+    order.extend(sorted(state_ids - seen))
+    return order
+
+
 def _state_svg(lane: FirmwareLane) -> bytes:
     states = tuple(sorted(lane.states, key=lambda state: state.node_id))
-    transitions = tuple(
-        sorted(
-            lane.transitions,
-            key=lambda transition: (
-                transition.from_state,
-                transition.to_state,
-                transition.trigger,
-            ),
-        )
-    )
+    transitions = tuple(sorted(lane.transitions, key=lambda item: item.node_id))
     if not states or not transitions:
         raise SvgVisualProjectionError(
             "firmware state projection requires declared states and transitions"
@@ -78,6 +100,8 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             "firmware state projection requires exactly one declared initial state "
             "matching the module entry state"
         )
+    order = _state_order(lane)
+    index_of = {node_id: index for index, node_id in enumerate(order)}
     font_size = diagram_font_size()
     small = font_size * SMALL_FONT_SCALE
     margin = font_size * 2
@@ -90,30 +114,116 @@ def _state_svg(lane: FirmwareLane) -> bytes:
         for state in states
     )
     box_width = longest + font_size * 1.6
-    columns = len(states) if len(states) <= 4 else 3
+    columns = min(len(order), 5)
+    rows = math.ceil(len(order) / columns)
     gap_x = font_size * 4
-    gap_y = font_size * 4
-    row_pitch = box_height + gap_y
-    # Vertical channels above each row keep transition runs out of the boxes.
-    channel_pitch = font_size * 1.3
-    channels_per_gap = max(
-        1, int((gap_y - font_size * 1.2) // channel_pitch)
+    lane_pitch = font_size * 1.8
+    base_gap = font_size * 1.5
+
+    # Band assignment: forward transitions (target index greater than source
+    # index) run on lanes above the source row, backward ones on lanes below.
+    # Cross-row transitions use the gap on the source side of the direction.
+    above: list[list] = [[] for _ in range(rows)]
+    below: list[list] = [[] for _ in range(rows)]
+    band_side: dict[str, str] = {}
+    band_slot: dict[str, int] = {}
+    for transition in transitions:
+        from_index = index_of[transition.from_state]
+        to_index = index_of[transition.to_state]
+        from_row = from_index // columns
+        forward = to_index >= from_index
+        side = "top" if forward else "bottom"
+        band = above[from_row] if side == "top" else below[from_row]
+        band.append(transition)
+        band_side[transition.node_id] = side
+    for band in above + below:
+        band.sort(
+            key=lambda item: (
+                abs(index_of[item.to_state] - index_of[item.from_state]),
+                item.node_id,
+            )
+        )
+        for slot, transition in enumerate(band):
+            band_slot[transition.node_id] = slot
+
+    # Row geometry: row spacing adapts to the larger lane count of the two
+    # bands sharing the inter-row gap.
+    origin_x = margin + text_advance("initial", small) / 2 + font_size * 3.5
+    row_tops: list[float] = []
+    cursor_y = (
+        header_height(font_size)
+        + font_size * 4.0
+        + base_gap
+        + lane_pitch * len(above[0])
     )
-    # Room at the left for the initial marker and its caption.
-    origin_x = margin + font_size * 3.5
-    origin_y = header_height(font_size) + font_size * 8.5
-    positions: dict[str, tuple[float, float, int]] = {}
-    for index, state in enumerate(states):
+    for row in range(rows):
+        row_tops.append(cursor_y)
+        cursor_y += box_height
+        if row + 1 < rows:
+            cursor_y += (
+                base_gap * 2
+                + lane_pitch * max(len(below[row]), len(above[row + 1]))
+            )
+    positions: dict[str, tuple[float, float]] = {}
+    for node_id, index in index_of.items():
         column = index % columns
         row = index // columns
-        positions[state.node_id] = (
+        positions[node_id] = (
             origin_x + column * (box_width + gap_x),
-            origin_y + row * row_pitch,
-            row,
+            row_tops[row],
         )
-    rows = math.ceil(len(states) / columns)
-    # One channel slot per transition, assigned in declaration order.
-    channel_slot = {transition.node_id: index for index, transition in enumerate(transitions)}
+
+    # Spread exit/entry ports across each box edge so that no two paths share
+    # a segment: ports are indexed per edge in transition node_id order.
+    # Self transitions loop on their own lane and do not consume ports.
+    def _lane_y(row: int, side: str, slot: int) -> float:
+        if side == "top":
+            return row_tops[row] - lane_pitch * (slot + 1)
+        return row_tops[row] + box_height + lane_pitch * (slot + 1)
+
+    route: dict[str, tuple[str, str, float]] = {}
+    for transition in transitions:
+        if transition.from_state == transition.to_state:
+            continue
+        side = band_side[transition.node_id]
+        lane_y = _lane_y(
+            index_of[transition.from_state] // columns,
+            side,
+            band_slot[transition.node_id],
+        )
+        to_y = positions[transition.to_state][1]
+        entry_side = "top" if lane_y <= to_y else "bottom"
+        route[transition.node_id] = (side, entry_side, lane_y)
+
+    port_index: dict[tuple[str, str, str, str], tuple[int, int]] = {}
+    for state_id in order:
+        for edge in ("top", "bottom"):
+            for direction in ("exit", "entry"):
+                keys = sorted(
+                    transition.node_id
+                    for transition in transitions
+                    if transition.node_id in route
+                    and route[transition.node_id][
+                        0 if direction == "exit" else 1
+                    ]
+                    == edge
+                    and (
+                        transition.from_state
+                        if direction == "exit"
+                        else transition.to_state
+                    )
+                    == state_id
+                )
+                for slot, node_id in enumerate(keys):
+                    port_index[(state_id, edge, direction, node_id)] = (
+                        slot,
+                        len(keys),
+                    )
+
+    def _port_x(state_id: str, edge: str, direction: str, transition_id: str) -> float:
+        slot, count = port_index[(state_id, edge, direction, transition_id)]
+        box_x = positions[state_id][0]
+        return box_x + box_width * (slot + 1) / (count + 1)
 
     body = [arrow_marker_defs(font_size), '<g id="firmware-state-view">']
     body += legend(
@@ -127,41 +237,44 @@ def _state_svg(lane: FirmwareLane) -> bytes:
         font_size=small,
         element_id="state-view-legend",
     )
-    # Transitions route orthogonally through the staggered channel above the
-    # source row so that horizontal runs never cross a state box.
     body.append('<g id="state-transitions">')
     for transition in transitions:
         identifier = slugify_identifier(transition.node_id)
-        from_x, from_y, _row = positions[transition.from_state]
-        to_x, to_y, _ = positions[transition.to_state]
-        from_cx = from_x + box_width / 2
-        to_cx = to_x + box_width / 2
-        slot = channel_slot[transition.node_id] % channels_per_gap
+        from_x, from_y = positions[transition.from_state]
+        side = band_side[transition.node_id]
+        slot = band_slot[transition.node_id]
+        lane_y = _lane_y(index_of[transition.from_state] // columns, side, slot)
         if transition.from_state == transition.to_state:
-            loop_height = font_size * 2.0 + slot * channel_pitch
-            top_y = from_y - loop_height
+            # Self transition: a small loop on the lane above the box.
+            start_x = from_x + box_width * 0.25
+            end_x = from_x + box_width * 0.75
             path_d = (
-                f"M {format_svg_number(from_cx)} {format_svg_number(from_y)} "
-                f"V {format_svg_number(top_y)} "
-                f"H {format_svg_number(from_x + box_width * 0.9)} "
+                f"M {format_svg_number(start_x)} {format_svg_number(from_y)} "
+                f"V {format_svg_number(lane_y)} "
+                f"H {format_svg_number(end_x)} "
                 f"V {format_svg_number(from_y)}"
             )
-            label_x = (from_cx + from_x + box_width * 0.9) / 2
-            label_y = top_y - small * 0.4
+            label_x = (start_x + end_x) / 2
+            label_y = lane_y - small * 0.4
         else:
-            channel_y = from_y - font_size * 1.2 - slot * channel_pitch
-            end_y = to_y if channel_y <= to_y else to_y + box_height
-            path_d = (
-                f"M {format_svg_number(from_cx)} {format_svg_number(from_y)} "
-                f"V {format_svg_number(channel_y)} "
-                f"H {format_svg_number(to_cx)} "
-                f"V {format_svg_number(end_y)}"
+            exit_side, entry_side, lane_y = route[transition.node_id]
+            exit_x = _port_x(
+                transition.from_state, exit_side, "exit", transition.node_id
             )
-            # Alternate the label position along the run so that triggers on
-            # adjacent channels do not stack at the same x.
-            bias = 0.3 if slot % 2 == 0 else 0.7
-            label_x = from_cx + (to_cx - from_cx) * bias
-            label_y = channel_y - small * 0.4
+            entry_x = _port_x(
+                transition.to_state, entry_side, "entry", transition.node_id
+            )
+            to_y = positions[transition.to_state][1]
+            exit_y = from_y if exit_side == "top" else from_y + box_height
+            entry_y = to_y if entry_side == "top" else to_y + box_height
+            path_d = (
+                f"M {format_svg_number(exit_x)} {format_svg_number(exit_y)} "
+                f"V {format_svg_number(lane_y)} "
+                f"H {format_svg_number(entry_x)} "
+                f"V {format_svg_number(entry_y)}"
+            )
+            label_x = (exit_x + entry_x) / 2
+            label_y = lane_y - small * 0.4
         label_width = text_advance(transition.trigger, small) + small
         body.extend(
             [
@@ -192,7 +305,7 @@ def _state_svg(lane: FirmwareLane) -> bytes:
     body.append("</g>")
     for state in states:
         identifier = slugify_identifier(state.node_id)
-        x, y, _ = positions[state.node_id]
+        x, y = positions[state.node_id]
         body.extend(
             [
                 f'<g id="fw-state-{identifier}" '
@@ -224,7 +337,7 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             ]
         )
         if state.initial:
-            marker_x = x - font_size * 1.1
+            marker_x = x - font_size * 1.8
             marker_y = y + box_height / 2
             body.append(
                 f'<g id="fw-state-initial-{identifier}">'
@@ -241,7 +354,7 @@ def _state_svg(lane: FirmwareLane) -> bytes:
                 + svg_text(
                     "initial",
                     x=marker_x,
-                    y=marker_y + small * 1.4,
+                    y=marker_y - font_size * 0.9,
                     font_size=small,
                     anchor="middle",
                     fill=COLOR_TEXT_MUTED,
@@ -258,7 +371,13 @@ def _state_svg(lane: FirmwareLane) -> bytes:
         text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
         text_advance(subtitle, font_size * SUBTITLE_FONT_SCALE) + margin * 2,
     )
-    height = origin_y + rows * row_pitch + font_size * 2 + footer_height(font_size)
+    height = (
+        row_tops[-1]
+        + box_height
+        + base_gap
+        + lane_pitch * len(below[-1])
+        + footer_height(font_size)
+    )
     return svg_document(
         width=width,
         height=height,
