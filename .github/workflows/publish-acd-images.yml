@@ -177,6 +177,10 @@ jobs:
             # GITHUB_TOKEN-driven push/pull_request events never start workflows, so CI
             # for the lock branch and for main after the merge is started explicitly.
             local ref="$1" base_sha="$2" started run_id=""
+            # Reset per-call so a previous dispatch's conclusion cannot leak
+            # into the summary when this run is not observed.
+            DISPATCH_CI_RUN_URL=""
+            DISPATCH_CI_CONCLUSION=""
             started=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$ref" -f "base_sha=$base_sha"
             for _ in $(seq 1 30); do
@@ -263,7 +267,7 @@ jobs:
           # concurrency) is recorded in the step summary and never fails this
           # publish run.
           dispatch_ci main "$base_sha" || true
-          main_conclusion="${DISPATCH_CI_CONCLUSION:-dispatch_failed}"
+          main_conclusion="${DISPATCH_CI_CONCLUSION:-not_observed}"
           main_run_url="${DISPATCH_CI_RUN_URL:-no run observed}"
           echo "post-merge main CI: ${main_conclusion} ${main_run_url}" >> "$GITHUB_STEP_SUMMARY"
           if [ "$main_conclusion" != "success" ]; then
