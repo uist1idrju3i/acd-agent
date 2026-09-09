@@ -87,15 +87,18 @@ def _write_set(
     projections: list[VisualProjectionRecord],
     *,
     source_revision: str = "r8",
+    materialize_sources: bool = True,
 ) -> Path:
     """Materialize the referenced SVG files and write the projection set JSON.
 
-    ``image_path`` values are resolved against ``out_root`` (the rasterizer's
-    base directory) while the set JSON itself lives under ``set_dir``.
+    ``image_path`` values are relative to the set's own directory — the
+    directory passed to the rasterizer as its base — while the set JSON
+    lives under ``set_dir`` too. ``out_root`` only anchors the overall
+    output tree.
     """
     for record in projections:
-        if record.media_type == "image/svg+xml":
-            svg_path = out_root / record.image_path
+        if record.media_type == "image/svg+xml" and materialize_sources:
+            svg_path = set_dir / record.image_path
             svg_path.parent.mkdir(parents=True, exist_ok=True)
             svg_path.write_bytes(_SVG)
     projection_set = VisualProjectionSet(
@@ -340,6 +343,72 @@ def test_record_observation_refuses_empty_response(tmp_path: Path) -> None:
             model="model-x",
             response="   \n",
         )
+
+
+def test_derive_resolves_image_paths_relative_to_the_set_directory(
+    tmp_path: Path,
+) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    _write_set(
+        out_root,
+        out_root / "dual-beacon-tag",
+        "visual-projections-electrical.json",
+        [_record("board-a", "visual/a.svg")],
+    )
+    _write_set(
+        out_root,
+        out_root / "dual-beacon-tag-enclosure",
+        "visual-projections-mechanical.json",
+        [_record("mech-a", "visual/m.svg")],
+    )
+
+    manifest = derive_visual_review(out_root, jobs=3)
+
+    assert _manifest_ids(out_root) == ["board-a-png", "mech-a-png"]
+    for item in manifest.required:
+        assert item.png_path.startswith(
+            ("dual-beacon-tag/visual/png/", "dual-beacon-tag-enclosure/visual/png/")
+        )
+        assert (out_root / item.png_path).is_file()
+    # Raster set JSONs are written next to their source sets.
+    assert (
+        out_root / "dual-beacon-tag" / "visual-projections-electrical-raster.json"
+    ).is_file()
+    assert (
+        out_root
+        / "dual-beacon-tag-enclosure"
+        / "visual-projections-mechanical-raster.json"
+    ).is_file()
+
+    _record_all(out_root)
+    verdict = verify_visual_review(out_root)
+    assert verdict.status == "complete"
+    assert verdict.observed == verdict.required == 2
+
+
+def test_derive_rejects_source_paths_escaping_the_set_directory(
+    tmp_path: Path,
+) -> None:
+    out_root = tmp_path / "out"
+    out_root.mkdir()
+    set_dir = out_root / "nested"
+    set_dir.mkdir(parents=True)
+    # Craft the record JSON by hand because ``..`` image paths are rejected
+    # by record validation before the rasterizer can see them.
+    payload = _record("board-a", "visual/board-a.svg").model_dump(mode="json")
+    payload["image_path"] = "../../../escape.svg"
+    doc = {
+        "artifact_kind": "visual_projection_set",
+        "source_revision": "r8",
+        "projections": [payload],
+    }
+    (set_dir / "visual-projections-electrical.json").write_text(
+        json.dumps(doc, indent=2) + "\n", encoding="utf-8"
+    )
+
+    with pytest.raises(VisualReviewError, match="visual projection set is invalid"):
+        derive_visual_review(out_root, jobs=1)
 
 
 def test_verify_complete_after_recording_all(tmp_path: Path) -> None:

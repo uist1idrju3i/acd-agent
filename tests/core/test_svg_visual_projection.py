@@ -9,11 +9,15 @@ import pytest
 
 from acd.core.process import sha256_bytes
 from acd.core.visual_projection import (
+    ACD_SVG_NORMALIZATION_RULE_ID,
+    CAD_SVG_NORMALIZATION_RULE_ID,
+    SVG_TITLE_NORMALIZATION_RULE_ID,
     SvgNormalizationError,
     SvgResolutionError,
     measure_svg_resolution,
     normalize_svg,
     normalized_svg_sha256,
+    svg_source_hash,
 )
 
 _REAL_KICAD_FIXTURE_DIR = (
@@ -107,3 +111,34 @@ def test_resolution_is_measured_from_svg_root() -> None:
 def test_resolution_rejects_unmeasurable_values(svg: bytes) -> None:
     with pytest.raises(SvgResolutionError):
         measure_svg_resolution(svg)
+
+
+def test_svg_source_hash_applies_the_kicad_title_rule() -> None:
+    first = _svg()
+    second = _svg("SVG Image created as second.svg date 2026-08-19T03:46:01 ")
+    assert svg_source_hash(first, SVG_TITLE_NORMALIZATION_RULE_ID) == svg_source_hash(
+        second, SVG_TITLE_NORMALIZATION_RULE_ID
+    )
+    assert svg_source_hash(first, SVG_TITLE_NORMALIZATION_RULE_ID) == (
+        normalized_svg_sha256(first)
+    )
+
+
+@pytest.mark.parametrize(
+    "rule_id",
+    [ACD_SVG_NORMALIZATION_RULE_ID, CAD_SVG_NORMALIZATION_RULE_ID],
+)
+def test_svg_source_hash_applies_byte_exact_rules(rule_id: str) -> None:
+    svg = b"<svg><rect/></svg>"
+    assert svg_source_hash(svg, rule_id) == sha256_bytes(svg)
+    assert svg_source_hash(svg, rule_id) != svg_source_hash(svg + b" ", rule_id)
+
+
+def test_svg_source_hash_rejects_non_kicad_svg_under_kicad_rule() -> None:
+    with pytest.raises(SvgNormalizationError):
+        svg_source_hash(b"<svg><rect/></svg>", SVG_TITLE_NORMALIZATION_RULE_ID)
+
+
+def test_svg_source_hash_rejects_unknown_rules() -> None:
+    with pytest.raises(SvgNormalizationError, match="unsupported"):
+        svg_source_hash(_svg(), "not-a-real-rule")

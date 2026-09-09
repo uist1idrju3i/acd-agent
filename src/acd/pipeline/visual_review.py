@@ -127,10 +127,13 @@ def derive_visual_review(
     def _derive(
         path: Path, projection_set: VisualProjectionSet
     ) -> tuple[Path, VisualProjectionSet]:
+        # image_path entries are relative to the set's own directory, so
+        # rasters land in <set_dir>/visual/png and the raster set JSON next
+        # to the source set.
         raster_set_path = path.with_name(f"{path.stem}-raster{path.suffix}")
         derived = derive_png_visual_projections(
             projection_set,
-            out_dir=out_root,
+            out_dir=path.parent,
             rasterizer=rasterizer,
             raster_set_path=raster_set_path,
         )
@@ -158,7 +161,8 @@ def derive_visual_review(
             derived_sets = [future.result() for future in futures]
 
     requirements: list[VisualReviewRequirement] = []
-    for source_set, (_same_path, derived_set) in zip(
+    resolved_root = out_root.resolve()
+    for source_set, (set_path, derived_set) in zip(
         projection_sets, derived_sets, strict=True
     ):
         png_records = {
@@ -176,13 +180,22 @@ def derive_visual_review(
                 raise VisualReviewError(
                     f"projection {record.projection_id} has no PNG derivation"
                 )
+            # The manifest stores png_path relative to out_root because
+            # record_observation and verify_visual_review resolve it there.
+            png_absolute = (set_path.parent / png_record.image_path).resolve()
+            try:
+                png_relative = png_absolute.relative_to(resolved_root)
+            except ValueError as exc:
+                raise VisualReviewError(
+                    f"derived PNG escaped the out root: {png_absolute}"
+                ) from exc
             requirements.append(
                 VisualReviewRequirement(
                     projection_id=png_record.projection_id,
                     source_projection_id=record.projection_id,
                     domain=record.domain,
                     projection_type=png_record.projection_type,
-                    png_path=png_record.image_path,
+                    png_path=png_relative.as_posix(),
                     image_hash=png_record.image_hash,
                 )
             )

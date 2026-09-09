@@ -8,6 +8,11 @@ import re
 from dataclasses import dataclass
 
 SVG_TITLE_NORMALIZATION_RULE_ID = "kicad-svg-title-v1"
+ACD_SVG_NORMALIZATION_RULE_ID = "acd-svg-v1"
+CAD_SVG_NORMALIZATION_RULE_ID = "build123d-svg-v1"
+BYTE_EXACT_SVG_NORMALIZATION_RULE_IDS = frozenset(
+    {ACD_SVG_NORMALIZATION_RULE_ID, CAD_SVG_NORMALIZATION_RULE_ID}
+)
 SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION = (
     "Replace the single KiCad SVG title containing output filename and "
     "second-resolution creation time with a fixed title."
@@ -62,6 +67,17 @@ def normalized_svg_sha256(svg: bytes) -> str:
     """Return the hash of an SVG after strict title normalization."""
     normalized = normalize_svg(svg)
     return f"sha256:{hashlib.sha256(normalized).hexdigest()}"
+
+
+def svg_source_hash(svg: bytes, normalization_rule_id: str) -> str:
+    """Hash SVG bytes under the normalization rule recorded for the projection."""
+    if normalization_rule_id == SVG_TITLE_NORMALIZATION_RULE_ID:
+        return normalized_svg_sha256(svg)
+    if normalization_rule_id in BYTE_EXACT_SVG_NORMALIZATION_RULE_IDS:
+        return f"sha256:{hashlib.sha256(svg).hexdigest()}"
+    raise SvgNormalizationError(
+        f"unsupported SVG normalization rule: {normalization_rule_id}"
+    )
 
 
 def measure_svg_resolution(svg: bytes) -> MeasuredSvgResolution:
