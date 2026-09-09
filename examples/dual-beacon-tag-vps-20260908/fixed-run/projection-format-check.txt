@@ -1,0 +1,73 @@
+OK	utf-8 text	README.md
+OK	utf-8 text	catalog-changes.diff
+OK	utf-8 text	check-projection-formats.py
+OK	utf-8 text	design-input-changes.diff
+OK	utf-8 text	docs/instruction-manual.fail-closed.log
+OK	utf-8 text	docs/product-readme.md
+OK	json	docs/product-readme.md.provenance.json
+OK	ISO-10303-21 entities=2714	enclosure/enclosure-assembly.step
+OK	ISO-10303-21 entities=518	enclosure/enclosure-lid.step
+OK	ISO-10303-21 entities=2216	enclosure/enclosure-shell.step
+OK	zipfile+ElementTree objects=4	enclosure/enclosure.3mf
+OK	json	evidence/C1.json
+OK	json	evidence/C2.json
+OK	json	evidence/C3.json
+OK	json	evidence/C4.json
+OK	json	evidence/D1.json
+OK	json	evidence/D2.json
+OK	json	evidence/J1.json
+OK	json	evidence/J2.json
+OK	json	evidence/R1.json
+OK	json	evidence/R2.json
+OK	json	evidence/R3.json
+OK	json	evidence/R4.json
+OK	json	evidence/R5.json
+OK	json	evidence/R6.json
+OK	json	evidence/SW1.json
+OK	json	evidence/U1.json
+OK	json	evidence/U2.json
+OK	csv rows=10	fab/dual-beacon-tag-bom-jlcpcb.csv
+OK	csv rows=16	fab/dual-beacon-tag-cpl-jlcpcb.csv
+OK	csv rows=17	fab/dual-beacon-tag.pos.csv
+OK	json	fixture/graph.json
+OK	json	fixture/rationale.json
+OK	json	fixture/spec.json
+OK	RS-274X ops=1223	gerbers/dual-beacon-tag-B_Cu.gbl
+OK	RS-274X ops=10	gerbers/dual-beacon-tag-B_Mask.gbs
+OK	RS-274X ops=157	gerbers/dual-beacon-tag-B_Silkscreen.gbo
+OK	RS-274X ops=4	gerbers/dual-beacon-tag-Edge_Cuts.gm1
+OK	RS-274X ops=4346	gerbers/dual-beacon-tag-F_Cu.gtl
+OK	RS-274X ops=443	gerbers/dual-beacon-tag-F_Mask.gts
+OK	RS-274X ops=433	gerbers/dual-beacon-tag-F_Paste.gtp
+OK	RS-274X ops=231	gerbers/dual-beacon-tag-F_Silkscreen.gto
+OK	json	gerbers/dual-beacon-tag-job.gbrjob
+OK	Excellon holes=87	gerbers/dual-beacon-tag.drl
+OK	json	loop/dfm-report.json
+OK	json	loop/evidence-electrical.json
+OK	json	loop/evidence-firmware.json
+OK	json	loop/evidence-mechanical.json
+OK	json	loop/fab-package.json
+OK	json	loop/hashes.json
+OK	json	loop/loop-summary.json
+OK	json	loop/order-readiness.json
+OK	json	loop/theme-song-projection.json
+OK	json	loop/timing-record.json
+OK	utf-8 text	loop/verify-authoritative-evidence.txt
+OK	json	loop/visual-projections-electrical.json
+OK	json	loop/visual-projections-firmware.json
+OK	json	loop/visual-projections-layout.json
+OK	json	loop/visual-projections-mechanical.json
+OK	json	loop/visual-projections-system.json
+OK	utf-8 text	manufacturing-submission.host-verdict-recheck.log
+OK	json	manufacturing-submission.json
+OK	mido+midicsv tracks=5 notes=344 length=40.4s	theme-song/theme-song.mid
+OK	ElementTree svg	visual/dual-beacon-tag-b-cu.svg
+OK	ElementTree svg	visual/dual-beacon-tag-f-cu.svg
+OK	ElementTree svg	visual/dual-beacon-tag-mechanical-interference.svg
+OK	ElementTree svg	visual/dual-beacon-tag-mechanical-section.svg
+OK	ElementTree svg	visual/dual-beacon-tag-placement.svg
+OK	ElementTree svg	visual/dual-beacon-tag-power-tree.svg
+OK	ElementTree svg	visual/dual-beacon-tag-schematic.svg
+OK	ElementTree svg	visual/dual-beacon-tag-stackup.svg
+OK	ElementTree svg	visual/dual-beacon-tag-system-block.svg
+# files=72 failed_or_unchecked=0

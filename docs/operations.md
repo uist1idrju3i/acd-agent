@@ -2031,10 +2031,13 @@ bundled経路はhostのgit checkoutを持たないためsource provenanceは常�
 `uv.lock`）を`git status --porcelain`で検査し、結果を`ACD_SOURCE_GIT_SHA`・
 `ACD_SOURCE_TREE_STATE`・`ACD_SOURCE_DIRTY_DIGEST`（dirty時のみ）としてcontainerへ
 forwardする。ToolEnvelopeは`source_revision`・`source_tree_state`・`source_dirty_digest`
-へ同じ値を記録する。dirtyまたは非git checkoutは`--allow-dirty`無しではcontainer起動前に
-拒否され、許容してもprovenanceは記録されるため、生成されたEvidenceは
-`verify_authoritative_evidence.py`が`source_tree_state`非clean、provenance欠落、または
-`unknown`としてfail-closedで拒否する。`--source-revision <sha>`を与えると全envelopeの
+へ同じ値を記録する。dirtyなsource treeは`--allow-dirty`を与えてもcontainer起動前に
+常に拒否する（AA-5）。sourceとcontractの変更はcommitしてpull requestとして提案する
+必要があり、設計入力path（`fixtures/`・`evidence/`・`out/`）はsource provenanceの対象外で
+遮断しない。`--allow-dirty`が許すのは非git checkout（`unknown`）とbootstrap recordの
+revisionからの逸脱の記録だけであり、許容してもprovenanceは記録されるため、生成された
+Evidenceは`verify_authoritative_evidence.py`が`source_tree_state`非clean、provenance欠落、
+または`unknown`としてfail-closedで拒否する。`--source-revision <sha>`を与えると全envelopeの
 `source_revision`一致も要求する。これにより検証checkout内の`src/`改変（dirty treeからの
 Evidence生成）は検証側で必ず検出できる。
 

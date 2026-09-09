@@ -4,7 +4,8 @@ The container runner records which git revision of the source tree produced a
 run and whether that tree was clean, so Evidence written inside the digest
 locked container cannot silently diverge from the recorded revision. Any git
 failure yields the ``unknown`` state instead of raising: callers decide whether
-to refuse (the runner does unless ``allow_dirty`` is given) or to record the
+to refuse (the runner refuses a dirty tree unconditionally; ``allow_dirty``
+only covers the unknown state) or to record the
 unknown state (the envelope marks it and the verifier rejects it).
 """
 

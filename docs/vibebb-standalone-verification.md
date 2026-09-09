@@ -1975,3 +1975,58 @@ roadmap 14.24の実装列へ加えた。
 （rationale coverage・functional block・pin role）に偏っており、次手の無い段（CPL basis・
 GND島・シルク）で停止した。AA-15〜AA-22はいずれも「停止文に有効な次手を添える」か
 「宣言経路をSkill手順として書く」ものであり、合格側権限を持たない。
+
+### 17.13 投影ファイルの形式検査（利用者報告への追跡）
+
+修正後run（17.11）の`theme-song.mid`について利用者から「ファイルが壊れている」との報告を受け、
+収録した全投影の形式を生成側writerとは独立したreaderで事後検査した
+（[`fixed-run/check-projection-formats.py`](../examples/dual-beacon-tag-vps-20260908/fixed-run/check-projection-formats.py)、
+結果は[`fixed-run/projection-format-check.txt`](../examples/dual-beacon-tag-vps-20260908/fixed-run/projection-format-check.txt)、
+host実行のL3観測）。
+
+| 対象 | 検査 | 結果 |
+|---|---|---|
+| `theme-song.mid` | 利用者受領版・PR収録版・container出力元（`projections-fix18/`）のsha256照合、`mido`（SMF parser）と`midicsv`でchunk長・track数・note_on／note_off対応・EOT位置、`timidity`でrender | 3者とも`4f0a7bcc…1972`（3317 byte）で一致。format 1・5 track・480 tpqn・344 note、全trackでEOTがchunk末尾と一致、約44秒のrender成功。**構造の破損は再現せず** |
+| STEP×3 | `ISO-10303-21;`〜`END-ISO-10303-21;`、`DATA;`／`ENDSEC;`、entity数 | OK（518〜2714 entity） |
+| 3MF | zip CRC（`testzip`）、`3D/*.model`のXML parse、`<object>`数 | OK（object 4） |
+| gerber 8層／drill | `%FSLA`／`%MO`指定と`M02*`終端、`M48`〜`M30`と穴数 | OK（87穴） |
+| CSV 3／SVG 9／JSON 34 | 行長一致／XML parse／JSON parse | OK |
+
+72件（検査script・log・追加投影を含む）すべて`OK`で、`FAIL`／`UNCHECKED`は0件だった。したがって報告された症状は、生成物側の
+破損ではなく再生環境側（`.mid`を開けるplayerの有無、添付経路での拡張子関連付け等）の
+可能性が残る。判別のため`timidity`でWAV→MP3へrenderした聴取用ファイルを報告へ添付した
+（pipeline生成物ではないため未収録）。
+
+一方で、pipeline自体は各投影を「writerが書けたこと」と`hashes.json`のsha256でしか記録せず、
+theme-songのみwriter内部の再読込（`render_checked_midi`）でnote対応を確認している。
+利用者が受領ファイルを開けないとき、生成不良か再生環境かを生成物側から判別する材料が無い。
+これをAA-23（投影段直後の独立reader形式検査と`hashes.json`への`format_check`記録、
+parse失敗はその投影をfail-closedで欠落扱い）として`vibebb-gap-analysis.md`と
+roadmap 14.24へ追加した。検査OKをEvidenceへ昇格せず、合格側権限は持たせない。
+
+### 17.14 acd-agentが持つ全投影の追加出力（利用者要望への追跡）
+
+利用者から「acd-agentの持つすべての投影出力を行ってほしい」（取扱説明書投影を含む）との要望を
+受け、repository内の投影生成器を棚卸しし、修正後run fix18の`--design-only` loopが生成しなかった
+ものを同じdigest固定container（server `sha256:fb236ff5…`、`run_in_workspace.py`）で追加実行した
+（[`fixed-run/README.md`](../examples/dual-beacon-tag-vps-20260908/fixed-run/README.md)の
+「追加投影」節）。
+
+| 投影 | 生成器 | loopからの呼出 | fix18 | 追加実行の結果 |
+|---|---|---|---|---|
+| 製品説明README（roadmap 9.1） | `acd-product-docs/scripts/generate_product_readme.py` | 無し | 未生成 | container内で2回実行しbyte一致（`docs/product-readme.md`、provenance付き） |
+| 取扱説明書（roadmap 9.2） | `acd-product-docs/scripts/generate_instruction_manual.py` | 無し | 未生成 | **fail-closed（exit 1）**: `acd_pins.h`にGD1固有の必須macro（`ACD_PIN_UART_*`・`ACD_PIN_USB_*`・`ACD_PIN_BOOT`・`ACD_SHT40_I2C_ADDRESS`・`ACD_LOG_PERIOD_MS`）が無い。回避せず記録 |
+| 製造提出verdict | `scripts/verify_manufacturing_submission.py --require-authoritative` | 無し（CI `container-gates`のみ） | 未生成 | container内で`status: pass`（8検査PASS）、host `--verdict`再検査exit 0 |
+| PNG raster | `derive_png_visual_projections`（`visual_projection.py`） | 無し（testのみ、CLI無し） | 未生成 | CLIが無いため未実行 |
+| order lane（quote・order-total・pre-order） | `fetch_quote.py`等 | `--design-only`では構造的に未実行 | 未生成 | 発注入力を作らない方針のため実行しない |
+| MML楽譜 | 無し（MIDIのみ） | — | — | 利用者要望として計画へ |
+
+fix18はloopが呼べる投影（gerber・drill・CPL/BOM・DFM・fab package・visual SVG・theme-song MIDI・
+筐体STEP/3MF/STL・FW build/QEMU log・3 lane Evidence）をすべて生成していた。一方でloopが呼ばない
+生成器が3種あり、うち取扱説明書はGD1以外の設計で生成できない。これらを
+AA-24（文書lane・製造提出verdict・PNG rasterのloop組み込み）、AA-25（取扱説明書のGD1固有macro
+依存の解消）、AA-26（theme-songのMML投影追加）として`vibebb-gap-analysis.md`とroadmap 14.24へ
+追加した。いずれもL3投影の追加であり、3 lane判定・Evidenceを変えない。
+
+利用者報告の`theme-song.mid`は、Devin環境での`timidity` renderに加え、利用者側でもブラウザ上の
+MIDI playerで再生できることが確認された（QuickTime Player X・SoundFont未設定のVLCでは再生不可）。
