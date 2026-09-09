@@ -148,7 +148,9 @@ def remediation_declarations(
     unknown_blocks = sorted(set(declared) - set(contracts))
     if unknown_blocks:
         raise FunctionalBlockContractError(
-            "functional blocks are not registered: " + ", ".join(unknown_blocks)
+            unknown_block_message(
+                "functional blocks are not registered", unknown_blocks, registry
+            )
         )
     source_blocks = tuple(
         block_id
@@ -169,6 +171,21 @@ def remediation_declarations(
     return dimensions, source_blocks
 
 
+def unknown_block_message(
+    prefix: str,
+    unknown: list[str],
+    registry: FunctionalBlockRegistry,
+) -> str:
+    """Render an unknown functional-block diagnostic with the registered ids."""
+    registered = sorted(contract.block_id for contract in registry.contracts)
+    return (
+        f"{prefix}: {', '.join(sorted(unknown))} "
+        f"(registered: {', '.join(registered)}); replace each with a "
+        "registered block_id, or add the block to the registry as a contract "
+        "change proposed in a pull request"
+    )
+
+
 __all__ = [
     "FunctionalBlockContractError",
     "FunctionalBlockRegistry",
@@ -176,5 +193,6 @@ __all__ = [
     "load_functional_block_registry",
     "remediation_declarations",
     "required_predicate_names",
+    "unknown_block_message",
     "validate_predicate_coverage",
 ]

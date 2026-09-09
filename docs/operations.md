@@ -634,6 +634,9 @@ file、source、source_ref、`sha256:<64 hex>`を必須で宣言する。CLIは�
 する。既存`part_number`または同じ選択key（`kind`＋`value`＋`package`）との衝突は、
 `select_part`の曖昧な結果を増やすため拒否する。既存entryのテキスト表現は保持し、
 新規entryだけを追記する。dry-runはcatalog hashの変更予定を報告するが書き込まない。
+一致部品が無い場合の`PartSelectionError`は要求内容（`kind`・`value`・`package`・
+指定時は`preferred_part_number`）と次手（`acd_register_parts_catalog_entry`で
+catalogへ追加しpull requestとして提案）を報告する（AA-4）。選択規則は緩めない。
 
 追加したCERN KiCad Librariesは、`libraries/cern-kicad-libs`のshallow
 submoduleをcommit固定して参照する。取得時は次を実行する。
@@ -699,9 +702,12 @@ CLIの既定値は`min(os.cpu_count() or 1, 3)`である。tool経路の`jobs`�
 
 要件入口整合検査は`requirements.json`を必須入力としてparseし、graph ID、revision、
 constrains node、node kind、graph-anchored requirement nodeのtext、functional block
-registryを既存validatorで検査する。missing、parse失敗、不一致、unknownや未回答の
-要件は推測せずfail-closedとし、silkscreen以降を実行しない。この常時stageはL1ゲートや
-authoritative Evidenceの代替ではなく、合否を変更しないL3観測として分類しない。
+registryを既存validatorで検査する。registry未登録のblockは登録id一覧付きで拒否し、
+登録済みでもgraphに対応する`design.functional_block` node（`block_id`一致）が無い
+要件は`requirement.block_missing`としてfail-closedにする（AA-6）。missing、parse失敗、
+不一致、unknownや未回答の要件は推測せずfail-closedとし、silkscreen以降を実行しない。
+この常時stageはL1ゲートやauthoritative Evidenceの代替ではなく、合否を変更しない
+L3観測として分類しない。
 
 board-pipelineのfail-closed却下後に候補探索をloopへ自動連結する場合は、探索を明示的に
 有効化し、候補予算とround上限を正整数で指定する。

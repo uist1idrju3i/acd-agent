@@ -9,6 +9,7 @@ from pathlib import Path
 from acd.core.functional_blocks import (
     FunctionalBlockRegistry,
     load_functional_block_registry,
+    unknown_block_message,
 )
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
@@ -59,8 +60,11 @@ def validate_requirements(
     )
     if unknown_blocks:
         raise RequirementError(
-            "requirements reference unknown functional blocks: "
-            + ", ".join(unknown_blocks)
+            unknown_block_message(
+                "requirements reference unknown functional blocks",
+                unknown_blocks,
+                loaded_registry,
+            )
         )
     if graph is None:
         return
@@ -80,6 +84,40 @@ def validate_requirements(
             raise RequirementError(
                 f"requirement {record.requirement_id!r} constrains nodes outside declared kinds"
             )
+    declared_blocks: set[str] = set()
+    for node in graph.nodes:
+        if node.kind == "design.functional_block":
+            block_id = node.attrs.get("block_id")
+            if isinstance(block_id, str):
+                declared_blocks.add(block_id)
+    missing_by_requirement = {
+        record.requirement_id: sorted(
+            block_id
+            for block_id in record.drives_functional_blocks
+            if block_id not in declared_blocks
+        )
+        for record in document.records
+    }
+    missing_by_requirement = {
+        requirement_id: blocks
+        for requirement_id, blocks in missing_by_requirement.items()
+        if blocks
+    }
+    if missing_by_requirement:
+        detail = "; ".join(
+            f"requirement {requirement_id!r} drives functional block "
+            f"{', '.join(repr(block) for block in blocks)} but the graph "
+            "declares no design.functional_block for it"
+            for requirement_id, blocks in sorted(missing_by_requirement.items())
+        )
+        registered = ", ".join(sorted(known_blocks))
+        raise RequirementError(
+            "requirement.block_missing: "
+            + detail
+            + "; declare the block in DesignFixtureSpec.functional_blocks "
+            f"(registered: {registered}) instead of removing the requirement "
+            "link"
+        )
     validate_requirement_graph_consistency(document, graph)
 
 
