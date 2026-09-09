@@ -7,6 +7,13 @@ case grants pass authority: a permitted stop keeps the design in its failed or
 unknown state. Repeated identical denials escalate to a human handoff so the
 agent cannot loop on the same denial, and the escalated stop still reports the
 failure state.
+
+Stopping also requires the bootstrap record written by /acd:init
+(``acd_bootstrap_workspace``): without ``.openhands/bootstrap-record.json`` the
+source revision drift check cannot run, so the stop is denied unless the stop
+report declares ``bootstrap_record_missing: true``. The declaration permits the
+stop but grants no pass authority; the missing record keeps every produced
+artifact provisional.
 """
 
 from __future__ import annotations
@@ -31,7 +38,26 @@ _DRIFT_COMMIT_LINE = re.compile(r"^([0-9a-f]{40}) ", re.MULTILINE)
 
 def main() -> int:
     root = project_dir(event())
-    drift = _source_drift(root)
+    revision = _bootstrap_revision(root)
+    bootstrap_missing_declared = False
+    if revision is None:
+        report = _load_stop_report(root)
+        if report is not None and report.get("bootstrap_record_missing") is True:
+            bootstrap_missing_declared = True
+        else:
+            return _deny(
+                root,
+                (
+                    "No bootstrap record at .openhands/bootstrap-record.json: "
+                    "this project dir was not prepared by /acd:init "
+                    "(acd_bootstrap_workspace), so source revision drift "
+                    "cannot be checked. Move to the bootstrapped workspace, or "
+                    "declare bootstrap_record_missing: true in "
+                    f"{STOP_REPORT_PATH} before stopping; the missing record "
+                    "grants no pass authority."
+                ),
+            )
+    drift = _source_drift(root, revision) if revision is not None else None
     drift_allowed: tuple[str, str, list[str]] | None = None
     if drift is not None:
         record_sha, detail, commit_shas = drift
@@ -79,12 +105,23 @@ def main() -> int:
         _clear_denials(root)
         if drift_allowed is not None:
             record_sha, _detail, commit_shas = drift_allowed
+            reason = (
+                "Stopping with recorded source revision drift from "
+                f"bootstrap {record_sha}: {len(commit_shas)} commit(s) "
+                "under source paths. No pass authority is granted."
+            )
+            if bootstrap_missing_declared:
+                reason += (
+                    " Additionally, bootstrap record missing was declared; "
+                    "no pass authority is granted."
+                )
+            result(decision="allow", reason=reason)
+        elif bootstrap_missing_declared:
             result(
                 decision="allow",
                 reason=(
-                    "Stopping with recorded source revision drift from "
-                    f"bootstrap {record_sha}: {len(commit_shas)} commit(s) "
-                    "under source paths. No pass authority is granted."
+                    "Stopping is permitted: bootstrap record missing was "
+                    "declared; no pass authority is granted."
                 ),
             )
         return 0
@@ -135,12 +172,12 @@ def _load_stop_report(root: Path) -> dict[str, Any] | None:
     return cast(dict[str, Any], payload)
 
 
-def _source_drift(root: Path) -> tuple[str, str, list[str]] | None:
-    """Return (bootstrap sha, git log output, commit shas) when commits under
-    the source paths exist past the bootstrapped revision, else ``None``.
+def _bootstrap_revision(root: Path) -> str | None:
+    """Return the revision recorded by the bootstrap record, else ``None``.
 
-    A missing or unparseable record returns ``None`` (no drift check possible):
-    the run itself is verifier-gated, so the hook does not deny on its own.
+    ``None`` means the record is missing, unreadable, or has no
+    ``resolved_revision``: the drift check cannot run and the caller decides
+    whether the stop may proceed.
     """
     record_path = root / BOOTSTRAP_RECORD_PATH
     try:
@@ -151,6 +188,15 @@ def _source_drift(root: Path) -> tuple[str, str, list[str]] | None:
     revision = record.get("resolved_revision")
     if not isinstance(revision, str) or not revision:
         return None
+    return revision
+
+
+def _source_drift(
+    root: Path, revision: str
+) -> tuple[str, str, list[str]] | None:
+    """Return (bootstrap sha, git log output, commit shas) when commits under
+    the source paths exist past the bootstrapped revision, else ``None``.
+    """
     try:
         log = subprocess.run(
             [

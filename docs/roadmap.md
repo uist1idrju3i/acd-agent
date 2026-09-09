@@ -474,7 +474,7 @@ Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、router�
 | negative・fail-closed | `src/`・`contracts/`がdirtyなcheckout、契約hash不一致のgraph、bootstrap record不在、未実測evidence宣言、要件を落とした宣言はいずれもfail-closedのままである。診断・警告・照合はL2／L3であり合格側権限を持たない。投影の形式検査はchunk長や終端を故意に壊した投影を欠落として止め、検査OKをEvidenceへ昇格しない。文書lane・製造提出verdict・PNG rasterの組み込みはL3投影の追加であり、その失敗はloop-summaryへ欠落として記録するがEvidenceや3 laneの判定を変えず、成功を合格側へ作用させない |
 | 再現性 | 対照run（pristine main・同digest）をagent最終specからの再生成（`--fixture-spec --fixture-overwrite`）で再実行し、到達段・失敗理由がGUI経路と一致することを記録する |
 
-実装状況: AA-5は実装済み（dirtyなsource treeは`--allow-dirty`でも拒否）、AA-8は実装済み（graphの`parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+実装状況: AA-3は実装済み（bootstrap record不在の停止を`bootstrap_record_missing`宣言までdeny）、AA-5は実装済み（dirtyなsource treeは`--allow-dirty`でも拒否）、AA-8は実装済み（graphの`parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
 
 ## マイルストーン15: 運用と文書の整備
 

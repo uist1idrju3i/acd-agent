@@ -12,11 +12,57 @@ import pytest
 SCRIPT = Path.cwd() / "plugins/acd/hooks/scripts/stop_policy.py"
 
 
-def _repository(tmp_path: Path) -> Path:
+def _commit_all(root: Path, message: str) -> str:
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            message,
+        ],
+        cwd=root,
+        check=True,
+    )
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip()
+
+
+def _bootstrap_record(root: Path, revision: str) -> None:
+    record = root / ".openhands" / "bootstrap-record.json"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text(
+        json.dumps({"resolved_revision": revision}) + "\n", encoding="utf-8"
+    )
+
+
+def _committed_root(tmp_path: Path, *, bootstrap: bool = True) -> Path:
     root = tmp_path / "repo"
     (root / "fixtures/demo").mkdir(parents=True)
     subprocess.run(["git", "init", "--quiet"], cwd=root, check=True)
     (root / "fixtures/demo/graph.json").write_text("{}\n", encoding="utf-8")
+    revision = _commit_all(root, "baseline")
+    if bootstrap:
+        _bootstrap_record(root, revision)
+    return root
+
+
+def _repository(tmp_path: Path, *, bootstrap: bool = True) -> Path:
+    root = _committed_root(tmp_path, bootstrap=bootstrap)
+    # A changed design input remains uncommitted so the hook sees it.
+    (root / "fixtures/demo/graph.json").write_text(
+        '{"nodes": []}\n', encoding="utf-8"
+    )
     return root
 
 
@@ -98,22 +144,8 @@ def test_repeated_identical_denial_escalates_to_a_human_handoff(tmp_path: Path) 
     assert "remains failed" in payload["reason"]
 
 
-def _commit_all(root: Path, message: str) -> str:
-    subprocess.run(["git", "add", "."], cwd=root, check=True)
-    subprocess.run(
-        [
-            "git",
-            "-c",
-            "user.email=test@example.invalid",
-            "-c",
-            "user.name=test",
-            "commit",
-            "-qm",
-            message,
-        ],
-        cwd=root,
-        check=True,
-    )
+def _committed_repository(tmp_path: Path) -> tuple[Path, str]:
+    root = _committed_root(tmp_path, bootstrap=False)
     completed = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=root,
@@ -121,28 +153,31 @@ def _commit_all(root: Path, message: str) -> str:
         capture_output=True,
         text=True,
     )
-    return completed.stdout.strip()
+    return root, completed.stdout.strip()
 
 
-def _bootstrap_record(root: Path, revision: str) -> None:
-    record = root / ".openhands" / "bootstrap-record.json"
-    record.parent.mkdir(parents=True, exist_ok=True)
-    record.write_text(
-        json.dumps({"resolved_revision": revision}) + "\n", encoding="utf-8"
+def test_no_bootstrap_record_is_denied_until_declared(tmp_path: Path) -> None:
+    root = _committed_root(tmp_path, bootstrap=False)
+    code, payload = _run(root)
+    assert code == 2
+    assert payload["decision"] == "deny"
+    assert "bootstrap_record_missing" in payload["reason"]
+    assert "/acd:init" in payload["reason"]
+
+
+def test_declared_bootstrap_record_missing_is_allowed(tmp_path: Path) -> None:
+    root = _committed_root(tmp_path, bootstrap=False)
+    report = root / "out/stop-report.json"
+    report.parent.mkdir(parents=True)
+    report.write_text(
+        json.dumps({"bootstrap_record_missing": True}),
+        encoding="utf-8",
     )
-
-
-def _committed_repository(tmp_path: Path) -> tuple[Path, str]:
-    root = _repository(tmp_path)
-    revision = _commit_all(root, "baseline")
-    return root, revision
-
-
-def test_no_bootstrap_record_keeps_existing_behavior(tmp_path: Path) -> None:
-    root, _ = _committed_repository(tmp_path)
     code, payload = _run(root)
     assert code == 0
-    assert payload == {}
+    assert payload["decision"] == "allow"
+    assert "bootstrap record missing was declared" in payload["reason"]
+    assert "no pass authority" in payload["reason"]
 
 
 def test_source_revision_drift_is_denied(tmp_path: Path) -> None:
