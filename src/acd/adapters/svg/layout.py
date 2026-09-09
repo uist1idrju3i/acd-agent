@@ -20,6 +20,8 @@ from acd.adapters.svg.common import (
     COLOR_FRONT,
     COLOR_TEXT_MUTED,
     SMALL_FONT_SCALE,
+    SUBTITLE_FONT_SCALE,
+    TITLE_FONT_SCALE,
     SvgVisualProjectionError,
     diagram_font_size,
     escape_xml,
@@ -320,18 +322,24 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
     body += inner
     body.append("</g>")
     body.append("</g>")
-    width = margin * 2 + board_right * scale
+    title = f"Component placement — {board_view.node_id}"
+    subtitle = (
+        f"{format_svg_number(board.width_mm)} mm × "
+        f"{format_svg_number(board.height_mm)} mm, "
+        f"{len(board.placements)} components "
+        f"(front {front_count} / back {back_count})"
+    )
+    width = max(
+        margin * 2 + board_right * scale,
+        text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
+        text_advance(subtitle, font_size * SUBTITLE_FONT_SCALE) + margin * 2,
+    )
     height = board_y + board_bottom * scale + footer_height(font_size)
     return svg_document(
         width=width,
         height=height,
-        title=f"Component placement — {board_view.node_id}",
-        subtitle=(
-            f"{format_svg_number(board.width_mm)} mm × "
-            f"{format_svg_number(board.height_mm)} mm, "
-            f"{len(board.placements)} components "
-            f"(front {front_count} / back {back_count})"
-        ),
+        title=title,
+        subtitle=subtitle,
         body=body,
         font_size=font_size,
     )
@@ -491,18 +499,19 @@ def _stackup_svg(board: BoardView) -> bytes:
         ]
     )
     body.append("</g>")
-    width = dim_x + font_size + text_advance(total_label, small) + margin
+    title = f"Layer stackup — {board.layers} layers, {format_svg_number(thickness_mm)} mm"
+    subtitle = f"copper thickness source: {board.copper_thickness_source}"
+    width = max(
+        dim_x + font_size + text_advance(total_label, small) + margin,
+        text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
+        text_advance(subtitle, font_size * SUBTITLE_FONT_SCALE) + margin * 2,
+    )
     height = current_y + font_size * 2 + footer_height(font_size)
     return svg_document(
         width=width,
         height=height,
-        title=(
-            f"Layer stackup — {board.layers} layers, "
-            f"{format_svg_number(thickness_mm)} mm"
-        ),
-        subtitle=(
-            f"copper thickness source: {board.copper_thickness_source}"
-        ),
+        title=title,
+        subtitle=subtitle,
         body=body,
         font_size=font_size,
     )

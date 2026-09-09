@@ -16,6 +16,8 @@ from acd.adapters.svg.common import (
     KIND_FILL,
     KIND_STROKE,
     SMALL_FONT_SCALE,
+    SUBTITLE_FONT_SCALE,
+    TITLE_FONT_SCALE,
     SvgVisualProjectionError,
     arrow_marker_defs,
     diagram_font_size,
@@ -93,9 +95,13 @@ def _state_svg(lane: FirmwareLane) -> bytes:
     gap_y = font_size * 4
     row_pitch = box_height + gap_y
     # Vertical channels above each row keep transition runs out of the boxes.
-    channels_per_gap = max(1, int((gap_y - font_size * 1.2) // (font_size * 0.9)))
-    origin_x = margin + font_size * 2
-    origin_y = header_height(font_size) + font_size * 7.5
+    channel_pitch = font_size * 1.3
+    channels_per_gap = max(
+        1, int((gap_y - font_size * 1.2) // channel_pitch)
+    )
+    # Room at the left for the initial marker and its caption.
+    origin_x = margin + font_size * 3.5
+    origin_y = header_height(font_size) + font_size * 8.5
     positions: dict[str, tuple[float, float, int]] = {}
     for index, state in enumerate(states):
         column = index % columns
@@ -132,7 +138,7 @@ def _state_svg(lane: FirmwareLane) -> bytes:
         to_cx = to_x + box_width / 2
         slot = channel_slot[transition.node_id] % channels_per_gap
         if transition.from_state == transition.to_state:
-            loop_height = font_size * (2.0 + slot * 0.9)
+            loop_height = font_size * 2.0 + slot * channel_pitch
             top_y = from_y - loop_height
             path_d = (
                 f"M {format_svg_number(from_cx)} {format_svg_number(from_y)} "
@@ -143,7 +149,7 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             label_x = (from_cx + from_x + box_width * 0.9) / 2
             label_y = top_y - small * 0.4
         else:
-            channel_y = from_y - font_size * (1.2 + slot * 0.9)
+            channel_y = from_y - font_size * 1.2 - slot * channel_pitch
             end_y = to_y if channel_y <= to_y else to_y + box_height
             path_d = (
                 f"M {format_svg_number(from_cx)} {format_svg_number(from_y)} "
@@ -151,7 +157,10 @@ def _state_svg(lane: FirmwareLane) -> bytes:
                 f"H {format_svg_number(to_cx)} "
                 f"V {format_svg_number(end_y)}"
             )
-            label_x = (from_cx + to_cx) / 2
+            # Alternate the label position along the run so that triggers on
+            # adjacent channels do not stack at the same x.
+            bias = 0.3 if slot % 2 == 0 else 0.7
+            label_x = from_cx + (to_cx - from_cx) * bias
             label_y = channel_y - small * 0.4
         label_width = text_advance(transition.trigger, small) + small
         body.extend(
@@ -241,19 +250,20 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             )
         body.append("</g>")
     body.append("</g>")
+    title = f"Firmware state machine — {lane.module.module_name}"
+    subtitle = f"module {lane.module.node_id} - entry state {lane.module.entry_state}"
     width = max(
         _DIAGRAM_VIEW_BOX_WIDTH,
         origin_x + columns * box_width + (columns - 1) * gap_x + margin + font_size * 4,
+        text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
+        text_advance(subtitle, font_size * SUBTITLE_FONT_SCALE) + margin * 2,
     )
     height = origin_y + rows * row_pitch + font_size * 2 + footer_height(font_size)
     return svg_document(
         width=width,
         height=height,
-        title=f"Firmware state machine — {lane.module.module_name}",
-        subtitle=(
-            f"module {lane.module.node_id} - entry state "
-            f"{lane.module.entry_state}"
-        ),
+        title=title,
+        subtitle=subtitle,
         body=body,
         font_size=font_size,
     )
@@ -425,19 +435,23 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
             ]
         )
     body.append("</g>")
+    title = f"Firmware sequence — {lane.module.module_name}"
+    subtitle = (
+        f"module {lane.module.node_id} - {len(steps)} steps, "
+        f"{len(lifeline_ids)} lifelines"
+    )
     width = max(
         _DIAGRAM_VIEW_BOX_WIDTH,
         origin_x + len(lifeline_ids) * column_width + margin,
+        text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
+        text_advance(subtitle, font_size * SUBTITLE_FONT_SCALE) + margin * 2,
     )
     height = lifeline_bottom + font_size * 2 + footer_height(font_size)
     return svg_document(
         width=width,
         height=height,
-        title=f"Firmware sequence — {lane.module.module_name}",
-        subtitle=(
-            f"module {lane.module.node_id} - {len(steps)} steps, "
-            f"{len(lifeline_ids)} lifelines"
-        ),
+        title=title,
+        subtitle=subtitle,
         body=body,
         font_size=font_size,
     )
