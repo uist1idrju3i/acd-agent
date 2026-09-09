@@ -20,6 +20,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final, cast
 
+from acd.core.cern_catalog import (
+    CERN_CATALOG_ID,
+    CernCatalogError,
+    cern_catalog_hash,
+)
 from acd.core.declaration_vocabulary import (
     NET_WIDTH_BASIS,
     SAFETY_BOUNDARY_HAZARD_KEYS,
@@ -31,7 +36,9 @@ from acd.core.evidence_declarations import collect_evidence_declaration_findings
 from acd.core.firmware_capability import load_firmware_capability_registry
 from acd.core.firmware_coverage import check_firmware_coverage
 from acd.core.mechanical_preflight import collect_mechanical_findings
-from acd.schema.design_graph import DesignGraph
+from acd.core.part_selection import PartSelectionError, load_parts_catalog
+from acd.pipeline.repository import repository_root
+from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.lane_preflight import (
     LanePreflightLaneReport,
     LanePreflightMissingAttr,
@@ -447,6 +454,7 @@ def _lane_report(
         _apply_mechanical_findings(graph, missing_nodes, missing_attrs, unsupported_values)
     if lane == "board-pipeline":
         _apply_evidence_declaration_findings(graph, unsupported_values, root)
+        _apply_contract_hash_findings(graph, unsupported_values, root)
     status = (
         "declarations_complete"
         if not missing_nodes and not missing_attrs and not unsupported_values
@@ -540,6 +548,79 @@ def _apply_evidence_declaration_findings(
                 kind=finding.kind or finding.code,
                 attr=finding.attr or finding.code,
                 reason=finding.detail,
+            )
+        )
+
+
+def _apply_contract_hash_findings(
+    graph: DesignGraph,
+    unsupported_values: list[LanePreflightUnsupportedValue],
+    root: Path | None,
+) -> None:
+    """Fold contract hash mismatches of the graph provenance into the report.
+
+    Components built from a parts catalog record the catalog id and hash in
+    ``parts_catalog_id``/``parts_catalog_sha256``. A hash that deviates from
+    the contract on this checkout means the graph was produced from an
+    uncommitted catalog edit, so the run stops as ``contract.hash_mismatch``
+    instead of proceeding on provenance the verifier cannot reproduce. One
+    finding is emitted per (catalog id, hash) group so a fixture built from
+    one catalog surfaces once.
+    """
+    resolved_root = root if root is not None else repository_root()
+    groups: dict[tuple[str, str], list[GraphNode]] = {}
+    for node in sorted(graph.nodes, key=lambda item: item.id):
+        if node.kind != "electrical.component":
+            continue
+        catalog_id = node.attrs.get("parts_catalog_id")
+        catalog_sha = node.attrs.get("parts_catalog_sha256")
+        if not isinstance(catalog_id, str) or not isinstance(catalog_sha, str):
+            continue
+        groups.setdefault((catalog_id, catalog_sha), []).append(node)
+    for (catalog_id, catalog_sha), nodes in groups.items():
+        reason: str | None = None
+        actual: str | None = None
+        if catalog_id == CERN_CATALOG_ID:
+            try:
+                actual = cern_catalog_hash(resolved_root)
+            except CernCatalogError as exc:
+                reason = f"CERN catalog could not be hashed: {exc}"
+        else:
+            try:
+                document, actual = load_parts_catalog(
+                    resolved_root / "contracts" / "parts-catalog.json"
+                )
+            except PartSelectionError as exc:
+                reason = f"parts catalog could not be loaded: {exc}"
+            else:
+                if document.catalog_id != catalog_id:
+                    reason = (
+                        f"graph references parts catalog {catalog_id!r} but "
+                        f"the checkout declares {document.catalog_id!r}"
+                    )
+        if reason is None:
+            if actual == catalog_sha:
+                continue
+            refdes_list = [
+                str(node.attrs.get("refdes") or node.id) for node in nodes
+            ]
+            reason = (
+                f"{len(nodes)} component(s) ({', '.join(refdes_list)}) were "
+                f"built from parts catalog {catalog_id!r} with hash "
+                f"{catalog_sha}, but the checkout's "
+                "contracts/parts-catalog.json hashes to "
+                f"{actual}; regenerate the fixture from its "
+                "DesignFixtureSpec on this checkout (--fixture-spec "
+                "--fixture-overwrite), or commit the catalog change and "
+                "propose it as a pull request"
+            )
+        unsupported_values.append(
+            LanePreflightUnsupportedValue(
+                code="contract.hash_mismatch",
+                node_id=nodes[0].id,
+                kind=nodes[0].kind,
+                attr="parts_catalog_sha256",
+                reason=reason,
             )
         )
 

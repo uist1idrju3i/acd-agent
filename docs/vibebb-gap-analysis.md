@@ -784,8 +784,9 @@ roadmap 14.23（Z-1〜Z-13）をmergeした`main`（`5bf2c90`）と更新済みi
 | AA-25 | `generate_instruction_manual.py`はGD1固有のmacro集合（`ACD_PIN_UART_TX/RX`・`ACD_PIN_USB_DP/DN`・`ACD_PIN_BOOT`・`ACD_SHT40_I2C_ADDRESS`・`ACD_LOG_PERIOD_MS`）を必須とし、GD1以外の設計では取扱説明書を生成できない | fix18の`acd_pins.h`（`LED`・`LED2`・`BUTTON`・`I2C_SDA`・`I2C_SCL`・`LED_BLINK_PERIOD_MS`）に対し`missing macros: ACD_LOG_PERIOD_MS, ACD_PIN_BOOT, ACD_PIN_UART_RX, ACD_PIN_UART_TX, ACD_PIN_USB_DN, ACD_PIN_USB_DP, ACD_SHT40_I2C_ADDRESS`でfail-closed（exit 1、`fixed-run/docs/instruction-manual.fail-closed.log`） | 中 | — | 必須macro集合を固定せず、graphのfirmware capability（`led_blink`・`led2_blink`・`button_input`・`i2c_*`・`uart_log`等）とpin role宣言から文書の節（接続手順・LED表示の意味・ボタン操作・書き込み手順）を導出し、対応するmacroが`acd_pins.h`に無ければその節をfail-closedにする。宣言に無い機能の節は書かず省略理由を文書末へ記す。推定値は書かない。GD1と新規設計の両方で再現生成（byte一致）をnegative testとともに固定する |
 | AA-26 | theme-song投影はSMF（`.mid`）のみで、テキストで読める楽譜形式が無い。利用者の再生環境（QuickTime Player X・SoundFont未設定のVLC等）では`.mid`を開けず、内容を確認・編集する手段が生成物側に無い | 利用者報告: 収録`theme-song.mid`をQuickTime／VLCで再生できず、ブラウザ上のMIDI playerで再生できた（ファイルはbyte一致・構造正常、AA-23）。利用者からMML形式の投影出力の要望 | 中 | — | `theme_song.py`へ`render_mml(score)`を追加し、`render_midi`と同じ`Score`から`theme-song.mml`を決定論的に生成して`.mid`と並べて`hashes.json`・provenance（同一proposal hash・script sha256）へ登録する。MML方言（track別channel、`t`・`o`・`l`・音名/休符/タイ、drum track表記）を1つ固定して`docs/`へ記す。MML→note列の独立parserで再読込し、MIDIのnote数・総tick・pitch列と一致しない場合はMML投影をfail-closedで欠落にする。MIDI側の合否・3 lane判定・Evidence・fab packageへ作用させない |
 
-実装状況: AA-5（`--allow-dirty`のdirty拒否）は本変更で実装した。他は未着手。
-解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
+実装状況: AA-5（`--allow-dirty`のdirty拒否）とAA-8（graphの
+`parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）は
+実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目

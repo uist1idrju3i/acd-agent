@@ -16,10 +16,12 @@ from acd.core.lane_preflight import (
     missing_declarations,
     run_lane_preflight,
 )
-from acd.schema.design_graph import DesignGraph
+from acd.core.part_selection import load_parts_catalog
+from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.lane_preflight import (
     LanePreflightLaneReport,
     LanePreflightReport,
+    LanePreflightUnsupportedValue,
 )
 
 FIXTURE = Path("fixtures/golden-design-1/graph.json")
@@ -443,3 +445,75 @@ def test_board_lane_reports_unverified_confirmed_cpl(tmp_path: Path) -> None:
 def test_board_lane_stays_complete_with_repo_records() -> None:
     report = run_lane_preflight(_graph(), ("board-pipeline",))
     assert _board_lane(report).status == "declarations_complete"
+
+
+def _with_parts_catalog(
+    graph: DesignGraph,
+    catalog_id: str,
+    catalog_sha: str,
+    count: int = 1,
+) -> DesignGraph:
+    applied = 0
+    nodes: list[GraphNode] = []
+    for node in graph.nodes:
+        if node.kind == "electrical.component" and applied < count:
+            nodes.append(
+                node.model_copy(
+                    update={
+                        "attrs": {
+                            **node.attrs,
+                            "parts_catalog_id": catalog_id,
+                            "parts_catalog_sha256": catalog_sha,
+                        }
+                    }
+                )
+            )
+            applied += 1
+        else:
+            nodes.append(node)
+    return graph.model_copy(update={"nodes": nodes})
+
+
+def _contract_hash_mismatches(
+    lane: LanePreflightLaneReport,
+) -> list[LanePreflightUnsupportedValue]:
+    return [
+        item for item in lane.unsupported_values if item.code == "contract.hash_mismatch"
+    ]
+
+
+def test_board_lane_accepts_matching_parts_catalog_hash() -> None:
+    document, catalog_hash = load_parts_catalog()
+    graph = _with_parts_catalog(_graph(), document.catalog_id, catalog_hash)
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    lane = _board_lane(report)
+    assert _contract_hash_mismatches(lane) == []
+    assert lane.status == "declarations_complete"
+
+
+def test_board_lane_reports_parts_catalog_hash_mismatch() -> None:
+    document, _ = load_parts_catalog()
+    graph = _with_parts_catalog(
+        _graph(), document.catalog_id, "sha256:" + "0" * 64, count=2
+    )
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    lane = _board_lane(report)
+    assert lane.status == "declarations_incomplete"
+    findings = _contract_hash_mismatches(lane)
+    assert len(findings) == 1
+    finding = findings[0]
+    assert finding.attr == "parts_catalog_sha256"
+    assert "regenerate the fixture" in finding.reason
+    # Both components sharing the stale hash collapse into one finding.
+    assert "J1" in finding.reason
+    assert "U1" in finding.reason
+
+
+def test_board_lane_reports_parts_catalog_id_mismatch() -> None:
+    document, catalog_hash = load_parts_catalog()
+    graph = _with_parts_catalog(_graph(), "other-catalog", catalog_hash)
+    report = run_lane_preflight(graph, ("board-pipeline",))
+    findings = _contract_hash_mismatches(_board_lane(report))
+    assert len(findings) == 1
+    assert "other-catalog" in findings[0].reason
+    assert document.catalog_id in findings[0].reason
