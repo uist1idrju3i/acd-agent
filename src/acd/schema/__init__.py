@@ -226,6 +226,8 @@ from acd.schema.visual_projection import (
     VisualRegenerationStatus,
     VisualRendererProvenance,
     VisualResolution,
+    VisualReviewManifest,
+    VisualReviewRequirement,
     VisualVisionObservation,
 )
 
@@ -407,6 +409,8 @@ __all__ = [
     "VisualRendererProvenance",
     "VisualResolution",
     "VisualReviewChecklistItem",
+    "VisualReviewManifest",
+    "VisualReviewRequirement",
     "VisualReviewObservationReference",
     "VisualVisionObservation",
     "canonical_json_sha256",

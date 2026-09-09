@@ -159,6 +159,21 @@ EVIDENCE_UNVERIFIED_LINE = (
 )
 
 
+def _visual_review_line(out_dir: Path) -> str:
+    """Digest the visual review verdict; a missing manifest stays neutral."""
+    if not (out_dir / "visual-review-manifest.json").is_file():
+        return "visual review: 0/0 observed, status=no-manifest"
+    # Lazy import: acd.pipeline depends on acd.core, so a module-level import
+    # would create a cycle. The digest stays L3 regardless of the verdict.
+    from acd.pipeline.visual_review import verify_visual_review
+
+    verdict = verify_visual_review(out_dir)
+    return (
+        f"visual review: {verdict.observed}/{verdict.required} observed, "
+        f"status={verdict.status}"
+    )
+
+
 def collect_progress_digest(out_dir: Path) -> ProgressDigestReport:
     """Collect the timing and exploration records written under ``out_dir``."""
     if not out_dir.is_dir():
@@ -185,6 +200,7 @@ def collect_progress_digest(out_dir: Path) -> ProgressDigestReport:
         reason=(
             f"{unreadable} progress record(s) could not be read" if unreadable else None
         ),
+        visual_review=_visual_review_line(out_dir),
     )
 
 
@@ -197,6 +213,8 @@ def render_progress_digest(report: ProgressDigestReport) -> str:
     ]
     if report.reason is not None:
         lines.append(f"reason: {report.reason}")
+    if report.visual_review is not None:
+        lines.append(report.visual_review)
     if not report.records:
         lines.append("no timing or exploration record found")
     for record in report.records:

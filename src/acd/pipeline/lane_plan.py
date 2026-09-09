@@ -168,6 +168,15 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         lane_runner=True,
     ),
     _StageDefinition(
+        "visual-review-manifest",
+        None,
+        barrier=False,
+        cacheable=False,
+        command_kind=None,
+        design_loop=True,
+        lane_runner=False,
+    ),
+    _StageDefinition(
         "order-total-aggregation",
         None,
         barrier=True,

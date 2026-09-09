@@ -71,6 +71,7 @@ from acd.pipeline.lane_plan import (
     build_lane_plan,
 )
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
+from acd.pipeline.visual_review import derive_visual_review
 from acd.schema import (
     DesignFixtureSpec,
     DesignGraph,
@@ -326,6 +327,23 @@ def _run_firmware(config: DesignLoopConfig) -> dict[str, Any]:
             "script_sha256": result.script_sha256,
             "pass_evidence": False,
         },
+    )
+
+
+def _run_visual_review_manifest(config: DesignLoopConfig) -> dict[str, Any]:
+    """Derive review PNGs and write the mandatory vision-review manifest.
+
+    The manifest is an L3/L2 boundary: it only records which projections the
+    agent must inspect with the vision tool. It never grants pass authority.
+    """
+    manifest = derive_visual_review(config.out_root, jobs=config.jobs)
+    return _success(
+        "visual-review-manifest",
+        manifest_path=str(
+            config.out_root / "visual-review-manifest.json"
+        ),
+        required=len(manifest.required),
+        status="pending-agent-inspection",
     )
 
 
@@ -667,6 +685,26 @@ def _resolve_evaluated_at(value: datetime | None) -> datetime:
     return value
 
 
+def _visual_review_summary(result: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the loop-summary ``visual_review`` field for the manifest stage."""
+    results = result.get("results")
+    if not isinstance(results, list):
+        return None
+    for entry in cast(list[object], results):
+        if not isinstance(entry, dict):
+            continue
+        stage_result = cast(dict[str, Any], entry)
+        if stage_result.get("stage_id") == "visual-review-manifest":
+            return {
+                "manifest_path": stage_result.get("manifest_path"),
+                "required": stage_result.get("required"),
+                "status": stage_result.get("status")
+                if stage_result.get("ok")
+                else "failed",
+            }
+    return None
+
+
 DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
     "requirement-entry-validation": _run_requirement_entry_validation,
     "lane-preflight": run_lane_preflight_stage,
@@ -674,6 +712,7 @@ DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
     "board-pipeline": _run_board,
     "enclosure-pipeline": _run_enclosure,
     "firmware-pipeline": _run_firmware,
+    "visual-review-manifest": _run_visual_review_manifest,
     "order-readiness": _run_order_readiness,
 }
 
@@ -1101,6 +1140,17 @@ def run_design_loop(
             )
             if failed is not None:
                 return once_results, failed
+
+            # Mandatory visual review handoff: the manifest stage derives the
+            # PNGs the agent must inspect; the inspection and its verification
+            # stay agent-side steps and cannot grant pass authority.
+            visual_review = run_stage(
+                "visual-review-manifest",
+                timing_prefix=timing_prefix,
+            )
+            once_results.append(visual_review)
+            if not visual_review.get("ok") or visual_review.get("fail_closed"):
+                return once_results, visual_review
 
             aggregation_result: dict[str, Any] | None = None
             if active_config.quote_records:
@@ -1572,6 +1622,7 @@ def run_design_loop(
                     "candidate_router_diagnostics": result.get(
                         "candidate_router_diagnostics"
                     ),
+                    "visual_review": _visual_review_summary(result),
                     "timing_record": (
                         str(timing_record) if timing_record is not None else None
                     ),

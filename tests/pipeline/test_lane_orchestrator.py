@@ -91,6 +91,7 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
         "board-pipeline",
         "enclosure-pipeline",
         "firmware-pipeline",
+        "visual-review-manifest",
         "order-total-aggregation",
         "order-readiness",
         "pytest-subset",
@@ -110,6 +111,7 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
         "board-pipeline",
         "enclosure-pipeline",
         "firmware-pipeline",
+        "visual-review-manifest",
         "order-readiness",
     )
     assert plan.design_loop_lane_ids == (
@@ -142,6 +144,7 @@ def test_lane_plan_preserves_gd1_paths_and_execution_contract(tmp_path: Path) ->
         plan.stage("order-total-aggregation").output_path
         == tmp_path / "order-total.json"
     )
+    assert plan.stage("visual-review-manifest").output_path is None
     assert plan.stage("order-readiness").output_path is None
     assert (
         plan.stage("board-exploration").output_path
