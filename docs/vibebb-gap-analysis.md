@@ -791,7 +791,9 @@ net id由来roleをregistry照合し未登録roleを候補付きでfail-closed�
 `parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）、
 AA-15（CPL rotation offset不一致エラーへdeclared・effective・evidence offset・
 basisと宣言の次手）、AA-16（LCSC部品番号なしfitted部品エラーへrefdes一覧と
-`not_fitted`／`lcsc`宣言の次手）は実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
+`not_fitted`／`lcsc`宣言の次手）、AA-17（rationale coverage失敗診断と
+`vibebb-loop.md`へspec→再生成の規則を追加し`graph.json`／`rationale.json`の
+手編集を禁止）は実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目

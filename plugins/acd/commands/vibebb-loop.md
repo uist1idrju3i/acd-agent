@@ -66,6 +66,11 @@ allowed-tools:
    `symbol_sha256`／`footprint_sha256`は、digest固定container内で
    `uv run python scripts/pin_library_hashes.py --spec <spec.json> --write`
    を実行して採取・記入する。推測値やplaceholder hashを書いてはならない。
+   設計変更は必ずspec→再生成で行う。`acd_run_design_loop`には`fixture_spec`と
+   `fixture_overwrite`を、CLIでは`--fixture-spec`と`--fixture-overwrite`を使う。
+   fixture内の`graph.json`や`rationale.json`を直接編集してはならない。手編集は
+   rationale recordをstaleにし、coverageのmissing／staleは`rationale.json`の
+   手編集ではなくspecからの再生成でのみ解消する。
 2. `acd_run_design_loop`は次の段を必ずこの順序で実行する。
    - fixture生成（spec指定時のみ）
    - 要件compile（更新record指定時のみ）
