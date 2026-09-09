@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -66,20 +67,49 @@ def test_firmware_projections_are_deterministic_and_crosschecked(
         item.status == "unknown" and item.verification == "observation_required"
         for item in report.review_items
     )
-    state_svg = (tmp_path / "visual" / "gd1-firmware-state.svg").read_text()
-    sequence_svg = (
-        tmp_path / "visual" / "gd1-firmware-sequence.svg"
-    ).read_text()
-    assert 'width="240mm"' in state_svg
-    assert 'viewBox="0 0 240 134"' in state_svg
+    state_svg = (tmp_path / "visual" / "gd1-firmware-state.svg").read_text(
+        encoding="utf-8"
+    )
+    sequence_svg = (tmp_path / "visual" / "gd1-firmware-sequence.svg").read_text(
+        encoding="utf-8"
+    )
+    assert "Firmware state machine" in state_svg
+    assert 'id="title"' in state_svg and 'id="state-view-legend"' in state_svg
+    # Human label: state name is primary, the node id is secondary.
+    assert ">sensor_init</text>" in state_svg
+    assert ">fw.state.sensor_init</text>" in state_svg
+    # Exactly one initial marker, on the declared entry state.
+    assert state_svg.count('id="fw-state-initial-') == 1
     assert "fw-state-initial-fw-state-boot" in state_svg
     assert "fw-transition-fw-transition-boot-sensor-init" in state_svg
+    assert ">boot_complete</text>" in state_svg
+    # BFS order puts the entry state leftmost.
+    box_x = {
+        frag: float(match.group(2))
+        for frag, match in (
+            (m.group(1), m)
+            for m in re.finditer(
+                r'id="fw-state-box-([a-z0-9-]+)" x="([0-9.]+)"', state_svg
+            )
+        )
+    }
+    assert min(box_x, key=lambda frag: box_x[frag]) == "fw-state-boot"
     # 240 unit wide viewBox * DIAGRAM_FONT_SIZE_RATIO
     assert 'font-size="3"' in state_svg
-    assert 'width="240mm"' in sequence_svg
+    assert 'viewBox="0 0 ' in state_svg
+    assert "2026-" not in state_svg
+    assert "/home/" not in state_svg
+    assert "Firmware sequence" in sequence_svg
+    assert 'id="sequence-view-legend"' in sequence_svg
+    assert "fw-lifeline-fw-module-main" in sequence_svg
+    assert "Main firmware" in sequence_svg
     assert "fw-sequence-step-001" in sequence_svg
     assert "fw-sequence-action-001-fw-sequence-001" in sequence_svg
+    # Visible step-number badge at the left margin.
+    assert '>1</text>' in sequence_svg
+    assert 'id="fw-seqnum-001"' in sequence_svg
     assert 'font-size="3"' in sequence_svg
+    assert "2026-" not in sequence_svg
 
 
 def _generate(
