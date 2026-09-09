@@ -1,0 +1,151 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-b-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/dual-beacon-tag.kicad_pcb",
+          "content_hash": "sha256:385d9afcb460a5aa267e82a4480110ed52f44351b0b0fffd9c7b6153dc22ab83"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "29.9974mm",
+        "height": "21.9964mm",
+        "view_box": [
+          0.0,
+          0.0,
+          29.9974,
+          21.9964
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a",
+      "generated_at": "2026-09-09T11:18:42.386968Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a",
+        "second_image_hash": "sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-b-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-f-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/dual-beacon-tag.kicad_pcb",
+          "content_hash": "sha256:385d9afcb460a5aa267e82a4480110ed52f44351b0b0fffd9c7b6153dc22ab83"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "29.9974mm",
+        "height": "21.9964mm",
+        "view_box": [
+          0.0,
+          0.0,
+          29.9974,
+          21.9964
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89",
+      "generated_at": "2026-09-09T11:18:41.209482Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89",
+        "second_image_hash": "sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-f-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-schematic",
+      "projection_type": "schematic_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "dual-beacon-tag.kicad_sch",
+          "content_hash": "sha256:48eae1b5866b005494b8cc4851afd8e5a84bc45e96003c1f06a48f3709190597"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "594.0044mm",
+        "height": "419.9890mm",
+        "view_box": [
+          0.0,
+          0.0,
+          594.0044,
+          419.989
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033",
+      "generated_at": "2026-09-09T11:18:40.102550Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033",
+        "second_image_hash": "sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-schematic.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:e7caf5cf8de52e8fa2a14c93acbd5e2984b63569f3968f45552ead56ac4a1e26",
+  "canonical_hash": "sha256:8356bb7fa2c2c308105ed3b9b8a9ef23429786b1b088e3d8d33a06f11590a108"
+}

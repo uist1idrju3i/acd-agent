@@ -1,0 +1,138 @@
+{
+  "content_sha256": "sha256:6a7b393cccb4037e340ab0d428f15cfe5c8b00c992c4794c97a8d4b46ab6aab8",
+  "gate": "routing_connectivity",
+  "message": "routing connectivity diagnostic observation; not gate authority",
+  "observation": {
+    "coordinate_decimal_places": 6,
+    "coordinate_tolerance_mm": 1e-06,
+    "net_count": 12,
+    "nets": [
+      {
+        "component_count": 1,
+        "net": "+3V3",
+        "pad_count": 10,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 29
+      },
+      {
+        "component_count": 1,
+        "net": "BOOT",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 5
+      },
+      {
+        "component_count": 1,
+        "net": "CC1",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 0,
+        "wire_count": 3
+      },
+      {
+        "component_count": 1,
+        "net": "CC2",
+        "pad_count": 2,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 5
+      },
+      {
+        "component_count": 1,
+        "net": "GND",
+        "pad_count": 38,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 1,
+        "wire_count": 80
+      },
+      {
+        "component_count": 1,
+        "net": "LED",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 6
+      },
+      {
+        "component_count": 1,
+        "net": "LED2",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 0,
+        "wire_count": 5
+      },
+      {
+        "component_count": 1,
+        "net": "SCL",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 1,
+        "wire_count": 7
+      },
+      {
+        "component_count": 1,
+        "net": "SDA",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 1,
+        "wire_count": 5
+      },
+      {
+        "component_count": 1,
+        "net": "USB_D+",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 7
+      },
+      {
+        "component_count": 1,
+        "net": "USB_D-",
+        "pad_count": 3,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 2,
+        "wire_count": 6
+      },
+      {
+        "component_count": 1,
+        "net": "VBUS_5V",
+        "pad_count": 7,
+        "status": "pass",
+        "unattached_pads": [],
+        "unconnected_pad_pairs": [],
+        "via_count": 0,
+        "wire_count": 9
+      }
+    ],
+    "router_convergence_state": "converged",
+    "router_measurement_mismatch": false,
+    "status": "pass"
+  },
+  "schema_version": "0.1",
+  "status": "pass",
+  "target_revision": "r1"
+}

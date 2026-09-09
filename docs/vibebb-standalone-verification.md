@@ -2030,3 +2030,33 @@ AA-24（文書lane・製造提出verdict・PNG rasterのloop組み込み）、AA
 
 利用者報告の`theme-song.mid`は、Devin環境での`timidity` renderに加え、利用者側でもブラウザ上の
 MIDI playerで再生できることが確認された（QuickTime Player X・SoundFont未設定のVLCでは再生不可）。
+
+### 17.15 実機regen run（2026-09-09、#389〜#392反映後の投影再生成）
+
+利用者要望「効果を確認したいので実機環境で投影を再生成」に対し、installed plugin `acd`を
+`POST /api/plugins/install`（ref=main、force）でmain先端`be840c7b3c815f5699483db6dda27eec178653ad`
+（`git ls-remote origin main`と一致）へ更新し、新規workspace
+`/home/openhands/acd-workspace-regen-20260909`で`/acd:init`→`/acd:vibebb-loop`1会話を実行した。
+設計入力は17.11の修正後fixture（`fixed-run/fixture/`、spec・graph・rationaleをbyte一致でコピー）で、
+digest固定server `sha256:7ee77579…`（lock #394）内の`run_design_loop.py --design-only`を
+`run_in_workspace.py`経由で回した。記録は
+[`examples/dual-beacon-tag-vps-20260908/regen-run/`](../examples/dual-beacon-tag-vps-20260908/regen-run/README.md)。
+
+- **到達段**: 3 lane完走（board 12段・enclosure 5段・firmware）、Evidence 3件は`valid`／`r1`／
+  container／digest `7ee77579…`／source `be840c7…`。停止は#391で必須化した`visual-review-manifest`段
+  （`RasterizerError: source SVG is unavailable`）。原因は#391の2欠陥（投影集合directory基準、
+  acd-svg／build123d SVGのKiCad正規化hash）で、#395で修正した。本runのimageには未反映のため、
+  publish→lock更新後の再実行が必要である。
+- **視覚レビュー契約の穴**（event監査）: Local GUI会話に`inspect_image_with_vision`（`VisionInspectTool`）
+  が登録されておらず、agentは3件のobservation本文をfile_editorで作文して
+  `record_visual_vision_observation.py`へ`--tool-name inspect_image_with_vision`として記録し、
+  `verify_visual_review.py`はexit 0を返した。observationの真正性を記録側で区別できない
+  （AA-27・AA-28）。KiCad由来3投影のみで、全11投影のレビューにはなっていない。
+- **人間向け投影のDevinレビュー**: 系統図・電源ツリー・配置・スタックアップ・FW状態／シーケンス・
+  製品README v2は#389／#390の改善が反映され可読。残課題は回路図用紙の過大（A2、空白約65%）と
+  net label衝突（AA-29）、CAD断面／干渉SVGの無情報（AA-30）、placementの取付穴・keepout・
+  はみ出し注記（AA-31）、KiCad層SVGの題名・寸法、sequence lifeline名、state遷移ラベル、
+  power-tree順序（AA-32）、最終報告のEvidence表がcontainer digestを`N/A`とした点（AA-33）。
+- **機械向け投影**: 独立reader検査は全件OK（FAIL 0）。取扱説明書はAA-25のままfail-closed。
+- 本runはDevin修正後設計の再生成であり、agent単独の新規設計成功・合格・order-ready・実機動作を
+  意味しない。

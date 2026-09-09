@@ -1,0 +1,38 @@
+{
+  "artifact_kind": "theme_song_projection",
+  "artifacts": [
+    {
+      "content_hash": "sha256:4f0a7bcc44d0e360afb8f11a49059226b4c2d26f0d0335077281b5a8ec671972",
+      "media_type": "audio/midi",
+      "path": "theme-song/theme-song.mid"
+    }
+  ],
+  "bars": 16,
+  "bpm": 95,
+  "canonical_hash": "sha256:fb8c1c41928041914606d2412828a274d23eec1665ae0d50efc0e844b39d4ddd",
+  "composer_id": "acd-theme-song-composer-v1",
+  "graph_id": "dual-beacon-tag",
+  "graph_input": {
+    "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113",
+    "path": "graph.json"
+  },
+  "key": "g minor",
+  "pass_evidence": false,
+  "projection_id": "dual-beacon-tag-theme-song",
+  "proposal_input": null,
+  "record_class": "L3",
+  "regeneration_check": {
+    "first_hash": "sha256:4f0a7bcc44d0e360afb8f11a49059226b4c2d26f0d0335077281b5a8ec671972",
+    "reason": null,
+    "second_hash": "sha256:4f0a7bcc44d0e360afb8f11a49059226b4c2d26f0d0335077281b5a8ec671972",
+    "status": "reproduced"
+  },
+  "schema_version": "0.1",
+  "seed": "sha256:7719b4407953bcbe42ebdaecdd5e3d7c5eec132a679e7030247a95206a116155",
+  "skill_name": "acd-theme-song",
+  "skill_script_path": "plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py",
+  "skill_script_sha256": "sha256:541c0d1c96a32ab41ffc121c5f5be651dbd0684a91e10c6ea069b54cf470910b",
+  "source": "deterministic",
+  "source_revision": "r1",
+  "title": "Theme of dual-beacon-tag r1"
+}

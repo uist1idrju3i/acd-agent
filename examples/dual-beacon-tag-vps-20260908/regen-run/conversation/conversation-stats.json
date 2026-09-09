@@ -1,0 +1,48 @@
+{
+  "event_count": 1123,
+  "first_timestamp": "2026-09-09T10:44:19.454672",
+  "last_timestamp": "2026-09-09T11:37:43.538237",
+  "action_count_by_kind": {
+    "FileEditorAction": 31,
+    "FinishAction": 1,
+    "TaskTrackerAction": 2,
+    "TerminalAction": 155,
+    "browser": 1
+  },
+  "conversation_stats": {
+    "usage_to_metrics": {
+      "default": {
+        "model_name": "openai/preview/Kimi-K2.6",
+        "accumulated_cost": 0.0,
+        "max_budget_per_task": null,
+        "accumulated_token_usage": {
+          "model": "openai/preview/Kimi-K2.6",
+          "prompt_tokens": 15620015,
+          "completion_tokens": 60878,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "reasoning_tokens": 43025,
+          "context_window": 0,
+          "per_turn_token": 66510,
+          "response_id": ""
+        }
+      },
+      "condenser": {
+        "model_name": "openai/preview/Kimi-K2.6",
+        "accumulated_cost": 0.0,
+        "max_budget_per_task": null,
+        "accumulated_token_usage": {
+          "model": "openai/preview/Kimi-K2.6",
+          "prompt_tokens": 21895,
+          "completion_tokens": 8327,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "reasoning_tokens": 0,
+          "context_window": 0,
+          "per_turn_token": 12415,
+          "response_id": ""
+        }
+      }
+    }
+  }
+}

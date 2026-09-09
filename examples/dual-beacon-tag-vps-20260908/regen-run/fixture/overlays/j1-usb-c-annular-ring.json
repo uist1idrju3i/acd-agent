@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.1",
+  "overlay_id": "mbd-j1-usb-c-shield-annular-ring-025",
+  "target": {
+    "library": "Connector_USB",
+    "footprint": "USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+  },
+  "source_footprint_file": "/usr/share/kicad/footprints/Connector_USB.pretty/USB_C_Receptacle_HRO_TYPE-C-31-M-12.kicad_mod",
+  "source_footprint_sha256": "sha256:c562a7f9713a8b754c4d2305a2ea15453469a1c8c48a9b17973383e8993fc750",
+  "ops": [
+    {
+      "op": "grow_pad_annular_ring",
+      "pad_number": "SH",
+      "target_annular_ring_mm": 0.25
+    }
+  ],
+  "reason": "Grow the J1 SH shield pad annular ring to 0.25 mm so the PTH quality preference is met without a process allowance.",
+  "evidence": {
+    "fab_profile": "jlcpcb-fr4-2l-1oz",
+    "rule_id": "pth-annular-ring-prefer-025",
+    "url": "https://jlcpcb.com/capabilities/pcb-capabilities",
+    "fetched_at": "2026-09-06T00:00:00Z"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1",
+  "tool_name": "kicad-cli",
+  "tool_version": "10.0.6",
+  "format_version": "SVG",
+  "config_hash": "sha256:1e13843b32cf883e91f50efcba503e2521e7ee8b503bc36382ba2fbe358c2ecc",
+  "input_hash": "sha256:0965bac579912956ae3783cf5ffbca5f80f1dbf7fb351433db0f25576347c29e",
+  "output_hash": "sha256:e609c14e59f96b0924ec6ade05fb68c3d9af65a4dfe1c764b9fc516dc94649e7",
+  "execution_env": "linux-x86_64; container=sha256:7ee77579eb38730f634c953ae69d12b6afc4f39cf63e81097fd6977142b53fb0",
+  "execution_context": "container",
+  "container_image_digest": "sha256:7ee77579eb38730f634c953ae69d12b6afc4f39cf63e81097fd6977142b53fb0",
+  "measurement_conditions": "single SVG export; measured root dimensions",
+  "convergence_state": "not_applicable",
+  "target_revision": "r1",
+  "started_at": "2026-09-09T11:18:39.187410Z",
+  "finished_at": "2026-09-09T11:18:39.627657Z",
+  "exit_code": 0,
+  "idempotency_key": null,
+  "uncertainty": null,
+  "source_revision": "be840c7b3c815f5699483db6dda27eec178653ad",
+  "source_tree_state": "clean",
+  "source_dirty_digest": null
+}

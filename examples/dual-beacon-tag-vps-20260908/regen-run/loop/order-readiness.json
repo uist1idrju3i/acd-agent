@@ -1,0 +1,10 @@
+{
+  "reasons": [],
+  "schema_version": "0.1",
+  "status": "ready",
+  "target_revision": "r1",
+  "unknowns": {
+    "cpl_position_basis": [],
+    "cpl_rotation_basis_fab_lcsc": []
+  }
+}

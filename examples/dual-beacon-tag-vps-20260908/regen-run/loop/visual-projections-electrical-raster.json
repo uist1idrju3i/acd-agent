@@ -1,0 +1,292 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-b-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/dual-beacon-tag.kicad_pcb",
+          "content_hash": "sha256:385d9afcb460a5aa267e82a4480110ed52f44351b0b0fffd9c7b6153dc22ab83"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "29.9974mm",
+        "height": "21.9964mm",
+        "view_box": [
+          0.0,
+          0.0,
+          29.9974,
+          21.9964
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a",
+      "generated_at": "2026-09-09T11:18:42.386968Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a",
+        "second_image_hash": "sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-b-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-b-cu-png",
+      "projection_type": "rasterized_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "visual/dual-beacon-tag-b-cu.svg",
+          "content_hash": "sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "cairosvg",
+        "tool_name": "cairosvg",
+        "tool_version": "2.9.0",
+        "output_width": 1600
+      },
+      "media_type": "image/png",
+      "resolution": {
+        "width": "1600px",
+        "height": "1173px",
+        "view_box": [
+          0.0,
+          0.0,
+          1600.0,
+          1173.0
+        ]
+      },
+      "normalization_rule_id": "png-identity-v1",
+      "normalization_rule_description": "PNG bytes are not normalized; the SHA-256 covers the generated PNG bytes.",
+      "image_hash": "sha256:3cf3823e02b66bbe70b65069e4c05b8610985efe30dd9979c03bfc8a507c1810",
+      "generated_at": "2026-09-09T11:19:03.532948Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:3cf3823e02b66bbe70b65069e4c05b8610985efe30dd9979c03bfc8a507c1810",
+        "second_image_hash": "sha256:3cf3823e02b66bbe70b65069e4c05b8610985efe30dd9979c03bfc8a507c1810",
+        "reason": null
+      },
+      "image_path": "out/dual-beacon-tag/dual-beacon-tag/visual/png/dual-beacon-tag-b-cu.png",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-f-cu",
+      "projection_type": "layered_layout_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "routed/dual-beacon-tag.kicad_pcb",
+          "content_hash": "sha256:385d9afcb460a5aa267e82a4480110ed52f44351b0b0fffd9c7b6153dc22ab83"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "29.9974mm",
+        "height": "21.9964mm",
+        "view_box": [
+          0.0,
+          0.0,
+          29.9974,
+          21.9964
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89",
+      "generated_at": "2026-09-09T11:18:41.209482Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89",
+        "second_image_hash": "sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-f-cu.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-f-cu-png",
+      "projection_type": "rasterized_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "visual/dual-beacon-tag-f-cu.svg",
+          "content_hash": "sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "cairosvg",
+        "tool_name": "cairosvg",
+        "tool_version": "2.9.0",
+        "output_width": 1600
+      },
+      "media_type": "image/png",
+      "resolution": {
+        "width": "1600px",
+        "height": "1173px",
+        "view_box": [
+          0.0,
+          0.0,
+          1600.0,
+          1173.0
+        ]
+      },
+      "normalization_rule_id": "png-identity-v1",
+      "normalization_rule_description": "PNG bytes are not normalized; the SHA-256 covers the generated PNG bytes.",
+      "image_hash": "sha256:514cf32c05e08853cffcf7cf148f689a9be1b1c41c1efa6669890476dd923440",
+      "generated_at": "2026-09-09T11:19:04.338189Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:514cf32c05e08853cffcf7cf148f689a9be1b1c41c1efa6669890476dd923440",
+        "second_image_hash": "sha256:514cf32c05e08853cffcf7cf148f689a9be1b1c41c1efa6669890476dd923440",
+        "reason": null
+      },
+      "image_path": "out/dual-beacon-tag/dual-beacon-tag/visual/png/dual-beacon-tag-f-cu.png",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-schematic",
+      "projection_type": "schematic_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "dual-beacon-tag.kicad_sch",
+          "content_hash": "sha256:48eae1b5866b005494b8cc4851afd8e5a84bc45e96003c1f06a48f3709190597"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "kicad-cli",
+        "tool_name": "kicad-cli",
+        "tool_version": "10.0.6",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "594.0044mm",
+        "height": "419.9890mm",
+        "view_box": [
+          0.0,
+          0.0,
+          594.0044,
+          419.989
+        ]
+      },
+      "normalization_rule_id": "kicad-svg-title-v1",
+      "normalization_rule_description": "Replace the single KiCad SVG title containing output filename and second-resolution creation time with a fixed title.",
+      "image_hash": "sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033",
+      "generated_at": "2026-09-09T11:18:40.102550Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033",
+        "second_image_hash": "sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-schematic.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-schematic-png",
+      "projection_type": "rasterized_view",
+      "domain": "electrical",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "visual/dual-beacon-tag-schematic.svg",
+          "content_hash": "sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "cairosvg",
+        "tool_name": "cairosvg",
+        "tool_version": "2.9.0",
+        "output_width": 1600
+      },
+      "media_type": "image/png",
+      "resolution": {
+        "width": "1600px",
+        "height": "1131px",
+        "view_box": [
+          0.0,
+          0.0,
+          1600.0,
+          1131.0
+        ]
+      },
+      "normalization_rule_id": "png-identity-v1",
+      "normalization_rule_description": "PNG bytes are not normalized; the SHA-256 covers the generated PNG bytes.",
+      "image_hash": "sha256:f763a63fc6f1df9547fbe7bc6a27092212bcc8c87159dc91ea387aeaae0b007f",
+      "generated_at": "2026-09-09T11:19:08.044816Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:f763a63fc6f1df9547fbe7bc6a27092212bcc8c87159dc91ea387aeaae0b007f",
+        "second_image_hash": "sha256:f763a63fc6f1df9547fbe7bc6a27092212bcc8c87159dc91ea387aeaae0b007f",
+        "reason": null
+      },
+      "image_path": "out/dual-beacon-tag/dual-beacon-tag/visual/png/dual-beacon-tag-schematic.png",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:4dfde5f449bc31d8850a3ab6092946adde0b298ee0bdb9ed1d809a0b0ef6dd15",
+  "canonical_hash": "sha256:8823767e79349849fa66fdfa89e3194195b7130b5b7dea9b6c821ac78c186dbf"
+}
