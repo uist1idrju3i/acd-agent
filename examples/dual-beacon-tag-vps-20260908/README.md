@@ -81,6 +81,11 @@
 | `report/agent-scripts/` | agentが作成したspec生成script 3件（`.py.txt`。1件目のdocstringはmini-blink-dongleを構造参照と明記） |
 | `report/remote-manifest.txt` | remote workspaceから回収したfileの一覧 |
 
+### 別run
+
+- [`fixed-run/`](fixed-run/README.md): Devinが設計入力を修正してdigest固定containerで全投影を出した修正後run（17.11）。
+- [`regen-run/`](regen-run/README.md): 修正後fixtureを用い、#389〜#392反映後のmain（`be840c7…`）で実機OpenHands GUI環境から投影を再生成したrun（17.15）。`visual-review-manifest`段でfail-closed（#395で修正）。
+
 ## 含めないもの
 
 - `out/`配下の生成物そのもの（KiCad project、build tree、STEP／3MF等）。再生成可能で大容量のため。
