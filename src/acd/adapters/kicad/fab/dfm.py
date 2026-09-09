@@ -132,6 +132,18 @@ def _finding(
     }
 
 
+def _pad_axis_move(overshoot_low: float, overshoot_high: float) -> float | None:
+    """Smallest single-axis translation clearing both bounds, or None."""
+    if overshoot_low > 0.0 and overshoot_high > 0.0:
+        return None
+    if overshoot_low > 0.0:
+        # moving +overshoot_low must not push the pad past the high bound
+        return overshoot_low if overshoot_high + overshoot_low <= 1e-9 else None
+    if overshoot_high > 0.0:
+        return -overshoot_high if overshoot_low - overshoot_high <= 1e-9 else None
+    return None
+
+
 def run_dfm(
     measurement: BoardMeasurement,
     profile: FabProfile,
@@ -270,10 +282,51 @@ def run_dfm(
             or pad.x_mm + pad_half_x > outline[2] - edge_clearance_mm + 1e-6
             or pad.y_mm + pad_half_y > outline[3] - edge_clearance_mm + 1e-6
         ):
+            low_bounds = (edge_clearance_mm, edge_clearance_mm)
+            high_bounds = (
+                outline[2] - edge_clearance_mm,
+                outline[3] - edge_clearance_mm,
+            )
+            overshoots = (
+                low_bounds[0] - (pad.x_mm - pad_half_x),
+                (pad.x_mm + pad_half_x) - high_bounds[0],
+                low_bounds[1] - (pad.y_mm - pad_half_y),
+                (pad.y_mm + pad_half_y) - high_bounds[1],
+            )
+            violation_mm = {
+                side: round(overshoot, 4)
+                for side, overshoot in zip(
+                    ("x_min", "x_max", "y_min", "y_max"), overshoots
+                )
+                if overshoot > 0.0
+            }
+            candidates = [
+                {"axis": axis, "delta_mm": round(delta, 4)}
+                for axis, delta in (
+                    ("x", _pad_axis_move(overshoots[0], overshoots[1])),
+                    ("y", _pad_axis_move(overshoots[2], overshoots[3])),
+                )
+                if delta is not None
+            ]
+            min_move = (
+                min(candidates, key=lambda item: abs(cast(float, item["delta_mm"])))
+                if candidates
+                else None
+            )
             add(
                 "pad-to-board-edge-clearance",
                 "capability_violation",
-                {"refdes": pad.refdes, "x_mm": pad.x_mm, "y_mm": pad.y_mm},
+                {
+                    "refdes": pad.refdes,
+                    "x_mm": pad.x_mm,
+                    "y_mm": pad.y_mm,
+                    "violation_mm": violation_mm,
+                    "min_move_mm": min_move,
+                    "rule_note": (
+                        "pad half-width/height before rotation is used "
+                        "(axis-aligned check)"
+                    ),
+                },
                 edge_clearance_mm,
                 "mm",
                 loc,

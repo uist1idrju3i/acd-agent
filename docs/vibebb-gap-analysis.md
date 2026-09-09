@@ -793,7 +793,11 @@ AA-15（CPL rotation offset不一致エラーへdeclared・effective・evidence 
 basisと宣言の次手）、AA-16（LCSC部品番号なしfitted部品エラーへrefdes一覧と
 `not_fitted`／`lcsc`宣言の次手）、AA-17（rationale coverage失敗診断と
 `vibebb-loop.md`へspec→再生成の規則を追加し`graph.json`／`rationale.json`の
-手編集を禁止）は実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
+手編集を禁止）、AA-18（`pad-to-board-edge-clearance` findingへ辺別`violation_mm`・
+最小1軸移動`min_move_mm`・axis-aligned注記）、AA-20（silkscreen失敗の次手へ
+text短縮→`placement_search_limit_mm`拡大→座標宣言の順序と、全label除去が
+measured passの後に`accepted unresolved text coordinates`で止まるAA-14 deadlockの
+警告、skillへShortening priority一覧を追加）は実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目

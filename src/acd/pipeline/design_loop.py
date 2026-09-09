@@ -248,9 +248,14 @@ def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
         output_path=str(output),
         summary=result,
         next_step_action=(
-            "declare x_mm/y_mm for the listed mechanical.silk_text nodes or widen "
-            "the silkscreen search inputs (see candidate_failures in the stage "
-            "summary); silkscreen gate thresholds are not adjustable"
+            "shorten the text value of the listed mechanical.silk_text nodes "
+            "first, then widen placement_search_limit_mm on the node, then "
+            "declare x_mm/y_mm (see candidate_failures in the stage summary); "
+            "do not remove all functional labels — a single remaining unplaced "
+            "text is accepted by measurement and then fails 'silkscreen "
+            "resolution accepted unresolved text coordinates' (keep at least "
+            "one placed label alongside); silkscreen gate thresholds are not "
+            "adjustable"
         ),
     )
 

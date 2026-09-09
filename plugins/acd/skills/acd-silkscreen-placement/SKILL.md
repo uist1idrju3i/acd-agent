@@ -67,6 +67,19 @@ for every worker count; worker count is not included in output or provenance.
 `board_projection.model` is the `BoardModel` after placement resolution. The
 reference implementation is `scripts/run_gd1_pipeline.py`.
 
+When the resolver cannot place a text, apply changes in this shortening
+priority:
+
+1. Abbreviate long label values.
+2. Drop redundant units or prefixes from the text.
+3. Widen `placement_search_limit_mm` on the `mechanical.silk_text` node.
+4. Declare `x_mm`/`y_mm` coordinates for the node.
+
+Never delete all functional labels: a single remaining unplaced text is
+accepted by measurement and then fails the
+`silkscreen resolution accepted unresolved text coordinates` check. Keep at
+least one placed label alongside.
+
 ## Assumptions and limits
 
 - No additional external tool is required; the script imports `acd-core`.

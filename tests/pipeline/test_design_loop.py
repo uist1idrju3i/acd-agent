@@ -1903,6 +1903,10 @@ def test_silkscreen_resolve_fails_closed_on_unresolved_status(
     assert resolver_status in result["failure_reason"]
     assert "mechanical.silk_text.board_id" in result["failure_reason"]
     assert "declare x_mm/y_mm" in result["next_step_action"]
+    assert "shorten the text value" in result["next_step_action"]
+    assert "placement_search_limit_mm" in result["next_step_action"]
+    assert "do not remove all functional labels" in result["next_step_action"]
+    assert "accepted unresolved text coordinates" in result["next_step_action"]
     assert "board-pipeline" not in seen
     assert result["loop_summary"]
     summary = json.loads(
