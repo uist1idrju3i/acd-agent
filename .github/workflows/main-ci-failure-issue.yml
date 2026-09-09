@@ -1,0 +1,68 @@
+name: Main CI failure issue
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: main-ci-failure-issue
+  cancel-in-progress: false
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      RUN_URL: ${{ github.event.workflow_run.html_url }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+    steps:
+      - name: Report main CI failure to a tracking Issue
+        run: |
+          set -euo pipefail
+          case "$CONCLUSION" in
+            cancelled|skipped)
+              # Concurrency supersession is not a failure.
+              echo "CI conclusion '$CONCLUSION' is not a failure; skipping."
+              exit 0
+              ;;
+          esac
+          TITLE="main CI失敗レポート"
+          LABEL="ci-main-failure"
+          gh label create "$LABEL" --repo "$GITHUB_REPOSITORY" \
+            --color B60205 --description "main CIが失敗している" || true
+          open_issue=$(gh issue list --repo "$GITHUB_REPOSITORY" \
+            --state open --label "$LABEL" --json number --jq '.[0].number // empty')
+          if [ "$CONCLUSION" = "success" ]; then
+            if [ -n "$open_issue" ]; then
+              gh issue close "$open_issue" --repo "$GITHUB_REPOSITORY" \
+                --comment "main CI が緑に戻りました: $RUN_URL"
+              echo "Closed issue #$open_issue."
+            else
+              echo "main CI is green; nothing to close."
+            fi
+            exit 0
+          fi
+          failed_jobs=$(gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --json jobs --jq '[.jobs[] | select(.conclusion=="failure") | .name] | join(", ")')
+          body=$(printf '%s\n' \
+            "main の CI run が失敗しました。" \
+            "" \
+            "- run: ${RUN_URL}" \
+            "- head sha: ${HEAD_SHA}" \
+            "- conclusion: ${CONCLUSION}" \
+            "- failed jobs: ${failed_jobs:-(情報なし)}" \
+            "" \
+            "このIssueはmain CIが緑に戻った時点で自動closeされます。")
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$GITHUB_REPOSITORY" --body "$body"
+            echo "Commented on existing issue #$open_issue."
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" --label "$LABEL" --body "$body"
+            echo "Created a new tracking issue."
+          fi
