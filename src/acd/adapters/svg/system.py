@@ -308,7 +308,8 @@ def _block_svg(graph: DesignGraph, lane: ElectricalLane) -> bytes:
                     f'<rect id="block-box-{identifier}" '
                     f'x="{format_svg_number(x)}" y="{format_svg_number(node_y)}" '
                     f'width="{format_svg_number(box_width)}" '
-                    f'height="{format_svg_number(box_height)}" rx="{format_svg_number(font_size * 0.4)}" '
+                    f'height="{format_svg_number(box_height)}" '
+                    f'rx="{format_svg_number(font_size * 0.4)}" '
                     f'fill="{KIND_FILL[kind]}" stroke="{KIND_STROKE[kind]}" '
                     f'stroke-width="{format_svg_number(font_size * 0.18)}"/>',
                     svg_text(
@@ -477,16 +478,20 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
             body.append(
                 f'<line x1="{format_svg_number(margin)}" y1="{format_svg_number(separator_y)}" '
                 f'x2="{format_svg_number(width - margin)}" y2="{format_svg_number(separator_y)}" '
-                f'stroke="{COLOR_HEADER_RULE}" stroke-width="{format_svg_number(font_size * 0.08)}" '
-                f'stroke-dasharray="{format_svg_number(font_size)} {format_svg_number(font_size)}"/>'
+                f'stroke="{COLOR_HEADER_RULE}" '
+                f'stroke-width="{format_svg_number(font_size * 0.08)}" '
+                f'stroke-dasharray="{format_svg_number(font_size)} '
+                f'{format_svg_number(font_size)}"/>'
             )
         body.extend(
             [
                 f'<g id="power-net-{net_identifier}" data-node-id="{escape_xml(net.node_id)}">',
                 f'<rect id="power-source-box-{net_identifier}" '
-                f'x="{format_svg_number(source_x)}" y="{format_svg_number(center_y - box_height / 2)}" '
+                f'x="{format_svg_number(source_x)}" '
+                f'y="{format_svg_number(center_y - box_height / 2)}" '
                 f'width="{format_svg_number(box_width)}" height="{format_svg_number(box_height)}" '
-                f'rx="{format_svg_number(font_size * 0.4)}" fill="{KIND_FILL["electrical.component"]}" '
+                f'rx="{format_svg_number(font_size * 0.4)}" '
+                f'fill="{KIND_FILL["electrical.component"]}" '
                 f'stroke="{KIND_STROKE["electrical.component"]}" '
                 f'stroke-width="{format_svg_number(font_size * 0.18)}"/>',
                 svg_text(
@@ -505,7 +510,8 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                     fill=COLOR_TEXT_MUTED,
                 ),
                 f'<rect id="power-net-box-{net_identifier}" '
-                f'x="{format_svg_number(net_x)}" y="{format_svg_number(center_y - box_height / 2)}" '
+                f'x="{format_svg_number(net_x)}" '
+                f'y="{format_svg_number(center_y - box_height / 2)}" '
                 f'width="{format_svg_number(box_width)}" height="{format_svg_number(box_height)}" '
                 f'rx="{format_svg_number(font_size * 0.4)}" fill="{KIND_FILL["electrical.net"]}" '
                 f'stroke="{KIND_STROKE["electrical.net"]}" '
@@ -526,7 +532,8 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                     element_id=f"power-voltage-label-{net_identifier}",
                 ),
                 f'<line id="power-edge-source-{net_identifier}-{source_identifier}" '
-                f'x1="{format_svg_number(source_x + box_width)}" y1="{format_svg_number(center_y)}" '
+                f'x1="{format_svg_number(source_x + box_width)}" '
+                f'y1="{format_svg_number(center_y)}" '
                 f'x2="{format_svg_number(net_x)}" y2="{format_svg_number(center_y)}" '
                 f'stroke="{COLOR_EDGE}" stroke-width="{format_svg_number(font_size * 0.2)}" '
                 'marker-end="url(#arrow)"/>',
@@ -542,7 +549,8 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                 [
                     f'<rect id="power-load-box-{net_identifier}-{load_identifier}" '
                     f'x="{format_svg_number(load_x)}" y="{format_svg_number(load_y)}" '
-                    f'width="{format_svg_number(box_width)}" height="{format_svg_number(box_height)}" '
+                    f'width="{format_svg_number(box_width)}" '
+                    f'height="{format_svg_number(box_height)}" '
                     f'rx="{format_svg_number(font_size * 0.4)}" '
                     f'fill="{KIND_FILL["electrical.component"]}" '
                     f'stroke="{KIND_STROKE["electrical.component"]}" '
@@ -566,7 +574,8 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                     f'd="M {format_svg_number(net_x + box_width)} {format_svg_number(center_y)} '
                     f"H {format_svg_number(bend_x)} V {format_svg_number(load_center)} "
                     f'H {format_svg_number(load_x)}" fill="none" stroke="{COLOR_EDGE}" '
-                    f'stroke-width="{format_svg_number(font_size * 0.2)}" marker-end="url(#arrow)"/>',
+                    f'stroke-width="{format_svg_number(font_size * 0.2)}" '
+                    'marker-end="url(#arrow)"/>'
                 ]
             )
         body.append("</g>")

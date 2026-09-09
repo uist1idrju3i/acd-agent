@@ -226,7 +226,9 @@ def footer_height(font_size: float) -> float:
     return font_size * SMALL_FONT_SCALE * 2.0
 
 
-def arrow_marker_defs(font_size: float, *, marker_id: str = "arrow", color: str = COLOR_EDGE) -> str:
+def arrow_marker_defs(
+    font_size: float, *, marker_id: str = "arrow", color: str = COLOR_EDGE
+) -> str:
     """`<defs>` with one arrowhead marker sized relative to the body font."""
     size = font_size * 0.9
     return (
@@ -253,7 +255,8 @@ def legend(
         chunks.append(
             f'<rect x="{format_svg_number(cursor)}" y="{format_svg_number(y - swatch * 0.85)}" '
             f'width="{format_svg_number(swatch)}" height="{format_svg_number(swatch)}" '
-            f'fill="{fill}" stroke="{stroke}" stroke-width="{format_svg_number(font_size * 0.12)}"/>'
+            f'fill="{fill}" stroke="{stroke}" '
+            f'stroke-width="{format_svg_number(font_size * 0.12)}"/>'
         )
         cursor += swatch * 1.4
         chunks.append(svg_text(label, x=cursor, y=y, font_size=font_size))
