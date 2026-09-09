@@ -216,6 +216,25 @@ def test_jlcpcb_bom_groups_by_fab_part_and_uses_mpn_for_mixed_values() -> None:
     assert "R1" not in rows[0]["Designator"]
 
 
+def test_jlcpcb_bom_lists_fitted_components_without_lcsc_and_remedies() -> None:
+    lane = _bom_lane(
+        _bom_component("R10", "10k", lcsc=""),
+        _bom_component("R2", "2k", lcsc=""),
+        _bom_component("SW1", "RESET"),
+        _bom_component("J1", "hand soldered", assembly="not_fitted", lcsc=""),
+    )
+    with pytest.raises(FabOutputError) as excinfo:
+        jlcpcb_bom_csv(lane)
+    message = str(excinfo.value)
+    assert "fail-closed" in message
+    assert "R2, R10" in message
+    assert "J1" not in message
+    assert "SW1" not in message
+    assert "declare `lcsc`" in message
+    assert 'assembly: "not_fitted"' in message
+    assert 'jlcpcb_class: "none"' in message
+
+
 def test_internal_bom_groups_mixed_values_deterministically() -> None:
     lane = _bom_lane(
         _bom_component("SW2", "BOOT"),

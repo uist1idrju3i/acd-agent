@@ -251,8 +251,16 @@ def apply_cpl_contract(
 
 def jlcpcb_bom_csv(lane: ElectricalLane) -> str:
     fitted = tuple(comp for comp in lane.components if comp.assembly == "fitted")
-    if any(not comp.lcsc for comp in fitted):
-        raise FabOutputError("fitted component without LCSC part number (fail-closed)")
+    missing_lcsc = sorted(
+        (comp.refdes for comp in fitted if not comp.lcsc), key=refdes_key
+    )
+    if missing_lcsc:
+        raise FabOutputError(
+            "fitted component without LCSC part number (fail-closed): "
+            f"{', '.join(missing_lcsc)}; either declare `lcsc` for the component "
+            "in the fixture spec, or declare `assembly: \"not_fitted\"` with "
+            '`jlcpcb_class: "none"` for hand-soldered/off-BOM parts'
+        )
     grouped: dict[tuple[str, str, str], list[ComponentView]] = {}
     for comp in fitted:
         key = (comp.lcsc, comp.mpn, comp.library.footprint)

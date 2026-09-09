@@ -291,3 +291,41 @@ def test_capability_violation_cannot_be_allowed() -> None:
 def test_oval_annular_ring_uses_each_axis() -> None:
     pad = PadMeasurement("J1", "through-hole", 0.0, 0.0, 0.0, 1.1, 2.2, 0.6, None, 0.6, 1.7)
     assert pad.annular_ring_mm == pytest.approx(0.25)
+
+
+def test_pad_edge_clearance_reports_per_axis_violation_and_min_move() -> None:
+    pad = PadMeasurement("C1", "smd", 0.4, 5.0, 0.0, 1.0, 1.0, None, None)
+    footprint = FootprintMeasurement(
+        "C1", 0.4, 5.0, 0.0, "F.Cu", (pad,), body_bbox_mm=(0.0, 4.5, 0.9, 5.5)
+    )
+    board = BoardMeasurement(
+        (footprint,), (), None, None, None, (0.0, 0.0, 30.0, 25.0), (), 0
+    )
+    report = run_dfm(board, PROFILE, "r1", (), edge_clearance_mm=0.3)
+    findings = cast(list[dict[str, object]], report["findings"])
+    finding = next(
+        item for item in findings if item["rule_id"] == "pad-to-board-edge-clearance"
+    )
+    measured = cast(dict[str, object], finding["measured_value"])
+    assert measured["violation_mm"] == {"x_min": 0.4}
+    assert measured["min_move_mm"] == {"axis": "x", "delta_mm": 0.4}
+    assert "axis-aligned" in cast(str, measured["rule_note"])
+
+
+def test_pad_edge_clearance_reports_no_move_when_axis_is_trapped() -> None:
+    # pad wider than the clear channel: both x_min and x_max overshoot
+    pad = PadMeasurement("U1", "smd", 15.0, 5.0, 0.0, 40.0, 1.0, None, None)
+    footprint = FootprintMeasurement(
+        "U1", 15.0, 5.0, 0.0, "F.Cu", (pad,), body_bbox_mm=(0.0, 4.5, 30.0, 5.5)
+    )
+    board = BoardMeasurement(
+        (footprint,), (), None, None, None, (0.0, 0.0, 30.0, 25.0), (), 0
+    )
+    report = run_dfm(board, PROFILE, "r1", (), edge_clearance_mm=0.3)
+    findings = cast(list[dict[str, object]], report["findings"])
+    finding = next(
+        item for item in findings if item["rule_id"] == "pad-to-board-edge-clearance"
+    )
+    measured = cast(dict[str, object], finding["measured_value"])
+    assert measured["violation_mm"] == {"x_min": 5.3, "x_max": 5.3}
+    assert measured["min_move_mm"] is None

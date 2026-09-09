@@ -23,7 +23,7 @@ import json
 import re
 import shutil
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -160,6 +160,34 @@ GERBER_LAYERS = [
     "F.Paste",
     "Edge.Cuts",
 ]
+
+
+def _check_rotation_offsets(
+    lane: ElectricalLane,
+    declared_rotation_offsets: Mapping[str, float],
+    verified_rotation_offsets: Mapping[str, float],
+    evidence_dir: Path,
+) -> None:
+    """Fail when a declared CPL rotation offset disagrees with LCSC Evidence."""
+    components = {component.refdes: component for component in lane.components}
+    for ref, offset in verified_rotation_offsets.items():
+        effective = declared_rotation_offsets.get(ref, 0.0)
+        if abs(effective - offset) <= 0.01:
+            continue
+        component = components.get(ref)
+        declared = component.cpl_rotation_offset_deg if component is not None else None
+        basis = component.cpl_rotation_evidence_basis if component is not None else None
+        raise ValueError(
+            f"{ref}: graph CPL rotation offset differs from LCSC Evidence "
+            f"(declared cpl_rotation_offset_deg={declared!r} deg, effective offset "
+            f"applied to CPL={effective:.2f} deg, LCSC Evidence offset={offset:.2f} "
+            f"deg, cpl_rotation_evidence_basis={basis!r}); the effective offset is "
+            "forced to 0.0 unless the basis is 'confirmed' with full provenance — "
+            f"next step: check {evidence_dir / f'{ref}.json'}, then declare "
+            f"cpl_rotation_offset_deg={offset:.2f} with cpl_rotation_evidence_basis "
+            "'confirmed' (method, revision, note, source_url, evidence_at), or "
+            "correct the lcsc part number; the tolerance (0.01 deg) is unchanged"
+        )
 
 
 def _visual_silkscreen_status(
@@ -1614,9 +1642,9 @@ def run_pipeline(
         raise
     cpl_path.write_text(jlcpcb_cpl_csv(resolved_pos_rows, fitted), encoding="utf-8")
     declared_rotation_offsets = cast(dict[str, float], cpl_basis_report["rotation_offsets"])
-    for ref, offset in verified_rotation_offsets.items():
-        if abs(declared_rotation_offsets.get(ref, 0.0) - offset) > 0.01:
-            raise ValueError(f"{ref}: graph CPL rotation offset differs from LCSC Evidence")
+    _check_rotation_offsets(
+        lane, declared_rotation_offsets, verified_rotation_offsets, lcsc_evidence_dir
+    )
     cpl_basis_report["rotation_evidence"] = rotation_evidence_notes
     cpl_unknowns = cast(dict[str, object], cpl_basis_report["unknowns"])
     existing_rotation_unknowns = cast(list[str], cpl_unknowns["cpl_rotation_basis_fab_lcsc"])

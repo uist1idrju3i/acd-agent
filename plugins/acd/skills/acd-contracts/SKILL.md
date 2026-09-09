@@ -29,3 +29,11 @@ uv run python scripts/check_rationale.py \
   --graph fixtures/<design>/graph.json \
   --rationale fixtures/<design>/rationale.json
 ```
+
+For JLCPCB BOM/CPL output, every component with `assembly: "fitted"` must declare
+an `lcsc` part number. Declare hand-soldered or otherwise off-BOM parts as not
+fitted so they are excluded from the JLCPCB BOM and CPL:
+
+```json
+{ "refdes": "J1", "assembly": "not_fitted", "jlcpcb_class": "none" }
+```

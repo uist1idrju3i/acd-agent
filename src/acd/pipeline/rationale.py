@@ -37,7 +37,12 @@ def validate_and_project_rationale(
     )
     if report.status != "pass":
         raise ValueError(
-            "rationale coverage failed: " + summarize_rationale_coverage(report)
+            "rationale coverage failed: "
+            + summarize_rationale_coverage(report)
+            + "; next step: regenerate the fixture from its DesignFixtureSpec "
+            "(scripts/run_design_loop.py --fixture-spec <spec.json> "
+            "--fixture-overwrite) instead of editing graph.json or rationale.json "
+            "by hand; coverage rules are unchanged"
         )
     _write_rationale_markdown(document, out_dir / "rationale.md", report)
     return document
