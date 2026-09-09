@@ -9,8 +9,10 @@ import pytest
 
 from acd.adapters.raster import CairoSvgRasterizer
 from acd.adapters.raster.cairosvg import RasterizerError
+from acd.adapters.svg import ACD_SVG_NORMALIZATION_RULE_DESCRIPTION
 from acd.core.process import sha256_bytes
 from acd.core.visual_projection import (
+    ACD_SVG_NORMALIZATION_RULE_ID,
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
     SVG_TITLE_NORMALIZATION_RULE_ID,
     normalized_svg_sha256,
@@ -91,6 +93,90 @@ def test_rasterizer_rejects_source_hash_mismatch(tmp_path: Path) -> None:
         CairoSvgRasterizer().rasterize(
             source_record=_source_record(),
             output_path=tmp_path / "visual/png/board-f-cu.png",
+            base_dir=tmp_path,
+        )
+
+
+def _acd_svg() -> bytes:
+    # acd-svg projections carry no KiCad-style title and are hashed byte-exact.
+    return (
+        b'<svg width="10mm" height="5mm" viewBox="0 0 100 50">'
+        b'<rect width="100" height="50"/></svg>'
+    )
+
+
+def _acd_source_record() -> VisualProjectionRecord:
+    record = _source_record()
+    svg = _acd_svg()
+    image_hash = sha256_bytes(svg)
+    return record.model_copy(
+        update={
+            "normalization_rule_id": ACD_SVG_NORMALIZATION_RULE_ID,
+            "normalization_rule_description": ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
+            "image_hash": image_hash,
+            "regeneration_check": VisualRegenerationCheck(
+                status="reproduced",
+                first_image_hash=image_hash,
+                second_image_hash=image_hash,
+            ),
+            "image_path": "visual/system-block.svg",
+        }
+    )
+
+
+def test_rasterizer_accepts_acd_svg_byte_exact_source(tmp_path: Path) -> None:
+    source = tmp_path / "visual/system-block.svg"
+    source.parent.mkdir()
+    source.write_bytes(_acd_svg())
+
+    record = CairoSvgRasterizer(output_width=320).rasterize(
+        source_record=_acd_source_record(),
+        output_path=tmp_path / "visual/png/system-block.png",
+        base_dir=tmp_path,
+    )
+
+    assert record.media_type == "image/png"
+    assert record.regeneration_check.status == "reproduced"
+
+
+def test_rasterizer_rejects_non_kicad_svg_under_kicad_rule(tmp_path: Path) -> None:
+    source = tmp_path / "visual/board-f-cu.svg"
+    source.parent.mkdir()
+    source.write_bytes(_acd_svg())
+
+    with pytest.raises(RasterizerError, match="normalization rule"):
+        CairoSvgRasterizer().rasterize(
+            source_record=_source_record(),
+            output_path=tmp_path / "visual/png/board-f-cu.png",
+            base_dir=tmp_path,
+        )
+
+
+def test_rasterizer_rejects_unknown_normalization_rule(tmp_path: Path) -> None:
+    source = tmp_path / "visual/system-block.svg"
+    source.parent.mkdir()
+    source.write_bytes(_acd_svg())
+    record = _acd_source_record().model_copy(
+        update={"normalization_rule_id": "not-a-real-rule"}
+    )
+
+    with pytest.raises(RasterizerError, match="normalization rule"):
+        CairoSvgRasterizer().rasterize(
+            source_record=record,
+            output_path=tmp_path / "visual/png/system-block.png",
+            base_dir=tmp_path,
+        )
+
+
+def test_rasterizer_rejects_tampered_acd_svg_byte_exact_hash(tmp_path: Path) -> None:
+    source = tmp_path / "visual/system-block.svg"
+    source.parent.mkdir()
+    source.write_bytes(_acd_svg() + b" ")
+
+    with pytest.raises(RasterizerError, match="hash"):
+        CairoSvgRasterizer().rasterize(
+            source_record=_acd_source_record(),
+            output_path=tmp_path / "visual/png/system-block.png",
             base_dir=tmp_path,
         )
 

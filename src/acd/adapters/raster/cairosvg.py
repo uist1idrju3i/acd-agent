@@ -10,7 +10,7 @@ from typing import Protocol, cast
 import cairosvg  # pyright: ignore[reportMissingTypeStubs]
 
 from acd.core.process import sha256_bytes
-from acd.core.visual_projection import normalized_svg_sha256
+from acd.core.visual_projection import SvgNormalizationError, svg_source_hash
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,
@@ -109,7 +109,13 @@ class CairoSvgRasterizer:
             svg = source_path.read_bytes()
         except OSError as exc:
             raise RasterizerError("source SVG is unavailable") from exc
-        if normalized_svg_sha256(svg) != source_record.image_hash:
+        try:
+            source_hash = svg_source_hash(svg, source_record.normalization_rule_id)
+        except SvgNormalizationError as exc:
+            raise RasterizerError(
+                "source SVG could not be hashed under its normalization rule"
+            ) from exc
+        if source_hash != source_record.image_hash:
             raise RasterizerError("source SVG normalized hash does not match record")
 
         output.parent.mkdir(parents=True, exist_ok=True)

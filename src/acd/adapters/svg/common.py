@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Literal
 
 from acd.core.process import sha256_bytes
-from acd.core.visual_projection import measure_svg_resolution
+from acd.core.visual_projection import (
+    ACD_SVG_NORMALIZATION_RULE_ID,
+    measure_svg_resolution,
+)
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,
@@ -22,7 +25,6 @@ from acd.schema.visual_projection import (
 )
 
 ACD_SVG_RENDERER_VERSION = "2.0.0"
-ACD_SVG_NORMALIZATION_RULE_ID = "acd-svg-v1"
 ACD_SVG_NORMALIZATION_RULE_DESCRIPTION = "byte-exact、正規化不要"
 
 # Text is sized relative to the viewBox so that a projection stays legible at

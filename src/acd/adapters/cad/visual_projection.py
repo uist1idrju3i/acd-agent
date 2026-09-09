@@ -23,7 +23,10 @@ from acd.core.mechanical import SUPPORTED_OPENING_FACES, MechanicalLane
 from acd.core.naming import artifact_prefix
 from acd.core.parallel import PipelineStageRunner
 from acd.core.process import ExternalToolError, sha256_bytes
-from acd.core.visual_projection import measure_svg_resolution
+from acd.core.visual_projection import (
+    CAD_SVG_NORMALIZATION_RULE_ID,
+    measure_svg_resolution,
+)
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,
@@ -34,7 +37,6 @@ from acd.schema.visual_projection import (
     VisualResolution,
 )
 
-CAD_SVG_NORMALIZATION_RULE_ID = "build123d-svg-v1"
 CAD_SVG_NORMALIZATION_RULE_DESCRIPTION = (
     "Build123d ExportSVG with millimeter units, fixed precision, zero margin, "
     "and fit_to_stroke disabled."
