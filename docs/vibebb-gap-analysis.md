@@ -788,8 +788,10 @@ roadmap 14.23（Z-1〜Z-13）をmergeした`main`（`5bf2c90`）と更新済みi
 AA-4（`PartSelectionError`へ要求内容と次手）、AA-5（`--allow-dirty`のdirty拒否）、
 AA-6（未知block診断への登録名一覧と`requirement.block_missing`）、AA-7（firmware pinの
 net id由来roleをregistry照合し未登録roleを候補付きでfail-closedにする）、AA-8（graphの
-`parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）は
-実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
+`parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）、
+AA-15（CPL rotation offset不一致エラーへdeclared・effective・evidence offset・
+basisと宣言の次手）、AA-16（LCSC部品番号なしfitted部品エラーへrefdes一覧と
+`not_fitted`／`lcsc`宣言の次手）は実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目
