@@ -16,6 +16,7 @@ from typing import cast
 from acd.adapters.kicad.emit import det_uuid, fmt, requote
 from acd.adapters.kicad.library import FootprintLibrary
 from acd.adapters.kicad.overlay import apply_overlay
+from acd.adapters.kicad.paper import select_paper
 from acd.adapters.kicad.placement import Placement, PlacementError, Rect
 from acd.core.board_model import (
     BoardModel,
@@ -622,7 +623,7 @@ def generate_board(
             [Sym("thickness"), fmt(board.thickness_mm)],
             [Sym("legacy_teardrops"), Sym("no")],
         ],
-        [Sym("paper"), Quoted("A4")],
+        [Sym("paper"), Quoted(select_paper(board.width_mm + 40.0, board.height_mm + 40.0))],
         _layers_node(),
         _setup(lane),
         [Sym("net"), "0", Quoted("")],
