@@ -9,8 +9,8 @@ import pytest
 
 from acd.adapters.raster import CairoSvgRasterizer
 from acd.adapters.raster.cairosvg import RasterizerError
-from acd.core.process import sha256_bytes
 from acd.adapters.svg import ACD_SVG_NORMALIZATION_RULE_DESCRIPTION
+from acd.core.process import sha256_bytes
 from acd.core.visual_projection import (
     ACD_SVG_NORMALIZATION_RULE_ID,
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
