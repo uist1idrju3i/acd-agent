@@ -59,7 +59,8 @@ Dockerfileでは次を固定または検証する。
   実行し、実行時の依存解決とダウンロードを不要にする。`UV_FROZEN=1`をimageで宣言する
 - PEP 723依存のprebake: 同梱する全acd-importing Skill scriptと
   `scripts/probe_pinned_acd_graph.py`のmetadata blockが同一であることをbuild時に検証し、
-  probeをonlineで1回、`uv --offline`で1回実行する。これによりpinned `acd`とその
+  probeをonlineで1回、`uv --offline`で1回実行する。probe出力はlog fileへredirectし、
+  成功後に末尾20行だけbuild logへ表示する（SIGPIPE等の無診断停止に備える）。これによりpinned `acd`とその
   isolated environmentをimage build時にcacheへ導入し、FW laneの実行時git・ネットワーク
   依存を除く。ホストで新規の`UV_CACHE_DIR`を作成し、同じprobeをonlineで実行して
   `du -sh`した実測値は2.2 GBだった（PEP 723 probe環境のみの測定であり、既存の
