@@ -190,11 +190,12 @@
       "acd_symbols": [
         "acd.schema.design_graph.DesignGraph",
         "acd.schema.design_graph.GraphNode",
+        "acd.schema.theme_song.ThemeSongProjection",
         "acd.schema.visual_projection.VisualProjectionRecord",
         "acd.schema.visual_projection.VisualProjectionSet"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/doc_inputs.py",
-      "sha256": "c5cabd444cc73c983525817129d6ed0a6e08a62071e57179dcf6b3e85748a17d"
+      "sha256": "5bee8a616eaafb79f3f3d94876572625a1bc757127b9ee5a8cbad2c891634781"
     },
     {
       "acd_symbols": [
@@ -207,12 +208,14 @@
     },
     {
       "acd_symbols": [
+        "acd.core.electrical.ElectricalLane",
         "acd.core.electrical.extract_electrical_lane",
+        "acd.core.firmware_lane.FirmwareLane",
         "acd.core.firmware_lane.extract_firmware_lane",
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_product_readme.py",
-      "sha256": "abbb9f364cd823de92b3bc03d40ce30478ed57d81430129aeb16ec48830c570a"
+      "sha256": "a83830ffaa7be8d395b0a327389d4e49a8616d7a83a927927a2f88f9c72b2389"
     },
     {
       "acd_symbols": [
