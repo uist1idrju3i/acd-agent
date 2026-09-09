@@ -1,6 +1,6 @@
 # dual-beacon-tag (r1) 全投影再生成 最終報告
 
-### 到達段と失敗理由
+## 到達段と失敗理由
 - **failed_stage**: `visual-review-manifest`
 - **failure_reason**: `RasterizerError: source SVG is unavailable`
 - **loop-summary.ok**: `false`
@@ -8,16 +8,16 @@
 
 **根拠**: 設計loop内の `derive_visual_review()` が `config.out_root = out/dual-beacon-tag` に対して呼ばれた際、実際の投影物（SVGファイル）が `out/dual-beacon-tag/dual-beacon-tag/visual/` に存在するのに対し、manifest生成ロジックが期待するパスと不一致を起こし、rasterizerが「source SVG is unavailable」を検出した。これは容器内パス解決のフレームワークバグである。
 
-### 3 laneの生成状況
+## 3 laneの生成状況
 | lane | status | 備考 |
 |---|---|---|
 | 基板 (electrical) | 生成完了 | ERC/DRC通過、Evidence生成済み |
 | 筐体 (mechanical) | 生成完了 | 機械ゲート通過、Evidence生成済み |
 | FW (firmware) | 生成完了 | ビルド・QEMU実行通過、Evidence生成済み |
 
-### 生成した投影一覧（path・sha256）
+## 生成した投影一覧（path・sha256）
 
-#### 基板（board）
+### 基板（board）
 | path | sha256 |
 |---|---|
 | `out/dual-beacon-tag/dual-beacon-tag/gerbers/dual-beacon-tag-F_Cu.gtl` | `e3e69a80b9165039a6c867015b49908cc204ece18515feb749a2867a50c8e448` |
@@ -41,7 +41,7 @@
 | `out/dual-beacon-tag/dual-beacon-tag/theme-song/theme-song.mid` | `4f0a7bcc44d0e360afb8f11a49059226b4c2d26f0d0335077281b5a8ec671972` |
 | `out/dual-beacon-tag/dual-beacon-tag/theme-song-projection.json` | `999cf0970de37abf52a445f7c3457165e6a4c7de87e36fda928fb43c2d20addc` |
 
-#### 筐体（enclosure）
+### 筐体（enclosure）
 | path | sha256 |
 |---|---|
 | `out/dual-beacon-tag/dual-beacon-tag-enclosure/enclosure.stl` | `a021ffed33ae1757f9677010aa00bda8509dbb3eee26600877a7dd3e830d21c1` |
@@ -50,12 +50,12 @@
 | `out/dual-beacon-tag/dual-beacon-tag-enclosure/enclosure-lid.step` | `807ec2b65f40383cfc9378a8f2f0dd3d7902086a6e9da357d2ed6a2ca72abca3` |
 | `out/dual-beacon-tag/dual-beacon-tag-enclosure/enclosure-assembly.step` | `f0bcb01617760dc60645968c35a944216f9744af41cea666c1830cd8a4bc812a` |
 
-#### FW
+### FW
 | path | sha256 |
 |---|---|
 | `out/dual-beacon-tag/dual-beacon-tag-fw/flash.bin` | `fedb74a52429557e75e43cc7703f7b70904d97a095d89a1a1727a12d76ce95e8` |
 
-### 視覚レビュー
+## 視覚レビュー
 
 **workaroundの経緯**: 容器内の `derive_visual_review` は `out_root` に対して誤った相対パスでSVGを探索し失敗した。また、非電気的SVG（layout・system・firmware・mechanical投影）がKiCad形式以外の `<title>` を持つため、単純にパス合わせだけでは `normalize_svg` で失敗する。これらのフレームワーク制約を回避するため、基板電気的投影のみを一時ディレクトリに分離して `derive_visual_review_pngs.py` を実行し、生成物を `final-out/` に保存した。
 
@@ -80,7 +80,7 @@ visual review: complete (3/3 observed)
 - labelの重なり・読みやすさ・凡例・余白・誤った内容の詳細評価は、人間による直接の視覚検査が必要であり、本環境では代替できない。
 - 以上はL3観測であり、合否Evidenceではない。
 
-### 製品ドキュメント
+## 製品ドキュメント
 
 - **製品説明README**: `acd-product-docs` Skillで生成成功
   - `final-out/docs/product-readme.md`（theme-song節含む）
@@ -90,7 +90,7 @@ visual review: complete (3/3 observed)
   instruction manual generation failed: pin projection ... is missing macros: ACD_LOG_PERIOD_MS, ACD_PIN_BOOT, ACD_PIN_UART_RX, ACD_PIN_UART_TX, ACD_PIN_USB_DN, ACD_PIN_USB_DP, ACD_SHT40_I2C_ADDRESS
   ```
 
-### authoritative Evidence 検証
+## authoritative Evidence 検証
 
 `scripts/verify_authoritative_evidence.py --revision-from fixtures/dual-beacon-tag/graph.json --out-root out/dual-beacon-tag --require-lane electrical --require-lane mechanical --require-lane firmware` → **exit 0**
 
@@ -106,13 +106,13 @@ OK: 3 authoritative Evidence file(s) verified
 | `evidence-mechanical.json` | `valid` | `r1` | N/A |
 | `evidence-firmware.json` | `valid` | `r1` | N/A |
 
-### report_final_basis
+## report_final_basis
 
 `scripts/report_final_basis.py --root /home/openhands/acd-workspace-regen-20260909 --design-input fixtures/dual-beacon-tag/spec.json` → **exit 0**
 
 出力は以下の通り（引用）:
 
-#### source changes
+### source changes
 ```
 status: changed
 no commits past the bootstrap revision
@@ -120,7 +120,7 @@ worktree git status --porcelain: 49 paths (fixtures, evidence, final-out, visual
 worktree git diff HEAD --stat: <empty>
 ```
 
-#### design values（抜粋）
+### design values（抜粋）
 部品表は `fixtures/dual-beacon-tag/spec.json` から機械抽出された以下の通り:
 - C1-C4: CL10A106MQ8NNNC / CL10B104KB8NNNC (LCSC C1691 / C1591)
 - D1-D2: KT-0603G / KT-0603A (LED)
@@ -130,7 +130,7 @@ worktree git diff HEAD --stat: <empty>
 - U1: ESP32-C3-MINI-1-N4 (C2838502)
 - U2: AMS1117-3.3 (C6186)
 
-### 成果物
+## 成果物
 
 `dual-beacon-tag-regen.tar.gz`（workspace直下、1.9MB）に以下を含む:
 - `out/dual-beacon-tag/`（基板・筐体・FWの3 lane出力、Gerber/drill、CPL/BOM、DFM、Evidence、loop-summary、timing-record、hash manifestなど。build treeは除外）
@@ -141,6 +141,6 @@ worktree git diff HEAD --stat: <empty>
 - `final-out/dual-beacon-tag/visual/vision-observations/`（3件の観測記録）
 - `visual-observations/`（観測テキスト原稿）
 
-### 結論
+## 結論
 
 設計入力は変更せずに全投影の再生成を試みた。基板・筐体・FWの3 laneは生成完了し、各Evidenceは `valid`・`target_revision: r1` で検証された。ただし、loopは `visual-review-manifest` 段でfail-closedとなり、`ok: false` のままである。order-readiness段は `--design-only` により未実行である。合格・order-ready・実機動作の主張は行わない。
