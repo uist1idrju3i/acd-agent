@@ -18,6 +18,10 @@ from acd.core.decoupling_placement import (
     solve_decoupling_placements,
 )
 from acd.core.electrical import GraphExtractionError
+from acd.core.firmware_capability import (
+    FirmwareCapabilityContractError,
+    load_firmware_capability_registry,
+)
 from acd.core.functional_blocks import load_functional_block_registry
 from acd.core.library_assets import (
     LibraryAssetError,
@@ -220,9 +224,34 @@ def build_graph(spec: DesignFixtureSpec) -> DesignGraph:
                 depends_on=[f"req.{item}" for item in sorted(block.requirement_ids)],
             )
         )
+    registered_pin_roles: tuple[str, ...] = ()
+    if spec.firmware_pin_assignments:
+        try:
+            registered_pin_roles = tuple(
+                load_firmware_capability_registry().document.pin_role_order
+            )
+        except FirmwareCapabilityContractError as exc:
+            raise FixtureBuilderError(
+                f"firmware capability registry is unavailable: {exc}"
+            ) from exc
     for pin in sorted(spec.firmware_pin_assignments, key=lambda item: item.pin_id):
         if pin.net not in known_net_ids:
             raise FixtureBuilderError(f"firmware pin references unknown net: {pin.net}")
+        role = pin.net.removeprefix("net.")
+        if role not in registered_pin_roles:
+            candidates = sorted(
+                candidate
+                for candidate in registered_pin_roles
+                if candidate == role.lower() or candidate.endswith(f"_{role.lower()}")
+            )
+            raise FixtureBuilderError(
+                f"firmware pin {pin.pin_id!r} net {pin.net!r} derives role {role!r} "
+                "which is not a registered firmware pin role "
+                f"(registered: {', '.join(sorted(registered_pin_roles))}); "
+                f"rename the net to net.<role> using a registered role "
+                f"(candidates: {', '.join(candidates)}) — the firmware capability "
+                "registry is a contract and is not extended here"
+            )
         nodes.append(
             GraphNode(
                 id=pin.pin_id,
