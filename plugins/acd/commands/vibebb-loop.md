@@ -18,7 +18,16 @@ allowed-tools:
 会話で受け取った要件を、次の順序で設計入力へ反映してから実行する。
 生のshellや任意のPython moduleを使わず、宣言された`acd_*` toolだけを使う。
 
-0. 宣言された`acd_*` toolがこの会話に無い場合（ambient install経路など）は、
+0. 最初に、project dir直下に`.openhands/bootstrap-record.json`が存在することを
+   確認する。存在しない場合、このloopを会話dirへcloneして実行してはならない。
+   `/acd:init`が登録したworkspaceへ切り替えるか、`acd_bootstrap_workspace`で
+   workspaceを用意する。recordが無いままでは
+   `uv run python scripts/report_final_basis.py`の最終報告は`status: unknown`のままとなり、
+   stop policyは停止を拒否する。どうしてもrecord無しで停止する場合は
+   `out/stop-report.json`へ`bootstrap_record_missing: true`を宣言する必要がある
+   （宣言は停止を許すだけで合否権限を与えない）。
+
+   宣言された`acd_*` toolがこの会話に無い場合（ambient install経路など）は、
    任意のshell作業へ退避せず、次のcommandで不在をfail-closedに確認する。
 
    ```bash

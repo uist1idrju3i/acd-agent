@@ -584,7 +584,11 @@ OpenHands SDK v1.44.1のagent-serverはACDの対象外である。serverの採�
 
 `plugins/acd/hooks/`はSDKのhook契約を使い、agent経路だけで安全境界を追加する。
 派生投影（`out/`、`evidence/`、製造出力）への直接書き込み、ゲート未通過の発注・
-外部送信、設計入力変更後の未検証終了をdenyする。projection guardは保護対象への
+外部送信、設計入力変更後の未検証終了をdenyする。stop policyは停止前に
+`.openhands/bootstrap-record.json`の`resolved_revision`を要求し、recordが
+無いproject dir（/acd:init未実行）では停止をdenyする。record無しで停止するには
+`out/stop-report.json`へ`bootstrap_record_missing: true`を宣言する必要があり、
+宣言は停止を許すだけで合否権限を与えない。projection guardは保護対象への
 言及全般ではなく、editorの書き込みpath、patch header、shellのredirection・
 書き込み系commandのtargetを判定する。laneの出力先optionと`out/stop-report.json`の
 規定記録は許可し、読み取り専用操作と書き込みpatternのない未知commandは停止させない。
