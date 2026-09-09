@@ -8,14 +8,28 @@ from typing import ClassVar, Literal, get_args
 
 from acd.adapters.svg.common import (
     ACD_SVG_RENDERER_VERSION,
-    DIAGRAM_FONT_SIZE_RATIO,
+    COLOR_EDGE,
+    COLOR_EDGE_MUTED,
+    COLOR_HEADER_RULE,
+    COLOR_TEXT_MUTED,
+    DIAGRAM_REFERENCE_WIDTH,
+    KIND_FILL,
+    KIND_STROKE,
+    SMALL_FONT_SCALE,
     SvgVisualProjectionError,
+    arrow_marker_defs,
+    diagram_font_size,
     escape_xml,
+    footer_height,
     format_svg_number,
+    header_height,
     input_records,
+    legend,
     render_svg_projection,
     slugify_identifier,
-    view_box_font_size,
+    svg_document,
+    svg_text,
+    text_advance,
 )
 from acd.core.electrical import ElectricalLane, NetView
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
@@ -26,7 +40,7 @@ from acd.schema.visual_projection import (
 )
 
 # Both system projections are laid out on a fixed 240-unit wide viewBox.
-_DIAGRAM_VIEW_BOX_WIDTH = 240.0
+_DIAGRAM_VIEW_BOX_WIDTH = DIAGRAM_REFERENCE_WIDTH
 
 _KNOWN_NODE_KINDS = frozenset(get_args(NodeKind))
 _BLOCK_DRAW_KINDS = frozenset(
@@ -115,7 +129,43 @@ def _block_edges(
     return sorted(edges)
 
 
-def _block_svg(graph: DesignGraph) -> bytes:
+# Swimlane order (top to bottom) and human-facing lane titles.
+_BLOCK_LANE_ORDER: tuple[str, ...] = (
+    "safety.boundary",
+    "electrical.board",
+    "firmware.module",
+    "electrical.component",
+    "electrical.net",
+)
+_BLOCK_LANE_TITLES = {
+    "safety.boundary": "Safety boundary",
+    "electrical.board": "Board",
+    "firmware.module": "Firmware",
+    "electrical.component": "Components",
+    "electrical.net": "Nets",
+}
+
+
+def _block_human_label(node: GraphNode, lane: ElectricalLane) -> str:
+    """Human-facing primary label; the node id is always shown as secondary."""
+    if node.kind == "electrical.component":
+        component = next(
+            (item for item in lane.components if item.node_id == node.id), None
+        )
+        if component is not None:
+            return f"{component.refdes} {component.value}".strip()
+    elif node.kind == "electrical.net":
+        net = next((item for item in lane.nets if item.node_id == node.id), None)
+        if net is not None:
+            return net.name
+    elif node.kind == "firmware.module":
+        module_name = node.attrs.get("module_name")
+        if isinstance(module_name, str) and module_name:
+            return module_name
+    return _BLOCK_LANE_TITLES[node.kind]
+
+
+def _block_svg(graph: DesignGraph, lane: ElectricalLane) -> bytes:
     _validate_node_kinds(graph)
     nodes = {
         node.id: node for node in graph.nodes if node.kind in _BLOCK_DRAW_KINDS
@@ -124,60 +174,175 @@ def _block_svg(graph: DesignGraph) -> bytes:
         raise SvgVisualProjectionError("system block projection has no drawable nodes")
     edges = _block_edges(graph, nodes)
     ordered = sorted(nodes.values(), key=lambda node: node.id)
-    positions = {
-        node.id: (20.0 + (index % 3) * 75.0, 25.0 + (index // 3) * 28.0)
-        for index, node in enumerate(ordered)
-    }
-    height = max(70.0, 50.0 + math.ceil(len(ordered) / 3) * 28.0)
-    font_size = view_box_font_size(_DIAGRAM_VIEW_BOX_WIDTH, ratio=DIAGRAM_FONT_SIZE_RATIO)
-    chunks = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="240mm" '
-        f'height="{format_svg_number(height)}mm" '
-        f'viewBox="0 0 240 {format_svg_number(height)}">',
-        '<g id="system-block">',
+    font_size = diagram_font_size()
+    small = font_size * SMALL_FONT_SCALE
+    width = _DIAGRAM_VIEW_BOX_WIDTH
+    margin = font_size * 2
+    lane_label_width = font_size * 12
+    grid_left = margin + lane_label_width
+    grid_width = width - grid_left - margin
+    box_height = font_size * 4.2
+    gap = font_size * 1.6
+    row_pitch = box_height + gap
+
+    labels = {node.id: _block_human_label(node, lane) for node in ordered}
+    lanes = [
+        (kind, [node for node in ordered if node.kind == kind])
+        for kind in _BLOCK_LANE_ORDER
+        if any(node.kind == kind for node in ordered)
     ]
+    positions: dict[str, tuple[float, float, float]] = {}
+    lane_bands: list[tuple[str, float, float]] = []
+    band_by_kind: dict[str, tuple[float, float]] = {}
+    y = header_height(font_size) + font_size * 3.5
+    for kind, lane_nodes in lanes:
+        longest = max(
+            max(
+                text_advance(labels[node.id], font_size, bold=True),
+                text_advance(node.id, small),
+            )
+            for node in lane_nodes
+        )
+        box_width = min(max(longest + font_size * 1.5, font_size * 12), grid_width)
+        columns = max(1, int((grid_width + gap) // (box_width + gap)))
+        rows = math.ceil(len(lane_nodes) / columns)
+        band_top = y - gap / 2
+        for index, node in enumerate(lane_nodes):
+            column = index % columns
+            row = index // columns
+            positions[node.id] = (
+                grid_left + column * (box_width + gap),
+                y + row * row_pitch,
+                box_width,
+            )
+        y += rows * row_pitch
+        lane_bands.append((kind, band_top, y - gap / 2))
+        band_by_kind[kind] = (band_top, y - gap / 2)
+        y += gap
+    height = y + footer_height(font_size)
+
+    body = [arrow_marker_defs(font_size), '<g id="system-block">']
+    body += legend(
+        [
+            (_BLOCK_LANE_TITLES[kind], KIND_FILL[kind], KIND_STROKE[kind])
+            for kind, _ in lanes
+        ],
+        x=margin,
+        y=header_height(font_size) + font_size * 1.2,
+        font_size=small,
+        element_id="block-legend",
+    )
+    body.append('<g id="block-lanes">')
+    for kind, top, bottom in lane_bands:
+        body.append(
+            f'<rect x="{format_svg_number(margin)}" y="{format_svg_number(top)}" '
+            f'width="{format_svg_number(width - 2 * margin)}" '
+            f'height="{format_svg_number(bottom - top)}" fill="{KIND_FILL[kind]}" '
+            f'fill-opacity="0.35" stroke="none"/>'
+        )
+        body.append(
+            svg_text(
+                _BLOCK_LANE_TITLES[kind],
+                x=margin + font_size * 0.6,
+                y=top + font_size * 2.2,
+                font_size=font_size,
+                weight="bold",
+                fill=KIND_STROKE[kind],
+            )
+        )
+        body.append(
+            svg_text(
+                kind,
+                x=margin + font_size * 0.6,
+                y=top + font_size * 3.6,
+                font_size=small,
+                fill=COLOR_TEXT_MUTED,
+            )
+        )
+    body.append("</g>")
+    body.append('<g id="block-edges">')
+    # Orthogonal bus routing that never crosses a box: leave the source box
+    # vertically to a bus just outside its lane band, run to the trunk left of
+    # the grid, travel to a bus just outside the target band, drop down the
+    # channel left of the target column and enter the target from its left.
+    trunk_x = grid_left - gap * 0.4
     for source, target in edges:
-        source_x, source_y = positions[source]
-        target_x, target_y = positions[target]
+        sx, sy, sw = positions[source]
+        tx, ty, _ = positions[target]
+        source_top, source_bottom = band_by_kind[nodes[source].kind]
+        target_top, target_bottom = band_by_kind[nodes[target].kind]
+        downward = ty >= sy
+        start_y = sy + box_height if downward else sy
+        source_bus_y = (
+            source_bottom + gap * 0.25 if downward else source_top - gap * 0.25
+        )
+        target_bus_y = (
+            target_top - gap * 0.25 if downward else target_bottom + gap * 0.25
+        )
+        channel_x = tx - gap / 2
+        end_y = ty + box_height / 2
         edge_id = (
             f"block-edge-{slugify_identifier(source)}-"
             f"{slugify_identifier(target)}"
         )
-        chunks.append(
-            f'<line id="{edge_id}" x1="{format_svg_number(source_x + 22)}" '
-            f'y1="{format_svg_number(source_y + 8)}" '
-            f'x2="{format_svg_number(target_x + 22)}" '
-            f'y2="{format_svg_number(target_y + 8)}" stroke="#555"/>'
+        body.append(
+            f'<path id="{edge_id}" d="M {format_svg_number(sx + sw / 2)} '
+            f"{format_svg_number(start_y)} V {format_svg_number(source_bus_y)} "
+            f"H {format_svg_number(trunk_x)} V {format_svg_number(target_bus_y)} "
+            f"H {format_svg_number(channel_x)} V {format_svg_number(end_y)} "
+            f'H {format_svg_number(tx)}" '
+            f'fill="none" stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(font_size * 0.15)}" '
+            'marker-end="url(#arrow)"/>'
         )
-    for kind in sorted({node.kind for node in ordered}):
-        chunks.append(f'<g id="block-kind-{slugify_identifier(kind)}">')
-        for node in ordered:
-            if node.kind != kind:
-                continue
-            x, y = positions[node.id]
+    body.append("</g>")
+    for kind, lane_nodes in lanes:
+        body.append(f'<g id="block-kind-{slugify_identifier(kind)}">')
+        for node in lane_nodes:
+            x, node_y, box_width = positions[node.id]
             identifier = slugify_identifier(node.id)
-            chunks.extend(
+            body.extend(
                 [
-                    f'<g id="block-node-{identifier}">',
+                    f'<g id="block-node-{identifier}" data-node-id="{escape_xml(node.id)}" '
+                    f'data-node-kind="{escape_xml(node.kind)}">',
                     f'<rect id="block-box-{identifier}" '
-                    f'x="{format_svg_number(x)}" y="{format_svg_number(y)}" '
-                    'width="44" height="16" fill="none" stroke="#000"/>',
-                    f'<text id="block-label-{identifier}" '
-                    f'x="{format_svg_number(x + 2)}" '
-                    f'y="{format_svg_number(y + 6)}" '
-                    f'font-size="{format_svg_number(font_size)}">'
-                    f"{escape_xml(node.id)}</text>",
-                    f'<text id="block-kind-label-{identifier}" '
-                    f'x="{format_svg_number(x + 2)}" '
-                    f'y="{format_svg_number(y + 12)}" '
-                    f'font-size="{format_svg_number(font_size)}">'
-                    f"{escape_xml(node.kind)}</text>",
+                    f'x="{format_svg_number(x)}" y="{format_svg_number(node_y)}" '
+                    f'width="{format_svg_number(box_width)}" '
+                    f'height="{format_svg_number(box_height)}" rx="{format_svg_number(font_size * 0.4)}" '
+                    f'fill="{KIND_FILL[kind]}" stroke="{KIND_STROKE[kind]}" '
+                    f'stroke-width="{format_svg_number(font_size * 0.18)}"/>',
+                    svg_text(
+                        labels[node.id],
+                        x=x + font_size * 0.7,
+                        y=node_y + font_size * 1.7,
+                        font_size=font_size,
+                        element_id=f"block-label-{identifier}",
+                        weight="bold",
+                    ),
+                    svg_text(
+                        node.id,
+                        x=x + font_size * 0.7,
+                        y=node_y + font_size * 3.4,
+                        font_size=small,
+                        element_id=f"block-kind-label-{identifier}",
+                        fill=COLOR_TEXT_MUTED,
+                    ),
                     "</g>",
                 ]
             )
-        chunks.append("</g>")
-    chunks.append("</g></svg>")
-    return "".join(chunks).encode("utf-8")
+        body.append("</g>")
+    body.append("</g>")
+    return svg_document(
+        width=width,
+        height=height,
+        title="System block diagram",
+        subtitle=(
+            f"{graph.graph_id} {graph.revision} - {len(ordered)} blocks, "
+            f"{len(edges)} dependency edges (arrow points to the dependency)"
+        ),
+        body=body,
+        font_size=font_size,
+    )
 
 
 def _power_connections(
@@ -246,72 +411,177 @@ def _power_nets(lane: ElectricalLane) -> tuple[NetView, ...]:
     return tuple(sorted(nets, key=lambda net: net.node_id))
 
 
+def _component_caption(lane: ElectricalLane, component_id: str) -> tuple[str, str]:
+    """Return `(refdes value, mpn)` for a component node id."""
+    component = lane.component_by_id(component_id)
+    return f"{component.refdes} {component.value}".strip(), component.mpn
+
+
 def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
     nets = _power_nets(lane)
-    row_height = 30.0
-    height = 30.0 + len(nets) * row_height
-    font_size = view_box_font_size(_DIAGRAM_VIEW_BOX_WIDTH, ratio=DIAGRAM_FONT_SIZE_RATIO)
-    chunks = [
-        '<svg xmlns="http://www.w3.org/2000/svg" width="240mm" '
-        f'height="{format_svg_number(height)}mm" '
-        f'viewBox="0 0 240 {format_svg_number(height)}">',
-        '<g id="power-tree">',
-    ]
-    for index, net in enumerate(nets):
+    font_size = diagram_font_size()
+    small = font_size * SMALL_FONT_SCALE
+    width = _DIAGRAM_VIEW_BOX_WIDTH
+    margin = font_size * 2
+    box_height = font_size * 4.2
+    load_pitch = box_height + font_size * 0.8
+    row_gap = font_size * 3.0
+    rows: list[tuple[NetView, str, list[str], float, float]] = []
+    y = header_height(font_size) + font_size * 3.0
+    captions: list[str] = []
+    for net in nets:
         source_id, load_ids = _power_connections(net, lane, graph)
-        y = 20.0 + index * row_height
+        row_height = max(box_height, len(load_ids) * load_pitch - font_size * 0.8)
+        rows.append((net, source_id, load_ids, y, row_height))
+        y += row_height + row_gap
+        captions.append(net.name)
+        for component_id in (source_id, *load_ids):
+            label, mpn = _component_caption(lane, component_id)
+            captions.append(label)
+            captions.append(f"{mpn} ({component_id})")
+    longest = max(
+        max(text_advance(text, font_size, bold=True), text_advance(text, small))
+        for text in captions
+    )
+    connector_gap = font_size * 6
+    column_width = (width - 2 * margin - 2 * connector_gap) / 3
+    # Widen the sheet instead of clipping when a caption does not fit.
+    box_width = max(column_width, longest + font_size * 1.5)
+    width = max(width, 2 * margin + 3 * box_width + 2 * connector_gap)
+    source_x = margin
+    net_x = source_x + box_width + connector_gap
+    load_x = net_x + box_width + connector_gap
+    height = y - row_gap + font_size * 2 + footer_height(font_size)
+
+    body = [arrow_marker_defs(font_size), '<g id="power-tree">']
+    column_title_y = header_height(font_size) + font_size * 1.2
+    for label, x in (("Source", source_x), ("Power rail", net_x), ("Loads", load_x)):
+        body.append(
+            svg_text(
+                label,
+                x=x + box_width / 2,
+                y=column_title_y,
+                font_size=font_size,
+                anchor="middle",
+                weight="bold",
+                fill=COLOR_TEXT_MUTED,
+            )
+        )
+    for index, (net, source_id, load_ids, row_y, row_height) in enumerate(rows):
         net_identifier = slugify_identifier(net.node_id)
         source_identifier = slugify_identifier(source_id)
-        chunks.extend(
+        center_y = row_y + row_height / 2
+        source_label, source_mpn = _component_caption(lane, source_id)
+        if index > 0:
+            separator_y = row_y - row_gap / 2
+            body.append(
+                f'<line x1="{format_svg_number(margin)}" y1="{format_svg_number(separator_y)}" '
+                f'x2="{format_svg_number(width - margin)}" y2="{format_svg_number(separator_y)}" '
+                f'stroke="{COLOR_HEADER_RULE}" stroke-width="{format_svg_number(font_size * 0.08)}" '
+                f'stroke-dasharray="{format_svg_number(font_size)} {format_svg_number(font_size)}"/>'
+            )
+        body.extend(
             [
-                f'<g id="power-net-{net_identifier}">',
+                f'<g id="power-net-{net_identifier}" data-node-id="{escape_xml(net.node_id)}">',
                 f'<rect id="power-source-box-{net_identifier}" '
-                f'x="10" y="{format_svg_number(y)}" width="46" height="14" '
-                'fill="none" stroke="#000"/>',
-                f'<text id="power-source-label-{net_identifier}" x="12" '
-                f'y="{format_svg_number(y + 8)}" '
-                f'font-size="{format_svg_number(font_size)}">'
-                f"{escape_xml(source_id)}</text>",
-                f'<rect id="power-net-box-{net_identifier}" x="92" '
-                f'y="{format_svg_number(y)}" width="56" height="14" '
-                'fill="none" stroke="#000"/>',
-                f'<text id="power-net-label-{net_identifier}" x="94" '
-                f'y="{format_svg_number(y + 6)}" '
-                f'font-size="{format_svg_number(font_size)}">'
-                f"{escape_xml(net.name)}</text>",
-                f'<text id="power-voltage-label-{net_identifier}" x="94" '
-                f'y="{format_svg_number(y + 11)}" '
-                f'font-size="{format_svg_number(font_size)}">'
-                f"{net.voltage_nominal_v} V</text>",
-                f'<line id="power-edge-source-{net_identifier}-'
-                f'{source_identifier}" x1="56" '
-                f'y1="{format_svg_number(y + 7)}" x2="92" '
-                f'y2="{format_svg_number(y + 7)}" stroke="#555"/>',
+                f'x="{format_svg_number(source_x)}" y="{format_svg_number(center_y - box_height / 2)}" '
+                f'width="{format_svg_number(box_width)}" height="{format_svg_number(box_height)}" '
+                f'rx="{format_svg_number(font_size * 0.4)}" fill="{KIND_FILL["electrical.component"]}" '
+                f'stroke="{KIND_STROKE["electrical.component"]}" '
+                f'stroke-width="{format_svg_number(font_size * 0.18)}"/>',
+                svg_text(
+                    source_label,
+                    x=source_x + font_size * 0.7,
+                    y=center_y - box_height / 2 + font_size * 1.7,
+                    font_size=font_size,
+                    element_id=f"power-source-label-{net_identifier}",
+                    weight="bold",
+                ),
+                svg_text(
+                    f"{source_mpn} ({source_id})",
+                    x=source_x + font_size * 0.7,
+                    y=center_y - box_height / 2 + font_size * 3.4,
+                    font_size=small,
+                    fill=COLOR_TEXT_MUTED,
+                ),
+                f'<rect id="power-net-box-{net_identifier}" '
+                f'x="{format_svg_number(net_x)}" y="{format_svg_number(center_y - box_height / 2)}" '
+                f'width="{format_svg_number(box_width)}" height="{format_svg_number(box_height)}" '
+                f'rx="{format_svg_number(font_size * 0.4)}" fill="{KIND_FILL["electrical.net"]}" '
+                f'stroke="{KIND_STROKE["electrical.net"]}" '
+                f'stroke-width="{format_svg_number(font_size * 0.18)}"/>',
+                svg_text(
+                    net.name,
+                    x=net_x + font_size * 0.7,
+                    y=center_y - box_height / 2 + font_size * 1.7,
+                    font_size=font_size,
+                    element_id=f"power-net-label-{net_identifier}",
+                    weight="bold",
+                ),
+                svg_text(
+                    f"{net.voltage_nominal_v} V nominal",
+                    x=net_x + font_size * 0.7,
+                    y=center_y - box_height / 2 + font_size * 3.4,
+                    font_size=small,
+                    element_id=f"power-voltage-label-{net_identifier}",
+                ),
+                f'<line id="power-edge-source-{net_identifier}-{source_identifier}" '
+                f'x1="{format_svg_number(source_x + box_width)}" y1="{format_svg_number(center_y)}" '
+                f'x2="{format_svg_number(net_x)}" y2="{format_svg_number(center_y)}" '
+                f'stroke="{COLOR_EDGE}" stroke-width="{format_svg_number(font_size * 0.2)}" '
+                'marker-end="url(#arrow)"/>',
             ]
         )
         for load_index, load_id in enumerate(load_ids):
             load_identifier = slugify_identifier(load_id)
-            load_y = y + load_index * 16.0
-            chunks.extend(
+            load_y = row_y + load_index * load_pitch
+            load_center = load_y + box_height / 2
+            load_label, load_mpn = _component_caption(lane, load_id)
+            bend_x = net_x + box_width + font_size * 3
+            body.extend(
                 [
-                    f'<rect id="power-load-box-{net_identifier}-'
-                    f'{load_identifier}" x="174" '
-                    f'y="{format_svg_number(load_y)}" width="56" height="14" '
-                    'fill="none" stroke="#000"/>',
-                    f'<text id="power-load-label-{net_identifier}-'
-                    f'{load_identifier}" x="176" '
-                    f'y="{format_svg_number(load_y + 8)}" '
-                    f'font-size="{format_svg_number(font_size)}">'
-                    f"{escape_xml(load_id)}</text>",
-                    f'<line id="power-edge-load-{net_identifier}-'
-                    f'{load_identifier}" x1="148" '
-                    f'y1="{format_svg_number(y + 7)}" x2="174" '
-                    f'y2="{format_svg_number(load_y + 7)}" stroke="#555"/>',
+                    f'<rect id="power-load-box-{net_identifier}-{load_identifier}" '
+                    f'x="{format_svg_number(load_x)}" y="{format_svg_number(load_y)}" '
+                    f'width="{format_svg_number(box_width)}" height="{format_svg_number(box_height)}" '
+                    f'rx="{format_svg_number(font_size * 0.4)}" '
+                    f'fill="{KIND_FILL["electrical.component"]}" '
+                    f'stroke="{KIND_STROKE["electrical.component"]}" '
+                    f'stroke-width="{format_svg_number(font_size * 0.18)}"/>',
+                    svg_text(
+                        load_label,
+                        x=load_x + font_size * 0.7,
+                        y=load_y + font_size * 1.7,
+                        font_size=font_size,
+                        element_id=f"power-load-label-{net_identifier}-{load_identifier}",
+                        weight="bold",
+                    ),
+                    svg_text(
+                        f"{load_mpn} ({load_id})",
+                        x=load_x + font_size * 0.7,
+                        y=load_y + font_size * 3.4,
+                        font_size=small,
+                        fill=COLOR_TEXT_MUTED,
+                    ),
+                    f'<path id="power-edge-load-{net_identifier}-{load_identifier}" '
+                    f'd="M {format_svg_number(net_x + box_width)} {format_svg_number(center_y)} '
+                    f"H {format_svg_number(bend_x)} V {format_svg_number(load_center)} "
+                    f'H {format_svg_number(load_x)}" fill="none" stroke="{COLOR_EDGE}" '
+                    f'stroke-width="{format_svg_number(font_size * 0.2)}" marker-end="url(#arrow)"/>',
                 ]
             )
-        chunks.append("</g>")
-    chunks.append("</g></svg>")
-    return "".join(chunks).encode("utf-8")
+        body.append("</g>")
+    body.append("</g>")
+    return svg_document(
+        width=width,
+        height=height,
+        title="Power tree",
+        subtitle=(
+            f"{graph.graph_id} {graph.revision} - {len(nets)} declared power rails "
+            "(source pin from power_source_pin, loads from connected pins)"
+        ),
+        body=body,
+        font_size=font_size,
+    )
 
 
 class SvgSystemRenderer:
@@ -334,7 +604,7 @@ class SvgSystemRenderer:
         output_path: Path,
     ) -> None:
         content = (
-            _block_svg(graph)
+            _block_svg(graph, lane)
             if projection_type == "system_block_view"
             else _power_tree_svg(lane, graph)
         )
