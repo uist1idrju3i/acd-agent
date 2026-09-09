@@ -145,6 +145,7 @@ def derive_png_visual_projections(
     *,
     out_dir: Path,
     rasterizer: CairoSvgRasterizer | None = None,
+    raster_set_path: Path | None = None,
 ) -> VisualProjectionSet:
     """Derive PNG projections from an existing SVG projection set."""
     rasterizer = rasterizer or CairoSvgRasterizer()
@@ -167,7 +168,12 @@ def derive_png_visual_projections(
         source_revision=projection_set.source_revision,
         projections=derived,
     ).with_computed_hashes()
-    (out_dir / "visual-projections-electrical-raster.json").write_text(
+    raster_output = (
+        raster_set_path
+        if raster_set_path is not None
+        else out_dir / "visual-projections-electrical-raster.json"
+    )
+    raster_output.write_text(
         result.model_dump_json(indent=2) + "\n",
         encoding="utf-8",
     )

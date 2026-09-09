@@ -71,6 +71,7 @@ class ProgressDigestReport(AcdModel):
     # The digest reads L3 records only; it never inspects Evidence, so a
     # reader must not take `status="pass"` as a verified pass or order-ready.
     authoritative_evidence: Literal["unverified"] = "unverified"
+    visual_review: NonEmptyStr | None = None
 
     @model_validator(mode="after")
     def validate_status(self) -> ProgressDigestReport:
