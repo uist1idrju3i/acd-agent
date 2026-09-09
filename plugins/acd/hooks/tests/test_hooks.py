@@ -766,8 +766,35 @@ def test_session_start_timeout_fails_closed(
     assert module._probe(tmp_path) is None
 
 
+def _bootstrap_record(root: Path, revision: str) -> None:
+    record = root / ".openhands" / "bootstrap-record.json"
+    record.parent.mkdir(parents=True)
+    record.write_text(
+        json.dumps({"resolved_revision": revision}), encoding="utf-8"
+    )
+
+
 def test_stop_denies_changed_design_input(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "user.name=test",
+            "commit",
+            "-qm",
+            "init",
+            "--allow-empty",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+    revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True
+    ).strip()
+    _bootstrap_record(tmp_path, revision)
     (tmp_path / "fixtures/a").mkdir(parents=True)
     (tmp_path / "fixtures/a/graph.json").write_text("{}", encoding="utf-8")
     code, output = run("stop_policy.py", {}, "stop", tmp_path)
@@ -795,6 +822,12 @@ def test_stop_allows_newer_valid_evidence(tmp_path: Path) -> None:
         ],
         cwd=tmp_path,
         check=True,
+    )
+    _bootstrap_record(
+        tmp_path,
+        subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=tmp_path, text=True
+        ).strip(),
     )
     graph.write_text('{"changed": true}', encoding="utf-8")
     evidence = tmp_path / "out/gd1/evidence-mechanical.json"
@@ -1128,6 +1161,13 @@ def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
     plugin_root = tmp_path / "plugin"
     shutil.copytree(ROOT / "plugins/acd/hooks", plugin_root / "hooks")
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    # The stop policy denies a workspace that lacks the /acd:init bootstrap
+    # record; declaring bootstrap_record_missing keeps this smoke run at allow.
+    report = tmp_path / "out" / "stop-report.json"
+    report.parent.mkdir(parents=True)
+    report.write_text(
+        json.dumps({"bootstrap_record_missing": True}), encoding="utf-8"
+    )
     payloads = {
         "protect-derived-projections": {
             "tool_name": "file_editor",
@@ -1198,6 +1238,11 @@ def test_plugin_hook_commands_resolve_the_installed_plugin_root(tmp_path: Path) 
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=workspace, check=True)
+    report = workspace / "out" / "stop-report.json"
+    report.parent.mkdir(parents=True)
+    report.write_text(
+        json.dumps({"bootstrap_record_missing": True}), encoding="utf-8"
+    )
 
     for name, command in _configured_plugin_hook_commands().items():
         completed = subprocess.run(
