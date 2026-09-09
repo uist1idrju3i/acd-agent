@@ -164,15 +164,15 @@ RUN cd "${ACD_HOME}" \
 # Warm the shared PEP 723 environment and prove that the pinned Skill path is
 # reusable without network access. A metadata check verifies that every
 # acd-importing script uses the same block.
-# Probe output is captured to log files and printed afterwards so a silent
-# failure (e.g. exit 141 SIGPIPE) still leaves the probe's last lines in the
-# build log instead of terminating with no diagnostics.
+# Probe output is captured to log files: the full log is printed on failure
+# (so a silent stop such as exit 141 SIGPIPE still leaves the probe's output
+# in the build log) and tailed on success.
 RUN cd "${ACD_HOME}" \
     && python3.14 scripts/verify_skill_package_ref.py --metadata-only \
-    && uv run --script scripts/probe_pinned_acd_graph.py --fixture fixtures/golden-design-1 \
-        >/tmp/probe-online.log 2>&1 \
-    && uv run --offline --script scripts/probe_pinned_acd_graph.py \
-        --fixture fixtures/golden-design-1 >/tmp/probe-offline.log 2>&1 \
+    && { uv run --script scripts/probe_pinned_acd_graph.py --fixture fixtures/golden-design-1 \
+           >/tmp/probe-online.log 2>&1 || { cat /tmp/probe-online.log; exit 1; }; } \
+    && { uv run --offline --script scripts/probe_pinned_acd_graph.py --fixture fixtures/golden-design-1 \
+           >/tmp/probe-offline.log 2>&1 || { cat /tmp/probe-offline.log; exit 1; }; } \
     && tail -n 20 /tmp/probe-online.log /tmp/probe-offline.log \
     && rm -f /tmp/probe-online.log /tmp/probe-offline.log
 
