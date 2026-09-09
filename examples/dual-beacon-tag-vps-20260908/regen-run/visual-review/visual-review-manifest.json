@@ -1,0 +1,33 @@
+{
+  "artifact_kind": "visual_review_manifest",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "generated_by": "acd.pipeline.visual_review",
+  "renderer_version": "2.9.0",
+  "required": [
+    {
+      "projection_id": "dual-beacon-tag-b-cu-png",
+      "source_projection_id": "dual-beacon-tag-b-cu",
+      "domain": "electrical",
+      "projection_type": "rasterized_view",
+      "png_path": "visual/png/dual-beacon-tag-b-cu.png",
+      "image_hash": "sha256:3cf3823e02b66bbe70b65069e4c05b8610985efe30dd9979c03bfc8a507c1810"
+    },
+    {
+      "projection_id": "dual-beacon-tag-f-cu-png",
+      "source_projection_id": "dual-beacon-tag-f-cu",
+      "domain": "electrical",
+      "projection_type": "rasterized_view",
+      "png_path": "visual/png/dual-beacon-tag-f-cu.png",
+      "image_hash": "sha256:514cf32c05e08853cffcf7cf148f689a9be1b1c41c1efa6669890476dd923440"
+    },
+    {
+      "projection_id": "dual-beacon-tag-schematic-png",
+      "source_projection_id": "dual-beacon-tag-schematic",
+      "domain": "electrical",
+      "projection_type": "rasterized_view",
+      "png_path": "visual/png/dual-beacon-tag-schematic.png",
+      "image_hash": "sha256:f763a63fc6f1df9547fbe7bc6a27092212bcc8c87159dc91ea387aeaae0b007f"
+    }
+  ]
+}

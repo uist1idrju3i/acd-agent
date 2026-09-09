@@ -1,0 +1,304 @@
+{
+  "content_sha256": "sha256:bed42a1d4b18db868f751361096866db9cabf2fc52b7047cecea530fe6eab0ae",
+  "declaration_id": "acd-design-freedom-14.4-session-1",
+  "declaration_sha256": "sha256:6aeab76dd08f3846f8d27757cc40faf0464be7b74ed8489b0b18d39dccd0b737",
+  "dimensions": [
+    {
+      "allowed_values": [],
+      "bound_basis": "The fab profile and Kicad DRC gates remain the authority; no independent bound is declared.",
+      "description": "Search declared electrical clearance values.",
+      "dimension_id": "clearance_mm",
+      "domain_source": null,
+      "gate_authority": [
+        "kicad_drc",
+        "gnd_stitch_vias"
+      ],
+      "kind": "continuous",
+      "lane": "electrical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Copper clearance",
+      "unit": "mm",
+      "value_source": "graph attributes electrical.board.min_clearance_mm and fab profile capabilities"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The design-predicate and board geometry gates remain the authority; no independent bound is declared.",
+      "description": "Search the two-dimensional placement of declared components.",
+      "dimension_id": "component_placement_xy",
+      "domain_source": null,
+      "gate_authority": [
+        "design_predicates",
+        "kicad_drc",
+        "gnd_stitch_vias"
+      ],
+      "kind": "continuous",
+      "lane": "electrical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Component placement",
+      "unit": "mm",
+      "value_source": "graph attributes electrical.component.placement_x_mm and placement_y_mm"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The board projection and Kicad DRC gates remain the authority; no independent bound is declared.",
+      "description": "Search the rotation of declared components in the board frame.",
+      "dimension_id": "component_rotation_deg",
+      "domain_source": null,
+      "gate_authority": [
+        "kicad_drc",
+        "gnd_stitch_vias"
+      ],
+      "kind": "continuous",
+      "lane": "electrical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Component rotation",
+      "unit": "deg",
+      "value_source": "graph attribute electrical.component.placement_rotation_deg"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The selected fab profile and board projection remain the authority; no independent bound is declared.",
+      "description": "The selected board copper layer count and its projection.",
+      "dimension_id": "copper_layer_count",
+      "domain_source": null,
+      "gate_authority": [
+        "fab_profile",
+        "kicad_drc"
+      ],
+      "kind": "integer_range",
+      "lane": "electrical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": "Changing layer count changes fab profile selection and board projection; J-3 profile registry work is out of scope for this session.",
+      "search_enabled": false,
+      "title": "Copper layer count",
+      "unit": "layers",
+      "value_source": "graph attribute electrical.board.layers and selected fab profile"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The lower bound is the declared clearance requirement; the upper bound is the bounded C-1 search envelope. The mechanical projection and interference gates remain authoritative.",
+      "description": "Search the declared clearance between component bodies and the enclosure.",
+      "dimension_id": "enclosure_internal_clearance_mm",
+      "domain_source": null,
+      "gate_authority": [
+        "mechanical_projection",
+        "mechanical_interference"
+      ],
+      "kind": "continuous",
+      "lane": "mechanical",
+      "maximum": 4.0,
+      "minimum": 1.0,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Enclosure internal clearance",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.internal_clearance_mm"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The lid mating gap is a fit declaration rather than an interference search degree of freedom; the mechanical projection and interference gates remain authoritative.",
+      "description": "The deterministic mating gap for the enclosure lid.",
+      "dimension_id": "enclosure_lid_fit_gap_mm",
+      "domain_source": null,
+      "gate_authority": [
+        "mechanical_projection",
+        "mechanical_interference"
+      ],
+      "kind": "continuous",
+      "lane": "mechanical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": "The lid fit gap is a deterministic mating/interface declaration. C-1 does not alter fit geometry while searching enclosure body clearance and standoff dimensions.",
+      "search_enabled": false,
+      "title": "Enclosure lid fit gap",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.lid_fit_gap_mm"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The lower and upper values are the bounded C-1 standoff envelope; the mechanical projection and interference gates remain authoritative.",
+      "description": "Search the declared mounting standoff height.",
+      "dimension_id": "enclosure_standoff_height_mm",
+      "domain_source": null,
+      "gate_authority": [
+        "mechanical_projection",
+        "mechanical_interference"
+      ],
+      "kind": "continuous",
+      "lane": "mechanical",
+      "maximum": 8.0,
+      "minimum": 2.0,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Enclosure standoff height",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.standoff_height_mm"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The lower and upper values are the bounded C-1 standoff envelope; the mechanical projection and interference gates remain authoritative.",
+      "description": "Search the declared mounting standoff radius.",
+      "dimension_id": "enclosure_standoff_radius_mm",
+      "domain_source": null,
+      "gate_authority": [
+        "mechanical_projection",
+        "mechanical_interference"
+      ],
+      "kind": "continuous",
+      "lane": "mechanical",
+      "maximum": 3.0,
+      "minimum": 1.0,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Enclosure standoff radius",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.standoff_radius_mm"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The lower bound is the declared minimum wall thickness; the upper bound is the bounded C-1 search envelope. The mechanical projection and interference gates remain authoritative.",
+      "description": "Search the declared enclosure wall thickness within a bounded mechanical envelope.",
+      "dimension_id": "enclosure_wall_thickness_mm",
+      "domain_source": null,
+      "gate_authority": [
+        "mechanical_projection",
+        "mechanical_interference"
+      ],
+      "kind": "continuous",
+      "lane": "mechanical",
+      "maximum": 4.0,
+      "minimum": 1.2,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Enclosure wall thickness",
+      "unit": "mm",
+      "value_source": "graph attribute mechanical.enclosure.wall_thickness_mm"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The pin_firmware_alignment and electrical routing gates remain the authority; no independent bound is declared.",
+      "description": "Search firmware GPIO assignments among graph-declared MCU pads.",
+      "dimension_id": "gpio_assignment",
+      "domain_source": "graph nodes fw.pin.* and electrical MCU pad assignments",
+      "gate_authority": [
+        "design_predicates",
+        "kicad_drc"
+      ],
+      "kind": "categorical",
+      "lane": "firmware",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "GPIO assignment",
+      "unit": null,
+      "value_source": "graph nodes fw.pin.* and electrical MCU pad assignments"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The mechanical projection and interference gates remain the authority; no independent bound is declared.",
+      "description": "The datum used to resolve mechanical placement and dimensions.",
+      "dimension_id": "mechanical_datum",
+      "domain_source": "mechanical.* datum nodes",
+      "gate_authority": [
+        "mechanical_projection",
+        "mechanical_interference"
+      ],
+      "kind": "categorical",
+      "lane": "mechanical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": "The mechanical outline mount-hole declaration is the single datum; component-body positions are derived deterministically from it. B-6 does not enable datum search.",
+      "search_enabled": false,
+      "title": "Mechanical datum",
+      "unit": null,
+      "value_source": "mechanical.* datum nodes"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The router convergence gate remains the authority; no independent bound is declared.",
+      "description": "Search the bounded router pass budget supplied to the pipeline.",
+      "dimension_id": "router_max_passes",
+      "domain_source": null,
+      "gate_authority": [
+        "freerouting_convergence",
+        "kicad_drc"
+      ],
+      "kind": "integer_range",
+      "lane": "electrical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Router maximum passes",
+      "unit": "passes",
+      "value_source": "--max-passes CLI flag"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The fab profile and routing-width/DRC gates remain the authority; no independent bound is declared.",
+      "description": "Search declared copper track widths.",
+      "dimension_id": "track_width_mm",
+      "domain_source": null,
+      "gate_authority": [
+        "routing_width",
+        "kicad_drc"
+      ],
+      "kind": "continuous",
+      "lane": "electrical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Track width",
+      "unit": "mm",
+      "value_source": "graph attributes electrical.board.min_track_mm and netclass width attributes"
+    },
+    {
+      "allowed_values": [],
+      "bound_basis": "The fab profile, routing, DRC, and ground-plane gates remain the authority; no independent bound is declared.",
+      "description": "Search the declared routing via geometry and rule choice.",
+      "dimension_id": "via_rule",
+      "domain_source": "graph attributes electrical.board.via_diameter_mm and via_drill_mm plus fab profile capabilities",
+      "gate_authority": [
+        "kicad_drc",
+        "gnd_stitch_vias"
+      ],
+      "kind": "categorical",
+      "lane": "electrical",
+      "maximum": null,
+      "minimum": null,
+      "search_disabled_reason": null,
+      "search_enabled": true,
+      "title": "Via rule",
+      "unit": null,
+      "value_source": "graph attributes electrical.board.via_diameter_mm and via_drill_mm plus fab profile capabilities"
+    }
+  ],
+  "schema_version": "1.0",
+  "searchable_dimensions": [
+    "clearance_mm",
+    "component_placement_xy",
+    "component_rotation_deg",
+    "enclosure_internal_clearance_mm",
+    "enclosure_standoff_height_mm",
+    "enclosure_standoff_radius_mm",
+    "enclosure_wall_thickness_mm",
+    "gpio_assignment",
+    "router_max_passes",
+    "track_width_mm",
+    "via_rule"
+  ],
+  "source_path": "contracts/design-freedom-declaration.json",
+  "target_revision": "r1"
+}

@@ -1,0 +1,104 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "visual_projection_set",
+  "pass_evidence": false,
+  "source_revision": "r1",
+  "projections": [
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-power-tree",
+      "projection_type": "power_tree_view",
+      "domain": "system",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/dual-beacon-tag/graph.json",
+          "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "2.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "301.2024mm",
+        "height": "394.11mm",
+        "view_box": [
+          0.0,
+          0.0,
+          301.2024,
+          394.11
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:3bc21797671b314c29061cc529d74414660a01a1f8b39296c0b73ddb48a5b411",
+      "generated_at": "2026-09-09T11:18:39.010923Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:3bc21797671b314c29061cc529d74414660a01a1f8b39296c0b73ddb48a5b411",
+        "second_image_hash": "sha256:3bc21797671b314c29061cc529d74414660a01a1f8b39296c0b73ddb48a5b411",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-power-tree.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    },
+    {
+      "schema_version": "0.1",
+      "artifact_kind": "visual_projection",
+      "pass_evidence": false,
+      "projection_id": "dual-beacon-tag-system-block",
+      "projection_type": "system_block_view",
+      "domain": "system",
+      "source_revision": "r1",
+      "input_files": [
+        {
+          "path": "fixtures/dual-beacon-tag/graph.json",
+          "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113"
+        }
+      ],
+      "renderer": {
+        "renderer_type": "acd-svg",
+        "tool_name": "acd-svg",
+        "tool_version": "2.0.0",
+        "output_width": null
+      },
+      "media_type": "image/svg+xml",
+      "resolution": {
+        "width": "240mm",
+        "height": "266.61mm",
+        "view_box": [
+          0.0,
+          0.0,
+          240.0,
+          266.61
+        ]
+      },
+      "normalization_rule_id": "acd-svg-v1",
+      "normalization_rule_description": "byte-exact、正規化不要",
+      "image_hash": "sha256:11e5c2c23783bac14b8a7b9127d524e08d1a3972c86c31e1ef90188fde596307",
+      "generated_at": "2026-09-09T11:18:39.007306Z",
+      "regeneration_check": {
+        "status": "reproduced",
+        "first_image_hash": "sha256:11e5c2c23783bac14b8a7b9127d524e08d1a3972c86c31e1ef90188fde596307",
+        "second_image_hash": "sha256:11e5c2c23783bac14b8a7b9127d524e08d1a3972c86c31e1ef90188fde596307",
+        "reason": null
+      },
+      "image_path": "visual/dual-beacon-tag-system-block.svg",
+      "section_plane_id": null,
+      "section_offset_mm": null,
+      "interference_volume_mm3": null,
+      "interference_region_present": null
+    }
+  ],
+  "identity_hash": "sha256:2a6804049021dc1f3825f2e7291d0cb057b2367799e7c007d394780dedc1a04a",
+  "canonical_hash": "sha256:63a8da5f6ed7edf7b40b5c56ae0ec04f7e0ef0208dd39a85257a848da702239b"
+}

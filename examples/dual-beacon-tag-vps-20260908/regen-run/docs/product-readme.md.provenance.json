@@ -1,0 +1,38 @@
+{
+  "artifact_kind": "generated_document",
+  "document_hash": "sha256:b741bc5c76b7cd9aae2386abf09c425291dbc0155db02e0ae6f5916e39db1f20",
+  "document_kind": "product_readme",
+  "document_path": "/home/openhands/acd-workspace-regen-20260909/final-out/docs/product-readme.md",
+  "generated_at": "2026-09-09T11:30:00.745678+00:00",
+  "generator": {
+    "content_hash": "sha256:a8568c35dc50bfbf3ad829a03a562fa58cddb690f8e42d58da6ff3fa4c19abb1",
+    "name": "generate_product_readme.py"
+  },
+  "graph_id": "dual-beacon-tag",
+  "inputs": [
+    {
+      "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113",
+      "path": "/home/openhands/acd-workspace-regen-20260909/fixtures/dual-beacon-tag/graph.json"
+    },
+    {
+      "content_hash": "sha256:257a82edc3f00d655659d2d524be960f4ceee59791ebca09836e2b8a7a3e030c",
+      "path": "dual-beacon-tag/visual-projections-electrical.json"
+    },
+    {
+      "content_hash": "sha256:9bb2917c6858f60c8ff6e947f0a3013f39db3016e4e5b13dfc91cd4193f5b42d",
+      "path": "dual-beacon-tag/visual-projections-layout.json"
+    },
+    {
+      "content_hash": "sha256:5e01403833564f8628f4d13c2c258f240e51705b78795ccefa09697fcdc65ab0",
+      "path": "dual-beacon-tag/visual-projections-system.json"
+    },
+    {
+      "content_hash": "sha256:999cf0970de37abf52a445f7c3457165e6a4c7de87e36fda928fb43c2d20addc",
+      "path": "dual-beacon-tag/theme-song-projection.json"
+    }
+  ],
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "target_revision": "r1",
+  "template_id": "acd-product-readme-ja-v2"
+}

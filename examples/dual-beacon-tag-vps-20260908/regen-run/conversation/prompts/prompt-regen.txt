@@ -1,0 +1,18 @@
+/acd:vibebb-loop
+
+このworkspace（main be840c7b3c815f5699483db6dda27eec178653ad で /acd:init 済み）で、既存設計 dual-beacon-tag（r1）の**全投影を再生成**してください。新規設計は行いません。設計入力は変更しないでください。
+
+## 入力
+- 設計入力は本リポジトリに収録済みの `examples/dual-beacon-tag-vps-20260908/fixed-run/fixture/`（spec.json / graph.json / rationale.json）です。これを `fixtures/dual-beacon-tag/` へ置いて使ってください（この設計は既に人手で修正済みの設計入力であり、今回はコピーして構いません）。
+- spec.json / graph.json / rationale.json、`contracts/`、`src/`、`scripts/`、`plugins/` は編集しないでください。gate・閾値・Evidence規則の変更も不可です。
+
+## 実行
+1. `scripts/run_in_workspace.py` 経由（digest固定container）で `run_design_loop.py` を `--design-only` で実行し、基板・筐体・FWの3 laneと全投影（Gerber/drill、CPL/BOM、DFM、visual投影SVG、theme-song MIDI、STEP/3MF、Evidence、hash manifest）を生成してください。order-total段は省略し、見積record・発注scopeは作りません。
+2. loop-summary.json の `visual_review` に従い、`vibebb-loop.md` の必須手順どおりに視覚レビューを実施してください: `scripts/derive_visual_review_pngs.py --out-root <out_root>` でmanifestを生成し、manifestの**全entry**についてPNGを実際に視覚で見て所見（読みやすさ、ラベルの重なり、凡例、余白、誤った内容など）を書き、`scripts/record_visual_vision_observation.py` で1件ずつ記録し、最後に `scripts/verify_visual_review.py --out-root <out_root>` の終了コードと出力を報告してください。所見は観測であり、Evidenceではありません。
+3. `acd-product-docs` Skillで製品説明README（`--theme-song-projection` を指定してテーマソング節を含める）を生成してください。取扱説明書生成も試み、fail-closedになる場合はその出力をそのまま報告してください。
+4. `scripts/verify_authoritative_evidence.py --revision-from fixtures/dual-beacon-tag/graph.json --out-root <out_root> --require-lane electrical --require-lane mechanical --require-lane firmware` を実行し、終了コードと出力を報告してください。
+5. `scripts/report_final_basis.py --root <workspace root> --design-input fixtures/dual-beacon-tag/spec.json` を実行し、出力をそのまま引用してください。
+
+## 成果物
+- 最新のout root配下（投影・Evidence・loop-summary・timing・visual-review-manifest・visual/vision-observations・docs）と `fixtures/dual-beacon-tag/` を `tar czf dual-beacon-tag-regen.tar.gz` で workspace 直下へ固めてください（build tree・第三者libraryなど再生成可能な大容量出力は除く）。
+- 最終報告には、到達段（failed_stage）と理由、生成した投影の一覧（path・sha256）、視覚レビュー所見の要約、verify系の終了コードを含めてください。合格・order-ready・実機動作の主張はしないでください。

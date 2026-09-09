@@ -1,0 +1,1 @@
+/acd:init --repo-url https://github.com/uist1idrju3i/acd-agent --revision be840c7b3c815f5699483db6dda27eec178653ad --workspace /home/openhands/acd-workspace-regen-20260909

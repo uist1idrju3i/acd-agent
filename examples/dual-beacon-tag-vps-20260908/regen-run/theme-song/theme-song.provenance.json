@@ -1,0 +1,63 @@
+{
+  "artifact_kind": "theme_song",
+  "artifacts": {
+    "midi": {
+      "content_hash": "sha256:4f0a7bcc44d0e360afb8f11a49059226b4c2d26f0d0335077281b5a8ec671972",
+      "path": "theme-song.mid"
+    }
+  },
+  "composer_id": "acd-theme-song-composer-v1",
+  "composition": {
+    "bars": 16,
+    "bpm": 95,
+    "key": "g minor",
+    "node_kinds": {
+      "design.functional_block": 5,
+      "electrical.board": 1,
+      "electrical.component": 17,
+      "electrical.net": 12,
+      "electrical.pin": 103,
+      "fab.order_intent": 1,
+      "firmware.module": 1,
+      "firmware.pin_assignment": 5,
+      "firmware.sequence_step": 5,
+      "firmware.state": 4,
+      "firmware.state_transition": 4,
+      "mechanical.board_edge_overhang": 2,
+      "mechanical.component_body": 17,
+      "mechanical.connector_opening": 2,
+      "mechanical.enclosure": 1,
+      "mechanical.outline": 1,
+      "mechanical.silk_text": 5,
+      "requirement": 15,
+      "safety.boundary": 1
+    },
+    "note_events": 344,
+    "salt": "",
+    "seed": "sha256:7719b4407953bcbe42ebdaecdd5e3d7c5eec132a679e7030247a95206a116155",
+    "title": "Theme of dual-beacon-tag r1",
+    "tracks": [
+      "Melody",
+      "Chords",
+      "Bass"
+    ]
+  },
+  "generated_at": "2026-09-09T11:18:39.111984+00:00",
+  "generator": {
+    "content_hash": "sha256:541c0d1c96a32ab41ffc121c5f5be651dbd0684a91e10c6ea069b54cf470910b",
+    "name": "compose_theme_song.py"
+  },
+  "graph_id": "dual-beacon-tag",
+  "input_hash": "sha256:5c8a286080cc4d0a92c85832d140da345ed1d7b539f891c04dc6b4ac78b04eb7",
+  "inputs": [
+    {
+      "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113",
+      "path": "/workspace/acd/fixtures/dual-beacon-tag/graph.json"
+    }
+  ],
+  "license": "BSD-3-Clause",
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "source": "deterministic",
+  "target_revision": "r1"
+}
