@@ -1,4 +1,4 @@
-## dual-beacon-tag (r1) 全投影再生成 最終報告
+# dual-beacon-tag (r1) 全投影再生成 最終報告
 
 ### 到達段と失敗理由
 - **failed_stage**: `visual-review-manifest`

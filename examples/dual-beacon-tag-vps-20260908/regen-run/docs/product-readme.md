@@ -193,7 +193,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 
 基板1層分の銅箔投影。配線とviaの実配置を示す。
 
-![dual-beacon-tag-b-cu](../../out/dual-beacon-tag/dual-beacon-tag/visual/dual-beacon-tag-b-cu.svg)
+![dual-beacon-tag-b-cu](../visual/dual-beacon-tag-b-cu.svg)
 
 - 投影種別: `layered_layout_view`（electrical lane）
 - 画像hash: `sha256:8fef19ad016a0432058e43da9e929f14bb9559b305577d979c3c6b92c001973a`
@@ -202,7 +202,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 
 基板1層分の銅箔投影。配線とviaの実配置を示す。
 
-![dual-beacon-tag-f-cu](../../out/dual-beacon-tag/dual-beacon-tag/visual/dual-beacon-tag-f-cu.svg)
+![dual-beacon-tag-f-cu](../visual/dual-beacon-tag-f-cu.svg)
 
 - 投影種別: `layered_layout_view`（electrical lane）
 - 画像hash: `sha256:aa1ffc880b48a3b30de1b1126eaf24da3cde9a82c44bc8bfecb6ac3d10ab1d89`
@@ -211,7 +211,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 
 基板外形内の部品配置。色はF/B面、refdesは部品参照名。
 
-![dual-beacon-tag-placement](../../out/dual-beacon-tag/dual-beacon-tag/visual/dual-beacon-tag-placement.svg)
+![dual-beacon-tag-placement](../visual/dual-beacon-tag-placement.svg)
 
 - 投影種別: `placement_view`（electrical lane）
 - 画像hash: `sha256:c1c4f43842fdc97106eec9aaff4a9e2d8ed28005c0948df29e3d5e92a41d8272`
@@ -220,7 +220,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 
 電源ネットの供給元から負荷までのツリー投影。
 
-![dual-beacon-tag-power-tree](../../out/dual-beacon-tag/dual-beacon-tag/visual/dual-beacon-tag-power-tree.svg)
+![dual-beacon-tag-power-tree](../visual/dual-beacon-tag-power-tree.svg)
 
 - 投影種別: `power_tree_view`（system lane）
 - 画像hash: `sha256:3bc21797671b314c29061cc529d74414660a01a1f8b39296c0b73ddb48a5b411`
@@ -229,7 +229,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 
 回路図の投影。ネット名はgraph宣言の接続を示す。
 
-![dual-beacon-tag-schematic](../../out/dual-beacon-tag/dual-beacon-tag/visual/dual-beacon-tag-schematic.svg)
+![dual-beacon-tag-schematic](../visual/dual-beacon-tag-schematic.svg)
 
 - 投影種別: `schematic_view`（electrical lane）
 - 画像hash: `sha256:d20412164fdc16bd04715951aaa3cb0e83210cbad6ea1a7a87e3c6a16c4ad033`
@@ -238,7 +238,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 
 基板の層構成投影。誘電体・銅層・ソルダーマスクの積層順を示す。
 
-![dual-beacon-tag-stackup](../../out/dual-beacon-tag/dual-beacon-tag/visual/dual-beacon-tag-stackup.svg)
+![dual-beacon-tag-stackup](../visual/dual-beacon-tag-stackup.svg)
 
 - 投影種別: `stackup_view`（electrical lane）
 - 画像hash: `sha256:35d31176fd250faeb12fe0aabdc15ae741452f8be3985acf263c8ec89a3b6f9f`
@@ -247,7 +247,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 
 機能ブロックと電源・信号の接続関係を示す系統図投影。
 
-![dual-beacon-tag-system-block](../../out/dual-beacon-tag/dual-beacon-tag/visual/dual-beacon-tag-system-block.svg)
+![dual-beacon-tag-system-block](../visual/dual-beacon-tag-system-block.svg)
 
 - 投影種別: `system_block_view`（system lane）
 - 画像hash: `sha256:11e5c2c23783bac14b8a7b9127d524e08d1a3972c86c31e1ef90188fde596307`
@@ -263,7 +263,7 @@ dual-beacon-tag（revision r1）は、ESP32-C3-MINI-1-N4を搭載し、基板外
 | composer | `acd-theme-song-composer-v1` |
 | 出所 | `deterministic` |
 
-- artifact: [theme-song.mid](../../out/dual-beacon-tag/dual-beacon-tag/theme-song/theme-song.mid)
+- artifact: [theme-song.mid](../theme-song/theme-song.mid)
 - artifact hash: `sha256:4f0a7bcc44d0e360afb8f11a49059226b4c2d26f0d0335077281b5a8ec671972`
 - regeneration check: `reproduced`
 
