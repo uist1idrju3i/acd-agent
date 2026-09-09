@@ -1102,6 +1102,13 @@ GHCRへpublishする。publish後はtools（buildした場合）とderived serve
 cancel-in-progress無し）で直列化し、並走したpublishが同じ`latest`と
 lock branchを取り合って`not mergeable`になる事象（PR #350）を防ぐ。lock branchは
 publish対象commitではなく、PR作成時点の`origin/main`先端から切る。
+lock更新PRのCIは引き続きmergeの前提であり、失敗時はlock PRをopenのまま残して
+`publish` jobを失敗させる。一方、lock PR merge後に`workflow_dispatch`で起動する
+main CIは観測専用であり、`gh run watch --exit-status`の結果をpublish runの合否へ
+混ぜない。conclusionは`gh run view`で読み取りstep summaryへ`post-merge main CI`と
+して記録し、success以外（新しいmain pushによるconcurrency cancelを含む）では
+`::warning::`を出すに留める。これによりpublish成功と無関係なmain CI結果が
+1つのfail信号へ混ざることを防ぐ。
 workflowを変更した場合は、CIの`verify` jobがactionlintで`.github/workflows`全体の
 構文を検査する。
 現行のbase tools digestは、Semeru／OpenJ9 JREとbuild時生成SCCを同梱した
@@ -1694,8 +1701,12 @@ mainのCI run `32909530356`をbaselineとして、`verify`は262秒（うちStan
 PRでは`.md`ファイルだけの変更なら`changes` jobがcode変更なしと判定し、
 `docs-verify`だけを実行する。code変更がある場合、core変更なら`verify`がstandard、
 それ以外はfastを実行する。`skills`はplugin変更時またはpush時に実行し、
-`pinned-acd-probe`と`container-gates`はjob levelの`if`でmain push以外をskipする
+`pinned-acd-probe`はjob levelの`if`でmain push以外をskipする
 （skipped jobはGitHubのrequired checkでは合格扱いになり、runnerを確保しない）。
+`container-gates`もmain push以外はskipするが、`fixtures/`・`profiles/`・
+`docker/image-digests.json`を変更するPRでは`changes` jobの`gates_inputs`出力により
+実行する（記録入力の宣言ずれをmerge前に検出するため。container-gatesをmain限定に
+していた間、W-1 fixtureのprovenance不一致はmain CIだけが赤にしていた）。
 `skills`はKiCad library packageの.debを`actions/cache`へ保存し、cache hit時はPPA登録と
 apt metadata更新を省く。dpkg版が`10.0.*`であることの検査はcache経路でも毎回行う。
 

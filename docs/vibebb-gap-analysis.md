@@ -797,7 +797,10 @@ basisと宣言の次手）、AA-16（LCSC部品番号なしfitted部品エラー
 最小1軸移動`min_move_mm`・axis-aligned注記）、AA-20（silkscreen失敗の次手へ
 text短縮→`placement_search_limit_mm`拡大→座標宣言の順序と、全label除去が
 measured passの後に`accepted unresolved text coordinates`で止まるAA-14 deadlockの
-警告、skillへShortening priority一覧を追加）は実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
+警告、skillへShortening priority一覧を追加）、AA-1（W-1 fixtureの
+`profile_fetched_at`をprofile実体の取得時点へ揃え、非GD1段を`fixtures/`・
+`profiles/`・image digest lock変更のPRでも`container-gates`で実行）は実装した。
+他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。
 
 ## Devinのような汎用エージェントが不在なら止まる項目

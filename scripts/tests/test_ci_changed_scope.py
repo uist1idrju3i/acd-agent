@@ -31,7 +31,7 @@ def test_markdown_only_change_skips_code_jobs(
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("README.md\ndocs/operations.md\n")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=false\ncore=false\nplugins=false\n"
+        "code=false\ncore=false\nplugins=false\ngates_inputs=false\n"
     )
 
 
@@ -45,7 +45,7 @@ def test_core_change_runs_core_jobs(
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with(f"docs/operations.md\n{changed_path}\n")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=true\nplugins=false\n"
+        "code=true\ncore=true\nplugins=false\ngates_inputs=false\n"
     )
 
 
@@ -58,7 +58,7 @@ def test_core_configuration_change_runs_core_jobs(
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with(changed_path + "\n")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=true\nplugins=false\n"
+        "code=true\ncore=true\nplugins=false\ngates_inputs=false\n"
     )
 
 
@@ -68,7 +68,7 @@ def test_plugin_only_change_runs_plugin_jobs(
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("plugins/acd/agent.py\n")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=false\nplugins=true\n"
+        "code=true\ncore=false\nplugins=true\ngates_inputs=false\n"
     )
 
 
@@ -78,7 +78,26 @@ def test_mixed_core_and_plugin_change_runs_both_jobs(
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("src/acd/core/model.py\nplugins/acd/README.md\n")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=true\nplugins=true\n"
+        "code=true\ncore=true\nplugins=true\ngates_inputs=false\n"
+    )
+
+
+@pytest.mark.parametrize(
+    "changed_path",
+    (
+        "fixtures/mini-blink-dongle/spec.json",
+        "fixtures/golden-design-1/graph.json",
+        "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json",
+        "docker/image-digests.json",
+    ),
+)
+def test_gates_input_change_marks_gates_inputs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, changed_path: str
+) -> None:
+    output = _set_revisions(monkeypatch, tmp_path)
+    assert main(run=_run_with(f"docs/operations.md\n{changed_path}\n")) == 0
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=false\nplugins=false\ngates_inputs=true\n"
     )
 
 
@@ -88,7 +107,7 @@ def test_non_markdown_docs_change_runs_code_jobs(
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("docs/openhands-sdk-capabilities.json\n")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=false\nplugins=false\n"
+        "code=true\ncore=false\nplugins=false\ngates_inputs=false\n"
     )
 
 
@@ -100,7 +119,7 @@ def test_git_failure_runs_code_jobs(monkeypatch: pytest.MonkeyPatch, tmp_path: P
 
     assert main(run=failing_run) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=true\nplugins=true\n"
+        "code=true\ncore=true\nplugins=true\ngates_inputs=true\n"
     )
 
 
@@ -108,7 +127,7 @@ def test_empty_diff_runs_code_jobs(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     output = _set_revisions(monkeypatch, tmp_path)
     assert main(run=_run_with("")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=true\nplugins=true\n"
+        "code=true\ncore=true\nplugins=true\ngates_inputs=true\n"
     )
 
 
@@ -119,5 +138,5 @@ def test_missing_revision_runs_code_jobs(
     monkeypatch.delenv("BASE_SHA")
     assert main(run=_run_with("README.md\n")) == 0
     assert output.read_text(encoding="utf-8") == (
-        "code=true\ncore=true\nplugins=true\n"
+        "code=true\ncore=true\nplugins=true\ngates_inputs=true\n"
     )

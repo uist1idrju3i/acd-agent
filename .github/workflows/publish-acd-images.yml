@@ -177,6 +177,10 @@ jobs:
             # GITHUB_TOKEN-driven push/pull_request events never start workflows, so CI
             # for the lock branch and for main after the merge is started explicitly.
             local ref="$1" base_sha="$2" started run_id=""
+            # Reset per-call so a previous dispatch's conclusion cannot leak
+            # into the summary when this run is not observed.
+            DISPATCH_CI_RUN_URL=""
+            DISPATCH_CI_CONCLUSION=""
             started=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
             gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$ref" -f "base_sha=$base_sha"
             for _ in $(seq 1 30); do
@@ -189,8 +193,13 @@ jobs:
               echo "CI workflow_dispatch for $ref was not observed" >&2
               return 1
             fi
-            echo "CI run for $ref: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
-            gh run watch --repo "$GITHUB_REPOSITORY" "$run_id" --exit-status
+            DISPATCH_CI_RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+            echo "CI run for $ref: ${DISPATCH_CI_RUN_URL}"
+            gh run watch --repo "$GITHUB_REPOSITORY" "$run_id" || true
+            DISPATCH_CI_CONCLUSION=$(gh run view --repo "$GITHUB_REPOSITORY" "$run_id" \
+              --json conclusion --jq '.conclusion // "unknown"')
+            echo "CI conclusion for $ref: ${DISPATCH_CI_CONCLUSION}"
+            [ "$DISPATCH_CI_CONCLUSION" = "success" ]
           }
           published_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           workflow_run="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
@@ -253,7 +262,14 @@ jobs:
             exit 1
           fi
           gh pr merge --repo "$GITHUB_REPOSITORY" --squash --delete-branch "$pr_url"
-          if ! dispatch_ci main "$base_sha"; then
-            echo "CI on main after the lock PR merge failed: ${pr_url}" >> "$GITHUB_STEP_SUMMARY"
-            exit 1
+          # The post-merge main CI is observational: its conclusion (including
+          # 'cancelled' when a newer main push supersedes it via ci.yml
+          # concurrency) is recorded in the step summary and never fails this
+          # publish run.
+          dispatch_ci main "$base_sha" || true
+          main_conclusion="${DISPATCH_CI_CONCLUSION:-not_observed}"
+          main_run_url="${DISPATCH_CI_RUN_URL:-no run observed}"
+          echo "post-merge main CI: ${main_conclusion} ${main_run_url}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$main_conclusion" != "success" ]; then
+            echo "::warning::post-merge main CI for ${pr_url} finished as ${main_conclusion}: ${main_run_url}"
           fi
