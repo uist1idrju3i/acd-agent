@@ -33,17 +33,22 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 と、(b)人間レビューがない場合にもAIが観察・気づきを得るL2探索補助の両方に使う。
 `mechanical_section_view`はauthoritative assembly STEPの宣言断面、
 `mechanical_interference_view`は筐体とcomponent bodyの交差観測を表す。
-8.3のSVG投影はpipelineのゲート通過後に既定生成するが、8.4のPNG派生とAI受け渡しは
-必要時のon-demand経路であり、合否権限は持たない。acd-tools imageにはlibcairo2を固定し、
-container内でPNG派生可能であることを検証済みである。ただし、AI受け渡し時のon-demand経路で
-あり、合否権限を持たない投影を既定成果物へ増やさないため、PNG派生をpipelineの既定出力へ
-配線していない。lock済みacd-server imageもCairo追加後のtools image由来である。
+8.3のSVG投影はpipelineのゲート通過後に既定生成する。8.4のPNG派生とAI受け渡しは
+design loopの必須段（`visual-review-manifest`）として`run_design_loop`へ接続済みであり、
+3 lane成功後に全投影集合のPNGを`visual/png/`へ派生して`visual-review-manifest.json`を
+書く。agentはmanifestの全entryを`inspect_image_with_vision`で検査してobservationを記録し、
+`scripts/verify_visual_review.py`がfail-closedで検証する。observationとverdictはL3であり
+合否権限は持たない。acd-tools imageにはlibcairo2を固定し、container内でPNG派生可能である
+ことを検証済みである。lock済みacd-server imageもCairo追加後のtools image由来である。
+なお、PNG派生をL1ゲートやEvidence生成へ配線するものではなく、機械向け投影
+（Gerber・CPL・BOM・STEP等）はこのレビューの対象外である。
 視覚投影経路と画像provenance schemaのうち、8.1〜8.2で回路図ビューと層別レイアウトビュー
 の生成・正規化・再生成検査・記録を実装した。現行実装は機械可読投影と独立測定に加え、
 これらの視覚投影をL3観測として扱う。8.3ではGD1基板・筐体の必須ゲート通過後に
 SVGを既定生成して投影集合を書き出す。機械laneもゲート通過後にauthoritative STEPから
 断面・干渉ビューを生成し、`visual-projections-mechanical.json`へL3観測として記録する。
-8.4のPNG派生とAI受け渡しは必要時のon-demand経路として実装済みで、
+8.4のPNG派生とAI受け渡しはdesign loopの必須視覚レビュー段として実装済みで（個別の
+on-demand経路も利用可能）、
 8.5の機械可読投影との照合は、8.3の視覚投影生成直後に電気lane、機械lane、FW laneで
 実行する。8.6は配置図・stackup図、ブロック図・電源ツリー図、FW状態遷移図・
 シーケンス図の3段構成を実装済みである。電源ツリー図の出所はDesign Graphの

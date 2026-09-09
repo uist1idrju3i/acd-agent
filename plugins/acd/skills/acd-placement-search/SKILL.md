@@ -64,6 +64,11 @@ LLM が座標や回転角を直接提案してもよい。その場合も候補�
 
 ## ビジョン案の取り込み
 
+この経路は探索候補の提案用であり、`/acd:vibebb-loop`の必須視覚レビュー段
+（`visual-review-manifest`。全人間向けPNG投影の`inspect_image_with_vision`検査と
+`scripts/verify_visual_review.py`によるfail-closed検証）とは別物であり、どちらも
+`pass_evidence=false`の観測で合否権限を持たない。
+
 ```bash
 uv run --script plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py \
   --proposal vision-proposal.json \
