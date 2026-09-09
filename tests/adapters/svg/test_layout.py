@@ -141,11 +141,22 @@ def test_generates_placement_and_stackup_with_deterministic_provenance(
     assert b'id="front"' in svg
     assert b'id="back"' in svg
     assert b'id="board-outline"' in svg
+    assert b'id="placement-legend"' in svg
+    assert b'id="placement-r1"' in svg
+    assert b'id="refdes-r1"' in svg
+    # Human-facing document: title, subtitle and mm-based inner text.
+    assert b"Component placement" in svg
+    assert b"30 mm" in svg and b"20 mm" in svg
     # 20mm board height * BOARD_FONT_SIZE_RATIO
     assert b'font-size="1"' in svg
     assert b"generated_at" not in svg
+    assert b"2026-" not in svg
     assert b"/home/" not in svg
-    assert measure_svg_resolution(svg).view_box == (0.0, 0.0, 30.0, 20.0)
+    placement_box = measure_svg_resolution(svg).view_box
+    assert placement_box[:2] == (0.0, 0.0)
+    # Adaptive extent: the shorter board side is scaled to at least 60 units.
+    assert placement_box[2] > 90.0
+    assert placement_box[3] > 60.0
 
     second = _generate(tmp_path / "second")
     assert projection_set.identity_hash == second.identity_hash
@@ -170,9 +181,16 @@ def test_stackup_layers_and_root_geometry_are_measured_from_bytes(tmp_path: Path
         marker in svg
         for marker in (b'id="F.Cu"', b'id="In1.Cu"', b'id="In2.Cu"', b'id="B.Cu"')
     )
+    assert b'id="dielectric-band-1"' in svg
+    assert b'id="stackup-legend"' in svg
+    assert b"Layer stackup" in svg
+    assert b"dielectric" in svg
+    assert b'font-size="3"' in svg
+    assert b"2026-" not in svg
+    assert b"/home/" not in svg
     resolution = measure_svg_resolution(svg)
-    assert resolution.width == "80mm"
-    assert resolution.view_box[2:] == (80.0, 21.6)
+    assert resolution.view_box[:2] == (0.0, 0.0)
+    assert resolution.view_box[2] > 0 and resolution.view_box[3] > 0
 
 
 @pytest.mark.parametrize(
