@@ -1,4 +1,5 @@
 """Content-fitted KiCad paper selection tests."""
+# pyright: reportPrivateUsage=false
 
 from __future__ import annotations
 
@@ -12,11 +13,12 @@ import pytest
 from acd.adapters.kicad.board import generate_board
 from acd.adapters.kicad.library import FootprintLibrary, SymbolLibrary
 from acd.adapters.kicad.paper import select_paper
-from acd.adapters.kicad.schematic import generate_schematic
+from acd.adapters.kicad.schematic import PWR_FLAG_LIB_ID, generate_schematic
 from acd.core.electrical import (
     ComponentView,
     ElectricalLane,
     LibraryPin,
+    NetView,
     PinView,
     extract_electrical_lane,
 )
@@ -44,6 +46,16 @@ _SYMBOL_LIB = """(kicad_symbol_lib (version 20211014) (generator kicad_symbol_ed
     (symbol "FLAG_1_1"
       (pin power_in line (at 0 0 0) (length 0)
         (name "pwr" (effects (font (size 1.27 1.27))))
+        (number "1" (effects (font (size 1.27 1.27)))))))
+  (symbol "PWRIN" (pin_names hide) (pin_numbers hide) (in_bom yes) (on_board yes)
+    (property "Reference" "U" (at 0 0 0)
+      (effects (font (size 1.27 1.27))))
+    (symbol "PWRIN_0_1"
+      (rectangle (start -2.54 -1.27) (end 2.54 1.27)
+        (stroke (width 0) (type default)) (fill (type background))))
+    (symbol "PWRIN_1_1"
+      (pin power_in line (at 5.08 0 180) (length 2.54)
+        (name "V" (effects (font (size 1.27 1.27))))
         (number "1" (effects (font (size 1.27 1.27)))))))
 )
 """
@@ -86,7 +98,7 @@ def _paper_of(content: str) -> str:
     return match.group(1)
 
 
-def _schematic_for_count(tmp_path: Path, count: int) -> str:
+def _schematic_for_count(tmp_path: Path, count: int, flag_nets: int = 0) -> str:
     fixture_dir = tmp_path / "fixture"
     lib_dir = fixture_dir / "libraries"
     lib_dir.mkdir(parents=True)
@@ -96,7 +108,7 @@ def _schematic_for_count(tmp_path: Path, count: int) -> str:
 
     lane = extract_electrical_lane(load_gd1_graph())
     library_pin = LibraryPin(
-        symbol="test:T",
+        symbol="test:PWRIN",
         symbol_file="libraries/test.kicad_sym",
         symbol_source="fixture",
         symbol_source_ref="test",
@@ -120,19 +132,32 @@ def _schematic_for_count(tmp_path: Path, count: int) -> str:
         )
         for index in range(1, count + 1)
     )
+    nets = tuple(
+        NetView(
+            node_id=f"net.pwr{index:02d}",
+            name=f"VCC_{index:02d}",
+            voltage_nominal_v=3.3,
+            width_basis="power_rail",
+            current_max_a=0.1,
+            width_basis_source=None,
+            manufacturing_minimum_mm=None,
+            manufacturing_margin_mm=None,
+        )
+        for index in range(1, flag_nets + 1)
+    )
     pins = tuple(
         PinView(
             node_id=f"electrical.pin.t{index:02d}.1",
             component_id=component.node_id,
             pad="1",
-            net_id=None,
-            no_connect=True,
+            net_id=f"net.pwr{index:02d}" if index <= flag_nets else None,
+            no_connect=index > flag_nets,
         )
         for index, component in enumerate(components, start=1)
     )
     test_lane = ElectricalLane(
         components=components,
-        nets=(),
+        nets=nets,
         pins=pins,
         board=lane.board,
     )
@@ -167,6 +192,40 @@ def test_schematic_columns_shrink_for_small_sheets(tmp_path: Path) -> None:
     # n=4 uses 2 columns: the third component starts row two at the left edge.
     assert content.count("(symbol ") >= 4
     assert "(at 40.64 110.49 0)" in content
+
+
+def test_pwr_flags_fill_spare_cells_then_new_row(tmp_path: Path) -> None:
+    # n=10 → cols=4, rows=3; the last row holds 2 comps so 2 spare cells take
+    # the first two flags and the rest continue from the next grid row.
+    content = _schematic_for_count(tmp_path, 10, flag_nets=10)
+    assert "(at 200.66 180.34 0)" in content  # PWR01: last row, col 2
+    assert "(at 280.67 180.34 0)" in content  # PWR02: last row, col 3
+    assert "(at 40.64 250.19 0)" in content  # PWR03: new row, col 0
+    assert "(at 280.67 320.04 0)" in content  # PWR10: row 4, col 3
+    assert _paper_of(content) == "A2"
+
+
+_KICAD_SYMBOLS = Path("/usr/share/kicad/symbols")
+
+
+def test_gd1_schematic_places_flags_on_the_row_after_a_full_grid() -> None:
+    power_library = _KICAD_SYMBOLS / "power.kicad_sym"
+    if not _KICAD_SYMBOLS.is_dir() or not (
+        FIXTURE_DIR.parent.parent / "libraries/Espressif.kicad_sym"
+    ).is_file():
+        pytest.skip("host KiCad symbol libraries are unavailable")
+    graph = load_gd1_graph()
+    lane = extract_electrical_lane(graph)
+    library = SymbolLibrary()
+    digest = "sha256:" + hashlib.sha256(power_library.read_bytes()).hexdigest()
+    pwr_flag = library.load(PWR_FLAG_LIB_ID, power_library, digest)
+    content = generate_schematic(
+        lane, library, FIXTURE_DIR, pwr_flag, project_name="gd1"
+    )
+    flag_count = content.count('lib_id "power:PWR_FLAG"') - 1
+    assert flag_count >= 1
+    # n=30 → cols=6 fills five rows exactly, so flags start on row 5.
+    assert "(at 40.64 391.16 0)" in content
 
 
 _KICAD_FOOTPRINTS = Path("/usr/share/kicad/footprints")

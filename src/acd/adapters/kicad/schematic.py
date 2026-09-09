@@ -303,10 +303,27 @@ def generate_schematic(
 
     flag_nets = nets_needing_pwr_flag(lane, symbols)
     lib_symbols.setdefault(pwr_flag_symbol.lib_id, pwr_flag_symbol)
+    # PWR_FLAGs first fill the spare cells of the last grid row; once it is
+    # full they continue on the next row at the regular cell pitch.
+    comp_count = len(ordered)
+    if comp_count:
+        last_row = (comp_count - 1) // cols
+        spare_cells = cols - (comp_count - last_row * cols)
+    else:
+        last_row = 0
+        spare_cells = 0
+    first_new_row = math.ceil(comp_count / cols) if comp_count else 0
     for flag_index, net_id in enumerate(sorted(flag_nets)):
         refdes = f"PWR{flag_index + 1:02d}"
-        x = _snap(_ORIGIN_X + flag_index * 20.0)
-        y = _snap(_ORIGIN_Y + math.ceil(len(ordered) / cols) * _CELL_H + 40.0)
+        if flag_index < spare_cells:
+            flag_col = comp_count - last_row * cols + flag_index
+            flag_row = last_row
+        else:
+            extra = flag_index - spare_cells
+            flag_col = extra % cols
+            flag_row = first_new_row + extra // cols
+        x = _snap(_ORIGIN_X + flag_col * _CELL_W)
+        y = _snap(_ORIGIN_Y + flag_row * _CELL_H)
         extents_x.extend((x - 10.0, x + 10.0))
         extents_y.extend((y - 10.0, y + 10.0))
         flag_comp = ComponentView(
