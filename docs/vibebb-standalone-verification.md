@@ -1990,9 +1990,9 @@ host実行のL3観測）。
 | STEP×3 | `ISO-10303-21;`〜`END-ISO-10303-21;`、`DATA;`／`ENDSEC;`、entity数 | OK（518〜2714 entity） |
 | 3MF | zip CRC（`testzip`）、`3D/*.model`のXML parse、`<object>`数 | OK（object 4） |
 | gerber 8層／drill | `%FSLA`／`%MO`指定と`M02*`終端、`M48`〜`M30`と穴数 | OK（87穴） |
-| CSV 3／SVG 8／JSON 34 | 行長一致／XML parse／JSON parse | OK |
+| CSV 3／SVG 9／JSON 34 | 行長一致／XML parse／JSON parse | OK |
 
-71件（検査script・log・追加投影を含む）すべて`OK`で、`FAIL`／`UNCHECKED`は0件だった。したがって報告された症状は、生成物側の
+72件（検査script・log・追加投影を含む）すべて`OK`で、`FAIL`／`UNCHECKED`は0件だった。したがって報告された症状は、生成物側の
 破損ではなく再生環境側（`.mid`を開けるplayerの有無、添付経路での拡張子関連付け等）の
 可能性が残る。判別のため`timidity`でWAV→MP3へrenderした聴取用ファイルを報告へ添付した
 （pipeline生成物ではないため未収録）。
