@@ -67,10 +67,12 @@ def test_firmware_projections_are_deterministic_and_crosschecked(
         item.status == "unknown" and item.verification == "observation_required"
         for item in report.review_items
     )
-    state_svg = (tmp_path / "visual" / "gd1-firmware-state.svg").read_text()
-    sequence_svg = (
-        tmp_path / "visual" / "gd1-firmware-sequence.svg"
-    ).read_text()
+    state_svg = (tmp_path / "visual" / "gd1-firmware-state.svg").read_text(
+        encoding="utf-8"
+    )
+    sequence_svg = (tmp_path / "visual" / "gd1-firmware-sequence.svg").read_text(
+        encoding="utf-8"
+    )
     assert "Firmware state machine" in state_svg
     assert 'id="title"' in state_svg and 'id="state-view-legend"' in state_svg
     # Human label: state name is primary, the node id is secondary.
