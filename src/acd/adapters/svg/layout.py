@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import ClassVar, Literal, TypedDict
 
 from acd.adapters.kicad.visual_projection import copper_layers_for_layer_count
 from acd.adapters.svg.common import (
@@ -56,6 +56,19 @@ __all__ = [
 # Darker footprint strokes keep adjacent parts distinguishable.
 _FRONT_STROKE = "#004a80"
 _BACK_STROKE = "#8a2f08"
+
+
+class _PlacementGeometry(TypedDict):
+    placement: ComponentPlacement
+    points: str
+    identifier: str
+    cx: float
+    cy: float
+    inside: bool
+    large: bool
+    outside_label_y: float
+    outside_anchor_x: float
+    outside_anchor: Literal["start", "middle", "end"]
 
 
 def _footprint_bbox(placement: ComponentPlacement) -> tuple[float, float, float, float]:
@@ -133,7 +146,7 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
     board_area = board.width_mm * board.height_mm
 
     # Per-component geometry in board millimetre coordinates.
-    geometry: list[dict] = []
+    geometry: list[_PlacementGeometry] = []
     for placement in sorted(board.placements, key=lambda item: item.refdes):
         corners = _rotated_corners(placement)
         fx1 = min(x for x, _ in corners)
@@ -159,6 +172,9 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
                 "cy": (fy1 + fy2) / 2,
                 "inside": inside,
                 "large": footprint_width * footprint_height > board_area * 0.2,
+                "outside_label_y": 0.0,
+                "outside_anchor_x": 0.0,
+                "outside_anchor": "start",
             }
         )
     # Margins reserve the footprint overhang beyond the board outline so that
@@ -230,15 +246,19 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
     left_anchor_x = min_x - mm_font * 0.6
     right_anchor_x = max_x + mm_font * 0.6
     dim_x = right_anchor_x + right_width + mm_font * 0.6
-    for column, anchor_x, anchor in (
+    label_columns: tuple[
+        tuple[list[_PlacementGeometry], float, Literal["start", "end"]], ...
+    ] = (
         (outside_left, left_anchor_x, "end"),
         (outside_right, right_anchor_x, "start"),
-    ):
+    )
+    for column, anchor_x, anchor in label_columns:
         for index, item in enumerate(column):
             item["outside_label_y"] = line_pitch * index + mm_font
             item["outside_anchor_x"] = anchor_x
             item["outside_anchor"] = anchor
             label_bottom = max(label_bottom, item["outside_label_y"] + mm_small)
+
 
     inner: list[str] = [
         '<g id="board-outline">',

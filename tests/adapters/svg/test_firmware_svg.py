@@ -91,7 +91,7 @@ def test_firmware_projections_are_deterministic_and_crosschecked(
             )
         )
     }
-    assert min(box_x, key=box_x.get) == "fw-state-boot"
+    assert min(box_x, key=lambda frag: box_x[frag]) == "fw-state-boot"
     # 240 unit wide viewBox * DIAGRAM_FONT_SIZE_RATIO
     assert 'font-size="3"' in state_svg
     assert 'viewBox="0 0 ' in state_svg

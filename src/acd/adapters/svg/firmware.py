@@ -33,7 +33,7 @@ from acd.adapters.svg.common import (
     svg_text,
     text_advance,
 )
-from acd.core.firmware_lane import FirmwareLane
+from acd.core.firmware_lane import FirmwareLane, FirmwareStateTransitionView
 from acd.schema.visual_projection import (
     VisualProjectionInput,
     VisualProjectionRecord,
@@ -123,8 +123,12 @@ def _state_svg(lane: FirmwareLane) -> bytes:
     # Band assignment: forward transitions (target index greater than source
     # index) run on lanes above the source row, backward ones on lanes below.
     # Cross-row transitions use the gap on the source side of the direction.
-    above: list[list] = [[] for _ in range(rows)]
-    below: list[list] = [[] for _ in range(rows)]
+    above: list[list[FirmwareStateTransitionView]] = [
+        [] for _ in range(rows)
+    ]
+    below: list[list[FirmwareStateTransitionView]] = [
+        [] for _ in range(rows)
+    ]
     band_side: dict[str, str] = {}
     band_slot: dict[str, int] = {}
     for transition in transitions:
