@@ -22,7 +22,10 @@ from acd.core.firmware_capability import (
     FirmwareCapabilityContractError,
     load_firmware_capability_registry,
 )
-from acd.core.functional_blocks import load_functional_block_registry
+from acd.core.functional_blocks import (
+    load_functional_block_registry,
+    unknown_block_message,
+)
 from acd.core.library_assets import (
     LibraryAssetError,
     materialize_library_assets,
@@ -710,7 +713,11 @@ def build_design_fixture(
         {item.block_id for item in spec.functional_blocks if item.block_id not in known_blocks}
     )
     if unknown_blocks:
-        raise FixtureBuilderError("unknown functional blocks: " + ", ".join(unknown_blocks))
+        raise FixtureBuilderError(
+            unknown_block_message(
+                "unknown functional blocks", unknown_blocks, registry
+            )
+        )
     graph = build_graph(spec)
     out_dir.mkdir(parents=True, exist_ok=True)
     try:

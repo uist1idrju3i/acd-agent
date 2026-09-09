@@ -74,13 +74,18 @@ def select_part(
             if entry.part_number == request.preferred_part_number
         ]
     if not entries:
+        detail = (
+            f" for kind={request.kind!r} value={request.value!r} "
+            f"package={request.package!r}"
+        )
+        if request.preferred_part_number is not None:
+            detail += f" preferred_part_number={request.preferred_part_number!r}"
         raise PartSelectionError(
             "parts catalog has no matching part"
-            + (
-                f" for preferred part {request.preferred_part_number!r}"
-                if request.preferred_part_number
-                else ""
-            )
+            + detail
+            + "; add the part to contracts/parts-catalog.json via "
+            "acd_register_parts_catalog_entry and propose the catalog change "
+            "as a pull request; selection rules are not relaxed"
         )
     if len(entries) > 1:
         raise PartSelectionError(

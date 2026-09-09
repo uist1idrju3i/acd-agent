@@ -785,8 +785,9 @@ roadmap 14.23（Z-1〜Z-13）をmergeした`main`（`5bf2c90`）と更新済みi
 | AA-26 | theme-song投影はSMF（`.mid`）のみで、テキストで読める楽譜形式が無い。利用者の再生環境（QuickTime Player X・SoundFont未設定のVLC等）では`.mid`を開けず、内容を確認・編集する手段が生成物側に無い | 利用者報告: 収録`theme-song.mid`をQuickTime／VLCで再生できず、ブラウザ上のMIDI playerで再生できた（ファイルはbyte一致・構造正常、AA-23）。利用者からMML形式の投影出力の要望 | 中 | — | `theme_song.py`へ`render_mml(score)`を追加し、`render_midi`と同じ`Score`から`theme-song.mml`を決定論的に生成して`.mid`と並べて`hashes.json`・provenance（同一proposal hash・script sha256）へ登録する。MML方言（track別channel、`t`・`o`・`l`・音名/休符/タイ、drum track表記）を1つ固定して`docs/`へ記す。MML→note列の独立parserで再読込し、MIDIのnote数・総tick・pitch列と一致しない場合はMML投影をfail-closedで欠落にする。MIDI側の合否・3 lane判定・Evidence・fab packageへ作用させない |
 
 実装状況: AA-3（bootstrap record不在の停止を`bootstrap_record_missing`宣言までdeny）、
-AA-5（`--allow-dirty`のdirty拒否）、AA-7（firmware pinのnet id由来
-roleをregistry照合し未登録roleを候補付きでfail-closedにする）、AA-8（graphの
+AA-4（`PartSelectionError`へ要求内容と次手）、AA-5（`--allow-dirty`のdirty拒否）、
+AA-6（未知block診断への登録名一覧と`requirement.block_missing`）、AA-7（firmware pinの
+net id由来roleをregistry照合し未登録roleを候補付きでfail-closedにする）、AA-8（graphの
 `parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）は
 実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。

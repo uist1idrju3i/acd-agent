@@ -46,6 +46,24 @@ def test_catalog_missing_and_ambiguous_fail_closed(tmp_path: Path) -> None:
         select_part(request, path)
 
 
+def test_catalog_no_match_reports_request_and_next_step() -> None:
+    request = ComponentPartRequest(
+        kind="resistor",
+        value="47k",
+        package="R_0603_1608Metric",
+        preferred_part_number="NONEXISTENT",
+    )
+    with pytest.raises(PartSelectionError, match="no matching part") as excinfo:
+        select_part(request, CATALOG)
+    message = str(excinfo.value)
+    assert "kind='resistor'" in message
+    assert "value='47k'" in message
+    assert "package='R_0603_1608Metric'" in message
+    assert "preferred_part_number='NONEXISTENT'" in message
+    assert "acd_register_parts_catalog_entry" in message
+    assert "selection rules are not relaxed" in message
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     (
