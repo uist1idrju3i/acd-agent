@@ -22,6 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.theme_song import ThemeSongProjection
 from acd.schema.visual_projection import VisualProjectionRecord, VisualProjectionSet
 
 DOCUMENT_SCHEMA_VERSION = "0.1"
@@ -127,6 +128,80 @@ def _figure(projection: VisualProjectionRecord, base_dir: Path) -> ProjectionFig
         image_path=image_path,
         image_hash=projection.image_hash,
     )
+
+
+@dataclass(frozen=True)
+class ThemeSongFigure:
+    title: str
+    key: str
+    bpm: int
+    bars: int
+    composer_id: str
+    source: str
+    midi_path: Path
+    midi_hash: str
+    regeneration_status: str
+    pass_evidence: bool
+
+
+def load_theme_song(
+    path: Path, graph: DesignGraph
+) -> tuple[ThemeSongFigure, DocumentInput]:
+    """Load a recorded theme-song projection and its MIDI artifact, fail-closed."""
+    content_hash = sha256_file(path)
+    try:
+        projection = ThemeSongProjection.model_validate(
+            json.loads(path.read_text(encoding="utf-8"))
+        )
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise DocumentGenerationError(
+            f"theme-song projection {path} is not valid: {exc}"
+        ) from exc
+    if projection.graph_id != graph.graph_id:
+        raise DocumentGenerationError(
+            f"theme-song projection {path} targets graph "
+            f"{projection.graph_id!r}, not {graph.graph_id!r}"
+        )
+    if projection.source_revision != graph.revision:
+        raise DocumentGenerationError(
+            f"theme-song projection {path} targets revision "
+            f"{projection.source_revision!r}, not {graph.revision!r}"
+        )
+    if projection.regeneration_check.status != "reproduced":
+        raise DocumentGenerationError(
+            f"theme-song projection {path} was not reproduced "
+            f"(status={projection.regeneration_check.status!r})"
+        )
+    if len(projection.artifacts) != 1:
+        raise DocumentGenerationError(
+            f"theme-song projection {path} declares "
+            f"{len(projection.artifacts)} artifacts; exactly one MIDI is required"
+        )
+    artifact = projection.artifacts[0]
+    midi_path = (path.parent / artifact.path).resolve()
+    if not midi_path.is_file():
+        raise DocumentGenerationError(
+            f"theme-song artifact {midi_path} is missing"
+        )
+    midi_hash = sha256_file(midi_path)
+    if midi_hash != artifact.content_hash:
+        raise DocumentGenerationError(
+            f"theme-song artifact {midi_path} hash mismatch "
+            f"(declared={artifact.content_hash!r}, actual={midi_hash!r})"
+        )
+    figure = ThemeSongFigure(
+        title=projection.title,
+        key=projection.key,
+        bpm=projection.bpm,
+        bars=projection.bars,
+        composer_id=projection.composer_id,
+        source=projection.source,
+        midi_path=midi_path,
+        midi_hash=artifact.content_hash,
+        regeneration_status=projection.regeneration_check.status,
+        pass_evidence=projection.pass_evidence,
+    )
+    return figure, DocumentInput(path=path, content_hash=content_hash)
 
 
 def node_by_id(graph: DesignGraph, node_id: str) -> GraphNode:

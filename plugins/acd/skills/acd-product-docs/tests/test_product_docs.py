@@ -6,22 +6,36 @@ including deliberately broken inputs that must stop generation.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
+from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
+from acd.schema.theme_song import (
+    ThemeSongArtifact,
+    ThemeSongArtifactInput,
+    ThemeSongProjection,
+    ThemeSongRegenerationCheck,
+)
 from acd.schema.visual_projection import (
     VisualProjectionSet,
     VisualRegenerationCheck,
 )
-from doc_inputs import DocumentGenerationError, load_graph, load_projection_figures
+from doc_inputs import (
+    DocumentGenerationError,
+    load_graph,
+    load_projection_figures,
+    load_theme_song,
+    sha256_file,
+)
 from generate_instruction_manual import main as manual_main
 from generate_instruction_manual import parse_pins_header, render_manual
+from generate_product_readme import TEMPLATE_ID, render_readme
 from generate_product_readme import main as readme_main
-from generate_product_readme import render_readme
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 GRAPH = REPO_ROOT / "fixtures" / "golden-design-1" / "graph.json"
@@ -97,6 +111,61 @@ def _pins_header(directory: Path, revision: str) -> Path:
     return path
 
 
+def _theme_song_projection(
+    directory: Path,
+    graph: DesignGraph,
+    *,
+    graph_id: str | None = None,
+    revision: str | None = None,
+    midi_payload: bytes = b"MIDI-BYTES",
+    midi_hash: str | None = None,
+    write_midi: bool = True,
+) -> Path:
+    midi_path = directory / "theme-song" / "theme-song.mid"
+    if write_midi:
+        midi_path.parent.mkdir(parents=True, exist_ok=True)
+        midi_path.write_bytes(midi_payload)
+    actual_hash = "sha256:" + hashlib.sha256(midi_payload).hexdigest()
+    projection = ThemeSongProjection(
+        projection_id="theme-song.dual-beacon",
+        graph_id=graph_id or graph.graph_id,
+        source_revision=revision or graph.revision,
+        graph_input=ThemeSongArtifactInput(
+            path="graph.json", content_hash=sha256_file(GRAPH)
+        ),
+        source="deterministic",
+        skill_script_path="plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py",
+        skill_script_sha256="sha256:" + "0" * 64,
+        composer_id="acd-theme-song-composer-v1",
+        seed="sha256:" + "1" * 64,
+        bpm=95,
+        bars=16,
+        key="g minor",
+        title="Theme test",
+        artifacts=[
+            ThemeSongArtifact(
+                path="theme-song/theme-song.mid",
+                media_type="audio/midi",
+                content_hash=midi_hash or actual_hash,
+            )
+        ],
+        regeneration_check=ThemeSongRegenerationCheck(
+            status="reproduced",
+            first_hash=midi_hash or actual_hash,
+            second_hash=midi_hash or actual_hash,
+        ),
+        canonical_hash="unknown",
+    )
+    payload = projection.model_dump(mode="json")
+    payload["canonical_hash"] = canonical_json_sha256(
+        projection.model_dump(mode="json", exclude={"canonical_hash"})
+    )
+    path = directory / "theme-song-projection.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
 def test_product_readme_is_generated_from_graph_values(
     graph: DesignGraph, tmp_path: Path
 ) -> None:
@@ -128,7 +197,15 @@ def test_product_readme_is_generated_from_graph_values(
     assert provenance["artifact_kind"] == "generated_document"
     assert provenance["pass_evidence"] is False
     assert provenance["target_revision"] == graph.revision
-    assert provenance["template_id"] == "acd-product-readme-ja-v1"
+    assert provenance["template_id"] == TEMPLATE_ID
+    assert TEMPLATE_ID == "acd-product-readme-ja-v2"
+    assert "| fw.state.boot | boot | yes |" in body
+    assert "boot_complete" in body
+    assert "fw.state.boot → fw.state.sensor_init" in body
+    assert "| 1 | fw.module.main | comp.u1 | initialize_firmware |" in body
+    assert "## 生成物と判定の関係" in body
+    assert "テーマソング投影: 未入力" in body
+    assert "テーマソング（L3投影" not in body.split("## 図解")[-1]
     assert [item["path"] for item in provenance["inputs"]] == [
         Path(GRAPH).resolve().as_posix(),
         "visual-projections.json",
@@ -248,3 +325,122 @@ def test_invalid_graph_fails_closed(tmp_path: Path) -> None:
     broken.write_text("{}", encoding="utf-8")
     with pytest.raises(DocumentGenerationError, match="is not valid"):
         load_graph(broken)
+
+
+def test_theme_song_section_is_rendered(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    projections = _write_projection_set(tmp_path, graph.revision)
+    theme_path = _theme_song_projection(tmp_path, graph)
+    out_dir = tmp_path / "docs"
+    assert readme_main(
+        [
+            "--graph",
+            str(GRAPH),
+            "--projections",
+            str(projections),
+            "--theme-song-projection",
+            str(theme_path),
+            "--out-dir",
+            str(out_dir),
+            "--base-dir",
+            str(tmp_path),
+        ]
+    ) == 0
+    body = (out_dir / "product-readme.md").read_text(encoding="utf-8")
+    assert "## テーマソング（L3投影）" in body
+    assert "Theme test" in body
+    assert "[theme-song.mid](../theme-song/theme-song.mid)" in body
+    assert "sha256:" + hashlib.sha256(b"MIDI-BYTES").hexdigest() in body
+    assert "g minor" in body
+    assert "pass_evidence=false" in body
+
+    provenance = json.loads(
+        (out_dir / "product-readme.md.provenance.json").read_text(encoding="utf-8")
+    )
+    assert provenance["inputs"][-1]["path"] == "theme-song-projection.json"
+
+
+def test_theme_song_absent_omits_section_and_notes_undeclared(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    projections = _write_projection_set(tmp_path, graph.revision)
+    loaded, _ = load_graph(GRAPH)
+    figures, _ = load_projection_figures([projections], graph.revision)
+    body = render_readme(loaded, figures, tmp_path / "docs")
+    assert "## テーマソング" not in body
+    assert "#テーマソング" not in body
+    assert "テーマソング投影: 未入力（`--theme-song-projection`未指定）" in body
+
+
+def test_theme_song_of_another_graph_fails_closed(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    theme_path = _theme_song_projection(tmp_path, graph, graph_id="other-graph")
+    loaded, _ = load_graph(GRAPH)
+    with pytest.raises(DocumentGenerationError, match="targets graph"):
+        load_theme_song(theme_path, loaded)
+
+
+def test_theme_song_of_another_revision_fails_closed(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    theme_path = _theme_song_projection(tmp_path, graph, revision="r99")
+    loaded, _ = load_graph(GRAPH)
+    with pytest.raises(DocumentGenerationError, match="targets revision"):
+        load_theme_song(theme_path, loaded)
+
+
+def test_theme_song_midi_hash_mismatch_fails_closed(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    theme_path = _theme_song_projection(
+        tmp_path, graph, midi_hash="sha256:" + "f" * 64
+    )
+    loaded, _ = load_graph(GRAPH)
+    with pytest.raises(DocumentGenerationError, match="hash mismatch"):
+        load_theme_song(theme_path, loaded)
+
+
+def test_theme_song_missing_midi_fails_closed(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    theme_path = _theme_song_projection(tmp_path, graph, write_midi=False)
+    loaded, _ = load_graph(GRAPH)
+    with pytest.raises(DocumentGenerationError, match="is missing"):
+        load_theme_song(theme_path, loaded)
+
+
+def test_theme_song_not_reproduced_fails_closed(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    theme_path = _theme_song_projection(tmp_path, graph)
+    payload = json.loads(theme_path.read_text(encoding="utf-8"))
+    payload["regeneration_check"]["status"] = "unknown"
+    payload["regeneration_check"]["first_hash"] = "unknown"
+    payload["regeneration_check"]["second_hash"] = "unknown"
+    payload["canonical_hash"] = "unknown"
+    theme_path.write_text(
+        json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+    )
+    loaded, _ = load_graph(GRAPH)
+    with pytest.raises(DocumentGenerationError):
+        load_theme_song(theme_path, loaded)
+
+
+def test_product_readme_is_deterministic_with_theme(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    projections = _write_projection_set(tmp_path, graph.revision)
+    theme_path = _theme_song_projection(tmp_path, graph)
+    loaded, _ = load_graph(GRAPH)
+    figures, _ = load_projection_figures([projections], graph.revision)
+    theme, theme_input = load_theme_song(theme_path, loaded)
+    out_dir = tmp_path / "docs"
+    first = render_readme(
+        loaded, figures, out_dir, theme=theme, inputs=[theme_input]
+    )
+    second = render_readme(
+        loaded, figures, out_dir, theme=theme, inputs=[theme_input]
+    )
+    assert first == second

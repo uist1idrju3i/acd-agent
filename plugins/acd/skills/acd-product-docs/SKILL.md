@@ -23,18 +23,24 @@ cannot approve a design, and they never flow back into design inputs.
 | Script | Purpose |
 | --- | --- |
 | `doc_inputs.py` | Loads graph, projection sets and images fail-closed, and writes the provenance record. |
-| `generate_product_readme.py` | Renders the product description README with specifications, BOM summary, figures and attribution. |
+| `generate_product_readme.py` | Renders the product description README with an overview, evidence-relation note, requirements, specifications, firmware behavior, BOM, grouped figures, an optional theme-song projection and attribution. |
 | `generate_instruction_manual.py` | Renders the instruction manual from the graph and the `acd_pins.h` pin projection. |
 
 ## Usage
 
 ```bash
-# Product description README.
+# Product description README. Pass every recorded projection set of the loop
+# (board + firmware + mechanical lanes) so the figures section covers all
+# domains, and add --theme-song-projection when the design loop recorded a
+# theme-song projection for the same graph and revision.
 uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_product_readme.py \
     --graph fixtures/golden-design-1/graph.json \
     --projections out/gd1/visual-projections-electrical.json \
                   out/gd1/visual-projections-layout.json \
                   out/gd1/visual-projections-system.json \
+                  out/gd1/visual-projections-firmware.json \
+                  out/gd1-enclosure/visual-projections-mechanical.json \
+    --theme-song-projection out/gd1/theme-song-projection.json \
     --out-dir out/docs
 
 # Instruction manual.
@@ -61,5 +67,9 @@ inputs produce byte-identical output.
 Generation stops instead of reporting "no problem" when an input is missing or
 inconsistent: an invalid graph, a projection set from another revision, a
 projection whose regeneration check is not `reproduced`, a missing projection
-image, a pin projection for another revision, or a missing macro in
-`acd_pins.h` all fail closed.
+image, a theme-song projection for another graph or revision, a theme-song
+MIDI artifact that is missing or whose sha256 differs from the declared hash,
+a pin projection for another revision, or a missing macro in
+`acd_pins.h` all fail closed. When `--theme-song-projection` is not given, the
+README omits the theme-song section and notes the undeclared input in the
+evidence-relation section; the projection path is never guessed.
