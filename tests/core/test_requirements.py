@@ -87,3 +87,49 @@ def test_unknown_functional_block_fails_closed() -> None:
     )
     with pytest.raises(RequirementError, match="unknown functional blocks"):
         validate_requirements(document)
+
+
+def test_requirement_block_missing_fails_closed() -> None:
+    document = RequirementDocument(
+        graph_id="demo",
+        revision="r1",
+        records=[
+            RequirementRecord(
+                requirement_id="demo",
+                statement="要件",
+                drives_functional_blocks=["i2c_bus_pullup"],
+            )
+        ],
+    )
+    with pytest.raises(RequirementError, match=r"requirement\.block_missing") as excinfo:
+        validate_requirements(document, _graph())
+    assert "'i2c_bus_pullup'" in str(excinfo.value)
+    assert "DesignFixtureSpec.functional_blocks" in str(excinfo.value)
+    assert "registered:" in str(excinfo.value)
+
+
+def test_requirement_block_declared_in_graph_passes() -> None:
+    graph = DesignGraph(
+        graph_id="demo",
+        revision="r1",
+        nodes=[
+            *_graph().nodes,
+            GraphNode(
+                id="block.i2c",
+                kind="design.functional_block",
+                attrs={"block_id": "i2c_bus_pullup"},
+            ),
+        ],
+    )
+    document = RequirementDocument(
+        graph_id="demo",
+        revision="r1",
+        records=[
+            RequirementRecord(
+                requirement_id="demo",
+                statement="要件",
+                drives_functional_blocks=["i2c_bus_pullup"],
+            )
+        ],
+    )
+    validate_requirements(document, graph)

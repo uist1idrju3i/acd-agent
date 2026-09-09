@@ -8,6 +8,7 @@ from pathlib import Path
 from acd.core.functional_blocks import (
     FunctionalBlockRegistry,
     load_functional_block_registry,
+    unknown_block_message,
 )
 from acd.pipeline.repository import repository_root
 from acd.schema import FixtureComponentSpec, FixtureNetSpec, TopologyTemplatesDocument
@@ -51,7 +52,11 @@ def _validate_registry_coverage(
     unknown = sorted({template.block_id for template in document.templates} - known)
     if unknown:
         raise TopologySynthesisError(
-            "topology template references unknown functional block: " + ", ".join(unknown)
+            unknown_block_message(
+                "topology template references unknown functional block",
+                unknown,
+                registry,
+            )
         )
 
 
@@ -69,7 +74,9 @@ def synthesize_topology(
     requested = set(block_ids)
     unknown = sorted(requested - known)
     if unknown:
-        raise TopologySynthesisError("unknown functional block: " + ", ".join(unknown))
+        raise TopologySynthesisError(
+            unknown_block_message("unknown functional block", unknown, loaded)
+        )
     by_block_id = {template.block_id: template for template in templates.templates}
     missing_templates = sorted(requested - set(by_block_id))
     if missing_templates:
