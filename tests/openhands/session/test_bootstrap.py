@@ -6,6 +6,7 @@ import importlib
 import json
 import os
 import shutil
+import subprocess
 import tomllib
 from collections.abc import Iterator
 from pathlib import Path
@@ -907,8 +908,21 @@ def test_testllm_conversation_critic_refinement_stops_at_max_iterations(
     )
     llm = TestLLM.from_messages([finish, finish, finish, finish])
     plugin_root = _minimal_plugin(tmp_path)
+    # The stop hook denies a workspace without a bootstrap record unless the
+    # stop report declares it; give the conversation a workspace that declares
+    # the missing record so the scripted refinement loop is not extended by a
+    # hook denial.
+    workspace = tmp_path / "hook-workspace"
+    workspace.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=workspace, check=True)
+    report = workspace / "out" / "stop-report.json"
+    report.parent.mkdir(parents=True)
+    report.write_text(
+        json.dumps({"bootstrap_record_missing": True}), encoding="utf-8"
+    )
     conversation = build_acd_conversation(
         repo_root=Path.cwd(),
+        workspace=workspace,
         llm=llm,
         requirements=[
             AcdEvidenceRequirement(
