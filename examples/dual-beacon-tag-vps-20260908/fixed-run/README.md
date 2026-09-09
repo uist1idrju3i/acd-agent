@@ -154,8 +154,13 @@ loop外の生成器は`out/`を含まないworktree複製で動くため、fix18
 container内へ持ち込んで入力にした（設計入力・生成器は無変更）。
 
 - `docs/product-readme.md`・`docs/product-readme.md.provenance.json`: 製品説明README
-  （`generate_product_readme.py --graph … --projections visual-projections-{electrical,layout,system}.json`）。
-  2回実行して文書はbyte一致（`6f6f9864…bc83`）。provenanceは`pass_evidence: false`のL3文書。
+  （`generate_product_readme.py` v2テンプレート `--graph … --projections
+  visual-projections-{electrical,layout,system,firmware,mechanical}.json
+  --theme-song-projection theme-song-projection.json`）。
+  投影集合JSONと`theme-song/`・`visual/`を同一親に持つstaging layoutで生成し、
+  文書内リンクは`../visual/`・`../theme-song/`へ相対解決する。provenanceのinputsは
+  staging pathを記録する（content hashが正）。L3文書のため本版はhost再生成
+  （provisional、判定へは作用しない）。初版（v1）はcontainer内2回実行でbyte一致を確認済み。
 - `docs/instruction-manual.fail-closed.log`: 取扱説明書（`generate_instruction_manual.py`）は
   **fail-closed（exit 1）**。DBTの`acd_pins.h`（`LED`・`LED2`・`BUTTON`・`I2C_SDA`・`I2C_SCL`・
   `LED_BLINK_PERIOD_MS`）にGD1固有の必須macro（`ACD_PIN_UART_TX/RX`・`ACD_PIN_USB_DP/DN`・
@@ -186,8 +191,9 @@ container内へ持ち込んで入力にした（設計入力・生成器は無�
 - `gerbers/`: 全gerber + drill
 - `enclosure/`: STEP×3 + 3MF（いずれも <150 KB）
 - `theme-song/theme-song.mid`
-- `visual/`: 配置・両面Cu・積層・回路図・系統図・機械断面/干渉 SVG
+- `visual/`: 配置・両面Cu・積層・回路図・系統図・電源ツリー・機械断面/干渉・
+  FW状態/シーケンス SVG
 - `check-projection-formats.py`・`projection-format-check.txt`: 収録投影の独立reader検査（host、L3）
-- `docs/`: 製品説明README＋provenance、取扱説明書のfail-closed log（container追加実行）
+- `docs/`: 製品説明README＋provenance（v2、host再生成）、取扱説明書のfail-closed log（container追加実行）
 - `manufacturing-submission.json`・`manufacturing-submission.host-verdict-recheck.log`: 製造提出verdict（container）＋host再検査
 - 省略: firmware `.bin`/build tree、`.kicad_pcb` 中間生成物、routed board
