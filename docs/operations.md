@@ -1694,8 +1694,12 @@ mainのCI run `32909530356`をbaselineとして、`verify`は262秒（うちStan
 PRでは`.md`ファイルだけの変更なら`changes` jobがcode変更なしと判定し、
 `docs-verify`だけを実行する。code変更がある場合、core変更なら`verify`がstandard、
 それ以外はfastを実行する。`skills`はplugin変更時またはpush時に実行し、
-`pinned-acd-probe`と`container-gates`はjob levelの`if`でmain push以外をskipする
+`pinned-acd-probe`はjob levelの`if`でmain push以外をskipする
 （skipped jobはGitHubのrequired checkでは合格扱いになり、runnerを確保しない）。
+`container-gates`もmain push以外はskipするが、`fixtures/`・`profiles/`・
+`docker/image-digests.json`を変更するPRでは`changes` jobの`gates_inputs`出力により
+実行する（記録入力の宣言ずれをmerge前に検出するため。container-gatesをmain限定に
+していた間、W-1 fixtureのprovenance不一致はmain CIだけが赤にしていた）。
 `skills`はKiCad library packageの.debを`actions/cache`へ保存し、cache hit時はPPA登録と
 apt metadata更新を省く。dpkg版が`10.0.*`であることの検査はcache経路でも毎回行う。
 
