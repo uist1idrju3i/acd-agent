@@ -1,34 +1,46 @@
 {
   "artifact_kind": "generated_document",
-  "document_hash": "sha256:d1ec9af97761bc1f4988f59fec6e618181f2808d1ee8e73fa6d8dd6a1fc8f8ad",
+  "document_hash": "sha256:82a6cb95f8b64623804860cbc7e9e338ea78c1588a26372fb8b5e19801811aa9",
   "document_kind": "product_readme",
-  "document_path": "out/link-stage/fixed-run/docs/product-readme.md",
-  "generated_at": "2026-09-08T23:58:32.230903+00:00",
+  "document_path": "out/readme-regen/fixed-run/docs/product-readme.md",
+  "generated_at": "2026-09-09T03:51:59.199107+00:00",
   "generator": {
-    "content_hash": "sha256:c71be3ed68b0a0888ea5dd4e1343302f04745638fd95063ba8ec0173c214617a",
+    "content_hash": "sha256:a83830ffaa7be8d395b0a327389d4e49a8616d7a83a927927a2f88f9c72b2389",
     "name": "generate_product_readme.py"
   },
   "graph_id": "dual-beacon-tag",
   "inputs": [
     {
-      "content_hash": "sha256:ba87fdf3884d9f113314c1c87d4530798aa0376dc7329270f896866906458551",
-      "path": "fixtures/dual-beacon-tag/graph.json"
+      "content_hash": "sha256:f0fa7a8878a597ed8dce4e585e1ba79ff0962a8d43c66711c7f55130ba4cc113",
+      "path": "examples/dual-beacon-tag-vps-20260908/fixed-run/fixture/graph.json"
     },
     {
       "content_hash": "sha256:71a54d807cf22c28b651a5060c2f670eca1d6d43723c1b2cc413ad97a8e1199d",
-      "path": "out/link-stage/fixed-run/visual-projections-electrical.json"
+      "path": "out/readme-regen/fixed-run/visual-projections-electrical.json"
     },
     {
       "content_hash": "sha256:87c25572120676b629f7809a6cbc0067ace4e8ce687d441f1025870019a1341c",
-      "path": "out/link-stage/fixed-run/visual-projections-layout.json"
+      "path": "out/readme-regen/fixed-run/visual-projections-layout.json"
     },
     {
       "content_hash": "sha256:949e1f84ee45a3b26976124d5f7c5edf2d14ccfa52b5340aeeb76476a05518c0",
-      "path": "out/link-stage/fixed-run/visual-projections-system.json"
+      "path": "out/readme-regen/fixed-run/visual-projections-system.json"
+    },
+    {
+      "content_hash": "sha256:e366090a5f63ce606f26f713b46b8fffb15801cb5e7b5b2b5700b6bd31bd385c",
+      "path": "out/readme-regen/fixed-run/visual-projections-firmware.json"
+    },
+    {
+      "content_hash": "sha256:772e60e5138d375be6c03fab4f6b199d7b6045da5bea331bd40140f27d244cc2",
+      "path": "out/readme-regen/fixed-run/visual-projections-mechanical.json"
+    },
+    {
+      "content_hash": "sha256:999cf0970de37abf52a445f7c3457165e6a4c7de87e36fda928fb43c2d20addc",
+      "path": "out/readme-regen/fixed-run/theme-song-projection.json"
     }
   ],
   "pass_evidence": false,
   "schema_version": "0.1",
   "target_revision": "r1",
-  "template_id": "acd-product-readme-ja-v1"
+  "template_id": "acd-product-readme-ja-v2"
 }
