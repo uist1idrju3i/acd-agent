@@ -82,6 +82,8 @@ class KicadVisualRenderer:
                 "svg",
                 "--layers",
                 layer,
+                "--page-size-mode",
+                "2",
                 "-o",
                 str(output),
                 str(source),

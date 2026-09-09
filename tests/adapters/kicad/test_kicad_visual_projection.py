@@ -169,13 +169,13 @@ def test_layered_layout_view_export_keeps_the_drawing_sheet(
         for line in argv_log.read_text(encoding="utf-8").splitlines()
         if line.split("\x00")[:3] == ["pcb", "export", "svg"]
     ]
-    # The drawing sheet carries the title block that the electrical visual
-    # cross-check reads back as tool-generated evidence, so it must stay in the
-    # export arguments.
+    # Layered layout exports are framed to the board area so the measured root
+    # dimensions reflect the board instead of a fixed page.
     assert exports
     for arguments in exports:
+        assert "--page-size-mode" in arguments
+        assert arguments[arguments.index("--page-size-mode") + 1] == "2"
         assert "--exclude-drawing-sheet" not in arguments
-        assert "--page-size-mode" not in arguments
 
 
 def test_renderer_absent_executable_fails_closed(tmp_path: Path) -> None:

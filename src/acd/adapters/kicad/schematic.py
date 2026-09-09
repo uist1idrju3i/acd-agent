@@ -17,6 +17,7 @@ from pathlib import Path
 
 from acd.adapters.kicad.emit import det_uuid, fmt, requote
 from acd.adapters.kicad.library import ParsedSymbol, SymbolLibrary, SymbolPin
+from acd.adapters.kicad.paper import select_paper
 from acd.core.electrical import ComponentView, ElectricalLane, LibraryPin
 from acd.core.library_assets import resolve_fixture_library_path
 from acd.core.sexpr import Quoted, SExpr, Sym, dumps
@@ -25,11 +26,15 @@ SCH_VERSION = "20250114"
 SCH_FORMAT_NAME = "kicad_sch"
 
 _GRID = 1.27  # KiCad schematic grid in mm
-_COLS = 6
+_MAX_COLS = 6
 _CELL_W = 80.0
 _CELL_H = 70.0
 _ORIGIN_X = 40.64
 _ORIGIN_Y = 40.64
+_PAGE_MARGIN = 20.0
+# Approximate sheet width of the connection-convention note for page sizing.
+_NOTE_EXTENT_X = 170.0
+_NOTE_EXTENT_Y = 5.0
 
 PWR_FLAG_LIB_ID = "power:PWR_FLAG"
 
@@ -229,9 +234,14 @@ def generate_schematic(
     root_uuid = det_uuid("sheet", "root")
     placements: list[PlacedSymbol] = []
     ordered = sorted(lane.components, key=_refdes_key)
+    cols = (
+        max(1, min(_MAX_COLS, math.ceil(math.sqrt(len(ordered)))))
+        if ordered
+        else 1
+    )
     for index, comp in enumerate(ordered):
-        col = index % _COLS
-        row = index // _COLS
+        col = index % cols
+        row = index // cols
         x = _snap(_ORIGIN_X + col * _CELL_W)
         y = _snap(_ORIGIN_Y + row * _CELL_H)
         placements.append(PlacedSymbol(component=comp, symbol=symbols[comp.refdes], x_mm=x, y_mm=y))
@@ -247,14 +257,21 @@ def generate_schematic(
 
     body: list[list[SExpr]] = []
     labels: list[list[SExpr]] = []
+    note_x = _snap(_ORIGIN_X)
+    note_y = _snap(_ORIGIN_Y - 20.0)
     notes: list[list[SExpr]] = [
         _text_note(
             CONNECTION_CONVENTION_NOTE,
-            _snap(_ORIGIN_X),
-            _snap(_ORIGIN_Y - 20.0),
+            note_x,
+            note_y,
             "connection-convention",
         )
     ]
+    # Content extents for the fitted page: each placed symbol occupies a cell
+    # half-size around its anchor, labels extend a fixed allowance, and the
+    # convention note contributes its estimated text box.
+    extents_x = [note_x, note_x + _NOTE_EXTENT_X]
+    extents_y = [note_y - _NOTE_EXTENT_Y, note_y + _NOTE_EXTENT_Y]
     no_connects: list[list[SExpr]] = []
     for placed in placements:
         comp = placed.component
@@ -269,6 +286,8 @@ def generate_schematic(
                     f"symbol pin {comp.refdes}.{sym_pin.number} has no graph pin node"
                 )
             net_id, no_connect = mapping
+            extents_x.extend((px - 10.0, px + 10.0))
+            extents_y.extend((py - 10.0, py + 10.0))
             if net_id is not None:
                 labels.append(
                     _global_label(
@@ -284,10 +303,29 @@ def generate_schematic(
 
     flag_nets = nets_needing_pwr_flag(lane, symbols)
     lib_symbols.setdefault(pwr_flag_symbol.lib_id, pwr_flag_symbol)
+    # PWR_FLAGs first fill the spare cells of the last grid row; once it is
+    # full they continue on the next row at the regular cell pitch.
+    comp_count = len(ordered)
+    if comp_count:
+        last_row = (comp_count - 1) // cols
+        spare_cells = cols - (comp_count - last_row * cols)
+    else:
+        last_row = 0
+        spare_cells = 0
+    first_new_row = math.ceil(comp_count / cols) if comp_count else 0
     for flag_index, net_id in enumerate(sorted(flag_nets)):
         refdes = f"PWR{flag_index + 1:02d}"
-        x = _snap(_ORIGIN_X + flag_index * 20.0)
-        y = _snap(_ORIGIN_Y + math.ceil(len(ordered) / _COLS) * _CELL_H + 40.0)
+        if flag_index < spare_cells:
+            flag_col = comp_count - last_row * cols + flag_index
+            flag_row = last_row
+        else:
+            extra = flag_index - spare_cells
+            flag_col = extra % cols
+            flag_row = first_new_row + extra // cols
+        x = _snap(_ORIGIN_X + flag_col * _CELL_W)
+        y = _snap(_ORIGIN_Y + flag_row * _CELL_H)
+        extents_x.extend((x - 10.0, x + 10.0))
+        extents_y.extend((y - 10.0, y + 10.0))
         flag_comp = ComponentView(
             node_id=f"pwrflag.{refdes.lower()}",
             refdes=refdes,
@@ -308,6 +346,19 @@ def generate_schematic(
             _global_label(net_names[net_id], px, py, _label_rotation(flag_pin), f"{refdes}.1")
         )
 
+    for placed in placements:
+        extents_x.extend((placed.x_mm - _CELL_W / 2, placed.x_mm + _CELL_W / 2))
+        extents_y.extend((placed.y_mm - _CELL_H / 2, placed.y_mm + _CELL_H / 2))
+    min_x = min(extents_x)
+    min_y = min(extents_y)
+    max_x = max(extents_x)
+    max_y = max(extents_y)
+    if min_x < 0.0 or min_y < 0.0:
+        raise ValueError(
+            "schematic content extends outside the sheet origin (fail-closed)"
+        )
+    paper = select_paper(max_x + _PAGE_MARGIN, max_y + _PAGE_MARGIN)
+
     lib_symbols_node: list[SExpr] = [Sym("lib_symbols")]
     for lib_id in sorted(lib_symbols):
         entry = list(lib_symbols[lib_id].embedded)
@@ -321,7 +372,7 @@ def generate_schematic(
         [Sym("generator"), Quoted("acd")],
         [Sym("generator_version"), Quoted("0.0.1")],
         [Sym("uuid"), Quoted(root_uuid)],
-        [Sym("paper"), Quoted("A2")],
+        [Sym("paper"), Quoted(paper)],
         lib_symbols_node,
     ]
     doc.extend(notes)
