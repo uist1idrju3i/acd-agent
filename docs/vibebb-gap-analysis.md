@@ -786,7 +786,8 @@ roadmap 14.23（Z-1〜Z-13）をmergeした`main`（`5bf2c90`）と更新済みi
 
 実装状況: AA-3（bootstrap record不在の停止を`bootstrap_record_missing`宣言までdeny）、
 AA-4（`PartSelectionError`へ要求内容と次手）、AA-5（`--allow-dirty`のdirty拒否）、
-AA-6（未知block診断への登録名一覧と`requirement.block_missing`）、AA-8（graphの
+AA-6（未知block診断への登録名一覧と`requirement.block_missing`）、AA-7（firmware pinの
+net id由来roleをregistry照合し未登録roleを候補付きでfail-closedにする）、AA-8（graphの
 `parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）は
 実装した。他は未着手。解決方針は診断・provenance・照合の追加であり、ゲート・閾値・
 Evidence規則の緩和を含まない。

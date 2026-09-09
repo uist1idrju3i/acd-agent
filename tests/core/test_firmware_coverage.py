@@ -7,13 +7,19 @@ from pathlib import Path
 
 import pytest
 
-from acd.core.firmware_capability import load_firmware_capability_registry
+from acd.core.firmware_capability import (
+    FirmwareCapabilityRegistry,
+    load_firmware_capability_registry,
+)
 from acd.core.firmware_coverage import (
     FirmwareCoverageFinding,
     FirmwareCoverageReport,
     check_firmware_coverage,
 )
-from acd.pipeline.fixture_builder import build_design_fixture
+from acd.pipeline.fixture_builder import (
+    FixtureBuilderError,
+    build_design_fixture,
+)
 from acd.schema import DesignFixtureSpec
 from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.firmware_capability import FirmwareCapabilityRegistryDocument
@@ -177,9 +183,41 @@ def test_findings_order_is_deterministic() -> None:
     assert codes == sorted(codes)
 
 
-def test_dual_beacon_tag_spec_fails_closed(tmp_path: Path) -> None:
+def _recorded_run_registry() -> FirmwareCapabilityRegistry:
+    """Registry extended with the pin roles recorded in the example spec."""
+    registry = load_firmware_capability_registry()
+    document = registry.document.model_copy(
+        update={
+            "pin_role_order": [
+                *registry.document.pin_role_order,
+                "led_orange",
+                "user_btn",
+            ]
+        }
+    )
+    return FirmwareCapabilityRegistry(
+        document=document,
+        registry_hash=registry.registry_hash,
+        path=registry.path,
+    )
+
+
+def test_dual_beacon_tag_spec_fails_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Coverage check still flags unregistered roles on a recorded graph.
+
+    The dual-beacon spec is a recorded run: since AA-7 the fixture builder
+    rejects its unregistered roles (``net.led_orange``/``net.user_btn``) at
+    build time, so this test bypasses only the builder-side role check to
+    keep exercising ``check_firmware_coverage`` on an equivalent graph.
+    """
     spec = DesignFixtureSpec.model_validate_json(
         DUAL_BEACON_SPEC.read_text(encoding="utf-8")
+    )
+    monkeypatch.setattr(
+        "acd.pipeline.fixture_builder.load_firmware_capability_registry",
+        _recorded_run_registry,
     )
     graph = build_design_fixture(
         spec, tmp_path / "fixture", spec_dir=DUAL_BEACON_SPEC.parent
@@ -196,6 +234,16 @@ def test_dual_beacon_tag_spec_fails_closed(tmp_path: Path) -> None:
     messages = [finding.message for finding in report.findings]
     assert any("'comp.d2'" in message and "toggle_led" in message for message in messages)
     assert any("'button_pressed'" in message for message in messages)
+
+
+def test_dual_beacon_tag_spec_is_rejected_by_builder(tmp_path: Path) -> None:
+    """AA-7: the recorded spec's unregistered pin roles fail the build."""
+    spec = DesignFixtureSpec.model_validate_json(
+        DUAL_BEACON_SPEC.read_text(encoding="utf-8")
+    )
+    with pytest.raises(FixtureBuilderError, match="registered:") as exc_info:
+        build_design_fixture(spec, tmp_path / "fixture", spec_dir=DUAL_BEACON_SPEC.parent)
+    assert "led_orange" in str(exc_info.value)
 
 
 @pytest.mark.skipif(

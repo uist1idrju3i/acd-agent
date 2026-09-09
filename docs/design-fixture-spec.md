@@ -33,6 +33,14 @@
 | `fab_process_allowances[]` | `fab.process_allowance` | `rule_id`・`requirement_id`・理由 |
 | `rationale_recorded_at` | rationale | coverage時刻の宣言 |
 
+`firmware_pin_assignments[].net`は`net.<role>`の形を取り、`<role>`はfirmware
+capability registry（`contracts/firmware-capability-registry.json`）の
+`pin_role_order`に登録済みである必要がある（AA-7）。FW skillがnet idから
+`ACD_PIN_*` macroを導出するため、roleは`net`フィールドからだけ決まり別
+フィールドは持たない。未登録roleのpinはfixture生成時に登録role一覧と近い
+候補（例: `net.sda`→`i2c_sda`）を示してfail-closedにする。registryは契約
+であり、この経路では拡張しない。
+
 ## 許容値
 
 `attrs`は自由form辞書だが、lane predicateとpreflightは次の語彙だけを受理する。

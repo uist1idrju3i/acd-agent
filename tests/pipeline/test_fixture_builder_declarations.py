@@ -176,11 +176,51 @@ def test_firmware_transition_referencing_an_unknown_state_is_rejected() -> None:
 
 def test_missing_firmware_declarations_keep_the_lane_incomplete() -> None:
     graph = build_graph(
-        _spec(firmware_pin_assignments=[FixtureFirmwarePinSpec(pin_id="io", net="net.io", gpio=2)])
+        _spec(
+            nets=[
+                FixtureNetSpec(net_id="net.io", attrs={"name": "IO"}),
+                FixtureNetSpec(net_id="net.led", attrs={"name": "LED"}),
+            ],
+            firmware_pin_assignments=[
+                FixtureFirmwarePinSpec(pin_id="io", net="net.led", gpio=2)
+            ],
+        )
     )
     report = run_lane_preflight(graph, ("firmware-pipeline",))
     assert report.status == "declarations_incomplete"
     assert {item.kind for item in report.lanes[0].missing_nodes} >= {"firmware.module"}
+
+
+def test_unregistered_firmware_pin_role_reports_candidates() -> None:
+    spec = _spec(
+        nets=[
+            FixtureNetSpec(net_id="net.io", attrs={"name": "IO"}),
+            FixtureNetSpec(net_id="net.sda", attrs={"name": "SDA"}),
+        ],
+        firmware_pin_assignments=[
+            FixtureFirmwarePinSpec(pin_id="io", net="net.sda", gpio=2)
+        ],
+    )
+    with pytest.raises(FixtureBuilderError, match="registered:") as exc_info:
+        build_graph(spec)
+    assert "i2c_sda" in str(exc_info.value)
+    assert "'sda'" in str(exc_info.value)
+
+
+def test_registered_firmware_pin_role_builds() -> None:
+    graph = build_graph(
+        _spec(
+            nets=[
+                FixtureNetSpec(net_id="net.io", attrs={"name": "IO"}),
+                FixtureNetSpec(net_id="net.i2c_sda", attrs={"name": "SDA"}),
+            ],
+            firmware_pin_assignments=[
+                FixtureFirmwarePinSpec(pin_id="io", net="net.i2c_sda", gpio=2)
+            ],
+        )
+    )
+    pins = [node for node in graph.nodes if node.kind == "firmware.pin_assignment"]
+    assert [pin.attrs["net"] for pin in pins] == ["net.i2c_sda"]
 
 
 def test_existing_manual_graph_data_is_not_overwritten(tmp_path: Path) -> None:
