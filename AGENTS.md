@@ -182,8 +182,8 @@ toolsとserverを同一jobで直列にpublishしてGHCR digestを1つのlock更�
 publish済みdigestが無い間はlock fileのplaceholderを作らない。
 
 CIはPRで変更scopeに応じて`fast`または`standard`を実行し、
-`container-gates`と`pinned-acd-probe`はmain pushだけで実行する（PRではjob levelでskip）。
-GITHUB_TOKEN起因のイベントではworkflowが起動しないため、lock更新PRのCIとmerge後のmain CIはpublish workflowが`workflow_dispatch`で起動し、lock更新PRのCI完了を待ってからmergeする。
+`container-gates`はmain pushに加え、`fixtures/`・`profiles/`・image digest lockを変更するPRでも実行する（記録入力の回帰をmerge前に検出するため）。`pinned-acd-probe`はmain pushだけで実行し、その他のPRではjob levelでskipする。
+GITHUB_TOKEN起因のイベントではworkflowが起動しないため、lock更新PRのCIとmerge後のmain CIはpublish workflowが`workflow_dispatch`で起動し、lock更新PRのCI完了を待ってからmergeする。merge後のmain CI結果はpublish runの合否に含めずstep summaryへ記録する。mainのCI失敗は`main-ci-failure-issue.yml`が`ci-main-failure`ラベルのIssueへ報告し、main CIが緑へ戻ると自動closeする。
 
 graphへ設計判断属性を追加する機能変更では、同じ変更で属性を
 `REQUIRED_RATIONALE_ATTRS`または`RATIONALE_EXEMPT_ATTRS`へ分類する。必須属性には

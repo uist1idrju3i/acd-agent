@@ -16,6 +16,11 @@ _CORE_PREFIXES = (
     "scripts/",
     ".github/workflows/",
 )
+_GATES_INPUT_PREFIXES = (
+    "fixtures/",
+    "profiles/",
+)
+_GATES_INPUT_FILES = frozenset({"docker/image-digests.json"})
 
 
 def _git_diff(command: list[str]) -> str:
@@ -49,10 +54,10 @@ def _changed_files(
 
 def _classify_changes(
     base_sha: str | None, head_sha: str | None, *, run: _Run
-) -> tuple[bool, bool, bool]:
+) -> tuple[bool, bool, bool, bool]:
     changed_files = _changed_files(base_sha, head_sha, run=run)
     if changed_files is None:
-        return True, True, True
+        return True, True, True, True
     code_changes = any(not path.endswith(".md") for path in changed_files)
     core_changes = any(
         path.startswith(_CORE_PREFIXES)
@@ -60,13 +65,18 @@ def _classify_changes(
         for path in changed_files
     )
     plugin_changes = any(path.startswith("plugins/") for path in changed_files)
-    return code_changes, core_changes, plugin_changes
+    gates_inputs = any(
+        path.startswith(_GATES_INPUT_PREFIXES) or path in _GATES_INPUT_FILES
+        for path in changed_files
+    )
+    return code_changes, core_changes, plugin_changes, gates_inputs
 
 
 def _write_result(
     code_changes: bool,
     core_changes: bool,
     plugin_changes: bool,
+    gates_inputs: bool,
     output_path: str | None,
 ) -> None:
     result = "".join(
@@ -74,6 +84,7 @@ def _write_result(
             f"code={'true' if code_changes else 'false'}\n",
             f"core={'true' if core_changes else 'false'}\n",
             f"plugins={'true' if plugin_changes else 'false'}\n",
+            f"gates_inputs={'true' if gates_inputs else 'false'}\n",
         )
     )
     if output_path:
@@ -84,7 +95,7 @@ def _write_result(
 
 
 def main(*, run: _Run = _git_diff) -> int:
-    code_changes, core_changes, plugin_changes = _classify_changes(
+    code_changes, core_changes, plugin_changes, gates_inputs = _classify_changes(
         os.environ.get("BASE_SHA"),
         os.environ.get("HEAD_SHA"),
         run=run,
@@ -93,6 +104,7 @@ def main(*, run: _Run = _git_diff) -> int:
         code_changes,
         core_changes,
         plugin_changes,
+        gates_inputs,
         os.environ.get("GITHUB_OUTPUT"),
     )
     return 0

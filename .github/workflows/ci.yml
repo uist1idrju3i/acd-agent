@@ -26,6 +26,7 @@ jobs:
     outputs:
       code: ${{ steps.scope.outputs.code }}
       core: ${{ steps.scope.outputs.core }}
+      gates_inputs: ${{ steps.scope.outputs.gates_inputs }}
       main: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
       plugins: ${{ steps.scope.outputs.plugins }}
     steps:
@@ -133,9 +134,11 @@ jobs:
       - name: Skill and hook tests (pytest plugins)
         run: uv run pytest plugins -q
 
-  # pinned-acd-probe and container-gates run only on main; on pull requests the
-  # job is skipped at job level, which GitHub treats as a passing required check
-  # without allocating a runner.
+  # pinned-acd-probe runs only on main; on pull requests the job is skipped at
+  # job level, which GitHub treats as a passing required check without
+  # allocating a runner. container-gates also runs on pull requests that touch
+  # fixtures/, profiles/, or the image digest lock so that recorded-input
+  # regressions surface before merge (AA-1).
   pinned-acd-probe:
     needs: changes
     if: needs.changes.outputs.code == 'true' && needs.changes.outputs.main == 'true'
@@ -157,7 +160,7 @@ jobs:
 
   container-gates:
     needs: changes
-    if: needs.changes.outputs.code == 'true' && needs.changes.outputs.main == 'true'
+    if: needs.changes.outputs.code == 'true' && (needs.changes.outputs.main == 'true' || (github.event_name == 'pull_request' && needs.changes.outputs.gates_inputs == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:

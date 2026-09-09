@@ -1102,6 +1102,13 @@ GHCRへpublishする。publish後はtools（buildした場合）とderived serve
 cancel-in-progress無し）で直列化し、並走したpublishが同じ`latest`と
 lock branchを取り合って`not mergeable`になる事象（PR #350）を防ぐ。lock branchは
 publish対象commitではなく、PR作成時点の`origin/main`先端から切る。
+lock更新PRのCIは引き続きmergeの前提であり、失敗時はlock PRをopenのまま残して
+`publish` jobを失敗させる。一方、lock PR merge後に`workflow_dispatch`で起動する
+main CIは観測専用であり、`gh run watch --exit-status`の結果をpublish runの合否へ
+混ぜない。conclusionは`gh run view`で読み取りstep summaryへ`post-merge main CI`と
+して記録し、success以外（新しいmain pushによるconcurrency cancelを含む）では
+`::warning::`を出すに留める。これによりpublish成功と無関係なmain CI結果が
+1つのfail信号へ混ざることを防ぐ。
 workflowを変更した場合は、CIの`verify` jobがactionlintで`.github/workflows`全体の
 構文を検査する。
 現行のbase tools digestは、Semeru／OpenJ9 JREとbuild時生成SCCを同梱した
@@ -1670,9 +1677,19 @@ DevinがPR作成前に実施する既定検証は`--stage fast`とする。
 `src/acd/core`・`src/acd/pipeline`・`scripts`の判定ロジック変更時は
 `--stage standard`、main merge前は`--stage full`を実施する。PRのCIは変更scopeに応じて
 `fast`または`standard`を実行する。`skills` jobはpushまたはplugin変更時に実行し、
-`container-gates`と`pinned-acd-probe`はmain pushで実行する。host側の筐体pipelineと
+`container-gates`はmain pushに加え`fixtures/`・`profiles/`・image lock変更PRでも実行し、
+`pinned-acd-probe`はmain pushで実行する。host側の筐体pipelineと
 `probe_tools.py`はprovisionalでauthoritative Evidenceを生成しないため、main CIの`verify`
 jobからは外し、`container-gates`のcontainer実行だけを正とする。
+
+#### main CI失敗のIssue報告（`main-ci-failure-issue.yml`）
+
+mainの`CI`完了を`workflow_run`で監視し、conclusionが`failure`または`timed_out`の場合に
+open中の`ci-main-failure`ラベル付きIssueへrun URL・head sha・失敗job名を追記する。
+該当Issueが無ければ「main CI失敗レポート」を新規作成する。`cancelled`と`skipped`は
+concurrency supersessionであり失敗扱いしない。main CIが`success`へ戻るとopen中の
+該当Issueを自動でcloseする。これによりPRではskipされる`container-gates`の失敗が
+main上で長期間気づかれない事態（W-1 provenance mismatchの再発）を防ぐ。
 
 2コアVMで同一入力を測定した結果は、pytestの逐次（`-n 0`）195.13秒、
 自動並列（`-n auto`）108.73秒だった。`verify_all.py --stage standard`
@@ -1694,8 +1711,12 @@ mainのCI run `32909530356`をbaselineとして、`verify`は262秒（うちStan
 PRでは`.md`ファイルだけの変更なら`changes` jobがcode変更なしと判定し、
 `docs-verify`だけを実行する。code変更がある場合、core変更なら`verify`がstandard、
 それ以外はfastを実行する。`skills`はplugin変更時またはpush時に実行し、
-`pinned-acd-probe`と`container-gates`はjob levelの`if`でmain push以外をskipする
+`pinned-acd-probe`はjob levelの`if`でmain push以外をskipする
 （skipped jobはGitHubのrequired checkでは合格扱いになり、runnerを確保しない）。
+`container-gates`もmain push以外はskipするが、`fixtures/`・`profiles/`・
+`docker/image-digests.json`を変更するPRでは`changes` jobの`gates_inputs`出力により
+実行する（記録入力の宣言ずれをmerge前に検出するため。container-gatesをmain限定に
+していた間、W-1 fixtureのprovenance不一致はmain CIだけが赤にしていた）。
 `skills`はKiCad library packageの.debを`actions/cache`へ保存し、cache hit時はPPA登録と
 apt metadata更新を省く。dpkg版が`10.0.*`であることの検査はcache経路でも毎回行う。
 

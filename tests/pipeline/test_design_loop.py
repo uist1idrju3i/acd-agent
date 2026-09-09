@@ -224,9 +224,92 @@ def test_design_loop_stage_set_and_order_are_fixed() -> None:
         "board-pipeline",
         "enclosure-pipeline",
         "firmware-pipeline",
+        "visual-review-manifest",
         "order-readiness",
     )
     assert tuple(DEFAULT_STAGE_RUNNERS) == DESIGN_LOOP_STAGE_IDS
+
+
+def test_design_loop_runs_visual_review_manifest_after_lanes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+
+    def manifest_runner(config: DesignLoopConfig) -> dict[str, Any]:
+        seen.append("visual-review-manifest")
+        return {
+            "stage_id": "visual-review-manifest",
+            "ok": True,
+            "fail_closed": False,
+            "pass_evidence": False,
+            "manifest_path": str(config.out_root / "visual-review-manifest.json"),
+            "required": 2,
+            "status": "pending-agent-inspection",
+        }
+
+    runners["visual-review-manifest"] = manifest_runner
+    _patch_runners(monkeypatch, runners)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is True
+    assert seen.index("visual-review-manifest") > seen.index("firmware-pipeline")
+    assert seen.index("visual-review-manifest") < seen.index("order-readiness")
+    summary = json.loads(
+        Path(result["loop_summary"]).read_text(encoding="utf-8")
+    )
+    assert summary["visual_review"] == {
+        "manifest_path": str(tmp_path / "artifacts" / "visual-review-manifest.json"),
+        "required": 2,
+        "status": "pending-agent-inspection",
+    }
+
+
+def test_design_loop_stops_on_visual_review_manifest_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+
+    def failing_manifest(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        seen.append("visual-review-manifest")
+        return {
+            "stage_id": "visual-review-manifest",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "intentional manifest failure",
+        }
+
+    runners["visual-review-manifest"] = failing_manifest
+    _patch_runners(monkeypatch, runners)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "visual-review-manifest"
+    assert "order-readiness" not in seen
+    assert "order-total-aggregation" not in seen
 
 
 def test_order_total_aggregation_runs_before_order_readiness(

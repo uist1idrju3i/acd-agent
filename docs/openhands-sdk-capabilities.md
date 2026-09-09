@@ -60,7 +60,7 @@
 | sdk.testing | `TestLLM` | SDK wiringの回帰 | 採用 | test fixtureとbootstrap回帰で使用 | pytest |
 | sdk.tool | `ToolDefinition`<br>`Tool`<br>`register_tool`<br>`list_registered_tools` | ACD toolのagent入口 | 採用 | `register_acd_tools()`とSDK登録を使用 | schema/実行試験 |
 | sdk.tool.builtins | `FinishTool` | SDK組み込みtool | 不採用 | ACDの明示的`ToolDefinition`集合を単一化する | pinned API確認、採用しない |
-| sdk.tool.builtins.vision_inspect | `VisionInspectTool` | 明示されたvision profileによる画像観測 | 採用 | 明示設定されたvision profileがある場合だけbuiltin inspect_image_with_visionを登録し、応答を非Evidence観測として扱う | vision profile境界テスト |
+| sdk.tool.builtins.vision_inspect | `VisionInspectTool` | 明示されたvision profileによる画像観測（design loopの必須視覚レビュー段で全人間向けPNG投影を検査） | 採用 | 明示設定されたvision profileがある場合だけbuiltin inspect_image_with_visionを登録し、応答を非Evidence観測として扱う。design loopのvisual-review-manifest段が全entryの検査と記録を必須化する | vision profile境界テスト |
 | sdk.tool.internal | `ClientTool` | SDK内部tool補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.utils | `maybe_truncate` | SDK内部補助 | 不採用 | 内部補助をACDが直接依存しない | pinned API確認、採用しない |
 | sdk.workspace | `LocalWorkspace` | agent作業workspace | 採用 | hostはLocalWorkspaceのprovisional経路に限定し、authoritative経路にしない | pinned API確認、LocalWorkspace runner回帰 |

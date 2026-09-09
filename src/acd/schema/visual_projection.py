@@ -303,3 +303,36 @@ class VisualVisionObservation(AcdModel):
     projection_id: NodeId
     image_hash: Sha256
     response: NonEmptyStr
+
+
+class VisualReviewRequirement(AcdModel):
+    """One PNG projection that requires a vision inspection observation."""
+
+    projection_id: NodeId
+    source_projection_id: NodeId
+    domain: str
+    projection_type: str
+    png_path: NonEmptyStr
+    image_hash: Sha256
+
+
+class VisualReviewManifest(AcdModel):
+    """Deterministic manifest of PNG projections awaiting vision inspection."""
+
+    artifact_kind: Literal["visual_review_manifest"] = "visual_review_manifest"
+    pass_evidence: Literal[False] = False
+    source_revision: Revision
+    generated_by: NonEmptyStr
+    renderer_version: NonEmptyStr
+    required: list[VisualReviewRequirement] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_manifest(self) -> VisualReviewManifest:
+        identifiers = [item.projection_id for item in self.required]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("visual review requirements must be unique")
+        if identifiers != sorted(identifiers):
+            raise ValueError(
+                "visual review requirements must be sorted by projection_id"
+            )
+        return self

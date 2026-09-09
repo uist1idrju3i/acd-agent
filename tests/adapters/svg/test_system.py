@@ -83,14 +83,22 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
     )
     block_svg = (tmp_path / "out" / block.image_path).read_bytes()
     assert b'id="system-block"' in block_svg
-    assert b'id="block-kind-electrical-component"' in block_svg
-    assert b'id="block-kind-electrical-board"' in block_svg
+    assert b'id="block-lanes"' in block_svg
+    assert b'id="block-legend"' in block_svg
+    assert b'id="block-node-comp-u1"' in block_svg
+    assert b'data-node-kind="electrical.component"' in block_svg
     assert b'id="block-edge-board-gd1-comp-u1"' in block_svg
+    # Human label first, stable id as secondary caption.
+    assert b"U1 ESP32-C3-MINI-1-N4" in block_svg
+    assert b">comp.u1<" in block_svg
     # 240 unit wide viewBox * DIAGRAM_FONT_SIZE_RATIO
     assert b'font-size="3"' in block_svg
     assert b"2026-" not in block_svg
     assert b"/home/" not in block_svg
-    assert measure_svg_resolution(block_svg).view_box == (0.0, 0.0, 240.0, 498.0)
+    block_box = measure_svg_resolution(block_svg).view_box
+    assert block_box[:3] == (0.0, 0.0, 240.0)
+    # Adaptive height: one row per block lane plus header/footer.
+    assert 200.0 < block_box[3] < 400.0
 
     power = next(
         record for record in projection_set.projections
@@ -100,9 +108,12 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
     assert b'id="power-tree"' in power_svg
     assert b'id="power-net-net-vbus-5v"' in power_svg
     assert b'id="power-net-net-gnd"' not in power_svg
-    assert b"5.0 V" in power_svg
+    assert b"5.0 V nominal" in power_svg
+    assert b"J1 TYPE-C-31-M-12" in power_svg
     assert b'font-size="3"' in power_svg
-    assert measure_svg_resolution(power_svg).view_box == (0.0, 0.0, 240.0, 90.0)
+    power_box = measure_svg_resolution(power_svg).view_box
+    assert power_box[:3] == (0.0, 0.0, 240.0)
+    assert power_box[3] > 90.0
 
     second = _generate(tmp_path / "second")
     assert projection_set.identity_hash == second.identity_hash

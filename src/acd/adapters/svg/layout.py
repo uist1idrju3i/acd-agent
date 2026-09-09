@@ -4,21 +4,36 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import ClassVar, Literal, TypedDict
 
 from acd.adapters.kicad.visual_projection import copper_layers_for_layer_count
 from acd.adapters.svg.common import (
     ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
     ACD_SVG_NORMALIZATION_RULE_ID,
     ACD_SVG_RENDERER_VERSION,
-    BOARD_FONT_SIZE_RATIO,
+    COLOR_BACK,
+    COLOR_COPPER,
+    COLOR_DIELECTRIC,
+    COLOR_EDGE,
+    COLOR_EDGE_MUTED,
+    COLOR_FRONT,
+    COLOR_TEXT_MUTED,
+    SMALL_FONT_SCALE,
+    SUBTITLE_FONT_SCALE,
+    TITLE_FONT_SCALE,
     SvgVisualProjectionError,
+    diagram_font_size,
     escape_xml,
+    footer_height,
     format_svg_number,
+    header_height,
     input_records,
+    legend,
     render_svg_projection,
     slugify_identifier,
-    view_box_font_size,
+    svg_document,
+    svg_text,
+    text_advance,
 )
 from acd.core.board_model import BoardModel, ComponentPlacement
 from acd.core.electrical import BoardView
@@ -36,6 +51,24 @@ __all__ = [
     "SvgVisualProjectionError",
     "generate_layout_visual_projections",
 ]
+
+
+# Darker footprint strokes keep adjacent parts distinguishable.
+_FRONT_STROKE = "#004a80"
+_BACK_STROKE = "#8a2f08"
+
+
+class _PlacementGeometry(TypedDict):
+    placement: ComponentPlacement
+    points: str
+    identifier: str
+    cx: float
+    cy: float
+    inside: bool
+    large: bool
+    outside_label_y: float
+    outside_anchor_x: float
+    outside_anchor: Literal["start", "middle", "end"]
 
 
 def _footprint_bbox(placement: ComponentPlacement) -> tuple[float, float, float, float]:
@@ -91,7 +124,7 @@ def _validate_placement(placement: ComponentPlacement, board: BoardModel) -> Non
         )
 
 
-def _placement_svg(board: BoardModel) -> bytes:
+def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
     if not board.placements:
         raise SvgVisualProjectionError("placement projection requires placements")
     refdes = [placement.refdes for placement in board.placements]
@@ -99,61 +132,301 @@ def _placement_svg(board: BoardModel) -> bytes:
         raise SvgVisualProjectionError("placement reference designators must be unique")
     for placement in board.placements:
         _validate_placement(placement, board)
-    font_size = view_box_font_size(
-        min(board.width_mm, board.height_mm),
-        ratio=BOARD_FONT_SIZE_RATIO,
-    )
-    line_height = font_size * 1.2
-    chunks = [
-        (
-            f'<svg xmlns="http://www.w3.org/2000/svg" '
-            f'width="{format_svg_number(board.width_mm)}mm" '
-            f'height="{format_svg_number(board.height_mm)}mm" '
-            f'viewBox="0 0 {format_svg_number(board.width_mm)} '
-            f'{format_svg_number(board.height_mm)}">'
+    font_size = diagram_font_size()
+    small = font_size * SMALL_FONT_SCALE
+    margin = font_size * 2
+    # The board keeps millimetre coordinates; it is scaled up so the longer
+    # side occupies at least 160 viewBox units.
+    scale = 160.0 / max(board.width_mm, board.height_mm)
+    mm_font = font_size / scale
+    mm_small = small / scale
+    dim_offset = mm_font * 2.4
+    side_fill = {"front": COLOR_FRONT, "back": COLOR_BACK}
+    side_stroke = {"front": _FRONT_STROKE, "back": _BACK_STROKE}
+    board_area = board.width_mm * board.height_mm
+
+    # Per-component geometry in board millimetre coordinates.
+    geometry: list[_PlacementGeometry] = []
+    for placement in sorted(board.placements, key=lambda item: item.refdes):
+        corners = _rotated_corners(placement)
+        fx1 = min(x for x, _ in corners)
+        fy1 = min(y for _, y in corners)
+        fx2 = max(x for x, _ in corners)
+        fy2 = max(y for _, y in corners)
+        footprint_width = fx2 - fx1
+        footprint_height = fy2 - fy1
+        label_width = text_advance(placement.refdes, font_size, bold=True) / scale
+        inside = (
+            label_width <= footprint_width * 0.9
+            and mm_font <= footprint_height * 0.8
+        )
+        geometry.append(
+            {
+                "placement": placement,
+                "points": " ".join(
+                    f"{format_svg_number(x)},{format_svg_number(y)}"
+                    for x, y in corners
+                ),
+                "identifier": slugify_identifier(placement.refdes),
+                "cx": (fx1 + fx2) / 2,
+                "cy": (fy1 + fy2) / 2,
+                "inside": inside,
+                "large": footprint_width * footprint_height > board_area * 0.2,
+                "outside_label_y": 0.0,
+                "outside_anchor_x": 0.0,
+                "outside_anchor": "start",
+            }
+        )
+    # Margins reserve the footprint overhang beyond the board outline so that
+    # courtyard boxes (e.g. antenna keep-outs) never clip the legend or title.
+    min_x = min(
+        0.0,
+        min(
+            min(
+                x for x, _ in _rotated_corners(item["placement"])
+            )
+            for item in geometry
         ),
+    )
+    min_y = min(
+        0.0,
+        min(
+            min(y for _, y in _rotated_corners(item["placement"]))
+            for item in geometry
+        ),
+    )
+    max_x = max(
+        board.width_mm,
+        max(
+            max(x for x, _ in _rotated_corners(item["placement"]))
+            for item in geometry
+        ),
+    )
+    max_y = max(
+        board.height_mm,
+        max(
+            max(y for _, y in _rotated_corners(item["placement"]))
+            for item in geometry
+        ),
+    )
+
+    # Outside labels: left column for components left of centre, right column
+    # for the rest; each column is sorted by centre y and stacked at a fixed
+    # pitch starting at the board top so labels can never overlap.
+    outside_left = sorted(
+        (item for item in geometry if not item["inside"] and item["cx"] < board.width_mm / 2),
+        key=lambda item: item["cy"],
+    )
+    outside_right = sorted(
+        (item for item in geometry if not item["inside"] and item["cx"] >= board.width_mm / 2),
+        key=lambda item: item["cy"],
+    )
+    line_pitch = mm_font * 1.6
+    left_width = (
+        max(
+            text_advance(item["placement"].refdes, font_size, bold=True)
+            for item in outside_left
+        )
+        / scale
+        + mm_font * 1.5
+        if outside_left
+        else 0.0
+    )
+    right_width = (
+        max(
+            text_advance(item["placement"].refdes, font_size, bold=True)
+            for item in outside_right
+        )
+        / scale
+        + mm_font * 1.5
+        if outside_right
+        else 0.0
+    )
+    label_bottom = 0.0
+    left_anchor_x = min_x - mm_font * 0.6
+    right_anchor_x = max_x + mm_font * 0.6
+    dim_x = right_anchor_x + right_width + mm_font * 0.6
+    label_columns: tuple[
+        tuple[list[_PlacementGeometry], float, Literal["start", "end"]], ...
+    ] = (
+        (outside_left, left_anchor_x, "end"),
+        (outside_right, right_anchor_x, "start"),
+    )
+    for column, anchor_x, anchor in label_columns:
+        for index, item in enumerate(column):
+            item["outside_label_y"] = line_pitch * index + mm_font
+            item["outside_anchor_x"] = anchor_x
+            item["outside_anchor"] = anchor
+            label_bottom = max(label_bottom, item["outside_label_y"] + mm_small)
+
+
+    inner: list[str] = [
         '<g id="board-outline">',
         (
             f'<rect id="board-outline-rect" x="0" y="0" '
             f'width="{format_svg_number(board.width_mm)}" '
-            f'height="{format_svg_number(board.height_mm)}" fill="none" stroke="#000"/>'
+            f'height="{format_svg_number(board.height_mm)}" fill="none" '
+            f'stroke="{COLOR_EDGE}" '
+            f'stroke-width="{format_svg_number(mm_font * 0.12)}"/>'
         ),
         "</g>",
     ]
     for side in ("front", "back"):
-        chunks.append(f'<g id="{side}">')
-        for placement in sorted(board.placements, key=lambda item: item.refdes):
+        inner.append(f'<g id="{side}">')
+        for item in geometry:
+            placement = item["placement"]
             if placement.side != side:
                 continue
-            points = " ".join(
-                f"{format_svg_number(x)},{format_svg_number(y)}"
-                for x, y in _rotated_corners(placement)
+            identifier = item["identifier"]
+            fill_opacity = "0.12" if item["large"] else "0.3"
+            inner.append(
+                f'<g id="placement-{identifier}" data-side="{side}">'
+                f'<polygon id="footprint-{identifier}" points="{item["points"]}" '
+                f'fill="{side_fill[side]}" fill-opacity="{fill_opacity}" '
+                f'stroke="{side_stroke[side]}" '
+                f'stroke-width="{format_svg_number(mm_font * 0.15)}"/>'
             )
-            identifier = slugify_identifier(placement.refdes)
-            chunks.extend(
-                [
-                    f'<g id="placement-{identifier}">',
-                    (
-                        f'<polygon id="footprint-{identifier}" points="{points}" '
-                        f'fill="none" stroke="#0088cc"/>'
-                    ),
-                    (
-                        f'<text id="refdes-{identifier}" x="{format_svg_number(placement.x_mm)}" '
-                        f'y="{format_svg_number(placement.y_mm)}" '
-                        f'font-size="{format_svg_number(font_size)}">'
-                        f"{escape_xml(placement.refdes)}</text>"
-                    ),
-                    (
-                        f'<text id="side-{identifier}" x="{format_svg_number(placement.x_mm)}" '
-                        f'y="{format_svg_number(placement.y_mm + line_height)}" '
-                        f'font-size="{format_svg_number(font_size)}">{side}</text>'
-                    ),
-                    "</g>",
-                ]
-            )
-        chunks.append("</g>")
-    chunks.append("</svg>")
-    return "".join(chunks).encode("utf-8")
+            if item["inside"]:
+                inner.append(
+                    svg_text(
+                        placement.refdes,
+                        x=item["cx"],
+                        y=item["cy"] + mm_font * 0.35,
+                        font_size=mm_font,
+                        element_id=f"refdes-{identifier}",
+                        anchor="middle",
+                        weight="bold",
+                    )
+                )
+            inner.append("</g>")
+        inner.append("</g>")
+    # Labels and leader lines in a second pass so they sit above footprints.
+    inner.append('<g id="placement-labels">')
+    for item in geometry:
+        if item["inside"]:
+            continue
+        identifier = item["identifier"]
+        label_y = item["outside_label_y"]
+        anchor_x = item["outside_anchor_x"]
+        inner.extend(
+            [
+                f'<g id="placement-label-outside-{identifier}">',
+                f'<line x1="{format_svg_number(anchor_x)}" '
+                f'y1="{format_svg_number(label_y - mm_font * 0.35)}" '
+                f'x2="{format_svg_number(item["cx"])}" '
+                f'y2="{format_svg_number(item["cy"])}" '
+                f'stroke="{COLOR_EDGE_MUTED}" '
+                f'stroke-width="{format_svg_number(mm_font * 0.08)}"/>',
+                svg_text(
+                    item["placement"].refdes,
+                    x=anchor_x,
+                    y=label_y,
+                    font_size=mm_font,
+                    element_id=f"refdes-{identifier}",
+                    anchor=item["outside_anchor"],
+                    weight="bold",
+                ),
+                "</g>",
+            ]
+        )
+    inner.append("</g>")
+    # Board dimensions in millimetres, below and to the right of the outline.
+    dim_y = max(max_y, label_bottom) + dim_offset
+    inner.extend(
+        [
+            '<g id="board-dimensions">',
+            f'<line x1="0" y1="{format_svg_number(dim_y)}" '
+            f'x2="{format_svg_number(board.width_mm)}" '
+            f'y2="{format_svg_number(dim_y)}" stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(mm_font * 0.1)}"/>',
+            f'<line x1="0" y1="{format_svg_number(dim_y - mm_font * 0.5)}" '
+            f'x2="0" y2="{format_svg_number(dim_y + mm_font * 0.5)}" '
+            f'stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(mm_font * 0.1)}"/>',
+            f'<line x1="{format_svg_number(board.width_mm)}" '
+            f'y1="{format_svg_number(dim_y - mm_font * 0.5)}" '
+            f'x2="{format_svg_number(board.width_mm)}" '
+            f'y2="{format_svg_number(dim_y + mm_font * 0.5)}" '
+            f'stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(mm_font * 0.1)}"/>',
+            svg_text(
+                f"{format_svg_number(board.width_mm)} mm",
+                x=board.width_mm / 2,
+                y=dim_y - mm_font * 0.6,
+                font_size=mm_small,
+                anchor="middle",
+                fill=COLOR_TEXT_MUTED,
+            ),
+            f'<line x1="{format_svg_number(dim_x)}" '
+            f'y1="{format_svg_number(min_y)}" x2="{format_svg_number(dim_x)}" '
+            f'y2="{format_svg_number(max_y)}" '
+            f'stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(mm_font * 0.1)}"/>',
+            svg_text(
+                f"{format_svg_number(board.height_mm)} mm",
+                x=dim_x + mm_small,
+                y=(min_y + max_y) / 2,
+                font_size=mm_small,
+                fill=COLOR_TEXT_MUTED,
+            ),
+            "</g>",
+        ]
+    )
+    board_right = dim_x + mm_small + text_advance(
+        f"{format_svg_number(board.height_mm)} mm", mm_small
+    )
+    board_bottom = dim_y + mm_font
+    front_count = sum(1 for item in board.placements if item.side == "front")
+    back_count = len(board.placements) - front_count
+    body = ['<g id="placement-view">']
+    body += legend(
+        [
+            ("front component", COLOR_FRONT, COLOR_FRONT),
+            ("back component", COLOR_BACK, COLOR_BACK),
+            ("board outline", "none", COLOR_EDGE),
+        ],
+        x=margin,
+        y=header_height(font_size) + font_size * 1.2,
+        font_size=small,
+        element_id="placement-legend",
+    )
+    # Translate so the left-most content (overhang or label column) starts at
+    # the margin and the top overhang stays below the legend.
+    view_min_x = min_x
+    if outside_left:
+        view_min_x = left_anchor_x - (left_width - mm_font * 1.5) - mm_font * 0.4
+    view_min_y = min(min_y, 0.0)
+    board_x = margin - view_min_x * scale
+    board_y = header_height(font_size) + font_size * 3.5 - view_min_y * scale
+    body.append(
+        f'<g transform="translate({format_svg_number(board_x)} '
+        f'{format_svg_number(board_y)}) '
+        f'scale({format_svg_number(scale)})">'
+    )
+    body += inner
+    body.append("</g>")
+    body.append("</g>")
+    title = f"Component placement — {board_view.node_id}"
+    subtitle = (
+        f"{format_svg_number(board.width_mm)} mm × "
+        f"{format_svg_number(board.height_mm)} mm, "
+        f"{len(board.placements)} components "
+        f"(front {front_count} / back {back_count})"
+    )
+    width = max(
+        margin * 2 + (board_right - view_min_x) * scale,
+        text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
+        text_advance(subtitle, font_size * SUBTITLE_FONT_SCALE) + margin * 2,
+    )
+    height = board_y + board_bottom * scale + footer_height(font_size)
+    return svg_document(
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        body=body,
+        font_size=font_size,
+    )
 
 
 def _stackup_svg(board: BoardView) -> bytes:
@@ -182,32 +455,150 @@ def _stackup_svg(board: BoardView) -> bytes:
     )
     if dielectric_mm <= 0:
         raise SvgVisualProjectionError("stackup declarations have no positive dielectric")
-    width = 80.0
-    height = thickness_mm + 20.0
-    y = 10.0
-    chunks = [
-        (
-            f'<svg xmlns="http://www.w3.org/2000/svg" width="{format_svg_number(width)}mm" '
-            f'height="{format_svg_number(height)}mm" '
-            f'viewBox="0 0 {format_svg_number(width)} {format_svg_number(height)}">'
-        ),
-        '<g id="stackup">',
-    ]
+    font_size = diagram_font_size()
+    small = font_size * SMALL_FONT_SCALE
+    margin = font_size * 2
+    copper_label = (
+        f"{format_svg_number(board.outer_copper_thickness_um)} µm "
+        f"({board.outer_copper_thickness_um / 34.79:.2f} oz)"
+    )
+    dielectric_label = f"{format_svg_number(dielectric_mm)} mm"
+    label_width = max(
+        text_advance(name, font_size, bold=True) for name in layer_names
+    )
+    label_width = max(
+        label_width,
+        text_advance(copper_label, small),
+        text_advance(dielectric_label, small),
+        text_advance("dielectric", font_size, bold=True),
+    )
+    band_x = margin + label_width + font_size * 2
+    band_width = font_size * 16
+    scale = font_size * 20 / thickness_mm
+    total_label = f"total {format_svg_number(thickness_mm)} mm"
+    dim_x = band_x + band_width + font_size * 3
+
+    y = header_height(font_size) + font_size * 3.5
+    body = ['<g id="stackup-view">']
+    body += legend(
+        [
+            ("copper", COLOR_COPPER, COLOR_COPPER),
+            ("dielectric", COLOR_DIELECTRIC, COLOR_DIELECTRIC),
+        ],
+        x=margin,
+        y=header_height(font_size) + font_size * 1.2,
+        font_size=small,
+        element_id="stackup-legend",
+    )
+    body.append('<g id="stackup">')
     current_y = y
+    dielectric_index = 0
     for index, layer_name in enumerate(layer_names):
-        chunks.append(f'<g id="{escape_xml(layer_name)}">')
-        chunks.append(
-            f'<rect id="{escape_xml(layer_name)}-band" x="10" '
-            f'y="{format_svg_number(current_y)}" width="60" '
-            f'height="{format_svg_number(copper_mm)}" fill="#c87533"/>'
+        band_height = copper_mm * scale
+        label_y = current_y + max(band_height, font_size) / 2 + font_size * 0.35
+        body.extend(
+            [
+                f'<g id="{escape_xml(layer_name)}">',
+                svg_text(
+                    layer_name,
+                    x=margin,
+                    y=label_y - font_size * 0.5,
+                    font_size=font_size,
+                    weight="bold",
+                ),
+                svg_text(
+                    copper_label,
+                    x=margin,
+                    y=label_y + small * 0.9,
+                    font_size=small,
+                    fill=COLOR_TEXT_MUTED,
+                ),
+                f'<rect id="{escape_xml(layer_name)}-band" '
+                f'x="{format_svg_number(band_x)}" '
+                f'y="{format_svg_number(current_y)}" '
+                f'width="{format_svg_number(band_width)}" '
+                f'height="{format_svg_number(band_height)}" '
+                f'fill="{COLOR_COPPER}"/>',
+                "</g>",
+            ]
         )
-        chunks.append("</g>")
-        current_y += copper_mm
+        current_y += band_height
         if index != len(layer_names) - 1:
-            current_y += dielectric_mm
-    chunks.append("</g>")
-    chunks.append("</svg>")
-    return "".join(chunks).encode("utf-8")
+            dielectric_index += 1
+            gap_height = dielectric_mm * scale
+            body.extend(
+                [
+                    svg_text(
+                        "dielectric",
+                        x=margin,
+                        y=current_y + gap_height / 2 - small * 0.2,
+                        font_size=font_size,
+                        weight="bold",
+                    ),
+                    svg_text(
+                        dielectric_label,
+                        x=margin,
+                        y=current_y + gap_height / 2 + small * 1.1,
+                        font_size=small,
+                        fill=COLOR_TEXT_MUTED,
+                    ),
+                    f'<rect id="dielectric-band-{dielectric_index}" '
+                    f'x="{format_svg_number(band_x)}" '
+                    f'y="{format_svg_number(current_y)}" '
+                    f'width="{format_svg_number(band_width)}" '
+                    f'height="{format_svg_number(gap_height)}" '
+                    f'fill="{COLOR_DIELECTRIC}"/>',
+                ]
+            )
+            current_y += gap_height
+    body.append("</g>")
+    # Total-thickness dimension on the right of the stack.
+    body.extend(
+        [
+            '<g id="stackup-dimension">',
+            f'<line x1="{format_svg_number(dim_x)}" y1="{format_svg_number(y)}" '
+            f'x2="{format_svg_number(dim_x)}" '
+            f'y2="{format_svg_number(current_y)}" '
+            f'stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(font_size * 0.12)}"/>',
+            f'<line x1="{format_svg_number(dim_x - font_size * 0.6)}" '
+            f'y1="{format_svg_number(y)}" '
+            f'x2="{format_svg_number(dim_x + font_size * 0.6)}" '
+            f'y2="{format_svg_number(y)}" stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(font_size * 0.12)}"/>',
+            f'<line x1="{format_svg_number(dim_x - font_size * 0.6)}" '
+            f'y1="{format_svg_number(current_y)}" '
+            f'x2="{format_svg_number(dim_x + font_size * 0.6)}" '
+            f'y2="{format_svg_number(current_y)}" '
+            f'stroke="{COLOR_EDGE_MUTED}" '
+            f'stroke-width="{format_svg_number(font_size * 0.12)}"/>',
+            svg_text(
+                total_label,
+                x=dim_x + font_size,
+                y=(y + current_y) / 2,
+                font_size=small,
+                fill=COLOR_TEXT_MUTED,
+            ),
+            "</g>",
+        ]
+    )
+    body.append("</g>")
+    title = f"Layer stackup — {board.layers} layers, {format_svg_number(thickness_mm)} mm"
+    subtitle = f"copper thickness source: {board.copper_thickness_source}"
+    width = max(
+        dim_x + font_size + text_advance(total_label, small) + margin,
+        text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
+        text_advance(subtitle, font_size * SUBTITLE_FONT_SCALE) + margin * 2,
+    )
+    height = current_y + font_size * 2 + footer_height(font_size)
+    return svg_document(
+        width=width,
+        height=height,
+        title=title,
+        subtitle=subtitle,
+        body=body,
+        font_size=font_size,
+    )
 
 
 class SvgLayoutRenderer:
@@ -230,7 +621,7 @@ class SvgLayoutRenderer:
         output_path: Path,
     ) -> None:
         if projection_type == "placement_view":
-            content = _placement_svg(board)
+            content = _placement_svg(board, board_view)
         elif projection_type == "stackup_view":
             content = _stackup_svg(board_view)
         else:
