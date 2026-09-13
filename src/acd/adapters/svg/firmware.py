@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
+from itertools import pairwise
 from pathlib import Path
+from types import MappingProxyType
 from typing import ClassVar, Literal
 
 from acd.adapters.svg.common import (
@@ -54,6 +57,7 @@ _STATE_FILL = KIND_FILL["firmware.module"]
 _STATE_STROKE = KIND_STROKE["firmware.module"]
 _LIFELINE_FILL = KIND_FILL["electrical.component"]
 _LIFELINE_STROKE = KIND_STROKE["electrical.component"]
+_EMPTY_TARGET_CAPTIONS: Mapping[str, str] = MappingProxyType({})
 
 
 def _state_order(lane: FirmwareLane) -> list[str]:
@@ -229,6 +233,43 @@ def _state_svg(lane: FirmwareLane) -> bytes:
         box_x = positions[state_id][0]
         return box_x + box_width * (slot + 1) / (count + 1)
 
+    transition_geometry: dict[str, tuple[float, float, float, float, float]] = {}
+    for transition in transitions:
+        from_x, from_y = positions[transition.from_state]
+        if transition.from_state == transition.to_state:
+            start_x = from_x + box_width * 0.25
+            end_x = from_x + box_width * 0.75
+            lane_y = _lane_y(
+                index_of[transition.from_state] // columns,
+                band_side[transition.node_id],
+                band_slot[transition.node_id],
+            )
+            transition_geometry[transition.node_id] = (
+                start_x,
+                end_x,
+                lane_y,
+                from_y,
+                from_y,
+            )
+            continue
+        exit_side, entry_side, lane_y = route[transition.node_id]
+        exit_x = _port_x(
+            transition.from_state, exit_side, "exit", transition.node_id
+        )
+        entry_x = _port_x(
+            transition.to_state, entry_side, "entry", transition.node_id
+        )
+        to_y = positions[transition.to_state][1]
+        exit_y = from_y if exit_side == "top" else from_y + box_height
+        entry_y = to_y if entry_side == "top" else to_y + box_height
+        transition_geometry[transition.node_id] = (
+            exit_x,
+            entry_x,
+            lane_y,
+            exit_y,
+            entry_y,
+        )
+
     body = [arrow_marker_defs(font_size), '<g id="firmware-state-view">']
     body += legend(
         [
@@ -248,6 +289,8 @@ def _state_svg(lane: FirmwareLane) -> bytes:
         side = band_side[transition.node_id]
         slot = band_slot[transition.node_id]
         lane_y = _lane_y(index_of[transition.from_state] // columns, side, slot)
+        exit_x = entry_x = 0.0
+        label_placement = "clear"
         if transition.from_state == transition.to_state:
             # Self transition: a small loop on the lane above the box.
             start_x = from_x + box_width * 0.25
@@ -260,6 +303,7 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             )
             label_x = (start_x + end_x) / 2
             label_y = lane_y - small * 0.4
+            label_placement = "clear"
         else:
             exit_side, entry_side, lane_y = route[transition.node_id]
             exit_x = _port_x(
@@ -280,6 +324,48 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             label_x = (exit_x + entry_x) / 2
             label_y = lane_y - small * 0.4
         label_width = text_advance(transition.trigger, small) + small
+        if transition.from_state != transition.to_state:
+            lower_bound = min(exit_x, entry_x)
+            upper_bound = max(exit_x, entry_x)
+            crossing_xs: list[float] = []
+            lane_low = lane_y - small
+            lane_high = lane_y + small * 0.3
+            for other in transitions:
+                if other.node_id == transition.node_id or other.node_id not in route:
+                    continue
+                other_exit_x, other_entry_x, _other_lane_y, other_exit_y, other_entry_y = (
+                    transition_geometry[other.node_id]
+                )
+                for crossing_x, endpoint_y in (
+                    (other_exit_x, other_exit_y),
+                    (other_entry_x, other_entry_y),
+                ):
+                    if (
+                        min(endpoint_y, _other_lane_y) <= lane_high
+                        and max(endpoint_y, _other_lane_y) >= lane_low
+                        and lower_bound < crossing_x < upper_bound
+                    ):
+                        crossing_xs.append(crossing_x)
+            boundaries = sorted({lower_bound, upper_bound, *crossing_xs})
+            gaps = [
+                (left, right)
+                for left, right in pairwise(boundaries)
+                if right - left >= label_width
+            ]
+            midpoint = (lower_bound + upper_bound) / 2
+            if gaps:
+                left, right = min(
+                    gaps,
+                    key=lambda gap: (
+                        -(gap[1] - gap[0]),
+                        abs((gap[0] + gap[1]) / 2 - midpoint),
+                        gap[0],
+                    ),
+                )
+                label_x = (left + right) / 2
+                label_placement = "clear"
+            else:
+                label_placement = "fallback"
         body.extend(
             [
                 f'<path id="fw-transition-{identifier}" '
@@ -290,7 +376,10 @@ def _state_svg(lane: FirmwareLane) -> bytes:
                 f'd="{path_d}" fill="none" stroke="{COLOR_EDGE}" '
                 f'stroke-width="{format_svg_number(font_size * 0.15)}" '
                 'marker-end="url(#arrow)"/>',
-                f'<rect x="{format_svg_number(label_x - label_width / 2)}" '
+                f'<rect id="fw-label-{identifier}" '
+                f'data-transition-id="{escape_xml(transition.node_id)}" '
+                f'data-label-placement="{label_placement}" '
+                f'x="{format_svg_number(label_x - label_width / 2)}" '
                 f'y="{format_svg_number(label_y - small)}" '
                 f'width="{format_svg_number(label_width)}" '
                 f'height="{format_svg_number(small * 1.3)}" '
@@ -392,7 +481,10 @@ def _state_svg(lane: FirmwareLane) -> bytes:
     )
 
 
-def _sequence_svg(lane: FirmwareLane) -> bytes:
+def _sequence_svg(
+    lane: FirmwareLane,
+    target_captions: Mapping[str, str],
+) -> bytes:
     steps = tuple(sorted(lane.sequence_steps, key=lambda step: step.step_index))
     if not steps:
         raise SvgVisualProjectionError(
@@ -403,6 +495,16 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
         if step.target not in targets:
             targets.append(step.target)
     lifeline_ids = [lane.module.node_id, *targets]
+    unknown_caption_keys = sorted(set(target_captions) - set(targets))
+    if unknown_caption_keys:
+        raise SvgVisualProjectionError(
+            "firmware sequence caption has unknown target: "
+            + ", ".join(unknown_caption_keys)
+        )
+    if any(not caption.strip() for caption in target_captions.values()):
+        raise SvgVisualProjectionError(
+            "firmware sequence target caption must not be empty"
+        )
     if any(step.actor not in lifeline_ids for step in steps):
         raise SvgVisualProjectionError(
             "firmware sequence actor must be the module or a declared target"
@@ -414,10 +516,15 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
     longest_label = max(
         [text_advance(lane.module.module_name, font_size, bold=True)]
         + [
-            text_advance(node_id, font_size, bold=True)
+            text_advance(
+                target_captions.get(node_id, node_id),
+                font_size,
+                bold=True,
+            )
             for node_id in lifeline_ids
         ]
         + [text_advance(step.action, font_size) for step in steps]
+        + [text_advance(node_id, small) for node_id in lifeline_ids]
     )
     column_width = longest_label + font_size * 3
     origin_x = margin + badge_width + font_size * 2
@@ -447,7 +554,11 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
         identifier = slugify_identifier(node_id)
         cx = positions[node_id]
         is_module = index == 0
-        primary = lane.module.module_name if is_module else node_id
+        primary = (
+            lane.module.module_name
+            if is_module
+            else target_captions.get(node_id, node_id)
+        )
         body.extend(
             [
                 f'<g id="fw-lifeline-{identifier}" '
@@ -470,18 +581,17 @@ def _sequence_svg(lane: FirmwareLane) -> bytes:
                 ),
             ]
         )
-        if is_module:
-            body.append(
-                svg_text(
-                    node_id,
-                    x=cx,
-                    y=lifeline_y + font_size * 3.4,
-                    font_size=small,
-                    element_id=f"fw-lifeline-sub-{identifier}",
-                    anchor="middle",
-                    fill=COLOR_TEXT_MUTED,
-                )
+        body.append(
+            svg_text(
+                node_id,
+                x=cx,
+                y=lifeline_y + font_size * 3.4,
+                font_size=small,
+                element_id=f"fw-lifeline-sub-{identifier}",
+                anchor="middle",
+                fill=COLOR_TEXT_MUTED,
             )
+        )
         body.extend(
             [
                 f'<line id="fw-lifeline-line-{identifier}" '
@@ -596,12 +706,13 @@ class SvgFirmwareRenderer:
         *,
         projection_type: FirmwareProjectionType,
         lane: FirmwareLane,
+        target_captions: Mapping[str, str],
         output_path: Path,
     ) -> None:
         content = (
             _state_svg(lane)
             if projection_type == "firmware_state_view"
-            else _sequence_svg(lane)
+            else _sequence_svg(lane, target_captions)
         )
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
@@ -618,6 +729,7 @@ class SvgFirmwareRenderer:
         projection_type: FirmwareProjectionType,
         source_revision: str,
         lane: FirmwareLane,
+        target_captions: Mapping[str, str] = _EMPTY_TARGET_CAPTIONS,
         input_files: list[VisualProjectionInput],
         output_path: Path,
         base_dir: Path,
@@ -639,6 +751,7 @@ class SvgFirmwareRenderer:
             write_svg=lambda path: self._write_svg(
                 projection_type=projection_type,
                 lane=lane,
+                target_captions=target_captions,
                 output_path=path,
             ),
         )
@@ -654,10 +767,12 @@ def generate_firmware_visual_projections(
     input_base_dir: Path,
     renderer: SvgFirmwareRenderer | None = None,
     projection_ids: tuple[str, str] | None = None,
+    target_captions: Mapping[str, str] | None = None,
 ) -> VisualProjectionSet:
     """Generate the firmware state and sequence projection collection."""
     inputs = input_records(authoritative_inputs, input_base_dir)
     renderer = renderer or SvgFirmwareRenderer()
+    captions = target_captions if target_captions is not None else _EMPTY_TARGET_CAPTIONS
     ids = projection_ids or (
         f"{slugify_identifier(project_name)}-firmware-state",
         f"{slugify_identifier(project_name)}-firmware-sequence",
@@ -672,6 +787,7 @@ def generate_firmware_visual_projections(
             projection_type="firmware_state_view",
             source_revision=source_revision,
             lane=lane,
+            target_captions=captions,
             input_files=inputs,
             output_path=out_dir / "visual" / f"{ids[0]}.svg",
             base_dir=out_dir,
@@ -681,6 +797,7 @@ def generate_firmware_visual_projections(
             projection_type="firmware_sequence_view",
             source_revision=source_revision,
             lane=lane,
+            target_captions=captions,
             input_files=inputs,
             output_path=out_dir / "visual" / f"{ids[1]}.svg",
             base_dir=out_dir,

@@ -351,9 +351,12 @@ def _power_connections(
     lane: ElectricalLane,
     graph: DesignGraph,
 ) -> tuple[str, list[str]]:
-    if net.voltage_nominal_v is None or not math.isfinite(net.voltage_nominal_v):
+    if (
+        net.voltage_nominal_v is not None
+        and not math.isfinite(net.voltage_nominal_v)
+    ):
         raise SvgVisualProjectionError(
-            f"power rail {net.node_id}: voltage declaration is missing or invalid"
+            f"power rail {net.node_id}: voltage declaration is non-finite"
         )
     source_pin_id = net.power_source_pin
     if not source_pin_id:
@@ -409,7 +412,26 @@ def _power_nets(lane: ElectricalLane) -> tuple[NetView, ...]:
         raise SvgVisualProjectionError(
             "power tree projection has no declared power rails"
         )
-    return tuple(sorted(nets, key=lambda net: net.node_id))
+    for net in nets:
+        if (
+            net.voltage_nominal_v is not None
+            and not math.isfinite(net.voltage_nominal_v)
+        ):
+            raise SvgVisualProjectionError(
+                f"power rail {net.node_id}: voltage declaration is non-finite"
+            )
+    return tuple(
+        sorted(
+            nets,
+            key=lambda net: (
+                net.voltage_nominal_v is None,
+                -net.voltage_nominal_v
+                if net.voltage_nominal_v is not None
+                else 0.0,
+                net.node_id,
+            ),
+        )
+    )
 
 
 def _component_caption(lane: ElectricalLane, component_id: str) -> tuple[str, str]:
@@ -468,6 +490,16 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                 fill=COLOR_TEXT_MUTED,
             )
         )
+    body.append(
+        svg_text(
+            "ordered by nominal voltage (high → low)",
+            x=net_x + box_width / 2,
+            y=column_title_y + small * 1.1,
+            font_size=small,
+            anchor="middle",
+            fill=COLOR_TEXT_MUTED,
+        )
+    )
     for index, (net, source_id, load_ids, row_y, row_height) in enumerate(rows):
         net_identifier = slugify_identifier(net.node_id)
         source_identifier = slugify_identifier(source_id)
@@ -525,7 +557,11 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                     weight="bold",
                 ),
                 svg_text(
-                    f"{net.voltage_nominal_v} V nominal",
+                    (
+                        f"{net.voltage_nominal_v} V nominal"
+                        if net.voltage_nominal_v is not None
+                        else "nominal voltage unspecified"
+                    ),
                     x=net_x + font_size * 0.7,
                     y=center_y - box_height / 2 + font_size * 3.4,
                     font_size=small,

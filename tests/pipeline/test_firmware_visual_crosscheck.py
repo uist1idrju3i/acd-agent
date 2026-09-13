@@ -10,7 +10,9 @@ from pathlib import Path
 
 import pytest
 
+import acd.pipeline.gd1_board as gd1_board
 from acd.adapters.svg import generate_firmware_visual_projections
+from acd.core.electrical import extract_electrical_lane
 from acd.core.firmware_lane import (
     FirmwareLane,
     FirmwareSequenceStepView,
@@ -84,6 +86,30 @@ def _replace_projection(
         for record in projection_set.projections
     ]
     return projection_set.model_copy(update={"projections": records})
+
+
+def test_gd1_firmware_stage_uses_electrical_component_captions(
+    tmp_path: Path,
+) -> None:
+    graph = DesignGraph.model_validate(
+        json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
+    )
+    electrical_lane = extract_electrical_lane(graph)
+    gd1_board._stage_firmware_visual_projections(  # pyright: ignore[reportPrivateUsage]
+        project_name="gd1",
+        out_dir=tmp_path,
+        source_revision=graph.revision,
+        graph=graph,
+        lane=electrical_lane,
+        graph_input=GRAPH_PATH,
+        input_base_dir=repository_root(),
+    )
+    svg = (tmp_path / "visual/gd1-firmware-sequence.svg").read_text(
+        encoding="utf-8"
+    )
+    component = electrical_lane.component_by_id("comp.u1")
+    assert f">{component.refdes} {component.value}</text>" in svg
+    assert ">comp.u1</text>" in svg
 
 
 def test_malformed_svg_fails_closed(tmp_path: Path) -> None:

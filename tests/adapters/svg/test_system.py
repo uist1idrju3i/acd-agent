@@ -17,7 +17,7 @@ from acd.adapters.svg.system import (
     SvgVisualProjectionError,
     generate_system_visual_projections,
 )
-from acd.core.electrical import ElectricalLane, extract_electrical_lane
+from acd.core.electrical import ElectricalLane, NetView, extract_electrical_lane
 from acd.core.visual_projection import measure_svg_resolution
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 
@@ -110,6 +110,7 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
     assert b'id="power-net-net-gnd"' not in power_svg
     assert b"5.0 V nominal" in power_svg
     assert b"J1 TYPE-C-31-M-12" in power_svg
+    assert b"ordered by nominal voltage (high" in power_svg
     assert b'font-size="3"' in power_svg
     power_box = measure_svg_resolution(power_svg).view_box
     assert power_box[:3] == (0.0, 0.0, 240.0)
@@ -247,7 +248,58 @@ def test_power_net_absent_fails_closed(tmp_path: Path) -> None:
         )
 
 
-def test_voltage_undeclared_fails_closed(tmp_path: Path) -> None:
+def test_power_nets_are_ordered_by_voltage_then_node_id() -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    template = lane.nets[0]
+    nets = tuple(
+        NetView(
+            node_id=node_id,
+            name=node_id,
+            voltage_nominal_v=voltage,
+            width_basis=template.width_basis,
+            current_max_a=template.current_max_a,
+            width_basis_source=template.width_basis_source,
+            manufacturing_minimum_mm=template.manufacturing_minimum_mm,
+            manufacturing_margin_mm=template.manufacturing_margin_mm,
+            power_rail=True,
+            power_source_pin=template.power_source_pin,
+        )
+        for node_id, voltage in (
+            ("net-z", None),
+            ("net-b", 1.8),
+            ("net-a", 5.0),
+            ("net-c", 3.3),
+        )
+    )
+    ordered = system_module._power_nets(  # pyright: ignore[reportPrivateUsage]
+        replace(lane, nets=nets)
+    )
+    assert [net.node_id for net in ordered] == [
+        "net-a",
+        "net-c",
+        "net-b",
+        "net-z",
+    ]
+
+
+def test_power_net_nonfinite_voltage_fails_closed() -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    lane = replace(
+        lane,
+        nets=tuple(
+            replace(net, voltage_nominal_v=float("nan"))
+            if net.power_rail
+            else net
+            for net in lane.nets
+        ),
+    )
+    with pytest.raises(SvgVisualProjectionError, match="non-finite"):
+        system_module._power_nets(lane)  # pyright: ignore[reportPrivateUsage]
+
+
+def test_voltage_undeclared_is_ordered_after_numeric_rails(tmp_path: Path) -> None:
     graph = _graph()
     lane = _lane(graph)
     lane = replace(
@@ -259,8 +311,14 @@ def test_voltage_undeclared_fails_closed(tmp_path: Path) -> None:
             for net in lane.nets
         ),
     )
-    with pytest.raises(SvgVisualProjectionError, match="voltage declaration"):
-        _generate(tmp_path, lane=lane)
+    projection_set = _generate(tmp_path, lane=lane)
+    power = next(
+        record
+        for record in projection_set.projections
+        if record.projection_type == "power_tree_view"
+    )
+    svg = (tmp_path / "out" / power.image_path).read_bytes()
+    assert b"nominal voltage unspecified" in svg
 
 
 def test_power_voltage_nonfinite_fails_closed(tmp_path: Path) -> None:
@@ -272,7 +330,7 @@ def test_power_voltage_nonfinite_fails_closed(tmp_path: Path) -> None:
         else net
         for net in lane.nets
     )
-    with pytest.raises(SvgVisualProjectionError, match="voltage declaration"):
+    with pytest.raises(SvgVisualProjectionError, match="non-finite"):
         _generate(tmp_path, lane=replace(lane, nets=nets))
 
 

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 
@@ -120,6 +121,7 @@ def _generate(
     source_revision: str | None = None,
     lane: FirmwareLane | None = None,
     authoritative_inputs: tuple[Path, ...] | None = None,
+    target_captions: Mapping[str, str] | None = None,
 ):
     graph_path, graph = _fixture()
     return generate_firmware_visual_projections(
@@ -131,6 +133,7 @@ def _generate(
         input_base_dir=repository_root(),
         renderer=renderer,
         projection_ids=projection_ids,
+        target_captions=target_captions,
     )
 
 
@@ -161,11 +164,13 @@ def test_nondeterministic_renderer_fails_closed(tmp_path: Path) -> None:
             *,
             projection_type: FirmwareProjectionType,
             lane: FirmwareLane,
+            target_captions: Mapping[str, str],
             output_path: Path,
         ) -> None:
             super()._write_svg(
                 projection_type=projection_type,
                 lane=lane,
+                target_captions=target_captions,
                 output_path=output_path,
             )
             self.writes += 1
@@ -174,6 +179,136 @@ def test_nondeterministic_renderer_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(SvgVisualProjectionError, match="regeneration"):
         _generate(tmp_path, renderer=NondeterministicRenderer())
+
+
+def test_sequence_target_captions_render_primary_and_secondary_labels(
+    tmp_path: Path,
+) -> None:
+    captions = {
+        "comp.u1": "U1 MCU",
+        "comp.u3": "U3 sensor",
+        "comp.d1": "D1 status LED",
+    }
+    projection_set = _generate(tmp_path, target_captions=captions)
+    sequence = next(
+        record
+        for record in projection_set.projections
+        if record.projection_type == "firmware_sequence_view"
+    )
+    svg = (tmp_path / sequence.image_path).read_text(encoding="utf-8")
+    assert ">U1 MCU</text>" in svg
+    assert '>comp.u1</text>' in svg
+    assert 'id="fw-lifeline-sub-comp-u1"' in svg
+    assert 'data-node-id="comp.u1"' in svg
+
+    second = _generate(tmp_path / "second", target_captions=captions)
+    assert projection_set.identity_hash == second.identity_hash
+
+
+def test_sequence_target_captions_default_and_invalid_keys_fail_closed(
+    tmp_path: Path,
+) -> None:
+    projection_set = _generate(tmp_path)
+    sequence = next(
+        record
+        for record in projection_set.projections
+        if record.projection_type == "firmware_sequence_view"
+    )
+    svg = (tmp_path / sequence.image_path).read_text(encoding="utf-8")
+    assert ">comp.u1</text>" in svg
+
+    with pytest.raises(SvgVisualProjectionError, match="unknown target"):
+        _generate(tmp_path / "unknown", target_captions={"comp.missing": "U9"})
+    with pytest.raises(SvgVisualProjectionError, match="must not be empty"):
+        _generate(tmp_path / "blank", target_captions={"comp.u1": " "})
+
+
+def test_state_transition_labels_have_placement_metadata_without_overlap(
+    tmp_path: Path,
+) -> None:
+    projection_set = _generate(tmp_path)
+    state = next(
+        record
+        for record in projection_set.projections
+        if record.projection_type == "firmware_state_view"
+    )
+    svg = (tmp_path / state.image_path).read_text(encoding="utf-8")
+    paths = {
+        match.group("id"): tuple(float(value) for value in match.groups()[1:])
+        for match in re.finditer(
+            r'id="(?P<id>fw-transition-[^"]+)"[^>]*'
+            r'd="M (?P<x1>[0-9.]+) (?P<y1>[0-9.]+) V '
+            r'(?P<lane>[0-9.]+) H (?P<x2>[0-9.]+) V '
+            r'(?P<y2>[0-9.]+)"',
+            svg,
+        )
+    }
+    labels = list(
+        re.finditer(
+            r'<rect id="fw-label-(?P<label>[^"]+)" '
+            r'data-transition-id="(?P<transition>[^"]+)" '
+            r'data-label-placement="(?P<placement>[^"]+)" '
+            r'x="(?P<x>[0-9.]+)" y="(?P<y>[0-9.]+)" '
+            r'width="(?P<w>[0-9.]+)" height="(?P<h>[0-9.]+)"',
+            svg,
+        )
+    )
+    assert labels
+    assert {match.group("placement") for match in labels} <= {"clear", "fallback"}
+    assert all(
+        f'fw-transition-{match.group("label")}' in paths for match in labels
+    )
+
+    for label in labels:
+        if label.group("placement") != "clear":
+            continue
+        label_x1 = float(label.group("x"))
+        label_x2 = label_x1 + float(label.group("w"))
+        label_y1 = float(label.group("y"))
+        label_y2 = label_y1 + float(label.group("h"))
+        own = f'fw-transition-{label.group("label")}'
+        for path_id, values in paths.items():
+            if path_id == own:
+                continue
+            x1, y1, lane_y, x2, y2 = values
+            for vertical_x, endpoint_y in ((x1, y1), (x2, y2)):
+                if (
+                    label_x1 < vertical_x < label_x2
+                    and max(min(endpoint_y, lane_y), label_y1)
+                    < min(max(endpoint_y, lane_y), label_y2)
+                ):
+                    raise AssertionError(
+                        f"clear label {label.group('transition')} intersects {path_id}"
+                    )
+
+    for first_index, first in enumerate(labels):
+        first_y1 = float(first.group("y"))
+        first_y2 = first_y1 + float(first.group("h"))
+        for second in labels[first_index + 1 :]:
+            second_y1 = float(second.group("y"))
+            second_y2 = second_y1 + float(second.group("h"))
+            assert first_y2 <= second_y1 or second_y2 <= first_y1
+
+
+def test_state_transition_label_fallback_still_renders(tmp_path: Path) -> None:
+    graph_path, graph = _fixture()
+    lane = extract_firmware_lane(graph)
+    long_transitions = tuple(
+        replace(transition, trigger="x" * 10_000)
+        for transition in lane.transitions
+    )
+    projection_set = _generate(
+        tmp_path,
+        lane=replace(lane, transitions=long_transitions),
+        authoritative_inputs=(graph_path,),
+    )
+    state = next(
+        record
+        for record in projection_set.projections
+        if record.projection_type == "firmware_state_view"
+    )
+    svg = (tmp_path / state.image_path).read_text(encoding="utf-8")
+    assert 'data-label-placement="fallback"' in svg
 
 
 @pytest.mark.parametrize("field", ["states", "transitions", "sequence_steps"])
