@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
                 sort_keys=True,
             )
         )
-        return 1
+        return 2
 
 
 if __name__ == "__main__":
