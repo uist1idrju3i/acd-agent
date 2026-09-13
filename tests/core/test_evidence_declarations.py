@@ -30,6 +30,7 @@ def _component(
     refdes: str = "U9",
     basis: str = "confirmed",
     lcsc: str | None = "C9999",
+    mpn: str | None = None,
 ) -> GraphNode:
     attrs: dict[str, AttrValue] = {
         "refdes": refdes,
@@ -37,6 +38,8 @@ def _component(
     }
     if lcsc is not None:
         attrs["lcsc"] = lcsc
+    if mpn is not None:
+        attrs["mpn"] = mpn
     return GraphNode(id=node_id, kind="electrical.component", attrs=attrs)
 
 
@@ -125,6 +128,74 @@ def test_resolved_record_produces_no_finding(tmp_path: Path) -> None:
     path = cpl_rotation_record_path(tmp_path, "demo-design", "U9")
     _record(path, refdes="U9", lcsc="C9999", response={"result": {"x": 1}})
     assert collect_evidence_declaration_findings(_graph(_component()), root=tmp_path) == []
+
+
+def test_record_mpn_mismatch_is_reported(tmp_path: Path) -> None:
+    path = cpl_rotation_record_path(tmp_path, "demo-design", "U9")
+    _record(
+        path,
+        refdes="U9",
+        lcsc="C9999",
+        response={
+            "result": {
+                "dataStr": {
+                    "head": {
+                        "c_para": {
+                            "Manufacturer Part": "OBSERVED",
+                            "package": "R0603",
+                            "Supplier Part": "C9999",
+                        }
+                    }
+                }
+            }
+        },
+    )
+    findings = collect_evidence_declaration_findings(
+        _graph(_component(mpn="DECLARED")), root=tmp_path
+    )
+    assert len(findings) == 1
+    assert findings[0].code == "evidence.cpl_rotation.mpn_mismatch"
+    assert findings[0].attr == "mpn"
+    assert "declared mpn 'DECLARED'" in findings[0].detail
+    assert "Manufacturer Part is 'OBSERVED'" in findings[0].detail
+    assert "package 'R0603'" in findings[0].detail
+
+
+def test_record_mpn_match_is_not_reported(tmp_path: Path) -> None:
+    path = cpl_rotation_record_path(tmp_path, "demo-design", "U9")
+    _record(
+        path,
+        refdes="U9",
+        lcsc="C9999",
+        response={
+            "result": {
+                "dataStr": {
+                    "head": {
+                        "c_para": {
+                            "Manufacturer Part": "DECLARED",
+                            "Supplier Part": "C9999",
+                        }
+                    }
+                }
+            }
+        },
+    )
+    assert collect_evidence_declaration_findings(
+        _graph(_component(mpn="DECLARED")), root=tmp_path
+    ) == []
+
+
+def test_record_without_c_para_has_no_mpn_finding(tmp_path: Path) -> None:
+    path = cpl_rotation_record_path(tmp_path, "demo-design", "U9")
+    _record(
+        path,
+        refdes="U9",
+        lcsc="C9999",
+        response={"result": {"description": "no identity"}},
+    )
+    assert collect_evidence_declaration_findings(
+        _graph(_component(mpn="DECLARED")), root=tmp_path
+    ) == []
 
 
 def test_check_cpl_rotation_record_variants(tmp_path: Path) -> None:

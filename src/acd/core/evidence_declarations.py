@@ -21,12 +21,14 @@ from acd.core.fab import (
     load_fab_profile_registry,
     resolve_fab_profile_path,
 )
+from acd.core.lcsc_record import check_declared_mpn, extract_lcsc_identity
 from acd.core.naming import artifact_prefix
 from acd.pipeline.repository import repository_root
 from acd.schema.design_graph import DesignGraph
 
 EvidenceDeclarationCode = Literal[
     "evidence.cpl_rotation.declared_unverified",
+    "evidence.cpl_rotation.mpn_mismatch",
     "evidence.fab_profile.declared_unverified",
 ]
 
@@ -130,6 +132,44 @@ def _cpl_rotation_findings(
         record_path = cpl_rotation_record_path(root, graph.graph_id, refdes)
         reason = check_cpl_rotation_record(record_path, refdes=refdes, lcsc=lcsc)
         if reason is None:
+            declared_mpn = node.attrs.get("mpn")
+            if isinstance(declared_mpn, str) and declared_mpn:
+                try:
+                    record = json.loads(record_path.read_text(encoding="utf-8"))
+                except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                    record = None
+                if isinstance(record, Mapping):
+                    typed_record = cast(Mapping[str, object], record)
+                    response_value = typed_record.get("response")
+                    response = (
+                        cast(Mapping[str, object], response_value)
+                        if isinstance(response_value, Mapping)
+                        else None
+                    )
+                    if isinstance(response, Mapping):
+                        identity = extract_lcsc_identity(response)
+                        mpn_check = check_declared_mpn(
+                            identity, declared_mpn=declared_mpn
+                        )
+                        if mpn_check.state == "mismatch":
+                            observed_part = identity.manufacturer_part or "<unknown>"
+                            package = identity.package or "<unknown>"
+                            findings.append(
+                                EvidenceDeclarationFinding(
+                                    code="evidence.cpl_rotation.mpn_mismatch",
+                                    node_id=node.id,
+                                    kind=node.kind,
+                                    attr="mpn",
+                                    detail=(
+                                        f"declared mpn {declared_mpn!r} but record "
+                                        f"{identity.supplier_part or '<unknown>'} "
+                                        f"Manufacturer Part is "
+                                        f"{observed_part!r} (package {package!r}); "
+                                        "next: correct lcsc or mpn in the spec and "
+                                        "re-fetch the record"
+                                    ),
+                                )
+                            )
             continue
         try:
             relative = record_path.relative_to(root)

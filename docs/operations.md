@@ -346,8 +346,10 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    存在することを照合する。解決不能は`evidence.cpl_rotation.declared_unverified`／
    `evidence.fab_profile.declared_unverified`として`unsupported_values`に記録し、
    laneを`declarations_incomplete`にする。修復はlocked container内で
-   `scripts/fetch_lcsc_footprint_orientation.py --refdes <R> --lcsc <C> --out <record>`
-   を実行するか、`evidence_basis`を`estimated`へ戻す（CPLゲートではunknownのまま）。
+   `scripts/fetch_lcsc_footprint_orientation.py --refdes <R> --lcsc <C> --expect-mpn <M> --out <record>`
+   を実行する。取得recordの`Manufacturer Part`と宣言mpnを照合し、不一致は
+   `evidence.cpl_rotation.mpn_mismatch`として停止側へ記録する。`evidence_basis`を
+   `estimated`へ戻す場合もCPLゲートではunknownのままである。
    L1側では基板pipeline（`src/acd/pipeline/gd1_board.py`）が読み込んだfab profileへ
    解決しない`fab.order_intent` provenanceを`ValueError`で拒否する。CPL側は
    `verify_lcsc_rotation_evidence`が既にrecord欠落をunknownへ倒すため変更不要。
