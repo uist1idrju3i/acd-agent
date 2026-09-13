@@ -216,7 +216,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
 | 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-3、V-5〜V-7、V-9を達成し、V-1（container由来資材のhost混入検出）が未了。入力・出所と実装を固定し、診断・報告はL3に留め、判定権限はL1ゲートのままとする |
 | 14.21 | GD1非依存の達成判定（W-1〜W-4） | W-1〜W-4を達成（非GD1 fixture `mini-blink-dongle`がdigest固定containerで全laneとauthoritative Evidence検証を通過）。GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
-| 14.22 | routed board上のsilkscreen再解決 | SES import後の`.kicad_pcb`からkicad-cli exportでviaとmask開口を抽出し、silkscreen resolverをboundedなround上限のもと1回だけ再実行する。cache hit時は省略し、合否は既存silkscreen L1ゲートが決める |
+| 14.25 | routed board上のsilkscreen再解決 | SES import後の`.kicad_pcb`からkicad-cli exportでviaとmask開口を抽出し、silkscreen resolverをboundedなround上限のもと1回だけ再実行する。cache hit時は省略し、合否は既存silkscreen L1ゲートが決める |
 
 不足項目（C、D、L、M、N、O、P、Q、U、V、W）の各フェーズへの割当経緯と14.1〜14.15・14.19の完了条件は[`roadmap-completed.md`](roadmap-completed.md)を正とする。
 
@@ -341,15 +341,7 @@ W-1は14.20のV-6解消を前提とし、W-3は14.2、W-4は6.4のCI移行を前
 満たした時点で「GD1が無くても新規設計をVibeBBできる」状態に到達したと判定する。GD1 fixtureは
 その後もregression用のpositive controlとして維持し、削除は行わない。
 
-### 14.22 routed board上のsilkscreen再解決
-
-現行の`silkscreen_resolve.py`はpre-routingでviaとmask開口が存在しない前提を置く。
-一方、SES import後の`.kicad_pcb`にはroutingで追加されたviaとmask開口が現れる。
-そのため、kicad-cli exportで対象形状を抽出し、resolverをboundedな契約で再実行する。
-再実行は1回に限定し、round上限を宣言する。cache hit時は再実行を省略する。
-既存silkscreen gateを合否の権威とし、再解決結果や投影はL1判定へ逆流させない。
-
-### 14.23 自然文のみ新規設計の実機不合格からの残関門（Y-*）
+### 14.22 自然文のみ新規設計の実機不合格からの残関門（Y-*）
 
 第8回実機実測（2026-09-06、
 [`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 15節）では、
@@ -405,11 +397,11 @@ Y-9（decoupling多pad対象の決定論的解決）は本branch
 これでhook matcherを含む全項目解消である。fail-closed境界の堅持に直結するものを先に扱った。詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のY節を正とする。
 
-### 14.24 14.23反映後の同一要件再検証（第9回）で残った関門（Z-*）
+### 14.23 14.22反映後の同一要件再検証（第9回）で残った関門（Z-*）
 
 第9回実機実測（2026-09-07、
 [`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 16節）では、
-14.23を反映した`main`（`180b628`）と更新済みimageのもとで第8回と同一文言の自然文要件を
+14.22を反映した`main`（`180b628`）と更新済みimageのもとで第8回と同一文言の自然文要件を
 投入した。Y-2・Y-3・Y-6・Y-7・Y-8・Y-10・Y-11とhook matcherの効果は観測でき、
 order-total捏造とLED2／ボタン要件の削除は再発しなかった。しかしagentは停止境界ごとに
 `src/`編集→commit（provenanceは「clean」のままrevisionが逸脱）、`run_in_workspace.py`の
@@ -423,7 +415,7 @@ matcher）を閉じる。
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `scripts/run_in_workspace.py`、`scripts/verify_authoritative_evidence.py`、`src/acd/pipeline/fixture_builder.py`（coverage診断文）、`plugins/acd/hooks/scripts/protect_projections.py`・`session_start.py`・stop policy、`plugins/acd/commands/init.md`、`src/acd/pipeline/design_loop.py`の`lane-preflight`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節、[`examples/dual-beacon-tag-vps-20260907/`](../examples/dual-beacon-tag-vps-20260907/) |
-| 実装 | source provenanceの`ACD_SOURCE_GIT_SHA`をbootstrap record／installed plugin revision／`--source-revision`と照合し不一致をfail-closedにする（Z-3）。`run_in_workspace.py`の既定downloadを既定command・`--graph`明示時に限定し、任意commandでは`--download`指定分だけを扱う（Z-5）。hookが`acd-server`／`acd-tools` imageの生`docker run`／`docker exec`起動を拒否しrunner経由を案内する（Z-11）。coverage診断の会話向けnext stepから source表名を外し設計入力側の次手だけを示す（Z-2）。deny理由へ判定種別と該当tokenを付ける（Z-4）。inline codeの動的実行token（`exec(`・`eval(`・`base64.b64decode(`等）を拒否し（Z-6）、wrapper command越しの内側commandを同じ規則で再帰評価する（Z-7）。`init.md`の起動例とtimeout手順（Z-1）、最終報告のsource変更節を`git log <bootstrap>..HEAD --stat`の機械出力に固定（Z-8）、宣言側evidence属性の実測record解決検査（Z-9）、`lane-preflight`へmechanical preflight述語の取り込み（Z-10）、SessionStart hookのlock探索（Z-12）。`design_loop.py --fixture-spec`の`spec_dir`伝播（Z-13）は本変更で解消済み |
+| 実装 | Z-1〜Z-13のうち達成: Z-1〜Z-13（13件）、未了: なし。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.23節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする |
 | 正常系 | 自然文のみから生成した新規設計が停止境界に達したとき、agentが`run_in_workspace.py`と宣言経路だけで次手を取れ、source編集・生container・難読化に倒れない。停止理由と到達段が`loop-summary`とprovenanceから第三者に読み取れる |
 | negative・fail-closed | bootstrapから逸脱したrevision、`unknown` provenance、`base64`難読化のinline code、生`docker run`起動、要件を落とした宣言はいずれもfail-closedのままである。診断・matcher・照合はL2／L3であり合格側権限を持たない |
 | 再現性 | 対照run（pristine main・同digest）を同一fixtureで再実行し、到達段・失敗理由・firmware Evidenceのprovenanceが一致することを記録する |
@@ -437,11 +429,11 @@ Z-9（宣言側evidence属性の実測record解決検査、`evidence.declaration
 Z-8（`scripts/report_final_basis.py`による最終報告のsource変更節・設計値節の機械生成と
 `/acd:vibebb-loop` step 8の報告契約）はPR #366で実装した。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする。
 
-### 14.25 14.24反映後の同一要件再検証（第10回）で残った関門（AA-*）
+### 14.24 14.23反映後の同一要件再検証（第10回）で残った関門（AA-*）
 
 第10回実機実測（2026-09-08、
 [`vibebb-standalone-verification.md`](vibebb-standalone-verification.md) 17節）では、
-14.24を反映した`main`（`5bf2c90`）と更新済みimage（server `sha256:fb236ff5…`）のもとで
+14.23を反映した`main`（`5bf2c90`）と更新済みimage（server `sha256:fb236ff5…`）のもとで
 第8回・第9回と同一文言の自然文要件を投入した。agentは`run_in_workspace.py`＋宣言経路に
 ほぼ留まり（生`docker run`はZ-11で1回拒否、gate緩和・script複製・難読化・commitは無し）、
 Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、routerは収束した
@@ -456,12 +448,20 @@ Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、router�
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `scripts/run_in_workspace.py`（`--allow-dirty`の範囲）、`src/acd/pipeline/design_loop.py`・`lane_preflight.py`（catalog／registry hash照合、functional block・pin role診断）、`src/acd/core/part_selection.py`（message）、`src/acd/core/evidence_declarations.py`（他fixture転記のL3警告）、`scripts/report_final_basis.py`とstop policy（bootstrap record不在・変更fileの変更action引用）、`plugins/acd/commands/vibebb-loop.md`、`plugins/acd/hooks/scripts/session_start.py`（registry探索）、`fixtures/mini-blink-dongle/spec.json`（AA-1）、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節、[`examples/dual-beacon-tag-vps-20260908/`](../examples/dual-beacon-tag-vps-20260908/)、`src/acd/pipeline/gd1_board.py`・`src/acd/adapters/kicad/`（CPL／DFM／島・DRC診断文）、`plugins/acd/skills/acd-contracts/`・`acd-placement-search/`・`acd-silkscreen-placement/`（Skill手順）、`scripts/fetch_lcsc_footprint_orientation.py`（record取得）、`src/acd/pipeline/gd1_board.py`の`hashes.json`生成と`src/acd/pipeline/theme_song.py`（投影形式検査）、`src/acd/pipeline/design_loop.py`・`scripts/run_design_loop.py`（文書lane・製造提出verdict・PNG rasterの投影段組み込み）、`plugins/acd/skills/acd-product-docs/scripts/`（`generate_instruction_manual.py`の必須macro集合）、`src/acd/pipeline/visual_projection.py`（`derive_png_visual_projections`）、`plugins/acd/skills/acd-theme-song/scripts/theme_song.py`（`Score`→MML render） |
-| 実装 | `--allow-dirty`の許容範囲を設計入力path（`fixtures/`・`evidence/`・`out/`）に限り、`src/`・`contracts/`・`scripts/`・`plugins/`のdirtyはfail-closedのまま（AA-5）。graphの`parts_catalog_sha256`・registry hashをcheckout上の契約と照合し不一致を`contract.hash_mismatch`で止める（AA-8）。`vibebb-loop.md`でbootstrap recordの所在確認を必須にし、stop policyがrecord不在を`bootstrap_record_missing`として停止報告へ載せる（AA-3）。`PartSelectionError`へ要求内容と次手を含める（AA-4）。未知functional blockの診断へ登録名一覧を添え、要件文書がLED・I2C pull-upを含むのにblock未宣言なら`requirement.block_missing`で止める（AA-6）。firmware pin roleをgraphのI2C接続から導出する宣言経路（AA-7）。`estimated` evidenceの他fixture転記をL3警告で列挙（AA-9）。報告契約でworktree各entryへ変更actionの引用を必須にする（AA-10）。SessionStart hookがworkspace registryのlockを探索（AA-2）。W-1 fixtureの宣言を実測へ揃える（AA-1、別PR）。修正後run（[`examples/dual-beacon-tag-vps-20260908/fixed-run/`](../examples/dual-beacon-tag-vps-20260908/fixed-run/README.md)、AA-11〜AA-14の実測根拠）で観測した宣言〜出力の乖離も同フェーズで扱う: `_copper_zone`が`min_island_area`をemitせず宣言値が充填後検証専用である点を区別する（AA-11）。CPL basis段でrecordの`Manufacturer Part`／packageと宣言`mpn`の整合を検査する（AA-12）。`part_request`無し部品へも`cpl_rotation_evidence_revision`を補完または欠如属性を診断へ示す（AA-13）。silkscreen resolverが`measured_pass`でも未配置テキストの配置探索を行う（AA-14）。修正後runでDevinが人手で越えた境界（17.12、AA-15〜AA-22）も同フェーズで扱う: CPL rotation診断へ宣言／有効／実測offsetとbasisを併記（AA-15）、LCSC番号無し部品の`FabOutputError`へ`not_fitted`の次手（AA-16）、`vibebb-loop.md`でgraph直接編集を禁止しspec→`--fixture-spec --fixture-overwrite`再生成を必須化（AA-17）、DFM pad-to-edge診断へ最小移動量（AA-18）、GND島・DRC診断へ囲みfootprintと候補レバーを列挙し`acd-placement-search`へ島解消手順（AA-19）、silkscreen診断へ短縮／探索範囲の次手（AA-20）、catalog entry追加の宣言経路とcontainer内hash算出（AA-21）、宣言直後のLCSC record取得とmpn照合手順（AA-22）。投影段の直後にwriterと独立したreader（SMF parser、STEP header/footer、3MF zip CRC・model XML、RS-274X／Excellon終端）による形式検査を置き、結果を`hashes.json`の各entryへ`format_check`として記録、parse失敗はその投影を欠落としてfail-closedにする（AA-23。利用者報告の`theme-song.mid`破損は修正後runの全投影を事後検査して再現せず、生成物側から判別できない点を閉じる）。acd-agentが持つ投影のうちloopが呼ばない3種（`acd-product-docs`の製品説明README・取扱説明書、`verify_manufacturing_submission.py`の製造提出verdict、`derive_png_visual_projections`のPNG raster）を`run_design_loop.py`の投影段へ組み込み、3 lane完了後に同一out root配下（`docs/`・`manufacturing-submission.json`・`visual/png/`）へ生成して`hashes.json`とloop-summaryへ登録する（AA-24。`--design-only`でも実行し、order lane入力は要求しない。PNG rasterは`visual-review-manifest`段として実装済みで、エージェントによるmanifest全entryの`inspect_image_with_vision`検査と`verify_visual_review.py`のfail-closed検証を必須化した。文書laneと製造提出verdictのloop組み込みは未実装のまま残る）。`generate_instruction_manual.py`がGD1固有のmacro集合（`ACD_PIN_UART_*`・`ACD_PIN_USB_*`・`ACD_SHT40_I2C_ADDRESS`・`ACD_LOG_PERIOD_MS`）を必須とする点を、graphのfirmware capability・pin role宣言から必要節を導出する構成へ改め、宣言に無い節は書かずに省略理由を文書へ記す（AA-25。推定値は書かず、宣言もmacroも無い項目はfail-closedのまま）。theme-songの投影にMML（Music Macro Language、テキスト楽譜）を追加し、`render_midi`と同じ`Score`（tempo・拍子・track別note/rest・drum）から`theme-song.mml`を決定論的にrenderして`theme-song.mid`と並べて`hashes.json`・provenance（同一proposal hash）へ登録する。MMLはtrack別channel・`t`（tempo）・`o`/`l`/音長・`r`（rest）・タイの表記を持つ方言を1つ固定し、MML→note列の独立parserで再読込してMIDIのnote数・総tick・pitch列と一致することを検査する（AA-26。不一致はMML投影をfail-closedで欠落にし、MIDI側の合否や3 lane判定へ作用させない。Evidence・fab packageには含めない）。実機regen run（2026-09-09、[`examples/dual-beacon-tag-vps-20260908/regen-run/`](../examples/dual-beacon-tag-vps-20260908/regen-run/README.md)）で判明した視覚レビュー契約の穴と人間向け投影の残課題（AA-27〜AA-33）も同フェーズで扱う: Local GUI会話に`VisionInspectTool`が無い場合は`visual-review-manifest`直後に`vision_tool_unavailable`でfail-closedにし、GUI会話へvision toolを届ける登録経路を用意する（AA-27）。observation recordへvision toolのObservationEvent idと応答hashを必須にし、会話event logと照合できない記録を`unverified`として`verify_visual_review.py`がfail-closedにする。file_editorによる`visual-observations/`直接書き込みは`write_target`拒否へ加える（AA-28。observationはL3のままで合否に作用しない）。KiCad回路図の用紙選択を配置後の実extentに基づかせ、net labelの衝突を検査する（AA-29）。CAD SVGへ題名・断面位置・寸法・基板断面・干渉体強調（無ければ注記）を付ける（AA-30）。placementへ取付穴・keepout・外形外はみ出し注記（AA-31）。KiCad層SVGのtitle・層名・寸法包み、sequence lifelineのrefdes＋value、state遷移線のy段分離、power-treeの電圧降順（AA-32）。最終報告のEvidence表4列を`verify_authoritative_evidence.py`の機械出力から引用させる（AA-33） |
+| 実装 | AA-1、AA-3〜AA-8、AA-15〜AA-18、AA-20を達成（12件）。未了: AA-2、AA-9〜AA-14、AA-19、AA-21〜AA-33（21件）。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする |
 | 正常系 | 自然文のみから生成した新規設計が停止境界に達したとき、agentが契約変更を会話内の未commit編集で通せず、bootstrap recordのあるworkspaceで`run_in_workspace.py`と宣言経路だけで次手を取れる。到達段がpristine mainの契約だけで再現でき、`loop-summary`とprovenanceから第三者に読み取れる |
 | negative・fail-closed | `src/`・`contracts/`がdirtyなcheckout、契約hash不一致のgraph、bootstrap record不在、未実測evidence宣言、要件を落とした宣言はいずれもfail-closedのままである。診断・警告・照合はL2／L3であり合格側権限を持たない。投影の形式検査はchunk長や終端を故意に壊した投影を欠落として止め、検査OKをEvidenceへ昇格しない。文書lane・製造提出verdict・PNG rasterの組み込みはL3投影の追加であり、その失敗はloop-summaryへ欠落として記録するがEvidenceや3 laneの判定を変えず、成功を合格側へ作用させない |
 | 再現性 | 対照run（pristine main・同digest）をagent最終specからの再生成（`--fixture-spec --fixture-overwrite`）で再実行し、到達段・失敗理由がGUI経路と一致することを記録する |
 
-実装状況: AA-3は実装済み（bootstrap record不在の停止を`bootstrap_record_missing`宣言までdeny）、AA-4は実装済み（`PartSelectionError`へ要求内容と次手）、AA-5は実装済み（dirtyなsource treeは`--allow-dirty`でも拒否）、AA-6は実装済み（未知block診断へ登録名一覧を添え`requirement.block_missing`で停止）、AA-7は実装済み（firmware pinのnet idから導出するroleをregistry照合し未登録roleを候補付きでfail-closedにする）、AA-8は実装済み（graphの`parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）、AA-15は実装済み（CPL rotation offset不一致エラーへdeclared・effective・evidence offset・basisと宣言の次手）、AA-16は実装済み（LCSC部品番号なしfitted部品エラーへrefdes一覧と`not_fitted`／`lcsc`宣言の次手）、AA-17は実装済み（rationale coverage失敗メッセージと`vibebb-loop.md`へspec→再生成の規則、`graph.json`／`rationale.json`手編集の禁止を明記）、AA-18は実装済み（`pad-to-board-edge-clearance` findingへ辺別`violation_mm`・最小1軸移動`min_move_mm`・axis-aligned注記を追加）、AA-20は実装済み（silkscreen失敗の次手へtext短縮→`placement_search_limit_mm`拡大→座標宣言の順序とAA-14の全label除去deadlock警告、skillへShortening priorityを追加）、AA-1は実装済み（W-1 fixtureの`profile_fetched_at`をprofile実体の取得時点2026-08-11へ揃え、`container-gates`を`fixtures/`・`profiles/`・image digest lock変更のPRでも実行）。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+実装状況: AA-1、AA-3〜AA-8、AA-15〜AA-18、AA-20は達成済みで、その他のAA項目は未了である。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+
+### 14.25 routed board上のsilkscreen再解決
+
+現行の`silkscreen_resolve.py`はpre-routingでviaとmask開口が存在しない前提を置く。
+一方、SES import後の`.kicad_pcb`にはroutingで追加されたviaとmask開口が現れる。
+そのため、kicad-cli exportで対象形状を抽出し、resolverをboundedな契約で再実行する。
+再実行は1回に限定し、round上限を宣言する。cache hit時は再実行を省略する。
+既存silkscreen gateを合否の権威とし、再解決結果や投影はL1判定へ逆流させない。
 
 ## マイルストーン15: 運用と文書の整備
 
