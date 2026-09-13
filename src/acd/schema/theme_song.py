@@ -19,7 +19,7 @@ from acd.schema.common import (
     canonical_json_sha256,
 )
 
-ThemeSongMediaType = Literal["audio/midi"]
+ThemeSongMediaType = Literal["audio/midi", "text/x-mml"]
 ThemeSongSource = Literal["deterministic", "agent_proposal"]
 ThemeSongRegenerationStatus = Literal["reproduced", "not_reproduced", "unknown"]
 
@@ -78,6 +78,20 @@ class ThemeSongRegenerationCheck(AcdModel):
         return self
 
 
+class ThemeSongMmlCheck(AcdModel):
+    status: Literal["matched", "omitted"]
+    dialect: NonEmptyStr
+    reason: NonEmptyStr | None = None
+
+    @model_validator(mode="after")
+    def validate_status(self) -> ThemeSongMmlCheck:
+        if self.status == "omitted" and self.reason is None:
+            raise ValueError("omitted MML check requires a reason")
+        if self.status == "matched" and self.reason is not None:
+            raise ValueError("matched MML check forbids a reason")
+        return self
+
+
 class ThemeSongProjection(AcdModel):
     """Recorded theme song of one design revision. Never pass Evidence."""
 
@@ -101,6 +115,7 @@ class ThemeSongProjection(AcdModel):
     key: NonEmptyStr
     title: NonEmptyStr
     artifacts: list[ThemeSongArtifact] = Field(min_length=1)
+    mml_check: ThemeSongMmlCheck
     regeneration_check: ThemeSongRegenerationCheck
     canonical_hash: HashOrUnknown = "unknown"
 
@@ -116,8 +131,12 @@ class ThemeSongProjection(AcdModel):
             raise ValueError("theme song artifact paths must be unique")
         if paths != sorted(paths):
             raise ValueError("theme song artifacts must be sorted by path")
-        if [artifact.media_type for artifact in self.artifacts] != ["audio/midi"]:
-            raise ValueError("theme song projection requires exactly one MIDI artifact")
+        media_types = [artifact.media_type for artifact in self.artifacts]
+        if media_types.count("audio/midi") != 1 or media_types.count("text/x-mml") > 1:
+            raise ValueError("theme song projection requires one MIDI and at most one MML artifact")
+        has_mml = "text/x-mml" in media_types
+        if has_mml != (self.mml_check.status == "matched"):
+            raise ValueError("MML artifact presence must match mml_check status")
         if (self.source == "agent_proposal") != (self.proposal_input is not None):
             raise ValueError("proposal_input is required exactly when source is agent_proposal")
         if self.regeneration_check.status != "reproduced":

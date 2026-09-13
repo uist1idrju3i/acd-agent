@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import acd.pipeline.theme_song as theme_song_pipeline
 from acd.pipeline.repository import repository_root
 from acd.pipeline.theme_song import (
     THEME_SONG_PROJECTION_NAME,
@@ -25,7 +26,7 @@ def _graph_revision() -> str:
     return str(graph["revision"])
 
 
-def test_projection_writes_midi_and_record(tmp_path: Path) -> None:
+def test_projection_writes_midi_mml_and_record(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     out_dir.mkdir()
     projection_path, projection = generate_theme_song_projection(
@@ -45,9 +46,14 @@ def test_projection_writes_midi_and_record(tmp_path: Path) -> None:
     assert reloaded.proposal_input is None
     midi = out_dir / "theme-song" / "theme-song.mid"
     assert midi.read_bytes().startswith(b"MThd")
-    assert [artifact.path for artifact in reloaded.artifacts] == ["theme-song/theme-song.mid"]
+    assert reloaded.mml_check.status == "matched"
+    assert [artifact.path for artifact in reloaded.artifacts] == [
+        "theme-song/theme-song.mid",
+        "theme-song/theme-song.mml",
+    ]
     assert sorted(path.name for path in (out_dir / "theme-song").iterdir()) == [
         "theme-song.mid",
+        "theme-song.mml",
         "theme-song.provenance.json",
     ]
     assert not (out_dir / ".theme-song-recheck").exists()
@@ -197,3 +203,90 @@ def test_schema_rejects_unreproduced_projection(tmp_path: Path) -> None:
     with pytest.raises(ValueError):
         ThemeSongProjection.model_validate(payload)
     shutil.rmtree(out_dir)
+
+
+def test_projection_rejects_recorded_mml_without_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = theme_song_pipeline.__dict__["_run_skill"]
+
+    def fake_run_skill(
+        script: Path,
+        graph: Path,
+        proposal: Path | None,
+        target: Path,
+        repository: Path,
+    ) -> None:
+        original(script, graph, proposal, target, repository)
+        provenance_path = target / "theme-song.provenance.json"
+        payload = json.loads(provenance_path.read_text(encoding="utf-8"))
+        payload["artifacts"]["mml"] = {
+            "path": "theme-song.mml",
+            "content_hash": "sha256:" + "0" * 64,
+        }
+        (target / "theme-song.mml").unlink()
+        provenance_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    monkeypatch.setattr(theme_song_pipeline, "_run_skill", fake_run_skill)
+    with pytest.raises(ThemeSongProjectionError, match="MML artifact is missing"):
+        generate_theme_song_projection(
+            project_name="golden",
+            repository=repository_root(),
+            graph_path=GRAPH_PATH.resolve(),
+            out_dir=tmp_path / "out",
+            source_revision=_graph_revision(),
+        )
+
+
+def test_projection_rejects_omitted_mml_check_with_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = theme_song_pipeline.__dict__["_run_skill"]
+
+    def fake_run_skill(
+        script: Path,
+        graph: Path,
+        proposal: Path | None,
+        target: Path,
+        repository: Path,
+    ) -> None:
+        original(script, graph, proposal, target, repository)
+        provenance_path = target / "theme-song.provenance.json"
+        payload = json.loads(provenance_path.read_text(encoding="utf-8"))
+        payload["composition"]["mml_check"] = {
+            "status": "omitted",
+            "dialect": "acd-mml 0.1",
+            "reason": "fake omission",
+        }
+        provenance_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    monkeypatch.setattr(theme_song_pipeline, "_run_skill", fake_run_skill)
+    with pytest.raises(ThemeSongProjectionError, match="artifact and check status disagree"):
+        generate_theme_song_projection(
+            project_name="golden",
+            repository=repository_root(),
+            graph_path=GRAPH_PATH.resolve(),
+            out_dir=tmp_path / "out",
+            source_revision=_graph_revision(),
+        )
+
+
+def test_schema_rejects_mml_artifact_when_check_is_omitted(tmp_path: Path) -> None:
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    projection_path, _ = generate_theme_song_projection(
+        project_name="golden",
+        repository=repository_root(),
+        graph_path=GRAPH_PATH.resolve(),
+        out_dir=out_dir,
+        source_revision=_graph_revision(),
+    )
+    payload = json.loads(projection_path.read_text(encoding="utf-8"))
+    payload["mml_check"] = {
+        "status": "omitted",
+        "dialect": "acd-mml 0.1",
+        "reason": "schema negative",
+    }
+    payload["canonical_hash"] = "unknown"
+    with pytest.raises(ValueError, match="MML artifact presence"):
+        ThemeSongProjection.model_validate(payload)

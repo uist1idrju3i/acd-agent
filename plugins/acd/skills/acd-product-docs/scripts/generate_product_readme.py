@@ -379,7 +379,7 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
     link = os.path.relpath(theme.midi_path.resolve(), out_dir.resolve()).replace(
         os.sep, "/"
     )
-    return [
+    lines = [
         "## テーマソング（L3投影）",
         "",
         "| 項目 | 値 |",
@@ -394,11 +394,28 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
         f"- artifact: [{theme.midi_path.name}]({link})",
         f"- artifact hash: `{theme.midi_hash}`",
         f"- regeneration check: `{theme.regeneration_status}`",
-        "",
-        "テーマソングはL3投影であり、`pass_evidence=false`を持ち、"
-        "設計の判定に影響しない。",
-        "",
     ]
+    if theme.mml_path is not None and theme.mml_hash is not None:
+        mml_link = os.path.relpath(theme.mml_path.resolve(), out_dir.resolve()).replace(
+            os.sep, "/"
+        )
+        lines.extend(
+            [
+                f"- artifact: [{theme.mml_path.name}]({mml_link})",
+                f"- artifact hash: `{theme.mml_hash}`",
+            ]
+        )
+    else:
+        lines.append(f"- MML: 省略（{theme.mml_reason or '理由不明'}）")
+    lines.extend(
+        [
+            "",
+            "テーマソングはL3投影であり、`pass_evidence=false`を持ち、"
+            "設計の判定に影響しない。",
+            "",
+        ]
+    )
+    return lines
 
 
 def _attribution_section(lane: ElectricalLane) -> list[str]:

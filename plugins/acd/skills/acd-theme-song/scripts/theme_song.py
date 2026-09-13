@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Theme-song composition for a design graph, rendered as a Standard MIDI File.
+"""Theme-song composition for a design graph, rendered as MIDI and acd-mml.
 
 A theme song is an L3 artifact: it presents the design (its identifier,
 revision and structure) as music, carries no approval authority and never
@@ -678,6 +678,341 @@ def render_checked_midi(score: Score) -> tuple[bytes, int]:
     if ons == 0 or ons != offs:
         raise ThemeSongError(f"MIDI re-read mismatch: {ons} note-on vs {offs} note-off")
     return midi_bytes, ons
+
+
+@dataclass(frozen=True)
+class MmlNote:
+    channel: int
+    start_tick: int
+    end_tick: int
+    pitch: int
+    velocity: int
+
+
+@dataclass(frozen=True)
+class MmlSong:
+    bpm: int
+    notes: tuple[MmlNote, ...]
+    voice_ticks: dict[str, int]
+
+
+@dataclass(frozen=True)
+class _MmlEvent:
+    start_tick: int
+    end_tick: int
+    pitch: int
+    velocity: int
+    channel: int
+    drum: bool = False
+
+
+_MML_NOTE_NAMES = tuple(name.replace("#", "+") for name in _NOTE_NAMES)
+_MML_LENGTHS = ((16, 1), (8, 2), (4, 4), (2, 8), (1, 16))
+_MML_NOTE_RE = re.compile(r"^([a-g]\+?)(\d+)?$")
+_MML_REST_RE = re.compile(r"^r(\d+)?$")
+_MML_VOICE_RE = re.compile(r"^; voice ([A-Z]+): .* channel (\d+)")
+_MML_VOICE_LINE_RE = re.compile(r"^([A-Z]+)\s+(.+)$")
+
+
+def _mml_voice_label(index: int) -> str:
+    label = ""
+    value = index
+    while True:
+        label = chr(ord("A") + value % 26) + label
+        value = value // 26 - 1
+        if value < 0:
+            return label
+
+
+def _mml_chunks(steps: int) -> list[int]:
+    chunks: list[int] = []
+    remaining = steps
+    for chunk, _ in _MML_LENGTHS:
+        while remaining >= chunk:
+            chunks.append(chunk)
+            remaining -= chunk
+    if remaining:
+        raise ThemeSongError(f"MML length cannot represent {steps} steps")
+    return chunks
+
+
+def _mml_length_number(step_count: int) -> list[int]:
+    lengths = dict(_MML_LENGTHS)
+    return [lengths[chunk] for chunk in _mml_chunks(step_count)]
+
+
+def _mml_note_name(pitch: int) -> str:
+    return _MML_NOTE_NAMES[pitch % 12]
+
+
+def _mml_note_token(pitch: int, steps: int) -> str:
+    name = _mml_note_name(pitch)
+    return "&".join(f"{name}{length}" for length in _mml_length_number(steps))
+
+
+def _mml_rest_tokens(ticks: int) -> list[str]:
+    step_ticks = TICKS_PER_BEAT // 4
+    if ticks % step_ticks:
+        raise ThemeSongError("MML rest does not align to a step")
+    return [f"r{length}" for length in _mml_length_number(ticks // step_ticks)]
+
+
+def _mml_events(score: Score) -> list[tuple[str, str, int, int, list[_MmlEvent]]]:
+    grouped: list[tuple[str, str, int, int, list[_MmlEvent]]] = []
+    step_ticks = TICKS_PER_BEAT // 4
+    for track in score.tracks:
+        voices: list[list[_MmlEvent]] = []
+        for note in sorted(track.notes, key=lambda item: (item.step, item.pitch)):
+            event = _MmlEvent(
+                note.step * step_ticks,
+                (note.step + note.length) * step_ticks,
+                note.pitch,
+                note.velocity,
+                track.channel,
+            )
+            for voice in voices:
+                if voice[-1].end_tick <= event.start_tick:
+                    voice.append(event)
+                    break
+            else:
+                voices.append([event])
+        grouped.extend(
+            (track.name, "track", track.channel, track.program, voice) for voice in voices
+        )
+    drum_voices: list[list[_MmlEvent]] = []
+    for drum in sorted(score.drums, key=lambda item: (item.step, DRUM_KEYS[item.sound])):
+        start_tick = drum.step * step_ticks
+        event = _MmlEvent(
+            start_tick,
+            start_tick + step_ticks // 2,
+            DRUM_KEYS[drum.sound],
+            100,
+            9,
+            True,
+        )
+        for voice in drum_voices:
+            if voice[-1].end_tick <= event.start_tick:
+                voice.append(event)
+                break
+        else:
+            drum_voices.append([event])
+    grouped.extend(("Drums", "drums", 9, 0, voice) for voice in drum_voices)
+    return grouped
+
+
+def render_mml(score: Score) -> str:
+    """Render a Score as deterministic, text-readable acd-mml 0.1."""
+    step_ticks = TICKS_PER_BEAT // 4
+    bar_ticks = STEPS_PER_BAR * step_ticks
+    lines = [
+        "; acd-mml 0.1",
+        f"; title: {score.title}",
+        f"; graph: {score.graph_id} revision {score.revision}",
+        f"; seed: {score.seed}",
+        f"; key: {score.key_name}",
+        f"; bars: {score.bars} (16 steps per bar, l16 = 1 step, 480 ticks per beat)",
+    ]
+    grouped = _mml_events(score)
+    counts: dict[tuple[str, str], int] = {}
+    for name, kind, _, _, _ in grouped:
+        counts[(name, kind)] = counts.get((name, kind), 0) + 1
+    numbers: dict[tuple[str, str], int] = {}
+    for voice_index, (name, kind, channel, program, events) in enumerate(grouped):
+        label = _mml_voice_label(voice_index)
+        key = (name, kind)
+        numbers[key] = numbers.get(key, 0) + 1
+        program_text = f" program {program}" if kind == "track" else ""
+        lines.append(
+            f'; voice {label}: track "{name}" channel {channel}{program_text} '
+            f"(voice {numbers[key]}/{counts[key]})"
+        )
+        first = events[0]
+        first_octave = first.pitch // 12 - 1
+        prefix = [f"t{score.bpm}"]
+        if kind == "track":
+            prefix.append(f"@{program}")
+        prefix.extend((f"v{first.velocity}", f"o{first_octave}", "l16"))
+        by_bar: dict[int, list[str]] = {}
+        cursor = 0
+        velocity = first.velocity
+        octave = first_octave
+        for event in events:
+            if event.start_tick < cursor:
+                raise ThemeSongError("MML voice events overlap")
+            gap = event.start_tick - cursor
+            while gap:
+                bar_end = ((cursor // bar_ticks) + 1) * bar_ticks
+                rest_ticks = min(gap, bar_end - cursor)
+                by_bar.setdefault(cursor // bar_ticks, []).extend(
+                    _mml_rest_tokens(rest_ticks)
+                )
+                cursor += rest_ticks
+                gap -= rest_ticks
+            controls: list[str] = []
+            event_octave = event.pitch // 12 - 1
+            if event.velocity != velocity:
+                controls.append(f"v{event.velocity}")
+                velocity = event.velocity
+            if event_octave != octave:
+                controls.append(f"o{event_octave}")
+                octave = event_octave
+            token = (
+                f"{_mml_note_name(event.pitch)}32 r32"
+                if event.drum
+                else _mml_note_token(event.pitch, (event.end_tick - event.start_tick) // step_ticks)
+            )
+            by_bar.setdefault(event.start_tick // bar_ticks, []).append(
+                " ".join([*controls, token])
+            )
+            cursor = event.start_tick + step_ticks if event.drum else event.end_tick
+        while cursor < score.total_steps * step_ticks:
+            bar_end = ((cursor // bar_ticks) + 1) * bar_ticks
+            rest_ticks = min(score.total_steps * step_ticks - cursor, bar_end - cursor)
+            by_bar.setdefault(cursor // bar_ticks, []).extend(_mml_rest_tokens(rest_ticks))
+            cursor += rest_ticks
+        if cursor != score.total_steps * step_ticks:
+            raise ThemeSongError("MML voice does not fill the score duration")
+        for bar in range(score.bars):
+            tokens = by_bar.get(bar, [])
+            if bar == 0:
+                tokens = [*prefix, *tokens]
+            lines.append(f"{label} " + " ".join(tokens) + f" ; bar {bar}")
+    return "\n".join(lines) + "\n"
+
+
+def _mml_ticks(length: int, default: int) -> int:
+    value = default if length == 0 else length
+    if value <= 0 or TICKS_PER_BEAT * 4 % value:
+        raise ThemeSongError(f"invalid MML length {value}")
+    return TICKS_PER_BEAT * 4 // value
+
+
+def parse_mml(text: str) -> MmlSong:
+    """Parse acd-mml independently of the renderer."""
+    voices: dict[str, int] = {}
+    voice_ticks: dict[str, int] = {}
+    notes: list[MmlNote] = []
+    current_voice: str | None = None
+    current_bpm: int | None = None
+    state: dict[str, list[int | bool]] = {}
+    for raw_line in text.splitlines():
+        voice_match = _MML_VOICE_RE.match(raw_line.strip())
+        if voice_match:
+            label, channel = voice_match.groups()
+            if label in voices:
+                raise ThemeSongError(f"duplicate MML voice header {label}")
+            voices[label] = int(channel)
+            voice_ticks[label] = 0
+            state[label] = [4, 100, 16, False]
+            current_voice = label
+            continue
+        line = raw_line.split(";", 1)[0].strip()
+        if not line:
+            continue
+        match = _MML_VOICE_LINE_RE.match(line)
+        if match is None or current_voice is None or match.group(1) != current_voice:
+            raise ThemeSongError("MML voice line has no preceding voice header")
+        octave, velocity, default_length, tempo_seen = state[current_voice]
+        assert isinstance(octave, int)
+        assert isinstance(velocity, int)
+        assert isinstance(default_length, int)
+        assert isinstance(tempo_seen, bool)
+        cursor = voice_ticks[current_voice]
+        for token in match.group(2).split():
+            if token.startswith("t") and token[1:].isdigit():
+                line_bpm = int(token[1:])
+                if current_bpm is None:
+                    current_bpm = line_bpm
+                elif current_bpm != line_bpm:
+                    raise ThemeSongError("MML tempo differs between voices")
+                tempo_seen = True
+                continue
+            if token.startswith("@") and token[1:].isdigit():
+                continue
+            if token.startswith("v") and token[1:].isdigit():
+                velocity = int(token[1:])
+                if not 1 <= velocity <= 127:
+                    raise ThemeSongError("MML velocity is outside 1..127")
+                continue
+            if token.startswith("o") and token[1:].lstrip("-").isdigit():
+                octave = int(token[1:])
+                continue
+            if token.startswith("l") and token[1:].isdigit():
+                default_length = int(token[1:])
+                _mml_ticks(default_length, default_length)
+                continue
+            rest_match = _MML_REST_RE.match(token)
+            if rest_match:
+                cursor += _mml_ticks(int(rest_match.group(1) or 0), default_length)
+                continue
+            parts = token.split("&")
+            pitches: list[int] = []
+            total_ticks = 0
+            for part in parts:
+                note_match = _MML_NOTE_RE.match(part)
+                if note_match is None:
+                    raise ThemeSongError(f"unknown MML token {token!r}")
+                name, length_text = note_match.groups()
+                pitch = (octave + 1) * 12 + _MML_NOTE_NAMES.index(name)
+                if not 0 <= pitch <= 127:
+                    raise ThemeSongError(f"MML pitch is outside 0..127: {part}")
+                pitches.append(pitch)
+                total_ticks += _mml_ticks(int(length_text or 0), default_length)
+            if len(set(pitches)) != 1:
+                raise ThemeSongError("MML tied notes must have the same pitch")
+            notes.append(
+                MmlNote(
+                    voices[current_voice],
+                    cursor,
+                    cursor + total_ticks,
+                    pitches[0],
+                    velocity,
+                )
+            )
+            cursor += total_ticks
+        state[current_voice] = [octave, velocity, default_length, tempo_seen]
+        voice_ticks[current_voice] = cursor
+    if current_bpm is None or not voices or not all(bool(values[3]) for values in state.values()):
+        raise ThemeSongError("MML has no voices or tempo")
+    return MmlSong(current_bpm, tuple(notes), voice_ticks)
+
+
+def check_mml_round_trip(score: Score, text: str) -> None:
+    """Compare an independently parsed MML song with the Score fields."""
+    song = parse_mml(text)
+    if song.bpm != score.bpm:
+        raise ThemeSongError(f"MML BPM mismatch: {song.bpm} != {score.bpm}")
+    expected_ticks = score.total_steps * 120
+    if any(ticks != expected_ticks for ticks in song.voice_ticks.values()):
+        raise ThemeSongError("MML voice duration does not match the score")
+    expected_by_channel: dict[int, list[tuple[int, int, int, int]]] = {}
+    for track in score.tracks:
+        expected_by_channel.setdefault(track.channel, []).extend(
+            (note.step * 120, (note.step + note.length) * 120, note.pitch, note.velocity)
+            for note in track.notes
+        )
+    if score.drums:
+        expected_by_channel.setdefault(9, []).extend(
+            (drum.step * 120, drum.step * 120 + 60, DRUM_KEYS[drum.sound], 100)
+            for drum in score.drums
+        )
+    actual_by_channel: dict[int, list[tuple[int, int, int, int]]] = {}
+    for note in song.notes:
+        actual_by_channel.setdefault(note.channel, []).append(
+            (note.start_tick, note.end_tick, note.pitch, note.velocity)
+        )
+    if len(song.notes) != score.note_count + len(score.drums):
+        raise ThemeSongError("MML note count does not match the score")
+    if {
+        channel: sorted(values) for channel, values in actual_by_channel.items()
+    } != {channel: sorted(values) for channel, values in expected_by_channel.items()}:
+        raise ThemeSongError("MML note data does not match the Score")
+
+
+def render_checked_mml(score: Score) -> str:
+    text = render_mml(score)
+    check_mml_round_trip(score, text)
+    return text
 
 
 # ---------------------------------------------------------------------------
