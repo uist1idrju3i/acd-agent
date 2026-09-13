@@ -14,9 +14,11 @@ from acd.adapters.kicad.schematic import (
     CONNECTION_CONVENTION_NOTE,
     PWR_FLAG_LIB_ID,
     PlacedSymbol,
+    _adjust_properties,
+    _global_label,
     _label_collisions,
     _LabelPlacement,
-    _symbol_extent,
+    _pin_point,
     _symbol_geometry,
     generate_schematic,
 )
@@ -72,9 +74,22 @@ def test_long_net_names_widen_symbol_extent() -> None:
         ),
         embedded=[],
     )
-    short = _symbol_extent(symbol, ["VCC"], reference="U1", value="T")
-    long = _symbol_extent(symbol, ["LONG_NET_NAME_12345"], reference="U1", value="T")
+    short = _symbol_geometry(symbol, ["VCC"], reference="U1", value="T")[0]
+    long = _symbol_geometry(
+        symbol,
+        ["LONG_NET_NAME_12345"],
+        reference="U1",
+        value="T",
+    )[0]
     assert long.right - long.left > short.right - short.left
+
+
+def test_pin_point_preserves_off_grid_library_offset() -> None:
+    pin = SymbolPin("1", "P", "passive", 1.905, 0.0, 180.0, 2.54)
+    x_mm, y_mm = _pin_point(40.64, 40.64, pin)
+    label = _global_label("NET", x_mm, y_mm, 0, "U1.1")
+    assert (x_mm, y_mm) == (42.545, 40.64)
+    assert label[3][1:3] == ["42.545", "40.64"]
 
 
 def _collision_component(refdes: str, value: str) -> ComponentView:
@@ -140,6 +155,7 @@ def test_label_property_collision_resolves_once() -> None:
         rotation=270,
         allowance=2.54,
     )
+    _adjust_properties([placed], [label])
     assert _label_collisions([placed], [label]) == []
     assert placed.value_adjusted is True
 

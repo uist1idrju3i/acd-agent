@@ -54,14 +54,6 @@ def _snap(value: float) -> float:
 
 
 @dataclass(frozen=True)
-class SymbolExtent:
-    left: float
-    right: float
-    top: float
-    bottom: float
-
-
-@dataclass(frozen=True)
 class _Box:
     left: float
     right: float
@@ -116,7 +108,7 @@ class PlacedSymbol:
     symbol: ParsedSymbol
     x_mm: float
     y_mm: float
-    extent: SymbolExtent
+    extent: _Box
     base_box: _Box
     reference_box: _Box
     value_box: _Box
@@ -145,7 +137,7 @@ class _LayoutItem:
     labels: tuple[str, ...]
     col: int
     row: int
-    extent: SymbolExtent
+    extent: _Box
     base_box: _Box
     reference_box: _Box
     value_box: _Box
@@ -178,7 +170,7 @@ def _symbol_geometry(
     *,
     reference: str = "",
     value: str = "",
-) -> tuple[SymbolExtent, _Box, _Box, _Box]:
+) -> tuple[_Box, _Box, _Box, _Box]:
     base = _base_box(symbol)
     left, right, top, bottom = base.left, base.right, base.top, base.bottom
     for index, pin in enumerate(symbol.pins):
@@ -211,31 +203,11 @@ def _symbol_geometry(
     top = min(top, reference_box.top, value_box.top)
     bottom = max(bottom, reference_box.bottom, value_box.bottom)
     return (
-        SymbolExtent(_snap(left), _snap(right), _snap(top), _snap(bottom)),
+        _Box(_snap(left), _snap(right), _snap(top), _snap(bottom)),
         base,
         reference_box,
         value_box,
     )
-
-
-def _symbol_extent(
-    symbol: ParsedSymbol,
-    net_label_names: list[str],
-    *,
-    reference: str = "",
-    value: str = "",
-) -> SymbolExtent:
-    """Return the fitted extent, including labels and Reference/Value text.
-
-    Label width uses a deterministic 1.27 mm character advance at 90% of the
-    nominal width, plus a 3.0 mm clearance allowance.
-    """
-    return _symbol_geometry(
-        symbol,
-        net_label_names,
-        reference=reference,
-        value=value,
-    )[0]
 
 
 def _boxes_overlap(first: _Box, second: _Box) -> bool:
@@ -256,12 +228,10 @@ def _placed_base_box(placed: PlacedSymbol) -> _Box:
     )
 
 
-def _label_collisions(
+def _adjust_properties(
     placements: list[PlacedSymbol],
     labels: list[_LabelPlacement],
-) -> list[str]:
-    """Return deterministic remaining label collisions after one adjustment."""
-    collisions: list[str] = []
+) -> None:
     for label in labels:
         for placed in placements:
             for property_name in ("Reference", "Value"):
@@ -273,12 +243,24 @@ def _label_collisions(
                     continue
                 if property_name == "Value" and not placed.value_adjusted:
                     placed.value_adjusted = True
-                    continue
-                collisions.append(
-                    f"schematic label collision: {label.refdes}.{label.pin} "
-                    f"label '{label.net}' overlaps {placed.component.refdes}."
-                    f"{property_name} (fail-closed)"
-                )
+
+
+def _label_collisions(
+    placements: list[PlacedSymbol],
+    labels: list[_LabelPlacement],
+) -> list[str]:
+    """Return deterministic label collisions without changing placements."""
+    collisions: list[str] = []
+    for label in labels:
+        for placed in placements:
+            for property_name in ("Reference", "Value"):
+                property_box = placed.property_box(property_name)
+                if _boxes_overlap(label.box, property_box):
+                    collisions.append(
+                        f"schematic label collision: {label.refdes}.{label.pin} "
+                        f"label '{label.net}' overlaps {placed.component.refdes}."
+                        f"{property_name} (fail-closed)"
+                    )
         for other in placements:
             if other.component.refdes == label.refdes:
                 continue
@@ -301,7 +283,7 @@ def _label_collisions(
 
 def _pin_point(placed_x: float, placed_y: float, pin: SymbolPin) -> tuple[float, float]:
     """Schematic-sheet coordinates of a pin connection point (rotation 0)."""
-    return _snap(placed_x + pin.x_mm), _snap(placed_y - pin.y_mm)
+    return round(placed_x + pin.x_mm, 4), round(placed_y - pin.y_mm, 4)
 
 
 def _effects(hide: bool = False) -> list[SExpr]:
@@ -519,13 +501,7 @@ def generate_schematic(
                 )
             net_id, _is_no_connect = mapping
             label_names.append(net_names[net_id] if net_id is not None else "")
-        extent = _symbol_extent(
-            symbol,
-            label_names,
-            reference=comp.refdes,
-            value=comp.value,
-        )
-        _, base_box, reference_box, value_box = _symbol_geometry(
+        extent, base_box, reference_box, value_box = _symbol_geometry(
             symbol,
             label_names,
             reference=comp.refdes,
@@ -674,7 +650,7 @@ def generate_schematic(
                         )
                     )
 
-    _label_collisions(placements, label_placements)
+    _adjust_properties(placements, label_placements)
     collisions = _label_collisions(placements, label_placements)
     if collisions:
         raise ValueError(collisions[0])
