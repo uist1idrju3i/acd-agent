@@ -1008,6 +1008,7 @@ V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の�
 
 背景と観測は[`roadmap.md`](roadmap.md)の14.24節、各項目の詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+14.24の進捗は30件達成、未了3件（AA-30〜AA-32）である。
 
 | 区分 | 内容 |
 |---|---|
@@ -1049,6 +1050,10 @@ modelを含むevent logをhook専用経路で記録し、observationはeventへ�
 eventの欠落・改変・不一致は`unverified`としてvisual reviewをfail-closedにし、
 observationとevent logの直接書き込みを拒否する。observationとverdictはL3のままで、
 合否やEvidenceへ作用させない。
+
+実装状況（AA-29）: KiCad回路図の列・行ピッチをsymbol extentとnet labelから決定し、
+Reference/Valueをbody外へ配置する。labelとproperty・bodyの衝突は一度だけ外側へ
+解消し、残る衝突をfail-closedで拒否し、用紙を実extentから選択する。
 
 実装状況（AA-2）: init workspaceがbootstrap record生成後にworkspace registryへ登録し、
 SessionStart hookが登録済みworkspaceのlockを新しい順に探索して解決pathをcontextへ記載する。
