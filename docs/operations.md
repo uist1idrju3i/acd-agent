@@ -629,7 +629,8 @@ uv run python scripts/register_part_catalog_entry.py \
 ```
 
 entryには`part_number`、`kind`、`value`、`package`と、symbol／footprintの名前、
-file、source、source_ref、`sha256:<64 hex>`を必須で宣言する。CLIは両fileを実際に
+file、source、source_ref、`sha256:<64 hex>`を必須で宣言する（`--pin-hashes`使用時は
+`*_sha256`を省略できる）。CLIは両fileを実際に
 読み、宣言SHA-256と一致しない場合やfileが存在しない場合は非ゼロ終了でfail-closedに
 する。既存`part_number`または同じ選択key（`kind`＋`value`＋`package`）との衝突は、
 `select_part`の曖昧な結果を増やすため拒否する。既存entryのテキスト表現は保持し、

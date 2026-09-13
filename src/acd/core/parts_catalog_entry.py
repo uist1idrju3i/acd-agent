@@ -7,22 +7,36 @@ import os
 import tempfile
 from collections.abc import Mapping
 from contextlib import suppress
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from acd.core.library_assets import (
     LibraryAsset,
     LibraryAssetError,
+    resolve_library_asset,
+    sha256_of_asset,
     verify_library_asset,
 )
 from acd.core.part_selection import default_parts_catalog_path, load_parts_catalog
 from acd.schema import PartCatalogEntry, PartsCatalogDocument
-from acd.schema.common import canonical_json_sha256
+from acd.schema.common import canonical_json_sha256, is_placeholder_hash
 
 
 class PartsCatalogEntryError(ValueError):
     """Raised when a parts-catalog entry cannot be safely registered."""
+
+
+@dataclass(frozen=True)
+class PinnedLibraryHash:
+    """One library hash resolved from a declared file."""
+
+    kind: str
+    declared_path: str
+    resolved_path: str
+    sha256: str
+    state: str
 
 
 @dataclass(frozen=True)
@@ -35,21 +49,23 @@ class PartsCatalogEntryResult:
     entry_source: str
     entry: PartCatalogEntry
     written: bool
+    pinned_hashes: tuple[PinnedLibraryHash, ...] = ()
     pass_evidence: bool = False
 
     def model_dump(self) -> dict[str, Any]:
         value = asdict(self)
         value["entry"] = self.entry.model_dump(mode="json")
+        value["pinned_hashes"] = [asdict(item) for item in self.pinned_hashes]
         return value
 
 
 def _read_entry_input(
     value: PartCatalogEntry | Mapping[str, Any] | str | Path,
-) -> tuple[PartCatalogEntry, str]:
+) -> tuple[dict[str, Any], str]:
     if isinstance(value, PartCatalogEntry):
-        return value, "model"
+        return value.model_dump(mode="json"), "model"
     if isinstance(value, Mapping):
-        return PartCatalogEntry.model_validate(value), "mapping"
+        return deepcopy(dict(value)), "mapping"
     if isinstance(value, Path):
         source = str(value)
         try:
@@ -58,7 +74,11 @@ def _read_entry_input(
             raise PartsCatalogEntryError(
                 f"parts catalog entry is invalid: {source}: {exc}"
             ) from exc
-        return PartCatalogEntry.model_validate(payload), source
+        if not isinstance(payload, dict):
+            raise PartsCatalogEntryError(
+                f"parts catalog entry is not a JSON object: {source}"
+            )
+        return cast(dict[str, Any], payload), source
     stripped = value.lstrip()
     if stripped.startswith("{"):
         try:
@@ -67,7 +87,11 @@ def _read_entry_input(
             raise PartsCatalogEntryError(
                 f"parts catalog entry JSON is invalid: {exc}"
             ) from exc
-        return PartCatalogEntry.model_validate(payload), "inline"
+        if not isinstance(payload, dict):
+            raise PartsCatalogEntryError(
+                "parts catalog entry JSON is not an object"
+            )
+        return cast(dict[str, Any], payload), "inline"
     path = Path(value)
     try:
         if path.is_file():
@@ -80,6 +104,63 @@ def _read_entry_input(
         "parts catalog entry is neither a JSON object nor a readable file: "
         + str(value)
     )
+
+
+def _pin_library_hashes(
+    payload: dict[str, Any],
+) -> tuple[dict[str, Any], tuple[PinnedLibraryHash, ...]]:
+    library_value = payload.get("library_ref")
+    if not isinstance(library_value, dict):
+        raise PartsCatalogEntryError(
+            "parts catalog entry library_ref must be an object when pinning hashes"
+        )
+    library = cast(dict[str, Any], library_value)
+    pinned: list[PinnedLibraryHash] = []
+    for kind, file_key, digest_key in (
+        ("symbol", "symbol_file", "symbol_sha256"),
+        ("footprint", "footprint_file", "footprint_sha256"),
+    ):
+        declared_path = library.get(file_key)
+        if not isinstance(declared_path, str):
+            raise PartsCatalogEntryError(
+                f"parts catalog entry library_ref.{file_key} must be a string "
+                "when pinning hashes"
+            )
+        try:
+            resolved_path = resolve_library_asset(declared_path)
+            computed = sha256_of_asset(resolved_path)
+        except LibraryAssetError as exc:
+            raise PartsCatalogEntryError(
+                f"{kind} library file cannot be pinned: {exc}"
+            ) from exc
+        declared = library.get(digest_key)
+        if declared is None:
+            state = "computed"
+            library[digest_key] = computed
+        elif not isinstance(declared, str):
+            raise PartsCatalogEntryError(
+                f"parts catalog entry library_ref.{digest_key} must be a string"
+            )
+        elif is_placeholder_hash(declared):
+            state = "computed"
+            library[digest_key] = computed
+        elif declared == computed:
+            state = "confirmed"
+        else:
+            raise PartsCatalogEntryError(
+                f"declared {kind} digest does not match library file "
+                f"{declared_path}; remove the declared digest to pin it"
+            )
+        pinned.append(
+            PinnedLibraryHash(
+                kind=kind,
+                declared_path=declared_path,
+                resolved_path=str(resolved_path),
+                sha256=computed,
+                state=state,
+            )
+        )
+    return payload, tuple(pinned)
 
 
 def _verify_library_file(path_value: str, expected: str, label: str) -> None:
@@ -262,9 +343,14 @@ def register_parts_catalog_entry(
     catalog_path: Path | None = None,
     *,
     dry_run: bool = False,
+    pin_hashes: bool = False,
 ) -> PartsCatalogEntryResult:
     """Validate and optionally append one unambiguous catalog declaration."""
-    proposed, detected_source = _read_entry_input(entry)
+    payload, detected_source = _read_entry_input(entry)
+    pinned_hashes: tuple[PinnedLibraryHash, ...] = ()
+    if pin_hashes:
+        payload, pinned_hashes = _pin_library_hashes(payload)
+    proposed = PartCatalogEntry.model_validate(payload)
     path = catalog_path or default_parts_catalog_path()
     try:
         existing_catalog = path.read_text(encoding="utf-8")
@@ -288,11 +374,13 @@ def register_parts_catalog_entry(
         entry_source=detected_source,
         entry=proposed,
         written=not dry_run,
+        pinned_hashes=pinned_hashes,
     )
 
 
 __all__ = [
     "PartsCatalogEntryError",
     "PartsCatalogEntryResult",
+    "PinnedLibraryHash",
     "register_parts_catalog_entry",
 ]

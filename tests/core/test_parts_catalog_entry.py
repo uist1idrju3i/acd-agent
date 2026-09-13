@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -130,8 +131,7 @@ def test_payload_field_loss_fails_closed_without_writing(
 def test_provenance_hash_mismatch_fails_closed(tmp_path: Path, field: str) -> None:
     catalog = _catalog_copy(tmp_path)
     entry = _entry(tmp_path)
-    library = entry["library_ref"]
-    assert isinstance(library, dict)
+    library = cast(dict[str, object], entry["library_ref"])
     library[field] = "sha256:" + "0" * 64
 
     with pytest.raises(PartsCatalogEntryError, match="sha256"):
@@ -152,9 +152,99 @@ def test_existing_selection_key_is_rejected_to_preserve_unambiguous_selection(
 def test_missing_library_file_fails_closed(tmp_path: Path) -> None:
     catalog = _catalog_copy(tmp_path)
     entry = _entry(tmp_path)
-    library = entry["library_ref"]
-    assert isinstance(library, dict)
+    library = cast(dict[str, object], entry["library_ref"])
     library["symbol_file"] = str(tmp_path / "missing.kicad_sym")
 
     with pytest.raises(PartsCatalogEntryError, match="unavailable"):
+        register_parts_catalog_entry(entry, catalog)
+
+
+def test_pin_hashes_computes_digests_and_writes_them(
+    tmp_path: Path,
+) -> None:
+    catalog = _catalog_copy(tmp_path)
+    entry = _entry(tmp_path)
+    library = cast(dict[str, object], entry["library_ref"])
+    library.pop("symbol_sha256")
+    library.pop("footprint_sha256")
+
+    result = register_parts_catalog_entry(entry, catalog, pin_hashes=True)
+
+    assert [item.state for item in result.pinned_hashes] == [
+        "computed",
+        "computed",
+    ]
+    document = PartsCatalogDocument.model_validate_json(
+        catalog.read_text(encoding="utf-8")
+    )
+    written_library = document.entries[-1].library_ref
+    assert written_library.symbol_sha256 == (
+        "sha256:" + hashlib.sha256(Path(written_library.symbol_file).read_bytes()).hexdigest()
+    )
+    assert written_library.footprint_sha256 == (
+        "sha256:"
+        + hashlib.sha256(Path(written_library.footprint_file).read_bytes()).hexdigest()
+    )
+
+
+def test_pin_hashes_replaces_placeholder_digests(tmp_path: Path) -> None:
+    catalog = _catalog_copy(tmp_path)
+    entry = _entry(tmp_path)
+    library = cast(dict[str, object], entry["library_ref"])
+    library["symbol_sha256"] = "sha256:" + "0" * 64
+    library["footprint_sha256"] = "sha256:" + "0" * 64
+
+    result = register_parts_catalog_entry(entry, catalog, pin_hashes=True)
+
+    assert [item.state for item in result.pinned_hashes] == [
+        "computed",
+        "computed",
+    ]
+    assert all(item.sha256 != "sha256:" + "0" * 64 for item in result.pinned_hashes)
+
+
+def test_pin_hashes_confirms_declared_digests(tmp_path: Path) -> None:
+    catalog = _catalog_copy(tmp_path)
+
+    result = register_parts_catalog_entry(_entry(tmp_path), catalog, pin_hashes=True)
+
+    assert [item.state for item in result.pinned_hashes] == [
+        "confirmed",
+        "confirmed",
+    ]
+
+
+def test_pin_hashes_rejects_wrong_declared_digest_without_writing(
+    tmp_path: Path,
+) -> None:
+    catalog = _catalog_copy(tmp_path)
+    entry = _entry(tmp_path)
+    library = cast(dict[str, object], entry["library_ref"])
+    library["symbol_sha256"] = "sha256:" + "1" * 63 + "2"
+    before = catalog.read_bytes()
+
+    with pytest.raises(PartsCatalogEntryError, match="remove the declared digest"):
+        register_parts_catalog_entry(entry, catalog, pin_hashes=True)
+
+    assert catalog.read_bytes() == before
+
+
+def test_pin_hashes_missing_library_file_fails_closed(tmp_path: Path) -> None:
+    catalog = _catalog_copy(tmp_path)
+    entry = _entry(tmp_path)
+    library = cast(dict[str, object], entry["library_ref"])
+    library["symbol_file"] = str(tmp_path / "missing.kicad_sym")
+
+    with pytest.raises(PartsCatalogEntryError, match="cannot be pinned"):
+        register_parts_catalog_entry(entry, catalog, pin_hashes=True)
+
+
+def test_missing_digest_still_requires_hash_without_pinning(tmp_path: Path) -> None:
+    catalog = _catalog_copy(tmp_path)
+    entry = _entry(tmp_path)
+    library = cast(dict[str, object], entry["library_ref"])
+    library.pop("symbol_sha256")
+    library.pop("footprint_sha256")
+
+    with pytest.raises(ValueError, match=r"symbol_sha256|footprint_sha256"):
         register_parts_catalog_entry(entry, catalog)

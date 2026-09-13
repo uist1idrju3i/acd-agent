@@ -30,6 +30,24 @@ uv run python scripts/check_rationale.py \
   --rationale fixtures/<design>/rationale.json
 ```
 
+## Adding a parts catalog entry
+
+Create `entry.json` with `library_ref` and omit `symbol_sha256` and
+`footprint_sha256`. Run the registration inside the locked image so the
+container can resolve and hash its KiCad library files:
+
+```bash
+uv run python scripts/run_in_workspace.py --repo "$PWD" \
+  'uv run python scripts/register_part_catalog_entry.py --entry entry.json --pin-hashes --dry-run --pinned-entry-out entry.pinned.json'
+uv run python scripts/run_in_workspace.py --repo "$PWD" \
+  'uv run python scripts/register_part_catalog_entry.py --entry entry.json --pin-hashes --pinned-entry-out entry.pinned.json'
+```
+
+The mounted repository makes the catalog write land in the checkout. Never
+edit `contracts/parts-catalog.json` by hand. Commit the catalog change and open
+a pull request; `--allow-dirty` does not cover `contracts/`. Registration is a
+declaration, not evidence.
+
 For JLCPCB BOM/CPL output, every component with `assembly: "fitted"` must declare
 an `lcsc` part number. Declare hand-soldered or otherwise off-BOM parts as not
 fitted so they are excluded from the JLCPCB BOM and CPL:
