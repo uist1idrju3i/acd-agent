@@ -9,6 +9,32 @@ from pydantic import Field
 from acd.schema.common import AcdModel
 
 
+class ChangeAction(AcdModel):
+    """One recorded file-changing action associated with a worktree entry."""
+
+    sequence: int
+    recorded_at: str
+    tool_name: str
+    action: str
+
+
+class TerminalAction(AcdModel):
+    """One recorded terminal command available for report citation."""
+
+    sequence: int
+    recorded_at: str
+    command_excerpt: str
+
+
+class WorktreeEntry(AcdModel):
+    """One porcelain worktree entry and its recorded change actions."""
+
+    path: str
+    status_code: str
+    modified_at: str | None = None
+    change_actions: list[ChangeAction] = Field(default_factory=list[ChangeAction])
+
+
 class SourceChangeSection(AcdModel):
     """Verbatim git facts backing the report's source-change statement."""
 
@@ -22,6 +48,10 @@ class SourceChangeSection(AcdModel):
     worktree_diff_stat: str = ""
     worktree_changed_paths: list[str] = Field(default_factory=list[str])
     reason: str | None = None
+    worktree_entries: list[WorktreeEntry] = Field(default_factory=list[WorktreeEntry])
+    change_events_path: str | None = None
+    change_events_error: str | None = None
+    terminal_actions: list[TerminalAction] = Field(default_factory=list[TerminalAction])
 
 
 class DesignComponentValue(AcdModel):
@@ -68,9 +98,12 @@ class FinalReportBasis(AcdModel):
 
 
 __all__ = [
+    "ChangeAction",
     "DesignComponentValue",
     "DesignNetValue",
     "DesignValueSection",
     "FinalReportBasis",
     "SourceChangeSection",
+    "TerminalAction",
+    "WorktreeEntry",
 ]

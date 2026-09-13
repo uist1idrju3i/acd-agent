@@ -200,12 +200,15 @@ allowed-tools:
    欠ける、unknown、または未実行の間は、timing record、loop summary、探索report、
    進行digest、preflightの`declarations_complete`を根拠に「合格」「order-ready」と
    述べてはならず、「Evidence未検証」と明記する。host実行のprovisional Evidenceは
-   この検証を通過しない。
+   この検証を通過しない。最終報告のEvidence表4列は、上記commandが出力する
+   `citation |`行（または`--citations-json`の同じ値）からverbatimに転記する。
+   `N/A`や`unknown`は、出力にある`missing: <pointer>`を伴う場合だけ許可する。
 9. 最終報告を書く前に、source変更節と設計値節の機械生成basisを取得する。
 
    ```bash
    uv run python scripts/report_final_basis.py \
-       --root <repository root> --design-input <fixture>/spec.json
+       --root <repository root> --design-input <fixture>/spec.json \
+       --change-events <hook-written file-change-events.jsonl>
    ```
 
    最終報告のsource変更節はこの出力をそのまま引用する（`git log --stat
@@ -213,8 +216,11 @@ allowed-tools:
    `status: clean`の場合にだけ記述でき、作業treeだけを見る`git diff --stat`単独は
    根拠にならない。報告中の部品value・net記述は`design values`表（refdes、value、
    net）と一致させ、これを引用として示す。`status: unknown`の場合はその旨を報告し、
-   変更の不存在を主張しない。このbasisはL3観測であり、step 7のEvidence検証を
-   置き換えない。step 7のビジョンレビュー検証も同様に置き換えない。
+   変更の不存在を主張しない。各worktree entryの説明は、表にある
+   `seq@time tool:action`またはterminal actionを引用する。`none recorded`のentryは
+   「change action unrecorded」と報告し、引用なしにautomatic/pipeline behaviourと
+   説明してはならない。このbasisはL3観測であり、step 7のEvidence検証を置き換えない。
+   step 7のビジョンレビュー検証も同様に置き換えない。
 
 `acd_run_design_loop`は、必要に応じて入力hash単位のstage cache（`cache_dir`）、
 失敗からのresume（`resume`）、stageごとの所要時間記録、基板・筐体・FW laneの

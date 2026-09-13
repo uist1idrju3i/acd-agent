@@ -146,6 +146,125 @@ def test_vision_tool_event_hook_is_non_blocking_on_write_error(tmp_path: Path) -
     assert completed.returncode == 0
 
 
+def test_file_change_event_hook_records_file_editor_action(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "create", "path": "src/new.py"},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["action"] == "create"
+    assert record["paths"] == ["src/new.py"]
+    assert record["command_sha256"] is None
+
+
+def test_file_change_event_hook_skips_file_editor_view(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "view", "path": "src/new.py"},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    assert not events.exists()
+
+
+def test_file_change_event_hook_records_terminal_hash_and_excerpt(
+    tmp_path: Path,
+) -> None:
+    events = tmp_path / "events.jsonl"
+    command = "echo " + ("x" * 240)
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "terminal",
+            "tool_input": {"command": command},
+            "tool_response": {"is_error": False},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["command_excerpt"] == command[:200]
+    assert record["command_sha256"].startswith("sha256:")
+
+
+def test_file_change_event_hook_skips_terminal_error(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "terminal",
+            "tool_input": {"command": "touch src/new.py"},
+            "tool_response": {"is_error": True},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    assert not events.exists()
+
+
+def test_file_change_event_hook_is_non_blocking_on_write_error(
+    tmp_path: Path,
+) -> None:
+    blocked = tmp_path / "events"
+    blocked.write_text("not a directory", encoding="utf-8")
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "create", "path": "src/new.py"},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(blocked / "events.jsonl")},
+    )
+    assert completed.returncode == 0
+
+
+def test_file_change_event_hook_parses_apply_patch_paths(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "apply_patch",
+            "tool_input": {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: src/changed.py\n"
+                    "@@\n"
+                    "+new\n"
+                    "*** Add File: docs/new.md\n"
+                    "+new\n"
+                    "*** End Patch\n"
+                )
+            },
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["paths"] == ["src/changed.py", "docs/new.md"]
+
+
 def test_vision_event_hashing_agrees_with_shared_helpers() -> None:
     module = _load_hook_module(
         "record_vision_tool_event.py", "vision_event_test"
@@ -169,7 +288,8 @@ def test_projection_guard_denies_visual_observation_and_event_writes(
 ) -> None:
     observation = tmp_path / "visual/vision-observations/board.json"
     event_log = tmp_path / ".openhands/acd/vision-tool-events.jsonl"
-    for path in (observation, event_log):
+    file_change_log = tmp_path / ".openhands/acd/file-change-events.jsonl"
+    for path in (observation, event_log, file_change_log):
         code, output = run(
             "protect_projections.py",
             {"path": str(path)},
@@ -1372,9 +1492,14 @@ def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
             "working_dir": str(tmp_path),
         },
         "check-design-rationale": {"working_dir": str(tmp_path)},
-            "check-design-rationale-warn": {"working_dir": str(tmp_path)},
-            "record-vision-tool-event": {"working_dir": str(tmp_path)},
-        }
+        "check-design-rationale-warn": {"working_dir": str(tmp_path)},
+        "record-vision-tool-event": {"working_dir": str(tmp_path)},
+        "record-file-change-event": {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "view", "path": "README.md"},
+            "working_dir": str(tmp_path),
+        },
+    }
     commands = _configured_plugin_hook_commands()
     assert set(commands) == set(payloads)
 

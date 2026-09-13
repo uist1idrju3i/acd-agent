@@ -1050,6 +1050,14 @@ eventの欠落・改変・不一致は`unverified`としてvisual reviewをfail-
 observationとevent logの直接書き込みを拒否する。observationとverdictはL3のままで、
 合否やEvidenceへ作用させない。
 
+実装状況（AA-10）: file_editor／apply_patch／terminalのPostToolUse hookが変更actionを
+`file-change-events.jsonl`へ記録し、最終報告basisがworktree entryごとの時刻・tool・action
+とterminal actionを引用可能な表として出力する。
+
+実装状況（AA-33）: `verify_authoritative_evidence.py`がstatus・target revision・container
+image digest・source revisionのcitation行と任意のJSON recordを出力し、欠落値をJSON pointer
+付きで明示する。既存のauthoritative判定は変更しない。
+
 実装状況（AA-13）: `part_request`無しのcomponentにもCPL orientation evidenceを
 `cpl_rotation_*`へ投影し、`<graph_id>-<revision>`のevidence revisionを付与する。
 assemblyのunknown rotation reportには欠落・不正属性名を診断として記録する。

@@ -12,20 +12,25 @@ from __future__ import annotations
 
 import json
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 from acd.schema.design_fixture import DesignFixtureSpec
 from acd.schema.design_graph import DesignGraph
 from acd.schema.final_report_basis import (
+    ChangeAction,
     DesignComponentValue,
     DesignNetValue,
     DesignValueSection,
     FinalReportBasis,
     SourceChangeSection,
+    TerminalAction,
+    WorktreeEntry,
 )
 
 DEFAULT_BOOTSTRAP_RECORD = Path(".openhands") / "bootstrap-record.json"
+DEFAULT_CHANGE_EVENTS = Path(".openhands") / "acd" / "file-change-events.jsonl"
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -80,11 +85,105 @@ def _bootstrap_revision(
     return revision, used_record, None
 
 
+def _load_change_events(
+    path: Path,
+) -> tuple[list[dict[str, Any]], list[TerminalAction], str | None]:
+    if not path.is_file():
+        return [], [], f"file change events not found: {path}"
+    records: list[dict[str, Any]] = []
+    terminals: list[TerminalAction] = []
+    error: str | None = None
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        return [], [], f"file change events unreadable: {exc}"
+    for line_number, line in enumerate(lines, start=1):
+        try:
+            value: object = json.loads(line)
+        except json.JSONDecodeError as exc:
+            error = f"file change events invalid at line {line_number}: {exc}"
+            continue
+        if not isinstance(value, dict):
+            error = f"file change events invalid at line {line_number}: not an object"
+            continue
+        record = cast(dict[str, Any], value)
+        records.append(record)
+        if (
+            record.get("tool_name") == "terminal"
+            and isinstance(record.get("sequence"), int)
+            and isinstance(record.get("recorded_at"), str)
+            and isinstance(record.get("command_excerpt"), str)
+        ):
+            terminals.append(
+                TerminalAction(
+                    sequence=record["sequence"],
+                    recorded_at=record["recorded_at"],
+                    command_excerpt=record["command_excerpt"],
+                )
+            )
+    return records, sorted(terminals, key=lambda item: item.sequence), error
+
+
+def _modified_at(path: Path) -> str | None:
+    try:
+        return datetime.fromtimestamp(path.stat().st_mtime, UTC).isoformat()
+    except OSError:
+        return None
+
+
+def _worktree_entries(
+    root: Path,
+    porcelain: str,
+    change_events_path: Path,
+) -> tuple[list[WorktreeEntry], str | None, list[TerminalAction]]:
+    records, terminals, events_error = _load_change_events(change_events_path)
+    entries: list[WorktreeEntry] = []
+    for line in porcelain.splitlines():
+        if len(line) < 4:
+            continue
+        status_code = line[:2]
+        path = line[3:].strip().strip('"')
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        if not path:
+            continue
+        actions: list[ChangeAction] = []
+        for record in records:
+            paths = record.get("paths")
+            if (
+                not isinstance(paths, list)
+                or path not in paths
+                or not isinstance(record.get("sequence"), int)
+                or not isinstance(record.get("recorded_at"), str)
+                or not isinstance(record.get("tool_name"), str)
+                or not isinstance(record.get("action"), str)
+            ):
+                continue
+            actions.append(
+                ChangeAction(
+                    sequence=record["sequence"],
+                    recorded_at=record["recorded_at"],
+                    tool_name=record["tool_name"],
+                    action=record["action"],
+                )
+            )
+        entries.append(
+            WorktreeEntry(
+                path=path,
+                status_code=status_code,
+                modified_at=_modified_at(root / path),
+                change_actions=sorted(actions, key=lambda item: item.sequence),
+            )
+        )
+    return entries, events_error, terminals
+
+
 def collect_source_changes(
     root: Path,
     *,
     bootstrap_record: Path | None = None,
     bootstrap_revision: str | None = None,
+    change_events: Path | None = None,
 ) -> SourceChangeSection:
     """Collect git facts for the report's source-change section."""
     revision, used_record, failure = _bootstrap_revision(
@@ -98,6 +197,10 @@ def collect_source_changes(
     diff_result = _git(root, "diff", "HEAD", "--stat")
     worktree_status = status_result.stdout if status_result.returncode == 0 else ""
     worktree_diff_stat = diff_result.stdout if diff_result.returncode == 0 else ""
+    events_path = change_events or root / DEFAULT_CHANGE_EVENTS
+    worktree_entries, events_error, terminal_actions = _worktree_entries(
+        root, worktree_status, events_path
+    )
     section = SourceChangeSection(
         status="unknown",
         bootstrap_record=used_record,
@@ -105,6 +208,10 @@ def collect_source_changes(
         head_revision=head,
         worktree_status=worktree_status,
         worktree_diff_stat=worktree_diff_stat,
+        worktree_entries=worktree_entries,
+        change_events_path=str(events_path),
+        change_events_error=events_error,
+        terminal_actions=terminal_actions,
     )
     if failure is not None:
         return section.model_copy(update={"reason": failure})
@@ -283,6 +390,7 @@ def collect_final_report_basis(
     design_input: Path | None = None,
     bootstrap_record: Path | None = None,
     bootstrap_revision: str | None = None,
+    change_events: Path | None = None,
 ) -> FinalReportBasis:
     """Assemble the machine-generated basis for the final report."""
     notes: list[str] = []
@@ -290,6 +398,7 @@ def collect_final_report_basis(
         root,
         bootstrap_record=bootstrap_record,
         bootstrap_revision=bootstrap_revision,
+        change_events=change_events,
     )
     design_values: DesignValueSection | None = None
     if design_input is not None:
@@ -337,6 +446,35 @@ def render_final_report_basis(report: FinalReportBasis) -> str:
     lines.append("")
     lines.append("worktree `git diff HEAD --stat`:")
     lines.append(_fence(section.worktree_diff_stat))
+    lines.append("")
+    lines.append(
+        "worktree entries (path | status | modified_at | change actions)"
+    )
+    lines.append("| path | status | modified_at | change actions |")
+    lines.append("|---|---|---|---|")
+    for entry in section.worktree_entries:
+        actions = "; ".join(
+            f"{action.sequence}@{action.recorded_at} "
+            f"{action.tool_name}:{action.action}"
+            for action in entry.change_actions
+        ) or "none recorded"
+        lines.append(
+            f"| {entry.path} | {entry.status_code} | "
+            f"{entry.modified_at or 'unknown'} | {actions} |"
+        )
+    if not section.worktree_entries:
+        lines.append("| none | - | - | none recorded |")
+    lines.append("")
+    lines.append("terminal actions since bootstrap:")
+    if section.terminal_actions:
+        lines.extend(
+            f"- {action.sequence}@{action.recorded_at}: {action.command_excerpt}"
+            for action in section.terminal_actions
+        )
+    else:
+        lines.append("- none recorded")
+    if section.change_events_error is not None:
+        lines.append(f"- error: {section.change_events_error}")
     lines.append("")
     if report.design_values is not None:
         values = report.design_values

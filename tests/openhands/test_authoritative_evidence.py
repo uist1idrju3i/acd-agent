@@ -42,7 +42,30 @@ def _verify(
     require_lanes: tuple[str, ...] = (),
     source_revision: str | None = None,
     bootstrap_record: Path | None = None,
+    citations_json: Path | None = None,
 ) -> bool:
+    return _run_verify(
+        *paths,
+        revision=revision,
+        revision_from=revision_from,
+        out_roots=out_roots,
+        require_lanes=require_lanes,
+        source_revision=source_revision,
+        bootstrap_record=bootstrap_record,
+        citations_json=citations_json,
+    ).returncode == 0
+
+
+def _run_verify(
+    *paths: Path,
+    revision: str = "r3",
+    revision_from: Path | None = None,
+    out_roots: tuple[Path, ...] = (),
+    require_lanes: tuple[str, ...] = (),
+    source_revision: str | None = None,
+    bootstrap_record: Path | None = None,
+    citations_json: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
     revision_args = (
         ["--revision-from", str(revision_from)]
         if revision_from is not None
@@ -58,6 +81,11 @@ def _verify(
         if bootstrap_record is not None
         else []
     )
+    citations_args = (
+        ["--citations-json", str(citations_json)]
+        if citations_json is not None
+        else []
+    )
     result = subprocess.run(
         [
             sys.executable,
@@ -67,13 +95,14 @@ def _verify(
             *record_args,
             *(arg for root in out_roots for arg in ("--out-root", str(root))),
             *(arg for lane in require_lanes for arg in ("--require-lane", lane)),
+            *citations_args,
             *(str(path) for path in paths),
         ],
         check=False,
         capture_output=True,
         text=True,
     )
-    return result.returncode == 0
+    return result
 
 
 def _write_named(directory: Path, name: str, record: dict[str, object]) -> Path:
@@ -85,6 +114,38 @@ def _write_named(directory: Path, name: str, record: dict[str, object]) -> Path:
 
 def test_authoritative_evidence_is_accepted(tmp_path: Path) -> None:
     assert _verify(_write(tmp_path, _record()))
+
+
+def test_authoritative_evidence_prints_citation_line(tmp_path: Path) -> None:
+    completed = _run_verify(_write(tmp_path, _record()))
+    assert completed.returncode == 0
+    assert "citation | path | status (/status)" in completed.stdout
+    assert " | valid | r3 | sha256:" in completed.stdout
+
+
+def test_unknown_digest_citation_is_diagnostic_and_still_fails(
+    tmp_path: Path,
+) -> None:
+    record = _record()
+    envelope = record["envelope"]
+    assert isinstance(envelope, dict)
+    envelope["execution_context"] = "unknown"
+    envelope["container_image_digest"] = None
+    completed = _run_verify(_write(tmp_path, record))
+    assert completed.returncode != 0
+    assert (
+        "unknown (missing: /envelope/container_image_digest)"
+        in completed.stdout
+    )
+
+
+def test_authoritative_evidence_citations_json_is_written(tmp_path: Path) -> None:
+    citations = tmp_path / "citations.json"
+    evidence = _write(tmp_path, _record())
+    assert _verify(evidence, citations_json=citations)
+    document = json.loads(citations.read_text(encoding="utf-8"))
+    assert document[0]["path"] == str(evidence)
+    assert document[0]["pointers"]["target_revision"] == "/target_revision"
 
 
 def test_host_evidence_is_rejected(tmp_path: Path) -> None:

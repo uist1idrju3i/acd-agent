@@ -62,6 +62,25 @@ def _collect_evidence(paths: Sequence[Path], out_roots: Sequence[Path]) -> list[
     return sorted(collected)
 
 
+def _citation_value(value: str | None, pointer: str) -> str:
+    return value if value is not None else f"unknown (missing: {pointer})"
+
+
+def _write_citations(path: Path | None, citations: list[dict[str, object]]) -> bool:
+    if path is None:
+        return True
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(citations, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        print(f"FAIL: could not write citations JSON {path}: {exc}", file=sys.stderr)
+        return False
+    return True
+
+
 def verify(
     paths: Sequence[Path],
     revision: str | None = None,
@@ -71,8 +90,14 @@ def verify(
     require_lanes: Sequence[str] = (),
     source_revision: str | None = None,
     bootstrap_record: Path | None = None,
+    citations_json: Path | None = None,
 ) -> bool:
     """Return whether all supplied Evidence records support an authoritative pass."""
+    citations: list[dict[str, object]] = []
+
+    def finish(value: bool) -> bool:
+        return value and _write_citations(citations_json, citations)
+
     if bootstrap_record is not None:
         try:
             recorded = expected_source_revision(
@@ -80,67 +105,115 @@ def verify(
             )
         except ValueError as exc:
             print(f"FAIL: {exc}", file=sys.stderr)
-            return False
+            return finish(False)
         if source_revision is not None and source_revision != recorded:
             print(
                 "FAIL: --source-revision disagrees with bootstrap record",
                 file=sys.stderr,
             )
-            return False
+            return finish(False)
         source_revision = recorded
     for root in out_roots:
         if not root.is_dir():
             print(f"FAIL: out root is not a directory: {root}", file=sys.stderr)
-            return False
+            return finish(False)
     paths = _collect_evidence(paths, out_roots)
     if not paths:
         print("FAIL: no Evidence files supplied", file=sys.stderr)
-        return False
+        return finish(False)
     for lane in require_lanes:
         if not any(path.name == f"evidence-{lane}.json" for path in paths):
             print(
                 f"FAIL: required lane Evidence missing: {lane}",
                 file=sys.stderr,
             )
-            return False
+            return finish(False)
     try:
         target_revision = _revision(revision, revision_from)
     except ValueError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
-        return False
+        return finish(False)
+    print(
+        "citation | path | status (/status) | target_revision (/target_revision) | "
+        "container_image_digest (/envelope/container_image_digest) | "
+        "source_revision (/envelope/source_revision)"
+    )
     for path in paths:
         if not path.is_file():
+            print(f"citation | {path} | unparseable | - | - | -")
             print(f"FAIL: Evidence file not found: {path}", file=sys.stderr)
-            return False
+            citations.append(
+                {
+                    "path": str(path),
+                    "status": "unparseable",
+                    "target_revision": None,
+                    "container_image_digest": None,
+                    "source_revision": None,
+                    "pointers": {},
+                }
+            )
+            return finish(False)
         try:
             evidence = Evidence.model_validate_json(path.read_text(encoding="utf-8"))
         except Exception as exc:
+            print(f"citation | {path} | unparseable | - | - | -")
             print(f"FAIL: could not parse Evidence {path}: {exc}", file=sys.stderr)
-            return False
+            citations.append(
+                {
+                    "path": str(path),
+                    "status": "unparseable",
+                    "target_revision": None,
+                    "container_image_digest": None,
+                    "source_revision": None,
+                    "pointers": {},
+                }
+            )
+            return finish(False)
+        digest = evidence.envelope.container_image_digest
+        source = evidence.envelope.source_revision
+        citations.append(
+            {
+                "path": str(path),
+                "status": evidence.status,
+                "target_revision": evidence.target_revision,
+                "container_image_digest": digest,
+                "source_revision": source,
+                "pointers": {
+                    "target_revision": "/target_revision",
+                    "container_image_digest": "/envelope/container_image_digest",
+                    "source_revision": "/envelope/source_revision",
+                },
+            }
+        )
+        print(
+            f"citation | {path} | {evidence.status} | "
+            f"{_citation_value(evidence.target_revision, '/target_revision')} | "
+            f"{_citation_value(digest, '/envelope/container_image_digest')} | "
+            f"{_citation_value(source, '/envelope/source_revision')}"
+        )
         if evidence.status != "valid":
             print(f"FAIL: {path}: status={evidence.status!r}", file=sys.stderr)
-            return False
+            return finish(False)
         if evidence.target_revision != target_revision:
             print(
                 f"FAIL: {path}: revision mismatch "
                 f"(target={evidence.target_revision!r}, current={target_revision!r})",
                 file=sys.stderr,
             )
-            return False
+            return finish(False)
         if evidence.envelope.execution_context != "container":
             print(
                 f"FAIL: {path}: execution_context="
                 f"{evidence.envelope.execution_context!r}",
                 file=sys.stderr,
             )
-            return False
-        digest = evidence.envelope.container_image_digest
+            return finish(False)
         if digest is None or digest == "unknown":
             print(f"FAIL: {path}: container image digest is unknown", file=sys.stderr)
-            return False
+            return finish(False)
         if evidence.envelope.has_unknown():
             print(f"FAIL: {path}: envelope contains unknown values", file=sys.stderr)
-            return False
+            return finish(False)
         if not evidence.envelope.has_source_provenance():
             print(
                 f"FAIL: {path}: source provenance missing (Evidence predates "
@@ -148,14 +221,14 @@ def verify(
                 "container)",
                 file=sys.stderr,
             )
-            return False
+            return finish(False)
         if evidence.envelope.source_tree_state != "clean":
             print(
                 f"FAIL: {path}: source tree "
                 f"state={evidence.envelope.source_tree_state!r}",
                 file=sys.stderr,
             )
-            return False
+            return finish(False)
         if (
             source_revision is not None
             and evidence.envelope.source_revision != source_revision
@@ -166,12 +239,12 @@ def verify(
                 f"expected={source_revision!r})",
                 file=sys.stderr,
             )
-            return False
+            return finish(False)
         if not evidence.supports_authoritative_pass(target_revision):
             print(f"FAIL: {path}: authoritative pass is not supported", file=sys.stderr)
-            return False
+            return finish(False)
     print(f"OK: {len(paths)} authoritative Evidence file(s) verified")
-    return True
+    return finish(True)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -224,6 +297,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             "expected envelope source_revision"
         ),
     )
+    parser.add_argument(
+        "--citations-json",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="write machine-readable Evidence citations to PATH",
+    )
     parser.add_argument("evidence", nargs="*", type=Path)
     args = parser.parse_args(argv)
     return (
@@ -236,6 +316,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             require_lanes=args.require_lanes,
             source_revision=args.source_revision,
             bootstrap_record=args.bootstrap_record,
+            citations_json=args.citations_json,
         )
         else 1
     )

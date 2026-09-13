@@ -20,6 +20,8 @@ from common import (
 PROTECTED = ("out", "evidence")
 VISION_OBSERVATION_DIR = ("visual", "vision-observations")
 VISION_EVENT_LOG = (".openhands", "acd", "vision-tool-events.jsonl")
+FILE_CHANGE_EVENT_LOG = (".openhands", "acd", "file-change-events.jsonl")
+PROTECTED_EVENT_LOGS = (VISION_EVENT_LOG, FILE_CHANGE_EVENT_LOG)
 GENERATED = {
     ".kicad_pcb", ".kicad_sch", ".kicad_pro", ".gbr", ".ger", ".drl", ".xln",
     ".step", ".stp", ".3mf", ".glb", ".zip",
@@ -153,14 +155,14 @@ def protected(path: Path, root: Path) -> bool:
     except (OSError, ValueError):
         return False
     vision_path = relative.parts[: len(VISION_OBSERVATION_DIR)] == VISION_OBSERVATION_DIR
-    vision_event_log = relative.parts == VISION_EVENT_LOG
+    protected_event_log = any(relative.parts == path for path in PROTECTED_EVENT_LOGS)
     return bool(
         relative.parts
         and (
             relative.parts[0] in PROTECTED
             or resolved.suffix.lower() in GENERATED
             or vision_path
-            or vision_event_log
+            or protected_event_log
         )
     )
 
@@ -184,8 +186,11 @@ def _path_status(value: str, root: Path) -> tuple[bool, bool, Path | None]:
             for index in range(len(parts))
         )
         possible |= any(
-            parts[index : index + len(VISION_EVENT_LOG)] == VISION_EVENT_LOG
-            for index in range(len(parts))
+            any(
+                parts[index : index + len(event_path)] == event_path
+                for index in range(len(parts))
+            )
+            for event_path in PROTECTED_EVENT_LOGS
         )
         return possible, False, None
     return protected(resolved, root), True, resolved
@@ -211,7 +216,7 @@ def _is_vision_path(value: str, root: Path) -> bool:
         return False
     return (
         relative.parts[: len(VISION_OBSERVATION_DIR)] == VISION_OBSERVATION_DIR
-        or relative.parts == VISION_EVENT_LOG
+        or any(relative.parts == event_path for event_path in PROTECTED_EVENT_LOGS)
     )
 
 
@@ -1018,8 +1023,8 @@ def main() -> int:
     if _is_vision_path(denial.token, root):
         reason = (
             "Visual observations must be recorded via "
-            "scripts/record_visual_vision_observation.py; vision tool events "
-            "are hook-written. "
+            "scripts/record_visual_vision_observation.py; vision tool events / "
+            "file change events are hook-written. "
             f"[denied: {denial.kind}: {denial.token}]"
         )
     else:

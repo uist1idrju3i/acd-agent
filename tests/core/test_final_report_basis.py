@@ -95,6 +95,55 @@ def test_untracked_source_path_is_changed(tmp_path: Path) -> None:
     assert section.worktree_changed_paths == ["src/new.py"]
 
 
+def test_worktree_entry_includes_matching_change_action(tmp_path: Path) -> None:
+    root, base = _repo(tmp_path)
+    _write_record(root, base)
+    source = root / "src" / "new.py"
+    source.parent.mkdir()
+    source.write_text("print('n')\n", encoding="utf-8")
+    events = root / "events.jsonl"
+    events.write_text(
+        json.dumps(
+            {
+                "sequence": 3,
+                "recorded_at": "2026-01-01T00:00:00+00:00",
+                "tool_name": "file_editor",
+                "action": "create",
+                "paths": ["src/new.py"],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    section = collect_source_changes(root, change_events=events)
+
+    entry = next(item for item in section.worktree_entries if item.path == "src/new.py")
+    assert entry.status_code == "??"
+    assert entry.modified_at is not None
+    assert entry.change_actions[0].action == "create"
+
+
+def test_worktree_entry_without_change_action_is_explicit(tmp_path: Path) -> None:
+    root, base = _repo(tmp_path)
+    _write_record(root, base)
+    source = root / "src" / "new.py"
+    source.parent.mkdir()
+    source.write_text("print('n')\n", encoding="utf-8")
+
+    section = collect_source_changes(
+        root,
+        change_events=tmp_path / "missing-events.jsonl",
+    )
+
+    entry = next(item for item in section.worktree_entries if item.path == "src/new.py")
+    assert entry.change_actions == []
+    assert section.change_events_error == (
+        f"file change events not found: {tmp_path / 'missing-events.jsonl'}"
+    )
+    assert section.status == "changed"
+
+
 def test_bootstrap_not_ancestor_is_unknown(tmp_path: Path) -> None:
     root, _base = _repo(tmp_path)
     _write_record(root, "0" * 40)
@@ -162,6 +211,52 @@ def test_render_contains_unverified_evidence_line(tmp_path: Path) -> None:
     assert "authoritative Evidence: unverified" in text
     assert "status: clean" in text
     assert "worktree paths counted for status (excluding .openhands/): 0" in text
+
+
+def test_render_contains_worktree_entries_and_terminal_actions(
+    tmp_path: Path,
+) -> None:
+    root, base = _repo(tmp_path)
+    _write_record(root, base)
+    source = root / "src" / "new.py"
+    source.parent.mkdir()
+    source.write_text("print('n')\n", encoding="utf-8")
+    events = root / "events.jsonl"
+    events.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "sequence": 1,
+                        "recorded_at": "2026-01-01T00:00:00+00:00",
+                        "tool_name": "file_editor",
+                        "action": "create",
+                        "paths": ["src/new.py"],
+                    }
+                ),
+                json.dumps(
+                    {
+                        "sequence": 2,
+                        "recorded_at": "2026-01-01T00:01:00+00:00",
+                        "tool_name": "terminal",
+                        "action": "terminal",
+                        "paths": [],
+                        "command_excerpt": "git status",
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = collect_final_report_basis(root, change_events=events)
+
+    text = render_final_report_basis(report)
+
+    assert "worktree entries (path | status | modified_at | change actions)" in text
+    assert "1@2026-01-01T00:00:00+00:00 file_editor:create" in text
+    assert "terminal actions since bootstrap:" in text
+    assert "2@2026-01-01T00:01:00+00:00: git status" in text
 
 
 def _load_cli() -> Any:

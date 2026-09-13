@@ -65,6 +65,16 @@
   ],
   "post_tool_use": [
     {
+      "matcher": "file_editor|apply_patch|terminal",
+      "hooks": [
+        {
+          "type": "command",
+          "name": "record-file-change-event",
+          "command": "p=$(for c in \"${ACD_PLUGIN_ROOT:-}\" \"${OPENHANDS_PROJECT_DIR:-.}/plugins/acd\" \"${HOME:-}/.openhands/plugins/installed/acd\"; do [ -f \"$c/hooks/scripts/record_file_change_event.py\" ] && printf %s \"$c\" && break; done); [ -n \"$p\" ] || { echo \"acd plugin root unresolved: hooks/scripts/record_file_change_event.py\" >&2; exit 2; }; exec python3 \"$p/hooks/scripts/record_file_change_event.py\""
+        }
+      ]
+    },
+    {
       "matcher": "inspect_image_with_vision",
       "hooks": [
         {

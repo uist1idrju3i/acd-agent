@@ -2354,6 +2354,12 @@ SessionStart hookのserver image lockは、会話project dir直下に限らず�
 含むcheckout、image内`/opt/acd`。すべて解決できない場合はfail-closed contextへ探索
 path列を付記する。
 
+視覚レビューの実ツール利用は`vision-tool-events.jsonl`へhookが記録し、最終報告の
+変更根拠は`file-change-events.jsonl`へfile_editor／apply_patch／terminalのhookが記録する。
+`report_final_basis.py`はgit statusの各worktree entryへ変更時刻と対応する
+`seq@time tool:action`を表として付与し、terminal actionも別に列挙する。ログ欠落や
+未記録entryはL3診断として明示され、自然文の説明を根拠なしに補完してはならない。
+
 ## graph単体検証の正規経路
 
 graph単体の妥当性検証は`scripts/validate_graph.py`だけを正規入口とする。過去に案内された
