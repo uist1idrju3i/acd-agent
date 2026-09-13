@@ -136,9 +136,11 @@ GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへ�
 | 11.2 | 可動干渉チェック | 可動範囲のスイープ干渉を決定論的ゲートとして追加する（開閉・押下ストローク） |
 | 11.3 | 製造性チェック拡張 | 3Dプリント／射出成形向けのDFM（最小肉厚、抜き勾配、オーバーハング）を機械laneゲートへ追加する |
 | 11.4 | 部品込み3D統合 | KiCad 3Dモデルの選択的同梱と連携し、基板＋部品＋筐体の統合干渉チェックと組立図投影を生成する。選択的同梱にはimageサイズ増加、publish時間の増加、digestの再lock、ADR-0028のprovenance更新が伴う |
+| 11.4a | 統合3Dモデル投影（glTF＋HTMLビューア） | 基板（外形・厚さ・取付穴）＋部品（KiCad 3Dモデルが同梱済みならそのSTEP、無ければ`component_bodies`の直方体近似を`approximated`としてノードに明示）＋筐体を1つのアセンブリとして`out/<lane>/3d/assembly.glb`（glTF 2.0 binary、単一ファイル、mm→m変換、右手系Y-up、`KHR_materials_*`拡張は使わずPBR基本材質のみ）へ出力し、node名にrefdes／筐体部品名、`extras`にgraph revision・出所（`step`／`approximated`）を記録する。同一データから自己完結HTMLビューア`out/<lane>/3d/assembly.html`（three.js MITをvendor同梱し帰属表記を保持、GLBをbase64で埋め込み、外部CDNへ依存しない、レイヤ表示切替＝基板／部品／筐体、断面スライダ、干渉体の強調表示）を生成する。tessellationはbuild123dの`Mesher`と同じ許容差を明示し、頂点順・node順をID順で固定して逐次・並列で正規化hashが一致することを回帰テストで固定する。書き込み後にwriterと独立したreader（GLB header magic・chunk長・JSONのaccessor/bufferView境界・node数照合）で形式検査し、`hashes.json`へ`format_check`として記録、parse失敗はその投影を欠落としてfail-closedにする（AA-23と同じ契約）。統合3D投影はL3の人間向け視覚投影であり、Evidence・fab packageへ含めず、機械ゲート（干渉・clearance・肉厚）の合否へ作用させない。11.4のKiCad 3Dモデル同梱が未達の間は近似直方体だけで出力し、近似である旨をビューア上にも注記する。3D PDF（PRC/U3D）はAcrobat依存でブラウザ・GitHub・OSS toolchainで再読込できないため採用しない |
 | 11.5 | 筐体の干渉解決探索（C-1） | 達成。宣言された筐体寸法のbounded候補を決定論的に列挙し、候補ごとに筐体pipelineの機械gateを評価してL2 reportへ記録する。探索結果はgraphへ自動確定せず、L1 gateとEvidenceの権限を変更しない |
 
-11.1〜11.4は計画であり、11.5は達成済みである。
+11.1〜11.4aは計画であり、11.5は達成済みである。11.4aは11.4（KiCad 3Dモデル同梱）に
+依存せず、現行の`component_bodies`近似と筐体STEPだけで先行実装できる。
 
 ## マイルストーン12: 設計ナレッジQA
 
