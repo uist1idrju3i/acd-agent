@@ -20,7 +20,7 @@ from common import (
 PROTECTED = ("out", "evidence")
 GENERATED = {
     ".kicad_pcb", ".kicad_sch", ".kicad_pro", ".gbr", ".ger", ".drl", ".xln",
-    ".step", ".stp", ".3mf", ".zip",
+    ".step", ".stp", ".3mf", ".glb", ".zip",
 }
 PATH_FIELDS = {
     "path", "file_path", "paths", "old_path", "new_path", "dest", "destination",

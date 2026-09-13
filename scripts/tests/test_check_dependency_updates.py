@@ -22,6 +22,7 @@ from scripts.check_dependency_updates import (
     check_semeru_majors,
     check_submodule,
     check_tool_upstream,
+    check_vendored_assets,
     load_deferrals,
     render_markdown,
 )
@@ -672,3 +673,61 @@ def test_python_version_checks_minor_series(tmp_path: Path) -> None:
     )
     assert len(statuses) == 3
     assert all(status.outdated for status in statuses)
+
+
+def test_vendored_assets_report_npm_latest(tmp_path: Path) -> None:
+    version_file = tmp_path / "src/acd/adapters/cad/viewer_assets/three/VERSION"
+    version_file.parent.mkdir(parents=True)
+    version_file.write_text("0.186.0\n", encoding="utf-8")
+    calls: list[str] = []
+
+    def fetch(url: str) -> dict[str, object]:
+        calls.append(url)
+        return {"version": "0.186.0"}
+
+    statuses = check_vendored_assets(tmp_path, fetch_json=fetch)
+    assert calls == ["https://registry.npmjs.org/three/latest"]
+    assert statuses == [
+        DependencyStatus(
+            "vendored-asset",
+            "three",
+            "0.186.0",
+            "0.186.0",
+            "src/acd/adapters/cad/viewer_assets/three/VERSION",
+            False,
+        )
+    ]
+
+
+def test_vendored_assets_flag_outdated(tmp_path: Path) -> None:
+    version_file = tmp_path / "src/acd/adapters/cad/viewer_assets/three/VERSION"
+    version_file.parent.mkdir(parents=True)
+    version_file.write_text("0.186.0\n", encoding="utf-8")
+
+    statuses = check_vendored_assets(
+        tmp_path, fetch_json=lambda _url: {"version": "0.187.0"}
+    )
+    assert statuses[0].outdated
+    assert statuses[0].latest == "0.187.0"
+
+
+def test_vendored_assets_missing_version_file_fails_closed(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="version file is missing"):
+        check_vendored_assets(tmp_path, fetch_json=lambda _url: {"version": "0.1.0"})
+
+
+def test_markdown_renders_vendored_asset_section() -> None:
+    markdown = render_markdown(
+        [
+            DependencyStatus(
+                "vendored-asset",
+                "three",
+                "0.186.0",
+                "0.186.0",
+                "src/acd/adapters/cad/viewer_assets/three/VERSION",
+                False,
+            )
+        ]
+    )
+    assert "## vendored asset" in markdown
+    assert "| three | 0.186.0 | 0.186.0 | 最新 |" in markdown

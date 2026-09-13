@@ -12,6 +12,7 @@ from functools import partial
 from pathlib import Path
 from typing import TypeGuard
 
+from acd.adapters.cad.assembly_3d import generate_assembly_3d_projection
 from acd.adapters.cad.mechanical import (
     EnclosureArtifactReport,
     MechanicalGateReport,
@@ -21,6 +22,7 @@ from acd.adapters.cad.mechanical import (
 )
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
+from acd.core.electrical import extract_electrical_lane
 from acd.core.lane_cli import add_lane_io_arguments
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.mechanical_preflight import check_mechanical_preflight
@@ -169,6 +171,19 @@ def _run_pipeline(
     )
     if visual_crosscheck.status != "match":
         raise RuntimeError("mechanical visual cross-check did not match (fail-closed)")
+    electrical = extract_electrical_lane(graph)
+    refdes_by_component_id = {
+        component.node_id: component.refdes for component in electrical.components
+    }
+    assembly_3d = generate_assembly_3d_projection(
+        projection=projection,
+        lane=lane,
+        gate_report=gate_report,
+        target_revision=graph.revision,
+        graph_id=graph.graph_id,
+        refdes_by_component_id=refdes_by_component_id,
+        out_dir=out_dir,
+    )
     print(
         "[3/5] mechanical gates passed: "
         f"volume={gate_report.measured_volume_mm3:.3f} mm3, "
@@ -328,7 +343,19 @@ def _run_pipeline(
         "visual_crosscheck": "visual-crosscheck-mechanical.json",
         "visual_crosscheck_identity_hash": visual_crosscheck.identity_hash,
         "visual_crosscheck_canonical_hash": visual_crosscheck.canonical_hash,
+        "assembly_3d": {
+            "level": "L3",
+            "glb": "3d/assembly.glb",
+            "html": "3d/assembly.html",
+            "manifest": "3d/assembly-3d.json",
+            "glb_sha256": assembly_3d.glb_sha256,
+            "node_count": assembly_3d.node_count,
+        },
     }
+    print(
+        f"[5/5] assembly 3D projection recorded: "
+        f"{assembly_3d.glb_path} ({assembly_3d.node_count} nodes)"
+    )
     print(f"[5/5] mechanical evidence recorded: {evidence_path}")
     if timing_recorder is not None:
         timing_recorder.finish("enclosure[5/5]")
