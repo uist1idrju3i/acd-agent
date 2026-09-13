@@ -19,7 +19,8 @@ host経路はprovisional専用であり、authoritative Evidenceを生成しな�
 `out/docs/product-readme.md`、`out/docs/instruction-manual.md`、各provenance、
 flatな`out/docs/hashes.json`を書き出す。続く`manufacturing-submission`段は
 `out/manufacturing-submission.json`へ`require_authoritative=false`のhost provisional
-verdictを記録する。CIでは従来どおり`verify_manufacturing_submission.py`の
+verdictを記録し、loop recordは`record_class=L3`・`authoritative=false`とする。
+CIでは従来どおり`verify_manufacturing_submission.py`の
 authoritative recheckを別途実行し、loopのL3投影を合格根拠へ昇格させない。
 
 ## fab profile registry

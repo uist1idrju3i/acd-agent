@@ -402,7 +402,8 @@ def _run_manufacturing_submission(config: DesignLoopConfig) -> dict[str, Any]:
         return _failure(
             "manufacturing-submission",
             "manufacturing submission output path is undeclared (fail-closed)",
-            record_class="L1",
+            record_class="L3",
+            authoritative=False,
         )
     try:
         verdict = evaluate_manufacturing_submission(
@@ -420,12 +421,14 @@ def _run_manufacturing_submission(config: DesignLoopConfig) -> dict[str, Any]:
         return _failure(
             "manufacturing-submission",
             str(exc),
-            record_class="L1",
+            record_class="L3",
+            authoritative=False,
             verdict_path=str(output),
             require_authoritative=False,
         )
     fields = {
-        "record_class": "L1",
+        "record_class": "L3",
+        "authoritative": False,
         "verdict_path": str(output),
         "status": verdict.status,
         "require_authoritative": False,
