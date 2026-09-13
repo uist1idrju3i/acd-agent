@@ -64,6 +64,12 @@ that carries the input hashes, the template id, the generator script hash and
 the target revision. Documents contain no timestamp, so reruns with identical
 inputs produce byte-identical output.
 
+`run_design_loop` invokes both generators in its `projection-docs` stage after
+the visual-review manifest. The stage writes these documents and provenance
+records under `out/docs/`, together with a flat `hashes.json`. The manual CLI
+above remains available when an operator needs to regenerate the documents
+independently.
+
 Generation stops instead of reporting "no problem" when an input is missing or
 inconsistent: an invalid graph, a projection set from another revision, a
 projection whose regeneration check is not `reproduced`, a missing projection

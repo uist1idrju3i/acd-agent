@@ -80,6 +80,11 @@ allowed-tools:
    - 基板pipeline、筐体pipeline、FW pipeline（Skill CLI subprocess）
    - 視覚レビューmanifest生成（`visual-review-manifest`。人間向けPNG投影を派生し、
      エージェントが必須検査する対象を固定する。L3であり`--design-only`でも実行する）
+   - 文書投影（`projection-docs`。`out/docs/`へ製品README、取扱説明書、
+     各provenance、flatな`hashes.json`を生成する。L3であり`--design-only`でも実行する）
+   - 製造提出verdict（`manufacturing-submission`。`out/manufacturing-submission.json`へ
+     `require_authoritative=false`のhost provisional verdictを書き、CIのauthoritative
+     `verify_manufacturing_submission.py`再検査とは分離する）
    - order-total集計（quote record、scope、fab profile指定時のみ）
    - 発注可否のpre-order gate
 

@@ -225,6 +225,8 @@ def test_design_loop_stage_set_and_order_are_fixed() -> None:
         "enclosure-pipeline",
         "firmware-pipeline",
         "visual-review-manifest",
+        "projection-docs",
+        "manufacturing-submission",
         "order-readiness",
     )
     assert tuple(DEFAULT_STAGE_RUNNERS) == DESIGN_LOOP_STAGE_IDS
@@ -264,7 +266,9 @@ def test_design_loop_runs_visual_review_manifest_after_lanes(
 
     assert result["ok"] is True
     assert seen.index("visual-review-manifest") > seen.index("firmware-pipeline")
-    assert seen.index("visual-review-manifest") < seen.index("order-readiness")
+    assert seen.index("visual-review-manifest") < seen.index("projection-docs")
+    assert seen.index("projection-docs") < seen.index("manufacturing-submission")
+    assert seen.index("manufacturing-submission") < seen.index("order-readiness")
     summary = json.loads(
         Path(result["loop_summary"]).read_text(encoding="utf-8")
     )
@@ -272,6 +276,16 @@ def test_design_loop_runs_visual_review_manifest_after_lanes(
         "manifest_path": str(tmp_path / "artifacts" / "visual-review-manifest.json"),
         "required": 2,
         "status": "pending-agent-inspection",
+    }
+    assert summary["projection_docs"] == {
+        "output_path": None,
+        "documents": 0,
+        "hashes_path": None,
+        "status": "ok",
+    }
+    assert summary["manufacturing_submission"] == {
+        "verdict_path": None,
+        "status": "ok",
     }
 
 
@@ -310,6 +324,80 @@ def test_design_loop_stops_on_visual_review_manifest_failure(
     assert result["failed_stage"] == "visual-review-manifest"
     assert "order-readiness" not in seen
     assert "order-total-aggregation" not in seen
+
+
+def test_design_loop_stops_before_manufacturing_on_projection_docs_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+
+    def failing_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        seen.append("projection-docs")
+        return {
+            "stage_id": "projection-docs",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "intentional document failure",
+        }
+
+    runners["projection-docs"] = failing_projection_docs
+    _patch_runners(monkeypatch, runners)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "projection-docs"
+    assert "manufacturing-submission" not in seen
+    assert "order-readiness" not in seen
+
+
+def test_design_loop_stops_before_order_readiness_on_submission_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    seen: list[str] = []
+    runners: dict[str, Callable[[DesignLoopConfig], Any]] = {
+        stage_id: _successful_runner(stage_id, seen)
+        for stage_id in DESIGN_LOOP_STAGE_IDS
+    }
+
+    def failing_submission(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        seen.append("manufacturing-submission")
+        return {
+            "stage_id": "manufacturing-submission",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "intentional submission failure",
+            "status": "fail",
+        }
+
+    runners["manufacturing-submission"] = failing_submission
+    _patch_runners(monkeypatch, runners)
+    result = run_design_loop(
+        FIXTURE,
+        tmp_path / "artifacts",
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        jobs=1,
+    )
+
+    assert result["ok"] is False
+    assert result["failed_stage"] == "manufacturing-submission"
+    assert "order-readiness" not in seen
 
 
 def test_order_total_aggregation_runs_before_order_readiness(

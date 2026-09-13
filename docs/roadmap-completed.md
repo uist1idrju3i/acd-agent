@@ -1015,3 +1015,11 @@ V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の�
 実装状況（AA-23）: `projection-format-check.json`をL3 recordとして生成し、既存のflatな`hashes.json`を維持したまま形式検査record自体をhash manifestへ登録する。ThemeSongProjectionへ形式検査fieldは追加せず、MIDIのSMF検査はpipeline内でfail-closedに実行する。
 
 実装状況（AA-22・AA-12）: LCSC fetch scriptへ`--expect-mpn`／`--expect-package`とidentity・照合結果を追加し、宣言直後に取得recordの`Manufacturer Part`・package・Supplier Partを確認できるようにした。confirmed CPL recordの内容不一致は`evidence.cpl_rotation.mpn_mismatch`としてlane preflightの停止側へ渡し、catalog-less partsの探索はL2の宣言＋取得recordとして残す。
+
+実装状況（AA-24）: `run_design_loop`へ`projection-docs`と
+`manufacturing-submission`を追加し、`--design-only`でも3 lane後に
+`out/docs/`（README、取扱説明書、provenance、flatな`hashes.json`）と
+`out/manufacturing-submission.json`（`require_authoritative=false`のhost
+provisional verdict）を生成する。PNG rasterは既存の
+`visual-review-manifest`段で生成済みであり、文書とverdictはいずれもL3観測で
+authoritative EvidenceやL1判定を置き換えない。

@@ -15,6 +15,13 @@ agent-serverはACDの対象外であり、採用する場合は新規ADRで受�
 `LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
 host経路はprovisional専用であり、authoritative Evidenceを生成しない。
 
+`run_design_loop`の`projection-docs`段は、3 laneと視覚レビューmanifestの後に
+`out/docs/product-readme.md`、`out/docs/instruction-manual.md`、各provenance、
+flatな`out/docs/hashes.json`を書き出す。続く`manufacturing-submission`段は
+`out/manufacturing-submission.json`へ`require_authoritative=false`のhost provisional
+verdictを記録する。CIでは従来どおり`verify_manufacturing_submission.py`の
+authoritative recheckを別途実行し、loopのL3投影を合格根拠へ昇格させない。
+
 ## fab profile registry
 
 利用可能なfab profileは[`../profiles/fab-profile-registry.json`](../profiles/fab-profile-registry.json)
