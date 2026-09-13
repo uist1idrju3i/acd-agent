@@ -102,6 +102,71 @@ def test_gate_stops_on_error_violation() -> None:
         assert_rule_check_passed("ERC", result, require_connected=False)
 
 
+def test_gate_diagnostics_include_courtyard_refdes_and_hint() -> None:
+    result = _result(
+        violations=(
+            {
+                "severity": "error",
+                "type": "courtyards_overlap",
+                "description": "Courtyards overlap",
+                "pos": {"x": 4.0, "y": 5.0},
+                "items": [
+                    {"description": "Footprint J1 courtyard"},
+                    {"description": "Footprint TP1 courtyard"},
+                ],
+            },
+        )
+    )
+    with pytest.raises(GateError) as error_info:
+        assert_rule_check_passed("DRC", result, require_connected=False)
+    message = str(error_info.value)
+    assert "refdes=J1,TP1" in message
+    assert "courtyards_overlap: move or rotate" in message
+
+
+def test_gate_diagnostics_include_thermal_refdes_and_hint() -> None:
+    result = _result(
+        violations=(
+            {
+                "severity": "error",
+                "type": "starved_thermal",
+                "description": "thermal spokes are insufficient",
+                "items": [{"description": "Pad A12 [GND] of J1 on F.Cu"}],
+            },
+        )
+    )
+    with pytest.raises(GateError) as error_info:
+        assert_rule_check_passed("DRC", result, require_connected=False)
+    message = str(error_info.value)
+    assert "refdes=J1" in message
+    assert "starved_thermal: the GND pad gets fewer thermal spokes" in message
+
+
+def test_gate_diagnostics_degrade_missing_fields_to_unknown() -> None:
+    result = _result(violations=({"severity": "error", "type": "clearance"},))
+    with pytest.raises(GateError) as error_info:
+        assert_rule_check_passed("DRC", result, require_connected=False)
+    message = str(error_info.value)
+    assert "refdes=unknown" in message
+    assert "at=(unknown,unknown)" in message
+    assert "items: unknown" in message
+
+
+def test_gate_diagnostics_report_truncated_error_count() -> None:
+    result = _result(
+        violations=tuple(
+            {
+                "severity": "error",
+                "type": "clearance",
+                "description": f"clearance {index}",
+            }
+            for index in range(7)
+        )
+    )
+    with pytest.raises(GateError, match=r"\(\+2 more\)"):
+        assert_rule_check_passed("DRC", result, require_connected=False)
+
+
 def test_gate_ignores_warnings() -> None:
     result = _result(violations=({"severity": "warning", "description": "silk"},))
     assert_rule_check_passed("DRC", result, require_connected=True)

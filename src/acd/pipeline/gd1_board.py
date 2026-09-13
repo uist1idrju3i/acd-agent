@@ -1289,13 +1289,17 @@ def run_pipeline(
                     message="GND stitch-via diagnostic observation; not gate authority",
                     observation={
                         "error": str(exc),
-                        "uncovered_regions": [
-                            {
-                                "layer": layer,
-                                "bbox_mm": list(region_bbox),
-                            }
-                            for layer, region_bbox in exc.regions
-                        ],
+                        "uncovered_regions": (
+                            [detail.as_dict() for detail in exc.details]
+                            if exc.details
+                            else [
+                                {
+                                    "layer": layer,
+                                    "bbox_mm": list(region_bbox),
+                                }
+                                for layer, region_bbox in exc.regions
+                            ]
+                        ),
                     },
                 ),
                 failure=exc,

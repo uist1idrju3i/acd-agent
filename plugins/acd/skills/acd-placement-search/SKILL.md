@@ -200,6 +200,24 @@ ACD側は`acd.core.route_candidates`でprovenanceとrevision一致を検査し�
 - 代理指標は概算であり、実配線可能性や実測を代替しない。
 - この Skill の結果は ACD の設計ゲートの結果ではない。
 
+## Resolving GND islands under connectors
+
+When the board pipeline stops on an uncovered GND island, read
+`enclosing_refdes`, `nearby_tracks`, and `levers` from the stop diagnostic or
+from `gnd-stitch-vias.json`. Apply the listed levers in order:
+
+1. Move or rotate the enclosing footprints so their pads no longer fence the
+   region.
+2. Reroute the nearby nets on the other layer or away from the region.
+3. Add a GND connection inside the region with a GND pad, test point, or stitch
+   via.
+4. Lower `min_clearance_mm` only to the manufacturing profile minimum.
+
+After each adjustment, rerun only the board pipeline. `min_island_area` is a
+post-fill check only (AA-11), and via pitch alone does not merge isolated
+regions. The diagnostic is an L2 observation; it does not change gate
+thresholds, fab minimums, or evidence semantics.
+
 ## テスト
 
 ```bash
