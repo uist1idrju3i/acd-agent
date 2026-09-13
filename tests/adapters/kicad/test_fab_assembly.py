@@ -5,6 +5,7 @@ import hashlib
 import json
 from dataclasses import replace
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -17,6 +18,7 @@ from acd.adapters.kicad.fab import (
     cross_validate_bom,
     jlcpcb_bom_csv,
 )
+from acd.adapters.kicad.fab.assembly import apply_cpl_contract
 from acd.adapters.kicad.library import LibraryPinError
 from acd.adapters.kicad.overlay import apply_overlay
 from acd.core.bom import bom_csv, build_bom
@@ -195,6 +197,40 @@ def _cpl_rows() -> tuple[dict[str, str], ...]:
     )
 
 
+def test_cpl_unknown_rotation_reports_missing_attribute_names() -> None:
+    component = replace(
+        _bom_component("C1", "10k"),
+        cpl_position_basis="footprint_origin",
+        cpl_position_source_url="https://example.com/position",
+        cpl_position_evidence_at="2026-08-11T00:00:00Z",
+        cpl_position_evidence_method="test",
+        cpl_position_evidence_revision="r1",
+        cpl_position_evidence_basis="confirmed",
+        cpl_position_evidence_note="test",
+    )
+    lane = _bom_lane(component)
+    data = dict(PROFILE.data)
+    contract = dict(data["cpl_contract"])
+    contract["rotation_basis"] = "component_part_number"
+    data["cpl_contract"] = contract
+    profile = FabProfile(data)
+
+    _, report = apply_cpl_contract(
+        _cpl_rows(),
+        _cpl_board(),
+        lane,
+        profile,
+        {"C1"},
+    )
+
+    assert report["status"] == "fail"
+    unknowns = cast(dict[str, list[str]], report["unknowns"])
+    assert unknowns["cpl_rotation_basis_fab_lcsc"] == ["C1"]
+    unknown_details = cast(dict[str, dict[str, list[str]]], report["unknown_details"])
+    details = unknown_details["cpl_rotation_basis_fab_lcsc"]["C1"]
+    assert "cpl_rotation_evidence_revision" in details
+
+
 def _write_bom(path: Path, designator: str, lcsc: str = "C720477") -> None:
     path.write_text(
         "Comment,Designator,Footprint,LCSC Part #\n"
@@ -223,6 +259,7 @@ def test_jlcpcb_bom_lists_fitted_components_without_lcsc_and_remedies() -> None:
         _bom_component("SW1", "RESET"),
         _bom_component("J1", "hand soldered", assembly="not_fitted", lcsc=""),
     )
+    excinfo: pytest.ExceptionInfo[FabOutputError]
     with pytest.raises(FabOutputError) as excinfo:
         jlcpcb_bom_csv(lane)
     message = str(excinfo.value)

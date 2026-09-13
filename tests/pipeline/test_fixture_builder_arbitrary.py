@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from acd.core.parts_catalog_entry import register_parts_catalog_entry
-from acd.pipeline.fixture_builder import build_design_fixture
+from acd.pipeline.fixture_builder import FixtureBuilderError, build_design_fixture
 from acd.pipeline.gd1_fixture.graph import build_graph as build_gd1_graph
 from acd.schema import (
     DesignFixtureSpec,
@@ -234,6 +234,45 @@ def test_fixture_builder_derives_cpl_evidence_path_from_graph_id(tmp_path: Path)
     assert component["attrs"]["cpl_rotation_evidence_revision"] == (
         "custom-orientation-r1"
     )
+
+
+def test_fixture_builder_projects_cpl_evidence_without_part_request(tmp_path: Path) -> None:
+    spec = DesignFixtureSpec(
+        design_name="evidence-only-orientation",
+        components=[
+            FixtureComponentSpec(
+                refdes="SW1",
+                attrs={"cpl_rotation_evidence_basis": "confirmed"},
+                cpl_orientation_evidence=_cpl_evidence(),
+            )
+        ],
+    )
+
+    build_design_fixture(spec, tmp_path / "fixture")
+    graph = json.loads((tmp_path / "fixture" / "graph.json").read_text(encoding="utf-8"))
+    component = next(node for node in graph["nodes"] if node["id"] == "comp.sw1")
+
+    assert component["attrs"]["cpl_rotation_evidence_basis"] == "confirmed"
+    assert component["attrs"]["cpl_rotation_evidence_revision"] == "evidence-only-orientation-r1"
+
+
+def test_fixture_builder_rejects_conflicting_cpl_evidence_attr(tmp_path: Path) -> None:
+    spec = DesignFixtureSpec(
+        design_name="conflicting-orientation",
+        components=[
+            FixtureComponentSpec(
+                refdes="SW1",
+                attrs={"cpl_rotation_evidence_revision": "wrong"},
+                cpl_orientation_evidence=_cpl_evidence(),
+            )
+        ],
+    )
+
+    with pytest.raises(
+        FixtureBuilderError,
+        match="SW1: cpl_rotation_evidence_revision conflicts with cpl_orientation_evidence",
+    ):
+        build_design_fixture(spec, tmp_path / "fixture")
 
 
 def test_fixture_builder_does_not_default_missing_cpl_orientation(

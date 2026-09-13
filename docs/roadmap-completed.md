@@ -1037,3 +1037,7 @@ macro欠落、byte一致を回帰テストで固定した。旧`instruction-manu
 `acd-mml 0.1`の独立parserでtempo・voice総tick・note列を照合する。照合不一致時は
 MMLだけを省略し、`mml_check`へ理由を記録する。MMLはprovenanceと`hashes.json`へ
 登録するが、MIDI、3 laneのgate、Evidence、fab packageの判定は変更しない。
+
+実装状況（AA-13）: `part_request`無しのcomponentにもCPL orientation evidenceを
+`cpl_rotation_*`へ投影し、`<graph_id>-<revision>`のevidence revisionを付与する。
+assemblyのunknown rotation reportには欠落・不正属性名を診断として記録する。

@@ -143,6 +143,7 @@ def apply_cpl_contract(
     footprints = {fp.refdes: fp for fp in board.footprints}
     unknown_position: list[str] = []
     unknown_rotation: list[str] = []
+    unknown_rotation_details: dict[str, list[str]] = {}
     errors: list[str] = []
     resolved: list[dict[str, str]] = []
     resolved_bases: dict[str, str] = {}
@@ -217,6 +218,24 @@ def apply_cpl_contract(
                         or component.cpl_rotation_evidence_note is None
                     ):
                         unknown_rotation.append(ref)
+                        missing: list[str] = []
+                        if component.cpl_rotation_basis != "component_part_number":
+                            missing.append("cpl_rotation_basis != component_part_number")
+                        if component.cpl_rotation_source_url is None:
+                            missing.append("cpl_rotation_source_url")
+                        if component.cpl_rotation_offset_deg is None:
+                            missing.append("cpl_rotation_offset_deg")
+                        if component.cpl_rotation_evidence_at is None:
+                            missing.append("cpl_rotation_evidence_at")
+                        if component.cpl_rotation_evidence_basis != "confirmed":
+                            missing.append("cpl_rotation_evidence_basis != confirmed")
+                        if component.cpl_rotation_evidence_method is None:
+                            missing.append("cpl_rotation_evidence_method")
+                        if component.cpl_rotation_evidence_revision is None:
+                            missing.append("cpl_rotation_evidence_revision")
+                        if component.cpl_rotation_evidence_note is None:
+                            missing.append("cpl_rotation_evidence_note")
+                        unknown_rotation_details[ref] = missing
                         rotation_offsets[ref] = 0.0
                     else:
                         rotation += component.cpl_rotation_offset_deg
@@ -236,6 +255,12 @@ def apply_cpl_contract(
         "unknowns": {
             "cpl_position_basis": sorted(set(unknown_position), key=refdes_key),
             "cpl_rotation_basis_fab_lcsc": sorted(set(unknown_rotation), key=refdes_key),
+        },
+        "unknown_details": {
+            "cpl_rotation_basis_fab_lcsc": {
+                ref: unknown_rotation_details[ref]
+                for ref in sorted(unknown_rotation_details, key=refdes_key)
+            }
         },
         "position_bases": resolved_bases,
         "rotation_offsets": rotation_offsets,

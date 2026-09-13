@@ -56,7 +56,7 @@ capability registry（`contracts/firmware-capability-registry.json`）の
 | `nets[].attrs.width_basis` | `current_ipc2221`または`manufacturing_minimum` | `net.width_basis_unsupported` |
 | `board_edge_overhangs[].attrs.edge` | `top`・`bottom`・`left`・`right` | extractionが`GraphExtractionError`でfail-closed |
 | `connector_openings[].attrs.face` | `front`のみ | extractionがfail-closed（他faceは契約拡張の対象） |
-| `cpl_orientation_evidence.evidence_basis` | `estimated`または`confirmed` | schema検証でfail-closed。`confirmed`は実測record `evidence/<prefix>-cpl-orientation/<refdes>.json`が必須で、解決不能ならlane preflightで`declared_unverified`、CPLゲートではunknown（fail-closed） |
+| `cpl_orientation_evidence.evidence_basis` | `estimated`または`confirmed` | `part_request`の有無にかかわらず`cpl_rotation_*`属性へ投影し、`cpl_rotation_evidence_revision`は`<graph_id>-<revision>`を自動付与する。schema検証でfail-closed。`confirmed`は実測record `evidence/<prefix>-cpl-orientation/<refdes>.json`が必須で、解決不能ならlane preflightで`declared_unverified`、CPLゲートではunknown（fail-closed） |
 
 `connector_openings`の`center_x_mm`は開口面の水平軸に沿ったoutline原点からの
 距離であり、`center_y_mm`は基板面からの高さである。
