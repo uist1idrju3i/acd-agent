@@ -329,6 +329,11 @@ def verify_ground_plane_gerbers(
     for path in (front_path, back_path):
         raw_regions = read_regions(path)
         for region in raw_regions:
+            if region.function == "NonConductor":
+                raise FabOutputError(
+                    f"{path.name}: isolated copper island plotted as "
+                    "AperFunction 'NonConductor' (fail-closed)"
+                )
             if region.function not in {
                 "Conductor",
                 "SMDPad,CuDef",

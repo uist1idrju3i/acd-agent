@@ -47,7 +47,7 @@ def _zone_child(node: Sequence[SExpr], name: str) -> list[SExpr]:
     raise AssertionError(f"{name} node missing")
 
 
-def test_copper_zone_emits_minimum_island_area_fill_settings() -> None:
+def test_copper_zone_always_removes_isolated_islands() -> None:
     board = BoardView(
         node_id="board",
         width_mm=20.0,
@@ -67,8 +67,8 @@ def test_copper_zone_emits_minimum_island_area_fill_settings() -> None:
     zone = _copper_zone(CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.25), board, 1, 0)
     fill = _zone_child(zone, "fill")
 
-    assert ["island_removal_mode", "2"] in fill
-    assert ["island_area_min", "1.25"] in fill
+    assert ["island_removal_mode", "0"] in fill
+    assert not any(entry[0] == "island_area_min" for entry in fill)
 
 
 def test_back_silkscreen_text_is_mirrored() -> None:
