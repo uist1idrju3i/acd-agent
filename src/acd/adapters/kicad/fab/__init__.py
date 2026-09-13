@@ -25,9 +25,11 @@ from .common import (  # noqa: F401
     GerberRegionRecord,
     PadMeasurement,
     SegmentMeasurement,
+    UncoveredGroundRegion,
     UncoveredGroundRegionsError,
     UncoveredStitchViasError,
     ViaMeasurement,
+    describe_uncovered_ground_regions,
 )
 from acd.core.fab import FabProfile
 from acd.core.silkscreen import SilkscreenLane
@@ -93,6 +95,7 @@ __all__ = [
     "GerberRegionRecord",
     "PadMeasurement",
     "SegmentMeasurement",
+    "UncoveredGroundRegion",
     "UncoveredGroundRegionsError",
     "UncoveredStitchViasError",
     "ViaMeasurement",
@@ -101,6 +104,7 @@ __all__ = [
     "cross_validate_bom",
     "cross_validate_cpl",
     "derive_lcsc_rotation_offset",
+    "describe_uncovered_ground_regions",
     "deterministic_zip",
     "jlcpcb_bom_csv",
     "jlcpcb_cpl_csv",

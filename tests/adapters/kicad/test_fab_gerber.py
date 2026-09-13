@@ -14,10 +14,22 @@ from acd.adapters.kicad.fab import (
     BoardMeasurement,
     FabOutputError,
     FootprintMeasurement,
+    GerberRegionRecord,
     PadMeasurement,
+    UncoveredGroundRegionsError,
     ViaMeasurement,
+    describe_uncovered_ground_regions,
     measure_net_track_widths,
     run_dfm,
+)
+from acd.core.board_model import (
+    BoardModel,
+    ComponentPlacement,
+    FootprintShape,
+    PadShape,
+    RoutedDesign,
+    RoutedVia,
+    RoutedWire,
 )
 from acd.core.electrical import (
     BoardView,
@@ -34,6 +46,78 @@ ROOT = Path(__file__).parents[3]
 
 
 PROFILE = load_fab_profile(ROOT / "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json")
+
+
+def test_uncovered_ground_region_diagnostic_describes_enclosures_tracks_and_levers() -> None:
+    footprint = FootprintShape(
+        "Fixture:Connector",
+        pads=(
+            PadShape(
+                "1",
+                0.0,
+                0.0,
+                0.0,
+                "rect",
+                1.0,
+                1.0,
+                True,
+                0.4,
+                True,
+                True,
+            ),
+        ),
+        courtyard_bbox_mm=(-1.0, -1.0, 1.0, 1.0),
+    )
+    model = BoardModel(
+        30.0,
+        20.0,
+        2,
+        0.2,
+        0.15,
+        0.3,
+        0.6,
+        0.3,
+        (
+            ComponentPlacement("J1", footprint, 5.0, 5.0, 0.0),
+            ComponentPlacement("TP1", footprint, 20.0, 15.0, 0.0),
+        ),
+        (),
+    )
+    region = GerberRegionRecord(
+        "Conductor",
+        ((4.0, 4.0), (6.0, 4.0), (6.0, 6.0), (4.0, 6.0)),
+        2.5,
+        (4.0, 4.0, 6.0, 6.0),
+    )
+    routes = RoutedDesign(
+        (
+            RoutedWire("SDA", "F.Cu", 0.2, ((3.0, 5.0), (7.0, 5.0))),
+            RoutedWire("SCL", "B.Cu", 0.2, ((3.0, 5.0), (7.0, 5.0))),
+        ),
+        (RoutedVia("GND", 6.0, 6.0),),
+    )
+    details = describe_uncovered_ground_regions(
+        model,
+        routes,
+        (("F.Cu", region),),
+        layer_of_region=lambda source: str(source),
+    )
+
+    assert len(details) == 1
+    detail = details[0]
+    assert detail.enclosing_refdes == ("J1",)
+    assert detail.nearby_tracks == ("SDA@F.Cu w=0.2", "via:GND")
+    assert detail.levers[0].startswith("move or rotate J1")
+    assert detail.levers[1].startswith("reroute GND,SDA")
+    assert detail.levers[2].startswith("add a GND connection")
+    assert detail.levers[3].startswith("lower board min_clearance_mm")
+    assert json.loads(json.dumps(detail.as_dict()))["bbox_mm"] == [4.0, 4.0, 6.0, 6.0]
+
+    regions = (("F.Cu", region.bbox_mm),)
+    error = UncoveredGroundRegionsError(regions, details=details)
+    assert error.regions == regions
+    assert "enclosing_refdes=J1" in str(error)
+    assert "levers:" in str(error)
 
 
 def _bom_lane(*components: ComponentView) -> ElectricalLane:

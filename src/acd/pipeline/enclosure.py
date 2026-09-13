@@ -28,12 +28,22 @@ from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.mechanical_preflight import check_mechanical_preflight
 from acd.core.naming import evidence_id, subject_node_id
 from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
+from acd.core.projection_format_check import ProjectionKind, check_projection
 from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
 from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projections
+from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
+
+_ENCLOSURE_KINDS: dict[str, ProjectionKind] = {
+    ".step": "step",
+    ".stp": "step",
+    ".3mf": "threemf",
+    ".stl": "stl",
+    ".json": "json",
+}
 
 
 def _stage_mechanical_gates(
@@ -199,6 +209,29 @@ def _run_pipeline(
     artifact_manifest = json.loads(
         projection.artifact_manifest_path.read_text(encoding="utf-8")
     )
+    projection_checks: dict[str, dict[str, object]] = {}
+    for item in artifact_manifest["artifacts"]:
+        artifact_path = out_dir / str(item["path"])
+        suffix = artifact_path.suffix.lower()
+        if suffix == ".glb":
+            continue
+        kind: ProjectionKind = _ENCLOSURE_KINDS.get(suffix, "text")
+        projection_checks[str(artifact_path.relative_to(out_dir))] = check_projection(
+            artifact_path, kind
+        )
+    projection_format_path = out_dir / "projection-format-check.json"
+    projection_format_record: dict[str, object] = {
+        "schema_version": "0.1",
+        "record_class": "L3",
+        "pass_evidence": False,
+        "target_revision": graph.revision,
+        "checks": {key: projection_checks[key] for key in sorted(projection_checks)},
+    }
+    projection_format_record["content_sha256"] = canonical_json_sha256(projection_format_record)
+    projection_format_path.write_text(
+        json.dumps(projection_format_record, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     artifact_hashes = {
         str(item["role"]): str(item["normalized_sha256"])
         for item in artifact_manifest["artifacts"]
@@ -315,6 +348,7 @@ def _run_pipeline(
         "model_path": str(projection.model_path),
         "mesh_stl_path": str(projection.mesh_stl_path),
         "artifact_manifest_path": str(projection.artifact_manifest_path),
+        "projection_format_check": str(projection_format_path),
         "artifacts": artifact_manifest["artifacts"],
         "normalized_output_hash": projection.envelope.output_hash,
         "evidence": str(evidence_path),

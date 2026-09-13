@@ -629,7 +629,8 @@ uv run python scripts/register_part_catalog_entry.py \
 ```
 
 entryには`part_number`、`kind`、`value`、`package`と、symbol／footprintの名前、
-file、source、source_ref、`sha256:<64 hex>`を必須で宣言する。CLIは両fileを実際に
+file、source、source_ref、`sha256:<64 hex>`を必須で宣言する（`--pin-hashes`使用時は
+`*_sha256`を省略できる）。CLIは両fileを実際に
 読み、宣言SHA-256と一致しない場合やfileが存在しない場合は非ゼロ終了でfail-closedに
 する。既存`part_number`または同じ選択key（`kind`＋`value`＋`package`）との衝突は、
 `select_part`の曖昧な結果を増やすため拒否する。既存entryのテキスト表現は保持し、
@@ -1624,6 +1625,12 @@ Gerber等と同様に`out/<board>/theme-song/theme-song.mid`と`theme-song-proje
 `proposal_input`、Skill script sha256付き）を投影成果物として出力し、`hashes.json`へ登録する。
 MIDIはbinaryのためraw sha256で記録する。Skill不在、非零終了、提案の不合格、2回の不一致、
 provenance不整合はpipelineをfail-closedで停止する。
+
+生成した投影はwriterと独立したreaderで形式検査し、L3の
+`projection-format-check.json`（`pass_evidence=false`）へchecker名・版・要約値を記録する。
+検査結果は`hashes.json`をflatに保つため個別entryへ埋め込まず、形式検査record自体を
+hash manifestへ登録する。parse失敗はEvidence生成前にfail-closedで停止し、検査成功は
+Evidenceやゲート判定へ昇格しない。
 
 ```bash
 # 決定論的な下書きを提案契約で出力し、agentが編集する

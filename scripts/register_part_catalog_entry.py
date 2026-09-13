@@ -1,4 +1,11 @@
-"""Validate and register one parts-catalog entry declaration."""
+"""Validate and register one parts-catalog entry declaration.
+
+Entry JSON may omit ``*_sha256`` when ``--pin-hashes`` is used. Container-absolute
+library paths require running via ``scripts/run_in_workspace.py`` with the
+repository mounted so catalog writes land in the checkout. Commit the resulting
+``contracts/parts-catalog.json`` change and send it through a pull request;
+``--allow-dirty`` never covers ``contracts/`` (AA-5).
+"""
 
 from __future__ import annotations
 
@@ -30,6 +37,17 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Validate without writing the catalog.",
     )
+    parser.add_argument(
+        "--pin-hashes",
+        action="store_true",
+        help="Compute missing or placeholder library digests from the files.",
+    )
+    parser.add_argument(
+        "--pinned-entry-out",
+        type=Path,
+        default=None,
+        help="Write the validated entry with computed digests to this path.",
+    )
     return parser
 
 
@@ -40,7 +58,19 @@ def main(argv: list[str] | None = None) -> int:
             args.entry,
             args.catalog,
             dry_run=args.dry_run,
+            pin_hashes=args.pin_hashes,
         )
+        if args.pinned_entry_out is not None:
+            args.pinned_entry_out.write_text(
+                json.dumps(
+                    result.entry.model_dump(mode="json"),
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
         print(
             json.dumps(
                 {"ok": True, **result.model_dump()},

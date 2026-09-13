@@ -450,12 +450,12 @@ Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、router�
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `scripts/run_in_workspace.py`（`--allow-dirty`の範囲）、`src/acd/pipeline/design_loop.py`・`lane_preflight.py`（catalog／registry hash照合、functional block・pin role診断）、`src/acd/core/part_selection.py`（message）、`src/acd/core/evidence_declarations.py`（他fixture転記のL3警告）、`scripts/report_final_basis.py`とstop policy（bootstrap record不在・変更fileの変更action引用）、`plugins/acd/commands/vibebb-loop.md`、`plugins/acd/hooks/scripts/session_start.py`（registry探索）、`fixtures/mini-blink-dongle/spec.json`（AA-1）、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節、[`examples/dual-beacon-tag-vps-20260908/`](../examples/dual-beacon-tag-vps-20260908/)、`src/acd/pipeline/gd1_board.py`・`src/acd/adapters/kicad/`（CPL／DFM／島・DRC診断文）、`plugins/acd/skills/acd-contracts/`・`acd-placement-search/`・`acd-silkscreen-placement/`（Skill手順）、`scripts/fetch_lcsc_footprint_orientation.py`（record取得）、`src/acd/pipeline/gd1_board.py`の`hashes.json`生成と`src/acd/pipeline/theme_song.py`（投影形式検査）、`src/acd/pipeline/design_loop.py`・`scripts/run_design_loop.py`（文書lane・製造提出verdict・PNG rasterの投影段組み込み）、`plugins/acd/skills/acd-product-docs/scripts/`（`generate_instruction_manual.py`の必須macro集合）、`src/acd/pipeline/visual_projection.py`（`derive_png_visual_projections`）、`plugins/acd/skills/acd-theme-song/scripts/theme_song.py`（`Score`→MML render） |
-| 実装 | AA-1、AA-3〜AA-8、AA-15〜AA-18、AA-20を達成（12件）。未了: AA-2、AA-9〜AA-14、AA-19、AA-21〜AA-33（21件）。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする |
+| 実装 | AA-1、AA-3〜AA-8、AA-15〜AA-21、AA-23を達成（15件）。未了: AA-2、AA-9〜AA-14、AA-22、AA-24〜AA-33（18件）。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする |
 | 正常系 | 自然文のみから生成した新規設計が停止境界に達したとき、agentが契約変更を会話内の未commit編集で通せず、bootstrap recordのあるworkspaceで`run_in_workspace.py`と宣言経路だけで次手を取れる。到達段がpristine mainの契約だけで再現でき、`loop-summary`とprovenanceから第三者に読み取れる |
 | negative・fail-closed | `src/`・`contracts/`がdirtyなcheckout、契約hash不一致のgraph、bootstrap record不在、未実測evidence宣言、要件を落とした宣言はいずれもfail-closedのままである。診断・警告・照合はL2／L3であり合格側権限を持たない。投影の形式検査はchunk長や終端を故意に壊した投影を欠落として止め、検査OKをEvidenceへ昇格しない。文書lane・製造提出verdict・PNG rasterの組み込みはL3投影の追加であり、その失敗はloop-summaryへ欠落として記録するがEvidenceや3 laneの判定を変えず、成功を合格側へ作用させない |
 | 再現性 | 対照run（pristine main・同digest）をagent最終specからの再生成（`--fixture-spec --fixture-overwrite`）で再実行し、到達段・失敗理由がGUI経路と一致することを記録する |
 
-実装状況: AA-1、AA-3〜AA-8、AA-15〜AA-18、AA-20は達成済みで、その他のAA項目は未了である。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+実装状況: AA-1、AA-3〜AA-8、AA-15〜AA-21、AA-23は達成済みで、その他のAA項目は未了である。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
 
 ### 14.25 routed board上のsilkscreen再解決
 

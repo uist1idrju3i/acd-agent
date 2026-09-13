@@ -569,6 +569,7 @@ def verify_ground_plane_gerbers(
             for second in other_layer:
                 union(first, second)
     uncovered_regions: list[tuple[str, tuple[float, float, float, float]]] = []
+    uncovered_region_records: list[tuple[Path, GerberRegionRecord]] = []
     for _index, (path, region) in enumerate(conductor_records):
         layer = "F.Cu" if path == front_path else "B.Cu"
         if not any(
@@ -576,8 +577,15 @@ def verify_ground_plane_gerbers(
             for point_layer, x, y in connection_points
         ):
             uncovered_regions.append((layer, region.bbox_mm))
+            uncovered_region_records.append((path, region))
     if uncovered_regions:
-        raise UncoveredGroundRegionsError(tuple(uncovered_regions))
+        details = describe_uncovered_ground_regions(
+            model,
+            routes,
+            tuple(uncovered_region_records),
+            layer_of_region=lambda path: "F.Cu" if path == front_path else "B.Cu",
+        )
+        raise UncoveredGroundRegionsError(tuple(uncovered_regions), details=details)
     components = len({find(index) for index in range(len(conductor_records))})
     if components != 1:
         raise FabOutputError(
