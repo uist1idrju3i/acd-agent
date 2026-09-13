@@ -28,7 +28,7 @@ from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.mechanical_preflight import check_mechanical_preflight
 from acd.core.naming import evidence_id, subject_node_id
 from acd.core.parallel import DEFAULT_CAD_STAGE_WORKERS, PipelineStageRunner
-from acd.core.projection_format_check import check_projection
+from acd.core.projection_format_check import ProjectionKind, check_projection
 from acd.core.runtime_records import TimingRecorder, write_timing_record
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.rationale import validate_and_project_rationale
@@ -36,6 +36,14 @@ from acd.pipeline.visual_projection import crosscheck_mechanical_visual_projecti
 from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence, EvidenceClaim
+
+_ENCLOSURE_KINDS: dict[str, ProjectionKind] = {
+    ".step": "step",
+    ".stp": "step",
+    ".3mf": "threemf",
+    ".stl": "stl",
+    ".json": "json",
+}
 
 
 def _stage_mechanical_gates(
@@ -207,15 +215,9 @@ def _run_pipeline(
         suffix = artifact_path.suffix.lower()
         if suffix == ".glb":
             continue
-        kind = {
-            ".step": "step",
-            ".stp": "step",
-            ".3mf": "threemf",
-            ".stl": "stl",
-            ".json": "json",
-        }.get(suffix, "text")
+        kind: ProjectionKind = _ENCLOSURE_KINDS.get(suffix, "text")
         projection_checks[str(artifact_path.relative_to(out_dir))] = check_projection(
-            artifact_path, kind  # type: ignore[arg-type]
+            artifact_path, kind
         )
     projection_format_path = out_dir / "projection-format-check.json"
     projection_format_record: dict[str, object] = {

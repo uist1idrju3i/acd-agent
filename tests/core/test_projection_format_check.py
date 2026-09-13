@@ -10,6 +10,7 @@ import pytest
 
 from acd.core.projection_format_check import (
     ProjectionFormatError,
+    ProjectionKind,
     check_projection,
     check_projections,
 )
@@ -97,6 +98,15 @@ def test_check_projection_accepts_each_kind(tmp_path: Path) -> None:
     assert check_projection(tmp_path / "song.mid", "smf")["note_on_count"] == 1
 
 
+def test_dsn_string_quote_token_does_not_open_a_quoted_string(tmp_path: Path) -> None:
+    path = _write(
+        tmp_path / "quoted.dsn",
+        '(pcb (parser (string_quote ") (host version)))\n',
+    )
+    record = check_projection(path, "dsn")
+    assert record["root"] == "pcb"
+
+
 def test_binary_stl_and_csv_summary(tmp_path: Path) -> None:
     triangle = bytes(50)
     stl = b" " * 80 + struct.pack("<I", 1) + triangle
@@ -181,3 +191,36 @@ def test_check_projections_returns_sorted_records_and_fails_closed(tmp_path: Pat
             [(first, "json"), (broken, "json"), (second, "json")],
             root=tmp_path,
         )
+
+
+def _committed_projection_corpus() -> list[
+    tuple[Path | None, ProjectionKind | None]
+]:
+    repository = Path(__file__).resolve().parents[2]
+    board = repository / "examples" / "golden-design-1-vps-20260906" / "board"
+    if not board.is_dir():
+        return [(None, None)]
+    items: list[tuple[Path | None, ProjectionKind | None]] = []
+    items.extend((path, "dsn") for path in sorted(board.rglob("*.dsn")))
+    items.extend(
+        (path, "gerber")
+        for path in sorted(board.glob("gerbers/*"))
+        if path.suffix.lower()
+        in {".gtl", ".gbl", ".gts", ".gbs", ".gto", ".gbo", ".gm1", ".gbr"}
+    )
+    items.extend((path, "excellon") for path in sorted(board.glob("gerbers/*.drl")))
+    items.extend((path, "gbrjob") for path in sorted(board.rglob("*.gbrjob")))
+    items.extend((path, "kicad_sexpr") for path in sorted(board.rglob("*.kicad_pcb")))
+    items.extend(
+        (path, "smf") for path in sorted((repository / "examples").rglob("*.mid"))
+    )
+    return items or [(None, None)]
+
+
+@pytest.mark.parametrize(("path", "kind"), _committed_projection_corpus())
+def test_committed_projection_corpus(
+    path: Path | None, kind: ProjectionKind | None
+) -> None:
+    if path is None or kind is None:
+        pytest.skip("committed projection corpus is absent")
+    check_projection(path, kind)

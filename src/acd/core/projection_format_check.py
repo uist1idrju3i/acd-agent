@@ -50,13 +50,15 @@ def _text(path: Path, data: bytes) -> str:
         raise ProjectionFormatError(path, f"UTF-8 decode failed: {exc}") from exc
 
 
-def _balanced_parentheses(path: Path, value: str) -> int:
+def _balanced_parentheses(
+    path: Path, value: str, *, track_quotes: bool = True
+) -> int:
     depth = 0
     maximum = 0
     quoted = False
     escaped = False
     for character in value:
-        if quoted:
+        if track_quotes and quoted:
             if escaped:
                 escaped = False
             elif character == "\\":
@@ -64,7 +66,7 @@ def _balanced_parentheses(path: Path, value: str) -> int:
             elif character == '"':
                 quoted = False
             continue
-        if character == '"':
+        if track_quotes and character == '"':
             quoted = True
         elif character == "(":
             depth += 1
@@ -73,7 +75,7 @@ def _balanced_parentheses(path: Path, value: str) -> int:
             depth -= 1
             if depth < 0:
                 raise ProjectionFormatError(path, "parentheses close before they open")
-    if quoted:
+    if track_quotes and quoted:
         raise ProjectionFormatError(path, "unterminated quoted string")
     if depth:
         raise ProjectionFormatError(path, "parentheses are not balanced")
@@ -100,7 +102,7 @@ def _check_dsn(path: Path, data: bytes) -> dict[str, object]:
     value = _text(path, data).lstrip()
     if not value.startswith("(pcb"):
         raise ProjectionFormatError(path, "DSN root does not start with (pcb")
-    _balanced_parentheses(path, value)
+    _balanced_parentheses(path, value, track_quotes=False)
     return {"root": "pcb"}
 
 
