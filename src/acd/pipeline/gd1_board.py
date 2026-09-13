@@ -109,6 +109,7 @@ from acd.core.functional_blocks import (
     load_functional_block_registry,
 )
 from acd.core.lane_cli import add_lane_io_arguments
+from acd.core.mechanical import placement_annotations
 from acd.core.naming import artifact_prefix, evidence_id, output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
@@ -1937,6 +1938,7 @@ def run_pipeline(
                     source_revision=revision,
                     board=project.board_projection.model,
                     board_view=lane.board,
+                    annotations=placement_annotations(graph),
                     authoritative_inputs=(fixture_dir / "graph.json",),
                     input_base_dir=repository_root(),
                 ),
