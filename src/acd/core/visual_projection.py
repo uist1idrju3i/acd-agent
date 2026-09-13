@@ -27,6 +27,11 @@ _TITLE_CONTENT = (
 )
 _TITLE_PATTERN = re.compile(r"<title>" + _TITLE_CONTENT + r"</title>")
 _SVG_ROOT_PATTERN = re.compile(r"<svg\b(?P<attributes>[^>]*)>", re.DOTALL)
+_SVG_CLOSE_PATTERN = re.compile(r"</svg\s*>")
+_SVG_PREFIX_PATTERN = re.compile(
+    r"(?:\s|<!--.*?-->|<\?xml\b.*?\?>|<!DOCTYPE\b.*?>)*",
+    re.DOTALL,
+)
 _ATTRIBUTE_PATTERN = re.compile(
     r'(?P<name>width|height|viewBox)\s*=\s*"(?P<value>[^"]*)"'
 )
@@ -88,9 +93,33 @@ def measure_svg_resolution(svg: bytes) -> MeasuredSvgResolution:
     except UnicodeDecodeError as exc:
         raise SvgResolutionError("SVG must be UTF-8") from exc
     roots = list(_SVG_ROOT_PATTERN.finditer(text))
-    if not roots:
+    closes = list(_SVG_CLOSE_PATTERN.finditer(text))
+    if not roots or not closes or not _SVG_PREFIX_PATTERN.fullmatch(text[: roots[0].start()]):
         raise SvgResolutionError("SVG must contain exactly one root element")
     root = roots[0]
+    depth = 0
+    matching_close: re.Match[str] | None = None
+    events = sorted(
+        [(match.start(), True, match) for match in roots]
+        + [(match.start(), False, match) for match in closes],
+        key=lambda event: event[0],
+    )
+    for _position, is_open, match in events:
+        if is_open:
+            if depth == 0 and match is not roots[0]:
+                raise SvgResolutionError("SVG must contain exactly one root element")
+            if not match.group(0).rstrip().endswith("/>"):
+                depth += 1
+        else:
+            depth -= 1
+            if depth < 0:
+                raise SvgResolutionError("SVG must contain exactly one root element")
+            if depth == 0:
+                if matching_close is not None:
+                    raise SvgResolutionError("SVG must contain exactly one root element")
+                matching_close = match
+    if depth != 0 or matching_close is not closes[-1]:
+        raise SvgResolutionError("SVG must contain exactly one root element")
     attributes = {
         match.group("name"): match.group("value")
         for match in _ATTRIBUTE_PATTERN.finditer(root.group("attributes"))

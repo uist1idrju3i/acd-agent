@@ -142,6 +142,19 @@ def test_resolution_rejects_unmeasurable_values(svg: bytes) -> None:
         measure_svg_resolution(svg)
 
 
+def test_resolution_rejects_sibling_svg_roots() -> None:
+    with pytest.raises(SvgResolutionError):
+        measure_svg_resolution(
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"></svg>'
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"></svg>'
+        )
+    with pytest.raises(SvgResolutionError):
+        measure_svg_resolution(
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"></svg>'
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"/>'
+        )
+
+
 def test_svg_source_hash_applies_the_kicad_title_rule() -> None:
     first = _svg()
     second = _svg("SVG Image created as second.svg date 2026-08-19T03:46:01 ")

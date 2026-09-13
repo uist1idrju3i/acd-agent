@@ -768,7 +768,6 @@ def _expected_view_dimensions(lane: MechanicalLane) -> tuple[float, float]:
 
 
 def _validate_view_dimensions(
-    record: VisualProjectionRecord,
     lane: MechanicalLane,
     *,
     svg: bytes,
@@ -953,7 +952,7 @@ class MechanicalVisualRenderer:
                 measured_min_clearance_mm=None,
             ),
         )
-        _validate_view_dimensions(record, lane, svg=output_path.read_bytes())
+        _validate_view_dimensions(lane, svg=output_path.read_bytes())
         return record
 
     def render_interference(
@@ -1040,7 +1039,7 @@ class MechanicalVisualRenderer:
                 measured_min_clearance_mm=gate_report.measured_min_clearance_mm,
             ),
         )
-        _validate_view_dimensions(record, lane, svg=output_path.read_bytes())
+        _validate_view_dimensions(lane, svg=output_path.read_bytes())
         return record
 
 

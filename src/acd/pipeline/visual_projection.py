@@ -625,11 +625,12 @@ def _svg_outer_annotation_ids(svg: bytes) -> tuple[str, ...]:
     if len(cad_views) != 1:
         raise ValueError("visual crosscheck SVG scope is invalid: cad-view")
     cad_view = cad_views[0]
+    cad_view_element_ids = {id(element) for element in cad_view.iter()}
     ids: set[str] = {"cad-view"}
     for element in root.iter():
         if element is cad_view:
             continue
-        if any(element is descendant for descendant in cad_view.iter()):
+        if id(element) in cad_view_element_ids:
             continue
         element_id = element.attrib.get("id")
         if element_id is not None:
