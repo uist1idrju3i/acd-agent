@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@835e93bd2dc2e85b82a7fd48edd77d34b5668b38",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@61c641f36662f138d1b030af0a249e4d48420d3d",
 # ]
 # ///
 """Generate the deterministic product description README for a design graph.
@@ -379,7 +379,7 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
     link = os.path.relpath(theme.midi_path.resolve(), out_dir.resolve()).replace(
         os.sep, "/"
     )
-    return [
+    lines = [
         "## テーマソング（L3投影）",
         "",
         "| 項目 | 値 |",
@@ -394,11 +394,28 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
         f"- artifact: [{theme.midi_path.name}]({link})",
         f"- artifact hash: `{theme.midi_hash}`",
         f"- regeneration check: `{theme.regeneration_status}`",
-        "",
-        "テーマソングはL3投影であり、`pass_evidence=false`を持ち、"
-        "設計の判定に影響しない。",
-        "",
     ]
+    if theme.mml_path is not None and theme.mml_hash is not None:
+        mml_link = os.path.relpath(theme.mml_path.resolve(), out_dir.resolve()).replace(
+            os.sep, "/"
+        )
+        lines.extend(
+            [
+                f"- artifact: [{theme.mml_path.name}]({mml_link})",
+                f"- artifact hash: `{theme.mml_hash}`",
+            ]
+        )
+    else:
+        lines.append(f"- MML: 省略（{theme.mml_reason or '理由不明'}）")
+    lines.extend(
+        [
+            "",
+            "テーマソングはL3投影であり、`pass_evidence=false`を持ち、"
+            "設計の判定に影響しない。",
+            "",
+        ]
+    )
+    return lines
 
 
 def _attribution_section(lane: ElectricalLane) -> list[str]:

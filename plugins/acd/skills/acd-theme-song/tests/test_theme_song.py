@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import struct
 import subprocess
 import sys
@@ -67,6 +68,11 @@ def test_same_graph_and_salt_is_byte_identical(tmp_path: Path) -> None:
     first = _compose(tmp_path, _graph(), name="a.json")
     second = _compose(tmp_path, _graph(), name="b.json")
     assert theme_song.render_midi(first) == theme_song.render_midi(second)
+    assert theme_song.render_mml(first) == theme_song.render_mml(second)
+    theme_song.check_mml_round_trip(first, theme_song.render_mml(first))
+    assert len(theme_song.parse_mml(theme_song.render_mml(first)).notes) == (
+        first.note_count + len(first.drums)
+    )
 
 
 def test_salt_or_graph_change_alters_the_song(tmp_path: Path) -> None:
@@ -254,8 +260,11 @@ def test_compose_cli_writes_artifacts_and_provenance(tmp_path: Path) -> None:
     assert provenance["license"] == "BSD-3-Clause"
     assert [entry["path"] for entry in provenance["inputs"]] == [GOLDEN_GRAPH.resolve().as_posix()]
     midi = (out_dir / "theme-song.mid").read_bytes()
-    assert list(provenance["artifacts"]) == ["midi"]
+    assert list(provenance["artifacts"]) == ["midi", "mml"]
     assert provenance["artifacts"]["midi"]["content_hash"] == theme_song.sha256_bytes(midi)
+    mml = (out_dir / "theme-song.mml").read_bytes()
+    assert provenance["artifacts"]["mml"]["content_hash"] == theme_song.sha256_bytes(mml)
+    assert provenance["composition"]["mml_check"]["status"] == "matched"
     assert provenance["generator"]["content_hash"] == theme_song.sha256_bytes(
         (SCRIPTS / "compose_theme_song.py").read_bytes()
     )
@@ -312,3 +321,97 @@ def test_compose_theme_song_function_rejects_bad_bars(tmp_path: Path) -> None:
         compose_theme_song.compose_theme_song(
             _write_graph(tmp_path, _graph()), tmp_path / "out", salt="", bars=5, base_dir=tmp_path
         )
+
+
+def test_mml_parser_rejects_invalid_tokens_and_voice_context() -> None:
+    with pytest.raises(theme_song.ThemeSongError, match="unknown"):
+        theme_song.parse_mml(
+            "; acd-mml 0.1\n; voice A: track \"Lead\" channel 0 program 1\n"
+            "A t120 @1 v100 o4 l16 h16 ; bar 0\n"
+        )
+    with pytest.raises(theme_song.ThemeSongError, match="same pitch"):
+        theme_song.parse_mml(
+            "; acd-mml 0.1\n; voice A: track \"Lead\" channel 0 program 1\n"
+            "A t120 @1 v100 o4 l16 c16&d16 ; bar 0\n"
+        )
+    with pytest.raises(theme_song.ThemeSongError, match="preceding"):
+        theme_song.parse_mml("A t120 v100 o4 l16 r16 ; bar 0\n")
+
+
+def test_mml_round_trip_rejects_deleted_and_changed_notes(tmp_path: Path) -> None:
+    score = _compose(tmp_path, _graph(), name="mml.json")
+    rendered = theme_song.render_mml(score)
+    mutated_lines = rendered.splitlines()
+    note_line_index = next(
+        index
+        for index, line in enumerate(mutated_lines)
+        if any(re.fullmatch(r"[a-g]\+?\d+", token) for token in line.split())
+    )
+    note_line = mutated_lines[note_line_index]
+    note_token = next(
+        token for token in note_line.split() if re.fullmatch(r"[a-g]\+?\d+", token)
+    )
+    note_length = re.search(r"\d+$", note_token)
+    assert note_length is not None
+    mutated_lines[note_line_index] = note_line.replace(
+        note_token, f"r{note_length.group()}", 1
+    )
+    mutated = "\n".join(mutated_lines) + "\n"
+    with pytest.raises(theme_song.ThemeSongError):
+        theme_song.check_mml_round_trip(score, mutated)
+    changed = rendered.replace(note_token, "d", 1)
+    with pytest.raises(theme_song.ThemeSongError):
+        theme_song.check_mml_round_trip(score, changed)
+
+
+def test_mml_round_trip_handles_polyphony_boundaries_and_length_six(tmp_path: Path) -> None:
+    summary = theme_song.load_graph_summary(_write_graph(tmp_path, _graph(), "poly.json"))
+    score = theme_song.Score(
+        graph_id=summary.graph_id,
+        revision=summary.revision,
+        seed=theme_song.sha256_bytes(b"poly"),
+        bpm=120,
+        bars=4,
+        key_name="c major",
+        title="Poly",
+        tracks=[
+            theme_song.Track(
+                name="Chord",
+                channel=0,
+                program=80,
+                notes=[
+                    theme_song.NoteEvent(0, 6, 60, 90),
+                    theme_song.NoteEvent(0, 2, 64, 100),
+                    theme_song.NoteEvent(15, 2, 67, 90),
+                ],
+            )
+        ],
+    )
+    rendered = theme_song.render_checked_mml(score)
+    assert "c4&c8" in rendered
+    theme_song.check_mml_round_trip(score, rendered)
+
+
+def test_compose_omits_mml_when_check_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(_: theme_song.Score) -> str:
+        raise theme_song.ThemeSongError("intentional MML mismatch")
+
+    monkeypatch.setattr(compose_theme_song, "render_checked_mml", fail)
+    out_dir = tmp_path / "omitted"
+    compose_theme_song.compose_theme_song(
+        GOLDEN_GRAPH,
+        out_dir,
+        salt="",
+        bars=16,
+        base_dir=tmp_path,
+    )
+    assert not (out_dir / "theme-song.mml").exists()
+    provenance = json.loads((out_dir / "theme-song.provenance.json").read_text(encoding="utf-8"))
+    assert list(provenance["artifacts"]) == ["midi"]
+    assert provenance["composition"]["mml_check"] == {
+        "status": "omitted",
+        "dialect": "acd-mml 0.1",
+        "reason": "intentional MML mismatch",
+    }

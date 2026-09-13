@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@835e93bd2dc2e85b82a7fd48edd77d34b5668b38",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@61c641f36662f138d1b030af0a249e4d48420d3d",
 # ]
 # ///
 """Shared fail-closed inputs and provenance for generated product documents.
@@ -140,6 +140,9 @@ class ThemeSongFigure:
     source: str
     midi_path: Path
     midi_hash: str
+    mml_path: Path | None
+    mml_hash: str | None
+    mml_reason: str | None
     regeneration_status: str
     pass_evidence: bool
 
@@ -172,12 +175,17 @@ def load_theme_song(
             f"theme-song projection {path} was not reproduced "
             f"(status={projection.regeneration_check.status!r})"
         )
-    if len(projection.artifacts) != 1:
+    midi_artifacts = [
+        artifact for artifact in projection.artifacts if artifact.media_type == "audio/midi"
+    ]
+    mml_artifacts = [
+        artifact for artifact in projection.artifacts if artifact.media_type == "text/x-mml"
+    ]
+    if len(midi_artifacts) != 1 or len(mml_artifacts) > 1:
         raise DocumentGenerationError(
-            f"theme-song projection {path} declares "
-            f"{len(projection.artifacts)} artifacts; exactly one MIDI is required"
+            "theme-song projection must declare one MIDI and at most one MML"
         )
-    artifact = projection.artifacts[0]
+    artifact = midi_artifacts[0]
     midi_path = (path.parent / artifact.path).resolve()
     if not midi_path.is_file():
         raise DocumentGenerationError(
@@ -189,6 +197,19 @@ def load_theme_song(
             f"theme-song artifact {midi_path} hash mismatch "
             f"(declared={artifact.content_hash!r}, actual={midi_hash!r})"
         )
+    mml_path: Path | None = None
+    mml_hash: str | None = None
+    if mml_artifacts:
+        mml_artifact = mml_artifacts[0]
+        mml_path = (path.parent / mml_artifact.path).resolve()
+        if not mml_path.is_file():
+            raise DocumentGenerationError(f"theme-song artifact {mml_path} is missing")
+        mml_hash = sha256_file(mml_path)
+        if mml_hash != mml_artifact.content_hash:
+            raise DocumentGenerationError(
+                f"theme-song artifact {mml_path} hash mismatch "
+                f"(declared={mml_artifact.content_hash!r}, actual={mml_hash!r})"
+            )
     figure = ThemeSongFigure(
         title=projection.title,
         key=projection.key,
@@ -198,6 +219,9 @@ def load_theme_song(
         source=projection.source,
         midi_path=midi_path,
         midi_hash=artifact.content_hash,
+        mml_path=mml_path,
+        mml_hash=mml_hash,
+        mml_reason=projection.mml_check.reason,
         regeneration_status=projection.regeneration_check.status,
         pass_evidence=projection.pass_evidence,
     )

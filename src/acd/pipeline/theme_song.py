@@ -1,8 +1,8 @@
 """Run the theme-song Skill as a subprocess and record its projection.
 
 The Skill CLI composes the song; this module owns the subprocess invocation,
-the regeneration check (two independent runs must produce identical MIDI
-bytes), the provenance cross-check and the deterministic
+the regeneration check (two independent runs must produce identical MIDI and
+optional MML bytes), the provenance cross-check and the deterministic
 ``theme-song-projection.json`` write. When the design directory carries an
 adopted agent proposal (``theme-song.json`` next to ``graph.json``) the Skill
 renders that proposal; otherwise it composes deterministically from the graph.
@@ -25,6 +25,7 @@ from acd.core.projection_format_check import ProjectionFormatError, check_projec
 from acd.schema.theme_song import (
     ThemeSongArtifact,
     ThemeSongArtifactInput,
+    ThemeSongMmlCheck,
     ThemeSongProjection,
     ThemeSongRegenerationCheck,
     ThemeSongSource,
@@ -35,6 +36,7 @@ THEME_SONG_PROJECTION_NAME = "theme-song-projection.json"
 THEME_SONG_PROPOSAL_NAME = "theme-song.json"
 THEME_SONG_TIMEOUT_SECONDS = 300
 _MIDI_NAME = "theme-song.mid"
+_MML_NAME = "theme-song.mml"
 _PROVENANCE_NAME = "theme-song.provenance.json"
 _SCRIPT_RELATIVE = "plugins/acd/skills/acd-theme-song/scripts/compose_theme_song.py"
 
@@ -161,6 +163,17 @@ def generate_theme_song_projection(
         _run_skill(script, graph_path, proposal_path, recheck_dir, repository)
         first_hash = _file_sha256(song_dir / _MIDI_NAME)
         second_hash = _file_sha256(recheck_dir / _MIDI_NAME)
+        first_mml = song_dir / _MML_NAME
+        second_mml = recheck_dir / _MML_NAME
+        first_mml_present = first_mml.is_file()
+        second_mml_present = second_mml.is_file()
+        if first_mml_present != second_mml_present or (
+            first_mml_present
+            and _file_sha256(first_mml) != _file_sha256(second_mml)
+        ):
+            raise ThemeSongProjectionError(
+                "theme-song regeneration did not reproduce identical MML (fail-closed)"
+            )
     finally:
         shutil.rmtree(recheck_dir, ignore_errors=True)
     if first_hash != second_hash:
@@ -197,9 +210,10 @@ def generate_theme_song_projection(
     if not isinstance(artifacts, dict):
         raise ThemeSongProjectionError("theme-song provenance artifacts are missing")
     recorded = cast(dict[str, object], artifacts)
-    if list(recorded) != ["midi"]:
+    recorded_names = sorted(recorded)
+    if recorded_names not in (["midi"], ["midi", "mml"]):
         raise ThemeSongProjectionError(
-            "theme-song provenance must record exactly one MIDI artifact"
+            "theme-song provenance artifacts must record MIDI and optional MML"
         )
     midi_entry = recorded.get("midi")
     if (
@@ -207,10 +221,33 @@ def generate_theme_song_projection(
         or cast(dict[str, object], midi_entry).get("content_hash") != first_hash
     ):
         raise ThemeSongProjectionError("theme-song provenance midi hash does not match")
+    mml_entry = recorded.get("mml")
+    if "mml" in recorded:
+        mml_path = song_dir / _MML_NAME
+        if not mml_path.is_file() or not isinstance(mml_entry, dict):
+            raise ThemeSongProjectionError("theme-song provenance MML artifact is missing")
+        if cast(dict[str, object], mml_entry).get("content_hash") != _file_sha256(mml_path):
+            raise ThemeSongProjectionError("theme-song provenance MML hash does not match")
     composition = provenance.get("composition")
     if not isinstance(composition, dict):
         raise ThemeSongProjectionError("theme-song provenance composition is missing")
     composition_record = cast(dict[str, object], composition)
+    mml_check_record = composition_record.get("mml_check")
+    if not isinstance(mml_check_record, dict):
+        raise ThemeSongProjectionError("theme-song provenance MML check is missing")
+    mml_check_data = cast(dict[str, object], mml_check_record)
+    try:
+        mml_check = ThemeSongMmlCheck.model_validate(
+            {key: mml_check_data.get(key) for key in ("status", "dialect", "reason")}
+        )
+    except ValueError as exc:
+        raise ThemeSongProjectionError(
+            f"theme-song provenance MML check is invalid: {exc}"
+        ) from exc
+    if ("mml" in recorded) != (mml_check.status == "matched"):
+        raise ThemeSongProjectionError(
+            "theme-song provenance MML artifact and check status disagree"
+        )
 
     projection = ThemeSongProjection(
         projection_id=f"{project_name}-theme-song",
@@ -230,12 +267,26 @@ def generate_theme_song_projection(
         key=_require_str(composition_record, "key"),
         title=_require_str(composition_record, "title"),
         artifacts=[
-            ThemeSongArtifact(
-                path=f"{THEME_SONG_DIR_NAME}/{_MIDI_NAME}",
-                media_type="audio/midi",
-                content_hash=first_hash,
-            ),
+            *[
+                ThemeSongArtifact(
+                    path=f"{THEME_SONG_DIR_NAME}/{_MIDI_NAME}",
+                    media_type="audio/midi",
+                    content_hash=first_hash,
+                ),
+                *(
+                    [
+                        ThemeSongArtifact(
+                            path=f"{THEME_SONG_DIR_NAME}/{_MML_NAME}",
+                            media_type="text/x-mml",
+                            content_hash=_file_sha256(song_dir / _MML_NAME),
+                        )
+                    ]
+                    if "mml" in recorded
+                    else []
+                ),
+            ],
         ],
+        mml_check=mml_check,
         regeneration_check=ThemeSongRegenerationCheck(
             status="reproduced", first_hash=first_hash, second_hash=second_hash
         ),

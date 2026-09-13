@@ -1,7 +1,7 @@
 ---
 name: acd-theme-song
 description: Compose a product theme song (jingle) for a design graph as a Standard MIDI File. The agent writes a theme song proposal JSON (key, tempo, tracks, notes, drums); the Skill validates it strictly and renders MIDI, falling back to a deterministic graph-derived song when no proposal exists.
-version: 0.2.0
+version: 0.3.0
 license: BSD-3-Clause
 triggers:
   - theme song
@@ -21,13 +21,14 @@ back into design inputs, and is not Evidence.
 
 The GD1 board pipeline (`src/acd/pipeline/theme_song.py`) runs this CLI as a
 subprocess in its projection stage, checks that two runs reproduce identical
-bytes, and ships `theme-song/theme-song.mid` and `theme-song-projection.json`
+bytes, and ships `theme-song/theme-song.mid`, optional
+`theme-song/theme-song.mml`, and `theme-song-projection.json`
 as projection deliverables alongside the Gerbers, registered in `hashes.json`
 but never in Evidence or the fab package.
 
 | Script | Purpose |
 | --- | --- |
-| `theme_song.py` | Composition library: graph summary, deterministic composer, proposal validator, MIDI writer/reader, provenance. |
+| `theme_song.py` | Composition library: graph summary, deterministic composer, proposal validator, MIDI/MML writers/readers, provenance. |
 | `compose_theme_song.py` | CLI. Renders an agent proposal (`--proposal`) or the deterministic song; writes `.mid` and provenance. |
 
 ## Composing as an agent (the expected path)
@@ -121,6 +122,20 @@ uv run pytest plugins/acd/skills/acd-theme-song -q
 ```
 
 Open `theme-song.mid` in any DAW or MIDI player.
+
+## MML projection
+
+The composer also emits a deterministic UTF-8 `theme-song.mml` in the
+`acd-mml 0.1` dialect. It has graph metadata headers, one labelled monophonic
+voice per greedily split track (plus channel-9 drum voices), and whitespace-
+separated `t`, `@`, `v`, `o`, `l`, note, tie, and rest tokens. `l16` is one
+step, each bar has 16 steps, and note/rest lengths use greedy MML lengths
+`1`, `2`, `4`, `8`, and `16` (drum hits use `32` plus `r32`). The Skill
+independently parses the rendered text and compares tempo, voice duration,
+note count, and per-channel note data with the source `Score`. If that check
+does not match, the MML file is omitted and the reason is recorded in
+`composition.mml_check`; MIDI, gates, Evidence, and the fab package are
+unchanged.
 
 ## MIDI, provenance and fail-closed behaviour
 

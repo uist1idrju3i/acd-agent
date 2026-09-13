@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Compose the theme song of a design graph as a Standard MIDI File.
+"""Compose a design graph theme song as MIDI and acd-mml projections.
 
-Writes ``theme-song.mid`` and ``theme-song.provenance.json`` into ``--out-dir``.
+Writes ``theme-song.mid``, a checked ``theme-song.mml`` when possible, and
+``theme-song.provenance.json`` into ``--out-dir``.
 Without ``--proposal`` the song is derived deterministically from the graph
 (``source: deterministic``). With ``--proposal`` an LLM-authored theme song
 proposal JSON is checked strictly and rendered (``source: agent_proposal``);
@@ -28,12 +29,14 @@ from theme_song import (
     load_proposal_file,
     provenance_record,
     render_checked_midi,
+    render_checked_mml,
     score_to_proposal,
     sha256_file,
     write_json,
 )
 
 MIDI_NAME = "theme-song.mid"
+MML_NAME = "theme-song.mml"
 PROVENANCE_NAME = "theme-song.provenance.json"
 PROPOSAL_NAME = "theme-song.proposal.json"
 
@@ -69,6 +72,20 @@ def compose_theme_song(
     out_dir.mkdir(parents=True, exist_ok=True)
     midi_path = out_dir / MIDI_NAME
     midi_path.write_bytes(midi_bytes)
+    mml_path = out_dir / MML_NAME
+    mml_reason: str | None = None
+    artifacts = {"midi": (midi_path, midi_bytes)}
+    try:
+        mml_text = render_checked_mml(score)
+    except ThemeSongError as exc:
+        mml_text = None
+        mml_reason = str(exc)
+    if mml_text is None:
+        mml_path.unlink(missing_ok=True)
+    else:
+        mml_bytes = mml_text.encode("utf-8")
+        mml_path.write_bytes(mml_bytes)
+        artifacts["mml"] = (mml_path, mml_bytes)
     if proposal_out is not None:
         proposal_out.parent.mkdir(parents=True, exist_ok=True)
         write_json(proposal_out, score_to_proposal(score, rationale=rationale))
@@ -78,7 +95,7 @@ def compose_theme_song(
         generator=Path(__file__),
         base_dir=base_dir,
         inputs=extra_inputs,
-        artifacts={"midi": (midi_path, midi_bytes)},
+        artifacts=artifacts,
         composition={
             "seed": score.seed,
             "salt": salt if proposal_path is None else "",
@@ -89,6 +106,19 @@ def compose_theme_song(
             "tracks": [track.name for track in score.tracks],
             "note_events": note_events,
             "node_kinds": summary.node_kinds,
+            "mml_check": (
+                {
+                    "status": "matched",
+                    "dialect": "acd-mml 0.1",
+                    "note_count": score.note_count + len(score.drums),
+                }
+                if mml_text is not None
+                else {
+                    "status": "omitted",
+                    "dialect": "acd-mml 0.1",
+                    "reason": mml_reason or "MML rendering failed",
+                }
+            ),
         },
         source=source,
         composer_id=composer_id,

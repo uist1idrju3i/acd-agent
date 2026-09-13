@@ -18,6 +18,7 @@ from acd.schema.design_graph import DesignGraph
 from acd.schema.theme_song import (
     ThemeSongArtifact,
     ThemeSongArtifactInput,
+    ThemeSongMmlCheck,
     ThemeSongProjection,
     ThemeSongRegenerationCheck,
 )
@@ -194,6 +195,11 @@ def _theme_song_projection(
                 content_hash=midi_hash or actual_hash,
             )
         ],
+        mml_check=ThemeSongMmlCheck(
+            status="omitted",
+            dialect="acd-mml 0.1",
+            reason="fixture has no MML artifact",
+        ),
         regeneration_check=ThemeSongRegenerationCheck(
             status="reproduced",
             first_hash=midi_hash or actual_hash,

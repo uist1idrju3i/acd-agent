@@ -1032,3 +1032,8 @@ graphに無い機能・経路は推定せず、文書末の`省略した項目`�
 GD1実headerとDBT graph、複数connector、LED2、button操作、revision mismatch、
 macro欠落、byte一致を回帰テストで固定した。旧`instruction-manual.fail-closed.log`は
 当時の観測記録として保持する。
+
+実装状況（AA-26）: `acd-theme-song`が同一`Score`から`theme-song.mml`を生成し、
+`acd-mml 0.1`の独立parserでtempo・voice総tick・note列を照合する。照合不一致時は
+MMLだけを省略し、`mml_check`へ理由を記録する。MMLはprovenanceと`hashes.json`へ
+登録するが、MIDI、3 laneのgate、Evidence、fab packageの判定は変更しない。

@@ -1636,6 +1636,25 @@ Gerber等と同様に`out/<board>/theme-song/theme-song.mid`と`theme-song-proje
 MIDIはbinaryのためraw sha256で記録する。Skill不在、非零終了、提案の不合格、2回の不一致、
 provenance不整合はpipelineをfail-closedで停止する。
 
+同じ`Score`から、テキストで読める`theme-song.mml`も生成する。方言は
+`acd-mml 0.1`で、UTF-8・LF、`;`から行末までをコメント、空白区切りのトークン、
+`A`〜`Z`（26声を超える場合は`AA`以降）のvoice labelを使う。先頭ヘッダーは
+`acd-mml 0.1`、題名、graph／revision、seed、key、bars（16 steps／bar、
+`l16`＝1 step、480 ticks／beat）の順で固定する。各trackは音符を
+`(step, pitch)`順に並べ、直前音の終了step以下で始まる最初のmonophonic voiceへ
+greedyに割り当て、drum（channel 9）も音高を`DRUM_KEYS`から得たvoiceへ同じ規則で
+分割する。voiceごとにchannel（trackはprogramも）とvoice番号をコメントに記し、
+`t<bpm>`、trackの`@<program>`、初期`v<n>`／`o<n>`、`l16`から始める。
+音符は`c c+ d d+ e f f+ g g+ a a+ b`、octave変更は`o<n>`、velocity変更は
+`v<n>`、長さはgreedyな`1/2/4/8/16`（steps 16/8/4/2/1）を使い、分割音符は
+`&`でtieする。休符は`r<length>`、drum hitは`<name>32 r32`とし、bar境界を
+またぐ音符は開始barの行に残す。各voiceは全barを合計して`bars*16*120` ticksにする。
+writerとは独立したparserで`MML→note列`を再読込し、tempo、voice総tick、note数、
+channelごとの`(start, end, pitch, velocity)`をScoreと照合する。不一致なら
+`mml_check.status="omitted"`と理由をprovenanceへ記録してMMLだけを省略し、
+MIDI生成、3 laneのgate、Evidence、fab packageには影響させない。一致時は
+`mml_check.status="matched"`としてMMLをprovenanceと`hashes.json`へ登録する。
+
 生成した投影はwriterと独立したreaderで形式検査し、L3の
 `projection-format-check.json`（`pass_evidence=false`）へchecker名・版・要約値を記録する。
 検査結果は`hashes.json`をflatに保つため個別entryへ埋め込まず、形式検査record自体を
