@@ -833,7 +833,11 @@ command未実行をsuccessとして記録する経路はない。command形式�
    `out/gd1-enclosure/enclosure.3mf`、ASCIIの
    `out/gd1-enclosure/enclosure.stl`、全構成物の正規化hash一覧
    `out/gd1-enclosure/enclosure-artifacts.json`、および
-   `out/gd1-enclosure/evidence-mechanical.json`が生成される。STLは3MFとともに独立reloadされ、
+   `out/gd1-enclosure/evidence-mechanical.json`が生成される。さらにL3の統合3Dモデル投影として
+   `out/gd1-enclosure/3d/assembly.glb`（glTF 2.0 binary）、単独HTMLビューア
+   `out/gd1-enclosure/3d/assembly.html`、独立readerのformat_checkを記録した
+   `out/gd1-enclosure/3d/assembly-3d.json`が生成される（Evidence・gate verdictには含めない）。
+   STLは3MFとともに独立reloadされ、
    2部品、bbox、三角形数、体積を検査する。部品STEPはshellまたは
    lidの単独ソリッドだけを含み、統合STEPは組立確認用であり、製造部品ファイルの
    代用にはしない。筐体projectionのadapter revisionは`p3-5-v5`、
@@ -957,7 +961,7 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 `libraries/README.md`のgit pinは、EspressifとCERNを含む全sourceを確認する。
 
-[`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新majorである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。
+[`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新major、`src/acd/adapters/cad/viewer_assets/three/`のvendored three.jsである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。
 
 #### 2026-09 更新記録
 
@@ -965,6 +969,7 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 - **uv 0.12.10**（一次情報: [0.12.10 release](https://github.com/astral-sh/uv/releases/tag/0.12.10)）。trusted publishing tokenの失効処理、lock/treeの改善、性能向上とバグ修正が含まれ、現行利用方法に対する破壊的変更はない。採否: 採用。
 - **IBM Semeru 27**（一次情報: [semeru27-binaries releases](https://github.com/ibmruntimes/semeru27-binaries/releases)）。GA releaseがなくprereleaseのみのため、Semeru 26からの更新は保留。checkerもGA releaseがあるmajorだけを更新候補とし、prerelease-only majorは注記に留める。
 - **ツール上流版**（ngspice、cmake、ccache、git、python3.14）。Ubuntu 26.04のapt由来ツールはLaunchpadのUbuntu archive版を比較し、image再publish時に追従する。上流版との差分は注記として確認するため、現行archive版と一致する項目は採否: 最新。
+- **three.js 0.186.0**（一次情報: [npm package](https://www.npmjs.com/package/three) / [r186 release](https://github.com/mrdoob/three.js/releases/tag/r186)）。統合3Dモデル投影（11.4a）のHTMLビューア用に`three.module.js`・`three.core.js`・`OrbitControls.js`・`GLTFLoader.js`・`BufferGeometryUtils.js`・`SkeletonUtils.js`の6つのESM fileのみを`src/acd/adapters/cad/viewer_assets/three/`へ改変なしにvendoringした（MIT）。相対importはbundleせず、HTML生成時にimport mapのbare specifierへ書き換える。採否: 採用。
 
 Docker ARG（FreeRouting 2.4.1、uv 0.12.10、Semeru 27）の判断は本節の該当項目で扱う。
 
@@ -1549,6 +1554,23 @@ SVGのwidth／height単位は`ElectricalLane.board.unit`と突き合わせ、KiC
 unknownをmatchへ集約せず、mismatch・対象欠落・解析失敗・revision不一致はpipelineを停止する。
 レポートは`pass_evidence=False`のL3観測であり、Evidence、fab claims、gate fields、
 `hashes.json`、fab packageへ追加しない。
+
+機械laneは8.5の照合通過後、Evidence生成前に統合3Dモデル投影（11.4a）を
+`out/gd1-enclosure/3d/`へ生成する。`assembly.glb`は基板（外形・厚さ・取付穴）、
+`component_bodies`の直方体近似で表した部品（`approximated` badge付き）、authoritative
+STEP由来のshell/lid、機械ゲートが実測した干渉体積を持つ干渉nodeを1つのglTF 2.0
+binaryへまとめたL3投影であり、mm→m換算と右手Y-up変換をwriter側で行う。node順は
+board・refdes順の部品・enclosure-shell・enclosure-lid・干渉nodeで固定し、
+頂点・三角形をcanonical化するため逐次と並列で同一hashになる。書き出し直後にwriterと
+独立したGLB reader（`read_glb_format_check`）がheader、chunk、buffer、accessor、
+index、node数を検査し、その結果を`assembly-3d.json`の`format_check`へ記録する。
+parse失敗はEvidence生成前にpipelineをfail-closedで停止し、合格側へ作用させない。
+`assembly.html`はvendored three.js 0.186.0（MIT）を`data:` URLのimport mapで埋め込んだ
+単独ファイルであり、browserでそのまま開ける。layer切替（board・component・
+enclosure・interference）、筐体の半透明化、断面slider、干渉bodyの赤表示を持つ。
+`assembly-3d.json`は`level: "L3"`、`pass_authority: false`、各artifactのsha256、
+format_check、node一覧、入力STEPの正規化hashを記録する。これら3ファイルはL3観測で
+あり、Evidence、fab package、gate verdictへ含めない。
 
 ## 生成文書lane
 

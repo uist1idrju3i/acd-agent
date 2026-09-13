@@ -75,6 +75,7 @@ DEPENDENCY_SURFACES = frozenset(
         "tool-upstream",
         "python-version",
         "git-pin",
+        "vendored-asset",
     }
 )
 
@@ -84,6 +85,24 @@ class DockerArgSpec:
     arg: str
     repo: str
     tag_pattern: str
+
+
+@dataclass(frozen=True)
+class VendoredAssetSpec:
+    name: str
+    version_file: str
+    kind: str
+    package: str
+
+
+VENDORED_ASSET_SPECS = (
+    VendoredAssetSpec(
+        name="three",
+        version_file="src/acd/adapters/cad/viewer_assets/three/VERSION",
+        kind="npm-latest",
+        package="three",
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -982,6 +1001,42 @@ def check_semeru_majors(
     ]
 
 
+def check_vendored_assets(
+    repo_root: Path,
+    *,
+    fetch_json: FetchJson = _default_fetch_json,
+) -> list[DependencyStatus]:
+    statuses: list[DependencyStatus] = []
+    for spec in VENDORED_ASSET_SPECS:
+        if spec.kind != "npm-latest":
+            raise ValueError(f"unknown vendored asset kind: {spec.kind}")
+        version_path = repo_root / spec.version_file
+        try:
+            current = version_path.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise ValueError(f"vendored asset version file is missing: {version_path}") from exc
+        if not current:
+            raise ValueError(f"vendored asset version file is empty: {version_path}")
+        payload = _dict(
+            fetch_json(f"https://registry.npmjs.org/{spec.package}/latest"),
+            f"npm registry response is invalid for {spec.package}",
+        )
+        latest = payload.get("version")
+        if not isinstance(latest, str) or not latest:
+            raise ValueError(f"npm registry response has no version for {spec.package}")
+        statuses.append(
+            DependencyStatus(
+                "vendored-asset",
+                spec.name,
+                current,
+                latest,
+                spec.version_file,
+                latest != current,
+            )
+        )
+    return statuses
+
+
 def check_git_pin(
     repo_root: Path,
     *,
@@ -1124,6 +1179,7 @@ def check_dependency_updates(
         *check_tool_upstream(repo_root, fetch_json=fetch_json, list_remote_tags=cached_tags),
         *check_python_versions(repo_root, list_remote_tags=cached_tags),
         *check_git_pin(repo_root, list_remote_head=list_remote_head),
+        *check_vendored_assets(repo_root, fetch_json=fetch_json),
     ]
 
 
@@ -1206,6 +1262,7 @@ def render_markdown(statuses: list[DependencyStatus]) -> str:
         "tool-upstream": "ツール上流版",
         "python-version": "Python版",
         "git-pin": "git pin",
+        "vendored-asset": "vendored asset",
     }
     lines = ["# 依存アップデート確認レポート", ""]
     for surface, label in labels.items():

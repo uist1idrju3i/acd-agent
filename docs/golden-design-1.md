@@ -543,6 +543,9 @@ STEP部品を融合して1ファイルにすることはしない。
 | `out/gd1-enclosure/enclosure.3mf` | 3Dプリント確認 | `gd1-enclosure-shell`と`gd1-enclosure-lid`の2オブジェクト |
 | `out/gd1-enclosure/enclosure.stl` | 3Dプリント提出 | ASCII STLとして正規化・hash・独立reload検査 |
 | `out/gd1-enclosure/enclosure-artifacts.json` | 構成物provenance | 各成果物の役割・形式・正規化SHA-256 |
+| `out/gd1-enclosure/3d/assembly.glb` | 3Dレビュー（L3） | 基板・近似部品・筐体・干渉nodeの統合glTF 2.0投影 |
+| `out/gd1-enclosure/3d/assembly.html` | 3Dレビュー（L3） | vendored three.js同梱の単独ビューア（browserで開く） |
+| `out/gd1-enclosure/3d/assembly-3d.json` | 3D投影manifest | artifact hash・独立readerのformat_check・node一覧 |
 
 部品別STEPは独立再読込でソリッド数、体積、bboxを確認し、統合STEPとの差異も検証する。
 Evidenceのenvelopeは部品別STEP、統合STEP、3MF、STL、構成物manifestをすべてhash対象に含める。

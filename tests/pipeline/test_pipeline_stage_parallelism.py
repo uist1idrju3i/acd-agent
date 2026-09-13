@@ -219,6 +219,7 @@ def test_enclosure_pipeline_outputs_are_stable_across_worker_counts(
     for filename in (
         "visual-projections-mechanical.json",
         "visual-crosscheck-mechanical.json",
+        "3d/assembly-3d.json",
     ):
         serial_payload = cast(
             dict[str, object],
@@ -232,6 +233,13 @@ def test_enclosure_pipeline_outputs_are_stable_across_worker_counts(
             parallel_payload,
             drop_hashes=True,
         )
+
+    assert (serial_dir / "3d/assembly.glb").read_bytes() == (
+        parallel_dir / "3d/assembly.glb"
+    ).read_bytes()
+    assert cast(dict[str, object], serial["assembly_3d"]) == cast(
+        dict[str, object], parallel["assembly_3d"]
+    )
 
 
 def test_ordered_stages_run_in_child_processes() -> None:

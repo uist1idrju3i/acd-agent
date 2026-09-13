@@ -492,6 +492,16 @@ FWシーケンス図の3段構成を実装済みであり、8.5はFW lane照合�
 （機械可読宣言の追加を含む）の順であり、本節の完了条件は3段すべての実装で満たす。
 
 
+### 11.4a 統合3Dモデル投影（glTF＋HTMLビューア）（達成）
+
+| 要素 | 完了条件 |
+|---|---|
+| 入力と出所 | Design Graphの`MechanicalLane`（outline・component_bodies・enclosure）、authoritative STEP（shell・lid・assembly）、`MechanicalGateReport`、電気laneのrefdes対応 |
+| 実装 | `acd.adapters.cad.assembly_3d`がboard（外形・厚さ・取付穴）、非`none`部品の直方体近似（`approximated`、refdes名）、import_step由来のshell/lid（`step`）、実測干渉node（`computed`）を固定node順の`AssemblyMesh`へまとめ、canonical化した三角形列をglTF 2.0 binary `out/<lane>/3d/assembly.glb`（mm→m、右手Y-up）へ書き出す。writerと独立した`read_glb_format_check`（`struct`/`json`のみ）が結果を`assembly-3d.json`の`format_check`へ記録し、`assembly_viewer.py`がvendored three.js 0.186.0（MIT）をimport mapで埋め込んだ単独HTMLビューア`assembly.html`を生成する。PBR材質のみで`KHR_materials_*`等のextensionは使わない |
+| 正常系 | GD1筐体pipelineの機械visual cross-check通過後・Evidence生成前に3成果物を既定生成し、node名（`board`・各refdes・`enclosure-shell`・`enclosure-lid`）とprovenance extrasをmanifestへ記録する |
+| negative/fail-closed | STEP不在・import失敗、tessellation失敗、干渉体積とゲート実測の不一致、GLB format checkのいずれかの失敗をpipeline停止条件とし、HTML生成より前に停止する。投影欠落を「問題なし」と解釈しない |
+| 再現性 | 頂点を6桁丸め・退化三角形除去・最小頂点先頭化・三角形lexicographic sortにより、逐次（worker=1）と並列（worker=N）で同一GLB sha256とmanifestを再生成する。時刻・worker数をhash入力へ含めない |
+
 ## マイルストーン14の達成済みフェーズ
 
 C-1（筐体の干渉解決探索）とD-1〜D-3（測定結果の入力反映、見積自動取得、実発注）は既存
