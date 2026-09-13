@@ -391,7 +391,8 @@ ACD内部の投影と独立測定だけで成立する状態ではない。fab�
 個別部品のEvidence欠落は`order-readiness.json`の回転unknownとして扱う。
 
 GD1のGNDプレーンはグラフの`GND`ネットをF.Cu/B.Cuへ投影し、板端clearanceから導出した
-インセットで定義する。塗りは自前計算せず、KiCad 10.0.5の`--refill-zones --save-board`
+インセットで定義する。`ground_plane_min_island_area_mm2`はKiCad zoneのfillへ
+`island_area_min`として出力し、指定値未満の島をKiCadの充填時に抑制する。塗りは自前計算せず、KiCad 10.0.5の`--refill-zones --save-board`
 で実行し、塗り済み基板のhashを製造Evidenceへ記録する。ステッチviaのpitchは最高動作
 周波数、FR-4の比誘電率、採用波長分数からguided wavelengthを計算して導出し、根拠宣言
 が無い場合は停止する。GD1では2.4 GHz、εr=4.3、λ/20を採用し、via追加の工程・コスト

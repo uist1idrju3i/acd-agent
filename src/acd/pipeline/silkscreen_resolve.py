@@ -203,17 +203,18 @@ def resolve_silkscreen(
             raise ValueError("silkscreen context is malformed")
         context = cast(dict[str, Any], context_value)
         status = context.get("status")
-        if status == "measured_pass":
-            final_graph = DesignGraph.model_validate(
-                json.loads(graph_path.read_text(encoding="utf-8"))
-            )
-            _assert_no_unresolved_texts(extract_silkscreen_lane(final_graph))
+        graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
+        lane = extract_silkscreen_lane(graph)
+        unresolved = [
+            text.node_id for text in lane.texts if text.x_mm is None or text.y_mm is None
+        ]
+        forced_search = status == "measured_pass" and bool(unresolved)
+        if status == "measured_pass" and not forced_search:
+            _assert_no_unresolved_texts(lane)
             shutil.copy2(graph_path, fixture_dir / "graph.json")
             if rationale_path.is_file():
                 shutil.copy2(rationale_path, fixture_dir / "rationale.json")
             return {"status": "resolved", "iterations": iterations, "final": measured}
-        graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
-        lane = extract_silkscreen_lane(graph)
         with tempfile.TemporaryDirectory(prefix="acd-silk-context-") as directory:
             directory_path = Path(directory)
             input_path = directory_path / "input.json"
@@ -274,14 +275,16 @@ def resolve_silkscreen(
             for item in candidates
             if item.get("accepted_position_mm") is None
         ]
-        iterations.append(
-            {
-                "iteration": iteration,
-                "context_status": status,
-                "failure_reason": context.get("failure_reason"),
-                "candidate_failures": failures,
-            }
-        )
+        iteration_record: dict[str, object] = {
+            "iteration": iteration,
+            "context_status": status,
+            "failure_reason": context.get("failure_reason"),
+            "candidate_failures": failures,
+        }
+        if forced_search:
+            iteration_record["unresolved_texts"] = unresolved
+            iteration_record["forced_search"] = True
+        iterations.append(iteration_record)
         if failures or len(accepted) != len(lane.texts):
             return {
                 "status": "failed_no_candidates",
