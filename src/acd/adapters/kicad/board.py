@@ -551,15 +551,18 @@ def board_keepouts(
     if board.antenna_keepout:
         center_x = board.width_mm / 2.0
         depth = _antenna_keepout_depth(lane, footprints)
-        keepouts = (
-            KeepoutRect(
-                name="antenna_keepout",
-                x1_mm=center_x - _ANTENNA_KEEPOUT_HALF_WIDTH_MM,
-                y1_mm=0.0,
-                x2_mm=center_x + _ANTENNA_KEEPOUT_HALF_WIDTH_MM,
-                y2_mm=depth,
-            ),
-        )
+        # An RF module can anchor its antenna past the board edge, leaving no
+        # on-board keepout depth; only then is no board keepout emitted.
+        if depth > 0.0:
+            keepouts = (
+                KeepoutRect(
+                    name="antenna_keepout",
+                    x1_mm=center_x - _ANTENNA_KEEPOUT_HALF_WIDTH_MM,
+                    y1_mm=0.0,
+                    x2_mm=center_x + _ANTENNA_KEEPOUT_HALF_WIDTH_MM,
+                    y2_mm=depth,
+                ),
+            )
     return keepouts
 
 
@@ -689,6 +692,7 @@ def generate_board(
         ),
         keepouts=keepouts,
         copper_zones=copper_zones,
+        antenna_keepout_required=bool(keepouts),
         stitch_via_pitch_mm=stitch_pitch,
         stitch_via_net=board.ground_plane_net,
         stitch_via_refill_max_iterations=board.stitch_via_refill_max_iterations,

@@ -348,6 +348,9 @@ overlayの適用後geometryは、DSN export、routing、最終board、DRC、DFM�
 
 配置ゲートでは、USBコネクタの本体外形とパッド重心から嵌合側の板端アンカーを導出し、
 RFモジュールではfootprint内の単一アンテナkeepoutから板端アンカーを導出する。
+板上のアンテナkeepout矩形は板端からRFモジュール最上pad列直上までの深さで生成し、
+GD1のようにアンテナ部が板端外へ出て深さが0になる場合は板上keepoutを生成せず、
+Gerber検証のkeepout宣言必須条件も要求しない（keepout内銅面積の検査対象が存在しないため）。
 独立DFMゲートのcheck IDは`pad-to-board-edge-clearance`、
 `undeclared-board-edge-overhang`であり、これらは発注能力違反
 （`capability_violation`）として扱う。CPLの回転は、fab側ライブラリのピン機能付き

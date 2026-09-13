@@ -150,6 +150,7 @@ class BoardModel:
     nets: tuple[BoardNet, ...]
     keepouts: tuple[KeepoutRect, ...] = field(default_factory=tuple)
     copper_zones: tuple[CopperZone, ...] = field(default_factory=tuple)
+    antenna_keepout_required: bool = False
     stitch_via_pitch_mm: float | None = None
     stitch_via_net: str | None = None
     stitch_via_refill_max_iterations: int | None = None

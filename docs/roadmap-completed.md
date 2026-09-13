@@ -1056,6 +1056,8 @@ title、断面位置、寸法、基板外形、legend、干渉領域またはゲ
 ネストしたviewBoxと注釈IDを決定論的にcrosscheckし、recordのゲート値やEvidence authorityは変更しない。
 実装状況（AA-31）: placement SVGへ取付穴、keepout、部品の外形外はみ出し注記を決定論的に描画し、
 宣言済みと未宣言の注記を区別する。これらの注記はL3観測であり、ゲート判定を変更しない。
+アンテナ部が板端外へ出て板上の深さが0となるアンテナkeepoutは、板上矩形が存在しないため
+placement SVGの描画対象にもGerber検証のkeepout宣言必須条件にも含めない。
 
 実装状況（AA-29）: KiCad回路図の列・行ピッチをsymbol extentとnet labelから決定し、
 Reference/Valueをbody外へ配置する。labelとproperty・bodyの衝突は一度だけ外側へ
