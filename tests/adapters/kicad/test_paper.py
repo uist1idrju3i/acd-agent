@@ -199,10 +199,10 @@ def test_pwr_flags_fill_spare_cells_then_new_row(tmp_path: Path) -> None:
     # n=10 → cols=4, rows=3; the last row holds 2 comps so 2 spare cells take
     # the first two flags and the rest continue from the next grid row.
     content = _schematic_for_count(tmp_path, 10, flag_nets=10)
-    assert "(at 95.25 80.01 0)" in content  # PWR01: last row, col 2
-    assert "(at 121.92 80.01 0)" in content  # PWR02: last row, col 3
+    assert "(at 96.52 80.01 0)" in content  # PWR01: last row, col 2
+    assert "(at 123.19 80.01 0)" in content  # PWR02: last row, col 3
     assert "(at 41.91 97.79 0)" in content  # PWR03: new row, col 0
-    assert "(at 121.92 115.57 0)" in content  # PWR10: row 4, col 3
+    assert "(at 123.19 115.57 0)" in content  # PWR10: row 4, col 3
     assert _paper_of(content) == "A4"
 
 

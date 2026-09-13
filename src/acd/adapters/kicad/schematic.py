@@ -4,9 +4,10 @@ Places every component on symbol-fitted row and column pitches and connects
 pins with global labels (one label per connected pin, anchored at the pin
 connection point). Explicit no-connect markers are emitted for unused pins.
 ``PWR_FLAG`` symbols are added to nets that have no driving pin so that ERC
-power checks are meaningful rather than suppressed. A deterministic collision
-check rejects labels that remain over symbols or properties after one outward
-Reference/Value adjustment. A fixed sheet note states the label-based
+power checks are meaningful rather than suppressed. Reference/Value properties
+are placed at the first collision-free candidate position around the symbol
+body, and a deterministic collision check rejects labels that still overlap
+symbols or properties. A fixed sheet note states the label-based
 connection convention so that a reader does not read the absence of drawn
 wires as a missing connection.
 """
@@ -61,6 +62,36 @@ class _Box:
     bottom: float
 
 
+def _label_box(x_mm: float, y_mm: float, rotation: int, allowance: float) -> _Box:
+    if rotation == 0:
+        return _Box(
+            _snap(x_mm),
+            _snap(x_mm + allowance),
+            _snap(y_mm - _LABEL_HEIGHT / 2),
+            _snap(y_mm + _LABEL_HEIGHT / 2),
+        )
+    if rotation == 180:
+        return _Box(
+            _snap(x_mm - allowance),
+            _snap(x_mm),
+            _snap(y_mm - _LABEL_HEIGHT / 2),
+            _snap(y_mm + _LABEL_HEIGHT / 2),
+        )
+    if rotation == 90:
+        return _Box(
+            _snap(x_mm - _LABEL_HEIGHT / 2),
+            _snap(x_mm + _LABEL_HEIGHT / 2),
+            _snap(y_mm - allowance),
+            _snap(y_mm),
+        )
+    return _Box(
+        _snap(x_mm - _LABEL_HEIGHT / 2),
+        _snap(x_mm + _LABEL_HEIGHT / 2),
+        _snap(y_mm),
+        _snap(y_mm + allowance),
+    )
+
+
 @dataclass(frozen=True)
 class _LabelPlacement:
     refdes: str
@@ -73,33 +104,7 @@ class _LabelPlacement:
 
     @property
     def box(self) -> _Box:
-        if self.rotation == 0:
-            return _Box(
-                _snap(self.x_mm),
-                _snap(self.x_mm + self.allowance),
-                _snap(self.y_mm - _LABEL_HEIGHT / 2),
-                _snap(self.y_mm + _LABEL_HEIGHT / 2),
-            )
-        if self.rotation == 180:
-            return _Box(
-                _snap(self.x_mm - self.allowance),
-                _snap(self.x_mm),
-                _snap(self.y_mm - _LABEL_HEIGHT / 2),
-                _snap(self.y_mm + _LABEL_HEIGHT / 2),
-            )
-        if self.rotation == 90:
-            return _Box(
-                _snap(self.x_mm - _LABEL_HEIGHT / 2),
-                _snap(self.x_mm + _LABEL_HEIGHT / 2),
-                _snap(self.y_mm - self.allowance),
-                _snap(self.y_mm),
-            )
-        return _Box(
-            _snap(self.x_mm - _LABEL_HEIGHT / 2),
-            _snap(self.x_mm + _LABEL_HEIGHT / 2),
-            _snap(self.y_mm),
-            _snap(self.y_mm + self.allowance),
-        )
+        return _label_box(self.x_mm, self.y_mm, self.rotation, self.allowance)
 
 
 @dataclass
@@ -112,21 +117,14 @@ class PlacedSymbol:
     base_box: _Box
     reference_box: _Box
     value_box: _Box
-    reference_adjusted: bool = False
-    value_adjusted: bool = False
 
     def property_box(self, property_name: str) -> _Box:
-        if property_name == "Reference":
-            box = self.reference_box
-            shift = -2.54 if self.reference_adjusted else 0.0
-        else:
-            box = self.value_box
-            shift = 2.54 if self.value_adjusted else 0.0
+        box = self.reference_box if property_name == "Reference" else self.value_box
         return _Box(
             self.x_mm + box.left,
             self.x_mm + box.right,
-            self.y_mm + box.top + shift,
-            self.y_mm + box.bottom + shift,
+            self.y_mm + box.top,
+            self.y_mm + box.bottom,
         )
 
 
@@ -164,6 +162,18 @@ def _base_box(symbol: ParsedSymbol) -> _Box:
     )
 
 
+def _boxes_overlap(first: _Box, second: _Box) -> bool:
+    # The epsilon absorbs float noise from translating local boxes into sheet
+    # coordinates; real gaps are orders of magnitude larger.
+    eps = 1e-6
+    return (
+        first.left < second.right - eps
+        and second.left < first.right - eps
+        and first.top < second.bottom - eps
+        and second.top < first.bottom - eps
+    )
+
+
 def _symbol_geometry(
     symbol: ParsedSymbol,
     net_label_names: list[str],
@@ -173,6 +183,7 @@ def _symbol_geometry(
 ) -> tuple[_Box, _Box, _Box, _Box]:
     base = _base_box(symbol)
     left, right, top, bottom = base.left, base.right, base.top, base.bottom
+    label_boxes: list[_Box] = []
     for index, pin in enumerate(symbol.pins):
         name = net_label_names[index] if index < len(net_label_names) else ""
         allowance = len(name) * 1.27 * 0.9 + LABEL_ALLOWANCE if name else 2.54
@@ -183,40 +194,73 @@ def _symbol_geometry(
         right = max(right, px + dx * allowance)
         top = min(top, py + dy * allowance)
         bottom = max(bottom, py + dy * allowance)
+        if name:
+            label_boxes.append(_label_box(px, py, rotation, allowance))
 
+    def _property_box(center_x: float, center_y: float, width: float) -> _Box:
+        return _Box(
+            center_x - width / 2,
+            center_x + width / 2,
+            center_y - 1.27,
+            center_y + 1.27,
+        )
+
+    def _pick(
+        candidates: list[tuple[float, float]],
+        width: float,
+        extra: tuple[_Box, ...] = (),
+    ) -> _Box:
+        for center_x, center_y in candidates:
+            box = _property_box(center_x, center_y, width)
+            if _boxes_overlap(box, base) or any(
+                _boxes_overlap(box, other)
+                for other in (*label_boxes, *extra)
+            ):
+                continue
+            return box
+        center_x, center_y = candidates[0]
+        return _property_box(center_x, center_y, width)
+
+    middle_y = _snap((base.top + base.bottom) / 2)
     reference_width = len(reference) * 1.27 * 0.9
     value_width = len(value) * 1.27 * 0.9
-    reference_box = _Box(
-        -reference_width / 2,
-        reference_width / 2,
-        _snap(base.top - 2.54) - 1.27,
-        _snap(base.top - 2.54) + 1.27,
+    right_x = _snap(base.right + 1.27)
+    left_x = _snap(base.left - 1.27)
+    reference_box = _pick(
+        [
+            (0.0, _snap(base.top - 2.54)),
+            (right_x + reference_width / 2, _snap(base.top)),
+            (right_x + reference_width / 2, middle_y),
+            (left_x - reference_width / 2, _snap(base.top)),
+            (left_x - reference_width / 2, middle_y),
+        ],
+        reference_width,
     )
-    value_box = _Box(
-        -value_width / 2,
-        value_width / 2,
-        _snap(base.bottom + 2.54) - 1.27,
-        _snap(base.bottom + 2.54) + 1.27,
+    value_box = _pick(
+        [
+            (0.0, _snap(base.bottom + 2.54)),
+            (right_x + value_width / 2, _snap(base.bottom)),
+            (right_x + value_width / 2, middle_y),
+            (left_x - value_width / 2, _snap(base.bottom)),
+            (left_x - value_width / 2, middle_y),
+        ],
+        value_width,
+        (reference_box,),
     )
     left = min(left, reference_box.left, value_box.left)
     right = max(right, reference_box.right, value_box.right)
     top = min(top, reference_box.top, value_box.top)
     bottom = max(bottom, reference_box.bottom, value_box.bottom)
-    return (
-        _Box(_snap(left), _snap(right), _snap(top), _snap(bottom)),
-        base,
-        reference_box,
-        value_box,
+    extent = _Box(_snap(left), _snap(right), _snap(top), _snap(bottom))
+    # Grid snapping may round inward; keep the unsnapped property edges so the
+    # extent always contains the chosen boxes.
+    extent = _Box(
+        min(extent.left, reference_box.left, value_box.left),
+        max(extent.right, reference_box.right, value_box.right),
+        min(extent.top, reference_box.top, value_box.top),
+        max(extent.bottom, reference_box.bottom, value_box.bottom),
     )
-
-
-def _boxes_overlap(first: _Box, second: _Box) -> bool:
-    return (
-        first.left < second.right
-        and second.left < first.right
-        and first.top < second.bottom
-        and second.top < first.bottom
-    )
+    return (extent, base, reference_box, value_box)
 
 
 def _placed_base_box(placed: PlacedSymbol) -> _Box:
@@ -226,23 +270,6 @@ def _placed_base_box(placed: PlacedSymbol) -> _Box:
         placed.y_mm + placed.base_box.top,
         placed.y_mm + placed.base_box.bottom,
     )
-
-
-def _adjust_properties(
-    placements: list[PlacedSymbol],
-    labels: list[_LabelPlacement],
-) -> None:
-    for label in labels:
-        for placed in placements:
-            for property_name in ("Reference", "Value"):
-                property_box = placed.property_box(property_name)
-                if not _boxes_overlap(label.box, property_box):
-                    continue
-                if property_name == "Reference" and not placed.reference_adjusted:
-                    placed.reference_adjusted = True
-                    continue
-                if property_name == "Value" and not placed.value_adjusted:
-                    placed.value_adjusted = True
 
 
 def _label_collisions(
@@ -327,20 +354,24 @@ def _symbol_instance(
         _property(
             "Reference",
             comp.refdes,
-            placed.x_mm,
             _snap(
-                _snap(placed.y_mm + placed.reference_box.top + 1.27)
-                + (-2.54 if placed.reference_adjusted else 0.0)
+                placed.x_mm
+                + (placed.reference_box.left + placed.reference_box.right) / 2
+            ),
+            _snap(
+                placed.y_mm
+                + (placed.reference_box.top + placed.reference_box.bottom) / 2
             ),
             hide=False,
         ),
         _property(
             "Value",
             comp.value,
-            placed.x_mm,
             _snap(
-                _snap(placed.y_mm + placed.value_box.top + 1.27)
-                + (2.54 if placed.value_adjusted else 0.0)
+                placed.x_mm + (placed.value_box.left + placed.value_box.right) / 2
+            ),
+            _snap(
+                placed.y_mm + (placed.value_box.top + placed.value_box.bottom) / 2
             ),
             hide=False,
         ),
@@ -650,7 +681,6 @@ def generate_schematic(
                         )
                     )
 
-    _adjust_properties(placements, label_placements)
     collisions = _label_collisions(placements, label_placements)
     if collisions:
         raise ValueError(collisions[0])
