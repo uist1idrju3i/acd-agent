@@ -13,10 +13,8 @@ from xml.etree import ElementTree
 from acd.adapters.cad.mechanical import MechanicalGateReport
 from acd.adapters.cad.project import CadProjection, cad_tool_version
 from acd.adapters.kicad.gates import GateError
-from acd.adapters.kicad.visual_projection import (
-    KicadVisualRenderer,
-    copper_layers_for_layer_count,
-)
+from acd.adapters.kicad.layers import copper_layers_for_layer_count
+from acd.adapters.kicad.visual_projection import KicadVisualRenderer
 from acd.adapters.raster import CairoSvgRasterizer
 from acd.adapters.svg.common import (
     ACD_SVG_NORMALIZATION_RULE_ID,
@@ -29,7 +27,12 @@ from acd.core.firmware_lane import FirmwareLane
 from acd.core.mechanical import MechanicalLane
 from acd.core.naming import artifact_prefix
 from acd.core.process import sha256_bytes
-from acd.core.visual_projection import cad_view_geometry, normalized_svg_sha256
+from acd.core.visual_projection import (
+    LayerViewAnnotations,
+    cad_view_geometry,
+    nested_view_geometry,
+    svg_source_hash,
+)
 from acd.schema.design_graph import DesignGraph
 from acd.schema.visual_crosscheck import (
     CrosscheckStatus,
@@ -121,6 +124,13 @@ def generate_electrical_visual_projections(
                 source=routed_board,
                 output_path=visual_dir / f"{project_fragment}-{layer_fragment}.svg",
                 layer=layer,
+                layer_annotations=LayerViewAnnotations(
+                    project_name=project_name,
+                    layer=layer,
+                    board_width_mm=board.width_mm,
+                    board_height_mm=board.height_mm,
+                    layer_count=len(layers),
+                ),
                 base_dir=out_dir,
             )
         )
@@ -291,6 +301,42 @@ def _projection_crosscheck(
     width_number = _decimal(width_value, "width")
     height_number = _decimal(height_value, "height")
     view_box_numbers = tuple(_decimal(value, "viewBox") for value in view_box)
+    is_layered = projection.projection_type == "layered_layout_view"
+    nested_view_count = 0
+    nested_width = nested_height = "missing"
+    nested_view_box = ("missing", "missing", "missing", "missing")
+    nested_width_unit = nested_height_unit = "missing"
+    nested_width_value = nested_height_value = "missing"
+    nested_width_number = nested_height_number = None
+    nested_view_box_numbers: tuple[Decimal, ...] = ()
+    if is_layered:
+        try:
+            nested_width, nested_height, nested_view_box = nested_view_geometry(
+                svg, "layer-view"
+            )
+            nested_width_value, nested_width_unit = _svg_dimension(
+                nested_width, "layer-view width"
+            )
+            nested_height_value, nested_height_unit = _svg_dimension(
+                nested_height, "layer-view height"
+            )
+            nested_width_number = _decimal(nested_width_value, "layer-view width")
+            nested_height_number = _decimal(nested_height_value, "layer-view height")
+            nested_view_box_numbers = tuple(
+                _decimal(value, "layer-view viewBox") for value in nested_view_box
+            )
+        except ValueError:
+            pass
+        try:
+            root = ElementTree.fromstring(svg)
+            nested_view_count = sum(
+                1
+                for element in root.iter()
+                if element.tag.rsplit("}", 1)[-1] == "svg"
+                and element.attrib.get("id") == "layer-view"
+            )
+        except ElementTree.ParseError:
+            nested_view_count = 0
     text = _svg_text(svg)
     files = tuple(re.findall(r"\bFile:\s*([^\s<]+)", text))
     versions = tuple(re.findall(r"\bKiCad E\.D\.A\.\s+([^\s<]+)", text))
@@ -305,13 +351,20 @@ def _projection_crosscheck(
                 f"declared_unit={declared_unit}; "
                 f"width={declared_unit}; height={declared_unit}"
             ),
-            actual=f"width={width_unit}; height={height_unit}",
+            actual=(
+                f"width={nested_width_unit}; height={nested_height_unit}"
+                if is_layered
+                else f"width={width_unit}; height={height_unit}"
+            ),
             machine_field="ElectricalLane.board.unit",
             status=(
                 "match"
                 if declared_unit == "mm"
-                and width_unit == declared_unit
-                and height_unit == declared_unit
+                and (
+                    (nested_width_unit == declared_unit and nested_height_unit == declared_unit)
+                    if is_layered
+                    else (width_unit == declared_unit and height_unit == declared_unit)
+                )
                 else "mismatch"
             ),
         )
@@ -321,13 +374,26 @@ def _projection_crosscheck(
             check_id="svg-origin",
             description="SVG origin and y-axis match the declared board coordinate system",
             expected=f"origin={declared_origin}; y_axis={declared_y_axis}",
-            actual=f"viewBox_origin={view_box[0]} {view_box[1]}; y_axis=down",
-            machine_field="ElectricalLane.board.origin; ElectricalLane.board.y_axis",
+            actual=(
+                f"viewBox_origin={nested_view_box[0]} {nested_view_box[1]}; y_axis=down"
+                if is_layered
+                else f"viewBox_origin={view_box[0]} {view_box[1]}; y_axis=down"
+            ),
+            machine_field=(
+                "ElectricalLane.board.origin; ElectricalLane.board.y_axis; "
+                "SVG.svg#layer-view.viewBox"
+                if is_layered
+                else "ElectricalLane.board.origin; ElectricalLane.board.y_axis"
+            ),
             status=(
                 "match"
                 if declared_origin == "board_upper_left"
                 and declared_y_axis == "down"
-                and view_box_numbers[:2] == (Decimal("0"), Decimal("0"))
+                and (
+                    nested_view_box_numbers[:2] == (Decimal("0"), Decimal("0"))
+                    if is_layered
+                    else view_box_numbers[:2] == (Decimal("0"), Decimal("0"))
+                )
                 else "mismatch"
             ),
         )
@@ -335,17 +401,69 @@ def _projection_crosscheck(
     items.append(
         _crosscheck_item(
             check_id="svg-viewbox",
-            description="SVG viewBox dimensions are self-consistent with the SVG root",
-            expected=f"{width_value} {height_value}",
-            actual=f"{view_box[2]} {view_box[3]}",
-            machine_field="SVG.root.width/height; SVG.root.viewBox",
+            description=(
+                "Nested KiCad layer viewBox dimensions are self-consistent"
+                if is_layered
+                else "SVG viewBox dimensions are self-consistent with the SVG root"
+            ),
+            expected=(
+                f"{nested_width_value} {nested_height_value}"
+                if is_layered and nested_width_number is not None
+                else f"{width_value} {height_value}"
+            ),
+            actual=(
+                f"{nested_view_box[2]} {nested_view_box[3]}"
+                if is_layered
+                else f"{view_box[2]} {view_box[3]}"
+            ),
+            machine_field=(
+                "SVG.svg#layer-view.width/height; SVG.svg#layer-view.viewBox"
+                if is_layered
+                else "SVG.root.width/height; SVG.root.viewBox"
+            ),
             status=(
                 "match"
-                if view_box_numbers[2:] == (width_number, height_number)
+                if (
+                    nested_view_box_numbers[2:] == (nested_width_number, nested_height_number)
+                    if is_layered
+                    else view_box_numbers[2:] == (width_number, height_number)
+                )
                 else "mismatch"
             ),
         )
     )
+    if is_layered:
+        items.append(
+            _crosscheck_item(
+                check_id="svg-outer-viewbox",
+                description="Outer acd-svg viewBox is millimeter-based and self-consistent",
+                expected=f"0 0 {width_value} {height_value}",
+                actual=f"{view_box[0]} {view_box[1]} {view_box[2]} {view_box[3]}",
+                machine_field="SVG.root.width/height; SVG.root.viewBox",
+                status=(
+                    "match"
+                    if width_unit == "mm"
+                    and height_unit == "mm"
+                    and view_box_numbers == (
+                        Decimal("0"),
+                        Decimal("0"),
+                        width_number,
+                        height_number,
+                    )
+                    else "mismatch"
+                ),
+            )
+        )
+        items.append(
+            _crosscheck_item(
+                check_id="svg-layer-view",
+                description="Exactly one nested KiCad layer view is present",
+                expected="1",
+                actual=str(nested_view_count),
+                machine_field="SVG.svg#layer-view",
+                status="match" if nested_view_count == 1 else "mismatch",
+            )
+        )
     items.append(
         _crosscheck_item(
             check_id="svg-input-file",
@@ -368,9 +486,12 @@ def _projection_crosscheck(
         )
     )
     try:
-        actual_hash = normalized_svg_sha256(svg)
+        actual_hash = svg_source_hash(svg, projection.normalization_rule_id)
     except ValueError as exc:
-        raise ValueError("visual crosscheck SVG normalization failed") from exc
+        if is_layered:
+            actual_hash = "normalization failed"
+        else:
+            raise ValueError("visual crosscheck SVG normalization failed") from exc
     items.append(
         _crosscheck_item(
             check_id="svg-image-hash",

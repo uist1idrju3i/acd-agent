@@ -1008,7 +1008,7 @@ V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の�
 
 背景と観測は[`roadmap.md`](roadmap.md)の14.24節、各項目の詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
-14.24の進捗は32件達成、未了1件（AA-32）である。
+14.24の進捗は33件達成、未了0件である。
 
 | 区分 | 内容 |
 |---|---|

@@ -18,11 +18,18 @@ import acd.pipeline.visual_projection as visual_projection
 from acd.adapters.cad.mechanical import MechanicalGateReport, run_mechanical_gates
 from acd.adapters.cad.project import CadProjection, project_enclosure
 from acd.adapters.cad.visual_projection import generate_mechanical_visual_projections
+from acd.adapters.kicad.visual_projection import wrap_kicad_layer_svg
 from acd.core.board_model import BoardModel, CopperZone
 from acd.core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
 from acd.core.process import sha256_bytes
-from acd.core.visual_projection import normalized_svg_sha256
+from acd.core.visual_projection import (
+    KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
+    LayerViewAnnotations,
+    measure_svg_resolution,
+    normalized_svg_sha256,
+    svg_source_hash,
+)
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.visual_projection import (
     crosscheck_electrical_visual_projections,
@@ -85,6 +92,20 @@ def _svg(file_name: str, *, refs: tuple[str, ...] = (), width: str = "30mm",
     ).encode()
 
 
+def _layer_svg(layer: str = "F.Cu") -> bytes:
+    raw = _svg("gd1.kicad_pcb")
+    return wrap_kicad_layer_svg(
+        raw,
+        annotations=LayerViewAnnotations(
+            project_name="gd1",
+            layer=layer,
+            board_width_mm=30.0,
+            board_height_mm=25.0,
+            layer_count=2,
+        ),
+    )
+
+
 def _projection(
     *,
     projection_id: str,
@@ -92,6 +113,12 @@ def _projection(
     source_file: str,
     image_path: str,
     image_hash: str,
+    normalization_rule_id: str = "kicad-svg-title-v1",
+    resolution: tuple[str, str, tuple[float, float, float, float]] = (
+        "30mm",
+        "25mm",
+        (0.0, 0.0, 30.0, 25.0),
+    ),
 ) -> dict[str, object]:
     return {
         "projection_id": projection_id,
@@ -106,11 +133,11 @@ def _projection(
         },
         "media_type": "image/svg+xml",
         "resolution": {
-            "width": "30mm",
-            "height": "25mm",
-            "view_box": [0.0, 0.0, 30.0, 25.0],
+            "width": resolution[0],
+            "height": resolution[1],
+            "view_box": list(resolution[2]),
         },
-        "normalization_rule_id": "kicad-svg-title-v1",
+        "normalization_rule_id": normalization_rule_id,
         "normalization_rule_description": "Replace one volatile KiCad SVG title.",
         "image_hash": image_hash,
         "generated_at": datetime(2026, 8, 19, tzinfo=UTC).isoformat(),
@@ -133,7 +160,7 @@ def _fixture(
     visual_dir = tmp_path / "visual"
     visual_dir.mkdir(parents=True)
     schematic = schematic or _svg("gd1.kicad_sch")
-    board = board or _svg("gd1.kicad_pcb")
+    board = board or _layer_svg()
     (visual_dir / "gd1-schematic.svg").write_bytes(schematic)
     (visual_dir / "gd1-f-cu.svg").write_bytes(board)
     (visual_dir / "gd1-b-cu.svg").write_bytes(board)
@@ -151,14 +178,30 @@ def _fixture(
                 projection_type="layered_layout_view",
                 source_file="gd1.kicad_pcb",
                 image_path="visual/gd1-f-cu.svg",
-                image_hash=normalized_svg_sha256(board),
+                image_hash=svg_source_hash(
+                    board, KICAD_LAYER_SVG_NORMALIZATION_RULE_ID
+                ),
+                normalization_rule_id=KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
+                resolution=(
+                    measure_svg_resolution(board).width,
+                    measure_svg_resolution(board).height,
+                    measure_svg_resolution(board).view_box,
+                ),
             ),
             _projection(
                 projection_id="gd1-b-cu",
                 projection_type="layered_layout_view",
                 source_file="gd1.kicad_pcb",
                 image_path="visual/gd1-b-cu.svg",
-                image_hash=normalized_svg_sha256(board),
+                image_hash=svg_source_hash(
+                    board, KICAD_LAYER_SVG_NORMALIZATION_RULE_ID
+                ),
+                normalization_rule_id=KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
+                resolution=(
+                    measure_svg_resolution(board).width,
+                    measure_svg_resolution(board).height,
+                    measure_svg_resolution(board).view_box,
+                ),
             ),
         ]
     projection_set = VisualProjectionSet.model_validate(
@@ -216,6 +259,9 @@ def test_crosscheck_is_reproducible_and_writes_report(tmp_path: Path) -> None:
         ("non_mm",),
         ("non_zero_origin",),
         ("view_box_mismatch",),
+        ("missing_layer_view",),
+        ("duplicate_layer_view",),
+        ("nested_non_zero_origin",),
         ("file_mismatch",),
         ("renderer_mismatch",),
         ("image_hash_mismatch",),
@@ -278,6 +324,21 @@ def test_crosscheck_mismatches_fail_closed(tmp_path: Path, mutation: str) -> Non
             else "0 0 30 25",
         )
         (base_dir / "visual/gd1-schematic.svg").write_bytes(content)
+    elif mutation in {"missing_layer_view", "duplicate_layer_view", "nested_non_zero_origin"}:
+        board_path = base_dir / "visual/gd1-f-cu.svg"
+        content = board_path.read_bytes()
+        if mutation == "missing_layer_view":
+            content = re.sub(rb'<svg id="layer-view"[^>]*>.*?</svg>', b"", content)
+        elif mutation == "duplicate_layer_view":
+            match = re.search(rb'(<svg id="layer-view"[^>]*>.*?</svg>)', content)
+            assert match is not None
+            content = content.replace(b"</g>", match.group(1) + b"</g>", 1)
+        else:
+            content = content.replace(
+                b'viewBox="0 0 30 25"',
+                b'viewBox="1 0 30 25"',
+            )
+        board_path.write_bytes(content)
     mutated_set = VisualProjectionSet.model_validate(
         {
             "source_revision": "r8",

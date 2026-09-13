@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib
 import json
 import math
-import re
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import partial
@@ -41,8 +40,10 @@ from acd.core.parallel import PipelineStageRunner
 from acd.core.process import ExternalToolError, sha256_bytes
 from acd.core.visual_projection import (
     CAD_SVG_NORMALIZATION_RULE_ID,
+    SvgNormalizationError,
     cad_view_geometry,
     measure_svg_resolution,
+    raw_svg_parts,
 )
 from acd.schema.visual_projection import (
     VisualProjectionInput,
@@ -58,12 +59,6 @@ CAD_SVG_NORMALIZATION_RULE_DESCRIPTION = (
     "Build123d ExportSVG raw output is embedded verbatim as svg#cad-view "
     "inside an acd-svg document."
 )
-
-_RAW_SVG_ROOT_PATTERN = re.compile(r"<svg\b(?P<attributes>[^>]*)>", re.DOTALL)
-_RAW_SVG_ATTRIBUTE_PATTERN = re.compile(
-    r'(?P<name>[A-Za-z_][A-Za-z0-9_.:-]*)\s*=\s*"(?P<value>[^"]*)"'
-)
-
 
 class MechanicalVisualProjectionError(ExternalToolError):
     """Raised when a mechanical visual projection cannot be trusted."""
@@ -520,50 +515,9 @@ def _write_svg(
 
 def _raw_svg_parts(raw: bytes) -> tuple[str, str, float, float, str]:
     try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError as exc:
-        raise MechanicalVisualProjectionError("raw mechanical SVG is not UTF-8") from exc
-    roots = list(_RAW_SVG_ROOT_PATTERN.finditer(text))
-    closing = list(re.finditer(r"</svg>", text))
-    if len(roots) != 1 or len(closing) != 1:
-        raise MechanicalVisualProjectionError("raw mechanical SVG must contain one root")
-    root = roots[0]
-    close = closing[0]
-    if close.start() < root.end():
-        raise MechanicalVisualProjectionError("raw mechanical SVG root is malformed")
-    attributes = list(_RAW_SVG_ATTRIBUTE_PATTERN.finditer(root.group("attributes")))
-    values = {match.group("name"): match.group("value") for match in attributes}
-    view_box = values.get("viewBox")
-    if view_box is None:
-        raise MechanicalVisualProjectionError("raw mechanical SVG viewBox is missing")
-    view_box_values = view_box.split()
-    if len(view_box_values) != 4:
-        raise MechanicalVisualProjectionError("raw mechanical SVG viewBox is malformed")
-    try:
-        width = float(view_box_values[2])
-        height = float(view_box_values[3])
-    except ValueError as exc:
-        raise MechanicalVisualProjectionError(
-            "raw mechanical SVG viewBox is non-numeric"
-        ) from exc
-    if not math.isfinite(width) or not math.isfinite(height) or width <= 0 or height <= 0:
-        raise MechanicalVisualProjectionError("raw mechanical SVG viewBox is invalid")
-    kept_attributes: list[str] = []
-    cursor = 0
-    for match in attributes:
-        if match.group("name") in {"width", "height", "viewBox", "xmlns"}:
-            kept_attributes.append(root.group("attributes")[cursor : match.start()])
-        else:
-            kept_attributes.append(root.group("attributes")[cursor : match.end()])
-        cursor = match.end()
-    kept_attributes.append(root.group("attributes")[cursor:])
-    return (
-        view_box,
-        "".join(kept_attributes).strip(),
-        width,
-        height,
-        text[root.end() : close.start()],
-    )
+        return raw_svg_parts(raw)
+    except SvgNormalizationError as exc:
+        raise MechanicalVisualProjectionError(str(exc)) from exc
 
 
 def _wrap_cad_svg(raw: bytes, *, annotations: _CadAnnotations) -> bytes:

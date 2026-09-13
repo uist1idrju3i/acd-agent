@@ -11,11 +11,13 @@ from acd.core.process import sha256_bytes
 from acd.core.visual_projection import (
     ACD_SVG_NORMALIZATION_RULE_ID,
     CAD_SVG_NORMALIZATION_RULE_ID,
+    KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
     SVG_TITLE_NORMALIZATION_RULE_ID,
     SvgNormalizationError,
     SvgResolutionError,
     cad_view_geometry,
     measure_svg_resolution,
+    normalize_kicad_layer_svg,
     normalize_svg,
     normalized_svg_sha256,
     svg_source_hash,
@@ -163,6 +165,62 @@ def test_svg_source_hash_applies_the_kicad_title_rule() -> None:
     )
     assert svg_source_hash(first, SVG_TITLE_NORMALIZATION_RULE_ID) == (
         normalized_svg_sha256(first)
+    )
+
+
+def _layer_svg(
+    nested_title: str = "SVG Image created as first.svg date 2026-08-19T03:45:00Z ",
+    outer_title: str = "gd1 — F.Cu",
+) -> bytes:
+    return (
+        f'<svg width="240mm" height="100mm" viewBox="0 0 240 100">'
+        f"<title>{outer_title}</title>"
+        '<svg id="layer-view" width="30mm" height="25mm" '
+        'viewBox="0.0000 0.0000 30.0000 25.0000">'
+        f"<title>{nested_title}</title><desc>KiCad E.D.A. 10.0.5</desc>"
+        "</svg></svg>"
+    ).encode()
+
+
+def test_kicad_layer_normalization_replaces_nested_title_only() -> None:
+    first = normalize_kicad_layer_svg(_layer_svg())
+    second = normalize_kicad_layer_svg(
+        _layer_svg(
+            "SVG Image created as second.svg date 2026-08-19T03:46:01 "
+        )
+    )
+    assert first == second
+
+
+@pytest.mark.parametrize(
+    "svg",
+    [
+        _layer_svg(
+            outer_title="SVG Image created as outer.svg date 2026-08-19T03:45:00Z "
+        ),
+        _layer_svg().replace(
+            b"</title><desc>",
+            b"</title><title>SVG Image created as second.svg date "
+            b"2026-08-19T03:45:00Z </title><desc>",
+        ),
+        _layer_svg().replace(b"<title>gd1", b"<title>extra</title><title>gd1"),
+        _layer_svg().replace(b"<title>", b"<not-title>", 1).replace(
+            b"</title>", b"</not-title>", 1
+        ),
+    ],
+)
+def test_kicad_layer_normalization_rejects_invalid_titles(svg: bytes) -> None:
+    with pytest.raises(SvgNormalizationError):
+        normalize_kicad_layer_svg(svg)
+
+
+def test_svg_source_hash_applies_the_kicad_layer_title_rule() -> None:
+    first = _layer_svg()
+    second = _layer_svg(
+        "SVG Image created as second.svg date 2026-08-19T03:46:01 "
+    )
+    assert svg_source_hash(first, KICAD_LAYER_SVG_NORMALIZATION_RULE_ID) == (
+        svg_source_hash(second, KICAD_LAYER_SVG_NORMALIZATION_RULE_ID)
     )
 
 

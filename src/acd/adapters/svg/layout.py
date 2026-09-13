@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, Literal, TypedDict
 
-from acd.adapters.kicad.visual_projection import copper_layers_for_layer_count
+from acd.adapters.kicad.layers import copper_layers_for_layer_count
 from acd.adapters.svg.common import (
     ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
     ACD_SVG_NORMALIZATION_RULE_ID,

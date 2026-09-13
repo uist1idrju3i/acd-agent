@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import re
 import stat
 from pathlib import Path
 
 import pytest
 
 from acd.adapters.kicad.cli import KicadCli
-from acd.adapters.kicad.visual_projection import KicadVisualRenderer
+from acd.adapters.kicad.visual_projection import KicadVisualRenderer, wrap_kicad_layer_svg
 from acd.core.process import ExternalToolError
+from acd.core.visual_projection import LayerViewAnnotations, nested_view_geometry
 
 _FAKE_KICAD = """\
 #!/usr/bin/env python3
@@ -51,6 +53,16 @@ def _executable(tmp_path: Path) -> Path:
     executable.write_text(_FAKE_KICAD)
     executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
     return executable
+
+
+def _layer_annotations(layer: str = "F.Cu") -> LayerViewAnnotations:
+    return LayerViewAnnotations(
+        project_name="gd1",
+        layer=layer,
+        board_width_mm=29.9974,
+        board_height_mm=24.9936,
+        layer_count=2,
+    )
 
 
 def test_renderer_reproduces_and_records_measured_provenance(
@@ -121,6 +133,53 @@ def test_renderer_rejects_multiple_schematic_sheet_outputs(
         )
 
 
+def test_layered_view_requires_annotations(tmp_path: Path) -> None:
+    source = tmp_path / "gd1.kicad_pcb"
+    source.write_text("board")
+    with pytest.raises(ExternalToolError, match="layer annotations"):
+        KicadVisualRenderer(KicadCli(str(_executable(tmp_path)))).render(
+            projection_id="gd1-front-copper",
+            projection_type="layered_layout_view",
+            domain="electrical",
+            source_revision="r8",
+            source=source,
+            output_path=tmp_path / "front-copper.svg",
+            layer="F.Cu",
+            base_dir=tmp_path,
+        )
+
+
+def test_schematic_view_rejects_layer_annotations(tmp_path: Path) -> None:
+    source = tmp_path / "gd1.kicad_sch"
+    source.write_text("schematic")
+    with pytest.raises(ExternalToolError, match="does not accept"):
+        KicadVisualRenderer(KicadCli(str(_executable(tmp_path)))).render(
+            projection_id="gd1-schematic",
+            projection_type="schematic_view",
+            domain="electrical",
+            source_revision="r8",
+            source=source,
+            output_path=tmp_path / "schematic.svg",
+            layer_annotations=_layer_annotations(),
+            base_dir=tmp_path,
+        )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"><title>x</title></svg>'
+        b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"><title>x</title></svg>',
+        b'<svg width="1mm" height="1mm"><title>x</title></svg>',
+        b'<svg width="1in" height="1in" viewBox="0 0 1 1"><title>x</title></svg>',
+        b"\xff",
+    ],
+)
+def test_layer_wrapper_rejects_invalid_raw_svg(raw: bytes) -> None:
+    with pytest.raises(ExternalToolError):
+        wrap_kicad_layer_svg(raw, _layer_annotations())
+
+
 def test_renderer_supports_layered_layout_view(
     tmp_path: Path,
 ) -> None:
@@ -136,11 +195,24 @@ def test_renderer_supports_layered_layout_view(
         source=source,
         output_path=tmp_path / "front-copper.svg",
         layer="F.Cu",
+        layer_annotations=_layer_annotations(),
         base_dir=tmp_path,
     )
 
     assert record.projection_type == "layered_layout_view"
     assert record.input_files[0].path == "gd1.kicad_pcb"
+    assert record.normalization_rule_id == "kicad-layer-svg-title-v1"
+    wrapped = (tmp_path / "front-copper.svg").read_bytes()
+    assert nested_view_geometry(wrapped, "layer-view") == (
+        "29.9974mm",
+        "24.9936mm",
+        ("0.0000", "0.0000", "29.9974", "24.9936"),
+    )
+    assert re.search(
+        rb"<title>SVG Image created as [^<]+</title><path d=\"same\"/>",
+        wrapped,
+    )
+    assert len(list(tmp_path.glob(".*.raw"))) == 0
 
 
 def test_layered_layout_view_export_keeps_the_drawing_sheet(
@@ -161,6 +233,7 @@ def test_layered_layout_view_export_keeps_the_drawing_sheet(
         source=source,
         output_path=tmp_path / "front-copper.svg",
         layer="F.Cu",
+        layer_annotations=_layer_annotations(),
         base_dir=tmp_path,
     )
 
@@ -176,6 +249,10 @@ def test_layered_layout_view_export_keeps_the_drawing_sheet(
         assert "--page-size-mode" in arguments
         assert arguments[arguments.index("--page-size-mode") + 1] == "2"
         assert "--exclude-drawing-sheet" not in arguments
+        raw_output = Path(arguments[arguments.index("-o") + 1])
+        assert raw_output.parent in {tmp_path, tmp_path / "reproduction"}
+        assert raw_output.name.startswith(".front-copper")
+        assert raw_output.suffix == ".raw"
 
 
 def test_renderer_absent_executable_fails_closed(tmp_path: Path) -> None:
