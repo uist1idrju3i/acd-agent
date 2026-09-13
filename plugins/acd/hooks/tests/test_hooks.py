@@ -1870,7 +1870,10 @@ def test_session_start_invalid_registry_lock_uses_next_candidate(
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr(module, "_lock_candidates", lambda _root: [invalid, valid])
+    def candidates(_root: Path) -> list[Path]:
+        return [invalid, valid]
+
+    monkeypatch.setattr(module, "_lock_candidates", candidates)
     reference, error, used = module._locked_image(tmp_path)
     assert error is None
     assert reference == f"example.test/acd-server@{SERVER_DIGEST}"
