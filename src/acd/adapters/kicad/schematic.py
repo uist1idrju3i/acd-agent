@@ -226,23 +226,27 @@ def _symbol_geometry(
     value_width = len(value) * 1.27 * 0.9
     right_x = _snap(base.right + 1.27)
     left_x = _snap(base.left - 1.27)
+    reference_right_x = _snap(right_x + reference_width / 2)
+    reference_left_x = _snap(left_x - reference_width / 2)
+    value_right_x = _snap(right_x + value_width / 2)
+    value_left_x = _snap(left_x - value_width / 2)
     reference_box = _pick(
         [
             (0.0, _snap(base.top - 2.54)),
-            (right_x + reference_width / 2, _snap(base.top)),
-            (right_x + reference_width / 2, middle_y),
-            (left_x - reference_width / 2, _snap(base.top)),
-            (left_x - reference_width / 2, middle_y),
+            (reference_right_x, _snap(base.top)),
+            (reference_right_x, middle_y),
+            (reference_left_x, _snap(base.top)),
+            (reference_left_x, middle_y),
         ],
         reference_width,
     )
     value_box = _pick(
         [
             (0.0, _snap(base.bottom + 2.54)),
-            (right_x + value_width / 2, _snap(base.bottom)),
-            (right_x + value_width / 2, middle_y),
-            (left_x - value_width / 2, _snap(base.bottom)),
-            (left_x - value_width / 2, middle_y),
+            (value_right_x, _snap(base.bottom)),
+            (value_right_x, middle_y),
+            (value_left_x, _snap(base.bottom)),
+            (value_left_x, middle_y),
         ],
         value_width,
         (reference_box,),
@@ -306,6 +310,24 @@ def _label_collisions(
                     f"label '{other.net}' (fail-closed)"
                 )
     return collisions
+
+
+def _dedupe_stacked_labels(labels: list[_LabelPlacement]) -> list[_LabelPlacement]:
+    """Drop duplicate labels of stacked pins sharing point and net.
+
+    A single label at a stacked connection point already connects every pin
+    there. Different nets at the same point keep their labels so the
+    label-vs-label collision check still fails closed.
+    """
+    seen: set[tuple[str, float, float, str]] = set()
+    deduped: list[_LabelPlacement] = []
+    for label in labels:
+        key = (label.refdes, label.x_mm, label.y_mm, label.net)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(label)
+    return deduped
 
 
 def _pin_point(placed_x: float, placed_y: float, pin: SymbolPin) -> tuple[float, float]:
@@ -681,6 +703,7 @@ def generate_schematic(
                         )
                     )
 
+    label_placements = _dedupe_stacked_labels(label_placements)
     collisions = _label_collisions(placements, label_placements)
     if collisions:
         raise ValueError(collisions[0])

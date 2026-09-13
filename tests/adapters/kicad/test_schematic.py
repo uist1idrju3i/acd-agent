@@ -15,6 +15,7 @@ from acd.adapters.kicad.schematic import (
     LABEL_ALLOWANCE,
     PWR_FLAG_LIB_ID,
     PlacedSymbol,
+    _dedupe_stacked_labels,
     _global_label,
     _label_collisions,
     _label_rotation,
@@ -205,4 +206,23 @@ def test_overlapping_labels_fail_closed() -> None:
         _LabelPlacement("U1", "2", "LONG_NET_B", 41.91, 40.64, 0, 20.0),
     ]
     collisions = _label_collisions([first], labels)
+    assert any("fail-closed" in collision for collision in collisions)
+
+
+def test_stacked_same_net_labels_are_deduped() -> None:
+    labels = [
+        _LabelPlacement("J1", "A1", "GND", 40.64, 40.64, 90, 6.0),
+        _LabelPlacement("J1", "A12", "GND", 40.64, 40.64, 90, 6.0),
+    ]
+    deduped = _dedupe_stacked_labels(labels)
+    assert deduped == [labels[0]]
+
+
+def test_stacked_different_net_labels_are_kept() -> None:
+    labels = [
+        _LabelPlacement("J1", "A1", "GND", 40.64, 40.64, 90, 6.0),
+        _LabelPlacement("J1", "A12", "VBUS", 40.64, 40.64, 90, 6.0),
+    ]
+    assert _dedupe_stacked_labels(labels) == labels
+    collisions = _label_collisions([], labels)
     assert any("fail-closed" in collision for collision in collisions)
