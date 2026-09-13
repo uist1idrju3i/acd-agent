@@ -1,10 +1,10 @@
 {
   "acd_tools": {
     "image": "ghcr.io/uist1idrju3i/acd-tools",
-    "tag": "29ec48d260e829ffca62dfe2d9ea0b41b749eaf5-tools",
-    "digest": "sha256:101334a0c91606a8127e896e1fe5a82f77fd521635d04b9b4ac90d6a769bc0c1",
-    "published_at": "2026-09-09T12:10:13Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34347374978",
+    "tag": "7af143a5e302004ff83060800a2e1fc8f11ec470-tools",
+    "digest": "sha256:b4e2b03003cfa130f366aab25aa55e5238799d564b8dc75f0ebac137d0794d2f",
+    "published_at": "2026-09-13T11:24:02Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34753584149",
     "dockerfile": "docker/acd-tools.Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
@@ -19,15 +19,15 @@
       "ninja": "1.13.2",
       "python3.14": "Python 3.14.4",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
-      "uv": "uv 0.12.10 (x86_64-unknown-linux-gnu)"
+      "uv": "uv 0.12.13 (x86_64-unknown-linux-gnu)"
     }
   },
   "acd_server": {
     "image": "ghcr.io/uist1idrju3i/acd-server",
-    "tag": "29ec48d260e829ffca62dfe2d9ea0b41b749eaf5-latest-source",
-    "digest": "sha256:019ee0a8b94345ca3ad206a76b585a6e548bca59610e367b2e2d1674a438f3b0",
-    "published_at": "2026-09-09T12:10:13Z",
-    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34347374978",
+    "tag": "7af143a5e302004ff83060800a2e1fc8f11ec470-latest-source",
+    "digest": "sha256:26295013ec39938f175c28e75384a7671599195887ea9732a8255c5838cf6d81",
+    "published_at": "2026-09-13T11:24:02Z",
+    "workflow_run": "https://github.com/uist1idrju3i/acd-agent/actions/runs/34753584149",
     "dockerfile": "vendor/software-agent-sdk/openhands-agent-server/openhands/agent_server/docker/Dockerfile",
     "tools": {
       "ccache": "ccache version 4.12.3",
@@ -42,7 +42,7 @@
       "ninja": "1.13.2",
       "python3.14": "Python 3.14.4",
       "qemu-system-riscv32": "QEMU emulator version 9.2.2 (esp_develop_9.2.2_20260417)",
-      "uv": "uv 0.12.10 (x86_64-unknown-linux-gnu)"
+      "uv": "uv 0.12.13 (x86_64-unknown-linux-gnu)"
     }
   }
 }
