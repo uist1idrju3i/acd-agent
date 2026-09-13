@@ -39,6 +39,31 @@ from generate_product_readme import main as readme_main
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
 GRAPH = REPO_ROOT / "fixtures" / "golden-design-1" / "graph.json"
+REAL_GD1_GRAPH = (
+    REPO_ROOT
+    / "examples"
+    / "golden-design-1-vps-20260906"
+    / "silkscreen"
+    / "work-fixture"
+    / "graph.json"
+)
+REAL_GD1_HEADER = (
+    REPO_ROOT
+    / "examples"
+    / "golden-design-1-vps-20260906"
+    / "firmware"
+    / "acd_golden_design_1_fw"
+    / "main"
+    / "acd_pins.h"
+)
+DBT_GRAPH = (
+    REPO_ROOT
+    / "examples"
+    / "dual-beacon-tag-vps-20260908"
+    / "regen-run"
+    / "fixture"
+    / "graph.json"
+)
 PROJECTION_TEMPLATE = (
     REPO_ROOT / "fixtures" / "contracts" / "valid" / "visual-projection-set.json"
 )
@@ -111,6 +136,26 @@ def _pins_header(directory: Path, revision: str) -> Path:
     return path
 
 
+def _dbt_pins_header(directory: Path) -> Path:
+    path = directory / "acd_pins.h"
+    path.write_text(
+        "\n".join(
+            [
+                "#pragma once",
+                '#define ACD_TARGET_REVISION "r1"',
+                "#define ACD_PIN_LED 6",
+                "#define ACD_PIN_LED2 7",
+                "#define ACD_PIN_BUTTON 9",
+                "#define ACD_PIN_I2C_SDA 0",
+                "#define ACD_PIN_I2C_SCL 1",
+                "#define ACD_LED_BLINK_PERIOD_MS 500",
+                "#define ACD_LOG_PERIOD_MS 1000",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return path
 def _theme_song_projection(
     directory: Path,
     graph: DesignGraph,
@@ -300,6 +345,31 @@ def test_instruction_manual_is_deterministic(graph: DesignGraph, tmp_path: Path)
     assert render_manual(loaded, macros) == render_manual(loaded, macros)
 
 
+def test_real_gd1_header_renders_all_declared_sections() -> None:
+    graph, _ = load_graph(REAL_GD1_GRAPH)
+    macros = parse_pins_header(REAL_GD1_HEADER)
+    body = render_manual(graph, macros)
+    assert "## 機能説明" in body
+    assert "## 接続手順" in body
+    assert "## LED表示の意味" in body
+    assert "## 書き込み手順" in body
+    assert "## 安全上の注意" in body
+    assert "graphにread_button stepの宣言が無い" in body
+
+
+def test_dbt_manual_derives_conditional_sections(tmp_path: Path) -> None:
+    graph, _ = load_graph(DBT_GRAPH)
+    macros = parse_pins_header(_dbt_pins_header(tmp_path))
+    body = render_manual(graph, macros)
+    assert body.count("| 逆相の点滅 |") == 1
+    assert "## 操作" in body
+    assert "IO9のボタンを押すと`fw.state.blink`から`fw.state.paused`へ遷移する" in body
+    assert "mechanical.connector_opening.j1" in body
+    assert "mechanical.connector_opening.j2" in body
+    assert "graphにセンサ読み出しstepの宣言が無い" in body
+    assert "pin role usb_dp/usb_dn の宣言が無い" in body
+
+
 def test_pin_projection_of_another_revision_fails_closed(tmp_path: Path) -> None:
     header = _pins_header(tmp_path, "r99")
     macros = parse_pins_header(header)
@@ -316,8 +386,24 @@ def test_missing_pin_macro_fails_closed(tmp_path: Path) -> None:
         if not line.startswith("#define ACD_PIN_LED")
     ]
     header.write_text("\n".join(kept), encoding="utf-8")
+    macros = parse_pins_header(header)
+    loaded, _ = load_graph(GRAPH)
     with pytest.raises(DocumentGenerationError, match="ACD_PIN_LED"):
-        parse_pins_header(header)
+        render_manual(loaded, macros)
+
+
+def test_missing_sensor_macro_fails_closed(tmp_path: Path) -> None:
+    header = _pins_header(tmp_path, "r1")
+    kept = [
+        line
+        for line in header.read_text(encoding="utf-8").splitlines()
+        if not line.startswith("#define ACD_SHT40_I2C_ADDRESS")
+    ]
+    header.write_text("\n".join(kept), encoding="utf-8")
+    macros = parse_pins_header(header)
+    loaded, _ = load_graph(GRAPH)
+    with pytest.raises(DocumentGenerationError, match="ACD_SHT40_I2C_ADDRESS"):
+        render_manual(loaded, macros)
 
 
 def test_invalid_graph_fails_closed(tmp_path: Path) -> None:

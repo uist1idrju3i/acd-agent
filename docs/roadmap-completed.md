@@ -1023,3 +1023,12 @@ V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の�
 provisional verdict）を生成する。PNG rasterは既存の
 `visual-review-manifest`段で生成済みであり、文書とverdictはいずれもL3観測で
 authoritative EvidenceやL1判定を置き換えない。
+
+実装状況（AA-25）: `generate_instruction_manual.py`の必須macroを
+`ACD_TARGET_REVISION`だけにし、firmware action、pin assignment、
+`mechanical.connector_opening`のgraph宣言から取扱説明書の節を決定論的に導出する。
+宣言済みの機能に対応するmacroがpin projectionに無い場合は矛盾としてfail-closedにし、
+graphに無い機能・経路は推定せず、文書末の`省略した項目`へ日本語の理由を記録する。
+GD1実headerとDBT graph、複数connector、LED2、button操作、revision mismatch、
+macro欠落、byte一致を回帰テストで固定した。旧`instruction-manual.fail-closed.log`は
+当時の観測記録として保持する。

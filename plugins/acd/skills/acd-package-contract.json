@@ -200,11 +200,12 @@
     {
       "acd_symbols": [
         "acd.core.electrical.extract_electrical_lane",
+        "acd.core.firmware_lane.FirmwareLane",
         "acd.core.firmware_lane.extract_firmware_lane",
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_instruction_manual.py",
-      "sha256": "d63a38727673754dd96d93b46109e6b7d4c4e3d169c54272b2c545c7a16ab792"
+      "sha256": "355ea6a3d1306f9e1c4c1cb30f6988329331706d50b0a4e8b356df01b27cadab"
     },
     {
       "acd_symbols": [

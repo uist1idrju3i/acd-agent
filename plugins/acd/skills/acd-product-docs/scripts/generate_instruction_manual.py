@@ -4,12 +4,11 @@
 #     "acd @ git+https://github.com/uist1idrju3i/acd-agent@f473dac4ece7fc25797ab19dee0009dee7b51958",
 # ]
 # ///
-"""Generate the deterministic instruction manual for a design graph.
+"""Generate the deterministic instruction manual from graph declarations.
 
-Function descriptions, connection steps, LED semantics, flashing steps and
-safety notes are derived from the design graph and from the generated firmware
-pin projection (``acd_pins.h``). No value is estimated: when an input macro or
-graph node is missing, generation stops instead of guessing a number.
+Each section is rendered only when its inputs are declared by the graph and
+pin projection. Undeclared items are listed as omissions; contradictions
+between declarations and generated pins fail closed instead of estimating.
 """
 
 from __future__ import annotations
@@ -17,10 +16,11 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from acd.core.electrical import extract_electrical_lane
-from acd.core.firmware_lane import extract_firmware_lane
+from acd.core.firmware_lane import FirmwareLane, extract_firmware_lane
 from acd.schema.design_graph import DesignGraph
 from doc_inputs import (
     DocumentGenerationError,
@@ -34,24 +34,19 @@ from doc_inputs import (
     write_document,
 )
 
-TEMPLATE_ID = "acd-instruction-manual-ja-v1"
+TEMPLATE_ID = "acd-instruction-manual-ja-v2"
 DOCUMENT_NAME = "instruction-manual.md"
 
 _DEFINE_PATTERN = re.compile(r"^#define\s+(?P<name>[A-Z0-9_]+)\s+(?P<value>\S+)\s*$")
-_REQUIRED_MACROS = (
-    "ACD_TARGET_REVISION",
-    "ACD_PIN_LED",
-    "ACD_PIN_I2C_SDA",
-    "ACD_PIN_I2C_SCL",
-    "ACD_PIN_UART_TX",
-    "ACD_PIN_UART_RX",
-    "ACD_PIN_USB_DP",
-    "ACD_PIN_USB_DN",
-    "ACD_PIN_BOOT",
-    "ACD_SHT40_I2C_ADDRESS",
-    "ACD_LED_BLINK_PERIOD_MS",
-    "ACD_LOG_PERIOD_MS",
-)
+_REQUIRED_MACROS = ("ACD_TARGET_REVISION",)
+
+
+@dataclass(frozen=True)
+class Omission:
+    """One omitted section and the reason it was not rendered."""
+
+    section: str
+    reason: str
 
 
 def parse_pins_header(path: Path) -> dict[str, str]:
@@ -73,6 +68,15 @@ def parse_pins_header(path: Path) -> dict[str, str]:
     return macros
 
 
+def _require_macro(
+    macros: dict[str, str], name: str, *, because: str
+) -> None:
+    if name not in macros:
+        raise DocumentGenerationError(
+            f"pin projection lacks {name} although the graph declares {because}"
+        )
+
+
 def _macro_int(macros: dict[str, str], name: str) -> int:
     raw = macros[name]
     try:
@@ -83,6 +87,13 @@ def _macro_int(macros: dict[str, str], name: str) -> int:
         ) from exc
 
 
+def _required_macro_int(
+    macros: dict[str, str], name: str, *, because: str
+) -> int:
+    _require_macro(macros, name, because=because)
+    return _macro_int(macros, name)
+
+
 def _revision_guard(graph: DesignGraph, macros: dict[str, str]) -> None:
     revision = macros["ACD_TARGET_REVISION"].strip('"')
     if revision != graph.revision:
@@ -91,7 +102,37 @@ def _revision_guard(graph: DesignGraph, macros: dict[str, str]) -> None:
         )
 
 
-def _function_section(graph: DesignGraph, macros: dict[str, str]) -> list[str]:
+def _pin_macro(net: str) -> str:
+    return "ACD_PIN_" + net.removeprefix("net.").upper()
+
+
+def _declared_nets(firmware: FirmwareLane) -> set[str]:
+    return {assignment.net for assignment in firmware.pin_assignments}
+
+
+def _pin_pair(
+    firmware: FirmwareLane,
+    macros: dict[str, str],
+    first_net: str,
+    second_net: str,
+    *,
+    because: str,
+) -> tuple[int, int] | None:
+    declared = _declared_nets(firmware)
+    if first_net not in declared or second_net not in declared:
+        return None
+    first_name = _pin_macro(first_net)
+    second_name = _pin_macro(second_net)
+    first = _required_macro_int(macros, first_name, because=because)
+    second = _required_macro_int(macros, second_name, because=because)
+    return first, second
+
+
+def _function_section(
+    graph: DesignGraph,
+    macros: dict[str, str],
+    omissions: list[Omission],
+) -> list[str]:
     firmware = extract_firmware_lane(graph)
     lines = ["## 機能説明", "", "起動後のFWは次の状態を遷移する。", ""]
     lines += ["| 状態 | 初期状態 |", "|---|---|"]
@@ -100,52 +141,135 @@ def _function_section(graph: DesignGraph, macros: dict[str, str]) -> list[str]:
     lines += ["", "動作順序は次のとおり。", "", "| 手順 | 対象 | 動作 |", "|---|---|---|"]
     for step in sorted(firmware.sequence_steps, key=lambda item: item.step_index):
         lines.append(f"| {step.step_index} | {step.target} | {step.action} |")
-    address = _macro_int(macros, "ACD_SHT40_I2C_ADDRESS")
-    log_period_ms = _macro_int(macros, "ACD_LOG_PERIOD_MS")
-    lines += [
-        "",
-        f"温湿度センサはI2Cアドレス`0x{address:02x}`で読み出し、"
-        f"{log_period_ms} msごとにシリアルログへ出力する。",
-        "",
-    ]
+    sensor_declared = any(
+        step.action in {"read_temperature_humidity", "initialize_sht40"}
+        for step in firmware.sequence_steps
+    )
+    if sensor_declared:
+        address = _required_macro_int(
+            macros,
+            "ACD_SHT40_I2C_ADDRESS",
+            because="temperature/humidity sensor step",
+        )
+        lines += [
+            "",
+            f"温湿度センサはI2Cアドレス`0x{address:02x}`で読み出す。",
+        ]
+    else:
+        omissions.append(
+            Omission("機能説明（センサ）", "graphにセンサ読み出しstepの宣言が無い")
+        )
+    if any(step.action == "write_serial_log" for step in firmware.sequence_steps):
+        log_period_ms = _required_macro_int(
+            macros,
+            "ACD_LOG_PERIOD_MS",
+            because="write_serial_log step",
+        )
+        lines.append(f"{log_period_ms} msごとにシリアルログへ出力する。")
+    else:
+        omissions.append(
+            Omission(
+                "機能説明（シリアルログ）",
+                "graphにwrite_serial_log stepの宣言が無い",
+            )
+        )
+    lines.append("")
     return lines
 
 
-def _connection_section(graph: DesignGraph, macros: dict[str, str]) -> list[str]:
+def _connection_section(
+    graph: DesignGraph,
+    macros: dict[str, str],
+    omissions: list[Omission],
+) -> list[str]:
     lane = extract_electrical_lane(graph)
-    opening = single_node_of_kind(graph, "mechanical.connector_opening")
-    connector_id = text_attr(opening, "connector")
-    connector = next((c for c in lane.components if c.node_id == connector_id), None)
-    if connector is None:
-        raise DocumentGenerationError(f"connector component {connector_id!r} is missing")
-    lines = [
-        "## 接続手順",
-        "",
-        f"1. 筐体{text_attr(opening, 'face')}面の開口部から、{connector.refdes}"
-        f"（{connector.mpn}）へUSBケーブルを挿入する。",
-        "2. USBケーブルの他端をPCまたはUSB電源へ接続する。",
-        f"3. シリアルモニタを開くと、USBシリアル（IO{_macro_int(macros, 'ACD_PIN_USB_DP')}／"
-        f"IO{_macro_int(macros, 'ACD_PIN_USB_DN')}）経由でログを確認できる。",
-        "",
-        "| 開口部項目 | 値 |",
-        "|---|---|",
-        f"| 幅 | {format_number(number_attr(opening, 'width_mm'))} mm |",
-        f"| 高さ | {format_number(number_attr(opening, 'height_mm'))} mm |",
-        f"| 余裕 | {format_number(number_attr(opening, 'margin_mm'))} mm |",
-        "",
-    ]
+    openings = sorted(
+        (
+            node
+            for node in graph.nodes
+            if node.kind == "mechanical.connector_opening"
+        ),
+        key=lambda node: node.id,
+    )
+    if not openings:
+        omissions.append(
+            Omission("接続手順", "mechanical.connector_openingの宣言が無い")
+        )
+        return []
+    lines = ["## 接続手順", ""]
+    step = 1
+    for opening in openings:
+        connector_id = text_attr(opening, "connector")
+        connector = next(
+            (component for component in lane.components if component.node_id == connector_id),
+            None,
+        )
+        if connector is None:
+            raise DocumentGenerationError(
+                f"connector component {connector_id!r} is missing"
+            )
+        lines += [
+            f"{step}. 筐体{text_attr(opening, 'face')}面の開口部から、"
+            f"{connector.refdes}（{connector.mpn}）へケーブルを挿入する。",
+            f"{step + 1}. ケーブルの他端をPCまたは電源へ接続する。",
+            "",
+            f"### {opening.id}",
+            "",
+            "| 開口部項目 | 値 |",
+            "|---|---|",
+            f"| 幅 | {format_number(number_attr(opening, 'width_mm'))} mm |",
+            f"| 高さ | {format_number(number_attr(opening, 'height_mm'))} mm |",
+            f"| 余裕 | {format_number(number_attr(opening, 'margin_mm'))} mm |",
+            "",
+        ]
+        step += 2
+    firmware = extract_firmware_lane(graph)
+    usb = _pin_pair(
+        firmware,
+        macros,
+        "net.usb_dp",
+        "net.usb_dn",
+        because="pin role usb_dp/usb_dn",
+    )
+    if usb is None:
+        omissions.append(
+            Omission(
+                "接続手順（USBシリアル）",
+                "pin role usb_dp/usb_dn の宣言が無い",
+            )
+        )
+    else:
+        lines += [
+            f"USBシリアル（IO{usb[0]}／IO{usb[1]}）経由でログを確認できる。",
+            "",
+        ]
     return lines
 
 
-def _led_section(graph: DesignGraph, macros: dict[str, str]) -> list[str]:
+def _led_section(
+    graph: DesignGraph,
+    macros: dict[str, str],
+    omissions: list[Omission],
+) -> list[str]:
     firmware = extract_firmware_lane(graph)
-    period_ms = _macro_int(macros, "ACD_LED_BLINK_PERIOD_MS")
-    gpio = _macro_int(macros, "ACD_PIN_LED")
     toggles = [
         step for step in firmware.sequence_steps if step.action == "toggle_led"
     ]
     if not toggles:
-        raise DocumentGenerationError("firmware sequence declares no LED action")
+        omissions.append(
+            Omission("LED表示の意味", "graphにtoggle_led stepの宣言が無い")
+        )
+        return []
+    period_ms = _required_macro_int(
+        macros,
+        "ACD_LED_BLINK_PERIOD_MS",
+        because="toggle_led step",
+    )
+    gpio = _required_macro_int(
+        macros,
+        "ACD_PIN_LED",
+        because="toggle_led step",
+    )
     fault_states = sorted(
         state.state_name for state in firmware.states if state.state_name == "fault"
     )
@@ -162,11 +286,52 @@ def _led_section(graph: DesignGraph, macros: dict[str, str]) -> list[str]:
         lines.append(
             f"| 点滅停止 | FWが`{state}`状態であり、センサ読み出しに失敗している |"
         )
+    if any(step.action == "toggle_led2" for step in firmware.sequence_steps):
+        gpio2 = _required_macro_int(
+            macros,
+            "ACD_PIN_LED2",
+            because="toggle_led2 step",
+        )
+        lines.insert(
+            6,
+            f"| 逆相の点滅 | IO{gpio2}のLEDが逆相で点滅する |",
+        )
     lines.append("")
     return lines
 
 
-def _flashing_section(graph: DesignGraph, macros: dict[str, str]) -> list[str]:
+def _operation_section(
+    graph: DesignGraph,
+    macros: dict[str, str],
+    omissions: list[Omission],
+) -> list[str]:
+    firmware = extract_firmware_lane(graph)
+    if not any(step.action == "read_button" for step in firmware.sequence_steps):
+        omissions.append(Omission("操作", "graphにread_button stepの宣言が無い"))
+        return []
+    button = _required_macro_int(
+        macros,
+        "ACD_PIN_BUTTON",
+        because="read_button step",
+    )
+    lines = ["## 操作", ""]
+    for transition in sorted(firmware.transitions, key=lambda item: item.node_id):
+        if transition.trigger == "button_pressed":
+            lines.append(
+                f"IO{button}のボタンを押すと`{transition.from_state}`から"
+                f"`{transition.to_state}`へ遷移する。"
+            )
+    lines.append("")
+    return lines
+
+
+def _flashing_section(
+    graph: DesignGraph,
+    macros: dict[str, str],
+    omissions: list[Omission],
+    *,
+    led_written: bool,
+) -> list[str]:
     firmware = extract_firmware_lane(graph)
     lane = extract_electrical_lane(graph)
     mcu = next(
@@ -174,17 +339,58 @@ def _flashing_section(graph: DesignGraph, macros: dict[str, str]) -> list[str]:
     )
     if mcu is None:
         raise DocumentGenerationError("MCU component is missing from the graph")
-    return [
-        "## 書き込み手順",
-        "",
-        f"1. `{mcu.mpn}`のUSBシリアルJTAG（IO{_macro_int(macros, 'ACD_PIN_USB_DP')}／"
-        f"IO{_macro_int(macros, 'ACD_PIN_USB_DN')}）でPCへ接続する。",
-        f"2. 書き込みに失敗する場合はIO{_macro_int(macros, 'ACD_PIN_BOOT')}の"
-        "BOOT信号をGNDへ落として再接続する。",
-        f"3. revision`{graph.revision}`のFWイメージを書き込む。",
-        "4. 書き込み後にリセットすると、LED点滅とシリアルログが再開する。",
-        "",
-    ]
+    lines = ["## 書き込み手順", ""]
+    step = 1
+    usb = _pin_pair(
+        firmware,
+        macros,
+        "net.usb_dp",
+        "net.usb_dn",
+        because="pin role usb_dp/usb_dn",
+    )
+    uart = _pin_pair(
+        firmware,
+        macros,
+        "net.uart_tx",
+        "net.uart_rx",
+        because="pin role uart_tx/uart_rx",
+    )
+    if usb is not None:
+        lines.append(
+            f"{step}. `{mcu.mpn}`のUSBシリアルJTAG（IO{usb[0]}／IO{usb[1]}）でPCへ接続する。"
+        )
+        step += 1
+    elif uart is not None:
+        lines.append(
+            f"{step}. `{mcu.mpn}`のUART（TX: IO{uart[0]}／RX: IO{uart[1]}）でPCへ接続する。"
+        )
+        step += 1
+    else:
+        lines.append(
+            f"{step}. 書き込み経路（USB／UART）の宣言が無いため、"
+            "MCUのデータシートに従って接続する。"
+        )
+        omissions.append(
+            Omission("書き込み経路", "graphにUSB／UART書き込み経路の宣言が無い")
+        )
+        step += 1
+    if "net.boot" in _declared_nets(firmware):
+        boot = _required_macro_int(
+            macros,
+            "ACD_PIN_BOOT",
+            because="pin role boot",
+        )
+        lines.append(
+            f"{step}. 書き込みに失敗する場合はIO{boot}の"
+            "BOOT信号をGNDへ落として再接続する。"
+        )
+        step += 1
+    lines.append(f"{step}. revision`{graph.revision}`のFWイメージを書き込む。")
+    step += 1
+    reset = "LED点滅とシリアルログが再開する。" if led_written else "FWが再開する。"
+    lines.append(f"{step}. 書き込み後にリセットすると、{reset}")
+    lines.append("")
+    return lines
 
 
 def _safety_section(graph: DesignGraph) -> list[str]:
@@ -220,11 +426,25 @@ def render_manual(graph: DesignGraph, macros: dict[str, str]) -> str:
         "設計や製品の合否を判定しない。記載値はすべて入力由来で、推定値を含まない。",
         "",
     ]
-    lines += _function_section(graph, macros)
-    lines += _connection_section(graph, macros)
-    lines += _led_section(graph, macros)
-    lines += _flashing_section(graph, macros)
+    omissions: list[Omission] = []
+    lines += _function_section(graph, macros, omissions)
+    lines += _connection_section(graph, macros, omissions)
+    led_lines = _led_section(graph, macros, omissions)
+    lines += led_lines
+    lines += _operation_section(graph, macros, omissions)
+    lines += _flashing_section(
+        graph,
+        macros,
+        omissions,
+        led_written=bool(led_lines),
+    )
     lines += _safety_section(graph)
+    lines += ["## 省略した項目", ""]
+    if omissions:
+        lines += [f"- {item.section}: {item.reason}" for item in omissions]
+    else:
+        lines.append("省略した項目はない。")
+    lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
 
