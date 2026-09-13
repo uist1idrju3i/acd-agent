@@ -6,6 +6,7 @@ import hashlib
 import math
 import re
 from dataclasses import dataclass
+from xml.etree import ElementTree
 
 SVG_TITLE_NORMALIZATION_RULE_ID = "kicad-svg-title-v1"
 ACD_SVG_NORMALIZATION_RULE_ID = "acd-svg-v1"
@@ -87,11 +88,12 @@ def measure_svg_resolution(svg: bytes) -> MeasuredSvgResolution:
     except UnicodeDecodeError as exc:
         raise SvgResolutionError("SVG must be UTF-8") from exc
     roots = list(_SVG_ROOT_PATTERN.finditer(text))
-    if len(roots) != 1:
+    if not roots:
         raise SvgResolutionError("SVG must contain exactly one root element")
+    root = roots[0]
     attributes = {
         match.group("name"): match.group("value")
-        for match in _ATTRIBUTE_PATTERN.finditer(roots[0].group("attributes"))
+        for match in _ATTRIBUTE_PATTERN.finditer(root.group("attributes"))
     }
     if set(attributes) != {"width", "height", "viewBox"}:
         raise SvgResolutionError("SVG root must declare width, height, and viewBox")
@@ -118,3 +120,26 @@ def measure_svg_resolution(svg: bytes) -> MeasuredSvgResolution:
         height=attributes["height"],
         view_box=view_box,
     )
+
+
+def cad_view_geometry(svg: bytes) -> tuple[str, str, tuple[str, str, str, str]]:
+    """Return the geometry strings from the single nested CAD view."""
+    try:
+        root = ElementTree.fromstring(svg)
+    except (ElementTree.ParseError, UnicodeDecodeError) as exc:
+        raise ValueError("CAD SVG could not be parsed") from exc
+    views = [element for element in root.iter() if element.attrib.get("id") == "cad-view"]
+    if len(views) != 1:
+        raise ValueError("CAD SVG must contain exactly one svg#cad-view")
+    view = views[0]
+    if view.tag.rsplit("}", 1)[-1] != "svg":
+        raise ValueError("CAD SVG cad-view must be an svg element")
+    width = view.attrib.get("width")
+    height = view.attrib.get("height")
+    view_box = view.attrib.get("viewBox")
+    if width is None or height is None or view_box is None:
+        raise ValueError("CAD SVG cad-view geometry is incomplete")
+    values = tuple(view_box.split())
+    if len(values) != 4:
+        raise ValueError("CAD SVG cad-view viewBox is malformed")
+    return width, height, values

@@ -29,7 +29,7 @@ from acd.core.firmware_lane import FirmwareLane
 from acd.core.mechanical import MechanicalLane
 from acd.core.naming import artifact_prefix
 from acd.core.process import sha256_bytes
-from acd.core.visual_projection import normalized_svg_sha256
+from acd.core.visual_projection import cad_view_geometry, normalized_svg_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.visual_crosscheck import (
     CrosscheckStatus,
@@ -589,20 +589,52 @@ def _normalized_model_input(
     return input_record.model_copy(update={"content_hash": normalized_hash})
 
 
-def _svg_layer_ids(svg: bytes) -> tuple[str, ...]:
+def _svg_layer_ids(svg: bytes, scope_id: str | None = None) -> tuple[str, ...]:
     try:
         root = ElementTree.fromstring(svg)
     except ElementTree.ParseError as exc:
         raise ValueError("visual crosscheck SVG could not be parsed") from exc
+    scope = root
+    if scope_id is not None:
+        matches = [
+            element for element in root.iter() if element.attrib.get("id") == scope_id
+        ]
+        if len(matches) != 1:
+            raise ValueError(f"visual crosscheck SVG scope is invalid: {scope_id}")
+        scope = matches[0]
     return tuple(
         sorted(
             {
                 element.attrib["id"]
-                for element in root.iter()
+                for element in scope.iter()
                 if "id" in element.attrib
+                and (scope_id is None or element is not scope)
             }
         )
     )
+
+
+def _svg_outer_annotation_ids(svg: bytes) -> tuple[str, ...]:
+    try:
+        root = ElementTree.fromstring(svg)
+    except ElementTree.ParseError as exc:
+        raise ValueError("visual crosscheck SVG could not be parsed") from exc
+    cad_views = [
+        element for element in root.iter() if element.attrib.get("id") == "cad-view"
+    ]
+    if len(cad_views) != 1:
+        raise ValueError("visual crosscheck SVG scope is invalid: cad-view")
+    cad_view = cad_views[0]
+    ids: set[str] = {"cad-view"}
+    for element in root.iter():
+        if element is cad_view:
+            continue
+        if any(element is descendant for descendant in cad_view.iter()):
+            continue
+        element_id = element.attrib.get("id")
+        if element_id is not None:
+            ids.add(element_id)
+    return tuple(sorted(ids))
 
 
 def _mechanical_projection_crosscheck(
@@ -624,12 +656,13 @@ def _mechanical_projection_crosscheck(
         svg = path.read_bytes()
     except (OSError, ValueError) as exc:
         raise ValueError("visual crosscheck mechanical SVG could not be read") from exc
-    width, height, view_box = _svg_root_geometry(svg)
-    width_value, width_unit = _svg_dimension(width, "width")
-    height_value, height_unit = _svg_dimension(height, "height")
-    width_number = _decimal(width_value, "width")
-    height_number = _decimal(height_value, "height")
-    view_box_numbers = tuple(_decimal(value, "viewBox") for value in view_box)
+    width, height, _ = _svg_root_geometry(svg)
+    nested_width, nested_height, nested_view_box = cad_view_geometry(svg)
+    _width_value, width_unit = _svg_dimension(width, "width")
+    _height_value, height_unit = _svg_dimension(height, "height")
+    nested_width_number = _decimal(nested_width, "cad-view width")
+    nested_height_number = _decimal(nested_height, "cad-view height")
+    view_box_numbers = tuple(_decimal(value, "viewBox") for value in nested_view_box)
     expected_width = (
         lane.outline.width_mm
         + 2 * lane.enclosure.internal_clearance_mm
@@ -653,7 +686,19 @@ def _mechanical_projection_crosscheck(
             else ("enclosure",)
         )
     )
-    actual_layers = _svg_layer_ids(svg)
+    actual_layers = _svg_layer_ids(svg, scope_id="cad-view")
+    annotation_ids = _svg_outer_annotation_ids(svg)
+    expected_annotations = [
+        "board-outline",
+        "cad-view",
+        "dimension-depth",
+        "dimension-width",
+        "legend",
+        "scale-bar",
+    ]
+    if projection.projection_type == "mechanical_interference_view":
+        expected_annotations.append("interference-note")
+    expected_annotation_set = tuple(sorted(expected_annotations))
     try:
         renderer_version = cad_tool_version()
     except (ImportError, ModuleNotFoundError, ValueError) as exc:
@@ -676,8 +721,8 @@ def _mechanical_projection_crosscheck(
             check_id="svg-origin",
             description="Mechanical SVG viewBox origin matches the centered CAD projection",
             expected=f"{expected_origin[0]} {expected_origin[1]}",
-            actual=f"{view_box[0]} {view_box[1]}",
-            machine_field="SVG.root.viewBox.origin",
+            actual=f"{nested_view_box[0]} {nested_view_box[1]}",
+            machine_field="SVG.svg#cad-view.viewBox.origin",
             status=(
                 "match"
                 if math.isclose(float(view_box_numbers[0]), expected_origin[0], abs_tol=1e-6)
@@ -687,23 +732,35 @@ def _mechanical_projection_crosscheck(
         ),
         _crosscheck_item(
             check_id="svg-viewbox",
-            description="Mechanical SVG viewBox dimensions are self-consistent with the root",
-            expected=f"{width_value} {height_value}",
-            actual=f"{view_box[2]} {view_box[3]}",
-            machine_field="SVG.root.width/height; SVG.root.viewBox",
+            description="Mechanical CAD viewBox and display dimensions use one scale",
+            expected=(
+                f"viewBox={expected_width} {expected_height}; "
+                f"width={expected_width}*s; height={expected_height}*s"
+            ),
+            actual=(
+                f"viewBox={nested_view_box[2]} {nested_view_box[3]}; "
+                f"width={nested_width}; height={nested_height}"
+            ),
+            machine_field="SVG.svg#cad-view.width/height/viewBox",
             status=(
-                "match"
-                if view_box_numbers[2:] == (width_number, height_number)
-                else "mismatch"
+                "match" if (
+                    math.isclose(float(view_box_numbers[2]), expected_width, abs_tol=1e-6)
+                    and math.isclose(float(view_box_numbers[3]), expected_height, abs_tol=1e-6)
+                    and math.isclose(
+                        float(nested_width_number) / float(view_box_numbers[2]),
+                        float(nested_height_number) / float(view_box_numbers[3]),
+                        abs_tol=1e-6,
+                    )
+                ) else "mismatch"
             ),
         ),
         _crosscheck_item(
             check_id="svg-view-dimensions",
             description="Mechanical SVG viewBox dimensions match the declared enclosure",
             expected=f"{expected_width} {expected_height}",
-            actual=f"{view_box[2]} {view_box[3]}",
+            actual=f"{nested_view_box[2]} {nested_view_box[3]}",
             machine_field=(
-                "MechanicalLane.outline.width_mm/depth_mm; "
+                "SVG.svg#cad-view.viewBox; MechanicalLane.outline.width_mm/depth_mm; "
                 "MechanicalLane.enclosure.internal_clearance_mm/wall_thickness_mm"
             ),
             status=(
@@ -774,8 +831,20 @@ def _mechanical_projection_crosscheck(
             description="Mechanical SVG layer identifiers match the declared view layers",
             expected=",".join(expected_layers),
             actual=",".join(actual_layers) or "none",
-            machine_field="SVG.root.g[*].id",
+            machine_field="SVG.svg#cad-view.g[*].id",
             status="match" if actual_layers == expected_layers else "mismatch",
+        ),
+        _crosscheck_item(
+            check_id="svg-annotations",
+            description="Mechanical SVG outer document carries declared annotations",
+            expected=",".join(expected_annotation_set),
+            actual=",".join(annotation_ids) or "none",
+            machine_field="SVG.root.annotations[*].id",
+            status=(
+                "match"
+                if set(expected_annotation_set).issubset(set(annotation_ids))
+                else "mismatch"
+            ),
         ),
     ]
     if projection.projection_type == "mechanical_interference_view":

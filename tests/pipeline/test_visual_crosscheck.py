@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import re
 from copy import deepcopy
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -20,6 +21,7 @@ from acd.adapters.cad.visual_projection import generate_mechanical_visual_projec
 from acd.core.board_model import BoardModel, CopperZone
 from acd.core.electrical import BoardView, ComponentView, ElectricalLane, LibraryPin
 from acd.core.mechanical import MechanicalLane, extract_mechanical_lane
+from acd.core.process import sha256_bytes
 from acd.core.visual_projection import normalized_svg_sha256
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.pipeline.visual_projection import (
@@ -420,6 +422,70 @@ def test_mechanical_crosscheck_is_reproducible_and_records_observation_boundary(
         item.status == "unknown"
         for item in first.review_items
         if item.verification == "observation_required"
+    )
+
+
+def test_mechanical_crosscheck_rejects_missing_cad_view(tmp_path: Path) -> None:
+    base_dir, graph, lane, projection, gates, projection_set = _mechanical_fixture(tmp_path)
+    section_path = base_dir / "visual/gd1-mechanical-section.svg"
+    section_path.write_bytes(
+        section_path.read_bytes().replace(b'id="cad-view"', b'id="missing-cad-view"', 1)
+    )
+    with pytest.raises(ValueError, match="exactly one svg#cad-view"):
+        crosscheck_mechanical_visual_projections(
+            source_revision=graph.revision,
+            visual_projection_set=projection_set,
+            lane=lane,
+            projection=projection,
+            gate_report=gates,
+            base_dir=base_dir,
+        )
+
+
+@pytest.mark.parametrize("mutation", ["nested_viewbox", "missing_scale_bar"])
+def test_mechanical_crosscheck_reports_annotation_geometry_mismatch(
+    tmp_path: Path,
+    mutation: str,
+) -> None:
+    base_dir, graph, lane, projection, gates, projection_set = _mechanical_fixture(tmp_path)
+    section_path = base_dir / "visual/gd1-mechanical-section.svg"
+    svg = section_path.read_bytes()
+    if mutation == "nested_viewbox":
+        svg = re.sub(
+            br'(<svg id="cad-view"[^>]*viewBox=")[^"]+',
+            rb'\g<1>-18 -15.5 35 31',
+            svg,
+            count=1,
+        )
+    else:
+        svg = svg.replace(b'id="scale-bar"', b'id="missing-scale-bar"', 1)
+    section_path.write_bytes(svg)
+    section = next(
+        record
+        for record in projection_set.projections
+        if record.projection_id == "gd1-mechanical-section"
+    )
+    records = [
+        section.model_copy(update={"image_hash": sha256_bytes(svg)})
+        if record is section
+        else record
+        for record in projection_set.projections
+    ]
+    mutated_set = projection_set.model_copy(update={"projections": records}).with_computed_hashes()
+    report = crosscheck_mechanical_visual_projections(
+        source_revision=graph.revision,
+        visual_projection_set=mutated_set,
+        lane=lane,
+        projection=projection,
+        gate_report=gates,
+        base_dir=base_dir,
+    )
+    assert report.status == "mismatch"
+    check_id = "svg-view-dimensions" if mutation == "nested_viewbox" else "svg-annotations"
+    assert any(
+        item.check_id == check_id and item.status == "mismatch"
+        for record in report.crosschecks
+        for item in record.items
     )
 
 

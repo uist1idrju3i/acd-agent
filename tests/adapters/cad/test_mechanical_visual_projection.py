@@ -1,8 +1,11 @@
 """Tests for the authoritative mechanical visual renderer."""
 
+# pyright: reportMissingTypeStubs=false, reportPrivateUsage=false
+
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -18,10 +21,15 @@ from acd.adapters.cad.project import project_enclosure
 from acd.adapters.cad.visual_projection import (
     MechanicalVisualProjectionError,
     MechanicalVisualRenderer,
+    _CadAnnotations,
+    _raw_svg_parts,
+    _wrap_cad_svg,
     generate_mechanical_visual_projections,
 )
+from acd.adapters.svg.common import format_svg_number
 from acd.core.mechanical import extract_mechanical_lane
 from acd.core.parallel import PipelineStageRunner
+from acd.core.visual_projection import cad_view_geometry
 from acd.openhands.tools.probe import probe_cad_kernel
 from acd.schema.design_graph import DesignGraph
 
@@ -64,6 +72,40 @@ def _generate(out_dir: Path, *, workers: int = 1):
         )
 
 
+def _cad_view_inner(svg: str) -> str:
+    match = re.search(r'<svg id="cad-view"[^>]*>(.*?)</svg>', svg, re.DOTALL)
+    assert match is not None
+    return match.group(1)
+
+
+def test_cad_wrapper_preserves_raw_viewbox_and_inner_markup() -> None:
+    graph, _ = _fixture()
+    lane = extract_mechanical_lane(graph)
+    raw = (
+        b'<svg width="36mm" height="31mm" viewBox="-18 -15.5 36 31" '
+        b'data-source="build123d"><g><path d="M 1 2"/></g></svg>'
+    )
+    wrapped = _wrap_cad_svg(
+        raw,
+        annotations=_CadAnnotations(
+            graph_id=graph.graph_id,
+            view_name="section",
+            lane=lane,
+            offset_mm=4.0,
+            interference_region_present=None,
+            measured_max_interference_volume_mm3=None,
+            measured_min_clearance_mm=None,
+        ),
+    )
+    raw_view_box, _attrs, _width, _height, raw_inner = _raw_svg_parts(raw)
+    wrapped_text = wrapped.decode("utf-8")
+    nested = re.search(r'<svg id="cad-view"[^>]*>(.*?)</svg>', wrapped_text, re.DOTALL)
+    assert nested is not None
+    assert f'viewBox="{raw_view_box}"' in nested.group(0)
+    assert raw_inner == nested.group(1)
+    assert 'data-source="build123d"' in nested.group(0)
+
+
 def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
     tmp_path: Path,
 ) -> None:
@@ -89,9 +131,35 @@ def test_mechanical_visual_renderer_uses_authoritative_step_and_reproduces(
     section_svg = (
         tmp_path / "first/visual/gd1-mechanical-section.svg"
     ).read_text(encoding="utf-8")
-    assert section_svg.count("<line") == 12
-    assert section_svg.count("<circle") == 8
-    assert 'x1="-16.0" y1="13.5" x2="16.0" y2="13.5"' in section_svg
+    cad_inner = _cad_view_inner(section_svg)
+    assert cad_inner.count("<line") == 12
+    assert cad_inner.count("<circle") == 8
+    assert 'x1="-16.0" y1="13.5" x2="16.0" y2="13.5"' in cad_inner
+    assert section_svg.count('id="cad-view"') == 1
+    assert section_svg.count('id="dimension-width"') == 1
+    assert section_svg.count('id="dimension-depth"') == 1
+    assert section_svg.count('id="scale-bar"') == 1
+    assert section_svg.count('id="board-outline"') == 1
+    assert section_svg.count('id="legend"') == 1
+    assert 'id="interference-note"' in (
+        tmp_path / "first/visual/gd1-mechanical-interference.svg"
+    ).read_text(encoding="utf-8")
+    assert 'no interference: max intersection volume 0 mm³' in (
+        tmp_path / "first/visual/gd1-mechanical-interference.svg"
+    ).read_text(encoding="utf-8")
+    width, height, view_box = cad_view_geometry(section_svg.encode())
+    assert float(width) > 0
+    assert float(height) > 0
+    assert float(view_box[2]) == pytest.approx(
+        lane.outline.width_mm
+        + 2 * lane.enclosure.internal_clearance_mm
+        + 2 * lane.enclosure.wall_thickness_mm
+    )
+    assert float(view_box[3]) == pytest.approx(
+        lane.outline.depth_mm
+        + 2 * lane.enclosure.internal_clearance_mm
+        + 2 * lane.enclosure.wall_thickness_mm
+    )
     assert first.projections[1].section_offset_mm == (
         lane.enclosure.wall_thickness_mm + lane.enclosure.standoff_height_mm / 2
     )
@@ -301,6 +369,11 @@ def test_mechanical_renderer_records_positive_interference_section(
         encoding="utf-8"
     )
     assert 'id="interference"' in svg
+    assert (
+        f"interference present: max intersection volume "
+        f"{format_svg_number(measured_volume)} mm³ "
+        "(gate measurement)"
+    ) in svg
     assert "<line" in svg
 
 

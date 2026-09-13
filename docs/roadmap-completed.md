@@ -1008,7 +1008,7 @@ V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の�
 
 背景と観測は[`roadmap.md`](roadmap.md)の14.24節、各項目の詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
-14.24の進捗は30件達成、未了3件（AA-30〜AA-32）である。
+14.24の進捗は31件達成、未了2件（AA-31・AA-32）である。
 
 | 区分 | 内容 |
 |---|---|
@@ -1050,6 +1050,10 @@ modelを含むevent logをhook専用経路で記録し、observationはeventへ�
 eventの欠落・改変・不一致は`unverified`としてvisual reviewをfail-closedにし、
 observationとevent logの直接書き込みを拒否する。observationとverdictはL3のままで、
 合否やEvidenceへ作用させない。
+
+実装状況（AA-30）: build123dのraw ExportSVGを`svg#cad-view`へbyte-exactに埋め込んだacd-svg文書として出力し、
+title、断面位置、寸法、基板外形、legend、干渉領域またはゲート測定注記を付与する。
+ネストしたviewBoxと注釈IDを決定論的にcrosscheckし、recordのゲート値やEvidence authorityは変更しない。
 
 実装状況（AA-29）: KiCad回路図の列・行ピッチをsymbol extentとnet labelから決定し、
 Reference/Valueをbody外へ配置する。labelとproperty・bodyの衝突は一度だけ外側へ

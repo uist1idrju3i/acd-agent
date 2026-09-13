@@ -1535,6 +1535,13 @@ renameする。複数sheetによる複数SVG出力は未対応で、追加され
 記録する）。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、
 同一入力・同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneでは
 authoritativeな`enclosure-assembly.step`を`build123d`で断面・干渉SVGへ投影する。
+raw ExportSVG bytesは一時ファイルから読み取り、最終成果物ではacd-svg outer document内の
+`svg#cad-view`へrootのviewBox文字列とinner markupをbyte-exactに埋め込む。outer documentには
+title、断面offset、enclosure／board outline寸法、legend、10 mm scale bar、注記を付与し、
+機械lane crosscheckはouter rootのmm単位とnested viewのgeometry・layer・annotation IDを
+独立に照合する。これはL3の可読性観測であり、gate reportの干渉体積・clearance値、
+visual projection record、Evidence authorityを変更しない。`build123d-svg-v1`はwrapped
+artifact bytesのhash規則である。
 断面のXY offsetは`wall_thickness_mm + standoff_height_mm / 2`をMechanicalLaneから
 決定論的に導出して記録し、キャビティ床とcoplanarになる位置は使用しない。断面は
 宣言したXY平面とこのoffsetを記録し、

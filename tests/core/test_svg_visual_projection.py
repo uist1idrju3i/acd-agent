@@ -14,6 +14,7 @@ from acd.core.visual_projection import (
     SVG_TITLE_NORMALIZATION_RULE_ID,
     SvgNormalizationError,
     SvgResolutionError,
+    cad_view_geometry,
     measure_svg_resolution,
     normalize_svg,
     normalized_svg_sha256,
@@ -97,6 +98,34 @@ def test_resolution_is_measured_from_svg_root() -> None:
     assert resolution.width == "29.9974mm"
     assert resolution.height == "24.9936mm"
     assert resolution.view_box == (0.0, 0.0, 29.9974, 24.9936)
+
+
+def test_cad_view_geometry_reads_single_nested_view() -> None:
+    svg = (
+        b'<svg width="240mm" height="100mm" viewBox="0 0 240 100">'
+        b'<svg id="cad-view" width="132" height="55" viewBox="-18 -15.5 36 31">'
+        b"<path/></svg></svg>"
+    )
+    assert cad_view_geometry(svg) == (
+        "132",
+        "55",
+        ("-18", "-15.5", "36", "31"),
+    )
+
+
+def test_cad_view_geometry_rejects_missing_nested_view() -> None:
+    with pytest.raises(ValueError, match="exactly one"):
+        cad_view_geometry(b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"/>')
+
+
+def test_cad_view_geometry_rejects_duplicate_nested_views() -> None:
+    with pytest.raises(ValueError, match="exactly one"):
+        cad_view_geometry(
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1">'
+            b'<svg id="cad-view" width="1" height="1" viewBox="0 0 1 1"/>'
+            b'<svg id="cad-view" width="1" height="1" viewBox="0 0 1 1"/>'
+            b"</svg>"
+        )
 
 
 @pytest.mark.parametrize(
