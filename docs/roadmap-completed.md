@@ -1037,3 +1037,7 @@ macro欠落、byte一致を回帰テストで固定した。旧`instruction-manu
 `acd-mml 0.1`の独立parserでtempo・voice総tick・note列を照合する。照合不一致時は
 MMLだけを省略し、`mml_check`へ理由を記録する。MMLはprovenanceと`hashes.json`へ
 登録するが、MIDI、3 laneのgate、Evidence、fab packageの判定は変更しない。
+
+実装状況（AA-11）: `_copper_zone`が`ground_plane_min_island_area_mm2`をKiCad zone
+fillの`island_area_min`へ出力し、`island_removal_mode`を最小面積モードへ設定する。
+Gerber検証の判定は変更しない。
