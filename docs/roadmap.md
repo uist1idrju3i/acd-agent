@@ -43,8 +43,8 @@ GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判�
 
 残る未了は、14.16（FW lane専用の候補生成と配置テストの環境非依存化）、14.17のS-3
 （ambient install経路の配布形態）と復帰成立実行の実測記録、14.18の復帰成立runの
-wall-clock記録、14.20、14.21、15.14〜15.19、および計画段階のマイルストーン9.3〜9.5、
-10、11.1〜11.4、13、16〜21である。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
+wall-clock記録、14.20のV-1、15.14〜15.21、および計画段階のマイルストーン9.3〜9.6、
+10、11.1〜11.4a、13、16.1〜16.6、17〜21である。14.21は達成済みである。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
 未実装であり、8.5の電気視覚照合が図枠のtitle blockを読むため現行exportを維持し、
 極小表示の所見は20.4の可読性検査で扱う。
 
@@ -66,14 +66,14 @@ wall-clock記録、14.20、14.21、15.14〜15.19、および計画段階のマ�
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.6完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み、pull入口とtimeout境界を実装） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 7.5 dry-run・拒否境界まで達成（実発注は本範囲外） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.6実装済み、8.5はFW lane照合まで実装済み。8.4のvision経路はdesign loopの必須段（`visual-review-manifest`）へ接続済み |
-| 9 | 生成文書lane | 設計入力、投影、ゲート結果、Evidenceから再現可能な製品・品質・レビュー文書を生成する | 9.1〜9.2実装済み（9.3〜9.5は計画） |
+| 9 | 生成文書lane | 設計入力、投影、ゲート結果、Evidenceから再現可能な製品・品質・レビュー文書を生成する | 9.1〜9.2・9.7実装済み（9.3〜9.6は計画） |
 | 10 | シミュレーション解析lane | 電気・機械・FWのprovisional解析を追加し、決定論的ゲートを置き換えずに結果を文書へ統合する | 計画 |
-| 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 計画 |
-| 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 12.1〜12.5達成 |
+| 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.5達成（11.1〜11.4aは計画） |
+| 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
 | 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19は達成。14.16、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証。残関門は14.20・14.21） |
-| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.13達成（15.14〜15.19は計画） |
-| 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 計画 |
+| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.13達成（15.14〜15.21は計画） |
+| 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1〜16.6は計画 |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
 | 18 | 量産・出荷準備lane | ブリングアップ、panelization、DFA、出荷検査文書と検査FWを整備する | 計画 |
 | 19 | FWセキュリティと検証拡張 | secure boot、暗号化、OTA、QEMUカバレッジと実機HILを拡張する | 計画 |
@@ -97,15 +97,16 @@ wall-clock記録、14.20、14.21、15.14〜15.19、および計画段階のマ�
 
 | 順 | フェーズ | 内容 |
 |---|---|---|
-| 9.1 | 製品説明README生成SKILL | 図解入りの製品説明`README.md`を生成する。Design Graphの仕様（MCU、電源、センサ、I/F）、BOMサマリ、視覚投影（回路図・配置・電源ツリー・筐体断面）を埋め込み、公開用にライセンス・帰属注記を自動付与する |
-| 9.2 | 取扱説明書生成SKILL | 機能説明・接続手順・LED表示の意味・書き込み手順・安全注意を、graphとFWピン投影（`acd_pins.h`相当）から生成する。値はすべて入力由来とし、推定値を書かない |
-| 9.3 | 品質文書生成SKILL | ゲート結果（ERC/DRC/DFM/機械/FW）、rationale coverage、authoritative Evidence、既知の未実装チェック一覧から検査成績書・トレーサビリティレポートを生成する。Evidence欠落・revision不一致は生成失敗として停止する |
-| 9.4 | レビュー資料生成SKILL | レビューチェックリスト、視覚投影一式、前revisionとのgraph差分、DRC/DFM所見の要約を1パッケージへまとめ、`acd-reviewer`agentの入力にする |
-| 9.5 | 多言語出力 | 9.1〜9.4の文書を日本語・英語で再現可能に生成する（テンプレート分離、値の翻訳はしない） |
-| 9.6 | テーマソング生成SKILL | LLM agentが製品専用ジングルを構造化JSONで提案し、Skillが契約検査してMIDIへ決定論的にレンダリングする。提案が無ければgraph由来の決定論composerへfallbackし、provenance付きで生成する（ADR-0048） |
+| 9.1 | 製品説明README生成SKILL | 図解入りの製品説明`README.md`を生成する。Design Graphの仕様（MCU、電源、センサ、I/F）、BOMサマリ、視覚投影（回路図・配置・電源ツリー・筐体断面）を埋め込み、公開用にライセンス・帰属注記を自動付与する | 達成 |
+| 9.2 | 取扱説明書生成SKILL | 機能説明・接続手順・LED表示の意味・書き込み手順・安全注意を、graphとFWピン投影（`acd_pins.h`相当）から生成する。値はすべて入力由来とし、推定値を書かない | 達成 |
+| 9.3 | 品質文書生成SKILL | ゲート結果（ERC/DRC/DFM/機械/FW）、rationale coverage、authoritative Evidence、既知の未実装チェック一覧から検査成績書・トレーサビリティレポートを生成する。Evidence欠落・revision不一致は生成失敗として停止する | 計画 |
+| 9.4 | レビュー資料生成SKILL | レビューチェックリスト、視覚投影一式、前revisionとのgraph差分、DRC/DFM所見の要約を1パッケージへまとめ、`acd-reviewer`agentの入力にする | 計画 |
+| 9.5 | 多言語出力 | 9.1〜9.4の文書を日本語・英語で再現可能に生成する（テンプレート分離、値の翻訳はしない） | 計画 |
+| 9.6 | 機器I/F契約投影 | graphとFW投影を入力・出所とし、UARTログ形式、コマンド一覧、I2Cアドレス表等の機器I/F仕様をJSONとMarkdownで`out/docs/`へ再現可能に生成する。投影はL3提示であり、合否へ作用させず、入力欠落・出所不明はunknownとしてfail-closedにする | 計画 |
+| 9.7 | テーマソング生成SKILL | LLM agentが製品専用ジングルを構造化JSONで提案し、Skillが契約検査してMIDIへ決定論的にレンダリングする。提案が無ければgraph由来の決定論composerへfallbackし、provenance付きで生成する（ADR-0048） | 達成 |
 
-9.1と9.2は`acd-product-docs` Skill、9.6は`acd-theme-song` Skillとして実装済みで、
-9.3〜9.5は計画である。
+9.1と9.2は`acd-product-docs` Skill、9.7は`acd-theme-song` Skillとして実装済みで、
+9.3〜9.6は計画である。
 
 ## マイルストーン10: シミュレーション解析lane
 
@@ -114,55 +115,35 @@ wall-clock記録、14.20、14.21、15.14〜15.19、および計画段階のマ�
 入力・ツール版・メッシュ／刻み幅を固定した再現可能な決定論的判定として個別に定義する。
 GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへのimport結合をしない。
 
-| 順 | フェーズ | 内容 |
-|---|---|---|
-| 10.1 | 電気シミュレーション（SPICE） | 同梱済みngspiceで、graphから電源系ネットリスト（LDO・デカップリング・LED電流・I2Cプルアップ）を決定論的に抽出して過渡・動作点解析を実行し、値域チェックを行う |
-| 10.2 | 電源系解析（PDN/IR drop） | ガーバ・銅箔形状から電源経路の断面積・電流密度・IR dropを推定し、閾値超過を停止側の所見として報告する |
-| 10.3 | 機械解析（質量・熱・構造） | 質量特性・肉厚（実装済み）に加え、熱抵抗の簡易推定と、FEM（CalculiX等のCLI）による落下・応力・熱の解析経路を追加する |
-| 10.4 | FW解析 | 静的解析（clang-tidy相当）、スタック使用量解析、QEMU上のペリフェラルスタブ（SHT40応答モデル等）による機能テストを追加し、仮想検証の範囲を広げる |
-| 10.5 | 解析結果の文書統合 | 10.1〜10.4の結果を9.3品質文書・9.4レビュー資料へ取り込む |
-| 10.6 | ワーストケース解析（WCA） | 10.1の公称値解析に加え、偏り成分（公差中心のずれ、温度・経時による系統的変化）は決定論的に累積し、独立なばらつき成分はRSSで合成する解析を追加する。使用した公差表・環境条件・変動源の分類と合成方法をEvidenceへ記録し、公差表または環境条件が宣言されていない場合はunknownとして停止側へ集約する。16.2の電力バジェットは平均ではなくピーク需要で評価する |
-
-10.1〜10.6は計画である。
+| 順 | フェーズ | 内容 | 現状 |
+|---|---|---|---|
+| 10.1 | 電気シミュレーション（SPICE） | 同梱済みngspiceで、graphから電源系ネットリスト（LDO・デカップリング・LED電流・I2Cプルアップ）を決定論的に抽出して過渡・動作点解析を実行し、値域チェックを行う | 計画 |
+| 10.2 | 電源系解析（PDN/IR drop） | ガーバ・銅箔形状から電源経路の断面積・電流密度・IR dropを推定し、閾値超過を停止側の所見として報告する | 計画 |
+| 10.3 | 機械解析（質量・熱・構造） | 質量特性・肉厚（実装済み）に加え、熱抵抗の簡易推定と、FEM（CalculiX等のCLI）による落下・応力・熱の解析経路を追加する | 計画 |
+| 10.4 | FW解析 | 静的解析（clang-tidy相当）、スタック使用量解析、QEMU上のペリフェラルスタブ（SHT40応答モデル等）による機能テストを追加し、仮想検証の範囲を広げる | 計画 |
+| 10.5 | 解析結果の文書統合 | 10.1〜10.4の結果を9.3品質文書・9.4レビュー資料へ取り込む | 計画 |
+| 10.6 | ワーストケース解析（WCA） | 10.1の公称値解析に加え、偏り成分（公差中心のずれ、温度・経時による系統的変化）は決定論的に累積し、独立なばらつき成分はRSSで合成する解析を追加する。使用した公差表・環境条件・変動源の分類と合成方法をEvidenceへ記録し、公差表または環境条件が宣言されていない場合はunknownとして停止側へ集約する。16.2の電力バジェットは平均ではなくピーク需要で評価する | 計画 |
 
 ## マイルストーン11: 機構設計拡張
 
 筐体（静的な箱）から機構（可動・組立）へ機械laneを拡張する。設計述語を追加する範囲は
 マイルストーン14.2の契約registryを前提とする。
 
-| 順 | フェーズ | 内容 |
-|---|---|---|
-| 11.1 | 機構要素ライブラリ | スナップフィット、ヒンジ、ボタン・ライトパイプ、ボス・リブをbuild123dのパラメトリック部品として追加し、寸法根拠をrationale必須にする |
-| 11.2 | 可動干渉チェック | 可動範囲のスイープ干渉を決定論的ゲートとして追加する（開閉・押下ストローク） |
-| 11.3 | 製造性チェック拡張 | 3Dプリント／射出成形向けのDFM（最小肉厚、抜き勾配、オーバーハング）を機械laneゲートへ追加する |
-| 11.4 | 部品込み3D統合 | KiCad 3Dモデルの選択的同梱と連携し、基板＋部品＋筐体の統合干渉チェックと組立図投影を生成する。選択的同梱にはimageサイズ増加、publish時間の増加、digestの再lock、ADR-0028のprovenance更新が伴う |
-| 11.4a | 統合3Dモデル投影（glTF＋HTMLビューア） | 基板（外形・厚さ・取付穴）＋部品（KiCad 3Dモデルが同梱済みならそのSTEP、無ければ`component_bodies`の直方体近似を`approximated`としてノードに明示）＋筐体を1つのアセンブリとして`out/<lane>/3d/assembly.glb`（glTF 2.0 binary、単一ファイル、mm→m変換、右手系Y-up、`KHR_materials_*`拡張は使わずPBR基本材質のみ）へ出力し、node名にrefdes／筐体部品名、`extras`にgraph revision・出所（`step`／`approximated`）を記録する。同一データから自己完結HTMLビューア`out/<lane>/3d/assembly.html`（three.js MITをvendor同梱し帰属表記を保持、GLBをbase64で埋め込み、外部CDNへ依存しない、レイヤ表示切替＝基板／部品／筐体、断面スライダ、干渉体の強調表示）を生成する。tessellationはbuild123dの`Mesher`と同じ許容差を明示し、頂点順・node順をID順で固定して逐次・並列で正規化hashが一致することを回帰テストで固定する。書き込み後にwriterと独立したreader（GLB header magic・chunk長・JSONのaccessor/bufferView境界・node数照合）で形式検査し、`hashes.json`へ`format_check`として記録、parse失敗はその投影を欠落としてfail-closedにする（AA-23と同じ契約）。統合3D投影はL3の人間向け視覚投影であり、Evidence・fab packageへ含めず、機械ゲート（干渉・clearance・肉厚）の合否へ作用させない。11.4のKiCad 3Dモデル同梱が未達の間は近似直方体だけで出力し、近似である旨をビューア上にも注記する。3D PDF（PRC/U3D）はAcrobat依存でブラウザ・GitHub・OSS toolchainで再読込できないため採用しない |
-| 11.5 | 筐体の干渉解決探索（C-1） | 達成。宣言された筐体寸法のbounded候補を決定論的に列挙し、候補ごとに筐体pipelineの機械gateを評価してL2 reportへ記録する。探索結果はgraphへ自動確定せず、L1 gateとEvidenceの権限を変更しない |
+| 順 | フェーズ | 内容 | 現状 |
+|---|---|---|---|
+| 11.1 | 機構要素ライブラリ | スナップフィット、ヒンジ、ボタン・ライトパイプ、ボス・リブをbuild123dのパラメトリック部品として追加し、寸法根拠をrationale必須にする | 計画 |
+| 11.2 | 可動干渉チェック | 可動範囲のスイープ干渉を決定論的ゲートとして追加する（開閉・押下ストローク） | 計画 |
+| 11.3 | 製造性チェック拡張 | 3Dプリント／射出成形向けのDFM（最小肉厚、抜き勾配、オーバーハング）を機械laneゲートへ追加する | 計画 |
+| 11.4 | 部品込み3D統合 | KiCad 3Dモデルの選択的同梱と連携し、基板＋部品＋筐体の統合干渉チェックと組立図投影を生成する。選択的同梱にはimageサイズ増加、publish時間の増加、digestの再lock、ADR-0028のprovenance更新が伴う | 計画 |
+| 11.4a | 統合3Dモデル投影（glTF＋HTMLビューア） | 基板（外形・厚さ・取付穴）＋部品（KiCad 3Dモデルが同梱済みならそのSTEP、無ければ`component_bodies`の直方体近似を`approximated`としてノードに明示）＋筐体を1つのアセンブリとして`out/<lane>/3d/assembly.glb`へ出力し、投影はL3として機械ゲートの合否へ作用させない | 計画 |
+| 11.5 | 筐体の干渉解決探索（C-1） | 達成。完了条件と実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある | 達成 |
 
 11.1〜11.4aは計画であり、11.5は達成済みである。11.4aは11.4（KiCad 3Dモデル同梱）に
 依存せず、現行の`component_bodies`近似と筐体STEPだけで先行実装できる。
 
 ## マイルストーン12: 設計ナレッジQA
 
-完成した設計の知識源（design graph、rationale record、ゲート結果、Evidence、生成文書、
-git履歴、revision差分、会話ログ）を照会可能なナレッジとしてまとめ、製品仕様、使い方、
-トラブルシューティング、設計根拠、歴史的経緯の質問に出所の引用付きで答える。
-対象ユーザは設計者・開発チームと、成果物を受け取る第三者（製品ユーザ・レビュア）の両方とする。
-回答はL2操舵・L3観測であり、合否権限を持たない。回答は必ず出所（rationale ID、
-Evidenceファイル、コミット、文書パス）を引用し、知識源から導出できない質問には
-unknownと答え、推測で補完しない。会話ログは内部向けQAの知識源にのみ含め、
-公開用FAQの知識源には含めない。
-
-| 順 | フェーズ | 内容 |
-|---|---|---|
-| 12.1 | ナレッジ索引契約 | graph・rationale・ゲート結果・Evidence・生成文書・git履歴・会話ログを、出所種別と参照パス付きで列挙する索引contractを定義する。欠落した知識源はunknownとして記録する |
-| 12.2 | 対話QA SKILL | OpenHands会話内で製品仕様・使い方・トラブルシューティング・設計根拠・歴史的経緯の質問に、索引contractの範囲で出所引用付きの回答を返すSKILL（例: `/acd:ask`）を追加する |
-| 12.3 | トラブルシューティング知識の構造化 | 症状→確認手順→期待値（LED表示、I2Cアドレス、期待シリアル出力等）をgraphとFW投影から機械可読に導出し、12.2と公開用FAQの共通知識源にする |
-| 12.4 | 公開用FAQ生成 | 成果物と一緒に公開できるFAQ・ナレッジ文書を`out/docs/`へ生成する（マイルストーン9の文書laneと同じprovenance規則）。知識源から会話ログを除外し、除外した旨をprovenanceへ記録する |
-| 12.5 | 歴史的経緯QA | git履歴・revision差分・会話ログ（内部のみ）・ECO記録から「いつ・なぜ変わったか」を出所引用付きで回答する経路を追加する |
-
-12.1〜12.5は`acd-design-knowledge` Skillと`/acd:ask` commandとして実装済みである。
-運用手順は[`operations.md`](operations.md)の設計知識laneを参照する。
+12.1〜12.5は達成済み。完了条件と実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。
 
 ## マイルストーン13: 既存製造品の救済（ワークアラウンドlane）
 
@@ -194,16 +175,14 @@ unknownと答え、推測で補完しない。会話ログは内部向けQAの�
   L1のauthoritative合格へ昇格しない。
 - 不具合recordのcloseは是正の実施だけで完了としない。同一原因が影響し得る箇所の水平展開の列挙と、再現条件でのゲート再実行または実測Evidenceによる有効性確認をclose条件とする。説明だけでcloseしない。
 
-| 順 | フェーズ | 内容 |
-|---|---|---|
-| 13.1 | 不具合record契約 | 症状、再現条件、発生率、影響機能、影響個体範囲（ロット・シリアル）、根本原因候補を宣言contractとして定義する。原因が導出できない場合はunknownとして記録し、救済候補の立案へ進めない。併せて水平展開の列挙（同一部品・同一トポロジ・同一ルール適用箇所・同一fixture・同一プロファイルをgraph上で機械的に検索した結果と、対象外にした箇所の理由）を必須項目とし、列挙結果が空の場合は「探索して該当なし」と「未探索」を区別して記録する。未探索はunknownとして停止側へ集約し、救済候補の立案へ進めない |
-| 13.2 | 追加工差分contract | 追加工を`cut`（パターンカット）、`add`（部品・配線の追加）、`remove`（部品の除去）、`replace`（定数・型番の変更）、`mechanical`（筐体の追加加工）の型付き差分として宣言し、元graphへ適用した派生graphを決定論的に導出する。差分は投影として扱い、設計入力へ逆流させない |
-| 13.3 | 救済可能性ゲート | 派生graphへ既存の電気・機械・FWゲートを再実行し、追加工の実施可能性（DFA）と安全境界の承認要否を合わせて判定する。判定結果は`救済可`／`制約付き救済`／`救済不可`の三値とし、根拠ゲート結果を伴わない判定を出さない |
-| 13.4 | ワークアラウンドSKILL | 不具合recordから救済候補（FW修正のみ／追加工のみ／併用）を立案し、13.2の差分contractへ落として13.3の再検証を呼び出すSKILL（例: `/acd:workaround`）を追加する。SKILL自体はL2の操舵であり合否権限を持たず、候補と根拠、代替案、不可理由をprovenance付きで返す |
-| 13.5 | 作業指示書・検査手順生成 | 対象個体、必要部品・工具、作業手順、該当箇所を強調した視覚投影、作業後の検査項目と期待値を生成する。検査項目は出荷検査文書生成SKILLと同じ知識源（graph・ゲート閾値・FW投影）から導出し、出所のない基準を作らない。生成文書はマイルストーン9のprovenance規則に従い`out/docs/`へ格納する |
-| 13.6 | 個体トレーサビリティとWA廃止条件 | どの個体にどのワークアラウンドを適用したかを追跡可能な記録として残し、次revisionで当該不具合が構造的に解消されたことをゲート結果で確認できた時点をWA廃止条件として定義する。ECOワークフロー（マイルストーン20.1）と対応付ける |
-
-13.1〜13.6は計画である。
+| 順 | フェーズ | 内容 | 現状 |
+|---|---|---|---|
+| 13.1 | 不具合record契約 | 症状、再現条件、発生率、影響機能、影響個体範囲（ロット・シリアル）、根本原因候補を宣言contractとして定義する。原因が導出できない場合はunknownとして記録し、救済候補の立案へ進めない。併せて水平展開の列挙（同一部品・同一トポロジ・同一ルール適用箇所・同一fixture・同一プロファイルをgraph上で機械的に検索した結果と、対象外にした箇所の理由）を必須項目とし、列挙結果が空の場合は「探索して該当なし」と「未探索」を区別して記録する。未探索はunknownとして停止側へ集約し、救済候補の立案へ進めない | 計画 |
+| 13.2 | 追加工差分contract | 追加工を`cut`（パターンカット）、`add`（部品・配線の追加）、`remove`（部品の除去）、`replace`（定数・型番の変更）、`mechanical`（筐体の追加加工）の型付き差分として宣言し、元graphへ適用した派生graphを決定論的に導出する。差分は投影として扱い、設計入力へ逆流させない | 計画 |
+| 13.3 | 救済可能性ゲート | 派生graphへ既存の電気・機械・FWゲートを再実行し、追加工の実施可能性（DFA）と安全境界の承認要否を合わせて判定する。判定結果は`救済可`／`制約付き救済`／`救済不可`の三値とし、根拠ゲート結果を伴わない判定を出さない | 計画 |
+| 13.4 | ワークアラウンドSKILL | 不具合recordから救済候補（FW修正のみ／追加工のみ／併用）を立案し、13.2の差分contractへ落として13.3の再検証を呼び出すSKILL（例: `/acd:workaround`）を追加する。SKILL自体はL2の操舵であり合否権限を持たず、候補と根拠、代替案、不可理由をprovenance付きで返す | 計画 |
+| 13.5 | 作業指示書・検査手順生成 | 対象個体、必要部品・工具、作業手順、該当箇所を強調した視覚投影、作業後の検査項目と期待値を生成する。検査項目は出荷検査文書生成SKILLと同じ知識源（graph・ゲート閾値・FW投影）から導出し、出所のない基準を作らない。生成文書はマイルストーン9のprovenance規則に従い`out/docs/`へ格納する | 計画 |
+| 13.6 | 個体トレーサビリティとWA廃止条件 | どの個体にどのワークアラウンドを適用したかを追跡可能な記録として残し、次revisionで当該不具合が構造的に解消されたことをゲート結果で確認できた時点をWA廃止条件として定義する。ECOワークフロー（マイルストーン20.1）と対応付ける | 計画 |
 
 ## マイルストーン14: VibeBB単体成立（会話駆動の設計反復）
 
@@ -235,8 +214,9 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、宣言toolの不在検出、library資材宣言の統一、進行表示を扱う。S-3の配布形態と復帰成立実行の実測は未了 |
 | 14.18 | 復帰候補評価からL3観測の混入を除く（T-1〜T-5） | 候補評価の独立timing記録、複数候補の列挙、宣言tool不在のdrift guard、L3 digestの統合、transport失敗時の出力保持を扱う。T-1〜T-5は実装済みで、復帰成立runの実測記録は未取得 |
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
-| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-1、V-3、V-5、V-6、V-7、V-9を達成。第6回実機実測で残った不足を扱う。新規specの宣言不足をfixture生成段で列挙して具体名で返す（V-6）、container由来資材のhost混入検出（V-1）、L3記録だけで合格を述べさせない報告契約（V-3）、失敗時も判定を変えずに成果物を回収できるdownload経路（V-5）、timing recordへのwall-clock明示（V-7）、宣言tool不在の機械可読記録（V-9） |
+| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-3、V-5〜V-7、V-9を達成し、V-1（container由来資材のhost混入検出）が未了。入力・出所と実装を固定し、診断・報告はL3に留め、判定権限はL1ゲートのままとする |
 | 14.21 | GD1非依存の達成判定（W-1〜W-4） | W-1〜W-4を達成（非GD1 fixture `mini-blink-dongle`がdigest固定containerで全laneとauthoritative Evidence検証を通過）。GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
+| 14.25 | routed board上のsilkscreen再解決 | SES import後の`.kicad_pcb`からkicad-cli exportでviaとmask開口を抽出し、silkscreen resolverをboundedなround上限のもと1回だけ再実行する。cache hit時は省略し、合否は既存silkscreen L1ゲートが決める |
 
 不足項目（C、D、L、M、N、O、P、Q、U、V、W）の各フェーズへの割当経緯と14.1〜14.15・14.19の完了条件は[`roadmap-completed.md`](roadmap-completed.md)を正とする。
 
@@ -330,12 +310,9 @@ preflightを実行しないため、不足は実行の途中でしか判明し�
 | negative・fail-closed | 不足宣言の列挙、進行表示、tool登録記録はいずれもL3観測であり合格側権限を持たない。preflightの`declarations_complete`はlane通過を意味しない。downloadの成功をcommand成功として扱わず、部分downloadを合格へ倒さない。container由来資材が混在したhost実行のEvidenceをauthoritativeへ昇格しない。宣言の自動補完、既定値の暗黙適用、閾値・ゲート条件の緩和は行わない |
 | 再現性 | preflight結果、不足宣言名、download結果、wall-clockとstage duration合計、tool登録差分をL3記録として保存し、同一入力での再実行で一致することを回帰テストで固定する。fail-closed runからの成果物回収を、tarとexit 0による回避策なしで再現する |
 
-実装状況: V-6（`lane-preflight` stageと`fixture-generation`のpreflight診断、
-`missing_declarations`と`next_step_action`）、V-7（`wall_clock_seconds`と
-`stage_duration_sum_seconds`の分離）、V-5（非ゼロ終了時のdownload試行と`download_errors`、
-exit code維持）、V-9（`out/tool-availability/<command名>.json`）、V-3（commandの報告契約と
-digestの`authoritative_evidence: unverified`）は達成した。詳細は
-[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節の実装状況を正とする。V-1は未着手である。
+実装状況: V-3、V-5、V-6、V-7、V-9は達成済みで、残るV-1（container由来資材のhost混入検出）は未着手である。
+詳細と完了条件は[`roadmap-completed.md`](roadmap-completed.md)および
+[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節を正とする。
 
 V-6は新規設計入口の唯一の停止点であり最優先で扱う。V-3とV-9は、会話経路がL3記録だけで
 合格を述べないための報告契約と一次資料であり同順で扱う。V-5とV-7は検証可能性、
@@ -438,7 +415,7 @@ matcher）を閉じる。
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `scripts/run_in_workspace.py`、`scripts/verify_authoritative_evidence.py`、`src/acd/pipeline/fixture_builder.py`（coverage診断文）、`plugins/acd/hooks/scripts/protect_projections.py`・`session_start.py`・stop policy、`plugins/acd/commands/init.md`、`src/acd/pipeline/design_loop.py`の`lane-preflight`、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節、[`examples/dual-beacon-tag-vps-20260907/`](../examples/dual-beacon-tag-vps-20260907/) |
-| 実装 | source provenanceの`ACD_SOURCE_GIT_SHA`をbootstrap record／installed plugin revision／`--source-revision`と照合し不一致をfail-closedにする（Z-3）。`run_in_workspace.py`の既定downloadを既定command・`--graph`明示時に限定し、任意commandでは`--download`指定分だけを扱う（Z-5）。hookが`acd-server`／`acd-tools` imageの生`docker run`／`docker exec`起動を拒否しrunner経由を案内する（Z-11）。coverage診断の会話向けnext stepから source表名を外し設計入力側の次手だけを示す（Z-2）。deny理由へ判定種別と該当tokenを付ける（Z-4）。inline codeの動的実行token（`exec(`・`eval(`・`base64.b64decode(`等）を拒否し（Z-6）、wrapper command越しの内側commandを同じ規則で再帰評価する（Z-7）。`init.md`の起動例とtimeout手順（Z-1）、最終報告のsource変更節を`git log <bootstrap>..HEAD --stat`の機械出力に固定（Z-8）、宣言側evidence属性の実測record解決検査（Z-9）、`lane-preflight`へmechanical preflight述語の取り込み（Z-10）、SessionStart hookのlock探索（Z-12）。`design_loop.py --fixture-spec`の`spec_dir`伝播（Z-13）は本変更で解消済み |
+| 実装 | Z-1〜Z-13のうち達成: Z-1〜Z-13（13件）、未了: なし。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.23節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のZ節を正とする |
 | 正常系 | 自然文のみから生成した新規設計が停止境界に達したとき、agentが`run_in_workspace.py`と宣言経路だけで次手を取れ、source編集・生container・難読化に倒れない。停止理由と到達段が`loop-summary`とprovenanceから第三者に読み取れる |
 | negative・fail-closed | bootstrapから逸脱したrevision、`unknown` provenance、`base64`難読化のinline code、生`docker run`起動、要件を落とした宣言はいずれもfail-closedのままである。診断・matcher・照合はL2／L3であり合格側権限を持たない |
 | 再現性 | 対照run（pristine main・同digest）を同一fixtureで再実行し、到達段・失敗理由・firmware Evidenceのprovenanceが一致することを記録する |
@@ -471,12 +448,20 @@ Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、router�
 | 要素 | 完了条件 |
 |---|---|
 | 入力と出所 | `scripts/run_in_workspace.py`（`--allow-dirty`の範囲）、`src/acd/pipeline/design_loop.py`・`lane_preflight.py`（catalog／registry hash照合、functional block・pin role診断）、`src/acd/core/part_selection.py`（message）、`src/acd/core/evidence_declarations.py`（他fixture転記のL3警告）、`scripts/report_final_basis.py`とstop policy（bootstrap record不在・変更fileの変更action引用）、`plugins/acd/commands/vibebb-loop.md`、`plugins/acd/hooks/scripts/session_start.py`（registry探索）、`fixtures/mini-blink-dongle/spec.json`（AA-1）、[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節、[`examples/dual-beacon-tag-vps-20260908/`](../examples/dual-beacon-tag-vps-20260908/)、`src/acd/pipeline/gd1_board.py`・`src/acd/adapters/kicad/`（CPL／DFM／島・DRC診断文）、`plugins/acd/skills/acd-contracts/`・`acd-placement-search/`・`acd-silkscreen-placement/`（Skill手順）、`scripts/fetch_lcsc_footprint_orientation.py`（record取得）、`src/acd/pipeline/gd1_board.py`の`hashes.json`生成と`src/acd/pipeline/theme_song.py`（投影形式検査）、`src/acd/pipeline/design_loop.py`・`scripts/run_design_loop.py`（文書lane・製造提出verdict・PNG rasterの投影段組み込み）、`plugins/acd/skills/acd-product-docs/scripts/`（`generate_instruction_manual.py`の必須macro集合）、`src/acd/pipeline/visual_projection.py`（`derive_png_visual_projections`）、`plugins/acd/skills/acd-theme-song/scripts/theme_song.py`（`Score`→MML render） |
-| 実装 | `--allow-dirty`の許容範囲を設計入力path（`fixtures/`・`evidence/`・`out/`）に限り、`src/`・`contracts/`・`scripts/`・`plugins/`のdirtyはfail-closedのまま（AA-5）。graphの`parts_catalog_sha256`・registry hashをcheckout上の契約と照合し不一致を`contract.hash_mismatch`で止める（AA-8）。`vibebb-loop.md`でbootstrap recordの所在確認を必須にし、stop policyがrecord不在を`bootstrap_record_missing`として停止報告へ載せる（AA-3）。`PartSelectionError`へ要求内容と次手を含める（AA-4）。未知functional blockの診断へ登録名一覧を添え、要件文書がLED・I2C pull-upを含むのにblock未宣言なら`requirement.block_missing`で止める（AA-6）。firmware pin roleをgraphのI2C接続から導出する宣言経路（AA-7）。`estimated` evidenceの他fixture転記をL3警告で列挙（AA-9）。報告契約でworktree各entryへ変更actionの引用を必須にする（AA-10）。SessionStart hookがworkspace registryのlockを探索（AA-2）。W-1 fixtureの宣言を実測へ揃える（AA-1、別PR）。修正後run（[`examples/dual-beacon-tag-vps-20260908/fixed-run/`](../examples/dual-beacon-tag-vps-20260908/fixed-run/README.md)、AA-11〜AA-14の実測根拠）で観測した宣言〜出力の乖離も同フェーズで扱う: `_copper_zone`が`min_island_area`をemitせず宣言値が充填後検証専用である点を区別する（AA-11）。CPL basis段でrecordの`Manufacturer Part`／packageと宣言`mpn`の整合を検査する（AA-12）。`part_request`無し部品へも`cpl_rotation_evidence_revision`を補完または欠如属性を診断へ示す（AA-13）。silkscreen resolverが`measured_pass`でも未配置テキストの配置探索を行う（AA-14）。修正後runでDevinが人手で越えた境界（17.12、AA-15〜AA-22）も同フェーズで扱う: CPL rotation診断へ宣言／有効／実測offsetとbasisを併記（AA-15）、LCSC番号無し部品の`FabOutputError`へ`not_fitted`の次手（AA-16）、`vibebb-loop.md`でgraph直接編集を禁止しspec→`--fixture-spec --fixture-overwrite`再生成を必須化（AA-17）、DFM pad-to-edge診断へ最小移動量（AA-18）、GND島・DRC診断へ囲みfootprintと候補レバーを列挙し`acd-placement-search`へ島解消手順（AA-19）、silkscreen診断へ短縮／探索範囲の次手（AA-20）、catalog entry追加の宣言経路とcontainer内hash算出（AA-21）、宣言直後のLCSC record取得とmpn照合手順（AA-22）。投影段の直後にwriterと独立したreader（SMF parser、STEP header/footer、3MF zip CRC・model XML、RS-274X／Excellon終端）による形式検査を置き、結果を`hashes.json`の各entryへ`format_check`として記録、parse失敗はその投影を欠落としてfail-closedにする（AA-23。利用者報告の`theme-song.mid`破損は修正後runの全投影を事後検査して再現せず、生成物側から判別できない点を閉じる）。acd-agentが持つ投影のうちloopが呼ばない3種（`acd-product-docs`の製品説明README・取扱説明書、`verify_manufacturing_submission.py`の製造提出verdict、`derive_png_visual_projections`のPNG raster）を`run_design_loop.py`の投影段へ組み込み、3 lane完了後に同一out root配下（`docs/`・`manufacturing-submission.json`・`visual/png/`）へ生成して`hashes.json`とloop-summaryへ登録する（AA-24。`--design-only`でも実行し、order lane入力は要求しない。PNG rasterは`visual-review-manifest`段として実装済みで、エージェントによるmanifest全entryの`inspect_image_with_vision`検査と`verify_visual_review.py`のfail-closed検証を必須化した。文書laneと製造提出verdictのloop組み込みは未実装のまま残る）。`generate_instruction_manual.py`がGD1固有のmacro集合（`ACD_PIN_UART_*`・`ACD_PIN_USB_*`・`ACD_SHT40_I2C_ADDRESS`・`ACD_LOG_PERIOD_MS`）を必須とする点を、graphのfirmware capability・pin role宣言から必要節を導出する構成へ改め、宣言に無い節は書かずに省略理由を文書へ記す（AA-25。推定値は書かず、宣言もmacroも無い項目はfail-closedのまま）。theme-songの投影にMML（Music Macro Language、テキスト楽譜）を追加し、`render_midi`と同じ`Score`（tempo・拍子・track別note/rest・drum）から`theme-song.mml`を決定論的にrenderして`theme-song.mid`と並べて`hashes.json`・provenance（同一proposal hash）へ登録する。MMLはtrack別channel・`t`（tempo）・`o`/`l`/音長・`r`（rest）・タイの表記を持つ方言を1つ固定し、MML→note列の独立parserで再読込してMIDIのnote数・総tick・pitch列と一致することを検査する（AA-26。不一致はMML投影をfail-closedで欠落にし、MIDI側の合否や3 lane判定へ作用させない。Evidence・fab packageには含めない）。実機regen run（2026-09-09、[`examples/dual-beacon-tag-vps-20260908/regen-run/`](../examples/dual-beacon-tag-vps-20260908/regen-run/README.md)）で判明した視覚レビュー契約の穴と人間向け投影の残課題（AA-27〜AA-33）も同フェーズで扱う: Local GUI会話に`VisionInspectTool`が無い場合は`visual-review-manifest`直後に`vision_tool_unavailable`でfail-closedにし、GUI会話へvision toolを届ける登録経路を用意する（AA-27）。observation recordへvision toolのObservationEvent idと応答hashを必須にし、会話event logと照合できない記録を`unverified`として`verify_visual_review.py`がfail-closedにする。file_editorによる`visual-observations/`直接書き込みは`write_target`拒否へ加える（AA-28。observationはL3のままで合否に作用しない）。KiCad回路図の用紙選択を配置後の実extentに基づかせ、net labelの衝突を検査する（AA-29）。CAD SVGへ題名・断面位置・寸法・基板断面・干渉体強調（無ければ注記）を付ける（AA-30）。placementへ取付穴・keepout・外形外はみ出し注記（AA-31）。KiCad層SVGのtitle・層名・寸法包み、sequence lifelineのrefdes＋value、state遷移線のy段分離、power-treeの電圧降順（AA-32）。最終報告のEvidence表4列を`verify_authoritative_evidence.py`の機械出力から引用させる（AA-33） |
+| 実装 | AA-1、AA-3〜AA-8、AA-15〜AA-18、AA-20を達成（12件）。未了: AA-2、AA-9〜AA-14、AA-19、AA-21〜AA-33（21件）。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする |
 | 正常系 | 自然文のみから生成した新規設計が停止境界に達したとき、agentが契約変更を会話内の未commit編集で通せず、bootstrap recordのあるworkspaceで`run_in_workspace.py`と宣言経路だけで次手を取れる。到達段がpristine mainの契約だけで再現でき、`loop-summary`とprovenanceから第三者に読み取れる |
 | negative・fail-closed | `src/`・`contracts/`がdirtyなcheckout、契約hash不一致のgraph、bootstrap record不在、未実測evidence宣言、要件を落とした宣言はいずれもfail-closedのままである。診断・警告・照合はL2／L3であり合格側権限を持たない。投影の形式検査はchunk長や終端を故意に壊した投影を欠落として止め、検査OKをEvidenceへ昇格しない。文書lane・製造提出verdict・PNG rasterの組み込みはL3投影の追加であり、その失敗はloop-summaryへ欠落として記録するがEvidenceや3 laneの判定を変えず、成功を合格側へ作用させない |
 | 再現性 | 対照run（pristine main・同digest）をagent最終specからの再生成（`--fixture-spec --fixture-overwrite`）で再実行し、到達段・失敗理由がGUI経路と一致することを記録する |
 
-実装状況: AA-3は実装済み（bootstrap record不在の停止を`bootstrap_record_missing`宣言までdeny）、AA-4は実装済み（`PartSelectionError`へ要求内容と次手）、AA-5は実装済み（dirtyなsource treeは`--allow-dirty`でも拒否）、AA-6は実装済み（未知block診断へ登録名一覧を添え`requirement.block_missing`で停止）、AA-7は実装済み（firmware pinのnet idから導出するroleをregistry照合し未登録roleを候補付きでfail-closedにする）、AA-8は実装済み（graphの`parts_catalog_sha256`をcheckoutの契約と照合し`contract.hash_mismatch`で停止）、AA-15は実装済み（CPL rotation offset不一致エラーへdeclared・effective・evidence offset・basisと宣言の次手）、AA-16は実装済み（LCSC部品番号なしfitted部品エラーへrefdes一覧と`not_fitted`／`lcsc`宣言の次手）、AA-17は実装済み（rationale coverage失敗メッセージと`vibebb-loop.md`へspec→再生成の規則、`graph.json`／`rationale.json`手編集の禁止を明記）、AA-18は実装済み（`pad-to-board-edge-clearance` findingへ辺別`violation_mm`・最小1軸移動`min_move_mm`・axis-aligned注記を追加）、AA-20は実装済み（silkscreen失敗の次手へtext短縮→`placement_search_limit_mm`拡大→座標宣言の順序とAA-14の全label除去deadlock警告、skillへShortening priorityを追加）、AA-1は実装済み（W-1 fixtureの`profile_fetched_at`をprofile実体の取得時点2026-08-11へ揃え、`container-gates`を`fixtures/`・`profiles/`・image digest lock変更のPRでも実行）。詳細は[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+実装状況: AA-1、AA-3〜AA-8、AA-15〜AA-18、AA-20は達成済みで、その他のAA項目は未了である。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.24節と[`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+
+### 14.25 routed board上のsilkscreen再解決
+
+現行の`silkscreen_resolve.py`はpre-routingでviaとmask開口が存在しない前提を置く。
+一方、SES import後の`.kicad_pcb`にはroutingで追加されたviaとmask開口が現れる。
+そのため、kicad-cli exportで対象形状を抽出し、resolverをboundedな契約で再実行する。
+再実行は1回に限定し、round上限を宣言する。cache hit時は再実行を省略する。
+既存silkscreen gateを合否の権威とし、再解決結果や投影はL1判定へ逆流させない。
 
 ## マイルストーン15: 運用と文書の整備
 
@@ -504,8 +489,10 @@ Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、router�
 | 15.17 | 例示commandとfixture有効期間の整合検査（V-4） | `docs/operations.md`のGD1発注集計例の`--evaluated-at`を対象quoteの有効期間内へ揃え、例示とfixtureの期限整合をdocs検証で機械的に固定する。quoteの有効期限や期限検査の閾値は緩めない |
 | 15.18 | 資源計測ラッパのscript化（V-8） | 検証のたびに使い捨てのshell scriptを書く状態を解消し、checkout path、image digest、download対象、計測間隔を引数で受ける計測wrapperをrepository内へ置く。計測結果はL3観測であり合否権限を持たない |
 | 15.19 | 成果物の最小収録集合の宣言（V-10） | FW laneのESP-IDF buildツリーのように再生成可能で大きい出力を区別し、lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言する。成果物の必須性判定（U-5）は変更しない |
+| 15.20 | 長時間runの予算・中断・再開契約 | 長時間runの出所としてwall-clock／token予算を宣言し、stage境界checkpointと`--resume`再開性の回帰テストを追加する。運用項目に限定し、判定・閾値には作用させない |
+| 15.21 | 代替routerの単独実測 | GD1と`dual-beacon-tag`をOrthoRoute headlessの`--cpu-only`／GPU modeで単独実測し、収束・DRC・時間・再現性と2回のhash一致を`operations.md`へ記録する。決定論的`.ORP`生成が不能なら不採用として閉じ、合否へ作用させない |
 
-15.1〜15.13は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.14〜15.19は未着手であり、15.17〜15.19は第6回実機実測と成果物回収（V-4、V-8、V-10）を出所とし、例示・計測・収録の手順側だけを整備する項目であり、判定と閾値には触れない。
+15.1〜15.13は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.14〜15.21は未着手であり、15.17〜15.19は第6回実機実測と成果物回収（V-4、V-8、V-10）を出所とし、15.20〜15.21を含めて運用・計測側だけを整備する項目であり、判定と閾値には触れない。
 
 ## マイルストーン16: 設計能力の拡張
 
@@ -514,15 +501,16 @@ Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、router�
 
 16.5で残留する単一故障点は、除去せずに受容する場合もクリティカル項目として根拠付きで列挙し、検査対象外にした箇所はその理由を記録する。列挙のない状態を「単一故障点なし」と解釈しない。
 
-| 順 | フェーズ | 内容 |
-|---|---|---|
-| 16.1 | 4層基板・階層graph対応 | 現行の2層・フラット構造前提を拡張し、stackup宣言、差動ペア・インピーダンス管理配線の契約とゲートを追加する |
-| 16.2 | バッテリ駆動製品対応 | 充電IC・残量計・保護回路の設計述語と、電力バジェット（消費電流と容量の収支）を宣言由来の入力から決定論的に検査するゲートを追加する |
-| 16.3 | EMC/ESD設計述語 | 外部コネクタへの保護素子の有無、電源ループ面積、リターンパス連続性のチェックを設計述語として追加する（認証適合の判定はしない） |
-| 16.4 | テスト容易化設計（DFT） | テストポイントのネットカバレッジをゲート化し、プローブアクセス（最小間隔・径）を検査する |
-| 16.5 | 構造安全性述語 | 冗長経路が同一コネクタ・同一ハーネス・同一電源バス・同一IC・同一via・同一熱経路・同一保護素子を共有していないかの単一故障点／共通原因検査、電源ツリー全体での保護の選択性（下流が上流より先に切れるか、短絡の封じ込め範囲、保護素子と被保護機能が同一ICへ集約されていないか）、ネットの信号クラス宣言と非互換な同一コネクタ・隣接配置の検出、クリティカル回路に限定したスニーク解析（意図しない導通経路・タイミング・表示・表記）、導体の台形断面を考慮した許容電流評価を設計述語として追加する。適用条件と有効域は14.2の契約registryで宣言し、宣言のない範囲はunknownとして停止側へ集約する（認証適合の判定はしない） |
+| 順 | フェーズ | 内容 | 現状 |
+|---|---|---|---|
+| 16.1 | 4層基板・階層graph対応 | 現行の2層・フラット構造前提を拡張し、stackup宣言、差動ペア・インピーダンス管理配線の契約とゲートを追加する | 計画 |
+| 16.2 | バッテリ駆動製品対応 | 充電IC・残量計・保護回路の設計述語と、電力バジェット（消費電流と容量の収支）を宣言由来の入力から決定論的に検査するゲートを追加する | 計画 |
+| 16.3 | EMC/ESD設計述語 | 外部コネクタへの保護素子の有無、電源ループ面積、リターンパス連続性のチェックを設計述語として追加する（認証適合の判定はしない）。入力として想定実使用環境（設置場所・電源系統・温湿度・振動）の宣言contractを受け取る | 計画 |
+| 16.4 | テスト容易化設計（DFT） | テストポイントのネットカバレッジをゲート化し、プローブアクセス（最小間隔・径）を検査する | 計画 |
+| 16.5 | 構造安全性述語 | 冗長経路が同一コネクタ・同一ハーネス・同一電源バス・同一IC・同一via・同一熱経路・同一保護素子を共有していないかの単一故障点／共通原因検査、電源ツリー全体での保護の選択性（下流が上流より先に切れるか、短絡の封じ込め範囲、保護素子と被保護機能が同一ICへ集約されていないか）、ネットの信号クラス宣言と非互換な同一コネクタ・隣接配置の検出、クリティカル回路に限定したスニーク解析（意図しない導通経路・タイミング・表示・表記）、導体の台形断面を考慮した許容電流評価を設計述語として追加する。適用条件と有効域は14.2の契約registryで宣言し、宣言のない範囲はunknownとして停止側へ集約する（認証適合の判定はしない） | 計画 |
+| 16.6 | ハーネス契約と結線検査 | 結線、電線種別、許容電流を宣言contractとして受け取り、電圧降下・許容電流を決定論的に検査し、ハーネス図と切断長表を投影する。新規ADRを完了条件に含め、未宣言範囲はunknownとして停止側へ集約し、判定権限はL1ゲートのままとする | 計画 |
 
-16.1〜16.5は計画である。
+16.1〜16.6は計画である。
 
 ## マイルストーン17: 部品・サプライチェーン統治
 
