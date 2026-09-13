@@ -816,5 +816,57 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 | （多コアVPS実測・達成）U-3 例示commandのquote／order入力のrevision整合 | 14.19 |
 | （多コアVPS実測）U-4 decoupling制約を満たすfixture配置探索 | 14.19 |
 | （多コアVPS実測）U-5 製造提出データの独立L1品質判定 | 14.19 |
+| ACD imageのコンテナ化と配布 | 6・14.9（達成、[`docker/README.md`](../docker/README.md)） |
+| routing後のvia mask開口を含む再解決 | 14.22（2026-09-13） |
+| 長時間runの予算・中断・再開契約 | 15.20（2026-09-13） |
+| 代替routerの単独実測 | 15.21（2026-09-13） |
+| 機器I/F契約投影 | 9.6（2026-09-13） |
+| ハーネス契約と結線検査 | 16.6（2026-09-13） |
+| 想定実使用環境の宣言contract | 16.3（2026-09-13） |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |
 | （実機組み付け）筐体ネジ穴欠落（スタンドオフが固体円柱・リッドが平板） | 3.1 |
+
+## マイルストーン12の達成済みフェーズ
+
+完成した設計の知識源（design graph、rationale record、ゲート結果、Evidence、生成文書、
+git履歴、revision差分、会話ログ）を照会可能なナレッジとしてまとめ、製品仕様、使い方、
+トラブルシューティング、設計根拠、歴史的経緯の質問に出所の引用付きで答える。回答はL2操舵・
+L3観測であり、合否権限を持たない。出所（rationale ID、Evidenceファイル、コミット、文書パス）
+を必ず引用し、導出できない質問にはunknownと答える。会話ログは内部向けQAだけに含め、
+公開用FAQから除外する。
+
+| 順 | フェーズ | 内容 |
+|---|---|---|
+| 12.1 | ナレッジ索引契約 | graph・rationale・ゲート結果・Evidence・生成文書・git履歴・会話ログを、出所種別と参照パス付きで列挙する |
+| 12.2 | 対話QA SKILL | 索引contractの範囲で出所引用付きの回答を返すSKILL（例: `/acd:ask`）を追加する |
+| 12.3 | トラブルシューティング知識の構造化 | 症状・確認手順・期待値をgraphとFW投影から機械可読に導出する |
+| 12.4 | 公開用FAQ生成 | 会話ログを除外したFAQ・ナレッジ文書を`out/docs/`へ生成する |
+| 12.5 | 歴史的経緯QA | git履歴・revision差分・内部会話ログ・ECO記録から出所付きで回答する |
+
+12.1〜12.5は`acd-design-knowledge` Skillと`/acd:ask` commandとして実装済みであり、
+運用手順は[`operations.md`](operations.md)の設計知識laneに記録する。
+
+## マイルストーン14の達成済みフェーズ
+
+### 14.17 復帰経路と新規設計入口の是正（S-1〜S-5）
+
+S-1〜S-5は、候補評価時のrationale更新、残予算での次候補評価、宣言tool不在検出、
+library資材宣言の統一、進行表示を扱う。S-1、S-2、S-4、S-5とS-3のdrift guardは実装済みで、
+表示・診断は`pass_evidence`を与えない。S-3の配布形態そのものと復帰成立実行の実測記録は未了である。
+
+### 14.18 復帰候補評価からL3観測の混入を除く（T-1〜T-5）
+
+T-1、T-2、T-4、T-5は実装済みである。候補評価は親laneと独立したtiming recorderを使い、
+観測失敗を`stopped`として扱う。T-3はpinned SDKの登録面を検出するdrift guardとして扱い、
+authoritative Evidenceを生成しない。実機で成功した復帰runのwall-clock記録は未取得である。
+
+### 14.20 Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9）
+
+V-3、V-5、V-6、V-7、V-9は達成した。V-1はcontainer由来資材のhost混入検出が未了であり、
+残るV項目としてroadmapに保持する。不足宣言、download、wall-clock、tool登録の記録はL3観測で、
+合否権限は持たない。
+
+### 14.21 GD1非依存の達成判定（W-1〜W-4）
+
+W-1〜W-4は達成した。非GD1 fixture `mini-blink-dongle`がdigest固定containerで全laneと
+authoritative Evidence検証を通過し、GD1はregression用positive controlとして維持する。
