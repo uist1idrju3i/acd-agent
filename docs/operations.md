@@ -9,8 +9,8 @@
 - JavaとFreeRouting
 - Docker（ゲート実行の正）
 
-OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.44.1
-（commit `9d143aac35c2dcec9cbb046ff9f35ac5eb072f6a`）をworkspace sourceとして使用する。
+OpenHands Software Agent SDKは`vendor/software-agent-sdk`のsubmodule v1.47.0
+（commit `50080b58d35b4824fda25fca2345d80bcd08aeff`）をworkspace sourceとして使用する。
 agent-serverはACDの対象外であり、採用する場合は新規ADRで受入条件を定義する。実行形は
 `LocalConversation`とdigest固定server imageを使う`DockerWorkspace` runnerを基点とする。
 host経路はprovisional専用であり、authoritative Evidenceを生成しない。
@@ -53,7 +53,7 @@ submoduleの確認:
 git submodule status
 ```
 
-`vendor/software-agent-sdk`がv1.44.1のcommitを指していることを確認する。
+`vendor/software-agent-sdk`がv1.47.0のcommitを指していることを確認する。
 
 `/acd:init`で会話用workspaceを初期化する場合は、cloneとrecursive submoduleを
 それぞれ`--depth 1`で取得する。`pyproject.toml`がvendor submoduleのeditable pathを
@@ -1009,6 +1009,41 @@ SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajor�
   - 破壊的変更/新機能: 26.10はLTSではなく、28.04はLTS seriesである。
   - 採否: 不採用。リポジトリ標準をLTSに限定し、checkerも偶数年の`YY.04`だけを比較する。
 
+#### 2026-09 更新記録（#332）
+
+- **OpenHands SDK v1.47.0**
+  - 一次情報: [v1.45.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.45.0)、[v1.46.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.46.0)、[v1.47.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.47.0)
+  - 破壊的変更/新機能・採否: 「依存・版・破壊的変更の記録」節のv1.44.1→v1.47.0項に記録する。submodule、`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`AGENTS.md`、`docs/openhands-sdk-capabilities.json`を同じ変更で更新した。
+- **cairosvg 2.9.1**
+  - 一次情報: [CairoSVG 2.9.1 release](https://github.com/Kozea/CairoSVG/releases/tag/2.9.1)
+  - 破壊的変更/新機能: security update。特殊に細工された非常に長いpathで描画時間が指数的に増える問題を修正。`url`引数のpath-like対応、Windows path修正。
+  - 採否: 採用。ACDは`svg2png(bytestring=…)`だけを使い、APIと既定値の変更はない。KiCad SVG視覚投影の入力は自生成物だが、security fixとして追従する。
+- **ruff 0.16.7**
+  - 一次情報: [Ruff 0.16.7 release](https://github.com/astral-sh/ruff/releases/tag/0.16.7)
+  - 破壊的変更/新機能: preview rule `RUF077`追加、`ISC003`/`TID254`のfix安全性修正、`UP035`の`typing.no_type_check_decorator`推奨停止、性能改善。stable ruleの追加はなく破壊的変更はない。
+  - 採否: 採用。`uv run ruff check`は変更なしで通過する。preview ruleは有効化しない。
+- **pyright 1.1.414**
+  - 一次情報: [1.1.412](https://github.com/microsoft/pyright/releases/tag/1.1.412)、[1.1.413](https://github.com/microsoft/pyright/releases/tag/1.1.413)、[1.1.414](https://github.com/microsoft/pyright/releases/tag/1.1.414)
+  - 破壊的変更/新機能: 型推論の修正（Sentinel assignability、keyword-form assignability、comprehension iterable内walrusの診断等）、type equality fast pathの最適化。behavior changeの告知はない。
+  - 採否: 採用。strict modeの`uv run pyright`は変更なしで通過する。
+- **uv.lock間接依存**
+  - 一次情報: `uv lock --upgrade`およびIssue #332の候補表。
+  - 破壊的変更/新機能: alembic、boto3/botocore、caio、contourpy、cyclopts、fakeredis、filelock、fonttools、google-auth、huggingface-hub、jiter、litellm 1.100.1、matplotlib、mcp 1.30.0、multidict、numpy 2.5.3、platformdirs、posthog、pure-eval、pyjwt、pypdf、regex、scikit-learn、tqdmのminor/patch更新。`agent-client-protocol`はSDK v1.47.0の`<0.11.0`制約により0.12.1から0.10.1へ下がる。
+  - 採否: 採用。`[tool.uv] constraint-dependencies`（`mcp<2`、`protobuf<7`）は維持し、fastmcp/mcp/protobuf majorは引き続き保留する。
+- **astral-sh/setup-uv v10.1.0**
+  - 一次情報: [setup-uv v10.1.0 release](https://github.com/astral-sh/setup-uv/releases/tag/v10.1.0)
+  - 破壊的変更/新機能: `no_proxy`/`NO_PROXY`環境変数の尊重、`python-runtime-id` output追加、`astral-sh/versions` checksumによるdownload検証。破壊的変更はない。
+  - 採否: 採用。全workflowのpinをcommit `bec219d24cd3e171d82865faccec33120bb574f4`へ更新した。`python-runtime-id`は現行workflowで使用しない。
+- **uv 0.12.13（Docker ARG `UV_VERSION`）**
+  - 一次情報: [0.12.11](https://github.com/astral-sh/uv/releases/tag/0.12.11)、[0.12.12](https://github.com/astral-sh/uv/releases/tag/0.12.12)、[0.12.13](https://github.com/astral-sh/uv/releases/tag/0.12.13)
+  - 破壊的変更/新機能: `uv.lock`記録hashによるsource archive検証、PEP 658 metadata sidecarのhash検証、`exclude-newer`後にuploadされたdistributionのlock除外、install高速化。CLIと既定値の破壊的変更はない。
+  - 採否: 採用。server image内のsync経路はhash検証強化の恩恵を受ける。image digest lockはpublish後に別変更で更新する。
+- **ohwr/cern-kicad-libs `1c71207c558a9ea32d96f7b272ba4a1fa923ef14`**
+  - 一次情報: upstream commit `39e5755`・`1c71207`（CERN KiCad Library Bot、2026-09-12）。差分は`CERN.sqlite`、`CHECKSUMS`、`SchLib/Analog & Interface.kicad_sym`・`SchLib/Crystals & Oscillators.kicad_sym`のsymbol追加、AMPHENOL/PEM/OHMITE footprint追加、TYCO THD footprintの再生成、conversion log。`LICENSE`・`LICENSES/`・`.reuse/dep5`に変更はない。
+  - 破壊的変更/新機能: 既存部品の削除はなく、GD1 fixtureはCERN catalog部品を参照しないため`parts_catalog_sha256`を記録した既存Evidenceに影響しない。`CERN.sqlite`のhashは変わるため、以後の`catalog="cern"`選択は新しい`parts_catalog_sha256`を記録する。
+  - 採否: 採用。`libraries/README.md`の取得commit・取得日を更新し、`tests/core/test_cern_submodule_pin.py`とcatalog testで整合を確認した。
+- **保留継続**: cadquery-ocp 8.0.1.0.0（build123d 0.11.1が`cadquery-ocp-novtk<8.0`を要求）、Python 3.14（target 3.12、SDK v1.47.0 baseline）は`scripts/dependency_update_deferrals.json`の2026-12-01期限のまま据え置く。
+
 ### リリース手順
 
 リリース前に、対象タグの作成・push権限とrulesetを確認する。タグ作成はrulesetで
@@ -1935,8 +1970,8 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 依存、submodule、外部ツールを更新した場合は、使用API、既定値、破壊的変更、
 採否を本節へ追記する。現行の基準は次のとおりである。
 
-- SDKは`vendor/software-agent-sdk`のv1.44.1、commit
-  `9d143aac35c2dcec9cbb046ff9f35ac5eb072f6a`に固定する。更新前にpinned checkoutの
+- SDKは`vendor/software-agent-sdk`のv1.47.0、commit
+  `50080b58d35b4824fda25fca2345d80bcd08aeff`に固定する。更新前にpinned checkoutの
   API、上流release tag、CHANGELOGまたは一次リリース情報を確認する。
 - v1.42.1からv1.43.1への更新では、Agent Pluginsのmanifest loaderとclosed
   `plugin.json` schema、structured task outcome preset、shell semanticsの
@@ -1961,6 +1996,48 @@ gate criticのEvidence経路で明示的に拒否し、合否判定には使わ�
 - 同更新のagent-server側変更（ACP providerのbuild argとlayer分離、conversation単位の
   lifecycle lock、streaming deltaの配信範囲修正、crash recovery、canvas extension manifest、
   ACP agentへのworkspace project skills注入禁止）はACDの対象外であり、採用しない。
+- v1.44.1からv1.47.0への更新（一次情報: [v1.45.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.45.0)、
+  [v1.46.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.46.0)、
+  [v1.47.0](https://github.com/OpenHands/software-agent-sdk/releases/tag/v1.47.0)）では、
+  次の既定動作改善をSDK経路を通じて採用する。いずれもL2の漏洩防止・停止境界を強化する
+  方向の変更であり、L1判定、authoritative Evidence、approval規則を変更しない。
+  - `SecretRegistry`によるmaskingが、durableな`MessageEvent`のmodel出力、全toolの
+    observation（`ToolDefinition.__call__`の共通chokepoint）、streaming tokenへ拡張された
+    （#4783、#4788）。ACDが`Conversation`へ設定する`SecretRegistry`の効果範囲が広がる。
+  - `execute_command`のsubprocess envから`SESSION_API_KEY`、`OH_SECRET_KEY`、
+    `OH_SESSION_API_KEYS_*`が除去される（#4801）。ACD hook・toolがsubprocessへ
+    渡す環境変数には影響しない。
+  - eventは購読callbackへ配信される前にpersistされ、`EventLog.append`・
+    `ConversationState.append_event`は割り当てたsequence番号（`int`）を返す（#4806、#4697）。
+    callback合成順は「visualizer → persist → user callbacks」へ変わる。ACDは
+    `LocalConversation`へ独自callbackを渡さず、`append_event`の戻り値も使用しないため
+    互換性問題はない。
+  - `OH_PERSISTENCE_DIR`が`~/.openhands`配下の全経路（user memory、installed
+    plugins/skills、cache、hooks、profiles）で尊重される（#4476）。ACDの
+    `memory_context_observation`はSDKの`get_user_persistence_dir()`でuser memory
+    indexを探索し、SDKの`load_memory`と同じ既定を共有するよう更新した。
+    `acd-install-doctor`のinstalled plugin store検査はhostの`~/.openhands`のまま
+    据え置く（標準libraryのみのscriptであり、環境変数による移設は現時点で運用していない）。
+  - async stepの途中に到着したuser messageの拾い直し（#4194）、
+    nested repo pathの祖先判定（#4767）、local extension sourceと`repo_path`の合成と
+    subpath containment検査（#4839）、`fastmcp>=3.2.0`によるMCP OAuth token失効の
+    修正（#4857）。ACDの`PluginSource(source="github:…", repo_path="plugins/acd")`は
+    remote sourceであり、local source合成の変更による影響はない。
+  - `StreamContext`がstream identityを一元管理し、streamを必ずcloseする（#4822、
+    `sdk.agent.stream_context`）。SDK内部補助として`docs/openhands-sdk-capabilities.json`の
+    `sdk.agent.internal`へ分類する。
+  - Agent Pluginsのclient extensionが`dev.openhands` namespace配下へ写像される（#4496）。
+    `AgentPluginsFormat`はupstreamでも未登録のため、ACDのplugin format採用範囲は変えない。
+- 同更新の不採用項目: TypeScript clientのmonorepo移行、agent-serverのOpenAI Responses
+  gateway、`INSTALL_CAPABILITIES` build arg、VNC/desktop stack削除、
+  `/sockets/session/{id}`、ACP-less image fallback、ACP provider追加（Kimi Code、Pi、
+  OpenCode）、Laminar instrument選択、GPT-6 Astra等のverified model追加、
+  litellm_proxy alias pricing。agent-server・ACP・observability・model registryは
+  ACDの対象外であり、非決定論的経路を合否へ関与させない。
+- 同更新の破壊的変更: `agent-client-protocol`が`>=0.10.1,<0.11.0`へ制限され
+  （0.11.0の`prompt()`引数順変更を回避）、lockは0.12.1から0.10.1へ下がる。ACDはACPを
+  使用しないため影響はない。`AgentBase.model_dump_succint`（deprecated）が削除された。
+  ACDは使用していない。
 - Python依存は`pyproject.toml`とlockを正とし、既定値・公開API・破壊的変更を確認して
   `docs/openhands-sdk-capabilities.json`の採否へ反映する。Markdown表は
   `scripts/verify_sdk_capabilities.py`で生成し、採否enumと代表APIの検査を通す。

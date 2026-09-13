@@ -12,7 +12,7 @@
       "name": "*",
       "latest": "3.14",
       "review_by": "2026-12-01",
-      "reason": "project target stays 3.12 (OpenHands SDK v1.44.1 baseline); 3.14 runtime migration needs separate validation"
+      "reason": "project target stays 3.12 (OpenHands SDK v1.47.0 baseline); 3.14 runtime migration needs separate validation"
     }
   ]
 }

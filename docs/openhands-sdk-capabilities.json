@@ -1,6 +1,6 @@
 {
-  "sdk_version": "1.44.1",
-  "submodule_commit": "9d143aac35c2dcec9cbb046ff9f35ac5eb072f6a",
+  "sdk_version": "1.47.0",
+  "submodule_commit": "50080b58d35b4824fda25fca2345d80bcd08aeff",
   "scanned_packages": [
     {
       "prefix": "sdk",
@@ -75,7 +75,8 @@
       "domain": "sdk.agent.internal",
       "modules": [
         "sdk.agent.critic_mixin",
-        "sdk.agent.utils"
+        "sdk.agent.utils",
+        "sdk.agent.stream_context"
       ],
       "representative_apis": ["CriticMixin"],
       "use": "SDK内部agent補助",
