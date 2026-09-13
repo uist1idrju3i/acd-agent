@@ -9,10 +9,10 @@ dependencies = [
     "gerbonara>=1.6.3",
     "build123d==0.11.1",
     "cadquery-ocp==7.9.3.1.1",
-    "openhands-sdk==1.44.1",
-    "openhands-tools==1.44.1",
-    "openhands-workspace==1.44.1",
-    "cairosvg==2.9.0",
+    "openhands-sdk==1.47.0",
+    "openhands-tools==1.47.0",
+    "openhands-workspace==1.47.0",
+    "cairosvg==2.9.1",
 ]
 
 [project.scripts]
@@ -36,8 +36,8 @@ dev = [
     "openhands-workspace",
     "pytest>=9.1.1",
     "pytest-xdist>=3.8.0",
-    "ruff>=0.16.6",
-    "pyright>=1.1.411",
+    "ruff>=0.16.7",
+    "pyright>=1.1.414",
 ]
 
 [build-system]

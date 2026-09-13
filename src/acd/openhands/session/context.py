@@ -10,6 +10,7 @@ from openhands.sdk.context.memory import MEMORY_INDEX_RELPATH, load_memory
 from openhands.sdk.context.view import View
 from openhands.sdk.conversation.secret_registry import SecretRegistry
 from openhands.sdk.event.base import Event
+from openhands.sdk.utils.path import get_user_persistence_dir
 from pydantic import JsonValue, TypeAdapter, ValidationError
 
 from acd.openhands.safety.secrets import build_acd_secret_mapping
@@ -207,8 +208,9 @@ def memory_context_observation(
     if context is None:
         return MemoryContextObservation(char_count=0)
     index_paths: list[str] = []
-    for root in (Path.home(), Path(working_dir)):
-        index_path = root / ACD_MEMORY_INDEX_RELPATH
+    user_index_path = get_user_persistence_dir() / "memory" / "MEMORY.md"
+    project_index_path = Path(working_dir) / ACD_MEMORY_INDEX_RELPATH
+    for index_path in (user_index_path, project_index_path):
         if index_path.is_file():
             index_paths.append(ACD_MEMORY_INDEX_RELPATH)
             break

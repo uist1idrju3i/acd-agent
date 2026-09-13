@@ -432,7 +432,7 @@ def test_write_returns_nonzero_for_non_drift_errors(
 def test_catalog_json_is_valid() -> None:
     catalog = json.loads(verifier.CATALOG_PATH.read_text(encoding="utf-8"))
 
-    assert verifier.CapabilityCatalog.model_validate(catalog).sdk_version == "1.44.1"
+    assert verifier.CapabilityCatalog.model_validate(catalog).sdk_version == "1.47.0"
 
 
 def test_current_catalog_has_valid_references() -> None:

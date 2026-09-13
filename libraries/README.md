@@ -14,8 +14,8 @@
 ## CERN KiCad Libraries
 
 - 取得元URL: `https://gitlab.com/ohwr/cern-kicad-libs`
-- 取得commit: `9f654ec4b274ca67960426e157a73103918d462b`
-- 取得日: 2026-09-06
+- 取得commit: `1c71207c558a9ea32d96f7b272ba4a1fa923ef14`
+- 取得日: 2026-09-13
 - ライセンス: CERN-OHL-P-2.0（permissive variant、Copyright 2024-2025 CERN）。
   ライセンス本文はsubmodule内の`libraries/cern-kicad-libs/LICENSE`を参照する。
 - upstream全体を`libraries/cern-kicad-libs`へshallow submoduleとして固定する。
