@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 from typing import cast
 
+from acd.core.projection_format_check import ProjectionFormatError, check_projection
 from acd.schema.theme_song import (
     ThemeSongArtifact,
     ThemeSongArtifactInput,
@@ -166,6 +167,10 @@ def generate_theme_song_projection(
         raise ThemeSongProjectionError(
             "theme-song regeneration did not reproduce identical MIDI (fail-closed)"
         )
+    try:
+        midi_format_check = check_projection(song_dir / _MIDI_NAME, "smf")
+    except ProjectionFormatError as exc:
+        raise ThemeSongProjectionError(str(exc)) from exc
 
     provenance = _load_provenance(song_dir / _PROVENANCE_NAME)
     if provenance.get("pass_evidence") is not False:
@@ -231,6 +236,7 @@ def generate_theme_song_projection(
                 content_hash=first_hash,
             ),
         ],
+        format_check=midi_format_check,
         regeneration_check=ThemeSongRegenerationCheck(
             status="reproduced", first_hash=first_hash, second_hash=second_hash
         ),

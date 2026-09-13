@@ -117,6 +117,7 @@ from acd.core.process import (
     ToolTimeoutError,
     execution_provenance,
 )
+from acd.core.projection_format_check import ProjectionKind, check_projections
 from acd.core.routing_width import derive_net_widths
 from acd.core.runtime_records import StageArtifactCache, TimingRecorder, write_timing_record
 from acd.core.silkscreen import extract_silkscreen_lane
@@ -2059,6 +2060,54 @@ def run_pipeline(
         theme_song_projection_path,
         *(out_dir / artifact.path for artifact in theme_song_projection.artifacts),
     ]
+    projection_items: list[tuple[Path, ProjectionKind]] = [
+        (project.schematic, "kicad_sexpr"),
+        (project.board, "kicad_sexpr"),
+        (project.bom, "csv" if project.bom.suffix.lower() == ".csv" else "json"),
+        (routed_path, "kicad_sexpr"),
+        (dsn_path, "dsn"),
+        (routing_summary_path, "json"),
+        (out_dir / "design-freedom-declaration.json", "json"),
+        (stitch_candidate_report_path, "json"),
+        (pos_path, "csv"),
+        (bom_path, "csv"),
+        (cpl_path, "csv"),
+        (dfm_path, "json"),
+        (order_readiness_path, "json"),
+        (package_path, "json"),
+        (zip_path, "zip"),
+        *((path, "gerber") for path in gerber_paths),
+        *((path, "excellon") for path in drill_paths),
+        (gbrjob_path, "gbrjob"),
+        (cpl_basis_path, "json"),
+        (theme_song_projection_path, "json"),
+        *(
+            (
+                out_dir / artifact.path,
+                "smf" if (out_dir / artifact.path).suffix.lower() == ".mid" else "text",
+            )
+            for artifact in theme_song_projection.artifacts
+        ),
+    ]
+    projection_checks = check_projections(projection_items, root=out_dir)
+    projection_format_path = out_dir / "projection-format-check.json"
+    projection_format_record: dict[str, object] = {
+        "schema_version": "0.1",
+        "record_class": "L3",
+        "pass_evidence": False,
+        "target_revision": revision,
+        "checks": projection_checks,
+    }
+    projection_format_record["content_sha256"] = canonical_json_sha256(projection_format_record)
+    projection_format_path.write_text(
+        json.dumps(projection_format_record, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    hash_paths.append(projection_format_path)
+    print(
+        f"[12/12] projection format check: {len(projection_checks)} projections ok "
+        f"-> {projection_format_path}"
+    )
     for path in hash_paths:
         if path.suffix == ".zip":
             content_hash = zip_content_hash(path)

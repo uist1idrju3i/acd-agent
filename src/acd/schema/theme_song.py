@@ -101,6 +101,7 @@ class ThemeSongProjection(AcdModel):
     key: NonEmptyStr
     title: NonEmptyStr
     artifacts: list[ThemeSongArtifact] = Field(min_length=1)
+    format_check: dict[str, object] | None = None
     regeneration_check: ThemeSongRegenerationCheck
     canonical_hash: HashOrUnknown = "unknown"
 
