@@ -165,6 +165,7 @@ container内へ持ち込んで入力にした（設計入力・生成器は無�
   **fail-closed（exit 1）**。DBTの`acd_pins.h`（`LED`・`LED2`・`BUTTON`・`I2C_SDA`・`I2C_SCL`・
   `LED_BLINK_PERIOD_MS`）にGD1固有の必須macro（`ACD_PIN_UART_TX/RX`・`ACD_PIN_USB_DP/DN`・
   `ACD_PIN_BOOT`・`ACD_SHT40_I2C_ADDRESS`・`ACD_LOG_PERIOD_MS`）が無い。回避せずそのまま収録（AA-25）。
+  この記録は旧generatorの観測であり、AA-25でgraph宣言から節を導出する経路が解消した後も履歴として保持する。
 - `manufacturing-submission.json`・`manufacturing-submission.host-verdict-recheck.log`: 製造提出verdict
   （`verify_manufacturing_submission.py --require-authoritative`、CIの`container-gates`と同じ引数）。
   container内で`status: pass`（`required_artifacts`〜`evidence_validity`の8検査PASS）、

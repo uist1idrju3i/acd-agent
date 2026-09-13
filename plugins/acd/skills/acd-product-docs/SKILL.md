@@ -64,12 +64,26 @@ that carries the input hashes, the template id, the generator script hash and
 the target revision. Documents contain no timestamp, so reruns with identical
 inputs produce byte-identical output.
 
+The instruction manual derives sections from graph declarations: firmware actions
+control capability text, pin assignments control wiring and flashing details,
+and every declared mechanical connector opening is rendered in node-id order.
+When a declared capability lacks its generated macro, generation fails closed
+with the missing macro named. Undeclared capabilities are omitted rather than
+estimated, and the Japanese document records each omission and reason under
+`## 省略した項目`.
+
+`run_design_loop` invokes both generators in its `projection-docs` stage after
+the visual-review manifest. The stage writes these documents and provenance
+records under `out/docs/`, together with a flat `hashes.json`. The manual CLI
+above remains available when an operator needs to regenerate the documents
+independently.
+
 Generation stops instead of reporting "no problem" when an input is missing or
 inconsistent: an invalid graph, a projection set from another revision, a
 projection whose regeneration check is not `reproduced`, a missing projection
 image, a theme-song projection for another graph or revision, a theme-song
 MIDI artifact that is missing or whose sha256 differs from the declared hash,
-a pin projection for another revision, or a missing macro in
-`acd_pins.h` all fail closed. When `--theme-song-projection` is not given, the
+a pin projection for another revision, or a macro required by a graph-declared
+capability missing from `acd_pins.h` all fail closed. When `--theme-song-projection` is not given, the
 README omits the theme-song section and notes the undeclared input in the
 evidence-relation section; the projection path is never guessed.

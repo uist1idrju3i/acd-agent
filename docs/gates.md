@@ -40,6 +40,13 @@ design loopの必須段（`visual-review-manifest`）として`run_design_loop`�
 `scripts/verify_visual_review.py`がfail-closedで検証する。observationとverdictはL3であり
 合否権限は持たない。acd-tools imageにはlibcairo2を固定し、container内でPNG派生可能である
 ことを検証済みである。lock済みacd-server imageもCairo追加後のtools image由来である。
+manifestの直後には`projection-docs`段と`manufacturing-submission`段を実行し、
+`out/docs/`へ製品README・取扱説明書・provenance・flatな`hashes.json`、
+`out/manufacturing-submission.json`へ`require_authoritative=false`のhost provisional
+verdictを書き出す。manufacturing-submissionのloop recordは`record_class=L3`、
+`authoritative=false`であり、いずれもL1 gateやauthoritative Evidenceを付与しない。
+CIの`verify_manufacturing_submission.py`によるauthoritative再検査は
+従来どおり別経路で実行する。
 なお、PNG派生をL1ゲートやEvidence生成へ配線するものではなく、機械向け投影
 （Gerber・CPL・BOM・STEP等）はこのレビューの対象外である。
 視覚投影経路と画像provenance schemaのうち、8.1〜8.2で回路図ビューと層別レイアウトビュー

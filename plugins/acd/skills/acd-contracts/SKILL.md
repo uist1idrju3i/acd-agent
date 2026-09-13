@@ -55,3 +55,26 @@ fitted so they are excluded from the JLCPCB BOM and CPL:
 ```json
 { "refdes": "J1", "assembly": "not_fitted", "jlcpcb_class": "none" }
 ```
+
+## Verify an LCSC number right after declaring it
+
+Fetch the LCSC response immediately after declaring a part number and compare
+the record's `Manufacturer Part` with the declared MPN:
+
+```bash
+uv run python scripts/fetch_lcsc_footprint_orientation.py \
+  --refdes D1 \
+  --lcsc C12624 \
+  --expect-mpn <mpn> \
+  --out evidence/cpl-orientation/<graph_id>/D1.json
+```
+
+Check the existing `cpl_rotation_record_path` layout before selecting the
+output path. Read the summary line; exit code `2` means the number is a typo
+or identifies a different part, so correct the spec and re-fetch. The
+`evidence.cpl_rotation.mpn_mismatch` stop reports the same content mismatch
+when the CPL declaration is preflighted.
+
+For catalog-less parts, searching or browsing LCSC/JLCPCB is an L2 activity.
+Record the selected part as a declaration plus a fetched record, never as a
+hand-written record.

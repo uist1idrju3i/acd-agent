@@ -36,6 +36,10 @@ from acd.core.lane_recovery import (
     load_lane_recovery_declarations,
     resolve_lane_recovery,
 )
+from acd.core.manufacturing_submission import (
+    ManufacturingSubmissionError,
+    evaluate_manufacturing_submission,
+)
 from acd.core.order_total import (
     aggregate_order_total,
     order_total_result_from_document,
@@ -70,6 +74,7 @@ from acd.pipeline.lane_plan import (
     LanePlan,
     build_lane_plan,
 )
+from acd.pipeline.projection_docs import ProjectionDocsError, run_projection_docs
 from acd.pipeline.silkscreen_resolve import resolve_silkscreen
 from acd.pipeline.visual_review import derive_visual_review
 from acd.schema import (
@@ -344,6 +349,109 @@ def _run_visual_review_manifest(config: DesignLoopConfig) -> dict[str, Any]:
         ),
         required=len(manifest.required),
         status="pending-agent-inspection",
+    )
+
+
+def _run_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
+    board_out = config.lane_plan.stage("board-pipeline").output_path
+    firmware_out = config.lane_plan.stage("firmware-pipeline").output_path
+    if board_out is None or firmware_out is None:
+        return _failure(
+            "projection-docs",
+            "board or firmware output path is undeclared (fail-closed)",
+            record_class="L3",
+        )
+    output = config.out_root / "docs"
+    try:
+        result = run_projection_docs(
+            config.repository,
+            graph_path=config.fixture_dir / "graph.json",
+            out_root=config.out_root,
+            board_out=board_out,
+            firmware_out=firmware_out,
+            output=output,
+        )
+    except ProjectionDocsError as exc:
+        fields: dict[str, Any] = {"record_class": "L3"}
+        if exc.output_path is not None:
+            fields["output_path"] = str(exc.output_path)
+        return _failure(
+            "projection-docs",
+            str(exc),
+            next_step_action=(
+                "fix the graph declarations or pin projection the document "
+                "generator reported; documents are L3 and never grant approval"
+            ),
+            **fields,
+        )
+    return _success(
+        "projection-docs",
+        record_class="L3",
+        output_path=str(result.output_path),
+        documents=[document.as_dict() for document in result.documents],
+        hashes_path=str(result.hashes_path),
+        provenance=result.provenance,
+    )
+
+
+def _run_manufacturing_submission(config: DesignLoopConfig) -> dict[str, Any]:
+    board_out = config.lane_plan.stage("board-pipeline").output_path
+    enclosure_out = config.lane_plan.stage("enclosure-pipeline").output_path
+    output = config.lane_plan.stage("manufacturing-submission").output_path
+    if board_out is None or enclosure_out is None or output is None:
+        return _failure(
+            "manufacturing-submission",
+            "manufacturing submission output path is undeclared (fail-closed)",
+            record_class="L3",
+            authoritative=False,
+        )
+    try:
+        verdict = evaluate_manufacturing_submission(
+            board_dir=board_out,
+            enclosure_dir=enclosure_out,
+            graph_path=config.fixture_dir / "graph.json",
+            require_authoritative=False,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            verdict.model_dump_json(indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except ManufacturingSubmissionError as exc:
+        return _failure(
+            "manufacturing-submission",
+            str(exc),
+            record_class="L3",
+            authoritative=False,
+            verdict_path=str(output),
+            require_authoritative=False,
+        )
+    fields = {
+        "record_class": "L3",
+        "authoritative": False,
+        "verdict_path": str(output),
+        "status": verdict.status,
+        "require_authoritative": False,
+        "checks": [
+            {"check_id": check.check_id, "status": check.status}
+            for check in verdict.checks
+        ],
+    }
+    if verdict.status == "pass":
+        return _success("manufacturing-submission", **fields)
+    failed = [
+        f"{check.check_id}: {check.detail}"
+        for check in verdict.checks
+        if check.status == "fail"
+    ]
+    return _failure(
+        "manufacturing-submission",
+        "manufacturing submission verdict is 'fail': " + "; ".join(failed),
+        next_step_action=(
+            "resolve the listed checks in the board/enclosure lanes; "
+            "the verdict is not adjustable"
+        ),
+        **fields,
     )
 
 
@@ -705,6 +813,53 @@ def _visual_review_summary(result: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
+def _projection_docs_summary(result: dict[str, Any]) -> dict[str, Any] | None:
+    results = result.get("results")
+    if not isinstance(results, list):
+        return None
+    for entry in cast(list[object], results):
+        if not isinstance(entry, dict):
+            continue
+        stage_result = cast(dict[str, Any], entry)
+        if stage_result.get("stage_id") == "projection-docs":
+            documents = stage_result.get("documents")
+            return {
+                "output_path": stage_result.get("output_path"),
+                "documents": (
+                    len(cast(list[object], documents))
+                    if isinstance(documents, list)
+                    else 0
+                ),
+                "hashes_path": stage_result.get("hashes_path"),
+                "status": "failed" if not stage_result.get("ok") else "ok",
+            }
+    return None
+
+
+def _manufacturing_submission_summary(
+    result: dict[str, Any],
+) -> dict[str, Any] | None:
+    results = result.get("results")
+    if not isinstance(results, list):
+        return None
+    for entry in cast(list[object], results):
+        if not isinstance(entry, dict):
+            continue
+        stage_result = cast(dict[str, Any], entry)
+        if stage_result.get("stage_id") == "manufacturing-submission":
+            return {
+                "verdict_path": stage_result.get("verdict_path"),
+                "status": (
+                    stage_result.get("status")
+                    if stage_result.get("status") is not None
+                    else "failed"
+                    if not stage_result.get("ok")
+                    else "ok"
+                ),
+            }
+    return None
+
+
 DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
     "requirement-entry-validation": _run_requirement_entry_validation,
     "lane-preflight": run_lane_preflight_stage,
@@ -713,6 +868,8 @@ DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
     "enclosure-pipeline": _run_enclosure,
     "firmware-pipeline": _run_firmware,
     "visual-review-manifest": _run_visual_review_manifest,
+    "projection-docs": _run_projection_docs,
+    "manufacturing-submission": _run_manufacturing_submission,
     "order-readiness": _run_order_readiness,
 }
 
@@ -1151,6 +1308,24 @@ def run_design_loop(
             once_results.append(visual_review)
             if not visual_review.get("ok") or visual_review.get("fail_closed"):
                 return once_results, visual_review
+
+            projection_docs = run_stage(
+                "projection-docs",
+                timing_prefix=timing_prefix,
+            )
+            once_results.append(projection_docs)
+            if not projection_docs.get("ok") or projection_docs.get("fail_closed"):
+                return once_results, projection_docs
+
+            manufacturing_submission = run_stage(
+                "manufacturing-submission",
+                timing_prefix=timing_prefix,
+            )
+            once_results.append(manufacturing_submission)
+            if not manufacturing_submission.get("ok") or manufacturing_submission.get(
+                "fail_closed"
+            ):
+                return once_results, manufacturing_submission
 
             aggregation_result: dict[str, Any] | None = None
             if active_config.quote_records:
@@ -1623,6 +1798,10 @@ def run_design_loop(
                         "candidate_router_diagnostics"
                     ),
                     "visual_review": _visual_review_summary(result),
+                    "projection_docs": _projection_docs_summary(result),
+                    "manufacturing_submission": _manufacturing_submission_summary(
+                        result
+                    ),
                     "timing_record": (
                         str(timing_record) if timing_record is not None else None
                     ),
