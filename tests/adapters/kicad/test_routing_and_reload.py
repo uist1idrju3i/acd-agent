@@ -312,6 +312,85 @@ def test_gerber_uncovered_ground_region_is_structured(tmp_path: Path) -> None:
     assert error_info.value.regions == (("F.Cu", (1.0, 1.0, 1.5, 1.5)),)
 
 
+def test_gerber_gate_skips_keepout_requirement_without_onboard_keepout(
+    tmp_path: Path,
+) -> None:
+    from acd.adapters.kicad.fab import verify_ground_plane_gerbers
+    from acd.core.board_model import CopperZone
+
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    front.write_text(
+        _gerber_region("Conductor", side=0.5)
+        + _gerber_region("Conductor", x=9.0, y=9.0, side=4.0)
+    )
+    back.write_text(_gerber_region("Conductor", x=9.0, y=9.0, side=4.0))
+    model = BoardModel(
+        20.0,
+        15.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.0,
+        (),
+        (BoardNet("GND", ()),),
+        (),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 0.0),),
+    )
+    with pytest.raises(
+        UncoveredGroundRegionsError, match="GND connection point"
+    ):
+        verify_ground_plane_gerbers(
+            front,
+            back,
+            model,
+            ((10.0, 10.0),),
+            RoutedDesign((), ()),
+        )
+
+
+def test_gerber_gate_requires_keepout_when_antenna_keepout_required(
+    tmp_path: Path,
+) -> None:
+    from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
+    from acd.core.board_model import CopperZone
+
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    front.write_text(
+        _gerber_region("Conductor", side=0.5)
+        + _gerber_region("Conductor", x=9.0, y=9.0, side=4.0)
+    )
+    back.write_text(_gerber_region("Conductor", x=9.0, y=9.0, side=4.0))
+    model = BoardModel(
+        20.0,
+        15.0,
+        2,
+        0.15,
+        0.15,
+        0.3,
+        0.6,
+        0.0,
+        (),
+        (BoardNet("GND", ()),),
+        (),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 0.0),),
+        antenna_keepout_required=True,
+    )
+    with pytest.raises(
+        FabOutputError, match="antenna keepout declaration is absent"
+    ):
+        verify_ground_plane_gerbers(
+            front,
+            back,
+            model,
+            ((10.0, 10.0),),
+            RoutedDesign((), ()),
+        )
+
+
 def test_gerber_y_axis_conversion_matches_board_frame() -> None:
     assert _gerber_to_board_point(2.0, -3.0) == (2.0, 3.0)
     assert _gerber_to_board_point(2.0, 3.0) == (2.0, -3.0)

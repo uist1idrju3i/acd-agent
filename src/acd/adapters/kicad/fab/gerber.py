@@ -420,7 +420,7 @@ def verify_ground_plane_gerbers(
                     inside = not inside
         return inside
 
-    if not model.keepouts:
+    if model.antenna_keepout_required and not model.keepouts:
         raise FabOutputError("antenna keepout declaration is absent (fail-closed)")
 
     def polygon_area(points: Sequence[tuple[float, float]]) -> float:
