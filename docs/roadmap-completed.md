@@ -1083,9 +1083,11 @@ image digest・source revisionのcitation行と任意のJSON recordを出力し�
 `cpl_rotation_*`へ投影し、`<graph_id>-<revision>`のevidence revisionを付与する。
 assemblyのunknown rotation reportには欠落・不正属性名を診断として記録する。
 
-実装状況（AA-11）: `_copper_zone`が`ground_plane_min_island_area_mm2`をKiCad zone
-fillの`island_area_min`へ出力し、`island_removal_mode`を最小面積モードへ設定する。
-Gerber検証の判定は変更しない。
+実装状況（AA-11）: `_copper_zone`はKiCad zone fillへ`island_removal_mode 0`を出力し、
+孤立島を常に除去する。`island_area_min`は出力しない。`island_removal_mode 2`が保持する島は
+GND接続点を持たない浮き銅として`NonConductor`で出力され、Gerber gateがfail-closedで拒否する
+ため採用しない。宣言値`ground_plane_min_island_area_mm2`は塗り後Gerber検証の最小面積として残し、
+Gerber gateの判定は緩めない。
 
 実装状況（AA-14）: silkscreen resolverは`measured_pass`後も未配置textを検出し、
 node IDと強制探索をiterationへ記録してSkillへ戻す。探索上限と未解決時のfail-closedは維持する。

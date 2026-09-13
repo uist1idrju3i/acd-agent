@@ -481,6 +481,25 @@ def test_gerber_region_without_aperture_function_fails_closed(tmp_path: Path) ->
         verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),), RoutedDesign((), ()))
 
 
+def test_gerber_nonconductor_island_region_fails_closed(tmp_path: Path) -> None:
+    from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
+    from acd.core.board_model import CopperZone, KeepoutRect
+
+    content = _gerber_region("NonConductor")
+    front = tmp_path / "front.gbr"
+    back = tmp_path / "back.gbr"
+    front.write_text(content)
+    back.write_text(_gerber_region("Conductor"))
+    model = BoardModel(
+        20.0, 15.0, 2, 0.15, 0.15, 0.3, 0.6, 0.3, (), (), (
+            KeepoutRect("antenna", 18.0, 10.0, 19.0, 11.0),
+        ),
+        (CopperZone("GND", ("F.Cu", "B.Cu"), 0.3, 1.0),),
+    )
+    with pytest.raises(FabOutputError, match="isolated copper island"):
+        verify_ground_plane_gerbers(front, back, model, ((1.1, 1.1),), RoutedDesign((), ()))
+
+
 def test_antenna_keepout_copper_fails_closed(tmp_path: Path) -> None:
     from acd.adapters.kicad.fab import FabOutputError, verify_ground_plane_gerbers
     from acd.core.board_model import CopperZone, KeepoutRect

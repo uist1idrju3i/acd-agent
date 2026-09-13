@@ -322,8 +322,7 @@ def _copper_zone(
             Sym("fill"),
             [Sym("thermal_gap"), fmt(board.min_clearance_mm)],
             [Sym("thermal_bridge_width"), fmt(board.min_track_mm)],
-            [Sym("island_removal_mode"), "2"],
-            [Sym("island_area_min"), fmt(zone.min_island_area_mm2)],
+            [Sym("island_removal_mode"), "0"],
         ],
         [Sym("polygon"), pts],
     ]
