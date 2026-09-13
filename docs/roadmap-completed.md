@@ -1050,6 +1050,16 @@ eventの欠落・改変・不一致は`unverified`としてvisual reviewをfail-
 observationとevent logの直接書き込みを拒否する。observationとverdictはL3のままで、
 合否やEvidenceへ作用させない。
 
+実装状況（AA-2）: init workspaceがbootstrap record生成後にworkspace registryへ登録し、
+SessionStart hookが登録済みworkspaceのlockを新しい順に探索して解決pathをcontextへ記載する。
+registryはL3 discovery aidであり、書き込み・読み取り失敗でもbootstrap recordとfail-closed
+探索の権限境界を維持する。
+
+実装状況（AA-9）: estimated CPL rotation evidenceについて、他fixture名への言及と
+他fixtureの`at/method/note`三つ組の一致を`evidence.cpl_rotation.structural_copy`の
+L3 warningとしてlane preflightへ列挙する。warningは停止statusへ影響せず、estimatedの
+不確実性と既存のCPL gate authorityを維持する。
+
 実装状況（AA-10）: file_editor／apply_patch／terminalのPostToolUse hookが変更actionを
 `file-change-events.jsonl`へ記録し、最終報告basisがworktree entryごとの時刻・tool・action
 とterminal actionを引用可能な表として出力する。

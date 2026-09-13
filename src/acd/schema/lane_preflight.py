@@ -66,6 +66,7 @@ LanePreflightUnsupportedCode = Literal[
     "mechanical.extraction.failed",
     "evidence.cpl_rotation.declared_unverified",
     "evidence.cpl_rotation.mpn_mismatch",
+    "evidence.cpl_rotation.structural_copy",
     "evidence.fab_profile.declared_unverified",
     "contract.hash_mismatch",
 ]
@@ -96,6 +97,9 @@ class LanePreflightLaneReport(AcdModel):
         default_factory=list[LanePreflightMissingAttr]
     )
     unsupported_values: list[LanePreflightUnsupportedValue] = Field(
+        default_factory=list[LanePreflightUnsupportedValue]
+    )
+    warnings: list[LanePreflightUnsupportedValue] = Field(
         default_factory=list[LanePreflightUnsupportedValue]
     )
     # Diagnostic firmware coverage verdict for the firmware-pipeline lane;

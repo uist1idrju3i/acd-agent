@@ -1783,6 +1783,100 @@ def test_session_start_lock_uses_bootstrap_record_workspace(
     assert versions is not None and "kicad-cli=10.0.6" in versions
 
 
+def test_session_start_lock_uses_workspace_registry(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    workspace = tmp_path / "workspace"
+    _write_server_lock(workspace)
+    registry = tmp_path / "workspaces.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1",
+                "workspaces": [
+                    {
+                        "workspace_path": str(workspace),
+                        "repo_url": "https://example.invalid/repo",
+                        "resolved_revision": "r1",
+                        "registered_at": "2026-01-01T00:00:00Z",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_fake_docker(
+        fake_bin,
+        """
+printf '%s\\n' '=== kicad-cli ===' '10.0.6'
+printf '%s\\n' '=== freerouting ===' 'Freerouting v2.4.1'
+printf '%s\\n' '=== qemu-system-riscv32 ===' 'QEMU emulator version 9.2.2'
+printf '%s\\n' '=== cmake ===' 'cmake version 4.2.3'
+""",
+    )
+    code, output = run(
+        "session_start.py",
+        {},
+        root=project,
+        extra_env={
+            "ACD_WORKSPACE_REGISTRY": str(registry),
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        },
+    )
+    assert code == 0
+    context = output["additionalContext"]
+    assert f"Locked image resolved from {workspace / 'docker/image-digests.json'}." in context
+
+
+def test_session_start_invalid_registry_keeps_previous_candidates(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    module = _load_session_start_module()
+    project = tmp_path / "project"
+    project.mkdir()
+    registry = tmp_path / "workspaces.json"
+    registry.write_text("{", encoding="utf-8")
+    monkeypatch.setenv("ACD_WORKSPACE_REGISTRY", str(registry))
+    candidates = module._lock_candidates(project)
+    assert not any(str(registry) in str(candidate) for candidate in candidates)
+    _reference, _error, used = module._locked_image(project)
+    assert used is None or used in candidates
+    assert f"workspace registry: {registry} (missing)" in module._fail_closed_context(
+        project
+    )
+
+
+def test_session_start_invalid_registry_lock_uses_next_candidate(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    module = _load_session_start_module()
+    invalid = tmp_path / "invalid.json"
+    invalid.write_text("{}", encoding="utf-8")
+    valid = tmp_path / "valid.json"
+    valid.write_text(
+        json.dumps(
+            {
+                "acd_server": {
+                    "image": "example.test/acd-server",
+                    "digest": SERVER_DIGEST,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "_lock_candidates", lambda _root: [invalid, valid])
+    reference, error, used = module._locked_image(tmp_path)
+    assert error is None
+    assert reference == f"example.test/acd-server@{SERVER_DIGEST}"
+    assert used == valid
+
+
 def test_session_start_fail_closed_context_lists_searched_locks(
     tmp_path: Path, monkeypatch: Any
 ) -> None:

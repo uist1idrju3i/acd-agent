@@ -61,6 +61,40 @@ def test_declared_gd1_graph_has_complete_declarations_for_every_lane() -> None:
     assert tuple(lane.lane for lane in report.lanes) == LANE_IDS
 
 
+def test_structural_copy_warning_does_not_change_preflight_status(tmp_path: Path) -> None:
+    graph = _graph()
+    component = next(node for node in graph.nodes if node.kind == "electrical.component")
+    attrs = {
+        **component.attrs,
+        "cpl_rotation_evidence_basis": "estimated",
+        "cpl_rotation_evidence_note": "copied from other-fixture",
+    }
+    graph = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(update={"attrs": attrs}) if node.id == component.id else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    fixture = tmp_path / "fixtures" / "other-fixture"
+    fixture.mkdir(parents=True)
+    (fixture / "spec.json").write_text(
+        json.dumps(
+            {
+                "design_name": "other-fixture",
+                "graph_id": "other-graph",
+                "components": [{"refdes": "U1"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    baseline = run_lane_preflight(_graph(), ("board-pipeline",), root=tmp_path)
+    report = run_lane_preflight(graph, ("board-pipeline",), root=tmp_path)
+    assert report.status == baseline.status
+    assert len(report.lanes[0].warnings) == 1
+
+
 def test_missing_required_node_is_reported_as_incomplete() -> None:
     report = run_lane_preflight(_without_kind(_graph(), "firmware.module"), ("firmware-pipeline",))
     assert report.status == "declarations_incomplete"

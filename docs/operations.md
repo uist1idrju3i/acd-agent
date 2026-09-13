@@ -2348,11 +2348,16 @@ plugin = acd_plugin_source("v1.2.3")
 該当tokenを示す。`raw_container_*`の場合はrunner利用の案内を末尾へ追加する。
 判定条件そのものは上記の追加規則を除き変更しない。
 
-SessionStart hookのserver image lockは、会話project dir直下に限らず次の順で探索し、
-最初の可読かつ有効なlockを採用する: project dir、`bootstrap-record.json`の
-`workspace_path`が指すworkspace、`$ACD_PLUGIN_ROOT`の親checkout、hook script自身を
-含むcheckout、image内`/opt/acd`。すべて解決できない場合はfail-closed contextへ探索
-path列を付記する。
+`acd-install-doctor`のinitは、bootstrap recordを書いた後に
+`~/.openhands/acd/workspaces.json`（`ACD_WORKSPACE_REGISTRY`で変更可能）へworkspace
+path、repository URL、resolved revision、登録時刻をupsertする。これはlock探索のための
+L3 discovery aidであり、bootstrap recordがauthoritative recordである。SessionStart hookの
+server image lockは、会話project dir直下に限らず次の順で探索し、最初の可読かつ有効なlockを
+採用する: project dir、`bootstrap-record.json`の`workspace_path`が指すworkspace、
+workspace registryの登録（`registered_at`の新しい順）、`$ACD_PLUGIN_ROOT`の親checkout、
+hook script自身を含むcheckout、image内`/opt/acd`。すべて解決できない場合はfail-closed
+contextへ探索pathとregistry path・entry数を付記し、registryの読み取り失敗は既存の
+fail-closed探索を継続する。
 
 視覚レビューの実ツール利用は`vision-tool-events.jsonl`へhookが記録し、最終報告の
 変更根拠は`file-change-events.jsonl`へfile_editor／apply_patch／terminalのhookが記録する。

@@ -6,16 +6,19 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
 import time
 from collections.abc import Callable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 HASH_RE = re.compile(r"sha256:[0-9a-f]{64}")
+WORKSPACE_REGISTRY_ENV = "ACD_WORKSPACE_REGISTRY"
 
 
 def _step_start(step: str) -> float:
@@ -43,6 +46,74 @@ def _canonical_hash(value: dict[str, Any]) -> str:
         allow_nan=False,
     ).encode("utf-8")
     return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
+def _workspace_registry_path() -> Path:
+    configured = os.environ.get(WORKSPACE_REGISTRY_ENV)
+    return (
+        Path(configured).expanduser()
+        if configured
+        else Path.home() / ".openhands" / "acd" / "workspaces.json"
+    )
+
+
+def _register_workspace(
+    *,
+    workspace: Path,
+    repo_url: str,
+    resolved_revision: str,
+) -> dict[str, Any]:
+    registry_path = _workspace_registry_path()
+    workspace_path = str(workspace.resolve())
+    try:
+        existing = json.loads(registry_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        existing = {}
+    entries_value: Any = (
+        cast(dict[str, Any], existing).get("workspaces", [])
+        if isinstance(existing, dict)
+        else []
+    )
+    entries: list[Any] = (
+        cast(list[Any], entries_value) if isinstance(entries_value, list) else []
+    )
+    workspaces: list[dict[str, Any]] = []
+    workspaces.extend(
+        cast(dict[str, Any], entry)
+        for entry in entries
+        if isinstance(entry, dict)
+        and cast(dict[str, Any], entry).get("workspace_path") != workspace_path
+    )
+    workspaces.append(
+        {
+            "workspace_path": workspace_path,
+            "repo_url": repo_url,
+            "resolved_revision": resolved_revision,
+            "registered_at": datetime.now(UTC)
+            .replace(microsecond=0)
+            .isoformat()
+            .replace("+00:00", "Z"),
+        }
+    )
+    document = {"schema_version": "0.1", "workspaces": workspaces}
+    try:
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        registry_path.write_text(
+            json.dumps(document, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        return {
+            "name": "workspace_registry",
+            "status": "warn",
+            "path": str(registry_path),
+            "reason": str(exc),
+        }
+    return {
+        "name": "workspace_registry",
+        "status": "pass",
+        "path": str(registry_path),
+    }
 
 
 def _git_value(workspace: Path, args: Sequence[str], runner: Runner) -> str | None:
@@ -394,6 +465,14 @@ def initialize(
         return fail("bootstrap_record", str(exc))
     steps.append({"name": "bootstrap_record", "status": "pass", "path": str(record_path)})
     _step_end("bootstrap_record", True, started)
+    started = _step_start("workspace_registry")
+    registry_step = _register_workspace(
+        workspace=workspace,
+        repo_url=repo_url,
+        resolved_revision=resolved_revision,
+    )
+    steps.append(registry_step)
+    _step_end("workspace_registry", registry_step["status"] in {"pass", "warn"}, started)
     return {
         "ok": True,
         "fail_closed": False,

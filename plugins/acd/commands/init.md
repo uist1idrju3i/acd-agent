@@ -56,3 +56,8 @@ the preceding step results. The bootstrap record records
 `source: "mounted"` and the locked server image digest when available. It is
 an L3 observation with `pass_evidence: false`; it does not grant gate
 acceptance or preserve any verdict.
+After the bootstrap record is written, the script also upserts the workspace
+into `~/.openhands/acd/workspaces.json` (override with
+`ACD_WORKSPACE_REGISTRY`) so SessionStart can discover the workspace image lock.
+A registry write failure is reported as a warning and does not replace the
+authoritative bootstrap record.

@@ -347,6 +347,7 @@ def _lane_report(
     missing_nodes: list[LanePreflightMissingNode] = []
     missing_attrs: list[LanePreflightMissingAttr] = []
     unsupported_values: list[LanePreflightUnsupportedValue] = []
+    warnings: list[LanePreflightUnsupportedValue] = []
     for kind, expected, code in LANE_NODE_EXACT_COUNTS.get(lane, ()):
         nodes = sorted(
             (node for node in graph.nodes if node.kind == kind),
@@ -453,7 +454,7 @@ def _lane_report(
     if lane == "enclosure-pipeline":
         _apply_mechanical_findings(graph, missing_nodes, missing_attrs, unsupported_values)
     if lane == "board-pipeline":
-        _apply_evidence_declaration_findings(graph, unsupported_values, root)
+        _apply_evidence_declaration_findings(graph, unsupported_values, warnings, root)
         _apply_contract_hash_findings(graph, unsupported_values, root)
     status = (
         "declarations_complete"
@@ -466,6 +467,7 @@ def _lane_report(
         missing_nodes=missing_nodes,
         missing_attrs=missing_attrs,
         unsupported_values=unsupported_values,
+        warnings=warnings,
         firmware_coverage=(
             _firmware_coverage_diagnostic(graph)
             if lane == "firmware-pipeline"
@@ -532,6 +534,7 @@ def _apply_mechanical_findings(
 def _apply_evidence_declaration_findings(
     graph: DesignGraph,
     unsupported_values: list[LanePreflightUnsupportedValue],
+    warnings: list[LanePreflightUnsupportedValue],
     root: Path | None,
 ) -> None:
     """Fold declared-but-unresolved evidence attributes into the lane report.
@@ -541,7 +544,8 @@ def _apply_evidence_declaration_findings(
     confirmed status.
     """
     for finding in collect_evidence_declaration_findings(graph, root=root):
-        unsupported_values.append(
+        target = warnings if finding.severity == "warn" else unsupported_values
+        target.append(
             LanePreflightUnsupportedValue(
                 code=finding.code,
                 node_id=finding.node_id or finding.code,

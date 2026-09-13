@@ -124,6 +124,126 @@ def test_estimated_basis_needs_no_record(tmp_path: Path) -> None:
     assert collect_evidence_declaration_findings(graph, root=tmp_path) == []
 
 
+def _write_fixture_spec(
+    root: Path,
+    name: str,
+    *,
+    graph_id: str,
+    evidence: dict[str, str] | None = None,
+) -> None:
+    component: dict[str, object] = {"refdes": "U1"}
+    if evidence is not None:
+        component["cpl_orientation_evidence"] = evidence
+    fixture = root / "fixtures" / name
+    fixture.mkdir(parents=True)
+    (fixture / "spec.json").write_text(
+        json.dumps(
+            {
+                "design_name": name,
+                "graph_id": graph_id,
+                "components": [component],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_estimated_rotation_note_about_other_fixture_is_a_warning(
+    tmp_path: Path,
+) -> None:
+    _write_fixture_spec(tmp_path, "mini-blink-dongle", graph_id="other")
+    graph = _graph(
+        _component(
+            basis="estimated",
+        ).model_copy(
+            update={
+                "attrs": {
+                    **_component(basis="estimated").attrs,
+                    "cpl_rotation_evidence_note": "copied from mini-blink-dongle",
+                }
+            }
+        )
+    )
+    findings = collect_evidence_declaration_findings(graph, root=tmp_path)
+    assert len(findings) == 1
+    assert findings[0].code == "evidence.cpl_rotation.structural_copy"
+    assert findings[0].severity == "warn"
+    assert findings[0].attr == "cpl_rotation_evidence_note"
+
+
+def test_estimated_rotation_triple_from_other_fixture_is_a_warning(
+    tmp_path: Path,
+) -> None:
+    evidence = {
+        "evidence_at": "2026-01-01T00:00:00Z",
+        "evidence_method": "visual",
+        "evidence_basis": "estimated",
+        "evidence_note": "same note",
+    }
+    _write_fixture_spec(tmp_path, "other-fixture", graph_id="other", evidence=evidence)
+    graph = _graph(
+        _component(basis="estimated").model_copy(
+            update={
+                "attrs": {
+                    **_component(basis="estimated").attrs,
+                    "cpl_rotation_evidence_at": evidence["evidence_at"],
+                    "cpl_rotation_evidence_method": evidence["evidence_method"],
+                    "cpl_rotation_evidence_note": evidence["evidence_note"],
+                }
+            }
+        )
+    )
+    findings = collect_evidence_declaration_findings(graph, root=tmp_path)
+    assert len(findings) == 1
+    assert findings[0].code == "evidence.cpl_rotation.structural_copy"
+    assert "value transcription" in findings[0].detail
+
+
+def test_estimated_rotation_triple_within_same_fixture_is_ignored(
+    tmp_path: Path,
+) -> None:
+    evidence = {
+        "evidence_at": "2026-01-01T00:00:00Z",
+        "evidence_method": "visual",
+        "evidence_basis": "estimated",
+        "evidence_note": "same note",
+    }
+    _write_fixture_spec(tmp_path, "current-fixture", graph_id="demo-design", evidence=evidence)
+    graph = _graph(
+        _component(basis="estimated").model_copy(
+            update={
+                "attrs": {
+                    **_component(basis="estimated").attrs,
+                    "cpl_rotation_evidence_at": evidence["evidence_at"],
+                    "cpl_rotation_evidence_method": evidence["evidence_method"],
+                    "cpl_rotation_evidence_note": evidence["evidence_note"],
+                }
+            }
+        )
+    )
+    assert collect_evidence_declaration_findings(graph, root=tmp_path) == []
+
+
+def test_confirmed_rotation_does_not_trigger_structural_copy(
+    tmp_path: Path,
+) -> None:
+    _write_fixture_spec(tmp_path, "other-fixture", graph_id="other")
+    graph = _graph(
+        _component(
+            basis="confirmed",
+        ).model_copy(
+            update={
+                "attrs": {
+                    **_component().attrs,
+                    "cpl_rotation_evidence_note": "other-fixture",
+                }
+            }
+        )
+    )
+    findings = collect_evidence_declaration_findings(graph, root=tmp_path)
+    assert all(finding.code != "evidence.cpl_rotation.structural_copy" for finding in findings)
+
+
 def test_resolved_record_produces_no_finding(tmp_path: Path) -> None:
     path = cpl_rotation_record_path(tmp_path, "demo-design", "U9")
     _record(path, refdes="U9", lcsc="C9999", response={"result": {"x": 1}})
