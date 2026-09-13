@@ -43,9 +43,11 @@ def _record(payload: dict[str, Any]) -> dict[str, Any] | None:
     if payload.get("tool_name") != VISION_TOOL_NAME:
         return None
     response = payload.get("tool_response")
-    if not isinstance(response, dict) or "error" in response:
+    if not isinstance(response, dict):
         return None
     response = cast(dict[str, Any], response)
+    if "error" in response or response.get("is_error"):
+        return None
     answer = response.get("answer")
     if not isinstance(answer, str) or not answer.strip():
         return None
@@ -56,6 +58,13 @@ def _record(payload: dict[str, Any]) -> dict[str, Any] | None:
     response_hash = _response_sha256(answer)
     profile_name = response.get("profile_name")
     model = response.get("model")
+    if (
+        not isinstance(profile_name, str)
+        or not profile_name.strip()
+        or not isinstance(model, str)
+        or not model.strip()
+    ):
+        return None
     identity = {
         "sequence": 0,
         "tool_name": VISION_TOOL_NAME,

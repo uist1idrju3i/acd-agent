@@ -99,7 +99,21 @@ def test_vision_tool_event_hook_ignores_empty_or_error_response(
     tmp_path: Path,
 ) -> None:
     events = tmp_path / "events.jsonl"
-    for response in ({"answer": ""}, {"answer": "ignored", "error": "failed"}):
+    for response in (
+        {"answer": ""},
+        {
+            "answer": "ignored",
+            "error": "failed",
+            "profile_name": "vision",
+            "model": "model-x",
+        },
+        {
+            "answer": "ignored",
+            "is_error": True,
+            "profile_name": "vision",
+            "model": "model-x",
+        },
+    ):
         completed = run_payload(
             "record_vision_tool_event.py",
             {

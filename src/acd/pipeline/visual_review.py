@@ -462,6 +462,14 @@ def verify_visual_review(
                         f"{requirement.projection_id}: tool event does not match "
                         "the observation"
                     )
+                elif (
+                    response_sha256(observation.response)
+                    != observation.tool_event.response_sha256
+                ):
+                    reason = (
+                        f"{requirement.projection_id}: observation response does "
+                        "not match the bound tool event"
+                    )
                 elif event_id in bound_event_ids:
                     reason = (
                         f"{requirement.projection_id}: tool event is already "

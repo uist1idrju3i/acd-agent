@@ -548,6 +548,32 @@ def test_verify_marks_tampered_event_binding_unverified(tmp_path: Path) -> None:
     assert any("does not match" in reason for reason in verdict.unverified)
 
 
+def test_verify_marks_tampered_observation_response_unverified(
+    tmp_path: Path,
+) -> None:
+    out_root = _out_root(tmp_path)
+    derive_visual_review(out_root, jobs=1)
+    _record_all(out_root)
+    observation_path = (
+        out_root / OBSERVATION_DIR / "board-a-png.json"
+    )
+    document = json.loads(observation_path.read_text(encoding="utf-8"))
+    document["response"] = "tampered response"
+    observation_path.write_text(
+        json.dumps(document) + "\n",
+        encoding="utf-8",
+    )
+
+    verdict = verify_visual_review(out_root, tool_events_path=_events_path(out_root))
+
+    assert verdict.status == "incomplete"
+    assert verdict.unverified
+    assert (
+        "board-a-png: observation response does not match the bound tool event"
+        in verdict.unverified
+    )
+
+
 def test_record_observation_rejects_event_reuse(tmp_path: Path) -> None:
     out_root = _out_root(tmp_path)
     manifest = derive_visual_review(out_root, jobs=1)
