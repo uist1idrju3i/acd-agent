@@ -14,10 +14,60 @@ from typing import Any, cast
 from common import event, project_dir, result
 
 HASH_RE = re.compile(r"sha256:[0-9a-f]{64}")
+PROFILE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+PERSISTENCE_DIR_ENV = "OH_PERSISTENCE_DIR"
 FAIL_CLOSED_CONTEXT = (
     "Authoritative tools are unavailable inside the locked image; "
     "relevant gates fail-closed."
 )
+
+
+def _profile_store_path() -> Path:
+    persistence_dir = os.environ.get(PERSISTENCE_DIR_ENV)
+    if persistence_dir:
+        path = Path(persistence_dir).expanduser()
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        return path / "profiles"
+    return Path.home() / ".openhands" / "profiles"
+
+
+def _saved_llm_profiles() -> tuple[Path, list[tuple[str, str]]]:
+    profile_dir = _profile_store_path()
+    profiles: list[tuple[str, str]] = []
+    try:
+        paths = sorted(profile_dir.glob("*.json"))
+    except OSError:
+        return profile_dir, profiles
+    for path in paths:
+        if PROFILE_NAME_RE.fullmatch(path.stem) is None:
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        model = cast(dict[str, Any], payload).get("model")
+        if isinstance(model, str) and model.strip():
+            profiles.append((path.stem, model))
+    return profile_dir, profiles
+
+
+def _vision_context() -> str:
+    profile_dir, profiles = _saved_llm_profiles()
+    if profiles:
+        listing = ", ".join(f"{name}:{model}" for name, model in profiles)
+        return (
+            f"vision inspection: profiles={len(profiles)} ({listing}); "
+            "inspect_image_with_vision is attached only when the active model "
+            "or a saved profile is vision-capable"
+        )
+    return (
+        "vision inspection: no saved LLM profile found at "
+        f"{profile_dir}; inspect_image_with_vision will be unavailable unless "
+        "the active model is vision-capable"
+    )
 
 
 def _lock_candidates(root: Path) -> list[Path]:
@@ -166,9 +216,10 @@ def _probe(root: Path, reference: str | None = None) -> str | None:
 
 def main() -> int:
     root = project_dir(event())
+    vision_context = _vision_context()
     reference, _error, _used = _locked_image(root)
     if reference is None:
-        context = _fail_closed_context(root)
+        context = f"{_fail_closed_context(root)}\n{vision_context}"
     else:
         versions = _probe(root, reference)
         context = (
@@ -176,6 +227,7 @@ def main() -> int:
             if versions is not None
             else FAIL_CLOSED_CONTEXT
         )
+        context = f"{context}\n{vision_context}"
     result(additionalContext=context)
     return 0
 

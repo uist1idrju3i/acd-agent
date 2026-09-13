@@ -134,6 +134,14 @@ allowed-tools:
    配下のPNGを生成する。この段が失敗した場合、loopはfail-closedで停止する。
    manifest生成後は次の手順を必須とする。
 
+   まず、この会話のtool一覧に`inspect_image_with_vision`が存在することを確認する。
+   toolが無い場合はPIL、file_editor、その他の画像読み取りへ代替してはならない。
+   `out/stop-report.json`へ`status: "failed"`、`failure_reason:
+   "vision_tool_unavailable"`、`failed_stage: "visual-review"`、`evidence_absent: true`、
+   `next_step_action: "register a vision-capable LLM profile (SDK profile store) and
+   restart the conversation"`を記録して停止する。vision-capable profileをSDK profile
+   storeへ登録して会話を再起動するまで、loopを完了として報告してはならない。
+
    (a) manifestが存在しない場合（古いrunやloop未実行）だけ次を実行し、生成済みの
    場合はスキップする。digest固定container経由で実行する（`run_in_workspace.py`の
    使い方はstep 0と同じ）。

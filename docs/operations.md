@@ -233,7 +233,14 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    SessionStart hookもホストの`uv run python scripts/probe_tools.py`を実行せず、
    projectのlockにあるdigest固定server imageを`--entrypoint ""`付きの`docker run`で
    1回だけprobeする。4ツールすべての版を抽出できない場合はホストprobeへ戻らず、
-   fail-closed contextを注入する（hook自体はL3観測としてexit 0）。
+   fail-closed contextを注入する（hook自体はL3観測としてexit 0）。同じ
+   SessionStart contextにはSDKの`OH_PERSISTENCE_DIR/profiles`（既定は
+   `~/.openhands/profiles`）を標準libraryだけで読み、保存済みLLM profileの件数と
+   modelを`vision inspection:`行として追加する。profileが無い場合もhookは停止せず、
+   `inspect_image_with_vision`がactive model以外では利用できない可能性を報告する。
+   visual reviewの会話tool一覧に同toolが無い場合はPILやfile_editorへ代替せず、
+   `failure_reason: "vision_tool_unavailable"`とSDK profile storeへのvision-capable
+   profile登録・会話再起動を`next_step_action`に記したstop reportでfail-closedに停止する。
 
 2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは
    doctorのmanifest／Skill資材検査をGUIのロード結果でも確認する手順であり、

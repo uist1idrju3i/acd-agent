@@ -1037,6 +1037,13 @@ macro欠落、byte一致を回帰テストで固定した。旧`instruction-manu
 `acd-mml 0.1`の独立parserでtempo・voice総tick・note列を照合する。照合不一致時は
 MMLだけを省略し、`mml_check`へ理由を記録する。MMLはprovenanceと`hashes.json`へ
 登録するが、MIDI、3 laneのgate、Evidence、fab packageの判定は変更しない。
+
+実装状況（AA-27）: SessionStart hookがSDKの`OH_PERSISTENCE_DIR/profiles`（既定は
+`~/.openhands/profiles`）を標準libraryだけで読み、保存済みLLM profileの件数と
+modelを追加contextへ報告する。visual reviewで`inspect_image_with_vision`が無い
+場合は代替画像読み取りを禁止し、`vision_tool_unavailable`とprofile登録・会話再起動を
+次手にしたfail-closed stopとする。
+
 実装状況（AA-13）: `part_request`無しのcomponentにもCPL orientation evidenceを
 `cpl_rotation_*`へ投影し、`<graph_id>-<revision>`のevidence revisionを付与する。
 assemblyのunknown rotation reportには欠落・不正属性名を診断として記録する。

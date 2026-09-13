@@ -684,6 +684,53 @@ def test_session_start_never_blocks() -> None:
     assert "additionalContext" in output
 
 
+def test_session_start_lists_saved_llm_profiles(tmp_path: Path) -> None:
+    persistence_dir = tmp_path / "persistence"
+    profile_dir = persistence_dir / "profiles"
+    profile_dir.mkdir(parents=True)
+    (profile_dir / "vision.json").write_text(
+        json.dumps({"model": "openai/gpt-4o"}),
+        encoding="utf-8",
+    )
+    (profile_dir / "fallback.json").write_text(
+        json.dumps({"model": "anthropic/claude-sonnet-4"}),
+        encoding="utf-8",
+    )
+
+    code, output = run(
+        "session_start.py",
+        {},
+        "session_start",
+        root=tmp_path,
+        extra_env={"OH_PERSISTENCE_DIR": str(persistence_dir)},
+    )
+
+    assert code == 0
+    context = output["additionalContext"]
+    assert "vision inspection: profiles=2" in context
+    assert "vision:openai/gpt-4o" in context
+    assert "fallback:anthropic/claude-sonnet-4" in context
+
+
+def test_session_start_reports_missing_llm_profiles(tmp_path: Path) -> None:
+    persistence_dir = tmp_path / "persistence"
+    code, output = run(
+        "session_start.py",
+        {},
+        "session_start",
+        root=tmp_path,
+        extra_env={"OH_PERSISTENCE_DIR": str(persistence_dir)},
+    )
+
+    assert code == 0
+    context = output["additionalContext"]
+    assert (
+        f"no saved LLM profile found at {persistence_dir / 'profiles'}" in context
+    )
+    assert "vision_tool_unavailable" not in context
+    assert "inspect_image_with_vision will be unavailable" in context
+
+
 def test_session_start_observes_all_tools_inside_locked_image(
     tmp_path: Path,
 ) -> None:
