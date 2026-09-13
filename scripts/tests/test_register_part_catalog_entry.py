@@ -153,7 +153,7 @@ def test_cli_without_pin_hashes_rejects_missing_digests(
 
     assert register_part_catalog_entry.main(
         ["--entry", str(entry_path), "--catalog", str(catalog)]
-    ) == 1
+    ) == 2
     result = json.loads(capsys.readouterr().out)
     assert result["ok"] is False
     assert "symbol_sha256" in result["failure_reason"]
