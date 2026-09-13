@@ -6,6 +6,7 @@ import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import cast
 
 from acd.adapters.kicad.cli import KicadCli
 from acd.adapters.svg.common import (
@@ -141,8 +142,11 @@ def wrap_kicad_layer_svg(raw: bytes, annotations: LayerViewAnnotations) -> bytes
     body: list[str] = [
         (
             f'<svg id="layer-view" x="{format_svg_number(layer_x)}" '
-            f'y="{format_svg_number(layer_y)}" width="{measured.width}" '
-            f'height="{measured.height}" viewBox="{raw_view_box}"'
+            f'y="{format_svg_number(layer_y)}" '
+            f'width="{format_svg_number(raw_width_mm)}" '
+            f'height="{format_svg_number(raw_height_mm)}" '
+            f'data-raw-width="{measured.width}" '
+            f'data-raw-height="{measured.height}" viewBox="{raw_view_box}"'
             f"{(' ' + raw_attributes) if raw_attributes else ''}>{raw_inner}</svg>"
         ),
         (
@@ -337,9 +341,11 @@ class KicadVisualRenderer:
             raise ExternalToolError("layered layout view requires layer annotations")
         if projection_type == "schematic_view" and layer_annotations is not None:
             raise ExternalToolError("schematic view does not accept layer annotations")
-        if projection_type == "layered_layout_view":
-            assert layer_annotations is not None
-        layer_annotations_value = layer_annotations
+        annotations = (
+            cast(LayerViewAnnotations, layer_annotations)
+            if projection_type == "layered_layout_view"
+            else None
+        )
         root = (base_dir or repository_root()).resolve()
         source_path = self._resolve_within_base(source, root, "source")
         output = self._resolve_within_base(output_path, root, "output")
@@ -385,13 +391,9 @@ class KicadVisualRenderer:
                     source_revision,
                     layer,
                 )
-                if layer_annotations_value is None:
-                    raise ExternalToolError(
-                        "layered layout view requires layer annotations"
-                    )
                 destination.write_bytes(
                     wrap_kicad_layer_svg(
-                        raw_path.read_bytes(), layer_annotations_value
+                        raw_path.read_bytes(), cast(LayerViewAnnotations, annotations)
                     )
                 )
             finally:

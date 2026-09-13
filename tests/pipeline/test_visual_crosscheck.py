@@ -262,6 +262,8 @@ def test_crosscheck_is_reproducible_and_writes_report(tmp_path: Path) -> None:
         ("missing_layer_view",),
         ("duplicate_layer_view",),
         ("nested_non_zero_origin",),
+        ("raw_width_non_mm",),
+        ("nested_width_mismatch",),
         ("file_mismatch",),
         ("renderer_mismatch",),
         ("image_hash_mismatch",),
@@ -324,7 +326,13 @@ def test_crosscheck_mismatches_fail_closed(tmp_path: Path, mutation: str) -> Non
             else "0 0 30 25",
         )
         (base_dir / "visual/gd1-schematic.svg").write_bytes(content)
-    elif mutation in {"missing_layer_view", "duplicate_layer_view", "nested_non_zero_origin"}:
+    elif mutation in {
+        "missing_layer_view",
+        "duplicate_layer_view",
+        "nested_non_zero_origin",
+        "raw_width_non_mm",
+        "nested_width_mismatch",
+    }:
         board_path = base_dir / "visual/gd1-f-cu.svg"
         content = board_path.read_bytes()
         if mutation == "missing_layer_view":
@@ -333,10 +341,20 @@ def test_crosscheck_mismatches_fail_closed(tmp_path: Path, mutation: str) -> Non
             match = re.search(rb'(<svg id="layer-view"[^>]*>.*?</svg>)', content)
             assert match is not None
             content = content.replace(b"</g>", match.group(1) + b"</g>", 1)
-        else:
+        elif mutation == "nested_non_zero_origin":
             content = content.replace(
                 b'viewBox="0 0 30 25"',
                 b'viewBox="1 0 30 25"',
+            )
+        elif mutation == "raw_width_non_mm":
+            content = content.replace(
+                b'data-raw-width="30mm"',
+                b'data-raw-width="12in"',
+            )
+        else:
+            content = content.replace(
+                b'width="30" height="25"',
+                b'width="29" height="25"',
             )
         board_path.write_bytes(content)
     mutated_set = VisualProjectionSet.model_validate(
@@ -355,6 +373,12 @@ def test_crosscheck_mismatches_fail_closed(tmp_path: Path, mutation: str) -> Non
         machine_inputs=(base_dir / "gd1.kicad_sch", base_dir / "routed/gd1.kicad_pcb"),
     )
     assert report.status == "mismatch"
+    if mutation in {"raw_width_non_mm", "nested_width_mismatch"}:
+        assert any(
+            item.check_id == "svg-units" and item.status == "mismatch"
+            for record in report.crosschecks
+            for item in record.items
+        )
     if mutation == "missing_layer":
         assert len(report.set_items) == 1
         assert report.set_items[0].check_id == "projection-coverage"

@@ -250,6 +250,21 @@ def nested_view_geometry(
     return width, height, values
 
 
+def nested_view_attributes(svg: bytes, view_id: str) -> dict[str, str]:
+    """Return attributes from one nested SVG view."""
+    try:
+        root = ElementTree.fromstring(svg)
+    except (ElementTree.ParseError, UnicodeDecodeError) as exc:
+        raise ValueError("nested SVG could not be parsed") from exc
+    views = [element for element in root.iter() if element.attrib.get("id") == view_id]
+    if len(views) != 1:
+        raise ValueError(f"SVG must contain exactly one svg#{view_id}")
+    view = views[0]
+    if view.tag.rsplit("}", 1)[-1] != "svg":
+        raise ValueError(f"SVG {view_id} view must be an svg element")
+    return dict(view.attrib)
+
+
 def cad_view_geometry(svg: bytes) -> tuple[str, str, tuple[str, str, str, str]]:
     """Return the geometry strings from the single nested CAD view."""
     return nested_view_geometry(svg, "cad-view")

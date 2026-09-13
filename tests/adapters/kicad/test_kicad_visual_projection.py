@@ -204,10 +204,16 @@ def test_renderer_supports_layered_layout_view(
     assert record.normalization_rule_id == "kicad-layer-svg-title-v1"
     wrapped = (tmp_path / "front-copper.svg").read_bytes()
     assert nested_view_geometry(wrapped, "layer-view") == (
-        "29.9974mm",
-        "24.9936mm",
+        "29.9974",
+        "24.9936",
         ("0.0000", "0.0000", "29.9974", "24.9936"),
     )
+    layer_view = re.search(rb'<svg id="layer-view"[^>]*>', wrapped)
+    assert layer_view is not None
+    assert (
+        b'width="29.9974" height="24.9936" '
+        b'data-raw-width="29.9974mm" data-raw-height="24.9936mm"'
+    ) in layer_view.group(0)
     assert re.search(
         rb"<title>SVG Image created as [^<]+</title><path d=\"same\"/>",
         wrapped,

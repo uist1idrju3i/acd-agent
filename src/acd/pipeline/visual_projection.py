@@ -30,6 +30,7 @@ from acd.core.process import sha256_bytes
 from acd.core.visual_projection import (
     LayerViewAnnotations,
     cad_view_geometry,
+    nested_view_attributes,
     nested_view_geometry,
     svg_source_hash,
 )
@@ -305,19 +306,41 @@ def _projection_crosscheck(
     nested_view_count = 0
     nested_width = nested_height = "missing"
     nested_view_box = ("missing", "missing", "missing", "missing")
-    nested_width_unit = nested_height_unit = "missing"
+    nested_attributes: dict[str, str] = {}
     nested_width_value = nested_height_value = "missing"
     nested_width_number = nested_height_number = None
+    nested_raw_width = nested_raw_height = "missing"
+    nested_raw_width_unit = nested_raw_height_unit = "missing"
+    nested_raw_width_value = nested_raw_height_value = "missing"
+    nested_raw_width_number = nested_raw_height_number = None
     nested_view_box_numbers: tuple[Decimal, ...] = ()
     if is_layered:
+        try:
+            nested_attributes = nested_view_attributes(svg, "layer-view")
+            nested_raw_width = nested_attributes.get("data-raw-width", "missing")
+            nested_raw_height = nested_attributes.get("data-raw-height", "missing")
+            nested_raw_width_value, nested_raw_width_unit = _svg_dimension(
+                nested_raw_width, "layer-view data-raw-width"
+            )
+            nested_raw_height_value, nested_raw_height_unit = _svg_dimension(
+                nested_raw_height, "layer-view data-raw-height"
+            )
+            nested_raw_width_number = _decimal(
+                nested_raw_width_value, "layer-view data-raw-width"
+            )
+            nested_raw_height_number = _decimal(
+                nested_raw_height_value, "layer-view data-raw-height"
+            )
+        except ValueError:
+            pass
         try:
             nested_width, nested_height, nested_view_box = nested_view_geometry(
                 svg, "layer-view"
             )
-            nested_width_value, nested_width_unit = _svg_dimension(
+            nested_width_value, _ = _svg_dimension(
                 nested_width, "layer-view width"
             )
-            nested_height_value, nested_height_unit = _svg_dimension(
+            nested_height_value, _ = _svg_dimension(
                 nested_height, "layer-view height"
             )
             nested_width_number = _decimal(nested_width_value, "layer-view width")
@@ -346,22 +369,53 @@ def _projection_crosscheck(
     items.append(
         _crosscheck_item(
             check_id="svg-units",
-            description="SVG width and height use the declared board unit",
+            description=(
+                "Outer SVG uses millimeters and nested KiCad dimensions preserve "
+                "millimeter provenance"
+                if is_layered
+                else "SVG width and height use the declared board unit"
+            ),
             expected=(
-                f"declared_unit={declared_unit}; "
-                f"width={declared_unit}; height={declared_unit}"
+                (
+                    "outer=mm; data-raw-width=mm; data-raw-height=mm; "
+                    "nested width/height equal raw millimeter values"
+                )
+                if is_layered
+                else (
+                    f"declared_unit={declared_unit}; "
+                    f"width={declared_unit}; height={declared_unit}"
+                )
             ),
             actual=(
-                f"width={nested_width_unit}; height={nested_height_unit}"
+                (
+                    f"outer width={width_unit}; outer height={height_unit}; "
+                    f"nested width={nested_width}; nested height={nested_height}; "
+                    f"data-raw-width={nested_raw_width}; "
+                    f"data-raw-height={nested_raw_height}"
+                )
                 if is_layered
                 else f"width={width_unit}; height={height_unit}"
             ),
-            machine_field="ElectricalLane.board.unit",
+            machine_field=(
+                "ElectricalLane.board.unit; SVG.root.width/height; "
+                "SVG.svg#layer-view.data-raw-width/data-raw-height"
+                if is_layered
+                else "ElectricalLane.board.unit"
+            ),
             status=(
                 "match"
                 if declared_unit == "mm"
                 and (
-                    (nested_width_unit == declared_unit and nested_height_unit == declared_unit)
+                    (
+                        width_unit == declared_unit
+                        and height_unit == declared_unit
+                        and nested_raw_width_unit == declared_unit
+                        and nested_raw_height_unit == declared_unit
+                        and nested_width_number is not None
+                        and nested_height_number is not None
+                        and nested_raw_width_number == nested_width_number
+                        and nested_raw_height_number == nested_height_number
+                    )
                     if is_layered
                     else (width_unit == declared_unit and height_unit == declared_unit)
                 )
