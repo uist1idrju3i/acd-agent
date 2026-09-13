@@ -228,6 +228,23 @@ class VisualProjectionRecord(AcdModel):
         return self
 
 
+class VisualVisionToolEvent(AcdModel):
+    """Hook-written identity for one real vision tool response."""
+
+    event_id: NonEmptyStr
+    sequence: StrictInt = Field(ge=1)
+    response_sha256: Sha256
+    recorded_at: NonEmptyStr
+    events_path: NonEmptyStr
+
+    @field_validator("event_id")
+    @classmethod
+    def validate_event_id(cls, value: str) -> str:
+        if re.fullmatch(r"[0-9a-f]{64}", value) is None:
+            raise ValueError("event_id must be a bare SHA-256 hex digest")
+        return value
+
+
 class VisualProjectionSet(AcdModel):
     schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
     artifact_kind: Literal["visual_projection_set"] = "visual_projection_set"
@@ -303,6 +320,7 @@ class VisualVisionObservation(AcdModel):
     projection_id: NodeId
     image_hash: Sha256
     response: NonEmptyStr
+    tool_event: VisualVisionToolEvent | None = None
 
 
 class VisualReviewRequirement(AcdModel):

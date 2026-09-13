@@ -46,6 +46,126 @@ def run(
     return completed.returncode, cast(dict[str, Any], output)
 
 
+def run_payload(
+    name: str,
+    payload: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    extra_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["python", str(SCRIPTS / name)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=root,
+        env={
+            **os.environ,
+            "OPENHANDS_PROJECT_DIR": str(root),
+            **(extra_env or {}),
+        },
+    )
+
+
+def test_vision_tool_event_hook_records_successful_response(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_vision_tool_event.py",
+        {
+            "tool_name": "inspect_image_with_vision",
+            "tool_input": {"image_index": 2, "question": "What is visible?"},
+            "tool_response": {
+                "image_index": 2,
+                "question": "What is visible?",
+                "profile_name": "vision",
+                "model": "model-x",
+                "answer": "A board.",
+            },
+            "session_id": "session-1",
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_VISION_TOOL_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["sequence"] == 1
+    assert record["tool_name"] == "inspect_image_with_vision"
+    assert record["response_sha256"].startswith("sha256:")
+    assert "answer" not in record
+
+
+def test_vision_tool_event_hook_ignores_empty_or_error_response(
+    tmp_path: Path,
+) -> None:
+    events = tmp_path / "events.jsonl"
+    for response in ({"answer": ""}, {"answer": "ignored", "error": "failed"}):
+        completed = run_payload(
+            "record_vision_tool_event.py",
+            {
+                "tool_name": "inspect_image_with_vision",
+                "tool_input": {},
+                "tool_response": response,
+                "working_dir": str(tmp_path),
+            },
+            root=tmp_path,
+            extra_env={"ACD_VISION_TOOL_EVENTS": str(events)},
+        )
+        assert completed.returncode == 0
+    assert not events.exists()
+
+
+def test_vision_tool_event_hook_is_non_blocking_on_write_error(tmp_path: Path) -> None:
+    blocked = tmp_path / "events"
+    blocked.write_text("not a directory", encoding="utf-8")
+    completed = run_payload(
+        "record_vision_tool_event.py",
+        {
+            "tool_name": "inspect_image_with_vision",
+            "tool_input": {},
+            "tool_response": {"answer": "A board."},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_VISION_TOOL_EVENTS": str(blocked / "events.jsonl")},
+    )
+    assert completed.returncode == 0
+
+
+def test_vision_event_hashing_agrees_with_shared_helpers() -> None:
+    module = _load_hook_module(
+        "record_vision_tool_event.py", "vision_event_test"
+    )
+    from acd.core.vision_tool_events import event_id, response_sha256
+
+    record = {
+        "sequence": 1,
+        "tool_name": "inspect_image_with_vision",
+        "tool_input": {"image_index": 0, "question": "Review"},
+        "profile_name": "vision",
+        "model": "model-x",
+        "response_sha256": response_sha256("answer"),
+    }
+    assert module._response_sha256("answer") == response_sha256("answer")
+    assert module._event_id(record) == event_id(record)
+
+
+def test_projection_guard_denies_visual_observation_and_event_writes(
+    tmp_path: Path,
+) -> None:
+    observation = tmp_path / "visual/vision-observations/board.json"
+    event_log = tmp_path / ".openhands/acd/vision-tool-events.jsonl"
+    for path in (observation, event_log):
+        code, output = run(
+            "protect_projections.py",
+            {"path": str(path)},
+            root=tmp_path,
+        )
+        assert code == 2
+        assert "record_visual_vision_observation.py" in output["reason"]
+        assert "hook-written" in output["reason"]
+
+
 def _write_server_lock(root: Path, *, valid: bool = True) -> None:
     lock = root / "docker/image-digests.json"
     lock.parent.mkdir(parents=True)
@@ -1238,8 +1358,9 @@ def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
             "working_dir": str(tmp_path),
         },
         "check-design-rationale": {"working_dir": str(tmp_path)},
-        "check-design-rationale-warn": {"working_dir": str(tmp_path)},
-    }
+            "check-design-rationale-warn": {"working_dir": str(tmp_path)},
+            "record-vision-tool-event": {"working_dir": str(tmp_path)},
+        }
     commands = _configured_plugin_hook_commands()
     assert set(commands) == set(payloads)
 

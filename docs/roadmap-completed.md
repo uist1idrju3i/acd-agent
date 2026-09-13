@@ -1044,6 +1044,12 @@ modelを追加contextへ報告する。visual reviewで`inspect_image_with_visio
 場合は代替画像読み取りを禁止し、`vision_tool_unavailable`とprofile登録・会話再起動を
 次手にしたfail-closed stopとする。
 
+実装状況（AA-28）: `inspect_image_with_vision`のPostToolUse hookが応答hash・profile・
+modelを含むevent logをhook専用経路で記録し、observationはeventへ一度だけbindする。
+eventの欠落・改変・不一致は`unverified`としてvisual reviewをfail-closedにし、
+observationとevent logの直接書き込みを拒否する。observationとverdictはL3のままで、
+合否やEvidenceへ作用させない。
+
 実装状況（AA-13）: `part_request`無しのcomponentにもCPL orientation evidenceを
 `cpl_rotation_*`へ投影し、`<graph_id>-<revision>`のevidence revisionを付与する。
 assemblyのunknown rotation reportには欠落・不正属性名を診断として記録する。

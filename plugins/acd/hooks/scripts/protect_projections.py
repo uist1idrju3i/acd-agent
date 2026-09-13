@@ -18,6 +18,8 @@ from common import (
 )
 
 PROTECTED = ("out", "evidence")
+VISION_OBSERVATION_DIR = ("visual", "vision-observations")
+VISION_EVENT_LOG = (".openhands", "acd", "vision-tool-events.jsonl")
 GENERATED = {
     ".kicad_pcb", ".kicad_sch", ".kicad_pro", ".gbr", ".ger", ".drl", ".xln",
     ".step", ".stp", ".3mf", ".glb", ".zip",
@@ -150,11 +152,15 @@ def protected(path: Path, root: Path) -> bool:
         relative = resolved.relative_to(root)
     except (OSError, ValueError):
         return False
+    vision_path = relative.parts[: len(VISION_OBSERVATION_DIR)] == VISION_OBSERVATION_DIR
+    vision_event_log = relative.parts == VISION_EVENT_LOG
     return bool(
         relative.parts
         and (
             relative.parts[0] in PROTECTED
             or resolved.suffix.lower() in GENERATED
+            or vision_path
+            or vision_event_log
         )
     )
 
@@ -169,8 +175,18 @@ def _path_status(value: str, root: Path) -> tuple[bool, bool, Path | None]:
     try:
         resolved = candidate.resolve(strict=False)
     except (OSError, ValueError):
-        possible = any(part in PROTECTED for part in Path(value).parts)
+        parts = Path(value).parts
+        possible = any(part in PROTECTED for part in parts)
         possible |= Path(value).suffix.lower() in GENERATED
+        possible |= any(
+            parts[index : index + len(VISION_OBSERVATION_DIR)]
+            == VISION_OBSERVATION_DIR
+            for index in range(len(parts))
+        )
+        possible |= any(
+            parts[index : index + len(VISION_EVENT_LOG)] == VISION_EVENT_LOG
+            for index in range(len(parts))
+        )
         return possible, False, None
     return protected(resolved, root), True, resolved
 
@@ -181,6 +197,22 @@ def _allowed_path(value: str, root: Path) -> bool:
     if not resolvable or resolved is None:
         return False
     return resolved == (root / STOP_REPORT_PATH).resolve(strict=False)
+
+
+def _is_vision_path(value: str, root: Path) -> bool:
+    if "\x00" in value:
+        return False
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    try:
+        relative = candidate.resolve(strict=False).relative_to(root)
+    except (OSError, ValueError):
+        return False
+    return (
+        relative.parts[: len(VISION_OBSERVATION_DIR)] == VISION_OBSERVATION_DIR
+        or relative.parts == VISION_EVENT_LOG
+    )
 
 
 def _protected_write(value: str, root: Path, *, allow_stop_report: bool = True) -> bool:
@@ -983,7 +1015,15 @@ def main() -> int:
         denial = None
     if denial is None:
         return 0
-    reason = f"{REASON} [denied: {denial.kind}: {denial.token}]"
+    if _is_vision_path(denial.token, root):
+        reason = (
+            "Visual observations must be recorded via "
+            "scripts/record_visual_vision_observation.py; vision tool events "
+            "are hook-written. "
+            f"[denied: {denial.kind}: {denial.token}]"
+        )
+    else:
+        reason = f"{REASON} [denied: {denial.kind}: {denial.token}]"
     if denial.kind in {"raw_container_image", "raw_container_pipeline"}:
         reason = f"{reason} {RUNNER_GUIDANCE}"
     result(decision="deny", reason=reason)

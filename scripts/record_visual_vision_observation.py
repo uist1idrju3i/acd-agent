@@ -42,6 +42,12 @@ def _parser() -> argparse.ArgumentParser:
         required=True,
         help="file containing the full vision response text",
     )
+    parser.add_argument(
+        "--tool-events",
+        type=Path,
+        default=Path.cwd() / ".openhands/acd/vision-tool-events.jsonl",
+        help="hook-written vision tool event log",
+    )
     return parser
 
 
@@ -60,6 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             profile_name=args.profile_name,
             model=args.model,
             response=response,
+            tool_events_path=args.tool_events,
         )
     except (OSError, ValueError, VisualReviewError) as exc:
         print(f"FAIL: {exc}", file=sys.stderr)

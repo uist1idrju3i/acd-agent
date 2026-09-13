@@ -162,8 +162,13 @@ allowed-tools:
        --image-hash <entryのimage_hash> \
        --profile-name <この会話のvision profile> \
        --model <この会話のモデル> \
-       --response-file <応答全文file>
+       --response-file <応答全文file> \
+       --tool-events <hook-written event log path>
    ```
+
+   hook-written event logに一致するrecordが無いobservationは`unverified`となり、
+   visual reviewの完了を阻止する。event logやobservationをfile_editorで直接編集しては
+   ならない。
 
    (c) すべてのobservationを記録したら検証する。
 

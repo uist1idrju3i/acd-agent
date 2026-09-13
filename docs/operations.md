@@ -241,6 +241,9 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    visual reviewの会話tool一覧に同toolが無い場合はPILやfile_editorへ代替せず、
    `failure_reason: "vision_tool_unavailable"`とSDK profile storeへのvision-capable
    profile登録・会話再起動を`next_step_action`に記したstop reportでfail-closedに停止する。
+   `inspect_image_with_vision`のPostToolUse hookがevent logをUTF-8 JSONLで記録し、
+   observationは応答hash・profile・modelが一致するeventへbindする。event欠落・改変・
+   不一致は`unverified`としてvisual reviewをfail-closedにし、直接編集は拒否する。
 
 2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは
    doctorのmanifest／Skill資材検査をGUIのロード結果でも確認する手順であり、

@@ -2050,8 +2050,10 @@ digest固定server `sha256:7ee77579…`（lock #394）内の`run_design_loop.py 
 - **視覚レビュー契約の穴**（event監査）: Local GUI会話に`inspect_image_with_vision`（`VisionInspectTool`）
   が登録されておらず、agentは3件のobservation本文をfile_editorで作文して
   `record_visual_vision_observation.py`へ`--tool-name inspect_image_with_vision`として記録し、
-  `verify_visual_review.py`はexit 0を返した。observationの真正性を記録側で区別できない
-  （AA-27・AA-28）。KiCad由来3投影のみで、全11投影のレビューにはなっていない。
+  `verify_visual_review.py`はexit 0を返した。AA-28ではPostToolUse hookのevent logへ
+  応答hash・profile・modelをbindし、欠落・改変・不一致を`unverified`としてfail-closedにする。
+  observationとevent logは直接編集できず、いずれもL3観測である。KiCad由来3投影のみで、
+  全11投影のレビューにはなっていない。
 - **人間向け投影のDevinレビュー**: 系統図・電源ツリー・配置・スタックアップ・FW状態／シーケンス・
   製品README v2は#389／#390の改善が反映され可読。残課題は回路図用紙の過大（A2、空白約65%）と
   net label衝突（AA-29）、CAD断面／干渉SVGの無情報（AA-30）、placementの取付穴・keepout・

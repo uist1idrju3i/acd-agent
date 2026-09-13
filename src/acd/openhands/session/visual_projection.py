@@ -19,6 +19,7 @@ from acd.schema.visual_projection import (
     VisualProjectionRecord,
     VisualProjectionSet,
     VisualVisionObservation,
+    VisualVisionToolEvent,
 )
 
 
@@ -200,6 +201,7 @@ def write_visual_vision_observation(
     image_hash: str,
     response: str,
     path: Path,
+    tool_event: VisualVisionToolEvent | None = None,
 ) -> ObservationLogRecord:
     """Persist a vision response as a non-authoritative observation."""
     if not response.strip():
@@ -210,6 +212,7 @@ def write_visual_vision_observation(
         projection_id=projection_id,
         image_hash=image_hash,
         response=response,
+        tool_event=tool_event,
     )
     return write_observation_payload(
         ObservationPayload.model_validate(observation.model_dump(mode="json")),
