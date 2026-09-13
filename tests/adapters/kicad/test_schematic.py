@@ -12,11 +12,13 @@ import pytest
 from acd.adapters.kicad.library import ParsedSymbol, SymbolLibrary, SymbolPin
 from acd.adapters.kicad.schematic import (
     CONNECTION_CONVENTION_NOTE,
+    LABEL_ALLOWANCE,
     PWR_FLAG_LIB_ID,
     PlacedSymbol,
-    _adjust_properties,
+    _dedupe_stacked_labels,
     _global_label,
     _label_collisions,
+    _label_rotation,
     _LabelPlacement,
     _pin_point,
     _symbol_geometry,
@@ -137,27 +139,56 @@ def _collision_placement(
     )
 
 
-def test_label_property_collision_resolves_once() -> None:
+def test_vertical_pin_labels_move_properties_beside_body() -> None:
     symbol = ParsedSymbol(
         lib_id="test:T",
         pins=(
-            SymbolPin("1", "P", "passive", 0.0, -1.27, 270.0, 2.54),
+            SymbolPin("1", "P", "passive", 0.0, 3.81, 270.0, 2.54),
+            SymbolPin("2", "P", "passive", 0.0, -3.81, 90.0, 2.54),
         ),
         embedded=[],
     )
-    placed = _collision_placement("U1", symbol, ["A_VERY_LONG_NET_NAME"])
-    label = _LabelPlacement(
-        refdes="U1",
-        pin="1",
-        net="A_VERY_LONG_NET_NAME",
-        x_mm=40.64,
-        y_mm=41.91,
-        rotation=270,
-        allowance=2.54,
+    net_names = ["VBUS_5V", "GND"]
+    placed = _collision_placement("C1", symbol, net_names)
+    labels: list[_LabelPlacement] = []
+    for pin, net in zip(symbol.pins, net_names, strict=True):
+        px, py = _pin_point(placed.x_mm, placed.y_mm, pin)
+        labels.append(
+            _LabelPlacement(
+                refdes="C1",
+                pin=pin.number,
+                net=net,
+                x_mm=px,
+                y_mm=py,
+                rotation=_label_rotation(pin),
+                allowance=len(net) * 1.27 * 0.9 + LABEL_ALLOWANCE,
+            )
+        )
+    assert _label_collisions([placed], labels) == []
+    assert placed.reference_box.left > placed.base_box.right
+    for box in (placed.reference_box, placed.value_box):
+        assert placed.extent.left <= box.left
+        assert placed.extent.right >= box.right
+        assert placed.extent.top <= box.top
+        assert placed.extent.bottom >= box.bottom
+
+
+def test_horizontal_pins_keep_properties_above_and_below() -> None:
+    symbol = ParsedSymbol(
+        lib_id="test:T",
+        pins=(
+            SymbolPin("1", "P", "passive", -2.54, 0.0, 0.0, 2.54),
+            SymbolPin("2", "P", "passive", 2.54, 0.0, 180.0, 2.54),
+        ),
+        embedded=[],
     )
-    _adjust_properties([placed], [label])
-    assert _label_collisions([placed], [label]) == []
-    assert placed.value_adjusted is True
+    placed = _collision_placement("U1", symbol, ["NET_A", "NET_B"])
+    reference_center_x = (placed.reference_box.left + placed.reference_box.right) / 2
+    value_center_x = (placed.value_box.left + placed.value_box.right) / 2
+    assert reference_center_x == 0.0
+    assert value_center_x == 0.0
+    assert placed.reference_box.bottom <= placed.base_box.top
+    assert placed.value_box.top >= placed.base_box.bottom
 
 
 def test_overlapping_labels_fail_closed() -> None:
@@ -175,4 +206,23 @@ def test_overlapping_labels_fail_closed() -> None:
         _LabelPlacement("U1", "2", "LONG_NET_B", 41.91, 40.64, 0, 20.0),
     ]
     collisions = _label_collisions([first], labels)
+    assert any("fail-closed" in collision for collision in collisions)
+
+
+def test_stacked_same_net_labels_are_deduped() -> None:
+    labels = [
+        _LabelPlacement("J1", "A1", "GND", 40.64, 40.64, 90, 6.0),
+        _LabelPlacement("J1", "A12", "GND", 40.64, 40.64, 90, 6.0),
+    ]
+    deduped = _dedupe_stacked_labels(labels)
+    assert deduped == [labels[0]]
+
+
+def test_stacked_different_net_labels_are_kept() -> None:
+    labels = [
+        _LabelPlacement("J1", "A1", "GND", 40.64, 40.64, 90, 6.0),
+        _LabelPlacement("J1", "A12", "VBUS", 40.64, 40.64, 90, 6.0),
+    ]
+    assert _dedupe_stacked_labels(labels) == labels
+    collisions = _label_collisions([], labels)
     assert any("fail-closed" in collision for collision in collisions)
