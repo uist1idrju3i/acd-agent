@@ -1093,3 +1093,11 @@ Gerber gateの判定は緩めない。
 
 実装状況（AA-14）: silkscreen resolverは`measured_pass`後も未配置textを検出し、
 node IDと強制探索をiterationへ記録してSkillへ戻す。探索上限と未解決時のfail-closedは維持する。
+
+### 14.25 routed board上のsilkscreen再解決の実装記録
+
+背景と観測は[`roadmap.md`](roadmap.md)の14.25節を正とする。
+
+| 区分 | 内容 |
+|---|---|
+| 実装 | `SilkscreenGateError`へ`__reduce__`を追加し、`ProcessPoolExecutor`経由のpickleでも`message`と`context`が保持されるようにした。`measure_silkscreen`へ`routed_board`引数を追加し、routed `.kicad_pcb`指定時は`write_project`を呼ばず同じ5層をkicad-cliでexportし、`parse_routed_board`のviaとmask開口を保持したままdrill項目だけを従来どおり0化する（`measurement_source: "routed"`）。`reresolve_routed_silkscreen`を`ROUTED_SILKSCREEN_MAX_ROUNDS = 1`の宣言上限で実装し、recordを`routed-silkscreen-reresolve.json`へ`record_class: "L3"`・`pass_evidence: false`で書く。入力hash（routed board・Skill・graph revision・fab profile）が一致するrecordがある場合はcache hitとしてgerber exportとSkill subprocessを省略し、記録済み候補を同じapply経路で冪等に再適用する。`resolve_silkscreen`本体は`_run_placement_skill`・`_split_candidates`・`_apply_accepted_candidates`へ分解し、出力とstatus文字列は変更しない。design loopのboard段は`SilkscreenGateError`を捕捉して再解決を1回行い、`candidates_written`の場合だけpipelineを1回再評価する。再解決の失敗・候補なし・再評価のゲート拒否はいずれもfail-closedで停止する。合否権限は既存のrouted silkscreen L1ゲートに留まる |

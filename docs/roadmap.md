@@ -71,7 +71,7 @@ wall-clock記録、14.20のV-1、15.14〜15.21、および計画段階のマイ�
 | 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.4a・11.5達成（11.1〜11.4は計画） |
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
-| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19は達成。14.16、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証。残関門は14.20・14.21） |
+| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19・14.25は達成。14.16、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証。残関門は14.20・14.21） |
 | 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.13達成（15.14〜15.21は計画） |
 | 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1〜16.6は計画 |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
@@ -218,9 +218,9 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
 | 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-3、V-5〜V-7、V-9を達成し、V-1（container由来資材のhost混入検出）が未了。入力・出所と実装を固定し、診断・報告はL3に留め、判定権限はL1ゲートのままとする |
 | 14.21 | GD1非依存の達成判定（W-1〜W-4） | W-1〜W-4を達成（非GD1 fixture `mini-blink-dongle`がdigest固定containerで全laneとauthoritative Evidence検証を通過）。GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
-| 14.25 | routed board上のsilkscreen再解決 | SES import後の`.kicad_pcb`からkicad-cli exportでviaとmask開口を抽出し、silkscreen resolverをboundedなround上限のもと1回だけ再実行する。cache hit時は省略し、合否は既存silkscreen L1ゲートが決める |
+| 14.25 | routed board上のsilkscreen再解決 | SES import後の`.kicad_pcb`からkicad-cli exportでviaとmask開口を抽出し、silkscreen resolverをboundedなround上限のもと1回だけ再実行する。cache hit時は省略し、合否は既存silkscreen L1ゲートが決める。実装済み |
 
-不足項目（C、D、L、M、N、O、P、Q、U、V、W）の各フェーズへの割当経緯と14.1〜14.15・14.19の完了条件は[`roadmap-completed.md`](roadmap-completed.md)を正とする。
+不足項目（C、D、L、M、N、O、P、Q、U、V、W）の各フェーズへの割当経緯と14.1〜14.15・14.19・14.25の完了条件は[`roadmap-completed.md`](roadmap-completed.md)を正とする。
 
 ### 14.16 FW lane専用の候補生成と配置テストの環境依存解消（R-1〜R-3）
 
@@ -464,6 +464,15 @@ Z-1・Z-2・Z-4・Z-5・Z-9・Z-10・Z-11・Z-13の作動を確認し、router�
 そのため、kicad-cli exportで対象形状を抽出し、resolverをboundedな契約で再実行する。
 再実行は1回に限定し、round上限を宣言する。cache hit時は再実行を省略する。
 既存silkscreen gateを合否の権威とし、再解決結果や投影はL1判定へ逆流させない。
+
+実装状況: 達成済み。`measure_silkscreen`へ`routed_board`経路を追加し（`write_project`
+を呼ばず`parse_routed_board`のviaを保持、drill項目は従来どおり0化）、
+`reresolve_routed_silkscreen`が宣言round上限`ROUTED_SILKSCREEN_MAX_ROUNDS = 1`で
+1回だけ再解決する。design loopのboard段が`SilkscreenGateError`を捕捉して再解決と
+pipeline再評価（各1回まで）を行う。記録は`routed-silkscreen-reresolve.json`へ
+`record_class: "L3"`・`pass_evidence: false`で書かれ、入力hash一致時はcache hitとして
+gerber exportとSkill subprocessを省略する。合否は既存のrouted silkscreen L1ゲートのみが
+決める。詳細は[`roadmap-completed.md`](roadmap-completed.md)の14.25節を正とする。
 
 ## マイルストーン15: 運用と文書の整備
 

@@ -84,6 +84,9 @@ class SilkscreenGateError(FabOutputError):
         super().__init__(message)
         self.context = context
 
+    def __reduce__(self) -> tuple[type[SilkscreenGateError], tuple[str, dict[str, object]]]:
+        return (type(self), (str(self), self.context))
+
 
 def _silk_side(layer: str) -> str:
     return "F.Cu" if layer.startswith("F.") else "B.Cu"

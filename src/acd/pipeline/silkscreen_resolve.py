@@ -29,6 +29,7 @@ from acd.core.fab import (
 from acd.core.naming import output_prefix
 from acd.core.rationale import subject_hash_for
 from acd.core.silkscreen import SilkscreenLane, extract_silkscreen_lane
+from acd.schema.common import canonical_json_sha256
 from acd.schema.design_graph import DesignGraph
 from acd.schema.rationale import (
     RationaleDocument,
@@ -47,13 +48,23 @@ def measure_silkscreen(
     out_dir: Path,
     fab_profile_path: Path | None = None,
     fab_profile_id: str | None = None,
+    routed_board: Path | None = None,
 ) -> dict[str, object]:
-    """Project an unrouted board and return the gate-derived silk context.
+    """Project a board and return the gate-derived silk context.
 
-    This is intentionally a routing-before-gate approximation: vias and their
-    mask openings do not exist yet.  The routed GD1 pipeline remains the only
-    acceptance gate and must be run after any candidate is written.
+    Without ``routed_board`` this is intentionally a routing-before-gate
+    approximation: vias and their mask openings do not exist yet.  The routed
+    GD1 pipeline remains the only acceptance gate and must be run after any
+    candidate is written.
+
+    With ``routed_board`` the SES-imported ``.kicad_pcb`` is measured directly
+    without re-projecting the fixture: the exported layers and the parsed
+    measurement include the routing vias and their mask openings (drill
+    records are still zeroed as before).  The routed GD1 silkscreen gate
+    remains the only acceptance authority.
     """
+    if routed_board is not None and not routed_board.is_file():
+        raise ValueError(f"routed board is missing (fail-closed): {routed_board}")
     graph = DesignGraph.model_validate(
         json.loads((fixture_dir / "graph.json").read_text(encoding="utf-8"))
     )
@@ -70,20 +81,23 @@ def measure_silkscreen(
     profile = load_fab_profile(fab_profile_path)
     if intent.fab_profile != profile.profile_id:
         raise ValueError("graph fab profile differs from loaded profile")
-    project = write_project(
-        lane,
-        fixture_dir,
-        out_dir,
-        profile=profile,
-        placements=placements_from_graph(graph, lane),
-        name=output_prefix(graph.graph_id),
-        silkscreen=projection_silkscreen,
-    )
+    if routed_board is not None:
+        board_path = routed_board
+    else:
+        board_path = write_project(
+            lane,
+            fixture_dir,
+            out_dir,
+            profile=profile,
+            placements=placements_from_graph(graph, lane),
+            name=output_prefix(graph.graph_id),
+            silkscreen=projection_silkscreen,
+        ).board
     kicad = KicadCli()
     layers = ["F.Mask", "B.Mask", "F.SilkS", "B.SilkS", "Edge.Cuts"]
-    _run, paths = kicad.export_gerbers(project.board, out_dir / "gerbers", layers, graph.revision)
+    _run, paths = kicad.export_gerbers(board_path, out_dir / "gerbers", layers, graph.revision)
     by_layer = dict(zip(layers, paths, strict=True))
-    measurement = parse_routed_board(project.board)
+    measurement = parse_routed_board(board_path)
     measurement = BoardMeasurement(
         measurement.footprints,
         measurement.vias,
@@ -113,13 +127,17 @@ def measure_silkscreen(
     _restore_unresolved_positions(context, silkscreen)
     result: dict[str, object] = {
         "fixture": str(fixture_dir),
-        "board": str(project.board),
+        "board": str(board_path),
         "gerbers": {key: str(value) for key, value in by_layer.items()},
         "context": context,
         "approximation": (
-            "unrouted projection; final routed-board gate remains authoritative "
+            "routed board measurement; SES-imported vias and mask openings are "
+            "included, the routed GD1 silkscreen gate remains authoritative"
+            if routed_board is not None
+            else "unrouted projection; final routed-board gate remains authoritative "
             "because via mask openings are absent"
         ),
+        "measurement_source": "routed" if routed_board is not None else "unrouted",
     }
     (out_dir / "silkscreen-context.json").write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n",
@@ -174,6 +192,125 @@ def _assert_no_unresolved_texts(lane: SilkscreenLane) -> None:
         )
 
 
+def _run_placement_skill(
+    context: dict[str, Any],
+    lane: SilkscreenLane,
+    silk_skill: Path,
+    root: Path,
+) -> tuple[dict[str, Any], str]:
+    """Run the placement Skill subprocess and return its result and input hash."""
+    with tempfile.TemporaryDirectory(prefix="acd-silk-context-") as directory:
+        directory_path = Path(directory)
+        input_path = directory_path / "input.json"
+        output_path = directory_path / "output.json"
+        input_path.write_text(
+            json.dumps(
+                {"context": context, "lane": lane_to_json(lane)},
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        subprocess.run(
+            [
+                sys.executable,
+                str(silk_skill),
+                "--input",
+                str(input_path),
+                "--output",
+                str(output_path),
+            ],
+            check=True,
+            cwd=root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        skill_result = cast(dict[str, Any], json.loads(output_path.read_text(encoding="utf-8")))
+        skill_input_sha256 = sha256_of(input_path)
+    return skill_result, skill_input_sha256
+
+
+def _split_candidates(
+    skill_result: dict[str, Any],
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, object]]]:
+    """Split Skill candidates into accepted placements and failure records."""
+    raw_candidates = skill_result.get("candidates")
+    if not isinstance(raw_candidates, list):
+        raise ValueError("silkscreen context Skill output is missing candidates")
+    raw_candidates = cast(list[Any], raw_candidates)
+    if not all(isinstance(item, dict) for item in raw_candidates):
+        raise ValueError("silkscreen context Skill candidates are malformed")
+    candidates = cast(list[dict[str, Any]], raw_candidates)
+    accepted: dict[str, dict[str, Any]] = {
+        str(item["node_id"]): item
+        for item in candidates
+        if item.get("accepted_position_mm") is not None
+    }
+    failures: list[dict[str, object]] = [
+        {
+            "node_id": item.get("node_id"),
+            "rejection_counts": _rejection_counts(item.get("rejected_candidates")),
+            "rejection_examples": (
+                cast(list[object], item.get("rejected_candidates", []))[:5]
+                if isinstance(item.get("rejected_candidates"), list)
+                else []
+            ),
+        }
+        for item in candidates
+        if item.get("accepted_position_mm") is None
+    ]
+    return accepted, failures
+
+
+def _apply_accepted_candidates(
+    graph: DesignGraph,
+    accepted: dict[str, dict[str, Any]],
+    silk_skill: Path,
+    skill_input_sha256: str,
+    full_evidence_path: Path,
+) -> DesignGraph:
+    """Write accepted Skill placements onto the silk text nodes of the graph."""
+    updated_nodes: list[Any] = []
+    for node in graph.nodes:
+        item = accepted.get(node.id)
+        if node.kind == "mechanical.silk_text" and item is not None:
+            attrs = dict(node.attrs)
+            evidence_summary = summarize_placement_evidence(item)
+            raw_position: Any = item["accepted_position_mm"]
+            if not isinstance(raw_position, list):
+                raise ValueError("Skill candidate position is malformed")
+            position_values = cast(list[Any], raw_position)
+            if len(position_values) != 2 or not all(
+                isinstance(value, int | float) for value in position_values
+            ):
+                raise ValueError("Skill candidate position is malformed")
+            position = cast(list[float | int], position_values)
+            attrs.update(
+                {
+                    "x_mm": float(position[0]),
+                    "y_mm": float(position[1]),
+                    "rotation_deg": float(item["accepted_rotation_deg"]),
+                    "placement_rotation_deg": float(item["accepted_rotation_deg"]),
+                    "placement_source": "acd-silkscreen-placement",
+                    "placement_source_ref": (
+                        "plugins/acd/skills/acd-silkscreen-placement/scripts/"
+                        f"silkscreen_search.py:{sha256_of(silk_skill)}"
+                    ),
+                    "placement_evidence": json.dumps(
+                        evidence_summary, ensure_ascii=False, sort_keys=True
+                    ),
+                    "placement_evidence_input_sha256": skill_input_sha256,
+                    "placement_evidence_output_sha256": sha256_of(full_evidence_path),
+                }
+            )
+            updated_nodes.append(node.model_copy(update={"attrs": attrs}))
+        else:
+            updated_nodes.append(node)
+    return graph.model_copy(update={"nodes": updated_nodes})
+
+
 def resolve_silkscreen(
     fixture_dir: Path,
     out_dir: Path,
@@ -215,66 +352,15 @@ def resolve_silkscreen(
             if rationale_path.is_file():
                 shutil.copy2(rationale_path, fixture_dir / "rationale.json")
             return {"status": "resolved", "iterations": iterations, "final": measured}
-        with tempfile.TemporaryDirectory(prefix="acd-silk-context-") as directory:
-            directory_path = Path(directory)
-            input_path = directory_path / "input.json"
-            output_path = directory_path / "output.json"
-            input_path.write_text(
-                json.dumps(
-                    {"context": context, "lane": lane_to_json(lane)},
-                    indent=2,
-                    sort_keys=True,
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            subprocess.run(
-                [
-                    sys.executable,
-                    str(silk_skill),
-                    "--input",
-                    str(input_path),
-                    "--output",
-                    str(output_path),
-                ],
-                check=True,
-                cwd=root,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-            )
-            skill_result = cast(dict[str, Any], json.loads(output_path.read_text(encoding="utf-8")))
-            skill_input_sha256 = sha256_of(input_path)
+        skill_result, skill_input_sha256 = _run_placement_skill(
+            context, lane, silk_skill, root
+        )
         full_evidence_path = out_dir / f"iteration-{iteration}" / "silkscreen-skill-result.json"
         full_evidence_path.write_text(
             json.dumps(skill_result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
-        raw_candidates = skill_result.get("candidates")
-        if not isinstance(raw_candidates, list):
-            raise ValueError("silkscreen context Skill output is missing candidates")
-        raw_candidates = cast(list[Any], raw_candidates)
-        if not all(isinstance(item, dict) for item in raw_candidates):
-            raise ValueError("silkscreen context Skill candidates are malformed")
-        candidates = cast(list[dict[str, Any]], raw_candidates)
-        accepted: dict[str, dict[str, Any]] = {
-            str(item["node_id"]): item
-            for item in candidates
-            if item.get("accepted_position_mm") is not None
-        }
-        failures: list[dict[str, object]] = [
-            {
-                "node_id": item.get("node_id"),
-                "rejection_counts": _rejection_counts(item.get("rejected_candidates")),
-                "rejection_examples": (
-                    cast(list[object], item.get("rejected_candidates", []))[:5]
-                    if isinstance(item.get("rejected_candidates"), list)
-                    else []
-                ),
-            }
-            for item in candidates
-            if item.get("accepted_position_mm") is None
-        ]
+        accepted, failures = _split_candidates(skill_result)
         iteration_record: dict[str, object] = {
             "iteration": iteration,
             "context_status": status,
@@ -291,43 +377,9 @@ def resolve_silkscreen(
                 "iterations": iterations,
                 "final": measured,
             }
-        updated_nodes: list[Any] = []
-        for node in graph.nodes:
-            item = accepted.get(node.id)
-            if node.kind == "mechanical.silk_text" and item is not None:
-                attrs = dict(node.attrs)
-                evidence_summary = summarize_placement_evidence(item)
-                raw_position: Any = item["accepted_position_mm"]
-                if not isinstance(raw_position, list):
-                    raise ValueError("Skill candidate position is malformed")
-                position_values = cast(list[Any], raw_position)
-                if len(position_values) != 2 or not all(
-                    isinstance(value, int | float) for value in position_values
-                ):
-                    raise ValueError("Skill candidate position is malformed")
-                position = cast(list[float | int], position_values)
-                attrs.update(
-                    {
-                        "x_mm": float(position[0]),
-                        "y_mm": float(position[1]),
-                        "rotation_deg": float(item["accepted_rotation_deg"]),
-                        "placement_rotation_deg": float(item["accepted_rotation_deg"]),
-                        "placement_source": "acd-silkscreen-placement",
-                        "placement_source_ref": (
-                            "plugins/acd/skills/acd-silkscreen-placement/scripts/"
-                            f"silkscreen_search.py:{sha256_of(silk_skill)}"
-                        ),
-                        "placement_evidence": json.dumps(
-                            evidence_summary, ensure_ascii=False, sort_keys=True
-                        ),
-                        "placement_evidence_input_sha256": skill_input_sha256,
-                        "placement_evidence_output_sha256": sha256_of(full_evidence_path),
-                    }
-                )
-                updated_nodes.append(node.model_copy(update={"attrs": attrs}))
-            else:
-                updated_nodes.append(node)
-        updated_graph = graph.model_copy(update={"nodes": updated_nodes})
+        updated_graph = _apply_accepted_candidates(
+            graph, accepted, silk_skill, skill_input_sha256, full_evidence_path
+        )
         graph_path.write_text(
             json.dumps(
                 updated_graph.model_dump(mode="json"), ensure_ascii=False, indent=2, sort_keys=True
@@ -340,6 +392,179 @@ def resolve_silkscreen(
                 updated_graph, rationale_path, accepted, sha256_of(silk_skill)
             )
     return {"status": "max_iterations_exceeded", "iterations": iterations}
+
+
+ROUTED_SILKSCREEN_MAX_ROUNDS = 1
+
+
+def reresolve_routed_silkscreen(
+    fixture_dir: Path,
+    out_dir: Path,
+    routed_board: Path,
+    fab_profile_path: Path | None = None,
+    fab_profile_id: str | None = None,
+) -> dict[str, object]:
+    """Re-resolve silkscreen on the routed board after SES import, once.
+
+    The routed ``.kicad_pcb`` contains vias and mask openings that the
+    pre-routing resolver never saw.  When the routed-board silkscreen gate
+    rejects, this runs the resolver for a single declared round on the routed
+    board measurement and writes accepted candidates back to the fixture
+    graph.  Everything produced here is L3 observation; the existing routed
+    silkscreen gate remains the only pass authority.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if not routed_board.is_file():
+        raise ValueError(f"routed board is missing (fail-closed): {routed_board}")
+    graph_path = fixture_dir / "graph.json"
+    graph = DesignGraph.model_validate(json.loads(graph_path.read_text(encoding="utf-8")))
+    lane = extract_silkscreen_lane(graph)
+    root = repository_root()
+    silk_skill = (
+        root
+        / "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py"
+    )
+    skill_sha256 = sha256_of(silk_skill)
+    routed_board_sha256 = sha256_of(routed_board)
+    input_sha256 = canonical_json_sha256(
+        {
+            "routed_board_sha256": routed_board_sha256,
+            "skill_sha256": skill_sha256,
+            "graph_revision": graph.revision,
+            "fab_profile_id": fab_profile_id,
+            "fab_profile_path": str(fab_profile_path) if fab_profile_path else None,
+        }
+    )
+    record_path = out_dir / "routed-silkscreen-reresolve.json"
+    record: dict[str, object] = {
+        "schema_version": "0.1",
+        "artifact_kind": "routed_silkscreen_reresolve",
+        "record_class": "L3",
+        "pass_evidence": False,
+        "status": None,
+        "round": 1,
+        "max_rounds": ROUTED_SILKSCREEN_MAX_ROUNDS,
+        "input_sha256": input_sha256,
+        "routed_board": str(routed_board),
+        "routed_board_sha256": routed_board_sha256,
+        "skill_name": "acd-silkscreen-placement",
+        "skill_sha256": skill_sha256,
+        "skill_input_sha256": None,
+        "skill_output_sha256": None,
+        "graph_revision": graph.revision,
+        "context_status": None,
+        "failure_reason": None,
+        "candidate_failures": [],
+        "accepted": {},
+        "cache_hit": False,
+    }
+    if record_path.is_file():
+        recorded_raw: Any = None
+        try:
+            recorded_raw = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            recorded_raw = None
+        recorded = (
+            cast(dict[str, Any], recorded_raw)
+            if isinstance(recorded_raw, dict)
+            else None
+        )
+        if (
+            recorded is not None
+            and recorded.get("input_sha256") == input_sha256
+            and recorded.get("status") == "candidates_written"
+            and isinstance(recorded.get("accepted"), dict)
+            and isinstance(recorded.get("skill_input_sha256"), str)
+        ):
+            recorded_accepted = cast(dict[str, dict[str, Any]], recorded["accepted"])
+            full_evidence_path = (
+                out_dir / "round-1" / "silkscreen-skill-result.json"
+            )
+            updated_graph = _apply_accepted_candidates(
+                graph,
+                recorded_accepted,
+                silk_skill,
+                cast(str, recorded["skill_input_sha256"]),
+                full_evidence_path,
+            )
+            graph_path.write_text(
+                json.dumps(
+                    updated_graph.model_dump(mode="json"),
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            rationale_path = fixture_dir / "rationale.json"
+            if rationale_path.is_file():
+                _record_silkscreen_rationale(
+                    updated_graph, rationale_path, recorded_accepted, skill_sha256
+                )
+            result: dict[str, object] = {**recorded, "cache_hit": True}
+            record_path.write_text(
+                json.dumps(result, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            return result
+    (out_dir / "round-1").mkdir(parents=True, exist_ok=True)
+    measured = measure_silkscreen(
+        fixture_dir,
+        out_dir / "round-1",
+        fab_profile_path,
+        fab_profile_id,
+        routed_board=routed_board,
+    )
+    context_value = measured.get("context")
+    if not isinstance(context_value, dict):
+        raise ValueError("silkscreen context is malformed")
+    context = cast(dict[str, Any], context_value)
+    record["context_status"] = context.get("status")
+    record["failure_reason"] = context.get("failure_reason")
+    if context.get("status") == "measured_pass":
+        record["status"] = "measured_pass"
+    else:
+        skill_result, skill_input_sha256 = _run_placement_skill(
+            context, lane, silk_skill, root
+        )
+        full_evidence_path = out_dir / "round-1" / "silkscreen-skill-result.json"
+        full_evidence_path.write_text(
+            json.dumps(skill_result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        record["skill_input_sha256"] = skill_input_sha256
+        record["skill_output_sha256"] = sha256_of(full_evidence_path)
+        accepted, failures = _split_candidates(skill_result)
+        record["candidate_failures"] = failures
+        record["accepted"] = accepted
+        if failures or len(accepted) != len(lane.texts):
+            record["status"] = "failed_no_candidates"
+        else:
+            updated_graph = _apply_accepted_candidates(
+                graph, accepted, silk_skill, skill_input_sha256, full_evidence_path
+            )
+            graph_path.write_text(
+                json.dumps(
+                    updated_graph.model_dump(mode="json"),
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            rationale_path = fixture_dir / "rationale.json"
+            if rationale_path.is_file():
+                _record_silkscreen_rationale(
+                    updated_graph, rationale_path, accepted, skill_sha256
+                )
+            record["status"] = "candidates_written"
+    record_path.write_text(
+        json.dumps(record, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return record
 
 
 SILKSCREEN_SKILL_NAME = "acd-silkscreen-placement"

@@ -128,3 +128,237 @@ def test_measured_pass_with_unresolved_text_still_fails_without_skill_position(
         _assert_no_unresolved_texts(extract_silkscreen_lane(
             silkscreen_resolve.DesignGraph.model_validate(graph)
         ))
+
+
+def _routed_board(tmp_path: Path) -> Path:
+    board = tmp_path / "board.kicad_pcb"
+    board.write_text("(kicad_pcb)\n", encoding="utf-8")
+    return board
+
+
+def _patch_reresolve_measurement(
+    monkeypatch: pytest.MonkeyPatch,
+    status: str,
+) -> list[dict[str, object]]:
+    calls: list[dict[str, object]] = []
+
+    def measure(
+        fixture_dir: Path,
+        out_dir: Path,
+        fab_profile_path: Path | None = None,
+        fab_profile_id: str | None = None,
+        routed_board: Path | None = None,
+    ) -> dict[str, object]:
+        calls.append(
+            {
+                "fixture_dir": fixture_dir,
+                "fab_profile_path": fab_profile_path,
+                "fab_profile_id": fab_profile_id,
+                "routed_board": routed_board,
+            }
+        )
+        out_dir.mkdir(parents=True, exist_ok=True)
+        return {"context": {"status": status, "failure_reason": "fake failure"}}
+
+    monkeypatch.setattr(silkscreen_resolve, "measure_silkscreen", measure)
+    return calls
+
+
+def test_reresolve_routed_silkscreen_writes_candidates(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _unresolved_fixture(tmp_path)
+    board = _routed_board(tmp_path)
+    out_dir = tmp_path / "reresolve"
+    measure_calls = _patch_reresolve_measurement(monkeypatch, "measured_fail")
+    _patch_skill(monkeypatch, accept=True)
+
+    record = silkscreen_resolve.reresolve_routed_silkscreen(
+        fixture, out_dir, board
+    )
+
+    assert record["status"] == "candidates_written"
+    assert record["round"] == 1
+    assert record["max_rounds"] == silkscreen_resolve.ROUTED_SILKSCREEN_MAX_ROUNDS
+    assert record["max_rounds"] == 1
+    assert record["record_class"] == "L3"
+    assert record["pass_evidence"] is False
+    assert record["cache_hit"] is False
+    assert measure_calls[0]["routed_board"] == board
+    record_file = out_dir / "routed-silkscreen-reresolve.json"
+    assert json.loads(record_file.read_text(encoding="utf-8"))["status"] == (
+        "candidates_written"
+    )
+    graph = json.loads((fixture / "graph.json").read_text(encoding="utf-8"))
+    for node in graph["nodes"]:
+        if node["kind"] == "mechanical.silk_text":
+            assert node["attrs"]["x_mm"] is not None
+            assert node["attrs"]["y_mm"] is not None
+            assert node["attrs"]["placement_source"] == "acd-silkscreen-placement"
+    node = next(item for item in graph["nodes"] if item["id"] == UNRESOLVED_NODE)
+    assert node["attrs"]["x_mm"] in {10.0 + index for index in range(6)}
+
+
+def test_reresolve_routed_silkscreen_measured_pass_skips_skill(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _unresolved_fixture(tmp_path)
+    board = _routed_board(tmp_path)
+    _patch_reresolve_measurement(monkeypatch, "measured_pass")
+    skill_calls: list[Any] = []
+
+    def record_run(*args: Any, **kwargs: Any) -> None:
+        del kwargs
+        skill_calls.append(args)
+
+    monkeypatch.setattr(silkscreen_resolve.subprocess, "run", record_run)
+    before = (fixture / "graph.json").read_text(encoding="utf-8")
+
+    record = silkscreen_resolve.reresolve_routed_silkscreen(
+        fixture, tmp_path / "reresolve", board
+    )
+
+    assert record["status"] == "measured_pass"
+    assert skill_calls == []
+    assert (fixture / "graph.json").read_text(encoding="utf-8") == before
+
+
+def test_reresolve_routed_silkscreen_cache_hit_reapplies_record(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _unresolved_fixture(tmp_path)
+    board = _routed_board(tmp_path)
+    out_dir = tmp_path / "reresolve"
+    _patch_reresolve_measurement(monkeypatch, "measured_fail")
+    _patch_skill(monkeypatch, accept=True)
+
+    first = silkscreen_resolve.reresolve_routed_silkscreen(fixture, out_dir, board)
+    assert first["status"] == "candidates_written"
+    first_graph = (fixture / "graph.json").read_text(encoding="utf-8")
+
+    def fail_measure(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("measure_silkscreen must not run on cache hit")
+
+    def fail_run(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("Skill subprocess must not run on cache hit")
+
+    monkeypatch.setattr(silkscreen_resolve, "measure_silkscreen", fail_measure)
+    monkeypatch.setattr(silkscreen_resolve.subprocess, "run", fail_run)
+
+    second = silkscreen_resolve.reresolve_routed_silkscreen(fixture, out_dir, board)
+
+    assert second["status"] == "candidates_written"
+    assert second["cache_hit"] is True
+    assert (fixture / "graph.json").read_text(encoding="utf-8") == first_graph
+
+
+def test_reresolve_routed_silkscreen_no_candidates_leaves_graph(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _unresolved_fixture(tmp_path)
+    board = _routed_board(tmp_path)
+    _patch_reresolve_measurement(monkeypatch, "measured_fail")
+    _patch_skill(monkeypatch, accept=False)
+    before = (fixture / "graph.json").read_text(encoding="utf-8")
+
+    record = silkscreen_resolve.reresolve_routed_silkscreen(
+        fixture, tmp_path / "reresolve", board
+    )
+
+    assert record["status"] == "failed_no_candidates"
+    assert (fixture / "graph.json").read_text(encoding="utf-8") == before
+
+
+def test_reresolve_routed_silkscreen_missing_board_fails_closed(
+    tmp_path: Path,
+) -> None:
+    fixture = _unresolved_fixture(tmp_path)
+    with pytest.raises(ValueError, match="routed board is missing"):
+        silkscreen_resolve.reresolve_routed_silkscreen(
+            fixture, tmp_path / "reresolve", tmp_path / "absent.kicad_pcb"
+        )
+
+
+def test_measure_silkscreen_routed_board_keeps_vias(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _unresolved_fixture(tmp_path)
+    board = _routed_board(tmp_path)
+    out_dir = tmp_path / "measure"
+    layers_seen: list[Path] = []
+    measurements_seen: list[object] = []
+    marker_vias = (object(),)
+
+    class FakeKicad:
+        def export_gerbers(
+            self,
+            board_path: Path,
+            gerber_dir: Path,
+            layers: list[str],
+            revision: str,
+        ) -> tuple[None, list[Path]]:
+            del revision
+            assert board_path == board
+            gerber_dir.mkdir(parents=True, exist_ok=True)
+            paths = [gerber_dir / f"{layer}.gbr" for layer in layers]
+            layers_seen.extend(paths)
+            return None, paths
+
+    def fail_write_project(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("write_project must not run for routed board")
+
+    monkeypatch.setattr(silkscreen_resolve, "KicadCli", FakeKicad)
+    monkeypatch.setattr(silkscreen_resolve, "write_project", fail_write_project)
+    def fake_parse_routed_board(path: Path) -> Any:
+        del path
+        return silkscreen_resolve.BoardMeasurement(
+            (),
+            cast(Any, marker_vias),
+            0.2,
+            1.0,
+            0.15,
+            (0.0, 0.0, 10.0, 10.0),
+            (0.3,),
+            4,
+            "test",
+            (),
+        )
+
+    monkeypatch.setattr(
+        silkscreen_resolve, "parse_routed_board", fake_parse_routed_board
+    )
+
+    def fake_context(
+        silk: dict[str, Path],
+        mask: dict[str, Path],
+        outline: Path,
+        measurement: object,
+        *args: Any,
+    ) -> dict[str, object]:
+        del silk, mask, outline, args
+        measurements_seen.append(measurement)
+        return {"status": "measured_pass"}
+
+    monkeypatch.setattr(
+        silkscreen_resolve, "build_silkscreen_context", fake_context
+    )
+
+    result = silkscreen_resolve.measure_silkscreen(
+        fixture,
+        out_dir,
+        fab_profile_id="jlcpcb-fr4-2l-1oz",
+        routed_board=board,
+    )
+
+    assert result["board"] == str(board)
+    assert result["measurement_source"] == "routed"
+    assert len(layers_seen) == 5
+    measurement = cast(Any, measurements_seen[0])
+    assert measurement.vias == marker_vias
+    assert measurement.drill_tool_diameters_mm == ()
+    assert measurement.drill_object_count == 0

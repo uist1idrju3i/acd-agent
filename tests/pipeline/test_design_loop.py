@@ -2228,3 +2228,153 @@ def test_non_board_failure_leaves_router_diagnostics_none(
     assert summary["candidate_router_diagnostics"] is None
     body = {key: value for key, value in summary.items() if key != "content_sha256"}
     assert summary["content_sha256"] == canonical_json_sha256(body)
+
+
+def _board_stage_config(tmp_path: Path) -> DesignLoopConfig:
+    out_root = tmp_path / "artifacts"
+    plan = design_loop.build_lane_plan("golden-design-1", out_root)
+    return DesignLoopConfig(
+        fixture_dir=FIXTURE,
+        out_root=out_root,
+        order_total=None,
+        policy=tmp_path / "policy.json",
+        repository=tmp_path,
+        graph_id="golden-design-1",
+        output_prefix=plan.output_prefix,
+        artifact_prefix=plan.artifact_prefix,
+        lane_plan=plan,
+        fab_profile=None,
+        fab_profile_id=None,
+        max_passes=3,
+        max_silkscreen_iterations=1,
+        run_seconds=60,
+        evaluated_at=datetime(2026, 1, 1),
+    )
+
+
+def test_board_stage_reresolves_silkscreen_once_on_gate_rejection(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from acd.adapters.kicad.fab.silkscreen import SilkscreenGateError
+
+    config = _board_stage_config(tmp_path)
+    calls: list[Path] = []
+    reresolve_calls: list[Path] = []
+
+    def fake_pipeline(
+        working: Path,
+        output: Path,
+        max_passes: int,
+        fab_profile: Path | None,
+        *,
+        fab_profile_id: str | None,
+        cache_dir: Path | None,
+        timing_recorder: Any,
+    ) -> dict[str, str]:
+        del working, max_passes, fab_profile, fab_profile_id, cache_dir, timing_recorder
+        calls.append(output)
+        if len(calls) == 1:
+            raise SilkscreenGateError("gate rejected", {})
+        return {"summary": "ok"}
+
+    def fake_reresolve(
+        fixture_dir: Path,
+        out_dir: Path,
+        routed_board: Path,
+        fab_profile: Path | None,
+        fab_profile_id: str | None,
+    ) -> dict[str, object]:
+        del fixture_dir, out_dir, fab_profile, fab_profile_id
+        reresolve_calls.append(routed_board)
+        return {"status": "candidates_written", "pass_evidence": False}
+
+    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_pipeline)
+    monkeypatch.setattr(design_loop, "reresolve_routed_silkscreen", fake_reresolve)
+
+    result = design_loop._run_board(config)  # pyright: ignore[reportPrivateUsage]
+
+    assert result["ok"] is True
+    assert result["pass_evidence"] is False
+    assert result["routed_silkscreen_reresolve"]["status"] == "candidates_written"
+    assert result["routed_silkscreen_reresolve"]["pass_evidence"] is False
+    assert len(calls) == 2
+    board_output = config.lane_plan.stage("board-pipeline").output_path
+    assert board_output is not None
+    assert reresolve_calls == [
+        board_output / "routed" / f"{config.output_prefix}.kicad_pcb"
+    ]
+
+
+def test_board_stage_fails_closed_when_reresolve_round_is_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from acd.adapters.kicad.fab.silkscreen import SilkscreenGateError
+
+    config = _board_stage_config(tmp_path)
+    calls: list[Path] = []
+
+    def fake_pipeline(
+        working: Path,
+        output: Path,
+        max_passes: int,
+        fab_profile: Path | None,
+        *,
+        fab_profile_id: str | None,
+        cache_dir: Path | None,
+        timing_recorder: Any,
+    ) -> dict[str, str]:
+        del working, max_passes, fab_profile, fab_profile_id, cache_dir, timing_recorder
+        calls.append(output)
+        raise SilkscreenGateError("gate rejected", {})
+
+    def fake_reresolve(*args: Any, **kwargs: Any) -> dict[str, object]:
+        return {"status": "candidates_written", "pass_evidence": False}
+
+    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_pipeline)
+    monkeypatch.setattr(design_loop, "reresolve_routed_silkscreen", fake_reresolve)
+
+    result = design_loop._run_board(config)  # pyright: ignore[reportPrivateUsage]
+
+    assert result["ok"] is False
+    assert result["pass_evidence"] is False
+    assert "bounded re-resolution round" in result["failure_reason"]
+    assert len(calls) == 2
+
+
+def test_board_stage_does_not_rerun_pipeline_without_candidates(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    from acd.adapters.kicad.fab.silkscreen import SilkscreenGateError
+
+    config = _board_stage_config(tmp_path)
+    calls: list[Path] = []
+
+    def fake_pipeline(
+        working: Path,
+        output: Path,
+        max_passes: int,
+        fab_profile: Path | None,
+        *,
+        fab_profile_id: str | None,
+        cache_dir: Path | None,
+        timing_recorder: Any,
+    ) -> dict[str, str]:
+        del working, max_passes, fab_profile, fab_profile_id, cache_dir, timing_recorder
+        calls.append(output)
+        raise SilkscreenGateError("gate rejected", {})
+
+    def fake_reresolve(*args: Any, **kwargs: Any) -> dict[str, object]:
+        return {"status": "failed_no_candidates", "pass_evidence": False}
+
+    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_pipeline)
+    monkeypatch.setattr(design_loop, "reresolve_routed_silkscreen", fake_reresolve)
+
+    result = design_loop._run_board(config)  # pyright: ignore[reportPrivateUsage]
+
+    assert result["ok"] is False
+    assert result["pass_evidence"] is False
+    assert "no writable candidates" in result["failure_reason"]
+    assert len(calls) == 1
