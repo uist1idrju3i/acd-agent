@@ -351,12 +351,9 @@ def _power_connections(
     lane: ElectricalLane,
     graph: DesignGraph,
 ) -> tuple[str, list[str]]:
-    if (
-        net.voltage_nominal_v is not None
-        and not math.isfinite(net.voltage_nominal_v)
-    ):
+    if net.voltage_nominal_v is None or not math.isfinite(net.voltage_nominal_v):
         raise SvgVisualProjectionError(
-            f"power rail {net.node_id}: voltage declaration is non-finite"
+            f"power rail {net.node_id}: voltage declaration is missing or invalid"
         )
     source_pin_id = net.power_source_pin
     if not source_pin_id:
@@ -412,24 +409,20 @@ def _power_nets(lane: ElectricalLane) -> tuple[NetView, ...]:
         raise SvgVisualProjectionError(
             "power tree projection has no declared power rails"
         )
+    validated: list[tuple[NetView, float]] = []
     for net in nets:
-        if (
-            net.voltage_nominal_v is not None
-            and not math.isfinite(net.voltage_nominal_v)
+        if net.voltage_nominal_v is None or not math.isfinite(
+            net.voltage_nominal_v
         ):
             raise SvgVisualProjectionError(
-                f"power rail {net.node_id}: voltage declaration is non-finite"
+                f"power rail {net.node_id}: voltage declaration is missing or invalid"
             )
+        validated.append((net, net.voltage_nominal_v))
     return tuple(
-        sorted(
-            nets,
-            key=lambda net: (
-                net.voltage_nominal_v is None,
-                -net.voltage_nominal_v
-                if net.voltage_nominal_v is not None
-                else 0.0,
-                net.node_id,
-            ),
+        net
+        for net, _voltage in sorted(
+            validated,
+            key=lambda item: (-item[1], item[0].node_id),
         )
     )
 
@@ -557,11 +550,7 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                     weight="bold",
                 ),
                 svg_text(
-                    (
-                        f"{net.voltage_nominal_v} V nominal"
-                        if net.voltage_nominal_v is not None
-                        else "nominal voltage unspecified"
-                    ),
+                    f"{net.voltage_nominal_v} V nominal",
                     x=net_x + font_size * 0.7,
                     y=center_y - box_height / 2 + font_size * 3.4,
                     font_size=small,

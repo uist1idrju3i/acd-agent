@@ -303,7 +303,6 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             )
             label_x = (start_x + end_x) / 2
             label_y = lane_y - small * 0.4
-            label_placement = "clear"
         else:
             exit_side, entry_side, lane_y = route[transition.node_id]
             exit_x = _port_x(
@@ -331,9 +330,9 @@ def _state_svg(lane: FirmwareLane) -> bytes:
             lane_low = lane_y - small
             lane_high = lane_y + small * 0.3
             for other in transitions:
-                if other.node_id == transition.node_id or other.node_id not in route:
+                if other.node_id == transition.node_id:
                     continue
-                other_exit_x, other_entry_x, _other_lane_y, other_exit_y, other_entry_y = (
+                other_exit_x, other_entry_x, other_lane_y, other_exit_y, other_entry_y = (
                     transition_geometry[other.node_id]
                 )
                 for crossing_x, endpoint_y in (
@@ -341,8 +340,8 @@ def _state_svg(lane: FirmwareLane) -> bytes:
                     (other_entry_x, other_entry_y),
                 ):
                     if (
-                        min(endpoint_y, _other_lane_y) <= lane_high
-                        and max(endpoint_y, _other_lane_y) >= lane_low
+                        min(endpoint_y, other_lane_y) <= lane_high
+                        and max(endpoint_y, other_lane_y) >= lane_low
                         and lower_bound < crossing_x < upper_bound
                     ):
                         crossing_xs.append(crossing_x)
