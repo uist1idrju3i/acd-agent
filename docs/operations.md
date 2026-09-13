@@ -1037,7 +1037,7 @@ SemeruはJava majorごとに別repositoryを使うため、現在のARGのmajor�
 - **uv 0.12.13（Docker ARG `UV_VERSION`）**
   - 一次情報: [0.12.11](https://github.com/astral-sh/uv/releases/tag/0.12.11)、[0.12.12](https://github.com/astral-sh/uv/releases/tag/0.12.12)、[0.12.13](https://github.com/astral-sh/uv/releases/tag/0.12.13)
   - 破壊的変更/新機能: `uv.lock`記録hashによるsource archive検証、PEP 658 metadata sidecarのhash検証、`exclude-newer`後にuploadされたdistributionのlock除外、install高速化。CLIと既定値の破壊的変更はない。
-  - 採否: 採用。server image内のsync経路はhash検証強化の恩恵を受ける。image digest lockはpublish後に別変更で更新する。
+  - 採否: 採用。server image内のsync経路はhash検証強化の恩恵を受ける。image digest lockはpublish後に別変更で更新する。`UV_VERSION`を変更する際は`UV_SHA256`もrelease assetの`.sha256`から同じ変更で更新する（#399では未更新でpublishが`sha256sum --check`失敗した）。
 - **ohwr/cern-kicad-libs `1c71207c558a9ea32d96f7b272ba4a1fa923ef14`**
   - 一次情報: upstream commit `39e5755`・`1c71207`（CERN KiCad Library Bot、2026-09-12）。差分は`CERN.sqlite`、`CHECKSUMS`、`SchLib/Analog & Interface.kicad_sym`・`SchLib/Crystals & Oscillators.kicad_sym`のsymbol追加、AMPHENOL/PEM/OHMITE footprint追加、TYCO THD footprintの再生成、conversion log。`LICENSE`・`LICENSES/`・`.reuse/dep5`に変更はない。
   - 破壊的変更/新機能: 既存部品の削除はなく、GD1 fixtureはCERN catalog部品を参照しないため`parts_catalog_sha256`を記録した既存Evidenceに影響しない。`CERN.sqlite`のhashは変わるため、以後の`catalog="cern"`選択は新しい`parts_catalog_sha256`を記録する。
