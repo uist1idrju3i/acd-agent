@@ -576,6 +576,8 @@ silkscreen resolver段はresolverの結果statusが`resolved`の場合だけを�
 `fail_closed: true`で停止し、失敗理由には未解決の`mechanical.silk_text` node IDを、
 `next_step_action`には`x_mm`/`y_mm`宣言または探索入力の拡大（段summaryの
 `candidate_failures`参照）を含める。判定条件や探索回数は緩めない。
+測定が`measured_pass`でも未配置テキストが残る場合は、そのnode IDを記録してSkill探索へ戻し、
+未解決のままの受理は行わない。
 
 コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
 出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`

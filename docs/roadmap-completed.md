@@ -1037,3 +1037,6 @@ macro欠落、byte一致を回帰テストで固定した。旧`instruction-manu
 `acd-mml 0.1`の独立parserでtempo・voice総tick・note列を照合する。照合不一致時は
 MMLだけを省略し、`mml_check`へ理由を記録する。MMLはprovenanceと`hashes.json`へ
 登録するが、MIDI、3 laneのgate、Evidence、fab packageの判定は変更しない。
+
+実装状況（AA-14）: silkscreen resolverは`measured_pass`後も未配置textを検出し、
+node IDと強制探索をiterationへ記録してSkillへ戻す。探索上限と未解決時のfail-closedは維持する。
