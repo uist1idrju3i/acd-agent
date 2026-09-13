@@ -226,10 +226,19 @@ def _symbol_geometry(
     value_width = len(value) * 1.27 * 0.9
     right_x = _snap(base.right + 1.27)
     left_x = _snap(base.left - 1.27)
-    reference_right_x = _snap(right_x + reference_width / 2)
-    reference_left_x = _snap(left_x - reference_width / 2)
-    value_right_x = _snap(right_x + value_width / 2)
-    value_left_x = _snap(left_x - value_width / 2)
+
+    def _snap_away(value: float, *, right: bool) -> float:
+        # Candidate centers must land on the grid (the emitted property "at"
+        # is the box center), but rounding toward the body could shrink the
+        # 1.27 mm clearance into a neighboring label box.
+        ratio = value / _GRID
+        snapped = math.ceil(ratio - 1e-9) if right else math.floor(ratio + 1e-9)
+        return round(snapped * _GRID, 4)
+
+    reference_right_x = _snap_away(right_x + reference_width / 2, right=True)
+    reference_left_x = _snap_away(left_x - reference_width / 2, right=False)
+    value_right_x = _snap_away(right_x + value_width / 2, right=True)
+    value_left_x = _snap_away(left_x - value_width / 2, right=False)
     reference_box = _pick(
         [
             (0.0, _snap(base.top - 2.54)),
