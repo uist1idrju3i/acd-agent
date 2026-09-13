@@ -588,6 +588,12 @@ silkscreen resolver段はresolverの結果statusが`resolved`の場合だけを�
 `candidate_failures`参照）を含める。判定条件や探索回数は緩めない。
 測定が`measured_pass`でも未配置テキストが残る場合は、そのnode IDを記録してSkill探索へ戻し、
 未解決のままの受理は行わない。
+基板pipelineのrouted silkscreenゲートがSES import後のboardで拒否した場合は、
+`reresolve_routed_silkscreen`がrouted board計測でresolverを`ROUTED_SILKSCREEN_MAX_ROUNDS`
+（1回）だけ再実行し、受理候補をgraphへ書いてpipelineを1回だけ再評価する。recordは
+`out/<board>/routed-silkscreen-reresolve/routed-silkscreen-reresolve.json`へL3記録として
+残り、同一入力ではcache hitでSkill再実行を省略する。再実行してもゲートが拒否すれば
+fail-closedのまま停止し、合否判定は既存ゲートだけが担う。
 
 コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
 出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`

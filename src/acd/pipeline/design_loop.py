@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
+from acd.adapters.kicad.fab.silkscreen import SilkscreenGateError
 from acd.core.enclosure_exploration import (
     EnclosureExplorationResult,
     explore_enclosure_candidates,
@@ -75,7 +76,11 @@ from acd.pipeline.lane_plan import (
     build_lane_plan,
 )
 from acd.pipeline.projection_docs import ProjectionDocsError, run_projection_docs
-from acd.pipeline.silkscreen_resolve import resolve_silkscreen
+from acd.pipeline.silkscreen_resolve import (
+    ROUTED_SILKSCREEN_MAX_ROUNDS,
+    reresolve_routed_silkscreen,
+    resolve_silkscreen,
+)
 from acd.pipeline.visual_review import derive_visual_review
 from acd.schema import (
     DesignFixtureSpec,
@@ -95,6 +100,17 @@ DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
 StageRunner = Callable[["DesignLoopConfig"], Any]
 
 _CANDIDATE_DIAGNOSTICS_LIMIT = 12
+
+_SILKSCREEN_NEXT_STEP_ACTION = (
+    "shorten the text value of the listed mechanical.silk_text nodes "
+    "first, then widen placement_search_limit_mm on the node, then "
+    "declare x_mm/y_mm (see candidate_failures in the stage summary); "
+    "do not remove all functional labels — a single remaining unplaced "
+    "text is accepted by measurement and then fails 'silkscreen "
+    "resolution accepted unresolved text coordinates' (keep at least "
+    "one placed label alongside); silkscreen gate thresholds are not "
+    "adjustable"
+)
 
 
 def _surface_router_diagnostics(
@@ -253,16 +269,7 @@ def _run_silkscreen(config: DesignLoopConfig) -> dict[str, Any]:
         f"unresolved silk texts: {', '.join(unresolved) or 'none'}",
         output_path=str(output),
         summary=result,
-        next_step_action=(
-            "shorten the text value of the listed mechanical.silk_text nodes "
-            "first, then widen placement_search_limit_mm on the node, then "
-            "declare x_mm/y_mm (see candidate_failures in the stage summary); "
-            "do not remove all functional labels — a single remaining unplaced "
-            "text is accepted by measurement and then fails 'silkscreen "
-            "resolution accepted unresolved text coordinates' (keep at least "
-            "one placed label alongside); silkscreen gate thresholds are not "
-            "adjustable"
-        ),
+        next_step_action=_SILKSCREEN_NEXT_STEP_ACTION,
     )
 
 
@@ -270,19 +277,68 @@ def _run_board(config: DesignLoopConfig) -> dict[str, Any]:
     output = config.lane_plan.stage("board-pipeline").output_path
     if output is None:
         raise ValueError("board stage has no output path")
-    result = run_board_pipeline(
-        config.fixture_dir,
-        output,
-        config.max_passes,
-        config.fab_profile,
-        fab_profile_id=config.fab_profile_id,
-        cache_dir=(
-            config.cache_dir
-            if config.lane_plan.stage("board-pipeline").cacheable
-            else None
-        ),
-        timing_recorder=config.timing_recorder,
-    )
+    def pipeline() -> dict[str, Any]:
+        return run_board_pipeline(
+            config.fixture_dir,
+            output,
+            config.max_passes,
+            config.fab_profile,
+            fab_profile_id=config.fab_profile_id,
+            cache_dir=(
+                config.cache_dir
+                if config.lane_plan.stage("board-pipeline").cacheable
+                else None
+            ),
+            timing_recorder=config.timing_recorder,
+        )
+
+    try:
+        result = pipeline()
+    except SilkscreenGateError as exc:
+        # The routed board carries SES-imported vias and mask openings the
+        # pre-routing resolver never saw; re-resolve once on the routed board
+        # (bounded to ROUTED_SILKSCREEN_MAX_ROUNDS) and rerun the gate, which
+        # stays the only pass authority.
+        routed_board = output / "routed" / f"{config.output_prefix}.kicad_pcb"
+        try:
+            reresolve = reresolve_routed_silkscreen(
+                config.fixture_dir,
+                output / "routed-silkscreen-reresolve",
+                routed_board,
+                config.fab_profile,
+                config.fab_profile_id,
+            )
+        except Exception as inner:
+            return _failure(
+                "board-pipeline",
+                f"{type(exc).__name__}: {exc}; routed silkscreen re-resolution "
+                f"failed (fail-closed): {type(inner).__name__}: {inner}",
+            )
+        if reresolve.get("status") != "candidates_written":
+            return _failure(
+                "board-pipeline",
+                f"{type(exc).__name__}: {exc}; routed silkscreen re-resolution "
+                f"produced no writable candidates: status={reresolve.get('status')}",
+                routed_silkscreen_reresolve=reresolve,
+                next_step_action=_SILKSCREEN_NEXT_STEP_ACTION,
+            )
+        try:
+            result = pipeline()
+        except SilkscreenGateError as second:
+            return _failure(
+                "board-pipeline",
+                f"routed silkscreen gate rejected after "
+                f"{ROUTED_SILKSCREEN_MAX_ROUNDS} bounded re-resolution round "
+                f"(fail-closed): {type(second).__name__}: {second}",
+                routed_silkscreen_reresolve=reresolve,
+                next_step_action=_SILKSCREEN_NEXT_STEP_ACTION,
+            )
+        return _success(
+            "board-pipeline",
+            output_path=str(output),
+            summary=result,
+            routed_silkscreen_reresolve=reresolve,
+        )
     return _success("board-pipeline", output_path=str(output), summary=result)
 
 

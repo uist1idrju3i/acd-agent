@@ -385,6 +385,11 @@ silkscreen可読性ゲートまで通過する。ゲートはGerber実測の幾�
 Skillへ配布し、Skillは自前の閾値を持たない。文字寸法の上界モデルもゲート側を単一の
 出所とし、候補bboxと予約領域へcontext経由で伝える。筐体pipelineも決定論的CADゲートを
 通過する。
+SES import後のrouted boardでsilkscreenゲートが拒否した場合、design loopはresolverを
+routed board計測（routing由来のviaとmask開口を含む）へ宣言されたround上限1回だけ
+再実行し、受理候補をfixture graphへ書き戻してゲートを1回だけ再評価する。再解決recordは
+`record_class: "L3"`・`pass_evidence: false`であり、合否権限は既存のrouted silkscreen
+L1ゲートに留まる。入力が一致する場合はcache hitとしてSkill再実行を省略する。
 
 ## 期限付き見積入力境界
 
