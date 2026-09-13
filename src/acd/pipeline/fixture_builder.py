@@ -10,7 +10,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Final
 
-from acd.core.cpl_orientation import cpl_orientation_attrs
+from acd.core.cpl_orientation import cpl_evidence_attrs, cpl_orientation_attrs
 from acd.core.decoupling_placement import (
     DecouplingPlacementError,
     DecouplingPlacementReport,
@@ -176,6 +176,17 @@ def build_graph(spec: DesignFixtureSpec) -> DesignGraph:
                     component.refdes,
                 )
             )
+        elif component.cpl_orientation_evidence is not None:
+            for key, value in cpl_evidence_attrs(
+                component.cpl_orientation_evidence,
+                graph_id,
+                spec.revision,
+            ).items():
+                if key in component.attrs and component.attrs[key] != value:
+                    raise FixtureBuilderError(
+                        f"{component.refdes}: {key} conflicts with cpl_orientation_evidence"
+                    )
+                component_attrs.setdefault(key, value)
         if component.library_ref is not None:
             component_attrs["library_ref"] = component.library_ref
         nodes.append(

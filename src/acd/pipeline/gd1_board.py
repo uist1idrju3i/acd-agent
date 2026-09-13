@@ -109,6 +109,7 @@ from acd.core.functional_blocks import (
     load_functional_block_registry,
 )
 from acd.core.lane_cli import add_lane_io_arguments
+from acd.core.mechanical import placement_annotations
 from acd.core.naming import artifact_prefix, evidence_id, output_prefix, subject_node_id
 from acd.core.parallel import DEFAULT_PIPELINE_WORKERS
 from acd.core.parallel import run_ordered_stages as _run_ordered_stages
@@ -270,10 +271,18 @@ def _stage_firmware_visual_projections(
     out_dir: Path,
     source_revision: str,
     graph: DesignGraph,
+    lane: ElectricalLane,
     graph_input: Path,
     input_base_dir: Path,
 ) -> tuple[VisualProjectionSet, VisualCrosscheckReport]:
     firmware_lane = extract_firmware_lane(graph)
+    target_captions: dict[str, str] = {}
+    for step in firmware_lane.sequence_steps:
+        try:
+            component = lane.component_by_id(step.target)
+        except KeyError:
+            continue
+        target_captions[step.target] = f"{component.refdes} {component.value}".strip()
     projection_ids = (f"{project_name}-firmware-state", f"{project_name}-firmware-sequence")
     firmware_projection_set = generate_firmware_visual_projections(
         project_name=project_name,
@@ -283,6 +292,7 @@ def _stage_firmware_visual_projections(
         authoritative_inputs=(graph_input,),
         input_base_dir=input_base_dir,
         projection_ids=projection_ids,
+        target_captions=target_captions,
     )
     firmware_crosscheck = crosscheck_firmware_visual_projections(
         source_revision=source_revision,
@@ -1937,6 +1947,7 @@ def run_pipeline(
                     source_revision=revision,
                     board=project.board_projection.model,
                     board_view=lane.board,
+                    annotations=placement_annotations(graph),
                     authoritative_inputs=(fixture_dir / "graph.json",),
                     input_base_dir=repository_root(),
                 ),
@@ -1962,6 +1973,7 @@ def run_pipeline(
                     out_dir=out_dir,
                     source_revision=revision,
                     graph=graph,
+                    lane=lane,
                     graph_input=fixture_dir / "graph.json",
                     input_base_dir=repository_root(),
                 ),

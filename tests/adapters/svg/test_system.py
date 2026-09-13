@@ -110,6 +110,7 @@ def test_generates_block_and_power_tree_with_shared_provenance(tmp_path: Path) -
     assert b'id="power-net-net-gnd"' not in power_svg
     assert b"5.0 V nominal" in power_svg
     assert b"J1 TYPE-C-31-M-12" in power_svg
+    assert b"ordered by nominal voltage (high" in power_svg
     assert b'font-size="3"' in power_svg
     power_box = measure_svg_resolution(power_svg).view_box
     assert power_box[:3] == (0.0, 0.0, 240.0)
@@ -247,7 +248,7 @@ def test_power_net_absent_fails_closed(tmp_path: Path) -> None:
         )
 
 
-def test_voltage_undeclared_fails_closed(tmp_path: Path) -> None:
+def test_power_nets_require_declared_voltage() -> None:
     graph = _graph()
     lane = _lane(graph)
     lane = replace(
@@ -259,8 +260,24 @@ def test_voltage_undeclared_fails_closed(tmp_path: Path) -> None:
             for net in lane.nets
         ),
     )
-    with pytest.raises(SvgVisualProjectionError, match="voltage declaration"):
-        _generate(tmp_path, lane=lane)
+    with pytest.raises(SvgVisualProjectionError, match="missing or invalid"):
+        system_module._power_nets(lane)  # pyright: ignore[reportPrivateUsage]
+
+
+def test_power_net_nonfinite_voltage_fails_closed() -> None:
+    graph = _graph()
+    lane = _lane(graph)
+    lane = replace(
+        lane,
+        nets=tuple(
+            replace(net, voltage_nominal_v=float("nan"))
+            if net.power_rail
+            else net
+            for net in lane.nets
+        ),
+    )
+    with pytest.raises(SvgVisualProjectionError, match="missing or invalid"):
+        system_module._power_nets(lane)  # pyright: ignore[reportPrivateUsage]
 
 
 def test_power_voltage_nonfinite_fails_closed(tmp_path: Path) -> None:
@@ -272,7 +289,7 @@ def test_power_voltage_nonfinite_fails_closed(tmp_path: Path) -> None:
         else net
         for net in lane.nets
     )
-    with pytest.raises(SvgVisualProjectionError, match="voltage declaration"):
+    with pytest.raises(SvgVisualProjectionError, match="missing or invalid"):
         _generate(tmp_path, lane=replace(lane, nets=nets))
 
 

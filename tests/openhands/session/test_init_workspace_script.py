@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -74,7 +75,13 @@ def _origin_repository(path: Path) -> Path:
     return path
 
 
-def _run_init(repo_url: str, revision: str, workspace: Path) -> dict[str, Any]:
+def _run_init(
+    repo_url: str,
+    revision: str,
+    workspace: Path,
+    *,
+    extra_env: dict[str, str] | None = None,
+) -> dict[str, Any]:
     result = subprocess.run(
         [
             sys.executable,
@@ -90,6 +97,7 @@ def _run_init(repo_url: str, revision: str, workspace: Path) -> dict[str, Any]:
         text=True,
         check=False,
         timeout=1800,
+        env={**os.environ, **(extra_env or {})},
     )
     document: dict[str, Any] = json.loads(result.stdout)
     return document
@@ -120,6 +128,37 @@ def test_empty_git_workspace_is_initialized_and_large_doctor_report_parses(
     assert plugin_load["status"] == "pass"
     assert plugin_load["report"]["status"] == "ok"
     assert (workspace / ".openhands/bootstrap-record.json").is_file()
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="uv is required")
+def test_workspace_registry_is_updated_after_bootstrap_record(
+    tmp_path: Path,
+) -> None:
+    origin = _origin_repository(tmp_path / "origin")
+    workspace = tmp_path / "workspace"
+    registry = tmp_path / "workspaces.json"
+    workspace.mkdir()
+    _init_repository(workspace)
+
+    document = _run_init(
+        origin.as_uri(),
+        _head_revision(origin),
+        workspace,
+        extra_env={"ACD_WORKSPACE_REGISTRY": str(registry)},
+    )
+
+    assert document["ok"] is True, document
+    assert _step(document, "workspace_registry")["status"] == "pass"
+    payload = json.loads(registry.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "0.1"
+    assert payload["workspaces"] == [
+        {
+            "workspace_path": str(workspace.resolve()),
+            "repo_url": origin.as_uri(),
+            "resolved_revision": _head_revision(origin),
+            "registered_at": payload["workspaces"][0]["registered_at"],
+        }
+    ]
 
 
 @pytest.mark.skipif(shutil.which("uv") is None, reason="uv is required")

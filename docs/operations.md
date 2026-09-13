@@ -233,7 +233,17 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    SessionStart hookもホストの`uv run python scripts/probe_tools.py`を実行せず、
    projectのlockにあるdigest固定server imageを`--entrypoint ""`付きの`docker run`で
    1回だけprobeする。4ツールすべての版を抽出できない場合はホストprobeへ戻らず、
-   fail-closed contextを注入する（hook自体はL3観測としてexit 0）。
+   fail-closed contextを注入する（hook自体はL3観測としてexit 0）。同じ
+   SessionStart contextにはSDKの`OH_PERSISTENCE_DIR/profiles`（既定は
+   `~/.openhands/profiles`）を標準libraryだけで読み、保存済みLLM profileの件数と
+   modelを`vision inspection:`行として追加する。profileが無い場合もhookは停止せず、
+   `inspect_image_with_vision`がactive model以外では利用できない可能性を報告する。
+   visual reviewの会話tool一覧に同toolが無い場合はPILやfile_editorへ代替せず、
+   `failure_reason: "vision_tool_unavailable"`とSDK profile storeへのvision-capable
+   profile登録・会話再起動を`next_step_action`に記したstop reportでfail-closedに停止する。
+   `inspect_image_with_vision`のPostToolUse hookがevent logをUTF-8 JSONLで記録し、
+   observationは応答hash・profile・modelが一致するeventへbindする。event欠落・改変・
+   不一致は`unverified`としてvisual reviewをfail-closedにし、直接編集は拒否する。
 
 2. plugin詳細の名前が`acd`であり、Skillが読み込まれていることを確認する。これは
    doctorのmanifest／Skill資材検査をGUIのロード結果でも確認する手順であり、
@@ -576,6 +586,8 @@ silkscreen resolver段はresolverの結果statusが`resolved`の場合だけを�
 `fail_closed: true`で停止し、失敗理由には未解決の`mechanical.silk_text` node IDを、
 `next_step_action`には`x_mm`/`y_mm`宣言または探索入力の拡大（段summaryの
 `candidate_failures`参照）を含める。判定条件や探索回数は緩めない。
+測定が`measured_pass`でも未配置テキストが残る場合は、そのnode IDを記録してSkill探索へ戻し、
+未解決のままの受理は行わない。
 
 コマンド実装へ順序と前提を移したため、各scriptをshellから個別に呼び出す必要はない。
 出力先とartifact prefixはgraph_idから導出し、`golden-design-1`だけは既存の`gd1`
@@ -1523,6 +1535,13 @@ renameする。複数sheetによる複数SVG出力は未対応で、追加され
 記録する）。投影集合のidentity hashは`generated_at`を再現性の対象から除外するため、
 同一入力・同一renderer版の再実行で時刻以外の内容を同一性として比較できる。機械laneでは
 authoritativeな`enclosure-assembly.step`を`build123d`で断面・干渉SVGへ投影する。
+raw ExportSVG bytesは一時ファイルから読み取り、最終成果物ではacd-svg outer document内の
+`svg#cad-view`へrootのviewBox文字列とinner markupをbyte-exactに埋め込む。outer documentには
+title、断面offset、enclosure／board outline寸法、legend、10 mm scale bar、注記を付与し、
+機械lane crosscheckはouter rootのmm単位とnested viewのgeometry・layer・annotation IDを
+独立に照合する。これはL3の可読性観測であり、gate reportの干渉体積・clearance値、
+visual projection record、Evidence authorityを変更しない。`build123d-svg-v1`はwrapped
+artifact bytesのhash規則である。
 断面のXY offsetは`wall_thickness_mm + standoff_height_mm / 2`をMechanicalLaneから
 決定論的に導出して記録し、キャビティ床とcoplanarになる位置は使用しない。断面は
 宣言したXY平面とこのoffsetを記録し、
@@ -2336,11 +2355,22 @@ plugin = acd_plugin_source("v1.2.3")
 該当tokenを示す。`raw_container_*`の場合はrunner利用の案内を末尾へ追加する。
 判定条件そのものは上記の追加規則を除き変更しない。
 
-SessionStart hookのserver image lockは、会話project dir直下に限らず次の順で探索し、
-最初の可読かつ有効なlockを採用する: project dir、`bootstrap-record.json`の
-`workspace_path`が指すworkspace、`$ACD_PLUGIN_ROOT`の親checkout、hook script自身を
-含むcheckout、image内`/opt/acd`。すべて解決できない場合はfail-closed contextへ探索
-path列を付記する。
+`acd-install-doctor`のinitは、bootstrap recordを書いた後に
+`~/.openhands/acd/workspaces.json`（`ACD_WORKSPACE_REGISTRY`で変更可能）へworkspace
+path、repository URL、resolved revision、登録時刻をupsertする。これはlock探索のための
+L3 discovery aidであり、bootstrap recordがauthoritative recordである。SessionStart hookの
+server image lockは、会話project dir直下に限らず次の順で探索し、最初の可読かつ有効なlockを
+採用する: project dir、`bootstrap-record.json`の`workspace_path`が指すworkspace、
+workspace registryの登録（`registered_at`の新しい順）、`$ACD_PLUGIN_ROOT`の親checkout、
+hook script自身を含むcheckout、image内`/opt/acd`。すべて解決できない場合はfail-closed
+contextへ探索pathとregistry path・entry数を付記し、registryの読み取り失敗は既存の
+fail-closed探索を継続する。
+
+視覚レビューの実ツール利用は`vision-tool-events.jsonl`へhookが記録し、最終報告の
+変更根拠は`file-change-events.jsonl`へfile_editor／apply_patch／terminalのhookが記録する。
+`report_final_basis.py`はgit statusの各worktree entryへ変更時刻と対応する
+`seq@time tool:action`を表として付与し、terminal actionも別に列挙する。ログ欠落や
+未記録entryはL3診断として明示され、自然文の説明を根拠なしに補完してはならない。
 
 ## graph単体検証の正規経路
 

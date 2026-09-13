@@ -11,10 +11,13 @@ from acd.core.process import sha256_bytes
 from acd.core.visual_projection import (
     ACD_SVG_NORMALIZATION_RULE_ID,
     CAD_SVG_NORMALIZATION_RULE_ID,
+    KICAD_LAYER_SVG_NORMALIZATION_RULE_ID,
     SVG_TITLE_NORMALIZATION_RULE_ID,
     SvgNormalizationError,
     SvgResolutionError,
+    cad_view_geometry,
     measure_svg_resolution,
+    normalize_kicad_layer_svg,
     normalize_svg,
     normalized_svg_sha256,
     svg_source_hash,
@@ -99,6 +102,34 @@ def test_resolution_is_measured_from_svg_root() -> None:
     assert resolution.view_box == (0.0, 0.0, 29.9974, 24.9936)
 
 
+def test_cad_view_geometry_reads_single_nested_view() -> None:
+    svg = (
+        b'<svg width="240mm" height="100mm" viewBox="0 0 240 100">'
+        b'<svg id="cad-view" width="132" height="55" viewBox="-18 -15.5 36 31">'
+        b"<path/></svg></svg>"
+    )
+    assert cad_view_geometry(svg) == (
+        "132",
+        "55",
+        ("-18", "-15.5", "36", "31"),
+    )
+
+
+def test_cad_view_geometry_rejects_missing_nested_view() -> None:
+    with pytest.raises(ValueError, match="exactly one"):
+        cad_view_geometry(b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"/>')
+
+
+def test_cad_view_geometry_rejects_duplicate_nested_views() -> None:
+    with pytest.raises(ValueError, match="exactly one"):
+        cad_view_geometry(
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1">'
+            b'<svg id="cad-view" width="1" height="1" viewBox="0 0 1 1"/>'
+            b'<svg id="cad-view" width="1" height="1" viewBox="0 0 1 1"/>'
+            b"</svg>"
+        )
+
+
 @pytest.mark.parametrize(
     "svg",
     [
@@ -113,6 +144,19 @@ def test_resolution_rejects_unmeasurable_values(svg: bytes) -> None:
         measure_svg_resolution(svg)
 
 
+def test_resolution_rejects_sibling_svg_roots() -> None:
+    with pytest.raises(SvgResolutionError):
+        measure_svg_resolution(
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"></svg>'
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"></svg>'
+        )
+    with pytest.raises(SvgResolutionError):
+        measure_svg_resolution(
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"></svg>'
+            b'<svg width="1mm" height="1mm" viewBox="0 0 1 1"/>'
+        )
+
+
 def test_svg_source_hash_applies_the_kicad_title_rule() -> None:
     first = _svg()
     second = _svg("SVG Image created as second.svg date 2026-08-19T03:46:01 ")
@@ -121,6 +165,62 @@ def test_svg_source_hash_applies_the_kicad_title_rule() -> None:
     )
     assert svg_source_hash(first, SVG_TITLE_NORMALIZATION_RULE_ID) == (
         normalized_svg_sha256(first)
+    )
+
+
+def _layer_svg(
+    nested_title: str = "SVG Image created as first.svg date 2026-08-19T03:45:00Z ",
+    outer_title: str = "gd1 — F.Cu",
+) -> bytes:
+    return (
+        f'<svg width="240mm" height="100mm" viewBox="0 0 240 100">'
+        f"<title>{outer_title}</title>"
+        '<svg id="layer-view" width="30mm" height="25mm" '
+        'viewBox="0.0000 0.0000 30.0000 25.0000">'
+        f"<title>{nested_title}</title><desc>KiCad E.D.A. 10.0.5</desc>"
+        "</svg></svg>"
+    ).encode()
+
+
+def test_kicad_layer_normalization_replaces_nested_title_only() -> None:
+    first = normalize_kicad_layer_svg(_layer_svg())
+    second = normalize_kicad_layer_svg(
+        _layer_svg(
+            "SVG Image created as second.svg date 2026-08-19T03:46:01 "
+        )
+    )
+    assert first == second
+
+
+@pytest.mark.parametrize(
+    "svg",
+    [
+        _layer_svg(
+            outer_title="SVG Image created as outer.svg date 2026-08-19T03:45:00Z "
+        ),
+        _layer_svg().replace(
+            b"</title><desc>",
+            b"</title><title>SVG Image created as second.svg date "
+            b"2026-08-19T03:45:00Z </title><desc>",
+        ),
+        _layer_svg().replace(b"<title>gd1", b"<title>extra</title><title>gd1"),
+        _layer_svg().replace(b"<title>", b"<not-title>", 1).replace(
+            b"</title>", b"</not-title>", 1
+        ),
+    ],
+)
+def test_kicad_layer_normalization_rejects_invalid_titles(svg: bytes) -> None:
+    with pytest.raises(SvgNormalizationError):
+        normalize_kicad_layer_svg(svg)
+
+
+def test_svg_source_hash_applies_the_kicad_layer_title_rule() -> None:
+    first = _layer_svg()
+    second = _layer_svg(
+        "SVG Image created as second.svg date 2026-08-19T03:46:01 "
+    )
+    assert svg_source_hash(first, KICAD_LAYER_SVG_NORMALIZATION_RULE_ID) == (
+        svg_source_hash(second, KICAD_LAYER_SVG_NORMALIZATION_RULE_ID)
     )
 
 

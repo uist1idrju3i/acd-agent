@@ -7,8 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from acd.core.board_model import PlacementAnnotations
 from acd.core.electrical import GraphExtractionError
-from acd.core.mechanical import extract_mechanical_lane
+from acd.core.mechanical import extract_mechanical_lane, placement_annotations
 from acd.schema.design_graph import DesignGraph, GraphNode
 
 FIXTURE = Path(__file__).resolve().parents[2] / "fixtures" / "golden-design-1" / "graph.json"
@@ -33,6 +34,60 @@ def test_mechanical_lane_extracts_declared_sources_and_geometry() -> None:
     assert lane.enclosure.fastener_method == "self_tapping_screw_m2"
     assert lane.enclosure.standoff_pilot_hole_diameter_mm == 1.6
     assert lane.enclosure.lid_screw_hole_diameter_mm == 2.2
+
+
+def test_placement_annotations_extracts_without_mechanical_lane() -> None:
+    graph = _graph()
+    nodes = [
+        node
+        for node in graph.nodes
+        if node.kind not in {"mechanical.enclosure", "mechanical.component_body"}
+    ]
+    annotations = placement_annotations(graph.model_copy(update={"nodes": nodes}))
+    assert len(annotations.mount_holes) == 4
+    assert annotations.edge_overhangs[0].component_refdes == "U1"
+
+
+def test_placement_annotations_without_outline_is_empty() -> None:
+    graph = _graph()
+    nodes = [
+        node
+        for node in graph.nodes
+        if node.kind not in {"mechanical.outline", "mechanical.board_edge_overhang"}
+    ]
+    assert placement_annotations(graph.model_copy(update={"nodes": nodes})) == (
+        PlacementAnnotations()
+    )
+
+
+def test_placement_annotations_rejects_duplicate_outlines() -> None:
+    graph = _graph()
+    outline = next(node for node in graph.nodes if node.kind == "mechanical.outline")
+    duplicate = outline.model_copy(update={"id": "mechanical.outline.duplicate"})
+    with pytest.raises(GraphExtractionError, match="at most one"):
+        placement_annotations(graph.model_copy(update={"nodes": [*graph.nodes, duplicate]}))
+
+
+def test_placement_annotations_rejects_wrong_y_axis() -> None:
+    graph = _graph()
+    nodes = [
+        node.model_copy(update={"attrs": {**node.attrs, "y_axis": "up"}})
+        if node.kind == "mechanical.outline"
+        else node
+        for node in graph.nodes
+    ]
+    with pytest.raises(GraphExtractionError, match="y_axis"):
+        placement_annotations(graph.model_copy(update={"nodes": nodes}))
+
+
+def test_placement_annotations_rejects_duplicate_edge_declarations() -> None:
+    graph = _graph()
+    declaration = next(
+        node for node in graph.nodes if node.kind == "mechanical.board_edge_overhang"
+    )
+    duplicate = declaration.model_copy(update={"id": "mechanical.overhang.duplicate"})
+    with pytest.raises(GraphExtractionError, match="duplicate"):
+        placement_annotations(graph.model_copy(update={"nodes": [*graph.nodes, duplicate]}))
 
 
 def test_mechanical_lane_rejects_missing_attribute() -> None:

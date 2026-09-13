@@ -134,6 +134,14 @@ allowed-tools:
    配下のPNGを生成する。この段が失敗した場合、loopはfail-closedで停止する。
    manifest生成後は次の手順を必須とする。
 
+   まず、この会話のtool一覧に`inspect_image_with_vision`が存在することを確認する。
+   toolが無い場合はPIL、file_editor、その他の画像読み取りへ代替してはならない。
+   `out/stop-report.json`へ`status: "failed"`、`failure_reason:
+   "vision_tool_unavailable"`、`failed_stage: "visual-review"`、`evidence_absent: true`、
+   `next_step_action: "register a vision-capable LLM profile (SDK profile store) and
+   restart the conversation"`を記録して停止する。vision-capable profileをSDK profile
+   storeへ登録して会話を再起動するまで、loopを完了として報告してはならない。
+
    (a) manifestが存在しない場合（古いrunやloop未実行）だけ次を実行し、生成済みの
    場合はスキップする。digest固定container経由で実行する（`run_in_workspace.py`の
    使い方はstep 0と同じ）。
@@ -154,8 +162,13 @@ allowed-tools:
        --image-hash <entryのimage_hash> \
        --profile-name <この会話のvision profile> \
        --model <この会話のモデル> \
-       --response-file <応答全文file>
+       --response-file <応答全文file> \
+       --tool-events <hook-written event log path>
    ```
+
+   hook-written event logに一致するrecordが無いobservationは`unverified`となり、
+   visual reviewの完了を阻止する。event logやobservationをfile_editorで直接編集しては
+   ならない。
 
    (c) すべてのobservationを記録したら検証する。
 
@@ -187,12 +200,15 @@ allowed-tools:
    欠ける、unknown、または未実行の間は、timing record、loop summary、探索report、
    進行digest、preflightの`declarations_complete`を根拠に「合格」「order-ready」と
    述べてはならず、「Evidence未検証」と明記する。host実行のprovisional Evidenceは
-   この検証を通過しない。
+   この検証を通過しない。最終報告のEvidence表4列は、上記commandが出力する
+   `citation |`行（または`--citations-json`の同じ値）からverbatimに転記する。
+   `N/A`や`unknown`は、出力にある`missing: <pointer>`を伴う場合だけ許可する。
 9. 最終報告を書く前に、source変更節と設計値節の機械生成basisを取得する。
 
    ```bash
    uv run python scripts/report_final_basis.py \
-       --root <repository root> --design-input <fixture>/spec.json
+       --root <repository root> --design-input <fixture>/spec.json \
+       --change-events <hook-written file-change-events.jsonl>
    ```
 
    最終報告のsource変更節はこの出力をそのまま引用する（`git log --stat
@@ -200,8 +216,11 @@ allowed-tools:
    `status: clean`の場合にだけ記述でき、作業treeだけを見る`git diff --stat`単独は
    根拠にならない。報告中の部品value・net記述は`design values`表（refdes、value、
    net）と一致させ、これを引用として示す。`status: unknown`の場合はその旨を報告し、
-   変更の不存在を主張しない。このbasisはL3観測であり、step 7のEvidence検証を
-   置き換えない。step 7のビジョンレビュー検証も同様に置き換えない。
+   変更の不存在を主張しない。各worktree entryの説明は、表にある
+   `seq@time tool:action`またはterminal actionを引用する。`none recorded`のentryは
+   「change action unrecorded」と報告し、引用なしにautomatic/pipeline behaviourと
+   説明してはならない。このbasisはL3観測であり、step 7のEvidence検証を置き換えない。
+   step 7のビジョンレビュー検証も同様に置き換えない。
 
 `acd_run_design_loop`は、必要に応じて入力hash単位のstage cache（`cache_dir`）、
 失敗からのresume（`resume`）、stageごとの所要時間記録、基板・筐体・FW laneの

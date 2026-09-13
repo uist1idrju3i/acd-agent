@@ -43,10 +43,13 @@ def cpl_orientation_attrs(
     if orientation is None or evidence is None:
         return {}
 
+    evidence_attrs = cpl_evidence_attrs(evidence, graph_id, graph_revision)
     values = {
         **orientation.model_dump(mode="json", exclude_defaults=True),
-        **evidence.model_dump(mode="json"),
-        "evidence_revision": f"{graph_id}-{graph_revision}",
+        **{
+            key.removeprefix("cpl_rotation_"): value
+            for key, value in evidence_attrs.items()
+        },
     }
     unexpected = set(values) - CPL_ORIENTATION_ATTR_KEYS
     if unexpected:
@@ -70,4 +73,25 @@ def cpl_orientation_attrs(
     )
 
 
-__all__ = ["CPL_ORIENTATION_ATTR_KEYS", "cpl_orientation_attrs"]
+def cpl_evidence_attrs(
+    evidence: FixtureCplOrientationEvidence,
+    graph_id: str,
+    graph_revision: str,
+) -> dict[str, AttrValue]:
+    """Project fixture-declared CPL evidence into graph attributes."""
+    values = {
+        **evidence.model_dump(mode="json"),
+        "evidence_revision": f"{graph_id}-{graph_revision}",
+    }
+    unexpected = set(values) - CPL_ORIENTATION_ATTR_KEYS
+    if unexpected:
+        raise ValueError(
+            "unsupported CPL orientation attributes: " + ", ".join(sorted(unexpected))
+        )
+    return cast(
+        dict[str, AttrValue],
+        {"cpl_rotation_" + key: value for key, value in values.items()},
+    )
+
+
+__all__ = ["CPL_ORIENTATION_ATTR_KEYS", "cpl_evidence_attrs", "cpl_orientation_attrs"]

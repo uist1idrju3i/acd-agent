@@ -14,6 +14,7 @@ from scripts import (
 )
 from scripts.tests.cli_runner import run_main
 
+from acd.core.vision_tool_events import event_id, response_sha256
 from acd.core.visual_projection import (
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
     SVG_TITLE_NORMALIZATION_RULE_ID,
@@ -124,6 +125,29 @@ def test_verify_cli_exits_one_until_all_observed(
     item = manifest["required"][0]
     response = tmp_path / "response.txt"
     response.write_text("readable projection\n", encoding="utf-8")
+    tool_events = tmp_path / "vision-tool-events.jsonl"
+    event_payload = {
+        "sequence": 1,
+        "tool_name": "inspect_image_with_vision",
+        "tool_input": {"image_index": 0, "question": "review"},
+        "profile_name": "vision",
+        "model": "model-x",
+        "response_sha256": response_sha256("readable projection\n"),
+    }
+    tool_events.write_text(
+        json.dumps(
+            {
+                **event_payload,
+                "event_id": event_id(event_payload),
+                "image_index": 0,
+                "question": "review",
+                "recorded_at": "2026-08-19T00:00:00+00:00",
+                "session_id": "test-session",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     recorded = run_main(
         capsys,
         record_visual_vision_observation.main,
@@ -139,15 +163,22 @@ def test_verify_cli_exits_one_until_all_observed(
         "model-x",
         "--response-file",
         str(response),
+        "--tool-events",
+        str(tool_events),
     )
     assert recorded.returncode == 0, recorded.stderr
 
     verdict = run_main(
-        capsys, verify_visual_review.main, "--out-root", str(out_root)
+        capsys,
+        verify_visual_review.main,
+        "--out-root",
+        str(out_root),
+        "--tool-events",
+        str(tool_events),
     )
     assert verdict.returncode == 0
     assert "board-a-png: OK" in verdict.stdout
-    assert "visual review: complete (1/1 observed)" in verdict.stdout
+    assert "visual review: complete (1/1 observed, unverified=0)" in verdict.stdout
 
 
 def test_record_cli_rejects_unknown_projection(

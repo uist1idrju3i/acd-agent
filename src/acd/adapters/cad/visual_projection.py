@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any, Literal
 
 from acd.adapters.cad.mechanical import (
@@ -18,6 +19,20 @@ from acd.adapters.cad.mechanical import (
     build_component_body_shape,
 )
 from acd.adapters.cad.project import CadProjection, cad_tool_version
+from acd.adapters.svg.common import (
+    COLOR_EDGE,
+    COLOR_FRONT,
+    COLOR_TEXT_MUTED,
+    DIAGRAM_FONT_SIZE_RATIO,
+    DIAGRAM_REFERENCE_WIDTH,
+    footer_height,
+    format_svg_number,
+    header_height,
+    legend,
+    svg_document,
+    svg_text,
+    view_box_font_size,
+)
 from acd.core.cad_normalize import normalize_step
 from acd.core.mechanical import SUPPORTED_OPENING_FACES, MechanicalLane
 from acd.core.naming import artifact_prefix
@@ -25,7 +40,10 @@ from acd.core.parallel import PipelineStageRunner
 from acd.core.process import ExternalToolError, sha256_bytes
 from acd.core.visual_projection import (
     CAD_SVG_NORMALIZATION_RULE_ID,
+    SvgNormalizationError,
+    cad_view_geometry,
     measure_svg_resolution,
+    raw_svg_parts,
 )
 from acd.schema.visual_projection import (
     VisualProjectionInput,
@@ -38,10 +56,9 @@ from acd.schema.visual_projection import (
 )
 
 CAD_SVG_NORMALIZATION_RULE_DESCRIPTION = (
-    "Build123d ExportSVG with millimeter units, fixed precision, zero margin, "
-    "and fit_to_stroke disabled."
+    "Build123d ExportSVG raw output is embedded verbatim as svg#cad-view "
+    "inside an acd-svg document."
 )
-
 
 class MechanicalVisualProjectionError(ExternalToolError):
     """Raised when a mechanical visual projection cannot be trusted."""
@@ -51,6 +68,17 @@ class MechanicalVisualProjectionError(ExternalToolError):
 class _SectionGeometry:
     edges: tuple[Any, ...]
     wires: tuple[tuple[Any, ...], ...]
+
+
+@dataclass(frozen=True)
+class _CadAnnotations:
+    graph_id: str
+    view_name: Literal["section", "interference"]
+    lane: MechanicalLane
+    offset_mm: float
+    interference_region_present: bool | None
+    measured_max_interference_volume_mm3: float | None
+    measured_min_clearance_mm: float | None
 
 
 def _load_build123d() -> Any:
@@ -455,7 +483,7 @@ def _write_svg(
     output_path: Path,
     layers: list[tuple[str, list[Any], tuple[int, int, int] | None]],
     build123d: Any,
-) -> None:
+) -> bytes:
     exporter = build123d.ExportSVG(
         unit=build123d.Unit.MM,
         margin=0,
@@ -466,15 +494,213 @@ def _write_svg(
         exporter.add_layer(name, fill_color=fill_color, line_color=(180, 0, 0))
         if shapes:
             exporter.add_shape(shapes, layer=name)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(
+        dir=output_path.parent,
+        prefix=f".{output_path.name}.",
+        suffix=".raw",
+        delete=False,
+    ) as temporary:
+        temporary_path = Path(temporary.name)
     try:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        exporter.write(output_path)
-    except MechanicalVisualProjectionError:
-        raise
+        exporter.write(temporary_path)
+        return temporary_path.read_bytes()
     except (OSError, ValueError) as exc:
         raise MechanicalVisualProjectionError(
             f"mechanical SVG could not be written: {output_path}"
         ) from exc
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def _raw_svg_parts(raw: bytes) -> tuple[str, str, float, float, str]:
+    try:
+        return raw_svg_parts(raw)
+    except SvgNormalizationError as exc:
+        raise MechanicalVisualProjectionError(str(exc)) from exc
+
+
+def _wrap_cad_svg(raw: bytes, *, annotations: _CadAnnotations) -> bytes:
+    raw_view_box, raw_attributes, raw_width, raw_height, raw_inner = _raw_svg_parts(raw)
+    font_size = view_box_font_size(
+        DIAGRAM_REFERENCE_WIDTH,
+        ratio=DIAGRAM_FONT_SIZE_RATIO,
+    )
+    scale = DIAGRAM_REFERENCE_WIDTH * 0.55 / raw_width
+    cad_width = raw_width * scale
+    cad_height = raw_height * scale
+    cad_x = font_size * 4
+    cad_y = header_height(font_size) + font_size * 2
+    dimension_y = cad_y + cad_height + font_size * 2
+    dimension_x = cad_x + cad_width + font_size * 2
+    scale_bar_y = dimension_y + font_size * 3.5
+    legend_y = scale_bar_y + font_size * 3
+    note_y = legend_y + font_size * 2
+    outer_height = note_y + footer_height(font_size) + font_size * 3
+    view_box_values = tuple(float(value) for value in raw_view_box.split())
+    view_box_x, view_box_y = view_box_values[:2]
+
+    def map_point(x: float, y: float) -> tuple[float, float]:
+        return cad_x + (x - view_box_x) * scale, cad_y + (y - view_box_y) * scale
+
+    outline_left, outline_top = map_point(
+        -annotations.lane.outline.width_mm / 2,
+        -annotations.lane.outline.depth_mm / 2,
+    )
+    outline_right, outline_bottom = map_point(
+        annotations.lane.outline.width_mm / 2,
+        annotations.lane.outline.depth_mm / 2,
+    )
+    dimension_stroke = max(font_size * 0.08, 0.1)
+    tick = font_size * 0.6
+    view_width, view_height = _expected_view_dimensions(annotations.lane)
+    width_label = svg_text(
+        f"{format_svg_number(view_width)} mm",
+        x=cad_x + cad_width / 2,
+        y=dimension_y + font_size * 1.5,
+        font_size=font_size,
+        element_id="dimension-width-label",
+        anchor="middle",
+    )
+    depth_label_x = dimension_x + font_size * 1.4
+    depth_label_y = cad_y + cad_height / 2
+    depth_label = svg_text(
+        f"{format_svg_number(view_height)} mm",
+        x=depth_label_x,
+        y=depth_label_y,
+        font_size=font_size,
+        element_id="dimension-depth-label",
+        extra=(
+            f'transform="rotate(90 {format_svg_number(depth_label_x)} '
+            f'{format_svg_number(depth_label_y)})"'
+        ),
+    )
+    outline_width = outline_right - outline_left
+    outline_height = outline_bottom - outline_top
+    board_label = svg_text(
+        "board outline (declared)",
+        x=outline_left,
+        y=outline_top - font_size * 0.6,
+        font_size=font_size,
+        fill=COLOR_FRONT,
+    )
+    scale_label = svg_text(
+        "10 mm",
+        x=cad_x + 5 * scale,
+        y=scale_bar_y + font_size * 1.3,
+        font_size=font_size,
+        anchor="middle",
+    )
+    title = (
+        f"{annotations.graph_id} mechanical {annotations.view_name} — "
+        f"XY plane, z = {format_svg_number(annotations.offset_mm)} mm"
+    )
+    subtitle = (
+        f"enclosure {format_svg_number(view_width)} × {format_svg_number(view_height)} mm "
+        f"(outline {format_svg_number(annotations.lane.outline.width_mm)} × "
+        f"{format_svg_number(annotations.lane.outline.depth_mm)} + 2×clearance "
+        f"{format_svg_number(annotations.lane.enclosure.internal_clearance_mm)} + "
+        f"2×wall {format_svg_number(annotations.lane.enclosure.wall_thickness_mm)}); "
+        f"standoff {format_svg_number(annotations.lane.enclosure.standoff_height_mm)} mm"
+    )
+    body: list[str] = [
+        (
+            f'<svg id="cad-view" x="{format_svg_number(cad_x)}" '
+            f'y="{format_svg_number(cad_y)}" width="{format_svg_number(cad_width)}" '
+            f'height="{format_svg_number(cad_height)}" viewBox="{raw_view_box}"'
+            f"{(' ' + raw_attributes) if raw_attributes else ''}>{raw_inner}</svg>"
+        ),
+        (
+            f'<g id="dimension-width" fill="none" stroke="{COLOR_EDGE}" '
+            f'stroke-width="{format_svg_number(dimension_stroke)}">'
+            f'<line x1="{format_svg_number(cad_x)}" y1="{format_svg_number(dimension_y)}" '
+            f'x2="{format_svg_number(cad_x + cad_width)}" y2="{format_svg_number(dimension_y)}"/>'
+            f'<line x1="{format_svg_number(cad_x)}" y1="{format_svg_number(dimension_y - tick)}" '
+            f'x2="{format_svg_number(cad_x)}" y2="{format_svg_number(dimension_y + tick)}"/>'
+            f'<line x1="{format_svg_number(cad_x + cad_width)}" '
+            f'y1="{format_svg_number(dimension_y - tick)}" '
+            f'x2="{format_svg_number(cad_x + cad_width)}" '
+            f'y2="{format_svg_number(dimension_y + tick)}"/>'
+            f"</g>{width_label}"
+        ),
+        (
+            f'<g id="dimension-depth" fill="none" stroke="{COLOR_EDGE}" '
+            f'stroke-width="{format_svg_number(dimension_stroke)}">'
+            f'<line x1="{format_svg_number(dimension_x)}" y1="{format_svg_number(cad_y)}" '
+            f'x2="{format_svg_number(dimension_x)}" y2="{format_svg_number(cad_y + cad_height)}"/>'
+            f'<line x1="{format_svg_number(dimension_x - tick)}" y1="{format_svg_number(cad_y)}" '
+            f'x2="{format_svg_number(dimension_x + tick)}" y2="{format_svg_number(cad_y)}"/>'
+            f'<line x1="{format_svg_number(dimension_x - tick)}" '
+            f'y1="{format_svg_number(cad_y + cad_height)}" '
+            f'x2="{format_svg_number(dimension_x + tick)}" '
+            f'y2="{format_svg_number(cad_y + cad_height)}"/>'
+            f"</g>{depth_label}"
+        ),
+        (
+            f'<g id="board-outline"><rect x="{format_svg_number(outline_left)}" '
+            f'y="{format_svg_number(outline_top)}" width="{format_svg_number(outline_width)}" '
+            f'height="{format_svg_number(outline_height)}" fill="none" '
+            f'stroke="{COLOR_FRONT}" stroke-width="{format_svg_number(dimension_stroke)}" '
+            f'stroke-dasharray="{format_svg_number(font_size)} '
+            f'{format_svg_number(font_size * 0.6)}"/>{board_label}</g>'
+        ),
+        (
+            f'<g id="scale-bar"><line x1="{format_svg_number(cad_x)}" '
+            f'y1="{format_svg_number(scale_bar_y)}" x2="{format_svg_number(cad_x + 10 * scale)}" '
+            f'y2="{format_svg_number(scale_bar_y)}" stroke="{COLOR_EDGE}" '
+            f'stroke-width="{format_svg_number(dimension_stroke * 2)}"/>'
+            f"{scale_label}</g>"
+        ),
+    ]
+    legend_items = [
+        ("enclosure section (cut edges)", "#ffffff", COLOR_EDGE),
+        ("board outline (declared)", "none", COLOR_FRONT),
+    ]
+    if (
+        annotations.view_name == "interference"
+        and annotations.interference_region_present
+    ):
+        legend_items.append(("interference region", "#ff0000", "#ff0000"))
+    body.extend(legend(legend_items, x=cad_x, y=legend_y, font_size=font_size))
+    if annotations.view_name == "interference":
+        if annotations.interference_region_present:
+            volume = annotations.measured_max_interference_volume_mm3
+            if volume is None:
+                raise MechanicalVisualProjectionError(
+                    "interference volume annotation is missing gate measurement"
+                )
+            note = (
+                f"interference present: max intersection volume "
+                f"{format_svg_number(volume)} mm³ (gate measurement)"
+            )
+        else:
+            clearance = annotations.measured_min_clearance_mm
+            if clearance is None:
+                raise MechanicalVisualProjectionError(
+                    "clearance annotation is missing gate measurement"
+                )
+            note = (
+                f"no interference: max intersection volume 0 mm³; measured min "
+                f"clearance {format_svg_number(clearance)} mm (gate measurement)"
+            )
+        body.append(
+            svg_text(
+                note,
+                x=cad_x,
+                y=note_y,
+                font_size=font_size,
+                element_id="interference-note",
+                fill=COLOR_TEXT_MUTED,
+            )
+        )
+    return svg_document(
+        width=DIAGRAM_REFERENCE_WIDTH,
+        height=outer_height,
+        title=title,
+        subtitle=subtitle,
+        body=body,
+        font_size=font_size,
+    )
 
 
 def _image_hash(path: Path) -> str:
@@ -496,12 +722,19 @@ def _expected_view_dimensions(lane: MechanicalLane) -> tuple[float, float]:
 
 
 def _validate_view_dimensions(
-    record: VisualProjectionRecord,
     lane: MechanicalLane,
+    *,
+    svg: bytes,
 ) -> None:
     expected_width, expected_height = _expected_view_dimensions(lane)
-    width = record.resolution.view_box[2]
-    height = record.resolution.view_box[3]
+    try:
+        _nested_width, _nested_height, view_box = cad_view_geometry(svg)
+        width = float(view_box[2])
+        height = float(view_box[3])
+    except (ValueError, TypeError) as exc:
+        raise MechanicalVisualProjectionError(
+            "mechanical SVG cad-view dimensions could not be measured"
+        ) from exc
     if not math.isclose(width, expected_width, abs_tol=1e-6) or not math.isclose(
         height, expected_height, abs_tol=1e-6
     ):
@@ -595,15 +828,26 @@ class MechanicalVisualRenderer:
         interference_volume_mm3: float | None,
         interference_region_present: bool | None,
         target_revision: str,
+        annotations: _CadAnnotations,
     ) -> VisualProjectionRecord:
         output = output_path.resolve()
-        _write_svg(output_path=output, layers=render_layers, build123d=self.build123d)
+        raw = _write_svg(
+            output_path=output,
+            layers=render_layers,
+            build123d=self.build123d,
+        )
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_bytes(_wrap_cad_svg(raw, annotations=annotations))
         first_hash = _image_hash(output)
         reproduction = output.parent / "reproduction" / (f"{output.stem}.reproduced{output.suffix}")
-        _write_svg(
+        reproduced_raw = _write_svg(
             output_path=reproduction,
             layers=render_layers,
             build123d=self.build123d,
+        )
+        reproduction.parent.mkdir(parents=True, exist_ok=True)
+        reproduction.write_bytes(
+            _wrap_cad_svg(reproduced_raw, annotations=annotations)
         )
         second_hash = _image_hash(reproduction)
         return _record(
@@ -652,8 +896,17 @@ class MechanicalVisualRenderer:
             interference_volume_mm3=None,
             interference_region_present=None,
             target_revision=target_revision,
+            annotations=_CadAnnotations(
+                graph_id=graph_id,
+                view_name="section",
+                lane=lane,
+                offset_mm=section_offset_mm,
+                interference_region_present=None,
+                measured_max_interference_volume_mm3=None,
+                measured_min_clearance_mm=None,
+            ),
         )
-        _validate_view_dimensions(record, lane)
+        _validate_view_dimensions(lane, svg=output_path.read_bytes())
         return record
 
     def render_interference(
@@ -728,8 +981,19 @@ class MechanicalVisualRenderer:
             interference_volume_mm3=actual_volume,
             interference_region_present=region_present,
             target_revision=target_revision,
+            annotations=_CadAnnotations(
+                graph_id=graph_id,
+                view_name="interference",
+                lane=lane,
+                offset_mm=offset,
+                interference_region_present=region_present,
+                measured_max_interference_volume_mm3=(
+                    gate_report.measured_max_interference_volume_mm3
+                ),
+                measured_min_clearance_mm=gate_report.measured_min_clearance_mm,
+            ),
         )
-        _validate_view_dimensions(record, lane)
+        _validate_view_dimensions(lane, svg=output_path.read_bytes())
         return record
 
 

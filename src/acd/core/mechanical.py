@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, Literal, cast
 
+from acd.core.board_model import (
+    EdgeOverhangDeclaration,
+    MountHole,
+    PlacementAnnotations,
+)
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
 from acd.schema.design_graph import DesignGraph, GraphNode
 
@@ -184,6 +189,73 @@ class MechanicalLane:
             if body.component_id == component_id:
                 return body
         raise KeyError(component_id)
+
+
+def placement_annotations(graph: DesignGraph) -> PlacementAnnotations:
+    """Extract placement-only annotations without requiring a mechanical lane."""
+    outlines = [node for node in graph.nodes if node.kind == "mechanical.outline"]
+    if len(outlines) > 1:
+        raise GraphExtractionError(
+            f"expected at most one mechanical.outline node, got {len(outlines)}"
+        )
+    holes: tuple[MountHole, ...] = ()
+    if outlines:
+        outline = outlines[0]
+        origin = _str_attr(outline, "origin")
+        y_axis = _str_attr(outline, "y_axis")
+        if origin != "board_upper_left" or y_axis != "down":
+            raise GraphExtractionError(
+                f"node {outline.id!r}: placement annotations require "
+                "origin='board_upper_left' and y_axis='down'"
+            )
+        holes = tuple(
+            MountHole(
+                index=hole.index,
+                x_mm=hole.x_mm,
+                y_mm=hole.y_mm,
+                diameter_mm=hole.diameter_mm,
+            )
+            for hole in _mount_holes(outline)
+        )
+
+    overhangs: list[EdgeOverhangDeclaration] = []
+    seen: set[tuple[str, str]] = set()
+    for node in graph.nodes:
+        if node.kind != "mechanical.board_edge_overhang":
+            continue
+        component_refdes = _str_attr(node, "component_refdes")
+        edge = _str_attr(node, "edge")
+        if edge not in {"top", "bottom", "left", "right"}:
+            raise GraphExtractionError(
+                f"node {node.id!r}: edge must be top, bottom, left, or right"
+            )
+        overhang_mm = _float_attr(node, "overhang_mm")
+        if not math.isfinite(overhang_mm) or overhang_mm <= 0:
+            raise GraphExtractionError(
+                f"node {node.id!r}: overhang_mm must be finite and positive"
+            )
+        requirement_id = _str_attr(node, "requirement_id")
+        key = (component_refdes, edge)
+        if key in seen:
+            raise GraphExtractionError(
+                "duplicate board edge overhang declaration for "
+                f"component {component_refdes!r} edge {edge!r}"
+            )
+        seen.add(key)
+        overhangs.append(
+            EdgeOverhangDeclaration(
+                component_refdes=component_refdes,
+                edge=cast(Literal["top", "bottom", "left", "right"], edge),
+                overhang_mm=overhang_mm,
+                requirement_id=requirement_id,
+            )
+        )
+    return PlacementAnnotations(
+        mount_holes=tuple(sorted(holes, key=lambda hole: hole.index)),
+        edge_overhangs=tuple(
+            sorted(overhangs, key=lambda item: (item.component_refdes, item.edge))
+        ),
+    )
 
 
 def _str_attr(node: GraphNode, key: str) -> str:

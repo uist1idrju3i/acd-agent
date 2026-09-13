@@ -22,19 +22,26 @@ def _parser() -> argparse.ArgumentParser:
         required=True,
         help="run output root containing the visual review manifest",
     )
+    parser.add_argument(
+        "--tool-events",
+        type=Path,
+        default=Path.cwd() / ".openhands/acd/vision-tool-events.jsonl",
+        help="hook-written vision tool event log",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    verdict = verify_visual_review(args.out_root)
+    verdict = verify_visual_review(args.out_root, tool_events_path=args.tool_events)
     for item in verdict.items:
         print(f"{item.projection_id}: {item.status.upper()}")
     for problem in verdict.problems:
         print(f"problem: {problem}")
     print(
         f"visual review: {verdict.status} "
-        f"({verdict.observed}/{verdict.required} observed)"
+        f"({verdict.observed}/{verdict.required} observed, "
+        f"unverified={len(verdict.unverified)})"
     )
     return 0 if verdict.status == "complete" else 1
 

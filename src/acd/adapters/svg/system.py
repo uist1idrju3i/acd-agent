@@ -409,7 +409,22 @@ def _power_nets(lane: ElectricalLane) -> tuple[NetView, ...]:
         raise SvgVisualProjectionError(
             "power tree projection has no declared power rails"
         )
-    return tuple(sorted(nets, key=lambda net: net.node_id))
+    validated: list[tuple[NetView, float]] = []
+    for net in nets:
+        if net.voltage_nominal_v is None or not math.isfinite(
+            net.voltage_nominal_v
+        ):
+            raise SvgVisualProjectionError(
+                f"power rail {net.node_id}: voltage declaration is missing or invalid"
+            )
+        validated.append((net, net.voltage_nominal_v))
+    return tuple(
+        net
+        for net, _voltage in sorted(
+            validated,
+            key=lambda item: (-item[1], item[0].node_id),
+        )
+    )
 
 
 def _component_caption(lane: ElectricalLane, component_id: str) -> tuple[str, str]:
@@ -468,6 +483,16 @@ def _power_tree_svg(lane: ElectricalLane, graph: DesignGraph) -> bytes:
                 fill=COLOR_TEXT_MUTED,
             )
         )
+    body.append(
+        svg_text(
+            "ordered by nominal voltage (high → low)",
+            x=net_x + box_width / 2,
+            y=column_title_y + small * 1.1,
+            font_size=small,
+            anchor="middle",
+            fill=COLOR_TEXT_MUTED,
+        )
+    )
     for index, (net, source_id, load_ids, row_y, row_height) in enumerate(rows):
         net_identifier = slugify_identifier(net.node_id)
         source_identifier = slugify_identifier(source_id)

@@ -22,7 +22,11 @@ from acd.adapters.svg.layout import (
 from acd.core.board_model import (
     BoardModel,
     ComponentPlacement,
+    EdgeOverhangDeclaration,
     FootprintShape,
+    KeepoutRect,
+    MountHole,
+    PlacementAnnotations,
 )
 from acd.core.electrical import BoardView
 from acd.core.visual_projection import measure_svg_resolution
@@ -87,6 +91,7 @@ def _generate(
     board_view: BoardView | None = None,
     renderer: SvgLayoutRenderer | None = None,
     projection_ids: tuple[str, str] | None = None,
+    annotations: PlacementAnnotations | None = None,
 ):
     source, input_root = _inputs(tmp_path)
     return generate_layout_visual_projections(
@@ -99,6 +104,7 @@ def _generate(
         input_base_dir=input_root,
         renderer=renderer,
         projection_ids=projection_ids,
+        annotations=annotations or PlacementAnnotations(),
     )
 
 
@@ -291,12 +297,14 @@ def test_second_generation_hash_mismatch_fails_closed(tmp_path: Path) -> None:
             projection_type: Literal["placement_view", "stackup_view"],
             board: BoardModel,
             board_view: BoardView,
+            annotations: PlacementAnnotations,
             output_path: Path,
         ) -> None:
             super()._write_svg(
                 projection_type=projection_type,
                 board=board,
                 board_view=board_view,
+                annotations=annotations,
                 output_path=output_path,
             )
             self.writes += 1
@@ -305,6 +313,64 @@ def test_second_generation_hash_mismatch_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(SvgVisualProjectionError, match="regeneration"):
         _generate(tmp_path, renderer=NonDeterministicRenderer())
+
+
+def test_placement_annotations_render_and_reproduce_deterministically(
+    tmp_path: Path,
+) -> None:
+    footprint = _board().placements[0].footprint
+    board = replace(
+        _board(),
+        placements=(
+            ComponentPlacement("R1", footprint, 0.5, 10.0, 0.0, side="front"),
+            ComponentPlacement("R2", footprint, 29.5, 10.0, 0.0, side="front"),
+        ),
+        keepouts=(KeepoutRect("antenna keepout", 12.0, 0.0, 18.0, 4.0),),
+    )
+    annotations = PlacementAnnotations(
+        mount_holes=(MountHole(1, 2.0, 2.0, 2.0),),
+        edge_overhangs=(
+            EdgeOverhangDeclaration("R1", "left", 0.5, "req.left"),
+        ),
+    )
+    projection_set = _generate(tmp_path, board=board, annotations=annotations)
+    placement = next(
+        item
+        for item in projection_set.projections
+        if item.projection_type == "placement_view"
+    )
+    svg = (tmp_path / "out" / placement.image_path).read_bytes()
+    assert b'id="keepouts"' in svg
+    assert b'id="keepout-antenna-keepout"' in svg
+    assert b'id="mount-holes"' in svg
+    assert b'id="mount-hole-1"' in svg
+    assert b"mount holes" in svg
+    assert b'id="overhangs"' in svg
+    assert b'data-declared="true"' in svg
+    assert b'data-declared="false"' in svg
+    assert b"declared: req.left" in svg
+    assert b"overhang 0.5 mm (undeclared)" in svg
+
+    second = _generate(tmp_path / "second", board=board, annotations=annotations)
+    assert projection_set.identity_hash == second.identity_hash
+
+
+def test_mount_hole_outside_board_fails_closed(tmp_path: Path) -> None:
+    with pytest.raises(SvgVisualProjectionError, match="mount hole"):
+        _generate(
+            tmp_path,
+            annotations=PlacementAnnotations(mount_holes=(MountHole(1, 31.0, 2.0, 2.0),)),
+        )
+
+
+def test_overhang_declaration_without_placement_fails_closed(tmp_path: Path) -> None:
+    with pytest.raises(SvgVisualProjectionError, match="U9"):
+        _generate(
+            tmp_path,
+            annotations=PlacementAnnotations(
+                edge_overhangs=(EdgeOverhangDeclaration("U9", "top", 1.0, "req"),)
+            ),
+        )
 
 
 def test_revision_mismatch_is_rejected_by_projection_set(tmp_path: Path) -> None:

@@ -229,6 +229,7 @@ from acd.schema.visual_projection import (
     VisualReviewManifest,
     VisualReviewRequirement,
     VisualVisionObservation,
+    VisualVisionToolEvent,
 )
 
 __all__ = [
@@ -413,6 +414,7 @@ __all__ = [
     "VisualReviewObservationReference",
     "VisualReviewRequirement",
     "VisualVisionObservation",
+    "VisualVisionToolEvent",
     "canonical_json_sha256",
     "canonical_sha256",
     "contains_unknown",

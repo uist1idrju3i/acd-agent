@@ -9,6 +9,7 @@ counter-clockwise. Adapters translate this model into tool-specific formats
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,28 @@ class ComponentPlacement:
     y_mm: float
     rotation_deg: float
     side: str = "front"
+
+
+@dataclass(frozen=True)
+class MountHole:
+    index: int
+    x_mm: float
+    y_mm: float
+    diameter_mm: float
+
+
+@dataclass(frozen=True)
+class EdgeOverhangDeclaration:
+    component_refdes: str
+    edge: Literal["top", "bottom", "left", "right"]
+    overhang_mm: float
+    requirement_id: str
+
+
+@dataclass(frozen=True)
+class PlacementAnnotations:
+    mount_holes: tuple[MountHole, ...] = ()
+    edge_overhangs: tuple[EdgeOverhangDeclaration, ...] = ()
 
 
 @dataclass(frozen=True)

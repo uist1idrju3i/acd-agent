@@ -14,10 +14,95 @@ from typing import Any, cast
 from common import event, project_dir, result
 
 HASH_RE = re.compile(r"sha256:[0-9a-f]{64}")
+PROFILE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+PERSISTENCE_DIR_ENV = "OH_PERSISTENCE_DIR"
+WORKSPACE_REGISTRY_ENV = "ACD_WORKSPACE_REGISTRY"
 FAIL_CLOSED_CONTEXT = (
     "Authoritative tools are unavailable inside the locked image; "
     "relevant gates fail-closed."
 )
+
+
+def _profile_store_path() -> Path:
+    persistence_dir = os.environ.get(PERSISTENCE_DIR_ENV)
+    if persistence_dir:
+        path = Path(persistence_dir).expanduser()
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        return path / "profiles"
+    return Path.home() / ".openhands" / "profiles"
+
+
+def _saved_llm_profiles() -> tuple[Path, list[tuple[str, str]]]:
+    profile_dir = _profile_store_path()
+    profiles: list[tuple[str, str]] = []
+    try:
+        paths = sorted(profile_dir.glob("*.json"))
+    except OSError:
+        return profile_dir, profiles
+    for path in paths:
+        if PROFILE_NAME_RE.fullmatch(path.stem) is None:
+            continue
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            continue
+        if not isinstance(payload, dict):
+            continue
+        model = cast(dict[str, Any], payload).get("model")
+        if isinstance(model, str) and model.strip():
+            profiles.append((path.stem, model))
+    return profile_dir, profiles
+
+
+def _vision_context() -> str:
+    profile_dir, profiles = _saved_llm_profiles()
+    if profiles:
+        listing = ", ".join(f"{name}:{model}" for name, model in profiles)
+        return (
+            f"vision inspection: profiles={len(profiles)} ({listing}); "
+            "inspect_image_with_vision is attached only when the active model "
+            "or a saved profile is vision-capable"
+        )
+    return (
+        "vision inspection: no saved LLM profile found at "
+        f"{profile_dir}; inspect_image_with_vision will be unavailable unless "
+        "the active model is vision-capable"
+    )
+
+
+def _workspace_registry_path() -> Path:
+    configured = os.environ.get(WORKSPACE_REGISTRY_ENV)
+    if configured:
+        path = Path(configured).expanduser()
+        return path if path.is_absolute() else Path.cwd() / path
+    return Path.home() / ".openhands" / "acd" / "workspaces.json"
+
+
+def _workspace_registry_entries() -> tuple[Path, list[dict[str, Any]]]:
+    path = _workspace_registry_path()
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return path, []
+    if not isinstance(payload, dict):
+        return path, []
+    entries = cast(dict[str, Any], payload).get("workspaces")
+    if not isinstance(entries, list):
+        return path, []
+    valid: list[dict[str, Any]] = []
+    for raw_entry in cast(list[Any], entries):
+        if not isinstance(raw_entry, dict):
+            continue
+        entry = cast(dict[str, Any], raw_entry)
+        workspace_path = entry.get("workspace_path")
+        if isinstance(workspace_path, str) and workspace_path:
+            valid.append(entry)
+    valid.sort(
+        key=lambda entry: str(entry.get("registered_at", "")),
+        reverse=True,
+    )
+    return path, valid
 
 
 def _lock_candidates(root: Path) -> list[Path]:
@@ -25,8 +110,9 @@ def _lock_candidates(root: Path) -> list[Path]:
 
     The first readable and valid lock wins: the session project dir, the
     workspace recorded by the bootstrap record, the checkout containing
-    ``$ACD_PLUGIN_ROOT``, the checkout containing this script, and the
-    in-image ACD bundle.
+    the workspace registry, the checkout containing ``$ACD_PLUGIN_ROOT``, the
+    checkout containing this script, and the in-image ACD bundle. Registry
+    entries are considered from most recent to oldest.
     """
     candidates = [root / "docker" / "image-digests.json"]
     record = root / ".openhands" / "bootstrap-record.json"
@@ -38,6 +124,13 @@ def _lock_candidates(root: Path) -> list[Path]:
         workspace = cast(dict[str, Any], payload).get("workspace_path")
         if isinstance(workspace, str) and workspace:
             candidates.append(Path(workspace) / "docker" / "image-digests.json")
+    _registry_path, registry_entries = _workspace_registry_entries()
+    for entry in registry_entries:
+        candidates.append(
+            Path(cast(str, entry["workspace_path"]))
+            / "docker"
+            / "image-digests.json"
+        )
     plugin_root = os.environ.get("ACD_PLUGIN_ROOT")
     if plugin_root:
         with contextlib.suppress(OSError, IndexError):
@@ -93,7 +186,12 @@ def _locked_image(root: Path) -> tuple[str | None, str | None, Path | None]:
 
 def _fail_closed_context(root: Path) -> str:
     searched = ", ".join(str(path) for path in _lock_candidates(root))
-    return f"{FAIL_CLOSED_CONTEXT} (image lock not found; searched: {searched})"
+    registry_path, entries = _workspace_registry_entries()
+    registry_state = f"{len(entries)} entries" if entries else "missing"
+    return (
+        f"{FAIL_CLOSED_CONTEXT} (image lock not found; searched: {searched}; "
+        f"workspace registry: {registry_path} ({registry_state}))"
+    )
 
 
 def _section(output: str, name: str) -> str:
@@ -166,9 +264,10 @@ def _probe(root: Path, reference: str | None = None) -> str | None:
 
 def main() -> int:
     root = project_dir(event())
+    vision_context = _vision_context()
     reference, _error, _used = _locked_image(root)
     if reference is None:
-        context = _fail_closed_context(root)
+        context = f"{_fail_closed_context(root)}\n{vision_context}"
     else:
         versions = _probe(root, reference)
         context = (
@@ -176,6 +275,9 @@ def main() -> int:
             if versions is not None
             else FAIL_CLOSED_CONTEXT
         )
+        if _used is not None:
+            context = f"Locked image resolved from {_used}.\n{context}"
+        context = f"{context}\n{vision_context}"
     result(additionalContext=context)
     return 0
 

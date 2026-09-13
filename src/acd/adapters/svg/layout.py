@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, Literal, TypedDict
 
-from acd.adapters.kicad.visual_projection import copper_layers_for_layer_count
+from acd.adapters.kicad.layers import copper_layers_for_layer_count
 from acd.adapters.svg.common import (
     ACD_SVG_NORMALIZATION_RULE_DESCRIPTION,
     ACD_SVG_NORMALIZATION_RULE_ID,
@@ -35,7 +36,12 @@ from acd.adapters.svg.common import (
     svg_text,
     text_advance,
 )
-from acd.core.board_model import BoardModel, ComponentPlacement
+from acd.core.board_model import (
+    BoardModel,
+    ComponentPlacement,
+    EdgeOverhangDeclaration,
+    PlacementAnnotations,
+)
 from acd.core.electrical import BoardView
 from acd.schema.visual_projection import (
     VisualProjectionInput,
@@ -56,6 +62,7 @@ __all__ = [
 # Darker footprint strokes keep adjacent parts distinguishable.
 _FRONT_STROKE = "#004a80"
 _BACK_STROKE = "#8a2f08"
+_EMPTY_PLACEMENT_ANNOTATIONS = PlacementAnnotations()
 
 
 class _PlacementGeometry(TypedDict):
@@ -69,6 +76,21 @@ class _PlacementGeometry(TypedDict):
     outside_label_y: float
     outside_anchor_x: float
     outside_anchor: Literal["start", "middle", "end"]
+
+
+@dataclass(frozen=True)
+class _OverhangGeometry:
+    identifier: str
+    edge: Literal["top", "bottom", "left", "right"]
+    declaration: EdgeOverhangDeclaration | None
+    text: str
+    text_x: float
+    text_y: float
+    anchor: Literal["start", "middle", "end"]
+    tick_x1: float
+    tick_y1: float
+    tick_x2: float
+    tick_y2: float
 
 
 def _footprint_bbox(placement: ComponentPlacement) -> tuple[float, float, float, float]:
@@ -124,7 +146,11 @@ def _validate_placement(placement: ComponentPlacement, board: BoardModel) -> Non
         )
 
 
-def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
+def _placement_svg(
+    board: BoardModel,
+    board_view: BoardView,
+    annotations: PlacementAnnotations,
+) -> bytes:
     if not board.placements:
         raise SvgVisualProjectionError("placement projection requires placements")
     refdes = [placement.refdes for placement in board.placements]
@@ -132,6 +158,19 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
         raise SvgVisualProjectionError("placement reference designators must be unique")
     for placement in board.placements:
         _validate_placement(placement, board)
+    placement_refdes = {placement.refdes for placement in board.placements}
+    missing_declaration_placements = sorted(
+        {
+            declaration.component_refdes
+            for declaration in annotations.edge_overhangs
+            if declaration.component_refdes not in placement_refdes
+        }
+    )
+    if missing_declaration_placements:
+        raise SvgVisualProjectionError(
+            "overhang declaration has no placement for "
+            + ", ".join(missing_declaration_placements)
+        )
     font_size = diagram_font_size()
     small = font_size * SMALL_FONT_SCALE
     margin = font_size * 2
@@ -144,6 +183,21 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
     side_fill = {"front": COLOR_FRONT, "back": COLOR_BACK}
     side_stroke = {"front": _FRONT_STROKE, "back": _BACK_STROKE}
     board_area = board.width_mm * board.height_mm
+    hole_labels: dict[int, tuple[str, float]] = {}
+    for hole in annotations.mount_holes:
+        if (
+            not all(math.isfinite(value) for value in (hole.x_mm, hole.y_mm, hole.diameter_mm))
+            or hole.diameter_mm <= 0
+        ):
+            raise SvgVisualProjectionError(
+                f"mount hole {hole.index} has invalid geometry"
+            )
+        if not (0.0 <= hole.x_mm <= board.width_mm and 0.0 <= hole.y_mm <= board.height_mm):
+            raise SvgVisualProjectionError(
+                f"mount hole {hole.index} centre lies outside board outline"
+            )
+        label = f"Ø{format_svg_number(hole.diameter_mm)} mm"
+        hole_labels[hole.index] = (label, text_advance(label, small) / scale)
 
     # Per-component geometry in board millimetre coordinates.
     geometry: list[_PlacementGeometry] = []
@@ -177,6 +231,81 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
                 "outside_anchor": "start",
             }
         )
+    declarations = {
+        (declaration.component_refdes, declaration.edge): declaration
+        for declaration in annotations.edge_overhangs
+    }
+    overhangs: list[_OverhangGeometry] = []
+    for item in geometry:
+        placement = item["placement"]
+        corners = _rotated_corners(placement)
+        fx1 = min(x for x, _ in corners)
+        fy1 = min(y for _, y in corners)
+        fx2 = max(x for x, _ in corners)
+        fy2 = max(y for _, y in corners)
+        edge_amounts: dict[Literal["top", "bottom", "left", "right"], float] = {
+            "top": max(0.0, -fy1),
+            "bottom": max(0.0, fy2 - board.height_mm),
+            "left": max(0.0, -fx1),
+            "right": max(0.0, fx2 - board.width_mm),
+        }
+        for edge, amount in edge_amounts.items():
+            if amount <= 0:
+                continue
+            measured = round(amount, 1)
+            declaration = declarations.get((placement.refdes, edge))
+            if declaration is None:
+                text = f"overhang {format_svg_number(measured)} mm (undeclared)"
+            elif abs(declaration.overhang_mm - measured) > 0.05:
+                text = (
+                    f"overhang {format_svg_number(measured)} mm "
+                    f"(declared {format_svg_number(declaration.overhang_mm)} mm: "
+                    f"{declaration.requirement_id})"
+                )
+            else:
+                text = (
+                    f"overhang {format_svg_number(measured)} mm "
+                    f"(declared: {declaration.requirement_id})"
+                )
+            center_x = (fx1 + fx2) / 2
+            center_y = (fy1 + fy2) / 2
+            if edge == "top":
+                text_x, text_y, anchor = center_x, fy1 - mm_small, "middle"
+                tick_x1, tick_y1, tick_x2, tick_y2 = center_x, 0.0, center_x, fy1
+            elif edge == "bottom":
+                text_x, text_y, anchor = center_x, fy2 + mm_small * 1.2, "middle"
+                tick_x1, tick_y1, tick_x2, tick_y2 = (
+                    center_x,
+                    board.height_mm,
+                    center_x,
+                    fy2,
+                )
+            elif edge == "left":
+                text_x, text_y, anchor = fx1 - mm_small, center_y, "end"
+                tick_x1, tick_y1, tick_x2, tick_y2 = 0.0, center_y, fx1, center_y
+            else:
+                text_x, text_y, anchor = fx2 + mm_small, center_y, "start"
+                tick_x1, tick_y1, tick_x2, tick_y2 = (
+                    board.width_mm,
+                    center_y,
+                    fx2,
+                    center_y,
+                )
+            overhangs.append(
+                _OverhangGeometry(
+                    identifier=f"{slugify_identifier(placement.refdes)}-{edge}",
+                    edge=edge,
+                    declaration=declaration,
+                    text=text,
+                    text_x=text_x,
+                    text_y=text_y,
+                    anchor=anchor,
+                    tick_x1=tick_x1,
+                    tick_y1=tick_y1,
+                    tick_x2=tick_x2,
+                    tick_y2=tick_y2,
+                )
+            )
     # Margins reserve the footprint overhang beyond the board outline so that
     # courtyard boxes (e.g. antenna keep-outs) never clip the legend or title.
     min_x = min(
@@ -209,6 +338,22 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
             for item in geometry
         ),
     )
+    for hole in annotations.mount_holes:
+        _label, label_width = hole_labels[hole.index]
+        radius = hole.diameter_mm / 2
+        min_x = min(min_x, hole.x_mm - radius)
+        max_x = max(max_x, hole.x_mm + radius + mm_small + label_width)
+    for overhang in overhangs:
+        text_width = text_advance(overhang.text, mm_small)
+        if overhang.anchor == "start":
+            max_x = max(max_x, overhang.text_x + text_width)
+        elif overhang.anchor == "end":
+            min_x = min(min_x, overhang.text_x - text_width)
+        else:
+            min_x = min(min_x, overhang.text_x - text_width / 2)
+            max_x = max(max_x, overhang.text_x + text_width / 2)
+        min_y = min(min_y, overhang.text_y - mm_small)
+        max_y = max(max_y, overhang.text_y)
 
     # Outside labels: left column for components left of centre, right column
     # for the rest; each column is sorted by centre y and stacked at a fixed
@@ -271,6 +416,83 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
         ),
         "</g>",
     ]
+    if board.keepouts:
+        inner.append('<g id="keepouts">')
+        keepout_ids: set[str] = set()
+        for keepout in sorted(board.keepouts, key=lambda item: item.name):
+            identifier = f"keepout-{slugify_identifier(keepout.name)}"
+            if identifier in keepout_ids:
+                raise SvgVisualProjectionError(
+                    f"duplicate keepout identifier: {keepout.name}"
+                )
+            keepout_ids.add(identifier)
+            width = keepout.x2_mm - keepout.x1_mm
+            height = keepout.y2_mm - keepout.y1_mm
+            if width <= 0 or height <= 0:
+                raise SvgVisualProjectionError(f"keepout {keepout.name} has empty geometry")
+            inner.extend(
+                [
+                    f'<g id="{identifier}-group">',
+                    f'<rect id="{identifier}" '
+                    f'x="{format_svg_number(keepout.x1_mm)}" '
+                    f'y="{format_svg_number(keepout.y1_mm)}" '
+                    f'width="{format_svg_number(width)}" '
+                    f'height="{format_svg_number(height)}" '
+                    f'fill="{COLOR_BACK}" fill-opacity="0.08" '
+                    f'stroke="#b00020" stroke-dasharray="{format_svg_number(mm_small)} '
+                    f'{format_svg_number(mm_small * 0.6)}" '
+                    f'stroke-width="{format_svg_number(mm_small * 0.12)}"/>',
+                    svg_text(
+                        keepout.name,
+                        x=keepout.x1_mm + mm_small * 0.4,
+                        y=keepout.y1_mm + mm_small,
+                        font_size=mm_small,
+                        fill="#b00020",
+                        element_id=f"{identifier}-label",
+                    ),
+                    "</g>",
+                ]
+            )
+        inner.append("</g>")
+    if annotations.mount_holes:
+        inner.append('<g id="mount-holes">')
+        for hole in annotations.mount_holes:
+            label, _label_width = hole_labels[hole.index]
+            radius = hole.diameter_mm / 2
+            cross = max(mm_small, radius * 1.5)
+            inner.extend(
+                [
+                    f'<g id="mount-hole-{hole.index}-group">',
+                    f'<circle id="mount-hole-{hole.index}" '
+                    f'cx="{format_svg_number(hole.x_mm)}" '
+                    f'cy="{format_svg_number(hole.y_mm)}" '
+                    f'r="{format_svg_number(radius)}" fill="none" '
+                    f'stroke="{COLOR_EDGE}" '
+                    f'stroke-width="{format_svg_number(mm_small * 0.12)}"/>',
+                    f'<line x1="{format_svg_number(hole.x_mm - cross)}" '
+                    f'y1="{format_svg_number(hole.y_mm)}" '
+                    f'x2="{format_svg_number(hole.x_mm + cross)}" '
+                    f'y2="{format_svg_number(hole.y_mm)}" '
+                    f'stroke="{COLOR_EDGE}" '
+                    f'stroke-width="{format_svg_number(mm_small * 0.08)}"/>',
+                    f'<line x1="{format_svg_number(hole.x_mm)}" '
+                    f'y1="{format_svg_number(hole.y_mm - cross)}" '
+                    f'x2="{format_svg_number(hole.x_mm)}" '
+                    f'y2="{format_svg_number(hole.y_mm + cross)}" '
+                    f'stroke="{COLOR_EDGE}" '
+                    f'stroke-width="{format_svg_number(mm_small * 0.08)}"/>',
+                    svg_text(
+                        label,
+                        x=hole.x_mm + radius + mm_small,
+                        y=hole.y_mm + mm_small * 0.35,
+                        font_size=mm_small,
+                        fill=COLOR_TEXT_MUTED,
+                        element_id=f"mount-hole-{hole.index}-label",
+                    ),
+                    "</g>",
+                ]
+            )
+        inner.append("</g>")
     for side in ("front", "back"):
         inner.append(f'<g id="{side}">')
         for item in geometry:
@@ -330,6 +552,34 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
             ]
         )
     inner.append("</g>")
+    if overhangs:
+        inner.append('<g id="overhangs">')
+        for overhang in overhangs:
+            declared = overhang.declaration is not None
+            color = COLOR_TEXT_MUTED if declared else "#b00020"
+            inner.extend(
+                [
+                    f'<g id="overhang-{overhang.identifier}" '
+                    f'data-declared="{str(declared).lower()}">',
+                    f'<line x1="{format_svg_number(overhang.tick_x1)}" '
+                    f'y1="{format_svg_number(overhang.tick_y1)}" '
+                    f'x2="{format_svg_number(overhang.tick_x2)}" '
+                    f'y2="{format_svg_number(overhang.tick_y2)}" '
+                    f'stroke="{color}" '
+                    f'stroke-width="{format_svg_number(mm_small * 0.12)}"/>',
+                    svg_text(
+                        overhang.text,
+                        x=overhang.text_x,
+                        y=overhang.text_y,
+                        font_size=mm_small,
+                        anchor=overhang.anchor,
+                        fill=color,
+                        element_id=f"overhang-{overhang.identifier}-label",
+                    ),
+                    "</g>",
+                ]
+            )
+        inner.append("</g>")
     # Board dimensions in millimetres, below and to the right of the outline.
     dim_y = max(max_y, label_bottom) + dim_offset
     inner.extend(
@@ -379,12 +629,21 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
     front_count = sum(1 for item in board.placements if item.side == "front")
     back_count = len(board.placements) - front_count
     body = ['<g id="placement-view">']
+    legend_items = [
+        ("front component", COLOR_FRONT, COLOR_FRONT),
+        ("back component", COLOR_BACK, COLOR_BACK),
+        ("board outline", "none", COLOR_EDGE),
+    ]
+    if annotations.mount_holes:
+        legend_items.append(("mount hole", "none", COLOR_EDGE))
+    if board.keepouts:
+        legend_items.append(("keepout", "none", "#b00020"))
+    if any(item.declaration is not None for item in overhangs):
+        legend_items.append(("overhang (declared)", "none", COLOR_TEXT_MUTED))
+    if any(item.declaration is None for item in overhangs):
+        legend_items.append(("overhang (undeclared) — L3 warning", "none", "#b00020"))
     body += legend(
-        [
-            ("front component", COLOR_FRONT, COLOR_FRONT),
-            ("back component", COLOR_BACK, COLOR_BACK),
-            ("board outline", "none", COLOR_EDGE),
-        ],
+        legend_items,
         x=margin,
         y=header_height(font_size) + font_size * 1.2,
         font_size=small,
@@ -413,6 +672,8 @@ def _placement_svg(board: BoardModel, board_view: BoardView) -> bytes:
         f"{len(board.placements)} components "
         f"(front {front_count} / back {back_count})"
     )
+    if annotations.mount_holes:
+        subtitle += f", {len(annotations.mount_holes)} mount holes"
     width = max(
         margin * 2 + (board_right - view_min_x) * scale,
         text_advance(title, font_size * TITLE_FONT_SCALE, bold=True) + margin * 2,
@@ -618,10 +879,11 @@ class SvgLayoutRenderer:
         projection_type: Literal["placement_view", "stackup_view"],
         board: BoardModel,
         board_view: BoardView,
+        annotations: PlacementAnnotations,
         output_path: Path,
     ) -> None:
         if projection_type == "placement_view":
-            content = _placement_svg(board, board_view)
+            content = _placement_svg(board, board_view, annotations)
         elif projection_type == "stackup_view":
             content = _stackup_svg(board_view)
         else:
@@ -647,6 +909,7 @@ class SvgLayoutRenderer:
         input_files: list[VisualProjectionInput],
         output_path: Path,
         base_dir: Path,
+        annotations: PlacementAnnotations = _EMPTY_PLACEMENT_ANNOTATIONS,
     ) -> VisualProjectionRecord:
         if projection_type not in {"placement_view", "stackup_view"}:
             raise SvgVisualProjectionError("unsupported layout projection type")
@@ -667,6 +930,7 @@ class SvgLayoutRenderer:
                 projection_type=projection_type,
                 board=board,
                 board_view=board_view,
+                annotations=annotations,
                 output_path=path,
             ),
         )
@@ -683,6 +947,7 @@ def generate_layout_visual_projections(
     input_base_dir: Path,
     renderer: SvgLayoutRenderer | None = None,
     projection_ids: tuple[str, str] | None = None,
+    annotations: PlacementAnnotations = _EMPTY_PLACEMENT_ANNOTATIONS,
 ) -> VisualProjectionSet:
     """Generate the placement and stackup projection collection."""
     if board.layers != board_view.layers:
@@ -702,6 +967,7 @@ def generate_layout_visual_projections(
             source_revision=source_revision,
             board=board,
             board_view=board_view,
+            annotations=annotations,
             input_files=inputs,
             output_path=out_dir / "visual" / f"{ids[0]}.svg",
             base_dir=out_dir,
@@ -712,6 +978,7 @@ def generate_layout_visual_projections(
             source_revision=source_revision,
             board=board,
             board_view=board_view,
+            annotations=annotations,
             input_files=inputs,
             output_path=out_dir / "visual" / f"{ids[1]}.svg",
             base_dir=out_dir,

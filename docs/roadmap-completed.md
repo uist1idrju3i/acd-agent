@@ -1008,6 +1008,7 @@ V-1は防御の深さである。V-2（GUIのplugin picker）はOpenHands側の�
 
 背景と観測は[`roadmap.md`](roadmap.md)の14.24節、各項目の詳細は
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のAA節を正とする。
+14.24の進捗は33件達成、未了0件である。
 
 | 区分 | 内容 |
 |---|---|
@@ -1038,6 +1039,53 @@ macro欠落、byte一致を回帰テストで固定した。旧`instruction-manu
 MMLだけを省略し、`mml_check`へ理由を記録する。MMLはprovenanceと`hashes.json`へ
 登録するが、MIDI、3 laneのgate、Evidence、fab packageの判定は変更しない。
 
+実装状況（AA-27）: SessionStart hookがSDKの`OH_PERSISTENCE_DIR/profiles`（既定は
+`~/.openhands/profiles`）を標準libraryだけで読み、保存済みLLM profileの件数と
+modelを追加contextへ報告する。visual reviewで`inspect_image_with_vision`が無い
+場合は代替画像読み取りを禁止し、`vision_tool_unavailable`とprofile登録・会話再起動を
+次手にしたfail-closed stopとする。
+
+実装状況（AA-28）: `inspect_image_with_vision`のPostToolUse hookが応答hash・profile・
+modelを含むevent logをhook専用経路で記録し、observationはeventへ一度だけbindする。
+eventの欠落・改変・不一致は`unverified`としてvisual reviewをfail-closedにし、
+observationとevent logの直接書き込みを拒否する。observationとverdictはL3のままで、
+合否やEvidenceへ作用させない。
+
+実装状況（AA-30）: build123dのraw ExportSVGを`svg#cad-view`へbyte-exactに埋め込んだacd-svg文書として出力し、
+title、断面位置、寸法、基板外形、legend、干渉領域またはゲート測定注記を付与する。
+ネストしたviewBoxと注釈IDを決定論的にcrosscheckし、recordのゲート値やEvidence authorityは変更しない。
+実装状況（AA-31）: placement SVGへ取付穴、keepout、部品の外形外はみ出し注記を決定論的に描画し、
+宣言済みと未宣言の注記を区別する。これらの注記はL3観測であり、ゲート判定を変更しない。
+
+実装状況（AA-29）: KiCad回路図の列・行ピッチをsymbol extentとnet labelから決定し、
+Reference/Valueをbody外へ配置する。labelとproperty・bodyの衝突は一度だけ外側へ
+解消し、残る衝突をfail-closedで拒否し、用紙を実extentから選択する。
+
+実装状況（AA-2）: init workspaceがbootstrap record生成後にworkspace registryへ登録し、
+SessionStart hookが登録済みworkspaceのlockを新しい順に探索して解決pathをcontextへ記載する。
+registryはL3 discovery aidであり、書き込み・読み取り失敗でもbootstrap recordとfail-closed
+探索の権限境界を維持する。
+
+実装状況（AA-9）: estimated CPL rotation evidenceについて、他fixture名への言及と
+他fixtureの`at/method/note`三つ組の一致を`evidence.cpl_rotation.structural_copy`の
+L3 warningとしてlane preflightへ列挙する。warningは停止statusへ影響せず、estimatedの
+不確実性と既存のCPL gate authorityを維持する。
+
+実装状況（AA-10）: file_editor／apply_patch／terminalのPostToolUse hookが変更actionを
+`file-change-events.jsonl`へ記録し、最終報告basisがworktree entryごとの時刻・tool・action
+とterminal actionを引用可能な表として出力する。
+
+実装状況（AA-33）: `verify_authoritative_evidence.py`がstatus・target revision・container
+image digest・source revisionのcitation行と任意のJSON recordを出力し、欠落値をJSON pointer
+付きで明示する。既存のauthoritative判定は変更しない。
+
+実装状況（AA-13）: `part_request`無しのcomponentにもCPL orientation evidenceを
+`cpl_rotation_*`へ投影し、`<graph_id>-<revision>`のevidence revisionを付与する。
+assemblyのunknown rotation reportには欠落・不正属性名を診断として記録する。
+
 実装状況（AA-11）: `_copper_zone`が`ground_plane_min_island_area_mm2`をKiCad zone
 fillの`island_area_min`へ出力し、`island_removal_mode`を最小面積モードへ設定する。
 Gerber検証の判定は変更しない。
+
+実装状況（AA-14）: silkscreen resolverは`measured_pass`後も未配置textを検出し、
+node IDと強制探索をiterationへ記録してSkillへ戻す。探索上限と未解決時のfail-closedは維持する。

@@ -37,8 +37,10 @@ AIレビューは合否権限を持たない。レビューは見えない不良
 design loopの必須段（`visual-review-manifest`）として`run_design_loop`へ接続済みであり、
 3 lane成功後に全投影集合のPNGを`visual/png/`へ派生して`visual-review-manifest.json`を
 書く。agentはmanifestの全entryを`inspect_image_with_vision`で検査してobservationを記録し、
-`scripts/verify_visual_review.py`がfail-closedで検証する。observationとverdictはL3であり
-合否権限は持たない。acd-tools imageにはlibcairo2を固定し、container内でPNG派生可能である
+PostToolUse hookが書くevent logへ応答hash・profile・modelを結び付ける。
+`scripts/verify_visual_review.py`はevent logとの不一致・欠落を`unverified`として
+fail-closedで検証する。observationとverdictはL3であり合否権限は持たない。
+acd-tools imageにはlibcairo2を固定し、container内でPNG派生可能である
 ことを検証済みである。lock済みacd-server imageもCairo追加後のtools image由来である。
 manifestの直後には`projection-docs`段と`manufacturing-submission`段を実行し、
 `out/docs/`へ製品README・取扱説明書・provenance・flatな`hashes.json`、

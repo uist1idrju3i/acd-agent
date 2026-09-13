@@ -46,6 +46,260 @@ def run(
     return completed.returncode, cast(dict[str, Any], output)
 
 
+def run_payload(
+    name: str,
+    payload: dict[str, Any],
+    *,
+    root: Path = ROOT,
+    extra_env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["python", str(SCRIPTS / name)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        cwd=root,
+        env={
+            **os.environ,
+            "OPENHANDS_PROJECT_DIR": str(root),
+            **(extra_env or {}),
+        },
+    )
+
+
+def test_vision_tool_event_hook_records_successful_response(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_vision_tool_event.py",
+        {
+            "tool_name": "inspect_image_with_vision",
+            "tool_input": {"image_index": 2, "question": "What is visible?"},
+            "tool_response": {
+                "image_index": 2,
+                "question": "What is visible?",
+                "profile_name": "vision",
+                "model": "model-x",
+                "answer": "A board.",
+            },
+            "session_id": "session-1",
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_VISION_TOOL_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["sequence"] == 1
+    assert record["tool_name"] == "inspect_image_with_vision"
+    assert record["response_sha256"].startswith("sha256:")
+    assert "answer" not in record
+
+
+def test_vision_tool_event_hook_ignores_empty_or_error_response(
+    tmp_path: Path,
+) -> None:
+    events = tmp_path / "events.jsonl"
+    for response in (
+        {"answer": ""},
+        {
+            "answer": "ignored",
+            "error": "failed",
+            "profile_name": "vision",
+            "model": "model-x",
+        },
+        {
+            "answer": "ignored",
+            "is_error": True,
+            "profile_name": "vision",
+            "model": "model-x",
+        },
+    ):
+        completed = run_payload(
+            "record_vision_tool_event.py",
+            {
+                "tool_name": "inspect_image_with_vision",
+                "tool_input": {},
+                "tool_response": response,
+                "working_dir": str(tmp_path),
+            },
+            root=tmp_path,
+            extra_env={"ACD_VISION_TOOL_EVENTS": str(events)},
+        )
+        assert completed.returncode == 0
+    assert not events.exists()
+
+
+def test_vision_tool_event_hook_is_non_blocking_on_write_error(tmp_path: Path) -> None:
+    blocked = tmp_path / "events"
+    blocked.write_text("not a directory", encoding="utf-8")
+    completed = run_payload(
+        "record_vision_tool_event.py",
+        {
+            "tool_name": "inspect_image_with_vision",
+            "tool_input": {},
+            "tool_response": {"answer": "A board."},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_VISION_TOOL_EVENTS": str(blocked / "events.jsonl")},
+    )
+    assert completed.returncode == 0
+
+
+def test_file_change_event_hook_records_file_editor_action(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "create", "path": "src/new.py"},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["action"] == "create"
+    assert record["paths"] == ["src/new.py"]
+    assert record["command_sha256"] is None
+
+
+def test_file_change_event_hook_skips_file_editor_view(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "view", "path": "src/new.py"},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    assert not events.exists()
+
+
+def test_file_change_event_hook_records_terminal_hash_and_excerpt(
+    tmp_path: Path,
+) -> None:
+    events = tmp_path / "events.jsonl"
+    command = "echo " + ("x" * 240)
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "terminal",
+            "tool_input": {"command": command},
+            "tool_response": {"is_error": False},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["command_excerpt"] == command[:200]
+    assert record["command_sha256"].startswith("sha256:")
+
+
+def test_file_change_event_hook_skips_terminal_error(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "terminal",
+            "tool_input": {"command": "touch src/new.py"},
+            "tool_response": {"is_error": True},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    assert not events.exists()
+
+
+def test_file_change_event_hook_is_non_blocking_on_write_error(
+    tmp_path: Path,
+) -> None:
+    blocked = tmp_path / "events"
+    blocked.write_text("not a directory", encoding="utf-8")
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "create", "path": "src/new.py"},
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(blocked / "events.jsonl")},
+    )
+    assert completed.returncode == 0
+
+
+def test_file_change_event_hook_parses_apply_patch_paths(tmp_path: Path) -> None:
+    events = tmp_path / "events.jsonl"
+    completed = run_payload(
+        "record_file_change_event.py",
+        {
+            "tool_name": "apply_patch",
+            "tool_input": {
+                "patch": (
+                    "*** Begin Patch\n"
+                    "*** Update File: src/changed.py\n"
+                    "@@\n"
+                    "+new\n"
+                    "*** Add File: docs/new.md\n"
+                    "+new\n"
+                    "*** End Patch\n"
+                )
+            },
+            "working_dir": str(tmp_path),
+        },
+        root=tmp_path,
+        extra_env={"ACD_FILE_CHANGE_EVENTS": str(events)},
+    )
+    assert completed.returncode == 0
+    record = json.loads(events.read_text(encoding="utf-8"))
+    assert record["paths"] == ["src/changed.py", "docs/new.md"]
+
+
+def test_vision_event_hashing_agrees_with_shared_helpers() -> None:
+    module = _load_hook_module(
+        "record_vision_tool_event.py", "vision_event_test"
+    )
+    from acd.core.vision_tool_events import event_id, response_sha256
+
+    record = {
+        "sequence": 1,
+        "tool_name": "inspect_image_with_vision",
+        "tool_input": {"image_index": 0, "question": "Review"},
+        "profile_name": "vision",
+        "model": "model-x",
+        "response_sha256": response_sha256("answer"),
+    }
+    assert module._response_sha256("answer") == response_sha256("answer")
+    assert module._event_id(record) == event_id(record)
+
+
+def test_projection_guard_denies_visual_observation_and_event_writes(
+    tmp_path: Path,
+) -> None:
+    observation = tmp_path / "visual/vision-observations/board.json"
+    event_log = tmp_path / ".openhands/acd/vision-tool-events.jsonl"
+    file_change_log = tmp_path / ".openhands/acd/file-change-events.jsonl"
+    for path in (observation, event_log, file_change_log):
+        code, output = run(
+            "protect_projections.py",
+            {"path": str(path)},
+            root=tmp_path,
+        )
+        assert code == 2
+        assert "record_visual_vision_observation.py" in output["reason"]
+        assert "hook-written" in output["reason"]
+
+
 def _write_server_lock(root: Path, *, valid: bool = True) -> None:
     lock = root / "docker/image-digests.json"
     lock.parent.mkdir(parents=True)
@@ -684,6 +938,53 @@ def test_session_start_never_blocks() -> None:
     assert "additionalContext" in output
 
 
+def test_session_start_lists_saved_llm_profiles(tmp_path: Path) -> None:
+    persistence_dir = tmp_path / "persistence"
+    profile_dir = persistence_dir / "profiles"
+    profile_dir.mkdir(parents=True)
+    (profile_dir / "vision.json").write_text(
+        json.dumps({"model": "openai/gpt-4o"}),
+        encoding="utf-8",
+    )
+    (profile_dir / "fallback.json").write_text(
+        json.dumps({"model": "anthropic/claude-sonnet-4"}),
+        encoding="utf-8",
+    )
+
+    code, output = run(
+        "session_start.py",
+        {},
+        "session_start",
+        root=tmp_path,
+        extra_env={"OH_PERSISTENCE_DIR": str(persistence_dir)},
+    )
+
+    assert code == 0
+    context = output["additionalContext"]
+    assert "vision inspection: profiles=2" in context
+    assert "vision:openai/gpt-4o" in context
+    assert "fallback:anthropic/claude-sonnet-4" in context
+
+
+def test_session_start_reports_missing_llm_profiles(tmp_path: Path) -> None:
+    persistence_dir = tmp_path / "persistence"
+    code, output = run(
+        "session_start.py",
+        {},
+        "session_start",
+        root=tmp_path,
+        extra_env={"OH_PERSISTENCE_DIR": str(persistence_dir)},
+    )
+
+    assert code == 0
+    context = output["additionalContext"]
+    assert (
+        f"no saved LLM profile found at {persistence_dir / 'profiles'}" in context
+    )
+    assert "vision_tool_unavailable" not in context
+    assert "inspect_image_with_vision will be unavailable" in context
+
+
 def test_session_start_observes_all_tools_inside_locked_image(
     tmp_path: Path,
 ) -> None:
@@ -1192,6 +1493,12 @@ def test_plugin_hook_commands_are_shell_invocable(tmp_path: Path) -> None:
         },
         "check-design-rationale": {"working_dir": str(tmp_path)},
         "check-design-rationale-warn": {"working_dir": str(tmp_path)},
+        "record-vision-tool-event": {"working_dir": str(tmp_path)},
+        "record-file-change-event": {
+            "tool_name": "file_editor",
+            "tool_input": {"command": "view", "path": "README.md"},
+            "working_dir": str(tmp_path),
+        },
     }
     commands = _configured_plugin_hook_commands()
     assert set(commands) == set(payloads)
@@ -1474,6 +1781,103 @@ def test_session_start_lock_uses_bootstrap_record_workspace(
     versions = module._probe(project)
     assert observed == [f"example.test/acd-server@{SERVER_DIGEST}"]
     assert versions is not None and "kicad-cli=10.0.6" in versions
+
+
+def test_session_start_lock_uses_workspace_registry(
+    tmp_path: Path,
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    workspace = tmp_path / "workspace"
+    _write_server_lock(workspace)
+    registry = tmp_path / "workspaces.json"
+    registry.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1",
+                "workspaces": [
+                    {
+                        "workspace_path": str(workspace),
+                        "repo_url": "https://example.invalid/repo",
+                        "resolved_revision": "r1",
+                        "registered_at": "2026-01-01T00:00:00Z",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    _write_fake_docker(
+        fake_bin,
+        """
+printf '%s\\n' '=== kicad-cli ===' '10.0.6'
+printf '%s\\n' '=== freerouting ===' 'Freerouting v2.4.1'
+printf '%s\\n' '=== qemu-system-riscv32 ===' 'QEMU emulator version 9.2.2'
+printf '%s\\n' '=== cmake ===' 'cmake version 4.2.3'
+""",
+    )
+    code, output = run(
+        "session_start.py",
+        {},
+        root=project,
+        extra_env={
+            "ACD_WORKSPACE_REGISTRY": str(registry),
+            "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        },
+    )
+    assert code == 0
+    context = output["additionalContext"]
+    assert f"Locked image resolved from {workspace / 'docker/image-digests.json'}." in context
+
+
+def test_session_start_invalid_registry_keeps_previous_candidates(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    module = _load_session_start_module()
+    project = tmp_path / "project"
+    project.mkdir()
+    registry = tmp_path / "workspaces.json"
+    registry.write_text("{", encoding="utf-8")
+    monkeypatch.setenv("ACD_WORKSPACE_REGISTRY", str(registry))
+    candidates = module._lock_candidates(project)
+    assert not any(str(registry) in str(candidate) for candidate in candidates)
+    _reference, _error, used = module._locked_image(project)
+    assert used is None or used in candidates
+    assert f"workspace registry: {registry} (missing)" in module._fail_closed_context(
+        project
+    )
+
+
+def test_session_start_invalid_registry_lock_uses_next_candidate(
+    tmp_path: Path,
+    monkeypatch: Any,
+) -> None:
+    module = _load_session_start_module()
+    invalid = tmp_path / "invalid.json"
+    invalid.write_text("{}", encoding="utf-8")
+    valid = tmp_path / "valid.json"
+    valid.write_text(
+        json.dumps(
+            {
+                "acd_server": {
+                    "image": "example.test/acd-server",
+                    "digest": SERVER_DIGEST,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    def candidates(_root: Path) -> list[Path]:
+        return [invalid, valid]
+
+    monkeypatch.setattr(module, "_lock_candidates", candidates)
+    reference, error, used = module._locked_image(tmp_path)
+    assert error is None
+    assert reference == f"example.test/acd-server@{SERVER_DIGEST}"
+    assert used == valid
 
 
 def test_session_start_fail_closed_context_lists_searched_locks(

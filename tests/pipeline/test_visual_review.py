@@ -11,6 +11,7 @@ from typing import Literal
 import pytest
 
 from acd.adapters.raster import CairoSvgRasterizer
+from acd.core.vision_tool_events import event_id, response_sha256
 from acd.core.visual_projection import (
     SVG_TITLE_NORMALIZATION_RULE_DESCRIPTION,
     SVG_TITLE_NORMALIZATION_RULE_ID,
@@ -145,7 +146,12 @@ def _record_all(out_root: Path) -> None:
     manifest = json.loads(
         (out_root / VISUAL_REVIEW_MANIFEST_NAME).read_text(encoding="utf-8")
     )
-    for item in manifest["required"]:
+    for sequence, item in enumerate(manifest["required"], start=1):
+        _append_event(
+            out_root,
+            response="readable projection",
+            sequence=sequence,
+        )
         record_observation(
             out_root,
             projection_id=item["projection_id"],
@@ -153,7 +159,34 @@ def _record_all(out_root: Path) -> None:
             profile_name="vision",
             model="model-x",
             response="readable projection",
+            tool_events_path=_events_path(out_root),
         )
+
+
+def _events_path(out_root: Path) -> Path:
+    return out_root / "vision-tool-events.jsonl"
+
+
+def _append_event(out_root: Path, *, response: str, sequence: int) -> None:
+    payload = {
+        "sequence": sequence,
+        "tool_name": "inspect_image_with_vision",
+        "tool_input": {"image_index": 0, "question": "review"},
+        "profile_name": "vision",
+        "model": "model-x",
+        "response_sha256": response_sha256(response),
+    }
+    event = {
+        **payload,
+        "event_id": event_id(payload),
+        "image_index": 0,
+        "question": "review",
+        "recorded_at": "2026-08-19T00:00:00+00:00",
+        "session_id": "test-session",
+    }
+    path = _events_path(out_root)
+    with path.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps(event) + "\n")
 
 
 def test_derive_visual_review_writes_manifest_and_pngs(tmp_path: Path) -> None:
@@ -262,6 +295,7 @@ def test_record_observation_writes_l3_observation(tmp_path: Path) -> None:
     out_root = _out_root(tmp_path)
     manifest = derive_visual_review(out_root, jobs=1)
     requirement = manifest.required[0]
+    _append_event(out_root, response="  readable projection  ", sequence=1)
 
     path = record_observation(
         out_root,
@@ -270,6 +304,7 @@ def test_record_observation_writes_l3_observation(tmp_path: Path) -> None:
         profile_name="vision",
         model="model-x",
         response="  readable projection  ",
+        tool_events_path=_events_path(out_root),
     )
 
     assert path == out_root / OBSERVATION_DIR / f"{requirement.projection_id}.json"
@@ -278,6 +313,28 @@ def test_record_observation_writes_l3_observation(tmp_path: Path) -> None:
     assert document["pass_evidence"] is False
     assert document["projection_id"] == requirement.projection_id
     assert document["response"] == "  readable projection  "
+    assert document["tool_event"]["event_id"]
+
+
+def test_record_observation_requires_matching_tool_event(tmp_path: Path) -> None:
+    out_root = _out_root(tmp_path)
+    manifest = derive_visual_review(out_root, jobs=1)
+    requirement = manifest.required[0]
+    _events_path(out_root).write_text("{}\n", encoding="utf-8")
+
+    with pytest.raises(
+        VisualReviewError,
+        match="no inspect_image_with_vision event matches the response",
+    ):
+        record_observation(
+            out_root,
+            projection_id=requirement.projection_id,
+            image_hash=requirement.image_hash,
+            profile_name="vision",
+            model="model-x",
+            response="unmatched",
+            tool_events_path=_events_path(out_root),
+        )
 
 
 def test_record_observation_refuses_unknown_projection(tmp_path: Path) -> None:
@@ -292,6 +349,7 @@ def test_record_observation_refuses_unknown_projection(tmp_path: Path) -> None:
             profile_name="vision",
             model="model-x",
             response="response",
+            tool_events_path=_events_path(out_root),
         )
 
 
@@ -308,6 +366,7 @@ def test_record_observation_refuses_manifest_hash_mismatch(tmp_path: Path) -> No
             profile_name="vision",
             model="model-x",
             response="response",
+            tool_events_path=_events_path(out_root),
         )
 
 
@@ -326,6 +385,7 @@ def test_record_observation_refuses_png_hash_mismatch(tmp_path: Path) -> None:
             profile_name="vision",
             model="model-x",
             response="response",
+            tool_events_path=_events_path(out_root),
         )
 
 
@@ -342,6 +402,7 @@ def test_record_observation_refuses_empty_response(tmp_path: Path) -> None:
             profile_name="vision",
             model="model-x",
             response="   \n",
+            tool_events_path=_events_path(out_root),
         )
 
 
@@ -382,7 +443,7 @@ def test_derive_resolves_image_paths_relative_to_the_set_directory(
     ).is_file()
 
     _record_all(out_root)
-    verdict = verify_visual_review(out_root)
+    verdict = verify_visual_review(out_root, tool_events_path=_events_path(out_root))
     assert verdict.status == "complete"
     assert verdict.observed == verdict.required == 2
 
@@ -416,7 +477,7 @@ def test_verify_complete_after_recording_all(tmp_path: Path) -> None:
     derive_visual_review(out_root, jobs=1)
     _record_all(out_root)
 
-    verdict = verify_visual_review(out_root)
+    verdict = verify_visual_review(out_root, tool_events_path=_events_path(out_root))
 
     assert verdict.status == "complete"
     assert verdict.observed == verdict.required == 3
@@ -428,7 +489,7 @@ def test_verify_incomplete_without_observation(tmp_path: Path) -> None:
     out_root = _out_root(tmp_path)
     derive_visual_review(out_root, jobs=1)
 
-    verdict = verify_visual_review(out_root)
+    verdict = verify_visual_review(out_root, tool_events_path=_events_path(out_root))
 
     assert verdict.status == "incomplete"
     assert verdict.observed == 0
@@ -451,7 +512,7 @@ def test_verify_incomplete_on_png_mutation(tmp_path: Path) -> None:
     png_path = out_root / requirement.png_path
     png_path.write_bytes(png_path.read_bytes() + b"x")
 
-    verdict = verify_visual_review(out_root)
+    verdict = verify_visual_review(out_root, tool_events_path=_events_path(out_root))
 
     assert verdict.status == "incomplete"
     assert any("PNG hash" in problem for problem in verdict.problems)
@@ -464,10 +525,80 @@ def test_verify_incomplete_on_stray_observation(tmp_path: Path) -> None:
     stray = out_root / OBSERVATION_DIR / "not-in-manifest.json"
     stray.write_text("{}\n", encoding="utf-8")
 
-    verdict = verify_visual_review(out_root)
+    verdict = verify_visual_review(out_root, tool_events_path=_events_path(out_root))
 
     assert verdict.status == "incomplete"
     assert any("not-in-manifest" in problem for problem in verdict.problems)
+
+
+def test_verify_marks_tampered_event_binding_unverified(tmp_path: Path) -> None:
+    out_root = _out_root(tmp_path)
+    derive_visual_review(out_root, jobs=1)
+    _record_all(out_root)
+    event_path = _events_path(out_root)
+    event_path.write_text(
+        event_path.read_text(encoding="utf-8").replace("model-x", "tampered"),
+        encoding="utf-8",
+    )
+
+    verdict = verify_visual_review(out_root, tool_events_path=event_path)
+
+    assert verdict.status == "incomplete"
+    assert verdict.unverified
+    assert any("does not match" in reason for reason in verdict.unverified)
+
+
+def test_verify_marks_tampered_observation_response_unverified(
+    tmp_path: Path,
+) -> None:
+    out_root = _out_root(tmp_path)
+    derive_visual_review(out_root, jobs=1)
+    _record_all(out_root)
+    observation_path = (
+        out_root / OBSERVATION_DIR / "board-a-png.json"
+    )
+    document = json.loads(observation_path.read_text(encoding="utf-8"))
+    document["response"] = "tampered response"
+    observation_path.write_text(
+        json.dumps(document) + "\n",
+        encoding="utf-8",
+    )
+
+    verdict = verify_visual_review(out_root, tool_events_path=_events_path(out_root))
+
+    assert verdict.status == "incomplete"
+    assert verdict.unverified
+    assert (
+        "board-a-png: observation response does not match the bound tool event"
+        in verdict.unverified
+    )
+
+
+def test_record_observation_rejects_event_reuse(tmp_path: Path) -> None:
+    out_root = _out_root(tmp_path)
+    manifest = derive_visual_review(out_root, jobs=1)
+    first, second = manifest.required
+    _append_event(out_root, response="same response", sequence=1)
+    record_observation(
+        out_root,
+        projection_id=first.projection_id,
+        image_hash=first.image_hash,
+        profile_name="vision",
+        model="model-x",
+        response="same response",
+        tool_events_path=_events_path(out_root),
+    )
+
+    with pytest.raises(VisualReviewError, match="already bound"):
+        record_observation(
+            out_root,
+            projection_id=second.projection_id,
+            image_hash=second.image_hash,
+            profile_name="vision",
+            model="model-x",
+            response="same response",
+            tool_events_path=_events_path(out_root),
+        )
 
 
 def test_existing_derive_default_output_unchanged(tmp_path: Path) -> None:

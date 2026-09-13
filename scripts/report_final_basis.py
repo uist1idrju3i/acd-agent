@@ -44,6 +44,12 @@ def _parser() -> argparse.ArgumentParser:
         help="expected bootstrap source revision (must match the record when both exist)",
     )
     parser.add_argument(
+        "--change-events",
+        type=Path,
+        default=None,
+        help="file-change event log (default: <root>/.openhands/acd/file-change-events.jsonl)",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="print the machine-readable basis instead of text",
@@ -59,6 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         design_input=args.design_input,
         bootstrap_record=args.bootstrap_record,
         bootstrap_revision=args.bootstrap_revision,
+        change_events=args.change_events,
     )
     if args.json:
         print(report.model_dump_json(indent=2))

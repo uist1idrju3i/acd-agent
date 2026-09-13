@@ -170,7 +170,7 @@ def _visual_review_line(out_dir: Path) -> str:
     verdict = verify_visual_review(out_dir)
     return (
         f"visual review: {verdict.observed}/{verdict.required} observed, "
-        f"status={verdict.status}"
+        f"status={verdict.status}, unverified={len(verdict.unverified)}"
     )
 
 

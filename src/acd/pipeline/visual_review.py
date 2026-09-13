@@ -14,12 +14,13 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from pydantic import Field
 
 from acd.adapters.raster import CairoSvgRasterizer
 from acd.core.process import sha256_bytes
+from acd.core.vision_tool_events import response_sha256
 from acd.openhands.session.visual_projection import write_visual_vision_observation
 from acd.pipeline.visual_projection import derive_png_visual_projections
 from acd.schema.common import AcdModel, NonEmptyStr
@@ -28,6 +29,7 @@ from acd.schema.visual_projection import (
     VisualReviewManifest,
     VisualReviewRequirement,
     VisualVisionObservation,
+    VisualVisionToolEvent,
 )
 
 VISUAL_REVIEW_MANIFEST_NAME = "visual-review-manifest.json"
@@ -58,6 +60,7 @@ class VisualReviewVerdict(AcdModel):
         default_factory=list[VisualReviewItemVerdict]
     )
     problems: list[str] = Field(default_factory=list[str])
+    unverified: list[str] = Field(default_factory=list[str])
 
 
 def collect_visual_projection_sets(out_root: Path) -> list[Path]:
@@ -232,6 +235,7 @@ def record_observation(
     profile_name: str,
     model: str,
     response: str,
+    tool_events_path: Path,
 ) -> Path:
     """Record one vision response as an L3 observation bound to the manifest."""
     manifest = _load_manifest(out_root)
@@ -260,7 +264,74 @@ def record_observation(
         )
     if not response.strip():
         raise VisualReviewError("empty vision responses are not acceptable")
+    try:
+        event_lines = tool_events_path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise VisualReviewError(
+            f"vision tool events could not be read: {tool_events_path}"
+        ) from exc
+    events: list[dict[str, object]] = []
+    for line_number, line in enumerate(event_lines, start=1):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise VisualReviewError(
+                f"vision tool events contain invalid JSON at line {line_number}"
+            ) from exc
+        if not isinstance(value, dict):
+            raise VisualReviewError(
+                f"vision tool events contain a non-object at line {line_number}"
+            )
+        events.append(cast(dict[str, object], value))
+    response_hash = response_sha256(response)
+    matching = [
+        event
+        for event in events
+        if event.get("tool_name") == "inspect_image_with_vision"
+        and event.get("response_sha256") == response_hash
+        and event.get("profile_name") == profile_name
+        and event.get("model") == model
+    ]
+    if not matching:
+        raise VisualReviewError(
+            f"no inspect_image_with_vision event matches the response for "
+            f"{projection_id}"
+        )
+    try:
+        def event_sequence(event: dict[str, object]) -> int:
+            sequence = event.get("sequence")
+            return sequence if isinstance(sequence, int) else -1
+
+        selected: dict[str, object] = max(matching, key=event_sequence)
+        tool_event = VisualVisionToolEvent.model_validate(
+            {
+                "event_id": selected["event_id"],
+                "sequence": selected["sequence"],
+                "response_sha256": selected["response_sha256"],
+                "recorded_at": selected["recorded_at"],
+                "events_path": str(tool_events_path),
+            }
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise VisualReviewError(
+            f"vision tool event matching {projection_id} is invalid"
+        ) from exc
     path = out_root / OBSERVATION_DIR / f"{projection_id}.json"
+    observation_dir = path.parent
+    if observation_dir.is_dir():
+        for existing_path in observation_dir.glob("*.json"):
+            if existing_path == path:
+                continue
+            existing = _observation_for(existing_path)
+            if (
+                existing is not None
+                and existing.tool_event is not None
+                and existing.tool_event.event_id == tool_event.event_id
+            ):
+                raise VisualReviewError(
+                    f"vision tool event {tool_event.event_id} is already bound "
+                    "to another observation"
+                )
     write_visual_vision_observation(
         profile_name=profile_name,
         model=model,
@@ -268,6 +339,7 @@ def record_observation(
         image_hash=image_hash,
         response=response,
         path=path,
+        tool_event=tool_event,
     )
     return path
 
@@ -280,7 +352,28 @@ def _observation_for(path: Path) -> VisualVisionObservation | None:
         return None
 
 
-def verify_visual_review(out_root: Path) -> VisualReviewVerdict:
+def _load_event_log(path: Path) -> tuple[list[dict[str, object]], str | None]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeDecodeError) as exc:
+        return [], f"vision tool events could not be read: {path}: {exc}"
+    events: list[dict[str, object]] = []
+    for line_number, line in enumerate(lines, start=1):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            return [], f"vision tool events contain invalid JSON at line {line_number}"
+        if not isinstance(value, dict):
+            return [], f"vision tool events contain a non-object at line {line_number}"
+        events.append(cast(dict[str, object], value))
+    return events, None
+
+
+def verify_visual_review(
+    out_root: Path,
+    *,
+    tool_events_path: Path | None = None,
+) -> VisualReviewVerdict:
     """Verify that every manifest requirement has a matching observation.
 
     This function never raises on bad input: any missing, unreadable, or
@@ -300,6 +393,16 @@ def verify_visual_review(out_root: Path) -> VisualReviewVerdict:
             items=[],
             problems=[str(exc)],
         )
+    if tool_events_path is None:
+        tool_events_path = Path.cwd() / ".openhands/acd/vision-tool-events.jsonl"
+    event_records, event_error = _load_event_log(tool_events_path)
+    events_by_id = {
+        str(event.get("event_id")): event
+        for event in event_records
+        if isinstance(event.get("event_id"), str)
+    }
+    unverified: list[str] = []
+    bound_event_ids: dict[str, str] = {}
     expected_ids = {item.projection_id for item in manifest.required}
     for requirement in manifest.required:
         status: Literal["ok", "missing", "mismatch"] = "ok"
@@ -329,6 +432,55 @@ def verify_visual_review(out_root: Path) -> VisualReviewVerdict:
                     f"{requirement.projection_id}: observation does not match "
                     "the manifest"
                 )
+            elif observation.tool_event is None:
+                status = "mismatch"
+                reason = (
+                    f"{requirement.projection_id}: observation has no bound "
+                    "vision tool event"
+                )
+                problems.append(reason)
+                unverified.append(reason)
+            elif event_error is not None:
+                status = "mismatch"
+                reason = f"{requirement.projection_id}: {event_error}"
+                problems.append(reason)
+                unverified.append(reason)
+            else:
+                event_id = observation.tool_event.event_id
+                event = events_by_id.get(event_id)
+                reason: str | None = None
+                if event is None:
+                    reason = f"{requirement.projection_id}: tool event is not in the event log"
+                elif (
+                    event.get("tool_name") != "inspect_image_with_vision"
+                    or event.get("response_sha256")
+                    != observation.tool_event.response_sha256
+                    or event.get("profile_name") != observation.profile_name
+                    or event.get("model") != observation.model
+                ):
+                    reason = (
+                        f"{requirement.projection_id}: tool event does not match "
+                        "the observation"
+                    )
+                elif (
+                    response_sha256(observation.response)
+                    != observation.tool_event.response_sha256
+                ):
+                    reason = (
+                        f"{requirement.projection_id}: observation response does "
+                        "not match the bound tool event"
+                    )
+                elif event_id in bound_event_ids:
+                    reason = (
+                        f"{requirement.projection_id}: tool event is already "
+                        f"bound to {bound_event_ids[event_id]}"
+                    )
+                else:
+                    bound_event_ids[event_id] = requirement.projection_id
+                if reason is not None:
+                    status = "mismatch"
+                    problems.append(reason)
+                    unverified.append(reason)
         png_path = out_root / requirement.png_path
         try:
             on_disk = sha256_bytes(png_path.read_bytes())
@@ -371,6 +523,7 @@ def verify_visual_review(out_root: Path) -> VisualReviewVerdict:
         observed=observed,
         items=items,
         problems=problems,
+        unverified=unverified,
     )
 
 

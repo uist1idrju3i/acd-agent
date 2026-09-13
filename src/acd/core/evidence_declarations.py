@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -24,11 +25,13 @@ from acd.core.fab import (
 from acd.core.lcsc_record import check_declared_mpn, extract_lcsc_identity
 from acd.core.naming import artifact_prefix
 from acd.pipeline.repository import repository_root
+from acd.schema.design_fixture import DesignFixtureSpec
 from acd.schema.design_graph import DesignGraph
 
 EvidenceDeclarationCode = Literal[
     "evidence.cpl_rotation.declared_unverified",
     "evidence.cpl_rotation.mpn_mismatch",
+    "evidence.cpl_rotation.structural_copy",
     "evidence.fab_profile.declared_unverified",
 ]
 
@@ -42,6 +45,7 @@ class EvidenceDeclarationFinding:
     kind: str
     attr: str
     detail: str
+    severity: Literal["stop", "warn"] = "stop"
 
 
 def cpl_rotation_record_path(root: Path, graph_id: str, refdes: str) -> Path:
@@ -264,6 +268,122 @@ def _fab_profile_findings(
     return findings
 
 
+def _fixture_specs(root: Path, graph: DesignGraph) -> list[tuple[str, DesignFixtureSpec]]:
+    """Load comparable fixture specs, excluding the current graph fixture."""
+    fixtures_root = root / "fixtures"
+    try:
+        directories = sorted(path for path in fixtures_root.iterdir() if path.is_dir())
+    except OSError:
+        return []
+    specs: list[tuple[str, DesignFixtureSpec]] = []
+    for directory in directories:
+        spec_path = directory / "spec.json"
+        if not spec_path.is_file():
+            continue
+        try:
+            spec = DesignFixtureSpec.model_validate_json(
+                spec_path.read_text(encoding="utf-8")
+            )
+        except (OSError, UnicodeDecodeError, ValueError):
+            continue
+        if spec.graph_id == graph.graph_id:
+            continue
+        specs.append((directory.name, spec))
+    return specs
+
+
+def _structural_copy_findings(
+    graph: DesignGraph, root: Path
+) -> list[EvidenceDeclarationFinding]:
+    findings: list[EvidenceDeclarationFinding] = []
+    other_fixtures = _fixture_specs(root, graph)
+    if not other_fixtures:
+        return findings
+    for node in sorted(graph.nodes, key=lambda item: item.id):
+        if (
+            node.kind != "electrical.component"
+            or node.attrs.get("cpl_rotation_evidence_basis") != "estimated"
+        ):
+            continue
+        refdes_value = node.attrs.get("refdes")
+        refdes = refdes_value if isinstance(refdes_value, str) else node.id
+        for fixture_name, spec in other_fixtures:
+            matched_attr = next(
+                (
+                    attr
+                    for attr in (
+                        "cpl_rotation_evidence_note",
+                        "cpl_rotation_evidence_revision",
+                    )
+                    if isinstance(node.attrs.get(attr), str)
+                    and fixture_name.casefold()
+                    in cast(str, node.attrs[attr]).casefold()
+                ),
+                None,
+            )
+            if matched_attr is not None:
+                findings.append(
+                    EvidenceDeclarationFinding(
+                        code="evidence.cpl_rotation.structural_copy",
+                        node_id=node.id,
+                        kind=node.kind,
+                        attr=matched_attr,
+                        detail=(
+                            f"{refdes}: estimated CPL rotation evidence "
+                            f"{matched_attr} mentions fixture "
+                            f"'{fixture_name}'; this looks like a structural "
+                            "copy — estimated stays unknown for the CPL gate; "
+                            "re-derive the evidence from this design or fetch "
+                            "a measured record"
+                        ),
+                        severity="warn",
+                    )
+                )
+                continue
+            current_at = node.attrs.get("cpl_rotation_evidence_at")
+            current_method = node.attrs.get("cpl_rotation_evidence_method")
+            current_note = node.attrs.get("cpl_rotation_evidence_note")
+            if isinstance(current_at, str):
+                with suppress(ValueError):
+                    current_at = datetime.fromisoformat(
+                        current_at.replace("Z", "+00:00")
+                    ).isoformat()
+            current_triple = (current_at, current_method, current_note)
+            if not all(isinstance(value, str) and value for value in current_triple):
+                continue
+            for other_component in spec.components:
+                evidence = other_component.cpl_orientation_evidence
+                if evidence is None:
+                    continue
+                other_triple = (
+                    evidence.evidence_at.isoformat(),
+                    evidence.evidence_method,
+                    evidence.evidence_note,
+                )
+                if current_triple != other_triple:
+                    continue
+                findings.append(
+                    EvidenceDeclarationFinding(
+                        code="evidence.cpl_rotation.structural_copy",
+                        node_id=node.id,
+                        kind=node.kind,
+                        attr="cpl_rotation_evidence_note",
+                        detail=(
+                            f"{refdes}: estimated CPL rotation evidence "
+                            "(at/method/note) is identical to fixture "
+                            f"'{fixture_name}' component {other_component.refdes}; "
+                            "this looks like a value transcription — estimated "
+                            "stays unknown for the CPL gate; re-derive the "
+                            "evidence from this design or fetch a measured "
+                            "record"
+                        ),
+                        severity="warn",
+                    )
+                )
+                break
+    return findings
+
+
 def collect_evidence_declaration_findings(
     graph: DesignGraph, *, root: Path | None = None
 ) -> list[EvidenceDeclarationFinding]:
@@ -272,6 +392,7 @@ def collect_evidence_declaration_findings(
     return [
         *_cpl_rotation_findings(graph, resolved_root),
         *_fab_profile_findings(graph, resolved_root),
+        *_structural_copy_findings(graph, resolved_root),
     ]
 
 
