@@ -15,6 +15,7 @@ from acd.core.defect_records import (
     compute_horizontal_scope,
     load_defect_document,
 )
+from acd.core.eco_gate import MINIMUM_GATES, EcoGateError, evaluate_eco
 from acd.core.fab import (
     FabOrderIntentView,
     FabProfile,
@@ -59,6 +60,7 @@ from acd.core.functional_blocks import (
     required_predicate_names,
     validate_predicate_coverage,
 )
+from acd.core.gate_evidence_run import external_gate_run
 from acd.core.graph_diff import GraphDiffError, build_graph_diff, unknown_graph_diff
 from acd.core.mechanical import REQUIRED_MECHANICAL_ATTRS
 from acd.core.mechanical_preflight import (
@@ -127,6 +129,7 @@ from acd.core.side_effect_journal import (
 )
 
 __all__ = [
+    "MINIMUM_GATES",
     "RATIONALE_EXEMPT_ATTRS",
     "REQUIRED_MECHANICAL_ATTRS",
     "REQUIRED_RATIONALE_ATTRS",
@@ -136,6 +139,7 @@ __all__ = [
     "DefectFinding",
     "DefectRecordError",
     "DerivedGraph",
+    "EcoGateError",
     "FabOrderIntentView",
     "FabProfile",
     "FabProfileRegistry",
@@ -182,8 +186,10 @@ __all__ = [
     "check_rationale_coverage",
     "compute_horizontal_scope",
     "declared_functional_blocks",
+    "evaluate_eco",
     "evaluate_firmware_graph_consistency",
     "evaluate_functional_run",
+    "external_gate_run",
     "extract_fab_intent",
     "load_and_evaluate_functional_run",
     "load_defect_document",

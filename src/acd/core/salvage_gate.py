@@ -7,13 +7,14 @@ from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Literal, cast
+from typing import Literal
 
 from acd.core.design_predicates import (
     PredicateResult,
     evaluate_design_predicates,
 )
 from acd.core.electrical import GraphExtractionError, extract_electrical_lane
+from acd.core.gate_evidence_run import external_gate_run
 from acd.core.mechanical_preflight import check_mechanical_preflight
 from acd.core.rationale import (
     RationaleRefreshError,
@@ -269,71 +270,6 @@ def _validate_dfa(
     return blockers
 
 
-def _external_gate_run(
-    gate: str, path: Path | None, revision: str
-) -> GateRun:
-    if path is None:
-        return GateRun(
-            gate=gate,
-            status="unknown",
-            source="missing",
-            detail=f"{gate} evidence is missing",
-        )
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        return GateRun(
-            gate=gate,
-            status="unknown",
-            source="evidence_file",
-            detail=f"{gate} evidence could not be read: {exc}",
-            evidence_path=str(path),
-        )
-    if not isinstance(payload, dict):
-        return GateRun(
-            gate=gate,
-            status="unknown",
-            source="evidence_file",
-            detail=f"{gate} evidence is not an object",
-            evidence_path=str(path),
-        )
-    body = cast(dict[str, Any], payload)
-    if body.get("target_revision") != revision:
-        return GateRun(
-            gate=gate,
-            status="unknown",
-            source="evidence_file",
-            detail=f"{gate} evidence revision does not match {revision}",
-            evidence_path=str(path),
-        )
-    if body.get("gate") != gate:
-        return GateRun(
-            gate=gate,
-            status="unknown",
-            source="evidence_file",
-            detail=f"{gate} evidence declares a different gate",
-            evidence_path=str(path),
-        )
-    status = body.get("status")
-    if status not in {"pass", "fail", "unknown", "not_applicable"}:
-        return GateRun(
-            gate=gate,
-            status="unknown",
-            source="evidence_file",
-            detail=f"{gate} evidence has an invalid status",
-            evidence_path=str(path),
-        )
-    message = body.get("message")
-    detail = message if isinstance(message, str) and message else f"{gate} evidence loaded"
-    return GateRun(
-        gate=gate,
-        status=cast(GateStatus, status),
-        source="evidence_file",
-        detail=detail,
-        evidence_path=str(path),
-    )
-
-
 def _result(
     *,
     diff: ReworkDiff,
@@ -476,7 +412,7 @@ def evaluate_salvage(
             ),
         )
         gate_runs.extend(
-            _external_gate_run(
+            external_gate_run(
                 gate,
                 external_evidence.get(gate),
                 derived.derived_revision,

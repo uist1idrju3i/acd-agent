@@ -1,0 +1,226 @@
+{
+  "artifact_kind": "eco_document",
+  "ecos": [
+    {
+      "artifact_kind": "eco",
+      "eco_id": "ECO-001",
+      "from_revision": "r1",
+      "graph_id": "golden-design-1",
+      "horizontal_dispositions": [
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.r5",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.c1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.c2",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.c3",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.c4",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.c5",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.c6",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.d1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.h1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.h2",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.h3",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.h4",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.j1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.r1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.r2",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.r3",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.r6",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.sw1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.sw2",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.tp1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.tp2",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.tp3",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.tp4",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.tp5",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.tp6",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.tp7",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.u1",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.u2",
+          "reason": "The ECO change is limited to comp.r4."
+        },
+        {
+          "defect_id": "defect.r4-mpn",
+          "disposition": "not_affected",
+          "node_id": "comp.u3",
+          "reason": "The ECO change is limited to comp.r4."
+        }
+      ],
+      "impact": {
+        "lanes": [
+          "electrical"
+        ],
+        "nodes_added": [],
+        "nodes_changed": [
+          "comp.r4"
+        ],
+        "nodes_removed": []
+      },
+      "pass_evidence": false,
+      "reasons": [
+        {
+          "detail": "Replace the failing R4 value in the production graph.",
+          "kind": "defect",
+          "ref": "defect.r4-mpn"
+        }
+      ],
+      "retires_workaround_ids": [
+        "WA-001"
+      ],
+      "reverification": [
+        {
+          "gate": "erc",
+          "required_by": "impact_lane"
+        },
+        {
+          "gate": "design_predicates",
+          "required_by": "impact_lane"
+        },
+        {
+          "gate": "drc",
+          "required_by": "impact_lane"
+        }
+      ],
+      "schema_version": "0.1",
+      "title": "Fix R4 production value",
+      "to_revision": "r2"
+    }
+  ],
+  "schema_version": "0.1"
+}

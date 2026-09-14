@@ -811,6 +811,21 @@ manifestへ自動的に取り込まれる。
 レビュー資料には`graph_diff_projection_id`を記録し、graph差分と視覚投影の対応を
 追跡できるようにした。投影、資料、stage結果はいずれもL3観測であり、合否権限や
 authoritative pass evidenceを生成しない。
+
+### 20.1 ECOワークフローとrevisionライフサイクルの実装記録
+
+`EcoRecord`、`EcoDocument`、`EcoCheckResult`を追加し、変更理由、impact node、
+影響lane、再検証要件、水平展開処置、ワークアラウンド廃止hookを契約化した。
+`check_eco.py`はfrom/to graphのrevisionとgraph ID、graph diff、lane別最低限ゲート、
+revision一致evidence、13.1水平展開の処置を決定論的に検査し、未宣言・欠落・unknown・
+不一致をfail-closedでclose不可とする。salvage gateとECO gateの外部evidence読込は
+共通`external_gate_run()`へ抽出した。
+
+ECOの恒久変更は`rN+1` graphへ反映し、`rN+WA-001`のワークアラウンドrevisionは
+恒久revisionへ昇格させない。運用ライフサイクルとlane別evidence名は
+[`eco-workflow.md`](eco-workflow.md)に記録する。ワークアラウンド廃止判定そのものは
+マイルストーン13.6で定義する。
+
 | （改善バックログ）host EDA不在時の推奨経路への誘導 | 15.8（達成） |
 | （改善バックログ）FW実行のhost前提（QEMU・`libslirp0`等）のdocs化とlocked image同梱 | 15.9（達成） |
 | （改善バックログ）FW成果物ディレクトリ名のgraph_id由来化 | 14.6（達成） |

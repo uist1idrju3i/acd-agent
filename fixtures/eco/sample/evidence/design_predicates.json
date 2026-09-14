@@ -1,0 +1,7 @@
+{
+  "gate": "design_predicates",
+  "message": "ECO revision design predicates passed.",
+  "schema_version": "0.1",
+  "status": "pass",
+  "target_revision": "r2"
+}
