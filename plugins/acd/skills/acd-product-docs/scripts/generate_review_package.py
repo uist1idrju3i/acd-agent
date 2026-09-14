@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@6e2a20dda1f8f1ca785953c605e92e250beb51d4",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@4222c9f8d3bcf44e4b1af5116642e0ec81fd8453",
 # ]
 # ///
 """Generate a deterministic, non-authoritative review package."""
