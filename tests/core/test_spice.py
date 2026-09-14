@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
@@ -45,9 +47,20 @@ def test_netlist_bytes_are_deterministic() -> None:
 def test_recorded_output_evaluates() -> None:
     netlist = extract_power_netlist(_graph(), _request())
     output = OUTPUT_PATH.read_text(encoding="utf-8")
-    from acd.core.spice import _parse_output
+    from acd.core import spice
 
-    measures, traces, findings = _parse_output(output)
+    parse_output = cast(
+        Callable[
+            [str],
+            tuple[
+                dict[str, float],
+                dict[str, tuple[tuple[float, float], ...]],
+                tuple[str, ...],
+            ],
+        ],
+        spice._parse_output,  # pyright: ignore[reportPrivateUsage]
+    )
+    measures, traces, findings = parse_output(output)
     raw = SpiceRawResult(
         status="unknown" if findings else "pass",
         ngspice_version="45.2",
@@ -155,12 +168,11 @@ def test_non_convergence_is_unknown(
     netlist = extract_power_netlist(_graph(), _request())
 
     def fake_run_tool(**kwargs: object) -> SimpleNamespace:
-        command = kwargs["command"]
+        command = cast(list[str], kwargs["command"])
         if command[-1] == "-v":
             return SimpleNamespace(stdout="ngspice-45.2\n", stderr="")
-        output_paths = kwargs["output_paths"]
-        assert isinstance(output_paths, list)
-        Path(output_paths[0]).write_text(
+        output_paths = cast(list[Path], kwargs["output_paths"])
+        output_paths[0].write_text(
             "timestep too small\n",
             encoding="utf-8",
         )
@@ -179,12 +191,11 @@ def test_mocked_subprocess_parses_recorded_output(
     output = OUTPUT_PATH.read_text(encoding="utf-8")
 
     def fake_run_tool(**kwargs: object) -> SimpleNamespace:
-        command = kwargs["command"]
+        command = cast(list[str], kwargs["command"])
         if command[-1] == "-v":
             return SimpleNamespace(stdout="ngspice-45.2\n", stderr="")
-        output_paths = kwargs["output_paths"]
-        assert isinstance(output_paths, list)
-        Path(output_paths[0]).write_text(output, encoding="utf-8")
+        output_paths = cast(list[Path], kwargs["output_paths"])
+        output_paths[0].write_text(output, encoding="utf-8")
         return SimpleNamespace(stdout="", stderr="")
 
     monkeypatch.setattr("acd.core.spice.run_tool", fake_run_tool)
