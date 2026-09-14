@@ -167,7 +167,7 @@ def check_responsibility(
         if not isinstance(function_id, str) or not function_id:
             findings.append(
                 _finding(
-                    "invalid_domain",
+                    "invalid_function_id",
                     node.id,
                     f"node {node.id} lacks a function_id attribute",
                 )

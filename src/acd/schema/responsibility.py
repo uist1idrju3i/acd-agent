@@ -161,6 +161,7 @@ ResponsibilityFindingCode = Literal[
     "multiple_assignment",
     "undeclared_function",
     "invalid_domain",
+    "invalid_function_id",
     "invalid_criteria",
     "missing_capability",
     "unknown_state",

@@ -173,6 +173,23 @@ def test_undeclared_function() -> None:
     assert "undeclared_function" in _codes(result)
 
 
+def test_invalid_function_id() -> None:
+    graph, declaration = _load()
+    g = graph.model_copy(
+        update={
+            "nodes": [
+                *graph.nodes,
+                _resp_node(
+                    "resp.fn-missing",
+                    {"domain": "firmware", "criteria": ["cost"]},
+                ),
+            ]
+        }
+    )
+    result = check_responsibility(g, declaration)
+    assert "invalid_function_id" in _codes(result)
+
+
 def test_invalid_domain() -> None:
     graph, declaration = _load()
     g = graph.model_copy(
