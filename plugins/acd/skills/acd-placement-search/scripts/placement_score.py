@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@6024f2d51ca85fc37dab72f6a2b338ace546713a",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
 # ]
 # ///
 """Surrogate placement metrics for ranking candidates (skill asset).
