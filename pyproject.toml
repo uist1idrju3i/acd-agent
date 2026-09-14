@@ -91,6 +91,9 @@ executionEnvironments = [
     { root = "plugins/acd/skills/acd-reliability-review", extraPaths = [
         "plugins/acd/skills/acd-reliability-review/scripts",
     ] },
+    { root = "plugins/acd/skills/acd-dfa-review", extraPaths = [
+        "plugins/acd/skills/acd-dfa-review/scripts",
+    ] },
     { root = "plugins/acd/skills/acd-placement-search", extraPaths = [
         "plugins/acd/skills/acd-placement-search/scripts",
     ] },
