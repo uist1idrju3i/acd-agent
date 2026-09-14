@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +14,7 @@ from acd.pipeline.visual_review import collect_visual_projection_sets
 
 PRODUCT_DOCS_SKILL = "acd-product-docs"
 PROJECTION_DOCS_TIMEOUT_SECONDS = 600
+SUPPORTED_DOCUMENT_LANGUAGES = ("ja", "en")
 
 
 class ProjectionDocsError(Exception):
@@ -32,6 +33,7 @@ class GeneratedDocument:
     path: Path
     provenance_path: Path
     sha256: str
+    language: str
 
     def as_dict(self) -> dict[str, str]:
         return {
@@ -39,6 +41,7 @@ class GeneratedDocument:
             "path": str(self.path),
             "provenance_path": str(self.provenance_path),
             "sha256": self.sha256,
+            "language": self.language,
         }
 
 
@@ -101,7 +104,7 @@ def _execute(
 
 
 def _require_document(
-    output: Path, *, kind: str, document_name: str
+    output: Path, *, kind: str, document_name: str, language: str
 ) -> GeneratedDocument:
     document = output / document_name
     provenance = output / f"{document_name}.provenance.json"
@@ -118,6 +121,7 @@ def _require_document(
         path=document,
         provenance_path=provenance,
         sha256=_sha256(document),
+        language=language,
     )
 
 
@@ -145,9 +149,19 @@ def run_projection_docs(
     output: Path,
     enclosure_out: Path,
     previous_graph_path: Path | None = None,
+    languages: Sequence[str] = ("ja",),
     runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
 ) -> ProjectionDocsResult:
     """Run all product-document generators and hash their outputs."""
+    if not languages:
+        raise ProjectionDocsError("at least one document language is required")
+    if any(language not in SUPPORTED_DOCUMENT_LANGUAGES for language in languages):
+        raise ProjectionDocsError(
+            f"unsupported document language; expected one of "
+            f"{SUPPORTED_DOCUMENT_LANGUAGES!r}: {languages!r}"
+        )
+    if len(set(languages)) != len(languages):
+        raise ProjectionDocsError(f"duplicate document languages: {languages!r}")
     readme_script = _script_path(repository, "generate_product_readme.py")
     manual_script = _script_path(repository, "generate_instruction_manual.py")
     interface_script = _script_path(repository, "generate_interface_spec.py")
@@ -231,17 +245,6 @@ def run_projection_docs(
     readme_command.extend(
         ["--out-dir", str(output), "--base-dir", str(out_root)]
     )
-    completed = _execute(
-        readme_command,
-        repository=repository,
-        runner=runner,
-    )
-    if completed.returncode != 0:
-        raise ProjectionDocsError(
-            completed.stderr.strip()
-            or f"product README generator exited with code {completed.returncode}",
-            output_path=output,
-        )
     manual_command = [
         "uv",
         "run",
@@ -256,17 +259,6 @@ def run_projection_docs(
         "--base-dir",
         str(out_root),
     ]
-    completed = _execute(
-        manual_command,
-        repository=repository,
-        runner=runner,
-    )
-    if completed.returncode != 0:
-        raise ProjectionDocsError(
-            completed.stderr.strip()
-            or f"instruction manual generator exited with code {completed.returncode}",
-            output_path=output,
-        )
     interface_command = [
         "uv",
         "run",
@@ -283,17 +275,6 @@ def run_projection_docs(
         "--base-dir",
         str(out_root),
     ]
-    completed = _execute(
-        interface_command,
-        repository=repository,
-        runner=runner,
-    )
-    if completed.returncode != 0:
-        raise ProjectionDocsError(
-            completed.stderr.strip()
-            or f"interface spec generator exited with code {completed.returncode}",
-            output_path=output,
-        )
     quality_command = [
         "uv",
         "run",
@@ -322,17 +303,6 @@ def run_projection_docs(
         "--base-dir",
         str(out_root),
     ]
-    completed = _execute(
-        quality_command,
-        repository=repository,
-        runner=runner,
-    )
-    if completed.returncode != 0:
-        raise ProjectionDocsError(
-            completed.stderr.strip()
-            or f"quality report generator exited with code {completed.returncode}",
-            output_path=output,
-        )
     review_command = [
         "uv",
         "run",
@@ -354,69 +324,55 @@ def run_projection_docs(
     review_command.extend(
         ["--out-dir", str(output), "--base-dir", str(out_root)]
     )
-    completed = _execute(
-        review_command,
-        repository=repository,
-        runner=runner,
+    command_specs = (
+        (readme_command, "product README generator"),
+        (manual_command, "instruction manual generator"),
+        (interface_command, "interface spec generator"),
+        (quality_command, "quality report generator"),
+        (review_command, "review package generator"),
     )
-    if completed.returncode != 0:
-        raise ProjectionDocsError(
-            completed.stderr.strip()
-            or f"review package generator exited with code {completed.returncode}",
-            output_path=output,
+    documents_list: list[GeneratedDocument] = []
+    for language in languages:
+        language_output = output if language == "ja" else output / language
+        language_output.mkdir(parents=True, exist_ok=True)
+        for command, label in command_specs:
+            language_command = list(command)
+            out_index = language_command.index("--out-dir") + 1
+            language_command[out_index] = str(language_output)
+            language_command.extend(["--lang", language])
+            completed = _execute(
+                language_command,
+                repository=repository,
+                runner=runner,
+            )
+            if completed.returncode != 0:
+                raise ProjectionDocsError(
+                    completed.stderr.strip()
+                    or f"{label} exited with code {completed.returncode}",
+                    output_path=language_output,
+                )
+        required_documents = (
+            ("product_readme", readme_name),
+            ("instruction_manual", manual_name),
+            ("interface_spec", interface_name),
+            ("interface_spec_json", interface_json_name),
+            ("inspection_report", "inspection-report.md"),
+            ("traceability_report", "traceability-report.md"),
+            ("quality_report_json", "quality-report.json"),
+            ("review_package", "review-package.md"),
+            ("review_package_json", "review-package.json"),
+            ("graph_diff_json", "graph-diff.json"),
         )
-    documents = (
-        _require_document(
-            output,
-            kind="product_readme",
-            document_name=readme_name,
-        ),
-        _require_document(
-            output,
-            kind="instruction_manual",
-            document_name=manual_name,
-        ),
-        _require_document(
-            output,
-            kind="interface_spec",
-            document_name=interface_name,
-        ),
-        _require_document(
-            output,
-            kind="interface_spec_json",
-            document_name=interface_json_name,
-        ),
-        _require_document(
-            output,
-            kind="inspection_report",
-            document_name="inspection-report.md",
-        ),
-        _require_document(
-            output,
-            kind="traceability_report",
-            document_name="traceability-report.md",
-        ),
-        _require_document(
-            output,
-            kind="quality_report_json",
-            document_name="quality-report.json",
-        ),
-        _require_document(
-            output,
-            kind="review_package",
-            document_name="review-package.md",
-        ),
-        _require_document(
-            output,
-            kind="review_package_json",
-            document_name="review-package.json",
-        ),
-        _require_document(
-            output,
-            kind="graph_diff_json",
-            document_name="graph-diff.json",
-        ),
-    )
+        documents_list.extend(
+            _require_document(
+                language_output,
+                kind=kind,
+                document_name=document_name,
+                language=language,
+            )
+            for kind, document_name in required_documents
+        )
+    documents = tuple(documents_list)
     hashes_path = _write_hashes(output)
     provenance: dict[str, object] = {
         "skill_name": PRODUCT_DOCS_SKILL,
@@ -434,6 +390,7 @@ def run_projection_docs(
             )
         },
         "pass_evidence": False,
+        "languages": list(languages),
     }
     return ProjectionDocsResult(
         output_path=output,

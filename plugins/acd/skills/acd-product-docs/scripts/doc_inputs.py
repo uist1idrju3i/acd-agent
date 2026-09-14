@@ -20,17 +20,72 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import cast
+from types import MappingProxyType
+from typing import Mapping, cast
 
 from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.theme_song import ThemeSongProjection
 from acd.schema.visual_projection import VisualProjectionRecord, VisualProjectionSet
 
 DOCUMENT_SCHEMA_VERSION = "0.1"
+SUPPORTED_LANGUAGES = ("ja", "en")
 
 
 class DocumentGenerationError(ValueError):
     """Raised when a document cannot be generated from its inputs."""
+
+
+@dataclass(frozen=True)
+class DocumentTemplate:
+    """One language-specific template catalog."""
+
+    lang: str
+    path: Path
+    content_hash: str
+    strings: Mapping[str, str]
+
+    def t(self, key: str, **values: object) -> str:
+        try:
+            text = self.strings[key]
+        except KeyError as exc:
+            raise DocumentGenerationError(
+                f"template key {key!r} is missing for language {self.lang!r}"
+            ) from exc
+        try:
+            return text.format(**values)
+        except (IndexError, KeyError, TypeError, ValueError) as exc:
+            raise DocumentGenerationError(
+                f"template key {key!r} has missing or invalid placeholders"
+            ) from exc
+
+
+def load_template(lang: str) -> DocumentTemplate:
+    """Load and validate a language-specific product-document template."""
+    if lang not in SUPPORTED_LANGUAGES:
+        raise DocumentGenerationError(
+            f"unsupported document language {lang!r}; "
+            f"expected one of {SUPPORTED_LANGUAGES!r}"
+        )
+    path = Path(__file__).resolve().parents[1] / "templates" / f"{lang}.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise DocumentGenerationError(
+            f"document template {path} is not valid: {exc}"
+        ) from exc
+    if not isinstance(payload, dict) or any(
+        not isinstance(key, str) or not isinstance(value, str)
+        for key, value in payload.items()
+    ):
+        raise DocumentGenerationError(
+            f"document template {path} must be an object of text values"
+        )
+    return DocumentTemplate(
+        lang=lang,
+        path=path,
+        content_hash=sha256_file(path),
+        strings=MappingProxyType(dict(payload)),
+    )
 
 
 @dataclass(frozen=True)
@@ -435,11 +490,16 @@ def write_document(
     graph: DesignGraph,
     inputs: Sequence[DocumentInput],
     base_dir: Path,
+    template: DocumentTemplate,
 ) -> tuple[Path, Path]:
     """Write a generated document plus its provenance record."""
     out_dir.mkdir(parents=True, exist_ok=True)
     document_path = out_dir / document_name
     document_path.write_text(body, encoding="utf-8")
+    all_inputs = [
+        *inputs,
+        DocumentInput(path=template.path, content_hash=template.content_hash),
+    ]
     provenance = {
         "schema_version": DOCUMENT_SCHEMA_VERSION,
         "artifact_kind": "generated_document",
@@ -450,11 +510,14 @@ def write_document(
         "graph_id": graph.graph_id,
         "target_revision": graph.revision,
         "template_id": template_id,
+        "template_path": relative_path(template.path, base_dir),
+        "template_hash": template.content_hash,
+        "language": template.lang,
         "generator": {
             "name": generator.name,
             "content_hash": sha256_file(generator),
         },
-        "inputs": [item.as_record(base_dir) for item in inputs],
+        "inputs": [item.as_record(base_dir) for item in all_inputs],
         "generated_at": datetime.now(UTC).isoformat(),
     }
     provenance_path = out_dir / f"{document_name}.provenance.json"

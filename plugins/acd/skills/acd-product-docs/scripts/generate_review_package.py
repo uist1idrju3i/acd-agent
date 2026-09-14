@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import sys
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -23,20 +24,31 @@ from doc_inputs import (
     DfmReport,
     DocumentGenerationError,
     DocumentInput,
+    DocumentTemplate,
     ProjectionFigure,
     load_design_predicates,
     load_dfm_report,
     load_graph,
     load_projection_figures,
+    load_template,
     relative_path,
     sha256_file,
     write_document,
 )
 
-TEMPLATE_ID = "acd-review-package-ja-v1"
 DOCUMENT_NAME = "review-package.md"
 JSON_DOCUMENT_NAME = "review-package.json"
 GRAPH_DIFF_DOCUMENT_NAME = "graph-diff.json"
+TEMPLATE_ID = "acd-review-package-ja-v1"
+
+_TEMPLATE: ContextVar[DocumentTemplate | None] = ContextVar(
+    "review_package_template", default=None
+)
+
+
+def t(key: str, **values: object) -> str:
+    template = _TEMPLATE.get() or load_template("ja")
+    return template.t(key, **values)
 
 
 def _checklist_item(
@@ -273,18 +285,17 @@ def _markdown(
 ) -> str:
     diff = package["graph_diff"]
     lines = [
-        f"# レビュー資料: {graph.graph_id}",
+        f"{t('review.literal_023')}{graph.graph_id}",
         "",
         f"- revision: `{graph.revision}`",
         "- record class: `L3`",
         "- authority: `none`",
         "",
-        "## 概要",
+        t("review.literal_012"),
         "",
-        "本資料は設計入力と記録済み投影から生成したレビュー用L3観測であり、"
-        "判定権限を持たない。所見と差分は入力の追跡可能な要約である。",
+        t("review.literal_013") + t("review.literal_014"),
         "",
-        "## graph差分",
+        t("review.literal_015"),
         "",
         "```json",
         json.dumps(diff, ensure_ascii=False, indent=2, sort_keys=True),
@@ -292,7 +303,7 @@ def _markdown(
         "",
         f"- graph diff projection: `{package['graph_diff_projection_id'] or 'none'}`",
         "",
-        "## 視覚投影一式",
+        t("review.literal_016"),
         "",
     ]
     for figure in figures:
@@ -309,13 +320,13 @@ def _markdown(
                 "",
             ]
         )
-    lines.extend(["## 設計述語所見", ""])
+    lines.extend([t("review.literal_017"), ""])
     for predicate in package["design_predicates"]:
         lines.append(
             f"- `{predicate['name']}`: `{predicate['status']}` — "
             f"{predicate['detail']}"
         )
-    lines.extend(["", "## DFM所見", "", f"- status: `{package['dfm']['status']}`"])
+    lines.extend(["", t("review.literal_018"), "", f"- status: `{package['dfm']['status']}`"])
     for finding in package["dfm"]["findings"]:
         lines.append(f"- `{finding['rule_id']}`: {finding['message']}")
     for name, reason in sorted(package["dfm"]["unknowns"].items()):
@@ -325,7 +336,7 @@ def _markdown(
     lines.extend(
         [
             "",
-            "## チェックリスト表",
+            t("review.literal_019"),
             "",
             "| item_id | source | subject | status | detail | reviewer_decision |",
             "|---|---|---|---|---|---|",
@@ -340,10 +351,9 @@ def _markdown(
     lines.extend(
         [
             "",
-            "## 権限注記",
+            t("review.literal_020"),
             "",
-            "この資料は`authority: none`のL3記録であり、レビュー担当者の判断欄は"
-            "`pending`で初期化される。資料の欠落や読み取り不能はunknownとして扱う。",
+            t("review.literal_021") + t("review.literal_022"),
             "",
         ]
     )
@@ -360,11 +370,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--no-previous-revision", action="store_true")
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--base-dir", type=Path, required=True)
+    parser.add_argument("--lang", choices=("ja", "en"), default="ja")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    template = load_template(args.lang)
+    _TEMPLATE.set(template)
     if (args.previous_graph is None) == (not args.no_previous_revision):
         raise DocumentGenerationError(
             "exactly one of --previous-graph or --no-previous-revision is required"
@@ -439,13 +452,14 @@ def main(argv: list[str] | None = None) -> int:
         document_path, provenance_path = write_document(
             document_kind=document_kind,
             body=body,
-            out_dir=args.out_dir,
+            out_dir=args.out_dir if args.lang == "ja" else args.out_dir / args.lang,
             document_name=document_name,
-            template_id=TEMPLATE_ID,
+            template_id=f"acd-review-package-{args.lang}-v1",
             generator=Path(__file__).resolve(),
             graph=graph,
             inputs=inputs,
             base_dir=args.base_dir,
+            template=template,
         )
         print(f"generated {document_path}")
         print(f"provenance {provenance_path}")

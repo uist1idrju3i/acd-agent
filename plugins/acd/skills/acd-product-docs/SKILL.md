@@ -20,6 +20,13 @@ projections and the generated firmware pin projection. The documents are L3
 observations: they present values that already exist in the design inputs, they
 cannot approve a design, and they never flow back into design inputs.
 
+Text templates are stored in `templates/ja.json` and `templates/en.json`.
+All generators accept `--lang ja|en` (default `ja`); Japanese output remains
+directly under `--out-dir`, while English output is written under
+`--out-dir/en/`. Labels are translated by the templates, but graph-derived
+values, identifiers, units, revisions, hashes, and projection metadata are
+always emitted verbatim.
+
 | Script | Purpose |
 | --- | --- |
 | `doc_inputs.py` | Loads graph, projection sets and images fail-closed, and writes the provenance record. |
@@ -94,8 +101,9 @@ uv run pytest plugins/acd/skills/acd-product-docs -q
 
 Both generators write the document plus a `<document>.provenance.json` record
 that carries the input hashes, the template id, the generator script hash and
-the target revision. Documents contain no timestamp, so reruns with identical
-inputs produce byte-identical output.
+the target revision. The template path, hash, and language are also recorded
+and the template participates in the provenance inputs. Documents contain no
+timestamp, so reruns with identical inputs produce byte-identical output.
 
 The instruction manual derives sections from graph declarations: firmware actions
 control capability text, pin assignments control wiring and flashing details,

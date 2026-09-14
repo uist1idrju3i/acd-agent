@@ -180,6 +180,77 @@ def test_run_projection_docs_surfaces_generator_stderr(
         )
 
 
+def test_run_projection_docs_generates_two_language_trees(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = (
+        _inputs(tmp_path)
+    )
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        projection_docs,
+        "collect_visual_projection_sets",
+        _projection_collector(out_root),
+    )
+    result = run_projection_docs(
+        repository,
+        graph_path=graph_path,
+        out_root=out_root,
+        board_out=board_out,
+        firmware_out=firmware_out,
+        output=output,
+        enclosure_out=enclosure_out,
+        languages=("ja", "en"),
+        runner=_runner_factory(calls),
+    )
+    assert len(result.documents) == 20
+    assert {document.language for document in result.documents} == {"ja", "en"}
+    assert result.provenance["languages"] == ["ja", "en"]
+    for language in ("ja", "en"):
+        root = output if language == "ja" else output / language
+        assert (root / "review-package.json").is_file()
+        assert (root / "review-package.json.provenance.json").is_file()
+    assert any(
+        "--lang" in command
+        and command[command.index("--lang") + 1] == "en"
+        and command[command.index("--out-dir") + 1] == str(output / "en")
+        for command in calls
+    )
+    hashes = (output / "hashes.json").read_text(encoding="utf-8")
+    assert "en/review-package.json" in hashes
+
+
+@pytest.mark.parametrize(
+    ("languages", "message"),
+    [
+        ((), "at least one"),
+        (("fr",), "unsupported"),
+        (("ja", "ja"), "duplicate"),
+    ],
+)
+def test_run_projection_docs_rejects_invalid_languages(
+    tmp_path: Path,
+    languages: tuple[str, ...],
+    message: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = (
+        _inputs(tmp_path)
+    )
+    with pytest.raises(ProjectionDocsError, match=message):
+        run_projection_docs(
+            repository,
+            graph_path=graph_path,
+            out_root=out_root,
+            board_out=board_out,
+            firmware_out=firmware_out,
+            output=output,
+            enclosure_out=enclosure_out,
+            languages=languages,
+            runner=_runner_factory([]),
+        )
+
+
 @pytest.mark.parametrize("count", [0, 2])
 def test_run_projection_docs_requires_one_pins_header(
     tmp_path: Path, count: int, monkeypatch: pytest.MonkeyPatch

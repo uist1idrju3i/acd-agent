@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -26,15 +27,25 @@ from acd.schema.design_graph import DesignGraph
 from doc_inputs import (
     DocumentGenerationError,
     DocumentInput,
+    DocumentTemplate,
     load_graph,
+    load_template,
     sha256_file,
     write_document,
 )
 from generate_instruction_manual import parse_pins_header
 
-TEMPLATE_ID = "acd-interface-spec-ja-v1"
 DOCUMENT_NAME = "interface-spec.md"
 JSON_DOCUMENT_NAME = "interface-spec.json"
+
+_TEMPLATE: ContextVar[DocumentTemplate | None] = ContextVar(
+    "interface_spec_template", default=None
+)
+
+
+def t(key: str, **values: object) -> str:
+    template = _TEMPLATE.get() or load_template("ja")
+    return template.t(key, **values)
 
 _UNKNOWN_TRANSPORT_REASON = (
     "UART parameters (baud rate, framing) are not declared in the graph or "
@@ -341,8 +352,11 @@ def build_interface_spec(
     }
 
 
-def render_markdown(spec: dict[str, object]) -> str:
+def render_markdown(
+    spec: dict[str, object], *, template: DocumentTemplate | None = None
+) -> str:
     """Render the Japanese Markdown body from the same spec data."""
+    _TEMPLATE.set(template or load_template("ja"))
     gpio_rows = cast(list[dict[str, object]], spec["gpio_assignments"])
     devices = cast(list[dict[str, object]], spec["i2c_devices"])
     uart = cast(dict[str, object], spec["uart_log"])
@@ -350,28 +364,26 @@ def render_markdown(spec: dict[str, object]) -> str:
     unknown_fields = cast(list[object], spec["unknown_fields"])
 
     lines = [
-        f"# 機器インターフェース仕様: {spec['graph_id']}",
+        f"{t('interface.literal_014')}{spec['graph_id']}",
         "",
         f"- Design Graph: `{spec['graph_id']}`",
         f"- revision: `{spec['target_revision']}`",
         "",
-        "この文書はDesign Graph・FWピン投影（`acd_pins.h`）・firmware config reportから"
-        "決定論的に生成されたL3観測であり、合否判定のEvidenceではない。"
-        "記載値はすべて入力由来で、推定値を含まない。",
+        t("interface.literal_015") + t("interface.literal_016") + t("interface.literal_017"),
         "",
-        "## GPIO割当表",
+        t("interface.literal_018"),
         "",
-        "| net | GPIO | node | 出所 |",
+        t("interface.literal_019"),
         "|---|---|---|---|",
     ]
     for row in gpio_rows:
         lines.append(
             f"| {row['net']} | IO{row['gpio']} | `{row['node_id']}` | {row['source']} |"
         )
-    lines += ["", "## I2Cアドレス表", ""]
+    lines += ["", t("interface.literal_020"), ""]
     if devices:
         lines += [
-            "| driver | MPN | I2Cアドレス | 出所 |",
+            t("interface.literal_021"),
             "|---|---|---|---|",
         ]
         for row in devices:
@@ -380,16 +392,16 @@ def render_markdown(spec: dict[str, object]) -> str:
                 f"| {row['source']} |"
             )
     else:
-        lines.append("I2Cデバイスは宣言されていない。")
+        lines.append(t("interface.literal_022"))
     uart_lines = cast(list[dict[str, object]], uart["lines"])
     uart_transport = cast(dict[str, object], uart["transport"])
     lines += [
         "",
-        "## UARTログ形式",
+        t("interface.literal_023"),
         "",
         f"transport: **unknown** — {uart_transport['reason']}",
         "",
-        "| line ID | 形式 | 出力契機 | 出所 |",
+        t("interface.literal_024"),
         "|---|---|---|---|",
     ]
     for row in uart_lines:
@@ -399,18 +411,18 @@ def render_markdown(spec: dict[str, object]) -> str:
         )
     lines += [
         "",
-        "## コマンド一覧",
+        t("interface.literal_025"),
         "",
         f"**unknown** — {commands['reason']}",
         "",
-        "## 不明項目",
+        t("interface.literal_026"),
         "",
     ]
     if unknown_fields:
         for field in sorted(str(item) for item in unknown_fields):
             lines.append(f"- `{field}`")
     else:
-        lines.append("不明項目はない。")
+        lines.append(t("interface.literal_027"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
@@ -432,16 +444,19 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     )
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--base-dir", type=Path, default=Path.cwd())
+    parser.add_argument("--lang", choices=("ja", "en"), default="ja")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    template = load_template(args.lang)
     graph, graph_input = load_graph(args.graph)
     macros = parse_pins_header(args.pins_header)
     report = load_firmware_config_report(args.firmware_config_report)
     spec = build_interface_spec(graph, report, macros)
-    body = render_markdown(spec)
+    body = render_markdown(spec, template=template)
+    output_dir = args.out_dir if args.lang == "ja" else args.out_dir / args.lang
     inputs: list[DocumentInput] = [
         graph_input,
         DocumentInput(path=args.pins_header, content_hash=sha256_file(args.pins_header)),
@@ -453,13 +468,14 @@ def main(argv: list[str] | None = None) -> int:
     document_path, provenance_path = write_document(
         document_kind="interface_spec",
         body=body,
-        out_dir=args.out_dir,
+        out_dir=output_dir,
         document_name=DOCUMENT_NAME,
-        template_id=TEMPLATE_ID,
+        template_id=f"acd-interface-spec-{args.lang}-v1",
         generator=Path(__file__).resolve(),
         graph=graph,
         inputs=inputs,
         base_dir=args.base_dir,
+        template=template,
     )
     json_body = (
         json.dumps(spec, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
@@ -467,13 +483,14 @@ def main(argv: list[str] | None = None) -> int:
     json_document_path, json_provenance_path = write_document(
         document_kind="interface_spec_json",
         body=json_body,
-        out_dir=args.out_dir,
+        out_dir=output_dir,
         document_name=JSON_DOCUMENT_NAME,
-        template_id=TEMPLATE_ID,
+        template_id=f"acd-interface-spec-{args.lang}-v1",
         generator=Path(__file__).resolve(),
         graph=graph,
         inputs=inputs,
         base_dir=args.base_dir,
+        template=template,
     )
     print(f"generated {document_path}")
     print(f"provenance {provenance_path}")

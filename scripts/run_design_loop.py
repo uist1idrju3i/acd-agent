@@ -34,6 +34,14 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help="optional previous graph JSON for review-package graph diff",
     )
+    parser.add_argument(
+        "--doc-lang",
+        choices=("ja", "en"),
+        action="append",
+        dest="document_languages",
+        default=None,
+        help="document output language; repeat to generate multiple languages",
+    )
     parser.add_argument("--order-total", type=Path, default=None)
     parser.add_argument(
         "--quote-record",
@@ -173,6 +181,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             requirement=args.requirement,
             fixture_spec=args.fixture_spec,
             previous_graph_path=args.previous_graph,
+            document_languages=tuple(args.document_languages or ("ja",)),
         )
     except Exception as exc:
         result = {

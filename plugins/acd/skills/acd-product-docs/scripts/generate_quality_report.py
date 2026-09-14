@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,11 +34,13 @@ from doc_inputs import (
     DfmReport,
     DocumentGenerationError,
     DocumentInput,
+    DocumentTemplate,
     PredicateObservation,
     load_design_predicates,
     load_dfm_report,
     load_graph,
     load_json_object,
+    load_template,
     nodes_of_kind,
     relative_path,
     require_list,
@@ -48,10 +51,18 @@ from doc_inputs import (
     write_document,
 )
 
-TEMPLATE_ID = "acd-quality-report-ja-v1"
 DOCUMENT_NAME = "inspection-report.md"
 TRACEABILITY_DOCUMENT_NAME = "traceability-report.md"
 JSON_DOCUMENT_NAME = "quality-report.json"
+
+_TEMPLATE: ContextVar[DocumentTemplate | None] = ContextVar(
+    "quality_report_template", default=None
+)
+
+
+def t(key: str, **values: object) -> str:
+    template = _TEMPLATE.get() or load_template("ja")
+    return template.t(key, **values)
 
 DEFAULT_REQUIRED_LANES = ("electrical", "mechanical", "firmware")
 
@@ -179,7 +190,7 @@ def _guard_graph_references(
 
 def _claims_table(lane: LaneEvidence) -> list[str]:
     lines = [
-        "| 対象ノード | 属性 | 値 | verified |",
+        t("quality.literal_032"),
         "|---|---|---|---|",
     ]
     for claim in lane.evidence.claims:
@@ -198,18 +209,17 @@ def _render_inspection(
     dfm: DfmReport,
     base_dir: Path,
 ) -> str:
-    """Render the inspection report (検査成績書) Markdown body."""
+    """Render the inspection report () Markdown body."""
     lane_map = {lane.lane: lane for lane in lanes}
     lines = [
-        f"# 検査成績書: {graph.graph_id}",
+        f"{t('quality.literal_026')}{graph.graph_id}",
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        "この文書はauthoritative Evidenceと決定論的観測から生成されたL3観測であり、"
-        "合否判定のEvidenceではない。",
+        t("quality.literal_033") + t("quality.literal_034"),
         "",
-        "## Evidence一覧",
+        t("quality.literal_035"),
         "",
         "| lane | evidence_id | status | tool | context | image digest | source_revision |",
         "|---|---|---|---|---|---|---|",
@@ -223,11 +233,11 @@ def _render_inspection(
             f"| {envelope.execution_context} | `{digest}` | "
             f"{envelope.source_revision or 'unknown'} |"
         )
-    lines += ["", "## ゲート結果", ""]
+    lines += ["", t("quality.literal_036"), ""]
 
     if "electrical" in lane_map:
-        lines += ["### 電気", "", *_claims_table(lane_map["electrical"]), ""]
-    lines += ["### 設計predicate", "", "| name | stage | status | detail |", "|---|---|---|---|"]
+        lines += [t("quality.literal_037"), "", *_claims_table(lane_map["electrical"]), ""]
+    lines += [t("quality.literal_038"), "", "| name | stage | status | detail |", "|---|---|---|---|"]
     for item in predicates.predicates:
         lines.append(
             f"| {item.name} | {item.evaluation_stage} | {item.status} | {item.detail} |"
@@ -238,7 +248,7 @@ def _render_inspection(
         "",
         f"- status: `{dfm.status}`",
         f"- profile_id: `{dfm.profile_id}`",
-        f"- findings: {len(dfm.findings)} 件",
+        f"- findings: {len(dfm.findings)}{t('quality.literal_027')}",
     ]
     for finding in dfm.findings:
         lines.append(f"  - {finding.rule_id}: {finding.message}")
@@ -248,7 +258,7 @@ def _render_inspection(
             lines.append(f"  - `{key}`: {dfm.unknowns[key]}")
     lines.append("")
     if "mechanical" in lane_map:
-        lines += ["### 機械", "", *_claims_table(lane_map["mechanical"]), ""]
+        lines += [t("quality.literal_039"), "", *_claims_table(lane_map["mechanical"]), ""]
     if "firmware" in lane_map:
         lines += ["### FW", "", *_claims_table(lane_map["firmware"])]
         if any(
@@ -256,8 +266,7 @@ def _render_inspection(
             for claim in lane_map["firmware"].evidence.claims
         ):
             lines.append(
-                "\n`measurement_class: virtual`はQEMU上の仮想検証であり、"
-                "実機Evidenceではない。"
+                t("quality.literal_040") + t("quality.literal_041")
             )
         lines.append("")
 
@@ -279,12 +288,12 @@ def _render_inspection(
             f"| {len(report.unclassified)} | {len(report.templated)} "
             f"| {len(report.generator_violations)} |"
         )
-    lines += ["", "## 既知の未実装チェック", ""]
+    lines += ["", t("quality.literal_042"), ""]
     if dfm.checks_not_implemented:
         for check in dfm.checks_not_implemented:
             lines.append(f"- `{check.rule_id}`: {check.message}")
     else:
-        lines.append("なし。")
+        lines.append(t("quality.literal_043"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
@@ -381,13 +390,12 @@ def _render_traceability(
 ) -> str:
     """Render the traceability report Markdown body."""
     lines = [
-        f"# トレーサビリティ報告書: {graph.graph_id}",
+        f"{t('quality.literal_028')}{graph.graph_id}",
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        "この文書はgraph・rationale record・authoritative Evidenceから生成された"
-        "L3観測であり、合否判定のEvidenceではない。",
+        t("quality.literal_044") + t("quality.literal_045"),
         "",
     ]
     for row in rows:
@@ -396,27 +404,27 @@ def _render_traceability(
             "",
             f"{row.text}",
             "",
-            "依存する設計ノード:",
+            t("quality.literal_046"),
         ]
         if row.design_nodes:
             for node_id, kind in row.design_nodes:
                 lines.append(f"- `{node_id}`（{kind}）")
         else:
-            lines.append("- なし")
-        lines += ["", "根拠record:"]
+            lines.append(t("quality.literal_047"))
+        lines += ["", t("quality.literal_048")]
         if row.rationale_records:
             for rationale_id, decision_kind, subjects in row.rationale_records:
                 lines.append(
-                    f"- `{rationale_id}`（{decision_kind}、対象: "
+                    f"- `{rationale_id}`（{decision_kind}{t('quality.literal_029')}"
                     + ", ".join(f"`{subject}`" for subject in subjects)
                     + "）"
                 )
         else:
-            lines.append("- なし")
-        lines += ["", "関連Evidence claim:"]
+            lines.append(t("quality.literal_049"))
+        lines += ["", t("quality.literal_050")]
         if row.claims:
             lines += [
-                "| lane | 対象ノード | 属性 | 値 | verified |",
+                t("quality.literal_051"),
                 "|---|---|---|---|---|",
             ]
             for lane, subject, prop, value, verified in row.claims:
@@ -424,23 +432,23 @@ def _render_traceability(
                     f"| {lane} | `{subject}` | {prop} | {value} | {verified} |"
                 )
         else:
-            lines.append("- なし")
+            lines.append(t("quality.literal_052"))
         lines.append("")
-    lines += ["## 未追跡の要求", ""]
+    lines += [t("quality.literal_053"), ""]
     if untraced:
         for requirement in untraced:
             lines.append(f"- `{requirement}`")
     else:
-        lines.append("なし。")
-    lines += ["", "## 根拠recordの被参照状況", ""]
+        lines.append(t("quality.literal_054"))
+    lines += ["", t("quality.literal_055"), ""]
     if no_requirement_records:
         lines.append(
-            f"要求を持たない根拠record: {len(no_requirement_records)} 件"
+            f"{t('quality.literal_030')}{len(no_requirement_records)}{t('quality.literal_031')}"
         )
         for rationale_id in no_requirement_records:
             lines.append(f"- `{rationale_id}`")
     else:
-        lines.append("すべての根拠recordが要求を参照する。")
+        lines.append(t("quality.literal_056"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
@@ -586,11 +594,14 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--dfm-report", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--base-dir", type=Path, default=Path.cwd())
+    parser.add_argument("--lang", choices=("ja", "en"), default="ja")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    template = load_template(args.lang)
+    _TEMPLATE.set(template)
     graph, graph_input = load_graph(args.graph)
 
     evidence_paths = {path.name: path for path in args.evidence}
@@ -689,13 +700,14 @@ def main(argv: list[str] | None = None) -> int:
         document_path, provenance_path = write_document(
             document_kind=document_kind,
             body=body,
-            out_dir=args.out_dir,
+            out_dir=args.out_dir if args.lang == "ja" else args.out_dir / args.lang,
             document_name=document_name,
-            template_id=TEMPLATE_ID,
+            template_id=f"acd-quality-report-{args.lang}-v1",
             generator=Path(__file__).resolve(),
             graph=graph,
             inputs=inputs,
             base_dir=args.base_dir,
+            template=template,
         )
         print(f"generated {document_path}")
         print(f"provenance {provenance_path}")

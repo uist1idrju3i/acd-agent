@@ -788,6 +788,16 @@ provenance、`hashes.json`への収録を要求する。`run_design_loop`とCLI�
 述語・DFM revisionの不一致や入力欠落はfail-closedで停止し、JSON本体には
 timestampを含めない。
 
+### 9.5 多言語出力の実装記録
+
+`acd-product-docs`の5 generatorに`templates/ja.json`と`templates/en.json`を
+導入し、`--lang ja|en`で日本語・英語の文書を決定論的に生成する。日本語は既存の
+`out-dir`直下、英語は`out-dir/en/`へ出力し、ラベルだけをテンプレートで切り替える。
+graph由来の値、識別子、単位、revision、hash、投影metadataは翻訳せず、そのまま記録する。
+テンプレートのpath・hash・languageを各文書のprovenanceと入力hashへ含め、同一入力の
+再生成結果を固定する。`projection-docs`と`run_design_loop`は複数言語を受け付け、
+言語ごとの文書集合と`hashes.json`を検証する。
+
 ### 20.2 graph差分投影の実装記録
 
 `acd.schema.graph_diff`の契約と`acd.core.graph_diff`の決定論的builderを追加し、
@@ -867,6 +877,7 @@ authoritative pass evidenceを生成しない。
 | 機器I/F契約投影 | 9.6（2026-09-13） |
 | 品質文書生成 | 9.3（2026-09-13） |
 | レビュー資料生成 | 9.4 |
+| 多言語出力 | 9.5 |
 | graph差分投影 | 20.2 |
 | ハーネス契約と結線検査 | 16.6（2026-09-13） |
 | 想定実使用環境の宣言contract | 16.3（2026-09-13） |

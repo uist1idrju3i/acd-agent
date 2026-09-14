@@ -219,6 +219,7 @@ class DesignLoopConfig:
     wall_clock_budget_seconds: float | None = None
     token_budget: int | None = None
     previous_graph_path: Path | None = None
+    document_languages: tuple[str, ...] = ("ja",)
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -473,6 +474,7 @@ def _run_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
             output=output,
             enclosure_out=enclosure_out,
             previous_graph_path=config.previous_graph_path,
+            languages=config.document_languages,
         )
     except ProjectionDocsError as exc:
         fields: dict[str, Any] = {"record_class": "L3"}
@@ -1199,6 +1201,7 @@ def run_design_loop(
     quote_records: Sequence[Path] | None = None,
     order_scope: Path | None = None,
     previous_graph_path: Path | None = None,
+    document_languages: Sequence[str] = ("ja",),
 ) -> dict[str, Any]:
     """Run stages in fixed order with stop-only stage-boundary budgets.
 
@@ -1359,6 +1362,7 @@ def run_design_loop(
             wall_clock_budget_seconds=wall_clock_budget_seconds,
             token_budget=token_budget,
             previous_graph_path=previous_graph_path,
+            document_languages=tuple(document_languages),
         )
         if recovery_enabled:
             recovery_declarations = load_lane_recovery_declarations()
