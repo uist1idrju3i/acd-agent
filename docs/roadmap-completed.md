@@ -1597,3 +1597,12 @@ critical netの限定的な受動bridge・indicator・silk検査、IPC-2221台�
 `net_class`を選択した。電源treeはcoreの`power_input_net`／`power_output_net`宣言を
 辿る実装であり、SVG adapter helperの直接importは行わない。IPC-2221結果は設計近似であり、
 認証適合や規制認証を主張しない。
+
+### 16.6 ハーネス契約と結線検査の実装記録
+
+`HarnessContract`をDesign Graphとは別の宣言contractとして追加し、graphのコネクタcomponent
+とnetを正本とする`netlist_consistency`、`ampacity`、`voltage_drop`、`insulation_rating`、
+`bend_radius`のopt-in gateを実装した。ハーネスSVG、切断長CSV／Markdown、provenance sidecar
+を決定論的に投影する。GD1はハーネスcontractを持たないため既存gate出力を変更しない。
+ADR-0050でL1／L3境界、off-board netのrequired rationale、測定Evidenceと将来項目の境界を
+決定した。

@@ -117,6 +117,8 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "max_temperature_rise_c",
             "routing_layer",
             "requires_protection",
+            "off_board",
+            "max_voltage_drop_v",
         }
     ),
     "electrical.stackup": frozenset({"layers", "finished_thickness_mm"}),

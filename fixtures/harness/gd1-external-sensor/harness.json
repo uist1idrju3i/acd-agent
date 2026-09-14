@@ -1,0 +1,135 @@
+{
+  "ambient_temperature_c": 25.0,
+  "artifact_kind": "harness",
+  "bundle_derating": {
+    "factor": 0.8,
+    "wires_in_bundle": 4
+  },
+  "connectors": [
+    {
+      "connector_id": "j2-board",
+      "graph_component_id": "comp.j2",
+      "housing_mpn": "EXTERNAL_SENSOR",
+      "keying": "A",
+      "terminal_mpn": "TERM-001"
+    },
+    {
+      "connector_id": "j2-mating",
+      "graph_component_id": null,
+      "housing_mpn": "EXTERNAL_SENSOR-MATE",
+      "keying": "A",
+      "terminal_mpn": "TERM-001"
+    }
+  ],
+  "graph_id": "golden-design-1",
+  "harness_id": "gd1-external-sensor",
+  "revision": "r1",
+  "routes": [
+    {
+      "min_bend_radius_mm": {
+        "w-gnd": 5.0,
+        "w-usb-dn": 5.0,
+        "w-usb-dp": 5.0,
+        "w-vbus": 5.0
+      },
+      "path_length_mm": 160.0,
+      "route_id": "route-main",
+      "wire_ids": [
+        "w-vbus",
+        "w-gnd",
+        "w-usb-dp",
+        "w-usb-dn"
+      ]
+    }
+  ],
+  "schema_version": "0.1",
+  "wire_types": [
+    {
+      "ampacity_a": 2.0,
+      "ampacity_reference_temp_c": 25.0,
+      "awg": 24,
+      "conductor": "tinned_copper",
+      "cross_section_mm2": 0.2,
+      "insulation_rating_v": 30.0,
+      "insulation_temp_c": 80.0,
+      "resistance_mohm_per_m": 50.0,
+      "temperature_derating": [
+        {
+          "factor": 1.0,
+          "temp_c": 25.0
+        },
+        {
+          "factor": 0.8,
+          "temp_c": 60.0
+        }
+      ],
+      "wire_type_id": "wt-24awg"
+    }
+  ],
+  "wires": [
+    {
+      "bend_radius_min_mm": 3.0,
+      "from": {
+        "cavity": "1",
+        "connector_id": "j2-board"
+      },
+      "length_mm": 150.0,
+      "net_id": "net.vbus_5v",
+      "slack_mm": 10.0,
+      "to": {
+        "cavity": "1",
+        "connector_id": "j2-mating"
+      },
+      "wire_id": "w-vbus",
+      "wire_type_id": "wt-24awg"
+    },
+    {
+      "bend_radius_min_mm": 3.0,
+      "from": {
+        "cavity": "2",
+        "connector_id": "j2-board"
+      },
+      "length_mm": 150.0,
+      "net_id": "net.gnd",
+      "slack_mm": 10.0,
+      "to": {
+        "cavity": "2",
+        "connector_id": "j2-mating"
+      },
+      "wire_id": "w-gnd",
+      "wire_type_id": "wt-24awg"
+    },
+    {
+      "bend_radius_min_mm": 3.0,
+      "from": {
+        "cavity": "3",
+        "connector_id": "j2-board"
+      },
+      "length_mm": 150.0,
+      "net_id": "net.usb_dp",
+      "slack_mm": 10.0,
+      "to": {
+        "cavity": "3",
+        "connector_id": "j2-mating"
+      },
+      "wire_id": "w-usb-dp",
+      "wire_type_id": "wt-24awg"
+    },
+    {
+      "bend_radius_min_mm": 3.0,
+      "from": {
+        "cavity": "4",
+        "connector_id": "j2-board"
+      },
+      "length_mm": 150.0,
+      "net_id": "net.usb_dn",
+      "slack_mm": 10.0,
+      "to": {
+        "cavity": "4",
+        "connector_id": "j2-mating"
+      },
+      "wire_id": "w-usb-dn",
+      "wire_type_id": "wt-24awg"
+    }
+  ]
+}

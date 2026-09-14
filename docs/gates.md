@@ -211,6 +211,22 @@ SVG adapterの`_power_connections()`へ依存せず、coreの構造安全性評�
 `power_input_net`／`power_output_net`宣言を決定論的に辿る。IPC-2221の式は
 外部層／内部層の経験式による近似であり、field solver、実測、認証適合の代替ではない。
 
+### 16.6 ワイヤハーネス契約（opt-in gate）
+
+ハーネスgateは、`HarnessContract`を明示的に指定した場合だけ実行する独立したL1 gateである。
+contractはgraph nodeではなく、graphのコネクタcomponentとnetを参照する。graphの
+`graph_id`／`revision`が一致しない入力はexit code 2で停止し、出力を作成しない。
+
+`netlist_consistency`はcavityとgraph pinの対応、wireのnet帰属、`off_board: true` netの
+全件収載を検査する。`ampacity`は宣言されたdatasheet ampacity、周囲温度ディレーティング、
+束線係数を掛け合わせ、`voltage_drop`はwire長・余長・return wireの抵抗を使って検査する。
+`insulation_rating`は耐圧・耐熱、`bend_radius`は宣言routeの最小曲げ半径を検査する。
+必要値が未宣言または対応が不明な場合はunknownとして停止側へ集約する。
+
+`scripts/project_harness.py`は決定論的な`harness.svg`、`cut-length-table.csv`、
+`cut-length-table.md`、provenance sidecarをL3 projectionとして生成する。図と表は判定権限を
+持たず、測定Evidence、shield、flex-cycle、mating、DFA linkageは別途実装する。
+
 ## 最小チェックリスト
 
 マイルストーン2の時点で最小限として確認する観点は次のとおりである。所見は自然文で次の修正へ渡す。

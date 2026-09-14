@@ -33,6 +33,7 @@ VisualProjectionType = Literal[
     "power_tree_view",
     "firmware_state_view",
     "firmware_sequence_view",
+    "harness_view",
     "rasterized_view",
     "mechanical_section_view",
     "mechanical_interference_view",

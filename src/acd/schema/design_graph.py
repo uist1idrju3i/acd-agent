@@ -134,6 +134,9 @@ class GraphNode(AcdModel):
             critical = self.attrs.get("critical")
             if critical is not None and not isinstance(critical, bool):
                 raise ValueError("electrical.net critical must be boolean")
+            off_board = self.attrs.get("off_board")
+            if off_board is not None and not isinstance(off_board, bool):
+                raise ValueError("electrical.net off_board must be boolean")
             intended = self.attrs.get("intended_coupling")
             if intended is not None and (
                 not isinstance(intended, list)
