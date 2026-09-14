@@ -29,13 +29,9 @@ def _proposal(tmp_path: Path, graph_path: Path = GRAPH) -> Path:
 
 def _graph_with_missing_footprint(tmp_path: Path) -> Path:
     payload = json.loads(GRAPH.read_text(encoding="utf-8"))
-    component = next(
-        node
-        for node in payload["nodes"]
-        if node["kind"] == "electrical.component"
-        and node["id"] == "comp.c3"
-    )
-    component["attrs"]["footprint_file"] = "/definitely/missing/decoupling.kicad_mod"
+    for node in payload["nodes"]:
+        if node["kind"] == "electrical.component" and node["id"] in {"comp.c3", "comp.u2"}:
+            node["attrs"]["footprint_file"] = "/definitely/missing/decoupling.kicad_mod"
     path = tmp_path / "graph-missing-footprint.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
