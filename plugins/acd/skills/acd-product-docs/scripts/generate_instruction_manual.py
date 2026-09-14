@@ -338,14 +338,19 @@ def _operation_section(
 ) -> list[str]:
     firmware = extract_firmware_lane(graph)
     if not any(step.action == "read_button" for step in firmware.sequence_steps):
-        omissions.append(Omission(t("manual.operation_label"), t("manual.operation_section")))
+        omissions.append(
+            Omission(
+                t("manual.operation_label"),
+                t("manual.operation_omitted_sentence"),
+            )
+        )
         return []
     button = _required_macro_int(
         macros,
         "ACD_PIN_BUTTON",
         because="read_button step",
     )
-    lines = [t("manual.operation_omitted"), ""]
+    lines = [t("manual.operation_heading"), ""]
     for transition in sorted(firmware.transitions, key=lambda item: item.node_id):
         if transition.trigger == "button_pressed":
             lines.append(
@@ -374,7 +379,7 @@ def _flashing_section(
     )
     if mcu is None:
         raise DocumentGenerationError("MCU component is missing from the graph")
-    lines = [t("manual.operation_heading"), ""]
+    lines = [t("manual.flash_heading"), ""]
     step = 1
     usb = _pin_pair(
         firmware,
