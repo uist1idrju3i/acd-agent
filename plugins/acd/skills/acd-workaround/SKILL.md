@@ -28,6 +28,12 @@ The Skill turns an eligible defect record into a deterministic candidate set:
 | `propose_workaround.py` | Writes `workaround-candidates.json` with firmware-only, rework-only, and combined strategy entries. |
 | `check_workaround.py` | Checks an agent-completed candidate and writes the observed `workaround-evaluation.json`. |
 
+The reusable library is also available as a pinned PEP 723 script:
+
+```bash
+uv run --script plugins/acd/skills/acd-workaround/scripts/workaround.py
+```
+
 ## Propose, complete, check
 
 Run proposal generation against the graph and defect document:
