@@ -1584,3 +1584,16 @@ UseEnvironmentのWCA／derating消費はroadmap 10.6に委ね、reliability-revi
 部品本体keepoutを決定論的に検査する。GD1ではTP1〜TP7の実際の接続を導出し、
 未接続の`VBUS_5V`を含む不足ネットをfailとして記録する。配置、径、面、部品本体の情報が
 欠落する場合はunknownへ倒し、既定のGD1 predicate、Evidence、認証権限は変更しない。
+
+### 16.5 構造安全性述語の実装記録
+
+`functional-block-registry.json`へ5つの任意適用contractを追加し、
+`single_point_of_failure`、`protection_selectivity`、`signal_class_segregation`、
+`sneak_path`、`trapezoid_current_capacity`を`pre_router` catalogへ統合した。
+冗長memberの共有資源、宣言された電源treeの保護選択性、connector／配置の信号クラス隔離、
+critical netの限定的な受動bridge・indicator・silk検査、IPC-2221台形断面近似を
+決定論的に評価する。適用範囲はfunctional-block declarationで制御し、未宣言範囲は
+`unknown`として停止側へ集約する。`safety.redundant_group`のrationale decision kindは
+`net_class`を選択した。電源treeはcoreの`power_input_net`／`power_output_net`宣言を
+辿る実装であり、SVG adapter helperの直接importは行わない。IPC-2221結果は設計近似であり、
+認証適合や規制認証を主張しない。

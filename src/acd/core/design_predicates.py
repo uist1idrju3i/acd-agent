@@ -44,6 +44,11 @@ PREDICATE_CATALOG = (
     "led_series_element",
     "differential_pair",
     "impedance_geometry",
+    "single_point_of_failure",
+    "protection_selectivity",
+    "signal_class_segregation",
+    "sneak_path",
+    "trapezoid_current_capacity",
 )
 OPT_IN_PREDICATES = frozenset({"differential_pair", "impedance_geometry"})
 
@@ -1289,6 +1294,27 @@ def evaluate_design_predicates(
         "differential_pair": lambda: evaluate_differential_pair(graph, lane),
         "impedance_geometry": lambda: evaluate_impedance_geometry(graph, lane),
     }
+    from acd.core.structural_safety import (
+        evaluate_protection_selectivity,
+        evaluate_signal_class_segregation,
+        evaluate_single_point_of_failure,
+        evaluate_sneak_path,
+        evaluate_trapezoid_current_capacity,
+    )
+
+    evaluators.update(
+        {
+            "single_point_of_failure": lambda: evaluate_single_point_of_failure(graph, lane),
+            "protection_selectivity": lambda: evaluate_protection_selectivity(graph, lane),
+            "signal_class_segregation": lambda: evaluate_signal_class_segregation(
+                graph, lane
+            ),
+            "sneak_path": lambda: evaluate_sneak_path(graph, lane),
+            "trapezoid_current_capacity": lambda: evaluate_trapezoid_current_capacity(
+                graph, lane
+            ),
+        }
+    )
     declared_text = ", ".join(declared)
     results = tuple(
         evaluators[name]()

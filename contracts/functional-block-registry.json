@@ -67,6 +67,46 @@
       "allowed_change_dimensions": [],
       "mandatory": false,
       "required_predicates": ["differential_pair", "impedance_geometry"]
+    },
+    {
+      "block_id": "redundant_path_independence",
+      "title": "Redundant path independence",
+      "description": "Checks declared redundant members for forbidden shared single-point resources.",
+      "allowed_change_dimensions": [],
+      "mandatory": false,
+      "required_predicates": ["single_point_of_failure"]
+    },
+    {
+      "block_id": "protection_selectivity",
+      "title": "Protection selectivity",
+      "description": "Checks declared power-tree protection ordering and containment.",
+      "allowed_change_dimensions": [],
+      "mandatory": false,
+      "required_predicates": ["protection_selectivity"]
+    },
+    {
+      "block_id": "signal_class_segregation",
+      "title": "Signal-class segregation",
+      "description": "Checks incompatible signal classes at connectors and across placement boundaries.",
+      "allowed_change_dimensions": [],
+      "mandatory": false,
+      "required_predicates": ["signal_class_segregation"]
+    },
+    {
+      "block_id": "critical_sneak_path",
+      "title": "Critical sneak path",
+      "description": "Checks declared critical nets for unintended passive, indicator, and labeling paths.",
+      "allowed_change_dimensions": [],
+      "mandatory": false,
+      "required_predicates": ["sneak_path"]
+    },
+    {
+      "block_id": "conductor_current_capacity",
+      "title": "Conductor current capacity",
+      "description": "Checks IPC-2221 capacity using declared trapezoidal conductor geometry.",
+      "allowed_change_dimensions": [],
+      "mandatory": false,
+      "required_predicates": ["trapezoid_current_capacity"]
     }
   ]
 }

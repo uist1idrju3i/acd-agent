@@ -191,6 +191,26 @@ policyとgraphの`graph_id`／`revision`不一致や入力不正は入力エラ�
 GD1の既定`PREDICATE_CATALOG`、既存Evidence、既定認証判定を変更しない。テストポイント
 カバレッジの判定は製造・検査工程の設計入力であり、認証適合を主張するものではない。
 
+### 16.5 構造安全性述語
+
+構造安全性は`functional-block-registry.json`で適用範囲を宣言する
+`pre_router`設計述語である。registryの契約は次の5つである。
+
+| functional block | predicate | 検査対象 |
+|---|---|---|
+| `redundant_path_independence` | `single_point_of_failure` | 冗長member間のコネクタ、電源bus、IC、熱経路、保護素子の共有 |
+| `protection_selectivity` | `protection_selectivity` | 電源treeの上流／下流保護素子のtrip値と保護要求 |
+| `signal_class_segregation` | `signal_class_segregation` | 信号クラス、同一connectorの非互換pin、SELVとの配置距離 |
+| `critical_sneak_path` | `sneak_path` | critical netの受動素子bridge、indicator state、connector silk |
+| `conductor_current_capacity` | `trapezoid_current_capacity` | IPC-2221台形断面の導体許容電流 |
+
+宣言のない範囲は`unknown`として停止側へ集約し、認証適合や規制認証の判定は行わない。
+`safety.redundant_group`の`members`と`resources_shared_forbidden`は
+`net_class` decision kindとしてrationaleを要求する。保護選択性の電源treeは、
+SVG adapterの`_power_connections()`へ依存せず、coreの構造安全性評価で
+`power_input_net`／`power_output_net`宣言を決定論的に辿る。IPC-2221の式は
+外部層／内部層の経験式による近似であり、field solver、実測、認証適合の代替ではない。
+
 ## 最小チェックリスト
 
 マイルストーン2の時点で最小限として確認する観点は次のとおりである。所見は自然文で次の修正へ渡す。

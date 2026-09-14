@@ -97,6 +97,7 @@ def _decision_kind(kind: str) -> DecisionKind:
         "mechanical.board_edge_overhang": "mechanical",
         "mechanical.enclosure": "mechanical",
         "safety.boundary": "safety_scope",
+        "safety.redundant_group": "net_class",
         "mechanical.silk_text": "silkscreen",
         "mechanical.silk_graphic": "silkscreen",
         "fab.order_intent": "fab_process",

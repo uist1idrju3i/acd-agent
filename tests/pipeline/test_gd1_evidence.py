@@ -10,7 +10,7 @@ from typing import Literal
 import pytest
 
 from acd.adapters.kicad.gates import GateError
-from acd.core.design_predicates import PredicateResult
+from acd.core.design_predicates import PREDICATE_CATALOG, PredicateResult
 from acd.core.functional_blocks import load_functional_block_registry
 from acd.pipeline.gd1_board import build_electrical_evidence
 from acd.schema.evidence import Evidence
@@ -78,15 +78,7 @@ def _declared_blocks() -> tuple[str, ...]:
 def _passing_predicates() -> tuple[PredicateResult, ...]:
     return tuple(
         PredicateResult(name=name, status="pass", detail="ok")
-        for name in (
-            "usb_cc",
-            "i2c_pullup",
-            "strapping_pin",
-            "pin_firmware_alignment",
-            "power_decoupling",
-            "power_boundary",
-            "led_series_element",
-        )
+        for name in PREDICATE_CATALOG
     )
 
 
@@ -166,18 +158,7 @@ def test_incomplete_design_predicates_fail_closed(
 
 
 def test_design_predicate_claims_are_recorded_in_fixed_order() -> None:
-    predicates = tuple(
-        PredicateResult(name=name, status="pass", detail="ok")
-        for name in (
-            "usb_cc",
-            "i2c_pullup",
-            "strapping_pin",
-            "pin_firmware_alignment",
-            "power_decoupling",
-            "power_boundary",
-            "led_series_element",
-        )
-    )
+    predicates = _passing_predicates()
     evidence = build_electrical_evidence(
         revision="r3",
         subject_node="board.gd1",
@@ -213,15 +194,7 @@ def test_nonpassing_design_predicate_status_fails_closed(
             status=status if name == "i2c_pullup" else "pass",
             detail="not verified" if name == "i2c_pullup" else "ok",
         )
-        for name in (
-            "usb_cc",
-            "i2c_pullup",
-            "strapping_pin",
-            "pin_firmware_alignment",
-            "power_decoupling",
-            "power_boundary",
-            "led_series_element",
-        )
+        for name in PREDICATE_CATALOG
     )
     with pytest.raises(GateError, match="i2c_pullup"):
         build_electrical_evidence(
@@ -246,18 +219,36 @@ def test_not_applicable_predicates_are_omitted_from_verified_claims() -> None:
     predicates = tuple(
         PredicateResult(
             name=name,
-            status="not_applicable" if name in {"usb_cc", "i2c_pullup"} else "pass",
-            detail="not required" if name in {"usb_cc", "i2c_pullup"} else "ok",
+            status="not_applicable"
+            if name
+            in {
+                "usb_cc",
+                "i2c_pullup",
+                "differential_pair",
+                "impedance_geometry",
+                "single_point_of_failure",
+                "protection_selectivity",
+                "signal_class_segregation",
+                "sneak_path",
+                "trapezoid_current_capacity",
+            }
+            else "pass",
+            detail="not required"
+            if name
+            in {
+                "usb_cc",
+                "i2c_pullup",
+                "differential_pair",
+                "impedance_geometry",
+                "single_point_of_failure",
+                "protection_selectivity",
+                "signal_class_segregation",
+                "sneak_path",
+                "trapezoid_current_capacity",
+            }
+            else "ok",
         )
-        for name in (
-            "usb_cc",
-            "i2c_pullup",
-            "strapping_pin",
-            "pin_firmware_alignment",
-            "power_decoupling",
-            "power_boundary",
-            "led_series_element",
-        )
+        for name in PREDICATE_CATALOG
     )
     evidence = build_electrical_evidence(
         revision="r3",
@@ -278,6 +269,7 @@ def test_not_applicable_predicates_are_omitted_from_verified_claims() -> None:
     properties = {claim.property for claim in evidence.claims}
     assert "usb_cc" not in properties
     assert "i2c_pullup" not in properties
+    assert "single_point_of_failure" not in properties
     assert "functional_block_contract" in properties
     assert "declared_functional_blocks" in properties
 

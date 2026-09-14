@@ -83,6 +83,13 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "led_drive_net",
             "led_series_net",
             "esd_protection",
+            "protection_role",
+            "trip_current_a",
+            "power_input_net",
+            "power_output_net",
+            "protects_component_id",
+            "thermal_path_id",
+            "indicator_state_label",
         }
     ),
     "electrical.placement_group": frozenset(),
@@ -102,9 +109,20 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "impedance_trace_width_mm",
             "impedance_gap_mm",
             "impedance_routing_layer",
+            "signal_class",
+            "critical",
+            "intended_coupling",
+            "min_trace_width_mm",
+            "trace_width_mm",
+            "max_temperature_rise_c",
+            "routing_layer",
+            "requires_protection",
         }
     ),
     "electrical.stackup": frozenset({"layers", "finished_thickness_mm"}),
+    "safety.redundant_group": frozenset(
+        {"members", "resources_shared_forbidden"}
+    ),
     "fab.order_intent": frozenset(
         {
             "fab_profile",
@@ -309,6 +327,10 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "width_basis_source": (
             "Trace-width basis metadata identifies the source of the width calculation."
         ),
+        "copper_um": "Board copper thickness is a manufacturing stackup input.",
+        "etch_factor": (
+            "Etch factor is a fabrication-profile input to the conductor capacity calculation."
+        ),
     },
     "electrical.component": {
         "library_ref": "inline library reference provenance.",
@@ -412,11 +434,20 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "symbol_sha256": "Symbol hash is provenance metadata for the library artifact.",
         "symbol_source": "Symbol source identifies the library provenance.",
         "symbol_source_ref": "Symbol source reference identifies the library provenance.",
+        "power_input_net": (
+            "Power input net identifies the declared power-tree connectivity."
+        ),
+        "power_output_net": (
+            "Power output net identifies the declared power-tree connectivity."
+        ),
     },
     "electrical.net": {
         "name": "Net name is an identifier used by the connectivity model.",
         "width_basis_source": (
             "Trace-width basis metadata identifies the source of the width calculation."
+        ),
+        "routing_layer": (
+            "Routing layer identifies the declared conductor geometry source."
         ),
     },
     "fab.order_intent": {
@@ -513,6 +544,9 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
             "Placement source reference identifies the silkscreen procedure version."
         ),
         "role": "Text role is an identifier for the declared label.",
+        "label": (
+            "Silkscreen label is a human-readable connector identification declaration."
+        ),
     },
     "requirement": {
         "text": "Requirement text is the primary requirement fact used as rationale evidence.",
@@ -527,7 +561,12 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         "motor_actuator_laser": (
             "Actuator exclusion is a dependent safety flag justified by the safety-scope decision."
         ),
+        "min_segregation_mm": (
+            "The segregation threshold is a declared safety-boundary input for "
+            "the structural signal-class predicate."
+        ),
     },
+    "safety.redundant_group": {},
 }
 
 

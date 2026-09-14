@@ -62,6 +62,7 @@ _BLOCK_OMIT_KINDS = frozenset(
         "design.functional_block",
         # Responsibility-allocation declarations are not system blocks.
         "design.responsibility",
+        "safety.redundant_group",
         "electrical.placement_group",
         # Stackup declarations are electrical contracts, not system blocks.
         "electrical.stackup",
