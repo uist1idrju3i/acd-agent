@@ -36,6 +36,7 @@ always emitted verbatim.
 | `generate_instruction_manual.py` | Renders the instruction manual from the graph and the `acd_pins.h` pin projection. |
 | `generate_interface_spec.py` | Projects the device interface contract (GPIO table, I2C address table, UART log lines, command list) as `interface-spec.md` and `interface-spec.json` from the graph, `acd_pins.h`, and `firmware-config-report.json`. Undeclared aspects are marked `unknown`. |
 | `generate_shipping_inspection.py` | Projects the L3 shipping inspection document (`shipping-inspection.md` and `shipping-inspection.json`) from the graph, `acd_pins.h`, and `firmware-config-report.json`. Criteria come only from graph attributes, gate thresholds, or firmware projections; unavailable criteria are emitted as `unknown` for human decision. |
+| `generate_work_instruction.py` | Projects a fail-closed L3 workaround work instruction, required parts/tools, ordered rework and firmware steps, graph-diff highlight, and post-work inspection from a salvageable 13.3 result. |
 | `generate_quality_report.py` | Projects the inspection report, traceability report, and machine-readable `quality-report.json` from authoritative lane Evidence, rationale coverage reports, design-predicate observations, the DFM report, and the fixture rationale. Non-authoritative Evidence or any revision/graph mismatch fails closed. |
 | `generate_review_package.py` | Projects `review-package.md`, `review-package.json`, and `graph-diff.json` from the graph, recorded visual projections, design predicates, DFM observations, and an explicitly declared previous revision. The graph diff contract is defined by `acd.schema.graph_diff`; the package is L3 with no authority. |
 | `generate_idea_allocation_docs.py` | Projects the idea record (`idea-record.md`), the rough estimate (`rough-estimate.md`/`.json`), the responsibility allocation (`responsibility-allocation.md`/`.json`), and a cross-domain block diagram SVG from the graph, idea record, estimate catalog, and responsibility declaration. Declaration/idea mismatches fail closed; a failing responsibility gate still renders with its findings. |
@@ -73,6 +74,17 @@ uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_interface_s
 # Shipping inspection document (JSON + Markdown).
 uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_shipping_inspection.py \
     --graph fixtures/golden-design-1/graph.json \
+    --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
+    --firmware-config-report out/gd1-fw/firmware-config-report.json \
+    --out-dir out/docs
+
+# Workaround work instruction and post-work inspection (JSON + Markdown).
+uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_work_instruction.py \
+    --graph fixtures/golden-design-1/graph.json \
+    --defects fixtures/defect/sample/defects.json \
+    --rework fixtures/rework/sample/rework.json \
+    --dfa fixtures/rework/sample/rework-dfa.json \
+    --salvage-dir out/workaround \
     --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
     --firmware-config-report out/gd1-fw/firmware-config-report.json \
     --out-dir out/docs

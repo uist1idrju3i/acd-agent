@@ -322,6 +322,14 @@ from acd.schema.visual_projection import (
     VisualVisionObservation,
     VisualVisionToolEvent,
 )
+from acd.schema.work_instruction import (
+    PostWorkInspection,
+    RequiredPart,
+    RequiredTool,
+    TargetUnits,
+    WorkInstructionDocument,
+    WorkStep,
+)
 from acd.schema.workaround import (
     SkillProvenance,
     WorkaroundCandidate,
@@ -498,6 +506,7 @@ __all__ = [
     "PhysicalEvidence",
     "PostOrderJournalEntry",
     "PostOrderJournalEntryBody",
+    "PostWorkInspection",
     "PreOrderGateRecord",
     "PreOrderGateRecordBody",
     "PreOrderJournalEntry",
@@ -532,6 +541,8 @@ __all__ = [
     "ReconciliationStatus",
     "RejectedAlternative",
     "ReproductionCondition",
+    "RequiredPart",
+    "RequiredTool",
     "RequirementDocument",
     "RequirementRecord",
     "ResponsibilityCriterion",
@@ -563,6 +574,7 @@ __all__ = [
     "ShipmentManifestReference",
     "ShippingInspectionDocument",
     "SkillProvenance",
+    "TargetUnits",
     "ToolEnvelope",
     "TopologyTemplate",
     "TopologyTemplateComponent",
@@ -587,6 +599,8 @@ __all__ = [
     "VisualReviewRequirement",
     "VisualVisionObservation",
     "VisualVisionToolEvent",
+    "WorkInstructionDocument",
+    "WorkStep",
     "WorkaroundCandidate",
     "WorkaroundCandidateId",
     "WorkaroundEvaluation",

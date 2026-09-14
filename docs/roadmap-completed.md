@@ -1464,6 +1464,16 @@ testで固定した。宣言のgraph ID／revision不一致、idea recordに無�
 一部だけ存在する場合は欠落pathを列挙してfail-closedに停止し、無い場合は
 `idea_allocation_docs: "not_declared"`をstage summaryへ記録する。
 
+### 13.5 作業指示書・検査手順生成の実装記録
+
+`acd-product-docs` Skillへ`generate_work_instruction.py`を追加し、13.1の不具合記録、
+13.2のrework差分、13.3のDFA・救済gate結果・派生graphをfail-closedに検証する。
+対象個体、交換部品、DFA評価、宣言順の作業手順、firmware変更、graph-diff SVGを
+`work-instruction.md`／`work-instruction.json`とprovenanceへ記録する。検査項目は
+18.4の出荷検査builderを派生graphへ再利用し、変更対象と電源項目だけを残す。
+firmware投影がbase revisionの場合はunknownとして理由を記録し、制約付き救済では
+全機能を復元しない旨を明示する。文書はL3観測であり、承認権限を持たない。
+
 ### 18.4 出荷検査文書生成SKILLの実装記録
 
 `acd-product-docs` Skillへ`generate_shipping_inspection.py`を追加し、graph、
