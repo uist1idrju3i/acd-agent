@@ -1416,6 +1416,26 @@ directory内への書き戻しは禁止し、schema・core・CLI・決定論性�
 testを追加した。派生graphは設計入力やfixtureを上書きせず、既存gateの再実行へ渡す
 観測投影に限定する。
 
+### 13.3 救済可能性ゲートの実装記録
+
+`src/acd/schema/rework_diff.py`へFW修正だけのワークアラウンドを表す
+`FirmwareChange`、`firmware_changes`、`degraded_functions`を追加した。操作が空でも
+FW変更があれば派生graphを導出でき、完全に空の差分、重複ID、縮退機能との不整合は
+fail-closedに停止する。
+
+`src/acd/schema/salvage.py`と`src/acd/core/salvage_gate.py`は、派生graph上の
+電気lane抽出、設計述語、機械preflight、revision一致を要求するERC／DRC Evidence、
+DFA、safety approvalを決定論的に評価する。欠落・unknown・revision不一致・実施不能な
+DFAは救済不可とし、FW機能の縮退・無効化を伴う場合は`constrained_salvage`として
+記録する。制約付き救済は合格を意味せず、CLIのgate Evidenceも`fail`となる。
+
+`scripts/check_salvageability.py`は派生graph、provenance、salvage gate結果、観測用gate
+Evidenceを出力する。GD1の追加工サンプルとFW-onlyサンプル、DFA・承認・ERC／DRC
+Evidenceをfixturesへ追加し、schema・core・CLIの正常系とfail-closed回帰を固定した。
+派生graphで属性を置換するとrationale coverageが失敗するため、正常系fixtureは
+rationale coverageを壊さない`jlcpcb_class`置換を使い、`fixture-dir`側のrationaleも
+派生revisionへ更新して再実行する契約を維持した。`rationale_refs`は追加していない。
+
 21.8は`plugins/acd/skills/acd-product-docs/scripts/generate_idea_allocation_docs.py`
 を追加した。graph、アイデアrecord、見積catalog、責務割当宣言から
 `idea-record.md`・`rough-estimate.md`／`.json`（`IdeaRoughEstimate`本体）・

@@ -85,6 +85,21 @@ class ReworkMechanical(AcdModel):
         return self
 
 
+class FirmwareChange(AcdModel):
+    change_id: NonEmptyStr
+    kind: Literal["pin_reassignment", "timing", "threshold", "degrade", "disable"]
+    description: NonEmptyStr
+    affected_functions: list[NonEmptyStr]
+
+    @model_validator(mode="after")
+    def validate_functions(self) -> FirmwareChange:
+        if not self.affected_functions:
+            raise ValueError("firmware change affected_functions must not be empty")
+        if len(set(self.affected_functions)) != len(self.affected_functions):
+            raise ValueError("firmware change affected_functions must be unique")
+        return self
+
+
 ReworkOperation = Annotated[
     ReworkCut | ReworkAdd | ReworkRemove | ReworkReplace | ReworkMechanical,
     Field(discriminator="op"),
@@ -99,8 +114,14 @@ class ReworkDiff(AcdModel):
     graph_id: NonEmptyStr
     base_revision: Revision
     defect_ids: list[NonEmptyStr]
-    operations: list[ReworkOperation]
+    operations: list[ReworkOperation] = Field(default_factory=list[ReworkOperation])
     touches_safety_boundary: bool
+    firmware_changes: list[FirmwareChange] = Field(
+        default_factory=list[FirmwareChange]
+    )
+    degraded_functions: list[NonEmptyStr] = Field(
+        default_factory=list[NonEmptyStr]
+    )
 
     @model_validator(mode="after")
     def validate_collections(self) -> ReworkDiff:
@@ -110,8 +131,32 @@ class ReworkDiff(AcdModel):
             raise ValueError("defect_ids must not be empty")
         if len(set(self.defect_ids)) != len(self.defect_ids):
             raise ValueError("defect_ids must be unique")
-        if not self.operations:
-            raise ValueError("operations must not be empty")
+        if not self.operations and not self.firmware_changes:
+            raise ValueError("operations or firmware_changes must not be empty")
+        change_ids = [change.change_id for change in self.firmware_changes]
+        if len(set(change_ids)) != len(change_ids):
+            raise ValueError("firmware change_id entries must be unique")
+        degraded = set(self.degraded_functions)
+        if len(degraded) != len(self.degraded_functions):
+            raise ValueError("degraded_functions must be unique")
+        degraded_kinds = {"degrade", "disable"}
+        degraded_allowed = {
+            function
+            for change in self.firmware_changes
+            if change.kind in degraded_kinds
+            for function in change.affected_functions
+        }
+        has_degraded_change = bool(
+            degraded_kinds & {change.kind for change in self.firmware_changes}
+        )
+        if bool(degraded) != has_degraded_change:
+            raise ValueError(
+                "degraded_functions must be non-empty exactly for degrade or disable changes"
+            )
+        if not degraded.issubset(degraded_allowed):
+            raise ValueError(
+                "degraded_functions must be affected by a degrade or disable change"
+            )
         return self
 
     @property
@@ -122,6 +167,7 @@ class ReworkDiff(AcdModel):
 __all__ = [
     "REPLACEABLE_ATTRS",
     "REWORK_ADD_KINDS",
+    "FirmwareChange",
     "ReworkAdd",
     "ReworkCut",
     "ReworkDiff",

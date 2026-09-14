@@ -237,6 +237,14 @@ from acd.schema.receipt import (
     ShipmentManifestReference,
 )
 from acd.schema.requirement import RequirementDocument, RequirementRecord
+from acd.schema.salvage import (
+    GateRun,
+    ReworkDfaAssessment,
+    ReworkDfaDeclaration,
+    SafetyApproval,
+    SalvageGateResult,
+    SalvageVerdict,
+)
 from acd.schema.responsibility import (
     Assignment,
     CrossDomainInterface,
@@ -257,6 +265,7 @@ from acd.schema.rework_diff import (
     ReworkAdd,
     ReworkCut,
     ReworkDiff,
+    FirmwareChange,
     ReworkMechanical,
     ReworkOperation,
     ReworkRemove,
@@ -333,6 +342,8 @@ __all__ = [
     "DecisionKind",
     "DefectDocument",
     "DefectRecord",
+    "FirmwareChange",
+    "GateRun",
     "DefectSeverity",
     "DesignFixtureSpec",
     "DesignFreedomDeclarationDocument",
@@ -502,6 +513,8 @@ __all__ = [
     "ReconciliationStatus",
     "RejectedAlternative",
     "ReproductionCondition",
+    "ReworkDfaAssessment",
+    "ReworkDfaDeclaration",
     "RequirementDocument",
     "RequirementRecord",
     "ResponsibilityCriterion",
@@ -522,6 +535,9 @@ __all__ = [
     "RolePromptManifestEntry",
     "RootCauseCandidate",
     "RoutingRole",
+    "SafetyApproval",
+    "SalvageGateResult",
+    "SalvageVerdict",
     "ScopeFeeTreatment",
     "SerialExpectation",
     "SharedAssignmentContract",

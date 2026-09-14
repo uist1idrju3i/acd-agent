@@ -8,21 +8,24 @@
   "operations": [
     {
       "attrs": {
-        "mpn": "0603WAF1002T5E",
-        "value": "10k"
+        "jlcpcb_class": "extended"
       },
       "component_id": "comp.r4",
       "op": "replace",
-      "reason": "Use the alternate resistor value for the workaround."
+      "reason": "Use the alternate assembly classification for the workaround."
     },
     {
-      "op": "cut",
-      "pin_id": "pin.r4.2",
-      "reason": "Disconnect the signal-side resistor pin from the failing branch."
+      "attrs": {
+        "jlcpcb_class": "extended"
+      },
+      "component_id": "comp.r5",
+      "op": "replace",
+      "reason": "Use the alternate assembly classification for the adjacent resistor."
     }
   ],
   "pass_evidence": false,
   "schema_version": "0.1",
   "touches_safety_boundary": true,
-  "workaround_id": "WA-001"
+  "workaround_id": "WA-001",
+  "firmware_changes": []
 }

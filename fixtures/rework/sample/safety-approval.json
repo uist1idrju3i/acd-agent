@@ -1,0 +1,10 @@
+{
+  "approved_at": "2026-01-01T00:00:00Z",
+  "approver": "safety-review-board",
+  "artifact_kind": "safety_approval",
+  "derived_revision": "r1+WA-001",
+  "graph_id": "golden-design-1",
+  "scope": "The workaround preserves the declared safety boundary.",
+  "schema_version": "0.1",
+  "workaround_id": "WA-001"
+}

@@ -1,0 +1,26 @@
+{
+  "artifact_kind": "rework_diff",
+  "base_revision": "r1",
+  "defect_ids": [
+    "defect.firmware-degrade"
+  ],
+  "degraded_functions": [
+    "usb_c_cc_termination"
+  ],
+  "firmware_changes": [
+    {
+      "affected_functions": [
+        "usb_c_cc_termination"
+      ],
+      "change_id": "fw-disable-001",
+      "description": "Disable the nonessential USB-C accessory detection path.",
+      "kind": "disable"
+    }
+  ],
+  "graph_id": "golden-design-1",
+  "operations": [],
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "touches_safety_boundary": false,
+  "workaround_id": "WA-002"
+}

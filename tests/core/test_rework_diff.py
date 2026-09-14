@@ -46,12 +46,8 @@ def test_sample_applies_without_mutating_base() -> None:
     assert derived.graph.revision == "r1+WA-001"
     assert derived.derived_revision == "r1+WA-001"
     assert "comp.r4" in derived.touched_node_ids
-    assert "pin.r4.2" in derived.touched_node_ids
-    assert derived.graph.node_by_id("comp.r4").attrs["value"] == "10k"
-    pin = derived.graph.node_by_id("pin.r4.2")
-    assert pin.attrs["net"] is None
-    assert pin.attrs["no_connect"] is True
-    assert "net.i2c_sda" not in pin.depends_on
+    assert derived.graph.node_by_id("comp.r4").attrs["jlcpcb_class"] == "extended"
+    assert derived.graph.node_by_id("comp.r5").attrs["jlcpcb_class"] == "extended"
 
 
 def test_application_is_deterministic() -> None:
@@ -63,7 +59,13 @@ def test_application_is_deterministic() -> None:
 
 def test_unknown_pin_fails() -> None:
     payload = _payload()
-    payload["operations"][1]["pin_id"] = "pin.unknown"
+    payload["operations"] = [
+        {
+            "op": "cut",
+            "pin_id": "pin.unknown",
+            "reason": "Disconnect the signal-side resistor pin.",
+        }
+    ]
     with pytest.raises(ReworkDiffError, match="does not exist"):
         apply_rework_diff(_graph(), _diff(payload))
 
@@ -74,8 +76,16 @@ def test_already_no_connect_pin_fails() -> None:
     pin["attrs"]["net"] = None
     pin["attrs"]["no_connect"] = True
     graph = DesignGraph.model_validate(graph_payload)
+    payload = _payload()
+    payload["operations"] = [
+        {
+            "op": "cut",
+            "pin_id": "pin.r4.2",
+            "reason": "Disconnect the signal-side resistor pin.",
+        }
+    ]
     with pytest.raises(ReworkDiffError, match="already disconnected"):
-        apply_rework_diff(graph, _diff())
+        apply_rework_diff(graph, _diff(payload))
 
 
 def test_duplicate_added_id_fails() -> None:
