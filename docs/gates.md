@@ -232,6 +232,29 @@ L2所見であり、keying未宣言と余長5%未満をassembly-order観点で�
 変更しない。第2段の入力が不足する場合は、該当するcheckをunknownまたはnot-applicableとして
 理由付きで返し、pass-by-omissionにはしない。
 
+### 信頼性試験対応表（opt-in gate）
+
+信頼性試験gateは`ReliabilityTestPlan`を明示した場合だけ実行する独立したL1 gateである。
+Design Graphへ試験項目を混在させず、UseEnvironmentとgraphの`graph_id`／`revision`に一致する
+対応表contractとして管理する。各試験項目は識別子・版・種別（`standard`、
+`incident_report`、`internal_analysis`、`datasheet`）の`source_reference`と、出所から導いた
+背景を持つ。規格本文は保存・再配布しない。
+
+`environment_consistency`は環境由来の温度、湿度、振動、設置、電源系統、外部port条件を
+UseEnvironmentと比較する。`stress_coverage`は全stressが`covers`／`over`の試験項目または
+明示されたaccepted gapを持つことを検査し、未被覆と`under`をunknownへ倒す。`over`は
+記録するだけで、他の失敗を緩和しない。背景・出所の欠落、未知の設計述語targetはfailである。
+
+対応表から既存のEMC/ESD、構造安全性、DFT、ハーネスの述語・checkへリンクできる。
+predicate resultが未提供なら理由`predicate results not provided`のunknownとし、結果の省略を
+passへ変換しない。寿命加速モデルは`authority: "estimate"`の推定値として記録し、
+認証・合否Evidenceには昇格しない。測定結果は条件・設備・日時・供試体revisionが揃い、
+plan revisionと一致する場合だけ観測として受け付ける。
+
+このgateは規格適合・認証verdictを行わず、結果の`certification_claim`は常に`false`である。
+malformed入力、revision不一致、測定metadata不足は入力エラーまたはfailとして停止側に集約し、
+未宣言のReliabilityTestPlanを持たない既存GD1出力は変更しない。
+
 ## 最小チェックリスト
 
 マイルストーン2の時点で最小限として確認する観点は次のとおりである。所見は自然文で次の修正へ渡す。

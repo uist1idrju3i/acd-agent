@@ -77,7 +77,13 @@ EMCと環境試験を、規格の試験項目を満たすかどうかの確認�
 ある。したがって、試験項目そのものではなく「その項目が模擬しているストレスと、それが
 自製品の実使用でどう現れるか」を設計入力として宣言する。
 
-取り込む場合は次を宣言contractとして定義する。
+第1実装として`ReliabilityTestPlan`、UseEnvironmentとのrevision一致、試験項目と実使用
+stressの被覆gate、出所付き背景、accepted gap、設計述語linkage、寿命推定、測定metadata
+のschema検査を追加した。GD1がplanを宣言しない既存経路とdefault outputは変更しない。
+認証適合verdictは実装対象外であり、`certification_claim: false`を固定する。残る詳細な
+測定Evidenceの収集・authoritative昇格と規格適合判定は実装しない。
+
+実装済みcontractの境界は次のとおりである。
 
 - 想定実使用環境。設置場所と設置形態、電源系統（系統電源、電池、車載、PoE等）と
   想定される過渡、近傍の妨害源と被妨害機器、気候区分と温湿度・結露・塵埃・腐食性ガス、

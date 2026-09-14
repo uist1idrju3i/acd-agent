@@ -1612,3 +1612,16 @@ keying／polarity、16.5信号クラス隔離、冗長経路のハーネス共�
 `check_harness.py`の`dfa_findings`は既存DFA finding contract形状のL2所見であり、
 L1判定には影響しない。将来の測定Evidence、shield termination、固定点・圧着の詳細モデルは
 引き続き別境界として扱う。
+
+### 将来構想：信頼性試験（EMC・環境試験）の実装記録
+
+`ReliabilityTestPlan`をDesign Graphとは別のopt-in対応表contractとして追加し、
+UseEnvironment、graph、planのrevision一致を入力境界で検査する。実使用stress、試験項目、
+source reference、背景、accepted gap、既存設計述語へのlinkageを決定論的に評価し、未被覆
+stressや未提供のpredicate resultをunknownとして停止側へ集約する。`over`試験は記録する
+だけで被覆不足や設計失敗を緩和しない。
+
+Arrhenius、Coffin-Manson、Peckの寿命換算は`authority: "estimate"`として記録し、認証
+Evidenceへ昇格させない。測定結果は条件・設備・日時・供試体revisionが揃い、plan revision
+と一致する場合だけ観測として受け付ける。規格本文は再配布せず、識別子・版・種別だけを
+保存する。認証verdictは行わず、`certification_claim: false`を固定した。

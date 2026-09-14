@@ -1,0 +1,179 @@
+{
+  "accepted_gaps": [
+    {
+      "acceptance_rationale": "Drop testing is deferred to a separate mechanical qualification campaign.",
+      "approved_by_role": "reliability-engineering",
+      "stress_id": "drop-user"
+    }
+  ],
+  "artifact_kind": "reliability_test_plan",
+  "design_requirements": [
+    {
+      "derived_from_stress_ids": [
+        "esd-usb"
+      ],
+      "parameter": {
+        "external_port_protection": true
+      },
+      "requirement_id": "req-esd-port",
+      "target_predicate": "esd_protection_external_ports"
+    },
+    {
+      "derived_from_stress_ids": [
+        "emc-radiated"
+      ],
+      "parameter": {
+        "max_loop_area_mm2": 50.0
+      },
+      "requirement_id": "req-power-loop",
+      "target_predicate": "power_loop_area"
+    },
+    {
+      "derived_from_stress_ids": [
+        "thermal",
+        "humidity"
+      ],
+      "requirement_id": "req-environment",
+      "target_predicate": "environment_derating_inputs"
+    }
+  ],
+  "environment_ref": {
+    "path": "fixtures/use-environment/gd1-indoor-usb.json"
+  },
+  "graph_id": "golden-design-1",
+  "plan_id": "gd1-indoor-usb-reliability",
+  "revision": "r1",
+  "schema_version": "0.1",
+  "stresses": [
+    {
+      "category": "user_contact",
+      "description": "User contact through the exposed USB connector can inject ESD.",
+      "real_use_condition": {
+        "parameter": "external_ports",
+        "source": "environment",
+        "unit": "ports",
+        "value": [
+          {
+            "connector_node_id": "comp.j1",
+            "exposure": "user_accessible"
+          }
+        ]
+      },
+      "severity_rank": 4,
+      "stress_id": "esd-usb"
+    },
+    {
+      "category": "thermal",
+      "description": "Indoor operation spans the declared ambient temperature range.",
+      "real_use_condition": {
+        "parameter": "temperature",
+        "source": "environment",
+        "unit": "degC",
+        "value": {
+          "max": 40.0,
+          "min": 0.0
+        }
+      },
+      "severity_rank": 3,
+      "stress_id": "thermal"
+    },
+    {
+      "category": "humidity",
+      "description": "Indoor humidity varies across the declared operating range.",
+      "real_use_condition": {
+        "parameter": "humidity",
+        "source": "environment",
+        "unit": "percent_rh",
+        "value": {
+          "max": 80.0,
+          "min": 20.0
+        }
+      },
+      "severity_rank": 3,
+      "stress_id": "humidity"
+    },
+    {
+      "category": "emc_radiated",
+      "description": "Radiated electromagnetic interference is treated as an external disturbance.",
+      "real_use_condition": {
+        "parameter": "installation",
+        "source": "environment",
+        "unit": "classification",
+        "value": "indoor_residential"
+      },
+      "severity_rank": 2,
+      "stress_id": "emc-radiated"
+    },
+    {
+      "category": "drop",
+      "description": "Handling drops are outside this indoor stationary plan.",
+      "real_use_condition": {
+        "parameter": "installation",
+        "source": "declared",
+        "unit": "classification",
+        "value": "handling"
+      },
+      "severity_rank": 1,
+      "stress_id": "drop-user"
+    }
+  ],
+  "test_items": [
+    {
+      "background": "The source defines an ESD immunity test as a proxy for user-accessible discharge paths.",
+      "rationale": "Connects USB user contact to the external-port ESD design requirement.",
+      "severity_relation": "covers",
+      "simulates_stress_ids": [
+        "esd-usb"
+      ],
+      "source_reference": {
+        "edition": "Ed.2.0",
+        "identifier": "IEC 61000-4-2",
+        "kind": "standard"
+      },
+      "test_item_id": "test-esd"
+    },
+    {
+      "background": "The source defines radiated immunity exposure as a representative electromagnetic disturbance.",
+      "rationale": "Provides a declared radiated EMC stress item.",
+      "severity_relation": "covers",
+      "simulates_stress_ids": [
+        "emc-radiated"
+      ],
+      "source_reference": {
+        "edition": "Ed.4.0",
+        "identifier": "IEC 61000-4-3",
+        "kind": "standard"
+      },
+      "test_item_id": "test-radiated"
+    },
+    {
+      "background": "The source defines environmental conditioning for temperature and humidity exposure.",
+      "rationale": "Covers the declared indoor climate envelope.",
+      "severity_relation": "over",
+      "simulates_stress_ids": [
+        "thermal",
+        "humidity"
+      ],
+      "source_reference": {
+        "edition": "Ed.3.0",
+        "identifier": "IEC 60068-2-1/-2-78",
+        "kind": "standard"
+      },
+      "test_item_id": "test-climate"
+    },
+    {
+      "background": "The source records the deferred handling-drop qualification campaign.",
+      "rationale": "Retains traceability while the drop campaign is accepted as a gap.",
+      "severity_relation": "under",
+      "simulates_stress_ids": [
+        "drop-user"
+      ],
+      "source_reference": {
+        "edition": "Rev.A",
+        "identifier": "REL-GD1-HANDLING-001",
+        "kind": "internal_analysis"
+      },
+      "test_item_id": "test-drop-deferred"
+    }
+  ]
+}
