@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "catalog_id": "fixture-idea-catalog",
+  "entries": [
+    {
+      "function_class": "temperature_sensor",
+      "typical_part": "I2C temperature/humidity sensor breakout",
+      "unit_cost_jpy": {"min": 400.0, "max": 900.0},
+      "power_mw": {"min": 0.5, "max": 3.0},
+      "footprint_mm2": 120.0,
+      "source": "fixture:sample values for contract tests, not market data",
+      "checked_at": "2026-09-13T00:00:00Z"
+    },
+    {
+      "function_class": "usb_mcu",
+      "typical_part": "USB-capable microcontroller module",
+      "unit_cost_jpy": {"min": 600.0, "max": 1500.0},
+      "power_mw": {"min": 80.0, "max": 350.0},
+      "footprint_mm2": 600.0,
+      "source": "fixture:sample values for contract tests, not market data",
+      "checked_at": "2026-09-13T00:00:00Z"
+    },
+    {
+      "function_class": "passive_board",
+      "typical_part": "two-layer PCB with passives",
+      "unit_cost_jpy": {"min": 300.0, "max": 1200.0},
+      "power_mw": {"min": 0.0, "max": 0.0},
+      "footprint_mm2": 750.0,
+      "source": "fixture:sample values for contract tests, not market data",
+      "checked_at": "2026-09-13T00:00:00Z"
+    }
+  ]
+}

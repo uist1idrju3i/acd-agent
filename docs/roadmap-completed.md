@@ -1330,3 +1330,34 @@ fail-closedに停止する。`run_projection_docs`は`enclosure_out`を新規入
 受け、3 laneのEvidenceと2つのcoverage等を決定論的に特定して本scriptを
 4番目のgeneratorとして実行し、`inspection_report`・`traceability_report`・
 `quality_report_json`をprovenance付きで要求する。
+
+### 21.1〜21.8 構想ブラッシュアップと分野横断の責務割当の実装記録
+
+`ADR-0049`がアイデアrecordと責務割当のcontract境界を定義する。21.1・21.3は
+`src/acd/schema/idea.py`（`IdeaRecord`・`IdeaDialogueHistory`・`IdeaProgress`）と
+`src/acd/core/idea_dialogue.py`（`apply_turn`／`progress_summary`）、
+`scripts/idea_progress.py`を追加した（PR #448）。21.2・21.4・21.5は
+`acd-ideate` Skill（question bank付き）、`src/acd/schema/idea_estimate.py`・
+`idea_promotion.py`・`idea_question_bank.py`、`estimate_idea`（stop／risk／within／
+not_comparableの範囲比較）と`promote_idea`（open残存でfail-closed、確定ごとに
+rationale record必須）、4本のCLIを追加した（PR #450）。21.6・21.7は
+`design.responsibility` node kind（`domain`をrationale必須属性、
+`function_id`・`criteria`を免除属性として分類）、`responsibility_assignment`
+decision kind、`src/acd/schema/responsibility.py`の宣言contract、
+`check_responsibility`決定論的gate（11種のfinding codeでfail-closed）、
+`scripts/check_responsibility_assignment.py`を追加した（PR #452）。gateは
+gate evidenceのみを生成し、authoritative Evidenceは生成しない。
+
+21.8は`plugins/acd/skills/acd-product-docs/scripts/generate_idea_allocation_docs.py`
+を追加した。graph、アイデアrecord、見積catalog、責務割当宣言から
+`idea-record.md`・`rough-estimate.md`／`.json`（`IdeaRoughEstimate`本体）・
+`responsibility-allocation.md`／`.json`（`ResponsibilityGateResult`本体）・
+`cross-domain-block-diagram.svg`の6 documentを`write_document`経由で生成する。
+対話履歴（`idea-dialogue.json`）は内部資産として読まず、出力へ混入しないことを
+testで固定した。宣言のgraph ID／revision不一致、idea recordに無いfunction idの
+参照は`DocumentGenerationError`でfail-closedに停止する。gate失敗時も文書は
+観測として描画し、statusを冒頭へ明示する。`run_projection_docs`はfixtureの
+`idea/idea.json`・`idea/estimate-catalog.json`・`responsibility.json`を探索し、
+3つ揃った場合のみ本generatorを5番目に実行して6種をprovenance付きで要求する。
+一部だけ存在する場合は欠落pathを列挙してfail-closedに停止し、無い場合は
+`idea_allocation_docs: "not_declared"`をstage summaryへ記録する。

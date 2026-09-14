@@ -25,6 +25,15 @@ def _runner_factory(calls: list[list[str]]):
             names = ("interface-spec.md", "interface-spec.json")
         elif "generate_review_package.py" in " ".join(command):
             names = ("review-package.md", "review-package.json", "graph-diff.json")
+        elif "generate_idea_allocation_docs.py" in " ".join(command):
+            names = (
+                "idea-record.md",
+                "rough-estimate.md",
+                "rough-estimate.json",
+                "responsibility-allocation.md",
+                "responsibility-allocation.json",
+                "cross-domain-block-diagram.svg",
+            )
         else:
             names = (
                 "inspection-report.md",
@@ -267,3 +276,92 @@ def test_run_projection_docs_requires_mechanical_evidence(
             enclosure_out=enclosure_out,
             runner=_runner_factory([]),
         )
+
+
+def _idea_inputs(tmp_path: Path) -> None:
+    repository = Path(__file__).resolve().parents[2]
+    fixture = repository / "fixtures" / "responsibility" / "sample"
+    idea_dir = tmp_path / "idea"
+    idea_dir.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "graph.json").write_text(
+        (fixture / "graph.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (tmp_path / "responsibility.json").write_text(
+        (fixture / "responsibility.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (idea_dir / "idea.json").write_text(
+        (repository / "fixtures" / "idea" / "sample-usb-thermometer" / "idea.json")
+        .read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    (idea_dir / "estimate-catalog.json").write_text(
+        (
+            repository
+            / "fixtures"
+            / "idea"
+            / "sample-usb-thermometer"
+            / "estimate-catalog.json"
+        ).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+
+def _run_docs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, calls: list[list[str]]
+):
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = _inputs(
+        tmp_path
+    )
+    monkeypatch.setattr(
+        projection_docs,
+        "collect_visual_projection_sets",
+        _projection_collector(out_root),
+    )
+    return run_projection_docs(
+        repository,
+        graph_path=graph_path,
+        out_root=out_root,
+        board_out=board_out,
+        firmware_out=firmware_out,
+        output=output,
+        enclosure_out=enclosure_out,
+        runner=_runner_factory(calls),
+    ), output
+
+
+def test_idea_allocation_docs_not_declared(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[list[str]] = []
+    result, _ = _run_docs(tmp_path, monkeypatch, calls)
+    assert result.provenance["idea_allocation_docs"] == "not_declared"
+    assert not any(
+        "generate_idea_allocation_docs.py" in command for command in calls
+    )
+    assert len(result.documents) == 7
+
+
+def test_idea_allocation_docs_partial_inputs_fail(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _idea_inputs(tmp_path)
+    (tmp_path / "responsibility.json").unlink()
+    calls: list[list[str]] = []
+    with pytest.raises(ProjectionDocsError, match="partially declared"):
+        _run_docs(tmp_path, monkeypatch, calls)
+
+
+def test_idea_allocation_docs_full(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _idea_inputs(tmp_path)
+    calls: list[list[str]] = []
+    result, _output = _run_docs(tmp_path, monkeypatch, calls)
+    assert result.provenance["idea_allocation_docs"] == "generated"
+    assert len(result.documents) == 13
+    assert any(
+        "generate_idea_allocation_docs.py" in " ".join(command)
+        for command in calls
+    )

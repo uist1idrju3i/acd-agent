@@ -204,9 +204,20 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "module_certified",
         }
     ),
+    "design.responsibility": frozenset({"domain"}),
 }
 
 RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
+    "design.responsibility": {
+        "function_id": (
+            "The function reference is an identity key; the decision being "
+            "justified is the domain assignment itself."
+        ),
+        "criteria": (
+            "Criteria name the selection vocabulary; the decision being "
+            "justified is the domain assignment itself."
+        ),
+    },
     "electrical.placement_group": {
         "primary_refdes": (
             "Placement group membership is an L2 search constraint; L1 gates remain authoritative."

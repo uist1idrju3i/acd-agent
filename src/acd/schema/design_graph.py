@@ -37,6 +37,7 @@ NodeKind = Literal[
     "firmware.sequence_step",
     "firmware.pin_assignment",
     "design.functional_block",
+    "design.responsibility",
     "safety.boundary",
     "evidence.anchor",
 ]

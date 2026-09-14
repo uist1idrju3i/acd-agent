@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "idea_id": "idea.sample-usb-thermometer",
+  "revision": "r1",
+  "records": [
+    {
+      "requirement_id": "idea.sample-usb-thermometer-req-001",
+      "justification": "利用者が連続記録を成功条件として合意した",
+      "sources": [{"kind": "user_statement", "ref": "conversation:evt-0006"}],
+      "no_alternatives_reason": "利用者の合意した成功条件そのものであり代替は検討対象外"
+    },
+    {
+      "requirement_id": "idea.sample-usb-thermometer-req-002",
+      "justification": "利用者が温度測定を必須機能として合意した",
+      "sources": [{"kind": "user_statement", "ref": "conversation:evt-0001"}],
+      "no_alternatives_reason": "利用者の合意した必須機能そのものであり代替は検討対象外"
+    },
+    {
+      "requirement_id": "idea.sample-usb-thermometer-req-003",
+      "justification": "利用者がUSB送出を任意機能として合意した",
+      "sources": [{"kind": "user_statement", "ref": "conversation:evt-0004"}],
+      "rejected_alternatives": [
+        {
+          "option": "LCD表示器を搭載する",
+          "reason": "利用者はPC側での記録を選好し表示部を不要とした"
+        }
+      ]
+    }
+  ]
+}
