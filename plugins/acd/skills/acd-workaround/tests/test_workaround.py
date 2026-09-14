@@ -20,10 +20,24 @@ FIXTURE_DIR = ROOT / "fixtures/golden-design-1"
 SAMPLE = ROOT / "fixtures/rework/sample"
 
 
-def _proposal(tmp_path: Path) -> Path:
-    proposal = workaround.build_proposal(GRAPH, DEFECTS, "defect.r4-mpn")
+def _proposal(tmp_path: Path, graph_path: Path = GRAPH) -> Path:
+    proposal = workaround.build_proposal(graph_path, DEFECTS, "defect.r4-mpn")
     path = tmp_path / "workaround-candidates.json"
     workaround.write_json(path, proposal.model_dump(mode="json"))
+    return path
+
+
+def _graph_with_missing_footprint(tmp_path: Path) -> Path:
+    payload = json.loads(GRAPH.read_text(encoding="utf-8"))
+    component = next(
+        node
+        for node in payload["nodes"]
+        if node["kind"] == "electrical.component"
+        and node["id"] == "comp.c3"
+    )
+    component["attrs"]["footprint_file"] = "/definitely/missing/decoupling.kicad_mod"
+    path = tmp_path / "graph-missing-footprint.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
     return path
 
 
@@ -64,10 +78,11 @@ def test_blocked_defect_emits_no_candidates(tmp_path: Path) -> None:
 
 
 def test_completed_sample_writes_not_salvageable_evaluation(tmp_path: Path) -> None:
+    graph_path = _graph_with_missing_footprint(tmp_path)
     evaluation = workaround.evaluate_completed(
-        graph_path=GRAPH,
+        graph_path=graph_path,
         defects_path=DEFECTS,
-        proposal_path=_proposal(tmp_path),
+        proposal_path=_proposal(tmp_path, graph_path),
         candidate_id="WC-001",
         rework_path=REWORK,
         dfa_path=DFA,
@@ -85,11 +100,12 @@ def test_completed_sample_writes_not_salvageable_evaluation(tmp_path: Path) -> N
 
 
 def test_check_cli_returns_one_for_host_unknown_predicate(tmp_path: Path) -> None:
-    proposal_path = _proposal(tmp_path)
+    graph_path = _graph_with_missing_footprint(tmp_path)
+    proposal_path = _proposal(tmp_path, graph_path)
     exit_code = check_workaround_main(
         [
             "--graph",
-            str(GRAPH),
+            str(graph_path),
             "--defects",
             str(DEFECTS),
             "--candidates",
