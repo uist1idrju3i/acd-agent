@@ -1,3 +1,5 @@
+# pyright: reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false, reportAttributeAccessIssue=false, reportOptionalMemberAccess=false
+
 """Regression tests for graph-derived KiCad library table declarations."""
 
 from __future__ import annotations
