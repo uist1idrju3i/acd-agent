@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@1ccbd600547ab368df9160fadf0c6d1f6a17cdd3",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@43183265887479c98eca81713b263247d05bc931",
 # ]
 # ///
 """Generate the deterministic product description README for a design graph.
