@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@17de1463873abb679e4397ee1c19d5bc3b8a7b42",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@6bbcd7cb5c4d6d98dec2d2427ece8e0eff854d75",
 # ]
 # ///
 """Generate a deterministic workaround work-instruction document."""
@@ -16,6 +16,7 @@ import sys
 import tempfile
 from dataclasses import replace
 from pathlib import Path
+from typing import Literal, cast
 
 from acd.core.rework_diff import load_rework_diff
 from acd.pipeline.graph_diff_projection import (
@@ -49,6 +50,7 @@ from acd.schema.work_instruction import (
 from doc_inputs import (
     DocumentGenerationError,
     DocumentInput,
+    DocumentTemplate,
     FirmwareConfigReport,
     load_firmware_config_report,
     load_graph,
@@ -346,7 +348,7 @@ def build_work_instruction(
     provenance_path = salvage_dir / "derived-graph.provenance.json"
     derived_payload = _load_json(derived_path, "derived graph")
     provenance = _load_json(provenance_path, "derived graph provenance")
-    if not isinstance(provenance, dict) or provenance.get(
+    if not isinstance(provenance, dict) or cast(dict[str, object], provenance).get(
         "derived_graph_sha256"
     ) != canonical_json_sha256(derived_payload):
         raise DocumentGenerationError("derived graph provenance hash mismatch")
@@ -379,7 +381,9 @@ def build_work_instruction(
         derived_revision=derived.revision,
         workaround_id=diff.workaround_id,
         defect_ids=diff.defect_ids,
-        salvage_verdict=salvage.verdict,
+        salvage_verdict=cast(
+            Literal["salvageable", "constrained_salvage"], salvage.verdict
+        ),
         degraded_functions=salvage.degraded_functions,
         target_units=_target_units(records),
         required_parts=required_parts,
@@ -405,8 +409,7 @@ def build_work_instruction(
     return document, inputs, derived_path
 
 
-def _render(document: WorkInstructionDocument, template: object) -> str:
-    assert hasattr(template, "t")
+def _render(document: WorkInstructionDocument, template: DocumentTemplate) -> str:
     t = template.t
     lines = [
         t("work.document_title", graph_id=document.graph_id),
