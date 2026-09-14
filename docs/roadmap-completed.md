@@ -872,9 +872,11 @@ authoritative Evidenceを生成しない。実機で成功した復帰runのwall
 
 ### 14.20 Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9）
 
-V-3、V-5、V-6、V-7、V-9は達成した。V-1はcontainer由来資材のhost混入検出が未了であり、
-残るV項目としてroadmapに保持する。不足宣言、download、wall-clock、tool登録の記録はL3観測で、
-合否権限は持たない。
+V-1、V-3、V-5、V-6、V-7、V-9は達成した。V-1は
+`plugins/acd/hooks/scripts/eda_asset_export.py`の`refuse-eda-asset-export` hookを
+`PreToolUse`へ登録し、container内EDA資材のhost持ち出しを拒否する。不足宣言、download、
+wall-clock、tool登録の記録とhook診断はL3観測であり、合否権限は持たない。V-2はOpenHands側の
+課題として記録に留め、V-4・V-8・V-10は15.17〜15.19で扱う。
 
 ### 14.21 GD1非依存の達成判定（W-1〜W-4）
 
@@ -1101,3 +1103,13 @@ node IDと強制探索をiterationへ記録してSkillへ戻す。探索上限�
 | 区分 | 内容 |
 |---|---|
 | 実装 | `SilkscreenGateError`へ`__reduce__`を追加し、`ProcessPoolExecutor`経由のpickleでも`message`と`context`が保持されるようにした。`measure_silkscreen`へ`routed_board`引数を追加し、routed `.kicad_pcb`指定時は`write_project`を呼ばず同じ5層をkicad-cliでexportし、`parse_routed_board`のviaとmask開口を保持したままdrill項目だけを従来どおり0化する（`measurement_source: "routed"`）。`reresolve_routed_silkscreen`を`ROUTED_SILKSCREEN_MAX_ROUNDS = 1`の宣言上限で実装し、recordを`routed-silkscreen-reresolve.json`へ`record_class: "L3"`・`pass_evidence: false`で書く。入力hash（routed board・Skill・graph revision・fab profile）が一致するrecordがある場合はcache hitとしてgerber exportとSkill subprocessを省略し、記録済み候補を同じapply経路で冪等に再適用する。`resolve_silkscreen`本体は`_run_placement_skill`・`_split_candidates`・`_apply_accepted_candidates`へ分解し、出力とstatus文字列は変更しない。design loopのboard段は`SilkscreenGateError`を捕捉して再解決を1回行い、`candidates_written`の場合だけpipelineを1回再評価する。再解決の失敗・候補なし・再評価のゲート拒否はいずれもfail-closedで停止する。合否権限は既存のrouted silkscreen L1ゲートに留まる |
+
+### 15.17 例示commandとfixture有効期間の整合検査（V-4）の実装記録
+
+`docs/operations.md`のGD1発注集計例7件について、`--evaluated-at`を
+`2025-01-14T00:00:00Z`へ揃え、`fixtures/contracts/valid/quote-order-golden-design-1.json`
+の`fetched_at`（2025-01-10）から`valid_until`（2025-01-17）までの範囲内にした。
+`scripts/verify_docs.py`へbash fence内の`--evaluated-at`と`--quote-record`を読み取り、
+明示quoteまたはGD1既定quoteの`fetched_at <= evaluated_at <= valid_until`を検査する
+`check_evaluated_at`を追加した。欠落・不在・不正なtimestamp・期限外はfail-closedで停止する。
+quote検証コード、期限、ゲート閾値、Evidence意味論は変更していない。

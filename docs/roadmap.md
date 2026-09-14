@@ -43,7 +43,7 @@ GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判�
 
 残る未了は、14.16（FW lane専用の候補生成と配置テストの環境非依存化）、14.17のS-3
 （ambient install経路の配布形態）と復帰成立実行の実測記録、14.18の復帰成立runの
-wall-clock記録、14.20のV-1、15.14〜15.21、および計画段階のマイルストーン9.3〜9.6、
+wall-clock記録、15.14〜15.16・15.18〜15.21、および計画段階のマイルストーン9.3〜9.6、
 10、11.1〜11.4、13、16.1〜16.6、17〜21である。11.4aと14.21は達成済みである。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
 未実装であり、8.5の電気視覚照合が図枠のtitle blockを読むため現行exportを維持し、
 極小表示の所見は20.4の可読性検査で扱う。
@@ -216,7 +216,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、宣言toolの不在検出、library資材宣言の統一、進行表示を扱う。S-3の配布形態と復帰成立実行の実測は未了 |
 | 14.18 | 復帰候補評価からL3観測の混入を除く（T-1〜T-5） | 候補評価の独立timing記録、複数候補の列挙、宣言tool不在のdrift guard、L3 digestの統合、transport失敗時の出力保持を扱う。T-1〜T-5は実装済みで、復帰成立runの実測記録は未取得 |
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
-| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-3、V-5〜V-7、V-9を達成し、V-1（container由来資材のhost混入検出）が未了。入力・出所と実装を固定し、診断・報告はL3に留め、判定権限はL1ゲートのままとする |
+| 14.20 | Devin不在で新規設計を1周させるための残関門（V-1、V-3、V-5〜V-7、V-9） | V-1、V-3、V-5〜V-7、V-9を達成。入力・出所と実装を固定し、診断・報告はL3に留め、判定権限はL1ゲートのままとする |
 | 14.21 | GD1非依存の達成判定（W-1〜W-4） | W-1〜W-4を達成（非GD1 fixture `mini-blink-dongle`がdigest固定containerで全laneとauthoritative Evidence検証を通過）。GD1をregression positive controlとして残したまま、GD1以外の設計だけでVibeBBが1周する状態の達成条件を宣言し、既定値・fixture解決・述語適用・CI authoritative gateのGD1固定を判定可能にする |
 | 14.25 | routed board上のsilkscreen再解決 | SES import後の`.kicad_pcb`からkicad-cli exportでviaとmask開口を抽出し、silkscreen resolverをboundedなround上限のもと1回だけ再実行する。cache hit時は省略し、合否は既存silkscreen L1ゲートが決める。実装済み |
 
@@ -312,7 +312,7 @@ preflightを実行しないため、不足は実行の途中でしか判明し�
 | negative・fail-closed | 不足宣言の列挙、進行表示、tool登録記録はいずれもL3観測であり合格側権限を持たない。preflightの`declarations_complete`はlane通過を意味しない。downloadの成功をcommand成功として扱わず、部分downloadを合格へ倒さない。container由来資材が混在したhost実行のEvidenceをauthoritativeへ昇格しない。宣言の自動補完、既定値の暗黙適用、閾値・ゲート条件の緩和は行わない |
 | 再現性 | preflight結果、不足宣言名、download結果、wall-clockとstage duration合計、tool登録差分をL3記録として保存し、同一入力での再実行で一致することを回帰テストで固定する。fail-closed runからの成果物回収を、tarとexit 0による回避策なしで再現する |
 
-実装状況: V-3、V-5、V-6、V-7、V-9は達成済みで、残るV-1（container由来資材のhost混入検出）は未着手である。
+実装状況: V-1、V-3、V-5、V-6、V-7、V-9は達成済み。V-1は`plugins/acd/hooks/scripts/eda_asset_export.py`の`refuse-eda-asset-export` hookを`PreToolUse`へ登録し、container内EDA資材のhost持ち出しを拒否する。診断・報告はL3観測であり、合否権限は持たない。
 詳細と完了条件は[`roadmap-completed.md`](roadmap-completed.md)および
 [`vibebb-gap-analysis.md`](vibebb-gap-analysis.md)のV節を正とする。
 
@@ -497,13 +497,13 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 15.14 | 長時間laneのbackground実行手順とlog契約（O-3） | 長時間laneをbackground＋logで実行し、同時に1本だけ起動してtail／grepで確認する手順を`docs/operations.md`へ明記する。log先頭へimage digest・revision・コマンド行を必ず記録する |
 | 15.15 | doctor出力のauthoritative／provisional分離と次手順提示（O-6・O-7） | doctor出力をauthoritative経路（image digest一致、docker実行可否、ホスト資源）とprovisional経路（host toolchain）へ分離し、lock済みimage未取得時にdigest固定のpullコマンド行を提示する（実行はしない）。分離は表示の分類に留め、fail-closedの範囲を変えない |
 | 15.16 | 収集入口へのlane log取り込み（O-8） | `scripts/export_execution_records.py`の入力へlane logを加え、log先頭のimage digest・revision・コマンド行とexit codeを構造化して取り込む。既存の秘匿化と漏洩検出をそのまま適用し、リモートworkspaceからの取得手順を`docs/operations.md`へ明記する |
-| 15.17 | 例示commandとfixture有効期間の整合検査（V-4） | `docs/operations.md`のGD1発注集計例の`--evaluated-at`を対象quoteの有効期間内へ揃え、例示とfixtureの期限整合をdocs検証で機械的に固定する。quoteの有効期限や期限検査の閾値は緩めない |
+| 15.17 | 例示commandとfixture有効期間の整合検査（V-4） | `docs/operations.md`のGD1発注集計例の`--evaluated-at`を対象quoteの有効期間内へ揃え、`verify_docs.py`で例示とfixtureの期限整合を機械的に固定する。達成済み。quoteの有効期限や期限検査の閾値は緩めない |
 | 15.18 | 資源計測ラッパのscript化（V-8） | 検証のたびに使い捨てのshell scriptを書く状態を解消し、checkout path、image digest、download対象、計測間隔を引数で受ける計測wrapperをrepository内へ置く。計測結果はL3観測であり合否権限を持たない |
 | 15.19 | 成果物の最小収録集合の宣言（V-10） | FW laneのESP-IDF buildツリーのように再生成可能で大きい出力を区別し、lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言する。成果物の必須性判定（U-5）は変更しない |
 | 15.20 | 長時間runの予算・中断・再開契約 | 長時間runの出所としてwall-clock／token予算を宣言し、stage境界checkpointと`--resume`再開性の回帰テストを追加する。運用項目に限定し、判定・閾値には作用させない |
 | 15.21 | 代替routerの単独実測 | GD1と`dual-beacon-tag`をOrthoRoute headlessの`--cpu-only`／GPU modeで単独実測し、収束・DRC・時間・再現性と2回のhash一致を`operations.md`へ記録する。決定論的`.ORP`生成が不能なら不採用として閉じ、合否へ作用させない |
 
-15.1〜15.13は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.14〜15.21は未着手であり、15.17〜15.19は第6回実機実測と成果物回収（V-4、V-8、V-10）を出所とし、15.20〜15.21を含めて運用・計測側だけを整備する項目であり、判定と閾値には触れない。
+15.1〜15.13・15.17は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.14〜15.16・15.18〜15.21は未着手であり、15.18〜15.19は第6回実機実測と成果物回収（V-8、V-10）を出所とし、15.20〜15.21を含めて運用・計測側だけを整備する項目であり、判定と閾値には触れない。
 
 ## マイルストーン16: 設計能力の拡張
 

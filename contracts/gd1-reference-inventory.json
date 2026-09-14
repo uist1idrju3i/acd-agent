@@ -89,6 +89,12 @@
       "note": "Standard/full verification runs the GD1 positive-control pipelines; fast runs this inventory check."
     },
     {
+      "path": "scripts/verify_docs.py",
+      "purpose": "positive_control",
+      "reference_lines": 2,
+      "note": "Default example quote for documentation --evaluated-at validity checks."
+    },
+    {
       "path": "scripts/verify_library_assets.py",
       "purpose": "positive_control",
       "reference_lines": 1,

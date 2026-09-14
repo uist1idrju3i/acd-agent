@@ -11,6 +11,7 @@ Checks all tracked Markdown files (excluding vendor/) for:
 5. Heading hierarchy does not skip levels and each file starts with one H1.
 6. Glossary terms are not defined twice.
 7. `git diff --check` reports no whitespace errors.
+8. Bash documentation examples keep `--evaluated-at` within the referenced quote validity window.
 
 Generated conversation exports under `examples/*/conversation/` are excluded because
 they are byte-exact artifacts rather than human-maintained documentation.
@@ -21,11 +22,14 @@ Exit code 0 means all checks passed.
 
 from __future__ import annotations
 
+import json
 import re
 import subprocess
 import sys
 import unicodedata
+from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GLOSSARY = REPO_ROOT / "docs" / "glossary.md"
@@ -51,6 +55,10 @@ MERMAID_DIAGRAM_TYPES = (
 
 EXCLUDED_MARKDOWN_PATTERNS = ("examples/*/conversation/*.md",)
 FENCE_RE = re.compile(r"^(\s*)(```+|~~~+)(.*)$")
+EVALUATED_AT_RE = re.compile(r"--evaluated-at\s+(['\"]?)([^\s'\"\\\\]+)\1")
+QUOTE_RECORD_RE = re.compile(r"--quote-record\s+(['\"]?)([^\s'\"\\\\]+)\1")
+# GD1 order examples derive out/order-total.json from this quote.
+DEFAULT_EXAMPLE_QUOTE = Path("fixtures/contracts/valid/quote-order-golden-design-1.json")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
 INLINE_LINK_RE = re.compile(r"!?\[(?:[^\]\[]|\[[^\]]*\])*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 INLINE_CODE_RE = re.compile(r"`([^`]+)`")
@@ -122,8 +130,11 @@ class MarkdownFile:
         self._parse()
 
     def error(self, line_no: int, message: str) -> None:
-        rel = self.path.relative_to(REPO_ROOT)
-        self.errors.append(f"{rel}:{line_no}: {message}")
+        try:
+            display_path = self.path.relative_to(REPO_ROOT)
+        except ValueError:
+            display_path = self.path
+        self.errors.append(f"{display_path}:{line_no}: {message}")
 
     def _parse(self) -> None:
         fence_stack: list[tuple[int, str, str]] = []  # (line_no, marker, info)
@@ -201,6 +212,91 @@ def check_links(md: MarkdownFile, anchor_index: dict[Path, set[str]]) -> None:
                 md.error(line_no, f"anchor target is not a checked Markdown file: {raw_target}")
             elif anchor not in anchor_index[resolved]:
                 md.error(line_no, f"anchor not found: {raw_target}")
+
+
+def check_evaluated_at(md: MarkdownFile) -> None:
+    """Ensure bash examples evaluate quotes inside their declared validity windows."""
+    fence_start: int | None = None
+    fence_marker = ""
+    fence_info = ""
+    fence_lines: list[str] = []
+    for line_no, line in enumerate(md.lines, start=1):
+        fence = FENCE_RE.match(line)
+        if fence:
+            marker_char = fence.group(2)[0]
+            info = fence.group(3).strip()
+            if fence_start is None:
+                fence_start = line_no
+                fence_marker = marker_char
+                fence_info = info
+                fence_lines = []
+            elif marker_char == fence_marker and not info:
+                if fence_info == "bash":
+                    _check_evaluated_at_fence(md, fence_start, fence_lines)
+                fence_start = None
+                fence_marker = ""
+                fence_info = ""
+                fence_lines = []
+            continue
+        if fence_start is not None:
+            fence_lines.append(line)
+    if fence_start is not None:
+        md.error(fence_start, "unclosed code fence while checking evaluated-at")
+
+
+def _check_evaluated_at_fence(
+    md: MarkdownFile, fence_start: int, lines: list[str]
+) -> None:
+    body = "\n".join(lines)
+    evaluated_values = [match.group(2) for match in EVALUATED_AT_RE.finditer(body)]
+    if not evaluated_values:
+        return
+    quote_values = [match.group(2) for match in QUOTE_RECORD_RE.finditer(body)]
+    quote_paths = [Path(value) for value in quote_values] or [DEFAULT_EXAMPLE_QUOTE]
+    parsed_evaluated: list[tuple[str, datetime]] = []
+    for value in evaluated_values:
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            md.error(fence_start, f"unparsable --evaluated-at timestamp: {value!r}")
+            continue
+        parsed_evaluated.append((value, parsed))
+    for quote_path in quote_paths:
+        resolved_quote = quote_path if quote_path.is_absolute() else REPO_ROOT / quote_path
+        try:
+            quote = json.loads(resolved_quote.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            md.error(fence_start, f"quote record could not be read: {quote_path}: {exc}")
+            continue
+        if not isinstance(quote, dict):
+            md.error(fence_start, f"quote record is not an object: {quote_path}")
+            continue
+        window: dict[str, datetime] = {}
+        quote_object = cast(dict[str, object], quote)
+        for key in ("fetched_at", "valid_until"):
+            value = quote_object.get(key)
+            if not isinstance(value, str):
+                md.error(fence_start, f"quote record missing {key}: {quote_path}")
+                continue
+            try:
+                window[key] = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                md.error(fence_start, f"unparsable {key} timestamp in quote: {quote_path}")
+        fetched_at = window.get("fetched_at")
+        valid_until = window.get("valid_until")
+        if fetched_at is None or valid_until is None:
+            continue
+        for raw_value, evaluated_at in parsed_evaluated:
+            if evaluated_at < fetched_at:
+                md.error(
+                    fence_start,
+                    f"--evaluated-at {raw_value} is before fetched_at in {quote_path}",
+                )
+            elif evaluated_at > valid_until:
+                md.error(
+                    fence_start,
+                    f"--evaluated-at {raw_value} is after valid_until in {quote_path}",
+                )
 
 
 def check_mermaid(md: MarkdownFile) -> None:
@@ -283,6 +379,7 @@ def main() -> int:
         check_headings(md)
         check_links(md, anchor_index)
         check_mermaid(md)
+        check_evaluated_at(md)
         all_errors.extend(md.errors)
     all_errors.extend(check_git_diff())
 

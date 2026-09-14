@@ -516,7 +516,7 @@ uv run python scripts/pre_order_gate.py \
   --order-total out/order-total.json \
   --evidence out/gd1/evidence-electrical.json \
   --evidence out/gd1-enclosure/evidence-mechanical.json \
-  --evaluated-at 2026-08-14T00:00:00Z \
+  --evaluated-at 2025-01-14T00:00:00Z \
   --check-only
 ```
 
@@ -528,7 +528,7 @@ uv run python scripts/pre_order_gate.py \
   --design-graph fixtures/golden-design-1/graph.json \
   --out-root out \
   --order-total out/order-total.json \
-  --evaluated-at 2026-08-14T00:00:00Z \
+  --evaluated-at 2025-01-14T00:00:00Z \
   --rerun-authoritative \
   --image ghcr.io/uist1idrju3i/acd-server@sha256:b5afc5daadf801f62d7bcb3f8229fe417e0e658b7ab1a660bf737f105f18c968
 ```
@@ -552,7 +552,7 @@ uv run python scripts/aggregate_order_total.py \
   --order-scope fixtures/contracts/valid/order-scope-golden-design-1.json \
   --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
   --target-revision r1 \
-  --evaluated-at 2026-08-14T00:00:00Z \
+  --evaluated-at 2025-01-14T00:00:00Z \
   --output out/order-total.json
 ```
 
@@ -607,7 +607,7 @@ uv run python scripts/run_design_loop.py \
   --out-root out \
   --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
   --jobs 4 \
-  --evaluated-at 2026-08-14T00:00:00Z
+  --evaluated-at 2025-01-14T00:00:00Z
 ```
 
 この主例はquote／order入力を与えず、製造提出データを含む設計・検証段までを実行する。
@@ -623,7 +623,7 @@ uv run python scripts/run_design_loop.py \
   --order-scope fixtures/contracts/valid/order-scope-golden-design-1.json \
   --fab-profile profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json \
   --policy plugins/acd/hooks/order-policy.json \
-  --evaluated-at 2026-08-14T00:00:00Z
+  --evaluated-at 2025-01-14T00:00:00Z
 ```
 
 この場合、lane planから導出した`out/order-total.json`へ集計結果を書き、直後の
@@ -719,7 +719,7 @@ uv run python scripts/run_design_loop.py \
   --cache-dir out/.stage-cache \
   --resume \
   --jobs 3 \
-  --evaluated-at 2026-08-14T00:00:00Z
+  --evaluated-at 2025-01-14T00:00:00Z
 ```
 
 `--resume`で`--cache-dir`を省略すると`out-root/.stage-cache`を使う。cacheは
@@ -750,7 +750,7 @@ uv run python scripts/run_design_loop.py \
   --explore-board \
   --max-exploration-candidates 3 \
   --max-exploration-rounds 2 \
-  --evaluated-at 2026-08-14T00:00:00Z
+  --evaluated-at 2025-01-14T00:00:00Z
 ```
 
 自動探索はboard-pipelineの却下後、全laneのjoin後に直列で実行する。候補が見つかった場合も
