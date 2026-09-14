@@ -33,6 +33,7 @@ from doc_inputs import (
     DocumentInput,
     load_graph,
     nodes_of_kind,
+    relative_path,
     sha256_file,
     text_attr,
     write_document,
@@ -313,6 +314,7 @@ def _render_inspection(
     coverages: tuple[tuple[Path, RationaleCoverageReport], ...],
     predicates: DesignPredicates,
     dfm: DfmReport,
+    base_dir: Path,
 ) -> str:
     """Render the inspection report (検査成績書) Markdown body."""
     lane_map = {lane.lane: lane for lane in lanes}
@@ -387,7 +389,7 @@ def _render_inspection(
     ]
     for path, report in coverages:
         lines.append(
-            f"| `{path.name}` | {report.status} | {report.required_count} "
+            f"| `{relative_path(path, base_dir)}` | {report.status} | {report.required_count} "
             f"| {report.covered_count} | {report.record_count} "
             f"| {len(report.missing)} | {len(report.stale)} "
             f"| {len(report.unknown_provenance)} | {len(report.orphan)} "
@@ -413,7 +415,7 @@ class TraceabilityRow:
     text: str
     design_nodes: tuple[tuple[str, str], ...]
     rationale_records: tuple[tuple[str, str, tuple[str, ...]], ...]
-    claims: tuple[tuple[str, str, object, bool], ...]
+    claims: tuple[tuple[str, str, str, object, bool], ...]
 
 
 def _build_traceability(
@@ -424,14 +426,7 @@ def _build_traceability(
     """Join requirements to design nodes, rationale records, and claims."""
     dependents: dict[str, list[tuple[str, str]]] = {}
     for node in graph.nodes:
-        depends = node.attrs.get("depends_on")
-        if not isinstance(depends, list):
-            depends = []
-        for dep in cast(list[object], depends):
-            if not isinstance(dep, str):
-                raise DocumentGenerationError(
-                    f"depends_on of node {node.id!r} contains a non-string entry"
-                )
+        for dep in node.depends_on:
             dependents.setdefault(dep, []).append((node.id, node.kind))
     records_by_requirement: dict[str, list[RationaleRecord]] = {}
     for record in rationale.records:
@@ -479,7 +474,8 @@ def _build_traceability(
             design_nodes=design_nodes,
             rationale_records=records,
             claims=tuple(
-                (lane, prop, value, verified) for lane, _, prop, value, verified in claims
+                (lane, subject, prop, value, verified)
+                for lane, subject, prop, value, verified in claims
             ),
         )
         rows.append(row)
@@ -537,9 +533,14 @@ def _render_traceability(
             lines.append("- なし")
         lines += ["", "関連Evidence claim:"]
         if row.claims:
-            lines += ["| lane | 属性 | 値 | verified |", "|---|---|---|---|"]
-            for lane, prop, value, verified in row.claims:
-                lines.append(f"| {lane} | {prop} | {value} | {verified} |")
+            lines += [
+                "| lane | 対象ノード | 属性 | 値 | verified |",
+                "|---|---|---|---|---|",
+            ]
+            for lane, subject, prop, value, verified in row.claims:
+                lines.append(
+                    f"| {lane} | `{subject}` | {prop} | {value} | {verified} |"
+                )
         else:
             lines.append("- なし")
         lines.append("")
@@ -566,6 +567,7 @@ def build_quality_report(
     graph: DesignGraph,
     lanes: tuple[LaneEvidence, ...],
     coverages: tuple[tuple[Path, RationaleCoverageReport], ...],
+    base_dir: Path,
     rationale: RationaleDocument,
     predicates: DesignPredicates,
     dfm: DfmReport,
@@ -627,7 +629,7 @@ def build_quality_report(
         },
         "rationale_coverage": [
             {
-                "file": path.name,
+                "file": relative_path(path, base_dir),
                 "status": report.status,
                 "required_count": report.required_count,
                 "covered_count": report.covered_count,
@@ -656,8 +658,14 @@ def build_quality_report(
                     rationale_id for rationale_id, _, _ in row.rationale_records
                 ],
                 "claims": [
-                    {"lane": lane, "property": prop, "value": value, "verified": verified}
-                    for lane, prop, value, verified in row.claims
+                    {
+                        "lane": lane,
+                        "subject_node": subject,
+                        "property": prop,
+                        "value": value,
+                        "verified": verified,
+                    }
+                    for lane, subject, prop, value, verified in row.claims
                 ],
             }
             for row in rows
@@ -763,7 +771,9 @@ def main(argv: list[str] | None = None) -> int:
     outputs = (
         (
             "inspection_report",
-            _render_inspection(graph, tuple(lanes), coverages, predicates, dfm),
+            _render_inspection(
+                graph, tuple(lanes), coverages, predicates, dfm, args.base_dir
+            ),
             DOCUMENT_NAME,
         ),
         (
@@ -778,6 +788,7 @@ def main(argv: list[str] | None = None) -> int:
                     graph,
                     tuple(lanes),
                     coverages,
+                    args.base_dir,
                     rationale,
                     predicates,
                     dfm,

@@ -141,8 +141,10 @@ def _inputs(
             json.dumps(doc, ensure_ascii=False) + "\n", encoding="utf-8"
         )
         files[lane] = path
-    for name in (("coverage-board", "coverage-enclosure")):
-        path = root / f"{name}.json"
+    for name in ("coverage-board", "coverage-enclosure"):
+        subdir = root / name
+        subdir.mkdir()
+        path = subdir / "rationale-coverage.json"
         path.write_text(
             json.dumps(_coverage(), ensure_ascii=False) + "\n", encoding="utf-8"
         )
@@ -219,6 +221,31 @@ def test_happy_path_writes_three_documents(
     }
     traced = {row["requirement"] for row in report["traceability"]}
     assert traced == requirement_ids
+    node_kinds = {node["id"]: node["kind"] for node in GRAPH["nodes"]}
+    with_nodes = [
+        row for row in report["traceability"] if row["design_nodes"]
+    ]
+    assert with_nodes, "expected at least one traced requirement"
+    for row in with_nodes:
+        for entry in row["design_nodes"]:
+            assert entry["kind"] == node_kinds[entry["id"]]
+    req_004 = next(
+        row for row in report["traceability"] if row["requirement"] == "req.gd1-req-004"
+    )
+    assert {entry["id"] for entry in req_004["design_nodes"]} == {
+        "fb.safety-power-boundary"
+    }
+    for row in report["traceability"]:
+        for claim in row["claims"]:
+            assert claim["subject_node"] in node_kinds
+    assert {entry["file"] for entry in report["rationale_coverage"]} == {
+        "in/coverage-board/rationale-coverage.json",
+        "in/coverage-enclosure/rationale-coverage.json",
+    }
+    markdown = (out_dir / "traceability-report.md").read_text(encoding="utf-8")
+    assert "`fb.safety-power-boundary`" in markdown
+    assert "| lane | 対象ノード | 属性 | 値 | verified |" in markdown
+    assert "req.gd1-req-004" in markdown
     assert "via_hole_to_hole" in report["dfm"]["checks_not_implemented"][0][
         "rule_id"
     ]

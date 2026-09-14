@@ -50,10 +50,10 @@ class DocumentInput:
     content_hash: str
 
     def as_record(self, base_dir: Path) -> dict[str, str]:
-        return {"path": _relative(self.path, base_dir), "content_hash": self.content_hash}
+        return {"path": relative_path(self.path, base_dir), "content_hash": self.content_hash}
 
 
-def _relative(path: Path, base_dir: Path) -> str:
+def relative_path(path: Path, base_dir: Path) -> str:
     try:
         return path.resolve().relative_to(base_dir.resolve()).as_posix()
     except ValueError:
@@ -295,7 +295,7 @@ def write_document(
         "artifact_kind": "generated_document",
         "pass_evidence": False,
         "document_kind": document_kind,
-        "document_path": _relative(document_path, base_dir),
+        "document_path": relative_path(document_path, base_dir),
         "document_hash": sha256_text(body),
         "graph_id": graph.graph_id,
         "target_revision": graph.revision,
