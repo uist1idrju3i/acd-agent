@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@70d64d047768f41d39f289cbc75bee79f94c23c0",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@85a143c032b27a5384ab3b54f85840fef4972a58",
 # ]
 # ///
 """Generate the deterministic product description README for a design graph.
@@ -18,9 +18,9 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from contextvars import ContextVar
 from collections import Counter
 from collections.abc import Sequence
+from contextvars import ContextVar
 from pathlib import Path
 
 from acd.core.electrical import ElectricalLane, extract_electrical_lane
@@ -144,7 +144,8 @@ def _overview_sentence(graph: DesignGraph, lane: ElectricalLane) -> str:
         )
     unit = text_attr(board, "unit")
     return (
-        f"{graph.graph_id}（revision {graph.revision}{t('readme.literal_104')}{mcu.mpn}{t('readme.literal_105')}"
+        f"{graph.graph_id}（revision {graph.revision}"
+        f"{t('readme.literal_104')}{mcu.mpn}{t('readme.literal_105')}"
         f"{t('readme.literal_106')}{format_number(number_attr(board, 'width_mm'))} × "
         f"{format_number(number_attr(board, 'height_mm'))} {unit}{t('readme.literal_107')}"
         f"{t('readme.literal_108')}{text_attr(safety, 'intended_use')}。"
@@ -256,7 +257,8 @@ def _firmware_section(
     lines = [
         t("readme.literal_196"),
         "",
-        f"{t('readme.literal_109')}{firmware.module.module_name}`（node `{firmware.module.node_id}`）",
+        f"{t('readme.literal_109')}{firmware.module.module_name}`"
+        f"（node `{firmware.module.node_id}`）",
         f"- MCU: `{mcu.refdes}`",
         f"{t('readme.literal_110')}{firmware.module.entry_state}`",
         "",

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@70d64d047768f41d39f289cbc75bee79f94c23c0",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@85a143c032b27a5384ab3b54f85840fef4972a58",
 # ]
 # ///
 """Project the quality documents deterministically from authoritative Evidence.
@@ -237,7 +237,12 @@ def _render_inspection(
 
     if "electrical" in lane_map:
         lines += [t("quality.literal_037"), "", *_claims_table(lane_map["electrical"]), ""]
-    lines += [t("quality.literal_038"), "", "| name | stage | status | detail |", "|---|---|---|---|"]
+    lines += [
+        t("quality.literal_038"),
+        "",
+        "| name | stage | status | detail |",
+        "|---|---|---|---|",
+    ]
     for item in predicates.predicates:
         lines.append(
             f"| {item.name} | {item.evaluation_stage} | {item.status} | {item.detail} |"

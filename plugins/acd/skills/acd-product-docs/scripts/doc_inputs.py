@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@70d64d047768f41d39f289cbc75bee79f94c23c0",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@85a143c032b27a5384ab3b54f85840fef4972a58",
 # ]
 # ///
 """Shared fail-closed inputs and provenance for generated product documents.
@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import MappingProxyType
-from typing import Mapping, cast
+from typing import cast
 
 from acd.schema.design_graph import DesignGraph, GraphNode
 from acd.schema.theme_song import ThemeSongProjection

@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@70d64d047768f41d39f289cbc75bee79f94c23c0",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@85a143c032b27a5384ab3b54f85840fef4972a58",
 # ]
 # ///
 """Generate the deterministic instruction manual from graph declarations.
@@ -148,7 +148,8 @@ def _function_section(
     lines = [t("manual.literal_085"), "", t("manual.literal_086"), ""]
     lines += [t("manual.literal_087"), "|---|---|"]
     for state in sorted(firmware.states, key=lambda item: item.state_name):
-        lines.append(f"| {state.state_name} | {t('manual.literal_043') if state.initial else t('manual.literal_044')} |")
+        initial = t("manual.literal_043") if state.initial else t("manual.literal_044")
+        lines.append(f"| {state.state_name} | {initial} |")
     lines += ["", t("manual.literal_088"), "", t("manual.literal_089"), "|---|---|---|"]
     for step in sorted(firmware.sequence_steps, key=lambda item: item.step_index):
         lines.append(f"| {step.step_index} | {step.target} | {step.action} |")
@@ -289,7 +290,10 @@ def _led_section(
         "",
         t("manual.literal_103"),
         "|---|---|",
-        f"{t('manual.literal_057')}{period_ms}{t('manual.literal_058')}{gpio}{t('manual.literal_059')}" + t("manual.literal_104"),
+        (
+            f"{t('manual.literal_057')}{period_ms}{t('manual.literal_058')}"
+            f"{gpio}{t('manual.literal_059')}{t('manual.literal_104')}"
+        ),
         t("manual.literal_105"),
     ]
     for state in fault_states:
@@ -367,12 +371,14 @@ def _flashing_section(
     )
     if usb is not None:
         lines.append(
-            f"{step}. `{mcu.mpn}{t('manual.literal_067')}{usb[0]}／IO{usb[1]}{t('manual.literal_068')}"
+            f"{step}. `{mcu.mpn}{t('manual.literal_067')}{usb[0]}／IO"
+            f"{usb[1]}{t('manual.literal_068')}"
         )
         step += 1
     elif uart is not None:
         lines.append(
-            f"{step}. `{mcu.mpn}{t('manual.literal_069')}{uart[0]}／RX: IO{uart[1]}{t('manual.literal_070')}"
+            f"{step}. `{mcu.mpn}{t('manual.literal_069')}{uart[0]}／RX: "
+            f"IO{uart[1]}{t('manual.literal_070')}"
         )
         step += 1
     else:
@@ -390,7 +396,8 @@ def _flashing_section(
             because="pin role boot",
         )
         lines.append(
-            f"{step}{t('manual.literal_072')}{boot}{t('manual.literal_073')}" + t("manual.literal_113")
+            f"{step}{t('manual.literal_072')}{boot}{t('manual.literal_073')}"
+            f"{t('manual.literal_113')}"
         )
         step += 1
     lines.append(f"{step}. revision`{graph.revision}{t('manual.literal_074')}")
@@ -406,14 +413,25 @@ def _safety_section(graph: DesignGraph) -> list[str]:
     board = single_node_of_kind(graph, "electrical.board")
     max_voltage = format_number(number_attr(safety, "max_net_voltage_v"))
     max_current = format_number(number_attr(safety, "max_current_a"))
+    antenna_keepout_text = (
+        t("manual.literal_082")
+        if board.attrs.get("antenna_keepout") is True
+        else t("manual.literal_083")
+    )
     lines = [
         t("manual.literal_116"),
         "",
         f"{t('manual.literal_076')}{max_voltage} V、"
         f"{t('manual.literal_077')}{max_current}{t('manual.literal_078')}",
-        f"{t('manual.literal_079')}{text_attr(safety, 'intended_use')}{t('manual.literal_080')}" + t("manual.literal_117"),
-        f"{t('manual.literal_081')}"
-        f"{t('manual.literal_082') if board.attrs.get('antenna_keepout') is True else t('manual.literal_083')}）。",
+        (
+            f"{t('manual.literal_079')}{text_attr(safety, 'intended_use')}"
+            f"{t('manual.literal_080')}{t('manual.literal_117')}"
+        ),
+        (
+            f"{t('manual.literal_081')}"
+            f"{antenna_keepout_text}"
+            "）。"
+        ),
         t("manual.literal_118"),
         "",
     ]
