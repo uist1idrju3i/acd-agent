@@ -119,6 +119,7 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 if path is not None
             },
+            output_dir=args.out_dir,
         )
     except SalvageGateError as exc:
         result = _derivation_failure_result(loaded_diff.diff, exc)

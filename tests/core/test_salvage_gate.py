@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from scripts.check_salvageability import main
 
 from acd.core import salvage_gate
+from acd.core.design_predicates import PredicateResult
 from acd.core.rework_diff import apply_rework_diff, load_rework_diff
 from acd.schema.design_graph import DesignGraph
 from acd.schema.rework_diff import ReworkDiff
@@ -45,22 +45,14 @@ def _inputs(
     return diff, dfa, approval
 
 
-def _patch_computed_gates(monkeypatch: pytest.MonkeyPatch) -> None:
-    def passing_predicates(*_args: object) -> tuple[SimpleNamespace]:
-        return (SimpleNamespace(name="usb_cc", status="pass", detail="pass"),)
-
-    def passing_preflight(*_args: object) -> SimpleNamespace:
-        return SimpleNamespace(status="pass", findings=[])
+def _patch_design_predicates(monkeypatch: pytest.MonkeyPatch) -> None:
+    def passing_predicates(*_args: object) -> tuple[PredicateResult, ...]:
+        return (PredicateResult(name="usb_cc", status="pass", detail="pass"),)
 
     monkeypatch.setattr(
         salvage_gate,
         "evaluate_design_predicates",
         passing_predicates,
-    )
-    monkeypatch.setattr(
-        salvage_gate,
-        "check_mechanical_preflight",
-        passing_preflight,
     )
 
 
@@ -71,7 +63,7 @@ def _evaluate(
     approval: SafetyApproval | Any | None = _DEFAULT_APPROVAL,
     evidence: bool = True,
 ):
-    _patch_computed_gates(monkeypatch)
+    _patch_design_predicates(monkeypatch)
     diff, dfa, declared_approval = _inputs(directory)
     approval_for_eval: SafetyApproval | None
     if approval is _DEFAULT_APPROVAL:
@@ -103,6 +95,26 @@ def test_sample_is_salvageable_with_matching_inputs(
     assert result.approval_status == "approved"
 
 
+def test_unpatched_sample_fails_closed_on_host() -> None:
+    diff, dfa, approval = _inputs()
+    _, result = salvage_gate.evaluate_salvage(
+        base_graph=_graph(),
+        diff=diff,
+        dfa=dfa,
+        approval=approval,
+        fixture_dir=ROOT / "fixtures/golden-design-1",
+        external_evidence={
+            "erc": SAMPLE / "evidence/erc.json",
+            "drc": SAMPLE / "evidence/drc.json",
+        },
+    )
+    statuses = {run.gate: run.status for run in result.gate_runs}
+    assert result.verdict == "not_salvageable"
+    assert statuses["design_predicates"] == "unknown"
+    assert statuses["mechanical_preflight"] == "pass"
+    assert any("power_decoupling" in reason for reason in result.reasons)
+
+
 def test_missing_erc_is_not_salvageable(monkeypatch: pytest.MonkeyPatch) -> None:
     _, result = _evaluate(monkeypatch, evidence=False)
     assert result.verdict == "not_salvageable"
@@ -112,7 +124,7 @@ def test_missing_erc_is_not_salvageable(monkeypatch: pytest.MonkeyPatch) -> None
 def test_base_revision_evidence_is_unknown(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    _patch_computed_gates(monkeypatch)
+    _patch_design_predicates(monkeypatch)
     diff, dfa, approval = _inputs()
     erc = tmp_path / "erc.json"
     erc.write_text(
@@ -145,7 +157,7 @@ def test_base_revision_evidence_is_unknown(
 def test_unknown_dfa_tool_access_blocks_salvage(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _patch_computed_gates(monkeypatch)
+    _patch_design_predicates(monkeypatch)
     diff, dfa, approval = _inputs()
     dfa = dfa.model_copy(
         update={
@@ -202,47 +214,67 @@ def test_firmware_only_workaround_is_constrained(
     assert derived_payload == base_payload
 
 
+def test_required_attr_without_workaround_rationale_is_not_salvageable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _patch_design_predicates(monkeypatch)
+    diff, dfa, approval = _inputs()
+    replacement = diff.operations[0].model_copy(update={"attrs": {"value": "4.8k"}})
+    diff = diff.model_copy(
+        update={
+            "operations": [replacement, diff.operations[1]],
+            "rationale_records": [],
+        }
+    )
+    _, result = salvage_gate.evaluate_salvage(
+        base_graph=_graph(),
+        diff=diff,
+        dfa=dfa,
+        approval=approval,
+        fixture_dir=ROOT / "fixtures/golden-design-1",
+        external_evidence={
+            "erc": SAMPLE / "evidence/erc.json",
+            "drc": SAMPLE / "evidence/drc.json",
+        },
+        output_dir=tmp_path,
+    )
+    preflight = next(
+        run for run in result.gate_runs if run.gate == "mechanical_preflight"
+    )
+    assert preflight.status == "fail"
+    assert "rationale.coverage.missing" in preflight.detail
+    assert result.verdict == "not_salvageable"
+
+
 def test_cli_exit_codes(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    _patch_computed_gates(monkeypatch)
     out = tmp_path / "pass"
-    assert main(
-        [
-            "--graph",
-            str(GRAPH_PATH),
-            "--rework",
-            str(SAMPLE / "rework.json"),
-            "--dfa",
-            str(SAMPLE / "rework-dfa.json"),
-            "--fixture-dir",
-            str(ROOT / "fixtures/golden-design-1"),
-            "--approval",
-            str(SAMPLE / "safety-approval.json"),
-            "--erc-evidence",
-            str(SAMPLE / "evidence/erc.json"),
-            "--drc-evidence",
-            str(SAMPLE / "evidence/drc.json"),
-            "--out-dir",
-            str(out),
-        ]
-    ) == 0
+    arguments = [
+        "--graph",
+        str(GRAPH_PATH),
+        "--rework",
+        str(SAMPLE / "rework.json"),
+        "--dfa",
+        str(SAMPLE / "rework-dfa.json"),
+        "--fixture-dir",
+        str(ROOT / "fixtures/golden-design-1"),
+        "--approval",
+        str(SAMPLE / "safety-approval.json"),
+        "--erc-evidence",
+        str(SAMPLE / "evidence/erc.json"),
+        "--drc-evidence",
+        str(SAMPLE / "evidence/drc.json"),
+        "--out-dir",
+        str(out),
+    ]
+    _patch_design_predicates(monkeypatch)
+    assert main(arguments) == 0
     assert (out / "derived-graph.json").is_file()
+    assert (out / "derived-rationale.json").is_file()
+    assert (out / "derived-fixture/rationale.json").is_file()
     assert (out / "gate-evidence/salvage-gate.json").is_file()
-    assert main(
-        [
-            "--graph",
-            str(GRAPH_PATH),
-            "--rework",
-            str(SAMPLE / "rework.json"),
-            "--dfa",
-            str(SAMPLE / "rework-dfa.json"),
-            "--fixture-dir",
-            str(ROOT / "fixtures/golden-design-1"),
-            "--approval",
-            str(SAMPLE / "safety-approval.json"),
-            "--out-dir",
-            str(tmp_path / "fail"),
-        ]
-    ) == 1
+    monkeypatch.undo()
+    assert main([*arguments[:-1], str(tmp_path / "unpatched")]) == 1
     assert main(
         [
             "--graph",

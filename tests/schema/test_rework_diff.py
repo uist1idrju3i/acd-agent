@@ -72,3 +72,25 @@ def test_replace_with_disallowed_key_fails() -> None:
                 ]
             )
         )
+
+
+def test_rationale_record_ids_must_be_unique() -> None:
+    record = {
+        "rationale_id": "wa-rationale",
+        "decision_kind": "part_selection",
+        "subject_nodes": ["comp.r4"],
+        "subject_attrs": ["value"],
+        "subject_hash": "sha256:" + "0" * 64,
+        "decision": "Use the replacement value.",
+        "justification": "The declared replacement is available.",
+        "no_alternatives_reason": "No alternate part was selected.",
+        "provenance": {
+            "source": "human",
+            "recorded_at": "2026-01-01T00:00:00Z",
+        },
+        "target_revision": "r1+WA-001",
+    }
+    with pytest.raises(ValidationError, match="rationale_id"):
+        ReworkDiff.model_validate(
+            _payload(rationale_records=[record, record])
+        )

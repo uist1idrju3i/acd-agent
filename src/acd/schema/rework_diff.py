@@ -16,6 +16,7 @@ from acd.schema.common import (
     WorkaroundId,
 )
 from acd.schema.design_graph import AttrValue, GraphNode
+from acd.schema.rationale import RationaleRecord
 
 REPLACEABLE_ATTRS = frozenset(
     {"value", "mpn", "lcsc", "footprint", "jlcpcb_class", "assembly"}
@@ -119,6 +120,9 @@ class ReworkDiff(AcdModel):
     firmware_changes: list[FirmwareChange] = Field(
         default_factory=list[FirmwareChange]
     )
+    rationale_records: list[RationaleRecord] = Field(
+        default_factory=list[RationaleRecord]
+    )
     degraded_functions: list[NonEmptyStr] = Field(
         default_factory=list[NonEmptyStr]
     )
@@ -136,6 +140,9 @@ class ReworkDiff(AcdModel):
         change_ids = [change.change_id for change in self.firmware_changes]
         if len(set(change_ids)) != len(change_ids):
             raise ValueError("firmware change_id entries must be unique")
+        rationale_ids = [record.rationale_id for record in self.rationale_records]
+        if len(set(rationale_ids)) != len(rationale_ids):
+            raise ValueError("rationale_id entries must be unique")
         degraded = set(self.degraded_functions)
         if len(degraded) != len(self.degraded_functions):
             raise ValueError("degraded_functions must be unique")

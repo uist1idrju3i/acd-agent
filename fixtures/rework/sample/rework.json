@@ -24,6 +24,7 @@
     }
   ],
   "pass_evidence": false,
+  "rationale_records": [],
   "schema_version": "0.1",
   "touches_safety_boundary": true,
   "workaround_id": "WA-001",

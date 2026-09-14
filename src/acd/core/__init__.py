@@ -116,7 +116,6 @@ from acd.core.rework_diff import (
     load_rework_diff,
     write_derived_graph,
 )
-from acd.core.salvage_gate import SalvageGateError, evaluate_salvage
 from acd.core.side_effect_journal import (
     JournalOrderReconstruction,
     SideEffectJournalError,
@@ -167,7 +166,6 @@ __all__ = [
     "ReconciliationReport",
     "RequirementFinding",
     "ReworkDiffError",
-    "SalvageGateError",
     "SideEffectJournalError",
     "aggregate_order_total",
     "append_post_order",
@@ -185,7 +183,6 @@ __all__ = [
     "declared_functional_blocks",
     "evaluate_firmware_graph_consistency",
     "evaluate_functional_run",
-    "evaluate_salvage",
     "extract_fab_intent",
     "load_and_evaluate_functional_run",
     "load_defect_document",
