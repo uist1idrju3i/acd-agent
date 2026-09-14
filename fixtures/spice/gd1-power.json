@@ -1,0 +1,96 @@
+{
+  "analyses": [
+    {
+      "kind": "op"
+    },
+    {
+      "kind": "tran",
+      "tstep": 0.000000001,
+      "tstop": 0.000001
+    }
+  ],
+  "artifact_kind": "spice_analysis_request",
+  "graph_id": "golden-design-1",
+  "limits": [
+    {
+      "max": 3.399,
+      "min": 3.201,
+      "quantity": "node_voltage",
+      "target": "+3V3"
+    },
+    {
+      "max": 0.02,
+      "quantity": "branch_current",
+      "target": "R6"
+    },
+    {
+      "max": 0.0000003,
+      "quantity": "rise_time",
+      "target": "I2C_SDA"
+    },
+    {
+      "max": 0.0000003,
+      "quantity": "rise_time",
+      "target": "I2C_SCL"
+    }
+  ],
+  "models": {
+    "decoupling": [
+      {
+        "refdes": "C1"
+      },
+      {
+        "refdes": "C2"
+      },
+      {
+        "refdes": "C3"
+      },
+      {
+        "refdes": "C4"
+      },
+      {
+        "refdes": "C5"
+      },
+      {
+        "refdes": "C6"
+      }
+    ],
+    "i2c_pullups": [
+      {
+        "bus_capacitance_pf": 100.0,
+        "net": "I2C_SDA",
+        "resistor_refdes": "R4",
+        "vdd_net": "+3V3"
+      },
+      {
+        "bus_capacitance_pf": 100.0,
+        "net": "I2C_SCL",
+        "resistor_refdes": "R5",
+        "vdd_net": "+3V3"
+      }
+    ],
+    "ldo": {
+      "dropout_v": 1.1,
+      "iq_a": 0.005,
+      "model": "behavioral_ldo",
+      "refdes": "U2",
+      "vout_v": 3.3
+    },
+    "led": [
+      {
+        "refdes": "D1",
+        "series_resistor_refdes": "R6",
+        "vf_v": 1.8
+      }
+    ]
+  },
+  "ngspice": {
+    "version_pin": "45.2"
+  },
+  "revision": "r1",
+  "schema_version": "0.1",
+  "sources": {
+    "vbus_ramp_ms": 0.1,
+    "vbus_v": 5.0
+  }
+}

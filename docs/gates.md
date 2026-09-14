@@ -271,6 +271,26 @@ status sourceやalternateのreferenceはURLまたは文書識別子であり、�
 既存GD1のdefault gateへ接続しないopt-in経路であり、registryを指定しないGD1出力は変更
 しない。規制適合、供給保証、認証verdictは行わず、外部API照会は別途判断とする。
 
+### 10.1 電気シミュレーション（SPICE、opt-in estimate）
+
+`SpiceAnalysisRequest`を明示した場合だけ、GraphからLDO、デカップリング、
+LEDと直列抵抗、I2C pull-upおよびバス容量を決定論的に抽出し、ngspiceの
+`.op`／`.tran`解析を実行する。LDOは宣言値によるbehavioral approximationであり、
+vendor macro modelやauthoritative Evidenceではない。ネットリストはrefdes順、
+固定数値表記、固定node名で生成し、`.control`は使わない。
+
+ngspiceはGPL境界を越えてimportせず、`acd.core.process.run_tool`のsubprocess
+経由だけで実行する。最初に`ngspice -v`を実行してrequestのversion pinと照合し、
+tool missing、version mismatch、malformed output、non-convergence、利用不能な
+解析結果はunknownへ停止側集約する。値域超過はfail、集約順はfail > unknown >
+passである。ホストにngspiceがない場合もpassへ変換せず、locked tools imageでの
+実行結果だけを再現可能なfixtureとして記録する。
+
+結果には`authority="estimate"`、ngspice version文字列、ネットリストSHA-256、
+raw output SHA-256、Graph/request hashを含める。SPICEはL2 stop-side findingであり、
+既定GD1 gateやauthoritative Evidenceへ接続しない。`--netlist-only`はツールなしで
+決定論的ネットリストだけを出力する。
+
 ### 10.2 PDN/IR drop推定（opt-in estimate）
 
 `PdnAnalysisRequest`を明示した場合だけ、保存済みKiCad PCBまたはGerber銅箔形状から

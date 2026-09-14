@@ -129,6 +129,7 @@ from acd.core.side_effect_journal import (
     read_journal,
     reconstruct_order,
 )
+from acd.core.spice import evaluate_spice, extract_power_netlist, run_ngspice
 from acd.core.workaround_ledger import (
     WorkaroundLedgerError,
     evaluate_workaround_retirement,
@@ -198,9 +199,11 @@ __all__ = [
     "evaluate_eco",
     "evaluate_firmware_graph_consistency",
     "evaluate_functional_run",
+    "evaluate_spice",
     "evaluate_workaround_retirement",
     "external_gate_run",
     "extract_fab_intent",
+    "extract_power_netlist",
     "load_and_evaluate_functional_run",
     "load_defect_document",
     "load_fab_profile",
@@ -229,6 +232,7 @@ __all__ = [
     "required_predicate_names",
     "resolve_fab_profile_path",
     "resolve_order_provider",
+    "run_ngspice",
     "safety_related_node_ids",
     "subject_hash_for",
     "summarize_rationale_coverage",

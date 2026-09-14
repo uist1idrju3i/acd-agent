@@ -1695,6 +1695,26 @@ primary価格で収載し、`build_quantity=10`のpass経路と17.2由来の代�
 `scripts/estimate_bom_cost.py`は`--as-of`で評価基準日を固定し、既存GD1 default outputは
 変更しない。外部API照会は行わない。
 
+### 10.1 電気シミュレーション（SPICE）の実装記録
+
+`SpiceAnalysisRequest`と`SpiceResult`をDesign Graphとは独立したopt-in contractとして追加し、
+GraphからLDO、デカップリング、LEDと直列抵抗、I2C pull-upおよびバス容量を決定論的な
+ngspice netlistへ抽出する経路を実装した。LDOは宣言された公称出力、dropout、静止電流を
+使うbehavioral approximationであり、vendor macro modelではない。refdes順、固定数値表記、
+固定node名、`.op`／`.tran`を使い、`.control`は使わない。
+
+ngspiceはGPLコードをimportせず、`acd.core.process.run_tool`のsubprocess境界だけで実行する。
+`ngspice -v`のversion pin照合、malformed output、tool missing、version mismatch、
+non-convergenceはunknownへ集約し、値域超過はfailとする。集約順はfail > unknown > passで、
+resultの`authority`は`estimate`固定である。provenanceにはngspice version、netlist SHA-256、
+raw output SHA-256および入力hashを記録する。
+
+locked tools image
+(`ghcr.io/uist1idrju3i/acd-tools@sha256:f6183da561f22b8c80197af37c700665ed6e9d273b9d1267658e61a36577dc25`)
+のngspice 45.2でGD1 recorded output fixtureを生成した。ホストにngspiceがない場合は
+unknownとして扱い、fixture実行はparser回帰用途に限る。SPICEはL2 stop-side estimateであり、
+authoritative EvidenceやGD1 default gateへ接続しない。
+
 ### 10.2 PDN/IR drop解析の実装記録
 
 `PdnAnalysisRequest`と`PdnResult`をDesign Graphとは独立したopt-in contractとして追加し、
