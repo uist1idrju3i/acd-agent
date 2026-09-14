@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Literal
 
 from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.firmware_inspection import FirmwareInspectionSequence
 from acd.schema.shipping_inspection import (
     CriterionSource,
     InspectionCategory,
@@ -36,6 +37,7 @@ from doc_inputs import (
     guard_report,
     guard_revision,
     load_firmware_config_report,
+    load_firmware_inspection_sequence,
     load_graph,
     load_template,
     sha256_file,
@@ -56,6 +58,7 @@ _CATEGORY_ORDER = (
     "led",
     "sensor",
     "serial",
+    "self_test",
 )
 _CATEGORY_TEMPLATE_KEYS = {
     "visual": "shipping.category.visual",
@@ -65,6 +68,7 @@ _CATEGORY_TEMPLATE_KEYS = {
     "led": "shipping.category.led",
     "sensor": "shipping.category.sensor",
     "serial": "shipping.category.serial",
+    "self_test": "shipping.category.self_test",
 }
 _UNKNOWN_REASON_TEMPLATE_KEYS = {
     "missing component mpn": "shipping.unknown.missing_component_mpn",
@@ -77,6 +81,9 @@ _UNKNOWN_REASON_TEMPLATE_KEYS = {
     "firmware projection unavailable for this revision": (
         "shipping.unknown.firmware_projection_unavailable"
     ),
+    "no self-measurement source declared in graph": (
+        "shipping.unknown.no_self_measurement_source"
+    ),
 }
 
 
@@ -88,6 +95,7 @@ class FirmwareProjectionInputs:
     macros: dict[str, str]
     pins: tuple[ReportPin, ...]
     devices: tuple[ReportDevice, ...]
+    inspection_sequence: FirmwareInspectionSequence | None = None
 
 
 def t(key: str, **values: object) -> str:
@@ -203,6 +211,7 @@ def guarded_firmware_projection_inputs(
     graph: DesignGraph,
     report: FirmwareConfigReport,
     macros: dict[str, str],
+    inspection_sequence: FirmwareInspectionSequence | None = None,
 ) -> FirmwareProjectionInputs:
     """Validate and package revision-matched firmware projection inputs."""
     guard_report(graph, report)
@@ -212,6 +221,7 @@ def guarded_firmware_projection_inputs(
         macros=macros,
         pins=guard_pins(graph, report, macros),
         devices=guard_devices(report, macros),
+        inspection_sequence=inspection_sequence,
     )
 
 
@@ -453,6 +463,44 @@ def build_shipping_inspection(
             else "firmware projection unavailable for this revision"
         ),
     )
+    sequence = firmware.inspection_sequence if firmware is not None else None
+    if sequence is not None:
+        if sequence.graph_id != graph.graph_id or sequence.target_revision != graph.revision:
+            raise DocumentGenerationError(
+                "firmware inspection sequence graph_id or target_revision does not match graph"
+            )
+        module_subject = [module.id] if module is not None else ["firmware.module"]
+        add(
+            "self_test",
+            module_subject,
+            "shipping.method.self_test_entry",
+            _criterion(
+                "string",
+                sequence.entry_command,
+                _source(
+                    "firmware_projection",
+                    "firmware-inspection-sequence.json#entry-command",
+                ),
+            ),
+        )
+        for sequence_item in sequence.items:
+            if sequence_item.status == "unknown":
+                criterion = _unknown(sequence_item.unknown_reason or "unknown")
+            else:
+                criterion = _criterion(
+                    "string",
+                    sequence_item.expected_line,
+                    _source(
+                        "firmware_projection",
+                        f"firmware-inspection-sequence.json#{sequence_item.item_id}",
+                    ),
+                )
+            add(
+                "self_test",
+                list(sequence_item.subject_node_ids),
+                "shipping.method.self_test_item",
+                criterion,
+            )
     items.sort(
         key=lambda item: (
             _CATEGORY_ORDER.index(item.category),
@@ -547,6 +595,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--graph", type=Path, required=True)
     parser.add_argument("--pins-header", type=Path, required=True)
     parser.add_argument("--firmware-config-report", type=Path, required=True)
+    parser.add_argument("--inspection-sequence", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--base-dir", type=Path, default=Path.cwd())
     parser.add_argument("--lang", choices=("ja", "en"), default="ja")
@@ -559,7 +608,14 @@ def main(argv: list[str] | None = None) -> int:
     graph, graph_input = load_graph(args.graph)
     macros = parse_pins_header(args.pins_header)
     report = load_firmware_config_report(args.firmware_config_report)
-    firmware = guarded_firmware_projection_inputs(graph, report, macros)
+    sequence = (
+        load_firmware_inspection_sequence(args.inspection_sequence)
+        if args.inspection_sequence is not None
+        else None
+    )
+    firmware = guarded_firmware_projection_inputs(
+        graph, report, macros, inspection_sequence=sequence
+    )
     document = build_shipping_inspection(graph, firmware)
     body = render_markdown(document, graph, template=template)
     output_dir = args.out_dir if args.lang == "ja" else args.out_dir / args.lang
@@ -568,6 +624,13 @@ def main(argv: list[str] | None = None) -> int:
         DocumentInput(args.pins_header, sha256_file(args.pins_header)),
         DocumentInput(args.firmware_config_report, sha256_file(args.firmware_config_report)),
     ]
+    if args.inspection_sequence is not None:
+        inputs.append(
+            DocumentInput(
+                args.inspection_sequence,
+                sha256_file(args.inspection_sequence),
+            )
+        )
     document_path, provenance_path = write_document(
         document_kind="shipping_inspection",
         body=body,

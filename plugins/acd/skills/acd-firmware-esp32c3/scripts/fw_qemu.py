@@ -127,7 +127,12 @@ def assert_virtual_log_ok(
     boot_log_message: str,
     lane: FirmwareLane,
     plan: FirmwareCapabilityPlan,
+    inspection_sequence: object | None = None,
 ) -> None:
+    if inspection_sequence is not None and "ACD_INSPECT begin" in log:
+        raise VirtualRunCheckError(
+            "inspection mode must not autorun without a UART entry command"
+        )
     expected_boot_line = boot_log_message.replace("%s", target_revision)
     if expected_boot_line not in log:
         raise VirtualRunCheckError("boot line with matching target revision not found")

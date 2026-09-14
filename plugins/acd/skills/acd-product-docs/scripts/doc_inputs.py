@@ -25,6 +25,7 @@ from typing import cast
 
 from acd.core.firmware_lane import extract_firmware_lane
 from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.firmware_inspection import FirmwareInspectionSequence
 from acd.schema.theme_song import ThemeSongProjection
 from acd.schema.visual_projection import VisualProjectionRecord, VisualProjectionSet
 
@@ -227,6 +228,7 @@ class FirmwareConfigReport:
     led_blink_period_ms: int
     log_period_ms: int
     boot_log_message: str
+    inspection_entry_command: str | None
 
 
 def _require_int(value: object, *, field: str) -> int:
@@ -302,7 +304,26 @@ def load_firmware_config_report(path: Path) -> FirmwareConfigReport:
         boot_log_message=require_str(
             settings.get("boot_log_message"), field="settings.boot_log_message"
         ),
+        inspection_entry_command=(
+            settings.get("inspection_entry_command")
+            if settings.get("inspection_entry_command") is None
+            else require_str(
+                settings.get("inspection_entry_command"),
+                field="settings.inspection_entry_command",
+            )
+        ),
     )
+
+
+def load_firmware_inspection_sequence(path: Path) -> FirmwareInspectionSequence:
+    """Load an optional firmware inspection sequence as a governed contract."""
+    data = load_json_object(path, label="firmware inspection sequence")
+    try:
+        return FirmwareInspectionSequence.model_validate(data)
+    except ValueError as exc:
+        raise DocumentGenerationError(
+            f"firmware inspection sequence {path} is not valid: {exc}"
+        ) from exc
 
 
 def _guard_report(graph: DesignGraph, report: FirmwareConfigReport) -> None:

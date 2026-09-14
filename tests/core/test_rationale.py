@@ -365,3 +365,9 @@ def test_summarize_rationale_coverage_is_used_by_fixture_builder(
     assert "unclassified=1 [comp.u1.future_choice" in message
     assert "remove them from the design input" in message
     assert "REQUIRED_RATIONALE_ATTRS" not in message
+
+
+def test_firmware_inspection_entry_command_is_a_required_rationale_attribute() -> None:
+    from acd.core.rationale import REQUIRED_RATIONALE_ATTRS
+
+    assert "inspection_entry_command" in REQUIRED_RATIONALE_ATTRS["firmware.module"]

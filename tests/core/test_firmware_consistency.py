@@ -38,6 +38,7 @@ def _report(graph: DesignGraph) -> dict[str, object]:
             "led_blink_period_ms": 1000,
             "log_period_ms": 2000,
             "boot_log_message": boot_log_message,
+            "inspection_entry_command": None,
         },
     }
 

@@ -12,6 +12,7 @@ from typing import cast
 import pytest
 from test_interface_spec import GRAPH, _config_report, _pins_header
 
+from acd.schema.firmware_inspection import FirmwareInspectionItem, FirmwareInspectionSequence
 from acd.schema.shipping_inspection import ShippingInspectionDocument
 from doc_inputs import DocumentGenerationError
 from generate_shipping_inspection import main as shipping_main
@@ -114,6 +115,92 @@ def test_revision_mismatch_writes_nothing(tmp_path: Path) -> None:
             ]
         )
     assert not out_dir.exists()
+
+
+def test_inspection_sequence_adds_self_test_items_and_validates_revision(
+    tmp_path: Path,
+) -> None:
+    sequence = FirmwareInspectionSequence(
+        schema_version="0.1",
+        graph_id="golden-design-1",
+        target_revision="r1",
+        entry_command="ACD INSPECT",
+        begin_line="ACD_INSPECT begin target_revision=r1",
+        end_line="ACD_INSPECT end items=2",
+        items=[
+            FirmwareInspectionItem(
+                item_id="led-led",
+                kind="led",
+                subject_node_ids=["fw.pin.led"],
+                source={
+                    "kind": "firmware_projection",
+                    "ref": "firmware-inspection-sequence.json#led-led",
+                },
+                expected_line="ACD_INSPECT led:led gpio=7 result=executed",
+                status="derived",
+            ),
+            FirmwareInspectionItem(
+                item_id="power-self-check",
+                kind="power_self_check",
+                subject_node_ids=["fw.module"],
+                status="unknown",
+                unknown_reason="no self-measurement source declared in graph",
+            ),
+        ],
+    )
+    sequence_path = tmp_path / "firmware-inspection-sequence.json"
+    sequence_path.write_text(
+        json.dumps(sequence.model_dump(mode="json"), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    header = _pins_header(tmp_path)
+    report = _config_report(tmp_path)
+    out_dir = tmp_path / "out"
+    assert shipping_main(
+        [
+            "--graph",
+            str(GRAPH),
+            "--pins-header",
+            str(header),
+            "--firmware-config-report",
+            str(report),
+            "--inspection-sequence",
+            str(sequence_path),
+            "--out-dir",
+            str(out_dir),
+        ]
+    ) == 0
+    document = ShippingInspectionDocument.model_validate(
+        json.loads((out_dir / "shipping-inspection.json").read_text(encoding="utf-8"))
+    )
+    self_test = [item for item in document.items if item.category == "self_test"]
+    assert len(self_test) == 3
+    assert any(item.criterion.unknown_reason for item in self_test)
+    assert all(
+        item.criterion.source is not None
+        for item in self_test
+        if item.criterion.kind != "unknown"
+    )
+    broken = sequence.model_copy(update={"target_revision": "r99"})
+    sequence_path.write_text(
+        json.dumps(broken.model_dump(mode="json"), sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(DocumentGenerationError, match="target_revision"):
+        shipping_main(
+            [
+                "--graph",
+                str(GRAPH),
+                "--pins-header",
+                str(header),
+                "--firmware-config-report",
+                str(report),
+                "--inspection-sequence",
+                str(sequence_path),
+                "--out-dir",
+                str(tmp_path / "broken-out"),
+            ]
+        )
 
 
 def test_missing_nominal_voltage_is_unknown(tmp_path: Path) -> None:

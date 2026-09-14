@@ -1517,3 +1517,17 @@ firmware config report loaderとrevision／pin／device guardは共有入力モ�
 移動し、interface specのfail-closed挙動を維持した。日本語・英語のsemantic template、
 Markdown／JSONと`write_document`によるprovenanceを生成し、`projection_docs`から
 interface specと同じ入力で両言語を実行してhash登録する。
+
+### 18.5 出荷検査モード付きFW開発機能の実装記録
+
+`firmware.module`へ任意の`inspection_entry_command`を追加し、宣言された場合だけ
+FW Skillがgraph・lane pin・capability plan・解決済みdeviceから検査sequenceを導出する。
+sequenceはLED、I2C probe、serial echoを決定論的に記録し、graphに自己測定sourceが無い
+電源検査はunknownとして保持する。UART commandの明示入力なしでは開始せず、QEMUの
+virtual logへ検査開始行が自動出力されないことも検査する。
+
+生成FWは`acd_inspection.c/.h`、UART polling、CMake登録、sequence JSON、設定reportの
+commandとhashを出力する。18.4の出荷検査generatorはsequenceを任意入力として受け、
+self-test項目・entry command・sequenceのsourceをja/en文書へ追加する。検査出力はL3
+観測であり、実機測定EvidenceやL1 gateへ昇格しない。GD1既存graphはinspection modeを
+有効化せず、opt-in境界を維持する。

@@ -16,6 +16,7 @@ InspectionCategory = Literal[
     "led",
     "sensor",
     "serial",
+    "self_test",
 ]
 
 

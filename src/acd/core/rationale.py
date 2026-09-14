@@ -108,7 +108,14 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
     ),
     "fab.process_allowance": frozenset({"rule_id", "impact_accepted"}),
     "firmware.module": frozenset(
-        {"mcu_component", "entry_state", "led_blink_period_ms", "log_period_ms", "boot_log_message"}
+        {
+            "mcu_component",
+            "entry_state",
+            "led_blink_period_ms",
+            "log_period_ms",
+            "boot_log_message",
+            "inspection_entry_command",
+        }
     ),
     "firmware.state": frozenset({"initial"}),
     "firmware.state_transition": frozenset({"from_state", "to_state", "trigger"}),

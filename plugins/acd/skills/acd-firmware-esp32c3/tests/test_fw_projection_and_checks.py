@@ -39,6 +39,7 @@ from fw_graph import (
     extract_firmware_settings,
     resolve_firmware_capability_plan,
 )
+from fw_inspection import derive_inspection_sequence
 from fw_project import (
     FirmwareProjectionError,
     firmware_project_name,
@@ -167,6 +168,91 @@ def test_firmware_settings_default_and_declared_values(graph: DesignGraph) -> No
     assert settings.led_blink_period_ms == 250
     assert settings.log_period_ms == 750
     assert settings.boot_log_message == "boot %s"
+
+
+def test_inspection_sequence_is_opt_in_and_deterministic(
+    graph: DesignGraph, tmp_path: Path
+) -> None:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    enabled = graph.model_copy(
+        update={
+            "nodes": [
+                node.model_copy(
+                    update={
+                        "attrs": {
+                            **node.attrs,
+                            "inspection_entry_command": "ACD INSPECT",
+                        }
+                    }
+                )
+                if node.id == module.id
+                else node
+                for node in graph.nodes
+            ]
+        }
+    )
+    lane = extract_firmware_lane(enabled)
+    settings = extract_firmware_settings(enabled)
+    plan = resolve_firmware_capability_plan(enabled, lane)
+    sequence = derive_inspection_sequence(enabled, lane, plan, settings)
+    assert sequence is not None
+    assert [item.kind for item in sequence.items] == [
+        "led",
+        "i2c_probe",
+        "power_self_check",
+        "serial_echo",
+    ]
+    assert sequence.items[2].status == "unknown"
+    assert sequence.items[2].unknown_reason
+    first = write_firmware_project(
+        lane,
+        enabled.revision,
+        tmp_path / "first",
+        enabled.graph_id,
+        settings,
+        plan=plan,
+        inspection_sequence=sequence,
+    )
+    second = write_firmware_project(
+        lane,
+        enabled.revision,
+        tmp_path / "second",
+        enabled.graph_id,
+        settings,
+        plan=plan,
+        inspection_sequence=sequence,
+    )
+    assert (first.main_source.read_bytes()) == (second.main_source.read_bytes())
+    assert "acd_inspection_poll" in first.main_source.read_text(encoding="utf-8")
+    assert "acd_inspection.c" in (
+        first.root / "main" / "CMakeLists.txt"
+    ).read_text(encoding="utf-8")
+    assert not (tmp_path / "first" / "firmware-inspection-sequence.json").exists()
+    assert derive_inspection_sequence(
+        graph,
+        extract_firmware_lane(graph),
+        resolve_firmware_capability_plan(graph, extract_firmware_lane(graph)),
+        extract_firmware_settings(graph),
+    ) is None
+
+
+def test_inspection_entry_command_rejects_malformed_values(graph: DesignGraph) -> None:
+    module = next(node for node in graph.nodes if node.kind == "firmware.module")
+    for value in ('', 'bad"cmd', "x" * 33, "bad\ncmd"):
+        broken = graph.model_copy(
+            update={
+                "nodes": [
+                    node.model_copy(
+                        update={"attrs": {**node.attrs, "inspection_entry_command": value}}
+                    )
+                    if node.id == module.id
+                    else node
+                    for node in graph.nodes
+                ]
+            }
+        )
+        with pytest.raises(FirmwareExtractionError):
+            extract_firmware_settings(broken)
 
 
 def test_firmware_settings_default_is_graph_derived(
@@ -838,4 +924,17 @@ def test_dual_led_virtual_log_checks(graph: DesignGraph) -> None:
             boot_log_message="ACD GD1 fw boot target_revision=%s",
             lane=lane,
             plan=plan,
+        )
+
+
+def test_enabled_inspection_must_not_autorun(graph: DesignGraph) -> None:
+    _, lane, plan = _dual_led_plan(graph)
+    with pytest.raises(VirtualRunCheckError, match="autorun"):
+        assert_virtual_log_ok(
+            "ACD GD1 fw boot target_revision=r1\nACD_INSPECT begin target_revision=r1\n",
+            target_revision="r1",
+            boot_log_message="ACD GD1 fw boot target_revision=%s",
+            lane=lane,
+            plan=plan,
+            inspection_sequence=object(),
         )

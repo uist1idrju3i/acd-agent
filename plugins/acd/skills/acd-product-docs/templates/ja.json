@@ -238,6 +238,7 @@
   "shipping.category.led": "## LED",
   "shipping.category.sensor": "## センサー",
   "shipping.category.serial": "## シリアル",
+  "shipping.category.self_test": "## FW検査モード",
   "shipping.unknown.missing_component_mpn": "部品のMPNが未宣言",
   "shipping.unknown.ground_net_undeclared": "基板のグラウンドネットが未宣言",
   "shipping.unknown.missing_nominal_voltage": "公称電圧が未宣言",
@@ -246,6 +247,7 @@
   "shipping.unknown.led_blink_undeclared": "LEDの点滅動作が未宣言",
   "shipping.unknown.serial_output_undeclared": "シリアル出力行が未宣言",
   "shipping.unknown.firmware_projection_unavailable": "このrevisionではfirmware投影を利用できません",
+  "shipping.unknown.no_self_measurement_source": "グラフに自己測定ソースが未宣言",
   "shipping.method.visual": "{subject}の実装状態と表示を確認",
   "shipping.method.continuity": "{subject}間の短絡を測定",
   "shipping.method.power_nominal": "{subject}の電圧を測定",
@@ -254,7 +256,9 @@
   "shipping.method.led_gpio": "{subject}のGPIO接続を確認",
   "shipping.method.led_behavior": "{subject}の点滅動作を確認",
   "shipping.method.sensor": "{subject}のI2C ACKを確認",
-  "shipping.method.serial": "{subject}のシリアルログを確認"
+  "shipping.method.serial": "{subject}のシリアルログを確認",
+  "shipping.method.self_test_entry": "UARTから検査モードへ入り、{subject}の手順を実行",
+  "shipping.method.self_test_item": "{subject}のFW検査出力を確認"
   ,"work.document_title": "# ワークアラウンド作業指示書: {graph_id}"
   ,"work.provenance_paragraph": "この文書はワークアラウンドの実施と作業後検査を記録するL3観測であり、合否承認の根拠ではない。"
   ,"work.target_heading": "## 対象個体"

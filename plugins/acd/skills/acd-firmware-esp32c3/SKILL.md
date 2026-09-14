@@ -28,6 +28,7 @@ Reference implementations in `scripts/`, reusable as-is or as a starting point:
 | `fw_build.py` | Runs `idf.py build` / `merge-bin` through the pinned `IDF_PYTHON_ENV_PATH` interpreter and reports toolchain version plus source/artifact hashes. |
 | `fw_checks.py` | Cross-checks graph GPIO assignments against the electrical lane pads via a pinned module pad map, and checks the generated header against the graph. |
 | `fw_qemu.py` | Builds a flash image, runs QEMU esp32c3 for a bounded time, captures the serial log, and checks only the boot line and behaviors declared by the graph. |
+| `fw_inspection.py` | Derives the opt-in UART inspection sequence from the same lane pins, capability plan, and resolved devices used by the firmware projection. |
 | `run_fw_pipeline.py` | Runs the graph-driven firmware sequence for a design fixture, including registry provenance. |
 
 ## Usage
@@ -73,3 +74,16 @@ when a tool is missing; tests that need the tools skip instead.
   the datasheet, not from guesses, and keep the citation.
 - When you find a firmware check that the ACD gates genuinely need, propose it
   as an ADR before moving it into `src/acd/`.
+
+## 検査モード
+
+`firmware.module.attrs.inspection_entry_command`を宣言したgraphだけが検査モードを
+有効化する。値は決定論的な検査sequenceへ投影され、UARTへ同じcommandを1行で入力
+した場合だけ`acd_inspection_poll()`がシーケンスを実行する。入力なしの起動では
+自動実行せず、QEMU virtual logも`ACD_INSPECT begin`を含んではならない。
+
+LED、解決済みI2C device、serial echoの行はgraph・FW projectionから導出する。
+電源自己測定sourceがgraphに無い場合は`unknown`として記録し、測定成功を推測しない。
+生成sequenceとFW出力は観測であり、実機測定EvidenceやL1 gateへ昇格しない。18.4の
+出荷検査文書は`--inspection-sequence`で同じsequenceを読み、self-test項目と
+出所を記録する。

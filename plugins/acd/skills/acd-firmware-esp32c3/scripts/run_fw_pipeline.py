@@ -27,6 +27,7 @@ electrical and mechanical gates.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -47,6 +48,7 @@ from fw_graph import (
     extract_firmware_settings,
     resolve_firmware_capability_plan,
 )
+from fw_inspection import derive_inspection_sequence
 from fw_project import write_firmware_project
 from fw_qemu import (
     QemuRunner,
@@ -113,6 +115,9 @@ def run_pipeline(
     fw_lane = extract_firmware_lane(graph)
     plan = resolve_firmware_capability_plan(graph, fw_lane)
     fw_settings = extract_firmware_settings(graph)
+    inspection_sequence = derive_inspection_sequence(
+        graph, fw_lane, plan, fw_settings
+    )
     electrical = extract_electrical_lane(graph)
 
     project = write_firmware_project(
@@ -122,6 +127,7 @@ def run_pipeline(
         graph.graph_id,
         fw_settings,
         plan=plan,
+        inspection_sequence=inspection_sequence,
     )
     mcu_refdes = resolve_mcu_refdes(graph)
     config_report = {
@@ -136,6 +142,7 @@ def run_pipeline(
             "led_blink_period_ms": fw_settings.led_blink_period_ms,
             "log_period_ms": fw_settings.log_period_ms,
             "boot_log_message": fw_settings.boot_log_message,
+            "inspection_entry_command": fw_settings.inspection_entry_command,
         },
         "provenance": {
             "registry_path": plan.registry_path,
@@ -159,6 +166,20 @@ def run_pipeline(
             ],
         },
     }
+    if inspection_sequence is not None:
+        sequence_path = out_dir / "firmware-inspection-sequence.json"
+        sequence_path.write_text(
+            json.dumps(
+                inspection_sequence.model_dump(mode="json"),
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+    else:
+        sequence_path = None
     (out_dir / "firmware-config-report.json").write_text(
         json.dumps(config_report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
@@ -190,6 +211,7 @@ def run_pipeline(
         boot_log_message=fw_settings.boot_log_message,
         lane=fw_lane,
         plan=plan,
+        inspection_sequence=inspection_sequence,
     )
     print("[5/5] virtual log check passed")
     print("NOTE: real-device flashing/LED measurement unavailable (no debug probe attached)")
@@ -207,6 +229,14 @@ def run_pipeline(
         "virtual_run_stopped_by_intended_timeout": result.stopped_by_intended_timeout,
         "virtual_log": str(result.log_path),
         "config_report": str(out_dir / "firmware-config-report.json"),
+        "inspection_sequence": (
+            str(sequence_path) if sequence_path is not None else None
+        ),
+        "inspection_sequence_hash": (
+            hashlib.sha256(sequence_path.read_bytes()).hexdigest()
+            if sequence_path is not None
+            else None
+        ),
     }
 
 

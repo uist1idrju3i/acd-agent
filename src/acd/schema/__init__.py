@@ -104,6 +104,10 @@ from acd.schema.firmware_capability import (
     FirmwareCapabilityRegistryDocument,
     FirmwareDeviceContract,
 )
+from acd.schema.firmware_inspection import (
+    FirmwareInspectionItem,
+    FirmwareInspectionSequence,
+)
 from acd.schema.functional_block import (
     FunctionalBlockContract,
     FunctionalBlockRegistryDocument,
@@ -433,6 +437,8 @@ __all__ = [
     "FirmwareCapabilityRegistryDocument",
     "FirmwareChange",
     "FirmwareDeviceContract",
+    "FirmwareInspectionItem",
+    "FirmwareInspectionSequence",
     "FixtureBoardEdgeOverhangSpec",
     "FixtureComponentBodySpec",
     "FixtureComponentSpec",
