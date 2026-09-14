@@ -27,10 +27,10 @@ from doc_inputs import (
     DocumentInput,
     DocumentTemplate,
     FirmwareConfigReport,
-    _guard_devices,
-    _guard_pins,
-    _guard_report,
-    _guard_revision,
+    guard_devices,
+    guard_pins,
+    guard_report,
+    guard_revision,
     load_firmware_config_report,
     load_graph,
     load_template,
@@ -66,10 +66,10 @@ def build_interface_spec(
     macros: dict[str, str],
 ) -> dict[str, object]:
     """Build the deterministic interface-spec JSON body."""
-    _guard_report(graph, report)
-    _guard_revision(graph, macros)
-    pins = _guard_pins(graph, report, macros)
-    devices = _guard_devices(report, macros)
+    guard_report(graph, report)
+    guard_revision(graph, macros)
+    pins = guard_pins(graph, report, macros)
+    devices = guard_devices(report, macros)
 
     uart_lines: list[dict[str, str]] = [
         {

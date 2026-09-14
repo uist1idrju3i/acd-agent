@@ -1,5 +1,7 @@
 """Shipping inspection projection tests."""
 
+# pyright: reportPrivateUsage=false
+
 from __future__ import annotations
 
 import json
