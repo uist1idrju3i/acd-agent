@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import acd.core.salvage_gate as salvage_gate
 import workaround
 from acd.core.design_predicates import PredicateResult
 from check_workaround import main as check_workaround_main
@@ -121,7 +122,8 @@ def test_completed_sample_is_salvageable_with_predicate_stub(
     def passing_predicates(*_args: object) -> tuple[PredicateResult, ...]:
         return (PredicateResult(name="usb_cc", status="pass", detail="pass"),)
 
-    monkeypatch.setattr(workaround, "evaluate_design_predicates", passing_predicates)
+    monkeypatch.setattr(salvage_gate, "evaluate_design_predicates", passing_predicates)
+    assert not any("patch" in name.lower() for name in vars(workaround))
     evaluation = workaround.evaluate_completed(
         graph_path=GRAPH,
         defects_path=DEFECTS,

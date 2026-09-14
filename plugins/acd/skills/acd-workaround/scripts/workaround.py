@@ -11,19 +11,15 @@ from __future__ import annotations
 import hashlib
 import importlib.metadata
 import json
-from collections.abc import Generator
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
-import acd.core.salvage_gate as salvage_gate
 from acd.core.defect_records import (
     DefectRecordError,
     LoadedDefectDocument,
     check_defect_records,
     load_defect_document,
 )
-from acd.core.design_predicates import evaluate_design_predicates
 from acd.core.rework_diff import load_rework_diff, safety_related_node_ids, write_derived_graph
 from acd.core.salvage_gate import SalvageGateError, evaluate_salvage
 from acd.schema.defect_record import DefectDocument, DefectRecord
@@ -43,8 +39,6 @@ from acd.schema.workaround import (
     WorkaroundProposalSet,
     WorkaroundStrategy,
 )
-
-_ORIGINAL_EVALUATE_DESIGN_PREDICATES = evaluate_design_predicates
 
 
 class WorkaroundError(ValueError):
@@ -501,20 +495,6 @@ def validate_completed(
     return candidate
 
 
-@contextmanager
-def _skill_predicate_patch() -> Generator[None, None, None]:
-    if evaluate_design_predicates is _ORIGINAL_EVALUATE_DESIGN_PREDICATES:
-        yield
-        return
-    gate_module: Any = salvage_gate
-    original = gate_module.evaluate_design_predicates
-    gate_module.evaluate_design_predicates = evaluate_design_predicates
-    try:
-        yield
-    finally:
-        gate_module.evaluate_design_predicates = original
-
-
 def evaluate_completed(
     *,
     graph_path: Path,
@@ -548,23 +528,22 @@ def evaluate_completed(
         graph, proposal, candidate_id, loaded_diff.diff, loaded_defects.document
     )
     out_dir.mkdir(parents=True, exist_ok=True)
-    with _skill_predicate_patch():
-        try:
-            derived, salvage = evaluate_salvage(
-                base_graph=graph,
-                diff=loaded_diff.diff,
-                dfa=dfa,
-                approval=approval,
-                fixture_dir=fixture_dir,
-                external_evidence={
-                    name: path
-                    for name, path in (("erc", erc_path), ("drc", drc_path))
-                    if path is not None
-                },
-                output_dir=out_dir,
-            )
-        except SalvageGateError as exc:
-            raise WorkaroundError(str(exc)) from exc
+    try:
+        derived, salvage = evaluate_salvage(
+            base_graph=graph,
+            diff=loaded_diff.diff,
+            dfa=dfa,
+            approval=approval,
+            fixture_dir=fixture_dir,
+            external_evidence={
+                name: path
+                for name, path in (("erc", erc_path), ("drc", drc_path))
+                if path is not None
+            },
+            output_dir=out_dir,
+        )
+    except SalvageGateError as exc:
+        raise WorkaroundError(str(exc)) from exc
     write_derived_graph(derived, out_dir)
     rejection_reasons = (
         list(salvage.reasons) if salvage.verdict == "not_salvageable" else []
