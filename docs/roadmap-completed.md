@@ -1635,3 +1635,26 @@ pinning、`fp-lib-table`のnickname／source検査を追加した。Skillの出�
 変換しない。footprint libraryのnicknameはproject projectionのGraph `library_ref`から
 決定論的に生成され、GD1で観測された`lib_footprint_issues`類型を回帰テストで閉じた。
 ACD coreからSkill moduleはimportせず、geometry/source/hash統治を扱い、規制認証は判定しない。
+
+### 17.2 部品ライフサイクル・セカンドソース契約の実装記録
+
+`PartLifecycleRegistry`をDesign Graphとは独立したopt-in contractとして追加し、BOMの
+non-empty MPNに対するライフサイクル状態、status source、観測日・有効期限、代替候補、
+second source policyを宣言可能にした。`graph_id`／`revision`を照合し、`coverage`、
+`status_freshness`、`lifecycle_status`、`second_source`、`alternate_footprint_consistency`
+を決定論的に検査する。registryにないMPN、staleなstatus source、明示`unknown`はunknown、
+`eol`／`obsolete`はfail、`nrnd`／`last_time_buy`はwarningとして停止側の境界を維持する。
+
+`requires_redesign`だけの代替はsecond sourceとせず、drop-inまたは
+footprint-compatible value checkの代替footprintがBOM footprintと一致することを要求する。
+空MPNの機械部品・test pointは`no_mpn`として別報告する。GD1 fixture
+(`fixtures/part-lifecycle/gd1-2026-09.json`)は全non-empty BOM MPNをmanual declarationで
+収載し、MCU、sensor、LDOの代替候補を含む。対象MPNは
+`0603WAF1001T5E`、`0603WAF1002T5E`、`0603WAF4701T5E`、`0603WAF5101T5E`、
+`AMS1117-3.3`、`CL10A105KB8NNNC`、`CL10A106MQ8NNNC`、`CL10B104KB8NNNC`、
+`ESP32-C3-MINI-1-N4`、`KT-0603R`、`SHT40-AD1B-R3`、`TS-1088-AR02016`、
+`TYPE-C-31-M-12`である。
+
+`scripts/check_part_lifecycle.py`はUTF-8 JSONを読み、`--as-of`で基準日を固定して結果を
+再現する。外部メーカー／代理店APIの自動照会は実装・採用せず、registryへ宣言されていない
+情報はunknownへ集約する。既存GD1 default gateはopt-in境界を維持し、出力を変更しない。

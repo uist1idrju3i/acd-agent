@@ -246,6 +246,31 @@ Evidenceを持たない。資材の欠落・読込不能・parse不能・未知�
 projection自体はGraphのlibrary referenceから決定論的な`fp-lib-table`／`sym-lib-table`を生成する。
 対象はライブラリのgeometry、source、hash統治であり、規制認証の判定ではない。
 
+### 17.2 部品ライフサイクル・セカンドソース契約（opt-in gate）
+
+部品ライフサイクルgateは、`PartLifecycleRegistry`を明示した場合だけ実行する独立した
+L1 gateである。registryはDesign Graphへ混在させず、graphの`graph_id`／`revision`と
+一致する宣言contractとして管理する。`build_bom()`が返すnon-empty MPNごとにライフサイクル
+状態、status sourceの識別子・観測日・有効期限、代替候補を対応付ける。MPNが空の機械部品や
+test pointは`no_mpn`として別集計し、ライフサイクルentryの欠落をpassへ変換しない。
+
+`coverage`はBOM MPNのregistry収載を、`status_freshness`はregistryの`as_of`と
+`max_status_age_days`／`valid_until`を使った鮮度を検査する。日付はwall clockを使わず、
+CLIの`--as-of`でregistryの基準日を決定論的に上書きできる。未収載、stale、期限切れ、
+明示`unknown`はunknownとして停止側へ集約する。`eol`／`obsolete`はfail、
+`nrnd`／`last_time_buy`はwarningを記録しつつgate statusをpassに保てる。
+
+policyがsecond sourceを要求する場合、代替の`drop_in`または
+`footprint_compatible_value_check`がBOM footprintと一致することを必要とする。
+`requires_redesign`だけでは要件を満たさず、drop-inの矛盾したfootprint宣言はfailである。
+status sourceやalternateのreferenceはURLまたは文書識別子であり、外部メーカー／代理店APIの
+自動照会は行わない。未取得・未宣言の情報はregistryへ手動で宣言されるまでunknownとして
+扱う。
+
+結果は`checks`、部品ごとのrefdes・MPN・状態・代替数・status、入力hashを含む。これは
+既存GD1のdefault gateへ接続しないopt-in経路であり、registryを指定しないGD1出力は変更
+しない。規制適合、供給保証、認証verdictは行わず、外部API照会は別途判断とする。
+
 ### 信頼性試験対応表（opt-in gate）
 
 信頼性試験gateは`ReliabilityTestPlan`を明示した場合だけ実行する独立したL1 gateである。
