@@ -127,6 +127,10 @@ from acd.core.side_effect_journal import (
     read_journal,
     reconstruct_order,
 )
+from acd.core.workaround_ledger import (
+    WorkaroundLedgerError,
+    evaluate_workaround_retirement,
+)
 
 __all__ = [
     "MINIMUM_GATES",
@@ -172,6 +176,7 @@ __all__ = [
     "RequirementFinding",
     "ReworkDiffError",
     "SideEffectJournalError",
+    "WorkaroundLedgerError",
     "aggregate_order_total",
     "append_post_order",
     "append_pre_order",
@@ -189,6 +194,7 @@ __all__ = [
     "evaluate_eco",
     "evaluate_firmware_graph_consistency",
     "evaluate_functional_run",
+    "evaluate_workaround_retirement",
     "external_gate_run",
     "extract_fab_intent",
     "load_and_evaluate_functional_run",

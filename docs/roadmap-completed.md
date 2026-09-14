@@ -1489,6 +1489,19 @@ testで固定した。宣言のgraph ID／revision不一致、idea recordに無�
 firmware投影がbase revisionの場合はunknownとして理由を記録し、制約付き救済では
 全機能を復元しない旨を明示する。文書はL3観測であり、承認権限を持たない。
 
+### 13.6 個体トレーサビリティとWA廃止条件の実装記録
+
+`WorkaroundLedger`、個体単位の適用record、作業後検査状態、廃棄・解決revisionへの
+更新recordを追加した。ロットとシリアルを区別し、シリアルが列挙された場合にロット
+recordで代替しないこと、未検証・失敗・未適用個体をopenとして残すことをschemaと
+決定論的gateで固定した。
+
+`check_workaround_retirement.py`は、13.1の不具合範囲、13.2のrework、ECO record、
+closableな`eco-check.json`のsha256、解決graph、個体台帳を照合する。ECOが同じ不具合を
+理由として覆い、すべての対象個体が検証済み適用または妥当な廃棄・解決revision更新で
+閉じている場合だけ`retired`とする。unknown scope、欠落・破損・revision不一致・
+sha256不一致・誤った更新revisionはfail-closedで停止する。
+
 ### 18.4 出荷検査文書生成SKILLの実装記録
 
 `acd-product-docs` Skillへ`generate_shipping_inspection.py`を追加し、graph、

@@ -1,0 +1,38 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "eco_check",
+  "pass_evidence": false,
+  "verdict": "closable",
+  "eco_id": "ECO-001",
+  "from_revision": "r1",
+  "to_revision": "r2",
+  "impact_status": "matched",
+  "gate_runs": [
+    {
+      "gate": "design_predicates",
+      "status": "pass",
+      "source": "evidence_file",
+      "detail": "ECO revision design predicates passed.",
+      "evidence_path": "fixtures/eco/sample/evidence/design_predicates.json"
+    },
+    {
+      "gate": "drc",
+      "status": "pass",
+      "source": "evidence_file",
+      "detail": "ECO revision DRC passed.",
+      "evidence_path": "fixtures/eco/sample/evidence/drc.json"
+    },
+    {
+      "gate": "erc",
+      "status": "pass",
+      "source": "evidence_file",
+      "detail": "ECO revision ERC passed.",
+      "evidence_path": "fixtures/eco/sample/evidence/erc.json"
+    }
+  ],
+  "horizontal_status": "complete",
+  "reasons": [],
+  "retires_workaround_ids": [
+    "WA-001"
+  ]
+}

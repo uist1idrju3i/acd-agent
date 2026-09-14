@@ -39,7 +39,35 @@ Evidenceは`<evidence-dir>/<gate>.json`から読み込み、`target_revision`と
 ワークアラウンドrevision（例: `r1+WA-001`）は、対象個体に適用した逸脱の識別子で
 あり、Design Graphの恒久revisionへ昇格しない。graphへの本修正はECOとして起票し、
 恒久revision `rN+1`を生成する。ECOの`retires_workaround_ids`は現段階では記録用の
-hookであり、ワークアラウンド廃止の判定はマイルストーン13.6で定義する。
+hookであり、廃止判定は個体台帳とECO close結果を組み合わせて行う。
+
+## ワークアラウンドの個体追跡と廃止
+
+`WorkaroundLedger`は、ワークアラウンドを適用した対象をロットまたはシリアル単位で
+記録する。シリアルが列挙されている場合、ロットの適用recordだけではそのシリアルを
+適用済みとみなさない。作業後検査が`pass`のrecordだけが`applied_verified`であり、
+`not_recorded`と`fail`はそれぞれ未検証・失敗としてopenのまま残る。
+
+| 状態 | 廃止判定上の扱い |
+|---|---|
+| `unmodified` | ワークアラウンド未適用。open |
+| `applied_verified` | 対象個体への適用と作業後検査を確認済み |
+| `applied_unverified` | 作業後検査が未記録。open |
+| `applied_failed` | 作業後検査が失敗。open |
+| `scrapped` | 個体を廃棄したrecordがあり、openから除外 |
+| `upgraded` | `resolved_revision`への更新を記録した場合だけopenから除外 |
+
+ワークアラウンドの廃止条件は次の論理積である。
+
+```text
+ECO closable ∧ same defects ∧ no open units
+```
+
+ここで`ECO closable`は対象ECOの`eco-check.json`が`closable`で、recordに記録した
+sha256・ECO ID・解決revisionと一致することを含む。`same defects`は、ECOの
+`kind=defect`理由がreworkの全不具合IDを覆うことをいう。未適用個体、作業後検査が
+未記録または失敗の個体、解決revisionと異なる更新、列挙範囲外の処置は廃止を許可しない。
+個体が不明なスコープの場合も、対象を列挙できないためunknownとして停止する。
 
 ## fail-closedの運用
 

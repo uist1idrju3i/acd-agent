@@ -350,6 +350,15 @@ from acd.schema.workaround import (
     WorkaroundProposalSet,
     WorkaroundStrategy,
 )
+from acd.schema.workaround_ledger import (
+    UnitDisposition,
+    UnitRef,
+    UnitStatus,
+    WorkaroundApplication,
+    WorkaroundLedger,
+    WorkaroundRetirement,
+    WorkaroundRetirementResult,
+)
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
@@ -602,6 +611,9 @@ __all__ = [
     "TopologyTemplateComponent",
     "TopologyTemplateNet",
     "TopologyTemplatesDocument",
+    "UnitDisposition",
+    "UnitRef",
+    "UnitStatus",
     "UnknownFunction",
     "VisualCrosscheckItem",
     "VisualCrosscheckReport",
@@ -623,11 +635,15 @@ __all__ = [
     "VisualVisionToolEvent",
     "WorkInstructionDocument",
     "WorkStep",
+    "WorkaroundApplication",
     "WorkaroundCandidate",
     "WorkaroundCandidateId",
     "WorkaroundEvaluation",
     "WorkaroundId",
+    "WorkaroundLedger",
     "WorkaroundProposalSet",
+    "WorkaroundRetirement",
+    "WorkaroundRetirementResult",
     "WorkaroundStrategy",
     "base_revision",
     "canonical_json_sha256",
