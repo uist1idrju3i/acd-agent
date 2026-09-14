@@ -281,6 +281,7 @@ def _render_main_source(
                 raise FirmwareProjectionError(
                     "i2c sensor initialization has no resolved device"
                 )
+            bus_handle = "s_i2c_bus" if inspection_sequence is not None else "bus"
             initialization.extend(
                 [
                     "    i2c_master_bus_config_t bus_cfg = {",
@@ -291,14 +292,19 @@ def _render_main_source(
                     "        .glitch_ignore_cnt = 7,",
                     "        .flags = {.enable_internal_pullup = false},",
                     "    };",
-                    "    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &s_i2c_bus));",
+                    *(
+                        []
+                        if inspection_sequence is not None
+                        else ["    i2c_master_bus_handle_t bus;"]
+                    ),
+                    f"    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_cfg, &{bus_handle}));",
                     "    i2c_device_config_t dev_cfg = {",
                     "        .dev_addr_length = I2C_ADDR_BIT_LEN_7,",
                     f"        .device_address = ACD_{device.driver_id.upper()}_I2C_ADDRESS,",
                     "        .scl_speed_hz = 100000,",
                     "    };",
                     "    ESP_ERROR_CHECK(i2c_master_bus_add_device("
-                    f"s_i2c_bus, &dev_cfg, &s_{device.driver_id}));",
+                    f"{bus_handle}, &dev_cfg, &s_{device.driver_id}));",
                 ]
             )
     loop: list[str] = []

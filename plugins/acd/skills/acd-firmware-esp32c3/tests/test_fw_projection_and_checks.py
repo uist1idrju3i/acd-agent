@@ -49,6 +49,9 @@ from fw_project import (
 from fw_qemu import VirtualRunCheckError, assert_virtual_log_ok
 
 FIXTURE = Path(__file__).resolve().parents[5] / "fixtures" / "golden-design-1" / "graph.json"
+DISABLED_SOURCE_GOLDEN = (
+    Path(__file__).resolve().parent / "fixtures" / "golden-disabled-acd_main.c"
+)
 
 
 @pytest.fixture(scope="module")
@@ -127,6 +130,23 @@ def test_pins_header_is_deterministic(
     assert 'pins led=%d i2c_sda=%d i2c_scl=%d' in source
     assert "\n\n\n" not in source
     assert "static i2c_master_dev_handle_t s_sht40;" in source
+
+
+def test_disabled_inspection_source_matches_golden_main_output(
+    fw_lane: FirmwareLane,
+    plan: FirmwareCapabilityPlan,
+    graph: DesignGraph,
+    tmp_path: Path,
+) -> None:
+    project = write_firmware_project(
+        fw_lane,
+        graph.revision,
+        tmp_path,
+        graph.graph_id,
+        extract_firmware_settings(graph),
+        plan=plan,
+    )
+    assert project.main_source.read_bytes() == DISABLED_SOURCE_GOLDEN.read_bytes()
 
 
 def test_registry_provenance_path_is_repository_relative(
