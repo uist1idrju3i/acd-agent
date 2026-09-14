@@ -194,8 +194,7 @@ def test_depends_on_only_changes_are_edges_not_node_changes() -> None:
         DesignGraph.model_validate(previous),
         DesignGraph.model_validate(current),
     )
-    payload = diff.to_json()
-    assert payload["nodes"]["changed"] == []
+    assert diff.changed_nodes == ()
 
 
 def test_no_previous_revision_is_unknown(tmp_path: Path) -> None:
