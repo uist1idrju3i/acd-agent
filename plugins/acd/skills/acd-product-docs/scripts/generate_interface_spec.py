@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@1363be921b303752a81bf78b4ddc69be60f42084",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@82ba8f2ecfca1bd34c4225a3d240806f4528b6fc",
 # ]
 # ///
 """Project the device interface contract deterministically as JSON and Markdown.

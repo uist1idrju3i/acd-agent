@@ -60,6 +60,8 @@ _BLOCK_OMIT_KINDS = frozenset(
         "requirement",
         # Functional-block declarations select contracts but are not system blocks.
         "design.functional_block",
+        # Responsibility-allocation declarations are not system blocks.
+        "design.responsibility",
         "electrical.placement_group",
         "fab.order_intent",
         "fab.process_allowance",

@@ -31,6 +31,7 @@ DecisionKind = Literal[
     "net_class",
     "safety_scope",
     "population",
+    "responsibility_assignment",
 ]
 RationaleSource = Literal["human", "openhands_agent", "acd_skill", "deterministic_tool"]
 

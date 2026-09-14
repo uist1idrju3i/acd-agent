@@ -1,0 +1,67 @@
+{
+  "graph_id": "resp-sample",
+  "records": [
+    {
+      "decision": "Assign fn-measure-temp to firmware.",
+      "decision_kind": "responsibility_assignment",
+      "driving_requirements": [
+        "req.fn-measure-temp"
+      ],
+      "justification": "The firmware domain owns this function per ADR-0049 §7.",
+      "provenance": {
+        "recorded_at": "2026-09-13T00:00:00+00:00",
+        "script_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "skill_name": "fixture",
+        "source": "acd_skill"
+      },
+      "rationale_id": "rat-resp-measure",
+      "rejected_alternatives": [
+        {
+          "option": "Assign the function to another domain",
+          "reason": "The declared domain matches the capability needs."
+        }
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "domain"
+      ],
+      "subject_hash": "sha256:2079e05bcb022afe291f7b423b16c38b7b183a7294796558749c916c454745a4",
+      "subject_nodes": [
+        "resp.fn-measure-temp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "decision": "Assign fn-stream-usb to pc_software.",
+      "decision_kind": "responsibility_assignment",
+      "driving_requirements": [
+        "req.fn-stream-usb"
+      ],
+      "justification": "The pc_software domain owns this function per ADR-0049 §7.",
+      "provenance": {
+        "recorded_at": "2026-09-13T00:00:00+00:00",
+        "script_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "skill_name": "fixture",
+        "source": "acd_skill"
+      },
+      "rationale_id": "rat-resp-stream",
+      "rejected_alternatives": [
+        {
+          "option": "Assign the function to another domain",
+          "reason": "The declared domain matches the capability needs."
+        }
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "domain"
+      ],
+      "subject_hash": "sha256:a3caae7e50b8530a97f8e3b5775c93afe6866e6baa1cef4c437adc98cbc0cfe3",
+      "subject_nodes": [
+        "resp.fn-stream-usb"
+      ],
+      "target_revision": "r1"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}
