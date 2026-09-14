@@ -27,7 +27,7 @@ cannot approve a design, and they never flow back into design inputs.
 | `generate_instruction_manual.py` | Renders the instruction manual from the graph and the `acd_pins.h` pin projection. |
 | `generate_interface_spec.py` | Projects the device interface contract (GPIO table, I2C address table, UART log lines, command list) as `interface-spec.md` and `interface-spec.json` from the graph, `acd_pins.h`, and `firmware-config-report.json`. Undeclared aspects are marked `unknown`. |
 | `generate_quality_report.py` | Projects the inspection report, traceability report, and machine-readable `quality-report.json` from authoritative lane Evidence, rationale coverage reports, design-predicate observations, the DFM report, and the fixture rationale. Non-authoritative Evidence or any revision/graph mismatch fails closed. |
-| `generate_review_package.py` | Projects `review-package.md`, `review-package.json`, and `graph-diff.json` from the graph, recorded visual projections, design predicates, DFM observations, and an explicitly declared previous revision. The package is L3 with no authority. |
+| `generate_review_package.py` | Projects `review-package.md`, `review-package.json`, and `graph-diff.json` from the graph, recorded visual projections, design predicates, DFM observations, and an explicitly declared previous revision. The graph diff contract is defined by `acd.schema.graph_diff`; the package is L3 with no authority. |
 
 ## Usage
 

@@ -50,6 +50,7 @@ from acd.core.functional_blocks import (
     required_predicate_names,
     validate_predicate_coverage,
 )
+from acd.core.graph_diff import GraphDiffError, build_graph_diff, unknown_graph_diff
 from acd.core.mechanical import REQUIRED_MECHANICAL_ATTRS
 from acd.core.mechanical_preflight import (
     MechanicalPreflightReport,
@@ -125,6 +126,7 @@ __all__ = [
     "FunctionalBlockEntryResult",
     "FunctionalBlockRegistry",
     "FunctionalRunError",
+    "GraphDiffError",
     "JournalOrderReconstruction",
     "MechanicalPreflightReport",
     "OrderSubmissionProvider",
@@ -145,6 +147,7 @@ __all__ = [
     "append_post_order",
     "append_pre_order",
     "build_dry_run_order_payload",
+    "build_graph_diff",
     "build_order_submission_record",
     "build_receipt_evidence",
     "check_firmware_graph_consistency",
@@ -181,6 +184,7 @@ __all__ = [
     "resolve_order_provider",
     "subject_hash_for",
     "summarize_rationale_coverage",
+    "unknown_graph_diff",
     "validate_allowances_against_profile",
     "validate_applied_feedback",
     "validate_predicate_coverage",

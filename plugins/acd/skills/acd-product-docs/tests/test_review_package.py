@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from acd.core.graph_diff import build_graph_diff
 from acd.schema.design_graph import DesignGraph
 from acd.schema.visual_projection import VisualProjectionSet
 
@@ -166,15 +167,16 @@ def test_previous_graph_diff_and_checklist(tmp_path: Path) -> None:
     assert diff["status"] == "computed"
     assert diff["previous_revision"] == "r1"
     assert diff["current_revision"] == "r2"
-    assert diff["nodes"]["added"]
-    assert diff["nodes"]["removed"] == ["req.gd1-req-001"]
-    assert diff["nodes"]["changed"][0]["changed_fields"] == ["attrs.text"]
-    assert diff["edges"]["added"] == ["req.gd1-req-004->req.gd1-req-006"]
-    assert diff["edges"]["removed"] == ["req.gd1-req-004->req.gd1-req-005"]
+    assert diff["nodes_added"]
+    assert diff["nodes_removed"] == ["req.gd1-req-001"]
+    assert diff["nodes_changed"][0]["changed_fields"] == ["attrs.text"]
+    assert diff["edges_added"] == ["req.gd1-req-004->req.gd1-req-006"]
+    assert diff["edges_removed"] == ["req.gd1-req-004->req.gd1-req-005"]
     package = json.loads((out_dir / "review-package.json").read_text(encoding="utf-8"))
     assert package["authority"] == "none"
     assert package["record_class"] == "L3"
     assert package["pass_evidence"] is False
+    assert package["graph_diff_projection_id"] is None
     assert all(item["reviewer_decision"] == "pending" for item in package["checklist"])
 
 
@@ -190,11 +192,11 @@ def test_depends_on_only_changes_are_edges_not_node_changes() -> None:
     next(
         node for node in current["nodes"] if node["id"] == "req.gd1-req-004"
     )["depends_on"] = ["req.gd1-req-006"]
-    diff = generate_review_package.build_graph_diff(
+    diff = build_graph_diff(
         DesignGraph.model_validate(previous),
         DesignGraph.model_validate(current),
     )
-    assert diff.changed_nodes == ()
+    assert diff.nodes_changed == []
 
 
 def test_no_previous_revision_is_unknown(tmp_path: Path) -> None:
@@ -202,11 +204,10 @@ def test_no_previous_revision_is_unknown(tmp_path: Path) -> None:
     out_dir = tmp_path / "out"
     generate_review_package.main(_argv(files, out_dir, previous=False))
     diff = json.loads((out_dir / "graph-diff.json").read_text(encoding="utf-8"))
-    assert diff == {
-        "status": "unknown",
-        "reason": "previous revision not declared",
-        "current_revision": "r2",
-    }
+    assert diff["status"] == "unknown"
+    assert diff["reason"] == "previous revision not declared"
+    assert diff["current_revision"] == "r2"
+    assert diff["nodes_added"] == []
 
 
 def test_json_output_is_deterministic(tmp_path: Path) -> None:

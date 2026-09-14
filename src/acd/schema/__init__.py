@@ -94,6 +94,7 @@ from acd.schema.functional_run import (
     LedExpectation,
     SerialExpectation,
 )
+from acd.schema.graph_diff import GraphDiff, GraphNodeDiff
 from acd.schema.host_resources import (
     HostResourceCode,
     HostResourceFinding,
@@ -311,7 +312,9 @@ __all__ = [
     "FunctionalLogReference",
     "FunctionalRunRecord",
     "FunctionalRunReport",
+    "GraphDiff",
     "GraphNode",
+    "GraphNodeDiff",
     "HostResourceCode",
     "HostResourceFinding",
     "HostResourceReport",

@@ -787,6 +787,20 @@ provenance、`hashes.json`への収録を要求する。`run_design_loop`とCLI�
 `--no-previous-revision`を明示する。graph ID／revision、投影再生成状態、画像、
 述語・DFM revisionの不一致や入力欠落はfail-closedで停止し、JSON本体には
 timestampを含めない。
+
+### 20.2 graph差分投影の実装記録
+
+`acd.schema.graph_diff`の契約と`acd.core.graph_diff`の決定論的builderを追加し、
+ノードの追加・削除・`kind`／`attrs`単位の変更、および`depends_on`から導出した辺の
+追加・削除をrevision間で比較する。`graph-diff-projection` stageは前revisionが宣言
+された場合だけ`acd-svg`のSVG投影を生成し、前revisionがない場合はL3のskip記録を
+残す。投影はnode kindごとの列とnode ID順の行で配置し、追加・削除・変更・不変を
+色と凡例で示す。`visual-review-manifest`の前段で生成するため、PNG派生とレビュー
+manifestへ自動的に取り込まれる。
+
+レビュー資料には`graph_diff_projection_id`を記録し、graph差分と視覚投影の対応を
+追跡できるようにした。投影、資料、stage結果はいずれもL3観測であり、合否権限や
+authoritative pass evidenceを生成しない。
 | （改善バックログ）host EDA不在時の推奨経路への誘導 | 15.8（達成） |
 | （改善バックログ）FW実行のhost前提（QEMU・`libslirp0`等）のdocs化とlocked image同梱 | 15.9（達成） |
 | （改善バックログ）FW成果物ディレクトリ名のgraph_id由来化 | 14.6（達成） |
@@ -853,6 +867,7 @@ timestampを含めない。
 | 機器I/F契約投影 | 9.6（2026-09-13） |
 | 品質文書生成 | 9.3（2026-09-13） |
 | レビュー資料生成 | 9.4 |
+| graph差分投影 | 20.2 |
 | ハーネス契約と結線検査 | 16.6（2026-09-13） |
 | 想定実使用環境の宣言contract | 16.3（2026-09-13） |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |

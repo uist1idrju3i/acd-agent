@@ -76,6 +76,10 @@ from acd.pipeline.enclosure import run_pipeline as run_enclosure_pipeline
 from acd.pipeline.firmware_lane import FirmwareLaneError, run_firmware_lane
 from acd.pipeline.fixture_builder import build_design_fixture
 from acd.pipeline.gd1_board import run_pipeline as run_board_pipeline
+from acd.pipeline.graph_diff_projection import (
+    GraphDiffProjectionError,
+    run_graph_diff_projection,
+)
 from acd.pipeline.lane_plan import (
     DESIGN_LOOP_LANE_IDS,
     RECOVERY_EXPLORATION_STAGE_IDS,
@@ -417,6 +421,34 @@ def _run_visual_review_manifest(config: DesignLoopConfig) -> dict[str, Any]:
         ),
         required=len(manifest.required),
         status="pending-agent-inspection",
+    )
+
+
+def _run_graph_diff_projection(config: DesignLoopConfig) -> dict[str, Any]:
+    if config.previous_graph_path is None:
+        return _success(
+            "graph-diff-projection",
+            status="skipped",
+            reason="previous graph not declared",
+            record_class="L3",
+        )
+    try:
+        output = run_graph_diff_projection(
+            graph_path=config.fixture_dir / "graph.json",
+            previous_graph_path=config.previous_graph_path,
+            out_dir=config.out_root / "graph-diff",
+            project_name=config.graph_id,
+        )
+    except GraphDiffProjectionError as exc:
+        return _failure(
+            "graph-diff-projection",
+            str(exc),
+            record_class="L3",
+        )
+    return _success(
+        "graph-diff-projection",
+        output_path=str(output),
+        record_class="L3",
     )
 
 
@@ -938,6 +970,7 @@ DEFAULT_STAGE_RUNNERS: dict[str, StageRunner] = {
     "board-pipeline": _run_board,
     "enclosure-pipeline": _run_enclosure,
     "firmware-pipeline": _run_firmware,
+    "graph-diff-projection": _run_graph_diff_projection,
     "visual-review-manifest": _run_visual_review_manifest,
     "projection-docs": _run_projection_docs,
     "manufacturing-submission": _run_manufacturing_submission,
@@ -1499,6 +1532,14 @@ def run_design_loop(
             )
             if failed is not None:
                 return once_results, failed
+
+            graph_diff_projection = run_stage(
+                "graph-diff-projection",
+                timing_prefix=timing_prefix,
+            )
+            once_results.append(graph_diff_projection)
+            if graph_diff_projection.get("fail_closed"):
+                return once_results, graph_diff_projection
 
             # Mandatory visual review handoff: the manifest stage derives the
             # PNGs the agent must inspect; the inspection and its verification

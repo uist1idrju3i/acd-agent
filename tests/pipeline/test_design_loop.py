@@ -224,6 +224,7 @@ def test_design_loop_stage_set_and_order_are_fixed() -> None:
         "board-pipeline",
         "enclosure-pipeline",
         "firmware-pipeline",
+        "graph-diff-projection",
         "visual-review-manifest",
         "projection-docs",
         "manufacturing-submission",
@@ -266,6 +267,7 @@ def test_design_loop_runs_visual_review_manifest_after_lanes(
 
     assert result["ok"] is True
     assert seen.index("visual-review-manifest") > seen.index("firmware-pipeline")
+    assert seen.index("graph-diff-projection") < seen.index("visual-review-manifest")
     assert seen.index("visual-review-manifest") < seen.index("projection-docs")
     assert seen.index("projection-docs") < seen.index("manufacturing-submission")
     assert seen.index("manufacturing-submission") < seen.index("order-readiness")

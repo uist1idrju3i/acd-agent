@@ -168,6 +168,16 @@ _STAGE_DEFINITIONS: tuple[_StageDefinition, ...] = (
         lane_runner=True,
     ),
     _StageDefinition(
+        "graph-diff-projection",
+        None,
+        barrier=False,
+        cacheable=False,
+        command_kind=None,
+        design_loop=True,
+        lane_runner=False,
+        conditional=True,
+    ),
+    _StageDefinition(
         "visual-review-manifest",
         None,
         barrier=False,
