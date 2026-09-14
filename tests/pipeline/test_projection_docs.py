@@ -18,11 +18,14 @@ def _runner_factory(calls: list[list[str]]):
         output = Path(command[command.index("--out-dir") + 1])
         output.mkdir(parents=True, exist_ok=True)
         if "generate_product_readme.py" in " ".join(command):
-            name = "product-readme.md"
+            names = ("product-readme.md",)
+        elif "generate_instruction_manual.py" in " ".join(command):
+            names = ("instruction-manual.md",)
         else:
-            name = "instruction-manual.md"
-        (output / name).write_text(f"# {name}\n", encoding="utf-8")
-        (output / f"{name}.provenance.json").write_text("{}\n", encoding="utf-8")
+            names = ("interface-spec.md", "interface-spec.json")
+        for name in names:
+            (output / name).write_text(f"# {name}\n", encoding="utf-8")
+            (output / f"{name}.provenance.json").write_text("{}\n", encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "", "")
 
     return runner
@@ -40,6 +43,9 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
     (firmware_out / "main").mkdir(parents=True)
     (firmware_out / "main" / "acd_pins.h").write_text(
         "#define ACD_TARGET_REVISION x\n", encoding="utf-8"
+    )
+    (firmware_out / "firmware-config-report.json").write_text(
+        "{}\n", encoding="utf-8"
     )
     return repository, out_root, board_out, firmware_out, output
 
@@ -71,10 +77,12 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
         output=output,
         runner=_runner_factory(calls),
     )
-    assert len(result.documents) == 2
+    assert len(result.documents) == 4
     hashes = (output / "hashes.json").read_text(encoding="utf-8")
     assert "product-readme.md" in hashes
     assert "instruction-manual.md" in hashes
+    assert "interface-spec.md" in hashes
+    assert "interface-spec.json" in hashes
     assert result.provenance["skill_name"] == "acd-product-docs"
     assert result.provenance["pass_evidence"] is False
     assert all("theme-song-projection" not in command for command in calls)
@@ -137,6 +145,36 @@ def test_run_projection_docs_requires_one_pins_header(
         _projection_collector(out_root),
     )
     with pytest.raises(ProjectionDocsError, match=r"exactly one acd_pins\.h"):
+        run_projection_docs(
+            repository,
+            graph_path=tmp_path / "graph.json",
+            out_root=out_root,
+            board_out=board_out,
+            firmware_out=firmware_out,
+            output=output,
+            runner=_runner_factory([]),
+        )
+
+
+@pytest.mark.parametrize("count", [0, 2])
+def test_run_projection_docs_requires_one_config_report(
+    tmp_path: Path, count: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, out_root, board_out, firmware_out, output = _inputs(tmp_path)
+    if count == 0:
+        (firmware_out / "firmware-config-report.json").unlink()
+    else:
+        second = firmware_out / "other"
+        second.mkdir(parents=True)
+        (second / "firmware-config-report.json").write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr(
+        projection_docs,
+        "collect_visual_projection_sets",
+        _projection_collector(out_root),
+    )
+    with pytest.raises(
+        ProjectionDocsError, match=r"exactly one firmware-config-report\.json"
+    ):
         run_projection_docs(
             repository,
             graph_path=tmp_path / "graph.json",
