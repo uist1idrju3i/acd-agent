@@ -139,6 +139,7 @@ from acd.schema.order_scope import (
     OrderScope,
     ScopeFeeTreatment,
 )
+from acd.schema.order_terms import OrderTermsDeclaration
 from acd.schema.order_total import (
     OrderSubtotalDocument,
     OrderTotalDocument,
@@ -342,6 +343,7 @@ __all__ = [
     "OrderPolicy",
     "OrderScope",
     "OrderSubtotalDocument",
+    "OrderTermsDeclaration",
     "OrderTotalDocument",
     "PartCatalogEntry",
     "PartCplOrientation",

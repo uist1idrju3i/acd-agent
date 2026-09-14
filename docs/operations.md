@@ -542,6 +542,38 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 見つからない場合も、ゲート未実行として停止する。このCLIはjournal書込み、送信、実発注を
 行わない。
 
+### order-scopeの決定論的導出（`scripts/derive_order_scope.py`）
+
+`OrderScope`は設計fixtureとfab profile registryから決定論的に導出できる。入力は
+fixtureの`graph.json`（graph ID、`fab.order_intent`ノードの`fab_profile`、
+`mechanical.enclosure`ノードの有無）、`rationale.json`（`revision`）、および
+新規宣言入力`order-terms.json`である。
+
+`order-terms.json`は設計が保持しない発注条件を宣言する`OrderTermsDeclaration`
+（`schema_version`、ISO 4217 `currency`、`minor_unit_digits`、`shipping_treatment`、
+`tax_treatment`、`mechanical_exclusion_reason`、任意の`allowed_suppliers`）であり、
+`unknown`値と未定義フィールドを拒否する。`allowed_suppliers`未指定時はregistryの
+`fab`名を既定とする。`mechanical.enclosure`ノードが無い設計では
+`mechanical_exclusion_reason`が必須であり、欠ければfail-closedで停止する。
+`shipping`／`tax`は`treatment`が`itemized`の場合だけ必須categoryへ追加される。
+
+```bash
+uv run python scripts/derive_order_scope.py \
+  --fixture fixtures/golden-design-1 \
+  --out-dir out/gd1-order
+```
+
+`order-scope.json`と`quote-request.json`を出力する。導出結果は`OrderScope`検証を
+通し、GD1では`fixtures/contracts/valid/order-scope-golden-design-1.json`と
+フィールド完全一致が回帰testで固定される。導出エラー時は非ゼロ終了し、
+部分ファイルを残さない。
+
+`QuoteRecord`はsupplier実見積の金額を必要とするため設計入力からは合成しない。
+`quote-request.json`はL3宣言として`quote_record: null`と理由を記録し、
+`scripts/fetch_quote.py`への次段手順を示す。dummy値を生成しない。
+本scriptはloopへ配線せず、`run_design_loop.py`は引き続き`--order-scope`を
+明示入力として受け取る。
+
 ### quoteからorder-totalを生成する
 
 見積record、発注範囲、基板製造プロファイルから、既存の決定論的集計を呼び出して

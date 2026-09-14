@@ -801,6 +801,7 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 | （達成）O-10 FW laneの必要netと生成codeのGD1固定解消 | 14.14 |
 | （達成）O-11 projection guardの判定を書き込み対象で行いlane起動とstop reportを許可 | 14.14 |
 | （実機実測）O-12 筐体lane entrypointと発注policyのGD1固定解消 | 14.14 |
+| （達成）O-12残項 `OrderScope`の決定論的導出とquote request宣言 | 14.14 |
 | （達成）O-13 rationale被覆検査の対象解決 | 14.14 |
 | （達成）P-1 install doctorのESP-IDF判定の読み取り可能性統一 | 14.14 |
 | （多コアVPS実測）P-2 初期配置のdecoupling距離制約 | 14.15 |
@@ -1261,3 +1262,19 @@ recordは`record_class: L3`、`pass_evidence: false`であり合否権限を持�
 記録し、書き込み失敗はstageの`checkpoint_error`へ記録する。checkpointは人間と
 `report_progress`向けで、resumeはcheckpointを参照せず、StageArtifactCacheだけを再利用
 してgate stageを再実行する。
+
+### 14.14 O-12残項 `OrderScope`の決定論的導出の実装記録
+
+`OrderScope`を`src/acd/core/order_scope_derivation.py`の`derive_order_scope()`で
+設計fixtureから決定論的に導出する。graphの`fab.order_intent`ノードから
+fab profile IDを取得してregistry存在を検査し、`rationale.json`のrevisionを
+target revisionとし、`mechanical.enclosure`ノードの有無からmechanical treatmentと
+必須categoryを決める。設計が保持しない発注条件（通貨、minor unit digits、
+shipping／tax treatment、exclusion理由、supplier上書き）は新規schema
+`OrderTermsDeclaration`（fixtureの`order-terms.json`）へ宣言する。enclosureが無い
+設計で理由未宣言、不明fab profile、欠落入力は`OrderScopeDerivationError`で
+fail-closedに停止する。`scripts/derive_order_scope.py`が`order-scope.json`と
+`quote-request.json`を出力し、GD1では既存contract fixtureとフィールド完全一致を
+回帰testで固定した。`QuoteRecord`はsupplier実見積の金額を要するため合成せず、
+L3の`quote-request.json`が`fetch_quote.py`への次段を宣言する。design loopへの
+配線は行わず、`--order-scope`明示入力を維持する。
