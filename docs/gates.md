@@ -320,6 +320,30 @@ unknownである。zone/pour/regionを経路として扱う場合、幅・抵抗
 L2 stop-side findingであり、authoritative Evidenceや既定GD1 gateへ接続しない。これは独立した
 opt-in経路であり、PDN requestを指定しない既存GD1 default outputは変更しない。
 
+### 10.3 機械解析（熱抵抗・CalculiX FEM、opt-in estimate）
+
+`ThermalRequest`を明示した場合だけ、16.3 `UseEnvironment`または明示ambient、
+既存MechanicalLaneの筐体寸法、宣言された電力・パッケージ熱抵抗・銅箔面積から、
+決定論的な集中定数熱抵抗を推定する。銅箔拡散は固定係数
+`theta_cb = 1 / (h_eff * A)`、筐体側は自然対流`h=5 W/m²K`と壁内伝導を使う
+簡易モデルであり、熱設計の実測または詳細解析の代替ではない。`theta_jc`経路と
+宣言された`theta_ja`経路がともにある場合は保守的に大きい経路を採用する。
+電力、熱抵抗、銅箔面積、材料物性、環境が欠落した場合はunknown、`Tj > tj_max`
+はfailとする。
+
+`FemRequest`を明示した場合だけ、固定節点番号のgenerated shell-box `.inp`を生成し、
+drop、static stress、thermalのCalculiX経路を利用できる。落下は
+`v=sqrt(2gh)`と`a=v²/(2*crush_distance)`による等価静的減速度であり、過渡衝撃の
+完全モデルではない。CalculiX（GPL）はACDへimportせず、`acd.core.process.run_tool`
+経由のsubprocessだけで起動する。`ccx -v`のversion pin不一致、ツール不在、非収束、
+malformed `.dat`、parse失敗、必要結果欠落はunknown、制限超過はfailである。
+`.dat`のvon Misesは6応力成分から決定論的に計算する。
+
+熱・FEMの結果は`authority="estimate"`固定のL2 stop-side findingであり、
+authoritative EvidenceやGD1 default gateへ接続しない。解析はopt-inで、未指定の
+既存出力を変更しない。ホストにCalculiXがない環境ではreal-run testをskipし、
+parser回帰にはsynthetic fixtureを使うが、synthetic結果を証拠へ昇格させない。
+
 ### 10.6 ワーストケース解析（WCA、opt-in estimate）
 
 `WcaRequest`を明示した場合だけ、10.1の`SpiceResult`公称値または宣言公称値へ、

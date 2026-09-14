@@ -33,6 +33,12 @@ from acd.core.feedback import (
     propose_input_feedback,
     validate_applied_feedback,
 )
+from acd.core.fem import (
+    FemAnalysisError,
+    evaluate_fem,
+    generate_ccx_input,
+    run_ccx,
+)
 from acd.core.firmware import (
     FunctionalRunError,
     evaluate_functional_run,
@@ -130,6 +136,7 @@ from acd.core.side_effect_journal import (
     reconstruct_order,
 )
 from acd.core.spice import evaluate_spice, extract_power_netlist, run_ngspice
+from acd.core.thermal import estimate_thermal, thermal_markdown
 from acd.core.workaround_ledger import (
     WorkaroundLedgerError,
     evaluate_workaround_retirement,
@@ -151,6 +158,7 @@ __all__ = [
     "FabProfile",
     "FabProfileRegistry",
     "FeedbackError",
+    "FemAnalysisError",
     "FirmwareCapabilityContractError",
     "FirmwareCapabilityRegistry",
     "FirmwareConsistencyReport",
@@ -196,7 +204,9 @@ __all__ = [
     "check_rationale_coverage",
     "compute_horizontal_scope",
     "declared_functional_blocks",
+    "estimate_thermal",
     "evaluate_eco",
+    "evaluate_fem",
     "evaluate_firmware_graph_consistency",
     "evaluate_functional_run",
     "evaluate_spice",
@@ -204,6 +214,7 @@ __all__ = [
     "external_gate_run",
     "extract_fab_intent",
     "extract_power_netlist",
+    "generate_ccx_input",
     "load_and_evaluate_functional_run",
     "load_defect_document",
     "load_fab_profile",
@@ -232,10 +243,12 @@ __all__ = [
     "required_predicate_names",
     "resolve_fab_profile_path",
     "resolve_order_provider",
+    "run_ccx",
     "run_ngspice",
     "safety_related_node_ids",
     "subject_hash_for",
     "summarize_rationale_coverage",
+    "thermal_markdown",
     "unknown_graph_diff",
     "validate_allowances_against_profile",
     "validate_applied_feedback",

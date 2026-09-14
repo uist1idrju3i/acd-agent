@@ -1073,6 +1073,25 @@ Skillが呼ぶscriptと`acd` moduleの契約がずれるためである。
 
 ### 依存アップデートの確認
 
+#### CalculiX（ccx）のtools image運用
+
+機械解析のFEM経路で使うCalculiXはGPLツールのため、ACDへimportせず
+`acd.core.process.run_tool`から`ccx` subprocessとしてだけ起動する。tools imageの
+DockerfileにはUbuntu archiveの`calculix-ccx`を追加し、`scripts/measure_image_tools.py`
+が`ccx -v`から版を抽出する。現行のdigest lockにはまだccxの測定値が無いため、
+`docker/image-digests.json`へ版を推測記入せず、依存更新レポートでは
+`未計測（次回publishで記録）`として扱う。imageをpublishして実測した後にだけlockへ
+転記する。
+
+Ubuntu archiveのhost確認では`calculix-ccx`候補が`2.17-3`として観測されたが、
+hostのarchive系列と将来のUbuntu 26.04 publish imageの実測値を同一視しない。
+上流比較はLaunchpadの`calculix-ccx` sourceページを対象にし、lockの値が無い間も
+checkerが例外で停止しないようにする。
+
+FEMのdropは`v=sqrt(2gh)`と`a=v²/(2*crush_distance)`による等価静的近似であり、
+完全な過渡衝撃解析ではない。`fixtures/fem/gd1-drop.dat`はreal ccxが利用できない
+host向けのsynthetic parser fixtureで、CalculiX結果やauthoritative Evidenceではない。
+
 `libraries/README.md`のgit pinは、EspressifとCERNを含む全sourceを確認する。
 
 [`.github/workflows/check-dependency-updates.yml`](../.github/workflows/check-dependency-updates.yml)は週次および手動で`scripts/check_dependency_updates.py`を実行し、更新候補をIssue「依存アップデート確認レポート」へ報告する。確認対象は、PyPIの直接依存と`uv.lock`間接依存、`vendor/software-agent-sdk` submoduleと`openhands-sdk`・`openhands-tools`・`openhands-workspace` pin、`.github/workflows/*.yml`の`uses:`とrelease download、Docker base imageとバージョンARG、`docker/image-digests.json`のtools上流版、Python版、`libraries/README.md`のgit pin、Semeruの新major、`src/acd/adapters/cad/viewer_assets/three/`のvendored three.jsである。ngspice、cmake、ninja、ccache、git、python3.14などapt管理のツールはLaunchpadのUbuntu archive版を比較し、上流版は注記として併記する。ローカル実行にはネットワークとuvが必要である。レポートは更新不要の項目も`最新`として掲載し、確認対象の漏れを目視できるようにする。互換性や移行検証で保留する項目は`scripts/dependency_update_deferrals.json`に対象版、理由、再確認期限を記録し、期限到来または新版出現時に再候補化する。

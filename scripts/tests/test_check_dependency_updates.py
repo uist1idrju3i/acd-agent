@@ -424,6 +424,8 @@ def test_tool_upstream_excludes_kicad_development_and_parses_ngspice(tmp_path: P
     assert by_name["git"].latest == "2.53.0"
     assert by_name["python3.14"].latest == "3.14.4"
     assert by_name["python3.14"].note == "apt ubuntu:26.04; upstream 3.14.5"
+    assert by_name["ccx"].current == "未計測（次回publishで記録）"
+    assert not by_name["ccx"].outdated
     assert by_name["python (minor series)"].latest == "3.15"
 
 

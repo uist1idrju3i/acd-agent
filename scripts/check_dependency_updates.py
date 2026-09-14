@@ -198,6 +198,14 @@ TOOL_UPSTREAM_SPECS = (
         r"^v(\d+)\.(\d+)\.(\d+)$",
         apt_package="python3.14",
     ),
+    ToolUpstreamSpec(
+        "ccx",
+        r"([0-9]+\.[0-9]+)",
+        "launchpad-apt",
+        "https://launchpad.net/ubuntu/+source/calculix-ccx",
+        r"(\d+\.\d+)",
+        apt_package="calculix-ccx",
+    ),
 )
 
 
@@ -828,7 +836,18 @@ def check_tool_upstream(
     for spec in TOOL_UPSTREAM_SPECS:
         installed = tools.get(spec.tool_key)
         if installed is None:
-            raise ValueError(f"image lock is missing tool {spec.tool_key}")
+            statuses.append(
+                DependencyStatus(
+                    "tool-upstream",
+                    spec.tool_key,
+                    "未計測（次回publishで記録）",
+                    "未計測（次回publishで記録）",
+                    "docker/image-digests.json",
+                    False,
+                    "image lock has no measured value; record it on next image publish",
+                )
+            )
+            continue
         current, current_values = _installed_version(
             installed,
             spec.installed_pattern,
@@ -851,6 +870,9 @@ def check_tool_upstream(
                 fetch_json(spec.repo_or_url),
                 spec.tag_pattern,
             )
+        elif spec.kind == "launchpad-apt":
+            upstream_latest = current
+            upstream_values = current_values
         else:
             raise ValueError(f"unknown tool upstream kind: {spec.kind}")
         note = ""

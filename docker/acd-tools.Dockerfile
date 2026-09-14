@@ -42,6 +42,7 @@ RUN apt-get update \
         git \
         software-properties-common \
         ngspice \
+        calculix-ccx \
         python3.14 \
         python3.14-venv \
     && add-apt-repository ppa:kicad/kicad-10.0-releases \
@@ -86,6 +87,7 @@ RUN apt-get update \
     && echo "${FREEROUTING_SHA256}  /opt/freerouting.jar" | sha256sum --check \
     && chmod 0755 /usr/local/bin/freerouting \
     && ngspice --version \
+    && (ccx -v 2>&1 || true) \
     && git --version \
     && python3.14 --version | grep -E '^Python 3\.14\.' \
     && curl --fail --location --silent --show-error \

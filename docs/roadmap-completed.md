@@ -1754,3 +1754,22 @@ L2 stop-side findingで、authoritative EvidenceやGD1 default outputには接�
 WCAへ宣言された電源バジェット入力のピーク需要ルールだけを提供する。GD1 fixtureでは
 LED series current、I2C SDA rise time、3V3 LDO output、USB peak budgetを評価し、
 公称値はそれぞれ`1.480687 mA`、`206 ns`、`3.3 V`、`362 mA`、全quantityがpassした。
+
+### 10.3 機械解析（熱抵抗簡易推定・CalculiX FEM）の実装記録
+
+`ThermalRequest`／`ThermalResult`と`estimate_thermal()`を追加し、GD1の既存
+MechanicalLane筐体寸法、16.3 `UseEnvironment`、宣言電力、パッケージ熱抵抗、
+銅箔面積、筐体材料から集中定数のTjを推定できるようにした。銅箔拡散、自然対流、
+壁内伝導を含むが、実測や詳細熱解析の代替ではない簡易estimateである。GD1 LDOの
+ambient最大値40 °C、宣言電力0.1 W、theta_ja 50 °C/WからTjは45 °Cとなり、
+tj_max 125 °Cに対してpassした。
+
+`FemRequest`／`FemResult`、固定節点番号のgenerated shell-box入力、落下の等価静的
+減速度、static stress／thermalの入力経路、`.dat`の変位・応力・von Mises parserを
+追加した。CalculiXはGPL境界を守り、`acd.core.process.run_tool` subprocessだけで
+実行する。ツール不在、version mismatch、malformed output、非収束、必要結果欠落は
+unknown、制限超過はfailとする。今回のhostには`ccx`が無いためreal runは未実行で、
+parser fixtureはsyntheticとして明記した。
+
+結果の`authority`は`estimate`固定で、熱・FEMともL2 stop-sideに留まり、GD1 default
+gateやauthoritative Evidenceを変更しない。
