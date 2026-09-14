@@ -50,8 +50,8 @@
     "requirement",
     "safety.boundary"
   ],
-  "ref": "b251f797f6ce48cbc7bd338ec965113f84801d22",
-  "schema_tree_sha": "85d8de1a3509287c5b03eb2ceca14ed8431195ca",
+  "ref": "87eeaeb2a9c2a97245a79e255a64d7e6ecb29bc1",
+  "schema_tree_sha": "3d0cd2522d5bbadc2f41242c4fd3711db7f3d492",
   "scripts": [
     {
       "acd_symbols": [
@@ -59,14 +59,14 @@
         "acd.core.cad_normalize.normalize_step"
       ],
       "path": "plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determinism_probe.py",
-      "sha256": "1e198e427c41d806234af8661bb31c2db2458df044403dd9c399cfdcfba309b7"
+      "sha256": "cefc15d022c1c2798893674cc13e955201680b500f333fb5d0c4d4d27b006bb9"
     },
     {
       "acd_symbols": [
         "acd.core.knowledge_qa.answer_question"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/ask.py",
-      "sha256": "919925a05feaf211eba301f37b7361377d98a09a96ecffcd11890511591b41cd"
+      "sha256": "7b929d43fc6a9933f2dc61e13b2e0e7c3b90a6695af66bea581f211a8aa0dd5e"
     },
     {
       "acd_symbols": [
@@ -76,7 +76,7 @@
         "acd.schema.knowledge_index.INTERNAL_ONLY_KINDS"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/generate_faq.py",
-      "sha256": "9998037fd95d42984459c70477be3b662509244edf43a4cf4d6a25ba6c6fdbd9"
+      "sha256": "1e9d2f94471400e622b601498a81ce274e6b28a6085791948bd135b759bb4d4e"
     },
     {
       "acd_symbols": [
@@ -94,7 +94,7 @@
         "acd.schema.rationale.RationaleDocument"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/knowledge_inputs.py",
-      "sha256": "f4d61c09a6fb6c214823208c77187ce4fee211dd970cb2039ca5d5d8f873bbcf"
+      "sha256": "f7512ae8f923fc49de6a6d182d21f569a33146c6e5eff368e1371681a169680b"
     },
     {
       "acd_symbols": [
@@ -106,14 +106,14 @@
         "acd.schema.dfa_review.DfaSeverity"
       ],
       "path": "plugins/acd/skills/acd-dfa-review/scripts/dfa_review.py",
-      "sha256": "0e7d3c6b21809aa65052b35c3a1477e6a82086e4f818b315608e1f67e164bb8e"
+      "sha256": "25d2b1e2877e928a3755906fd601786f0678fabd19dc660ba9aff4b89b9ba303"
     },
     {
       "acd_symbols": [
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py",
-      "sha256": "b0d39ff11a449b4705ac1003346eff36262d44ec6d8c4c966a091d1c6257c177"
+      "sha256": "7cab81c85a0a7ac7931ad10babeee4ba68b8179bd2dfc93372d54987f42f2a0a"
     },
     {
       "acd_symbols": [
@@ -122,7 +122,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
-      "sha256": "343256e7f877ca4130f571835c9363c9daaeedbd632705bd36bd85c9cc34a627"
+      "sha256": "94c2b952265c5a26d5e8f6ea4308cbb9cf0a14fbce404773fe72469abbd31b5e"
     },
     {
       "acd_symbols": [
@@ -132,14 +132,14 @@
         "acd.schema.shipping_inspection.CriterionSource"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_inspection.py",
-      "sha256": "53e3faceb01c49714428c69c9697035bfca4d817f93f3c7714fd6976223dbccf"
+      "sha256": "3f707a6e97ebf68f0a1378bb39ea81a3c7ca773e5812bd6ae77193a5ef054243"
     },
     {
       "acd_symbols": [
         "acd.schema.firmware_inspection.FirmwareInspectionSequence"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py",
-      "sha256": "d559a1d881758d7578472b68bca54a1f9e3190396d490d2c3cd8d58870e006fe"
+      "sha256": "9fe0254585bafb311baac3101e4016eb3865496c04f993b9105880b2c1e0897f"
     },
     {
       "acd_symbols": [
@@ -147,7 +147,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
-      "sha256": "0cfcec1baf76c82aff6bc5e42c94d37fbed0307293995257542af4b73dda65e8"
+      "sha256": "3b0d0fa8ca15df868760c385aadf0f1385272e1712008adf4237af3dab32554b"
     },
     {
       "acd_symbols": [
@@ -160,7 +160,7 @@
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/placement_score.py",
-      "sha256": "07c5e02dd32a4ae518003a9e14640cc9366509d954e1f1c9203c2360d2f77874"
+      "sha256": "20fcbf248c14899516174aae5989ec5e883dfd2eadcd4184d7bc4eef68a6a06c"
     },
     {
       "acd_symbols": [
@@ -186,7 +186,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
-      "sha256": "3156012f9036eb0ab33a3cba639689b4da5caddf08721dc0684718d643e285ba"
+      "sha256": "024e01bd8d15ea5c1c31c55a9e373fa3abcf1bbebe609854eb7e9adb85463923"
     },
     {
       "acd_symbols": [
@@ -205,7 +205,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py",
-      "sha256": "bf2c9ce87e0a450d8a701c211dc221e1ef53211705ccce0c610216ea78f1b7cb"
+      "sha256": "837473d8afc755615bc414287eefc4fc19db797dda8704b58e2e62ca30298a8f"
     },
     {
       "acd_symbols": [
@@ -217,7 +217,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/vision_route_proposal.py",
-      "sha256": "8a9311ec1b71d6a43c2b43884bfddab4cd46b44444cde94ce0aa7384591e08b9"
+      "sha256": "1f3eb9aea644aab0b6ccc3e0a90b2d1d3feb4660d1830162da64be9b59edcf4e"
     },
     {
       "acd_symbols": [
@@ -230,7 +230,7 @@
         "acd.schema.visual_projection.VisualProjectionSet"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/doc_inputs.py",
-      "sha256": "a4ef0b64f25d0e0935041d2d1c3908d213aa95172643fad413d0691a22e38ed2"
+      "sha256": "be13648779d3aa0b057868558d5864e37f4e8c72d3d88d45de12bdc7544f8f22"
     },
     {
       "acd_symbols": [
@@ -244,7 +244,7 @@
         "acd.schema.shipping_inspection.InspectionItem"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_bringup_plan.py",
-      "sha256": "d3ff8060e6e91a539dcf7d8ba10062f0814ec10dd1621f018127837df92ec470"
+      "sha256": "34630aff03539540bf395b4b97f6fcce40b9a452547d8697c8dd032f2c2d74ab"
     },
     {
       "acd_symbols": [
@@ -263,7 +263,7 @@
         "acd.schema.responsibility.ResponsibilityGateResult"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_idea_allocation_docs.py",
-      "sha256": "84b31ed130e5ab3159195a5eb3d9a0212b820d218bbd11392bb4f4d5aeb3df38"
+      "sha256": "b834362c80c0bdb3d749ebe8daa20caf59ec2dfd48e05f1fe1751f9fc7199d86"
     },
     {
       "acd_symbols": [
@@ -273,14 +273,14 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_instruction_manual.py",
-      "sha256": "d0a823a0882c9d0ae142df4ef69c6a88011e0bbe287e2c87a65488b9c00a0baa"
+      "sha256": "fb27767e4b5248ba33cebc641e9a51d19a81b0e80e378803bf100c4ec531efb4"
     },
     {
       "acd_symbols": [
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_interface_spec.py",
-      "sha256": "fe5d5befe6ec53bbeefdcccc92e260729be912e2cb04c9a131979734424f17b0"
+      "sha256": "ff9e7a13f888e5ff84bc272ae4236e8e368cec42fa3c778d9f168febc6d13f24"
     },
     {
       "acd_symbols": [
@@ -291,7 +291,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_product_readme.py",
-      "sha256": "030702c0531b0343f53b6a2daaf409c3faf1fb0ecc6275d70168522ab61690f0"
+      "sha256": "8795136bb6962ac19edfba479b4c43290cff7cf463d3d2e8fcc3cb9f7db1aba6"
     },
     {
       "acd_symbols": [
@@ -302,7 +302,7 @@
         "acd.schema.rationale.RationaleRecord"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py",
-      "sha256": "d922e40d7771f9914c762181ab4f2a032b5f31eec0030b8661227072adb78847"
+      "sha256": "c928e1868ed191feb8e6ae8cf50b934fcbce9ed068a2b7042ab9a3ec36cc80ee"
     },
     {
       "acd_symbols": [
@@ -313,7 +313,7 @@
         "acd.schema.graph_diff.GraphDiff"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py",
-      "sha256": "ad88366e191e5b3d1b6a5c59b42db66952d59a6115a6b3f7f5daead450d202c4"
+      "sha256": "8c62d112785aae5eec5f0da1d2494cd6fdf324b95d8f6c78930346be77245163"
     },
     {
       "acd_symbols": [
@@ -327,7 +327,7 @@
         "acd.schema.shipping_inspection.ShippingInspectionDocument"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_shipping_inspection.py",
-      "sha256": "ee9f0ce16b8f932e5bd17a3cd4d8923973d0b2128f1ea37593f4a0b8262af859"
+      "sha256": "aa74e26e98e4f3684c0b1a3d2205b9f01cf5df22c8e088b72ebfccd5dcdf04e9"
     },
     {
       "acd_symbols": [
@@ -356,7 +356,7 @@
         "acd.schema.work_instruction.WorkStep"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_work_instruction.py",
-      "sha256": "d7687047ec22d1e9115c60e48668dda20045616298413157ef58275e7afe58ab"
+      "sha256": "2bc4bdfbbd7aed275a9a6ba6c8e067e9c1399601d404b06b29360ad21502f142"
     },
     {
       "acd_symbols": [
@@ -374,7 +374,7 @@
         "acd.core.silkscreen.SilkscreenLane"
       ],
       "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
-      "sha256": "7153fc980010c7b4ee45fd7ccc836c12a59b233790868eec953e0a296b997fe3"
+      "sha256": "21a8a3758d58329a11c0932cc577daa5efb3fad0007b2ed3c95d1f6eb5b00486"
     },
     {
       "acd_symbols": [
@@ -405,14 +405,14 @@
         "acd.schema.workaround.WorkaroundStrategy"
       ],
       "path": "plugins/acd/skills/acd-workaround/scripts/workaround.py",
-      "sha256": "28534a8d29edcee714ae71c5ef0aa8ff46e9f3dc332fc4092932022d04926531"
+      "sha256": "25731bd55a0712b164bf781a9ad535d443d080880d2f2db8589912c328c0fe83"
     },
     {
       "acd_symbols": [
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "scripts/probe_pinned_acd_graph.py",
-      "sha256": "62dea120f576f8f3b34ae2a8cfea536849aacc3a1fd3b9be74258d54f45c49a6"
+      "sha256": "654f8d4d0d364ea77a8e42ede095eeebed2b3f254838bdeb5c8ee77c8515c740"
     }
   ]
 }
