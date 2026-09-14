@@ -25,6 +25,7 @@ cannot approve a design, and they never flow back into design inputs.
 | `doc_inputs.py` | Loads graph, projection sets and images fail-closed, and writes the provenance record. |
 | `generate_product_readme.py` | Renders the product description README with an overview, evidence-relation note, requirements, specifications, firmware behavior, BOM, grouped figures, an optional theme-song projection and attribution. |
 | `generate_instruction_manual.py` | Renders the instruction manual from the graph and the `acd_pins.h` pin projection. |
+| `generate_interface_spec.py` | Projects the device interface contract (GPIO table, I2C address table, UART log lines, command list) as `interface-spec.md` and `interface-spec.json` from the graph, `acd_pins.h`, and `firmware-config-report.json`. Undeclared aspects are marked `unknown`. |
 
 ## Usage
 
@@ -47,6 +48,13 @@ uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_product_rea
 uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_instruction_manual.py \
     --graph fixtures/golden-design-1/graph.json \
     --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
+    --out-dir out/docs
+
+# Device interface spec (JSON + Markdown).
+uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_interface_spec.py \
+    --graph fixtures/golden-design-1/graph.json \
+    --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
+    --firmware-config-report out/gd1-fw/firmware-config-report.json \
     --out-dir out/docs
 
 # Shared input loader module (dependency self-resolution check).

@@ -145,10 +145,11 @@ def run_projection_docs(
     output: Path,
     runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
 ) -> ProjectionDocsResult:
-    """Run both product-document generators and hash their outputs."""
+    """Run all product-document generators and hash their outputs."""
     readme_script = _script_path(repository, "generate_product_readme.py")
     manual_script = _script_path(repository, "generate_instruction_manual.py")
-    for script in (readme_script, manual_script):
+    interface_script = _script_path(repository, "generate_interface_spec.py")
+    for script in (readme_script, manual_script, interface_script):
         if not script.is_file():
             raise ProjectionDocsError(
                 f"product-docs Skill script is missing: {script}",
@@ -156,6 +157,8 @@ def run_projection_docs(
             )
     readme_name = _document_name(readme_script, output_path=output)
     manual_name = _document_name(manual_script, output_path=output)
+    interface_name = _document_name(interface_script, output_path=output)
+    interface_json_name = "interface-spec.json"
     try:
         projections = collect_visual_projection_sets(out_root)
     except Exception as exc:
@@ -167,6 +170,13 @@ def run_projection_docs(
     if len(pins_headers) != 1:
         raise ProjectionDocsError(
             f"expected exactly one acd_pins.h projection, found {len(pins_headers)}",
+            output_path=output,
+        )
+    config_reports = sorted(firmware_out.rglob("firmware-config-report.json"))
+    if len(config_reports) != 1:
+        raise ProjectionDocsError(
+            "expected exactly one firmware-config-report.json projection, "
+            f"found {len(config_reports)}",
             output_path=output,
         )
     theme_song = board_out / "theme-song-projection.json"
@@ -222,6 +232,33 @@ def run_projection_docs(
             or f"instruction manual generator exited with code {completed.returncode}",
             output_path=output,
         )
+    interface_command = [
+        "uv",
+        "run",
+        "--script",
+        str(interface_script),
+        "--graph",
+        str(graph_path),
+        "--pins-header",
+        str(pins_headers[0]),
+        "--firmware-config-report",
+        str(config_reports[0]),
+        "--out-dir",
+        str(output),
+        "--base-dir",
+        str(out_root),
+    ]
+    completed = _execute(
+        interface_command,
+        repository=repository,
+        runner=runner,
+    )
+    if completed.returncode != 0:
+        raise ProjectionDocsError(
+            completed.stderr.strip()
+            or f"interface spec generator exited with code {completed.returncode}",
+            output_path=output,
+        )
     documents = (
         _require_document(
             output,
@@ -233,6 +270,16 @@ def run_projection_docs(
             kind="instruction_manual",
             document_name=manual_name,
         ),
+        _require_document(
+            output,
+            kind="interface_spec",
+            document_name=interface_name,
+        ),
+        _require_document(
+            output,
+            kind="interface_spec_json",
+            document_name=interface_json_name,
+        ),
     )
     hashes_path = _write_hashes(output)
     provenance: dict[str, object] = {
@@ -242,7 +289,7 @@ def run_projection_docs(
                 "path": script.relative_to(repository).as_posix(),
                 "sha256": _sha256(script),
             }
-            for script in (readme_script, manual_script)
+            for script in (readme_script, manual_script, interface_script)
         },
         "pass_evidence": False,
     }

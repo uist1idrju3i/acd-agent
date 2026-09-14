@@ -1278,3 +1278,17 @@ fail-closedに停止する。`scripts/derive_order_scope.py`が`order-scope.json
 回帰testで固定した。`QuoteRecord`はsupplier実見積の金額を要するため合成せず、
 L3の`quote-request.json`が`fetch_quote.py`への次段を宣言する。design loopへの
 配線は行わず、`--order-scope`明示入力を維持する。
+
+### 9.6 機器I/F契約投影の実装記録
+
+`plugins/acd/skills/acd-product-docs/scripts/generate_interface_spec.py`が
+design graph、`acd_pins.h`、`firmware-config-report.json`から機器I/F契約を
+決定論的に投影し、`interface-spec.md`（template `acd-interface-spec-ja-v1`）と
+`interface-spec.json`（`record_class: "L3"`、`pass_evidence: false`）を
+それぞれ`write_document`経由で生成する。graph ID・revision・pin・I2Cアドレスの
+3入力不一致、I2Cアドレス重複、report欠落・不正は`DocumentGenerationError`で
+fail-closedに停止し、UART transportとコマンド一覧は宣言が無いため
+`unknown_fields`へ記録する。`run_projection_docs`はfirmware出力から
+`firmware-config-report.json`を一意に特定して本scriptを実行し、
+`interface_spec`／`interface_spec_json`の両documentをprovenance付きで要求する。
+JSON本体にtimestampを含めず2回実行でbyte一致を回帰testで固定した。
