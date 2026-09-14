@@ -249,7 +249,7 @@ def _hand_solder_finding(
             unknown_reason="hand-solder clearance rule is unavailable",
         )
     component_by_id = {node.id: node for node in components}
-    missing_geometry = []
+    missing_geometry: list[str] = []
     rectangles: dict[str, tuple[float, float, float, float]] = {}
     for node in components:
         body = body_by_component.get(node.id)
