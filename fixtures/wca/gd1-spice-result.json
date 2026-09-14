@@ -1,0 +1,46 @@
+{
+  "artifact_kind": "spice_result",
+  "authority": "estimate",
+  "checks": [
+    {
+      "measured": 3.3,
+      "quantity": "node_voltage",
+      "reason": "within declared range",
+      "status": "pass",
+      "target": "+3V3"
+    },
+    {
+      "measured": 0.001480687,
+      "quantity": "branch_current",
+      "reason": "within declared range",
+      "status": "pass",
+      "target": "R6"
+    },
+    {
+      "measured": 2.0600000000000002e-07,
+      "quantity": "rise_time",
+      "reason": "within declared range",
+      "status": "pass",
+      "target": "I2C_SDA"
+    },
+    {
+      "measured": 2.0600000000000002e-07,
+      "quantity": "rise_time",
+      "reason": "within declared range",
+      "status": "pass",
+      "target": "I2C_SCL"
+    }
+  ],
+  "findings": [],
+  "graph_id": "golden-design-1",
+  "input_hashes": {
+    "graph": "sha256:f58180221b2adddf6cdc23341ab77a8db72b513977ca1479f9ffcbb11080a7ba",
+    "request": "sha256:adabb4e67af4bbac342545319ccc8d627cbe83c0ff7d07829c29134ef2744dd7"
+  },
+  "netlist_sha256": "sha256:f2089fe3b3a6bcb8d407882316ca5c84f65b28cee888e9105e12b6b08140ba7f",
+  "ngspice_version": "45.2",
+  "raw_output_sha256": "sha256:33b22cffcf9d8f93a2d6d68dc2402f2f370122a5620f3b18d1dc8c8b285f85b6",
+  "revision": "r1",
+  "schema_version": "0.1",
+  "status": "pass"
+}

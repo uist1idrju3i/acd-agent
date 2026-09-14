@@ -1734,3 +1734,23 @@ regionは決定論的な幅・抵抗を捏造せず、`zone_on_path=true`と所�
 結果の`authority`は`estimate`固定で、L2 stop-side findingとして扱い、authoritative
 EvidenceやGD1 default gateへ接続しない。`fixtures/pdn/gd1-power.json`のGD1 routed board
 実行では`p1-vbus-j1-u2`、`p2-3v3-u2-u1`、`p3-3v3-u2-u3`がいずれもpassした。
+
+### 10.6 ワーストケース解析（WCA）の実装記録
+
+`ToleranceTable`、`WcaRequest`、`WcaResult`をDesign Graphとは独立したopt-in contractとして
+追加し、10.1のSPICE公称値または宣言公称値へ、部品公差・中心ずれ・温度・経時の影響を
+適用する決定論的WCA経路を実装した。refdes指定の公差を部品クラス指定より優先し、
+temperature rangeは16.3の`UseEnvironment`から取得する。公差表または環境条件が欠落、
+公称SPICE結果が欠落・退化、変動源の宣言が不完全な場合はunknownへ停止側集約する。
+
+中心ずれ、温度、経時は符号付きbiasの代数和、独立な初期公差はRSSで合成し、
+`composition_method="bias_sum_plus_rss"`、各component分類・符号・入力hashを結果へ記録する。
+quantityごとにdivider ratio、series current、RC／I2C rise time、LDO outputの一次感度を
+適用し、上限・下限超過はfailとする。結果の`authority`は`estimate`固定であり、
+L2 stop-side findingで、authoritative EvidenceやGD1 default outputには接続しない。
+
+`power_budget_peak`は各loadのpeak電流だけを合計し、typical、平均、duty-weighted値を
+使わずに供給容量と比較する。これは16.2 battery power budgetそのものの実装ではなく、
+WCAへ宣言された電源バジェット入力のピーク需要ルールだけを提供する。GD1 fixtureでは
+LED series current、I2C SDA rise time、3V3 LDO output、USB peak budgetを評価し、
+公称値はそれぞれ`1.480687 mA`、`206 ns`、`3.3 V`、`362 mA`、全quantityがpassした。

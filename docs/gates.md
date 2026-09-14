@@ -320,6 +320,28 @@ unknownである。zone/pour/regionを経路として扱う場合、幅・抵抗
 L2 stop-side findingであり、authoritative Evidenceや既定GD1 gateへ接続しない。これは独立した
 opt-in経路であり、PDN requestを指定しない既存GD1 default outputは変更しない。
 
+### 10.6 ワーストケース解析（WCA、opt-in estimate）
+
+`WcaRequest`を明示した場合だけ、10.1の`SpiceResult`公称値または宣言公称値へ、
+部品公差・中心ずれ・温度・経時の影響を適用する。温度は16.3の`UseEnvironment`の
+温度範囲から算出し、公差表と環境条件のいずれかが欠落している場合はunknownへ集約する。
+部品refdesの公差は同じ部品クラスより優先して解決する。
+
+中心ずれ、温度、経時の系統的なbiasは符号付きで代数和にし、独立な初期公差はRSS
+（root-sum-square）で合成する。結果は`composition_method="bias_sum_plus_rss"`とし、
+各quantityの変動源分類、符号、入力hash、公差表hash、環境hashおよび任意のSPICE hashを
+記録する。公称値の欠落、退化したSPICE測定、未宣言の公差はunknownであり、下限・上限の
+超過はfail、集約順はfail > unknown > passである。
+
+`power_budget_peak`はtypical値、平均値、duty-weighted値を使わず、宣言された各loadの
+`peak`電流の合計を供給容量と比較する。これは16.2のbattery power budget実装ではなく、
+WCAへ渡された任意の電源バジェット入力に対するピーク需要の解析だけを提供する。
+
+結果の`authority`は`estimate`固定で、WCAはL2 stop-side findingであり、authoritative
+Evidenceや既定GD1 gateの合格側へ作用しない。公差表、環境、requestを指定しない既存
+GD1 default outputは変更しない。CLIはJSONと、quantityごとのbias/random componentを
+示す決定論的Markdownを出力する。
+
 ### 17.3 BOMコンプライアンス申告状況（opt-in aggregation）
 
 `ComplianceDeclarationRegistry`を明示した場合だけ、BOMのnon-empty MPNについて
