@@ -467,7 +467,7 @@ def run_projection_docs(
     }
     return ProjectionDocsResult(
         output_path=output,
-        documents=documents,
+        documents=tuple(documents),
         hashes_path=hashes_path,
         provenance=provenance,
     )
