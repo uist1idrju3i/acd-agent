@@ -23,6 +23,8 @@ def _runner_factory(calls: list[list[str]]):
             names = ("instruction-manual.md",)
         elif "generate_interface_spec.py" in " ".join(command):
             names = ("interface-spec.md", "interface-spec.json")
+        elif "generate_shipping_inspection.py" in " ".join(command):
+            names = ("shipping-inspection.md", "shipping-inspection.json")
         elif "generate_review_package.py" in " ".join(command):
             names = ("review-package.md", "review-package.json", "graph-diff.json")
         elif "generate_idea_allocation_docs.py" in " ".join(command):
@@ -124,12 +126,14 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
         enclosure_out=enclosure_out,
         runner=_runner_factory(calls),
     )
-    assert len(result.documents) == 10
+    assert len(result.documents) == 12
     hashes = (output / "hashes.json").read_text(encoding="utf-8")
     assert "product-readme.md" in hashes
     assert "instruction-manual.md" in hashes
     assert "interface-spec.md" in hashes
     assert "interface-spec.json" in hashes
+    assert "shipping-inspection.md" in hashes
+    assert "shipping-inspection.json" in hashes
     assert "inspection-report.md" in hashes
     assert "traceability-report.md" in hashes
     assert "quality-report.json" in hashes
@@ -212,7 +216,7 @@ def test_run_projection_docs_generates_two_language_trees(
         languages=("ja", "en"),
         runner=_runner_factory(calls),
     )
-    assert len(result.documents) == 20
+    assert len(result.documents) == 24
     assert {document.language for document in result.documents} == {"ja", "en"}
     assert result.provenance["languages"] == ["ja", "en"]
     for language in ("ja", "en"):
@@ -411,7 +415,7 @@ def test_idea_allocation_docs_not_declared(
     assert not any(
         "generate_idea_allocation_docs.py" in command for command in calls
     )
-    assert len(result.documents) == 10
+    assert len(result.documents) == 12
 
 
 def test_idea_allocation_docs_partial_inputs_fail(
@@ -431,7 +435,7 @@ def test_idea_allocation_docs_full(
     calls: list[list[str]] = []
     result, _output = _run_docs(tmp_path, monkeypatch, calls)
     assert result.provenance["idea_allocation_docs"] == "generated"
-    assert len(result.documents) == 16
+    assert len(result.documents) == 18
     assert any(
         "generate_idea_allocation_docs.py" in " ".join(command)
         for command in calls

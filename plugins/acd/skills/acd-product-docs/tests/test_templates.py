@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "templates"
 SCRIPTS = ROOT / "scripts"
 KEY_PATTERN = re.compile(
-    r"""["']((?:idea|interface|manual|quality|readme|review)\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)["']"""
+    r"""["']((?:idea|interface|manual|quality|readme|review|shipping)\.[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*)["']"""
 )
 CJK_PATTERN = re.compile(r"[\u3400-\u9fff\u3040-\u30ff]")
 LITERAL_KEY_PATTERN = re.compile(r"literal_[0-9]+")

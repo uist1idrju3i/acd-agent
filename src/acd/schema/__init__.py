@@ -271,6 +271,13 @@ from acd.schema.salvage import (
     SalvageGateResult,
     SalvageVerdict,
 )
+from acd.schema.shipping_inspection import (
+    CriterionSource,
+    InspectionCategory,
+    InspectionCriterion,
+    InspectionItem,
+    ShippingInspectionDocument,
+)
 from acd.schema.side_effect_journal import (
     ExecutionMode,
     JournalEntryBody,
@@ -347,6 +354,7 @@ __all__ = [
     "CrossDomainInterface",
     "CrosscheckAspect",
     "CrosscheckStatus",
+    "CriterionSource",
     "DecisionKind",
     "DefectDocument",
     "DefectRecord",
@@ -450,6 +458,9 @@ __all__ = [
     "IdeaSourceKind",
     "IdeaSuccessCriterion",
     "IdeaTurn",
+    "InspectionCategory",
+    "InspectionCriterion",
+    "InspectionItem",
     "InspectionReportReference",
     "JournalEntryBody",
     "JournalEntryType",
@@ -550,6 +561,7 @@ __all__ = [
     "SerialExpectation",
     "SharedAssignmentContract",
     "ShipmentManifestReference",
+    "ShippingInspectionDocument",
     "SkillProvenance",
     "ToolEnvelope",
     "TopologyTemplate",

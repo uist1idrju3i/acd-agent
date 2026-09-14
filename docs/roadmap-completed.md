@@ -1463,3 +1463,19 @@ testで固定した。宣言のgraph ID／revision不一致、idea recordに無�
 3つ揃った場合のみ本generatorを5番目に実行して6種をprovenance付きで要求する。
 一部だけ存在する場合は欠落pathを列挙してfail-closedに停止し、無い場合は
 `idea_allocation_docs: "not_declared"`をstage summaryへ記録する。
+
+### 18.4 出荷検査文書生成SKILLの実装記録
+
+`acd-product-docs` Skillへ`generate_shipping_inspection.py`を追加し、graph、
+`acd_pins.h`、firmware config reportから外観、導通、電源、書込み・起動、LED、
+センサ、シリアルの7カテゴリを決定論的に導出するようにした。期待値と閾値は
+graph属性、gate threshold、firmware projectionのいずれかを出所として記録し、
+出所を持たない項目は`unknown`として人手決定を要求する。出力はL3観測であり、
+出荷承認のauthoritative Evidenceには昇格しない。
+
+出荷検査契約を`acd.schema.shipping_inspection`へ追加し、未知基準、item ID、
+manual decision、unknown count、L3属性を検証する。既存interface specの
+firmware config report loaderとrevision／pin／device guardは共有入力モジュールへ
+移動し、interface specのfail-closed挙動を維持した。日本語・英語のsemantic template、
+Markdown／JSONと`write_document`によるprovenanceを生成し、`projection_docs`から
+interface specと同じ入力で両言語を実行してhash登録する。

@@ -18,17 +18,21 @@ import argparse
 import json
 import sys
 from contextvars import ContextVar
-from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-from acd.core.firmware_lane import extract_firmware_lane
 from acd.schema.design_graph import DesignGraph
 from doc_inputs import (
     DocumentGenerationError,
     DocumentInput,
     DocumentTemplate,
+    FirmwareConfigReport,
+    _guard_devices,
+    _guard_pins,
+    _guard_report,
+    _guard_revision,
     load_graph,
+    load_firmware_config_report,
     load_template,
     sha256_file,
     write_document,
@@ -54,224 +58,6 @@ _UNKNOWN_TRANSPORT_REASON = (
 _UNKNOWN_COMMANDS_REASON = (
     "no command interface is declared in the graph or firmware projection"
 )
-
-
-@dataclass(frozen=True)
-class ReportPin:
-    """One pin entry of the firmware config report."""
-
-    node_id: str
-    gpio: int
-    net: str
-
-
-@dataclass(frozen=True)
-class ReportDevice:
-    """One device entry of the firmware config report provenance."""
-
-    mpn: str
-    driver_id: str
-    i2c_address: int
-
-
-@dataclass(frozen=True)
-class FirmwareConfigReport:
-    """Parsed firmware config report written by the FW pipeline."""
-
-    graph_id: str
-    target_revision: str
-    pins: tuple[ReportPin, ...]
-    capabilities: tuple[str, ...]
-    devices: tuple[ReportDevice, ...]
-    led_blink_period_ms: int
-    log_period_ms: int
-    boot_log_message: str
-
-
-def _require_object(value: object, *, field: str) -> dict[str, object]:
-    if not isinstance(value, dict):
-        raise DocumentGenerationError(f"report field {field!r} is not an object")
-    return cast(dict[str, object], value)
-
-
-def _require_str(value: object, *, field: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise DocumentGenerationError(f"report field {field!r} is missing or not text")
-    return value
-
-
-def _require_int(value: object, *, field: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise DocumentGenerationError(f"report field {field!r} is missing or not an int")
-    return value
-
-
-def _require_list(value: object, *, field: str) -> list[object]:
-    if not isinstance(value, list):
-        raise DocumentGenerationError(f"report field {field!r} is not a list")
-    return cast(list[object], value)
-
-
-def load_firmware_config_report(path: Path) -> FirmwareConfigReport:
-    """Load the firmware config report, failing closed on any defect."""
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise DocumentGenerationError(
-            f"firmware config report {path} is not valid: {exc}"
-        ) from exc
-    report = _require_object(payload, field="report")
-    pins = tuple(
-        ReportPin(
-            node_id=_require_str(item.get("node_id"), field="pins[].node_id"),
-            gpio=_require_int(item.get("gpio"), field="pins[].gpio"),
-            net=_require_str(item.get("net"), field="pins[].net"),
-        )
-        for item in (
-            _require_object(item, field="pins[]")
-            for item in _require_list(report.get("pins"), field="pins")
-        )
-    )
-    settings = _require_object(report.get("settings"), field="settings")
-    provenance = _require_object(report.get("provenance"), field="provenance")
-    capabilities = tuple(
-        sorted(
-            _require_str(item.get("capability_id"), field="capabilities[].capability_id")
-            for item in (
-                _require_object(entry, field="capabilities[]")
-                for entry in _require_list(
-                    provenance.get("capabilities"), field="capabilities"
-                )
-            )
-        )
-    )
-    devices = tuple(
-        sorted(
-            (
-                ReportDevice(
-                    mpn=_require_str(item.get("mpn"), field="devices[].mpn"),
-                    driver_id=_require_str(
-                        item.get("driver_id"), field="devices[].driver_id"
-                    ),
-                    i2c_address=_require_int(
-                        item.get("i2c_address"), field="devices[].i2c_address"
-                    ),
-                )
-                for item in (
-                    _require_object(entry, field="devices[]")
-                    for entry in _require_list(
-                        provenance.get("devices"), field="devices"
-                    )
-                )
-            ),
-            key=lambda device: device.driver_id,
-        )
-    )
-    return FirmwareConfigReport(
-        graph_id=_require_str(report.get("graph_id"), field="graph_id"),
-        target_revision=_require_str(
-            report.get("target_revision"), field="target_revision"
-        ),
-        pins=pins,
-        capabilities=capabilities,
-        devices=devices,
-        led_blink_period_ms=_require_int(
-            settings.get("led_blink_period_ms"), field="settings.led_blink_period_ms"
-        ),
-        log_period_ms=_require_int(
-            settings.get("log_period_ms"), field="settings.log_period_ms"
-        ),
-        boot_log_message=_require_str(
-            settings.get("boot_log_message"), field="settings.boot_log_message"
-        ),
-    )
-
-
-def _guard_report(graph: DesignGraph, report: FirmwareConfigReport) -> None:
-    if report.graph_id != graph.graph_id:
-        raise DocumentGenerationError(
-            f"firmware config report targets graph {report.graph_id!r}, "
-            f"not {graph.graph_id!r}"
-        )
-    if report.target_revision != graph.revision:
-        raise DocumentGenerationError(
-            f"firmware config report targets revision {report.target_revision!r}, "
-            f"not {graph.revision!r}"
-        )
-
-
-def _guard_revision(graph: DesignGraph, macros: dict[str, str]) -> None:
-    revision = macros["ACD_TARGET_REVISION"].strip('"')
-    if revision != graph.revision:
-        raise DocumentGenerationError(
-            f"pin projection targets revision {revision!r}, not {graph.revision!r}"
-        )
-
-
-def _macro_int(macros: dict[str, str], name: str, *, because: str) -> int:
-    raw = macros.get(name)
-    if raw is None:
-        raise DocumentGenerationError(
-            f"pin projection lacks {name} although the report declares {because}"
-        )
-    try:
-        return int(raw, 0)
-    except ValueError as exc:
-        raise DocumentGenerationError(
-            f"pin projection macro {name} is not an integer: {raw!r}"
-        ) from exc
-
-
-def _guard_pins(
-    graph: DesignGraph,
-    report: FirmwareConfigReport,
-    macros: dict[str, str],
-) -> tuple[ReportPin, ...]:
-    graph_pins = {
-        assignment.net: assignment.gpio
-        for assignment in extract_firmware_lane(graph).pin_assignments
-    }
-    report_pins = {pin.net: pin.gpio for pin in report.pins}
-    if report_pins != graph_pins:
-        raise DocumentGenerationError(
-            "firmware config report pins do not match graph "
-            f"firmware.pin_assignment nodes: report={sorted(report_pins.items())}, "
-            f"graph={sorted(graph_pins.items())}"
-        )
-    for pin in report.pins:
-        macro = "ACD_PIN_" + pin.net.removeprefix("net.").upper()
-        header_gpio = _macro_int(macros, macro, because=f"pin {pin.net}")
-        if header_gpio != pin.gpio:
-            raise DocumentGenerationError(
-                f"pin projection macro {macro}={header_gpio} does not match "
-                f"report gpio {pin.gpio} for net {pin.net!r}"
-            )
-    return tuple(sorted(report.pins, key=lambda pin: pin.net))
-
-
-def _guard_devices(
-    report: FirmwareConfigReport, macros: dict[str, str]
-) -> tuple[ReportDevice, ...]:
-    seen_addresses: dict[int, str] = {}
-    for device in report.devices:
-        macro = f"ACD_{device.driver_id.upper()}_I2C_ADDRESS"
-        header_address = _macro_int(
-            macros, macro, because=f"device {device.driver_id}"
-        )
-        if header_address != device.i2c_address:
-            raise DocumentGenerationError(
-                f"pin projection macro {macro}=0x{header_address:02x} does not "
-                f"match report i2c_address 0x{device.i2c_address:02x} for "
-                f"driver {device.driver_id!r}"
-            )
-        owner = seen_addresses.get(device.i2c_address)
-        if owner is not None:
-            raise DocumentGenerationError(
-                f"drivers {owner!r} and {device.driver_id!r} share I2C address "
-                f"0x{device.i2c_address:02x}"
-            )
-        seen_addresses[device.i2c_address] = device.driver_id
-    return report.devices
 
 
 def build_interface_spec(
