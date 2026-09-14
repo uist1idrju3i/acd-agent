@@ -340,7 +340,7 @@ def test_idea_allocation_docs_not_declared(
     assert not any(
         "generate_idea_allocation_docs.py" in command for command in calls
     )
-    assert len(result.documents) == 7
+    assert len(result.documents) == 10
 
 
 def test_idea_allocation_docs_partial_inputs_fail(
@@ -360,7 +360,7 @@ def test_idea_allocation_docs_full(
     calls: list[list[str]] = []
     result, _output = _run_docs(tmp_path, monkeypatch, calls)
     assert result.provenance["idea_allocation_docs"] == "generated"
-    assert len(result.documents) == 13
+    assert len(result.documents) == 16
     assert any(
         "generate_idea_allocation_docs.py" in " ".join(command)
         for command in calls
