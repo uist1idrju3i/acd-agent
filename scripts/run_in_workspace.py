@@ -269,6 +269,7 @@ def _lane_log_revision(args: argparse.Namespace) -> str:
             check=False,
             capture_output=True,
             text=True,
+            encoding="utf-8",
         )
     except OSError:
         completed = None
