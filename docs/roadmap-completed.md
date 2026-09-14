@@ -1234,3 +1234,16 @@ host provisionalでは`unknown`）、`execution_context`、`failure_kind`（例�
 leak refusalをそのまま適用し、footer欠落の中断logはexit 2で拒否する。
 lane logはL3観測であり、合否権限と既存の判定・閾値は変更しない。
 リモートworkspaceからのrsync取得とexport手順を`docs/operations.md`へ記録した。
+
+### 15.18 資源計測ラッパのscript化の実装記録
+
+`scripts/measure_lane_resources.py`をrepository内へ追加し、使い捨てshell scriptによる
+資源計測を置き換えた。checkout path（`--repo`）、digest固定image（`--image`）、
+download対象（`--download`／`--download-root`）、計測間隔（`--interval`）を引数で受け、
+`run_in_workspace.py`をsubprocessでwrapして`--log`・`--memory-limit`・`--jvm-max-heap`を
+そのまま転送する。実行中は`/proc/stat`のbusy deltaから使用中CPUコア、`/proc/meminfo`から
+memory・swap使用量、`docker stats --no-stream`からcontainer memory合計をintervalごとに
+採取し、peak／minをrecordへ記録する。docker stats失敗は`stats_available: false`として
+記録を継続し、wrapperのexit codeはwrapped runのexit codeを維持する。
+`host_resources._read_meminfo`を`read_meminfo`へ公開名変更し共用した。
+recordは`record_class: L3`、`pass_evidence: false`であり合否権限を持たない。

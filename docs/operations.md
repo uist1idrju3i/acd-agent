@@ -1470,6 +1470,34 @@ host mem used peak 4.30 GiB、container peak 5.00 GiB、swap 0であった。fix
 Run Kはwall 42秒、container peak 2.66 GiB、swap 0であった。既存の最低・推奨スペック表は
 変更せず、これらの実測を追加の運用根拠とする。
 
+#### 資源計測wrapper（`scripts/measure_lane_resources.py`）
+
+以後の資源実測は使い捨てshell scriptではなくrepository内のwrapperで行う。
+checkout path、digest固定image、download対象、計測間隔を引数で受け、
+`run_in_workspace.py`をwrapしてintervalごとにhost CPUコア使用量・
+MemTotal／MemAvailable由来の使用量・swap使用量と`docker stats`のcontainer
+memory合計を記録する。
+
+```bash
+uv run python scripts/measure_lane_resources.py \
+  --repo . --image "$SERVER_REF" --interval 1 \
+  --download out/gd1/evidence-electrical.json \
+  --log out/lane-logs/board.log \
+  --out out/resource-measurement.json \
+  --label "8GiB/jobs4/8cores" -- <command>
+```
+
+recordは`schema_version: 0.1`、`label`、`image`、absoluteな`repo`、`command`、
+`downloads`、`interval_seconds`、`sample_count`、`started_at`／`finished_at`、
+`wall_clock_seconds`、wrapped runの`exit_code`、`host`（cpu_count、cpu_cores_peak、
+mem_total_bytes、mem_used_peak_bytes、mem_available_min_bytes、swap_used_peak_bytes）、
+`docker`（stats_available、mem_usage_peak_bytes）を持つ。`docker stats`が失敗しても
+`stats_available: false`で記録を継続する。wrapperのexit codeはwrapped runの
+exit codeそのままであり、fail-closedした実行も非ゼロで記録だけは残る。
+wrapperはDocker cgroupの内訳（anon／page cache）を採取せず、本節の従来表は
+ad-hoc scriptによる測定値である。計測は`record_class: L3`の観測であり、
+ゲート合格やauthoritative Evidenceの権限を持たない。
+
 SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
 `tool_concurrency_limit`の既定1と、資源を宣言できない場合はSDK mutexで直列化する
