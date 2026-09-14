@@ -271,6 +271,22 @@ status sourceやalternateのreferenceはURLまたは文書識別子であり、�
 既存GD1のdefault gateへ接続しないopt-in経路であり、registryを指定しないGD1出力は変更
 しない。規制適合、供給保証、認証verdictは行わず、外部API照会は別途判断とする。
 
+### 17.3 BOMコンプライアンス申告状況（opt-in aggregation）
+
+`ComplianceDeclarationRegistry`を明示した場合だけ、BOMのnon-empty MPNについて
+RoHS、REACH SVHC、halogen-free、conflict minerals、MSL、PFASの申告状況を集計する。
+registryの`regimes`に含まれない制度はout of scopeとしてunknownに列挙し、
+`required_regimes`に指定された制度の欠落、未申告、明示unknown、stale宣言、期限切れは
+unknownへ集約する。`declared_non_compliant`は申告上の停止側所見としてfailにするが、
+`declared_compliant`を含め、ACDは規制適合性を判定しない。
+
+`exempt`は`exemption_reference`がある場合だけ申告として記録し、参照のない免除はunknown
+である。MSL levelは分布集計だけを行い、独立した合否判定には使わない。`--as-of`で
+基準日を固定でき、wall clockや外部API照会には依存しない。結果は
+`authority="declaration_summary"`、`compliance_verdict=null`であり、L1の規制適合証明・認証
+verdictではない。空MPNの機械部品・test pointは17.2と同じく`no_mpn`として別報告する。
+この集計は独立したopt-in経路であり、registryを指定しないGD1 default outputは変更しない。
+
 ### 信頼性試験対応表（opt-in gate）
 
 信頼性試験gateは`ReliabilityTestPlan`を明示した場合だけ実行する独立したL1 gateである。

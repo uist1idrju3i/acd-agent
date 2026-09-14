@@ -1658,3 +1658,20 @@ footprint-compatible value checkの代替footprintがBOM footprintと一致す�
 `scripts/check_part_lifecycle.py`はUTF-8 JSONを読み、`--as-of`で基準日を固定して結果を
 再現する。外部メーカー／代理店APIの自動照会は実装・採用せず、registryへ宣言されていない
 情報はunknownへ集約する。既存GD1 default gateはopt-in境界を維持し、出力を変更しない。
+
+### 17.3 BOMコンプライアンス事前チェックの実装記録
+
+`ComplianceDeclarationRegistry`をDesign Graphとは独立したopt-in contractとして追加し、
+BOMのnon-empty MPNについてRoHS、REACH SVHC、halogen-free、conflict minerals、MSL、PFASの
+申告状況を決定論的に集計する。`declared_compliant`、`declared_non_compliant`、`exempt`、
+`not_declared`、`unknown`を宣言値として保持し、制度の対象範囲、申告の鮮度、期限、免除参照を
+別々に報告する。required regimeの`declared_non_compliant`はfail、未申告・不明・stale・
+registry未収載・対象外はunknownとし、欠落を合格へ変換しない。
+
+MSL levelは分布だけを記録し、適合判定には使わない。結果は
+`authority="declaration_summary"`、`compliance_verdict=null`であり、規制適合性や認証を
+判定しない。CLIはJSONと決定論的Markdown要約を出力し、`--as-of`で基準日を固定する。
+`fixtures/bom-compliance/gd1-2026-09.json`はGD1の13 non-empty MPNを対象とし、RoHSと
+REACH SVHCをmanual declarationで収載し、ICのMSL level分布も記録する。空MPNの機械部品・
+test pointは17.2と同じく`no_mpn`として別報告する。外部API照会は行わず、既存GD1 default
+outputは変更しない。

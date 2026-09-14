@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from acd.core.bom import BomRow, build_bom
+from acd.core.bom import BomRow, build_bom, group_bom_rows_by_mpn
 from acd.core.electrical import ElectricalLane
 from acd.schema.common import canonical_sha256
 from acd.schema.design_graph import DesignGraph
@@ -33,13 +33,6 @@ def _check(
         subject_ids=sorted(set(subject_ids or [])),
         details=details or {},
     )
-
-
-def _rows_by_mpn(rows: tuple[BomRow, ...]) -> dict[str, list[BomRow]]:
-    grouped: dict[str, list[BomRow]] = defaultdict(list)
-    for row in rows:
-        grouped[row.mpn].append(row)
-    return dict(grouped)
 
 
 def _risk_classes_by_refdes(graph: DesignGraph) -> dict[str, set[str]]:
@@ -110,7 +103,7 @@ def evaluate_part_lifecycle(
         raise ValueError("part lifecycle registry graph_id/revision does not match graph")
 
     rows = build_bom(lane)
-    rows_by_mpn = _rows_by_mpn(rows)
+    rows_by_mpn = group_bom_rows_by_mpn(rows)
     entries = {entry.mpn: entry for entry in registry.entries}
     risk_classes_by_refdes = _risk_classes_by_refdes(graph)
     statuses_by_mpn: dict[str, list[str]] = defaultdict(list)
