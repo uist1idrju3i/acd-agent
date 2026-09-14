@@ -676,6 +676,9 @@ agentが推測で埋めない。
 | `rejection_summary.py` | hook遮断理由の要約（L3観測） | 4.1・15.6 |
 | `tool_registration.py` | SDK ToolDefinition登録面の契約 | 4・15.7 |
 | `idea.py` | アイデアrecord・対話履歴・進捗観測（`ADR-0049`） | 21.1・21.3 |
+| `idea_estimate.py` | アイデア粗見積のL3観測（`ADR-0049`） | 21.4 |
+| `idea_promotion.py` | アイデアから要件へのpromotion provenance（`ADR-0049`） | 21.5 |
+| `idea_question_bank.py` | 対話型ブラッシュアップの質問bank（`ADR-0049`） | 21.2 |
 
 ## ADRとマイルストーンの対応
 

@@ -95,6 +95,7 @@ class IdeaFunction(AcdModel):
     function_id: NodeId
     description: IdeaField = Field(default_factory=IdeaField)
     priority: Literal["must", "should"] = "must"
+    function_class: NonEmptyStr | None = None
 
 
 class IdeaRecord(AcdModel):

@@ -15,6 +15,7 @@ from acd.core.idea_dialogue import (
     apply_turn,
     load_dialogue_history,
     load_idea_record,
+    next_questions,
     progress_summary,
     write_idea_record,
 )
@@ -26,10 +27,20 @@ from acd.schema.idea import (
     IdeaSuccessCriterion,
     IdeaTurn,
 )
+from acd.schema.idea_question_bank import IdeaQuestionBank
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 FIXTURE_DIR = REPOSITORY / "fixtures" / "idea" / "sample-usb-thermometer"
 RECORDED_AT = datetime(2026, 9, 13, 11, 0, 0, tzinfo=UTC)
+BANK_PATH = (
+    REPOSITORY / "plugins" / "acd" / "skills" / "acd-ideate" / "question-bank.json"
+)
+
+
+def load_question_bank() -> IdeaQuestionBank:
+    return IdeaQuestionBank.model_validate_json(
+        BANK_PATH.read_text(encoding="utf-8")
+    )
 
 
 def _source(ref: str = "conversation:evt-0003") -> IdeaSource:
@@ -227,3 +238,52 @@ def test_cli_fails_on_missing_input(tmp_path: Path) -> None:
     )
     assert result.returncode == 1
     assert "FAIL" in result.stderr
+
+
+def test_next_questions_ordering_truncation_and_uncovered() -> None:
+    record = load_idea_record(FIXTURE_DIR / "idea.json")
+    bank = load_question_bank()
+    questions, uncovered = next_questions(record, bank)
+    assert [q.field for q in questions] == [
+        "experience",
+        "environment",
+        "constraints.cost",
+    ]
+    assert uncovered == []
+    questions, _ = next_questions(record, bank, max_questions=1)
+    assert [q.field for q in questions] == ["experience"]
+    with pytest.raises(IdeaDialogueError):
+        next_questions(record, bank, max_questions=0)
+
+
+def test_next_questions_reports_uncovered_open_items() -> None:
+    record = load_idea_record(FIXTURE_DIR / "idea.json")
+    bank = load_question_bank()
+    sparse = bank.model_copy(
+        update={
+            "entries": [
+                entry for entry in bank.entries if entry.field == "experience"
+            ]
+        }
+    )
+    questions, uncovered = next_questions(record, sparse)
+    assert [q.field for q in questions] == ["experience"]
+    assert "environment" in uncovered
+    assert "constraints.cost" in uncovered
+    assert "functions.fn-stream-usb" in uncovered
+    assert "success_criteria" in uncovered
+
+
+def test_append_collides_with_declared_sc_id() -> None:
+    record = load_idea_record(FIXTURE_DIR / "idea.json").model_copy(
+        update={
+            "success_criteria": [
+                IdeaSuccessCriterion(criterion_id="sc-002")
+            ]
+        }
+    )
+    history = load_dialogue_history(FIXTURE_DIR / "idea-dialogue.json")
+    with pytest.raises(IdeaDialogueError, match="sc-002"):
+        apply_turn(
+            record, history, _turn([_answer("success_criteria", "x")])
+        )

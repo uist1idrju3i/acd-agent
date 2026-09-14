@@ -10,10 +10,12 @@ from acd.schema.idea import (
     IdeaField,
     IdeaFunction,
     IdeaProgress,
+    IdeaQuestion,
     IdeaRecord,
     IdeaSuccessCriterion,
     IdeaTurn,
 )
+from acd.schema.idea_question_bank import IdeaQuestionBank
 
 
 class IdeaDialogueError(ValueError):
@@ -175,6 +177,13 @@ def apply_turn(
         confirmed = _confirmed_field(answer, turn)
         if path == "success_criteria":
             item_id = f"sc-{len(updated.success_criteria) + 1:03d}"
+            if any(
+                item.criterion_id == item_id
+                for item in updated.success_criteria
+            ):
+                raise IdeaDialogueError(
+                    f"generated criterion id {item_id!r} already exists"
+                )
             updated = updated.model_copy(
                 update={
                     "success_criteria": [
@@ -188,6 +197,12 @@ def apply_turn(
             continue
         if path == "functions":
             item_id = f"fn-{len(updated.functions) + 1:03d}"
+            if any(
+                item.function_id == item_id for item in updated.functions
+            ):
+                raise IdeaDialogueError(
+                    f"generated function id {item_id!r} already exists"
+                )
             updated = updated.model_copy(
                 update={
                     "functions": [
@@ -235,3 +250,48 @@ def progress_summary(
         blocking_unknowns=open_items,
         ready_for_promotion=record.ready_for_promotion(),
     )
+
+
+def next_questions(
+    record: IdeaRecord,
+    bank: IdeaQuestionBank,
+    *,
+    max_questions: int = 3,
+) -> tuple[list[IdeaQuestion], list[str]]:
+    """Return banked questions for open items plus uncovered open paths.
+
+    Ordering is priority then field path; the result is truncated to
+    ``max_questions``. Open items without a bank entry are returned in
+    ``uncovered`` so the Skill can report them as human-decision items.
+    """
+    if max_questions < 1:
+        raise IdeaDialogueError("max_questions must be >= 1")
+    open_paths = record.open_items()
+    open_set = set(open_paths)
+    bank_fields = {entry.field for entry in bank.entries}
+
+    def covered(path: str) -> bool:
+        if path in bank_fields:
+            return True
+        head, _, _ = path.partition(".")
+        return head in bank_fields and head in _LIST_PATHS
+
+    # Bare list paths match item paths too: a bank entry for
+    # "success_criteria" covers "success_criteria.<id>" items as well.
+    questions: list[IdeaQuestion] = []
+    for entry in sorted(bank.entries, key=lambda e: (e.priority, e.field)):
+        matched = any(
+            entry.field == path or path.startswith(f"{entry.field}.")
+            for path in open_set
+        )
+        if matched:
+            questions.append(
+                IdeaQuestion(
+                    field=entry.field,
+                    prompt=entry.prompt,
+                    priority=entry.priority,
+                    options=list(entry.options),
+                )
+            )
+    uncovered = [path for path in open_paths if not covered(path)]
+    return questions[:max_questions], uncovered

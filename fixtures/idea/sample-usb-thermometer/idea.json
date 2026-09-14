@@ -50,12 +50,14 @@
         ],
         "confirmed_at": "2026-09-13T10:00:00Z"
       },
-      "priority": "must"
+      "priority": "must",
+      "function_class": "temperature_sensor"
     },
     {
       "function_id": "fn-stream-usb",
       "description": {"status": "open"},
-      "priority": "should"
+      "priority": "should",
+      "function_class": "usb_mcu"
     }
   ]
 }
