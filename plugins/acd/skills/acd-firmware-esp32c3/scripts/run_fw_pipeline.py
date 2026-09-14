@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@6da3bd75b9760f1d282e4b2ac0f5899db3c95634",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@96ec5b953e54d747cba65f902e9940af80fea083",
 # ]
 # ///
 # The PEP 723 git pin remains for standalone runs; project execution uses the checkout directly.
