@@ -118,6 +118,60 @@ def test_missing_value_is_unknown() -> None:
     assert any("R6" in finding for finding in result.findings)
 
 
+def test_missing_led_drive_is_unknown() -> None:
+    request = json.loads(REQUEST_PATH.read_text(encoding="utf-8"))
+    request["models"]["led"][0].pop("drive")
+    parsed_request = SpiceAnalysisRequest.model_validate(request)
+    netlist = extract_power_netlist(_graph(), parsed_request)
+    assert netlist.status == "unknown"
+    assert "D1: LED drive source not declared" in netlist.findings
+    raw = SpiceRawResult(
+        status="pass",
+        ngspice_version="45.2",
+        output_text="",
+        raw_output_sha256="sha256:" + "b" * 64,
+        measures={"i(r6)": 0.001},
+        traces={
+            "v(n3v3)": ((0.0, 3.3),),
+            "v(ni2c_sda)": ((0.0, 0.0), (1e-6, 3.3)),
+            "v(ni2c_scl)": ((0.0, 0.0), (1e-6, 3.3)),
+        },
+        netlist_sha256=netlist.sha256,
+    )
+    result = evaluate_spice(_graph(), parsed_request, raw)
+    assert result.status == "unknown"
+
+
+def test_flat_waveform_is_unknown() -> None:
+    request = _request()
+    netlist = extract_power_netlist(_graph(), request)
+    raw = SpiceRawResult(
+        status="pass",
+        ngspice_version="45.2",
+        output_text="",
+        raw_output_sha256="sha256:" + "b" * 64,
+        measures={"i(r6)": 0.0},
+        traces={
+            "v(n3v3)": ((0.0, 3.3),),
+            "v(ni2c_sda)": ((0.0, 3.3), (1e-6, 3.3)),
+            "v(ni2c_scl)": ((0.0, 3.3), (1e-6, 3.3)),
+        },
+        netlist_sha256=netlist.sha256,
+    )
+    result = evaluate_spice(_graph(), request, raw)
+    assert result.status == "unknown"
+    assert "degenerate_measurement" in result.findings
+    assert any(
+        check.quantity == "branch_current" and check.status == "unknown"
+        for check in result.checks
+    )
+    assert all(
+        check.status != "pass"
+        for check in result.checks
+        if check.quantity == "rise_time"
+    )
+
+
 def test_tightened_limit_fails() -> None:
     request = json.loads(REQUEST_PATH.read_text(encoding="utf-8"))
     request["limits"][0]["max"] = 3.0

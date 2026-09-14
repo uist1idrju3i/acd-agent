@@ -279,12 +279,23 @@ LEDと直列抵抗、I2C pull-upおよびバス容量を決定論的に抽出し
 vendor macro modelやauthoritative Evidenceではない。ネットリストはrefdes順、
 固定数値表記、固定node名で生成し、`.control`は使わない。
 
+LEDのbranch currentを検査する場合は、requestに`drive`を明示し、
+`state="on"`のGPIO-high相当源（`vdd_3v3`または明示電圧）を宣言する必要がある。
+driveがないLED current checkはunknownであり、無刺激のbranch currentをpassへ変換しない。
+I2C pull-upには決定論的なopen-drain switchとPULSE刺激を追加し、lowからreleaseした
+10--90% edgeを`.tran`波形から測定する。transientの刻みは1 ns以下とし、release後の
+RC応答を十分に含む解析時間を要求する。
+
 ngspiceはGPL境界を越えてimportせず、`acd.core.process.run_tool`のsubprocess
 経由だけで実行する。最初に`ngspice -v`を実行してrequestのversion pinと照合し、
 tool missing、version mismatch、malformed output、non-convergence、利用不能な
 解析結果はunknownへ停止側集約する。値域超過はfail、集約順はfail > unknown >
 passである。ホストにngspiceがない場合もpassへ変換せず、locked tools imageでの
 実行結果だけを再現可能なfixtureとして記録する。
+
+branch currentが0、rise-timeが0、またはrise-time波形が10%／90%閾値を横切らない場合は
+`degenerate_measurement`としてunknownにする。したがって、刺激のない平坦な波形や
+無電流の測定が宣言値域内に見えてもpassにはならない。
 
 結果には`authority="estimate"`、ngspice version文字列、ネットリストSHA-256、
 raw output SHA-256、Graph/request hashを含める。SPICEはL2 stop-side findingであり、

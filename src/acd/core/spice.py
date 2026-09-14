@@ -115,6 +115,10 @@ def _component_map(lane: ElectricalLane) -> dict[str, ComponentView]:
 
 
 def _resolve_net(net: str, names: dict[str, str]) -> str:
+    if net.lower() == "vdd_3v3":
+        for alias in ("+3V3", "3V3"):
+            if alias in names.values():
+                return alias
     if net in names:
         return names[net]
     for name in names.values():
@@ -247,7 +251,35 @@ def extract_power_netlist(
             continue
         model_name = f"LED_{re.sub(r'[^A-Za-z0-9]', '_', entry.refdes)}"
         lines.append(f"D_{entry.refdes} {pins[1]} {pins[0]} {model_name}")
-        lines.append(f".model {model_name} D(Is=1e-14 N=1.8)")
+        vf = entry.vf_v
+        saturation_current = 1e-3 * math.exp(-vf / (1.8 * 0.02585))
+        lines.append(
+            f".model {model_name} D(Is={saturation_current:.12g} N=1.8)"
+        )
+        if entry.drive is None:
+            findings.append(f"{entry.refdes}: LED drive source not declared")
+        else:
+            resistor = components[entry.series_resistor_refdes]
+            led_nets = set(_component_pins(lane, component))
+            resistor_nets = set(_component_pins(lane, resistor))
+            shared = led_nets & resistor_nets
+            drive_nets = resistor_nets - shared
+            if len(shared) != 1 or len(drive_nets) != 1:
+                findings.append(
+                    f"{entry.refdes}: cannot resolve series resistor drive net"
+                )
+            else:
+                drive_node = _node_name(
+                    names[next(iter(drive_nets))]
+                )
+                if entry.drive.voltage_v is not None:
+                    source = f"{entry.drive.voltage_v:.12g}"
+                else:
+                    source_net = _resolve_net(entry.drive.net_or_source, names)
+                    source = f"V({_node_name(source_net)})"
+                lines.append(
+                    f"B_LED_{entry.refdes} {drive_node} 0 V={source}"
+                )
 
     for index, entry in enumerate(
         sorted(request.models.i2c_pullups, key=lambda item: item.net)
@@ -255,6 +287,37 @@ def extract_power_netlist(
         node = _node_name(_resolve_net(entry.net, names))
         capacitance = entry.bus_capacitance_pf * 1e-12
         lines.append(f"C_BUS_{index + 1} {node} 0 {capacitance:.12g}")
+        tran_for_stimulus = next(
+            (
+                analysis
+                for analysis in request.analyses
+                if analysis.kind == "tran"
+            ),
+            None,
+        )
+        if tran_for_stimulus is not None:
+            assert tran_for_stimulus.tstep is not None
+            assert tran_for_stimulus.tstop is not None
+            release = min(
+                tran_for_stimulus.tstop * 0.2,
+                tran_for_stimulus.tstop - tran_for_stimulus.tstep * 10,
+            )
+            release = max(release, tran_for_stimulus.tstep * 10)
+            edge = min(tran_for_stimulus.tstep, release * 0.01)
+            period = tran_for_stimulus.tstop * 2
+            width = max(tran_for_stimulus.tstop - release, edge * 10)
+            lines.append(
+                f"V_OD_CTRL_{index + 1} ctrl_{index + 1} 0 "
+                f"PULSE(3.3 0 {release:.12g} {edge:.12g} "
+                f"{edge:.12g} {width:.12g} {period:.12g})"
+            )
+            lines.append(
+                f"S_OD_{index + 1} {node} 0 ctrl_{index + 1} 0 SW_OD"
+            )
+    if request.models.i2c_pullups:
+        lines.append(
+            ".model SW_OD SW(Ron=1e-3 Roff=1e9 Vt=1 Vh=0.1)"
+        )
 
     analysis_kinds = {analysis.kind for analysis in request.analyses}
     if "op" in analysis_kinds:
@@ -487,7 +550,7 @@ def _lookup_measure(
         low = min(values)
         high = max(values)
         if high <= low:
-            return 0.0
+            return None
         ten = low + (high - low) * 0.1
         ninety = low + (high - low) * 0.9
         t10 = next((time for time, value in trace if value >= ten), None)
@@ -502,6 +565,21 @@ def _lookup_measure(
     return None
 
 
+def _has_degenerate_measurement(
+    raw: SpiceRawResult,
+    limit: SpiceLimit,
+    measured: float | None,
+    node_map: dict[str, str],
+) -> bool:
+    if limit.quantity == "branch_current":
+        return measured == 0.0
+    if limit.quantity != "rise_time":
+        return False
+    node = node_map.get(limit.target, _node_name(limit.target)).lower()
+    trace = raw.traces.get(f"v({node})")
+    return trace is not None and (measured is None or measured == 0.0)
+
+
 def evaluate_spice(
     graph: DesignGraph,
     request: SpiceAnalysisRequest,
@@ -513,6 +591,20 @@ def evaluate_spice(
     findings = list(netlist.findings) + list(raw.findings)
     for limit in request.limits:
         measured = _lookup_measure(raw, limit, netlist.node_map)
+        if _has_degenerate_measurement(
+            raw, limit, measured, netlist.node_map
+        ):
+            findings.append("degenerate_measurement")
+            checks.append(
+                SpiceCheck(
+                    quantity=limit.quantity,
+                    target=limit.target,
+                    measured=measured,
+                    status="unknown",
+                    reason="measurement is degenerate or has no threshold crossing",
+                )
+            )
+            continue
         if raw.status != "pass" or measured is None:
             checks.append(
                 SpiceCheck(

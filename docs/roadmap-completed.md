@@ -1703,6 +1703,12 @@ ngspice netlistへ抽出する経路を実装した。LDOは宣言された公�
 使うbehavioral approximationであり、vendor macro modelではない。refdes順、固定数値表記、
 固定node名、`.op`／`.tran`を使い、`.control`は使わない。
 
+LED currentの検査にはrequestの`drive`宣言を必須とし、GD1では3.3 VのGPIO-high相当源を
+LED branchへ接続した。I2Cはopen-drain switchとPULSE sourceでlowからreleaseする刺激を
+与え、bus capacitanceを含む過渡波形から10--90% rise timeを測定する。測定値が0、または
+波形が閾値を横切らない場合は`degenerate_measurement`としてunknownにし、無刺激のbranch
+currentや平坦なwaveformをpassへ変換しない。
+
 ngspiceはGPLコードをimportせず、`acd.core.process.run_tool`のsubprocess境界だけで実行する。
 `ngspice -v`のversion pin照合、malformed output、tool missing、version mismatch、
 non-convergenceはunknownへ集約し、値域超過はfailとする。集約順はfail > unknown > passで、

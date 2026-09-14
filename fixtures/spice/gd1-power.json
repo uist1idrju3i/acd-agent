@@ -6,7 +6,7 @@
     {
       "kind": "tran",
       "tstep": 0.000000001,
-      "tstop": 0.000001
+      "tstop": 0.000003
     }
   ],
   "artifact_kind": "spice_analysis_request",
@@ -57,13 +57,13 @@
     ],
     "i2c_pullups": [
       {
-        "bus_capacitance_pf": 100.0,
+        "bus_capacitance_pf": 20.0,
         "net": "I2C_SDA",
         "resistor_refdes": "R4",
         "vdd_net": "+3V3"
       },
       {
-        "bus_capacitance_pf": 100.0,
+        "bus_capacitance_pf": 20.0,
         "net": "I2C_SCL",
         "resistor_refdes": "R5",
         "vdd_net": "+3V3"
@@ -80,7 +80,11 @@
       {
         "refdes": "D1",
         "series_resistor_refdes": "R6",
-        "vf_v": 1.8
+        "vf_v": 1.8,
+        "drive": {
+          "net_or_source": "vdd_3v3",
+          "state": "on"
+        }
       }
     ]
   },

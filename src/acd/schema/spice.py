@@ -28,10 +28,17 @@ class SpiceLdoModel(AcdModel):
     model: Literal["behavioral_ldo"] = "behavioral_ldo"
 
 
+class SpiceLedDrive(AcdModel):
+    net_or_source: NonEmptyStr
+    state: Literal["on"] = "on"
+    voltage_v: StrictFloat | None = Field(default=None, gt=0)
+
+
 class SpiceLedModel(AcdModel):
     refdes: NonEmptyStr
     vf_v: StrictFloat = Field(gt=0)
     series_resistor_refdes: NonEmptyStr
+    drive: SpiceLedDrive | None = None
 
 
 class SpiceI2cPullup(AcdModel):
@@ -150,6 +157,7 @@ __all__ = [
     "SpiceDecoupling",
     "SpiceI2cPullup",
     "SpiceLdoModel",
+    "SpiceLedDrive",
     "SpiceLedModel",
     "SpiceLimit",
     "SpiceLimitQuantity",
