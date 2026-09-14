@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.1",
+  "idea_id": "idea.sample-usb-thermometer",
+  "revision": "r1",
+  "title": "USB温度計",
+  "purpose": {
+    "status": "confirmed",
+    "value": "机の上の温度をUSB機器として記録する",
+    "sources": [
+      {"kind": "user_statement", "ref": "conversation:evt-0001"}
+    ],
+    "confirmed_at": "2026-09-13T10:00:00Z"
+  },
+  "target_users": {
+    "status": "confirmed",
+    "value": "電子工作初学者",
+    "sources": [
+      {"kind": "user_statement", "ref": "conversation:evt-0001"}
+    ],
+    "confirmed_at": "2026-09-13T10:00:00Z"
+  },
+  "experience": {
+    "status": "open",
+    "sources": [
+      {"kind": "design_example", "ref": "fixtures/golden-design-1"}
+    ]
+  },
+  "environment": {"status": "open"},
+  "constraints": {
+    "cost": {"status": "open"},
+    "dimensions": {"status": "open"},
+    "power": {
+      "status": "open",
+      "sources": [
+        {"kind": "user_statement", "ref": "conversation:evt-0002"}
+      ]
+    },
+    "communication": {"status": "open"},
+    "regulatory": {"status": "open"}
+  },
+  "success_criteria": [],
+  "functions": [
+    {
+      "function_id": "fn-measure-temp",
+      "description": {
+        "status": "confirmed",
+        "value": "温度を周期的に測定する",
+        "sources": [
+          {"kind": "user_statement", "ref": "conversation:evt-0001"}
+        ],
+        "confirmed_at": "2026-09-13T10:00:00Z"
+      },
+      "priority": "must",
+      "function_class": "temperature_sensor"
+    },
+    {
+      "function_id": "fn-stream-usb",
+      "description": {"status": "open"},
+      "priority": "should",
+      "function_class": "usb_mcu"
+    }
+  ]
+}

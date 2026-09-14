@@ -167,12 +167,14 @@ def run_projection_docs(
     interface_script = _script_path(repository, "generate_interface_spec.py")
     quality_script = _script_path(repository, "generate_quality_report.py")
     review_script = _script_path(repository, "generate_review_package.py")
+    idea_script = _script_path(repository, "generate_idea_allocation_docs.py")
     for script in (
         readme_script,
         manual_script,
         interface_script,
         quality_script,
         review_script,
+        idea_script,
     ):
         if not script.is_file():
             raise ProjectionDocsError(
@@ -372,6 +374,95 @@ def run_projection_docs(
             )
             for kind, document_name in required_documents
         )
+    fixture_dir = graph_path.parent
+    idea_inputs = {
+        "idea record": fixture_dir / "idea" / "idea.json",
+        "estimate catalog": fixture_dir / "idea" / "estimate-catalog.json",
+        "responsibility declaration": fixture_dir / "responsibility.json",
+    }
+    idea_present = {
+        label: path for label, path in idea_inputs.items() if path.is_file()
+    }
+    idea_allocation_docs = "not_declared"
+    if idea_present and len(idea_present) != len(idea_inputs):
+        missing = sorted(
+            str(path) for label, path in idea_inputs.items() if label not in idea_present
+        )
+        raise ProjectionDocsError(
+            "idea allocation inputs are partially declared; missing: "
+            + ", ".join(missing),
+            output_path=output,
+        )
+    if len(idea_present) == len(idea_inputs):
+        idea_command = [
+            "uv",
+            "run",
+            "--script",
+            str(idea_script),
+            "--graph",
+            str(graph_path),
+            "--idea",
+            str(idea_inputs["idea record"]),
+            "--estimate-catalog",
+            str(idea_inputs["estimate catalog"]),
+            "--responsibility",
+            str(idea_inputs["responsibility declaration"]),
+            "--out-dir",
+            str(output),
+            "--base-dir",
+            str(out_root),
+        ]
+        completed = _execute(
+            idea_command,
+            repository=repository,
+            runner=runner,
+        )
+        if completed.returncode != 0:
+            raise ProjectionDocsError(
+                completed.stderr.strip()
+                or "idea allocation generator exited with code "
+                f"{completed.returncode}",
+                output_path=output,
+            )
+        idea_allocation_docs = "generated"
+        documents += [
+            _require_document(
+                output,
+                kind="idea_record",
+                document_name="idea-record.md",
+                language="ja",
+            ),
+            _require_document(
+                output,
+                kind="rough_estimate",
+                document_name="rough-estimate.md",
+                language="ja",
+            ),
+            _require_document(
+                output,
+                kind="rough_estimate_json",
+                document_name="rough-estimate.json",
+                language="ja",
+            ),
+            _require_document(
+                output,
+                kind="responsibility_allocation",
+                document_name="responsibility-allocation.md",
+                language="ja",
+            ),
+            _require_document(
+                output,
+                kind="responsibility_allocation_json",
+                document_name="responsibility-allocation.json",
+                language="ja",
+            ),
+            _require_document(
+                output,
+                kind="cross_domain_block_diagram",
+                document_name="cross-domain-block-diagram.svg",
+                language="ja",
+            ),
+        ]
     documents = tuple(documents_list)
     hashes_path = _write_hashes(output)
     provenance: dict[str, object] = {
@@ -387,14 +478,16 @@ def run_projection_docs(
                 interface_script,
                 quality_script,
                 review_script,
+                idea_script,
             )
         },
         "pass_evidence": False,
         "languages": list(languages),
+        "idea_allocation_docs": idea_allocation_docs,
     }
     return ProjectionDocsResult(
         output_path=output,
-        documents=documents,
+        documents=tuple(documents),
         hashes_path=hashes_path,
         provenance=provenance,
     )
