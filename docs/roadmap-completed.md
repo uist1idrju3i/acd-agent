@@ -774,8 +774,9 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 `plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py`が
 design graph、記録済み視覚投影、design-predicates、DFM report、および明示的に
 宣言された前revisionから、`review-package.md`、`review-package.json`、
-`graph-diff.json`を決定論的に生成する。graph差分はノードの追加・削除・属性変更と
-edge差分をID順に整理し、前revisionを宣言しない場合はunknownとして記録する。
+`graph-diff.json`を決定論的に生成する。graph差分はノードの追加・削除・`kind`／
+`attrs`単位の変更と、`depends_on`から導出した辺の追加・削除をID順に整理し、
+前revisionを宣言しない場合はunknownとして記録する。
 レビュー項目には設計述語、DFM所見、未実装・unknown、視覚投影、graph差分を入力由来の
 itemとして収録し、`authority: "none"`、`record_class: "L3"`、
 `pass_evidence: false`を固定する。

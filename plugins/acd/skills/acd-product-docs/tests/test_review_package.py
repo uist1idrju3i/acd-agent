@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from acd.schema.design_graph import DesignGraph
 from acd.schema.visual_projection import VisualProjectionSet
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -24,6 +25,7 @@ def _inputs(tmp_path: Path) -> dict[str, Path]:
     current["revision"] = "r2"
     removed = current["nodes"].pop(0)
     current["nodes"][0]["attrs"]["text"] += " changed"
+    current["nodes"][0]["depends_on"] = ["req.gd1-req-006"]
     added = json.loads(json.dumps(removed))
     added["id"] = "req.gd1-req-added"
     current["nodes"].append(added)
@@ -33,6 +35,9 @@ def _inputs(tmp_path: Path) -> dict[str, Path]:
     )
     previous = json.loads(json.dumps(graph))
     previous["revision"] = "r1"
+    next(
+        node for node in previous["nodes"] if node["id"] == "req.gd1-req-004"
+    )["depends_on"] = ["req.gd1-req-005"]
     previous_path = tmp_path / "graph-previous.json"
     previous_path.write_text(
         json.dumps(previous, ensure_ascii=False) + "\n", encoding="utf-8"
@@ -163,12 +168,34 @@ def test_previous_graph_diff_and_checklist(tmp_path: Path) -> None:
     assert diff["current_revision"] == "r2"
     assert diff["nodes"]["added"]
     assert diff["nodes"]["removed"] == ["req.gd1-req-001"]
-    assert diff["nodes"]["changed"][0]["changed_fields"] == ["attrs"]
+    assert diff["nodes"]["changed"][0]["changed_fields"] == ["attrs.text"]
+    assert diff["edges"]["added"] == ["req.gd1-req-004->req.gd1-req-006"]
+    assert diff["edges"]["removed"] == ["req.gd1-req-004->req.gd1-req-005"]
     package = json.loads((out_dir / "review-package.json").read_text(encoding="utf-8"))
     assert package["authority"] == "none"
     assert package["record_class"] == "L3"
     assert package["pass_evidence"] is False
     assert all(item["reviewer_decision"] == "pending" for item in package["checklist"])
+
+
+def test_depends_on_only_changes_are_edges_not_node_changes() -> None:
+    graph = json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
+    previous = json.loads(json.dumps(graph))
+    current = json.loads(json.dumps(graph))
+    previous["revision"] = "r1"
+    current["revision"] = "r2"
+    next(
+        node for node in previous["nodes"] if node["id"] == "req.gd1-req-004"
+    )["depends_on"] = ["req.gd1-req-005"]
+    next(
+        node for node in current["nodes"] if node["id"] == "req.gd1-req-004"
+    )["depends_on"] = ["req.gd1-req-006"]
+    diff = generate_review_package.build_graph_diff(
+        DesignGraph.model_validate(previous),
+        DesignGraph.model_validate(current),
+    )
+    payload = diff.to_json()
+    assert payload["nodes"]["changed"] == []
 
 
 def test_no_previous_revision_is_unknown(tmp_path: Path) -> None:

@@ -12,8 +12,9 @@ import argparse
 import json
 import os
 import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from acd.schema.design_graph import DesignGraph
 from doc_inputs import (
@@ -37,24 +38,66 @@ JSON_DOCUMENT_NAME = "review-package.json"
 GRAPH_DIFF_DOCUMENT_NAME = "graph-diff.json"
 
 
-def _edge_keys(graph: DesignGraph) -> list[str]:
-    edges = getattr(graph, "edges", ())
-    keys: list[str] = []
-    for edge in edges:
-        raw: object = edge.model_dump(mode="json") if hasattr(edge, "model_dump") else edge
-        if not isinstance(raw, dict):
-            raise DocumentGenerationError("design graph edge is not an object")
-        data = cast(dict[str, Any], raw)
-        source = data.get("source", data.get("source_id"))
-        target = data.get("target", data.get("target_id"))
-        kind = data.get("kind", data.get("edge_kind", ""))
-        if not isinstance(source, str) or not isinstance(target, str) or not isinstance(kind, str):
-            raise DocumentGenerationError("design graph edge has invalid fields")
-        keys.append(f"{source}->{target}:{kind}")
-    return sorted(keys)
+@dataclass(frozen=True)
+class NodeDiff:
+    node_id: str
+    changed_fields: tuple[str, ...]
+
+    def to_json(self) -> dict[str, object]:
+        return {
+            "id": self.node_id,
+            "changed_fields": list(self.changed_fields),
+        }
 
 
-def build_graph_diff(previous: DesignGraph, current: DesignGraph) -> dict[str, object]:
+@dataclass(frozen=True)
+class GraphDiff:
+    status: str
+    current_revision: str
+    previous_revision: str | None = None
+    reason: str | None = None
+    added_nodes: tuple[str, ...] = ()
+    removed_nodes: tuple[str, ...] = ()
+    changed_nodes: tuple[NodeDiff, ...] = ()
+    added_edges: tuple[str, ...] = ()
+    removed_edges: tuple[str, ...] = ()
+
+    def to_json(self) -> dict[str, object]:
+        if self.status != "computed":
+            return {
+                "status": self.status,
+                "reason": self.reason,
+                "current_revision": self.current_revision,
+            }
+        return {
+            "status": self.status,
+            "previous_revision": self.previous_revision,
+            "current_revision": self.current_revision,
+            "nodes": {
+                "added": list(self.added_nodes),
+                "removed": list(self.removed_nodes),
+                "changed": [node.to_json() for node in self.changed_nodes],
+            },
+            "edges": {
+                "added": list(self.added_edges),
+                "removed": list(self.removed_edges),
+            },
+        }
+
+
+def _edge_keys(graph: DesignGraph) -> tuple[str, ...]:
+    return tuple(
+        sorted(
+            {
+                f"{node.id}->{dependency}"
+                for node in graph.nodes
+                for dependency in node.depends_on
+            }
+        )
+    )
+
+
+def build_graph_diff(previous: DesignGraph, current: DesignGraph) -> GraphDiff:
     """Compare two revisions of the same design graph."""
     if previous.graph_id != current.graph_id:
         raise DocumentGenerationError(
@@ -64,49 +107,46 @@ def build_graph_diff(previous: DesignGraph, current: DesignGraph) -> dict[str, o
         raise DocumentGenerationError(
             f"previous graph has the same revision {current.revision!r}"
         )
-    previous_nodes: dict[str, dict[str, Any]] = {
-        node.id: node.model_dump(mode="json") for node in previous.nodes
-    }
-    current_nodes: dict[str, dict[str, Any]] = {
-        node.id: node.model_dump(mode="json") for node in current.nodes
-    }
+    previous_nodes = {node.id: node for node in previous.nodes}
+    current_nodes = {node.id: node for node in current.nodes}
     added = sorted(set(current_nodes) - set(previous_nodes))
     removed = sorted(set(previous_nodes) - set(current_nodes))
-    changed: list[dict[str, object]] = []
+    changed: list[NodeDiff] = []
     for node_id in sorted(set(previous_nodes) & set(current_nodes)):
         before = previous_nodes[node_id]
         after = current_nodes[node_id]
-        fields = sorted(
-            field
-            for field in set(before) | set(after)
-            if field != "id" and before.get(field) != after.get(field)
+        fields: list[str] = []
+        if before.kind != after.kind:
+            fields.append("kind")
+        fields.extend(
+            f"attrs.{key}"
+            for key in sorted(set(before.attrs) | set(after.attrs))
+            if key not in before.attrs
+            or key not in after.attrs
+            or before.attrs[key] != after.attrs[key]
         )
         if fields:
-            changed.append({"id": node_id, "changed_fields": fields})
+            changed.append(NodeDiff(node_id=node_id, changed_fields=tuple(sorted(fields))))
     previous_edges = set(_edge_keys(previous))
     current_edges = set(_edge_keys(current))
-    return {
-        "status": "computed",
-        "previous_revision": previous.revision,
-        "current_revision": current.revision,
-        "nodes": {
-            "added": added,
-            "removed": removed,
-            "changed": changed,
-        },
-        "edges": {
-            "added": sorted(current_edges - previous_edges),
-            "removed": sorted(previous_edges - current_edges),
-        },
-    }
+    return GraphDiff(
+        status="computed",
+        previous_revision=previous.revision,
+        current_revision=current.revision,
+        added_nodes=tuple(added),
+        removed_nodes=tuple(removed),
+        changed_nodes=tuple(changed),
+        added_edges=tuple(sorted(current_edges - previous_edges)),
+        removed_edges=tuple(sorted(previous_edges - current_edges)),
+    )
 
 
-def _unknown_graph_diff(current: DesignGraph) -> dict[str, object]:
-    return {
-        "status": "unknown",
-        "reason": "previous revision not declared",
-        "current_revision": current.revision,
-    }
+def _unknown_graph_diff(current: DesignGraph) -> GraphDiff:
+    return GraphDiff(
+        status="unknown",
+        reason="previous revision not declared",
+        current_revision=current.revision,
+    )
 
 
 def _checklist_item(
@@ -126,23 +166,19 @@ def _checklist_item(
     }
 
 
-def _diff_checklist(diff: dict[str, Any]) -> list[dict[str, str]]:
-    if diff.get("status") != "computed":
+def _diff_checklist(diff: GraphDiff) -> list[dict[str, str]]:
+    if diff.status != "computed":
         return [
             _checklist_item(
                 "diff:unknown",
                 "graph-diff",
                 "previous revision",
                 "unknown",
-                str(diff.get("reason", "previous revision not declared")),
+                str(diff.reason),
             )
         ]
     items: list[dict[str, str]] = []
-    nodes = diff["nodes"]
-    edges = diff["edges"]
-    assert isinstance(nodes, dict)
-    assert isinstance(edges, dict)
-    for node_id in cast(list[str], nodes["added"]):
+    for node_id in diff.added_nodes:
         items.append(
             _checklist_item(
                 f"diff:node-added:{node_id}",
@@ -152,7 +188,7 @@ def _diff_checklist(diff: dict[str, Any]) -> list[dict[str, str]]:
                 "node added",
             )
         )
-    for node_id in cast(list[str], nodes["removed"]):
+    for node_id in diff.removed_nodes:
         items.append(
             _checklist_item(
                 f"diff:node-removed:{node_id}",
@@ -162,10 +198,9 @@ def _diff_checklist(diff: dict[str, Any]) -> list[dict[str, str]]:
                 "node removed",
             )
         )
-    for entry in cast(list[dict[str, Any]], nodes["changed"]):
-        assert isinstance(entry, dict)
-        node_id = str(entry["id"])
-        fields = ", ".join(str(field) for field in entry["changed_fields"])
+    for entry in diff.changed_nodes:
+        node_id = entry.node_id
+        fields = ", ".join(entry.changed_fields)
         items.append(
             _checklist_item(
                 f"diff:node-changed:{node_id}",
@@ -175,7 +210,7 @@ def _diff_checklist(diff: dict[str, Any]) -> list[dict[str, str]]:
                 f"changed fields: {fields}",
             )
         )
-    for edge in cast(list[str], edges["added"]):
+    for edge in diff.added_edges:
         items.append(
             _checklist_item(
                 f"diff:edge-added:{edge}",
@@ -185,7 +220,7 @@ def _diff_checklist(diff: dict[str, Any]) -> list[dict[str, str]]:
                 "edge added",
             )
         )
-    for edge in cast(list[str], edges["removed"]):
+    for edge in diff.removed_edges:
         items.append(
             _checklist_item(
                 f"diff:edge-removed:{edge}",
@@ -202,7 +237,7 @@ def build_checklist(
     predicates: DesignPredicates,
     dfm: DfmReport,
     figures: tuple[ProjectionFigure, ...],
-    diff: dict[str, Any],
+    diff: GraphDiff,
     *,
     base_dir: Path,
 ) -> list[dict[str, str]]:
@@ -289,7 +324,7 @@ def build_review_package(
     predicates: DesignPredicates,
     dfm: DfmReport,
     figures: tuple[ProjectionFigure, ...],
-    diff: dict[str, object],
+    diff: GraphDiff,
     *,
     base_dir: Path,
 ) -> dict[str, Any]:
@@ -301,7 +336,7 @@ def build_review_package(
         "authority": "none",
         "graph_id": graph.graph_id,
         "target_revision": graph.revision,
-        "graph_diff": diff,
+        "graph_diff": diff.to_json(),
         "projections": _projection_records(figures, base_dir=base_dir),
         "design_predicates": [
             {
@@ -339,7 +374,6 @@ def _markdown(
     out_dir: Path,
 ) -> str:
     diff = package["graph_diff"]
-    assert isinstance(diff, dict)
     lines = [
         f"# レビュー資料: {graph.graph_id}",
         "",
@@ -488,7 +522,8 @@ def main(argv: list[str] | None = None) -> int:
         ),
         (
             "graph_diff_json",
-            json.dumps(diff, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            json.dumps(diff.to_json(), ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n",
             GRAPH_DIFF_DOCUMENT_NAME,
         ),
     )
