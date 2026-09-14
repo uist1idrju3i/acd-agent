@@ -421,11 +421,12 @@ def _run_visual_review_manifest(config: DesignLoopConfig) -> dict[str, Any]:
 
 def _run_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
     board_out = config.lane_plan.stage("board-pipeline").output_path
+    enclosure_out = config.lane_plan.stage("enclosure-pipeline").output_path
     firmware_out = config.lane_plan.stage("firmware-pipeline").output_path
-    if board_out is None or firmware_out is None:
+    if board_out is None or enclosure_out is None or firmware_out is None:
         return _failure(
             "projection-docs",
-            "board or firmware output path is undeclared (fail-closed)",
+            "board, enclosure, or firmware output path is undeclared (fail-closed)",
             record_class="L3",
         )
     output = config.out_root / "docs"
@@ -437,6 +438,7 @@ def _run_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
             board_out=board_out,
             firmware_out=firmware_out,
             output=output,
+            enclosure_out=enclosure_out,
         )
     except ProjectionDocsError as exc:
         fields: dict[str, Any] = {"record_class": "L3"}

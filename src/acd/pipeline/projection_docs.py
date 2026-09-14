@@ -143,13 +143,15 @@ def run_projection_docs(
     board_out: Path,
     firmware_out: Path,
     output: Path,
+    enclosure_out: Path,
     runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
 ) -> ProjectionDocsResult:
     """Run all product-document generators and hash their outputs."""
     readme_script = _script_path(repository, "generate_product_readme.py")
     manual_script = _script_path(repository, "generate_instruction_manual.py")
     interface_script = _script_path(repository, "generate_interface_spec.py")
-    for script in (readme_script, manual_script, interface_script):
+    quality_script = _script_path(repository, "generate_quality_report.py")
+    for script in (readme_script, manual_script, interface_script, quality_script):
         if not script.is_file():
             raise ProjectionDocsError(
                 f"product-docs Skill script is missing: {script}",
@@ -179,6 +181,31 @@ def run_projection_docs(
             f"found {len(config_reports)}",
             output_path=output,
         )
+    fw_evidence = sorted(
+        path
+        for path in firmware_out.rglob("evidence-firmware.json")
+        if ".stage-cache" not in path.parts
+    )
+    if len(fw_evidence) != 1:
+        raise ProjectionDocsError(
+            "expected exactly one evidence-firmware.json projection, "
+            f"found {len(fw_evidence)}",
+            output_path=output,
+        )
+    quality_inputs = {
+        "electrical evidence": board_out / "evidence-electrical.json",
+        "mechanical evidence": enclosure_out / "evidence-mechanical.json",
+        "board rationale coverage": board_out / "rationale-coverage.json",
+        "enclosure rationale coverage": enclosure_out / "rationale-coverage.json",
+        "design predicates": board_out / "gate-evidence" / "design-predicates.json",
+        "DFM report": board_out / "fab" / "dfm-report.json",
+        "rationale": graph_path.parent / "rationale.json",
+    }
+    for label, path in quality_inputs.items():
+        if not path.is_file():
+            raise ProjectionDocsError(
+                f"{label} input is missing: {path}", output_path=output
+            )
     theme_song = board_out / "theme-song-projection.json"
     output.mkdir(parents=True, exist_ok=True)
     readme_command = [
@@ -259,6 +286,45 @@ def run_projection_docs(
             or f"interface spec generator exited with code {completed.returncode}",
             output_path=output,
         )
+    quality_command = [
+        "uv",
+        "run",
+        "--script",
+        str(quality_script),
+        "--graph",
+        str(graph_path),
+        "--evidence",
+        str(quality_inputs["electrical evidence"]),
+        "--evidence",
+        str(quality_inputs["mechanical evidence"]),
+        "--evidence",
+        str(fw_evidence[0]),
+        "--rationale-coverage",
+        str(quality_inputs["board rationale coverage"]),
+        "--rationale-coverage",
+        str(quality_inputs["enclosure rationale coverage"]),
+        "--rationale",
+        str(quality_inputs["rationale"]),
+        "--design-predicates",
+        str(quality_inputs["design predicates"]),
+        "--dfm-report",
+        str(quality_inputs["DFM report"]),
+        "--out-dir",
+        str(output),
+        "--base-dir",
+        str(out_root),
+    ]
+    completed = _execute(
+        quality_command,
+        repository=repository,
+        runner=runner,
+    )
+    if completed.returncode != 0:
+        raise ProjectionDocsError(
+            completed.stderr.strip()
+            or f"quality report generator exited with code {completed.returncode}",
+            output_path=output,
+        )
     documents = (
         _require_document(
             output,
@@ -280,6 +346,21 @@ def run_projection_docs(
             kind="interface_spec_json",
             document_name=interface_json_name,
         ),
+        _require_document(
+            output,
+            kind="inspection_report",
+            document_name="inspection-report.md",
+        ),
+        _require_document(
+            output,
+            kind="traceability_report",
+            document_name="traceability-report.md",
+        ),
+        _require_document(
+            output,
+            kind="quality_report_json",
+            document_name="quality-report.json",
+        ),
     )
     hashes_path = _write_hashes(output)
     provenance: dict[str, object] = {
@@ -289,7 +370,12 @@ def run_projection_docs(
                 "path": script.relative_to(repository).as_posix(),
                 "sha256": _sha256(script),
             }
-            for script in (readme_script, manual_script, interface_script)
+            for script in (
+                readme_script,
+                manual_script,
+                interface_script,
+                quality_script,
+            )
         },
         "pass_evidence": False,
     }
