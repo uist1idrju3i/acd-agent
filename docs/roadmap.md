@@ -72,7 +72,7 @@ wall-clock記録、15.14〜15.16・15.18・15.20〜15.21、および計画段階
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
 | 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19・14.25は達成。14.16はR-1・R-2を達成、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証） |
-| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.13・15.15・15.17・15.19達成（15.14・15.16・15.18・15.20〜15.21は計画） |
+| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.13・15.17・15.19達成（15.14〜15.16・15.18・15.20〜15.21は計画） |
 | 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1〜16.6は計画 |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
 | 18 | 量産・出荷準備lane | ブリングアップ、panelization、DFA、出荷検査文書と検査FWを整備する | 計画 |
@@ -507,7 +507,7 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 15.12 | graph単体検証入口の明確化（N-10） | 存在しない`scripts/validate_design_graph.py`への案内を解消し、graph検証の正規経路（preflightまたはlane入口検査）を`docs/`へ明記する |
 | 15.13 | 実機実行記録の持ち出し経路（N-12） | 実行記録から公開可能な最小集合を収集する入口を用意し、ホスト名・エンドポイント・ユーザー名の秘匿化を既定にする。秘匿化漏れの検出をnegative testで固定する |
 | 15.14 | 長時間laneのbackground実行手順とlog契約（O-3） | 長時間laneをbackground＋logで実行し、同時に1本だけ起動してtail／grepで確認する手順を`docs/operations.md`へ明記する。log先頭へimage digest・revision・コマンド行を必ず記録する |
-| 15.15 | doctor出力のauthoritative／provisional分離と次手順提示（O-6・O-7） | doctor出力をauthoritative経路（image digest一致、docker実行可否、ホスト資源）とprovisional経路（host toolchain）へ分離し、lock済みimage未取得時にdigest固定のpullコマンド行を提示する（実行はしない）。分離は表示の分類に留め、fail-closedの範囲を変えない。達成：checkごとの`path`、top-level`paths`、`next_step`を追加 |
+| 15.15 | doctor出力のauthoritative／provisional分離と次手順提示（O-6・O-7） | doctor出力をauthoritative経路（image digest一致、docker実行可否、ホスト資源）とprovisional経路（host toolchain）へ分離し、lock済みimage未取得時にdigest固定のpullコマンド行を提示する（実行はしない）。分離は表示の分類に留め、fail-closedの範囲を変えない |
 | 15.16 | 収集入口へのlane log取り込み（O-8） | `scripts/export_execution_records.py`の入力へlane logを加え、log先頭のimage digest・revision・コマンド行とexit codeを構造化して取り込む。既存の秘匿化と漏洩検出をそのまま適用し、リモートworkspaceからの取得手順を`docs/operations.md`へ明記する |
 | 15.17 | 例示commandとfixture有効期間の整合検査（V-4） | `docs/operations.md`のGD1発注集計例の`--evaluated-at`を対象quoteの有効期間内へ揃え、`verify_docs.py`で例示とfixtureの期限整合を機械的に固定する。達成済み。quoteの有効期限や期限検査の閾値は緩めない |
 | 15.18 | 資源計測ラッパのscript化（V-8） | 検証のたびに使い捨てのshell scriptを書く状態を解消し、checkout path、image digest、download対象、計測間隔を引数で受ける計測wrapperをrepository内へ置く。計測結果はL3観測であり合否権限を持たない |
@@ -515,7 +515,7 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 15.20 | 長時間runの予算・中断・再開契約 | 長時間runの出所としてwall-clock／token予算を宣言し、stage境界checkpointと`--resume`再開性の回帰テストを追加する。運用項目に限定し、判定・閾値には作用させない |
 | 15.21 | 代替routerの単独実測 | GD1と`dual-beacon-tag`をOrthoRoute headlessの`--cpu-only`／GPU modeで単独実測し、収束・DRC・時間・再現性と2回のhash一致を`operations.md`へ記録する。決定論的`.ORP`生成が不能なら不採用として閉じ、合否へ作用させない |
 
-15.1〜15.13・15.15・15.17・15.19は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.14・15.16・15.18・15.20〜15.21は未着手であり、15.18は第6回実機実測と成果物回収（V-8）を出所とし、15.20〜15.21を含めて運用・計測側だけを整備する項目であり、判定と閾値には触れない。
+15.1〜15.13・15.17・15.19は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.14〜15.16・15.18・15.20〜15.21は未着手であり、15.18は第6回実機実測と成果物回収（V-8）を出所とし、15.20〜15.21を含めて運用・計測側だけを整備する項目であり、判定と閾値には触れない。
 
 ## マイルストーン16: 設計能力の拡張
 

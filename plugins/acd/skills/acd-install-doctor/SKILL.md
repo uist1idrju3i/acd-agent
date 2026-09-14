@@ -49,23 +49,12 @@ canonical manifest hash and byte-exact asset hashes; SDK-normalized
 `prompt_hash` values remain authoritative in
 `scripts/verify_agent_prompts.py --check`.
 
-Every check includes a `path` classification: `authoritative-path` for
-locked-image, Docker, EDA, host-resource, and workspace digest/firmware checks;
-`provisional-path` for host firmware toolchain observations; and `plugin` for
-installation and plugin checks. The top-level `paths` object groups check names
-and reports `ok`, `unavailable`, `degraded`, or `failed` per path. A check always
-includes `next_step`; it is populated with `docker pull <image@digest>` only when
-the locked image is absent and pull was forbidden or failed. The command is
-never executed by the doctor.
-
 Docker and the locked server image are required checks. EDA capabilities and
-workspace firmware prerequisites are observed only inside the digest-pinned
-server image; host firmware toolchain output is provisional and never substitutes
-for the authoritative path. Missing host firmware tools is `unavailable` and
-does not alter the existing overall status calculation. Missing image EDA tools
-is an optional `degraded` result, while Docker or required firmware tool failure
-is `failed`. When doctor runs inside the locked image, container mode probes PATH
-directly and does not require Docker-in-Docker.
+firmware prerequisites are observed only inside the digest-pinned server image;
+host KiCad, FreeRouting, ESP-IDF, QEMU, and CMake are not observed. Missing
+image EDA tools is an optional `degraded` result, while Docker or required
+firmware tool failure is `failed`. When doctor runs inside the locked image,
+container mode probes PATH directly and does not require Docker-in-Docker.
 Plugin hooks are invoked through interpreters, so committed hook scripts do not
 depend on executable permissions or shebangs; a zero direct-invocation
 reference count is reported as such.

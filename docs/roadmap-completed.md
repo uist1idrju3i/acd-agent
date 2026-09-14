@@ -1194,21 +1194,3 @@ regenerableとして区別した。
   manifestを残してexit 1とする。
 - U-5の必須成果物判定（manufacturing_submission）、ゲート、Evidence規則は
   変更していない。本契約は観測・運用のL3記録である。
-
-### 15.15 doctor出力のauthoritative／provisional分離と次手順提示の実装記録
-
-`plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`の各checkに
-`path`（`authoritative-path`、`provisional-path`、`plugin`）と`next_step`を追加した。
-lock済みserver imageを`--no-pull`で取得しない場合、またはpull失敗・timeoutの場合だけ、
-実行しない`docker pull <image@digest>`を`next_step`へ記録する。Docker CLI不在や
-imageが既に存在する場合にはnext stepを設定しない。
-
-workspace指定時、hostの`IDF_PATH/export.sh`、`qemu-system-riscv32`、`cmake`を
-`host firmware toolchain`として`provisional-path`で観測する。欠落は`unavailable`であり、
-既存のrequired/optional status集計（`fail`／`unknown`のみ失敗扱い）を変更しない。
-container内ではhost toolchain checkを追加しない。
-
-diagnoseのtop-level `paths`は3 pathごとのstatusと宣言順check名をまとめ、
-`authority`へprovisional観測がauthoritative pathを代替しない旨を明記した。
-既存のcheck集合（workspace追加時のhost観測を除く）、判定閾値、fail-closed範囲、exit code、
-Evidence権限は変更していない。SKILLとoperationsへJSON fieldsと運用手順を追記した。

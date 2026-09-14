@@ -48,9 +48,6 @@ def _check(
     result: str,
     detail: str,
     observed_version: str | None = None,
-    *,
-    path: str,
-    next_step: str | None = None,
 ) -> dict[str, Any]:
     return {
         "name": name,
@@ -58,8 +55,6 @@ def _check(
         "result": result,
         "detail": detail,
         "observed_version": observed_version,
-        "path": path,
-        "next_step": next_step,
     }
 
 
@@ -101,12 +96,9 @@ def _manifest_check(plugin_root: Path) -> dict[str, Any]:
             True,
             "unknown",
             f"{_relative(path, plugin_root)} could not be parsed: {exc}",
-            path="plugin",
         )
     if not isinstance(document, dict):
-        return _check(
-            "plugin manifest", True, "fail", "manifest root is not an object", path="plugin"
-        )
+        return _check("plugin manifest", True, "fail", "manifest root is not an object")
     document = cast(dict[str, Any], document)
     name = document.get("name")
     if name != "acd":
@@ -117,9 +109,8 @@ def _manifest_check(plugin_root: Path) -> dict[str, Any]:
             f"manifest name must be 'acd', found {name!r}; a path omission can infer "
             "acd-agent-<hash>",
             str(name) if name is not None else None,
-            path="plugin",
         )
-    return _check("plugin manifest", True, "pass", "manifest name is acd", "acd", path="plugin")
+    return _check("plugin manifest", True, "pass", "manifest name is acd", "acd")
 
 
 def _install_location_check(plugin_root: Path) -> dict[str, Any]:
@@ -133,7 +124,6 @@ def _install_location_check(plugin_root: Path) -> dict[str, Any]:
                 True,
                 "unknown",
                 "could not determine the plugin manifest name",
-                path="plugin",
             )
         manifest = cast(dict[str, Any], manifest)
         manifest_name = manifest.get("name")
@@ -143,7 +133,6 @@ def _install_location_check(plugin_root: Path) -> dict[str, Any]:
                 True,
                 "unknown",
                 "could not determine the plugin manifest name",
-                path="plugin",
             )
         root = plugin_root.resolve()
         store_root = store.resolve()
@@ -153,7 +142,6 @@ def _install_location_check(plugin_root: Path) -> dict[str, Any]:
             True,
             "unknown",
             f"could not inspect the plugin install location: {exc}",
-            path="plugin",
         )
     try:
         relative = root.relative_to(store_root)
@@ -164,7 +152,6 @@ def _install_location_check(plugin_root: Path) -> dict[str, Any]:
             "pass",
             "plugin root is outside the installed plugin store; treated as a development checkout",
             "development checkout",
-            path="plugin",
         )
     if len(relative.parts) == 1 and relative.name == manifest_name:
         return _check(
@@ -173,7 +160,6 @@ def _install_location_check(plugin_root: Path) -> dict[str, Any]:
             "pass",
             f"plugin root is the direct installed plugin directory {relative.name}",
             relative.name,
-            path="plugin",
         )
     return _check(
         "plugin install location",
@@ -183,7 +169,6 @@ def _install_location_check(plugin_root: Path) -> dict[str, Any]:
         "unexpected directory name. OpenHands loads the outer directory and none of these "
         "assets. Reinstall with source github:uist1idrju3i/acd-agent and path plugins/acd.",
         str(root),
-        path="plugin",
     )
 
 
@@ -263,10 +248,8 @@ def _assets_check(plugin_root: Path) -> dict[str, Any]:
             f"tree and were not evaluated: {', '.join(external_refs)}"
         )
     if errors:
-        return _check("plugin assets", True, "fail", "; ".join(errors), None, path="plugin")
-    return _check(
-        "plugin assets", True, "pass", detail, ", ".join(sorted(skill_names)), path="plugin"
-    )
+        return _check("plugin assets", True, "fail", "; ".join(errors), None)
+    return _check("plugin assets", True, "pass", detail, ", ".join(sorted(skill_names)))
 
 
 def _sha256(path: Path) -> str:
@@ -301,9 +284,7 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
         TypeError,
         ValueError,
     ) as exc:
-        return _check(
-            "agent prompt manifest", True, "unknown", f"manifest is invalid: {exc}", path="plugin"
-        )
+        return _check("agent prompt manifest", True, "unknown", f"manifest is invalid: {exc}")
     errors: list[str] = []
     canonical_hash = document.get("canonical_hash")
     if not isinstance(canonical_hash, str) or not HASH_RE.fullmatch(canonical_hash):
@@ -364,7 +345,8 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
         if fields.get("name") != role:
             errors.append(f"{role}: front-matter name does not match manifest role")
     actual_paths = {
-        _relative(path, plugin_root) for path in (plugin_root / "agents").glob("acd-*.md")
+        _relative(path, plugin_root)
+        for path in (plugin_root / "agents").glob("acd-*.md")
     }
     if actual_paths != listed_paths:
         errors.append(
@@ -372,7 +354,7 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
             f"unlisted={sorted(actual_paths - listed_paths)}"
         )
     if errors:
-        return _check("agent prompt manifest", True, "fail", "; ".join(errors), path="plugin")
+        return _check("agent prompt manifest", True, "fail", "; ".join(errors))
     return _check(
         "agent prompt manifest",
         True,
@@ -381,7 +363,6 @@ def _prompt_manifest_check(plugin_root: Path) -> dict[str, Any]:
         "scripts/verify_agent_prompts.py --check is authoritative for SDK-normalized "
         "prompt hashes",
         str(len(entries)),
-        path="plugin",
     )
 
 
@@ -394,7 +375,8 @@ def _metadata_body(source: str) -> tuple[str, str]:
     except StopIteration as exc:
         raise ValueError("PEP 723 block has no closing marker") from exc
     body = "\n".join(
-        line[2:] if line.startswith("# ") else "" if line == "#" else line for line in lines[1:end]
+        line[2:] if line.startswith("# ") else "" if line == "#" else line
+        for line in lines[1:end]
     )
     return body, "\n".join(lines[end + 1 :])
 
@@ -425,9 +407,7 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
     try:
         lines = ref_path.read_text(encoding="utf-8").splitlines()
     except (OSError, UnicodeDecodeError) as exc:
-        return _check(
-            "Skill package reference", True, "unknown", f"ref cannot be read: {exc}", path="plugin"
-        )
+        return _check("Skill package reference", True, "unknown", f"ref cannot be read: {exc}")
     ref = lines[0].strip() if len(lines) == 1 else ""
     if len(lines) != 1 or not ref or not (SHA256_RE.fullmatch(ref) or SEMVER_RE.fullmatch(ref)):
         return _check(
@@ -436,7 +416,6 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
             "fail",
             "ref must be exactly one 40-character SHA or v<semver> line",
             ref or None,
-            path="plugin",
         )
     errors: list[str] = []
     importing_scripts = 0
@@ -470,7 +449,9 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
         if len(requires) != 1 or len(dependencies) != 1:
             errors.append(f"{relative_script}: invalid PEP 723 dependency metadata")
         elif dependencies[0] != expected_dependency:
-            errors.append(f"{relative_script}: dependency does not match package ref")
+            errors.append(
+                f"{relative_script}: dependency does not match package ref"
+            )
     if importing_scripts == 0:
         errors.append("no Skill script importing acd was found")
     try:
@@ -482,7 +463,6 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
             "fail",
             f"contract is missing or cannot be parsed: {exc}",
             ref,
-            path="plugin",
         )
     if not isinstance(contract, dict):
         return _check(
@@ -491,7 +471,6 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
             "fail",
             "contract root is not an object",
             ref,
-            path="plugin",
         )
     contract = cast(dict[str, Any], contract)
     if contract.get("ref") != ref:
@@ -522,13 +501,17 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
             errors.append(f"{relative}: script sha256 does not match contract")
         contract_symbols = entry.get("acd_symbols")
         contract_symbol_items = (
-            cast(list[Any], contract_symbols) if isinstance(contract_symbols, list) else []
+            cast(list[Any], contract_symbols)
+            if isinstance(contract_symbols, list)
+            else []
         )
         if not isinstance(contract_symbols, list) or not all(
             isinstance(item, str) for item in contract_symbol_items
         ):
             errors.append(f"{relative}: contract acd_symbols is invalid")
-        elif not symbols.issubset(set(cast(list[str], contract_symbol_items))):
+        elif not symbols.issubset(
+            set(cast(list[str], contract_symbol_items))
+        ):
             errors.append(f"{relative}: imported acd symbols exceed contract symbols")
     node_kinds_value = contract.get("node_kinds")
     edge_kinds_present = "edge_kinds" in contract
@@ -548,10 +531,16 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
         errors.append("contract kind lists are invalid")
     node_kinds = cast(list[str], node_kinds_value) if node_kinds_valid else []
     edge_kinds = (
-        cast(list[str], edge_kinds_value) if edge_kinds_present and edge_kinds_valid else []
+        cast(list[str], edge_kinds_value)
+        if edge_kinds_present and edge_kinds_valid
+        else []
     )
-    fixture_kinds = cast(list[str], fixture_kinds_value) if fixture_kinds_valid else []
-    missing_kinds = sorted(set(fixture_kinds) - (set(node_kinds) | set(edge_kinds)))
+    fixture_kinds = (
+        cast(list[str], fixture_kinds_value) if fixture_kinds_valid else []
+    )
+    missing_kinds = sorted(
+        set(fixture_kinds) - (set(node_kinds) | set(edge_kinds))
+    )
     if missing_kinds:
         errors.append("contract fixture kinds are absent from schema: " + ", ".join(missing_kinds))
     counts = (
@@ -567,7 +556,6 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
             "fail",
             f"{counts};errors=" + "; ".join(errors),
             ref,
-            path="plugin",
         )
     return _check(
         "Skill package reference",
@@ -575,7 +563,6 @@ def _package_ref_check(plugin_root: Path) -> dict[str, Any]:
         "pass",
         counts,
         ref,
-        path="plugin",
     )
 
 
@@ -601,22 +588,21 @@ def _runtime_check() -> dict[str, Any]:
                 errors.append("uv --version failed")
             else:
                 uv_version = (
-                    completed.stdout.strip().splitlines()[0] if completed.stdout else "unknown"
+                    completed.stdout.strip().splitlines()[0]
+                    if completed.stdout
+                    else "unknown"
                 )
                 version = f"Python {version}; {uv_version}"
         except (OSError, subprocess.TimeoutExpired):
             errors.append("uv --version could not be executed")
     if errors:
-        return _check(
-            "runtime prerequisites", True, "fail", "; ".join(errors), version, path="plugin"
-        )
+        return _check("runtime prerequisites", True, "fail", "; ".join(errors), version)
     return _check(
         "runtime prerequisites",
         True,
         "pass",
         "Python >=3.12 and uv are available",
         version,
-        path="plugin",
     )
 
 
@@ -750,7 +736,6 @@ def _docker_check() -> dict[str, Any]:
             "pass",
             "running inside the locked ACD image; docker-in-docker is not required",
             "container runtime",
-            path="authoritative-path",
         )
     docker = shutil.which("docker")
     if docker is None:
@@ -761,7 +746,6 @@ def _docker_check() -> dict[str, Any]:
             "docker CLI is absent; authoritative Evidence from a digest-fixed container "
             "cannot be generated. Host execution must not be used as a passing substitute.",
             "not installed",
-            path="authoritative-path",
         )
     version = _run_version("docker", ["--version"], r"Docker version ([^,\s]+)") or "unknown"
     try:
@@ -784,7 +768,6 @@ def _docker_check() -> dict[str, Any]:
             "container cannot be generated. Host execution must not be used as a "
             "passing substitute.",
             version,
-            path="authoritative-path",
         )
     return _check(
         "docker capability",
@@ -792,28 +775,22 @@ def _docker_check() -> dict[str, Any]:
         "pass",
         "docker CLI and docker info are reachable; this does not itself run a gate",
         version,
-        path="authoritative-path",
     )
 
 
-def _server_image_check(workspace: Path | None, *, pull: bool) -> dict[str, Any]:
+def _server_image_check(
+    workspace: Path | None, *, pull: bool
+) -> dict[str, Any]:
     if _in_container():
         return _check(
             "locked ACD server image",
             True,
             "pass",
             "running inside the locked ACD server image",
-            path="authoritative-path",
         )
     reference, error = _locked_server_image(workspace)
     if reference is None:
-        return _check(
-            "locked ACD server image",
-            True,
-            "unknown",
-            error or "unknown",
-            path="authoritative-path",
-        )
+        return _check("locked ACD server image", True, "unknown", error or "unknown")
     docker = shutil.which("docker")
     if docker is None:
         return _check(
@@ -822,7 +799,6 @@ def _server_image_check(workspace: Path | None, *, pull: bool) -> dict[str, Any]
             "fail",
             f"docker CLI is absent; cannot inspect {reference}",
             reference,
-            path="authoritative-path",
         )
     try:
         inspected = subprocess.run(
@@ -834,9 +810,7 @@ def _server_image_check(workspace: Path | None, *, pull: bool) -> dict[str, Any]
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return _check(
-            "locked ACD server image", True, "fail", str(exc), reference, path="authoritative-path"
-        )
+        return _check("locked ACD server image", True, "fail", str(exc), reference)
     if inspected.returncode == 0:
         return _check(
             "locked ACD server image",
@@ -844,7 +818,6 @@ def _server_image_check(workspace: Path | None, *, pull: bool) -> dict[str, Any]
             "pass",
             f"locked server image is available locally: {reference}",
             reference,
-            path="authoritative-path",
         )
     if not pull:
         return _check(
@@ -853,8 +826,6 @@ def _server_image_check(workspace: Path | None, *, pull: bool) -> dict[str, Any]
             "fail",
             f"{reference} is not available locally and --no-pull was requested",
             reference,
-            path="authoritative-path",
-            next_step=f"docker pull {reference}",
         )
     try:
         pulled = subprocess.run(
@@ -866,33 +837,16 @@ def _server_image_check(workspace: Path | None, *, pull: bool) -> dict[str, Any]
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return _check(
-            "locked ACD server image",
-            True,
-            "fail",
-            str(exc),
-            reference,
-            path="authoritative-path",
-            next_step=f"docker pull {reference}",
-        )
+        return _check("locked ACD server image", True, "fail", str(exc), reference)
     if pulled.returncode != 0:
         detail = pulled.stderr.strip() or pulled.stdout.strip() or "docker pull failed"
-        return _check(
-            "locked ACD server image",
-            True,
-            "fail",
-            detail,
-            reference,
-            path="authoritative-path",
-            next_step=f"docker pull {reference}",
-        )
+        return _check("locked ACD server image", True, "fail", detail, reference)
     return _check(
         "locked ACD server image",
         True,
         "pass",
         f"pulled locked server image: {reference}",
         reference,
-        path="authoritative-path",
     )
 
 
@@ -919,9 +873,7 @@ def _eda_check(workspace: Path | None = None) -> dict[str, Any]:
     else:
         reference, error = _locked_server_image(workspace)
         if reference is None:
-            return _check(
-                "EDA capabilities", False, "fail", error or "unknown", path="authoritative-path"
-            )
+            return _check("EDA capabilities", False, "fail", error or "unknown")
         script = (
             "printf '%s\\n' '=== kicad-cli ==='; "
             "kicad-cli version 2>&1 || true; "
@@ -930,13 +882,7 @@ def _eda_check(workspace: Path | None = None) -> dict[str, Any]:
         )
         output, error = _docker_image_command(reference, script, timeout=30)
         if output is None:
-            return _check(
-                "EDA capabilities",
-                False,
-                "fail",
-                error or "docker probe failed",
-                path="authoritative-path",
-            )
+            return _check("EDA capabilities", False, "fail", error or "docker probe failed")
         observations = {}
         for tool, (_, pattern, _) in probes.items():
             match = re.search(pattern, _image_section(output, tool))
@@ -947,7 +893,11 @@ def _eda_check(workspace: Path | None = None) -> dict[str, Any]:
         for tool, version in observations.items()
         if version not in (None, "unknown")
     ]
-    missing = [tool for tool, version in observations.items() if version in (None, "unknown")]
+    missing = [
+        tool
+        for tool, version in observations.items()
+        if version in (None, "unknown")
+    ]
     detail = (
         f"present: {', '.join(present) if present else 'none'}; "
         f"missing: {', '.join(missing) if missing else 'none'}. {detail_prefix}."
@@ -958,9 +908,7 @@ def _eda_check(workspace: Path | None = None) -> dict[str, Any]:
     observed_version = ", ".join(
         f"{tool}={version or 'unavailable'}" for tool, version in observations.items()
     )
-    return _check(
-        "EDA capabilities", False, result, detail, observed_version, path="authoritative-path"
-    )
+    return _check("EDA capabilities", False, result, detail, observed_version)
 
 
 def _resource_mib(value: int | None) -> str:
@@ -1099,11 +1047,10 @@ def _host_resource_check() -> dict[str, Any]:
             "pass",
             "host resource limits satisfy the optional 8 GiB container profile",
             "8g memory / 2g JVM heap",
-            path="authoritative-path",
         )
     result = "unknown" if any(code.endswith(".unknown") for code, _ in findings) else "fail"
     detail = "; ".join(f"{code}: {message}" for code, message in findings)
-    return _check("host resource preflight", False, result, detail, path="authoritative-path")
+    return _check("host resource preflight", False, result, detail)
 
 
 def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
@@ -1117,7 +1064,6 @@ def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
             False,
             "unknown",
             f"hooks/hooks.json could not be inspected: {exc}",
-            path="plugin",
         )
     observations: list[str] = []
     failures: list[str] = []
@@ -1132,7 +1078,8 @@ def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
         except (OSError, UnicodeDecodeError):
             has_shebang = False
         observations.append(
-            f"{relative}: executable={str(executable).lower()}, shebang={str(has_shebang).lower()}"
+            f"{relative}: executable={str(executable).lower()}, "
+            f"shebang={str(has_shebang).lower()}"
         )
         if not executable or not has_shebang:
             failures.append(relative)
@@ -1144,7 +1091,6 @@ def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
             "all plugin hooks are invoked through an interpreter and do not depend on "
             "executable bits",
             "0",
-            path="plugin",
         )
     if failures:
         return _check(
@@ -1154,7 +1100,6 @@ def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
             "A non-executable or shebang-less hook command cannot run, so hook policy "
             f"would not be enforced: {', '.join(failures)}. "
             f"Observations: {'; '.join(observations)}",
-            path="plugin",
         )
     return _check(
         "hook invocability",
@@ -1162,7 +1107,6 @@ def _hook_invocability_check(plugin_root: Path) -> dict[str, Any]:
         "pass",
         f"direct plugin hook scripts are executable with shebangs: {'; '.join(observations)}",
         str(len(seen)),
-        path="plugin",
     )
 
 
@@ -1201,7 +1145,6 @@ def _agent_skills_check(plugin_root: Path) -> dict[str, Any]:
             True,
             "fail",
             "agents/acd-*.md: no agent definition found",
-            path="plugin",
         )
     errors: list[str] = []
     for agent in agents:
@@ -1216,7 +1159,7 @@ def _agent_skills_check(plugin_root: Path) -> dict[str, Any]:
                 f"subagent registry cannot resolve: {', '.join(declared)}"
             )
     if errors:
-        return _check("agent skill declarations", True, "fail", "; ".join(errors), path="plugin")
+        return _check("agent skill declarations", True, "fail", "; ".join(errors))
     return _check(
         "agent skill declarations",
         True,
@@ -1224,7 +1167,6 @@ def _agent_skills_check(plugin_root: Path) -> dict[str, Any]:
         f"{len(agents)} agent definition(s) reference plugin Skill assets by path "
         "and declare no subagent Skill names",
         str(len(agents)),
-        path="plugin",
     )
 
 
@@ -1250,7 +1192,6 @@ def _hook_root_resolution_check(plugin_root: Path) -> dict[str, Any]:
             True,
             "fail",
             f"hooks/hooks.json could not be parsed: {exc}",
-            path="plugin",
         )
     commands: dict[str, str] = {}
 
@@ -1259,7 +1200,11 @@ def _hook_root_resolution_check(plugin_root: Path) -> dict[str, Any]:
             mapping = cast(dict[str, Any], value)
             name = mapping.get("name")
             command = mapping.get("command")
-            if isinstance(name, str) and isinstance(command, str) and "/hooks/scripts/" in command:
+            if (
+                isinstance(name, str)
+                and isinstance(command, str)
+                and "/hooks/scripts/" in command
+            ):
                 commands[name] = command
             for child in mapping.values():
                 visit(child)
@@ -1274,7 +1219,6 @@ def _hook_root_resolution_check(plugin_root: Path) -> dict[str, Any]:
             True,
             "fail",
             "hooks/hooks.json: no plugin hook command found",
-            path="plugin",
         )
     errors = [
         f"{name}: {candidate} is not a resolution candidate"
@@ -1283,7 +1227,7 @@ def _hook_root_resolution_check(plugin_root: Path) -> dict[str, Any]:
         if candidate not in command
     ]
     if errors:
-        return _check("hook plugin root resolution", True, "fail", "; ".join(errors), path="plugin")
+        return _check("hook plugin root resolution", True, "fail", "; ".join(errors))
     return _check(
         "hook plugin root resolution",
         True,
@@ -1291,7 +1235,6 @@ def _hook_root_resolution_check(plugin_root: Path) -> dict[str, Any]:
         f"{len(commands)} plugin hook command(s) resolve the plugin root from "
         "ACD_PLUGIN_ROOT, the workspace plugin tree, and the installed plugin store",
         str(len(commands)),
-        path="plugin",
     )
 
 
@@ -1334,7 +1277,6 @@ def _tool_registration_check(plugin_root: Path) -> dict[str, Any]:
             True,
             "unknown",
             f"{_relative(manifest_path, plugin_root)} could not be inspected: {exc}",
-            path="plugin",
         )
     agents = sorted((plugin_root / "agents").glob("acd-*.md"))
     if not agents:
@@ -1343,7 +1285,6 @@ def _tool_registration_check(plugin_root: Path) -> dict[str, Any]:
             True,
             "fail",
             "agents/acd-*.md: no agent definition found",
-            path="plugin",
         )
     errors: list[str] = []
     declaring_agents = 0
@@ -1368,7 +1309,7 @@ def _tool_registration_check(plugin_root: Path) -> dict[str, Any]:
             "deterministic entrypoints through terminal only"
         )
     if errors:
-        return _check("ACD tool registration", True, "fail", "; ".join(errors), path="plugin")
+        return _check("ACD tool registration", True, "fail", "; ".join(errors))
     return _check(
         "ACD tool registration",
         True,
@@ -1379,7 +1320,6 @@ def _tool_registration_check(plugin_root: Path) -> dict[str, Any]:
         "scripts/verify_acd_tool_registration.py --check is authoritative for the live "
         "SDK registry.",
         ", ".join(sorted(tool_names)),
-        path="plugin",
     )
 
 
@@ -1393,7 +1333,6 @@ def _store_check(plugin_root: Path) -> dict[str, Any]:
                 "pass",
                 f"{store} is absent; current root is treated as a development checkout",
                 "not present",
-                path="plugin",
             )
         plugins = sorted(path.name for path in store.iterdir() if path.is_dir())
         root = plugin_root.resolve()
@@ -1414,7 +1353,6 @@ def _store_check(plugin_root: Path) -> dict[str, Any]:
             "pass",
             f"store plugins: {plugins}; current plugin root is {route}",
             ", ".join(plugins) or "empty",
-            path="plugin",
         )
     except OSError as exc:
         return _check(
@@ -1422,7 +1360,6 @@ def _store_check(plugin_root: Path) -> dict[str, Any]:
             False,
             "unknown",
             f"store cannot be inspected: {exc}",
-            path="plugin",
         )
 
 
@@ -1438,36 +1375,27 @@ def _workspace_repository_check(workspace: Path) -> dict[str, Any]:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return _check("workspace repository", True, "unknown", str(exc), path="plugin")
+        return _check("workspace repository", True, "unknown", str(exc))
     if completed.returncode != 0:
         return _check(
             "workspace repository",
             True,
             "fail",
             "git rev-parse could not identify a repository",
-            path="plugin",
         )
     try:
         root = Path(completed.stdout.strip()).resolve()
         expected = workspace.resolve()
     except (OSError, RuntimeError, ValueError) as exc:
-        return _check("workspace repository", True, "unknown", str(exc), path="plugin")
+        return _check("workspace repository", True, "unknown", str(exc))
     if root != expected:
         return _check(
             "workspace repository",
             True,
             "fail",
             f"Git root is {root}, expected {expected}",
-            path="plugin",
         )
-    return _check(
-        "workspace repository",
-        True,
-        "pass",
-        "workspace is a Git repository",
-        str(root),
-        path="plugin",
-    )
+    return _check("workspace repository", True, "pass", "workspace is a Git repository", str(root))
 
 
 def _workspace_submodule_check(workspace: Path) -> dict[str, Any]:
@@ -1478,7 +1406,6 @@ def _workspace_submodule_check(workspace: Path) -> dict[str, Any]:
             True,
             "fail",
             f"submodule is not populated: {submodule}",
-            path="plugin",
         )
     try:
         completed = subprocess.run(
@@ -1491,7 +1418,7 @@ def _workspace_submodule_check(workspace: Path) -> dict[str, Any]:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return _check("workspace submodules", True, "unknown", str(exc), path="plugin")
+        return _check("workspace submodules", True, "unknown", str(exc))
     status = completed.stdout.strip()
     if completed.returncode != 0 or not status or status[0] in "-?":
         return _check(
@@ -1499,7 +1426,6 @@ def _workspace_submodule_check(workspace: Path) -> dict[str, Any]:
             True,
             "fail",
             f"submodule status is not initialized: {status or completed.stderr.strip()}",
-            path="plugin",
         )
     return _check(
         "workspace submodules",
@@ -1507,7 +1433,6 @@ def _workspace_submodule_check(workspace: Path) -> dict[str, Any]:
         "pass",
         "vendor/software-agent-sdk is initialized",
         status.split()[0].lstrip("+"),
-        path="plugin",
     )
 
 
@@ -1518,7 +1443,6 @@ def _workspace_lock_check(workspace: Path) -> dict[str, Any]:
             True,
             "fail",
             "pyproject.toml or uv.lock is missing",
-            path="plugin",
         )
     uv = shutil.which("uv")
     if uv is None:
@@ -1527,7 +1451,6 @@ def _workspace_lock_check(workspace: Path) -> dict[str, Any]:
             True,
             "unknown",
             "uv is not present on PATH; lock synchronization cannot be checked",
-            path="plugin",
         )
     try:
         completed = subprocess.run(
@@ -1540,21 +1463,19 @@ def _workspace_lock_check(workspace: Path) -> dict[str, Any]:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        return _check("workspace lock synchronization", True, "unknown", str(exc), path="plugin")
+        return _check("workspace lock synchronization", True, "unknown", str(exc))
     if completed.returncode != 0:
         return _check(
             "workspace lock synchronization",
             True,
             "fail",
             completed.stderr.strip() or completed.stdout.strip() or "uv lock --check failed",
-            path="plugin",
         )
     return _check(
         "workspace lock synchronization",
         True,
         "pass",
         "uv.lock is synchronized with pyproject.toml",
-        path="plugin",
     )
 
 
@@ -1565,13 +1486,10 @@ def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
             True,
             "pass",
             "running inside the locked ACD server image",
-            path="authoritative-path",
         )
     reference, error = _locked_server_image(workspace)
     if reference is None:
-        return _check(
-            "workspace lock digest", True, "unknown", error or "unknown", path="authoritative-path"
-        )
+        return _check("workspace lock digest", True, "unknown", error or "unknown")
     digest = reference.rsplit("@", 1)[-1]
     docker = shutil.which("docker")
     if docker is None:
@@ -1581,7 +1499,6 @@ def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
             "fail",
             f"docker is unavailable; cannot inspect {reference}",
             digest,
-            path="authoritative-path",
         )
     try:
         completed = subprocess.run(
@@ -1596,9 +1513,7 @@ def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
         OSError,
         subprocess.TimeoutExpired,
     ) as exc:
-        return _check(
-            "workspace lock digest", True, "fail", str(exc), digest, path="authoritative-path"
-        )
+        return _check("workspace lock digest", True, "fail", str(exc), digest)
     if completed.returncode != 0:
         return _check(
             "workspace lock digest",
@@ -1606,7 +1521,6 @@ def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
             "fail",
             f"{reference} is not available locally; network pull is not attempted",
             digest,
-            path="authoritative-path",
         )
     return _check(
         "workspace lock digest",
@@ -1614,7 +1528,6 @@ def _workspace_digest_check(workspace: Path) -> dict[str, Any]:
         "pass",
         f"locked image is available locally: {reference}",
         digest,
-        path="authoritative-path",
     )
 
 
@@ -1656,12 +1569,11 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
                 True,
                 "fail",
                 error or "locked server image is unavailable",
-                path="authoritative-path",
             )
         script = (
             "printf '%s\\n' '=== IDF_PATH/export.sh ==='; "
-            'if test -n "${IDF_PATH:-}" && test -f "$IDF_PATH/export.sh" '
-            '&& test -r "$IDF_PATH/export.sh"; '
+            "if test -n \"${IDF_PATH:-}\" && test -f \"$IDF_PATH/export.sh\" "
+            "&& test -r \"$IDF_PATH/export.sh\"; "
             "then printf '%s\\n' present; else printf '%s\\n' missing; fi; "
             "printf '%s\\n' '=== qemu-system-riscv32 ==='; "
             "qemu-system-riscv32 --version 2>&1 || true; "
@@ -1676,7 +1588,6 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
                 "fail",
                 error or "docker probe failed",
                 reference,
-                path="authoritative-path",
             )
         idf_output = _image_section(output, "IDF_PATH/export.sh")
         qemu_output = _image_section(output, "qemu-system-riscv32")
@@ -1705,7 +1616,6 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
                 "fail",
                 f"missing: {', '.join(missing)}; observed inside {reference}: {observed}",
                 observed,
-                path="authoritative-path",
             )
         return _check(
             "workspace firmware prerequisites",
@@ -1713,11 +1623,12 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
             "pass",
             f"ESP-IDF export, QEMU, and CMake are available inside {reference}: {observed}",
             observed,
-            path="authoritative-path",
         )
     idf_path = os.environ.get("IDF_PATH")
     idf_export = Path(idf_path) / "export.sh" if idf_path else None
-    idf_ok = bool(idf_export and idf_export.is_file() and os.access(idf_export, os.R_OK))
+    idf_ok = bool(
+        idf_export and idf_export.is_file() and os.access(idf_export, os.R_OK)
+    )
     qemu = _resolve_firmware_tool("qemu-system-riscv32")
     cmake = shutil.which("cmake")
     missing = [
@@ -1740,7 +1651,6 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
             "fail",
             f"missing: {', '.join(missing)}; {observed}",
             observed,
-            path="authoritative-path",
         )
     return _check(
         "workspace firmware prerequisites",
@@ -1748,60 +1658,17 @@ def _workspace_firmware_check(workspace: Path) -> dict[str, Any]:
         "pass",
         f"ESP-IDF export, QEMU, and CMake are available; {observed}",
         observed,
-        path="authoritative-path",
-    )
-
-
-def _host_firmware_toolchain_check() -> dict[str, Any]:
-    """Observe the host firmware toolchain on the provisional path only."""
-    idf_path = os.environ.get("IDF_PATH")
-    idf_export = Path(idf_path) / "export.sh" if idf_path else None
-    idf_ok = bool(idf_export and idf_export.is_file() and os.access(idf_export, os.R_OK))
-    qemu = _resolve_firmware_tool("qemu-system-riscv32")
-    cmake = shutil.which("cmake")
-    missing = [
-        name
-        for name, present in (
-            ("IDF_PATH/export.sh", idf_ok),
-            ("qemu-system-riscv32", qemu is not None),
-            ("cmake", cmake is not None),
-        )
-        if not present
-    ]
-    observed = (
-        f"IDF_PATH={idf_path or 'unset'}, "
-        f"qemu-system-riscv32={qemu or 'unavailable'}, cmake={cmake or 'unavailable'}"
-    )
-    if missing:
-        return _check(
-            "host firmware toolchain",
-            False,
-            "unavailable",
-            f"host toolchain is provisional only; missing: {', '.join(missing)}; {observed}",
-            observed,
-            path="provisional-path",
-        )
-    return _check(
-        "host firmware toolchain",
-        False,
-        "pass",
-        f"host firmware toolchain is available; {observed}",
-        observed,
-        path="provisional-path",
     )
 
 
 def _workspace_checks(workspace: Path) -> list[dict[str, Any]]:
-    checks = [
+    return [
         _workspace_repository_check(workspace),
         _workspace_submodule_check(workspace),
         _workspace_lock_check(workspace),
         _workspace_digest_check(workspace),
         _workspace_firmware_check(workspace),
     ]
-    if not _in_container():
-        checks.append(_host_firmware_toolchain_check())
-    return checks
 
 
 def diagnose(workspace: Path | None = None, *, pull: bool = True) -> dict[str, Any]:
@@ -1833,31 +1700,11 @@ def diagnose(workspace: Path | None = None, *, pull: bool = True) -> dict[str, A
         not check["required"] and check["result"] in {"fail", "unknown"} for check in checks
     )
     status = "failed" if required_failed else "degraded" if optional_failed else "ok"
-    paths: dict[str, dict[str, Any]] = {}
-    for check in checks:
-        entry = paths.setdefault(check["path"], {"status": "ok", "checks": []})
-        entry["checks"].append(check["name"])
-        failed = check["result"] in {"fail", "unknown"}
-        if check["required"] and failed:
-            entry["status"] = "failed"
-        elif failed and entry["status"] != "failed":
-            entry["status"] = "degraded"
-        elif check["result"] == "unavailable" and entry["status"] == "ok":
-            entry["status"] = "unavailable"
-    paths_summary = {
-        path: paths.get(path, {"status": "ok", "checks": []})
-        for path in ("authoritative-path", "provisional-path", "plugin")
-    }
     return {
         "status": status,
         "plugin_root": str(plugin_root),
         "checks": checks,
-        "paths": paths_summary,
-        "authority": (
-            "L3 observation only; no acceptance authority and no authoritative "
-            "Evidence; provisional-path observations never substitute for the "
-            "authoritative-path"
-        ),
+        "authority": "L3 observation only; no acceptance authority and no authoritative Evidence",
     }
 
 
@@ -1879,27 +1726,14 @@ def main(argv: list[str] | None = None) -> int:
         args = parser.parse_args(argv)
         report = diagnose(args.workspace, pull=not args.no_pull)
     except Exception as exc:
-        report: dict[str, Any] = {
+        report = {
             "status": "failed",
             "plugin_root": str(Path(__file__).resolve().parents[3]),
             "checks": [
-                _check(
-                    "doctor execution",
-                    True,
-                    "unknown",
-                    f"diagnosis failed: {exc}",
-                    path="plugin",
-                )
+                _check("doctor execution", True, "unknown", f"diagnosis failed: {exc}")
             ],
-            "paths": {
-                "authoritative-path": {"status": "ok", "checks": []},
-                "provisional-path": {"status": "ok", "checks": []},
-                "plugin": {"status": "failed", "checks": ["doctor execution"]},
-            },
             "authority": (
-                "L3 observation only; no acceptance authority and no authoritative "
-                "Evidence; provisional-path observations never substitute for the "
-                "authoritative-path"
+                "L3 observation only; no acceptance authority and no authoritative Evidence"
             ),
         }
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
