@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "templates"
@@ -16,8 +17,16 @@ def _catalog(language: str) -> dict[str, str]:
         (TEMPLATES / f"{language}.json").read_text(encoding="utf-8")
     )
     assert isinstance(payload, dict)
-    assert all(isinstance(key, str) and isinstance(value, str) for key, value in payload.items())
-    return payload
+    entries = cast(dict[object, object], payload)
+    assert all(
+        isinstance(key, str) and isinstance(value, str)
+        for key, value in entries.items()
+    )
+    return {
+        key: value
+        for key, value in entries.items()
+        if isinstance(key, str) and isinstance(value, str)
+    }
 
 
 def _referenced_keys() -> set[str]:

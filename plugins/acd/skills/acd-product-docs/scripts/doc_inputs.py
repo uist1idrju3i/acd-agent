@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@85a143c032b27a5384ab3b54f85840fef4972a58",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@26bbeca6d58e18f3908790f202aa9daf7b1ed90a",
 # ]
 # ///
 """Shared fail-closed inputs and provenance for generated product documents.
@@ -68,23 +68,28 @@ def load_template(lang: str) -> DocumentTemplate:
         )
     path = Path(__file__).resolve().parents[1] / "templates" / f"{lang}.json"
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload: object = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise DocumentGenerationError(
             f"document template {path} is not valid: {exc}"
         ) from exc
-    if not isinstance(payload, dict) or any(
-        not isinstance(key, str) or not isinstance(value, str)
-        for key, value in payload.items()
-    ):
+    if not isinstance(payload, dict):
         raise DocumentGenerationError(
             f"document template {path} must be an object of text values"
         )
+    strings: dict[str, str] = {}
+    entries = cast(dict[object, object], payload)
+    for key, value in entries.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise DocumentGenerationError(
+                f"document template {path} must be an object of text values"
+            )
+        strings[key] = value
     return DocumentTemplate(
         lang=lang,
         path=path,
         content_hash=sha256_file(path),
-        strings=MappingProxyType(dict(payload)),
+        strings=MappingProxyType(strings),
     )
 
 
