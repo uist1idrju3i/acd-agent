@@ -108,6 +108,14 @@ from acd.core.receipt import (
     reconcile_files,
     reconcile_receipt,
 )
+from acd.core.rework_diff import (
+    DerivedGraph,
+    LoadedReworkDiff,
+    ReworkDiffError,
+    apply_rework_diff,
+    load_rework_diff,
+    write_derived_graph,
+)
 from acd.core.side_effect_journal import (
     JournalOrderReconstruction,
     SideEffectJournalError,
@@ -126,6 +134,7 @@ __all__ = [
     "DefectCheckResult",
     "DefectFinding",
     "DefectRecordError",
+    "DerivedGraph",
     "FabOrderIntentView",
     "FabProfile",
     "FabProfileRegistry",
@@ -141,6 +150,7 @@ __all__ = [
     "GraphDiffError",
     "JournalOrderReconstruction",
     "LoadedDefectDocument",
+    "LoadedReworkDiff",
     "MechanicalPreflightReport",
     "OrderSubmissionProvider",
     "OrderSubtotal",
@@ -155,10 +165,12 @@ __all__ = [
     "ReceiptReconciliationError",
     "ReconciliationReport",
     "RequirementFinding",
+    "ReworkDiffError",
     "SideEffectJournalError",
     "aggregate_order_total",
     "append_post_order",
     "append_pre_order",
+    "apply_rework_diff",
     "build_dry_run_order_payload",
     "build_graph_diff",
     "build_order_submission_record",
@@ -180,6 +192,7 @@ __all__ = [
     "load_firmware_capability_registry",
     "load_functional_block_registry",
     "load_quote",
+    "load_rework_diff",
     "normalize_3mf",
     "normalize_step",
     "normalize_stl",
@@ -204,6 +217,7 @@ __all__ = [
     "validate_allowances_against_profile",
     "validate_applied_feedback",
     "validate_predicate_coverage",
+    "write_derived_graph",
 ]
 
 

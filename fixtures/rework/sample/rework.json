@@ -1,0 +1,28 @@
+{
+  "artifact_kind": "rework_diff",
+  "base_revision": "r1",
+  "defect_ids": [
+    "defect.r4-mpn"
+  ],
+  "graph_id": "golden-design-1",
+  "operations": [
+    {
+      "attrs": {
+        "mpn": "0603WAF1002T5E",
+        "value": "10k"
+      },
+      "component_id": "comp.r4",
+      "op": "replace",
+      "reason": "Use the alternate resistor value for the workaround."
+    },
+    {
+      "op": "cut",
+      "pin_id": "pin.r4.2",
+      "reason": "Disconnect the signal-side resistor pin from the failing branch."
+    }
+  ],
+  "pass_evidence": false,
+  "schema_version": "0.1",
+  "touches_safety_boundary": true,
+  "workaround_id": "WA-001"
+}

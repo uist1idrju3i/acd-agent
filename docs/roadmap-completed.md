@@ -1395,6 +1395,26 @@ GD1 graphへ照合し、全5基準をsearchedとして機械的に列挙する�
 CLIのnegative testを追加した。未探索、unknown、未知node、水平展開不一致、
 revision不一致は停止側へ分類される。
 
+### 13.2 追加工差分contractと派生graph導出の実装記録
+
+`src/acd/schema/rework_diff.py`へ、`cut`・`add`・`remove`・`replace`・
+`mechanical`の判別可能な追加工差分contractを追加した。workaround ID、対象graphと
+base revision、関連する不具合record、空でない操作列、safety boundary影響宣言を
+型付きで保持し、replace属性の許可集合と追加node kindをcontractで制限する。
+
+`src/acd/core/rework_diff.py`の`apply_rework_diff`は、入力graphを変更せず宣言順に
+操作を適用し、pin切断、node追加、component除去、部品属性変更、機械寸法変更を
+fail-closedに検査する。未知参照、重複追加、dangling dependency、既存値と同じreplace、
+未宣言のsafety boundary接触、base graphとのgraph ID／revision不一致は停止する。
+結果は`base revision+workaround ID`の派生revisionを持つL3投影として扱い、
+`derived-graph.json`とhash付きprovenanceを別出力へ書き込む。
+
+`scripts/derive_rework_graph.py`はGD1の`fixtures/rework/sample/rework.json`を
+決定論的に適用し、派生graphとprovenanceの出力概要を表示する。base graphの親
+directory内への書き戻しは禁止し、schema・core・CLI・決定論性・安全境界のnegative
+testを追加した。派生graphは設計入力やfixtureを上書きせず、既存gateの再実行へ渡す
+観測投影に限定する。
+
 21.8は`plugins/acd/skills/acd-product-docs/scripts/generate_idea_allocation_docs.py`
 を追加した。graph、アイデアrecord、見積catalog、責務割当宣言から
 `idea-record.md`・`rough-estimate.md`／`.json`（`IdeaRoughEstimate`本体）・
