@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@547deea8468f06aa14b9187ee7992db502a74a1d",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@4cfc06874ae93b6e18bf22adcdabfcfff1140fd1",
 # ]
 # ///
 """Plan and evaluate fail-closed workaround candidates."""
