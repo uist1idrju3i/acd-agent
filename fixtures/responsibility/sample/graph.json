@@ -1,0 +1,52 @@
+{
+  "graph_id": "resp-sample",
+  "nodes": [
+    {
+      "attrs": {
+        "text": "Measure ambient temperature at 1 Hz."
+      },
+      "depends_on": [],
+      "id": "req.fn-measure-temp",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "text": "Stream readings to the PC over USB."
+      },
+      "depends_on": [],
+      "id": "req.fn-stream-usb",
+      "kind": "requirement"
+    },
+    {
+      "attrs": {
+        "criteria": [
+          "response_time",
+          "power"
+        ],
+        "domain": "firmware",
+        "function_id": "fn-measure-temp"
+      },
+      "depends_on": [
+        "req.fn-measure-temp"
+      ],
+      "id": "resp.fn-measure-temp",
+      "kind": "design.responsibility"
+    },
+    {
+      "attrs": {
+        "criteria": [
+          "maintainability"
+        ],
+        "domain": "pc_software",
+        "function_id": "fn-stream-usb"
+      },
+      "depends_on": [
+        "req.fn-stream-usb"
+      ],
+      "id": "resp.fn-stream-usb",
+      "kind": "design.responsibility"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

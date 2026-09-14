@@ -1,0 +1,215 @@
+{
+  "schema_version": "0.1",
+  "bank_id": "acd-ideate-default",
+  "entries": [
+    {
+      "field": "purpose",
+      "priority": 1,
+      "prompt": "この機器で実現したいことを一文で述べてください。",
+      "options": [
+        {
+          "label": "測定値をUSB機器としてPCへ記録する",
+          "tradeoff": "表示部を持たず記録をホスト側へ委ねる構成になる",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json#gd1-req-004"
+            }
+          ]
+        },
+        {
+          "label": "単体で表示・記録まで完結する",
+          "tradeoff": "表示部と電源を内蔵するため部品点数と寸法が増える",
+          "recommended": false,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json#gd1-req-004"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "target_users",
+      "priority": 2,
+      "prompt": "想定する利用者を述べてください。",
+      "options": [
+        {
+          "label": "電子工作初学者",
+          "tradeoff": "配線や設定の手順を最小化する必要がある",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "experience",
+      "priority": 3,
+      "prompt": "利用者が得たい体験を述べてください。",
+      "options": [
+        {
+          "label": "接続するだけで動作する",
+          "tradeoff": "設定UIを持たない分、振る舞いの調整幅が狭い",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json#gd1-req-008"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "environment",
+      "priority": 4,
+      "prompt": "想定する使用環境を述べてください。",
+      "options": [
+        {
+          "label": "室内の机上",
+          "tradeoff": "防水・防塵や広温度域の宣言は不要になる",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json#gd1-req-013"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "constraints.cost",
+      "priority": 5,
+      "prompt": "部品コストの上限をJPYで述べてください。",
+      "options": [
+        {
+          "label": "数千円規模",
+          "tradeoff": "部品表の総額が上限を超えると見直しが必要になる",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "fab_profile",
+              "ref": "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "constraints.dimensions",
+      "priority": 6,
+      "prompt": "基板面積の上限をmm2で述べてください。",
+      "options": [
+        {
+          "label": "名刺より小さい基板",
+          "tradeoff": "面積が小さいほど実装密度と検査の難度が上がる",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "fab_profile",
+              "ref": "profiles/jlcpcb/fab-profile-jlcpcb-fr4-2l-1oz.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "constraints.power",
+      "priority": 7,
+      "prompt": "消費電力の上限をmWで述べてください。",
+      "options": [
+        {
+          "label": "USBバスパワーの範囲内",
+          "tradeoff": "外部電源を持たないため大電力の機能は置けない",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json#gd1-req-005"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "constraints.communication",
+      "priority": 8,
+      "prompt": "通信手段の制約を述べてください。",
+      "options": [
+        {
+          "label": "USB CDCでPCと通信する",
+          "tradeoff": "無線を持たないため設置場所はPCの近傍に限られる",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json#gd1-req-008"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "constraints.regulatory",
+      "priority": 9,
+      "prompt": "法規・認証上の制約を述べてください。",
+      "options": [
+        {
+          "label": "個人利用のため認証取得は対象外",
+          "tradeoff": "販売・配布する場合は別途の確認が必要になる",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "success_criteria",
+      "priority": 10,
+      "prompt": "成功したと言える条件を一つずつ述べてください。",
+      "options": [
+        {
+          "label": "連続した測定期間で欠落が無い",
+          "tradeoff": "測定期間の長さを利用者が決める必要がある",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "gate_threshold",
+              "ref": "docs/roadmap.md"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "field": "functions",
+      "priority": 11,
+      "prompt": "必要な機能を一つずつ述べてください。",
+      "options": [
+        {
+          "label": "周期的な測定とホストへの送出",
+          "tradeoff": "機能を追加するごとに確認項目が増える",
+          "recommended": true,
+          "sources": [
+            {
+              "kind": "design_example",
+              "ref": "fixtures/golden-design-1/requirements.json#gd1-req-007"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

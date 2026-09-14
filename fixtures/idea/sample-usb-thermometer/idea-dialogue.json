@@ -1,0 +1,50 @@
+{
+  "schema_version": "0.1",
+  "idea_id": "idea.sample-usb-thermometer",
+  "turns": [
+    {
+      "turn_no": 1,
+      "asked": [
+        {
+          "field": "purpose",
+          "prompt": "この機器で実現したいことは何ですか。",
+          "priority": 1,
+          "options": [
+            {
+              "label": "温度をUSB機器として記録する",
+              "tradeoff": "表示部を持たずホスト側へ記録を委ねる",
+              "recommended": true,
+              "sources": [
+                {"kind": "user_statement", "ref": "conversation:evt-0001"}
+              ]
+            }
+          ]
+        }
+      ],
+      "answers": [
+        {
+          "field": "purpose",
+          "value": "机の上の温度をUSB機器として記録する",
+          "sources": [
+            {"kind": "user_statement", "ref": "conversation:evt-0001"}
+          ]
+        },
+        {
+          "field": "target_users",
+          "value": "電子工作初学者",
+          "sources": [
+            {"kind": "user_statement", "ref": "conversation:evt-0001"}
+          ]
+        },
+        {
+          "field": "functions.fn-measure-temp",
+          "value": "温度を周期的に測定する",
+          "sources": [
+            {"kind": "user_statement", "ref": "conversation:evt-0001"}
+          ]
+        }
+      ],
+      "recorded_at": "2026-09-13T10:00:00Z"
+    }
+  ]
+}
