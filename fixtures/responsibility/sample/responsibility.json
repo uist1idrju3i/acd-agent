@@ -1,0 +1,120 @@
+{
+  "capabilities": [
+    {
+      "communication": [
+        "usb"
+      ],
+      "domain": "firmware",
+      "gpio_count": 8,
+      "memory_kb": 256,
+      "motion": false,
+      "power_sources": [
+        "battery",
+        "usb_5v"
+      ]
+    },
+    {
+      "communication": [
+        "ipc",
+        "push",
+        "usb"
+      ],
+      "domain": "pc_software",
+      "gpio_count": 0,
+      "memory_kb": 1024,
+      "motion": false,
+      "power_sources": [
+        "mains"
+      ]
+    },
+    {
+      "communication": [
+        "push"
+      ],
+      "domain": "mobile_app",
+      "gpio_count": 0,
+      "memory_kb": 512,
+      "motion": false,
+      "power_sources": [
+        "battery"
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "depends_on": "fn-measure-temp",
+      "function_id": "fn-display-temp"
+    },
+    {
+      "depends_on": "fn-display-temp",
+      "function_id": "fn-alert-push"
+    }
+  ],
+  "functions": [
+    {
+      "communication": [
+        "usb"
+      ],
+      "function_id": "fn-measure-temp",
+      "gpio_count": 2,
+      "memory_kb": 32,
+      "motion": false,
+      "power_source": "usb_5v"
+    },
+    {
+      "communication": [
+        "ipc",
+        "usb"
+      ],
+      "function_id": "fn-display-temp",
+      "gpio_count": 0,
+      "memory_kb": 64,
+      "motion": false,
+      "power_source": "mains"
+    },
+    {
+      "communication": [
+        "push"
+      ],
+      "function_id": "fn-alert-push",
+      "gpio_count": 0,
+      "memory_kb": 16,
+      "motion": false,
+      "power_source": "battery"
+    }
+  ],
+  "graph_id": "resp-sample",
+  "interfaces": [
+    {
+      "declared_by": [
+        "firmware",
+        "pc_software"
+      ],
+      "domains": [
+        "firmware",
+        "pc_software"
+      ],
+      "interface_id": "if.temp-data",
+      "power": "usb_5v",
+      "protocol": "usb serial",
+      "signal": "temperature reading"
+    },
+    {
+      "declared_by": [
+        "mobile_app",
+        "pc_software"
+      ],
+      "domains": [
+        "mobile_app",
+        "pc_software"
+      ],
+      "interface_id": "if.alert-push",
+      "power": "battery",
+      "protocol": "push channel",
+      "signal": "threshold alert"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1",
+  "shared_assignments": []
+}

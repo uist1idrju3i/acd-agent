@@ -29,7 +29,8 @@ coverage must stop the operation.
 
 Use the decision kinds `part_selection`, `placement`, `routing_width`,
 `silkscreen`, `firmware_pin`, `mechanical`, `fab_process`, `stackup`,
-`design_rule`, `net_class`, `safety_scope`, and `population` according to the
+`design_rule`, `net_class`, `safety_scope`, `population`, and
+`responsibility_assignment` according to the
 decision being recorded.
 
 When a requirement exists as a graph node, use `driving_requirements`. When it

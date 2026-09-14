@@ -679,6 +679,7 @@ agentが推測で埋めない。
 | `idea_estimate.py` | アイデア粗見積のL3観測（`ADR-0049`） | 21.4 |
 | `idea_promotion.py` | アイデアから要件へのpromotion provenance（`ADR-0049`） | 21.5 |
 | `idea_question_bank.py` | 対話型ブラッシュアップの質問bank（`ADR-0049`） | 21.2 |
+| `responsibility.py` | 機能のdomain割当宣言と決定論的gate（`ADR-0049`） | 21.6・21.7 |
 
 ## ADRとマイルストーンの対応
 

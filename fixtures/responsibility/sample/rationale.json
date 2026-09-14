@@ -1,0 +1,97 @@
+{
+  "graph_id": "resp-sample",
+  "records": [
+    {
+      "decision": "Assign fn-measure-temp to firmware.",
+      "decision_kind": "responsibility_assignment",
+      "driving_requirements": [
+        "req.fn-measure-temp"
+      ],
+      "justification": "The firmware domain owns this function per ADR-0049 §7.",
+      "provenance": {
+        "recorded_at": "2026-09-13T00:00:00+00:00",
+        "script_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "skill_name": "fixture",
+        "source": "acd_skill"
+      },
+      "rationale_id": "rat-resp-measure",
+      "rejected_alternatives": [
+        {
+          "option": "Assign the function to another domain",
+          "reason": "The declared domain matches the capability needs."
+        }
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "domain"
+      ],
+      "subject_hash": "sha256:2079e05bcb022afe291f7b423b16c38b7b183a7294796558749c916c454745a4",
+      "subject_nodes": [
+        "resp.fn-measure-temp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "decision": "Assign fn-display-temp to pc_software.",
+      "decision_kind": "responsibility_assignment",
+      "driving_requirements": [
+        "req.fn-display-temp"
+      ],
+      "justification": "The pc_software domain owns this function per ADR-0049 §7.",
+      "provenance": {
+        "recorded_at": "2026-09-13T00:00:00+00:00",
+        "script_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "skill_name": "fixture",
+        "source": "acd_skill"
+      },
+      "rationale_id": "rat-resp-display",
+      "rejected_alternatives": [
+        {
+          "option": "Assign the function to another domain",
+          "reason": "The declared domain matches the capability needs."
+        }
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "domain"
+      ],
+      "subject_hash": "sha256:cb51171f87c37a9cd4d13713c55b76053797cb28dd16e7438f0c2f6de6c375cf",
+      "subject_nodes": [
+        "resp.fn-display-temp"
+      ],
+      "target_revision": "r1"
+    },
+    {
+      "decision": "Assign fn-alert-push to mobile_app.",
+      "decision_kind": "responsibility_assignment",
+      "driving_requirements": [
+        "req.fn-alert-push"
+      ],
+      "justification": "The mobile_app domain owns this function per ADR-0049 §7.",
+      "provenance": {
+        "recorded_at": "2026-09-13T00:00:00+00:00",
+        "script_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "skill_name": "fixture",
+        "source": "acd_skill"
+      },
+      "rationale_id": "rat-resp-alert",
+      "rejected_alternatives": [
+        {
+          "option": "Assign the function to another domain",
+          "reason": "The declared domain matches the capability needs."
+        }
+      ],
+      "schema_version": "0.1",
+      "subject_attrs": [
+        "domain"
+      ],
+      "subject_hash": "sha256:ab208629d6d88728f607e4dffd01318a672e315dbd5ccf7239e7b1e83b9d71d0",
+      "subject_nodes": [
+        "resp.fn-alert-push"
+      ],
+      "target_revision": "r1"
+    }
+  ],
+  "revision": "r1",
+  "schema_version": "0.1"
+}
