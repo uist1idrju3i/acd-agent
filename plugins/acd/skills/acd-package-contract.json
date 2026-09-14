@@ -46,8 +46,8 @@
     "requirement",
     "safety.boundary"
   ],
-  "ref": "e13d3ceee100e2f71415275e3a01889099938f86",
-  "schema_tree_sha": "b1087646e9f5be41ce416285b907f32010347eb1",
+  "ref": "70d64d047768f41d39f289cbc75bee79f94c23c0",
+  "schema_tree_sha": "95895fc8093ec46154c689aca472114bbd759359",
   "scripts": [
     {
       "acd_symbols": [
@@ -55,14 +55,14 @@
         "acd.core.cad_normalize.normalize_step"
       ],
       "path": "plugins/acd/skills/acd-cad-determinism-probe/scripts/cad_determinism_probe.py",
-      "sha256": "a84aa3bd90b971576ac2d5eb50b2b77f58a731c4284e51e7d2c9ccb26f93b59d"
+      "sha256": "42afb6e844e34cbcc8bc02960a5542bda454fbcff7fd2918cd3aaae88b59994f"
     },
     {
       "acd_symbols": [
         "acd.core.knowledge_qa.answer_question"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/ask.py",
-      "sha256": "6884ff2f5e0918c50a06f21aaa08cb4cf521e5b9ae30d477ab4ed8b5b0045a64"
+      "sha256": "3d985bd1fe53d63c8e36ad2149829393c76c853ace3bc40ea4c6fa8ea125a389"
     },
     {
       "acd_symbols": [
@@ -72,7 +72,7 @@
         "acd.schema.knowledge_index.INTERNAL_ONLY_KINDS"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/generate_faq.py",
-      "sha256": "f341bc9480a39e4a446b9b50865aacfc1b41c4269e04bc729ce76ae5a5884e9f"
+      "sha256": "0bdb9e7a5a066a70900b922f94fdc4fe9c9a90509cee96de3a142bdfb432ce96"
     },
     {
       "acd_symbols": [
@@ -90,14 +90,14 @@
         "acd.schema.rationale.RationaleDocument"
       ],
       "path": "plugins/acd/skills/acd-design-knowledge/scripts/knowledge_inputs.py",
-      "sha256": "2ba46742cc092795b5eeedba9ef6e7e5ae4a4e73daac5f352b8cca400a8c069a"
+      "sha256": "866f56d0f50b403f63eab97c5a54530feaba278cf6cc3c9f6c0ba1245b17c023"
     },
     {
       "acd_symbols": [
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py",
-      "sha256": "b6a4a0fc09f1ed74b7722bb91c525999b682f3b256b4a9890481f600c1e22827"
+      "sha256": "30ebe91f5c1781b28147ed11e100bb5270b250efe5f020be10870930b99585c4"
     },
     {
       "acd_symbols": [
@@ -106,7 +106,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py",
-      "sha256": "fb76a56f1c1797d77668815ff7686d3d2723fe2cb2e481d718343756b9d89102"
+      "sha256": "351531bf05ebb83430c22429232c5093934a5e04d964621c6ee22b5d632bd59f"
     },
     {
       "acd_symbols": [
@@ -114,7 +114,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-firmware-esp32c3/scripts/run_fw_pipeline.py",
-      "sha256": "d3b694f508fcc6c6d62245e01bf57b582757e5b3b48bff18e90901404fa339ec"
+      "sha256": "0b899c7edabae20657b5a5641b86af79139597a1c31379462cc0a62abd4c3ebf"
     },
     {
       "acd_symbols": [
@@ -127,7 +127,7 @@
         "acd.core.electrical.ElectricalLane"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/placement_score.py",
-      "sha256": "199c2e9e1855e8bafaf65791e9c81f1b6de6cd7ffa4dcf670d861ccce370b53f"
+      "sha256": "a28b7b04e679eeaf60043953580c4e3ab6a50652a3a5c7437c9c0b767b828226"
     },
     {
       "acd_symbols": [
@@ -153,7 +153,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/placement_search.py",
-      "sha256": "83e5d5c8143db2dec8694fc040642dba697e3bea7c785f445f6058b3f63c93b8"
+      "sha256": "f4f7f4f71f15607a80c2a22147dee9e092f9817555db3bf30b1b866bf5e9c936"
     },
     {
       "acd_symbols": [
@@ -172,7 +172,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/vision_proposal.py",
-      "sha256": "12c0065fe741b9d904fce8210367ac915e2c664639ff85998f1e2a47cf1dd299"
+      "sha256": "85a8dc9897fb6a522a2e64a086715f75ef8ea577b4ff3f842900484570cd31ba"
     },
     {
       "acd_symbols": [
@@ -184,7 +184,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-placement-search/scripts/vision_route_proposal.py",
-      "sha256": "8172aba37000629aedf4333e7a129d451edac7960678339db631308bedf17b1d"
+      "sha256": "3d9a0edc87ef0e440c12cdca562409b24010c57bc52787dc1cb143c0b032fe07"
     },
     {
       "acd_symbols": [
@@ -195,7 +195,7 @@
         "acd.schema.visual_projection.VisualProjectionSet"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/doc_inputs.py",
-      "sha256": "9b334271b4341d9fa9dd8cf0e0b8fc4a5eb83943c994b01bfa62fd188a70fa59"
+      "sha256": "dd67bf9965db9a411539d781cf44988a3150d07a487aaf9fae3aa6a379a7dcae"
     },
     {
       "acd_symbols": [
@@ -205,7 +205,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_instruction_manual.py",
-      "sha256": "2fa305a08d548d6f3580dc46424d296dc47deae9524b492fc39b90bb1d5027aa"
+      "sha256": "f15a1e3ad4c63c9aa73b2b92c8f146bd0ff900253a2bc823c94627d76937fde4"
     },
     {
       "acd_symbols": [
@@ -213,7 +213,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_interface_spec.py",
-      "sha256": "d1472ff16eb524ec4f28477ed85fd1d1e28fab65e3603d038d5ef8693cd43b0b"
+      "sha256": "e7b67c873d8d9ddddc48adb16ef6d7780d8fe664efad7e2428cc9a479ac2fbd5"
     },
     {
       "acd_symbols": [
@@ -224,7 +224,7 @@
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_product_readme.py",
-      "sha256": "f4f6e5d1bd9da94b2dd7a6b317f1bfb2e1416c3b5e78a466f32219821c345abf"
+      "sha256": "aa4e738718a4aeda71f2e0d035821946d566f52442d2894301a3d08da8300949"
     },
     {
       "acd_symbols": [
@@ -235,14 +235,18 @@
         "acd.schema.rationale.RationaleRecord"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py",
-      "sha256": "0ed825a6357b1aee315f286a7a35c6e587ac6bb44c8deb59619576a01257933c"
+      "sha256": "6f727716ad5f7520de84e14ef59f414c7af55c54f6c0667b52df827b54d9758f"
     },
     {
       "acd_symbols": [
-        "acd.schema.design_graph.DesignGraph"
+        "acd.core.graph_diff.GraphDiffError",
+        "acd.core.graph_diff.build_graph_diff",
+        "acd.core.graph_diff.unknown_graph_diff",
+        "acd.schema.design_graph.DesignGraph",
+        "acd.schema.graph_diff.GraphDiff"
       ],
       "path": "plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py",
-      "sha256": "d9914575c7a85a4403f34978ee9d16289d8f5e35148bcc99f190ad3374e03c96"
+      "sha256": "e42ae94c68abb55a0bb41e7e7af1299ecebf7b52ba8d4fc90085908585caa058"
     },
     {
       "acd_symbols": [
@@ -260,14 +264,14 @@
         "acd.core.silkscreen.SilkscreenLane"
       ],
       "path": "plugins/acd/skills/acd-silkscreen-placement/scripts/silkscreen_search.py",
-      "sha256": "4b896a5c2783486698bf6be882513af4cc993f5edc7cb6de996f40f34242ef33"
+      "sha256": "5806fcb87059cecb0c5696674c1ec73a6c2a47fb8855b35d6a50683b829b7a74"
     },
     {
       "acd_symbols": [
         "acd.schema.design_graph.DesignGraph"
       ],
       "path": "scripts/probe_pinned_acd_graph.py",
-      "sha256": "39c029564badcc415b7aa9fa5fcfb1a2dc66c3c5f0e08f376d574e454f1db718"
+      "sha256": "65cfb0188f3737d05fb31e58e5cb253c69d49b35587a739415b9900db6276cb7"
     }
   ]
 }
