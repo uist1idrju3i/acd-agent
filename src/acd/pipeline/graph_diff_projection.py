@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from acd.adapters.svg.graph_diff import generate_graph_diff_visual_projection
@@ -18,7 +19,9 @@ def _load_graph(path: Path) -> DesignGraph:
         payload = json.loads(path.read_text(encoding="utf-8"))
         return DesignGraph.model_validate(payload)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
-        raise GraphDiffProjectionError(f"graph could not be loaded: {path}") from exc
+        raise GraphDiffProjectionError(
+            f"graph could not be loaded: {path}: {exc}"
+        ) from exc
 
 
 def run_graph_diff_projection(
@@ -31,17 +34,27 @@ def run_graph_diff_projection(
     current = _load_graph(graph_path)
     previous = _load_graph(previous_graph_path)
     try:
+        input_base_dir = Path(
+            os.path.commonpath(
+                [graph_path.resolve(), previous_graph_path.resolve()]
+            )
+        )
+    except ValueError as exc:
+        raise GraphDiffProjectionError(
+            f"graph diff projection input base directory could not be determined: {exc}"
+        ) from exc
+    try:
         generate_graph_diff_visual_projection(
             project_name=project_name,
             out_dir=out_dir,
             previous_graph=previous,
             current_graph=current,
             authoritative_inputs=(previous_graph_path, graph_path),
-            input_base_dir=graph_path.parent,
+            input_base_dir=input_base_dir,
         )
     except (OSError, ValueError) as exc:
         raise GraphDiffProjectionError(
-            f"graph diff projection could not be generated: {out_dir}"
+            f"graph diff projection could not be generated: {out_dir}: {exc}"
         ) from exc
     return out_dir / "visual-projections-graph-diff.json"
 
