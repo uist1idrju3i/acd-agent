@@ -272,6 +272,19 @@ Evidenceを再検証する。`--evidence`を指定したcheck-only経路では�
 
 ## 関連文書
 
+### EMC/ESD設計述語（16.3、opt-in）
+
+`scripts/check_emc_esd.py`は、`UseEnvironment` contractとgraph revisionが一致する場合だけ、
+外部user-accessible portのESD保護、電源ループ面積proxy、外部信号のreturn path連続性、
+将来のWCA／derating向け実使用環境入力を評価する。環境contractがない経路やgraph／revision
+不一致は入力エラーとして停止し、未宣言・未知・幾何不足は`unknown`へ倒す。
+このgateは`PREDICATE_CATALOG`やGD1既定gateへ追加しない独立opt-inである。
+UseEnvironmentはroadmap 10.6のWCA／deratingが将来消費する入力であり、reliability-review
+Skillへのwireは16.3の対象外である。
+
+**認証適合の判定はしない。** このgateのproxy計算と設計宣言は、EMC/ESD certificationや
+実測Evidenceの代替ではない。
+
 - [`architecture.md`](architecture.md)：工程と境界の参照
 - [`architecture.md`](architecture.md)：Pydanticデータモデル、投影、レイヤ境界
 - [`ADR-0023`](adr/ADR-0023-deterministic-gate-authority.md)：判定・操舵・観測の三層分離

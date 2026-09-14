@@ -1565,3 +1565,14 @@ self-test項目・entry command・sequenceのsourceをja/en文書へ追加する
 stackup宣言時だけ4層銅層と`setup/stackup`を出力し、2層GD1の出力を維持する。
 計算値はfield solverや実測Evidenceの代替ではなく、実測Evidenceをauthoritative
 として扱う。
+
+### 16.3 EMC/ESD設計述語の実装記録
+
+`UseEnvironment` contractで設置場所、電源系統、温湿度、振動、外部port exposureを
+revision一致付きで受け取り、`esd_protection_external_ports`、`power_loop_area`、
+`return_path_continuity`、`environment_derating_inputs`の独立opt-in gateを追加した。
+GD1のJ1には保護素子宣言がないためESD predicateはfailとなるが、既定
+`PREDICATE_CATALOG`、GD1 Evidence、既存gate outputは変更しない。環境入力不明や
+placement／pad geometry不足はunknownとして保持し、proxy計算は認証適合を主張しない。
+UseEnvironmentのWCA／derating消費はroadmap 10.6に委ね、reliability-review Skillへの
+統合はスコープ外とした。

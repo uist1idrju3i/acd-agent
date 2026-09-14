@@ -82,6 +82,7 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "led_indicator",
             "led_drive_net",
             "led_series_net",
+            "esd_protection",
         }
     ),
     "electrical.placement_group": frozenset(),

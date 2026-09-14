@@ -66,6 +66,7 @@ class ComponentView:
     cpl_rotation_unverified_pads: tuple[str, ...] = ()
     cpl_rotation_unverified_pad_reason: str | None = None
     cpl_rotation_unverified_pad_source: str | None = None
+    esd_protection: bool = False
     cpl_rotation_pin_functions: dict[str, str] = field(
         default_factory=lambda: dict[str, str]()
     )
@@ -491,6 +492,7 @@ def extract_electrical_lane(graph: DesignGraph) -> ElectricalLane:
                     cpl_rotation_unverified_pad_source=_optional_str(
                         node, "cpl_rotation_unverified_pad_source"
                     ),
+                    esd_protection=_optional_bool(node, "esd_protection", False),
                     cpl_rotation_pin_functions=_optional_string_map(
                         node, "cpl_rotation_pin_functions"
                     ),
