@@ -43,7 +43,7 @@ GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判�
 
 残る未了は、14.16のR-3（FW復帰の実測記録）、14.17のS-3
 （ambient install経路の配布形態）と復帰成立実行の実測記録、14.18の復帰成立runの
-wall-clock記録、15.21、および計画段階のマイルストーン9.3〜9.5、
+wall-clock記録、15.21、および計画段階のマイルストーン9.4〜9.5、
 10、11.1〜11.4、13、16.1〜16.6、17〜21である。11.4aと14.21は達成済みである。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
 未実装であり、8.5の電気視覚照合が図枠のtitle blockを読むため現行exportを維持し、
 極小表示の所見は20.4の可読性検査で扱う。
@@ -66,7 +66,7 @@ wall-clock記録、15.21、および計画段階のマイルストーン9.3〜9.
 | 6 | 実行基盤のDockerWorkspace一本化 | 事前build済みdigest固定server imageでゲートを実行し、authoritative Evidence経路を単一化する | 6.1〜6.6完了（tools／server digest記録済み、runnerとCIは`DockerWorkspace`経路へ移行済み、pull入口とtimeout境界を実装） |
 | 7 | 発注前最終ゲートと自働発注 | 期限付き見積入力と全ゲート再実行を条件に、side-effect journalへ記録した発注だけを許可する | 7.5 dry-run・拒否境界まで達成（実発注は本範囲外） |
 | 8 | 視覚投影レビュー基盤 | 画像生成、画像hash・renderer種別・解像度の記録、機械可読投影との決定論的照合、レビュー観点の記録、`ImageContent`／`inspect_image_with_vision`経路、SSRF境界を実装する | 8.1〜8.6実装済み、8.5はFW lane照合まで実装済み。8.4のvision経路はdesign loopの必須段（`visual-review-manifest`）へ接続済み |
-| 9 | 生成文書lane | 設計入力、投影、ゲート結果、Evidenceから再現可能な製品・品質・レビュー文書を生成する | 9.1〜9.2・9.6・9.7実装済み（9.3〜9.5は計画） |
+| 9 | 生成文書lane | 設計入力、投影、ゲート結果、Evidenceから再現可能な製品・品質・レビュー文書を生成する | 9.1〜9.3・9.6・9.7実装済み（9.4〜9.5は計画） |
 | 10 | シミュレーション解析lane | 電気・機械・FWのprovisional解析を追加し、決定論的ゲートを置き換えずに結果を文書へ統合する | 計画 |
 | 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.4a・11.5達成（11.1〜11.4は計画） |
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
@@ -99,14 +99,14 @@ wall-clock記録、15.21、および計画段階のマイルストーン9.3〜9.
 |---|---|---|
 | 9.1 | 製品説明README生成SKILL | 図解入りの製品説明`README.md`を生成する。Design Graphの仕様（MCU、電源、センサ、I/F）、BOMサマリ、視覚投影（回路図・配置・電源ツリー・筐体断面）を埋め込み、公開用にライセンス・帰属注記を自動付与する | 達成 |
 | 9.2 | 取扱説明書生成SKILL | 機能説明・接続手順・LED表示の意味・書き込み手順・安全注意を、graphとFWピン投影（`acd_pins.h`相当）から生成する。値はすべて入力由来とし、推定値を書かない | 達成 |
-| 9.3 | 品質文書生成SKILL | ゲート結果（ERC/DRC/DFM/機械/FW）、rationale coverage、authoritative Evidence、既知の未実装チェック一覧から検査成績書・トレーサビリティレポートを生成する。Evidence欠落・revision不一致は生成失敗として停止する | 計画 |
+| 9.3 | 品質文書生成SKILL | ゲート結果（ERC/DRC/DFM/機械/FW）、rationale coverage、authoritative Evidence、既知の未実装チェック一覧から検査成績書・トレーサビリティレポートを生成する。Evidence欠落・revision不一致は生成失敗として停止する | 達成 |
 | 9.4 | レビュー資料生成SKILL | レビューチェックリスト、視覚投影一式、前revisionとのgraph差分、DRC/DFM所見の要約を1パッケージへまとめ、`acd-reviewer`agentの入力にする | 計画 |
 | 9.5 | 多言語出力 | 9.1〜9.4の文書を日本語・英語で再現可能に生成する（テンプレート分離、値の翻訳はしない） | 計画 |
 | 9.6 | 機器I/F契約投影 | graphとFW投影を入力・出所とし、UARTログ形式、コマンド一覧、I2Cアドレス表等の機器I/F仕様をJSONとMarkdownで`out/docs/`へ再現可能に生成する。投影はL3提示であり、合否へ作用させず、入力欠落・出所不明はunknownとしてfail-closedにする | 達成 |
 | 9.7 | テーマソング生成SKILL | LLM agentが製品専用ジングルを構造化JSONで提案し、Skillが契約検査してMIDIへ決定論的にレンダリングする。提案が無ければgraph由来の決定論composerへfallbackし、provenance付きで生成する（ADR-0048） | 達成 |
 
-9.1と9.2、9.6は`acd-product-docs` Skill、9.7は`acd-theme-song` Skillとして実装済みで、
-9.3〜9.5は計画である。
+9.1〜9.3と9.6は`acd-product-docs` Skill、9.7は`acd-theme-song` Skillとして実装済みで、
+9.4〜9.5は計画である。
 
 ## マイルストーン10: シミュレーション解析lane
 

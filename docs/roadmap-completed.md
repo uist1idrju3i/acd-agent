@@ -832,6 +832,7 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 | 長時間runの予算・中断・再開契約 | 15.20（2026-09-13） |
 | 代替routerの単独実測 | 15.21（2026-09-13） |
 | 機器I/F契約投影 | 9.6（2026-09-13） |
+| 品質文書生成 | 9.3（2026-09-13） |
 | ハーネス契約と結線検査 | 16.6（2026-09-13） |
 | 想定実使用環境の宣言contract | 16.3（2026-09-13） |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |
@@ -1292,3 +1293,20 @@ fail-closedに停止し、UART transportとコマンド一覧は宣言が無い�
 `firmware-config-report.json`を一意に特定して本scriptを実行し、
 `interface_spec`／`interface_spec_json`の両documentをprovenance付きで要求する。
 JSON本体にtimestampを含めず2回実行でbyte一致を回帰testで固定した。
+
+### 9.3 品質文書生成の実装記録
+
+`plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py`が
+3 laneのauthoritative Evidence、board・enclosureのrationale coverage、
+design-predicates観測、DFM report、fixture rationaleを入力に、検査成績書
+（`inspection-report.md`、template `acd-quality-report-ja-v1`）、
+トレーサビリティ報告書（`traceability-report.md`）、機械可読な
+`quality-report.json`（`record_class: "L3"`、`pass_evidence: false`）を
+`write_document`経由で生成する。必須lane Evidenceの欠落、status `valid`
+以外、`supports_authoritative_pass`を満たさないprovisional／host Evidence、
+coverage・rationale・predicates・DFMのgraph ID／revision不一致、graphに無い
+`subject_node`・`driving_requirements`参照は`DocumentGenerationError`で
+fail-closedに停止する。`run_projection_docs`は`enclosure_out`を新規入力として
+受け、3 laneのEvidenceと2つのcoverage等を決定論的に特定して本scriptを
+4番目のgeneratorとして実行し、`inspection_report`・`traceability_report`・
+`quality_report_json`をprovenance付きで要求する。

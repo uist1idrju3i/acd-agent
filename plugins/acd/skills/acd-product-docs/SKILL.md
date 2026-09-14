@@ -26,6 +26,7 @@ cannot approve a design, and they never flow back into design inputs.
 | `generate_product_readme.py` | Renders the product description README with an overview, evidence-relation note, requirements, specifications, firmware behavior, BOM, grouped figures, an optional theme-song projection and attribution. |
 | `generate_instruction_manual.py` | Renders the instruction manual from the graph and the `acd_pins.h` pin projection. |
 | `generate_interface_spec.py` | Projects the device interface contract (GPIO table, I2C address table, UART log lines, command list) as `interface-spec.md` and `interface-spec.json` from the graph, `acd_pins.h`, and `firmware-config-report.json`. Undeclared aspects are marked `unknown`. |
+| `generate_quality_report.py` | Projects the inspection report, traceability report, and machine-readable `quality-report.json` from authoritative lane Evidence, rationale coverage reports, design-predicate observations, the DFM report, and the fixture rationale. Non-authoritative Evidence or any revision/graph mismatch fails closed. |
 
 ## Usage
 
@@ -55,6 +56,19 @@ uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_interface_s
     --graph fixtures/golden-design-1/graph.json \
     --pins-header out/gd1-fw/acd_golden_design_1_fw/main/acd_pins.h \
     --firmware-config-report out/gd1-fw/firmware-config-report.json \
+    --out-dir out/docs
+
+# Quality documents (inspection report + traceability report + JSON).
+uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_quality_report.py \
+    --graph fixtures/golden-design-1/graph.json \
+    --evidence out/gd1/evidence-electrical.json \
+    --evidence out/gd1-enclosure/evidence-mechanical.json \
+    --evidence out/gd1-fw/evidence-firmware.json \
+    --rationale-coverage out/gd1/rationale-coverage.json \
+    --rationale-coverage out/gd1-enclosure/rationale-coverage.json \
+    --rationale fixtures/golden-design-1/rationale.json \
+    --design-predicates out/gd1/gate-evidence/design-predicates.json \
+    --dfm-report out/gd1/fab/dfm-report.json \
     --out-dir out/docs
 
 # Shared input loader module (dependency self-resolution check).

@@ -21,8 +21,14 @@ def _runner_factory(calls: list[list[str]]):
             names = ("product-readme.md",)
         elif "generate_instruction_manual.py" in " ".join(command):
             names = ("instruction-manual.md",)
-        else:
+        elif "generate_interface_spec.py" in " ".join(command):
             names = ("interface-spec.md", "interface-spec.json")
+        else:
+            names = (
+                "inspection-report.md",
+                "traceability-report.md",
+                "quality-report.json",
+            )
         for name in names:
             (output / name).write_text(f"# {name}\n", encoding="utf-8")
             (output / f"{name}.provenance.json").write_text("{}\n", encoding="utf-8")
@@ -31,10 +37,11 @@ def _runner_factory(calls: list[list[str]]):
     return runner
 
 
-def _inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
+def _inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path, Path, Path]:
     repository = Path(__file__).resolve().parents[2]
     out_root = tmp_path / "out"
     board_out = out_root / "board"
+    enclosure_out = out_root / "enclosure"
     firmware_out = out_root / "firmware"
     output = out_root / "docs"
     projection = out_root / "visual-projections-board.json"
@@ -47,7 +54,34 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:
     (firmware_out / "firmware-config-report.json").write_text(
         "{}\n", encoding="utf-8"
     )
-    return repository, out_root, board_out, firmware_out, output
+    (firmware_out / "evidence-firmware.json").write_text("{}\n", encoding="utf-8")
+    board_out.mkdir(parents=True)
+    enclosure_out.mkdir(parents=True)
+    for lane_dir, name in (
+        (board_out, "evidence-electrical.json"),
+        (enclosure_out, "evidence-mechanical.json"),
+        (board_out, "rationale-coverage.json"),
+        (enclosure_out, "rationale-coverage.json"),
+    ):
+        (lane_dir / name).write_text("{}\n", encoding="utf-8")
+    (board_out / "gate-evidence").mkdir()
+    (board_out / "gate-evidence" / "design-predicates.json").write_text(
+        "{}\n", encoding="utf-8"
+    )
+    (board_out / "fab").mkdir()
+    (board_out / "fab" / "dfm-report.json").write_text("{}\n", encoding="utf-8")
+    graph_path = tmp_path / "graph.json"
+    graph_path.write_text("{}\n", encoding="utf-8")
+    (tmp_path / "rationale.json").write_text("{}\n", encoding="utf-8")
+    return (
+        repository,
+        out_root,
+        board_out,
+        enclosure_out,
+        firmware_out,
+        output,
+        graph_path,
+    )
 
 
 def _projection_collector(out_root: Path):
@@ -60,8 +94,9 @@ def _projection_collector(out_root: Path):
 def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    repository, out_root, board_out, firmware_out, output = _inputs(tmp_path)
-    (board_out).mkdir()
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = _inputs(
+        tmp_path
+    )
     calls: list[list[str]] = []
     monkeypatch.setattr(
         projection_docs,
@@ -70,19 +105,23 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
     )
     result = run_projection_docs(
         repository,
-        graph_path=tmp_path / "graph.json",
+        graph_path=graph_path,
         out_root=out_root,
         board_out=board_out,
         firmware_out=firmware_out,
         output=output,
+        enclosure_out=enclosure_out,
         runner=_runner_factory(calls),
     )
-    assert len(result.documents) == 4
+    assert len(result.documents) == 7
     hashes = (output / "hashes.json").read_text(encoding="utf-8")
     assert "product-readme.md" in hashes
     assert "instruction-manual.md" in hashes
     assert "interface-spec.md" in hashes
     assert "interface-spec.json" in hashes
+    assert "inspection-report.md" in hashes
+    assert "traceability-report.md" in hashes
+    assert "quality-report.json" in hashes
     assert result.provenance["skill_name"] == "acd-product-docs"
     assert result.provenance["pass_evidence"] is False
     assert all("theme-song-projection" not in command for command in calls)
@@ -91,11 +130,12 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
     calls.clear()
     run_projection_docs(
         repository,
-        graph_path=tmp_path / "graph.json",
+        graph_path=graph_path,
         out_root=out_root,
         board_out=board_out,
         firmware_out=firmware_out,
         output=output,
+        enclosure_out=enclosure_out,
         runner=_runner_factory(calls),
     )
     assert any("--theme-song-projection" in command for command in calls)
@@ -104,7 +144,9 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
 def test_run_projection_docs_surfaces_generator_stderr(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    repository, out_root, board_out, firmware_out, output = _inputs(tmp_path)
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = _inputs(
+        tmp_path
+    )
     monkeypatch.setattr(
         projection_docs,
         "collect_visual_projection_sets",
@@ -119,11 +161,12 @@ def test_run_projection_docs_surfaces_generator_stderr(
     with pytest.raises(ProjectionDocsError, match="generator broke"):
         run_projection_docs(
             repository,
-            graph_path=tmp_path / "graph.json",
+            graph_path=graph_path,
             out_root=out_root,
             board_out=board_out,
             firmware_out=firmware_out,
             output=output,
+            enclosure_out=enclosure_out,
             runner=failing_runner,
         )
 
@@ -132,7 +175,9 @@ def test_run_projection_docs_surfaces_generator_stderr(
 def test_run_projection_docs_requires_one_pins_header(
     tmp_path: Path, count: int, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    repository, out_root, board_out, firmware_out, output = _inputs(tmp_path)
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = _inputs(
+        tmp_path
+    )
     if count == 0:
         (firmware_out / "main" / "acd_pins.h").unlink()
     else:
@@ -147,11 +192,12 @@ def test_run_projection_docs_requires_one_pins_header(
     with pytest.raises(ProjectionDocsError, match=r"exactly one acd_pins\.h"):
         run_projection_docs(
             repository,
-            graph_path=tmp_path / "graph.json",
+            graph_path=graph_path,
             out_root=out_root,
             board_out=board_out,
             firmware_out=firmware_out,
             output=output,
+            enclosure_out=enclosure_out,
             runner=_runner_factory([]),
         )
 
@@ -160,7 +206,9 @@ def test_run_projection_docs_requires_one_pins_header(
 def test_run_projection_docs_requires_one_config_report(
     tmp_path: Path, count: int, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    repository, out_root, board_out, firmware_out, output = _inputs(tmp_path)
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = _inputs(
+        tmp_path
+    )
     if count == 0:
         (firmware_out / "firmware-config-report.json").unlink()
     else:
@@ -177,10 +225,36 @@ def test_run_projection_docs_requires_one_config_report(
     ):
         run_projection_docs(
             repository,
-            graph_path=tmp_path / "graph.json",
+            graph_path=graph_path,
             out_root=out_root,
             board_out=board_out,
             firmware_out=firmware_out,
             output=output,
+            enclosure_out=enclosure_out,
+            runner=_runner_factory([]),
+        )
+
+
+def test_run_projection_docs_requires_mechanical_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository, out_root, board_out, enclosure_out, firmware_out, output, graph_path = (
+        _inputs(tmp_path)
+    )
+    (enclosure_out / "evidence-mechanical.json").unlink()
+    monkeypatch.setattr(
+        projection_docs,
+        "collect_visual_projection_sets",
+        _projection_collector(out_root),
+    )
+    with pytest.raises(ProjectionDocsError, match="mechanical evidence"):
+        run_projection_docs(
+            repository,
+            graph_path=graph_path,
+            out_root=out_root,
+            board_out=board_out,
+            firmware_out=firmware_out,
+            output=output,
+            enclosure_out=enclosure_out,
             runner=_runner_factory([]),
         )
