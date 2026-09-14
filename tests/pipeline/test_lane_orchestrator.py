@@ -25,6 +25,8 @@ def test_orchestrator_declares_firmware_after_barrier_and_before_controls(
         jobs: int,
         timing: TimingRecorder,
         results: list[tuple[CommandSpec, CommandResult]],
+        deadline_seconds: float | None = None,
+        **kwargs: object,
     ) -> int:
         seen["commands"] = commands
         seen["jobs"] = jobs
@@ -61,6 +63,8 @@ def test_resume_enables_default_cache_and_reports_failure(
         jobs: int,
         timing: TimingRecorder,
         results: list[tuple[CommandSpec, CommandResult]],
+        deadline_seconds: float | None = None,
+        **kwargs: object,
     ) -> int:
         seen["commands"] = commands
         results.append((commands[1], CommandResult(1, "", "broken")))

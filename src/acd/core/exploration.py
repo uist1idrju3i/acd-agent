@@ -99,14 +99,14 @@ def _sha256(path: Path) -> str:
         raise ExplorationError(f"cannot hash exploration input: {path}: {exc}") from exc
 
 
-def _load_graph(path: Path) -> DesignGraph:
+def load_exploration_graph(path: Path) -> DesignGraph:
     try:
         return DesignGraph.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise ExplorationError(f"graph is invalid or unreadable: {path}: {exc}") from exc
 
 
-def _load_rationale(path: Path) -> RationaleDocument:
+def load_exploration_rationale(path: Path) -> RationaleDocument:
     try:
         return RationaleDocument.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -906,7 +906,7 @@ def _commit_candidate(
 ) -> dict[str, Any]:
     try:
         return commit_candidate_graph(
-            _load_graph(working_fixture / "graph.json"), source_graph, source_fixture
+            load_exploration_graph(working_fixture / "graph.json"), source_graph, source_fixture
         )
     except CandidateCommitError as exc:
         raise ExplorationError(str(exc)) from exc
@@ -935,16 +935,10 @@ def explore_board_candidates(
         raise ExplorationError("max_candidates must be positive")
     if max_passes < 1:
         raise ExplorationError("max_passes must be positive")
-    graph = _load_graph(graph_path)
+    graph = load_exploration_graph(graph_path)
     if not fixture_dir.is_dir():
         raise ExplorationError(f"fixture directory is missing: {fixture_dir}")
-    rationale = _load_rationale(fixture_dir / "rationale.json")
-    source_fixture = fixture_dir.resolve()
-    source_graph = graph_path.resolve()
-    declarations = load_design_freedom_declaration()
-    dimension_map = {
-        item.dimension_id: item.search_enabled for item in declarations.dimensions
-    }
+    rationale = load_exploration_rationale(fixture_dir / "rationale.json")
     remediation_dimensions: tuple[str, ...] = ()
     generation_diagnostics: list[dict[str, Any]] = []
     if remediation is None:
@@ -969,9 +963,6 @@ def explore_board_candidates(
             max_variants=max_candidates,
             diagnostics=generation_diagnostics,
         )
-    for candidate in candidates:
-        _validate_dimensions(candidate.dimensions, dimension_map)
-    pending = list(candidates[:max_candidates])
     if pipeline_runner is None:
         from acd.pipeline.gd1_board import run_pipeline
 
@@ -979,6 +970,56 @@ def explore_board_candidates(
             return run_pipeline(working, output, max_passes=max_passes)
 
         pipeline_runner = default_pipeline_runner
+    return run_candidate_search(
+        graph,
+        graph_path,
+        fixture_dir,
+        out_dir,
+        rationale,
+        candidates,
+        max_candidates,
+        max_passes,
+        dry_run,
+        pipeline_runner,
+        lane_id=lane_id,
+        artifact_kind=artifact_kind,
+        remediation_dimensions=remediation_dimensions,
+        remediation_driven=remediation is not None,
+        generation_diagnostics=generation_diagnostics,
+        extra_report={},
+    )
+
+
+def run_candidate_search(
+    graph: DesignGraph,
+    graph_path: Path,
+    fixture_dir: Path,
+    out_dir: Path,
+    rationale: RationaleDocument,
+    candidates: tuple[ExplorationCandidate, ...],
+    max_candidates: int,
+    max_passes: int,
+    dry_run: bool,
+    pipeline_runner: PipelineRunner,
+    *,
+    lane_id: str,
+    artifact_kind: str,
+    remediation_dimensions: Sequence[str],
+    remediation_driven: bool,
+    generation_diagnostics: Sequence[dict[str, Any]],
+    extra_report: Mapping[str, Any],
+    termination_override: tuple[str, str] | None = None,
+) -> ExplorationResult:
+    """Evaluate generated candidates and write the L3 exploration report."""
+    source_fixture = fixture_dir.resolve()
+    source_graph = graph_path.resolve()
+    declarations = load_design_freedom_declaration()
+    dimension_map = {
+        item.dimension_id: item.search_enabled for item in declarations.dimensions
+    }
+    for candidate in candidates:
+        _validate_dimensions(candidate.dimensions, dimension_map)
+    pending = list(candidates[:max_candidates])
     candidate_records: list[dict[str, Any]] = []
     winner: str | None = None
     commit: dict[str, Any] | None = None
@@ -1056,8 +1097,11 @@ def explore_board_candidates(
         status = "stopped"
         termination_reason = "fail_closed_stop"
     elif not candidate_records:
-        status = "stopped"
-        termination_reason = "no_candidate_generated"
+        if termination_override is not None:
+            status, termination_reason = termination_override
+        else:
+            status = "stopped"
+            termination_reason = "no_candidate_generated"
     elif remaining_budget == 0:
         status = "exhausted"
         termination_reason = "candidate_budget_exhausted"
@@ -1087,9 +1131,10 @@ def explore_board_candidates(
             "winner_commit": commit,
             "commit_error": commit_error,
             "remediation_dimensions": list(remediation_dimensions),
-            "remediation_driven": remediation is not None,
+            "remediation_driven": remediation_driven,
             "candidate_generation": generation_diagnostics,
             "candidates": candidate_records,
+            **extra_report,
             "provenance": {
                 "source_graph": str(source_graph),
                 "source_fixture": str(source_fixture),
@@ -1104,30 +1149,6 @@ def explore_board_candidates(
     return ExplorationResult(report=body, report_path=report_path)
 
 
-def explore_firmware_candidates(
-    graph_path: Path,
-    fixture_dir: Path,
-    out_dir: Path,
-    max_candidates: int,
-    *,
-    dry_run: bool = False,
-    pipeline_runner: PipelineRunner,
-    remediation: Sequence[RemediationRequest],
-) -> ExplorationResult:
-    """Explore declared firmware GPIO alternatives without pass authority."""
-    return explore_board_candidates(
-        graph_path,
-        fixture_dir,
-        out_dir,
-        max_candidates,
-        dry_run=dry_run,
-        pipeline_runner=pipeline_runner,
-        remediation=remediation,
-        lane_id="firmware-pipeline",
-        artifact_kind=FIRMWARE_EXPLORATION_ARTIFACT_KIND,
-    )
-
-
 __all__ = [
     "EXPLORATION_ARTIFACT_KIND",
     "FIRMWARE_EXPLORATION_ARTIFACT_KIND",
@@ -1137,7 +1158,9 @@ __all__ = [
     "RemediationRequest",
     "enumerate_gpio_assignment_candidates",
     "explore_board_candidates",
-    "explore_firmware_candidates",
+    "load_exploration_graph",
+    "load_exploration_rationale",
     "load_remediation_requests",
+    "run_candidate_search",
     "validate_candidate_dimensions",
 ]

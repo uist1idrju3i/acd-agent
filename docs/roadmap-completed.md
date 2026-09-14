@@ -801,6 +801,7 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 | （達成）O-10 FW laneの必要netと生成codeのGD1固定解消 | 14.14 |
 | （達成）O-11 projection guardの判定を書き込み対象で行いlane起動とstop reportを許可 | 14.14 |
 | （実機実測）O-12 筐体lane entrypointと発注policyのGD1固定解消 | 14.14 |
+| （達成）O-12残項 `OrderScope`の決定論的導出とquote request宣言 | 14.14 |
 | （達成）O-13 rationale被覆検査の対象解決 | 14.14 |
 | （達成）P-1 install doctorのESP-IDF判定の読み取り可能性統一 | 14.14 |
 | （多コアVPS実測）P-2 初期配置のdecoupling距離制約 | 14.15 |
@@ -1137,3 +1138,143 @@ hostではskip、CIの`container-gates` jobでは
 `ACD_REQUIRE_PINNED_LIBRARY=1`を付けてdigest固定image内で
 `-m pinned_footprint_library`を実行し、library欠落はskipではなく
 失敗として検出する。判定・閾値・Evidence意味論は変更していない。
+
+### 14.16 R-1 FW lane専用候補生成の実装記録
+
+`explore_firmware_candidates`は従来`explore_board_candidates`へ委譲しており、
+基板側の配置・回転次元の候補がFW復帰へ混入しうる構造だった。
+`src/acd/core/firmware_exploration.py`を新設し、FW lane専用の候補生成器へ分離した。
+
+- 探索ループとreport組立は`exploration._run_candidate_search`へ抽出して共用化し、
+  `explore_board_candidates`のreportは同一入力でbyte一致を維持する
+  （既存テストがガード）。`termination_override`で候補ゼロ時の終端を上書きできる。
+- `FIRMWARE_SEARCHABLE_DIMENSIONS = frozenset({"gpio_assignment"})`は
+  `contracts/lane-recovery-declaration.json`のFW lane
+  `recovery_dimensions`との一致をテストでfail-closedに固定する。
+- remediationの要求次元は`gpio_assignment`のみ候補化し、
+  `component_placement_xy`等は`excluded_dimensions`へ記録して候補にしない。
+  基板側の配置・decoupling生成器は呼ばない。
+- `firmware-coverage.json`のfinding（未登録action等）は候補生成ではなく
+  `status="stopped"`／`termination_reason="declaration_required"`へ倒し、
+  `required_declarations`にcode・node_id・declaration_targetをL3提示する。
+  declaration_targetは`contracts/firmware-capability-registry.json`の
+  capabilities actions／emits_triggersかgraph.jsonのfirmware属性を指す。
+- `load_firmware_coverage_findings`はmissing・malformed・未知codeを
+  `ExplorationError`でfail-closedにする。
+- `design_loop._run_firmware_exploration`はFW lane却下を
+  `gate-evidence/design-predicates.json`（存在時）と`firmware-coverage.json`
+  （存在時）から受理し、両方不在ならfail-closedで停止する。
+  exploration段recordへ`required_declarations`をL3情報として載せる。
+  pass authority・Evidence意味論・閾値は変更していない。
+
+### 15.19 成果物の最小収録集合の実装記録
+
+`contracts/lane-artifact-retention.json`（`acd-lane-artifact-retention-v1`）を
+新設し、lane runnerの出力dirを持つ全stage（silkscreen-resolve、
+board-pipeline、enclosure-pipeline、firmware-pipeline）ごとに
+`minimal_artifacts`（glob＋required＋理由）と`regenerable`を宣言した。
+FW laneでは`summary.json`・`evidence-firmware.json`・`firmware-coverage.json`・
+`firmware-config-report.json`・`flash.bin`・`qemu-serial.log`・`*_fw/`の
+投影入力を最小集合とし、`*_fw/build/**/*`等のESP-IDF buildツリーを
+regenerableとして区別した。
+
+- `acd.schema.lane_artifact_retention`で契約をPydantic検証する
+  （extra禁止・相対glob限定・`..`拒否・lane_id一意）。
+- `acd.core.lane_artifact_retention.resolve_lane_retention`がlane出力dirへ
+  決定論的にglobを適用し、matchした相対パス・size・sha256と
+  `missing_required`、regenerable件数・総bytesを`LaneRetentionReport`
+  （`record_class: "L3"`、`pass_evidence: false`、authority文言付き）として返す。
+  未宣言laneや契約読込失敗は`LaneArtifactRetentionError`でfail-closedにする。
+- `scripts/run_design_lanes.py`のsummaryへ`artifact_retention`を追加し、
+  lane plan宣言順で各laneのreport（出力dir不在は`output_missing`）を載せる。
+  契約読込失敗はfailure entry＋`ok: false`とする。
+- `scripts/collect_lane_artifacts.py`が最小集合のみを
+  `dest/<lane_id>/<relative path>`へcopy2で収集し、
+  `retention-manifest.json`（declaration_hash、record_class L3、
+  pass_evidence false）を書く。required不足やlane出力不在は
+  manifestを残してexit 1とする。
+- U-5の必須成果物判定（manufacturing_submission）、ゲート、Evidence規則は
+  変更していない。本契約は観測・運用のL3記録である。
+
+### 15.15 doctor出力のauthoritative／provisional分離と次手順提示の実装記録
+
+`plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`の各checkに
+`path`（`authoritative-path`、`provisional-path`、`plugin`）と`next_step`を追加した。
+lock済みserver imageを`--no-pull`で取得しない場合、またはpull失敗・timeoutの場合だけ、
+実行しない`docker pull <image@digest>`を`next_step`へ記録する。Docker CLI不在や
+imageが既に存在する場合にはnext stepを設定しない。
+
+workspace指定時、hostの`IDF_PATH/export.sh`、`qemu-system-riscv32`、`cmake`を
+`host firmware toolchain`として`provisional-path`で観測する。欠落は`unavailable`であり、
+既存のrequired/optional status集計（`fail`／`unknown`のみ失敗扱い）を変更しない。
+container内ではhost toolchain checkを追加しない。
+
+diagnoseのtop-level `paths`は3 pathごとのstatusと宣言順check名をまとめ、
+`authority`へprovisional観測がauthoritative pathを代替しない旨を明記した。
+既存のcheck集合（workspace追加時のhost観測を除く）、判定閾値、fail-closed範囲、exit code、
+Evidence権限は変更していない。SKILLとoperationsへJSON fieldsと運用手順を追記した。
+
+### 15.14 長時間laneのbackground実行手順とlog契約の実装記録
+
+`scripts/run_in_workspace.py --log PATH`が`acd-lane-log 0.1`のplain-text契約で
+lane logを書く。headerは実行前にimage参照、revision（`--source-revision`または
+bootstrap record、なければ`git rev-parse HEAD`、解決不能は`unknown`）、
+コマンド行、`started_at`を記録し、stdout／stderrをそのままfileへteeする。
+footerは`finally`で`exit_code`、解決済み`image_digest`（startup・transport失敗と
+host provisionalでは`unknown`）、`execution_context`、`failure_kind`（例外の
+`failure_kind`または`classify_execution_failure`結果）、`finished_at`を追記する。
+`src/acd/core/lane_log.py`の`write_lane_log_header`・`append_lane_log_footer`・
+`parse_lane_log`を提供し、`--log`未指定時の挙動は従来どおり。
+
+### 15.16 収集入口へのlane log取り込みの実装記録
+
+`LaneLogRecord.to_execution_record()`が`log_type: lane_log`のrecordを返し、
+`scripts/export_execution_records.py`が`.log`入力とdirectory内の`*.log`を
+`*.json`と名前順に混在して取り込む。生image参照はexportへ残さずdigestだけを
+記録し、allowlistへ`command`・`failure_kind`を追加した。既存のredactionと
+leak refusalをそのまま適用し、footer欠落の中断logはexit 2で拒否する。
+lane logはL3観測であり、合否権限と既存の判定・閾値は変更しない。
+リモートworkspaceからのrsync取得とexport手順を`docs/operations.md`へ記録した。
+
+### 15.18 資源計測ラッパのscript化の実装記録
+
+`scripts/measure_lane_resources.py`をrepository内へ追加し、使い捨てshell scriptによる
+資源計測を置き換えた。checkout path（`--repo`）、digest固定image（`--image`）、
+download対象（`--download`／`--download-root`）、計測間隔（`--interval`）を引数で受け、
+`run_in_workspace.py`をsubprocessでwrapして`--log`・`--memory-limit`・`--jvm-max-heap`を
+そのまま転送する。実行中は`/proc/stat`のbusy deltaから使用中CPUコア、`/proc/meminfo`から
+memory・swap使用量、`docker stats --no-stream`からcontainer memory合計をintervalごとに
+採取し、peak／minをrecordへ記録する。docker stats失敗は`stats_available: false`として
+記録を継続し、wrapperのexit codeはwrapped runのexit codeを維持する。
+`host_resources._read_meminfo`を`read_meminfo`へ公開名変更し共用した。
+recordは`record_class: L3`、`pass_evidence: false`であり合否権限を持たない。
+
+### 15.20 長時間runの予算・stage境界checkpoint・resume契約の実装記録
+
+`run_design_loop`と`DesignLoopConfig`へ`wall_clock_budget_seconds`と`token_budget`を
+追加した。wall-clock予算は各stage runner呼び出し直前だけで確認し、超過時はstageを
+起動せず`budget_exhausted: true`のfail-closed結果を返す。実行中stageは中断せず、
+既存gateの判定と閾値には作用しない。token budgetはこのloopではLLM tokenを計数しない
+宣言値であり、OpenHands conversationのL2 stop側がenforcementを担う。
+
+各stage完了後、`out_root/design-loop-checkpoint.json`をL3／`pass_evidence: false`で
+更新する。stage順、ok、fail_closed、timing name、budget、elapsed、resume、cache dirを
+記録し、書き込み失敗はstageの`checkpoint_error`へ記録する。checkpointは人間と
+`report_progress`向けで、resumeはcheckpointを参照せず、StageArtifactCacheだけを再利用
+してgate stageを再実行する。
+
+### 14.14 O-12残項 `OrderScope`の決定論的導出の実装記録
+
+`OrderScope`を`src/acd/core/order_scope_derivation.py`の`derive_order_scope()`で
+設計fixtureから決定論的に導出する。graphの`fab.order_intent`ノードから
+fab profile IDを取得してregistry存在を検査し、`rationale.json`のrevisionを
+target revisionとし、`mechanical.enclosure`ノードの有無からmechanical treatmentと
+必須categoryを決める。設計が保持しない発注条件（通貨、minor unit digits、
+shipping／tax treatment、exclusion理由、supplier上書き）は新規schema
+`OrderTermsDeclaration`（fixtureの`order-terms.json`）へ宣言する。enclosureが無い
+設計で理由未宣言、不明fab profile、欠落入力は`OrderScopeDerivationError`で
+fail-closedに停止する。`scripts/derive_order_scope.py`が`order-scope.json`と
+`quote-request.json`を出力し、GD1では既存contract fixtureとフィールド完全一致を
+回帰testで固定した。`QuoteRecord`はsupplier実見積の金額を要するため合成せず、
+L3の`quote-request.json`が`fetch_quote.py`への次段を宣言する。design loopへの
+配線は行わず、`--order-scope`明示入力を維持する。

@@ -1,0 +1,8 @@
+{
+  "schema_version": "0.1",
+  "currency": "USD",
+  "minor_unit_digits": 2,
+  "shipping_treatment": "included",
+  "tax_treatment": "exempt",
+  "extra": true
+}

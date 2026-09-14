@@ -221,15 +221,19 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    `~/.openhands/plugins/installed/acd/skills/acd-install-doctor/scripts/install_doctor.py`、
    開発checkoutでは
    `plugins/acd/skills/acd-install-doctor/scripts/install_doctor.py`を使用する。
-   JSONの`status`、required check、plugin rootをそのまま確認する。hookはinterpreter経由で
+   JSONの`status`、required check、plugin rootをそのまま確認する。各checkには
+   `path`（`authoritative-path`／`provisional-path`／`plugin`）と`next_step`があり、
+   top-levelの`paths`はpathごとのstatusとcheck名をまとめる。hookはinterpreter経由で
    起動されるため、commit済みscriptの実行可能権限・shebang不足はstatusを下げない。
    Dockerとdigest固定server imageはrequired checkであり、到達不能または取得不能なら
-   `failed`となる。EDAとFWのツールはserver image内だけを観測し、ホストのKiCad、
-   FreeRouting、ESP-IDF、QEMU、CMakeは観測しない。EDA capabilityの欠落はoptionalな
-   `degraded`となる。imageが未取得の場合は既定でpullするが、`--no-pull`を指定すると
-   pullせず、local image不在を`failed`とする。container modeではDocker-in-Dockerを
-   要求せずPATH上のツールを観測する。doctorのL3観測をauthoritative Evidenceやゲート
-   合格へ昇格させない。
+   `failed`となる。EDAとFWのauthoritativeツールはserver image内だけを観測する。
+   ホストのESP-IDF、QEMU、CMakeは`provisional-path`の`host firmware toolchain`
+   として参考観測し、欠落は`unavailable`でoverall statusを変えない。EDA capabilityの
+   欠落はoptionalな`degraded`となる。imageが未取得の場合は既定でpullするが、
+   `--no-pull`を指定するかpullに失敗すると`next_step`へ実行していない
+   `docker pull <image@digest>`を記録し、local image不在を`failed`とする。container
+   modeではDocker-in-Dockerを要求せずPATH上のツールを観測する。doctorのL3観測を
+   authoritative Evidenceやゲート合格へ昇格させない。
    SessionStart hookもホストの`uv run python scripts/probe_tools.py`を実行せず、
    projectのlockにあるdigest固定server imageを`--entrypoint ""`付きの`docker run`で
    1回だけprobeする。4ツールすべての版を抽出できない場合はホストprobeへ戻らず、
@@ -538,6 +542,38 @@ authoritative Evidenceにならない。再実行しないcheck-onlyで現行rev
 見つからない場合も、ゲート未実行として停止する。このCLIはjournal書込み、送信、実発注を
 行わない。
 
+### order-scopeの決定論的導出（`scripts/derive_order_scope.py`）
+
+`OrderScope`は設計fixtureとfab profile registryから決定論的に導出できる。入力は
+fixtureの`graph.json`（graph ID、`fab.order_intent`ノードの`fab_profile`、
+`mechanical.enclosure`ノードの有無）、`rationale.json`（`revision`）、および
+新規宣言入力`order-terms.json`である。
+
+`order-terms.json`は設計が保持しない発注条件を宣言する`OrderTermsDeclaration`
+（`schema_version`、ISO 4217 `currency`、`minor_unit_digits`、`shipping_treatment`、
+`tax_treatment`、`mechanical_exclusion_reason`、任意の`allowed_suppliers`）であり、
+`unknown`値と未定義フィールドを拒否する。`allowed_suppliers`未指定時はregistryの
+`fab`名を既定とする。`mechanical.enclosure`ノードが無い設計では
+`mechanical_exclusion_reason`が必須であり、欠ければfail-closedで停止する。
+`shipping`／`tax`は`treatment`が`itemized`の場合だけ必須categoryへ追加される。
+
+```bash
+uv run python scripts/derive_order_scope.py \
+  --fixture fixtures/golden-design-1 \
+  --out-dir out/gd1-order
+```
+
+`order-scope.json`と`quote-request.json`を出力する。導出結果は`OrderScope`検証を
+通し、GD1では`fixtures/contracts/valid/order-scope-golden-design-1.json`と
+フィールド完全一致が回帰testで固定される。導出エラー時は非ゼロ終了し、
+部分ファイルを残さない。
+
+`QuoteRecord`はsupplier実見積の金額を必要とするため設計入力からは合成しない。
+`quote-request.json`はL3宣言として`quote_record: null`と理由を記録し、
+`scripts/fetch_quote.py`への次段手順を示す。dummy値を生成しない。
+本scriptはloopへ配線せず、`run_design_loop.py`は引き続き`--order-scope`を
+明示入力として受け取る。
+
 ### quoteからorder-totalを生成する
 
 見積record、発注範囲、基板製造プロファイルから、既存の決定論的集計を呼び出して
@@ -634,6 +670,44 @@ authoritative Evidenceを生成しない。quote取得と実発注はこのloop�
 `r12`例であり、GD1整合ではない。対象graphと異なるrevisionの入力は
 `OrderTotalError: order scope target revision does not match`でfail-closedする。この検査は
 緩めず、order-total集計とpre-order gateはquote／order scope入力時のみの任意段として実行する。
+
+### 長時間laneのbackground実行とlog契約
+
+container laneを会話toolのforeground呼び出しで実行すると、ホスト再起動やtool timeoutで
+結果が失われ、停止理由が判別できない。長時間laneはbackgroundで同時に1本だけ実行し、
+`scripts/run_in_workspace.py --log <path>`でlane log契約（`acd-lane-log 0.1`）の
+headerとfooterを記録する。
+
+```bash
+nohup uv run python scripts/run_in_workspace.py \
+  --image "$SERVER_REF" --repo . \
+  --log out/lane-logs/<lane>.log \
+  --download out/gd1/evidence-electrical.json \
+  <command> > /dev/null 2>&1 &
+```
+
+進行確認は`tail -n 20 -f out/lane-logs/<lane>.log`、終了確認は
+`grep -E '^(exit_code|failure_kind|image_digest):' out/lane-logs/<lane>.log`で行う。
+log先頭の`=== acd-lane-log 0.1 ===` headerはimage参照・revision（`--source-revision`、
+bootstrap record、`git rev-parse HEAD`の順）・コマンド行・`started_at`を実行前に書く。
+末尾の`=== result ===` footerは`exit_code`、解決済み`image_digest`（起動・transport
+失敗とhost provisionalでは`unknown`）、`execution_context`（`container`または
+`host-provisional`）、`failure_kind`、`finished_at`を記録する。footerが無いlogは
+中断した実行であり、parseはfail-closedで拒否する。lane logはL3観測であり、
+合否権限を持たない。
+
+リモートworkspaceからはディレクトリごと取得して収集入口へ渡す。
+
+```bash
+rsync -av <host>:<workspace>/out/lane-logs/ ./collected/lane-logs/
+uv run python scripts/export_execution_records.py collected/lane-logs \
+  --out out/execution-records-export.json
+```
+
+`.log`入力は`parse_lane_log`で`log_type: lane_log`のexecution recordへ構造化され、
+既存のallowlist抽出・秘匿化・漏洩拒否がそのまま適用される。生image参照はregistry
+hostnameを含みうるためexportへ残さず、digestだけを記録する。`*.json`と`*.log`は
+directory内で名前順に混在処理する。
 
 ### 契約registryとparts catalogの追加
 
@@ -761,6 +835,17 @@ loop全体を再実行する。enclosure、FW、silkscreenの失敗では自動�
 graph検証失敗、
 round上限到達は元のboard失敗理由を保持してfail-closedで停止する。自動連結を使わない場合や
 診断次元を指定して手動評価する場合は`acd_explore_board_candidates`を使用する。
+
+`--recover-lanes`でFW laneが却下された場合は`acd.core.firmware_exploration`の
+FW専用候補生成器へ回る。入力はlane出力の`gate-evidence/design-predicates.json`
+（存在時）と`firmware-coverage.json`（存在時）であり、両方不在ならfail-closedで
+停止する。候補次元は`gpio_assignment`に限り、基板側の配置・回転次元は
+`excluded_dimensions`へ記録して候補化しない。探索reportは
+`candidate_source="firmware_registry_and_predicates"`と
+`searchable_dimensions`を持ち、coverage findingがある却下は候補を評価せず
+`status="stopped"`／`termination_reason="declaration_required"`で停止して
+`required_declarations`（code・node_id・declaration_target）をexploration段
+recordへ載せる。reportはL3観測であり、pass authorityは持たない。
 
 `acd_run_design_loop`も同じin-code orchestratorを呼び出す。gate、閾値、期待値、
 revision一致、authoritative Evidenceの規則は変更しない。Skill出力、AI review、host上の
@@ -1416,6 +1501,54 @@ container上限8 GiBならMemTotal 8.5 GiB超が必須になる。実測でlane�
 host mem used peak 4.30 GiB、container peak 5.00 GiB、swap 0であった。fixture生成のみの
 Run Kはwall 42秒、container peak 2.66 GiB、swap 0であった。既存の最低・推奨スペック表は
 変更せず、これらの実測を追加の運用根拠とする。
+
+#### 長時間runの予算・checkpoint・resume契約
+
+長時間runは`run_design_loop.py --wall-clock-budget SECONDS --token-budget N`で
+予算を宣言できる。wall-clock予算は各stage境界の直前だけで確認し、超過時は次のstageを
+実行せずfail-closedで停止する。実行中stageを中断せず、ゲートの閾値・判定は変更しない。
+`token-budget`はこの決定論的loopではtokenを消費・計数しない宣言値であり、実際の
+enforcementはOpenHands conversationのL2 stop側が担う。
+
+各stageの完了後、`design-loop-checkpoint.json`をUTF-8 JSONで更新する。recordは
+`schema_version: 0.1`、`record_class: L3`、`pass_evidence: false`、graph ID、resume、
+cache directory、budget、elapsed、実行順のstage（`stage_id`、`ok`、`fail_closed`、
+`timing_name`）、更新時刻を持つ。checkpointは人間と`report_progress`向けの観測であり、
+`--resume`はcheckpointを参照しない。resume時もゲートstageを再実行し、既存の
+StageArtifactCacheだけを再利用する。checkpoint書き込み失敗はloopを成功扱いにせず、
+該当stageの`checkpoint_error`へ記録する。
+
+`run_design_lanes.py`にも同名の`--wall-clock-budget`／`--token-budget`がある。
+lanes側では`run_stage`が各command境界の直前に経過を確認し、超過時は未開始commandを
+開始せずにexit 2で停止する。JSON summaryの`budget`フィールドに宣言値を記録する。
+
+#### 資源計測wrapper（`scripts/measure_lane_resources.py`）
+
+以後の資源実測は使い捨てshell scriptではなくrepository内のwrapperで行う。
+checkout path、digest固定image、download対象、計測間隔を引数で受け、
+`run_in_workspace.py`をwrapしてintervalごとにhost CPUコア使用量・
+MemTotal／MemAvailable由来の使用量・swap使用量と`docker stats`のcontainer
+memory合計を記録する。
+
+```bash
+uv run python scripts/measure_lane_resources.py \
+  --repo . --image "$SERVER_REF" --interval 1 \
+  --download out/gd1/evidence-electrical.json \
+  --log out/lane-logs/board.log \
+  --out out/resource-measurement.json \
+  --label "8GiB/jobs4/8cores" -- <command>
+```
+
+recordは`schema_version: 0.1`、`label`、`image`、absoluteな`repo`、`command`、
+`downloads`、`interval_seconds`、`sample_count`、`started_at`／`finished_at`、
+`wall_clock_seconds`、wrapped runの`exit_code`、`host`（cpu_count、cpu_cores_peak、
+mem_total_bytes、mem_used_peak_bytes、mem_available_min_bytes、swap_used_peak_bytes）、
+`docker`（stats_available、mem_usage_peak_bytes）を持つ。`docker stats`が失敗しても
+`stats_available: false`で記録を継続する。wrapperのexit codeはwrapped runの
+exit codeそのままであり、fail-closedした実行も非ゼロで記録だけは残る。
+wrapperはDocker cgroupの内訳（anon／page cache）を採取せず、本節の従来表は
+ad-hoc scriptによる測定値である。計測は`record_class: L3`の観測であり、
+ゲート合格やauthoritative Evidenceの権限を持たない。
 
 SDK `DockerWorkspace`にはCPU／memory resource
 fieldがなく、現在のworkspace境界からcontainer資源を宣言できないため、
@@ -2476,6 +2609,30 @@ root実行containerとhost実行が同一out-rootを共用すると`Permission d
 ログは`<out-root>/lane-logs/command-NN.log`へ書き出し、要約には省略行数と保存先を含める。
 末尾行数は`--log-tail-lines`、完全なログの埋め込みは`--full-logs`で指定する。要約はL3観測
 であり、コマンドの判定を変更しない。
+
+## lane成果物の最小収録集合
+
+各laneが保持すべき最小成果物集合は
+`contracts/lane-artifact-retention.json`（`acd-lane-artifact-retention-v1`）で
+機械可読に宣言する。laneごとに`minimal_artifacts`（lane出力dir相対のglob、
+`required`、理由）と`regenerable`（再生成可能な出力、例: FW laneの
+`*_fw/build/**/*`のESP-IDF buildツリー）を持つ。`run_design_lanes`のJSON要約は
+`artifact_retention`へ各laneの`LaneRetentionReport`（matchした相対パスと
+sha256、`missing_required`、regenerable件数・総bytes、出力dir不在は
+`status: "output_missing"`）をlane plan宣言順で載せる。
+
+最小集合だけを回収するにはcollectorを使う。
+
+```bash
+uv run python scripts/collect_lane_artifacts.py \
+  --out-root out --graph-id golden-design-1 --dest out/retained
+```
+
+`dest/<lane_id>/<relative path>`へ最小集合のみをcopyし、
+`dest/retention-manifest.json`（`declaration_hash`、各laneのreport）を書く。
+required patternが未matchの場合はmanifestを残してexit 1でfail-closedにする。
+この契約とmanifestはL3の運用記録であり、U-5の必須成果物判定
+（manufacturing submission gate）やEvidence規則を変更しない。
 
 ## 実行記録の持ち出し
 

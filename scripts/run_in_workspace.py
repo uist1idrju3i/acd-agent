@@ -3,11 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import os
+import subprocess
 import sys
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import TextIO
 
+from acd.core.lane_log import append_lane_log_footer, write_lane_log_header
 from acd.openhands.container_runtime import (
     DEFAULT_COMMAND_TIMEOUT,
     DEFAULT_DOCKER_CLI_TIMEOUT,
@@ -108,6 +114,16 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
         help="Use the mounted repository or the ACD bundle baked into the image.",
     )
     parser.add_argument("--repo", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "--log",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "lane log path; writes the acd-lane-log header before the run "
+            "and appends the result footer, teeing all output into the file"
+        ),
+    )
     parser.add_argument(
         "--graph",
         type=Path,
@@ -230,10 +246,118 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     return args
 
 
+def _lane_log_revision(args: argparse.Namespace) -> str:
+    try:
+        if args.bootstrap_record is not None:
+            bootstrap_record = (
+                args.bootstrap_record if args.bootstrap_record.is_file() else None
+            )
+        else:
+            candidate = args.repo / DEFAULT_BOOTSTRAP_RECORD
+            bootstrap_record = candidate if candidate.is_file() else None
+        revision = expected_source_revision(
+            source_revision=args.source_revision,
+            bootstrap_record=bootstrap_record,
+        )
+        if revision:
+            return revision
+    except (OSError, ValueError):
+        pass
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(args.repo), "rev-parse", "HEAD"],
+            check=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+    except OSError:
+        completed = None
+    if completed is not None and completed.returncode == 0:
+        revision = completed.stdout.strip()
+        if revision:
+            return revision
+    return "unknown"
+
+
+def _lane_log_command(args: argparse.Namespace) -> str:
+    if args.command:
+        return " ".join(args.command).strip()
+    try:
+        graph = args.graph if args.graph is not None else DEFAULT_GRAPH
+        graph_path = graph if graph.is_absolute() else args.repo / graph
+        return workspace_defaults(
+            load_workspace_graph(graph_path).graph_id, graph.parent
+        ).command
+    except Exception:
+        return "unknown"
+
+
+class _Tee(io.TextIOBase):
+    """Mirror writes to the original stream and the lane log file."""
+
+    def __init__(self, stream: TextIO, log: TextIO) -> None:
+        self._stream = stream
+        self._log = log
+
+    def write(self, text: str) -> int:
+        self._stream.write(text)
+        self._log.write(text)
+        return len(text)
+
+    def flush(self) -> None:
+        self._stream.flush()
+        self._log.flush()
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv or sys.argv[1:])
     if args.cache_dir is not None:
         _prepare_cache_dir(args.cache_dir)
+    if args.log is None:
+        return _run(args, footer=None)
+    write_lane_log_header(
+        args.log,
+        image=args.image or "host-provisional",
+        revision=_lane_log_revision(args),
+        command=_lane_log_command(args),
+        started_at=_utc_now(),
+    )
+    footer: dict[str, object] = {
+        "exit_code": 2,
+        "image_digest": "unknown",
+        "execution_context": (
+            "host-provisional" if args.local_provisional else "container"
+        ),
+        "failure_kind": "startup",
+    }
+    log_stream = args.log.open("a", encoding="utf-8", buffering=1)
+    code = 2
+    try:
+        with (
+            contextlib.redirect_stdout(_Tee(sys.stdout, log_stream)),
+            contextlib.redirect_stderr(_Tee(sys.stderr, log_stream)),
+        ):
+            code = _run(args, footer=footer)
+            return code
+    finally:
+        log_stream.close()
+        footer["exit_code"] = code
+        append_lane_log_footer(
+            args.log,
+            exit_code=code,
+            image_digest=str(footer["image_digest"]),
+            execution_context=str(footer["execution_context"]),
+            failure_kind=str(footer["failure_kind"]),
+            finished_at=_utc_now(),
+        )
+
+
+def _run(args: argparse.Namespace, *, footer: dict[str, object] | None) -> int:
     try:
         if args.bootstrap_record is not None:
             if not args.bootstrap_record.is_file():
@@ -305,6 +429,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             for finding in exc.host_resource_report.findings:
                 print(f"{finding.code}: {finding.detail}", file=sys.stderr)
         print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
+        if footer is not None:
+            footer["failure_kind"] = exc.failure_kind
         return 2
     except WorkspaceTransportError as exc:
         print(f"exit code: {exc.exit_code}")
@@ -315,13 +441,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         for path in exc.downloaded_files:
             print(f"downloaded: {path}")
         print(f"workspace failure ({exc.failure_kind}): {exc}", file=sys.stderr)
+        if footer is not None:
+            footer["failure_kind"] = exc.failure_kind
         return 2
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
     if isinstance(result, ProvisionalWorkspaceResult):
+        if footer is not None:
+            footer["execution_context"] = "host-provisional"
         print("execution context: host (provisional)")
     else:
+        if footer is not None:
+            footer["image_digest"] = result.digest
         print(f"image digest: {result.digest} ({result.source})")
         print(
             f"source provenance: {result.source_revision} "
@@ -351,6 +483,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     if classification != "none":
         print(f"failure classification: {classification}")
+    if footer is not None:
+        footer["failure_kind"] = (
+            result.failure_kind
+            if not isinstance(result, ProvisionalWorkspaceResult)
+            and result.failure_kind is not None
+            else classification
+        )
     print("stdout:")
     print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
     print("stderr:")

@@ -11,12 +11,14 @@ from typing import Any
 import pytest
 import scripts.run_in_workspace as runner_script
 
+from acd.core.lane_log import parse_lane_log
 from acd.core.source_tree import SourceProvenance
 from acd.openhands import workspace as workspace_module
 from acd.openhands.workspace import (
     ImageReference,
     ProvisionalWorkspaceResult,
     WorkspaceResult,
+    WorkspaceStartupError,
     WorkspaceTransportError,
     resolve_image_digest,
     run_command_in_workspace,
@@ -555,3 +557,102 @@ def test_cli_rejects_download_root_for_local_provisional(tmp_path: Path) -> None
                 "true",
             ]
         )
+
+
+def test_cli_log_writes_header_before_run_and_footer_after(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    log = tmp_path / "lane-logs" / "board.log"
+    seen_header: list[str] = []
+
+    def fake_run_command(**_kwargs: Any) -> WorkspaceResult:
+        seen_header.append(log.read_text(encoding="utf-8"))
+        return WorkspaceResult(
+            digest="sha256:" + "e" * 64,
+            source="repo digest",
+            exit_code=0,
+            stdout="done\n",
+            stderr="",
+            downloaded_files=(),
+        )
+
+    monkeypatch.setattr(
+        runner_script, "run_command_in_workspace", fake_run_command
+    )
+    code = runner_script.main(
+        [
+            "--image",
+            "acd-server@sha256:" + "a" * 64,
+            "--repo",
+            str(tmp_path),
+            "--log",
+            str(log),
+            "--source-revision",
+            "b" * 40,
+            "--download",
+            "out/gd1/evidence-electrical.json",
+            "true",
+        ]
+    )
+    assert code == 0
+    header = seen_header[0]
+    assert header.startswith("=== acd-lane-log 0.1 ===\n")
+    assert f"revision: {'b' * 40}" in header
+    assert "command: true" in header
+    assert header.endswith("=== output ===\n")
+    record = parse_lane_log(log.read_text(encoding="utf-8"))
+    assert record.exit_code == 0
+    assert record.image_digest == "sha256:" + "e" * 64
+    assert record.execution_context == "container"
+    assert record.failure_kind == "none"
+
+
+def test_cli_log_marks_startup_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    log = tmp_path / "lane.log"
+
+    def fail_startup(**_kwargs: Any) -> WorkspaceResult:
+        raise WorkspaceStartupError(
+            "host memory below limit", failure_kind="resources"
+        )
+
+    monkeypatch.setattr(
+        runner_script, "run_command_in_workspace", fail_startup
+    )
+    code = runner_script.main(
+        [
+            "--image",
+            "acd-server:local",
+            "--repo",
+            str(tmp_path),
+            "--log",
+            str(log),
+            "--download",
+            "out/gd1/evidence-electrical.json",
+            "true",
+        ]
+    )
+    assert code == 2
+    record = parse_lane_log(log.read_text(encoding="utf-8"))
+    assert record.exit_code == 2
+    assert record.image_digest == "unknown"
+    assert record.failure_kind == "resources"
+
+
+def test_cli_without_log_writes_no_file(tmp_path: Path) -> None:
+    assert (
+        runner_script.main(
+            [
+                "--image",
+                "acd-server:local",
+                "--repo",
+                str(tmp_path),
+                "--download",
+                "out/gd1/evidence-electrical.json",
+                "true",
+            ]
+        )
+        is not None
+    )
+    assert not list(tmp_path.glob("*.log"))

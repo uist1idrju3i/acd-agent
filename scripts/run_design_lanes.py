@@ -6,10 +6,16 @@ import argparse
 import json
 import os
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 
 from acd.core.command_runner import CommandResult, CommandSpec, run_stage
+from acd.core.lane_artifact_retention import (
+    LaneArtifactRetentionError,
+    load_lane_artifact_retention,
+    resolve_lane_retention,
+)
 from acd.core.lane_cli import LEGACY_FIXTURE_FLAGS, add_legacy_flags
 from acd.core.log_summary import DEFAULT_TAIL_LINES, summarize_log
 from acd.core.runtime_records import TimingRecorder, write_timing_record
@@ -35,7 +41,7 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
-def _parser() -> argparse.ArgumentParser:
+def _parser(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Build the lane runner command-line parser."""
     parser = argparse.ArgumentParser(
         description="Run the silkscreen resolver and independent design lanes."
@@ -92,8 +98,26 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="include the complete failing command logs in the JSON summary",
     )
+    parser.add_argument(
+        "--wall-clock-budget",
+        type=float,
+        default=None,
+        help=(
+            "declared wall-clock budget in seconds; checked only at command "
+            "boundaries and enforced as a stop, never a gate verdict"
+        ),
+    )
+    parser.add_argument(
+        "--token-budget",
+        type=_positive_int,
+        default=None,
+        help="declared token budget; recorded only, enforcement stays L2-side",
+    )
     add_legacy_flags(parser, LEGACY_FIXTURE_FLAGS, "--fixture")
-    return parser
+    args = parser.parse_args(argv)
+    if args.wall_clock_budget is not None and args.wall_clock_budget <= 0:
+        parser.error("--wall-clock-budget must be positive")
+    return args
 
 
 def _graph_id(fixture: Path) -> str:
@@ -203,7 +227,7 @@ def _write_full_log(log_root: Path, index: int, result: CommandResult) -> Path:
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the declared design lanes."""
-    args = _parser().parse_args(argv)
+    args = _parser(argv)
     fixture = args.fixture
     graph_id = _graph_id(fixture)
     out_root = args.out_root
@@ -218,6 +242,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     out_root.mkdir(parents=True, exist_ok=True)
     timing = TimingRecorder()
+    deadline = (
+        time.monotonic() + args.wall_clock_budget
+        if args.wall_clock_budget is not None
+        else None
+    )
     command_results: list[tuple[CommandSpec, CommandResult]] = []
     returncode = 1
     runtime_error: str | None = None
@@ -227,6 +256,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             jobs=args.jobs,
             timing=timing,
             results=command_results,
+            deadline_seconds=deadline,
         )
     except Exception as exc:
         runtime_error = f"{type(exc).__name__}: {exc}"
@@ -259,11 +289,49 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "log_path": None,
                 }
             )
+        retention_error: str | None = None
+        artifact_retention: list[dict[str, object]] = []
+        try:
+            declaration = load_lane_artifact_retention()
+            for lane_stage in plan.lane_runner_stages:
+                output = lane_stage.output_path
+                if output is None:
+                    continue
+                if not output.is_dir():
+                    artifact_retention.append(
+                        {
+                            "lane_id": lane_stage.stage_id,
+                            "output_path": str(output),
+                            "status": "output_missing",
+                        }
+                    )
+                    continue
+                artifact_retention.append(
+                    resolve_lane_retention(
+                        lane_stage.stage_id, output, declaration
+                    ).to_dict()
+                )
+        except LaneArtifactRetentionError as exc:
+            retention_error = f"{type(exc).__name__}: {exc}"
+            failures.append(
+                {
+                    "command": [],
+                    "returncode": returncode,
+                    "stderr": f"lane artifact retention: {retention_error}",
+                    "log_path": None,
+                }
+            )
         summary = {
             "ok": not failures and returncode == 0,
+            "budget": {
+                "wall_clock_seconds": args.wall_clock_budget,
+                "token": args.token_budget,
+                "enforcement": "stage-boundary",
+            },
             "resume": args.resume,
             "cache_dir": str(cache_dir) if cache_dir is not None else None,
             "timing_record": str(timing_path),
+            "artifact_retention": artifact_retention,
             "failures": failures,
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))

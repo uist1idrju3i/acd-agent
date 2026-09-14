@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import shlex
 import subprocess
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -94,14 +95,33 @@ def run_stage(
     *,
     timing: TimingRecorder | None = None,
     results: list[tuple[CommandSpec, CommandResult]] | None = None,
+    deadline_seconds: float | None = None,
+    clock: Callable[[], float] = time.monotonic,
 ) -> int:
     """Run commands sequentially or concurrently with deterministic output."""
     if jobs < 1:
         raise ValueError("jobs must be a positive integer")
     specs = _normalize_commands(commands)
     total = len(specs)
+
+    def exhausted_result(index: int) -> CommandResult | None:
+        if deadline_seconds is None or clock() <= deadline_seconds:
+            return None
+        return CommandResult(
+            2,
+            "",
+            f"wall-clock budget exhausted before command {index}; "
+            "boundary stop only\n",
+        )
+
     if jobs == 1:
         for index, spec in enumerate(specs, start=1):
+            exhausted = exhausted_result(index)
+            if exhausted is not None:
+                if results is not None:
+                    results.append((spec, exhausted))
+                _emit_direct_result(index, total, exhausted)
+                return 2
             _emit_start(index, total, spec, buffered=False)
             stage_name = f"command-{index}:{shlex.join(spec.command)}"
             if timing is not None:
@@ -119,6 +139,13 @@ def run_stage(
     next_index = 0
     with ThreadPoolExecutor(max_workers=jobs) as executor:
         while next_index < total:
+            exhausted = exhausted_result(next_index + 1)
+            if exhausted is not None:
+                spec = specs[next_index]
+                if results is not None:
+                    results.append((spec, exhausted))
+                _emit_result(next_index + 1, total, spec, exhausted)
+                return 2
             if specs[next_index].barrier:
                 spec = specs[next_index]
                 _emit_start(next_index + 1, total, spec, buffered=True)

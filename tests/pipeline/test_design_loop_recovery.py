@@ -395,6 +395,118 @@ def test_candidate_timing_isolated_from_open_parent_lane_stage(
     assert timing["owner"] == "candidate/board-pipeline/candidate-1"
 
 
+def test_firmware_rejection_with_only_coverage_report_routes_to_declaration_required(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    out_root = tmp_path / "artifacts"
+
+    def failing_firmware(config: DesignLoopConfig) -> dict[str, Any]:
+        lane_out = config.lane_plan.stage("firmware-pipeline").output_path
+        assert lane_out is not None
+        lane_out.mkdir(parents=True, exist_ok=True)
+        (lane_out / "firmware-coverage.json").write_text(
+            json.dumps(
+                {
+                    "status": "fail",
+                    "findings": [
+                        {
+                            "code": "action_unregistered",
+                            "node_id": "fw.step.blink",
+                            "message": "action is not registered",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return {
+            "stage_id": "firmware-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "firmware coverage rejected",
+        }
+
+    runners = _runners("firmware-pipeline")
+    runners["firmware-pipeline"] = failing_firmware
+    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", runners)
+
+    def refuse_board(*args: object, **kwargs: object) -> Any:
+        raise AssertionError("board exploration must not run for a firmware lane")
+
+    monkeypatch.setattr(design_loop, "explore_board_candidates", refuse_board)
+
+    result = run_design_loop(
+        fixture,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        recover_lanes=True,
+    )
+
+    assert result["ok"] is False
+    assert result["exploration_termination"] == "stopped"
+    round_record = result["exploration_rounds"][0]
+    assert round_record["lane_id"] == "firmware-pipeline"
+    assert round_record["recovery_explorer"] == "firmware"
+    assert round_record["status"] == "stopped"
+    exploration = next(
+        item for item in result["results"] if item["stage_id"] == "firmware-exploration"
+    )
+    assert exploration["evaluated_candidates"] == 0
+    assert exploration["required_declarations"][0]["declaration_target"] == (
+        "contracts/firmware-capability-registry.json#capabilities[].actions"
+    )
+    assert exploration["pass_evidence"] is False
+
+
+def test_firmware_rejection_with_no_evidence_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    fixture = _copied_fixture(tmp_path)
+    out_root = tmp_path / "artifacts"
+
+    def failing_firmware(config: DesignLoopConfig) -> dict[str, Any]:
+        del config
+        return {
+            "stage_id": "firmware-pipeline",
+            "ok": False,
+            "fail_closed": True,
+            "pass_evidence": False,
+            "failure_reason": "firmware lane rejected",
+        }
+
+    runners = _runners("firmware-pipeline")
+    runners["firmware-pipeline"] = failing_firmware
+    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", runners)
+
+    def refuse_exploration(*args: object, **kwargs: object) -> Any:
+        raise AssertionError("firmware explorer must not run without evidence")
+
+    monkeypatch.setattr(design_loop, "explore_firmware_candidates", refuse_exploration)
+
+    result = run_design_loop(
+        fixture,
+        out_root,
+        order_total=tmp_path / "order-total.json",
+        policy=tmp_path / "policy.json",
+        recover_lanes=True,
+    )
+
+    assert result["ok"] is False
+    assert result["exploration_termination"] == "error"
+    exploration = next(
+        item for item in result["results"] if item["stage_id"] == "firmware-exploration"
+    )
+    assert "neither predicate evidence nor firmware coverage report" in (
+        exploration["failure_reason"]
+    )
+    assert exploration["pass_evidence"] is False
+
+
 def test_invalid_recovery_declaration_stops_before_any_stage(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

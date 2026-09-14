@@ -58,7 +58,7 @@ def _finding(code: HostResourceCode, detail: str) -> HostResourceFinding:
     return HostResourceFinding(code=code, detail=detail)
 
 
-def _read_meminfo(path: Path) -> dict[str, int]:
+def read_meminfo(path: Path) -> dict[str, int]:
     values: dict[str, int] = {}
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
@@ -86,7 +86,7 @@ def check_host_resources(
     cpu_count: int | None = None,
 ) -> HostResourceReport:
     """Return all host resource findings without raising on probe failures."""
-    meminfo = _read_meminfo(meminfo_path)
+    meminfo = read_meminfo(meminfo_path)
     mem_total = meminfo.get("MemTotal")
     mem_available = meminfo.get("MemAvailable")
     swap_total = meminfo.get("SwapTotal")
@@ -230,4 +230,5 @@ __all__ = [
     "ResourceRequirement",
     "check_host_resources",
     "parse_memory_bytes",
+    "read_meminfo",
 ]

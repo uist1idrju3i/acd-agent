@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import os
 import tempfile
+import threading
+import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
@@ -21,8 +24,12 @@ from acd.core.exploration import (
     ExplorationResult,
     RemediationRequest,
     explore_board_candidates,
-    explore_firmware_candidates,
     load_remediation_requests,
+)
+from acd.core.firmware_coverage import FirmwareCoverageFinding
+from acd.core.firmware_exploration import (
+    explore_firmware_candidates,
+    load_firmware_coverage_findings,
 )
 from acd.core.lane_preflight import (
     LANE_REQUIREMENTS,
@@ -93,6 +100,8 @@ from acd.schema import (
 )
 from acd.schema.common import canonical_json_sha256
 from acd.schema.lane_preflight import LanePreflightReport
+
+_MONOTONIC = time.monotonic
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
@@ -203,6 +212,8 @@ class DesignLoopConfig:
     order_scope: Path | None = None
     design_only: bool = False
     fixture_overwrite: bool = False
+    wall_clock_budget_seconds: float | None = None
+    token_budget: int | None = None
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -1043,22 +1054,20 @@ def _run_lane_exploration(
             pipeline_runner=enclosure_pipeline_runner,
             commit=True,
         )
+    if plan.explorer == "firmware":
+        return _run_firmware_exploration(
+            config,
+            plan,
+            graph_path,
+            round_out,
+            board_pipeline_runner,
+        )
     graph = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
     remediation = _lane_remediation(config, plan.lane_id, graph.revision)
     if not remediation:
         raise ValueError(
             f"{plan.lane_id} rejection declares no remediation; "
             "recovery cannot derive a candidate (fail-closed)"
-        )
-    if plan.explorer == "firmware":
-        return explore_firmware_candidates(
-            graph_path,
-            config.fixture_dir,
-            round_out,
-            config.max_exploration_candidates,
-            dry_run=False,
-            pipeline_runner=board_pipeline_runner,
-            remediation=remediation,
         )
     if plan.explorer != "board":
         raise ValueError(
@@ -1073,6 +1082,54 @@ def _run_lane_exploration(
         dry_run=False,
         pipeline_runner=board_pipeline_runner,
         remediation=remediation,
+    )
+
+
+def _run_firmware_exploration(
+    config: DesignLoopConfig,
+    plan: LaneRecoveryPlan,
+    graph_path: Path,
+    round_out: Path,
+    pipeline_runner: Callable[[Path, Path], object],
+) -> ExplorationResult:
+    """Route a firmware lane rejection to the firmware-only explorer.
+
+    The firmware lane writes ``firmware-coverage.json`` instead of predicate
+    gate evidence, so remediation comes from either artifact; a rejection with
+    neither cannot derive a candidate and fails closed.
+    """
+    lane_output = config.lane_plan.stage(plan.lane_id).output_path
+    if lane_output is None:
+        raise ValueError(f"{plan.lane_id} has no declared output path (fail-closed)")
+    graph = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
+    evidence = lane_output / "gate-evidence" / "design-predicates.json"
+    remediation: tuple[RemediationRequest, ...] = (
+        load_remediation_requests(evidence, graph.revision)
+        if evidence.is_file()
+        else ()
+    )
+    coverage_path = lane_output / "firmware-coverage.json"
+    coverage_findings: tuple[FirmwareCoverageFinding, ...] = (
+        load_firmware_coverage_findings(coverage_path)
+        if coverage_path.is_file()
+        else ()
+    )
+    if not evidence.is_file() and not coverage_path.is_file():
+        raise ValueError(
+            "firmware-pipeline rejection has neither predicate evidence nor "
+            "firmware coverage report; recovery cannot derive a candidate "
+            "(fail-closed)"
+        )
+    return explore_firmware_candidates(
+        graph_path,
+        config.fixture_dir,
+        round_out,
+        config.max_exploration_candidates,
+        dry_run=False,
+        pipeline_runner=pipeline_runner,
+        remediation=remediation,
+        coverage_findings=coverage_findings,
+        max_passes=config.max_passes,
     )
 
 
@@ -1099,12 +1156,52 @@ def run_design_loop(
     max_exploration_candidates: int = 3,
     max_exploration_rounds: int = 1,
     requirement: Path | None = None,
+    wall_clock_budget_seconds: float | None = None,
+    token_budget: int | None = None,
     fixture_spec: Path | None = None,
     quote_records: Sequence[Path] | None = None,
     order_scope: Path | None = None,
 ) -> dict[str, Any]:
-    """Run all design stages in their fixed fail-closed order."""
+    """Run stages in fixed order with stop-only stage-boundary budgets.
+
+    ``token_budget`` is declaration-only here; token enforcement belongs to the
+    OpenHands L2 conversation layer because this loop does not consume LLM
+    tokens. The checkpoint is an L3 human/reporting record and is never read by
+    resume; resume only reuses the StageArtifactCache and re-executes gates.
+    """
     timing = TimingRecorder()
+    loop_start = _MONOTONIC()
+    budget = {
+        "wall_clock_seconds": wall_clock_budget_seconds,
+        "token": token_budget,
+        "enforcement": "stage-boundary",
+    }
+    checkpoint_lock = threading.Lock()
+    checkpoint_stages: list[dict[str, Any]] = []
+
+    def write_checkpoint() -> str | None:
+        try:
+            checkpoint = {
+                "schema_version": "0.1",
+                "record_class": "L3",
+                "pass_evidence": False,
+                "graph_id": result.get("graph_id"),
+                "resume": resume,
+                "cache_dir": str(resolved_cache_dir) if resolved_cache_dir else None,
+                "budget": budget,
+                "elapsed_seconds": _MONOTONIC() - loop_start,
+                "stages": list(checkpoint_stages),
+                "updated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+            (out_root / "design-loop-checkpoint.json").write_text(
+                json.dumps(checkpoint, ensure_ascii=False, indent=2, sort_keys=True)
+                + "\n",
+                encoding="utf-8",
+            )
+            return None
+        except Exception as exc:
+            return f"{type(exc).__name__}: {exc}"
+
     resolved_cache_dir = cache_dir
     if resume and resolved_cache_dir is None:
         resolved_cache_dir = out_root / ".stage-cache"
@@ -1116,6 +1213,7 @@ def run_design_loop(
         "resume": resume,
         "jobs": jobs,
         "results": [],
+        "budget": budget,
     }
     recovery_enabled = explore_board or recover_lanes
     recovery_declarations: LaneRecoveryDeclarations | None = None
@@ -1186,6 +1284,10 @@ def run_design_loop(
             raise ValueError("max_exploration_candidates must be a positive integer")
         if max_exploration_rounds < 1:
             raise ValueError("max_exploration_rounds must be a positive integer")
+        if wall_clock_budget_seconds is not None and wall_clock_budget_seconds <= 0:
+            raise ValueError("wall_clock_budget_seconds must be positive")
+        if token_budget is not None and token_budget <= 0:
+            raise ValueError("token_budget must be positive")
         if resolved_cache_dir is not None:
             resolved_cache_dir.mkdir(parents=True, exist_ok=True)
         config = DesignLoopConfig(
@@ -1216,6 +1318,8 @@ def run_design_loop(
             order_scope=order_scope,
             design_only=design_only,
             fixture_overwrite=fixture_overwrite,
+            wall_clock_budget_seconds=wall_clock_budget_seconds,
+            token_budget=token_budget,
         )
         if recovery_enabled:
             recovery_declarations = load_lane_recovery_declarations()
@@ -1259,6 +1363,30 @@ def run_design_loop(
             )
             timing_error: str | None = None
             started = False
+            elapsed = _MONOTONIC() - loop_start
+            if (
+                wall_clock_budget_seconds is not None
+                and elapsed > wall_clock_budget_seconds
+            ):
+                stage_result = _failure(
+                    stage_id,
+                    f"wall-clock budget exhausted before {stage_id}: "
+                    f"{elapsed:.1f}s > {wall_clock_budget_seconds:.1f}s",
+                    budget_exhausted=True,
+                )
+                with checkpoint_lock:
+                    checkpoint_stages.append(
+                        {
+                            "stage_id": stage_id,
+                            "ok": False,
+                            "fail_closed": True,
+                            "timing_name": timing_name,
+                        }
+                    )
+                    checkpoint_error = write_checkpoint()
+                if checkpoint_error is not None:
+                    stage_result["checkpoint_error"] = checkpoint_error
+                return stage_result
             try:
                 timing.start(timing_name)
                 started = True
@@ -1283,6 +1411,18 @@ def run_design_loop(
             normalized = {**stage_result, "pass_evidence": False}
             if timing_error is not None:
                 normalized["timing_error"] = timing_error
+            with checkpoint_lock:
+                checkpoint_stages.append(
+                    {
+                        "stage_id": stage_id,
+                        "ok": bool(normalized.get("ok")),
+                        "fail_closed": bool(normalized.get("fail_closed")),
+                        "timing_name": timing_name,
+                    }
+                )
+                checkpoint_error = write_checkpoint()
+            if checkpoint_error is not None:
+                normalized["checkpoint_error"] = checkpoint_error
             return normalized
 
         def run_lanes(
@@ -1541,6 +1681,7 @@ def run_design_loop(
                     "target_revision": report.get("target_revision"),
                     "evaluated_candidates": report.get("evaluated_candidates", 0),
                     "diagnostic_dimensions": sorted(diagnostic_dimensions_set),
+                    "required_declarations": report.get("required_declarations", []),
                     "winner_written": report.get("winner_written", False),
                     **_recovery_fields(plan),
                 }
@@ -1807,6 +1948,12 @@ def run_design_loop(
                 }
             )
         diagnostics_config = active_config
+        stages = result.get("results", [])
+        result["budget_exhausted"] = any(
+            cast(dict[str, Any], stage).get("budget_exhausted", False)
+            for stage in cast(list[object], stages)
+            if isinstance(stage, dict)
+        )
     finally:
         try:
             timing.finish_open()
