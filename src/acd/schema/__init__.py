@@ -283,6 +283,13 @@ from acd.schema.part_lifecycle import (
     PartLifecycleStatus,
     PartLifecycleStatusSource,
 )
+from acd.schema.parts_catalog import (
+    ComponentPartRequest,
+    PartCatalogEntry,
+    PartCplOrientation,
+    PartLibraryRef,
+    PartsCatalogDocument,
+)
 from acd.schema.pdn import (
     PdnAnalysisRequest,
     PdnCopper,
@@ -293,13 +300,6 @@ from acd.schema.pdn import (
     PdnSource,
     PdnStatus,
     PdnViaResult,
-)
-from acd.schema.parts_catalog import (
-    ComponentPartRequest,
-    PartCatalogEntry,
-    PartCplOrientation,
-    PartLibraryRef,
-    PartsCatalogDocument,
 )
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
@@ -715,6 +715,12 @@ __all__ = [
     "PartLifecycleSourceKind",
     "PartLifecycleStatus",
     "PartLifecycleStatusSource",
+    "PartPriceBook",
+    "PartPriceBreak",
+    "PartPriceEntry",
+    "PartPricePolicy",
+    "PartPriceSource",
+    "PartsCatalogDocument",
     "PdnAnalysisRequest",
     "PdnCopper",
     "PdnPathRequest",
@@ -724,12 +730,6 @@ __all__ = [
     "PdnSource",
     "PdnStatus",
     "PdnViaResult",
-    "PartPriceBook",
-    "PartPriceBreak",
-    "PartPriceEntry",
-    "PartPricePolicy",
-    "PartPriceSource",
-    "PartsCatalogDocument",
     "PhysicalEvidence",
     "PortExposure",
     "PostOrderJournalEntry",
