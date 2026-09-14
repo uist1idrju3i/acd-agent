@@ -237,14 +237,6 @@ from acd.schema.receipt import (
     ShipmentManifestReference,
 )
 from acd.schema.requirement import RequirementDocument, RequirementRecord
-from acd.schema.salvage import (
-    GateRun,
-    ReworkDfaAssessment,
-    ReworkDfaDeclaration,
-    SafetyApproval,
-    SalvageGateResult,
-    SalvageVerdict,
-)
 from acd.schema.responsibility import (
     Assignment,
     CrossDomainInterface,
@@ -262,14 +254,22 @@ from acd.schema.responsibility import (
 from acd.schema.rework_diff import (
     REPLACEABLE_ATTRS,
     REWORK_ADD_KINDS,
+    FirmwareChange,
     ReworkAdd,
     ReworkCut,
     ReworkDiff,
-    FirmwareChange,
     ReworkMechanical,
     ReworkOperation,
     ReworkRemove,
     ReworkReplace,
+)
+from acd.schema.salvage import (
+    GateRun,
+    ReworkDfaAssessment,
+    ReworkDfaDeclaration,
+    SafetyApproval,
+    SalvageGateResult,
+    SalvageVerdict,
 )
 from acd.schema.side_effect_journal import (
     ExecutionMode,
@@ -342,8 +342,6 @@ __all__ = [
     "DecisionKind",
     "DefectDocument",
     "DefectRecord",
-    "FirmwareChange",
-    "GateRun",
     "DefectSeverity",
     "DesignFixtureSpec",
     "DesignFreedomDeclarationDocument",
@@ -380,6 +378,7 @@ __all__ = [
     "FeedbackValidationStatus",
     "FirmwareCapabilityContract",
     "FirmwareCapabilityRegistryDocument",
+    "FirmwareChange",
     "FirmwareDeviceContract",
     "FixtureBoardEdgeOverhangSpec",
     "FixtureComponentBodySpec",
@@ -411,6 +410,7 @@ __all__ = [
     "FunctionalLogReference",
     "FunctionalRunRecord",
     "FunctionalRunReport",
+    "GateRun",
     "GraphDiff",
     "GraphNode",
     "GraphNodeDiff",
@@ -513,8 +513,6 @@ __all__ = [
     "ReconciliationStatus",
     "RejectedAlternative",
     "ReproductionCondition",
-    "ReworkDfaAssessment",
-    "ReworkDfaDeclaration",
     "RequirementDocument",
     "RequirementRecord",
     "ResponsibilityCriterion",
@@ -526,6 +524,8 @@ __all__ = [
     "ReviewVerification",
     "ReworkAdd",
     "ReworkCut",
+    "ReworkDfaAssessment",
+    "ReworkDfaDeclaration",
     "ReworkDiff",
     "ReworkMechanical",
     "ReworkOperation",

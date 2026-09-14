@@ -26,6 +26,22 @@ GateStatus = Literal["pass", "fail", "unknown", "not_applicable"]
 ApprovalStatus = Literal["not_required", "approved", "missing", "invalid"]
 
 
+def evaluate_design_predicates(*args: Any, **kwargs: Any) -> Any:
+    """Load the predicate evaluator lazily to avoid adapter import cycles."""
+    from acd.core.design_predicates import evaluate_design_predicates as evaluator
+
+    return evaluator(*args, **kwargs)
+
+
+def check_mechanical_preflight(*args: Any, **kwargs: Any) -> Any:
+    """Load the mechanical preflight evaluator lazily to avoid import cycles."""
+    from acd.core.mechanical_preflight import (
+        check_mechanical_preflight as checker,
+    )
+
+    return checker(*args, **kwargs)
+
+
 def _aggregate_status(statuses: list[str]) -> GateStatus:
     if "unknown" in statuses:
         return "unknown"
@@ -177,9 +193,7 @@ def evaluate_salvage(
     external_evidence: Mapping[str, Path],
 ) -> tuple[DerivedGraph, SalvageGateResult]:
     """Apply a workaround and evaluate all deterministic salvage conditions."""
-    from acd.core.design_predicates import evaluate_design_predicates
     from acd.core.electrical import GraphExtractionError, extract_electrical_lane
-    from acd.core.mechanical_preflight import check_mechanical_preflight
 
     try:
         derived = apply_rework_diff(base_graph, diff)
