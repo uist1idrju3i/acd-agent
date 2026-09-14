@@ -1113,3 +1113,27 @@ node IDと強制探索をiterationへ記録してSkillへ戻す。探索上限�
 明示quoteまたはGD1既定quoteの`fetched_at <= evaluated_at <= valid_until`を検査する
 `check_evaluated_at`を追加した。欠落・不在・不正なtimestamp・期限外はfail-closedで停止する。
 quote検証コード、期限、ゲート閾値、Evidence意味論は変更していない。
+
+### 14.16 R-2 配置テストの環境非依存化の実装記録
+
+`tests/core/test_decoupling_placement.py`は従来、GD1が参照する
+`/usr/share/kicad/footprints/`の存在を前提にmodule全体をskipしていた。
+固定fixture `fixtures/decoupling-placement-minimal/`（`graph.json`、
+`footprints/C_0603.kicad_mod`、`footprints/REG_SOT223.kicad_mod`、
+`symbols/minimal.kicad_sym`）を追加し、既存6テストを同fixtureへ移植した。
+fixtureはpad座標を宣言した最小graphで、pinned library非依存のhostで
+`solve_decoupling_placements`の初期解と距離判定を回帰する。
+
+固定値として記録したpad座標と期待距離: C_0603 pad 1 = (-0.775, 0.0)、
+pad 2 = (+0.775, 0.0)、REG_SOT223 pad 3 = (2.3, -3.0)。U1を(20.0, 20.0)、
+C2を(25.075, 17.0)に配置し、C2 pad 1とU1 pad 3の距離は2.0 mm、
+limitは3.0 mm（100 nFの小容量閾値）である。退避ケースは(30.0, 30.0)へ
+移動してからsolverが(25.475, 17.0)、距離2.4 mmへ戻すことを確認する。
+
+実libraryを要するGD1 caseはskipで隠さず、`pinned_footprint_library`
+marker付きの2テストとして残し、`tests/conftest.py`の
+`pytest_runtest_setup`でlibrary不在時にfail-closedとする契約を固定した。
+hostではskip、CIの`container-gates` jobでは
+`ACD_REQUIRE_PINNED_LIBRARY=1`を付けてdigest固定image内で
+`-m pinned_footprint_library`を実行し、library欠落はskipではなく
+失敗として検出する。判定・閾値・Evidence意味論は変更していない。

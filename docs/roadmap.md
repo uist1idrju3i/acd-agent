@@ -41,7 +41,7 @@ GD1に限れば要件検証から製造提出判定・authoritative Evidence検�
 これらはV-1〜V-10として14.20・14.21・15.17〜15.19で扱う。実測で全laneを通過した設計は
 GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判定はW-1〜W-4（14.21）で行う。
 
-残る未了は、14.16（FW lane専用の候補生成と配置テストの環境非依存化）、14.17のS-3
+残る未了は、14.16のR-1（FW lane専用の候補生成）とR-3（FW復帰の実測記録）、14.17のS-3
 （ambient install経路の配布形態）と復帰成立実行の実測記録、14.18の復帰成立runの
 wall-clock記録、15.14〜15.16・15.18〜15.21、および計画段階のマイルストーン9.3〜9.6、
 10、11.1〜11.4、13、16.1〜16.6、17〜21である。11.4aと14.21は達成済みである。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
@@ -71,7 +71,7 @@ wall-clock記録、15.14〜15.16・15.18〜15.21、および計画段階のマ�
 | 11 | 機構設計拡張 | 可動機構、干渉、機構向けDFM、部品込み3D統合を機械laneへ追加する | 11.4a・11.5達成（11.1〜11.4は計画） |
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
-| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19・14.25は達成。14.16、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証。残関門は14.20・14.21） |
+| 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19・14.25は達成。14.16はR-2のみ達成、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証） |
 | 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.13達成（15.14〜15.21は計画） |
 | 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1〜16.6は計画 |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
@@ -212,7 +212,7 @@ fail-closed境界、L1権限の範囲は変更しない。各項目の観測根�
 | 14.13 | 実機実測で残った新規設計の不足（N-1〜N-7、N-11） | 実機OpenHands環境でGD1以外の新規設計を投入した実測で残った不足を扱う。`DesignFixtureSpec`へmechanical・silkscreen・firmware moduleの宣言を追加（N-1）、必須宣言のpreflight（N-3）、parts catalog由来のpin function展開（N-5）、Stop hookのfail-closed停止経路（N-2）、rationale coverageの生成主体検査（N-4）、要件↔topology述語（N-6）、設計反復のみのmode（N-7）、生成器による手編集上書きの防止（N-11）。判定と閾値は緩めず、未宣言・unknownを合格へ倒さない |
 | 14.14 | 宣言経路解消後の実機実測で残った不足（O-1、O-2、O-4、O-5、O-9〜O-13） | O-1、O-2、O-4、O-5、O-9、O-10、O-11、O-12、O-13を達成。FWはcapability／device registryとgraph sequenceからpinとcodeを導出し、未宣言peripheralを生成しない。筐体laneは設計非依存entrypointと機械preflightを備え、機械ノード・属性・参照・rationale coverageを一括診断する。lane preflightは`declarations_complete`／`declarations_incomplete`とL3診断契約、checked／unchecked predicate集合を記録し、rationale stop hookは対象設計を決定論的に解決する。container起動前は物理メモリ（swapを加算しない）、MemAvailable、CPU、disk、JVM heapをfail-closedで検査し、FreeRoutingの最大heapをhost／container両経路で明示する。残るのはO-12の`QuoteRecord`／`OrderScope`導出、およびO-3、O-6〜O-8の運用整備。判定と閾値は緩めず、timeout・unknown・未宣言を合格へ倒さない |
 | 14.15 | Devinなしで新規設計を1周させるための残タスク（P-2〜P-4、Q-1〜Q-10） | 多コアVPS実測（2026-08-30）とその後の復帰経路のコード監査で残った不足を扱う。却下後に設計入力を決定論的に修正して反復する経路をend-to-endで閉じることが本フェーズの目的であり、Q-4（探索後のrationale更新）とQ-5（宣言された上書きによるfixture再生成）を前提として、Q-2・Q-3（会話経路からの起動とremediation由来の候補生成）、Q-1・Q-8（laneごとの復帰次元の宣言）、Q-6・Q-7・Q-9・Q-10（要件差分の拡張、bounded反復harnessの接続、診断入力の拡張、firmware capability registryへの宣言追加経路）へ広げる。設計側の不足としてP-2（初期配置のdecoupling制約）、観測側としてP-3（QEMU打ち切り表示）とP-4（FW laneのauthoritative Evidence）を含む。L1権限、閾値、fail-closed境界は変更しない |
-| 14.16 | FW lane専用の候補生成と配置テストの環境依存解消（R-1〜R-3） | FW固有remediationだけを入力とする候補生成器、footprint library非依存の配置回帰、FW復帰の実測記録を扱う |
+| 14.16 | FW lane専用の候補生成と配置テストの環境依存解消（R-1〜R-3） | FW固有remediationだけを入力とする候補生成器、footprint library非依存の配置回帰、FW復帰の実測記録を扱う。R-2は達成（decoupling-placement-minimal fixtureとcontainer実行marker）、R-1・R-3は未了 |
 | 14.17 | 復帰経路と新規設計入口の是正（S-1〜S-5） | 候補評価時のrationale更新、残予算での次候補評価、宣言toolの不在検出、library資材宣言の統一、進行表示を扱う。S-3の配布形態と復帰成立実行の実測は未了 |
 | 14.18 | 復帰候補評価からL3観測の混入を除く（T-1〜T-5） | 候補評価の独立timing記録、複数候補の列挙、宣言tool不在のdrift guard、L3 digestの統合、transport失敗時の出力保持を扱う。T-1〜T-5は実装済みで、復帰成立runの実測記録は未取得 |
 | 14.19 | 製造提出データの完備とscope改定後の残タスク（U-1〜U-5） | UTF-8明示、STL出力、quote／order例のrevision整合、decoupling配置、製造提出の単一L1判定を扱う。達成 |
@@ -239,6 +239,13 @@ FW固有のremediation（未登録action、pin function不整合、capability宣
 | 正常系 | FW lane却下（未登録action以外の、宣言済みGPIO代替で解ける却下）から、FW専用候補生成が宣言された次元だけで候補を出し、採用候補に対してFW laneのdeterministic stageを再実行してrevision一致のauthoritative Evidenceを生成する。基板・筐体laneの判定、GD1の判定、正規化hashは変化しない |
 | negative・fail-closed | FW固有remediationが無い却下、宣言されていない次元の候補、capability registryに無いactionを前提とする候補、virtual logを欠くEvidence、revision不一致はいずれもfail-closedで停止する。QEMU由来のEvidenceを実機測定として扱わず、探索reportと診断はpass authorityを持たない。環境非依存化したテストは、libraryの有無で判定が変わる経路をskipで隠さず、containerで実行する対象として明示する |
 | 再現性 | FW候補の列挙順、候補ID、変更subject、再実行stageを宣言順で固定し、`--jobs 1`と並列で収集件数・判定・正規化hashを一致させる。footprint library非依存fixtureのpad座標と期待距離を固定値として記録し、container側テストと同じ解になることを確認する |
+
+実装状況: R-2は達成済み。`fixtures/decoupling-placement-minimal/`の固定fixture
+（pad座標宣言済み最小graphと手書きfootprint）で初期配置の解と距離判定を
+pinned footprint library非依存で回帰し、実libraryを要するGD1 caseは
+`pinned_footprint_library` markerでcontainer-gates job実行対象として明示する
+（`ACD_REQUIRE_PINNED_LIBRARY=1`でfail-closed）。R-1とR-3は未着手である。
+詳細は[`roadmap-completed.md`](roadmap-completed.md)を正とする。
 
 ### 14.17 復帰経路と新規設計入口の是正（S-1〜S-5）
 

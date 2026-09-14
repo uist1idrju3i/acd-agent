@@ -260,6 +260,13 @@ jobs:
             --verdict out/container/manufacturing-submission.json \
             --graph fixtures/golden-design-1/graph.json \
             --require-authoritative
+      - name: Run pinned footprint library tests in DockerWorkspace
+        run: |
+          uv run python scripts/run_in_workspace.py \
+            --image "$SERVER_REF" \
+            --repo "$GITHUB_WORKSPACE" \
+            --cache-dir "${{ runner.temp }}/acd-cache" \
+            'uv sync && ACD_REQUIRE_PINNED_LIBRARY=1 uv run pytest tests/core/test_decoupling_placement.py -m pinned_footprint_library -n 0 -p no:cacheprovider'
       - name: Run non-GD1 deterministic gates in DockerWorkspace
         run: |
           uv run python scripts/run_in_workspace.py \

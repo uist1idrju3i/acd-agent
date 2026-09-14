@@ -1800,6 +1800,15 @@ DevinがPR作成前に実施する既定検証は`--stage fast`とする。
 `probe_tools.py`はprovisionalでauthoritative Evidenceを生成しないため、main CIの`verify`
 jobからは外し、`container-gates`のcontainer実行だけを正とする。
 
+pinned KiCad footprint library（`/usr/share/kicad/footprints/`）を要するテストは
+`pinned_footprint_library` markerで明示し、hostではlibrary欠落時にskipする。
+`tests/conftest.py`の`pytest_runtest_setup`は
+`ACD_REQUIRE_PINNED_LIBRARY=1`が設定された環境（`container-gates` jobが
+digest固定image内で`-m pinned_footprint_library`を実行する経路）では
+library欠落をskipではなく失敗として扱うため、container実行の対象外に
+なった場合でも気づかれない。library非依存の回帰は
+`fixtures/decoupling-placement-minimal/`が担う。
+
 #### main CI失敗のIssue報告（`main-ci-failure-issue.yml`）
 
 mainの`CI`完了を`workflow_run`で監視し、conclusionが`failure`または`timed_out`の場合に
