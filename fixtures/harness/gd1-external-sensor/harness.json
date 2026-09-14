@@ -11,6 +11,9 @@
       "graph_component_id": "comp.j2",
       "housing_mpn": "EXTERNAL_SENSOR",
       "keying": "A",
+      "mating_cycles_rated": 20000,
+      "polarity_guard": true,
+      "retention_force_n": 10.0,
       "terminal_mpn": "TERM-001"
     },
     {
@@ -18,6 +21,9 @@
       "graph_component_id": null,
       "housing_mpn": "EXTERNAL_SENSOR-MATE",
       "keying": "A",
+      "mating_cycles_rated": 20000,
+      "polarity_guard": true,
+      "retention_force_n": 10.0,
       "terminal_mpn": "TERM-001"
     }
   ],
@@ -34,6 +40,9 @@
       },
       "path_length_mm": 160.0,
       "route_id": "route-main",
+      "moving_section": true,
+      "expected_flex_cycles": 1000,
+      "bend_radius_dynamic_mm": 6.0,
       "wire_ids": [
         "w-vbus",
         "w-gnd",
@@ -63,6 +72,8 @@
           "temp_c": 60.0
         }
       ],
+      "flex_rated_cycles": 100000,
+      "shield": "braid",
       "wire_type_id": "wt-24awg"
     }
   ],
@@ -112,6 +123,7 @@
         "cavity": "3",
         "connector_id": "j2-mating"
       },
+      "twisted_pair_group": "usb",
       "wire_id": "w-usb-dp",
       "wire_type_id": "wt-24awg"
     },
@@ -128,8 +140,16 @@
         "cavity": "4",
         "connector_id": "j2-mating"
       },
+      "twisted_pair_group": "usb",
       "wire_id": "w-usb-dn",
       "wire_type_id": "wt-24awg"
     }
-  ]
+  ],
+  "segregation_policy": {
+    "min_spacing_mm": 1.0
+  },
+  "service_expectation": {
+    "expected_mating_cycles": 10000,
+    "min_retention_force_n": 5.0
+  }
 }

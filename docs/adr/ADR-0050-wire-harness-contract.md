@@ -31,6 +31,50 @@
    宣言値による決定論的検査だけを提供する。
 7. shield、flex-cycle、mating回数・保持力、DFA linkageは次のPR以降へ延期する。
 
+## 追補: 将来構想ワイヤハーネス第2段
+
+第2段では、上記の独立contractとL1 fail-closed方針を維持したまま、次の任意宣言を
+追加した。
+
+1. wire typeのシールド種別とwireの撚り対groupにより、analog-sensitive／high-speed
+   netのシールド要件を検査する。return wireを含む撚り対の宣言がない場合はfailとする。
+2. 16.5で定義した信号クラス非互換表を再利用し、同一connectorまたは同一routeのwire束を
+   検査する。既存の構造安全性predicateの定義は変更しない。
+3. moving sectionのrouteに期待屈曲回数、wire typeの耐屈曲回数、動的最小曲げ半径を宣言し、
+   不足または超過をfail／unknownとする。
+4. harness service expectationに嵌合回数と保持力を宣言し、connector定格と比較する。
+   同一housingのconnectorはdistinct keyingまたはpolarity guardを必須とする。
+5. 16.5の`safety.redundant_group`が`harness`共有を禁じる場合、membersのnetが同一routeへ
+   集約されていないことを検査する。harnessが未宣言の16.5 predicateの挙動は変更しない。
+6. `check_harness.py`が返す`dfa_findings`は既存のDFA finding contractを使うL2所見であり、
+   L1判定権限を持たない。keying未宣言と余長5%未満をassembly-order観点の観測として出力する。
+
+第2段の追加フィールドはすべて任意であり、旧contractは既存5 checksを維持する。ただし、
+判断に必要な宣言が存在する場合に欠落値をpassへ変換せず、unknownまたはfailとして停止側へ
+集約する。
+
+## 追補: 将来構想ワイヤハーネス第2段
+
+第2段では、上記の独立contractとL1 fail-closed方針を維持したまま、次の任意宣言を
+追加した。
+
+1. wire typeのシールド種別とwireの撚り対groupにより、analog-sensitive／high-speed
+   netのシールド要件を検査する。return wireを含む撚り対の宣言がない場合はfailとする。
+2. 16.5で定義した信号クラス非互換表を再利用し、同一connectorまたは同一routeのwire束を
+   検査する。既存の構造安全性predicateの定義は変更しない。
+3. moving sectionのrouteに期待屈曲回数、wire typeの耐屈曲回数、動的最小曲げ半径を宣言し、
+   不足または超過をfail／unknownとする。
+4. harness service expectationに嵌合回数と保持力を宣言し、connector定格と比較する。
+   同一housingのconnectorはdistinct keyingまたはpolarity guardを必須とする。
+5. 16.5の`safety.redundant_group`が`harness`共有を禁じる場合、membersのnetが同一routeへ
+   集約されていないことを検査する。harnessが未宣言の16.5 predicateの挙動は変更しない。
+6. `check_harness.py`が返す`dfa_findings`は既存のDFA finding contractを使うL2所見であり、
+   L1判定権限を持たない。keying未宣言と余長5%未満をassembly-order観点の観測として出力する。
+
+第2段の追加フィールドはすべて任意であり、旧contractは既存5 checksを維持する。ただし、
+判断に必要な宣言が存在する場合に欠落値をpassへ変換せず、unknownまたはfailとして停止側へ
+集約する。
+
 ## 影響
 
 ハーネスが未宣言のGD1や既存設計は、opt-in contractが存在しない限りハーネスgateの

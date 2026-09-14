@@ -16,9 +16,11 @@ from acd.schema.common import (
     SchemaVersion,
     Sha256,
 )
+from acd.schema.dfa_review import DfaFinding
 
 HarnessStatus = Literal["pass", "fail", "unknown"]
 WireConductor = Literal["copper", "tinned_copper"]
+WireShield = Literal["none", "braid", "foil", "braid_foil"]
 
 
 class HarnessConnector(AcdModel):
@@ -27,6 +29,9 @@ class HarnessConnector(AcdModel):
     housing_mpn: NonEmptyStr | None = None
     terminal_mpn: NonEmptyStr | None = None
     keying: NonEmptyStr | None = None
+    mating_cycles_rated: int | None = Field(default=None, gt=0)
+    retention_force_n: FiniteFloat | None = Field(default=None, gt=0)
+    polarity_guard: bool | None = None
 
 
 class TemperatureDeratingPoint(AcdModel):
@@ -44,6 +49,8 @@ class HarnessWireType(AcdModel):
     resistance_mohm_per_m: FiniteFloat = Field(gt=0)
     ampacity_a: FiniteFloat = Field(gt=0)
     ampacity_reference_temp_c: FiniteFloat
+    shield: WireShield = "none"
+    flex_rated_cycles: int | None = Field(default=None, gt=0)
     temperature_derating: list[TemperatureDeratingPoint] = Field(
         default_factory=list[TemperatureDeratingPoint]
     )
@@ -82,6 +89,7 @@ class HarnessWire(AcdModel):
     slack_mm: FiniteFloat = Field(ge=0)
     bend_radius_min_mm: FiniteFloat | None = Field(default=None, gt=0)
     return_wire_id: NodeId | None = None
+    twisted_pair_group: NonEmptyStr | None = None
 
     model_config = ConfigDict(
         extra="forbid",
@@ -97,6 +105,9 @@ class HarnessRoute(AcdModel):
     min_bend_radius_mm: dict[NodeId, FiniteFloat] = Field(
         default_factory=dict[NodeId, FiniteFloat]
     )
+    moving_section: bool = False
+    expected_flex_cycles: int | None = Field(default=None, gt=0)
+    bend_radius_dynamic_mm: FiniteFloat | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def validate_route(self) -> HarnessRoute:
@@ -107,6 +118,15 @@ class HarnessRoute(AcdModel):
         if any(value <= 0 for value in self.min_bend_radius_mm.values()):
             raise ValueError("route bend radii must be positive")
         return self
+
+
+class HarnessServiceExpectation(AcdModel):
+    expected_mating_cycles: int | None = Field(default=None, gt=0)
+    min_retention_force_n: FiniteFloat | None = Field(default=None, gt=0)
+
+
+class HarnessSegregationPolicy(AcdModel):
+    min_spacing_mm: FiniteFloat = Field(gt=0)
 
 
 class HarnessContract(AcdModel):
@@ -121,6 +141,8 @@ class HarnessContract(AcdModel):
     wire_types: list[HarnessWireType] = Field(min_length=1)
     wires: list[HarnessWire] = Field(min_length=1)
     routes: list[HarnessRoute] = Field(default_factory=list[HarnessRoute])
+    service_expectation: HarnessServiceExpectation | None = None
+    segregation_policy: HarnessSegregationPolicy | None = None
 
     @model_validator(mode="after")
     def validate_references(self) -> HarnessContract:
@@ -184,3 +206,4 @@ class HarnessResult(AcdModel):
     status: HarnessStatus
     checks: list[HarnessCheckResult] = Field(min_length=1)
     input_hashes: dict[str, Sha256]
+    dfa_findings: list[DfaFinding] = Field(default_factory=list[DfaFinding])

@@ -97,6 +97,7 @@
         "off_board": true,
         "power_rail": true,
         "power_source_pin": "pin.j1.a4",
+        "signal_class": "power",
         "voltage_nominal_v": 5.0,
         "width_basis": "current_ipc2221",
         "width_basis_source": "USB VBUS power net; IPC-2221 external-layer current capacity governs the routed conductor."
@@ -109,6 +110,7 @@
       "attrs": {
         "manufacturing_margin_mm": 0.0,
         "name": "CC1",
+        "signal_class": "digital",
         "voltage_nominal_v": 5.0,
         "width_basis": "manufacturing_minimum",
         "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint."
@@ -121,6 +123,7 @@
       "attrs": {
         "manufacturing_margin_mm": 0.0,
         "name": "CC2",
+        "signal_class": "digital",
         "voltage_nominal_v": 5.0,
         "width_basis": "manufacturing_minimum",
         "width_basis_source": "USB-C logic configuration signal; current-derived capacity is not the controlling constraint."
@@ -135,6 +138,7 @@
         "max_voltage_drop_v": 0.5,
         "name": "GND",
         "off_board": true,
+        "signal_class": "safety_extra_low_voltage",
         "voltage_nominal_v": 0.0,
         "width_basis": "current_ipc2221",
         "width_basis_source": "GND is a plane plus routed conductors; IPC-2221 external-layer current capacity governs each explicit routed conductor while the plane is independently measured as filled copper."
@@ -149,6 +153,7 @@
         "name": "+3V3",
         "power_rail": true,
         "power_source_pin": "pin.u2.2",
+        "signal_class": "power",
         "voltage_nominal_v": 3.3,
         "width_basis": "current_ipc2221",
         "width_basis_source": "Regulated 3.3 V power net; IPC-2221 external-layer current capacity governs the routed conductor."
@@ -164,6 +169,7 @@
         "max_voltage_drop_v": 0.5,
         "name": "USB_D-",
         "off_board": true,
+        "signal_class": "high_speed",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
         "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint."
@@ -179,6 +185,7 @@
         "max_voltage_drop_v": 0.5,
         "name": "USB_D+",
         "off_board": true,
+        "signal_class": "high_speed",
         "voltage_nominal_v": 3.3,
         "width_basis": "manufacturing_minimum",
         "width_basis_source": "USB data logic signal; current-derived capacity is not the controlling constraint."

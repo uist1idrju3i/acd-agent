@@ -1082,9 +1082,10 @@
       "schema_version": "0.1",
       "subject_attrs": [
         "voltage_nominal_v",
-        "current_max_a"
+        "current_max_a",
+        "signal_class"
       ],
-      "subject_hash": "sha256:78755c7c4b67392fa957f28e0a38ad60183fbe3c69a63bca2796b34c0252eb31",
+      "subject_hash": "sha256:c004426ad4af02645889a6b08827b8e94b4d717b54e9ce4094563169b2cded15",
       "subject_nodes": [
         "net.vbus_5v",
         "net.gnd",
@@ -1191,9 +1192,10 @@
       "schema_version": "0.1",
       "subject_attrs": [
         "voltage_nominal_v",
-        "manufacturing_margin_mm"
+        "manufacturing_margin_mm",
+        "signal_class"
       ],
-      "subject_hash": "sha256:96a7ab144cab580c7bc6d871efe73398105a123ad60ccb6a3fc22deda64dfd1c",
+      "subject_hash": "sha256:7b195c4be0b964110ed2f8e4173df19fceee1d45e57c69649ba403b4aca91a39",
       "subject_nodes": [
         "net.cc1",
         "net.cc2",

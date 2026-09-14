@@ -1606,3 +1606,9 @@ critical netの限定的な受動bridge・indicator・silk検査、IPC-2221台�
 を決定論的に投影する。GD1はハーネスcontractを持たないため既存gate出力を変更しない。
 ADR-0050でL1／L3境界、off-board netのrequired rationale、測定Evidenceと将来項目の境界を
 決定した。
+
+将来構想ワイヤハーネス第2段では、シールド・撚り対、可動部屈曲、嵌合回数・保持力、
+keying／polarity、16.5信号クラス隔離、冗長経路のハーネス共有検査を追加した。
+`check_harness.py`の`dfa_findings`は既存DFA finding contract形状のL2所見であり、
+L1判定には影響しない。将来の測定Evidence、shield termination、固定点・圧着の詳細モデルは
+引き続き別境界として扱う。

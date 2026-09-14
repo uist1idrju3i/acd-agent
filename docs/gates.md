@@ -225,7 +225,12 @@ contractはgraph nodeではなく、graphのコネクタcomponentとnetを参照
 
 `scripts/project_harness.py`は決定論的な`harness.svg`、`cut-length-table.csv`、
 `cut-length-table.md`、provenance sidecarをL3 projectionとして生成する。図と表は判定権限を
-持たず、測定Evidence、shield、flex-cycle、mating、DFA linkageは別途実装する。
+持たない。第2段として、wire typeのshield、wireのtwisted-pair、moving sectionのflex-cycle、
+connectorのmating-cycle／retention／keying、16.5のsignal-class segregationと
+redundant-group harness独立性を任意宣言から検査する。`dfa_findings`は既存DFA contract形状の
+L2所見であり、keying未宣言と余長5%未満をassembly-order観点で記録する。L2所見はL1判定を
+変更しない。第2段の入力が不足する場合は、該当するcheckをunknownまたはnot-applicableとして
+理由付きで返し、pass-by-omissionにはしない。
 
 ## 最小チェックリスト
 
