@@ -11,18 +11,10 @@
     },
     {
       "attrs": {
-        "text": "Display the measured temperature on the PC."
+        "text": "Stream readings to the PC over USB."
       },
       "depends_on": [],
-      "id": "req.fn-display-temp",
-      "kind": "requirement"
-    },
-    {
-      "attrs": {
-        "text": "Push an alert to the mobile app on threshold."
-      },
-      "depends_on": [],
-      "id": "req.fn-alert-push",
+      "id": "req.fn-stream-usb",
       "kind": "requirement"
     },
     {
@@ -46,26 +38,12 @@
           "maintainability"
         ],
         "domain": "pc_software",
-        "function_id": "fn-display-temp"
+        "function_id": "fn-stream-usb"
       },
       "depends_on": [
-        "req.fn-display-temp"
+        "req.fn-stream-usb"
       ],
-      "id": "resp.fn-display-temp",
-      "kind": "design.responsibility"
-    },
-    {
-      "attrs": {
-        "criteria": [
-          "communication_availability"
-        ],
-        "domain": "mobile_app",
-        "function_id": "fn-alert-push"
-      },
-      "depends_on": [
-        "req.fn-alert-push"
-      ],
-      "id": "resp.fn-alert-push",
+      "id": "resp.fn-stream-usb",
       "kind": "design.responsibility"
     }
   ],

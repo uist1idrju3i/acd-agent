@@ -16,7 +16,6 @@
     {
       "communication": [
         "ipc",
-        "push",
         "usb"
       ],
       "domain": "pc_software",
@@ -26,28 +25,12 @@
       "power_sources": [
         "mains"
       ]
-    },
-    {
-      "communication": [
-        "push"
-      ],
-      "domain": "mobile_app",
-      "gpio_count": 0,
-      "memory_kb": 512,
-      "motion": false,
-      "power_sources": [
-        "battery"
-      ]
     }
   ],
   "dependencies": [
     {
       "depends_on": "fn-measure-temp",
-      "function_id": "fn-display-temp"
-    },
-    {
-      "depends_on": "fn-display-temp",
-      "function_id": "fn-alert-push"
+      "function_id": "fn-stream-usb"
     }
   ],
   "functions": [
@@ -63,24 +46,13 @@
     },
     {
       "communication": [
-        "ipc",
         "usb"
       ],
-      "function_id": "fn-display-temp",
+      "function_id": "fn-stream-usb",
       "gpio_count": 0,
       "memory_kb": 64,
       "motion": false,
       "power_source": "mains"
-    },
-    {
-      "communication": [
-        "push"
-      ],
-      "function_id": "fn-alert-push",
-      "gpio_count": 0,
-      "memory_kb": 16,
-      "motion": false,
-      "power_source": "battery"
     }
   ],
   "graph_id": "resp-sample",
@@ -98,20 +70,6 @@
       "power": "usb_5v",
       "protocol": "usb serial",
       "signal": "temperature reading"
-    },
-    {
-      "declared_by": [
-        "mobile_app",
-        "pc_software"
-      ],
-      "domains": [
-        "mobile_app",
-        "pc_software"
-      ],
-      "interface_id": "if.alert-push",
-      "power": "battery",
-      "protocol": "push channel",
-      "signal": "threshold alert"
     }
   ],
   "revision": "r1",

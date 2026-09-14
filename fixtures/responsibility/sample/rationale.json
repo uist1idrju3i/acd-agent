@@ -32,10 +32,10 @@
       "target_revision": "r1"
     },
     {
-      "decision": "Assign fn-display-temp to pc_software.",
+      "decision": "Assign fn-stream-usb to pc_software.",
       "decision_kind": "responsibility_assignment",
       "driving_requirements": [
-        "req.fn-display-temp"
+        "req.fn-stream-usb"
       ],
       "justification": "The pc_software domain owns this function per ADR-0049 §7.",
       "provenance": {
@@ -44,7 +44,7 @@
         "skill_name": "fixture",
         "source": "acd_skill"
       },
-      "rationale_id": "rat-resp-display",
+      "rationale_id": "rat-resp-stream",
       "rejected_alternatives": [
         {
           "option": "Assign the function to another domain",
@@ -55,39 +55,9 @@
       "subject_attrs": [
         "domain"
       ],
-      "subject_hash": "sha256:cb51171f87c37a9cd4d13713c55b76053797cb28dd16e7438f0c2f6de6c375cf",
+      "subject_hash": "sha256:a3caae7e50b8530a97f8e3b5775c93afe6866e6baa1cef4c437adc98cbc0cfe3",
       "subject_nodes": [
-        "resp.fn-display-temp"
-      ],
-      "target_revision": "r1"
-    },
-    {
-      "decision": "Assign fn-alert-push to mobile_app.",
-      "decision_kind": "responsibility_assignment",
-      "driving_requirements": [
-        "req.fn-alert-push"
-      ],
-      "justification": "The mobile_app domain owns this function per ADR-0049 §7.",
-      "provenance": {
-        "recorded_at": "2026-09-13T00:00:00+00:00",
-        "script_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-        "skill_name": "fixture",
-        "source": "acd_skill"
-      },
-      "rationale_id": "rat-resp-alert",
-      "rejected_alternatives": [
-        {
-          "option": "Assign the function to another domain",
-          "reason": "The declared domain matches the capability needs."
-        }
-      ],
-      "schema_version": "0.1",
-      "subject_attrs": [
-        "domain"
-      ],
-      "subject_hash": "sha256:ab208629d6d88728f607e4dffd01318a672e315dbd5ccf7239e7b1e83b9d71d0",
-      "subject_nodes": [
-        "resp.fn-alert-push"
+        "resp.fn-stream-usb"
       ],
       "target_revision": "r1"
     }

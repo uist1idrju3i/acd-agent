@@ -53,7 +53,7 @@ def test_fixture_passes() -> None:
     result = check_responsibility(graph, declaration)
     assert result.status == "pass"
     assert result.findings == []
-    assert len(result.assignments) == 3
+    assert len(result.assignments) == 2
     assert result.gate == "responsibility_assignment"
 
 
@@ -89,7 +89,7 @@ def test_unassigned_function() -> None:
     g = graph.model_copy(
         update={
             "nodes": [
-                n for n in graph.nodes if n.id != "resp.fn-alert-push"
+                n for n in graph.nodes if n.id != "resp.fn-stream-usb"
             ]
         }
     )
@@ -239,7 +239,7 @@ def test_missing_capability() -> None:
             "capabilities": [
                 c
                 for c in declaration.capabilities
-                if c.domain != "mobile_app"
+                if c.domain != "pc_software"
             ]
         }
     )
@@ -304,7 +304,7 @@ def test_missing_interface() -> None:
             "interfaces": [
                 i
                 for i in declaration.interfaces
-                if i.interface_id != "if.alert-push"
+                if i.interface_id != "if.temp-data"
             ]
         }
     )
@@ -381,7 +381,7 @@ def test_cli_exit_1_on_gate_fail(tmp_path: Path) -> None:
     declaration = json.loads(
         (FIXTURE / "responsibility.json").read_text(encoding="utf-8")
     )
-    declaration["functions"] = declaration["functions"][:2]
+    declaration["functions"] = declaration["functions"][:1]
     bad_decl = tmp_path / "responsibility.json"
     bad_decl.write_text(
         json.dumps(declaration, ensure_ascii=False, indent=2) + "\n",
