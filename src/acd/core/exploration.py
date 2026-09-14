@@ -99,14 +99,14 @@ def _sha256(path: Path) -> str:
         raise ExplorationError(f"cannot hash exploration input: {path}: {exc}") from exc
 
 
-def _load_graph(path: Path) -> DesignGraph:
+def load_exploration_graph(path: Path) -> DesignGraph:
     try:
         return DesignGraph.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise ExplorationError(f"graph is invalid or unreadable: {path}: {exc}") from exc
 
 
-def _load_rationale(path: Path) -> RationaleDocument:
+def load_exploration_rationale(path: Path) -> RationaleDocument:
     try:
         return RationaleDocument.model_validate_json(path.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -906,7 +906,7 @@ def _commit_candidate(
 ) -> dict[str, Any]:
     try:
         return commit_candidate_graph(
-            _load_graph(working_fixture / "graph.json"), source_graph, source_fixture
+            load_exploration_graph(working_fixture / "graph.json"), source_graph, source_fixture
         )
     except CandidateCommitError as exc:
         raise ExplorationError(str(exc)) from exc
@@ -935,10 +935,10 @@ def explore_board_candidates(
         raise ExplorationError("max_candidates must be positive")
     if max_passes < 1:
         raise ExplorationError("max_passes must be positive")
-    graph = _load_graph(graph_path)
+    graph = load_exploration_graph(graph_path)
     if not fixture_dir.is_dir():
         raise ExplorationError(f"fixture directory is missing: {fixture_dir}")
-    rationale = _load_rationale(fixture_dir / "rationale.json")
+    rationale = load_exploration_rationale(fixture_dir / "rationale.json")
     remediation_dimensions: tuple[str, ...] = ()
     generation_diagnostics: list[dict[str, Any]] = []
     if remediation is None:
@@ -970,7 +970,7 @@ def explore_board_candidates(
             return run_pipeline(working, output, max_passes=max_passes)
 
         pipeline_runner = default_pipeline_runner
-    return _run_candidate_search(
+    return run_candidate_search(
         graph,
         graph_path,
         fixture_dir,
@@ -990,7 +990,7 @@ def explore_board_candidates(
     )
 
 
-def _run_candidate_search(
+def run_candidate_search(
     graph: DesignGraph,
     graph_path: Path,
     fixture_dir: Path,
@@ -1158,6 +1158,9 @@ __all__ = [
     "RemediationRequest",
     "enumerate_gpio_assignment_candidates",
     "explore_board_candidates",
+    "load_exploration_graph",
+    "load_exploration_rationale",
     "load_remediation_requests",
+    "run_candidate_search",
     "validate_candidate_dimensions",
 ]

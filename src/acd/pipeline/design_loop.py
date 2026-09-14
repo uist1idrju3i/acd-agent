@@ -1122,6 +1122,7 @@ def _run_firmware_exploration(
         pipeline_runner=pipeline_runner,
         remediation=remediation,
         coverage_findings=coverage_findings,
+        max_passes=config.max_passes,
     )
 
 

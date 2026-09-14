@@ -9,8 +9,6 @@ declaration target instead of generating candidates. The report is an L3
 observation with ``pass_evidence`` false; deterministic gates remain the sole
 authority.
 """
-# pyright: reportUnknownVariableType=false, reportPrivateUsage=false, reportUnknownMemberType=false, reportUnknownArgumentType=false
-
 from __future__ import annotations
 
 import json
@@ -19,6 +17,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, cast, get_args
 
+from acd.adapters.freerouting.router import DEFAULT_ROUTER_MAX_PASSES
 from acd.core.exploration import (
     FIRMWARE_EXPLORATION_ARTIFACT_KIND,
     ExplorationCandidate,
@@ -26,10 +25,10 @@ from acd.core.exploration import (
     ExplorationResult,
     PipelineRunner,
     RemediationRequest,
-    _load_graph,
-    _load_rationale,
-    _run_candidate_search,
     enumerate_gpio_assignment_candidates,
+    load_exploration_graph,
+    load_exploration_rationale,
+    run_candidate_search,
 )
 from acd.core.firmware_coverage import FirmwareCoverageCode, FirmwareCoverageFinding
 
@@ -107,6 +106,7 @@ def explore_firmware_candidates(
     pipeline_runner: PipelineRunner,
     remediation: Sequence[RemediationRequest],
     coverage_findings: Sequence[FirmwareCoverageFinding] = (),
+    max_passes: int = DEFAULT_ROUTER_MAX_PASSES,
 ) -> ExplorationResult:
     """Explore declared firmware GPIO alternatives without pass authority.
 
@@ -117,10 +117,12 @@ def explore_firmware_candidates(
     """
     if max_candidates < 1:
         raise ExplorationError("max_candidates must be positive")
-    graph = _load_graph(graph_path)
+    if max_passes < 1:
+        raise ExplorationError("max_passes must be positive")
+    graph = load_exploration_graph(graph_path)
     if not fixture_dir.is_dir():
         raise ExplorationError(f"fixture directory is missing: {fixture_dir}")
-    rationale = _load_rationale(fixture_dir / "rationale.json")
+    rationale = load_exploration_rationale(fixture_dir / "rationale.json")
     requested = {
         dimension
         for request in remediation
@@ -146,7 +148,7 @@ def explore_firmware_candidates(
         ]
     elif "gpio_assignment" in remediation_dimensions:
         candidates = enumerate_gpio_assignment_candidates(graph)
-    return _run_candidate_search(
+    return run_candidate_search(
         graph,
         graph_path,
         fixture_dir,
@@ -154,7 +156,7 @@ def explore_firmware_candidates(
         rationale,
         candidates,
         max_candidates,
-        max_passes=1,
+        max_passes,
         dry_run=dry_run,
         pipeline_runner=pipeline_runner,
         lane_id="firmware-pipeline",
