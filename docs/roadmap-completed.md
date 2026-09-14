@@ -1694,3 +1694,17 @@ projectionは「見積（estimate）・発注権限なし」を明記する。
 primary価格で収載し、`build_quantity=10`のpass経路と17.2由来の代替候補を固定する。
 `scripts/estimate_bom_cost.py`は`--as-of`で評価基準日を固定し、既存GD1 default outputは
 変更しない。外部API照会は行わない。
+
+### 10.2 PDN/IR drop解析の実装記録
+
+`PdnAnalysisRequest`と`PdnResult`をDesign Graphとは独立したopt-in contractとして追加し、
+保存済みKiCad PCBのsegment、via、pad、zoneを使って、指定したsource/sink間の最小抵抗
+銅箔経路を決定論的に推定する。銅厚はrequestの明示値または16.1で宣言したGraph/stackup
+値を使い、銅の温度補正抵抗率、断面積、電流密度、IR dropを算出する。Gerber経路はX2
+ネット帰属が証明できる場合だけ対象とし、帰属不能な銅箔を推測しない。
+
+閾値超過はfail、切断経路はfail、銅厚・帰属・形状の欠落はunknownへ集約する。zone/pour/
+regionは決定論的な幅・抵抗を捏造せず、`zone_on_path=true`と所見を記録してunknownとする。
+結果の`authority`は`estimate`固定で、L2 stop-side findingとして扱い、authoritative
+EvidenceやGD1 default gateへ接続しない。`fixtures/pdn/gd1-power.json`のGD1 routed board
+実行では`p1-vbus-j1-u2`、`p2-3v3-u2-u1`、`p3-3v3-u2-u3`がいずれもpassした。

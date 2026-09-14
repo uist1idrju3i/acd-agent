@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1",
+  "artifact_kind": "pdn_analysis_request",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "paths": [
+    {
+      "path_id": "p1-vbus-j1-u2",
+      "net": "VBUS_5V",
+      "source_refdes": "J1",
+      "sink_refdes": "U2",
+      "current_a": 0.5,
+      "max_ir_drop_mv": 100.0,
+      "max_current_density_a_per_mm2": 100.0
+    },
+    {
+      "path_id": "p2-3v3-u2-u1",
+      "net": "+3V3",
+      "source_refdes": "U2",
+      "sink_refdes": "U1",
+      "current_a": 0.25,
+      "max_ir_drop_mv": 100.0,
+      "max_current_density_a_per_mm2": 100.0
+    },
+    {
+      "path_id": "p3-3v3-u2-u3",
+      "net": "+3V3",
+      "source_refdes": "U2",
+      "sink_refdes": "U3",
+      "current_a": 0.05,
+      "max_ir_drop_mv": 100.0,
+      "max_current_density_a_per_mm2": 100.0
+    }
+  ],
+  "copper": {
+    "resistivity_ohm_mm": 0.0000172,
+    "temperature_c": 20.0,
+    "temp_coeff_per_c": 0.00393
+  },
+  "source": {
+    "kind": "kicad_pcb",
+    "path": "examples/sensor-node-20260820/board/routed/gd1.kicad_pcb"
+  }
+}

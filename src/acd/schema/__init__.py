@@ -283,6 +283,17 @@ from acd.schema.part_lifecycle import (
     PartLifecycleStatus,
     PartLifecycleStatusSource,
 )
+from acd.schema.pdn import (
+    PdnAnalysisRequest,
+    PdnCopper,
+    PdnPathRequest,
+    PdnPathResult,
+    PdnResult,
+    PdnSegmentResult,
+    PdnSource,
+    PdnStatus,
+    PdnViaResult,
+)
 from acd.schema.parts_catalog import (
     ComponentPartRequest,
     PartCatalogEntry,
@@ -704,6 +715,15 @@ __all__ = [
     "PartLifecycleSourceKind",
     "PartLifecycleStatus",
     "PartLifecycleStatusSource",
+    "PdnAnalysisRequest",
+    "PdnCopper",
+    "PdnPathRequest",
+    "PdnPathResult",
+    "PdnResult",
+    "PdnSegmentResult",
+    "PdnSource",
+    "PdnStatus",
+    "PdnViaResult",
     "PartPriceBook",
     "PartPriceBreak",
     "PartPriceEntry",

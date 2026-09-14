@@ -271,6 +271,24 @@ status sourceやalternateのreferenceはURLまたは文書識別子であり、�
 既存GD1のdefault gateへ接続しないopt-in経路であり、registryを指定しないGD1出力は変更
 しない。規制適合、供給保証、認証verdictは行わず、外部API照会は別途判断とする。
 
+### 10.2 PDN/IR drop推定（opt-in estimate）
+
+`PdnAnalysisRequest`を明示した場合だけ、保存済みKiCad PCBまたはGerber銅箔形状から
+指定した電源経路の断面積、抵抗、電流密度、IR dropを決定論的に推定する。KiCad PCBでは
+ネット属性付きsegment、via、pad、zoneを解析し、segment抵抗
+`R = ρL/(w t)`、viaのdrill・platingモデル、Dijkstraによる最小抵抗pad間経路を使う。
+銅厚はrequestの明示値または16.1で宣言したGraph/stackup値から取得し、温度係数で抵抗率を
+補正する。GerberはX2 net attributionが得られる場合だけ対象にし、帰属不能な銅箔を推測
+しない。
+
+電源経路のIR dropまたは電流密度が閾値を超えた場合はfailの停止側所見とする。segmentが
+切断されているなど接続が証明できない場合もfail、銅厚・ネット帰属・形状が不明な場合は
+unknownである。zone/pour/regionを経路として扱う場合、幅・抵抗を捏造せず、
+`zone_on_path=true`と`copper pour on path; deterministic width estimate not available`を
+記録してunknownへ倒す。集約順序はfail > unknown > passで、出力は`authority="estimate"`の
+L2 stop-side findingであり、authoritative Evidenceや既定GD1 gateへ接続しない。これは独立した
+opt-in経路であり、PDN requestを指定しない既存GD1 default outputは変更しない。
+
 ### 17.3 BOMコンプライアンス申告状況（opt-in aggregation）
 
 `ComplianceDeclarationRegistry`を明示した場合だけ、BOMのnon-empty MPNについて
