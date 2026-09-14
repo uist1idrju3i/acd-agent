@@ -10,6 +10,11 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from acd.core.command_runner import CommandResult, CommandSpec, run_stage
+from acd.core.lane_artifact_retention import (
+    LaneArtifactRetentionError,
+    load_lane_artifact_retention,
+    resolve_lane_retention,
+)
 from acd.core.lane_cli import LEGACY_FIXTURE_FLAGS, add_legacy_flags
 from acd.core.log_summary import DEFAULT_TAIL_LINES, summarize_log
 from acd.core.runtime_records import TimingRecorder, write_timing_record
@@ -259,11 +264,44 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "log_path": None,
                 }
             )
+        retention_error: str | None = None
+        artifact_retention: list[dict[str, object]] = []
+        try:
+            declaration = load_lane_artifact_retention()
+            for lane_stage in plan.lane_runner_stages:
+                output = lane_stage.output_path
+                if output is None:
+                    continue
+                if not output.is_dir():
+                    artifact_retention.append(
+                        {
+                            "lane_id": lane_stage.stage_id,
+                            "output_path": str(output),
+                            "status": "output_missing",
+                        }
+                    )
+                    continue
+                artifact_retention.append(
+                    resolve_lane_retention(
+                        lane_stage.stage_id, output, declaration
+                    ).to_dict()
+                )
+        except LaneArtifactRetentionError as exc:
+            retention_error = f"{type(exc).__name__}: {exc}"
+            failures.append(
+                {
+                    "command": [],
+                    "returncode": returncode,
+                    "stderr": f"lane artifact retention: {retention_error}",
+                    "log_path": None,
+                }
+            )
         summary = {
             "ok": not failures and returncode == 0,
             "resume": args.resume,
             "cache_dir": str(cache_dir) if cache_dir is not None else None,
             "timing_record": str(timing_path),
+            "artifact_retention": artifact_retention,
             "failures": failures,
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))

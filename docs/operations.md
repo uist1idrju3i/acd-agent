@@ -2488,6 +2488,30 @@ root実行containerとhost実行が同一out-rootを共用すると`Permission d
 末尾行数は`--log-tail-lines`、完全なログの埋め込みは`--full-logs`で指定する。要約はL3観測
 であり、コマンドの判定を変更しない。
 
+## lane成果物の最小収録集合
+
+各laneが保持すべき最小成果物集合は
+`contracts/lane-artifact-retention.json`（`acd-lane-artifact-retention-v1`）で
+機械可読に宣言する。laneごとに`minimal_artifacts`（lane出力dir相対のglob、
+`required`、理由）と`regenerable`（再生成可能な出力、例: FW laneの
+`*_fw/build/**/*`のESP-IDF buildツリー）を持つ。`run_design_lanes`のJSON要約は
+`artifact_retention`へ各laneの`LaneRetentionReport`（matchした相対パスと
+sha256、`missing_required`、regenerable件数・総bytes、出力dir不在は
+`status: "output_missing"`）をlane plan宣言順で載せる。
+
+最小集合だけを回収するにはcollectorを使う。
+
+```bash
+uv run python scripts/collect_lane_artifacts.py \
+  --out-root out --graph-id golden-design-1 --dest out/retained
+```
+
+`dest/<lane_id>/<relative path>`へ最小集合のみをcopyし、
+`dest/retention-manifest.json`（`declaration_hash`、各laneのreport）を書く。
+required patternが未matchの場合はmanifestを残してexit 1でfail-closedにする。
+この契約とmanifestはL3の運用記録であり、U-5の必須成果物判定
+（manufacturing submission gate）やEvidence規則を変更しない。
+
 ## 実行記録の持ち出し
 
 実機実行記録を外部公開する場合は、公開可能な最小集合だけを収集する入口を使う。

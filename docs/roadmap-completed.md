@@ -1165,3 +1165,32 @@ hostではskip、CIの`container-gates` jobでは
   （存在時）から受理し、両方不在ならfail-closedで停止する。
   exploration段recordへ`required_declarations`をL3情報として載せる。
   pass authority・Evidence意味論・閾値は変更していない。
+
+### 15.19 成果物の最小収録集合の実装記録
+
+`contracts/lane-artifact-retention.json`（`acd-lane-artifact-retention-v1`）を
+新設し、lane runnerの出力dirを持つ全stage（silkscreen-resolve、
+board-pipeline、enclosure-pipeline、firmware-pipeline）ごとに
+`minimal_artifacts`（glob＋required＋理由）と`regenerable`を宣言した。
+FW laneでは`summary.json`・`evidence-firmware.json`・`firmware-coverage.json`・
+`firmware-config-report.json`・`flash.bin`・`qemu-serial.log`・`*_fw/`の
+投影入力を最小集合とし、`*_fw/build/**/*`等のESP-IDF buildツリーを
+regenerableとして区別した。
+
+- `acd.schema.lane_artifact_retention`で契約をPydantic検証する
+  （extra禁止・相対glob限定・`..`拒否・lane_id一意）。
+- `acd.core.lane_artifact_retention.resolve_lane_retention`がlane出力dirへ
+  決定論的にglobを適用し、matchした相対パス・size・sha256と
+  `missing_required`、regenerable件数・総bytesを`LaneRetentionReport`
+  （`record_class: "L3"`、`pass_evidence: false`、authority文言付き）として返す。
+  未宣言laneや契約読込失敗は`LaneArtifactRetentionError`でfail-closedにする。
+- `scripts/run_design_lanes.py`のsummaryへ`artifact_retention`を追加し、
+  lane plan宣言順で各laneのreport（出力dir不在は`output_missing`）を載せる。
+  契約読込失敗はfailure entry＋`ok: false`とする。
+- `scripts/collect_lane_artifacts.py`が最小集合のみを
+  `dest/<lane_id>/<relative path>`へcopy2で収集し、
+  `retention-manifest.json`（declaration_hash、record_class L3、
+  pass_evidence false）を書く。required不足やlane出力不在は
+  manifestを残してexit 1とする。
+- U-5の必須成果物判定（manufacturing_submission）、ゲート、Evidence規則は
+  変更していない。本契約は観測・運用のL3記録である。

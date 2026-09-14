@@ -1,0 +1,264 @@
+{
+  "schema_version": "0.1",
+  "declaration_id": "acd-lane-artifact-retention-v1",
+  "lanes": [
+    {
+      "lane_id": "silkscreen-resolve",
+      "title": "silkscreen re-resolution outputs",
+      "minimal_artifacts": [
+        {
+          "pattern": "silkscreen-context.json",
+          "required": true,
+          "reason": "declared measurement context for the silkscreen gate"
+        },
+        {
+          "pattern": "iteration-*/silkscreen-skill-result.json",
+          "required": false,
+          "reason": "per-iteration Skill placement evidence (L3 record)"
+        },
+        {
+          "pattern": "round-*/silkscreen-skill-result.json",
+          "required": false,
+          "reason": "routed-board re-resolve round evidence (L3 record)"
+        },
+        {
+          "pattern": "routed-silkscreen-reresolve.json",
+          "required": false,
+          "reason": "idempotent re-resolve record when a routed board exists"
+        }
+      ],
+      "regenerable": [
+        {
+          "pattern": "work-fixture/**/*",
+          "reason": "copied fixture inputs; identical to the declared fixture"
+        },
+        {
+          "pattern": "gerbers/**/*",
+          "reason": "measurement Gerbers re-exported from the routed board"
+        }
+      ]
+    },
+    {
+      "lane_id": "board-pipeline",
+      "title": "electrical board pipeline outputs",
+      "minimal_artifacts": [
+        {
+          "pattern": "evidence-electrical.json",
+          "required": true,
+          "reason": "authoritative Evidence of the electrical lane"
+        },
+        {
+          "pattern": "gate-evidence/design-predicates.json",
+          "required": true,
+          "reason": "predicate gate evidence feeding recovery remediation"
+        },
+        {
+          "pattern": "design-freedom-declaration.json",
+          "required": true,
+          "reason": "declared search dimensions recorded for this run"
+        },
+        {
+          "pattern": "*.erc.json",
+          "required": true,
+          "reason": "ERC gate output"
+        },
+        {
+          "pattern": "*.drc.json",
+          "required": true,
+          "reason": "DRC gate output"
+        },
+        {
+          "pattern": "routing-summary.json",
+          "required": true,
+          "reason": "routing convergence record"
+        },
+        {
+          "pattern": "routing-connectivity.json",
+          "required": true,
+          "reason": "post-import connectivity gate output"
+        },
+        {
+          "pattern": "*.dsn",
+          "required": true,
+          "reason": "FreeRouting input exchange file"
+        },
+        {
+          "pattern": "*.ses",
+          "required": true,
+          "reason": "FreeRouting session result re-imported into the board"
+        },
+        {
+          "pattern": "routed/*.kicad_pcb",
+          "required": true,
+          "reason": "routed board committed to manufacturing inputs"
+        },
+        {
+          "pattern": "routed/*.kicad_pro",
+          "required": true,
+          "reason": "routed project file paired with the board"
+        },
+        {
+          "pattern": "routed/*.kicad_dru",
+          "required": true,
+          "reason": "design rules applied to the routed board"
+        },
+        {
+          "pattern": "gerbers/**/*",
+          "required": true,
+          "reason": "fabrication Gerber and drill outputs"
+        },
+        {
+          "pattern": "fab/*.json",
+          "required": true,
+          "reason": "fab package, DFM report, order readiness, CPL basis records"
+        },
+        {
+          "pattern": "fab/*.csv",
+          "required": true,
+          "reason": "JLCPCB BOM/CPL/position manufacturing files"
+        },
+        {
+          "pattern": "fab/*-gerbers.zip",
+          "required": true,
+          "reason": "deterministic fabrication archive"
+        }
+      ],
+      "regenerable": [
+        {
+          "pattern": ".stitch-iterations/**/*",
+          "reason": "stitch-via refill iterations; inputs and final board are retained"
+        },
+        {
+          "pattern": "l3/**/*",
+          "reason": "L3 progress observations (router-pass progress)"
+        }
+      ]
+    },
+    {
+      "lane_id": "enclosure-pipeline",
+      "title": "mechanical enclosure pipeline outputs",
+      "minimal_artifacts": [
+        {
+          "pattern": "summary.json",
+          "required": true,
+          "reason": "enclosure pipeline summary"
+        },
+        {
+          "pattern": "evidence-mechanical.json",
+          "required": true,
+          "reason": "authoritative Evidence of the mechanical lane"
+        },
+        {
+          "pattern": "enclosure-artifacts.json",
+          "required": true,
+          "reason": "measured artifact manifest consumed by the submission gate"
+        },
+        {
+          "pattern": "envelope-cad.json",
+          "required": true,
+          "reason": "CAD envelope record consumed by the submission gate"
+        },
+        {
+          "pattern": "*.step",
+          "required": true,
+          "reason": "STEP artifacts submitted to manufacturing"
+        },
+        {
+          "pattern": "*.3mf",
+          "required": true,
+          "reason": "3MF artifact submitted to manufacturing"
+        },
+        {
+          "pattern": "*.stl",
+          "required": true,
+          "reason": "STL artifact submitted to manufacturing"
+        },
+        {
+          "pattern": "preflight-mechanical.json",
+          "required": false,
+          "reason": "mechanical preflight diagnostic (L3)"
+        },
+        {
+          "pattern": "projection-format-check.json",
+          "required": false,
+          "reason": "projection format check record (L3)"
+        },
+        {
+          "pattern": "visual-*.json",
+          "required": false,
+          "reason": "visual projection and crosscheck records (L3)"
+        }
+      ],
+      "regenerable": []
+    },
+    {
+      "lane_id": "firmware-pipeline",
+      "title": "firmware lane outputs",
+      "minimal_artifacts": [
+        {
+          "pattern": "summary.json",
+          "required": true,
+          "reason": "firmware Skill summary consumed by Evidence"
+        },
+        {
+          "pattern": "evidence-firmware.json",
+          "required": true,
+          "reason": "authoritative Evidence of the firmware lane"
+        },
+        {
+          "pattern": "firmware-coverage.json",
+          "required": true,
+          "reason": "coverage diagnostic consumed by firmware recovery"
+        },
+        {
+          "pattern": "firmware-config-report.json",
+          "required": true,
+          "reason": "projected configuration report"
+        },
+        {
+          "pattern": "flash.bin",
+          "required": true,
+          "reason": "merged QEMU flash image"
+        },
+        {
+          "pattern": "qemu-serial.log",
+          "required": true,
+          "reason": "QEMU serial log cited by Evidence"
+        },
+        {
+          "pattern": "*_fw/CMakeLists.txt",
+          "required": true,
+          "reason": "projected ESP-IDF project root input"
+        },
+        {
+          "pattern": "*_fw/sdkconfig.defaults",
+          "required": true,
+          "reason": "projected sdkconfig defaults input"
+        },
+        {
+          "pattern": "*_fw/main/**/*",
+          "required": true,
+          "reason": "projected main component sources (acd_main.c, acd_pins.h)"
+        }
+      ],
+      "regenerable": [
+        {
+          "pattern": "*_fw/build/**/*",
+          "reason": "ESP-IDF build tree regenerated by the pinned toolchain"
+        },
+        {
+          "pattern": "*_fw/managed_components/**/*",
+          "reason": "fetched ESP-IDF component dependencies"
+        },
+        {
+          "pattern": "*_fw/sdkconfig",
+          "reason": "build-generated sdkconfig (defaults are retained)"
+        },
+        {
+          "pattern": "*_fw/dependencies.lock",
+          "reason": "build-generated component lock"
+        }
+      ]
+    }
+  ]
+}
