@@ -114,6 +114,7 @@ from acd.core.rework_diff import (
     ReworkDiffError,
     apply_rework_diff,
     load_rework_diff,
+    safety_related_node_ids,
     write_derived_graph,
 )
 from acd.core.side_effect_journal import (
@@ -193,6 +194,7 @@ __all__ = [
     "load_functional_block_registry",
     "load_quote",
     "load_rework_diff",
+    "safety_related_node_ids",
     "normalize_3mf",
     "normalize_step",
     "normalize_stl",

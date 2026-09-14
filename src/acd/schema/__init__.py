@@ -315,6 +315,14 @@ from acd.schema.visual_projection import (
     VisualVisionObservation,
     VisualVisionToolEvent,
 )
+from acd.schema.workaround import (
+    SkillProvenance,
+    WorkaroundCandidate,
+    WorkaroundCandidateId,
+    WorkaroundEvaluation,
+    WorkaroundProposalSet,
+    WorkaroundStrategy,
+)
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
@@ -567,6 +575,12 @@ __all__ = [
     "VisualVisionObservation",
     "VisualVisionToolEvent",
     "WorkaroundId",
+    "SkillProvenance",
+    "WorkaroundCandidate",
+    "WorkaroundCandidateId",
+    "WorkaroundEvaluation",
+    "WorkaroundProposalSet",
+    "WorkaroundStrategy",
     "base_revision",
     "canonical_json_sha256",
     "canonical_sha256",

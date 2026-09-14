@@ -1436,6 +1436,20 @@ Evidenceをfixturesへ追加し、schema・core・CLIの正常系とfail-closed�
 rationale coverageを壊さない`jlcpcb_class`置換を使い、`fixture-dir`側のrationaleも
 派生revisionへ更新して再実行する契約を維持した。`rationale_refs`は追加していない。
 
+### 13.4 ワークアラウンドSkillの実装記録
+
+`acd-workaround` Skillは13.1の不具合recordをfreshに検査し、identified root-cause
+anchorから`firmware_only`・`rework_only`・`combined`の候補を決定論的に立案する。
+適用不能な戦略も`not_applicable`として候補setへ残し、候補templateの
+`WA-000`、graph、revision、anchor、strategyを契約検査する。候補setと評価は
+L2／`pass_evidence=false`であり、合否権限を持たない。
+
+agentはcandidate setにあるtemplateだけを完成し、anchorを発明できない。
+`check_workaround.py`は完成diffとDFA、approval、revision一致Evidenceを検査した後、
+既存の`evaluate_salvage()`と`write_derived_graph()`を呼び出す。結果JSONは観測として
+報告し、`salvageable`だけを終了code 0、`constrained_salvage`を合格ではない終了code
+1として扱う。graph・defects・script hashとACD versionをprovenanceへ記録する。
+
 21.8は`plugins/acd/skills/acd-product-docs/scripts/generate_idea_allocation_docs.py`
 を追加した。graph、アイデアrecord、見積catalog、責務割当宣言から
 `idea-record.md`・`rough-estimate.md`／`.json`（`IdeaRoughEstimate`本体）・

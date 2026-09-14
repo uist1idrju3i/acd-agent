@@ -96,22 +96,17 @@ def _component_power_touched(
     )
 
 
-def _safety_touched(
-    touched_ids: set[str], nodes: dict[str, GraphNode]
-) -> bool:
+def _safety_related_ids(nodes: dict[str, GraphNode]) -> frozenset[str]:
     power_nets = _power_nets(nodes)
-    safety_boundaries = [
-        node for node in nodes.values() if node.kind == "safety.boundary"
-    ]
     boundary_dependencies = {
         dependency
-        for boundary in safety_boundaries
-        for dependency in boundary.depends_on
+        for node in nodes.values()
+        if node.kind == "safety.boundary"
+        for dependency in node.depends_on
     }
-    for node_id in touched_ids:
-        node = nodes.get(node_id)
-        if node is None:
-            continue
+    related = {
+        node.id
+        for node in nodes.values()
         if (
             node.kind == "safety.boundary"
             or node.id in boundary_dependencies
@@ -121,9 +116,20 @@ def _safety_touched(
                 and node.attrs.get("net") in power_nets
             )
             or _component_power_touched(node, nodes, power_nets)
-        ):
-            return True
-    return False
+        )
+    }
+    return frozenset(related)
+
+
+def safety_related_node_ids(graph: DesignGraph) -> frozenset[str]:
+    """Return graph nodes conservatively related to a safety boundary."""
+    return _safety_related_ids(_node_map(list(graph.nodes)))
+
+
+def _safety_touched(
+    touched_ids: set[str], nodes: dict[str, GraphNode]
+) -> bool:
+    return bool(touched_ids & _safety_related_ids(nodes))
 
 
 def _apply_cut(
@@ -383,5 +389,6 @@ __all__ = [
     "ReworkDiffError",
     "apply_rework_diff",
     "load_rework_diff",
+    "safety_related_node_ids",
     "write_derived_graph",
 ]

@@ -170,6 +170,7 @@ plugins/acd/
     ├── acd-install-doctor/
     ├── acd-product-docs/
     ├── acd-theme-song/
+    ├── acd-workaround/
     └── acd-design-knowledge/
 ```
 
