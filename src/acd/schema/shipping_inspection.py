@@ -31,18 +31,27 @@ class InspectionCriterion(AcdModel):
     lower: float | None = None
     upper: float | None = None
     source: CriterionSource | None = None
+    unknown_reason: NonEmptyStr | None = None
 
     @model_validator(mode="after")
     def validate_criterion(self) -> InspectionCriterion:
         unknown = self.kind == "unknown"
-        if unknown != (self.expected is None and self.source is None):
+        if unknown != (
+            self.expected is None
+            and self.source is None
+            and self.unknown_reason is not None
+        ):
             raise ValueError(
-                "unknown criterion must have no expected value or source"
+                "unknown criterion requires a reason and no expected value or source"
                 if unknown
-                else "known criterion requires expected value and source"
+                else "known criterion requires expected value and source and no reason"
             )
         if not unknown and (self.expected is None or self.source is None):
             raise ValueError("known criterion requires expected value and source")
+        if unknown and self.unknown_reason is None:
+            raise ValueError("unknown criterion requires a reason")
+        if not unknown and self.unknown_reason is not None:
+            raise ValueError("known criterion must not declare an unknown reason")
         if self.kind == "range":
             if self.lower is None or self.upper is None:
                 raise ValueError("range criterion requires lower and upper")

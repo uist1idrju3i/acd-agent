@@ -59,6 +59,11 @@ def test_gd1_covers_all_categories_and_validates_contract(tmp_path: Path) -> Non
         item.manual_decision_required for item in document.items
     )
     assert all(
+        item.criterion.unknown_reason
+        for item in document.items
+        if item.criterion.kind == "unknown"
+    )
+    assert all(
         item.criterion.source is not None
         for item in document.items
         if item.criterion.kind != "unknown"

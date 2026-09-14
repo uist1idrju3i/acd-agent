@@ -63,6 +63,15 @@ _CATEGORY_TEMPLATE_KEYS = {
     "sensor": "shipping.category.sensor",
     "serial": "shipping.category.serial",
 }
+_UNKNOWN_REASON_TEMPLATE_KEYS = {
+    "missing component mpn": "shipping.unknown.missing_component_mpn",
+    "ground net is undeclared": "shipping.unknown.ground_net_undeclared",
+    "missing nominal voltage": "shipping.unknown.missing_nominal_voltage",
+    "missing safety voltage limit": "shipping.unknown.missing_safety_voltage_limit",
+    "missing firmware boot declaration": "shipping.unknown.missing_firmware_boot",
+    "blink behavior is not declared": "shipping.unknown.led_blink_undeclared",
+    "serial output lines are not declared": "shipping.unknown.serial_output_undeclared",
+}
 
 
 def t(key: str, **values: object) -> str:
@@ -165,9 +174,13 @@ def _item(
     )
 
 
-def _unknown(source_reason: str) -> InspectionCriterion:
-    del source_reason
-    return _criterion("unknown", None, None)
+def _unknown(reason: str) -> InspectionCriterion:
+    return InspectionCriterion(
+        kind="unknown",
+        expected=None,
+        source=None,
+        unknown_reason=reason,
+    )
 
 
 def build_shipping_inspection(
@@ -458,7 +471,11 @@ def render_markdown(
                 if criterion.source is None
                 else f"{criterion.source.kind}: {criterion.source.ref}"
             )
-            decision = ""
+            decision = (
+                t(_UNKNOWN_REASON_TEMPLATE_KEYS[criterion.unknown_reason])
+                if criterion.unknown_reason in _UNKNOWN_REASON_TEMPLATE_KEYS
+                else criterion.unknown_reason or "unknown"
+            )
             lines.append(
                 t(
                     "shipping.row",
