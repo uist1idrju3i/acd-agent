@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@31ea95ed97a4663ee1106b01b0b1e8cbb612dede",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e8d0307410666e9ed11f794b9e46d0595a3528f3",
 # ]
 # ///
 """Run the opt-in reliability-test mapping gate."""

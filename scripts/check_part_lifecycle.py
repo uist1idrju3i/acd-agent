@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@0ca3330c29872817ab9044d5377a0dcf46f848c4",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e8d0307410666e9ed11f794b9e46d0595a3528f3",
 # ]
 # ///
 """Run the opt-in part lifecycle and second-source gate."""

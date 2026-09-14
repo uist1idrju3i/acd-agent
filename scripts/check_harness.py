@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@f20514f94d938b73deeb47e6980bbb49501b03c9",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e8d0307410666e9ed11f794b9e46d0595a3528f3",
 # ]
 # ///
 """Run the opt-in deterministic wire-harness gate."""

@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@eb5da0f3127063f30205af8e9373dfc8b4e8e56c",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e8d0307410666e9ed11f794b9e46d0595a3528f3",
 # ]
 # ///
 """Summarize opt-in BOM compliance declarations without issuing a verdict."""
