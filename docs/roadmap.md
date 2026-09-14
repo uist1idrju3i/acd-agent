@@ -179,7 +179,7 @@ GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへ�
 
 | 順 | フェーズ | 内容 | 現状 |
 |---|---|---|---|
-| 13.1 | 不具合record契約 | 症状、再現条件、発生率、影響機能、影響個体範囲（ロット・シリアル）、根本原因候補を宣言contractとして定義する。原因が導出できない場合はunknownとして記録し、救済候補の立案へ進めない。併せて水平展開の列挙（同一部品・同一トポロジ・同一ルール適用箇所・同一fixture・同一プロファイルをgraph上で機械的に検索した結果と、対象外にした箇所の理由）を必須項目とし、列挙結果が空の場合は「探索して該当なし」と「未探索」を区別して記録する。未探索はunknownとして停止側へ集約し、救済候補の立案へ進めない | 計画 |
+| 13.1 | 不具合record契約 | 症状、再現条件、発生率、影響機能、影響個体範囲（ロット・シリアル）、根本原因候補を宣言contractとして定義する。原因が導出できない場合はunknownとして記録し、救済候補の立案へ進めない。併せて水平展開の列挙（同一部品・同一トポロジ・同一ルール適用箇所・同一fixture・同一プロファイルをgraph上で機械的に検索した結果と、対象外にした箇所の理由）を必須項目とし、列挙結果が空の場合は「探索して該当なし」と「未探索」を区別して記録する。未探索はunknownとして停止側へ集約し、救済候補の立案へ進めない | 達成 |
 | 13.2 | 追加工差分contract | 追加工を`cut`（パターンカット）、`add`（部品・配線の追加）、`remove`（部品の除去）、`replace`（定数・型番の変更）、`mechanical`（筐体の追加加工）の型付き差分として宣言し、元graphへ適用した派生graphを決定論的に導出する。差分は投影として扱い、設計入力へ逆流させない | 計画 |
 | 13.3 | 救済可能性ゲート | 派生graphへ既存の電気・機械・FWゲートを再実行し、追加工の実施可能性（DFA）と安全境界の承認要否を合わせて判定する。判定結果は`救済可`／`制約付き救済`／`救済不可`の三値とし、根拠ゲート結果を伴わない判定を出さない | 計画 |
 | 13.4 | ワークアラウンドSKILL | 不具合recordから救済候補（FW修正のみ／追加工のみ／併用）を立案し、13.2の差分contractへ落として13.3の再検証を呼び出すSKILL（例: `/acd:workaround`）を追加する。SKILL自体はL2の操舵であり合否権限を持たず、候補と根拠、代替案、不可理由をprovenance付きで返す | 計画 |
@@ -680,6 +680,7 @@ agentが推測で埋めない。
 | `idea_promotion.py` | アイデアから要件へのpromotion provenance（`ADR-0049`） | 21.5 |
 | `idea_question_bank.py` | 対話型ブラッシュアップの質問bank（`ADR-0049`） | 21.2 |
 | `responsibility.py` | 機能のdomain割当宣言と決定論的gate（`ADR-0049`） | 21.6・21.7 |
+| `defect_record.py` | 不具合recordと水平展開検査gateの宣言contract | 13.1 |
 
 ## ADRとマイルストーンの対応
 
@@ -762,6 +763,8 @@ plugin資材とscriptの成果物対応を示す。SkillとcommandはL2操舵・
 | `run_enclosure_pipeline.py` | 3 |
 | `build_gd1_fixture.py` | 14.5 |
 | `check_rationale.py` | 1 |
+| `check_responsibility_assignment.py` | 21.7 |
+| `check_defect_record.py` | 13.1 |
 | `fetch_lcsc_footprint_orientation.py` | 7.1・17.1 |
 | `ingest_receipt.py` | 5.2 |
 | `ingest_functional_run.py` | 5.3 |

@@ -1374,6 +1374,27 @@ decision kind、`src/acd/schema/responsibility.py`の宣言contract、
 `scripts/check_responsibility_assignment.py`を追加した（PR #452）。gateは
 gate evidenceのみを生成し、authoritative Evidenceは生成しない。
 
+### 13.1 不具合record契約と水平展開検査の実装記録
+
+`src/acd/schema/defect_record.py`へ、不具合の症状、再現条件、発生率、影響機能、
+影響個体範囲、根本原因候補、5基準（同一部品MPN・同一node kind・同一rule・
+同一fixture・同一profile）の水平展開宣言を追加した。unknown、未探索、重複ID、
+水平基準の欠落はPydantic contractでfail-closedに停止する。
+
+`src/acd/core/defect_records.py`の`compute_horizontal_scope`は、identifiedな根本原因
+候補のnodeをアンカーとしてgraphを機械的に検索し、node ID順の結果を返す。
+`same_rule`は`rule_ids`／`applied_rules`属性だけを検索し、属性が無いgraphでは
+「探索済み・該当なし」とする。`check_defect_records`はgraph ID・revision、未知node、
+unknown根本原因、未探索・不足・余分な水平展開、unknown個体範囲を検査し、
+findingの無いrecordだけを`workaround_eligible`へ分類する。結果はgate evidenceであり、
+authoritative Evidenceや合否権限を生成しない。
+
+`scripts/check_defect_record.py`は`defect-record-check.json`と
+`gate-evidence/defect-record.json`を生成する。`fixtures/defect/sample/defects.json`を
+GD1 graphへ照合し、全5基準をsearchedとして機械的に列挙する正常系と、schema・core・
+CLIのnegative testを追加した。未探索、unknown、未知node、水平展開不一致、
+revision不一致は停止側へ分類される。
+
 21.8は`plugins/acd/skills/acd-product-docs/scripts/generate_idea_allocation_docs.py`
 を追加した。graph、アイデアrecord、見積catalog、責務割当宣言から
 `idea-record.md`・`rough-estimate.md`／`.json`（`IdeaRoughEstimate`本体）・
