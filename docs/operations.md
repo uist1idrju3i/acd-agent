@@ -762,6 +762,17 @@ graph検証失敗、
 round上限到達は元のboard失敗理由を保持してfail-closedで停止する。自動連結を使わない場合や
 診断次元を指定して手動評価する場合は`acd_explore_board_candidates`を使用する。
 
+`--recover-lanes`でFW laneが却下された場合は`acd.core.firmware_exploration`の
+FW専用候補生成器へ回る。入力はlane出力の`gate-evidence/design-predicates.json`
+（存在時）と`firmware-coverage.json`（存在時）であり、両方不在ならfail-closedで
+停止する。候補次元は`gpio_assignment`に限り、基板側の配置・回転次元は
+`excluded_dimensions`へ記録して候補化しない。探索reportは
+`candidate_source="firmware_registry_and_predicates"`と
+`searchable_dimensions`を持ち、coverage findingがある却下は候補を評価せず
+`status="stopped"`／`termination_reason="declaration_required"`で停止して
+`required_declarations`（code・node_id・declaration_target）をexploration段
+recordへ載せる。reportはL3観測であり、pass authorityは持たない。
+
 `acd_run_design_loop`も同じin-code orchestratorを呼び出す。gate、閾値、期待値、
 revision一致、authoritative Evidenceの規則は変更しない。Skill出力、AI review、host上の
 provisional実行、loopの成功観測は合格Evidenceではなく、実発注もこの入口では行わない。

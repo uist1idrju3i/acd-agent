@@ -1137,3 +1137,31 @@ hostではskip、CIの`container-gates` jobでは
 `ACD_REQUIRE_PINNED_LIBRARY=1`を付けてdigest固定image内で
 `-m pinned_footprint_library`を実行し、library欠落はskipではなく
 失敗として検出する。判定・閾値・Evidence意味論は変更していない。
+
+### 14.16 R-1 FW lane専用候補生成の実装記録
+
+`explore_firmware_candidates`は従来`explore_board_candidates`へ委譲しており、
+基板側の配置・回転次元の候補がFW復帰へ混入しうる構造だった。
+`src/acd/core/firmware_exploration.py`を新設し、FW lane専用の候補生成器へ分離した。
+
+- 探索ループとreport組立は`exploration._run_candidate_search`へ抽出して共用化し、
+  `explore_board_candidates`のreportは同一入力でbyte一致を維持する
+  （既存テストがガード）。`termination_override`で候補ゼロ時の終端を上書きできる。
+- `FIRMWARE_SEARCHABLE_DIMENSIONS = frozenset({"gpio_assignment"})`は
+  `contracts/lane-recovery-declaration.json`のFW lane
+  `recovery_dimensions`との一致をテストでfail-closedに固定する。
+- remediationの要求次元は`gpio_assignment`のみ候補化し、
+  `component_placement_xy`等は`excluded_dimensions`へ記録して候補にしない。
+  基板側の配置・decoupling生成器は呼ばない。
+- `firmware-coverage.json`のfinding（未登録action等）は候補生成ではなく
+  `status="stopped"`／`termination_reason="declaration_required"`へ倒し、
+  `required_declarations`にcode・node_id・declaration_targetをL3提示する。
+  declaration_targetは`contracts/firmware-capability-registry.json`の
+  capabilities actions／emits_triggersかgraph.jsonのfirmware属性を指す。
+- `load_firmware_coverage_findings`はmissing・malformed・未知codeを
+  `ExplorationError`でfail-closedにする。
+- `design_loop._run_firmware_exploration`はFW lane却下を
+  `gate-evidence/design-predicates.json`（存在時）と`firmware-coverage.json`
+  （存在時）から受理し、両方不在ならfail-closedで停止する。
+  exploration段recordへ`required_declarations`をL3情報として載せる。
+  pass authority・Evidence意味論・閾値は変更していない。

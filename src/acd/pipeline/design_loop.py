@@ -21,8 +21,12 @@ from acd.core.exploration import (
     ExplorationResult,
     RemediationRequest,
     explore_board_candidates,
-    explore_firmware_candidates,
     load_remediation_requests,
+)
+from acd.core.firmware_coverage import FirmwareCoverageFinding
+from acd.core.firmware_exploration import (
+    explore_firmware_candidates,
+    load_firmware_coverage_findings,
 )
 from acd.core.lane_preflight import (
     LANE_REQUIREMENTS,
@@ -1043,22 +1047,20 @@ def _run_lane_exploration(
             pipeline_runner=enclosure_pipeline_runner,
             commit=True,
         )
+    if plan.explorer == "firmware":
+        return _run_firmware_exploration(
+            config,
+            plan,
+            graph_path,
+            round_out,
+            board_pipeline_runner,
+        )
     graph = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
     remediation = _lane_remediation(config, plan.lane_id, graph.revision)
     if not remediation:
         raise ValueError(
             f"{plan.lane_id} rejection declares no remediation; "
             "recovery cannot derive a candidate (fail-closed)"
-        )
-    if plan.explorer == "firmware":
-        return explore_firmware_candidates(
-            graph_path,
-            config.fixture_dir,
-            round_out,
-            config.max_exploration_candidates,
-            dry_run=False,
-            pipeline_runner=board_pipeline_runner,
-            remediation=remediation,
         )
     if plan.explorer != "board":
         raise ValueError(
@@ -1073,6 +1075,53 @@ def _run_lane_exploration(
         dry_run=False,
         pipeline_runner=board_pipeline_runner,
         remediation=remediation,
+    )
+
+
+def _run_firmware_exploration(
+    config: DesignLoopConfig,
+    plan: LaneRecoveryPlan,
+    graph_path: Path,
+    round_out: Path,
+    pipeline_runner: Callable[[Path, Path], object],
+) -> ExplorationResult:
+    """Route a firmware lane rejection to the firmware-only explorer.
+
+    The firmware lane writes ``firmware-coverage.json`` instead of predicate
+    gate evidence, so remediation comes from either artifact; a rejection with
+    neither cannot derive a candidate and fails closed.
+    """
+    lane_output = config.lane_plan.stage(plan.lane_id).output_path
+    if lane_output is None:
+        raise ValueError(f"{plan.lane_id} has no declared output path (fail-closed)")
+    graph = DesignGraph.model_validate_json(graph_path.read_text(encoding="utf-8"))
+    evidence = lane_output / "gate-evidence" / "design-predicates.json"
+    remediation: tuple[RemediationRequest, ...] = (
+        load_remediation_requests(evidence, graph.revision)
+        if evidence.is_file()
+        else ()
+    )
+    coverage_path = lane_output / "firmware-coverage.json"
+    coverage_findings: tuple[FirmwareCoverageFinding, ...] = (
+        load_firmware_coverage_findings(coverage_path)
+        if coverage_path.is_file()
+        else ()
+    )
+    if not evidence.is_file() and not coverage_path.is_file():
+        raise ValueError(
+            "firmware-pipeline rejection has neither predicate evidence nor "
+            "firmware coverage report; recovery cannot derive a candidate "
+            "(fail-closed)"
+        )
+    return explore_firmware_candidates(
+        graph_path,
+        config.fixture_dir,
+        round_out,
+        config.max_exploration_candidates,
+        dry_run=False,
+        pipeline_runner=pipeline_runner,
+        remediation=remediation,
+        coverage_findings=coverage_findings,
     )
 
 
@@ -1541,6 +1590,7 @@ def run_design_loop(
                     "target_revision": report.get("target_revision"),
                     "evaluated_candidates": report.get("evaluated_candidates", 0),
                     "diagnostic_dimensions": sorted(diagnostic_dimensions_set),
+                    "required_declarations": report.get("required_declarations", []),
                     "winner_written": report.get("winner_written", False),
                     **_recovery_fields(plan),
                 }
