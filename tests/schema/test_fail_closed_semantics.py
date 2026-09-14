@@ -61,13 +61,17 @@ def test_valid_evidence_supports_pass_only_on_matching_revision() -> None:
 
 
 def test_derived_revision_evidence_does_not_match_base_revision() -> None:
-    data = fixture_obj(load_fixture("valid", "evidence.json"))
-    data["target_revision"] = "r1+WA-001"
-    envelope = fixture_obj(data["envelope"])
-    envelope["target_revision"] = "r1+WA-001"
-    evidence = Evidence.model_validate({**data, "envelope": envelope})
-    assert not evidence.supports_pass("r1")
-    assert evidence.supports_pass("r1+WA-001")
+    derived_data = fixture_obj(load_fixture("valid", "evidence.json"))
+    derived_data["target_revision"] = "r1+WA-001"
+    derived_envelope = fixture_obj(derived_data["envelope"])
+    derived_envelope["target_revision"] = "r1+WA-001"
+    derived = Evidence.model_validate({**derived_data, "envelope": derived_envelope})
+    assert not derived.supports_pass("r1")
+    assert derived.supports_pass("r1+WA-001")
+
+    base_data = fixture_obj(load_fixture("valid", "evidence.json"))
+    base = Evidence.model_validate(base_data)
+    assert not base.supports_pass("r1+WA-001")
 
 
 def test_stale_evidence_never_supports_pass() -> None:
