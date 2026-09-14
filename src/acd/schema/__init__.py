@@ -236,13 +236,6 @@ from acd.schema.order_total import (
     OrderTotalDocument,
     QuoteCanonicalHashDocument,
 )
-from acd.schema.parts_catalog import (
-    ComponentPartRequest,
-    PartCatalogEntry,
-    PartCplOrientation,
-    PartLibraryRef,
-    PartsCatalogDocument,
-)
 from acd.schema.part_lifecycle import (
     AlternateEquivalence,
     PartLifecycleAlternate,
@@ -257,6 +250,13 @@ from acd.schema.part_lifecycle import (
     PartLifecycleSourceKind,
     PartLifecycleStatus,
     PartLifecycleStatusSource,
+)
+from acd.schema.parts_catalog import (
+    ComponentPartRequest,
+    PartCatalogEntry,
+    PartCplOrientation,
+    PartLibraryRef,
+    PartsCatalogDocument,
 )
 from acd.schema.prompt_manifest import (
     PromptCacheTier,
@@ -448,6 +448,7 @@ __all__ = [
     "AcdSettingsReport",
     "AcdSettingsStatus",
     "AffectedUnits",
+    "AlternateEquivalence",
     "AppliedFeedbackValidationReport",
     "Assignment",
     "BringUpItem",
@@ -638,8 +639,6 @@ __all__ = [
     "PartCatalogEntry",
     "PartCplOrientation",
     "PartLibraryRef",
-    "PartsCatalogDocument",
-    "AlternateEquivalence",
     "PartLifecycleAlternate",
     "PartLifecycleAlternateVerification",
     "PartLifecycleCheckResult",
@@ -652,6 +651,7 @@ __all__ = [
     "PartLifecycleSourceKind",
     "PartLifecycleStatus",
     "PartLifecycleStatusSource",
+    "PartsCatalogDocument",
     "PhysicalEvidence",
     "PortExposure",
     "PostOrderJournalEntry",
