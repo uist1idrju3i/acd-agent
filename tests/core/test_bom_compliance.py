@@ -192,7 +192,7 @@ def test_cli_revision_mismatch_exits_two_without_output(tmp_path: Path) -> None:
 
 
 def test_cli_markdown_is_deterministic(tmp_path: Path) -> None:
-    outputs = []
+    outputs: list[tuple[bytes, bytes]] = []
     for index in (1, 2):
         output = tmp_path / f"result-{index}.json"
         markdown = tmp_path / f"result-{index}.md"
