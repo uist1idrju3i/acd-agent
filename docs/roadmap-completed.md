@@ -1502,6 +1502,19 @@ closableな`eco-check.json`のsha256、解決graph、個体台帳を照合する
 閉じている場合だけ`retired`とする。unknown scope、欠落・破損・revision不一致・
 sha256不一致・誤った更新revisionはfail-closedで停止する。
 
+### 18.1 ブリングアップ試験計画の生成の実装記録
+
+`acd-product-docs` Skillへ`generate_bringup_plan.py`を追加し、18.4の出荷検査
+contractを同じ知識源として、無通電、電源投入、書込み・起動、周辺機能、自己検査の
+順に実機チェックリストへ再投影する。数値基準は`MeasuredQuantity`へ転記できる
+`MeasurementTemplate`として出力し、計測器、probe point、失敗時停止、出荷検査項目の
+sourceを記録する。入力current limitがgraphに無い場合は値を推測せずunknownとし、
+feedback policyの未被覆ruleも明示する。
+
+`bringup-test-plan.md`／`.json`とprovenanceをja/enで生成し、任意の18.5検査sequence
+とfeedback policyのgraph・revision一致をfail-closedで検証する。projection-docs stage
+からも出力し、計画はL3観測として実機PhysicalEvidenceの代用にはしない。
+
 ### 18.4 出荷検査文書生成SKILLの実装記録
 
 `acd-product-docs` Skillへ`generate_shipping_inspection.py`を追加し、graph、

@@ -8,6 +8,12 @@ from acd.schema.agent_settings import (
     AcdSettingsReport,
     AcdSettingsStatus,
 )
+from acd.schema.bringup_plan import (
+    BringUpItem,
+    BringUpPhase,
+    BringUpTestPlan,
+    MeasurementTemplate,
+)
 from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
     UNKNOWN,
@@ -381,6 +387,9 @@ __all__ = [
     "AffectedUnits",
     "AppliedFeedbackValidationReport",
     "Assignment",
+    "BringUpItem",
+    "BringUpPhase",
+    "BringUpTestPlan",
     "ComponentPartRequest",
     "ContextSource",
     "ConvergenceState",
@@ -518,6 +527,7 @@ __all__ = [
     "MeasuredQuantity",
     "MeasurementClass",
     "MeasurementInstrument",
+    "MeasurementTemplate",
     "MechanicalTreatment",
     "MemoryContextObservation",
     "ModelRoutingBinding",

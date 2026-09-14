@@ -166,6 +166,7 @@ def run_projection_docs(
     manual_script = _script_path(repository, "generate_instruction_manual.py")
     interface_script = _script_path(repository, "generate_interface_spec.py")
     shipping_script = _script_path(repository, "generate_shipping_inspection.py")
+    bringup_script = _script_path(repository, "generate_bringup_plan.py")
     quality_script = _script_path(repository, "generate_quality_report.py")
     review_script = _script_path(repository, "generate_review_package.py")
     idea_script = _script_path(repository, "generate_idea_allocation_docs.py")
@@ -174,6 +175,7 @@ def run_projection_docs(
         manual_script,
         interface_script,
         shipping_script,
+        bringup_script,
         quality_script,
         review_script,
         idea_script,
@@ -189,6 +191,8 @@ def run_projection_docs(
     interface_json_name = "interface-spec.json"
     shipping_name = _document_name(shipping_script, output_path=output)
     shipping_json_name = "shipping-inspection.json"
+    bringup_name = _document_name(bringup_script, output_path=output)
+    bringup_json_name = "bringup-test-plan.json"
     try:
         projections = collect_visual_projection_sets(out_root)
     except Exception as exc:
@@ -297,6 +301,22 @@ def run_projection_docs(
         "--base-dir",
         str(out_root),
     ]
+    bringup_command = [
+        "uv",
+        "run",
+        "--script",
+        str(bringup_script),
+        "--graph",
+        str(graph_path),
+        "--pins-header",
+        str(pins_headers[0]),
+        "--firmware-config-report",
+        str(config_reports[0]),
+        "--out-dir",
+        str(output),
+        "--base-dir",
+        str(out_root),
+    ]
     quality_command = [
         "uv",
         "run",
@@ -351,6 +371,7 @@ def run_projection_docs(
         (manual_command, "instruction manual generator"),
         (interface_command, "interface spec generator"),
         (shipping_command, "shipping inspection generator"),
+        (bringup_command, "bring-up plan generator"),
         (quality_command, "quality report generator"),
         (review_command, "review package generator"),
     )
@@ -381,6 +402,8 @@ def run_projection_docs(
             ("interface_spec_json", interface_json_name),
             ("shipping_inspection", shipping_name),
             ("shipping_inspection_json", shipping_json_name),
+            ("bringup_plan", bringup_name),
+            ("bringup_plan_json", bringup_json_name),
             ("inspection_report", "inspection-report.md"),
             ("traceability_report", "traceability-report.md"),
             ("quality_report_json", "quality-report.json"),
