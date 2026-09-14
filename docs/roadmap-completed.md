@@ -1576,3 +1576,11 @@ GD1のJ1には保護素子宣言がないためESD predicateはfailとなるが�
 placement／pad geometry不足はunknownとして保持し、proxy計算は認証適合を主張しない。
 UseEnvironmentのWCA／derating消費はroadmap 10.6に委ね、reliability-review Skillへの
 統合はスコープ外とした。
+
+### 16.4 テスト容易化設計（DFT）の実装記録
+
+`DftPolicy`を入力とする独立opt-in gateを追加し、宣言されたネットクラスまたは明示ネットID
+に対するテストポイントのカバレッジ、最小プローブ間隔、パッド径、プローブ面、
+部品本体keepoutを決定論的に検査する。GD1ではTP1〜TP7の実際の接続を導出し、
+未接続の`VBUS_5V`を含む不足ネットをfailとして記録する。配置、径、面、部品本体の情報が
+欠落する場合はunknownへ倒し、既定のGD1 predicate、Evidence、認証権限は変更しない。

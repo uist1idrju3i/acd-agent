@@ -1,0 +1,18 @@
+{
+  "artifact_kind": "dft_policy",
+  "graph_id": "golden-design-1",
+  "keepout_from_components_mm": 0.5,
+  "min_pad_diameter_mm": 1.0,
+  "min_probe_pitch_mm": 2.54,
+  "probe_side": "either",
+  "required_net_classes": [
+    "power_rail",
+    "ground",
+    "i2c",
+    "uart",
+    "gpio_firmware"
+  ],
+  "required_net_ids": [],
+  "revision": "r1",
+  "schema_version": "0.1"
+}

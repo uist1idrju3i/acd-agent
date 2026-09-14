@@ -71,6 +71,8 @@ from acd.schema.design_freedom import (
 )
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
 from acd.schema.dfa_review import DfaAspect, DfaFinding, DfaReviewReport
+from acd.schema.dft_coverage import DftCheckResult, DftCoverageResult, DftCoverageSet
+from acd.schema.dft_policy import DftNetClass, DftPolicy, DftProbeSide
 from acd.schema.eco import (
     EcoCheckResult,
     EcoDocument,
@@ -420,6 +422,12 @@ __all__ = [
     "DfaAspect",
     "DfaFinding",
     "DfaReviewReport",
+    "DftCheckResult",
+    "DftCoverageResult",
+    "DftCoverageSet",
+    "DftNetClass",
+    "DftPolicy",
+    "DftProbeSide",
     "DomainCapability",
     "DryRunExecutionMode",
     "DryRunOrderPayload",

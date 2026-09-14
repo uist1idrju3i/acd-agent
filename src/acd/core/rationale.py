@@ -403,6 +403,10 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
         ),
         "refdes": "Reference designator is an identifier, not an engineering choice.",
         "stock_checked_at": "Stock check timestamp is supplier provenance metadata.",
+        "test_point": (
+            "Test point marker is derived from the footprint family and does not "
+            "constitute an independent component selection decision."
+        ),
         "symbol": "Symbol name is library metadata.",
         "symbol_file": "Symbol file metadata identifies the library artifact.",
         "symbol_sha256": "Symbol hash is provenance metadata for the library artifact.",
