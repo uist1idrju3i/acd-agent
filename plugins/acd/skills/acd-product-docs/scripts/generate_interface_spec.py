@@ -364,65 +364,81 @@ def render_markdown(
     unknown_fields = cast(list[object], spec["unknown_fields"])
 
     lines = [
-        f"{t('interface.literal_014')}{spec['graph_id']}",
+        t("interface.document_title", graph_id=spec["graph_id"]),
         "",
         f"- Design Graph: `{spec['graph_id']}`",
         f"- revision: `{spec['target_revision']}`",
         "",
-        t("interface.literal_015") + t("interface.literal_016") + t("interface.literal_017"),
+        t("interface.provenance_paragraph"),
         "",
-        t("interface.literal_018"),
+        t("interface.gpio_heading"),
         "",
-        t("interface.literal_019"),
+        t("interface.gpio_header"),
         "|---|---|---|---|",
     ]
     for row in gpio_rows:
         lines.append(
-            f"| {row['net']} | IO{row['gpio']} | `{row['node_id']}` | {row['source']} |"
+            t(
+                "interface.gpio_row",
+                net=row["net"],
+                gpio=row["gpio"],
+                node_id=row["node_id"],
+                source=row["source"],
+            )
         )
-    lines += ["", t("interface.literal_020"), ""]
+    lines += ["", t("interface.i2c_heading"), ""]
     if devices:
         lines += [
-            t("interface.literal_021"),
+            t("interface.i2c_header"),
             "|---|---|---|---|",
         ]
         for row in devices:
             lines.append(
-                f"| {row['driver_id']} | {row['mpn']} | `{row['i2c_address']}` "
-                f"| {row['source']} |"
+                t(
+                    "interface.i2c_row",
+                    driver_id=row["driver_id"],
+                    mpn=row["mpn"],
+                    i2c_address=row["i2c_address"],
+                    source=row["source"],
+                )
             )
     else:
-        lines.append(t("interface.literal_022"))
+        lines.append(t("interface.no_i2c_devices"))
     uart_lines = cast(list[dict[str, object]], uart["lines"])
     uart_transport = cast(dict[str, object], uart["transport"])
     lines += [
         "",
-        t("interface.literal_023"),
+        t("interface.uart_heading"),
         "",
         f"transport: **unknown** — {uart_transport['reason']}",
         "",
-        t("interface.literal_024"),
+        t("interface.uart_header"),
         "|---|---|---|---|",
     ]
     for row in uart_lines:
         lines.append(
-            f"| `{row['line_id']}` | `{row['format']}` | {row['emitted']} "
-            f"| {row['source']} |"
+            t(
+                "interface.uart_row",
+                line_id=row["line_id"],
+                format=row["format"],
+                emitted=row["emitted"],
+                source=row["source"],
+            )
         )
     lines += [
         "",
-        t("interface.literal_025"),
+        t("interface.commands_heading"),
         "",
         f"**unknown** — {commands['reason']}",
         "",
-        t("interface.literal_026"),
+        t("interface.unknown_heading"),
         "",
     ]
     if unknown_fields:
         for field in sorted(str(item) for item in unknown_fields):
             lines.append(f"- `{field}`")
     else:
-        lines.append(t("interface.literal_027"))
+        lines.append(t("interface.no_unknown_fields"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 

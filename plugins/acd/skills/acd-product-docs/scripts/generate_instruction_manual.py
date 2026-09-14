@@ -145,12 +145,12 @@ def _function_section(
     omissions: list[Omission],
 ) -> list[str]:
     firmware = extract_firmware_lane(graph)
-    lines = [t("manual.literal_085"), "", t("manual.literal_086"), ""]
-    lines += [t("manual.literal_087"), "|---|---|"]
+    lines = [t("manual.document_title"), "", t("manual.function_heading"), ""]
+    lines += [t("manual.function_intro"), "|---|---|"]
     for state in sorted(firmware.states, key=lambda item: item.state_name):
-        initial = t("manual.literal_043") if state.initial else t("manual.literal_044")
+        initial = t("manual.yes") if state.initial else t("manual.no")
         lines.append(f"| {state.state_name} | {initial} |")
-    lines += ["", t("manual.literal_088"), "", t("manual.literal_089"), "|---|---|---|"]
+    lines += ["", t("manual.state_header"), "", t("manual.sequence_intro"), "|---|---|---|"]
     for step in sorted(firmware.sequence_steps, key=lambda item: item.step_index):
         lines.append(f"| {step.step_index} | {step.target} | {step.action} |")
     sensor_declared = any(
@@ -165,11 +165,11 @@ def _function_section(
         )
         lines += [
             "",
-            f"{t('manual.literal_045')}{address:02x}{t('manual.literal_046')}",
+            t("manual.sensor_address_sentence", address=f"{address:02x}"),
         ]
     else:
         omissions.append(
-            Omission(t("manual.literal_090"), t("manual.literal_091"))
+            Omission(t("manual.sequence_header"), t("manual.sensor_section"))
         )
     if any(step.action == "write_serial_log" for step in firmware.sequence_steps):
         log_period_ms = _required_macro_int(
@@ -177,12 +177,12 @@ def _function_section(
             "ACD_LOG_PERIOD_MS",
             because="write_serial_log step",
         )
-        lines.append(f"{log_period_ms}{t('manual.literal_047')}")
+        lines.append(t("manual.serial_log_sentence", period_ms=log_period_ms))
     else:
         omissions.append(
             Omission(
-                t("manual.literal_092"),
-                t("manual.literal_093"),
+                t("manual.sensor_omitted"),
+                t("manual.serial_section"),
             )
         )
     lines.append("")
@@ -205,10 +205,10 @@ def _connection_section(
     )
     if not openings:
         omissions.append(
-            Omission(t("manual.literal_094"), t("manual.literal_095"))
+            Omission(t("manual.serial_omitted"), t("manual.connection_section"))
         )
         return []
-    lines = [t("manual.literal_096"), ""]
+    lines = [t("manual.connection_omitted"), ""]
     step = 1
     for opening in openings:
         connector_id = text_attr(opening, "connector")
@@ -221,17 +221,21 @@ def _connection_section(
                 f"connector component {connector_id!r} is missing"
             )
         lines += [
-            f"{step}{t('manual.literal_048')}{text_attr(opening, 'face')}{t('manual.literal_049')}"
-            f"{connector.refdes}（{connector.mpn}{t('manual.literal_050')}",
-            f"{step + 1}{t('manual.literal_051')}",
+            f"{step}{t('manual.connector_opening_step')}"
+            f"{text_attr(opening, 'face')}{t('manual.connector_opening_detail')}"
+            f"{connector.refdes}（{connector.mpn}{t('manual.connector_insert_action')}",
+            f"{step + 1}{t('manual.connector_connect_step')}",
             "",
             f"### {opening.id}",
             "",
-            t("manual.literal_097"),
+            t("manual.connection_heading"),
             "|---|---|",
-            f"{t('manual.literal_052')}{format_number(number_attr(opening, 'width_mm'))} mm |",
-            f"{t('manual.literal_053')}{format_number(number_attr(opening, 'height_mm'))} mm |",
-            f"{t('manual.literal_054')}{format_number(number_attr(opening, 'margin_mm'))} mm |",
+            f"{t('manual.opening_width_row')} "
+            f"{format_number(number_attr(opening, 'width_mm'))} mm |",
+            f"{t('manual.opening_height_row')} "
+            f"{format_number(number_attr(opening, 'height_mm'))} mm |",
+            f"{t('manual.opening_margin_row')} "
+            f"{format_number(number_attr(opening, 'margin_mm'))} mm |",
             "",
         ]
         step += 2
@@ -246,13 +250,13 @@ def _connection_section(
     if usb is None:
         omissions.append(
             Omission(
-                t("manual.literal_098"),
-                t("manual.literal_099"),
+                t("manual.opening_header"),
+                t("manual.usb_section"),
             )
         )
     else:
         lines += [
-            f"{t('manual.literal_055')}{usb[0]}／IO{usb[1]}{t('manual.literal_056')}",
+            f"{t('manual.usb_serial_connection')}{usb[0]}／IO{usb[1]}{t('manual.usb_serial_log_action')}",
             "",
         ]
     return lines
@@ -269,7 +273,7 @@ def _led_section(
     ]
     if not toggles:
         omissions.append(
-            Omission(t("manual.literal_100"), t("manual.literal_101"))
+            Omission(t("manual.usb_omitted"), t("manual.led_section"))
         )
         return []
     period_ms = _required_macro_int(
@@ -286,19 +290,16 @@ def _led_section(
         state.state_name for state in firmware.states if state.state_name == "fault"
     )
     lines = [
-        t("manual.literal_102"),
+        t("manual.led_omitted"),
         "",
-        t("manual.literal_103"),
+        t("manual.led_heading"),
         "|---|---|",
-        (
-            f"{t('manual.literal_057')}{period_ms}{t('manual.literal_058')}"
-            f"{gpio}{t('manual.literal_059')}{t('manual.literal_104')}"
-        ),
-        t("manual.literal_105"),
+        t("manual.led_blink_row", period_ms=period_ms, gpio=gpio),
+        t("manual.led_off_row"),
     ]
     for state in fault_states:
         lines.append(
-            f"{t('manual.literal_060')}{state}{t('manual.literal_061')}"
+            f"{t('manual.led_fault_row')}{state}{t('manual.led_fault_detail')}"
         )
     if any(step.action == "toggle_led2" for step in firmware.sequence_steps):
         gpio2 = _required_macro_int(
@@ -308,7 +309,7 @@ def _led_section(
         )
         lines.insert(
             6,
-            f"{t('manual.literal_062')}{gpio2}{t('manual.literal_063')}",
+            t("manual.button_opposite_row", gpio=gpio2),
         )
     lines.append("")
     return lines
@@ -321,19 +322,19 @@ def _operation_section(
 ) -> list[str]:
     firmware = extract_firmware_lane(graph)
     if not any(step.action == "read_button" for step in firmware.sequence_steps):
-        omissions.append(Omission(t("manual.literal_106"), t("manual.literal_107")))
+        omissions.append(Omission(t("manual.operation_label"), t("manual.operation_section")))
         return []
     button = _required_macro_int(
         macros,
         "ACD_PIN_BUTTON",
         because="read_button step",
     )
-    lines = [t("manual.literal_108"), ""]
+    lines = [t("manual.operation_omitted"), ""]
     for transition in sorted(firmware.transitions, key=lambda item: item.node_id):
         if transition.trigger == "button_pressed":
             lines.append(
-                f"IO{button}{t('manual.literal_064')}{transition.from_state}{t('manual.literal_065')}"
-                f"`{transition.to_state}{t('manual.literal_066')}"
+                f"IO{button}{t('manual.button_transition_action')}{transition.from_state}{t('manual.usb_flash_transition')}"
+                f"`{transition.to_state}{t('manual.usb_flash_transition_end')}"
             )
     lines.append("")
     return lines
@@ -353,7 +354,7 @@ def _flashing_section(
     )
     if mcu is None:
         raise DocumentGenerationError("MCU component is missing from the graph")
-    lines = [t("manual.literal_109"), ""]
+    lines = [t("manual.operation_heading"), ""]
     step = 1
     usb = _pin_pair(
         firmware,
@@ -371,22 +372,22 @@ def _flashing_section(
     )
     if usb is not None:
         lines.append(
-            f"{step}. `{mcu.mpn}{t('manual.literal_067')}{usb[0]}／IO"
-            f"{usb[1]}{t('manual.literal_068')}"
+            f"{step}. `{mcu.mpn}{t('manual.uart_flash_connection')}{usb[0]}／IO"
+            f"{usb[1]}{t('manual.uart_flash_connection_end')}"
         )
         step += 1
     elif uart is not None:
         lines.append(
-            f"{step}. `{mcu.mpn}{t('manual.literal_069')}{uart[0]}／RX: "
-            f"IO{uart[1]}{t('manual.literal_070')}"
+            f"{step}. `{mcu.mpn}{t('manual.uart_flash_path')}{uart[0]}／RX: "
+            f"IO{uart[1]}{t('manual.uart_flash_path_end')}"
         )
         step += 1
     else:
         lines.append(
-            f"{step}{t('manual.literal_071')}" + t("manual.literal_110")
+            t("manual.boot_recovery_sentence", step=step),
         )
         omissions.append(
-            Omission(t("manual.literal_111"), t("manual.literal_112"))
+            Omission(t("manual.flash_section"), t("manual.flash_omitted"))
         )
         step += 1
     if "net.boot" in _declared_nets(firmware):
@@ -396,14 +397,13 @@ def _flashing_section(
             because="pin role boot",
         )
         lines.append(
-            f"{step}{t('manual.literal_072')}{boot}{t('manual.literal_073')}"
-            f"{t('manual.literal_113')}"
+            t("manual.boot_recovery_gpio_sentence", step=step, boot=boot),
         )
         step += 1
-    lines.append(f"{step}. revision`{graph.revision}{t('manual.literal_074')}")
+    lines.append(f"{step}. revision`{graph.revision}{t('manual.firmware_flash_action')}")
     step += 1
-    reset = t("manual.literal_114") if led_written else t("manual.literal_115")
-    lines.append(f"{step}{t('manual.literal_075')}{reset}")
+    reset = t("manual.provenance_intro") if led_written else t("manual.provenance_values")
+    lines.append(t("manual.reset_sentence", step=step, reset=reset))
     lines.append("")
     return lines
 
@@ -414,25 +414,26 @@ def _safety_section(graph: DesignGraph) -> list[str]:
     max_voltage = format_number(number_attr(safety, "max_net_voltage_v"))
     max_current = format_number(number_attr(safety, "max_current_a"))
     antenna_keepout_text = (
-        t("manual.literal_082")
+        t("manual.antenna_keepout_declared")
         if board.attrs.get("antenna_keepout") is True
-        else t("manual.literal_083")
+        else t("manual.keepout_declared")
     )
     lines = [
-        t("manual.literal_116"),
+        t("manual.omitted_heading"),
         "",
-        f"{t('manual.literal_076')}{max_voltage} V、"
-        f"{t('manual.literal_077')}{max_current}{t('manual.literal_078')}",
+        f"{t('manual.led_resume_safety')}{max_voltage} V、"
+        f"{t('manual.firmware_resume_safety')}{max_current} "
+        f"{t('manual.electrical_safety_current')}",
         (
-            f"{t('manual.literal_079')}{text_attr(safety, 'intended_use')}"
-            f"{t('manual.literal_080')}{t('manual.literal_117')}"
+            f"{t('manual.intended_use_label')}{text_attr(safety, 'intended_use')}"
+            f"{t('manual.intended_use_value')}{t('manual.omitted_none')}"
         ),
         (
-            f"{t('manual.literal_081')}"
+            f"{t('manual.antenna_safety')} "
             f"{antenna_keepout_text}"
             "）。"
         ),
-        t("manual.literal_118"),
+        t("manual.enclosure_power_warning"),
         "",
     ]
     return lines
@@ -448,12 +449,12 @@ def render_manual(
     _TEMPLATE.set(template or load_template("ja"))
     _revision_guard(graph, macros)
     lines = [
-        f"{t('manual.literal_084')}{graph.graph_id}",
+        t("manual.keepout_undeclared", graph_id=graph.graph_id),
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        t("manual.literal_119") + t("manual.literal_120"),
+        t("manual.provenance_observation"),
         "",
     ]
     omissions: list[Omission] = []
@@ -469,11 +470,11 @@ def render_manual(
         led_written=bool(led_lines),
     )
     lines += _safety_section(graph)
-    lines += [t("manual.literal_121"), ""]
+    lines += [t("manual.omitted_items_heading"), ""]
     if omissions:
         lines += [f"- {item.section}: {item.reason}" for item in omissions]
     else:
-        lines.append(t("manual.literal_122"))
+        lines.append(t("manual.omitted_items_none"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 

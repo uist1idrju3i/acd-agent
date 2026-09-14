@@ -59,45 +59,45 @@ def t(key: str, **values: object) -> str:
 
 
 _FIGURE_TITLE_KEYS = {
-    "schematic_view": "readme.literal_121",
-    "layered_layout_view": "readme.literal_122",
-    "placement_view": "readme.literal_123",
-    "stackup_view": "readme.literal_124",
-    "system_block_view": "readme.literal_125",
-    "power_tree_view": "readme.literal_126",
-    "firmware_state_view": "readme.literal_127",
-    "firmware_sequence_view": "readme.literal_128",
-    "rasterized_view": "readme.literal_129",
-    "mechanical_section_view": "readme.literal_130",
-    "mechanical_interference_view": "readme.literal_131",
+    "schematic_view": "readme.figure_title_schematic",
+    "layered_layout_view": "readme.figure_title_layered_layout",
+    "placement_view": "readme.figure_title_placement",
+    "stackup_view": "readme.figure_title_stackup",
+    "system_block_view": "readme.figure_title_system_block",
+    "power_tree_view": "readme.figure_title_power_tree",
+    "firmware_state_view": "readme.figure_title_firmware_state",
+    "firmware_sequence_view": "readme.figure_title_firmware_sequence",
+    "rasterized_view": "readme.figure_title_rasterized",
+    "mechanical_section_view": "readme.figure_title_mechanical_section",
+    "mechanical_interference_view": "readme.figure_title_mechanical_interference",
 }
 
 _FIGURE_GUIDE_KEYS = {
-    "schematic_view": "readme.literal_132",
-    "layered_layout_view": "readme.literal_133",
-    "placement_view": "readme.literal_134",
-    "stackup_view": "readme.literal_135",
-    "system_block_view": "readme.literal_136",
-    "power_tree_view": "readme.literal_137",
-    "firmware_state_view": "readme.literal_138",
-    "firmware_sequence_view": "readme.literal_139",
-    "rasterized_view": "readme.literal_140",
-    "mechanical_section_view": "readme.literal_141",
-    "mechanical_interference_view": "readme.literal_142",
+    "schematic_view": "readme.figure_guide_schematic",
+    "layered_layout_view": "readme.figure_guide_layered_layout",
+    "placement_view": "readme.figure_guide_placement",
+    "stackup_view": "readme.figure_guide_stackup",
+    "system_block_view": "readme.figure_guide_system_block",
+    "power_tree_view": "readme.figure_guide_power_tree",
+    "firmware_state_view": "readme.figure_guide_firmware_state",
+    "firmware_sequence_view": "readme.figure_guide_firmware_sequence",
+    "rasterized_view": "readme.figure_guide_rasterized",
+    "mechanical_section_view": "readme.figure_guide_mechanical_section",
+    "mechanical_interference_view": "readme.figure_guide_mechanical_interference",
 }
 
 # Projection domains are grouped into reader-facing areas: the board lane
 # emits `electrical` and `system` domains, both shown under the  heading.
 _DOMAIN_GROUP = {
-    "electrical": "readme.literal_143",
-    "system": "readme.literal_143",
-    "firmware": "readme.literal_144",
-    "mechanical": "readme.literal_145",
+    "electrical": "readme.domain_board",
+    "system": "readme.domain_board",
+    "firmware": "readme.domain_board_alias",
+    "mechanical": "readme.domain_enclosure",
 }
 _DOMAIN_GROUP_ORDER = (
-    "readme.literal_143",
-    "readme.literal_144",
-    "readme.literal_145",
+    "readme.domain_board",
+    "readme.domain_board_alias",
+    "readme.domain_enclosure",
 )
 
 
@@ -107,21 +107,21 @@ def _domain_group(domain: str) -> str:
 # Heading text -> GitHub anchor slug (letters/digits kept, punctuation dropped,
 # spaces become hyphens; matches scripts/verify_docs.py github_slug).
 _SECTION_HEADINGS = (
-    ("readme.literal_148", "readme.literal_149"),
-    ("readme.literal_150", "readme.literal_151"),
-    ("readme.literal_152", "readme.literal_153"),
-    ("readme.literal_154", "readme.literal_155"),
-    ("readme.literal_156", "readme.literal_157"),
-    ("readme.literal_158", "readme.literal_159"),
-    ("readme.literal_160", "readme.literal_161"),
-    ("readme.literal_162", "readme.literal_163"),
-    ("readme.literal_164", "readme.literal_165"),
+    ("readme.section_artifacts", "readme.anchor_artifacts"),
+    ("readme.section_requirements", "readme.anchor_requirements"),
+    ("readme.section_specifications", "readme.anchor_specifications"),
+    ("readme.section_power_interfaces", "readme.anchor_power_interfaces"),
+    ("readme.section_firmware", "readme.anchor_firmware"),
+    ("readme.section_bom", "readme.anchor_bom"),
+    ("readme.section_visual_projections", "readme.anchor_visual_projections"),
+    ("readme.section_theme_song", "readme.anchor_theme_song"),
+    ("readme.section_attribution", "readme.anchor_attribution"),
 )
-_THEME_HEADING = "readme.literal_162"
+_THEME_HEADING = "readme.section_theme_song"
 
 
 def _table_of_contents(has_theme: bool) -> list[str]:
-    lines = [t("readme.literal_167"), ""]
+    lines = [t("readme.contents_heading"), ""]
     for heading_key, anchor_key in _SECTION_HEADINGS:
         if heading_key == _THEME_HEADING and not has_theme:
             continue
@@ -143,12 +143,15 @@ def _overview_sentence(graph: DesignGraph, lane: ElectricalLane) -> str:
             f"MCU component {firmware.module.mcu_component!r} is missing from the graph"
         )
     unit = text_attr(board, "unit")
-    return (
-        f"{graph.graph_id}（revision {graph.revision}"
-        f"{t('readme.literal_104')}{mcu.mpn}{t('readme.literal_105')}"
-        f"{t('readme.literal_106')}{format_number(number_attr(board, 'width_mm'))} × "
-        f"{format_number(number_attr(board, 'height_mm'))} {unit}{t('readme.literal_107')}"
-        f"{t('readme.literal_108')}{text_attr(safety, 'intended_use')}。"
+    return t(
+        "readme.overview_sentence",
+        graph_id=graph.graph_id,
+        revision=graph.revision,
+        mcu_mpn=mcu.mpn,
+        width=format_number(number_attr(board, "width_mm")),
+        height=format_number(number_attr(board, "height_mm")),
+        unit=unit,
+        intended_use=text_attr(safety, "intended_use"),
     )
 
 
@@ -156,22 +159,27 @@ def _evidence_relation_section(
     inputs: Sequence[DocumentInput], theme: ThemeSongFigure | None
 ) -> list[str]:
     lines = [
-        t("readme.literal_168"),
+        t("readme.artifacts_heading"),
         "",
-        t("readme.literal_169") + t("readme.literal_170") + t("readme.literal_171"),
+        t("readme.observation_paragraph"),
         "",
     ]
     if theme is None:
-        lines.append(t("readme.literal_172"))
+        lines.append(t("readme.inputs_header"))
         lines.append("")
     if inputs:
-        lines += [t("readme.literal_173"), "", t("readme.literal_174"), "|---|---|"]
+        lines += [
+            t("readme.inputs_provenance_note"),
+            "",
+            t("readme.requirements_heading"),
+            "|---|---|",
+        ]
         for item in inputs:
             lines.append(f"| `{item.path.as_posix()}` | `{item.content_hash}` |")
         lines.append("")
     else:
         lines += [
-            t("readme.literal_175") + t("readme.literal_176"),
+            t("readme.provenance_location_note"),
             "",
         ]
     return lines
@@ -181,7 +189,7 @@ def _requirements_section(graph: DesignGraph) -> list[str]:
     requirements = nodes_of_kind(graph, "requirement")
     if not requirements:
         raise DocumentGenerationError("graph declares no requirement node")
-    lines = [t("readme.literal_177"), "", t("readme.literal_178"), "|---|---|"]
+    lines = [t("readme.board_outline_label"), "", t("readme.layer_count_label"), "|---|---|"]
     lines += [f"| {node.id} | {text_attr(node, 'text')} |" for node in requirements]
     return [*lines, ""]
 
@@ -202,23 +210,37 @@ def _specification_section(
     unit = text_attr(board, "unit")
     rows = [
         ("MCU", f"{mcu.mpn}（{mcu.refdes}）"),
-        (t("readme.literal_179"), firmware.module.module_name),
+        (t("readme.board_material_label"), firmware.module.module_name),
         (
-            t("readme.literal_180"),
+            t("readme.board_thickness_label"),
             f"{format_number(number_attr(board, 'width_mm'))} × "
             f"{format_number(number_attr(board, 'height_mm'))} {unit}",
         ),
-        (t("readme.literal_181"), str(int_attr(board, "layers"))),
-        (t("readme.literal_182"), text_attr(board, "material")),
-        (t("readme.literal_183"), f"{format_number(number_attr(board, 'thickness_mm'))} {unit}"),
-        (t("readme.literal_184"), text_attr(board, "finish")),
-        (t("readme.literal_185"), text_attr(board, "assembly_side")),
-        (t("readme.literal_186"), f"{format_number(number_attr(safety, 'max_net_voltage_v'))} V"),
-        (t("readme.literal_187"), f"{format_number(number_attr(safety, 'max_current_a'))} A"),
-        (t("readme.literal_188"), text_attr(safety, "intended_use")),
+        (t("readme.surface_finish_label"), str(int_attr(board, "layers"))),
+        (t("readme.assembly_side_label"), text_attr(board, "material")),
+        (
+            t("readme.max_voltage_label"),
+            f"{format_number(number_attr(board, 'thickness_mm'))} {unit}",
+        ),
+        (t("readme.max_current_label"), text_attr(board, "finish")),
+        (t("readme.intended_use_label"), text_attr(board, "assembly_side")),
+        (
+            t("readme.specifications_heading"),
+            f"{format_number(number_attr(safety, 'max_net_voltage_v'))} V",
+        ),
+        (
+            t("readme.specifications_header"),
+            f"{format_number(number_attr(safety, 'max_current_a'))} A",
+        ),
+        (t("readme.power_interfaces_heading"), text_attr(safety, "intended_use")),
     ]
-    lines = [t("readme.literal_189"), "", t("readme.literal_190"), "|---|---|"]
-    lines += [f"| {name} | {value} |" for name, value in rows]
+    lines = [
+        t("readme.power_nets_heading"),
+        "",
+        t("readme.table.spec_header"),
+        "|---|---|",
+    ]
+    lines += [t("readme.table.spec_row", name=name, value=value) for name, value in rows]
     return [*lines, ""]
 
 
@@ -226,11 +248,11 @@ def _power_interface_section(
     lane: ElectricalLane, firmware: FirmwareLane
 ) -> list[str]:
     lines = [
-        t("readme.literal_191"),
+        t("readme.interface_assignments_heading"),
         "",
-        t("readme.literal_192"),
+        t("readme.interface_assignments_header"),
         "",
-        t("readme.literal_193"),
+        t("readme.firmware_heading"),
         "|---|---|",
     ]
     powered = sorted(
@@ -244,7 +266,7 @@ def _power_interface_section(
         if voltage is None:
             raise DocumentGenerationError(f"net {net.name!r} lost its nominal voltage")
         lines.append(f"| {net.name} | {format_number(voltage)} V |")
-    lines += ["", t("readme.literal_194"), "", t("readme.literal_195"), "|---|---|"]
+    lines += ["", t("readme.states_heading"), "", t("readme.states_header"), "|---|---|"]
     for assignment in sorted(firmware.pin_assignments, key=lambda item: item.net):
         lines.append(f"| {assignment.net} | IO{assignment.gpio} |")
     return [*lines, ""]
@@ -255,16 +277,16 @@ def _firmware_section(
 ) -> list[str]:
     mcu = lane.component_by_id(firmware.module.mcu_component)
     lines = [
-        t("readme.literal_196"),
+        t("readme.transitions_heading"),
         "",
-        f"{t('readme.literal_109')}{firmware.module.module_name}`"
+        f"{t('readme.firmware_module_value')}{firmware.module.module_name}`"
         f"（node `{firmware.module.node_id}`）",
         f"- MCU: `{mcu.refdes}`",
-        f"{t('readme.literal_110')}{firmware.module.entry_state}`",
+        f"{t('readme.firmware_initial_value')}{firmware.module.entry_state}`",
         "",
-        t("readme.literal_197"),
+        t("readme.transitions_header"),
         "",
-        t("readme.literal_198"),
+        t("readme.sequence_heading"),
         "|---|---|---|",
     ]
     for state in firmware.states:
@@ -272,9 +294,9 @@ def _firmware_section(
         lines.append(f"| {state.node_id} | {state.state_name} | {initial} |")
     lines += [
         "",
-        t("readme.literal_199"),
+        t("readme.pin_assignments_heading"),
         "",
-        t("readme.literal_200"),
+        t("readme.pin_assignments_header"),
         "|---|---|",
     ]
     for transition in firmware.transitions:
@@ -284,7 +306,7 @@ def _firmware_section(
         )
     lines += [
         "",
-        t("readme.literal_201"),
+        t("readme.bom_heading"),
         "",
         "| index | actor | target | action |",
         "|---|---|---|---|",
@@ -295,9 +317,9 @@ def _firmware_section(
         )
     lines += [
         "",
-        t("readme.literal_202"),
+        t("readme.bom_summary_heading"),
         "",
-        t("readme.literal_203"),
+        t("readme.bom_summary_header"),
         "|---|---|",
     ]
     for assignment in sorted(firmware.pin_assignments, key=lambda item: item.net):
@@ -313,11 +335,11 @@ def _bom_section(graph: DesignGraph, lane: ElectricalLane) -> list[str]:
         for component in lane.components
     )
     lines = [
-        t("readme.literal_204"),
+        t("readme.bom_details_heading"),
         "",
-        t("readme.literal_205"),
+        t("readme.bom_details_header"),
         "",
-        t("readme.literal_206"),
+        t("readme.figures_heading"),
         "|---|---|---|---|---|",
     ]
     for (mpn, value, lcsc, assembly), quantity in sorted(counts.items()):
@@ -327,9 +349,9 @@ def _bom_section(graph: DesignGraph, lane: ElectricalLane) -> list[str]:
     }
     lines += [
         "",
-        t("readme.literal_207"),
+        t("readme.figures_missing"),
         "",
-        t("readme.literal_208"),
+        t("readme.theme_heading"),
         "|---|---|---|---|---|---|---|",
     ]
     for component in sorted(lane.components, key=lambda item: item.refdes):
@@ -352,12 +374,12 @@ def _figures_section(figures: tuple[ProjectionFigure, ...], out_dir: Path) -> li
         {_domain_group(figure.domain) for figure in figures},
         key=_domain_group_order,
     )
-    domain_names = t("readme.literal_253").join(t(group) for group in groups)
+    domain_names = t("readme.legacy_voltage_label").join(t(group) for group in groups)
     lines = [
-        t("readme.literal_209"),
+        t("readme.theme_header"),
         "",
-        f"{t('readme.literal_111')}{domain_names}。",
-        t("readme.literal_210"),
+        t("readme.figure_domain_sentence", domains=domain_names),
+        t("readme.theme_intro"),
         "",
     ]
     for group in groups:
@@ -366,10 +388,10 @@ def _figures_section(figures: tuple[ProjectionFigure, ...], out_dir: Path) -> li
             if _domain_group(figure.domain) != group:
                 continue
             title = t(
-                _FIGURE_TITLE_KEYS.get(figure.projection_type, "readme.literal_121")
+                _FIGURE_TITLE_KEYS.get(figure.projection_type, "readme.figure_title_schematic")
             )
             guide = t(
-                _FIGURE_GUIDE_KEYS.get(figure.projection_type, "readme.literal_132")
+                _FIGURE_GUIDE_KEYS.get(figure.projection_type, "readme.figure_guide_schematic")
             )
             link = os.path.relpath(
                 figure.image_path.resolve(), out_dir.resolve()
@@ -381,8 +403,8 @@ def _figures_section(figures: tuple[ProjectionFigure, ...], out_dir: Path) -> li
                 "",
                 f"![{figure.projection_id}]({link})",
                 "",
-                f"{t('readme.literal_112')}{figure.projection_type}`（{figure.domain} lane）",
-                f"{t('readme.literal_113')}{figure.image_hash}`",
+                f"{t('readme.figure_type_label')}{figure.projection_type}`（{figure.domain} lane）",
+                f"{t('readme.theme_hash_label')}{figure.image_hash}`",
                 "",
             ]
     return lines
@@ -400,16 +422,16 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
         os.sep, "/"
     )
     lines = [
-        t("readme.literal_212"),
+        t("readme.attribution_heading"),
         "",
-        t("readme.literal_213"),
+        t("readme.attribution_intro"),
         "|---|---|",
-        f"{t('readme.literal_114')}{theme.title} |",
-        f"{t('readme.literal_115')}{theme.key} |",
+        f"{t('readme.theme_title_row')}{theme.title} |",
+        f"{t('readme.theme_key_row')}{theme.key} |",
         f"| BPM | {theme.bpm} |",
-        f"{t('readme.literal_116')}{theme.bars} |",
+        f"{t('readme.theme_bars_row')}{theme.bars} |",
         f"| composer | `{theme.composer_id}` |",
-        f"{t('readme.literal_117')}{theme.source}` |",
+        f"{t('readme.theme_source_row')}{theme.source}` |",
         "",
         f"- artifact: [{theme.midi_path.name}]({link})",
         f"- artifact hash: `{theme.midi_hash}`",
@@ -426,11 +448,14 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
             ]
         )
     else:
-        lines.append(f"{t('readme.literal_118')}{theme.mml_reason or t('readme.literal_119')}）")
+        lines.append(
+            f"{t('readme.theme_mml_omitted')}"
+            f"{theme.mml_reason or t('readme.legacy_reason')}）"
+        )
     lines.extend(
         [
             "",
-            t("readme.literal_214") + t("readme.literal_215"),
+            t("readme.theme_license_note"),
             "",
         ]
     )
@@ -445,17 +470,17 @@ def _attribution_section(lane: ElectricalLane) -> list[str]:
             (component.library.footprint_source, component.library.footprint_source_ref)
         )
     lines = [
-        t("readme.literal_216"),
+        t("readme.library_attribution_heading"),
         "",
-        t("readme.literal_217") + t("readme.literal_218"),
+        t("readme.library_attribution_intro"),
         "",
-        t("readme.literal_219"),
+        t("readme.library_attribution_header"),
         "|---|---|",
     ]
     lines += [f"| {source} | {ref} |" for source, ref in sorted(sources)]
     lines += [
         "",
-        t("readme.literal_220"),
+        t("readme.library_license_statement"),
         "",
     ]
     return lines
@@ -475,12 +500,12 @@ def render_readme(
     lane = extract_electrical_lane(graph)
     firmware = extract_firmware_lane(graph)
     lines = [
-        f"{t('readme.literal_120')}{graph.graph_id}",
+        t("readme.document_title", graph_id=graph.graph_id),
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        t("readme.literal_221") + t("readme.literal_222"),
+        t("readme.provenance_observation"),
         "",
         _overview_sentence(graph, lane),
         "",

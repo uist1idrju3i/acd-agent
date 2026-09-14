@@ -285,17 +285,17 @@ def _markdown(
 ) -> str:
     diff = package["graph_diff"]
     lines = [
-        f"{t('review.literal_023')}{graph.graph_id}",
+        t("review.checklist_header", graph_id=graph.graph_id),
         "",
         f"- revision: `{graph.revision}`",
         "- record class: `L3`",
         "- authority: `none`",
         "",
-        t("review.literal_012"),
+        t("review.overview_heading"),
         "",
-        t("review.literal_013") + t("review.literal_014"),
+        t("review.overview_paragraph"),
         "",
-        t("review.literal_015"),
+        t("review.visual_heading"),
         "",
         "```json",
         json.dumps(diff, ensure_ascii=False, indent=2, sort_keys=True),
@@ -303,7 +303,7 @@ def _markdown(
         "",
         f"- graph diff projection: `{package['graph_diff_projection_id'] or 'none'}`",
         "",
-        t("review.literal_016"),
+        t("review.predicate_heading"),
         "",
     ]
     for figure in figures:
@@ -320,13 +320,13 @@ def _markdown(
                 "",
             ]
         )
-    lines.extend([t("review.literal_017"), ""])
+    lines.extend([t("review.dfm_heading"), ""])
     for predicate in package["design_predicates"]:
         lines.append(
             f"- `{predicate['name']}`: `{predicate['status']}` — "
             f"{predicate['detail']}"
         )
-    lines.extend(["", t("review.literal_018"), "", f"- status: `{package['dfm']['status']}`"])
+    lines.extend(["", t("review.checklist_heading"), "", f"- status: `{package['dfm']['status']}`"])
     for finding in package["dfm"]["findings"]:
         lines.append(f"- `{finding['rule_id']}`: {finding['message']}")
     for name, reason in sorted(package["dfm"]["unknowns"].items()):
@@ -336,7 +336,7 @@ def _markdown(
     lines.extend(
         [
             "",
-            t("review.literal_019"),
+            t("review.authority_heading"),
             "",
             "| item_id | source | subject | status | detail | reviewer_decision |",
             "|---|---|---|---|---|---|",
@@ -351,9 +351,9 @@ def _markdown(
     lines.extend(
         [
             "",
-            t("review.literal_020"),
+            t("review.authority_intro"),
             "",
-            t("review.literal_021") + t("review.literal_022"),
+            t("review.authority_note"),
             "",
         ]
     )

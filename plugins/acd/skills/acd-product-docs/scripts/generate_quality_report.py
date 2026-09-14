@@ -190,7 +190,7 @@ def _guard_graph_references(
 
 def _claims_table(lane: LaneEvidence) -> list[str]:
     lines = [
-        t("quality.literal_032"),
+        t("quality.claims_header"),
         "|---|---|---|---|",
     ]
     for claim in lane.evidence.claims:
@@ -212,14 +212,14 @@ def _render_inspection(
     """Render the inspection report () Markdown body."""
     lane_map = {lane.lane: lane for lane in lanes}
     lines = [
-        f"{t('quality.literal_026')}{graph.graph_id}",
+        t("quality.inspection_title", graph_id=graph.graph_id),
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        t("quality.literal_033") + t("quality.literal_034"),
+        t("quality.inspection_paragraph"),
         "",
-        t("quality.literal_035"),
+        t("quality.gate_results_heading"),
         "",
         "| lane | evidence_id | status | tool | context | image digest | source_revision |",
         "|---|---|---|---|---|---|---|",
@@ -233,12 +233,12 @@ def _render_inspection(
             f"| {envelope.execution_context} | `{digest}` | "
             f"{envelope.source_revision or 'unknown'} |"
         )
-    lines += ["", t("quality.literal_036"), ""]
+    lines += ["", t("quality.electrical_heading"), ""]
 
     if "electrical" in lane_map:
-        lines += [t("quality.literal_037"), "", *_claims_table(lane_map["electrical"]), ""]
+        lines += [t("quality.predicate_heading"), "", *_claims_table(lane_map["electrical"]), ""]
     lines += [
-        t("quality.literal_038"),
+        t("quality.mechanical_heading"),
         "",
         "| name | stage | status | detail |",
         "|---|---|---|---|",
@@ -253,7 +253,7 @@ def _render_inspection(
         "",
         f"- status: `{dfm.status}`",
         f"- profile_id: `{dfm.profile_id}`",
-        f"- findings: {len(dfm.findings)}{t('quality.literal_027')}",
+        f"- findings: {len(dfm.findings)} {t('quality.finding_count_unit')}",
     ]
     for finding in dfm.findings:
         lines.append(f"  - {finding.rule_id}: {finding.message}")
@@ -263,7 +263,12 @@ def _render_inspection(
             lines.append(f"  - `{key}`: {dfm.unknowns[key]}")
     lines.append("")
     if "mechanical" in lane_map:
-        lines += [t("quality.literal_039"), "", *_claims_table(lane_map["mechanical"]), ""]
+        lines += [
+            t("quality.virtual_measurement_note"),
+            "",
+            *_claims_table(lane_map["mechanical"]),
+            "",
+        ]
     if "firmware" in lane_map:
         lines += ["### FW", "", *_claims_table(lane_map["firmware"])]
         if any(
@@ -271,7 +276,7 @@ def _render_inspection(
             for claim in lane_map["firmware"].evidence.claims
         ):
             lines.append(
-                t("quality.literal_040") + t("quality.literal_041")
+                t("quality.virtual_measurement_sentence")
             )
         lines.append("")
 
@@ -293,12 +298,12 @@ def _render_inspection(
             f"| {len(report.unclassified)} | {len(report.templated)} "
             f"| {len(report.generator_violations)} |"
         )
-    lines += ["", t("quality.literal_042"), ""]
+    lines += ["", t("quality.unimplemented_none"), ""]
     if dfm.checks_not_implemented:
         for check in dfm.checks_not_implemented:
             lines.append(f"- `{check.rule_id}`: {check.message}")
     else:
-        lines.append(t("quality.literal_043"))
+        lines.append(t("quality.traceability_intro"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
@@ -395,12 +400,12 @@ def _render_traceability(
 ) -> str:
     """Render the traceability report Markdown body."""
     lines = [
-        f"{t('quality.literal_028')}{graph.graph_id}",
+        t("quality.traceability_title", graph_id=graph.graph_id),
         "",
         f"- Design Graph: `{graph.graph_id}`",
         f"- revision: `{graph.revision}`",
         "",
-        t("quality.literal_044") + t("quality.literal_045"),
+        t("quality.dependent_nodes_note"),
         "",
     ]
     for row in rows:
@@ -409,27 +414,27 @@ def _render_traceability(
             "",
             f"{row.text}",
             "",
-            t("quality.literal_046"),
+            t("quality.rationale_heading"),
         ]
         if row.design_nodes:
             for node_id, kind in row.design_nodes:
                 lines.append(f"- `{node_id}`（{kind}）")
         else:
-            lines.append(t("quality.literal_047"))
-        lines += ["", t("quality.literal_048")]
+            lines.append(t("quality.rationale_none"))
+        lines += ["", t("quality.claims_heading")]
         if row.rationale_records:
             for rationale_id, decision_kind, subjects in row.rationale_records:
                 lines.append(
-                    f"- `{rationale_id}`（{decision_kind}{t('quality.literal_029')}"
+                    f"- `{rationale_id}`（{decision_kind}{t('quality.claim_subject_separator')} "
                     + ", ".join(f"`{subject}`" for subject in subjects)
                     + "）"
                 )
         else:
-            lines.append(t("quality.literal_049"))
-        lines += ["", t("quality.literal_050")]
+            lines.append(t("quality.traceability_claims_header"))
+        lines += ["", t("quality.claims_none")]
         if row.claims:
             lines += [
-                t("quality.literal_051"),
+                t("quality.untraced_heading"),
                 "|---|---|---|---|---|",
             ]
             for lane, subject, prop, value, verified in row.claims:
@@ -437,23 +442,24 @@ def _render_traceability(
                     f"| {lane} | `{subject}` | {prop} | {value} | {verified} |"
                 )
         else:
-            lines.append(t("quality.literal_052"))
+            lines.append(t("quality.untraced_none"))
         lines.append("")
-    lines += [t("quality.literal_053"), ""]
+    lines += [t("quality.rationale_coverage_heading"), ""]
     if untraced:
         for requirement in untraced:
             lines.append(f"- `{requirement}`")
     else:
-        lines.append(t("quality.literal_054"))
-    lines += ["", t("quality.literal_055"), ""]
+        lines.append(t("quality.all_records_traced"))
+    lines += ["", t("quality.inspection_title_legacy"), ""]
     if no_requirement_records:
         lines.append(
-            f"{t('quality.literal_030')}{len(no_requirement_records)}{t('quality.literal_031')}"
+            f"{t('quality.orphan_record_label')} {len(no_requirement_records)} "
+            f"{t('quality.orphan_record_unit')}"
         )
         for rationale_id in no_requirement_records:
             lines.append(f"- `{rationale_id}`")
     else:
-        lines.append(t("quality.literal_056"))
+        lines.append(t("quality.traceability_title_legacy"))
     lines.append("")
     return "\n".join(lines).rstrip("\n") + "\n"
 
