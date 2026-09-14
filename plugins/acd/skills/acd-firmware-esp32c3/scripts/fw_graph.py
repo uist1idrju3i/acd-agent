@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@659edb986f4076c9dd0a1ac44cd5c384abcddaed",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@2801bf2b9cbe09a9603fe52443c6f48133a14edf",
 # ]
 # ///
 """Typed extraction of the firmware lane from a design graph.
@@ -164,7 +164,7 @@ def extract_firmware_settings(graph: DesignGraph) -> FirmwareSettings:
         led_blink_period_ms=cast(int, values["led_blink_period_ms"]),
         log_period_ms=cast(int, values["log_period_ms"]),
         boot_log_message=cast(str, values["boot_log_message"]),
-        inspection_entry_command=cast(str | None, inspection_command),
+        inspection_entry_command=inspection_command,
     )
 
 

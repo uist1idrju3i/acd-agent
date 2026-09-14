@@ -13,7 +13,7 @@ import pytest
 from test_interface_spec import GRAPH, _config_report, _pins_header
 
 from acd.schema.firmware_inspection import FirmwareInspectionItem, FirmwareInspectionSequence
-from acd.schema.shipping_inspection import ShippingInspectionDocument
+from acd.schema.shipping_inspection import CriterionSource, ShippingInspectionDocument
 from doc_inputs import DocumentGenerationError
 from generate_shipping_inspection import main as shipping_main
 
@@ -132,10 +132,10 @@ def test_inspection_sequence_adds_self_test_items_and_validates_revision(
                 item_id="led-led",
                 kind="led",
                 subject_node_ids=["fw.pin.led"],
-                source={
-                    "kind": "firmware_projection",
-                    "ref": "firmware-inspection-sequence.json#led-led",
-                },
+                source=CriterionSource(
+                    kind="firmware_projection",
+                    ref="firmware-inspection-sequence.json#led-led",
+                ),
                 expected_line="ACD_INSPECT led:led gpio=7 result=executed",
                 status="derived",
             ),

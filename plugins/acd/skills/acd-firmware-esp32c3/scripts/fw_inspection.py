@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@2801bf2b9cbe09a9603fe52443c6f48133a14edf",
+# ]
+# ///
 """Derive the opt-in firmware inspection sequence from graph projections."""
 
 from __future__ import annotations
@@ -7,14 +13,15 @@ from acd.schema.firmware_inspection import (
     FirmwareInspectionItem,
     FirmwareInspectionSequence,
 )
+from acd.schema.shipping_inspection import CriterionSource
 from fw_graph import FirmwareCapabilityPlan, FirmwareLane, FirmwareSettings
 
 
-def _source(item_id: str) -> dict[str, str]:
-    return {
-        "kind": "firmware_projection",
-        "ref": f"firmware-inspection-sequence.json#{item_id}",
-    }
+def _source(item_id: str) -> CriterionSource:
+    return CriterionSource(
+        kind="firmware_projection",
+        ref=f"firmware-inspection-sequence.json#{item_id}",
+    )
 
 
 def _component_for_device(graph: DesignGraph, mpn: str) -> str | None:

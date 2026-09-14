@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@659edb986f4076c9dd0a1ac44cd5c384abcddaed",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@2801bf2b9cbe09a9603fe52443c6f48133a14edf",
 # ]
 # ///
 """Shared fail-closed inputs and provenance for generated product documents.
@@ -305,7 +305,7 @@ def load_firmware_config_report(path: Path) -> FirmwareConfigReport:
             settings.get("boot_log_message"), field="settings.boot_log_message"
         ),
         inspection_entry_command=(
-            settings.get("inspection_entry_command")
+            None
             if settings.get("inspection_entry_command") is None
             else require_str(
                 settings.get("inspection_entry_command"),

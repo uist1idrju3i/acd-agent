@@ -41,6 +41,8 @@ uv run --with cmake==3.31.6 --script plugins/acd/skills/acd-firmware-esp32c3/scr
 # Firmware lane extraction and checks:
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_graph.py
 uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_checks.py
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_project.py
+uv run --script plugins/acd/skills/acd-firmware-esp32c3/scripts/fw_inspection.py
 
 # Skill tests (kept separate from the ACD test suite).
 uv run pytest plugins/acd/skills/acd-firmware-esp32c3 -q

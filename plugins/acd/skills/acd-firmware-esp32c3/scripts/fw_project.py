@@ -1,3 +1,9 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@2801bf2b9cbe09a9603fe52443c6f48133a14edf",
+# ]
+# ///
 """Deterministic ESP-IDF firmware project projection.
 
 The design graph is the only source of pin assignments: they are projected
