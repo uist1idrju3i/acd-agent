@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 
 import pytest
-from test_interface_spec import GRAPH, _config_report, _pins_header
+from test_interface_spec import GRAPH, config_report, pins_header
 
 from acd.schema.bringup_plan import BringUpTestPlan
 from acd.schema.firmware_inspection import FirmwareInspectionItem, FirmwareInspectionSequence
@@ -25,8 +25,8 @@ def _run(
     revision: str = "r1",
 ) -> Path:
     tmp_path.mkdir(parents=True, exist_ok=True)
-    header = _pins_header(tmp_path, revision=revision)
-    report = _config_report(tmp_path, revision=revision)
+    header = pins_header(tmp_path, revision=revision)
+    report = config_report(tmp_path, revision=revision)
     out_dir = tmp_path / "out"
     args = [
         "--graph",
@@ -181,7 +181,7 @@ def test_english_and_deterministic_outputs(tmp_path: Path) -> None:
 
 
 def test_malformed_pins_header_writes_nothing(tmp_path: Path) -> None:
-    report = _config_report(tmp_path)
+    report = config_report(tmp_path)
     header = tmp_path / "bad.h"
     header.write_text("#define ACD_TARGET_REVISION r1\n", encoding="utf-8")
     with pytest.raises(DocumentGenerationError):
