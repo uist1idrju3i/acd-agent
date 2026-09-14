@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import pytest
 from conftest import fixture_obj, load_fixture
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from acd.schema import (
     Evidence,
@@ -18,8 +18,17 @@ from acd.schema import (
     ToolEnvelope,
     canonical_sha256,
 )
+from acd.schema.common import Revision
 
 NOW = datetime(2026, 8, 12, tzinfo=UTC)
+REVISION_ADAPTER: TypeAdapter[str] = TypeAdapter[str](Revision)
+
+
+def test_revision_accepts_workaround_derived_form_and_rejects_malformed_forms() -> None:
+    assert REVISION_ADAPTER.validate_python("r1+WA-001") == "r1+WA-001"
+    for value in ("r1+WA-1", "r1+wa-001", "r1+WA-001+WA-002", "r1-WA-001"):
+        with pytest.raises(ValidationError):
+            REVISION_ADAPTER.validate_python(value)
 
 
 def _envelope(**overrides: str) -> ToolEnvelope:
@@ -49,6 +58,16 @@ def test_valid_evidence_supports_pass_only_on_matching_revision() -> None:
     assert evidence.supports_pass("r3")
     assert evidence.supports_authoritative_pass("r3")
     assert not evidence.supports_pass("r4")
+
+
+def test_derived_revision_evidence_does_not_match_base_revision() -> None:
+    data = fixture_obj(load_fixture("valid", "evidence.json"))
+    data["target_revision"] = "r1+WA-001"
+    envelope = fixture_obj(data["envelope"])
+    envelope["target_revision"] = "r1+WA-001"
+    evidence = Evidence.model_validate({**data, "envelope": envelope})
+    assert not evidence.supports_pass("r1")
+    assert evidence.supports_pass("r1+WA-001")
 
 
 def test_stale_evidence_never_supports_pass() -> None:

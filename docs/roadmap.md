@@ -162,7 +162,7 @@ GPLツール（ngspice、CalculiX等）はsubprocess実行に限定し、ACDへ�
 
 - ワークアラウンドは設計入力の正を書き換えない。graphへの本修正はECO（マイルストーン20.1）
   として別に起票し、ワークアラウンドrecordは適用対象個体に対する逸脱の記録に限る。
-- 救済状態は`revision + workaround ID`で識別する（例: `rev1.0+WA-001`）。
+- 救済状態は`revision + workaround ID`で識別する（例: `r1+WA-001`）。
   対象個体はロット・シリアル単位で明示し、未適用個体を適用済みと同一視しない。
 - 救済可否はSKILLの所見ではなく決定論的ゲートが決める。追加工差分から派生graphを導出し、
   ERC、設計述語ゲート（USB CC、strapping pin、I2C pull-up、デカップリング、電源境界、

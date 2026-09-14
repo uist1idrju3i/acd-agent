@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from acd.schema.common import base_revision
 from acd.schema.rework_diff import ReworkDiff
 
 
@@ -30,6 +31,21 @@ def test_operation_discriminator_and_derived_revision() -> None:
     diff = ReworkDiff.model_validate(_payload())
     assert diff.operations[0].op == "replace"
     assert diff.derived_revision == "r1+WA-001"
+    assert base_revision(diff.derived_revision) == "r1"
+
+
+@pytest.mark.parametrize(
+    "revision",
+    ["r1+WA-1", "r1+wa-001", "r1+WA-001+WA-002", "r1-WA-001"],
+)
+def test_invalid_derived_revision_fails(revision: str) -> None:
+    with pytest.raises(ValidationError):
+        ReworkDiff.model_validate(_payload(base_revision=revision))
+
+
+def test_derived_revision_cannot_be_used_as_rework_base() -> None:
+    with pytest.raises(ValidationError):
+        ReworkDiff.model_validate(_payload(base_revision="r1+WA-001"))
 
 
 def test_bad_workaround_id_fails() -> None:

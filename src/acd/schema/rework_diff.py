@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import Field, StringConstraints, model_validator
+from pydantic import Field, model_validator
 
 from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
@@ -13,10 +13,10 @@ from acd.schema.common import (
     NonEmptyStr,
     Revision,
     SchemaVersion,
+    WorkaroundId,
 )
 from acd.schema.design_graph import AttrValue, GraphNode
 
-WorkaroundId = Annotated[str, StringConstraints(pattern=r"^WA-[0-9]{3,}$")]
 REPLACEABLE_ATTRS = frozenset(
     {"value", "mpn", "lcsc", "footprint", "jlcpcb_class", "assembly"}
 )
@@ -104,6 +104,8 @@ class ReworkDiff(AcdModel):
 
     @model_validator(mode="after")
     def validate_collections(self) -> ReworkDiff:
+        if "+" in self.base_revision:
+            raise ValueError("base_revision must not be a derived revision")
         if not self.defect_ids:
             raise ValueError("defect_ids must not be empty")
         if len(set(self.defect_ids)) != len(self.defect_ids):

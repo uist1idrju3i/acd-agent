@@ -10,7 +10,10 @@ from typing import Annotated, ClassVar, Final, Literal, cast
 from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
 
 SchemaVersion = Annotated[str, StringConstraints(pattern=r"^[0-9]+\.[0-9]+$")]
-Revision = Annotated[str, StringConstraints(pattern=r"^r[0-9]+$")]
+Revision = Annotated[
+    str, StringConstraints(pattern=r"^r[0-9]+(\+WA-[0-9]{3,})?$")
+]
+WorkaroundId = Annotated[str, StringConstraints(pattern=r"^WA-[0-9]{3,}$")]
 Sha256 = Annotated[str, StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$")]
 HashOrUnknown = Sha256 | Literal["unknown"]
 NodeId = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_.-]*$")]
@@ -24,6 +27,11 @@ UNKNOWN: Literal["unknown"] = "unknown"
 
 # A version string is either a concrete non-empty version or explicitly unknown.
 VersionOrUnknown = NonEmptyStr
+
+
+def base_revision(revision: str) -> str:
+    """Return the base portion of a canonical or derived revision."""
+    return revision.split("+", 1)[0]
 
 
 class AcdModel(BaseModel):

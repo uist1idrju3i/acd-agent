@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -189,3 +192,54 @@ def test_cli_exit_codes(tmp_path: Path) -> None:
         )
         == 1
     )
+
+
+def test_derived_graph_is_reloadable_and_validated_by_graph_cli(
+    tmp_path: Path,
+) -> None:
+    derived_dir = tmp_path / "derived"
+    validation_payload = _payload()
+    validation_payload["operations"] = [
+        {
+            "op": "cut",
+            "pin_id": "pin.r4.2",
+            "reason": "Disconnect the signal-side resistor pin.",
+        }
+    ]
+    validation_payload["touches_safety_boundary"] = False
+    derived = apply_rework_diff(_graph(), _diff(validation_payload))
+    write_derived_graph(derived, derived_dir)
+    derived_path = derived_dir / "derived-graph.json"
+    reloaded = DesignGraph.model_validate_json(
+        derived_path.read_text(encoding="utf-8")
+    )
+    assert reloaded.revision == "r1+WA-001"
+
+    fixture_dir = tmp_path / "fixture"
+    fixture_dir.mkdir()
+    shutil.copy2(derived_path, fixture_dir / "graph.json")
+    for name in ("requirements.json", "rationale.json"):
+        payload = json.loads(
+            (ROOT / "fixtures/golden-design-1" / name).read_text(encoding="utf-8")
+        )
+        payload["revision"] = reloaded.revision
+        if name == "rationale.json":
+            for record in payload["records"]:
+                record["target_revision"] = reloaded.revision
+        (fixture_dir / name).write_text(
+            json.dumps(payload, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/validate_graph.py",
+            "--fixture",
+            str(fixture_dir),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

@@ -315,19 +315,13 @@ def apply_rework_diff(
     if touched_safety and not diff.touches_safety_boundary:
         raise ReworkDiffError("safety boundary touched but not declared")
 
-    validated = DesignGraph.model_validate(
+    derived = DesignGraph.model_validate(
         {
             "schema_version": graph.schema_version,
             "graph_id": graph.graph_id,
-            "revision": graph.revision,
+            "revision": diff.derived_revision,
             "nodes": [node.model_dump(mode="json") for node in nodes.values()],
         }
-    )
-    derived = DesignGraph.model_construct(
-        schema_version=validated.schema_version,
-        graph_id=validated.graph_id,
-        revision=diff.derived_revision,
-        nodes=validated.nodes,
     )
     return DerivedGraph(
         graph=derived,

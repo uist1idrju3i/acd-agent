@@ -12,6 +12,8 @@ from acd.schema.common import (
     CURRENT_SCHEMA_VERSION,
     UNKNOWN,
     AcdModel,
+    WorkaroundId,
+    base_revision,
     canonical_json_sha256,
     canonical_sha256,
     contains_unknown,
@@ -259,7 +261,6 @@ from acd.schema.rework_diff import (
     ReworkOperation,
     ReworkRemove,
     ReworkReplace,
-    WorkaroundId,
 )
 from acd.schema.side_effect_journal import (
     ExecutionMode,
@@ -550,6 +551,7 @@ __all__ = [
     "VisualVisionObservation",
     "VisualVisionToolEvent",
     "WorkaroundId",
+    "base_revision",
     "canonical_json_sha256",
     "canonical_sha256",
     "contains_unknown",

@@ -1406,7 +1406,8 @@ base revision、関連する不具合record、空でない操作列、safety bou
 操作を適用し、pin切断、node追加、component除去、部品属性変更、機械寸法変更を
 fail-closedに検査する。未知参照、重複追加、dangling dependency、既存値と同じreplace、
 未宣言のsafety boundary接触、base graphとのgraph ID／revision不一致は停止する。
-結果は`base revision+workaround ID`の派生revisionを持つL3投影として扱い、
+結果は`rN+WA-NNN`形式（base revisionにworkaround IDを付加し、派生値を再度baseに
+しない）の派生revisionを持つL3投影として扱い、
 `derived-graph.json`とhash付きprovenanceを別出力へ書き込む。
 
 `scripts/derive_rework_graph.py`はGD1の`fixtures/rework/sample/rework.json`を

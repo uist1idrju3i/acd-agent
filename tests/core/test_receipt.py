@@ -100,6 +100,18 @@ def test_manifest_revision_and_unknowns_are_fail_closed() -> None:
     assert unknown_report.manifest_unknown_keys == ["lead_time", "price"]
 
 
+def test_manifest_accepts_workaround_derived_revision() -> None:
+    manifest = load_fixture("valid", "fab-package-receipt.json")
+    manifest["target_revision"] = "r12+WA-001"
+    receipt = ReceiptRecord.model_validate(load_fixture("valid", "receipt.json"))
+    report = reconcile_receipt(
+        manifest,
+        receipt,
+        manifest_hash=receipt.manifest_reference.manifest_hash,
+    )
+    assert report.target_revision == "r12+WA-001"
+
+
 def test_receipt_missing_artifact_is_a_mismatch() -> None:
     manifest = load_fixture("valid", "fab-package-receipt.json")
     receipt = ReceiptRecord.model_validate(
