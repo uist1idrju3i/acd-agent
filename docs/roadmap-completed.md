@@ -1515,6 +1515,17 @@ feedback policyの未被覆ruleも明示する。
 とfeedback policyのgraph・revision一致をfail-closedで検証する。projection-docs stage
 からも出力し、計画はL3観測として実機PhysicalEvidenceの代用にはしない。
 
+### 18.3 製造しやすさ（DFA）レビューSKILLの実装記録
+
+`acd-dfa-review` Skillへ、極性部品の向き、片面実装、手はんだアクセス、コネクタ順序、
+筐体組立工数、治具要否の6観点を追加した。graph・配置・筐体形状の宣言から
+`DfaReviewReport`（L2）を決定論的に生成し、属性や形状が未宣言の場合はunknownとして
+推測せず報告する。所見は設計ゲートの合否やEvidenceには使わず、既存のERC/DRC・機械
+ゲート・発注ガードを変更しない。
+
+`dfa-review.json`と`dfa-review.md`にはgraph revision、入力hash、tool versionを記録し、
+手はんだclearanceのスクリーニング閾値はSkill内の`rules/dfa_rules.json`で管理する。
+
 ### 18.4 出荷検査文書生成SKILLの実装記録
 
 `acd-product-docs` Skillへ`generate_shipping_inspection.py`を追加し、graph、

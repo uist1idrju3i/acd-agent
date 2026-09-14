@@ -1,5 +1,5 @@
 {
-  "canonical_hash": "sha256:d46f3a292ac4e9030142b0eaa22d8fce6a0274f1f189929ffefc274ea21f606f",
+  "canonical_hash": "sha256:a0a646c3010f59d43d805405fbdaedeaa982f7fa9e0671eb3972195f8a5b47a1",
   "entries": [
     {
       "asset_hash": "sha256:14c7730ae7521414624795364d9695929d94e0842c974df79285a4fc16121386",
@@ -26,10 +26,10 @@
       "section_name": "acd.role.acd-mechanical"
     },
     {
-      "asset_hash": "sha256:88b675b6ca013161fcbd54c2c14b244c67763a13958bad54386a347dc3dc237f",
+      "asset_hash": "sha256:34ae55d8bff5e9b683e00a74a8d60e33b694b055eefb20f36e062a21432adf4c",
       "asset_path": "plugins/acd/agents/acd-reviewer.md",
       "cache_tier": "static",
-      "prompt_hash": "sha256:614b1996344312d8163313501f33217fc964c844a20a1e8ba16d1959b3f927db",
+      "prompt_hash": "sha256:1b1ba57a09c57811ef3d46f0bfa930b99b8a8130227c169595eba1205557d0de",
       "role": "acd-reviewer",
       "section_name": "acd.role.acd-reviewer"
     },

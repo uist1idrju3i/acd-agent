@@ -70,6 +70,7 @@ from acd.schema.design_freedom import (
     DesignFreedomDimension,
 )
 from acd.schema.design_graph import DesignGraph, GraphNode, NodeKind
+from acd.schema.dfa_review import DfaAspect, DfaFinding, DfaReviewReport
 from acd.schema.eco import (
     EcoCheckResult,
     EcoDocument,
@@ -405,6 +406,9 @@ __all__ = [
     "DesignFreedomDeclarationDocument",
     "DesignFreedomDimension",
     "DesignGraph",
+    "DfaAspect",
+    "DfaFinding",
+    "DfaReviewReport",
     "DomainCapability",
     "DryRunExecutionMode",
     "DryRunOrderPayload",

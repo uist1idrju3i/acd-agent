@@ -67,3 +67,4 @@ a Skill and treat an unreadable Skill asset as fail-closed:
 
 - `<acd plugin root>/skills/acd-qc-seven-tools/SKILL.md`
 - `<acd plugin root>/skills/acd-reliability-review/SKILL.md`
+- `<acd plugin root>/skills/acd-dfa-review/SKILL.md`
