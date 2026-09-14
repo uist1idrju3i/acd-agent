@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+from test_interface_spec import GRAPH, _config_report, _pins_header
 
 from acd.schema.shipping_inspection import ShippingInspectionDocument
 from doc_inputs import DocumentGenerationError
 from generate_shipping_inspection import main as shipping_main
-from test_interface_spec import GRAPH, _config_report, _pins_header
 
 
 def _run(tmp_path: Path, *, lang: str = "ja", revision: str = "r1") -> Path:
