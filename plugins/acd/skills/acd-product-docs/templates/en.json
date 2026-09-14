@@ -245,6 +245,7 @@
   "shipping.unknown.missing_firmware_boot": "firmware boot declaration is not declared",
   "shipping.unknown.led_blink_undeclared": "LED blink behavior is not declared",
   "shipping.unknown.serial_output_undeclared": "serial output lines are not declared",
+  "shipping.unknown.firmware_projection_unavailable": "firmware projection unavailable for this revision",
   "shipping.method.visual": "Inspect {subject} assembly and marking",
   "shipping.method.continuity": "Measure for a short between {subject}",
   "shipping.method.power_nominal": "Measure voltage at {subject}",

@@ -12,6 +12,7 @@ import argparse
 import json
 import sys
 from contextvars import ContextVar
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
@@ -28,6 +29,8 @@ from doc_inputs import (
     DocumentInput,
     DocumentTemplate,
     FirmwareConfigReport,
+    ReportDevice,
+    ReportPin,
     guard_devices,
     guard_pins,
     guard_report,
@@ -71,7 +74,20 @@ _UNKNOWN_REASON_TEMPLATE_KEYS = {
     "missing firmware boot declaration": "shipping.unknown.missing_firmware_boot",
     "blink behavior is not declared": "shipping.unknown.led_blink_undeclared",
     "serial output lines are not declared": "shipping.unknown.serial_output_undeclared",
+    "firmware projection unavailable for this revision": (
+        "shipping.unknown.firmware_projection_unavailable"
+    ),
 }
+
+
+@dataclass(frozen=True)
+class FirmwareProjectionInputs:
+    """Revision-matched firmware inputs used by shipping inspection derivation."""
+
+    report: FirmwareConfigReport
+    macros: dict[str, str]
+    pins: tuple[ReportPin, ...]
+    devices: tuple[ReportDevice, ...]
 
 
 def t(key: str, **values: object) -> str:
@@ -183,16 +199,29 @@ def _unknown(reason: str) -> InspectionCriterion:
     )
 
 
-def build_shipping_inspection(
+def guarded_firmware_projection_inputs(
     graph: DesignGraph,
     report: FirmwareConfigReport,
     macros: dict[str, str],
-) -> ShippingInspectionDocument:
-    """Build the shipping inspection contract from governed inputs."""
+) -> FirmwareProjectionInputs:
+    """Validate and package revision-matched firmware projection inputs."""
     guard_report(graph, report)
     guard_revision(graph, macros)
-    pins = guard_pins(graph, report, macros)
-    devices = guard_devices(report, macros)
+    return FirmwareProjectionInputs(
+        report=report,
+        macros=macros,
+        pins=guard_pins(graph, report, macros),
+        devices=guard_devices(report, macros),
+    )
+
+
+def build_shipping_inspection(
+    graph: DesignGraph,
+    firmware: FirmwareProjectionInputs | None,
+) -> ShippingInspectionDocument:
+    """Build the shipping inspection contract from governed inputs."""
+    macros = firmware.macros if firmware is not None else {}
+    devices = firmware.devices if firmware is not None else ()
     nets = _net_map(graph)
     board = next(iter(_nodes(graph, "electrical.board")), None)
     ground_name = _text(board, "ground_plane_net") if board is not None else None
@@ -301,13 +330,17 @@ def build_shipping_inspection(
 
     module = next(iter(_nodes(graph, "firmware.module")), None)
     boot_message = _text(module, "boot_log_message") if module is not None else None
-    if boot_message is not None and boot_message != report.boot_log_message:
+    if (
+        firmware is not None
+        and boot_message is not None
+        and boot_message != firmware.report.boot_log_message
+    ):
         raise DocumentGenerationError(
             "firmware config boot_log_message does not match graph firmware.module"
         )
     boot_expected = (
-        report.boot_log_message.replace("%s", graph.revision)
-        if report.boot_log_message
+        firmware.report.boot_log_message.replace("%s", graph.revision)
+        if firmware is not None and firmware.report.boot_log_message
         else None
     )
     add(
@@ -319,8 +352,12 @@ def build_shipping_inspection(
             boot_expected,
             _source("firmware_projection", "firmware-config-report.json.settings.boot_log_message"),
         )
-        if module is not None and boot_expected is not None
-        else _unknown("missing firmware boot declaration"),
+        if firmware is not None and module is not None and boot_expected is not None
+        else _unknown(
+            "missing firmware boot declaration"
+            if firmware is not None
+            else "firmware projection unavailable for this revision"
+        ),
     )
 
     led_terminal_nets: set[str] = set()
@@ -332,26 +369,22 @@ def build_shipping_inspection(
                 if (net := pin.attrs.get("net")) and isinstance(net, str)
             )
     led_nets = _connected_nets(graph, led_terminal_nets)
-    for pin in pins:
-        if pin.net not in led_nets:
+    assignment_nodes = [
+        node
+        for node in _nodes(graph, "firmware.pin_assignment")
+        if node.attrs.get("net") in led_nets
+    ]
+    for assignment in assignment_nodes:
+        pin_net = assignment.attrs.get("net")
+        if not isinstance(pin_net, str):
             continue
-        assignment = next(
-            (
-                node
-                for node in _nodes(graph, "firmware.pin_assignment")
-                if node.attrs.get("net") == pin.net
-            ),
-            None,
-        )
-        if assignment is None:
-            continue
-        macro = "ACD_PIN_" + pin.net.removeprefix("net.").upper()
-        gpio = int(macros[macro], 0)
+        macro = "ACD_PIN_" + pin_net.removeprefix("net.").upper()
+        gpio = int(macros[macro], 0) if firmware is not None else None
         led_subject = [assignment.id] + [
             component.id
             for component in _nodes(graph, "electrical.component")
             if any(
-                p.attrs.get("net") == pin.net
+                p.attrs.get("net") == pin_net
                 for p in _pins_for_component(graph, component.id)
             )
             and _is_led(component)
@@ -360,47 +393,65 @@ def build_shipping_inspection(
             "led",
             sorted(set(led_subject)),
             "shipping.method.led_gpio",
-            _criterion(
-                "value",
-                gpio,
-                _source("firmware_projection", f"acd_pins.h:{macro}"),
-            ),
+            _criterion("value", gpio, _source("firmware_projection", f"acd_pins.h:{macro}"))
+            if firmware is not None
+            else _unknown("firmware projection unavailable for this revision"),
         )
         add(
             "led",
             sorted(set(led_subject)),
             "shipping.method.led_behavior",
-            _unknown("blink behavior is not declared"),
+            _unknown(
+                "blink behavior is not declared"
+                if firmware is not None
+                else "firmware projection unavailable for this revision"
+            ),
         )
 
-    for device in devices:
-        subject = next(
-            (
-                component.id
-                for component in _nodes(graph, "electrical.component")
-                if _text(component, "mpn") == device.mpn
-            ),
-            device.driver_id,
-        )
-        add(
-            "sensor",
-            [subject],
-            "shipping.method.sensor",
-            _criterion(
-                "string",
-                f"ACK at 0x{device.i2c_address:02x}",
-                _source(
-                    "firmware_projection",
-                    f"firmware-config-report.json.provenance.devices:{device.driver_id}",
+    if firmware is None:
+        for component in _nodes(graph, "electrical.component"):
+            if "sensor" not in (_text(component, "footprint") or "").lower():
+                continue
+            add(
+                "sensor",
+                [component.id],
+                "shipping.method.sensor",
+                _unknown("firmware projection unavailable for this revision"),
+            )
+    else:
+        for device in devices:
+            subject = next(
+                (
+                    component.id
+                    for component in _nodes(graph, "electrical.component")
+                    if _text(component, "mpn") == device.mpn
                 ),
-            ),
-        )
+                device.driver_id,
+            )
+            add(
+                "sensor",
+                [subject],
+                "shipping.method.sensor",
+                _criterion(
+                    "string",
+                    f"ACK at 0x{device.i2c_address:02x}",
+                    _source(
+                        "firmware_projection",
+                        "firmware-config-report.json.provenance.devices:"
+                        f"{device.driver_id}",
+                    ),
+                ),
+            )
 
     add(
         "serial",
         [module.id] if module is not None else ["serial"],
         "shipping.method.serial",
-        _unknown("serial output lines are not declared"),
+        _unknown(
+            "serial output lines are not declared"
+            if firmware is not None
+            else "firmware projection unavailable for this revision"
+        ),
     )
     items.sort(
         key=lambda item: (
@@ -508,7 +559,8 @@ def main(argv: list[str] | None = None) -> int:
     graph, graph_input = load_graph(args.graph)
     macros = parse_pins_header(args.pins_header)
     report = load_firmware_config_report(args.firmware_config_report)
-    document = build_shipping_inspection(graph, report, macros)
+    firmware = guarded_firmware_projection_inputs(graph, report, macros)
+    document = build_shipping_inspection(graph, firmware)
     body = render_markdown(document, graph, template=template)
     output_dir = args.out_dir if args.lang == "ja" else args.out_dir / args.lang
     inputs = [

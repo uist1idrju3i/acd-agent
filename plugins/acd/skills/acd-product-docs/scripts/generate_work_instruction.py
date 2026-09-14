@@ -14,7 +14,6 @@ import os
 import shutil
 import sys
 import tempfile
-from dataclasses import replace
 from pathlib import Path
 from typing import Literal, cast
 
@@ -35,10 +34,7 @@ from acd.schema.rework_diff import (
     ReworkReplace,
 )
 from acd.schema.salvage import ReworkDfaDeclaration, SalvageGateResult
-from acd.schema.shipping_inspection import (
-    InspectionCriterion,
-    InspectionItem,
-)
+from acd.schema.shipping_inspection import InspectionItem
 from acd.schema.work_instruction import (
     PostWorkInspection,
     RequiredPart,
@@ -51,7 +47,6 @@ from doc_inputs import (
     DocumentGenerationError,
     DocumentInput,
     DocumentTemplate,
-    FirmwareConfigReport,
     load_firmware_config_report,
     load_graph,
     load_template,
@@ -59,7 +54,11 @@ from doc_inputs import (
     write_document,
 )
 from generate_instruction_manual import parse_pins_header
-from generate_shipping_inspection import build_shipping_inspection
+from generate_shipping_inspection import (
+    FirmwareProjectionInputs,
+    build_shipping_inspection,
+    guarded_firmware_projection_inputs,
+)
 
 DOCUMENT_NAME = "work-instruction.md"
 JSON_DOCUMENT_NAME = "work-instruction.json"
@@ -249,14 +248,10 @@ def _steps(
 
 def _filtered_inspection(
     graph: DesignGraph,
-    report: FirmwareConfigReport,
-    macros: dict[str, str],
+    firmware: FirmwareProjectionInputs | None,
     touched: set[str],
 ) -> PostWorkInspection:
-    derived_macros = dict(macros)
-    derived_macros["ACD_TARGET_REVISION"] = f'"{graph.revision}"'
-    derived_report = replace(report, target_revision=graph.revision)
-    inspection = build_shipping_inspection(graph, derived_report, derived_macros)
+    inspection = build_shipping_inspection(graph, firmware)
     items: list[InspectionItem] = []
     firmware_categories = {"flash_boot", "led", "sensor", "serial"}
     for item in inspection.items:
@@ -265,19 +260,6 @@ def _filtered_inspection(
             and not set(item.subject_node_ids) & touched
         ):
             continue
-        if item.category in firmware_categories:
-            criterion = InspectionCriterion(
-                kind="unknown",
-                expected=None,
-                unit=None,
-                lower=None,
-                upper=None,
-                source=None,
-                unknown_reason="firmware projection is for base revision",
-            )
-            item = item.model_copy(
-                update={"criterion": criterion, "manual_decision_required": True}
-            )
         items.append(item)
     return PostWorkInspection(items=items)
 
@@ -360,6 +342,7 @@ def build_work_instruction(
         raise DocumentGenerationError("derived graph does not match the rework")
     macros = parse_pins_header(pins_header)
     report = load_firmware_config_report(report_path)
+    guarded_firmware_projection_inputs(graph, report, macros)
     required_parts = [
         _required_part(derived, operation, index)
         for index, operation in enumerate(diff.operations)
@@ -368,7 +351,7 @@ def build_work_instruction(
     tools = _required_tools(dfa, len(diff.operations))
     steps = _steps(derived, diff.operations, diff.firmware_changes)
     touched = _touched_nodes(graph, diff.operations)
-    post = _filtered_inspection(derived, report, macros, touched)
+    post = _filtered_inspection(derived, None, touched)
     highlight = _highlight(
         graph_input.path,
         derived_path,

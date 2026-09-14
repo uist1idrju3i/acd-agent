@@ -245,6 +245,7 @@
   "shipping.unknown.missing_firmware_boot": "firmwareの起動宣言が未宣言",
   "shipping.unknown.led_blink_undeclared": "LEDの点滅動作が未宣言",
   "shipping.unknown.serial_output_undeclared": "シリアル出力行が未宣言",
+  "shipping.unknown.firmware_projection_unavailable": "このrevisionではfirmware投影を利用できません",
   "shipping.method.visual": "{subject}の実装状態と表示を確認",
   "shipping.method.continuity": "{subject}間の短絡を測定",
   "shipping.method.power_nominal": "{subject}の電圧を測定",
