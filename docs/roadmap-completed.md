@@ -1625,3 +1625,13 @@ Arrhenius、Coffin-Manson、Peckの寿命換算は`authority: "estimate"`とし�
 Evidenceへ昇格させない。測定結果は条件・設備・日時・供試体revisionが揃い、plan revision
 と一致する場合だけ観測として受け付ける。規格本文は再配布せず、識別子・版・種別だけを
 保存する。認証verdictは行わず、`certification_claim: false`を固定した。
+
+### 17.1 部品ライブラリ統治SKILLの実装記録
+
+`acd-library-governance` Skillに、Pydanticの`LibraryPolicy`契約、決定論的KiCad
+sexp footprint parser、pad寸法・courtyard・余白・原点・layer検査、library asset hash
+pinning、`fp-lib-table`のnickname／source検査を追加した。Skillの出力は
+`authority="l2_review"`のL2所見に限定し、欠落・読込不能・parse不能・unknownを合格へ
+変換しない。footprint libraryのnicknameはproject projectionのGraph `library_ref`から
+決定論的に生成され、GD1で観測された`lib_footprint_issues`類型を回帰テストで閉じた。
+ACD coreからSkill moduleはimportせず、geometry/source/hash統治を扱い、規制認証は判定しない。

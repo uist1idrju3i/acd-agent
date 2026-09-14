@@ -232,6 +232,20 @@ L2所見であり、keying未宣言と余長5%未満をassembly-order観点で�
 変更しない。第2段の入力が不足する場合は、該当するcheckをunknownまたはnot-applicableとして
 理由付きで返し、pass-by-omissionにはしない。
 
+### 17.1 部品ライブラリ統治SKILL
+
+`acd-library-governance`はDesign Graphの`library_ref`を入力とする独立したL2 Skillである。
+`LibraryPolicy`に定めたfootprint名のglobごとにpad寸法、courtyardの有無と余白、原点、
+layerを決定論的に検査し、必要な場合はfootprint／symbolのsha256 pinningも検査する。
+`--project-dir`を指定した場合は`fp-lib-table`のnicknameと出所を検査し、Graphが参照する
+nicknameの宣言漏れを、GD1で観測された`lib_footprint_issues`と同じ欠落類型として列挙する。
+
+このSkillの所見は`authority="l2_review"`であり、L1 gateのpass authorityやauthoritative
+Evidenceを持たない。資材の欠落・読込不能・parse不能・未知は`unknown`または`fail`として
+停止側へ保持し、合格へ変換しない。ACD coreはSkill moduleをimportせず、KiCad project
+projection自体はGraphのlibrary referenceから決定論的な`fp-lib-table`／`sym-lib-table`を生成する。
+対象はライブラリのgeometry、source、hash統治であり、規制認証の判定ではない。
+
 ### 信頼性試験対応表（opt-in gate）
 
 信頼性試験gateは`ReliabilityTestPlan`を明示した場合だけ実行する独立したL1 gateである。

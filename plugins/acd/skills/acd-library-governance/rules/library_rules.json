@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1",
+  "description": "Baseline library-governance review rule examples.",
+  "rules": [
+    {
+      "package_pattern": "TestPoint_*",
+      "courtyard_required": false,
+      "origin": "centroid",
+      "origin_tolerance_mm": 1.0,
+      "allowed_layers": [
+        "*.Cu",
+        "*.Mask"
+      ]
+    },
+    {
+      "package_pattern": "*",
+      "courtyard_required": true,
+      "origin_tolerance_mm": 0.1
+    }
+  ]
+}

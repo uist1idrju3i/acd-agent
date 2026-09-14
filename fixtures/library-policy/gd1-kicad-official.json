@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.1",
+  "policy_id": "gd1-kicad-official-library-policy",
+  "graph_id": "golden-design-1",
+  "revision": "r1",
+  "footprint_rules": [
+    {
+      "package_pattern": "TestPoint_*",
+      "pad_size_mm": {
+        "min_x": 1.4,
+        "max_x": 1.6,
+        "min_y": 1.4,
+        "max_y": 1.6
+      },
+      "courtyard_required": false,
+      "origin": "centroid",
+      "origin_tolerance_mm": 1.0,
+      "allowed_layers": [
+        "*.Cu",
+        "*.Mask"
+      ]
+    }
+  ],
+  "lib_table_rules": {
+    "require_all_referenced_libraries": true,
+    "allowed_sources": [
+      "kicad-official",
+      "project-local"
+    ]
+  },
+  "hash_pinning": {
+    "require_footprint_sha256": false,
+    "require_symbol_sha256": false
+  }
+}
