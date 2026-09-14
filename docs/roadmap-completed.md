@@ -1212,3 +1212,25 @@ diagnoseのtop-level `paths`は3 pathごとのstatusと宣言順check名をま�
 `authority`へprovisional観測がauthoritative pathを代替しない旨を明記した。
 既存のcheck集合（workspace追加時のhost観測を除く）、判定閾値、fail-closed範囲、exit code、
 Evidence権限は変更していない。SKILLとoperationsへJSON fieldsと運用手順を追記した。
+
+### 15.14 長時間laneのbackground実行手順とlog契約の実装記録
+
+`scripts/run_in_workspace.py --log PATH`が`acd-lane-log 0.1`のplain-text契約で
+lane logを書く。headerは実行前にimage参照、revision（`--source-revision`または
+bootstrap record、なければ`git rev-parse HEAD`、解決不能は`unknown`）、
+コマンド行、`started_at`を記録し、stdout／stderrをそのままfileへteeする。
+footerは`finally`で`exit_code`、解決済み`image_digest`（startup・transport失敗と
+host provisionalでは`unknown`）、`execution_context`、`failure_kind`（例外の
+`failure_kind`または`classify_execution_failure`結果）、`finished_at`を追記する。
+`src/acd/core/lane_log.py`の`write_lane_log_header`・`append_lane_log_footer`・
+`parse_lane_log`を提供し、`--log`未指定時の挙動は従来どおり。
+
+### 15.16 収集入口へのlane log取り込みの実装記録
+
+`LaneLogRecord.to_execution_record()`が`log_type: lane_log`のrecordを返し、
+`scripts/export_execution_records.py`が`.log`入力とdirectory内の`*.log`を
+`*.json`と名前順に混在して取り込む。生image参照はexportへ残さずdigestだけを
+記録し、allowlistへ`command`・`failure_kind`を追加した。既存のredactionと
+leak refusalをそのまま適用し、footer欠落の中断logはexit 2で拒否する。
+lane logはL3観測であり、合否権限と既存の判定・閾値は変更しない。
+リモートworkspaceからのrsync取得とexport手順を`docs/operations.md`へ記録した。

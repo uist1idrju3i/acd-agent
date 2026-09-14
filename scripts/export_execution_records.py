@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import cast
 
 from acd.core.execution_export import ExecutionExportError, export_execution_record
+from acd.core.lane_log import LaneLogError, parse_lane_log
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -33,21 +34,36 @@ def _record_paths(inputs: Sequence[Path]) -> list[Path]:
     paths: list[Path] = []
     for entry in inputs:
         if entry.is_dir():
-            paths.extend(sorted(entry.glob("*.json")))
+            paths.extend(
+                path
+                for path in entry.iterdir()
+                if path.is_file() and path.suffix in {".json", ".log"}
+            )
         else:
             paths.append(entry)
-    return paths
+    return sorted(paths)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     exported: list[dict[str, object]] = []
     for path in _record_paths(args.records):
-        try:
-            body = cast(object, json.loads(path.read_text(encoding="utf-8")))
-        except (OSError, json.JSONDecodeError) as error:
-            print(f"{path}: record could not be read: {error}", file=sys.stderr)
-            return 2
+        if path.suffix == ".log":
+            try:
+                body = parse_lane_log(
+                    path.read_text(encoding="utf-8")
+                ).to_execution_record()
+            except (OSError, LaneLogError) as error:
+                print(f"{path}: lane log could not be read: {error}", file=sys.stderr)
+                return 2
+        else:
+            try:
+                body = cast(object, json.loads(path.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError) as error:
+                print(
+                    f"{path}: record could not be read: {error}", file=sys.stderr
+                )
+                return 2
         if not isinstance(body, dict):
             print(f"{path}: record must be a JSON object", file=sys.stderr)
             return 2

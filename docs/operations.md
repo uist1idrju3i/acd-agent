@@ -639,6 +639,44 @@ authoritative Evidenceを生成しない。quote取得と実発注はこのloop�
 `OrderTotalError: order scope target revision does not match`でfail-closedする。この検査は
 緩めず、order-total集計とpre-order gateはquote／order scope入力時のみの任意段として実行する。
 
+### 長時間laneのbackground実行とlog契約
+
+container laneを会話toolのforeground呼び出しで実行すると、ホスト再起動やtool timeoutで
+結果が失われ、停止理由が判別できない。長時間laneはbackgroundで同時に1本だけ実行し、
+`scripts/run_in_workspace.py --log <path>`でlane log契約（`acd-lane-log 0.1`）の
+headerとfooterを記録する。
+
+```bash
+nohup uv run python scripts/run_in_workspace.py \
+  --image "$SERVER_REF" --repo . \
+  --log out/lane-logs/<lane>.log \
+  --download out/gd1/evidence-electrical.json \
+  <command> > /dev/null 2>&1 &
+```
+
+進行確認は`tail -n 20 -f out/lane-logs/<lane>.log`、終了確認は
+`grep -E '^(exit_code|failure_kind|image_digest):' out/lane-logs/<lane>.log`で行う。
+log先頭の`=== acd-lane-log 0.1 ===` headerはimage参照・revision（`--source-revision`、
+bootstrap record、`git rev-parse HEAD`の順）・コマンド行・`started_at`を実行前に書く。
+末尾の`=== result ===` footerは`exit_code`、解決済み`image_digest`（起動・transport
+失敗とhost provisionalでは`unknown`）、`execution_context`（`container`または
+`host-provisional`）、`failure_kind`、`finished_at`を記録する。footerが無いlogは
+中断した実行であり、parseはfail-closedで拒否する。lane logはL3観測であり、
+合否権限を持たない。
+
+リモートworkspaceからはディレクトリごと取得して収集入口へ渡す。
+
+```bash
+rsync -av <host>:<workspace>/out/lane-logs/ ./collected/lane-logs/
+uv run python scripts/export_execution_records.py collected/lane-logs \
+  --out out/execution-records-export.json
+```
+
+`.log`入力は`parse_lane_log`で`log_type: lane_log`のexecution recordへ構造化され、
+既存のallowlist抽出・秘匿化・漏洩拒否がそのまま適用される。生image参照はregistry
+hostnameを含みうるためexportへ残さず、digestだけを記録する。`*.json`と`*.log`は
+directory内で名前順に混在処理する。
+
 ### 契約registryとparts catalogの追加
 
 トポロジtemplateは`contracts/topology-templates.json`へ追加する。`template_id`と
