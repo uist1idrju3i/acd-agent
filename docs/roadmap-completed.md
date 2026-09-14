@@ -1675,3 +1675,22 @@ MSL levelは分布だけを記録し、適合判定には使わない。結果�
 REACH SVHCをmanual declarationで収載し、ICのMSL level分布も記録する。空MPNの機械部品・
 test pointは17.2と同じく`no_mpn`として別報告する。外部API照会は行わず、既存GD1 default
 outputは変更しない。
+
+### 17.4 BOMコスト・代替部品検討の実装記録
+
+`PartPriceBook`をDesign Graphとは独立したopt-in contractとして追加し、保存済み価格入力
+からGD1 BOMのbuild quantity別コストを決定論的に見積もる。価格はminor unit、通貨、
+price break、supplier、取得時点・有効期限、primary／inference basisを持ち、期限切れ、
+entry欠落、一次basis不在、適用可能なprice break不在はunknownへ集約する。部分結果は
+`partial_total_minor`に分離し、完全coverageがないと`total_minor`を出力しない。
+
+完全coverage時のtarget超過だけをfailとし、unit share超過はwarningとして記録する。
+17.2の`PartLifecycleRegistry.alternates`からdrop-inまたはfootprint-compatible value check
+候補を再利用し、価格entryがない候補もnull価格で表示する。ACDは候補提示のみであり、
+graph変更や自動代替、発注権限を持たない。結果の`authority`は`estimate`固定で、Markdown
+projectionは「見積（estimate）・発注権限なし」を明記する。
+
+`fixtures/bom-cost/gd1-2026-09.json`はGD1の13 non-empty MPNをmanual declarationの
+primary価格で収載し、`build_quantity=10`のpass経路と17.2由来の代替候補を固定する。
+`scripts/estimate_bom_cost.py`は`--as-of`で評価基準日を固定し、既存GD1 default outputは
+変更しない。外部API照会は行わない。

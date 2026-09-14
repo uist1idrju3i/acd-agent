@@ -545,9 +545,9 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 17.1 | 部品ライブラリ統治SKILL | footprintのpad寸法・courtyard・原点をライブラリ契約として検査する。`examples/sensor-node-20260820/`のreportで観測されたDRC警告30件（`lib_footprint_issues`）の類型に対応する | 達成 |
 | 17.2 | EOL・セカンドソース管理契約 | 部品のライフサイクル状態と代替候補を宣言contractとして記録し、未宣言はunknownとして停止側へ集約する（外部APIの自動照会は別途判断） | 達成 |
 | 17.3 | BOMコンプライアンス事前チェック | BOM部品属性からRoHS等の申告状況を集計し、不明部品をunknownとして列挙する（適合判定はしない） | 達成 |
-| 17.4 | BOMコスト・代替部品検討 | JLCPCB basic/extended区分や代替候補の整理を、保存済み見積入力（7.1契約）の範囲で支援する |
+| 17.4 | BOMコスト・代替部品検討 | JLCPCB basic/extended区分や代替候補の整理を、保存済み見積入力（7.1契約）の範囲で支援する | 達成 |
 
-17.1〜17.3は達成済み、17.4は計画である。
+17.1〜17.4は達成済みである。
 
 ## マイルストーン18: 量産・出荷準備lane
 

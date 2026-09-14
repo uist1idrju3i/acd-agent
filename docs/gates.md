@@ -287,6 +287,29 @@ unknownへ集約する。`declared_non_compliant`は申告上の停止側所見�
 verdictではない。空MPNの機械部品・test pointは17.2と同じく`no_mpn`として別報告する。
 この集計は独立したopt-in経路であり、registryを指定しないGD1 default outputは変更しない。
 
+### 17.4 BOMコスト見積・代替部品候補（opt-in estimate）
+
+`PartPriceBook`を明示した場合だけ、`build_bom()`のnon-empty MPNについて保存済み価格
+入力から決定論的なコスト見積を行う。価格は整数minor unitと通貨、価格break、supplier、
+取得時点・有効期限、`primary`／`inference`のbasisを持ち、wall clockや外部API照会には
+依存しない。`as_of`時点で期限切れ、価格break不適用、`inference` basis（policyが一次
+basisを要求する場合）、価格entry欠落はunknownとし、部分合計は`partial_total_minor`へ
+分離する。完全なcoverageがない場合、`total_minor`はnullであり、部分合計を全体見積へ
+昇格しない。
+
+完全coverageの見積が`target_total_minor`を超えた場合だけfailとする。
+`max_unit_share_pct`超過は`warnings`へ記録する非gating所見である。単価はextended
+quantity以下で最大のprice breakを選び、build quantityを含む部品別数量・合計・cost
+driversを出力する。
+
+17.2の`PartLifecycleRegistry.alternates`を指定した場合、`drop_in`または
+`footprint_compatible_value_check`の候補を価格入力と照合して列挙する。価格が無い候補も
+null価格で記録する。ACDは候補を提案・表示するだけであり、Design Graphを自動変更せず、
+発注権限も持たない。結果の`authority`は`estimate`固定で、MarkdownはL3 projectionとして
+「見積（estimate）・発注権限なし」を明記する。空MPNの機械部品・test pointは
+`no_mpn`として別報告し、費用coverageの分母から除外する。registryやprice bookを指定しない
+既存GD1 default outputは変更しない。
+
 ### 信頼性試験対応表（opt-in gate）
 
 信頼性試験gateは`ReliabilityTestPlan`を明示した場合だけ実行する独立したL1 gateである。
