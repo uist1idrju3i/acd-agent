@@ -34,7 +34,9 @@ def _gd1_pinned_footprints_present() -> bool:
             return False
         path = Path(footprint_file)
         if not path.is_absolute():
-            path = GD1_FIXTURE_DIR / path
+            # Mirror resolve_fixture_path: fixture dir first, then repo root.
+            candidate = GD1_FIXTURE_DIR / path
+            path = candidate if candidate.is_file() else REPO_ROOT / path
         if not path.is_file():
             return False
     return True
