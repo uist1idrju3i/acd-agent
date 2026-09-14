@@ -69,7 +69,6 @@ from acd.core.mechanical_preflight import (
     RequirementFinding,
     check_mechanical_preflight,
 )
-from acd.core.pdn import analyze_pdn, pdn_markdown
 from acd.core.order_execution import build_dry_run_order_payload
 from acd.core.order_submission import (
     DeclaredProviderUnavailable,
@@ -87,6 +86,7 @@ from acd.core.order_total import (
     order_total_result_from_document,
     order_total_result_to_document,
 )
+from acd.core.pdn import analyze_pdn, pdn_markdown
 from acd.core.quote import (
     FixtureQuoteProvider,
     QuoteFeeSet,
@@ -163,8 +163,6 @@ __all__ = [
     "LoadedDefectDocument",
     "LoadedReworkDiff",
     "MechanicalPreflightReport",
-    "analyze_pdn",
-    "pdn_markdown",
     "OrderSubmissionProvider",
     "OrderSubtotal",
     "OrderTotalError",
@@ -182,6 +180,7 @@ __all__ = [
     "SideEffectJournalError",
     "WorkaroundLedgerError",
     "aggregate_order_total",
+    "analyze_pdn",
     "append_post_order",
     "append_pre_order",
     "apply_rework_diff",
@@ -217,6 +216,7 @@ __all__ = [
     "order_total_breakdown_hash",
     "order_total_result_from_document",
     "order_total_result_to_document",
+    "pdn_markdown",
     "propose_input_feedback",
     "quote_provider_from_config",
     "read_journal",
