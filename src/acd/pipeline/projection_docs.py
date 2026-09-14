@@ -144,6 +144,7 @@ def run_projection_docs(
     firmware_out: Path,
     output: Path,
     enclosure_out: Path,
+    previous_graph_path: Path | None = None,
     runner: Callable[[list[str]], subprocess.CompletedProcess[str]] | None = None,
 ) -> ProjectionDocsResult:
     """Run all product-document generators and hash their outputs."""
@@ -151,7 +152,14 @@ def run_projection_docs(
     manual_script = _script_path(repository, "generate_instruction_manual.py")
     interface_script = _script_path(repository, "generate_interface_spec.py")
     quality_script = _script_path(repository, "generate_quality_report.py")
-    for script in (readme_script, manual_script, interface_script, quality_script):
+    review_script = _script_path(repository, "generate_review_package.py")
+    for script in (
+        readme_script,
+        manual_script,
+        interface_script,
+        quality_script,
+        review_script,
+    ):
         if not script.is_file():
             raise ProjectionDocsError(
                 f"product-docs Skill script is missing: {script}",
@@ -325,6 +333,38 @@ def run_projection_docs(
             or f"quality report generator exited with code {completed.returncode}",
             output_path=output,
         )
+    review_command = [
+        "uv",
+        "run",
+        "--script",
+        str(review_script),
+        "--graph",
+        str(graph_path),
+        "--projections",
+        *[str(path) for path in projections],
+        "--design-predicates",
+        str(quality_inputs["design predicates"]),
+        "--dfm-report",
+        str(quality_inputs["DFM report"]),
+    ]
+    if previous_graph_path is None:
+        review_command.append("--no-previous-revision")
+    else:
+        review_command.extend(["--previous-graph", str(previous_graph_path)])
+    review_command.extend(
+        ["--out-dir", str(output), "--base-dir", str(out_root)]
+    )
+    completed = _execute(
+        review_command,
+        repository=repository,
+        runner=runner,
+    )
+    if completed.returncode != 0:
+        raise ProjectionDocsError(
+            completed.stderr.strip()
+            or f"review package generator exited with code {completed.returncode}",
+            output_path=output,
+        )
     documents = (
         _require_document(
             output,
@@ -361,6 +401,21 @@ def run_projection_docs(
             kind="quality_report_json",
             document_name="quality-report.json",
         ),
+        _require_document(
+            output,
+            kind="review_package",
+            document_name="review-package.md",
+        ),
+        _require_document(
+            output,
+            kind="review_package_json",
+            document_name="review-package.json",
+        ),
+        _require_document(
+            output,
+            kind="graph_diff_json",
+            document_name="graph-diff.json",
+        ),
     )
     hashes_path = _write_hashes(output)
     provenance: dict[str, object] = {
@@ -375,6 +430,7 @@ def run_projection_docs(
                 manual_script,
                 interface_script,
                 quality_script,
+                review_script,
             )
         },
         "pass_evidence": False,

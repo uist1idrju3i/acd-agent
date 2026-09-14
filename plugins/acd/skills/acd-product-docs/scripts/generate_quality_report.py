@@ -19,7 +19,6 @@ import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
 
 from acd.schema.design_graph import DesignGraph
 from acd.schema.evidence import Evidence
@@ -29,11 +28,21 @@ from acd.schema.rationale import (
     RationaleRecord,
 )
 from doc_inputs import (
+    DesignPredicates,
+    DfmFinding,
+    DfmReport,
     DocumentGenerationError,
     DocumentInput,
+    PredicateObservation,
+    load_design_predicates,
+    load_dfm_report,
     load_graph,
+    load_json_object,
     nodes_of_kind,
     relative_path,
+    require_list,
+    require_object,
+    require_str,
     sha256_file,
     text_attr,
     write_document,
@@ -46,6 +55,22 @@ JSON_DOCUMENT_NAME = "quality-report.json"
 
 DEFAULT_REQUIRED_LANES = ("electrical", "mechanical", "firmware")
 
+__all__ = [
+    "DesignPredicates",
+    "DfmFinding",
+    "DfmReport",
+    "DocumentGenerationError",
+    "DocumentInput",
+    "PredicateObservation",
+    "load_design_predicates",
+    "load_dfm_report",
+    "load_graph",
+    "load_json_object",
+    "require_list",
+    "require_object",
+    "require_str",
+]
+
 
 @dataclass(frozen=True)
 class LaneEvidence:
@@ -53,71 +78,6 @@ class LaneEvidence:
 
     lane: str
     evidence: Evidence
-
-
-@dataclass(frozen=True)
-class PredicateObservation:
-    """One design-predicate observation row."""
-
-    name: str
-    evaluation_stage: str
-    status: str
-    detail: str
-
-
-@dataclass(frozen=True)
-class DesignPredicates:
-    """Parsed design-predicates gate observation."""
-
-    target_revision: str
-    status: str
-    predicates: tuple[PredicateObservation, ...]
-
-
-@dataclass(frozen=True)
-class DfmFinding:
-    """One DFM finding row."""
-
-    rule_id: str
-    message: str
-
-
-@dataclass(frozen=True)
-class DfmReport:
-    """Parsed DFM report."""
-
-    target_revision: str
-    status: str
-    profile_id: str
-    findings: tuple[DfmFinding, ...]
-    unknowns: dict[str, str]
-    checks_not_implemented: tuple[DfmFinding, ...]
-
-
-def _require_object(value: object, *, field: str) -> dict[str, object]:
-    if not isinstance(value, dict):
-        raise DocumentGenerationError(f"field {field!r} is not an object")
-    return cast(dict[str, object], value)
-
-
-def _require_str(value: object, *, field: str) -> str:
-    if not isinstance(value, str) or not value:
-        raise DocumentGenerationError(f"field {field!r} is missing or not text")
-    return value
-
-
-def _require_list(value: object, *, field: str) -> list[object]:
-    if not isinstance(value, list):
-        raise DocumentGenerationError(f"field {field!r} is not a list")
-    return cast(list[object], value)
-
-
-def _load_json_object(path: Path, *, label: str) -> dict[str, object]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise DocumentGenerationError(f"{label} {path} is not valid: {exc}") from exc
-    return _require_object(payload, field=label)
 
 
 def load_evidence(path: Path, graph: DesignGraph, *, lane: str) -> LaneEvidence:
@@ -193,84 +153,6 @@ def load_rationale(path: Path, graph: DesignGraph) -> RationaleDocument:
             f"not {graph.revision!r}"
         )
     return document
-
-
-def load_design_predicates(path: Path, graph: DesignGraph) -> DesignPredicates:
-    """Parse the design-predicates gate observation file."""
-    data = _load_json_object(path, label="design predicates")
-    observation = _require_object(data.get("observation"), field="observation")
-    predicates = tuple(
-        PredicateObservation(
-            name=_require_str(item.get("name"), field="predicates[].name"),
-            evaluation_stage=_require_str(
-                item.get("evaluation_stage"), field="predicates[].evaluation_stage"
-            ),
-            status=_require_str(item.get("status"), field="predicates[].status"),
-            detail=_require_str(item.get("detail"), field="predicates[].detail"),
-        )
-        for item in (
-            _require_object(entry, field="predicates[]")
-            for entry in _require_list(
-                observation.get("predicates"), field="observation.predicates"
-            )
-        )
-    )
-    return DesignPredicates(
-        target_revision=_require_str(
-            data.get("target_revision"), field="target_revision"
-        ),
-        status=_require_str(data.get("status"), field="status"),
-        predicates=predicates,
-    )
-
-
-def load_dfm_report(path: Path, graph: DesignGraph) -> DfmReport:
-    """Parse the DFM report file."""
-    data = _load_json_object(path, label="DFM report")
-    findings = tuple(
-        DfmFinding(
-            rule_id=_require_str(item.get("rule_id"), field="findings[].rule_id"),
-            message=_require_str(item.get("message"), field="findings[].message"),
-        )
-        for item in (
-            _require_object(entry, field="findings[]")
-            for entry in _require_list(data.get("findings"), field="findings")
-        )
-    )
-    unknowns_raw = _require_object(data.get("unknowns"), field="unknowns")
-    unknowns = {
-        key: _require_str(
-            _require_object(value, field=f"unknowns.{key}").get("reason"),
-            field=f"unknowns.{key}.reason",
-        )
-        for key, value in unknowns_raw.items()
-    }
-    checks_not_implemented = tuple(
-        DfmFinding(
-            rule_id=_require_str(
-                item.get("rule_id"), field="checks_not_implemented[].rule_id"
-            ),
-            message=_require_str(
-                item.get("reason"), field="checks_not_implemented[].reason"
-            ),
-        )
-        for item in (
-            _require_object(entry, field="checks_not_implemented[]")
-            for entry in _require_list(
-                data.get("checks_not_implemented"), field="checks_not_implemented"
-            )
-        )
-    )
-    return DfmReport(
-        target_revision=_require_str(
-            data.get("target_revision"), field="target_revision"
-        ),
-        status=_require_str(data.get("status"), field="status"),
-        profile_id=_require_str(data.get("profile_id"), field="profile_id"),
-        findings=findings,
-        unknowns=unknowns,
-        checks_not_implemented=checks_not_implemented,
-    )
 
 
 def _guard_graph_references(

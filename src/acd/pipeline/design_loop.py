@@ -214,6 +214,7 @@ class DesignLoopConfig:
     fixture_overwrite: bool = False
     wall_clock_budget_seconds: float | None = None
     token_budget: int | None = None
+    previous_graph_path: Path | None = None
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -439,6 +440,7 @@ def _run_projection_docs(config: DesignLoopConfig) -> dict[str, Any]:
             firmware_out=firmware_out,
             output=output,
             enclosure_out=enclosure_out,
+            previous_graph_path=config.previous_graph_path,
         )
     except ProjectionDocsError as exc:
         fields: dict[str, Any] = {"record_class": "L3"}
@@ -1163,6 +1165,7 @@ def run_design_loop(
     fixture_spec: Path | None = None,
     quote_records: Sequence[Path] | None = None,
     order_scope: Path | None = None,
+    previous_graph_path: Path | None = None,
 ) -> dict[str, Any]:
     """Run stages in fixed order with stop-only stage-boundary budgets.
 
@@ -1322,6 +1325,7 @@ def run_design_loop(
             fixture_overwrite=fixture_overwrite,
             wall_clock_budget_seconds=wall_clock_budget_seconds,
             token_budget=token_budget,
+            previous_graph_path=previous_graph_path,
         )
         if recovery_enabled:
             recovery_declarations = load_lane_recovery_declarations()

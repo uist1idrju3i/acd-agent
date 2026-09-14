@@ -768,6 +768,24 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 | （改善バックログ）GD1と実体が異なる設計での実行例作成 | 14.1・14.2 |
 | （ギャップ分析）E-6 検証段階の並列実行 | 14.7（達成） |
 | （ギャップ分析）E-5 生成物名・`subject_node`のgraph_id由来化 | 14.6（出力命名は達成、`order_policy`のevidence anchorは計画） |
+
+### 9.4 レビュー資料生成の実装記録
+
+`plugins/acd/skills/acd-product-docs/scripts/generate_review_package.py`が
+design graph、記録済み視覚投影、design-predicates、DFM report、および明示的に
+宣言された前revisionから、`review-package.md`、`review-package.json`、
+`graph-diff.json`を決定論的に生成する。graph差分はノードの追加・削除・属性変更と
+edge差分をID順に整理し、前revisionを宣言しない場合はunknownとして記録する。
+レビュー項目には設計述語、DFM所見、未実装・unknown、視覚投影、graph差分を入力由来の
+itemとして収録し、`authority: "none"`、`record_class: "L3"`、
+`pass_evidence: false`を固定する。
+
+`run_projection_docs`はこのscriptを5番目のgeneratorとして実行し、3文書と
+provenance、`hashes.json`への収録を要求する。`run_design_loop`とCLIの
+`--previous-graph`は前revisionを任意入力として伝搬し、省略時は
+`--no-previous-revision`を明示する。graph ID／revision、投影再生成状態、画像、
+述語・DFM revisionの不一致や入力欠落はfail-closedで停止し、JSON本体には
+timestampを含めない。
 | （改善バックログ）host EDA不在時の推奨経路への誘導 | 15.8（達成） |
 | （改善バックログ）FW実行のhost前提（QEMU・`libslirp0`等）のdocs化とlocked image同梱 | 15.9（達成） |
 | （改善バックログ）FW成果物ディレクトリ名のgraph_id由来化 | 14.6（達成） |
@@ -833,6 +851,7 @@ container出力の`out/container/`分離と権限・環境起因失敗の分類�
 | 代替routerの単独実測 | 15.21（2026-09-13） |
 | 機器I/F契約投影 | 9.6（2026-09-13） |
 | 品質文書生成 | 9.3（2026-09-13） |
+| レビュー資料生成 | 9.4 |
 | ハーネス契約と結線検査 | 16.6（2026-09-13） |
 | 想定実使用環境の宣言contract | 16.3（2026-09-13） |
 | （実機組み付け）筐体アンテナ干渉（`board_edge_overhang`ノード未消費） | 3.1 |

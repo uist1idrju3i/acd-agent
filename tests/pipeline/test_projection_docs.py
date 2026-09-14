@@ -23,6 +23,8 @@ def _runner_factory(calls: list[list[str]]):
             names = ("instruction-manual.md",)
         elif "generate_interface_spec.py" in " ".join(command):
             names = ("interface-spec.md", "interface-spec.json")
+        elif "generate_review_package.py" in " ".join(command):
+            names = ("review-package.md", "review-package.json", "graph-diff.json")
         else:
             names = (
                 "inspection-report.md",
@@ -113,7 +115,7 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
         enclosure_out=enclosure_out,
         runner=_runner_factory(calls),
     )
-    assert len(result.documents) == 7
+    assert len(result.documents) == 10
     hashes = (output / "hashes.json").read_text(encoding="utf-8")
     assert "product-readme.md" in hashes
     assert "instruction-manual.md" in hashes
@@ -122,9 +124,16 @@ def test_run_projection_docs_writes_flat_hashes_and_optional_theme(
     assert "inspection-report.md" in hashes
     assert "traceability-report.md" in hashes
     assert "quality-report.json" in hashes
+    assert "review-package.md" in hashes
+    assert "review-package.json" in hashes
+    assert "graph-diff.json" in hashes
     assert result.provenance["skill_name"] == "acd-product-docs"
     assert result.provenance["pass_evidence"] is False
     assert all("theme-song-projection" not in command for command in calls)
+    review_command = next(
+        command for command in calls if "generate_review_package.py" in " ".join(command)
+    )
+    assert "--no-previous-revision" in review_command
 
     (board_out / "theme-song-projection.json").write_text("{}\n", encoding="utf-8")
     calls.clear()

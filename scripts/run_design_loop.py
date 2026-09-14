@@ -28,6 +28,12 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture", type=Path, default=Path("fixtures/golden-design-1"))
     parser.add_argument("--out-root", type=Path, default=Path("out"))
+    parser.add_argument(
+        "--previous-graph",
+        type=Path,
+        default=None,
+        help="optional previous graph JSON for review-package graph diff",
+    )
     parser.add_argument("--order-total", type=Path, default=None)
     parser.add_argument(
         "--quote-record",
@@ -166,6 +172,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_exploration_rounds=args.max_exploration_rounds,
             requirement=args.requirement,
             fixture_spec=args.fixture_spec,
+            previous_graph_path=args.previous_graph,
         )
     except Exception as exc:
         result = {
