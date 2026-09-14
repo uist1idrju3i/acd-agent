@@ -11,7 +11,7 @@
 
 OpenHands plugin、11 Skill、5 AgentDefinition、`/acd:gates`、SDK ToolDefinition、
 GD1基板・筐体・FW pipeline、SDK hooksによるfail-closed境界を提供する。マイルストーン1〜8、
-9.1〜9.2、11.5、12、14.1〜14.15、14.19、15.1〜15.19は達成済みであり、完了条件と実装記録は
+9.1〜9.2、11.5、12、14.1〜14.15、14.19、15.1〜15.20は達成済みであり、完了条件と実装記録は
 [`roadmap-completed.md`](roadmap-completed.md)を正とする。
 
 決定論的ゲートのauthoritative Evidenceはdigest固定container実行だけが生成する。
@@ -43,7 +43,7 @@ GD1と`fixtures/mini-blink-dongle/`の2件であり、GD1非依存の達成判�
 
 残る未了は、14.16のR-3（FW復帰の実測記録）、14.17のS-3
 （ambient install経路の配布形態）と復帰成立実行の実測記録、14.18の復帰成立runの
-wall-clock記録、15.20〜15.21、および計画段階のマイルストーン9.3〜9.6、
+wall-clock記録、15.21、および計画段階のマイルストーン9.3〜9.6、
 10、11.1〜11.4、13、16.1〜16.6、17〜21である。11.4aと14.21は達成済みである。KiCad由来SVGのfit-to-board化（用紙余白の除去）は
 未実装であり、8.5の電気視覚照合が図枠のtitle blockを読むため現行exportを維持し、
 極小表示の所見は20.4の可読性検査で扱う。
@@ -72,7 +72,7 @@ wall-clock記録、15.20〜15.21、および計画段階のマイルストーン
 | 12 | 設計ナレッジQA | 設計知識源への出所引用付きQAと公開用FAQ生成を、unknown停止と会話ログ公開除外の規則付きで提供する | 達成 |
 | 13 | 既存製造品の救済（ワークアラウンドlane） | 既存製造品に対する追加工・FW修正の救済差分を記録し、派生graphへ既存ゲートと実施可能性を再適用する | 計画 |
 | 14 | VibeBB単体成立（会話駆動の設計反復） | 汎用エージェントの代行なしで会話から設計反復を回し、候補生成・検証・失敗回復を行う | 進行中（14.1〜14.15・14.19・14.25は達成。14.16はR-1・R-2を達成、14.17のS-3、14.18の実測記録は未了で、GD1以外の設計によるend-to-endの成立は未実証） |
-| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.19達成（15.20〜15.21は計画） |
+| 15 | 運用と文書の整備 | 運用・文書側の改善を整備し、ツール意味論、発注判定、取得・リリース手順、ログ要約を記録する | 15.1〜15.20達成（15.21は計画） |
 | 16 | 設計能力の拡張 | 多層基板、階層graph、バッテリ、EMC/ESD、DFT、構造安全性の設計契約とゲートを拡張する | 16.1〜16.6は計画 |
 | 17 | 部品・サプライチェーン統治 | 部品ライブラリ、ライフサイクル、代替、BOMコンプライアンスとコスト検討を統治する | 計画 |
 | 18 | 量産・出荷準備lane | ブリングアップ、panelization、DFA、出荷検査文書と検査FWを整備する | 計画 |
@@ -512,10 +512,10 @@ gerber exportとSkill subprocessを省略する。合否は既存のrouted silks
 | 15.17 | 例示commandとfixture有効期間の整合検査（V-4） | `docs/operations.md`のGD1発注集計例の`--evaluated-at`を対象quoteの有効期間内へ揃え、`verify_docs.py`で例示とfixtureの期限整合を機械的に固定する。達成済み。quoteの有効期限や期限検査の閾値は緩めない |
 | 15.18 | 資源計測ラッパのscript化（V-8） | 達成。`scripts/measure_lane_resources.py`がcheckout path、digest固定image、download対象、計測間隔を引数で受け、`run_in_workspace.py`をwrapしてhost CPU／memory／swapとdocker statsをintervalごとに記録する。計測結果はL3観測であり合否権限を持たない |
 | 15.19 | 成果物の最小収録集合の宣言（V-10） | FW laneのESP-IDF buildツリーのように再生成可能で大きい出力を区別し、lane summaryへ「収録すべき最小成果物集合」を機械可読に宣言する。成果物の必須性判定（U-5）は変更しない。達成：`contracts/lane-artifact-retention.json`と`scripts/collect_lane_artifacts.py` |
-| 15.20 | 長時間runの予算・中断・再開契約 | 長時間runの出所としてwall-clock／token予算を宣言し、stage境界checkpointと`--resume`再開性の回帰テストを追加する。運用項目に限定し、判定・閾値には作用させない |
+| 15.20 | 長時間runの予算・中断・再開契約 | 達成。wall-clock／token予算を宣言し、wall-clockはstage境界だけで超過停止する。L3 checkpointは各stage後に更新し、`--resume`はcheckpointを参照せずStageArtifactCacheだけを再利用してゲートを再実行する。運用項目に限定し、判定・閾値には作用させない |
 | 15.21 | 代替routerの単独実測 | GD1と`dual-beacon-tag`をOrthoRoute headlessの`--cpu-only`／GPU modeで単独実測し、収束・DRC・時間・再現性と2回のhash一致を`operations.md`へ記録する。決定論的`.ORP`生成が不能なら不採用として閉じ、合否へ作用させない |
 
-15.1〜15.19は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.20〜15.21は未着手であり、運用・計測側だけを整備する項目であり、判定と閾値には触れない。
+15.1〜15.20は達成済みで実装記録は[`roadmap-completed.md`](roadmap-completed.md)にある。15.21は未着手であり、運用・計測側だけを整備する項目であり、判定と閾値には触れない。
 
 ## マイルストーン16: 設計能力の拡張
 

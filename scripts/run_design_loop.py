@@ -55,6 +55,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-passes", type=int, default=DEFAULT_ROUTER_MAX_PASSES)
     parser.add_argument("--max-silkscreen-iterations", type=int, default=5)
     parser.add_argument("--run-seconds", type=int, default=15)
+    parser.add_argument("--wall-clock-budget", type=float, default=None)
+    parser.add_argument("--token-budget", type=_positive_int, default=None)
     parser.add_argument("--evaluated-at", default=None)
     parser.add_argument(
         "--cache-dir",
@@ -150,6 +152,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             max_passes=args.max_passes,
             max_silkscreen_iterations=args.max_silkscreen_iterations,
             run_seconds=args.run_seconds,
+            wall_clock_budget_seconds=args.wall_clock_budget,
+            token_budget=args.token_budget,
             evaluated_at=evaluated_at,
             cache_dir=args.cache_dir,
             resume=args.resume,

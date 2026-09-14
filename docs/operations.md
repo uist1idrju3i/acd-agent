@@ -1470,6 +1470,26 @@ host mem used peak 4.30 GiB、container peak 5.00 GiB、swap 0であった。fix
 Run Kはwall 42秒、container peak 2.66 GiB、swap 0であった。既存の最低・推奨スペック表は
 変更せず、これらの実測を追加の運用根拠とする。
 
+#### 長時間runの予算・checkpoint・resume契約
+
+長時間runは`run_design_loop.py --wall-clock-budget SECONDS --token-budget N`で
+予算を宣言できる。wall-clock予算は各stage境界の直前だけで確認し、超過時は次のstageを
+実行せずfail-closedで停止する。実行中stageを中断せず、ゲートの閾値・判定は変更しない。
+`token-budget`はこの決定論的loopではtokenを消費・計数しない宣言値であり、実際の
+enforcementはOpenHands conversationのL2 stop側が担う。
+
+各stageの完了後、`design-loop-checkpoint.json`をUTF-8 JSONで更新する。recordは
+`schema_version: 0.1`、`record_class: L3`、`pass_evidence: false`、graph ID、resume、
+cache directory、budget、elapsed、実行順のstage（`stage_id`、`ok`、`fail_closed`、
+`timing_name`）、更新時刻を持つ。checkpointは人間と`report_progress`向けの観測であり、
+`--resume`はcheckpointを参照しない。resume時もゲートstageを再実行し、既存の
+StageArtifactCacheだけを再利用する。checkpoint書き込み失敗はloopを成功扱いにせず、
+該当stageの`checkpoint_error`へ記録する。
+
+`run_design_lanes.py`にも同名の`--wall-clock-budget`／`--token-budget`がある。
+lanes側では`run_stage`が各command境界の直前に経過を確認し、超過時は未開始commandを
+開始せずにexit 2で停止する。JSON summaryの`budget`フィールドに宣言値を記録する。
+
 #### 資源計測wrapper（`scripts/measure_lane_resources.py`）
 
 以後の資源実測は使い捨てshell scriptではなくrepository内のwrapperで行う。

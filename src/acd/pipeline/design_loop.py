@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import os
 import tempfile
+import threading
+import time
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
@@ -97,6 +100,8 @@ from acd.schema import (
 )
 from acd.schema.common import canonical_json_sha256
 from acd.schema.lane_preflight import LanePreflightReport
+
+_MONOTONIC = time.monotonic
 
 DEFAULT_DESIGN_LOOP_JOBS = min(os.cpu_count() or 1, 3)
 DESIGN_LOOP_STAGE_IDS = lane_plan.DESIGN_LOOP_STAGE_IDS
@@ -207,6 +212,8 @@ class DesignLoopConfig:
     order_scope: Path | None = None
     design_only: bool = False
     fixture_overwrite: bool = False
+    wall_clock_budget_seconds: float | None = None
+    token_budget: int | None = None
 
 
 def _success(stage_id: str, **fields: Any) -> dict[str, Any]:
@@ -1149,12 +1156,52 @@ def run_design_loop(
     max_exploration_candidates: int = 3,
     max_exploration_rounds: int = 1,
     requirement: Path | None = None,
+    wall_clock_budget_seconds: float | None = None,
+    token_budget: int | None = None,
     fixture_spec: Path | None = None,
     quote_records: Sequence[Path] | None = None,
     order_scope: Path | None = None,
 ) -> dict[str, Any]:
-    """Run all design stages in their fixed fail-closed order."""
+    """Run stages in fixed order with stop-only stage-boundary budgets.
+
+    ``token_budget`` is declaration-only here; token enforcement belongs to the
+    OpenHands L2 conversation layer because this loop does not consume LLM
+    tokens. The checkpoint is an L3 human/reporting record and is never read by
+    resume; resume only reuses the StageArtifactCache and re-executes gates.
+    """
     timing = TimingRecorder()
+    loop_start = _MONOTONIC()
+    budget = {
+        "wall_clock_seconds": wall_clock_budget_seconds,
+        "token": token_budget,
+        "enforcement": "stage-boundary",
+    }
+    checkpoint_lock = threading.Lock()
+    checkpoint_stages: list[dict[str, Any]] = []
+
+    def write_checkpoint() -> str | None:
+        try:
+            checkpoint = {
+                "schema_version": "0.1",
+                "record_class": "L3",
+                "pass_evidence": False,
+                "graph_id": result.get("graph_id"),
+                "resume": resume,
+                "cache_dir": str(resolved_cache_dir) if resolved_cache_dir else None,
+                "budget": budget,
+                "elapsed_seconds": _MONOTONIC() - loop_start,
+                "stages": list(checkpoint_stages),
+                "updated_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+            (out_root / "design-loop-checkpoint.json").write_text(
+                json.dumps(checkpoint, ensure_ascii=False, indent=2, sort_keys=True)
+                + "\n",
+                encoding="utf-8",
+            )
+            return None
+        except Exception as exc:
+            return f"{type(exc).__name__}: {exc}"
+
     resolved_cache_dir = cache_dir
     if resume and resolved_cache_dir is None:
         resolved_cache_dir = out_root / ".stage-cache"
@@ -1166,6 +1213,7 @@ def run_design_loop(
         "resume": resume,
         "jobs": jobs,
         "results": [],
+        "budget": budget,
     }
     recovery_enabled = explore_board or recover_lanes
     recovery_declarations: LaneRecoveryDeclarations | None = None
@@ -1236,6 +1284,10 @@ def run_design_loop(
             raise ValueError("max_exploration_candidates must be a positive integer")
         if max_exploration_rounds < 1:
             raise ValueError("max_exploration_rounds must be a positive integer")
+        if wall_clock_budget_seconds is not None and wall_clock_budget_seconds <= 0:
+            raise ValueError("wall_clock_budget_seconds must be positive")
+        if token_budget is not None and token_budget <= 0:
+            raise ValueError("token_budget must be positive")
         if resolved_cache_dir is not None:
             resolved_cache_dir.mkdir(parents=True, exist_ok=True)
         config = DesignLoopConfig(
@@ -1266,6 +1318,8 @@ def run_design_loop(
             order_scope=order_scope,
             design_only=design_only,
             fixture_overwrite=fixture_overwrite,
+            wall_clock_budget_seconds=wall_clock_budget_seconds,
+            token_budget=token_budget,
         )
         if recovery_enabled:
             recovery_declarations = load_lane_recovery_declarations()
@@ -1309,6 +1363,30 @@ def run_design_loop(
             )
             timing_error: str | None = None
             started = False
+            elapsed = _MONOTONIC() - loop_start
+            if (
+                wall_clock_budget_seconds is not None
+                and elapsed > wall_clock_budget_seconds
+            ):
+                stage_result = _failure(
+                    stage_id,
+                    f"wall-clock budget exhausted before {stage_id}: "
+                    f"{elapsed:.1f}s > {wall_clock_budget_seconds:.1f}s",
+                    budget_exhausted=True,
+                )
+                with checkpoint_lock:
+                    checkpoint_stages.append(
+                        {
+                            "stage_id": stage_id,
+                            "ok": False,
+                            "fail_closed": True,
+                            "timing_name": timing_name,
+                        }
+                    )
+                    checkpoint_error = write_checkpoint()
+                if checkpoint_error is not None:
+                    stage_result["checkpoint_error"] = checkpoint_error
+                return stage_result
             try:
                 timing.start(timing_name)
                 started = True
@@ -1333,6 +1411,18 @@ def run_design_loop(
             normalized = {**stage_result, "pass_evidence": False}
             if timing_error is not None:
                 normalized["timing_error"] = timing_error
+            with checkpoint_lock:
+                checkpoint_stages.append(
+                    {
+                        "stage_id": stage_id,
+                        "ok": bool(normalized.get("ok")),
+                        "fail_closed": bool(normalized.get("fail_closed")),
+                        "timing_name": timing_name,
+                    }
+                )
+                checkpoint_error = write_checkpoint()
+            if checkpoint_error is not None:
+                normalized["checkpoint_error"] = checkpoint_error
             return normalized
 
         def run_lanes(
@@ -1858,6 +1948,12 @@ def run_design_loop(
                 }
             )
         diagnostics_config = active_config
+        stages = result.get("results", [])
+        result["budget_exhausted"] = any(
+            cast(dict[str, Any], stage).get("budget_exhausted", False)
+            for stage in cast(list[object], stages)
+            if isinstance(stage, dict)
+        )
     finally:
         try:
             timing.finish_open()

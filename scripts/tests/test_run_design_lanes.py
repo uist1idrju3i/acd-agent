@@ -178,3 +178,101 @@ def test_full_logs_flag_keeps_the_whole_failure_log(
 
     summary = json.loads(capsys.readouterr().out.splitlines()[-1])
     assert summary["failures"][0]["stderr"] == noisy
+
+
+def test_wall_clock_budget_stops_at_command_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run_stage(
+        commands: object,
+        jobs: int = 1,
+        *,
+        deadline_seconds: object = None,
+        **kwargs: object,
+    ) -> int:
+        captured["deadline_seconds"] = deadline_seconds
+        return 2
+
+    monkeypatch.setattr(run_design_lanes, "run_stage", fake_run_stage)
+
+    assert (
+        run_design_lanes.main(
+            [
+                "--jobs",
+                "1",
+                "--wall-clock-budget",
+                "3600",
+                "--token-budget",
+                "50000",
+                "--out-root",
+                str(tmp_path / "out"),
+            ]
+        )
+        == 2
+    )
+    assert isinstance(captured["deadline_seconds"], float)
+
+    summary = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert summary["budget"] == {
+        "wall_clock_seconds": 3600.0,
+        "token": 50000,
+        "enforcement": "stage-boundary",
+    }
+    assert summary["ok"] is False
+
+
+def test_undeclared_budget_records_null_fields(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    def fake_run_stage(*args: object, **kwargs: object) -> int:
+        assert kwargs["deadline_seconds"] is None
+        return 0
+
+    monkeypatch.setattr(run_design_lanes, "run_stage", fake_run_stage)
+
+    assert run_design_lanes.main(["--jobs", "1", "--out-root", str(tmp_path / "out")]) == 0
+    summary = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert summary["budget"]["wall_clock_seconds"] is None
+    assert summary["budget"]["token"] is None
+
+
+def test_non_positive_wall_clock_budget_is_rejected() -> None:
+    with pytest.raises(SystemExit):
+        run_design_lanes.main(["--wall-clock-budget", "0"])
+
+
+def test_run_stage_skips_command_after_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(
+        command: Sequence[str], **kwargs: object
+    ) -> command_runner.subprocess.CompletedProcess[str]:
+        calls.append(tuple(command))
+        return command_runner.subprocess.CompletedProcess(
+            command, 0, stdout="", stderr=""
+        )
+
+    monkeypatch.setattr(command_runner.subprocess, "run", fake_run)
+    clock_values = iter([0.0, 5.0, 5.0])
+    results: list[tuple[CommandSpec, command_runner.CommandResult]] = []
+
+    returncode = command_runner.run_stage(
+        [("alpha",), ("beta",)],
+        jobs=1,
+        results=results,
+        deadline_seconds=1.0,
+        clock=lambda: next(clock_values),
+    )
+
+    assert returncode == 2
+    assert calls == [("alpha",)]
+    assert results[-1][1].returncode == 2
+    assert "budget exhausted" in (results[-1][1].stderr)

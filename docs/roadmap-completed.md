@@ -1247,3 +1247,17 @@ memory・swap使用量、`docker stats --no-stream`からcontainer memory合計�
 記録を継続し、wrapperのexit codeはwrapped runのexit codeを維持する。
 `host_resources._read_meminfo`を`read_meminfo`へ公開名変更し共用した。
 recordは`record_class: L3`、`pass_evidence: false`であり合否権限を持たない。
+
+### 15.20 長時間runの予算・stage境界checkpoint・resume契約の実装記録
+
+`run_design_loop`と`DesignLoopConfig`へ`wall_clock_budget_seconds`と`token_budget`を
+追加した。wall-clock予算は各stage runner呼び出し直前だけで確認し、超過時はstageを
+起動せず`budget_exhausted: true`のfail-closed結果を返す。実行中stageは中断せず、
+既存gateの判定と閾値には作用しない。token budgetはこのloopではLLM tokenを計数しない
+宣言値であり、OpenHands conversationのL2 stop側がenforcementを担う。
+
+各stage完了後、`out_root/design-loop-checkpoint.json`をL3／`pass_evidence: false`で
+更新する。stage順、ok、fail_closed、timing name、budget、elapsed、resume、cache dirを
+記録し、書き込み失敗はstageの`checkpoint_error`へ記録する。checkpointは人間と
+`report_progress`向けで、resumeはcheckpointを参照せず、StageArtifactCacheだけを再利用
+してgate stageを再実行する。
