@@ -105,6 +105,22 @@ def test_missing_assembly_attributes_are_unknown_for_hand_solder() -> None:
     assert finding.unknown_reason == "component assembly method is not declared"
 
 
+def test_hand_solder_clearance_below_rule_is_advisory() -> None:
+    payload = _payload()
+    for node in payload["nodes"]:
+        if node["id"] == "comp.u1":
+            node["attrs"]["assembly"] = "tht"
+        if node["id"] == "comp.j1":
+            node["attrs"]["placement_x_mm"] = 15.0
+            node["attrs"]["placement_y_mm"] = 13.0
+    report = review_dfa(_graph(payload))
+    finding = next(
+        item for item in report.findings if item.aspect == "hand_solder_access"
+    )
+    assert finding.severity == "advisory"
+    assert "comp.u1" in finding.subject_node_ids
+
+
 def test_cli_is_deterministic_and_writes_json_and_markdown(tmp_path: Path) -> None:
     first = tmp_path / "first"
     second = tmp_path / "second"

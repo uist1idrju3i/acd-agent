@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -247,15 +248,32 @@ def _hand_solder_finding(
             [node.id for node in hand_components],
             unknown_reason="hand-solder clearance rule is unavailable",
         )
-    missing_geometry = [
-        node.id
-        for node in hand_components
-        if node.id not in body_by_component
-        or _number(body_by_component[node.id].attrs.get("width_mm")) is None
-        or _number(body_by_component[node.id].attrs.get("depth_mm")) is None
-        or _number(node.attrs.get("placement_x_mm")) is None
-        or _number(node.attrs.get("placement_y_mm")) is None
-    ]
+    component_by_id = {node.id: node for node in components}
+    missing_geometry = []
+    rectangles: dict[str, tuple[float, float, float, float]] = {}
+    for node in components:
+        body = body_by_component.get(node.id)
+        width = _number(body.attrs.get("width_mm")) if body else None
+        height = _number(body.attrs.get("height_mm")) if body else None
+        x = _number(node.attrs.get("placement_x_mm"))
+        y = _number(node.attrs.get("placement_y_mm"))
+        rotation = _number(node.attrs.get("placement_rotation_deg"))
+        if body is not None:
+            x = x if x is not None else _number(body.attrs.get("x_mm"))
+            y = y if y is not None else _number(body.attrs.get("y_mm"))
+            rotation = (
+                rotation
+                if rotation is not None
+                else _number(body.attrs.get("rotation_deg"))
+            )
+        if width is None or height is None or x is None or y is None or rotation is None:
+            continue
+        if round(rotation) % 180 == 90:
+            width, height = height, width
+        rectangles[node.id] = (x, y, width, height)
+    for node in hand_components:
+        if node.id not in rectangles:
+            missing_geometry.append(node.id)
     if missing_geometry:
         return _finding(
             number,
@@ -267,15 +285,60 @@ def _hand_solder_finding(
             missing_geometry,
             unknown_reason="hand-solder component geometry is not declared",
         )
-    # The graph currently has no explicit neighbor relation or courtyard shape.
+    closest: dict[str, tuple[float, str]] = {}
+    for node in hand_components:
+        x, y, width, height = rectangles[node.id]
+        neighbors = [
+            neighbor
+            for neighbor in component_by_id
+            if neighbor != node.id and neighbor in rectangles
+        ]
+        if not neighbors:
+            return _finding(
+                number,
+                "hand_solder_access",
+                "info",
+                f"Hand-solder component {node.id} has no neighboring component body "
+                "with declared placement and geometry.",
+                [node.id],
+                unknown_reason="neighbor component geometry is not declared",
+            )
+        for neighbor in neighbors:
+            nx, ny, nwidth, nheight = rectangles[neighbor]
+            gap_x = max(abs(x - nx) - (width + nwidth) / 2.0, 0.0)
+            gap_y = max(abs(y - ny) - (height + nheight) / 2.0, 0.0)
+            clearance = math.hypot(gap_x, gap_y)
+            if node.id not in closest or clearance < closest[node.id][0]:
+                closest[node.id] = (clearance, neighbor)
+    below = [
+        (node_id, clearance, neighbor)
+        for node_id, (clearance, neighbor) in closest.items()
+        if clearance < threshold
+    ]
+    if below:
+        details = ", ".join(
+            f"{node_id}={clearance:g}mm to {neighbor}"
+            for node_id, clearance, neighbor in sorted(below)
+        )
+        return _finding(
+            number,
+            "hand_solder_access",
+            "advisory",
+            f"Declared nearest-body clearances are below the {threshold:g} mm "
+            f"hand-solder keep-out threshold: {details}.",
+            [node_id for node_id, _, _ in below],
+        )
+    details = ", ".join(
+        f"{node_id}={clearance:g}mm to {neighbor}"
+        for node_id, (clearance, neighbor) in sorted(closest.items())
+    )
     return _finding(
         number,
         "hand_solder_access",
         "info",
-        "Hand-solder components and body geometry are declared, but no explicit "
-        f"neighbor clearance relation is available; screening threshold is {threshold:g} mm.",
+        f"Declared nearest-body clearances meet the {threshold:g} mm "
+        f"hand-solder keep-out threshold: {details}.",
         [node.id for node in hand_components],
-        unknown_reason="neighbor clearance relation is not declared",
     )
 
 
