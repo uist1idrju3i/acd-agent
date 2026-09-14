@@ -125,3 +125,6 @@ executionEnvironments = [
 [tool.pytest.ini_options]
 testpaths = ["tests", "scripts"]
 addopts = "-q -n auto --dist loadgroup"
+markers = [
+    "pinned_footprint_library: requires the pinned KiCad footprint library; runs in the container-gates job with ACD_REQUIRE_PINNED_LIBRARY=1",
+]

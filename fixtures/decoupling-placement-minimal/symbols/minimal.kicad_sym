@@ -1,0 +1,53 @@
+(kicad_symbol_lib
+	(version 20211014)
+	(generator "acd-fixture")
+	(symbol "C"
+		(pin_numbers hide)
+		(pin_names (offset 0.254))
+		(symbol "C_0_1"
+			(polyline (pts (xy -1.27 -0.508) (xy 1.27 -0.508)))
+			(polyline (pts (xy -1.27 0.508) (xy 1.27 0.508)))
+		)
+		(symbol "C_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 3.81)
+				(name "~" (effects (font (size 1.27))))
+				(number "1" (effects (font (size 1.27))))
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 3.81)
+				(name "~" (effects (font (size 1.27))))
+				(number "2" (effects (font (size 1.27))))
+			)
+		)
+	)
+	(symbol "REG"
+		(pin_numbers hide)
+		(pin_names (offset 0.254))
+		(symbol "REG_0_1"
+			(rectangle (start -5.08 -2.54) (end 5.08 2.54))
+		)
+		(symbol "REG_1_1"
+			(pin power_in line
+				(at -7.62 0 0)
+				(length 2.54)
+				(name "GND" (effects (font (size 1.27))))
+				(number "1" (effects (font (size 1.27))))
+			)
+			(pin power_out line
+				(at 7.62 1.27 180)
+				(length 2.54)
+				(name "VO" (effects (font (size 1.27))))
+				(number "2" (effects (font (size 1.27))))
+			)
+			(pin power_in line
+				(at 7.62 -1.27 180)
+				(length 2.54)
+				(name "VI" (effects (font (size 1.27))))
+				(number "3" (effects (font (size 1.27))))
+			)
+		)
+	)
+)

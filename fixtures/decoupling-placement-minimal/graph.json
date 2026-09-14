@@ -1,0 +1,357 @@
+{
+  "graph_id": "decoupling-placement-minimal",
+  "schema_version": "0.1",
+  "revision": "r1",
+  "nodes": [
+    {
+      "id": "net.vbus_5v",
+      "kind": "electrical.net",
+      "attrs": {
+        "name": "VBUS_5V",
+        "width_basis": "current_ipc2221",
+        "width_basis_source": "Minimal fixture net; IPC-2221 external-layer current capacity governs the routed conductor.",
+        "voltage_nominal_v": 5.0,
+        "power_rail": true,
+        "power_source_pin": "pin.u1.3",
+        "current_max_a": 0.5
+      },
+      "depends_on": []
+    },
+    {
+      "id": "net.gnd",
+      "kind": "electrical.net",
+      "attrs": {
+        "name": "GND",
+        "width_basis": "current_ipc2221",
+        "width_basis_source": "Minimal fixture net; IPC-2221 external-layer current capacity governs the routed conductor.",
+        "voltage_nominal_v": 0.0,
+        "current_max_a": 0.5
+      },
+      "depends_on": []
+    },
+    {
+      "id": "net.p3v3",
+      "kind": "electrical.net",
+      "attrs": {
+        "name": "+3V3",
+        "width_basis": "current_ipc2221",
+        "width_basis_source": "Minimal fixture net; IPC-2221 external-layer current capacity governs the routed conductor.",
+        "voltage_nominal_v": 3.3,
+        "power_rail": true,
+        "power_source_pin": "pin.u1.2",
+        "current_max_a": 0.5
+      },
+      "depends_on": []
+    },
+    {
+      "id": "comp.u1",
+      "kind": "electrical.component",
+      "attrs": {
+        "refdes": "U1",
+        "value": "AMS1117-3.3",
+        "mpn": "",
+        "lcsc": "",
+        "jlcpcb_class": "basic",
+        "assembly": "fitted",
+        "symbol": "MIN:REG",
+        "symbol_file": "symbols/minimal.kicad_sym",
+        "symbol_sha256": "sha256:792dd7a3d5f0ab373ee7bb819ae220890b93646f0d3ecd2caee64e3bb5fce44d",
+        "symbol_source": "acd fixture (decoupling-placement-minimal)",
+        "symbol_source_ref": "r1",
+        "footprint": "MIN:REG_SOT223",
+        "footprint_file": "footprints/REG_SOT223.kicad_mod",
+        "footprint_sha256": "sha256:10948db373137e8336e0bf97673df6235a45838b37b4e689aad7820a89e617b2",
+        "footprint_source": "acd fixture (decoupling-placement-minimal)",
+        "footprint_source_ref": "r1",
+        "placement_x_mm": 20.0,
+        "placement_y_mm": 20.0,
+        "placement_rotation_deg": 0.0
+      },
+      "depends_on": []
+    },
+    {
+      "id": "comp.c1",
+      "kind": "electrical.component",
+      "attrs": {
+        "refdes": "C1",
+        "value": "10uF",
+        "mpn": "",
+        "lcsc": "",
+        "jlcpcb_class": "basic",
+        "assembly": "fitted",
+        "symbol": "MIN:C",
+        "symbol_file": "symbols/minimal.kicad_sym",
+        "symbol_sha256": "sha256:792dd7a3d5f0ab373ee7bb819ae220890b93646f0d3ecd2caee64e3bb5fce44d",
+        "symbol_source": "acd fixture (decoupling-placement-minimal)",
+        "symbol_source_ref": "r1",
+        "footprint": "MIN:C_0603",
+        "footprint_file": "footprints/C_0603.kicad_mod",
+        "footprint_sha256": "sha256:b645b788970417bf2b43add5be882e7b3ea54c152e9a2295c7b321900a694899",
+        "footprint_source": "acd fixture (decoupling-placement-minimal)",
+        "footprint_source_ref": "r1",
+        "placement_x_mm": 30.0,
+        "placement_y_mm": 5.0,
+        "placement_rotation_deg": 0.0
+      },
+      "depends_on": []
+    },
+    {
+      "id": "comp.c2",
+      "kind": "electrical.component",
+      "attrs": {
+        "refdes": "C2",
+        "value": "100nF",
+        "mpn": "",
+        "lcsc": "",
+        "jlcpcb_class": "basic",
+        "assembly": "fitted",
+        "symbol": "MIN:C",
+        "symbol_file": "symbols/minimal.kicad_sym",
+        "symbol_sha256": "sha256:792dd7a3d5f0ab373ee7bb819ae220890b93646f0d3ecd2caee64e3bb5fce44d",
+        "symbol_source": "acd fixture (decoupling-placement-minimal)",
+        "symbol_source_ref": "r1",
+        "footprint": "MIN:C_0603",
+        "footprint_file": "footprints/C_0603.kicad_mod",
+        "footprint_sha256": "sha256:b645b788970417bf2b43add5be882e7b3ea54c152e9a2295c7b321900a694899",
+        "footprint_source": "acd fixture (decoupling-placement-minimal)",
+        "footprint_source_ref": "r1",
+        "placement_x_mm": 25.075,
+        "placement_y_mm": 17.0,
+        "placement_rotation_deg": 0.0,
+        "decoupling_target": "U1"
+      },
+      "depends_on": []
+    },
+    {
+      "id": "comp.c3",
+      "kind": "electrical.component",
+      "attrs": {
+        "refdes": "C3",
+        "value": "10uF",
+        "mpn": "",
+        "lcsc": "",
+        "jlcpcb_class": "basic",
+        "assembly": "fitted",
+        "symbol": "MIN:C",
+        "symbol_file": "symbols/minimal.kicad_sym",
+        "symbol_sha256": "sha256:792dd7a3d5f0ab373ee7bb819ae220890b93646f0d3ecd2caee64e3bb5fce44d",
+        "symbol_source": "acd fixture (decoupling-placement-minimal)",
+        "symbol_source_ref": "r1",
+        "footprint": "MIN:C_0603",
+        "footprint_file": "footprints/C_0603.kicad_mod",
+        "footprint_sha256": "sha256:b645b788970417bf2b43add5be882e7b3ea54c152e9a2295c7b321900a694899",
+        "footprint_source": "acd fixture (decoupling-placement-minimal)",
+        "footprint_source_ref": "r1",
+        "placement_x_mm": 12.0,
+        "placement_y_mm": 25.0,
+        "placement_rotation_deg": 0.0
+      },
+      "depends_on": []
+    },
+    {
+      "id": "comp.c4",
+      "kind": "electrical.component",
+      "attrs": {
+        "refdes": "C4",
+        "value": "100nF",
+        "mpn": "",
+        "lcsc": "",
+        "jlcpcb_class": "basic",
+        "assembly": "fitted",
+        "symbol": "MIN:C",
+        "symbol_file": "symbols/minimal.kicad_sym",
+        "symbol_sha256": "sha256:792dd7a3d5f0ab373ee7bb819ae220890b93646f0d3ecd2caee64e3bb5fce44d",
+        "symbol_source": "acd fixture (decoupling-placement-minimal)",
+        "symbol_source_ref": "r1",
+        "footprint": "MIN:C_0603",
+        "footprint_file": "footprints/C_0603.kicad_mod",
+        "footprint_sha256": "sha256:b645b788970417bf2b43add5be882e7b3ea54c152e9a2295c7b321900a694899",
+        "footprint_source": "acd fixture (decoupling-placement-minimal)",
+        "footprint_source_ref": "r1",
+        "placement_x_mm": 12.0,
+        "placement_y_mm": 28.0,
+        "placement_rotation_deg": 0.0
+      },
+      "depends_on": []
+    },
+    {
+      "id": "pin.u1.1",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.gnd",
+        "pad": "1",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.gnd"
+      ]
+    },
+    {
+      "id": "pin.u1.2",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.p3v3",
+        "pad": "2",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.p3v3"
+      ]
+    },
+    {
+      "id": "pin.u1.3",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.u1",
+        "net": "net.vbus_5v",
+        "pad": "3",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.u1",
+        "net.vbus_5v"
+      ]
+    },
+    {
+      "id": "pin.c1.1",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c1",
+        "net": "net.vbus_5v",
+        "pad": "1",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c1",
+        "net.vbus_5v"
+      ]
+    },
+    {
+      "id": "pin.c1.2",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c1",
+        "net": "net.gnd",
+        "pad": "2",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c1",
+        "net.gnd"
+      ]
+    },
+    {
+      "id": "pin.c2.1",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c2",
+        "net": "net.vbus_5v",
+        "pad": "1",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c2",
+        "net.vbus_5v"
+      ]
+    },
+    {
+      "id": "pin.c2.2",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c2",
+        "net": "net.gnd",
+        "pad": "2",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c2",
+        "net.gnd"
+      ]
+    },
+    {
+      "id": "pin.c3.1",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c3",
+        "net": "net.p3v3",
+        "pad": "1",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c3",
+        "net.p3v3"
+      ]
+    },
+    {
+      "id": "pin.c3.2",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c3",
+        "net": "net.gnd",
+        "pad": "2",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c3",
+        "net.gnd"
+      ]
+    },
+    {
+      "id": "pin.c4.1",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c4",
+        "net": "net.p3v3",
+        "pad": "1",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c4",
+        "net.p3v3"
+      ]
+    },
+    {
+      "id": "pin.c4.2",
+      "kind": "electrical.pin",
+      "attrs": {
+        "component": "comp.c4",
+        "net": "net.gnd",
+        "pad": "2",
+        "no_connect": false
+      },
+      "depends_on": [
+        "comp.c4",
+        "net.gnd"
+      ]
+    },
+    {
+      "id": "board.minimal",
+      "kind": "electrical.board",
+      "attrs": {
+        "width_mm": 40.0,
+        "height_mm": 35.0,
+        "layers": 2,
+        "thickness_mm": 1.6,
+        "unit": "mm",
+        "origin": "board_upper_left",
+        "y_axis": "down",
+        "min_track_mm": 0.15,
+        "min_clearance_mm": 0.15,
+        "via_drill_mm": 0.3,
+        "via_diameter_mm": 0.6,
+        "edge_copper_clearance_mm": 0.3,
+        "antenna_keepout": false,
+        "ground_plane_net": "GND",
+        "ground_plane_layers": [
+          "F.Cu",
+          "B.Cu"
+        ]
+      },
+      "depends_on": []
+    }
+  ]
+}
