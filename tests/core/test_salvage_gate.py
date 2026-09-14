@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from scripts.check_salvageability import main
@@ -19,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]
 GRAPH_PATH = ROOT / "fixtures/golden-design-1/graph.json"
 SAMPLE = ROOT / "fixtures/rework/sample"
 FW_SAMPLE = ROOT / "fixtures/rework/sample-fw-only"
+_DEFAULT_APPROVAL = object()
 
 
 def _graph() -> DesignGraph:
@@ -44,17 +46,21 @@ def _inputs(
 
 
 def _patch_computed_gates(monkeypatch: pytest.MonkeyPatch) -> None:
+    def passing_predicates(*_args: object) -> tuple[SimpleNamespace]:
+        return (SimpleNamespace(name="usb_cc", status="pass", detail="pass"),)
+
+    def passing_preflight(*_args: object) -> SimpleNamespace:
+        return SimpleNamespace(status="pass", findings=[])
+
     monkeypatch.setattr(
         salvage_gate,
         "evaluate_design_predicates",
-        lambda *_args: (
-            SimpleNamespace(name="usb_cc", status="pass", detail="pass"),
-        ),
+        passing_predicates,
     )
     monkeypatch.setattr(
         salvage_gate,
         "check_mechanical_preflight",
-        lambda *_args: SimpleNamespace(status="pass", findings=[]),
+        passing_preflight,
     )
 
 
@@ -62,13 +68,17 @@ def _evaluate(
     monkeypatch: pytest.MonkeyPatch,
     directory: Path = SAMPLE,
     *,
-    approval: SafetyApproval | object | None = ...,
+    approval: SafetyApproval | Any | None = _DEFAULT_APPROVAL,
     evidence: bool = True,
 ):
     _patch_computed_gates(monkeypatch)
     diff, dfa, declared_approval = _inputs(directory)
-    if approval is ...:
-        approval = declared_approval
+    approval_for_eval: SafetyApproval | None
+    if approval is _DEFAULT_APPROVAL:
+        approval_for_eval = declared_approval
+    else:
+        assert approval is None or isinstance(approval, SafetyApproval)
+        approval_for_eval = approval
     external = {}
     if evidence:
         external = {
@@ -79,7 +89,7 @@ def _evaluate(
         base_graph=_graph(),
         diff=diff,
         dfa=dfa,
-        approval=approval,
+        approval=approval_for_eval,
         fixture_dir=ROOT / "fixtures/golden-design-1",
         external_evidence=external,
     )

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 from pydantic import ValidationError
 
@@ -27,7 +29,8 @@ def _dfa_payload() -> dict[str, object]:
 
 def test_dfa_assessment_index_must_be_unique() -> None:
     payload = _dfa_payload()
-    payload["assessments"] = [payload["assessments"][0], payload["assessments"][0]]
+    assessments = cast(list[dict[str, object]], payload["assessments"])
+    payload["assessments"] = [assessments[0], assessments[0]]
     with pytest.raises(ValidationError, match="operation_index"):
         ReworkDfaDeclaration.model_validate(payload)
 
