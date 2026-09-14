@@ -253,7 +253,7 @@ def _render_inspection(
         "",
         f"- status: `{dfm.status}`",
         f"- profile_id: `{dfm.profile_id}`",
-        f"- findings: {len(dfm.findings)} {t('quality.finding_count_unit')}",
+        t("quality.findings_sentence", count=len(dfm.findings)),
     ]
     for finding in dfm.findings:
         lines.append(f"  - {finding.rule_id}: {finding.message}")
@@ -425,9 +425,12 @@ def _render_traceability(
         if row.rationale_records:
             for rationale_id, decision_kind, subjects in row.rationale_records:
                 lines.append(
-                    f"- `{rationale_id}`（{decision_kind}{t('quality.claim_subject_separator')} "
-                    + ", ".join(f"`{subject}`" for subject in subjects)
-                    + "）"
+                    t(
+                        "quality.rationale_record_row",
+                        rationale_id=rationale_id,
+                        decision_kind=decision_kind,
+                        subjects=", ".join(f"`{subject}`" for subject in subjects),
+                    )
                 )
         else:
             lines.append(t("quality.traceability_claims_header"))
@@ -453,8 +456,10 @@ def _render_traceability(
     lines += ["", t("quality.inspection_title_legacy"), ""]
     if no_requirement_records:
         lines.append(
-            f"{t('quality.orphan_record_label')} {len(no_requirement_records)} "
-            f"{t('quality.orphan_record_unit')}"
+            t(
+                "quality.orphan_record_sentence",
+                count=len(no_requirement_records),
+            )
         )
         for rationale_id in no_requirement_records:
             lines.append(f"- `{rationale_id}`")

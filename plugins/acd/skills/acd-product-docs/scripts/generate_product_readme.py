@@ -279,10 +279,16 @@ def _firmware_section(
     lines = [
         t("readme.transitions_heading"),
         "",
-        f"{t('readme.firmware_module_value')}{firmware.module.module_name}`"
-        f"（node `{firmware.module.node_id}`）",
+        t(
+            "readme.firmware_module_sentence",
+            module=firmware.module.module_name,
+            node_id=firmware.module.node_id,
+        ),
         f"- MCU: `{mcu.refdes}`",
-        f"{t('readme.firmware_initial_value')}{firmware.module.entry_state}`",
+        t(
+            "readme.firmware_initial_sentence",
+            state=firmware.module.entry_state,
+        ),
         "",
         t("readme.transitions_header"),
         "",
@@ -374,7 +380,7 @@ def _figures_section(figures: tuple[ProjectionFigure, ...], out_dir: Path) -> li
         {_domain_group(figure.domain) for figure in figures},
         key=_domain_group_order,
     )
-    domain_names = t("readme.legacy_voltage_label").join(t(group) for group in groups)
+    domain_names = "/".join(t(group) for group in groups)
     lines = [
         t("readme.theme_header"),
         "",
@@ -403,8 +409,12 @@ def _figures_section(figures: tuple[ProjectionFigure, ...], out_dir: Path) -> li
                 "",
                 f"![{figure.projection_id}]({link})",
                 "",
-                f"{t('readme.figure_type_label')}{figure.projection_type}`（{figure.domain} lane）",
-                f"{t('readme.theme_hash_label')}{figure.image_hash}`",
+                t(
+                    "readme.figure_type_sentence",
+                    projection_type=figure.projection_type,
+                    domain=figure.domain,
+                ),
+                t("readme.figure_hash_sentence", image_hash=figure.image_hash),
                 "",
             ]
     return lines
@@ -426,12 +436,12 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
         "",
         t("readme.attribution_intro"),
         "|---|---|",
-        f"{t('readme.theme_title_row')}{theme.title} |",
-        f"{t('readme.theme_key_row')}{theme.key} |",
-        f"| BPM | {theme.bpm} |",
-        f"{t('readme.theme_bars_row')}{theme.bars} |",
-        f"| composer | `{theme.composer_id}` |",
-        f"{t('readme.theme_source_row')}{theme.source}` |",
+        t("readme.theme_title_row", title=theme.title),
+            t("readme.theme_key_row", theme_key=theme.key),
+        t("readme.theme_bpm_row", bpm=theme.bpm),
+        t("readme.theme_bars_row", bars=theme.bars),
+        t("readme.theme_composer_row", composer_id=theme.composer_id),
+        t("readme.theme_source_row", source=theme.source),
         "",
         f"- artifact: [{theme.midi_path.name}]({link})",
         f"- artifact hash: `{theme.midi_hash}`",
@@ -449,8 +459,10 @@ def _theme_song_section(theme: ThemeSongFigure, out_dir: Path) -> list[str]:
         )
     else:
         lines.append(
-            f"{t('readme.theme_mml_omitted')}"
-            f"{theme.mml_reason or t('readme.legacy_reason')}）"
+            t(
+                "readme.theme_mml_omitted",
+                reason=theme.mml_reason or t("readme.legacy_reason"),
+            )
         )
     lines.extend(
         [

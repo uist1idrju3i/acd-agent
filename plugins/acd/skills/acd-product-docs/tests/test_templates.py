@@ -17,13 +17,11 @@ LITERAL_KEY_PATTERN = re.compile(r"literal_[0-9]+")
 SHORT_VALUE_KEYS = {
     "manual.yes",
     "manual.no",
-    "manual.firmware_flash_target",
-    "quality.finding_count_unit",
-    "quality.orphan_record_unit",
-    "readme.legacy_voltage_label",
-    "manual.led_blink_prefix",
-    "manual.usb_flash_transition",
 }
+LEADING_VALUE_PATTERN = re.compile(
+    r"(?:[A-Za-z0-9\u3400-\u9fff\u3040-\u30ff#|\-]|`\{[A-Za-z_][A-Za-z0-9_]*\}|`[A-Za-z0-9\u3400-\u9fff\u3040-\u30ff(]|\{[A-Za-z_][A-Za-z0-9_]*\})"
+)
+PUNCTUATION_ONLY_PATTERN = re.compile(r"^[\s\W]{1,3}$")
 
 
 def _catalog(language: str) -> dict[str, str]:
@@ -84,6 +82,13 @@ def test_template_values_have_no_outer_whitespace() -> None:
 def test_template_values_have_meaningful_length() -> None:
     for key, value in _catalog("ja").items():
         assert len(value) >= 2 or key in SHORT_VALUE_KEYS
+
+
+def test_template_values_have_valid_leading_characters() -> None:
+    for catalog in (_catalog("ja"), _catalog("en")):
+        for key, value in catalog.items():
+            assert LEADING_VALUE_PATTERN.match(value), (key, value)
+            assert not PUNCTUATION_ONLY_PATTERN.fullmatch(value), (key, value)
     for key, value in _catalog("en").items():
         assert len(value) >= 2 or key in SHORT_VALUE_KEYS
 
