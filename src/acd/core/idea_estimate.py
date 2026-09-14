@@ -42,7 +42,7 @@ def _sum_range(ranges: list[EstimateRange]) -> EstimateRange:
 def _finding(
     name: str,
     field: IdeaField,
-    upper: float,
+    bound: EstimateRange | float,
     expected_unit: str,
     incomplete: bool,
 ) -> EstimateFinding:
@@ -70,20 +70,33 @@ def _finding(
             ),
         )
     limit = float(value)
+    if isinstance(bound, EstimateRange):
+        low, high = bound.min, bound.max
+    else:
+        low = high = bound
     suffix = " (estimate excludes unknown functions)" if incomplete else ""
-    if upper > limit:
+    if low > limit:
         return EstimateFinding(
             constraint=name,
             status="stop",
             detail=(
-                f"estimated {name} upper bound {upper} exceeds the confirmed "
+                f"estimated {name} lower bound {low} exceeds the confirmed "
                 f"limit {limit}{suffix}"
+            ),
+        )
+    if high > limit:
+        return EstimateFinding(
+            constraint=name,
+            status="risk",
+            detail=(
+                f"estimated {name} range [{low}, {high}] straddles the "
+                f"confirmed limit {limit}{suffix}"
             ),
         )
     return EstimateFinding(
         constraint=name,
         status="within",
-        detail=f"estimated {name} upper bound {upper} within the confirmed "
+        detail=f"estimated {name} upper bound {high} within the confirmed "
         f"limit {limit}{suffix}",
     )
 
@@ -143,14 +156,14 @@ def estimate_idea(
         _finding(
             "cost",
             record.constraints.cost,
-            totals.cost_jpy.max,
+            totals.cost_jpy,
             "JPY",
             incomplete,
         ),
         _finding(
             "power",
             record.constraints.power,
-            totals.power_mw.max,
+            totals.power_mw,
             "mW",
             incomplete,
         ),

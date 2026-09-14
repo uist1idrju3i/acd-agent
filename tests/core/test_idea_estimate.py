@@ -111,6 +111,19 @@ def test_findings_stop_within_and_not_comparable() -> None:
     assert cost.status == "stop"
     assert "exceeds" in cost.detail
 
+    # Confirmed inside the estimated range -> risk
+    risk = record.model_copy(
+        update={
+            "constraints": record.constraints.model_copy(
+                update={"cost": _confirmed(1500.0, "JPY")}
+            )
+        }
+    )
+    estimate = estimate_idea(risk, _catalog())
+    cost = next(f for f in estimate.findings if f.constraint == "cost")
+    assert cost.status == "risk"
+    assert "straddles" in cost.detail
+
     # Non-numeric and wrong-unit constraints -> not_comparable
     odd = record.model_copy(
         update={

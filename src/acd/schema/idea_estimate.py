@@ -97,7 +97,7 @@ class EstimateFinding(AcdModel):
     """A stop-side comparison finding; never an approval."""
 
     constraint: NonEmptyStr
-    status: Literal["stop", "not_comparable", "within"]
+    status: Literal["stop", "risk", "not_comparable", "within"]
     detail: NonEmptyStr
 
 

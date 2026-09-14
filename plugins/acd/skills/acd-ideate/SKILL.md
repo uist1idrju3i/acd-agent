@@ -48,7 +48,10 @@ Rules:
 
 - Never fill a field by inference; never mark a field `confirmed` without the
   user's own statement as a `user_statement` source.
-- The rough estimate is an estimate, not evidence:
+- The rough estimate is an estimate, not evidence. Its constraint findings are
+  `within` (upper bound under the limit), `risk` (the range straddles the
+  limit), `stop` (even the lowest estimate exceeds the limit), or
+  `not_comparable` (constraint open, non-numeric, or different unit):
 
   ```bash
   uv run python scripts/idea_estimate.py \
