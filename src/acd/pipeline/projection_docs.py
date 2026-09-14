@@ -425,7 +425,8 @@ def run_projection_docs(
                 output_path=output,
             )
         idea_allocation_docs = "generated"
-        documents += [
+        documents_list.extend(
+            [
             _require_document(
                 output,
                 kind="idea_record",
@@ -462,7 +463,8 @@ def run_projection_docs(
                 document_name="cross-domain-block-diagram.svg",
                 language="ja",
             ),
-        ]
+            ]
+        )
     documents = tuple(documents_list)
     hashes_path = _write_hashes(output)
     provenance: dict[str, object] = {

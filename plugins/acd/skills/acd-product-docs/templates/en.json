@@ -217,5 +217,14 @@
   "readme.theme_bars_row": "| bars | {bars} |",
   "readme.theme_composer_row": "| composer | `{composer_id}` |",
   "readme.theme_source_row": "| source | `{source}` |",
-  "readme.theme_mml_omitted": "- MML: omitted ({reason})."
+  "readme.theme_mml_omitted": "- MML: omitted ({reason}).",
+  "idea.record_title": "# Idea record: {title}",
+  "idea.record_fields_heading": "## Fields",
+  "idea.record_success_heading": "## Success criteria",
+  "idea.record_functions_heading": "## Functions",
+  "idea.estimate_title": "# Rough idea estimate",
+  "idea.estimate_unknown_heading": "## Functions without estimates",
+  "idea.estimate_total_heading": "## Totals",
+  "idea.allocation_title": "# Responsibility allocation",
+  "idea.allocation_heading": "## Assignments"
 }
