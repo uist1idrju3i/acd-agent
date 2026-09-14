@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@a223e04f039a00fecbe10cccaf5d8d1b661ad3cc",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@bb8ec06da2481b9c0421a48935d8b5b7dc7dcc5b",
 # ]
 # ///
 """Generate a deterministic shipping inspection document."""
