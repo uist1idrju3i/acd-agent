@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from test_interface_spec import GRAPH, _config_report, _pins_header
+from test_interface_spec import GRAPH, config_report, pins_header
 
 from acd.core.rework_diff import apply_rework_diff, load_rework_diff, write_derived_graph
 from acd.schema.design_graph import DesignGraph
@@ -48,8 +48,8 @@ def _salvage(tmp_path: Path) -> Path:
 
 def test_sample_work_instruction_validates_and_has_projection(tmp_path: Path) -> None:
     salvage = _salvage(tmp_path)
-    header = _pins_header(tmp_path)
-    report = _config_report(tmp_path)
+    header = pins_header(tmp_path)
+    report = config_report(tmp_path)
     output = tmp_path / "out"
     assert (
         main(
@@ -106,8 +106,8 @@ def test_not_salvageable_writes_nothing(tmp_path: Path) -> None:
                 "--graph", str(GRAPH), "--defects", str(DEFECTS),
                 "--rework", str(REWORK), "--dfa", str(DFA),
                 "--salvage-dir", str(salvage), "--pins-header",
-                str(_pins_header(tmp_path)), "--firmware-config-report",
-                str(_config_report(tmp_path)), "--out-dir", str(output),
+                str(pins_header(tmp_path)), "--firmware-config-report",
+                str(config_report(tmp_path)), "--out-dir", str(output),
             ]
         )
         == 1

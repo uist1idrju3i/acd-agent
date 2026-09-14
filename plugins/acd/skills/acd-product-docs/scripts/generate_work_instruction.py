@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@6bbcd7cb5c4d6d98dec2d2427ece8e0eff854d75",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@6188dc3431f3219b0a95d84316a2523370bac75b",
 # ]
 # ///
 """Generate a deterministic workaround work-instruction document."""
