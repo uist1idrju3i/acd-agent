@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@e8d0307410666e9ed11f794b9e46d0595a3528f3",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@171c0991dc7a6070c23e8c2757f2a468ff98c9d3",
 # ]
 # ///
 """Project idea refinement and responsibility allocation into L3 documents.
