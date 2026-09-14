@@ -60,5 +60,6 @@
 | [0046](adr/ADR-0046-host-resource-preflight.md) | container起動前のホスト資源検査とJVM heap宣言 |
 | [0047](adr/ADR-0047-docker-only-tooling.md) | install doctorのdigest固定server image前提 |
 | [0048](adr/ADR-0048-theme-song-l3-artifact.md) | 製品テーマソングのMIDI投影とLLM作曲提案の検証レンダリング |
+| [0049](adr/ADR-0049-idea-refinement-and-responsibility-allocation.md) | アイデア洗練record・対話履歴・責務割当の契約 |
 
 上記以外のADRは、統合先を示すSuperseded pointerである。
