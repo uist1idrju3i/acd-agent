@@ -91,6 +91,7 @@ from acd.core.design_freedom import (
     validate_change_dimension_alignment,
 )
 from acd.core.design_predicates import (
+    OPT_IN_PREDICATES,
     PREDICATE_CATALOG,
     PredicateResult,
     evaluate_design_predicates,
@@ -385,7 +386,10 @@ def build_electrical_evidence(
         raise ValueError("electrical design predicates are unknown (fail-closed)")
     typed_predicates = cast(tuple[PredicateResult, ...], design_predicates)
     names = tuple(predicate.name for predicate in typed_predicates)
-    if len(names) != len(set(names)) or set(names) != set(PREDICATE_CATALOG):
+    core_names = set(PREDICATE_CATALOG) - OPT_IN_PREDICATES
+    if len(names) != len(set(names)) or not core_names.issubset(set(names)) or not set(
+        names
+    ).issubset(set(PREDICATE_CATALOG)):
         raise ValueError("electrical design predicate set is incomplete (fail-closed)")
     for predicate in typed_predicates:
         if predicate.status not in {"pass", "not_applicable"}:
@@ -871,6 +875,15 @@ def run_pipeline(
         tuple[PredicateResult, ...],
         group0_results[1],
     )
+    if lane.stackup is None and not any(
+        net.differential_pair is not None or net.target_impedance_ohm is not None
+        for net in lane.nets
+    ):
+        design_predicates = tuple(
+            predicate
+            for predicate in design_predicates
+            if predicate.name not in OPT_IN_PREDICATES
+        )
     design_evidence_path = write_gate_evidence_or_unavailable(
         out_dir,
         "design-predicates.json",

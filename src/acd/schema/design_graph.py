@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 from pydantic import Field, model_validator
 
@@ -18,6 +18,7 @@ from acd.schema.common import (
 NodeKind = Literal[
     "requirement",
     "electrical.net",
+    "electrical.stackup",
     "electrical.component",
     "electrical.pin",
     "electrical.placement_group",
@@ -42,7 +43,8 @@ NodeKind = Literal[
     "evidence.anchor",
 ]
 
-AttrValue = str | float | int | bool | list[str] | None
+AttrScalar = str | float | int | bool | None
+AttrValue = AttrScalar | list[Any]
 
 
 class GraphNode(AcdModel):
@@ -55,8 +57,20 @@ class GraphNode(AcdModel):
     def _unique_depends_on(self) -> GraphNode:
         if len(set(self.depends_on)) != len(self.depends_on):
             raise ValueError("depends_on entries must be unique")
-        if self.kind == "design.functional_block" and set(self.attrs) != {"block_id"}:
-            raise ValueError("design.functional_block attrs must contain only block_id")
+        if self.kind == "design.functional_block" and set(self.attrs) - {
+            "block_id",
+            "parent_block_id",
+        }:
+            raise ValueError(
+                "design.functional_block attrs must contain only block_id and parent_block_id"
+            )
+        if self.kind == "design.functional_block":
+            for attr in ("block_id", "parent_block_id"):
+                value = self.attrs.get(attr)
+                if value is not None and (not isinstance(value, str) or not value):
+                    raise ValueError(
+                        f"design.functional_block {attr} must be a non-empty string"
+                    )
         if self.kind == "electrical.placement_group":
             required = {"primary_refdes", "coupled_refdes"}
             allowed = {
@@ -124,6 +138,31 @@ class DesignGraph(AcdModel):
             for dep in node.depends_on:
                 if dep not in known:
                     raise ValueError(f"node {node.id!r} depends on unknown node {dep!r}")
+        blocks = {
+            node.id: node
+            for node in self.nodes
+            if node.kind == "design.functional_block"
+        }
+        for node in blocks.values():
+            parent = node.attrs.get("parent_block_id")
+            if parent is not None and (
+                not isinstance(parent, str)
+                or parent not in blocks
+            ):
+                raise ValueError(
+                    f"functional block {node.id!r} references unknown parent block"
+                )
+        for node_id in blocks:
+            seen: set[str] = set()
+            current = node_id
+            while current in blocks:
+                if current in seen:
+                    raise ValueError("functional block parent hierarchy contains a cycle")
+                seen.add(current)
+                parent = blocks[current].attrs.get("parent_block_id")
+                if not isinstance(parent, str):
+                    break
+                current = parent
         return self
 
     def node_by_id(self, node_id: str) -> GraphNode:

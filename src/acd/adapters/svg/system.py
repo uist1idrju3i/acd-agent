@@ -63,6 +63,8 @@ _BLOCK_OMIT_KINDS = frozenset(
         # Responsibility-allocation declarations are not system blocks.
         "design.responsibility",
         "electrical.placement_group",
+        # Stackup declarations are electrical contracts, not system blocks.
+        "electrical.stackup",
         "fab.order_intent",
         "fab.process_allowance",
         # Mechanical geometry and graphics belong to mechanical projections.

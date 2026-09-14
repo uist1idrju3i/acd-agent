@@ -61,11 +61,28 @@ class BoardProjection:
 
 
 def _setup(lane: ElectricalLane) -> list[SExpr]:
-    return [
+    setup: list[SExpr] = [
         Sym("setup"),
         [Sym("pad_to_mask_clearance"), "0"],
         [Sym("allow_soldermask_bridges_in_footprints"), Sym("no")],
     ]
+    if lane.stackup is not None:
+        stackup: list[SExpr] = [Sym("stackup")]
+        for layer in lane.stackup.layers:
+            layer_type = "copper" if layer.kind in {"signal", "plane"} else "core"
+            entry: list[SExpr] = [
+                Sym("layer"),
+                Quoted(layer.name),
+                [Sym("type"), Quoted(layer_type)],
+                [Sym("thickness"), fmt(layer.thickness_mm)],
+            ]
+            if layer.material is not None:
+                entry.append([Sym("material"), Quoted(layer.material)])
+            if layer.dielectric_constant is not None:
+                entry.append([Sym("epsilon_r"), fmt(layer.dielectric_constant)])
+            stackup.append(entry)
+        setup.append(stackup)
+    return setup
 
 
 _LAYERS: list[tuple[str, str, str]] = [
@@ -92,9 +109,31 @@ _LAYERS: list[tuple[str, str, str]] = [
 ]
 
 
-def _layers_node() -> list[SExpr]:
+def _layers_node(
+    copper_layers: tuple[str, ...] = ("F.Cu", "B.Cu"),
+    copper_kinds: tuple[str, ...] | None = None,
+) -> list[SExpr]:
+    if copper_layers == ("F.Cu", "B.Cu"):
+        layer_data = _LAYERS
+    else:
+        if len(copper_layers) < 2 or copper_layers[0] != "F.Cu" or copper_layers[-1] != "B.Cu":
+            raise ValueError("copper layers must start at F.Cu and end at B.Cu")
+        copper_ids = [
+            "0",
+            *(str(index * 2) for index in range(1, len(copper_layers) - 1)),
+            "31",
+        ]
+        kinds = copper_kinds or ("signal",) * len(copper_layers)
+        layer_data = [
+            (number, name, kind)
+            for number, name, kind in zip(copper_ids, copper_layers, kinds, strict=True)
+        ]
+        layer_data = [
+            *layer_data,
+            *[entry for entry in _LAYERS if entry[1] not in {"F.Cu", "B.Cu"}],
+        ]
     node: list[SExpr] = [Sym("layers")]
-    for number, name, kind in _LAYERS:
+    for number, name, kind in layer_data:
         node.append([Sym(number), Quoted(name), Sym(kind)])
     return node
 
@@ -628,7 +667,18 @@ def generate_board(
             [Sym("legacy_teardrops"), Sym("no")],
         ],
         [Sym("paper"), Quoted(select_paper(board.width_mm + 40.0, board.height_mm + 40.0))],
-        _layers_node(),
+        _layers_node(
+            tuple(layer.name for layer in lane.stackup.layers if layer.kind != "dielectric")
+            if lane.stackup is not None
+            else ("F.Cu", "B.Cu"),
+            tuple(
+                "power" if layer.kind == "plane" else "signal"
+                for layer in lane.stackup.layers
+                if layer.kind != "dielectric"
+            )
+            if lane.stackup is not None
+            else None,
+        ),
         _setup(lane),
         [Sym("net"), "0", Quoted("")],
     ]
@@ -697,6 +747,11 @@ def generate_board(
         stitch_via_net=board.ground_plane_net,
         stitch_via_refill_max_iterations=board.stitch_via_refill_max_iterations,
         netclasses=netclasses,
+        copper_layers=tuple(
+            layer.name for layer in lane.stackup.layers if layer.kind != "dielectric"
+        )
+        if lane.stackup is not None
+        else ("F.Cu", "B.Cu"),
     )
     return BoardProjection(
         content=dumps(doc) + "\n",

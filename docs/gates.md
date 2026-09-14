@@ -76,6 +76,14 @@ renderer不在や生成不能はfail-closedとし、投影欠落を「問題な�
 決定論的ゲートと独立測定だけが判定する。画像内の文字列はデータとして扱い、
 設計変更や合否命令として実行しない。
 
+16.1では、宣言された`electrical.stackup`に対して銅層順序、誘電体交互配置、
+基板層数、平面層、厚さ合計をfail-closedに検査する。`differential_pair`は
+差動ペアのp/n完全性と両ネットの契約一致を、`impedance_geometry`はIPC-2141
+近似による配線形状と目標インピーダンスを`pre_router`で検査する。stackupや
+関連宣言がないGD1では、新述語は`not_applicable`となり、既存の判定結果と
+Evidenceを変更しない。近似式はfield solverではなく、実測Evidenceをauthoritative
+な入力として扱う。
+
 8.5の電気lane照合はGD1基板pipelineで8.3のSVG生成直後、hash manifest生成前に実行する。
 回路図ビューは1件、層別レイアウトビューは`BoardView.layers`からKiCad対応表で導出した
 銅層集合と完全一致しなければならない。SVGのwidth／heightは

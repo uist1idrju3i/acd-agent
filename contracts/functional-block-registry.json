@@ -59,6 +59,14 @@
       "allowed_change_dimensions": [],
       "mandatory": false,
       "required_predicates": ["led_series_element"]
+    },
+    {
+      "block_id": "high_speed_signal_integrity",
+      "title": "High-speed signal integrity",
+      "description": "Constrains declared differential-pair symmetry and impedance geometry against the stackup.",
+      "allowed_change_dimensions": [],
+      "mandatory": false,
+      "required_predicates": ["differential_pair", "impedance_geometry"]
     }
   ]
 }

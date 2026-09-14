@@ -93,8 +93,17 @@ REQUIRED_RATIONALE_ATTRS: Final[dict[str, frozenset[str]]] = {
             "manufacturing_margin_mm",
             "power_rail",
             "power_source_pin",
+            "differential_pair",
+            "differential_polarity",
+            "target_impedance_ohm",
+            "impedance_tolerance_pct",
+            "impedance_reference_layer",
+            "impedance_trace_width_mm",
+            "impedance_gap_mm",
+            "impedance_routing_layer",
         }
     ),
+    "electrical.stackup": frozenset({"layers", "finished_thickness_mm"}),
     "fab.order_intent": frozenset(
         {
             "fab_profile",
@@ -245,7 +254,10 @@ RATIONALE_EXEMPT_ATTRS: Final[dict[str, dict[str, str]]] = {
             "This declaration is a requirement-derived selection of the applicable "
             "predicate contract rather than a physical design parameter; rationale "
             "records are held by the nets and components forming the topology."
-        )
+        ),
+        "parent_block_id": (
+            "This attribute provides structural grouping and is not a physical design decision."
+        ),
     },
     "electrical.board": {
         "copper_thickness_source": (

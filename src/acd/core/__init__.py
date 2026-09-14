@@ -55,6 +55,7 @@ from acd.core.functional_block_entry import (
 from acd.core.functional_blocks import (
     FunctionalBlockContractError,
     FunctionalBlockRegistry,
+    block_path,
     declared_functional_blocks,
     load_functional_block_registry,
     required_predicate_names,
@@ -181,6 +182,7 @@ __all__ = [
     "append_post_order",
     "append_pre_order",
     "apply_rework_diff",
+    "block_path",
     "build_dry_run_order_payload",
     "build_graph_diff",
     "build_order_submission_record",

@@ -83,6 +83,7 @@ def _write_atomic(path: Path, content: str) -> None:
 def _decision_kind(kind: str) -> DecisionKind:
     mapping: dict[str, DecisionKind] = {
         "electrical.board": "stackup",
+        "electrical.stackup": "stackup",
         "electrical.component": "part_selection",
         "electrical.net": "net_class",
         "firmware.module": "firmware_pin",

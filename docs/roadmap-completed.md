@@ -1555,3 +1555,13 @@ commandとhashを出力する。18.4の出荷検査generatorはsequenceを任意
 self-test項目・entry command・sequenceのsourceをja/en文書へ追加する。検査出力はL3
 観測であり、実機測定EvidenceやL1 gateへ昇格しない。GD1既存graphはinspection modeを
 有効化せず、opt-in境界を維持する。
+
+### 16.1 4層基板・階層graph対応の実装記録
+
+`electrical.stackup`の層順序・厚さ・平面層・基板層数を抽出時に検証し、
+差動ペアの完全性とIPC-2141近似によるインピーダンス形状を`pre_router`述語へ
+追加した。`design.functional_block.parent_block_id`は存在参照とcycle検査を持つ
+階層宣言として扱い、構造属性のためrationale exemptへ分類した。KiCad投影は
+stackup宣言時だけ4層銅層と`setup/stackup`を出力し、2層GD1の出力を維持する。
+計算値はfield solverや実測Evidenceの代替ではなく、実測Evidenceをauthoritative
+として扱う。

@@ -6,6 +6,7 @@
     "electrical.component",
     "electrical.net",
     "electrical.pin",
+    "electrical.stackup",
     "fab.order_intent",
     "firmware.module",
     "firmware.pin_assignment",
