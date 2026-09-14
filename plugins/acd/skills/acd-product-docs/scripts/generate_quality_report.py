@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@00840ce5ea42e010b2e95cac042310c33b4d2008",
+#     "acd @ git+https://github.com/uist1idrju3i/acd-agent@ae5659686ce7512f5ee041153414fa9b12c92c44",
 # ]
 # ///
 """Project the quality documents deterministically from authoritative Evidence.
