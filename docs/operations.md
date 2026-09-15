@@ -1993,8 +1993,7 @@ bundle scriptは`missing_upstream`の各項目がsource treeに存在しない�
 assertし、上流で新たに同梱された場合はbuildを失敗させて`entries`への
 再分類を強制する（fail-closedのままdriftを検出するため）。
 `--with-kicad-3d`実行時、これらのbodyは`import_component_step`で
-`model_missing`のunknownとして記録される。このfail-closed動作は維持し、
-該当コードは変更しない。`missing_upstream`の再生成は
+`model_missing`のunknownとして記録され、合格側へ倒れない。`missing_upstream`の再生成は
 `select_kicad_3d_models.py`が既存`--out`から宣言を引き継ぐため、再生成で
 例外が失われない。追加モデル数に応じてimage sizeと
 publish時間が増えるため、allowlist変更後は通常のpublish workflowでtools／serverを

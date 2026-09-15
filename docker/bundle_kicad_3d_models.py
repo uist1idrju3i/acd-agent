@@ -15,7 +15,6 @@ import json
 import shutil
 import sys
 from pathlib import Path
-from typing import Any
 
 _SCHEMA = "acd.kicad-3d-models/2"
 
@@ -25,6 +24,22 @@ def _fail(message: str) -> int:
     return 2
 
 
+def _model_paths(manifest: dict[str, object], key: str) -> list[Path]:
+    items = manifest.get(key, [])
+    if not isinstance(items, list):
+        raise ValueError(f"{key} must be a list")
+    paths: list[Path] = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError(f"{key} items must be objects")
+        library = item.get("footprint_lib")
+        model = item.get("model_rel_path")
+        if not isinstance(library, str) or not isinstance(model, str):
+            raise ValueError(f"{key} items need footprint_lib and model_rel_path")
+        paths.append(Path(library + ".3dshapes") / model)
+    return paths
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
@@ -32,13 +47,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dest", type=Path, default=Path("/opt/acd/kicad-3d"))
     args = parser.parse_args(argv)
 
-    manifest: dict[str, Any] = json.loads(args.manifest.read_text(encoding="utf-8"))
+    manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        return _fail("manifest must be a JSON object")
     if manifest.get("schema") != _SCHEMA:
         return _fail(f"unsupported schema {manifest.get('schema')!r}; expected {_SCHEMA!r}")
+    try:
+        entries = _model_paths(manifest, "entries")
+        missing_upstream = _model_paths(manifest, "missing_upstream")
+    except ValueError as exc:
+        return _fail(str(exc))
 
     bundled = 0
-    for item in manifest.get("entries", []):
-        rel = Path(item["footprint_lib"] + ".3dshapes") / item["model_rel_path"]
+    for rel in entries:
         source = args.source_root / rel
         if not source.is_file():
             return _fail(f"{source} is not shipped by kicad-packages3d")
@@ -48,8 +69,7 @@ def main(argv: list[str] | None = None) -> int:
         bundled += 1
 
     missing = 0
-    for item in manifest.get("missing_upstream", []):
-        rel = Path(item["footprint_lib"] + ".3dshapes") / item["model_rel_path"]
+    for rel in missing_upstream:
         source = args.source_root / rel
         if source.exists():
             return _fail(
