@@ -32,6 +32,15 @@ L3非権威観測であり、Design Graph、rationale、gate status、Evidence�
 ペリフェラル設定表とメモリマップは機械可読宣言がないため対象外であり、宣言を追加する
 場合は対応する8.5検査も追加する。実provider送信と実発注は引き続きスコープ外である。
 
+契約文書の`schema_version`は`acd.schema.common`の`SUPPORTED_SCHEMA_VERSIONS`
+（現在は`0.1`のみ）で受理範囲を定義する。文書rootの契約は`VersionedAcdModel`を継承し、
+検証前に`migrate_schema_document`が版を検査する。未知の版、文字列でない版、登録のない
+移行段はfail-closedで拒否し、旧版は`register_schema_migration(from, to, fn)`で登録した
+1段ずつの移行を`schema_version`が受理範囲へ入るまで適用する（入力documentは変更しない）。
+版の受理範囲が文書種別ごとに異なる場合はsubclassの`supported_schema_versions`で
+上書きする。`DesignGraph`が最初の適用先であり、他の契約rootは版分岐が必要になった時点で
+同じ基底へ移行する。
+
 ```text
 入力ファイル / profiles
         ↓

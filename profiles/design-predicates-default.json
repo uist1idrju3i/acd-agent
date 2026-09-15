@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "profile_id": "design-predicates-default",
+  "usb_cc_expected_kohm": "5.1k",
+  "i2c_pullup_expected_kohm": "4.7k",
+  "strapping_gpios": [2, 8, 9],
+  "ldo_input_v": 5.0,
+  "ldo_output_v": 3.3,
+  "large_decoupling_uf": 10.0,
+  "small_decoupling_uf": 0.1,
+  "small_decoupling_tolerance_uf": 0.02,
+  "small_cap_distance_mm": 3.0,
+  "large_cap_distance_mm": 8.0,
+  "impedance_formula_constants": {
+    "microstrip": {
+      "z0_factor": 87.0,
+      "denominator_factor": 0.8,
+      "log_factor": 5.98
+    },
+    "stripline": {
+      "z0_factor": 60.0,
+      "denominator_factor": 0.8,
+      "log_factor": 4.0,
+      "pi_factor": 0.67
+    }
+  }
+}

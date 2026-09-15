@@ -5,14 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from typing import Annotated, ClassVar, Final, Literal, cast
+from collections.abc import Callable
+from typing import Annotated, Any, ClassVar, Final, Literal, cast
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, StringConstraints, model_validator
 
 SchemaVersion = Annotated[str, StringConstraints(pattern=r"^[0-9]+\.[0-9]+$")]
-Revision = Annotated[
-    str, StringConstraints(pattern=r"^r[0-9]+(\+WA-[0-9]{3,})?$")
-]
+Revision = Annotated[str, StringConstraints(pattern=r"^r[0-9]+(\+WA-[0-9]{3,})?$")]
 WorkaroundId = Annotated[str, StringConstraints(pattern=r"^WA-[0-9]{3,}$")]
 Sha256 = Annotated[str, StringConstraints(pattern=r"^sha256:[0-9a-f]{64}$")]
 HashOrUnknown = Sha256 | Literal["unknown"]
@@ -22,6 +21,7 @@ NonEmptyStr = Annotated[str, StringConstraints(min_length=1)]
 Timestamp = AwareDatetime
 
 CURRENT_SCHEMA_VERSION: SchemaVersion = "0.1"
+SUPPORTED_SCHEMA_VERSIONS: Final[frozenset[str]] = frozenset({CURRENT_SCHEMA_VERSION})
 
 UNKNOWN: Literal["unknown"] = "unknown"
 
@@ -38,6 +38,88 @@ class AcdModel(BaseModel):
     """Base model for all ACD contracts: strict, immutable, fail-closed."""
 
     model_config: ClassVar[ConfigDict] = ConfigDict(extra="forbid", frozen=True)
+
+
+class SchemaVersionError(ValueError):
+    """Raised when a document declares a schema version that cannot be read."""
+
+
+SchemaMigration = Callable[[dict[str, Any]], dict[str, Any]]
+"""Rewrite a document from one schema version to the next; must set `schema_version`."""
+
+_SCHEMA_MIGRATIONS: dict[tuple[str, str], SchemaMigration] = {}
+
+
+def register_schema_migration(
+    from_version: str, to_version: str, migration: SchemaMigration
+) -> None:
+    """Register a single-step migration; re-registering a step is an error."""
+    key = (from_version, to_version)
+    if key in _SCHEMA_MIGRATIONS:
+        raise SchemaVersionError(
+            f"schema migration {from_version}->{to_version} is registered twice"
+        )
+    _SCHEMA_MIGRATIONS[key] = migration
+
+
+def migrate_schema_document(
+    document: dict[str, Any],
+    *,
+    supported: frozenset[str] = SUPPORTED_SCHEMA_VERSIONS,
+    current: str = CURRENT_SCHEMA_VERSION,
+) -> dict[str, Any]:
+    """Return `document` at a supported schema version or fail closed.
+
+    Documents already at a supported version are returned unchanged. Older versions
+    are migrated one registered step at a time toward `current`; a missing or
+    non-string version, an unregistered step, or a cycle raises `SchemaVersionError`.
+    """
+    version = document.get("schema_version")
+    if not isinstance(version, str):
+        raise SchemaVersionError("schema_version is missing or not a string")
+    if version in supported:
+        return document
+    visited = {version}
+    migrated = document
+    while version not in supported:
+        step = next(
+            ((source, target) for (source, target) in _SCHEMA_MIGRATIONS if source == version),
+            None,
+        )
+        if step is None:
+            raise SchemaVersionError(
+                f"schema_version {version!r} is unsupported and has no migration to {current!r}"
+            )
+        migrated = _SCHEMA_MIGRATIONS[step](dict(migrated))
+        version = migrated.get("schema_version")
+        if not isinstance(version, str) or version in visited:
+            raise SchemaVersionError(
+                f"schema migration {step[0]}->{step[1]} produced an invalid version"
+            )
+        visited.add(version)
+    return migrated
+
+
+class VersionedAcdModel(AcdModel):
+    """Contract root that migrates and checks `schema_version` before validation.
+
+    Subclasses override `supported_schema_versions` when they accept more than the
+    repository-wide `SUPPORTED_SCHEMA_VERSIONS`.
+    """
+
+    supported_schema_versions: ClassVar[frozenset[str]] = SUPPORTED_SCHEMA_VERSIONS
+
+    schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_schema_version(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        document = cast(dict[str, Any], data)
+        if "schema_version" not in document:
+            return document
+        return migrate_schema_document(document, supported=cls.supported_schema_versions)
 
 
 def is_unknown(value: str) -> bool:

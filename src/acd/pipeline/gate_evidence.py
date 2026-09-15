@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from acd.core.design_predicates import (
+    DESIGN_PREDICATE_PROFILE,
     PREDICATE_EVALUATION_STAGE,
     PredicateResult,
     PredicateStatus,
@@ -99,6 +100,7 @@ def write_design_predicate_evidence(
     statuses: list[PredicateStatus] = [predicate.status for predicate in predicates]
     status = _aggregate_status(statuses)
     observation = {
+        "profile": DESIGN_PREDICATE_PROFILE.provenance(),
         "evaluation_stages": {
             predicate.name: PREDICATE_EVALUATION_STAGE[predicate.name]
             for predicate in sorted(predicates, key=lambda item: item.name)

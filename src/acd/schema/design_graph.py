@@ -7,12 +7,11 @@ from typing import Any, Literal, cast
 from pydantic import Field, model_validator
 
 from acd.schema.common import (
-    CURRENT_SCHEMA_VERSION,
     AcdModel,
     NodeId,
     NonEmptyStr,
     Revision,
-    SchemaVersion,
+    VersionedAcdModel,
 )
 
 NodeKind = Literal[
@@ -189,8 +188,7 @@ class GraphNode(AcdModel):
         return self
 
 
-class DesignGraph(AcdModel):
-    schema_version: SchemaVersion = CURRENT_SCHEMA_VERSION
+class DesignGraph(VersionedAcdModel):
     graph_id: NonEmptyStr
     revision: Revision
     nodes: list[GraphNode] = Field(default_factory=list[GraphNode])

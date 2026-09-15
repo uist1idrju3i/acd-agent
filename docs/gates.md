@@ -319,6 +319,17 @@ policyとgraphの`graph_id`／`revision`不一致や入力不正は入力エラ�
 GD1の既定`PREDICATE_CATALOG`、既存Evidence、既定認証判定を変更しない。テストポイント
 カバレッジの判定は製造・検査工程の設計入力であり、認証適合を主張するものではない。
 
+### 設計述語の期待値profile
+
+設計述語（`usb_cc`、`i2c_pullup`、`strapping_pin`、`power_decoupling`、
+`impedance_geometry`など）の期待値と閾値は`profiles/design-predicates-default.json`に
+版付きで置く。`acd.core.design_predicate_profile`が読み込みと検証を行い、失敗は
+fail-closedにする。`design-predicates.json` Evidenceのobservationには
+`profile.profile_id`／`profile.profile_hash`／`profile.schema_version`を記録し、
+どの期待値で観測したかを追跡できるようにする。`acd.core.design_predicates`の
+`CC_EXPECTED_KOHM`などのモジュール定数はprofileから導出した互換surfaceであり、
+値の変更はprofileのみで行う。profile自体はL2/L3の観測条件であり、合格権限を持たない。
+
 ### 16.5 構造安全性述語
 
 構造安全性は`functional-block-registry.json`で適用範囲を宣言する
