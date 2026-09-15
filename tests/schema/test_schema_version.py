@@ -67,7 +67,12 @@ def test_registered_migration_chain_is_applied_in_order(isolated_migrations: Non
 
     register_schema_migration("0.a", "0.0", to_0_0b)
     register_schema_migration("0.0", CURRENT_SCHEMA_VERSION, to_current)
-    legacy = {"schema_version": "0.a", "id": "legacy", "revision": "r1", "nodes": []}
+    legacy: dict[str, Any] = {
+        "schema_version": "0.a",
+        "id": "legacy",
+        "revision": "r1",
+        "nodes": [],
+    }
     graph = DesignGraph.model_validate(legacy)
     assert graph.schema_version == CURRENT_SCHEMA_VERSION
     assert graph.graph_id == "legacy"
