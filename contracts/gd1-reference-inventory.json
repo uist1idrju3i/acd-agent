@@ -167,7 +167,13 @@
       "note": "SDK pipeline tool fixture defaults for positive-control runs plus the board pipeline module import."
     },
     {
-      "path": "src/acd/pipeline/design_loop.py",
+      "path": "src/acd/pipeline/design_loop/recovery.py",
+      "purpose": "module_name",
+      "reference_lines": 1,
+      "note": "Imports the board pipeline module that keeps its historical gd1_board name."
+    },
+    {
+      "path": "src/acd/pipeline/design_loop/stages.py",
       "purpose": "module_name",
       "reference_lines": 1,
       "note": "Imports the board pipeline module that keeps its historical gd1_board name."

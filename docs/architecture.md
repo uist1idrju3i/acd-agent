@@ -345,6 +345,23 @@ fixtureへ宣言して到達できる。電池については`power_boundary`等
 充電・保護回路の規範的契約やpredicateは出荷しない。これはロードマップ16.2／16.3の
 依存である。
 
+## design loop package
+
+design loopは`src/acd/pipeline/design_loop/`packageであり、
+`acd.pipeline.design_loop`のimport面（`run_design_loop`、`DesignLoopConfig`、
+`DEFAULT_STAGE_RUNNERS`、stage ID群）は`__init__.py`が維持する。
+`config.py`は`DesignLoopConfig`とstage record helper（`stage_success`／`stage_failure`、
+`pass_evidence=False`固定）、`stages.py`はstage runnerと`DEFAULT_STAGE_RUNNERS`、
+`recovery.py`はlane recovery宣言の解決・候補探索・候補pipelineのtiming記録、
+`summary.py`はloop結果へ載せるL3要約、`loop.py`は`run_design_loop`本体を担う。
+1回分の実行順は`loop.EXECUTE_ONCE_PLAN`（`ExecuteOnceStep`の宣言順tuple）が
+単一の正であり、各stepは停止条件（既定は`ok`でないか`fail_closed`、
+graph-diff-projectionは`fail_closed`のみ）、有効条件（order-total-aggregationは
+`quote_records`指定時）、runner差し替え（design-onlyのorder-readiness）を宣言する。
+lane群は1 stepとして`DESIGN_LOOP_LANE_IDS`へ展開し、並列実行時も宣言順でreduceする。
+テストでの依存差し替えはfacadeではなく所有module（`design_loop.loop`、
+`design_loop.stages`、`design_loop.recovery`）の名前へ行う。
+
 ## 生成と判定の分離
 
 配置、回転、シルク候補、FW作業、QC・信頼性レビューはOpenHands Skillまたはagentが

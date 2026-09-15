@@ -96,7 +96,7 @@ def test_board_rejection_without_recovery_reports_bounded_rerun_arguments(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
 
     result = run_design_loop(
         FIXTURE,
@@ -126,7 +126,7 @@ def test_unsupported_lane_rejection_reports_a_next_step_action(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        design_loop, "DEFAULT_STAGE_RUNNERS", _runners("silkscreen-resolve")
+        design_loop.loop, "DEFAULT_STAGE_RUNNERS", _runners("silkscreen-resolve")
     )
 
     result = run_design_loop(
@@ -150,7 +150,7 @@ def test_recover_lanes_dispatches_the_declared_enclosure_explorer(
 ) -> None:
     captured: dict[str, Any] = {}
     monkeypatch.setattr(
-        design_loop, "DEFAULT_STAGE_RUNNERS", _runners("enclosure-pipeline")
+        design_loop.loop, "DEFAULT_STAGE_RUNNERS", _runners("enclosure-pipeline")
     )
 
     def fake_explore_enclosure(
@@ -186,9 +186,9 @@ def test_recover_lanes_dispatches_the_declared_enclosure_explorer(
         raise AssertionError("board exploration must not run for an enclosure lane")
 
     monkeypatch.setattr(
-        design_loop, "explore_enclosure_candidates", fake_explore_enclosure
+        design_loop.recovery, "explore_enclosure_candidates", fake_explore_enclosure
     )
-    monkeypatch.setattr(design_loop, "explore_board_candidates", refuse_board)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", refuse_board)
 
     result = run_design_loop(
         FIXTURE,
@@ -215,12 +215,12 @@ def test_remediation_free_board_rejection_consumes_no_candidate_budget(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
 
     def refuse_board(*args: object, **kwargs: object) -> Any:
         raise AssertionError("recovery must not explore without declared remediation")
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", refuse_board)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", refuse_board)
 
     result = run_design_loop(
         _copied_fixture(tmp_path),
@@ -256,7 +256,7 @@ def test_declared_remediation_targets_the_board_explorer(
         graph["revision"],
     )
     captured: dict[str, Any] = {}
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
 
     def fake_explore_board(
         graph_path: Path,
@@ -282,7 +282,7 @@ def test_declared_remediation_targets_the_board_explorer(
             report_path=out_dir / "exploration-report.json",
         )
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore_board)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", fake_explore_board)
 
     result = run_design_loop(
         fixture,
@@ -305,7 +305,7 @@ def test_candidate_timing_isolated_from_open_parent_lane_stage(
     fixture = _copied_fixture(tmp_path)
     out_root = tmp_path / "artifacts"
     graph = json.loads((fixture / "graph.json").read_text(encoding="utf-8"))
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
 
     def failing_board(config: DesignLoopConfig) -> dict[str, Any]:
         assert config.timing_recorder is not None
@@ -323,7 +323,7 @@ def test_candidate_timing_isolated_from_open_parent_lane_stage(
 
     runners = _runners("board-pipeline")
     runners["board-pipeline"] = failing_board
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", runners)
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", runners)
 
     def candidate_pipeline(
         _fixture: Path,
@@ -341,7 +341,7 @@ def test_candidate_timing_isolated_from_open_parent_lane_stage(
         timing_recorder.finish("board[1/12]")
         return {"gate": "completed"}
 
-    monkeypatch.setattr(design_loop, "run_board_pipeline", candidate_pipeline)
+    monkeypatch.setattr(design_loop.recovery, "run_board_pipeline", candidate_pipeline)
 
     def fake_explore_board(
         _graph_path: Path,
@@ -372,7 +372,7 @@ def test_candidate_timing_isolated_from_open_parent_lane_stage(
             report_path=out_dir / "exploration-report.json",
         )
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore_board)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", fake_explore_board)
 
     result = run_design_loop(
         fixture,
@@ -431,12 +431,12 @@ def test_firmware_rejection_with_only_coverage_report_routes_to_declaration_requ
 
     runners = _runners("firmware-pipeline")
     runners["firmware-pipeline"] = failing_firmware
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", runners)
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", runners)
 
     def refuse_board(*args: object, **kwargs: object) -> Any:
         raise AssertionError("board exploration must not run for a firmware lane")
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", refuse_board)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", refuse_board)
 
     result = run_design_loop(
         fixture,
@@ -481,12 +481,12 @@ def test_firmware_rejection_with_no_evidence_fails_closed(
 
     runners = _runners("firmware-pipeline")
     runners["firmware-pipeline"] = failing_firmware
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", runners)
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", runners)
 
     def refuse_exploration(*args: object, **kwargs: object) -> Any:
         raise AssertionError("firmware explorer must not run without evidence")
 
-    monkeypatch.setattr(design_loop, "explore_firmware_candidates", refuse_exploration)
+    monkeypatch.setattr(design_loop.recovery, "explore_firmware_candidates", refuse_exploration)
 
     result = run_design_loop(
         fixture,
@@ -514,9 +514,9 @@ def test_invalid_recovery_declaration_stops_before_any_stage(
     def raise_declaration_error(*args: object, **kwargs: object) -> Any:
         raise design_loop.LaneRecoveryDeclarationError("declaration is invalid")
 
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", _runners("board-pipeline"))
     monkeypatch.setattr(
-        design_loop, "load_lane_recovery_declarations", raise_declaration_error
+        design_loop.loop, "load_lane_recovery_declarations", raise_declaration_error
     )
 
     result = run_design_loop(

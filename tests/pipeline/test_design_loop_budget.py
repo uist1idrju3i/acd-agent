@@ -22,7 +22,7 @@ def _runners(monkeypatch: pytest.MonkeyPatch) -> None:
         return {"stage_id": stage_id, "ok": True, "fail_closed": False}
 
     monkeypatch.setattr(
-        design_loop,
+        design_loop.loop,
         "DEFAULT_STAGE_RUNNERS",
         {stage_id: runner for stage_id in design_loop.DESIGN_LOOP_STAGE_IDS},
     )
@@ -58,7 +58,7 @@ def test_wall_clock_budget_stops_at_stage_boundary(
 ) -> None:
     _runners(monkeypatch)
     clock = itertools.chain([0.0, 0.0, 0.0], itertools.repeat(2.0))
-    monkeypatch.setattr(design_loop, "_MONOTONIC", lambda: next(clock))
+    monkeypatch.setattr(design_loop.loop, "_MONOTONIC", lambda: next(clock))
     result = run_design_loop(
         FIXTURE,
         tmp_path,

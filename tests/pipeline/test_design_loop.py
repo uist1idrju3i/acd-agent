@@ -47,7 +47,7 @@ def _patch_runners(
     monkeypatch: pytest.MonkeyPatch,
     runners: dict[str, Callable[[DesignLoopConfig], Any]],
 ) -> None:
-    monkeypatch.setattr(design_loop, "DEFAULT_STAGE_RUNNERS", runners)
+    monkeypatch.setattr(design_loop.loop, "DEFAULT_STAGE_RUNNERS", runners)
 
 
 def test_design_loop_keeps_fixed_stage_order_and_graph_derived_names(
@@ -56,14 +56,14 @@ def test_design_loop_keeps_fixed_stage_order_and_graph_derived_names(
 ) -> None:
     seen: list[str] = []
     graph_id_calls = 0
-    original_graph_id = design_loop._graph_id  # pyright: ignore[reportPrivateUsage]
+    original_graph_id = design_loop.loop.graph_id_of  # pyright: ignore[reportPrivateUsage]
 
     def graph_id_once(fixture_dir: Path) -> str:
         nonlocal graph_id_calls
         graph_id_calls += 1
         return original_graph_id(fixture_dir)
 
-    monkeypatch.setattr(design_loop, "_graph_id", graph_id_once)
+    monkeypatch.setattr(design_loop.loop, "graph_id_of", graph_id_once)
     _patch_runners(
         monkeypatch,
         {
@@ -423,7 +423,7 @@ def test_order_total_aggregation_runs_before_order_readiness(
             "record_class": "L2",
         }
 
-    monkeypatch.setattr(design_loop, "_run_order_total_aggregation", aggregate)
+    monkeypatch.setattr(design_loop.loop, "run_order_total_aggregation", aggregate)
     _patch_runners(monkeypatch, runners)
     result = run_design_loop(
         FIXTURE,
@@ -510,7 +510,7 @@ def test_order_total_aggregation_failure_skips_order_readiness(
             "failure_reason": "invalid quote",
         }
 
-    monkeypatch.setattr(design_loop, "_run_order_total_aggregation", aggregate)
+    monkeypatch.setattr(design_loop.loop, "run_order_total_aggregation", aggregate)
     _patch_runners(monkeypatch, runners)
     result = run_design_loop(
         FIXTURE,
@@ -642,13 +642,13 @@ def test_order_readiness_resolves_relative_paths_from_repository(
 
         return SimpleNamespace(model_dump=model_dump)
 
-    monkeypatch.setattr(design_loop, "evaluate_pre_order_gate", fake_gate)
+    monkeypatch.setattr(design_loop.stages, "evaluate_pre_order_gate", fake_gate)
 
     def fake_order_total(document: Any) -> Any:
         return SimpleNamespace(document=document)
 
     monkeypatch.setattr(
-        design_loop,
+        design_loop.stages,
         "order_total_result_from_document",
         fake_order_total,
     )
@@ -872,7 +872,7 @@ def test_design_loop_records_timing_write_failure_without_changing_verdict(
         for stage_id in DESIGN_LOOP_STAGE_IDS
     }
     runners["requirement-entry-validation"] = (
-        design_loop._run_requirement_entry_validation  # pyright: ignore[reportPrivateUsage]
+        design_loop.run_requirement_entry_validation_stage
     )
     _patch_runners(monkeypatch, runners)
 
@@ -880,7 +880,7 @@ def test_design_loop_records_timing_write_failure_without_changing_verdict(
         del args, kwargs
         raise OSError("timing destination is unavailable")
 
-    monkeypatch.setattr(design_loop, "write_timing_record", fail_write)
+    monkeypatch.setattr(design_loop.loop, "write_timing_record", fail_write)
     result = run_design_loop(
         FIXTURE,
         tmp_path / "artifacts",
@@ -965,7 +965,7 @@ def test_board_exploration_is_disabled_by_default(
         del args, kwargs
         raise AssertionError("exploration must be opt-in")
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", unexpected_exploration)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", unexpected_exploration)
     result = run_design_loop(
         FIXTURE,
         tmp_path / "artifacts",
@@ -987,7 +987,7 @@ def test_requirement_entry_validation_records_input_facts(
         for stage_id in DESIGN_LOOP_STAGE_IDS
     }
     runners["requirement-entry-validation"] = (
-        design_loop._run_requirement_entry_validation  # pyright: ignore[reportPrivateUsage]
+        design_loop.run_requirement_entry_validation_stage
     )
     _patch_runners(monkeypatch, runners)
 
@@ -1077,7 +1077,7 @@ def test_requirement_compile_is_opt_in_and_records_l2_report(
             }
         )
 
-    monkeypatch.setattr(design_loop, "compile_requirement_change", fake_compile)
+    monkeypatch.setattr(design_loop.stages, "compile_requirement_change", fake_compile)
     result = run_design_loop(
         fixture,
         tmp_path / "artifacts",
@@ -1117,7 +1117,7 @@ def test_requirement_compile_rejects_graph_id_change(
         (fixture_dir / "graph.json").write_text(json.dumps(document), encoding="utf-8")
         return SimpleNamespace(report={})
 
-    monkeypatch.setattr(design_loop, "compile_requirement_change", fake_compile)
+    monkeypatch.setattr(design_loop.stages, "compile_requirement_change", fake_compile)
     result = run_design_loop(
         fixture,
         tmp_path / "artifacts",
@@ -1311,7 +1311,7 @@ def test_board_rejection_explores_with_loop_configuration(
             report_path=out_dir / "exploration-report.json",
         )
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", fake_explore)
     result = run_design_loop(
         FIXTURE,
         tmp_path / "artifacts",
@@ -1376,8 +1376,8 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
         }
 
     monkeypatch.setattr(
-        design_loop,
-        "_run_order_total_aggregation",
+        design_loop.loop,
+        "run_order_total_aggregation",
         aggregate_runner,
     )
 
@@ -1397,7 +1397,7 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
         )
         return {}
 
-    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_board_pipeline)
+    monkeypatch.setattr(design_loop.recovery, "run_board_pipeline", fake_board_pipeline)
 
     def fake_explore(
         graph_path: Path,
@@ -1433,7 +1433,7 @@ def test_candidate_found_updates_graph_and_reruns_all_l1_stages(
             report_path=out_dir / "exploration-report.json",
         )
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", fake_explore)
     fab_profile = tmp_path / "fab-profile.json"
     cache_dir = tmp_path / "cache"
     result = run_design_loop(
@@ -1545,7 +1545,7 @@ def test_candidate_found_requires_graph_identity_and_content_change(
             report_path=out_dir / "exploration-report.json",
         )
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", fake_explore)
     result = run_design_loop(
         fixture,
         tmp_path / "artifacts",
@@ -1616,7 +1616,7 @@ def test_exploration_round_limit_is_fail_closed(
             report_path=out_dir / "exploration-report.json",
         )
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", fake_explore)
     result = run_design_loop(
         fixture,
         tmp_path / "artifacts",
@@ -1682,7 +1682,7 @@ def test_parallel_lane_join_precedes_board_exploration(
             report_path=tmp_path / "exploration-report.json",
         )
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", fake_explore)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", fake_explore)
     result = run_design_loop(
         FIXTURE,
         tmp_path / "artifacts",
@@ -1719,7 +1719,7 @@ def test_exploration_exception_has_error_termination(
         raise RuntimeError("exploration unavailable")
 
     monkeypatch.setattr(
-        design_loop,
+        design_loop.recovery,
         "explore_board_candidates",
         failing_exploration,
     )
@@ -1767,7 +1767,7 @@ def test_non_board_lane_failure_does_not_trigger_exploration(
         del args, kwargs
         raise AssertionError("only board rejection may trigger exploration")
 
-    monkeypatch.setattr(design_loop, "explore_board_candidates", unexpected_exploration)
+    monkeypatch.setattr(design_loop.recovery, "explore_board_candidates", unexpected_exploration)
     result = run_design_loop(
         FIXTURE,
         tmp_path / "artifacts",
@@ -2061,7 +2061,7 @@ def test_silkscreen_resolve_fails_closed_on_unresolved_status(
             "final": {},
         }
 
-    monkeypatch.setattr(design_loop, "resolve_silkscreen", _stub_resolve)
+    monkeypatch.setattr(design_loop.stages, "resolve_silkscreen", _stub_resolve)
 
     result = run_design_loop(
         fixture,
@@ -2104,7 +2104,7 @@ def test_silkscreen_resolve_success_keeps_loop_running(
     def _stub_resolve(*args: Any, **kwargs: Any) -> dict[str, Any]:
         return {"status": "resolved", "iterations": []}
 
-    monkeypatch.setattr(design_loop, "resolve_silkscreen", _stub_resolve)
+    monkeypatch.setattr(design_loop.stages, "resolve_silkscreen", _stub_resolve)
 
     result = run_design_loop(
         FIXTURE,
@@ -2292,10 +2292,10 @@ def test_board_stage_reresolves_silkscreen_once_on_gate_rejection(
         reresolve_calls.append(routed_board)
         return {"status": "candidates_written", "pass_evidence": False}
 
-    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_pipeline)
-    monkeypatch.setattr(design_loop, "reresolve_routed_silkscreen", fake_reresolve)
+    monkeypatch.setattr(design_loop.stages, "run_board_pipeline", fake_pipeline)
+    monkeypatch.setattr(design_loop.stages, "reresolve_routed_silkscreen", fake_reresolve)
 
-    result = design_loop._run_board(config)  # pyright: ignore[reportPrivateUsage]
+    result = design_loop.run_board_stage(config)
 
     assert result["ok"] is True
     assert result["pass_evidence"] is False
@@ -2335,10 +2335,10 @@ def test_board_stage_fails_closed_when_reresolve_round_is_exhausted(
     def fake_reresolve(*args: Any, **kwargs: Any) -> dict[str, object]:
         return {"status": "candidates_written", "pass_evidence": False}
 
-    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_pipeline)
-    monkeypatch.setattr(design_loop, "reresolve_routed_silkscreen", fake_reresolve)
+    monkeypatch.setattr(design_loop.stages, "run_board_pipeline", fake_pipeline)
+    monkeypatch.setattr(design_loop.stages, "reresolve_routed_silkscreen", fake_reresolve)
 
-    result = design_loop._run_board(config)  # pyright: ignore[reportPrivateUsage]
+    result = design_loop.run_board_stage(config)
 
     assert result["ok"] is False
     assert result["pass_evidence"] is False
@@ -2372,10 +2372,10 @@ def test_board_stage_does_not_rerun_pipeline_without_candidates(
     def fake_reresolve(*args: Any, **kwargs: Any) -> dict[str, object]:
         return {"status": "failed_no_candidates", "pass_evidence": False}
 
-    monkeypatch.setattr(design_loop, "run_board_pipeline", fake_pipeline)
-    monkeypatch.setattr(design_loop, "reresolve_routed_silkscreen", fake_reresolve)
+    monkeypatch.setattr(design_loop.stages, "run_board_pipeline", fake_pipeline)
+    monkeypatch.setattr(design_loop.stages, "reresolve_routed_silkscreen", fake_reresolve)
 
-    result = design_loop._run_board(config)  # pyright: ignore[reportPrivateUsage]
+    result = design_loop.run_board_stage(config)
 
     assert result["ok"] is False
     assert result["pass_evidence"] is False
