@@ -112,6 +112,7 @@ def verify_repository(repository: Path = REPO_ROOT) -> list[str]:
     requires_python = read_requires_python(repository, errors)
     scripts_root = repository / "plugins" / "acd" / "skills"
     scripts = sorted(scripts_root.glob("*/scripts/*.py"))
+    scripts.extend(sorted((repository / "plugins" / "acd" / "mcp").glob("*.py")))
     acd_scripts: list[Path] = []
     for script in scripts:
         try:
@@ -151,6 +152,8 @@ def verify_repository(repository: Path = REPO_ROOT) -> list[str]:
                 f"[{expected_dependency!r}], found {dependencies!r}"
             )
 
+        if script.parent.name == "mcp":
+            continue
         skill = script.parent.parent / "SKILL.md"
         relative_skill = relative(skill, repository)
         try:

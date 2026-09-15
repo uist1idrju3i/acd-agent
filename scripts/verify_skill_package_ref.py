@@ -70,6 +70,7 @@ def acd_symbols(source: str, filename: str) -> tuple[list[str], bool, str | None
 
 def _script_paths(repository: Path) -> list[Path]:
     paths = sorted((repository / "plugins" / "acd" / "skills").glob("*/scripts/*.py"))
+    paths.extend(sorted((repository / "plugins" / "acd" / "mcp").glob("*.py")))
     probe = repository / "scripts" / "probe_pinned_acd_graph.py"
     if probe.is_file():
         paths.append(probe)

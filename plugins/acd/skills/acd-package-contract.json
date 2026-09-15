@@ -59,6 +59,13 @@
   "scripts": [
     {
       "acd_symbols": [
+        "acd.openhands.tools.definitions.ACD_TOOL_DEFINITIONS"
+      ],
+      "path": "plugins/acd/mcp/acd_mcp_server.py",
+      "sha256": "0decf77b6d7e4a3b2e17989f6892dd18b440c179772561bba0b2e8a276f34ca9"
+    },
+    {
+      "acd_symbols": [
         "acd.core.cad_normalize.normalize_3mf",
         "acd.core.cad_normalize.normalize_step"
       ],

@@ -473,7 +473,7 @@ capability宣言追記で解消した。いずれも閾値、ゲート挙動、f
 |---|---|---|---|---|---|
 | S-1 | 候補の評価がrationale更新前のgraphで行われ、placement次元の復帰が構造的に成立しない | `recover_lanes`で生成された候補`placement-0001`は`power_decoupling`を満たす配置へ戻していたが、`deterministic pipeline rejected candidate: rationale coverage failed: missing=18, stale=18`で`gate_rejected`。`commit_candidate_graph`のrationale更新はwinner確定時にしか適用されない | 高 | Q-3、Q-4 | 候補評価の入力生成に確定経路と同一の`refresh_rationale_document`を適用し、評価対象graphとrationaleを同一transactionで整合させる。閾値とcoverage要件は変更しない |
 | S-2 | 候補予算とround上限が実効にならない | `--max-exploration-candidates 3 --max-exploration-rounds 2`を指定しても`evaluated_candidates=1`、round=1、`termination_reason=fail_closed_stop`で終了する | 中 | S-1 | 却下が候補固有である場合は残予算で次候補を評価し、予算消費と`remaining_budget`をL3記録へ明示する。fail-closedの停止条件そのものは維持する |
-| S-3 | GUI配布形態ではACD toolが会話へ登録されず、command宣言が満たされない | 新規workspaceの`base_state.json`の`agent.tools`は`terminal`／`file_editor`／`task_tracker`／`canvas_ui_control`／`launch_child_conversation`のみで、`/acd:vibebb-loop`が`allowed-tools`として宣言する`acd_*`が存在しない。`register_acd_tools()`は`build_acd_conversation()`経路にしかない | 高 | ADR-0036 | ambient install経路の会話へACD ToolDefinitionを登録する配布経路を定義する。登録できない形態ではcommandが宣言toolの不在をfail-closedに検出し、代替手順を返す |
+| S-3 | GUI配布形態のACD tool登録経路 | ambient pluginの`.mcp.json`がstdio MCP serverを配布し、17個の`acd_*`を会話へ登録する。明示経路は`register_acd_tools()`を使う | 高 | ADR-0036 | MCP tool listingの30秒制限に備えてinstall doctorがcacheをpre-warmし、300秒のcall制限を超える処理はCLI fallbackへ倒す |
 | S-4 | 部品catalogのlibrary資材宣言と新規fixture生成が食い違う | 新規specからの生成が`FixtureBuilderError: decoupling placement could not be resolved: pinned library file missing: /workspace/acd/libraries/Espressif.pretty/ESP32-C3-MINI-1.kicad_mod`でfail-closed。catalogはfixture相対`libraries/...`を宣言するが、生成fixtureへ資材が置かれず`resolve_fixture_path()`はfixture dirとrepository rootだけを探索する | 高 | P-2、A-2 | catalog entryの資材宣言を、生成fixtureへの同梱かcontainer内絶対pathのどちらかへ統一し、宣言と生成の両側を同じ契約で検査する |
 | S-5 | 長時間laneの進行と試行状況が会話へ返らない | 基板laneは147秒の実行の大半を占めるが、GUI側には現在のlane、経過、試行回数、残予算が出ない。L3 timing recordとexploration reportは生成されている | 低 | Q-2 | 既存のL3 timing record・exploration reportを会話へ返す表示経路を定義する。表示はL3観測であり合否権限を持たない |
 
@@ -488,7 +488,7 @@ S-3はGUI配布形態そのものの不足であり、実装ではなく配布�
 | S-2 | 解消 | 候補固有の却下は`gate_rejected`として残予算で次候補を評価し、予算内訳と`termination_reason`をreportへ記録する。fail-closedの停止は即時打ち切りを維持 |
 | S-4 | 解消 | `src/acd/core/library_assets.py`をcatalogと生成fixtureの共通契約とし、相対宣言の資材を生成fixtureへ同梱してhashを両側で検査する。`scripts/verify_library_assets.py`をfast段へ追加。canonical store `libraries/`への移動でcommit済みGD1 fixtureの相対宣言が解決できなくなった問題は、基板・回路図・project・CPL経路の解決を`resolve_fixture_library_path()`（fixture同梱copy優先、canonical storeへfallback）へ統一して解消した。出荷経路へ届かせるためpinned package refを修正commitへ上げ、library資材を解決するSkill scriptへ`ACD_REPOSITORY_ROOT`の設定を追加した。repository checkoutを伴わないpackaged plugin単体はstore不在でfail-closedとなり、配布形態の論点として残る |
 | S-5 | 解消 | `scripts/report_progress.py`がtiming recordと探索reportをL3 digestとして会話へ返す。読めないrecordは`unknown`で非零終了 |
-| S-3 | 部分 | `scripts/verify_acd_tool_registration.py --command`が宣言toolの不在をfail-closedに検出し、不足toolごとに決定論的CLI入口またはCLI入口が無い理由を返す。ambient install経路の会話へACD ToolDefinitionを登録する配布形態自体は未了 |
+| S-3 | 達成 | pluginの`.mcp.json` stdio serverがACDの17 toolを同名でambient会話へ配布する。install doctorとpackage contractがtool名driftを検出し、`check_ambient_tool_availability`がcommandの`allowed-tools`との整合を検査する |
 
 いずれの表示・診断もL3観測であり、`pass_evidence`と合否権限を持たない。
 
@@ -503,7 +503,7 @@ S-1（候補評価前のrationale更新）は解消を確認できた一方、�
 |---|---|---|---|---|---|
 | T-1 | 候補評価が親laneと同一の`TimingRecorder`を共有し、L3観測の衝突で候補が却下される（独立recorderと観測失敗の`stopped`化により解消済み） | 候補`placement-0001`が`deterministic pipeline rejected candidate: timing stage already started: board[1/12]`で`gate_rejected`。親の基板pipelineはpre-router却下で`board[1/12]`を`finish`せず中断するため、`design_loop`の`pipeline_runner`が`timing_recorder=config.timing_recorder`を渡す候補側で必ず同名stageの再開始になる。復帰は基板却下後にしか起動しないので衝突は常に起きる。現在は候補ごとに独立したL3 timing recordを書き、観測失敗を`stopped`としてL1型の却下から分離する | 高 | S-1、Q-3 | 候補評価では親と独立した`TimingRecorder`を用いる（または候補IDでstage名をnamespaceする）。観測起因の例外は`gate_rejected`ではなく`stopped`として区別し、L3の失敗をL1判定へ持ち込まない。閾値とゲート条件は変更しない |
 | T-2 | 候補生成が次元あたり1件しか返さず、候補予算とround上限が実行として行使されない（宣言順のspacing preference variantと候補診断の記録により解消済み） | `--max-exploration-candidates 3 --max-exploration-rounds 2`に対し`generated_candidates=1`、`consumed_budget=1`、`remaining_budget=2`、`termination_reason=candidate_pool_exhausted`。記録面のS-2は解消しているが、母集団が1件のため予算に意味がない。現在はplacement Skillのspacing preference variantから候補を宣言順に生成し、各候補のprovenanceを保持し、利用不能または重複したvariantを`candidate_generation`へ記録する | 中 | S-2、Q-3 | remediation次元ごとに複数候補（spacing preferenceを段階的に変えた配置）を宣言順で列挙し、`generated_candidates`が上限へ届く生成側を用意する。候補の由来（Skill名・script sha256・proposal hash）とvariantを記録し、利用不能・重複は`candidate_generation`へ記録する |
-| T-3（解消済み） | ambient install経路の会話へACD toolが登録されない | 新規workspaceの会話が露出するtoolは`terminal`／`file_editor`／`task_tracker`／`finish`／`think`／`switch_llm_profile`／`invoke_skill`の7つで、`acd_*`は存在しない。pinned SDK v1.44.1のplugin形式（根拠: `vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）にはToolDefinition登録面がないため、ambient経路での登録は主張しない | 高 | S-3、ADR-0036 | commandが宣言toolの不在をfail-closedに検出し、決定論的CLI fallbackへ倒す。CLI入口を持たない3 toolの段は実行せず不成立として報告する。drift guardをfast段で実行し、この判定はL3観測でauthoritative Evidenceを生成しない |
+| T-3（解消済み） | ambient install経路の会話へACD toolを登録する | pinned SDK v1.44.1のplugin形式には直接のToolDefinition登録面はないが、`.mcp.json`が登録面となり、stdio serverが17 toolを公開する。tool listingは30秒、callは300秒のSDK制限を受ける | 高 | S-3、ADR-0036 | install doctorのpre-warmとtool名drift guardを実行し、300秒を超える処理は決定論的CLI fallbackへ倒す。L3観測はauthoritative Evidenceを生成しない |
 | T-4 | 失敗理由と進行の表示は改善したが、1画面で読める形になっていない（loop summaryとL3 digestの統合により解消済み） | loop summaryへ`failure_reason`と`next_step_action`が入り、`report_progress.py`は`status: "pass"`でtiming recordと探索reportを返す。一方で両者は別出力であり、GUIから「どのlaneが、なぜ止まり、次に何をするか」を一度に読めない。現在は各loopがcanonical hash付き`loop-summary.json`を保存し、digestが`ok`、失敗lane、理由、次手順、roundを同一行で返す | 低 | S-5 | `report_progress.py`のdigestへ`failure_reason`と`next_step_action`を取り込み、lane・経過・試行・残予算・次手順を単一のL3出力にまとめる。表示はL3観測であり合否権限を持たない |
 | T-5 | download対象が欠落したとき、runnerがcommandのstdout／stderrを出さずにtransport失敗で終了する（command出力保持により解消済み） | 探索の出力先を`out/runD`にした実行で、graph由来の既定download path（`out/gd1/evidence-electrical.json`）が存在せず`failed to download workspace file … after 3 attempts`で終了し、container内で得られていたlane結果と探索reportが読めなかった。`_execute_and_download()`は`exit_code == 0`のときだけdownloadするため、commandが成功扱いで終わると欠落が例外になり、`run_in_workspace.py`はstdout出力前に`return 2`する。現在はtransport errorへcommandのexit code・stdout・stderr・部分downloadを保持し、出力してから非ゼロ終了する | 低 | O-2 | Evidence欠落をfail-closedに保ったまま、transport失敗時もcommandのexit code・stdout・stderr・失敗種別を出力してから非ゼロ終了する。download pathの導出規則（graph由来の既定と明示指定）は変更しない |
 
@@ -512,9 +512,8 @@ T-2はT-1の解消後に予算を意味あるものにするための前提で�
 T-5は判定ではなく検証作業の可読性に関わる項目で、fail-closed境界は変えない。
 
 T-1〜T-5は上記の実装により解消済みである。T-3では、pinned SDK v1.44.1のplugin形式に
-ToolDefinition登録面が無い事実を踏まえ、ambient経路でのtool登録を主張せず、commandの
-宣言tool不在をfail-closedに検出して決定論的CLIへ倒す経路とdrift guardを実装した。
-CLI入口を持たない3 toolの段は実行せず不成立として報告する。この判定はL3観測であり、
+直接のToolDefinition登録面はないが、`.mcp.json`を登録面としてstdio serverを配布し、
+tool名driftをfail-closedに検出する。300秒を超える処理は決定論的CLIへ倒す。この判定はL3観測であり、
 authoritative Evidenceを生成しない。
 実機で成功した復帰runのwall-clock記録も未取得である。いずれのL3 recordも
 `pass_evidence: false`であり、L1の合否権限とfail-closed境界は変更していない。
@@ -874,7 +873,7 @@ VibeBB体験を「acd-agent単体」で成立させるうえで、外部の汎�
 15. Q-1〜Q-10（却下からの復帰・反復経路）。Q-4（探索後のrationale更新）とQ-5（spec駆動の作り直し）は、復帰経路をend-to-endで閉じるための前提であり最優先。次にQ-3（remediation由来の候補生成）とQ-2（会話経路からの起動）を扱う。実測では探索段を起動しても候補が書き込みに至らないため、起動の既定化より候補生成の是正が先である。Q-1（laneへの連結）はM-1の後続として広げ、Q-10（capability registryの宣言追加）はO-10の後続として扱う。Q-6・Q-7・Q-8は反復入口の整備、Q-9は診断の拡張である。
 16. R-1〜R-3（14.15実装後に残るFW lane候補生成と配置テスト）。R-1（FW専用の候補生成器）はFW laneの復帰を宣言された次元だけで閉じるために先に扱う。R-2（配置テストの環境非依存化）はP-2の回帰検出を開発ホストへ戻す。R-3はFW復帰の実測記録である。
 17. S-1〜S-5（14.15実装後の実機実測）。S-1（候補評価前のrationale更新）は復帰経路が候補を1件も確定できない直接原因であり最優先。次にS-4（catalogのlibrary資材宣言）で新規設計の入口を通し、S-3（GUI配布形態へのtool登録）で会話経路を宣言どおりにする。S-2は予算の実効化、S-5は進行表示である。
-18. T-1〜T-5（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3の未了部分と同一の配布形態の論点、T-4は表示の統合、T-5はtransport失敗時の出力保持である。
+18. T-1〜T-5（14.17実装後の実機実測）。T-1（候補評価のTimingRecorder共有）は復帰経路の唯一の停止点であり最優先。次にT-2（次元あたり複数候補の生成）で予算とround上限を実効化する。T-3はS-3のMCP配布形態、T-4は表示の統合、T-5はtransport失敗時の出力保持である。
 19. V-1〜V-10（第6回実機実測）。V-6（不足宣言の列挙）はDevin不在で新規設計を1周させるための唯一の停止点であり最優先。次にV-3（報告契約）とV-9（tool登録の一次資料）を同順で扱い、会話経路がL3記録だけで合格を述べないようにする。V-5（失敗時の回収）とV-7（wall-clock明示）は検証可能性、V-1は防御の深さ、V-4・V-8・V-10は運用と手順の整備である。V-2はOpenHands側の課題として記録に留める。
 20. W-1〜W-4（GD1非依存の達成条件）。W-1（非GD1設計の全lane通過）はV-6の解消を前提とし、次にW-2（既定値のGD1固定の棚卸し）とW-3（述語適用条件の宣言化検査）を扱う。W-4（CIへの非GD1 lane追加）はW-1の後続であり、達成後もGD1はpositive controlとして維持する。
 21. Y-1〜Y-11（第8回実機実測、自然文のみ新規設計）。Y-1・Y-4は解消済み、Y-10（source-treeのdirtyをEvidence provenanceへ記録しfail-closedへ）はPR #337で、Y-6（要件→fw.sequence被覆検査）とY-11（`led2_blink`・`button_input` capability）はPR #338・#340で、Y-8（router診断を`loop-summary`へ）と筐体face契約（`front`・`back`・`left`・`right`受理と`mechanical.connector_opening.face_unsupported`のpreflight前倒し）は解消済み。Y-2（coverage要約）とY-7（silkscreen resolverのfail-closed前倒し）も解消済みで、Y-3（library hash採取）は`scripts/pin_library_hashes.py`で、Y-5・Y-9（宣言語彙とdecoupling多pad解決規則）は本branchで解消済み。hook matcherの誤検出（N-3・N-6・N-8）も解消済みで、残る未着手項目は無い。

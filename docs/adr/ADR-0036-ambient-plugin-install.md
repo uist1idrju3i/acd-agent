@@ -53,6 +53,12 @@ ADR-0035はclone不要のSDK標準配布（pip git install＋`Plugin.fetch()`）
 - ambient経路では、明示pluginの`validate_pinned_ref()`検査、SKILL.md事前検証、
   ロード数照合、hook資材の事前検証を行わない。SDK標準の
   warn-and-continue意味論に従う。
+- ACDの`ToolDefinition`はpluginの`.mcp.json`からstdio MCP serverとして配布する。
+  `plugins/acd/mcp/acd_mcp_server.py`は17個の`acd_*` toolを同名で公開し、ambient会話は
+  SDKのMCP merge経路から取得する。SDKのtool listing timeoutは30秒のため、install doctorが
+  `--list-tools`でuv cacheを事前warmする。tool call timeoutは固定300秒であり、長時間の
+  design loopはMCP経路でtimeoutになり得るため、`acd.openhands.tools.ambient`のCLI fallbackを維持する。
+  doctorとpackage contractはmanifestとのtool名driftを検出する。
 - AGENTS.mdのplugin境界（明示ロード限定・自動読み込み無効）とADR-0026の
   marketplace系不採用記述を、本ADRを参照する形へ改訂する。
 - `docs/openhands-sdk-capabilities.json`のsdk.plugin／sdk.skillsの根拠を
@@ -74,8 +80,8 @@ ADR-0035はclone不要のSDK標準配布（pip git install＋`Plugin.fetch()`）
   強制しない。強制が必要な用途は従来の明示ロード経路を使う。
 - installed-plugin経路は、将来のGUIからのMarketplace installが到達する同じSDK機構でもある。
 - pinned SDK v1.44.1のplugin形式（`vendor/software-agent-sdk/openhands-sdk/openhands/sdk/plugin/`）
-  にはToolDefinition登録面がないため、ambient経路でACD tool登録を主張しない。commandの宣言tool不在は
-  fail-closedに検出し、決定論的CLI fallbackへ倒す。
+  には直接のToolDefinition登録面はないが、`.mcp.json`がambient経路の登録面となる。
+  MCP serverの不在・driftはfail-closedに検出し、利用できない長時間処理は決定論的CLI fallbackへ倒す。
 
 ## 検証
 
