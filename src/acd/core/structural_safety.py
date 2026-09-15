@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from itertools import combinations, pairwise
 from typing import cast
 
+from pydantic import ValidationError
+
 from acd.core.design_predicates import (
     PredicateMeasurement,
     PredicateResult,
@@ -16,20 +18,12 @@ from acd.core.design_predicates import (
 )
 from acd.core.electrical import ElectricalLane
 from acd.schema.design_graph import DesignGraph, GraphNode
+from acd.schema.node_attrs import (
+    PROTECTION_ROLES,
+    SIGNAL_CLASSES,
+    RedundantGroupAttrs,
+)
 
-FORBIDDEN_RESOURCES = frozenset(
-    {"connector", "harness", "power_bus", "ic", "via", "thermal_path", "protection_device"}
-)
-SIGNAL_CLASSES = frozenset(
-    {
-        "safety_extra_low_voltage",
-        "mains",
-        "analog_sensitive",
-        "high_speed",
-        "power",
-        "digital",
-    }
-)
 # Fixed incompatibilities are deliberately conservative connector/placement rules.
 INCOMPATIBLE_SIGNAL_CLASS_PAIRS = frozenset(
     {
@@ -42,7 +36,6 @@ INCOMPATIBLE_SIGNAL_CLASS_PAIRS = frozenset(
         frozenset({"analog_sensitive", "power"}),
     }
 )
-PROTECTION_ROLES = frozenset({"fuse", "efuse", "polyfuse", "tvs", "current_limit"})
 PASSIVE_FAMILY_RE = re.compile(r"(?:resistor|capacitor|diode|^r\d|^c\d|^d\d)", re.I)
 # IPC-2221 empirical constants for external and internal conductors. These
 # approximations are engineering estimates, not certification evidence.
@@ -203,11 +196,14 @@ def evaluate_single_point_of_failure(
     failures: list[str] = []
     unknowns: list[str] = []
     for group in groups:
-        members = _string_list(group.attrs.get("members"))
-        forbidden = _string_list(group.attrs.get("resources_shared_forbidden"))
-        if not members or not forbidden or any(
-            item not in FORBIDDEN_RESOURCES for item in forbidden
-        ):
+        try:
+            declared = group.typed_attrs(RedundantGroupAttrs)
+        except ValidationError:
+            unknowns.append(f"{group.id} has an invalid resource declaration")
+            continue
+        members = list(declared.members)
+        forbidden = list(declared.resources_shared_forbidden)
+        if not members or not forbidden:
             unknowns.append(f"{group.id} has an invalid resource declaration")
             continue
         missing = sorted(member for member in members if _node(graph, member) is None)
