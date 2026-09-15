@@ -616,12 +616,6 @@
           "path": "plugins/acd/.mcp.json",
           "symbol": "mcpServers",
           "note": "ambient会話へACD toolを配布するstdio server宣言"
-        },
-        {
-          "kind": "test_direct_import",
-          "path": "tests/openhands/tools/test_acd_mcp_server.py",
-          "symbol": "MCPClient",
-          "note": "SDKのMCP capability symbolをテストへ直接importし、ambient MCP設定とstdio server資材を検証する"
         }
       ]
     },

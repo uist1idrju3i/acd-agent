@@ -119,7 +119,6 @@
 - `sdk.llm.utils.metrics`: **直接import** `src/acd/openhands/session/bootstrap.py` / `Metrics` — 会話metricsをL3観測として扱う
 - `sdk.logger`: **直接import** `src/acd/openhands/session/observation_log.py` / `get_logger` — 観測ログの構造化loggerをSDKから取得する
 - `sdk.mcp`: **plugin資材** `plugins/acd/.mcp.json` / `mcpServers` — ambient会話へACD toolを配布するstdio server宣言
-- `sdk.mcp`: **テスト直接import** `tests/openhands/tools/test_acd_mcp_server.py` / `MCPClient` — SDKのMCP capability symbolをテストへ直接importし、ambient MCP設定とstdio server資材を検証する
 - `sdk.observability`: **直接import** `src/acd/openhands/session/observation_log.py` / `observe` — 観測ログspanをSDK decorator経路へ渡す
 - `sdk.plugin`: **直接import** `src/acd/openhands/distribution/plugin.py` / `PluginSource` — pinned plugin sourceをSDKへ渡す
 - `sdk.profiles`: **SDK内部経路** `src/acd/openhands/session/settings.py` / `validate_agent_profile` — ACD設定からSDK profileを検証生成する
