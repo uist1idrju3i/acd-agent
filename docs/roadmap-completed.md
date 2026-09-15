@@ -1792,3 +1792,16 @@ default FW生成とgolden `acd_main.c` bytesは変更しない。
 結果は`authority="observation"`とする。aggregate schemaのauthorityは`estimate`だが、
 nested observation境界を保持し、既存FW evidenceやL1 gateへ接続しない。hostにESP-IDF、
 QEMU、clang-tidyが無い場合は実行をunknownとして、synthetic fixtureでparserを検証する。
+
+### 10.5 解析結果の文書統合の実装記録
+
+`acd-product-docs`の共通入力loaderへ6種類のanalysis result bundleを追加した。JSONの
+`artifact_kind`で振り分け、core strict schemaを通し、対象graphの`graph_id`／`revision`
+を照合する。欠落は生成失敗ではなく、固定順の6行を`未実施`として残す一方、malformed、
+duplicate、graph／revision不一致はfail-closedである。
+
+品質文書には測定値、status、authority、tool version、input hash、停止側所見を追加した。
+レビュー資料には`analysis/`のraw JSON、`analysis-summary.md`、hash manifest、6項目の
+unchecked／checked checklistを追加し、各文書のprovenanceへ入力hashとartifact kindを
+記録する。すべての解析はL2/L3のprovisional estimate／observationであり、L1 verdictと
+authoritative Evidenceへ昇格しない。

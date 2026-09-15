@@ -14,6 +14,7 @@ import generate_quality_report
 
 REPOSITORY = Path(__file__).resolve().parents[5]
 GRAPH_PATH = REPOSITORY / "fixtures" / "golden-design-1" / "graph.json"
+ANALYSIS_PATH = REPOSITORY / "fixtures" / "golden-design-1" / "analysis"
 RATIONALE_PATH = REPOSITORY / "fixtures" / "golden-design-1" / "rationale.json"
 
 GRAPH = json.loads(GRAPH_PATH.read_text(encoding="utf-8"))
@@ -249,6 +250,38 @@ def test_happy_path_writes_three_documents(
     assert "via_hole_to_hole" in report["dfm"]["checks_not_implemented"][0][
         "rule_id"
     ]
+
+
+def test_analysis_results_render_provisional_stop_side_findings(
+    tmp_path: Path,
+) -> None:
+    files = _inputs(tmp_path)
+    out_dir = tmp_path / "out"
+    argv = [*_argv(files, out_dir, tmp_path), "--analysis", str(ANALYSIS_PATH)]
+    assert generate_quality_report.main(argv) == 0
+    inspection = (out_dir / "inspection-report.md").read_text(encoding="utf-8")
+    assert "解析結果（provisional／estimate）" in inspection
+    assert "所見あり" in inspection
+    assert "FEM" in inspection
+    report = json.loads((out_dir / "quality-report.json").read_text(encoding="utf-8"))
+    assert [entry["status"] for entry in report["analysis"]] == [
+        "pass",
+        "pass",
+        "pass",
+        "pass",
+        "unknown",
+        "unknown",
+    ]
+
+
+def test_missing_analysis_is_explicit_in_english(tmp_path: Path) -> None:
+    files = _inputs(tmp_path)
+    out_dir = tmp_path / "out"
+    argv = [*_argv(files, out_dir, tmp_path), "--lang", "en"]
+    assert generate_quality_report.main(argv) == 0
+    inspection = (out_dir / "en" / "inspection-report.md").read_text(encoding="utf-8")
+    assert inspection.count("not executed") >= 6
+    assert "未実施" not in inspection
 
 
 def test_json_output_is_deterministic(tmp_path: Path) -> None:

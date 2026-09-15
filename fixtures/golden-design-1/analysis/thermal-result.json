@@ -1,0 +1,27 @@
+{
+  "ambient_c": 40.0,
+  "artifact_kind": "thermal_result",
+  "authority": "estimate",
+  "findings": [],
+  "graph_id": "golden-design-1",
+  "input_hashes": {
+    "graph": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "revision": "r1",
+  "schema_version": "0.1",
+  "sources": [
+    {
+      "findings": [],
+      "power_w": 0.1,
+      "refdes": "U2",
+      "status": "pass",
+      "theta_ba_c_per_w": 20.0,
+      "theta_cb_c_per_w": 20.0,
+      "theta_ja_c_per_w": null,
+      "theta_jc_c_per_w": 10.0,
+      "theta_total_c_per_w": 50.0,
+      "tj_c": 45.0
+    }
+  ],
+  "status": "pass"
+}

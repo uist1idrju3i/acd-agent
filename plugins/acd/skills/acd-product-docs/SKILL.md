@@ -137,6 +137,32 @@ uv run --script plugins/acd/skills/acd-product-docs/scripts/generate_review_pack
 uv run pytest plugins/acd/skills/acd-product-docs -q
 ```
 
+## Analysis result inputs
+
+品質文書とレビュー資料へ解析結果を取り込む場合は、各generatorへ
+`--analysis <JSON-or-directory>`を指定する（複数指定可）。入力は
+`artifact_kind`で識別され、次の6種類をサポートする。
+
+- `spice_result`
+- `pdn_result`
+- `wca_result`
+- `thermal_result`
+- `fem_result`
+- `firmware_analysis_result`
+
+各入力は`acd.schema`のstrict modelで検証され、文書対象の`graph_id`と`revision`へ一致する
+必要がある。不正JSON、schema違反、重複、graph／revision不一致はfail-closedで生成を止める。
+ファイルが無い種類はエラーにせず、品質文書・レビュー資料の固定6行に`未実施`（英語は
+`not executed`）として明示し、passを推測しない。
+
+解析結果はL2/L3のprovisional `estimate`またはnested `observation`であり、L1 verdictや
+authoritative Evidenceを変更しない。quality reportでは測定値、status、authority、tool
+version、input hash、fail／unknownの停止側所見を表示する。review packageでは
+`analysis/`にraw JSONをbyte-preservingでコピーし、`analysis-summary.md`、hash manifest、
+6種類のchecked／unchecked checklist項目を生成する。結果ファイルのhashとartifact kindは
+document provenanceにも記録される。`--lang ja`と`--lang en`は同じ契約で、見出しと
+not-executed表記だけがtemplate catalogにより切り替わる。
+
 `--script`はPEP 723のメタデータから依存を自己解決します。ローカルcheckoutで
 開発する場合は、従来どおり`uv run python <path>`を使用します。
 

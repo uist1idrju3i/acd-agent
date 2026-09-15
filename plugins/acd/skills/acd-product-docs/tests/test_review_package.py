@@ -18,6 +18,7 @@ import generate_review_package
 
 REPOSITORY = Path(__file__).resolve().parents[5]
 GRAPH_PATH = REPOSITORY / "fixtures" / "golden-design-1" / "graph.json"
+ANALYSIS_PATH = REPOSITORY / "fixtures" / "golden-design-1" / "analysis"
 
 
 def _inputs(tmp_path: Path) -> dict[str, Path]:
@@ -178,6 +179,41 @@ def test_previous_graph_diff_and_checklist(tmp_path: Path) -> None:
     assert package["pass_evidence"] is False
     assert package["graph_diff_projection_id"] is None
     assert all(item["reviewer_decision"] == "pending" for item in package["checklist"])
+
+
+def test_analysis_files_are_copied_and_added_to_checklist(tmp_path: Path) -> None:
+    files = _inputs(tmp_path)
+    out_dir = tmp_path / "out"
+    analysis_path = tmp_path / "analysis"
+    analysis_path.mkdir()
+    for source in sorted(ANALYSIS_PATH.glob("*.json")):
+        payload = json.loads(source.read_text(encoding="utf-8"))
+        payload["revision"] = "r2"
+        (analysis_path / source.name).write_text(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+    argv = [*_argv(files, out_dir), "--analysis", str(analysis_path)]
+    assert generate_review_package.main(argv) == 0
+    analysis_dir = out_dir / "analysis"
+    assert (analysis_dir / "analysis-summary.md").is_file()
+    assert (analysis_dir / "manifest.json").is_file()
+    assert (analysis_dir / "spice_result.json").read_bytes() == (
+        analysis_path / "spice-result.json"
+    ).read_bytes()
+    package = json.loads((out_dir / "review-package.json").read_text(encoding="utf-8"))
+    analysis_items = [
+        item for item in package["checklist"] if item["item_id"].startswith("analysis:")
+    ]
+    assert len(analysis_items) == 6
+    assert [item["status"] for item in analysis_items] == [
+        "checked",
+        "checked",
+        "checked",
+        "checked",
+        "unchecked",
+        "unchecked",
+    ]
 
 
 def test_depends_on_only_changes_are_edges_not_node_changes() -> None:

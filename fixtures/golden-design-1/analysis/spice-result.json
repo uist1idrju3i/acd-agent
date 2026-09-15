@@ -1,0 +1,31 @@
+{
+  "artifact_kind": "spice_result",
+  "authority": "estimate",
+  "checks": [
+    {
+      "measured": 0.001480687,
+      "quantity": "branch_current",
+      "reason": "measured",
+      "status": "pass",
+      "target": "R6"
+    },
+    {
+      "measured": 206.0,
+      "quantity": "rise_time",
+      "reason": "measured",
+      "status": "pass",
+      "target": "I2C_SDA"
+    }
+  ],
+  "findings": [],
+  "graph_id": "golden-design-1",
+  "input_hashes": {
+    "graph": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "netlist_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "ngspice_version": "45.2",
+  "raw_output_sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "revision": "r1",
+  "schema_version": "0.1",
+  "status": "pass"
+}

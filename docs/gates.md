@@ -369,6 +369,20 @@ aggregate authorityは`estimate`、nested peripheral resultは`observation`と�
 保持する。synthetic／recorded fixtureはparser回帰専用であり、解析結果をEvidenceへ
 昇格させない。
 
+### 10.5 解析結果の文書統合（L2/L3）
+
+品質文書とレビュー資料は、`--analysis`で指定した結果ファイルまたはディレクトリを
+`artifact_kind`で識別し、SPICE、PDN、WCA、熱、FEM、FW解析の6種類を固定順で表示する。
+各JSONは対応するcore strict schemaで検証し、Design Graphの`graph_id`と`revision`に
+一致しない入力は生成を停止する。入力が無い種類も省略せず`未実施`として表示し、passを
+暗示しない。
+
+解析結果のauthorityは`estimate`（FWのstub観測はnested `observation`）であり、
+文書はL3投影、L1 verdictおよびauthoritative Evidenceを変更しない。failまたはunknownは
+品質文書の`停止側所見`へ列挙し、全体状態を`所見あり`とする。レビュー資料には各種類の
+チェックリスト項目、`analysis/`配下のraw JSON、`analysis-summary.md`、hash manifest、
+provenanceを収録する。欠落も6項目のuncheckedとして残す。
+
 ### 10.6 ワーストケース解析（WCA、opt-in estimate）
 
 `WcaRequest`を明示した場合だけ、10.1の`SpiceResult`公称値または宣言公称値へ、

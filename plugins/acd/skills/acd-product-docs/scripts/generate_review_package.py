@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import sys
 from contextvars import ContextVar
 from pathlib import Path
@@ -20,12 +21,16 @@ from acd.core.graph_diff import GraphDiffError, build_graph_diff, unknown_graph_
 from acd.schema.design_graph import DesignGraph
 from acd.schema.graph_diff import GraphDiff
 from doc_inputs import (
+    ANALYSIS_STATUS_TEMPLATE_KEYS,
+    AnalysisBundle,
     DesignPredicates,
     DfmReport,
     DocumentGenerationError,
     DocumentInput,
     DocumentTemplate,
     ProjectionFigure,
+    analysis_summary,
+    load_analysis_results,
     load_design_predicates,
     load_dfm_report,
     load_graph,
@@ -142,6 +147,7 @@ def build_checklist(
     diff: GraphDiff,
     *,
     base_dir: Path,
+    analyses: AnalysisBundle | None = None,
 ) -> list[dict[str, str]]:
     items: list[dict[str, str]] = []
     for predicate in predicates.predicates:
@@ -200,6 +206,29 @@ def build_checklist(
             )
         )
     items.extend(_diff_checklist(diff))
+    if analyses is not None:
+        for artifact in analyses.artifacts:
+            summary = analysis_summary(artifact)
+            status = str(summary["status"])
+            if status == "pass":
+                checklist_status = "checked"
+                detail = t("review.analysis_checklist_present")
+            else:
+                checklist_status = "unchecked"
+                detail = t(
+                    "review.analysis_checklist_reason",
+                    status=status,
+                    reason=summary["findings"],
+                )
+            items.append(
+                _checklist_item(
+                    f"analysis:{artifact.kind}",
+                    "analysis",
+                    artifact.artifact_kind,
+                    checklist_status,
+                    detail,
+                )
+            )
     return items
 
 
@@ -229,6 +258,7 @@ def build_review_package(
     diff: GraphDiff,
     *,
     base_dir: Path,
+    analyses: AnalysisBundle | None = None,
 ) -> dict[str, Any]:
     return {
         "schema_version": 1,
@@ -271,9 +301,66 @@ def build_review_package(
             ],
         },
         "checklist": build_checklist(
-            predicates, dfm, figures, diff, base_dir=base_dir
+            predicates,
+            dfm,
+            figures,
+            diff,
+            base_dir=base_dir,
+            analyses=analyses,
+        ),
+        "analysis": (
+            [analysis_summary(item) for item in analyses.artifacts]
+            if analyses is not None
+            else []
+        ),
+        "analysis_manifest": (
+            [
+                {
+                    "artifact_kind": item.artifact_kind,
+                    "source_path": relative_path(item.path, base_dir),
+                    "sha256": item.content_hash,
+                }
+                for item in analyses.artifacts
+                if item.path is not None
+            ]
+            if analyses is not None
+            else []
         ),
     }
+
+
+def _analysis_markdown(analyses: AnalysisBundle) -> str:
+    lines = [
+        t("review.analysis_heading"),
+        "",
+        t("review.analysis_sentence"),
+        "",
+        "| kind | status | authority | measured values | tool version | input hash | findings |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for artifact in analyses.artifacts:
+        summary = analysis_summary(artifact)
+        status = (
+            t(ANALYSIS_STATUS_TEMPLATE_KEYS["not_run"])
+            if summary["status"] == "not_run"
+            else str(summary["status"])
+        )
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    str(summary["kind"]),
+                    status,
+                    str(summary["authority"]),
+                    str(summary["measured"]),
+                    str(summary["tool_versions"]),
+                    str(summary["input_hashes"]),
+                    str(summary["findings"]),
+                ]
+            )
+            + " |"
+        )
+    return "\n".join(lines) + "\n"
 
 
 def _markdown(
@@ -333,6 +420,35 @@ def _markdown(
         lines.append(f"- unknown `{name}`: {reason}")
     for check in package["dfm"]["checks_not_implemented"]:
         lines.append(f"- not_implemented `{check['rule_id']}`: {check['reason']}")
+    lines.extend(["", t("review.analysis_heading"), "", t("review.analysis_sentence"), ""])
+    lines.extend(
+        [
+            "| kind | status | authority | measured values | tool version | "
+            "input hash | findings |",
+            "|---|---|---|---|---|---|---|",
+        ]
+    )
+    for summary in package["analysis"]:
+        status = (
+            t(ANALYSIS_STATUS_TEMPLATE_KEYS["not_run"])
+            if summary["status"] == "not_run"
+            else str(summary["status"])
+        )
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    str(summary["kind"]),
+                    status,
+                    str(summary["authority"]),
+                    str(summary["measured"]),
+                    str(summary["tool_versions"]),
+                    str(summary["input_hashes"]),
+                    str(summary["findings"]),
+                ]
+            )
+            + " |"
+        )
     lines.extend(
         [
             "",
@@ -366,6 +482,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--projections", type=Path, action="append", required=True)
     parser.add_argument("--design-predicates", type=Path, required=True)
     parser.add_argument("--dfm-report", type=Path, required=True)
+    parser.add_argument(
+        "--analysis",
+        type=Path,
+        action="append",
+        default=None,
+        help="analysis result file or directory; repeatable",
+    )
     parser.add_argument("--previous-graph", type=Path, default=None)
     parser.add_argument("--no-previous-revision", action="store_true")
     parser.add_argument("--out-dir", type=Path, required=True)
@@ -398,6 +521,11 @@ def main(argv: list[str] | None = None) -> int:
             f"DFM report {args.dfm_report} targets revision "
             f"{dfm.target_revision!r}, not {graph.revision!r}"
         )
+    analyses = load_analysis_results(
+        args.analysis or [],
+        graph_id=graph.graph_id,
+        revision=graph.revision,
+    )
     previous_input: DocumentInput | None = None
     if args.previous_graph is not None:
         previous, previous_input = load_graph(args.previous_graph)
@@ -409,6 +537,7 @@ def main(argv: list[str] | None = None) -> int:
         diff = unknown_graph_diff(graph, "previous revision not declared")
     inputs = [
         graph_input,
+        *analyses.inputs(),
         *projection_inputs,
         *(
             DocumentInput(path=figure.image_path, content_hash=sha256_file(figure.image_path))
@@ -423,7 +552,13 @@ def main(argv: list[str] | None = None) -> int:
     if previous_input is not None:
         inputs.append(previous_input)
     package = build_review_package(
-        graph, predicates, dfm, figures, diff, base_dir=args.base_dir
+        graph,
+        predicates,
+        dfm,
+        figures,
+        diff,
+        base_dir=args.base_dir,
+        analyses=analyses,
     )
     outputs = (
         (
@@ -460,9 +595,43 @@ def main(argv: list[str] | None = None) -> int:
             inputs=inputs,
             base_dir=args.base_dir,
             template=template,
+            analysis_provenance=[
+                {
+                    "artifact_kind": artifact.artifact_kind,
+                    "path": relative_path(artifact.path, args.base_dir),
+                    "sha256": artifact.content_hash,
+                }
+                for artifact in analyses.artifacts
+                if artifact.path is not None
+            ],
         )
         print(f"generated {document_path}")
         print(f"provenance {provenance_path}")
+    package_dir = args.out_dir if args.lang == "ja" else args.out_dir / args.lang
+    analysis_dir = package_dir / "analysis"
+    analysis_dir.mkdir(parents=True, exist_ok=True)
+    manifest: list[dict[str, str]] = []
+    for artifact in analyses.artifacts:
+        if artifact.path is None:
+            continue
+        target = analysis_dir / f"{artifact.artifact_kind}.json"
+        shutil.copyfile(artifact.path, target)
+        manifest.append(
+            {
+                "artifact_kind": artifact.artifact_kind,
+                "source_path": relative_path(artifact.path, args.base_dir),
+                "path": relative_path(target, args.base_dir),
+                "sha256": artifact.content_hash,
+            }
+        )
+    (analysis_dir / "analysis-summary.md").write_text(
+        _analysis_markdown(analyses),
+        encoding="utf-8",
+    )
+    (analysis_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return 0
 
 

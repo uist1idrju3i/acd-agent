@@ -29,6 +29,9 @@ from acd.schema.rationale import (
     RationaleRecord,
 )
 from doc_inputs import (
+    ANALYSIS_KIND_TEMPLATE_KEYS,
+    ANALYSIS_STATUS_TEMPLATE_KEYS,
+    AnalysisBundle,
     DesignPredicates,
     DfmFinding,
     DfmReport,
@@ -36,6 +39,8 @@ from doc_inputs import (
     DocumentInput,
     DocumentTemplate,
     PredicateObservation,
+    analysis_summary,
+    load_analysis_results,
     load_design_predicates,
     load_dfm_report,
     load_graph,
@@ -207,6 +212,7 @@ def _render_inspection(
     coverages: tuple[tuple[Path, RationaleCoverageReport], ...],
     predicates: DesignPredicates,
     dfm: DfmReport,
+    analyses: AnalysisBundle,
     base_dir: Path,
 ) -> str:
     """Render the inspection report () Markdown body."""
@@ -279,6 +285,66 @@ def _render_inspection(
                 t("quality.virtual_measurement_sentence")
             )
         lines.append("")
+
+    summaries = [analysis_summary(item) for item in analyses.artifacts]
+    statuses = [str(item["status"]) for item in summaries]
+    overall = (
+        "findings"
+        if any(status in {"fail", "unknown"} for status in statuses)
+        else "not_run"
+        if all(status == "not_run" for status in statuses)
+        else "pass"
+    )
+    lines += [
+        t("quality.analysis_heading"),
+        "",
+        t("quality.analysis_sentence"),
+        "",
+        t(
+            "quality.analysis_overall_sentence",
+            status=t(ANALYSIS_STATUS_TEMPLATE_KEYS[overall]),
+        ),
+        "",
+        t("quality.analysis_table_header"),
+        "|---|---|---|---|---|---|---|",
+    ]
+    for summary in summaries:
+        status = str(summary["status"])
+        status_text = (
+            t(ANALYSIS_STATUS_TEMPLATE_KEYS["not_run"])
+            if status == "not_run"
+            else status
+        )
+        lines.append(
+            "| "
+            + " | ".join(
+                [
+                    t(ANALYSIS_KIND_TEMPLATE_KEYS[str(summary["kind"])]),
+                    status_text,
+                    str(summary["authority"]),
+                    str(summary["measured"]),
+                    str(summary["tool_versions"]),
+                    str(summary["input_hashes"]),
+                    str(summary["findings"]),
+                ]
+            )
+            + " |"
+        )
+    stop_side = [
+        summary
+        for summary in summaries
+        if summary["status"] in {"fail", "unknown"}
+    ]
+    lines += ["", t("quality.analysis_stop_heading"), ""]
+    if stop_side:
+        for summary in stop_side:
+            lines.append(
+                f"- {t(ANALYSIS_KIND_TEMPLATE_KEYS[str(summary['kind'])])}: "
+                f"{summary['status']} — {summary['findings']}"
+            )
+    else:
+        lines.append(t("quality.analysis_stop_none"))
+    lines.append("")
 
     lines += [
         "## rationale coverage",
@@ -479,6 +545,7 @@ def build_quality_report(
     dfm: DfmReport,
     rows: tuple[TraceabilityRow, ...],
     untraced: tuple[str, ...],
+    analyses: AnalysisBundle,
 ) -> dict[str, object]:
     """Build the machine-readable quality report body."""
     return {
@@ -577,6 +644,7 @@ def build_quality_report(
             for row in rows
         ],
         "untraced_requirements": list(untraced),
+        "analysis": [analysis_summary(item) for item in analyses.artifacts],
     }
 
 
@@ -608,6 +676,13 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument("--rationale", type=Path, required=True)
     parser.add_argument("--design-predicates", type=Path, required=True)
     parser.add_argument("--dfm-report", type=Path, required=True)
+    parser.add_argument(
+        "--analysis",
+        type=Path,
+        action="append",
+        default=None,
+        help="analysis result file or directory; repeatable",
+    )
     parser.add_argument("--out-dir", type=Path, required=True)
     parser.add_argument("--base-dir", type=Path, default=Path.cwd())
     parser.add_argument("--lang", choices=("ja", "en"), default="ja")
@@ -653,12 +728,18 @@ def main(argv: list[str] | None = None) -> int:
             f"{dfm.target_revision!r}, not {graph.revision!r}"
         )
     _guard_graph_references(graph, tuple(lanes), rationale)
+    analyses = load_analysis_results(
+        args.analysis or [],
+        graph_id=graph.graph_id,
+        revision=graph.revision,
+    )
     rows, untraced, no_requirement_records = _build_traceability(
         graph, tuple(lanes), rationale
     )
 
     inputs: list[DocumentInput] = [
         graph_input,
+        *analyses.inputs(),
         *(
             DocumentInput(path=path, content_hash=sha256_file(path))
             for path in args.evidence
@@ -681,7 +762,13 @@ def main(argv: list[str] | None = None) -> int:
         (
             "inspection_report",
             _render_inspection(
-                graph, tuple(lanes), coverages, predicates, dfm, args.base_dir
+                graph,
+                tuple(lanes),
+                coverages,
+                predicates,
+                dfm,
+                analyses,
+                args.base_dir,
             ),
             DOCUMENT_NAME,
         ),
@@ -703,6 +790,7 @@ def main(argv: list[str] | None = None) -> int:
                     dfm,
                     rows,
                     untraced,
+                    analyses,
                 ),
                 ensure_ascii=False,
                 indent=2,
@@ -724,6 +812,15 @@ def main(argv: list[str] | None = None) -> int:
             inputs=inputs,
             base_dir=args.base_dir,
             template=template,
+            analysis_provenance=[
+                {
+                    "artifact_kind": artifact.artifact_kind,
+                    "path": relative_path(artifact.path, args.base_dir),
+                    "sha256": artifact.content_hash,
+                }
+                for artifact in analyses.artifacts
+                if artifact.path is not None
+            ],
         )
         print(f"generated {document_path}")
         print(f"provenance {provenance_path}")

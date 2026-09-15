@@ -1,0 +1,20 @@
+{
+  "artifact_kind": "firmware_analysis_result",
+  "authority": "estimate",
+  "findings": [
+    "tool_missing"
+  ],
+  "graph_id": "golden-design-1",
+  "input_hashes": {
+    "tool": "unknown"
+  },
+  "peripheral_sim": null,
+  "revision": "r1",
+  "schema_version": "0.1",
+  "stack_usage": null,
+  "static_analysis": null,
+  "status": "unknown",
+  "tool_versions": {
+    "clang-tidy": "unknown"
+  }
+}
