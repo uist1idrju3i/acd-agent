@@ -317,9 +317,11 @@ GUIでの操作は、既存のCLI入口を会話から呼び出す形に限定�
    結果を宣言順またはprojection ID順に戻す。runner生成直後にworker数分のCAD module warm-up jobを
    Manager由来のBarrierで待ち合わせるため、逐次のrationale／lane抽出／筐体投影とOCP importを重ねられる。
    Linuxの既定forkで
-   OCP状態を継承すると停止するため、CAD経路だけspawnを明示し、基板pipelineの既定contextは
-   変更しない。warm-upのimport失敗やtimeoutは最適化の失敗として警告し、判定を変えずに
-   通常経路を続行する。artifact測定とvisual projectionはこのrunnerへsubmitし、nested poolを作らない。
+   OCP状態を継承すると停止するため、CAD経路はwarm-up付きspawn runnerを使う。基板pipelineの
+   `run_ordered_stages`はforkserver contextを使い、マルチスレッドの親（OpenHands tool executor、
+   pytest-xdist worker）からforkしない。stage callableはどのstart methodでもpickleされるため、
+   逐次・並列・start method間で出力hashと判定は一致する。warm-upのimport失敗やtimeoutは
+   最適化の失敗として警告し、判定を変えずに通常経路を続行する。artifact測定とvisual projectionはこのrunnerへsubmitし、nested poolを作らない。
    筐体候補探索の`--jobs N`は候補fixtureと出力先を分離するが、既定runnerでは
    `pipeline-workers=1`のCAD経路をプロセス内lockで直列化し、OCP/build123dのnested並列と
    oversubscriptionを避ける。カスタムrunnerで内部CAD並列を有効にする場合は、候補側の`--jobs 1`
@@ -2175,7 +2177,9 @@ pytestは既定で`-n auto --dist loadgroup`を使うため、`uv run pytest`は
 DevinがPR作成前に実施する既定検証は`--stage fast`とする。
 `src/acd/core`・`src/acd/pipeline`・`scripts`の判定ロジック変更時は
 `--stage standard`、main merge前は`--stage full`を実施する。PRのCIは変更scopeに応じて
-`fast`または`standard`を実行する。`skills` jobはpushまたはplugin変更時に実行し、
+`fast`または`standard`を実行する（`src/`・`tests/`・`scripts/`・workflow・`pyproject.toml`・
+`uv.lock`に加え、基板pipelineがsubprocessで実行しsha256をprovenanceへ記録する
+`plugins/acd/skills/*/scripts/**`の変更も`standard`とする）。`skills` jobはpushまたはplugin変更時に実行し、
 `container-gates`はmain pushに加え`fixtures/`・`profiles/`・image lock変更PRでも実行し、
 `pinned-acd-probe`はmain pushで実行する。host側の筐体pipelineと
 `probe_tools.py`はprovisionalでauthoritative Evidenceを生成しないため、main CIの`verify`

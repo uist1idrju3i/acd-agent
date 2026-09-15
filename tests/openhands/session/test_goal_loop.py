@@ -276,7 +276,7 @@ def test_goal_gate_exception_fails_closed() -> None:
 def test_goal_loop_does_not_write_evidence(tmp_path: Path) -> None:
     evidence_path = tmp_path / "evidence" / "goal.json"
     evidence = Evidence.model_validate_json(
-        Path("fixtures/contracts/valid/evidence.json").read_text()
+        Path("fixtures/contracts/valid/evidence.json").read_text(encoding="utf-8")
     )
     authoritative_before = evidence.supports_authoritative_pass("r3")
     result = run_acd_goal(
@@ -304,8 +304,8 @@ def test_goal_and_stats_artifacts_are_not_pass_evidence(tmp_path: Path) -> None:
     write_goal_result(result, goal_path)
     write_conversation_stats(ConversationStats(), stats_path)
 
-    assert json.loads(goal_path.read_text())["pass_evidence"] is False
-    stats_payload = json.loads(stats_path.read_text())
+    assert json.loads(goal_path.read_text(encoding="utf-8"))["pass_evidence"] is False
+    stats_payload = json.loads(stats_path.read_text(encoding="utf-8"))
     assert stats_payload["pass_evidence"] is False
     assert stats_payload["artifact_kind"] == "conversation_stats"
     assert stats_payload["usage_to_metrics"] == {}

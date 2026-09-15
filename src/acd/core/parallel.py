@@ -11,6 +11,10 @@ from typing import Any
 
 DEFAULT_PIPELINE_WORKERS = min(os.cpu_count() or 1, 4)
 DEFAULT_CAD_STAGE_WORKERS = 1
+# Stage callables are pickled regardless of start method, so a non-fork
+# context keeps results identical while staying safe when the caller
+# (e.g. the OpenHands tool executor) is multi-threaded.
+STAGE_START_METHOD = "forkserver"
 _WARMUP_TIMEOUT_SECONDS = 30.0
 
 
@@ -25,6 +29,7 @@ def run_ordered_stages(
         return [stage() for _, stage in stages]
     with ProcessPoolExecutor(
         max_workers=min(workers, len(stages)),
+        mp_context=get_context(STAGE_START_METHOD),
     ) as executor:
         futures = [executor.submit(stage) for _, stage in stages]
         return [future.result() for future in futures]

@@ -17,7 +17,7 @@ ROOT = Path(__file__).parents[2]
 def load_fixture(kind: str, name: str) -> dict[str, object]:
     import json
 
-    return json.loads((ROOT / "fixtures/contracts" / kind / name).read_text())
+    return json.loads((ROOT / "fixtures/contracts" / kind / name).read_text(encoding="utf-8"))
 
 
 def test_complete_receipt_reconciliation_builds_provisional_physical_evidence() -> None:

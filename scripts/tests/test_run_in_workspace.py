@@ -452,7 +452,7 @@ def test_cli_writes_host_resource_report(
         )
         == 0
     )
-    assert HostResourceReport.model_validate_json(report_path.read_text()) == report
+    assert HostResourceReport.model_validate_json(report_path.read_text(encoding="utf-8")) == report
 
 
 def test_cli_rejects_cache_directory_for_local_provisional(

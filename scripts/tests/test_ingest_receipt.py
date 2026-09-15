@@ -43,8 +43,12 @@ def test_ingest_receipt_is_byte_stable(tmp_path: Path) -> None:
 
     assert evidence_one.read_bytes() == evidence_two.read_bytes()
     assert report_one.read_bytes() == report_two.read_bytes()
-    first_evidence = PhysicalEvidence.model_validate(json.loads(evidence_one.read_text()))
-    second_evidence = PhysicalEvidence.model_validate(json.loads(evidence_two.read_text()))
+    first_evidence = PhysicalEvidence.model_validate(
+        json.loads(evidence_one.read_text(encoding="utf-8"))
+    )
+    second_evidence = PhysicalEvidence.model_validate(
+        json.loads(evidence_two.read_text(encoding="utf-8"))
+    )
     assert first_evidence.canonical_hash() == second_evidence.canonical_hash()
 
 
@@ -67,7 +71,7 @@ def test_ingest_receipt_blocks_manifest_fail_status(tmp_path: Path) -> None:
         check=False,
     )
     assert result.returncode == 2
-    assert json.loads((tmp_path / "report.json").read_text())["status"] == "unknown"
+    assert json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))["status"] == "unknown"
 
 
 def test_ingest_receipt_invalid_receipt_writes_unknown_report(tmp_path: Path) -> None:
@@ -90,4 +94,4 @@ def test_ingest_receipt_invalid_receipt_writes_unknown_report(tmp_path: Path) ->
         check=False,
     )
     assert result.returncode == 2
-    assert json.loads(report.read_text())["status"] == "unknown"
+    assert json.loads(report.read_text(encoding="utf-8"))["status"] == "unknown"

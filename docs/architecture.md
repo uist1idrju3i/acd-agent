@@ -98,8 +98,10 @@ GD1筐体pipelineは、rationale検証、lane抽出、筐体投影を依存順�
 rationale／lane抽出／筐体投影の逐次区間とimportを重ねる。機械ゲート内のprobeと判定、
 artifact測定helperのshell／lid／assembly再読込は同じrunnerへsubmitし、nested poolを作らない。
 ゲート完了後の断面投影と干渉投影も同じrunnerの独立stageとしてsubmitし、結果はprojection ID順に
-reduceする。基板pipelineの`run_ordered_stages`は既定context（Linuxではfork）を維持し、
-spawn化はOCP/build123dを使う筐体経路に限定する。warm-upはworker数分のjobを
+reduceする。基板pipelineの`run_ordered_stages`は`forkserver` contextを使う。stage callableは
+start methodに関係なくpickleされるため結果は不変であり、OpenHands tool executorのような
+マルチスレッド親からforkする危険（Python 3.12のDeprecationWarning、3.14で既定変更）を避ける。
+warm-up付きspawn runnerはOCP/build123dを使う筐体経路に限定する。warm-upはworker数分のjobを
 Manager由来のBarrierで待ち合わせ、import失敗やtimeoutは最適化の失敗として警告し、
 判定を変えずに通常経路を続行する。`--pipeline-workers 1`はpoolを作らず同じ依存境界を
 逐次実行する。2コアVMではCAD stageの実処理よりspawnとOCP importのコストが大きかったため、

@@ -16,6 +16,10 @@ _CORE_PREFIXES = (
     "scripts/",
     ".github/workflows/",
 )
+# Skill scripts are executed by the board pipeline via subprocess and their
+# sha256 is recorded in provenance, so changing them exercises core tests.
+_SKILL_SCRIPT_MARKER = "/scripts/"
+_SKILL_ROOT = "plugins/acd/skills/"
 _GATES_INPUT_PREFIXES = (
     "fixtures/",
     "profiles/",
@@ -52,6 +56,10 @@ def _changed_files(
     return changed_files
 
 
+def _is_skill_script(path: str) -> bool:
+    return path.startswith(_SKILL_ROOT) and _SKILL_SCRIPT_MARKER in path[len(_SKILL_ROOT) :]
+
+
 def _classify_changes(
     base_sha: str | None, head_sha: str | None, *, run: _Run
 ) -> tuple[bool, bool, bool, bool]:
@@ -62,6 +70,7 @@ def _classify_changes(
     core_changes = any(
         path.startswith(_CORE_PREFIXES)
         or path in {"pyproject.toml", "uv.lock"}
+        or _is_skill_script(path)
         for path in changed_files
     )
     plugin_changes = any(path.startswith("plugins/") for path in changed_files)

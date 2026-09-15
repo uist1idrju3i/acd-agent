@@ -62,6 +62,33 @@ def test_core_configuration_change_runs_core_jobs(
     )
 
 
+@pytest.mark.parametrize(
+    "changed_path",
+    (
+        "plugins/acd/skills/acd-placement-search/scripts/search.py",
+        "plugins/acd/skills/acd-silkscreen-placement/scripts/lib/util.py",
+    ),
+)
+def test_skill_script_change_runs_core_jobs(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, changed_path: str
+) -> None:
+    output = _set_revisions(monkeypatch, tmp_path)
+    assert main(run=_run_with(changed_path + "\n")) == 0
+    assert output.read_text(encoding="utf-8") == (
+        "code=true\ncore=true\nplugins=true\ngates_inputs=false\n"
+    )
+
+
+def test_skill_markdown_change_stays_plugin_only(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    output = _set_revisions(monkeypatch, tmp_path)
+    assert main(run=_run_with("plugins/acd/skills/acd-placement-search/SKILL.md\n")) == 0
+    assert output.read_text(encoding="utf-8") == (
+        "code=false\ncore=false\nplugins=true\ngates_inputs=false\n"
+    )
+
+
 def test_plugin_only_change_runs_plugin_jobs(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

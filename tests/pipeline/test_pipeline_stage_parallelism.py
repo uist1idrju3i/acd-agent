@@ -8,6 +8,8 @@ import argparse
 import json
 import os
 import shutil
+import threading
+import warnings
 from concurrent.futures import Future
 from functools import partial
 from pathlib import Path
@@ -49,7 +51,7 @@ def test_cached_timed_out_router_record_is_ignored() -> None:
 
 def test_router_pass_progression_is_l3_only(tmp_path: Path) -> None:
     _write_router_pass_progression(tmp_path, "r1", "timed_out", (8, 3))
-    report = json.loads((tmp_path / "l3" / "router-pass-progress.json").read_text())
+    report = json.loads((tmp_path / "l3" / "router-pass-progress.json").read_text(encoding="utf-8"))
     assert report == {
         "authority": "L3 observation; not gate authority",
         "convergence_state": "timed_out",
@@ -68,6 +70,29 @@ def test_ordered_stages_keep_declared_order() -> None:
     )
     assert _run_ordered_stages(stages, 1) == _run_ordered_stages(stages, 3)
     assert _run_ordered_stages(stages, 3) == ["first", "second", "third"]
+
+
+def test_ordered_stages_do_not_fork_multithreaded_parent() -> None:
+    stop = threading.Event()
+    thread = threading.Thread(target=stop.wait)
+    thread.start()
+    stages = (
+        ("first", partial(_stage_value, "first")),
+        ("second", partial(_stage_value, "second")),
+    )
+    try:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert _run_ordered_stages(stages, 2) == ["first", "second"]
+    finally:
+        stop.set()
+        thread.join()
+    fork_warnings = [
+        str(item.message)
+        for item in caught
+        if issubclass(item.category, DeprecationWarning) and "fork()" in str(item.message)
+    ]
+    assert fork_warnings == []
 
 
 def test_ordered_stage_failure_is_not_suppressed() -> None:
@@ -288,7 +313,7 @@ def test_pipeline_parallel_hashes_match_sequential(tmp_path: Path) -> None:
     )
 
     def read_hashes(out_dir: Path) -> dict[str, str]:
-        manifest = json.loads((out_dir / "hashes.json").read_text())
+        manifest = json.loads((out_dir / "hashes.json").read_text(encoding="utf-8"))
         return {str(key): str(value) for key, value in manifest.items()}
 
     hashes_a = read_hashes(tmp_path / "sequential-a")

@@ -153,7 +153,7 @@ def test_router_inherits_default_threads(tmp_path: Path, monkeypatch: pytest.Mon
 
     run = runner.route(dsn_path, ses_path, "r1", max_passes=10)
 
-    assert "-mt" not in args_path.read_text().splitlines()
+    assert "-mt" not in args_path.read_text(encoding="utf-8").splitlines()
     assert (
         "implicit router threads (cpu_count-1)"
         in run.envelope.measurement_conditions

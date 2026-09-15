@@ -56,7 +56,7 @@ def test_ingest_functional_run_reports_frequency_failure(tmp_path: Path) -> None
     result = invoke("invalid/led-frequency-out", tmp_path / "evidence", report)
 
     assert result.returncode == 2
-    value = json.loads(report.read_text())
+    value = json.loads(report.read_text(encoding="utf-8"))
     assert value["status"] == "fail"
     assert value["led"]["status"] == "fail"
     assert "frequency" in value["led"]["reason"]
@@ -70,6 +70,6 @@ def test_ingest_functional_run_hash_mismatch_has_no_traceback(
 
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
-    value = json.loads(report.read_text())
+    value = json.loads(report.read_text(encoding="utf-8"))
     assert value["status"] == "unknown"
     assert value["input_hash"] == "unknown"
