@@ -145,3 +145,18 @@ def test_contract_drift_fails_closed(tmp_path: Path) -> None:
     document["fixture_kinds"] = []
     contract.write_text(json.dumps(document), encoding="utf-8")
     assert any("contract drift" in error for error in checker.verify_repository(root))
+
+
+def test_package_module_is_contracted_without_pep723_block(tmp_path: Path) -> None:
+    root = _repository(tmp_path)
+    module = root / "plugins/acd/skills/example/scripts/example_pkg/loader.py"
+    module.parent.mkdir()
+    (module.parent / "__init__.py").write_text("", encoding="utf-8")
+    module.write_text("from acd.foo import missing_symbol\n", encoding="utf-8")
+    errors = checker.verify_repository(root)
+    assert any("contract drift" in error for error in errors)
+    assert any("pinned API symbol" in error for error in errors)
+    assert not any("PEP 723" in error for error in errors)
+    module.write_text("from acd.foo import thing\n", encoding="utf-8")
+    assert checker.write_contract(root) == []
+    assert checker.verify_repository(root) == []

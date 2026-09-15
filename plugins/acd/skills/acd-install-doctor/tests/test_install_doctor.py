@@ -15,6 +15,8 @@ from typing import Any, cast
 
 import pytest
 
+from install_doctor_checks import plugin_checks, workspace_checks
+
 ROOT = Path(__file__).resolve().parents[5]
 PLUGIN_ROOT = ROOT / "plugins" / "acd"
 SCRIPT = PLUGIN_ROOT / "skills" / "acd-install-doctor" / "scripts" / "install_doctor.py"
@@ -104,9 +106,7 @@ def test_development_tree_is_diagnosable_without_host_tools(tmp_path: Path) -> N
         check["name"] == "docker capability" and check["result"] == "pass"
         for check in report["checks"]
     )
-    eda_check = next(
-        check for check in report["checks"] if check["name"] == "EDA capabilities"
-    )
+    eda_check = next(check for check in report["checks"] if check["name"] == "EDA capabilities")
     assert eda_check["result"] == "pass"
     assert "observed inside" in eda_check["detail"]
     assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.4.1"
@@ -128,9 +128,7 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
 
     assert completed.returncode == 0
     _assert_no_required_failures(report)
-    eda_check = next(
-        check for check in report["checks"] if check["name"] == "EDA capabilities"
-    )
+    eda_check = next(check for check in report["checks"] if check["name"] == "EDA capabilities")
     assert eda_check["result"] == "pass"
     assert eda_check["observed_version"] == "kicad-cli=10.0.6, freerouting=2.4.1"
 
@@ -138,9 +136,7 @@ def test_eda_probe_accepts_freerouting_banner_on_nonzero_exit(
 def test_missing_image_eda_tool_is_degraded(tmp_path: Path) -> None:
     _, script = _copy_plugin(tmp_path)
     _, report = _run(script, tmp_path, {"docker": _docker_missing_kicad_stub()})
-    eda_check = next(
-        check for check in report["checks"] if check["name"] == "EDA capabilities"
-    )
+    eda_check = next(check for check in report["checks"] if check["name"] == "EDA capabilities")
     assert report["status"] == "degraded"
     _assert_no_required_failures(report)
     assert eda_check["result"] == "fail"
@@ -152,18 +148,14 @@ def test_host_without_docker_cli_fails_required_checks(tmp_path: Path) -> None:
     completed, report = _run(script, tmp_path, include_docker=False)
     assert completed.returncode == 1
     assert report["status"] == "failed"
-    docker_check = next(
-        check for check in report["checks"] if check["name"] == "docker capability"
-    )
+    docker_check = next(check for check in report["checks"] if check["name"] == "docker capability")
     assert docker_check["required"] is True
     assert docker_check["result"] == "fail"
 
 
 def test_server_image_pull_failure_fails_closed(tmp_path: Path) -> None:
     _, script = _copy_plugin(tmp_path)
-    completed, report = _run(
-        script, tmp_path, {"docker": _docker_pull_failure_stub()}
-    )
+    completed, report = _run(script, tmp_path, {"docker": _docker_pull_failure_stub()})
     assert completed.returncode == 1
     assert report["status"] == "failed"
     image_check = next(
@@ -200,9 +192,7 @@ def test_image_firmware_tool_absence_fails_required_checks(tmp_path: Path) -> No
     assert completed.returncode == 1
     assert report["status"] == "failed"
     firmware_check = next(
-        check
-        for check in report["checks"]
-        if check["name"] == "workspace firmware prerequisites"
+        check for check in report["checks"] if check["name"] == "workspace firmware prerequisites"
     )
     assert firmware_check["result"] == "fail"
     assert "qemu-system-riscv32" in firmware_check["detail"]
@@ -246,9 +236,7 @@ def test_image_firmware_probe_accepts_readable_non_executable_export(
 
     assert completed.returncode == 0
     firmware_check = next(
-        check
-        for check in report["checks"]
-        if check["name"] == "workspace firmware prerequisites"
+        check for check in report["checks"] if check["name"] == "workspace firmware prerequisites"
     )
     assert firmware_check["result"] == "pass"
     assert "IDF_PATH/export.sh=present" in firmware_check["detail"]
@@ -292,9 +280,7 @@ def test_tool_registration_check_reports_declared_and_registered_names(
 ) -> None:
     _, script = _copy_plugin(tmp_path)
     _, report = _run(script, tmp_path)
-    check = next(
-        item for item in report["checks"] if item["name"] == "ACD tool registration"
-    )
+    check = next(item for item in report["checks"] if item["name"] == "ACD tool registration")
     assert check["result"] == "pass"
     assert "acd_probe_tools" in check["observed_version"]
     assert "register_acd_tools" in check["detail"]
@@ -314,9 +300,7 @@ def test_tool_registration_check_fails_on_undeclared_agent_tool(
     )
     completed, report = _run(script, tmp_path)
     assert completed.returncode == 1
-    check = next(
-        item for item in report["checks"] if item["name"] == "ACD tool registration"
-    )
+    check = next(item for item in report["checks"] if item["name"] == "ACD tool registration")
     assert check["result"] == "fail"
     assert "acd_unknown_tool" in check["detail"]
 
@@ -328,9 +312,7 @@ def test_tool_registration_check_fails_closed_on_missing_manifest(
     (copied / ".plugin" / "acd-tool-definitions.json").unlink()
     completed, report = _run(script, tmp_path)
     assert completed.returncode == 1
-    check = next(
-        item for item in report["checks"] if item["name"] == "ACD tool registration"
-    )
+    check = next(item for item in report["checks"] if item["name"] == "ACD tool registration")
     assert check["result"] == "unknown"
 
 
@@ -345,17 +327,12 @@ def test_mcp_server_check_passes_and_prewarms_listing(
             (copied / ".plugin" / "acd-tool-definitions.json").read_text(encoding="utf-8")
         )["tools"]
     ]
-    def run_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess[str](
-            command, 0, json.dumps({"tools": names}), ""
-        )
 
-    monkeypatch.setattr(
-        doctor,
-        "_run_mcp_tool_listing",
-        run_listing,
-    )
-    check = doctor._mcp_server_check(copied)
+    def run_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess[str](command, 0, json.dumps({"tools": names}), "")
+
+    monkeypatch.setattr(plugin_checks, "_run_mcp_tool_listing", run_listing)
+    check = doctor.mcp_server_check(copied)
     assert check["result"] == "pass"
     assert "30s" in check["detail"]
     assert "300s" in check["detail"]
@@ -366,17 +343,14 @@ def test_mcp_server_check_fails_on_name_mismatch(
 ) -> None:
     copied, _ = _copy_plugin(tmp_path)
     doctor = _load_doctor_module()
+
     def run_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess[str](
             command, 0, json.dumps({"tools": ["acd_wrong"]}), ""
         )
 
-    monkeypatch.setattr(
-        doctor,
-        "_run_mcp_tool_listing",
-        run_listing,
-    )
-    check = doctor._mcp_server_check(copied)
+    monkeypatch.setattr(plugin_checks, "_run_mcp_tool_listing", run_listing)
+    check = doctor.mcp_server_check(copied)
     assert check["result"] == "fail"
     assert "missing=" in check["detail"]
 
@@ -385,7 +359,7 @@ def test_mcp_server_check_reports_missing_config_as_unknown(tmp_path: Path) -> N
     copied, _ = _copy_plugin(tmp_path)
     copied.joinpath(".mcp.json").unlink()
     doctor = _load_doctor_module()
-    check = doctor._mcp_server_check(copied)
+    check = doctor.mcp_server_check(copied)
     assert check["result"] == "unknown"
 
 
@@ -396,7 +370,7 @@ def test_mcp_server_check_fails_on_missing_script(tmp_path: Path) -> None:
     config["mcpServers"]["acd"]["args"][-1] = "${SKILL_ROOT}/mcp/missing.py"
     config_path.write_text(json.dumps(config), encoding="utf-8")
     doctor = _load_doctor_module()
-    check = doctor._mcp_server_check(copied)
+    check = doctor.mcp_server_check(copied)
     assert check["result"] == "fail"
     assert "script is missing" in check["detail"]
 
@@ -408,7 +382,7 @@ def test_mcp_server_check_fails_on_invalid_command(tmp_path: Path) -> None:
     config["mcpServers"]["acd"]["command"] = "python"
     config_path.write_text(json.dumps(config), encoding="utf-8")
     doctor = _load_doctor_module()
-    check = doctor._mcp_server_check(copied)
+    check = doctor.mcp_server_check(copied)
     assert check["result"] == "fail"
     assert "uv command" in check["detail"]
 
@@ -418,15 +392,12 @@ def test_mcp_server_check_reports_runner_failure_as_unknown(
 ) -> None:
     copied, _ = _copy_plugin(tmp_path)
     doctor = _load_doctor_module()
+
     def run_listing(command: list[str]) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess[str](command, 1, "", "runner failed")
 
-    monkeypatch.setattr(
-        doctor,
-        "_run_mcp_tool_listing",
-        run_listing,
-    )
-    check = doctor._mcp_server_check(copied)
+    monkeypatch.setattr(plugin_checks, "_run_mcp_tool_listing", run_listing)
+    check = doctor.mcp_server_check(copied)
     assert check["result"] == "unknown"
     assert "runner failed" in check["detail"]
 
@@ -492,9 +463,7 @@ def test_workspace_only_hook_path_fails_closed(tmp_path: Path) -> None:
     completed, report = _run(script, tmp_path)
     assert completed.returncode == 1
     check = next(
-        check
-        for check in report["checks"]
-        if check["name"] == "hook plugin root resolution"
+        check for check in report["checks"] if check["name"] == "hook plugin root resolution"
     )
     assert check["result"] == "fail"
     assert ".openhands/plugins/installed/acd" in check["detail"]
@@ -520,8 +489,7 @@ def test_required_tree_drift_fails_closed(
     assert completed.returncode == 1
     assert report["status"] == "failed"
     assert any(
-        check["required"] and check["result"] in {"fail", "unknown"}
-        for check in report["checks"]
+        check["required"] and check["result"] in {"fail", "unknown"} for check in report["checks"]
     )
 
 
@@ -530,17 +498,13 @@ def test_declared_agent_skill_is_reported_by_name(tmp_path: Path) -> None:
     _declare_agent_skill(script.parents[3] / "agents" / "acd-search.md")
     completed, report = _run(script, tmp_path)
     assert completed.returncode == 1
-    check = next(
-        check for check in report["checks"] if check["name"] == "agent skill declarations"
-    )
+    check = next(check for check in report["checks"] if check["name"] == "agent skill declarations")
     assert check["required"] and check["result"] == "fail"
     assert "acd-placement-search" in check["detail"]
 
 
 def _package_check(report: dict[str, Any]) -> dict[str, Any]:
-    return next(
-        check for check in report["checks"] if check["name"] == "Skill package reference"
-    )
+    return next(check for check in report["checks"] if check["name"] == "Skill package reference")
 
 
 def test_package_contract_missing_fails_closed(tmp_path: Path) -> None:
@@ -623,7 +587,7 @@ def _docker_stub() -> str:
         'printf "=== kicad-cli ===\\n10.0.6\\n'
         '=== freerouting ===\\nFreerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
-        '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
+        "=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n"
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
         "else exit 0; fi"
     )
@@ -638,7 +602,7 @@ def _docker_probe_stub() -> str:
         'printf "=== kicad-cli ===\\n10.0.6\\n'
         '=== freerouting ===\\nINFO Freerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
-        '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
+        "=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n"
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
         "else exit 0; fi"
     )
@@ -653,7 +617,7 @@ def _docker_missing_kicad_stub() -> str:
         'printf "=== kicad-cli ===\\ncommand not found\\n'
         '=== freerouting ===\\nFreerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
-        '=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n'
+        "=== qemu-system-riscv32 ===\\nQEMU emulator version 9.2.2\\n"
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
         "else exit 0; fi"
     )
@@ -679,7 +643,7 @@ def _docker_missing_firmware_stub() -> str:
         'printf "=== kicad-cli ===\\n10.0.6\\n'
         '=== freerouting ===\\nFreerouting v2.4.1\\n"; '
         'printf "=== IDF_PATH/export.sh ===\\npresent\\n'
-        '=== qemu-system-riscv32 ===\\nmissing\\n'
+        "=== qemu-system-riscv32 ===\\nmissing\\n"
         '=== cmake ===\\ncmake version 4.2.3\\n"; '
         "else exit 0; fi"
     )
@@ -691,8 +655,8 @@ def _docker_readable_firmware_stub(idf: Path, tool_dir: Path) -> str:
         'printf "Docker version 27.4.1, build test\\n"; '
         'elif [ "$1" = "run" ]; then '
         '[ "$4" = "" ] || exit 88; '
-        f'export IDF_PATH={shlex.quote(str(idf))}; '
-        f'export PATH={shlex.quote(str(tool_dir))}:$PATH; '
+        f"export IDF_PATH={shlex.quote(str(idf))}; "
+        f"export PATH={shlex.quote(str(tool_dir))}:$PATH; "
         '/bin/sh -c "$8"; '
         "else exit 0; fi"
     )
@@ -734,9 +698,7 @@ def test_install_location_distinguishes_development_and_store_layouts(
     )
     assert completed.returncode == 0
     correct_check = next(
-        check
-        for check in correct_report["checks"]
-        if check["name"] == "plugin install location"
+        check for check in correct_report["checks"] if check["name"] == "plugin install location"
     )
     assert correct_check["result"] == "pass"
     assert "direct installed plugin directory" in correct_check["detail"]
@@ -752,9 +714,7 @@ def test_install_location_distinguishes_development_and_store_layouts(
     assert completed.returncode == 1
     assert wrong_report["status"] == "failed"
     wrong_check = next(
-        check
-        for check in wrong_report["checks"]
-        if check["name"] == "plugin install location"
+        check for check in wrong_report["checks"] if check["name"] == "plugin install location"
     )
     assert wrong_check["required"] is True
     assert wrong_check["result"] == "fail"
@@ -796,9 +756,7 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
     )
     assert completed.returncode == 0
     _assert_no_required_failures(report)
-    hook_check = next(
-        check for check in report["checks"] if check["name"] == "hook invocability"
-    )
+    hook_check = next(check for check in report["checks"] if check["name"] == "hook invocability")
     assert hook_check["required"] is False
     assert hook_check["result"] == "pass"
     assert hook_check["observed_version"] == "0"
@@ -832,9 +790,7 @@ def test_hook_invocability_reports_interpreter_dispatch_and_direct_state(
     assert completed.returncode == 0
     _assert_no_required_failures(invocable_report)
     invocable_hook_check = next(
-        check
-        for check in invocable_report["checks"]
-        if check["name"] == "hook invocability"
+        check for check in invocable_report["checks"] if check["name"] == "hook invocability"
     )
     assert invocable_hook_check["result"] == "pass"
 
@@ -846,7 +802,7 @@ def test_workspace_repository_missing_fails_closed(tmp_path: Path) -> None:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    result = module._workspace_repository_check(tmp_path / "missing")
+    result = workspace_checks.workspace_repository_check(tmp_path / "missing")
     assert result["result"] in {"fail", "unknown"}
     assert result["required"] is True
 
@@ -858,7 +814,7 @@ def test_workspace_submodule_missing_fails_closed(tmp_path: Path) -> None:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    result = module._workspace_submodule_check(tmp_path)
+    result = workspace_checks.workspace_submodule_check(tmp_path)
     assert result["result"] == "fail"
     assert result["required"] is True
 
@@ -875,19 +831,20 @@ def test_workspace_lock_out_of_sync_fails_closed(
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+
     def find_uv(command: str) -> str:
         del command
         return "/bin/uv"
 
-    monkeypatch.setattr(module.shutil, "which", find_uv)
+    monkeypatch.setattr(shutil, "which", find_uv)
 
     def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         del kwargs
         assert command == ["/bin/uv", "lock", "--check"]
         return subprocess.CompletedProcess(command, 1, "", "lock needs update")
 
-    monkeypatch.setattr(module.subprocess, "run", run)
-    result = module._workspace_lock_check(tmp_path)
+    monkeypatch.setattr(subprocess, "run", run)
+    result = workspace_checks.workspace_lock_check(tmp_path)
     assert result["result"] == "fail"
 
 
@@ -914,17 +871,19 @@ def test_workspace_missing_server_image_fails_without_pull(
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+
     def find_docker(command: str) -> str:
         del command
         return "/bin/docker"
 
-    monkeypatch.setattr(module.shutil, "which", find_docker)
+    monkeypatch.setattr(shutil, "which", find_docker)
+
     def run(command: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         del kwargs
         return subprocess.CompletedProcess(command, 1, "", "not found")
 
-    monkeypatch.setattr(module.subprocess, "run", run)
-    result = module._workspace_digest_check(tmp_path)
+    monkeypatch.setattr(subprocess, "run", run)
+    result = workspace_checks.workspace_digest_check(tmp_path)
     assert result["result"] == "fail"
     assert "pull" in result["detail"]
 
@@ -933,9 +892,7 @@ def test_every_check_carries_a_path_and_paths_summary_groups_names(
     tmp_path: Path,
 ) -> None:
     _, script = _copy_plugin(tmp_path)
-    completed, report = _run(
-        script, tmp_path, doctor_args=["--workspace", str(ROOT)]
-    )
+    completed, report = _run(script, tmp_path, doctor_args=["--workspace", str(ROOT)])
     assert completed.returncode in {0, 1}
     for check in report["checks"]:
         assert check["path"] in {"authoritative-path", "provisional-path", "plugin"}
@@ -1026,8 +983,4 @@ def test_container_mode_omits_host_firmware_toolchain(tmp_path: Path) -> None:
         extra_env={"ACD_HOME": str(tmp_path)},
     )
     assert completed.returncode in {0, 1}
-    assert not [
-        check
-        for check in report["checks"]
-        if check["name"] == "host firmware toolchain"
-    ]
+    assert not [check for check in report["checks"] if check["name"] == "host firmware toolchain"]
